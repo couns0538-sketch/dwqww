@@ -1,0 +1,3749 @@
++ date -u +%Y-%m-%dT%H:%M:%SZ
+2026-11-14T17:13:55Z
++ git rev-parse HEAD
+03afad5500de0776006dc8f24656a812d90b8820
++ git status --short
++ jq '{start,end,phase,active,totals:[.totals|to_entries[]|{phase:.key,status:.value.status,counts:(.value.counts|with_entries(select(.key|test("^(engine_builds|test_checks|nonzero_checks|sanitizer_reports|games|searches|positions|excluded|differences_low_clock|differences_high_clock|fault_positions|faults|completed_units|trials|tests_completed|cases|mate_bound_check_failures|positive_mates_checked|reproductions|wins|losses|draws|audit_errors)$"))))}],incomplete:[.incomplete[]|{phase,id,reason,repeatedBy}],latestAudit}' /workspace/work/all-run/review-t1-t8/finalization-review/state-snapshot.json.txt
+{
+  "start": "2026-11-14T11:11:32Z",
+  "end": "2026-11-14T19:11:32Z",
+  "phase": "3-ContHist4PlyRead",
+  "active": {
+    "phase": "3-ContHist4PlyRead",
+    "id": 7,
+    "seed": 8475007,
+    "description": "Official fastchess; merged ContHist4PlyRead on versus all-three off;400 games in200 color-swapped UHO pairs, nodes20000,Threads1,Hash16,OwnBookfalse,recover,no clock/adjudication",
+    "log": "/workspace/work/all-run/logs/3-ContHist4PlyRead-0007.txt",
+    "metadata": "/workspace/work/all-run/logs/3-ContHist4PlyRead-0007.txt.run-spec.json",
+    "started": "2026-11-14T17:11:20.348Z"
+  },
+  "totals": [
+    {
+      "phase": "Part1",
+      "status": "Complete with four stale fixture comparisons and one incomplete full ASan attempt; reduced retry passed",
+      "counts": {
+        "engine_builds": 3,
+        "test_checks": 58,
+        "nonzero_checks": 5,
+        "sanitizer_reports": 0
+      }
+    },
+    {
+      "phase": "2D",
+      "status": "Complete: 1131 games / 131115 searches; ASAN+UBSAN Threads1/2, nodes2000/20000; no chess/runtime diagnostics",
+      "counts": {
+        "games": 1131,
+        "searches": 131115,
+        "faults": 0
+      }
+    },
+    {
+      "phase": "2Aprep",
+      "status": "Complete: 40 KRK, 40 KQK and 40 KBBK roots frozen",
+      "counts": {
+        "completed_units": 2000,
+        "trials": 2442,
+        "faults": 0
+      }
+    },
+    {
+      "phase": "2A",
+      "status": "Complete: merged 0/2,400 and lock 298/2,400 mate-score misses",
+      "counts": {
+        "completed_units": 480,
+        "trials": 4800,
+        "faults": 298
+      }
+    },
+    {
+      "phase": "Part4",
+      "status": "Known-root investigation complete; optional broader sampled audit pending",
+      "counts": {}
+    },
+    {
+      "phase": "2B",
+      "status": "Complete: 800 depth-12 searches on 200 roots, both builds at Threads 1/2; no fault",
+      "counts": {
+        "completed_units": 800,
+        "trials": 800,
+        "faults": 0
+      }
+    },
+    {
+      "phase": "2KRKsplit",
+      "status": "Complete: two unchanged40x5 invocations; 0/400 main misses,0/200 T1 misses, no sanitizer report",
+      "counts": {
+        "tests_completed": 2,
+        "sanitizer_reports": 0
+      }
+    },
+    {
+      "phase": "2C",
+      "status": "Complete:100,000 positions; 8 required low-clock equality failures; 31 high-clock differences observed",
+      "counts": {
+        "positions": 100000,
+        "differences_low_clock": 8,
+        "differences_high_clock": 31,
+        "fault_positions": 8,
+        "excluded": 715
+      }
+    },
+    {
+      "phase": "2E",
+      "status": "Complete: 56 games / 8297 searches; TSan Threads2/4; no warnings; original E5 timeout excluded and retry completed",
+      "counts": {
+        "games": 56,
+        "searches": 8297,
+        "faults": 0
+      }
+    },
+    {
+      "phase": "2F",
+      "status": "Complete: 1102 ASAN+UBSAN games / 126532 searches plus14 enabled-option TSan games /1886 searches; no chess/runtime diagnostics",
+      "counts": {
+        "games": 1116,
+        "searches": 128418,
+        "faults": 0
+      }
+    },
+    {
+      "phase": "2G",
+      "status": "Complete: four unchanged suite runs; 120 cases; zero missed/false mates, illegal moves, rule50 failures, or sanitizer reports",
+      "counts": {
+        "tests_completed": 4,
+        "cases": 120,
+        "sanitizer_reports": 0
+      }
+    },
+    {
+      "phase": "3-default",
+      "status": "Complete:4000 games,2000 color-swapped UHO pairs; W-L-D1094-1177-1729; no crash/illegal/disconnect/stall/abort marker or event; counts only",
+      "counts": {
+        "games": 4000,
+        "wins": 1094,
+        "losses": 1177,
+        "draws": 1729,
+        "audit_errors": 0
+      }
+    },
+    {
+      "phase": "3-ContHist4PlyRead",
+      "status": "Running",
+      "counts": {
+        "games": 2400,
+        "wins": 673,
+        "losses": 666,
+        "draws": 1061,
+        "audit_errors": 0
+      }
+    }
+  ],
+  "incomplete": [
+    {
+      "phase": "2A",
+      "id": 1,
+      "reason": "driver retained partial work separately",
+      "repeatedBy": 2
+    },
+    {
+      "phase": "2A",
+      "id": 2,
+      "reason": "driver retained partial work separately",
+      "repeatedBy": 3
+    },
+    {
+      "phase": "2KRKfull",
+      "id": 1,
+      "reason": "expected exactly one actual config line; expected exactly one Threads-1 result; expected exactly one main SUMMARY; actual config does not match 40 10 2 16 14 1; incomplete or invalid T1 checks; incomplete or inconsistent main counts; test did not terminate normally within the budget",
+      "repeatedBy": "2KRKsplit #1 and #2 (coverage split into5+5; originalsingleinvocation remains incomplete)"
+    },
+    {
+      "phase": "2C",
+      "id": 1,
+      "reason": "driver retained partial work separately",
+      "repeatedBy": "2"
+    },
+    {
+      "phase": "2C",
+      "id": 2,
+      "reason": "driver retained partial work separately",
+      "repeatedBy": "3"
+    },
+    {
+      "phase": "2C",
+      "id": 3,
+      "reason": "driver retained partial work separately",
+      "repeatedBy": "4"
+    },
+    {
+      "phase": "2C",
+      "id": 4,
+      "reason": "driver retained partial work separately",
+      "repeatedBy": "5"
+    },
+    {
+      "phase": "2C",
+      "id": 5,
+      "reason": "driver retained partial work separately",
+      "repeatedBy": "6"
+    },
+    {
+      "phase": "2C",
+      "id": 6,
+      "reason": "driver retained partial work separately",
+      "repeatedBy": "7"
+    },
+    {
+      "phase": "2E",
+      "id": 5,
+      "reason": "no SUMMARY line",
+      "repeatedBy": "5r1"
+    }
+  ],
+  "latestAudit": "/workspace/work/all-run/audit-part2-final.json"
+}
++ sed -n 1,40p forge-combo29/soak_all/SOAK_ALL_REPORT.md
+# Eight-hour combined Forge integration and soak
+
+Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T17:11:02.782Z.
+
+Elapsed at snapshot: 359.51 minutes; current phase: 3-ContHist4PlyRead; recorded pushes: 65. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
+
+Base: `fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca`; merged source: `f27b1971e459581ad4c85b7015f6af83bbfd4af6`; unchanged lock: `16833ecc03b425586f91f4c8834dea8807bf4c22`. [Source provenance](../INTEGRATION_ALL.md), [progress](PROGRESS.md), [raw batches](batches/), [test matrix](TEST_MATRIX.md).
+
+Recorded default pins: bench11 = 312,866; bench13 = 862,329; perft5 = 4,865,609.
+
+## Phase summary
+
+| Phase | Conditions | Recorded completed work | Status |
+| --- | --- | --- | --- |
+| Part 1 | Release, ASAN+UBSAN and TSan builds; existing tests and fixed node/perft pins. | 3 engine builds; 58 test checks; 5 nonzero checks; 0 sanitizer reports | Initial checkpoint: Complete with four stale fixture comparisons and one incomplete full ASan attempt; reduced retry passed. Later completed split coverage is recorded under 2KRKsplit; original timeouts remain incomplete. |
+| 2A preparation | Retain all 40 supplied KRK roots; select generated KQK/KBBK using lock T1 positive exact mate scores. | 2,000 completed units; 2,442 trials; 402 selected generated; 0 faults | Complete: 40 KRK, 40 KQK and 40 KBBK roots frozen |
+| 2A | 40 KRK + 40 KQK + 40 KBBK; lock and merged; T2/T4; depth 14; ten cold-state trials per group. | 480 completed units; 4,800 trials; 298 mate score misses; 55 original t12 criterion flags; 298 faults | Complete: merged 0/2,400 and lock 298/2,400 mate-score misses |
+| 2B | 200 fixed-seed legal bare-king positions; lock and merged; depth 12; reported T1/T2 conditions. | 800 completed units; 800 trials; 0 faults | Complete: 800 depth-12 searches on 200 roots, both builds at Threads 1/2; no fault |
+| 2C | Fixed corpus comparison; completed eligible positions and exclusions tracked separately. | 100,000 positions; 715 excluded; 8 differences low clock; 31 differences high clock; 8 fault positions | Complete:100,000 positions; 8 required low-clock equality failures; 31 high-clock differences observed |
+| 2D | Sanitizer self-play; inspect each batch for its exact node/depth/thread limits. | 1,131 games; 131,115 searches; 0 faults | Complete: 1131 games / 131115 searches; ASAN+UBSAN Threads1/2, nodes2000/20000; no chess/runtime diagnostics |
+| 2E | ThreadSanitizer runs; exact thread and search conditions remain in batch evidence. | 56 games; 8,297 searches; 0 faults | Complete: 56 games / 8297 searches; TSan Threads2/4; no warnings; original E5 timeout excluded and retry completed |
+| 2F | ASAN+UBSAN self-play plus supplemental TSan with all three new options enabled; exact instrumentation and limits remain in batch evidence. | 1,116 games; 128,418 searches; 0 faults | Complete: 1102 ASAN+UBSAN games / 126532 searches plus14 enabled-option TSan games /1886 searches; no chess/runtime diagnostics |
+| 2G | t23 mate/fifty-move suites; unchanged expectations and complete test outputs retained. | 4 tests completed; 120 cases; 60 mate cases; 20 nonmate cases; 40 rule50 cases; 0 sanitizer reports | Complete: four unchanged suite runs; 120 cases; zero missed/false mates, illegal moves, rule50 failures, or sanitizer reports |
+| 3-default | Merged defaults (candidate) versus unchanged lock (baseline). | 4,000 games; 1,094 wins; 1,177 losses; 1,729 draws; 0 audit errors | Complete:4000 games,2000 color-swapped UHO pairs; W-L-D1094-1177-1729; no crash/illegal/disconnect/stall/abort marker or event; counts only |
+| 3-ContHist4PlyRead | Merged with only ContHist4PlyRead enabled versus merged with all three new options disabled. | 2,400 games; 673 wins; 666 losses; 1,061 draws; 0 audit errors | Running |
+| 3-NonPawnCorrection | Merged with only NonPawnCorrection enabled versus merged with all three new options disabled. | No completed counts recorded | Pending; no completed counts recorded |
+| 3-LmrDeeperShallower | Merged with only LmrDeeperShallower enabled versus merged with all three new options disabled. | No completed counts recorded | Pending; no completed counts recorded |
+| Part4 | Mate-bound/PV investigation and optional sampled KRK audit; exact DTM checks, no universal correctness claim. | 4 uninstrumented searches; 1 instrumented searches; 1 independent known roots; 0 false bounds demonstrated | Known-root investigation complete; optional broader sampled audit pending |
+| 2KRKsplit | Isolated unchanged existing ASAN KRK split retry 2/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks | 2 tests completed; 200 t1 runs; 0 t1 misses; 400 main runs; 0 main misses; 0 no mate score; 0 non mating move; 0 sanitizer reports | Complete: two unchanged40x5 invocations; 0/400 main misses,0/200 T1 misses, no sanitizer report |
+
+Counts below use committed state totals. A dash means unavailable or not applicable, never an inferred zero. Fault categories can overlap.
+
+## Mate observations
+
+| Build | Threads | Material | Trials | Mate-score misses | KRK criterion failures | Lost forced mate | Mate-bound failures | Faults | Shutdown faults | Unexpected exits |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| lock | 2 | KRK | 400 | 48 | 29 | 0 | 0 | 48 | 0 | 0 |
+| lock | 2 | KQK | 400 | 53 | — | — | — | 53 | 0 | 0 |
+| lock | 2 | KBBK | 400 | 62 | — | — | — | 62 | 0 | 0 |
+| lock | 4 | KRK | 400 | 47 | 26 | 0 | 0 | 47 | 0 | 0 |
++ git diff --name-status f27b1971e459581ad4c85b7015f6af83bbfd4af6 HEAD -- forge-combo29/src forge-combo29/include
++ sha256sum forge-combo29/src/search.cpp forge-combo29/src/uci.cpp forge-combo29/include/forge/search.hpp
+2b14b62cd675b047478e70b738932ce4c2c699239b3c0de4ec43551464dc8819  forge-combo29/src/search.cpp
+724a4c9c07a4102d38c39fc292f66ba0c850a9c162c090148734da86acd4fb40  forge-combo29/src/uci.cpp
+9b88252588398bbe83164d6d9e0200522e919ed813a8cb4b04a8c57eee921600  forge-combo29/include/forge/search.hpp
++ jq '{notes,part2Start,part2End,Part4:.totals.Part4,faults:[.faults[]|select((.summary // .description // "")|test("mate|equality|sanit|race|fixture";"i"))]}' /workspace/work/all-run/review-t1-t8/finalization-review/state-snapshot.json.txt
+{
+  "notes": [
+    "Release and ASan/UBSan t16 options/clamp exact-output comparisons fail because their unchanged expected fixtures omit MultiPV, NnueFile, ContHist4PlyRead, NonPawnCorrection and LmrDeeperShallower advertisements. Both engine runs and search/OwnBook protocol checkers exit 0 with no sanitizer report. Raw diffs are retained; expectations are not edited.",
+    "Full ASan/UBSan KRK40x10 attempt timed out at440seconds under concurrent sanitizer load; no completed results were printed and no pass is claimed. A bounded reduced retry follows.",
+    "Checkpoint cadence exception: the interval from push at11:31:06.960Z to11:43:42.673Z was12min35.713sec, exceeding the requested10min target. Subsequent batch launches force a checkpoint when the preceding push is more than60sec old to bound the next interval.",
+    "Part4 reproduction: required UseNNUE=false; both builds report mate17/25568nodes/b3f3 with15-ply PV. Independent KRK oracle confirms selectedmove forcesmatein17plies (within reported33-plybound). Scratch trace proves mate-valuedTT qsearch return with emptyPV. No falsebound demonstrated; no productionfix/switch added. Full report and exactline references in mate_pv_investigation.md.",
+    "Phase2A complete: merged0/400 misses in each material/thread cell; lock Threads2/4 KRK48/47,KQK53/38,KBBK62/50 per400. All4800 returned moves legal; exact KRK oracle finds no loss of forced mate and no reported-bound violation.55 original-t12 criterion flags are slower winning moves beyond depth14 when no mate score was reported, not drawing moves.",
+    "Initial2D batch did not enable per-search trace:194games/27831searches are driver self-reported with internal per-search legality/score checks and summary invariants; only final trigger is retained. Subsequent self-play batches enable full trace.",
+    "The isolated unchanged ASan/UBSan40x10 KRK retry also timed out after435seconds with no sanitizer diagnostic and buffered test output unavailable. It contributes zero completed trials. Two40x5 invocations are planned to complete ten fresh-clear trials perroot within command limits; original timeouts remain recorded.",
+    "Phase2B: all800 searches reacheddepth12 with legalmoves and clean exits. Threads1 move,score,bound,nodecount andcompleteddepth match exactly onall200roots; raw measurements retained in bare_king_depth12_measurements.txt.",
+    "Both bounded ASan KRK40x5 invocations passed on the identical binary and deterministic roots: combined400 T2 trials and200 T1 references, zero misses or sanitizer reports. Original40x10 attempts remain incomplete.",
+    "Final depth9 comparison completed100000positions:99958 below halfmove80 and42 high-clock positions. Eight required low-clock equality failures repeat10/10; all8 differ in nodes,3 in score,4 in PV,0 in bestmove. Scratch rule50-gate restoration reproduces lock for all8; TT-only restoration suffices for7. Production and expected criterion are unchanged. See search_equality_investigation.md and faults084–091.",
+    "At user request during the run, inspected the2026-11-14 13:51:59UTC remote snapshot to avoid duplicate work: r3-21/r3-23 contain no extra commit; r3-24 has an existing TT stale-slot candidate fix; r3-17 has legal-prefix/helper-node-budget changes. These branches were reviewed statically only and not merged. The pinned source/protocol remain unchanged. See BRANCH_REVIEW.md.",
+    "At14:02UTC an exec-server transport disconnect prevented creation of a preparation command. No batch was active or lost; connection recovered on the next probe. The failed command had made no state/file changes and was retried.",
+    "To cover enabled-option concurrency within the same Part2 clock budget, final prepared F slots9/10 (extra ASAN+UBSAN repeats, never executed) are replaced by F11/12: the unchanged TSan driver, Threads2/4,depth9, allthree options true. Exact specifications and validation are retained in preparation/f-tsan-supplemental.",
+    "TSan E5 seed9520005 timed out at450seconds while game2 reached bare-king position8/5R2/2B5/3P4/P3k3/2P1N3/1P5P/6K1 w - - 1 60. Process was CPU-active and inputs advanced; no deadlock/crash assertion. No finalSUMMARY, so all partial counts excluded. Same-condition retry E5r1 scheduled; full input/output and observation retained.",
+    "E5 same-condition retry5r1 completed7games/1026searches with cleanTSan exit; originaltimeout retainszeroacceptedcounts. Optional extraASAN D9/D10 (neverrun) deferred to preserve Part2clock after retry; D7/D8,F7/F8,E7/E8 and enabled-optionTSan F11/F12 remain planned.",
+    "Final24 r3 heads at15:00:12UTC reviewed statically and published in BRANCH_REVIEW_R3_COMPLETE.md; initial13:51 inventory is explicitly historical. No r3 code merged or runtime claim adopted. Part4 short-PV wording clarified: no UCI bound qualifier, no exact-DTM or engine-proof certification. Report now distinguishes initial ASAN KRK coverage from later400 split trials; originaltimeouts remainincomplete.",
+    "At15:38UTC prioritized the already-prepared enabled-option TSan batches F11/F12 before optional default-option repeat batches E7/E8, preserving engine, flags, seeds and per-batch limits. Clock will be checked before optional repeats; target Part2end remains around15:56UTC.",
+    "Part2 closed near15:56UTC. Optional extra D9/D10 and E8 repeats were prepared but not run; required thread/option/instrumentation coverage completed. Existing E5 timeout and fullKRK timeouts remain excluded attempts, with actual subsequent retry coverage separate. Part3 starts with400-game default merged-vs-lock batch; only completed audited games will be counted.",
+    "All4000 default merged-vs-lock games were independently verified from original logs, preserved chunks and published Git blobs; counts1094/1177/1729 and pairbins77/315/1272/286/50. Immutable text evidence is in preparation/part3-independent-default. Option modes are separate same-merged-binary on/off matches."
+  ],
+  "part2Start": "2026-11-14T11:53:44.997Z",
+  "part2End": "2026-11-14T15:56:32Z",
+  "Part4": {
+    "description": "Reported mate17/short-PV reproduction and exact KRK assessment; scratch-only trace; production source unchanged",
+    "counts": {
+      "uninstrumented_searches": 4,
+      "instrumented_searches": 1,
+      "independent_known_roots": 1,
+      "false_bounds_demonstrated": 0
+    },
+    "status": "Known-root investigation complete; optional broader sampled audit pending"
+  },
+  "faults": [
+    {
+      "file": "001.txt",
+      "description": "t16 options/clamp stale expected advertisements:10/10 each fixture/build;40 clean engine exits, no sanitizer diagnostics",
+      "kind": "fixture"
+    },
+    {
+      "file": "002.txt",
+      "description": "Endgame lock-t2-KRK KRK-000004; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-16",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-16",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 6,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 6
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "9f73514993f6e2d23934ea3bae6b572a4cfc223cf28a7c51e3ec647fd6202d76"
+    },
+    {
+      "file": "003.txt",
+      "description": "Endgame lock-t4-KRK KRK-000004; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-17",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-17",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 6,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 6
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "f19c57c01f1ba11334084a2e9c1beec2ad98979a2e76f7ddadc6ab4cad0b18f5"
+    },
+    {
+      "file": "004.txt",
+      "description": "Endgame lock-t2-KRK KRK-000009; 7/10 mate-score misses, 0 illegal, 1 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-36",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-36",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 7,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 1,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 7
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "ba2188663602eeaa8fb6ea144559ce593d1a16ff45a2d8a98facf0322816c2a0"
+    },
+    {
+      "file": "005.txt",
+      "description": "Endgame lock-t4-KRK KRK-000009; 7/10 mate-score misses, 0 illegal, 3 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-37",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-37",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 7,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 3,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 7
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "bd38f143e74ac86892039836779fa772736f2b7a3e139a2fb6c22685c5d47287"
+    },
+    {
+      "file": "006.txt",
+      "description": "Endgame lock-t2-KRK KRK-000012; 5/10 mate-score misses, 0 illegal, 5 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-48",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-48",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 5,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 5,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 5
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "4d81d039e4700dfd32de697a019893ed3bebe61fe7b4a3da6cbdf7c2ff149b94"
+    },
+    {
+      "file": "007.txt",
+      "description": "Endgame lock-t4-KRK KRK-000012; 5/10 mate-score misses, 0 illegal, 5 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-49",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-49",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 5,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 5,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 5
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "5d7864c1f4a7f20952d592b0f3f16d8a502db906206ff3f3281645dd4e34a8a4"
+    },
+    {
+      "file": "008.txt",
+      "description": "Endgame lock-t2-KRK KRK-000013; 5/10 mate-score misses, 0 illegal, 5 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-52",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-52",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 5,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 5,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 5
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "164b35240ac14fafc478732826f4e16304cc8ecbed105f4b70da86f9c42ec587"
+    },
+    {
+      "file": "009.txt",
+      "description": "Endgame lock-t4-KRK KRK-000013; 6/10 mate-score misses, 0 illegal, 6 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-53",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-53",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 6,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 6,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 6
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "b77560c801f8a2f51002cca079f7ee05155ce32e4c0f9953d6647d2612d7e000"
+    },
+    {
+      "file": "010.txt",
+      "description": "Endgame lock-t2-KRK KRK-000015; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-60",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-60",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "dfd0566da9dcdc056fe63f2209a264bf4717e1af5e109d8b4f67608ab0d11214"
+    },
+    {
+      "file": "011.txt",
+      "description": "Endgame lock-t4-KRK KRK-000015; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-61",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-61",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "5d549867b36a54eedde771c17b914a6f4d17d235ea1d7b91c92e8671b1339502"
+    },
+    {
+      "file": "012.txt",
+      "description": "Endgame lock-t2-KRK KRK-000017; 1/10 mate-score misses, 0 illegal, 1 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-68",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-68",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 1,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "00c04c13d12abcfe86cb797508f08a93971fda353866533c82fdcead7cd62c9a"
+    },
+    {
+      "file": "013.txt",
+      "description": "Endgame lock-t4-KRK KRK-000019; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-77",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-77",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "c308adbc1d64743f15e3cc29111767ad19daf0d7a1b4cbbd32057103114cb910"
+    },
+    {
+      "file": "014.txt",
+      "description": "Endgame lock-t2-KRK KRK-000022; 4/10 mate-score misses, 0 illegal, 4 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-88",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-88",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 4,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 4,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 4
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "e0b54a82e89d6fdbf75456248826a741d177dd5f9abf597338662dc66a63cfaf"
+    },
+    {
+      "file": "015.txt",
+      "description": "Endgame lock-t4-KRK KRK-000022; 5/10 mate-score misses, 0 illegal, 5 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-89",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-89",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 5,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 5,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 5
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "b1bdcc5c00dc37d4d3d1cded1d6928eff9b9ac9a5685d80c19a89a49d4f0d7f5"
+    },
+    {
+      "file": "016.txt",
+      "description": "Endgame lock-t2-KRK KRK-000026; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-104",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-104",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 2,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 2
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "686bbe0983f127c75c483ed9941495e8892b79abf7bd025c210dae2297ab1c26"
+    },
+    {
+      "file": "017.txt",
+      "description": "Endgame lock-t4-KRK KRK-000026; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-105",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-105",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 2,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 2
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "a2cbf1e01100a02ae78bcbcab8f712a24c1fddc5fbfbfd1eaad148bb30ad5f35"
+    },
+    {
+      "file": "018.txt",
+      "description": "Endgame lock-t2-KRK KRK-000027; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-108",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-108",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 2,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 2
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "1d93d4652f3211b5a6445d6fa5d5f1e86b488de6f5765b6902be8d58688f4e06"
+    },
+    {
+      "file": "019.txt",
+      "description": "Endgame lock-t4-KRK KRK-000027; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-109",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-109",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 3,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 3
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "5b16d15271ffd09b2f2ddc7f80fa5c5f5af3cc160b71882da217ffa5a790f7c9"
+    },
+    {
+      "file": "020.txt",
+      "description": "Endgame lock-t2-KRK KRK-000028; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-112",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-112",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "0f38818100f30074696149b75d7a395a96867ca760e4a940f1fc184cd6d8617e"
+    },
+    {
+      "file": "021.txt",
+      "description": "Endgame lock-t4-KRK KRK-000028; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-113",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-113",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 3,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 3
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "a74f3c843c3e3b1a1a20212dfd84cfa349e5739c685b3879d537c6cd6e00bbe7"
+    },
+    {
+      "file": "022.txt",
+      "description": "Endgame lock-t2-KRK KRK-000029; 5/10 mate-score misses, 0 illegal, 5 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-116",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-116",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 5,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 5,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 5
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "d6b4d82f2c43b54c36ef7130e4a63b65aa03106d00e5d3a053fb84a4dd6a97e0"
+    },
+    {
+      "file": "023.txt",
+      "description": "Endgame lock-t4-KRK KRK-000029; 3/10 mate-score misses, 0 illegal, 3 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-117",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-117",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 3,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 3,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 3
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "4d2ab8293a3094d950887aa3955fcfb4fb32140184a94be6585c799010ecfc10"
+    },
+    {
+      "file": "024.txt",
+      "description": "Endgame lock-t2-KRK KRK-000035; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-140",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-140",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "f27ec01db9d9eff0228598b888743a309de298fc6df7a57f375885b67c45070b"
+    },
+    {
+      "file": "025.txt",
+      "description": "Endgame lock-t4-KRK KRK-000035; 2/10 mate-score misses, 0 illegal, 1 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-141",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-141",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 2,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 1,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 2
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "888a2ac6f3190fa32e623c172edfed293465d6e092351d892472ce06eba51665"
+    },
+    {
+      "file": "026.txt",
+      "description": "Endgame lock-t2-KRK KRK-000036; 8/10 mate-score misses, 0 illegal, 8 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-144",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-144",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 8,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 8,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 8
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "369d3244c23d06e2e7522bc0eb43a0325379aa5844263e6421b44020d0c25333"
+    },
+    {
+      "file": "027.txt",
+      "description": "Endgame lock-t4-KRK KRK-000036; 3/10 mate-score misses, 0 illegal, 3 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-145",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-145",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 3,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 3,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 3
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "cdc86df39bc90c94057424f491957002ae42797751ad04d5dbf39571b6e74ce4"
+    },
+    {
+      "file": "028.txt",
+      "description": "Endgame lock-t2-KQK KQK-000006; 8/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-172",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-172",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 8,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 8
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "4a181bd4e39d9646b2bdd8a4bca0a5310d531b788ee00817e84a7dea47768e59"
+    },
+    {
+      "file": "029.txt",
+      "description": "Endgame lock-t4-KQK KQK-000006; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-173",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-173",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 6,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 6
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "9bd28cb61de216c9e9e940293cf5d87bf95f646b5eed8b499d8b40383fa571a4"
+    },
+    {
+      "file": "030.txt",
+      "description": "Endgame lock-t4-KQK KQK-000022; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-181",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-181",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 2,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 2
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "9f3808d5112e479b912f1010f92456fc33fa700eead68228caec4ea3fee57e1c"
+    },
+    {
+      "file": "031.txt",
+      "description": "Endgame lock-t2-KQK KQK-000024; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-184",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-184",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "d0b5af21b86f913a01947fda7458b31ca56e2bb3fc2bf4f6f32d77f65b700f51"
+    },
+    {
+      "file": "032.txt",
+      "description": "Endgame lock-t2-KQK KQK-000040; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-192",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-192",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "1cbc08d6970c313ced72c6a4f22c419da40fc1658a06dd1efed38ebd6f06700a"
+    },
+    {
+      "file": "033.txt",
+      "description": "Endgame lock-t4-KQK KQK-000040; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-193",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-193",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "40e17b417fd062d18765b49037a8a5733b955a23471be997e3fa1990a863829c"
+    },
+    {
+      "file": "034.txt",
+      "description": "Endgame lock-t2-KQK KQK-000044; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-204",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-204",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 3,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 3
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "fc2444a93820ab20d50a9119a9f0b35cacb32320110c6a324cdd8d3c53ce7cff"
+    },
+    {
+      "file": "035.txt",
+      "description": "Endgame lock-t4-KQK KQK-000044; 4/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-205",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-205",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 4,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 4
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "daa1d3347390da3cfa5224bc5da2bfce50b7d5d4db6019ca15e9c87f07d242d0"
+    },
+    {
+      "file": "036.txt",
+      "description": "Endgame lock-t2-KQK KQK-000046; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-208",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-208",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 3,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 3
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "f4548cef04efffd02f2611e7ef8204bbadab786c043fd20a45ec945cc04a001a"
+    },
+    {
+      "file": "037.txt",
+      "description": "Endgame lock-t2-KQK KQK-000048; 4/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-212",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-212",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 4,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 4
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "9bd0c3546aa50a5cbd0f05208f191286ac7fbb68fa64b0a5798cc13129434c1c"
+    },
+    {
+      "file": "038.txt",
+      "description": "Endgame lock-t4-KQK KQK-000048; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-213",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-213",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 3,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 3
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "6c875d87679c2949dcbb3a05b5a93cbec031862d7fb16915261499415f031213"
+    },
+    {
+      "file": "039.txt",
+      "description": "Endgame lock-t4-KQK KQK-000066; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-221",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-221",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 2,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 2
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "2a61bf6b633c12807eb3d6de5a49d4888edbbb971277dcc3f37528bf0bf23ade"
+    },
+    {
+      "file": "040.txt",
+      "description": "Endgame lock-t2-KQK KQK-000088; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-236",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-236",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 3,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 3
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "91387601fbcac1533864db59ce2f392dda583bb103cf7ea68a6ae533324c54c3"
+    },
+    {
+      "file": "041.txt",
+      "description": "Endgame lock-t2-KQK KQK-000094; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-244",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-244",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 2,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 2
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "e6525517ba0b825ad6fb9c5e594013a21e4d277bfe36125fa2adca6f1b789a87"
+    },
+    {
+      "file": "042.txt",
+      "description": "Endgame lock-t2-KBBK KBBK-000103; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-252",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-252",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "65093b8009a4df60e2ecb082aeda61d355453a9224ff194d3c08bcb051ff187c"
+    },
+    {
+      "file": "043.txt",
+      "description": "Endgame lock-t4-KBBK KBBK-000103; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-253",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-253",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "0484434461de1335340ea2a98b010ddeb49c237022ae757488f2a4c8d2d12ee8"
+    },
+    {
+      "file": "044.txt",
+      "description": "Endgame lock-t2-KBBK KBBK-000137; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-264",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-264",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 7,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 7
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "e0fe5781645d72904a1f7eb921349c45393c69363aa968a3f831a7a2ef00a394"
+    },
+    {
+      "file": "045.txt",
+      "description": "Endgame lock-t4-KBBK KBBK-000137; 8/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-265",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-265",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 8,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 8
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "eef3fa0d8d8c393afca2d96642559b632b35c41a5e875efbffea9a3809821881"
+    },
+    {
+      "file": "046.txt",
+      "description": "Endgame lock-t2-KQK KQK-000138; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-268",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-268",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 3,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 3
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "77378af8dd955df5d473103f2e3b930d0e35e6a4a6fbeb5cdb3b60e78e2c5341"
+    },
+    {
+      "file": "047.txt",
+      "description": "Endgame lock-t2-KQK KQK-000140; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-272",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-272",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 3,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 3
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "d90682ce03c7de7ba244ad3cf4030cbb88fb69d8e52a95bfcc48fc1e2af8f9d9"
+    },
+    {
+      "file": "048.txt",
+      "description": "Endgame lock-t4-KQK KQK-000140; 4/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-273",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-273",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 4,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 4
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "416ad0a3d540ba6a2b78d7dc2fbdfe6ba6b739a744168bd490ca127a0b2fd02b"
+    },
+    {
+      "file": "049.txt",
+      "description": "Endgame lock-t2-KQK KQK-000142; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-276",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-276",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "a0894b6e8cf55141d5a2e1428377a40ac7c5f7393c000f9a9627be48075f2538"
+    },
+    {
+      "file": "050.txt",
+      "description": "Endgame lock-t2-KQK KQK-000148; 9/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-284",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-284",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 9,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 9
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "a4d725489cc2496aa87d606edf2be0f2ca11d48a85c5f919f414890d921a25f4"
+    },
+    {
+      "file": "051.txt",
+      "description": "Endgame lock-t4-KQK KQK-000148; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:1:unit-285",
+      "phase": "2A",
+      "batch": 1,
+      "unit": "unit-285",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 7,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 7
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "1dafb3dcc45b079937ea3f06e7af50639b8af18eb03c16bbf672521dce61c160"
+    },
+    {
+      "file": "052.txt",
+      "description": "Endgame lock-t2-KQK KQK-000156; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-288",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-288",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "5327e65cb38df86a882c42d40b96049192c89029024889e1b5cc2969e562f47b"
+    },
+    {
+      "file": "053.txt",
+      "description": "Endgame lock-t4-KQK KQK-000156; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-289",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-289",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 3,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 3
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "bacc68f61a12cee4f2331dcba5eb7f1d386d25f9272be509341c1ab92b851ab1"
+    },
+    {
+      "file": "054.txt",
+      "description": "Endgame lock-t2-KQK KQK-000166; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-308",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-308",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "83f196299dc7f20b77555b24047549716a0298e754abeace687564ddb32aa557"
+    },
+    {
+      "file": "055.txt",
+      "description": "Endgame lock-t4-KQK KQK-000166; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-309",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-309",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "fb455ca5ba3765c599e1224f5698831a676559dcf6881fd680cc46816ccdfb27"
+    },
+    {
+      "file": "056.txt",
+      "description": "Endgame lock-t2-KQK KQK-000172; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-312",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-312",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 3,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 3
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "0190238cffc5edf099b082dcf4cea2744c90796250aa61e113ca799e21fbdce2"
+    },
+    {
+      "file": "057.txt",
+      "description": "Endgame lock-t2-KQK KQK-000184; 4/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-320",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-320",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 4,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 4
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "9bb30796e37c1b9726cb01e8563d0af0eb4e08440e4a0d619117f06da500e8f3"
+    },
+    {
+      "file": "058.txt",
+      "description": "Endgame lock-t4-KQK KQK-000184; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-321",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-321",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "4448e598c348a5a0d892be59689dcdc94c382060c90b2d2bdb6d153b66fce9b5"
+    },
+    {
+      "file": "059.txt",
+      "description": "Endgame lock-t2-KQK KQK-000194; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-324",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-324",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "4bc21fd485ad416382133cbfa4f3d9fe1182a95789b5cc63f2aa2981517e6a89"
+    },
+    {
+      "file": "060.txt",
+      "description": "Endgame lock-t4-KQK KQK-000194; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-325",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-325",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 2,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 2
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "b2c905e32cfd59c8deb8d0c7dd0409888fbdc20f03ff0be83322a325e3f976db"
+    },
+    {
+      "file": "061.txt",
+      "description": "Endgame lock-t2-KQK KQK-000196; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-328",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-328",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 2,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 2
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "f563c340cb393ecd0b4b8563b66300a8801d932c9aa49a524fe244421ec4d82e"
+    },
+    {
+      "file": "062.txt",
+      "description": "Endgame lock-t4-KQK KQK-000196; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-329",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-329",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 2,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 2
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "d30407fc7ea759819ae44b1f8310e927f5e9b9fb5013cd248e6cfb1f8f474c62"
+    },
+    {
+      "file": "063.txt",
+      "description": "Endgame lock-t2-KBBK KBBK-000369; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-344",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-344",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 2,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 2
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "066b179c5d225dcd041e5eddbb1ad612df8271819a2c3b66ccb63f2d26d885b7"
+    },
+    {
+      "file": "064.txt",
+      "description": "Endgame lock-t2-KBBK KBBK-000441; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-348",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-348",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 6,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 6
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "8081339bff2225cdf3be94f044506274e4bff341b7da0816efffba30824da1db"
+    },
+    {
+      "file": "065.txt",
+      "description": "Endgame lock-t4-KBBK KBBK-000441; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-349",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-349",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 6,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 6
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "327d43736a9ca522e457b34cda7e7fed7475ed7e3183ffcbb9c1b64eb18e91c1"
+    },
+    {
+      "file": "066.txt",
+      "description": "Endgame lock-t2-KBBK KBBK-000473; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-352",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-352",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 2,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 2
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "6720ac77a6e3a9181f05bbd9c20acad50179c91b14c868579c634ea98dc0fdfb"
+    },
+    {
+      "file": "067.txt",
+      "description": "Endgame lock-t2-KBBK KBBK-000533; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-356",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-356",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "7b5c9c90857d427ad803c38e177eaf79d964b642bccbc2af573e907238fadcc3"
+    },
+    {
+      "file": "068.txt",
+      "description": "Endgame lock-t4-KBBK KBBK-000533; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-357",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-357",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 2,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 2
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "f9be54d1cf0e85d1b843c928ca066c31b313a8d7d693e21bdc8002d90c284057"
+    },
+    {
+      "file": "069.txt",
+      "description": "Endgame lock-t2-KBBK KBBK-000801; 8/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-392",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-392",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 8,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 8
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "6646bd813fa5d0315f5d86c31b3a7e4ce778e4cde8850d338772eeabde5b9a2a"
+    },
+    {
+      "file": "070.txt",
+      "description": "Endgame lock-t4-KBBK KBBK-000801; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-393",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-393",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 6,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 6
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "8b3804744d6584ee3f2b7c21853c16a348ff41bdfebcd0dc158307bfd223fd7e"
+    },
+    {
+      "file": "071.txt",
+      "description": "Endgame lock-t2-KBBK KBBK-000955; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-400",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-400",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 7,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 7
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "9fba0bf12aa2b60f5058d572d2910d66f5c337f886d72517e959fbb267c6b66d"
+    },
+    {
+      "file": "072.txt",
+      "description": "Endgame lock-t4-KBBK KBBK-000955; 4/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:2:unit-401",
+      "phase": "2A",
+      "batch": 2,
+      "unit": "unit-401",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 4,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 4
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "6b347044213a02abbb1352ef5b2061a37ecf56d364257fe292787baf18f9464b"
+    },
+    {
+      "file": "073.txt",
+      "description": "Endgame lock-t2-KBBK KBBK-001203; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:3:unit-420",
+      "phase": "2A",
+      "batch": 3,
+      "unit": "unit-420",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 3,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 3
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "3ea7a81f5e948bad749ada88f4d4c7764e6f92fa05dbf5efe3a6f9f1dc411fbc"
+    },
+    {
+      "file": "074.txt",
+      "description": "Endgame lock-t4-KBBK KBBK-001203; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:3:unit-421",
+      "phase": "2A",
+      "batch": 3,
+      "unit": "unit-421",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 2,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 2
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "e25ed5d289e442ca122d396243f9f1e5176d2dcd0fe0e8f5228ae7b51371b823"
+    },
+    {
+      "file": "075.txt",
+      "description": "Endgame lock-t2-KBBK KBBK-001401; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:3:unit-436",
+      "phase": "2A",
+      "batch": 3,
+      "unit": "unit-436",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 1,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 1
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "58bf4c9d7ba858b3362f789097675c687c9a27ab081dd4f8391a56921e40fd03"
+    },
+    {
+      "file": "076.txt",
+      "description": "Endgame lock-t4-KBBK KBBK-001401; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:3:unit-437",
+      "phase": "2A",
+      "batch": 3,
+      "unit": "unit-437",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 2,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 2
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "4f755ebb47dbb80b02c5d848103ba2760eaa902f4e6ca2ec028e8687daf96af6"
+    },
+    {
+      "file": "077.txt",
+      "description": "Endgame lock-t2-KBBK KBBK-001577; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:3:unit-448",
+      "phase": "2A",
+      "batch": 3,
+      "unit": "unit-448",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 7,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 7
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "4d10c8c123d69c3fb3d745bea1f766bde0ce0499189c17672636c4a9e190b353"
+    },
+    {
+      "file": "078.txt",
+      "description": "Endgame lock-t4-KBBK KBBK-001577; 10/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:3:unit-449",
+      "phase": "2A",
+      "batch": 3,
+      "unit": "unit-449",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 10,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 10
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "6f375d0dedabbd571906b0d9af7647c8260bff92be45c12a001efc67c39b9bb8"
+    },
+    {
+      "file": "079.txt",
+      "description": "Endgame lock-t2-KBBK KBBK-001601; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:3:unit-452",
+      "phase": "2A",
+      "batch": 3,
+      "unit": "unit-452",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 7,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 7
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "42656134844ba53a0484116b2996d87ec71da2a25e44d2ffef043a161fb813ca"
+    },
+    {
+      "file": "080.txt",
+      "description": "Endgame lock-t4-KBBK KBBK-001601; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:3:unit-453",
+      "phase": "2A",
+      "batch": 3,
+      "unit": "unit-453",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 6,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 6
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "f7231d0ed493fdd43f27b1ed61f152f5d00a4b89c28c7ef0002582c7cd9bbcbb"
+    },
+    {
+      "file": "081.txt",
+      "description": "Endgame lock-t2-KBBK KBBK-001615; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:3:unit-456",
+      "phase": "2A",
+      "batch": 3,
+      "unit": "unit-456",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 7,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 7
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "71a3fc5021ad448b5457c76e1c1493ae63a23b2b644a8d3180796e47414bbb81"
+    },
+    {
+      "file": "082.txt",
+      "description": "Endgame lock-t4-KBBK KBBK-001615; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:3:unit-457",
+      "phase": "2A",
+      "batch": 3,
+      "unit": "unit-457",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 3,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 3
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "518e511b10deab839398d8739e5f5e5190e4a526650dc60f24ce934f7b06779b"
+    },
+    {
+      "file": "083.txt",
+      "description": "Endgame lock-t2-KBBK KBBK-001735; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures",
+      "kind": "soak",
+      "audit_key": "2A:3:unit-472",
+      "phase": "2A",
+      "batch": 3,
+      "unit": "unit-472",
+      "reproduction": {
+        "status": "ten_recorded_trials",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "counts": {
+            "mate_score_miss": 3,
+            "legal_bestmove": 10,
+            "illegal_bestmove": 0,
+            "missing_or_incomplete": 0,
+            "pv_illegal": 0,
+            "krk_non_mating_move": 0,
+            "loses_forced_mate": 0,
+            "mate_bound_violation": 0,
+            "sanitizer_report": 0,
+            "shutdown_fault": 0,
+            "unexpected_exit": 0,
+            "unfinished_depth": 0,
+            "fault": 3
+          },
+          "interpretation": "Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate."
+        },
+        "note": "Ten recorded group trials, not ten additional repetitions after a separate initial run."
+      },
+      "sha256": "c53adfaf113da00656db502f032fa95d7add6fd09fc981efbf00e50e646e56ad"
+    },
+    {
+      "file": "084.txt",
+      "description": "Comparison fault at required-equality root; 10/10 additional fault pairs",
+      "kind": "soak",
+      "audit_key": "2C:1:worker-3-index-3228",
+      "phase": "2C",
+      "batch": 1,
+      "unit": "worker-3-index-3228",
+      "reproduction": {
+        "status": "ten_additional_pairs",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "differences": 10,
+          "fault_pairs": 10,
+          "original_signature": 10
+        }
+      },
+      "sha256": "6491986ca389708d03051008c91fd89c73c0c47eebd9d7e043cfec7316254a37"
+    },
+    {
+      "file": "085.txt",
+      "description": "Comparison fault at required-equality root; 10/10 additional fault pairs",
+      "kind": "soak",
+      "audit_key": "2C:3:worker-1-index-10567",
+      "phase": "2C",
+      "batch": 3,
+      "unit": "worker-1-index-10567",
+      "reproduction": {
+        "status": "ten_additional_pairs",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "differences": 10,
+          "fault_pairs": 10,
+          "original_signature": 10
+        }
+      },
+      "sha256": "949cb482213e0562fa777e3c11659593090f7effb9fb1c7fe87104d21eec3659"
+    },
+    {
+      "file": "086.txt",
+      "description": "Comparison fault at required-equality root; 10/10 additional fault pairs",
+      "kind": "soak",
+      "audit_key": "2C:3:worker-1-index-12276",
+      "phase": "2C",
+      "batch": 3,
+      "unit": "worker-1-index-12276",
+      "reproduction": {
+        "status": "ten_additional_pairs",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "differences": 10,
+          "fault_pairs": 10,
+          "original_signature": 10
+        }
+      },
+      "sha256": "a5d1b7b6c6602ed6ef31cabac6a63dbf5878e8eea4cc7b7085dba504f686ef60"
+    },
+    {
+      "file": "087.txt",
+      "description": "Comparison fault at required-equality root; 10/10 additional fault pairs",
+      "kind": "soak",
+      "audit_key": "2C:3:worker-1-index-12999",
+      "phase": "2C",
+      "batch": 3,
+      "unit": "worker-1-index-12999",
+      "reproduction": {
+        "status": "ten_additional_pairs",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "differences": 10,
+          "fault_pairs": 10,
+          "original_signature": 10
+        }
+      },
+      "sha256": "cbe5118adefed5263292a2a02ade5015c2bf61135c2146b6e7133e87c8d4a0dc"
+    },
+    {
+      "file": "088.txt",
+      "description": "Comparison fault at required-equality root; 10/10 additional fault pairs",
+      "kind": "soak",
+      "audit_key": "2C:3:worker-3-index-9834",
+      "phase": "2C",
+      "batch": 3,
+      "unit": "worker-3-index-9834",
+      "reproduction": {
+        "status": "ten_additional_pairs",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "differences": 10,
+          "fault_pairs": 10,
+          "original_signature": 10
+        }
+      },
+      "sha256": "19d3d3a17e8fb5e298ed29d14d0c8f5a4f5660cd5cf40cbd81974612842fba77"
+    },
+    {
+      "file": "089.txt",
+      "description": "Comparison fault at required-equality root; 10/10 additional fault pairs",
+      "kind": "soak",
+      "audit_key": "2C:3:worker-3-index-11000",
+      "phase": "2C",
+      "batch": 3,
+      "unit": "worker-3-index-11000",
+      "reproduction": {
+        "status": "ten_additional_pairs",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "differences": 10,
+          "fault_pairs": 10,
+          "original_signature": 10
+        }
+      },
+      "sha256": "72b5474ab1bd137dff21e48b2e417e08dfaa36eec746855169875cddaa184b80"
+    },
+    {
+      "file": "090.txt",
+      "description": "Comparison fault at required-equality root; 10/10 additional fault pairs",
+      "kind": "soak",
+      "audit_key": "2C:4:worker-3-index-14002",
+      "phase": "2C",
+      "batch": 4,
+      "unit": "worker-3-index-14002",
+      "reproduction": {
+        "status": "ten_additional_pairs",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "differences": 10,
+          "fault_pairs": 10,
+          "original_signature": 10
+        }
+      },
+      "sha256": "47f2f11491dcfcd97e368fb22334d863feb0f3b8eb50168bca4b25240eae4e12"
+    },
+    {
+      "file": "091.txt",
+      "description": "Comparison fault at required-equality root; 10/10 additional fault pairs",
+      "kind": "soak",
+      "audit_key": "2C:7:worker-1-index-25354",
+      "phase": "2C",
+      "batch": 7,
+      "unit": "worker-1-index-25354",
+      "reproduction": {
+        "status": "ten_additional_pairs",
+        "additional_trials_required": 0,
+        "frequency": {
+          "denominator": 10,
+          "differences": 10,
+          "fault_pairs": 10,
+          "original_signature": 10
+        }
+      },
+      "sha256": "771d11dce3556178e4277e2f051d39ecd4b7baaf92a0fb6c9937250ee2e5f777"
+    }
+  ]
+}
++ sed -n 70,130p forge-combo29/soak_all/SOAK_ALL_REPORT.md
+
+These are sums of observed measurements under the listed conditions. Early mate stops are separate from reaching depth 12; wall time and engine-reported time differ. No speed conclusion is drawn.
+
+## Sanitizer self-play outcomes
+
+Chess fault counters, runtime failures and sanitizer warnings are separate observations. A chess summary with zero faults does not establish a clean sanitizer run. Counts in this section come only from matched finished batches in the supplied audit snapshot; state game/search totals remain unchanged.
+
+Audit snapshot: 2026-11-14T15:55:27.421Z; reported reconciliation errors 0. Batch identity, finish time, recorded counts and available exit/signal are matched to state. This renderer does not assert that the audit state hash matches current state.
+
+| Phase | Audited / finished attempts | With canonical counts | With process classification | TSan warning blocks | Unresolved blocks | Nonzero exits | Runtime/diagnostic affected | Timeout/forced |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2D | 8 / 8 | 8 | 8 | 0 | 0 | 0 | 0 | 0 |
+| 2E | 8 / 8 | 8 | 8 | 0 | 0 | 1 | 0 | 1 |
+| 2F | 10 / 10 | 10 | 10 | 0 | 0 | 0 | 0 | 0 |
+
+Coverage includes finished attempts with no committed chess counts. A dash means unavailable, not zero. Nonzero exits, runtime diagnostics and timeouts can overlap; timeout/forced termination is not labelled an engine crash. ASan/UBSan marker lines are not TSan warning events.
+
+<details>
+<summary>Per-batch sanitizer and process evidence</summary>
+
+| Batch | Finished UTC | Threads | Depth / node setting | Candidate flags | Counted games / searches / chess faults | Exit / signal | Runtime classification | Runtime marker lines | Canonical TSan warnings | Resolved groups / unresolved blocks | TSan footer |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| [2D #1](batches/2D-0001.txt) | 2026-11-14T11:58:57.355Z | 1 | 0 / 2,000 | false / false / false | 194 / 27,831 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2D #2](batches/2D-0002.txt) | 2026-11-14T13:32:31.315Z | 2 | 0 / 2,000 | false / false / false | 319 / 30,660 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2E #1](batches/2E-0001.txt) | 2026-11-14T13:38:29.617Z | 2 | 9 / 0 | false / false / false | 11 / 1,525 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2E #2](batches/2E-0002.txt) | 2026-11-14T13:44:17.798Z | 4 | 9 / 0 | false / false / false | 7 / 1,200 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2F #1](batches/2F-0001.txt) | 2026-11-14T13:49:33.242Z | 1 | 0 / 2,000 | true / true / true | 190 / 26,119 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2F #2](batches/2F-0002.txt) | 2026-11-14T13:54:52.485Z | 2 | 0 / 2,000 | true / true / true | 315 / 30,495 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2D #3](batches/2D-0003.txt) | 2026-11-14T14:01:00.557Z | 1 | 0 / 20,000 | false / false / false | 21 / 2,742 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2D #4](batches/2D-0004.txt) | 2026-11-14T14:08:27.406Z | 2 | 0 / 20,000 | false / false / false | 30 / 4,454 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2F #3](batches/2F-0003.txt) | 2026-11-14T14:14:03.673Z | 1 | 0 / 20,000 | true / true / true | 16 / 2,687 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2F #4](batches/2F-0004.txt) | 2026-11-14T14:19:33.064Z | 2 | 0 / 20,000 | true / true / true | 25 / 4,279 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2E #3](batches/2E-0003.txt) | 2026-11-14T14:25:17.865Z | 2 | 9 / 0 | false / false / false | 4 / 762 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2E #4](batches/2E-0004.txt) | 2026-11-14T14:30:49.324Z | 4 | 9 / 0 | false / false / false | 10 / 1,559 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2D #5](batches/2D-0005.txt) | 2026-11-14T14:36:06.497Z | 1 | 0 / 2,000 | false / false / false | 200 / 27,144 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2D #6](batches/2D-0006.txt) | 2026-11-14T14:41:25.043Z | 2 | 0 / 2,000 | false / false / false | 316 / 31,104 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2F #5](batches/2F-0005.txt) | 2026-11-14T14:46:47.860Z | 1 | 0 / 2,000 | true / true / true | 183 / 26,054 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2F #6](batches/2F-0006.txt) | 2026-11-14T14:52:13.748Z | 2 | 0 / 2,000 | true / true / true | 321 / 30,005 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2E #5](batches/2E-0005.evidence/manifest.txt) | 2026-11-14T15:00:09.720Z | — | — / — | — / — / — | — / — / — | 124 / none | budget_timeout_or_forced_termination; not classified as engine crash | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2E #5r1](batches/2E-05r1.txt) | 2026-11-14T15:08:22.989Z | 2 | 9 / 0 | false / false / false | 7 / 1,026 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2E #6](batches/2E-0006.txt) | 2026-11-14T15:14:28.970Z | 4 | 9 / 0 | false / false / false | 7 / 1,050 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2D #7](batches/2D-0007.txt) | 2026-11-14T15:19:58.557Z | 1 | 0 / 20,000 | false / false / false | 19 / 2,621 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2D #8](batches/2D-0008.txt) | 2026-11-14T15:26:43.715Z | 2 | 0 / 20,000 | false / false / false | 32 / 4,559 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2F #7](batches/2F-0007.txt) | 2026-11-14T15:32:24.203Z | 1 | 0 / 20,000 | true / true / true | 17 / 2,789 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2F #8](batches/2F-0008.txt) | 2026-11-14T15:37:55.039Z | 2 | 0 / 20,000 | true / true / true | 35 / 4,104 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2F #11](batches/2F-0011.txt) | 2026-11-14T15:43:42.506Z | 2 | 9 / 0 | true / true / true | 5 / 771 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2F #12](batches/2F-0012.txt) | 2026-11-14T15:49:45.862Z | 4 | 9 / 0 | true / true / true | 9 / 1,115 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2E #7](batches/2E-0007.txt) | 2026-11-14T15:55:20.296Z | 2 | 9 / 0 | false / false / false | 10 / 1,175 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+
+Conditions come from each retained raw SUMMARY, or its retained parsed SUMMARY when raw text is unavailable. Candidate order is ContHist4PlyRead / NonPawnCorrection / LmrDeeperShallower; literal booleans are shown. A positive depth setting selects depth-limited search; depth zero selects the node limit. Missing conditions are not inferred from the phase description or later batches.
+
+
+Only canonical warning blocks from each primary runtime log enter the totals. Mirrored artifacts, WARNING/SUMMARY markers and runtime footers are not additional warnings. Runtime duplicate suppression can hide repeated manifestations; these counts are not reproduction frequencies.
+
+</details>
+
+No resolved source-line-pair groups are available in the matched audit data. This is not a clean-run claim; inspect unresolved blocks, missing coverage and process outcomes.
+
+Audit coverage and grouping omissions:
+
+- 2E:5: one or more per-batch condition fields unavailable; planned or latest phase conditions are not substituted.
++ sed -n 1,85p forge-combo29/soak_all/TEST_MATRIX.md
+# Existing test-folder matrix
+
+Updated 2026-11-14T17:11:02.760Z. Expected values are unchanged. Nonzero exits and sanitizer diagnostics are retained, including stale protocol fixtures.
+
+| Build | Group | Test/check | Exit | Sanitizer reports | Output |
+| --- | --- | --- | --- | --- | --- |
+| asan | basic | bad_capture_overflow | 0 | 0 | [asan-bad_capture_overflow.txt](preparation/asan-bad_capture_overflow.txt) |
+| asan | basic | clock_parse_test | 0 | 0 | [asan-clock_parse_test.txt](preparation/asan-clock_parse_test.txt) |
+| asan | basic | fixed_nodes | 0 | 0 | [asan-fixed_nodes.txt](preparation/asan-fixed_nodes.txt) |
+| asan | basic | nnue_convert | 0 | 0 | [asan-nnue_convert.txt](preparation/asan-nnue_convert.txt) |
+| asan | basic | nnue_file_test | 0 | 0 | [asan-nnue_file_test.txt](preparation/asan-nnue_file_test.txt) |
+| asan | basic | startup_race | 0 | 0 | [asan-startup_race.txt](preparation/asan-startup_race.txt) |
+| asan | basic | race_driver | 0 | 0 | [asan-race_driver.txt](preparation/asan-race_driver.txt) |
+| asan | basic | test_eval | 0 | 0 | [asan-test_eval.txt](preparation/asan-test_eval.txt) |
+| asan | basic | test_multipv | 0 | 0 | [asan-test_multipv.txt](preparation/asan-test_multipv.txt) |
+| asan | basic | rules_suite | 0 | 0 | [asan-rules_suite.txt](preparation/asan-rules_suite.txt) |
+| asan | basic | widen_nnue | 0 | 0 | [asan-widen_nnue.txt](preparation/asan-widen_nnue.txt) |
+| asan | basic | wide-net-cmp | 0 | 0 | [asan-wide-net-cmp.txt](preparation/asan-wide-net-cmp.txt) |
+| asan | basic | eval_parity | 0 | 0 | [asan-eval_parity.txt](preparation/asan-eval_parity.txt) |
+| asan | basic | repeat_mate_test | 0 | 0 | [asan-repeat_mate_test.txt](preparation/asan-repeat_mate_test.txt) |
+| asan | candidates | search_candidates_test | 0 | 0 | [asan-search_candidates_test.txt](preparation/asan-search_candidates_test.txt) |
+| asan | fuzz | uci_fuzz | 0 | 0 | [asan-uci_fuzz.txt](preparation/asan-uci_fuzz.txt) |
+| asan | krk-full-retry | krk_mate_test_full_retry | 124 | 0 | [asan-krk_mate_test_full_retry.txt](preparation/asan-krk_mate_test_full_retry.txt) |
+| asan | krk-split-retry | krk_mate_test_split_1 | 0 | 0 | [asan-krk_mate_test_split_1.txt](preparation/asan-krk_mate_test_split_1.txt) |
+| asan | krk-split-retry | krk_mate_test_split_2 | 0 | 0 | [asan-krk_mate_test_split_2.txt](preparation/asan-krk_mate_test_split_2.txt) |
+| asan | krk | krk_mate_test | 124 | 0 | [asan-krk_mate_test.txt](preparation/asan-krk_mate_test.txt) |
+| asan | mate-fifty | mate_solver_test | 0 | 0 | [asan-mate_solver_test.txt](preparation/asan-mate_solver_test.txt) |
+| asan | mate-fifty | fifty_move_tt_test | 0 | 0 | [asan-fifty_move_tt_test.txt](preparation/asan-fifty_move_tt_test.txt) |
+| asan | protocol | t16-search | 0 | 0 | [asan-t16-search.txt](preparation/asan-t16-search.txt) |
+| asan | protocol | t16-search-check | 0 | 0 | [asan-t16-search-check.txt](preparation/asan-t16-search-check.txt) |
+| asan | protocol | t16-ownbook | 0 | 0 | [asan-t16-ownbook.txt](preparation/asan-t16-ownbook.txt) |
+| asan | protocol | t16-ownbook-check | 0 | 0 | [asan-t16-ownbook-check.txt](preparation/asan-t16-ownbook-check.txt) |
+| asan | protocol | t16-options | 0 | 0 | [asan-t16-options.txt](preparation/asan-t16-options.txt) |
+| asan | protocol | t16-options-diff | 1 | 0 | [asan-t16-options-diff.txt](preparation/asan-t16-options-diff.txt) |
+| asan | protocol | t16-clamp | 0 | 0 | [asan-t16-clamp.txt](preparation/asan-t16-clamp.txt) |
+| asan | protocol | t16-clamp-diff | 1 | 0 | [asan-t16-clamp-diff.txt](preparation/asan-t16-clamp-diff.txt) |
+| asan | protocol | t22-uci-options | 0 | 0 | [asan-t22-uci-options.txt](preparation/asan-t22-uci-options.txt) |
+| asan | timing | multipv_stop_test | 0 | 0 | [asan-multipv_stop_test.txt](preparation/asan-multipv_stop_test.txt) |
+| release | basic | bad_capture_overflow | 0 | 0 | [release-bad_capture_overflow.txt](preparation/release-bad_capture_overflow.txt) |
+| release | basic | clock_parse_test | 0 | 0 | [release-clock_parse_test.txt](preparation/release-clock_parse_test.txt) |
+| release | basic | fixed_nodes | 0 | 0 | [release-fixed_nodes.txt](preparation/release-fixed_nodes.txt) |
+| release | basic | nnue_convert | 0 | 0 | [release-nnue_convert.txt](preparation/release-nnue_convert.txt) |
+| release | basic | nnue_file_test | 0 | 0 | [release-nnue_file_test.txt](preparation/release-nnue_file_test.txt) |
+| release | basic | startup_race | 0 | 0 | [release-startup_race.txt](preparation/release-startup_race.txt) |
+| release | basic | race_driver | 0 | 0 | [release-race_driver.txt](preparation/release-race_driver.txt) |
+| release | basic | test_eval | 0 | 0 | [release-test_eval.txt](preparation/release-test_eval.txt) |
+| release | basic | test_multipv | 0 | 0 | [release-test_multipv.txt](preparation/release-test_multipv.txt) |
+| release | basic | rules_suite | 0 | 0 | [release-rules_suite.txt](preparation/release-rules_suite.txt) |
+| release | basic | widen_nnue | 0 | 0 | [release-widen_nnue.txt](preparation/release-widen_nnue.txt) |
+| release | basic | wide-net-cmp | 0 | 0 | [release-wide-net-cmp.txt](preparation/release-wide-net-cmp.txt) |
+| release | basic | eval_parity | 0 | 0 | [release-eval_parity.txt](preparation/release-eval_parity.txt) |
+| release | basic | repeat_mate_test | 0 | 0 | [release-repeat_mate_test.txt](preparation/release-repeat_mate_test.txt) |
+| release | candidates | search_candidates_test | 0 | 0 | [release-search_candidates_test.txt](preparation/release-search_candidates_test.txt) |
+| release | fuzz | uci_fuzz | 0 | 0 | [release-uci_fuzz.txt](preparation/release-uci_fuzz.txt) |
+| release | krk | krk_mate_test | 0 | 0 | [release-krk_mate_test.txt](preparation/release-krk_mate_test.txt) |
+| release | mate-fifty | mate_solver_test | 0 | 0 | [release-mate_solver_test.txt](preparation/release-mate_solver_test.txt) |
+| release | mate-fifty | fifty_move_tt_test | 0 | 0 | [release-fifty_move_tt_test.txt](preparation/release-fifty_move_tt_test.txt) |
+| release | protocol | t16-search | 0 | 0 | [release-t16-search.txt](preparation/release-t16-search.txt) |
+| release | protocol | t16-search-check | 0 | 0 | [release-t16-search-check.txt](preparation/release-t16-search-check.txt) |
+| release | protocol | t16-ownbook | 0 | 0 | [release-t16-ownbook.txt](preparation/release-t16-ownbook.txt) |
+| release | protocol | t16-ownbook-check | 0 | 0 | [release-t16-ownbook-check.txt](preparation/release-t16-ownbook-check.txt) |
+| release | protocol | t16-options | 0 | 0 | [release-t16-options.txt](preparation/release-t16-options.txt) |
+| release | protocol | t16-options-diff | 1 | 0 | [release-t16-options-diff.txt](preparation/release-t16-options-diff.txt) |
+| release | protocol | t16-clamp | 0 | 0 | [release-t16-clamp.txt](preparation/release-t16-clamp.txt) |
+| release | protocol | t16-clamp-diff | 1 | 0 | [release-t16-clamp-diff.txt](preparation/release-t16-clamp-diff.txt) |
+| release | protocol | t22-uci-options | 0 | 0 | [release-t22-uci-options.txt](preparation/release-t22-uci-options.txt) |
+| release | timing | multipv_stop_test | 0 | 0 | [release-multipv_stop_test.txt](preparation/release-multipv_stop_test.txt) |
++ rg -n 'ContHist4PlyRead|NonPawnCorrection|LmrDeeperShallower|bare_king_mode|mate_moves_ == 0 && board.halfmove_clock|halfmove_clock\(\) \+ (depth|new_depth)' forge-combo29/src/search.cpp forge-combo29/src/uci.cpp forge-combo29/include/forge/search.hpp
+forge-combo29/include/forge/search.hpp:270:extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+forge-combo29/include/forge/search.hpp:271:extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+forge-combo29/include/forge/search.hpp:272:extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+forge-combo29/src/uci.cpp:189:            std::cout << "option name ContHist4PlyRead type check default false\n"
+forge-combo29/src/uci.cpp:190:                         "option name NonPawnCorrection type check default false\n"
+forge-combo29/src/uci.cpp:191:                         "option name LmrDeeperShallower type check default false\n";
+forge-combo29/src/uci.cpp:304:            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
+forge-combo29/src/uci.cpp:305:                bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+forge-combo29/src/uci.cpp:306:                             : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+forge-combo29/src/uci.cpp:307:                                                           : &forge::tune::LmrDeeperShallower;
+forge-combo29/src/search.cpp:77:bool ContHist4PlyRead = false;
+forge-combo29/src/search.cpp:78:bool NonPawnCorrection = false;
+forge-combo29/src/search.cpp:79:bool LmrDeeperShallower = false;
+forge-combo29/src/search.cpp:633:              cont4(tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+forge-combo29/src/search.cpp:884:    if (tune::NonPawnCorrection) {
+forge-combo29/src/search.cpp:901:    if (tune::NonPawnCorrection) {
+forge-combo29/src/search.cpp:967:                             tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+forge-combo29/src/search.cpp:976:        if (tune::ContHist4PlyRead && (ss - 4)->continuation != nullptr && !(ss - 4)->current_move.is_none()) {
+forge-combo29/src/search.cpp:1260:    const bool bare_king_mode = multi_worker &&
+forge-combo29/src/search.cpp:1264:    constexpr bool bare_king_mode = false;
+forge-combo29/src/search.cpp:1268:        board.halfmove_clock() + depth < 100) {
+forge-combo29/src/search.cpp:1270:        if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+forge-combo29/src/search.cpp:1276:        if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+forge-combo29/src/search.cpp:1281:        if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+forge-combo29/src/search.cpp:1393:        if (mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
+forge-combo29/src/search.cpp:1394:            best_score > -MateInMaxPly && has_material && !bare_king_mode) {
+forge-combo29/src/search.cpp:1480:        if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+forge-combo29/src/search.cpp:1481:            move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+forge-combo29/src/search.cpp:1496:                if (tune::LmrDeeperShallower) {
+forge-combo29/src/search.cpp:1501:                if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
++ git rev-parse f27b1971e459581ad4c85b7015f6af83bbfd4af6:forge-combo29/src HEAD:forge-combo29/src f27b1971e459581ad4c85b7015f6af83bbfd4af6:forge-combo29/include HEAD:forge-combo29/include
+9c4cb86ab9bea8c401c3b5dca64f2c63161e936a
+9c4cb86ab9bea8c401c3b5dca64f2c63161e936a
+b011f3d213a8973c57b85d6a9cafca71aab754d9
+b011f3d213a8973c57b85d6a9cafca71aab754d9
++ git diff --exit-code f27b1971e459581ad4c85b7015f6af83bbfd4af6 HEAD -- forge-combo29/src forge-combo29/include
++ printf 'pinned_to_HEAD_source_diff_exit=%s\n' 0
+pinned_to_HEAD_source_diff_exit=0
++ git diff --exit-code HEAD -- forge-combo29/src forge-combo29/include
++ printf 'HEAD_to_worktree_source_diff_exit=%s\n' 0
+HEAD_to_worktree_source_diff_exit=0
++ nl -ba forge-combo29/src/search.cpp
++ sed -n '1254,1294p;1388,1400p;1474,1506p'
+  1254	        else if ((ss - 4)->static_eval != ValueNone) improving = ss->static_eval > (ss - 4)->static_eval;
+  1255	        else improving = true;
+  1256	    }
+  1257	
+  1258	#if FORGE_BARE_KING_MATE_FIX
+  1259	    const bool multi_worker = all_workers_ != nullptr && all_workers_->size() > 1;
+  1260	    const bool bare_king_mode = multi_worker &&
+  1261	        (board.occupied(White) == board.pieces(White, King) ||
+  1262	         board.occupied(Black) == board.pieces(Black, King));
+  1263	#else
+  1264	    constexpr bool bare_king_mode = false;
+  1265	#endif
+  1266	
+  1267	    if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0 &&
+  1268	        board.halfmove_clock() + depth < 100) {
+  1269	        // Razoring: hopeless positions fall back to quiescence.
+  1270	        if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+  1271	            const int razor = qsearch(board, ss, alpha - 1, alpha);
+  1272	            if (aborted_) return 0;
+  1273	            if (razor < alpha) return razor;
+  1274	        }
+  1275	        // Reverse futility pruning.
+  1276	        if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+  1277	            eval < MateInMaxPly) {
+  1278	            return eval;
+  1279	        }
+  1280	        // Null move pruning.
+  1281	        if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+  1282	            ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
+  1283	            board.has_non_pawn_material(board.side_to_move()) &&
+  1284	            !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
+  1285	            ++null_tries_;
+  1286	            const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+  1287	                                  std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+  1288	            ss->current_move = Move::none();
+  1289	            ss->moved_piece = Empty;
+  1290	            ss->continuation = &(*continuation_history_)[Empty][0];
+  1291	            (ss + 1)->ply = ply + 1;
+  1292	            record_null_move(ss);
+  1293	            NullUndo undo;
+  1294	            board.make_null_move(undo);
+  1388	        const bool gives_check = board.gives_check(move);
+  1389	        const Piece moved = board.moved_piece(move);
+  1390	        const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
+  1391	
+  1392	        // Shallow-depth pruning of unpromising moves.
+  1393	        if (mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
+  1394	            best_score > -MateInMaxPly && has_material && !bare_king_mode) {
+  1395	            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+  1396	            const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+  1397	            if (quiet && !gives_check) {
+  1398	                if (!in_check && lmr_depth <= tune::FutilityDepth &&
+  1399	                    ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
+  1400	                    skip_quiets = true;
+  1474	            root_effort_index = static_cast<std::size_t>(std::find(root_effort_moves_.begin(), root_effort_end, move) - root_effort_moves_.begin());
+  1475	            assert(root_effort_index < root_effort_count_);
+  1476	        }
+  1477	
+  1478	        int score = -Infinite;
+  1479	        bool full_depth_needed = !pv_node || move_count > 1;
+  1480	        if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+  1481	            move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+  1482	            (quiet || !ss->tt_pv || move_count > 4)) {
+  1483	            int r = reduction(quiet, depth, move_count);
+  1484	            if (ss->tt_pv) r -= 1;
+  1485	            if (!improving) r += 1;
+  1486	            if (cut_node) r += 2;
+  1487	            if (tt_capture && quiet) r += 1;
+  1488	            if (gives_check) r -= 1;
+  1489	            if (in_check) r -= 1;
+  1490	            if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+  1491	            if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+  1492	            const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+  1493	            score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+  1494	            full_depth_needed = score > alpha && reduced_depth < new_depth;
+  1495	            if (full_depth_needed) {
+  1496	                if (tune::LmrDeeperShallower) {
+  1497	                    const bool do_deeper = score > best_score + 40 + 2 * new_depth;
+  1498	                    const bool do_shallower = score < best_score + new_depth;
+  1499	                    new_depth += static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
+  1500	                }
+  1501	                if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
+  1502	                    score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+  1503	                }
+  1504	                full_depth_needed = false;
+  1505	            }
+  1506	            if (!aborted_ && quiet && score > alpha) {
++ for source_commit in 61f59baedecd6c80d2a6803421d2f43e0890935a 91103a012c8f77f528606935dcff7184123617eb
++ git show 61f59baedecd6c80d2a6803421d2f43e0890935a:forge-combo29/src/search.cpp
++ rg -n -A3 -B2 'bare_king_mode|halfmove_clock\(\) \+ (depth|new_depth)'
+1200-#if FORGE_BARE_KING_MATE_FIX
+1201-    const bool multi_worker = all_workers_ != nullptr && all_workers_->size() > 1;
+1202:    const bool bare_king_mode = multi_worker &&
+1203-        (board.occupied(White) == board.pieces(White, King) ||
+1204-         board.occupied(Black) == board.pieces(Black, King));
+1205-#else
+1206:    constexpr bool bare_king_mode = false;
+1207-#endif
+1208-
+1209-    if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta)) {
+1210-        // Razoring: hopeless positions fall back to quiescence.
+1211:        if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+1212-            const int razor = qsearch(board, ss, alpha - 1, alpha);
+1213-            if (aborted_) return 0;
+1214-            if (razor < alpha) return razor;
+1215-        }
+1216-        // Reverse futility pruning.
+1217:        if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+1218-            eval < MateInMaxPly) {
+1219-            return eval;
+1220-        }
+1221-        // Null move pruning.
+1222:        if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+1223-            ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
+1224-            board.has_non_pawn_material(board.side_to_move()) &&
+1225-            !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
+--
+1332-
+1333-        // Shallow-depth pruning of unpromising moves.
+1334:        if (!root_node && best_score > -MateInMaxPly && has_material && !bare_king_mode) {
+1335-            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+1336-            const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+1337-            if (quiet && !gives_check) {
+--
+1418-        int score = -Infinite;
+1419-        bool full_depth_needed = !pv_node || move_count > 1;
+1420:        if (depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+1421-            (quiet || !ss->tt_pv || move_count > 4)) {
+1422-            int r = reduction(quiet, depth, move_count);
+1423-            if (ss->tt_pv) r -= 1;
++ for source_commit in 61f59baedecd6c80d2a6803421d2f43e0890935a 91103a012c8f77f528606935dcff7184123617eb
++ git show 91103a012c8f77f528606935dcff7184123617eb:forge-combo29/src/search.cpp
++ rg -n -A3 -B2 'bare_king_mode|halfmove_clock\(\) \+ (depth|new_depth)'
+1210-
+1211-    if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0 &&
+1212:        board.halfmove_clock() + depth < 100) {
+1213-        // Razoring: hopeless positions fall back to quiescence.
+1214-        if (depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+1215-            const int razor = qsearch(board, ss, alpha - 1, alpha);
+--
+1335-
+1336-        // Shallow-depth pruning of unpromising moves.
+1337:        if (mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node && best_score > -MateInMaxPly && has_material) {
+1338-            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+1339-            const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+1340-            if (quiet && !gives_check) {
+--
+1421-        int score = -Infinite;
+1422-        bool full_depth_needed = !pv_node || move_count > 1;
+1423:        if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && (quiet || !ss->tt_pv || move_count > 4)) {
+1424-            int r = reduction(quiet, depth, move_count);
+1425-            if (ss->tt_pv) r -= 1;
+1426-            if (!improving) r += 1;
++ git show 5633a78d1ac0684bd0da6db5a0f6d26933c56031:forge-combo29/src/search.cpp
++ rg -n 'bool (ContHist4PlyRead|NonPawnCorrection|LmrDeeperShallower)'
+73:bool ContHist4PlyRead = false;
+74:bool NonPawnCorrection = false;
+75:bool LmrDeeperShallower = false;
++ git show 5633a78d1ac0684bd0da6db5a0f6d26933c56031:forge-combo29/src/uci.cpp
++ rg -n 'option name (ContHist4PlyRead|NonPawnCorrection|LmrDeeperShallower)'
+184:            std::cout << "option name ContHist4PlyRead type check default false\n"
+185:                         "option name NonPawnCorrection type check default false\n"
+186:                         "option name LmrDeeperShallower type check default false\n";
++ jq '{fault_count:(.faults|length),fault_kind_counts:(.faults|group_by(.kind)|map({kind:.[0].kind,count:length})),equality_faults:[.faults[]|select(.file|test("^0(84|85|86|87|88|89|90|91)\\.txt$"))|{file,description}]}' /workspace/work/all-run/review-t1-t8/finalization-review/state-snapshot.json.txt
+{
+  "fault_count": 91,
+  "fault_kind_counts": [
+    {
+      "kind": "fixture",
+      "count": 1
+    },
+    {
+      "kind": "soak",
+      "count": 90
+    }
+  ],
+  "equality_faults": [
+    {
+      "file": "084.txt",
+      "description": "Comparison fault at required-equality root; 10/10 additional fault pairs"
+    },
+    {
+      "file": "085.txt",
+      "description": "Comparison fault at required-equality root; 10/10 additional fault pairs"
+    },
+    {
+      "file": "086.txt",
+      "description": "Comparison fault at required-equality root; 10/10 additional fault pairs"
+    },
+    {
+      "file": "087.txt",
+      "description": "Comparison fault at required-equality root; 10/10 additional fault pairs"
+    },
+    {
+      "file": "088.txt",
+      "description": "Comparison fault at required-equality root; 10/10 additional fault pairs"
+    },
+    {
+      "file": "089.txt",
+      "description": "Comparison fault at required-equality root; 10/10 additional fault pairs"
+    },
+    {
+      "file": "090.txt",
+      "description": "Comparison fault at required-equality root; 10/10 additional fault pairs"
+    },
+    {
+      "file": "091.txt",
+      "description": "Comparison fault at required-equality root; 10/10 additional fault pairs"
+    }
+  ]
+}
++ for input_commit in 91103a012c8f77f528606935dcff7184123617eb 5633a78d1ac0684bd0da6db5a0f6d26933c56031 61f59baedecd6c80d2a6803421d2f43e0890935a
++ git merge-base --is-ancestor 91103a012c8f77f528606935dcff7184123617eb f27b1971e459581ad4c85b7015f6af83bbfd4af6
++ printf 'input=%s ancestor_exit=%s\n' 91103a012c8f77f528606935dcff7184123617eb 0
+input=91103a012c8f77f528606935dcff7184123617eb ancestor_exit=0
++ for input_commit in 91103a012c8f77f528606935dcff7184123617eb 5633a78d1ac0684bd0da6db5a0f6d26933c56031 61f59baedecd6c80d2a6803421d2f43e0890935a
++ git merge-base --is-ancestor 5633a78d1ac0684bd0da6db5a0f6d26933c56031 f27b1971e459581ad4c85b7015f6af83bbfd4af6
++ printf 'input=%s ancestor_exit=%s\n' 5633a78d1ac0684bd0da6db5a0f6d26933c56031 0
+input=5633a78d1ac0684bd0da6db5a0f6d26933c56031 ancestor_exit=0
++ for input_commit in 91103a012c8f77f528606935dcff7184123617eb 5633a78d1ac0684bd0da6db5a0f6d26933c56031 61f59baedecd6c80d2a6803421d2f43e0890935a
++ git merge-base --is-ancestor 61f59baedecd6c80d2a6803421d2f43e0890935a f27b1971e459581ad4c85b7015f6af83bbfd4af6
++ printf 'input=%s ancestor_exit=%s\n' 61f59baedecd6c80d2a6803421d2f43e0890935a 0
+input=61f59baedecd6c80d2a6803421d2f43e0890935a ancestor_exit=0
++ nl -ba forge-combo29/src/search.cpp
++ sed -n '1060,1085p;1214,1238p'
+  1060	    }
+  1061	
+  1062	#if FORGE_SPD_TT_NOTLS
+  1063	    const TTProbe tt_probe = probe_tt(board.key());
+  1064	#else
+  1065	    const TTProbe tt_probe = shared_.tt.probe(board.key());
+  1066	#endif
+  1067	    const bool tt_hit = tt_probe.hit;
+  1068	    const TTEntry& tte = tt_probe.entry;
+  1069	    const bool near50 = board.halfmove_clock() >= 90;
+  1070	    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+  1071	    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+  1072	                             ? score_from_tt(tte.score, ply) : ValueNone;
+  1073	    const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+  1074	    const bool tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+  1075	    if (!pv_node && !near50 && tt_hit && tt_score != ValueNone &&
+  1076	        (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+  1077	        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+  1078	         (tt_bound == BoundUpper && tt_score <= alpha))) {
+  1079	        return tt_score;
+  1080	    }
+  1081	
+  1082	    int best_score;
+  1083	    int futility_base;
+  1084	    if (in_check) {
+  1085	        ss->static_eval = ValueNone;
+  1214	#endif
+  1215	    const bool tt_hit = tt_probe.hit;
+  1216	    const TTEntry& tte = tt_probe.entry;
+  1217	    const bool near50 = board.halfmove_clock() >= 90;
+  1218	    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+  1219	    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+  1220	                             ? score_from_tt(tte.score, ply) : ValueNone;
+  1221	    const int tt_depth = tt_hit ? tte.depth : -1;
+  1222	    const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+  1223	    const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
+  1224	    ss->tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+  1225	
+  1226	    if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+  1227	        (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+  1228	        board.halfmove_clock() < 90 &&
+  1229	        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+  1230	         (tt_bound == BoundUpper && tt_score <= alpha))) {
+  1231	        return tt_score;
+  1232	    }
+  1233	
+  1234	    // Static evaluation.
+  1235	    int eval;
+  1236	    if (in_check) {
+  1237	        eval = ss->static_eval = ss->raw_eval = ValueNone;
+  1238	    } else if (!excluded.is_none()) {
++ nl -ba forge-combo29/src/uci.cpp
++ sed -n '185,194p;300,316p'
+   185	            if (forge::nnue::available()) {
+   186	                std::cout << "option name UseNNUE type check default true\n"
+   187	                             "option name NnueFile type string default <empty>\n";
+   188	            }
+   189	            std::cout << "option name ContHist4PlyRead type check default false\n"
+   190	                         "option name NonPawnCorrection type check default false\n"
+   191	                         "option name LmrDeeperShallower type check default false\n";
+   192	#ifdef FORGE_EXPOSE_TUNABLES
+   193	            // Development builds advertise the search constants so match
+   194	            // runners can set them. Builds without this macro still accept them.
+   300	                    searcher.clear_hash();
+   301	                } else {
+   302	                    note_invalid();
+   303	                }
+   304	            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
+   305	                bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+   306	                             : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+   307	                                                           : &forge::tune::LmrDeeperShallower;
+   308	                if (value_text == "true" || value_text == "false") {
+   309	                    *target = value_text == "true";
+   310	                } else {
+   311	                    note_invalid();
+   312	                }
+   313	            } else if (name == "MultiPV") {
+   314	                apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+   315	            } else if (name == "Hash") {
+   316	                apply_spin(1, 2048, [&](int clamped) {
++ sed -n 74,88p /workspace/work/all-run/review-t1-t8/finalization-review/SOAK_ALL_REPORT.snapshot.md
+
+Chess fault counters, runtime failures and sanitizer warnings are separate observations. A chess summary with zero faults does not establish a clean sanitizer run. Counts in this section come only from matched finished batches in the supplied audit snapshot; state game/search totals remain unchanged.
+
+Audit snapshot: 2026-11-14T15:55:27.421Z; reported reconciliation errors 0. Batch identity, finish time, recorded counts and available exit/signal are matched to state. This renderer does not assert that the audit state hash matches current state.
+
+| Phase | Audited / finished attempts | With canonical counts | With process classification | TSan warning blocks | Unresolved blocks | Nonzero exits | Runtime/diagnostic affected | Timeout/forced |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2D | 8 / 8 | 8 | 8 | 0 | 0 | 0 | 0 | 0 |
+| 2E | 8 / 8 | 8 | 8 | 0 | 0 | 1 | 0 | 1 |
+| 2F | 10 / 10 | 10 | 10 | 0 | 0 | 0 | 0 | 0 |
+
+Coverage includes finished attempts with no committed chess counts. A dash means unavailable, not zero. Nonzero exits, runtime diagnostics and timeouts can overlap; timeout/forced termination is not labelled an engine crash. ASan/UBSan marker lines are not TSan warning events.
+
+<details>
+<summary>Per-batch sanitizer and process evidence</summary>
++ jq '{utc,errors,warnings,stateSha256,batches:(.batches|length)}' /workspace/work/all-run/audit-part2-final.json
+{
+  "utc": "2026-11-14T15:55:27.421Z",
+  "errors": 0,
+  "warnings": 3,
+  "stateSha256": "c5c1d377b6b8163c956207dcf4693b0cec5252dfdbfefa8d675dbd595cf0672b",
+  "batches": 42
+}
++ sha256sum /workspace/work/all-run/review-t1-t8/integration-final-doc/INTEGRATION_ALL.ready.md
+5b12ce8214bf4505c83145f9768df7ad1b2a18ef67fce7b36a853db1ebc6fe6b  /workspace/work/all-run/review-t1-t8/integration-final-doc/INTEGRATION_ALL.ready.md
++ sha256sum /workspace/work/all-run/review-t1-t8/finalization-review/FINALIZATION_REVIEW.md /workspace/work/all-run/review-t1-t8/finalization-review/state-snapshot.json.txt
+9c810dcea9908c3af75b022bdbc555f09859a33df8467a46460b84cd476a0ac1  /workspace/work/all-run/review-t1-t8/finalization-review/FINALIZATION_REVIEW.md
+5f65a57a01e98d767c82099225a63598e9b950e97d3777c011f55180b0944ad9  /workspace/work/all-run/review-t1-t8/finalization-review/state-snapshot.json.txt

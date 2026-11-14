@@ -1,0 +1,42 @@
+diff --git a/workspace/work/part4-sample-refresh/control-baseline.mjs b/workspace/work/part4-sample-refresh/control-proposed.mjs
+index f036ccf..17f4949 100644
+--- a/workspace/work/part4-sample-refresh/control-baseline.mjs
++++ b/workspace/work/part4-sample-refresh/control-proposed.mjs
+@@ -75,7 +75,8 @@ function collectSpecCounts(summary,countMap){
+   counts[name]=value;sources[name]=source;
+  };
+  if(summary&&typeof summary==='object'&&!Array.isArray(summary)){
+-  if(summary.kind==='fastchess-crash-legality')schema='fastchess';
++  if(summary.mode==='mate_bound_audit')schema='mate_bound_audit';
++  else if(summary.kind==='fastchess-crash-legality')schema='fastchess';
+   else if(summary.type==='comparison_sharded_summary')schema='sharded_compare';
+   else if(Object.hasOwn(summary,'completed_units')&&summary.groups&&typeof summary.groups==='object')schema='endgame';
+   else if(Object.hasOwn(summary,'records_completed'))schema='compare';
+@@ -133,7 +134,26 @@ function collectSpecCounts(summary,countMap){
+   explicitCompletedWithExclusions=summary.counts_exclude_partial===true&&summary.partial_evidence?.counted===false&&Number.isSafeInteger(summary.completed_units)&&summary.completed_units===summary.counts?.records_completed&&!issues.length;
+   if(!explicitCompletedWithExclusions)issues.push('sharded explicit completed-unit/exclusion contract missing or invalid');
+  }
+- const completedUnits=schema==='endgame'||schema==='sharded_compare'?summary.completed_units:schema==='compare'?summary.records_completed:schema==='play'?summary.games:null;
++ if(schema==='mate_bound_audit'){
++  const fields='trials positive_mates_checked mate_bound_check_failures illegal_moves operational_faults faults unexpected_exits sanitizer_reports reproductions reproduction_faults'.split(' ');
++  const valid=x=>Number.isSafeInteger(x)&&x>=0;
++  for(const k of ['offset','next_offset','available_units','completed_units','incomplete_units','trials','faults','partial_trials_excluded','interrupted_observations','interrupted_faults'])if(!valid(summary[k]))issues.push('mate audit invalid integer '+k);
++  for(const bucket of ['counts','partial_counts_excluded','all_noninterrupted_observations'])for(const k of fields)if(!valid(summary[bucket]?.[k]))issues.push('mate audit invalid integer '+bucket+'.'+k);
++  if(summary.next_offset!==summary.offset+summary.completed_units||summary.next_offset>summary.available_units)issues.push('mate audit completed cursor mismatch');
++  if(summary.counts?.trials!==4*summary.completed_units||summary.trials!==summary.counts?.trials||summary.faults!==summary.counts?.faults)issues.push('mate audit baseline/root counts mismatch');
++  if(summary.counts?.reproductions!==10*summary.counts?.faults||summary.counts?.reproduction_faults>summary.counts?.reproductions)issues.push('mate audit complete reproduction counts mismatch');
++  if(summary.incomplete_units>1||summary.interrupted_observations!==summary.incomplete_units||summary.interrupted_faults>summary.interrupted_observations||summary.partial_trials_excluded!==summary.partial_counts_excluded?.trials)issues.push('mate audit partial exclusion mismatch');
++  if(summary.incomplete_units===0&&fields.some(k=>summary.partial_counts_excluded?.[k]!==0))issues.push('mate audit partial counts without incomplete root');
++  if(summary.incomplete_units===1&&(summary.next_offset>=summary.available_units||summary.partial_counts_excluded?.trials>4))issues.push('mate audit invalid partial root');
++  for(const k of fields)if(summary.all_noninterrupted_observations?.[k]!==summary.counts?.[k]+summary.partial_counts_excluded?.[k])issues.push('mate audit observed/completed/partial mismatch '+k);
++  for(const bucket of ['counts','partial_counts_excluded']){
++   const c=summary[bucket]||{};
++   for(const k of ['positive_mates_checked','mate_bound_check_failures','illegal_moves','operational_faults','faults'])if(c[k]>c.trials)issues.push('mate audit baseline counter exceeds trials '+bucket+'.'+k);
++   if(c.reproduction_faults>c.reproductions||c.sanitizer_reports>c.trials+c.reproductions||c.unexpected_exits>c.trials+c.reproductions)issues.push('mate audit observation counter exceeds observations '+bucket);
++  }
++  explicitCompletedWithExclusions=issues.length===0;
++ }
++ const completedUnits=schema==='mate_bound_audit'||schema==='endgame'||schema==='sharded_compare'?summary.completed_units:schema==='compare'?summary.records_completed:schema==='play'?summary.games:null;
+  return {counts,sources,issues,schema,exclusions,explicitCompletedWithExclusions,completedUnits};
+ }
+ function specEvidence(spec,metadataPath){
