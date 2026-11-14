@@ -1,0 +1,24 @@
++ cat /workspace/work/all-run/part4-review/krk-oracle-final-check-command.txt
+node <<'NODE'
+const fs = require('fs');
+const crypto = require('crypto');
+const source = fs.readFileSync('forge-combo29/tests_t12/krk_mate_test.cpp', 'utf8');
+const header = fs.readFileSync('forge-combo29/soak_all/krk_oracle.hpp', 'utf8');
+const a = source.slice(source.indexOf('// Exact retrograde tablebase'), source.indexOf('\nstd::string make_krk_fen'));
+const b = header.slice(header.indexOf('// Exact retrograde tablebase'), header.indexOf('\nstruct KrkRootAssessment'));
+if (a !== b) throw Error('KrkTablebase differs from original tests_t12 source');
+console.log('PASS unchanged KrkTablebase bytes=' + Buffer.byteLength(a) + ' sha256=' + crypto.createHash('sha256').update(a).digest('hex'));
+console.log('HEADER_SHA256=' + crypto.createHash('sha256').update(header).digest('hex'));
+console.log('ATTRIBUTION_CORRECTION=Removed unverified branch-name claim; exact introducing commit and source blob retained.');
+NODE
+git hash-object forge-combo29/tests_t12/krk_mate_test.cpp
+git diff --name-only -- forge-combo29/src forge-combo29/include forge-combo29/tests_t12
+git status --short -- forge-combo29/soak_all/krk_oracle.hpp
++ node
+PASS unchanged KrkTablebase bytes=8024 sha256=21a5fba5d76e2afefead45de44d3b7e4c4df34b1ae76e248eb20b55e40cef34f
+HEADER_SHA256=4bd157bdef50e809fd9e48630aa961b63cdca07cd2082dbe14d8464bbcdaa0b7
+ATTRIBUTION_CORRECTION=Removed unverified branch-name claim; exact introducing commit and source blob retained.
++ git hash-object forge-combo29/tests_t12/krk_mate_test.cpp
+329cad9acfee7e0a88e118911d14298818234244
++ git diff --name-only -- forge-combo29/src forge-combo29/include forge-combo29/tests_t12
++ git status --short -- forge-combo29/soak_all/krk_oracle.hpp

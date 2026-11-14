@@ -2,7 +2,7 @@
 
 Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z.
 
-Updated 2026-11-14T11:53:33.057Z; elapsed 42.02 minutes; phase Part 1; completed pushes at report generation 5.
+Updated 2026-11-14T11:59:12.747Z; elapsed 47.68 minutes; phase 2D; completed pushes at report generation 7.
 
 Base `fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca`; merged source `f27b1971e459581ad4c85b7015f6af83bbfd4af6`; lock `16833ecc03b425586f91f4c8834dea8807bf4c22`. Cloud VM only. Only `integrate/combo29-all` and `soak/combo29-all` are push destinations. The earlier soak branch is preserved.
 
@@ -11,6 +11,7 @@ Default pins: {"bench11":312866,"bench13":862329,"perft5":4865609}.
 | Phase | Conditions | Completed counts | Status |
 | --- | --- | --- | --- |
 | Part1 | Three requested merges; release/ASan+UBSan/TSan builds; all16test folders; defaults pinned; unchanged expected fixtures | {"engine_builds":3,"test_checks":58,"nonzero_checks":5,"sanitizer_reports":0,"clock_cases":14,"fixture_reproduction_runs":40,"release_krk_T1_runs":100,"release_krk_T2_runs":400,"asan_krk_T1_runs":100,"asan_krk_T2_runs":40} | Complete with4 stale fixture comparisons and1 incomplete full-ASan KRK attempt; reduced retry passed |
+| 2D | ASan+UBSan self-play, Threads1, Hash16, OwnBookfalse, defaults, nodes2000,8 seeded opening plies,300-ply cap | {"games":194,"moves":27831,"searches":27831,"opening_moves":1552,"faults":0,"illegal":0,"missing":0,"badscore":0,"mates":146,"stalemates":0,"repetitions":24,"fifty":13,"ply_caps":2,"insufficient":9,"batches":1} | Running |
 
 Existing test/check results recorded: 58; nonzero exits 5; sanitizer reports 0. See the [full matrix](TEST_MATRIX.md) for classification and output.
 

@@ -1,0 +1,28 @@
+Endgame driver preparation verification (not official Part 2 counts)
+2026-11-14, completed before 11:56 UTC.
+
+Executable: /workspace/work/all-run/builds/endgame_driver
+SHA256 b49e235e747b9257c8bed87994a06dffdddebd6e555af072cd8e69b3e2eaca23
+Driver source SHA256 88f7555c1f1eaa7e3f3a61a31996ca8d8dbcf0154b00dc70d347542f779f6dd3
+uci_process.hpp SHA256 7790439fe381ae9bf0798d1e72e9a8e7aedbe9a7322823d5a8655dca783ac6a7
+krk_oracle.hpp SHA256 4bd157bdef50e809fd9e48630aa961b63cdca07cd2082dbe14d8464bbcdaa0b7
+
+Commands and full actual outputs:
+/workspace/work/all-run/endgame-final-observed-build.txt
+/workspace/work/all-run/endgame-final-observed-checks.txt
+Earlier intermediate-header smoke commands and observations remain in:
+/workspace/work/all-run/endgame-observed-smokes.txt
+
+The final driver explicitly sends quit, drains stdout/stderr and observes process status after each completed or partial work unit. Full lifetime trace includes shutdown. Failed trials observe shutdown immediately before another process may be started. Startup exceptions carry observed status. Unexpected exit codes/signals, shutdown timeouts/errors, and sanitizer output are recorded. A driver-issued SIGTERM/SIGKILL is suppressed as an unexpected signal only when it matches the actual signal. Budget expiration alone is not a crash; only response/stdin timeouts from a shortened budget qualify as interrupted trials.
+
+Final bounded actual engine smoke: supplied reproducer 7k/8/3K4/8/8/8/8/5R2 w - - 0 1, Threads2, Hash16, OwnBookfalse, new options defaults, fresh ucinewgame/isready each trial, depth14. One trial each, lock and merged. Both returned legal f1f7 and positive mate; exact root and bestmove DTM were 9 plies. Both processes exited0 with no signal, no timeout, empty shutdown stderr. This verifies transport/oracle wiring, not ten-trial coverage.
+
+An earlier intermediate-header smoke from the same reproducer observed lock score cp505 and merged mate5. The lock move f1f7 still forces mate in 9 plies; therefore this was a missing mate score, not a nonmating move. Its pending record is retained in /workspace/work/all-run/endgame-observed-mates-smoke. These observations are excluded from official phase counts.
+
+Final forced one-second budget check at depth30 retained three completed trial records from an unfinished ten-trial unit, excluded all three from completed summary totals/groups, and kept next_offset18. SUMMARY completed_units0 trials0 faults0 groups{}; partial_trials_excluded3, partial_nodes_excluded1717492. Shutdown exited0. Full partial evidence: /workspace/work/all-run/endgame-final-observed-partial-smoke.
+
+Harness-only timeout fixture used /bin/cat instead of an engine: UCI handshake exceeded shortened two-second budget, next_offset remained0, completed_units0/trials0/unexpected_exits0. Full partial transcript retains the timeout and observed shutdown. Harness-only nonexistent executable fixture returned exit127, one failed trial, shutdown_faults1, unexpected_exits1, and retained the full diagnostic. Neither fixture is an engine failure or official phase trial.
+
+Independent KRK oracle is exactly the tests_t12 retrograde algorithm with a validated wrapper, limited to supplied White K+R versus Black K, White to move, halfmove0, no castling/en-passant. The driver records root DTM, move DTM, loss of forced mate, claimed mate bound, and bound violation separately. krk_non_mating_moves follows the original t12 criterion: illegal/drawing move, or move DTM beyond reported mate bound; absent positive mate score it uses requested depth. Thus a slower winning move beyond the claimed bound is distinguished from loss of forced mate. KQK/KBBK have no independent mate oracle; a finite legal PV is never called a proof.
+
+Accounting: RESULT rows are per-trial observations; UNIT rows have record_type=unit_completion and completed. Only full units contribute to SUMMARY. Pending full units include all expected trial records; partial units retain completed trial records plus interrupted_trial and must be rerun in full at next_offset. Shutdown faults can add one unit-level fault beyond trial faults; shutdown_faults and unexpected_exits are separate counters. Do not count all results.jsonl lines as trials.

@@ -271,19 +271,14 @@ struct Shutdown {
     bool fault = false, unexpected_exit = false, sanitizer_report = false;
 };
 
-Shutdown finish_process(const Options& o, const std::string& stem, bool budget_interrupted,
-                        std::unique_ptr<UciProcess>& process) {
+Shutdown shutdown_observation(const UciShutdownResult& status, const std::string& trace, bool budget_interrupted) {
     Shutdown observed;
-    if (!process) return observed;
-    const auto status = process->finish(500);
     const bool induced_signal = (status.signal == SIGTERM && status.driver_sigterm) ||
         (status.signal == SIGKILL && status.driver_sigkill);
     observed.unexpected_exit = status.reaped && (status.exit_code > 0 || (status.signal != 0 && !induced_signal));
     observed.sanitizer_report = sanitizer_text(status.stderr_output);
     observed.fault = observed.unexpected_exit || observed.sanitizer_report || (!budget_interrupted &&
         (!status.reaped || status.timed_out || !status.error.empty() || status.exit_code != 0 || status.signal != 0));
-    const std::string trace = o.out + "/" + stem + ".shutdown.uci.txt";
-    write_file(trace, process->transcript());
     std::ostringstream out;
     out << "{\"reaped\":" << boolean(status.reaped) << ",\"exit_code\":" << status.exit_code
         << ",\"signal\":" << status.signal << ",\"timed_out\":" << boolean(status.timed_out)
@@ -293,6 +288,16 @@ Shutdown finish_process(const Options& o, const std::string& stem, bool budget_i
         << ",\"error\":" << json_quote(status.error) << ",\"stderr\":" << json_quote(status.stderr_output)
         << ",\"full_transcript\":" << json_quote(trace) << '}';
     observed.json = out.str();
+    return observed;
+}
+
+Shutdown finish_process(const Options& o, const std::string& stem, bool budget_interrupted,
+                        std::unique_ptr<UciProcess>& process) {
+    if (!process) return {};
+    const auto status = process->finish(500);
+    const std::string trace = o.out + "/" + stem + ".shutdown.uci.txt";
+    write_file(trace, process->transcript());
+    const auto observed = shutdown_observation(status, trace, budget_interrupted);
     process.reset();
     return observed;
 }
@@ -332,7 +337,11 @@ Trial run_trial(const Options& o, Budget& budget, const Root& root, const std::s
                 const soak::KrkOracle* oracle = nullptr) {
     Trial t;
     t.transcript = o.out + "/" + stem + ".uci.txt";
-    if (!budget.available()) { t.budget_interrupted = true; return t; }
+    if (!budget.available()) {
+        t.budget_interrupted = true;
+        write_file(t.transcript, "! driver budget too short to begin trial; no search submitted\n");
+        return t;
+    }
     bool limited = false;
     const std::size_t stderr_begin = process ? process->stderr_output().size() : 0;
     try {
@@ -383,15 +392,24 @@ Trial run_trial(const Options& o, Budget& budget, const Root& root, const std::s
         t.pv_terminal_checkmate = t.pv_legal && !t.result.pv.empty() && pv.in_check() && pv.legal_moves().empty();
     } catch (const std::exception& e) {
         t.error = e.what();
-        t.budget_interrupted = limited && budget.left() < 1000;
+        const bool response_timeout = t.error.rfind("engine response timeout", 0) == 0 ||
+            t.error.rfind("engine stdin timeout", 0) == 0;
+        t.budget_interrupted = limited && budget.left() < 1000 && response_timeout;
+        if (const auto* startup = dynamic_cast<const UciStartupError*>(&e)) {
+            const auto observed = shutdown_observation(startup->shutdown, t.transcript, t.budget_interrupted);
+            t.shutdown = observed.json;
+            t.shutdown_fault = observed.fault;
+            t.unexpected_exit = observed.unexpected_exit;
+            t.sanitizer_report = observed.sanitizer_report;
+        }
     }
     if (process) {
         t.stderr_text = process->stderr_output().substr(stderr_begin);
         write_file(t.transcript, process->transcript());
     }
     else write_file(t.transcript, "Process creation failed: " + t.error + "\n");
-    t.sanitizer_report = sanitizer_text(t.stderr_text + t.error);
-    if (!t.completed) finish_trial(o, stem, t, process);
+    t.sanitizer_report = t.sanitizer_report || sanitizer_text(t.stderr_text + t.error);
+    if (!t.completed && process) finish_trial(o, stem, t, process);
     return t;
 }
 

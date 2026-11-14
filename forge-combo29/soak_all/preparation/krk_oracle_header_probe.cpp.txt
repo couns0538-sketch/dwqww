@@ -1,0 +1,100 @@
+#include "krk_oracle.hpp"
+#define main t12_original_test_main
+#include "/workspace/work/dwqww-all/forge-combo29/tests_t12/krk_mate_test.cpp"
+#undef main
+#include <fstream>
+#include <stdexcept>
+
+void require(bool condition, const std::string& message) {
+    if (!condition) throw std::runtime_error(message);
+}
+
+int main() {
+    std::cout << std::unitbuf;
+    const soak::KrkOracle oracle;
+    const KrkTablebase original;
+    std::size_t roots = 0, moves = 0, nonmating = 0;
+    auto check_root = [&](const std::string& fen, int expected, bool verbose) {
+        forge::Board board;
+        require(board.set_fen(fen), "FEN rejected: " + fen);
+        const auto root = oracle.assess_root(board);
+        const int source_dtm = original.dtm(board.king_square(forge::White),
+            forge::lsb(board.pieces(forge::White, forge::Rook)), board.king_square(forge::Black), 0);
+        require(root.supported && root.legal && root.dtm_plies == source_dtm, "root/source mismatch");
+        require(expected < 0 || root.dtm_plies == expected, "known root DTM mismatch");
+        require(root.dtm_plies > 0, "supplied winning root is not winning");
+        std::size_t root_moves = 0, root_nonmating = 0;
+        for (const auto move : board.legal_moves()) {
+            const auto result = oracle.assess_move(board, move);
+            const int source_move = original.move_mate_plies(board, move);
+            require(result.supported && result.root_legal && result.move_legal, "legal move rejected");
+            require(result.root_dtm_plies == source_dtm && result.move_dtm_plies == source_move,
+                    "move/source mismatch");
+            require(result.loses_forced_mate == (source_move < 0), "nonmating classification mismatch");
+            ++root_moves;
+            root_nonmating += result.loses_forced_mate;
+            if (verbose) std::cout << "PART4_MOVE " << forge::Board::move_to_uci(move)
+                << " dtm=" << result.move_dtm_plies << " loses_forced_mate=" << result.loses_forced_mate << '\n';
+        }
+        const auto none = oracle.assess_move(board, forge::Move::none());
+        require(none.supported && none.root_legal && !none.move_legal && !none.loses_forced_mate,
+                "none move incorrectly counted as nonmating");
+        ++roots;
+        moves += root_moves;
+        nonmating += root_nonmating;
+        std::cout << "ROOT " << roots << " dtm=" << root.dtm_plies << " legal_moves=" << root_moves
+                  << " losing_mate_moves=" << root_nonmating << " fen=" << fen << '\n';
+    };
+    const std::string part4 = "8/8/8/8/8/1R6/2k5/5K2 w - - 0 1";
+    check_root(part4, 15, true);
+    forge::Board known;
+    require(known.set_fen(part4), "Part4 FEN rejected");
+    for (const auto& [uci, expected] : std::vector<std::pair<std::string,int>>{{"b3e3",15},{"b3f3",17},{"b3b1",-1}}) {
+        const auto move = known.parse_uci(uci);
+        require(move.has_value(), "known move rejected");
+        require(oracle.assess_move(known, *move).move_dtm_plies == expected, "known move DTM mismatch");
+    }
+    std::ifstream soak_roots("forge-combo29/soak_all/krk_roots.txt");
+    require(bool(soak_roots), "soak root list missing");
+    std::string line;
+    int soak_count = 0;
+    while (std::getline(soak_roots, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        check_root(line, -1, false);
+        ++soak_count;
+    }
+    require(soak_count == 40, "expected 40 soak roots");
+    std::ifstream original_roots("forge-combo29/tests_t12/krk_40_positions.txt");
+    require(bool(original_roots), "t12 root list missing");
+    int t12_count = 0;
+    while (std::getline(original_roots, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        const auto first_pipe = line.find('|');
+        const auto last_pipe = line.rfind('|');
+        require(first_pipe != std::string::npos && last_pipe > first_pipe, "malformed t12 row");
+        const int expected = std::stoi(line.substr(first_pipe + 1));
+        auto fen = line.substr(last_pipe + 1);
+        fen.erase(0, fen.find_first_not_of(' '));
+        check_root(fen, expected, false);
+        ++t12_count;
+    }
+    require(t12_count == 40, "expected 40 t12 roots");
+    const std::vector<std::string> unsupported{
+        "8/8/8/8/1Q6/8/2k5/5K2 w - - 0 1",
+        "8/8/8/8/8/1R6/2k5/5K2 b - - 0 1",
+        "8/8/8/8/8/1R6/2k5/5K2 w - - 1 1",
+        "8/8/8/8/8/1r6/2K5/5k2 b - - 0 1"
+    };
+    for (const auto& fen : unsupported) {
+        forge::Board board;
+        require(board.set_fen(fen), "unsupported test FEN rejected");
+        const auto root = oracle.assess_root(board);
+        const auto move = oracle.assess_move(board, forge::Move::none());
+        require(!root.supported && !root.legal && !move.supported && !move.loses_forced_mate,
+                "unsupported input misclassified");
+        std::cout << "UNSUPPORTED_PASS " << fen << '\n';
+    }
+    std::cout << "PASS roots=" << roots << " legal_moves=" << moves << " losing_mate_moves=" << nonmating
+              << " soak_roots=" << soak_count << " t12_roots=" << t12_count
+              << " unsupported=" << unsupported.size() << " source_and_known_DTM_agreement=true\n";
+}
