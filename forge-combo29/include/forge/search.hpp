@@ -123,7 +123,9 @@ public:
     void resize(std::size_t mb);
     void clear();
     void new_search() { generation_ = static_cast<std::uint8_t>((generation_ + 1U) & 31U); ++epoch_; }
-    [[nodiscard]] TTProbe probe(std::uint64_t key) const;
+    // refresh_generation is false for helper threads: a probe must not publish
+    // a generation update into the table the main thread is filling.
+    [[nodiscard]] TTProbe probe(std::uint64_t key, bool refresh_generation = true) const;
     void store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
     [[nodiscard]] int hashfull() const;
     [[nodiscard]] std::uint8_t generation() const { return generation_; }
@@ -165,7 +167,7 @@ private:
     // without it and are only for the Worker on the lease's thread (tt_owned_).
     friend class Worker;
     template <bool TakeLock>
-    [[nodiscard]] TTProbe probe_body(std::uint64_t key) const;
+    [[nodiscard]] TTProbe probe_body(std::uint64_t key, bool refresh_generation) const;
     template <bool TakeLock>
     void store_body(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
                     bool pv, std::uint16_t halfmove_clock);
@@ -335,6 +337,8 @@ private:
     friend class Searcher;
 #endif
 
+    void clear_histories();
+
     SharedSearchState& shared_;
     int id_ = 0;
     Evaluator evaluator_;
@@ -376,10 +380,17 @@ private:
 #if FORGE_SPD_TT_NOTLS
     // The six TT call sites of search / qsearch: one predictable branch per access.
     [[nodiscard]] TTProbe probe_tt(std::uint64_t key) const {
+        // Helpers may read. They must not refresh generation: that write changes
+        // which entry the main thread replaces.
+        if (!is_main()) return shared_.tt.probe(key, false);
         return tt_owned_ ? shared_.tt.probe_owned(key) : shared_.tt.probe(key);
     }
     void store_tt(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
                   bool pv, std::uint16_t halfmove_clock) {
+        // Helper stores are dropped. A PV node can skip moves and still store an
+        // exact or upper bound; a second thread publishing that bound overwrites
+        // the main thread's mate score (BoundExact replaces any depth).
+        if (!is_main()) return;
         if (tt_owned_) shared_.tt.store_owned(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
         else shared_.tt.store(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
     }
