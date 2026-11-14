@@ -329,8 +329,19 @@ void TranspositionTable::store_body(const TTProbe& probe, std::uint64_t key, int
     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
     const auto lock = TakeLock ? lock_stripe(probe.cluster_) : std::unique_lock<std::mutex>();
-    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
+    TTCluster& cluster = clusters_[probe.cluster_];
     const std::uint32_t key32 = verification_key(key);
+    // Probe records a slot before the subtree runs. Another store can place this
+    // key in a different entry of the same cluster; writing the stale slot would
+    // duplicate it, and probe returns the first match, so the shallow copy hides
+    // the deeper one. Re-find the key under the stripe lock and update that entry.
+    TTEntry* entry = &cluster.entries[probe.slot_];
+    for (TTEntry& candidate : cluster.entries) {
+        if (candidate.key32 == key32 && candidate.occupied()) {
+            entry = &candidate;
+            break;
+        }
+    }
     const bool same_position = entry->key32 == key32 && entry->occupied();
     if (!move.is_none() || !same_position) entry->move = move;
     if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
@@ -398,8 +409,16 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
     const auto lock = lock_stripe(probe.cluster_);
-    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
+    TTCluster& cluster = clusters_[probe.cluster_];
     const std::uint32_t key32 = verification_key(key);
+    // Same cluster re-check as store_body: a probe-time slot can be stale.
+    TTEntry* entry = &cluster.entries[probe.slot_];
+    for (TTEntry& candidate : cluster.entries) {
+        if (candidate.key32 == key32 && candidate.occupied()) {
+            entry = &candidate;
+            break;
+        }
+    }
     const bool same_position = entry->key32 == key32 && entry->occupied();
     if (!move.is_none() || !same_position) entry->move = move;
     if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
