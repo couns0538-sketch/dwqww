@@ -37,7 +37,7 @@ Frozen input commits
 14 5073747042b305eba413a4e9c3f97df738c71275 grok47/r3-14-draw-jitter
 15 fa79e52ed15d57a792735c0d5dbbf4d091c432dc grok47/r3-15-tm-finish-iteration
 16 c22999f834be1dfda1e4ca58d3253199ed3ea923 grok47/r3-16-tm-node-share
-23 1c76659e0ce0afe97091ba220ed2c5ee0cb74686 grok47/r3-23-sound-mate-pruning
+23 c5f76289b585a6622270abe320655dc81e90aee2 grok47/r3-23-sound-mate-pruning
 
 Conflict handling. Helpers observe the shared node budget and then
 ignore the clock. The main worker stops when Move Overhead has already
@@ -76,7 +76,7 @@ QuietExtinction       true   662caa22fa0752f54d97faac82b3acf3b63d3360    632155 
 DrawJitter            8      5073747042b305eba413a4e9c3f97df738c71275    857947     857947
 TmFinishIteration     true   fa79e52ed15d57a792735c0d5dbbf4d091c432dc    862329     862329
 TmNodeShare           true   c22999f834be1dfda1e4ca58d3253199ed3ea923    862329     862329
-SoundMatePruning      true   1c76659e0ce0afe97091ba220ed2c5ee0cb74686    980408     980408
+SoundMatePruning      true   c5f76289b585a6622270abe320655dc81e90aee2    980408     980408
 
 softnodes is a go keyword, not a setoption. The r3-12 commit
 6d8717d287cc5f1038d53355b8b03d3cbba9e604 built with defaults gives
@@ -228,6 +228,7 @@ Tip r3-07 dd4c65ee84a7f03783406aa85835a0948dc15129 merged with no engine-source 
 Tip r3-09 8e988f4b683f8a888e4a71a9ca255fb0d785c173 merged with no engine-source change; pins were not re-run.
 Tip r3-14 5073747042b305eba413a4e9c3f97df738c71275 merged with no engine-source change; pins were not re-run.
 Tip r3-16 c22999f834be1dfda1e4ca58d3253199ed3ea923 merged with no engine-source change; pins were not re-run.
+Tip r3-23 c5f76289b585a6622270abe320655dc81e90aee2 merged with no engine-source change; pins were not re-run.
 Not verified. The other in-scope branches still have no
 `R3 FOLLOW-UP DONE` line in the files on origin.
 Playing strength was not measured. Address and thread sanitizers were
