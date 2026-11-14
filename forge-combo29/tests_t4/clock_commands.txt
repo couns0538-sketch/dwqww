@@ -100,4 +100,29 @@ ucinewgame
 position startpos
 go wtime 200 winc 3000000000
 
+# 19. A leading '+' on the clock value 3000000000.
+ucinewgame
+position startpos
+go depth 12 wtime +3000000000
+
+# 20. Leading zeros still parse as 3000000000, which does not fit in int32.
+ucinewgame
+position startpos
+go depth 12 wtime 03000000000
+
+# 21. Black to move: btime with a leading '+'.
+ucinewgame
+position startpos moves e2e4
+go depth 10 btime +3000000000
+
+# 22. nodes +1000 is a 1000-node budget, not an unset limit.
+ucinewgame
+position startpos
+go depth 12 nodes +1000
+
+# 23. A leading '+' on winc past INT_MAX.
+ucinewgame
+position startpos
+go wtime 200 winc +3000000000
+
 quit

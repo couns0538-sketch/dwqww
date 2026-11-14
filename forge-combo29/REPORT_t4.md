@@ -13,10 +13,12 @@ On the unchanged lock binary (`16833ecc`), `go depth 12 wtime 3000000000 btime 3
 ## Files changed
 
 - `forge-combo29/include/forge/search.hpp` — clock fields widened to `std::int64_t`
-- `forge-combo29/src/uci.cpp` — 64-bit parse and clamp
+- `forge-combo29/include/forge/go_numbers.hpp` — shared int64 and uint64 token parsers
+- `forge-combo29/src/uci.cpp` — 64-bit parse and clamp, including `nodes` with a leading `+`
 - `forge-combo29/tests_t4/clock_commands.txt` — UCI transcript
 - `forge-combo29/tests_t4/clock_expected.txt` — expected stable lines and time bounds
 - `forge-combo29/tests_t4/check_clock.cpp` — reads engine stdout and checks the expected file
+- `forge-combo29/tests_t4/go_numbers_test.cpp` — exact integer checks for the parser
 - `forge-combo29/REPORT_t4.md` — this report
 
 Engine diff: 73 insertions and 19 deletions in `src/uci.cpp` and `search.hpp`.
@@ -784,11 +786,81 @@ info depth 12 seldepth 23 score cp 30 nodes 56720 nps 2100740 hashfull 36 time 2
 bestmove e2e4
 ```
 
+## Follow-up
+
+`nodes` had its own `uint64` parse, so `go depth 12 nodes +1000` ignored the budget and searched the full depth-12 line (56720 nodes, `bestmove e2e4`). A single leading `+` is now accepted, and a value past uint64 clamps to the top of that range. A minus sign or junk still leaves the node limit unset, which is what the old parse did. `wtime +3000000000`, `wtime 03000000000`, Black `btime +3000000000`, and `winc +3000000000` are in the same transcript. `tests_t4/go_numbers_test.cpp` calls the parser directly and checks the integer, including `3000000000`.
+
+```
+g++ -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror -I forge-combo29/include -o /tmp/go_numbers_test forge-combo29/tests_t4/go_numbers_test.cpp && /tmp/go_numbers_test
+```
+
+Stdout:
+
+```
+pass
+```
+
+Exit code 0.
+
+The release bench command from above, re-run after this change. Exit code 0. Result lines:
+
+```
+info string bench depth 11 nodes 312866 time 171 nps 1829625
+info string bench depth 13 nodes 862329 time 426 nps 2024246
+nodes 4865609
+```
+
+Updated transcript on `/tmp/forge-t4-rel/forge`. Exit code 0. Checker:
+
+```
+ok 1 wall_ms 2.13798 depth 8 best d2d4
+ok 2 wall_ms 29.9696 depth 12 best e2e4
+ok 3 wall_ms 29.782 depth 12 best e2e4
+ok 4 wall_ms 29.7539 depth 12 best e2e4
+ok 5 wall_ms 30.291 depth 12 best e2e4
+ok 6 wall_ms 0.003861 depth 3 best e2e4
+ok 7 wall_ms 79.9802 depth 14 best e2e4
+ok 8 wall_ms 80.0796 depth 14 best e2e4
+ok 9 wall_ms 80.1227 depth 14 best e2e4
+ok 10 wall_ms 0.568102 depth 6 best d2d4
+ok 11 wall_ms 0.991762 depth 6 best d2d4
+ok 12 wall_ms 0.544221 depth 6 best d2d4
+ok 13 wall_ms 1.21107 depth 6 best d2d4
+ok 14 wall_ms 0.814899 depth 6 best d2d4
+ok 15 wall_ms 7.97621 depth 10 best e7e6
+ok 16 wall_ms 7.56682 depth 10 best e7e6
+ok 17 wall_ms 30.0375 depth 12 best e2e4
+ok 18 wall_ms 120.308 depth 15 best e2e4
+ok 19 wall_ms 29.9862 depth 12 best e2e4
+ok 20 wall_ms 28.3624 depth 12 best e2e4
+ok 21 wall_ms 7.53788 depth 10 best e7e6
+ok 22 wall_ms 0.376668 depth 5 best c2c4
+ok 23 wall_ms 120.536 depth 15 best e2e4
+pass
+```
+
+Case 22 is `go depth 12 nodes +1000`. Its last info line was `info depth 5 seldepth 9 score cp 30 nodes 1000 pv c2c4 e7e5 e2e3 g8f6 d2d4` and `bestmove c2c4`, the same line as `go depth 12 nodes 1000`.
+
+The unchanged lock binary fails 13 checks on this transcript, including the five new ones (`wtime +3000000000`, `wtime 03000000000`, `btime +3000000000`, `nodes +1000`, `winc +3000000000`). Exit code 1.
+
+ASan+UBSan rebuild and the same transcript:
+
+```
+CXX=g++ cmake -S forge-combo29 -B /tmp/forge-t4-asan -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g" \
+  -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" \
+  && cmake --build /tmp/forge-t4-asan -j 4
+ASAN_OPTIONS=halt_on_error=1:detect_leaks=1:abort_on_error=1 \
+UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1:abort_on_error=1 \
+python3 /tmp/run_clock_test.py /tmp/forge-t4-asan/forge /tmp/check_clock forge-combo29/tests_t4/clock_commands.txt forge-combo29/tests_t4/clock_expected.txt
+```
+
+Exit code 0. Engine stderr was empty. Checker ended with `ok 22 wall_ms 6.96226 depth 5 best c2c4`, `ok 23 wall_ms 119.742 depth 10 best d2d4`, and `pass`.
+
 ## What I could not verify
 
 - No game match, so no Elo statement. No speed claim. Bench NPS above is the number the engine printed, not a comparison.
-- A clock of 3000000000 ms was not played out. That budget is about 34 days. Depth-capped searches show it is not treated as 0. They do not print the parsed integer, so they do not by themselves prove the stored value is exactly 3000000000 rather than another value large enough to finish depth 12. The field is int64 and 3000000000 fits in it.
-- `go nodes` still uses its existing `uint64_t` parser. `nodes +100` does not set a node limit. I left that path alone.
+- A clock of 3000000000 ms was not played out. That budget is about 34 days. The parser test checks that the token becomes the integer 3000000000 and that clamping leaves it there. Depth-capped searches show the engine does not treat it as 0. They do not print the parsed integer back.
 - `movestogo` above `INT_MAX` now clamps to `INT_MAX` (the search already caps the used value at 50). The old parser turned that overflow into 1. I did not run a game to show the difference.
 - Depth or mate values that do not fit in a 32-bit int now clamp to 64 or 32. The old parser turned them into the failed-parse value, which then clamped to depth 1 or mate 0. I did not run those, because a depth-64 search is not a useful check.
 - Not built with the Windows clang ThinLTO+PGO lock recipe. This run is Linux g++ 13.3.0, Release, `-march=x86-64-v4`.
