@@ -81,6 +81,24 @@ Owner build, because this CPU has AVX-512F and BMI2: `cmake -S forge-combo29 -B 
 - option off: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609
 - option on: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609
 
-Clock screen results are appended when the four chunks finish.
+The clock screen was stopped before the four chunks finished. One process was playing all 4000 games at concurrency 2 (half of 4 CPUs). It was still inside chunk 1. Chunks 2–4 have no games. This is not a finished screen and it is not a strength claim.
+
+Command:
+
+```
+/tmp/clock_screen /agent/repos/dwqww/build-owner/forge /agent/repos/dwqww/forge-combo29/tests_r3fu_16
+```
+
+Both sides: `setoption name Threads value 1`, `setoption name Hash value 16`, `setoption name OwnBook value false`. On also sets `TmNodeShare` true. Off sets it false. Time control 10+0.1 (10000 ms + 100 ms). Openings are 8 plies of legal moves from the start, each played twice with colors swapped. Version string: `Chess Engine Forge 6.4.24 candidate`. Engine sha256: `7f72ec1da00b682a2153d0c36a26a7780119f4ce8950e9c112b17c14e16920a5`. The same binary is both sides.
+
+Last summary flush, option on first, 400 games:
+
+- W-L-D 118-119-163
+- time losses on 0, off 0
+- pentanomial LL LD DD/WL WD WW: 3 35 126 32 4 (middle split WL 78, DD 48)
+- Elo -0.87, 95% interval -17.50 to 15.77
+- LOS 0.459
+
+The saved chunk 1 PGN has a few games past that flush. Chunks 2–4 were not started as further matches.
 
 setoption name TmNodeShare value true
