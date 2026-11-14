@@ -1,4 +1,6 @@
-# Final clock and coverage record
+> Owner subsequently authorized continued work. Counts below describe the original eight-hour window only. See SOAK_ALL_REPORT.md and PROGRESS.md for extension results.
+
+# Eight-hour window checkpoint
 
 Scheduled window: 2026-11-14T11:11:32Z to 2026-11-14T19:11:32Z. Last completed native match: 2026-11-14T17:45:34.390Z. Finalization resumed at 2026-11-14T19:14:57.329Z, after the workspace credit limit cleared. This is eight hours of elapsed schedule, not eight hours of uninterrupted testing. No new native workload was started after the scheduled end.
 
