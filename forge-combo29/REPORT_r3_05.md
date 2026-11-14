@@ -61,3 +61,7 @@ Screen, not a strength result. Same binary, HindsightDepth on versus off, 50000 
 bench 13 nps, five alternating runs, off/on/off/on/off: 1446860, 1525203, 1576469, 1541994, 1591012. Node counts stayed 862329 off and 840387 on.
 
 Chunk 001, openings 1-400, 800 games, option on first: W-L-D 214-190-396. Elo 10.43, 95% +/- 15.96. LOS 90.00%. Pentanomial 18, 90, 162, 110, 20. The interval includes zero. Details: forge-combo29/tests_r3fu_05/chunk-001-summary.txt. PGN: forge-combo29/tests_r3fu_05/chunk-001.pgn.
+
+Chunk 002, openings 401-800, 800 games, option on first: W-L-D 189-202-409. Elo -5.65, 95% +/- 15.63. LOS 23.93%. Pentanomial 20, 96, 180, 85, 19. The interval includes zero. Details: forge-combo29/tests_r3fu_05/chunk-002-summary.txt. PGN: forge-combo29/tests_r3fu_05/chunk-002.pgn.
+
+After 1600 games: W-L-D 403-392-805. Pentanomial 38, 186, 342, 195, 39. Elo 2.39, 95% +/- 11.18. LOS 66.23%. The interval includes zero.
