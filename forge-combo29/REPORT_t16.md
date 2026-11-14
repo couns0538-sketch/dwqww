@@ -1,12 +1,74 @@
 # t16: options report unknown names and bad values
 
+## What was wrong
+
+The whole `setoption` handler is in `forge-combo29/src/uci.cpp`. It already stopped a running search before touching an option, and it already built names that contain spaces (`Move Overhead`, `Book File`, `Clear Hash`) by reading tokens until the word `value`. Name matching was, and still is, case-sensitive. The bug was what happened after the name and the value had been read.
+
+The handler was one long `if` / `else if` chain and that chain had no final `else`. If the name matched nothing, the function simply returned to the command loop. The engine printed nothing and stored nothing. A mistyped name in a match setup therefore left the previous setting in force, and the GUI had no line to show that the command had missed.
+
+These commands were silent before the change. None of them altered an option:
+
+- `setoption name hash value 16` — `hash` is not `Hash`. The hash stayed at its real size (the constructor default is 32 MB).
+- `setoption name Not An Option value 1`
+- `setoption name FooBar value true`
+- `setoption name` — the `name` keyword is present and no name follows, so the parsed name is empty.
+- `setoption` — the `name` keyword itself is missing, so the parser never reads a name. Same empty name, same silence.
+- `setoption name value 1` — the next token is `value`, so the name stays empty.
+
+A wrong-case option is the dangerous one. `Hash` is a real option. `hash` was treated as "not my problem" and the engine kept searching with the old hash.
+
+The second fault was silent clamping of integers that do parse but sit outside the range printed by `uci`. For every spin, the old code did this: `std::from_chars` the token, and on success store `std::clamp(value, minimum, maximum)` with no test of whether `value` was already inside that range and with no `info` line. The `uci` answer advertises the min and max. The operator who typed a number outside that range got the clamped number and no warning.
+
+What that did, option by option:
+
+- `Hash` is advertised `min 1 max 2048`, default 32. `Hash 0` was stored as 1 and the table was resized to 1 MB. `Hash 2049` was stored as 2048. `Threads -1` was stored as 1 (the handler clamps, and `Searcher::set_threads` clamps again). `Threads 257` was stored as 256. `Move Overhead -1` became 0. `Move Overhead 1001` became 1000. No line was printed for any of those.
+- `Book Depth -1` became 0. That is not a harmless clamp. Book moves are played only when `game_ply < book_depth`. The start position has ply 0, so depth 0 turns the book off even while `OwnBook` is still true. A negative depth typed by mistake silently stopped book moves. `Book Depth 101` became 100, which keeps the book on for a normal game and again printed nothing. `Book Variety -1` became 0, which forces the single heaviest book move. `Book Variety 101` became 100, which widens the random choice to almost every weighted move. Both were silent.
+- The same pattern covered all 51 search tunables (`LmrQuietBase` through `FailLowContinuationBonus`). `LmrQuietBase` starts at 85, min 0, max 300. `setoption name LmrQuietBase value -1` wrote 0 and called `tune::refresh()`, which rebuilds the reduction tables used by every search, including `bench`. The command printed nothing. A later `uci` would show `default 0` for that tunable, because tunable lines print the live value in the `default` field, but the `setoption` that caused it was silent at the time.
+
+Values that are not integers were already handled. `Hash abc`, `Threads 1x`, `Hash +16`, an empty value on a spin, and an integer that does not fit in `int` already printed `info string invalid value for option <name>` and did not store. `Ponder`, `OwnBook`, and `UseNNUE` already rejected anything other than the exact words `true` and `false` with that same line. `Book File` already printed `info string loaded book <path> with <n> entries` on success and `info string cannot load book <path>` on failure, and a failed load left the previous book in place. Those paths were not the bug. The bug was the missing message for an unknown name, and the missing message when a parsed integer fell outside the advertised range and was clamped.
+
+Two rejected commands still changed engine state:
+
+- `UseNNUE`. The flag was set only for `true` and `false`, and the invalid branch printed the message, but `searcher.clear_hash()` stood after the `if` / `else`. `setoption name UseNNUE value yes` printed `invalid value` and then wiped the transposition table and the evaluation caches anyway. The NNUE flag stayed at its old value. The search state did not.
+- `Clear Hash`. It is a button. The UCI command for a button carries no value. The old handler ignored `value_text` and always called `searcher.clear_hash()`. `setoption name Clear Hash value nope` was not reported, and the table was cleared.
+
+`setoption` during a search was not this bug. The handler's first action was already `stop_search()`, which sets the stop flag, wakes the search thread, and joins it before the option is applied. A `setoption` sent while `go infinite` or `go movetime` is running stops that search and then applies the option. That path did not crash. It was checked again after the edit.
+
 ## What I found
 
-`setoption` is handled in `forge-combo29/src/uci.cpp`. The handler already stops a running search before it changes anything. It requires the UCI `name` token, then joins every following token until `value` into the option name, so `Move Overhead`, `Book File`, and `Clear Hash` already worked. Matching is case-sensitive and was left that way.
+Compared with the `uci` answer, at startup of this build (`FORGE_EXPOSE_TUNABLES=1`, `nnue_weights.inc` present, `book_data.inc` present with 2616 entries) the names `setoption` accepts and the names `uci` prints are the same 61 options. The ranges in that printout are the same numbers the handler clamps to. The starting values match the advertised defaults: Hash 32 MB (`Searcher`'s default), Threads 1, Move Overhead 10, Ponder false, OwnBook true because an embedded book is compiled in, Book File empty (the embedded book is loaded, not a file), Book Depth 30, Book Variety 30, UseNNUE true. Each tunable's initializer in `src/search.cpp` matches the `default` / `min` / `max` printed below. There is no startup mismatch of a number.
 
-Before this change the chain had no final `else`. A name the engine does not know produced no output and changed nothing. A spin value that was not an integer, and a check value other than `true` or `false`, already printed `info string invalid value for option <name>` and left the stored value unchanged. An integer outside the advertised min/max was clamped with no message. `Hash` clamps to 1..2048, `Threads` to 1..256, `Move Overhead` to 0..1000, `Book Depth` and `Book Variety` to 0..100, and each tunable to the min/max stored with it. `UseNNUE` cleared the hash even when the token was rejected. `Clear Hash` ignored any value and cleared the hash. `Book File` already printed `info string loaded book ...` or `info string cannot load book ...`.
+These are the real differences between the printed list and the handler:
 
-This CMake build defines `FORGE_EXPOSE_TUNABLES=1` and compiles `nnue_weights.inc` and `book_data.inc` (2616 Polyglot entries). `uci` and `setoption` therefore agree on the 61 options below at process start. The `uci` text was captured before the edit and is unchanged by it: the options transcript prints `uci` twice, and the two blocks match.
+1. Tunables are printed only inside `#ifdef FORGE_EXPOSE_TUNABLES`. `setoption` accepts them whether or not that macro is set. This CMake build sets it to 1, so they appear in `uci` and they are accepted. A build without the macro would still apply them and would not list them.
+2. `UseNNUE` is printed only when `nnue::available()` is true. `setoption` always accepts the name. This binary has the network, so the option is listed. Without the network the name would still be accepted and search would ignore the flag.
+3. Hash, Threads, Move Overhead, Ponder, OwnBook, Book File, Book Depth, Book Variety, UseNNUE, and Clear Hash advertise fixed default words. A later `uci` still prints those words after the live value has changed. Tunable lines print the live integer in the `default` field, so a later `uci` shows the change. That is how `LmrQuietBase -1` can be seen afterwards as `default 0`.
+4. `OwnBook`'s advertised default is `embedded_available()` (true here). The runtime flag starts at that same value. After `setoption name OwnBook value false` the next `uci` still says `default true`.
+5. `Book File` advertises `default <empty>`. The path string starts empty and the book in memory is the embedded book. The value `<empty>`, or a `Book File` command with no value, clears the path and reloads the embedded book. A missing file prints `info string cannot load book <path>` and keeps the previous book. `Book::load_file` also returns false, without replacing the book, when the file is shorter than 16 bytes. A string option has no min/max, so that existing load line is the failure report. It was not replaced with `invalid value`.
+6. `Clear Hash` is printed as `option name Clear Hash type button` with no default, min, or max. That matches a button.
+
+`bench` builds its own `Searcher(16)` and does not read the Hash option, the Threads option, or the book. `go perft` does not either. The reference command still sets Threads 1, Hash 16, and OwnBook false. The three node counts were taken before the edit and again after it.
+
+## What changed
+
+Only `forge-combo29/src/uci.cpp` changed in the engine (44 insertions, 46 deletions).
+
+- The chain now ends with an `else`. An unmatched name prints `info string unknown option <name>` and does not write any option. An empty name prints that line with an empty name (`info string unknown option `).
+- Spin options go through one helper. If the token is not a complete integer, the helper prints `info string invalid value for option <name>` and returns without storing. If the integer is outside the advertised min/max, the helper prints that same line and then stores the clamped value, which is what the lock already did. Hash 0 still becomes 1 MB, and it now says so. Threads -1 still becomes 1, and it now says so. Book Depth -1 still becomes 0, and it now says so. The same helper covers the 51 tunables, so `LmrQuietBase -1` still writes 0 and still calls `tune::refresh()`, and it now prints the invalid line first.
+- `Ponder`, `OwnBook`, and `UseNNUE` still accept only `true` and `false`. Anything else prints the invalid line and leaves the flag as it was.
+- `UseNNUE` calls `clear_hash()` only after `true` or `false` has been accepted. A rejected token no longer wipes the table.
+- `Clear Hash` with no value still clears the hash and prints nothing. A non-empty value prints the invalid line and does not clear.
+- `Book File` is unchanged: spaces in the path still work, `<empty>` and an empty value reload the embedded book, a good file prints the loaded-book line, a bad path prints `cannot load book` and keeps the old book.
+- Case rules are unchanged. `Move Overhead`, `Book File`, and `Clear Hash` still work.
+- The comment above the tunable `uci` lines no longer says that builds without `FORGE_EXPOSE_TUNABLES` accept those options silently. They are still accepted. An out-of-range value is now reported.
+
+In-range values behave as before: Hash 1, 16, and 2048, Threads 1, 2, and 256, Move Overhead 0, 10, and 1000, both states of each check, each tunable's own default, and Clear Hash with no value produce no error line. After every tunable was set out of range and then restored, a second `uci` matched the first `uci` byte for byte, so the advertised defaults were back where they started.
+
+Reference numbers after the change, with Threads 1, Hash 16, OwnBook false: bench 11 = 312866, bench 13 = 862329, `go perft 5` from the start position = 4865609. Those are the same three counts as before the edit.
+
+## What I found (option table)
+
+This is the `uci` list captured before the edit. The options transcript prints `uci` again after every option has been set and restored, and the two blocks match, so the edit did not change the advertised list.
 
 | Name | Type | Default | Min | Max |
 | --- | --- | --- | --- | --- |
@@ -71,24 +133,6 @@ This CMake build defines `FORGE_EXPOSE_TUNABLES=1` and compiles `nnue_weights.in
 | CaptureFutilityDepth | spin | 6 | 0 | 15 |
 | FailLowContinuationBonus | spin | 0 | 0 | 300 |
 | Clear Hash | button | — | — | — |
-
-Differences between that `uci` answer and what `setoption` actually does:
-
-1. Tunables are printed only inside `#ifdef FORGE_EXPOSE_TUNABLES`. `setoption` accepts them either way. This build defines the macro, so they are both listed and accepted. A build without the macro would still apply them and would not list them.
-2. `UseNNUE` is printed only when `nnue::available()` is true. `setoption` always accepts the name. This binary has the network, so it is listed, with default `true`, which matches `nnue::enabled` starting at true. Without the network the name would still be accepted and search would ignore the flag.
-3. Hash, Threads, Move Overhead, Ponder, OwnBook, Book File, Book Depth, Book Variety, UseNNUE, and Clear Hash advertise fixed defaults. A later `uci` still prints those literals. Tunable lines print the live value as `default`, so a later `uci` shows a change. At startup the live values are the initializers in `src/search.cpp`, and they match the table.
-4. `OwnBook`'s advertised default is `embedded_available()`. Here that is true, and the runtime flag starts true. The advertised word stays `true` after `setoption name OwnBook value false`.
-5. `Book File` advertises `default <empty>`. The path starts empty and the loaded book is the embedded one. `<empty>` or an empty value reloads the embedded book. A missing file, or a file shorter than 16 bytes, prints `info string cannot load book <path>` and keeps the previous book. A string has no min/max, so that existing line is the failure report.
-6. `Clear Hash` is a button with no default, min, or max, matching the `uci` line.
-7. There is no startup mismatch between the advertised min, max, and default and the value the engine starts with, for this build. The ranges in the table are the same numbers the handler clamps to.
-
-`bench` builds its own `Searcher(16)` and does not read Hash, Threads, or the book. `go perft` does not either. The reference command still sets Threads 1, Hash 16, and OwnBook false.
-
-## The change
-
-Unknown names now print `info string unknown option <name>` and leave every setting unchanged. A spin integer outside the advertised range still clamps, and the engine also prints `info string invalid value for option <name>`; a value that is not an integer, and a check value other than `true` or `false`, still keeps the previous setting and prints that same line. A non-empty value on Clear Hash is rejected without clearing, and a rejected UseNNUE value no longer clears the hash; accepted values, including Move Overhead, Book File, and Clear Hash with no value, behave as before.
-
-Engine source diff: `forge-combo29/src/uci.cpp` only, 44 insertions and 46 deletions.
 
 ## Files changed
 
