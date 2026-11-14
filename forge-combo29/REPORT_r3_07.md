@@ -102,4 +102,4 @@ Chunk 6, fastchess `start=1901`, rounds 500, 1000 games. fastchess reports optio
 
 Cumulative after 4800 games (2400 pairs): W-L-D option on first 1163-1184-2453. Elo 95%: -1.52 +/- 6.16 [-7.68, 4.64]. LOS: 0.3144. Pentanomial: 90, 603, 1026, 600, 81. The interval includes zero. Not a strength result.
 
-Chunk 7 (`start=2401`, 500 openings, target 1000 games) was stopped unfinished at 18:49 UTC. The summary had 932 finished games and no final Elo line. PGN and summary, as pushed: `forge-combo29/tests_r3fu_07/chunk_0007.pgn` and `forge-combo29/tests_r3fu_07/chunk_0007_summary.txt`. No cumulative total includes this partial chunk. No DONE line.
+Chunk 7 (`start=2401`, 500 openings, target 1000 games) was stopped unfinished at 18:49 UTC. The summary had 952 finished games and no final Elo line. PGN and summary, as pushed: `forge-combo29/tests_r3fu_07/chunk_0007.pgn` and `forge-combo29/tests_r3fu_07/chunk_0007_summary.txt`. No cumulative total includes this partial chunk. No DONE line.
