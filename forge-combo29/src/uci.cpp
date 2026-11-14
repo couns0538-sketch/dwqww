@@ -136,6 +136,10 @@ int main() {
     std::uint64_t book_rng = static_cast<std::uint64_t>(
         std::chrono::steady_clock::now().time_since_epoch().count()) | 1ULL;
     bool ponder_search_active = false;
+    // A depth, nodes, or clock search ends by itself. Closing stdin must not
+    // cancel it: `forge < file` would otherwise stop `go` before the worker
+    // reaches the move loop. `stop`, `quit`, infinite, and ponder still abort.
+    bool finite_search = false;
     std::thread worker;
     std::mutex stop_mutex;
     std::condition_variable stop_cv;
@@ -150,6 +154,7 @@ int main() {
         stop_cv.notify_all();
         if (worker.joinable()) worker.join();
         ponder_search_active = false;
+        finite_search = false;
     };
 
     std::string line;
@@ -350,6 +355,7 @@ int main() {
                     ponder_hit_received = false;
                 }
                 ponder_search_active = limits.ponder;
+                finite_search = !limits.infinite && !limits.ponder;
                 searcher.reset_stop();
                 worker = std::thread([&searcher, &stop_mutex, &stop_cv, &stop_requested,
                                       &ponder_hit_received, search_board, limits, ponder_enabled]() mutable {
@@ -425,6 +431,12 @@ int main() {
             break;
         }
     }
-    stop_search();
+    if (finite_search && worker.joinable()) {
+        worker.join();
+        finite_search = false;
+        ponder_search_active = false;
+    } else {
+        stop_search();
+    }
     return 0;
 }
