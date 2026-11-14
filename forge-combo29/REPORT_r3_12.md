@@ -53,6 +53,8 @@ Sanitizer build, extra flags `-fsanitize=address,undefined -fno-omit-frame-point
 - The engine exited 0. No address or undefined-behavior diagnostic was printed.
 - Result: `DEPTH10_LEGAL_PASS 200`.
 
+Re-checked on 2026-11-14 at 14:36 UTC, still on this branch, engine sources unchanged since the command landed. The three pins printed again as 312866, 862329, and 4865609. `SOFTNODES_PASS 200 budget 1000` repeated, including three back-to-back runs with the same sample (1627 nodes, depth 7, d2c1). `go nodes` on the start position stayed a hard cut: budgets 100, 400, 1000, and 3000 finished at 54, 215, 404, and 2574 nodes, with no softnodes line, and each move and score matched `go depth` at that depth. The same budgets under `go softnodes` finished at 215, 404, 1001, and 4099 nodes, all inside [N, 4N], at a depth at least as deep as the hard cut, with the same move and score as `go depth` there. `go softnodes 0` and `go nodes 0` both returned a2a3 and did not search. One position's next iteration would have passed 4N; `go softnodes 1929` stopped at exactly 7716 nodes, kept depth 7 and b1e4, and matched `go depth 7`. The sanitized `go depth 10` run was repeated with halt-on-error and leak detection: `DEPTH10_LEGAL_PASS 200`, exit 0, no diagnostic.
+
 No strength claim.
 
 go softnodes 1000
