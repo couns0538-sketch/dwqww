@@ -1,0 +1,25 @@
+// Scratch-only preparation. This module never invokes the controller or native code.
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {pathToFileURL} from 'node:url';
+export const PHASE='4sample';
+export const COUNT_KEYS='trials positive_mates_checked mate_bound_check_failures illegal_moves operational_faults faults unexpected_exits sanitizer_reports reproductions reproduction_faults'.split(' ');
+export const COUNT_MAP={completed_units:'completed_units',...Object.fromEntries(COUNT_KEYS.map(k=>[k,'counts.'+k]))};
+export const LIMITS={roots:10000,seed:1296127045,limit:10000,seconds:300,timeout_ms:5000,cpu:4};
+export const DEFAULTS={runRoot:'/workspace/work/all-run',driver:'/workspace/work/all-run/part4-review/mate_bound_audit',lock:'/workspace/work/soak-run/build-lock-rel/forge',merged:'/workspace/work/all-run/builds/release/forge',repo:'/workspace/work/dwqww-all'};
+const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+export function makeSpec({id,offset,...overrides}){
+ const d={...DEFAULTS,...overrides};
+ if(!Number.isSafeInteger(id)||id<1||!Number.isSafeInteger(offset)||offset<0||offset>=LIMITS.roots)throw Error('id>=1 and offset in 0..9999 must be safe integers');
+ const stem=PHASE+'-'+String(id).padStart(4,'0');
+ const out=path.resolve(d.runRoot,'part4-sample',stem),log=path.resolve(d.runRoot,'logs',stem+'.txt');
+ const provenancePaths=[d.driver,d.lock,d.merged,d.repo+'/forge-combo29/soak_all/mate_bound_audit.cpp',d.repo+'/forge-combo29/soak_all/uci_process.hpp',d.repo+'/forge-combo29/soak_all/krk_oracle.hpp',d.repo+'/forge-combo29/src/search.cpp',d.repo+'/forge-combo29/src/uci.cpp',d.repo+'/forge-combo29/include/forge/search.hpp'];
+ for(const p of provenancePaths)if(!fs.statSync(p).isFile())throw Error('not a regular file: '+p);
+ for(const p of [out,log,log+'.run-spec.json',d.repo+'/forge-combo29/soak_all/batches/'+stem+'.evidence'])if(fs.existsSync(p))throw Error('fresh path already exists: '+p);
+ return {phase:PHASE,id,seed:LIMITS.seed,description:'Sampled White KRK mate-bound audit; four lock/merged × NNUE false/true variants per completed root; fresh process each observation; positive-mate criterion only; no universal correctness claim',cwd:d.runRoot,log,argv:['/usr/bin/taskset','-c',String(LIMITS.cpu),d.driver,'--lock',d.lock,'--merged',d.merged,'--out',out,'--roots',String(LIMITS.roots),'--seed',String(LIMITS.seed),'--limit',String(LIMITS.limit),'--offset',String(offset),'--seconds',String(LIMITS.seconds),'--timeout-ms',String(LIMITS.timeout_ms)],countMap:COUNT_MAP,summaryPrefix:'SUMMARY ',expectedHashes:provenancePaths.map(p=>({path:p,sha256:hash(p)})),preparation:{mode:'mate_bound_audit',offset,...LIMITS,requires_controller_schema:'mate_bound_audit with explicit completed-unit/partial exclusion accounting',continuation:'Use independently audited next_offset; partial root is rerun in full. Do not add this phase to the prior Part4 counter summary.'}};
+}
+if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){
+ const a=process.argv.slice(2),o={};for(let i=0;i<a.length;i+=2){if(!a[i]?.startsWith('--')||a[i+1]===undefined)throw Error('usage: --id N --offset N --spec NEW_PATH [--runRoot PATH --driver PATH --lock PATH --merged PATH --repo PATH]');o[a[i].slice(2)]=a[i+1];}
+ const output=o.spec;delete o.spec;if(!output)throw Error('--spec required');o.id=Number(o.id);o.offset=Number(o.offset);const spec=makeSpec(o);fs.mkdirSync(path.dirname(path.resolve(output)),{recursive:true});fs.writeFileSync(output,JSON.stringify(spec,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({spec:path.resolve(output),phase:spec.phase,id:spec.id,offset:spec.preparation.offset,log:spec.log,out:spec.argv[spec.argv.indexOf('--out')+1],executed:false}));
+}

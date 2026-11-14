@@ -1,0 +1,23 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const dir = new URL('.', import.meta.url);
+const oldText = fs.readFileSync(new URL('INTEGRATION_ALL.e04556dd.md', dir), 'utf8');
+const text = fs.readFileSync(new URL('INTEGRATION_ALL.ready.md', dir), 'utf8');
+const rows = s => s.split('\n').filter(l => /^\| (src\/|include\/)/.test(l));
+assert.deepEqual(rows(text), rows(oldText));
+const oldMerge = oldText.slice(oldText.indexOf('Requested merges'),oldText.indexOf('| File |'));
+assert(text.includes(oldMerge));
+const prefix = 'https://github.com/couns0538-sketch/dwqww/';
+const links = [...text.matchAll(/\]\(([^)]+)\)/g)].map(m => m[1]);
+for (const target of links) {
+  assert(target.startsWith(prefix));
+  const tail = target.slice(prefix.length);
+  const match = tail.match(/^(?:blob|tree)\/soak\/combo29-all\/(forge-combo29\/soak_all\/.*)$/);
+  assert(match, target);
+  assert(fs.existsSync('/workspace/work/dwqww-all/' + match[1]), target);
+}
+assert(text.includes('**Validation is not all-pass:**'));
+assert(text.includes('eight required low-clock search-equality cases fail and reproduce in 10/10 additional fresh pairs each'));
+assert(text.includes('Both timed-out single `40x10` invocations remain incomplete'));
+assert(text.includes('does not assert completion or success for unexecuted phases'));
+console.log(JSON.stringify({sourceHashRowsPreserved:rows(text).length,mergeDescriptionAndInputCommitsPreserved:true,evidenceLinks:links.length,allEvidenceLinksExplicitlyTargetSoakBranch:true,linkedLocalEvidencePathsExist:true,remoteHttpResolutionNotTested:true,engineTestsRun:0,stateOrRepositoryWrites:0}));

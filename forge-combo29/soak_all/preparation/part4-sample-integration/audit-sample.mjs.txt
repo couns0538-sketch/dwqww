@@ -1,0 +1,185 @@
+// Read-only evidence auditor. Writes only an explicitly requested report, never job state/fault files.
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {pathToFileURL} from 'node:url';
+import {COUNT_KEYS,COUNT_MAP,LIMITS,PHASE,DEFAULTS} from './make-spec.mjs';
+const digest=b=>crypto.createHash('sha256').update(b).digest('hex');
+const zero=()=>Object.fromEntries(COUNT_KEYS.map(k=>[k,0]));
+const add=(a,b)=>{for(const k of COUNT_KEYS)a[k]+=b[k];};
+const integer=x=>Number.isSafeInteger(x)&&x>=0;
+const marker=/AddressSanitizer|UndefinedBehaviorSanitizer|ThreadSanitizer|LeakSanitizer|runtime error:/;
+const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+export function expectedRoots(count,seed){
+ const anchor='8/8/8/8/8/1R6/2k5/5K2 w - - 0 1',answer=[anchor];
+ const coordinate=sq=>[sq%8,Math.floor(sq/8)];
+ const text=(wk,wr,bk)=>{const ranks=[];for(let rank=7;rank>=0;rank--){let result='',empty=0;for(let file=0;file<8;file++){const sq=rank*8+file,piece=sq===wk?'K':sq===wr?'R':sq===bk?'k':null;if(piece){if(empty)result+=empty;empty=0;result+=piece;}else empty++;}if(empty)result+=empty;ranks.push(result);}return ranks.join('/')+' w - - 0 1';};
+ for(let i=0;answer.length<count&&i<262144;i++){
+  const state=(i*176123+seed)%262144,wk=Math.floor(state/4096),wr=Math.floor(state/64)%64,bk=state%64;
+  if(new Set([wk,wr,bk]).size!==3)continue;
+  const [wx,wy]=coordinate(wk),[rx,ry]=coordinate(wr),[bx,by]=coordinate(bk);
+  if(Math.max(Math.abs(wx-bx),Math.abs(wy-by))<=1)continue;
+  const between=(x,a,b)=>x>Math.min(a,b)&&x<Math.max(a,b);
+  if((rx===bx&&!(wx===rx&&between(wy,ry,by)))||(ry===by&&!(wy===ry&&between(wx,rx,bx))))continue;
+  const fen=text(wk,wr,bk);if(fen!==anchor)answer.push(fen);
+ }
+ if(answer.length!==count)throw Error('fixed permutation exhausted');return answer;
+}
+export function auditData({config,summary,rows,roots,readText,log=null,metadata=null,strict=true}){
+ const errors=[],warnings=[],safety=[],faultCandidates=[],units=[],perVariant={};
+ const check=(ok,message)=>{if(!ok)errors.push(message);};
+ const eq=(a,b,label)=>check(equal(a,b),label+' mismatch');
+ const countEqual=(a,b,label)=>{for(const k of COUNT_KEYS){check(integer(a?.[k]),label+'.'+k+' invalid integer');check(a?.[k]===b[k],label+'.'+k+' mismatch '+a?.[k]+' vs '+b[k]);}};
+ const args=config?.argv||[],opts={};for(let i=1;i<args.length;i+=2){check(typeof args[i]==='string'&&args[i].startsWith('--')&&args[i+1]!==undefined,'invalid native config argv');check(!Object.hasOwn(opts,args[i]),'duplicate native option '+args[i]);opts[args[i]]=args[i+1];}
+ check(config?.mode==='mate_bound_audit'&&summary?.mode==='mate_bound_audit','wrong mode');
+ for(const [k,v]of Object.entries({Threads:1,Hash:16,OwnBook:false,depth:13,new_options:'defaults',fresh_process_each_trial:true,reproductions_per_fault:10}))eq(config?.[k],v,'config '+k);
+ eq(config?.UseNNUE,[false,true],'config UseNNUE');
+ const offset=Number(opts['--offset']??0),available=Number(opts['--roots']??128),limit=Number(opts['--limit']??1);
+ check(integer(offset)&&integer(available)&&available>=1&&available<=10000&&offset<available&&integer(limit)&&limit>0,'invalid root bounds');
+ eq(summary.offset,offset,'summary offset');eq(summary.available_units,available,'summary available');
+ if(strict){for(const [k,v]of Object.entries({'--roots':10000,'--seed':1296127045,'--limit':10000,'--seconds':300,'--timeout-ms':5000}))eq(Number(opts[k]),v,'official option '+k);eq(config.seed,1296127045,'official seed');}
+ check(roots.length===available,'roots.tsv size mismatch');
+ check(new Set(roots.map(r=>r.fen)).size===roots.length,'duplicate corpus FEN');
+ roots.forEach((r,i)=>{check(r.index===i,'noncontiguous corpus index '+i);check(typeof r.fen==='string'&&r.fen.endsWith(' w - - 0 1'),'root outside declared White KRK clock-zero format '+i);});
+ if(roots.length)eq(roots[0].fen,'8/8/8/8/8/1R6/2k5/5K2 w - - 0 1','anchor root');
+ if(integer(available)&&available>0&&available<=10000&&integer(config.seed))eq(roots.map(r=>r.fen),expectedRoots(available,config.seed),'fixed geometric permutation corpus');
+ const totals=zero(),partial=zero(),observed=zero();let current=null,next=offset,completed=0,incomplete=0,interrupted=0,interruptedFaults=0;
+ const usedTranscripts=new Set();
+ const rawRows=[];const rawUnits=[];
+ function observation(row,index){
+  const a=row.observation||{},s=a.shutdown||{},tag='row '+index+' root '+row.root+' '+row.build+'/'+row.UseNNUE+' repetition '+row.repetition;
+  for(const key of ['searched','budget_interrupted','legal_bestmove','mate_bound_check_failure','upperbound_failure_is_not_proof_of_false_bound','operational_fault','fault','unexpected_exit','sanitizer_report'])check(typeof a[key]==='boolean',tag+' '+key+' not boolean');
+  for(const key of ['nodes','depth'])check(integer(a[key]),tag+' '+key+' invalid');
+  for(const key of ['score','root_dtm_plies','move_dtm_plies','claimed_mate_plies'])check(Number.isSafeInteger(a[key]),tag+' '+key+' invalid');
+  check(['','cp','mate'].includes(a.score_kind),tag+' score kind invalid');check(['','lowerbound','upperbound'].includes(a.score_bound),tag+' score bound invalid');
+  for(const key of ['reaped','timed_out','driver_sigterm','driver_sigkill'])check(typeof s[key]==='boolean',tag+' shutdown '+key+' not boolean');
+  check(Number.isSafeInteger(s.exit_code)&&Number.isSafeInteger(s.signal),tag+' shutdown status invalid');
+  const positive=a.searched&&a.score_kind==='mate'&&a.score>0;
+  const bound=positive&&(!a.legal_bestmove||a.move_dtm_plies<0||a.move_dtm_plies>2*a.score-1);
+  eq(a.claimed_mate_plies,positive?2*a.score-1:-1,tag+' claimed plies');eq(a.mate_bound_check_failure,bound,tag+' bound criterion');eq(a.upperbound_failure_is_not_proof_of_false_bound,bound&&a.score_bound==='upperbound',tag+' upperbound caveat');
+  const induced=(s.signal===15&&s.driver_sigterm)||(s.signal===9&&s.driver_sigkill);
+  const unexpected=s.reaped&&(s.exit_code>0||(s.signal!==0&&!induced));eq(a.unexpected_exit,unexpected,tag+' unexpected exit');
+  const nativeSan=marker.test((a.stderr||'')+(a.error||''));eq(a.sanitizer_report,nativeSan,tag+' native sanitizer flag');
+  const operational=unexpected||nativeSan||(!a.budget_interrupted&&((a.error||'')!==''||!a.searched||!s.reaped||s.timed_out||(s.error||'')!==''||s.exit_code!==0||s.signal!==0||(a.depth<13&&a.score_kind!=='mate')));
+  eq(a.operational_fault,operational,tag+' operational fault');eq(a.fault,operational||(a.searched&&(!a.legal_bestmove||bound)),tag+' fault');
+  const canonical=path.resolve(opts['--out']||'.','root-'+row.root+'-'+row.build+'-nnue-'+(row.UseNNUE?'on':'off')+'-repeat-'+row.repetition+'.uci.txt');
+  eq(a.transcript,canonical,tag+' canonical raw transcript path');check(!usedTranscripts.has(a.transcript),tag+' duplicate raw transcript path');usedTranscripts.add(a.transcript);
+  let trace='',stderr='';try{trace=readText(a.transcript);stderr=readText(a.transcript.replace(/\.uci\.txt$/,'.stderr.txt'));}catch(e){errors.push(tag+' missing raw evidence: '+e.message);}
+  eq(stderr,a.stderr,tag+' raw stderr');
+  if(a.fault){const faultPath=path.join(path.dirname(a.transcript),'fault-'+path.basename(a.transcript).replace(/\.uci\.txt$/,'.json'));try{eq(JSON.parse(readText(faultPath)),row,tag+' raw fault record');}catch(e){errors.push(tag+' missing/invalid raw fault record: '+e.message);}} 
+  if(a.searched){for(const cmd of ['setoption name Threads value 1','setoption name Hash value 16','setoption name OwnBook value false','setoption name UseNNUE value '+row.UseNNUE,'ucinewgame','position fen '+row.fen,'go depth 13'])check(trace.split(/\r?\n/).includes('> stdin '+cmd),tag+' missing raw input '+cmd);check(trace.split(/\r?\n/).some(x=>x.startsWith('< stdout bestmove '+a.move)&&(x.length===('< stdout bestmove '+a.move).length||x[('< stdout bestmove '+a.move).length]===' ')),tag+' bestmove mismatch');}
+  if(a.searched){
+   let selected=null,seenBest=null,searchStarted=false;
+   for(const line of trace.split(/\r?\n/)){
+    if(line==='> stdin go depth 13'){searchStarted=true;selected=null;continue;}
+    if(!searchStarted||!line.startsWith('< stdout '))continue;
+    const text=line.slice(9);
+    if(text.startsWith('bestmove ')){seenBest=text.split(/\s+/)[1];break;}
+    if(!text.startsWith('info ')||text.startsWith('info string '))continue;
+    const tokens=text.split(/\s+/);let depth,nodes,time,kind,value,bound='',multipv=1;
+    for(let j=1;j<tokens.length;j++){const t=tokens[j];if(t==='pv'||t==='string')break;if(t==='depth')depth=Number(tokens[++j]);else if(t==='nodes')nodes=Number(tokens[++j]);else if(t==='time')time=Number(tokens[++j]);else if(t==='multipv')multipv=Number(tokens[++j]);else if(t==='score'){kind=tokens[++j];value=Number(tokens[++j]);}else if(t==='upperbound'||t==='lowerbound')bound=t;}
+    if(multipv===1&&integer(depth)&&integer(nodes)&&Number.isFinite(time)&&['cp','mate'].includes(kind)&&Number.isSafeInteger(value))selected={depth,nodes,score_kind:kind,score:value,score_bound:bound};
+   }
+   eq(seenBest,a.move,tag+' selected raw bestmove');check(selected!==null,tag+' no complete raw score info');if(selected)for(const [key,value]of Object.entries(selected))eq(a[key],value,tag+' raw '+key);
+  }
+  const shutdownLines=trace.split(/\r?\n/).filter(x=>x.startsWith('! shutdown reaped='));
+  if(a.searched||s.reaped)check(shutdownLines.length>0,tag+' missing observed shutdown provenance');
+  if(shutdownLines.length){const values=Object.fromEntries([...shutdownLines.at(-1).matchAll(/([a-z_]+)=(-?\d+)/g)].map(m=>[m[1],Number(m[2])]));for(const [key,source]of Object.entries({reaped:'reaped',exit_code:'exit',signal:'signal',timed_out:'timed_out',driver_sigterm:'driver_sigterm',driver_sigkill:'driver_sigkill'}))eq(typeof s[key]==='boolean'?Number(s[key]):s[key],values[source],tag+' raw shutdown '+key);}
+  const sanLines=trace.split(/\r?\n/).filter(x=>marker.test(x));
+  if(sanLines.length||nativeSan||unexpected||(!a.budget_interrupted&&operational))safety.push({root:row.root,build:row.build,UseNNUE:row.UseNNUE,repetition:row.repetition,budget_interrupted:a.budget_interrupted,unexpected_exit:unexpected,sanitizer_lines:sanLines,native_sanitizer:nativeSan,operational_fault:operational,transcript:a.transcript,error:a.error,shutdown:s,reproductions_pending:a.fault?null:10,reproduction_note:a.fault?'native fault is reconciled with baseline/reproduction sequence':'raw-only diagnostic was not a native fault trigger; ten fresh reproductions remain pending'});
+  if(a.budget_interrupted){++interrupted;interruptedFaults+=a.fault?1:0;}
+  const c=zero();if(!a.budget_interrupted){if(row.repetition===0){c.trials=1;c.positive_mates_checked=positive?1:0;c.mate_bound_check_failures=bound?1:0;c.illegal_moves=a.searched&&!a.legal_bestmove?1:0;c.operational_faults=operational?1:0;c.faults=a.fault?1:0;}else{c.reproductions=1;c.reproduction_faults=a.fault?1:0;}c.unexpected_exits=unexpected?1:0;c.sanitizer_reports=nativeSan?1:0;}
+  return {row,counts:c,trace,stderr};
+ }
+ for(let i=0;i<rows.length;i++){
+  const row=rows[i];if(row.record_type==='unit_completion'){
+   rawUnits.push(row);check(current!==null&&row.root===current.root,'orphan/wrong UNIT row '+i);if(!current)continue;
+   check(typeof row.completed==='boolean','UNIT completed not boolean');countEqual(row.counts,current.counts,'UNIT '+row.root);
+   const variants=[['lock',false],['lock',true],['merged',false],['merged',true]];
+   let pos=0,unitInterrupted=false;
+   for(const [build,nnue]of variants){
+    const first=current.rows[pos];if(!first){check(!row.completed,'completed root missing variant '+build+'/'+nnue);break;}
+    check(first.row.build===build&&first.row.UseNNUE===nnue&&first.row.repetition===0,'wrong variant/baseline order root '+row.root);
+    const expected=first.row.observation.fault?10:0;
+    for(let repeat=0;repeat<=expected;repeat++){
+     const item=current.rows[pos];if(!item){check(!row.completed,'missing required reproduction root '+row.root+' '+build+'/'+nnue+' repeat '+repeat);break;}
+     check(item.row.build===build&&item.row.UseNNUE===nnue&&item.row.repetition===repeat,'wrong repeat order root '+row.root+' observation '+pos);
+     pos++;if(item.row.observation.budget_interrupted){unitInterrupted=true;break;}
+    }
+    if(first.row.observation.fault){const actual=current.rows.filter(x=>x.row.build===build&&x.row.UseNNUE===nnue&&x.row.repetition>0&&!x.row.observation.budget_interrupted);faultCandidates.push({key:[metadata?.spec?.phase||PHASE,metadata?.spec?.id??'unrecorded',row.root,build,nnue].join(':'),root:row.root,fen:first.row.fen,build,UseNNUE:nnue,completed_root:row.completed,baseline:first.row,additional_completed:actual.length,additional_faults:actual.filter(x=>x.row.observation.fault).length,expected_additional:10,reproductions_pending:10-actual.length,upperbound_caveat:first.row.observation.upperbound_failure_is_not_proof_of_false_bound,observations:current.rows.filter(x=>x.row.build===build&&x.row.UseNNUE===nnue).map(x=>({record:x.row,transcript:x.trace,stderr:x.stderr})),materialization:'proposal only; root owns numbered fault files/state; frequency is actual additional fault observations, not independent bugs'});}
+    if(unitInterrupted)break;
+   }
+   check(pos===current.rows.length,'extra observations after variant/reproduction sequence root '+row.root);
+   eq(row.completed,!unitInterrupted,'unit completion/interruption');
+   if(row.completed){check(!incomplete,'completed root after partial');check(current.counts.trials===4,'complete root baseline count');check(current.counts.reproductions===10*current.counts.faults,'complete root reproduction count');add(totals,current.counts);++completed;++next;for(const item of current.rows){const key=item.row.build+'-nnue-'+(item.row.UseNNUE?'on':'off');perVariant[key]??=zero();add(perVariant[key],item.counts);}}
+   else{add(partial,current.counts);++incomplete;check(i===rows.length-1,'partial UNIT must end results');}
+   units.push({root:row.root,completed:row.completed,counts:current.counts});current=null;continue;
+  }
+  rawRows.push(row);check(!row.record_type,'unknown record type row '+i);check(integer(row.root)&&row.root===next,'noncontiguous root row '+i);check(['lock','merged'].includes(row.build)&&typeof row.UseNNUE==='boolean','invalid variant row '+i);check(integer(row.repetition)&&row.repetition<=10,'invalid repetition row '+i);eq(row.fen,roots[row.root]?.fen,'row '+i+' corpus FEN');eq(row.summary_accounting,'completed root units only','row '+i+' accounting contract');
+  if(!current)current={root:row.root,counts:zero(),rows:[]};check(current.root===row.root,'root switched without UNIT');const item=observation(row,i);current.rows.push(item);add(current.counts,item.counts);add(observed,item.counts);
+ }
+ check(current===null,'unterminated root: no completed/partial UNIT; do not advance cursor');
+ check(incomplete<=1,'multiple incomplete roots');check(completed<=limit,'completed exceeds limit');
+ eq(summary.completed_units,completed,'completed units');eq(summary.incomplete_units,incomplete,'incomplete units');eq(summary.next_offset,next,'next offset');eq(summary.trials,totals.trials,'top trials');eq(summary.faults,totals.faults,'top faults');eq(summary.partial_trials_excluded,partial.trials,'partial trials');eq(summary.interrupted_observations,interrupted,'interrupted observations');eq(summary.interrupted_faults,interruptedFaults,'interrupted faults');
+ countEqual(summary.counts,totals,'summary counts');countEqual(summary.partial_counts_excluded,partial,'partial counts');countEqual(summary.all_noninterrupted_observations,observed,'observed counts');
+ for(const key of ['offset','next_offset','available_units','completed_units','incomplete_units','trials','faults','partial_trials_excluded','interrupted_observations','interrupted_faults','elapsed_ms'])check(integer(summary[key]),'invalid summary integer '+key);
+ if(log!==null){
+  const lines=log.split(/\r?\n/);const pref=p=>lines.filter(x=>x.startsWith(p)).map(x=>{try{return JSON.parse(x.slice(p.length));}catch(e){errors.push('invalid log '+p+e.message);return null;}});
+  const cs=pref('CONFIG '),ss=pref('SUMMARY ');check(cs.length===1&&ss.length===1,'log requires one CONFIG/SUMMARY');eq(cs[0],config,'log CONFIG');eq(ss[0],summary,'log SUMMARY');eq(pref('RESULT '),rawRows,'log RESULT rows');eq(pref('UNIT '),rawUnits,'log UNIT rows');
+  const diagnosticLines=lines.filter(x=>marker.test(x));
+  const mirroredResults=new Set(rawRows.filter(r=>r.observation?.sanitizer_report||marker.test((r.observation?.stderr||'')+(r.observation?.error||''))).map(r=>'RESULT '+JSON.stringify(r)));
+  const directDiagnosticLines=diagnosticLines.filter(x=>!mirroredResults.has(x));
+  const observedMarkers=new Set(safety.flatMap(f=>f.sanitizer_lines));
+  const unmatched=directDiagnosticLines.filter(x=>!observedMarkers.has(x));
+  if(diagnosticLines.length)warnings.push({kind:'log diagnostic markers; JSON embeddings and exact observation-line mirrors are not additional reports',lines:diagnosticLines});
+  if(unmatched.length)safety.push({kind:'unattributed_main_log_diagnostics',lines:unmatched,frequency:null,reproductions_pending:10,reason:'not attributable to matching retained observation transcript; preserve full controller log'});
+  if(metadata){const end=pref('RUN_SPEC_END ');check(end.length===1,'log requires one controller RUN_SPEC_END');if(end.length===1)for(const key of ['exit','signal','spawnError','interruption','ioErrors'])eq(end[0]?.[key]??(key==='ioErrors'?[]:null),metadata[key]??(key==='ioErrors'?[]:null),'log process '+key);}
+
+ }
+ if(metadata){
+  eq(metadata.spec?.phase,PHASE,'metadata phase');eq(metadata.spec?.seed,1296127045,'metadata seed');eq(metadata.spec?.countMap,COUNT_MAP,'metadata countMap');eq(metadata.summary,summary,'metadata summary');if(metadata.summaryRaw!==undefined){try{eq(JSON.parse(metadata.summaryRaw),summary,'metadata raw SUMMARY');}catch(e){errors.push('metadata raw SUMMARY invalid '+e.message);}}
+  const a=metadata.spec?.argv||[];eq(a.slice(0,3),['/usr/bin/taskset','-c','4'],'metadata CPU binding');eq(a.slice(3),config.argv,'metadata/native argv');
+  check(metadata.exit===0&&!metadata.signal&&!metadata.spawnError&&!metadata.interruption&&!(metadata.ioErrors||[]).length,'native/controller process not clean');
+  if(metadata.completedCountsRecorded&&Object.keys(metadata.completedCountsRecorded).length){for(const [k,source]of Object.entries(COUNT_MAP)){const expected=source==='completed_units'?completed:totals[k];eq(metadata.completedCountsRecorded[k],expected,'recorded counter '+k);}check(Object.keys(metadata.completedCountsRecorded).length===Object.keys(COUNT_MAP).length,'extra/missing recorded counters');}
+  else if(completed)warnings.push('Completed roots exist but metadata recorded no counters; retain raw evidence and require controller reconciliation before aggregation.');
+ }
+ return {schema:'part4sample_readonly_audit_v1',accounting_valid:errors.length===0,findings_present:safety.length>0||faultCandidates.length>0,errors,warnings,mode:'mate_bound_audit',phase:PHASE,offset,available_units:available,seed:config.seed,corpus_sha256:digest(Buffer.from(roots.map(r=>r.index+'\t'+r.fen).join('\n')+'\n')),completed_units:completed,next_offset:next,counts:totals,per_variant:perVariant,partial_counts_excluded:partial,interrupted_observations:interrupted,interrupted_faults:interruptedFaults,partial_root:incomplete?next:null,safety_findings:safety,fault_candidates:faultCandidates,units,limits:'Finite White KRK sample; oracle shares board/attack primitives and omits repetition/fifty-move model. Upperbound criterion failures need semantic review. No strength or universal-correctness claim.',state_changed:false};
+}
+export function auditSequence(reports,{requireStartZero=true}={}){
+ const errors=[],totals=zero(),resumed=[],pending=[];let cursor=reports[0]?.offset??0,completed=0;const first=reports[0];
+ if(requireStartZero&&cursor!==0)errors.push('sequence does not start at root zero');
+ for(let i=0;i<reports.length;i++){
+  const r=reports[i];if(!r.accounting_valid)errors.push('batch '+i+' not independently audit-valid');
+  for(const k of ['phase','seed','corpus_sha256','available_units'])if(r[k]!==first[k])errors.push('batch '+i+' differs in '+k);
+  if(r.offset!==cursor||r.next_offset!==r.offset+r.completed_units)errors.push('batch '+i+' overlaps/skips or has wrong cursor');
+  for(const p of pending)if(p.resolvedBy===undefined&&r.units.some(u=>u.completed&&u.root===p.root)){p.resolvedBy=i;resumed.push({...p});}
+  if(r.partial_root!==null)pending.push({batch:i,root:r.partial_root});
+  cursor=r.next_offset;completed+=r.completed_units;add(totals,r.counts);
+ }
+ return {schema:'part4sample_readonly_sequence_v1',valid:errors.length===0,errors,batches:reports.length,completed_units:completed,next_offset:cursor,counts:totals,partial_resumed:resumed,partial_reproduction_pending:pending.filter(p=>p.resolvedBy===undefined),state_changed:false};
+}
+export function auditBatch({metadataPath,manifestPath,evidenceRoot,allowDirect=false,strict=true}){
+ if(manifestPath&&allowDirect)throw Error('manifest verification cannot be combined with --allow-direct; choose one evidence source');
+ const manifestErrors=[],manifestChecks=[];let manifest=null,bySource=new Map();
+ if(manifestPath){manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8'));for(const f of manifest.files||[]){try{
+   if(!f.copied)throw Error('not copied: '+f.reason);if(bySource.has(path.resolve(f.source)))throw Error('duplicate manifest source');
+   const take=(p,bytes,sha)=>{const absolute=path.resolve(evidenceRoot,p);if(!absolute.startsWith(path.resolve(evidenceRoot)+path.sep))throw Error('manifest path escapes evidence root');const b=fs.readFileSync(absolute);if(b.length!==bytes||digest(b)!==sha)throw Error('artifact byte/hash mismatch '+p);return b;};
+   let raw;if(f.split){let offset=0;const chunks=f.chunks.map((c,i)=>{if(c.part!==i+1||c.offset!==offset)throw Error('chunk order/offset mismatch');const b=take(c.path,c.bytes,c.sha256);offset+=b.length;return b;});raw=Buffer.concat(chunks);}else raw=take(f.path,f.bytes,f.sha256);
+   if(raw.length!==f.bytes||digest(raw)!==f.sha256)throw Error('reconstructed artifact byte/hash mismatch');bySource.set(path.resolve(f.source),raw);manifestChecks.push({source:f.source,bytes:raw.length,sha256:digest(raw),split:!!f.split});
+  }catch(e){manifestErrors.push(f.source+': '+e.message);}}
+ }
+ function read(p){const q=path.resolve(p);if(bySource.has(q))return bySource.get(q).toString('utf8');if(allowDirect)return fs.readFileSync(q,'utf8');throw Error('source absent from verified manifest: '+q);}
+ const metadata=JSON.parse(read(metadataPath)),spec=metadata.spec;const out=path.resolve(spec.cwd,spec.argv[spec.argv.indexOf('--out')+1]);
+ const config=JSON.parse(read(out+'/config.json')),summary=JSON.parse(read(out+'/summary.json'));
+ const rows=read(out+'/results.jsonl').split(/\r?\n/).filter(Boolean).map(JSON.parse),roots=read(out+'/roots.tsv').split(/\r?\n/).filter(Boolean).map(l=>{const at=l.indexOf('\t');return {index:Number(l.slice(0,at)),fen:l.slice(at+1)};});
+ const report=auditData({config,summary,rows,roots,readText:read,log:read(spec.log),metadata,strict});
+ if(manifest){for(const [k,v]of Object.entries({phase:spec.phase,id:spec.id,seed:spec.seed}))if(!equal(manifest[k],v))manifestErrors.push('manifest '+k+' mismatch');}
+ report.evidence={metadata:metadataPath,manifest:manifestPath||null,source_mode:manifestPath?'hash-verified preserved manifest':'original files (not checkpoint proof)',verified_files:manifestChecks,manifest_errors:manifestErrors};report.errors.push(...manifestErrors);
+ report.current_hash_checks=(spec.expectedHashes||[]).map(x=>{try{const actual=digest(fs.readFileSync(x.path));return {...x,current_sha256:actual,matches:actual===x.sha256};}catch(e){return {...x,matches:false,error:e.message};}});
+ for(const h of report.current_hash_checks)if(!h.matches)report.errors.push('current source/binary hash differs/unavailable: '+h.path);
+ if(!spec.expectedHashes?.length)(strict?report.errors:report.warnings).push('No pre-run source/binary hashes in spec.');
+ if(strict){const argv=config.argv,option=k=>argv[argv.indexOf(k)+1],expected=[argv[0],option('--lock'),option('--merged'),...['soak_all/mate_bound_audit.cpp','soak_all/uci_process.hpp','soak_all/krk_oracle.hpp','src/search.cpp','src/uci.cpp','include/forge/search.hpp'].map(p=>DEFAULTS.repo+'/forge-combo29/'+p)];const hashes=spec.expectedHashes||[];if(hashes.length!==expected.length||new Set(hashes.map(x=>x.path)).size!==expected.length||expected.some(p=>!hashes.some(x=>x.path===p&&/^[a-f0-9]{64}$/.test(x.sha256))))report.errors.push('official source/binary hash provenance set missing or malformed');}
+ report.accounting_valid=report.errors.length===0;return report;
+}
+if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){
+ const args=process.argv.slice(2),o={};for(let i=0;i<args.length;i++){const k=args[i];if(k==='--allow-direct')o.allowDirect=true;else if(k==='--preparation')o.strict=false;else{const v=args[++i];if(v===undefined)throw Error('missing value '+k);if(k==='--metadata')o.metadataPath=v;else if(k==='--manifest')o.manifestPath=v;else if(k==='--evidence-root')o.evidenceRoot=v;else if(k==='--report')o.report=v;else throw Error('unknown option '+k);}}
+ if(!o.metadataPath||!o.report||(!o.manifestPath&&!o.allowDirect)||(o.manifestPath&&!o.evidenceRoot))throw Error('required --metadata PATH --report NEW_PATH and --manifest PATH --evidence-root SOAK_ALL (or explicit --allow-direct)');
+ let r;try{r=auditBatch(o);}catch(e){r={schema:'part4sample_readonly_audit_v1',accounting_valid:false,errors:[e.stack],completed_units:null,next_offset:null,safety_findings:[],fault_candidates:[],state_changed:false,warning:'Parsing or evidence validation failed; no cursor/counts may be adopted from this report.'};}fs.writeFileSync(o.report,JSON.stringify(r,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({report:path.resolve(o.report),accounting_valid:r.accounting_valid,errors:r.errors.length,completed_units:r.completed_units,next_offset:r.next_offset,safety_findings:r.safety_findings.length,fault_candidates:r.fault_candidates.length,state_changed:false}));if(!r.accounting_valid)process.exitCode=1;else if(r.findings_present)process.exitCode=2;
+}
