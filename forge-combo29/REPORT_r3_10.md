@@ -46,14 +46,36 @@ That is not a strength result. It only shows the search walks a different tree.
 
 ## Legality under sanitizers
 
-`forge-combo29/tests_r3_10/evasion_ordering_test.cpp` was compiled with the same portable defines and `-fsanitize=address,undefined` (and `-O3 -ffp-contract=off -fno-fast-math -march=x86-64-v3`), then run once. The option was on.
+`forge-combo29/tests_r3_10/evasion_ordering_test.cpp` was compiled with the same portable defines and `-fsanitize=address,undefined` (and `-O3 -ffp-contract=off -fno-fast-math -march=x86-64-v3`). The option was on for the search loop. Each returned root move has to be legal, and each move of the principal variation has to be legal in the position it is played from.
 
-- default pins inside that binary: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609
+First run, before the principal-variation walk was added:
+
+- default pins: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609
 - bench 13 with the option on: 772890
-- 200 fixed-depth searches at depth 10, one thread, 16 MB hash: 9 of the roots were in check, 0 returned moves were illegal
-- AddressSanitizer and UndefinedBehaviorSanitizer printed nothing
-- the process exited 0 (`PASS evasion_ordering`)
+- 200 searches at depth 10: 9 roots in check, 0 illegal root moves
+- no AddressSanitizer or UndefinedBehaviorSanitizer output, exit 0
 - bench 13 after clearing the flag: 862329
+
+Second and third runs, with the line walk:
+
+- same three default pins, same 772890, same restored 862329
+- 200 searches, 9 roots in check, 2360 principal-variation moves, 0 illegal
+- both runs exited 0 with no sanitizer output
+
+## Re-check
+
+The same release binary was measured again in fresh processes, still Threads 1, Hash 16, OwnBook false, other options default. g++ 13.3, portable `x86-64-v3` build.
+
+| check | result |
+| --- | ---: |
+| bench 11, option off | 312866 |
+| bench 13, option off | 862329 |
+| startpos perft 5 | 4865609 |
+| bench 13, EvasionOrdering on | 772890 |
+| bench 11 after turning it off again | 312866 |
+| bench 13 after turning it off again | 862329 |
+
+Repeated once more in one process: 312866, 862329, 4865609, then 772890 with the option on, then 312866 and 862329 after turning it off. No strength claim. The different node count only shows that the option changes the tree.
 
 ## Not claimed
 

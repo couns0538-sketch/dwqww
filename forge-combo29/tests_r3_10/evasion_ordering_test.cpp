@@ -105,10 +105,26 @@ bool move_is_legal(const forge::Board& board, forge::Move move) {
     return false;
 }
 
+// The root move and every later move on the returned line must be legal in the
+// position they are played from.
+bool returned_line_is_legal(const forge::Board& root, const forge::SearchInfo& info) {
+    if (!move_is_legal(root, info.best_move)) return false;
+    if (info.pv.empty()) return true;
+    if (!(info.pv.front() == info.best_move)) return false;
+    forge::Board cursor = root;
+    for (const forge::Move move : info.pv) {
+        if (!move_is_legal(cursor, move)) return false;
+        forge::Undo undo;
+        if (!cursor.make_move(move, undo)) return false;
+    }
+    return true;
+}
+
 int search_legality(const std::vector<forge::Board>& positions) {
     forge::Searcher searcher(16, 1);
     int failures = 0;
     int in_check_roots = 0;
+    int pv_moves = 0;
     for (int i = 0; i < kSearches; ++i) {
         if (i % 25 == 0) searcher.clear();
         const forge::Board& board = positions[static_cast<std::size_t>(i)];
@@ -117,14 +133,16 @@ int search_legality(const std::vector<forge::Board>& positions) {
         limits.depth = kSearchDepth;
         const forge::SearchInfo info =
             searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive);
-        if (!move_is_legal(board, info.best_move)) {
+        pv_moves += static_cast<int>(info.pv.size());
+        if (!returned_line_is_legal(board, info)) {
             std::cerr << "FAIL illegal move at " << i << " " << board.fen() << " move "
-                      << forge::Board::move_to_uci(info.best_move) << '\n';
+                      << forge::Board::move_to_uci(info.best_move) << " pv " << info.pv.size() << '\n';
             ++failures;
         }
     }
     std::cout << "searches " << kSearches << " depth " << kSearchDepth
               << " in_check_roots " << in_check_roots
+              << " pv_moves " << pv_moves
               << " illegal " << failures << '\n';
     return failures;
 }
