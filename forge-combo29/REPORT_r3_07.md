@@ -36,6 +36,8 @@ The same test was built with Clang 18.1.3 `-fsanitize=address,undefined -fno-omi
 
 Engine diff against `e04556dd`: 39 insertions and 4 deletions in `include/forge/search.hpp`, `src/search.cpp`, and `src/uci.cpp`. `CMakeLists.txt` was not changed.
 
+Repeated at 14:01 UTC on the same release binary: bench 11 was 312866, bench 13 was 862329, and start-position perft 5 was 4865609, both before `NullSeeVeto` was enabled and after it was set back to false. bench 13 with the option on was 929140 again. The Clang address/undefined test was rebuilt from this commit's test and printed `searches 200 legal` with exit 0 and no sanitizer diagnostic.
+
 Not verified: playing strength, match score, or whether 929140 is better or worse than 862329. No games were played.
 
 option name NullSeeVeto type check default false
