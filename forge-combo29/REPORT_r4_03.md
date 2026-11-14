@@ -7,7 +7,7 @@ The owner's earlier stop was +2 ± 13 in 1200 games. That stop is prior context.
 State: `running`.
 Screen start (UTC): 2026-11-14T15:41:48Z.
 Screen deadline (UTC): 2026-11-14T21:41:48Z (6 hours from screen start, or 9 chunks, whichever comes first).
-Note: pushed after chunk 1001
+Note: heartbeat during chunk
 
 ## What was compared
 
@@ -81,12 +81,13 @@ W-L-D is option on first. Elo is logistic Elo from the pentanomial model used by
 | 1 | 1000 | 270-245-485 | 8.69 +/- 12.38 | 91.57 | [6, 119, 235, 124, 16] | 500 | finished |
 | 501 | 1000 | 256-258-486 | -0.69 +/- 13.35 | 45.94 | [17, 126, 215, 126, 16] | 500 | finished |
 | 1001 | 1000 | 274-249-477 | 8.69 +/- 14.10 | 88.66 | [21, 112, 215, 125, 27] | 500 | finished |
+| 1501 | 982 | 242-260-480 | -6.37 +/- 13.73 | 18.14 | [25, 117, 213, 123, 13] | 491 | running |
 
-Pooled (all chunks, option on first): W-L-D 800-752-1448 over 3000 games, 1500 pairs, Elo 5.56 +/- 7.68 (95%), LOS 92.22 %, Ptnml(0-2) [44, 357, 665, 375, 59].
+Pooled (all chunks, option on first): W-L-D 1042-1012-1928 over 3982 games, 1991 pairs, Elo 2.62 +/- 6.70 (95%), LOS 77.80 %, Ptnml(0-2) [69, 474, 878, 498, 72].
 
-Split of the pooled middle bin: WL 307, DD 358. Raw pair counts LL 44, LD 357, WL 307, DD 358, WD 375, WW 59. Unpaired finished games (excluded from the pentanomial, included in W-L-D): 0.
+Split of the pooled middle bin: WL 400, DD 478. Raw pair counts LL 69, LD 474, WL 400, DD 478, WD 498, WW 72. Unpaired finished games (excluded from the pentanomial, included in W-L-D): 0.
 
-nElo (fastchess pentanomial normalization): 9.01 +/- 12.43.
+nElo (fastchess pentanomial normalization): 4.22 +/- 10.79.
 
 ### fastchess blocks
 
@@ -121,6 +122,16 @@ LOS: 88.66 %, DrawRatio: 43.00 %, PairsRatio: 1.14
 Games: 1000, Wins: 274, Losses: 249, Draws: 477, Points: 512.5 (51.25 %)
 Ptnml(0-2): [21, 112, 215, 125, 27], WL/DD Ratio: 0.79
 --------------------------------------------------
+```
+
+#### chunk 1501
+
+```
+Results of LmrDeeperShallower vs default (50000 nodes, 1t, 16MB, UHO_Lichess_4852_v1.epd):
+Elo: -6.74 +/- 13.74, nElo: -10.67 +/- 21.75
+LOS: 16.81 %, DrawRatio: 43.47 %, PairsRatio: 0.95
+Games: 980, Wins: 241, Losses: 260, Draws: 479, Points: 480.5 (49.03 %)
+Ptnml(0-2): [25, 117, 213, 122, 13], WL/DD Ratio: 0.78
 ```
 
 ## Reading the sample
