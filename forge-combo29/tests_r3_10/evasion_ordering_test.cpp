@@ -1,0 +1,178 @@
+#include "forge/board.hpp"
+#include "forge/search.hpp"
+
+#include <array>
+#include <cstdint>
+#include <iostream>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace {
+
+constexpr std::uint64_t kBench11 = 312866;
+constexpr std::uint64_t kBench13 = 862329;
+constexpr std::uint64_t kPerft5 = 4865609;
+constexpr int kSearches = 200;
+constexpr int kSearchDepth = 10;
+
+constexpr std::array<std::string_view, 8> kBenchFens{
+    forge::Board::StandardStartFen,
+    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+    "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
+    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+    "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
+    "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
+    "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
+    "r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9",
+};
+
+// Opening and endgame seeds. The first three leave the side to move in check.
+constexpr std::array<std::string_view, 6> kSeedFens{
+    "4k3/8/8/8/8/8/4r3/4K3 w - - 0 1",
+    "4k3/8/8/8/8/3n4/8/4K3 w - - 0 1",
+    "rnbqkbnr/ppppp1pp/8/5p1Q/4P3/8/PPPP1PPP/RNB1KBNR b KQkq - 1 2",
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+    "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
+};
+
+std::uint64_t bench_nodes(int depth) {
+    std::uint64_t total = 0;
+    forge::Searcher searcher(16, 1);
+    for (const std::string_view fen : kBenchFens) {
+        forge::Board board;
+        if (!board.set_fen(fen)) return 0;
+        forge::SearchLimits limits;
+        limits.depth = depth;
+        searcher.clear();
+        total += searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+    }
+    return total;
+}
+
+std::uint64_t mix(std::uint64_t x) {
+    x ^= x >> 30;
+    x *= 0xBF58476D1CE4E5B9ULL;
+    x ^= x >> 27;
+    x *= 0x94D049BB133111EBULL;
+    x ^= x >> 31;
+    return x;
+}
+
+std::vector<forge::Board> two_hundred_positions() {
+    std::vector<forge::Board> out;
+    out.reserve(static_cast<std::size_t>(kSearches));
+    std::uint64_t state = 0xC0FFEEULL;
+
+    auto push_if_legal = [&](const forge::Board& board) {
+        if (static_cast<int>(out.size()) >= kSearches) return;
+        if (board.legal_moves().empty()) return;
+        out.push_back(board);
+    };
+
+    for (const std::string_view fen : kSeedFens) {
+        forge::Board board;
+        if (board.set_fen(fen)) push_if_legal(board);
+    }
+
+    forge::Board cursor;
+    (void)cursor.set_fen(forge::Board::StandardStartFen);
+    while (static_cast<int>(out.size()) < kSearches) {
+        const forge::MoveList legal = cursor.legal_moves();
+        if (legal.empty() || cursor.halfmove_clock() > 80) {
+            (void)cursor.set_fen(forge::Board::StandardStartFen);
+            continue;
+        }
+        push_if_legal(cursor);
+        state = mix(state + static_cast<std::uint64_t>(out.size()) + cursor.key());
+        const forge::Move chosen = legal[static_cast<std::size_t>(state % legal.size())];
+        forge::Undo undo;
+        if (!cursor.make_move(chosen, undo)) {
+            (void)cursor.set_fen(forge::Board::StandardStartFen);
+        }
+    }
+    return out;
+}
+
+bool move_is_legal(const forge::Board& board, forge::Move move) {
+    if (move.is_none()) return false;
+    if (!board.is_legal(move)) return false;
+    const forge::MoveList legal = board.legal_moves();
+    for (const forge::Move candidate : legal) {
+        if (candidate == move) return true;
+    }
+    return false;
+}
+
+int search_legality(const std::vector<forge::Board>& positions) {
+    forge::Searcher searcher(16, 1);
+    int failures = 0;
+    int in_check_roots = 0;
+    for (int i = 0; i < kSearches; ++i) {
+        if (i % 25 == 0) searcher.clear();
+        const forge::Board& board = positions[static_cast<std::size_t>(i)];
+        if (board.in_check()) ++in_check_roots;
+        forge::SearchLimits limits;
+        limits.depth = kSearchDepth;
+        const forge::SearchInfo info =
+            searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive);
+        if (!move_is_legal(board, info.best_move)) {
+            std::cerr << "FAIL illegal move at " << i << " " << board.fen() << " move "
+                      << forge::Board::move_to_uci(info.best_move) << '\n';
+            ++failures;
+        }
+    }
+    std::cout << "searches " << kSearches << " depth " << kSearchDepth
+              << " in_check_roots " << in_check_roots
+              << " illegal " << failures << '\n';
+    return failures;
+}
+
+}  // namespace
+
+int main() {
+    int failures = 0;
+    forge::tune::EvasionOrdering = false;
+
+    const std::uint64_t off11 = bench_nodes(11);
+    const std::uint64_t off13 = bench_nodes(13);
+    forge::Board start;
+    (void)start.set_fen(forge::Board::StandardStartFen);
+    const std::uint64_t perft5 = start.perft(5);
+    std::cout << "defaults bench11 " << off11 << " bench13 " << off13 << " perft5 " << perft5 << '\n';
+    if (off11 != kBench11 || off13 != kBench13 || perft5 != kPerft5) {
+        std::cerr << "FAIL default signature changed\n";
+        ++failures;
+    }
+
+    forge::tune::EvasionOrdering = true;
+    const std::uint64_t on13 = bench_nodes(13);
+    std::cout << "evasion_ordering bench13 " << on13 << '\n';
+    if (on13 == 0 || on13 == kBench13) {
+        std::cerr << "FAIL bench 13 did not change with EvasionOrdering on\n";
+        ++failures;
+    }
+
+    const std::vector<forge::Board> positions = two_hundred_positions();
+    if (static_cast<int>(positions.size()) != kSearches) {
+        std::cerr << "FAIL built " << positions.size() << " positions\n";
+        return 1;
+    }
+    failures += search_legality(positions);
+
+    forge::tune::EvasionOrdering = false;
+    const std::uint64_t restored = bench_nodes(13);
+    std::cout << "restored bench13 " << restored << '\n';
+    if (restored != kBench13) {
+        std::cerr << "FAIL bench 13 stayed changed after turning the option off\n";
+        ++failures;
+    }
+
+    if (failures != 0) {
+        std::cerr << "FAIL " << failures << '\n';
+        return 1;
+    }
+    std::cout << "PASS evasion_ordering\n";
+    return 0;
+}
