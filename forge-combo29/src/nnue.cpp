@@ -3,7 +3,11 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
+#include <fstream>
 #include <memory>
+#include <string>
+#include <vector>
 
 // The output layer uses SSE min/max/mul/add directly: compilers may not turn a
 // float clamp into min/max instructions without -ffast-math, which left the
@@ -61,22 +65,47 @@ struct Weights {
     float b2 = 0.0F;
 };
 
-const Weights& weights() {
-    static const Weights instance = [] {
-        Weights w;
-        w.w1 = std::make_unique<float[]>(static_cast<std::size_t>(InputCount) * HiddenSize);
+void quantize(Weights& w, const std::int16_t* w1, const std::int16_t* b1, const std::int16_t* w2, std::int16_t b2) {
+    w.w1 = std::make_unique<float[]>(static_cast<std::size_t>(InputCount) * HiddenSize);
+    for (std::size_t i = 0; i < static_cast<std::size_t>(InputCount) * HiddenSize; ++i) {
+        w.w1[i] = static_cast<float>(w1[i]) / WeightScale;
+    }
+    for (std::size_t i = 0; i < HiddenSize; ++i) w.b1[i] = static_cast<float>(b1[i]) / WeightScale;
+    for (std::size_t i = 0; i < 2 * HiddenSize; ++i) w.w2[i] = static_cast<float>(w2[i]) / OutputScale;
+    w.b2 = static_cast<float>(b2) / OutputScale;
+}
+
+Weights make_builtin() {
+    Weights w;
 #if FORGE_HAS_NNUE
-        for (std::size_t i = 0; i < static_cast<std::size_t>(InputCount) * HiddenSize; ++i) {
-            w.w1[i] = static_cast<float>(NnueW1[i]) / WeightScale;
-        }
-        for (std::size_t i = 0; i < HiddenSize; ++i) w.b1[i] = static_cast<float>(NnueB1[i]) / WeightScale;
-        for (std::size_t i = 0; i < 2 * HiddenSize; ++i) w.w2[i] = static_cast<float>(NnueW2[i]) / OutputScale;
-        w.b2 = static_cast<float>(NnueB2) / OutputScale;
+    quantize(w, NnueW1, NnueB1, NnueW2, NnueB2);
+#else
+    w.w1 = std::make_unique<float[]>(static_cast<std::size_t>(InputCount) * HiddenSize);
 #endif
-        return w;
-    }();
+    return w;
+}
+
+Weights& live_weights() {
+    static Weights instance = make_builtin();
     return instance;
 }
+
+const Weights& weights() { return live_weights(); }
+
+std::uint32_t read_u32(const unsigned char* bytes) {
+    return std::uint32_t(bytes[0]) | (std::uint32_t(bytes[1]) << 8) |
+           (std::uint32_t(bytes[2]) << 16) | (std::uint32_t(bytes[3]) << 24);
+}
+
+std::int16_t read_i16(const unsigned char* bytes) {
+    const std::uint16_t bits = std::uint16_t(bytes[0]) | (std::uint16_t(bytes[1]) << 8);
+    std::int16_t value = 0;
+    std::memcpy(&value, &bits, sizeof(value));
+    return value;
+}
+
+constexpr std::size_t kNetBytes =
+    16 + 2 * (static_cast<std::size_t>(InputCount) * HiddenSize + HiddenSize + 2 * HiddenSize + 1);
 
 inline void add_feature(std::array<float, HiddenSize>& acc, const float* column) {
     for (int h = 0; h < HiddenSize; ++h) acc[static_cast<std::size_t>(h)] += column[h];
@@ -89,6 +118,74 @@ inline void sub_feature(std::array<float, HiddenSize>& acc, const float* column)
 } // namespace
 
 bool available() { return FORGE_HAS_NNUE != 0; }
+
+bool load_file(std::string_view path, std::string& error) {
+    error.clear();
+    if (path.empty() || path == "<empty>") {
+        live_weights() = make_builtin();
+        return true;
+    }
+    const std::string name(path);
+    std::ifstream input(name, std::ios::binary);
+    if (!input) {
+        error = "nnue: cannot open file";
+        return false;
+    }
+    input.seekg(0, std::ios::end);
+    const std::streamoff length = input.tellg();
+    input.seekg(0);
+    if (length < 0 || static_cast<std::uint64_t>(length) > 2U * 1024U * 1024U) {
+        error = "nnue: wrong size";
+        return false;
+    }
+    std::vector<unsigned char> bytes(static_cast<std::size_t>(length));
+    if (length > 0) input.read(reinterpret_cast<char*>(bytes.data()), length);
+    // A read that reaches end of file can set eofbit. Keep the bytes when every
+    // requested one arrived, and reject a short read.
+    if (static_cast<std::streamoff>(input.gcount()) != length) {
+        error = "nnue: cannot open file";
+        return false;
+    }
+    if (bytes.size() < 8) {
+        error = "nnue: wrong size";
+        return false;
+    }
+    if (std::memcmp(bytes.data(), "FORGENET", 8) != 0) {
+        error = "nnue: bad magic";
+        return false;
+    }
+    if (bytes.size() < 16) {
+        error = "nnue: wrong size";
+        return false;
+    }
+    if (read_u32(bytes.data() + 8) != 1U) {
+        error = "nnue: unsupported version";
+        return false;
+    }
+    const std::uint32_t hidden = read_u32(bytes.data() + 12);
+    if (hidden != static_cast<std::uint32_t>(HiddenSize) || bytes.size() != kNetBytes) {
+        error = "nnue: wrong size";
+        return false;
+    }
+    std::vector<std::int16_t> w1(static_cast<std::size_t>(InputCount) * HiddenSize);
+    std::vector<std::int16_t> b1(HiddenSize);
+    std::vector<std::int16_t> w2(2 * HiddenSize);
+    const unsigned char* cursor = bytes.data() + 16;
+    auto take = [&cursor](std::vector<std::int16_t>& out) {
+        for (std::int16_t& value : out) {
+            value = read_i16(cursor);
+            cursor += 2;
+        }
+    };
+    take(w1);
+    take(b1);
+    take(w2);
+    const std::int16_t b2 = read_i16(cursor);
+    Weights incoming;
+    quantize(incoming, w1.data(), b1.data(), w2.data(), b2);
+    live_weights() = std::move(incoming);
+    return true;
+}
 
 bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
 
