@@ -1,6 +1,6 @@
 # Narrow mate-alpha guard and round-4 soak
 
-Updated 2026-11-14T22:47:48.544Z. Cloud VM only. Branch `for-fable-and-opus/astra-r4-mate-alpha-guard`. Task start 2026-11-14T19:48:28.579Z. Current phase: Successor soak: existing test suites.
+Updated 2026-11-14T22:51:38.385Z. Cloud VM only. Branch `for-fable-and-opus/astra-r4-mate-alpha-guard`. Task start 2026-11-14T19:48:28.579Z. Current phase: Successor soak: existing test suites.
 
 **Guard acceptance: complete.** Default pins: **312866 / 862329 / 4865609**. Engine delta is27 added lines,0 removed, behind an OFF-by-default compile gate and a false-default UCI option. No CMakeLists change.
 
@@ -106,7 +106,7 @@ Existing test-folder runtime suite (commands, including executable tests and tra
 | Build | Planned | Attempted | Passed | Failed | Incomplete | Not attempted | Sanitizer reports |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | enabled | 59 | 59 | 56 | 3 | 0 | 0 | 0 |
-| asan | 59 | 43 | 42 | 0 | 1 | 16 | 0 |
+| asan | 59 | 59 | 56 | 2 | 1 | 0 | 0 |
 
 [Fixture repetitions](tests_astra_mateguard/fixture-repetitions/FIXTURE-REPETITIONS.md):40 fresh sessions,10 per fixture/build; all40 literal mismatches recur, all processes exit0,0sanitizer reports. Only22 additional advertised options per UCI block; all outputs byte-identical to original Release suite. Golden files unchanged.
 
@@ -125,6 +125,6 @@ Exact commands, output, hashes and retained failures are under `tests_astra_mate
 
 **Final engine delta commit: `a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d`.**
 
-Checkpoint 2026-11-14T22:47:48.544Z: Successor soak: existing test suites. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Existing suite runtime batch suite-asan-0020: [{"id":"t19-eval_parity","exit":0,"passed":true,"reviewRequired":false,"incomplete":false,"sanitizerReports":0},{"id":"t20-repeat_mate_test","exit":0,"passed":true,"reviewRequired":false,"incomplete":false,"sanitizerReports":0}]. Cumulative command counts {"enabled":{"planned":59,"attempted":59,"completed":59,"passed":56,"failed":3,"incomplete":0,"needsReview":0,"sanitizerReports":0,"notAttempted":0,"remaining":0},"asan":{"planned":59,"attempted":43,"completed":42,"passed":42,"failed":0,"incomplete":1,"needsReview":0,"sanitizerReports":0,"notAttempted":16,"remaining":17}}. Failures and incomplete tests retained; no expected values modified.
+Checkpoint 2026-11-14T22:51:38.385Z: Successor soak: existing test suites. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Existing suite runtime batch suite-asan-0024: [{"id":"r3-17-command-transcript","exit":0,"passed":true,"reviewRequired":false,"incomplete":false,"sanitizerReports":0}]. Cumulative command counts {"enabled":{"planned":59,"attempted":59,"completed":59,"passed":56,"failed":3,"incomplete":0,"needsReview":0,"sanitizerReports":0,"notAttempted":0,"remaining":0},"asan":{"planned":59,"attempted":59,"completed":58,"passed":56,"failed":2,"incomplete":1,"needsReview":0,"sanitizerReports":0,"notAttempted":0,"remaining":1}}. Failures and incomplete tests retained; no expected values modified.
 
 ENGINE_DELTA_COMMIT a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d
