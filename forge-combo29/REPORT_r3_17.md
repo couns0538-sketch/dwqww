@@ -96,9 +96,21 @@ Base folders:
 
 `tests_t16` own-book spec: `ok 54 lines`. Search spec: `ok 7 lines`. The raw `diff` of `options.expected.txt` and `clamp.expected.txt` fails. The only extra lines are the five option advertisements the fixtures never listed: `MultiPV`, `NnueFile`, `ContHist4PlyRead`, `NonPawnCorrection`, and `LmrDeeperShallower`. Each appears twice in a transcript. Filtering those five lines makes both diffs empty. That gap is already described in `forge-combo29/INTEGRATION_ALL.md`. This merge does not add an option, and the fixtures were not edited.
 
-## Not verified
+## Recheck
 
-- AddressSanitizer and UndefinedBehaviorSanitizer. The runs above are the Release build. `tests_t18` prints `SANITIZERS clean` from the driver; that string is not an ASan build of the engine.
+A second pass is running on this same branch. It does not replace the numbers above until it finishes.
+
+Release `./build/forge`, rebuilt with `CXX=g++` and the same portable flags, printed bench 11 = 312866, bench 13 = 862329, and start-position perft 5 = 4865609 again. The per-move split matched.
+
+The same three commands on an ASan/UBSan binary (`-fsanitize=address,undefined -fno-sanitize-recover=address,undefined`, `halt_on_error=1`) printed the same three totals and the same per-move split. No sanitizer diagnostic on that run.
+
+The Release suite was run again: tests_t1, t3, t6, t8, t12, t13, t14, t15, t17, t18, t19, t20, t21, t22, t23, plus `tests_r3_17` position prefix, thread node limit, MultiPV budget, and `commands.txt`. Every one exited 0.
+
+ASan/UBSan has passed tests_t1, t3, t6, t8, t13, t14, t15, t17, t18 (200000 lines), t19, t20, t21, and the fifty-move half of tests_t23. `tests_t12` under ASan was still running when this note was written. tests_t16, tests_t22, the mate half of tests_t23, and the branch suites under ASan had not been reached yet.
+
+## Not verified yet
+
+- The rest of the ASan/UBSan suite listed above.
 - `forge-combo29/soak_all`. It is not one of the `tests_*` folders.
 - A Clang-linked binary, a non-portable `-march`, and the Windows lock build.
 - `./build/forge` was not started under a GUI.
