@@ -1,0 +1,40 @@
++ cat /workspace/work/all-run/C-3228-review/C3-package-command.txt
+node <<'NODE'
+const fs=require('fs'),path=require('path'),crypto=require('crypto');
+const from='/workspace/work/all-run/C-3228-review',input='/workspace/work/all-run/compare-batches/C-0003';
+const target='forge-combo29/soak_all/search_equality_evidence';
+const files=fs.readdirSync(from).filter(n=>n.startsWith('C3-')&&n.endsWith('.txt')).map(n=>[path.join(from,n),n]);
+for(const name of fs.readdirSync(input).filter(n=>n.includes('pending'))){
+ const index=/pending-(\d+)/.exec(name)[1];
+ files.push([path.join(input,name),'C3-original-'+index+'-pending.txt']);
+}
+const hash=data=>crypto.createHash('sha256').update(data).digest('hex');
+let manifest='';
+for(const [source,name]of files.sort((a,b)=>a[1].localeCompare(b[1]))){
+ const data=fs.readFileSync(source);if(data.includes(0))throw Error('binary input '+source);
+ fs.copyFileSync(source,path.join(target,name),fs.constants.COPYFILE_EXCL);fs.chmodSync(path.join(target,name),0o644);
+ if(!fs.readFileSync(path.join(target,name)).equals(data))throw Error('copy mismatch '+name);
+ manifest+=hash(data)+'  '+data.length+'  '+name+'\n';
+}
+fs.appendFileSync(path.join(target,'manifest.txt'),manifest);
+const entries=fs.readFileSync(path.join(target,'manifest.txt'),'utf8').trim().split('\n');
+for(const line of entries){const [,h,size,name]=/^(\w+)  (\d+)  (.+)$/.exec(line);const data=fs.readFileSync(path.join(target,name));if(data.length!==+size||hash(data)!==h)throw Error('manifest mismatch '+name);}
+const summary=JSON.parse(fs.readFileSync(path.join(target,'C3-ablation-summary.json.txt'),'utf8'));
+if(summary.length!==5||summary.some(s=>s.halfmove>=80||!s.required_equality||!s.variants[0].all_info_matches_merged||!s.variants[7].all_info_matches_lock||!s.variants[63].all_info_matches_lock))throw Error('C3 summary coverage mismatch');
+const report=fs.readFileSync('forge-combo29/soak_all/search_equality_investigation.md','utf8');
+for(const match of report.matchAll(/\]\((search_equality_evidence\/[^)]+)\)/g))
+ if(!fs.existsSync(path.join('forge-combo29/soak_all',match[1])))throw Error('missing evidence link '+match[1]);
+console.log('PASS '+files.length+' new C3 text files copied byte-for-byte; '+entries.length+' total manifest entries reverified.');
+console.log('PASS all5 required-under80 cases: mask0=merged and mask7=mask63=lock for every per-depth info field except time/nps.');
+console.log('REPORT_SHA256='+hash(report));
+console.log('C3_SUMMARY_SHA256='+hash(fs.readFileSync(path.join(target,'C3-ablation-summary.json.txt'))));
+NODE
+git diff --name-only -- forge-combo29/src forge-combo29/include
+git diff --check -- forge-combo29/soak_all/search_equality_investigation.md
++ node
+PASS 85 new C3 text files copied byte-for-byte; 145 total manifest entries reverified.
+PASS all5 required-under80 cases: mask0=merged and mask7=mask63=lock for every per-depth info field except time/nps.
+REPORT_SHA256=d76713aa719884f2c01dbef11612c2d75400dcd5ae938164e3adfb756b7f9372
+C3_SUMMARY_SHA256=90b789ac516836973a37fa26d21ab878b7566248de00e58828120af775432aa8
++ git diff --name-only -- forge-combo29/src forge-combo29/include
++ git diff --check -- forge-combo29/soak_all/search_equality_investigation.md

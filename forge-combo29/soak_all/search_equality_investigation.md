@@ -85,3 +85,33 @@ All listed runs exit 0 and return the same move, score, PV and selective depth a
 - Instrumented stderr contains intentional `C3228` trace lines. No sanitizer build was performed for this diagnostic; this is not a sanitizer-clean claim. Production stderr was empty.
 - The original logging attempt placed `mkdir` and `tee` in the same pipeline, allowing `tee` to open before the directory existed. That read-only inspection returned 1 because of the logging race. Its tool-output transcript is retained in `initial-logging-failure.txt`; subsequent evidence used the existing directory. A scratch logging newline escape was corrected before the successful compile; both creation and correction commands are retained. Neither incident is an engine failure.
 - This investigation proves the measured equality failure and its cause for this FEN/options/depth. It does not establish a wrong evaluation, illegal move, false mate bound, universal equivalence, strength change or speed change. No production repair was attempted. The required under-80 equality result remains a failure.
+
+## Extension: five additional C-0003 counterexamples
+
+**All five additional under-80 comparisons remain failures.** These expand the observed failure beyond node counts: two change the returned centipawn score, and three change the PV. None changes the best move in these observations. The same scratch executable and masks were reused without recompilation or production edits.
+
+Each original pending-fault file contains an initial fresh pair and ten additional fresh pairs, all with identical compared results for that case. This was checked using best move, score kind, score, bound, nodes, completed depth and PV. One additional fresh production pair per case reproduced those original results. Each case was then searched once with masks 0, 7 and 63. These 25 diagnostic/control searches ran sequentially on CPU 4, at depth 9, Threads 1, Hash 16, OwnBook false, UseNNUE true, and all three new options false. Every process exited 0 with empty stderr. They are diagnostic coverage, not additional completed corpus records for the primary C totals.
+
+| Corpus index | Root halfmove | Best move, both builds | Lock score / nodes | Merged score / nodes | PV differs? | Mask 7 and mask 63 |
+| --- | ---: | --- | --- | --- | --- | --- |
+| 9834 | 74 | `f3e2` | `cp -1117` / 43,672 | `cp -1164` / 49,669 | Yes | Both reproduce lock |
+| 10567 | 76 | `c1b2` | `mate -8` / 7,581 | `mate -8` / 7,582 | No | Both reproduce lock |
+| 11000 | 79 | `g8g2` | `cp 460` / 14,618 | `cp 460` / 14,025 | Yes | Both reproduce lock |
+| 12276 | 79 | `f6f5` | `cp 443` / 8,682 | `cp 443` / 8,688 | No | Both reproduce lock |
+| 12999 | 79 | `f6e5` | `cp 1181` / 12,873 | `cp 1187` / 12,663 | Yes | Both reproduce lock |
+
+Exact roots:
+
+```text
+9834:  8/4k3/8/2q3b1/6K1/5B2/8/8 w - - 74 132
+10567: 1b6/6k1/6b1/3r3r/8/8/8/2K5 w - - 76 134
+11000: 1k4r1/8/8/8/8/8/8/1K6 b - - 79 146
+12276: 8/8/5R2/8/8/8/7K/2k5 w - - 79 151
+12999: 8/1k6/5K2/B4N2/8/R7/8/8 w - - 79 147
+```
+
+For **every case**, mask 0 matches all production-merged per-depth `info` fields after removing only time and NPS. Both mask 7 and mask 63 match all production-lock per-depth `info` fields under that same normalization, as well as its final best move. Thus restoring the three TT behaviors is sufficient to reproduce the lock in each of these additional cases; also restoring the three pruning guards does not change those results. This does not establish that every pruning guard was inactive, or that the first differing internal instruction is identical across all five positions. Per-node traces were not collected for these five additional cases.
+
+The two score differences are reproduced observations, not proof that either score is correct or that one build is stronger. The requested equality criterion is unchanged: the original index 3228 and these five additional cases all fail it. No production repair or compile switch was introduced.
+
+The [exact command and run transcript](search_equality_evidence/C3-run-transcript.txt), [machine-readable case summary](search_equality_evidence/C3-ablation-summary.json.txt), and [input index and unchanged binary/source hashes](search_equality_evidence/C3-new-failure-index.txt) retain the comparison details. Each run's stdin/stdout/stderr is saved under `C3-<index>-<variant>.*.txt`. The five complete original pending-fault files are retained as `C3-original-<index>-pending.txt` in the same evidence directory.
