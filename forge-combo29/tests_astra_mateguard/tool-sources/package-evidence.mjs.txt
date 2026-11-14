@@ -11,6 +11,6 @@ function copy(file,relative){const data=fs.readFileSync(file);if(data.includes(0
   const chunk=data.subarray(start,end),name=data.length<=chunkLimit?rel:rel+'.part-'+String(part).padStart(3,'0')+'.txt';
   fs.writeFileSync(destination+'/'+name,chunk,{mode:0o644,flag:'wx'});entry.chunks.push({path:name,offset:start,bytes:chunk.length,sha256:hash(chunk)});start=end;if(start===data.length)break;
  }manifest.push(entry);}
-function walk(p,rel=''){for(const e of fs.readdirSync(p,{withFileTypes:true})){if(e.isDirectory())walk(p+'/'+e.name,rel+e.name+'/');else if(/\.(cpp|hpp|md|txt|json|mjs|pgn|log|ndjson|reserved)$/.test(e.name))copy(p+'/'+e.name,rel+e.name);}}
+function walk(p,rel=''){for(const e of fs.readdirSync(p,{withFileTypes:true})){if(e.isDirectory())walk(p+'/'+e.name,rel+e.name+'/');else if(/\.(cpp|hpp|md|txt|json|jsonl|mjs|pgn|log|ndjson|reserved)$/.test(e.name))copy(p+'/'+e.name,rel+e.name);}}
 if(fs.existsSync(source)&&fs.statSync(source).isDirectory())walk(source);else {const parent=path.dirname(source),stem=path.basename(source);for(const name of fs.readdirSync(parent).filter(n=>n.startsWith(stem+'.')))copy(parent+'/'+name,name);}
 fs.writeFileSync(destination+'/MANIFEST.txt',JSON.stringify({utc:new Date().toISOString(),source,files:manifest,reconstruction:'Concatenate each file chunks in listed order without separators; verify original SHA256.'},null,2)+'\n');console.log(JSON.stringify({destination,files:manifest.length,bytes:manifest.reduce((n,x)=>n+x.bytes,0)}));
