@@ -1,0 +1,27 @@
+// Root-only opt-in launcher: no global state or Git writes.
+import fs from 'node:fs';
+import cp from 'node:child_process';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+const [indexText,authorization,stage='final']=process.argv.slice(2),index=Number(indexText);
+assert.equal(authorization,'--execute-authorized');
+assert.ok(['final','step1'].includes(stage));
+const root='/workspace/work/parity-run',prep='/workspace/work/parity-soak-preparation';
+const planFile=prep+'/soak-plan'+(stage==='final'?'':'-'+stage)+'.txt';
+const plan=JSON.parse(fs.readFileSync(planFile)),batch=plan.batches[index];
+assert.ok(Number.isInteger(index)&&batch,'Valid plan index 0..11 required');
+assert.ok(Date.now()+475000<Date.parse(plan.deadline),'Insufficient time for bounded batch and record margin');
+const testDir=root+'/tests-'+(stage==='final'?'':stage+'-')+batch.mode;
+const provenance=JSON.parse(fs.readFileSync(testDir+'/provenance.json.txt'));
+assert.equal(provenance.stage,stage);
+const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+for(const [p,pin]of Object.entries({...provenance.sourcePins,...provenance.inputPins}))assert.equal(hash(p),pin,'Frozen source/build input changed '+p);
+assert.equal(hash(provenance.binary),provenance.binarySha256);
+assert.ok(batch.argv.includes(provenance.binary));
+for(const ext of ['.txt','.stdout.txt','.stderr.txt','.metadata.txt'])assert.ok(!fs.existsSync(root+'/logs/'+batch.label+ext),'Never overwrite an earlier attempt');
+const pins={binary:provenance.binarySha256,buildProvenance:hash(testDir+'/provenance.json.txt'),plan:hash(planFile),driver:hash(prep+'/play_driver.cpp')};
+fs.writeFileSync(root+'/inputs/'+batch.label+'-provenance.txt',JSON.stringify({utc:new Date().toISOString(),batch,pins},null,2)+'\n',{flag:'wx'});
+const argv=['node',root+'/command.mjs',batch.label,...batch.argv];
+console.log(JSON.stringify({index,batch,argv}));
+const r=cp.spawnSync(argv[0],argv.slice(1),{stdio:'inherit',timeout:460000});
+process.exitCode=r.status??1;

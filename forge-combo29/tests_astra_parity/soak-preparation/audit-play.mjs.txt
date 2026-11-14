@@ -1,0 +1,41 @@
+// Read-only: no native executions and no state/Git writes. Root retains stdout.
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+const index=Number(process.argv[2]),stage=process.argv[3]??'final';
+assert.ok(['final','step1'].includes(stage));
+const root='/workspace/work/parity-run',prep='/workspace/work/parity-soak-preparation';
+const plan=JSON.parse(fs.readFileSync(prep+'/soak-plan'+(stage==='final'?'':'-'+stage)+'.txt')),b=plan.batches[index];
+assert.ok(Number.isInteger(index)&&b);
+const p=root+'/logs/'+b.label,meta=JSON.parse(fs.readFileSync(p+'.metadata.txt'));
+const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
+const stdout=fs.readFileSync(meta.stdoutFile),stderr=fs.readFileSync(meta.stderrFile);
+assert.equal(hash(stdout),meta.stdoutSha256);assert.equal(hash(stderr),meta.stderrSha256);
+assert.deepEqual(meta.argv,['timeout','-k','2','440',...b.argv]);
+assert.equal(meta.label,b.label);
+const diagnostics=[];
+const pattern=/(?:Address|UndefinedBehavior|Leak|Thread|Memory|HWAddress)Sanitizer|runtime error:|Sanitizer CHECK failed|sanitizer.*(?:fatal|error)|(?:Segmentation fault|core dumped|terminate called|Assertion .*failed)/i;
+for(const [stream,bytes]of [['stdout',stdout],['stderr',stderr]]){
+ let line=0;for(const text of bytes.toString().split('\n')){line++;if(pattern.test(text))diagnostics.push({stream,line,text});}
+}
+const lines=stdout.toString().split('\n'),configs=lines.filter(x=>x.startsWith('CONFIG ')),summaries=lines.filter(x=>x.startsWith('SUMMARY '));
+const faults=lines.filter(x=>x.startsWith('FAULT '));
+const context=lines.filter(x=>x.startsWith('TRIGGER '));
+const report={utc:new Date().toISOString(),label:b.label,batch:b,exit:meta.exit,signal:meta.signal,completed:false,passed:false,diagnostics,faults,triggerRows:context.length,partialSummary:summaries.length===1?JSON.parse(summaries[0].slice(8)):null,metadataSha256:hash(fs.readFileSync(p+'.metadata.txt')),stdoutSha256:hash(stdout),stderrSha256:hash(stderr),counting:'Incomplete attempts excluded from accepted totals; diagnostics retained regardless of completion.'};
+if(configs.length!==1||summaries.length!==1||[124,137].includes(meta.exit)||meta.signal!==null){console.log(JSON.stringify(report,null,2));process.exit(1);}
+const config=JSON.parse(configs[0].slice(7)),summary=report.partialSummary;
+assert.equal(lines.filter(x=>x.trim()).at(-1),summaries[0]);
+const guard=b.group.endsWith('hindsight-and-guard');
+const expected={seed:b.seed,threads:b.threads,nodes:b.nodes,depth:b.depth,seconds:b.seconds,first_game:0,max_games:1000000,Hash:16,OwnBook:false,UseNNUE:true,MultiPV:1,ContHist4PlyRead:false,NonPawnCorrection:false,LmrDeeperShallower:false,MateAlphaGuard:guard,HindsightDepth:guard};
+for(const [key,value]of Object.entries(expected)){assert.equal(summary[key],value,key);assert.equal(config[key],value,key);}
+assert.equal(config.opening_plies,8);assert.equal(config.ply_limit,300);
+const terminations=['mates','stalemates','repetitions','fifty','ply_caps','insufficient'];
+for(const key of [...terminations,'games','moves','searches','opening_moves','faults','illegal','missing','badscore'])assert.ok(Number.isSafeInteger(summary[key])&&summary[key]>=0,key);
+const completedGames=terminations.reduce((n,key)=>n+summary[key],0);
+assert.equal(completedGames+summary.faults,summary.games);assert.equal(context.length,summary.searches);
+let lastGame=-1,lastPly=-1;
+for(const line of context){const t=JSON.parse(line.slice(8));for(const [key,value]of Object.entries(expected)){if(['seconds','first_game','max_games'].includes(key))continue;assert.equal(t[key],value,key);}assert.equal(t.fen.split(' ').length,6);assert.ok(t.position.startsWith('position startpos moves '));if(t.game===lastGame)assert.equal(t.ply,lastPly+1);else{assert.equal(t.game,lastGame+1);assert.equal(t.ply,8);}lastGame=t.game;lastPly=t.ply;}
+report.completed=true;report.completedGames=completedGames;report.faultAbortedGames=summary.faults;report.counts=summary;report.partialSummary=null;
+report.passed=meta.exit===0&&diagnostics.length===0&&faults.length===0&&['faults','illegal','missing','badscore'].every(k=>summary[k]===0);
+if(report.passed){assert.equal(summary.moves,summary.searches);assert.equal(summary.opening_moves,summary.games*8);assert.equal(lastGame+1,summary.games);}
+console.log(JSON.stringify(report,null,2));process.exitCode=report.passed?0:1;
