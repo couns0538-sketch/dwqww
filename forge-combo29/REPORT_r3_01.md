@@ -83,5 +83,6 @@ Cumulative score, option on first. Elo is fastchess logistic Elo with the printe
 | 1 | 1000 | 216-319-465 | -35.91 +/- 14.11 | 0.00% | 31, 161, 206, 84, 18 |
 | 501 | 1000 | 198-319-483 | -42.25 +/- 14.13 | 0.00% | 35, 167, 194, 92, 12 |
 | 1001 | 1000 | 210-319-471 | -38.02 +/- 14.52 | 0.00% | 34, 167, 192, 88, 19 |
+| 1501 | 1000 | 195-318-487 | -42.95 +/- 13.78 | 0.00% | 29, 171, 211, 72, 17 |
 
-Cumulative after start 1001, 3000 games: 624-957-1419. Elo -38.72 +/- 8.23, LOS 0.00%, Ptnml(0-2) 100, 495, 592, 264, 49. The cumulative Elo uses the same pentanomial calculation as fastchess 1.8.3. Further chunks are still running.
+Cumulative after start 1501, 4000 games: 819-1275-1906. Elo -39.78 +/- 7.07, LOS 0.00%, Ptnml(0-2) 129, 666, 803, 336, 66. The cumulative Elo uses the same pentanomial calculation as fastchess 1.8.3. Further chunks are still running.
