@@ -84,3 +84,19 @@ No games were played. Nothing here is an elo estimate.
 setoption name EvasionOrdering value true
 
 bench 13 nodes 772890
+
+## Follow-up screen
+
+Screening only. Not a strength claim. The sentence above that no games were played belongs to the implementation pass. This section is the later on-versus-off screen of the same owner binary.
+
+The CPU has AVX-512F and BMI2, so the binary is the default owner build: `x86-64-v4`, PEXT and the AVX-512 ZMM kernel, no `CMakeLists.txt` edit and no `FORGE_*` override. Pins on that binary stayed 312866, 862329, and 4865609. Bench 13 with the option on stayed 772890 nodes.
+
+Five alternating bench 13 runs, off then on: nps 1752701, 1784965, 1933473, 1908370, 1903596, 1740743, 1639408, 1889706, 1937817, 1797418. Means 1833399 off and 1824240 on. The trees have different node counts, so this is not an equal-work speed comparison.
+
+The match is the same binary twice at 50000 nodes, Threads 1, Hash 16, OwnBook false, `EvasionOrdering` on against off. Openings are `UHO_Lichess_4852_v1.epd` in sequential chunks of 250 openings, each played with colors swapped. W-L-D counts the option-on side first. Details, the command, versions, and sha256 sums are in `forge-combo29/tests_r3fu_10/screen-setup.txt`. Chunk PGNs and their summaries land in that directory as they finish.
+
+Chunk 001, openings 1–250, 500 games, finished 15:44 UTC, exit 0. W-L-D 123-126-251. Elo -2.08 +/- 18.84 (95%). LOS 41.41%. Ptnml(0-2) 3 77 101 58 11. The interval includes zero. PGN `forge-combo29/tests_r3fu_10/chunk-001.pgn`, sha256 `fe8fa418fe6f812772787c1791166cb55e887cad3ffa375cb1eec92e525e878e`.
+
+<!-- screen-live -->
+Running aggregate through chunk 002, 1000 games. W-L-D 247-267-486. Elo -6.95 +/- 13.55 (95%). LOS 15.72%. Ptnml(0-2) 12 151 203 113 21. The 95% interval includes zero. Full text: `forge-combo29/tests_r3fu_10/screen-aggregate.txt`.
+<!-- /screen-live -->
