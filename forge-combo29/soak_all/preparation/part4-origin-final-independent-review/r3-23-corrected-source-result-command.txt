@@ -1,0 +1,19 @@
+node <<'NODE'
+const fs=require('fs'),crypto=require('crypto'),cp=require('child_process'),d='/workspace/work/all-run/part4-r3-23-experiment',plan=JSON.parse(fs.readFileSync(d+'/native-plan.json.txt'));
+const rows=[];
+for(const rel of ['src/search.cpp','src/uci.cpp','include/forge/search.hpp']){const git=cp.spawnSync('git',['show',plan.sourceCommit+':forge-combo29/'+rel],{cwd:'/workspace/work/dwqww-all',maxBuffer:1000000});const disk=fs.readFileSync(d+'/'+rel);rows.push({relative:rel,gitExit:git.status,gitStderr:git.stderr.toString(),matchesExactCommit:git.status===0&&git.stdout.equals(disk),sha256:crypto.createHash('sha256').update(disk).digest('hex')});}
+console.log(JSON.stringify({sourceCommit:plan.sourceCommit,files:rows}));
+const norm=s=>s.replace(/\b(time|nps) \d+/g,'$1 <TIME>'),strip=s=>s.replace(/^option name SoundMatePruning type check default false\r?\n/gm,''),baseline=fs.readFileSync(d+'/runs/baseline-r1/stdout.txt','utf8');
+for(const v of ['off','on']){const names=['1','2'].map(n=>v+'-r'+n),outs=names.map(n=>fs.readFileSync(d+'/runs/'+n+'/stdout.txt','utf8')),summ=names.map(n=>JSON.parse(fs.readFileSync(d+'/runs/'+n+'/summary.json.txt')));const last=outs[0].trimEnd().split('\n').findLast(l=>l.startsWith('info depth 13 '));console.log(JSON.stringify({variant:v,repeatIdentity:norm(outs[0])===norm(outs[1]),matchesPinnedIgnoringOnlyNewOption:norm(strip(outs[0]))===norm(baseline),allExit0:summ.every(s=>s.code===0&&s.signal===null&&s.completed&&!s.timedOut),stderrBytes:names.map(n=>fs.statSync(d+'/runs/'+n+'/stderr.txt').size),settings:summ[0].settings,score:last.match(/score (cp|mate) (-?\d+)/)?.slice(1),nodes:last.match(/nodes (\d+)/)?.[1],pvPlies:last.split(' pv ')[1].trim().split(/\s+/).length,bestmove:outs[0].trimEnd().split('\n').findLast(l=>l.startsWith('bestmove '))}));}
+console.log('Prior read command succeeded but scratch evidence apply_patch failed because a malformed newline-prefix join produced an invalid hunk. No source change resulted. This corrected compact record retains exact source identity reads and results.');
+NODE
+
+ACTUAL RESULT
+{
+  "chunk_id": "f1016d",
+  "wall_time_seconds": 0.056265325,
+  "exit_code": 0,
+  "original_token_count": 348,
+  "output": "{\"sourceCommit\":\"21867c5ac27a8db6f4d8dd2187c4fa7ede5204e8\",\"files\":[{\"relative\":\"src/search.cpp\",\"gitExit\":0,\"gitStderr\":\"\",\"matchesExactCommit\":true,\"sha256\":\"3fcd6a10b129f5a4ed81b391840c01f0b2c68afe8be35020b0fb8d3bc2a1f100\"},{\"relative\":\"src/uci.cpp\",\"gitExit\":0,\"gitStderr\":\"\",\"matchesExactCommit\":true,\"sha256\":\"8fc4987356cca2877a3f3c42844fcdcda9716ab06d51f76820bfc9bcfde82b60\"},{\"relative\":\"include/forge/search.hpp\",\"gitExit\":0,\"gitStderr\":\"\",\"matchesExactCommit\":true,\"sha256\":\"349c053dcb3e9b4416798d8d9bc708134a5c62e6d09ed292afc00f3a0fb73525\"}]}\n{\"variant\":\"off\",\"repeatIdentity\":true,\"matchesPinnedIgnoringOnlyNewOption\":true,\"allExit0\":true,\"stderrBytes\":[0,0],\"settings\":{\"Threads\":1,\"Hash\":16,\"OwnBook\":false,\"UseNNUE\":false,\"depth\":13,\"SoundMatePruning\":false},\"score\":[\"mate\",\"17\"],\"nodes\":\"25568\",\"pvPlies\":15,\"bestmove\":\"bestmove b3f3\"}\n{\"variant\":\"on\",\"repeatIdentity\":true,\"matchesPinnedIgnoringOnlyNewOption\":false,\"allExit0\":true,\"stderrBytes\":[0,0],\"settings\":{\"Threads\":1,\"Hash\":16,\"OwnBook\":false,\"UseNNUE\":false,\"depth\":13,\"SoundMatePruning\":true},\"score\":[\"cp\",\"488\"],\"nodes\":\"24738\",\"pvPlies\":14,\"bestmove\":\"bestmove b3g3\"}\nPrior read command succeeded but scratch evidence apply_patch failed because a malformed newline-prefix join produced an invalid hunk. No source change resulted. This corrected compact record retains exact source identity reads and results.\n"
+}
+

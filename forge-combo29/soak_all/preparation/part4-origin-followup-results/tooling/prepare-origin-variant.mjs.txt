@@ -1,0 +1,23 @@
+// Root-authorized scratch-only follow-up instrumentation; one observed dependency at a time.
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {spawnSync} from 'node:child_process';
+const [p,d,key='',frame='']=process.argv.slice(2);if(!p?.startsWith('/workspace/work/all-run/part4-origin-')||!d?.startsWith('/workspace/work/all-run/part4-origin-'))throw Error('Private scratch directories required');
+fs.mkdirSync(d);
+const hash=s=>crypto.createHash('sha256').update(s).digest('hex'),read=n=>fs.readFileSync(path.join(p,n),'utf8'),write=(n,s)=>fs.writeFileSync(path.join(d,n),s,{flag:'wx'});
+const plan=JSON.parse(read('native-plan.json.txt')),oldSource=path.basename(plan.steps[1].argv.find(x=>x.endsWith('.cpp')));
+let source=read(oldSource),oldHelper=source.match(/#include "(origin_trace[^\"]*\.hpp)"/)[1],helper=read(oldHelper);
+if(hash(source)!==plan.sourceSha256||hash(helper)!==plan.helperSha256)throw Error('Pinned previous source changed');
+const oldSourceHash=hash(source),oldHelperHash=hash(helper),changes=[];
+function edit(which,old,next,count=1){let s=which==='source'?source:helper;if(s.split(old).length!==count+1)throw Error('Anchor mismatch '+old);s=s.split(old).join(next);changes.push({which,old,next});if(which==='source')source=s;else helper=s;}
+edit('source',oldHelper,'origin_trace.hpp');
+if(key){for(const watchedKey of key.split(',')){if(!/^\d+$/.test(watchedKey))throw Error('Key decimal required');edit('helper','entry_key == target_key() ||',`entry_key == target_key() || entry_key == ${watchedKey}ULL ||`);
+ for(const index of ['index','probe.cluster_'])edit('source',`(origin_trace::subtree_active() || ${index} ==`,`(origin_trace::subtree_active() || ${index} == static_cast<std::size_t>(&cluster_for(${watchedKey}ULL) - clusters_.get()) || ${index} ==`);}
+}
+if(frame){for(const watchedFrame of frame.split(',')){if(!/^\d+$/.test(watchedFrame))throw Error('Frame decimal required');edit('helper','subtree = id ==',`subtree = id == ${watchedFrame} || id ==`);}}
+write('search-origin.cpp',source);write('origin_trace.hpp',helper);write('transformations.json.txt',JSON.stringify(changes,null,2)+'\n');
+for(const n of ['repro_driver.mjs','compare_runs.mjs','readonly-inputs.sha256.txt','source-line-map.json.txt'])write(n,read(n));
+const oldBinary=path.basename(plan.steps[2].argv.at(-1)),oldObject=oldSource.replace('.cpp','.o');
+const rename=s=>s.replaceAll(p,d).replaceAll(oldSource,'search-origin.cpp').replaceAll(oldObject,'search-origin.o').replaceAll(oldHelper,'origin_trace.hpp').replaceAll(oldBinary,'forge-origin');
+plan.cwd=d;plan.status='ROOT_AUTHORIZED_PRIVATE_FOLLOWUP_PASS';plan.addedKey=key;plan.addedFrame=frame;plan.sourceSha256=hash(source);plan.helperSha256=hash(helper);plan.steps=plan.steps.map(s=>({...s,argv:s.argv.map(rename)}));write('native-plan.json.txt',JSON.stringify(plan,null,2)+'\n');
+write('execute_native_step.mjs',rename(read('execute_native_step.mjs')).replaceAll(oldSourceHash,hash(source)).replaceAll(oldHelperHash,hash(helper)));
+const argv=['git','diff','--no-index','--',path.join(p,oldSource),path.join(d,'search-origin.cpp')],r=spawnSync(argv[0],argv.slice(1),{encoding:'utf8'});write('incremental-instrumentation.diff.txt',r.stdout);write('diff-command-result.txt',JSON.stringify({argv,exit:r.status,stdout:r.stdout,stderr:r.stderr},null,2)+'\n');
+console.log(JSON.stringify({previous:p,current:d,sourceSha256:hash(source),helperSha256:hash(helper),addedKey:key,addedFrame:frame},null,2));

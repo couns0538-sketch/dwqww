@@ -1,0 +1,73 @@
+// Root execution only. One bounded fresh-process reproduction; preserves raw streams.
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {spawn} from 'node:child_process';
+import readline from 'node:readline';
+import {fileURLToPath} from 'node:url';
+const dir = path.dirname(fileURLToPath(import.meta.url));
+const [binary, label, targetKey, cap = '200000'] = process.argv.slice(2);
+if (!binary?.startsWith('/') || !/^[a-z0-9-]+$/.test(label ?? ''))
+    throw new Error('Usage: node repro_driver.mjs /absolute/binary unique-label [decimal-target-key [positive-limit]]');
+if (targetKey !== undefined && !/^\d+$/.test(targetKey)) throw new Error('Key must be decimal');
+if (!/^[1-9]\d*$/.test(cap)) throw new Error('Limit must be positive decimal');
+const outputDir = path.join(dir, 'runs', label);
+fs.mkdirSync(path.join(dir, 'runs'), {recursive:true});
+fs.mkdirSync(outputDir); // Refuse to overwrite any existing run.
+const outputs = Object.fromEntries(['stdout','stderr','traffic'].map(k =>
+    [k, fs.createWriteStream(path.join(outputDir,k+'.txt'), {flags:'wx'})]));
+const env = {...process.env};
+delete env.FORGE_ORIGIN_KEY;
+delete env.FORGE_ORIGIN_LIMIT;
+if (targetKey !== undefined) { env.FORGE_ORIGIN_KEY = targetKey; env.FORGE_ORIGIN_LIMIT = cap; }
+const started = new Date().toISOString();
+const binarySha256 = crypto.createHash('sha256').update(fs.readFileSync(binary)).digest('hex');
+let searched = false, completed = false, timedOut = false, killTimer, spawnError;
+const child = spawn(binary, [], {stdio:['pipe','pipe','pipe'], env});
+function send(line) {
+    outputs.traffic.write(new Date().toISOString()+' > '+line+'\n');
+    child.stdin.write(line+'\n');
+}
+child.on('error', error => { spawnError = String(error); });
+child.stdin.on('error', error => { outputs.traffic.write('STDIN_ERROR '+String(error)+'\n'); });
+child.stdout.on('data', data => outputs.stdout.write(data));
+child.stderr.on('data', data => outputs.stderr.write(data));
+readline.createInterface({input:child.stdout}).on('line', line => {
+    if (line === 'readyok' && !searched) {
+        searched = true;
+        send('ucinewgame');
+        send('position fen 8/8/8/8/8/1R6/2k5/5K2 w - - 0 1');
+        send('go depth 13');
+    } else if (line.startsWith('bestmove ') && searched && !completed) {
+        completed = true;
+        send('quit');
+        child.stdin.end();
+    }
+});
+const timer = setTimeout(() => {
+    timedOut = true;
+    outputs.traffic.write('TIMEOUT 45s: sending SIGTERM\n');
+    child.kill('SIGTERM');
+    killTimer = setTimeout(() => { outputs.traffic.write('TIMEOUT 50s: sending SIGKILL\n'); child.kill('SIGKILL'); }, 5000);
+}, 45000);
+child.once('spawn', () => {
+    send('uci');
+    send('setoption name Threads value 1');
+    send('setoption name Hash value 16');
+    send('setoption name OwnBook value false');
+    send('setoption name UseNNUE value false');
+    send('isready');
+});
+const result = await new Promise(resolve => child.once('close', (code,signal) => resolve({code,signal})));
+clearTimeout(timer);
+if (killTimer) clearTimeout(killTimer);
+await Promise.all(Object.values(outputs).map(stream => new Promise((resolve,reject) => {
+    stream.on('error',reject); stream.end(resolve);
+})));
+const summary = {started,ended:new Date().toISOString(),argv:[binary],binarySha256,label,
+    settings:{Threads:1,Hash:16,OwnBook:false,UseNNUE:false,depth:13},
+    traceEnvironment:targetKey===undefined?{}:{FORGE_ORIGIN_KEY:targetKey,FORGE_ORIGIN_LIMIT:cap},
+    ...result,searched,completed,timedOut,spawnError};
+fs.writeFileSync(path.join(outputDir,'summary.json.txt'),JSON.stringify(summary,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify(summary,null,2));
+if (result.code!==0 || !completed || timedOut || spawnError) process.exitCode=1;

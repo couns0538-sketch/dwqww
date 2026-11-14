@@ -1,0 +1,78 @@
+Text-only packaging and read-only review of completed saved outputs
+
+Sources copied:
+  /workspace/work/all-run/part4-static-eval-counterfactual
+  /workspace/work/all-run/part4-origin-oracle
+Destination bundle: part4-origin-followup-bundle-20261114T1737
+No source, binary, ref, controller, or original log was modified. No engine,
+oracle, compiler, bundled helper, or test was executed during this review.
+
+Copy inventories are in each subtree as copy-exclusion-inventory.json.txt.
+They retain original absolute paths, target paths relative to the bundle,
+exact source/copy byte sizes and SHA256 values. All copied artifacts passed
+UTF-8/no-NUL and byte-equality checks and have mode 0644. Scripts are inert
+.mjs.txt/.py.txt/.sh.txt and linker dependency files are .d.txt.
+
+Copied source artifacts, excluding generated inventories/observations/this note:
+  static-eval-counterfactual: 72 files, 225439 bytes; excluded 8 native files
+    (4 binaries, 4 objects), 3651432 bytes, each excluded with SHA256 recorded.
+  oracle: 9 files, 32787 bytes; excluded 1 binary, 86920 bytes, SHA256 recorded.
+  Total copied: 81 files, 258226 bytes. Total excluded: 9 files, 3738352 bytes.
+No unexpected exclusions were found. No root manifest or freeze was performed.
+
+Counterfactual observations:
+  Nine engine search invocations are recorded: baseline-r1, off-r1/r2,
+  qs-r1/r2, main-r1/r2, both-r1/r2. All summaries record code0, completed=true,
+  timedOut=false. All four saved comparison command logs exited0; all their
+  checks are true, including repeated normalized stdout equality and settings.
+  Settings: Threads1, Hash16, OwnBook=false, UseNNUE=false, depth13.
+  All nine reported bestmove b3f3. Time/NPS differences are not performance
+  evidence. Full PVs and exact comparisons remain in the copied raw logs and
+  observed-runs-and-comparisons.json.txt.
+
+  Variant       QS guard  Main guard  Final score  Nodes  Seld.
+  baseline      n/a       n/a         mate17       25568  22
+  default off   0         0           mate17       25568  22
+  QS only       1         0           cp547        29527  20
+  main only     0         1           mate18       24899  20
+  both          1         1           cp546        29689  20
+
+  The off build omitted both private definitions, invoking source defaults0;
+  the other three compile logs record the guard settings shown. The source
+  guards only reject mate-valued TT scores as replacements for the static
+  evaluation at the designated qsearch/main sites. The off output matches
+  baseline after removing numeric time/NPS. Its binary is not byte-identical
+  to baseline. The other three outputs differ from baseline and repeat exactly
+  under the saved normalization. This records sensitivity to these guards;
+  it does not establish correctness or authorize promoting them as fixes.
+
+  Recorded binary SHA256 (two runs of each variant agree; excluded artifact
+  hashes agree with their run summaries):
+  baseline e2788a101d11acfca637b14471e2b067ae11e551500cfb0656019a193ec2cb3e
+  off      38e980af1e7356bad7178343ea2e18b32b69d03294da4f0ed6fd9d9d21f58c3f
+  qs       4c51fbe1d498a690d8713d20531110490d9522033291e01de8e69e0e0f967816
+  main     fa4abfe4095b18b944cd106519f72a4eded01a66d8098f89b175a91a390a5934
+  both     3c8ff339913904283a8ad7415a7e0a4c512d1365c70474288525397444d05455
+  Counterfactual search source:
+    f5214a7f3a8ffbd889fa5c2434ebfe4a6ee35c4b01fd4f0ccc52b29d7fa66d54
+  The comparer checks normalized output, settings and repeat binary equality;
+  the name defaultOffMatchesPinnedBaseline is an output check, not itself a
+  pinned binary-hash check. The baseline identity is separately recorded in its
+  run summary and readonly-inputs.sha256.txt.
+
+Oracle observations:
+  Two oracle query invocations, distinct from engine searches, are recorded;
+  both exit0 with no signal and empty stderr. One compilation log is also
+  retained; it is not counted as an oracle query invocation.
+  Invocation1 has 11 output rows: legal=1 and bound_relation=1 for all11.
+  Invocation2 has 53 output rows: 26 producer and 27 later rows. Producer rows
+  all report legal=1 and bound_relation=1. Later rows all report legal=1, with
+  12 bound_relation=1 and 15 bound_relation=0. Overall: 64 output query rows,
+  49 relation1 and 15 relation0. These are row counts with repetitions, not
+  counts of distinct positions. See oracle/observed-query-counts.json.txt.
+  Excluded oracle binary SHA256:
+    98bd855f980e5b0be9501f73626be0ff835597c32a02d24e9cba59f0eb39c2b8
+  oracle_bounds.cpp explicitly ignores path repetition and the fifty-move rule.
+  It compares normalized raw score to its KRK DTM using the supplied bound tag.
+  These summaries report its saved fields only, not an independently verified
+  tablebase, full-history legality, mate soundness, or strength verdict.

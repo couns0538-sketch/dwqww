@@ -1,0 +1,295 @@
++ diff -u /workspace/work/all-run/part4-origin-preparation/origin_trace.hpp /workspace/work/all-run/part4-origin-secondpass/origin_trace_second.hpp
+--- /workspace/work/all-run/part4-origin-preparation/origin_trace.hpp	2026-11-14 08:21:18.883481159 -0800
++++ /workspace/work/all-run/part4-origin-secondpass/origin_trace_second.hpp	2026-11-14 09:23:25.312751287 -0800
+@@ -84,6 +84,7 @@
+     int worker, root_depth, ply, entry_depth, alpha_in, beta_in, mate_mode;
+     std::size_t root_index;
+     bool cut;
++    bool subtree = false;
+     const char* function;
+     const char* store_site = "none";
+     const char* relation = "ROOT";
+@@ -100,6 +101,7 @@
+         if (!enabled()) return;
+         id = frames.fetch_add(1, std::memory_order_relaxed) + 1;
+         parent = active;
++        subtree = id == 23225 || (parent && parent->subtree);
+         if (parent) {
+             if (ply == parent->ply) relation = "SAME_PLY";
+             else if (ply == parent->ply + 1) {
+@@ -117,12 +119,13 @@
+         if (watched()) emit("FRAME_LEAVE", [&](auto& out) { append(out); });
+         active = parent;
+     }
+-    bool watched() const { return id != 0 && entry_key == target_key(); }
++    bool watched() const { return id != 0 && (entry_key == target_key() || subtree); }
+     void append(std::ostream& out) const {
+         out << " frame=" << id << " parent=" << (parent ? parent->id : 0)
+             << " fn=" << function << " worker=" << worker << " root_depth=" << root_depth
+             << " ply=" << ply << " entry_depth=" << entry_depth << " alpha_in=" << alpha_in
+             << " beta_in=" << beta_in << " cut=" << cut << " mate_mode=" << mate_mode
++            << " subtree=" << subtree << " halfmove_clock=" << board.halfmove_clock()
+             << " key=" << entry_key << " current_key=" << board.key()
+             << " entry_nodes=" << entry_nodes << " nodes_now=" << nodes
+             << " root_index=" << root_index << " store_site=" << store_site
+@@ -139,6 +142,7 @@
+         out << ']';
+     }
+ };
++inline bool subtree_active() { return active && active->subtree; }
+ inline void context(std::ostream& out) {
+     if (active) active->append(out); else out << " frame=0";
+ }
+@@ -217,4 +221,16 @@
+     });
+     return value;
+ }
++template <class Call> inline int child_call(Frame& f, int source_line, Call call) {
++    if (f.subtree) emit("CHILD_CALL", [&](auto& out) {
++        f.append(out); out << " source=search.cpp:" << source_line
++            << " current_move=" << move_text(f.stack->current_move);
++    });
++    const int value = call();
++    if (f.subtree) emit("CHILD_RESULT", [&](auto& out) {
++        f.append(out); out << " source=search.cpp:" << source_line
++            << " current_move=" << move_text(f.stack->current_move) << " child_value=" << value;
++    });
++    return value;
++}
+ } // namespace forge::origin_trace
++ diff -u /workspace/work/all-run/part4-origin-preparation/search-origin.cpp /workspace/work/all-run/part4-origin-secondpass/search-origin-second.cpp
+--- /workspace/work/all-run/part4-origin-preparation/search-origin.cpp	2026-11-14 08:23:21.130810228 -0800
++++ /workspace/work/all-run/part4-origin-secondpass/search-origin-second.cpp	2026-11-14 09:23:25.312751287 -0800
+@@ -1,6 +1,6 @@
+ #include "forge/search.hpp"
+ #include "forge/uci_output.hpp"
+-#include "origin_trace.hpp"
++#include "origin_trace_second.hpp"
+ 
+ #include <algorithm>
+ #include <cmath>
+@@ -289,7 +289,7 @@
+     // back a deferred (unlocked) lock, after a thread_local lookup per call.
+     const auto lock = TakeLock ? lock_stripe(index) : std::unique_lock<std::mutex>();
+     const bool origin_watch_cluster = origin_trace::enabled() &&
+-        index == static_cast<std::size_t>(&cluster_for(origin_trace::target_key()) - clusters_.get());
++        (origin_trace::subtree_active() || index == static_cast<std::size_t>(&cluster_for(origin_trace::target_key()) - clusters_.get()));
+     if (origin_watch_cluster) origin_trace::probe_event("PROBE_BEFORE", this, epoch_, generation_,
+         index, key, -1, false, TakeLock, cluster);
+     auto snapshot = [&](const TTEntry& entry, bool hit) {
+@@ -353,7 +353,7 @@
+     }
+     const auto lock = TakeLock ? lock_stripe(probe.cluster_) : std::unique_lock<std::mutex>();
+     const bool origin_watch_cluster = origin_trace::enabled() &&
+-        probe.cluster_ == static_cast<std::size_t>(&cluster_for(origin_trace::target_key()) - clusters_.get());
++        (origin_trace::subtree_active() || probe.cluster_ == static_cast<std::size_t>(&cluster_for(origin_trace::target_key()) - clusters_.get()));
+     bool origin_admitted = false;
+     if (origin_watch_cluster) origin_trace::store_event("STORE_BEFORE", this, epoch_, generation_,
+         probe.cluster_, probe.slot_, key, score, eval, move, depth, bound, pv, halfmove_clock,
+@@ -1077,13 +1077,13 @@
+     origin_trace::Frame origin_frame(board, ss, local_nodes_, id_, root_depth_, 0, alpha, beta,
+         mate_moves_, root_history_index_, false, "QSEARCH");
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+-    if (aborted_) return 0;
++    if (aborted_) return origin_trace::result(origin_frame, "SOURCE_LINE_1045", 0, alpha, beta);
+     ++local_nodes_;
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+ 
+-    if (is_draw(board, ply)) return 0;
+-    if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
++    if (is_draw(board, ply)) return origin_trace::result(origin_frame, "SOURCE_LINE_1050", 0, alpha, beta);
++    if (ply >= MaxPly) return origin_trace::result(origin_frame, "SOURCE_LINE_1051", board.in_check() ? 0 : static_evaluate(board, ss), alpha, beta);
+ 
+     const bool in_check = board.in_check();
+     ss->in_check = in_check;
+@@ -1091,7 +1091,7 @@
+     if (mate_moves_ > 0) {
+         alpha = std::max(alpha, mated_in(ply));
+         beta = std::min(beta, mate_in(ply + 1));
+-        if (alpha >= beta) return alpha;
++        if (alpha >= beta) return origin_trace::result(origin_frame, "SOURCE_LINE_1059", alpha, alpha, beta);
+     }
+ 
+ #if FORGE_SPD_TT_NOTLS
+@@ -1180,9 +1180,9 @@
+ #else
+         shared_.tt.prefetch(board.key());
+ #endif
+-        const int score = -qsearch(board, ss + 1, -beta, -alpha);
++        const int score = -origin_trace::child_call(origin_frame, 1144, [&]() { return qsearch(board, ss + 1, -beta, -alpha); });
+         board.unmake_move(move, undo);
+-        if (aborted_) return 0;
++        if (aborted_) return origin_trace::result(origin_frame, "SOURCE_LINE_1146", 0, alpha, beta);
+         if (score > best_score) {
+             best_score = score;
+             if (score > alpha) {
+@@ -1197,7 +1197,7 @@
+             }
+         }
+     }
+-    if (in_check && move_count == 0) return mated_in(ply);
++    if (in_check && move_count == 0) return origin_trace::result(origin_frame, "SOURCE_LINE_1161", mated_in(ply), alpha, beta);
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+     origin_trace::store_attempt(origin_frame, "QS_FINAL", best_score, score_to_tt(best_score, ply),
+@@ -1226,19 +1226,19 @@
+     const int inherited_double_extensions = (ss - 1)->double_extensions;
+     ss->double_extensions = inherited_double_extensions;
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+-    if (aborted_) return 0;
++    if (aborted_) return origin_trace::result(origin_frame, "SOURCE_LINE_1186", 0, alpha, beta);
+     ++local_nodes_;
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+     ss->move_count = 0;
+ 
+     if (!root_node) {
+-        if (is_draw(board, ply)) return 0;
+-        if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
++        if (is_draw(board, ply)) return origin_trace::result(origin_frame, "SOURCE_LINE_1193", 0, alpha, beta);
++        if (ply >= MaxPly) return origin_trace::result(origin_frame, "SOURCE_LINE_1194", board.in_check() ? 0 : static_evaluate(board, ss), alpha, beta);
+         // Mate distance pruning.
+         alpha = std::max(alpha, mated_in(ply));
+         beta = std::min(beta, mate_in(ply + 1));
+-        if (alpha >= beta) return alpha;
++        if (alpha >= beta) return origin_trace::result(origin_frame, "SOURCE_LINE_1198", alpha, alpha, beta);
+     }
+ 
+     const bool in_check = board.in_check();
+@@ -1313,14 +1313,14 @@
+         board.halfmove_clock() + depth < 100) {
+         // Razoring: hopeless positions fall back to quiescence.
+         if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+-            const int razor = qsearch(board, ss, alpha - 1, alpha);
+-            if (aborted_) return 0;
+-            if (razor < alpha) return razor;
++            const int razor = origin_trace::child_call(origin_frame, 1271, [&]() { return qsearch(board, ss, alpha - 1, alpha); });
++            if (aborted_) return origin_trace::result(origin_frame, "SOURCE_LINE_1272", 0, alpha, beta);
++            if (razor < alpha) return origin_trace::result(origin_frame, "SOURCE_LINE_1273", razor, alpha, beta);
+         }
+         // Reverse futility pruning.
+         if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+             eval < MateInMaxPly) {
+-            return eval;
++            return origin_trace::result(origin_frame, "SOURCE_LINE_1278", eval, alpha, beta);
+         }
+         // Null move pruning.
+         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+@@ -1340,24 +1340,24 @@
+ #if FORGE_SEARCH_SPEED2
+             shared_.tt.prefetch(board.key());
+ #endif
+-            int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
++            int null_score = -origin_trace::child_call(origin_frame, 1298, [&]() { return search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node); });
+             board.unmake_null_move(undo);
+-            if (aborted_) return 0;
++            if (aborted_) return origin_trace::result(origin_frame, "SOURCE_LINE_1300", 0, alpha, beta);
+             if (null_score >= beta) {
+                 if (is_mate_score(null_score)) null_score = beta;
+                 if (depth < 14) {
+                     ++null_cutoffs_;
+-                    return null_score;
++                    return origin_trace::result(origin_frame, "SOURCE_LINE_1305", null_score, alpha, beta);
+                 }
+                 // Verification search at high depth guards against zugzwang.
+                 ss->null_move_allowed = false;
+-                const int verification = search(board, ss, depth - reduction, beta - 1, beta, false);
++                const int verification = origin_trace::child_call(origin_frame, 1309, [&]() { return search(board, ss, depth - reduction, beta - 1, beta, false); });
+                 ss->double_extensions = inherited_double_extensions;
+                 ss->null_move_allowed = true;
+-                if (aborted_) return 0;
++                if (aborted_) return origin_trace::result(origin_frame, "SOURCE_LINE_1312", 0, alpha, beta);
+                 if (verification >= beta) {
+                     ++null_cutoffs_;
+-                    return null_score;
++                    return origin_trace::result(origin_frame, "SOURCE_LINE_1315", null_score, alpha, beta);
+                 }
+             }
+         }
+@@ -1380,12 +1380,12 @@
+ #if FORGE_SEARCH_SPEED2
+                 shared_.tt.prefetch(board.key());
+ #endif
+-                int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
++                int value = -origin_trace::child_call(origin_frame, 1338, [&]() { return qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1); });
+                 if (value >= probcut_beta && !aborted_) {
+-                    value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
++                    value = -origin_trace::child_call(origin_frame, 1340, [&]() { return search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node); });
+                 }
+                 board.unmake_move(move, undo);
+-                if (aborted_) return 0;
++                if (aborted_) return origin_trace::result(origin_frame, "SOURCE_LINE_1343", 0, alpha, beta);
+                 if (value >= probcut_beta) {
+                     origin_trace::store_attempt(origin_frame, "PROBCUT", value, score_to_tt(value, ply),
+                         ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, alpha, beta);
+@@ -1472,18 +1472,18 @@
+             const int singular_depth = (depth - 1) / 2;
+             const bool saved_tt_pv = ss->tt_pv;
+             ss->excluded_move = move;
+-            const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
++            const int singular_score = origin_trace::child_call(origin_frame, 1428, [&]() { return search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node); });
+             ss->tt_pv = saved_tt_pv;
+             ss->double_extensions = inherited_double_extensions;
+             ss->excluded_move = Move::none();
+-            if (aborted_) return 0;
++            if (aborted_) return origin_trace::result(origin_frame, "SOURCE_LINE_1432", 0, alpha, beta);
+             if (singular_score < singular_beta) {
+                 extension = 1;
+                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+                     extension = 2;
+                 }
+             } else if (singular_beta >= beta) {
+-                return singular_beta;
++                return origin_trace::result(origin_frame, "SOURCE_LINE_1439", singular_beta, alpha, beta);
+             } else if (tt_score >= beta) {
+                 extension = -2;
+             } else if (cut_node) {
+@@ -1537,7 +1537,7 @@
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+-            score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
++            score = -origin_trace::child_call(origin_frame, 1493, [&]() { return search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true); });
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+             if (full_depth_needed) {
+                 if (tune::LmrDeeperShallower) {
+@@ -1546,7 +1546,7 @@
+                     new_depth += static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
+                 }
+                 if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
+-                    score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
++                    score = -origin_trace::child_call(origin_frame, 1502, [&]() { return search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node); });
+                 }
+                 full_depth_needed = false;
+             }
+@@ -1556,13 +1556,13 @@
+             }
+         }
+         if (full_depth_needed && !aborted_) {
+-            score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
++            score = -origin_trace::child_call(origin_frame, 1512, [&]() { return search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node); });
+         }
+         if (pv_node && !aborted_ && (move_count == 1 || score > alpha)) {
+-            score = -search(board, ss + 1, new_depth, -beta, -alpha, false);
++            score = -origin_trace::child_call(origin_frame, 1515, [&]() { return search(board, ss + 1, new_depth, -beta, -alpha, false); });
+         }
+         board.unmake_move(move, undo);
+-        if (aborted_) return 0;
++        if (aborted_) return origin_trace::result(origin_frame, "SOURCE_LINE_1518", 0, alpha, beta);
+         if (root_node && root_effort_index < root_effort_count_)
+             root_move_nodes_[root_effort_index] += local_nodes_ - nodes_before;
+ 
+@@ -1587,9 +1587,9 @@
+     }
+ 
+     if (move_count == 0) {
+-        if (!excluded.is_none()) return alpha;
+-        if (root_node && root_restricted_) return 0;
+-        return in_check ? mated_in(ply) : 0;
++        if (!excluded.is_none()) return origin_trace::result(origin_frame, "SOURCE_LINE_1543", alpha, alpha, beta);
++        if (root_node && root_restricted_) return origin_trace::result(origin_frame, "SOURCE_LINE_1544", 0, alpha, beta);
++        return origin_trace::result(origin_frame, "SOURCE_LINE_1545", in_check ? mated_in(ply) : 0, alpha, beta);
+     }
+ 
+     if (best_score >= beta) {

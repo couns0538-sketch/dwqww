@@ -1,0 +1,14 @@
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {fileURLToPath} from 'node:url';
+const d=path.dirname(fileURLToPath(import.meta.url)),p='/workspace/work/all-run/part4-r3-23-experiment',hash=s=>crypto.createHash('sha256').update(s).digest('hex'),write=(n,s)=>fs.writeFileSync(path.join(d,n),s,{flag:'wx'});
+const original=JSON.parse(fs.readFileSync(path.join(p,'native-plan.json.txt'),'utf8'));
+const sourceFiles={};for(const[f,h]of Object.entries(original.files)){const file=path.join(p,f);if(hash(fs.readFileSync(file))!==h)throw Error('Reviewed source changed');sourceFiles[file]=h;}
+sourceFiles[path.join(d,'arm_main.cpp')]=hash(fs.readFileSync(path.join(d,'arm_main.cpp')));
+for(const n of ['baseline_driver.mjs','option_driver.mjs','compare.mjs'])write(n,fs.readFileSync(path.join(p,n)));
+const steps=[{name:'create-native-directory',argv:['mkdir','-p',path.join(d,'native')]}];
+const uci=original.steps[2].argv.map(x=>x.replace(path.join(p,'native','uci.o'),path.join(d,'native','uci-no-main.o')));uci.splice(3,0,'-DFORGE_UCI_NO_MAIN=1');steps.push({name:'compile-reviewed-uci-without-main',argv:uci});
+const main=original.steps[1].argv.map(x=>x.replace(path.join(p,'src','search.cpp'),path.join(d,'arm_main.cpp')).replace(path.join(p,'native','search.o'),path.join(d,'native','arm-main.o')));steps.push({name:'compile-existing-arm-controller',argv:main});
+const link=original.steps[3].argv.map(x=>x.replace(path.join(p,'native','uci.o'),path.join(d,'native','uci-no-main.o')).replace(path.join(p,'native','forge-r3-23'),path.join(d,'native','forge-mate-arm')).replace(path.join(p,'native','link.d'),path.join(d,'native','link.d')));link.splice(link.indexOf('-o'),0,path.join(d,'native','arm-main.o'));steps.push({name:'link-mate-arm-driver',argv:link});
+steps.push({name:'baseline',argv:['timeout','90','node',path.join(d,'baseline_driver.mjs'),'/workspace/work/all-run/builds/release/forge','baseline-r1']});
+for(const[label,enabled]of[['off','false'],['on','true']]){for(const r of [1,2])steps.push({name:label+'-r'+r,argv:['timeout','90','node',path.join(d,'option_driver.mjs'),path.join(d,'native','forge-mate-arm'),label+'-r'+r,enabled]});steps.push({name:'compare-'+label,argv:['node',path.join(d,'compare.mjs'),label]});}
+write('native-plan.json.txt',JSON.stringify({sourceCommit:original.sourceCommit,sourceFiles,arms:{Pv:'ForceOff',InCheck:'ForceOff',MateAlpha:'FollowOption',Trace:false},reusedSearchObject:path.join(p,'native','search.o'),reusedSearchObjectSha256:hash(fs.readFileSync(path.join(p,'native','search.o'))),steps},null,2)+'\n');
+let wrapper=fs.readFileSync(path.join(p,'execute_step.mjs'),'utf8').replace('Object.entries(plan.files)','Object.entries(plan.sourceFiles)').replace('fs.readFileSync(path.join(d,file))','fs.readFileSync(file)');write('execute_step.mjs',wrapper);console.log(JSON.stringify({sourceFiles,steps:steps.map((s,i)=>({i,name:s.name}))},null,2));

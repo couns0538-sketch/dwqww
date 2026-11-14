@@ -1,0 +1,28 @@
+node <<'NODE'
+const fs=require('fs');
+const source=fs.readFileSync('/workspace/work/all-run/part4-origin-independent-review/secondpass-static-legality-command.txt','utf8');
+const definitions=source.slice(source.indexOf('function board(fen)'),source.indexOf('const failures=[],edges=[];'));
+const body=String.raw`
+const dir='/workspace/work/all-run/part4-origin-pass8';
+const parse=s=>Object.fromEntries([...s.matchAll(/(?:^| )([a-z_]+)=("[^"]*"|\[[^\]]*\]|[^ ]+)/g)].map(m=>[m[1],m[2].startsWith('"')?m[2].slice(1,-1):m[2]]));
+const e=fs.readFileSync(dir+'/runs/trace-r1/stderr.txt','utf8').trimEnd().split('\n').slice(1).map(parse),sub=e.filter(x=>+x.frame>=19727&&+x.frame<=19871),entries=sub.filter(x=>x.kind==='FRAME_ENTER'),by=new Map(entries.map(x=>[x.frame,x]));
+const failures=[],edges=[];
+for(const x of entries){if(x.frame==='19727')continue;const p=by.get(x.parent),mv=x.incoming.slice(0,4);let ok=false;try{ok=JSON.stringify(make(board(p.fen),mv))===JSON.stringify(board(x.fen));}catch{}const r={parent:x.parent,frame:x.frame,move:mv,relation:x.relation,legalAndExactFenTransition:ok};edges.push(r);if(!ok)failures.push(r);}
+const paths=['19727','19867','19869','19871'],defenders=paths.map(frame=>{const x=by.get(frame),s=board(x.fen),legalMoves=moves(s),searched=[...new Set(sub.filter(y=>y.frame===frame&&y.kind==='CHILD_RESULT').map(y=>y.current_move.slice(0,4)))].sort();return {frame,fen:x.fen,inCheck:rookAttack(s.b,s.b.indexOf('R'),s.b.indexOf('k')),legalMoves,searched,allLegalRepliesSearched:JSON.stringify(legalMoves)===JSON.stringify(searched)};});
+const repeated=entries.filter(x=>{const h=x.history.slice(1,-1).split(',');return new Set(h).size<h.length;}).map(x=>({frame:x.frame,return:sub.find(y=>y.frame===x.frame&&y.kind==='RETURN')?.reason}));
+const allBlack=entries.filter(x=>board(x.fen).side==='b').map(x=>{const r=sub.find(y=>y.frame===x.frame&&y.kind==='RETURN'),legal=moves(board(x.fen)),searched=[...new Set(sub.filter(y=>y.frame===x.frame&&y.kind==='CHILD_RESULT').map(y=>y.current_move.slice(0,4)))].sort();return {frame:x.frame,fn:x.fn,returnReason:r?.reason,returned:r?.value,legalMoves:legal,searched,complete:JSON.stringify(legal)===JSON.stringify(searched)};});
+const summary={method:'Static recorded-FEN geometry only; no native engine or DTM calculation.',edges:edges.length,failures,allEdgesMove:entries.filter(x=>x.frame!=='19727').every(x=>x.relation==='MOVE_EDGE'),defenders,repeatedHistoryFrames:repeated,allBlackFrames:allBlack.length,allBlackFramesComplete:allBlack.filter(x=>x.complete).length,blackIncompleteReasonCounts:allBlack.filter(x=>!x.complete).reduce((a,x)=>(a[x.returnReason]=(a[x.returnReason]||0)+1,a),{})};
+fs.writeFileSync('/workspace/work/all-run/part4-origin-independent-review/pass8-legality-ledger.json.txt',JSON.stringify({summary,edges,allBlack},null,2)+'\n');console.log(JSON.stringify(summary,null,2));if(failures.length||defenders.some(x=>!x.allLegalRepliesSearched))process.exitCode=1;
+`;
+eval(definitions+'\n'+body);
+NODE
+
+ACTUAL RESULT
+{
+  "chunk_id": "63fd2b",
+  "wall_time_seconds": 0.034002033,
+  "exit_code": 0,
+  "original_token_count": 367,
+  "output": "{\n  \"method\": \"Static recorded-FEN geometry only; no native engine or DTM calculation.\",\n  \"edges\": 144,\n  \"failures\": [],\n  \"allEdgesMove\": true,\n  \"defenders\": [\n    {\n      \"frame\": \"19727\",\n      \"fen\": \"8/8/8/8/8/8/3R4/1k1K4 b - - 9 5\",\n      \"inCheck\": false,\n      \"legalMoves\": [\n        \"b1a1\"\n      ],\n      \"searched\": [\n        \"b1a1\"\n      ],\n      \"allLegalRepliesSearched\": true\n    },\n    {\n      \"frame\": \"19867\",\n      \"fen\": \"8/8/8/8/8/8/2KR4/k7 b - - 11 6\",\n      \"inCheck\": false,\n      \"legalMoves\": [\n        \"a1a2\"\n      ],\n      \"searched\": [\n        \"a1a2\"\n      ],\n      \"allLegalRepliesSearched\": true\n    },\n    {\n      \"frame\": \"19869\",\n      \"fen\": \"8/8/8/8/8/3R4/k1K5/8 b - - 13 7\",\n      \"inCheck\": false,\n      \"legalMoves\": [\n        \"a2a1\"\n      ],\n      \"searched\": [\n        \"a2a1\"\n      ],\n      \"allLegalRepliesSearched\": true\n    },\n    {\n      \"frame\": \"19871\",\n      \"fen\": \"8/8/8/8/8/R7/2K5/k7 b - - 15 8\",\n      \"inCheck\": true,\n      \"legalMoves\": [],\n      \"searched\": [],\n      \"allLegalRepliesSearched\": true\n    }\n  ],\n  \"repeatedHistoryFrames\": [\n    {\n      \"frame\": \"19809\",\n      \"return\": \"SOURCE_LINE_1193\"\n    },\n    {\n      \"frame\": \"19840\",\n      \"return\": \"SOURCE_LINE_1193\"\n    }\n  ],\n  \"allBlackFrames\": 72,\n  \"allBlackFramesComplete\": 23,\n  \"blackIncompleteReasonCounts\": {\n    \"MAIN_FINAL\": 18,\n    \"QS_FINAL\": 5,\n    \"QS_TT\": 7,\n    \"MAIN_TT\": 12,\n    \"QS_STANDPAT\": 5,\n    \"SOURCE_LINE_1193\": 2\n  }\n}\n"
+}
+

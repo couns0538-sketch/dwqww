@@ -1,0 +1,13 @@
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {spawnSync} from 'node:child_process';import {fileURLToPath} from 'node:url';
+const d=path.dirname(fileURLToPath(import.meta.url)),p='/workspace/work/all-run/part4-origin-thirdpass';
+const hash=s=>crypto.createHash('sha256').update(s).digest('hex'),read=n=>fs.readFileSync(path.join(p,n),'utf8'),write=(n,s)=>fs.writeFileSync(path.join(d,n),s,{flag:'wx'});
+let source=read('search-origin-third.cpp'),helper=read('origin_trace_third.hpp');
+if(hash(source)!=='c02d770b252da8249fed4a861f0ef529cd78c590ed817fb7f800c9fa1e675d6b'||hash(helper)!=='f95f9f553cf46393cc33683adee974f33ccd12c506fe1c8575c9e3d5ee97a4de')throw Error('Pinned third pass changed');
+source=source.replace('origin_trace_third.hpp','origin_trace_fourth.hpp');helper=helper.replace('subtree = id == 23225 ||','subtree = id == 22377 || id == 23225 ||');
+write('search-origin-fourth.cpp',source);write('origin_trace_fourth.hpp',helper);
+for(const n of ['repro_driver.mjs','compare_runs.mjs','readonly-inputs.sha256.txt','source-line-map.json.txt'])write(n,read(n));
+const rename=s=>s.replaceAll(p,d).replaceAll('search-origin-third','search-origin-fourth').replaceAll('forge-origin-third','forge-origin-fourth').replaceAll('origin_trace_third.hpp','origin_trace_fourth.hpp');
+const plan=JSON.parse(read('native-plan.json.txt'));plan.cwd=d;plan.status='ROOT_AUTHORIZED_PRIVATE_FOURTH_PASS';plan.extraSubtreeFrame=22377;plan.steps=plan.steps.map(s=>({...s,argv:s.argv.map(rename)}));plan.sourceSha256=hash(source);plan.helperSha256=hash(helper);write('native-plan.json.txt',JSON.stringify(plan,null,2)+'\n');
+write('execute_native_step.mjs',rename(read('execute_native_step.mjs')).replace('c02d770b252da8249fed4a861f0ef529cd78c590ed817fb7f800c9fa1e675d6b',hash(source)).replace('f95f9f553cf46393cc33683adee974f33ccd12c506fe1c8575c9e3d5ee97a4de',hash(helper)));
+const argv=['git','diff','--no-index','--',path.join(p,'origin_trace_third.hpp'),path.join(d,'origin_trace_fourth.hpp')],r=spawnSync(argv[0],argv.slice(1),{encoding:'utf8'});write('incremental-helper.diff.txt',r.stdout);write('diff-command-result.txt',JSON.stringify({argv,exit:r.status,stdout:r.stdout,stderr:r.stderr},null,2)+'\n');
+console.log(JSON.stringify({sourceSha256:hash(source),helperSha256:hash(helper),extraSubtreeFrame:22377},null,2));

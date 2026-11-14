@@ -1,8 +1,8 @@
 # Eight-hour combined Forge integration and soak
 
-Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T17:41:15.084Z.
+Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T19:15:14.923Z.
 
-Elapsed at snapshot: 389.72 minutes; current phase: 3-NonPawnCorrection; recorded pushes: 72. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
+Elapsed at snapshot: 483.72 minutes; current phase: Finalized after credit interruption; recorded pushes: 73. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
 
 Base: `fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca`; merged source: `f27b1971e459581ad4c85b7015f6af83bbfd4af6`; unchanged lock: `16833ecc03b425586f91f4c8834dea8807bf4c22`. [Source provenance](../INTEGRATION_ALL.md), [progress](PROGRESS.md), [raw batches](batches/), [test matrix](TEST_MATRIX.md).
 
@@ -23,9 +23,9 @@ Recorded default pins: bench11 = 312,866; bench13 = 862,329; perft5 = 4,865,609.
 | 2G | t23 mate/fifty-move suites; unchanged expectations and complete test outputs retained. | 4 tests completed; 120 cases; 60 mate cases; 20 nonmate cases; 40 rule50 cases; 0 sanitizer reports | Complete: four unchanged suite runs; 120 cases; zero missed/false mates, illegal moves, rule50 failures, or sanitizer reports |
 | 3-default | Merged defaults (candidate) versus unchanged lock (baseline). | 4,000 games; 1,094 wins; 1,177 losses; 1,729 draws; 0 audit errors | Complete:4000 games,2000 color-swapped UHO pairs; W-L-D1094-1177-1729; no crash/illegal/disconnect/stall/abort marker or event; counts only |
 | 3-ContHist4PlyRead | Merged with only ContHist4PlyRead enabled versus merged with all three new options disabled. | 4,000 games; 1,152 wins; 1,126 losses; 1,722 draws; 0 audit errors | Complete:4000games/2000pairs;0 recorded crash,illegal,disconnect,stall,abort or structural audit error |
-| 3-NonPawnCorrection | Merged with only NonPawnCorrection enabled versus merged with all three new options disabled. | 1,200 games; 336 wins; 311 losses; 553 draws; 0 audit errors | Running |
-| 3-LmrDeeperShallower | Merged with only LmrDeeperShallower enabled versus merged with all three new options disabled. | No completed counts recorded | Pending; no completed counts recorded |
-| Part4 | Mate-bound/PV investigation and optional sampled KRK audit; exact DTM checks, no universal correctness claim. | 4 uninstrumented searches; 1 instrumented searches; 1 independent known roots; 0 false bounds demonstrated | Known-root investigation complete; optional broader sampled audit pending |
+| 3-NonPawnCorrection | Merged with only NonPawnCorrection enabled versus merged with all three new options disabled. | 1,600 games; 454 wins; 427 losses; 719 draws; 0 audit errors | Incomplete at credit interruption:1600/4000 games completed;2400 unrun; completed games clean |
+| 3-LmrDeeperShallower | Merged with only LmrDeeperShallower enabled versus merged with all three new options disabled. | 0 games | Not run:4000 requested games remain |
+| Part4 | Mate-bound/PV investigation and optional sampled KRK audit; exact DTM checks, no universal correctness claim. | 5 initial searches; 27 origin observation searches; 9 static eval counterfactual searches; 5 r3 full option searches; 5 r3 mate arm searches; 51 total engine searches; 2 followup oracle invocations; 64 followup oracle rows | Cause recorded; small compile-switch repair not established or applied; broader sampled audit not run |
 | 2KRKsplit | Isolated unchanged existing ASAN KRK split retry 2/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks | 2 tests completed; 200 t1 runs; 0 t1 misses; 400 main runs; 0 main misses; 0 no mate score; 0 non mating move; 0 sanitizer reports | Complete: two unchanged40x5 invocations; 0/400 main misses,0/200 T1 misses, no sanitizer report |
 
 Counts below use committed state totals. A dash means unavailable or not applicable, never an inferred zero. Fault categories can overlap.
@@ -139,14 +139,14 @@ Recorded match configuration: 20,000 nodes per move, Threads 1, Hash 16, OwnBook
 | --- | --- | --- | --- | --- | --- |
 | default | 4,000 | 1,094 | 1,177 | 1,729 | Complete:4000 games,2000 color-swapped UHO pairs; W-L-D1094-1177-1729; no crash/illegal/disconnect/stall/abort marker or event; counts only |
 | ContHist4PlyRead | 4,000 | 1,152 | 1,126 | 1,722 | Complete:4000games/2000pairs;0 recorded crash,illegal,disconnect,stall,abort or structural audit error |
-| NonPawnCorrection | 1,200 | 336 | 311 | 553 | Running |
-| LmrDeeperShallower | — | — | — | — | Pending; no completed counts recorded |
+| NonPawnCorrection | 1,600 | 454 | 427 | 719 | Incomplete at credit interruption:1600/4000 games completed;2400 unrun; completed games clean |
+| LmrDeeperShallower | 0 | — | — | — | Not run:4000 requested games remain |
 
 | Mode | LL | LD | DD or WL | DW | WW | Complete pairs | Incomplete pairs |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | default | 77 | 315 | 1,272 | 286 | 50 | 2,000 | 0 |
 | ContHist4PlyRead | 115 | 474 | 797 | 498 | 116 | 2,000 | 0 |
-| NonPawnCorrection | 26 | 137 | 256 | 148 | 33 | 600 | 0 |
+| NonPawnCorrection | 31 | 188 | 346 | 193 | 42 | 800 | 0 |
 | LmrDeeperShallower | — | — | — | — | — | — | — |
 
 Pair bins correspond to candidate scores 0, ½, 1, 1½ and 2 across a color-swapped pair. The middle bin combines two draws with one win and one loss. Scored abnormal games remain in W–L–D and complete pair bins.
@@ -188,6 +188,7 @@ A crash can appear as a disconnect. Log markers are occurrences, not additional 
 | [3-NonPawnCorrection #1](batches/3-NonPawnCorrection-0001.txt) | 8476001 | Yes; see retained counts | true / true | 111–103–186 | 200 / 0 | exit 0, signal — |
 | [3-NonPawnCorrection #2](batches/3-NonPawnCorrection-0002.txt) | 8476002 | Yes; see retained counts | true / true | 112–98–190 | 200 / 0 | exit 0, signal — |
 | [3-NonPawnCorrection #3](batches/3-NonPawnCorrection-0003.txt) | 8476003 | Yes; see retained counts | true / true | 113–110–177 | 200 / 0 | exit 0, signal — |
+| [3-NonPawnCorrection #4](batches/3-NonPawnCorrection-0004.txt) | 8476004 | Yes; see retained counts | true / true | 118–116–166 | 200 / 0 | exit 0, signal — |
 
 Raw attempt rows can include excluded work and must not be summed into the completed totals.
 
@@ -231,6 +232,12 @@ Completed-unit totals exclude partial work; interrupted cleanup diagnostics rema
 - At15:38UTC prioritized the already-prepared enabled-option TSan batches F11/F12 before optional default-option repeat batches E7/E8, preserving engine, flags, seeds and per-batch limits. Clock will be checked before optional repeats; target Part2end remains around15:56UTC.
 - Part2 closed near15:56UTC. Optional extra D9/D10 and E8 repeats were prepared but not run; required thread/option/instrumentation coverage completed. Existing E5 timeout and fullKRK timeouts remain excluded attempts, with actual subsequent retry coverage separate. Part3 starts with400-game default merged-vs-lock batch; only completed audited games will be counted.
 - All4000 default merged-vs-lock games were independently verified from original logs, preserved chunks and published Git blobs; counts1094/1177/1729 and pairbins77/315/1272/286/50. Immutable text evidence is in preparation/part3-independent-default. Option modes are separate same-merged-binary on/off matches.
+- The scheduled eight-hour window ended2026-11-14T19:11:32Z. Workspace credits interrupted agent execution. The already-running match completed at2026-11-14T17:45:34.390Z; no further native batches were launched. Access resumed around19:11UTC. This is not eight hours of continuous testing.
+- Checkpoint cadence failed during the credit interruption: previous successful push17:41:29.366UTC; recovery/finalization pushes occur after19:11UTC. The earlier recorded12m35.713s gap also remains.
+- Matches completed9600/16000 games: default4000,ContHist4000,NonPawn1600,LMR0. Remaining6400 games were not run; no counts were extrapolated.
+- Part4 follow-up evidence adds46 native search invocations to the five earlier known-root searches. Root output was identical across27 observational searches; private guards are diagnostics, not accepted fixes. The isolated existing r3-23 mate-alpha arm reports mate11/53950nodes/b3f3 with a14-ply nonterminal PV; this does not establish a full reported-mate repair.
+- Fault092 records the concrete depth5 quiet-futility omission. Direct event frequency2/2; ten direct repeats and a validated &lt;=60-line default-OFF repair remain undone. No production source change was applied.
+- The user explicitly authorized a clearly named Fable/Opus handoff branch after the credit reset. A focused handoff is being published separately; it does not authorize updates to other agents branches.
 
 These notes retain their original recording context; subsequent retry coverage is stated separately.
 
@@ -255,7 +262,7 @@ A retry link records a later attempt; it does not imply that every partial unit 
 
 ## Findings and evidence audit
 
-91 numbered files: 1 fixture; 90 soak.
+92 numbered files: 1 fixture; 90 soak; 1 mate-window-pruning.
 
 <details>
 <summary>Numbered findings and evidence</summary>
@@ -353,6 +360,7 @@ A retry link records a later attempt; it does not imply that every partial unit 
 | [089.txt](faults/089.txt) | soak | Comparison fault at required-equality root; 10/10 additional fault pairs |
 | [090.txt](faults/090.txt) | soak | Comparison fault at required-equality root; 10/10 additional fault pairs |
 | [091.txt](faults/091.txt) | soak | Comparison fault at required-equality root; 10/10 additional fault pairs |
+| [092.txt](faults/092.txt) | mate-window-pruning | Ordinary quiet futility prunes a forced five-ply mate within depth5 when alpha is a mate score; direct event reproduced2/2, ten-repeat check incomplete; original root winning deadline not disproved. |
 
 </details>
 
@@ -426,7 +434,7 @@ This appendix preserves every state total, including overlapping categories and 
 | 2D | ASan+UBSan self-play, Threads2, Hash16, OwnBookfalse, UseNNUEtrue, MultiPV1, all3 candidates false, nodes20000,8 seeded opening plies,300-ply cap,full trace,300-second game-boundary budget | Complete: 1131 games / 131115 searches; ASAN+UBSAN Threads1/2, nodes2000/20000; no chess/runtime diagnostics |
 | 2Aprep | Lock-T1 selection and merged-T1 observations: retain40previousKRKroots; generateKQK/KBBK atdepth14; no merged-result filtering | Complete: 40 KRK, 40 KQK and 40 KBBK roots frozen |
 | 2A | Frozen40KRK+40KQK+40KBBK, lock/merged, Threads2/4, depth14,10fresh-state trials perroot/build/thread; exactKRKoracle; noKQK/KBBKproofclaim | Complete: merged 0/2,400 and lock 298/2,400 mate-score misses |
-| Part4 | Reported mate17/short-PV reproduction and exact KRK assessment; scratch-only trace; production source unchanged | Known-root investigation complete; optional broader sampled audit pending |
+| Part4 | Known-root reproduction, nine observation passes, private counterfactuals, exact r3-23 option and isolated mate-alpha arm; no production fix | Cause recorded; small compile-switch repair not established or applied; broader sampled audit not run |
 | 2B | 200 fixed-seed legal bare-king roots, no mate-score selection; lock and merged, Threads1/2, depth12; raw nodes and times only | Complete: 800 depth-12 searches on 200 roots, both builds at Threads 1/2; no fault |
 | 2KRKsplit | Isolated unchanged existing ASAN KRK split retry 2/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks | Complete: two unchanged40x5 invocations; 0/400 main misses,0/200 T1 misses, no sanitizer report |
 | 2C | Four disjoint frozen corpus shards; cold depth9 comparisons; counts only | Complete:100,000 positions; 8 required low-clock equality failures; 31 high-clock differences observed |
@@ -435,7 +443,8 @@ This appendix preserves every state total, including overlapping categories and 
 | 2G | Unchanged t23 mate and rule50 suites, release and ASan+UBSan;40mate-suite cases plus20rule50 cases perbuild | Complete: four unchanged suite runs; 120 cases; zero missed/false mates, illegal moves, rule50 failures, or sanitizer reports |
 | 3-default | Official fastchess; merged defaults versus lock;400 games in200 color-swapped UHO pairs, nodes20000,Threads1,Hash16,OwnBookfalse,recover,no clock/adjudication | Complete:4000 games,2000 color-swapped UHO pairs; W-L-D1094-1177-1729; no crash/illegal/disconnect/stall/abort marker or event; counts only |
 | 3-ContHist4PlyRead | Official fastchess; merged ContHist4PlyRead on versus all-three off;400 games in200 color-swapped UHO pairs, nodes20000,Threads1,Hash16,OwnBookfalse,recover,no clock/adjudication | Complete:4000games/2000pairs;0 recorded crash,illegal,disconnect,stall,abort or structural audit error |
-| 3-NonPawnCorrection | Official fastchess; merged NonPawnCorrection on versus all-three off;400 games in200 color-swapped UHO pairs, nodes20000,Threads1,Hash16,OwnBookfalse,recover,no clock/adjudication | Running |
+| 3-NonPawnCorrection | Official fastchess; merged NonPawnCorrection on versus all-three off;400 games in200 color-swapped UHO pairs, nodes20000,Threads1,Hash16,OwnBookfalse,recover,no clock/adjudication | Incomplete at credit interruption:1600/4000 games completed;2400 unrun; completed games clean |
+| 3-LmrDeeperShallower | Requested option-on versus option-off fixed-node UHO pairs; no native batch started | Not run:4000 requested games remain |
 
 | Phase | Counter | Recorded value |
 | --- | --- | --- |
@@ -654,10 +663,16 @@ This appendix preserves every state total, including overlapping categories and 
 | 2A | groups.merged-t4-KRK.loses_forced_mate | 0 |
 | 2A | groups.merged-t4-KRK.mate_bound_violations | 0 |
 | 2A | batches | 3 |
-| Part4 | uninstrumented_searches | 4 |
-| Part4 | instrumented_searches | 1 |
-| Part4 | independent_known_roots | 1 |
-| Part4 | false_bounds_demonstrated | 0 |
+| Part4 | initial_searches | 5 |
+| Part4 | origin_observation_searches | 27 |
+| Part4 | static_eval_counterfactual_searches | 9 |
+| Part4 | r3_full_option_searches | 5 |
+| Part4 | r3_mate_arm_searches | 5 |
+| Part4 | total_engine_searches | 51 |
+| Part4 | followup_oracle_invocations | 2 |
+| Part4 | followup_oracle_rows | 64 |
+| Part4 | source_pruning_faults | 1 |
+| Part4 | false_winning_deadlines_demonstrated | 0 |
 | 2B | completed_units | 800 |
 | 2B | trials | 800 |
 | 2B | faults | 0 |
@@ -963,20 +978,20 @@ This appendix preserves every state total, including overlapping categories and 
 | 3-ContHist4PlyRead | disconnect_markers | 0 |
 | 3-ContHist4PlyRead | stall_markers | 0 |
 | 3-ContHist4PlyRead | batches | 10 |
-| 3-NonPawnCorrection | games | 1200 |
-| 3-NonPawnCorrection | games_started | 1200 |
-| 3-NonPawnCorrection | wins | 336 |
-| 3-NonPawnCorrection | losses | 311 |
-| 3-NonPawnCorrection | draws | 553 |
-| 3-NonPawnCorrection | moves | 165853 |
-| 3-NonPawnCorrection | complete_pairs | 600 |
+| 3-NonPawnCorrection | games | 1600 |
+| 3-NonPawnCorrection | games_started | 1600 |
+| 3-NonPawnCorrection | wins | 454 |
+| 3-NonPawnCorrection | losses | 427 |
+| 3-NonPawnCorrection | draws | 719 |
+| 3-NonPawnCorrection | moves | 222395 |
+| 3-NonPawnCorrection | complete_pairs | 800 |
 | 3-NonPawnCorrection | incomplete_pairs | 0 |
 | 3-NonPawnCorrection | audit_errors | 0 |
-| 3-NonPawnCorrection | pair_LL | 26 |
-| 3-NonPawnCorrection | pair_LD | 137 |
-| 3-NonPawnCorrection | pair_DD_or_WL | 256 |
-| 3-NonPawnCorrection | pair_DW | 148 |
-| 3-NonPawnCorrection | pair_WW | 33 |
+| 3-NonPawnCorrection | pair_LL | 31 |
+| 3-NonPawnCorrection | pair_LD | 188 |
+| 3-NonPawnCorrection | pair_DD_or_WL | 346 |
+| 3-NonPawnCorrection | pair_DW | 193 |
+| 3-NonPawnCorrection | pair_WW | 42 |
 | 3-NonPawnCorrection | illegal_move_events | 0 |
 | 3-NonPawnCorrection | illegal_move_games | 0 |
 | 3-NonPawnCorrection | disconnect_games | 0 |
@@ -987,7 +1002,8 @@ This appendix preserves every state total, including overlapping categories and 
 | 3-NonPawnCorrection | illegal_markers | 0 |
 | 3-NonPawnCorrection | disconnect_markers | 0 |
 | 3-NonPawnCorrection | stall_markers | 0 |
-| 3-NonPawnCorrection | batches | 3 |
+| 3-NonPawnCorrection | batches | 4 |
+| 3-LmrDeeperShallower | games | 0 |
 
 </details>
 

@@ -1,0 +1,30 @@
+node <<'NODE'
+const fs=require('fs');
+const src=fs.readFileSync('/workspace/work/all-run/part4-origin-independent-review/secondpass-static-legality-command.txt','utf8');
+const defs=src.slice(src.indexOf('function board(fen)'),src.indexOf('const failures=[],edges=[];'));
+const body=String.raw`
+const parse=s=>Object.fromEntries([...s.matchAll(/(?:^| )([a-z_]+)=("[^"]*"|\[[^\]]*\]|[^ ]+)/g)].map(m=>[m[1],m[2].startsWith('"')?m[2].slice(1,-1):m[2]]));
+const e=fs.readFileSync('/workspace/work/all-run/part4-origin-pass9/runs/trace-r1/stderr.txt','utf8').trimEnd().split('\n').slice(1).map(parse);
+for(const id of ['24345','24349','24358']){
+ const frame=e.find(x=>x.kind==='FRAME_ENTER'&&x.frame===id);
+ const ancestry=[...frame.ancestry.matchAll(/\d+:\d+:MOVE_EDGE:([a-h][1-8][a-h][1-8])\(/g)].map(m=>m[1]).reverse();
+ let s=board('8/8/8/8/8/1R6/2k5/5K2 w - - 0 1');const key=x=>x.b.join('')+' '+x.side,seen=[key(s)];let bad=false;
+ for(const m of ancestry){s=make(s,m);seen.push(key(s));}
+ const entryMatches=JSON.stringify(s)===JSON.stringify(board(frame.fen)),line=['d1c1','a1a2','c1c2','a2a1','d3a3'],steps=[];
+ for(const m of line){const legalMoves=moves(s),forced=s.side==='b';steps.push({side:s.side,move:m,legal:legalMoves.includes(m),defenderLegalMoves:forced?legalMoves:undefined});if(forced&&(legalMoves.length!==1||legalMoves[0]!==m))bad=true;s=make(s,m);seen.push(key(s));}
+ const finalMoves=moves(s),check=rookAttack(s.b,s.b.indexOf('R'),s.b.indexOf('k'));
+ const result={frame:id,entryDepth:frame.entry_depth,entryPly:frame.ply,entryMatchesKnownRootReplay:entryMatches,ancestry,line,steps,finalChecked:check,finalLegalMoves:finalMoves,finalClock:s.clock,anyRepeatedBoardAndSide:new Set(seen).size!==seen.length,rootRelativeMateValue:32000-(+frame.ply+line.length),entryBeta:+frame.beta_in,provesAtLeastBeta:32000-(+frame.ply+line.length)>=+frame.beta_in};
+ console.log(JSON.stringify(result));if(bad||!entryMatches||!check||finalMoves.length)process.exitCode=1;
+}
+`;eval(defs+'\n'+body);
+NODE
+
+ACTUAL RESULT
+{
+  "chunk_id": "57f7c6",
+  "wall_time_seconds": 0.13805338,
+  "exit_code": 0,
+  "original_token_count": 473,
+  "output": "{\"frame\":\"24345\",\"entryDepth\":\"4\",\"entryPly\":\"8\",\"entryMatchesKnownRootReplay\":true,\"ancestry\":[\"b3f3\",\"c2b2\",\"f1e2\",\"b2c2\",\"f3d3\",\"c2b2\",\"e2d1\",\"b2a1\"],\"line\":[\"d1c1\",\"a1a2\",\"c1c2\",\"a2a1\",\"d3a3\"],\"steps\":[{\"side\":\"w\",\"move\":\"d1c1\",\"legal\":true},{\"side\":\"b\",\"move\":\"a1a2\",\"legal\":true,\"defenderLegalMoves\":[\"a1a2\"]},{\"side\":\"w\",\"move\":\"c1c2\",\"legal\":true},{\"side\":\"b\",\"move\":\"a2a1\",\"legal\":true,\"defenderLegalMoves\":[\"a2a1\"]},{\"side\":\"w\",\"move\":\"d3a3\",\"legal\":true}],\"finalChecked\":true,\"finalLegalMoves\":[],\"finalClock\":13,\"anyRepeatedBoardAndSide\":false,\"rootRelativeMateValue\":31987,\"entryBeta\":31983,\"provesAtLeastBeta\":true}\n{\"frame\":\"24349\",\"entryDepth\":\"5\",\"entryPly\":\"8\",\"entryMatchesKnownRootReplay\":true,\"ancestry\":[\"b3f3\",\"c2b2\",\"f1e2\",\"b2c2\",\"f3d3\",\"c2b2\",\"e2d1\",\"b2a1\"],\"line\":[\"d1c1\",\"a1a2\",\"c1c2\",\"a2a1\",\"d3a3\"],\"steps\":[{\"side\":\"w\",\"move\":\"d1c1\",\"legal\":true},{\"side\":\"b\",\"move\":\"a1a2\",\"legal\":true,\"defenderLegalMoves\":[\"a1a2\"]},{\"side\":\"w\",\"move\":\"c1c2\",\"legal\":true},{\"side\":\"b\",\"move\":\"a2a1\",\"legal\":true,\"defenderLegalMoves\":[\"a2a1\"]},{\"side\":\"w\",\"move\":\"d3a3\",\"legal\":true}],\"finalChecked\":true,\"finalLegalMoves\":[],\"finalClock\":13,\"anyRepeatedBoardAndSide\":false,\"rootRelativeMateValue\":31987,\"entryBeta\":31983,\"provesAtLeastBeta\":true}\n{\"frame\":\"24358\",\"entryDepth\":\"5\",\"entryPly\":\"8\",\"entryMatchesKnownRootReplay\":true,\"ancestry\":[\"b3f3\",\"c2b2\",\"f1e2\",\"b2c2\",\"f3d3\",\"c2b2\",\"e2d1\",\"b2a1\"],\"line\":[\"d1c1\",\"a1a2\",\"c1c2\",\"a2a1\",\"d3a3\"],\"steps\":[{\"side\":\"w\",\"move\":\"d1c1\",\"legal\":true},{\"side\":\"b\",\"move\":\"a1a2\",\"legal\":true,\"defenderLegalMoves\":[\"a1a2\"]},{\"side\":\"w\",\"move\":\"c1c2\",\"legal\":true},{\"side\":\"b\",\"move\":\"a2a1\",\"legal\":true,\"defenderLegalMoves\":[\"a2a1\"]},{\"side\":\"w\",\"move\":\"d3a3\",\"legal\":true}],\"finalChecked\":true,\"finalLegalMoves\":[],\"finalClock\":13,\"anyRepeatedBoardAndSide\":false,\"rootRelativeMateValue\":31987,\"entryBeta\":31983,\"provesAtLeastBeta\":true}\n"
+}
+

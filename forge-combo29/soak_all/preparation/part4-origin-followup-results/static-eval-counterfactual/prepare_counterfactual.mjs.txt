@@ -1,0 +1,25 @@
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {spawnSync} from 'node:child_process';import {fileURLToPath} from 'node:url';
+const d=path.dirname(fileURLToPath(import.meta.url)),first='/workspace/work/all-run/part4-origin-preparation';
+const hash=s=>crypto.createHash('sha256').update(s).digest('hex'),write=(n,s)=>fs.writeFileSync(path.join(d,n),s,{flag:'wx'});
+const original=fs.readFileSync(path.join(first,'pinned-search.cpp'),'utf8');if(hash(original)!=='2b14b62cd675b047478e70b738932ce4c2c699239b3c0de4ec43551464dc8819')throw Error('Baseline hash mismatch');
+let source=original.replace('#include "forge/uci_output.hpp"','#include "forge/uci_output.hpp"\n\n// Private counterfactual only; both switches default off.\n#ifndef FORGE_PART4_NO_MATE_QS_EVAL\n#define FORGE_PART4_NO_MATE_QS_EVAL 0\n#endif\n#ifndef FORGE_PART4_NO_MATE_MAIN_EVAL\n#define FORGE_PART4_NO_MATE_MAIN_EVAL 0\n#endif');
+const anchor='        if (tt_hit && tt_score != ValueNone &&\n            ((tt_bound == BoundLower && tt_score > eval)';if(source.split(anchor).length!==3)throw Error('Two static substitution anchors required');
+source=source.replace(anchor,'        if (tt_hit && tt_score != ValueNone &&\n            (!FORGE_PART4_NO_MATE_QS_EVAL || !is_mate_score(tt_score)) &&\n            ((tt_bound == BoundLower && tt_score > eval)');
+source=source.replace(anchor,'        if (tt_hit && tt_score != ValueNone &&\n            (!FORGE_PART4_NO_MATE_MAIN_EVAL || !is_mate_score(tt_score)) &&\n            ((tt_bound == BoundLower && tt_score > eval)');
+write('search-counterfactual.cpp',source);
+for(const n of ['repro_driver.mjs','readonly-inputs.sha256.txt'])write(n,fs.readFileSync(path.join(first,n)));
+const inputPlan=JSON.parse(fs.readFileSync(path.join(first,'native-plan.json.txt'),'utf8'));
+const steps=[{name:'create-native-directory',argv:['mkdir','-p',path.join(d,'native')]}];
+for(const [label,qs,main]of[['off',0,0],['qs',1,0],['main',0,1],['both',1,1]]){
+ const object=path.join(d,'native',label+'.o'),binary=path.join(d,'native','forge-'+label);
+ const compile=inputPlan.steps[3].argv.map(x=>x.replace(path.join(first,'search-origin.cpp'),path.join(d,'search-counterfactual.cpp')).replace(path.join(first,'native','search-origin.o'),object));
+ if(label!=='off')compile.splice(3,0,'-DFORGE_PART4_NO_MATE_QS_EVAL='+qs,'-DFORGE_PART4_NO_MATE_MAIN_EVAL='+main);
+ const link=inputPlan.steps[4].argv.map(x=>x.replace(path.join(first,'native','search-origin.o'),object).replace(path.join(first,'native','forge-origin'),binary).replace(path.join(first,'native','link.d'),path.join(d,'native','link-'+label+'.d')));
+ steps.push({name:'compile-'+label,argv:compile},{name:'link-'+label,argv:link});
+ if(label==='off')steps.push({name:'baseline',argv:['timeout','90','node',path.join(d,'repro_driver.mjs'),'/workspace/work/all-run/builds/release/forge','baseline-r1']});
+ for(const repeat of [1,2])steps.push({name:label+'-r'+repeat,argv:['timeout','90','node',path.join(d,'repro_driver.mjs'),binary,label+'-r'+repeat]});
+ steps.push({name:'compare-'+label,argv:['node',path.join(d,'compare_counterfactual.mjs'),label]});
+}
+write('native-plan.json.txt',JSON.stringify({status:'PRIVATE_CAUSAL_EXPERIMENT_NOT_A_PRODUCTION_FIX',sourceSha256:hash(source),baselineSourceSha256:hash(original),steps},null,2)+'\n');
+const argv=['git','diff','--no-index','--',path.join(first,'pinned-search.cpp'),path.join(d,'search-counterfactual.cpp')],r=spawnSync(argv[0],argv.slice(1),{encoding:'utf8'});write('guard.diff.txt',r.stdout);write('diff-command-result.txt',JSON.stringify({argv,exit:r.status,stdout:r.stdout,stderr:r.stderr},null,2)+'\n');
+console.log(JSON.stringify({sourceSha256:hash(source),steps:steps.map((s,i)=>({i,name:s.name}))},null,2));

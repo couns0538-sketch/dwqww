@@ -1,0 +1,110 @@
++ sed -n 122,139p /workspace/work/all-run/part4-origin-preparation/search-origin.cpp
+
+constexpr int HistoryMax = 16384;
+
+[[nodiscard]] int score_to_tt(int score, int ply) {
+    if (score >= MateInMaxPly) return score + ply;
+    if (score <= -MateInMaxPly) return score - ply;
+    return score;
+}
+
+[[nodiscard]] int score_from_tt(int score, int ply) {
+    if (score == ValueNone) return ValueNone;
+    if (score >= MateInMaxPly) return score - ply;
+    if (score <= -MateInMaxPly) return score + ply;
+    return score;
+}
+
+[[nodiscard]] int mated_in(int ply) { return -MateValue + ply; }
+[[nodiscard]] int mate_in(int ply) { return MateValue - ply; }
++ sed -n 199,213p /workspace/work/dwqww-all/forge-combo29/include/forge/search.hpp
+    [[nodiscard]] TTCluster& cluster_for(std::uint64_t key) const {
+#if defined(__SIZEOF_INT128__)
+        __extension__ using u128 = unsigned __int128;
+        return clusters_[static_cast<std::size_t>((static_cast<u128>(key) * cluster_count_) >> 64U)];
+#else
+        return clusters_[static_cast<std::size_t>(key % cluster_count_)];
+#endif
+    }
+};
+
+// Search constants exposed for tuning. The UCI layer accepts them as unlisted
+// options (setoption name <Name> value <int>); defaults are the tested values.
+namespace tune {
+struct Parameter {
+    const char* name;
++ sed -n 1097,1149p /workspace/work/all-run/part4-origin-preparation/search-origin.cpp
+#if FORGE_SPD_TT_NOTLS
+    const TTProbe tt_probe = probe_tt(board.key());
+#else
+    const TTProbe tt_probe = shared_.tt.probe(board.key());
+#endif
+    const bool tt_hit = tt_probe.hit;
+    const TTEntry& tte = tt_probe.entry;
+    const bool near50 = board.halfmove_clock() >= 90;
+    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+                             ? score_from_tt(tte.score, ply) : ValueNone;
+    const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+    origin_trace::worker_probe(origin_frame, tt_hit, tte, tt_score, alpha, beta);
+    const bool tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+    if (!pv_node && !near50 && tt_hit && tt_score != ValueNone &&
+        (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+         (tt_bound == BoundUpper && tt_score <= alpha))) {
+        return origin_trace::result(origin_frame, "QS_TT", tt_score, alpha, beta);
+    }
+
+    int best_score;
+    int futility_base;
+    if (in_check) {
+        ss->static_eval = ValueNone;
+        best_score = futility_base = -Infinite;
+    } else {
+        int eval;
+        if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+        else ss->raw_eval = static_evaluate(board, ss);
+        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+        if (tt_hit && tt_score != ValueNone &&
+            ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+             tt_bound == BoundExact)) {
+            origin_trace::substitution(origin_frame, eval, tt_score, tt_bound, alpha, beta);
+            eval = tt_score;
+        }
+        best_score = eval;
+        if (best_score >= beta) {
+            if (!tt_hit) origin_trace::store_attempt(origin_frame, "QS_STANDPAT", best_score,
+                score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, alpha, beta);
+#if FORGE_SPD_TT_NOTLS
+            if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+#else
+            if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+#endif
+            return origin_trace::result(origin_frame, "QS_STANDPAT", best_score, alpha, beta);
+        }
+        if (best_score > alpha) alpha = best_score;
+        futility_base = ss->static_eval + tune::QsFutilityMargin;
+    }
+
+    MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
++ sed -n 1193,1212p /workspace/work/all-run/part4-origin-preparation/search-origin.cpp
+                    ss->pv_length = (ss + 1)->pv_length + 1;
+                }
+                if (score >= beta) break;
+                alpha = score;
+            }
+        }
+    }
+    if (in_check && move_count == 0) return mated_in(ply);
+
+    const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+    origin_trace::store_attempt(origin_frame, "QS_FINAL", best_score, score_to_tt(best_score, ply),
+        in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, alpha, beta);
+#if FORGE_SPD_TT_NOTLS
+    store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+#else
+    shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+#endif
+    return origin_trace::result(origin_frame, "QS_FINAL", best_score, alpha, beta);
+}
+

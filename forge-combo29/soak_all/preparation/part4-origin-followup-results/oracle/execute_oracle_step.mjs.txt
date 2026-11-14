@@ -1,0 +1,8 @@
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {spawnSync} from 'node:child_process';import {fileURLToPath} from 'node:url';
+const d=path.dirname(fileURLToPath(import.meta.url)),plan=JSON.parse(fs.readFileSync(path.join(d,'native-plan.json.txt'),'utf8')),i=Number(process.argv[2]);
+if(!Number.isInteger(i)||!plan.steps[i])throw Error('Invalid step');
+const hash=f=>crypto.createHash('sha256').update(fs.readFileSync(path.join(d,f))).digest('hex');
+if(hash('krk_oracle.hpp')!==plan.headerSha256||hash('oracle_bounds.cpp')!==plan.sourceSha256)throw Error('Pinned source changed');
+const out=path.join(d,`${i}-${plan.steps[i].name}.json.txt`);if(fs.existsSync(out))throw Error('Refusing overwrite');
+if(i&&JSON.parse(fs.readFileSync(path.join(d,`0-${plan.steps[0].name}.json.txt`),'utf8')).exit!==0)throw Error('Compile failed');
+const argv=plan.steps[i].argv,started=new Date().toISOString(),t=Date.now();const r=spawnSync(argv[0],argv.slice(1),{cwd:d,encoding:'utf8',timeout:445000,maxBuffer:64*1024*1024});const result={started,ended:new Date().toISOString(),wallMs:Date.now()-t,cwd:d,argv,exit:r.status,signal:r.signal,error:r.error?String(r.error):null,stdout:r.stdout,stderr:r.stderr};fs.writeFileSync(out,JSON.stringify(result,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify(result,null,2));if(r.status!==0)process.exitCode=1;

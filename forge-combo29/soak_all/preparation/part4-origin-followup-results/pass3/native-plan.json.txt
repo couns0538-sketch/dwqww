@@ -1,0 +1,117 @@
+{
+  "status": "ROOT_AUTHORIZED_PRIVATE_THIRD_PASS",
+  "cwd": "/workspace/work/all-run/part4-origin-thirdpass",
+  "baselineSource": "f27b1971e459581ad4c85b7015f6af83bbfd4af6",
+  "targetFrame": 23225,
+  "sourceSha256": "c02d770b252da8249fed4a861f0ef529cd78c590ed817fb7f800c9fa1e675d6b",
+  "helperSha256": "f95f9f553cf46393cc33683adee974f33ccd12c506fe1c8575c9e3d5ee97a4de",
+  "steps": [
+    {
+      "name": "create-native-output-directory",
+      "argv": [
+        "mkdir",
+        "-p",
+        "/workspace/work/all-run/part4-origin-thirdpass/native"
+      ]
+    },
+    {
+      "name": "compile-scratch-search",
+      "argv": [
+        "timeout",
+        "450",
+        "/usr/bin/c++",
+        "-DFORGE_EXPOSE_TUNABLES=1",
+        "-DFORGE_NNUE_HIDDEN=256",
+        "-DFORGE_NNUE_WEIGHTS=\"/workspace/work/dwqww-all/forge-combo29/src/nnue_weights.inc\"",
+        "-DFORGE_SEARCH_SPEED2=1",
+        "-DFORGE_SPD_NNUE_ZMM=1",
+        "-DFORGE_SPD_NO_ZERO_MOVELISTS=2",
+        "-DFORGE_SPD_PREFETCH_EARLY=1",
+        "-DFORGE_SPD_SLIDER_PEXT=1",
+        "-DFORGE_SPD_TT_NOTLS=1",
+        "-DNDEBUG",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++20",
+        "-O3",
+        "-ffp-contract=off",
+        "-fno-fast-math",
+        "-march=x86-64-v4",
+        "-I/workspace/work/dwqww-all/forge-combo29/include",
+        "-c",
+        "/workspace/work/all-run/part4-origin-thirdpass/search-origin-third.cpp",
+        "-o",
+        "/workspace/work/all-run/part4-origin-thirdpass/native/search-origin-third.o"
+      ]
+    },
+    {
+      "name": "link-scratch-engine",
+      "argv": [
+        "timeout",
+        "450",
+        "/usr/bin/c++",
+        "-O3",
+        "-DNDEBUG",
+        "-Wl,--dependency-file=/workspace/work/all-run/part4-origin-thirdpass/native/link.d",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/bitboard.cpp.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/board.cpp.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/book.cpp.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/eval.cpp.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/eval_params.cpp.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/nnue.cpp.o",
+        "/workspace/work/all-run/part4-origin-thirdpass/native/search-origin-third.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/uci.cpp.o",
+        "-o",
+        "/workspace/work/all-run/part4-origin-thirdpass/native/forge-origin-third"
+      ]
+    },
+    {
+      "name": "baseline",
+      "argv": [
+        "timeout",
+        "90",
+        "node",
+        "/workspace/work/all-run/part4-origin-thirdpass/repro_driver.mjs",
+        "/workspace/work/all-run/builds/release/forge",
+        "baseline-r1"
+      ]
+    },
+    {
+      "name": "trace-first",
+      "argv": [
+        "timeout",
+        "90",
+        "node",
+        "/workspace/work/all-run/part4-origin-thirdpass/repro_driver.mjs",
+        "/workspace/work/all-run/part4-origin-thirdpass/native/forge-origin-third",
+        "trace-r1",
+        "6827293331010548038",
+        "200000"
+      ]
+    },
+    {
+      "name": "trace-repeat",
+      "argv": [
+        "timeout",
+        "90",
+        "node",
+        "/workspace/work/all-run/part4-origin-thirdpass/repro_driver.mjs",
+        "/workspace/work/all-run/part4-origin-thirdpass/native/forge-origin-third",
+        "trace-r2",
+        "6827293331010548038",
+        "200000"
+      ]
+    },
+    {
+      "name": "compare-static-output",
+      "argv": [
+        "node",
+        "/workspace/work/all-run/part4-origin-thirdpass/compare_runs.mjs",
+        "baseline-r1",
+        "trace-r1",
+        "trace-r2"
+      ]
+    }
+  ],
+  "extraWatchedKey": "1726806482296082090"
+}

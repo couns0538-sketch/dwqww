@@ -1,0 +1,120 @@
+{
+  "status": "ROOT_AUTHORIZED_PRIVATE_FOLLOWUP_PASS",
+  "cwd": "/workspace/work/all-run/part4-origin-pass5",
+  "baselineSource": "f27b1971e459581ad4c85b7015f6af83bbfd4af6",
+  "targetFrame": 23225,
+  "sourceSha256": "5dc93f181feb4c804257224d71bf904f0399480e28e87c2aa39ba6b78a73c18f",
+  "helperSha256": "7452790cda6601e723441d175b773afec0d63a94765949731d604c3f4ebde033",
+  "steps": [
+    {
+      "name": "create-native-output-directory",
+      "argv": [
+        "mkdir",
+        "-p",
+        "/workspace/work/all-run/part4-origin-pass5/native"
+      ]
+    },
+    {
+      "name": "compile-scratch-search",
+      "argv": [
+        "timeout",
+        "450",
+        "/usr/bin/c++",
+        "-DFORGE_EXPOSE_TUNABLES=1",
+        "-DFORGE_NNUE_HIDDEN=256",
+        "-DFORGE_NNUE_WEIGHTS=\"/workspace/work/dwqww-all/forge-combo29/src/nnue_weights.inc\"",
+        "-DFORGE_SEARCH_SPEED2=1",
+        "-DFORGE_SPD_NNUE_ZMM=1",
+        "-DFORGE_SPD_NO_ZERO_MOVELISTS=2",
+        "-DFORGE_SPD_PREFETCH_EARLY=1",
+        "-DFORGE_SPD_SLIDER_PEXT=1",
+        "-DFORGE_SPD_TT_NOTLS=1",
+        "-DNDEBUG",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++20",
+        "-O3",
+        "-ffp-contract=off",
+        "-fno-fast-math",
+        "-march=x86-64-v4",
+        "-I/workspace/work/dwqww-all/forge-combo29/include",
+        "-c",
+        "/workspace/work/all-run/part4-origin-pass5/search-origin.cpp",
+        "-o",
+        "/workspace/work/all-run/part4-origin-pass5/native/search-origin.o"
+      ]
+    },
+    {
+      "name": "link-scratch-engine",
+      "argv": [
+        "timeout",
+        "450",
+        "/usr/bin/c++",
+        "-O3",
+        "-DNDEBUG",
+        "-Wl,--dependency-file=/workspace/work/all-run/part4-origin-pass5/native/link.d",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/bitboard.cpp.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/board.cpp.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/book.cpp.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/eval.cpp.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/eval_params.cpp.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/nnue.cpp.o",
+        "/workspace/work/all-run/part4-origin-pass5/native/search-origin.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/uci.cpp.o",
+        "-o",
+        "/workspace/work/all-run/part4-origin-pass5/native/forge-origin"
+      ]
+    },
+    {
+      "name": "baseline",
+      "argv": [
+        "timeout",
+        "90",
+        "node",
+        "/workspace/work/all-run/part4-origin-pass5/repro_driver.mjs",
+        "/workspace/work/all-run/builds/release/forge",
+        "baseline-r1"
+      ]
+    },
+    {
+      "name": "trace-first",
+      "argv": [
+        "timeout",
+        "90",
+        "node",
+        "/workspace/work/all-run/part4-origin-pass5/repro_driver.mjs",
+        "/workspace/work/all-run/part4-origin-pass5/native/forge-origin",
+        "trace-r1",
+        "6827293331010548038",
+        "200000"
+      ]
+    },
+    {
+      "name": "trace-repeat",
+      "argv": [
+        "timeout",
+        "90",
+        "node",
+        "/workspace/work/all-run/part4-origin-pass5/repro_driver.mjs",
+        "/workspace/work/all-run/part4-origin-pass5/native/forge-origin",
+        "trace-r2",
+        "6827293331010548038",
+        "200000"
+      ]
+    },
+    {
+      "name": "compare-static-output",
+      "argv": [
+        "node",
+        "/workspace/work/all-run/part4-origin-pass5/compare_runs.mjs",
+        "baseline-r1",
+        "trace-r1",
+        "trace-r2"
+      ]
+    }
+  ],
+  "extraWatchedKey": "1726806482296082090",
+  "extraSubtreeFrame": 22377,
+  "addedKey": "16140578755083273993",
+  "addedFrame": ""
+}

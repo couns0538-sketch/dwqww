@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "git",
+    "diff",
+    "--no-index",
+    "--",
+    "/workspace/work/all-run/part4-origin-preparation/pinned-search.cpp",
+    "/workspace/work/all-run/part4-static-eval-counterfactual/search-counterfactual.cpp"
+  ],
+  "exit": 1,
+  "stdout": "diff --git a/workspace/work/all-run/part4-origin-preparation/pinned-search.cpp b/workspace/work/all-run/part4-static-eval-counterfactual/search-counterfactual.cpp\nindex 80dd69a..138d082 100644\n--- a/workspace/work/all-run/part4-origin-preparation/pinned-search.cpp\n+++ b/workspace/work/all-run/part4-static-eval-counterfactual/search-counterfactual.cpp\n@@ -1,6 +1,14 @@\n #include \"forge/search.hpp\"\n #include \"forge/uci_output.hpp\"\n \n+// Private counterfactual only; both switches default off.\n+#ifndef FORGE_PART4_NO_MATE_QS_EVAL\n+#define FORGE_PART4_NO_MATE_QS_EVAL 0\n+#endif\n+#ifndef FORGE_PART4_NO_MATE_MAIN_EVAL\n+#define FORGE_PART4_NO_MATE_MAIN_EVAL 0\n+#endif\n+\n #include <algorithm>\n #include <cmath>\n #include <cstring>\n@@ -1090,6 +1098,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {\n         else ss->raw_eval = static_evaluate(board, ss);\n         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);\n         if (tt_hit && tt_score != ValueNone &&\n+            (!FORGE_PART4_NO_MATE_QS_EVAL || !is_mate_score(tt_score)) &&\n             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||\n              tt_bound == BoundExact)) {\n             eval = tt_score;\n@@ -1242,6 +1251,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta\n         else ss->raw_eval = static_evaluate(board, ss);\n         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);\n         if (tt_hit && tt_score != ValueNone &&\n+            (!FORGE_PART4_NO_MATE_MAIN_EVAL || !is_mate_score(tt_score)) &&\n             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||\n              tt_bound == BoundExact)) {\n             eval = tt_score;\n",
+  "stderr": ""
+}

@@ -1,0 +1,18 @@
+node <<'NODE'
+const fs=require('fs'),crypto=require('crypto');
+const dirs=['preparation','secondpass','thirdpass','fourthpass','pass5','pass6','pass7','pass8'];
+const norm=s=>s.replace(/\b(time|nps) \d+/g,'$1 <TIME>'),nt=s=>{const a=new Map();return s.replace(/table=0x[0-9a-f]+/g,x=>{if(!a.has(x))a.set(x,'table=<'+a.size+'>');return a.get(x);});};
+const pinned=norm(fs.readFileSync('/workspace/work/all-run/part4-origin-preparation/runs/baseline-r1/stdout.txt','utf8'));
+for(const name of dirs){const d='/workspace/work/all-run/part4-origin-'+name,runs=['baseline-r1','trace-r1','trace-r2'],summaries=runs.map(n=>JSON.parse(fs.readFileSync(d+'/runs/'+n+'/summary.json.txt','utf8')));console.log(JSON.stringify({name,allStdoutMatchPinned:runs.every(n=>norm(fs.readFileSync(d+'/runs/'+n+'/stdout.txt','utf8'))===pinned),allExit0:summaries.every(s=>s.code===0&&s.signal===null&&s.completed&&!s.timedOut),codes:summaries.map(s=>s.code),traceRepeatEqual:nt(fs.readFileSync(d+'/runs/trace-r1/stderr.txt','utf8'))===nt(fs.readFileSync(d+'/runs/trace-r2/stderr.txt','utf8'))}));}
+console.log('Note: previous exploratory parser used nonexistent summary.exitCode and guessed fifthpass path; above reads actual summary.code and discovered pass5 path. Earlier false booleans/ENOENT were review-parser mistakes, not engine failures.');
+NODE
+
+ACTUAL RESULT
+{
+  "chunk_id": "deaecc",
+  "wall_time_seconds": 0.181427917,
+  "exit_code": 0,
+  "original_token_count": 266,
+  "output": "{\"name\":\"preparation\",\"allStdoutMatchPinned\":true,\"allExit0\":true,\"codes\":[0,0,0],\"traceRepeatEqual\":true}\n{\"name\":\"secondpass\",\"allStdoutMatchPinned\":true,\"allExit0\":true,\"codes\":[0,0,0],\"traceRepeatEqual\":true}\n{\"name\":\"thirdpass\",\"allStdoutMatchPinned\":true,\"allExit0\":true,\"codes\":[0,0,0],\"traceRepeatEqual\":true}\n{\"name\":\"fourthpass\",\"allStdoutMatchPinned\":true,\"allExit0\":true,\"codes\":[0,0,0],\"traceRepeatEqual\":true}\n{\"name\":\"pass5\",\"allStdoutMatchPinned\":true,\"allExit0\":true,\"codes\":[0,0,0],\"traceRepeatEqual\":true}\n{\"name\":\"pass6\",\"allStdoutMatchPinned\":true,\"allExit0\":true,\"codes\":[0,0,0],\"traceRepeatEqual\":true}\n{\"name\":\"pass7\",\"allStdoutMatchPinned\":true,\"allExit0\":true,\"codes\":[0,0,0],\"traceRepeatEqual\":true}\n{\"name\":\"pass8\",\"allStdoutMatchPinned\":true,\"allExit0\":true,\"codes\":[0,0,0],\"traceRepeatEqual\":true}\nNote: previous exploratory parser used nonexistent summary.exitCode and guessed fifthpass path; above reads actual summary.code and discovered pass5 path. Earlier false booleans/ENOENT were review-parser mistakes, not engine failures.\n"
+}
+

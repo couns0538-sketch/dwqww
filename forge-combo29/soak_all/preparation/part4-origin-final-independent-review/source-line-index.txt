@@ -1,0 +1,64 @@
++ rg -n 'score_from_tt|score_to_tt|TT_SUBSTITUTION|QS_FINAL|MAIN_FINAL|PROBE_BEFORE|PROBE_AFTER|gen_bound =|origin_admitted|store_event|probe_event|generation_|cluster_for|BoundUpper|BoundLower|BoundExact' /workspace/work/all-run/part4-origin-preparation/search-origin.cpp /workspace/work/all-run/part4-origin-preparation/origin_trace.hpp /workspace/work/dwqww-all/forge-combo29/include/search.hpp
+rg: /workspace/work/dwqww-all/forge-combo29/include/search.hpp: No such file or directory (os error 2)
+/workspace/work/all-run/part4-origin-preparation/origin_trace.hpp:156:inline void probe_event(const char* kind, const void* table, std::uint64_t epoch,
+/workspace/work/all-run/part4-origin-preparation/origin_trace.hpp:166:inline void store_event(const char* kind, const void* table, std::uint64_t epoch,
+/workspace/work/all-run/part4-origin-preparation/origin_trace.hpp:206:    emit("TT_SUBSTITUTION", [&](auto& out) {
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:125:[[nodiscard]] int score_to_tt(int score, int ply) {
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:131:[[nodiscard]] int score_from_tt(int score, int ply) {
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:267:    generation_ = 0;
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:276:    generation_ = 0;
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:286:    TTCluster& cluster = cluster_for(key);
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:292:        index == static_cast<std::size_t>(&cluster_for(origin_trace::target_key()) - clusters_.get());
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:293:    if (origin_watch_cluster) origin_trace::probe_event("PROBE_BEFORE", this, epoch_, generation_,
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:304:        if (origin_watch_cluster) origin_trace::probe_event("PROBE_AFTER", this, epoch_, generation_,
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:312:            if (entry.generation() != generation_) {
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:313:                entry.gen_bound = static_cast<std::uint8_t>(
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:314:                    (static_cast<unsigned>(generation_) << 3U) | (entry.gen_bound & 7U));
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:321:        return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:356:        probe.cluster_ == static_cast<std::size_t>(&cluster_for(origin_trace::target_key()) - clusters_.get());
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:357:    bool origin_admitted = false;
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:358:    if (origin_watch_cluster) origin_trace::store_event("STORE_BEFORE", this, epoch_, generation_,
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:365:    if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:366:        origin_admitted = true;
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:372:        entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:374:    if (origin_watch_cluster) origin_trace::store_event("STORE_AFTER", this, epoch_, generation_,
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:376:        TakeLock, origin_admitted, clusters_[probe.cluster_]);
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:391:    TTCluster& cluster = cluster_for(key);
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:409:            if (entry.generation() != generation_) {
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:410:                entry.gen_bound = static_cast<std::uint8_t>(
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:411:                    (static_cast<unsigned>(generation_) << 3U) | (entry.gen_bound & 7U));
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:418:        return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:438:    if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:444:        entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:455:            if (entry.occupied() && entry.generation() == generation_) ++count;
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1107:                             ? score_from_tt(tte.score, ply) : ValueNone;
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1113:        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1114:         (tt_bound == BoundUpper && tt_score <= alpha))) {
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1129:            ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1130:             tt_bound == BoundExact)) {
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1137:                score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, alpha, beta);
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1139:            if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1141:            if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1202:    const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1203:    origin_trace::store_attempt(origin_frame, "QS_FINAL", best_score, score_to_tt(best_score, ply),
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1206:    store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1208:    shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1210:    return origin_trace::result(origin_frame, "QS_FINAL", best_score, alpha, beta);
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1263:                             ? score_from_tt(tte.score, ply) : ValueNone;
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1273:        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1274:         (tt_bound == BoundUpper && tt_score <= alpha))) {
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1289:            ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1290:             tt_bound == BoundExact)) {
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1329:            !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1390:                    origin_trace::store_attempt(origin_frame, "PROBCUT", value, score_to_tt(value, ply),
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1391:                        ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, alpha, beta);
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1393:                    store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1395:                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1470:            tt_bound != BoundUpper && tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1611:    const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1613:        origin_trace::store_attempt(origin_frame, "MAIN_FINAL", best_score, score_to_tt(best_score, ply),
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1616:        store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1618:        shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1625:        !(bound == BoundLower && best_score <= ss->static_eval) &&
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1626:        !(bound == BoundUpper && best_score >= ss->static_eval)) {
+/workspace/work/all-run/part4-origin-preparation/search-origin.cpp:1629:    return origin_trace::result(origin_frame, "MAIN_FINAL", best_score, alpha, beta);

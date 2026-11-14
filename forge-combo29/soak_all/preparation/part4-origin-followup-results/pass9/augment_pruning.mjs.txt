@@ -1,0 +1,33 @@
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {fileURLToPath} from 'node:url';
+const d=path.dirname(fileURLToPath(import.meta.url)),hash=s=>crypto.createHash('sha256').update(s).digest('hex');
+let source=fs.readFileSync(path.join(d,'search-origin.cpp'),'utf8'),helper=fs.readFileSync(path.join(d,'origin_trace.hpp'),'utf8');
+const plan=JSON.parse(fs.readFileSync(path.join(d,'native-plan.json.txt'),'utf8')),before={source:hash(source),helper:hash(helper)};if(before.source!==plan.sourceSha256||before.helper!==plan.helperSha256)throw Error('Pinned source changed');
+const changes=[];function edit(which,old,next){let s=which==='source'?source:helper;if(s.split(old).length!==2)throw Error('Nonunique anchor');s=s.replace(old,next);changes.push({which,old,next});if(which==='source')source=s;else helper=s;}
+edit('helper','} // namespace forge::origin_trace',`inline void picked_move(Frame& f, const char* reason, int source_line, Move move,
+    int depth, int alpha, int beta, int best_score, int move_count, bool quiet,
+    bool skip_quiets, int static_eval) {
+    if (f.id < 24345 || f.id > 24364) return;
+    emit("LATE_MOVE", [&](auto& out) { f.append(out);
+        out << " reason=" << reason << " source=search.cpp:" << source_line
+            << " move=" << move_text(move) << " current_depth=" << depth
+            << " alpha=" << alpha << " beta=" << beta << " best_score=" << best_score
+            << " move_count=" << move_count << " quiet=" << quiet
+            << " skip_quiets=" << skip_quiets << " static_eval=" << static_eval;
+    });
+}
+} // namespace forge::origin_trace`);
+const event=(reason,line)=>`origin_trace::picked_move(origin_frame, "${reason}", ${line}, move, depth, alpha, beta, best_score, move_count, quiet, skip_quiets, ss->static_eval);`;
+edit('source','        const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);',
+ '        const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);\n        '+event('LEGAL_PICKED',1390));
+edit('source','            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;',
+ '            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) {\n                skip_quiets = true;\n                '+event('LMP_SET_SKIP_QUIETS',1395)+'\n            }');
+edit('source','                    skip_quiets = true;\n                    continue;',
+ '                    skip_quiets = true;\n                    '+event('FUTILITY_SKIP_TAIL',1400)+'\n                    continue;');
+edit('source','                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;',
+ '                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) { '+event('HISTORY_SKIP',1403)+' continue; }');
+edit('source','                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;',
+ '                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) { '+event('SEE_QUIET_SKIP',1404)+' continue; }');
+fs.writeFileSync(path.join(d,'search-origin.cpp'),source);fs.writeFileSync(path.join(d,'origin_trace.hpp'),helper);
+plan.sourceSha256=hash(source);plan.helperSha256=hash(helper);plan.pruningObservationFrames=[24345,24364];fs.writeFileSync(path.join(d,'native-plan.json.txt'),JSON.stringify(plan,null,2)+'\n');
+let wrapper=fs.readFileSync(path.join(d,'execute_native_step.mjs'),'utf8').replaceAll(before.source,hash(source)).replaceAll(before.helper,hash(helper));fs.writeFileSync(path.join(d,'execute_native_step.mjs'),wrapper);
+fs.writeFileSync(path.join(d,'pruning-transformations.json.txt'),JSON.stringify(changes,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({before,after:{source:hash(source),helper:hash(helper)},observationFrames:[24345,24364]},null,2));

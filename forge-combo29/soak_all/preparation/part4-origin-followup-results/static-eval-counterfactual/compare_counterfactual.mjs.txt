@@ -1,0 +1,10 @@
+import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';
+const d=path.dirname(fileURLToPath(import.meta.url)),label=process.argv[2];if(!['off','qs','main','both'].includes(label))throw Error('Invalid variant');
+const load=name=>({name,summary:JSON.parse(fs.readFileSync(path.join(d,'runs',name,'summary.json.txt'),'utf8')),stdout:fs.readFileSync(path.join(d,'runs',name,'stdout.txt'),'utf8'),stderr:fs.readFileSync(path.join(d,'runs',name,'stderr.txt'),'utf8')});
+const base=load('baseline-r1'),a=load(label+'-r1'),b=load(label+'-r2'),norm=s=>s.replace(/ nps [0-9]+/g,'').replace(/ time [0-9]+/g,'');
+const final=r=>r.stdout.split('\n').findLast(l=>l.startsWith('info depth 13 '))??'';
+const complete=r=>r.summary.code===0&&r.summary.completed&&!r.summary.timedOut&&!r.summary.spawnError;
+const checks={complete:[base,a,b].every(complete),stderrEmpty:[base,a,b].every(r=>r.stderr===''),sameVariantBinary:a.summary.binarySha256===b.summary.binarySha256,repeatedNormalizedStdoutEqual:norm(a.stdout)===norm(b.stdout),expectedSettings:[base,a,b].every(r=>r.summary.settings.Threads===1&&r.summary.settings.Hash===16&&r.summary.settings.OwnBook===false&&r.summary.settings.UseNNUE===false&&r.summary.settings.depth===13)};
+if(label==='off')checks.defaultOffMatchesPinnedBaseline=norm(base.stdout)===norm(a.stdout);
+console.log(JSON.stringify({label,checks,changedAgainstBaseline:norm(base.stdout)!==norm(a.stdout),baselineFinal:final(base),variantFinal:final(a),baselineBestmove:base.stdout.match(/^bestmove .*$/m)?.[0],variantBestmove:a.stdout.match(/^bestmove .*$/m)?.[0]},null,2));
+if(Object.values(checks).some(x=>!x))process.exitCode=1;

@@ -1,0 +1,72 @@
++ wc -l /workspace/work/all-run/part4-origin-oracle/oracle_bounds.cpp /workspace/work/all-run/part4-origin-thirdpass/limiting-key-ledger.json.txt /workspace/work/all-run/part4-origin-fourthpass/prior-writer-subtree.json.txt
+    38 /workspace/work/all-run/part4-origin-oracle/oracle_bounds.cpp
+   595 /workspace/work/all-run/part4-origin-thirdpass/limiting-key-ledger.json.txt
+  1467 /workspace/work/all-run/part4-origin-fourthpass/prior-writer-subtree.json.txt
+  2100 total
++ cat /workspace/work/all-run/part4-origin-oracle/oracle_bounds.cpp /workspace/work/all-run/part4-origin-oracle/secondpass-mate-probes.txt /workspace/work/all-run/part4-origin-oracle/1-query-secondpass-mate-probes.json.txt
+#include "krk_oracle.hpp"
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+// Scratch diagnostic: exact KRK retrograde values, not an alpha-beta search.
+// This oracle ignores path repetition and the fifty-move rule.
+int main(int argc, char** argv) {
+    if (argc != 2) return 2;
+    std::ifstream input(argv[1]);
+    if (!input) return 3;
+    soak::KrkTablebase oracle;
+    std::string line;
+    while (std::getline(input, line)) {
+        std::istringstream row(line);
+        std::string tag, fen, raw_text, bound_text;
+        if (!std::getline(row, tag, '\t') || !std::getline(row, fen, '\t') ||
+            !std::getline(row, raw_text, '\t') || !std::getline(row, bound_text)) return 4;
+        const int raw = std::stoi(raw_text), bound = std::stoi(bound_text);
+        forge::Board board;
+        if (!board.set_fen(fen)) return 5;
+        const auto rook = board.pieces(forge::White, forge::Rook);
+        if (forge::popcount(rook) != 1 || forge::popcount(board.occupied()) != 3) return 6;
+        const int wk = board.king_square(forge::White), wr = forge::lsb(rook);
+        const int bk = board.king_square(forge::Black);
+        const int stm = board.side_to_move() == forge::White ? 0 : 1;
+        const bool legal = oracle.is_legal_state(wk, wr, bk, stm);
+        const int dtm = legal ? oracle.dtm(wk, wr, bk, stm) : -1;
+        const int exact = dtm < 0 ? 0 : (stm == 0 ? 32000 - dtm : -32000 + dtm);
+        const bool inequality = dtm >= 0 && (bound == 1 ? exact <= raw :
+            bound == 2 ? exact >= raw : bound == 3 && exact == raw);
+        std::cout << tag << "\tfen=" << fen << "\tlegal=" << legal << "\tdtm=" << dtm
+                  << "\texact_normalized=" << exact << "\traw=" << raw << "\tbound=" << bound
+                  << "\tbound_relation=" << inequality << "\tclock_plus_dtm="
+                  << board.halfmove_clock() + dtm << '\n';
+    }
+}
+23228	8/8/8/8/8/5R2/1k6/3K4 w - - 12 7	31985	2
+23229	8/8/8/8/8/3R4/1k6/3K4 b - - 13 7	-31986	1
+23230	8/8/8/8/8/3R4/8/1k1K4 w - - 14 8	31993	2
+23231	8/8/8/8/8/8/3R4/1k1K4 b - - 15 8	-31994	1
+23232	8/8/8/8/8/3R4/k7/3K4 w - - 14 8	31997	2
+23233	8/8/8/8/8/3R4/8/k2K4 w - - 14 8	31987	2
+23234	8/8/8/8/8/5R2/k7/3K4 w - - 12 7	31997	2
+23241	8/8/8/8/8/5R2/8/k1K5 b - - 13 7	-31996	1
+23242	8/8/8/8/8/5R2/8/k1K5 b - - 13 7	-31996	1
+23243	8/8/8/8/8/5R2/k2K4/8 w - - 10 6	31997	2
+23244	8/8/8/8/8/5R2/3K4/k7 w - - 10 6	31995	2
+{
+  "started": "2026-11-14T17:28:24.657Z",
+  "ended": "2026-11-14T17:28:24.785Z",
+  "wallMs": 127,
+  "cwd": "/workspace/work/all-run/part4-origin-oracle",
+  "argv": [
+    "timeout",
+    "450",
+    "/workspace/work/all-run/part4-origin-oracle/oracle_bounds",
+    "/workspace/work/all-run/part4-origin-oracle/secondpass-mate-probes.txt"
+  ],
+  "exit": 0,
+  "signal": null,
+  "error": null,
+  "stdout": "23228\tfen=8/8/8/8/8/5R2/1k6/3K4 w - - 12 7\tlegal=1\tdtm=7\texact_normalized=31993\traw=31985\tbound=2\tbound_relation=1\tclock_plus_dtm=19\n23229\tfen=8/8/8/8/8/3R4/1k6/3K4 b - - 13 7\tlegal=1\tdtm=8\texact_normalized=-31992\traw=-31986\tbound=1\tbound_relation=1\tclock_plus_dtm=21\n23230\tfen=8/8/8/8/8/3R4/8/1k1K4 w - - 14 8\tlegal=1\tdtm=7\texact_normalized=31993\traw=31993\tbound=2\tbound_relation=1\tclock_plus_dtm=21\n23231\tfen=8/8/8/8/8/8/3R4/1k1K4 b - - 15 8\tlegal=1\tdtm=6\texact_normalized=-31994\traw=-31994\tbound=1\tbound_relation=1\tclock_plus_dtm=21\n23232\tfen=8/8/8/8/8/3R4/k7/3K4 w - - 14 8\tlegal=1\tdtm=3\texact_normalized=31997\traw=31997\tbound=2\tbound_relation=1\tclock_plus_dtm=17\n23233\tfen=8/8/8/8/8/3R4/8/k2K4 w - - 14 8\tlegal=1\tdtm=5\texact_normalized=31995\traw=31987\tbound=2\tbound_relation=1\tclock_plus_dtm=19\n23234\tfen=8/8/8/8/8/5R2/k7/3K4 w - - 12 7\tlegal=1\tdtm=3\texact_normalized=31997\traw=31997\tbound=2\tbound_relation=1\tclock_plus_dtm=15\n23241\tfen=8/8/8/8/8/5R2/8/k1K5 b - - 13 7\tlegal=1\tdtm=4\texact_normalized=-31996\traw=-31996\tbound=1\tbound_relation=1\tclock_plus_dtm=17\n23242\tfen=8/8/8/8/8/5R2/8/k1K5 b - - 13 7\tlegal=1\tdtm=4\texact_normalized=-31996\traw=-31996\tbound=1\tbound_relation=1\tclock_plus_dtm=17\n23243\tfen=8/8/8/8/8/5R2/k2K4/8 w - - 10 6\tlegal=1\tdtm=3\texact_normalized=31997\traw=31997\tbound=2\tbound_relation=1\tclock_plus_dtm=13\n23244\tfen=8/8/8/8/8/5R2/3K4/k7 w - - 10 6\tlegal=1\tdtm=5\texact_normalized=31995\traw=31995\tbound=2\tbound_relation=1\tclock_plus_dtm=15\n",
+  "stderr": ""
+}

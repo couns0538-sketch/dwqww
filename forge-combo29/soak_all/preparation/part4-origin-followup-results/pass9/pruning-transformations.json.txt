@@ -1,0 +1,32 @@
+[
+  {
+    "which": "helper",
+    "old": "} // namespace forge::origin_trace",
+    "next": "inline void picked_move(Frame& f, const char* reason, int source_line, Move move,\n    int depth, int alpha, int beta, int best_score, int move_count, bool quiet,\n    bool skip_quiets, int static_eval) {\n    if (f.id < 24345 || f.id > 24364) return;\n    emit(\"LATE_MOVE\", [&](auto& out) { f.append(out);\n        out << \" reason=\" << reason << \" source=search.cpp:\" << source_line\n            << \" move=\" << move_text(move) << \" current_depth=\" << depth\n            << \" alpha=\" << alpha << \" beta=\" << beta << \" best_score=\" << best_score\n            << \" move_count=\" << move_count << \" quiet=\" << quiet\n            << \" skip_quiets=\" << skip_quiets << \" static_eval=\" << static_eval;\n    });\n}\n} // namespace forge::origin_trace"
+  },
+  {
+    "which": "source",
+    "old": "        const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);",
+    "next": "        const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);\n        origin_trace::picked_move(origin_frame, \"LEGAL_PICKED\", 1390, move, depth, alpha, beta, best_score, move_count, quiet, skip_quiets, ss->static_eval);"
+  },
+  {
+    "which": "source",
+    "old": "            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;",
+    "next": "            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) {\n                skip_quiets = true;\n                origin_trace::picked_move(origin_frame, \"LMP_SET_SKIP_QUIETS\", 1395, move, depth, alpha, beta, best_score, move_count, quiet, skip_quiets, ss->static_eval);\n            }"
+  },
+  {
+    "which": "source",
+    "old": "                    skip_quiets = true;\n                    continue;",
+    "next": "                    skip_quiets = true;\n                    origin_trace::picked_move(origin_frame, \"FUTILITY_SKIP_TAIL\", 1400, move, depth, alpha, beta, best_score, move_count, quiet, skip_quiets, ss->static_eval);\n                    continue;"
+  },
+  {
+    "which": "source",
+    "old": "                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;",
+    "next": "                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) { origin_trace::picked_move(origin_frame, \"HISTORY_SKIP\", 1403, move, depth, alpha, beta, best_score, move_count, quiet, skip_quiets, ss->static_eval); continue; }"
+  },
+  {
+    "which": "source",
+    "old": "                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;",
+    "next": "                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) { origin_trace::picked_move(origin_frame, \"SEE_QUIET_SKIP\", 1404, move, depth, alpha, beta, best_score, move_count, quiet, skip_quiets, ss->static_eval); continue; }"
+  }
+]

@@ -1,0 +1,32 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+const d=path.dirname(fileURLToPath(import.meta.url));
+const previous='/workspace/work/all-run/part4-origin-secondpass';
+const hash=s=>crypto.createHash('sha256').update(s).digest('hex');
+const read=n=>fs.readFileSync(path.join(previous,n),'utf8');
+const write=(n,s)=>fs.writeFileSync(path.join(d,n),s,{flag:'wx'});
+let source=read('search-origin-second.cpp'),helper=read('origin_trace_second.hpp');
+if(hash(source)!=='cb1636708511d8448bdbcd111b5791be06b2d9d90566d373089f182608c6dd45'||hash(helper)!=='12d900c0ac9480bc064f00f3b1775c578607afc7f397f2d2030bec44f32d21f0')throw Error('Second-pass input changed');
+const changes=[];
+function replace(which,old,next,label,count=1){let s=which==='source'?source:helper;if(s.split(old).length!==count+1)throw Error(label);s=s.split(old).join(next);changes.push({which,label,old,next});if(which==='source')source=s;else helper=s;}
+replace('source','origin_trace_second.hpp','origin_trace_third.hpp','fresh helper');
+replace('helper','entry_key == target_key() || subtree','entry_key == target_key() || entry_key == 1726806482296082090ULL || subtree','add actual limiting child key');
+replace('source','(origin_trace::subtree_active() || index == static_cast<std::size_t>(&cluster_for(origin_trace::target_key()) - clusters_.get()))',
+ '(origin_trace::subtree_active() || index == static_cast<std::size_t>(&cluster_for(origin_trace::target_key()) - clusters_.get()) || index == static_cast<std::size_t>(&cluster_for(1726806482296082090ULL) - clusters_.get()))','watch second physical cluster');
+replace('source','(origin_trace::subtree_active() || probe.cluster_ == static_cast<std::size_t>(&cluster_for(origin_trace::target_key()) - clusters_.get()))',
+ '(origin_trace::subtree_active() || probe.cluster_ == static_cast<std::size_t>(&cluster_for(origin_trace::target_key()) - clusters_.get()) || probe.cluster_ == static_cast<std::size_t>(&cluster_for(1726806482296082090ULL) - clusters_.get()))','watch second actual store admission');
+write('search-origin-third.cpp',source);write('origin_trace_third.hpp',helper);
+write('transformations.json.txt',JSON.stringify(changes,null,2)+'\n');
+for(const n of ['repro_driver.mjs','compare_runs.mjs','readonly-inputs.sha256.txt','source-line-map.json.txt'])write(n,read(n));
+const plan=JSON.parse(read('native-plan.json.txt'));const rename=s=>s.replaceAll(previous,d).replaceAll('search-origin-second','search-origin-third').replaceAll('forge-origin-second','forge-origin-third');
+plan.steps=plan.steps.map(s=>({...s,argv:s.argv.map(rename)}));plan.cwd=d;plan.status='ROOT_AUTHORIZED_PRIVATE_THIRD_PASS';plan.extraWatchedKey='1726806482296082090';plan.sourceSha256=hash(source);plan.helperSha256=hash(helper);
+write('native-plan.json.txt',JSON.stringify(plan,null,2)+'\n');
+write('execute_native_step.mjs',rename(read('execute_native_step.mjs')).replaceAll('origin_trace_second.hpp','origin_trace_third.hpp').replace('cb1636708511d8448bdbcd111b5791be06b2d9d90566d373089f182608c6dd45',hash(source)).replace('12d900c0ac9480bc064f00f3b1775c578607afc7f397f2d2030bec44f32d21f0',hash(helper)));
+const unchanged=read('readonly-inputs.sha256.txt').trim().split('\n').map(line=>{const [expected,file]=line.split('  ');const actual=hash(fs.readFileSync(file));return{file,expected,actual,unchanged:actual===expected};});
+write('readonly-inputs-after-secondpass.json.txt',JSON.stringify({checked:new Date().toISOString(),allUnchanged:unchanged.every(x=>x.unchanged),files:unchanged},null,2)+'\n');
+if(unchanged.some(x=>!x.unchanged))throw Error('Original input changed');
+const argv=['git','diff','--no-index','--',path.join(previous,'search-origin-second.cpp'),path.join(d,'search-origin-third.cpp')];const diff=spawnSync(argv[0],argv.slice(1),{encoding:'utf8'});write('incremental-instrumentation.diff.txt',diff.stdout);write('diff-command-result.txt',JSON.stringify({argv,exit:diff.status,stdout:diff.stdout,stderr:diff.stderr},null,2)+'\n');
+console.log(JSON.stringify({sourceSha256:hash(source),helperSha256:hash(helper),allOriginalInputsUnchanged:true,extraWatchedKey:plan.extraWatchedKey},null,2));

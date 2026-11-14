@@ -1,0 +1,26 @@
+[
+  {
+    "which": "source",
+    "label": "fresh helper",
+    "old": "origin_trace_second.hpp",
+    "next": "origin_trace_third.hpp"
+  },
+  {
+    "which": "helper",
+    "label": "add actual limiting child key",
+    "old": "entry_key == target_key() || subtree",
+    "next": "entry_key == target_key() || entry_key == 1726806482296082090ULL || subtree"
+  },
+  {
+    "which": "source",
+    "label": "watch second physical cluster",
+    "old": "(origin_trace::subtree_active() || index == static_cast<std::size_t>(&cluster_for(origin_trace::target_key()) - clusters_.get()))",
+    "next": "(origin_trace::subtree_active() || index == static_cast<std::size_t>(&cluster_for(origin_trace::target_key()) - clusters_.get()) || index == static_cast<std::size_t>(&cluster_for(1726806482296082090ULL) - clusters_.get()))"
+  },
+  {
+    "which": "source",
+    "label": "watch second actual store admission",
+    "old": "(origin_trace::subtree_active() || probe.cluster_ == static_cast<std::size_t>(&cluster_for(origin_trace::target_key()) - clusters_.get()))",
+    "next": "(origin_trace::subtree_active() || probe.cluster_ == static_cast<std::size_t>(&cluster_for(origin_trace::target_key()) - clusters_.get()) || probe.cluster_ == static_cast<std::size_t>(&cluster_for(1726806482296082090ULL) - clusters_.get()))"
+  }
+]

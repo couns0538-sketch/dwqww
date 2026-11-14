@@ -1,0 +1,35 @@
+diff --git a/workspace/work/all-run/part4-origin-preparation/pinned-search.cpp b/workspace/work/all-run/part4-static-eval-counterfactual/search-counterfactual.cpp
+index 80dd69a..138d082 100644
+--- a/workspace/work/all-run/part4-origin-preparation/pinned-search.cpp
++++ b/workspace/work/all-run/part4-static-eval-counterfactual/search-counterfactual.cpp
+@@ -1,6 +1,14 @@
+ #include "forge/search.hpp"
+ #include "forge/uci_output.hpp"
+ 
++// Private counterfactual only; both switches default off.
++#ifndef FORGE_PART4_NO_MATE_QS_EVAL
++#define FORGE_PART4_NO_MATE_QS_EVAL 0
++#endif
++#ifndef FORGE_PART4_NO_MATE_MAIN_EVAL
++#define FORGE_PART4_NO_MATE_MAIN_EVAL 0
++#endif
++
+ #include <algorithm>
+ #include <cmath>
+ #include <cstring>
+@@ -1090,6 +1098,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+         else ss->raw_eval = static_evaluate(board, ss);
+         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+         if (tt_hit && tt_score != ValueNone &&
++            (!FORGE_PART4_NO_MATE_QS_EVAL || !is_mate_score(tt_score)) &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+             eval = tt_score;
+@@ -1242,6 +1251,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         else ss->raw_eval = static_evaluate(board, ss);
+         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+         if (tt_hit && tt_score != ValueNone &&
++            (!FORGE_PART4_NO_MATE_MAIN_EVAL || !is_mate_score(tt_score)) &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+             eval = tt_score;

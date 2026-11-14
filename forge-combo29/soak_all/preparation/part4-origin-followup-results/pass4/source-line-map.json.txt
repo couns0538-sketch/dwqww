@@ -1,0 +1,177 @@
+[
+  {
+    "type": "return",
+    "sourceLine": 1045,
+    "original": "    if (aborted_) return 0;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1050,
+    "original": "    if (is_draw(board, ply)) return 0;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1051,
+    "original": "    if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1059,
+    "original": "        if (alpha >= beta) return alpha;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1146,
+    "original": "        if (aborted_) return 0;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1161,
+    "original": "    if (in_check && move_count == 0) return mated_in(ply);"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1186,
+    "original": "    if (aborted_) return 0;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1193,
+    "original": "        if (is_draw(board, ply)) return 0;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1194,
+    "original": "        if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1198,
+    "original": "        if (alpha >= beta) return alpha;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1272,
+    "original": "            if (aborted_) return 0;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1273,
+    "original": "            if (razor < alpha) return razor;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1278,
+    "original": "            return eval;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1300,
+    "original": "            if (aborted_) return 0;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1305,
+    "original": "                    return null_score;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1312,
+    "original": "                if (aborted_) return 0;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1315,
+    "original": "                    return null_score;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1343,
+    "original": "                if (aborted_) return 0;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1432,
+    "original": "            if (aborted_) return 0;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1439,
+    "original": "                return singular_beta;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1518,
+    "original": "        if (aborted_) return 0;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1543,
+    "original": "        if (!excluded.is_none()) return alpha;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1544,
+    "original": "        if (root_node && root_restricted_) return 0;"
+  },
+  {
+    "type": "return",
+    "sourceLine": 1545,
+    "original": "        return in_check ? mated_in(ply) : 0;"
+  },
+  {
+    "type": "child-call",
+    "sourceLine": 1144,
+    "expression": "qsearch(board, ss + 1, -beta, -alpha)"
+  },
+  {
+    "type": "child-call",
+    "sourceLine": 1271,
+    "expression": "qsearch(board, ss, alpha - 1, alpha)"
+  },
+  {
+    "type": "child-call",
+    "sourceLine": 1298,
+    "expression": "search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node)"
+  },
+  {
+    "type": "child-call",
+    "sourceLine": 1309,
+    "expression": "search(board, ss, depth - reduction, beta - 1, beta, false)"
+  },
+  {
+    "type": "child-call",
+    "sourceLine": 1338,
+    "expression": "qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1)"
+  },
+  {
+    "type": "child-call",
+    "sourceLine": 1340,
+    "expression": "search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node)"
+  },
+  {
+    "type": "child-call",
+    "sourceLine": 1428,
+    "expression": "search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node)"
+  },
+  {
+    "type": "child-call",
+    "sourceLine": 1493,
+    "expression": "search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true)"
+  },
+  {
+    "type": "child-call",
+    "sourceLine": 1502,
+    "expression": "search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node)"
+  },
+  {
+    "type": "child-call",
+    "sourceLine": 1512,
+    "expression": "search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node)"
+  },
+  {
+    "type": "child-call",
+    "sourceLine": 1515,
+    "expression": "search(board, ss + 1, new_depth, -beta, -alpha, false)"
+  }
+]

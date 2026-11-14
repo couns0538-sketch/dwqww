@@ -1,0 +1,181 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6f..b1bb75e9 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -270,6 +270,36 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
++extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++// Per-case arms. FollowOption tracks SoundMatePruning. Tests force one arm
++// without the other two. Defaults leave the option's on/off behavior unchanged.
++enum class SoundPruneArm : std::uint8_t { FollowOption, ForceOff, ForceOn };
++inline SoundPruneArm SoundArmPv = SoundPruneArm::FollowOption;
++inline SoundPruneArm SoundArmInCheck = SoundPruneArm::FollowOption;
++inline SoundPruneArm SoundArmMateAlpha = SoundPruneArm::FollowOption;
++[[nodiscard]] inline bool sound_arm_enabled(SoundPruneArm arm) {
++    switch (arm) {
++    case SoundPruneArm::ForceOn:
++        return true;
++    case SoundPruneArm::ForceOff:
++        return false;
++    case SoundPruneArm::FollowOption:
++        return SoundMatePruning;
++    }
++    return SoundMatePruning;
++}
++// Counting is off unless a test turns it on. The search does not read the counts.
++inline bool SoundPruneTrace = false;
++struct SoundPruneTraceCounts {
++    std::uint64_t pv = 0;
++    std::uint64_t in_check = 0;
++    std::uint64_t mate_alpha = 0;
++    std::uint64_t quiet_check_after_quiet_fail = 0;
++    std::uint64_t quiet_check_on_pv = 0;
++    std::uint64_t quiet_check_in_check = 0;
++    std::uint64_t quiet_check_on_mate_alpha = 0;
++};
++inline SoundPruneTraceCounts sound_prune_trace{};
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a6..91ced03b 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -77,6 +77,7 @@ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
++bool SoundMatePruning = false;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -1371,6 +1372,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     Move best_move = Move::none();
+     int move_count = 0;
+     bool skip_quiets = false;
++    bool quiet_fail = false;
+     const bool has_material = board.has_non_pawn_material(board.side_to_move());
+ 
+     Move move;
+@@ -1390,18 +1392,61 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
+ 
+         // Shallow-depth pruning of unpromising moves.
+-        if (mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
++        // Off by default, so the predicate below is the historical guard.
++        // Each SoundMatePruning arm skips this block in one case: a
++        // principal-variation node, in check, or alpha already a mate score.
++        // Dropping a move there can hide a faster mate and still store an
++        // exact transposition bound. FollowOption tracks the UCI option.
++        const bool sound_mate_case =
++            (tune::sound_arm_enabled(tune::SoundArmPv) && pv_node) ||
++            (tune::sound_arm_enabled(tune::SoundArmInCheck) && in_check) ||
++            (tune::sound_arm_enabled(tune::SoundArmMateAlpha) && is_mate_score(alpha));
++        if (!sound_mate_case && mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
+             best_score > -MateInMaxPly && has_material && !bare_king_mode) {
++            // Trace stays off in normal play. It records which case skipped a
++            // move, including a quiet check that follows an earlier quiet skip.
++            auto trace_case = [&]() {
++                if (!tune::SoundPruneTrace) return;
++                if (pv_node) ++tune::sound_prune_trace.pv;
++                if (in_check) ++tune::sound_prune_trace.in_check;
++                if (is_mate_score(alpha)) ++tune::sound_prune_trace.mate_alpha;
++            };
++            auto note_deferred_quiet_checks = [&]() {
++                if (!tune::SoundPruneTrace || !quiet_fail) return;
++                for (const Move candidate : board.legal_moves()) {
++                    if (candidate.is_capture() || candidate.is_promotion() || !board.gives_check(candidate)) continue;
++                    bool seen = candidate == move;
++                    for (int i = 0; i < quiet_count && !seen; ++i) seen = quiets_tried[static_cast<std::size_t>(i)] == candidate;
++                    for (int i = 0; i < capture_count && !seen; ++i) seen = captures_tried[static_cast<std::size_t>(i)] == candidate;
++                    if (seen) continue;
++                    trace_case();
++                    ++tune::sound_prune_trace.quiet_check_after_quiet_fail;
++                    if (pv_node) ++tune::sound_prune_trace.quiet_check_on_pv;
++                    if (in_check) ++tune::sound_prune_trace.quiet_check_in_check;
++                    if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
++                }
++            };
+             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             if (quiet && !gives_check) {
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
++                    trace_case();
++                    quiet_fail = true;
+                     skip_quiets = true;
++                    note_deferred_quiet_checks();
++                    continue;
++                }
++                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
++                    trace_case();
++                    quiet_fail = true;
++                    continue;
++                }
++                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
++                    trace_case();
++                    quiet_fail = true;
+                     continue;
+                 }
+-                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;
+-                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;
+             } else {
+                 // Futility pruning for captures: even winning the piece cannot
+                 // bring the position back to alpha.
+@@ -1409,11 +1454,21 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     lmr_depth <= tune::CaptureFutilityDepth &&
+                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+                             capture_value(board, move) + history / 8 <= alpha) {
++                    trace_case();
+                     continue;
+                 }
+                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+-                    !board.see_ge(move, see_threshold)) continue;
++                    !board.see_ge(move, see_threshold)) {
++                    trace_case();
++                    if (tune::SoundPruneTrace && quiet && gives_check && quiet_fail) {
++                        ++tune::sound_prune_trace.quiet_check_after_quiet_fail;
++                        if (pv_node) ++tune::sound_prune_trace.quiet_check_on_pv;
++                        if (in_check) ++tune::sound_prune_trace.quiet_check_in_check;
++                        if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
++                    }
++                    continue;
++                }
+             }
+         }
+ 
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f892..126d521a 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -188,7 +188,8 @@ int uci_loop(std::istream& in) {
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+-                         "option name LmrDeeperShallower type check default false\n";
++                         "option name LmrDeeperShallower type check default false\n"
++                         "option name SoundMatePruning type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them. Builds without this macro still accept them.
+@@ -310,6 +311,17 @@ int uci_loop(std::istream& in) {
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "SoundMatePruning") {
++                if (value_text == "true" || value_text == "false") {
++                    const bool enabled = value_text == "true";
++                    if (forge::tune::SoundMatePruning != enabled) {
++                        forge::tune::SoundMatePruning = enabled;
++                        // Scores already stored were built with the other guard.
++                        searcher.clear();
++                    }
++                } else {
++                    note_invalid();
++                }
+             } else if (name == "MultiPV") {
+                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+             } else if (name == "Hash") {
