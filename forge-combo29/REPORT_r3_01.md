@@ -84,5 +84,8 @@ Cumulative score, option on first. Elo is fastchess logistic Elo with the printe
 | 501 | 1000 | 198-319-483 | -42.25 +/- 14.13 | 0.00% | 35, 167, 194, 92, 12 |
 | 1001 | 1000 | 210-319-471 | -38.02 +/- 14.52 | 0.00% | 34, 167, 192, 88, 19 |
 | 1501 | 1000 | 195-318-487 | -42.95 +/- 13.78 | 0.00% | 29, 171, 211, 72, 17 |
+| 2001 | 1000 | 229-295-476 | -22.96 +/- 14.18 | 0.07% | 35, 131, 215, 103, 16 |
 
-Cumulative after start 1501, 4000 games: 819-1275-1906. Elo -39.78 +/- 7.07, LOS 0.00%, Ptnml(0-2) 129, 666, 803, 336, 66. The cumulative Elo uses the same pentanomial calculation as fastchess 1.8.3. Further chunks are still running.
+Cumulative of the five finished chunks, 5000 games: 1048-1570-2382. Elo -36.40 +/- 6.33, LOS 0.00%, Ptnml(0-2) 164, 797, 1018, 439, 82. The cumulative Elo uses the same pentanomial calculation as fastchess 1.8.3.
+
+Chunk start 2501 was stopped unfinished. Its PGN has 105 games, 20-28-57 for the option on, and fastchess had not printed a final result line. Those games are not in the cumulative Elo. No further chunk was started.
