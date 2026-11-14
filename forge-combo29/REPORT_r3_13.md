@@ -51,6 +51,8 @@ Exit code 0. A second run of that binary printed the same two lines. No address 
 
 The release binary was asked again, with Threads 1, Hash 16, and OwnBook false. Defaults stayed bench 11 = 312866, bench 13 = 862329, and start-position perft 5 = 4865609. With the option on, bench 13 stayed 602141. Turning the option off returned bench 13 to 862329. That UCI re-check was repeated and the node counts did not move.
 
+The closing pass at 14:38 UTC did the same. The release UCI loop printed bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609, then bench 13 = 602141 with the option on, then bench 13 = 862329 with it off. The sanitized binary printed the same pin line and `searches 200 illegal 0 nodes 3592220 bench13_restored 862329`, and exited 0.
+
 No strength claim is made. No games were played.
 
 setoption name QuietExtinction value true
