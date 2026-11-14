@@ -14,16 +14,18 @@ It has 66 pseudo-legal captures, and `see_ge(move, 0)` is false for every one of
 
 ## The fix
 
-Both `bad_captures_` arrays are now `MoveList::Capacity` (256) entries, the same bound as `moves_`, which already holds every generated capture. Every losing capture is still stored, in the same order. The bench and perft node counts measured below match the lock.
+Both `bad_captures_` arrays are now `MoveList::Capacity` (256) entries, the same bound as `moves_`, which already holds every generated capture. Every losing capture is still stored, in the same order. The bench and perft node counts measured below match the lock. A finite search that is not ponder now finishes when stdin closes, so `forge < tests_t2/losing_captures.uci` reaches the picker. `stop`, `quit`, `go infinite`, and ponder still abort.
 
 ## Files changed
 
 - `forge-combo29/src/search.cpp`
+- `forge-combo29/src/uci.cpp`
 - `forge-combo29/tests_t2/losing_captures.uci`
 - `forge-combo29/tests_t2/losing_captures.expected.txt`
+- `forge-combo29/tests_t2/losing_captures.cpp`
 - `forge-combo29/REPORT_t2.md`
 
-The engine diff is the two array bounds plus the comment above them.
+The engine diff is the two array bounds, the comment above them, and the stdin wait in `uci.cpp`.
 
 ## Build
 
@@ -45,7 +47,7 @@ cmake -S forge-combo29 -B /tmp/forge-lock-asan -DCMAKE_BUILD_TYPE=Release -DCMAK
 cmake --build /tmp/forge-lock-asan -j
 ```
 
-`go` starts the search on a worker and returns to the UCI loop. A following `quit`, or closing stdin, calls `stop_search()` before that worker reaches the move picker. The test keeps the input open until `bestmove` is printed, then sends `quit`. The commands below are what was run.
+`go` starts the search on a worker and returns to the UCI loop. On the lock, a following `quit` or a closed stdin calls `stop_search()` before that worker reaches the move picker, and the overflow position then prints `bestmove h2f1`. The redirected run in "Redirected UCI fixture" is the check that the search now happens. The lock crash logs below used a pipe that stayed open until `bestmove` or the process died, because the lock itself aborts on EOF.
 
 ## Losing-capture count
 
@@ -529,9 +531,35 @@ nodes 4865609
 
 `nodes 4865609`. That is the lock pin.
 
+These three commands were run again after the stdin change below. Node counts were the same: bench 11 `312866` (time 158), bench 13 `862329` (time 427), perft 5 `4865609`.
+
+## Redirected UCI fixture
+
+Closing stdin used to call `stop_search()` at the end of the UCI loop, which cancelled a finite `go` before the worker reached the move picker. `forge < tests_t2/losing_captures.uci` then printed `bestmove h2f1`. A finite search (not `infinite`, not `ponder`) now finishes when stdin closes. `stop` and `quit` still abort. `go infinite` still stops on EOF: that command printed `bestmove a2a3` and exited 0. `go depth 20` followed by `quit` also returned immediately with `bestmove a2a3` and no completed `info depth` line.
+
+```
+/tmp/forge-lock-rel/forge < forge-combo29/tests_t2/losing_captures.uci
+```
+
+Exit status 0. stderr was empty. The option list matches the bench runs above. The search lines were:
+
+```
+info depth 1 seldepth 9 score mate 1 nodes 186 nps 0 hashfull 0 time 0 pv b4a3
+bestmove b4a3
+```
+
+`grep '^bestmove '` of that stdout compared equal to `tests_t2/losing_captures.expected.txt`.
+
+The same redirection under AddressSanitizer and UBSan (`ASAN_OPTIONS=halt_on_error=1:abort_on_error=1:detect_leaks=0:symbolize=1`, `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`) exited 0, stderr empty, and printed:
+
+```
+info depth 1 seldepth 9 score mate 1 nodes 186 nps 46500 hashfull 0 time 4 pv b4a3
+bestmove b4a3
+```
+
 ## In-process test
 
-`tests_t2/losing_captures.uci` is the position and the options. Feeding that file with `forge < tests_t2/losing_captures.uci` closes stdin as soon as `go` is read, and `main` then calls `stop_search()` before the worker reaches the move picker. That stopped search prints `bestmove h2f1` and does not exercise the overflow. The regression check is `tests_t2/losing_captures.cpp`, which calls `Searcher::search` at depth 1 with a 16 MB hash and one thread.
+`tests_t2/losing_captures.cpp` calls `Searcher::search` at depth 1 with a 16 MB hash and one thread. It does not go through the UCI loop.
 
 Objects come from the release build above, excluding `uci.cpp.o` (that file defines `main`). Same defines as `flags.make`.
 
@@ -578,7 +606,7 @@ Exit status 0. stderr was empty (0 bytes).
 
 ## Test, release
 
-Fixed release binary. stdin is `forge-combo29/tests_t2/losing_captures.uci`, held open until `bestmove`, then `quit`. This is the same position as the in-process test. It is not what `forge < tests_t2/losing_captures.uci` does.
+Fixed release binary. The same UCI commands as `tests_t2/losing_captures.uci`, with stdin held open until `bestmove` and then `quit`. The redirected run above is the form that matches the file.
 
 ```
 grep '^bestmove ' /tmp/forge-out/rel-go.out | cmp - forge-combo29/tests_t2/losing_captures.expected.txt
