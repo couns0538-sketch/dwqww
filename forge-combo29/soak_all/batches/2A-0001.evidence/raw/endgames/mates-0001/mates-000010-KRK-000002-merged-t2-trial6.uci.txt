@@ -1,0 +1,362 @@
+> stdin uci
+< stdout id name Chess Engine Forge 6.4.24 candidate
+< stdout id author OpenAI
+< stdout option name Hash type spin default 32 min 1 max 2048
+< stdout option name Threads type spin default 1 min 1 max 256
+< stdout option name MultiPV type spin default 1 min 1 max 8
+< stdout option name Move Overhead type spin default 10 min 0 max 1000
+< stdout option name Ponder type check default false
+< stdout option name OwnBook type check default true
+< stdout option name Book File type string default <empty>
+< stdout option name Book Depth type spin default 30 min 0 max 100
+< stdout option name Book Variety type spin default 30 min 0 max 100
+< stdout option name UseNNUE type check default true
+< stdout option name NnueFile type string default <empty>
+< stdout option name ContHist4PlyRead type check default false
+< stdout option name NonPawnCorrection type check default false
+< stdout option name LmrDeeperShallower type check default false
+< stdout option name LmrQuietBase type spin default 85 min 0 max 300
+< stdout option name LmrQuietDivisor type spin default 220 min 100 max 500
+< stdout option name LmrNoisyBase type spin default 10 min 0 max 300
+< stdout option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< stdout option name NullMoveMinDepth type spin default 3 min 1 max 10
+< stdout option name NullMoveBase type spin default 3 min 1 max 6
+< stdout option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< stdout option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< stdout option name RfpDepth type spin default 8 min 0 max 15
+< stdout option name RfpMargin type spin default 72 min 10 max 300
+< stdout option name RfpImproving type spin default 40 min 0 max 200
+< stdout option name RazorDepth type spin default 2 min 0 max 6
+< stdout option name RazorBase type spin default 150 min 0 max 1000
+< stdout option name RazorMultiplier type spin default 350 min 0 max 1000
+< stdout option name FutilityDepth type spin default 7 min 0 max 15
+< stdout option name FutilityBase type spin default 100 min 0 max 500
+< stdout option name FutilityMultiplier type spin default 110 min 0 max 500
+< stdout option name LmpBase type spin default 4 min 0 max 20
+< stdout option name HistoryPruneDepth type spin default 3 min 0 max 10
+< stdout option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+< stdout option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< stdout option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< stdout option name SingularDepth type spin default 7 min 2 max 20
+< stdout option name SingularMargin type spin default 2 min 0 max 10
+< stdout option name IirDepth type spin default 4 min 1 max 20
+< stdout option name ProbcutDepth type spin default 5 min 1 max 20
+< stdout option name ProbcutMargin type spin default 180 min 0 max 1000
+< stdout option name QsFutilityMargin type spin default 160 min 0 max 1000
+< stdout option name QsSeeMargin type spin default 40 min 0 max 500
+< stdout option name AspirationDelta type spin default 18 min 4 max 200
+< stdout option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+< stdout option name HistoryBonusLinear type spin default 48 min 0 max 500
+< stdout option name HistoryBonusMax type spin default 2048 min 100 max 10000
+< stdout option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< stdout option name CheckExtensionDepth type spin default 2 min 1 max 30
+< stdout option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< stdout option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+< stdout option name TmSoftDivisor type spin default 22 min 5 max 80
+< stdout option name TmIncrementPercent type spin default 75 min 0 max 150
+< stdout option name TmHardPercent type spin default 60 min 10 max 95
+< stdout option name TmHardSoftMultiple type spin default 5 min 1 max 20
+< stdout option name TmStableFactor type spin default 60 min 20 max 150
+< stdout option name TmSemiStableFactor type spin default 80 min 20 max 150
+< stdout option name TmUnstableFactor type spin default 140 min 50 max 300
+< stdout option name TmEffortBase type spin default 155 min 100 max 250
+< stdout option name TmFallingEvalPercent type spin default 100 min 0 max 400
+< stdout option name TmMinFactorPercent type spin default 45 min 10 max 100
+< stdout option name CaptureFutilityBase type spin default 0 min 0 max 1000
+< stdout option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+< stdout option name CaptureFutilityDepth type spin default 6 min 0 max 15
+< stdout option name FailLowContinuationBonus type spin default 0 min 0 max 300
+< stdout option name Clear Hash type button
+< stdout uciok
+> stdin setoption name Threads value 2
+> stdin setoption name Hash value 16
+> stdin setoption name OwnBook value false
+> stdin isready
+< stdout readyok
+> stdin position fen 8/2R5/8/8/2K5/8/8/1k6 w - - 0 1
+> stdin go perft 1
+< stdout c7c5: 1
+< stdout c7c6: 1
+< stdout c7a7: 1
+< stdout c7b7: 1
+< stdout c7d7: 1
+< stdout c7e7: 1
+< stdout c7f7: 1
+< stdout c7g7: 1
+< stdout c7h7: 1
+< stdout c7c8: 1
+< stdout c4b3: 1
+< stdout c4c3: 1
+< stdout c4d3: 1
+< stdout c4b4: 1
+< stdout c4d4: 1
+< stdout c4b5: 1
+< stdout c4c5: 1
+< stdout c4d5: 1
+< stdout nodes 18
+> stdin ucinewgame
+> stdin isready
+< stdout readyok
+> stdin position fen 8/2R5/8/8/2K5/8/8/1k6 w - - 0 1
+> stdin go depth 14
+< stdout info depth 1 seldepth 2 score cp 385 nodes 26 nps 0 hashfull 0 time 0 pv c7c5
+< stdout info depth 2 seldepth 2 score cp 402 nodes 129 nps 0 hashfull 0 time 0 pv c4b3 b1a1
+< stdout info depth 3 seldepth 3 score mate 2 nodes 226 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 4 seldepth 4 score mate 2 nodes 399 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 5 seldepth 5 score mate 2 nodes 534 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 6 seldepth 6 score mate 2 nodes 669 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 7 seldepth 7 score mate 2 nodes 690 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 8 seldepth 8 score mate 2 nodes 711 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 9 seldepth 9 score mate 2 nodes 732 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 10 seldepth 10 score mate 2 nodes 753 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 11 seldepth 11 score mate 2 nodes 774 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 12 seldepth 12 score mate 2 nodes 795 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 13 seldepth 13 score mate 2 nodes 816 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 14 seldepth 14 score mate 2 nodes 837 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout bestmove c4b3
+> stdin position fen 8/2R5/8/8/2K5/8/8/1k6 w - - 0 1
+> stdin go perft 1
+< stdout c7c5: 1
+< stdout c7c6: 1
+< stdout c7a7: 1
+< stdout c7b7: 1
+< stdout c7d7: 1
+< stdout c7e7: 1
+< stdout c7f7: 1
+< stdout c7g7: 1
+< stdout c7h7: 1
+< stdout c7c8: 1
+< stdout c4b3: 1
+< stdout c4c3: 1
+< stdout c4d3: 1
+< stdout c4b4: 1
+< stdout c4d4: 1
+< stdout c4b5: 1
+< stdout c4c5: 1
+< stdout c4d5: 1
+< stdout nodes 18
+> stdin ucinewgame
+> stdin isready
+< stdout readyok
+> stdin position fen 8/2R5/8/8/2K5/8/8/1k6 w - - 0 1
+> stdin go depth 14
+< stdout info depth 1 seldepth 2 score cp 385 nodes 26 nps 0 hashfull 0 time 0 pv c7c5
+< stdout info depth 2 seldepth 2 score cp 402 nodes 95 nps 0 hashfull 0 time 0 pv c4b3 b1a1
+< stdout info depth 3 seldepth 3 score mate 2 nodes 249 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 4 seldepth 4 score mate 2 nodes 384 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 5 seldepth 5 score mate 2 nodes 481 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 6 seldepth 6 score mate 2 nodes 578 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 7 seldepth 7 score mate 2 nodes 713 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 8 seldepth 8 score mate 2 nodes 734 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 9 seldepth 9 score mate 2 nodes 755 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 10 seldepth 10 score mate 2 nodes 776 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 11 seldepth 11 score mate 2 nodes 797 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 12 seldepth 12 score mate 2 nodes 818 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 13 seldepth 13 score mate 2 nodes 839 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 14 seldepth 14 score mate 2 nodes 860 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout bestmove c4b3
+> stdin position fen 8/2R5/8/8/2K5/8/8/1k6 w - - 0 1
+> stdin go perft 1
+< stdout c7c5: 1
+< stdout c7c6: 1
+< stdout c7a7: 1
+< stdout c7b7: 1
+< stdout c7d7: 1
+< stdout c7e7: 1
+< stdout c7f7: 1
+< stdout c7g7: 1
+< stdout c7h7: 1
+< stdout c7c8: 1
+< stdout c4b3: 1
+< stdout c4c3: 1
+< stdout c4d3: 1
+< stdout c4b4: 1
+< stdout c4d4: 1
+< stdout c4b5: 1
+< stdout c4c5: 1
+< stdout c4d5: 1
+< stdout nodes 18
+> stdin ucinewgame
+> stdin isready
+< stdout readyok
+> stdin position fen 8/2R5/8/8/2K5/8/8/1k6 w - - 0 1
+> stdin go depth 14
+< stdout info depth 1 seldepth 2 score mate 2 nodes 566 nps 0 hashfull 0 time 0 pv c4b3
+< stdout info depth 2 seldepth 2 score mate 2 nodes 586 nps 0 hashfull 0 time 0 pv c4b3 b1a1
+< stdout info depth 3 seldepth 3 score mate 2 nodes 607 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 4 seldepth 4 score mate 2 nodes 628 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 5 seldepth 5 score mate 2 nodes 649 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 6 seldepth 6 score mate 2 nodes 670 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 7 seldepth 7 score mate 2 nodes 691 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 8 seldepth 8 score mate 2 nodes 712 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 9 seldepth 9 score mate 2 nodes 733 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 10 seldepth 10 score mate 2 nodes 754 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 11 seldepth 11 score mate 2 nodes 775 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 12 seldepth 12 score mate 2 nodes 796 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 13 seldepth 13 score mate 2 nodes 817 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 14 seldepth 14 score mate 2 nodes 838 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout bestmove c4b3
+> stdin position fen 8/2R5/8/8/2K5/8/8/1k6 w - - 0 1
+> stdin go perft 1
+< stdout c7c5: 1
+< stdout c7c6: 1
+< stdout c7a7: 1
+< stdout c7b7: 1
+< stdout c7d7: 1
+< stdout c7e7: 1
+< stdout c7f7: 1
+< stdout c7g7: 1
+< stdout c7h7: 1
+< stdout c7c8: 1
+< stdout c4b3: 1
+< stdout c4c3: 1
+< stdout c4d3: 1
+< stdout c4b4: 1
+< stdout c4d4: 1
+< stdout c4b5: 1
+< stdout c4c5: 1
+< stdout c4d5: 1
+< stdout nodes 18
+> stdin ucinewgame
+> stdin isready
+< stdout readyok
+> stdin position fen 8/2R5/8/8/2K5/8/8/1k6 w - - 0 1
+> stdin go depth 14
+< stdout info depth 1 seldepth 2 score cp 385 nodes 565 nps 0 hashfull 0 time 0 pv c7c5
+< stdout info depth 2 seldepth 2 score cp 402 nodes 159 nps 0 hashfull 0 time 0 pv c4b3 b1a1
+< stdout info depth 3 seldepth 3 score mate 2 nodes 256 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 4 seldepth 4 score mate 2 nodes 353 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 5 seldepth 5 score mate 2 nodes 374 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 6 seldepth 6 score mate 2 nodes 395 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 7 seldepth 7 score mate 2 nodes 454 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 8 seldepth 8 score mate 2 nodes 627 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 9 seldepth 9 score mate 2 nodes 762 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 10 seldepth 10 score mate 2 nodes 783 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 11 seldepth 11 score mate 2 nodes 804 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 12 seldepth 12 score mate 2 nodes 825 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 13 seldepth 13 score mate 2 nodes 846 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 14 seldepth 14 score mate 2 nodes 867 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout bestmove c4b3
+> stdin position fen 8/2R5/8/8/2K5/8/8/1k6 w - - 0 1
+> stdin go perft 1
+< stdout c7c5: 1
+< stdout c7c6: 1
+< stdout c7a7: 1
+< stdout c7b7: 1
+< stdout c7d7: 1
+< stdout c7e7: 1
+< stdout c7f7: 1
+< stdout c7g7: 1
+< stdout c7h7: 1
+< stdout c7c8: 1
+< stdout c4b3: 1
+< stdout c4c3: 1
+< stdout c4d3: 1
+< stdout c4b4: 1
+< stdout c4d4: 1
+< stdout c4b5: 1
+< stdout c4c5: 1
+< stdout c4d5: 1
+< stdout nodes 18
+> stdin ucinewgame
+> stdin isready
+< stdout readyok
+> stdin position fen 8/2R5/8/8/2K5/8/8/1k6 w - - 0 1
+> stdin go depth 14
+< stdout info depth 1 seldepth 2 score cp 385 nodes 26 nps 0 hashfull 0 time 0 pv c7c5
+< stdout info depth 2 seldepth 2 score cp 402 nodes 142 nps 0 hashfull 0 time 0 pv c4b3 b1a1
+< stdout info depth 3 seldepth 3 score mate 2 nodes 239 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 4 seldepth 4 score mate 2 nodes 336 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 5 seldepth 5 score mate 2 nodes 471 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 6 seldepth 6 score mate 2 nodes 568 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 7 seldepth 7 score mate 2 nodes 703 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 8 seldepth 8 score mate 2 nodes 724 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 9 seldepth 9 score mate 2 nodes 745 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 10 seldepth 10 score mate 2 nodes 766 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 11 seldepth 11 score mate 2 nodes 787 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 12 seldepth 12 score mate 2 nodes 808 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 13 seldepth 13 score mate 2 nodes 829 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 14 seldepth 14 score mate 2 nodes 850 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout bestmove c4b3
+> stdin position fen 8/2R5/8/8/2K5/8/8/1k6 w - - 0 1
+> stdin go perft 1
+< stdout c7c5: 1
+< stdout c7c6: 1
+< stdout c7a7: 1
+< stdout c7b7: 1
+< stdout c7d7: 1
+< stdout c7e7: 1
+< stdout c7f7: 1
+< stdout c7g7: 1
+< stdout c7h7: 1
+< stdout c7c8: 1
+< stdout c4b3: 1
+< stdout c4c3: 1
+< stdout c4d3: 1
+< stdout c4b4: 1
+< stdout c4d4: 1
+< stdout c4b5: 1
+< stdout c4c5: 1
+< stdout c4d5: 1
+< stdout nodes 18
+> stdin ucinewgame
+> stdin isready
+< stdout readyok
+> stdin position fen 8/2R5/8/8/2K5/8/8/1k6 w - - 0 1
+> stdin go depth 14
+< stdout info depth 1 seldepth 2 score cp 385 nodes 26 nps 0 hashfull 0 time 0 pv c7c5
+< stdout info depth 2 seldepth 2 score mate 2 nodes 142 nps 0 hashfull 0 time 0 pv c4b3 b1a1
+< stdout info depth 3 seldepth 3 score mate 2 nodes 277 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 4 seldepth 4 score mate 2 nodes 374 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 5 seldepth 5 score mate 2 nodes 509 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 6 seldepth 6 score mate 2 nodes 606 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 7 seldepth 7 score mate 2 nodes 703 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 8 seldepth 8 score mate 2 nodes 724 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 9 seldepth 9 score mate 2 nodes 745 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 10 seldepth 10 score mate 2 nodes 766 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 11 seldepth 11 score mate 2 nodes 787 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 12 seldepth 12 score mate 2 nodes 808 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 13 seldepth 13 score mate 2 nodes 829 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 14 seldepth 14 score mate 2 nodes 850 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout bestmove c4b3
+> stdin position fen 8/2R5/8/8/2K5/8/8/1k6 w - - 0 1
+> stdin go perft 1
+< stdout c7c5: 1
+< stdout c7c6: 1
+< stdout c7a7: 1
+< stdout c7b7: 1
+< stdout c7d7: 1
+< stdout c7e7: 1
+< stdout c7f7: 1
+< stdout c7g7: 1
+< stdout c7h7: 1
+< stdout c7c8: 1
+< stdout c4b3: 1
+< stdout c4c3: 1
+< stdout c4d3: 1
+< stdout c4b4: 1
+< stdout c4d4: 1
+< stdout c4b5: 1
+< stdout c4c5: 1
+< stdout c4d5: 1
+< stdout nodes 18
+> stdin ucinewgame
+> stdin isready
+< stdout readyok
+> stdin position fen 8/2R5/8/8/2K5/8/8/1k6 w - - 0 1
+> stdin go depth 14
+< stdout info depth 1 seldepth 2 score cp 385 nodes 26 nps 0 hashfull 0 time 0 pv c7c5
+< stdout info depth 2 seldepth 2 score cp 402 nodes 100 nps 0 hashfull 0 time 0 pv c4b3 b1a1
+< stdout info depth 3 seldepth 3 score mate 2 nodes 254 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 4 seldepth 4 score mate 2 nodes 465 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 5 seldepth 5 score mate 2 nodes 600 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 6 seldepth 6 score mate 2 nodes 697 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 7 seldepth 7 score mate 2 nodes 718 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 8 seldepth 8 score mate 2 nodes 739 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 9 seldepth 9 score mate 2 nodes 760 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 10 seldepth 10 score mate 2 nodes 781 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 11 seldepth 11 score mate 2 nodes 802 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 12 seldepth 12 score mate 2 nodes 823 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 13 seldepth 13 score mate 2 nodes 844 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout info depth 14 seldepth 14 score mate 2 nodes 865 nps 0 hashfull 0 time 0 pv c4b3 b1a1 c7c1
+< stdout bestmove c4b3
