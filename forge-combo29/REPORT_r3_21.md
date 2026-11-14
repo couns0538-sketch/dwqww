@@ -108,7 +108,7 @@ A temporary counter inside `score_from_tt`, removed before the next build, fired
 
 The proof test, rebuilt from this tree with AddressSanitizer and UndefinedBehaviorSanitizer, printed `PASS` and exited 0.
 
-Remeasured at 14:17:46Z and again at 14:34:08Z on the rebuilt binary, still Threads 1, Hash 16, OwnBook false: perft 5 = 4865609, bench 11 = 312866, bench 13 = 862329. The proof exited 0 both times.
+Remeasured at 14:17:46Z, 14:34:08Z, and 14:52:32Z on the rebuilt binary, still Threads 1, Hash 16, OwnBook false: perft 5 = 4865609, bench 11 = 312866, bench 13 = 862329. The proof exited 0 each time.
 
 ## Not verified
 
