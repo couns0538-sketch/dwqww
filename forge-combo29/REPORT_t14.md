@@ -1,26 +1,55 @@
 # t14: UCI `eval`
 
+## What was wrong
+
+The training tools need the engine's static evaluation split into parts. The locked engine had no way to ask for it.
+
+`src/uci.cpp` accepted `uci`, `isready`, `ucinewgame`, `setoption`, `position`, `go`, `bench`, `ponderhit`, `stop`, and `quit`. Anything else, including `eval`, was ignored. A position could be set, and the search could run, but nothing printed the hand-crafted score, the network score, and the static score the search actually adds together.
+
+That gap is not fixed by calling the public helper that looks like evaluation. `Searcher::evaluate` (`include/forge/search.hpp`) returns only `Evaluator::evaluate_uncached`. That is the hand-crafted score with the pawn cache bypassed. With the shipped network turned on, the search does not use that number by itself.
+
+The function the search calls is private: `Worker::static_evaluate` in `src/search.cpp`. It does three different things:
+
+1. NNUE off, or no network compiled in: return `Evaluator::evaluate`. That is the hand-crafted score, and it may use the worker's pawn cache.
+2. Network present but not a residual: return `nnue::evaluate` alone. The hand-crafted score is not added.
+3. Residual network, which is this binary (`src/nnue_weights.inc` defines `FORGE_NNUE_RESIDUAL 1`): refresh the accumulator, take `nnue::evaluate` (already centipawns), add `Evaluator::evaluate_runtime`, and clamp into `[-MateInMaxPly + 1, MateInMaxPly - 1]`. `MateInMaxPly` is 31872, so the clamp range is -31871 to 31871.
+
+`nnue::evaluate` is the integer the search adds. It is not a raw sigmoid and it is not a white-relative score. Both the hand-crafted eval and the network are already from the side to move.
+
+Two nearby numbers are not that static score, and printing either of them would be wrong:
+
+- After `static_evaluate`, a normal node stores `corrected_eval`, which adds the correction history. That history changes during a search. At the start of a search it is zero, so the two numbers match, but an `eval` command that read it would depend on earlier searches.
+- On a transposition-table hit the search can then replace that value with the stored score. That is a search result, not the static evaluation.
+
+In check, the search does not use the static evaluation as the node score. Around the static-evaluation block in `search`, `in_check` sets `static_eval`, `raw_eval`, and the local `eval` to `ValueNone` (32002) and does not call `static_evaluate`. The function itself still has a defined result. Printing `ValueNone`, or printing nothing, would hide a real score. The command has to print the three numbers and add ` incheck 1`.
+
+Calling `static_evaluate` on the live search worker would also be wrong for this command. `evaluate` and `evaluate_runtime` write that worker's pawn cache. The task required that `eval` not change search state: no hash writes and no history changes. A thousand `eval` calls followed by `bench 11` had to still be 312866 nodes. The command therefore uses a temporary evaluator and a temporary accumulator. It does not touch the searcher's transposition table, histories, pawn cache, or stack.
+
+One more existing detail, not changed here because changing it would move the node counts. In `scale_factor` (`src/eval.cpp`), a white-relative endgame score of exactly 0 treats Black as the strong side (`eg > 0 ? White : Black`). A colour-flipped position with a zero endgame score can therefore scale differently. The first 10 test positions still matched after a colour flip (swap colours, flip ranks). That check did not find a mismatch. It is not a proof for every position.
+
 ## What I found
 
-`forge-combo29` had no `eval` command. `src/uci.cpp` handles `uci`, `isready`, `ucinewgame`, `setoption`, `position`, `go`, `bench`, `ponderhit`, `stop`, and `quit`.
+Before any source edit, with `Threads 1`, `Hash 16`, `OwnBook false`, the portable build printed bench 11 = 312866, bench 13 = 862329, and `go perft 5` from the start position = 4865609. The same three numbers came back after the command was added. The full pin script also matched, including NNUE off (see below).
 
-The static evaluation the search uses is `Worker::static_evaluate` (`src/search.cpp`):
+On all 30 test positions, with this residual network, `total` was exactly `hce + nnue`. The clamp did not change the sum. With NNUE switched off, `nnue` was 0 and `total` equalled the hand-crafted score, which equalled `Worker::static_evaluate` on a cleared pawn cache.
 
-- If NNUE is off or not compiled in, it returns `Evaluator::evaluate` (hand-crafted eval, pawn cache allowed).
-- Otherwise it refreshes the accumulator and takes `nnue::evaluate`, which is already an integer centipawn value (`src/nnue.cpp`).
-- This binary's network is residual (`src/nnue_weights.inc` defines `FORGE_NNUE_RESIDUAL 1`). The search then returns `clamp(evaluate_runtime + network, -MateInMaxPly + 1, MateInMaxPly - 1)`.
-- If the network were not residual, the search would return the network value alone.
-- A node in check does not use that value as the node score (`static_eval` is set to `ValueNone`), but `static_evaluate` itself still returns a number.
+A first pass over candidate FENs had one illegal position: `8/8/8/4k3/8/8/8/Q3K3 w - - 0 1`. The queen on a1 checks the black king on e5, so the side that has just moved is in check. `set_fen` rejects that with `side that moved left its king in check`. It was replaced by `8/8/8/4k3/8/8/8/3QK3 w - - 0 1` (queen on d1, king on e1), which is legal. Two other FENs look like a pawn on the promotion rank but have no legal promotion: the push square is occupied and the pawn's capture squares are empty (`1n1k4/1P6/...` and its colour flip). Legal promotions in the set are `a7a8`, `e7e8`, and `a2a1`. Three positions are in check and print ` incheck 1`.
 
-`Evaluator::evaluate_uncached` is the hand-crafted eval with no pawn cache. On this network, for every position in the test file, the search total was exactly the uncached hand-crafted score plus the network score (the clamp did not change it).
+`ctest -N` on the original `CMakeLists.txt` listed no tests. The new C++ test was only a source file, so a normal configure/build/test run would stay green while `eval` bit-rotted. That is fixed by the `t14_eval` test.
 
-Before any source edit, with `Threads 1`, `Hash 16`, `OwnBook false`, the portable build printed bench 11 = 312866, bench 13 = 862329, and `go perft 5` from the start position = 4865609.
+A review comment asked to rebuild `windows/forge_clang_combo29_trial_w6.exe` and rewrite `windows_build/SOURCE_INPUTS.sha256`. Those files are the frozen lock named in `LOCK.md`. This branch does not replace them. The Linux engine source is what changed, and the pin counts above are the check that the search still walks the same tree.
 
-## The change
+## What changed
 
-`eval` prints one line for the current position, from the side to move: `info string eval hce <a> nnue <b> total <c>`. `a` is `Evaluator::evaluate_uncached`, `b` is the network term the search adds (0 when NNUE is off), and `c` is the same combination `Worker::static_evaluate` returns for a fresh position. The calculation uses a temporary evaluator and accumulator, so it does not write the searcher's transposition table, history, or pawn cache. If the side to move is in check, the same numbers are printed and ` incheck 1` is appended.
+`eval` prints one line for the current position, all values from the side to move, in centipawns:
 
-Engine source grew by 47 lines and nothing was deleted. `Worker::static_evaluate` was not edited.
+`info string eval hce <a> nnue <b> total <c>`
+
+`a` is `Evaluator::evaluate_uncached`. `b` is `nnue::evaluate` after a fresh `nnue::refresh`, or 0 when the network is off. `c` is the same combination `Worker::static_evaluate` returns for a fresh position. If the side to move is in check, the line continues with ` incheck 1`.
+
+`Worker::static_evaluate` was not edited. The new code is `Evaluator::static_eval_components` plus the `eval` branch in `uci.cpp`. Engine source grew by 47 lines and nothing was deleted.
+
+The test file `tests_t14/eval_cases.txt` holds 30 FENs and the expected lines. `tests_t14/test_eval.cpp` checks those lines, checks `a` against `evaluate_uncached`, checks `b` against `nnue::evaluate`, checks `c` against `Worker::static_evaluate`, checks the colour flip of the first 10, and repeats the `c` check with NNUE off. `CMakeLists.txt` builds that program as `test_t14_eval` with the same flags as `forge` and registers it as the CTest name `t14_eval`. `README.md` names the command and `ctest`.
 
 ## Files changed
 
