@@ -117,19 +117,6 @@ namespace {
 
 constexpr int HistoryMax = 16384;
 
-[[nodiscard]] int score_to_tt(int score, int ply) {
-    if (score >= MateInMaxPly) return score + ply;
-    if (score <= -MateInMaxPly) return score - ply;
-    return score;
-}
-
-[[nodiscard]] int score_from_tt(int score, int ply) {
-    if (score == ValueNone) return ValueNone;
-    if (score >= MateInMaxPly) return score - ply;
-    if (score <= -MateInMaxPly) return score + ply;
-    return score;
-}
-
 [[nodiscard]] int mated_in(int ply) { return -MateValue + ply; }
 [[nodiscard]] int mate_in(int ply) { return MateValue - ply; }
 
@@ -268,6 +255,39 @@ void TranspositionTable::clear() {
     ++epoch_;
 }
 
+TTEntry* TranspositionTable::find_occupied(TTCluster& cluster, std::uint32_t key32) const {
+    for (TTEntry& entry : cluster.entries) {
+        if (entry.key32 == key32 && entry.occupied()) return &entry;
+    }
+    return nullptr;
+}
+
+TTEntry* TranspositionTable::select_replacement(TTCluster& cluster) const {
+    TTEntry* replace = &cluster.entries[0];
+    auto relative_age = [this](const TTEntry& entry) {
+        return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+    };
+    for (TTEntry& entry : cluster.entries) {
+        if (!entry.occupied()) return &entry;
+        if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
+    }
+    return replace;
+}
+
+void TranspositionTable::write_entry(TTEntry& entry, std::uint32_t key32, int score, int eval, Move move, int depth,
+                                     Bound bound, bool pv, std::uint16_t halfmove_clock) {
+    const bool same_position = entry.key32 == key32 && entry.occupied();
+    if (!move.is_none() || !same_position) entry.move = move;
+    if (bound == BoundExact || !same_position || depth + 4 > entry.depth || entry.generation() != generation_) {
+        entry.key32 = key32;
+        entry.score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+        entry.rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
+        entry.eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
+        entry.depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
+        entry.gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+    }
+}
+
 #if FORGE_SPD_TT_NOTLS
 template <bool TakeLock>
 TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
@@ -298,15 +318,7 @@ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
             return snapshot(entry, true);
         }
     }
-    const TTEntry* replace = &cluster.entries[0];
-    auto relative_age = [this](const TTEntry& entry) {
-        return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
-    };
-    for (const TTEntry& entry : cluster.entries) {
-        if (!entry.occupied()) return snapshot(entry, false);
-        if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
-    }
-    return snapshot(*replace, false);
+    return snapshot(*select_replacement(cluster), false);
 }
 
 TTProbe TranspositionTable::probe(std::uint64_t key) const { return probe_body<true>(key); }
@@ -324,18 +336,17 @@ void TranspositionTable::store_body(const TTProbe& probe, std::uint64_t key, int
     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
     const auto lock = TakeLock ? lock_stripe(probe.cluster_) : std::unique_lock<std::mutex>();
-    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
     const std::uint32_t key32 = verification_key(key);
-    const bool same_position = entry->key32 == key32 && entry->occupied();
-    if (!move.is_none() || !same_position) entry->move = move;
-    if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
-        entry->key32 = key32;
-        entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
-        entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
-        entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
-        entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
-        entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
-    }
+#if FORGE_TT_RESOLVE_SLOT
+    // The probe slot is only a hint. A recursive store may have filled it with a
+    // different key; keep that entry when this position can take another slot.
+    TTCluster& cluster = clusters_[probe.cluster_];
+    TTEntry* entry = find_occupied(cluster, key32);
+    if (entry == nullptr) entry = select_replacement(cluster);
+#else
+    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
+#endif
+    write_entry(*entry, key32, score, eval, move, depth, bound, pv, halfmove_clock);
 }
 
 void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
@@ -375,15 +386,7 @@ TTProbe TranspositionTable::probe(std::uint64_t key) const {
             return snapshot(entry, true);
         }
     }
-    const TTEntry* replace = &cluster.entries[0];
-    auto relative_age = [this](const TTEntry& entry) {
-        return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
-    };
-    for (const TTEntry& entry : cluster.entries) {
-        if (!entry.occupied()) return snapshot(entry, false);
-        if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
-    }
-    return snapshot(*replace, false);
+    return snapshot(*select_replacement(cluster), false);
 }
 
 void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
@@ -393,18 +396,15 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
     const auto lock = lock_stripe(probe.cluster_);
-    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
     const std::uint32_t key32 = verification_key(key);
-    const bool same_position = entry->key32 == key32 && entry->occupied();
-    if (!move.is_none() || !same_position) entry->move = move;
-    if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
-        entry->key32 = key32;
-        entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
-        entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
-        entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
-        entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
-        entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
-    }
+#if FORGE_TT_RESOLVE_SLOT
+    TTCluster& cluster = clusters_[probe.cluster_];
+    TTEntry* entry = find_occupied(cluster, key32);
+    if (entry == nullptr) entry = select_replacement(cluster);
+#else
+    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
+#endif
+    write_entry(*entry, key32, score, eval, move, depth, bound, pv, halfmove_clock);
 }
 #endif
 
@@ -1264,7 +1264,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     const TTEntry& tte = tt_probe.entry;
     const Move tt_move = tt_hit ? tte.move : Move::none();
     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
-                             ? score_from_tt(tte.score, ply) : ValueNone;
+                             ? score_from_tt(tte.score, ply, board.halfmove_clock()) : ValueNone;
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
     const bool tt_pv = pv_node || (tt_hit && tte.pv());
     if (!pv_node && tt_hit && tt_score != ValueNone &&
@@ -1352,7 +1352,19 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
             }
         }
     }
-    if (in_check && move_count == 0) return mated_in(ply);
+    if (in_check && move_count == 0) {
+#if FORGE_TT_STORE_TERMINAL
+        const int terminal = mated_in(ply);
+#if FORGE_SPD_TT_NOTLS
+        store_tt(tt_probe, board.key(), score_to_tt(terminal, ply), ValueNone, Move::none(), 0, BoundExact, tt_pv, board.halfmove_clock());
+#else
+        shared_.tt.store(tt_probe, board.key(), score_to_tt(terminal, ply), ValueNone, Move::none(), 0, BoundExact, tt_pv, board.halfmove_clock());
+#endif
+        return terminal;
+#else
+        return mated_in(ply);
+#endif
+    }
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
 #if FORGE_SPD_TT_NOTLS
@@ -1410,7 +1422,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     const TTEntry& tte = tt_probe.entry;
     const Move tt_move = tt_hit ? tte.move : Move::none();
     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
-                             ? score_from_tt(tte.score, ply) : ValueNone;
+                             ? score_from_tt(tte.score, ply, board.halfmove_clock()) : ValueNone;
     const int tt_depth = tt_hit ? tte.depth : -1;
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
@@ -1714,7 +1726,17 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     if (move_count == 0) {
         if (!excluded.is_none()) return alpha;
         if (root_node && root_restricted_) return 0;
+#if FORGE_TT_STORE_TERMINAL
+        const int terminal = in_check ? mated_in(ply) : 0;
+#if FORGE_SPD_TT_NOTLS
+        store_tt(tt_probe, board.key(), score_to_tt(terminal, ply), in_check ? ValueNone : ss->raw_eval, Move::none(), depth, BoundExact, ss->tt_pv, board.halfmove_clock());
+#else
+        shared_.tt.store(tt_probe, board.key(), score_to_tt(terminal, ply), in_check ? ValueNone : ss->raw_eval, Move::none(), depth, BoundExact, ss->tt_pv, board.halfmove_clock());
+#endif
+        return terminal;
+#else
         return in_check ? mated_in(ply) : 0;
+#endif
     }
 
     if (best_score >= beta) {

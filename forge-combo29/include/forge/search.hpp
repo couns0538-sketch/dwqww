@@ -26,6 +26,24 @@
 #define FORGE_SPD_TT_NOTLS 0
 #endif
 
+// FORGE_TT_MATE_CLOCK (default 0 = the lock code): a stored mate that needs more
+// plies than the halfmoves left before the 50-move draw is not reused.
+#ifndef FORGE_TT_MATE_CLOCK
+#define FORGE_TT_MATE_CLOCK 0
+#endif
+
+// FORGE_TT_STORE_TERMINAL (default 0 = the lock code): store checkmate, and a
+// no-move node that finishes the move loop, as an exact table score.
+#ifndef FORGE_TT_STORE_TERMINAL
+#define FORGE_TT_STORE_TERMINAL 0
+#endif
+
+// FORGE_TT_RESOLVE_SLOT (default 0 = the lock code): a store updates an existing
+// tag or re-runs replacement instead of always writing the probe-time slot.
+#ifndef FORGE_TT_RESOLVE_SLOT
+#define FORGE_TT_RESOLVE_SLOT 0
+#endif
+
 namespace forge {
 
 struct SearchLimits {
@@ -74,6 +92,37 @@ constexpr int ValueNone = 32002;
     return score >= MateInMaxPly || score <= -MateInMaxPly;
 }
 
+// Mate scores are stored as plies-to-mate from the node that wrote them.
+// A mate longer than the halfmoves left before the 50-move draw is not a proven
+// mate (the line may draw first). Callers must not use that score.
+[[nodiscard]] inline int score_to_tt(int score, int ply) {
+    if (score >= MateInMaxPly) return score + ply;
+    if (score <= -MateInMaxPly) return score - ply;
+    return score;
+}
+
+[[nodiscard]] inline int score_from_tt(int score, int ply, int rule50) {
+    if (score == ValueNone) return ValueNone;
+#if FORGE_TT_MATE_CLOCK
+    const int clock = rule50 < 0 ? 0 : rule50;
+    const int remaining = clock >= 100 ? 0 : 100 - clock;
+    if (score >= MateInMaxPly) {
+        if (MateValue - score > remaining) return ValueNone;
+        return score - ply;
+    }
+    if (score <= -MateInMaxPly) {
+        if (MateValue + score > remaining) return ValueNone;
+        return score + ply;
+    }
+    return score;
+#else
+    (void)rule50;
+    if (score >= MateInMaxPly) return score - ply;
+    if (score <= -MateInMaxPly) return score + ply;
+    return score;
+#endif
+}
+
 enum Bound : std::uint8_t { BoundNone = 0, BoundUpper = 1, BoundLower = 2, BoundExact = 3 };
 
 struct TTEntry {
@@ -105,6 +154,7 @@ static_assert(sizeof(TTEntry) == 16);
 static_assert(sizeof(TTCluster) == 64);
 
 class TranspositionTable;
+struct TTAuditAccess;
 
 // Immutable entry copy plus an opaque probe-time replacement destination.
 struct TTProbe {
@@ -144,7 +194,12 @@ public:
 
 private:
     friend class Searcher;
+    friend struct TTAuditAccess;
     static constexpr std::size_t StripeCount = 1024;
+    [[nodiscard]] TTEntry* find_occupied(TTCluster& cluster, std::uint32_t key32) const;
+    [[nodiscard]] TTEntry* select_replacement(TTCluster& cluster) const;
+    void write_entry(TTEntry& entry, std::uint32_t key32, int score, int eval, Move move, int depth, Bound bound,
+                     bool pv, std::uint16_t halfmove_clock);
     struct alignas(64) Stripe { std::mutex mutex; };
     // Opt-in controller ownership: request exclusive access, drain each stripe,
     // then publish TLS. Lifecycle mutations still require all users quiescent.
