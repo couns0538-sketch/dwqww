@@ -56,3 +56,15 @@ No strength claim. Node-count change only shows that the flag affects search.
 
 setoption name LmrLateParentRelief value true
 bench 13 nodes 818656
+
+## Follow-up screen
+
+Screening only. Not a strength claim. Same owner binary, `LmrLateParentRelief` on versus off, `nodes=50000`, Threads 1, Hash 16, OwnBook false. The CPU has AVX-512F and BMI2, so the binary is the default Release build (`-march=x86-64-v4`, PEXT sliders, AVX-512 NNUE). No `CMakeLists.txt` change and no `FORGE_*` override. `CXX=g++` was required because `/usr/bin/c++` cannot link `libstdc++`.
+
+Pins on that binary stayed bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609. Option on, bench 13 = 818656.
+
+Book `UHO_Lichess_4852_v1.epd` sha256 `7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a`. Binary sha256 `8919bd97dd07407c40e2d3f14793b691da7b672f4878d366af4e374363e2f7ac`. Source commit `f3ecae11d4cdf9fb58925853e25a340f921b53ba`. Implementation commit `cc48d5aad409661d085e05e0cfae709d5f349c04`. fastchess `alpha 1.8.3 20261107-d7b47e8`, commit `d7b47e8dec6b564aaf4cbb2922ab37e6c6761e75`. The printed Elo +/- uses fastchess 95% z = 1.959963984540054. `Ptnml(0-2)` is LL, LD, WL+DD, WD, WW for the option-on engine.
+
+bench 13 nps, five alternating off/on runs at 15:27 UTC: off 1664727, 1759855, 1735068, 1721215, 1742078; on 1634043, 1663934, 1694939, 1614706, 1640593.
+
+Chunks of 500 sequential openings, two games each, option on named first, stop at 9 chunks or 6 hours. Per-chunk PGN and summary files are under `forge-combo29/tests_r3fu_04/`. The full command is in `forge-combo29/tests_r3fu_04/screen-setup.txt`. Chunk results are appended below as they finish.
