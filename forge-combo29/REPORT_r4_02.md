@@ -199,7 +199,7 @@ fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/h
 
 ## Still open
 
-grok47/r3-07-null-see-veto 6837edcd0 2026-11-14 18:19:18 +0000 Add the first fastchess NullSeeVeto chunk.
+grok47/r3-07-null-see-veto aa1c5c60c 2026-11-14 18:41:32 +0000 Note that the second fastchess chunk is still running.
 grok47/r3-12-soft-nodes 6d8717d28 2026-11-14 15:53:19 +0000 Record the 10000-position nodes and softnodes label totals
 grok47/r3-17-merge-legal-node-limit 02674044d 2026-11-14 15:28:41 +0000 Record the owner-build node budget follow-up.
 grok47/r3-18-lazy-net-accumulator 820784220 2026-11-14 15:36:04 +0000 Record the AVX-512 fused-pass identity checks.
@@ -207,5 +207,5 @@ grok47/r3-19-faster-hce 528ccdf1c 2026-11-14 15:33:17 +0000 Record the shared-sl
 grok47/r3-20-faster-search-plumbing decec3775 2026-11-14 15:37:05 +0000 Add the depth-8 and perft comparison tests.
 grok47/r3-22-time-safety 143f3c5c6 2026-11-14 16:47:41 +0000 Record the empty-clock follow-up and the 1+0.01 match
 
-Last check: 2026-11-14T18:45:07Z
+Last check: 2026-11-14T18:45:16Z
 Deadline: 2026-11-15T01:52:00Z
