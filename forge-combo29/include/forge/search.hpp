@@ -376,6 +376,7 @@ private:
 #endif
     int seldepth_ = 0;
     int root_depth_ = 0;
+    int mate_moves_ = 0;
     std::size_t root_history_index_ = 0;
     std::vector<Move> root_moves_;
     bool root_restricted_ = false;
