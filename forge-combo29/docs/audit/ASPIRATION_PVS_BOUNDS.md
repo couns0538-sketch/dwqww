@@ -1,152 +1,257 @@
-# Search audit: aspiration, PVS, bounds, re-searches
+# What was wrong, what was found, and what changed
 
-Branch `cursor/search-bound-audit-9cd5`, based on `fable/standalone-h512-20261111` at `efb2ff96`. The lock branch, `main`, and every other branch were left untouched. This branch is not merged.
+Branch `cursor/search-bound-audit-9cd5`, commit `f46e8d24`, based on `fable/standalone-h512-20261111` at `efb2ff96`. `main`, the lock branch, and the base branch were not modified. This branch is not merged.
 
-The search under audit is `Worker::search` / `Worker::qsearch` in `src/search.cpp`. Scores use `Infinite = 32001`, `MateValue = 32000`, `MateInMaxPly = 31872`, `ValueNone = 32002`. Bounds are `BoundNone = 0`, `BoundUpper = 1`, `BoundLower = 2`, `BoundExact = 3`.
+The code under audit is `Worker::search` and `Worker::qsearch` in `forge-combo29/src/search.cpp`. Scores: `Infinite = 32001`, `MateValue = 32000`, `MateInMaxPly = 31872`, `ValueNone = 32002`. A mate of distance D plies is stored as `32000 - D`. A loss of distance D is stored as `-32000 + D`. Bounds: upper = 1, lower = 2, exact = 3.
 
-Build used for every number below: GCC 13 (`CXX=g++`), CMake Release, `-O3 -ffp-contract=off -fno-fast-math -march=x86-64-v4`, and the lock defines (`NDEBUG`, `FORGE_NNUE_HIDDEN=256`, `FORGE_EXPOSE_TUNABLES=1`, `FORGE_SPD_TT_NOTLS=1`, `FORGE_SPD_NO_ZERO_MOVELISTS=2`, `FORGE_SEARCH_SPEED2=1`, `FORGE_SPD_PREFETCH_EARLY=1`, `SLIDER_PEXT=1`, `NNUE_ZMM=1`). `/usr/bin/c++` on this machine is Clang 18 and does not link (`cannot find -lstdc++`). The engine was not rebuilt with Clang.
+Every number below is from GCC 13 (`CXX=g++`), CMake Release, `-O3 -ffp-contract=off -fno-fast-math -march=x86-64-v4`, and the lock compile defines. `/usr/bin/c++` on this machine is Clang 18 and cannot link (`cannot find -lstdc++`), so Clang was not used. Hand-crafted eval means `forge::nnue::enabled = false`. No Elo was measured. A node rate from this container is not a speed result.
 
-Container node-per-second figures are not a speed result. No Elo was measured.
+`forge::search_fixes()` is one process-wide struct. Tests turn one field off to run the old behaviour in the same binary. UCI has no option for it.
 
-## What shipped
-
-`forge::search_fixes()` is one process-wide struct. Tests flip individual fields so the old and new behaviour run in the same binary. UCI has no option for it. The fields stay put for the whole of a search.
-
-| Switch | Default | Effect on the combo29 pins |
+| Switch | Default on this branch | What it changes |
 | --- | --- | --- |
-| `mate_horizon` | on | none at depths 11 and 13 measured alone, and none in the shipping combination through depth 22 |
-| `aspiration` | on | same as above |
-| `qsearch_shallow_bound` | **off** | changes the bench. See the table below |
+| `mate_horizon` | on | Rejects a TT mate the 50-move rule cannot deliver |
+| `aspiration` | on | Opens a stuck aspiration window, and stops an aborted re-search from publishing the wrong root move or the wrong score |
+| `qsearch_shallow_bound` | **off** | Drops a depth-0 quiescence bound that is below stand-pat. Off because turning it on changes the lock node counts |
 
-The LMR guard is unconditional. `std::clamp(new_depth - r, 1, new_depth)` is undefined when `new_depth < 1`, so there is no defined lock path to keep behind `#else`. At the default `SingularDepth` of 7 the negative extension cannot produce `new_depth < 1` (`new_depth = depth - 3` and singular search starts at depth 7). The guard does not change the pin counts.
+The late-move-reduction guard is unconditional. There is no defined old path to keep: the old call was undefined behaviour.
 
-The project note in `README.md` asks for a default-0 `#else` switch. This branch uses a runtime switch instead, so one binary can reproduce the old bug and the fix. `mate_horizon` and `aspiration` default on because the lock pins still match. `qsearch_shallow_bound` defaults off because they do not.
+---
 
-`SearchLimits` gained three test hooks (`audit_abort_after_worse_pv`, `audit_abort_on_attempt`, `audit_first_move`). All three are off unless a test sets them. Bench and UCI leave them unset.
+## 1. The aspiration window could get stuck and spin
 
-## Bugs reproduced and fixed
+### What was wrong
 
-Hand-crafted eval (`forge::nnue::enabled = false`) unless a row says otherwise. `search_bounds_test` prints one `PASS` line per case and `ALL PASS` at the end.
+From depth 4 on, the next iteration searches a window around the previous score: `[score - delta, score + delta]`. `AspirationDelta` starts at 18. If the search fails low (`score <= alpha`), the old update was:
 
-### 1. Aspiration window that cannot move
+```text
+beta  = (alpha + beta) / 2
+alpha = max(score - delta, -32001)
+delta = delta + delta / 2 + 4
+```
 
-Fail-low used `beta = (alpha + beta) / 2` and `alpha = max(score - delta, -Infinite)`. C++ division truncates toward zero. The window `alpha = -32001`, `beta = -32000`, `score = -32001`, `delta = 18` is unchanged by that update: `(-32001 + -32000) / 2` is `-32000`. The old loop would search the same window again.
+C++ integer division truncates toward zero. On the floor window `alpha = -32001`, `beta = -32000`, `score = -32001`:
 
-`widen_aspiration` keeps the old arithmetic whenever that arithmetic changes the window and does not invert it. A grid over alpha in [-200, 200], widths 2..80, deltas 4/18/50/200, and several fail-low and fail-high scores matched the old update on every window the old update could actually move. The stuck floor opens to `[-32001, 32001]`. A second failure on that full window sets `give_up` and the iterative-deepening loop stops. A sentinel outside `[-32000, 32000]` is replaced with the last proven score, or with 0 when there is none.
+```text
+(-32001 + -32000) / 2 = -64001 / 2 = -32000
+```
 
-A finished bench search that returns the `-Infinite` sentinel was not observed. The spin is a property of the arithmetic, and the loop can no longer repeat it.
+`beta` stays `-32000`. `alpha` stays `-32001` because `score - delta` is below `-32001` and the `max` clamps it. The window does not move. The old loop searched that same window again, then did the same update, forever.
 
-On a normal start position, depth 5, hand-crafted eval, aspiration off and aspiration on searched the same tree: **1275 nodes, `d2d3`**. That is the shipping default (`qsearch_shallow_bound` off). With the qsearch correction forced on, the same comparison was **867 nodes, `d2d4`**, still identical between aspiration off and on. The move change belongs to the qsearch switch, not to the window arithmetic.
+Fail-high only raises `beta`. It does not raise `alpha`. That part was left as it is. A re-search that finishes can still come back with a lower score than the fail-high. The overflow on `score + delta` was also tightened to 64-bit arithmetic; the scores that actually occur fit in 32 bits, so that was not a reproduced bug.
 
-### 2. Aborted re-search publishing a worse root move
+### What was found
 
-The old abort path adopted any partial root PV whose first move differed from the completed move, and it kept the previous iteration's score. The aspiration floor at depth >= 4 is `previous - delta`, so a move that only beat the floor can be worse than the completed move.
+A grid of windows (alpha from -200 to 200, widths 2 through 80, deltas 4, 18, 50, and 200, fail-low and fail-high scores) matched the old formula on every window the old formula actually moved. The one window it does not move is the floor above. The fixed step opens that window to `[-32001, 32001]`. A second failure on the full window stops.
 
-Start position, hand-crafted eval, `AspirationDelta = 1000`:
+No bench position was seen returning the sentinel `-32001`. The spin is in the arithmetic. The loop can no longer repeat it.
 
-| Search | Move | Score | Depth |
+On the start position at depth 5, hand-crafted eval, the old window update and the new one searched the same tree: 1275 nodes, `d2d3`. The window change does not touch a search whose score sits inside a normal window.
+
+### What changed
+
+`widen_aspiration` in `src/search.cpp` does the old update, then if alpha and beta did not change, or if alpha ended up at least beta, it opens `[-32001, 32001]`. If the window is already the full range and the score is still outside it, the iterative-deepening loop stops. A sentinel outside `[-32000, 32000]` is replaced with the last proven score, or with 0 when there is none.
+
+---
+
+## 2. An aborted re-search published a worse move with the old score
+
+### What was wrong
+
+If the search is stopped in the middle of an iteration, the old handler did this: if the partial PV's first move differed from the completed best move, replace the best move with the partial move, and leave the published score as the previous iteration's score.
+
+The comment next to that code said the partial move was at least as good. That is false once aspiration is on. At depth 4 the floor is `previous score - delta`, which is below the completed score. A move only has to beat that floor to be written into the root PV. It can be much worse than the move that already finished.
+
+The search really does write that move into the PV before anyone can tell. The move is made, searched, unmade, and copied into `ss->pv`. Then the abort returns 0. The handler sees a new first move and trusts it.
+
+### What was found
+
+Start position, hand-crafted eval, `AspirationDelta = 1000` so the floor is far below the real score. Depth 3 finishes as `d2d4` at +16. Forcing only `a2a3` at depth 3 scores -56. Depth 4 is told to try `a2a3` first and to abort once that move raises alpha.
+
+| Run | Move | Score | Depth recorded |
 | --- | --- | --- | --- |
 | Depth 3, completed | `d2d4` | +16 | 3 |
 | Depth 3, only `a2a3` | `a2a3` | -56 | 3 |
-| Depth 4 aborted after `a2a3` raised alpha, fix off | `a2a3` | +16 | 3 |
-| Same abort, fix on | `d2d4` | +16 | 3 |
+| Depth 4 aborted, old handler | `a2a3` | +16 | 3 |
+| Depth 4 aborted, new handler | `d2d4` | +16 | 3 |
 
-The abort is the test hook, after the move has been made, searched, unmade, and written into the root PV. The old handler pairs `a2a3` with the +16 that belongs to `d2d4`. The new handler keeps the completed move. A partial PV is still adopted when its first move differs and the aspiration floor is already at least the completed score. That case was not given its own test.
+The old handler reports `a2a3` and the score +16. Those two numbers do not belong together. +16 is `d2d4`. `a2a3` is -56. The new handler keeps `d2d4` and +16.
 
-### 3. Fail-high score dropped when the re-search is aborted
+The hook that forces this abort is off unless a test sets it. Bench and UCI do not set it. The path they share with the test is the abort handler itself.
 
-Fail-high still does not raise alpha. The re-search uses the old floor and a higher beta. If that re-search is aborted, the attempt already finished is a lower bound and a PV.
+### What changed
 
-Position after 1.e4 e5, hand-crafted eval, `AspirationDelta = 4`. Depth 4 completes as `g1f3` at +18. Depth 5 fail-highs on the first attempt; the test aborts before the second attempt.
+With `aspiration` on, a different partial PV is kept only when the aspiration floor is already at least the completed score. In that case any move that raised alpha did beat a floor at least as high as the finished result. Otherwise the completed move and score stay. The `a2a3` case takes the second path.
 
-| Handler | Move | Score | Depth |
+---
+
+## 3. A fail-high move was kept, and the previous iteration's score was glued onto it
+
+### What was wrong
+
+A fail-high means "this move scores at least beta." The engine then widens beta and searches again. Alpha stays where it was. If that re-search is aborted, the first attempt has already finished: it has a move and a lower bound.
+
+The old abort handler still did the partial-PV rule from bug 2. The fail-high move differs from the previous best move, so the handler takes the new move. It does not take the new score. The number printed next to the fail-high move is the previous iteration's score, which was computed for a different move.
+
+### What was found
+
+Position after 1.e4 e5 (`rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2`), hand-crafted eval, `AspirationDelta = 4`.
+
+Depth 4 finishes as `g1f3` at +18. Depth 5's first attempt fail-highs. The test aborts before the second attempt.
+
+| Handler | Move | Score | Depth recorded |
 | --- | --- | --- | --- |
 | Old | `f1c4` | +18 | 4 |
 | New | `f1c4` | +22 | 5 |
 
-The old handler takes the fail-high move and prints the depth-4 score of `g1f3`. The new handler publishes the fail-high value +22 and records depth 5.
+Both handlers saw `f1c4`. The old one prints +18, which is the score of `g1f3` at depth 4. The new one prints +22, the fail-high value, and records depth 5.
 
-+22 is a lower bound. `emit` prints `cp` or `mate` and has no bound field, so the info line shows that lower bound as an exact score. A re-search that finishes inside the wider window still replaces it, and that finished score can be lower than the fail-high. Search instability on a completed re-search was left as it is.
++22 is a lower bound. The info line has no bound field, so it is printed as an exact `cp` score. A re-search that runs to completion still replaces it, and that finished score can be lower than +22, because alpha was not raised. That completed-re-search case was left unchanged.
 
-### 4. TT mate the 50-move rule cannot deliver
+### What changed
 
-`score_to_tt` stores a win of distance D as `MateValue - D` and a loss as `-MateValue + D`. `score_from_tt` then adds or subtracts the current ply. With `mate_horizon` on, a mate is ignored when `D < 0` or `D > 100 - min(clock, 100)`. Distance 0 (already mated, or mate already on the board from the stored node's point of view) is kept.
+While `aspiration` is on, a fail-high that returns a PV and a score above the last finished score is saved before the window is widened. If a later attempt at that depth aborts, and nothing better was proved, that saved move and score are what gets published.
 
-The probe is a non-PV search at ply 1 (`beta = 1`, depth 3), so an exact TT hit can cut off. The public root search is a PV node and would not. The entry is exact, depth 8, stored with rule-50 clock 0. The position is the start position with the halfmove clock set to 80, which is still under the existing main-search cutoff requirement `halfmove_clock() < 90`. Room at clock 80 is 20 plies.
+---
 
-| Stored score | Clock | Fix | Returned |
+## 4. A transposition-table mate was replayed after the 50-move rule had made it impossible
+
+### What was wrong
+
+The table stores mate distance from the node that searched it, then the probe shifts by the current ply. Nothing asked whether that many plies still fit in the 50-move clock.
+
+The 50-move rule draws at 100 half-moves, except checkmate on the move that reaches 100, which still wins (`is_draw` returns false when the side to move is in check and has no legal move). From a node whose clock is C, the room is `100 - min(C, 100)` plies. A stored mate with distance D is deliverable only when `D <= room`, and only if the line does not need a capture to reset the clock. The stored score does not say whether the line captures.
+
+The main search already refuses a TT cutoff when `halfmove_clock() >= 90`. Clock 80 still gets through. That is the interesting case: 20 plies of room, and a stored mate that needs 29.
+
+Distance 0 must be kept. It means "already mated at the node that stored the score," not "a long mate."
+
+### What was found
+
+The probe is a non-PV search at ply 1, depth 3, beta 1, so an exact TT hit is allowed to cut off. The public root is a PV node and would not cut off on it. The entry is exact, depth 8, stored with rule-50 clock 0. The position is the start position with the halfmove clock set to 80.
+
+| Stored score | Clock | Fix | Value returned |
 | --- | --- | --- | --- |
-| win in 29 plies (`31971`) | 80 | off | `31970` |
-| win in 29 plies | 80 | on | `-5` (not a mate) |
-| win in 5 plies (`31995`) | 80 | on | `31994` |
-| loss in 29 plies | 80 | on | `-5` |
-| loss in 0 plies (`-32000`) | 80 | on | `-31999` |
-| win in 29 plies | 0 | on | `31970` |
+| Win in 29 plies, stored as 31971 | 80 | off | 31970 |
+| Same win | 80 | on | -5, not a mate |
+| Win in 5 plies, stored as 31995 | 80 | on | 31994 |
+| Loss in 29 plies | 80 | on | -5 |
+| Loss in 0 plies, stored as -32000 | 80 | on | -31999 |
+| Win in 29 plies | 0 | on | 31970 |
 
-`is_draw` is unchanged. At clock >= 100 it returns a draw unless the side to move is in check with no legal move, so mate on the hundredth half-move still wins. Distance equal to the remaining room is kept for that reason.
+31970 is `31971` minus the one ply of the probe. The engine was willing to treat a 29-ply mate as a cutoff with only 20 plies left on the clock. With the check on, that search returns -5, the ordinary score of the position once the mate is ignored. The 5-ply mate still fits (5 <= 20) and still returns 31994. An immediate loss is not thrown away. The same 29-ply mate is kept when the clock is 0, because the room is 100.
 
-The stored distance does not say whether the mating line captures. A capture resets the clock, so this check can drop a mate that is still playable. The in-tree draw test is still `is_draw` before the TT cutoff.
+A real mate in one still works with the check on: `r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4` at depth 2 is `h5f7` at 31999. Qxf7 is a capture, so the clock resets; the test only checks that a short mate is still found.
 
-### 5. Depth-0 qsearch bound below stand-pat
+`is_draw` was not changed. Mate on the 100th half-move still wins. The check can also drop a mate that is still legal because a later capture would reset the clock. The stored number does not record those captures.
 
-Stand-pat is a lower bound. A depth-0 upper or exact TT score below the current stand-pat contradicts it (the static eval moved, usually through correction history). The old qsearch returned that score. The later block `BoundUpper && tt_score < eval` would also copy it back into eval if the cutoff itself were skipped and `tt_score` were left in place. The fix clears `tt_score` to `ValueNone` after rejecting the bound.
+Depths 11 and 13 were measured with this switch alone. The node counts matched the lock. The shipping binary (this switch on, the quiescence switch off) matches every lock pin through depth 22.
 
-KQ vs K, `4k3/8/8/8/8/8/8/4KQ2 w - - 0 1`, a depth-0 upper bound of -400 stored in the TT, non-PV probe at depth 0:
+### What changed
 
-| Fix | Score |
+`score_from_tt` takes the halfmove clock. For a mate or a mated score it computes D and returns `ValueNone` when `D < 0` or `D > 100 - min(clock, 100)`. Both quiescence and the main search pass `board.halfmove_clock()`. A rejected mate does not cut off, and it is not copied into the evaluation.
+
+---
+
+## 5. Quiescence returned an upper bound that stand-pat had already beaten
+
+### What was wrong
+
+In quiescence, when the side to move is not in check, the score starts at stand-pat (the static eval, after correction). Stand-pat is a lower bound: the side can stop capturing and take that evaluation. A depth-0 table entry is itself a previous quiescence result. An upper bound or an exact bound below the current stand-pat cannot be true. The evaluation has moved, usually because correction history changed, and the old bound is describing a different number.
+
+The old quiescence returned that bound as a cutoff. Even if the cutoff had been skipped, the next block copies a TT score into the eval when the bound is upper and the score is below the eval. Leaving the bad score in `tt_score` would put it back.
+
+A deeper upper bound below stand-pat was left in place. A main-search bound can legally sit below stand-pat, because the main search has to move. A depth-0 quiescence bound cannot.
+
+### What was found
+
+KQ vs K, `4k3/8/8/8/8/8/8/4KQ2 w - - 0 1`. A depth-0 upper bound of -400 is stored, then a non-PV quiescence probe runs.
+
+| Switch | Score |
 | --- | --- |
 | off | -400 |
 | on | 832 |
 
-The correction applies only when the entry depth is <= 0, the side is not in check, and the bound is upper or exact. A deeper upper bound below stand-pat is still used.
+832 is the stand-pat of that position. -400 is the stale bound.
 
-**This switch is off in the default binary.** Turning it on changes real searches, not only a poisoned entry. Start position, depth 5, hand-crafted eval, moves from `d2d3` (1275 nodes) to `d2d4` (867 nodes). Bench, same 8 positions and hash 16 as `scripts/check_pins.sh`, each switch measured on its own:
+This is not only a poisoned-entry trick. With the switch forced on, the start position at depth 5, hand-crafted eval, changes from `d2d3` (1275 nodes) to `d2d4` (867 nodes). The bench positions change too. Each switch was measured on its own at depths 11 and 13; only this one moves the counts.
 
-| Depth | Eval | Fix off (lock pin) | Qsearch fix on |
+| Depth | Eval | Switch off (the lock pin) | Switch on |
 | --- | --- | --- | --- |
 | 11 | hand-crafted | 375354 | 376782 |
 | 11 | NNUE | 312866 | 300010 |
 | 13 | hand-crafted | 907205 | 830513 |
 | 13 | NNUE | 862329 | 793816 |
 
-At both depths the other two switches, alone and together, reproduced the lock pins. Depths 16, 20, and 22 were not re-run with the qsearch correction enabled.
+Depths 16, 20, and 22 were not re-run with the switch on.
 
-### 6. LMR clamp
+### What changed
 
-`std::clamp` requires `lo <= hi`. The reduced-depth call used `std::clamp(new_depth - r, 1, new_depth)`. A singular extension of -2 at depth 2 sets `new_depth = -1`. The reduced search is now entered only when `new_depth >= 1` (and the previous `depth >= 2` condition). A negative `new_depth` still falls through to the unreduced `search`, and `search` at depth <= 0 is qsearch, which is defined.
+The correction is in `qsearch`. When the switch is on, the side is not in check, the entry depth is <= 0, and the bound is upper or exact, stand-pat is computed first. If the table score is below stand-pat, it is not returned, and `tt_score` is set to `ValueNone` so the later eval block cannot copy it.
 
-`SingularDepth = 2`, start position, depth 4, returns `d2d4`. That run shows the search finishes with the guard in place. It does not show that an extension of -2 was taken.
+The switch defaults off. The default binary still has this bug. It is off so `scripts/check_pins.sh` still matches combo29. There is no UCI option. Turning it on needs a new pin record and a strength test. This branch does not turn it on.
 
-## PVS and the other re-searches
+---
 
-The PVS ladder was left as it is. On a PV node the first move is searched with `(-beta, -alpha)`. Later moves go through a null window `(-alpha - 1, -alpha)`. A move that raises alpha is searched again with the full window. LMR, when it applies, is a null window at the reduced depth and, if that score exceeds alpha and the search was not aborted, a null window at `new_depth` before the PV re-search. The full-depth null-window re-search is skipped when the reduced search already aborted.
+## 6. Late-move reduction called `std::clamp` with the bounds backwards
 
-These were read and not changed. No wrong score was reproduced from them:
+### What was wrong
 
-- Null-move verification at depth >= 14 searches the same stack frame with `null_move_allowed` cleared, then restores the inherited double-extension count. The verification search writes history and cutoff state on that frame.
-- ProbCut searches at `depth - 4` and stores the cutoff with depth `depth - 3`.
-- TT store writes a non-empty move even when the depth check keeps the previous score. A shallower store can replace the move of a deeper entry and leave that entry's score.
-- Mate-distance pruning (`alpha = max(alpha, mated_in(ply))`, `beta = min(beta, mate_in(ply + 1))`) matches the usual formula.
-- `score_to_tt` / `score_from_tt` ply adjustment is consistent: the stored value is the distance from the node that stored it, and the probe shifts by the current ply.
+`std::clamp(value, lo, hi)` is undefined when `lo > hi`. The reduced depth was:
 
-## Tests
-
-`forge-combo29/tests/search_bounds_test.cpp`, linked to the same `forge_lib` and the same compile flags as the `forge` binary.
-
-```bash
-cd forge-combo29
-CXX=g++ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j4 --target search_bounds_test forge
-./build/search_bounds_test
-./build/search_bounds_test isolate 11   # optional: 8 switch masks, hand-crafted and NNUE
-bash scripts/check_pins.sh build/forge
+```text
+std::clamp(new_depth - r, 1, new_depth)
 ```
 
-`isolate` prints `mask N hce <nodes> nnue <nodes>`. Bit 0 is `mate_horizon`, bit 1 is `aspiration`, bit 2 is `qsearch_shallow_bound`. Mask 0 is every switch off. Mask 7 is every switch on.
+`new_depth` is `depth - 1 + extension`. A singular search that fails high gives extension -2. At depth 2, `new_depth = -1`. The clamp is then `std::clamp(..., 1, -1)`. That is undefined.
 
-Last run of `./build/search_bounds_test`:
+At the default `SingularDepth` of 7 the singular search does not start before depth 7, so `new_depth` for a -2 extension is at least 4. The undefined call does not happen in the lock configuration. It can happen when `SingularDepth` is lowered. The UCI minimum is 2.
 
-```
+### What was found
+
+The reduced search is now entered only when `new_depth >= 1` (and the old `depth >= 2` condition). A negative `new_depth` falls through to the unreduced `search`. `search` at depth <= 0 is quiescence, which is defined.
+
+`SingularDepth = 2`, start position, depth 4, returns `d2d4`. That shows the search finishes with the guard in place. It does not show that an extension of -2 was actually taken. The precondition (`new_depth >= 1`) is what the unit test checks directly.
+
+The guard does not change the lock pins. Depths 11 through 22 match with it compiled in.
+
+### What changed
+
+The condition on the late-move-reduction block in `Worker::search` starts with `new_depth >= 1`. The full-depth null-window re-search is also skipped when the reduced search already aborted.
+
+---
+
+## What was read and left unchanged
+
+The PVS ladder is the usual one. On a PV node the first move is searched with `(-beta, -alpha)`. Later moves go through a null window `(-alpha - 1, -alpha)`. A move that raises alpha is searched again on the full window. Late-move reduction, when it applies, is a null window at the reduced depth and, if that beats alpha and the search was not aborted, a null window at the full depth before the PV re-search. No wrong score was reproduced from that ladder.
+
+These were also read. No wrong score was reproduced, so they were not changed:
+
+- Null-move verification, from depth 14, searches the same stack frame with `null_move_allowed` cleared, then restores the inherited double-extension count. That verification search writes history and cutoff state on the frame.
+- ProbCut searches at `depth - 4` and stores the cutoff as depth `depth - 3`. That is the usual formula, and it does claim one ply more than the search that produced the bound.
+- The TT store writes a non-empty move even when the depth check keeps the previous score. A shallower store can replace the move of a deeper entry and leave that entry's score.
+- Mate-distance pruning uses `alpha = max(alpha, mated_in(ply))` and `beta = min(beta, mate_in(ply + 1))`.
+- `score_to_tt` / `score_from_tt` agree on the ply shift. The stored value is the distance from the node that stored it. The probe shifts by the current ply. The bug in section 4 is the missing clock check, not the ply shift.
+
+---
+
+## Files that changed
+
+- `forge-combo29/src/search.cpp`. The six behaviours above. The old abort handler and the old window update are still in the binary, behind `search_fixes().aspiration == false`, so the tests can show the old result.
+- `forge-combo29/include/forge/search.hpp`. `SearchFixes`, `widen_aspiration`, and three test hooks on `SearchLimits`: `audit_abort_after_worse_pv`, `audit_abort_on_attempt`, `audit_first_move`. All three stay off in UCI and bench.
+- `forge-combo29/tests/search_bounds_test.cpp`. One process. Each test runs the old switch and the new switch. `./search_bounds_test isolate 11` prints bench nodes for all eight combinations of the three switches.
+- `forge-combo29/CMakeLists.txt`. `src/*.cpp` except `uci.cpp` goes into `forge_lib`. The `forge` binary and `search_bounds_test` both link it, with the same flags and defines. That is how the test and the bench binary are the same search.
+- This file.
+
+`forge-combo29/build/` is a local build directory and is not part of the commit.
+
+---
+
+## Evidence
+
+`./build/search_bounds_test`:
+
+```text
 PASS window arithmetic (stuck floor and normal steps)
 PASS reduction clamp precondition
 PASS mate horizon (stale 31970, rejected -5, kept 31994, loss -5, already -31999, early 31970)
@@ -159,29 +264,36 @@ PASS mate in one (h5f7 score 31999)
 ALL PASS
 ```
 
-Mate in one (`r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4`, depth 2) is `h5f7` at `31999` with the horizon check on. Qxf7 is a capture and resets the clock; the test only checks that a short mate is still found.
+`scripts/check_pins.sh build/forge`, with the shipping defaults (mate horizon on, aspiration on, quiescence correction off):
 
-## Lock pins
-
-`scripts/check_pins.sh` against `build/forge`, shipping defaults (`qsearch_shallow_bound` off, the other two on):
-
-```
+```text
 net-on : 312866 862329 3024920 12389307 34048354
 net-off: 375354 907205 2448617 13573040 24506465
 perft5 : 4865609
 PINS MATCH combo29
 ```
 
-Depths are 11, 13, 16, 20, 22. Those are the combo29 lock counts.
+Those are depths 11, 13, 16, 20, and 22, net on then net off, then start-position perft 5. They are the combo29 lock counts.
 
-## Limitations
+How to rebuild:
 
-- The qsearch stand-pat correction is compiled and tested, and the default binary does not use it. There is no UCI option. Depths 16, 20, and 22 were not measured with it on. Enabling it changes move choice in ordinary search (start position, depth 5, hand-crafted eval, `d2d3` vs `d2d4`).
-- A completed aspiration re-search can publish a score below the fail-high from the previous attempt. Alpha is not raised on fail-high. Only an aborted re-search keeps the fail-high value, and that value is printed as an exact `cp` score.
-- The mate-horizon check can reject a mate whose later captures would reset the 50-move clock. It does not change `is_draw`.
-- The stuck-window result is an arithmetic test plus the loop's `give_up` path. No bench position was seen returning `-Infinite`.
-- The LMR test proves the precondition and that a `SingularDepth = 2` search returns a move. It does not prove the extension of -2 was executed.
-- The partial-PV and fail-high cases use the audit hooks and the hand-crafted eval. They go through the real abort handler. They are not UCI time-loss traces, and the centipawn numbers are not NNUE scores.
-- `search_fixes()` is process-wide. Flipping it on another thread during a search is not supported.
-- No Elo, and no claim that the container's node rate says anything about the lock's speed.
-- Do not merge this into the lock on the strength of the pin match alone. The qsearch correction, if it is ever defaulted on, needs its own pin update and a strength test on Couns's machine.
+```bash
+cd forge-combo29
+CXX=g++ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j4 --target search_bounds_test forge
+./build/search_bounds_test
+bash scripts/check_pins.sh build/forge
+```
+
+---
+
+## What this branch does not claim
+
+- The quiescence correction is compiled and tested, and the default binary does not use it. Enabling it changes move choice.
+- A finished aspiration re-search can still publish a score below the fail-high. Alpha is not raised on fail-high.
+- The mate check can drop a mate whose later captures would reset the 50-move clock.
+- The stuck window was shown as arithmetic. No bench search returned the `-32001` sentinel.
+- The reduction test does not prove a search took the -2 extension.
+- The partial-PV and fail-high numbers are hand-crafted eval, driven by hooks that stay off in play. They go through the real abort handler. They are not timed UCI games.
+- `search_fixes()` is process-wide. It is not safe to flip from another thread during a search.
+- Do not merge this into the lock on the pin match alone. Defaulting the quiescence correction on needs its own pins and a strength test.
