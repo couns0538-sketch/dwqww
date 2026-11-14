@@ -454,6 +454,20 @@ int run_edges(const std::string& engine_path) {
                   << soft.soft_nodes << " move " << soft.best << std::endl;
     }
 
+    if (!fresh_position(engine, start)) return fail_edge("ready zero");
+    engine.send("go softnodes 0\n");
+    const GoResult zero = wait_bestmove(engine, 10000);
+    if (!zero.ok || zero.saw_soft || zero.depth > 0 || !move_is_legal(start, zero.best)) {
+        return fail_edge("softnodes 0 depth " + std::to_string(zero.depth) + " move " + zero.best);
+    }
+    if (!fresh_position(engine, start)) return fail_edge("ready nodes zero");
+    engine.send("go nodes 0\n");
+    const GoResult hard_zero = wait_bestmove(engine, 10000);
+    if (!hard_zero.ok || hard_zero.saw_soft || hard_zero.best != zero.best) {
+        return fail_edge("go nodes 0 drifted");
+    }
+    std::cout << "zero budget move " << zero.best << std::endl;
+
     const std::vector<std::string> positions = make_positions(kPositions);
     bool found_hard = false;
     for (const std::string& fen : positions) {
