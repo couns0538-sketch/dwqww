@@ -360,6 +360,9 @@ private:
     std::int64_t hard_limit_ms_ = 0;
     bool time_managed_ = false;
     bool aborted_ = false;
+    // Set only when the node budget itself trips should_stop. A clock stop or an
+    // external stop leaves this false so those paths keep the partial root move.
+    bool stopped_by_nodes_ = false;
 #if FORGE_SPD_TT_NOTLS
     // True only while Searcher::search runs this (main) worker on the thread that
     // holds the table's ExclusiveLease; lock_stripe would hand back a deferred lock.
