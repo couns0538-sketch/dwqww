@@ -278,12 +278,14 @@ void refresh();
 
 // Quiet late-move reduction with a signed fraction of a ply from the eval
 // correction. correction_cp is the corrected static eval minus the uncorrected
-// eval (negative when results came back worse). Eight centipawns are one ply;
-// a smaller absolute correction is a truncated fraction and does not change
-// the integer reduction. The returned reduction is never negative.
+// eval (negative when results came back worse). The adjustment is
+// correction_cp/64 rounded toward zero, then limited to -1..+1 ply. The
+// returned reduction is never negative.
 [[nodiscard]] inline int apply_lmr_signed_correction(int reduction_plies, int correction_cp) {
-    constexpr int kCentipawnsPerPly = 8;
-    const int adjusted = reduction_plies - correction_cp / kCentipawnsPerPly;
+    int delta = correction_cp / 64;
+    if (delta > 1) delta = 1;
+    if (delta < -1) delta = -1;
+    const int adjusted = reduction_plies - delta;
     return adjusted > 0 ? adjusted : 0;
 }
 
