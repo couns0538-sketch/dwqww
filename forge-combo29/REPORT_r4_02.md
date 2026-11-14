@@ -19,6 +19,7 @@ Self-check at e04556dd, portable x86-64-v3, 20000 nodes, one opening, two games,
 ## Results
 
 grok47/r3-04-lmr-late-parent-relief ae2cc041e24b 200 identical
+grok47/r3-05-hindsight-depth 4ce2b8b18fd9 200 identical
 grok47/r3-08-asp-capped-reopen dc2e25b54d7c 20 identical
 
 ## Commands and hashes
@@ -28,6 +29,12 @@ build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-6
 engine source sha256: f3ecae11d4cd:223845227cb2248c6b4c9843b416bfcdee8a0d9fb891303b27180cdd83cd5a1d ae2cc041e24b:223845227cb2248c6b4c9843b416bfcdee8a0d9fb891303b27180cdd83cd5a1d
 engine binary sha256: f3ecae11d4cd:8919bd97dd07407c40e2d3f14793b691da7b672f4878d366af4e374363e2f7ac ae2cc041e24b:8919bd97dd07407c40e2d3f14793b691da7b672f4878d366af4e374363e2f7ac
 fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/f3ecae11d4cdf9fb58925853e25a340f921b53ba-37997d042e39/forge name=LmrLateParentReliefOn restart=on option.LmrLateParentRelief=true option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/ae2cc041e24b5805d04fd4a0d95fcf88f20fdb84-37997d042e39/forge name=LmrLateParentReliefOff restart=on option.LmrLateParentRelief=false option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 -rounds 100 -games 2 -concurrency 2 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-04-lmr-late-parent-relief/02d819ff1e60/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-04-lmr-late-parent-relief/02d819ff1e60/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
+
+grok47/r3-05-hindsight-depth 4ce2b8b18fd9 kind nodes pgn forge-combo29/tests_r3fu_05/chunk-001.pgn
+build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_COMPILER=g++
+engine source sha256: 4ce2b8b18fd9:ddef1ee036558f512c1bcd23720a33977d72db5f726b23679b23a35776262136 4ce2b8b18fd9:ddef1ee036558f512c1bcd23720a33977d72db5f726b23679b23a35776262136
+engine binary sha256: 4ce2b8b18fd9:453e4757662bf45230623455f63da64657e6a7cee0120f49fe0ee0eb3e8d8a02 4ce2b8b18fd9:453e4757662bf45230623455f63da64657e6a7cee0120f49fe0ee0eb3e8d8a02
+fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/4ce2b8b18fd9490fb07cd7f6be2fb6d81f8c9a6e-37997d042e39/forge name=HindsightOn restart=on option.HindsightDepth=true option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/4ce2b8b18fd9490fb07cd7f6be2fb6d81f8c9a6e-37997d042e39/forge name=HindsightOff restart=on option.HindsightDepth=false option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 -rounds 100 -games 2 -concurrency 4 -draw movenumber=40 movecount=8 score=10 -resign movecount=4 score=800 -maxmoves 200 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-05-hindsight-depth/ce71a2d4c861/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-05-hindsight-depth/ce71a2d4c861/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
 
 grok47/r3-08-asp-capped-reopen dc2e25b54d7c kind nodes pgn forge-combo29/tests_r3fu_08/chunk-001.pgn
 build flags: -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ -DFORGE_MARCH=x86-64-v4 -DFORGE_PORTABLE=OFF
@@ -40,7 +47,6 @@ fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/h
 grok47/r3-01-eval-rule-50-damp b009da42b 2026-11-14 15:29:24 +0000 Record the EvalRule50Damp screen command, hashes, and bench rates.
 grok47/r3-02-threat-history e01cad043 2026-11-14 15:30:53 +0000 Record the occupancy-fix bench and the screening command.
 grok47/r3-03-lmr-signed-correction 4c1dd7ac5 2026-11-14 15:30:56 +0000 Record the one-ply LMR fraction and the owner-build bench.
-grok47/r3-05-hindsight-depth 4ce2b8b18 2026-11-14 15:50:54 +0000 Add the first HindsightDepth screening chunk.
 grok47/r3-06-null-threat-verify 5afe0de5d 2026-11-14 15:36:37 +0000 Record the owner-build bench sample and screen setup.
 grok47/r3-07-null-see-veto f3bcd9a05 2026-11-14 15:43:06 +0000 Add the first NullSeeVeto screen chunk and bench rates.
 grok47/r3-09-asp-arm-late a8a175f09 2026-11-14 15:50:46 +0000 Add the first UHO screen chunk for AspArmLate.
@@ -63,5 +69,5 @@ grok47/r4-03-screen-lds 626479273 2026-11-14 15:45:37 +0000 r4-03: drop generate
 grok47/r4-04-screen-ch4 67c2a7ea6 2026-11-14 15:41:10 +0000 r4-04: record ContHist4PlyRead screen setup
 grok47/r4-05-screen-npc b68b815c1 2026-11-14 15:43:00 +0000 r4-05: start NonPawnCorrection screen
 
-Last check: 2026-11-14T16:02:57Z
+Last check: 2026-11-14T16:07:11Z
 Deadline: 2026-11-15T01:52:32Z
