@@ -52,7 +52,7 @@ int main(int argc,char** argv){
             while(selected<limit && std::chrono::steady_clock::now()<deadline){
                 const int bk=static_cast<int>(rng()%64),wk=static_cast<int>(rng()%64),wr=static_cast<int>(rng()%64);
                 if(bk==wk||wr==bk||wr==wk)continue;const int df=std::abs((bk%8)-(wk%8)),dr=std::abs((bk/8)-(wk/8));
-                if(std::max(df,dr)<2||std::max(df,dr)>3)continue;if(bk%8!=0&&bk%8!=7&&bk/8!=0&&bk/8!=7)continue;
+                if(std::max(df,dr)<2)continue;
                 const auto fen=krk_fen(wk,wr,bk);if(!seen.insert(fen).second)continue;forge::Board board;if(!board.set_fen(fen)||board.in_check(forge::Black))continue;
                 std::cout<<"SELECT_CASE seed="<<seed<<" fen="<<fen<<std::endl;++attempts;
                 const auto a=reference.search(fen,14);if(!a.positive_mate())continue;const auto b=integration.search(fen,14);if(!b.positive_mate())continue;
