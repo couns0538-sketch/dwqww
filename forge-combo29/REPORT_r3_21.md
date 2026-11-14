@@ -110,6 +110,14 @@ The proof test, rebuilt from this tree with AddressSanitizer and UndefinedBehavi
 
 Remeasured at 14:17:46Z, 14:34:08Z, and 14:52:32Z on the rebuilt binary, still Threads 1, Hash 16, OwnBook false: perft 5 = 4865609, bench 11 = 312866, bench 13 = 862329. The proof exited 0 each time.
 
+## Follow-up match
+
+No-regression games of this branch against `e04556dd`, owner build on both sides (AVX-512F and BMI2 are present, so the CMake default `-march=x86-64-v4` with PEXT and ZMM). No `CMakeLists.txt` change and no `-DFORGE_*` override. The r3-21 owner binary still pins at perft 5 = 4865609, bench 11 = 312866, bench 13 = 862329.
+
+Match settings, command, versions, and sha256 of both binaries and the UHO book are in `forge-combo29/tests_r3fu_21/match-command.txt`. Four sequential UHO chunks of 1000 games, `nodes=50000`, Threads 1, Hash 16, OwnBook false, this branch named first. Chunk logs are under `forge-combo29/tests_r3fu_21/`. Counts below are game results only.
+
+Chunk 1 (openings 1–500, both colors), fastchess exit 0, 00:22:07: W-L-D 253-253-494. Elo -0.00 +/- 0.00. LOS printed as `-nan %`. Ptnml(0-2) `[0, 0, 500, 0, 0]`. PGN `forge-combo29/tests_r3fu_21/chunk1.pgn`.
+
 ## Not verified
 
 - The cmake command with the default `c++` compiler. It does not link here. The binaries above were built with GCC 13.3.0 and the flags in `CMakeLists.txt`.
