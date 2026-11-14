@@ -79,9 +79,30 @@ cmake --build build -j
 
 On this machine `/usr/bin/c++` is Clang 18, and it looks for `libstdc++` in the GCC 14 directory, which has no `libstdc++.so`. The link failed before any engine object was built. GCC 13 is the compiler that actually produced the binary above. The flags in `CMakeLists.txt` are the ones that ran (`-O3 -ffp-contract=off -fno-fast-math -march=x86-64-v3`, portable PEXT/ZMM switches off).
 
+## Re-check
+
+Done on this branch without switching away from it. The unfixed engine was built from commit `e04556dd` in a temporary tree, not by checking out another branch.
+
+The audit proof against that unfixed tree printed `score=31871 is_mate_score=0` again. The test in `tests_r3_21` linked to those unfixed objects exits 1 with `FAIL mate crossed MateInMaxPly and came back as 31871`. Linked to this branch's objects it prints `PASS` and exits 0.
+
+`score_from_tt` is the only conversion. Quiescence and the main search both call it, and both already ignore `ValueNone`. A same-ply mate still round-trips: depth 18 found `mate 1`, `mate 2`, `mate 17`, and an already-mated `mate 0` with the same node counts, PVs, and best moves as the unfixed binary.
+
+Pins, three times, Threads 1, Hash 16, OwnBook false:
+
+| run | perft 5 | bench 11 | bench 13 |
+| --- | ---: | ---: | ---: |
+| unfixed `e04556dd` | 4865609 | 312866 | 862329 |
+| this branch, run 1 | 4865609 | 312866 | 862329 |
+| this branch, run 2 | 4865609 | 312866 | 862329 |
+| this branch, run 3 | 4865609 | 312866 | 862329 |
+
+Separate `go depth 11` and `go depth 13` searches of the eight bench positions matched the unfixed binary on seldepth, score, nodes, PV, and best move. The depth-13 node counts add up to 862329. The same match holds at depth 16 and depth 18 for those eight positions plus a mate in one, a position that is already checkmate, and king and rook versus king. No option was added. The required pins do not move, so the check stays on.
+
+A table of every store ply `0..127`, every mate distance `0..128`, both signs, and every read ply `0..127`, passed through the same `int16` clamp the table uses, produced no centipawn result. The new code either keeps a mate score or returns `ValueNone`. That table is a check of this function's arithmetic, not a second copy in the engine.
+
 ## Not verified
 
-- The cmake command with the default `c++` compiler. It does not link here.
-- A mate score created by a real search near ply 128, rather than a score written into the table by the test. Bench 11 and bench 13 do not reach a mate that close to `MaxPly`, which is why their node counts did not move.
+- The cmake command with the default `c++` compiler. It does not link here. The binaries above were built with GCC 13.3.0 and the flags in `CMakeLists.txt`.
+- A mate score created by search at ply close to 128. Depth 18 does find real mates, and those searches matched the unfixed binary, but that is not the same as a 127-ply mate being read again on a deeper path.
 - More than one thread. `score_from_tt` has no thread-local data, and the required run is one thread.
 - Games or Elo.
