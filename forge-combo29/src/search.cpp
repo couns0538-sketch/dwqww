@@ -1019,12 +1019,13 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
 #endif
     const bool tt_hit = tt_probe.hit;
     const TTEntry& tte = tt_probe.entry;
-    const Move tt_move = tt_hit ? tte.move : Move::none();
+    const bool near50 = board.halfmove_clock() >= 90;
+    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
                              ? score_from_tt(tte.score, ply) : ValueNone;
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
-    const bool tt_pv = pv_node || (tt_hit && tte.pv());
-    if (!pv_node && tt_hit && tt_score != ValueNone &&
+    const bool tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+    if (!pv_node && !near50 && tt_hit && tt_score != ValueNone &&
         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
          (tt_bound == BoundUpper && tt_score <= alpha))) {
@@ -1166,13 +1167,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 #endif
     const bool tt_hit = tt_probe.hit;
     const TTEntry& tte = tt_probe.entry;
-    const Move tt_move = tt_hit ? tte.move : Move::none();
+    const bool near50 = board.halfmove_clock() >= 90;
+    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
                              ? score_from_tt(tte.score, ply) : ValueNone;
     const int tt_depth = tt_hit ? tte.depth : -1;
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
-    ss->tt_pv = pv_node || (tt_hit && tte.pv());
+    ss->tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
 
     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
@@ -1206,7 +1208,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         else improving = true;
     }
 
-    if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0) {
+    if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0 &&
+        board.halfmove_clock() + depth < 100) {
         // Razoring: hopeless positions fall back to quiescence.
         if (depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
             const int razor = qsearch(board, ss, alpha - 1, alpha);
@@ -1331,7 +1334,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
 
         // Shallow-depth pruning of unpromising moves.
-        if (mate_moves_ == 0 && !root_node && best_score > -MateInMaxPly && has_material) {
+        if (mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node && best_score > -MateInMaxPly && has_material) {
             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
             if (quiet && !gives_check) {
@@ -1359,34 +1362,32 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
         // Extensions.
         int extension = 0;
-        if (mate_moves_ == 0) {
-            if (!root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() && tt_bound != BoundUpper &&
-                tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
-                const int singular_beta = tt_score - tune::SingularMargin * depth;
-                const int singular_depth = (depth - 1) / 2;
-                const bool saved_tt_pv = ss->tt_pv;
-                ss->excluded_move = move;
-                const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
-                ss->tt_pv = saved_tt_pv;
-                ss->double_extensions = inherited_double_extensions;
-                ss->excluded_move = Move::none();
-                if (aborted_) return 0;
-                if (singular_score < singular_beta) {
-                    extension = 1;
-                    if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
-                        extension = 2;
-                    }
-                } else if (singular_beta >= beta) {
-                    return singular_beta;
-                } else if (tt_score >= beta) {
-                    extension = -2;
-                } else if (cut_node) {
-                    extension = -1;
-                }
-            } else if (gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
-                       (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
+        if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() &&
+            tt_bound != BoundUpper && tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
+            const int singular_beta = tt_score - tune::SingularMargin * depth;
+            const int singular_depth = (depth - 1) / 2;
+            const bool saved_tt_pv = ss->tt_pv;
+            ss->excluded_move = move;
+            const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
+            ss->tt_pv = saved_tt_pv;
+            ss->double_extensions = inherited_double_extensions;
+            ss->excluded_move = Move::none();
+            if (aborted_) return 0;
+            if (singular_score < singular_beta) {
                 extension = 1;
+                if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+                    extension = 2;
+                }
+            } else if (singular_beta >= beta) {
+                return singular_beta;
+            } else if (tt_score >= beta) {
+                extension = -2;
+            } else if (cut_node) {
+                extension = -1;
             }
+        } else if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+                   (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
+            extension = 1;
         }
         ss->double_extensions = inherited_double_extensions + (extension == 2);
         const int new_depth = depth - 1 + extension;
@@ -1419,7 +1420,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
         int score = -Infinite;
         bool full_depth_needed = !pv_node || move_count > 1;
-        if (mate_moves_ == 0 && depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && (quiet || !ss->tt_pv || move_count > 4)) {
+        if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && (quiet || !ss->tt_pv || move_count > 4)) {
             int r = reduction(quiet, depth, move_count);
             if (ss->tt_pv) r -= 1;
             if (!improving) r += 1;
