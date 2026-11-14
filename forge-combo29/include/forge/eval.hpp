@@ -3,6 +3,7 @@
 #include "forge/board.hpp"
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace forge {
@@ -64,5 +65,10 @@ private:
     static constexpr std::size_t PawnCacheSize = 1U << 15U;
     std::vector<PawnEntry> pawn_cache_;
 };
+
+// Side-to-move centipawns: evaluate_uncached, nnue::evaluate, and their sum.
+// "nnue off" means the network is disabled or not compiled in; the sum is then
+// the hand-written score.
+[[nodiscard]] std::string eval_report(const Board& board);
 
 } // namespace forge
