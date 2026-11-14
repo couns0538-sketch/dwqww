@@ -1,0 +1,89 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {fileURLToPath} from 'node:url';
+
+const ROOT='/workspace/work/all-run',REPO='/workspace/work/dwqww-all';
+const DRIVER_HASH={asan:'466c2860dffe90589275ed1bdb848549c15ff1e69234e279684bc054d0ae8f5c',tsan:'5e2cb4e2e82b99e2e7620dcbfa44be71cfadcf6e82cde7b51a8d4f8f3fc1ab91'};
+const sha=raw=>crypto.createHash('sha256').update(raw).digest('hex');
+const quote=s=>"'"+String(s).replaceAll("'","'\\''")+"'";
+const json=x=>JSON.stringify(x,null,2)+'\n';
+const numeric=(x,name,min=0)=>{if(!/^\d+$/.test(String(x))||!Number.isSafeInteger(Number(x))||Number(x)<min)throw Error(name+' must be a safe integer >= '+min);return Number(x);};
+const seedKey=x=>/^\d+$/.test(String(x))?BigInt(String(x)).toString():null;
+
+export function makeSpec(input){
+ const phase=String(input.phase);if(!['D','E','F'].includes(phase))throw Error('phase must be D, E, or F');
+ const id=numeric(input.id,'id',1),seed=numeric(input.seed,'seed'),threads=numeric(input.threads,'threads',1),nodes=numeric(input.nodes,'nodes'),seconds=numeric(input.seconds??300,'seconds',1);
+ if(seconds!==300)throw Error('seconds must be exactly 300');
+ if(!(phase==='E'?[2,4]:[1,2]).includes(threads))throw Error('unsupported thread count for phase '+phase);
+ if(!(phase==='E'?[0]:[2000,20000]).includes(nodes))throw Error('unsupported node limit for phase '+phase);
+ const depth=phase==='E'?9:0,sanitizer=phase==='E'?'tsan':'asan',flags=phase==='F',stem='2'+phase+'-'+String(id).padStart(4,'0');
+ const specFile=ROOT+'/specs/'+stem+'.json',commandFile=ROOT+'/specs/'+stem+'.command.txt',trigger=ROOT+'/triggers/'+stem+'-final.txt';
+ const argv=[ROOT+'/tests-'+sanitizer+'/play_driver','--seed',String(seed),'--threads',String(threads),'--nodes',String(nodes),'--depth',String(depth),'--seconds','300','--trace','--trigger',trigger,'--ContHist4PlyRead',String(flags),'--NonPawnCorrection',String(flags),'--LmrDeeperShallower',String(flags)];
+ const env=sanitizer==='tsan'?{TSAN_OPTIONS:'halt_on_error=0:exitcode=66'}:{ASAN_OPTIONS:'detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS:'halt_on_error=1:print_stacktrace=1'};
+ const description=(sanitizer==='tsan'?'TSan':'ASan+UBSan')+' self-play, Threads'+threads+', Hash16, OwnBookfalse, UseNNUEtrue, MultiPV1, all3 candidates '+flags+', '+(depth?'depth'+depth:'nodes'+nodes)+',8 seeded opening plies,300-ply cap,full trace,300-second game-boundary budget';
+ const spec={phase:'2'+phase,id,seed,description,argv,cwd:REPO,env,log:ROOT+'/logs/'+stem+'.txt',summaryPrefix:'SUMMARY ',rawFiles:[trigger,commandFile],status:'Running'};
+ return {specFile,commandFile,trigger,sanitizer,expectedDriverSha256:DRIVER_HASH[sanitizer],spec,
+  collisionPaths:[specFile,commandFile,trigger,spec.log,spec.log+'.run-spec.json',REPO+'/forge-combo29/soak_all/batches/'+stem+'.txt',REPO+'/forge-combo29/soak_all/batches/'+stem+'.evidence']};
+}
+
+export function readSnapshot(){
+ const stateFile=ROOT+'/state.json',stateRaw=fs.readFileSync(stateFile),state=JSON.parse(stateRaw);
+ const records=[],specFiles=[];
+ for(const name of fs.readdirSync(ROOT+'/specs').filter(x=>x.endsWith('.json')).sort()){
+  const file=ROOT+'/specs/'+name,raw=fs.readFileSync(file),record=JSON.parse(raw);
+  if(!record||typeof record!=='object'||Array.isArray(record))throw Error('Malformed JSON spec/config '+file);
+  records.push({source:file,record});specFiles.push({file,sha256:sha(raw)});
+ }
+ for(const field of ['runSpecResults','incomplete'])for(const record of state[field]||[])records.push({source:'state.'+field,record});
+ if(state.active)records.push({source:'state.active',record:state.active});
+ return {records,stateFile,stateSha256:sha(stateRaw),specFiles};
+}
+
+export function rejectCollisions(plan,snapshot,exists=fs.existsSync){
+ const {spec}=plan,wantedSeed=seedKey(spec.seed);let maxId=0;
+ for(const {source,record}of snapshot.records){
+  if(record.phase===spec.phase){
+   const id=Number(record.id);if(Number.isSafeInteger(id)&&id>maxId)maxId=id;
+   if(id===spec.id)throw Error('phase/id already exists in '+source);
+  }
+  const seeds=[record.seed,record.summary?.seed];
+  if(Array.isArray(record.argv)){const i=record.argv.indexOf('--seed');if(i>=0)seeds.push(record.argv[i+1]);}
+  if(seeds.some(x=>seedKey(x)===wantedSeed))throw Error('seed already exists in '+source);
+  const declared=[record.log,record.metadata,...(Array.isArray(record.rawFiles)?record.rawFiles:[])];
+  for(const p of declared)if(typeof p==='string'&&plan.collisionPaths.includes(path.resolve(record.cwd||REPO,p)))throw Error('artifact path already declared in '+source+': '+p);
+ }
+ if(spec.id<=maxId)throw Error('id must follow existing phase specs/state; next id is '+(maxId+1));
+ for(const p of plan.collisionPaths)if(exists(p))throw Error('artifact already exists: '+p);
+}
+
+function parseArgs(args){
+ const input={};let dry=false;
+ for(let i=0;i<args.length;i++){
+  const key=args[i];if(key==='--dry-run'){if(dry)throw Error('duplicate --dry-run');dry=true;continue;}
+  if(!['--phase','--id','--seed','--threads','--nodes','--seconds'].includes(key))throw Error('unknown argument '+key);
+  if(Object.hasOwn(input,key.slice(2)))throw Error('duplicate argument '+key);
+  if(i+1>=args.length||args[i+1].startsWith('--'))throw Error('missing value for '+key);
+  input[key.slice(2)]=args[++i];
+ }
+ for(const key of ['phase','id','seed','threads','nodes'])if(input[key]===undefined)throw Error('missing --'+key);
+ return {input,dry};
+}
+
+async function main(args){
+ if(args.includes('--help')){console.log('Usage: node make-play-spec.mjs --phase D|E|F --id N --seed N --threads N --nodes N [--seconds 300] [--dry-run]\nD/F: Threads1 or2, nodes2000 or20000. E: Threads2 or4, nodes0 and depth9. IDs must follow existing phase specs; seeds must be unused. Creates exactly one spec and one command evidence file, without launching workloads or changing state. Root runs batches sequentially.');return;}
+ const {input,dry}=parseArgs(args),plan=makeSpec(input),snapshot=readSnapshot();rejectCollisions(plan,snapshot);
+ const driverRaw=fs.readFileSync(plan.spec.argv[0]),driverSha256=sha(driverRaw);
+ if(driverSha256!==plan.expectedDriverSha256)throw Error('reviewed driver binary changed: '+plan.spec.argv[0]);
+ const generatorSha256=sha(fs.readFileSync(fileURLToPath(import.meta.url))),sourceFile=REPO+'/forge-combo29/soak_all/play_driver.cpp';
+ const evidence={preparedUTC:new Date().toISOString(),generator:fileURLToPath(import.meta.url),generatorSha256,driver:plan.spec.argv[0],driverSha256,source:sourceFile,sourceSha256:sha(fs.readFileSync(sourceFile)),snapshot:{stateFile:snapshot.stateFile,stateSha256:snapshot.stateSha256,specFiles:snapshot.specFiles},
+  specFile:plan.specFile,spec:plan.spec,commandShell:'env '+Object.entries(plan.spec.env).map(([k,v])=>k+'='+quote(v)).join(' ')+' '+plan.spec.argv.map(quote).join(' '),controllerCommand:['node',ROOT+'/control.mjs','run-spec',plan.specFile],
+  note:'Specification only. No engine/controller/state/git operation was performed. Full trace is stdout in the controller raw log; final trigger and this exact command record are rawFiles. Unchanged driver checks its300-second deadline between games; controller450-second timeout remains the hard bound. Sanitizer findings require a separate raw diagnostic audit.'};
+ if(dry){console.log('PLAN '+JSON.stringify(evidence));return;}
+ // Root invokes this generator sequentially. Exclusive creation prevents any
+ // existing spec/evidence overwrite; a failed final write leaves its evidence.
+ fs.writeFileSync(plan.commandFile,json(evidence),{flag:'wx'});
+ fs.writeFileSync(plan.specFile,json(plan.spec),{flag:'wx'});
+ console.log('GENERATED '+JSON.stringify({phase:plan.spec.phase,id:plan.spec.id,seed:plan.spec.seed,specFile:plan.specFile,specSha256:sha(fs.readFileSync(plan.specFile)),commandFile:plan.commandFile,commandSha256:sha(fs.readFileSync(plan.commandFile)),driverSha256,workloadStarted:false,stateChanged:false}));
+}
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))main(process.argv.slice(2)).catch(e=>{console.error('GENERATOR_ERROR '+e.message);process.exitCode=2;});

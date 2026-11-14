@@ -1,0 +1,44 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import cp from 'node:child_process';
+import {makeSpec,readSnapshot,rejectCollisions} from './make-play-spec.mjs';
+const dir=path.dirname(new URL(import.meta.url).pathname),root='/workspace/work/all-run';
+const results=[];
+const base={phase:'D',id:'5',seed:'9500001',threads:'1',nodes:'2000',seconds:'300'};
+const plan=makeSpec(base),snapshot={records:[]};
+rejectCollisions(plan,snapshot,()=>false);
+for(const phase of ['D','E','F'])for(const threads of phase==='E'?[2,4]:[1,2])for(const nodes of phase==='E'?[0]:[2000,20000]){
+ const p=makeSpec({...base,phase,threads,nodes}),s=p.spec,opts={};
+ for(let i=1;i<s.argv.length;i++){const k=s.argv[i];opts[k]=k==='--trace'?true:s.argv[++i];}
+ assert.equal(s.phase,'2'+phase);assert.equal(opts['--threads'],String(threads));assert.equal(opts['--nodes'],String(nodes));assert.equal(opts['--depth'],phase==='E'?'9':'0');assert.equal(opts['--seconds'],'300');assert.equal(opts['--trace'],true);
+ for(const flag of ['--ContHist4PlyRead','--NonPawnCorrection','--LmrDeeperShallower'])assert.equal(opts[flag],String(phase==='F'));
+ assert.ok(s.rawFiles.includes(p.trigger));assert.ok(s.rawFiles.includes(p.commandFile));assert.equal(s.argv[0],root+'/tests-'+(phase==='E'?'tsan':'asan')+'/play_driver');
+ if(phase==='E')assert.deepEqual(s.env,{TSAN_OPTIONS:'halt_on_error=0:exitcode=66'});
+ else assert.deepEqual(s.env,{ASAN_OPTIONS:'detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS:'halt_on_error=1:print_stacktrace=1'});
+ results.push({case:'valid '+phase+' T'+threads+' nodes'+nodes,valid:true});
+}
+for(const [name,overrides]of [['phase',{phase:'G'}],['D threads4',{threads:4}],['E threads1',{phase:'E',threads:1,nodes:0}],['D nodes0',{nodes:0}],['E nodes2000',{phase:'E',threads:2,nodes:2000}],['seconds301',{seconds:301}],['unsafe seed',{seed:'9007199254740992'}],['negative seed',{seed:'-1'}],['suffix seed',{seed:'1x'}],['zero id',{id:0}]]){assert.throws(()=>makeSpec({...base,...overrides}));results.push({case:'invalid '+name,rejected:true});}
+const collisions=[
+ ['phase/id',{phase:'2D',id:5,seed:3}],
+ ['seed metadata',{phase:'2E',id:8,seed:9500001}],
+ ['seed normalized',{seed:'0009500001'}],
+ ['seed raw summary',{summary:{seed:9500001}}],
+ ['seed actual argv',{argv:['play_driver','--seed','9500001']}],
+ ['monotonic id',{phase:'2D',id:9,seed:3}],
+ ['declared log',{phase:'2F',id:50,seed:3,log:plan.spec.log}],
+ ['declared trigger',{rawFiles:[plan.trigger]}]
+];
+for(const [name,record]of collisions){assert.throws(()=>rejectCollisions(plan,{records:[{source:'synthetic '+name,record}]},()=>false));results.push({case:name,rejected:true});}
+for(const p of plan.collisionPaths){assert.throws(()=>rejectCollisions(plan,snapshot,x=>x===p));results.push({case:'existing '+path.basename(p),rejected:true});}
+rejectCollisions(plan,{records:[{source:'unrelated',record:{phase:'2E',id:5,seed:12}}]},()=>false);
+
+// Exercise the real read-only path against a fresh, unused plan; never create it.
+const current=readSnapshot();let max=0;const used=new Set();
+for(const {record}of current.records){if(record.phase==='2D'&&Number.isSafeInteger(Number(record.id)))max=Math.max(max,Number(record.id));for(const x of [record.seed,record.summary?.seed])if(/^\d+$/.test(String(x)))used.add(BigInt(String(x)).toString());}
+let seed=9500100;while(used.has(String(seed)))seed++;
+const dry=makeSpec({...base,id:max+1,seed}),before=dry.collisionPaths.map(p=>fs.existsSync(p));
+const command=['node',dir+'/make-play-spec.mjs','--phase','D','--id',String(max+1),'--seed',String(seed),'--threads','1','--nodes','2000','--seconds','300','--dry-run'];
+const result=cp.spawnSync(command[0],command.slice(1),{encoding:'utf8'});assert.equal(result.status,0,result.stderr);assert.ok(result.stdout.startsWith('PLAN '));const actual=JSON.parse(result.stdout.slice(5));assert.equal(actual.spec.argv[0],dry.spec.argv[0]);assert.deepEqual(actual.spec,dry.spec);assert.ok(actual.commandShell.includes('ASAN_OPTIONS='));assert.deepEqual(dry.collisionPaths.map(p=>fs.existsSync(p)),before);assert.ok(before.every(x=>!x));
+const repeated=cp.spawnSync('node',[dir+'/make-play-spec.mjs','--phase','D','--id','1','--seed','8473001','--threads','1','--nodes','2000','--dry-run'],{encoding:'utf8'});assert.equal(repeated.status,2);assert.ok(repeated.stderr.includes('already exists'));
+console.log('FIXTURES '+JSON.stringify({engine_or_controller_started:false,state_changed:false,production_specs_created:0,pure_cases:results.length,results,read_only_dry_run:{argv:command,exit:result.status,driverSha256:actual.driverSha256,artifacts_created:0},existing_spec_rejected:{exit:repeated.status,stderr:repeated.stderr.trim()}}));
