@@ -6,19 +6,132 @@ Integration branch: `carbon/t21-integrate-round2`
 
 ---
 
-## What I found
+## Summary of what changed
 
-1. **Branch tip verification**: Seven of the eight remote branches matched the table hashes (`a847f237`, `3438c19e`, `9f48a760`, `c3468fc9`, `ed31021d`, `28ee8b54`, `d5e60c9d`). One differed: `git rev-parse origin/grok47/t18-uci-fuzz` printed `d1d10b3efa267de6e17f3bcb10b9564d714a4c05` (which gated `uci_loop` behind a macro in a follow-up commit), whereas the table specified `c90c9cb2` (`c90c9cb2...`). Per instruction 1, `c90c9cb2` from the table was merged.
-2. **Compiler selection without system settings**: On this VM `/usr/bin/c++` pointed via `/etc/alternatives/c++` to `clang++` 18.1.3, which auto-selected `/usr/lib/gcc/x86_64-linux-gnu/14` where `libstdc++-14-dev` is not installed (`cannot find -lstdc++`). `g++` (GCC 13.3.0) has `libstdc++-13-dev`, `libasan8`, `libubsan1`, and `libtsan2` installed, so passing `CXX=g++` to `cmake` fixed compilation with zero system setting changes.
-3. **MultiPV secondary-line stop defect in `t15` (Point 4)**: In `28ee8b54`, `alt_worker` owned an isolated `alt_shared` (`stop` always `false`) and received `narrowed` limits with `nodes`, `movetime_ms`, and `time_ms` cleared, so external `stop`, `go movetime` / game-clock hard limits, and `go nodes` budgets could not interrupt a secondary-line search once started (for example, on a mate-in-1 root with `MultiPV 4` and `go nodes 2500`, primary search reached depth 64 in <2000 nodes and line 2 would then search depth 64 unstopped).
-4. **Wide-net weights coupling in `t19` (Point 5)**: In `d5e60c9d`, `src/nnue.cpp` hard-coded `#include "../tests_t19/nnue_weights_512.inc"` when `FORGE_NNUE_HIDDEN == 512`, coupling engine source to a test directory.
-5. **Cross-branch option list interaction in `t16`**: `tests_t16/options.expected.txt` and `tests_t16/clamp.expected.txt` were recorded on the bare lock before `t8` added `option name NnueFile type string default <empty>` (already in base) and `t15` added `option name MultiPV type spin default 1 min 1 max 8`. Per rules 2 and 6, `tests_t16/*.expected.txt` were left untouched; filtering out only those two intentional `option name` lines yields an empty `diff -u` against both expected files.
+This branch (`carbon/t21-integrate-round2`) combines all eight reviewed round-2 tasks (`t13`, `t17`, `t20`, `t18` at `c90c9cb2`, `t16`, selected paths of `t14`, `t15`, and the tests/report of `t19`) on top of `origin/integrate/combo29-fixes` (`bf5574ee`, which already holds lock `16833ecc` plus round-1 fixes `t1`, `t3`, `t6`, `t8`), together with the two `t21` engine/build corrections (Points 4 and 5) and `tests_t21/multipv_stop_test.cpp`:
+
+1. **Thread-safe attack-table initialization (`t13`, `a847f237`)**: `forge::attacks::init()` in `src/bitboard.cpp` now initializes precomputed bitboard and magic-slider tables inside `std::call_once`, preventing concurrent first `Board` constructions from reading half-built tables. Added `tests_t13/race_driver.cpp` and `tests_t13/startup_race.cpp`.
+2. **White-box board state probe & rules suite (`t17`, `3438c19e`)**: Added `friend struct BoardStateProbe;` in `include/forge/board.hpp` and `tests_t17/rules_suite.cpp` verifying internal bitboards, piece arrays, Zobrist/pawn keys, castling, en-passant, 50-move/checkmate precedence, repetitions, and 40 valid/invalid FENs across make/unmake and perft.
+3. **Repeatable search & mate suite (`t20`, `9f48a760`)**: Added `tests_t20/repeat_mate_test.cpp` verifying deterministic fixed-depth and fixed-node searches, `ucinewgame` vs `Clear Hash` vs `Hash` resize semantics, KRK/KQK mate scores, `go mate N`, and stalemate/checkmate roots.
+4. **Stream-driven UCI loop & 200k-line fuzzer (`t18`, `c90c9cb2`)**: Extracted `int forge::uci_loop(std::istream& in)` in `include/forge/uci.hpp` and `src/uci.cpp` (with `main()` guarded by `#ifndef FORGE_UCI_NO_MAIN`) and added `tests_t18/uci_fuzz.cpp` (193 adversarial cases + 200,000 deterministic SplitMix64 fuzz lines).
+5. **Strict UCI `setoption` validation & diagnostics (`t16`, `c3468fc9`)**: Unknown option names now emit `info string unknown option <name>`; out-of-range spin integers emit `info string invalid value for option <name>` while preserving clamping; non-integer spin tokens and bad check values leave settings unchanged; `Clear Hash` rejects non-empty values without clearing; and rejected `UseNNUE` values no longer wipe the transposition table. Added `tests_t16/`.
+6. **Side-effect-free UCI `eval` command (`t14`, `ed31021d` selected paths)**: Added `EvalComponents` and `Evaluator::static_eval_components(const Board&)` in `include/forge/eval.hpp` and `src/eval.cpp`, wired `eval` in `src/uci.cpp` (`info string eval hce <a> nnue <b> total <c>[ incheck 1]`), and added `tests_t14/`, while leaving `CMakeLists.txt` and `README.md` untouched as required.
+7. **UCI `MultiPV` (`1..8`) (`t15`, `28ee8b54`)**: Added `option name MultiPV type spin default 1 min 1 max 8`, excluded-root secondary-line searches using an isolated TT/history worker so `MultiPV 1` stays bit-identical to the base engine, single-thread fallback when `MultiPV > 1`, and `tests_t15/`.
+8. **`t21` Point 4 correction — `MultiPV` stop, clock, and node-budget propagation (`include/forge/search.hpp`, `src/search.cpp`, `tests_t21/multipv_stop_test.cpp`)**: Linked `alt_worker` to the main `Worker` (`parent_worker_`) and factored `Worker::should_stop_with(std::uint64_t pending_nodes)` so secondary-line searches stop immediately on external `stop`, `movetime`/`wtime`/`btime` hard limits, or cumulative `go nodes` budgets, without publishing aborted partial secondary lines and without changing `MultiPV 1`.
+9. **Wide-net parity suite & `t21` Point 5 CMake weights decoupling (`t19` `d5e60c9d` tests/report + `CMakeLists.txt`, `src/nnue.cpp`)**: Carried over `tests_t19/` (`widen_nnue.cpp`, `wide_eval.{hpp,cpp}`, `eval_parity.cpp`, `nnue_weights_512.inc`) and replaced `t19`'s hardcoded `../tests_t19/nnue_weights_512.inc` include in `src/nnue.cpp` with two CMake cache variables: `FORGE_NNUE_HIDDEN` (default `256`) and `FORGE_NNUE_WEIGHTS` (default `"src/nnue_weights.inc"`).
 
 ---
 
-## The change
+## What I found
 
-All eight round-2 tasks (`t13`, `t17`, `t20`, `t18` at `c90c9cb2`, `t16`, selected paths of `t14`, `t15`, and tests/report of `t19`) are integrated in order onto `integrate/combo29-fixes`, resolving `src/uci.cpp`, `src/search.cpp`, and `include/forge/search.hpp` so every behaviour from `t1`, `t3`, `t6`, `t8`, and `t13`–`t20` is preserved. Secondary `MultiPV` worker searches now link to the main `Worker` and abort immediately when the main search's `stop` flag, time hard limit, or cumulative node budget triggers, without altering `MultiPV 1`. `CMakeLists.txt` and `src/nnue.cpp` replace `t19`'s test-folder `#include` with two CMake cache variables, `FORGE_NNUE_HIDDEN` (default `256`) and `FORGE_NNUE_WEIGHTS` (default `src/nnue_weights.inc`), preserving the default 256 search and 512-wide net parity (`bench 11` = 312866, `bench 13` = 862329, `perft 5` = 4865609).
+1. **Remote branch tip discrepancy on `t18`**: Seven of the eight remote branches matched the specification table (`a847f237`, `3438c19e`, `9f48a760`, `c3468fc9`, `ed31021d`, `28ee8b54`, `d5e60c9d`). One differed: `git rev-parse origin/grok47/t18-uci-fuzz` printed `d1d10b3efa267de6e17f3bcb10b9564d714a4c05` (a follow-up commit that hid `forge::uci_loop` behind default-off `#if FORGE_UCI_TEST_LOOP`), whereas the specification table pinned `c90c9cb2`. Per instruction 1, `c90c9cb2` was merged.
+2. **Multiple defects in `t15`'s `MultiPV` secondary-line search (`28ee8b54`)**: Reading `src/search.cpp` in `28ee8b54` revealed six distinct issues when `MultiPV > 1` (detailed in Section A.1 below): `alt_worker` read its own private `alt_shared->stop` (never set by `Searcher::stop()`), had all time and node limits stripped from `narrowed`, checked `should_stop()` only every 1024 nodes because `node_limit_specified_` was `false`, pushed aborted `0`-score lines into the sorted MultiPV output if interrupted, and omitted secondary-line nodes from cumulative `node_limit_` checks and `result.nodes`.
+3. **Engine-to-test-folder coupling in `t19` (`d5e60c9d`)**: `t19` modified `src/nnue.cpp` to `#include "../tests_t19/nnue_weights_512.inc"` whenever `FORGE_NNUE_HIDDEN == 512`, making production source depend on `tests_t19/` and preventing real 512-unit weight files from being supplied.
+4. **Silent clamping and conflict hazards between `t15`, `t16`, `t14`, `t18`, and `t8` in `src/uci.cpp`**: Because `t14`, `t15`, `t16`, and `t18` all branched independently off the bare lock (`16833ecc`) rather than off `integrate/combo29-fixes` (`bf5574ee`), `t15`'s `setoption` hunk still contained pre-`t16` `UseNNUE`/`Hash`/`Threads`/`Move Overhead` code, lacked `t8`'s `NnueFile` handler, and parsed `MultiPV` with raw `std::from_chars` + `std::clamp` (silently clamping out-of-range values like `0` or `99` without `t16`'s required `info string invalid value for option MultiPV`).
+5. **Cross-branch option-list lines in `tests_t16`**: `tests_t16/options.expected.txt` and `tests_t16/clamp.expected.txt` were captured on the bare lock before `t8` added `option name NnueFile type string default <empty>` and `t15` added `option name MultiPV type spin default 1 min 1 max 8`. Leaving the expected files unedited (per rules 2 and 6) and filtering only those two intentional `option name` lines produced an exact `diff -u` match on both transcripts.
+6. **VM compiler symlink configuration**: On this VM `/usr/bin/c++` pointed via `/etc/alternatives/c++` to `clang++` 18.1.3, which auto-selected `/usr/lib/gcc/x86_64-linux-gnu/14` where `libstdc++-14-dev` and `libclang-rt-18-dev` were not installed (`cannot find -lstdc++`). `g++` (GCC 13.3.0) had `libstdc++-13-dev`, `libasan8`, `libubsan1`, and `libtsan2` installed and worked cleanly via `CXX=g++` with zero system changes.
+7. **Exact reference-node and output preservation**: Across every intermediate step and on the final branch (both default `FORGE_NNUE_HIDDEN=256` and zero-widened `FORGE_NNUE_HIDDEN=512` in AVX2 portable and AVX-512 `x86-64-v4` builds), `bench 11` = `312866`, `bench 13` = `862329`, `go perft 5` = `4865609`, and `MultiPV 1` output across `bench 11`, `bench 13`, and five `go depth 12` positions is byte-for-byte identical to `integrate/combo29-fixes` except `time` and `nps`.
+
+---
+
+## In detail: what was wrong
+
+### A. What was wrong in the round-2 branches themselves (fixed or excluded in `t21`)
+
+#### 1. `t15` (`grok47/t15-multipv`, `28ee8b54`) — Unstoppable secondary-line searches, stripped limits, and abort corruption (Point 4)
+
+In `28ee8b54`, `Worker::search` implemented `MultiPV` (`2..8`) by keeping the primary iterative-deepening pass untouched and then running an auxiliary `Worker` (`alt_worker`) once per extra root line (`index = 2 .. line_count`) with previously chosen root moves excluded via `narrowed.search_moves`. Inspection of `src/search.cpp` in `28ee8b54` uncovered six compounding bugs:
+
+1. **Isolated `stop` flag (`stop` command ignored during secondary lines)**:
+   - `t15` created a separate `alt_shared = std::make_unique<SharedSearchState>(hash_mb)` and `alt_worker = std::make_unique<Worker>(*alt_shared, 0)`, then executed `alt_shared->stop.store(false, ...)` before `alt_worker->search(...)`.
+   - When the UCI thread received `stop` (or `setoption` / `ucinewgame` / `quit`), `Searcher::stop()` set `Searcher::shared_.stop = true`, **not** `alt_shared->stop`.
+   - The main worker only checked `shared_.stop` *between* secondary lines (`if (shared_.stop.load(...)) { aborted_ = true; break; }`). Once `alt_worker->search(...)` entered a deep search (e.g., depth 15+ during `go infinite` with `MultiPV 4`), `alt_worker::should_stop()` only read `alt_shared->stop` (`false`) and could not stop until that entire depth finished—taking seconds, minutes, or forever instead of returning `bestmove` promptly.
+2. **Time limits (`movetime`, `wtime`/`btime`) stripped from `narrowed`**:
+   - Before calling `alt_worker->search(board, narrowed, false, alt_list)`, `t15` overwrote:
+     ```cpp
+     narrowed.movetime_ms = -1;
+     narrowed.time_ms = -1;
+     narrowed.start_time = {};
+     narrowed.request_start = {};
+     ```
+   - Inside `alt_worker->search`, `hard_limit_ms_` and `soft_limit_ms_` therefore evaluated to `0` (`time_managed_ = false`). If the primary line finished depth `d` at 180 ms of a `go movetime 200` budget, lines 2, 3, and 4 each ran full unbudgeted depth-`d` searches completely past the 200 ms hard deadline.
+3. **Node budgets (`go nodes N`) stripped from `narrowed` — catastrophic hang on mate roots**:
+   - `t15` also set `narrowed.nodes = 0; narrowed.nodes_specified = false;`.
+   - On a position with a short forced mate such as `6k1/5ppp/8/8/8/8/8/R6K w - - 0 1` (`a1a8#`) under `MultiPV 4` and `go nodes 2500` (or `go movetime 200`), the primary search finds `a1a8#` immediately and reaches `depth = 64` in fewer than 2,000 total nodes (~1 ms). At `depth = 64`, `a1a8` is added to `banned`, and `alt_worker` is asked to search the remaining non-mating moves to **`depth = 64`** with `nodes_specified = false`, `hard_limit_ms_ = 0`, and `alt_shared->stop = false`—hanging the engine indefinitely.
+4. **1024-node check cadence on exact node budgets**:
+   - In `Worker::search` and `Worker::qsearch`, `should_stop()` is gated by:
+     `if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;`
+   - Because `narrowed.nodes_specified` was `false`, `alt_worker->node_limit_specified_` was `false`, so even delegating `should_stop()` would overshoot small node budgets by up to 1023 nodes per secondary line unless `node_limit_specified_` was inherited from `parent_worker_`.
+5. **Pushing aborted `0`-score lines into MultiPV output and corrupting `bestmove`**:
+   - When `Worker::search` aborts mid-tree, it returns `0` (`if (aborted_) return 0;`), leaving `alt.score` either `0` (if aborted during depth 1) or from a shallower depth `< depth`. `28ee8b54` did not check `alt_worker->aborted_` or `alt.depth < depth`; it unconditionally appended `alt` to `lines` and ran `std::stable_sort` by `a.score > b.score`. If the primary line had a negative score (e.g., `-150` cp) and line 2 aborted at depth 1 with `alt.score == 0`, sorting promoted the aborted `0`-score move to `lines.front()` and overwrote `result.best_move` and `result.score`!
+6. **Unaccounted secondary-line nodes**:
+   - `alt.nodes` were displayed in `shown_nodes` on `info` lines, but were neither accumulated into `result.nodes` returned by `Worker::search` nor counted toward `node_limit_` across secondary lines `2..k`.
+
+**How `t21` Point 4 fixed all six**: `alt_worker->parent_worker_ = this;` links the secondary worker to the main worker; `Worker::should_stop()` delegates to `parent_worker_->should_stop_with(local_nodes_)`, which checks the real `shared_.stop`, the real `hard_limit_ms_` / `elapsed_ms()` (including ponderhit state), and `total_nodes() + extra_nodes_ + pending_nodes >= node_limit_`; `alt_worker` inherits `node_limit_specified_` from `parent_worker_`; `extra_nodes_ += alt.nodes` tracks completed secondary searches and is added to `result.nodes`; and `if (alt_worker->aborted_ || alt.depth < depth) { aborted_ = true; break; }` discards any incomplete secondary line and exits iterative deepening cleanly while keeping the primary move or previous completed iteration intact.
+
+#### 2. `t19` (`grok47/t19-wide-net-parity`, `d5e60c9d`) — Engine source coupled to `../tests_t19/` (Point 5)
+
+In `d5e60c9d`, `src/nnue.cpp` was edited to read:
+```cpp
+#if FORGE_NNUE_HIDDEN == 512
+#include "../tests_t19/nnue_weights_512.inc"
+#define FORGE_HAS_NNUE 1
+#elif __has_include("nnue_weights.inc")
+```
+- **What was wrong**: Engine source under `src/` reached out into a test folder (`../tests_t19/`). Deleting or relocating `tests_t19/` broke any 512-unit build, and compiling a real trained 512-unit network was impossible without editing `src/nnue.cpp` because `FORGE_NNUE_HIDDEN == 512` unconditionally pulled in the zero-padded test net.
+- **How `t21` Point 5 fixed it**: Dropped `t19`'s `src/nnue.cpp` hunk and added two CMake cache variables in `CMakeLists.txt`—`FORGE_NNUE_HIDDEN` (default `256`) and `FORGE_NNUE_WEIGHTS` (default `"src/nnue_weights.inc"`), resolved to an absolute path relative to `${CMAKE_CURRENT_SOURCE_DIR}`—and changed `src/nnue.cpp` to `#if defined(FORGE_NNUE_WEIGHTS)` / `#include FORGE_NNUE_WEIGHTS` with fallback to `#elif __has_include("nnue_weights.inc")`.
+
+#### 3. `t14` (`grok47/t14-eval-command`, `ed31021d`) — Unwanted `CMakeLists.txt` and `README.md` edits (Step 6)
+
+- **What was wrong**: `ed31021d` refactored `forge-combo29/CMakeLists.txt` (adding `test_t14_eval`, `forge_apply_lock_flags()`, `enable_testing()`, and `add_test()`) and modified `README.md`, violating Hard Rule 2 (which keeps `CMakeLists.txt` identical to the lock except for the two Point 5 cache variables).
+- **How `t21` Step 6 handled it**: Checked out only `src/eval.cpp`, `include/forge/eval.hpp`, `tests_t14/`, and `REPORT_t14.md`, applied the 7-line `else if (command == "eval")` handler to `src/uci.cpp`, left `CMakeLists.txt` and `README.md` untouched, and documented the standalone `g++` command for `tests_t14/test_eval.cpp` below.
+
+#### 4. `t15` vs `t16` and `t8` conflicts in `src/uci.cpp` — Silent `MultiPV` range clamping and stale `setoption` blocks
+
+- **What was wrong**: Because `t15` (`28ee8b54`) branched from the raw lock (`16833ecc`) before `t8` (`NnueFile`) and `t16` (`apply_spin` / `note_invalid`), its `src/uci.cpp` parsed `MultiPV` using raw `std::from_chars` + `multipv = std::clamp(value, 1, 8)` with **no** diagnostic when `value < 1` or `value > 8` (violating `t16`'s contract that out-of-range spin integers report `info string invalid value for option <name>`), and its surrounding hunk still had the broken `UseNNUE` path that cleared hash on invalid tokens.
+- **How `t21` Step 7 resolved it**: Preserved `t8`'s `NnueFile` handler and `t16`'s `UseNNUE` / `Hash` / `Threads` / `Move Overhead` / `unknown option` handlers, and implemented `MultiPV` via `apply_spin(1, 8, [&](int clamped) { multipv = clamped; });`.
+
+#### 5. `t18` (`grok47/t18-uci-fuzz`) — Remote branch tip drift (`d1d10b3e` vs `c90c9cb2`)
+
+- **What was wrong**: On `origin/grok47/t18-uci-fuzz`, a later commit (`d1d10b3e`, *"Gate the UCI test loop behind a default-off switch"*) wrapped `forge::uci_loop(std::istream&)` inside `#if FORGE_UCI_TEST_LOOP` (default `0`), so `include/forge/uci.hpp` declared a function that did not exist in default builds unless `FORGE_UCI_TEST_LOOP=1` was also passed. The task table explicitly specified `c90c9cb2` ("`main` becomes `forge::uci_loop(std::istream&)`"), where `forge::uci_loop` is always compiled and `main()` simply calls `forge::uci_loop(std::cin)` unless `FORGE_UCI_NO_MAIN` is defined. Merging `c90c9cb2` matched the specification cleanly.
+
+---
+
+### B. What was wrong in the engine before each integrated round-1 and round-2 fix
+
+1. **Startup data race in `forge::attacks::init()` (`src/bitboard.cpp`, fixed by `t13` `a847f237`)**:
+   - Previously, `attacks::init()` began with:
+     ```cpp
+     static bool initialized = false;
+     if (initialized) return;
+     initialized = true;
+     ```
+   - `initialized` was plain non-atomic `bool` and was set to `true` **before** `KnightTable`, `KingTable`, `PawnTable`, `RookMagics`, `BishopMagics`, `BetweenTable`, and `LineTable` were populated. If two threads constructed `forge::Board` concurrently at startup, Thread B observed `initialized == true` while Thread A was still inside `init_magics()`, causing Thread B to dereference null/uninitialized `Magic::attacks` pointers or read zeroed attack masks (undefined behavior and crashes under ThreadSanitizer). Wrapping the initialization body in `std::call_once` makes concurrent callers block until table fill completes.
+   - *(Note from `t13` investigation)*: Lockless `TranspositionTable` probes/stores under multi-threaded search (`Threads > 1`, `TTAccess::Shared`) use striped spinlocks in combo29 (`FORGE_SPD_TT_NOTLS=1` only bypasses stripe locks when `ExclusiveLease` is held on single-threaded searches, including `MultiPV > 1`), so TSan is completely race-free (`0` warnings) across 2-thread and 4-thread searches.
+2. **Silent failures and destructive side effects in UCI `setoption` (`src/uci.cpp`, fixed by `t16` `c3468fc9`)**:
+   - **Unknown options**: `setoption` had no final `else` clause, so `setoption name hash value 16` (wrong case) or `setoption name FooBar value 1` silently did nothing.
+   - **Silent spin clamping**: Passing `-1` or `999999` to `Hash`, `Threads`, `Move Overhead`, `Book Depth`, `Book Variety`, or any tunable silently clamped the integer with no `info string invalid value for option <name>`.
+   - **`Clear Hash` button accepting values**: `setoption name Clear Hash value nope` ignored the unexpected value and wiped the transposition table anyway.
+   - **`UseNNUE` wiping hash on invalid values**: `searcher.clear_hash();` sat outside the `if/else` in the `UseNNUE` branch, so `setoption name UseNNUE value yes` printed `invalid value` and still destroyed the transposition table.
+3. **Monolithic `main()` tied to `std::cin` (`src/uci.cpp`, fixed by `t18` `c90c9cb2`)**:
+   - The UCI loop lived directly inside `int main()` reading `std::getline(std::cin, line)`, preventing in-process fuzzers (`tests_t18/uci_fuzz.cpp`) or multi-threaded stop-timing harnesses (`tests_t21/multipv_stop_test.cpp`) from driving the exact UCI state machine over custom `std::istream`s.
+4. **Missing static-evaluation breakdown (`src/eval.cpp`, `src/uci.cpp`, fixed by `t14` `ed31021d`)**:
+   - There was no UCI `eval` command to inspect hand-crafted evaluation (`hce`), network evaluation (`nnue`), combined clamped search static eval (`total`), and check status (`incheck 1`) without mutating a `Worker`'s pawn hash, TT, or history tables.
+5. **Inherited Round-1 base defects already fixed in `origin/integrate/combo29-fixes` (`bf5574ee`) and preserved here**:
+   - **`t1` (`src/search.cpp`)**: `MovePicker::bad_captures_` was `std::array<Move, 64>`, whereas a legal chess position can have more than 64 SEE-losing captures (68 in `tests_t1`'s FEN), causing an out-of-bounds stack write past `bad_captures_`; resized to `MoveList::Capacity` (256).
+   - **`t3` (`include/forge/uci_clock.hpp`, `src/uci.cpp`, `include/forge/search.hpp`)**: UCI clocks (`wtime`, `btime`, `winc`, `binc`, `movetime`) were parsed as 32-bit `int`, overflowing values like `3000000000` ms (~34.7 days) into `0` ms (instant move) and misparsing `+-80` or `999999999999999999999abc`; replaced with 64-bit `parse_clock_ms` clamped to `[0, kMaxClockMs]`.
+   - **`t6` (`src/search.cpp`, `include/forge/search.hpp`)**: When `go nodes N` aborted mid-iteration after raising root alpha, `Worker::search` replaced `result.best_move` with the unfinished iteration's move while keeping the *previous* finished iteration's `result.score`, desynchronizing move/score training pairs; guarded with `!stopped_by_nodes_`.
+   - **`t8` (`src/nnue.cpp`, `include/forge/nnue.hpp`, `src/uci.cpp`)**: Added `NnueFile` and `forge::nnue::load_file` with strict magic/version/dimension/byte-length validation so bad files leave the live network untouched.
+
+---
+
+### C. Environment and test-harness issues encountered during `t21` execution
+
+1. **Default `/usr/bin/c++` (`clang++` 18) missing GCC 14 `libstdc++.so`**: The first `cmake` command failed ABI detection with `/usr/bin/ld: cannot find -lstdc++` because `/etc/alternatives/c++` pointed to `clang++` 18, which probed `/usr/lib/gcc/x86_64-linux-gnu/14` (only `libstdc++6` runtime was installed for 14, whereas `libstdc++-13-dev`, `libasan8`, `libubsan1`, and `libtsan2` were installed for GCC 13). Passing `CXX=g++` resolved compilation and all three sanitizers without modifying any system packages (Hard Rule 4).
+2. **Moving `build/` out of the repository**: Before the first `git push`, `build/` was moved to `/tmp/t21-build` so no build artifacts sat in the working tree; CMake reported a `CMakeCache.txt` directory mismatch on the moved folder, which was resolved by re-running `cmake -S forge-combo29 -B /tmp/t21-build`.
+3. **Initial `PipeBuf` stream bug and TSan timeout in `tests_t21/multipv_stop_test.cpp`**:
+   - An initial draft of `PipeBuf` overrode both `underflow()` (setting a 1-char `setg(&ch_, &ch_, &ch_ + 1)`) and `uflow()` (calling `setg(nullptr, nullptr, nullptr)`). When `std::getline` read characters via `sgetc()`/`sbumpc()`, mixing a 1-byte get area with `uflow()` caused stream stalls. Rewriting `PipeBuf` to fill a 4096-byte buffer in `underflow()` and rely on `std::streambuf`'s standard `uflow()` fixed it immediately (`infinite_stop_ms` = `1 ms`, `movetime_200_ms` = `190 ms`).
+   - Under `-fsanitize=thread` (~25–30x slower than Release), `bench 11` + `bench 13` at the end of `multipv_stop_test` took ~15–20 seconds, exceeding the initial 10,000 ms wait timeout on `bench 13`. Commit `a712e108` raised only the `bench 11`/`13` wait timeout to 60,000 ms while keeping the strict `<= 300 ms` (`stop`) and `<= 400 ms` (`movetime 200` and `nodes 2500`) timing assertions unchanged; all three passed under Release, ASan+UBSan, and TSan.
 
 ---
 
