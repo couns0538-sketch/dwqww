@@ -1490,6 +1490,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     // Teach the static evaluation about this pawn structure when the search
     // result is a usable bound in the direction of the difference.
     if (!in_check && excluded.is_none() && !is_mate_score(best_score) &&
+        !(root_node && multipv_secondary_) &&
         (best_move.is_none() || !best_move.is_capture()) &&
         !(bound == BoundLower && best_score <= ss->static_eval) &&
         !(bound == BoundUpper && best_score >= ss->static_eval)) {
@@ -1511,6 +1512,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     all_workers_ = &all;
     seldepth_ = 0;
     aborted_ = false;
+    multipv_secondary_ = false;
     pondering_ = limits.ponder;
     null_tries_ = 0;
     null_cutoffs_ = 0;
@@ -1565,6 +1567,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     const int mate_moves = std::clamp(limits.mate_moves, 0, 32);
     const int mate_depth = mate_moves > 0 ? mate_moves * 2 - 1 : 64;
     const int max_depth = std::clamp(std::min(limits.depth, mate_depth), 1, 64);
+    const int multipv = std::clamp(limits.multipv, 1, 8);
+    int pv_index = 1;
 
     auto emit = [&](int depth, int score, const std::vector<Move>& pv) {
         if (!emit_info) return;
@@ -1573,7 +1577,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         const std::uint64_t nodes = total_nodes();
         const std::uint64_t nps = elapsed > 0 ? nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
-        std::cout << "info depth " << depth << " seldepth " << std::max(seldepth_, depth) << " score " << format_score(score)
+        std::cout << "info depth " << depth << " seldepth " << std::max(seldepth_, depth);
+        if (multipv > 1) std::cout << " multipv " << pv_index;
+        std::cout << " score " << format_score(score)
                   << " nodes " << nodes << " nps " << nps << " hashfull " << shared_.tt.hashfull() << " time " << elapsed << " pv";
         for (const Move move : pv) std::cout << ' ' << Board::move_to_uci(move);
         std::cout << std::endl;
@@ -1585,10 +1591,25 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     if (root_candidates.empty() || root_drawn) {
         int score = 0;
         if (legal.empty() && board.in_check()) score = -MateValue;
+        // A drawn root still has moves. MultiPV 1 keeps the single empty line.
+        const int drawn_lines = multipv > 1 && is_main() && root_drawn && !root_candidates.empty()
+            ? std::min(multipv, static_cast<int>(root_candidates.size()))
+            : 1;
         for (int depth = 1; depth <= max_depth; ++depth) {
             result.depth = depth;
             result.score = score;
-            emit(depth, score, {});
+            if (drawn_lines == 1) {
+                emit(depth, score, {});
+            } else {
+                result.lines.clear();
+                for (int line = 0; line < drawn_lines; ++line) {
+                    const Move move = root_candidates[static_cast<std::size_t>(line)];
+                    result.lines.push_back({score, {move}});
+                    pv_index = line + 1;
+                    emit(depth, score, result.lines.back().pv);
+                }
+                pv_index = 1;
+            }
             if (should_stop()) break;
         }
         if (!root_candidates.empty()) result.best_move = root_candidates.front();
@@ -1675,14 +1696,17 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             delta += delta / 2 + 4;
         }
         if (aborted_) {
-            // A partially searched iteration that already raised alpha at the
-            // root has found a move at least as good as the previous best.
-            if (ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
-                result.best_move = ss->pv[0];
-                result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
-                result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
-                // Publish the revised line so GUIs see a PV consistent with the move.
-                emit(depth, result.score, result.pv);
+            // A later MultiPV depth that dies before every line is finished
+            // keeps the previous complete ranking. MultiPV 1 has no stored
+            // lines, so its partial root move is still published.
+            if (multipv <= 1 || result.lines.empty() || result.lines.front().pv.empty()) {
+                if (ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
+                    result.best_move = ss->pv[0];
+                    result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
+                    result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+                    // Publish the revised line so GUIs see a PV consistent with the move.
+                    emit(depth, result.score, result.pv);
+                }
             }
             break;
         }
@@ -1694,7 +1718,80 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         if (!result.pv.empty()) result.best_move = result.pv.front();
         result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
         result.nodes = total_nodes();
-        emit(depth, score, result.pv);
+
+        // Further root lines are full-window searches with the earlier ones
+        // removed. MultiPV 1 does not enter, so its tree and info text stay put.
+        const bool extra_lines = multipv > 1 && is_main() && !result.pv.empty();
+        if (!extra_lines) {
+            emit(depth, score, result.pv);
+        } else {
+            const bool saved_restricted = root_restricted_;
+            std::vector<Move> saved_moves = root_moves_;
+            std::vector<SearchInfo::MultiPvLine> pending;
+            pending.push_back({score, result.pv});
+            std::vector<Move> banned{result.pv.front()};
+            bool complete = !should_stop();
+            if (complete) {
+                for (int line = 2; line <= multipv; ++line) {
+                    if (aborted_ || should_stop()) {
+                        complete = false;
+                        break;
+                    }
+                    std::vector<Move> allowed;
+                    allowed.reserve(root_candidates.size());
+                    for (const Move candidate : root_candidates) {
+                        if (std::find(banned.begin(), banned.end(), candidate) == banned.end())
+                            allowed.push_back(candidate);
+                    }
+                    if (allowed.empty()) break;
+                    root_restricted_ = true;
+                    root_moves_ = std::move(allowed);
+                    ss->ply = 0;
+                    multipv_secondary_ = true;
+                    const int extra_score = search(board, ss, depth, -Infinite, Infinite, false);
+                    multipv_secondary_ = false;
+                    if (aborted_ || ss->pv_length <= 0) {
+                        complete = false;
+                        break;
+                    }
+                    banned.push_back(ss->pv[0]);
+                    pending.push_back(
+                        {extra_score, std::vector<Move>(ss->pv.begin(), ss->pv.begin() + ss->pv_length)});
+                }
+            }
+            root_restricted_ = saved_restricted;
+            root_moves_ = std::move(saved_moves);
+            if (complete && !aborted_) {
+                std::stable_sort(pending.begin(), pending.end(),
+                                 [](const SearchInfo::MultiPvLine& a, const SearchInfo::MultiPvLine& b) {
+                                     return a.score > b.score;
+                                 });
+                score = pending.front().score;
+                result.score = score;
+                result.pv = pending.front().pv;
+                result.best_move = result.pv.front();
+                result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+                result.lines = pending;
+                for (std::size_t i = 0; i < result.lines.size(); ++i) {
+                    pv_index = static_cast<int>(i + 1);
+                    emit(depth, result.lines[i].score, result.lines[i].pv);
+                }
+                pv_index = 1;
+            } else if (!result.lines.empty() && !result.lines.front().pv.empty()) {
+                // This depth did not finish every requested line. The answer
+                // stays the previous complete ranking, including bestmove.
+                const SearchInfo::MultiPvLine kept = result.lines.front();
+                score = kept.score;
+                result.score = score;
+                result.pv = kept.pv;
+                result.best_move = result.pv.front();
+                result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+                if (depth > 1) result.depth = depth - 1;
+            } else {
+                emit(depth, score, result.pv);
+            }
+            if (aborted_) break;
+        }
 
         if (result.best_move == previous_best) ++stable_iterations;
         else stable_iterations = 0;
