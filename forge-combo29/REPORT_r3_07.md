@@ -97,3 +97,5 @@ The first 1900 openings (book lines 1 through 1900, fastchess start index 1 thro
 ```
 
 `START` is the 1-based book line. `CHUNK.pgn` and `CONFIG.json` change per chunk. The same command is not repeated below.
+
+Chunk 6 (`start=1901`, 500 openings) was still running at 18:04 UTC, 594 of 1000 games finished.
