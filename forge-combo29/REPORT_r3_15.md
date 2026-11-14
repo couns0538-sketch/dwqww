@@ -87,4 +87,10 @@ With `TmFinishIteration` on, Hash 16, and Threads 1, it searched 200 positions t
 
 80 changed lines in `forge-combo29/src` and `forge-combo29/include`: 77 added and 3 removed, including the header. `CMakeLists.txt` was not changed.
 
+## Clock follow-up
+
+Same binary, `TmFinishIteration` on versus off. Owner build (`-march=x86-64-v4`, portable off) because this CPU has AVX-512F and BMI2. No `CMakeLists.txt` edit and no extra `FORGE_*` definition. Pins on that binary, options at the match defaults: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609.
+
+Command, versions, and sha256s: `forge-combo29/tests_r3fu_15/command.txt` and `forge-combo29/tests_r3fu_15/versions.txt`. Four sequential UHO chunks, games 2, rounds 500, concurrency 2. Results are written into that directory as each chunk finishes. This is not a strength claim.
+
 setoption name TmFinishIteration value true
