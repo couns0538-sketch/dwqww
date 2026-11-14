@@ -1,0 +1,24 @@
+import fs from 'node:fs';import cp from 'node:child_process';import crypto from 'node:crypto';import assert from 'node:assert/strict';
+const root='/workspace/work/r4-shutdown-review',sha=b=>crypto.createHash('sha256').update(b).digest('hex'),hash=p=>sha(fs.readFileSync(p));
+const candidate='/workspace/work/r4-run/builds/guard-enabled/forge',reference='/workspace/work/all-run/builds/release/forge',header='/workspace/work/r4-run/equality-tools/uci_process.hpp';
+const original='/workspace/work/r4-run/equality-batches/E-0004/worker-3.jsonl.pending-17200.txt',audit='/workspace/work/r4-run/equality-batches/E-0004/all-differences-audit.txt';
+const pins=Object.fromEntries([candidate,reference,header,original,audit].map(p=>[p,hash(p)]));assert.equal(pins[candidate],'710cfcf73fcc3b9897281113759ed18565feb167eb0effe7023cbbe1706037dc');assert.equal(pins[reference],'e2788a101d11acfca637b14471e2b067ae11e551500cfb0656019a193ec2cb3e');assert.equal(hash(root+'/uci_process.hpp'),pins[header]);
+fs.writeFileSync(root+'/original-pins.txt',JSON.stringify(pins,null,2)+'\n',{flag:'wx'});fs.copyFileSync(original,root+'/original-pending-full.txt');
+const commands=[['/usr/bin/c++','-std=c++20','-O2',root+'/repeat-pairs.cpp','-o',root+'/repeat-pairs'],['/usr/bin/timeout','-k','2','420',root+'/repeat-pairs',root,candidate,reference]];
+for(let i=0;i<commands.length;i++){
+ const argv=commands[i],started=new Date().toISOString(),p=cp.spawnSync(argv[0],argv.slice(1),{encoding:'utf8',timeout:i?425000:60000,maxBuffer:4*1024*1024});
+ fs.writeFileSync(root+'/command-'+i+'.stdout.txt',p.stdout??'',{flag:'wx'});fs.writeFileSync(root+'/command-'+i+'.stderr.txt',p.stderr??'',{flag:'wx'});fs.writeFileSync(root+'/command-'+i+'.metadata.txt',JSON.stringify({argv,started,ended:new Date().toISOString(),exit:p.status,signal:p.signal,error:p.error?.message},null,2)+'\n',{flag:'wx'});assert.equal(p.status,0,p.stderr);
+}
+const rows=fs.readFileSync(root+'/command-1.stdout.txt','utf8').trim().split('\n').map(JSON.parse);assert.equal(rows.length,20);let differences=0,timeouts=0,issues=0,diagnostics=0;const traces=[];
+for(let i=1;i<=10;i++){
+ const pair=rows.filter(r=>r.repetition===i);assert.equal(pair.length,2);assert.deepEqual(pair.map(r=>r.engine),['candidate','reference']);
+ const sig=r=>[r.depth,r.bestmove,r.score_kind,r.score,r.bound,r.nodes];if(JSON.stringify(sig(pair[0]))!==JSON.stringify(sig(pair[1])))differences++;
+ for(const r of pair){const raw=fs.readFileSync(r.transcript,'utf8');assert.ok(raw.includes('> stdin ucinewgame\n')&&raw.includes('> stdin go depth 9\n')&&raw.includes('> stdin quit\n')&&raw.includes('! shutdown '));
+  assert.deepEqual(sig(r),[9,'f2g1','cp',769,'',14647]);
+  timeouts+=Number(r.shutdown.timed_out);issues+=Number(!r.searched||!!r.error||!r.shutdown.reaped||r.shutdown.exit_code!==0||r.shutdown.signal!==0||!!r.shutdown.error);
+  diagnostics+=[...raw.matchAll(/AddressSanitizer|UndefinedBehaviorSanitizer|LeakSanitizer|ThreadSanitizer|runtime error:/g)].length;traces.push({file:r.transcript,sha256:hash(r.transcript)});
+ }
+}
+for(const [p,pin]of Object.entries(pins))assert.equal(hash(p),pin,'original input changed '+p);
+const report={utc:new Date().toISOString(),freshPairs:10,freshProcesses:20,differences,shutdownTimeouts:timeouts,otherTransportOrExitIssues:issues,sanitizerDiagnostics:diagnostics,allSearchesMatchOriginal:true,shutdownBudgetPerProcessMs:250,unchangedTransportHeaderSha256:pins[header],helperSourceSha256:hash(root+'/repeat-pairs.cpp'),helperBinarySha256:hash(root+'/repeat-pairs'),originalFindingPreserved:true,pairs:rows,traces};
+fs.writeFileSync(root+'/reproduction-summary.txt',JSON.stringify(report,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({freshPairs:10,differences,shutdownTimeouts:timeouts,otherTransportOrExitIssues:issues,sanitizerDiagnostics:diagnostics,allSearchesMatchOriginal:true}));

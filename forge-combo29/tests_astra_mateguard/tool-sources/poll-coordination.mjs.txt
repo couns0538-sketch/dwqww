@@ -6,4 +6,9 @@ git(['fetch','--no-tags','origin','refs/heads/'+branch+':refs/remotes/origin/'+b
 const paths=git(['ls-tree','-r','--name-only',head,'--','forge-combo29/soak_all']).split('\n').filter(p=>/\/(FABLE|OPUS)[^/]*\.md$/.test(p));
 const seenFile=r+'/coordination-seen.json',seen=fs.existsSync(seenFile)?JSON.parse(fs.readFileSync(seenFile)):{};const newMessages=[];
 for(const p of paths){const blob=git(['rev-parse',head+':'+p]);if(seen[p]===blob)continue;newMessages.push({path:p,blob,text:git(['show',head+':'+p])});seen[p]=blob;}
-fs.writeFileSync(seenFile,JSON.stringify(seen,null,2)+'\n');console.log(JSON.stringify({utc:new Date().toISOString(),head,newMessages,log}));
+fs.writeFileSync(seenFile,JSON.stringify(seen,null,2)+'\n');
+const directFile=r+'/direct-reply-heads-seen.json',directSeen=fs.existsSync(directFile)?JSON.parse(fs.readFileSync(directFile)):{};
+const directReplyHeads=[];for(const line of git(['ls-remote','--heads','origin','refs/heads/for-astra/*']).split('\n').filter(Boolean)){
+ const [commit,ref]=line.split(/\s+/);if(directSeen[ref]!==commit)directReplyHeads.push({ref,commit,previous:directSeen[ref]??null});directSeen[ref]=commit;
+}
+fs.writeFileSync(directFile,JSON.stringify(directSeen,null,2)+'\n');console.log(JSON.stringify({utc:new Date().toISOString(),head,newMessages,directReplyHeads,log}));
