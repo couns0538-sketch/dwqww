@@ -529,9 +529,56 @@ nodes 4865609
 
 `nodes 4865609`. That is the lock pin.
 
+## In-process test
+
+`tests_t2/losing_captures.uci` is the position and the options. Feeding that file with `forge < tests_t2/losing_captures.uci` closes stdin as soon as `go` is read, and `main` then calls `stop_search()` before the worker reaches the move picker. That stopped search prints `bestmove h2f1` and does not exercise the overflow. The regression check is `tests_t2/losing_captures.cpp`, which calls `Searcher::search` at depth 1 with a 16 MB hash and one thread.
+
+Objects come from the release build above, excluding `uci.cpp.o` (that file defines `main`). Same defines as `flags.make`.
+
+```
+DEFS="-DFORGE_EXPOSE_TUNABLES=1 -DFORGE_NNUE_HIDDEN=256 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_TT_NOTLS=1 -DNDEBUG"
+FLAGS="-std=c++20 -O3 -ffp-contract=off -fno-fast-math -march=x86-64-v4"
+g++ $FLAGS $DEFS -Iforge-combo29/include -c forge-combo29/tests_t2/losing_captures.cpp -o /tmp/losing_captures.o
+g++ -o /tmp/losing_captures /tmp/losing_captures.o \
+  /tmp/forge-lock-rel/CMakeFiles/forge.dir/src/bitboard.cpp.o \
+  /tmp/forge-lock-rel/CMakeFiles/forge.dir/src/board.cpp.o \
+  /tmp/forge-lock-rel/CMakeFiles/forge.dir/src/book.cpp.o \
+  /tmp/forge-lock-rel/CMakeFiles/forge.dir/src/eval.cpp.o \
+  /tmp/forge-lock-rel/CMakeFiles/forge.dir/src/eval_params.cpp.o \
+  /tmp/forge-lock-rel/CMakeFiles/forge.dir/src/nnue.cpp.o \
+  /tmp/forge-lock-rel/CMakeFiles/forge.dir/src/search.cpp.o -pthread
+/tmp/losing_captures
+```
+
+Fixed sources, stdout:
+
+```
+bestmove b4a3
+```
+
+Exit status 0. stderr was empty. `cmp` against `tests_t2/losing_captures.expected.txt` exited 0.
+
+The same test linked with `search.cpp.o` compiled from `16833ecc` (the lock) and the other release objects produced no stdout and no stderr. The shell reported `Segmentation fault` and exit status 139.
+
+AddressSanitizer + UBSan, test and engine objects built with `-fsanitize=address,undefined -fno-omit-frame-pointer -g`, then:
+
+```
+ASAN_OPTIONS=halt_on_error=1:abort_on_error=1:detect_leaks=0:symbolize=1 \
+UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+/tmp/losing_captures_asan
+```
+
+stdout:
+
+```
+bestmove b4a3
+```
+
+Exit status 0. stderr was empty (0 bytes).
+
 ## Test, release
 
-Fixed release binary. stdin is `forge-combo29/tests_t2/losing_captures.uci`, held open until `bestmove`, then `quit`.
+Fixed release binary. stdin is `forge-combo29/tests_t2/losing_captures.uci`, held open until `bestmove`, then `quit`. This is the same position as the in-process test. It is not what `forge < tests_t2/losing_captures.uci` does.
 
 ```
 grep '^bestmove ' /tmp/forge-out/rel-go.out | cmp - forge-combo29/tests_t2/losing_captures.expected.txt
@@ -708,4 +755,5 @@ stderr was empty (0 bytes). The search printed `score mate 1` and `bestmove b4a3
 - A build with `FORGE_SDK_BADCAP_PREFIX` enabled, or with `FORGE_SPD_NO_ZERO_MOVELISTS` left at 0, was not run. The lock defines the prefix as 0 and `FORGE_SPD_NO_ZERO_MOVELISTS` as 2, and that is the array that was rebuilt and searched.
 - No position with more than 66 losing captures was searched. The new array has 256 slots, matching `moves_`. This position uses 66.
 - clang was not used. `/usr/bin/c++` is clang 18 and does not link `-lstdc++` here.
+- `windows/forge_clang_combo29_trial_w6.exe` was not rebuilt. This task allows text under `src`, `include`, `tests_t2`, and `REPORT_t2.md` only, and the commit cannot contain an executable.
 - Nothing here is an Elo or speed claim. The `nps` and `time` fields above are the engine's own lines.
