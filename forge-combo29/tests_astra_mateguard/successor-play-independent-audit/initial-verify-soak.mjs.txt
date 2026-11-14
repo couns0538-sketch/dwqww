@@ -1,0 +1,86 @@
+// Read-only independent audit; this program never launches native binaries or writes state.
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+const root='/workspace/work/r4-run',sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+const inputPins={},read=file=>{const b=fs.readFileSync(file);inputPins[file]={bytes:b.length,sha256:sha(b)};return b;};
+const json=file=>JSON.parse(read(file)),cachedHashes=new Map();
+const hashFile=file=>{if(!cachedHashes.has(file))cachedHashes.set(file,sha(read(file)));return cachedHashes.get(file);};
+const stateBytes=read(root+'/state.json'),state=JSON.parse(stateBytes),plan=json(root+'/inputs/successor-play-plan.txt');
+const initialSoak=JSON.stringify({soakPlay:state.soakPlay,soakPlayTotals:state.soakPlayTotals});
+assert.equal(plan.batches.length,12);assert.equal(state.soakPlay.length,12);assert.equal(new Set(plan.batches.map(b=>b.label)).size,12);assert.equal(new Set(state.soakPlay.map(b=>b.label)).size,12);
+const buildProvenance={};
+for(const mode of ['asan','tsan']){
+ const file=root+'/tests-'+mode+'/provenance.json.txt',p=json(file);assert.equal(p.mode,mode);
+ assert.ok(p.flags.includes(mode==='asan'?'-fsanitize=address,undefined':'-fsanitize=thread'));
+ assert.ok(p.flags.includes('-DFORGE_MATE_ALPHA_GUARD=1'));assert.ok(p.flags.includes('-DFORGE_EXPOSE_TUNABLES=1'));
+ assert.ok(p.flags.includes('-UNDEBUG'));assert.ok(!p.flags.includes('-DNDEBUG'));
+ for(const [file,pin]of Object.entries(p.inputs))assert.equal(hashFile(file),pin,'build object '+file);
+ assert.equal(hashFile(root+'/tests-'+mode+'/play_driver'),p.binaries.play_driver,'build binary '+mode);
+ buildProvenance[mode]=p;
+}
+const terminationKeys=['mates','stalemates','repetitions','fifty','ply_caps','insufficient'];
+const fixed={Hash:16,OwnBook:false,UseNNUE:true,MultiPV:1,ContHist4PlyRead:false,NonPawnCorrection:false,LmrDeeperShallower:false};
+const numberKeys=['games','moves','searches','opening_moves','faults','illegal','missing','badscore',...terminationKeys];
+const totals={games:0,faultAbortedGames:0,searches:0,faults:0,sanitizerReports:0};
+const modeTotals={asan:{batches:0,games:0,searches:0},tsan:{batches:0,games:0,searches:0}},batches=[];
+const diagnosticPattern=/(?:Address|UndefinedBehavior|Leak|Thread|Memory|HWAddress)Sanitizer|runtime error:|Sanitizer CHECK failed|sanitizer.*(?:fatal|error)|(?:Segmentation fault|core dumped|terminate called|Assertion .*failed)/i;
+for(let i=0;i<plan.batches.length;i++){
+ const b=plan.batches[i],row=state.soakPlay[i],prefix=root+'/logs/'+b.label;
+ assert.equal(row.label,b.label);assert.equal(row.group,b.group);
+ const meta=json(prefix+'.metadata.txt'),provenance=json(root+'/inputs/'+b.label+'-provenance.txt');
+ assert.deepEqual(provenance.batch,b,'plan/provenance batch');
+ const binary=root+'/tests-'+b.mode+'/play_driver',expectedInputs=[binary,state.repo+'/forge-combo29/tests_astra_mateguard/play_driver.cpp',state.repo+'/forge-combo29/src/search.cpp',state.repo+'/forge-combo29/include/forge/search.hpp'];
+ assert.deepEqual(Object.keys(provenance.inputHashes).sort(),expectedInputs.sort());
+ for(const [file,pin]of Object.entries(provenance.inputHashes))assert.equal(hashFile(file),pin,'batch source/binary '+file);
+ assert.equal(provenance.inputHashes[binary],buildProvenance[b.mode].binaries.play_driver);
+ const expectedArgv=['timeout','-k','2',String(b.timeoutSeconds),...b.argv];
+ assert.deepEqual(meta.argv,expectedArgv);assert.deepEqual(row.argv,expectedArgv);assert.equal(meta.cwd,state.repo);assert.equal(meta.label,b.label);
+ assert.equal(meta.stdoutFile,prefix+'.stdout.txt');assert.equal(meta.stderrFile,prefix+'.stderr.txt');
+ assert.equal(meta.exit,0);assert.equal(meta.signal,null);assert.equal(meta.spawnError,undefined);
+ assert.equal(row.exit,meta.exit);assert.equal(row.signal,meta.signal);assert.equal(row.started,meta.started);assert.equal(row.ended,meta.ended);
+ assert.ok(Date.parse(provenance.started)<=Date.parse(meta.started));assert.ok(Date.parse(meta.started)<Date.parse(meta.ended));
+ assert.ok(Date.parse(meta.started)>=Date.parse(state.soakBudgetStart));assert.ok(Date.parse(meta.ended)<Date.parse(state.soakBudgetEnd));
+ assert.equal(row.completed,true);assert.equal(row.passed,true);assert.equal(row.partialSummary,null);
+ const stdout=read(meta.stdoutFile),stderr=read(meta.stderrFile);assert.equal(sha(stdout),meta.stdoutSha256);assert.equal(sha(stderr),meta.stderrSha256);
+ const raw=JSON.stringify(meta,null,2)+'\nSTDOUT\n'+stdout.toString('utf8')+'\nSTDERR\n'+stderr.toString('utf8');
+ assert.equal(sha(raw),row.rawSha256);assert.equal(read(prefix+'.txt').toString('utf8'),raw);
+ const diagnostics=[];for(const [stream,bytes]of [['stdout',stdout],['stderr',stderr]]){
+  let line=0;for(const text of bytes.toString('utf8').split('\n')){line++;if(diagnosticPattern.test(text))diagnostics.push({stream,line,text});}
+ }
+ assert.deepEqual(diagnostics,[],'full sanitizer/abort scan '+b.label);assert.deepEqual(row.findings,[]);
+ const lines=stdout.toString('utf8').split('\n'),summaryLines=lines.filter(l=>l.startsWith('SUMMARY ')),configLines=lines.filter(l=>l.startsWith('CONFIG '));
+ assert.equal(summaryLines.length,1);assert.equal(configLines.length,1);assert.equal(lines.filter(l=>l.trim()).at(-1),summaryLines[0]);
+ const summary=JSON.parse(summaryLines[0].slice(8)),config=JSON.parse(configLines[0].slice(7));assert.deepEqual(summary,row.counts);
+ const guard=b.group.endsWith('hindsight-and-guard');
+ const options={...fixed,MateAlphaGuard:guard,HindsightDepth:guard,seed:b.seed,threads:b.threads,nodes:b.nodes,depth:b.depth};
+ for(const [key,value]of Object.entries({...options,seconds:b.seconds,first_game:0,max_games:1000000})){assert.equal(summary[key],value,'SUMMARY '+key);assert.equal(config[key],value,'CONFIG '+key);}
+ assert.equal(config.opening_plies,8);assert.equal(config.ply_limit,300);
+ for(const [key,value]of Object.entries({seed:b.seed,threads:b.threads,nodes:b.nodes,depth:b.depth,seconds:b.seconds,MateAlphaGuard:guard,HindsightDepth:guard})){
+  const at=b.argv.indexOf('--'+key);assert.ok(at>=0);assert.equal(b.argv[at+1],String(value));assert.equal(b.argv.lastIndexOf('--'+key),at);
+ }
+ assert.ok(b.argv.includes(binary));assert.equal(b.argv.at(-1),'--trace');
+ if(b.mode==='asan'){assert.ok(b.argv.includes('ASAN_OPTIONS=detect_leaks=1:halt_on_error=1'));assert.ok(b.argv.includes('UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1'));}
+ else assert.ok(b.argv.includes('TSAN_OPTIONS=halt_on_error=0'));
+ for(const k of numberKeys)assert.ok(Number.isSafeInteger(summary[k])&&summary[k]>=0,'counter '+k);
+ const completedGames=terminationKeys.reduce((n,k)=>n+summary[k],0);
+ assert.equal(completedGames+summary.faults,summary.games);assert.equal(summary.faults,0);assert.equal(summary.illegal,0);assert.equal(summary.missing,0);assert.equal(summary.badscore,0);
+ assert.equal(row.completedGames??completedGames,completedGames);assert.equal(row.faultAbortedGames??summary.faults,summary.faults);
+ assert.equal(summary.moves,summary.searches);assert.equal(summary.opening_moves,summary.games*config.opening_plies);
+ let triggers=0,lastGame=-1,lastPly=-1;const gameIds=new Set();
+ for(const line of lines)if(line.startsWith('TRIGGER ')){
+  const t=JSON.parse(line.slice(8));triggers++;
+  for(const [key,value]of Object.entries(options))assert.equal(t[key],value,'TRIGGER '+key);
+  assert.ok(typeof t.fen==='string'&&t.fen.split(' ').length===6);assert.ok(t.position.startsWith('position startpos moves '));
+  assert.ok(t.game>=0&&t.game<summary.games);if(t.game===lastGame)assert.equal(t.ply,lastPly+1);else {assert.equal(t.game,lastGame+1);assert.equal(t.ply,config.opening_plies);}
+  gameIds.add(t.game);lastGame=t.game;lastPly=t.ply;
+ }
+ assert.equal(triggers,summary.searches);assert.equal(gameIds.size,summary.games);
+ totals.games+=completedGames;totals.faultAbortedGames+=summary.faults;totals.searches+=summary.searches;totals.faults+=summary.faults;totals.sanitizerReports+=diagnostics.length;
+ const mode=modeTotals[b.mode];mode.batches++;mode.games+=completedGames;mode.searches+=summary.searches;
+ batches.push({label:b.label,mode:b.mode,seed:b.seed,threads:b.threads,nodes:b.nodes,depth:b.depth,MateAlphaGuard:guard,HindsightDepth:guard,games:completedGames,searches:summary.searches,terminations:Object.fromEntries(terminationKeys.map(k=>[k,summary[k]])),faultAbortedGames:summary.faults,diagnostics,exit:meta.exit,signal:meta.signal,stdoutBytes:stdout.length,stderrBytes:stderr.length,metadataSha256:inputPins[prefix+'.metadata.txt'].sha256,stdoutSha256:meta.stdoutSha256,stderrSha256:meta.stderrSha256,rawSha256:row.rawSha256,provenanceSha256:inputPins[root+'/inputs/'+b.label+'-provenance.txt'].sha256,triggerRows:triggers});
+}
+assert.deepEqual(totals,state.soakPlayTotals);assert.deepEqual(totals,{games:708,faultAbortedGames:0,searches:97576,faults:0,sanitizerReports:0});
+assert.deepEqual(modeTotals,{asan:{batches:8,games:687,searches:95136},tsan:{batches:4,games:21,searches:2440}});
+const after=JSON.parse(fs.readFileSync(root+'/state.json'));assert.equal(JSON.stringify({soakPlay:after.soakPlay,soakPlayTotals:after.soakPlayTotals}),initialSoak,'soak state changed during audit');
+console.log(JSON.stringify({utc:new Date().toISOString(),passed:true,batchesVerified:batches.length,totals,modeTotals,batches,inputPins,notes:['Counts are completed workload counts, not performance or strength claims.','All stdout and stderr bytes scanned; all 97,576 TRIGGER records independently counted and option-checked.','Recorded process exit/signal verified against execution metadata and retained combined raw log; no process reruns.','First batch predates explicit completedGames/faultAbortedGames fields; termination counters independently establish 120 complete, 0 aborted.','Build object, play binary, per-batch driver/search source/header hashes match current frozen files and recorded manifests.','Read-only source/engine/log/state audit; output comes only through stdout.']},null,2));

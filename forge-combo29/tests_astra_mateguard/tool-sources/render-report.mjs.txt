@@ -65,6 +65,8 @@ export function renderGuardReport(s){
  '',
  'Self-play games count normal terminal/capped games; fault-aborted games are separate in raw summaries and totals. Searches include searches in fault-aborted games when the harness finishes. A final SUMMARY with TSan exit66 is completed but failed, not discarded. Sanitizer counts are report-marker occurrences, including DEADLYSIGNAL; all raw diagnostics are retained and any distinct races require source-line grouping. These recorder corrections do not alter the engine or expected results.',
  '',
+ s.soakPlayIndependentAudit?'[Independent full-stream audit]('+s.soakPlayIndependentAudit.report+'): all12 batches,708 completed games/97576searches; ASAN/UBSAN687/95136,TSan21/2440;0faults,0fault-aborted games,0diagnostics. Every search trace, option, seed, exit and retained hash checked.':'Independent successor self-play audit pending.',
+ '',
  'Equality against e04556dd: '+(s.equalityTotals?JSON.stringify(s.equalityTotals):'not yet run on this tree')+'. Existing test-folder suite: '+(s.suiteTotals?JSON.stringify(s.suiteTotals):'not yet run on this tree; the acceptance t23 subset above is separate')+'.',
  '',
  'Existing-suite compilation: '+(s.suiteBuildTotals?JSON.stringify(s.suiteBuildTotals):'pending')+'. Compilation counts do not establish runtime test results. [Plans and build manifest]('+tests+'/existing-suite-plans/BUILDS.md).',
