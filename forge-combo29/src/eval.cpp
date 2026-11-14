@@ -1,6 +1,7 @@
 #include "forge/eval.hpp"
 #include "forge/eval_params.hpp"
 #include "forge/nnue.hpp"
+#include "forge/search.hpp"
 
 #include <algorithm>
 #include <array>
@@ -481,6 +482,32 @@ int Evaluator::evaluate(const Board& board) {
 
 int Evaluator::evaluate_uncached(const Board& board) {
     return evaluate_position<false>(board, nullptr, nullptr);
+}
+
+EvalComponents Evaluator::static_eval_components(const Board& board) {
+    // Same combination as Worker::static_evaluate on a fresh stack: a local
+    // evaluator so the searcher's pawn cache, hash and history stay untouched.
+    EvalComponents parts;
+    parts.hce = evaluate_uncached(board);
+    parts.in_check = board.in_check();
+    if (!nnue::enabled || !nnue::available()) {
+        parts.nnue = 0;
+        Evaluator fresh;
+        parts.total = fresh.evaluate(board);
+        return parts;
+    }
+    nnue::Accumulator accumulator{};
+    nnue::refresh(board, accumulator);
+    parts.nnue = nnue::evaluate(board, accumulator);
+    if (!nnue::residual()) {
+        parts.total = parts.nnue;
+        return parts;
+    }
+    Evaluator fresh;
+    const RuntimePsqt psqt = refresh_runtime_psqt(board);
+    const int handcrafted = fresh.evaluate_runtime(board, psqt);
+    parts.total = std::clamp(handcrafted + parts.nnue, -MateInMaxPly + 1, MateInMaxPly - 1);
+    return parts;
 }
 
 Evaluator::RuntimePsqt Evaluator::refresh_runtime_psqt(const Board& board) {

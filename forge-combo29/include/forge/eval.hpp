@@ -31,6 +31,18 @@ constexpr std::array<int, 7> PieceValueMg{0, 82, 337, 365, 477, 1025, 0};
 constexpr std::array<int, 7> PieceValueEg{0, 94, 281, 297, 512, 936, 0};
 constexpr std::array<int, 7> SeePieceValue{0, 100, 300, 300, 500, 900, 0};
 
+// Side-to-move static evaluation in centipawns, split the way search combines it.
+// hce is Evaluator::evaluate_uncached. nnue is the network term search adds, or 0
+// when the network is not used. total is the static evaluation search uses for
+// this position. in_check is set when the side to move is in check. Computing
+// this does not write a transposition table, history table, or pawn cache.
+struct EvalComponents {
+    int hce = 0;
+    int nnue = 0;
+    int total = 0;
+    bool in_check = false;
+};
+
 class Evaluator {
 public:
     // Search-local state only: public evaluation and tuning always recompute.
@@ -48,6 +60,7 @@ public:
 
     // Evaluation without any cache, for tests and tools.
     [[nodiscard]] static int evaluate_uncached(const Board& board);
+    [[nodiscard]] static EvalComponents static_eval_components(const Board& board);
 
     struct PawnEntry {
         std::uint64_t key = 0;
