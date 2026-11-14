@@ -1372,6 +1372,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     Move best_move = Move::none();
     int move_count = 0;
     bool skip_quiets = false;
+    bool quiet_fail = false;
     const bool has_material = board.has_non_pawn_material(board.side_to_move());
 
     Move move;
@@ -1392,24 +1393,60 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
         // Shallow-depth pruning of unpromising moves.
         // Off by default, so the predicate below is the historical guard.
-        // With SoundMatePruning, skip this block on a principal-variation node,
-        // while in check, and when alpha is already a mate score. Those are the
-        // three cases where dropping a move can hide a faster mate and still
-        // store an exact transposition bound.
+        // Each SoundMatePruning arm skips this block in one case: a
+        // principal-variation node, in check, or alpha already a mate score.
+        // Dropping a move there can hide a faster mate and still store an
+        // exact transposition bound. FollowOption tracks the UCI option.
         const bool sound_mate_case =
-            tune::SoundMatePruning && (pv_node || in_check || is_mate_score(alpha));
+            (tune::sound_arm_enabled(tune::SoundArmPv) && pv_node) ||
+            (tune::sound_arm_enabled(tune::SoundArmInCheck) && in_check) ||
+            (tune::sound_arm_enabled(tune::SoundArmMateAlpha) && is_mate_score(alpha));
         if (!sound_mate_case && mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
             best_score > -MateInMaxPly && has_material && !bare_king_mode) {
+            // Trace stays off in normal play. It records which case skipped a
+            // move, including a quiet check that follows an earlier quiet skip.
+            auto trace_case = [&]() {
+                if (!tune::SoundPruneTrace) return;
+                if (pv_node) ++tune::sound_prune_trace.pv;
+                if (in_check) ++tune::sound_prune_trace.in_check;
+                if (is_mate_score(alpha)) ++tune::sound_prune_trace.mate_alpha;
+            };
+            auto note_deferred_quiet_checks = [&]() {
+                if (!tune::SoundPruneTrace || !quiet_fail) return;
+                for (const Move candidate : board.legal_moves()) {
+                    if (candidate.is_capture() || candidate.is_promotion() || !board.gives_check(candidate)) continue;
+                    bool seen = candidate == move;
+                    for (int i = 0; i < quiet_count && !seen; ++i) seen = quiets_tried[static_cast<std::size_t>(i)] == candidate;
+                    for (int i = 0; i < capture_count && !seen; ++i) seen = captures_tried[static_cast<std::size_t>(i)] == candidate;
+                    if (seen) continue;
+                    trace_case();
+                    ++tune::sound_prune_trace.quiet_check_after_quiet_fail;
+                    if (pv_node) ++tune::sound_prune_trace.quiet_check_on_pv;
+                    if (in_check) ++tune::sound_prune_trace.quiet_check_in_check;
+                    if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
+                }
+            };
             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
             if (quiet && !gives_check) {
                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
+                    trace_case();
+                    quiet_fail = true;
                     skip_quiets = true;
+                    note_deferred_quiet_checks();
                     continue;
                 }
-                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;
-                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;
+                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
+                    trace_case();
+                    quiet_fail = true;
+                    continue;
+                }
+                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+                    trace_case();
+                    quiet_fail = true;
+                    continue;
+                }
             } else {
                 // Futility pruning for captures: even winning the piece cannot
                 // bring the position back to alpha.
@@ -1417,11 +1454,21 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                     lmr_depth <= tune::CaptureFutilityDepth &&
                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
                             capture_value(board, move) + history / 8 <= alpha) {
+                    trace_case();
                     continue;
                 }
                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
-                    !board.see_ge(move, see_threshold)) continue;
+                    !board.see_ge(move, see_threshold)) {
+                    trace_case();
+                    if (tune::SoundPruneTrace && quiet && gives_check && quiet_fail) {
+                        ++tune::sound_prune_trace.quiet_check_after_quiet_fail;
+                        if (pv_node) ++tune::sound_prune_trace.quiet_check_on_pv;
+                        if (in_check) ++tune::sound_prune_trace.quiet_check_in_check;
+                        if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
+                    }
+                    continue;
+                }
             }
         }
 
