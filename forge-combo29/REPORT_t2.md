@@ -2,19 +2,61 @@
 
 ## What was wrong
 
-`MovePicker` in `src/search.cpp` keeps SEE-losing captures in `bad_captures_` while it walks the capture list. Both declarations of that array had 64 slots, and the store was `bad_captures_[bad_count_++] = move` with no bound check. The lock build leaves `FORGE_SDK_BADCAP_PREFIX` at 0 and sets `FORGE_SPD_NO_ZERO_MOVELISTS` to 2, so the live array is the uninitialized 64-slot one.
+`MovePicker` walks the capture list in the main search and splits it by static exchange. `move_score_threshold` returns 0, so a capture is losing when `board.see_ge(move, 0)` is false. Losing captures are saved and played later, after the killers, the countermove, and the quiet moves.
 
-This position is legal, and neither king is in check:
+On the lock that save has no bound:
+
+```cpp
+bad_captures_[bad_count_++] = move;
+```
+
+Both declarations of `bad_captures_` were `std::array<Move, 64>`. The lock leaves `FORGE_SDK_BADCAP_PREFIX` at 0 and sets `FORGE_SPD_NO_ZERO_MOVELISTS` to 2, so the live member is the uninitialized 64-slot array. The prefix arm, which would store the moves inside `moves_` instead, is compiled out.
+
+The store is in `MovePicker::next`, stage `GoodCaptures`, and only for `Mode::Main`. It runs before the move is tested for legality. Quiescence returns captures without writing `bad_captures_`. A side in check uses evasions and never writes it either. Depth 1 at the root is an infinite window. When every capture is losing, the first `next()` therefore walks the whole capture list, writes every losing move, and then falls through to quiets and the bad-capture stage, which reads the array back.
+
+`Move` is four bytes in this build (`from`, `to`, `promotion`, `flags`). `bad_count_` is the next member after the array. `std::array::operator[]` is pointer arithmetic, and AddressSanitizer puts no redzone between members of one object, so the 65th store (index 64) writes the move's bytes into `bad_count_`. The next store uses that corrupted index and writes off the object. The search then dies. On the unchanged lock a release build exits 139 with `Segmentation fault` and no `bestmove`. AddressSanitizer reports `SEGV` on a read inside `nnue::update` (`nnue.cpp:150`), reached from `static_evaluate` during quiescence, rather than a `stack-buffer-overflow` at the store. The full sanitizer log is in the section "Unchanged lock, AddressSanitizer + UBSan" below.
+
+A different 64-slot array in the same file, `captures_tried`, already refuses a write once `capture_count` reaches its size. That one was left alone.
+
+### The position
+
+`set_fen` rejects a missing king, adjacent kings, pawns on rank 1 or 8, and an impossible piece inventory: at most 8 pawns, at most 16 pieces, and promoted extras at most `8 - pawns`. Nine queens of one color is accepted only with no pawns of that color. An equal capture (queen takes queen, rook takes rook) is SEE-good, so it does not enter `bad_captures_`. A queen capturing a protected lesser piece stays losing even when more friendly pieces attack the square, because SEE stops at the first defender. A quiet promotion onto an attacked square is losing unless a friendly recapture makes the exchange good. A neighboring pawn on the 7th rank supplies that recapture, so those promotions do not fill the losing list.
+
+This FEN is legal, and neither king is in check:
 
 ```
 3rQ2K/1n1Q1p2/1Q1n1Qp1/1p1Q1pRB/1Q1b1QpN/2bQ1pRB/4pQpN/kr3q2 w - - 0 1
 ```
 
-It has 66 pseudo-legal captures, and `see_ge(move, 0)` is false for every one of them. A depth-1 search uses the main picker, so those captures are written into `bad_captures_`. On the unchanged lock the process dies during that search.
+A counter linked against the lock board objects printed `captures=66 losing=66 good=0`, with both sides out of check. That is two stores past the old 64-slot array. White's queen on b4 can move to a3, which mates the black king on a1. After the buffer change, depth 1 of this position is that mate.
 
-## The fix
+### Why a piped UCI file hid the bug
 
-Both `bad_captures_` arrays are now `MoveList::Capacity` (256) entries, the same bound as `moves_`, which already holds every generated capture. Every losing capture is still stored, in the same order. The bench and perft node counts measured below match the lock. A finite search that is not ponder now finishes when stdin closes, so `forge < tests_t2/losing_captures.uci` reaches the picker. `stop`, `quit`, `go infinite`, and ponder still abort.
+`go` starts the search on a worker thread and returns to the UCI loop. `quit`, and the end of that loop when stdin closes, call `stop_search()`. That sets the stop flag and joins the worker. The worker can then return before `GoodCaptures` stores anything. The move it prints for this position in that case is `bestmove h2f1`, the first legal move, and the process exits 0. That run never touches the overflow. A depth-1 search that is allowed to finish is about 186 nodes and completes in milliseconds when stdin stays open until `bestmove`.
+
+`go infinite` and ponder wait on a condition variable until stop. Closing stdin still has to stop those, or the process hangs. `stop` and `quit` still abort a search that is already running.
+
+## What the search found
+
+- The overflow is reachable from a legal position. Release lock: `Segmentation fault`, exit 139, stdout ends at `readyok`, no `bestmove`. AddressSanitizer lock: `SEGV` in `nnue::update`, then abort. The only source difference between that crash and a clean search is the size of `bad_captures_`.
+- After the buffer change, depth 1 prints `info depth 1 seldepth 9 score mate 1 nodes 186 ... pv b4a3` and `bestmove b4a3`. The release `time` and `nps` on that line are 0 because the search finishes inside one millisecond. The AddressSanitizer run of the same position printed `time 4` and `nps 46500`. stderr was empty in both.
+- The first piped run of the UCI file was a false pass. It printed `bestmove h2f1` and exited 0 because stdin closed and `stop_search()` cancelled `go` before the picker ran. Holding the pipe open until `bestmove`, and later letting a finite search finish on EOF, both reach the picker.
+- `go depth 20` followed immediately by `quit` still returns at once, with `bestmove a2a3` and no completed `info depth` line. `go infinite` followed by EOF also returns at once, with `bestmove a2a3`.
+- Bench and perft on the fixed release build, with Threads 1, Hash 16, and OwnBook false, match the lock pins: bench 11 is 312866 nodes, bench 13 is 862329 nodes, and `go perft 5` from the start position is 4865609 nodes. The same three counts were measured again after the stdin change (bench 11 time 158, bench 13 time 427).
+- `captures_tried` was already bounded at 64. It did not need a change.
+- The packaged Windows executable was left as the lock binary. This task allows text under `src`, `include`, `tests_t2`, and this report.
+
+## What changed
+
+`forge-combo29/src/search.cpp`. Both `bad_captures_` arrays are now `std::array<Move, MoveList::Capacity>`. `MoveList::Capacity` is 256, the same bound as `moves_`, which already receives every generated capture. `MoveList::push_back` asserts that bound; the assert is off under `NDEBUG`. Every losing capture is still stored, in the same order. Against the lock, this file changes by the two bounds and the comment above them.
+
+`forge-combo29/src/uci.cpp`. After `go` starts a worker, `finite_search` is set when the limits are not infinite and not ponder. `stop_search` clears that flag. When the command loop ends because stdin closed, a finite search is joined without calling `searcher.stop()`. `stop`, `quit`, infinite, and ponder still go through `stop_search`.
+
+`forge-combo29/tests_t2/losing_captures.uci` is the position, with Threads 1, Hash 16, OwnBook false, and `go depth 1`. The file has no `quit`. `losing_captures.expected.txt` is the single line `bestmove b4a3`. `losing_captures.cpp` calls `Searcher::search` at depth 1 with a 16 MB hash and one thread, so that check does not depend on the UCI loop. Linked against `search.cpp` from the lock it exits 139 and prints nothing. Linked against the fix it prints `bestmove b4a3`.
+
+`forge < tests_t2/losing_captures.uci` now prints `bestmove b4a3` on the fix, with empty stderr, including under AddressSanitizer and UBSan. The same command linked against lock `search.cpp` and this `uci.cpp` exits 139 with no `bestmove`.
+
+The engine diff against the lock is 17 lines in `search.cpp` and `uci.cpp`. Commands and full output follow.
 
 ## Files changed
 
@@ -24,8 +66,6 @@ Both `bad_captures_` arrays are now `MoveList::Capacity` (256) entries, the same
 - `forge-combo29/tests_t2/losing_captures.expected.txt`
 - `forge-combo29/tests_t2/losing_captures.cpp`
 - `forge-combo29/REPORT_t2.md`
-
-The engine diff is the two array bounds, the comment above them, and the stdin wait in `uci.cpp`.
 
 ## Build
 
