@@ -550,6 +550,8 @@ bestmove b4a3
 
 `grep '^bestmove '` of that stdout compared equal to `tests_t2/losing_captures.expected.txt`.
 
+The same command linked against `search.cpp` from `16833ecc` and the other release objects (including this `uci.cpp`) died with `Segmentation fault`, exit status 139. stdout stopped at `readyok`. There was no `bestmove` line. stderr was empty.
+
 The same redirection under AddressSanitizer and UBSan (`ASAN_OPTIONS=halt_on_error=1:abort_on_error=1:detect_leaks=0:symbolize=1`, `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`) exited 0, stderr empty, and printed:
 
 ```
