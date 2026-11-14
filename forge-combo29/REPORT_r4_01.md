@@ -35,7 +35,7 @@ Frozen input commits
 12 6d8717d287cc5f1038d53355b8b03d3cbba9e604 grok47/r3-12-soft-nodes
 13 3f06b04a630445e7cabe9d27a3315d73e6a711f3 grok47/r3-13-quiet-extinction
 14 9bb8e1e5bb6583431ca78bcd979bf4c298694c5c grok47/r3-14-draw-jitter
-15 cbe5010c012512ecdaecba830595e81ed1219883 grok47/r3-15-tm-finish-iteration
+15 24fc1d9c0ebf0b044cc96c5fe24260a2da48fa4e grok47/r3-15-tm-finish-iteration
 16 3337249994829603e92da529a25f42fc3149d4bb grok47/r3-16-tm-node-share
 23 68b3720c4274e3a646f73ca92b228cbb686b5a3e grok47/r3-23-sound-mate-pruning
 
@@ -74,7 +74,7 @@ EvasionOrdering       true   0c89887f480e71e5068d736f80a48e9aa2b9e8c1    772890 
 DeadMaterial          true   c1ed7a071efd09871249cd1cf1fcc9119ff3f95c    862329     862329
 QuietExtinction       true   3f06b04a630445e7cabe9d27a3315d73e6a711f3    632155     632155
 DrawJitter            8      9bb8e1e5bb6583431ca78bcd979bf4c298694c5c    857947     857947
-TmFinishIteration     true   cbe5010c012512ecdaecba830595e81ed1219883    862329     862329
+TmFinishIteration     true   24fc1d9c0ebf0b044cc96c5fe24260a2da48fa4e    862329     862329
 TmNodeShare           true   3337249994829603e92da529a25f42fc3149d4bb    862329     862329
 SoundMatePruning      true   68b3720c4274e3a646f73ca92b228cbb686b5a3e    980408     980408
 
@@ -172,6 +172,7 @@ Tip r3-06 544c108818eaaaaf25336b3e26531353876773e1 merged with no source change;
 Tip r3-11 c1ed7a071efd09871249cd1cf1fcc9119ff3f95c merged with no source change; pins and the option table matched.
 Tip r3-13 3f06b04a630445e7cabe9d27a3315d73e6a711f3 merged with no source change; pins and the option table matched.
 Tip r3-14 9bb8e1e5bb6583431ca78bcd979bf4c298694c5c merged with no source change; pins and the option table matched.
+Tip r3-15 24fc1d9c0ebf0b044cc96c5fe24260a2da48fa4e merged with no source change; pins and the option table matched.
 Not verified. No `R3 FOLLOW-UP DONE` commit existed to merge.
 Playing strength was not measured. Address and thread sanitizers were
 not run on the integrated tree. The KRK threads-2 miss above was not
