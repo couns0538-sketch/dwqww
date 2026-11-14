@@ -58,9 +58,26 @@ int main() {
         std::cerr << "HindsightDepth is on before the test sets it\n";
         return 1;
     }
+    forge::Searcher searcher(16);
+    auto search_start = [&](bool enabled) {
+        forge::tune::HindsightDepth = enabled;
+        forge::Board board;
+        if (!board.set_fen(forge::Board::StandardStartFen)) return std::uint64_t{0};
+        searcher.clear();
+        forge::SearchLimits limits;
+        limits.depth = 10;
+        return searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+    };
+    const std::uint64_t nodes_off = search_start(false);
+    const std::uint64_t nodes_on = search_start(true);
+    if (nodes_off == 0 || nodes_off == nodes_on) {
+        std::cerr << "HindsightDepth did not change the start-position depth-10 search ("
+                  << nodes_off << " vs " << nodes_on << ")\n";
+        return 1;
+    }
     forge::tune::HindsightDepth = true;
 
-    forge::Searcher searcher(16);
+    std::cout << "startpos depth 10 nodes off " << nodes_off << " on " << nodes_on << "\n";
     constexpr int searches = 200;
     constexpr int depth = 10;
     for (int index = 0; index < searches; ++index) {
