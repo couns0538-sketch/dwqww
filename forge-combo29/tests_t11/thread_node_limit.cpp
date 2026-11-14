@@ -67,6 +67,30 @@ int main() {
     std::cout << "threads 8 budget 10 rook worst " << rook << '\n';
     expect(rook <= 24, "eight threads stop a ten-node budget");
 
+    // One searcher, used again after a search that left a large count in every
+    // worker. The next budget must not see those leftover counts.
+    {
+        forge::Board board;
+        expect(board.set_fen(Start), "start position parses");
+        forge::Searcher searcher(16, 8);
+        forge::SearchLimits warm;
+        warm.nodes = 20000;
+        warm.nodes_specified = true;
+        warm.depth = 16;
+        const forge::SearchInfo warmed = searcher.search(board, warm, false);
+        std::cout << "reused warm nodes " << warmed.nodes << '\n';
+        expect(warmed.nodes >= 20000 && warmed.nodes <= 20000 + 32, "warm search reaches its budget");
+        for (int rep = 0; rep < 10; ++rep) {
+            forge::SearchLimits limits;
+            limits.nodes = 500;
+            limits.nodes_specified = true;
+            limits.depth = 16;
+            const forge::SearchInfo info = searcher.search(board, limits, false);
+            std::cout << "reused rep " << rep << " nodes " << info.nodes << '\n';
+            expect(info.nodes >= 500 && info.nodes <= 500 + 32, "reused searcher stays on the new budget");
+        }
+    }
+
     if (failures != 0) {
         std::cout << failures << " failed\n";
         return 1;

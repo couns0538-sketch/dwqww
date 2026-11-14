@@ -1814,6 +1814,9 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         TtOwnedScope& operator=(const TtOwnedScope&) = delete;
     } tt_owned_scope(*workers_.front(), exclusive.has_value());
 #endif
+    // A helper can read the budget before another worker enters search() and
+    // clears the count it published last time. Zero every counter first.
+    for (auto& worker : workers_) worker->reset_node_count();
     std::vector<std::thread> helpers;
     for (std::size_t i = 1; i < workers_.size(); ++i) {
         helpers.emplace_back([this, i, board, &worker_limits, &all]() {

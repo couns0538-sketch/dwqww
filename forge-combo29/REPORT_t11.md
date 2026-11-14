@@ -494,3 +494,5 @@ nodes 4865609
 ```
 
 The perft move counts were the same twenty numbers as the earlier pin run. Exit status 0.
+
+A reused searcher still held each worker's previous count until that worker entered `search`. A helper that reached the budget check first could add those old counts and stop. `Searcher::search` now zeros every worker's published count before it starts any thread. The same test keeps one 8-thread searcher, searches 20000 nodes (20005), then ten searches of 500 nodes. Each of those returned 500, 502, or 503. Address and undefined sanitizers printed nothing on that run. After this reset, `bench 11` is 312866, `bench 13` is 862329, and `go perft 5` is 4865609.
