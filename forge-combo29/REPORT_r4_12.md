@@ -29,9 +29,7 @@ That is the audit's proposed change. No `CMakeLists.txt` edit. No new option, an
 
 `g++` 13.3.0. Definitions are the lock set from `forge-combo29/CMakeLists.txt` (`FORGE_NNUE_HIDDEN=256`, `FORGE_EXPOSE_TUNABLES=1`, `FORGE_SPD_TT_NOTLS=1`, `FORGE_SPD_NO_ZERO_MOVELISTS=2`, `FORGE_SEARCH_SPEED2=1`, `FORGE_SPD_PREFETCH_EARLY=1`, `FORGE_SPD_SLIDER_PEXT=1`, `FORGE_SPD_NNUE_ZMM=1`) plus `-O1 -g -ffp-contract=off -fno-fast-math -march=x86-64-v4 -UNDEBUG -fsanitize=address,undefined -fno-sanitize-recover=address,undefined -fno-omit-frame-pointer`.
 
-Command: `bash forge-combo29/tests_r4_12/run_f12.sh`
-
-`ASAN_OPTIONS=halt_on_error=1:abort_on_error=1` and `UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1:print_stacktrace=1`. A failed check in the test returns 1. A sanitizer finding aborts.
+Test source: `forge-combo29/tests_r4_12/empty_move_uci.cpp`, compiled and linked with those flags against the engine sources. `ASAN_OPTIONS=halt_on_error=1:abort_on_error=1` and `UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1:print_stacktrace=1`. A failed check in the test returns 1. A sanitizer finding aborts.
 
 ```text
 move_to_uci(none)=0000
@@ -44,3 +42,5 @@ PASS r4_12 empty move uci
 Exit code 0. No address or undefined sanitizer report.
 
 Pins held at the defaults: bench depth 11 `312866`, bench depth 13 `862329`, startpos perft 5 `4865609`. The 200 depth-10 searches (same position walk as `tests_t22`) each returned a legal best move, and every move on a non-empty PV was legal in sequence.
+
+R4 DONE efb3eaa37
