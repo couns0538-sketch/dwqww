@@ -1,0 +1,120 @@
+Observed existing-test failure or review marker. No expected value was changed. Reproduction not yet performed.
+{
+  "mode": "enabled",
+  "kind": "runs",
+  "id": "t16-options-diff",
+  "started": "2026-11-14T22:20:53.865Z",
+  "planFile": "/workspace/work/r4-krk-validation/test-plan/plan-enabled.json.txt",
+  "planSha256": "6b3373f632dd99c728453bce4b56fc953151999c0718f5aa1a5bee0eac788103",
+  "cwd": "/workspace/work/dwqww-r4-guard",
+  "argv": [
+    "timeout",
+    "-k",
+    "2",
+    "440",
+    "diff",
+    "-u",
+    "/workspace/work/dwqww-r4-guard/forge-combo29/tests_t16/options.expected.txt",
+    "/workspace/work/r4-run/existing-suite-enabled/logs/t16-options.stdout.txt"
+  ],
+  "outerTimeoutMs": 450000,
+  "env": {},
+  "stdoutFile": "/workspace/work/r4-run/existing-suite-enabled/logs/t16-options-diff.stdout.txt",
+  "stderrFile": "/workspace/work/r4-run/existing-suite-enabled/logs/t16-options-diff.stderr.txt",
+  "expectedExit": 0,
+  "dependsOn": [
+    "t16-options"
+  ],
+  "knownHistoricalFailure": true,
+  "notes": [
+    "Historical Release and ASan options/clamp exact diffs exited1 due additional UCI options: four comparisons total, not four distinct fixtures. Preserve expected text; capture actual new-tree result. Never relabel as a passing assertion."
+  ],
+  "inputSha256": null,
+  "ended": "2026-11-14T22:20:53.875Z",
+  "exit": 1,
+  "signal": null,
+  "stdoutSha256": "8f0aa1c79fb58337da86fd414dcd1695458d632c82c40cd7c069f71d06d8d804",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "sanitizer": [],
+  "perftPass": true,
+  "reviewMarkers": [],
+  "passed": false,
+  "incomplete": false
+}
+FULL STDOUT
+--- /workspace/work/dwqww-r4-guard/forge-combo29/tests_t16/options.expected.txt	2026-11-14 11:48:29.355725138 -0800
++++ /workspace/work/r4-run/existing-suite-enabled/logs/t16-options.stdout.txt	2026-11-14 14:20:53.800702359 -0800
+@@ -2,6 +2,7 @@
+ id author OpenAI
+ option name Hash type spin default 32 min 1 max 2048
+ option name Threads type spin default 1 min 1 max 256
++option name MultiPV type spin default 1 min 1 max 8
+ option name Move Overhead type spin default 10 min 0 max 1000
+ option name Ponder type check default false
+ option name OwnBook type check default true
+@@ -9,6 +10,27 @@
+ option name Book Depth type spin default 30 min 0 max 100
+ option name Book Variety type spin default 30 min 0 max 100
+ option name UseNNUE type check default true
++option name NnueFile type string default <empty>
++option name ContHist4PlyRead type check default false
++option name NonPawnCorrection type check default false
++option name LmrDeeperShallower type check default false
++option name EvalRule50Damp type check default false
++option name ThreatHistory type check default false
++option name LmrSignedCorrection type check default false
++option name LmrLateParentRelief type check default false
++option name HindsightDepth type check default false
++option name NullThreatVerify type check default false
++option name NullSeeVeto type check default false
++option name AspCappedReopen type check default false
++option name AspArmLate type check default false
++option name EvasionOrdering type check default false
++option name DeadMaterial type check default false
++option name QuietExtinction type check default false
++option name DrawJitter type spin default 0 min 0 max 8
++option name TmFinishIteration type check default false
++option name TmNodeShare type check default false
++option name SoundMatePruning type check default false
++option name MateAlphaGuard type check default false
+ option name LmrQuietBase type spin default 85 min 0 max 300
+ option name LmrQuietDivisor type spin default 220 min 100 max 500
+ option name LmrNoisyBase type spin default 10 min 0 max 300
+@@ -143,6 +165,7 @@
+ id author OpenAI
+ option name Hash type spin default 32 min 1 max 2048
+ option name Threads type spin default 1 min 1 max 256
++option name MultiPV type spin default 1 min 1 max 8
+ option name Move Overhead type spin default 10 min 0 max 1000
+ option name Ponder type check default false
+ option name OwnBook type check default true
+@@ -150,6 +173,27 @@
+ option name Book Depth type spin default 30 min 0 max 100
+ option name Book Variety type spin default 30 min 0 max 100
+ option name UseNNUE type check default true
++option name NnueFile type string default <empty>
++option name ContHist4PlyRead type check default false
++option name NonPawnCorrection type check default false
++option name LmrDeeperShallower type check default false
++option name EvalRule50Damp type check default false
++option name ThreatHistory type check default false
++option name LmrSignedCorrection type check default false
++option name LmrLateParentRelief type check default false
++option name HindsightDepth type check default false
++option name NullThreatVerify type check default false
++option name NullSeeVeto type check default false
++option name AspCappedReopen type check default false
++option name AspArmLate type check default false
++option name EvasionOrdering type check default false
++option name DeadMaterial type check default false
++option name QuietExtinction type check default false
++option name DrawJitter type spin default 0 min 0 max 8
++option name TmFinishIteration type check default false
++option name TmNodeShare type check default false
++option name SoundMatePruning type check default false
++option name MateAlphaGuard type check default false
+ option name LmrQuietBase type spin default 85 min 0 max 300
+ option name LmrQuietDivisor type spin default 220 min 100 max 500
+ option name LmrNoisyBase type spin default 10 min 0 max 300
+
+FULL STDERR
