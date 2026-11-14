@@ -1,0 +1,36 @@
+Screen chunk 001. Not a strength claim. Same owner binary, HindsightDepth on versus off.
+
+W-L-D for the option-on engine first: 214-190-396
+Games: 800. Points: 412.0 (51.50%). Pairs: 400.
+Elo: 10.43, 95% interval +/- 15.96 (fastchess logistic).
+nElo: 15.75 +/- 24.08.
+LOS: 90.00%.
+Pentanomial (0-2), option on: 18, 90, 162, 110, 20.
+Draw ratio: 40.50%. The 95% interval includes zero.
+
+Book: official-stockfish/books 8mvs_+90_+99.epd, 8533 lines, sequential, openings 1-400, both colors.
+sha256 book: e4ccf9297520743bb44705908b510ae45f817a146418c7773aaf44bed2cf8428
+sha256 PGN: 3116545c53b04ca49ed360ea21597afba241cd81c15e5b395062cf6843f347a9
+
+Command:
+/tmp/r3fu/fastchess-linux-x86-64/fastchess -recover -rounds 400 -games 2 -concurrency 4 -openings file=/tmp/r3fu/8mvs_+90_+99.epd format=epd order=sequential start=1 -engine name=HindsightOn cmd=/tmp/forge-r3fu option.HindsightDepth=true -engine name=HindsightOff cmd=/tmp/forge-r3fu option.HindsightDepth=false -each proto=uci nodes=50000 option.Threads=1 option.Hash=16 option.OwnBook=false -resign movecount=4 score=800 -draw movenumber=40 movecount=8 score=10 -maxmoves 200 -pgnout file=forge-combo29/tests_r3fu_05/chunk-001.pgn append=false min=true -ratinginterval 100 -report penta=true -event "r3-05 hindsight screen chunk 001" -site local
+
+Versions:
+engine id: Chess Engine Forge 6.4.24 candidate
+implementation commit: cacb3ed982ec5ac2eec66687e69739d88048f56c
+g++ 13.3.0, cmake 3.28.3, owner build (AVX-512F and BMI2, no FORGE_* override, CMAKE_CXX_COMPILER=g++)
+fastchess alpha 1.8.3 compiled for ubuntu-22.04 20261107-d7b47e8 (CI)
+sha256 binary: 453e4757662bf45230623455f63da64657e6a7cee0120f49fe0ee0eb3e8d8a02
+sha256 fastchess: 091bf93dcf08e15d14b77bc2374d0a423982b32200e8add69f17bace3a34b31f
+
+bench 13 nps, five alternating runs, option off/on/off/on/off, Threads 1, Hash 16, OwnBook false, before the match:
+off 862329 nodes, 596 ms, nps 1446860
+on  840387 nodes, 551 ms, nps 1525203
+off 862329 nodes, 547 ms, nps 1576469
+on  840387 nodes, 545 ms, nps 1541994
+off 862329 nodes, 542 ms, nps 1591012
+
+Option-off pins on this binary: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609.
+bench 13 with HindsightDepth on: 840387.
+Wall time for this chunk: 16:05. Finished 2026-11-14 15:48:47 UTC.
+Independent count of the log matched the fastchess W-L-D and pentanomial.
