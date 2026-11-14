@@ -1,8 +1,8 @@
 # Eight-hour combined Forge integration and soak
 
-Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T17:19:19.465Z.
+Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T17:23:23.192Z.
 
-Elapsed at snapshot: 367.79 minutes; current phase: 3-ContHist4PlyRead; recorded pushes: 67. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
+Elapsed at snapshot: 371.85 minutes; current phase: 3-ContHist4PlyRead; recorded pushes: 68. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
 
 Base: `fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca`; merged source: `f27b1971e459581ad4c85b7015f6af83bbfd4af6`; unchanged lock: `16833ecc03b425586f91f4c8834dea8807bf4c22`. [Source provenance](../INTEGRATION_ALL.md), [progress](PROGRESS.md), [raw batches](batches/), [test matrix](TEST_MATRIX.md).
 
@@ -22,7 +22,7 @@ Recorded default pins: bench11 = 312,866; bench13 = 862,329; perft5 = 4,865,609.
 | 2F | ASAN+UBSAN self-play plus supplemental TSan with all three new options enabled; exact instrumentation and limits remain in batch evidence. | 1,116 games; 128,418 searches; 0 faults | Complete: 1102 ASAN+UBSAN games / 126532 searches plus14 enabled-option TSan games /1886 searches; no chess/runtime diagnostics |
 | 2G | t23 mate/fifty-move suites; unchanged expectations and complete test outputs retained. | 4 tests completed; 120 cases; 60 mate cases; 20 nonmate cases; 40 rule50 cases; 0 sanitizer reports | Complete: four unchanged suite runs; 120 cases; zero missed/false mates, illegal moves, rule50 failures, or sanitizer reports |
 | 3-default | Merged defaults (candidate) versus unchanged lock (baseline). | 4,000 games; 1,094 wins; 1,177 losses; 1,729 draws; 0 audit errors | Complete:4000 games,2000 color-swapped UHO pairs; W-L-D1094-1177-1729; no crash/illegal/disconnect/stall/abort marker or event; counts only |
-| 3-ContHist4PlyRead | Merged with only ContHist4PlyRead enabled versus merged with all three new options disabled. | 3,200 games; 910 wins; 906 losses; 1,384 draws; 0 audit errors | Running |
+| 3-ContHist4PlyRead | Merged with only ContHist4PlyRead enabled versus merged with all three new options disabled. | 3,600 games; 1,028 wins; 1,020 losses; 1,552 draws; 0 audit errors | Running |
 | 3-NonPawnCorrection | Merged with only NonPawnCorrection enabled versus merged with all three new options disabled. | No completed counts recorded | Pending; no completed counts recorded |
 | 3-LmrDeeperShallower | Merged with only LmrDeeperShallower enabled versus merged with all three new options disabled. | No completed counts recorded | Pending; no completed counts recorded |
 | Part4 | Mate-bound/PV investigation and optional sampled KRK audit; exact DTM checks, no universal correctness claim. | 4 uninstrumented searches; 1 instrumented searches; 1 independent known roots; 0 false bounds demonstrated | Known-root investigation complete; optional broader sampled audit pending |
@@ -138,14 +138,14 @@ Recorded match configuration: 20,000 nodes per move, Threads 1, Hash 16, OwnBook
 | Mode | Games | Wins | Losses | Draws | Status |
 | --- | --- | --- | --- | --- | --- |
 | default | 4,000 | 1,094 | 1,177 | 1,729 | Complete:4000 games,2000 color-swapped UHO pairs; W-L-D1094-1177-1729; no crash/illegal/disconnect/stall/abort marker or event; counts only |
-| ContHist4PlyRead | 3,200 | 910 | 906 | 1,384 | Running |
+| ContHist4PlyRead | 3,600 | 1,028 | 1,020 | 1,552 | Running |
 | NonPawnCorrection | — | — | — | — | Pending; no completed counts recorded |
 | LmrDeeperShallower | — | — | — | — | Pending; no completed counts recorded |
 
 | Mode | LL | LD | DD or WL | DW | WW | Complete pairs | Incomplete pairs |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | default | 77 | 315 | 1,272 | 286 | 50 | 2,000 | 0 |
-| ContHist4PlyRead | 100 | 373 | 641 | 395 | 91 | 1,600 | 0 |
+| ContHist4PlyRead | 107 | 428 | 720 | 440 | 105 | 1,800 | 0 |
 | NonPawnCorrection | — | — | — | — | — | — | — |
 | LmrDeeperShallower | — | — | — | — | — | — | — |
 
@@ -183,6 +183,7 @@ A crash can appear as a disconnect. Log markers are occurrences, not additional 
 | [3-ContHist4PlyRead #6](batches/3-ContHist4PlyRead-0006.txt) | 8475006 | Yes; see retained counts | true / true | 115–125–160 | 200 / 0 | exit 0, signal — |
 | [3-ContHist4PlyRead #7](batches/3-ContHist4PlyRead-0007.txt) | 8475007 | Yes; see retained counts | true / true | 114–120–166 | 200 / 0 | exit 0, signal — |
 | [3-ContHist4PlyRead #8](batches/3-ContHist4PlyRead-0008.txt) | 8475008 | Yes; see retained counts | true / true | 123–120–157 | 200 / 0 | exit 0, signal — |
+| [3-ContHist4PlyRead #9](batches/3-ContHist4PlyRead-0009.txt) | 8475009 | Yes; see retained counts | true / true | 118–114–168 | 200 / 0 | exit 0, signal — |
 
 Raw attempt rows can include excluded work and must not be summed into the completed totals.
 
@@ -932,20 +933,20 @@ This appendix preserves every state total, including overlapping categories and 
 | 3-default | disconnect_markers | 0 |
 | 3-default | stall_markers | 0 |
 | 3-default | batches | 10 |
-| 3-ContHist4PlyRead | games | 3200 |
-| 3-ContHist4PlyRead | games_started | 3200 |
-| 3-ContHist4PlyRead | wins | 910 |
-| 3-ContHist4PlyRead | losses | 906 |
-| 3-ContHist4PlyRead | draws | 1384 |
-| 3-ContHist4PlyRead | moves | 448895 |
-| 3-ContHist4PlyRead | complete_pairs | 1600 |
+| 3-ContHist4PlyRead | games | 3600 |
+| 3-ContHist4PlyRead | games_started | 3600 |
+| 3-ContHist4PlyRead | wins | 1028 |
+| 3-ContHist4PlyRead | losses | 1020 |
+| 3-ContHist4PlyRead | draws | 1552 |
+| 3-ContHist4PlyRead | moves | 505134 |
+| 3-ContHist4PlyRead | complete_pairs | 1800 |
 | 3-ContHist4PlyRead | incomplete_pairs | 0 |
 | 3-ContHist4PlyRead | audit_errors | 0 |
-| 3-ContHist4PlyRead | pair_LL | 100 |
-| 3-ContHist4PlyRead | pair_LD | 373 |
-| 3-ContHist4PlyRead | pair_DD_or_WL | 641 |
-| 3-ContHist4PlyRead | pair_DW | 395 |
-| 3-ContHist4PlyRead | pair_WW | 91 |
+| 3-ContHist4PlyRead | pair_LL | 107 |
+| 3-ContHist4PlyRead | pair_LD | 428 |
+| 3-ContHist4PlyRead | pair_DD_or_WL | 720 |
+| 3-ContHist4PlyRead | pair_DW | 440 |
+| 3-ContHist4PlyRead | pair_WW | 105 |
 | 3-ContHist4PlyRead | illegal_move_events | 0 |
 | 3-ContHist4PlyRead | illegal_move_games | 0 |
 | 3-ContHist4PlyRead | disconnect_games | 0 |
@@ -956,7 +957,7 @@ This appendix preserves every state total, including overlapping categories and 
 | 3-ContHist4PlyRead | illegal_markers | 0 |
 | 3-ContHist4PlyRead | disconnect_markers | 0 |
 | 3-ContHist4PlyRead | stall_markers | 0 |
-| 3-ContHist4PlyRead | batches | 8 |
+| 3-ContHist4PlyRead | batches | 9 |
 
 </details>
 
