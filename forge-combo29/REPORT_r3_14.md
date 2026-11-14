@@ -98,3 +98,7 @@ UHO screen, same owner binary, nodes 50000, book `UHO_4060_v4.epd`.
 Chunk 1 finished 500 games (openings 1-250, both colors) in 22 minutes 58 seconds. PGN: `forge-combo29/tests_r3fu_14/screen/chunk001.pgn`. Value 8 first: W-L-D 132-138-230, Elo -4.17 ± 22.41 (95%), LOS 35.75%, pentanomial 9, 46, 141, 50, 4. Summary: `forge-combo29/tests_r3fu_14/screen/chunk001-summary.md`.
 
 Chunk 2 finished 500 games (openings 251-500, both colors) in 22 minutes 35 seconds. PGN: `forge-combo29/tests_r3fu_14/screen/chunk002.pgn`. Value 8 first: W-L-D 125-129-246, Elo -2.78 ± 21.73 (95%), LOS 40.09%, pentanomial 8, 62, 112, 62, 6. Summary: `forge-combo29/tests_r3fu_14/screen/chunk002-summary.md`.
+
+Chunk 3 finished 500 games (openings 501-750, both colors) in 20 minutes 53 seconds. PGN: `forge-combo29/tests_r3fu_14/screen/chunk003.pgn`. Value 8 first: W-L-D 137-134-229, Elo 2.08 ± 22.45 (95%), LOS 57.23%, pentanomial 7, 53, 124, 62, 4. Summary: `forge-combo29/tests_r3fu_14/screen/chunk003-summary.md`.
+
+Chunks 1-3 together, value 8 first: 1500 games, W-L-D 394-401-705, Elo -1.62, 95% -11.65 to 8.40, LOS 37.56%, pentanomial 24, 161, 377, 174, 14. That combined interval is the paired normal approximation on the summed pentanomial, not a fastchess print.
