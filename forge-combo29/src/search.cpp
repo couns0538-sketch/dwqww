@@ -1942,6 +1942,14 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
                 }
                 const NodeShareTimingDecision decision = decide_node_share_timing(
                     NodeShareTiming{soft_limit_ms_, hard_limit_ms_, elapsed_ms(), best_nodes, root_nodes});
+                if (emit_info && decision.soft_ms != soft_limit_ms_) {
+                    const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+                    std::cout << "info string TmNodeShare "
+                              << (decision.soft_ms > soft_limit_ms_ ? "lengthen" : "shorten")
+                              << " soft " << soft_limit_ms_ << " adjusted " << decision.soft_ms
+                              << " best " << best_nodes << " root " << root_nodes
+                              << " depth " << depth << std::endl;
+                }
                 if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(decision.soft_ms) * factor)) break;
             } else if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) {
                 break;
