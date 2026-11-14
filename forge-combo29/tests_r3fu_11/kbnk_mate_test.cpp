@@ -1,7 +1,6 @@
 #include "forge/eval.hpp"
 #include "forge/search.hpp"
 
-#include <array>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -16,90 +15,29 @@ void fail(const std::string& message) {
     ++g_failures;
 }
 
-int file_of_sq(int square) { return square & 7; }
-int rank_of_sq(int square) { return square >> 3; }
-
-bool knight_attacks(int from, int to) {
-    const int df = file_of_sq(from) - file_of_sq(to);
-    const int dr = rank_of_sq(from) - rank_of_sq(to);
-    const int adf = df < 0 ? -df : df;
-    const int adr = dr < 0 ? -dr : dr;
-    return (adf == 1 && adr == 2) || (adf == 2 && adr == 1);
-}
-
-std::string fen_from_squares(int strong_king, int lone_king, int bishop, int knight, bool strong_white) {
-    std::array<char, 64> board{};
-    board.fill(0);
-    if (strong_white) {
-        board[static_cast<std::size_t>(strong_king)] = 'K';
-        board[static_cast<std::size_t>(lone_king)] = 'k';
-        board[static_cast<std::size_t>(bishop)] = 'B';
-        board[static_cast<std::size_t>(knight)] = 'N';
-    } else {
-        board[static_cast<std::size_t>(strong_king)] = 'k';
-        board[static_cast<std::size_t>(lone_king)] = 'K';
-        board[static_cast<std::size_t>(bishop)] = 'b';
-        board[static_cast<std::size_t>(knight)] = 'n';
-    }
-    std::string fen;
-    for (int rank = 7; rank >= 0; --rank) {
-        int empty = 0;
-        for (int file = 0; file < 8; ++file) {
-            const char piece = board[static_cast<std::size_t>(rank * 8 + file)];
-            if (piece == 0) {
-                ++empty;
-                continue;
-            }
-            if (empty != 0) {
-                fen += static_cast<char>('0' + empty);
-                empty = 0;
-            }
-            fen += piece;
-        }
-        if (empty != 0) fen += static_cast<char>('0' + empty);
-        if (rank != 0) fen += '/';
-    }
-    fen += strong_white ? " w - - 0 1" : " b - - 0 1";
-    return fen;
-}
-
-bool piece_safe(int lone_king, int piece) {
-    if (forge::square_distance(lone_king, piece) <= 1) return false;
-    return !knight_attacks(lone_king, piece);
-}
-
 std::vector<std::string> make_positions() {
-    std::vector<std::string> fens;
-    std::uint64_t rng = 0x4B424E4BULL;
-    auto next = [&]() {
-        rng = rng * 6364136223846793005ULL + 1442695040888963407ULL;
-        return rng;
+    return {
+        "8/1k6/8/8/5K2/7B/6N1/8 w - - 0 1",
+        "8/8/B4K2/8/8/8/1k4N1/8 w - - 0 1",
+        "8/8/8/8/8/8/k6N/4KB2 w - - 0 1",
+        "1k6/8/4N3/2K5/8/8/8/B7 w - - 0 1",
+        "1N6/5K1B/8/8/8/2k5/8/8 w - - 0 1",
+        "8/8/7B/8/7k/8/5N2/5K2 w - - 0 1",
+        "8/5K2/8/k7/8/N7/8/5B2 w - - 0 1",
+        "7K/8/3k4/6B1/7N/8/8/8 w - - 0 1",
+        "4K3/3B4/8/8/8/8/1k6/5N2 w - - 0 1",
+        "1k6/8/8/1N6/B7/3K4/8/8 w - - 0 1",
+        "2K2k2/8/8/8/8/8/8/N4B2 w - - 0 1",
+        "8/8/8/1B6/6k1/2N5/5K2/8 w - - 0 1",
+        "7N/8/3k4/B7/8/6K1/8/8 w - - 0 1",
+        "8/B7/5k2/8/8/8/3N4/5K2 w - - 0 1",
+        "1B1k4/8/8/8/7N/8/K7/8 w - - 0 1",
+        "8/4N3/3B4/8/8/5K2/8/7k w - - 0 1",
+        "7K/8/8/8/1k2B3/4N3/8/8 w - - 0 1",
+        "2N3K1/8/8/8/8/k7/8/7B w - - 0 1",
+        "8/1N6/6K1/5B2/8/2k5/8/8 w - - 0 1",
+        "8/8/2N5/4K3/7k/2B5/8/8 w - - 0 1",
     };
-    while (fens.size() < 20) {
-        const int strong_king = static_cast<int>(next() % 64U);
-        const int lone_king = static_cast<int>(next() % 64U);
-        const int bishop = static_cast<int>(next() % 64U);
-        const int knight = static_cast<int>(next() % 64U);
-        if (strong_king == lone_king || strong_king == bishop || strong_king == knight ||
-            lone_king == bishop || lone_king == knight || bishop == knight) {
-            continue;
-        }
-        if (forge::square_distance(strong_king, lone_king) < 2) continue;
-        if (!piece_safe(lone_king, bishop) || !piece_safe(lone_king, knight)) continue;
-        const bool strong_white = (fens.size() % 2U) == 0U;
-        const std::string fen = fen_from_squares(strong_king, lone_king, bishop, knight, strong_white);
-        forge::Board board;
-        if (!board.set_fen(fen)) continue;
-        if (board.in_check()) continue;
-        if (board.legal_moves().empty()) continue;
-        bool repeat = false;
-        for (const std::string& earlier : fens) {
-            if (earlier == fen) repeat = true;
-        }
-        if (repeat) continue;
-        fens.push_back(fen);
-    }
-    return fens;
 }
 
 std::string swap_colors(std::string fen) {
@@ -210,9 +148,8 @@ bool mate_within_50(const std::string& fen, int index) {
 
 }  // namespace
 
-int main(int argc, char** argv) {
+int main() {
     forge::dead_material_enabled = true;
-    const int game_limit = argc > 1 ? std::atoi(argv[1]) : 40;
     const std::vector<std::string> base = make_positions();
     if (base.size() != 20) {
         fail("expected 20 positions");
@@ -220,14 +157,12 @@ int main(int argc, char** argv) {
     }
     int index = 0;
     for (const std::string& fen : base) {
-        if (index >= game_limit) break;
         mate_within_50(fen, index++);
-        if (index >= game_limit) break;
         const std::string flipped = swap_colors(fen);
         if (flipped == fen) fail("color swap did nothing");
         mate_within_50(flipped, index++);
     }
-    if (game_limit >= 40 && index != 40) fail("did not run both sides");
+    if (index != 40) fail("did not run both sides");
     std::cout << "kbnk mate failures " << g_failures << " games " << index << '\n';
     return g_failures == 0 ? 0 : 1;
 }
