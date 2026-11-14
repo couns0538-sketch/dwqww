@@ -226,6 +226,38 @@ Lock engine, `/tmp/forge-lock-t3/forge`, same commands, no `stop` required:
 
 The full info lines from that session are the output of `python3 /tmp/t3_measure.py <engine>` and match the timestamps above. `bench 11`, `bench 13`, and `perft 5` in that same session were 312866, 862329, and 4865609 on both binaries.
 
+## Review follow-up
+
+Codex review on `06d211c9` found two holes in `parse_clock_ms`.
+
+- An overflowing digit run returned the ceiling before checking that the whole token was consumed, so `999999999999999999999abc` became `kMaxClockMs`.
+- After a leading `+`, `std::from_chars` still accepted a minus, so `+-80` returned `-80`. `movetime_ms >= 0` is false for that value, and the search then had no clock.
+
+The magnitude is now parsed as an unsigned 64-bit integer, and only after one optional sign. A second sign is rejected. The ceiling is applied only when every character was consumed. Otherwise the token is 0.
+
+```text
+g++ -std=c++20 -Wall -Wextra -Werror -I /agent/repos/dwqww/forge-combo29/include /agent/repos/dwqww/forge-combo29/tests_t3/clock_parse_test.cpp -o /tmp/clock_parse_test && /tmp/clock_parse_test
+```
+
+```text
+clock_parse_test passed
+```
+
+```text
+g++ -std=c++20 -Wall -Wextra -Werror -fsanitize=address,undefined -g -I /agent/repos/dwqww/forge-combo29/include /agent/repos/dwqww/forge-combo29/tests_t3/clock_parse_test.cpp -o /tmp/clock_parse_test_asan && /tmp/clock_parse_test_asan
+```
+
+```text
+clock_parse_test passed
+```
+
+Both exit codes were 0, and neither compiler printed a diagnostic. On the rebuilt `/tmp/forge-t3/forge`, with `Threads 1`, `Hash 16`, and `OwnBook false`:
+
+- `go movetime +-80`, `go movetime -+80`, `go movetime 999999999999999999999abc`, and `go movetime 9223372036854775808x` each returned `bestmove` at 0.001 s.
+- `go movetime +80` returned `bestmove d2d4` at 0.071 s.
+- `go wtime 3000000000 btime 3000000000` was still in depth 16 at 0.061 s (`time 60`, 109697 nodes). `bestmove d2d4` came back at 0.162 s, after `stop`.
+- `bench 11` = 312866 nodes, `bench 13` = 862329 nodes, `go perft 5` = 4865609 nodes.
+
 ## Not verified
 
 - The fixed engine was not left to run for 3000000000 ms. It was stopped at 150 ms while info lines were still arriving.

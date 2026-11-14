@@ -33,7 +33,11 @@ int main() {
     expect("-", 0, "bare minus");
     expect("+", 0, "bare plus");
     expect("++80", 0, "double plus is malformed");
+    expect("+-80", 0, "plus then minus is malformed");
+    expect("-+80", 0, "minus then plus is malformed");
     expect("+80x", 0, "trailing junk");
+    expect("9223372036854775808x", 0, "overflow with trailing junk");
+    expect("999999999999999999999abc", 0, "far overflow with trailing junk");
     expect("12x", 0, "trailing letter");
     expect("abc", 0, "letters");
     expect("1.5", 0, "decimal");
