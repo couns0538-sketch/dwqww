@@ -54,6 +54,18 @@ bool move_is_legal(const forge::Board& board, forge::Move move) {
     return false;
 }
 
+bool line_is_legal(forge::Board board, const forge::SearchInfo& info) {
+    if (info.score < -forge::MateValue || info.score > forge::MateValue) return false;
+    if (!move_is_legal(board, info.best_move)) return false;
+    if (!info.pv.empty() && !(info.pv.front() == info.best_move)) return false;
+    for (const forge::Move move : info.pv) {
+        if (!move_is_legal(board, move)) return false;
+        forge::Undo undo;
+        if (!board.make_move(move, undo)) return false;
+    }
+    return true;
+}
+
 void check_formula() {
     forge::Searcher searcher(16);
     forge::Worker& worker = searcher.main_worker();
@@ -153,6 +165,36 @@ void check_search_scores() {
     expect(bare_on.score == 0, "insufficient material stays 0");
     expect(move_is_legal(mate, mate_on.best_move), "mate best move is legal");
     expect(move_is_legal(fifty, fifty_on.best_move), "fifty best move is legal");
+
+    forge::DrawJitter = 0;
+    const forge::SearchInfo fifty_restored = search_at(fifty, 2);
+    expect(fifty_restored.score == 0, "DrawJitter 0 after 8 restores the exact zero");
+}
+
+void check_capture_is_not_a_fifty_leaf() {
+    const forge::Board board = board_from("8/8/8/4k3/8/4K3/4p3/4R3 w - - 99 1");
+    forge::DrawJitter = 0;
+    const forge::SearchInfo off = search_at(board, 3);
+    forge::DrawJitter = 8;
+    const forge::SearchInfo on = search_at(board, 3);
+    expect(off.best_move.is_capture() && on.best_move.is_capture(), "a capture on half-move 99 is chosen over the draw");
+    expect(forge::is_mate_score(on.score) || on.score > 8, "the capture is not scored as a few-centipawn draw");
+    expect(line_is_legal(board, on), "capture line is legal with DrawJitter 8");
+}
+
+void check_repetition_in_the_tree() {
+    forge::Board board = board_from("8/8/8/4k3/8/4K3/8/4R3 w - - 0 1");
+    static constexpr std::string_view moves[] = {"e1a1", "e5e6", "a1e1", "e6e5", "e1a1", "e5e6", "a1e1"};
+    bool played = true;
+    for (const std::string_view text : moves) played = played && play_uci(board, text);
+    expect(played && !board.is_repetition(), "one ply short of threefold is not yet a root draw");
+    forge::DrawJitter = 0;
+    const forge::SearchInfo off = search_at(board, 3);
+    forge::DrawJitter = 8;
+    const forge::SearchInfo on = search_at(board, 3);
+    expect(off.score == 0, "the completing reply is a zero draw when DrawJitter is 0");
+    expect(on.score != 0 && on.score >= -8 && on.score <= 8, "the completing reply carries a few centipawns");
+    expect(line_is_legal(board, off) && line_is_legal(board, on), "repetition replies are legal");
 }
 
 forge::Board played_position(int index) {
@@ -179,8 +221,8 @@ forge::Board played_position(int index) {
     return board;
 }
 
-void check_many_searches() {
-    forge::DrawJitter = 8;
+void check_many_searches(int span) {
+    forge::DrawJitter = span;
     forge::Searcher searcher(16);
     expect(searcher.threads() == 1, "one thread and 16 MB hash");
     int illegal = 0;
@@ -190,18 +232,32 @@ void check_many_searches() {
         forge::SearchLimits limits;
         limits.depth = 10;
         const forge::SearchInfo info = searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive);
-        if (!move_is_legal(board, info.best_move)) {
+        if (!line_is_legal(board, info)) {
             ++illegal;
             if (illegal <= 5) {
-                std::cout << "FAIL illegal search " << index << " move " << forge::Board::move_to_uci(info.best_move)
+                std::cout << "FAIL illegal search " << index << " span " << span << " move "
+                          << forge::Board::move_to_uci(info.best_move) << " score " << info.score
                           << " fen " << board.fen() << std::endl;
             }
         }
         if ((index + 1) % 20 == 0) {
-            std::cout << "info searches " << (index + 1) << " illegal " << illegal << std::endl;
+            std::cout << "info span " << span << " searches " << (index + 1) << " illegal " << illegal << std::endl;
         }
     }
-    expect(illegal == 0, "200 depth-10 searches with DrawJitter 8 returned legal moves");
+    expect(illegal == 0, span == 8 ? "200 depth-10 searches with DrawJitter 8 returned legal moves"
+                                   : "200 depth-10 searches with DrawJitter 5 returned legal moves");
+}
+
+void check_two_threads() {
+    forge::DrawJitter = 8;
+    forge::Searcher searcher(16, 2);
+    expect(searcher.threads() == 2, "two search threads");
+    const forge::Board board = board_from(forge::Board::StandardStartFen);
+    forge::SearchLimits limits;
+    limits.depth = 10;
+    const forge::SearchInfo info = searcher.search(board, limits, false, forge::Searcher::TTAccess::Shared);
+    expect(line_is_legal(board, info), "two-thread depth 10 line is legal with DrawJitter 8");
+    expect(!forge::is_mate_score(info.score), "start position at depth 10 is not a mate score");
 }
 
 } // namespace
@@ -209,8 +265,12 @@ void check_many_searches() {
 int main() {
     check_formula();
     check_search_scores();
+    check_capture_is_not_a_fifty_leaf();
     check_repetition();
-    check_many_searches();
+    check_repetition_in_the_tree();
+    check_two_threads();
+    check_many_searches(8);
+    check_many_searches(5);
     forge::DrawJitter = 0;
     std::cout << (g_fails == 0 ? "OK" : "FAILED") << " fails " << g_fails << std::endl;
     return g_fails == 0 ? 0 : 1;
