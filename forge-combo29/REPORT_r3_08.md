@@ -1,0 +1,59 @@
+# AspCappedReopen
+
+One UCI check, `AspCappedReopen`, default false. Listed in the `uci` answer. Off, the root loop is the previous one. On, a root fail reseeds only the failed bound.
+
+## Where the idea comes from
+
+Iterative deepening already searches depth 4 and up in a window around the previous score (`AspirationDelta`, 18). A fail moves that side by `delta`, then grows `delta` with `delta += delta / 2 + 4`. A fail-low also sets beta to the midpoint of the old window. That is the usual aspiration window: a narrow band around the last score, reopened on the side that failed. The public write-up of that technique is the Chess Programming Wiki page Aspiration Windows (https://www.chessprogramming.org/Aspiration_Windows). No source from another engine was used.
+
+`AspCappedReopen` is the extra rule from this task, written into that loop. On a fail, the failed bound sits 13 centipawns past the score that came back, and that step does not grow. If the score is a mate (`is_mate_score`) or at or beyond ±640, that side is set to `-Infinite` or `Infinite` before the re-search. 13 and 640 were chosen here. 13 is below this engine's own first delta of 18, so the first fail is already a different window. 640 is the line treated as decisive. Mate scores in this engine are already past 640; the mate test is still written out so a mate opens fully on its own.
+
+The fail-low midpoint update of beta is unchanged with the option on. The initial window, before any fail, is still the previous score ± `AspirationDelta`.
+
+## What changed
+
+- `forge-combo29/include/forge/search.hpp`: `tune::AspCappedReopen`.
+- `forge-combo29/src/search.cpp`: the flag, `capped_fail_low`, `capped_fail_high`, and the root fail branch.
+- `forge-combo29/src/uci.cpp`: the option line and `setoption`.
+- `forge-combo29/tests_r3_08/asp_legal_test.cpp`: 200 depth-10 searches.
+
+`git diff --numstat` on `src` and `include`: 41 insertions, 3 deletions (44 changed source lines).
+
+`option name AspCappedReopen type check default false`
+
+## Pins
+
+Threads 1, Hash 16, OwnBook false, every other option at default. Same binary, before any edit and again after the edit:
+
+| check | nodes |
+| --- | --- |
+| bench 11 | 312866 |
+| bench 13 | 862329 |
+| go perft 5 from the start position | 4865609 |
+
+Build: `cmake -S forge-combo29 -B build -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3 && cmake --build build -j`
+
+With the option on, the same release binary, same Threads / Hash / OwnBook settings:
+
+| check | nodes |
+| --- | --- |
+| bench 13 | 850997 |
+| bench 11 | 347390 |
+
+bench 13 moving from 862329 to 850997 is the liveness check. No strength claim.
+
+## Sanitizer
+
+`tests_r3_08/asp_legal_test.cpp` turns `AspCappedReopen` on, builds 200 positions by walking legal moves from the start position, searches each to depth 10 with Hash 16 and one thread, and requires every returned move to be in that position's legal move list.
+
+Clang 18 could not link its ASan runtime (`libclang_rt.asan` is not installed). The run used g++-14 with `-fsanitize=address,undefined -fno-sanitize-recover=address,undefined`, plus the portable release defines (`FORGE_PORTABLE` switches, `-ffp-contract=off -fno-fast-math -march=x86-64-v3`) and `-DFORGE_UCI_NO_MAIN`.
+
+Result: `asp_legal ok searches 200 legal 200 terminals 0 depth 10`, exit 0. No ASan or UBSan report.
+
+## Not verified
+
+Playing strength was not measured. How often the mate or ±640 full-open branch ran during bench or the 200 searches was not counted. MultiPV and clock games with the option on were not given their own pins.
+
+setoption name AspCappedReopen value true
+
+bench 13 nodes 850997
