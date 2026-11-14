@@ -44,7 +44,7 @@ Release run: passed. Sanitizer run (`-O1 -fsanitize=address,undefined -fno-sanit
 
 ## Not checked
 
-No games were played, and no strength is claimed. Searches with more than one thread, ponder, MultiPV, and clock time were not re-run with the option on. Suites outside this engine folder were not run. The clang driver here still cannot link.
+No games were played, and no strength is claimed. One start-position search to depth 8 with Threads 2 and the option on returned d2d4 and did not crash. The node-count pins and the 200 depth-10 searches were not repeated at Threads 2. Ponder, MultiPV, and clock time were not re-run with the option on. Suites outside this engine folder were not run. The clang driver here still cannot link.
 
 option name HindsightDepth type check default false
 
