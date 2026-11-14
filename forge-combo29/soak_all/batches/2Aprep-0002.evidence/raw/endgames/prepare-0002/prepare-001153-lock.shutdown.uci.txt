@@ -1,0 +1,115 @@
+> stdin uci
+< stdout id name Chess Engine Forge 6.4.24 candidate
+< stdout id author OpenAI
+< stdout option name Hash type spin default 32 min 1 max 2048
+< stdout option name Threads type spin default 1 min 1 max 256
+< stdout option name Move Overhead type spin default 10 min 0 max 1000
+< stdout option name Ponder type check default false
+< stdout option name OwnBook type check default true
+< stdout option name Book File type string default <empty>
+< stdout option name Book Depth type spin default 30 min 0 max 100
+< stdout option name Book Variety type spin default 30 min 0 max 100
+< stdout option name UseNNUE type check default true
+< stdout option name LmrQuietBase type spin default 85 min 0 max 300
+< stdout option name LmrQuietDivisor type spin default 220 min 100 max 500
+< stdout option name LmrNoisyBase type spin default 10 min 0 max 300
+< stdout option name LmrNoisyDivisor type spin default 340 min 100 max 800
+< stdout option name NullMoveMinDepth type spin default 3 min 1 max 10
+< stdout option name NullMoveBase type spin default 3 min 1 max 6
+< stdout option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+< stdout option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+< stdout option name RfpDepth type spin default 8 min 0 max 15
+< stdout option name RfpMargin type spin default 72 min 10 max 300
+< stdout option name RfpImproving type spin default 40 min 0 max 200
+< stdout option name RazorDepth type spin default 2 min 0 max 6
+< stdout option name RazorBase type spin default 150 min 0 max 1000
+< stdout option name RazorMultiplier type spin default 350 min 0 max 1000
+< stdout option name FutilityDepth type spin default 7 min 0 max 15
+< stdout option name FutilityBase type spin default 100 min 0 max 500
+< stdout option name FutilityMultiplier type spin default 110 min 0 max 500
+< stdout option name LmpBase type spin default 4 min 0 max 20
+< stdout option name HistoryPruneDepth type spin default 3 min 0 max 10
+< stdout option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+< stdout option name SeeQuietMultiplier type spin default 24 min 0 max 200
+< stdout option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+< stdout option name SingularDepth type spin default 7 min 2 max 20
+< stdout option name SingularMargin type spin default 2 min 0 max 10
+< stdout option name IirDepth type spin default 4 min 1 max 20
+< stdout option name ProbcutDepth type spin default 5 min 1 max 20
+< stdout option name ProbcutMargin type spin default 180 min 0 max 1000
+< stdout option name QsFutilityMargin type spin default 160 min 0 max 1000
+< stdout option name QsSeeMargin type spin default 40 min 0 max 500
+< stdout option name AspirationDelta type spin default 18 min 4 max 200
+< stdout option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+< stdout option name HistoryBonusLinear type spin default 48 min 0 max 500
+< stdout option name HistoryBonusMax type spin default 2048 min 100 max 10000
+< stdout option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+< stdout option name CheckExtensionDepth type spin default 2 min 1 max 30
+< stdout option name LmrCutoffThreshold type spin default 3 min 0 max 20
+< stdout option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+< stdout option name TmSoftDivisor type spin default 22 min 5 max 80
+< stdout option name TmIncrementPercent type spin default 75 min 0 max 150
+< stdout option name TmHardPercent type spin default 60 min 10 max 95
+< stdout option name TmHardSoftMultiple type spin default 5 min 1 max 20
+< stdout option name TmStableFactor type spin default 60 min 20 max 150
+< stdout option name TmSemiStableFactor type spin default 80 min 20 max 150
+< stdout option name TmUnstableFactor type spin default 140 min 50 max 300
+< stdout option name TmEffortBase type spin default 155 min 100 max 250
+< stdout option name TmFallingEvalPercent type spin default 100 min 0 max 400
+< stdout option name TmMinFactorPercent type spin default 45 min 10 max 100
+< stdout option name CaptureFutilityBase type spin default 0 min 0 max 1000
+< stdout option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+< stdout option name CaptureFutilityDepth type spin default 6 min 0 max 15
+< stdout option name FailLowContinuationBonus type spin default 0 min 0 max 300
+< stdout option name Clear Hash type button
+< stdout uciok
+> stdin setoption name Threads value 1
+> stdin setoption name Hash value 16
+> stdin setoption name OwnBook value false
+> stdin isready
+< stdout readyok
+> stdin position fen 8/8/1B6/8/8/1Bk5/8/3K4 w - - 0 1
+> stdin go perft 1
+< stdout b3a2: 1
+< stdout b3c2: 1
+< stdout b3a4: 1
+< stdout b3c4: 1
+< stdout b3d5: 1
+< stdout b3e6: 1
+< stdout b3f7: 1
+< stdout b3g8: 1
+< stdout b6g1: 1
+< stdout b6f2: 1
+< stdout b6e3: 1
+< stdout b6d4: 1
+< stdout b6a5: 1
+< stdout b6c5: 1
+< stdout b6a7: 1
+< stdout b6c7: 1
+< stdout b6d8: 1
+< stdout d1c1: 1
+< stdout d1e1: 1
+< stdout d1e2: 1
+< stdout nodes 20
+> stdin ucinewgame
+> stdin isready
+< stdout readyok
+> stdin position fen 8/8/1B6/8/8/1Bk5/8/3K4 w - - 0 1
+> stdin go depth 14
+< stdout info depth 1 seldepth 2 score cp 259 nodes 31 nps 0 hashfull 0 time 0 pv b3d5
+< stdout info depth 2 seldepth 2 score cp 276 nodes 60 nps 0 hashfull 0 time 0 pv b3d5 c3d3
+< stdout info depth 3 seldepth 4 score cp 264 nodes 99 nps 0 hashfull 0 time 0 pv b3d5 c3d3 d5g2
+< stdout info depth 4 seldepth 4 score cp 255 nodes 162 nps 0 hashfull 0 time 0 pv b3d5 c3d3 b6d8 d3c3
+< stdout info depth 5 seldepth 8 score cp 305 nodes 398 nps 0 hashfull 0 time 0 pv b3d5 c3d3 b6c7 d3c3 c7e5 c3d3
+< stdout info depth 6 seldepth 8 score cp 339 nodes 670 nps 0 hashfull 0 time 0 pv b3d5 c3d3 b6c7 d3e3 d5c6 e3d3
+< stdout info depth 7 seldepth 10 score cp 319 nodes 1476 nps 0 hashfull 0 time 0 pv b3d5 c3d3 d5c6 d3c3 b6c7 c3d3 c6b5 d3c3
+< stdout info depth 8 seldepth 11 score cp 359 nodes 2275 nps 2275000 hashfull 0 time 1 pv b3d5 c3d3 b6c5 d3c3 d1e2 c3b2 e2e3 b2b1
+< stdout info depth 9 seldepth 14 score cp 377 nodes 3473 nps 3473000 hashfull 0 time 1 pv b3d5 c3d3 b6c5 d3c3 d1e2 c3b2 e2e3 b2a1 c5d4 a1b1 d5c6
+< stdout info depth 10 seldepth 18 score cp 385 nodes 6493 nps 2164333 hashfull 1 time 3 pv b3d5 c3d3 b6c5 d3c3 d1e2 c3b2 e2e3 b2a1 c5d4 a1b1 d4g7 b1c1 e3e4 c1b1
+< stdout info depth 11 seldepth 18 score cp 408 nodes 10552 nps 2638000 hashfull 1 time 4 pv b3d5 c3d3 b6c5 d3c3 d1e2 c3b2 c5d4 b2c1 e2e3 c1b1 e3f4 b1c2 f4f5 c2d1
+< stdout info depth 12 seldepth 22 score cp 436 nodes 16396 nps 2732666 hashfull 1 time 6 pv b3d5 c3d3 b6c5 d3c3 d1e2 c3b2 c5d4 b2c1 d4f6 c1b1 e2e3 b1c1 e3e4 c1d2 e4f5 d2e1
+< stdout info depth 13 seldepth 22 score cp 436 nodes 23623 nps 2624777 hashfull 2 time 9 pv b3d5 c3d3 b6c5 d3c3 d1e2 c3b2 c5d4 b2c1 d4f6 c1b1 e2d3 b1c1 d3e3 c1c2 e3f4 c2c1 f4e5
+< stdout info depth 14 seldepth 24 score cp 424 nodes 41360 nps 2757333 hashfull 6 time 15 pv b3d5 c3d3 b6c5 d3c3 d1e2 c3b2 e2e3 b2a1 e3f4 a1b1 f4e5 b1c1 d5c6 c1c2 c5d4 c2d1 c6d5
+< stdout bestmove b3d5
+> stdin quit
+! shutdown reaped=1 exit=0 signal=0 timed_out=0 driver_sigterm=0 driver_sigkill=0
