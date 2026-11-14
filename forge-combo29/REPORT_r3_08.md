@@ -96,6 +96,8 @@ Chunk 007 is openings 1171-1410, 480 games, finished 2026-11-14T18:17:15Z, exit 
 
 Chunk 008 is openings 1411-1650, 480 games, finished 2026-11-14T18:37:53Z, exit 0. W-L-D 119-130-231. Elo 95% -7.96 +/- 19.82. LOS 21.51%. Pentanomial [10, 64, 102, 55, 9].
 
-Cumulative 3300 games: W-L-D 833-870-1597. Elo 95% -3.90 +/- 7.58. LOS 15.68%. Pentanomial [71, 424, 682, 417, 56]. Still a screen. The interval covers 0.
+Chunk 009 started at opening 1651 and was stopped unfinished at 2026-11-14T18:49Z. The saved PGN has 300 completed games. W-L-D 63-83-154. Elo 95% -23.20 +/- 24.10. LOS 2.90%. Pentanomial [4, 52, 57, 34, 3].
 
-PGNs and summaries are under `forge-combo29/tests_r3fu_08/`. `pgn_screen.cpp` recounts them. Later chunks continue at opening 1651.
+Cumulative through that partial chunk, 3600 games: W-L-D 896-953-1751. Elo 95% -5.50 +/- 7.23. LOS 6.80%. Pentanomial [75, 476, 739, 451, 59]. Still a screen. The interval still reaches above 0. No further chunk was started.
+
+PGNs and summaries are under `forge-combo29/tests_r3fu_08/`. `pgn_screen.cpp` recounts them.
