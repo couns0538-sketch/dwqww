@@ -166,10 +166,121 @@ PASS fixed-node score and move agree
 
 AddressSanitizer and UndefinedBehaviorSanitizer, same sources, `-O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined`. Exit 0. The sanitizers printed nothing. The test output was the same pass log as above, including the same node counts.
 
+## Broader budgets
+
+The first test stopped at the first depth where the best move changed. The same mismatch also happens later, and on other positions. `tests_t6/fixed_nodes.cpp` now walks every depth through 6 on four positions and samples eight budgets inside each iteration. Engine sources were not changed for this pass, so the bench and perft numbers above still belong to this `search.cpp`.
+
+Lock sources (`16833ecc` `search.cpp` and `search.hpp`, same `g++ -O3` line as the first test, output `/tmp/fixed_nodes_lock`, exit 1):
+
+```
+fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+depth 1 score 1 move d2d4 nodes 26
+nodes 1 depth 0 score 0 move a2a3
+depth 2 score 49 move d2d4 nodes 54
+depth 3 score 18 move e2e4 nodes 215
+nodes 155 depth 2 score 49 move c2c4 finished-score 49 finished-move d2d4 FAIL
+nodes 175 depth 2 score 49 move c2c4 finished-score 49 finished-move d2d4 FAIL
+nodes 195 depth 2 score 49 move c2c4 finished-score 49 finished-move d2d4 FAIL
+depth 4 score 30 move e2e4 nodes 404
+depth 5 score 6 move c2c4 nodes 1001
+nodes 997 depth 4 score 30 move c2c4 finished-score 30 finished-move e2e4 FAIL
+depth 6 score 34 move d2d4 nodes 1703
+nodes 1524 depth 5 score 6 move d2d4 finished-score 6 finished-move c2c4 FAIL
+nodes 1611 depth 5 score 6 move d2d4 finished-score 6 finished-move c2c4 FAIL
+nodes 1698 depth 5 score 6 move d2d4 finished-score 6 finished-move c2c4 FAIL
+fen 8/8/8/8/4k3/8/3R4/4K3 w - - 0 1
+depth 1 score 409 move e1f2 nodes 32
+nodes 1 depth 0 score 0 move d2d1
+depth 2 score 432 move e1f2 nodes 58
+depth 3 score 419 move e1e2 nodes 160
+depth 4 score 410 move e1f2 nodes 406
+nodes 401 depth 3 score 419 move e1f2 finished-score 419 finished-move e1e2 FAIL
+depth 5 score 417 move e1e2 nodes 919
+depth 6 score 420 move e1e2 nodes 1572
+fen r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3
+depth 1 score 21 move d2d4 nodes 42
+nodes 1 depth 0 score 0 move a2a3
+depth 2 score 25 move b1c3 nodes 117
+nodes 88 depth 1 score 21 move f1c4 finished-score 21 finished-move d2d4 FAIL
+nodes 97 depth 1 score 21 move f1c4 finished-score 21 finished-move d2d4 FAIL
+nodes 106 depth 1 score 21 move b1c3 finished-score 21 finished-move d2d4 FAIL
+nodes 115 depth 1 score 21 move b1c3 finished-score 21 finished-move d2d4 FAIL
+depth 3 score 21 move d2d4 nodes 213
+nodes 178 depth 2 score 25 move d2d4 finished-score 25 finished-move b1c3 FAIL
+nodes 190 depth 2 score 25 move d2d4 finished-score 25 finished-move b1c3 FAIL
+nodes 202 depth 2 score 25 move d2d4 finished-score 25 finished-move b1c3 FAIL
+depth 4 score 22 move c2c3 nodes 384
+nodes 340 depth 3 score 21 move c2c3 finished-score 21 finished-move d2d4 FAIL
+nodes 361 depth 3 score 21 move c2c3 finished-score 21 finished-move d2d4 FAIL
+nodes 382 depth 3 score 21 move c2c3 finished-score 21 finished-move d2d4 FAIL
+depth 5 score 20 move h2h3 nodes 889
+nodes 637 depth 4 score 22 move d2d4 finished-score 22 finished-move c2c3 FAIL
+nodes 700 depth 4 score 22 move d2d4 finished-score 22 finished-move c2c3 FAIL
+nodes 763 depth 4 score 22 move d2d4 finished-score 22 finished-move c2c3 FAIL
+nodes 826 depth 4 score 22 move d2d4 finished-score 22 finished-move c2c3 FAIL
+depth 6 score 31 move d2d4 nodes 1628
+nodes 1534 depth 5 score 20 move d2d4 finished-score 20 finished-move h2h3 FAIL
+nodes 1626 depth 5 score 20 move d2d4 finished-score 20 finished-move h2h3 FAIL
+fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1
+depth 1 score 83 move a5a6 nodes 20
+nodes 1 depth 0 score 0 move e2e3
+depth 2 score 237 move b4c4 nodes 70
+nodes 69 depth 1 score 83 move b4c4 finished-score 83 finished-move a5a6 FAIL
+depth 3 score 167 move b4c4 nodes 128
+depth 4 score 71 move b4c4 nodes 397
+depth 5 score 101 move b4f4 nodes 642
+nodes 608 depth 4 score 71 move b4f4 finished-score 71 finished-move b4c4 FAIL
+nodes 638 depth 4 score 71 move b4f4 finished-score 71 finished-move b4c4 FAIL
+depth 6 score 92 move b4f4 nodes 870
+FAIL failures 27 checks 176
+```
+
+Patched sources, same `-O3` command, `/tmp/fixed_nodes`, exit 0. Passing budgets are not printed. 176 budgets were checked.
+
+```
+fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+depth 1 score 1 move d2d4 nodes 26
+nodes 1 depth 0 score 0 move a2a3
+depth 2 score 49 move d2d4 nodes 54
+depth 3 score 18 move e2e4 nodes 215
+depth 4 score 30 move e2e4 nodes 404
+depth 5 score 6 move c2c4 nodes 1001
+depth 6 score 34 move d2d4 nodes 1703
+fen 8/8/8/8/4k3/8/3R4/4K3 w - - 0 1
+depth 1 score 409 move e1f2 nodes 32
+nodes 1 depth 0 score 0 move d2d1
+depth 2 score 432 move e1f2 nodes 58
+depth 3 score 419 move e1e2 nodes 160
+depth 4 score 410 move e1f2 nodes 406
+depth 5 score 417 move e1e2 nodes 919
+depth 6 score 420 move e1e2 nodes 1572
+fen r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3
+depth 1 score 21 move d2d4 nodes 42
+nodes 1 depth 0 score 0 move a2a3
+depth 2 score 25 move b1c3 nodes 117
+depth 3 score 21 move d2d4 nodes 213
+depth 4 score 22 move c2c3 nodes 384
+depth 5 score 20 move h2h3 nodes 889
+depth 6 score 31 move d2d4 nodes 1628
+fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1
+depth 1 score 83 move a5a6 nodes 20
+nodes 1 depth 0 score 0 move e2e3
+depth 2 score 237 move b4c4 nodes 70
+depth 3 score 167 move b4c4 nodes 128
+depth 4 score 71 move b4c4 nodes 397
+depth 5 score 101 move b4f4 nodes 642
+depth 6 score 92 move b4f4 nodes 870
+PASS fixed-node score and move agree checks 176
+```
+
+AddressSanitizer and UndefinedBehaviorSanitizer, same sources, `-O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined` instead of `-O3`, output `/tmp/fixed_nodes_san`, exit 0. `diff -u /tmp/fixed_nodes.txt /tmp/fixed_nodes_san.txt` was empty. The sanitizers printed nothing.
+
+A separate sweep with a finer step (`span / 12` instead of `span / 8`) through depth 8 on the king and rook ending, and depth 6 on the other three positions, also passed on the patched engine and failed 40 budgets on the lock. That program was not kept; the checked-in test is the run above.
+
 ## Not verified
 
 - A movetime or `wtime` game in which a partial root move used to replace the finished move. That path is still the old `if` body; only a node-budget stop skips it. Wall-clock stops are not repeatable on this machine, so they were not compared byte for byte.
 - `go nodes` with more than one thread.
-- A node budget that expires before depth 1 finishes. The reported score stays 0 and the move stays the first legal root move.
+- A node budget of 1, measured above on all four positions. Both engines report depth 0, score 0, and the first legal root move. A budget that finishes one root move and then stops still inside depth 1 was not isolated beyond those samples.
 - The lock's Windows ThinLTO/PGO build, and `-DFORGE_PORTABLE=ON`.
 - No Elo or speed claim. `time` and `nps` in the bench lines above are this run only.
