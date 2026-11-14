@@ -37,6 +37,8 @@ struct SearchLimits {
     bool ponder = false;
     bool search_moves_specified = false;
     std::vector<Move> search_moves;
+    // 1 keeps the single-line search. 2..8 also report the next root moves.
+    int multipv = 1;
     // Optional steady-clock receipt origin. start_time takes precedence;
     // request_start remains a compatibility spelling for existing callers.
     // With both unset, finite timed searches start at Searcher entry; other

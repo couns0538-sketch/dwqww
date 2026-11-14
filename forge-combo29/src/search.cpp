@@ -1565,16 +1565,32 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     const int mate_moves = std::clamp(limits.mate_moves, 0, 32);
     const int mate_depth = mate_moves > 0 ? mate_moves * 2 - 1 : 64;
     const int max_depth = std::clamp(std::min(limits.depth, mate_depth), 1, 64);
+    const int multipv = std::clamp(limits.multipv, 1, 8);
+    // Overrides stay unset on the MultiPV 1 path, so that info line is unchanged.
+    int pv_index = 1;
+    int seldepth_override = -1;
+    int hashfull_override = -1;
+    std::uint64_t node_override = 0;
+    bool use_node_override = false;
 
     auto emit = [&](int depth, int score, const std::vector<Move>& pv) {
         if (!emit_info) return;
         const std::int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - start_).count();
-        const std::uint64_t nodes = total_nodes();
+        const int shown_seldepth = seldepth_override >= 0 ? seldepth_override : seldepth_;
+        const std::uint64_t nodes = use_node_override ? node_override : total_nodes();
         const std::uint64_t nps = elapsed > 0 ? nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
-        std::cout << "info depth " << depth << " seldepth " << std::max(seldepth_, depth) << " score " << format_score(score)
-                  << " nodes " << nodes << " nps " << nps << " hashfull " << shared_.tt.hashfull() << " time " << elapsed << " pv";
+        const int shown_hash = hashfull_override >= 0 ? hashfull_override : shared_.tt.hashfull();
+        std::cout << "info depth " << depth;
+        if (multipv > 1) {
+            // depth, multipv, score, then the usual fields, then pv.
+            std::cout << " multipv " << pv_index << " score " << format_score(score)
+                      << " seldepth " << std::max(shown_seldepth, depth);
+        } else {
+            std::cout << " seldepth " << std::max(shown_seldepth, depth) << " score " << format_score(score);
+        }
+        std::cout << " nodes " << nodes << " nps " << nps << " hashfull " << shown_hash << " time " << elapsed << " pv";
         for (const Move move : pv) std::cout << ' ' << Board::move_to_uci(move);
         std::cout << std::endl;
     };
@@ -1650,6 +1666,18 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     assert(root_effort_count_ <= root_effort_moves_.size());
     std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
     root_move_nodes_.fill(0);
+    // Secondary lines use their own table and histories, so the primary
+    // iterative deepening stays the MultiPV 1 search.
+    std::unique_ptr<SharedSearchState> alt_shared;
+    std::unique_ptr<Worker> alt_worker;
+    std::vector<Worker*> alt_list;
+    if (multipv > 1 && is_main()) {
+        const std::size_t hash_mb = std::max<std::size_t>(
+            1, shared_.tt.cluster_count() * sizeof(TTCluster) / (1024U * 1024U));
+        alt_shared = std::make_unique<SharedSearchState>(hash_mb);
+        alt_worker = std::make_unique<Worker>(*alt_shared, 0);
+        alt_list.push_back(alt_worker.get());
+    }
     for (int depth = 1; depth <= max_depth; ++depth) {
         root_depth_ = depth;
         int delta = tune::AspirationDelta;
@@ -1694,7 +1722,84 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         if (!result.pv.empty()) result.best_move = result.pv.front();
         result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
         result.nodes = total_nodes();
-        emit(depth, score, result.pv);
+        if (alt_worker && !result.pv.empty()) {
+            struct PvLine {
+                int score = 0;
+                int seldepth = 0;
+                int hashfull = 0;
+                std::uint64_t nodes = 0;
+                std::vector<Move> pv;
+            };
+            std::vector<PvLine> lines;
+            lines.push_back(PvLine{score, seldepth_, shared_.tt.hashfull(), total_nodes(), result.pv});
+            std::vector<Move> banned{result.pv.front()};
+            const int line_count = std::min(multipv, static_cast<int>(root_candidates.size()));
+            for (int index = 2; index <= line_count && !aborted_; ++index) {
+                if (shared_.stop.load(std::memory_order_relaxed)) {
+                    aborted_ = true;
+                    break;
+                }
+                std::vector<Move> allowed;
+                allowed.reserve(root_candidates.size());
+                for (const Move candidate : root_candidates) {
+                    if (std::find(banned.begin(), banned.end(), candidate) == banned.end())
+                        allowed.push_back(candidate);
+                }
+                if (allowed.empty()) break;
+                SearchLimits narrowed = limits;
+                narrowed.multipv = 1;
+                narrowed.depth = depth;
+                narrowed.nodes = 0;
+                narrowed.nodes_specified = false;
+                narrowed.movetime_ms = -1;
+                narrowed.time_ms = -1;
+                narrowed.infinite = false;
+                narrowed.ponder = false;
+                narrowed.mate_moves = 0;
+                narrowed.search_moves = std::move(allowed);
+                narrowed.search_moves_specified = true;
+                narrowed.start_time = {};
+                narrowed.request_start = {};
+                alt_shared->stop.store(false, std::memory_order_relaxed);
+                alt_shared->ponder_hit_ns.store(0, std::memory_order_relaxed);
+                alt_shared->tt.clear();
+                alt_worker->clear();
+                const SearchInfo alt = alt_worker->search(board, narrowed, false, alt_list);
+                if (alt.best_move.is_none()) break;
+                if (std::find(banned.begin(), banned.end(), alt.best_move) != banned.end()) break;
+                std::vector<Move> pv = alt.pv;
+                if (pv.empty() || !(pv.front() == alt.best_move)) pv.insert(pv.begin(), alt.best_move);
+                lines.push_back(PvLine{alt.score, alt.seldepth, alt_shared->tt.hashfull(), alt.nodes, std::move(pv)});
+                banned.push_back(lines.back().pv.front());
+            }
+            // Rank by the exact score. Ties keep the primary line first.
+            std::stable_sort(lines.begin(), lines.end(), [](const PvLine& a, const PvLine& b) {
+                return a.score > b.score;
+            });
+            std::uint64_t shown_nodes = 0;
+            for (std::size_t i = 0; i < lines.size(); ++i) {
+                shown_nodes += lines[i].nodes;
+                pv_index = static_cast<int>(i + 1);
+                seldepth_override = lines[i].seldepth;
+                hashfull_override = lines[i].hashfull;
+                node_override = shown_nodes;
+                use_node_override = true;
+                emit(depth, lines[i].score, lines[i].pv);
+            }
+            pv_index = 1;
+            seldepth_override = -1;
+            hashfull_override = -1;
+            use_node_override = false;
+            if (!lines.empty() && !lines.front().pv.empty()) {
+                result.score = lines.front().score;
+                result.pv = lines.front().pv;
+                result.best_move = lines.front().pv.front();
+                result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+            }
+            if (aborted_) break;
+        } else {
+            emit(depth, score, result.pv);
+        }
 
         if (result.best_move == previous_best) ++stable_iterations;
         else stable_iterations = 0;
@@ -1778,13 +1883,22 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         ? std::chrono::steady_clock::now() : supplied_start;
     SearchLimits worker_limits = limits;
     worker_limits.start_time = origin;
+    // Above MultiPV 1 the helpers stay idle. Counting only the main worker
+    // keeps node totals on the Threads 1 path (idle workers may hold old counts).
     std::vector<Worker*> all;
-    all.reserve(workers_.size());
-    for (auto& worker : workers_) all.push_back(worker.get());
+    if (worker_limits.multipv > 1) {
+        all.push_back(workers_.front().get());
+    } else {
+        all.reserve(workers_.size());
+        for (auto& worker : workers_) all.push_back(worker.get());
+    }
     // Age the table once per search, before any worker can probe it.
     shared_.tt.new_search();
     std::optional<TranspositionTable::ExclusiveLease> exclusive;
-    if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
+    // MultiPV above 1 does not start helpers, so the main thread may own the
+    // table the way a one-thread search does.
+    const bool single_threaded = workers_.size() == 1 || worker_limits.multipv > 1;
+    if (table_access == TTAccess::Exclusive && single_threaded) {
         exclusive.emplace(shared_.tt);
     }
 #if FORGE_SPD_TT_NOTLS
@@ -1801,10 +1915,14 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     } tt_owned_scope(*workers_.front(), exclusive.has_value());
 #endif
     std::vector<std::thread> helpers;
-    for (std::size_t i = 1; i < workers_.size(); ++i) {
-        helpers.emplace_back([this, i, board, &worker_limits, &all]() {
-            (void)workers_[i]->search(board, worker_limits, false, all);
-        });
+    // MultiPV above 1 runs only the main thread. Helper threads search one line
+    // and would race the excluded-root passes, so this falls back to Threads 1.
+    if (worker_limits.multipv <= 1) {
+        for (std::size_t i = 1; i < workers_.size(); ++i) {
+            helpers.emplace_back([this, i, board, &worker_limits, &all]() {
+                (void)workers_[i]->search(board, worker_limits, false, all);
+            });
+        }
     }
     SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
     // Wind down the helpers without clobbering an externally requested stop.
