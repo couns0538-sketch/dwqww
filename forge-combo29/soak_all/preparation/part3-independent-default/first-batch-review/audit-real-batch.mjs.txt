@@ -1,0 +1,174 @@
+import fs from 'node:fs';
+import fsp from 'node:fs/promises';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import readline from 'node:readline';
+import {spawnSync} from 'node:child_process';
+import {isDeepStrictEqual as same} from 'node:util';
+
+// Read-only native evidence audit. The only child commands are read-only Git.
+// Output is allowed only below this scratch directory; no engine/runner import.
+const scratch=path.dirname(new URL(import.meta.url).pathname);
+const args=Object.fromEntries(process.argv.slice(2).reduce((a,v,i,all)=>i%2?a:(a.push([v.replace(/^--/,''),all[i+1]]),a),[]));
+for(const key of ['prefix','manifest','metadata','out'])if(!args[key])throw Error('Missing --'+key);
+const out=path.resolve(args.out);if(!out.startsWith(scratch+'/'))throw Error('Output must remain in audit scratch');
+const repo='/workspace/work/dwqww-all',soak=repo+'/forge-combo29/soak_all';
+const issues=[],commands=[],checks={};
+function check(ok,message){if(!ok)issues.push(message);}
+function read(file){return JSON.parse(fs.readFileSync(file,'utf8'));}
+function git(argv){const r=spawnSync('git',argv,{cwd:repo,encoding:'utf8',maxBuffer:5*1024*1024});commands.push({argv:['git',...argv],cwd:repo,exit:r.status,signal:r.signal,stdout:r.stdout,stderr:r.stderr});if(r.status)throw Error('Git inspection failed');return r.stdout;}
+const hashCache=new Map();
+async function hash(file){
+  if(hashCache.has(file))return hashCache.get(file);
+  const size=(await fsp.stat(file)).size,sha=crypto.createHash('sha256'),blob=crypto.createHash('sha1').update('blob '+size+'\0');let bytes=0;
+  for await(const data of fs.createReadStream(file)){sha.update(data);blob.update(data);bytes+=data.length;}
+  const value={bytes,sha256:sha.digest('hex'),gitBlob:blob.digest('hex')};hashCache.set(file,value);return value;
+}
+async function lines(file,visit){let n=0;for await(const line of readline.createInterface({input:fs.createReadStream(file),crlfDelay:Infinity})){if(line)visit(line,++n);}return n;}
+const plan=read(args.prefix+'.command.json'),summary=read(args.prefix+'.summary.json'),metadata=read(args.metadata),manifest=read(args.manifest),artifactHashes=read(args.prefix+'.artifact-hashes.json'),config=read(args.prefix+'.config.json');
+const head=git(['rev-parse','HEAD']).trim(),relativeEvidence=path.relative(repo,path.dirname(args.manifest));
+const tree=new Map(git(['ls-tree','-r','-z',head,'--',relativeEvidence]).split('\0').filter(Boolean).map(x=>{const [fields,p]=x.split('\t');return[p,fields.split(' ')[2]];}));
+check(tree.size>0,'Evidence path absent from committed HEAD');
+check(metadata.exit===0&&!metadata.signal&&!metadata.spawnError&&!metadata.interruption&&!metadata.parseError,'Controller process/parse failed');
+check(metadata.incomplete===false&&metadata.hardIncomplete===false&&metadata.accounting.issues.length===0,'Controller incomplete/accounting issues');
+// persistSummary writes the saved summary, then emits the same object plus this
+// one provenance pointer. Verify its exact expected value instead of dropping
+// arbitrary extra keys; every other field must be identical.
+const emittedSummary={...summary,artifactHashesFile:plan.files.hashes};
+check(same(emittedSummary,metadata.summary)&&same(emittedSummary,JSON.parse(metadata.summaryRaw)),'Summary/metadata/raw disagreement beyond documented artifact pointer');
+checks.serialization={savedSummaryHasArtifactPointer:Object.hasOwn(summary,'artifactHashesFile'),emittedArtifactHashesFile:metadata.summary.artifactHashesFile,rule:'Exact saved summary plus artifactHashesFile equal to plan.files.hashes'};
+check(summary.completed===true&&summary.process.code===0&&!summary.process.signal&&!summary.process.timedOut,'Runner/process incomplete');
+check(Array.isArray(summary.errors)&&summary.errors.length===0,'Runner structural errors present');
+check(Array.isArray(summary.persistenceErrors)&&summary.persistenceErrors.length===0,'Runner persistence errors present');
+check(same(summary.inputHashes,plan.inputHashes)&&same(summary.inputHashes,summary.afterInputHashes),'Input before/after hashes disagree');
+check(manifest.phase===metadata.spec.phase&&manifest.id===metadata.spec.id&&manifest.seed===plan.seed,'Manifest/spec identity mismatch');
+check(plan.mode===summary.mode&&plan.seed===summary.seed&&plan.games===summary.requestedGames,'Plan/summary identity mismatch');
+
+const manifestResults=[];
+for(const entry of manifest.files){
+  check(entry.copied===true&&!entry.error,'Manifest file not copied: '+entry.source);
+  const source=await hash(entry.source);check(source.bytes===entry.bytes&&source.sha256===entry.sha256,'Original/manifest mismatch: '+entry.source);
+  const copied=[];const concat=crypto.createHash('sha256');let offset=0;
+  const parts=entry.split?entry.chunks:[entry];
+  for(const [index,part]of parts.entries()){
+    const file=path.resolve(soak,part.path);check(file.startsWith(soak+'/'),'Manifest traversal');
+    check(/\.(txt|md|cpp|hpp)$/.test(file),'Unapproved copied text extension: '+file);
+    const actual=await hash(file);check(actual.bytes===part.bytes&&actual.sha256===part.sha256,'Copied hash/bytes mismatch: '+file);
+    check(tree.get(path.relative(repo,file))===actual.gitBlob,'Copy not identical to committed Git blob: '+file);
+    if(entry.split){check(part.part===index+1&&part.offset===offset,'Chunk ordering/offset mismatch: '+file);check(part.bytes<=16*1024*1024,'Oversize text chunk: '+file);}
+    let lastByte=null;const decoder=new TextDecoder('utf-8',{fatal:true});
+    for await(const data of fs.createReadStream(file)){concat.update(data);lastByte=data.at(-1);try{decoder.decode(data,{stream:true});}catch{check(false,'Invalid UTF-8: '+file);}}
+    try{decoder.decode();}catch{check(false,'Incomplete UTF-8 boundary: '+file);}
+    if(entry.split&&index<parts.length-1)check(part.boundary==='newline'&&lastByte===10,'Non-newline split boundary: '+file);
+    copied.push({path:part.path,...actual});offset+=actual.bytes;
+  }
+  const rebuilt=concat.digest('hex');check(offset===entry.bytes&&rebuilt===entry.sha256,'Concatenated copy differs: '+entry.source);
+  if(artifactHashes[entry.source])check(same(artifactHashes[entry.source],{bytes:source.bytes,sha256:source.sha256}),'Artifact hash list differs: '+entry.source);
+  manifestResults.push({source:entry.source,bytes:source.bytes,sha256:source.sha256,chunks:copied.length,reconstructedSha256:rebuilt,copied});
+}
+const manifestHash=await hash(args.manifest);check(tree.get(path.relative(repo,args.manifest))===manifestHash.gitBlob,'Manifest differs from committed Git blob');
+for(const file of metadata.spec.rawFiles)check(manifest.files.some(x=>x.source===file),'Required raw file omitted from manifest: '+file);
+for(const file of Object.keys(artifactHashes))check(manifest.files.some(x=>x.source===file),'Hashed artifact omitted from manifest: '+file);
+checks.evidence={head,originalFiles:manifestResults.length,copiedFiles:manifestResults.reduce((n,x)=>n+x.chunks,0),originalBytes:manifestResults.reduce((n,x)=>n+x.bytes,0),manifest:manifestHash,files:manifestResults};
+console.log('PROGRESS evidence_hashes_verified '+JSON.stringify({files:checks.evidence.originalFiles,copies:checks.evidence.copiedFiles,bytes:checks.evidence.originalBytes}));
+
+const pins={
+ '/workspace/work/fastchess/fastchess':'f8f1706b6b4906d524dd0ac0547deb9ec2b6b10b4e32d7bde66914ddee0ebd4f',
+ '/workspace/work/soak-run/openings/UHO_Lichess_4852_v1.epd':'7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a',
+ '/workspace/work/all-run/builds/release/forge':'e2788a101d11acfca637b14471e2b067ae11e551500cfb0656019a193ec2cb3e',
+ '/workspace/work/soak-run/build-lock-rel/forge':'1371770e2ad61aa2fe3c038acc7da3912da5d64c9cb1dcc5e4668221fb3226f6'};
+checks.inputs={};for(const [file,before]of Object.entries(plan.inputHashes)){const actual=await hash(file);check(actual.sha256===pins[file]&&actual.sha256===before.sha256&&actual.bytes===before.bytes,'Current/pinned input mismatch: '+file);checks.inputs[file]=actual;}
+const flags=['ContHist4PlyRead','NonPawnCorrection','LmrDeeperShallower'];
+for(const [i,engine]of plan.engines.entries()){
+ const expectedOptions=[['Threads','1'],['Hash','16'],['OwnBook','false'],...(plan.mode==='default'?[]:flags.map(k=>[k,i===0&&k===plan.mode?'true':'false']))];
+ const c=config.engines.find(e=>e.name===engine.name);
+ check(same(engine.options,expectedOptions)&&same(c.options,expectedOptions),'Unexpected UCI options: '+engine.name);
+ check(c.cmd===engine.cmd&&c.args===''&&c.limit.nodes===20000&&c.limit.plies===0&&Object.values(c.limit.tc).every(v=>v===0),'Unexpected engine limits: '+engine.name);
+ check(engine.cmd===(i===1&&plan.mode==='default'?'/workspace/work/soak-run/build-lock-rel/forge':'/workspace/work/all-run/builds/release/forge'),'Unexpected engine binary: '+engine.name);
+}
+for(const k of ['draw','resign','maxmoves','tb_adjudication','sprt'])check(config[k].enabled===false,'Adjudication enabled: '+k);
+check(config.seed===plan.seed&&config.opening.file===plan.book&&config.opening.order===0&&config.opening.format===0,'Opening/seed configuration mismatch');
+check(config.games===2&&config.rounds===plan.games/2&&config.concurrency===4&&config.recover&&!config.noswap&&!config.reverse,'Pair schedule configuration mismatch');
+check(config.ratinginterval===2147483647&&config.output===1&&config.pgn.track_nodes===true&&config.log.engine_coms===true,'Output configuration mismatch');
+
+const starts=new Map(),ends=new Map(),moves=new Map(),moveByEngine={},eventTypes={},anomalies=[],eventExamples={};let eventLines=0,reportedNodesMin=Infinity,reportedNodesMax=0;
+await lines(plan.files.events,(line,n)=>{
+ const e=JSON.parse(line);eventLines++;eventTypes[e.event]=(eventTypes[e.event]||0)+1;eventExamples[e.event]??=e;
+ if(e.event==='game_started'){
+  check(!starts.has(e.game),'Duplicate start '+e.game);starts.set(e.game,e);
+  check(e.round===Math.ceil(e.game/2)&&e.white===(e.game%2?'candidate':'baseline')&&e.black===(e.game%2?'baseline':'candidate'),'Round/colors mismatch '+e.game);
+  check(e.wtime===null&&e.btime===null&&e.tc==='-'&&e.white_tc==='-'&&e.black_tc==='-','Clock in start '+e.game);
+  check(Array.isArray(e.opening)&&e.opening.length===0,'Unexpected book moves '+e.game);
+ }else if(e.event==='move'){
+  const s=starts.get(e.game);check(!!s&&!ends.has(e.game),'Move before start/after finish '+e.game);if(!s)return;
+  const p=(moves.get(e.game)||0)+1;moves.set(e.game,p);moveByEngine[e.engine]=(moveByEngine[e.engine]||0)+1;
+  const first=s.start_fen.split(' ')[1],side=(p%2?first:first==='w'?'b':'w')==='w'?'white':'black';
+  check(e.ply===p&&e.side===side&&e.engine===s[side],'Move ply/side/engine mismatch '+e.game+':'+p);
+  check(e.wtime===null&&e.btime===null,'Clock in move '+e.game+':'+p);
+  if(e.legal!==true)anomalies.push(e);
+  if(Number.isSafeInteger(e.nodes)){reportedNodesMin=Math.min(reportedNodesMin,e.nodes);reportedNodesMax=Math.max(reportedNodesMax,e.nodes);}
+ }else if(e.event==='game_finished'||e.event==='game_aborted'){
+  check(!ends.has(e.game),'Duplicate terminal event '+e.game);ends.set(e.game,e);
+  if(e.event!=='game_finished'||e.termination!=='normal')anomalies.push(e);
+ }
+});
+const wld={wins:0,losses:0,draws:0},points=new Map(),reasons={},orderedPairs=[],pairBins=[0,0,0,0,0];
+for(let id=1;id<=plan.games;id++){
+ const s=starts.get(id),e=ends.get(id);check(!!s&&!!e,'Missing game '+id);if(!s||!e)continue;
+ check(e.plies===(moves.get(id)||0),'Ply total mismatch '+id);
+ reasons[e.reason]=(reasons[e.reason]||0)+1;
+ const point=e.result==='1/2-1/2'?1:e.result==='1-0'?(s.white==='candidate'?2:0):e.result==='0-1'?(s.black==='candidate'?2:0):-1;
+ check(point>=0,'Invalid result '+id);points.set(id,point);if(point===2)wld.wins++;else if(point===1)wld.draws++;else if(point===0)wld.losses++;
+ if(id%2){const b=starts.get(id+1);check(!!b&&s.start_fen===b.start_fen&&s.white===b.black&&s.black===b.white&&same(s.opening,b.opening),'Opening pair mismatch '+id);orderedPairs.push({pair:(id+1)/2,fen:s.start_fen,opening:s.opening});}
+}
+for(let id=1;id<=plan.games;id+=2){const point=points.get(id)+points.get(id+1);if(Number.isInteger(point)&&point>=0&&point<=4)pairBins[point]++;}
+const bookNeeded=new Set(orderedPairs.map(x=>x.fen));await lines(plan.book,line=>bookNeeded.delete(line));check(bookNeeded.size===0,'Opening absent from exact frozen book');
+const orderedHash=crypto.createHash('sha256').update(JSON.stringify(orderedPairs,null,2)+'\n').digest('hex');
+check(orderedHash===summary.openings.orderedPairsSha256&&same(orderedPairs,summary.openings.orderedPairs),'Ordered opening evidence mismatch');
+check(same(wld,{wins:summary.counts.wins,losses:summary.counts.losses,draws:summary.counts.draws})&&same(pairBins,summary.pairBins.counts),'Independent event WLD/pairs disagree');
+check(eventLines===summary.counts.eventLines&&eventTypes.move===summary.counts.moves&&same(moveByEngine,summary.moveCountsByEngine),'Independent event counters disagree');
+check(eventTypes.game_started===plan.games&&eventTypes.game_finished===plan.games&&!eventTypes.game_aborted&&eventTypes.tournament_started===1&&eventTypes.tournament_finished===1,'Event structure/count mismatch');
+checks.events={eventLines,eventTypes,wld,pairBins,reasons,moveByEngine,reportedNodesRange:{min:reportedNodesMin,max:reportedNodesMax,note:'Reported nodes are observations; commanded limit is checked separately.'},orderedPairsSha256:orderedHash,uniquePairFens:new Set(orderedPairs.map(x=>x.fen)).size,blackToMovePairs:orderedPairs.filter(x=>x.fen.split(' ')[1]==='b').length,anomalies,eventExamples};
+
+const pgnGames=fs.readFileSync(plan.files.pgn,'utf8').split(/(?=^\[Event )/m).filter(x=>x.trim()),pgnIds=new Set(),pgnWld={wins:0,losses:0,draws:0};
+for(const game of pgnGames){
+ const tags={};for(const line of game.split('\n')){const m=/^\[(\w+) "(.*)"\]$/.exec(line);if(m)tags[m[1]]=m[2];}
+ const id=Number(tags.GameId),s=starts.get(id),e=ends.get(id);check(!pgnIds.has(id),'Duplicate PGN game '+id);pgnIds.add(id);
+ check(!!s&&!!e&&tags.White===s.white&&tags.Black===s.black&&tags.FEN===s.start_fen&&tags.Result===e.result&&Number(tags.PlyCount)===e.plies,'PGN tags disagree '+id);
+ check(tags.Termination==='normal'&&tags.TimeControl==='-'&&game.trim().endsWith(tags.Result),'PGN termination/clock/result mismatch '+id);
+ const point=tags.Result==='1/2-1/2'?1:(tags.Result==='1-0'?tags.White:tags.Black)==='candidate'?2:0;
+ if(point===2)pgnWld.wins++;else if(point===1)pgnWld.draws++;else pgnWld.losses++;
+}
+check(pgnGames.length===plan.games&&same(pgnWld,wld),'PGN WLD mismatch');
+const consoleLines=fs.readFileSync(plan.files.console,'utf8').split('\n'),consoleIds=new Set();let lastScore=null;
+for(const line of consoleLines){const m=/^Finished game (\d+) \((\w+) vs (\w+)\): (\S+) \{(.*)\}$/.exec(line);if(m){const id=Number(m[1]),s=starts.get(id),e=ends.get(id);check(!consoleIds.has(id)&&!!s&&!!e&&s.white===m[2]&&s.black===m[3]&&e.result===m[4]&&e.reason===m[5],'Console result mismatch '+id);consoleIds.add(id);}const score=/^Score of candidate vs baseline: (\d+) - (\d+) - (\d+)\s+\[[^\]]+\] (\d+)$/.exec(line);if(score)lastScore={wins:+score[1],losses:+score[2],draws:+score[3],games:+score[4]};}
+check(consoleIds.size===plan.games&&same(lastScore,{...wld,games:plan.games}),'Console totals mismatch');
+check(same(wld,{wins:config.stats['candidate vs baseline'].wins,losses:config.stats['candidate vs baseline'].losses,draws:config.stats['candidate vs baseline'].draws}),'Saved config WLD mismatch');
+checks.crossChecks={pgnGames:pgnGames.length,pgnWld,consoleGames:consoleIds.size,consoleScore:lastScore};
+
+const gos={},options={},defaults={},instanceCommands={},exitCounts={},traceAnomalies=[];let traceLines=0;
+await lines(plan.files.trace,(line,n)=>{
+ traceLines++;const command=/^\[Engine\]\s+\[[^\]]+\]\s+<([^>]+)>\s+(candidate|baseline)\s+<--- (.*)$/.exec(line);
+ if(command){const [,thread,name,text]=command,key=thread.trim()+':'+name;instanceCommands[key]??={go:0,options:{},quit:0,uci:0};const instance=instanceCommands[key];
+  if(text.startsWith('go')){check(text==='go nodes 20000','Unexpected go command at trace line '+n);gos[name]=(gos[name]||0)+1;instance.go++;}
+  if(text.startsWith('setoption')){options[name+': '+text]=(options[name+': '+text]||0)+1;instance.options[text]=(instance.options[text]||0)+1;check(plan.engines.find(e=>e.name===name).options.some(([k,v])=>text===`setoption name ${k} value ${v}`),'Unexpected option command at trace line '+n);}
+  if(text==='quit')instance.quit++;if(text==='uci')instance.uci++;
+ }
+ const advert=/\b(candidate|baseline)\s+---> option name (ContHist4PlyRead|NonPawnCorrection|LmrDeeperShallower) type check default (\S+)/.exec(line);
+ if(advert){const key=advert[1]+': '+advert[2];defaults[key]??=new Set();defaults[key].add(advert[3]);}
+ const exit=/Process exited normally with status (\d+)/.exec(line);if(exit)exitCounts[exit[1]]=(exitCounts[exit[1]]||0)+1;
+ if((exit&&exit[1]!=='0')||/Process terminated by signal|Process stopped by signal|Unknown status|\b(crash(?:ed|es)?|illegal|disconnect(?:ed|s)?|abnormal|forfeit|stall(?:ed|s)?|timeout|timed out)\b/i.test(line)||/^\[(?:WARN|ERR|ERROR|FATAL)\s*\]/.test(line))traceAnomalies.push({line:n,text:line});
+});
+const advertised=Object.fromEntries(Object.entries(defaults).map(([k,v])=>[k,[...v]]));
+check(same(gos,moveByEngine)&&same(gos,summary.inputGo),'Go/event count mismatch');
+check(same(options,summary.optionCommands)&&same(advertised,summary.advertisedDefaults)&&same(exitCounts,summary.processExitCounts),'Trace counters mismatch');
+for(const [key,instance]of Object.entries(instanceCommands))if(instance.uci){const name=key.split(':')[1];for(const[k,v]of plan.engines.find(x=>x.name===name).options)check(instance.options[`setoption name ${k} value ${v}`]>0,'Missing option for engine/thread instance '+key);}
+check(traceAnomalies.length===0,'Trace abnormalities present');
+checks.trace={traceLines,gos,options,advertised,exitCounts,instanceCommands,anomalies:traceAnomalies};
+for(const [name,access]of Object.entries(metadata.spec.countMap)){let actual=summary;for(const segment of Array.isArray(access)?access:access.split('.'))actual=actual?.[segment];check(metadata.completedCountsRecorded[name]===actual,'Recorded countMap mismatch '+name);}
+check(metadata.completedCountsRecorded.games===starts.size&&metadata.completedCountsRecorded.moves===eventTypes.move,'Recorded totals differ from raw');
+checks.recordedCounts=metadata.completedCountsRecorded;
+const report={schema:1,kind:'read-only-real-fastchess-evidence-audit',prefix:args.prefix,nativeGamesExecutedByAudit:0,independentlyRecountedExistingGames:starts.size,passed:issues.length===0,issues,checks,commands,notes:['Counts only; no strength or speed conclusion.','Move legality relies on native fastchess legal flags; this audit does not independently replay chess moves.','Git identity is against the frozen local HEAD shown above; remote publication is not independently queried.']};
+fs.writeFileSync(out,JSON.stringify(report,null,2)+'\n');
+console.log('AUDIT '+JSON.stringify({passed:report.passed,issues,wld,pairBins,moves:eventTypes.move,files:checks.evidence.originalFiles,copiedFiles:checks.evidence.copiedFiles,bytes:checks.evidence.originalBytes,head,report:out,nativeGamesExecutedByAudit:0}));
+process.exitCode=report.passed?0:1;

@@ -1,8 +1,8 @@
 # Eight-hour combined Forge integration and soak
 
-Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T16:42:06.444Z.
+Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T16:46:50.353Z.
 
-Elapsed at snapshot: 330.57 minutes; current phase: 3-default; recorded pushes: 59. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
+Elapsed at snapshot: 335.31 minutes; current phase: 3-ContHist4PlyRead; recorded pushes: 60. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
 
 Base: `fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca`; merged source: `f27b1971e459581ad4c85b7015f6af83bbfd4af6`; unchanged lock: `16833ecc03b425586f91f4c8834dea8807bf4c22`. [Source provenance](../INTEGRATION_ALL.md), [progress](PROGRESS.md), [raw batches](batches/), [test matrix](TEST_MATRIX.md).
 
@@ -22,7 +22,7 @@ Recorded default pins: bench11 = 312,866; bench13 = 862,329; perft5 = 4,865,609.
 | 2F | ASAN+UBSAN self-play plus supplemental TSan with all three new options enabled; exact instrumentation and limits remain in batch evidence. | 1,116 games; 128,418 searches; 0 faults | Complete: 1102 ASAN+UBSAN games / 126532 searches plus14 enabled-option TSan games /1886 searches; no chess/runtime diagnostics |
 | 2G | t23 mate/fifty-move suites; unchanged expectations and complete test outputs retained. | 4 tests completed; 120 cases; 60 mate cases; 20 nonmate cases; 40 rule50 cases; 0 sanitizer reports | Complete: four unchanged suite runs; 120 cases; zero missed/false mates, illegal moves, rule50 failures, or sanitizer reports |
 | 3-default | Merged defaults (candidate) versus unchanged lock (baseline). | 4,000 games; 1,094 wins; 1,177 losses; 1,729 draws; 0 audit errors | Complete:4000 games,2000 color-swapped UHO pairs; W-L-D1094-1177-1729; no crash/illegal/disconnect/stall/abort marker or event; counts only |
-| 3-ContHist4PlyRead | Merged with only ContHist4PlyRead enabled versus merged with all three new options disabled. | No completed counts recorded | Pending; no completed counts recorded |
+| 3-ContHist4PlyRead | Merged with only ContHist4PlyRead enabled versus merged with all three new options disabled. | 400 games; 104 wins; 112 losses; 184 draws; 0 audit errors | Running |
 | 3-NonPawnCorrection | Merged with only NonPawnCorrection enabled versus merged with all three new options disabled. | No completed counts recorded | Pending; no completed counts recorded |
 | 3-LmrDeeperShallower | Merged with only LmrDeeperShallower enabled versus merged with all three new options disabled. | No completed counts recorded | Pending; no completed counts recorded |
 | Part4 | Mate-bound/PV investigation and optional sampled KRK audit; exact DTM checks, no universal correctness claim. | 4 uninstrumented searches; 1 instrumented searches; 1 independent known roots; 0 false bounds demonstrated | Known-root investigation complete; optional broader sampled audit pending |
@@ -138,14 +138,14 @@ Recorded match configuration: 20,000 nodes per move, Threads 1, Hash 16, OwnBook
 | Mode | Games | Wins | Losses | Draws | Status |
 | --- | --- | --- | --- | --- | --- |
 | default | 4,000 | 1,094 | 1,177 | 1,729 | Complete:4000 games,2000 color-swapped UHO pairs; W-L-D1094-1177-1729; no crash/illegal/disconnect/stall/abort marker or event; counts only |
-| ContHist4PlyRead | — | — | — | — | Pending; no completed counts recorded |
+| ContHist4PlyRead | 400 | 104 | 112 | 184 | Running |
 | NonPawnCorrection | — | — | — | — | Pending; no completed counts recorded |
 | LmrDeeperShallower | — | — | — | — | Pending; no completed counts recorded |
 
 | Mode | LL | LD | DD or WL | DW | WW | Complete pairs | Incomplete pairs |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | default | 77 | 315 | 1,272 | 286 | 50 | 2,000 | 0 |
-| ContHist4PlyRead | — | — | — | — | — | — | — |
+| ContHist4PlyRead | 11 | 53 | 77 | 51 | 8 | 200 | 0 |
 | NonPawnCorrection | — | — | — | — | — | — | — |
 | LmrDeeperShallower | — | — | — | — | — | — | — |
 
@@ -154,7 +154,7 @@ Pair bins correspond to candidate scores 0, ½, 1, 1½ and 2 across a color-swap
 | Mode | Illegal events / games | Disconnect games | Stall games | Aborted games | Abnormal terminations | Crash markers | Audit errors |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | default | 0 / 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| ContHist4PlyRead | — / — | — | — | — | — | — | — |
+| ContHist4PlyRead | 0 / 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | NonPawnCorrection | — / — | — | — | — | — | — | — |
 | LmrDeeperShallower | — / — | — | — | — | — | — | — |
 
@@ -175,6 +175,7 @@ A crash can appear as a disconnect. Log markers are occurrences, not additional 
 | [3-default #8](batches/3-default-0008.txt) | 8474008 | Yes; see retained counts | true / true | 117–116–167 | 200 / 0 | exit 0, signal — |
 | [3-default #9](batches/3-default-0009.txt) | 8474009 | Yes; see retained counts | true / true | 103–122–175 | 200 / 0 | exit 0, signal — |
 | [3-default #10](batches/3-default-0010.txt) | 8474010 | Yes; see retained counts | true / true | 105–106–189 | 200 / 0 | exit 0, signal — |
+| [3-ContHist4PlyRead #1](batches/3-ContHist4PlyRead-0001.txt) | 8475001 | Yes; see retained counts | true / true | 104–112–184 | 200 / 0 | exit 0, signal — |
 
 Raw attempt rows can include excluded work and must not be summed into the completed totals.
 
@@ -217,6 +218,7 @@ Completed-unit totals exclude partial work; interrupted cleanup diagnostics rema
 - Final24 r3 heads at15:00:12UTC reviewed statically and published in BRANCH_REVIEW_R3_COMPLETE.md; initial13:51 inventory is explicitly historical. No r3 code merged or runtime claim adopted. Part4 short-PV wording clarified: no UCI bound qualifier, no exact-DTM or engine-proof certification. Report now distinguishes initial ASAN KRK coverage from later400 split trials; originaltimeouts remainincomplete.
 - At15:38UTC prioritized the already-prepared enabled-option TSan batches F11/F12 before optional default-option repeat batches E7/E8, preserving engine, flags, seeds and per-batch limits. Clock will be checked before optional repeats; target Part2end remains around15:56UTC.
 - Part2 closed near15:56UTC. Optional extra D9/D10 and E8 repeats were prepared but not run; required thread/option/instrumentation coverage completed. Existing E5 timeout and fullKRK timeouts remain excluded attempts, with actual subsequent retry coverage separate. Part3 starts with400-game default merged-vs-lock batch; only completed audited games will be counted.
+- All4000 default merged-vs-lock games were independently verified from original logs, preserved chunks and published Git blobs; counts1094/1177/1729 and pairbins77/315/1272/286/50. Immutable text evidence is in preparation/part3-independent-default. Option modes are separate same-merged-binary on/off matches.
 
 These notes retain their original recording context; subsequent retry coverage is stated separately.
 
@@ -420,6 +422,7 @@ This appendix preserves every state total, including overlapping categories and 
 | 2F | Supplemental TSan enabled-option self-play, Threads4,Hash16,OwnBookfalse,UseNNUEtrue,MultiPV1,all3 candidates true,depth9/nodes0,8 seeded opening plies,300-ply cap,full trace,300-second game-boundary budget | Complete: 1102 ASAN+UBSAN games / 126532 searches plus14 enabled-option TSan games /1886 searches; no chess/runtime diagnostics |
 | 2G | Unchanged t23 mate and rule50 suites, release and ASan+UBSan;40mate-suite cases plus20rule50 cases perbuild | Complete: four unchanged suite runs; 120 cases; zero missed/false mates, illegal moves, rule50 failures, or sanitizer reports |
 | 3-default | Official fastchess; merged defaults versus lock;400 games in200 color-swapped UHO pairs, nodes20000,Threads1,Hash16,OwnBookfalse,recover,no clock/adjudication | Complete:4000 games,2000 color-swapped UHO pairs; W-L-D1094-1177-1729; no crash/illegal/disconnect/stall/abort marker or event; counts only |
+| 3-ContHist4PlyRead | Official fastchess; merged ContHist4PlyRead on versus all-three off;400 games in200 color-swapped UHO pairs, nodes20000,Threads1,Hash16,OwnBookfalse,recover,no clock/adjudication | Running |
 
 | Phase | Counter | Recorded value |
 | --- | --- | --- |
@@ -922,6 +925,31 @@ This appendix preserves every state total, including overlapping categories and 
 | 3-default | disconnect_markers | 0 |
 | 3-default | stall_markers | 0 |
 | 3-default | batches | 10 |
+| 3-ContHist4PlyRead | games | 400 |
+| 3-ContHist4PlyRead | games_started | 400 |
+| 3-ContHist4PlyRead | wins | 104 |
+| 3-ContHist4PlyRead | losses | 112 |
+| 3-ContHist4PlyRead | draws | 184 |
+| 3-ContHist4PlyRead | moves | 55875 |
+| 3-ContHist4PlyRead | complete_pairs | 200 |
+| 3-ContHist4PlyRead | incomplete_pairs | 0 |
+| 3-ContHist4PlyRead | audit_errors | 0 |
+| 3-ContHist4PlyRead | pair_LL | 11 |
+| 3-ContHist4PlyRead | pair_LD | 53 |
+| 3-ContHist4PlyRead | pair_DD_or_WL | 77 |
+| 3-ContHist4PlyRead | pair_DW | 51 |
+| 3-ContHist4PlyRead | pair_WW | 8 |
+| 3-ContHist4PlyRead | illegal_move_events | 0 |
+| 3-ContHist4PlyRead | illegal_move_games | 0 |
+| 3-ContHist4PlyRead | disconnect_games | 0 |
+| 3-ContHist4PlyRead | stall_games | 0 |
+| 3-ContHist4PlyRead | aborted_games | 0 |
+| 3-ContHist4PlyRead | abnormal_terminations | 0 |
+| 3-ContHist4PlyRead | crash_markers | 0 |
+| 3-ContHist4PlyRead | illegal_markers | 0 |
+| 3-ContHist4PlyRead | disconnect_markers | 0 |
+| 3-ContHist4PlyRead | stall_markers | 0 |
+| 3-ContHist4PlyRead | batches | 1 |
 
 </details>
 

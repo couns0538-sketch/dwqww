@@ -1,0 +1,57 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+
+// One inspection pass. No sleep, daemon, state writes, native engines, or games.
+const dir=path.dirname(new URL(import.meta.url).pathname),root='/workspace/work/all-run',repo='/workspace/work/dwqww-all';
+const indexFile=dir+'/aggregate-index.json.txt',index=JSON.parse(fs.readFileSync(indexFile));
+const utc=new Date().toISOString(),stamp=utc.replace(/[^0-9TZ]/g,''),commands=[];
+const digest=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+function command(argv,timeout=30000){
+ const r=spawnSync(argv[0],argv.slice(1),{cwd:repo,encoding:'utf8',maxBuffer:5*1024*1024,timeout});
+ const record={argv,cwd:repo,startedPassUTC:utc,finishedUTC:new Date().toISOString(),exit:r.status,signal:r.signal,error:r.error?.message,stdout:r.stdout,stderr:r.stderr};commands.push(record);return record;
+}
+const ref='refs/heads/soak/combo29-all';
+const remote=command(['git','ls-remote','--heads','origin',ref]);
+const remoteFile=dir+'/remote-observation-'+stamp+'.json.txt';
+fs.writeFileSync(remoteFile,JSON.stringify({utc,ref,command:remote},null,2)+'\n');
+if(remote.exit!==0||!new RegExp('^[0-9a-f]{40}\\t'+ref.replaceAll('/','\\/')+'\\n?$').test(remote.stdout)){
+ fs.writeFileSync(dir+'/pass-'+stamp+'.commands.json.txt',JSON.stringify(commands,null,2)+'\n');console.log('PASS '+JSON.stringify({utc,error:'Remote advertisement unavailable',evidence:remoteFile,newAudits:0}));process.exit(1);
+}
+const advertisedCommit=remote.stdout.trim().split(/\s+/)[0];
+const pending=[],newAudits=[];
+const files=fs.readdirSync(root+'/logs').filter(f=>/^3-.*\.txt\.run-spec\.json$/.test(f)).sort();
+for(const file of files){
+ const metadata=root+'/logs/'+file;let m;try{m=JSON.parse(fs.readFileSync(metadata));}catch(e){pending.push({metadata,status:'pending_metadata',reason:e.message});continue;}
+ if(!m.spec?.phase?.startsWith('3-'))continue;
+ const phase=m.spec.phase,id=m.spec.id,seed=m.spec.seed,key=phase+'-'+String(id).padStart(4,'0');
+ if(index.entries.some(e=>e.phase===phase&&e.id===id))continue;
+ if(m.summary?.completed!==true||m.incomplete!==false||m.completedCountsRecorded?.games!==400){pending.push({phase,id,seed,status:'pending_or_incomplete_native',metadata,reason:'No completed recorded 400-game result'});continue;}
+ if(index.entries.some(e=>e.status==='verified'&&e.mode===m.summary.mode&&e.seed===seed)){pending.push({phase,id,seed,status:'duplicate_semantic_identity',metadata,reason:'Mode/seed already independently counted'});continue;}
+ const relative='forge-combo29/soak_all/batches/'+key+'.evidence/manifest.txt',manifest=repo+'/'+relative;
+ const present=command(['git','cat-file','-e',advertisedCommit+':'+relative]);
+ if(present.exit!==0||!fs.existsSync(manifest)){pending.push({phase,id,seed,status:'pending_publication',metadata,reason:'Manifest unavailable in advertised commit '+advertisedCommit,observedUTC:utc,observation:remoteFile});continue;}
+ const output=dir+'/'+key+'.audit.json.txt';
+ if(fs.existsSync(output)){pending.push({phase,id,seed,status:'existing_unindexed_audit',metadata,reason:'Refusing to overwrite existing audit report '+output});continue;}
+ const argv=['/usr/bin/timeout','-k','5s','240s','nice','-n','10','node',dir+'/audit-published-batch.mjs','--prefix',m.summary.prefix,'--manifest',manifest,'--metadata',metadata,'--commit',advertisedCommit,'--out',output];
+ const run=command(argv,250000);fs.writeFileSync(dir+'/'+key+'.commands.json.txt',JSON.stringify({remoteObservation:remoteFile,commands:commands.filter(x=>x===present||x===run)},null,2)+'\n');
+ let a;try{a=JSON.parse(fs.readFileSync(output));}catch{}
+ const passed=run.exit===0&&a?.passed===true;
+ const entry={phase,id,mode:m.summary.mode,seed,status:passed?'verified':'failed',auditReport:fs.existsSync(output)?output:null,auditReportSha256:fs.existsSync(output)?digest(output):null,auditCommit:advertisedCommit,publication:{remoteRef:ref,advertisedCommit,observedUTC:utc,observation:remoteFile,priorAuditReused:false,proof:'Every evidence file is checked against the Git blob in this exact remotely advertised commit.'},counts:passed?a.checks.recordedCounts:{},observedCounts:a?.checks?.recordedCounts??null,wld:a?.checks?.events?.wld??null,pairBins:a?.checks?.events?.pairBins??null,evidence:a?.checks?.evidence?{originalFiles:a.checks.evidence.originalFiles,copiedFiles:a.checks.evidence.copiedFiles,originalBytes:a.checks.evidence.originalBytes}:null,issues:a?.issues??['Audit command failed or did not produce a report'],auditExit:run.exit,commandEvidence:dir+'/'+key+'.commands.json.txt'};
+ index.entries.push(entry);newAudits.push({phase,id,seed,status:entry.status,wld:entry.wld,pairBins:entry.pairBins,issues:entry.issues,exit:run.exit});
+ // Persist each completed audit independently; a later interruption must not
+ // erase prior evidence or cause a verified batch to be rerun.
+ index.pending=pending;index.updatedUTC=new Date().toISOString();fs.writeFileSync(indexFile,JSON.stringify(index,null,2)+'\n');
+}
+const totals={},byMode={};for(const e of index.entries.filter(e=>e.status==='verified')){
+ byMode[e.mode]??={batches:0,counts:{}};byMode[e.mode].batches++;
+ for(const[k,v]of Object.entries(e.counts)){if(!Number.isSafeInteger(v)||v<0)throw Error('Unsafe verified count '+k);totals[k]=(totals[k]||0)+v;byMode[e.mode].counts[k]=(byMode[e.mode].counts[k]||0)+v;}
+}
+index.updatedUTC=new Date().toISOString();index.verifiedBatches=index.entries.filter(e=>e.status==='verified').length;index.verifiedCounts=totals;index.verifiedByMode=byMode;index.pending=pending;index.lastRemoteObservation={utc,ref,advertisedCommit,evidence:remoteFile};
+fs.writeFileSync(indexFile,JSON.stringify(index,null,2)+'\n');
+fs.writeFileSync(dir+'/pass-'+stamp+'.commands.json.txt',JSON.stringify(commands,null,2)+'\n');
+fs.copyFileSync(dir+'/audit-available.mjs',dir+'/audit-available.mjs.txt');
+const inventory=fs.readdirSync(dir,{withFileTypes:true}).filter(e=>e.isFile()&&e.name!=='evidence-hashes.txt').map(e=>{const p=dir+'/'+e.name;return `${digest(p)} ${fs.statSync(p).size} ${e.name}`;});
+fs.writeFileSync(dir+'/evidence-hashes.txt',inventory.sort().join('\n')+'\n');
+console.log('PASS '+JSON.stringify({utc,advertisedCommit,newAudits,verifiedBatches:index.verifiedBatches,verifiedGames:totals.games,pending}));
