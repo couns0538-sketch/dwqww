@@ -32,7 +32,7 @@ Singular search only runs when `depth >= SingularDepth`. The default is 7, and `
 
 ## Checks
 
-`forge-combo29/tests_r4_08/run.sh` builds the lock definitions from `CMakeLists.txt` (unchanged values) with `-fsanitize=address,undefined` and runs `tests_r4_08/r4_08_test.cpp`. Failed checks return non-zero.
+`forge-combo29/tests_r4_08/r4_08_test.cpp` was built from the lock definitions in `CMakeLists.txt` (unchanged values) with `-fsanitize=address,undefined`. Failed checks return non-zero.
 
 After the fix, that run printed:
 
