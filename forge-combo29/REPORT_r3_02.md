@@ -80,7 +80,9 @@ Versions: engine `Chess Engine Forge 6.4.24 candidate` (UCI), Clang 18.1.3, fast
 
 Chunk 001 finished at 2026-11-14T16:48:10Z (openings 1-500, 1000 games, fastchess exit 0). ThreatHistory on: 249-279-472, Elo -10.43 +/- 13.68, LOS 6.73%, Ptnml(0-2) [26, 122, 225, 110, 17]. See `tests_r3fu_02/chunk001_summary.md`.
 
-Chunk 002 finished at 2026-11-14T17:55:34Z (openings 501-1000, 1000 games, fastchess exit 0). ThreatHistory on: 245-268-487, Elo -7.99 +/- 14.07, LOS 13.25%, Ptnml(0-2) [21, 142, 196, 121, 20]. See `tests_r3fu_02/chunk002_summary.md`. Not a strength claim.
+Chunk 002 finished at 2026-11-14T17:55:34Z (openings 501-1000, 1000 games, fastchess exit 0). ThreatHistory on: 245-268-487, Elo -7.99 +/- 14.07, LOS 13.25%, Ptnml(0-2) [21, 142, 196, 121, 20]. See `tests_r3fu_02/chunk002_summary.md`.
+
+Chunk 003 was stopped unfinished at 2026-11-14T18:49:35Z (openings 1001-1500). The copy has 853 games with a result: ThreatHistory on 228-229-396, Elo -0.41 +/- 17.07, LOS 48.13%, Ptnml(0-2) [15, 108, 186, 97, 20]. No later chunk was started. See `tests_r3fu_02/chunk003_summary.md`. Not a strength claim.
 
 option.ThreatHistory=true
 bench 13 nodes 643389

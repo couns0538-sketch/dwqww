@@ -1,15 +1,16 @@
-# Chunk 003 progress snapshot
+# Chunk 003 stopped early
 
-Status: in progress. Openings 1001-1500, both colors, 1000 games. Counts are only games with a complete Result tag in this copy. Not a strength claim.
+Status: unfinished. The match was stopped at 2026-11-14T18:49:35Z so no further chunk would start. Openings 1001-1500 were still in progress (1000 games planned). Counts are only games with a complete Result tag in this copy. Not a strength claim.
 
-- Snapshot time: 2026-11-14T18:29:50Z
-- Complete games in this copy: 462
-- W-L-D (ThreatHistory on first): 120-123-219
-- Points: 229.5 / 462 (49.68%)
-- Elo: -2.26 +/- 22.98 (95%)
-- LOS: 42.37%
-- Pentanomial Ptnml(0-2): [3, 64, 105, 50, 8]
-- Complete pairs: 230; rounds with one game so far: 2
+- Started: 2026-11-14T17:55:34Z
+- Snapshot time: 2026-11-14T18:49:35Z
+- Complete games in this copy: 853
+- W-L-D (ThreatHistory on first): 228-229-396
+- Points: 426.0 / 853 (49.94%)
+- Elo: -0.41 +/- 17.07 (95%, from these finished games)
+- LOS: 48.13%
+- Pentanomial Ptnml(0-2): [15, 108, 186, 97, 20]
+- Complete pairs: 426; rounds with one game so far: 1
 
 Command:
 
