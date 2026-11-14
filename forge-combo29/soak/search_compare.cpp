@@ -11,7 +11,7 @@
 
 static std::string compact(const UciResult& r){return r.move+" "+r.score_kind+" "+std::to_string(r.score)+" nodes "+std::to_string(r.nodes)+" depth "+std::to_string(r.depth);}
 static std::vector<std::string> read_fens(const std::string& path){std::ifstream in(path);if(!in)throw std::runtime_error("cannot read positions");std::vector<std::string> fens;std::string line;
-    while(std::getline(in,line)){if(line.empty()||line[0]=='#')continue;std::istringstream row(line);std::string board,side,castle,ep,half="0",full="1";if(!(row>>board>>side>>castle>>ep))continue;std::string h,f;if(row>>h>>f){if(h.find_first_not_of("0123456789")==std::string::npos&&f.find_first_not_of("0123456789")==std::string::npos){half=h;full=f;}}const std::string fen=board+" "+side+" "+castle+" "+ep+" "+half+" "+full;forge::Board b;if(!b.set_fen(fen))throw std::runtime_error("invalid corpus FEN "+line);if(!b.legal_moves().empty()&&!b.is_insufficient_material())fens.push_back(fen);}
+    while(std::getline(in,line)){if(line.empty()||line[0]=='#')continue;std::istringstream row(line);std::string board,side,castle,ep,half="0",full="1";if(!(row>>board>>side>>castle>>ep))continue;std::string h,f;if(row>>h>>f){if(h.find_first_not_of("0123456789")==std::string::npos&&f.find_first_not_of("0123456789")==std::string::npos){half=h;full=f;}}const std::string fen=board+" "+side+" "+castle+" "+ep+" "+half+" "+full;forge::Board b;if(!b.set_fen(fen))throw std::runtime_error("invalid corpus FEN "+line);if(!b.legal_moves().empty()&&!b.is_insufficient_material()&&b.halfmove_clock()<100)fens.push_back(fen);}
     return fens;
 }
 static std::string krk_fen(int wk,int wr,int bk){std::array<char,64> sq{};sq[wk]='K';sq[wr]='R';sq[bk]='k';std::string fen;

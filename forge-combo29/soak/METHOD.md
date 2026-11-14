@@ -8,6 +8,8 @@ Engine inputs are exactly integration bf5574ee654a773f0ef3d06878707056b90cdad7 a
 
 Every searched position is checked for terminal conditions first. Every returned move must be present in the engine's legal list, and each score must be within [-32000,32000]. The game ends on checkmate, stalemate, threefold repetition, 100 halfmoves, insufficient material, or 300 total plies. Insufficient-material dead positions are tracked separately because they are also terminal in the engine. `moves` means searched moves; the eight opening plies are counted separately. `games` includes only games completed within the batch. A final SUMMARY is necessary for a batch to enter totals. Failed or killed batches are retained and repeated with their original seed; partial results are not double-counted.
 
+If a random opening itself reaches a position with no legal moves before eight plies, it ends there and is counted with its actual opening length. No move is made beyond a terminal position. This occurred once in phase C at seed 4753019 (61 opening plies across eight games).
+
 For any given batch seed and game number, the opening RNG is independently derived by the documented splitmix function in the C++ driver. `--first-game N --games 1` reruns that game's full history, including every preceding search within the game. The latest complete trigger is written to a VM file before each search. Race batches also print each trigger with FEN, complete move sequence, seed, game number, ply and limits, so diagnostics can be associated with their input.
 
 Normal batch evidence records the command, counts, raw-log hash and all non-trigger output. Full normal trigger traces stay in the VM; a fault record includes the triggering input and complete diagnostic output plus ten reproduction attempts. Faults are recorded, never repaired in the engine. No expected value is relaxed to pass a test.
@@ -18,9 +20,13 @@ The official opening archive is fetched from official-stockfish/books and extrac
 
 All network loads in the phase-D checker go through the actual UCI `NnueFile` command handler. The unchanged `src/uci.cpp` is compiled with only its entry-point symbol renamed (`-Dmain=forge_soak_uci_entry`) and linked with the unchanged engine objects. `uci_nnue_loader.hpp` feeds commands to that UCI loop, captures its complete output, and returns to the checker, which evaluates the same loaded NNUE state. The engine source is not edited, and no evaluation command is added to it. A separate ordinary UCI subprocess check also compares pinned benches before/after loading and rejection.
 
+Phase-D position counts are visits. Repeated FENs can occur across playouts and fixtures. Each completed 100,000-visit chunk uses its own derived random seed; the two network passes traverse the same sequence, and only the first pass contributes to the position count.
+
 The converter is the unchanged `tests_t8/nnue_convert.cpp`, compiled against the lock checkout's `nnue_weights.inc`. Both source weight files have SHA256 a7ebcf3a319675f347e6e8e3f2539901d38d8036cb9b5935f31dd43d084c9638. The converted lock network has SHA256 a48d290461c8a5a8365a5bda036b986398692067f529f0c4ef40c135ed9d8cb6. Tools and network files stay outside the branch.
 
 `search_compare.cpp` uses actual UCI subprocesses and clears state with `ucinewgame` before each search. Phase E compares best move, score kind/value and final reported nodes at depth 9. The corpus mixes fixed-seed reservoir samples from the official opening file and phase-D random playouts; corpus provenance and hash are recorded with the phase. A difference triggers ten additional full comparisons with complete transcripts.
+
+The phase-E search corpus excludes terminal positions with no legal move, insufficient material, or at least 100 halfmoves. Those positions do not require a search. Counts include only the remaining positions actually compared on both builds.
 
 Phase F uses 100 openings per 200-game batch, each with reversed colors, and records five pair bins for integration's total points: 0, 0.5, 1, 1.5, 2. Fastchess events independently verify shared opening FENs, swapped colors, game results, legal flags and termination reasons. No resignation, draw, maximum-move or tablebase adjudication is enabled. Engine communication logs, events and PGNs remain in the VM with hashes in batch evidence; any fault is promoted to a committed fault record.
 
