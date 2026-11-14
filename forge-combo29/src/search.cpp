@@ -890,12 +890,10 @@ std::uint64_t Worker::total_nodes() const {
     return total;
 }
 
-bool Worker::should_stop() {
-    // Publish this thread's node count for the others at the same cadence.
-    nodes_.store(local_nodes_, std::memory_order_relaxed);
+bool Worker::should_stop_with(std::uint64_t pending_nodes) {
     if (shared_.stop.load(std::memory_order_relaxed)) return true;
     if (!is_main()) return false;
-    if (node_limit_specified_ && total_nodes() >= node_limit_) {
+    if (node_limit_specified_ && total_nodes() + extra_nodes_ + pending_nodes >= node_limit_) {
         stopped_by_nodes_ = true;
         return true;
     }
@@ -904,6 +902,14 @@ bool Worker::should_stop() {
         if (elapsed_ms() >= hard_limit_ms_) return true;
     }
     return false;
+}
+
+bool Worker::should_stop() {
+    // Publish this thread's node count for the others at the same cadence.
+    nodes_.store(local_nodes_, std::memory_order_relaxed);
+    if (shared_.stop.load(std::memory_order_relaxed)) return true;
+    if (parent_worker_ != nullptr) return parent_worker_->should_stop_with(local_nodes_);
+    return should_stop_with(0);
 }
 
 bool Worker::is_draw(const Board& board, int ply) const {
@@ -1517,6 +1523,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     seldepth_ = 0;
     aborted_ = false;
     stopped_by_nodes_ = false;
+    extra_nodes_ = 0;
     pondering_ = limits.ponder;
     null_tries_ = 0;
     null_cutoffs_ = 0;
@@ -1524,7 +1531,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     root_restricted_ = limits.search_moves_specified;
     root_history_index_ = board.history_size() - 1;
     node_limit_ = limits.nodes;
-    node_limit_specified_ = is_main() && (limits.nodes_specified || limits.nodes != 0);
+    node_limit_specified_ = parent_worker_ != nullptr
+        ? parent_worker_->node_limit_specified_
+        : (is_main() && (limits.nodes_specified || limits.nodes != 0));
 
     // Time allocation.
     const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);
@@ -1682,6 +1691,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             1, shared_.tt.cluster_count() * sizeof(TTCluster) / (1024U * 1024U));
         alt_shared = std::make_unique<SharedSearchState>(hash_mb);
         alt_worker = std::make_unique<Worker>(*alt_shared, 0);
+        alt_worker->parent_worker_ = this;
         alt_list.push_back(alt_worker.get());
     }
     for (int depth = 1; depth <= max_depth; ++depth) {
@@ -1744,7 +1754,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             std::vector<Move> banned{result.pv.front()};
             const int line_count = std::min(multipv, static_cast<int>(root_candidates.size()));
             for (int index = 2; index <= line_count && !aborted_; ++index) {
-                if (shared_.stop.load(std::memory_order_relaxed)) {
+                if (should_stop()) {
                     aborted_ = true;
                     break;
                 }
@@ -1774,6 +1784,11 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
                 alt_shared->tt.clear();
                 alt_worker->clear();
                 const SearchInfo alt = alt_worker->search(board, narrowed, false, alt_list);
+                extra_nodes_ += alt.nodes;
+                if (alt_worker->aborted_ || alt.depth < depth) {
+                    aborted_ = true;
+                    break;
+                }
                 if (alt.best_move.is_none()) break;
                 if (std::find(banned.begin(), banned.end(), alt.best_move) != banned.end()) break;
                 std::vector<Move> pv = alt.pv;
@@ -1846,7 +1861,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     }
 
     nodes_.store(local_nodes_, std::memory_order_relaxed);
-    result.nodes = total_nodes();
+    result.nodes = total_nodes() + extra_nodes_;
     result.seldepth = std::max(result.seldepth, seldepth_);
     result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start_).count());

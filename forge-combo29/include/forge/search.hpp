@@ -367,6 +367,8 @@ private:
     // Set only when the node budget itself trips should_stop. A clock stop or an
     // external stop leaves this false so those paths keep the partial root move.
     bool stopped_by_nodes_ = false;
+    Worker* parent_worker_ = nullptr;
+    std::uint64_t extra_nodes_ = 0;
 #if FORGE_SPD_TT_NOTLS
     // True only while Searcher::search runs this (main) worker on the thread that
     // holds the table's ExclusiveLease; lock_stripe would hand back a deferred lock.
@@ -394,6 +396,7 @@ private:
     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
     int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
     [[nodiscard]] bool should_stop();
+    [[nodiscard]] bool should_stop_with(std::uint64_t pending_nodes);
     [[nodiscard]] std::int64_t elapsed_ms() const;
     [[nodiscard]] std::uint64_t total_nodes() const;
     [[nodiscard]] bool is_draw(const Board& board, int ply) const;
