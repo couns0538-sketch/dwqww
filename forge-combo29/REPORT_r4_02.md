@@ -24,6 +24,7 @@ grok47/r3-03-lmr-signed-correction 1ecc1d33156d 200 identical; 176aa9fc1edd 200 
 grok47/r3-04-lmr-late-parent-relief ae2cc041e24b 200 identical; feccf387e16a 200 identical
 grok47/r3-05-hindsight-depth 4ce2b8b18fd9 200 identical
 grok47/r3-06-null-threat-verify d6b4c7356072 200 NullThreatVerify on vs NullThreatVerify off ply 7 pushed d1d3 replay e1g1 fen rnb1kbnr/ppp1pppp/8/4q3/8/2N5/PPPP1PPP/R1BQKBNR 
+grok47/r3-07-null-see-veto 56b27b1398a4 200 identical
 grok47/r3-08-asp-capped-reopen dc2e25b54d7c 20 identical
 grok47/r3-09-asp-arm-late a6cb38efffbc 200 identical
 grok47/r3-10-evasion-ordering a2392f49dc81 200 identical
