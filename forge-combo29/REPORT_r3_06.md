@@ -32,14 +32,16 @@ Threads 1, Hash 16, OwnBook false, every other option left at its default. Print
 
 With the option on, `bench 13` was run twice on that binary and both runs printed 789456. That is a different count from 862329, so the option is live. It is not a strength result.
 
-`forge-combo29/tests_r3_06/null_threat_verify_test.cpp` was compiled with the engine sources, `-O3 -ffp-contract=off -fno-fast-math -march=x86-64-v3`, and `-fsanitize=address,undefined`. It drives the UCI loop, checks the option line, and checks the three default counts, the changed `bench 13`, and the same three counts after the option is set back to false. It then searches 200 positions to depth 10 with the option on (Hash 16, one thread) and requires each returned move to be legal. Eleven attack positions are checked directly: the start position is not a threat; a pawn, knight, or rook attacking a dearer piece is; an equal minor, a queen attacking a rook, a king next to a rook, and a rook blocked by its own pawn are not.
+`forge-combo29/tests_r3_06/null_threat_verify_test.cpp` was compiled with the engine sources, `-O3 -ffp-contract=off -fno-fast-math -march=x86-64-v3`, and `-fsanitize=address,undefined`. It drives the UCI loop, checks the option line, and checks the three default counts, the changed `bench 13`, and the same three counts after the option is set back to false. It then searches 200 positions to depth 10 with the option on (Hash 16, one thread) and requires each returned move to be legal. Sixteen attack positions are checked directly. The start position is not a threat. A pawn, knight, bishop, or rook attacking a dearer piece is, including the position after 1.e4 e5 2.Nf3 Nc6 3.Bb5 a6. An equal minor, a queen attacking a rook, a king beside a rook, a rook blocked by its own pawn, and a pawn attacked only by a pawn are not.
+
+A throwaway counter, compiled locally and not kept in the tree, showed the confirmation is entered. From the Kiwipete position at depth 10 it ran 9 times, and at depth 14 the blocked search contained child nodes as well as the confirmation root. Every move from that probe was legal. The counter was removed before the commit. The node counts below are from the tree without it.
 
 Result, with `ASAN_OPTIONS=halt_on_error=1:detect_leaks=1` and `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`:
 
 ```
 defaults bench11 312866 bench13 862329 perft5 4865609
 NullThreatVerify bench13 789456
-predicate cases 11 failures 0
+predicate cases 16 failures 0
 depth10 searches 200 illegal 0
 restored bench11 312866 bench13 862329 perft5 4865609
 PASS null_threat_verify_test

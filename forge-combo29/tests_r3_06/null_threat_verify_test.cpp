@@ -123,7 +123,7 @@ std::vector<forge::Board> two_hundred_positions() {
 }
 
 int check_threat_predicate() {
-    const std::array<std::pair<std::string_view, bool>, 11> cases{{
+    const std::array<std::pair<std::string_view, bool>, 16> cases{{
         {forge::Board::StandardStartFen, false},
         {"8/8/8/4p3/3N4/8/8/4K2k w - - 0 1", true},
         {"8/8/4n3/8/3B4/8/8/4K2k w - - 0 1", false},
@@ -135,6 +135,11 @@ int check_threat_predicate() {
         {"3r4/8/3p4/8/3Q4/8/8/4K2k w - - 0 1", false},
         {"8/8/1n6/8/R7/8/8/4K2k w - - 0 1", true},
         {"8/8/8/8/8/2N5/8/b3K2k w - - 0 1", false},
+        {"r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4", true},
+        {"8/8/8/8/2b5/8/R7/4K2k w - - 0 1", true},
+        {"8/8/8/8/2b5/1P6/R7/4K2k w - - 0 1", false},
+        {"8/8/8/8/8/2n5/8/3QK2k w - - 0 1", true},
+        {"8/8/8/4p3/3P4/8/8/4K2k w - - 0 1", false},
     }};
     int failures = 0;
     for (const auto& item : cases) {
