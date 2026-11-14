@@ -61,4 +61,32 @@ Source diff against `e04556dd` in `forge-combo29/src` and `forge-combo29/include
 
 setoption name DeadMaterial value true
 
-bench 13 with it on: 862343 nodes
+bench 13 with it on, before the follow-up restored the draw cutoff: 862343 nodes
+
+## Follow-up
+
+The bishop-and-knight score was 48 to 316 centipawns. That sits below the hand-written value of keeping the bishop and the knight, so a search would rather not trade into the won ending. The score is now that material value plus the same corner drive.
+
+The material value uses the hand-written piece values and the same taper as the rest of the evaluation. A bishop and a knight are phase 2 of 24. Middlegame values 365 and 337, endgame values 297 and 281:
+
+`(702 * 2 + 578 * 22) / 24 = 588`
+
+The drive is still `28 * (7 - corner distance) + 12 * (7 - distance between the kings)`. Added to 588, the attacker score is at least 588, and higher when the lone king is nearer a corner of the bishop's colour and the kings are closer. The sign is unchanged: positive for the side with the bishop and knight when that side is to move, and the negation when the lone king is to move.
+
+Bare kings and king plus one minor are an immediate draw cutoff again. The special case in `is_draw` is gone. Two knights against a king still score 0 only when evaluation is reached; they were not part of that cutoff.
+
+Owner build: this machine has AVX-512F and BMI2, so the binary is the CMake default (`FORGE_PORTABLE` off, `-march=x86-64-v4`, PEXT and the AVX-512 network kernel). No `CMakeLists.txt` edit and no extra `FORGE_*` override. `c++` on this machine is Clang and cannot link `libstdc++`, so the compiler is g++ 13.3.0. Option off, Threads 1, Hash 16, OwnBook false:
+
+- bench 11: 312866 nodes
+- bench 13: 862329 nodes
+- start-position perft 5: 4865609 nodes
+
+bench 13 with the option on, five alternating runs, all 862329 nodes. nps in order off, on, off, on, off: 1357998, 1122824, 1105550, 1451732, 1512857.
+
+Mate test `forge-combo29/tests_r3fu_11/kbnk_mate_test.cpp`: 20 positions, each with both colours holding the bishop and knight, option on, 200000 nodes per move. All 40 games mated the lone king inside 50 moves. Exit 0. A failed check returns non-zero.
+
+Screen: `DeadMaterialOn` first against `DeadMaterialOff`, `nodes=50000`, Threads 1, Hash 16, OwnBook false, book `UHO_Lichess_4852_v1.epd` (sha256 `7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a`). fastchess alpha 1.8.3 (`091bf93dcf08e15d14b77bc2374d0a423982b32200e8add69f17bace3a34b31f`). Engine binary sha256 is recorded on each chunk summary. Chunks run for up to six hours and are under `forge-combo29/tests_r3fu_11/screen/`. Each summary has W-L-D for the option-on engine first, Elo with the 95% interval, LOS, pentanomial, the command, and the versions.
+
+setoption name DeadMaterial value true
+
+bench 13 with it on: 862329 nodes
