@@ -88,7 +88,8 @@ int main(int argc, char** argv) {
             limits.depth = depth;
             const forge::SearchInfo info = searcher.search(board, limits, false);
             const bool legal = move_is_legal(board, info.best_move);
-            const bool mate_score = !position.forced_mate || forge::is_mate_score(info.score);
+            // White is to move in both mate fixtures, so a loss for White is not a pass.
+            const bool mate_score = !position.forced_mate || info.score >= forge::MateInMaxPly;
             if (!legal || !mate_score) ++failures;
             std::cout << "threads " << threads << " depth " << depth << " " << position.name << " move "
                       << forge::Board::move_to_uci(info.best_move) << " score " << info.score << " nodes " << info.nodes

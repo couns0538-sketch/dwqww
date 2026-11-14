@@ -51,7 +51,8 @@ Search with 2 and 4 threads did not need a lock or a new hash checksum: the stri
 
 - `startup_race` under ThreadSanitizer: exit 0, stderr empty, `PASS startup`. The info lines and `stop`/`reset_stop` from a second thread produced no report.
 - `startup_race` under `-fsanitize=address,undefined`: exit 0, stderr empty, `PASS startup`.
-- `race_driver` under ThreadSanitizer and under address/undefined: exit 0, stderr empty, `PASS failures 0`.
+- `race_driver` under ThreadSanitizer and under address/undefined: exit 0, stderr empty, `PASS failures 0`. The two mate fixtures must score at least `MateInMaxPly` (a loss for White is a failure). Later re-runs still printed 31999 and 31997.
+- The UCI binary, including `src/uci.cpp`, under ThreadSanitizer: Threads 2 and 4, `go depth`, `go infinite` with `isready` during the search then `stop`, and `go ponder` then `ponderhit`. Stderr empty, exit 0. No group C report in option handling, the UCI worker, or `bestmove` output.
 
 No report remains.
 
@@ -552,9 +553,104 @@ threads 4 depth 10 mate-2 move c6c7 score 31997 nodes 2041 depth_reached 10 lega
 PASS failures 0
 ```
 
+### UCI worker under ThreadSanitizer
+
+`src/uci.cpp` is linked into this binary. `OwnBook` is false, so the book does not answer. Stderr was empty. Process exit status 0.
+
+```
+TSAN_OPTIONS="halt_on_error=0:symbolize=1" /tmp/forge_t13/forge_tsan
+```
+
+Commands and the engine's replies:
+
+```
+>> uci
+id name Chess Engine Forge 6.4.24 candidate
+id author OpenAI
+option name Hash type spin default 32 min 1 max 2048
+option name Threads type spin default 1 min 1 max 256
+option name Move Overhead type spin default 10 min 0 max 1000
+option name Ponder type check default false
+option name OwnBook type check default true
+option name Book File type string default <empty>
+option name Book Depth type spin default 30 min 0 max 100
+option name Book Variety type spin default 30 min 0 max 100
+option name UseNNUE type check default true
+option name Clear Hash type button
+uciok
+>> isready
+readyok
+>> setoption name Hash value 16
+>> setoption name Threads value 2
+>> setoption name OwnBook value false
+>> setoption name Ponder value true
+>> ucinewgame
+>> position startpos
+>> go depth 6
+info depth 1 seldepth 1 score cp 1 nodes 52 nps 17333 hashfull 0 time 3 pv d2d4
+info depth 2 seldepth 2 score cp 43 nodes 135 nps 33750 hashfull 0 time 4 pv g1f3 h7h6
+info depth 3 seldepth 3 score cp 18 nodes 344 nps 68800 hashfull 0 time 5 pv e2e4 h7h6 d2d4
+info depth 4 seldepth 5 score cp 35 nodes 823 nps 91444 hashfull 0 time 9 pv d2d4 d7d5 g1f3 c7c6
+info depth 5 seldepth 7 score cp 6 nodes 2241 nps 124500 hashfull 0 time 18 pv c2c4 c7c5 h2h3 g8f6 g1f3
+info depth 6 seldepth 9 score cp 18 nodes 2767 nps 125772 hashfull 0 time 22 pv c2c4 c7c5 h2h3 g8f6 g1f3 h7h6
+bestmove c2c4 ponder c7c5
+>> position fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1
+>> go depth 6
+info depth 1 seldepth 1 score mate 1 nodes 1477 nps 0 hashfull 0 time 0 pv a1a8
+info depth 6 seldepth 6 score mate 1 nodes 216 nps 216000 hashfull 0 time 1 pv a1a8
+bestmove a1a8
+>> setoption name Threads value 4
+>> position startpos
+>> go infinite
+>> isready
+info depth 11 seldepth 19 score cp 25 nodes 60795 nps 236556 hashfull 24 time 257 pv e2e4 c7c5 g1f3 d7d6 f1e2 g8f6 b1c3 b8c6 e1g1 c8d7 h2h3
+readyok
+>> stop
+bestmove e2e4 ponder c7c5
+>> position fen k7/8/2K5/8/8/8/8/7R w - - 0 1
+>> go depth 4 ponder
+>> ponderhit
+info depth 4 seldepth 6 score cp 513 nodes 929 nps 232250 hashfull 0 time 4 pv c6d5 a8b7 h1h4 b7c8
+bestmove c6d5 ponder a8b7
+>> quit
+```
+
+The `uci` reply also listed every exposed tunable option between `UseNNUE` and `Clear Hash`. Those lines are the option table from `uci.cpp` and contained no sanitizer text. The mate search printed `info depth 2` through `info depth 5` as `score mate 1` with pv `a1a8` before the depth-6 line shown above. `go infinite` printed `info depth 1` through `info depth 10` before the depth-11 line, and `readyok` arrived while that search was still running.
+
+### Winning-mate check
+
+`race_driver` now requires `info.score >= MateInMaxPly` on the two white-to-move mates. `is_mate_score` would also accept a loss. Re-run after that change:
+
+```
+TSAN_OPTIONS="halt_on_error=0:symbolize=1" /tmp/forge_t13/race_driver
+```
+
+Exit status 0, stderr 0 bytes. Mate lines:
+
+```
+threads 2 depth 10 mate-1 move a1a8 score 31999 nodes 343 depth_reached 10 legal mate_ok
+threads 2 depth 10 mate-2 move c6b6 score 31997 nodes 1270 depth_reached 10 legal mate_ok
+threads 4 depth 10 mate-1 move a1a8 score 31999 nodes 702 depth_reached 10 legal mate_ok
+threads 4 depth 10 mate-2 move c6c7 score 31997 nodes 2339 depth_reached 10 legal mate_ok
+PASS failures 0
+```
+
+```
+ASAN_OPTIONS="halt_on_error=0:detect_leaks=1" UBSAN_OPTIONS="halt_on_error=0:print_stacktrace=1" /tmp/forge_t13/race_driver_asan
+```
+
+Exit status 0, stderr 0 bytes. Mate lines:
+
+```
+threads 2 depth 10 mate-1 move a1a8 score 31999 nodes 27828 depth_reached 10 legal mate_ok
+threads 2 depth 10 mate-2 move c6c7 score 31997 nodes 774 depth_reached 10 legal mate_ok
+threads 4 depth 10 mate-1 move a1a8 score 31999 nodes 15983 depth_reached 10 legal mate_ok
+threads 4 depth 10 mate-2 move c6c7 score 31997 nodes 1612 depth_reached 10 legal mate_ok
+PASS failures 0
+```
+
 ## What I could not verify
 
 - A non-portable build (`FORGE_SPD_SLIDER_PEXT=1`, `FORGE_SPD_NNUE_ZMM=1`, `-march=x86-64-v4`). Sanitizer and release runs used the portable x86-64-v3 flags.
 - Multi-thread best-move stability. Lazy SMP is allowed to return different legal moves; only the single-thread rule 7 node counts are pinned.
 - Any bench-time cost of a combined-key checksum. It was not added. The locked probe already copies the entry and checks `key32`.
-- The UCI `go` thread in `src/uci.cpp` (book, ponder wait, `bestmove` print). The drivers call `Searcher` directly. `startup_race` does call `stop` and `reset_stop` during `search`, and that pair did not race.
