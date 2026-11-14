@@ -437,6 +437,60 @@ The sanitized test binaries are the t1, t3, t6, and t8 runs above. All four exit
 
 - `go wtime 3000000000` was stopped at 150 ms. It was not left to run for 3000000000 ms.
 - Wall-clock stops (movetime or `wtime` cutting a partial root move) were not compared byte for byte with the lock. The node-limit path is what t6 changes; the clock path is still the previous branch of that `if`.
-- `go nodes` with more than one thread was not run.
 - The Windows ThinLTO/PGO lock executable was not rebuilt. No Elo comparison and no speed comparison. The `nps` numbers above are the engine's printout for these runs.
 - `grok47/t5-krk-mate` was not merged, as specified.
+
+## Follow-up: helpers and a node budget
+
+`Worker::should_stop` returned immediately for every worker except the main one, unless the shared stop flag was already set. That flag is raised only after the main worker has returned, to join the helpers. A node budget therefore stopped the main worker and left the others searching through the unwind. Measured on the merged tree, before this follow-up, worst of 5 tries from the start position:
+
+- 8 threads, `nodes 1`: 108 nodes
+- 8 threads, `nodes 10`: 106 nodes
+- 2 threads, `nodes 10000`: 10952 nodes
+- 4 threads, `nodes 10000`: 10565 nodes
+
+One thread was already exact (the returned count equalled the budget).
+
+Every worker now treats `nodes_specified` or a non-zero `nodes` as its own budget and stops when `total_nodes()` reaches it. Only the main worker sets `stopped_by_nodes_`, so the returned move and score stay the last finished iteration. `bench` builds its own one-thread searcher, and a one-thread node limit still checks the same condition as before.
+
+`tests_t11/thread_node_limit.cpp` covers it. After the change, same compiler flags as `tests_t6` (`g++ -std=c++20 -O2 -Wall -Wextra -Werror -ffp-contract=off -fno-fast-math -march=x86-64-v4` and the lock `-D` switches):
+
+```
+threads 1 budget 1 nodes 1
+ok one thread stops on the exact count
+threads 1 budget 50 nodes 50
+ok one thread stops on the exact count
+threads 1 budget 200 nodes 200
+ok one thread stops on the exact count
+threads 1 budget 1000 nodes 1000
+ok one thread stops on the exact count
+threads 1 budget 1 nodes 1
+ok one thread stops on the exact count
+threads 1 budget 50 nodes 50
+ok one thread stops on the exact count
+threads 1 budget 200 nodes 200
+ok one thread stops on the exact count
+threads 1 budget 1000 nodes 1000
+ok one thread stops on the exact count
+threads 8 budget 1 worst 1
+ok eight threads stop a one-node budget
+threads 4 budget 10000 worst 10003
+ok four threads stay near a large budget
+threads 8 budget 10 rook worst 11
+ok eight threads stop a ten-node budget
+PASS thread node limit
+```
+
+Exit status 0. The same program built with `-O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -fno-sanitize-recover=address,undefined` and `ASAN_OPTIONS=halt_on_error=1:detect_leaks=1` printed the same pass log (the 10000-node case was 10002) and exited 0. stderr was empty.
+
+`tests_t6/fixed_nodes` recompiled against this `search.cpp` still printed `PASS fixed-node score and move agree` and exited 0.
+
+Release rebuild of `/tmp/forge-t11-release` (`cmake --build`, g++ 13.3.0, lock march) and the rule 7 commands:
+
+```
+info string bench depth 11 nodes 312866 time 168 nps 1862297
+info string bench depth 13 nodes 862329 time 445 nps 1937817
+nodes 4865609
+```
+
+The perft move counts were the same twenty numbers as the earlier pin run. Exit status 0.
