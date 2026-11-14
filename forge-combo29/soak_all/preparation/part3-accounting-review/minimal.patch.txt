@@ -1,0 +1,66 @@
+--- a/match_all.mjs
++++ b/match_all.mjs
+@@ -66,10 +66,10 @@
+     '-pgnout','file='+files.pgn,'append=false','nodes=true',
+     '-log','file='+files.trace,'level=trace','append=false','engine=true',
+     '-events','file='+files.events,'-config','outname='+files.config);
+-  const timeoutArgs = ['-k','5s','450s',FASTCHESS,...args];
++  const timeoutArgs = ['-k','5s','420s',FASTCHESS,...args];
+   return {schema:1,mode,seed,games,rounds:games/2,concurrency,prefix,files,engines,book:BOOK,fastchess:FASTCHESS,
+     executable:'/usr/bin/timeout',args:timeoutArgs,cwd:path.dirname(prefix),
+-    shellCommand:['/usr/bin/timeout',...timeoutArgs].map(quote).join(' '),timeoutSeconds:450,killAfterSeconds:5};
++    shellCommand:['/usr/bin/timeout',...timeoutArgs].map(quote).join(' '),timeoutSeconds:420,killAfterSeconds:5};
+ }
+ 
+ export async function auditBatch(plan, processResult={}, inputHashes={}) {
+@@ -224,7 +224,7 @@
+   check(pgnGames===finishes.size&&consoleFinishes.size===finishes.size&&equal(pgnWld,wld),'PGN/console/event totals differ');
+   const afterHashes=await hashFiles([plan.fastchess,plan.book,...plan.engines.map(e=>e.cmd)]);
+   for(const [file,before]of Object.entries(inputHashes))check(equal(before,afterHashes[file]),'input changed during batch: '+file);
+-  const completed=processResult.code===0&&!processResult.signal&&!processResult.interrupted&&starts.size===plan.games&&finishes.size===plan.games&&end.length===1&&end[0].reason==='completed';
++  const completed=processResult.code===0&&!processResult.signal&&!processResult.interrupted&&starts.size===plan.games&&finishes.size===plan.games&&end.length===1&&end[0].reason==='completed'&&errors.length===0;
+   const faultFree=!illegalMoves.length&&!abnormalGames.length&&!aborts.size&&!traceFindings.length&&!consoleFindings.length;
+   return {schema:1,kind:'fastchess-crash-legality',mode:plan.mode,seed:plan.seed,prefix:plan.prefix,requestedGames:plan.games,concurrency:plan.concurrency,
+     completed,passed:completed&&faultFree&&!errors.length,process:processResult,counts:{started:starts.size,finished:finishes.size,pgnGames,consoleGames:consoleFinishes.size,eventLines,moves:moveCount,...wld},
+@@ -285,7 +285,7 @@
+ }
+ 
+ async function main(argv) {
+-  if(argv.includes('--help')||!argv.length){console.log('Usage: node match_all.mjs MODE SEED [GAMES=400] [CONCURRENCY=4] [PREFIX] [--dry-run]\nMODE: '+MODES.join(' | ')+'\nEach invocation is one bounded batch, maximum 400 games, paired UHO openings, fixed seed, timeout 450s plus kill-after 5s. No clocks, adjudication, SPRT or strength/speed conclusions.\n--dry-run prints the exact command/config without launching engines or writing artifacts.\n--audit-only PREFIX rechecks existing artifacts read-only and prints SUMMARY; it never launches a match.');return;}
++  if(argv.includes('--help')||!argv.length){console.log('Usage: node match_all.mjs MODE SEED [GAMES=400] [CONCURRENCY=4] [PREFIX] [--dry-run]\nMODE: '+MODES.join(' | ')+'\nEach invocation is one bounded batch, maximum 400 games, paired UHO openings, fixed seed, timeout 420s plus kill-after 5s, leaving time for audit and persistence within the controller budget. No clocks, adjudication, SPRT or strength/speed conclusions.\n--dry-run prints the exact command/config without launching engines or writing artifacts.\n--audit-only PREFIX rechecks existing artifacts read-only and prints SUMMARY; it never launches a match.');return;}
+   if(argv[0]==='--audit-only'){
+     if(argv.length!==2)throw new Error('--audit-only requires one artifact prefix');
+     const r=JSON.parse(await fsp.readFile(path.resolve(argv[1])+'.command.json','utf8'));
+--- a/control.mjs
++++ b/control.mjs
+@@ -103,6 +103,7 @@
+  // Scored abnormal games are retained when the full match completed; interrupted
+  // matches retain their raw SUMMARY but must repeat the seed before aggregation.
+  if(schema==='fastchess'&&summary.completed!==true)issues.push('fastchess batch incomplete: completed must be true; repeat the same seed');
++ if(schema==='fastchess'&&(!Array.isArray(summary.errors)||summary.errors.length))issues.push('fastchess structural audit errors or missing errors array; raw counts retained, repeat the same seed');
+  const exclusions=Object.fromEntries(Object.entries(summary||{}).filter(([k])=>k==='incomplete_units'||k.startsWith('partial_')||k==='partial'));
+  let explicitCompletedWithExclusions=false;
+  if(schema==='endgame'){
+@@ -176,6 +177,14 @@
+  fs.writeFileSync(destination+'/manifest.txt',JSON.stringify({utc:now(),phase:spec.phase,id:spec.id,seed:spec.seed,files:manifest},null,2)+'\n',{flag:'wx'});
+  return {directory:path.relative(out,destination),manifest:path.relative(out,destination+'/manifest.txt'),files:manifest};
+ }
++function rejectRecordedFastchessSeed(spec,results){
++ if(spec.argv.length<4||path.resolve(spec.cwd,spec.argv[1])!==root+'/match_all.mjs')return;
++ const mode=spec.argv[2],seed=Number(spec.argv[3]);
++ if(!['default','ContHist4PlyRead','NonPawnCorrection','LmrDeeperShallower'].includes(mode)||!/^\d+$/.test(spec.argv[3])||!Number.isSafeInteger(seed))throw Error('invalid fastchess mode/seed');
++ if(!/^\d+$/.test(String(spec.seed))||!Number.isSafeInteger(Number(spec.seed))||Number(spec.seed)!==seed)throw Error('fastchess spec.seed must agree with argv seed');
++ const duplicate=results.find(r=>r.summary?.kind==='fastchess-crash-legality'&&r.summary.mode===mode&&Number(r.summary.seed)===seed&&Number.isSafeInteger(r.completedCountsRecorded?.games)&&r.completedCountsRecorded.games>0);
++ if(duplicate)throw Error('fastchess mode/seed already has recorded games: '+mode+' seed '+seed+' in '+duplicate.phase+'/'+duplicate.id);
++}
+ async function runSpec(specFile){
+  const spec=JSON.parse(fs.readFileSync(specFile,'utf8'));
+  for(const key of ['phase','id','seed','description','argv','cwd','log'])if(spec[key]===undefined)throw Error('run-spec missing '+key);
+@@ -188,6 +197,7 @@
+  if(typeof spec.summaryPrefix!=='string'||!spec.summaryPrefix||spec.summaryPrefix.includes('\n'))throw Error('invalid summaryPrefix');
+  if(!spec.log.startsWith(root+'/'))throw Error('run-spec log must be under '+root);
+  if(s.active)throw Error('another batch remains active; root must reconcile it before run-spec');
++ rejectRecordedFastchessSeed(spec,s.runSpecResults||[]);
+  const stem=spec.phase+'-'+String(spec.id).padStart(4,'0'),metadataPath=spec.log+'.run-spec.json';
+  if(fs.existsSync(spec.log)||fs.existsSync(metadataPath)||fs.existsSync(out+'/batches/'+stem+'.txt')||fs.existsSync(out+'/batches/'+stem+'.evidence'))throw Error('run-spec requires a unique log and phase/id');
+  if(Date.now()-Date.parse(s.lastPush)>60000)checkpoint(true);

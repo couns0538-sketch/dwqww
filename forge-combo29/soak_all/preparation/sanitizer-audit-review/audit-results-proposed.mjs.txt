@@ -1,0 +1,439 @@
+// VM-only evidence auditor. No engine execution, git, commit, or push operations.
+// Default is read-only. --apply requires no active batch and unchanged state.
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {isDeepStrictEqual as same} from 'node:util';
+import {fileURLToPath} from 'node:url';
+const ROOT='/workspace/work/all-run';
+const REPO='/workspace/work/dwqww-all';
+const compareFields='records_completed positions positions_low_clock positions_high_clock differences_low_clock differences_high_clock fault_positions excluded excluded_no_legal excluded_insufficient excluded_halfmove100 invalid_fens engine_runs illegal missing missing_info wrong_depth sanitizer_issues transport_issues crashes nonzero_exits shutdown_timeouts reproduction_pairs reproduction_differences reproduction_fault_pairs'.split(' ');
+const runFields='illegal missing missing_info wrong_depth sanitizer_issues transport_issues crashes nonzero_exits shutdown_timeouts'.split(' ');
+const endFields='trials faults nodes reported_ms wall_ms at_requested_depth early_mate_termination unfinished_depth shutdown_faults unexpected_exits mate_score_misses krk_non_mating_moves loses_forced_mate mate_bound_violations'.split(' ');
+const playFields='games moves searches opening_moves faults illegal missing badscore mates stalemates repetitions fifty ply_caps insufficient'.split(' ');
+const existingKrkTypes={'2KRKfull':'existing_asan_krk_full_retry','2KRKsplit':'existing_asan_krk_split_retry'};
+const existingKrkFields='tests_completed t1_runs t1_misses main_runs main_misses no_mate_score non_mating_move sanitizer_reports'.split(' ');
+const zero=fields=>Object.fromEntries(fields.map(k=>[k,0]));
+const sha=s=>crypto.createHash('sha256').update(s).digest('hex');
+const pretty=x=>JSON.stringify(x,null,2)+'\n';
+const exists=p=>typeof p==='string'&&fs.existsSync(p);
+const diagnostic=/AddressSanitizer|UndefinedBehaviorSanitizer|ThreadSanitizer|LeakSanitizer|runtime error:/;
+const unsafeName=/(?:^|[\/_. -])(?:smoke|preparation|unit-test|unit-only|fixture-repeat)(?:[\/_. -]|$)/i;
+// std::ostream defaultfloat with precision 6 rounds to six significant digits.
+// Each printed wall-time value describes an interval half a last place wide.
+// Integer counters never use these measurement bounds.
+export function sixSignificantHalfStep(value){return value===0?0:0.5*10**(Math.floor(Math.log10(Math.abs(value)))-5);}
+export function wallMeasurementMatch(reported,rawSum,rawRoundingBound=0,terms=1){
+ if(!Number.isFinite(reported)||!Number.isFinite(rawSum)||reported<0||rawSum<0||!Number.isFinite(rawRoundingBound)||rawRoundingBound<0)return false;
+ const arithmeticBound=Number.EPSILON*(Math.abs(reported)+Math.abs(rawSum))*(terms+2);
+ return Math.abs(reported-rawSum)<=sixSignificantHalfStep(reported)+rawRoundingBound+arithmeticBound;
+}
+function parseLines(text,tag,issue){const a=[];for(const [i,line]of text.split(/\r?\n/).entries()){if(!line.trim())continue;try{a.push(JSON.parse(line));}catch(e){issue('error',tag+': invalid JSONL line '+(i+1)+': '+e.message);}}return a;}
+function positive(r){return r?.completed===true&&r.score_kind==='mate'&&r.score>0;}
+function unexpected(s){return !!s?.reaped&&(s.exit_code>0||(s.signal!==0&&!(s.signal===15&&s.driver_sigterm)&&!(s.signal===9&&s.driver_sigkill)));}
+function shutdownFlags(s){const san=!!s&&diagnostic.test(s.stderr??'');return {unexpected_exit:unexpected(s),sanitizer_report:san,fault:!!s&&(unexpected(s)||san||(!s.budget_interrupted&&(!s.reaped||s.timed_out||!!s.error||s.exit_code!==0||s.signal!==0)))};}
+function endFlags(r,mode='mates'){
+ const mate_miss=mode==='mates'&&(!positive(r)||!!r?.score_bound);
+ const o=r?.krk_oracle;
+ const unfinished=!!r?.completed&&r.completed_depth<r.requested_depth&&r.score_kind!=='mate';
+ const s=r?.shutdown;
+ const shutdown_fault=shutdownFlags(s).fault;
+ return {mate_score_miss:mate_miss,legal_bestmove:r?.legal_bestmove===true,illegal_bestmove:r?.completed===true&&r.legal_bestmove!==true,missing_or_incomplete:r?.completed!==true,pv_illegal:r?.pv_legal===false,krk_non_mating_move:o?.t12_non_mating_move===true,loses_forced_mate:o?.loses_forced_mate===true,mate_bound_violation:o?.mate_bound_violation===true,sanitizer_report:!!r?.sanitizer_report||!!s?.sanitizer_report,shutdown_fault,unexpected_exit:unexpected(s),unfinished_depth:unfinished,
+ fault:!r?.completed||!!r.error||r.legal_bestmove!==true||r.pv_legal!==true||!!r.sanitizer_report||shutdown_fault||mate_miss||!!o?.t12_non_mating_move||unfinished};
+}
+function prepareFault(r){const f=endFlags(r,'prepare');return !r?.completed||!r.legal_bestmove||!r.pv_legal||!!r.sanitizer_report||f.shutdown_fault;}
+function pairIssue(p){return ['merged','lock'].some(e=>runFields.some(k=>(p?.[e]?.[k]??0)>0));}
+function sameResult(a,b){return !!a&&!!b&&['bestmove','score_kind','score','nodes','bound'].every(k=>a[k]===b[k]);}
+function pairDiff(p){return !!p?.merged?.result&&!!p?.lock?.result&&!sameResult(p.merged.result,p.lock.result);}
+function pairFault(p,low){return pairIssue(p)||(low&&pairDiff(p));}
+function pairComplete(p){return !!p?.merged?.attempted&&!!p?.lock?.attempted&&!p.merged.budget_interrupted&&!p.lock.budget_interrupted;}
+function frequencies(trials,mode){const fields='mate_score_miss legal_bestmove illegal_bestmove missing_or_incomplete pv_illegal krk_non_mating_move loses_forced_mate mate_bound_violation sanitizer_report shutdown_fault unexpected_exit unfinished_depth fault'.split(' '),counts=zero(fields);for(const r of trials){const f=endFlags(r,mode);for(const k of fields)counts[k]+=Number(f[k]);}return {denominator:trials.length,counts,interpretation:'Actual recorded trials; overlapping categories, not mutually exclusive. A legal move may coexist with a mate-score miss. No inferred reproduction rate.'};}
+function completedEvidenceGroups(text){
+ const out=new Map();let attempts=[],context=null;
+ for(const line of text.split(/\r?\n/)){
+  if(line.startsWith('CASE ')){try{context=JSON.parse(line.slice(5));}catch{}}
+  const m=line.match(/^ATTEMPT (\d+) (\{.*\})$/);
+  if(m){const n=Number(m[1]);if(n===0)attempts=[];attempts.push({n,pair:JSON.parse(m[2])});}
+  if(line.startsWith('COMPLETED ')||line.startsWith('STATUS COMPLETE ')){
+   const p=line.startsWith('COMPLETED ')?10:16,row=JSON.parse(line.slice(p));out.set(row.context.index,{context,attempts:attempts.slice(),row});
+  }
+ }
+ return out;
+}
+function runtimeDiagnosticLines(text,source){
+ const found=[];
+ const strings=(x,where)=>{
+  if(!x||typeof x!=='object')return;
+  for(const [k,v]of Object.entries(x)){
+   if(['lock_t1_reference','merged_t1_reference','config','options','description','command','commandShell','environmentOverrides'].includes(k))continue;
+   if(['stderr','stderr_output','error'].includes(k)&&typeof v==='string'){
+    for(const [i,line]of v.split(/\r?\n/).entries())if(diagnostic.test(line))found.push({line:null,payload:where+'.'+k+':'+(i+1),text:line,trigger:null});
+   }else if(v&&typeof v==='object')strings(v,where+'.'+k);
+  }
+ };
+ if(/\.jsonl$/.test(source)){for(const [i,line]of text.split(/\r?\n/).entries())if(line.trim()){try{strings(JSON.parse(line),'record'+(i+1));}catch{}}return found;}
+ if(/\.json$/.test(source)){try{strings(JSON.parse(text),'root');}catch{}return found;}
+ let lastTrigger=null;
+ for(const [i,line]of text.split(/\r?\n/).entries()){
+  if(line.startsWith('TRIGGER ')){try{lastTrigger=JSON.parse(line.slice(8));}catch{}}
+  if(/^(?:RUN_SPEC_|CWD |ENV_OVERRIDES |COMMAND |CONFIG |PENDING |CASE |ATTEMPT |STATUS |COMPLETED |RESULT |UNIT |SUMMARY |WORKERS_)/.test(line))continue;
+  if(diagnostic.test(line))found.push({line:i+1,text:line,trigger:lastTrigger});
+ }
+ return found;
+}
+export function parseExistingKrkNative(raw,runsPerPosition){
+ const lines=raw.replace(/\r/g,'').split('\n'),configs=[],t1=[],main=[],diagnostics=[];
+ let output=false;const end=[],argv=[],environment=[],binaryHashes=[];
+ for(const [n,line]of lines.entries()){
+  let m;
+  if(line==='OUTPUT'){output=true;continue;}
+  if((m=line.match(/^END (\S+) EXIT (\d+|null) SIGNAL (\S+)$/))){end.push({utc:m[1],exit:m[2]==='null'?null:Number(m[2]),signal:m[3]==='null'?null:m[3]});output=false;continue;}
+  if(!output){if(line.startsWith('ARGV '))argv.push(JSON.parse(line.slice(5)));if(line.startsWith('ENV '))environment.push(JSON.parse(line.slice(4)));if((m=line.match(/^BINARY_SHA256 ([0-9a-f]{64})$/)))binaryHashes.push(m[1]);continue;}
+  if((m=line.match(/^config positions=(\d+) runs_per_pos=(\d+) threads=(\d+) hash_mb=(\d+) depth=(\d+) use_nnue=(true|false)$/)))configs.push({positions:+m[1],runs_per_pos:+m[2],threads:+m[3],hash_mb:+m[4],depth:+m[5],use_nnue:m[6]==='true'});
+  if((m=line.match(/^threads_1_check: (\d+) \/ (\d+) misses$/)))t1.push({misses:+m[1],runs:+m[2]});
+  if((m=line.match(/^SUMMARY: misses=(\d+) \/ (\d+) \(no_mate_score=(\d+), non_mating_move=(\d+)\)$/)))main.push({misses:+m[1],runs:+m[2],no_mate_score:+m[3],non_mating_move:+m[4]});
+  if(diagnostic.test(line))diagnostics.push({line:n+1,text:line});
+ }
+ const c=configs[0],r=t1[0],m=main[0],safe=n=>Number.isSafeInteger(n)&&n>=0;
+ const configValid=configs.length===1&&same(c,{positions:40,runs_per_pos:runsPerPosition,threads:2,hash_mb:16,depth:14,use_nnue:true});
+ const t1Valid=t1.length===1&&safe(r.misses)&&r.runs===100&&r.misses<=r.runs;
+ const mainValid=main.length===1&&Object.values(m).every(safe)&&m.runs===40*runsPerPosition&&m.no_mate_score<=m.misses&&m.non_mating_move<=m.misses&&m.misses<=Math.min(m.runs,m.no_mate_score+m.non_mating_move);
+ return {configs,t1,main,diagnostics,end,argv,environment,binaryHashes,configValid,t1Valid,mainValid};
+}
+export function parseTsanWarnings(raw){
+ const lines=raw.replace(/\r/g,'').split('\n'),warnings=[],footers=[];let current=null,lastTrigger=null;
+ const normalize=line=>line.replace(/^! stderr /,'');
+ const frameLocation=line=>{
+  const engine=line.match(/(?:^|\s)((?:\S*\/)?forge-combo29\/(?:src|include)\/[^\s():]+):(\d+)(?::\d+)?/);
+  if(engine)return {location:engine[1].slice(engine[1].indexOf('forge-combo29/'))+':'+engine[2],engine:true};
+  const any=line.match(/(?:^|\s)((?:\/|[A-Za-z]:\/)[^\s():]+\.(?:c|cc|cpp|cxx|h|hh|hpp)):(\d+)(?::\d+)?/);
+  return any?{location:any[1]+':'+any[2],engine:false}:null;
+ };
+ const finish=endLine=>{if(!current)return;current.end_line=endLine;
+  const accesses=[];let access=null;
+  for(const line of current.lines){const text=normalize(line),m=text.match(/^\s*(?:Previous\s+)?(?:Atomic\s+)?(Read|Write) of size /i);if(m){access={kind:m[1].toLowerCase(),frames:[]};accesses.push(access);continue;}if(access&&/^\s*#\d+\b/.test(text)){const loc=frameLocation(text);if(loc)access.frames.push(loc);}else if(access&&(!text.trim()||/^\s*(?:Thread .*created|Location is|SUMMARY: ThreadSanitizer|Mutex .*created)/.test(text)))access=null;}
+  current.accesses=accesses.map(a=>({kind:a.kind,location:(a.frames.find(f=>f.engine)??a.frames[0])?.location??null}));
+  current.source_pair=current.accesses.length>=2&&current.accesses[0].location&&current.accesses[1].location?[current.accesses[0].location,current.accesses[1].location].sort():null;
+  // An unsymbolized block remains separate: do not invent a conflicting pair.
+  current.group_key=current.source_pair?current.kind+'|'+current.source_pair.join('|'):'unresolved-warning-line-'+current.start_line;
+  current.raw=current.lines.join('\n')+'\n';delete current.lines;warnings.push(current);current=null;
+ };
+ for(const [i,original]of lines.entries()){
+  if(original.startsWith('TRIGGER ')){try{lastTrigger=JSON.parse(original.slice(8));}catch{}}
+  const line=normalize(original),start=line.match(/^WARNING: ThreadSanitizer: (.+?)(?: \(pid=\d+\))?$/);
+  if(start){finish(i);current={start_line:i+1,kind:start[1],trigger:lastTrigger,lines:[original]};continue;}
+  const footer=line.match(/^ThreadSanitizer: reported (\d+) warnings?$/);if(footer)footers.push({line:i+1,count:Number(footer[1])});
+  if(current){if(/^={8,}$/.test(line)){finish(i);continue;}current.lines.push(original);}
+ }
+ finish(lines.length);
+ const groups=new Map();for(const w of warnings){const g=groups.get(w.group_key)??{group_key:w.group_key,kind:w.kind,source_pair:w.source_pair,reported_warning_blocks:0,occurrences:[]};g.reported_warning_blocks++;g.occurrences.push({start_line:w.start_line,end_line:w.end_line,trigger:w.trigger});groups.set(w.group_key,g);}
+ return {reported_warning_blocks:warnings.length,groups:[...groups.values()],warnings,footers,footer_count_consistent:footers.length===1?footers[0].count===warnings.length:null,last_trigger:lastTrigger,counting_note:'One primary merged runtime log only; mirrored artifacts and WARNING/SUMMARY/footer marker lines are not extra warning events. Source-line pairs are evidence groups, not proven unique bugs. Runtime duplicate suppression may omit repeat manifestations.'};
+}
+export function classifySelfPlayProcess(exit,signal,metadata,summary,markerCount){
+ const configured=String(metadata?.environmentOverrides?.TSAN_OPTIONS??metadata?.spec?.env?.TSAN_OPTIONS??''),tsanExit=Number(configured.match(/(?:^|:)exitcode=(\d+)(?:$|:)/)?.[1]??66);
+ const timeout=exit===124||exit===137||!!metadata?.interruption;
+ const expected=summary&&Number.isSafeInteger(summary.faults)?(summary.faults?1:0):null;
+ let classification='normal_exit',separateFault=false;
+ if(timeout)classification='budget_timeout_or_forced_termination; not classified as engine crash';
+ else if(signal){classification='unexpected_signal';separateFault=true;}
+ else if(exit===tsanExit){classification=markerCount?'sanitizer_diagnostic_nonzero_exit':'nonzero_sanitizer_exit_code_without_runtime_diagnostic';separateFault=true;}
+ else if(exit!==0&&exit!==expected){classification='unexpected_nonzero_exit';separateFault=true;}
+ else if(markerCount)classification='runtime_sanitizer_diagnostic';
+ else if(exit===1&&expected===1)classification='chess_fault_exit';
+ return {exit,signal,expected_chess_exit:expected,configured_tsan_exit:tsanExit,classification,timeout_or_forced:timeout,requires_separate_fault:separateFault,has_runtime_diagnostics:markerCount>0,clean:!timeout&&!signal&&exit===0&&markerCount===0&&summary?.faults===0};
+}
+export function audit(options={}){
+ const statePath=path.resolve(options.state??ROOT+'/state.json'),repo=path.resolve(options.repo??REPO),out=repo+'/forge-combo29/soak_all';
+ const stateRaw=fs.readFileSync(statePath,'utf8'),state=JSON.parse(stateRaw);
+ if(options.apply&&state.active)throw Error('Refusing --apply while a batch is active: '+JSON.stringify(state.active));
+ const report={schema:1,utc:new Date().toISOString(),state:statePath,stateSha256:sha(stateRaw),apply:!!options.apply,active:state.active??null,batches:[],excluded:[],issues:[],faults:[],endgameGroups:{},limitations:['Frequencies come only from complete raw recorded trial groups. Partial safety evidence has no completed reproduction frequency.','No engine is executed by this auditor. Missing ten-run reproduction groups remain pending.','Sanitizer marker locations are evidence occurrences, not a count of independent bugs. Mirrored logs can contain the same diagnostic.']};
+ const plans=new Map(),batchKeys=new Set();
+ const issue=(level,message,extra={})=>report.issues.push({level,message,...extra});
+ const check=(ok,message,extra={})=>{if(!ok)issue('error',message,extra);};
+ const equalCount=(a,b,label,rounding=null)=>{const wall=/[.]wall_ms$/.test(label),okay=typeof a==='number'&&Number.isFinite(a)&&typeof b==='number'&&Number.isFinite(b)&&(wall?(rounding?wallMeasurementMatch(a,b,rounding.rawBound,rounding.terms):a===b):Number.isSafeInteger(a)&&Number.isSafeInteger(b)&&a===b);check(okay,label+' differs: reported '+a+', raw '+b);};
+ const cumulative={};
+ for(const entry of state.runSpecResults??[]){
+  const key=entry.phase+':'+entry.id;
+  const supplemental=Object.hasOwn(existingKrkTypes,entry.phase)&&entry.summary?.type===existingKrkTypes[entry.phase];
+  if((!/^2[A-F](?:prep)?$/.test(entry.phase)&&!supplemental)||unsafeName.test(entry.log??'')){report.excluded.push({key,phase:entry.phase,summaryType:entry.summary?.type??null,verified:false,reason:unsafeName.test(entry.log??'')?'Explicitly named preparation/smoke/unit artifact':'Unsupported phase/summary pair; excluded, not verified or counted as an engine fault'});continue;}
+  if(!entry.finishedUTC){report.excluded.push({key,reason:'No finishedUTC; unfinished run'});continue;}
+  check(!batchKeys.has(key),'Duplicate runSpecResults phase/batch '+key);batchKeys.add(key);
+  const batch={key,phase:entry.phase,id:entry.id,log:entry.log,finishedUTC:entry.finishedUTC,recorded:entry.completedCountsRecorded??{},schema:null,rawVerified:false,partialSafety:[],sanitizerOccurrences:[]};report.batches.push(batch);
+  const readDirect=p=>fs.readFileSync(p,'utf8');
+  const evidencePath=relative=>{const p=path.resolve(out,relative);if(!p.startsWith(out+'/'))throw Error('Unsafe evidence path '+relative);return p;};
+  let manifest=entry.evidence?.files??[];
+  if(entry.evidence?.manifest){try{const p=evidencePath(entry.evidence.manifest),text=readDirect(p),m=JSON.parse(text);check(m.phase===entry.phase&&String(m.id)===String(entry.id),key+' manifest batch identity mismatch');check(Array.isArray(m.files),key+' manifest files array missing');manifest=m.files??[];if(entry.evidence.files_count!==undefined)check(entry.evidence.files_count===manifest.length,key+' compact manifest file count mismatch');if(entry.evidence.files)check(same(entry.evidence.files,manifest),key+' inline/preserved manifest mismatch');batch.evidenceManifest={path:p,sha256:sha(text),files:manifest.length};}catch(e){issue('error',key+' cannot load preserved manifest: '+e.message);continue;}}
+  const readItem=m=>{
+   let raw;
+   if(m.split){
+    check(m.reconstruction==='concatenate chunks in listed order without separators',key+' unknown chunk reconstruction protocol');check(Array.isArray(m.chunks)&&m.chunks.length>0,key+' missing evidence chunks '+m.source);let offset=0;const chunks=[];
+    for(const [i,c]of (m.chunks??[]).entries()){check(c.part===i+1&&c.offset===offset,key+' evidence chunk order/offset mismatch '+m.source);const b=fs.readFileSync(evidencePath(c.path));check(b.length===c.bytes&&sha(b)===c.sha256,key+' evidence chunk bytes/hash mismatch '+c.path);chunks.push(b);offset+=b.length;}
+    raw=Buffer.concat(chunks);
+   }else raw=fs.readFileSync(evidencePath(m.path));
+   if(m.bytes!==undefined)check(raw.length===m.bytes,key+' evidence byte count mismatch '+m.source);check(sha(raw)===m.sha256,key+' evidence SHA256 mismatch '+m.source);return new TextDecoder('utf-8',{fatal:true}).decode(raw);
+  };
+  let metadata;try{const m=manifest.find(x=>x.copied&&path.resolve(x.source)===path.resolve(entry.metadata));check(!!m,key+' immutable run metadata missing');metadata=JSON.parse(m?readItem(m):readDirect(entry.metadata));}catch(e){issue('error','Cannot read run metadata '+entry.metadata+': '+e.message);continue;}
+  check(metadata.finishedUTC===entry.finishedUTC,key+' metadata not finished at recorded time');
+  check(metadata.spec?.phase===entry.phase&&String(metadata.spec?.id)===String(entry.id),key+' metadata phase/batch mismatch');
+  check(same(metadata.completedCountsRecorded??{},batch.recorded),key+' metadata/state committed counts mismatch');
+  const spec=metadata.spec??{},files=new Map(),cache=new Map();
+  for(const m of manifest)if(m.copied){
+   files.set(path.resolve(m.source),m);
+  }
+  const read=p=>{
+   if(typeof p!=='string'||!p)return '';
+   p=path.resolve(spec.cwd??ROOT,p);if(cache.has(p))return cache.get(p);
+   const item=files.get(p);let text;
+   try{
+    if(item)text=readItem(item);
+    else{check(false,'Artifact missing from immutable evidence manifest: '+p);text=exists(p)?readDirect(p):'';}
+   }catch(e){issue('error','Unreadable artifact '+p+': '+e.message);text='';}
+   cache.set(p,text);return text;
+  };
+  // All files used for replay evidence are resolved through the completed batch manifest.
+  const raw=read(entry.log),summaryLines=raw.split(/\r?\n/).filter(l=>l.startsWith(spec.summaryPrefix??'SUMMARY '));
+  let summary=null;try{if(summaryLines.length)summary=JSON.parse(summaryLines.at(-1).slice((spec.summaryPrefix??'SUMMARY ').length));}catch(e){issue('error',key+' invalid SUMMARY '+e.message);}
+  check(same(summary,entry.summary??null),key+' raw SUMMARY/state SUMMARY mismatch');
+  if(summary)check(same(summary,metadata.summary),key+' raw SUMMARY/metadata SUMMARY mismatch');
+  const schema=supplemental&&summary?.type===existingKrkTypes[entry.phase]?'existing_krk':summary?.type==='comparison_sharded_summary'?'sharded_compare':summary?.groups&&Object.hasOwn(summary,'completed_units')?'endgame':Object.hasOwn(summary??{},'records_completed')?'compare':Object.hasOwn(summary??{},'first_game')&&Object.hasOwn(summary??{},'searches')?'play':'missing';batch.schema=schema;
+  const selfPlay=schema==='play'||path.basename(spec.argv?.[0]??'')==='play_driver',tsan=selfPlay?parseTsanWarnings(raw):null;
+  const plan=(unit,description,extra={},body='')=>{
+   const audit_key=key+':'+unit;
+   let f=plans.get(audit_key);
+   if(!f){f={audit_key,phase:entry.phase,batch:entry.id,unit,description,kind:'soak',reproduction:{status:'pending',additional_trials_required:10,frequency:null},evidence:new Map(),details:{},body:[]};plans.set(audit_key,f);}
+   Object.assign(f.details,extra);if(body)f.body.push(body);
+   return f;
+  };
+  const attach=(f,p)=>{if(p)f.evidence.set(path.resolve(spec.cwd??ROOT,p),read(p));};
+  const attachResult=(f,r)=>{if(r?.transcript)attach(f,r.transcript);if(r?.shutdown?.full_transcript)attach(f,r.shutdown.full_transcript);};
+  const common=f=>{f.details.command=metadata.command;f.details.commandShell=metadata.commandShell;f.details.cwd=spec.cwd;f.details.environmentOverrides=metadata.environmentOverrides;f.details.seed=entry.seed;f.details.batch_exit=entry.exit;f.details.batch_signal=entry.signal;};
+  const safety=(unit,r,context)=>{
+   if(!r)return;const f=endFlags(r,'cost');
+   if(!(f.sanitizer_report||f.unexpected_exit))return;
+   const p=plan(unit,'Uncounted partial safety finding: '+(f.sanitizer_report?'sanitizer diagnostic':'unexpected process exit'),{context,partial:true,completed_totals_include:false,raw_result:r});common(p);attachResult(p,r);attach(p,entry.log);batch.partialSafety.push({unit,context,sanitizer:f.sanitizer_report,unexpected_exit:f.unexpected_exit});
+  };
+  const mapped={},mappedWallBounds={};
+  if(summary&&schema==='existing_krk'){
+   const s=summary,native=read(s.log),perPosition=entry.phase==='2KRKsplit'?5:10;
+   const observed=parseExistingKrkNative(native,perPosition),p=s.process??{};
+   check(sha(native)===s.log_sha256,key+' native log SHA256 mismatch');
+   check(observed.binaryHashes.length===1&&observed.binaryHashes[0]===s.binary_sha256_before&&s.binary_sha256_before===s.binary_sha256_after,key+' native binary provenance hash mismatch');
+   check(observed.argv.length===1&&same(observed.argv[0],s.argv)&&same(s.argv?.slice(1),['40',String(perPosition),'2','16','14','1']),key+' native argv/full-clear contract mismatch');
+   check(observed.environment.length===1&&same(observed.environment[0],s.environment),key+' native environment mismatch');
+   check(observed.end.length===1&&observed.end[0].exit===p.exit&&observed.end[0].signal===p.signal,key+' native END/process status mismatch');
+   check(same(observed.configs,s.actual_config)&&same(observed.t1,s.t1)&&same(observed.main,s.main),key+' native parsed output/wrapper observations mismatch');
+   equalCount(s.sanitizer_reports,observed.diagnostics.length,key+' sanitizer diagnostic lines');
+   check(same(s.sanitizer_diagnostics,observed.diagnostics),key+' sanitizer diagnostic provenance mismatch');
+   let resultRecords;try{resultRecords=JSON.parse(read(s.resultFile));}catch(e){issue('error',key+' native result file parse failure '+e.message);}
+   check(Array.isArray(resultRecords)&&resultRecords.length===1&&same(resultRecords[0]?.summary,s),key+' native result file/SUMMARY mismatch');
+   const normal=[0,1].includes(p.exit)&&!p.signal&&!p.spawnError&&!p.interrupted&&!p.ioErrors?.length;
+   const complete=observed.configValid&&observed.t1Valid&&observed.mainValid&&normal&&s.binary_sha256_before===s.binary_sha256_after;
+   check(s.completed===complete&&s.incomplete===!complete&&s.partial===!complete,key+' native completed/incomplete contract mismatch');
+   const counts=zero(existingKrkFields);if(complete){const t=observed.t1[0],m=observed.main[0];Object.assign(counts,{tests_completed:1,t1_runs:t.runs,t1_misses:t.misses,main_runs:m.runs,main_misses:m.misses,no_mate_score:m.no_mate_score,non_mating_move:m.non_mating_move,sanitizer_reports:observed.diagnostics.length});}
+   for(const k of existingKrkFields)equalCount(s.counts?.[k],counts[k],key+' native '+k);
+   const exitConsistent=!!observed.main[0]&&p.exit===(observed.main[0].misses?1:0),passed=complete&&counts.t1_misses===0&&counts.main_misses===0&&observed.diagnostics.length===0&&exitConsistent;
+   check(s.exitConsistent===exitConsistent&&s.passed===passed,key+' native passed/exit consistency mismatch');
+   if(!complete){check(s.partial_evidence?.counted===false&&Object.keys(batch.recorded).length===0,key+' incomplete existing test must have zero committed coverage');issue('warning',key+' incomplete existing-test invocation; zero completed coverage; '+(p.exit===124?'native budget expired':'missing or invalid completed native output')+'; incomplete status alone is not an engine fault');}
+   Object.assign(mapped,counts);batch.computed=counts;batch.rawVerified=true;
+   batch.existingTest={type:s.type,completed:complete,passed,classification:complete?'completed native existing-test invocation':p.exit===124?'budget-expired incomplete invocation; zero completed coverage':'incomplete invocation; zero completed coverage',rawNativeLog:s.log,rawLogSha256:s.log_sha256,binarySha256:s.binary_sha256_before,observed,coverageNote:entry.phase==='2KRKsplit'?'Each completed split is exactly 40x5=200 main runs plus100 T1 checks. Split invocations do not make the original single40x10 attempt complete.':'Original single40x10 invocation is counted only if its own complete native output and normal process termination are verified.'};
+   if(complete&&!passed){const f=plan('existing-test','Existing KRK test failure observations',{existing_test:batch.existingTest,counts});common(f);attach(f,s.log);attach(f,s.resultFile);attach(f,entry.log);}
+  }
+  if(summary&&schema==='endgame'){
+   const outDir=summary.out,records=parseLines(read(outDir+'/results.jsonl'),key+' results',issue);
+   const rawSummary=JSON.parse(read(outDir+'/summary.json')||'null');check(same(rawSummary,summary),key+' summary.json/raw SUMMARY mismatch');
+   const totals={completed_units:0,selected_generated:0,...zero(endFields)},groups={};
+   const accumulate=(g,r,mode,row)=>{
+    const flags=endFlags(r,mode);g.trials++;g.faults+=Number(flags.fault);g.shutdown_faults+=Number(flags.shutdown_fault);g.unexpected_exits+=Number(flags.unexpected_exit);g.mate_score_misses+=Number(flags.mate_score_miss);g.krk_non_mating_moves+=Number(flags.krk_non_mating_move);g.loses_forced_mate+=Number(flags.loses_forced_mate);g.mate_bound_violations+=Number(flags.mate_bound_violation);
+    if(r.completed){g.nodes+=r.nodes;g.reported_ms+=r.reported_ms;g.wall_ms+=r.wall_ms;g.wall_rounding_bound=(g.wall_rounding_bound??0)+sixSignificantHalfStep(r.wall_ms);g.wall_terms=(g.wall_terms??0)+1;g.at_requested_depth+=Number(r.completed_depth>=r.requested_depth);g.early_mate_termination+=Number(r.completed_depth<r.requested_depth&&r.score_kind==='mate');g.unfinished_depth+=Number(flags.unfinished_depth);}
+    if(row){check(row.fault===flags.fault,key+' raw fault predicate mismatch unit '+row.unit+' trial '+row.trial);check(row.mate_score_miss===flags.mate_score_miss,key+' raw mate miss predicate mismatch');}
+    return flags;
+   };
+   if(summary.mode==='prepare'){
+    for(const row of records){check(row.mode==='prepare',key+' unexpected preparation row schema');
+     check(row.unit===summary.offset+totals.completed_units,key+' preparation unit cursor mismatch');totals.completed_units++;totals.trials+=row.selected?2:1;totals.selected_generated+=Number(row.selected&&row.unit>=40);
+     const rs=[row.lock_t1,...(row.selected?[row.merged_t1]:[])];let faulty=false;
+     for(const r of rs){const f=endFlags(r,'prepare');faulty ||=prepareFault(r);totals.shutdown_faults+=Number(f.shutdown_fault);totals.unexpected_exits+=Number(f.unexpected_exit);}
+     totals.faults+=Number(faulty);
+     if(faulty){const f=plan('prepare-'+row.unit,'Selection validation engine fault; score-not-mate rejection alone is not a fault',{raw:row});common(f);for(const r of rs)attachResult(f,r);f.body.push('RAW PREPARATION RESULT\n'+pretty(row));}
+    }
+   }else{
+    const rowsByUnit=new Map(),completions=new Map();
+    for(const row of records){if(row.record_type==='unit_completion'){check(!completions.has(row.unit),key+' duplicate unit_completion '+row.unit);completions.set(row.unit,row);}else if(row.result){const a=rowsByUnit.get(row.unit)??[];a.push(row);rowsByUnit.set(row.unit,a);}else check(false,key+' unknown endgame raw record schema');}
+    const pending=[...files.keys()].filter(p=>p.startsWith(path.resolve(outDir)+'/')&&/\/pending-.*\.json$/.test(p));
+    const pendingByUnit=new Map();for(const p of pending){try{const x=JSON.parse(read(p));check(!pendingByUnit.has(x.unit),key+' duplicate pending unit '+x.unit);pendingByUnit.set(x.unit,{p,x});}catch(e){issue('error','Invalid pending JSON '+p+': '+e.message);}}
+    for(const [unit,completion]of completions){
+     const rows=rowsByUnit.get(unit)??[];check(completion.trial_records===rows.length,key+' trial_records mismatch unit '+unit);
+     if(!completion.completed){for(const row of rows)safety('unit-'+unit,row.result,row);if(completion.shutdown)safety('unit-'+unit,{completed:false,shutdown:completion.shutdown},{unit});continue;}
+     check(unit===summary.offset+totals.completed_units,key+' endgame unit cursor mismatch');totals.completed_units++;
+     const sample=rows[0],group=sample?sample.build+'-t'+sample.threads+'-'+sample.kind:'missing';check(!!sample,key+' completed unit lacks trials '+unit);
+     const g=groups[group]??=zero(endFields),expected=summary.mode==='mates'?10:1;
+     check(rows.length===expected,key+' unit '+unit+' requires '+expected+' trials, got '+rows.length);
+     for(let n=0;n<rows.length;n++){const row=rows[n];check(row.trial===n,key+' trial sequence mismatch unit '+unit);accumulate(g,row.result,summary.mode,row);}
+     const finalShutdown=shutdownFlags(completion.shutdown);
+     if(completion.shutdown)for(const k of ['fault','unexpected_exit','sanitizer_report'])check(completion.shutdown[k]===finalShutdown[k],key+' unit shutdown '+k+' predicate mismatch '+unit);
+     if(finalShutdown.fault){g.faults++;g.shutdown_faults++;}if(finalShutdown.unexpected_exit)g.unexpected_exits++;
+     const freq=frequencies(rows.map(r=>r.result),summary.mode),detailKey=entry.phase+':'+group;
+     const detail=report.endgameGroups[detailKey]??={phase:entry.phase,build:sample?.build,threads:sample?.threads,kind:sample?.kind,units:0,trials:0,counts:zero(Object.keys(freq.counts))};detail.units++;detail.trials+=rows.length;for(const [k,v]of Object.entries(freq.counts))detail.counts[k]+=v;
+     if(rows.some(r=>endFlags(r.result,summary.mode).fault)||finalShutdown.fault){
+      const pendingEntry=pendingByUnit.get(unit);check(!!pendingEntry,key+' completed faulty unit has no pending JSON '+unit);
+      const f=plan('unit-'+unit,'Endgame '+group+' '+sample?.id+'; '+freq.counts.mate_score_miss+'/'+rows.length+' mate-score misses, '+freq.counts.illegal_bestmove+' illegal, '+freq.counts.krk_non_mating_move+' KRK nonmating, '+freq.counts.mate_bound_violation+' mate-bound failures',{fen:sample?.fen,group,frequency:freq,unit_shutdown:completion.shutdown});common(f);
+      if(pendingEntry){const p=pendingEntry.x;check(p.status==='pending-review'&&p.completed_trial_records===rows.length&&p.expected_trials===rows.length&&same(p.trials,rows.map(r=>r.result))&&p.interrupted_trial===null,key+' pending/raw mismatch unit '+unit);attach(f,pendingEntry.p);f.details.options={Threads:p.threads,Hash:p.Hash,OwnBook:p.OwnBook,new_options:p.new_options,depth:p.depth,fresh_hash_each_trial:p.fresh_hash_each_trial,ucinewgame_each_trial:p.ucinewgame_each_trial};}
+      f.reproduction=summary.mode==='mates'&&rows.length===10?{status:'ten_recorded_trials',additional_trials_required:0,frequency:freq,note:'Ten recorded group trials, not ten additional repetitions after a separate initial run.'}:{status:'pending',additional_trials_required:10,frequency:null,observed_trials:rows.length};
+      for(const row of rows)attachResult(f,row.result);if(completion.shutdown?.full_transcript)attach(f,completion.shutdown.full_transcript);f.body.push('RAW COMPLETED UNIT\n'+rows.map(pretty).join('')+pretty(completion));
+     }
+    }
+    for(const [unit,rows]of rowsByUnit)if(!completions.has(unit)){issue('warning',key+' raw trial group without completion marker excluded: '+unit);for(const row of rows)safety('unit-'+unit,row.result,row);}
+    for(const p of files.keys())if(p.startsWith(path.resolve(outDir)+'/')&&/\/partial-.*\.json$/.test(p)){
+     const x=JSON.parse(read(p));for(const r of x.trials??[])safety('unit-'+x.unit,r,{fen:x.fen,build:x.build,threads:x.threads});safety('unit-'+x.unit,x.interrupted_trial,{fen:x.fen,build:x.build,threads:x.threads,interrupted_trial:true});if(x.unit_shutdown)safety('unit-'+x.unit,{shutdown:x.unit_shutdown},{fen:x.fen,unit_shutdown:true});const f=plans.get(key+':unit-'+x.unit);if(f)attach(f,p);
+    }
+    for(const g of Object.values(groups))for(const k of endFields)totals[k]+=g[k];
+    for(const [group,g]of Object.entries(groups)){check(!!summary.groups[group],key+' missing summary group '+group);for(const k of endFields)equalCount(summary.groups[group]?.[k],g[k],key+' group '+group+'.'+k,k==='wall_ms'?{rawBound:g.wall_rounding_bound??0,terms:g.wall_terms??0}:null);}
+    check(Object.keys(groups).length===Object.keys(summary.groups).length,key+' extra summary group');
+   }
+   for(const k of ['completed_units','selected_generated','trials','faults','shutdown_faults','unexpected_exits','mate_score_misses','krk_non_mating_moves','loses_forced_mate','mate_bound_violations'])equalCount(summary[k],totals[k],key+'.'+k);
+   check(summary.next_offset===summary.offset+totals.completed_units,key+' endgame next_offset mismatch');
+   Object.assign(mapped,Object.fromEntries(['completed_units','trials','faults','selected_generated','shutdown_faults','unexpected_exits','mate_score_misses','krk_non_mating_moves','loses_forced_mate','mate_bound_violations'].map(k=>[k,totals[k]])));
+   for(const [group,g]of Object.entries(groups))for(const k of endFields){const name='groups.'+group.replace(/[^A-Za-z0-9_.:-]/g,'_')+'.'+(k==='nodes'?'nodes_reported':k);mapped[name]=g[k];if(k==='wall_ms')mappedWallBounds[name]={rawBound:g.wall_rounding_bound??0,terms:g.wall_terms??0};}
+   batch.wallTimeReconciliation={serialization:'C++ defaultfloat precision 6',rule:'Absolute difference bounded by half the summary last significant digit plus the sum of half-last-digit bounds of each printed trial value, with a floating-addition bound; integer counters remain exact',groups:Object.fromEntries(Object.entries(groups).map(([name,g])=>[name,{rawSum:g.wall_ms,printedTrialRoundingBound:g.wall_rounding_bound??0,terms:g.wall_terms??0,summaryHalfLastDigit:sixSignificantHalfStep(summary.groups[name]?.wall_ms??0)}]))};
+   batch.rawVerified=true;batch.computed=totals;
+  }
+  function compareAudit(prefix,s,worker='single',accepted=true){
+   const rows=parseLines(read(prefix),key+' comparator '+worker,issue),cs=zero(compareFields);let cursor=s.offset;
+   const configs=rows.filter(r=>r.type==='config'),summaries=rows.filter(r=>r.type==='summary');check(configs.length===1,key+' comparator config cardinality '+worker);check(summaries.length===1&&same(summaries[0],s),key+' comparator raw summary mismatch '+worker);
+   const cfg=configs[0];const ev=read(prefix+'.evidence.txt');let groups;try{groups=completedEvidenceGroups(ev);}catch(e){issue('error',key+' comparator evidence parse failed: '+e.message);groups=new Map();}
+   for(const row of rows){
+    if(['config','summary'].includes(row.type))continue;
+    if(row.type==='partial'){
+     check(row.data?.counted===false,key+' partial comparison missing uncounted contract');
+     const p=row.data?.pending_file;if(p&&files.has(path.resolve(p))){const text=read(p);if(diagnostic.test(text)||/"crashes":1|"nonzero_exits":1/.test(text)){const f=plan('worker-'+worker+'-index-'+row.data.context.index,'Uncounted partial comparison safety finding',{partial:true,context:row.data.context,completed_totals_include:false});common(f);attach(f,p);attach(f,entry.log);}}continue;
+    }
+    check(['position','excluded','invalid_fen'].includes(row.type),key+' unknown comparator record type '+row.type);const context=row.context??row;check(context.index===cursor,key+' comparator cursor mismatch '+worker);cursor++;cs.records_completed++;
+    if(row.type==='excluded'){cs.excluded++;const field={no_legal_moves:'excluded_no_legal',insufficient_material:'excluded_insufficient',halfmove_at_least_100:'excluded_halfmove100'}[row.reason];if(field)cs[field]++;else check(false,key+' unknown exclusion '+row.reason);continue;}
+    if(row.type==='invalid_fen'){cs.invalid_fens++;cs.fault_positions++;const f=plan('worker-'+worker+'-index-'+context.index,'Invalid input FEN',{raw:row});common(f);continue;}
+    const low=context.halfmove<80;cs.positions++;cs[low?'positions_low_clock':'positions_high_clock']++;
+    check(context.required_equality===low,key+' clock equality contract mismatch');
+    let attempts=[{n:0,pair:row.initial}],evidenceGroup=groups.get(context.index);
+    const requiresReproductions=pairDiff(row.initial)||pairIssue(row.initial);
+    check(row.reproductions_completed===(requiresReproductions?10:0),key+' reproduction requirement mismatch index '+context.index);
+    if(row.reproductions_completed){check(row.reproductions_completed===10,key+' expected ten additional comparison pairs');check(!!evidenceGroup,key+' missing complete reproduction evidence index '+context.index);if(evidenceGroup)attempts=evidenceGroup.attempts;check(attempts.length===11&&attempts.every((a,n)=>a.n===n),key+' missing/duplicate comparator attempt index '+context.index);}
+    if(evidenceGroup)check(same(evidenceGroup.row,row),key+' evidence/compact record mismatch '+context.index);
+    check(same(attempts[0]?.pair,row.initial),key+' initial/evidence mismatch '+context.index);
+    let difference=0,faults=0,signature=0,fault=false;
+    for(const [n,a]of attempts.entries()){
+     const p=a.pair;check(p.complete===pairComplete(p)&&p.complete,key+' completed pair contract mismatch');check(p.different===pairDiff(p),key+' pair difference predicate mismatch');fault ||=pairFault(p,low);
+     for(const e of ['merged','lock']){cs.engine_runs+=Number(p[e]?.attempted);for(const k of runFields)cs[k]+=p[e]?.[k]??0;}
+     if(n){cs.reproduction_pairs++;difference+=Number(pairDiff(p));faults+=Number(pairFault(p,low));signature+=Number(sameResult(p.merged.result,row.initial.merged.result)&&sameResult(p.lock.result,row.initial.lock.result));}
+    }
+    cs[low?'differences_low_clock':'differences_high_clock']+=Number(pairDiff(row.initial));cs.fault_positions+=Number(fault);cs.reproduction_differences+=difference;cs.reproduction_fault_pairs+=faults;
+    check(row.fault===fault,key+' compact fault predicate mismatch '+context.index);check(row.reproduction_difference_frequency===difference&&row.reproduction_fault_frequency===faults&&row.reproduction_original_signature_frequency===signature,key+' claimed frequency/raw attempts mismatch '+context.index);
+    if(fault&&accepted){const f=plan('worker-'+worker+'-index-'+context.index,'Comparison fault at '+(low?'required-equality':'high-clock')+' root; '+faults+'/'+(attempts.length-1)+' additional fault pairs',{context,global_record:worker==='single'?context.index:4*context.index+Number(worker),options:cfg?.options,initial:row.initial,frequency:{denominator:attempts.length-1,differences:difference,fault_pairs:faults,original_signature:signature}});common(f);f.reproduction=attempts.length===11?{status:'ten_additional_pairs',additional_trials_required:0,frequency:f.details.frequency}:{status:'pending',additional_trials_required:10,frequency:null};if(row.pending_file){attach(f,row.pending_file);const pendingGroups=completedEvidenceGroups(read(row.pending_file));check(same(pendingGroups.get(context.index)?.row,row),key+' pending text lacks completed record '+context.index);}else check(false,key+' fault missing pending text '+context.index);}
+   }
+   check(cursor===s.next_offset&&cursor===s.offset+cs.records_completed,key+' comparator final cursor '+worker);for(const k of compareFields)equalCount(s[k],cs[k],key+' worker '+worker+'.'+k);return cs;
+  }
+  if(summary&&schema==='compare'){Object.assign(mapped,compareAudit(cfgOut(spec),summary));batch.computed={...mapped};batch.rawVerified=true;}
+  if(summary&&schema==='sharded_compare'){
+   const total=zero(compareFields);check(Array.isArray(summary.workers)&&summary.workers.length===4&&new Set(summary.workers.map(w=>w.worker)).size===4,key+' four-worker contract');
+   for(const w of summary.workers??[]){if(w.skipped)continue;if(w.accepted){const cs=compareAudit(w.outputPrefix+'.jsonl',w.summary,w.worker);for(const k of compareFields)total[k]+=cs[k];check(w.next_offset===w.summary.next_offset&&w.remainingEligibleAfter===w.remainingEligibleBefore-cs.positions,key+' worker cursor/target mismatch '+w.worker);}else{issue('warning',key+' unaccepted worker '+w.worker+' excluded from completed counters; raw diagnostics still scanned');}}
+   for(const k of compareFields)equalCount(summary.counts?.[k],total[k],key+' aggregate.'+k);check(summary.completed_units===total.records_completed&&summary.counts_exclude_partial===true,key+' composite completed-unit contract');Object.assign(mapped,total);batch.computed=total;batch.rawVerified=true;
+  }
+  if(summary&&schema==='play'){
+   for(const k of playFields){check(Number.isSafeInteger(summary[k])&&summary[k]>=0,key+' invalid play counter '+k);mapped[k]=summary[k];}
+   const expected={seed:1,first_game:0,max_games:1000000,seconds:240,threads:1,nodes:2000,depth:0,opening_plies:8,ply_limit:300,Hash:16,OwnBook:false,UseNNUE:true,MultiPV:1,ContHist4PlyRead:false,NonPawnCorrection:false,LmrDeeperShallower:false};
+   const numeric={'--seed':'seed','--first-game':'first_game','--games':'max_games','--seconds':'seconds','--threads':'threads','--nodes':'nodes','--depth':'depth'};
+   for(let n=1;n<(spec.argv?.length??0);n++){const arg=spec.argv[n];if(arg==='--trace')continue;const v=spec.argv[++n];if(numeric[arg])expected[numeric[arg]]=Number(v);else if(['--ContHist4PlyRead','--NonPawnCorrection','--LmrDeeperShallower'].includes(arg)){check(['true','false','1','0'].includes(v),key+' invalid candidate argument');expected[arg.slice(2)]=v==='true'||v==='1';}else check(arg==='--trigger',key+' unrecognized play argument '+arg);}
+   const configs=raw.split(/\r?\n/).filter(l=>l.startsWith('CONFIG ')).map(l=>JSON.parse(l.slice(7)));check(configs.length===1&&same(configs[0],expected),key+' raw CONFIG differs from actual spec/default arguments');
+   for(const [k,v]of Object.entries(expected))if(!['opening_plies','ply_limit'].includes(k))check(summary[k]===v,key+' SUMMARY option '+k+' differs from spec/default argument');
+   check(same(metadata.environmentOverrides??{},spec.env??{}),key+' recorded environment overrides differ from spec');
+   const triggers=[],faultRows=[];for(const line of raw.split(/\r?\n/)){if(line.startsWith('TRIGGER ')){try{triggers.push(JSON.parse(line.slice(8)));}catch{issue('error',key+' malformed TRIGGER');}}if(line.startsWith('FAULT '))faultRows.push(line);}
+   for(const trigger of triggers)for(const k of ['seed','threads','nodes','depth','Hash','OwnBook','UseNNUE','MultiPV','ContHist4PlyRead','NonPawnCorrection','LmrDeeperShallower'])check(trigger[k]===expected[k],key+' TRIGGER option '+k+' differs from spec/default argument');
+   const traced=spec.argv?.includes('--trace');
+   if(traced)equalCount(summary.searches,triggers.length,key+' play searches/trigger count');
+   else{issue('warning',key+' lacks --trace: search/move/game counts are self-reported, with SUMMARY invariants and emitted FAULT rows checked; no per-search replay enumeration available');batch.counterEvidence={searches:'self-reported; --trace absent',moves:'self-reported',games:'self-reported; terminal count invariant checked',faults:'checked against emitted FAULT rows'};const n=spec.argv?.indexOf('--trigger')??-1;if(n>=0){const p=path.resolve(spec.cwd,spec.argv[n+1]);if(files.has(p)){try{batch.lastTrigger=JSON.parse(read(p));}catch(e){issue('warning',key+' last-trigger payload parse failed: '+e.message);}}}}
+   check(summary.opening_moves<=8*summary.games,key+' play opening plies exceed eight per completed game');equalCount(summary.searches,summary.moves+summary.faults,key+' play search/move/fault invariant');equalCount(summary.games,summary.mates+summary.stalemates+summary.repetitions+summary.fifty+summary.ply_caps+summary.insufficient+summary.faults,key+' play terminal accounting');equalCount(summary.faults,faultRows.length,key+' play raw FAULT count');
+   let illegal=0,missing=0,badscore=0;for(const line of faultRows){const end=line.indexOf('} kind=');if(end<0){check(false,key+' malformed FAULT');continue;}const context=JSON.parse(line.slice(6,end+1));illegal+=Number(/kind=.*(?:illegal_move|make_move_rejected)/.test(line));missing+=Number(/kind=.*missing_move/.test(line));badscore+=Number(/kind=.*score_out_of_range/.test(line));const f=plan('game-'+context.game+'-ply-'+context.ply,'Self-play fault: '+line.slice(end+2),{context,raw_fault:line});common(f);attach(f,entry.log);}
+   equalCount(summary.illegal,illegal,key+' play illegal raw count');equalCount(summary.missing,missing,key+' play missing raw count');equalCount(summary.badscore,badscore,key+' play badscore raw count');batch.rawVerified=false;batch.computed={...mapped};batch.counterEvidence={searches:traced?'enumerated from TRIGGER records':'self-reported; --trace absent',moves:'self-reported, checked against searches minus faults',games:'self-reported; terminal count invariant checked',opening_moves:'self-reported; bounded by eight per game; the driver permits terminal openings before ply eight',faults:'enumerated from FAULT records',configuration:'spec/default arguments checked against CONFIG, SUMMARY and every TRIGGER'};
+  }
+  // A partial/unaccepted comparison still contains real observed faults. Keep
+  // its complete raw pending file, without claiming a completed reproduction rate.
+  for(const source of files.keys())if(/\.pending-\d+\.txt$/.test(source)){
+   const text=read(source);let context=null,observed=false;
+   for(const line of text.split(/\r?\n/)){
+    if(line.startsWith('PENDING FAULT ')||line.startsWith('CASE ')){try{context=JSON.parse(line.slice(line.startsWith('CASE ')?5:14));}catch{}}
+    const a=line.match(/^ATTEMPT \d+ (\{.*\})$/);if(a){try{if(pairFault(JSON.parse(a[1]),context?.halfmove<80))observed=true;}catch{}}
+   }
+   if(!observed||!context)continue;
+   const worker=schema==='sharded_compare'?(source.match(/worker-(\d+)\.jsonl/)?.[1]??'single'):'single',unit='worker-'+worker+'-index-'+context.index;
+   if(plans.has(key+':'+unit))continue;
+   const f=plan(unit,'Observed comparison fault in partial or unaccepted evidence; completed totals excluded',{context,partial:true,completed_totals_include:false});common(f);attach(f,source);
+  }
+  if(schema==='missing')issue('warning',key+' has no recognized final summary; no completed counters inferred, but raw sanitizer evidence is scanned');
+  // Verify controller mappings without importing control.mjs or trusting its sums.
+  for(const [name,value]of Object.entries(batch.recorded)){
+   let expected=mapped[name];const source=metadata.accounting?.sources?.[name];
+   if(expected===undefined&&source){let x=summary;for(const p of source.split('.'))x=x?.[p];expected=x;issue('warning',key+' count '+name+' only schema-level verified (no independent raw mapping)');}
+   equalCount(value,expected,key+' recorded counter '+name,mappedWallBounds[name]??null);
+   const t=cumulative[entry.phase]??={batches:0};t[name]=(t[name]??0)+value;
+  }
+  if(Object.keys(batch.recorded).length)(cumulative[entry.phase]??={batches:0}).batches++;
+  // Scan every immutable raw artifact, including partial data, not only SUMMARY flags.
+  // Config/command/source metadata are excluded to avoid mentions of sanitizer options.
+  for(const [source,m]of files){
+   if(!/\.(?:txt|log|json|jsonl)$/.test(source)||/\.(?:run-spec\.json|command\.txt)$/.test(source)||/(?:^|\/)(?:config|manifest|artifact-hashes|summary)\.(?:txt|json)$/.test(source))continue;
+   const text=read(source),found=runtimeDiagnosticLines(text,source),sourceTsan=selfPlay?(path.resolve(source)===path.resolve(entry.log)?tsan:parseTsanWarnings(text)):null;
+   if(!found.length)continue;
+   batch.sanitizerOccurrences.push({source,sha256:m.sha256,occurrences:found});
+   for(const hit of found){
+    let unit=hit.trigger?'game-'+hit.trigger.game+'-ply-'+hit.trigger.ply:null;
+    if(selfPlay&&hit.text.includes('ThreadSanitizer')){
+     if(/^ThreadSanitizer: reported \d+ warnings?$/.test(hit.text)&&sourceTsan.warnings.length)continue;
+     const block=sourceTsan.warnings.find(w=>hit.line>=w.start_line&&hit.line<=w.end_line);
+     if(block)unit='tsan-'+sha(block.source_pair?block.group_key:source+':'+block.group_key).slice(0,16);
+    }
+    const em=source.match(/\/(?:pending-|partial-)?(?:mates|cost)-(\d+)-/);if(!unit&&em)unit='unit-'+Number(em[1]);
+    const cm=source.match(/worker-(\d+)\.jsonl\.pending-(\d+)\.txt$/);if(!unit&&cm)unit='worker-'+(schema==='sharded_compare'?Number(cm[1]):'single')+'-index-'+Number(cm[2]);
+    if(!unit){const matches=[...plans.values()].filter(f=>f.phase===entry.phase&&String(f.batch)===String(entry.id)&&[...f.evidence.values()].some(v=>v.includes(hit.text)));if(matches.length===1)unit=matches[0].unit;}
+    unit??='sanitizer-unattributed';const f=plan(unit,'Sanitizer diagnostic in completed batch raw evidence',{sanitizer:true});common(f);(f.details.sanitizer_occurrences??=[]).push({source,...hit});attach(f,source);attach(f,entry.log);f.details.sanitizer_reproduction={status:'pending',additional_trials_required:10,frequency:null,note:'Do not infer sanitizer reproduction frequency from summary counters or repeated log copies.'};
+   }
+  }
+  if(selfPlay){
+   check(metadata.exit===entry.exit&&metadata.signal===entry.signal,key+' process status differs between immutable metadata and state');
+   const markers=runtimeDiagnosticLines(raw,entry.log).length,status=classifySelfPlayProcess(entry.exit,entry.signal,metadata,summary,markers);
+   batch.processStatus=status;batch.sanitizerCounts={primaryLog:entry.log,primaryRuntimeMarkerLines:markers,tsanWarningBlocks:tsan.reported_warning_blocks,tsanSourcePairGroups:tsan.groups.filter(g=>g.source_pair).length,tsanUnresolvedBlocks:tsan.groups.filter(g=>!g.source_pair).length,tsanFooter:tsan.footers,footerCountConsistent:tsan.footer_count_consistent};batch.tsanGroups=tsan.groups;
+   if(tsan.footer_count_consistent===false)issue('warning',key+' TSan warning footer differs from retained primary-log warning blocks; preserve evidence and do not infer missing reports');
+   for(const group of tsan.groups){const f=plan('tsan-'+sha(group.source_pair?group.group_key:entry.log+':'+group.group_key).slice(0,16),'TSan '+group.kind+'; '+group.reported_warning_blocks+' reported warning block(s); '+(group.source_pair?.join(' versus ')??'source pair unresolved'),{sanitizer:true,tsan_group:group,process_status:status,counting_note:tsan.counting_note,trigger_association:'Nearest preceding emitted trigger is temporal context, not proof that it caused the race'});common(f);attach(f,entry.log);f.body.push('FULL TSAN WARNING BLOCKS\n'+tsan.warnings.filter(w=>w.group_key===group.group_key).map(w=>w.raw).join('\n'));}
+   if(status.requires_separate_fault&&!markers){const f=plan('selfplay-process-exit','Self-play process '+status.classification,{process_status:status,last_trigger:tsan.last_trigger,chess_summary:summary});common(f);attach(f,entry.log);const n=spec.argv?.indexOf('--trigger')??-1;if(n>=0&&files.has(path.resolve(spec.cwd,spec.argv[n+1])))attach(f,path.resolve(spec.cwd,spec.argv[n+1]));}
+   for(const f of plans.values())if(f.phase===entry.phase&&String(f.batch)===String(entry.id))f.details.process_status=status;
+  }
+  // Include observed shutdown failures even when a completed process produced no final summary.
+  for(const f of plans.values())if(f.phase===entry.phase&&String(f.batch)===String(entry.id))common(f);
+ }
+ for(const [phase,counts]of Object.entries(cumulative))for(const [k,v]of Object.entries(counts))equalCount(state.totals?.[phase]?.counts?.[k],v,'state.totals '+phase+'.'+k);
+ const faultsDir=out+'/faults',existing=state.faults??[],known=new Map(existing.filter(f=>f.audit_key).map(f=>[f.audit_key,f]));let number=0;
+ for(const f of existing){const m=String(f.file).match(/^(\d+)\.txt$/);if(m)number=Math.max(number,Number(m[1]));}
+ if(exists(faultsDir))for(const file of fs.readdirSync(faultsDir)){const m=file.match(/^(\d+)\.txt$/);if(m)number=Math.max(number,Number(m[1]));}
+ const writes=[];
+ for(const f of plans.values()){
+  const before=known.get(f.audit_key);if(before){check(exists(faultsDir+'/'+before.file),'Existing fault file missing: '+before.file);if(before.sha256&&exists(faultsDir+'/'+before.file))check(sha(fs.readFileSync(faultsDir+'/'+before.file))===before.sha256,'Existing fault evidence SHA256 mismatch: '+before.file);report.faults.push({audit_key:f.audit_key,file:before.file,existing:true,description:before.description});continue;}
+  const file=String(++number).padStart(3,'0')+'.txt';
+  const header={audit_key:f.audit_key,phase:f.phase,batch:f.batch,unit:f.unit,description:f.description,reproduction:f.reproduction,...f.details};
+  let text='FORGE SOAK FAULT EVIDENCE\n'+pretty(header)+'\n'+f.body.join('\n');
+  for(const [source,raw]of f.evidence)text+='\n=== COMPLETE RAW ARTIFACT '+source+' SHA256 '+sha(raw)+' ===\n'+raw+'\n=== END RAW ARTIFACT ===\n';
+  const record={file,description:f.description,kind:f.kind,audit_key:f.audit_key,phase:f.phase,batch:f.batch,unit:f.unit,reproduction:f.reproduction,sha256:sha(text)};
+  writes.push({file,text,record});report.faults.push({...record,existing:false,evidence_files:f.evidence.size});
+ }
+ report.newFaults=writes.length;report.errors=report.issues.filter(i=>i.level==='error').length;report.warnings=report.issues.filter(i=>i.level==='warning').length;
+ if(options.apply){
+  if(report.errors)throw Object.assign(Error('Audit found '+report.errors+' reconciliation errors; no files or state written'),{report});
+  check(fs.readFileSync(statePath,'utf8')===stateRaw,'State changed during audit; refusing write');if(report.issues.some(i=>i.level==='error'))throw Object.assign(Error('State changed during audit'),{report});
+  fs.mkdirSync(faultsDir,{recursive:true});
+  for(const w of writes)fs.writeFileSync(faultsDir+'/'+w.file,w.text,{flag:'wx'});
+  state.faults=[...existing,...writes.map(w=>w.record)];state.lastResultsAudit={utc:report.utc,stateSha256:report.stateSha256,batches:report.batches.length,newFaults:writes.length,errors:0,warnings:report.warnings};
+  const temporary=statePath+'.audit-'+process.pid+'.tmp';fs.writeFileSync(temporary,pretty(state),{flag:'wx'});if(fs.readFileSync(statePath,'utf8')!==stateRaw){fs.unlinkSync(temporary);throw Error('Concurrent state update detected; fault files retained but state not overwritten');}fs.renameSync(temporary,statePath);
+ }
+ if(options.report)fs.writeFileSync(path.resolve(options.report),pretty(report));
+ return report;
+}
+function cfgOut(spec){const n=spec.argv?.indexOf('--out')??-1;if(n<0)throw Error('Comparator --out absent from argv');return path.resolve(spec.cwd,spec.argv[n+1]);}
+function compact(report,reportPath){return {utc:report.utc,apply:report.apply,batches:report.batches.length,errors:report.errors,warnings:report.warnings,newFaults:report.newFaults,existingFaults:report.faults.filter(f=>f.existing).length,report:reportPath?path.resolve(reportPath):null,firstIssues:report.issues.slice(0,8)};}
+function main(args){const o={};for(let i=0;i<args.length;i++){if(args[i]==='--apply')o.apply=true;else if(['--state','--repo','--report'].includes(args[i])){const k=args[i].slice(2);if(!args[i+1]||args[i+1].startsWith('--'))throw Error('Missing value for '+args[i]);o[k]=args[++i];}else if(args[i]==='--help'){console.log('node audit-results.mjs [--state STATE_JSON] [--repo REPO] [--report VM_REPORT_JSON] [--apply]\nRead-only by default. --apply only after finished batch and active=null. Reconciliation errors block all writes. No engine execution, git, commit, or push.');return;}else throw Error('Unknown argument '+args[i]);}const report=audit(o);console.log('AUDIT_RESULTS '+JSON.stringify(compact(report,o.report)));if(report.errors)process.exitCode=2;}
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){try{main(process.argv.slice(2));}catch(e){if(e.report)console.error('AUDIT_RESULTS '+JSON.stringify(compact(e.report)));console.error(e.stack);process.exitCode=2;}}

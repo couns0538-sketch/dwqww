@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "utc": "2026-11-14T13:19:56.463Z",
+  "utc": "2026-11-14T13:25:43.534Z",
   "state": "/workspace/work/all-run/state.json",
-  "stateSha256": "710e20177ad6e12d7dd1b9fa58211af0e6e4f524f723fbcc91008c3c1e8d1b7f",
+  "stateSha256": "8a7f57e4aad14f20fc20f77d33364a47581108866cf2e804c9b87f33cba7a083",
   "apply": true,
   "active": null,
   "batches": [
@@ -39,9 +39,11 @@
       },
       "counterEvidence": {
         "searches": "self-reported; --trace absent",
-        "moves": "self-reported",
+        "moves": "self-reported, checked against searches minus faults",
         "games": "self-reported; terminal count invariant checked",
-        "faults": "checked against emitted FAULT rows"
+        "opening_moves": "self-reported; bounded by eight per game; the driver permits terminal openings before ply eight",
+        "faults": "enumerated from FAULT records",
+        "configuration": "spec/default arguments checked against CONFIG, SUMMARY and every TRIGGER"
       },
       "lastTrigger": {
         "seed": 8473001,
@@ -75,7 +77,28 @@
         "fifty": 13,
         "ply_caps": 2,
         "insufficient": 9
-      }
+      },
+      "processStatus": {
+        "exit": 0,
+        "signal": null,
+        "expected_chess_exit": 0,
+        "configured_tsan_exit": 66,
+        "classification": "normal_exit",
+        "timeout_or_forced": false,
+        "requires_separate_fault": false,
+        "has_runtime_diagnostics": false,
+        "clean": true
+      },
+      "sanitizerCounts": {
+        "primaryLog": "/workspace/work/all-run/logs/2D-0001.txt",
+        "primaryRuntimeMarkerLines": 0,
+        "tsanWarningBlocks": 0,
+        "tsanSourcePairGroups": 0,
+        "tsanUnresolvedBlocks": 0,
+        "tsanFooter": [],
+        "footerCountConsistent": null
+      },
+      "tsanGroups": []
     },
     {
       "key": "2Aprep:1",
@@ -1733,6 +1756,76 @@
         "shutdown_timeouts": 0,
         "reproduction_pairs": 80,
         "reproduction_differences": 80,
+        "reproduction_fault_pairs": 0
+      }
+    },
+    {
+      "key": "2C:6",
+      "phase": "2C",
+      "id": 6,
+      "log": "/workspace/work/all-run/logs/2C-0006.txt",
+      "finishedUTC": "2026-11-14T13:25:34.924Z",
+      "recorded": {
+        "records_completed": 15083,
+        "positions": 14994,
+        "positions_low_clock": 14986,
+        "positions_high_clock": 8,
+        "differences_low_clock": 0,
+        "differences_high_clock": 7,
+        "fault_positions": 0,
+        "excluded": 89,
+        "excluded_no_legal": 4,
+        "excluded_insufficient": 85,
+        "excluded_halfmove100": 0,
+        "invalid_fens": 0,
+        "engine_runs": 30128,
+        "illegal": 0,
+        "missing": 0,
+        "missing_info": 0,
+        "wrong_depth": 0,
+        "sanitizer_issues": 0,
+        "transport_issues": 0,
+        "crashes": 0,
+        "nonzero_exits": 0,
+        "shutdown_timeouts": 0,
+        "reproduction_pairs": 70,
+        "reproduction_differences": 70,
+        "reproduction_fault_pairs": 0
+      },
+      "schema": "sharded_compare",
+      "rawVerified": true,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2C-0006.evidence/manifest.txt",
+        "sha256": "52ecb4a8c55d6853947ac5169782eb616c50fe9bc3906b6ea3fc8fe3b0b39282",
+        "files": 35
+      },
+      "computed": {
+        "records_completed": 15083,
+        "positions": 14994,
+        "positions_low_clock": 14986,
+        "positions_high_clock": 8,
+        "differences_low_clock": 0,
+        "differences_high_clock": 7,
+        "fault_positions": 0,
+        "excluded": 89,
+        "excluded_no_legal": 4,
+        "excluded_insufficient": 85,
+        "excluded_halfmove100": 0,
+        "invalid_fens": 0,
+        "engine_runs": 30128,
+        "illegal": 0,
+        "missing": 0,
+        "missing_info": 0,
+        "wrong_depth": 0,
+        "sanitizer_issues": 0,
+        "transport_issues": 0,
+        "crashes": 0,
+        "nonzero_exits": 0,
+        "shutdown_timeouts": 0,
+        "reproduction_pairs": 70,
+        "reproduction_differences": 70,
         "reproduction_fault_pairs": 0
       }
     }

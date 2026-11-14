@@ -1,0 +1,115 @@
+--- /workspace/work/all-run/audit-results.mjs	2026-11-14 04:44:01.907268115 -0800
++++ /workspace/work/audit-def-review/audit-results-proposed.mjs	2026-11-14 05:22:59.031050029 -0800
+@@ -100,6 +100,48 @@
+  const mainValid=main.length===1&&Object.values(m).every(safe)&&m.runs===40*runsPerPosition&&m.no_mate_score<=m.misses&&m.non_mating_move<=m.misses&&m.misses<=Math.min(m.runs,m.no_mate_score+m.non_mating_move);
+  return {configs,t1,main,diagnostics,end,argv,environment,binaryHashes,configValid,t1Valid,mainValid};
+ }
++export function parseTsanWarnings(raw){
++ const lines=raw.replace(/\r/g,'').split('\n'),warnings=[],footers=[];let current=null,lastTrigger=null;
++ const normalize=line=>line.replace(/^! stderr /,'');
++ const frameLocation=line=>{
++  const engine=line.match(/(?:^|\s)((?:\S*\/)?forge-combo29\/(?:src|include)\/[^\s():]+):(\d+)(?::\d+)?/);
++  if(engine)return {location:engine[1].slice(engine[1].indexOf('forge-combo29/'))+':'+engine[2],engine:true};
++  const any=line.match(/(?:^|\s)((?:\/|[A-Za-z]:\/)[^\s():]+\.(?:c|cc|cpp|cxx|h|hh|hpp)):(\d+)(?::\d+)?/);
++  return any?{location:any[1]+':'+any[2],engine:false}:null;
++ };
++ const finish=endLine=>{if(!current)return;current.end_line=endLine;
++  const accesses=[];let access=null;
++  for(const line of current.lines){const text=normalize(line),m=text.match(/^\s*(?:Previous\s+)?(?:Atomic\s+)?(Read|Write) of size /i);if(m){access={kind:m[1].toLowerCase(),frames:[]};accesses.push(access);continue;}if(access&&/^\s*#\d+\b/.test(text)){const loc=frameLocation(text);if(loc)access.frames.push(loc);}else if(access&&(!text.trim()||/^\s*(?:Thread .*created|Location is|SUMMARY: ThreadSanitizer|Mutex .*created)/.test(text)))access=null;}
++  current.accesses=accesses.map(a=>({kind:a.kind,location:(a.frames.find(f=>f.engine)??a.frames[0])?.location??null}));
++  current.source_pair=current.accesses.length>=2&&current.accesses[0].location&&current.accesses[1].location?[current.accesses[0].location,current.accesses[1].location].sort():null;
++  // An unsymbolized block remains separate: do not invent a conflicting pair.
++  current.group_key=current.source_pair?current.kind+'|'+current.source_pair.join('|'):'unresolved-warning-line-'+current.start_line;
++  current.raw=current.lines.join('\n')+'\n';delete current.lines;warnings.push(current);current=null;
++ };
++ for(const [i,original]of lines.entries()){
++  if(original.startsWith('TRIGGER ')){try{lastTrigger=JSON.parse(original.slice(8));}catch{}}
++  const line=normalize(original),start=line.match(/^WARNING: ThreadSanitizer: (.+?)(?: \(pid=\d+\))?$/);
++  if(start){finish(i);current={start_line:i+1,kind:start[1],trigger:lastTrigger,lines:[original]};continue;}
++  const footer=line.match(/^ThreadSanitizer: reported (\d+) warnings?$/);if(footer)footers.push({line:i+1,count:Number(footer[1])});
++  if(current){if(/^={8,}$/.test(line)){finish(i);continue;}current.lines.push(original);}
++ }
++ finish(lines.length);
++ const groups=new Map();for(const w of warnings){const g=groups.get(w.group_key)??{group_key:w.group_key,kind:w.kind,source_pair:w.source_pair,reported_warning_blocks:0,occurrences:[]};g.reported_warning_blocks++;g.occurrences.push({start_line:w.start_line,end_line:w.end_line,trigger:w.trigger});groups.set(w.group_key,g);}
++ return {reported_warning_blocks:warnings.length,groups:[...groups.values()],warnings,footers,footer_count_consistent:footers.length===1?footers[0].count===warnings.length:null,last_trigger:lastTrigger,counting_note:'One primary merged runtime log only; mirrored artifacts and WARNING/SUMMARY/footer marker lines are not extra warning events. Source-line pairs are evidence groups, not proven unique bugs. Runtime duplicate suppression may omit repeat manifestations.'};
++}
++export function classifySelfPlayProcess(exit,signal,metadata,summary,markerCount){
++ const configured=String(metadata?.environmentOverrides?.TSAN_OPTIONS??metadata?.spec?.env?.TSAN_OPTIONS??''),tsanExit=Number(configured.match(/(?:^|:)exitcode=(\d+)(?:$|:)/)?.[1]??66);
++ const timeout=exit===124||exit===137||!!metadata?.interruption;
++ const expected=summary&&Number.isSafeInteger(summary.faults)?(summary.faults?1:0):null;
++ let classification='normal_exit',separateFault=false;
++ if(timeout)classification='budget_timeout_or_forced_termination; not classified as engine crash';
++ else if(signal){classification='unexpected_signal';separateFault=true;}
++ else if(exit===tsanExit){classification=markerCount?'sanitizer_diagnostic_nonzero_exit':'nonzero_sanitizer_exit_code_without_runtime_diagnostic';separateFault=true;}
++ else if(exit!==0&&exit!==expected){classification='unexpected_nonzero_exit';separateFault=true;}
++ else if(markerCount)classification='runtime_sanitizer_diagnostic';
++ else if(exit===1&&expected===1)classification='chess_fault_exit';
++ return {exit,signal,expected_chess_exit:expected,configured_tsan_exit:tsanExit,classification,timeout_or_forced:timeout,requires_separate_fault:separateFault,has_runtime_diagnostics:markerCount>0,clean:!timeout&&!signal&&exit===0&&markerCount===0&&summary?.faults===0};
++}
+ export function audit(options={}){
+  const statePath=path.resolve(options.state??ROOT+'/state.json'),repo=path.resolve(options.repo??REPO),out=repo+'/forge-combo29/soak_all';
+  const stateRaw=fs.readFileSync(statePath,'utf8'),state=JSON.parse(stateRaw);
+@@ -154,6 +196,7 @@
+   check(same(summary,entry.summary??null),key+' raw SUMMARY/state SUMMARY mismatch');
+   if(summary)check(same(summary,metadata.summary),key+' raw SUMMARY/metadata SUMMARY mismatch');
+   const schema=supplemental&&summary?.type===existingKrkTypes[entry.phase]?'existing_krk':summary?.type==='comparison_sharded_summary'?'sharded_compare':summary?.groups&&Object.hasOwn(summary,'completed_units')?'endgame':Object.hasOwn(summary??{},'records_completed')?'compare':Object.hasOwn(summary??{},'first_game')&&Object.hasOwn(summary??{},'searches')?'play':'missing';batch.schema=schema;
++  const selfPlay=schema==='play'||path.basename(spec.argv?.[0]??'')==='play_driver',tsan=selfPlay?parseTsanWarnings(raw):null;
+   const plan=(unit,description,extra={},body='')=>{
+    const audit_key=key+':'+unit;
+    let f=plans.get(audit_key);
+@@ -295,13 +338,20 @@
+   }
+   if(summary&&schema==='play'){
+    for(const k of playFields){check(Number.isSafeInteger(summary[k])&&summary[k]>=0,key+' invalid play counter '+k);mapped[k]=summary[k];}
++   const expected={seed:1,first_game:0,max_games:1000000,seconds:240,threads:1,nodes:2000,depth:0,opening_plies:8,ply_limit:300,Hash:16,OwnBook:false,UseNNUE:true,MultiPV:1,ContHist4PlyRead:false,NonPawnCorrection:false,LmrDeeperShallower:false};
++   const numeric={'--seed':'seed','--first-game':'first_game','--games':'max_games','--seconds':'seconds','--threads':'threads','--nodes':'nodes','--depth':'depth'};
++   for(let n=1;n<(spec.argv?.length??0);n++){const arg=spec.argv[n];if(arg==='--trace')continue;const v=spec.argv[++n];if(numeric[arg])expected[numeric[arg]]=Number(v);else if(['--ContHist4PlyRead','--NonPawnCorrection','--LmrDeeperShallower'].includes(arg)){check(['true','false','1','0'].includes(v),key+' invalid candidate argument');expected[arg.slice(2)]=v==='true'||v==='1';}else check(arg==='--trigger',key+' unrecognized play argument '+arg);}
++   const configs=raw.split(/\r?\n/).filter(l=>l.startsWith('CONFIG ')).map(l=>JSON.parse(l.slice(7)));check(configs.length===1&&same(configs[0],expected),key+' raw CONFIG differs from actual spec/default arguments');
++   for(const [k,v]of Object.entries(expected))if(!['opening_plies','ply_limit'].includes(k))check(summary[k]===v,key+' SUMMARY option '+k+' differs from spec/default argument');
++   check(same(metadata.environmentOverrides??{},spec.env??{}),key+' recorded environment overrides differ from spec');
+    const triggers=[],faultRows=[];for(const line of raw.split(/\r?\n/)){if(line.startsWith('TRIGGER ')){try{triggers.push(JSON.parse(line.slice(8)));}catch{issue('error',key+' malformed TRIGGER');}}if(line.startsWith('FAULT '))faultRows.push(line);}
++   for(const trigger of triggers)for(const k of ['seed','threads','nodes','depth','Hash','OwnBook','UseNNUE','MultiPV','ContHist4PlyRead','NonPawnCorrection','LmrDeeperShallower'])check(trigger[k]===expected[k],key+' TRIGGER option '+k+' differs from spec/default argument');
+    const traced=spec.argv?.includes('--trace');
+    if(traced)equalCount(summary.searches,triggers.length,key+' play searches/trigger count');
+    else{issue('warning',key+' lacks --trace: search/move/game counts are self-reported, with SUMMARY invariants and emitted FAULT rows checked; no per-search replay enumeration available');batch.counterEvidence={searches:'self-reported; --trace absent',moves:'self-reported',games:'self-reported; terminal count invariant checked',faults:'checked against emitted FAULT rows'};const n=spec.argv?.indexOf('--trigger')??-1;if(n>=0){const p=path.resolve(spec.cwd,spec.argv[n+1]);if(files.has(p)){try{batch.lastTrigger=JSON.parse(read(p));}catch(e){issue('warning',key+' last-trigger payload parse failed: '+e.message);}}}}
+-   equalCount(summary.opening_moves,8*summary.games,key+' play opening plies');equalCount(summary.games,summary.mates+summary.stalemates+summary.repetitions+summary.fifty+summary.ply_caps+summary.insufficient+summary.faults,key+' play terminal accounting');equalCount(summary.faults,faultRows.length,key+' play raw FAULT count');
++   check(summary.opening_moves<=8*summary.games,key+' play opening plies exceed eight per completed game');equalCount(summary.searches,summary.moves+summary.faults,key+' play search/move/fault invariant');equalCount(summary.games,summary.mates+summary.stalemates+summary.repetitions+summary.fifty+summary.ply_caps+summary.insufficient+summary.faults,key+' play terminal accounting');equalCount(summary.faults,faultRows.length,key+' play raw FAULT count');
+    let illegal=0,missing=0,badscore=0;for(const line of faultRows){const end=line.indexOf('} kind=');if(end<0){check(false,key+' malformed FAULT');continue;}const context=JSON.parse(line.slice(6,end+1));illegal+=Number(/kind=.*(?:illegal_move|make_move_rejected)/.test(line));missing+=Number(/kind=.*missing_move/.test(line));badscore+=Number(/kind=.*score_out_of_range/.test(line));const f=plan('game-'+context.game+'-ply-'+context.ply,'Self-play fault: '+line.slice(end+2),{context,raw_fault:line});common(f);attach(f,entry.log);}
+-   equalCount(summary.illegal,illegal,key+' play illegal raw count');equalCount(summary.missing,missing,key+' play missing raw count');equalCount(summary.badscore,badscore,key+' play badscore raw count');batch.rawVerified=!!traced;batch.computed={...mapped};
++   equalCount(summary.illegal,illegal,key+' play illegal raw count');equalCount(summary.missing,missing,key+' play missing raw count');equalCount(summary.badscore,badscore,key+' play badscore raw count');batch.rawVerified=false;batch.computed={...mapped};batch.counterEvidence={searches:traced?'enumerated from TRIGGER records':'self-reported; --trace absent',moves:'self-reported, checked against searches minus faults',games:'self-reported; terminal count invariant checked',opening_moves:'self-reported; bounded by eight per game; the driver permits terminal openings before ply eight',faults:'enumerated from FAULT records',configuration:'spec/default arguments checked against CONFIG, SUMMARY and every TRIGGER'};
+   }
+   // A partial/unaccepted comparison still contains real observed faults. Keep
+   // its complete raw pending file, without claiming a completed reproduction rate.
+@@ -329,17 +379,31 @@
+   // Config/command/source metadata are excluded to avoid mentions of sanitizer options.
+   for(const [source,m]of files){
+    if(!/\.(?:txt|log|json|jsonl)$/.test(source)||/\.(?:run-spec\.json|command\.txt)$/.test(source)||/(?:^|\/)(?:config|manifest|artifact-hashes|summary)\.(?:txt|json)$/.test(source))continue;
+-   const text=read(source),found=runtimeDiagnosticLines(text,source);
++   const text=read(source),found=runtimeDiagnosticLines(text,source),sourceTsan=selfPlay?(path.resolve(source)===path.resolve(entry.log)?tsan:parseTsanWarnings(text)):null;
+    if(!found.length)continue;
+    batch.sanitizerOccurrences.push({source,sha256:m.sha256,occurrences:found});
+    for(const hit of found){
+     let unit=hit.trigger?'game-'+hit.trigger.game+'-ply-'+hit.trigger.ply:null;
++    if(selfPlay&&hit.text.includes('ThreadSanitizer')){
++     if(/^ThreadSanitizer: reported \d+ warnings?$/.test(hit.text)&&sourceTsan.warnings.length)continue;
++     const block=sourceTsan.warnings.find(w=>hit.line>=w.start_line&&hit.line<=w.end_line);
++     if(block)unit='tsan-'+sha(block.source_pair?block.group_key:source+':'+block.group_key).slice(0,16);
++    }
+     const em=source.match(/\/(?:pending-|partial-)?(?:mates|cost)-(\d+)-/);if(!unit&&em)unit='unit-'+Number(em[1]);
+     const cm=source.match(/worker-(\d+)\.jsonl\.pending-(\d+)\.txt$/);if(!unit&&cm)unit='worker-'+(schema==='sharded_compare'?Number(cm[1]):'single')+'-index-'+Number(cm[2]);
+     if(!unit){const matches=[...plans.values()].filter(f=>f.phase===entry.phase&&String(f.batch)===String(entry.id)&&[...f.evidence.values()].some(v=>v.includes(hit.text)));if(matches.length===1)unit=matches[0].unit;}
+     unit??='sanitizer-unattributed';const f=plan(unit,'Sanitizer diagnostic in completed batch raw evidence',{sanitizer:true});common(f);(f.details.sanitizer_occurrences??=[]).push({source,...hit});attach(f,source);attach(f,entry.log);f.details.sanitizer_reproduction={status:'pending',additional_trials_required:10,frequency:null,note:'Do not infer sanitizer reproduction frequency from summary counters or repeated log copies.'};
+    }
+   }
++  if(selfPlay){
++   check(metadata.exit===entry.exit&&metadata.signal===entry.signal,key+' process status differs between immutable metadata and state');
++   const markers=runtimeDiagnosticLines(raw,entry.log).length,status=classifySelfPlayProcess(entry.exit,entry.signal,metadata,summary,markers);
++   batch.processStatus=status;batch.sanitizerCounts={primaryLog:entry.log,primaryRuntimeMarkerLines:markers,tsanWarningBlocks:tsan.reported_warning_blocks,tsanSourcePairGroups:tsan.groups.filter(g=>g.source_pair).length,tsanUnresolvedBlocks:tsan.groups.filter(g=>!g.source_pair).length,tsanFooter:tsan.footers,footerCountConsistent:tsan.footer_count_consistent};batch.tsanGroups=tsan.groups;
++   if(tsan.footer_count_consistent===false)issue('warning',key+' TSan warning footer differs from retained primary-log warning blocks; preserve evidence and do not infer missing reports');
++   for(const group of tsan.groups){const f=plan('tsan-'+sha(group.source_pair?group.group_key:entry.log+':'+group.group_key).slice(0,16),'TSan '+group.kind+'; '+group.reported_warning_blocks+' reported warning block(s); '+(group.source_pair?.join(' versus ')??'source pair unresolved'),{sanitizer:true,tsan_group:group,process_status:status,counting_note:tsan.counting_note,trigger_association:'Nearest preceding emitted trigger is temporal context, not proof that it caused the race'});common(f);attach(f,entry.log);f.body.push('FULL TSAN WARNING BLOCKS\n'+tsan.warnings.filter(w=>w.group_key===group.group_key).map(w=>w.raw).join('\n'));}
++   if(status.requires_separate_fault&&!markers){const f=plan('selfplay-process-exit','Self-play process '+status.classification,{process_status:status,last_trigger:tsan.last_trigger,chess_summary:summary});common(f);attach(f,entry.log);const n=spec.argv?.indexOf('--trigger')??-1;if(n>=0&&files.has(path.resolve(spec.cwd,spec.argv[n+1])))attach(f,path.resolve(spec.cwd,spec.argv[n+1]));}
++   for(const f of plans.values())if(f.phase===entry.phase&&String(f.batch)===String(entry.id))f.details.process_status=status;
++  }
+   // Include observed shutdown failures even when a completed process produced no final summary.
+   for(const f of plans.values())if(f.phase===entry.phase&&String(f.batch)===String(entry.id))common(f);
+  }

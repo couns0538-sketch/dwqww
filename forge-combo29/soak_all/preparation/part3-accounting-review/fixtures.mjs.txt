@@ -1,0 +1,80 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import {makePlan} from './match_all.mjs';
+
+const root='/workspace/work/all-run',dir=path.dirname(new URL(import.meta.url).pathname);
+const source=fs.readFileSync(dir+'/control.mjs','utf8');
+const context={path,root};vm.createContext(context);
+vm.runInContext(source.slice(source.indexOf('const playCountFields='),source.indexOf('function specEvidence('))+
+  source.slice(source.indexOf('function rejectRecordedFastchessSeed('),source.indexOf('async function runSpec('))+
+  '\nglobalThis.reject=rejectRecordedFastchessSeed;\nglobalThis.decide=(summary,countMap,exit=0)=>{const result={exit,signal:null},spawnError=null,interruption=null,ioErrors=[],parseError=null,accounting=collectSpecCounts(summary,countMap);'+
+  source.slice(source.indexOf(' const hardIncomplete='),source.indexOf(' Object.assign(metadata,{summaryRaw:'))+
+  'return {incomplete,recordable,counts:recordable?accounting.counts:{},issues:accounting.issues};};',context);
+const specs=fs.readdirSync(root+'/specs').filter(f=>/^3-.*\.json$/.test(f)).map(f=>JSON.parse(fs.readFileSync(root+'/specs/'+f,'utf8')));
+const byMode={},identities=new Set();
+for(const spec of specs){
+  const [,script,mode,seed,games,concurrency,prefix]=spec.argv;
+  assert.equal(script,root+'/match_all.mjs');context.reject(spec,[]);
+  const plan=makePlan(mode,seed,games,concurrency,prefix);
+  assert.equal(plan.args[2],'420s');assert.equal(plan.timeoutSeconds,420);assert.equal(plan.killAfterSeconds,5);
+  assert.equal(plan.games,400);assert.equal(plan.rounds,200);assert.equal(plan.concurrency,4);
+  assert.ok(plan.args.includes('nodes=20000'));assert.ok(plan.args.includes('-recover'));
+  assert.ok(plan.args.includes('order=random'));assert.equal(plan.args[plan.args.indexOf('-srand')+1],String(spec.seed));
+  for(const engine of plan.engines){const options=Object.fromEntries(engine.options);assert.equal(options.Threads,'1');assert.equal(options.Hash,'16');assert.equal(options.OwnBook,'false');}
+  for(const file of Object.values(plan.files))assert.ok(spec.rawFiles.includes(file));
+  const key=mode+':'+Number(seed);assert.ok(!identities.has(key));identities.add(key);
+  byMode[mode]=(byMode[mode]||0)+plan.games;
+}
+assert.equal(specs.length,40);assert.equal(Object.keys(byMode).length,4);for(const games of Object.values(byMode))assert.equal(games,4000);
+
+const map=specs[0].countMap;
+const base={kind:'fastchess-crash-legality',mode:'default',seed:8474001,completed:true,passed:true,
+  counts:{started:400,finished:400,wins:160,losses:140,draws:100,moves:123456},
+  pairBins:{completePairs:200,incompletePairs:[],counts:[40,20,60,40,40]},errors:[],
+  failureCounts:{illegalMoveEvents:0,illegalMoveGames:0,disconnectGames:0,stallGames:0,abortedGames:0,abnormalTerminations:0,crashMarkers:0,illegalMarkers:0,disconnectMarkers:0,stallMarkers:0},
+  failures:{illegalMoves:[],abnormalGames:[],abortedGames:[],traceFindings:[],consoleFindings:[],eventProblems:[],processExitFindings:[]}};
+const accounting=[];
+function decision(name,summary,exit,recordable,incomplete){
+  const original=JSON.stringify(summary),result=context.decide(summary,map,exit);
+  assert.equal(result.recordable,recordable,name);assert.equal(result.incomplete,incomplete,name);
+  assert.equal(JSON.stringify(summary),original,'Raw evidence mutated: '+name);
+  if(!recordable)assert.equal(Object.keys(result.counts).length,0,name);
+  accounting.push({name,exit,recordable:result.recordable,incomplete:result.incomplete,counts:result.counts,issues:result.issues});return result;
+}
+decision('clean completed',structuredClone(base),0,true,false);
+const abnormal=structuredClone(base);abnormal.passed=false;abnormal.failureCounts.abnormalTerminations=1;abnormal.failureCounts.disconnectGames=1;abnormal.failures.abnormalGames=[{game:7,result:'1-0',termination:'disconnect'}];
+const scored=decision('scored abnormal completed',abnormal,2,true,false);assert.equal(scored.counts.games,400);assert.equal(scored.counts.wins,160);assert.equal(scored.counts.abnormal_terminations,1);
+for(const error of ['duplicate terminal event 7','saved opening/seed mismatch','console/event WLD mismatch','input changed during batch: engine']){const invalid=structuredClone(base);invalid.errors=[error];invalid.passed=false;decision('structural rejection: '+error,invalid,2,false,true);}
+const missingErrors=structuredClone(base);delete missingErrors.errors;decision('missing structural audit array',missingErrors,2,false,true);
+const partial=structuredClone(abnormal);partial.completed=false;partial.counts.finished=17;decision('incomplete exit3',partial,3,false,true);
+decision('outer timeout despite saved complete summary',structuredClone(base),124,false,true);
+const missingCounts={completed:false,passed:false,preflightError:'synthetic missing input'};decision('preflight failure without kind/counts',missingCounts,3,false,true);
+
+const launch=JSON.parse(fs.readFileSync(root+'/specs/3-default-0001.json','utf8'));
+const prior={phase:launch.phase,id:1,summary:base,completedCountsRecorded:{games:400}};
+const duplicateCases=[];
+function guard(name,spec,records,reject){let error=null;try{context.reject(spec,records);}catch(e){error=e.message;}assert.equal(!!error,reject,name);duplicateCases.push({name,rejected:!!error,error});}
+guard('same completed mode/seed',launch,[prior],true);
+const renamed=structuredClone(launch);renamed.id=100;renamed.log=root+'/logs/renamed.txt';renamed.argv[6]=root+'/matches/renamed';guard('renamed completed mode/seed',renamed,[prior],true);
+const normalized=structuredClone(renamed);normalized.argv[3]='0008474001';guard('leading-zero argv seed normalized',normalized,[prior],true);
+guard('counted abnormal previous attempt',renamed,[{...prior,summary:abnormal}],true);
+guard('genuinely incomplete attempt may retry',renamed,[{...prior,summary:partial,completedCountsRecorded:{}}],false);
+guard('unrecorded complete summary may retry',renamed,[{...prior,completedCountsRecorded:{}}],false);
+const otherMode=structuredClone(renamed);otherMode.argv[2]='NonPawnCorrection';guard('same seed different comparison allowed',otherMode,[prior],false);
+const otherSeed=structuredClone(renamed);otherSeed.seed=8474002;otherSeed.argv[3]='8474002';guard('same comparison different seed allowed',otherSeed,[prior],false);
+const inconsistent=structuredClone(renamed);inconsistent.seed=8474002;guard('metadata seed disagreement rejected',inconsistent,[],true);
+const invalidSeed=structuredClone(renamed);invalidSeed.argv[3]='8474001junk';guard('invalid native seed rejected',invalidSeed,[],true);
+guard('unrelated driver unchanged',{cwd:root,argv:['node',root+'/compare4.mjs','run','config.txt'],seed:1},[prior],false);
+
+const runner=fs.readFileSync(dir+'/match_all.mjs','utf8'),expression=runner.match(/const completed=([^;]+);/)[1];
+const completionContext={processResult:{code:0,signal:null,interrupted:null},starts:{size:400},finishes:{size:400},plan:{games:400},end:[{reason:'completed'}],errors:[]};
+assert.equal(vm.runInNewContext(expression,completionContext),true);
+assert.equal(vm.runInNewContext(expression,{...completionContext,errors:['duplicate start 1']}),false);
+assert.equal(vm.runInNewContext(expression,{...completionContext,processResult:{code:124}}),false);
+assert.equal(vm.runInNewContext(expression,{...completionContext,finishes:{size:399}}),false);
+const manifest=JSON.parse(fs.readFileSync(dir+'/manifest.txt','utf8'));
+for(const entry of Object.values(manifest.files))assert.equal(crypto.createHash('sha256').update(fs.readFileSync(entry.active)).digest('hex'),entry.base_sha256,'Active file changed');
+console.log('FIXTURES '+JSON.stringify({actual_matches_run:0,active_files_changed:false,state_accessed:false,prepared_specs_checked:specs.length,planned_games_by_mode:byMode,runner_completion_cases:4,accounting,duplicateCases}));

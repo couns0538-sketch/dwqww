@@ -1,0 +1,302 @@
+import fs from 'node:fs';
+import fsp from 'node:fs/promises';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import readline from 'node:readline';
+import {spawn} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+
+const ROOT = '/workspace/work/all-run';
+const FASTCHESS = '/workspace/work/fastchess/fastchess';
+const MERGED = ROOT + '/builds/release/forge';
+const LOCK = '/workspace/work/soak-run/build-lock-rel/forge';
+const BOOK = '/workspace/work/soak-run/openings/UHO_Lichess_4852_v1.epd';
+export const MODES = ['default', 'ContHist4PlyRead', 'NonPawnCorrection', 'LmrDeeperShallower'];
+const quote = s => "'" + String(s).replaceAll("'", "'\\''") + "'";
+const equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
+const json = x => JSON.stringify(x,null,2) + '\n';
+const shaText = s => crypto.createHash('sha256').update(s).digest('hex');
+const exists = p => fs.existsSync(p);
+async function hashFile(file) {
+  const hash = crypto.createHash('sha256');
+  for await (const chunk of fs.createReadStream(file)) hash.update(chunk);
+  return hash.digest('hex');
+}
+async function hashFiles(files) {
+  const result = {};
+  for (const file of [...new Set(files)]) {
+    if (exists(file)) result[file] = {sha256:await hashFile(file),bytes:(await fsp.stat(file)).size};
+    else result[file] = {missing:true};
+  }
+  return result;
+}
+async function lines(file, visit) {
+  if (!exists(file)) return false;
+  let number = 0;
+  for await (const line of readline.createInterface({input:fs.createReadStream(file),crlfDelay:Infinity})) await visit(line,++number);
+  return true;
+}
+function integer(text, name, minimum, maximum) {
+  if (!/^\d+$/.test(String(text))) throw new Error(name + ' must be an integer');
+  const n = Number(text);
+  if (!Number.isSafeInteger(n) || n < minimum || n > maximum) throw new Error(name + ' out of range');
+  return n;
+}
+export function makePlan(mode, seed, games=400, concurrency=4, prefix) {
+  if (!MODES.includes(mode)) throw new Error('Unknown mode: ' + mode);
+  seed = integer(seed,'seed',0,Number.MAX_SAFE_INTEGER);
+  games = integer(games,'games',2,400);
+  concurrency = integer(concurrency,'concurrency',1,4);
+  if (games % 2) throw new Error('games must be even for color-swapped pairs');
+  prefix ??= ROOT + '/matches/' + mode + '-' + seed + '-' + new Date().toISOString().replace(/[^0-9TZ]/g,'') + '-' + process.pid + '-' + crypto.randomBytes(3).toString('hex');
+  prefix = path.resolve(prefix);
+  if (!prefix.startsWith(ROOT + '/') || prefix === ROOT + '/match_all.mjs') throw new Error('Artifact prefix must be inside ' + ROOT);
+  const suffixes = {command:'.command.json',shell:'.command.txt',stdout:'.stdout.txt',stderr:'.stderr.txt',console:'.console.txt',events:'.events.ndjson',pgn:'.pgn',trace:'.engine.log',config:'.config.json',summary:'.summary.json',hashes:'.artifact-hashes.json',reservation:'.reserved'};
+  const files = Object.fromEntries(Object.entries(suffixes).map(([k,v])=>[k,prefix+v]));
+  const common = [['Threads','1'],['Hash','16'],['OwnBook','false']];
+  const engines = [
+    {name:'candidate',cmd:MERGED,options:[...common,...(mode==='default'?[]:MODES.slice(1).map(option=>[option,option===mode?'true':'false']))]},
+    {name:'baseline',cmd:mode==='default'?LOCK:MERGED,options:[...common,...(mode==='default'?[]:MODES.slice(1).map(option=>[option,'false']))]}
+  ];
+  const args = [];
+  for (const e of engines) args.push('-engine','cmd='+e.cmd,'name='+e.name,...e.options.map(([k,v])=>'option.'+k+'='+v));
+  args.push('-each','nodes=20000','-rounds',String(games/2),'-games','2','-recover','-concurrency',String(concurrency),
+    '-openings','file='+BOOK,'format=epd','order=random','-srand',String(seed),
+    '-ratinginterval','0','-output','format=cutechess','-scoreinterval','1',
+    '-pgnout','file='+files.pgn,'append=false','nodes=true',
+    '-log','file='+files.trace,'level=trace','append=false','engine=true',
+    '-events','file='+files.events,'-config','outname='+files.config);
+  const timeoutArgs = ['-k','5s','420s',FASTCHESS,...args];
+  return {schema:1,mode,seed,games,rounds:games/2,concurrency,prefix,files,engines,book:BOOK,fastchess:FASTCHESS,
+    executable:'/usr/bin/timeout',args:timeoutArgs,cwd:path.dirname(prefix),
+    shellCommand:['/usr/bin/timeout',...timeoutArgs].map(quote).join(' '),timeoutSeconds:420,killAfterSeconds:5};
+}
+
+export async function auditBatch(plan, processResult={}, inputHashes={}) {
+  const errors=[],starts=new Map(),finishes=new Map(),aborts=new Map(),moveStats=new Map();
+  const illegalMoves=[],abnormalGames=[],eventProblems=[],tournaments=[],traceFindings=[],consoleFindings=[],moveCountsByEngine={};
+  const p=plan.files, candidate=plan.engines[0].name,baseline=plan.engines[1].name;
+  const check=(ok,message)=>{if(!ok)errors.push(message);};
+  let eventLines=0,moveCount=0;
+  const eventsPresent=await lines(p.events,(line,n)=>{
+    if (!line.trim()) return;
+    let e; try {e=JSON.parse(line);} catch {eventProblems.push({line:n,text:line,problem:'invalid JSON'});return;}
+    eventLines++;
+    if(e.game!==undefined)check(Number.isInteger(e.game)&&e.game>=1&&e.game<=plan.games,'unexpected game ID '+e.game);
+    if(e.event==='tournament_started'||e.event==='tournament_finished')tournaments.push(e);
+    if(e.event==='game_started'){
+      check(!starts.has(e.game),'duplicate start '+e.game);starts.set(e.game,e);
+      check(e.round===Math.ceil(e.game/2),'unexpected round '+e.game);
+      check(e.white===(e.game%2?candidate:baseline)&&e.black===(e.game%2?baseline:candidate),'unexpected colors '+e.game);
+      check(e.wtime===null&&e.btime===null&&e.white_tc==='-'&&e.black_tc==='-','clock present '+e.game);
+    }
+    if(e.event==='move'){
+      moveCount++;
+      moveCountsByEngine[e.engine]=(moveCountsByEngine[e.engine]||0)+1;
+      check(plan.engines.some(engine=>engine.name===e.engine),'unknown move engine '+e.engine);
+      const m=moveStats.get(e.game)||{attempts:0,legal:0};m.attempts++;if(e.legal===true)m.legal++;else illegalMoves.push(e);moveStats.set(e.game,m);
+      check(e.ply===m.attempts,'move sequence mismatch '+e.game+' ply '+e.ply);
+      check(e.wtime===null&&e.btime===null,'move clock present '+e.game);
+    }
+    if(e.event==='game_finished'){
+      check(!finishes.has(e.game)&&!aborts.has(e.game),'duplicate terminal event '+e.game);finishes.set(e.game,e);
+      if(e.termination!=='normal')abnormalGames.push(e);
+    }
+    if(e.event==='game_aborted'){
+      check(!finishes.has(e.game)&&!aborts.has(e.game),'duplicate terminal event '+e.game);aborts.set(e.game,e);
+    }
+  });
+  check(eventsPresent,'missing events file');
+  check(!eventProblems.length,'invalid or partial event JSON');
+  const wld={wins:0,losses:0,draws:0},points=new Map(),reasons={},terminations={};
+  for(const [id,e] of finishes){
+    const s=starts.get(id);check(!!s,'finish without start '+id);if(!s)continue;
+    check(e.plies===(moveStats.get(id)?.legal||0),'legal ply count mismatch '+id);
+    reasons[e.reason]=(reasons[e.reason]||0)+1;terminations[e.termination]=(terminations[e.termination]||0)+1;
+    if(e.result==='1/2-1/2'){wld.draws++;points.set(id,1);}
+    else if(e.result==='1-0'||e.result==='0-1'){
+      const winner=e.result==='1-0'?s.white:s.black;
+      if(winner===candidate){wld.wins++;points.set(id,2);}else if(winner===baseline){wld.losses++;points.set(id,0);}else check(false,'unknown winner '+id);
+    }else check(false,'unscored result '+id+': '+e.result);
+  }
+  const pairBins=[0,0,0,0,0],incompletePairs=[],abnormalPairs=[],orderedOpenings=[];
+  for(let id=1;id<=plan.games;id+=2){
+    const a=starts.get(id),b=starts.get(id+1);
+    if(a&&b){check(a.round===b.round&&a.start_fen===b.start_fen&&equal(a.opening,b.opening)&&a.white===b.black&&a.black===b.white,'opening/color pair mismatch '+id+'/'+(id+1));}
+    orderedOpenings.push({pair:(id+1)/2,fen:a?.start_fen??b?.start_fen??null,opening:a?.opening??b?.opening??null});
+    if(points.has(id)&&points.has(id+1))pairBins[points.get(id)+points.get(id+1)]++;
+    else incompletePairs.push({games:[id,id+1],results:[finishes.get(id)??aborts.get(id)??null,finishes.get(id+1)??aborts.get(id+1)??null]});
+    if([id,id+1].some(g=>aborts.has(g)||(finishes.has(g)&&finishes.get(g).termination!=='normal')))abnormalPairs.push([id,id+1]);
+  }
+  const selectedFens=new Set([...starts.values()].map(e=>e.start_fen)),missingFens=new Set(selectedFens);
+  const bookPresent=await lines(plan.book,line=>{const fen=line.trim().split(/\s+/).slice(0,6).join(' ');missingFens.delete(fen);});
+  check(bookPresent,'opening book unavailable');check(!missingFens.size,'opening FEN absent from selected UHO book');
+  const pgnIds=new Set(),pgnWld={wins:0,losses:0,draws:0};let pgnGames=0;
+  if(exists(p.pgn)){
+    for(const game of (await fsp.readFile(p.pgn,'utf8')).split(/(?=^\[Event )/m).filter(x=>x.trim())){
+      pgnGames++;
+      const tags=Object.fromEntries([...game.matchAll(/^\[(\w+) "([^"]*)"\]$/gm)].map(m=>[m[1],m[2]]));
+      const id=Number(tags.GameId),s=starts.get(id),e=finishes.get(id);
+      check(!pgnIds.has(id),'duplicate PGN game '+id);pgnIds.add(id);
+      const terminationMap={normal:'normal',adjudication:'adjudication',disconnect:'abandoned',stall:'abandoned',time_forfeit:'time forfeit',illegal_move:'illegal move',interrupted:'unterminated'};
+      check(!!s&&!!e&&tags.White===s.white&&tags.Black===s.black&&tags.Result===e.result&&tags.Termination===terminationMap[e.termination]&&Number(tags.PlyCount)===e.plies,'PGN/event mismatch '+id);
+      check(tags.FEN===s?.start_fen&&tags.TimeControl==='-','PGN opening/clock mismatch '+id);
+      check(game.trimEnd().endsWith(tags.Result||'MISSING'),'PGN movetext result mismatch '+id);
+      if(tags.Result==='1/2-1/2')pgnWld.draws++;
+      else if((tags.Result==='1-0'&&tags.White===candidate)||(tags.Result==='0-1'&&tags.Black===candidate))pgnWld.wins++;
+      else if(tags.Result==='1-0'||tags.Result==='0-1')pgnWld.losses++;
+      else check(false,'unscored PGN result '+id);
+    }
+  }else check(false,'missing PGN file');
+  const consoleText=exists(p.console)?await fsp.readFile(p.console,'utf8'):'';
+  const consoleScores=[...consoleText.matchAll(/^Score of (\S+) vs (\S+): (\d+) - (\d+) - (\d+).*\s(\d+)$/gm)];
+  const lastScore=consoleScores.at(-1),consoleWld=lastScore?{wins:+lastScore[3],losses:+lastScore[4],draws:+lastScore[5]}:null;
+  check(!!lastScore&&lastScore[1]===candidate&&lastScore[2]===baseline&&equal(wld,consoleWld)&&+lastScore[6]===finishes.size,'console/event WLD mismatch');
+  const consoleFinishes=new Map();
+  for(const m of consoleText.matchAll(/^Finished game (\d+) \((\S+) vs (\S+)\): (\S+) \{(.*)\}$/gm)){
+    const id=+m[1],s=starts.get(id),e=finishes.get(id);check(!consoleFinishes.has(id),'duplicate console finish '+id);consoleFinishes.set(id,m[4]);
+    check(!!s&&!!e&&s.white===m[2]&&s.black===m[3]&&e.result===m[4]&&e.reason===m[5],'console game mismatch '+id);
+  }
+  for(const [i,line] of consoleText.split('\n').entries())if(/warning|\berror\b|fatal|crash|illegal|disconnect|abnormal|forfeit|stalled|timeout|timed out/i.test(line))consoleFindings.push({line:i+1,text:line});
+  const inputGo={},optionCommands={},advertisedDefaults={},processExitCounts={},processExitFindings=[],traceSignalCounts={crashMarkers:0,illegalMarkers:0,disconnectMarkers:0,stallMarkers:0};
+  const signalRx=/\b(crash(?:ed|es)?|illegal|disconnect(?:ed|s)?|abnormal|forfeit|stall(?:ed|s)?|timeout|timed out)\b/i;
+  const tracePresent=await lines(p.trace,(line,n)=>{
+    const exitMatch=line.match(/Process exited normally with status (\d+)/);
+    if(exitMatch)processExitCounts[exitMatch[1]]=(processExitCounts[exitMatch[1]]||0)+1;
+    const badExit=(exitMatch&&Number(exitMatch[1])!==0)||/Process terminated by signal|Process stopped by signal|Unknown status/.test(line);
+    if(badExit)processExitFindings.push({line:n,text:line});
+    if(badExit||signalRx.test(line)||/^\[(?:WARN|ERR|ERROR|FATAL)\s*\]/.test(line)){
+      traceFindings.push({line:n,text:line});
+      if(/crash/i.test(line))traceSignalCounts.crashMarkers++;
+      if(/illegal/i.test(line))traceSignalCounts.illegalMarkers++;
+      if(/disconnect/i.test(line))traceSignalCounts.disconnectMarkers++;
+      if(/\bstall/i.test(line))traceSignalCounts.stallMarkers++;
+    }
+    const m=line.match(/\[Engine\].*?\s(\S+)\s+<--- (.*)$/);
+    if(m&&plan.engines.some(e=>e.name===m[1])){
+      const engine=plan.engines.find(e=>e.name===m[1]);
+      if(m[2].startsWith('go ')){inputGo[m[1]]=(inputGo[m[1]]||0)+1;check(m[2]==='go nodes 20000','unexpected search command line '+n+': '+m[2]);}
+      if(m[2].startsWith('setoption ')){
+        optionCommands[m[1]+': '+m[2]]=(optionCommands[m[1]+': '+m[2]]||0)+1;
+        check(engine.options.some(([k,v])=>m[2]==='setoption name '+k+' value '+v),'unexpected option command line '+n+': '+m[2]);
+      }
+    }
+    const a=line.match(/\[Engine\].*?\s(\S+)\s+---> option name (ContHist4PlyRead|NonPawnCorrection|LmrDeeperShallower) type check default (\S+)/);
+    if(a){const key=a[1]+': '+a[2];advertisedDefaults[key]??=[];if(!advertisedDefaults[key].includes(a[3]))advertisedDefaults[key].push(a[3]);}
+  });
+  check(tracePresent,'missing full engine trace');
+  const unmatchedGoCounts={};
+  for(const e of plan.engines){
+    unmatchedGoCounts[e.name]=(inputGo[e.name]||0)-(moveCountsByEngine[e.name]||0);
+    if(!illegalMoves.length&&!abnormalGames.length&&!aborts.size){
+      check((inputGo[e.name]||0)>0,'no search commands observed: '+e.name);
+      check(unmatchedGoCounts[e.name]===0,'go/move event count mismatch: '+e.name);
+    }
+    for(const [k,v] of e.options)check((optionCommands[e.name+': setoption name '+k+' value '+v]||0)>0,'option not observed: '+e.name+' '+k);
+    if(e.cmd===MERGED)for(const option of MODES.slice(1))check(equal(advertisedDefaults[e.name+': '+option],['false']),'default advertisement mismatch: '+e.name+' '+option);
+  }
+  let savedConfig=null;
+  if(exists(p.config)){
+    try{savedConfig=JSON.parse(await fsp.readFile(p.config,'utf8'));}catch(e){check(false,'invalid saved config: '+e.message);}
+  }else check(false,'missing saved config');
+  if(savedConfig){
+    const c=savedConfig;
+    check(c.seed===plan.seed&&c.opening?.file===plan.book&&c.opening?.format===0&&c.opening?.order===0&&c.opening?.start===1&&c.opening?.plies===-1,'saved opening/seed mismatch');
+    check(c.games===2&&c.rounds===plan.rounds&&c.concurrency===plan.concurrency&&c.recover===true&&c.noswap===false&&c.reverse===false,'saved schedule mismatch');
+    check(c.ratinginterval===2147483647&&c.output===1&&c.scoreinterval===1,'saved reporting mismatch');
+    for(const k of ['draw','resign','maxmoves','tb_adjudication','sprt'])check(c[k]?.enabled===false,'unexpected adjudication/SPRT '+k);
+    check(c.engines?.length===2,'saved engine count');
+    for(const e of plan.engines){
+      const actual=c.engines?.find(x=>x.name===e.name);
+      check(!!actual&&actual.cmd===e.cmd&&actual.args===''&&actual.limit?.nodes===20000&&actual.limit?.plies===0&&Object.values(actual.limit?.tc||{}).length>0&&Object.values(actual.limit.tc).every(x=>x===0),'saved engine/limits mismatch '+e.name);
+      check(!!actual&&equal([...actual.options].sort(),[...e.options].sort()),'saved options mismatch '+e.name);
+    }
+    const stats=c.stats?.[candidate+' vs '+baseline];
+    check(!!stats&&stats.wins===wld.wins&&stats.losses===wld.losses&&stats.draws===wld.draws,'saved config/event WLD mismatch (an interrupted batch may have an older autosave)');
+    check(c.pgn?.file===p.pgn&&c.pgn?.track_nodes===true&&c.pgn?.append_file===false&&c.log?.file===p.trace&&c.log?.engine_coms===true&&c.log?.level===1,'saved artifact settings mismatch');
+  }
+  const begin=tournaments.filter(e=>e.event==='tournament_started'),end=tournaments.filter(e=>e.event==='tournament_finished');
+  check(begin.length===1&&begin[0].total_games===plan.games&&begin[0].concurrency===plan.concurrency&&equal(begin[0].engines,[candidate,baseline])&&begin[0].sprt===false&&begin[0].resumed===false,'tournament start metadata mismatch');
+  check(end.length===1&&end[0].reason==='completed','tournament did not finish normally');
+  for(const [id]of starts)check(finishes.has(id)!==aborts.has(id),'missing or duplicate terminal event '+id);
+  check(starts.size===plan.games&&finishes.size===plan.games,'incomplete requested game count');
+  check(incompletePairs.length===0&&pairBins.reduce((a,b)=>a+b,0)===plan.rounds,'incomplete requested pairs');
+  check(pgnGames===finishes.size&&consoleFinishes.size===finishes.size&&equal(pgnWld,wld),'PGN/console/event totals differ');
+  const afterHashes=await hashFiles([plan.fastchess,plan.book,...plan.engines.map(e=>e.cmd)]);
+  for(const [file,before]of Object.entries(inputHashes))check(equal(before,afterHashes[file]),'input changed during batch: '+file);
+  const completed=processResult.code===0&&!processResult.signal&&!processResult.interrupted&&starts.size===plan.games&&finishes.size===plan.games&&end.length===1&&end[0].reason==='completed'&&errors.length===0;
+  const faultFree=!illegalMoves.length&&!abnormalGames.length&&!aborts.size&&!traceFindings.length&&!consoleFindings.length;
+  return {schema:1,kind:'fastchess-crash-legality',mode:plan.mode,seed:plan.seed,prefix:plan.prefix,requestedGames:plan.games,concurrency:plan.concurrency,
+    completed,passed:completed&&faultFree&&!errors.length,process:processResult,counts:{started:starts.size,finished:finishes.size,pgnGames,consoleGames:consoleFinishes.size,eventLines,moves:moveCount,...wld},
+    pairBins:{labels:['LL','LD','DD_or_WL','DW','WW'],counts:pairBins,completePairs:pairBins.reduce((a,b)=>a+b,0),incompletePairs,abnormalPairs},
+    failureCounts:{illegalMoveEvents:illegalMoves.length,illegalMoveGames:terminations.illegal_move||0,disconnectGames:terminations.disconnect||0,stallGames:terminations.stall||0,abortedGames:aborts.size,abnormalTerminations:abnormalGames.length,...traceSignalCounts},
+    failures:{illegalMoves,abnormalGames,abortedGames:[...aborts.values()],traceFindings,consoleFindings,eventProblems,processExitFindings},
+    reasons,terminations,wldChecks:{events:wld,console:consoleWld,pgn:pgnWld},inputGo,moveCountsByEngine,unmatchedGoCounts,optionCommands,advertisedDefaults,processExitCounts,
+    openings:{uniqueFens:selectedFens.size,missingFens:[...missingFens],orderedPairs:orderedOpenings,orderedPairsSha256:shaText(json(orderedOpenings))},
+    inputHashes,afterInputHashes:afterHashes,errors,tournaments,
+    note:'Counts only. Scored abnormal games remain in W/L/D and complete pair bins. A crash can be reported by fastchess as disconnect; log markers are not additional distinct games. No strength or speed conclusion. Raw final Elo text, if emitted by fastchess despite ratinginterval 0, is retained only in artifacts.'};
+}
+
+async function persistSummary(plan,summary) {
+  summary.persistenceErrors=[];
+  try{summary.artifacts=await hashFiles(Object.entries(plan.files).filter(([k])=>!['summary','hashes'].includes(k)).map(([,v])=>v));}
+  catch(e){summary.persistenceErrors.push('artifact hashing: '+e.message);summary.passed=false;}
+  try{
+    await fsp.writeFile(plan.files.summary,json(summary),{flag:'wx'});
+    const hashes={...summary.artifacts,...await hashFiles([plan.files.summary])};
+    await fsp.writeFile(plan.files.hashes,json(hashes),{flag:'wx'});
+  }catch(e){
+    summary.persistenceErrors.push('summary/hash persistence: '+e.message);summary.passed=false;
+    try{if(exists(plan.files.summary))await fsp.writeFile(plan.files.summary,json(summary));}catch{}
+  }
+  console.log('SUMMARY '+JSON.stringify({...summary,artifactHashesFile:plan.files.hashes}));
+  process.exitCode=summary.passed?0:summary.completed?2:3;
+}
+
+async function runBatch(plan) {
+  await fsp.mkdir(path.dirname(plan.prefix),{recursive:true});
+  for(const file of Object.values(plan.files))if(exists(file))throw new Error('Refusing to overwrite existing batch artifact: '+file);
+  await fsp.writeFile(plan.files.reservation,json({pid:process.pid,startedUTC:new Date().toISOString()}),{flag:'wx'});
+  const record={...plan,startedUTC:new Date().toISOString(),inputHashes:{}};
+  await fsp.writeFile(plan.files.command,json(record),{flag:'wx'});
+  await fsp.writeFile(plan.files.shell,'# cwd: '+plan.cwd+'\n'+plan.shellCommand+'\n',{flag:'wx'});
+  console.log('START '+JSON.stringify({mode:plan.mode,seed:plan.seed,games:plan.games,concurrency:plan.concurrency,prefix:plan.prefix,command:plan.shellCommand}));
+  let before;
+  try{
+    before=await hashFiles([plan.fastchess,plan.book,...plan.engines.map(e=>e.cmd)]);
+    record.inputHashes=before;await fsp.writeFile(plan.files.command,json(record));
+    for(const [file,h]of Object.entries(before))if(h.missing)throw new Error('Missing input: '+file);
+  }catch(e){await persistSummary(plan,{schema:1,mode:plan.mode,seed:plan.seed,prefix:plan.prefix,requestedGames:plan.games,completed:false,passed:false,process:{launched:false},preflightError:e.stack,inputHashes:before||{}});return;}
+  const out=fs.createWriteStream(plan.files.stdout,{flags:'wx'}),err=fs.createWriteStream(plan.files.stderr,{flags:'wx'}),combined=fs.createWriteStream(plan.files.console,{flags:'wx'});
+  let child,interrupted=null,killTimer=null,spawnError=null;const ioErrors=[];
+  const interrupt=signal=>{interrupted??=signal;try{if(child?.pid)process.kill(-child.pid,'SIGTERM');}catch{};killTimer??=setTimeout(()=>{try{if(child?.pid)process.kill(-child.pid,'SIGKILL');}catch{}},5000);};
+  for(const [file,stream]of [[plan.files.stdout,out],[plan.files.stderr,err],[plan.files.console,combined]])stream.on('error',e=>{ioErrors.push({file,error:e.message});interrupt('artifact_io_error');});
+  child=spawn(plan.executable,plan.args,{cwd:plan.cwd,stdio:['ignore','pipe','pipe'],detached:true});
+  child.stdout.on('data',x=>{if(!out.destroyed)out.write(x);if(!combined.destroyed)combined.write(x);});child.stderr.on('data',x=>{if(!err.destroyed)err.write(x);if(!combined.destroyed)combined.write(x);});
+  const onInt=()=>interrupt('SIGINT'),onTerm=()=>interrupt('SIGTERM');process.on('SIGINT',onInt);process.on('SIGTERM',onTerm);
+  const progress=setInterval(()=>{try{const t=fs.readFileSync(plan.files.console,'utf8');const last=[...t.matchAll(/^Score of (\S+) vs (\S+): (\d+) - (\d+) - (\d+).*\s(\d+)$/gm)].at(-1);console.log('PROGRESS '+JSON.stringify({prefix:plan.prefix,finished:last?+last[6]:0,wins:last?+last[3]:0,losses:last?+last[4]:0,draws:last?+last[5]:0}));}catch{}},30000);
+  const result=await new Promise(resolve=>{child.on('error',e=>{spawnError=e.message;});child.on('close',(code,signal)=>resolve({code,signal,spawnError,interrupted,ioErrors,timedOut:code===124||code===137,finishedUTC:new Date().toISOString()}));});
+  clearInterval(progress);if(killTimer)clearTimeout(killTimer);process.off('SIGINT',onInt);process.off('SIGTERM',onTerm);
+  await Promise.all([out,err,combined].map(stream=>new Promise(resolve=>{if(stream.destroyed)resolve();else {stream.once('error',resolve);stream.end(resolve);}})));
+  result.interrupted=interrupted;
+  let summary;
+  try{summary=await auditBatch(plan,result,before);}catch(e){summary={schema:1,mode:plan.mode,seed:plan.seed,prefix:plan.prefix,requestedGames:plan.games,completed:false,passed:false,process:result,auditException:e.stack,inputHashes:before};}
+  await persistSummary(plan,summary);
+}
+
+async function main(argv) {
+  if(argv.includes('--help')||!argv.length){console.log('Usage: node match_all.mjs MODE SEED [GAMES=400] [CONCURRENCY=4] [PREFIX] [--dry-run]\nMODE: '+MODES.join(' | ')+'\nEach invocation is one bounded batch, maximum 400 games, paired UHO openings, fixed seed, timeout 420s plus kill-after 5s, leaving time for audit and persistence within the controller budget. No clocks, adjudication, SPRT or strength/speed conclusions.\n--dry-run prints the exact command/config without launching engines or writing artifacts.\n--audit-only PREFIX rechecks existing artifacts read-only and prints SUMMARY; it never launches a match.');return;}
+  if(argv[0]==='--audit-only'){
+    if(argv.length!==2)throw new Error('--audit-only requires one artifact prefix');
+    const r=JSON.parse(await fsp.readFile(path.resolve(argv[1])+'.command.json','utf8'));
+    const saved=exists(r.files.summary)?JSON.parse(await fsp.readFile(r.files.summary,'utf8')):{};
+    const summary=await auditBatch(r,saved.process||{},r.inputHashes||{});
+    console.log('SUMMARY '+JSON.stringify(summary));process.exitCode=summary.passed?0:summary.completed?2:3;return;
+  }
+  const dry=argv.includes('--dry-run'),pos=argv.filter(x=>x!=='--dry-run');
+  if(pos.length<2||pos.length>5)throw new Error('Expected MODE SEED [GAMES] [CONCURRENCY] [PREFIX]');
+  const plan=makePlan(pos[0],pos[1],pos[2]??400,pos[3]??4,pos[4]);
+  if(dry){console.log('PLAN '+JSON.stringify(plan));return;}
+  await runBatch(plan);
+}
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))main(process.argv.slice(2)).catch(e=>{console.error('SUMMARY '+JSON.stringify({passed:false,completed:false,fatal:e.stack}));process.exitCode=3;});

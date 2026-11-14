@@ -1,8 +1,8 @@
 # Eight-hour combined Forge integration and soak
 
-Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T13:20:00.668Z.
+Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T13:25:48.418Z.
 
-Elapsed at snapshot: 128.48 minutes; current phase: 2C; recorded pushes: 21. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
+Elapsed at snapshot: 134.27 minutes; current phase: 2C; recorded pushes: 22. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
 
 Base: `fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca`; merged source: `f27b1971e459581ad4c85b7015f6af83bbfd4af6`; unchanged lock: `16833ecc03b425586f91f4c8834dea8807bf4c22`. [Source provenance](../INTEGRATION_ALL.md), [progress](PROGRESS.md), [raw batches](batches/), [test matrix](TEST_MATRIX.md).
 
@@ -16,7 +16,7 @@ Recorded default pins: bench11 = 312,866; bench13 = 862,329; perft5 = 4,865,609.
 | 2A preparation | Retain all 40 supplied KRK roots; select generated KQK/KBBK using lock T1 positive exact mate scores. | 2,000 completed units; 2,442 trials; 402 selected generated; 0 faults | Complete: 40 KRK, 40 KQK and 40 KBBK roots frozen |
 | 2A | 40 KRK + 40 KQK + 40 KBBK; lock and merged; T2/T4; depth 14; ten cold-state trials per group. | 480 completed units; 4,800 trials; 298 mate score misses; 55 original t12 criterion flags; 298 faults | Complete: merged 0/2,400 and lock 298/2,400 mate-score misses |
 | 2B | 200 fixed-seed legal bare-king positions; lock and merged; depth 12; reported T1/T2 conditions. | 800 completed units; 800 trials; 0 faults | Complete: 800 depth-12 searches on 200 roots, both builds at Threads 1/2; no fault |
-| 2C | Fixed corpus comparison; completed eligible positions and exclusions tracked separately. | 82,801 positions; 626 excluded; 7 differences low clock; 24 differences high clock; 7 fault positions | Running |
+| 2C | Fixed corpus comparison; completed eligible positions and exclusions tracked separately. | 97,795 positions; 715 excluded; 7 differences low clock; 31 differences high clock; 7 fault positions | Running |
 | 2D | Sanitizer self-play; inspect each batch for its exact node/depth/thread limits. | 194 games; 27,831 searches; 0 faults | Running |
 | 2E | ThreadSanitizer runs; exact thread and search conditions remain in batch evidence. | No completed counts recorded | Pending; no completed counts recorded |
 | 2F | ASAN+UBSAN self-play with all three new options enabled; exact limits remain in batch evidence. | No completed counts recorded | Pending; no completed counts recorded |
@@ -140,7 +140,8 @@ These notes retain their original recording context; subsequent retry coverage i
 | [2C #2](batches/2C-0002.txt) | 4754000 | 16,907 records completed; 16,775 positions | See raw partial evidence | — | Attempt 3 recorded as retry; completion not inferred | driver retained partial work separately |
 | [2C #3](batches/2C-0003.txt) | 4754000 | 16,274 records completed; 16,139 positions | See raw partial evidence | — | Attempt 4 recorded as retry; completion not inferred | driver retained partial work separately |
 | [2C #4](batches/2C-0004.txt) | 4754000 | 16,534 records completed; 16,410 positions | See raw partial evidence | — | Attempt 5 recorded as retry; completion not inferred | driver retained partial work separately |
-| [2C #5](batches/2C-0005.txt) | 4754000 | 16,847 records completed; 16,727 positions | See raw partial evidence | — | Retry not recorded | driver retained partial work separately |
+| [2C #5](batches/2C-0005.txt) | 4754000 | 16,847 records completed; 16,727 positions | See raw partial evidence | — | Attempt 6 recorded as retry; completion not inferred | driver retained partial work separately |
+| [2C #6](batches/2C-0006.txt) | 4754000 | 15,083 records completed; 14,994 positions | See raw partial evidence | — | Retry not recorded | driver retained partial work separately |
 
 A retry link records a later attempt; it does not imply that every partial unit has completed. Retained completed units are already included once in phase totals.
 
@@ -246,7 +247,7 @@ A retry link records a later attempt; it does not imply that every partial unit 
 
 </details>
 
-Optional audit snapshot: 2026-11-14T13:19:56.463Z; state SHA256 `710e20177ad6e12d7dd1b9fa58211af0e6e4f524f723fbcc91008c3c1e8d1b7f`; apply mode true; reported errors 0, warnings 2. This snapshot is not assumed to verify later state or active work. [Full audit](preparation/latest-audit.txt).
+Optional audit snapshot: 2026-11-14T13:25:43.534Z; state SHA256 `8a7f57e4aad14f20fc20f77d33364a47581108866cf2e804c9b87f33cba7a083`; apply mode true; reported errors 0, warnings 2. This snapshot is not assumed to verify later state or active work. [Full audit](preparation/latest-audit.txt).
 
 | Audited batch | Raw verification | Partial safety observations | Sanitizer occurrences |
 | --- | --- | --- | --- |
@@ -265,6 +266,7 @@ Optional audit snapshot: 2026-11-14T13:19:56.463Z; state SHA256 `710e20177ad6e12
 | 2C:3 | Raw records inspected; see audit issues | 0 | 0 |
 | 2C:4 | Raw records inspected; see audit issues | 0 | 0 |
 | 2C:5 | Raw records inspected; see audit issues | 0 | 0 |
+| 2C:6 | Raw records inspected; see audit issues | 0 | 0 |
 
 <details>
 <summary>Audit issues and limits</summary>
@@ -702,19 +704,19 @@ This appendix preserves every state total, including overlapping categories and 
 | 2KRKsplit | non_mating_move | 0 |
 | 2KRKsplit | sanitizer_reports | 0 |
 | 2KRKsplit | batches | 2 |
-| 2C | records_completed | 83427 |
-| 2C | positions | 82801 |
-| 2C | positions_low_clock | 82767 |
-| 2C | positions_high_clock | 34 |
+| 2C | records_completed | 98510 |
+| 2C | positions | 97795 |
+| 2C | positions_low_clock | 97753 |
+| 2C | positions_high_clock | 42 |
 | 2C | differences_low_clock | 7 |
-| 2C | differences_high_clock | 24 |
+| 2C | differences_high_clock | 31 |
 | 2C | fault_positions | 7 |
-| 2C | excluded | 626 |
-| 2C | excluded_no_legal | 30 |
-| 2C | excluded_insufficient | 595 |
+| 2C | excluded | 715 |
+| 2C | excluded_no_legal | 34 |
+| 2C | excluded_insufficient | 680 |
 | 2C | excluded_halfmove100 | 1 |
 | 2C | invalid_fens | 0 |
-| 2C | engine_runs | 166222 |
+| 2C | engine_runs | 196350 |
 | 2C | illegal | 0 |
 | 2C | missing | 0 |
 | 2C | missing_info | 0 |
@@ -724,10 +726,10 @@ This appendix preserves every state total, including overlapping categories and 
 | 2C | crashes | 0 |
 | 2C | nonzero_exits | 0 |
 | 2C | shutdown_timeouts | 0 |
-| 2C | reproduction_pairs | 310 |
-| 2C | reproduction_differences | 310 |
+| 2C | reproduction_pairs | 380 |
+| 2C | reproduction_differences | 380 |
 | 2C | reproduction_fault_pairs | 70 |
-| 2C | batches | 5 |
+| 2C | batches | 6 |
 
 </details>
 
