@@ -37,7 +37,7 @@ Frozen input commits
 14 9bb8e1e5bb6583431ca78bcd979bf4c298694c5c grok47/r3-14-draw-jitter
 15 24fc1d9c0ebf0b044cc96c5fe24260a2da48fa4e grok47/r3-15-tm-finish-iteration
 16 3337249994829603e92da529a25f42fc3149d4bb grok47/r3-16-tm-node-share
-23 68b3720c4274e3a646f73ca92b228cbb686b5a3e grok47/r3-23-sound-mate-pruning
+23 21867c5ac27a8db6f4d8dd2187c4fa7ede5204e8 grok47/r3-23-sound-mate-pruning
 
 Conflict handling. Helpers observe the shared node budget and then
 ignore the clock. The main worker stops when Move Overhead has already
@@ -76,7 +76,7 @@ QuietExtinction       true   3f06b04a630445e7cabe9d27a3315d73e6a711f3    632155 
 DrawJitter            8      9bb8e1e5bb6583431ca78bcd979bf4c298694c5c    857947     857947
 TmFinishIteration     true   24fc1d9c0ebf0b044cc96c5fe24260a2da48fa4e    862329     862329
 TmNodeShare           true   3337249994829603e92da529a25f42fc3149d4bb    862329     862329
-SoundMatePruning      true   68b3720c4274e3a646f73ca92b228cbb686b5a3e    980408     980408
+SoundMatePruning      true   21867c5ac27a8db6f4d8dd2187c4fa7ede5204e8    980408     980408
 
 softnodes is a go keyword, not a setoption. The r3-12 commit
 6d8717d287cc5f1038d53355b8b03d3cbba9e604 built with defaults gives
@@ -178,6 +178,7 @@ Tip r3-02 e7f5bc837eb7461c21779dc182eda5b9cfc4b1c7 merged with no source change;
 Tip r3-05 da44ae67e647d50f73ee3477fe1e3c255c38abf4 merged with no source change; pins and the option table matched.
 Tip r3-09 1482b396e71968005ac296030c2a84936729aa1c merged with no source change; pins and the option table matched.
 Tip r3-10 d13efcd0b18ba10c5d88651ebffbff489d3a1818 merged with no source change; pins and the option table matched.
+Tip r3-23 21867c5ac27a8db6f4d8dd2187c4fa7ede5204e8 merged with no source change; pins and the option table matched.
 Not verified. No `R3 FOLLOW-UP DONE` commit existed to merge.
 Playing strength was not measured. Address and thread sanitizers were
 not run on the integrated tree. The KRK threads-2 miss above was not
