@@ -1,0 +1,10 @@
+import fs from 'node:fs';import cp from 'node:child_process';import crypto from 'node:crypto';
+const index=Number(process.argv[2]),r='/workspace/work/r4-run',s=JSON.parse(fs.readFileSync(r+'/state.json'));
+if(!s.guardAccepted||!s.soakBudgetStart)throw Error('acceptance/budget not started');
+if(Date.now()+475000>Date.parse(s.soakBudgetEnd))throw Error('insufficient remaining budget for full batch');
+const plan=JSON.parse(fs.readFileSync(r+'/inputs/successor-play-plan.txt')),batch=plan.batches[index];if(!Number.isInteger(index)||!batch)throw Error('index');
+const binary=r+'/tests-'+batch.mode+'/play_driver',inputs=[binary,s.repo+'/forge-combo29/tests_astra_mateguard/play_driver.cpp',s.repo+'/forge-combo29/src/search.cpp',s.repo+'/forge-combo29/include/forge/search.hpp'];
+const inputHashes=Object.fromEntries(inputs.map(p=>[p,crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex')]));
+fs.writeFileSync(r+'/inputs/'+batch.label+'-provenance.txt',JSON.stringify({started:new Date().toISOString(),batch,inputHashes},null,2)+'\n',{flag:'wx'});
+const argv=['node',r+'/command.mjs',batch.label,...batch.argv];console.log('BATCH '+JSON.stringify({index,batch,argv}));
+const result=cp.spawnSync(argv[0],argv.slice(1),{stdio:'inherit',timeout:455000});process.exit(result.status??1);
