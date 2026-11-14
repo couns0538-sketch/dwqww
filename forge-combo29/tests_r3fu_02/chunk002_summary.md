@@ -2,14 +2,14 @@
 
 Status: in progress. Openings 501-1000, both colors, 1000 games. Counts are only games with a complete Result tag in this copy. Not a strength claim.
 
-- Snapshot time: 2026-11-14T17:17:47Z
-- Complete games in this copy: 368
-- W-L-D (ThreatHistory on first): 112-91-165
-- Points: 194.5 / 368 (52.85%)
-- Elo: 19.85 +/- 26.37 (95%)
-- LOS: 93.03%
-- Pentanomial Ptnml(0-2): [4, 45, 71, 51, 12]
-- Complete pairs: 183; rounds with one game so far: 2
+- Snapshot time: 2026-11-14T17:44:14Z
+- Complete games in this copy: 732
+- W-L-D (ThreatHistory on first): 191-197-344
+- Points: 363.0 / 732 (49.59%)
+- Elo: -2.85 +/- 18.32 (95%)
+- LOS: 38.03%
+- Pentanomial Ptnml(0-2): [11, 111, 135, 91, 18]
+- Complete pairs: 366; rounds with one game so far: 0
 
 Command:
 
