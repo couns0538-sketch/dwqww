@@ -1,54 +1,105 @@
 # t12: two-thread KRK mate miss
 
-## What was found
+This file is the account of the bug. The command logs that support it are further down.
 
-With `Threads 2`, a depth-14 search of king and rook against king sometimes returns a centipawn score for a position that a `Threads 1` search mates. The miss is concentrated on longer mates. On `8/8/8/2R5/8/8/1k6/3K4 w - - 0 1` (mate 10, `d1d2`, score 31981 with one thread) the unchanged engine missed the mate score in 8 of 400 searches and again in 6 of 400. The 40-position test at 10 repeats is near the edge of that rate: one unchanged run missed 1 of 400, and a run at 40 repeats missed 1 of 1600. Both misses were that same position, a centipawn score on `d1d2`.
+## What was wrong
 
-The shared hash table is the only search state the workers share. Two stores were wrong.
+Two workers search the same root and write one hash table. Each worker has its own history tables. The table is the only search result they share. With one worker the mate is stable. With two workers a depth-14 search of a long king-and-rook mate sometimes returns a centipawn score, or a mate score on a move that does not mate that fast.
 
-1. Replacement. A proved mate was replaced by a shallower store that does not prove mate. Bound 2 is a lower bound and bound 1 is an upper bound. A positive mate is proved only by a lower or exact bound. This entry was logged on the unchanged engine, then overwritten:
+The position that shows it is:
+
+```
+8/8/8/2R5/8/8/1k6/3K4 w - - 0 1
+```
+
+White king d1, black king b2, white rook c5. One thread, depth 14, hash 16, returns score 31981 and move `d1d2`. Score 31981 is mate in 10: mate scores use 32000, the distance in plies is `32000 - |score|`, and the move count is `(distance + 1) / 2`. Here the distance is 19 plies, which is mate in 10. Two threads, same limit, sometimes return about +450 to +480 centipawns for `d1d2` instead.
+
+A hash entry is 16 bytes: position key, move, score, static eval, depth, and a packed generation/bound byte. The bound is the low 2 bits.
+
+| Value | Bound | Meaning |
+| --- | --- | --- |
+| 0 | none | empty |
+| 1 | upper | the true score is at most the stored score |
+| 2 | lower | the true score is at least the stored score |
+| 3 | exact | the true score is the stored score |
+
+A mate score is any score at or outside 31872 (`32000 - 128`). That number is a mate only when the bound points the right way.
+
+- Side to move can force mate: score `>= 31872` and the bound is lower or exact.
+- Side to move is getting mated: score `<= -31872` and the bound is upper or exact.
+
+An upper bound of `31996` does not prove a mate. It says the score is at most 31996, which is also true of an ordinary centipawn score. A lower bound of a large negative mate has the same problem in the other direction.
+
+The lock's store does two things, and they are separate. First, if the incoming move is not empty, or the entry is a different position, it writes the move. Second, it replaces the score, depth, and bound when any of these is true: the new bound is exact, the position differs, the new depth is greater than the old depth minus 4 (`depth + 4 > entry.depth`), or the generation differs. A store three plies shallower therefore overwrites a deeper entry. An exact store overwrites any depth.
+
+That rule is what deletes the mate. These two lines were logged on the unchanged engine, on the position above, before the incoming store was written. Bound 2 is lower. Bound 1 is upper. `a1a1` is the empty move (from and to are both square 0); an empty move does not overwrite a saved move when the position matches, but the score and bound still change.
 
 ```
 REPLACE 00 before depth 4 score 31997 bound 2 move d1c2 | incoming depth 1 score 451 bound 1 move a1a1
 ```
 
-Depth 4 held a proved mate (31997, lower bound, `d1c2`). The incoming store is one ply deep, a centipawn upper bound, and an empty move (`a1a1` is from = to = 0). The old rule replaces the score when `depth + 4 > entry.depth`, so 1 + 4 > 4 and the mate is gone. The same log shows a depth-10 proof replaced by a depth-9 upper bound:
+Before the store the entry is a proved mate: depth 4, score 31997 (mate distance 3), lower bound, move `d1c2`. The incoming store is depth 1, score 451, upper bound. `1 + 4 > 4`, so the lock replaces the entry. After the store the table says depth 1, score 451, upper bound. The mate proof is gone.
 
 ```
 REPLACE 04 before depth 10 score 31987 bound 2 move d3c3 | incoming depth 9 score 31996 bound 1 move a1a1
 ```
 
-An upper bound of a positive mate does not prove the mate (`score <= 31996` is true of ordinary scores too).
+Before the store: depth 10, score 31987, lower bound, move `d3c3`. That is a proved mate. The incoming score 31996 looks like a mate, but the bound is upper, so it is not a proof. `9 + 4 > 10`, so it replaces the proof anyway. After the store the table says "score is at most 31996" at depth 9. A later search can treat that as an ordinary bound and never play the mating move.
 
-2. Cutoff. A non-mate bound stored by the other thread at the same depth was treated as proved. During the same unchanged run:
+The second fault is the cutoff, not the replacement. A non-PV node returns the table score immediately when the stored depth is at least the depth being searched, the halfmove clock is under 90, and the bound agrees with the window: exact, or a lower bound at least beta, or an upper bound at most alpha. Both workers use that rule on entries the other worker just wrote.
 
 ```
 CUT ply 2 depth 13 tt_depth 13 score 442 bound 1 move a1a1 fen 8/8/8/1R6/8/2k5/8/3K4 w - - 2 2
 ```
 
-The node is depth 13 and the table entry is depth 13. The upper bound 442 cuts the node off. The root then accepts a centipawn score for `d1d2` instead of the mate. One thread does not do this to itself often enough to miss; the second thread's iteration supplies the bound.
+This node is depth 13, two plies under a depth-14 root. The table entry is also depth 13. The bound is upper and the score is 442. When alpha is at least 442 the node returns 442 and does not search. The mating line is then worth about 442 centipawns. The root is searching an aspiration window around the previous centipawn score (one logged miss had alpha 465 and beta 501, and `d1d2` scored 475 inside that window). The iteration accepts 475. It never opens the window out to a mate.
 
-Other candidates, and why they are not the cause:
+One thread does not hit this often enough to miss. Its own depth-13 search finds the mate, so depth 14 starts inside a mate window and returns 31981, `d1d2`. The second thread is the extra writer. It is on its own iterative deepening of the same root, with different move ordering, and it stores a centipawn bound at the depth the first thread is still searching. The first thread then cuts off on that bound. Stopping the helper from writing the table made the miss worse, so the helper's entries are useful. The fault is trusting a centipawn bound at a depth the other thread has not finished.
 
-- A torn read (key from one position, data from another) does not fit the locked path. With two or more workers every probe and store holds the stripe mutex across the whole entry. The exclusive, unlocked path is taken only for one worker. Misses still happened on that locked path.
-- Mate scores are already adjusted by ply on every store (`score_to_tt`) and every read (`score_from_tt`). The distances in the log fit that adjustment.
-- A node that sees `stop` returns 0 before it stores. These searches are depth-limited, so `stop` is set only after the main worker has returned.
-- Storing every non-mate upper bound one ply shallower, to discount pruned and reduced moves, made the hard position worse (3 of 400 on one run). Helpers' ordinary centipawn bounds are needed to find the mate. The bad event is a bound used at a depth the other thread has not finished proving.
+Short mates (mate in 1 to 5) almost never miss at depth 14. The search proves them before the bad entry matters. The miss needs a mate near the horizon, which is why it shows up on this mate in 10.
 
-Preserving proved mates without the cutoff change still left misses. The cutoff change is what dropped the hard position from 8 of 400 to 0 of 2000. Both changes are in the tree. Neither turns off hash sharing, clears history, lowers the thread count, or locks the whole search. Helpers still write and read the table.
+## What was found
 
-## The change
+The test builds at least 40 legal KRK positions whose one-thread depth-14 search returns a positive mate, and whose move still mates in a depth-18 search of the reply. It then searches each position with two threads, hash 16, depth 14, and a cleared table every time. A miss is a non-mate score, or a move that does not mate at depth 18. The reply is searched at 18 because `d1e2` in the position above really does mate, and a depth-14 search of the reply still returns a centipawn score. Calling that a non-mating move would be a bad test, not an engine miss.
 
-While more than one worker is searching, a proved mate is kept against a shallower store and against a same-depth store that is not exact and does not itself prove mate. A deeper store, or a same-depth exact result, may still replace it. In that same multi-worker search, a non-mate table cutoff is used only when the stored depth is at least two plies deeper than the node; a mate cutoff is unchanged. One worker leaves both rules as they were, which is why `bench 11`, `bench 13`, and `go perft 5` stay on the lock's node counts. `FORGE_T12_MATE_TT` defaults to 1; 0 compiles the lock's replacement and cutoff.
+On the unchanged lock, two threads, hash 16, depth 14:
 
-## Files changed
+| Run | Misses |
+| --- | --- |
+| 40 positions × 10 | 0, then 1, then 0. The one miss was the mate-10 position, run 2, `cp 445 d1d2` |
+| 40 positions × 40 | 1 of 1600, same position, run 7, `cp 476 d1d2` |
+| that position alone × 400 | 8, and a later run 6 |
+| that position × 200, with the store/cutoff log | 1, and the `REPLACE` / `CUT` lines above |
 
-- `forge-combo29/src/search.cpp`
-- `forge-combo29/include/forge/search.hpp`
-- `forge-combo29/tests_t12/krk_mate_test.cpp` (new)
-- `forge-combo29/REPORT_t12.md` (this file)
+Ten repeats of 40 positions is only 10 tries at the one hard position, so a run can be 0. Forty repeats of that position alone is where the miss is obvious.
 
-Engine diff: 40 insertions, 5 deletions. No existing check was removed.
+These were checked and are not the cause.
+
+- Torn read. With two or more workers every probe and every store holds the stripe mutex for the whole entry. The unlocked path is used only when one worker is searching. The miss happens on the locked path, so the key and the data are not coming from two positions.
+- Missing ply adjustment. Every store goes through `score_to_tt` and every read through `score_from_tt`. A positive mate is stored as `score + ply` and read back as `score - ply`. The distances in the log match that. Nothing in the log is a mate that overflowed the 16-bit score.
+- A search cut off by `stop`. A node that sees the stop flag returns 0 and does not store. These runs are depth-limited. The stop flag is set only after the main worker has already returned its result.
+- "Do not store a pruned upper bound." Saving every non-mate upper bound one ply shallower, so a reduced or pruned child could not look fully searched, made the hard position worse: 3 of 400 on one run. The ordinary centipawn bounds are how the search finds the mate. The bad event is using one at a depth the other thread has not proved.
+- Keeping the mate proof and leaving the cutoff alone. The mate still disappeared. The same-depth centipawn cutoff was still enough to make the root return a centipawn score.
+- Full-window search, with aspiration turned off for two threads. The root still sometimes scored `d1d2` as a centipawn value. The window is how a centipawn result gets accepted. It is not what makes the tree return that value.
+- Helper threads not writing the table. That is the earlier rejected change. It threw away useful entries and the miss got worse.
+
+Preserving the proved mate and refusing a non-mate cutoff unless the entry is at least two plies deeper is the pair that removed the miss. Mate cutoffs are unchanged, so a real mate still cuts off at the depth it was stored.
+
+## What changed
+
+`forge-combo29/src/search.cpp` and `forge-combo29/include/forge/search.hpp`.
+
+While more than one worker is searching, `keep_proved_mate` refuses a store that would erase a proved mate. A shallower store is refused. A same-depth store is refused when it is not exact and does not itself prove mate. A deeper store may replace the mate, so a wrong mate can still be corrected. A same-depth exact score may also replace it, because that search finished inside its window. The flag that turns this on is `protect_mates_`. It is set before the workers start and cleared after they join. It is atomic: a store that overlaps the end of the search loads it with acquire, and the search stores it with release.
+
+In the same multi-worker search, a non-mate cutoff requires `tt_depth >= depth + 2` instead of `tt_depth >= depth`. A mate score still cuts off at `tt_depth >= depth`. One worker uses `tt_depth >= depth` and does not set `protect_mates_`, so its replacement and cutoff are the lock's. That is why `bench 11`, `bench 13`, and `go perft 5` stay on the lock's node counts.
+
+`FORGE_T12_MATE_TT` defaults to 1. Compiling with `-DFORGE_T12_MATE_TT=0` forces `keep` false and `tt_need = depth`, which is the lock. The default is 1 because this change cannot edit the build file, and a default of 0 would leave the miss in the built engine. With the switch off, the mate-10 position missed 10 of 400. With it on, the counts below are 0.
+
+Helpers still read the table and still write it. Nothing clears history or correction tables. The thread count is not lowered inside the engine. There is no sleep and no lock around the whole search.
+
+`forge-combo29/tests_t12/krk_mate_test.cpp` is the program that builds the 40 positions and counts the misses. It returns 1 when the miss count is not 0.
+
+`Threads 1`, `Hash 16`, `OwnBook false` after the change: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609.
 
 ## Counts
 
