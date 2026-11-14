@@ -1,22 +1,60 @@
 # Task 1: capture list overflow
 
+Lock source is `lock/combo29-20261110` at `16833ecc`. The write is in `MovePicker::next` in `forge-combo29/src/search.cpp`.
+
 ## What was wrong
 
-`MovePicker` keeps SEE-losing captures in `bad_captures_`, a `std::array<Move, 64>`, and stores them with `bad_captures_[bad_count_++] = move` (`src/search.cpp`, the write at line 469 on the lock). Nothing stops `bad_count_` at 64. The move generator can emit more than 64 captures in a legal position, and the main-search picker stores every capture that fails `see_ge(move, 0)`.
+A main-search node that is not in check generates captures, then hands them out one at a time from `GoodCaptures`. For each capture, `pick_best` selects the highest scored one still in the list. If that move is the transposition-table move it is skipped, because it was already returned. Otherwise the picker asks `see_ge(move, -move_score_threshold(move))`. `move_score_threshold` returns 0, so the test is `see_ge(move, 0)`: the exchange on the destination is at least 0 centipawns for the mover. A capture that fails is not returned yet. It is stored and the scan continues:
 
-The position `3r4/Pn1Q1p2/1Q1n1QpN/1p1Q1pRB/1Qbp1QpN/2bQ1pRB/3r1QpK/2k2q2 w - - 0 1` is legal, not in check, and has 68 pseudo-legal captures with negative SEE. A depth-1 search of that position writes past the array.
+```cpp
+if (!board_.see_ge(move, -move_score_threshold(move))) {
+    bad_captures_[bad_count_++] = move;
+    continue;
+}
+```
 
-## The fix
+On the lock, `bad_captures_` is `std::array<Move, 64>`. `std::array::operator[]` does not check the index. The 65th losing capture writes one past the object. Nothing in that branch compares `bad_count_` with 64. The same file does check the size of `quiets_tried` and `captures_tried` before writing those. This buffer does not.
 
-`bad_captures_` is now `std::array<Move, MoveList::Capacity>`. `MoveList::Capacity` is 256, the same bound as the generator that fills the picker. Both the uninitialized and the zero-initialized declarations were changed, so a build that does not define `FORGE_SPD_NO_ZERO_MOVELISTS` is covered too. The picker still stores every losing capture and still returns them in the same order. Positions that never pass 64 losing captures, including the bench set, walk the same prefix of the array.
+The stored moves are played later, at stage `BadCaptures`, by `bad_captures_[bad_index_++]` while `bad_index_ < bad_count_`. Dropping the 65th capture would make a legal move disappear from the node. The list has to be large enough to hold every losing capture the generator produced.
+
+The write happens only on this path. A node in check uses evasions. Quiescence uses `QsCaptures` and returns every capture without this store. The overflow is a non-check main-search node whose capture list contains more than 64 SEE-losing moves. The lock build sets `FORGE_SDK_BADCAP_PREFIX` to 0, so the separate array is the one that is compiled. `FORGE_SPD_NO_ZERO_MOVELISTS` is 2, so the array is the uninitialized declaration, not the `{}` one. Both declarations were 64 slots.
+
+`MoveList::Capacity` is 256. `generate_captures` fills a `MoveList` and then copies into `moves_`, which is also 256 scored slots. A capture that was generated once is stored in `bad_captures_` once. The generator's own `push_back` only `assert`s `size_ < Capacity`, and the release build defines `NDEBUG`, so that assert is absent. The 64-slot list is smaller than the buffer the generator is already allowed to fill.
+
+## What the run found
+
+The position `3r4/Pn1Q1p2/1Q1n1QpN/1p1Q1pRB/1Qbp1QpN/2bQ1pRB/3r1QpK/2k2q2 w - - 0 1` loaded. `in_check` was 0. Counting pseudo-legal captures (`pseudo_legal_moves(true)`, the same captures-and-promotions set the picker generates) with `see_ge(move, 0)` false gave 68. That is four past the end of a 64-slot array.
+
+A depth-1 search, hash 16 MB, one thread, was then started. On the lock `search.cpp`, AddressSanitizer and UndefinedBehaviorSanitizer aborted before a best move. The report is a write fault inside `MovePicker::next` at line 469, the `bad_captures_[bad_count_++] = move` statement. The stack is `main` to `Searcher::search` to `Worker::search` to `MovePicker::next`. Exit status 1. The program had already printed `in_check 0` and `losing_captures 68`.
+
+The same test linked against this branch's `search.cpp` printed:
+
+```
+in_check 0
+losing_captures 68
+bestmove d3b1
+nodes 176
+```
+
+Exit status 0. No sanitizer diagnostic. `d3b1` is legal in the position.
+
+The release binary, Threads 1, Hash 16, OwnBook false, printed `bench 11` = 312866, `bench 13` = 862329, and start-position `go perft 5` = 4865609. Those are the lock pins. A bench position that never stores a 65th losing capture walks the same `bad_count_` entries as before. The extra array slots are not read.
+
+## What changed
+
+Both declarations of the array are now `std::array<Move, MoveList::Capacity>`. `MoveList::Capacity` is 256. The lock build uses the uninitialized one (`FORGE_SPD_NO_ZERO_MOVELISTS` is set). The zero-initialized declaration is the same size so a build that does not set that switch is covered too.
+
+The store is still `bad_captures_[bad_count_++] = move`. The order of returned moves is unchanged: good captures first, then killers, the counter move, and quiets, then the losing captures in the order they were stored. A node with 64 or fewer losing captures reads the same prefix. A node with 68 stores all 68 and plays them from the bad-capture stage.
+
+`FORGE_SDK_BADCAP_PREFIX` was left at 0. That switch keeps losing captures in the consumed front of `moves_` instead of this array. It was not turned on.
+
+Engine source diff in `search.cpp`: 4 insertions, 2 deletions.
 
 ## Files changed
 
 - `forge-combo29/src/search.cpp`
 - `forge-combo29/tests_t1/bad_capture_overflow.cpp`
 - `forge-combo29/REPORT_t1.md`
-
-Engine source diff: 4 insertions, 2 deletions.
 
 ## Commands and output
 
