@@ -41,6 +41,16 @@ The audit text calls `1.Ra1` mate in 3 and gives `1...a6 2.Rxa6 bxa6 3.Kxb8#`. T
 - The proof program passed again under address and undefined-behavior sanitizers.
 - The clang binary, option left off, matches the g++ depth-8 line (`mate 5`, 890 nodes). With the option on it matches the g++ mate (`mate 4`, 3088 nodes, the same PV).
 
+## Follow-up
+
+Replaying one principal variation is not treated as proof that the mate is forced. `forge-combo29/tests_r3fu_23/mate_and_arms.cpp` walks every legal defender reply. A full-width legal-move search of `kbK5/pp6/1P6/7p/8/7P/7B/1R6 w - - 0 1` finds no forced mate in 5 or 6 plies and a forced mate in 7 (41041 prover nodes, 6801 defender replies). With the option off, depth 8 still returns 31991 (`mate 5`) for `h2b8`. With the option on, depth 8 and 9 return 31993. After `h2b8`, every black reply (`h5h4`, `a7a6`, `a7a5`, `a7b6`) still loses within the remaining plies.
+
+The three cases are separate arms. `FollowOption` tracks the UCI check, so the default option is unchanged. Forcing one arm at a time, depth 8 on the proof position: the PV arm alone and the mate-alpha arm alone each return 31993, and the in-check arm alone stays at 31991. On a fixed set of positions at depth 8, with tracing enabled and every arm off, the search records PV prunes, in-check prunes, mate-alpha prunes, and quiet checks skipped after an earlier quiet had already been skipped (33 such quiet checks: 3 on PV nodes, 1 on a mate-alpha node). Turning on only that arm drops its counter to zero, including its quiet-check bucket, and changes the node total. No quiet check after a quiet failure was observed while the side to move was already in check: direct checks are ordered first there, and futility does not set the quiet skip while in check. The in-check arm still changes the tree (in-check prunes go from 41 to 0).
+
+Owner build (`x86-64-v4`, PEXT and AVX-512 on, no `FORGE_*` override). Option off: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609.
+
+The UHO screen is recorded after this section as chunks are played.
+
 ## What was not verified
 
 Playing strength was not measured. This position was not searched with more than one thread. No separate position was used to show the in-check arm by itself: in the proof, the node where the shorter mate is kept is not in check, and the option changes the result because alpha is already a mate score. The PV-node arm is the same predicate, but it was not isolated on its own position. The plain `cmake` line with `/usr/bin/c++` does not configure on this machine until the compiler can see libstdc++.

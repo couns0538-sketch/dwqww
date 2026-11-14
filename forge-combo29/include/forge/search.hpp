@@ -292,6 +292,35 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
 extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
 extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
 extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
+// Per-case arms. FollowOption tracks SoundMatePruning. Tests force one arm
+// without the other two. Defaults leave the option's on/off behavior unchanged.
+enum class SoundPruneArm : std::uint8_t { FollowOption, ForceOff, ForceOn };
+inline SoundPruneArm SoundArmPv = SoundPruneArm::FollowOption;
+inline SoundPruneArm SoundArmInCheck = SoundPruneArm::FollowOption;
+inline SoundPruneArm SoundArmMateAlpha = SoundPruneArm::FollowOption;
+[[nodiscard]] inline bool sound_arm_enabled(SoundPruneArm arm) {
+    switch (arm) {
+    case SoundPruneArm::ForceOn:
+        return true;
+    case SoundPruneArm::ForceOff:
+        return false;
+    case SoundPruneArm::FollowOption:
+        return SoundMatePruning;
+    }
+    return SoundMatePruning;
+}
+// Counting is off unless a test turns it on. The search does not read the counts.
+inline bool SoundPruneTrace = false;
+struct SoundPruneTraceCounts {
+    std::uint64_t pv = 0;
+    std::uint64_t in_check = 0;
+    std::uint64_t mate_alpha = 0;
+    std::uint64_t quiet_check_after_quiet_fail = 0;
+    std::uint64_t quiet_check_on_pv = 0;
+    std::uint64_t quiet_check_in_check = 0;
+    std::uint64_t quiet_check_on_mate_alpha = 0;
+};
+inline SoundPruneTraceCounts sound_prune_trace{};
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
