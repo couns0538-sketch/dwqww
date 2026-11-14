@@ -138,5 +138,34 @@ The same four programs then kept running on both builds until 14:48 UTC. That lo
 
 - `forge-combo29/soak_all`. It is not one of the `tests_*` folders.
 - A Clang-linked binary. `/usr/bin/c++` is Clang 18.1.3 and still fails configure with `cannot find -lstdc++`.
-- A non-portable `-march`, and the Windows lock build.
+- The Windows lock build.
 - `./build/forge` was not started under a GUI.
+
+## Follow-up
+
+The machine has AVX-512F and BMI2 (`avx512f` and `bmi2` in `/proc/cpuinfo`). The follow-up used the owner build, not the portable one:
+
+`CXX=g++ cmake -S forge-combo29 -B build-owner -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4`
+
+`CMakeLists.txt` was not edited. No `FORGE_*` definition was changed from what that build already compiles. Threads 1, Hash 16, OwnBook false:
+
+| | owner build |
+| --- | ---: |
+| bench 11 | 312866 |
+| bench 13 | 862329 |
+| `go perft 5` from the start position | 4865609 |
+
+The per-move split matches the portable run. Log: `forge-combo29/tests_r3fu_17/pins.txt`.
+
+Every test added on this branch was run against that binary. All exited 0.
+
+| test | log |
+| --- | --- |
+| `tests_r3_17/position_prefix.cpp` | `tests_r3fu_17/position_prefix.txt` |
+| `tests_r3_17/commands.txt` fed to the owner engine | `tests_r3fu_17/commands_log.txt` |
+| `tests_r3_17/thread_node_limit.cpp` | `tests_r3fu_17/thread_node_limit.txt` |
+| `tests_r3_17/multipv_node_budget.cpp` | `tests_r3fu_17/multipv_node_budget.txt` |
+
+`go nodes 20000` with Threads 4, Hash left at 32, was run 100 times from the start position. Each search used a new `Searcher`. The count is `SearchInfo::nodes`. Every search was at least 20000. The smallest was 20000. The largest was 20004, on search 67. The largest overshoot is **4**. A search that stops short exits non-zero. Log: `forge-combo29/tests_r3fu_17/nodes_20000.txt`.
+
+The reused-searcher check keeps one `Searcher`. It searches the start position at depth 8 with Threads 2 (7608 nodes), then `set_threads(4)` and searches again (8312 nodes). On that same object it then searches a mated root (`7k/6Q1/5K2/8/8/8/8/8 b - - 0 1`, score -32000), a stalemated root (`7k/5Q2/6K1/8/8/8/8/8 b - - 0 1`, score 0), and a drawn root (`8/8/8/8/4k3/8/3R4/4K3 w - - 100 1`, the fifty-move rule, score 0). Each of those three reported 0 nodes, so the helper counts from the earlier searches were not included. A mismatch exits non-zero. Log: `forge-combo29/tests_r3fu_17/reused_searcher.txt`.
