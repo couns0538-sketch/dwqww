@@ -1297,3 +1297,84 @@ The rule50 candidate it names is `816423b1`, the 6.4.4 side commit above. The no
 5. Leave `3cabc1b2` unread. It is not a branch tip, and the diff from `2fc649ef` is 1368 files. Do not decode the `.b64` artifact parts.
 6. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
 7. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
+
+## Run 15 — 2026-11-14 04:25 UTC
+
+Trigger 04:25 UTC on 2026-11-14. `git ls-remote --heads origin` listed 430 heads. The run-1 table `inventory/branches.tsv` is unchanged. The live list is `inventory/branches-current.tsv`. One movement row is appended in `inventory/HEAD_MOVEMENT.tsv`.
+
+| Item | Value |
+|---|---|
+| Remote heads | 430. |
+| Same tip as the run-14 table | 429 |
+| Moved | 1. This checkpoint, `47608fb7` to `fcc10e73`, the run-14 commit. Not foreign work. |
+| New | 0 |
+| Gone | 0 |
+| Unique tips | 341. One tip replaced another. `47608fb7` is no longer a branch tip. |
+| Unique tip trees | 341. The checkpoint tree `01da8bcd` matches no other tip. |
+| Shared-tip groups | still 16 groups, 105 branches |
+| Tags | the same 3, not reviewed |
+| Inaccessible heads | none in this fetch |
+
+`refs/remotes/origin/HEAD` still points at `main`. Ancestry counts stay 17, 11, 39, and 285. Three branches that were tip-only are now `run15-read`. 310 branches stay tip-only.
+
+No engine was built. No patch was applied. No script in the tree was executed. No Elo was measured.
+
+### 08:45 clock-probe lead, one name
+
+`bcfb3503b2d39f569677e4af675a09d5b870b3ca` (tree `1ba6f4f8`, 1066 files, 2026-10-20 08:55 +02:00) is the only tip of `forge/candidate-uci-clock-origin-native-20261020-0845`. Parent `7e6e977c`. The commit adds `validation/hourly/2026-10-20-0845/LEAD.md`, 13 lines. No other branch contains this commit. It contains neither the lock, H512, nor `main`.
+
+The engine blobs are the parent blobs already recorded on `ec013151`: `src/uci.cpp` `9bf1b757`, `src/search.cpp` `ca5b3541`, `include/forge/search.hpp` `f3f96e4b`, `src/book.cpp` `5f79f022`.
+
+Parent `7e6e977c` adds `.github/workflows/forge64-clock-origin.yml`, 29 lines, blob `a04c2d3c`. That blob matches `356e863d`. The workflow runs on a push to `forge/6.4-hourly-20261019` that touches the workflow or `validation/hourly/2026-10-20-go-origin-native/`, and on `workflow_dispatch`. The job runs `validation/hourly/2026-10-20-go-origin-native/run_native_validation.sh`. This tip is not an ancestor of the hourly branch. `7e6e977c` is. The hourly tip is now `5101c252`.
+
+Non-tip `545c56a1` adds the six go-origin-native files. `REPORT.md` `597c206f`, `delayed_pthread_create.c` `d2557b2b`, `native_probe_fixture.cpp` `ec8e6aac`, and `uci-clock-origin-scoped.patch` `f366de94` match the blobs already read on `356e863d`. Those four files were not opened again.
+
+`native_clock_probe.py` on this tip is blob `9a6101f0`. It differs from the `356e863d` probe by the ten lines that tip inserts. This copy sends `uci`, waits for `uciok`, sends `isready`, waits for `readyok`, sends `position startpos`, and then sends the trial command (`native_clock_probe.py:66-72`). It sends no `OwnBook` command. The first two trials are `go movetime 1200` (`native_clock_probe.py:115-116`). The function requires an `info depth` line that contains `time` (`native_clock_probe.py:79-81`). A missing line raises `RuntimeError` and the process exits 1 (`native_clock_probe.py:125` and `:135`).
+
+`src/book_data.inc` is present (91623 bytes), so `src/book.cpp:8-10` defines `FORGE_HAS_BOOK` as 1. `embedded_available` returns that flag at `src/book.cpp:183`. `src/uci.cpp:132` initializes `own_book` from it, and `src/uci.cpp:168` advertises `OwnBook` default true. A `go movetime` search is a game search (`src/uci.cpp:323-324`). The book probe at `src/uci.cpp:325` runs when `own_book` is true or a Book File is set. A hit prints `info string book move` and `bestmove` at `src/uci.cpp:337-338` and continues at `src/uci.cpp:339`, so the worker thread at `src/uci.cpp:350` does not start. That reply has no `info depth` line. The probe on this tip would fail that reply before it compared admission delay. This run did not start the engine.
+
+`LEAD.md:7` says Actions run `39382382647` compiled both trees, passed 4/4 CTest suites on each, and then failed the timing probe because the baseline journal showed `info string book move c2c4` and `bestmove c2c4`. That journal is not a file in this commit. `CI_ATTEMPT_1.md`, which quotes the same two lines, is absent here. It is added by sibling commit `06c58189`, which also inserts the `OwnBook false` lines into the probe. That commit is not an ancestor of this tip. Their merge base is `7e6e977c`. `LEAD.md:9` says five local mock tests passed and that a GitHub source update was rejected. Those tests and that rejection record are not in this tree. The probe file here still has no `OwnBook` command. `LEAD.md:9` also says no engine source was integrated and no fastchess games were played. The unchanged engine blobs agree with the first of those sentences. No Elo.
+
+`run_native_validation.sh` blob `89062137` archives HEAD as both trees and applies `uci-clock-origin-scoped.patch` only to the candidate copy (`run_native_validation.sh:22-24`). It was not executed.
+
+The integer clock parser remains `src/uci.cpp:73-78`: a failed `std::from_chars` returns 0. The unchecked `bad_captures_` write remains `src/search.cpp:296`, and the array is 64 slots at `src/search.cpp:384`. Neither was played.
+
+### 08:58 pinned baseline script, one name
+
+`66849e5c6fc97b9d7a2f89f7fac54ea6f6253b26` (tree `929d044a`, 1067 files, 2026-10-20 08:57 +02:00) is the only tip of `forge/candidate-ci-clock-parent-20261020-0858`. Parent `294cf1ba`. The commit changes only `run_native_validation.sh`: 7 insertions and 5 deletions. No other branch contains this commit. It is not an ancestor of `356e863d`. It contains neither the lock, H512, nor `main`. `LEAD.md` is absent.
+
+The engine blobs match `356e863d`: `src/uci.cpp` `debb80cb`, `src/search.cpp` `d48e9f16`, `include/forge/search.hpp` `12e2df0e`. `src/uci.cpp:288` samples `go_received` before `stop_search` at `src/uci.cpp:289`. `src/uci.cpp:325-326` copies that time onto `limits.start_time` for a search that is not infinite, not ponder, and has `time_ms` or `movetime_ms`. The book condition remains `src/uci.cpp:331`.
+
+The probe blob `b3fcc137` matches `356e863d`. After the first `readyok` it sends `OwnBook false`, `Book Depth 0`, `Ponder false`, `Threads 1`, and `Hash 64`, then waits for another `readyok` (`native_clock_probe.py:73-79`).
+
+The script pins `PRE_FIX_REV` to `06c581895708a6eb9ff26b380d818f72f7bd9ebf` (`run_native_validation.sh:25`), fetches that commit on every run (`:26`), and archives it as the baseline (`:27`). HEAD is the candidate (`:28`). The scoped patch is not applied. The later script on `356e863d`, blob `c96d424a`, fetches the pin only when `git cat-file` misses it, writes the pin into `identities.txt`, and writes `source-diff-stat.txt`. This tip does none of those three. The script was not executed.
+
+`CI_ATTEMPT_1.md` blob `3111abd7` matches `06c58189` and `356e863d`. Line 4 quotes `info string book move c2c4` and `bestmove c2c4`, names artifact `12245034489`, and gives SHA-256 `4f56cef95216ae53edef7f9e743be994cec083aa9b530961a417806fa3f0ed0c`. Line 6 says the probe result was `RuntimeError('no complete depth/time information before bestmove')` and that the artifact expires 2026-11-03. The artifact bytes are not in git and were not downloaded. `INTEGRATION_REPORT.md:27` on this tree repeats the book-hit sentence for run `39382382647`. The 1630 ms and 1190 ms walls already recorded on `356e863d` belong to Actions `39382802396`, a later run. No Elo.
+
+The integer parser at `src/uci.cpp:73-78` and the 64-slot `bad_captures_` write at `src/search.cpp:296` are the same lines already recorded for these blobs. They were not played.
+
+### 09:00 investigator note, one name
+
+`83fdd9279646efdab24e8a4956b1095baaa2e699` (tree `cdac332d`, 1069 files, 2026-10-20 09:10 +02:00) is the only tip of `investigator/hourly-20261020-0900`. Parent `356e863d`. It adds `validation/hourly/2026-10-20-0900-investigator/REPORT.md`, 11 lines. The engine blobs match the parent. It contains neither the lock, H512, nor `main`.
+
+The note says it audited `forge/6.4-hourly-20261019` at `356e863d`, found no distinct new reproducible bug, and ran no native test because a git clone failed DNS. That is the note's account. This run checked blob equality and did not reopen `src/search.cpp`, `src/uci.cpp`, `src/board.cpp`, or `src/book.cpp`. The hourly branch tip is now `5101c252`. No Elo.
+
+### Not claimed
+
+- No new Elo. The 4/4 counts and the `c2c4` lines are quotations in `LEAD.md` and `CI_ATTEMPT_1.md`. The Actions artifact is not in these commits.
+- The five mock tests named on `bcfb3503` are not files in that commit. The probe there still omits `OwnBook`.
+- `66849e5c` pins an unpatched baseline and disables the book in the probe. That script was not run, so it is not a measured clock result.
+- 310 branches remain tip-only. `3cabc1b2` remains unread. It is not a branch tip.
+- The KRK history miss was not replayed.
+- Nothing was pushed to `main`, `lock/combo29-20261110`, `fable/standalone-h512-20261111`, or another agent's branch.
+- Supermemory was unavailable. Adapter was not used.
+
+## Next run
+
+1. `git fetch` and `git ls-remote --heads origin`. Diff against `inventory/branches-current.tsv`. Append new rows to `inventory/HEAD_MOVEMENT.tsv`. Do not rewrite `inventory/branches.tsv` or earlier movement rows. This branch's tip will have moved by the commit that adds these files; record that as this checkpoint, then continue.
+2. If a foreign tip moved, read that delta before the files below.
+3. Otherwise read tip `ffc598ad12760e5cdc8cb1ee15383f13787acad8` (`results/tt-strength-39403471059-1`). It is a root commit with two files. Read `archived-results/tt-strength-39403471059-1.manifest.json` (16162 bytes). Leave the 16268649-byte zip unread until the manifest identifies stored scores. Do not execute repository scripts.
+4. If that manifest is only an index, read tip `ee681b5ede76c2f85a63bc733f596b258bdbcd4f` (`research/grokchess-stop-grace-20261020-1012`). Parent `356e863d`. Its commit adds `research/grokchess/2026-10-20-stop-helper-grace/stop_helper_grace.patch`, 62 lines. Read the patch as data. Do not apply it. If that is short, read child tip `a43348a4c6ebd4e35d5164b68acda21b014c20af` and its 3-line `REPORT.md`.
+5. Leave `3cabc1b2` unread. It is not a branch tip, and the diff from `2fc649ef` is 1368 files. Do not decode the `.b64` artifact parts.
+6. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
+7. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
