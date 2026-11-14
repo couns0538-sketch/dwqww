@@ -94,13 +94,41 @@ Off mean nps 1299992 over 5 runs, nodes [862329]. On mean nps 1339750 over 5 run
 
 Scores are from the option-on side. W-L-D is wins, losses, draws for option on. Pentanomial bins are pair results over the two colors of one opening: LL, LD (or DL), DD+WL, WD (or DW), WW. Elo and LOS use the fastchess pentanomial model: pair score in game-point units, variance of that score, 95% interval z=1.959963984540054, Elo = -400 log10(1/p - 1), and the printed margin is half the distance between the Elo values of the two score bounds. LOS is the normal probability that the true score is above 0.5.
 
-No completed pairs yet.
+W-L-D (option on first): 57-73-145
+
+Pentanomial [LL, LD, DD+WL, WD, WW]: 5, 41, 58, 31, 2
+
+Elo 95%: -20.31 +/- 24.75 (-45.16 to 4.33)
+
+LOS: 5.31%
+
+Pairs: 137. Games: 274. Score: 0.4708.
 
 Pair notes:
 
-- none
+- round 138 has 1 scored games
+- middle bin split DD=36 WL=22
 
 ## Chunks
 
-No chunk has been written yet.
+### chunk001
+
+sha256 1a62d5efad0c98219d40c203bace30394abffa788282758958ba66e09bcb2bbf bytes 1495247
+
+```
+chunk chunk001
+meta running start=1 rounds=500 elapsed_sec=?
+pgn_games 275 W-L-D 57-73-145 other 0
+pentanomial LL LD DD+WL WD WW [5, 41, 58, 31, 2]
+openings checked 138 mismatches 0 start 1 rounds 500
+round 138 has 1 scored games
+middle bin split DD=36 WL=22
+independent_pentanomial Elo -20.31 +/- 24.75 (95%) bounds -45.16 .. 4.33 LOS 5.31% score 0.4708 pairs 137
+fastchess_tail:
+Results of ContHist4PlyRead-on vs ContHist4PlyRead-off (50000 nodes, 1t, 16MB, UHO_Lichess_4852_v1.epd):
+Elo: -13.90 +/- 28.87, nElo: -23.27 +/- 48.15
+LOS: 17.18 %, DrawRatio: 43.00 %, PairsRatio: 0.78
+Games: 200, Wins: 43, Losses: 51, Draws: 106, Points: 96.0 (48.00 %)
+Ptnml(0-2): [3, 29, 43, 23, 2]
+```
 

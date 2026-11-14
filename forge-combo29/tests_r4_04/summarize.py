@@ -67,21 +67,23 @@ def pentanomial_stats(counts: list[int]) -> dict[str, float]:
 def parse_pgn(path: Path) -> list[dict[str, str]]:
     games: list[dict[str, str]] = []
     current: dict[str, str] = {}
-    saw_result_header = False
+    in_moves = False
     if not path.exists():
         return games
     for line in path.read_text(errors="replace").splitlines():
         match = HEADER_RE.match(line)
-        if match:
+        if match and not in_moves:
             current[match.group(1)] = match.group(2)
-            if match.group(1) == "Result":
-                saw_result_header = True
             continue
-        if line.startswith("1-0") or line.startswith("0-1") or line.startswith("1/2-1/2") or line == "*":
-            if saw_result_header and current.get("Result") in {"1-0", "0-1", "1/2-1/2"}:
-                games.append(current)
+        result = current.get("Result", "")
+        stripped = line.strip()
+        if stripped == "":
+            continue
+        in_moves = True
+        if result in {"1-0", "0-1", "1/2-1/2"} and stripped.endswith(result):
+            games.append(current)
             current = {}
-            saw_result_header = False
+            in_moves = False
     return games
 
 
