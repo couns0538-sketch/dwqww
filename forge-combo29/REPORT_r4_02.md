@@ -69,5 +69,5 @@ grok47/r4-03-screen-lds a9435da00 2026-11-14 16:12:00 +0000 r4-03: heartbeat scr
 grok47/r4-04-screen-ch4 a144ac8d9 2026-11-14 16:11:13 +0000 r4-04: ContHist4PlyRead screen heartbeat
 grok47/r4-05-screen-npc 07eea4272 2026-11-14 16:15:27 +0000 r4-05: NonPawnCorrection screen chunk 001 (1-500)
 
-Last check: 2026-11-14T16:17:14Z
-Deadline: 2026-11-15T02:17:13Z
+Last check: 2026-11-14T16:17:29Z
+Deadline: 2026-11-15T02:17:29Z
