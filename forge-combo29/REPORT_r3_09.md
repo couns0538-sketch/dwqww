@@ -58,3 +58,27 @@ The same release pins and the same sanitizer binary were run again at 2026-11-14
 setoption name AspArmLate value true
 
 bench 13 nodes 818642
+
+## Follow-up redesign
+
+The first version treated the depth-1 full-window score as the in-bounds score, so the option narrowed from depth 2 instead of depth 4. The soft-time gate never ran, because a finished iteration had already landed inside the window. That version is withdrawn. Its option-on bench 13 count of 818642 is not the current engine.
+
+The option still defaults off. The narrow window still opens at depth 4. When `AspArmLate` is on, an iteration that fails high or low at least once makes the next iteration use a full window. The fail-high and fail-low widening inside an iteration is unchanged. The soft-time special case was removed.
+
+Owner build on this host (AVX-512F and BMI2 present): default CMake release, `march=x86-64-v4`, `FORGE_SPD_SLIDER_PEXT=1`, `FORGE_SPD_NNUE_ZMM=1`. No `CMakeLists.txt` edit and no extra `FORGE_*` override. The compiler is g++ 13.3.0 because `/usr/bin/c++` is Clang 18 and cannot link `libstdc++` here.
+
+Option off, Threads 1, Hash 16, OwnBook false:
+
+- bench 11 = 312866
+- bench 13 = 862329
+- go perft 5 from the start position = 4865609
+
+Those three held after the option was turned on and then off.
+
+Option on, same binary:
+
+bench 13 nodes 870398
+
+Five alternating `bench 13` runs on that binary, off/on/off/on/off, kept those node counts. The nps figures were 1684236, 1540527, 1694163, 1667429, and 1680953.
+
+Screening is the same binary with the option on against the option off, `nodes 50000`, UHO_4060_v4 sequential pairs. It is a screen, not a strength claim. Chunk 001 (200 openings, 400 games) finished 109-102-189 for the option-on side, Elo 6.08 +/- 22.28 (95%), LOS 70.39%, pentanomial [6, 56, 71, 59, 8]. Details and later chunks are under `forge-combo29/tests_r3fu_09/screen/`.

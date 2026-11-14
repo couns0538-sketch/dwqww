@@ -286,7 +286,7 @@ extern bool HindsightDepth;          // off-PV depth step after a reduced move (
 extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
 extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
 extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
-extern bool AspArmLate;              // full root window until one score lands inside; soft time ignores an open window (false = off)
+extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
 extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
 extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
 extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
