@@ -1,0 +1,1 @@
+Prepared an isolated shared-object clone of the authorized integrate/combo29-all branch, with only forge-combo29 materialized. Remote tip and checkout remain e04556dd; no source or documentation edits, commit or push were made by this preparation. Original worktrees and branch refs remain unchanged. Exact commands and outputs are in commands.txt.
