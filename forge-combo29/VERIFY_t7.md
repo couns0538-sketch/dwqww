@@ -1,58 +1,83 @@
 # VERIFY t7
 
-Branch `grok47/t7-nnue-file` at `b56c6328a43fee23eaa7d9b9435ff5b029f343fc`.
+Branch `grok47/t7-nnue-file` at `417f021f1ab98dbbbd2ba12b4dd061ab3e70199f`.
 Base `16833ecc03b425586f91f4c8834dea8807bf4c22`.
-Verdict: **PASS**. Better engine change than t8.
+Verdict: **PASS**.
+
+The commit since `b56c6328` changes only `REPORT_t7.md`. The engine and the test were built and run again.
 
 ## Rule check
 
-Files under `include/forge/nnue.hpp`, `src/nnue.cpp`, `src/uci.cpp`, `tests_t7/`, and `REPORT_t7.md`. All mode 100644. No executable, archive, script, workflow, or Python. Engine source: 140 insertions, 11 deletions.
+Files under `include/forge/nnue.hpp`, `src/nnue.cpp`, `src/uci.cpp`, `tests_t7/`, and `REPORT_t7.md`. All mode 100644. No executable, archive, script, workflow, or Python. Engine source: 140 insertions, 11 deletions. `NnueFile` is a string option and its default is `<empty>`.
 
 ## Safety
 
-The new read is the UCI option the task adds. `load_file` opens only the path it is given:
+No network, process start, registry, or environment access. The converter writes the path it is given:
 
 ```
-std::ifstream in(path, std::ios::binary);
+tests_t7/forgenet_convert.cpp:40
+    std::ofstream out(argv[1], std::ios::binary);
 ```
 
-A bad file returns before `active_weights()` is swapped. The test writer is `std::ofstream out(argv[1], std::ios::binary)` plus fixed paths `/tmp/forge-t7-b2.bin` and `/tmp/forge-t7-bad-magic.bin`. No network, process start, registry, environment access, or obfuscation.
+This run wrote `/tmp/t7.net` and the rejection files the test names under `/tmp` (`/tmp/forge-t7-b2.bin` and the bad-magic, bad-version, bad-hidden, and short files). A failed load returns before the active net is replaced. A successful load calls `searcher.clear()` (`src/uci.cpp:274` and `:279`).
 
 ## Build
 
-Clang configure failed (`cannot find -lstdc++`). g++ Release and ASan/UBSan both `Built target forge`.
+The stated cmake line without a compiler override failed on the lock tree (`/usr/bin/ld: cannot find -lstdc++: No such file or directory`, Clang 18.1.3). `/proc/cpuinfo` has `avx512f`, so portable march flags were not added. g++ 13.3.0:
+
+```
+cmake -S /tmp/wt-t7-nnue-file/forge-combo29 -B /tmp/wt-t7-nnue-file/build_rel -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++
+cmake --build /tmp/wt-t7-nnue-file/build_rel -j4
+cmake -S /tmp/wt-t7-nnue-file/forge-combo29 -B /tmp/wt-t7-nnue-file/build_san -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g"
+cmake --build /tmp/wt-t7-nnue-file/build_san -j4
+```
+
+Both ended `Built target forge`.
+
 
 ## Pins
 
-Option left at `<empty>`:
+```
+printf 'setoption name Threads value 1\nsetoption name Hash value 16\nsetoption name OwnBook value false\nbench 11\nbench 13\nposition startpos\ngo perft 5\nquit\n' | /tmp/wt-t7-nnue-file/build_rel/forge
+```
+
+Exit 0.
 
 ```
-info string bench depth 11 nodes 312866 time 164 nps 1907719
-info string bench depth 13 nodes 862329 time 439 nps 1964302
+info string bench depth 11 nodes 312866 time 172 nps 1818988
+info string bench depth 13 nodes 862329 time 448 nps 1924841
 nodes 4865609
 ```
 
-Release binary after `setoption name NnueFile value` of the converted lock net:
 
-```
-info string NnueFile loaded /tmp/verify/work/t7.net
-info string bench depth 11 nodes 312866 time 161 nps 1943267
-info string bench depth 13 nodes 862329 time 430 nps 2005416
-nodes 4865609
-```
-
-The sanitizer binary printed the same three node counts. A missing path on the sanitizer binary printed `info string ERROR NnueFile: cannot open`. The lock binary has no `NnueFile` line in its `uci` output and printed no info line for that setoption.
+`NnueFile` was left at `<empty>`. The pins match.
 
 ## Task test
 
-`forgenet_convert` wrote the net. `nnue_file_test` linked to this commit's sanitizer objects, exit 0, no sanitizer report. It printed `ok converted net matches compiled eval`, `ok changed b2 changes eval`, `ok bad magic kept current net (wrong magic)`, and `ok use_compiled restores eval`.
+`forgenet_convert /tmp/t7.net` exited 0. `nnue_file_test` linked to this commit's sanitizer objects, exit 0, stderr empty:
 
-The same test against the lock include tree failed to compile: `'load_file' is not a member of 'forge::nnue'`.
+```
+compiled 20
+loaded 20
+ok converted net matches compiled eval
+changed 37
+ok changed b2 changes eval
+ok bad magic kept current net (wrong magic)
+ok bad version kept current net (wrong version)
+ok bad hidden kept current net (wrong size)
+ok short file kept current net (wrong size)
+ok missing file kept current net (cannot open)
+restored 20
+ok use_compiled restores eval
+all checks passed
+```
+
+The same test against the lock headers failed to compile: `'load_file' is not a member of 'forge::nnue'`.
 
 ## Report claims
 
-Reproduced: default pins, converted-net pins, rejected magic/size/open, restore, and the lock test not compiling. Not re-run: the report's changed-net bench of 322107, which is a different file than the converted lock net. No Elo or speed claim was checked.
+Reproduced: default pins, converted-net eval equal to the compiled net (20), a changed b2 (37), rejected magic/version/size/short/missing files, and restore. Not re-run: the report's changed-net bench of a different file. No Elo or speed claim was checked.
 
 ## Pair
 
-t7 is the better of t7 and t8. Both load a FORGENET file and keep the lock pins for the default option and for the converted lock net. On success, t7 calls `searcher.clear()`. t8 calls `searcher.clear_hash()` only. t7's own comment says `clear_hash()` leaves correction histories that `corrected_eval()` still applies. t8's test checks more rejection strings; that does not make the smaller clear the better engine change.
+t7 is the better engine change. A successful load calls `Searcher::clear()` (`uci.cpp:279`). t8 calls only `clear_hash()` (`uci.cpp:275`).
