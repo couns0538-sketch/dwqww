@@ -1,0 +1,12 @@
+diff --git a/forge-combo29/src/eval_params.cpp b/forge-combo29/src/eval_params.cpp
+index 482ab3f423eab8f643922e7532312fb5a0ac403e..26417218266c16abbfb8bc50cfcdd8d887a1d08c 100644
+--- a/forge-combo29/src/eval_params.cpp
++++ b/forge-combo29/src/eval_params.cpp
+@@ -20,6 +20,7 @@ Table table = defaults();
+ KingSafetyWeights king_safety{};
+ 
+ const char* name(int index) {
++    if (index < 0 || index >= Count) return "Unknown";
+     static thread_local std::string buffer;
+     auto indexed = [&](const char* base, int start) {
+         buffer = std::string(base) + "[" + std::to_string(index - start) + "]";

@@ -1,0 +1,12 @@
+diff --git a/forge-combo29/src/board.cpp b/forge-combo29/src/board.cpp
+index c6a2cfe5100645bbeebd7eb9a97222ae752ec3bf..dda0b85bd148ce70e9d4102b8ddcc52ebcd94f8b 100644
+--- a/forge-combo29/src/board.cpp
++++ b/forge-combo29/src/board.cpp
+@@ -1154,6 +1154,7 @@ std::optional<Move> Board::parse_uci(std::string_view text) {
+ }
+ 
+ std::string Board::move_to_uci(const Move& move) {
++    if (move.is_none()) return "0000";
+     std::string text;
+     text += static_cast<char>('a' + file_of(move.from));
+     text += static_cast<char>('1' + rank_of(move.from));

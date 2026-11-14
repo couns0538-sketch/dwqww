@@ -1,0 +1,720 @@
+[
+  {
+    "started": "2026-11-14T19:48:28.579Z",
+    "ended": "2026-11-14T19:48:29.171Z",
+    "argv": [
+      "git",
+      "ls-remote",
+      "--heads",
+      "origin",
+      "refs/heads/for-fable-and-opus/astra-r4-mate-alpha-guard"
+    ],
+    "cwd": "/workspace/work/dwqww-all",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:48:29.171Z",
+    "ended": "2026-11-14T19:48:29.199Z",
+    "argv": [
+      "git",
+      "clone",
+      "--shared",
+      "--single-branch",
+      "--no-checkout",
+      "--branch",
+      "soak/combo29-all",
+      "/workspace/work/dwqww-all",
+      "/workspace/work/dwqww-r4-guard"
+    ],
+    "cwd": "/workspace/work",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "Cloning into '/workspace/work/dwqww-r4-guard'...\ndone.\n"
+  },
+  {
+    "started": "2026-11-14T19:48:29.199Z",
+    "ended": "2026-11-14T19:48:29.203Z",
+    "argv": [
+      "git",
+      "remote",
+      "set-url",
+      "origin",
+      "https://github.com/couns0538-sketch/dwqww.git"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:48:29.203Z",
+    "ended": "2026-11-14T19:48:29.207Z",
+    "argv": [
+      "git",
+      "config",
+      "core.sparseCheckout",
+      "true"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:48:29.207Z",
+    "ended": "2026-11-14T19:48:29.407Z",
+    "argv": [
+      "git",
+      "read-tree",
+      "-mu",
+      "HEAD"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:48:29.407Z",
+    "ended": "2026-11-14T19:48:29.467Z",
+    "argv": [
+      "git",
+      "switch",
+      "-c",
+      "for-fable-and-opus/astra-r4-mate-alpha-guard",
+      "8e805fb482a97b7182f3fa4c12f26ce7e1d88c19"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "error: invalid object 100644 292876d94ccec2b7a0d7c4a25989cfa0899a86c8 for 'forge-combo29/tests_r3fu_01/screen_log.txt'\nerror: invalid object 100644 292876d94ccec2b7a0d7c4a25989cfa0899a86c8 for 'forge-combo29/tests_r3fu_01/screen_log.txt'\nSwitched to a new branch 'for-fable-and-opus/astra-r4-mate-alpha-guard'\n"
+  },
+  {
+    "started": "2026-11-14T19:48:29.467Z",
+    "ended": "2026-11-14T19:48:29.470Z",
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "8e805fb482a97b7182f3fa4c12f26ce7e1d88c19\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:48:29.470Z",
+    "ended": "2026-11-14T19:48:29.488Z",
+    "argv": [
+      "git",
+      "status",
+      "--short"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:48:29.488Z",
+    "ended": "2026-11-14T19:48:29.494Z",
+    "argv": [
+      "git",
+      "diff",
+      "--full-index",
+      "e349e3e859f2cc3d9b0eae08a5dd74e3b0e45705^",
+      "e349e3e859f2cc3d9b0eae08a5dd74e3b0e45705",
+      "--",
+      "forge-combo29/src",
+      "forge-combo29/include"
+    ],
+    "cwd": "/workspace/work/dwqww-all",
+    "exit": 0,
+    "stdout": "diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp\nindex 80dd69a6290dd2cfd74fc5f00b752c1cc97526ce..43b0e2202b89ff1391315c16eb247d09b5950da5 100644\n--- a/forge-combo29/src/search.cpp\n+++ b/forge-combo29/src/search.cpp\n@@ -1422,7 +1422,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta\n         if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() &&\n             tt_bound != BoundUpper && tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {\n             const int singular_beta = tt_score - tune::SingularMargin * depth;\n-            const int singular_depth = (depth - 1) / 2;\n+            // (depth - 1) / 2 is 0 at depth 2. search() then enters qsearch, which\n+            // never reads excluded_move, so the singular search cuts off on this\n+            // node's own TT entry. Keep the verification in search().\n+            const int singular_depth = std::max(1, (depth - 1) / 2);\n             const bool saved_tt_pv = ss->tt_pv;\n             ss->excluded_move = move;\n             const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:48:29.495Z",
+    "ended": "2026-11-14T19:48:29.499Z",
+    "argv": [
+      "git",
+      "apply",
+      "--check",
+      "/workspace/work/r4-run/inputs/e349e3e859f2cc3d9b0eae08a5dd74e3b0e45705.patch.txt"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:48:29.499Z",
+    "ended": "2026-11-14T19:48:29.503Z",
+    "argv": [
+      "git",
+      "apply",
+      "/workspace/work/r4-run/inputs/e349e3e859f2cc3d9b0eae08a5dd74e3b0e45705.patch.txt"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:48:29.503Z",
+    "ended": "2026-11-14T19:48:29.519Z",
+    "argv": [
+      "git",
+      "diff",
+      "--name-only"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "forge-combo29/src/search.cpp\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:48:29.519Z",
+    "ended": "2026-11-14T19:48:29.535Z",
+    "argv": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:48:29.536Z",
+    "ended": "2026-11-14T19:48:29.551Z",
+    "argv": [
+      "git",
+      "add",
+      "--",
+      "forge-combo29/src/search.cpp"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:48:29.551Z",
+    "ended": "2026-11-14T19:48:29.572Z",
+    "argv": [
+      "git",
+      "-c",
+      "user.name=Codex",
+      "-c",
+      "user.email=codex@openai.com",
+      "commit",
+      "-m",
+      "Apply audit source fix from e349e3e859f2cc3d9b0eae08a5dd74e3b0e45705"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 1,
+    "stdout": "",
+    "stderr": "error: invalid object 100644 292876d94ccec2b7a0d7c4a25989cfa0899a86c8 for 'forge-combo29/tests_r3fu_01/screen_log.txt'\nerror: invalid object 100644 292876d94ccec2b7a0d7c4a25989cfa0899a86c8 for 'forge-combo29/tests_r3fu_01/screen_log.txt'\nerror: Error building trees\n"
+  },
+  {
+    "started": "2026-11-14T19:50:31.164Z",
+    "ended": "2026-11-14T19:50:31.171Z",
+    "argv": [
+      "git",
+      "branch",
+      "--show-current"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "for-fable-and-opus/astra-r4-mate-alpha-guard\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:50:31.171Z",
+    "ended": "2026-11-14T19:50:31.177Z",
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "8e805fb482a97b7182f3fa4c12f26ce7e1d88c19\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:50:31.177Z",
+    "ended": "2026-11-14T19:50:31.183Z",
+    "argv": [
+      "git",
+      "status",
+      "--short"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:50:31.183Z",
+    "ended": "2026-11-14T19:50:31.186Z",
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "5ad7ac6e4aa15bcfb35bf54a7d826521423bcf64\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:50:31.187Z",
+    "ended": "2026-11-14T19:50:31.195Z",
+    "argv": [
+      "git",
+      "diff",
+      "--full-index",
+      "bf4154454ddc7b226bc1734bfc84d75569cdfc07^",
+      "bf4154454ddc7b226bc1734bfc84d75569cdfc07",
+      "--",
+      "forge-combo29/src",
+      "forge-combo29/include"
+    ],
+    "cwd": "/workspace/work/dwqww-all",
+    "exit": 0,
+    "stdout": "diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp\nindex 0abf5d6f4721911efdbe22a516a8a0e8c0f07d5d..86e615052369023b68cf1e2aec15d24497b80213 100644\n--- a/forge-combo29/include/forge/search.hpp\n+++ b/forge-combo29/include/forge/search.hpp\n@@ -89,10 +89,21 @@ struct TTEntry {\n     [[nodiscard]] bool pv() const { return (gen_bound & 4U) != 0; }\n     [[nodiscard]] std::uint8_t generation() const { return static_cast<std::uint8_t>(gen_bound >> 3U); }\n     [[nodiscard]] bool occupied() const { return bound() != BoundNone; }\n-    // Existing below90 policy, plus exact near50 context; not a repetition key.\n+    // Below 90, a score is usable only when the stored depth cannot reach the\n+    // 50-move draw from either clock. An exact clock match stays usable, except\n+    // a mate the remaining half-moves cannot deliver. Not a repetition key.\n     [[nodiscard]] bool score_usable(std::uint16_t current_clock) const {\n-        const int capped = current_clock < 100 ? current_clock : 100;\n-        return (rule50_clock < 90 && capped < 90) || rule50_clock == capped;\n+        if (is_mate_score(score)) {\n+            const int distance = MateValue - (score < 0 ? -static_cast<int>(score) : static_cast<int>(score));\n+            if (static_cast<int>(current_clock) + distance > 100) return false;\n+        }\n+        const int capped = current_clock < 100 ? static_cast<int>(current_clock) : 100;\n+        const int stored_clock = rule50_clock;\n+        const int stored_depth = depth;\n+        const bool inside_horizon = stored_clock + stored_depth < 100 &&\n+                                    static_cast<int>(current_clock) + stored_depth < 100 &&\n+                                    stored_clock < 90 && capped < 90;\n+        return inside_horizon || stored_clock == capped;\n     }\n };\n \n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:50:31.196Z",
+    "ended": "2026-11-14T19:50:31.199Z",
+    "argv": [
+      "git",
+      "apply",
+      "--check",
+      "/workspace/work/r4-run/inputs/bf4154454ddc7b226bc1734bfc84d75569cdfc07.patch.txt"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 128,
+    "stdout": "",
+    "stderr": "error: corrupt patch at line 29\n"
+  },
+  {
+    "started": "2026-11-14T19:51:06.767Z",
+    "ended": "2026-11-14T19:51:06.772Z",
+    "argv": [
+      "git",
+      "branch",
+      "--show-current"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "for-fable-and-opus/astra-r4-mate-alpha-guard\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.772Z",
+    "ended": "2026-11-14T19:51:06.779Z",
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "8e805fb482a97b7182f3fa4c12f26ce7e1d88c19\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.779Z",
+    "ended": "2026-11-14T19:51:06.784Z",
+    "argv": [
+      "git",
+      "status",
+      "--short"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.785Z",
+    "ended": "2026-11-14T19:51:06.787Z",
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "5ad7ac6e4aa15bcfb35bf54a7d826521423bcf64\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.788Z",
+    "ended": "2026-11-14T19:51:06.793Z",
+    "argv": [
+      "git",
+      "diff",
+      "--full-index",
+      "bf4154454ddc7b226bc1734bfc84d75569cdfc07^",
+      "bf4154454ddc7b226bc1734bfc84d75569cdfc07",
+      "--",
+      "forge-combo29/src",
+      "forge-combo29/include"
+    ],
+    "cwd": "/workspace/work/dwqww-all",
+    "exit": 0,
+    "stdout": "diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp\nindex 0abf5d6f4721911efdbe22a516a8a0e8c0f07d5d..86e615052369023b68cf1e2aec15d24497b80213 100644\n--- a/forge-combo29/include/forge/search.hpp\n+++ b/forge-combo29/include/forge/search.hpp\n@@ -89,10 +89,21 @@ struct TTEntry {\n     [[nodiscard]] bool pv() const { return (gen_bound & 4U) != 0; }\n     [[nodiscard]] std::uint8_t generation() const { return static_cast<std::uint8_t>(gen_bound >> 3U); }\n     [[nodiscard]] bool occupied() const { return bound() != BoundNone; }\n-    // Existing below90 policy, plus exact near50 context; not a repetition key.\n+    // Below 90, a score is usable only when the stored depth cannot reach the\n+    // 50-move draw from either clock. An exact clock match stays usable, except\n+    // a mate the remaining half-moves cannot deliver. Not a repetition key.\n     [[nodiscard]] bool score_usable(std::uint16_t current_clock) const {\n-        const int capped = current_clock < 100 ? current_clock : 100;\n-        return (rule50_clock < 90 && capped < 90) || rule50_clock == capped;\n+        if (is_mate_score(score)) {\n+            const int distance = MateValue - (score < 0 ? -static_cast<int>(score) : static_cast<int>(score));\n+            if (static_cast<int>(current_clock) + distance > 100) return false;\n+        }\n+        const int capped = current_clock < 100 ? static_cast<int>(current_clock) : 100;\n+        const int stored_clock = rule50_clock;\n+        const int stored_depth = depth;\n+        const bool inside_horizon = stored_clock + stored_depth < 100 &&\n+                                    static_cast<int>(current_clock) + stored_depth < 100 &&\n+                                    stored_clock < 90 && capped < 90;\n+        return inside_horizon || stored_clock == capped;\n     }\n };\n \n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.794Z",
+    "ended": "2026-11-14T19:51:06.796Z",
+    "argv": [
+      "git",
+      "apply",
+      "--check",
+      "/workspace/work/r4-run/inputs/bf4154454ddc7b226bc1734bfc84d75569cdfc07.patch.txt"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.796Z",
+    "ended": "2026-11-14T19:51:06.800Z",
+    "argv": [
+      "git",
+      "apply",
+      "/workspace/work/r4-run/inputs/bf4154454ddc7b226bc1734bfc84d75569cdfc07.patch.txt"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.800Z",
+    "ended": "2026-11-14T19:51:06.804Z",
+    "argv": [
+      "git",
+      "diff",
+      "--name-only"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "forge-combo29/include/forge/search.hpp\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.804Z",
+    "ended": "2026-11-14T19:51:06.808Z",
+    "argv": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.808Z",
+    "ended": "2026-11-14T19:51:06.813Z",
+    "argv": [
+      "git",
+      "add",
+      "--",
+      "forge-combo29/include/forge/search.hpp"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.813Z",
+    "ended": "2026-11-14T19:51:06.823Z",
+    "argv": [
+      "git",
+      "-c",
+      "user.name=Codex",
+      "-c",
+      "user.email=codex@openai.com",
+      "commit",
+      "-m",
+      "Apply audit source fix from bf4154454ddc7b226bc1734bfc84d75569cdfc07"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "[for-fable-and-opus/astra-r4-mate-alpha-guard bafb2d5b] Apply audit source fix from bf4154454ddc7b226bc1734bfc84d75569cdfc07\n 1 file changed, 14 insertions(+), 3 deletions(-)\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.823Z",
+    "ended": "2026-11-14T19:51:06.825Z",
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "bafb2d5bf3a542da5c51608bc9babf87f79cfa69\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.825Z",
+    "ended": "2026-11-14T19:51:06.830Z",
+    "argv": [
+      "git",
+      "diff",
+      "--full-index",
+      "1ebc9b48084ac26db00a71b50fafccd2bfc8baa4^",
+      "1ebc9b48084ac26db00a71b50fafccd2bfc8baa4",
+      "--",
+      "forge-combo29/src",
+      "forge-combo29/include"
+    ],
+    "cwd": "/workspace/work/dwqww-all",
+    "exit": 0,
+    "stdout": "diff --git a/forge-combo29/src/eval_params.cpp b/forge-combo29/src/eval_params.cpp\nindex 482ab3f423eab8f643922e7532312fb5a0ac403e..26417218266c16abbfb8bc50cfcdd8d887a1d08c 100644\n--- a/forge-combo29/src/eval_params.cpp\n+++ b/forge-combo29/src/eval_params.cpp\n@@ -20,6 +20,7 @@ Table table = defaults();\n KingSafetyWeights king_safety{};\n \n const char* name(int index) {\n+    if (index < 0 || index >= Count) return \"Unknown\";\n     static thread_local std::string buffer;\n     auto indexed = [&](const char* base, int start) {\n         buffer = std::string(base) + \"[\" + std::to_string(index - start) + \"]\";\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.830Z",
+    "ended": "2026-11-14T19:51:06.833Z",
+    "argv": [
+      "git",
+      "apply",
+      "--check",
+      "/workspace/work/r4-run/inputs/1ebc9b48084ac26db00a71b50fafccd2bfc8baa4.patch.txt"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.833Z",
+    "ended": "2026-11-14T19:51:06.835Z",
+    "argv": [
+      "git",
+      "apply",
+      "/workspace/work/r4-run/inputs/1ebc9b48084ac26db00a71b50fafccd2bfc8baa4.patch.txt"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.835Z",
+    "ended": "2026-11-14T19:51:06.838Z",
+    "argv": [
+      "git",
+      "diff",
+      "--name-only"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "forge-combo29/src/eval_params.cpp\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.839Z",
+    "ended": "2026-11-14T19:51:06.842Z",
+    "argv": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.842Z",
+    "ended": "2026-11-14T19:51:06.846Z",
+    "argv": [
+      "git",
+      "add",
+      "--",
+      "forge-combo29/src/eval_params.cpp"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.847Z",
+    "ended": "2026-11-14T19:51:06.855Z",
+    "argv": [
+      "git",
+      "-c",
+      "user.name=Codex",
+      "-c",
+      "user.email=codex@openai.com",
+      "commit",
+      "-m",
+      "Apply audit source fix from 1ebc9b48084ac26db00a71b50fafccd2bfc8baa4"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "[for-fable-and-opus/astra-r4-mate-alpha-guard 8c4fb7d1] Apply audit source fix from 1ebc9b48084ac26db00a71b50fafccd2bfc8baa4\n 1 file changed, 1 insertion(+)\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.855Z",
+    "ended": "2026-11-14T19:51:06.858Z",
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "8c4fb7d14fa5519d13e32914a4d97866a8b51a56\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.859Z",
+    "ended": "2026-11-14T19:51:06.864Z",
+    "argv": [
+      "git",
+      "diff",
+      "--full-index",
+      "efb3eaa37a84198cc8c0ac1c35d0dc5cf384376d^",
+      "efb3eaa37a84198cc8c0ac1c35d0dc5cf384376d",
+      "--",
+      "forge-combo29/src",
+      "forge-combo29/include"
+    ],
+    "cwd": "/workspace/work/dwqww-all",
+    "exit": 0,
+    "stdout": "diff --git a/forge-combo29/src/board.cpp b/forge-combo29/src/board.cpp\nindex c6a2cfe5100645bbeebd7eb9a97222ae752ec3bf..dda0b85bd148ce70e9d4102b8ddcc52ebcd94f8b 100644\n--- a/forge-combo29/src/board.cpp\n+++ b/forge-combo29/src/board.cpp\n@@ -1154,6 +1154,7 @@ std::optional<Move> Board::parse_uci(std::string_view text) {\n }\n \n std::string Board::move_to_uci(const Move& move) {\n+    if (move.is_none()) return \"0000\";\n     std::string text;\n     text += static_cast<char>('a' + file_of(move.from));\n     text += static_cast<char>('1' + rank_of(move.from));\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.864Z",
+    "ended": "2026-11-14T19:51:06.867Z",
+    "argv": [
+      "git",
+      "apply",
+      "--check",
+      "/workspace/work/r4-run/inputs/efb3eaa37a84198cc8c0ac1c35d0dc5cf384376d.patch.txt"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.867Z",
+    "ended": "2026-11-14T19:51:06.870Z",
+    "argv": [
+      "git",
+      "apply",
+      "/workspace/work/r4-run/inputs/efb3eaa37a84198cc8c0ac1c35d0dc5cf384376d.patch.txt"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.870Z",
+    "ended": "2026-11-14T19:51:06.874Z",
+    "argv": [
+      "git",
+      "diff",
+      "--name-only"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "forge-combo29/src/board.cpp\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.874Z",
+    "ended": "2026-11-14T19:51:06.879Z",
+    "argv": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.879Z",
+    "ended": "2026-11-14T19:51:06.882Z",
+    "argv": [
+      "git",
+      "add",
+      "--",
+      "forge-combo29/src/board.cpp"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.883Z",
+    "ended": "2026-11-14T19:51:06.891Z",
+    "argv": [
+      "git",
+      "-c",
+      "user.name=Codex",
+      "-c",
+      "user.email=codex@openai.com",
+      "commit",
+      "-m",
+      "Apply audit source fix from efb3eaa37a84198cc8c0ac1c35d0dc5cf384376d"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "[for-fable-and-opus/astra-r4-mate-alpha-guard 12c791d5] Apply audit source fix from efb3eaa37a84198cc8c0ac1c35d0dc5cf384376d\n 1 file changed, 1 insertion(+)\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.891Z",
+    "ended": "2026-11-14T19:51:06.894Z",
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "12c791d5451b158fd6ed1b506b4869b15c8a5b4e\n",
+    "stderr": ""
+  },
+  {
+    "started": "2026-11-14T19:51:06.894Z",
+    "ended": "2026-11-14T19:51:06.897Z",
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "cwd": "/workspace/work/dwqww-r4-guard",
+    "exit": 0,
+    "stdout": "12c791d5451b158fd6ed1b506b4869b15c8a5b4e\n",
+    "stderr": ""
+  }
+]
