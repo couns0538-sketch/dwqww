@@ -18,7 +18,7 @@ The binary reports FORGE_SPD_SLIDER_PEXT=1 and FORGE_SPD_NNUE_ZMM=1.
 Frozen input commits
 
 17 02674044d770fc756ea2cc1041726d23bad6c659 grok47/r3-17-merge-legal-node-limit
-21 d30c2746d3f1dfd931ff75bde455a060f75cff6a grok47/r3-21-mate-score-tt
+21 28b3a7520de0bdd16105c94b7496cf603127704f grok47/r3-21-mate-score-tt
 24 67f96d9b5e477ec212bbe36f5d1994c87cafd590 grok47/r3-24-tt-duplicate-shadow
 22 b8d47952f21fec0185df8509d53a2bafd7373313 grok47/r3-22-time-safety
 01 c0aaf80df40213f867038d2280abbc954d8b9e98 grok47/r3-01-eval-rule-50-damp
@@ -163,6 +163,7 @@ Tip r3-11 1f613a1b026451289ff1a8a3b90d1b174c5e013e merged with no source change;
 Tip r3-15 cbe5010c012512ecdaecba830595e81ed1219883 merged with no source change; pins and the option table matched.
 Tip r3-16 3337249994829603e92da529a25f42fc3149d4bb merged with no source change; pins and the option table matched.
 Tip r3-23 68b3720c4274e3a646f73ca92b228cbb686b5a3e merged with no source change; pins and the option table matched.
+Tip r3-21 28b3a7520de0bdd16105c94b7496cf603127704f merged with no source change; pins and the option table matched.
 Not verified. No `R3 FOLLOW-UP DONE` commit existed to merge.
 Playing strength was not measured. Address and thread sanitizers were
 not run on the integrated tree. The KRK threads-2 miss above was not
