@@ -1,5 +1,6 @@
 #include "forge/clock_plan.hpp"
 #include "forge/search.hpp"
+#include "forge/tm_finish.hpp"
 #include "forge/uci_output.hpp"
 
 #include <algorithm>
@@ -91,6 +92,7 @@ bool AspCappedReopen = false;
 bool AspArmLate = false;
 bool EvasionOrdering = false;
 bool QuietExtinction = false;
+bool TmFinishIteration = false;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -2087,6 +2089,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     // Set once a root iteration returns a score strictly inside the window it
     // was searched with. AspArmLate uses that as the signal to leave the full window.
     bool asp_score_inside = false;
+    // Durations of the two finished iterations used by TmFinishIteration.
+    std::int64_t finish_prev_ms = 0;
+    std::int64_t finish_last_ms = 0;
     root_effort_count_ = root_candidates.size();
     assert(root_effort_count_ <= root_effort_moves_.size());
     std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
@@ -2106,6 +2111,12 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     }
     for (int depth = 1; depth <= max_depth; ++depth) {
         root_depth_ = depth;
+        // Sample only while a game clock is running and the option is on.
+        // Fixed-depth, fixed-node, movetime and ponder-wait searches stay put.
+        const bool finish_sampling =
+            tune::TmFinishIteration && time_managed_ &&
+            !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0);
+        const std::int64_t finish_origin = finish_sampling ? elapsed_ms() : 0;
         int delta = tune::AspirationDelta;
         int alpha = -Infinite;
         int beta = Infinite;
@@ -2272,6 +2283,11 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         // Outside the window the iteration is unfinished and cannot soft-stop.
         const bool soft_finished = !tune::AspArmLate || inside_window;
         if (soft_finished && time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
+            if (finish_sampling) {
+                const std::int64_t spent = elapsed_ms() - finish_origin;
+                finish_prev_ms = finish_last_ms;
+                finish_last_ms = spent > 0 ? spent : 0;
+            }
             // Stop early when the best move has been stable; spend longer when it keeps changing.
             double factor = 1.0;
             if (stable_iterations >= 6) factor = tune::TmStableFactor / 100.0;
@@ -2295,6 +2311,21 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             }
             factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
             if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
+            if (finish_sampling) {
+                const std::int64_t used_ms = elapsed_ms();
+                const auto deadline =
+                    static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor);
+                const std::int64_t left_ms = deadline - used_ms;
+                if (iteration_will_not_finish(finish_prev_ms, finish_last_ms, left_ms)) {
+                    if (emit_info) {
+                        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+                        std::cout << "info string TmFinishIteration hold depth " << depth
+                                  << " prev " << finish_prev_ms << " last " << finish_last_ms
+                                  << " remaining " << left_ms << std::endl;
+                    }
+                    break;
+                }
+            }
         }
     }
 

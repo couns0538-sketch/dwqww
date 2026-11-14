@@ -212,7 +212,8 @@ int uci_loop(std::istream& in) {
                          "option name EvasionOrdering type check default false\n"
                          "option name DeadMaterial type check default false\n"
                          "option name QuietExtinction type check default false\n"
-                         "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n";
+                         "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                         "option name TmFinishIteration type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them. Builds without this macro still accept them.
@@ -341,7 +342,7 @@ int uci_loop(std::istream& in) {
             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
-                       name == "QuietExtinction") {
+                       name == "QuietExtinction" || name == "TmFinishIteration") {
                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
                              : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
@@ -351,7 +352,8 @@ int uci_loop(std::istream& in) {
                              : name == "NullSeeVeto" ? &forge::tune::NullSeeVeto
                              : name == "AspArmLate" ? &forge::tune::AspArmLate
                              : name == "EvasionOrdering" ? &forge::tune::EvasionOrdering
-                                                        : &forge::tune::QuietExtinction;
+                             : name == "QuietExtinction" ? &forge::tune::QuietExtinction
+                                                        : &forge::tune::TmFinishIteration;
                 if (value_text == "true" || value_text == "false") {
                     *target = value_text == "true";
                 } else {
