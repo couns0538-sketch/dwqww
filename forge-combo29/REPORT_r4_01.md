@@ -21,7 +21,7 @@ Frozen input commits
 21 28b3a7520de0bdd16105c94b7496cf603127704f grok47/r3-21-mate-score-tt
 24 eb2dda7a68f6605fa298c3fddec81b099fcd5501 grok47/r3-24-tt-duplicate-shadow
 22 143f3c5c6953ecfb8826553200e90f31dc91baae grok47/r3-22-time-safety
-01 c0aaf80df40213f867038d2280abbc954d8b9e98 grok47/r3-01-eval-rule-50-damp
+01 485e27bd80e76c7973cb5428d0df307baad5123d grok47/r3-01-eval-rule-50-damp
 02 8fe3867a098b7df57d731a3e3581c1be51ea5c57 grok47/r3-02-threat-history
 03 176aa9fc1edd53c15b37ab966dc1eb4457a43377 grok47/r3-03-lmr-signed-correction
 04 feccf387e16ac19233f77413a113134467b3f0f3 grok47/r3-04-lmr-late-parent-relief
@@ -61,7 +61,7 @@ build of the merged commit, every other option at default. Got is the
 integrated binary with only that option changed.
 
 option                value  commit                                     expected   got
-EvalRule50Damp        true   c0aaf80df40213f867038d2280abbc954d8b9e98    1049205    1049205
+EvalRule50Damp        true   485e27bd80e76c7973cb5428d0df307baad5123d    1049205    1049205
 ThreatHistory         true   8fe3867a098b7df57d731a3e3581c1be51ea5c57    643389     643389
 LmrSignedCorrection   true   176aa9fc1edd53c15b37ab966dc1eb4457a43377    862329     862329
 LmrLateParentRelief   true   feccf387e16ac19233f77413a113134467b3f0f3    818656     818656
@@ -166,6 +166,7 @@ Tip r3-23 68b3720c4274e3a646f73ca92b228cbb686b5a3e merged with no source change;
 Tip r3-21 28b3a7520de0bdd16105c94b7496cf603127704f merged with no source change; pins and the option table matched.
 Tip r3-24 eb2dda7a68f6605fa298c3fddec81b099fcd5501 merged with no source change; pins and the option table matched.
 Tip r3-22 143f3c5c6953ecfb8826553200e90f31dc91baae merged with no source change; pins and the option table matched.
+Tip r3-01 485e27bd80e76c7973cb5428d0df307baad5123d merged with no source change; pins and the option table matched.
 Not verified. No `R3 FOLLOW-UP DONE` commit existed to merge.
 Playing strength was not measured. Address and thread sanitizers were
 not run on the integrated tree. The KRK threads-2 miss above was not
