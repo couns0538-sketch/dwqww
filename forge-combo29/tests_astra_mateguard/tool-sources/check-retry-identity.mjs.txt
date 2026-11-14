@@ -1,0 +1,6 @@
+import fs from 'node:fs';import readline from 'node:readline';import crypto from 'node:crypto';
+const r='/workspace/work/r4-run',a=r+'/matches/MateAlphaGuard-0001',b=a+'-retry';
+async function read(prefix){const games=new Map();for await(const line of readline.createInterface({input:fs.createReadStream(prefix+'.events.ndjson')})){if(!line.trim())continue;const e=JSON.parse(line);if(!Number.isInteger(e.game))continue;const g=games.get(e.game)||{moves:[]};games.set(e.game,g);if(e.event==='game_started')g.fen=e.start_fen;if(e.event==='move')g.moves.push(e.move);if(e.event==='game_finished')g.result=e.result;}return games;}
+const old=await read(a),retry=await read(b),differences=[];let compared=0;
+for(const [id,g]of old){if(!g.result)continue;++compared;const h=retry.get(id);if(JSON.stringify(g)!==JSON.stringify(h))differences.push({id,old:g,retry:h});}
+const summary={utc:new Date().toISOString(),compared,identical:compared-differences.length,differences,notAdditionalGames:true,sourceSha256:Object.fromEntries([a,b].map(p=>[p,crypto.createHash('sha256').update(fs.readFileSync(p+'.events.ndjson')).digest('hex')]))};fs.writeFileSync(r+'/logs/retry-identity.txt',JSON.stringify(summary,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({...summary,differences:differences.length}));process.exitCode=differences.length||compared!==314?1:0;

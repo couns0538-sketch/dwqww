@@ -1,0 +1,16 @@
+import fs from 'node:fs';import crypto from 'node:crypto';
+const [label,group]=process.argv.slice(2),r='/workspace/work/r4-run';if(!/^[a-z0-9-]+$/.test(label??'')||!group)throw Error('args');
+const stateFile=r+'/state.json',s=JSON.parse(fs.readFileSync(stateFile));if(!s.soakBudgetStart)throw Error('successor budget not started');
+const meta=JSON.parse(fs.readFileSync(r+'/logs/'+label+'.metadata.txt')),raw=fs.readFileSync(r+'/logs/'+label+'.txt','utf8');
+if((s.soakPlay??[]).some(x=>x.label===label))throw Error('already recorded');
+const summaries=[...raw.matchAll(/^SUMMARY (\{.*\})$/gm)];let counts=summaries.length===1?JSON.parse(summaries[0][1]):null;
+const findings=[...raw.matchAll(/WARNING: ThreadSanitizer|FATAL: ThreadSanitizer|ERROR: (?:AddressSanitizer|LeakSanitizer)|runtime error:/g)].map(m=>({kind:m[0],offset:m.index}));
+const completed=[0,1].includes(meta.exit)&&meta.signal===null&&counts&&counts.games>0&&counts.searches>0;
+const passed=completed&&meta.exit===0&&!findings.length&&['faults','illegal','missing','badscore'].every(k=>counts[k]===0);
+const row={label,group,started:meta.started,ended:meta.ended,argv:meta.argv,completed:!!completed,passed:!!passed,counts:completed?counts:null,partialSummary:completed?null:counts,findings,exit:meta.exit,signal:meta.signal,rawSha256:crypto.createHash('sha256').update(raw).digest('hex')};
+(s.soakPlay??=[]).push(row);s.phase='Successor soak: sanitizer self-play';s.progressBatch=label+' seed'+(counts?.seed??'recorded in command');
+const totals=s.soakPlay.filter(x=>x.completed).reduce((a,x)=>{a.games+=x.counts.games;a.searches+=x.counts.searches;a.faults+=x.counts.faults;a.sanitizerReports+=x.findings.length;return a;},{games:0,searches:0,faults:0,sanitizerReports:0});
+totals.sanitizerReports=s.soakPlay.reduce((n,x)=>n+x.findings.length,0); // Keep reports from incomplete/aborted attempts too.
+s.soakPlayTotals=totals;s.checkpointNote='Successor '+group+' '+(completed?'completed':'incomplete')+': '+JSON.stringify(row.counts??row.partialSummary)+'. Sanitizer reports '+findings.length+'. Accepted completed self-play totals '+JSON.stringify(totals)+'. All raw inputs/outputs retained; incomplete attempts excluded from totals.';s.commitMessage='Checkpoint successor sanitizer batch '+label;
+if(!passed){const faultDir=s.repo+'/forge-combo29/tests_astra_mateguard/faults';fs.mkdirSync(faultDir,{recursive:true});const fault=faultDir+'/'+label+'.txt';fs.writeFileSync(fault,JSON.stringify(row,null,2)+'\n\nFULL OUTPUT\n'+raw+'\nReproduction status: not yet repeated; do not infer engine fault from timeout alone.\n',{flag:'wx'});row.faultFile=fault;}
+fs.writeFileSync(stateFile,JSON.stringify(s,null,2)+'\n');console.log(JSON.stringify({row,totals}));process.exitCode=passed?0:1;
