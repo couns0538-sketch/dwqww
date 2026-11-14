@@ -57,6 +57,8 @@ One release process, Threads 1, Hash 16, OwnBook false:
 
 The same release commands were run again at 14:19 UTC. Bench 11, bench 13, and perft 5 matched the numbers above, including DrawJitter 8 at 857947 twice and the return to 0. The sanitizer binary was run again: both 200-search samples and the two-thread search passed, exit 0, no sanitizer diagnostic.
 
+A later pass at 14:39 UTC matched again: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609, DrawJitter 8 bench 13 = 857947, then DrawJitter 0 bench 13 = 862329.
+
 No strength claim.
 
 setoption name DrawJitter value 8
