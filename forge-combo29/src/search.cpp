@@ -1696,14 +1696,17 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             delta += delta / 2 + 4;
         }
         if (aborted_) {
-            // A partially searched iteration that already raised alpha at the
-            // root has found a move at least as good as the previous best.
-            if (ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
-                result.best_move = ss->pv[0];
-                result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
-                result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
-                // Publish the revised line so GUIs see a PV consistent with the move.
-                emit(depth, result.score, result.pv);
+            // A later MultiPV depth that dies before every line is finished
+            // keeps the previous complete ranking. MultiPV 1 has no stored
+            // lines, so its partial root move is still published.
+            if (multipv <= 1 || result.lines.empty() || result.lines.front().pv.empty()) {
+                if (ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
+                    result.best_move = ss->pv[0];
+                    result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
+                    result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+                    // Publish the revised line so GUIs see a PV consistent with the move.
+                    emit(depth, result.score, result.pv);
+                }
             }
             break;
         }
@@ -1774,9 +1777,17 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
                     emit(depth, result.lines[i].score, result.lines[i].pv);
                 }
                 pv_index = 1;
+            } else if (!result.lines.empty() && !result.lines.front().pv.empty()) {
+                // This depth did not finish every requested line. The answer
+                // stays the previous complete ranking, including bestmove.
+                const SearchInfo::MultiPvLine kept = result.lines.front();
+                score = kept.score;
+                result.score = score;
+                result.pv = kept.pv;
+                result.best_move = result.pv.front();
+                result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+                if (depth > 1) result.depth = depth - 1;
             } else {
-                // This depth did not finish every requested line. Keep the
-                // previous complete set and still report the finished primary.
                 emit(depth, score, result.pv);
             }
             if (aborted_) break;

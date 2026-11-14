@@ -336,8 +336,11 @@ int main() {
                     (limits.time_ms >= 0 || limits.movetime_ms >= 0)) limits.start_time = command_start;
                 // Book moves apply to game play (clock or movetime searches), not
                 // to analysis, pondering or restricted searches.
+                // MultiPV above 1 is there so self-play can choose among root moves.
+                // A book hit would hide those lines, so only a one-line search uses the book.
                 const bool game_search = (limits.time_ms >= 0 || limits.movetime_ms >= 0) && !limits.infinite &&
-                                         !limits.ponder && !limits.search_moves_specified && limits.mate_moves == 0;
+                                         !limits.ponder && !limits.search_moves_specified && limits.mate_moves == 0 &&
+                                         multipv <= 1;
                 if (game_search && own_book && !book.empty() && game_ply(board) < book_depth) {
                     const forge::Move book_move = book.probe(board, book_variety, book_rng);
                     if (!book_move.is_none()) {

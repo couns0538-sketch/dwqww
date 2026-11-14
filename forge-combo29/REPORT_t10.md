@@ -8,7 +8,7 @@ The engine could report only one root move. Self-play had no UCI way to ask for 
 
 `MultiPV` is a UCI spin option from 1 to 8, default 1. At 1 the search loop is the same as before and info lines stay in the old form. Above 1, after each finished depth, the main worker searches the remaining root moves with the earlier choices removed and prints `info depth D seldepth S multipv i score ... pv ...`. `bestmove` stays the first line. A value outside 1..8 is clamped. A malformed value is rejected and the previous setting is kept.
 
-Engine diff against the lock: 111 insertions and 3 deletions in `src` and `include` (`git diff --numstat 16833ecc`), under the 300-line cap.
+Engine diff against the lock: 134 insertions and 12 deletions in `src` and `include` (`git diff --numstat 16833ecc`), under the 300-line cap.
 
 ## Files changed
 
@@ -547,10 +547,9 @@ Exit status 0. The sanitizer printed no error.
 
 ## What was not verified
 
-- `Threads` greater than 1 together with `MultiPV` greater than 1. Extra lines run only on the main worker. Helper threads still search one line and share the transposition table. That mix was not run.
-- A clock-limited game with `MultiPV` greater than 1. The extra lines search more nodes after a finished iteration, so they use time. `MultiPV` 1 leaves the clock path as it was. No timed game was played.
 - The first line of a `MultiPV` greater than 1 search at depths after 1 against a `MultiPV` 1 search of the same position. The extra searches write child transposition-table entries and history before the next depth, so a later first line can differ. At depth 1 the measured first line matches the single-PV search (`d2d4`, 26 nodes).
 - Elo and speed. The `nps` numbers above are wall-clock readings from these runs, not a speed claim.
+- A full alternating game on `wtime`/`btime`. `go movetime` is the timed path that was run; see the next section.
 
 ## Follow-up: ranking, drawn roots, and a stopped search
 
@@ -708,3 +707,239 @@ ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_
 ```
 
 The output matches the Release test above, including `failures=0`, and the sanitizer printed no error. Exit status 0.
+
+## Follow-up: book, a stopped bestmove, searchmoves, and two threads
+
+The nodes560 listing above is from the previous build. That build kept the finished line set but still published the unfinished primary, so `bestmove` was `g1f3` while line 1 was `e2e4`. A timed start-position search with `OwnBook true` and `MultiPV 2` also returned `info string book move e2e4` and never printed a `multipv` line.
+
+An unfinished depth now leaves `bestmove`, the score, and the pv on the last complete ranking, and it does not print a lone newer line. `MultiPV` 1 still publishes a partial root move; `go nodes 1000` with `MultiPV` left at 1 matched the lock after stripping `nps` and `time`. The opening book is skipped only when `MultiPV` is above 1. `MultiPV` 1 with `OwnBook true` still plays the book move.
+
+Bench command, same options as above, on this build:
+
+```
+printf '%s\n' \
+  'setoption name Threads value 1' \
+  'setoption name Hash value 16' \
+  'setoption name OwnBook value false' \
+  'isready' \
+  'bench 11' \
+  'bench 13' \
+  'position startpos' \
+  'go perft 5' \
+  'quit' | /tmp/forge-t10-new/forge
+```
+
+```
+readyok
+info string bench depth 11 nodes 312866 time 162 nps 1931271
+info string bench depth 13 nodes 862329 time 429 nps 2010090
+a2a3: 181046
+b2b3: 215255
+c2c3: 222861
+d2d3: 328511
+e2e3: 402988
+f2f3: 178889
+g2g3: 217210
+h2h3: 181044
+a2a4: 217832
+b2b4: 216145
+c2c4: 240082
+d2d4: 361790
+e2e4: 405385
+f2f4: 198473
+g2g4: 214048
+h2h4: 218829
+b1a3: 198572
+b1c3: 234656
+g1f3: 233491
+g1h3: 198502
+nodes 4865609
+```
+
+`bench 11` is 312866, `bench 13` is 862329, and perft 5 is 4865609. `go depth 8` with `MultiPV` left at 1, compared with the lock transcript above after stripping `nps` and `time`, produced an empty diff, including `bestmove d2d4`. `go nodes 1000` with the same options, against `/tmp/forge-lock`, also produced an empty diff after that stripping.
+
+`OwnBook true`, `MultiPV 1`, `go movetime 200` from the start position:
+
+```
+readyok
+info string book move e2e4
+bestmove e2e4
+```
+
+`OwnBook true`, `MultiPV 2`, `go movetime 200` from the start position. `quit` was sent after `bestmove`:
+
+```
+readyok
+info depth 1 seldepth 1 multipv 1 score cp 1 nodes 51 nps 0 hashfull 0 time 0 pv d2d4
+info depth 1 seldepth 1 multipv 2 score cp 1 nodes 51 nps 0 hashfull 0 time 0 pv g1f3
+info depth 2 seldepth 2 multipv 1 score cp 49 nodes 106 nps 0 hashfull 0 time 0 pv d2d4 d7d6
+info depth 2 seldepth 2 multipv 2 score cp 46 nodes 106 nps 0 hashfull 0 time 0 pv g1f3 e7e6
+info depth 3 seldepth 3 multipv 1 score cp 18 nodes 278 nps 0 hashfull 0 time 0 pv e2e4 h7h6 d2d4
+info depth 3 seldepth 3 multipv 2 score cp 18 nodes 278 nps 0 hashfull 0 time 0 pv d2d4 h7h6 e2e4
+info depth 4 seldepth 6 multipv 1 score cp 35 nodes 619 nps 0 hashfull 0 time 0 pv d2d4 d7d5 g1f3 c7c6
+info depth 4 seldepth 6 multipv 2 score cp 35 nodes 619 nps 0 hashfull 0 time 0 pv g1f3 d7d5 d2d4 c7c6
+info depth 5 seldepth 8 multipv 1 score cp 2 nodes 1574 nps 1574000 hashfull 0 time 1 pv e2e3 c7c5 g1f3 g8f6 d2d4
+info depth 5 seldepth 8 multipv 2 score cp 1 nodes 1574 nps 1574000 hashfull 0 time 1 pv d2d4 g8f6 g1f3 h7h6 g2g3
+info depth 6 seldepth 8 multipv 1 score cp 13 nodes 2331 nps 2331000 hashfull 0 time 1 pv d2d4 g8f6 e2e3 h7h6 g1f3 d7d5
+info depth 6 seldepth 8 multipv 2 score cp 12 nodes 2331 nps 2331000 hashfull 0 time 1 pv g1f3 g8f6 d2d4 h7h6 e2e3 d7d5
+info depth 7 seldepth 12 multipv 1 score cp 25 nodes 5515 nps 1838333 hashfull 1 time 3 pv e2e4 c7c5 g1f3 h7h6 f1e2 e7e6 d2d4 c5d4
+info depth 7 seldepth 12 multipv 2 score cp 19 nodes 5515 nps 1838333 hashfull 1 time 3 pv c2c4 c7c5 e2e3 g8f6 g1f3 e7e6 f1e2
+info depth 8 seldepth 13 multipv 1 score cp 25 nodes 8123 nps 2030750 hashfull 2 time 4 pv e2e4 c7c5 g1f3 h7h6 f1e2 e7e6 d2d4 c5d4 f3d4
+info depth 8 seldepth 13 multipv 2 score cp 17 nodes 8123 nps 2030750 hashfull 2 time 4 pv g1f3 g8f6 d2d4 e7e6 c2c4 c7c5 e2e3 b8c6
+info depth 9 seldepth 17 multipv 1 score cp 25 nodes 12560 nps 2093333 hashfull 4 time 6 pv e2e4 c7c5 g1f3 h7h6 f1e2 e7e6 d2d4 c5d4 f3d4
+info depth 9 seldepth 17 multipv 2 score cp 18 nodes 12560 nps 2093333 hashfull 4 time 6 pv e2e3 c7c5 c2c4 g8f6 g1f3 e7e6 d2d4 c5d4 e3d4
+info depth 10 seldepth 18 multipv 1 score cp 25 nodes 26415 nps 2031923 hashfull 16 time 13 pv e2e4 c7c5 g1f3 e7e6 f1e2 b8c6 e1g1 d7d5 e4d5 e6d5
+info depth 10 seldepth 18 multipv 2 score cp 24 nodes 26415 nps 2031923 hashfull 16 time 13 pv d2d4 g8f6 g1f3 b7b6 e2e3 e7e6 c2c4 c8b7 f1e2 c7c5
+info depth 11 seldepth 21 multipv 1 score cp 24 nodes 39550 nps 2081578 hashfull 21 time 19 pv e2e4 c7c5 g1f3 e7e6 f1e2 d7d5 e4d5 e6d5 d2d4 g8f6 b1c3
+info depth 11 seldepth 21 multipv 2 score cp 23 nodes 39550 nps 2081578 hashfull 21 time 19 pv d2d4 g8f6 c2c4 e7e6 e2e3 d7d5 g1f3 c7c5 c4d5 e6d5 f1e2
+info depth 12 seldepth 21 multipv 1 score cp 29 nodes 89861 nps 2042295 hashfull 45 time 44 pv e2e4 c7c5 g1f3 d7d6 f1e2 g8f6 b1c3 b8c6 d2d4 c5d4 f3d4 c8d7
+info depth 12 seldepth 21 multipv 2 score cp 24 nodes 89861 nps 2042295 hashfull 45 time 44 pv d2d4 g8f6 c2c4 e7e6 e2e3 d7d5 g1f3 c7c5 c4d5 e6d5 f1e2 b8c6
+info depth 13 seldepth 26 multipv 1 score cp 31 nodes 166143 nps 2026134 hashfull 82 time 82 pv e2e4 c7c5 g1f3 d7d6 f1c4 g8f6 e1g1 e7e6 f1e1 a7a6 c2c3 f8e7 d2d4
+info depth 13 seldepth 26 multipv 2 score cp 27 nodes 166143 nps 2026134 hashfull 82 time 82 pv d2d4 g8f6 c2c4 e7e6 e2e3 d7d5 g1f3 c7c5 c4d5 e6d5 f1e2 b8c6 e1g1
+info depth 14 seldepth 26 multipv 1 score cp 24 nodes 257831 nps 1998689 hashfull 133 time 129 pv d2d4 g8f6 c2c4 e7e6 e2e3 d7d5 g1f3 b8d7 c4d5 e6d5 f1d3 f8e7 b1c3 e8g8
+info depth 14 seldepth 26 multipv 2 score cp 20 nodes 257831 nps 1998689 hashfull 133 time 129 pv g1f3 d7d5 d2d4 g8f6 c2c4 e7e6 e2e3 b8d7 c4d5 e6d5 f1d3 f8e7 e1g1 e8g8
+info depth 15 seldepth 26 multipv 1 score cp 18 nodes 365935 nps 2010631 hashfull 185 time 182 pv e2e4 c7c5 g1f3 d7d6 b1c3 a7a6 f1e2 e7e5 c3d5 g8e7 c2c4 e7d5 c4d5 f8e7
+info depth 15 seldepth 26 multipv 2 score cp 17 nodes 365935 nps 2010631 hashfull 185 time 182 pv d2d4 g8f6 c2c4 e7e6 e2e3 d7d5 g1f3 b8d7 c4d5 e6d5 f1d3 f8e7 e1g1 e8g8 c1d2
+bestmove e2e4
+```
+
+There is no book line. Depth 15 finished both lines, `bestmove e2e4` is `multipv 1`, and no later single line was printed. `nps` and `time` are wall-clock.
+
+`MultiPV 3`, `go nodes 560`, `OwnBook false`, from the start position:
+
+```
+readyok
+info depth 1 seldepth 1 multipv 1 score cp 1 nodes 74 nps 0 hashfull 0 time 0 pv d2d4
+info depth 1 seldepth 1 multipv 2 score cp 1 nodes 74 nps 0 hashfull 0 time 0 pv g1f3
+info depth 1 seldepth 1 multipv 3 score cp -10 nodes 74 nps 0 hashfull 0 time 0 pv c2c4
+info depth 2 seldepth 2 multipv 1 score cp 49 nodes 153 nps 0 hashfull 0 time 0 pv d2d4 d7d6
+info depth 2 seldepth 2 multipv 2 score cp 46 nodes 153 nps 0 hashfull 0 time 0 pv g1f3 e7e6
+info depth 2 seldepth 2 multipv 3 score cp 33 nodes 153 nps 0 hashfull 0 time 0 pv c2c4 e7e6
+info depth 3 seldepth 3 multipv 1 score cp 18 nodes 360 nps 0 hashfull 0 time 0 pv e2e4 h7h6 d2d4
+info depth 3 seldepth 3 multipv 2 score cp 18 nodes 360 nps 0 hashfull 0 time 0 pv d2d4 h7h6 e2e4
+info depth 3 seldepth 3 multipv 3 score cp 17 nodes 360 nps 0 hashfull 0 time 0 pv g1f3 h7h6 e2e4
+bestmove e2e4
+```
+
+`Threads 2`, `Hash 16`, `OwnBook false`, `MultiPV 2`, `go depth 3` from the start position:
+
+```
+readyok
+info depth 1 seldepth 1 multipv 1 score cp 1 nodes 51 nps 0 hashfull 0 time 0 pv d2d4
+info depth 1 seldepth 1 multipv 2 score cp 1 nodes 105 nps 0 hashfull 0 time 0 pv g1f3
+info depth 2 seldepth 2 multipv 1 score cp 43 nodes 180 nps 0 hashfull 0 time 0 pv g1f3 h7h6
+info depth 2 seldepth 2 multipv 2 score cp 37 nodes 344 nps 0 hashfull 0 time 0 pv e2e4 e7e6
+info depth 3 seldepth 3 multipv 1 score cp 18 nodes 439 nps 0 hashfull 0 time 0 pv e2e4 h7h6 d2d4
+info depth 3 seldepth 3 multipv 2 score cp 17 nodes 439 nps 0 hashfull 0 time 0 pv g1f3 h7h6 e2e4
+bestmove e2e4
+```
+
+Each depth printed two lines, scores were nonincreasing, and `bestmove e2e4` is the depth-3 first line. Node counts on one depth can differ because the helper thread keeps counting while the lines are printed. This is one run, not a claim that two threads visit the same tree as one thread.
+
+Release test after rebuilding `search.cpp` and `uci.cpp`, same link command as above:
+
+```
+default best e2e4 score 30 nodes 404 lines 0
+multipv1 best e2e4 score 30 nodes 404 lines 0
+ok the depth-4 search visits nodes
+ok MultiPV 1 visits the same nodes as the default
+ok MultiPV 1 plays the default move
+ok MultiPV 1 reports the default score
+ok MultiPV 1 reports the default pv
+ok MultiPV 1 does not publish extra lines
+ok MultiPV 1 info text has no multipv token
+ok MultiPV 1 still prints info lines
+ok MultiPV 0 is clamped to 1
+depth1-multipv3 best d2d4 score 1 nodes 74 lines 3
+  1 score 1 pv d2d4
+  2 score 1 pv g1f3
+  3 score -10 pv c2c4
+ok depth 1 MultiPV 3 returns three lines
+ok the three lines are distinct legal root moves
+ok depth-1 lines are ordered by score
+ok info prints multipv 1 before score
+ok info prints multipv 2 before score
+ok info prints multipv 3 before score
+ok MultiPV 3 does not print a fourth line
+depth1-multipv100 best d2d4 score 1 nodes 161 lines 8
+  1 score 1 pv d2d4
+  2 score 1 pv g1f3
+  3 score -10 pv c2c4
+  4 score -11 pv e2e4
+  5 score -15 pv h2h3
+  6 score -16 pv e2e3
+  7 score -16 pv b1c3
+  8 score -20 pv d2d3
+ok MultiPV above 8 is clamped to 8
+ok the eight lines are distinct legal root moves
+depth3-multipv2 best e2e4 score 18 nodes 278 lines 2
+  1 score 18 pv e2e4 h7h6 d2d4
+  2 score 18 pv d2d4 h7h6 e2e4
+ok the result keeps the last depth's lines
+ok both last-depth lines are legal root moves
+cramped legal 3
+  h8g7
+  h8h7
+  h8g8
+cramped-multipv8 best h8h7 score -97 nodes 10 lines 3
+  1 score -97 pv h8h7
+  2 score -105 pv h8g7
+  3 score -109 pv h8g8
+ok the cramped fen parses
+ok the cramped position has fewer than 8 legal moves
+ok MultiPV stops when the legal root moves run out
+ok every legal root move is one of the lines
+depth4-multipv8 best d2d4 score 33 nodes 2337 lines 8
+  1 score 33 pv d2d4 d7d5 g1f3 c7c6
+  2 score 31 pv g1f3 c7c5 e2e4 e7e6
+  3 score 31 pv e2e4 c7c5 g1f3 e7e6
+  4 score 30 pv c2c4 c7c5 g1f3 e7e6
+  5 score 20 pv h2h3 e7e6 g1f3 d7d5
+  6 score 14 pv c2c3 c7c5 g1f3 d7d5
+  7 score 12 pv g2g3 d7d5 d2d4 h7h6
+  8 score 11 pv d2d3 d7d5 g1f3 c7c5
+ok depth-4 MultiPV lines are ranked by score
+bare-kings best e3d2 score 0 nodes 0 lines 3
+  1 score 0 pv e3d2
+  2 score 0 pv e3e2
+  3 score 0 pv e3f2
+ok a drawn root prints its legal moves
+nodes560 best e2e4 score 18 nodes 560 lines 3
+  1 score 18 pv e2e4 h7h6 d2d4
+  2 score 18 pv d2d4 h7h6 e2e4
+  3 score 17 pv g1f3 h7h6 e2e4
+ok a node limit keeps the last complete MultiPV set
+searchmoves best d2d4 score 49 nodes 24 lines 2
+  1 score 49 pv d2d4 d7d6
+  2 score 37 pv e2e4 e7e6
+ok MultiPV stays inside searchmoves
+in-check best e1f2 score -307 nodes 92 lines 3
+  1 score -307 pv e1f2 h1d1
+  2 score -322 pv e1e2 h1b1
+  3 score -370 pv e1d2 h1h2 d2e1
+ok a check search ranks the legal evasions
+failures=0
+```
+
+Exit status 0. `searchmoves e2e4 d2d4` with `MultiPV 4` returned those two moves, ranked. The in-check position `4k3/8/8/8/8/8/8/4K2r w - - 0 1` returned its three legal evasions, ranked, and `bestmove` was line 1.
+
+The same test linked with `-O1 -g -fsanitize=address,undefined -fno-sanitize-recover=undefined` and the same `-D` flags, including `-DNDEBUG` and `-march=x86-64-v4`, printed the same text. `ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 /tmp/forge-t10-asan/multipv_test` exited 0 and the sanitizer printed no error.
+
+A sanitizer build of the engine, `OwnBook true`, `MultiPV 2`, `go movetime 30`, with the sanitizer runtime preloaded:
+
+```
+readyok
+info depth 1 seldepth 1 multipv 1 score cp 1 nodes 51 nps 25500 hashfull 0 time 2 pv d2d4
+info depth 1 seldepth 1 multipv 2 score cp 1 nodes 51 nps 25500 hashfull 0 time 2 pv g1f3
+info depth 2 seldepth 2 multipv 1 score cp 49 nodes 106 nps 53000 hashfull 0 time 2 pv d2d4 d7d6
+info depth 2 seldepth 2 multipv 2 score cp 46 nodes 106 nps 53000 hashfull 0 time 2 pv g1f3 e7e6
+info depth 3 seldepth 3 multipv 1 score cp 18 nodes 278 nps 69500 hashfull 0 time 4 pv e2e4 h7h6 d2d4
+info depth 3 seldepth 3 multipv 2 score cp 18 nodes 278 nps 69500 hashfull 0 time 4 pv d2d4 h7h6 e2e4
+info depth 4 seldepth 6 multipv 1 score cp 35 nodes 619 nps 88428 hashfull 0 time 7 pv d2d4 d7d5 g1f3 c7c6
+info depth 4 seldepth 6 multipv 2 score cp 35 nodes 619 nps 88428 hashfull 0 time 7 pv g1f3 d7d5 d2d4 c7c6
+info depth 5 seldepth 8 multipv 1 score cp 2 nodes 1574 nps 98375 hashfull 0 time 16 pv e2e3 c7c5 g1f3 g8f6 d2d4
+info depth 5 seldepth 8 multipv 2 score cp 1 nodes 1574 nps 98375 hashfull 0 time 16 pv d2d4 g8f6 g1f3 h7h6 g2g3
+bestmove e2e3
+```
+
+`bestmove e2e3` is depth 5's first line. The sanitizer printed no error.

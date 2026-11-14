@@ -177,7 +177,48 @@ int main() {
             stopped_ok = stopped_ok && stopped.lines[i].pv.front() != stopped.lines[j].pv.front();
         if (i > 0) stopped_ok = stopped_ok && stopped.lines[i].score <= stopped.lines[i - 1].score;
     }
+    stopped_ok = stopped_ok && stopped.best_move == stopped.lines.front().pv.front() &&
+                 stopped.score == stopped.lines.front().score;
     expect(stopped_ok, "a node limit keeps the last complete MultiPV set");
+
+    forge::Board restricted;
+    const auto e2e4 = restricted.parse_uci("e2e4");
+    const auto d2d4 = restricted.parse_uci("d2d4");
+    bool two_ok = e2e4.has_value() && d2d4.has_value();
+    if (two_ok) {
+        forge::SearchLimits only_two;
+        only_two.depth = 2;
+        only_two.multipv = 4;
+        only_two.search_moves_specified = true;
+        only_two.search_moves = {*e2e4, *d2d4};
+        forge::Searcher restricted_search(16, 1);
+        const forge::SearchInfo two = restricted_search.search(restricted, only_two, false);
+        print_lines("searchmoves", two);
+        two_ok = two.lines.size() == 2 && two.best_move == two.lines.front().pv.front() &&
+                 two.score == two.lines.front().score;
+        for (const forge::SearchInfo::MultiPvLine& line : two.lines) {
+            const bool allowed = !line.pv.empty() && (line.pv.front() == *e2e4 || line.pv.front() == *d2d4);
+            two_ok = two_ok && allowed;
+        }
+        if (two.lines.size() == 2) {
+            two_ok = two_ok && two.lines[0].pv.front() != two.lines[1].pv.front();
+            two_ok = two_ok && two.lines[1].score <= two.lines[0].score;
+        }
+    }
+    expect(two_ok, "MultiPV stays inside searchmoves");
+
+    forge::Board checked;
+    const bool checked_fen = checked.set_fen("4k3/8/8/8/8/8/8/4K2r w - - 0 1");
+    const auto checked_legal = checked.legal_moves();
+    const forge::SearchInfo evasions = search_of(checked, 2, 8, true, nullptr);
+    print_lines("in-check", evasions);
+    const int evasion_expect = std::min(8, static_cast<int>(checked_legal.size()));
+    bool evasion_ok = checked_fen && checked.in_check() && evasion_expect > 1 &&
+                      static_cast<int>(evasions.lines.size()) == evasion_expect &&
+                      lines_are_distinct_legal_roots(checked, evasions);
+    for (std::size_t i = 1; i < evasions.lines.size(); ++i)
+        evasion_ok = evasion_ok && evasions.lines[i].score <= evasions.lines[i - 1].score;
+    expect(evasion_ok, "a check search ranks the legal evasions");
 
     std::cout << "failures=" << g_failures << '\n';
     return g_failures == 0 ? 0 : 1;
