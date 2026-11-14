@@ -1,0 +1,71 @@
+{
+  "preparedUTC": "2026-11-14T22:50:43.053Z",
+  "nativeSearchesRun": 0,
+  "modes": [
+    {
+      "mode": "enabled",
+      "planFile": "/workspace/work/r4-krk-validation/test-plan/plan-enabled.json.txt",
+      "planSha256": "6b3373f632dd99c728453bce4b56fc953151999c0718f5aa1a5bee0eac788103",
+      "binary": "/workspace/work/r4-run/builds/guard-enabled/forge",
+      "binarySha256": "710cfcf73fcc3b9897281113759ed18565feb167eb0effe7023cbbe1706037dc",
+      "cwd": "/workspace/work/dwqww-r4-guard",
+      "env": {}
+    },
+    {
+      "mode": "asan",
+      "planFile": "/workspace/work/r4-krk-validation/test-plan/plan-asan.json.txt",
+      "planSha256": "fb212a65631821ed596e93c1259c3de5ac254b3b28d9599f228285b8e224cf76",
+      "binary": "/workspace/work/r4-run/builds/guard-asan/forge",
+      "binarySha256": "3335613ef9b8a32699391926a0b09689f4fb21980b374e4a4ecdc05123f14bf6",
+      "cwd": "/workspace/work/dwqww-r4-guard",
+      "env": {
+        "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
+        "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+      }
+    }
+  ],
+  "pins": {
+    "/workspace/work/r4-equality-prep/uci_process.hpp": "7790439fe381ae9bf0798d1e72e9a8e7aedbe9a7322823d5a8655dca783ac6a7",
+    "/workspace/work/dwqww-r4-guard/forge-combo29/tests_t3/clock_commands.txt": "293c19d10e857fe14517401a6ac8aa3743e40470d51d993e1f0c8726f0e499de",
+    "/workspace/work/dwqww-r4-guard/forge-combo29/tests_t3/clock_parse_test.cpp": "549e5de17bae9b2f5739d669064fa053ecfd746ed1f7bef10925e228d2917346",
+    "/workspace/work/r4-clock-manual/clock-manual.cpp": "12e2b47e92e3370269edcead77ef35f4e590b21a7f05b8408d4eb76d00c7b7aa",
+    "/workspace/work/r4-clock-manual/uci_process.hpp": "3213135647c08a9ab3b6b9869aa2285bda58723c79dda720dfded55ff603b7c0",
+    "/workspace/work/r4-clock-manual/clock-manual": "c53ce8cb2df3b904ba97d826a13540b0210a3a239208107d0ffcd8218b15892f"
+  },
+  "commandFile": "/workspace/work/r4-clock-manual/clock_commands.original.txt",
+  "commandFileSha256": "293c19d10e857fe14517401a6ac8aa3743e40470d51d993e1f0c8726f0e499de",
+  "originalTransport": "/workspace/work/r4-equality-prep/uci_process.hpp",
+  "originalTransportSha256": "7790439fe381ae9bf0798d1e72e9a8e7aedbe9a7322823d5a8655dca783ac6a7",
+  "privateTransportExtensions": "Byte observer for immediate raw stdout/stderr/submitted stdin and monotonic events; deadline-aware nonthrowing line observation. All other transport logic retained.",
+  "originalReportAvailability": "No separate t3 report present in accepted tree or introducing commit 92e77995566eee19b72d67d0358e98796829f2c0. Parent confirmed annotated command file and current parser test are authoritative; no fetch/branch search required.",
+  "goCases": [
+    "go wtime 3000000000 btime 3000000000",
+    "go movetime +80",
+    "go movetime -5",
+    "go movetime abc",
+    "go movetime +-80",
+    "go movetime 999999999999999999999abc",
+    "go wtime 1 btime 3000000000"
+  ],
+  "setup": [
+    "uci",
+    "setoption name Threads value 1",
+    "setoption name Hash value 16",
+    "setoption name OwnBook value false",
+    "isready",
+    "setoption name Move Overhead value 10",
+    "isready"
+  ],
+  "executionLimits": {
+    "modeNativeSeconds": 90,
+    "modeOuterMs": 95000,
+    "totalOuterMs": 200000,
+    "modeStartupMs": 10000,
+    "eachResponseMs": 5000,
+    "hugeStopAfterMs": 150,
+    "shutdownMs": 3000
+  },
+  "timingPolicy": "Only the annotated huge-clock no-bestmove-at-150ms observation is evaluated. Approximate 1ms/70ms comments do not define strict wall-time tolerances on the shared VM; all measured timings retained.",
+  "finalBuildCommand": "/workspace/work/r4-clock-manual/build-final.command.txt",
+  "finalWarnings": 0
+}

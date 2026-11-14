@@ -1,0 +1,67 @@
+--- /workspace/work/r4-clock-manual/uci_process.original.hpp.txt	2026-11-14 14:48:32.356121716 -0800
++++ /workspace/work/r4-clock-manual/uci_process.hpp	2026-11-14 14:50:39.707580842 -0800
+@@ -9,6 +9,8 @@
+ #include <cstdint>
+ #include <cstring>
+ #include <fcntl.h>
++#include <functional>
++#include <optional>
+ #include <poll.h>
+ #include <sstream>
+ #include <stdexcept>
+@@ -55,6 +57,7 @@
+     bool have_child_status_ = false, finished_ = false;
+     int child_status_ = 0;
+     UciShutdownResult final_status_;
++    std::function<void(const std::string&, const std::string&)> observer_;
+ 
+     static Deadline deadline(int timeout_ms) {
+         return Clock::now() + std::chrono::milliseconds(std::max(1, timeout_ms));
+@@ -114,6 +117,7 @@
+         for (;;) {
+             const ssize_t size = read(fd, buffer, sizeof(buffer));
+             if (size > 0) {
++                if (observer_) observer_(is_error ? "stderr" : "stdout", std::string(buffer, static_cast<std::size_t>(size)));
+                 if (is_error) {
+                     stderr_.append(buffer, static_cast<std::size_t>(size));
+                     pending_error_.append(buffer, static_cast<std::size_t>(size));
+@@ -200,6 +204,7 @@
+         while (written < data.size()) {
+             const ssize_t size = write(input_, data.data() + written, data.size() - written);
+             if (size > 0) {
++                if (observer_) observer_("stdin", data.substr(written, static_cast<std::size_t>(size)));
+                 written += static_cast<std::size_t>(size);
+                 continue;
+             }
+@@ -245,7 +250,7 @@
+     }
+ 
+ public:
+-    explicit UciProcess(const std::string& path, int thread_count = 1, int timeout_ms = 30000) {
++    explicit UciProcess(const std::string& path, int thread_count = 1, int timeout_ms = 30000, std::function<void(const std::string&, const std::string&)> observer = {}) : observer_(std::move(observer)) {
+         std::signal(SIGPIPE, SIG_IGN);
+         int to_child[2] = {-1, -1}, from_child[2] = {-1, -1}, errors[2] = {-1, -1};
+         if (pipe(to_child) != 0 || pipe(from_child) != 0 || pipe(errors) != 0) {
+@@ -394,6 +399,22 @@
+         final_status_ = result; finished_ = true;
+         return final_status_;
+     }
++    // Private evidence-only extension: a normal observation timeout preserves pending bytes.
++    std::optional<std::string> observe_line_for(int timeout_ms) {
++        const auto end = deadline(timeout_ms);
++        for (;;) {
++            if (pending_.find('\n') != std::string::npos) return line_until(deadline(1000));
++            if (output_eof_) return line_until(deadline(1000));
++            const int left = remaining(end); if (!left) return std::nullopt;
++            pollfd descriptors[2] = {{output_eof_ ? -1 : output_, POLLIN, 0}, {error_eof_ ? -1 : error_, POLLIN, 0}};
++            const int status = poll(descriptors, 2, left);
++            if (status == 0) return std::nullopt;
++            if (status < 0) { if (errno == EINTR) continue; fail(std::string("engine observation poll failed: ") + std::strerror(errno)); }
++            if (descriptors[1].revents & (POLLIN | POLLHUP | POLLERR)) read_available(error_, true);
++            if (descriptors[0].revents & (POLLIN | POLLHUP | POLLERR)) read_available(output_, false);
++            if ((descriptors[0].revents | descriptors[1].revents) & POLLNVAL) fail("engine observation pipe invalid");
++        }
++    }
+     void send(const std::string& command, int timeout_ms = 30000) { send_until(command, deadline(timeout_ms)); }
+     std::string line(int timeout_ms = 30000) { return line_until(deadline(timeout_ms)); }
+     void until(const std::string& expected, int timeout_ms = 30000) { until_deadline(expected, deadline(timeout_ms)); }
