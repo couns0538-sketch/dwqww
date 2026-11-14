@@ -179,7 +179,25 @@ Tip r3-05 da44ae67e647d50f73ee3477fe1e3c255c38abf4 merged with no source change;
 Tip r3-09 1482b396e71968005ac296030c2a84936729aa1c merged with no source change; pins and the option table matched.
 Tip r3-10 d13efcd0b18ba10c5d88651ebffbff489d3a1818 merged with no source change; pins and the option table matched.
 Tip r3-23 21867c5ac27a8db6f4d8dd2187c4fa7ede5204e8 merged with no source change; pins and the option table matched.
-Not verified. No `R3 FOLLOW-UP DONE` commit existed to merge.
+Follow-up commits checked at 2026-11-14 17:13 UTC. Both named engine
+fixes are already in this branch, so merging them again changes
+nothing and the pins were not re-run.
+
+r3-21 `R3 FOLLOW-UP DONE af1c998304dbfbcb997b757a7ce43af7cdf6e933`
+is the mate-score fix. It is an ancestor of HEAD. The later tip
+edc2aec48f60363e6061d53377ae8ca20c21a11e is the chunk-4 match report
+and was not merged.
+
+r3-24 `R3 FOLLOW-UP DONE 0ca8cb1009dfd1c8e58dc793c3e760d1c88628f3`
+is the duplicate-shadow fix. It is an ancestor of HEAD. The later tip
+9976bc698fed6654ff5609780ccd51697c0a4de7 is the chunk-4 match report
+and was not merged.
+
+The literal line was not present in the files fetched at 17:13 UTC.
+The commits named by those lines are the engine fixes above.
+
+Not verified. The other in-scope branches still have no
+`R3 FOLLOW-UP DONE` line in the files on origin.
 Playing strength was not measured. Address and thread sanitizers were
 not run on the integrated tree. The KRK threads-2 miss above was not
 reproduced.
