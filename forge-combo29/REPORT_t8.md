@@ -1,8 +1,53 @@
 # Task 8: load an NNUE net from a file
 
-The lock engine can evaluate only the network compiled in from `src/nnue_weights.inc`. There is no way to point it at another net of the same shape.
+## What was wrong
 
-`NnueFile` is a string UCI option, default `<empty>`. An empty value or `<empty>` installs the compiled-in net. Any other value is read as a `FORGENET` file: 8-byte magic, little-endian uint32 version 1, little-endian uint32 hidden size, then little-endian int16 `W1`, `B1`, `W2`, and one int16 `B2`. The hidden size must equal the compiled `HiddenSize` (256) and the file must be exactly 394770 bytes. A wrong magic, version, or size prints `info string` with the reason and leaves the current net in place. A successful load replaces the live weights, clears the hash, and prints `info string loaded nnue <path>`. With the option left unset, the weight conversion is the same division by 4096 as before, so bench and perft stay on the lock counts.
+The lock (`origin/lock/combo29-20261110`, commit `16833ecc`) can evaluate only the network compiled into the binary. There is no UCI option, no command, and no function that reads a net from a file.
+
+The weights live in `src/nnue.cpp`, in `weights()`. On the lock that function returns a function-local `static const Weights` filled once by a lambda. `const` is the defect that blocks a loader: after the first call, the object cannot be replaced. `refresh`, `update`, and `evaluate` all read that same object. A file load that built a second `Weights` would have nowhere to install it, and a search already running would keep using the compiled-in numbers.
+
+The source of those numbers is `src/nnue_weights.inc`, included only by `nnue.cpp`. The include sets `FORGE_NNUE_RESIDUAL` to 1 and defines four `static const` int16 objects, scale 4096:
+
+- `NnueW1[196608]`, which is `768 * 256` (input features times hidden size).
+- `NnueB1[256]`.
+- `NnueW2[512]`, which is `2 * 256` (side to move and opponent).
+- `NnueB2`, a single `int16_t` whose value is 127. It is not an array.
+
+The old lambda converted them with `static_cast<float>(q) / 4096`. `W1` and `B1` divide by `WeightScale`. `W2` and `B2` divide by `OutputScale`. Both constants are 4096. Any loader that used a different scale, a different order, or a 256-wide `B2` would change evaluation and then change the bench node counts.
+
+UCI already had `UseNNUE`, a check that only turns evaluation on or off. It did not take a path. `setoption` already knew how to read a path with spaces, but only for `Book File`: the first token is taken with `operator>>`, then `getline` takes the rest of the line. A net path had no branch.
+
+The accumulator is `std::array<float, HiddenSize>` with `HiddenSize` fixed at compile time. The lock build passes `-DFORGE_NNUE_HIDDEN=256`. A file that declares another hidden size cannot be installed in this binary. The feature columns, the bias, and the output weights would have the wrong length, and the incremental update loops index by the compiled `HiddenSize`.
+
+## What I found
+
+I read the lock `weights()` lambda, the four objects at the end of `nnue_weights.inc` (the `NnueB2` definition is line 8240), and the `setoption` path in `src/uci.cpp`.
+
+`NnueB2` being one integer is the easy mistake. The task says the file holds the four arrays in order. The fourth value in this net is one little-endian int16, not 256 of them. The converter writes `write_i16(out, NnueB2)` once. The reader checks the file length before it allocates, so a 256-wide `B2` is rejected as `nnue: wrong size` and the current net stays.
+
+The exact file length for this build is 394770 bytes:
+
+`16 + 2 * (768 * 256 + 256 + 512 + 1) = 16 + 2 * 197377 = 394770`.
+
+The 16-byte header is 8 bytes of magic `FORGENET` (no trailing NUL), a little-endian uint32 version, and a little-endian uint32 hidden size. Version must be 1. Hidden size must equal the compiled `HiddenSize`.
+
+`setoption` calls `stop_search()` before it looks at the option name. `stop_search()` sets the stop flag, calls `searcher.stop()`, and joins the worker thread. The load therefore does not replace weights while a search thread is inside `evaluate`. A successful load then calls `searcher.clear_hash()`, because transposition entries were stored under the previous net. A failed load does not clear the hash and does not assign the static weights. The parsed numbers go into a temporary `Weights`, and that temporary is moved onto the live object only after magic, version, hidden size, and length have all been checked.
+
+The first copy of `load_file` on this branch treated the stream as failed when `!input` was true or `gcount` did not equal the length. On this machine (g++ 13.3, libstdc++) that check did not reject the converted lock file: the sanitized test printed `ok load converted net` and both bench counts stayed on the lock numbers. I did not observe a false rejection here. I still removed `!input`. `istream::read` of the exact file length is allowed to set `eofbit` when the last byte is the end of the file. `operator!` is true when `failbit` is set, and some libraries set `failbit` as well once extraction stops at end of file, even if `gcount()` equals the request. The loader now accepts the buffer only when `gcount()` equals the length from `tellg`. A short read still returns `nnue: cannot open file` and leaves the current net in place.
+
+The first test was weaker than that file format. It compared the evaluation of the start position and of the kiwipete position, so two positions could match while some other weight was wrong. It also restored the compiled-in net before the bad-file cases, so it never showed that a rejected file keeps a *different* net that had already been loaded. Its "oversized" file was one extra byte, which does not exercise the 2 MiB cap. The cap exists so a huge file is reported as `nnue: wrong size` before the loader allocates a buffer for it. The expected net is 394770 bytes, so the cap does not reject a valid file of this shape.
+
+## What changed
+
+`include/forge/nnue.hpp` declares `bool load_file(std::string_view path, std::string& error)`. An empty path or the text `<empty>` restores the compiled-in net and clears `error`. Any other path is a file. On failure `error` is one of `nnue: cannot open file`, `nnue: bad magic`, `nnue: unsupported version`, or `nnue: wrong size`, and the function returns false without changing the live net.
+
+`src/nnue.cpp` splits the old lambda into `quantize`, `make_builtin`, and `live_weights`. `quantize` is the old conversion: `W1` and `B1` divided by `WeightScale`, `W2` and `B2` divided by `OutputScale`. `make_builtin` calls `quantize` on `NnueW1`, `NnueB1`, `NnueW2`, and `NnueB2`. `live_weights` is no longer `const`, so a later load can assign a new `Weights`. `weights()` still returns a const reference, and the evaluation code is unchanged. `read_i16` copies the little-endian bits into an `int16_t` with `memcpy`, so a negative weight is not a signed overflow. The live net is replaced only by `live_weights() = std::move(incoming)` after the buffer has been checked.
+
+`src/uci.cpp` advertises `option name NnueFile type string default <empty>` next to `UseNNUE`, only when `nnue::available()` is true, which is the same condition the lock used for `UseNNUE`. The `setoption` branch parses the path the same way `Book File` does, including a space in the path. Failure prints `info string` plus the error and keeps the current net. Success clears the hash. A real path also prints `info string loaded nnue <path>`. Restoring `<empty>` does not print that line.
+
+With the option left unset, the first search still runs `make_builtin()`, which is the old division. Measured with `Threads 1`, `Hash 16`, and `OwnBook false`: `bench 11` is 312866, `bench 13` is 862329, and `go perft 5` from the start position is 4865609. The same three numbers were printed after `setoption name NnueFile value` of the file produced from `nnue_weights.inc`. Perft does not evaluate, so it is a control that the search driver was not disturbed. The bench match is the check that the loaded floats search like the compiled-in net.
+
+`tests_t8/nnue_convert.cpp` reads the same include and writes the `FORGENET` file. `tests_t8/nnue_file_test.cpp` links the engine, compares every int16 in that file with `NnueW1`, `NnueB1`, `NnueW2`, and `NnueB2`, then loads a copy whose `B2` is 2000 higher and checks that an evaluation changes. After that different net is the current one, the test rejects a bad magic, a version other than 1, a hidden size of 128, a truncated file, an extra byte, a missing path, an empty file, an 8-byte header, and a file larger than 2 MiB. The evaluation stays on the shifted net through all of those rejections. An empty path and `<empty>` then restore the compiled-in evaluation. Compiled against the lock header, which has no `load_file`, the test fails to build.
 
 ## Files changed
 
@@ -14,7 +59,7 @@ The lock engine can evaluate only the network compiled in from `src/nnue_weights
 - `forge-combo29/tests_t8/expected_uci.txt`
 - `forge-combo29/REPORT_t8.md`
 
-Engine diff: 135 insertions, 13 deletions.
+Engine diff against the lock: 137 insertions, 13 deletions in `nnue.hpp`, `nnue.cpp`, and `uci.cpp`.
 
 ## Build
 
@@ -306,7 +351,7 @@ info string bench depth 11 nodes 312866 time 169 nps 1851278
 
 ## Follow-up
 
-A full read that reaches end of file can set `eofbit`. The loader now keeps the bytes when `gcount` equals the file length and rejects a short read. The test also compares every converted int16 with `nnue_weights.inc`, and it checks that a bad file leaves a different already-loaded net in place.
+This is the measurement after the `gcount` change and the stronger test. On the first version, `!input` did not reject `/tmp/t8/lock.fnn` on this libstdc++. The change is the acceptance condition described above: keep the bytes when `gcount` equals the length. The new test compares every converted int16 with `nnue_weights.inc`, and it checks that a bad file leaves the shifted net in place.
 
 Sanitized test, after rebuilding with `-I forge-combo29/src` so the test can include `nnue_weights.inc`:
 
