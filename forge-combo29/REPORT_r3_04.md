@@ -50,6 +50,8 @@ Release binary, 2026-11-14 13:53 UTC, same option defaults: bench 11 = 312866, b
 
 The sanitized test was rebuilt and run again at 13:56 UTC with the same sanitizer flags. It repeated those pins, then walked every move of the PV for the 200 depth-10 searches. Failures 0, 3,670,382 nodes, stderr empty, exit 0. Defaults after the run matched again.
 
+A later release pass at 14:35 UTC printed the same three default pins, bench 13 = 818656 with the option on, and bench 13 = 862329 after turning it off.
+
 No strength claim. Node-count change only shows that the flag affects search.
 
 setoption name LmrLateParentRelief value true
