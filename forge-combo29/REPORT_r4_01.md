@@ -28,7 +28,7 @@ Frozen input commits
 05 2b3f4b4f9f2fd020869a976baf4523607e4afbf0 grok47/r3-05-hindsight-depth
 06 49c56b1406b29d94410957fae8f0a5d284cd7905 grok47/r3-06-null-threat-verify
 07 1e2c513f49f1058fdb80befff2df3e2fd442d311 grok47/r3-07-null-see-veto
-08 fc0598ab4ddebc55ef2c5b0dee2a214c00d56fb8 grok47/r3-08-asp-capped-reopen
+08 2ee71d705dde420c05e3228e27adbc4785622f37 grok47/r3-08-asp-capped-reopen
 09 97b51960d6c91a14c068ff87c13fbf0487721ddd grok47/r3-09-asp-arm-late
 10 70aa5474059498df8a4925a37daeb70f1cb771df grok47/r3-10-evasion-ordering
 11 b27a351b71762b3f27b18e4e1a196a6f2e1da2f2 grok47/r3-11-dead-material
@@ -68,7 +68,7 @@ LmrLateParentRelief   true   5e7fb50c17e41baa3acd1cf4ab87303ec9bc74db    818656 
 HindsightDepth        true   2b3f4b4f9f2fd020869a976baf4523607e4afbf0    840387     840387
 NullThreatVerify      true   49c56b1406b29d94410957fae8f0a5d284cd7905    789456     789456
 NullSeeVeto           true   1e2c513f49f1058fdb80befff2df3e2fd442d311    929140     929140
-AspCappedReopen       true   fc0598ab4ddebc55ef2c5b0dee2a214c00d56fb8    850997     850997
+AspCappedReopen       true   2ee71d705dde420c05e3228e27adbc4785622f37    850997     850997
 AspArmLate            true   97b51960d6c91a14c068ff87c13fbf0487721ddd    870398     870398
 EvasionOrdering       true   70aa5474059498df8a4925a37daeb70f1cb771df    772890     772890
 DeadMaterial          true   b27a351b71762b3f27b18e4e1a196a6f2e1da2f2    862329     862329
@@ -216,6 +216,7 @@ Tip r3-11 b27a351b71762b3f27b18e4e1a196a6f2e1da2f2 merged with no engine-source 
 Tip r3-01 837b0f8d9baea2f51f5346a537f10e0453a8b4ee merged with no engine-source change; pins were not re-run.
 Tip r3-05 2b3f4b4f9f2fd020869a976baf4523607e4afbf0 merged with no engine-source change; pins were not re-run.
 Tip r3-07 1e2c513f49f1058fdb80befff2df3e2fd442d311 merged with no engine-source change; pins were not re-run.
+Tip r3-08 2ee71d705dde420c05e3228e27adbc4785622f37 merged with no engine-source change; pins were not re-run.
 Not verified. The other in-scope branches still have no
 `R3 FOLLOW-UP DONE` line in the files on origin.
 Playing strength was not measured. Address and thread sanitizers were
