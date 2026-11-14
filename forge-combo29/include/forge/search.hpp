@@ -270,6 +270,7 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the 
 extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
 extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
 extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
@@ -299,6 +300,9 @@ struct SearchStack {
     int move_count = 0;
     int cutoff_count = 0;
     int double_extensions = 0;
+    // Plies the parent withheld when it searched the move that reached this node.
+    // Zero means that call was not a reduced search. Read only when HindsightDepth is on.
+    int withheld_plies = 0;
     bool in_check = false;
     bool tt_pv = false;
     bool null_move_allowed = true;

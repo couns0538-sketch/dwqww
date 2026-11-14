@@ -77,6 +77,7 @@ int FailLowContinuationBonus = 0;
 bool ContHist4PlyRead = false;
 bool NonPawnCorrection = false;
 bool LmrDeeperShallower = false;
+bool HindsightDepth = false;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -1203,6 +1204,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     const Move excluded = ss->excluded_move;
     (ss + 1)->excluded_move = Move::none();
     (ss + 1)->cutoff_count = 0;
+    if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
     // Children share killers with their siblings; grandchildren start afresh.
     (ss + 2)->killers = {};
 
@@ -1222,6 +1224,32 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
     ss->tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+
+    // HindsightDepth: the parent already reduced this move. If the mover's static
+    // eval fell by a pawn or more, search one ply less; if it did not fall and
+    // three or more plies were withheld, search one ply more. A hash entry at
+    // least that deep already answers the node, so the depth stays put.
+    if (tune::HindsightDepth) {
+        const int withheld = ss->withheld_plies;
+        ss->withheld_plies = 0;
+        if (withheld > 0 && !pv_node && !root_node && !in_check && excluded.is_none()) {
+            const int parent_eval = (ss - 1)->static_eval;
+            if (parent_eval != ValueNone) {
+                const int raw = (tt_hit && tte.eval != ValueNone) ? tte.eval : static_evaluate(board, ss);
+                const int mover_loss = parent_eval + corrected_eval(board, raw);
+                int proposed = depth;
+                if (mover_loss >= SeePieceValue[Pawn]) proposed = depth - 1;
+                else if (mover_loss <= 0 && withheld >= 3) proposed = depth + 1;
+                if (proposed != depth && !(tt_hit && tt_depth >= proposed)) {
+                    depth = proposed;
+                    if (depth <= 0) {
+                        --local_nodes_;
+                        return qsearch(board, ss, alpha, beta);
+                    }
+                }
+            }
+        }
+    }
 
     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
@@ -1490,7 +1518,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+            if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+            if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
             full_depth_needed = score > alpha && reduced_depth < new_depth;
             if (full_depth_needed) {
                 if (tune::LmrDeeperShallower) {
@@ -1731,6 +1761,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         ss.static_eval = ValueNone;
         ss.continuation = &(*continuation_history_)[Empty][0];
         ss.double_extensions = 0;
+        ss.withheld_plies = 0;
         ss.null_move_allowed = true;
         ss.killers = {};
     }
