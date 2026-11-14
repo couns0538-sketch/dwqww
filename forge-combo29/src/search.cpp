@@ -77,6 +77,7 @@ int FailLowContinuationBonus = 0;
 bool ContHist4PlyRead = false;
 bool NonPawnCorrection = false;
 bool LmrDeeperShallower = false;
+bool ThreatHistory = false;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -205,6 +206,31 @@ std::string format_score(int score) {
 }
 
 } // namespace
+
+// Bit 1: the mover is attacked by a cheaper enemy piece. Bit 0: the empty
+// destination is. "Cheaper" follows SeePieceValue, except a king is never
+// cheaper (the SEE table stores king as 0). Nothing is cheaper than a pawn,
+// so pawn quiets stay in bucket 0. The reference value on the destination is
+// the mover, the piece that would stand there.
+int quiet_threat_index(const Board& board, Move move) {
+    const int type = piece_type(board.piece_at(move.from));
+    if (type <= Pawn) return 0;
+    const Color us = board.side_to_move();
+    const Color them = opposite(us);
+    const Bitboard occ = board.occupied();
+    const auto cheaper = [&](int square) {
+        if ((attacks::pawn(us, square) & board.pieces(them, Pawn)) != 0) return true;
+        if (type <= Bishop) return false;
+        if ((attacks::knight(square) & board.pieces(them, Knight)) != 0) return true;
+        if ((attacks::bishop(square, occ) & board.pieces(them, Bishop)) != 0) return true;
+        if (type <= Rook) return false;
+        if ((attacks::rook(square, occ) & board.pieces(them, Rook)) != 0) return true;
+        if (type <= Queen) return false;
+        const Bitboard queens = board.pieces(them, Queen);
+        return (attacks::bishop(square, occ) & queens) != 0 || (attacks::rook(square, occ) & queens) != 0;
+    };
+    return (cheaper(move.from) ? 2 : 0) | (cheaper(move.to) ? 1 : 0);
+}
 
 void tune::refresh() { Reductions.refresh(); }
 
@@ -625,6 +651,7 @@ private:
         const PieceToHistory* cont2;
         const PieceToHistory* cont4;
         const Board& board;
+        const Worker& worker;
 
         QuietScorer(const Board& b, const Worker& searcher, const SearchStack* ss)
             : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
@@ -632,11 +659,12 @@ private:
               cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
               cont4(tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
                         ? (ss - 4)->continuation : nullptr),
-              board(b) {}
+              board(b),
+              worker(searcher) {}
 
         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
             const Piece piece = board.piece_at(move.from);
-            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move);
+            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move);
             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
             return value;
         }
@@ -787,6 +815,7 @@ Worker::Worker(SharedSearchState& shared, int id)
     : shared_(shared),
       id_(id),
       main_history_(std::make_unique<ButterflyHistory>()),
+      threat_history_(std::make_unique<ThreatQuietHistory>()),
       capture_history_(std::make_unique<CaptureHistory>()),
       continuation_history_(std::make_unique<ContinuationHistory>()),
       counter_moves_(std::make_unique<CounterMoveTable>()),
@@ -802,6 +831,7 @@ Worker::~Worker() = default;
 void Worker::clear() {
     evaluator_.clear();
     *main_history_ = ButterflyHistory{};
+    *threat_history_ = ThreatQuietHistory{};
     *capture_history_ = CaptureHistory{};
     *continuation_history_ = ContinuationHistory{};
     *counter_moves_ = CounterMoveTable{};
@@ -966,7 +996,8 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) 
                              ss != nullptr ? (ss - 2)->continuation : nullptr,
                              tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
                                  ? (ss - 4)->continuation : nullptr,
-                             board.moved_piece(move), move);
+                             board.moved_piece(move), move) +
+           threat_quiet_bonus(board, move);
 #else
     const Piece piece = board.moved_piece(move);
     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
@@ -977,8 +1008,20 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) 
             score += (*(ss - 4)->continuation)[static_cast<std::size_t>(piece)][move.to] / 2;
         }
     }
-    return score;
+    return score + threat_quiet_bonus(board, move);
 #endif
+}
+
+int Worker::threat_quiet_bonus(const Board& board, Move move) const {
+    if (!tune::ThreatHistory) return 0;
+    const int index = quiet_threat_index(board, move);
+    return (*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to];
+}
+
+void Worker::update_threat_quiet(const Board& board, Move move, int bonus) {
+    if (!tune::ThreatHistory) return;
+    const int index = quiet_threat_index(board, move);
+    apply_history((*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to], bonus);
 }
 
 int Worker::capture_history_value(const Board& board, Move move) const {
@@ -1010,11 +1053,13 @@ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move, 
     }
     const Piece piece = board.moved_piece(move);
     apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
+    update_threat_quiet(board, move, bonus);
     update_continuation(ss, piece, move.to, bonus);
     for (int i = 0; i < quiet_count; ++i) {
         const Move quiet = quiets[i];
         if (quiet == move) continue;
         apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
+        update_threat_quiet(board, quiet, -bonus);
         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
     }
 }
@@ -1554,6 +1599,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         // Even without a cutoff, a new PV move earned its place.
         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
                       history_bonus(depth) / 4);
+        update_threat_quiet(board, best_move, history_bonus(depth) / 4);
     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
         // Every move failed low: the parent's quiet move refuted this line.

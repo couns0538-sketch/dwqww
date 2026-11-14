@@ -270,6 +270,7 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the 
 extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
 extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
 extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
@@ -277,6 +278,10 @@ void refresh();
 
 // Move-ordering statistics.
 using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
+// [side][threat 0..3][from][to]. Threat bit 1: mover attacked by a cheaper enemy.
+// Threat bit 0: the destination square is attacked by a cheaper enemy than the mover.
+using ThreatQuietHistory = std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 4>, 2>;
+[[nodiscard]] int quiet_threat_index(const Board& board, Move move);
 using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
 using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 13>;
 using CaptureHistory = std::array<std::array<std::array<std::int16_t, 7>, 64>, 13>;
@@ -346,6 +351,7 @@ private:
     int id_ = 0;
     Evaluator evaluator_;
     std::unique_ptr<ButterflyHistory> main_history_;
+    std::unique_ptr<ThreatQuietHistory> threat_history_;
     std::unique_ptr<CaptureHistory> capture_history_;
     std::unique_ptr<ContinuationHistory> continuation_history_;
     std::unique_ptr<CounterMoveTable> counter_moves_;
@@ -411,6 +417,8 @@ private:
     void update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count);
     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
+    [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
+    void update_threat_quiet(const Board& board, Move move, int bonus);
     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
     void update_correction(const Board& board, int depth, int best_score, int static_eval);
