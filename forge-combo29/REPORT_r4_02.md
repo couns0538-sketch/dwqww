@@ -30,7 +30,7 @@ grok47/r3-10-evasion-ordering a2392f49dc81 200 identical
 grok47/r3-11-dead-material e1acd7b14870 200 identical
 grok47/r3-13-quiet-extinction b7dbb6c3e859 80 QuietExtinction on vs QuietExtinction off ply 65 pushed h8g6 replay b3c3
 grok47/r3-14-draw-jitter ccbb229af9d0 200 identical
-grok47/r3-15-tm-finish-iteration 4db1f6b29abd 276 clock clock legal, configuration recorded, time-losses 0; 4db1f6b29abd 366 clock clock legal, configuration recorded, time-losses 0
+grok47/r3-15-tm-finish-iteration 4db1f6b29abd 276 clock clock legal, configuration recorded, time-losses 0; 4db1f6b29abd 366 clock clock legal, configuration recorded, time-losses 0; 4db1f6b29abd 458 clock clock legal, configuration recorded, time-losses 0
 grok47/r3-16-tm-node-share af548ac4265a 287 clock clock legal, configuration recorded, time-losses 0
 grok47/r3-21-mate-score-tt af1c998304db 200 identical
 grok47/r3-23-sound-mate-pruning 3d903f6ae0cf 200 option-off vs option-on length pushed 320 replay 383 fen rnbqkbnr/ppp3pp/4p3/3p1p2/2PP4/2N5/PP2PPPP/R1BQK
@@ -155,6 +155,12 @@ engine source sha256:
 engine binary sha256: 
 fastchess command: clock audit 10+0.1 TimeControl 10+0.1 Threads 1 Hash 16 OwnBook false
 
+grok47/r3-15-tm-finish-iteration 4db1f6b29abd kind clock pgn forge-combo29/tests_r3fu_15/chunk1.pgn
+build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_COMPILER=g++
+engine source sha256: 
+engine binary sha256: 
+fastchess command: clock audit 10+0.1 TimeControl 10+0.1 Threads 1 Hash 16 OwnBook false
+
 grok47/r3-16-tm-node-share af548ac4265a kind clock pgn forge-combo29/tests_r3fu_16/chunk1.pgn
 build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_COMPILER=g++
 engine source sha256: 
@@ -207,5 +213,5 @@ grok47/r3-19-faster-hce 528ccdf1c 2026-11-14 15:33:17 +0000 Record the shared-sl
 grok47/r3-20-faster-search-plumbing decec3775 2026-11-14 15:37:05 +0000 Add the depth-8 and perft comparison tests.
 grok47/r3-22-time-safety 143f3c5c6 2026-11-14 16:47:41 +0000 Record the empty-clock follow-up and the 1+0.01 match
 
-Last check: 2026-11-14T18:45:16Z
+Last check: 2026-11-14T18:48:22Z
 Deadline: 2026-11-15T01:52:00Z
