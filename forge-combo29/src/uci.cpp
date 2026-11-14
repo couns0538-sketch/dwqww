@@ -374,6 +374,13 @@ int main() {
                     std::cout << "bestmove " << best << prediction << std::endl;
                 });
             }
+        } else if (command == "eval") {
+            const forge::EvalComponents parts = forge::Evaluator::static_eval_components(board);
+            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+            std::cout << "info string eval hce " << parts.hce << " nnue " << parts.nnue
+                      << " total " << parts.total;
+            if (parts.in_check) std::cout << " incheck 1";
+            std::cout << std::endl;
         } else if (command == "bench") {
             // Fixed-depth search over a small position set; prints a node
             // signature and speed for quick regression and performance checks.
