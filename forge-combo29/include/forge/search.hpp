@@ -270,6 +270,7 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the 
 extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
 extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
 extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
@@ -297,6 +298,9 @@ struct SearchStack {
     int static_eval = ValueNone;
     int raw_eval = ValueNone;
     int move_count = 0;
+    // 1-based index of the move that entered this node. 0 means the node was not
+    // reached by a counted move (root, null move, or a probcut capture).
+    int arrival_index = 0;
     int cutoff_count = 0;
     int double_extensions = 0;
     bool in_check = false;
