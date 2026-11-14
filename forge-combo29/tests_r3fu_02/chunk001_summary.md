@@ -2,14 +2,14 @@
 
 Status: in progress. This PGN is a copy taken while fastchess was still writing chunk 001 (openings 1-500, both colors, 1000 games). Counts below are only the games whose Result tag was already complete in this copy. Not a strength claim.
 
-- Snapshot time: 2026-11-14T15:55:46Z
-- Complete games in this copy: 294
-- W-L-D (ThreatHistory on first): 70-73-151
-- Points: 145.5 / 294 (49.49%)
-- Elo: -3.55 +/- 27.70 (95%)
-- LOS: 40.09%
-- Pentanomial Ptnml(0-2): [4, 40, 61, 37, 4]
-- Complete pairs: 146; rounds with one game so far: 2
+- Snapshot time: 2026-11-14T16:21:16Z
+- Complete games in this copy: 605
+- W-L-D (ThreatHistory on first): 147-165-293
+- Points: 293.5 / 605 (48.51%)
+- Elo: -10.34 +/- 19.88 (95%)
+- LOS: 15.39%
+- Pentanomial Ptnml(0-2): [13, 80, 132, 65, 12]
+- Complete pairs: 302; rounds with one game so far: 1
 
 Command:
 
