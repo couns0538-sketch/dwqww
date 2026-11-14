@@ -142,6 +142,9 @@ int main() {
     check(checked, 198);
     check(start, 199);
 
-    std::cout << "searches " << searched << " illegal " << illegal << " nodes " << nodes << '\n';
-    return searched == 200 && illegal == 0 && nodes > 0 ? 0 : 1;
+    forge::tune::QuietExtinction = false;
+    const std::uint64_t bench13_restored = bench_nodes(13);
+    std::cout << "searches " << searched << " illegal " << illegal << " nodes " << nodes
+              << " bench13_restored " << bench13_restored << '\n';
+    return searched == 200 && illegal == 0 && nodes > 0 && bench13_restored == 862329 ? 0 : 1;
 }
