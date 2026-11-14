@@ -1,19 +1,13 @@
-# UHO chunk 2 snapshot
+# UHO chunk 2
 
-Still playing toward 500 games. Openings 251 onward. This summary matches the PGN committed with it.
+Finished 2026-11-14T16:36:18Z. 500 games, 22 minutes 35 seconds. Openings 251 through 500, both colors. Value 8 is listed first.
 
-Value 8 first.
-
-- Games: 319
-- W-L-D: 83-84-152
-- Elo: -2.19
-- Elo 95%: -25.56 to 21.17
-- LOS: 42.72%
-- Pentanomial LL, LD, DD+WL, WD, WW: 4, 43, 68, 39, 5 (159 pairs)
-
-One opening in the file had only one of the two colors finished, so it is in the W-L-D and not in the pentanomial. The interval is the paired normal approximation used in chunk 1: pair scores 0, 0.5, 1, 1.5, 2 for value 8, game score is half of that, 95% is 1.96 standard errors, LOS is the normal probability the true score is above one half.
-
-fastchess had last printed, on an earlier score line: Elo -1.16 ± 28.51, LOS 46.82%, draw ratio 47.67%.
+- W-L-D: 125-129-246
+- Elo: -2.78
+- Elo 95%: -2.78 ± 21.73 (fastchess)
+- LOS: 40.09% (fastchess)
+- Draw ratio: 49.20%
+- Pentanomial LL, LD, DD+WL, WD, WW: 8, 62, 112, 62, 6 (250 pairs, counted from the PGN)
 
 ## Command
 
@@ -34,7 +28,7 @@ fastchess had last printed, on an earlier score line: Elo -1.16 ± 28.51, LOS 46
 
 ## Versions and sha256
 
-Same binary, book, and tool as chunk 1.
+Same binary and book as chunk 1.
 
 - forge: `1e3ca575f62687793050f72e23a05fd30c800a7234ea5b5b1442704511583896`
 - fastchess: `091bf93dcf08e15d14b77bc2374d0a423982b32200e8add69f17bace3a34b31f`

@@ -97,4 +97,4 @@ UHO screen, same owner binary, nodes 50000, book `UHO_4060_v4.epd`.
 
 Chunk 1 finished 500 games (openings 1-250, both colors) in 22 minutes 58 seconds. PGN: `forge-combo29/tests_r3fu_14/screen/chunk001.pgn`. Value 8 first: W-L-D 132-138-230, Elo -4.17 ± 22.41 (95%), LOS 35.75%, pentanomial 9, 46, 141, 50, 4. Summary: `forge-combo29/tests_r3fu_14/screen/chunk001-summary.md`.
 
-Chunk 2 (openings from 251) was still running. Snapshot of 319 games: `forge-combo29/tests_r3fu_14/screen/chunk002.pgn`. Value 8 first: W-L-D 83-84-152, Elo -2.19, 95% -25.56 to 21.17, LOS 42.72%, pentanomial 4, 43, 68, 39, 5. Summary: `forge-combo29/tests_r3fu_14/screen/chunk002-summary.md`.
+Chunk 2 finished 500 games (openings 251-500, both colors) in 22 minutes 35 seconds. PGN: `forge-combo29/tests_r3fu_14/screen/chunk002.pgn`. Value 8 first: W-L-D 125-129-246, Elo -2.78 ± 21.73 (95%), LOS 40.09%, pentanomial 8, 62, 112, 62, 6. Summary: `forge-combo29/tests_r3fu_14/screen/chunk002-summary.md`.
