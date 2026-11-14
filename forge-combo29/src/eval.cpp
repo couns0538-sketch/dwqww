@@ -511,8 +511,13 @@ bool dead_material_score(const Board& board, int& score) {
     const int king_gap = square_distance(helper, lone);
     constexpr int CornerWeight = 28;
     constexpr int KingWeight = 12;
-    constexpr int Base = 48;
-    const int attacker_cp = Base + (7 - to_corner) * CornerWeight + (7 - king_gap) * KingWeight;
+    // Same taper the hand-written eval uses for this material (phase 2 of 24).
+    constexpr int minor_phase = PhaseValue[Knight] + PhaseValue[Bishop];
+    constexpr int minor_mg = PieceValueMg[Knight] + PieceValueMg[Bishop];
+    constexpr int minor_eg = PieceValueEg[Knight] + PieceValueEg[Bishop];
+    constexpr int material = (minor_mg * minor_phase + minor_eg * (MaxPhase - minor_phase)) / MaxPhase;
+    const int drive = (7 - to_corner) * CornerWeight + (7 - king_gap) * KingWeight;
+    const int attacker_cp = material + drive;
     score = board.side_to_move() == attacker ? attacker_cp : -attacker_cp;
     return true;
 }
