@@ -122,6 +122,10 @@ Chunk 2 (openings 501–1000, both colors), fastchess exit 0, 00:21:13: W-L-D 27
 
 Chunk 3 (openings 1001–1500, both colors), fastchess exit 0, 00:19:42: W-L-D 255-255-490. Elo -0.00 +/- 0.00. LOS printed as `-nan %`. Ptnml(0-2) `[0, 0, 500, 0, 0]`. PGN `forge-combo29/tests_r3fu_21/chunk3.pgn`.
 
+Chunk 4 (openings 1501–2000, both colors), fastchess exit 0, 00:19:53: W-L-D 243-243-514. Elo -0.00 +/- 0.00. LOS printed as `-nan %`. Ptnml(0-2) `[0, 0, 500, 0, 0]`. PGN `forge-combo29/tests_r3fu_21/chunk4.pgn`.
+
+Four chunks together: W-L-D 1021-1021-1958 over 4000 games. Each pentanomial is `[0, 0, 500, 0, 0]`, so the combined pentanomial is `[0, 0, 2000, 0, 0]`. The `+/-` on each Elo line is fastchess's 95% interval (`z = 1.959963984540054`). fastchess printed `LOS: -nan %` on every chunk because the paired variance is zero. The full command, versions, and sha256 values are in `forge-combo29/tests_r3fu_21/match-summary.txt`. The r3-21 owner binary was measured again after the match: perft 5 = 4865609, bench 11 = 312866, bench 13 = 862329.
+
 ## Not verified
 
 - The cmake command with the default `c++` compiler. It does not link here. The binaries above were built with GCC 13.3.0 and the flags in `CMakeLists.txt`.

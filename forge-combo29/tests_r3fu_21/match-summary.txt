@@ -1,0 +1,45 @@
+No-regression match, four chunks, 4000 games. r3-21 is the first engine in every W-L-D.
+
+Sum of the four chunks: W-L-D 1021-1021-1958. Points 2000.0 / 4000.
+Each chunk's pentanomial is Ptnml(0-2) [0, 0, 500, 0, 0], so the four chunks together are [0, 0, 2000, 0, 0].
+Each chunk's fastchess line is Elo -0.00 +/- 0.00 (95% interval, z = 1.959963984540054) and LOS -nan %.
+fastchess prints LOS as -nan when the paired variance is zero. That is the printed value, not a substituted number.
+
+Chunk results, r3-21 first:
+1 openings 1-500:    253-253-494  Elo -0.00 +/- 0.00  LOS -nan %  Ptnml [0, 0, 500, 0, 0]  00:22:07  exit 0
+2 openings 501-1000: 270-270-460  Elo -0.00 +/- 0.00  LOS -nan %  Ptnml [0, 0, 500, 0, 0]  00:21:13  exit 0
+3 openings 1001-1500: 255-255-490 Elo -0.00 +/- 0.00  LOS -nan %  Ptnml [0, 0, 500, 0, 0]  00:19:42  exit 0
+4 openings 1501-2000: 243-243-514 Elo -0.00 +/- 0.00  LOS -nan %  Ptnml [0, 0, 500, 0, 0]  00:19:53  exit 0
+
+No illegal-move, disconnect, crash, or abort lines in the four fastchess logs.
+
+Command (START is 1, 501, 1001, 1501):
+/tmp/fastchess-src/fastchess \
+  -engine cmd=/tmp/owner-branch/forge name=r3-21 \
+  -engine cmd=/tmp/owner-base/forge name=base \
+  -each nodes=50000 option.Threads=1 option.Hash=16 option.OwnBook=false \
+  -openings file=/tmp/UHO_Lichess_4852_v1.epd format=epd order=sequential start=START \
+  -rounds 500 -games 2 -recover -concurrency 4 \
+  -ratinginterval 100 -report penta=true \
+  -pgnout file=forge-combo29/tests_r3fu_21/chunkN.pgn notation=san nodes=true
+
+Versions:
+both engines: id name Chess Engine Forge 6.4.24 candidate
+fastchess alpha 1.8.3 20261113-3d7a4db (source 3d7a4db2493fc85a05ef010fd7e13a3884667aa2)
+compiler: g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+build: cmake Release, default -march=x86-64-v4, PEXT on, NNUE ZMM on. No CMakeLists edit. No -DFORGE_* override.
+CPU: AVX-512F and BMI2 present, so this is the owner build, same flags for both commits.
+r3-21 tree at build: 1d7440c1f860be9c21e190c862d5920b241dd927
+implementation commit: af1c998304dbfbcb997b757a7ce43af7cdf6e933
+base commit: e04556ddc3a430b2e751159b0d46111ef56c8b89
+
+sha256
+r3-21 binary e12981d3667fc4319920388621a591763a2ebc58c5da1c7552ed5f8f211bb197
+base binary  4a624cf990c057c9a5d7847916b2d537a38ab6b95be4339dbec30a187f7ec984
+book epd     7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a
+Book file: UHO_Lichess_4852_v1.epd from official-stockfish/books master, unzipped from UHO_Lichess_4852_v1.epd.zip.
+
+r3-21 owner-binary pins after the match, Threads 1, Hash 16, OwnBook false:
+perft 5 = 4865609
+bench 11 = 312866
+bench 13 = 862329
