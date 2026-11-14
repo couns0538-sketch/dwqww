@@ -55,6 +55,47 @@ A separate loop evaluated 20,000 cached positions 21 times with no search. Three
 
 The checksum of that loop matched (`hot_sum -671370`).
 
+## Repeat on the same commit
+
+Same binaries, still `758df95ba`, CPU 1, base then new. Every run was 3024920 nodes. Three more five-pair tables. Several pairs are only a few milliseconds apart, and both sides move by tens of milliseconds between runs.
+
+Table A:
+
+| pair | base ms | new ms |
+| ---: | ---: | ---: |
+| 1 | 1541 | 1538 |
+| 2 | 1572 | 1542 |
+| 3 | 1549 | 1511 |
+| 4 | 1506 | 1511 |
+| 5 | 1543 | 1518 |
+| mean | 1542.2 | 1524.0 |
+
+Table B:
+
+| pair | base ms | new ms |
+| ---: | ---: | ---: |
+| 1 | 1599 | 1665 |
+| 2 | 1644 | 1558 |
+| 3 | 1617 | 1584 |
+| 4 | 1560 | 1555 |
+| 5 | 1517 | 1501 |
+| mean | 1587.4 | 1572.6 |
+
+Table C:
+
+| pair | base ms | new ms |
+| ---: | ---: | ---: |
+| 1 | 1496 | 1555 |
+| 2 | 1594 | 1534 |
+| 3 | 1537 | 1504 |
+| 4 | 1513 | 1493 |
+| 5 | 1498 | 1590 |
+| mean | 1527.6 | 1535.2 |
+
+Fifteen pairs together: base mean 1552.4 ms, new mean 1543.9 ms.
+
+Pins were printed again on both binaries: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609. The same 1,000,000-position eval records were written again and are byte-identical (`EVAL_1M_MATCH`).
+
 ## Not verified
 
 Playing strength was not measured.
