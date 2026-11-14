@@ -15,11 +15,11 @@ The network state is one vector per colour, each a sum of piece-square columns. 
 
 On an instrumented bench 13 (862329 nodes) that list was built 826208 times and the columns were added 655136 times. The gap is moves that never reach an evaluation: transposition cutoffs, positions in check, and stand-pat cutoffs. A null move was 41488 of the updates, and a null move does not change the piece set, so the copy is the same bits as the parent vector.
 
-This change keeps that rule and tightens it. Making a move now stores only the mover, the captured piece, and the side to move. The change list is built from those facts the first time an evaluation reads that ply. A null move does not copy the vector; evaluation reads the parent. Real moves still go through the same `nnue::update` expressions as before. Nothing here is taken from another engine's source.
+This change keeps that rule and tightens it. Making a move stores the mover, the captured piece, and the side, and builds the change list then, before the move is played. The feature columns are still added only when an evaluation reads that ply. A null move does not copy the vector; evaluation reads the parent. A quiet move or a capture writes each new hidden unit with the same sum as `nnue::update`, and the output layer consumes that unit from the register that was just stored, in the same lane order as `nnue::evaluate`. Castling and every other shape still call `update` and then `evaluate`. Nothing here is taken from another engine's source.
 
 ## Pins
 
-Recorded on the base binary before the edit, and again on this binary after it. All three match.
+Recorded on the base binary before the edit, and again on this binary after the fused output pass. All three match.
 
 | check | before | after |
 | --- | ---: | ---: |
@@ -35,25 +35,25 @@ Fixed seed `0x18D15C0DE` (SplitMix). Two comparisons:
 
 1. In-process playouts, 1,000,000 positions, plus 89,232 null moves and 28,698,721 legal-move change lists. Two plies out of every seven were left unevaluated so the next evaluation had to rebuild a gap. The vector at evaluation matched `nnue::update` from the parent with `dirty_pieces`. `nnue::evaluate` matched a from-scratch `refresh` on all 1,000,000 positions (`refresh_net_mismatch 0`). The full static total matched `Evaluator::static_eval_components` on all 1,000,000 (`refresh_total_mismatch 0`). A separate catalog (start, Kiwipete, en passant, promotions, a capture promotion) checked 123 moves, including 1 en passant, 2 castles, and 16 promotions; each updated vector evaluated equal to a refresh.
 
-2. The base binary and this binary, same seed, 1,000,000 positions, UCI `eval` with Threads 1, Hash 16, OwnBook false. All 1,000,000 lines were identical (134 seconds).
+2. The base binary and this binary, same seed, 1,000,000 positions, UCI `eval` with Threads 1, Hash 16, OwnBook false. Re-run after the fused output pass: all 1,000,000 lines were identical.
 
 ## Depth 8
 
-10,000 positions from the same seed. Each search was `ucinewgame` then `go depth 8` on the base binary and on this binary. Best move, score, and node count matched on all 10,000 (81 seconds).
+10,000 positions from the same seed, re-run after the fused output pass. Each search was `ucinewgame` then `go depth 8` on the base binary and on this binary. Best move, score, and node count matched on all 10,000.
 
 ## Bench 16 timing
 
-Five runs each, alternating base then this binary. Same nodes every time: 3024920. Time is the engine's own millisecond timer.
+Fresh alternating runs after the fused output pass, base then this binary. Same nodes every time: 3024920. Time is the engine's own millisecond timer on this VM. This is not a strength result.
 
 | run | base ms | this binary ms |
 | ---: | ---: | ---: |
-| 1 | 1516 | 1523 |
-| 2 | 1542 | 1555 |
-| 3 | 1516 | 1513 |
-| 4 | 1492 | 1498 |
-| 5 | 1492 | 1497 |
+| 1 | 1509 | 1440 |
+| 2 | 1493 | 1450 |
+| 3 | 1496 | 1441 |
+| 4 | 1493 | 1444 |
+| 5 | 1496 | 1438 |
 
-Base mean 1511.6 ms (spread 1492–1542). This binary mean 1517.2 ms (spread 1497–1555). The two sets overlap. This is not evidence of a speed change. Most of bench 16 still adds feature columns, because most visited positions are evaluated; the work that moved is the small change list, and the null-move copy that was removed is a few percent of the updates.
+Base mean 1497.4 ms (spread 1493–1509). This binary mean 1442.6 ms (spread 1438–1450). On this run the two spreads do not overlap. An earlier build that only deferred the change list, and copied nothing on a null move, was measured at a mean of 1517.2 ms against a base mean of 1511.6 ms; that version did not help. The lower times above are from folding the output layer into the feature update.
 
 ## What was not verified
 

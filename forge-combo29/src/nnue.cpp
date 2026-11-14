@@ -265,6 +265,73 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
     child.valid = true;
 }
 
+namespace {
+
+int centipawns_from_lanes(const float lanes[16], float bias) {
+    float out = bias;
+    for (int j = 0; j < 16; ++j) out += lanes[j];
+    const float centipawns = out * 400.0F / SigmoidK;
+    return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));
+}
+
+#if defined(__AVX2__) && !FORGE_SPD_NNUE_ZMM
+// One subtraction per removed feature, then one addition. NSub 1 is a quiet
+// move: (source - removed) + added. NSub 2 is a capture:
+// ((source - removed0) - removed1) + added. That is the same association as
+// update(). The screlu sum uses the register just stored, in the same lane
+// order as evaluate().
+template <int NSub>
+int fuse_columns(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty, const Board& board,
+                  const Weights& w) {
+    const Color us = board.side_to_move();
+    const Color them = opposite(us);
+    const float* const our_src = parent.values[static_cast<std::size_t>(us)].data();
+    const float* const their_src = parent.values[static_cast<std::size_t>(them)].data();
+    float* const our_dst = child.values[static_cast<std::size_t>(us)].data();
+    float* const their_dst = child.values[static_cast<std::size_t>(them)].data();
+    auto column = [&](Color perspective, const PieceChange& change) {
+        return w.w1.get() + static_cast<std::size_t>(feature_index(perspective, change.piece, change.square)) * HiddenSize;
+    };
+    const float* const our_sub0 = column(us, dirty.changes[0]);
+    const float* const their_sub0 = column(them, dirty.changes[0]);
+    const float* const our_sub1 = NSub == 2 ? column(us, dirty.changes[1]) : nullptr;
+    const float* const their_sub1 = NSub == 2 ? column(them, dirty.changes[1]) : nullptr;
+    const float* const our_add = column(us, dirty.changes[NSub]);
+    const float* const their_add = column(them, dirty.changes[NSub]);
+    const float* const w2_ours = w.w2.data();
+    const float* const w2_theirs = w.w2.data() + HiddenSize;
+    const __m256 zero = _mm256_setzero_ps();
+    const __m256 one = _mm256_set1_ps(1.0F);
+    __m256 sums[2] = {zero, zero};
+    for (int h = 0; h < HiddenSize; h += 16) {
+        for (int k = 0; k < 2; ++k) {
+            const std::size_t base = static_cast<std::size_t>(h + 8 * k);
+            __m256 ours = _mm256_sub_ps(_mm256_load_ps(our_src + base), _mm256_load_ps(our_sub0 + base));
+            __m256 theirs = _mm256_sub_ps(_mm256_load_ps(their_src + base), _mm256_load_ps(their_sub0 + base));
+            if constexpr (NSub == 2) {
+                ours = _mm256_sub_ps(ours, _mm256_load_ps(our_sub1 + base));
+                theirs = _mm256_sub_ps(theirs, _mm256_load_ps(their_sub1 + base));
+            }
+            ours = _mm256_add_ps(ours, _mm256_load_ps(our_add + base));
+            theirs = _mm256_add_ps(theirs, _mm256_load_ps(their_add + base));
+            _mm256_store_ps(our_dst + base, ours);
+            _mm256_store_ps(their_dst + base, theirs);
+            const __m256 a = _mm256_min_ps(_mm256_max_ps(ours, zero), one);
+            const __m256 b = _mm256_min_ps(_mm256_max_ps(theirs, zero), one);
+            const __m256 term = _mm256_add_ps(_mm256_mul_ps(_mm256_mul_ps(a, a), _mm256_load_ps(w2_ours + base)),
+                                              _mm256_mul_ps(_mm256_mul_ps(b, b), _mm256_load_ps(w2_theirs + base)));
+            sums[k] = _mm256_add_ps(sums[k], term);
+        }
+    }
+    alignas(64) float lanes[16];
+    for (int k = 0; k < 2; ++k) _mm256_store_ps(lanes + 8 * k, sums[k]);
+    child.valid = true;
+    return centipawns_from_lanes(lanes, w.b2);
+}
+#endif
+
+} // namespace
+
 int evaluate(const Board& board, const Accumulator& accumulator) {
     const Weights& w = weights();
     const Color us = board.side_to_move();
@@ -340,10 +407,23 @@ int evaluate(const Board& board, const Accumulator& accumulator) {
     }
 #endif
 #endif
-    float out = w.b2;
-    for (int j = 0; j < Lanes; ++j) out += lanes[j];
-    const float centipawns = out * 400.0F / SigmoidK;
-    return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));
+    return centipawns_from_lanes(lanes, w.b2);
+}
+
+int apply_and_evaluate(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty, const Board& board) {
+#if defined(__AVX2__) && !FORGE_SPD_NNUE_ZMM
+    const Weights& w = weights();
+    if (dirty.count == 2 && !dirty.changes[0].add && dirty.changes[1].add) {
+        return fuse_columns<1>(parent, child, dirty, board, w);
+    }
+    if (dirty.count == 3 && !dirty.changes[0].add && !dirty.changes[1].add && dirty.changes[2].add) {
+        return fuse_columns<2>(parent, child, dirty, board, w);
+    }
+#else
+    (void)board;
+#endif
+    update(parent, child, dirty);
+    return evaluate(board, child);
 }
 
 DirtyPieces dirty_from_move(Move move, Piece moved, Piece captured, Color side) {

@@ -857,6 +857,8 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
     // same bits without being needed.
     const nnue::Accumulator* features = &ss->accumulator;
     const Evaluator::RuntimePsqt* psqt = &ss->runtime_psqt;
+    int network = 0;
+    bool have_network = false;
     if (!ss->accumulator.valid) {
         // Walk back to the nearest ply whose features were already built.
         int back = 0;
@@ -871,8 +873,15 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
                 SearchStack* frame = ss - i;
                 if (frame->entered_null) continue;
                 ensure_piece_diff(frame);
-                nnue::update(*source_features, frame->accumulator, frame->dirty);
                 if (residual) Evaluator::update_runtime_psqt(*source_psqt, frame->runtime_psqt, frame->dirty);
+                if (i == 0) {
+                    // The position being scored. Fold the output layer into the
+                    // feature update so those units are not reloaded.
+                    network = nnue::apply_and_evaluate(*source_features, frame->accumulator, frame->dirty, board);
+                    have_network = true;
+                } else {
+                    nnue::update(*source_features, frame->accumulator, frame->dirty);
+                }
                 source_features = &frame->accumulator;
                 source_psqt = &frame->runtime_psqt;
             }
@@ -880,7 +889,7 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
             psqt = source_psqt;
         }
     }
-    const int network = nnue::evaluate(board, *features);
+    if (!have_network) network = nnue::evaluate(board, *features);
     if (!residual) return network;
     if (!psqt->valid) {
         ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
@@ -891,8 +900,8 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
 }
 
 void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {
-    // Called before make_move. Only the pieces are stored. The accumulator
-    // stays stale until static_evaluate builds it.
+    // Called before make_move. The change list is ready, but the feature
+    // columns are added only when this position is evaluated.
     if (!nnue::enabled || !nnue::available()) return;
     SearchStack* child = ss + 1;
     child->entered_move = move;
@@ -900,8 +909,9 @@ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) 
     child->entered_capture = board.captured_piece(move);
     child->entered_side = static_cast<std::uint8_t>(board.side_to_move());
     child->entered_null = false;
-    child->diff_known = false;
-    child->dirty.count = 0;
+    child->dirty = nnue::dirty_from_move(move, child->entered_piece, child->entered_capture,
+                                          static_cast<Color>(child->entered_side));
+    child->diff_known = true;
     child->accumulator.valid = false;
     child->runtime_psqt.valid = false;
 }
