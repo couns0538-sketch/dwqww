@@ -1465,18 +1465,24 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             if (aborted_) return 0;
             if (razor < alpha) return razor;
         }
+        // A quiet line of this many plies reaches the 50-move draw (qsearch
+        // stands pat at clock 99). Static eval and a reduced null search do
+        // not see that draw, so neither may cut the node off.
+        const bool reaches_rule50 = board.halfmove_clock() + depth >= 99;
         // Reverse futility pruning.
-        if (depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+        if (!reaches_rule50 && depth <= tune::RfpDepth &&
+            eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
             eval < MateInMaxPly) {
             return eval;
         }
         // Null move pruning.
         // At clock 99 a null move used to increment the 50-move counter and the
-        // child returned an immediate draw. Skip the prune on that last ply.
+        // child returned an immediate draw. Skip the prune on the last ply, and
+        // on any node whose real search can reach that ply.
         if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
             board.has_non_pawn_material(board.side_to_move()) &&
-            board.halfmove_clock() < 99 &&
+            !reaches_rule50 &&
             !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
             ++null_tries_;
             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +

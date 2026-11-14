@@ -54,9 +54,39 @@ Unmodified `efb2ff96` on queen versus king at clock 92: depth 8 `cp 0`, 87721 no
 | 8 | 67223 |
 | 10 | 172081 |
 
+## Follow-up, 14 November 2026
+
+The probes below used `/tmp/forge-draw/forge` after the horizon guard, with `Threads 1`, `Hash 16`, `OwnBook false`, and `UseNNUE false`, except `bench`, which used a fresh process and the default network. `ucinewgame` was sent before each search.
+
+Clock 99 itself was already a draw, a mate, or a capture. An interior node at clock 98 or 99 did not turn a quiet draw into a material score:
+
+| Case | Result |
+| --- | --- |
+| `6k1/8/6K1/8/8/8/8/R7 w - - 99 80`, `go depth 3` | `mate 1`, `a1a8`, 60 nodes |
+| Same position at clock 0, `go depth 3` | `mate 1`, `a1a8`, 60 nodes |
+| Same position at clock 100, `go depth 2` | `cp 0`, 0 nodes |
+| `6k1/8/8/8/8/8/7r/Q5K1 w - - 99 80`, `go depth 3` | `cp 838`, `g1h2` (the capture resets the clock), 128 nodes |
+| `4k3/8/8/8/8/8/4P3/4K3 w - - 99 40`, `go depth 3` | `cp 71`, `e2e4` (the pawn move resets the clock), 66 nodes |
+| `r7/8/8/8/4k3/8/8/R3K3 w - - 99 80`, `go depth 3` | `cp 415`, `a1a8`, 160 nodes |
+| Queen versus king, clock 99, `go depth 4` | `cp 0`, 88 nodes |
+| Queen versus king, clock 98, `go depth 3` | `cp 0`, 144 nodes |
+| King versus queen, clock 98, `go depth 4` | `cp 0`, 35 nodes |
+
+What still failed was one ply earlier. On `8/8/8/4k3/8/8/8/3QK3 w - - 92 80`, depth 7 is the first iteration that reaches a clock-99 quiescence node, and it still printed `cp 722` (44921 nodes). Depth 8 was the first `cp 0` (113125 nodes). Reverse futility and null-move pruning were returning the static evaluation from nodes that could still walk into that clock-99 node. Both are now skipped when `halfmove_clock + depth >= 99`. The same position then printed:
+
+| Depth | Score | Nodes |
+| --- | --- | --- |
+| 6 | `cp 722` | 18650 |
+| 7 | `cp 0` | 44478 |
+| 8 | `cp 0` | 65779 |
+
+Depth 6 stays a material score: 92 + 6 does not reach clock 99. Mate, the rook capture, the pawn push, and the hanging-rook capture were unchanged. `go perft 4` from the start position was `197281`. `bench` depth 8 was `67223` nodes and depth 10 was `172081` nodes.
+
+A threefold knight shuttle still returns `cp 0` at 0 nodes. The same piece placement sent as a FEN, with no move list, searched normally (`cp 13`, 235 nodes at depth 4) in that process and in a fresh process. The table did not reuse the adjudicated draw.
+
 ## Limitations
 
-- A search that stops before clock 99 still prints a material score. On queen versus king at clock 92, depth 6 was `cp 704` and depth 7 was `cp 722`. Depth 5 printed `cp 0` because extensions reached the draw, then depth 6 went back to a material score. The stable draw starts at depth 8.
+- A search that stops before clock 99 still prints a material score. On queen versus king at clock 92, depth 6 is `cp 722` (18650 nodes). Depth 7 is the first `cp 0`. The earlier note, from before this guard, had depth 7 at `cp 722` and the first draw at depth 8.
 - The transposition table still does not store the repetition path. Cutoffs are refused at clock 90 and above. Below that, a score from another history can still be used. That is the same boundary the main search already used.
 - A position set by FEN has no history before that FEN. Repetition from earlier in the game is visible only when the UCI `moves` list is sent.
 - King and two knights versus king is not adjudicated. A mate exists if the lone king cooperates, so this is not insufficient material. King and bishop versus king, king and knight versus king, king versus king, and bishops all on one color are adjudicated.
