@@ -270,10 +270,22 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the 
 extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
 extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
 extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
 } // namespace tune
+
+// Quiet late-move reduction with a signed fraction of a ply from the eval
+// correction. correction_cp is the corrected static eval minus the uncorrected
+// eval (negative when results came back worse). Eight centipawns are one ply;
+// a smaller absolute correction is a truncated fraction and does not change
+// the integer reduction. The returned reduction is never negative.
+[[nodiscard]] inline int apply_lmr_signed_correction(int reduction_plies, int correction_cp) {
+    constexpr int kCentipawnsPerPly = 8;
+    const int adjusted = reduction_plies - correction_cp / kCentipawnsPerPly;
+    return adjusted > 0 ? adjusted : 0;
+}
 
 // Move-ordering statistics.
 using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
