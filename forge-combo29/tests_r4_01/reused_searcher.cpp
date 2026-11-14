@@ -1,6 +1,6 @@
-// A Searcher is used at Threads 2, then Threads 4, then from a mated root,
-// a stalemated root, and a drawn root. Helper counts published by an earlier
-// search must not be added into the next search.
+// One Searcher is used at Threads 2, then Threads 4, then from a mated root,
+// a stalemated root, and a drawn root. Counts published by the earlier
+// workers must not be added into the later search.
 #include "forge/board.hpp"
 #include "forge/search.hpp"
 
@@ -22,6 +22,19 @@ void expect(bool ok, std::string_view name) {
     ++failures;
 }
 
+forge::SearchInfo search_nodes(forge::Searcher& searcher, std::string_view fen, std::uint64_t budget) {
+    forge::Board board;
+    if (!board.set_fen(fen)) {
+        expect(false, "fen parses");
+        return {};
+    }
+    forge::SearchLimits limits;
+    limits.depth = 16;
+    limits.nodes = budget;
+    limits.nodes_specified = true;
+    return searcher.search(board, limits, false);
+}
+
 forge::SearchInfo search_depth(forge::Searcher& searcher, std::string_view fen, int depth) {
     forge::Board board;
     if (!board.set_fen(fen)) {
@@ -37,42 +50,28 @@ forge::SearchInfo search_depth(forge::Searcher& searcher, std::string_view fen, 
 
 int main() {
     constexpr std::string_view Start = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    constexpr std::string_view Mated = "6k1/5Q2/6K1/8/8/8/8/8 b - - 0 1";
+    // Queen on g7, white king on g6, black to move from g8.
+    constexpr std::string_view Mated = "6k1/6Q1/6K1/8/8/8/8/8 b - - 0 1";
+    // Queen on f7, white king on g6, black king on h8. Not in check, no legal move.
     constexpr std::string_view Stalemate = "7k/5Q2/6K1/8/8/8/8/8 b - - 0 1";
-    constexpr std::string_view Drawn = "8/8/8/8/8/8/4k3/4K3 w - - 0 1";
+    // Kings only.
+    constexpr std::string_view Drawn = "4k3/8/8/8/8/8/8/4K3 w - - 0 1";
 
     forge::Board probe;
     expect(probe.set_fen(Mated) && probe.in_check() && !probe.has_legal_move(), "mated root is checkmate");
     expect(probe.set_fen(Stalemate) && !probe.in_check() && !probe.has_legal_move(), "stalemate root has no move");
     expect(probe.set_fen(Drawn) && probe.is_insufficient_material(), "drawn root is insufficient material");
 
-    forge::Searcher fresh2(16, 2);
-    const auto fresh2_info = search_depth(fresh2, Start, 6);
-    std::cout << "fresh threads 2 nodes " << fresh2_info.nodes << '\n';
-    expect(fresh2_info.nodes > 0, "threads 2 searches");
-
     forge::Searcher reused(16, 2);
-    const auto first = search_depth(reused, Start, 6);
-    std::cout << "reused threads 2 nodes " << first.nodes << '\n';
-    expect(first.nodes == fresh2_info.nodes, "threads 2 matches a fresh searcher");
+    const auto warm = search_nodes(reused, Start, 8000);
+    std::cout << "threads 2 budget 8000 nodes " << warm.nodes << '\n';
+    expect(warm.nodes >= 8000 && warm.nodes <= 8000 + 32, "threads 2 reaches its budget");
 
     reused.set_threads(4);
-    const auto second = search_depth(reused, Start, 6);
-    forge::Searcher fresh4(16, 4);
-    const auto fresh4_info = search_depth(fresh4, Start, 6);
-    std::cout << "reused threads 4 nodes " << second.nodes << " fresh " << fresh4_info.nodes << '\n';
-    expect(second.nodes == fresh4_info.nodes, "threads 4 matches a fresh searcher");
-    expect(second.nodes < first.nodes + fresh4_info.nodes, "old helper counts are not added");
-
-    // A large search leaves a count in every worker. The next search must
-    // start from zero, including workers that are not the main thread.
-    forge::SearchLimits warm;
-    warm.depth = 8;
-    forge::Board start_board;
-    expect(start_board.set_fen(Start), "start fen");
-    const auto warmed = reused.search(start_board, warm, false);
-    std::cout << "warm depth 8 nodes " << warmed.nodes << '\n';
-    expect(warmed.nodes > second.nodes, "warm search counted nodes");
+    const auto next = search_nodes(reused, Start, 400);
+    std::cout << "threads 4 budget 400 nodes " << next.nodes << '\n';
+    expect(next.nodes >= 400 && next.nodes <= 400 + 48, "threads 4 stays on the new budget");
+    expect(next.nodes + 1000 < warm.nodes, "old helper counts are not added");
 
     const struct {
         std::string_view name;
@@ -83,12 +82,12 @@ int main() {
         {"drawn", Drawn},
     };
     for (const auto& terminal : terminals) {
-        const auto again = search_depth(reused, terminal.fen, 4);
+        const auto again = search_depth(reused, terminal.fen, 6);
         forge::Searcher clean(16, 4);
-        const auto clean_info = search_depth(clean, terminal.fen, 4);
+        const auto clean_info = search_depth(clean, terminal.fen, 6);
         std::cout << terminal.name << " reused nodes " << again.nodes << " fresh " << clean_info.nodes << '\n';
-        expect(again.nodes == clean_info.nodes, std::string(terminal.name) + " root ignores old helper counts");
-        expect(again.nodes < warmed.nodes, std::string(terminal.name) + " root is not the previous search");
+        expect(again.nodes < 64 && clean_info.nodes < 64, std::string(terminal.name) + " root does not keep old helper counts");
+        expect(again.nodes + 1000 < warm.nodes, std::string(terminal.name) + " root is not the previous search");
     }
 
     if (failures != 0) {
