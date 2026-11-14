@@ -1,64 +1,90 @@
-# Narrow mate-alpha guard and round-4 validation
+# Narrow mate-alpha guard and round-4 soak
 
-Task startUTC:2026-11-14T19:48:28.579Z. Owner authorized continued collaborative work after the original eight-hour window. Work order: Fable message0002, with owner compile-OFF and counts-only constraints retained.
+Updated 2026-11-14T20:42:17.692Z. Cloud VM only. Branch `for-fable-and-opus/astra-r4-mate-alpha-guard`. Task start 2026-11-14T19:48:28.579Z. Current phase: MateAlphaGuard paired on/off acceptance games.
 
-Base:8e805fb482a97b7182f3fa4c12f26ce7e1d88c19. Audited baseline:12c791d5451b158fd6ed1b506b4869b15c8a5b4e. Four source-only audit fixes reapplied as separate commits:
+**Guard acceptance: pending remaining match checks.** Default pins: **312866 / 862329 / 4865609**. Engine delta is27 added lines,0 removed, behind an OFF-by-default compile gate and a false-default UCI option. No CMakeLists change.
 
-- e349e3e859f2cc3d9b0eae08a5dd74e3b0e45705 -> 5ad7ac6e4aa15bcfb35bf54a7d826521423bcf64 (forge-combo29/src/search.cpp)
-- bf4154454ddc7b226bc1734bfc84d75569cdfc07 -> bafb2d5bf3a542da5c51608bc9babf87f79cfa69 (forge-combo29/include/forge/search.hpp)
-- 1ebc9b48084ac26db00a71b50fafccd2bfc8baa4 -> 8c4fb7d14fa5519d13e32914a4d97866a8b51a56 (forge-combo29/src/eval_params.cpp)
-- efb3eaa37a84198cc8c0ac1c35d0dc5cf384376d -> 12c791d5451b158fd6ed1b506b4869b15c8a5b4e (forge-combo29/src/board.cpp)
+## Source and behavior
 
-Current phase: narrow guard implemented, acceptance pending. Audited baseline Release pins pass; candidate build variants and original-root acceptance are in progress. The four-hour successor soak budget starts only after guard acceptance; it has not started.
+Base `8e805fb482a97b7182f3fa4c12f26ce7e1d88c19`; four source-only audit fixes were reapplied separately, yielding audited baseline `12c791d5451b158fd6ed1b506b4869b15c8a5b4e`:
 
-Proposed guardA affects only the two static-evaluation futility predicates when current alpha is a mate score. Existing LMP/history/SEE, TT conversion, qsearch and score reporting remain outside the change. New MateAlphaGuard UCI option false by default, behind compile gate FORGE_MATE_ALPHA_GUARD undefined/0 by default; toggle clears hash. No CMakeLists change; <=60 engine-line delta. If A does not reach the demonstrated d1c1 witness, record the failure and consult Fable before widening.
+| Source commit | Reapplied commit | Files |
+|---|---|---|
+| `e349e3e859f2cc3d9b0eae08a5dd74e3b0e45705` | `5ad7ac6e4aa15bcfb35bf54a7d826521423bcf64` | forge-combo29/src/search.cpp |
+| `bf4154454ddc7b226bc1734bfc84d75569cdfc07` | `bafb2d5bf3a542da5c51608bc9babf87f79cfa69` | forge-combo29/include/forge/search.hpp |
+| `1ebc9b48084ac26db00a71b50fafccd2bfc8baa4` | `8c4fb7d14fa5519d13e32914a4d97866a8b51a56` | forge-combo29/src/eval_params.cpp |
+| `efb3eaa37a84198cc8c0ac1c35d0dc5cf384376d` | `12c791d5451b158fd6ed1b506b4869b15c8a5b4e` | forge-combo29/src/board.cpp |
 
-Original frozen source f27b197 and old evidence remain on integrate/combo29-all /soak/combo29-all. Completed old-tree matches total12000; remaining LMR4000 and broader old-tree sample were omitted following Fable's recommendation. Fault092 has10/10 direct repeats. Root oracleDTM15plies=UCI mate8; chosenb3f3 DTM17plies=mate9; original mate17 and isolated-arm mate11 are conservative reported deadlines.
+The guard changes only quiet and capture static-evaluation futility predicates when the current alpha is a mate score. LMP, history pruning, SEE filters, TT rules, quiescence and reported-score code remain unchanged. Changing MateAlphaGuard clears searcher/hash state.
 
-Checkpoint 2026-11-14T19:55:54.257Z: Audited baseline validation. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Guard acceptance and successor soak are still pending.
+Enable with `-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1`, then `setoption name MateAlphaGuard value true`. With the compile switch undefined or0, the option is absent. GCC14.2, x86-64-v4, AVX-512/BMI2, strict floating-point flags were used. Exact configure/build commands are in `tests_astra_mateguard/logs/`.
 
-Checkpoint 2026-11-14T20:05:38.419Z: Guard implemented; three build variants in progress. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Guard is 27 added engine lines, compile-OFF and runtime-false by default. Supplemental seeded native tests pass; original-root acceptance and successor soak remain pending.
+| Engine file | SHA256 |
+|---|---|
+| src/search.cpp | `91dca7e1484670e7f065d4e593e45b8c3a3fca6baf6afd73e2edc84edd7ef637` |
+| src/uci.cpp | `3724b9b6da8ae0c63e7d59f75ed671875a42df3bbc2ac2a6c995f3e8de321fe1` |
+| include/forge/search.hpp | `faa4fba15aa6c89932aa4dd86cbf594b536e20b90ff8e44159c1795424c5622b` |
 
-Checkpoint 2026-11-14T20:12:43.902Z: Guard acceptance: pins, option counts, root repeats, KRK and t23 suites. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. All three Release modes preserve pins and normalized default output. 16 existing option counts match all48 baseline/undefined/zero invocations. Original guard-on ten repeats: mate11 /36063nodes. Cold-state toggle check passes; standalone default-NNUE true/false bench returns862329. Initial harness bench check failed because UseNNUE was still false (907205); failure retained and precondition corrected without changing expected values. Frozen40KRK depth14 T1/2/4:120 mates,0 illegal/lost-win/shorter-distance violations. Unchanged t23 Release+ASAN/UBSAN120cases pass. Original trace confirms earlier same-history depth4 d1c1 child under mate alpha; old same-history depth5 re-search disappears. Peer review of this acceptance wording requested; no widening. SAN200 and TSan/match acceptance pending.
+The baseline/undefined/zero Release binaries are byte-identical on this VM: `06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace`. Compiled1 candidate: `710cfcf73fcc3b9897281113759ed18565feb167eb0effe7023cbbe1706037dc`. This is Linux build evidence, not a claim about an unrun owner-PC build.
 
-## Acceptance evidence at 2026-11-14T20:20:58.086Z
+## Acceptance checks
 
 | Check | Observed result | Evidence |
 |---|---|---|
-| Compile switch undefined /0 /1 with runtimefalse | Pins312866 /862329 /4865609; full normalized default output identical | tests_astra_mateguard/release-validation |
-| Sixteen existing options alone | All48 auditedbaseline/undefined/zero invocations match source report counts | tests_astra_mateguard/option-counts |
-| Original fixture NNUEfalse depth13 | Off mate17/25568nodes; A mate11/36063nodes,10fresh identical repeats; exact root mate8 | release-validation; krk-validation |
-| Real warm/cold hash-toggle | False→true→false restores cold search; corrected default-NNUE bench13=862329 | release-validation/toggle.*; logs/toggle-pins-default-nnue.txt |
-| Frozen40 KRK depth14 T1/T2/T4 | 120mate reports,0illegal/lostwin/shorter-root or chosen-move distance violations | krk-validation/REPORT.md |
-| Existing t23 suites with Aon | 120cases across Release and ASAN+UBSAN,0failures/reports | logs/t23-* |
-| ASAN+UBSAN Aon depth10 | 200searches,200legalmoves,0faults/reports | logs/asan-depth10-200.txt |
-| TSan Aon depth9 T2/T4 | 8games,1499searches,0warnings or chess faults | logs/acceptance-tsan-* |
-| 2000pairedUHO on/offgames | In progress; counts not yet accepted | full batch artifacts pending |
+| Default behavior | All3 compile modes:312866/862329/4865609; normalized default output identical | [Release checks](tests_astra_mateguard/release-validation/) |
+| Existing16 options alone | All48 baseline/undefined/zero invocations match the source report | [Option table](tests_astra_mateguard/option-counts/summary.json.txt) |
+| Hash toggle | Real warm/cold search restores cold behavior; true→false default-NNUE bench13=862329 | [Toggle output](tests_astra_mateguard/release-validation/toggle.stdout.txt) |
+| Original fixture, NNUEfalse, depth13 | Off mate17/25568nodes; A mate11/36063nodes;10 fresh repeats identical except time/nps; exact root mate8 | [Repeats](tests_astra_mateguard/release-validation/summary.json.txt) |
+| Live internal trigger | Same FEN/ancestry, mate alpha31982: predicate948<=31982 is true; d1c1 actual child search returns31987, first at depth4 | [Observational proof](tests_astra_mateguard/original-root-final/TRACE_REPORT.md) |
+| Frozen40 KRK, depth14,T1/T2/T4 | 120 positive mate reports;0illegal/lost-win/shorter-root or chosen-move-distance violations | [KRK report](tests_astra_mateguard/krk-validation/REPORT.md) |
+| Unchanged t23 suites, Aon | Release+ASAN/UBSAN:120 cases,0failures/reports | tests_astra_mateguard/logs/t23-* |
+| ASAN/UBSAN Aon, depth10 | 200searches,200legalmoves,0faults/reports | [Output](tests_astra_mateguard/logs/asan-depth10-200.txt) |
+| TSan Aon, depth9,T2/T4 | 8games/1499searches,0reported races or chess faults | tests_astra_mateguard/logs/acceptance-tsan-* |
+| Paired on/off games | 2000/2000 accepted; W-L-D 567-572-861 | [Match evidence](tests_astra_mateguard/matches/) |
 
-Enable the option build with `-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1`; then `setoption name MateAlphaGuard value true`. Undefined or0 omits it. Engine delta from audited baseline is27addedlines,0removed: search.hpp3/search.cpp9/uci.cpp15. No CMakeLists change.
+Fable accepted the live semantic trace and selected A in [reply0006](https://github.com/couns0538-sketch/dwqww/blob/a085a3418ea4e632da971bb6253babb1540eaf5a/forge-combo29/soak_all/FABLE_REPLY_0006.md). Earlier depth4 success removes the old same-ancestry depth5 re-searches; the different-ancestry TT-first depth5 visit is excluded from the proof. The trace does not mutate search state and full normalized stdout matches the uninstrumented binary.
 
-Original-node nuance: [final observational report](tests_astra_mateguard/original-root-final/TRACE_REPORT.md) proves a live guard bypass at the same FEN/ancestry at depth4. The old depth5 re-searches disappear after earlier success. Actual d1c1 child returns31987; ungated predicate948<=31982 is true. Strict same-history depth5 coverage is absent. Fable was asked to assess this wording in sharedhandoff ASTRA_REPLY_0005.md at2cedbd16. No widening and no final acceptance claim. The four-hour successor budget has not started.
+The KRK oracle is the retained retrograde implementation sharing Forge move/attack primitives; it is not an external tablebase and does not model repetition or the fifty-move rule. These root checks do not establish universal TT-bound soundness or exact mate distances for every search. [Supplemental seeded tests](tests_astra_mateguard/supplemental/) deliberately use artificial TT/history contexts and are not substituted for the original-root trace.
 
-Retained tooling failure: initial release harness compared its NNUEfalse bench907205 to the NNUEtrue expected862329. The failed assertion/rawoutput remain intact; an explicitly NNUEtrue command passes862329. No engine workaround or changed expectation.
+Depth13 on40 frozen roots, NNUEtrue: off/A/B positive mates35/35/34, exact hits21/29/28, mean excess0.685714/0.257143/0.264706 UCI moves, summed nodes740045/897857/1088994. Means use positive mate reports only. NNUEfalse measurements and every raw row are retained in the KRK report. B remains a diagnostic comparison; A is the production delta.
 
-Checkpoint 2026-11-14T20:21:35.835Z: Guard acceptance: sanitizer checks and paired games. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. SAN200depth10 passed with200legalmoves,0faults. TSanT2 passed4games/792searches,0reports. Full original-root observational pass2 retained: live same-ancestry depth4 futility bypass (948<=31982), actual d1c1 child returns31987; no strict same-ancestry depth5 claim. Fable question sent on sharedhand-off commit2cedbd16; independent acceptance tests continue. TSanT4 passed4games/707searches,0reports. CombinedTSan8games/1499searches. The2000pairedgames are in progress. Old12000game independentaudit finalized on soak/combo29-all at98035496.
+## Games
 
-Fable review 2026-11-14T20:25:32.939Z: [reply0006](https://github.com/couns0538-sketch/dwqww/blob/a085a3418ea4e632da971bb6253babb1540eaf5a/forge-combo29/soak_all/FABLE_REPLY_0006.md) accepts the semantic trigger proof and selects A. With the guard on, at fault092’s same FEN/ancestry, the quiet futility predicate is true against mate alpha and d1c1 is actually searched (first at depth4; child returns31987); old depth5 skips do not arise. The different-ancestry TT-first visit remains excluded. Final production delta commit: `a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d` (27addedlines). Remaining acceptance:2000pairedgames; successor budget not started.
+Official fastchess, same compiled1 binary on both sides, MateAlphaGuard on/off, nodes20000 per move, Threads1,Hash16,OwnBookfalse,UHO random openings with fixed seeds and color-swapped pairs, recover,no adjudication. Raw tool version, binary/book hashes, full engine trace, events, PGN and real command output are preserved. Counts only; no strength or speed conclusion.
 
-Match 0001, seed20261114201, 2026-11-14T20:25:39.094Z:400games, nodes20000,T1,Hash16,OwnBookfalse,UHOcolor-swappedpairs,samebinary,Aon/off,recover,noadjudication. W-L-D 114-116-170; identical complete move/result pairs 126/200; fivepairbins 0,2,198,0,0. All accepted batch checks pass; no recorded crash,illegalmove,disconnect. Cumulativeaccepted 400/2000. First incomplete314-game attempt excluded and repeated in full. Full evidence under tests_astra_mateguard/matches/accepted-0001.
+| Batch | Seed | Games | W | L | D | Identical pairs | Five pair bins |
+|---|---:|---:|---:|---:|---:|---:|---|
+| 0001 | 20261114201 | 400 | 114 | 116 | 170 | 126/200 | 0,2,198,0,0 |
+| 0002 | 20261114202 | 400 | 119 | 121 | 160 | 114/200 | 0,2,198,0,0 |
+| 0003 | 20261114203 | 400 | 112 | 112 | 176 | 124/200 | 0,1,198,1,0 |
+| 0004 | 20261114204 | 400 | 111 | 111 | 178 | 127/200 | 0,1,198,1,0 |
+| 0005 | 20261114205 | 400 | 111 | 112 | 177 | 128/200 | 0,1,199,0,0 |
+| Total | — | 2000 | 567 | 572 | 861 | 619/1000 | 0,7,991,2,0 |
 
-Checkpoint 2026-11-14T20:26:26.999Z: MateAlphaGuard paired on/off acceptance games. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Accepted400game complete batch; W-L-D 114-116-170, identicalpairs 126/200. Acceptedtotals 400/2000games. No recorded crashes/illegal/disconnects in accepted batch; rawtrace,PGN,events and checks retained. Incomplete firstbatch remains excluded. Semantic trigger accepted byFable reply0006; successor4hbudget notstarted.
+Pair bins are LL,LD,DD-or-WL,DW,WW from option-on’s perspective. Identical pairs have the same full UCI move/FEN/legal sequence and board-color result/termination. All accepted batches have zero recorded crashes, illegal moves, disconnects, stalls or aborted games.
 
-On this Linux/GCC14.2 x86-64-v4 build, the auditedbaseline, undefinedswitch, andswitch0 Release executables are byte-identical: SHA25606a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Compiled1 binary SHA256710cfcf73fcc3b9897281113759ed18565feb167eb0effe7023cbbe1706037dc. Actual sha256sum command/output retained in logs/compile-mode-binary-identity.txt. The314complete games of the interrupted attempt match the retry move-for-move and result-for-result; they are not additional games.
+Excluded attempt: the first400-game batch overlapped TSan, used concurrency2, and reached its420-second deadline after314 completed games and2 timeout-aborted games. Eight stop/quit warnings occurred during timeout shutdown;0crash/illegal/disconnect markers were recorded. The entire batch was repeated with the same seed at concurrency4. All314 previously completed games match that retry exactly; they are not additional games. Full failed-attempt evidence remains in `matches/incomplete-0001`.
 
-Match 0002, seed20261114202, 2026-11-14T20:30:41.202Z:400games, nodes20000,T1,Hash16,OwnBookfalse,UHOcolor-swappedpairs,samebinary,Aon/off,recover,noadjudication. W-L-D 119-121-160; identical complete move/result pairs 114/200; fivepairbins 0,2,198,0,0. All accepted batch checks pass; no recorded crash,illegalmove,disconnect. Cumulativeaccepted 800/2000. First incomplete314-game attempt excluded and repeated in full. Full evidence under tests_astra_mateguard/matches/accepted-0002.
+## Successor soak
 
-Checkpoint 2026-11-14T20:30:55.004Z: MateAlphaGuard paired on/off acceptance games. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Accepted400game complete batch; W-L-D 119-121-160, identicalpairs 114/200. Acceptedtotals 800/2000games. No recorded crashes/illegal/disconnects in accepted batch; rawtrace,PGN,events and checks retained. Incomplete firstbatch remains excluded. Semantic trigger accepted byFable reply0006; successor4hbudget notstarted.
+The bounded successor budget has not started. Prepared plans are not claimed as completed tests.
 
-Match 0003, seed20261114203, 2026-11-14T20:34:41.996Z:400games, nodes20000,T1,Hash16,OwnBookfalse,UHOcolor-swappedpairs,samebinary,Aon/off,recover,noadjudication. W-L-D 112-112-176; identical complete move/result pairs 124/200; fivepairbins 0,1,198,1,0. All accepted batch checks pass; no recorded crash,illegalmove,disconnect. Cumulativeaccepted 1200/2000. First incomplete314-game attempt excluded and repeated in full. Full evidence under tests_astra_mateguard/matches/accepted-0003.
+| Batch | Conditions | Games | Searches | Sanitizer reports | Result |
+|---|---|---:|---:|---:|---|
 
-Checkpoint 2026-11-14T20:34:57.272Z: MateAlphaGuard paired on/off acceptance games. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Accepted400game complete batch; W-L-D 112-112-176, identicalpairs 124/200. Acceptedtotals 1200/2000games. No recorded crashes/illegal/disconnects in accepted batch; rawtrace,PGN,events and checks retained. Incomplete firstbatch remains excluded. Semantic trigger accepted byFable reply0006; successor4hbudget notstarted.
+Equality against e04556dd: not yet run on this tree. Existing test-folder suite: not yet run on this tree; the acceptance t23 subset above is separate.
 
-Match 0004, seed20261114204, 2026-11-14T20:38:28.624Z:400games, nodes20000,T1,Hash16,OwnBookfalse,UHOcolor-swappedpairs,samebinary,Aon/off,recover,noadjudication. W-L-D 111-111-178; identical complete move/result pairs 127/200; fivepairbins 0,1,198,1,0. All accepted batch checks pass; no recorded crash,illegalmove,disconnect. Cumulativeaccepted 1600/2000. First incomplete314-game attempt excluded and repeated in full. Full evidence under tests_astra_mateguard/matches/accepted-0004.
+## Retained failures and limits
 
-Checkpoint 2026-11-14T20:38:43.495Z: MateAlphaGuard paired on/off acceptance games. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Accepted400game complete batch; W-L-D 111-111-178, identicalpairs 127/200. Acceptedtotals 1600/2000games. No recorded crashes/illegal/disconnects in accepted batch; rawtrace,PGN,events and checks retained. Incomplete firstbatch remains excluded. Semantic trigger accepted byFable reply0006; successor4hbudget notstarted.
+- Initial harness error: the real toggle session retained UseNNUEfalse and printed907205, but its bench check expected the NNUEtrue862329. Failed assertion/output are preserved. The corrected command explicitly sets UseNNUEtrue and passes862329; no expected value or engine code was changed.
+- The old source’s four t16 options/clamp fixture comparisons remain documented on soak/combo29-all. New-tree suite results will report actual exits without stripping advertisements or modifying expected files.
+- The previous eight-hour window was interrupted by a credit limit; it is not represented as eight continuous testing hours. Original source/evidence,92fault files,12000completed games and omitted LMR matches are preserved at [old soak checkpoint](https://github.com/couns0538-sketch/dwqww/tree/98035496dfef4f7658f2d8b477ccc65f9091508c/forge-combo29/soak_all).
+- No owner-PC execution, no strength/speed conclusion, no universal race-freedom claim. New speed branches are outside this soak.
+
+Exact commands, output, hashes and retained failures are under `tests_astra_mateguard`. Text larger than16MiB is split without loss; manifests give ordered chunks and whole-file hashes. VM tools are archived as inert `.mjs.txt`; no executables, archives or generated network files are committed. [Progress](tests_astra_mateguard/PROGRESS.txt) and [earlier report chronology](tests_astra_mateguard/report-chronology-before-render.md) are retained.
+
+**Final engine delta commit: `a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d`.**
+
+Checkpoint 2026-11-14T20:42:17.692Z: MateAlphaGuard paired on/off acceptance games. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Accepted400game complete batch; W-L-D 111-112-177, identicalpairs 128/200. Acceptedtotals 2000/2000games. No recorded crashes/illegal/disconnects in accepted batch; rawtrace,PGN,events and checks retained. Incomplete firstbatch remains excluded. Semantic trigger accepted byFable reply0006; successor4hbudget notstarted.
+
+ENGINE_DELTA_COMMIT a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d
