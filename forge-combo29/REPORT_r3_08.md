@@ -15,7 +15,7 @@ The fail-low midpoint update of beta is unchanged with the option on. The initia
 - `forge-combo29/include/forge/search.hpp`: `tune::AspCappedReopen`.
 - `forge-combo29/src/search.cpp`: the flag, `capped_fail_low`, `capped_fail_high`, and the root fail branch.
 - `forge-combo29/src/uci.cpp`: the option line and `setoption`.
-- `forge-combo29/tests_r3_08/asp_legal_test.cpp`: 200 depth-10 searches.
+- `forge-combo29/tests_r3_08/asp_legal_test.cpp`: 200 depth-10 searches, plus a checked king, a promoting pawn, checkmate, and stalemate.
 
 `git diff --numstat` on `src` and `include`: 41 insertions, 3 deletions (44 changed source lines).
 
@@ -23,7 +23,7 @@ The fail-low midpoint update of beta is unchanged with the option on. The initia
 
 ## Pins
 
-Threads 1, Hash 16, OwnBook false, every other option at default. Same binary, before any edit and again after the edit:
+Threads 1, Hash 16, OwnBook false, every other option at default. Measured before the edit, after the edit, and again at 2026-11-14T14:36:18Z on this branch:
 
 | check | nodes |
 | --- | --- |
@@ -33,22 +33,22 @@ Threads 1, Hash 16, OwnBook false, every other option at default. Same binary, b
 
 Build: `cmake -S forge-combo29 -B build -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3 && cmake --build build -j`
 
-With the option on, the same release binary, same Threads / Hash / OwnBook settings:
+With the option on, the same release binary, same Threads / Hash / OwnBook settings. The 14:36Z re-check measured bench 13. Turning the option back off in that same process returned bench 13 to 862329.
 
 | check | nodes |
 | --- | --- |
 | bench 13 | 850997 |
 | bench 11 | 347390 |
 
-bench 13 moving from 862329 to 850997 is the liveness check. No strength claim.
+bench 13 moving from 862329 to 850997 is the liveness check. No strength claim. bench 11 with the option on is from the first measurement, not the 14:36Z re-check.
 
 ## Sanitizer
 
-`tests_r3_08/asp_legal_test.cpp` turns `AspCappedReopen` on, builds 200 positions by walking legal moves from the start position, searches each to depth 10 with Hash 16 and one thread, and requires every returned move to be in that position's legal move list.
+`tests_r3_08/asp_legal_test.cpp` turns `AspCappedReopen` on, builds 200 positions by walking legal moves from the start position, and searches each to depth 10 with Hash 16 and one thread. Every returned move has to be in that position's legal move list. A terminal root has to return no move. The same run also searches a king in check, a pawn that can promote, a checkmate, and a stalemate.
 
 Clang 18 could not link its ASan runtime (`libclang_rt.asan` is not installed). The run used g++-14 with `-fsanitize=address,undefined -fno-sanitize-recover=address,undefined`, plus the portable release defines (`FORGE_PORTABLE` switches, `-ffp-contract=off -fno-fast-math -march=x86-64-v3`) and `-DFORGE_UCI_NO_MAIN`.
 
-Result: `asp_legal ok searches 200 legal 200 terminals 0 depth 10`, exit 0. No ASan or UBSan report.
+Rebuilt and run again at 2026-11-14T14:36:21Z. Result: `asp_legal ok searches 200 legal 200 terminals 0 edges 4 depth 10`, exit 0. No ASan or UBSan report.
 
 ## Not verified
 
