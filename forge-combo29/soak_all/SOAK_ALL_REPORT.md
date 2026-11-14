@@ -1,8 +1,8 @@
 # Eight-hour combined Forge integration and soak
 
-Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T19:45:41.469Z.
+Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T20:16:49.844Z.
 
-Elapsed at snapshot: 514.16 minutes; current phase: Round-4 transition per Fable coordination; recorded pushes: 84. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
+Elapsed at snapshot: 545.30 minutes; current phase: Round-4 transition per Fable coordination; recorded pushes: 85. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
 
 Base: `fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca`; merged source: `f27b1971e459581ad4c85b7015f6af83bbfd4af6`; unchanged lock: `16833ecc03b425586f91f4c8834dea8807bf4c22`. [Source provenance](../INTEGRATION_ALL.md), [progress](PROGRESS.md), [raw batches](batches/), [test matrix](TEST_MATRIX.md).
 
@@ -248,6 +248,7 @@ Completed-unit totals exclude partial work; interrupted cleanup diagnostics rema
 - Extension: fault092 now reproduced10/10 additional fresh instrumented searches with unchanged full normalized output/trace. Coordination branch handoff/fable-opus-combo29-all-20261114 asks Fable/Opus for the repair acceptance test and next assignment.
 - Fable response0002 at09a7a935, read19:38UTC, recommended finishing the active NonPawn batch and dropping remaining LMR match and broad sample in favor of a narrow guard on r4 plus sanitizer coverage. Owner had explicitly requested joint next-step coordination and low usage. Completed total12000 games is preserved; LMR4000 remains omitted, not passed.
 - Successor work will use r4 base8e805fb4 plus four named audit source fixes. Original f27 engine sources and old evidence remain unchanged. Owner compile-OFF and no-Elo rules remain controlling; Fable runtime option is placed behind the compile gate. New four-hour soak budget begins only after guard acceptance work.
+- Final NonPawn4000-game independent audit bundle preserved at preparation/part3-independent-npc-final; all30completed batches /12000games independently checked. Continued task moved to for-fable-and-opus/astra-r4-mate-alpha-guard; old source remains frozen.
 
 These notes retain their original recording context; subsequent retry coverage is stated separately.
 
