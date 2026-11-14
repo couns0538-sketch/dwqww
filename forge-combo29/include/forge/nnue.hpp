@@ -79,8 +79,18 @@ void refresh(const Board& board, Accumulator& accumulator);
 void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty);
 // Side-to-move evaluation in centipawns.
 [[nodiscard]] int evaluate(const Board& board, const Accumulator& accumulator);
+// Writes `child` with the same feature arithmetic as update(), and returns
+// the same centipawn value evaluate() would return on that result. The
+// output layer reads each new hidden unit while it is still in a register.
+[[nodiscard]] int apply_and_evaluate(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty,
+                                      const Board& board);
 
 // Piece changes implied by a move about to be played on `board`.
 [[nodiscard]] DirtyPieces dirty_pieces(const Board& board, const Move& move);
+// Same change list without the board: `moved` is the piece on the origin,
+// `captured` is Empty when nothing is taken, and `side` is the mover.
+// Search stores those four facts when the move is made and calls this only
+// if an evaluation actually needs the accumulator.
+[[nodiscard]] DirtyPieces dirty_from_move(Move move, Piece moved, Piece captured, Color side);
 
 } // namespace forge::nnue
