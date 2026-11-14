@@ -1,0 +1,74 @@
+{
+  "base": "e04556ddc3a430b2e751159b0d46111ef56c8b89",
+  "implementation_commit": "b68d49fedcc8e705484d06fb02cf0a417734839f",
+  "branch": "grok47/r4-05-screen-npc",
+  "engine_id": "Chess Engine Forge 6.4.24 candidate",
+  "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+  "cmake": "3.28.3",
+  "march": "x86-64-v4",
+  "build_kind": "owner (AVX-512F and BMI2 present; FORGE_PORTABLE=OFF)",
+  "cpu": "Intel Xeon with AVX-512F and BMI2, 4 threads",
+  "fastchess": "fastchess alpha 1.8.3 20261113-3d7a4db",
+  "fastchess_commit": "3d7a4db2493fc85a05ef010fd7e13a3884667aa2",
+  "book_name": "UHO_Lichess_4852_v1.epd",
+  "book_lines": 2632036,
+  "book_url": "https://github.com/official-stockfish/books/raw/master/UHO_Lichess_4852_v1.epd.zip",
+  "binary_sha256": "4a624cf990c057c9a5d7847916b2d537a38ab6b95be4339dbec30a187f7ec984",
+  "fastchess_sha256": "936811dcaea97a853a762d3f1e6fb600610c1be3c1f759f2f2fefa2e6500b21e",
+  "book_sha256": "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a",
+  "book_zip_sha256": "4e298f11e8acfa106babe02968f2e61582145e7874c59284690b20b9650e0e07",
+  "pins": {
+    "bench11": 312866,
+    "bench13": 862329,
+    "perft5": 4865609
+  },
+  "bench13_on_nodes": 775585,
+  "bench13_runs": [
+    {
+      "run": 1,
+      "option": "false",
+      "nodes": 862329,
+      "time_ms": 859,
+      "nps": 1003875
+    },
+    {
+      "run": 2,
+      "option": "true",
+      "nodes": 775585,
+      "time_ms": 741,
+      "nps": 1046673
+    },
+    {
+      "run": 3,
+      "option": "false",
+      "nodes": 862329,
+      "time_ms": 754,
+      "nps": 1143672
+    },
+    {
+      "run": 4,
+      "option": "true",
+      "nodes": 775585,
+      "time_ms": 688,
+      "nps": 1127303
+    },
+    {
+      "run": 5,
+      "option": "false",
+      "nodes": 862329,
+      "time_ms": 742,
+      "nps": 1162168
+    }
+  ],
+  "conditions": {
+    "nodes": 50000,
+    "threads": 1,
+    "hash": 16,
+    "ownbook": false,
+    "concurrency": 4,
+    "openings_per_chunk": 500,
+    "games_per_opening": 2
+  },
+  "command_template": "/tmp/r4_05/src/fastchess/fastchess \\\n  -recover \\\n  -repeat \\\n  -games 2 \\\n  -rounds 500 \\\n  -concurrency 4 \\\n  -ratinginterval 250 \\\n  -scoreinterval 250 \\\n  -report penta=true \\\n  -event \"r4-05 NonPawnCorrection chunk CHUNK openings START-END\" \\\n  -site \"grok47/r4-05-screen-npc\" \\\n  -openings file=CHUNK_EPD format=epd order=sequential start=1 \\\n  -engine name=NonPawnCorrectionOn cmd=/tmp/r4_05/build/forge option.NonPawnCorrection=true \\\n  -engine name=NonPawnCorrectionOff cmd=/tmp/r4_05/build/forge option.NonPawnCorrection=false \\\n  -each proto=uci option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 \\\n  -pgnout file=CHUNK_PGN notation=san append=false",
+  "owner_prior": "+6.8 \u00b1 7.2 in 4000 games"
+}
