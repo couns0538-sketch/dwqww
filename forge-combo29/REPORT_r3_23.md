@@ -49,7 +49,9 @@ The three cases are separate arms. `FollowOption` tracks the UCI check, so the d
 
 Owner build (`x86-64-v4`, PEXT and AVX-512 on, no `FORGE_*` override). Option off: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609.
 
-The UHO screen is recorded after this section as chunks are played.
+The UHO screen uses `tests_r3fu_23/uho_screen.cpp` at 50000 nodes, Threads 1, Hash 16. Option-on is the first player in each color-swapped pair. Book `UHO_Lichess_4852_v1.epd`, sha256 of the zip `4e298f11e8acfa106babe02968f2e61582145e7874c59284690b20b9650e0e07`. Owner binary sha256 `c9173950c8336f1d5edf39078bf32321e4f1da2fbbd4b1ef5ac8482cd73f45bd`. Bench 13, five alternating runs, option on first: nps 936397, 923264, 950929, 918348, 1398584. Option-off node totals in those runs stayed 862329. Option-on bench 13 nodes were 980408.
+
+Chunk 1, openings 0-399, 800 games, four workers: W-L-D 195-224-381 for option-on. Elo -12.600, 95% interval -30.071 to 4.808, LOS 0.078019. Pentanomial LL LD WL/DD WD WW = 18 108 176 81 17. Per-worker PGNs and summaries are under `tests_r3fu_23/screen/`. Later chunks are appended the same way.
 
 ## What was not verified
 
