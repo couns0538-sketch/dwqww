@@ -25,14 +25,14 @@ Ptnml(0-2): [29, 124, 202, 118, 27], WL/DD Ratio: 0.74
 
 ### Cumulative including this chunk
 
-- W-L-D (option on first): 755-785-1460
-- Games: 3000
-- Pairs: 1500
-- Elo 95% (pentanomial, logistic): -3.47 +/- 8.01
-- 95% Elo bounds: -11.48 to 4.53
-- LOS: 19.74 %
-- Pentanomial [LL, LD, WL/DD, WD, WW]: [66, 379, 634, 361, 60]
-- Terminations: {"normal": 3000}
+- W-L-D (option on first): 1035-1034-1931
+- Games: 4000
+- Pairs: 2000
+- Elo 95% (pentanomial, logistic): +0.09 +/- 7.02
+- 95% Elo bounds: -6.93 to 7.10
+- LOS: 50.97 %
+- Pentanomial [LL, LD, WL/DD, WD, WW]: [88, 498, 826, 501, 87]
+- Terminations: {"normal": 4000}
 
 - Base: `e04556ddc3a430b2e751159b0d46111ef56c8b89`
 - Implementation commit: `b68d49fedcc8e705484d06fb02cf0a417734839f`
