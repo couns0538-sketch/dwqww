@@ -1,6 +1,6 @@
 # Narrow mate-alpha guard and round-4 soak
 
-Updated 2026-11-14T20:43:34.573Z. Cloud VM only. Branch `for-fable-and-opus/astra-r4-mate-alpha-guard`. Task start 2026-11-14T19:48:28.579Z. Current phase: Successor soak started.
+Updated 2026-11-14T20:50:07.896Z. Cloud VM only. Branch `for-fable-and-opus/astra-r4-mate-alpha-guard`. Task start 2026-11-14T19:48:28.579Z. Current phase: Successor soak: sanitizer self-play.
 
 **Guard acceptance: complete.** Default pins: **312866 / 862329 / 4865609**. Engine delta is27 added lines,0 removed, behind an OFF-by-default compile gate and a false-default UCI option. No CMakeLists change.
 
@@ -71,6 +71,7 @@ Budget: 2026-11-14T20:43:34.458Z to 2026-11-15T00:43:34.458Z (at most240minutes)
 
 | Batch | Conditions | Games | Searches | Sanitizer reports | Result |
 |---|---|---:|---:|---:|---|
+| soak-asan-off-t1-n2000 | asan-off | 120 | 17546 | 0 | pass |
 
 Equality against e04556dd: not yet run on this tree. Existing test-folder suite: not yet run on this tree; the acceptance t23 subset above is separate.
 
@@ -85,6 +86,6 @@ Exact commands, output, hashes and retained failures are under `tests_astra_mate
 
 **Final engine delta commit: `a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d`.**
 
-Checkpoint 2026-11-14T20:43:34.574Z: Successor soak started. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Guard acceptance complete: compileoff byteidentity, pins,16optioncounts,10originalrepeats,liveguardtrace acceptedbyFable,120KRKchecks,120t23cases,200SANsearches,TSan8games/1499searches,2000pairedgames. Successor budget 2026-11-14T20:43:34.458Z to 2026-11-15T00:43:34.458Z (atmost240min). Alloptionsoff first, then HindsightDepth+MateAlphaGuard on. No sourcechanges planned.
+Checkpoint 2026-11-14T20:50:07.896Z: Successor soak: sanitizer self-play. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Successor asan-off completed: {"seed":202611143001,"threads":1,"nodes":2000,"first_game":0,"max_games":1000000,"seconds":180,"Hash":16,"OwnBook":false,"UseNNUE":true,"MultiPV":1,"ContHist4PlyRead":false,"NonPawnCorrection":false,"LmrDeeperShallower":false,"MateAlphaGuard":false,"HindsightDepth":false,"depth":0,"games":120,"moves":17546,"searches":17546,"opening_moves":960,"faults":0,"illegal":0,"missing":0,"badscore":0,"mates":84,"stalemates":0,"repetitions":18,"fifty":9,"ply_caps":5,"insufficient":4}. Sanitizer reports 0. Accepted completed self-play totals {"games":120,"searches":17546,"faults":0,"sanitizerReports":0}. All raw inputs/outputs retained; incomplete attempts excluded from totals.
 
 ENGINE_DELTA_COMMIT a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d
