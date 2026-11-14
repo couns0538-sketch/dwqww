@@ -118,6 +118,8 @@ Match settings, command, versions, and sha256 of both binaries and the UHO book 
 
 Chunk 1 (openings 1–500, both colors), fastchess exit 0, 00:22:07: W-L-D 253-253-494. Elo -0.00 +/- 0.00. LOS printed as `-nan %`. Ptnml(0-2) `[0, 0, 500, 0, 0]`. PGN `forge-combo29/tests_r3fu_21/chunk1.pgn`.
 
+Chunk 2 (openings 501–1000, both colors), fastchess exit 0, 00:21:13: W-L-D 270-270-460. Elo -0.00 +/- 0.00. LOS printed as `-nan %`. Ptnml(0-2) `[0, 0, 500, 0, 0]`. PGN `forge-combo29/tests_r3fu_21/chunk2.pgn`.
+
 ## Not verified
 
 - The cmake command with the default `c++` compiler. It does not link here. The binaries above were built with GCC 13.3.0 and the flags in `CMakeLists.txt`.
