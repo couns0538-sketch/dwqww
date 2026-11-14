@@ -100,4 +100,4 @@ tc=1+0.01 (1000 ms + 10 ms), 2000 games, mean length 149.041 plies:
 - new: time losses 0, illegal moves 0, crashes 0
 - base: time losses 0, illegal moves 0, crashes 0
 
-tc=3+0.03 (3000 ms + 30 ms), 2000 games: same harness, results filled when that run ends.
+tc=3+0.03 (3000 ms + 30 ms) was started the same way and stopped at 700 of 2000 games. The harness prints time losses, illegal moves, and crashes only after the full run, so those counts are not available for this control.
