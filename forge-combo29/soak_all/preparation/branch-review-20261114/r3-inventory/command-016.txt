@@ -1,0 +1,267 @@
+{"n":16,"argv":["git","diff","--no-ext-diff","--no-textconv","--unified=5","e04556ddc3a430b2e751159b0d46111ef56c8b89","e4daba905d33ff8ea10da5f99cd9185236c5ae17","--","forge-combo29/src","forge-combo29/include"],"cwd":"/workspace/work/dwqww-all","exit":0,"signal":null}
+STDOUT
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6..96eebec 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -268,17 +268,22 @@ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
++extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+ } // namespace tune
+ 
+ // Move-ordering statistics.
+ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
++// [side][threat 0..3][from][to]. Threat bit 1: mover attacked by a cheaper enemy.
++// Threat bit 0: the destination square is attacked by a cheaper enemy than the mover.
++using ThreatQuietHistory = std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 4>, 2>;
++[[nodiscard]] int quiet_threat_index(const Board& board, Move move);
+ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
+ using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 13>;
+ using CaptureHistory = std::array<std::array<std::array<std::int16_t, 7>, 64>, 13>;
+ using CounterMoveTable = std::array<std::array<Move, 64>, 13>;
+ constexpr std::size_t CorrectionSize = 1U << 14U;
+@@ -344,10 +349,11 @@ private:
+ 
+     SharedSearchState& shared_;
+     int id_ = 0;
+     Evaluator evaluator_;
+     std::unique_ptr<ButterflyHistory> main_history_;
++    std::unique_ptr<ThreatQuietHistory> threat_history_;
+     std::unique_ptr<CaptureHistory> capture_history_;
+     std::unique_ptr<ContinuationHistory> continuation_history_;
+     std::unique_ptr<CounterMoveTable> counter_moves_;
+     std::unique_ptr<CorrectionHistory> correction_history_;
+     std::unique_ptr<CorrectionHistory> material_correction_;
+@@ -409,10 +415,12 @@ private:
+     void update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth,
+                             const Move* quiets, int quiet_count);
+     void update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count);
+     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
+     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
++    [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
++    void update_threat_quiet(const Board& board, Move move, int bonus);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
+     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a..2a5b859 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -75,10 +75,11 @@ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
++bool ThreatHistory = false;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+@@ -204,10 +205,35 @@ std::string format_score(int score) {
+     return "cp " + std::to_string(score);
+ }
+ 
+ } // namespace
+ 
++// Bit 1: the mover is attacked by a cheaper enemy piece. Bit 0: the empty
++// destination is. "Cheaper" follows SeePieceValue, except a king is never
++// cheaper (the SEE table stores king as 0). Nothing is cheaper than a pawn,
++// so pawn quiets stay in bucket 0. The reference value on the destination is
++// the mover, the piece that would stand there.
++int quiet_threat_index(const Board& board, Move move) {
++    const int type = piece_type(board.piece_at(move.from));
++    if (type <= Pawn) return 0;
++    const Color us = board.side_to_move();
++    const Color them = opposite(us);
++    const Bitboard occ = board.occupied();
++    const auto cheaper = [&](int square) {
++        if ((attacks::pawn(us, square) & board.pieces(them, Pawn)) != 0) return true;
++        if (type <= Bishop) return false;
++        if ((attacks::knight(square) & board.pieces(them, Knight)) != 0) return true;
++        if ((attacks::bishop(square, occ) & board.pieces(them, Bishop)) != 0) return true;
++        if (type <= Rook) return false;
++        if ((attacks::rook(square, occ) & board.pieces(them, Rook)) != 0) return true;
++        if (type <= Queen) return false;
++        const Bitboard queens = board.pieces(them, Queen);
++        return (attacks::bishop(square, occ) & queens) != 0 || (attacks::rook(square, occ) & queens) != 0;
++    };
++    return (cheaper(move.from) ? 2 : 0) | (cheaper(move.to) ? 1 : 0);
++}
++
+ void tune::refresh() { Reductions.refresh(); }
+ 
+ // ---------------------------------------------------------------------------
+ // Transposition table
+ 
+@@ -623,22 +649,24 @@ private:
+         const std::array<std::array<std::int16_t, 64>, 64>& main;
+         const PieceToHistory* cont1;
+         const PieceToHistory* cont2;
+         const PieceToHistory* cont4;
+         const Board& board;
++        const Worker& worker;
+ 
+         QuietScorer(const Board& b, const Worker& searcher, const SearchStack* ss)
+             : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
+               cont1(ss != nullptr ? (ss - 1)->continuation : nullptr),
+               cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
+               cont4(tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+                         ? (ss - 4)->continuation : nullptr),
+-              board(b) {}
++              board(b),
++              worker(searcher) {}
+ 
+         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+             const Piece piece = board.piece_at(move.from);
+-            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move);
++            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move);
+             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
+             return value;
+         }
+     };
+ #endif
+@@ -785,10 +813,11 @@ private:
+ 
+ Worker::Worker(SharedSearchState& shared, int id)
+     : shared_(shared),
+       id_(id),
+       main_history_(std::make_unique<ButterflyHistory>()),
++      threat_history_(std::make_unique<ThreatQuietHistory>()),
+       capture_history_(std::make_unique<CaptureHistory>()),
+       continuation_history_(std::make_unique<ContinuationHistory>()),
+       counter_moves_(std::make_unique<CounterMoveTable>()),
+       correction_history_(std::make_unique<CorrectionHistory>()),
+       material_correction_(std::make_unique<CorrectionHistory>()),
+@@ -800,10 +829,11 @@ Worker::Worker(SharedSearchState& shared, int id)
+ Worker::~Worker() = default;
+ 
+ void Worker::clear() {
+     evaluator_.clear();
+     *main_history_ = ButterflyHistory{};
++    *threat_history_ = ThreatQuietHistory{};
+     *capture_history_ = CaptureHistory{};
+     *continuation_history_ = ContinuationHistory{};
+     *counter_moves_ = CounterMoveTable{};
+     *correction_history_ = CorrectionHistory{};
+     *material_correction_ = CorrectionHistory{};
+@@ -964,25 +994,38 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move)
+     return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
+                              ss != nullptr ? (ss - 1)->continuation : nullptr,
+                              ss != nullptr ? (ss - 2)->continuation : nullptr,
+                              tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+                                  ? (ss - 4)->continuation : nullptr,
+-                             board.moved_piece(move), move);
++                             board.moved_piece(move), move) +
++           threat_quiet_bonus(board, move);
+ #else
+     const Piece piece = board.moved_piece(move);
+     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+     if (ss != nullptr) {
+         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
+         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
+         if (tune::ContHist4PlyRead && (ss - 4)->continuation != nullptr && !(ss - 4)->current_move.is_none()) {
+             score += (*(ss - 4)->continuation)[static_cast<std::size_t>(piece)][move.to] / 2;
+         }
+     }
+-    return score;
++    return score + threat_quiet_bonus(board, move);
+ #endif
+ }
+ 
++int Worker::threat_quiet_bonus(const Board& board, Move move) const {
++    if (!tune::ThreatHistory) return 0;
++    const int index = quiet_threat_index(board, move);
++    return (*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to];
++}
++
++void Worker::update_threat_quiet(const Board& board, Move move, int bonus) {
++    if (!tune::ThreatHistory) return;
++    const int index = quiet_threat_index(board, move);
++    apply_history((*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to], bonus);
++}
++
+ int Worker::capture_history_value(const Board& board, Move move) const {
+     const Piece piece = board.moved_piece(move);
+     const int captured = piece_type(board.captured_piece(move));
+     return (*capture_history_)[static_cast<std::size_t>(piece)][move.to][static_cast<std::size_t>(captured)];
+ }
+@@ -1008,15 +1051,17 @@ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move,
+     if (!previous->current_move.is_none() && previous->moved_piece != Empty) {
+         (*counter_moves_)[static_cast<std::size_t>(previous->moved_piece)][previous->current_move.to] = move;
+     }
+     const Piece piece = board.moved_piece(move);
+     apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
++    update_threat_quiet(board, move, bonus);
+     update_continuation(ss, piece, move.to, bonus);
+     for (int i = 0; i < quiet_count; ++i) {
+         const Move quiet = quiets[i];
+         if (quiet == move) continue;
+         apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
++        update_threat_quiet(board, quiet, -bonus);
+         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
+     }
+ }
+ 
+ void Worker::update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count) {
+@@ -1552,10 +1597,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         update_capture_stats(board, best_move, depth, captures_tried.data(), capture_count);
+     } else if (!best_move.is_none() && (!best_move.is_capture() && !best_move.is_promotion())) {
+         // Even without a cutoff, a new PV move earned its place.
+         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+                       history_bonus(depth) / 4);
++        update_threat_quiet(board, best_move, history_bonus(depth) / 4);
+     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+         // Every move failed low: the parent's quiet move refuted this line.
+         update_continuation(ss - 1, (ss - 1)->moved_piece, (ss - 1)->current_move.to,
+                             history_bonus(depth) * tune::FailLowContinuationBonus / 100);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f89..009e379 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -186,11 +186,12 @@ int uci_loop(std::istream& in) {
+                 std::cout << "option name UseNNUE type check default true\n"
+                              "option name NnueFile type string default <empty>\n";
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+-                         "option name LmrDeeperShallower type check default false\n";
++                         "option name LmrDeeperShallower type check default false\n"
++                         "option name ThreatHistory type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them. Builds without this macro still accept them.
+             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
+                 std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
+@@ -299,14 +300,16 @@ int uci_loop(std::istream& in) {
+                     forge::nnue::enabled = value_text == "true";
+                     searcher.clear_hash();
+                 } else {
+                     note_invalid();
+                 }
+-            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
++            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
++                       name == "ThreatHistory") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+-                                                           : &forge::tune::LmrDeeperShallower;
++                             : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
++                                                           : &forge::tune::ThreatHistory;
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";
+                 } else {
+                     note_invalid();
+                 }
+
+STDERR

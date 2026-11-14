@@ -1,0 +1,95 @@
+{"n":59,"argv":["git","show","3bafa41b16b6ee5759c51a8408aab12fe40591e4:forge-combo29/tests_r3_17/multipv_node_budget.cpp"],"cwd":"/workspace/work/dwqww-all","exit":0,"signal":null}
+STDOUT
+// MultiPV still stops on the shared budget, and helper threads stay idle.
+// Threads 1 and Threads 4 must therefore search the same tree. A plain
+// Threads 4 search (MultiPV 1) must stay near the budget instead of running
+// on until the main worker unwinds.
+#include "forge/board.hpp"
+#include "forge/search.hpp"
+
+#include <iostream>
+#include <string>
+#include <string_view>
+
+namespace {
+
+int failures = 0;
+
+void expect(bool ok, std::string_view name) {
+    if (ok) {
+        std::cout << "ok " << name << '\n';
+        return;
+    }
+    std::cout << "FAIL " << name << '\n';
+    ++failures;
+}
+
+forge::SearchInfo search_nodes(std::string_view fen, int threads, int multipv, std::uint64_t budget) {
+    forge::Board board;
+    if (!board.set_fen(fen)) {
+        std::cerr << "bad fen\n";
+        return {};
+    }
+    forge::Searcher searcher(16, threads);
+    forge::SearchLimits limits;
+    limits.nodes = budget;
+    limits.nodes_specified = true;
+    limits.depth = 12;
+    limits.multipv = multipv;
+    return searcher.search(board, limits, false);
+}
+
+}  // namespace
+
+int main() {
+    constexpr std::string_view Start = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    constexpr std::uint64_t budget = 4000;
+
+    const forge::SearchInfo one = search_nodes(Start, 1, 3, budget);
+    const forge::SearchInfo four = search_nodes(Start, 4, 3, budget);
+    std::cout << "multipv 3 threads 1 nodes " << one.nodes << " move "
+              << forge::Board::move_to_uci(one.best_move) << " depth " << one.depth << '\n';
+    std::cout << "multipv 3 threads 4 nodes " << four.nodes << " move "
+              << forge::Board::move_to_uci(four.best_move) << " depth " << four.depth << '\n';
+    expect(one.nodes == budget, "multipv threads 1 stops on the budget");
+    expect(four.nodes == one.nodes, "multipv threads 4 matches the idle-helper total");
+    expect(four.best_move == one.best_move, "multipv best move matches with idle helpers");
+    expect(one.depth > 0, "multipv finished an iteration");
+
+    const forge::SearchInfo helpers = search_nodes(Start, 4, 1, budget);
+    std::cout << "multipv 1 threads 4 nodes " << helpers.nodes << '\n';
+    expect(helpers.nodes >= budget && helpers.nodes <= budget + 32,
+           "helper threads stay near the budget");
+
+    // A second search on the same MultiPV searcher must not inherit the first count.
+    {
+        forge::Board board;
+        expect(board.set_fen(Start), "start position parses");
+        forge::Searcher searcher(16, 4);
+        forge::SearchLimits warm;
+        warm.nodes = 8000;
+        warm.nodes_specified = true;
+        warm.depth = 12;
+        warm.multipv = 3;
+        const forge::SearchInfo warmed = searcher.search(board, warm, false);
+        std::cout << "multipv reused warm nodes " << warmed.nodes << '\n';
+        expect(warmed.nodes == 8000, "multipv warm search stops on its budget");
+        forge::SearchLimits limits;
+        limits.nodes = 1500;
+        limits.nodes_specified = true;
+        limits.depth = 12;
+        limits.multipv = 3;
+        const forge::SearchInfo again = searcher.search(board, limits, false);
+        std::cout << "multipv reused nodes " << again.nodes << '\n';
+        expect(again.nodes == 1500, "reused multipv searcher uses the new budget");
+    }
+
+    if (failures != 0) {
+        std::cout << failures << " failed\n";
+        return 1;
+    }
+    std::cout << "PASS multipv node budget\n";
+    return 0;
+}
+
+STDERR

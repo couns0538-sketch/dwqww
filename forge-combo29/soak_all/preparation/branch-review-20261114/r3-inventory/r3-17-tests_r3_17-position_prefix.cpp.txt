@@ -1,0 +1,144 @@
+// Position commands keep the legal prefix. The script and the node totals are
+// the ones in commands.txt and expected.txt from cursor/position-legal-prefix-712a
+// at 0d692396. A second script checks a well-formed illegal move the same way.
+#include "forge/uci.hpp"
+
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+
+namespace {
+
+class CaptureBuf : public std::streambuf {
+public:
+    int_type overflow(int_type ch) override {
+        if (ch != traits_type::eof()) text_.push_back(static_cast<char>(ch));
+        return ch;
+    }
+
+    std::streamsize xsputn(const char* s, std::streamsize n) override {
+        text_.append(s, static_cast<std::size_t>(n));
+        return n;
+    }
+
+    const std::string& text() const { return text_; }
+
+private:
+    std::string text_;
+};
+
+std::vector<std::string> marker_lines(const std::string& text) {
+    std::vector<std::string> lines;
+    std::istringstream input(text);
+    std::string line;
+    while (std::getline(input, line)) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        if (line.rfind("nodes ", 0) == 0 || line.rfind("info string ", 0) == 0) lines.push_back(line);
+    }
+    return lines;
+}
+
+int run_script(const std::string& script, std::vector<std::string>& lines) {
+    CaptureBuf capture;
+    std::streambuf* old = std::cout.rdbuf(&capture);
+    std::istringstream input(script);
+    const int code = forge::uci_loop(input);
+    std::cout.rdbuf(old);
+    lines = marker_lines(capture.text());
+    return code;
+}
+
+int failures = 0;
+
+void expect(bool ok, const std::string& name) {
+    if (ok) {
+        std::cout << "ok " << name << '\n';
+        return;
+    }
+    std::cout << "FAIL " << name << '\n';
+    ++failures;
+}
+
+}  // namespace
+
+int main() {
+    const std::string branch_script =
+        "uci\n"
+        "setoption name OwnBook value false\n"
+        "isready\n"
+        "position fen 7k/6Q1/5K2/8/8/8/8/8 b - - 0 1\n"
+        "go perft 1\n"
+        "position startpos moves NOTAMOVE\n"
+        "go perft 1\n"
+        "position fen 7k/6Q1/5K2/8/8/8/8/8 b - - 0 1\n"
+        "position startpos moves e2e4 NOTAMOVE\n"
+        "go perft 2\n"
+        "position fen 7k/6Q1/5K2/8/8/8/8/8 b - - 0 1\n"
+        "position startpos extra\n"
+        "go perft 2\n"
+        "position fen 7k/6Q1/5K2/8/8/8/8/8 b - - 0 1\n"
+        "position startpos foo moves e2e4\n"
+        "go perft 2\n"
+        "position fen 8/8/8/8/8/8/8/8 w - - 0 1\n"
+        "go perft 2\n"
+        "position startpos\n"
+        "go perft 2\n"
+        "quit\n";
+
+    const std::vector<std::string> branch_expected = {
+        "nodes 0",
+        "info string illegal move NOTAMOVE",
+        "nodes 20",
+        "info string illegal move NOTAMOVE",
+        "nodes 600",
+        "nodes 400",
+        "nodes 600",
+        "info string invalid FEN: invalid FEN fields",
+        "nodes 600",
+        "nodes 400",
+    };
+
+    std::vector<std::string> branch_lines;
+    expect(run_script(branch_script, branch_lines) == 0, "branch script quits");
+    expect(branch_lines == branch_expected, "branch position prefix totals");
+    if (branch_lines != branch_expected) {
+        std::cout << "got " << branch_lines.size() << " marker lines\n";
+        for (const std::string& line : branch_lines) std::cout << "  " << line << '\n';
+    }
+
+    // e2e5 is a chess move and not a legal one. The moves before it stand.
+    // A later token after the illegal one is not played.
+    const std::string illegal_script =
+        "uci\n"
+        "setoption name OwnBook value false\n"
+        "isready\n"
+        "position startpos moves e2e4 e7e5\n"
+        "go perft 1\n"
+        "position startpos moves e2e4 e7e5 e2e5\n"
+        "go perft 1\n"
+        "position startpos moves e2e4 foo e7e5\n"
+        "go perft 1\n"
+        "quit\n";
+
+    std::vector<std::string> illegal_lines;
+    expect(run_script(illegal_script, illegal_lines) == 0, "illegal-move script quits");
+    expect(illegal_lines.size() == 5, "illegal-move script marker count");
+    if (illegal_lines.size() == 5) {
+        expect(illegal_lines[0].rfind("nodes ", 0) == 0, "legal line has a perft total");
+        expect(illegal_lines[1] == "info string illegal move e2e5", "e2e5 is rejected");
+        expect(illegal_lines[2] == illegal_lines[0], "e2e5 leaves the position after e4 e5");
+        expect(illegal_lines[3] == "info string illegal move foo", "foo is rejected");
+        expect(illegal_lines[4] == "nodes 20", "foo leaves the position after e2e4");
+    } else {
+        std::cout << "got " << illegal_lines.size() << " marker lines\n";
+        for (const std::string& line : illegal_lines) std::cout << "  " << line << '\n';
+    }
+
+    if (failures != 0) {
+        std::cout << failures << " failed\n";
+        return 1;
+    }
+    std::cout << "PASS position prefix\n";
+    return 0;
+}

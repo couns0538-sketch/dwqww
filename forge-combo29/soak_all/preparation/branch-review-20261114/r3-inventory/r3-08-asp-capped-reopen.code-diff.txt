@@ -1,0 +1,123 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6..2040db1 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -268,10 +268,11 @@ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
++extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+ } // namespace tune
+ 
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a..bc72f20 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -75,10 +75,11 @@ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
++bool AspCappedReopen = false;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+@@ -1581,10 +1582,29 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ }
+ 
+ // ---------------------------------------------------------------------------
+ // Iterative deepening driver
+ 
++namespace {
++
++// One capped step past the score that failed. A mate, or a score already past
++// the decisive line, opens that side for the next root search.
++constexpr int AspReopenMargin = 13;
++constexpr int AspDecisiveScore = 640;
++
++[[nodiscard]] int capped_fail_low(int returned) {
++    if (is_mate_score(returned) || returned <= -AspDecisiveScore) return -Infinite;
++    return std::max(returned - AspReopenMargin, -Infinite);
++}
++
++[[nodiscard]] int capped_fail_high(int returned) {
++    if (is_mate_score(returned) || returned >= AspDecisiveScore) return Infinite;
++    return std::min(returned + AspReopenMargin, Infinite);
++}
++
++} // namespace
++
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
+         ? std::chrono::steady_clock::now() : origin;
+@@ -1780,13 +1800,23 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+             ss->ply = 0;
+             iteration_score = search(board, ss, depth, alpha, beta, false);
+             if (aborted_) break;
+             if (iteration_score <= alpha) {
+                 beta = (alpha + beta) / 2;
+-                alpha = std::max(iteration_score - delta, -Infinite);
++                if (tune::AspCappedReopen) {
++                    alpha = capped_fail_low(iteration_score);
++                    if (iteration_score <= alpha) break;
++                } else {
++                    alpha = std::max(iteration_score - delta, -Infinite);
++                }
+             } else if (iteration_score >= beta) {
+-                beta = std::min(iteration_score + delta, Infinite);
++                if (tune::AspCappedReopen) {
++                    beta = capped_fail_high(iteration_score);
++                    if (iteration_score >= beta) break;
++                } else {
++                    beta = std::min(iteration_score + delta, Infinite);
++                }
+             } else {
+                 break;
+             }
+             delta += delta / 2 + 4;
+         }
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f89..e60d6e3 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -186,11 +186,12 @@ int uci_loop(std::istream& in) {
+                 std::cout << "option name UseNNUE type check default true\n"
+                              "option name NnueFile type string default <empty>\n";
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+-                         "option name LmrDeeperShallower type check default false\n";
++                         "option name LmrDeeperShallower type check default false\n"
++                         "option name AspCappedReopen type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them. Builds without this macro still accept them.
+             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
+                 std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
+@@ -308,10 +309,16 @@ int uci_loop(std::istream& in) {
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "AspCappedReopen") {
++                if (value_text == "true" || value_text == "false") {
++                    forge::tune::AspCappedReopen = value_text == "true";
++                } else {
++                    note_invalid();
++                }
+             } else if (name == "MultiPV") {
+                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+             } else if (name == "Hash") {
+                 apply_spin(1, 2048, [&](int clamped) {
+                     searcher.resize_hash(static_cast<std::size_t>(clamped));

@@ -1,0 +1,163 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6..6b6c822 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -268,10 +268,11 @@ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
++extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+ } // namespace tune
+ 
+diff --git a/forge-combo29/include/forge/tm_node_share.hpp b/forge-combo29/include/forge/tm_node_share.hpp
+new file mode 100644
+index 0000000..f356d52
+--- /dev/null
++++ b/forge-combo29/include/forge/tm_node_share.hpp
+@@ -0,0 +1,57 @@
++#pragma once
++
++#include <cstdint>
++
++namespace forge {
++
++// One finished clock iteration, with timings the caller already chose.
++// best_nodes is the current best root move. root_nodes is the sum of the
++// per-root-move counters (not the whole tree).
++struct NodeShareTiming {
++    std::int64_t soft_ms = 0;
++    std::int64_t hard_ms = 0;
++    std::int64_t elapsed_ms = 0;
++    std::uint64_t best_nodes = 0;
++    std::uint64_t root_nodes = 0;
++};
++
++// soft_ms is the soft target after the node-share scale.
++// reached means elapsed_ms has met that target. Search still multiplies the
++// target by its older stability factor before it stops.
++struct NodeShareTimingDecision {
++    std::int64_t soft_ms = 0;
++    bool reached = false;
++};
++
++// Lengthen the soft target when the best root move holds under half of the
++// root nodes, shorten it when the move holds more than half, and leave a tie
++// alone. The scale is linear in thousandths of the node share:
++// 0% -> 3/2 of soft, 50% -> soft, 100% -> 1/2 of soft.
++// A positive result is at least 1 ms. When hard_ms is positive the result is
++// also at most hard_ms, so a lengthened target cannot pass the hard limit.
++// A non-positive soft_ms is unchanged and is not treated as reached.
++[[nodiscard]] constexpr NodeShareTimingDecision decide_node_share_timing(NodeShareTiming in) noexcept {
++    NodeShareTimingDecision out;
++    if (in.soft_ms <= 0) {
++        out.soft_ms = in.soft_ms;
++        out.reached = false;
++        return out;
++    }
++    std::int64_t numer = 1000;
++    if (in.root_nodes > 0) {
++        constexpr std::uint64_t kShareScale = 1000;
++        const bool dominant = in.best_nodes >= in.root_nodes || in.best_nodes > (UINT64_MAX / kShareScale);
++        const std::uint64_t share = dominant ? kShareScale : (in.best_nodes * kShareScale) / in.root_nodes;
++        numer = static_cast<std::int64_t>(kShareScale) + (500 - static_cast<std::int64_t>(share));
++    }
++    const std::int64_t whole = in.soft_ms / 1000;
++    const std::int64_t part = in.soft_ms % 1000;
++    std::int64_t adjusted = whole * numer + (part * numer) / 1000;
++    if (adjusted < 1) adjusted = 1;
++    if (in.hard_ms > 0 && adjusted > in.hard_ms) adjusted = in.hard_ms;
++    out.soft_ms = adjusted;
++    out.reached = in.elapsed_ms >= adjusted;
++    return out;
++}
++
++}  // namespace forge
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a..4c1ea86 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -1,6 +1,7 @@
+ #include "forge/search.hpp"
++#include "forge/tm_node_share.hpp"
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
+ #include <cmath>
+ #include <cstring>
+@@ -75,10 +76,11 @@ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
++bool TmNodeShare = false;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+@@ -1926,11 +1928,26 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+             if (iteration_previous_score != ValueNone && !is_mate_score(score) && score < iteration_previous_score) {
+                 const int drop = std::min(iteration_previous_score - score, 150);
+                 factor *= 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
+             }
+             factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
+-            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
++            // TmNodeShare is clock play only: this block is skipped for depth,
++            // nodes, movetime, infinite, and ponder before ponderhit.
++            if (tune::TmNodeShare) {
++                std::uint64_t best_nodes = 0;
++                std::uint64_t root_nodes = 0;
++                for (std::size_t slot = 0; slot < root_effort_count_; ++slot) {
++                    const std::uint64_t spent = root_move_nodes_[slot];
++                    root_nodes += spent;
++                    if (root_effort_moves_[slot] == result.best_move) best_nodes = spent;
++                }
++                const NodeShareTimingDecision decision = decide_node_share_timing(
++                    NodeShareTiming{soft_limit_ms_, hard_limit_ms_, elapsed_ms(), best_nodes, root_nodes});
++                if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(decision.soft_ms) * factor)) break;
++            } else if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) {
++                break;
++            }
+         }
+     }
+ 
+     nodes_.store(local_nodes_, std::memory_order_relaxed);
+     result.nodes = total_nodes() + extra_nodes_;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f89..b1561db 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -186,11 +186,12 @@ int uci_loop(std::istream& in) {
+                 std::cout << "option name UseNNUE type check default true\n"
+                              "option name NnueFile type string default <empty>\n";
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+-                         "option name LmrDeeperShallower type check default false\n";
++                         "option name LmrDeeperShallower type check default false\n"
++                         "option name TmNodeShare type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them. Builds without this macro still accept them.
+             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
+                 std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
+@@ -308,10 +309,13 @@ int uci_loop(std::istream& in) {
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "TmNodeShare") {
++                if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
++                else note_invalid();
+             } else if (name == "MultiPV") {
+                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+             } else if (name == "Hash") {
+                 apply_spin(1, 2048, [&](int clamped) {
+                     searcher.resize_hash(static_cast<std::size_t>(clamped));

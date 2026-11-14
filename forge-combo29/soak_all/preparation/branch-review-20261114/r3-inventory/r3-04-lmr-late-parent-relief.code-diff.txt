@@ -1,0 +1,145 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6..128be39 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -268,10 +268,11 @@ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
++extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+ } // namespace tune
+ 
+@@ -295,10 +296,13 @@ struct SearchStack {
+     std::array<Move, 2> killers{};
+     Piece moved_piece = Empty;
+     int static_eval = ValueNone;
+     int raw_eval = ValueNone;
+     int move_count = 0;
++    // 1-based index of the move that entered this node. 0 means the node was not
++    // reached by a counted move (root, null move, or a probcut capture).
++    int arrival_index = 0;
+     int cutoff_count = 0;
+     int double_extensions = 0;
+     bool in_check = false;
+     bool tt_pv = false;
+     bool null_move_allowed = true;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a..38993a1 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -75,10 +75,11 @@ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
++bool LmrLateParentRelief = false;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+@@ -1287,10 +1288,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+             ss->current_move = Move::none();
+             ss->moved_piece = Empty;
+             ss->continuation = &(*continuation_history_)[Empty][0];
+             (ss + 1)->ply = ply + 1;
++            (ss + 1)->arrival_index = 0;
+             record_null_move(ss);
+             NullUndo undo;
+             board.make_null_move(undo);
+ #if FORGE_SEARCH_SPEED2
+             shared_.tt.prefetch(board.key());
+@@ -1327,10 +1329,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 if (!board.see_ge(move, probcut_beta - ss->static_eval)) continue;
+                 ss->current_move = move;
+                 ss->moved_piece = board.moved_piece(move);
+                 ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
+                 (ss + 1)->ply = ply + 1;
++                (ss + 1)->arrival_index = 0;
+                 record_move(ss, board, move);
+                 Undo undo;
+                 (void)board.make_move(move, undo);
+ #if FORGE_SEARCH_SPEED2
+                 shared_.tt.prefetch(board.key());
+@@ -1456,10 +1459,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ #endif
+         ss->current_move = move;
+         ss->moved_piece = moved;
+         ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(moved)][move.to];
+         (ss + 1)->ply = ply + 1;
++        (ss + 1)->arrival_index = move_count;
+         record_move(ss, board, move);
+         Undo undo;
+         (void)board.make_move(move, undo);
+ #if FORGE_SPD_PREFETCH_EARLY
+         assert(!early_key || child_key == board.key());
+@@ -1487,10 +1491,13 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (tt_capture && quiet) r += 1;
+             if (gives_check) r -= 1;
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            // A parent tried after at least six earlier moves is speculative. Its first
++            // four replies are the likely refutations, so they lose one ply of reduction.
++            if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+             if (full_depth_needed) {
+                 if (tune::LmrDeeperShallower) {
+@@ -1730,10 +1737,11 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         ss.moved_piece = Empty;
+         ss.static_eval = ValueNone;
+         ss.continuation = &(*continuation_history_)[Empty][0];
+         ss.double_extensions = 0;
+         ss.null_move_allowed = true;
++        ss.arrival_index = 0;
+         ss.killers = {};
+     }
+     SearchStack* ss = &stack_[4];
+     for (int i = 0; i < MaxPly + 4; ++i) stack_[static_cast<std::size_t>(i)].ply = i - 4;
+     for (SearchStack& entry : stack_) {
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f89..7a4f62d 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -186,11 +186,12 @@ int uci_loop(std::istream& in) {
+                 std::cout << "option name UseNNUE type check default true\n"
+                              "option name NnueFile type string default <empty>\n";
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+-                         "option name LmrDeeperShallower type check default false\n";
++                         "option name LmrDeeperShallower type check default false\n"
++                         "option name LmrLateParentRelief type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them. Builds without this macro still accept them.
+             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
+                 std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
+@@ -299,14 +300,16 @@ int uci_loop(std::istream& in) {
+                     forge::nnue::enabled = value_text == "true";
+                     searcher.clear_hash();
+                 } else {
+                     note_invalid();
+                 }
+-            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
++            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
++                       name == "LmrLateParentRelief") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+-                                                           : &forge::tune::LmrDeeperShallower;
++                             : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
++                                                           : &forge::tune::LmrLateParentRelief;
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";
+                 } else {
+                     note_invalid();
+                 }

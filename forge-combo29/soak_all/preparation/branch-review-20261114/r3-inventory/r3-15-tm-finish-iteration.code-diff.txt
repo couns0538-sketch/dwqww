@@ -1,0 +1,189 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6..eaef162 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -268,10 +268,11 @@ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
++extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+ } // namespace tune
+ 
+diff --git a/forge-combo29/include/forge/tm_finish.hpp b/forge-combo29/include/forge/tm_finish.hpp
+new file mode 100644
+index 0000000..5a798ad
+--- /dev/null
++++ b/forge-combo29/include/forge/tm_finish.hpp
+@@ -0,0 +1,33 @@
++#pragma once
++
++#include <cstdint>
++
++namespace forge {
++
++// Clock decision for one iterative-deepening step.
++//
++// prev_ms and last_ms are the durations, in milliseconds, of the two iterations
++// that just finished. last_ms is the later one. remaining_ms is how much of
++// this move's budget is left.
++//
++// The next iteration is estimated in exact arithmetic as
++// last_ms * last_ms / prev_ms: the last duration scaled by the growth from
++// the one before it. The estimate cannot finish when it is strictly longer
++// than remaining_ms. The caller then keeps the move from the iteration that
++// already finished.
++//
++// A non-positive duration is not a measurement, so this returns false and the
++// search does what it did without the estimate. A budget that is already used
++// up cannot hold another iteration.
++[[nodiscard]] constexpr bool iteration_will_not_finish(std::int64_t prev_ms, std::int64_t last_ms,
++                                                        std::int64_t remaining_ms) noexcept {
++    if (remaining_ms <= 0) return true;
++    if (prev_ms <= 0 || last_ms <= 0) return false;
++    const auto need = static_cast<unsigned __int128>(static_cast<std::uint64_t>(last_ms)) *
++                      static_cast<unsigned __int128>(static_cast<std::uint64_t>(last_ms));
++    const auto have = static_cast<unsigned __int128>(static_cast<std::uint64_t>(remaining_ms)) *
++                      static_cast<unsigned __int128>(static_cast<std::uint64_t>(prev_ms));
++    return need > have;
++}
++
++}  // namespace forge
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a..1e7e9db 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -1,6 +1,7 @@
+ #include "forge/search.hpp"
++#include "forge/tm_finish.hpp"
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
+ #include <cmath>
+ #include <cstring>
+@@ -75,10 +76,11 @@ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
++bool TmFinishIteration = false;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+@@ -1747,10 +1749,13 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+ 
+     Move previous_best = Move::none();
+     int stable_iterations = 0;
+     int score = 0;
+     int previous_score = ValueNone;
++    // Durations of the two finished iterations used by TmFinishIteration.
++    std::int64_t finish_prev_ms = 0;
++    std::int64_t finish_last_ms = 0;
+     root_effort_count_ = root_candidates.size();
+     assert(root_effort_count_ <= root_effort_moves_.size());
+     std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
+     root_move_nodes_.fill(0);
+     // Secondary lines use their own table and histories, so the primary
+@@ -1766,10 +1771,16 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         alt_worker->parent_worker_ = this;
+         alt_list.push_back(alt_worker.get());
+     }
+     for (int depth = 1; depth <= max_depth; ++depth) {
+         root_depth_ = depth;
++        // Sample only while a game clock is running and the option is on.
++        // Fixed-depth, fixed-node, movetime and ponder-wait searches stay put.
++        const bool finish_sampling =
++            tune::TmFinishIteration && time_managed_ &&
++            !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0);
++        const std::int64_t finish_origin = finish_sampling ? elapsed_ms() : 0;
+         int delta = tune::AspirationDelta;
+         int alpha = -Infinite;
+         int beta = Infinite;
+         if (depth >= 4) {
+             alpha = std::max(score - delta, -Infinite);
+@@ -1904,10 +1915,15 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         previous_score = score;
+ 
+         if (mate_moves > 0 && score >= mate_in(mate_moves * 2 - 1)) break;
+         if (should_stop()) break;
+         if (time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
++            if (finish_sampling) {
++                const std::int64_t spent = elapsed_ms() - finish_origin;
++                finish_prev_ms = finish_last_ms;
++                finish_last_ms = spent > 0 ? spent : 0;
++            }
+             // Stop early when the best move has been stable; spend longer when it keeps changing.
+             double factor = 1.0;
+             if (stable_iterations >= 6) factor = tune::TmStableFactor / 100.0;
+             else if (stable_iterations >= 3) factor = tune::TmSemiStableFactor / 100.0;
+             else if (stable_iterations == 0 && depth >= 6) factor = tune::TmUnstableFactor / 100.0;
+@@ -1927,10 +1943,25 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+                 const int drop = std::min(iteration_previous_score - score, 150);
+                 factor *= 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
+             }
+             factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
+             if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
++            if (finish_sampling) {
++                const std::int64_t used_ms = elapsed_ms();
++                const auto deadline =
++                    static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor);
++                const std::int64_t left_ms = deadline - used_ms;
++                if (iteration_will_not_finish(finish_prev_ms, finish_last_ms, left_ms)) {
++                    if (emit_info) {
++                        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++                        std::cout << "info string TmFinishIteration hold depth " << depth
++                                  << " prev " << finish_prev_ms << " last " << finish_last_ms
++                                  << " remaining " << left_ms << std::endl;
++                    }
++                    break;
++                }
++            }
+         }
+     }
+ 
+     nodes_.store(local_nodes_, std::memory_order_relaxed);
+     result.nodes = total_nodes() + extra_nodes_;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f89..0eb0c29 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -186,11 +186,12 @@ int uci_loop(std::istream& in) {
+                 std::cout << "option name UseNNUE type check default true\n"
+                              "option name NnueFile type string default <empty>\n";
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+-                         "option name LmrDeeperShallower type check default false\n";
++                         "option name LmrDeeperShallower type check default false\n"
++                         "option name TmFinishIteration type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them. Builds without this macro still accept them.
+             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
+                 std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
+@@ -299,14 +300,16 @@ int uci_loop(std::istream& in) {
+                     forge::nnue::enabled = value_text == "true";
+                     searcher.clear_hash();
+                 } else {
+                     note_invalid();
+                 }
+-            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
++            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" ||
++                       name == "LmrDeeperShallower" || name == "TmFinishIteration") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+-                                                           : &forge::tune::LmrDeeperShallower;
++                             : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
++                                                           : &forge::tune::TmFinishIteration;
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";
+                 } else {
+                     note_invalid();
+                 }

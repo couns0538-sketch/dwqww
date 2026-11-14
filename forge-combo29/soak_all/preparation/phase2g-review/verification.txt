@@ -1,0 +1,39 @@
++ node /workspace/work/phase2g-review/verify-2g.mjs
+COMMAND ["git","-C","/workspace/work/dwqww-all","rev-parse","HEAD"]
+STDOUT "dc9d0b8004d8c5afdb9b169424dee007f97d4222\n"
+STDERR ""
+EXIT 0
+COMMAND ["git","-C","/workspace/work/dwqww-all","diff","--exit-code","f27b1971e459581ad4c85b7015f6af83bbfd4af6","--","forge-combo29/src","forge-combo29/include","forge-combo29/tests_t23"]
+STDOUT ""
+STDERR ""
+EXIT 0
+COMMAND ["git","-C","/workspace/work/dwqww-all","status","--short","--untracked-files=all","--","forge-combo29/src","forge-combo29/include","forge-combo29/tests_t23"]
+STDOUT ""
+STDERR ""
+EXIT 0
+COMMAND ["git","-C","/workspace/work/dwqww-all","rev-parse","dc9d0b8004d8c5afdb9b169424dee007f97d4222:forge-combo29/soak_all/batches/2G-0001.evidence/manifest.txt","dc9d0b8004d8c5afdb9b169424dee007f97d4222:forge-combo29/soak_all/batches/2G-0001.evidence/raw/logs/2G-0001.txt","dc9d0b8004d8c5afdb9b169424dee007f97d4222:forge-combo29/soak_all/batches/2G-0001.evidence/raw/logs/2G-0001.txt.run-spec.json.txt","dc9d0b8004d8c5afdb9b169424dee007f97d4222:forge-combo29/soak_all/batches/2G-0001.evidence/raw/t23-phase2/asan-fifty_move_tt_test.txt","dc9d0b8004d8c5afdb9b169424dee007f97d4222:forge-combo29/soak_all/batches/2G-0001.evidence/raw/t23-phase2/asan-mate_solver_test.txt","dc9d0b8004d8c5afdb9b169424dee007f97d4222:forge-combo29/soak_all/batches/2G-0001.evidence/raw/t23-phase2/release-fifty_move_tt_test.txt","dc9d0b8004d8c5afdb9b169424dee007f97d4222:forge-combo29/soak_all/batches/2G-0001.evidence/raw/t23-phase2/release-mate_solver_test.txt","dc9d0b8004d8c5afdb9b169424dee007f97d4222:forge-combo29/soak_all/batches/2G-0001.evidence/raw/t23-phase2/summary.txt"]
+STDOUT "dc9d0b8004d8c5afdb9b169424dee007f97d4222:forge-combo29/soak_all/batches/2G-0001.evidence/manifest.txt\n"
+STDERR "fatal: path 'forge-combo29/soak_all/batches/2G-0001.evidence/manifest.txt' exists on disk, but not in 'dc9d0b8004d8c5afdb9b169424dee007f97d4222'\n"
+EXIT 128
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+128 !== 0
+
+    at git (file:///workspace/work/phase2g-review/verify-2g.mjs:5:313)
+    at file:///workspace/work/phase2g-review/verify-2g.mjs:9:116
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 128,
+  expected: 0,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.22.1

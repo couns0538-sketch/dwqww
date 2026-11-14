@@ -1,0 +1,105 @@
+{"n":20,"argv":["git","diff","--no-ext-diff","--no-textconv","--unified=5","e04556ddc3a430b2e751159b0d46111ef56c8b89","bbc7831ed3bbabee43807fdc075029a9b7655ed9","--","forge-combo29/src","forge-combo29/include"],"cwd":"/workspace/work/dwqww-all","exit":0,"signal":null}
+STDOUT
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6..48a4cef 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -268,15 +268,27 @@ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
++extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+ } // namespace tune
+ 
++// Quiet late-move reduction with a signed fraction of a ply from the eval
++// correction. correction_cp is the corrected static eval minus the uncorrected
++// eval (negative when results came back worse). Eight centipawns are one ply;
++// a smaller absolute correction is a truncated fraction and does not change
++// the integer reduction. The returned reduction is never negative.
++[[nodiscard]] inline int apply_lmr_signed_correction(int reduction_plies, int correction_cp) {
++    constexpr int kCentipawnsPerPly = 8;
++    const int adjusted = reduction_plies - correction_cp / kCentipawnsPerPly;
++    return adjusted > 0 ? adjusted : 0;
++}
++
+ // Move-ordering statistics.
+ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
+ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
+ using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 13>;
+ using CaptureHistory = std::array<std::array<std::array<std::int16_t, 7>, 64>, 13>;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a..45b8c89 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -75,10 +75,11 @@ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
++bool LmrSignedCorrection = false;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+@@ -1487,10 +1488,15 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (tt_capture && quiet) r += 1;
+             if (gives_check) r -= 1;
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
++                ss->raw_eval != ValueNone) {
++                const int correction_cp = ss->static_eval - ss->raw_eval;
++                if (correction_cp != 0) r = apply_lmr_signed_correction(r, correction_cp);
++            }
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+             if (full_depth_needed) {
+                 if (tune::LmrDeeperShallower) {
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f89..5385e56 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -186,11 +186,12 @@ int uci_loop(std::istream& in) {
+                 std::cout << "option name UseNNUE type check default true\n"
+                              "option name NnueFile type string default <empty>\n";
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+-                         "option name LmrDeeperShallower type check default false\n";
++                         "option name LmrDeeperShallower type check default false\n"
++                         "option name LmrSignedCorrection type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them. Builds without this macro still accept them.
+             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
+                 std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
+@@ -299,14 +300,16 @@ int uci_loop(std::istream& in) {
+                     forge::nnue::enabled = value_text == "true";
+                     searcher.clear_hash();
+                 } else {
+                     note_invalid();
+                 }
+-            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
++            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" ||
++                       name == "LmrDeeperShallower" || name == "LmrSignedCorrection") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+-                                                           : &forge::tune::LmrDeeperShallower;
++                             : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
++                                                           : &forge::tune::LmrSignedCorrection;
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";
+                 } else {
+                     note_invalid();
+                 }
+
+STDERR

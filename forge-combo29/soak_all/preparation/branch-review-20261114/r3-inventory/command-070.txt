@@ -1,0 +1,81 @@
+{"n":70,"argv":["git","show","cdd97af4c4338669cb59ce4cda5297f5143d1265:forge-combo29/tests_r3_16/legal_depth10_test.cpp"],"cwd":"/workspace/work/dwqww-all","exit":0,"signal":null}
+STDOUT
+#include "forge/board.hpp"
+#include "forge/search.hpp"
+
+#include <cstdint>
+#include <iostream>
+#include <string>
+
+namespace {
+
+std::uint64_t mix(std::uint64_t& state) {
+    state ^= state << 7;
+    state ^= state >> 9;
+    state ^= state << 8;
+    return state;
+}
+
+bool move_is_legal(const forge::Board& board, forge::Move move) {
+    const forge::MoveList legal = board.legal_moves();
+    if (legal.empty()) return move.is_none();
+    for (const forge::Move candidate : legal) {
+        if (candidate == move) return true;
+    }
+    return false;
+}
+
+}  // namespace
+
+int main() {
+    if (forge::tune::TmNodeShare) {
+        std::cerr << "TmNodeShare default is not false\n";
+        return 1;
+    }
+    forge::tune::TmNodeShare = true;
+    forge::Searcher searcher(16);
+    searcher.set_threads(1);
+    std::uint64_t state = 1600200;
+    constexpr int kSearches = 200;
+    int failures = 0;
+    for (int n = 0; n < kSearches; ++n) {
+        forge::Board board;
+        if (!board.set_fen(forge::Board::StandardStartFen)) {
+            std::cerr << "start fen rejected\n";
+            return 1;
+        }
+        const int plies = static_cast<int>(mix(state) % 24U);
+        for (int ply = 0; ply < plies; ++ply) {
+            const forge::MoveList legal = board.legal_moves();
+            if (legal.empty()) break;
+            const std::size_t pick = static_cast<std::size_t>(mix(state) % legal.size());
+            forge::Undo undo;
+            if (!board.make_move(legal[pick], undo)) {
+                std::cerr << "make_move failed while building search " << n << '\n';
+                return 1;
+            }
+        }
+        forge::SearchLimits limits;
+        limits.depth = 10;
+        searcher.reset_stop();
+        searcher.clear();
+        const forge::SearchInfo info = searcher.search(board, limits, false);
+        if (!move_is_legal(board, info.best_move)) {
+            std::cerr << "illegal move search " << n << " fen " << board.fen()
+                      << " move " << forge::Board::move_to_uci(info.best_move) << '\n';
+            ++failures;
+        }
+    }
+    if (!forge::tune::TmNodeShare) {
+        std::cerr << "TmNodeShare was cleared during the searches\n";
+        return 1;
+    }
+    if (failures != 0) {
+        std::cerr << failures << " illegal moves\n";
+        return 1;
+    }
+    std::cout << "legal " << kSearches << " depth 10 searches with TmNodeShare on\n";
+    return 0;
+}
+
+STDERR

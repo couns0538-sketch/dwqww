@@ -1,0 +1,189 @@
+{"n":40,"argv":["git","diff","--no-ext-diff","--no-textconv","--unified=5","e04556ddc3a430b2e751159b0d46111ef56c8b89","192f66f43e30bd50456f3da89f9dfd636ef26a8b","--","forge-combo29/src","forge-combo29/include"],"cwd":"/workspace/work/dwqww-all","exit":0,"signal":null}
+STDOUT
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6..4c6f98c 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -268,10 +268,11 @@ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
++extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+ } // namespace tune
+ 
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a..7944bfd 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -75,10 +75,11 @@ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
++bool QuietExtinction = false;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+@@ -118,10 +119,12 @@ const std::vector<Parameter>& parameters() {
+ } // namespace tune
+ 
+ namespace {
+ 
+ constexpr int HistoryMax = 16384;
++// A searched quiet missed alpha by at least this many centipawns.
++constexpr int QuietWideGap = 176;
+ 
+ [[nodiscard]] int score_to_tt(int score, int ply) {
+     if (score >= MateInMaxPly) return score + ply;
+     if (score <= -MateInMaxPly) return score - ply;
+     return score;
+@@ -495,15 +498,15 @@ public:
+                 if (!skip_quiets && is_valid_quiet(counter_) && counter_ != killers_[0] && counter_ != killers_[1]) {
+                     return counter_;
+                 }
+                 [[fallthrough]];
+             case GenerateQuiets:
+-                if (!skip_quiets) generate_quiets();
++                if (!skip_quiets && !quiet_tail_closed_) generate_quiets();
+                 stage_ = QuietMoves;
+                 [[fallthrough]];
+             case QuietMoves:
+-                if (!skip_quiets) {
++                if (!skip_quiets && !quiet_tail_closed_) {
+                     while (index_ < count_) {
+                         const Move move = pick_best();
+                         if (move == tt_move_ || move == killers_[0] || move == killers_[1] || move == counter_) continue;
+                         return move;
+                     }
+@@ -548,10 +551,13 @@ public:
+ 
+     // Valid for the move just returned by next(), until the next next() call.
+     // Only Main/GoodCaptures returns after a successful SEE >= 0 test.
+     [[nodiscard]] bool last_move_see_nonnegative() const { return stage_ == GoodCaptures; }
+ 
++    // Drop the ordinary quiet tail. Captures, promotions, killers, and counters stay.
++    void close_quiet_tail() { quiet_tail_closed_ = true; }
++
+ private:
+     enum Stage : int {
+         MainTT, GenerateCaptures, GoodCaptures, Killer1, Killer2, CounterMove, GenerateQuiets, QuietMoves, BadCaptures,
+         QsTT, QsGenerate, QsCaptures,
+         EvasionTT, EvasionGenerate, Evasions
+@@ -590,10 +596,11 @@ private:
+     std::size_t bad_count_ = 0;
+     std::size_t bad_index_ = 0;
+     MoveList buffer_;
+     std::size_t list_start_ = 0;
+     bool sorted_ = false;
++    bool quiet_tail_closed_ = false;
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+     std::array<Bitboard, 7> check_squares_;
+ #else
+     std::array<Bitboard, 7> check_squares_{};
+ #endif
+@@ -1370,10 +1377,21 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     int best_score = -Infinite;
+     Move best_move = Move::none();
+     int move_count = 0;
+     bool skip_quiets = false;
+     const bool has_material = board.has_non_pawn_material(board.side_to_move());
++    // Mate-sized losses are refused at the use sites. This gate also keeps the root,
++    // checks, mate search, bare kings, the fifty-move horizon, and pure king-and-pawn.
++    const bool may_extinguish = tune::QuietExtinction && !root_node && !in_check && mate_moves_ == 0 &&
++                                !bare_king_mode && board.halfmove_clock() + depth < 100 &&
++                                (board.has_non_pawn_material(White) || board.has_non_pawn_material(Black));
++    Move counter_move = Move::none();
++    if (may_extinguish && !(ss - 1)->current_move.is_none() && (ss - 1)->moved_piece != Empty) {
++        counter_move = (*counter_moves_)[static_cast<std::size_t>((ss - 1)->moved_piece)][(ss - 1)->current_move.to];
++    }
++    int wide_quiet_misses = 0;
++    bool futility_tight = false;
+ 
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
+         if (move == excluded) continue;
+         if (root_node && root_restricted_ &&
+@@ -1414,10 +1432,19 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                     !board.see_ge(move, see_threshold)) continue;
+             }
+         }
++        // One wide quiet miss halves the futility slack of later ordinary quiets.
++        if (may_extinguish && futility_tight && quiet && !gives_check && best_score > -MateInMaxPly &&
++            move != ss->killers[0] && move != ss->killers[1] && move != counter_move) {
++            const int tight_depth = std::max(0, depth - reduction(true, depth, move_count));
++            if (tight_depth <= tune::FutilityDepth) {
++                const int tight_margin = (tune::FutilityBase + tune::FutilityMultiplier * tight_depth) / 2;
++                if (ss->static_eval + tight_margin <= alpha) continue;
++            }
++        }
+ 
+         // Extensions.
+         int extension = 0;
+         if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() &&
+             tt_bound != BoundUpper && tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
+@@ -1533,10 +1560,16 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     break;
+                 }
+                 alpha = score;
+             }
+         }
++        // A second wide quiet miss ends the ordinary quiet tail. The move just searched stays.
++        if (may_extinguish && quiet && best_score > -MateInMaxPly && score <= alpha - QuietWideGap) {
++            ++wide_quiet_misses;
++            if (wide_quiet_misses == 1) futility_tight = true;
++            if (wide_quiet_misses >= 2) picker.close_quiet_tail();
++        }
+         if (quiet && quiet_count < static_cast<int>(quiets_tried.size())) quiets_tried[static_cast<std::size_t>(quiet_count++)] = move;
+         else if (!quiet && capture_count < static_cast<int>(captures_tried.size())) captures_tried[static_cast<std::size_t>(capture_count++)] = move;
+     }
+ 
+     if (move_count == 0) {
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f89..c486aa5 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -186,11 +186,12 @@ int uci_loop(std::istream& in) {
+                 std::cout << "option name UseNNUE type check default true\n"
+                              "option name NnueFile type string default <empty>\n";
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+-                         "option name LmrDeeperShallower type check default false\n";
++                         "option name LmrDeeperShallower type check default false\n"
++                         "option name QuietExtinction type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them. Builds without this macro still accept them.
+             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
+                 std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
+@@ -299,14 +300,16 @@ int uci_loop(std::istream& in) {
+                     forge::nnue::enabled = value_text == "true";
+                     searcher.clear_hash();
+                 } else {
+                     note_invalid();
+                 }
+-            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
++            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
++                       name == "QuietExtinction") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+-                                                           : &forge::tune::LmrDeeperShallower;
++                             : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
++                                                           : &forge::tune::QuietExtinction;
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";
+                 } else {
+                     note_invalid();
+                 }
+
+STDERR

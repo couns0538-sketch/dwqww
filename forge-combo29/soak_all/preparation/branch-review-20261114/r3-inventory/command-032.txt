@@ -1,0 +1,97 @@
+{"n":32,"argv":["git","diff","--no-ext-diff","--no-textconv","--unified=5","e04556ddc3a430b2e751159b0d46111ef56c8b89","a2392f49dc81fbdb6db73213a0a500c472e7ab16","--","forge-combo29/src","forge-combo29/include"],"cwd":"/workspace/work/dwqww-all","exit":0,"signal":null}
+STDOUT
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6..aecb68a 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -268,10 +268,11 @@ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
++extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+ } // namespace tune
+ 
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a..9f21c38 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -75,10 +75,11 @@ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
++bool EvasionOrdering = false;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+@@ -760,13 +761,22 @@ private:
+         index_ = 0;
+         count_ = 0;
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+ #endif
++        // Off: the historical most-valuable-victim score, so default benches stay put.
++        // On: a capture is victim value plus capture history, and that band sits
++        // above both quiet history and the legacy promotion scores (captures first).
++        // Quiet evasions keep the same mix generate_quiets uses.
++        const bool history_evasions = tune::EvasionOrdering;
+         for (const Move move : buffer_) {
+             int score;
+-            if (move.is_capture() || move.is_promotion()) {
++            if (history_evasions && move.is_capture()) {
++                const int victim =
++                    SeePieceValue[static_cast<std::size_t>(piece_type(board_.captured_piece(move)))];
++                score = 2'000'000 + victim + searcher_.capture_history_value(board_, move);
++            } else if (move.is_capture() || move.is_promotion()) {
+                 score = 1'000'000 + 10 * capture_value(board_, move) -
+                         SeePieceValue[static_cast<std::size_t>(piece_type(board_.moved_piece(move)))] / 10;
+             } else {
+ #if FORGE_SEARCH_SPEED2
+                 score = scorer.score(move, check_squares_);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f89..e1c5fb5 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -186,11 +186,12 @@ int uci_loop(std::istream& in) {
+                 std::cout << "option name UseNNUE type check default true\n"
+                              "option name NnueFile type string default <empty>\n";
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+-                         "option name LmrDeeperShallower type check default false\n";
++                         "option name LmrDeeperShallower type check default false\n"
++                         "option name EvasionOrdering type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them. Builds without this macro still accept them.
+             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
+                 std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
+@@ -299,14 +300,16 @@ int uci_loop(std::istream& in) {
+                     forge::nnue::enabled = value_text == "true";
+                     searcher.clear_hash();
+                 } else {
+                     note_invalid();
+                 }
+-            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
++            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" ||
++                       name == "LmrDeeperShallower" || name == "EvasionOrdering") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+-                                                           : &forge::tune::LmrDeeperShallower;
++                             : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
++                                                           : &forge::tune::EvasionOrdering;
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";
+                 } else {
+                     note_invalid();
+                 }
+
+STDERR

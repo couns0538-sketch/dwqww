@@ -1,0 +1,29 @@
++ rg 'r3-(21|23|24)-' /workspace/work/all-run/branch-review-20261114/remote-heads.txt
+e04556ddc3a430b2e751159b0d46111ef56c8b89	refs/heads/grok47/r3-21-mate-score-tt
+e04556ddc3a430b2e751159b0d46111ef56c8b89	refs/heads/grok47/r3-23-sound-mate-pruning
+305bfc30f05c4020ef01a6992f419d9b27a7cfe2	refs/heads/grok47/r3-24-tt-duplicate-shadow
++ git -C /workspace/work/dwqww-all show --format=fuller --stat 305bfc30f05c4020ef01a6992f419d9b27a7cfe2
+commit 305bfc30f05c4020ef01a6992f419d9b27a7cfe2
+Author:     Cursor Agent <cursoragent@cursor.com>
+AuthorDate: Sat Nov 14 13:47:15 2026 +0000
+Commit:     Cursor Agent <cursoragent@cursor.com>
+CommitDate: Sat Nov 14 13:47:15 2026 +0000
+
+    Update a hash-table entry already in the cluster instead of a stale probe slot.
+    
+    A late shallow store could duplicate a position and hide a deeper entry. Default bench and perft pins are unchanged.
+    
+    Co-authored-by: couns0538 <couns0538@gmail.com>
+
+ forge-combo29/REPORT_r3_24.md                      | 67 +++++++++++++++++++
+ forge-combo29/src/search.cpp                       | 23 ++++++-
+ .../tests_r3_24/proof_tt_duplicate_shadow.cpp      | 75 ++++++++++++++++++++++
+ 3 files changed, 163 insertions(+), 2 deletions(-)
++ git -C /workspace/work/dwqww-all diff --stat e04556ddc3a430b2e751159b0d46111ef56c8b89 305bfc30f05c4020ef01a6992f419d9b27a7cfe2 -- forge-combo29
+ forge-combo29/REPORT_r3_24.md                      | 67 +++++++++++++++++++
+ forge-combo29/src/search.cpp                       | 23 ++++++-
+ .../tests_r3_24/proof_tt_duplicate_shadow.cpp      | 75 ++++++++++++++++++++++
+ 3 files changed, 163 insertions(+), 2 deletions(-)
++ git -C /workspace/work/dwqww-all log '--format=%H %s' e04556ddc3a430b2e751159b0d46111ef56c8b89..305bfc30f05c4020ef01a6992f419d9b27a7cfe2 -- forge-combo29
+305bfc30f05c4020ef01a6992f419d9b27a7cfe2 Update a hash-table entry already in the cluster instead of a stale probe slot.
++ git -C /workspace/work/dwqww-all diff --name-status e04556ddc3a430b2e751159b0d46111ef56c8b89 b98b2b797deacc5211fe1a75ace6354bb4fd3552 -- forge-combo29/src forge-combo29/include

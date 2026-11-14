@@ -1,0 +1,104 @@
+{"n":58,"argv":["git","show","3bafa41b16b6ee5759c51a8408aab12fe40591e4:forge-combo29/tests_r3_17/thread_node_limit.cpp"],"cwd":"/workspace/work/dwqww-all","exit":0,"signal":null}
+STDOUT
+// Helpers must observe a node budget. On the previous code a helper returned
+// from should_stop only for the shared stop flag, which is raised after the
+// main worker has already unwound. `go nodes 1` with 8 threads then searched
+// about 100 nodes. One thread still stops on the exact count.
+#include "forge/board.hpp"
+#include "forge/search.hpp"
+
+#include <cstdint>
+#include <iostream>
+#include <string_view>
+
+namespace {
+
+int failures = 0;
+
+void expect(bool ok, std::string_view name) {
+    if (ok) {
+        std::cout << "ok " << name << '\n';
+        return;
+    }
+    std::cout << "FAIL " << name << '\n';
+    ++failures;
+}
+
+std::uint64_t worst_nodes(std::string_view fen, int threads, std::uint64_t budget, int reps) {
+    std::uint64_t worst = 0;
+    for (int rep = 0; rep < reps; ++rep) {
+        forge::Board board;
+        if (!board.set_fen(fen)) return ~std::uint64_t{0};
+        forge::Searcher searcher(16, threads);
+        forge::SearchLimits limits;
+        limits.nodes = budget;
+        limits.nodes_specified = true;
+        limits.depth = 16;
+        const forge::SearchInfo info = searcher.search(board, limits, false);
+        if (info.nodes > worst) worst = info.nodes;
+    }
+    return worst;
+}
+
+} // namespace
+
+int main() {
+    constexpr std::string_view Start = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    constexpr std::string_view Rook = "8/8/8/8/4k3/8/3R4/4K3 w - - 0 1";
+
+    for (const std::string_view fen : {Start, Rook}) {
+        for (const std::uint64_t budget : {1ull, 50ull, 200ull, 1000ull}) {
+            const std::uint64_t nodes = worst_nodes(fen, 1, budget, 1);
+            std::cout << "threads 1 budget " << budget << " nodes " << nodes << '\n';
+            expect(nodes == budget, "one thread stops on the exact count");
+        }
+    }
+
+    // The broken helper path searched 108 nodes for a budget of 1, and
+    // overshot a budget of 10000 by hundreds. A few in-flight nodes remain,
+    // one per worker that has already passed the check.
+    const std::uint64_t tiny = worst_nodes(Start, 8, 1, 5);
+    std::cout << "threads 8 budget 1 worst " << tiny << '\n';
+    expect(tiny <= 16, "eight threads stop a one-node budget");
+
+    const std::uint64_t wide = worst_nodes(Start, 4, 10000, 3);
+    std::cout << "threads 4 budget 10000 worst " << wide << '\n';
+    expect(wide <= 10000 + 32, "four threads stay near a large budget");
+
+    const std::uint64_t rook = worst_nodes(Rook, 8, 10, 3);
+    std::cout << "threads 8 budget 10 rook worst " << rook << '\n';
+    expect(rook <= 24, "eight threads stop a ten-node budget");
+
+    // One searcher, used again after a search that left a large count in every
+    // worker. The next budget must not see those leftover counts.
+    {
+        forge::Board board;
+        expect(board.set_fen(Start), "start position parses");
+        forge::Searcher searcher(16, 8);
+        forge::SearchLimits warm;
+        warm.nodes = 20000;
+        warm.nodes_specified = true;
+        warm.depth = 16;
+        const forge::SearchInfo warmed = searcher.search(board, warm, false);
+        std::cout << "reused warm nodes " << warmed.nodes << '\n';
+        expect(warmed.nodes >= 20000 && warmed.nodes <= 20000 + 32, "warm search reaches its budget");
+        for (int rep = 0; rep < 10; ++rep) {
+            forge::SearchLimits limits;
+            limits.nodes = 500;
+            limits.nodes_specified = true;
+            limits.depth = 16;
+            const forge::SearchInfo info = searcher.search(board, limits, false);
+            std::cout << "reused rep " << rep << " nodes " << info.nodes << '\n';
+            expect(info.nodes >= 500 && info.nodes <= 500 + 32, "reused searcher stays on the new budget");
+        }
+    }
+
+    if (failures != 0) {
+        std::cout << failures << " failed\n";
+        return 1;
+    }
+    std::cout << "PASS thread node limit\n";
+    return 0;
+}
+
+STDERR

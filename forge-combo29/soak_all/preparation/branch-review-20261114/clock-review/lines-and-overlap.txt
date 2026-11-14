@@ -1,0 +1,221 @@
++ sed -n 324,445p
++ git -C /workspace/work/dwqww-all show 305bfc30f05c4020ef01a6992f419d9b27a7cfe2:forge-combo29/src/search.cpp
++ nl -ba
+   324	template <bool TakeLock>
+   325	void TranspositionTable::store_body(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
+   326	                                    Bound bound, bool pv, std::uint16_t halfmove_clock) {
+   327	    // Reject default, foreign or lifecycle-stale handles without touching storage.
+   328	    // Lifecycle operations themselves must not run concurrently with search.
+   329	    if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
+   330	        probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
+   331	    const auto lock = TakeLock ? lock_stripe(probe.cluster_) : std::unique_lock<std::mutex>();
+   332	    TTCluster& cluster = clusters_[probe.cluster_];
+   333	    const std::uint32_t key32 = verification_key(key);
+   334	    // Probe records a slot before the subtree runs. Another store can place this
+   335	    // key in a different entry of the same cluster; writing the stale slot would
+   336	    // duplicate it, and probe returns the first match, so the shallow copy hides
+   337	    // the deeper one. Re-find the key under the stripe lock and update that entry.
+   338	    TTEntry* entry = &cluster.entries[probe.slot_];
+   339	    for (TTEntry& candidate : cluster.entries) {
+   340	        if (candidate.key32 == key32 && candidate.occupied()) {
+   341	            entry = &candidate;
+   342	            break;
+   343	        }
+   344	    }
+   345	    const bool same_position = entry->key32 == key32 && entry->occupied();
+   346	    if (!move.is_none() || !same_position) entry->move = move;
+   347	    if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
+   348	        entry->key32 = key32;
+   349	        entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+   350	        entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
+   351	        entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
+   352	        entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
+   353	        entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+   354	    }
+   355	}
+   356	
+   357	void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
+   358	                               Bound bound, bool pv, std::uint16_t halfmove_clock) {
+   359	    store_body<true>(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+   360	}
+   361	
+   362	void TranspositionTable::store_owned(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
+   363	                                     Bound bound, bool pv, std::uint16_t halfmove_clock) {
+   364	    assert(has_exclusive_access());
+   365	    store_body<false>(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+   366	}
+   367	#else
+   368	TTProbe TranspositionTable::probe(std::uint64_t key) const {
+   369	    TTCluster& cluster = cluster_for(key);
+   370	    const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+   371	    const auto lock = lock_stripe(index);
+   372	    auto snapshot = [&](const TTEntry& entry, bool hit) {
+   373	        TTProbe result;
+   374	        result.entry = entry;
+   375	        result.hit = hit;
+   376	        result.owner_ = this;
+   377	        result.cluster_ = index;
+   378	        result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());
+   379	        result.epoch_ = epoch_;
+   380	        result.key_ = key;
+   381	        return result;
+   382	    };
+   383	    const std::uint32_t key32 = verification_key(key);
+   384	    for (TTEntry& entry : cluster.entries) {
+   385	        if (entry.key32 == key32 && entry.occupied()) {
+   386	            // Reused entries remain recent even when search returns a TT cutoff.
+   387	            if (entry.generation() != generation_) {
+   388	                entry.gen_bound = static_cast<std::uint8_t>(
+   389	                    (static_cast<unsigned>(generation_) << 3U) | (entry.gen_bound & 7U));
+   390	            }
+   391	            return snapshot(entry, true);
+   392	        }
+   393	    }
+   394	    const TTEntry* replace = &cluster.entries[0];
+   395	    auto relative_age = [this](const TTEntry& entry) {
+   396	        return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+   397	    };
+   398	    for (const TTEntry& entry : cluster.entries) {
+   399	        if (!entry.occupied()) return snapshot(entry, false);
+   400	        if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
+   401	    }
+   402	    return snapshot(*replace, false);
+   403	}
+   404	
+   405	void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
+   406	                               Bound bound, bool pv, std::uint16_t halfmove_clock) {
+   407	    // Reject default, foreign or lifecycle-stale handles without touching storage.
+   408	    // Lifecycle operations themselves must not run concurrently with search.
+   409	    if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
+   410	        probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
+   411	    const auto lock = lock_stripe(probe.cluster_);
+   412	    TTCluster& cluster = clusters_[probe.cluster_];
+   413	    const std::uint32_t key32 = verification_key(key);
+   414	    // Same cluster re-check as store_body: a probe-time slot can be stale.
+   415	    TTEntry* entry = &cluster.entries[probe.slot_];
+   416	    for (TTEntry& candidate : cluster.entries) {
+   417	        if (candidate.key32 == key32 && candidate.occupied()) {
+   418	            entry = &candidate;
+   419	            break;
+   420	        }
+   421	    }
+   422	    const bool same_position = entry->key32 == key32 && entry->occupied();
+   423	    if (!move.is_none() || !same_position) entry->move = move;
+   424	    if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
+   425	        entry->key32 = key32;
+   426	        entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+   427	        entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
+   428	        entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
+   429	        entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
+   430	        entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+   431	    }
+   432	}
+   433	#endif
+   434	
+   435	int TranspositionTable::hashfull() const {
+   436	    int count = 0;
+   437	    const std::size_t sample = std::min<std::size_t>(1000, cluster_count_);
+   438	    for (std::size_t i = 0; i < sample; ++i) {
+   439	        const auto lock = lock_stripe(i);
+   440	        for (const TTEntry& entry : clusters_[i].entries) {
+   441	            if (entry.occupied() && entry.generation() == generation_) ++count;
+   442	        }
+   443	    }
+   444	    return sample == 0 ? 0 : count * 1000 / (4 * static_cast<int>(sample));
+   445	}
++ git -C /workspace/work/dwqww-all show 305bfc30f05c4020ef01a6992f419d9b27a7cfe2:forge-combo29/tests_r3_24/proof_tt_duplicate_shadow.cpp
++ nl -ba
++ sed -n 20,80p
+    20	#include <cstdint>
+    21	#include <iostream>
+    22	
+    23	namespace {
+    24	
+    25	bool visible(const forge::TTProbe& probe, int depth, int score) {
+    26	    return probe.hit && static_cast<int>(probe.entry.depth) == depth && probe.entry.score == score;
+    27	}
+    28	
+    29	}  // namespace
+    30	
+    31	int main() {
+    32	    forge::TranspositionTable tt(1);
+    33	
+    34	    const std::uint64_t key_a = 0x4242424211111111ULL;
+    35	    const std::uint64_t key_other = 0x4242424222222222ULL;
+    36	
+    37	    const forge::TTProbe p_shallow = tt.probe(key_a);
+    38	
+    39	    const forge::TTProbe p_other = tt.probe(key_other);
+    40	    tt.store(p_other, key_other, 15, 15, forge::Move{12, 28, 0, 0}, 3, forge::BoundExact, false, 0);
+    41	
+    42	    const forge::TTProbe p_deep = tt.probe(key_a);
+    43	    tt.store(p_deep, key_a, 777, 100, forge::Move{6, 21, 0, 0}, 14, forge::BoundExact, true, 0);
+    44	    const forge::TTProbe deep = tt.probe(key_a);
+    45	    std::cout << "After deep store: probe(key_a) hit=" << deep.hit
+    46	              << " depth=" << static_cast<int>(deep.entry.depth)
+    47	              << " score=" << deep.entry.score << "\n";
+    48	    if (!visible(deep, 14, 777)) {
+    49	        std::cerr << "FAIL deep store was not visible\n";
+    50	        return 1;
+    51	    }
+    52	
+    53	    tt.store(p_shallow, key_a, -50, 100, forge::Move{8, 16, 0, 0}, 2, forge::BoundUpper, false, 0);
+    54	
+    55	    const forge::TTProbe after = tt.probe(key_a);
+    56	    const forge::TTProbe other = tt.probe(key_other);
+    57	    std::cout << "After late shallow store: probe(key_a) hit=" << after.hit
+    58	              << " depth=" << static_cast<int>(after.entry.depth)
+    59	              << " score=" << after.entry.score
+    60	              << " bound=" << static_cast<int>(after.entry.bound()) << "\n";
+    61	    std::cout << "probe(key_other) hit=" << other.hit
+    62	              << " depth=" << static_cast<int>(other.entry.depth)
+    63	              << " score=" << other.entry.score << "\n";
+    64	
+    65	    if (!visible(after, 14, 777) || after.entry.bound() != forge::BoundExact) {
+    66	        std::cerr << "FAIL shallow store shadowed the deeper entry\n";
+    67	        return 1;
+    68	    }
+    69	    if (!visible(other, 3, 15) || other.entry.bound() != forge::BoundExact) {
+    70	        std::cerr << "FAIL colliding key was overwritten\n";
+    71	        return 1;
+    72	    }
+    73	    std::cout << "PASS deep entry stays visible\n";
+    74	    return 0;
+    75	}
++ rg -n 'verification_key|cluster_for|occupied|score_usable' /workspace/work/dwqww-all/forge-combo29/include/forge/search.hpp
+91:    [[nodiscard]] bool occupied() const { return bound() != BoundNone; }
+93:    [[nodiscard]] bool score_usable(std::uint16_t current_clock) const {
+137:        __builtin_prefetch(&cluster_for(key));
+188:    [[nodiscard]] static constexpr std::uint32_t verification_key(std::uint64_t key) {
+199:    [[nodiscard]] TTCluster& cluster_for(std::uint64_t key) const {
++ rg -n 'qsearch|cutoff|trace|return|false|oracle|DTM|mate 17' /workspace/work/dwqww-all/forge-combo29/soak_all/mate_pv_investigation.md
+3:**No false mating bound was demonstrated. No production engine fix or compile switch was added.** The reported position reproduces with `UseNNUE=false`, and the exact KRK oracle confirms that the selected move forces mate within the reported bound. A scratch-only trace identifies a TT-backed qsearch return that supplies a mate score without extending the PV.
+9:Each engine process received `uci`, Threads 1, Hash 16, OwnBook false, `isready`, fresh `ucinewgame`, the FEN, and `go depth 13`; the driver awaited `bestmove` before sending `quit`. All other options were at defaults. The NNUE-off runs additionally sent `setoption name UseNNUE value false` before `isready`.
+14:| UseNNUE=false | mate 17; 25568 nodes; b3f3; 15-ply PV | Same |
+16:The four uninstrumented searches exited 0 with empty stderr. The missing `UseNNUE=false` setting is necessary for this reproduction. The behavior is present in the unchanged lock.
+25:| Unchanged t12 oracle source Git blob | `329cad9acfee7e0a88e118911d14298818234244` |
+38:The scratch query includes `tests_t12/krk_mate_test.cpp` unchanged, renames its original main, and invokes only its exact KRK retrograde class and board operations. It does not run that test's repeated engine searches. The oracle algorithm is independent of alpha-beta search but shares the engine's attack/board primitives; it is not an external tablebase implementation.
+40:- Exact root DTM is **15 plies**, equivalent to mate in 8 moves. The optimal root move is `b3e3`.
+44:- The endpoint's exact remaining DTM is **6 plies**, allowing mate within 21 total plies along the displayed prefix followed by optimal continuation.
+45:- UCI `mate 17` is measured in moves. Here it corresponds to a reported mating bound of 33 plies, not 17 plies.
+47:The oracle therefore does not establish an impossible mate bound or a nonmating chosen move. The reported distance is loose compared with exact DTM. An incomplete PV is not, by itself, proof that the score is false.
+49:## Code mechanism and scratch trace
+51:The initial investigation did **not** instrument the exact return instruction. Its preliminary source-based assessment is preserved separately in `mate_pv_evidence/preliminary-analysis.md`. The authorized follow-up instrumented only a scratch copy of the merged `search.cpp` with two logging statements, one at the qsearch stand-pat early return and one immediately before its final return. Production source, binaries, and search decisions were unchanged. The original lock binary's instructions were not instrumented.
+53:One bounded NNUE-off run of that scratch executable reproduced all deterministic stdout exactly: after removing only engine-reported `time` and `nps` fields, its complete stdout matched the uninstrumented merged run (`diff` exit 0). It again searched 25568 nodes, returned `mate 17`, and emitted the identical 15-ply PV. Exit was 0; stderr contained only the intentionally added trace records.
+61:`tt_bound=1` is `BoundUpper`. The cached mate-valued TT score replaces qsearch's stand-pat evaluation. At this quiet Black-to-move endpoint, qsearch returns that score with an empty child PV. Its parents copy only their searched prefix, while the numerical mate score is propagated separately. The cached position-relative score `-31982` becomes `-31967` after the ply-15 adjustment, yielding root score `31967` and UCI mate distance `(32000 - 31967 + 1) / 2 = 17`.
+63:This confirms the final-return mechanism in the scratch reproduction. It does not audit the earlier creation of every TT bound or prove all mate reports correct. The independent oracle is the evidence that this particular reported bound does not overclaim.
+69:| Reset qsearch PV length on entry | 996 | 1048 |
+70:| TT cutoff can return a score without reconstructing a PV | 1016-1019; 1165-1169 | 1075-1079; 1226-1231 |
+72:| Final qsearch return identified by scratch trace | 1109 | 1169 |
+81:A real bounded fix would require evidence of an impossible mate bound, a move that fails to force mate within the claimed bound, or a traced unsound bound operation. None was demonstrated here. These checks do not establish correctness for other positions, settings, or thread schedules. No strength or speed conclusion is drawn.
+85:All retained artifacts under `mate_pv_evidence/` are text. Binaries, objects, and the instrumented source stayed in VM scratch. The `.cpp.txt` file is the scratch oracle driver's source text, not an engine or repository-test change.
+89:- `oracle_probe.cpp.txt`: complete scratch oracle query source.
+90:- `oracle-transcript.txt`: the first invalid harness attempt, retained without alteration. It omitted engine feature definitions including PEXT while linking precompiled engine objects and segfaulted with exit 139. This was not an engine UCI crash.
+91:- `oracle-correct-defines-transcript.txt`: the corrected harness compile uses the engine's feature/ISA definitions. The unchanged oracle then exits 0 and prints root/move DTMs plus every PV state's legality and remaining DTM.
+94:- `instrument-repro-transcript.txt`, `instrumented-nnue-off-stdout.txt`, `instrumented-nnue-off-stderr.txt`: the bounded instrumented reproduction and raw trace streams.
+95:- `instrument-verification-transcript.txt`: unchanged source/production-binary hashes, scratch binary hash, complete trace, and successful deterministic stdout comparison.
++ git -C /workspace/work/dwqww-all diff --numstat e04556ddc3a430b2e751159b0d46111ef56c8b89 305bfc30f05c4020ef01a6992f419d9b27a7cfe2
+67	0	forge-combo29/REPORT_r3_24.md
+21	2	forge-combo29/src/search.cpp
+75	0	forge-combo29/tests_r3_24/proof_tt_duplicate_shadow.cpp
++ git -C /workspace/work/dwqww-all diff --exit-code e04556ddc3a430b2e751159b0d46111ef56c8b89 b98b2b797deacc5211fe1a75ace6354bb4fd3552 -- forge-combo29/src forge-combo29/include
