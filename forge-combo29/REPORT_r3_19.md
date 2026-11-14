@@ -105,3 +105,44 @@ Playing strength was not measured.
 The depth-8 compare did not parse UCI `info` text. It compared `SearchInfo` from `Searcher::search`. Printing was off. A depth limit does not use the clock.
 
 Only one thread was checked. Multi-thread search was not compared.
+
+## Follow-up: one slider table
+
+The second PEXT pair is gone. Queen rays and king rays index `BishopMagics` and `RookMagics`. `Magic::index` is the existing switch: `FORGE_SPD_SLIDER_PEXT=1` uses PEXT on those tables, and `0` uses the multiply magics. Evaluation does not test `__BMI2__`, and this change does not define or undefine a `FORGE_*` macro. Movegen and evaluation share one pair of tables.
+
+`g++` 13.3 has no `-march=znver5`, so that lock march was not compiled. AVX-512 is present on this CPU. The switch-1 build is `-DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4`, which sets `FORGE_SPD_SLIDER_PEXT=1` and `FORGE_SPD_NNUE_ZMM=1` and ran. Switch 0 is `-DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3`.
+
+Base for both compares is commit `e04556dd` built with the same switch. New is this branch. Threads 1, Hash 16, OwnBook false.
+
+| switch | bench 11 | bench 13 | perft 5 | 1,000,000 evals | 10,000 depth 8 |
+| --- | ---: | ---: | ---: | --- | --- |
+| 0 | 312866 | 862329 | 4865609 | byte-identical | byte-identical |
+| 1 | 312866 | 862329 | 4865609 | byte-identical | byte-identical |
+
+bench 16, CPU 1, base then new, seven times. Every run was 3024920 nodes. Milliseconds. The wall clock on this machine moved by hundreds of milliseconds during the runs, so the means are a timing record, not a strength result.
+
+Switch 0:
+
+| pair | base | new |
+| ---: | ---: | ---: |
+| 1 | 2239 | 1890 |
+| 2 | 2075 | 1873 |
+| 3 | 1926 | 1909 |
+| 4 | 1992 | 1928 |
+| 5 | 1935 | 1917 |
+| 6 | 1912 | 1902 |
+| 7 | 1932 | 1923 |
+| mean | 2001.6 | 1906.0 |
+
+Switch 1 (AVX-512, PEXT and ZMM on):
+
+| pair | base | new |
+| ---: | ---: | ---: |
+| 1 | 1892 | 1961 |
+| 2 | 1985 | 1831 |
+| 3 | 1877 | 1861 |
+| 4 | 1861 | 2059 |
+| 5 | 2398 | 1898 |
+| 6 | 2078 | 1827 |
+| 7 | 1838 | 1830 |
+| mean | 1989.9 | 1895.3 |
