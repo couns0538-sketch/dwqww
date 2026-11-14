@@ -1,0 +1,55 @@
+import fs from 'node:fs';import cp from 'node:child_process';import path from 'node:path';
+import {hashFile,check,writeImmutable,verifyPackage} from './equality-tools/evidence-integrity.mjs';
+const [mode,label,recovery]=process.argv.slice(2),r='/workspace/work/r4-run',stateFile=r+'/state.json';
+if(!['enabled','asan'].includes(mode)||!/^suite-[a-z0-9-]+$/.test(label??''))throw Error('mode/label');
+const statePin=hashFile(stateFile),state=JSON.parse(fs.readFileSync(stateFile)),batchFile=r+'/logs/'+label+'.txt',batch=JSON.parse(fs.readFileSync(batchFile)),batchPin=hashFile(batchFile);
+check(batch.mode===mode&&batch.label===label,'batch identity');
+if(!batch.ended){
+ check(recovery==='--recover-finalized','interrupted controller needs explicit finalized-result recovery');
+ for(const pid of fs.readdirSync('/proc').filter(x=>/^\d+$/.test(x))){let args;try{args=fs.readFileSync('/proc/'+pid+'/cmdline','utf8').split('\0');}catch{continue;}const i=args.indexOf(r+'/run-suite-batch.mjs');check(i<0||args[i+1]!==mode||args[i+2]!==label,'controller still active; do not recover concurrently');}
+}
+check(!(state.suiteBatches??[]).some(x=>x.label===label),'batch already recorded');
+const planFile='/workspace/work/r4-krk-validation/test-plan/plan-'+mode+'.json.txt',plan=JSON.parse(fs.readFileSync(planFile));
+for(const previous of state.suiteBatches??[])for(const row of previous.rows)check(hashFile(row.metadata)===row.metadataSha256,'prior metadata pin mismatch');
+const stage=r+'/suite-evidence/'+label;fs.mkdirSync(stage,{recursive:true});
+const rows=[];
+for(const entry of batch.entries){
+ const item=plan.runs.find(x=>x.id===entry.id);check(item,'planned test');
+ const metadata=item.stdoutFile+'.metadata.txt',m=JSON.parse(fs.readFileSync(metadata));
+ check(m.ended&&m.mode===mode&&m.kind==='runs'&&m.id===entry.id,'final metadata identity');
+ check(JSON.stringify(m.argv)===JSON.stringify(item.argv)&&m.cwd===item.cwd,'execution matches unchanged plan');
+ check(m.planSha256===hashFile(planFile)&&JSON.stringify(m.env)===JSON.stringify(item.env)&&m.stdinFile===item.stdinFile&&m.inputSha256===(item.stdinFile?hashFile(item.stdinFile):null)&&JSON.stringify(m.expectedPerftNodes)===JSON.stringify(item.expectedPerftNodes),'plan/environment/stdin/expected-perft provenance mismatch');
+ check(hashFile(item.stdoutFile)===m.stdoutSha256&&hashFile(item.stderrFile)===m.stderrSha256,'output hash mismatch');
+ for(const p of [metadata,item.stdoutFile,item.stderrFile])writeImmutable(stage+'/'+path.basename(p),fs.readFileSync(p));
+ const row={mode,id:m.id,started:m.started,ended:m.ended,exit:m.exit,signal:m.signal,passed:m.passed,reviewRequired:!!m.reviewMarkers.length,incomplete:m.incomplete,sanitizer:m.sanitizer,metadata,metadataSha256:hashFile(metadata),stdoutSha256:m.stdoutSha256,stderrSha256:m.stderrSha256,reviewMarkers:m.reviewMarkers};
+ rows.push(row);
+ if(!m.passed||row.reviewRequired){
+  const faults=state.repo+'/forge-combo29/tests_astra_mateguard/faults';fs.mkdirSync(faults,{recursive:true});
+  const fault=faults+'/suite-'+mode+'-'+m.id+'.txt';
+  writeImmutable(fault,'Observed existing-test failure or review marker. No expected value was changed. Reproduction not yet performed.\n'+JSON.stringify(m,null,2)+'\nFULL STDOUT\n'+fs.readFileSync(item.stdoutFile,'utf8')+'\nFULL STDERR\n'+fs.readFileSync(item.stderrFile,'utf8'));
+  row.faultFile=fault;
+ }
+}
+writeImmutable(stage+'/batch-command-output.txt',fs.readFileSync(batchFile));
+if(!batch.ended)writeImmutable(stage+'/controller-recovery.txt',JSON.stringify({reason:'Controller ended before its final batch record; all listed executor results independently finalized and verified',batchFile,batchSha256:batchPin,rows:rows.map(x=>({id:x.id,metadata:x.metadata,metadataSha256:x.metadataSha256,ended:x.ended}))},null,2)+'\n');
+const destination=state.repo+'/forge-combo29/tests_astra_mateguard/existing-suite-runtime/'+label;
+if(fs.existsSync(destination))verifyPackage(stage,destination);
+else {
+ const packageStage=destination+'.stage-'+Date.now()+'-'+process.pid;
+ const argv=['node',r+'/package-evidence.mjs',stage,packageStage],p=cp.spawnSync(argv[0],argv.slice(1),{encoding:'utf8',timeout:60000});
+ writeImmutable(r+'/logs/package-'+label+'-'+Date.now()+'.txt',JSON.stringify({argv,exit:p.status,signal:p.signal,stdout:p.stdout,stderr:p.stderr},null,2)+'\n');check(p.status===0,'package failed');
+ verifyPackage(stage,packageStage);fs.renameSync(packageStage,destination);verifyPackage(stage,destination);
+}
+check(hashFile(stateFile)===statePin,'state changed during recording; verified publication retained');
+check(hashFile(batchFile)===batchPin,'controller log changed during recording');
+(state.suiteBatches??=[]).push({mode,label,started:batch.started,ended:batch.ended??rows.map(x=>x.ended).sort().at(-1),controllerRecovered:!batch.ended,rows});
+const totals={};
+for(const current of ['enabled','asan']){
+ const all=state.suiteBatches.filter(x=>x.mode===current).flatMap(x=>x.rows);
+ check(new Set(all.map(x=>x.id)).size===all.length,'duplicate runtime test');
+ totals[current]={planned:59,attempted:all.length,completed:all.filter(x=>!x.incomplete).length,passed:all.filter(x=>x.passed&&!x.reviewRequired).length,failed:all.filter(x=>!x.passed&&!x.incomplete).length,incomplete:all.filter(x=>x.incomplete).length,needsReview:all.filter(x=>x.reviewRequired).length,sanitizerReports:all.reduce((n,x)=>n+x.sanitizer.length,0),notAttempted:59-all.length,remaining:59-all.filter(x=>!x.incomplete).length};
+}
+state.suiteTotals=totals;state.phase='Successor soak: existing test suites';state.progressBatch=label+'; seeds in unchanged tests';
+state.checkpointNote='Existing suite runtime batch '+label+': '+JSON.stringify(rows.map(x=>({id:x.id,exit:x.exit,passed:x.passed,reviewRequired:x.reviewRequired,incomplete:x.incomplete,sanitizerReports:x.sanitizer.length})))+'. Cumulative command counts '+JSON.stringify(totals)+'. Failures and incomplete tests retained; no expected values modified.';
+state.commitMessage='Checkpoint existing test suite '+label;const next=stateFile+'.suite-'+Date.now()+'-'+process.pid;writeImmutable(next,JSON.stringify(state,null,2)+'\n');fs.renameSync(next,stateFile);
+console.log(JSON.stringify({label,rows:rows.map(x=>({id:x.id,passed:x.passed,incomplete:x.incomplete,reviewRequired:x.reviewRequired})),totals}));
