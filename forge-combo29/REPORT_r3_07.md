@@ -82,4 +82,10 @@ Chunk 4, openings 1100 through 1499, 800 games. Command: `/tmp/screen_match /tmp
 
 W-L-D option on first: 202-167-431. Elo 95%: 15.21 [1.03, 29.39]. LOS: 0.9823. Pentanomial: 7, 90, 175, 117, 11. This chunk's interval is above zero. It does not override the combined screen. PGN and summary: `forge-combo29/tests_r3fu_07/chunk_0004.pgn` and `forge-combo29/tests_r3fu_07/chunk_0004_summary.txt`.
 
-Cumulative after 3000 games (1500 pairs): W-L-D option on first 729-718-1553. Elo 95%: 1.27 [-6.59, 9.14]. LOS: 0.6246. Pentanomial: 56, 370, 637, 381, 56. The interval includes zero. Not a strength result.
+Cumulative after 3000 games (1500 pairs): W-L-D option on first 729-718-1553. Elo 95%: 1.27 [-6.59, 9.14]. LOS: 0.6246. Pentanomial: 56, 370, 637, 381, 56.
+
+Chunk 5, openings 1500 through 1899, 800 games. Command: `/tmp/screen_match /tmp/build-owner/forge /tmp/uho/UHO_Lichess_4852_v1.epd 1500 400 4 forge-combo29/tests_r3fu_07/chunk_0005.pgn forge-combo29/tests_r3fu_07/chunk_0005_summary.txt`
+
+W-L-D option on first: 194-202-404. Elo 95%: -3.47 [-18.38, 11.43]. LOS: 0.3239. Pentanomial: 17, 96, 175, 102, 10. PGN and summary: `forge-combo29/tests_r3fu_07/chunk_0005.pgn` and `forge-combo29/tests_r3fu_07/chunk_0005_summary.txt`.
+
+Cumulative after 3800 games (1900 pairs): W-L-D option on first 923-920-1957. Elo 95%: 0.27 [-6.68, 7.23]. LOS: 0.5308. Pentanomial: 73, 466, 812, 483, 66. The interval includes zero. Individual chunks move around that zero. Not a strength result. Play stopped here; the cap was 6 or 9 hours and was not used up.
