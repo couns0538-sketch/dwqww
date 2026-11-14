@@ -64,3 +64,33 @@ No strength claim.
 setoption name DrawJitter value 8
 
 bench 13 nodes 857947
+
+## Follow-up
+
+`set_draw_jitter` writes the number and, when the number actually changes, clears that searcher's hash the way UseNNUE does. Setting the same number again does not clear. Scores stored under the old width are not reused.
+
+One `Searcher` (16 MB, one thread), owner build, Clang 18.1.3, `-O3 -march=x86-64-v4`, portable off, no extra `FORGE_*` flag:
+
+- DrawJitter 0, bench 13 = 862329, hashfull 44
+- DrawJitter 8, bench 13 = 857947, hashfull 44
+- DrawJitter 0 again, hashfull 0, bench 13 = 862329
+
+The CPU has AVX-512F and BMI2, so this is the owner build. Default pins on that binary: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609.
+
+Five alternating bench 13 runs, nodes fixed, nps from the same process:
+
+| value | nodes | nps |
+| --- | --- | --- |
+| 0 | 862329 | 1781671 |
+| 8 | 857947 | 1806204 |
+| 0 | 862329 | 1882814 |
+| 8 | 857947 | 1893922 |
+| 0 | 862329 | 1878712 |
+
+Binary sha256: `1e3ca575f62687793050f72e23a05fd30c800a7234ea5b5b1442704511583896`
+
+`id name Chess Engine Forge 6.4.24 candidate`
+
+The check is `forge-combo29/tests_r3fu_14/same_searcher_bench.cpp`. This is a node-count check, not a strength claim.
+
+UHO screen, same owner binary, nodes 50000, book `UHO_4060_v4.epd`. Chunk 1 is 250 openings, both colors. A snapshot of 324 games is in `forge-combo29/tests_r3fu_14/screen/chunk001.pgn`. Value 8 first: W-L-D 87-92-145, Elo -5.36, 95% -25.72 to 14.96, LOS 30.25%, pentanomial 6, 29, 93, 32, 2. Detail, command, versions, and sha256s are in `forge-combo29/tests_r3fu_14/screen/chunk001-summary.md`. The chunk was still running when that snapshot was taken.

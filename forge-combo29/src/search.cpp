@@ -2434,6 +2434,13 @@ void Searcher::clear_hash() {
     for (auto& worker : workers_) worker->clear_caches();
 }
 
+void set_draw_jitter(int value, Searcher& searcher) {
+    const int clamped = std::clamp(value, 0, DrawJitterMax);
+    if (clamped == DrawJitter) return;
+    DrawJitter = clamped;
+    searcher.clear_hash();
+}
+
 void Searcher::clear() {
     shared_.tt.clear();
     for (auto& worker : workers_) worker->clear();
