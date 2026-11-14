@@ -1019,10 +1019,91 @@ Root nodes are added to `root_move_nodes_[move_count - 1]` (`src/search.cpp:1048
 - Nothing was pushed to `main`, `lock/combo29-20261110`, `fable/standalone-h512-20261111`, or another agent's branch.
 - Supermemory was unavailable. Adapter was not used.
 
+## Run 12 — 2026-11-14 01:23 UTC
+
+Trigger 01:23 UTC on 2026-11-14. `git fetch origin --prune` and `git ls-remote --heads origin`, rechecked at 01:27 UTC. The run-1 table `inventory/branches.tsv` is unchanged. The live list is `inventory/branches-current.tsv`. One movement row is appended in `inventory/HEAD_MOVEMENT.tsv`.
+
+| Item | Value |
+|---|---|
+| Remote heads | 430. Local remote-tracking refs match `ls-remote`. |
+| Same tip as the run-11 table | 429 |
+| Moved | 1. This checkpoint, `12819522` to `da310bf1`, the run-11 commit. Not foreign work. |
+| New | 0 |
+| Gone | 0 |
+| Unique tips | 341. One tip replaced another. `12819522` is no longer a branch tip. |
+| Unique tip trees | 341. The checkpoint tree `49e83e35` matches no other tip. |
+| Shared-tip groups | still 16 groups, 105 branches |
+| Tags | the same 3, not reviewed |
+| Inaccessible heads | none in this fetch |
+
+`refs/remotes/origin/HEAD` still points at `main`. Ancestry counts stay 17, 11, 39, and 285. The nine branches at `2fc649ef` and `forge/review-pgn-nps-signal-20261020-0010` were tip-only and are now `run12-read`. 338 branches stay tip-only.
+
+No engine was built. No script in the tree was executed. The 45 `.b64` parts were not decoded. Four cited win/loss/draw counts were scored from PGN `Result` tags.
+
+### Three commits, ten names
+
+`918859057a433d58e6b7fecd62f83861665f05f2` (tree `92bb5e89`, 1013 files, 2026-10-20 00:00 +02:00) is not a branch tip. Its parent is `9108d012`. It adds the SPRT protocol, `tools/match/run_hourly_sprt.py`, and the first STATE change.
+
+`374a71d44ea0a2d28ac26b196ced57c34ddfdcd8` (tree `1aa627cc`, 1045 files, 2026-10-20 00:05 +02:00) is the only tip of `forge/review-pgn-nps-signal-20261020-0010`. It records the first attempt as failed and adds the cold-replay protocol.
+
+`2fc649effb6d2f09f4fdf63b44d59283fe26b616` (tree `66d93948`, 1048 files, 2026-10-20 00:22 +02:00) is the next commit and the whole shared group of nine names. It adds `validation/hourly/2026-10-19-initial/REPORT.md`. These three commits contain neither the lock, H512, nor `main`. `src/search.cpp` blob `ca5b3541` and `src/uci.cpp` blob `9bf1b757` are the same bytes as on `9108d012`.
+
+These names all point at `2fc649ef`:
+
+`forge/audit-20261020-0102-ci-preservation`, `forge/candidate-uci-perft-interrupt-20261020-0045`, `forge/integrator-ownbook-ci-20261020-0245`, `forge/research-20261020-0115`, `forge/research-20261020-0315`, `forge/test-20261020-0130`, `forge/test-20261020-0330`, `forge/timeout-journal-20261019-1625`, `forge/timeout-warm-replay-20261020-0034`.
+
+`forge/research-20261020-0015` at `72bf672e` also contains `374a71d4`, then eight later notes. Those eight files were not read. `3cabc1b2` is another child of this line and is 1368 files. It is not a branch tip, and it was not opened.
+
+### Protocol, driver, and STATE
+
+`protocol.json` SHA-256 is `7cc725dddece0cb1b1db04f9644c98c2420072aeda3b2ced6e0bef0837c3b885`, matching `protocol.sha256` and the STATE field. `tools/match/run_hourly_sprt.py` SHA-256 is `7829a8699941f79dce60e0f001d6c9b8f3a86592c284ceade67e80585303edc5`, matching `driver_sha256`. The script says a tranche is not interrupted to manufacture a checkpoint, and a non-zero fastchess exit is stored as `failed_no_resume`. The script was not executed. `hourly-sprt-driver-review-tests.json` records status pass, `check_count` 22, `strength_games_launched` 0, and the same driver digest. That review script was not run here.
+
+`tools/openings/forge-10000.epd` is 10000 lines. Its SHA-256 is `de36a48f856a5a0c10d0865747965a7b2f5d89149078923ba2d766979238bf6c`, the protocol's opening-source hash. The selected-order hash was not recomputed.
+
+`strength.decision` is `pending` at `9108d012`, `prepared_not_started` at `91885905`, and `failed_no_resume_timeout_diagnosis` at `374a71d4`. The `374a71d4` note says the runner exited 1, one Candidate timeout, after 54.27 seconds, with no Elo claim. At `2fc649ef`, `candidate_status` is `correctness_verified_strength_blocked` and `strength.decision` is `failed_no_resume_timeout_unresolved`. That object says 6 completed games, 3 completed pairs, and `counts_usable_for_strength` false. The `recovery` object is unchanged and still says `strength_games_started` false.
+
+`validation/hourly/2026-10-19-initial/matches/tt-tag-sprt/tranche-00100-result.json` is not in this tree. `git log --all` shows no commit that adds it. `tt-tag-first-attempt-evidence.zip` is also absent. STATE names that zip as 871904 bytes, SHA-256 `a46354a38c4866a748aca459e794be33a934957e8e1c1f041a99d85c73b9533e`, 43 members, and says publication is blocked. The 45 encoded parts under `validation/hourly/encoded-artifacts/` were not decoded. The six-game count is a sentence in STATE and in REPORT. This run did not score those six games.
+
+### Initial clock limits, not a played search
+
+The cold-replay position starts from a white-to-move FEN and then gives 49 moves, so Black is to move. The command is `go wtime 401 btime 596 winc 100 binc 100`.
+
+`src/search.cpp:50-53` sets `TmSoftDivisor` 22, `TmIncrementPercent` 75, `TmHardPercent` 60, and `TmHardSoftMultiple` 5. Overhead is 10 at `include/forge/search.hpp:28`. With no `movestogo`, `src/search.cpp:1139-1148` gives available `max(1, 596-10) = 586`, soft `586/22 + 75 = 101`, and hard `min(351, 505) = 351`. The protocol's derived budgets are 586, 101, and 351. Those are the initial limits. `src/search.cpp:1314` can stop on the soft limit times a factor. The stable, semi-stable, unstable, and minimum factors are 60, 80, 140, and 45 (`src/search.cpp:54-59`). The hard stop at `src/search.cpp:590` compares elapsed time with `hard_limit_ms_` and does not apply that factor.
+
+REPORT says the runner returned after about 1404 ms and that an explicit stop then produced `c5e3` in 1.581 ms. That trace is not in the commit. This run did not play the position. The ten cold-trial sentences (both binaries `e7e4`, depth 11, 98549 nodes) were read. `diagnostic-evidence-integrity.md` gives trial 6 as 3442 bytes, original SHA-256 `f54678999550fcc9bd286a62954d790ec20c3900d0663970891dd5ac5566774a`, available SHA-256 `036a75d3630b1781afd94db6f30dc0ed04f2f4ae6b18eedac87ed9ebeb81b2bb`. Those trial files are not plaintext in the tree, so the digests were not recomputed.
+
+### Match counts that were checked
+
+`validation/release-6.0.0/all-match-pgns.zip` is blob `c8eb1422`, SHA-256 `acbd91b4a7f7829092eede5472e2c40de1e34f33e469f6b2927c61b58ad27960`, the digest in `forge-match-raw-stats.json`. The zip has 45 members: 44 PGNs and the directory entry `pgns/`. Counting `[Result "` across the 44 PGNs gives 76047, matching `games` in the json. In the files scored below, every header `Result` matched the movetext result.
+
+`validation/release-6.0.0/forge-6.4.0-vs-sf19-3000-20+0.2.pgn` is the same bytes as zip member `pgns/forge-6.4.0-vs-sf19-3000-20+0.2.pgn`, SHA-256 `076d1f5f6d8e44da96b0ae211944188c18f75cf48255ecbe47db20c4cd39f855`. From `v64`: 35 wins, 30 losses, 35 draws, 100 games, time control `20+0.2`, termination `normal`. Engine names are Stockfish 19 and Chess Engine Forge 6.4.0. `(35 + 17.5) / 100 = 52.5`, the table's score. The note's Elo figure was not recomputed.
+
+The two residual PGNs are inside the zip. They are the same bytes as on `f481fc5a`, and `f481fc5a` is not an ancestor of this tip. `pgns/dev-residual-nnue-128-vs-6.3.0-10+0.1.pgn`, SHA-256 `85cf152a44ae4963e4ed008cd392ea5e481e071401ffc96e3be0fdf86d8e9559`: `res128` 49 wins, 23 losses, 128 draws, 200 games, `10+0.1`, all `normal`. `(49 + 64) / 200 = 56.5`. `pgns/dev-residual-nnue-128-vs-6.3.0-20k.pgn`, SHA-256 `5f277d26c1ed4e51003bbf94452047973e1574d501a9f1fb475cff826ee286a2`: `res128` 209 wins, 88 losses, 203 draws, 500 games, `TimeControl` `-`, terminations 170 `normal` and 330 `adjudication`. `(209 + 101.5) / 500 = 62.1`. The +45 and +86 figures were not recomputed.
+
+The ten loose PGNs under `validation/release-6.0.0/` have 1170 `Result` tags. Nine name Stockfish 19 on one side and sum to 1120 games, which is the REPORT's aggregate. The other file, `forge-6.1.0-threads4-vs-threads1-8+0.08.pgn`, is 50 games of `threads4` against `threads1`. Both engine-name tags say Chess Engine Forge 6.0.0 on every game. `forge-6.2.0pre-vs-sf19-3000-10+0.1.pgn` is one of the nine Stockfish matches, 200 games, and its Forge engine-name tags say Chess Engine Forge 6.1.0.
+
+`validation/hourly/2026-10-19-initial/matches/aa/games.pgn` is still blob `c2de1f31`. `Candidate` is 4 wins, 0 draws, 4 losses, 8 games, all `normal`. `stats.json` and `matches/resume-aa/verification.json` record the same 4/0/4, pentanomial `[0, 0, 4, 0, 0]`, and `elo_claim` null. That is the fixed-node A/A recovery bookkeeping.
+
+### Source bytes that did not change
+
+The integer clock parser, the 1 ms budget for a failed parse, the unchecked 64-slot `bad_captures_` write, and the book probe when `own_book` is false and `book_file` is non-empty are the same `search.cpp` and `uci.cpp` blobs recorded on `9108d012`. The SPRT protocol sets `OwnBook` false and `external_book` null. This run did not start the engine.
+
+### Not claimed
+
+- No new Elo. The committed text has no H0 or H1 acceptance for the TT-tag repair. Six games are a STATE sentence, and their PGN is not in git.
+- The 101 ms and 351 ms figures match the initial limit formula. They are not a timed search from this run. The reported 1404 ms return was not replayed.
+- The 22-check review JSON was read. The review script was not executed.
+- 338 branches are still tip-only. The next unread commit on the timeout line is `d2d8dfe4` (7 names, three files). `investigator/tt-smp-publication-20261020-0300` is `50149f78`, four commits and 32 added lines past `2fc649ef`. `forge/research-20261020-0015` is `72bf672e`, eight unread notes past `374a71d4`.
+- The KRK history miss was not replayed.
+- Nothing was pushed to `main`, `lock/combo29-20261110`, `fable/standalone-h512-20261111`, or another agent's branch.
+- Supermemory was unavailable. Adapter was not used.
+
 ## Next run
 
 1. `git fetch` and `git ls-remote --heads origin`. Diff against `inventory/branches-current.tsv`. Append new rows to `inventory/HEAD_MOVEMENT.tsv`. Do not rewrite `inventory/branches.tsv` or earlier movement rows. This branch's tip will have moved by the commit that adds these files; record that as this checkpoint, then continue.
 2. If a foreign tip moved, read that delta before the files below.
-3. Otherwise read the TT-tag strength trail that starts at `9108d012`. Commit `91885905` is not a branch tip. It adds `validation/hourly/2026-10-19-initial/matches/tt-tag-sprt/protocol.json`, `validation/hourly/STATE.json`, and `tools/match/run_hourly_sprt.py`. `374a71d4` is the tip of `forge/review-pgn-nps-signal-20261020-0010`. Shared tip `2fc649effb6d2f09f4fdf63b44d59283fe26b616` (9 branches) is the next commit and adds `validation/hourly/2026-10-19-initial/REPORT.md`. Read the protocol, the STATE delta, and that REPORT. Check a cited W/L/D against a PGN or stats file. Do not execute repository scripts. Do not decode the `.b64` artifact parts.
-4. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
-5. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
+3. Otherwise read shared tip `d2d8dfe4fe9df20697f993bf44dea0f65e57ba39` (7 branches). It is one commit past `2fc649ef` and adds `validation/hourly/2026-10-20-deadline/REPORT.md`, `probe-deadline-tests.patch`, and `probe-deadline.patch`. Read them as data. Do not apply the patches and do not execute repository scripts.
+4. If that commit is short, read the two one-file children of `2fc649ef`: `430329ce` (`forge/test-20261020-0030`, `TESTER-STATUS.md`) and `52085b27` (`forge/research-20261020-0215`, `RESEARCH.md`). Then read `investigator/tt-smp-publication-20261020-0300` at `50149f788fda75eff8d2882fe104e5232ad9903a` (four commits, 32 added lines). Then read `forge/research-20261020-0015` at `72bf672e8adbbfd72871fcf0f74926b34ddacf6b` (eight notes past `374a71d4`).
+5. Leave `3cabc1b2` for a later run. It is not a branch tip, and the diff from `2fc649ef` is 1368 files. Do not decode the `.b64` artifact parts.
+6. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
+7. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
