@@ -58,3 +58,23 @@ The same release pins and the same sanitizer binary were run again at 2026-11-14
 setoption name AspArmLate value true
 
 bench 13 nodes 818642
+
+## Follow-up redesign
+
+The first version treated the depth-1 full-window score as the in-bounds score, so the option narrowed from depth 2 instead of depth 4. The soft-time gate never ran, because a finished iteration had already landed inside the window. That version is withdrawn. Its option-on bench 13 count of 818642 is not the current engine.
+
+The option still defaults off. The narrow window still opens at depth 4. When `AspArmLate` is on, an iteration that fails high or low at least once makes the next iteration use a full window. The fail-high and fail-low widening inside an iteration is unchanged. The soft-time special case was removed.
+
+Owner build on this host (AVX-512F and BMI2 present): default CMake release, `march=x86-64-v4`, `FORGE_SPD_SLIDER_PEXT=1`, `FORGE_SPD_NNUE_ZMM=1`. No `CMakeLists.txt` edit and no extra `FORGE_*` override. The compiler is g++ 13.3.0 because `/usr/bin/c++` is Clang 18 and cannot link `libstdc++` here.
+
+Option off, Threads 1, Hash 16, OwnBook false:
+
+- bench 11 = 312866
+- bench 13 = 862329
+- go perft 5 from the start position = 4865609
+
+Those three held after the option was turned on and then off.
+
+Option on, same binary:
+
+bench 13 nodes 870398

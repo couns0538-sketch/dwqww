@@ -1750,9 +1750,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     int stable_iterations = 0;
     int score = 0;
     int previous_score = ValueNone;
-    // Set once a root iteration returns a score strictly inside the window it
-    // was searched with. AspArmLate uses that as the signal to leave the full window.
-    bool asp_score_inside = false;
+    // AspArmLate: a finished root iteration that failed high or low at least
+    // once makes the following iteration use a full window.
+    bool reopen_full_window = false;
     root_effort_count_ = root_candidates.size();
     assert(root_effort_count_ <= root_effort_moves_.size());
     std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
@@ -1775,38 +1775,32 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         int delta = tune::AspirationDelta;
         int alpha = -Infinite;
         int beta = Infinite;
-        // Default: narrow window from depth 4. AspArmLate: the iterations before
-        // any in-bounds root score stay on a full window, and only then narrow.
-        const bool narrow = tune::AspArmLate ? asp_score_inside : depth >= 4;
+        // Narrow from depth 4. AspArmLate reopens a full window for one iteration
+        // after the previous iteration failed high or low at least once.
+        const bool narrow = depth >= 4 && !(tune::AspArmLate && reopen_full_window);
         if (narrow) {
             alpha = std::max(score - delta, -Infinite);
             beta = std::min(score + delta, Infinite);
         }
         int iteration_score = score;
-        bool inside_window = false;
+        bool failed_window = false;
         while (true) {
             ss->ply = 0;
             iteration_score = search(board, ss, depth, alpha, beta, false);
             if (aborted_) break;
             if (iteration_score <= alpha) {
+                failed_window = true;
                 beta = (alpha + beta) / 2;
                 alpha = std::max(iteration_score - delta, -Infinite);
             } else if (iteration_score >= beta) {
+                failed_window = true;
                 beta = std::min(iteration_score + delta, Infinite);
             } else {
-                inside_window = true;
                 break;
             }
             delta += delta / 2 + 4;
-            // Score is still outside. That attempt is not a finished iteration,
-            // so the soft limit must not end the search here; widen and repeat.
-            if (tune::AspArmLate && time_managed_ &&
-                !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0) &&
-                elapsed_ms() >= soft_limit_ms_) {
-                continue;
-            }
         }
-        if (!aborted_ && inside_window) asp_score_inside = true;
+        if (!aborted_) reopen_full_window = tune::AspArmLate && failed_window;
         if (aborted_) {
             // A clock or external stop may keep a root move that already raised
             // alpha in this unfinished iteration, and the score stays the last
@@ -1922,9 +1916,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
 
         if (mate_moves > 0 && score >= mate_in(mate_moves * 2 - 1)) break;
         if (should_stop()) break;
-        // Outside the window the iteration is unfinished and cannot soft-stop.
-        const bool soft_finished = !tune::AspArmLate || inside_window;
-        if (soft_finished && time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
+        if (time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
             // Stop early when the best move has been stable; spend longer when it keeps changing.
             double factor = 1.0;
             if (stable_iterations >= 6) factor = tune::TmStableFactor / 100.0;
