@@ -1,0 +1,1366 @@
+{
+  "schema": 1,
+  "run": 15,
+  "snapshot_at": "2026-11-14T04:33:13Z",
+  "trigger_at": "2026-11-14T04:25:57Z",
+  "remote_heads_ls_remote": 430,
+  "moved": 1,
+  "new": 0,
+  "gone": 0,
+  "unique_tips": 341,
+  "unique_trees": 341,
+  "trees_shared_by_different_tips": 0,
+  "shared_tip_groups": 16,
+  "branches_in_shared_tip_groups": 105,
+  "tags_listed_not_reviewed": [
+    "astra-a1-data-results-20261030 8007f17d77cea0a20363aab240bd1febc093d016",
+    "data-sample-10m-20261030 5176ddf79ae15b76c08c4485d90ee5600ba30a1a",
+    "opus-sol-S48fix-grids-20261027 9f8afcbb8fa90aaa933bc3540cb3f65121aab1a1"
+  ],
+  "checkpoint_branch": "cursor/forge-branch-inventory-automation",
+  "checkpoint_tip_before_this_commit": "fcc10e73f3e7b791c54faaf802605d7161d008c5",
+  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at fcc10e73. The commit that adds the run-15 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
+  "frozen_run1_table": "inventory/branches.tsv",
+  "current_table": "inventory/branches-current.tsv",
+  "movement_log": "inventory/HEAD_MOVEMENT.tsv",
+  "review_index": "inventory/review-status.tsv",
+  "engine_lock": {
+    "branch": "lock/combo29-20261110",
+    "tip": "16833ecc03b425586f91f4c8834dea8807bf4c22"
+  },
+  "later_fable_tree": {
+    "branch": "fable/standalone-h512-20261111",
+    "tip": "efb2ff960037087299332bc6a44baea69441a17a"
+  },
+  "main_tip": "5176ddf79ae15b76c08c4485d90ee5600ba30a1a",
+  "ancestry_of_unique_tips": {
+    "method": "unchanged from run 14. Replacing 47608fb7 with fcc10e73 keeps the same containment: both contain the lock and main and neither contains H512.",
+    "contains_lock_commit": 17,
+    "contains_h512_commit": 11,
+    "contains_main_but_not_lock": 39,
+    "contains_neither_main_nor_lock": 285
+  },
+  "review_status_counts": {
+    "tip-only": 310,
+    "run9-read": 29,
+    "run13-read": 22,
+    "run10-read": 12,
+    "run11-read": 11,
+    "run12-read": 10,
+    "run4-moved": 6,
+    "run2-new": 4,
+    "run3-read": 4,
+    "run15-read": 3,
+    "run14-read": 3,
+    "run4-read": 3,
+    "run10-fix-line": 2,
+    "run2-moved": 2,
+    "run8-read": 2,
+    "run1-detail": 1,
+    "run10-workflow": 1,
+    "run15-checkpoint": 1,
+    "run5-read": 1,
+    "run6-read": 1,
+    "run6-same-docs": 1,
+    "run7-read": 1
+  },
+  "detail_this_run": [
+    "forge/candidate-uci-clock-origin-native-20261020-0845",
+    "forge/candidate-ci-clock-parent-20261020-0858",
+    "investigator/hourly-20261020-0900"
+  ],
+  "replayed_this_run": [],
+  "findings": [
+    {
+      "id": "krk-history-miss",
+      "status": "code-confirmed-on-h512-and-lock; measurements are the other branches' logs; not replayed",
+      "fen": "4R3/8/8/k2K4/8/8/8/8 w - - 0 1",
+      "expected_move": "d5c5",
+      "h512_prune": "forge-combo29/src/search.cpp:1575",
+      "fixes": [
+        {
+          "branch": "cursor/forge-correctness-20261113-e6b6",
+          "tip": "f6760ff65325339c900092117cbb56c051a60724",
+          "mechanism": "clear_heuristics at search.cpp:1786"
+        },
+        {
+          "branch": "cursor/forge-search-strength-20261113-9558",
+          "tip": "49b8095274ecf46976d521b5bf6192acdac3d258",
+          "mechanism": "root_bare_king_ gate at search.cpp:1775"
+        }
+      ]
+    },
+    {
+      "id": "attack-table-init-race",
+      "status": "code-confirmed; their 30/30 driver not replayed",
+      "lock_lines": "forge-combo29/src/bitboard.cpp:137",
+      "fix_branch": "cursor/forge-correctness-20261113-e6b6",
+      "fix_line": "forge-combo29/src/bitboard.cpp:143"
+    },
+    {
+      "id": "search-repetition-and-null-clock",
+      "status": "code-confirmed on lock and H512; their draw_rules_test not replayed",
+      "lock": {
+        "repetition": "forge-combo29/src/board.cpp:1208",
+        "null_halfmove": "forge-combo29/src/board.cpp:1126"
+      },
+      "fix_branch": "cursor/draw-rules-history-tt-cb8e",
+      "fix_commit": "7639e548930ed3b4b68dc4679adfb63f97bc6b12",
+      "bench_claim": "depths 8 and 10 only, not the full pin set"
+    },
+    {
+      "id": "tt-mate-clock-and-store",
+      "status": "default binary still has the bugs; switches off because pins move",
+      "branch": "cursor/tt-audit-bounds-4ffa",
+      "tip": "22e837cb845b19e4631e846a5adbd086aa8a40cc",
+      "h512": {
+        "score_from_tt": "forge-combo29/src/search.cpp:126",
+        "qsearch_mated": "forge-combo29/src/search.cpp:1355",
+        "main_mated": "forge-combo29/src/search.cpp:1717"
+      }
+    },
+    {
+      "id": "uci-protocol-case-and-searchmoves",
+      "status": "code-confirmed; their protocol script not replayed",
+      "h512": {
+        "usennue": "forge-combo29/src/uci.cpp:377",
+        "searchmoves": "forge-combo29/src/uci.cpp:117",
+        "fen": "forge-combo29/src/board.cpp:219",
+        "parse_uci": "forge-combo29/src/board.cpp:1148"
+      },
+      "fix_branch": "cursor/forge-audit-f132",
+      "fix_tip": "9a781745a3f4681401c31aa69adbe6ad167a8933",
+      "pins_they_printed": "depth 11 and 13 only"
+    },
+    {
+      "id": "lmr-clamp-precondition",
+      "status": "code present; they did not show a negative extension being taken",
+      "h512": "forge-combo29/src/search.cpp:1671",
+      "lock": "forge-combo29/src/search.cpp:1417",
+      "fix_branch": "cursor/search-bound-audit-9cd5"
+    },
+    {
+      "id": "bad-captures-256",
+      "status": "still an unchecked write",
+      "branch": "cursor/forge-correctness-20261113-e6b6",
+      "line": "forge-combo29/src/search.cpp:472",
+      "capacity": 256
+    },
+    {
+      "id": "uci-clock-int-overflow",
+      "status": "reproduced on the lock in run 1; still in H512 source; not on the five new H512 branches",
+      "h512": "forge-combo29/src/uci.cpp:92",
+      "fix_branch": "cursor/forge-time-audit-770f"
+    },
+    {
+      "id": "etc-no-qualified-gap",
+      "status": "their replica only; not ported; not replayed",
+      "branch": "fable52-search-gap-20261109",
+      "tip": "56a76b153bb88026f2d83d65df6e422b0f3298f9",
+      "files": [
+        "fable_search_gap/EVIDENCE.md",
+        "fable_search_gap/STATUS.md"
+      ],
+      "probe": "fable_search_gap/tools/etc_probe/etc_probe.cpp",
+      "verdict": "NO QUALIFIED GAP. Supplementary cut6 node ratio 0.987, opening range [0.954, 1.022]. Fine 70 replica can play the drawing move. No Elo."
+    },
+    {
+      "id": "speed-lane-no-gain",
+      "status": "their cycle screens under load; cold runs incomplete; job 3 later passed identity for six of the items",
+      "branch": "fable52-speed-lane-20261109",
+      "tip": "08897a88e11c707c0ac4e39c19e44c06e1360bdd",
+      "files": [
+        "fable_speed_lane/BENCH.md",
+        "fable_speed_lane/STATUS.md"
+      ],
+      "slower_intervals_exclude_zero": [
+        "WITNESS_NOPIN -1.02% over 60 blocks",
+        "BUNDLE4 -0.70% over 100 blocks"
+      ],
+      "not_a_gain": "No item's interval was entirely above 0. KING_PAWN_CACHE is the October shelter cache at 928f1ff7, not a new idea."
+    },
+    {
+      "id": "movegen-two-tier-pass",
+      "status": "their logs; not re-counted here; not a lock change and not a speed result",
+      "branch": "fable52-movegen-proof-20261110",
+      "tip": "2ff77f98927cf19d55d6cac5cf182a81eb0d71e6",
+      "files": [
+        "fable_movegen_proof/PROOF.md",
+        "fable_movegen_proof/STATUS.md"
+      ],
+      "pass": [
+        "EVADE_LEGAL",
+        "PAWN_CAPMASK",
+        "CHECKERS_KL mode 1",
+        "WITNESS_NOPIN",
+        "KING_PAWN_CACHE",
+        "BUNDLE3"
+      ],
+      "each": "20,000,000 auxiliary comparisons and 20,000,000 release-exe perft-2 comparisons, 0 differences"
+    },
+    {
+      "id": "cpu-lane-no-win",
+      "status": "their screening logs; noise larger than the two positive medians; not replayed",
+      "branch": "fable52-cpu-20261110",
+      "tip": "ea3759a9ec3b17c58e3daeab8ff31af53e7ae6ab",
+      "files": [
+        "fable_cpu_speed/DONE.md",
+        "fable_cpu_speed/STATUS.md"
+      ],
+      "below_their_2_percent_bar": [
+        "NNUE_FUSE_EVAL +0.93%",
+        "PREFETCH_PICK +0.72%"
+      ],
+      "slower": [
+        "EVAL_PIPELINE -1.53%",
+        "NNUE_WPREFETCH -4.42%"
+      ],
+      "sanitizers": "ASan and UBSan PASS in their logs. TSan BLOCKED. Determinism 13000/13000. Bug hunt found no defect. No Elo."
+    },
+    {
+      "id": "smp-info-nodes-lag",
+      "status": "code read; their logs contain the cited node counts; suite not re-run",
+      "branch": "cursor/forge-concurrency-audit-8d98",
+      "tip": "9267bf2efabd28fc8a958c08c22b4c46fe87da68",
+      "reprint": "forge-combo29/src/search.cpp:1856",
+      "before": "info_nodes 1883 result_nodes 3526",
+      "after": "info_nodes 2717 result_nodes 2717",
+      "evidence": [
+        "forge-combo29/docs/evidence/info-nodes-gap.txt",
+        "forge-combo29/docs/evidence/post-fix-info-nodes.txt"
+      ],
+      "note": "The reprinted line uses the earlier info timestamp for nps. No Elo. This history still has the integer clock parser."
+    },
+    {
+      "id": "time-leading-plus-and-bench-stop",
+      "status": "code read; their suite times are in the note; script not executed",
+      "branch": "cursor/forge-time-audit-770f",
+      "tip": "e5fe43671ead84fe48bb9696a8ca119bb3636c05",
+      "plus": "forge-combo29/src/uci.cpp:81",
+      "bench_worker": "forge-combo29/src/uci.cpp:429",
+      "their_times": [
+        "movetime +80 used 81.2 ms",
+        "bench 14 stop printed bench stopped in 0.7 ms"
+      ]
+    },
+    {
+      "id": "qsearch-531-capped-middlegame",
+      "status": "note only; engine source unchanged in this commit; not rebuilt",
+      "branch": "cursor/forge-qsearch-audit-60ce",
+      "tip": "b763354d4e46b8d9cc03e7087ef8026f9f27698d",
+      "file": "forge/QSEARCH_AUDIT.md",
+      "fen": "r2qk1nr/3n1ppp/1pp2b2/p2pp3/1PP3bP/P4N2/2QPPPPR/RNB1KB2 w Qkq - 2 11",
+      "their_score": "-26 from the engine after 563 nodes and from a transposition-table contract after 1353971 nodes"
+    },
+    {
+      "id": "legality-bench-pins-claimed",
+      "status": "note and probe source read; probe not compiled; transcript not in the tree",
+      "branch": "cursor/move-legality-82b6",
+      "tip": "1adfc1c2cb9b958c2bc69cfe32d0f5916aff7077",
+      "note": "forge-combo29/docs/MOVE_LEGALITY_20261113.md",
+      "probe": "forge-combo29/tools/nnue_delta_probe.cpp",
+      "their_pins": "net on 312866 862329 3024920 12389307 34048354; net off 375354 907205 2448617 13573040 24506465; perft 5 4865609",
+      "their_accumulator": "525 legal moves, max_abs 0"
+    },
+    {
+      "id": "pvbound-qsearch-still-default-off",
+      "status": "code read; mate counts are their note; not replayed",
+      "branch": "cursor/search-bounds-audit-e6d7",
+      "tip": "569c9315b501a1910c174c8908cd633468e09dbf",
+      "gate": "forge-combo29/src/search.cpp:1343",
+      "default": 0,
+      "their_switch_on": "g3g6 mate missed at depth 7 and depth 10, found at depth 11"
+    },
+    {
+      "id": "october-6x-pgn-index",
+      "status": "game counts match the index; Elo and W/L/D not recomputed; zip and console.txt absent",
+      "branch": "cursor/match-pgns-66cc",
+      "tip": "f481fc5afc6bf13b730fe5853fbefaeeb6047162",
+      "files": [
+        "EXPERIMENTS.md",
+        "README.md",
+        "pgns/"
+      ],
+      "pgn_files": 44,
+      "result_tags": 76047,
+      "h1_accepted_in_their_table": [
+        "item 21 cutoff-count LMR",
+        "item 35 LmpBase 4 plus history bonus"
+      ],
+      "adopted_without_h1": [
+        "item 22 material correction LLR 0.60",
+        "item 19 book +20 +/- 30 on 120 games",
+        "item 18 eval terms +10 +/- 27"
+      ],
+      "residual_their_console": [
+        "item 38 +86 +/- 24 at 20k nodes, 500 games",
+        "item 39 +45 +/- 26 at 10+0.1, 200 games"
+      ],
+      "sf3000_does_not_separate": "6.2.0 +10 +/- 60, 6.3.0 0 +/- 54, 6.4.0 +17 +/- 53, 100 games each, their table"
+    },
+    {
+      "id": "grokchess-smp-notes",
+      "status": "notes read; patches and bench not run; not the combo29 engine; no Elo",
+      "branch": "cursor/smp-threads-fixes-c7cb",
+      "tip": "c4314e3bde6e8372419227cc22b032319487aa71",
+      "files": [
+        "gc1748/README.txt",
+        "gc1748/SMP-THREADS.txt"
+      ],
+      "their_single_thread_bench": [
+        "depth 9 nodes 194011",
+        "depth 10 nodes 350802"
+      ]
+    },
+    {
+      "id": "grokchess-packed-movegen-256",
+      "status": "write exists; no overflow position was searched; no speed log in the tree",
+      "branch": "cursor/speed-and-search-patches-c7cb",
+      "tip": "2cf370d3e7672c18692bfa044ec376e6e584eff6",
+      "write": "engine/move/movegen.js:19",
+      "capacity": 256
+    },
+    {
+      "id": "forge-640-docs",
+      "status": "documents read; source spot-checked; ladder Result tags counted; Elo intervals not recomputed; no engine built",
+      "branch": "cursor/engine-strength-overhaul-66cc",
+      "tip": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b",
+      "files_read": [
+        "README.md",
+        "CHANGELOG.md",
+        "RELEASE_STATE.md",
+        "VALIDATION.md",
+        "engine-improvement-log.md"
+      ],
+      "experiments_blob": "4194acfb7accbf58781c24ae7b97dfd1c0c30d84",
+      "same_blob_as": "cursor/match-pgns-66cc EXPERIMENTS.md",
+      "zip": "chess-engine-forge-6.4.0.zip",
+      "zip_sha256": "98d2ff2c523a25931897794bad3c39d40398799b8907d51596dad3e326a2ba9d",
+      "zip_sha_matches_release_note": true,
+      "pgn_archive": "validation/release-6.0.0/all-match-pgns.zip",
+      "pgn_archive_bytes": 67169642,
+      "pgn_archive_extracted": false,
+      "residual_code": "src/search.cpp:528",
+      "adopted_defaults": {
+        "LmpBase": "src/search.cpp:30 = 4",
+        "HistoryBonusQuadratic": "src/search.cpp:43 = 20",
+        "HistoryBonusMax": "src/search.cpp:45 = 2048",
+        "LmrCutoffThreshold": "src/search.cpp:48 = 3",
+        "MaterialCorrectionWeight": "src/search.cpp:49 = 100"
+      },
+      "ladder_result_tags_match_readme": [
+        "5.31.0 1W 17L 2D",
+        "6.0.0 10+0.1 118W 42L 40D",
+        "6.0.0 30+0.3 79W 14L 7D",
+        "6.1.0 134W 34L 32D",
+        "6.2.0 pre 66W 75L 59D",
+        "6.2.0 35W 32L 33D",
+        "6.3.0 33W 33L 34D",
+        "6.4.0 35W 30L 35D",
+        "Threads 4 vs 1 26W 1L 23D"
+      ],
+      "sf3000_100_games": "README itself says 100 games cannot separate 6.2.0, 6.3.0, and 6.4.0. The +/- Elo columns were not recomputed."
+    },
+    {
+      "id": "forge-640-bad-captures-64",
+      "status": "code present on the 6.4.0 tip; not played; a different tree from the combo29 64-slot write",
+      "branch": "cursor/engine-strength-overhaul-66cc",
+      "tip": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b",
+      "write": "src/search.cpp:296",
+      "array": "src/search.cpp:384",
+      "capacity": 64,
+      "movelist_assert": "include/forge/board.hpp:55 Capacity 256"
+    },
+    {
+      "id": "forge-640-int-clock",
+      "status": "parser read; not played; budget consequence differs from the lock forfeit",
+      "branch": "cursor/engine-strength-overhaul-66cc",
+      "tip": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b",
+      "parser": "src/uci.cpp:73",
+      "fail_returns": 0,
+      "wtime_store": "src/uci.cpp:99",
+      "budget": "src/search.cpp:1136 sets a present clock. Default overhead 10 ms makes available max(1, 0-10) = 1 ms at src/search.cpp:1139. Nodes are parsed as uint64 at src/uci.cpp:86."
+    },
+    {
+      "id": "forge-640-mate-not-stored",
+      "status": "code read; not played",
+      "branch": "cursor/engine-strength-overhaul-66cc",
+      "tip": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b",
+      "qsearch_return": "src/search.cpp:763",
+      "qsearch_store": "src/search.cpp:766",
+      "main_return": "src/search.cpp:1074",
+      "main_store": "src/search.cpp:1095"
+    },
+    {
+      "id": "forge-640-uci-case",
+      "status": "code read; not played",
+      "branch": "cursor/engine-strength-overhaul-66cc",
+      "tip": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b",
+      "usennue": "src/uci.cpp:261",
+      "parse_uci": "src/board.cpp:750"
+    },
+    {
+      "id": "elo-line-changelog-diverges-at-68f0112",
+      "status": "documents diffed; 5.31.0 and older changelog sections are the same text; no engine built",
+      "left": {
+        "branch": "cursor/chess-engine-elo-8295",
+        "tip": "928f1ff7a10ad2d36d579b854bfa498768faba2f"
+      },
+      "right": {
+        "branch": "cursor/engine-strength-overhaul-66cc",
+        "tip": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b"
+      },
+      "merge_base": "68f01122b3413662d4dca1c222c35ae1ada11092",
+      "identical_blobs": [
+        "VALIDATION.md f22894fa",
+        "engine-improvement-log.md 52a0ff13"
+      ],
+      "identical_changelog_sections": "84 sections from 5.31.0 through 0.1.0, plus the identical title line",
+      "different_sections": [
+        "6.0.0",
+        "6.1.0",
+        "6.2.0",
+        "6.3.0",
+        "6.4.0 exists only on 24cc2cce"
+      ],
+      "release_state_identical_from": "5.31.0 and 5.30.0",
+      "8295_has_no_6_4_section": true,
+      "post_doc_commits_absent_from_changelog": [
+        "ba4572e1 qsearch TT depth",
+        "928f1ff7 king shelter cache"
+      ]
+    },
+    {
+      "id": "elo-line-component-results-have-no-pgn",
+      "status": "their tables only; Elo not recomputed; PGNs absent on this tip",
+      "branch": "cursor/chess-engine-elo-8295",
+      "tip": "928f1ff7a10ad2d36d579b854bfa498768faba2f",
+      "files": [
+        "validation/release-6.3.0/README.md",
+        "validation/release-6.2.0/README.md",
+        "validation/release-6.1.0/README.md",
+        "validation/release-6.1.0/stockfish-ladder.md"
+      ],
+      "their_largest_single_thread_figure": "+31.4 +/- 14.7 per node, 1000 games, first full refit, LOS 100 percent in their table",
+      "their_time_control": "6.3.0 first refit vs 6.2.0, 3+0.03, 300 games, 133/86/81, +55 +/- 26",
+      "their_sf2800_ladder": "6.0.0 70.5 percent and 6.1.0 71.0 percent, 100 games each; the note says the PGNs were left out of the repository",
+      "intervals_that_include_a_loss": "Most 1000-game component rows have error bars of about +/- 14. Their LOS column is their figure."
+    },
+    {
+      "id": "elo-line-pretune-pgn-matches-overhaul",
+      "status": "Result tags counted on this tip; same blob already counted on the overhaul tip",
+      "branch": "cursor/chess-engine-elo-8295",
+      "file": "validation/release-6.0.0/forge-6.0.0-pretune2-vs-sf19-2800-10+0.1.pgn",
+      "blob": "aa352b28249d2d49cff20ad359a565bcb91c4ebb",
+      "same_as": "24cc2cce validation/release-6.0.0/forge-6.0.0-vs-sf19-2800-10+0.1.pgn",
+      "games": 200,
+      "forge_side": "v3",
+      "wld": "118/42/40",
+      "readme_calls_this": "the first tuned table, 69.0 percent",
+      "missing_from_8295": "the hand-set 100-game PGN named as 57.5 percent, and the final-rows section the 6.0 README points at"
+    },
+    {
+      "id": "elo-line-qstt-and-shelter",
+      "status": "code read; match and bench not rerun; neither change is in CHANGELOG.md",
+      "branch": "cursor/chess-engine-elo-8295",
+      "tip": "928f1ff7a10ad2d36d579b854bfa498768faba2f",
+      "qsearch_tt": {
+        "commit": "ba4572e1347b64c51cd775119c96c64ac7bd7250",
+        "store_plus_one": "src/search.cpp:123",
+        "qs_depth": "src/search.cpp:677",
+        "commit_message_elo": "+8.0 +/- 13.8 over 1000 games at 25k nodes",
+        "pgn": "absent"
+      },
+      "shelter_cache": {
+        "commit": "928f1ff7a10ad2d36d579b854bfa498768faba2f",
+        "code": "src/eval.cpp:194",
+        "commit_message": "bench signature unchanged, about 1 percent faster",
+        "bench_log": "absent"
+      }
+    },
+    {
+      "id": "elo-line-bad-captures-64",
+      "status": "code present on 928f1ff7; not played; same 64-slot shape as the 6.4.0 tip, different line numbers",
+      "branch": "cursor/chess-engine-elo-8295",
+      "tip": "928f1ff7a10ad2d36d579b854bfa498768faba2f",
+      "write": "src/search.cpp:202",
+      "array": "src/search.cpp:306",
+      "capacity": 64
+    },
+    {
+      "id": "elo-line-int-clock",
+      "status": "parser read; not played; budget consequence matches the 6.4.0 description",
+      "branch": "cursor/chess-engine-elo-8295",
+      "tip": "928f1ff7a10ad2d36d579b854bfa498768faba2f",
+      "parser": "src/uci.cpp:71",
+      "fail_returns": 0,
+      "wtime_store": "src/uci.cpp:97",
+      "time_ms_default": "include/forge/search.hpp:22 = -1",
+      "budget": "src/search.cpp:1154 treats a present clock. Default overhead 10 ms at include/forge/search.hpp:27 makes available max(1, 0-10) = 1 ms at src/search.cpp:1157. Nodes are uint64 at src/uci.cpp:85."
+    },
+    {
+      "id": "elo-line-mate-not-stored",
+      "status": "code read; not played",
+      "branch": "cursor/chess-engine-elo-8295",
+      "tip": "928f1ff7a10ad2d36d579b854bfa498768faba2f",
+      "qsearch_return": "src/search.cpp:775",
+      "qsearch_store": "src/search.cpp:778",
+      "main_return": "src/search.cpp:1079",
+      "main_store": "src/search.cpp:1095"
+    },
+    {
+      "id": "elo-line-parse-uci-lowercase",
+      "status": "code read; not played; this tip has no UseNNUE option",
+      "branch": "cursor/chess-engine-elo-8295",
+      "tip": "928f1ff7a10ad2d36d579b854bfa498768faba2f",
+      "parse_uci": "src/board.cpp:828",
+      "compares_to": "move_to_uci lowercase letters at src/board.cpp:837"
+    },
+    {
+      "id": "overhaul-6-1-release-state-contradicts-itself",
+      "status": "document only; noticed while diffing; engine not rebuilt",
+      "branch": "cursor/engine-strength-overhaul-66cc",
+      "tip": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b",
+      "file": "RELEASE_STATE.md",
+      "threads_sentence": "RELEASE_STATE.md:109 says 6.1.0 adds a Threads option",
+      "not_done_sentence": "RELEASE_STATE.md:120 says multi-threaded search was not done for that release",
+      "truncated_sentence": "RELEASE_STATE.md:93 ends with 'the Zen 4 (znver4) builds were 4.'"
+    },
+    {
+      "id": "selective-search-6-0-claims-have-no-pgn",
+      "status": "documents read; W/D/L arithmetic matches the stated Elo; games are not in the tree; Elo not measured here",
+      "branch": "cursor/chess-engine-elo-bba2",
+      "tip": "2285d91270f53f37d4c7bfdf491ed490c7d0c1a1",
+      "files": [
+        "README.md",
+        "CHANGELOG.md",
+        "RELEASE_STATE.md"
+      ],
+      "their_rows": [
+        "selective search vs 5.31.0, 5+0.05, 100 games, 88/7/5, +413 +/- 111",
+        "position-indexed TT, 5+0.05, 120 games, 42/40/38, +12 +/- 38",
+        "PeSTO tables, 5+0.05, 120 games, 64/36/20, +134 +/- 56",
+        "king safety, 5+0.05, 200 games, 60/94/46, +24 +/- 30",
+        "final vs 5.31.0, 10+0.1, 100 games, 84/9/7, +355 +/- 92"
+      ],
+      "pgn_files_on_tip": 2,
+      "pgn_note": "Both PGNs are 5.29.0 and 5.30.0 evidence. Neither is a 6.0.0 match.",
+      "arithmetic": "The usual score-to-Elo transform of those five W/D/L rows is 412.8, 11.6, 133.6, 24.4, and 354.5. That checks the sentences against each other. It does not show that the games were played. The +/- columns were not recomputed."
+    },
+    {
+      "id": "selective-search-docs-contradict-the-eval",
+      "status": "documents and source read; not a playing result",
+      "branch": "cursor/chess-engine-elo-bba2",
+      "tip": "2285d91270f53f37d4c7bfdf491ed490c7d0c1a1",
+      "readme_unchanged_sentence": "README.md:5 says the evaluation function is unchanged",
+      "readme_table": "README.md lists PeSTO tables and attack-unit king safety as measured steps",
+      "provenance_denies_king_safety": "SOURCE_PROVENANCE.json:34 says the evaluation has no king-attack term beyond pawn shelter",
+      "code": "src/search.cpp:487 subtracts KingSafetyTable once two pieces hit the king zone. Weights are at src/search.cpp:223.",
+      "why_stale": "SOURCE_PROVENANCE.json last changes in 36d55208, which is before the king-safety commit aa2a9b4f. The final commit 2285d912 updates the changelog, README, and release state, and does not update the provenance file or README.md:5."
+    },
+    {
+      "id": "selective-search-null-test-says-verified",
+      "status": "test source read; not compiled",
+      "branch": "cursor/chess-engine-elo-bba2",
+      "tip": "2285d91270f53f37d4c7bfdf491ed490c7d0c1a1",
+      "test": "tests/tests.cpp:701 depth 8, assertion message at tests/tests.cpp:712",
+      "unverified_return": "src/search.cpp:772 returns beta when depth < 10",
+      "verified_return": "src/search.cpp:777 runs only when depth >= 10",
+      "note": "A depth-8 root cannot reach a node of depth 10: a check extension replaces depth-1 with depth, it does not add a ply beyond the incoming depth. Every null cutoff in that test takes the unverified return. The counter still increments at src/search.cpp:773."
+    },
+    {
+      "id": "selective-search-int-clock",
+      "status": "parser and budget read; the zero-clock unit test was read; UCI text was not played",
+      "branch": "cursor/chess-engine-elo-bba2",
+      "tip": "2285d91270f53f37d4c7bfdf491ed490c7d0c1a1",
+      "parser": "src/uci.cpp:68 reads clocks into an int and returns 0 unless the whole token converts",
+      "wtime_store": "src/uci.cpp:94 stores max(0, that)",
+      "budget": "src/search.cpp:931 treats time_ms >= 0 as a present clock. Default overhead 10 ms makes available max(1, 0-10) = 1 ms at src/search.cpp:937",
+      "unit_test": "tests/tests.cpp:853 expects a SearchLimits.time_ms of 0 to be a 1 ms budget. tests/tests.cpp:884 passes INT_MAX directly and expects 1073741813. That test does not go through the UCI token parser.",
+      "leading_plus": "std::from_chars does not accept a leading plus, so a token such as +80 also becomes 0 and then a 1 ms budget. Not played.",
+      "fallback_move": "src/search.cpp:1063 plays legal_moves().front() if the search stored none. legal_moves keeps pseudo_legal_moves order at src/board.cpp:756. The a1 rook has no start move. The b1 knight is next, and offset +17 at src/board.cpp:41 is b1c3. A 1 ms search can still finish a real move. This binary was not run.",
+      "not_the_lock_forfeit": "The lock plays a2a3 immediately on wtime 3000000000. This parser turns that token into the 1 ms budget above. Different code, not replayed."
+    },
+    {
+      "id": "selective-search-mate-not-stored",
+      "status": "code read; not played",
+      "branch": "cursor/chess-engine-elo-bba2",
+      "tip": "2285d91270f53f37d4c7bfdf491ed490c7d0c1a1",
+      "main_return": "src/search.cpp:793 returns mate or stalemate before the store at src/search.cpp:893",
+      "qsearch_return": "src/search.cpp:651 returns mate before the store at src/search.cpp:698",
+      "mate_adjustment": "normalized_score_for_tt at src/search.cpp:167 does adjust mate scores by ply when a score is stored"
+    },
+    {
+      "id": "selective-search-tt-context-below-90",
+      "status": "code read; their comment states the cutoff; not played",
+      "branch": "cursor/chess-engine-elo-bba2",
+      "tip": "2285d91270f53f37d4c7bfdf491ed490c7d0c1a1",
+      "context": "include/forge/search.hpp:106 maps every halfmove clock below 90 to context 0",
+      "fifty_move_check": "src/search.cpp:714 returns a draw when the clock is already 100, before the TT probe",
+      "gap": "A mate stored at a low clock can still be cut off at clock 89, because both clocks share context 0 and a mate longer than 11 plies reaches the fifty-move rule. The comment says the result depends on the clock only from 90 upward."
+    },
+    {
+      "id": "selective-search-no-64-slot-write",
+      "status": "code read; this tree does not have the later unchecked 64-slot write",
+      "branch": "cursor/chess-engine-elo-bba2",
+      "tip": "2285d91270f53f37d4c7bfdf491ed490c7d0c1a1",
+      "quiets": "src/search.cpp:811 is a 256-slot array. src/search.cpp:888 stores a quiet only while quiet_count is below that size."
+    },
+    {
+      "id": "elo-line-61-62-docs-are-prefixes",
+      "status": "section text compared; no new Elo sentences; no games scored this run",
+      "branches": [
+        {
+          "branch": "cursor/chess-engine-elo-d8c5",
+          "tip": "193a91eca17c1b47372f408df67fd06ec08c8312",
+          "changelog": "ad5b9bcbf33c18fc4d3c7a7e0ef87370870cc66a",
+          "release_state": "f81ebd5fd3e789fe5055460759aeea8f42a4babe",
+          "readme": "0b4e91110e4eefa16d6aaf3654a9ffe0401baeba"
+        },
+        {
+          "branch": "cursor/engine-elo-improvement-3c5f",
+          "tip": "86c916289f27225313e60388ca05fffc7e257f39",
+          "changelog": "68ef6c7634113409eda749de1589dbacd1b71173",
+          "release_state": "7fd220fbbe736b6af8a8b33ab04b90922263e80c",
+          "readme": "2d1eabe686f25fa810a73feece346887e33e3e80"
+        }
+      ],
+      "later": "928f1ff7 changelog b5b0df96, release state f74b5345, readme ad2f7459",
+      "changelog": "86 sections on 193a91ec equal the matching sections on 928f1ff7. 928f1ff7 adds only 6.2.0 and 6.3.0. 87 sections on 86c91628 equal the matching sections; 928f1ff7 adds only 6.3.0.",
+      "release_state": "193a91ec is the exact suffix of 928f1ff7 from the 6.1.0 heading. 86c91628 is the exact suffix from the 6.2.0 heading. The 5.31.0 and 5.30.0 sections also equal 24cc2cce. The 6.0.0 and 6.1.0 sections differ from 24cc2cce, which run 6 already recorded.",
+      "validation": "855 files present on all three tips are identical blobs. 193a91ec has no validation/release-6.2.0 or release-6.3.0. 86c91628 has no validation/release-6.3.0.",
+      "readme_ladder": "193a91ec README.md:19-22 is 1/17/2, 118/42/40, 63/22/15, and 67/25/8. Those scores are 10.0, 69.0, 70.5, and 71.0 percent. The 200-game file was already counted. The two 100-game files are still absent."
+    },
+    {
+      "id": "elo-line-62-bench-sentence-vs-generator-commit",
+      "status": "documents and the commit message read; bench not rerun",
+      "branch": "cursor/engine-elo-improvement-3c5f",
+      "tip": "86c916289f27225313e60388ca05fffc7e257f39",
+      "release_state": "RELEASE_STATE.md:20-21 says single-thread bench signatures are unchanged by the threading and generation changes. The same sentence is RELEASE_STATE.md:47-48 on 928f1ff7.",
+      "commits_that_say_unchanged": [
+        "7dda4a96 quiet generation, bench 13 signature 1188868",
+        "40b54a70 thread voting, bench 13 = 1188868",
+        "b84ed559 check-square generation, bench 13 signature 1390079"
+      ],
+      "commit_that_changes_it": "d2b85db5 says the check-aware generator changes the bench 13 signature to 1234322 because selection swaps break ties once illegal evasions are absent. It also says 42513 in-check positions kept the same legal-move lists and perft was unchanged.",
+      "changelog": "CHANGELOG.md:36 says the generation order is unchanged and line 37 says the legal moves come out in the same sequence. CHANGELOG.md:44 states the final bench 13 signature 1234322. There is no bench log in the tree."
+    },
+    {
+      "id": "elo-line-61-class-keys-sentence-is-stale",
+      "status": "changelog sentence compared with the 6.1.0 source; the same section text is on 86c91628 and 928f1ff7",
+      "branch": "cursor/chess-engine-elo-d8c5",
+      "tip": "193a91eca17c1b47372f408df67fd06ec08c8312",
+      "stale_sentence": "CHANGELOG.md:16 says Board maintains the piece-class keys in put/remove/move_piece and that unmake restores them without undo state.",
+      "shipped_sentence": "CHANGELOG.md:22 says the keys are updated in make_move registers and restored from Undo.",
+      "code": "put_piece, remove_piece, and move_piece at src/board.cpp:99, :106, and :114 do not touch the class keys. make_move saves them at src/board.cpp:659, writes the deltas at src/board.cpp:723, and unmake_move copies the saved values back at src/board.cpp:772."
+    },
+    {
+      "id": "elo-line-61-62-same-defect-shapes",
+      "status": "code read at both tips; not played; same shapes already recorded on 928f1ff7",
+      "bad_captures_64": [
+        "193a91ec write src/search.cpp:199, array src/search.cpp:287",
+        "86c91628 write src/search.cpp:201, array src/search.cpp:305"
+      ],
+      "capacity": "MoveList::Capacity is 256 at include/forge/board.hpp:51 on both tips. The bad-capture array is 64 and the write does not test the index.",
+      "clock": "Both tips parse clocks with read_int at src/uci.cpp:71 and return 0 unless the whole token converts (src/uci.cpp:76). wtime stores max(0, that) at src/uci.cpp:97. uci.cpp differs across 193a91ec, 86c91628, and 928f1ff7 only by the version string. time_ms defaults to -1 at include/forge/search.hpp:22 and overhead is 10 at include/forge/search.hpp:27. A parsed 0 becomes a 1 ms budget at src/search.cpp:1018 on 193a91ec and src/search.cpp:1134 on 86c91628.",
+      "mate_not_stored": [
+        "193a91ec qsearch return src/search.cpp:664 before the store at :667; main return src/search.cpp:958 before the store at :974",
+        "86c91628 qsearch return src/search.cpp:762 before the store at :765; main return src/search.cpp:1056 before the store at :1072"
+      ],
+      "parse_uci": [
+        "193a91ec src/board.cpp:810 compares with move_to_uci, which writes lowercase letters at src/board.cpp:817",
+        "86c91628 src/board.cpp:831 compares with move_to_uci, which writes lowercase letters at src/board.cpp:838"
+      ]
+    },
+    {
+      "id": "go-origin-scoped-on-356e863d",
+      "status": "code read on the shared tip; probe not run; their engine journals are not in the commit",
+      "tip": "356e863dbd86d2ce24b8ee9486d7406f1d525480",
+      "tree": "41f7a4cb21afcbea375b8846e69e57c8087c8eaa",
+      "branches": 29,
+      "integration_commit": "294cf1ba7d2e3e77a70a08578958a5faea3b54dd",
+      "pre_fix": "06c581895708a6eb9ff26b380d818f72f7bd9ebf",
+      "go_received": "src/uci.cpp:288",
+      "assign": "src/uci.cpp:325",
+      "worker": "src/search.cpp:1112",
+      "field": "include/forge/search.hpp:31",
+      "ponder_rebase": "src/search.cpp:561 returns 0 until ponder_hit_ns, then measures from the hit",
+      "excluded": [
+        "go depth",
+        "go nodes",
+        "go infinite",
+        "go ponder"
+      ],
+      "their_engine_note": "INTEGRATION_REPORT.md quotes workflow 39382802396: movetime 1200, 440 ms pthread delay, pre-fix wall 1630.492 ms info time 0 bestmove d2d4; scoped wall 1190.489 ms info time 440 bestmove e2e4; depth 1 wall 440.890 ms info time 0 bestmove e2e3. CTest 4/4 each in that note. Journals absent. No Elo.",
+      "driver_after_failed_reverse": "CI_ATTEMPT_2.md says workflow 39383195419 failed in git apply -R before compile. run_native_validation.sh now archives 06c58189 and HEAD. That driver pass is not claimed in the note and was not rerun."
+    },
+    {
+      "id": "stored-clock-patches-are-not-the-integrated-diff",
+      "status": "apply check in throwaway checkouts; engine not built",
+      "scoped": "validation/hourly/2026-10-20-go-origin-native/uci-clock-origin-scoped.patch",
+      "unscoped": "validation/hourly/2026-10-20-go-origin/uci-clock-origin.patch",
+      "parent_06c58189": "git apply --check accepted both",
+      "tip_356e863d": "both failed at include/forge/search.hpp:25, src/search.cpp:1109, and src/uci.cpp:285",
+      "logic": "The integrated condition matches the scoped patch. The comment text in 294cf1ba matches neither stored patch. The unscoped patch assigns start_time on every non-perft go."
+    },
+    {
+      "id": "clock-model-stdout-is-a-sleep",
+      "status": "source and stored stdout read; not regenerated; not Forge",
+      "model": "validation/hourly/2026-10-20-go-origin/time_origin_model.cpp",
+      "stdout": "validation/hourly/2026-10-20-go-origin/model-test.stdout",
+      "text": "budget_ms=351 old_elapsed_ms=0 go_origin_elapsed_ms=440",
+      "note": "The model sleeps 440 ms and then samples the worker-local clock, so 0 is the order of those two statements. It does not show a Forge forfeit."
+    },
+    {
+      "id": "ownbook-false-still-loads-book-file",
+      "status": "code read; not played; the repair is the next commit, not this tip",
+      "tip": "356e863dbd86d2ce24b8ee9486d7406f1d525480",
+      "condition": "src/uci.cpp:331 probes when own_book is true or book_file is non-empty",
+      "ownbook_false": "src/uci.cpp:229",
+      "book_file_load": "src/uci.cpp:242",
+      "following_commit": "af1941375111717f415a46d9ce0224c329034466 drops the book_file clause. That commit is on 5101c252, not on this tip."
+    },
+    {
+      "id": "extreme-clock-probe-bypasses-uci",
+      "status": "source and README sentence read; not compiled",
+      "file": "tools/audit/extreme_clock.cpp",
+      "what_it_does": "Sets depth 1 and INT_MAX on SearchLimits.time_ms and increment_ms. It does not call read_int.",
+      "readme": "tools/audit/README.md:16 says untouched 5.6.0 trips UBSan and the 5.7.0 fix and the candidate pass. No log of that run was opened.",
+      "infinite_sentence": "tools/audit/README.md says go infinite on 7k/6Q1/6K1/8/8/8/8/8 b - - 100 1 returns bestmove 0000. Not replayed."
+    },
+    {
+      "id": "int-clock-and-badcap-unchanged-on-356e863d",
+      "status": "same lines as the 6.4.0 record on ancestor 24cc2cce; not played",
+      "parser": "src/uci.cpp:73",
+      "fail_returns": 0,
+      "wtime_store": "src/uci.cpp:99",
+      "budget": "src/search.cpp:1141 makes a parsed 0 a 1 ms budget after the 10 ms overhead",
+      "movestogo": "src/uci.cpp:95 turns a failed token into 1",
+      "bad_captures": "src/search.cpp:296 writes a 64-slot array declared at src/search.cpp:384"
+    },
+    {
+      "id": "ownbook-gate-requires-own-book",
+      "status": "source read on 5101c252 and on the af194137 blob; not played",
+      "tip": "5101c2529d386b7c3a04ba9156a69ee34df6bb43",
+      "parent_fix": "af1941375111717f415a46d9ce0224c329034466",
+      "uci_blob": "cc5efeb3adab2a7d8c6701c8fc7b35b9f18d7460",
+      "previous_blob_on_356e863d": "debb80cbd2a0c4afb9dab381688ad81290b10471",
+      "game_search": "src/uci.cpp:329",
+      "probe": "src/uci.cpp:331 requires own_book. The 356e863d blob also probed when book_file was non-empty.",
+      "ownbook_false": "src/uci.cpp:229",
+      "book_file_load": "src/uci.cpp:242 replaces the entry table. An empty path at src/uci.cpp:239 reloads the embedded book.",
+      "same_fix_without_test": [
+        "forge/candidate-ownbook-20261020-1045",
+        "forge/candidate-ownbook-native-20261020-1145"
+      ]
+    },
+    {
+      "id": "ownbook-test-key-matches-start-position",
+      "status": "formula checked locally; the UCI script was not executed; no transcript is in the commit",
+      "file": "validation/hourly/2026-10-20-ownbook-native/test_ownbook.py",
+      "key": "0x463B96181691FC9C",
+      "key_check": "polyglot_key for the standard start position, using this tree's Random64 table and src/book.cpp:38, equals that constant",
+      "move": "796 / 0x031c, e2e4, matching src/book.cpp:31",
+      "variety_zero": "src/book.cpp:164 returns the only legal candidate when variety is 0",
+      "what_pass_means": "A disabled search passes when no line starts with 'info string book move '. bestmove may still be e2e4. The leak case does not require e2e4.",
+      "checks_before_pass": 5
+    },
+    {
+      "id": "ownbook-audit-still-quotes-24cc2cce",
+      "status": "document read; it describes the pre-fix line and says the protocol was not executed",
+      "file": "validation/hourly/2026-10-19-initial/forge-state-nnue-audit.md:22",
+      "quoted_line_on_24cc2cce": "src/uci.cpp:325 is (own_book || !book_file.empty())",
+      "same_line_on_this_tip": "src/uci.cpp:325 assigns limits.start_time. The book condition is src/uci.cpp:331 and requires own_book.",
+      "readme_item": "validation/hourly/README.md:138 still lists reproducing the bypass"
+    },
+    {
+      "id": "ownbook-workflow-has-no-stored-result",
+      "status": "workflow text read; not started; no logs in the commit; no Elo",
+      "branch": "research/forge-ownbook-native-verify-20261020-1706",
+      "tip": "9a6598bc718bfc144b2499277b7affc89a152e10",
+      "file": ".github/workflows/forge-ownbook-independent.yml",
+      "baseline": "356e863dbd86d2ce24b8ee9486d7406f1d525480 with --expect-leak yes",
+      "candidate": "5101c2529d386b7c3a04ba9156a69ee34df6bb43 with --expect-leak no",
+      "decision_line": "Says both 4-test suites passed. The script appends five checks. The line is reached only after both python commands return 0 under pipefail.",
+      "logs": "Written under the runner temp directory and uploaded as an artifact. Absent from git."
+    },
+    {
+      "id": "int-clock-and-badcap-unchanged-on-5101c252",
+      "status": "same search blob as 356e863d; uci parser lines unchanged by the one-line book edit; not played",
+      "search_blob": "d48e9f167e94f70d677a75817138a27f4e4755a2",
+      "parser": "src/uci.cpp:73",
+      "fail_returns": 0,
+      "wtime_store": "src/uci.cpp:99",
+      "budget": "src/search.cpp:1141 makes a parsed 0 a 1 ms budget after the 10 ms overhead",
+      "bad_captures": "src/search.cpp:296 writes a 64-slot array declared at src/search.cpp:384"
+    },
+    {
+      "id": "tt-tag-overlaps-multiply-high-index",
+      "status": "source and fixture arithmetic checked; the stored 12-failure log was not rerun; no Elo",
+      "parent": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b",
+      "parent_branch": "cursor/engine-strength-overhaul-66cc",
+      "parent_still_has_old_tag": true,
+      "fix_tip": "9108d012526be80c6d163f7cab684e6acd9abf8d",
+      "fix_present_on": [
+        "356e863dbd86d2ce24b8ee9486d7406f1d525480",
+        "af1941375111717f415a46d9ce0224c329034466",
+        "5101c2529d386b7c3a04ba9156a69ee34df6bb43"
+      ],
+      "old_tag": "src/search.cpp:197 and :218 store key>>32 on 24cc2cce",
+      "index": "include/forge/search.hpp:106 on 24cc2cce, (key * cluster_count) >> 64",
+      "new_helper": "include/forge/search.hpp:106 verification_key; low 32 bits on the multiply-high path; key>>32 on the modulo path",
+      "call_sites": [
+        "src/search.cpp:197",
+        "src/search.cpp:218"
+      ],
+      "test": "tests/tests.cpp:484",
+      "patch_sha256": "954a804ba8ba624c2823dafa9d303dc29c618722bd8e38bc49d7a1b1709eeb39",
+      "index_table": "1 MiB and 3 MiB multiply-high and modulo indices match forge-tt-review.md",
+      "stored_baseline_failures": 12,
+      "stored_exit": 1,
+      "bench_nodes_both_logs": 417491,
+      "bench_times_ms": [
+        654,
+        836
+      ],
+      "strength": "validation/hourly/STATE.json strength.decision is pending"
+    },
+    {
+      "id": "sanitizer-logs-split",
+      "status": "logs read; neither ctest was rerun; no engine leak identified",
+      "first_log": "validation/hourly/2026-10-19-initial/sanitizer-ctest.log starts with a LeakSanitizer fatal error. 1 of 4 tests passed. forge_tests, uci_regression, and ponder_regression fail because the engine exits 1.",
+      "status_json_ctest_exit": 8,
+      "second_log": "sanitizer-ctest-no-lsan.log records 4/4 pass",
+      "environment": "sanitizer-environment.json sets detect_leaks=0 and records ctest_exit 0",
+      "state_sentence": "STATE.json says the address and undefined-behavior run passed and LeakSanitizer was unavailable"
+    },
+    {
+      "id": "cited-pgn-counts-match",
+      "status": "Result tags scored; Elo figures in the note were not recomputed; the 44-file archive was not recounted",
+      "zip_sha256": "acbd91b4a7f7829092eede5472e2c40de1e34f33e469f6b2927c61b58ad27960",
+      "forge_6_4_vs_sf19": {
+        "blob": "d2ba8f9e7985256d9f4b6052460b846366767207",
+        "v64": "35/30/35",
+        "games": 100,
+        "tc": "20+0.2",
+        "pairs": 50,
+        "histogram": [
+          5,
+          8,
+          18,
+          15,
+          4
+        ]
+      },
+      "residual_clock": {
+        "blob": "b03d55a9a358d5896f9d806b7f33d5aec76248bd",
+        "res128": "49/23/128",
+        "games": 200,
+        "tc": "10+0.1",
+        "histogram": [
+          0,
+          12,
+          57,
+          24,
+          7
+        ],
+        "engine_name_both_sides": "Chess Engine Forge 6.3.0"
+      },
+      "residual_20k": {
+        "res128": "209/88/203",
+        "games": 500,
+        "normal": 170,
+        "adjudication": 330
+      },
+      "aa_in_this_commit": {
+        "candidate": "4/0/4",
+        "games": 8,
+        "pentanomial": [
+          0,
+          0,
+          4,
+          0,
+          0
+        ],
+        "elo_claim": null,
+        "console_drawratio_line": "100.00 % while Draws is 0"
+      }
+    },
+    {
+      "id": "clock-badcap-book-unchanged-on-9108d012",
+      "status": "lines read; not played",
+      "parser": "src/uci.cpp:73",
+      "fail_returns": 0,
+      "wtime_store": "src/uci.cpp:99",
+      "budget": "src/search.cpp:1139 makes a parsed 0 a 1 ms budget after the 10 ms overhead",
+      "bad_captures": "src/search.cpp:296 writes a 64-slot array declared at src/search.cpp:384",
+      "book": "src/uci.cpp:325 still probes when own_book is false and book_file is non-empty"
+    },
+    {
+      "id": "qsearch-halfmove-and-root-slot-notes",
+      "status": "source lines match forge-search-audit.md; neither case was searched or timed",
+      "compute_key": "src/board.cpp:896 omits halfmove_",
+      "qsearch_cutoff": "src/search.cpp:692 has no halfmove test",
+      "main_cutoff": "src/search.cpp:813 requires halfmove_clock() < 90",
+      "eval_substitution": [
+        "src/search.cpp:708",
+        "src/search.cpp:830"
+      ],
+      "root_nodes": "src/search.cpp:1048 adds to slot move_count-1; cleared once at :1239; read at :1303",
+      "check_masks": "src/search.cpp:266, consumed at :449 and :466"
+    },
+    {
+      "id": "tt-tag-sprt-failed-without-a-committed-pgn",
+      "status": "protocol and STATE read; driver not executed; six games not scored; no Elo",
+      "not_a_tip": "918859057a433d58e6b7fecd62f83861665f05f2",
+      "single_tip": {
+        "branch": "forge/review-pgn-nps-signal-20261020-0010",
+        "tip": "374a71d44ea0a2d28ac26b196ced57c34ddfdcd8"
+      },
+      "shared_tip": "2fc649effb6d2f09f4fdf63b44d59283fe26b616",
+      "shared_branches": 9,
+      "protocol_sha256": "7cc725dddece0cb1b1db04f9644c98c2420072aeda3b2ced6e0bef0837c3b885",
+      "driver_sha256": "7829a8699941f79dce60e0f001d6c9b8f3a86592c284ceade67e80585303edc5",
+      "driver": "tools/match/run_hourly_sprt.py",
+      "book_sha256": "de36a48f856a5a0c10d0865747965a7b2f5d89149078923ba2d766979238bf6c",
+      "book_lines": 10000,
+      "decisions": [
+        "pending",
+        "prepared_not_started",
+        "failed_no_resume_timeout_diagnosis",
+        "failed_no_resume_timeout_unresolved"
+      ],
+      "candidate_status_at_2fc649ef": "correctness_verified_strength_blocked",
+      "claimed_games": 6,
+      "claimed_pairs": 3,
+      "counts_usable_for_strength": false,
+      "result_json": "validation/hourly/2026-10-19-initial/matches/tt-tag-sprt/tranche-00100-result.json",
+      "result_json_in_git": false,
+      "evidence_zip_in_git": false,
+      "evidence_zip_sha256_named_in_state": "a46354a38c4866a748aca459e794be33a934957e8e1c1f041a99d85c73b9533e",
+      "encoded_parts_not_decoded": 45,
+      "review_checks_recorded": 22,
+      "review_script_executed_here": false,
+      "recovery_strength_games_started": false
+    },
+    {
+      "id": "cold-replay-budget-matches-initial-limits",
+      "status": "integer formula checked; position not searched",
+      "protocol": "validation/hourly/2026-10-19-initial/diagnostics/timeout-cold-replay/protocol.json",
+      "moves_after_white_fen": 49,
+      "side_to_move": "black",
+      "btime_ms": 596,
+      "binc_ms": 100,
+      "constants": "src/search.cpp:50-53 and :54-59",
+      "formula": "src/search.cpp:1139-1148",
+      "available_ms": 586,
+      "soft_ms": 101,
+      "hard_ms": 351,
+      "soft_factor": "src/search.cpp:1314",
+      "hard_stop": "src/search.cpp:590 does not apply the factor",
+      "reported_return_ms": 1404,
+      "trace_in_commit": false
+    },
+    {
+      "id": "report-table-matches-scored-pgns",
+      "status": "Result tags scored; Elo figures not recomputed",
+      "zip_sha256": "acbd91b4a7f7829092eede5472e2c40de1e34f33e469f6b2927c61b58ad27960",
+      "zip_members": 45,
+      "zip_pgns": 44,
+      "zip_result_tags": 76047,
+      "v64": "35/30/35",
+      "v64_sha256": "076d1f5f6d8e44da96b0ae211944188c18f75cf48255ecbe47db20c4cd39f855",
+      "res128_clock": "49/23/128",
+      "res128_clock_sha256": "85cf152a44ae4963e4ed008cd392ea5e481e071401ffc96e3be0fdf86d8e9559",
+      "res128_20k": "209/88/203",
+      "res128_20k_sha256": "5f277d26c1ed4e51003bbf94452047973e1574d501a9f1fb475cff826ee286a2",
+      "res128_20k_adjudication": 330,
+      "f481fc5a_is_ancestor": false,
+      "residual_bytes_equal_f481fc5a": true,
+      "loose_stockfish_named_pgns": 10,
+      "loose_stockfish_named_games": 1170,
+      "stockfish_opponent_games": 1120,
+      "threads_file_games": 50,
+      "threads_engine_name": "Chess Engine Forge 6.0.0",
+      "pre62_engine_name": "Chess Engine Forge 6.1.0",
+      "aa_candidate": "4/0/4",
+      "aa_elo_claim": null
+    },
+    {
+      "id": "clock-badcap-book-unchanged-on-2fc649ef",
+      "status": "same search and uci blobs as 9108d012; not played",
+      "search_blob": "ca5b354137b9341f16a23e55805eed1f7681d333",
+      "uci_blob": "9bf1b757e09b5314a29101d444ae660d68b28d62",
+      "protocol_ownbook": false,
+      "protocol_external_book": null
+    },
+    {
+      "id": "deadline-probe-evidence-absent",
+      "status": "report sentences only; patches not applied; engine blobs unchanged",
+      "tip": "d2d8dfe4fe9df20697f993bf44dea0f65e57ba39",
+      "tree": "b206821973417fc9a42eeefa4390e9b9969878c9",
+      "branches": 7,
+      "files_added": [
+        "validation/hourly/2026-10-20-deadline/REPORT.md",
+        "validation/hourly/2026-10-20-deadline/probe-deadline-tests.patch",
+        "validation/hourly/2026-10-20-deadline/probe-deadline.patch"
+      ],
+      "search_blob": "ca5b354137b9341f16a23e55805eed1f7681d333",
+      "uci_blob": "9bf1b757e09b5314a29101d444ae660d68b28d62",
+      "claimed_tests": "11/11 synthetic and 8/8 mocked trials",
+      "zip_sha256": "c82add3a7589d53cf323417688d6ec47aab771be2aa5241e442d2c6fb4c3d986",
+      "zip_in_git": false,
+      "elo": null
+    },
+    {
+      "id": "hard-budget-351ms-formula",
+      "status": "formula recomputed from search.cpp constants; diagnostic tests not run",
+      "tip": "87a319fdcd028ae7058036735b7e75adebfaaa84",
+      "tree": "44a96fb2d5cc957935f9f87200ac1013761ba418",
+      "branches": 10,
+      "clock": "go wtime 401 btime 596 winc 100 binc 100, overhead 10, Black to move",
+      "available_ms": 586,
+      "soft_ms": 101,
+      "hard_ms": 351,
+      "constants": "src/search.cpp:50-53",
+      "allocation": "src/search.cpp:1139-1151",
+      "hard_stop": "src/search.cpp:590",
+      "poll": "src/search.cpp:674 and src/search.cpp:779, every 1024 nodes",
+      "claimed_tests": "14/14 unit, 8/8 clean synthetic, 4/4 delayed 650 ms overruns",
+      "zip_sha256": "1e5fdb8d0cc1bc1d21f8e3aa53f0e851f5912c81a6d7274e0eb773e4d795d3e3",
+      "zip_in_git": false,
+      "engine_source_changed": false,
+      "elo": null
+    },
+    {
+      "id": "nnue-aa-calibration-failed",
+      "status": "ratios recomputed from stored pair seconds; no candidate A/B; no Elo",
+      "report_branch": "results/nnue-performance-39334266771-1",
+      "report": "hosted-nnue-performance-results/performance/report.json",
+      "protocol_branch": "forge/hosted-nnue-performance-20261019-2220",
+      "experiment": "forge-6.4.10-fused-nnue-update-vs-6.4.9-hosted-linux",
+      "baseline_sha": "4edda780c68a742f20565d4e6a54a0c99a2c88a6",
+      "candidate_sha": "36f5b2f6e1ff519e82a4b52edc85caceaf15aed0",
+      "status_field": "failed_primary_calibration_no_ab",
+      "qualifies_hosted_speed_claim": false,
+      "ab_status": "skipped_failed_primary_calibration",
+      "kernel_status": "skipped_failed_primary_calibration",
+      "all_twelve_commands": "baseline/forge",
+      "cpu_ratios": [
+        0.9779746970333036,
+        1.0142985934967326,
+        1.0329386002802807,
+        1.00967519727259,
+        0.9780256772981446,
+        1.0472249068040853
+      ],
+      "cpu_median": 1.0119868953846614,
+      "wall_ratios": [
+        0.9772402859698365,
+        1.0135423649340312,
+        1.0337375655593846,
+        1.0079057757275274,
+        0.9795777539748349,
+        1.0484324974942478
+      ],
+      "wall_median": 1.0107240703307792,
+      "each_ratio_gate": [
+        0.97,
+        1.03
+      ],
+      "median_gate": [
+        0.99,
+        1.01
+      ],
+      "failing_pairs": [
+        3,
+        6
+      ],
+      "bench_nodes_each_stored": 419798,
+      "bench_rerun": false,
+      "baseline_forge_sha256_recorded_expected_equals_actual": "82a385d5504733bf355dfad1ece2266c7889ef33229454e45c1f0cee4f0d2260",
+      "candidate_forge_sha256_recorded_expected_equals_actual": "1946bfd9c59f88582d018eda2fc74bda0025c4bd700791cb1fd1b7303c0aa9e4",
+      "binaries_rehashed_here": false
+    },
+    {
+      "id": "tt-store-key-before-payload",
+      "status": "source order read; toy not compiled; Forge not run",
+      "tip": "50149f788fda75eff8d2882fe104e5232ad9903a",
+      "store": "src/search.cpp:222-226",
+      "order": [
+        "key32",
+        "score",
+        "eval",
+        "depth",
+        "gen_bound"
+      ],
+      "comment": "include/forge/search.hpp:80-81",
+      "probe_accepts": "src/search.cpp:199 key32 match and occupied()",
+      "replacement_hole": "an occupied slot keeps its old bound until gen_bound is written, so a new key can match an old score",
+      "toy": "investigations/tt_smp_20261020/tt_publication_minimal.cpp",
+      "toy_stdout": "PASS: wrong-key score accepted",
+      "elo": null
+    },
+    {
+      "id": "qsearch-check-masks-unused",
+      "status": "source read; no timing",
+      "constructor": "src/search.cpp:266-275",
+      "consumers": [
+        "src/search.cpp:449",
+        "src/search.cpp:466"
+      ],
+      "capture_qsearch": "src/search.cpp:336-346 does not call direct_check",
+      "elo": null
+    },
+    {
+      "id": "smp-node-publish-gap",
+      "status": "source mechanism read; no go nodes measurement",
+      "helpers_skip_budget": "src/search.cpp:586",
+      "publish_inside_should_stop": "src/search.cpp:584",
+      "poll": "src/search.cpp:674 and src/search.cpp:779",
+      "node_limit_main_only": "src/search.cpp:1125",
+      "helper_join": "src/search.cpp:1367-1371",
+      "file_ends": 1375,
+      "cited_range_1365_1395": "the join is inside the file; line 1395 does not exist",
+      "elo": null
+    },
+    {
+      "id": "root-effort-ordinal-buckets",
+      "status": "source read; the 1355-versus-601 figure is not in this commit",
+      "accumulate": "src/search.cpp:1048",
+      "best_index": "src/search.cpp:1059",
+      "cleared_once": "src/search.cpp:1239",
+      "soft_factor": "src/search.cpp:1303-1306",
+      "elo": null
+    },
+    {
+      "id": "tester-0730-counts-are-sentences",
+      "status": "handoff and provenance read; no log, PGN, or executable opened; no Elo",
+      "not_a_tip": "7e3fa78a1e756e3ad9cb36e328d3d4bfa0e3ca79",
+      "tip": "a9f14bab5beb1e8d0e6ae21cc835a3afa66776c9",
+      "branch": "forge/test-20261020-0730",
+      "tree": "7b40ff8923192138ae145a3fc3d2369d9b53fafa",
+      "files": 1056,
+      "parent": "87a319fdcd028ae7058036735b7e75adebfaaa84",
+      "added": [
+        "validation/hourly/2026-10-20-0730/HANDOFF.txt",
+        "validation/hourly/2026-10-20-0730/PROVENANCE.md"
+      ],
+      "sentences": [
+        "54/54 standalone UCI checks for archived 6.4.4 and 6.4.7",
+        "OwnBook=false 6/6 groups matched moves, scores, and nodes",
+        "rule50 98/99 cold/warm 12/12 zero-centipawn scores"
+      ],
+      "strength": "HANDOFF.txt says INCONCLUSIVE and the candidate is BLOCKED. No new games.",
+      "checkpoint_zip_sha256": "47b63b4fb58cdc0d1e416b5c478dbb46615008c9f4c93edb87088f99b9e64c1f",
+      "checkpoint_zip_in_these_trees": false,
+      "digest_commits": [
+        "7e3fa78a",
+        "a9f14bab"
+      ],
+      "actions_zip_sha256_named": "1dc3d43767bc95251acdf2ec363e4e79b8a00e15d16b1fbd3202ec644b9a5600",
+      "actions_run_named": "39332822379",
+      "actions_zip_opened": false,
+      "engine_blobs_unchanged": true,
+      "search_blob": "ca5b354137b9341f16a23e55805eed1f7681d333",
+      "uci_blob": "9bf1b757e09b5314a29101d444ae660d68b28d62",
+      "book_blob": "5f79f022f65a524dcc5b15059c5e8b33b26f321a",
+      "elo": null
+    },
+    {
+      "id": "archived-644-and-647-are-side-commits",
+      "status": "version strings read; commits are not ancestors of 87a319fd; binaries not hashed",
+      "merge_base_with_87a319fd": "9108d012526be80c6d163f7cab684e6acd9abf8d",
+      "commits": [
+        {
+          "sha": "816423b1ddac23a00244449deef59dba736055a9",
+          "label": "6.4.4 candidate",
+          "id_name": "src/uci.cpp:163 Chess Engine Forge 6.4.4 candidate",
+          "subject": "Implement isolated rule50 TT score-context candidate and actual-Worker regressions",
+          "executable_sha256_named": "09d901683f123d97aa2a71460d1cd8b26afbb48229c8af675939e23fdd33a3cc"
+        },
+        {
+          "sha": "2c0c7efa49023d8e3f49de3f5596f333a3f01202",
+          "label": "6.4.7 candidate",
+          "id_name": "src/uci.cpp:163 Chess Engine Forge 6.4.7 candidate",
+          "subject": "Initialize MovePicker check masks only when quiet or evasion scoring consumes them",
+          "executable_sha256_named": "8944476e9e705847433442dc09d758bb0198911e081d233323cb3259987cbc96"
+        }
+      ],
+      "branch_tips": false,
+      "executables_hashed_here": false
+    },
+    {
+      "id": "go-origin-patch-staged-on-ec013151",
+      "status": "four files read; blobs match 356e863d; patch not applied; model not compiled; no Elo",
+      "tip": "ec013151745b524a7f7095b834ff97f75fecad2c",
+      "branch": "forge/test-20261020-0830",
+      "tree": "f928a898ee51c01545a27db29df6c0d371cba55f",
+      "files": 1058,
+      "parent": "87a319fdcd028ae7058036735b7e75adebfaaa84",
+      "engine_changed": false,
+      "blobs": {
+        "REPORT.md": "d8b89a7291d57b9bc67b9f0682162cb4119c8149",
+        "model-test.stdout": "e08ef2bcd2727628fc5ced5092f04e89c141fddb",
+        "time_origin_model.cpp": "d6bce27f9504973921e28ad23aa6527d4d58911a",
+        "uci-clock-origin.patch": "4f5362a14d1d61469eb634096b4ae5035b89540b"
+      },
+      "same_blobs_on": "356e863dbd86d2ce24b8ee9486d7406f1d525480",
+      "named_anchors_match_parent": {
+        "include/forge/search.hpp": "f3f96e4bbd8d7c315aa1a6819b8e3dc27fe51ab6",
+        "src/search.cpp": "ca5b354137b9341f16a23e55805eed1f7681d333",
+        "src/uci.cpp": "9bf1b757e09b5314a29101d444ae660d68b28d62"
+      },
+      "timer_today": "src/search.cpp:1112 sets start_ to steady_clock::now at Worker::search entry",
+      "elapsed": "src/search.cpp:561 reads start_, or ponder_hit_ns after a ponder hit",
+      "hard_stop": "src/search.cpp:590",
+      "go_handler": "src/uci.cpp:286 starts the go command. stop_search is line 287. The worker thread starts at line 350.",
+      "patch_context": {
+        "search.hpp": "first old line int moves_to_go is line 26; line 25 is the movestogo comment",
+        "search.cpp": "first old line is line 1109, the iterative-deepening comment. start_ is line 1112",
+        "uci_go": "first old line stop_search of position is line 284; the hunk header says 285",
+        "uci_assign": "src/uci.cpp:318-320 matches the second hunk"
+      },
+      "assignment": "The patch writes go_received before stop_search and copies it onto limits for every non-perft go, including depth, nodes, infinite, and ponder.",
+      "report_apply_claim": "REPORT.md says git apply passed on a synthetic fixture, not the full source tree. This run did not apply it.",
+      "model_stdout": "budget_ms=351 old_elapsed_ms=0 go_origin_elapsed_ms=440",
+      "cycle7_zip_in_tree": false,
+      "elo": null
+    },
+    {
+      "id": "research-0815-hypotheses-not-run",
+      "status": "RESEARCH.md read; cited ranges checked on blob ca5b3541; no build, TSan, perft, or match",
+      "tip": "b0ed22d96b71803671736d68c13ba0b77d02214f",
+      "branch": "forge/research-20261020-0815",
+      "tree": "4397df2d3d9b2858a2930bd69638dffc7a9f5e4c",
+      "files": 1059,
+      "parent": "ec013151745b524a7f7095b834ff97f75fecad2c",
+      "engine_changed": false,
+      "p0_mismatches": [
+        "src/uci.cpp:286-329 does not launch the worker. The thread starts at src/uci.cpp:350.",
+        "src/search.cpp:574-580 is total_nodes. The hard comparison is src/search.cpp:590.",
+        "Helpers launch at src/search.cpp:1363-1365 and join at src/search.cpp:1370. The file ends at line 1375. Line 1395 does not exist."
+      ],
+      "p0_matches": "src/search.cpp:1111-1153 starts the timer and computes soft and hard limits. Helpers clear those limits at src/search.cpp:1154-1158.",
+      "p1_matches": [
+        "TTEntry is include/forge/search.hpp:60-74. The cited range 54-95 starts at is_mate_score.",
+        "probe accepts key32 and occupied() at src/search.cpp:199. store writes key32 at src/search.cpp:222 before gen_bound at src/search.cpp:226.",
+        "qsearch returns a TT score with no halfmove test at src/search.cpp:692-695.",
+        "main-search cutoff requires halfmove_clock() < 90 at src/search.cpp:813-816."
+      ],
+      "verification_key": "include/forge/search.hpp:106-115. The note range 90-116 also covers hashfull and prefetch.",
+      "cited_side_commits_not_ancestors": [
+        "df5d839a6a03f705310bb958601375fa9411e810",
+        "816423b1ddac23a00244449deef59dba736055a9"
+      ],
+      "their_bench_sentence": "six-position 1T parity and bench11=419798 for df5d839a. Logs not opened. Distinct from the hosted NNUE bench field of the same integer.",
+      "their_tsan_sentence": "baseline TSan write search.cpp:222 versus read search.cpp:199 at Threads=4, Hash=1, go nodes 200000. Not rerun.",
+      "perft_sentence_not_run": [
+        "startpos d6 119060324",
+        "Kiwipete d4 4085603",
+        "CPW P3 d5 674624"
+      ],
+      "elo": null
+    },
+    {
+      "id": "clock-probe-omits-ownbook",
+      "status": "source read on bcfb3503; probe not executed; Actions artifact not in git; no Elo",
+      "tip": "bcfb3503b2d39f569677e4af675a09d5b870b3ca",
+      "branch": "forge/candidate-uci-clock-origin-native-20261020-0845",
+      "tree": "1ba6f4f89cfb242591274d7029bf4cc00791385b",
+      "files": 1066,
+      "parent": "7e6e977c2f454b4677a16a667e619c1cf43de758",
+      "added": [
+        "validation/hourly/2026-10-20-0845/LEAD.md"
+      ],
+      "engine_changed": false,
+      "engine_blobs": {
+        "src/uci.cpp": "9bf1b757e09b5314a29101d444ae660d68b28d62",
+        "src/search.cpp": "ca5b354137b9341f16a23e55805eed1f7681d333",
+        "include/forge/search.hpp": "f3f96e4bbd8d7c315aa1a6819b8e3dc27fe51ab6",
+        "src/book.cpp": "5f79f022f65a524dcc5b15059c5e8b33b26f321a"
+      },
+      "workflow_blob": "a04c2d3c3d44929d5e82d261994db6dc88f6b3f1",
+      "workflow_same_as": "356e863dbd86d2ce24b8ee9486d7406f1d525480",
+      "workflow_trigger": ".github/workflows/forge64-clock-origin.yml:4 runs on forge/6.4-hourly-20261019",
+      "probe_blob": "9a6101f005ec68ca70c17abae283df65ac26295f",
+      "probe_sends_ownbook": false,
+      "probe_sequence": "native_clock_probe.py:66-72 sends uci, isready, position startpos, then go movetime 1200",
+      "probe_requires_info_depth": "native_clock_probe.py:79-81",
+      "book_default": "src/book.cpp:8-10 sets FORGE_HAS_BOOK when src/book_data.inc is present. src/book.cpp:183 returns that flag. src/uci.cpp:132 and :168 default OwnBook to true.",
+      "book_hit": "src/uci.cpp:323-339 treats go movetime as a game search and returns bestmove without starting the worker",
+      "lead_actions_run": "39382382647",
+      "lead_quotes_c2c4": "validation/hourly/2026-10-20-0845/LEAD.md:7",
+      "transcript_in_this_commit": false,
+      "five_mock_tests_in_git": false,
+      "ownbook_fix_commit_not_ancestor": "06c581895708a6eb9ff26b380d818f72f7bd9ebf",
+      "int_clock": "src/uci.cpp:73-78",
+      "bad_captures": "src/search.cpp:296 writes bad_captures_[bad_count_++]; the array is 64 at src/search.cpp:384",
+      "played": false,
+      "elo": null
+    },
+    {
+      "id": "ci-script-pins-unpatched-baseline",
+      "status": "script diff read; not executed; engine blobs match 356e863d; no Elo",
+      "tip": "66849e5c6fc97b9d7a2f89f7fac54ea6f6253b26",
+      "branch": "forge/candidate-ci-clock-parent-20261020-0858",
+      "tree": "929d044aa18c9ffc7b9366e424812f990c058b4e",
+      "files": 1067,
+      "parent": "294cf1ba7d2e3e77a70a08578958a5faea3b54dd",
+      "ancestor_of_356e863d": false,
+      "only_change": "validation/hourly/2026-10-20-go-origin-native/run_native_validation.sh",
+      "diff_against_parent": "7 insertions, 5 deletions",
+      "script_blob": "04a29c6ecb736165c89b2ddbbc90b769e1b5a49b",
+      "pins": "run_native_validation.sh:25 PRE_FIX_REV=06c581895708a6eb9ff26b380d818f72f7bd9ebf",
+      "fetch": "run_native_validation.sh:26 fetches that commit on every run",
+      "archives": "lines 27-28 archive the pin as baseline and HEAD as candidate. The scoped patch is not applied.",
+      "later_script_on_356": "c96d424ab4f632fa83846595a7d93388e809436c fetches only when the pin is absent, records it in identities.txt, and writes source-diff-stat.txt",
+      "probe_blob": "b3fcc137e6f9918ba32f86fb615aec7b57179e28",
+      "probe_ownbook": "native_clock_probe.py:73-79 sends OwnBook false, Book Depth 0, Ponder false, Threads 1, and Hash 64",
+      "go_received": "src/uci.cpp:288 samples the clock before stop_search at src/uci.cpp:289",
+      "start_time": "src/uci.cpp:325-326 assigns it for a non-infinite, non-ponder search with time_ms or movetime_ms",
+      "book_probe_remains": "src/uci.cpp:331",
+      "ci_attempt_blob": "3111abd7b72eef56a17a4c87d88a0b37fa544caf",
+      "ci_attempt_same_on": [
+        "06c581895708a6eb9ff26b380d818f72f7bd9ebf",
+        "356e863dbd86d2ce24b8ee9486d7406f1d525480"
+      ],
+      "quoted_journal": "CI_ATTEMPT_1.md:4 quotes info string book move c2c4 and bestmove c2c4",
+      "artifact_sha256": "4f56cef95216ae53edef7f9e743be994cec083aa9b530961a417806fa3f0ed0c",
+      "artifact_in_git": false,
+      "artifact_expiry_in_note": "2026-11-03",
+      "int_clock": "src/uci.cpp:73-78",
+      "bad_captures": "src/search.cpp:296 and the 64-slot array at src/search.cpp:384",
+      "played": false,
+      "elo": null
+    },
+    {
+      "id": "investigator-0900-no-new-finding",
+      "status": "11-line note read; engine blobs match 356e863d; no native test; no Elo",
+      "tip": "83fdd9279646efdab24e8a4956b1095baaa2e699",
+      "branch": "investigator/hourly-20261020-0900",
+      "tree": "cdac332d39d6190a2b414ee1cb9c80213dc174b8",
+      "files": 1069,
+      "parent": "356e863dbd86d2ce24b8ee9486d7406f1d525480",
+      "added": [
+        "validation/hourly/2026-10-20-0900-investigator/REPORT.md"
+      ],
+      "audited_commit_named": "356e863dbd86d2ce24b8ee9486d7406f1d525480",
+      "named_hourly_branch_now": "5101c2529d386b7c3a04ba9156a69ee34df6bb43",
+      "note_says": "No distinct new reproducible bug. Native engine tests unavailable because git clone DNS fails.",
+      "engine_changed": false,
+      "elo": null
+    }
+  ],
+  "next_run": [
+    "Diff ls-remote against inventory/branches-current.tsv. Append to inventory/HEAD_MOVEMENT.tsv. Do not rewrite inventory/branches.tsv or earlier movement rows.",
+    "This checkpoint tip will differ from fcc10e73f3e7b791c54faaf802605d7161d008c5 because of the run-15 commit. Record it, then continue. Do not treat it as foreign work.",
+    "If a foreign tip moved, read that delta first.",
+    "Otherwise read tip ffc598ad12760e5cdc8cb1ee15383f13787acad8 (results/tt-strength-39403471059-1). It is a root commit with two files. Read archived-results/tt-strength-39403471059-1.manifest.json (16162 bytes). Leave the 16268649-byte zip unread until the manifest identifies stored scores. Do not execute repository scripts.",
+    "If that manifest is only an index, read tip ee681b5ede76c2f85a63bc733f596b258bdbcd4f (research/grokchess-stop-grace-20261020-1012). Parent 356e863d. Its commit adds research/grokchess/2026-10-20-stop-helper-grace/stop_helper_grace.patch, 62 lines. Read the patch as data. Do not apply it. If that is short, read child tip a43348a4c6ebd4e35d5164b68acda21b014c20af and its 3-line REPORT.md.",
+    "Leave 3cabc1b2 unread. It is a child of 2fc649ef, not a branch tip, and its diff is 1368 files. Do not decode the .b64 artifact parts.",
+    "KRK replay stays the first reproduction when a run investigates instead of reading: H512 efb2ff96, then f6760ff6, then 49b80952, FEN 4R3/8/8/k2K4/8/8/8/8 w - - 0 1, expected d5c5.",
+    "Do not push to main, lock/combo29-20261110, fable/standalone-h512-20261111, or another agent's branch."
+  ],
+  "same_tip_as_previous_table": 429
+}
