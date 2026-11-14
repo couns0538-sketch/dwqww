@@ -1,64 +1,174 @@
 # Move legality — 2026-11-13
 
 Branch `cursor/move-legality-82b6`, based on `fable/standalone-h512-20261111`.
-Standard chess only. This note records one clock bug, the fix, and the tests
-that compared Forge with python-chess 1.11.2. `LOCK.md` is unchanged. Bench
-pins were left unmeasured.
+Standard chess only. One board bug was wrong. Castling, en passant,
+promotions, checks, pins, and make/unmake of the pieces matched python-chess
+1.11.2. `LOCK.md` was not edited.
 
-## Result
+## What was wrong
 
-Legal move generation, check, pins, castling, en passant, promotions, and
-make/unmake matched python-chess on 7,891 positions, on both the king-line
-build and the full-occupancy build. Published perft totals matched. Address
-and undefined-behavior sanitizers reported nothing on the probe self-test.
+The fullmove number in a FEN is the move number of the game. It stays the
+same when White moves, and it increases by one when Black moves. That is
+true of a pass as well as of a real move: a null ply is still a ply.
 
-One rules bug reproduced: a null move by Black left the fullmove counter
-unchanged. A real Black move already advanced it. After the fix, the null
-FEN matches python-chess, and unmake restores the previous counter.
+`Board::make_move` already did this. It saves `fullmove_` in `Undo`, and
+before it flips the side it does:
 
-## The bug
+```cpp
+if (us == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));
+```
 
-`Board::make_null_move` cleared the en-passant square, flipped the side to
-move, and incremented the halfmove clock. It did not increment `fullmove_`
-when Black was the side to move. `make_move` does that before it flips the
-side. python-chess 1.11.2 does the same for a null ply: it increments
-`halfmove_clock`, increments `fullmove_number` when the side to move is
-Black, then swaps the turn and clears en passant (`chess.Board.push`).
+`Board::make_null_move` did the rest of a ply and skipped that line.
 
-The first oracle run, before the fix, stopped after 30 failing positions
-(428 matched, 31 failed, 63 error lines). Every error was this clock.
-Legality, `gives_check`, move flags, checkers, castling, en passant squares,
-and child FENs were not among them. White nulls already matched, because a
-White ply does not advance the fullmove counter.
+What the null path already did, and still does:
 
-Example, `r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1`:
+- save the en-passant square, the Zobrist key, the halfmove clock, the
+  checker bitboard, and the king-line cache
+- remove the en-passant file from the key when a legal capture existed, then
+  clear the square
+- flip the side to move and flip the side bit in the key
+- add one to the halfmove clock, stopping at 65535
+- set `plies_from_null_` to 0 and `checkers_` to 0
+- push the new key onto the repetition history
+- mark the king-line cache stale
 
-| side | python-chess after a null ply | Forge before the fix |
-| --- | --- | --- |
-| Black | `r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 1 2` | `... w KQkq - 1 1` |
-| White | `r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 1 1` | already matched |
+What it did not do: if Black was the side to move, add one to `fullmove_`.
+`NullUndo` had no field for that counter, so `unmake_null_move` could not
+have restored a change that was never made.
 
-The halfmove clock was 1 on both sides. Only Black's fullmove was one low.
-The same shape showed up on the en-passant pin positions, the stalemate
-position, and start positions after one White move (the null was then
-Black's ply).
+python-chess 1.11.2, in `Board.push`, does the clocks first and then, for a
+null move, swaps the turn and clears en passant:
 
-The internal probe missed it. After a null it re-parses Forge's own FEN with
-`set_fen`, and `set_fen` keeps whatever fullmove number the FEN contains.
+```python
+self.halfmove_clock += 1
+if self.turn == BLACK:
+    self.fullmove_number += 1
+self.turn = not self.turn
+self.ep_square = None
+return
+```
 
-## The fix
+Measured on `r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1` (Black to move, move 1,
+halfmove 0). After one null ply:
+
+| | halfmove | side | fullmove | FEN tail |
+| --- | ---: | --- | ---: | --- |
+| python-chess | 1 | White | 2 | `w KQkq - 1 2` |
+| Forge before the fix | 1 | White | 1 | `w KQkq - 1 1` |
+| Forge after the fix | 1 | White | 2 | `w KQkq - 1 2` |
+
+The same position with White to move stayed on fullmove 1 for both programs,
+because White's ply does not advance the move number. The halfmove clock
+became 1 for both. Pieces, castling rights, and the en-passant square agreed.
+Only the last FEN field was wrong, and only while Black was the side that
+had just passed.
+
+Why the number has to become 2: the position started as Black's turn in
+move 1. After Black passes, it is White's turn in move 2. Leaving the
+counter at 1 says "White to move in move 1", which is an earlier point in
+the game. The side had already been flipped, so the FEN described a position
+that had not occurred.
+
+The same one-low fullmove showed up wherever the null ply was Black's: the
+en-passant pin positions, the stalemate `7k/5Q2/6K1/8/8/8/8/8 b - - 0 1`,
+and any start-position line after one White move. The first comparison
+against python-chess stopped after 30 failing positions (428 matched, 31
+failed, 63 error lines). Every error was this field. Legal-move lists,
+check, mate, stalemate, `gives_check`, move flags, promotion pieces, checker
+squares, castling, en passant, and the FEN after a real move were already
+the same.
+
+Why the engine's own test missed it: after the null, the probe printed
+Forge's FEN and loaded that FEN back with `set_fen`. `set_fen` stores the
+fullmove number it is given. A counter that is wrong in the same way on both
+sides of that round trip compares equal. `unmake_null_move` then returned to
+the parent, whose counter had never been changed, so the parent snapshot
+matched too. The bug is visible only to something that knows the right
+move number from outside Forge.
+
+Where it matters: `fullmove_number()` and `Board::fen()` were wrong for the
+whole time a Black null move was on the board. Search calls
+`make_null_move` only from null-move pruning, and only when the side to move
+is not in check (`src/search.cpp`, the block that requires `!in_check`).
+Search does not read the counter. It unmakes the null before the next real
+move, so a finished search does not leave the bad number behind. The one
+reader in the program is `game_ply` in `src/uci.cpp`:
+
+```cpp
+return 2 * (board.fullmove_number() - 1) + (board.side_to_move() == Black ? 1 : 0);
+```
+
+That is used at the root, before search, to decide whether the opening book
+still applies. A null move inside the search does not reach it. A FEN copied
+out while a Black null was in effect would carry the low move number from
+then on. The fix is unconditional. A switch would leave that FEN wrong.
+
+## What changed
+
+Engine, three lines of behaviour and one saved field:
+
+- [include/forge/board.hpp](../include/forge/board.hpp): `NullUndo` gained `fullmove`, default 1, next to the halfmove it already saved.
+- [src/board.cpp](../src/board.cpp): `make_null_move` stores `undo.fullmove = fullmove_` and, while `side_` is still the mover, increments the counter for Black with the same 65535 cap as `make_move`. `unmake_null_move` writes `fullmove_ = undo.fullmove`.
+
+Nothing else in make/unmake, move generation, or the evaluation was edited.
+`LOCK.md`, `windows_build/SOURCE_INPUTS.sha256`, the build receipts, and the
+published executable were left as they are.
+
+Tests and the write-up added on this branch:
+
+- [tools/legality_probe.cpp](../tools/legality_probe.cpp) checks the board against itself: mailbox against bitboards, generated moves against `is_legal` and `gives_check`, make/unmake back to the same FEN and key, and the published perft totals.
+- [tools/legality_oracle.py](../tools/legality_oracle.py) is the comparison with python-chess, including the null-move FEN. That comparison is what catches this bug. The probe compiles into a private temporary directory.
+- [tools/nnue_delta_probe.cpp](../tools/nnue_delta_probe.cpp) checks that the incremental network update matches a full refresh.
+- This file.
+
+## What the tests found, besides the clock
+
+These were checked and matched. They are not further bugs.
+
+- Castling both sides, including through an attacked square, into check, and
+  out of check. Queenside castling stays legal when b1 is attacked. It is
+  illegal when d1 is attacked. Kingside castling is illegal when f1 or g1 is
+  attacked.
+- En passant: a legal capture, a pin on the rank, a pin on the file, a
+  capture that gives check, a discovered check, captures from both sides, a
+  capture that gets out of check, and a recorded square with no capturer.
+- Promotions to knight, bishop, rook, and queen, including captures and
+  checks. A promoting pawn that discovers a rook was included.
+- Pins of a queen, knight, rook, and pawn, and a rook pinned on the rank.
+- Check, double check, checkmate, and stalemate.
+- Make and unmake of those moves, on the king-line fast path and on the
+  full occupancy test. Perft totals through the published depths matched,
+  including start depth 6 at 119060324 and the lock's start depth 5 at
+  4865609.
+- The compiled-in network: 525 legal moves (13 castles, 6 en-passant
+  captures, 41 promotions) and 36 null moves. The incremental accumulator
+  matched a refresh from the board with difference 0, and unmake restored it.
+- A g++ 13.3 release build reproduced all ten bench pins (net on
+  312866 / 862329 / 3024920 / 12389307 / 34048354, net off
+  375354 / 907205 / 2448617 / 13573040 / 24506465) and perft 5.
+
+Two things found in the test harness and the lock record, not in the rules:
+
+- The first oracle wrote its probe binaries to the fixed names
+  `/tmp/legality_kl1` and `/tmp/legality_kl0`. SonarCloud rated that security
+  D, because another user can replace a file at a fixed name under `/tmp`
+  before it is executed. The probes now compile inside
+  `tempfile.TemporaryDirectory` (mode 0700). The quality gate then passed
+  with no new issues.
+- `sha256sum -c windows_build/SOURCE_INPUTS.sha256` matched `board.hpp` and
+  `board.cpp` on the parent commit `efb2ff96` and does not match them after
+  this fix. Five other files already failed on that parent and were not
+  edited here: `include/forge/nnue.hpp`, `include/forge/search.hpp`,
+  `src/nnue.cpp`, `src/search.cpp`, and `src/uci.cpp`. The manifest still
+  names the source of the published E1284F7F binary. It was not rewritten.
+
+## The fix in the source
 
 `NullUndo` now stores `fullmove`. `make_null_move` saves it and, while
 `side_` is still the mover, increments it for Black, saturating at 65535,
 the same cap `make_move` uses. `unmake_null_move` writes it back with the
-other saved fields.
-
-Search calls `make_null_move` only from the null-move pruning block, which
-requires `!in_check`. `fullmove_` is read by UCI only to decide whether the
-root is still inside the opening book (`game_ply` in `src/uci.cpp`). Search
-does not read it. A Linux release build of this branch reproduced the lock
-bench pins, below. The change is always on: a switch would leave the clock
-wrong.
+other saved fields. Search calls `make_null_move` only when not in check.
+The Linux release build above reproduced the lock bench pins.
 
 ## Tests
 
