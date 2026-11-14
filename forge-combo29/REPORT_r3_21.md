@@ -102,7 +102,7 @@ A table of every store ply `0..127`, every mate distance `0..128`, both signs, a
 
 The loss side of the same position shows the mirror image. After `g3g4`, a stored score of `-31872` is read at ply 1. The unfixed code returns `31871` with `is_mate_score=0`. This branch returns `0`. A stored loss of `-31990`, which still fits after adding one ply, returns `31989` and is a mate on both binaries.
 
-Depth 20 and depth 22 match the unfixed binary on the start position, the bench endgame, the bench position that is mate in 2, king and rook versus king (`mate 17`), and the mate in 1. Node counts, scores, PVs, and best moves are the same. The start position at depth 22 is 3618801 nodes on both.
+Depth 20 and depth 22 match the unfixed binary on the start position, the bench endgame, the bench position that is mate in 2, king and rook versus king (`mate 17`), and the mate in 1. Node counts, scores, PVs, and best moves are the same. The start position at depth 22 is 3618801 nodes on both. Depth 24 matches too, including the start position at 8969513 nodes and kiwipete at 7927001 nodes.
 
 A temporary counter inside `score_from_tt`, removed before the next build, fired 0 times across perft 5, bench 11, bench 13, and a depth-22 king-and-rook mate. Those bench and perft commands still printed 4865609, 312866, and 862329 while the counter was present. After deleting the counter and rebuilding, the same three numbers came back. The default searches do not enter the new branch, which is why the pins stay put without an option.
 
