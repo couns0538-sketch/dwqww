@@ -276,6 +276,7 @@ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from
 extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
 extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
 extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
@@ -304,6 +305,11 @@ void refresh();
 
 // True when an enemy piece of strictly lower SEE value attacks a piece of the side to move.
 [[nodiscard]] bool cheaper_enemy_attacks_dearer(const Board& board);
+
+// Side to move is the defender. True when the opponent has a legal capture of a
+// dearer piece by a cheaper piece and static exchange evaluation does not call
+// that capture a material loss. A capture SEE calls losing is not a threat.
+[[nodiscard]] bool null_see_veto_threat(Board& board);
 
 // Move-ordering statistics.
 using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;

@@ -203,7 +203,8 @@ int uci_loop(std::istream& in) {
                          "option name LmrSignedCorrection type check default false\n"
                          "option name LmrLateParentRelief type check default false\n"
                          "option name HindsightDepth type check default false\n"
-                         "option name NullThreatVerify type check default false\n";
+                         "option name NullThreatVerify type check default false\n"
+                         "option name NullSeeVeto type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them. Builds without this macro still accept them.
@@ -324,13 +325,15 @@ int uci_loop(std::istream& in) {
                 else if (value_text == "false") forge::tune::NullThreatVerify = false;
                 else note_invalid();
             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
-                       name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief") {
+                       name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                       name == "NullSeeVeto") {
                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
                              : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
                              : name == "ThreatHistory" ? &forge::tune::ThreatHistory
                              : name == "LmrSignedCorrection" ? &forge::tune::LmrSignedCorrection
-                                                            : &forge::tune::LmrLateParentRelief;
+                             : name == "LmrLateParentRelief" ? &forge::tune::LmrLateParentRelief
+                                                            : &forge::tune::NullSeeVeto;
                 if (value_text == "true" || value_text == "false") {
                     *target = value_text == "true";
                 } else {
