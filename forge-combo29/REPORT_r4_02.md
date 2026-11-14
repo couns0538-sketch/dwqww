@@ -31,6 +31,7 @@ grok47/r3-11-dead-material e1acd7b14870 200 identical
 grok47/r3-13-quiet-extinction b7dbb6c3e859 80 QuietExtinction off vs QuietExtinction on ply 3 pushed d2d4 replay g1f3
 grok47/r3-14-draw-jitter ccbb229af9d0 200 identical
 grok47/r3-15-tm-finish-iteration 4db1f6b29abd 276 clock clock legal, configuration recorded, time-losses 0
+grok47/r3-16-tm-node-share af548ac4265a 287 clock clock legal, configuration missing, time-losses 0
 grok47/r3-21-mate-score-tt af1c998304db 200 identical
 grok47/r3-24-tt-duplicate-shadow 0ca8cb1009df 200 identical
 
@@ -143,6 +144,12 @@ engine source sha256:
 engine binary sha256: 
 fastchess command: clock audit 10+0.1 TimeControl 10+0.1 Hash 16 OwnBook false
 
+grok47/r3-16-tm-node-share af548ac4265a kind clock pgn forge-combo29/tests_r3fu_16/chunk1.pgn
+build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_COMPILER=g++
+engine source sha256: 
+engine binary sha256: 
+fastchess command: clock audit 10+0.1 TimeControl 10+0.1
+
 grok47/r3-21-mate-score-tt af1c998304db kind nodes pgn forge-combo29/tests_r3fu_21/chunk1.pgn
 build flags: -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DFORGE_MARCH=x86-64-v4 -DFORGE_PORTABLE=OFF
 engine source sha256: af1c998304db:2cb78b8c476020dda94a09873fc523bd61352cb7b89c5a6b50e698c2dec33f60 e04556ddc3a4:b0949c1ea74050643e14972b9d27b8d62aa568466e0e28e78587efa2c0060e16
@@ -159,7 +166,6 @@ fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/h
 
 grok47/r3-07-null-see-veto dd4c65ee8 2026-11-14 17:41:10 +0000 Record the fastchess command for the remaining screen chunks.
 grok47/r3-12-soft-nodes 6d8717d28 2026-11-14 15:53:19 +0000 Record the 10000-position nodes and softnodes label totals
-grok47/r3-16-tm-node-share 9ad8ecca5 2026-11-14 17:54:46 +0000 Checkpoint clock screen.
 grok47/r3-17-merge-legal-node-limit 02674044d 2026-11-14 15:28:41 +0000 Record the owner-build node budget follow-up.
 grok47/r3-18-lazy-net-accumulator 820784220 2026-11-14 15:36:04 +0000 Record the AVX-512 fused-pass identity checks.
 grok47/r3-19-faster-hce 528ccdf1c 2026-11-14 15:33:17 +0000 Record the shared-slider follow-up measurements.
@@ -170,5 +176,5 @@ grok47/r4-03-screen-lds e34f64473 2026-11-14 17:45:56 +0000 r4-03: heartbeat scr
 grok47/r4-04-screen-ch4 881e2cc8c 2026-11-14 17:42:33 +0000 r4-04: ContHist4PlyRead screen heartbeat
 grok47/r4-05-screen-npc 4389a6616 2026-11-14 17:38:14 +0000 r4-05: NonPawnCorrection screen chunk 004 (1501-2000)
 
-Last check: 2026-11-14T18:20:17Z
+Last check: 2026-11-14T18:20:20Z
 Deadline: 2026-11-15T01:52:00Z
