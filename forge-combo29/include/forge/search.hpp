@@ -270,6 +270,7 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the 
 extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
 extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
 extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();

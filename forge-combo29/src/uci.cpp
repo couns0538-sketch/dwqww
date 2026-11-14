@@ -188,7 +188,8 @@ int uci_loop(std::istream& in) {
             }
             std::cout << "option name ContHist4PlyRead type check default false\n"
                          "option name NonPawnCorrection type check default false\n"
-                         "option name LmrDeeperShallower type check default false\n";
+                         "option name LmrDeeperShallower type check default false\n"
+                         "option name SoundMatePruning type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them. Builds without this macro still accept them.
@@ -307,6 +308,17 @@ int uci_loop(std::istream& in) {
                                                            : &forge::tune::LmrDeeperShallower;
                 if (value_text == "true" || value_text == "false") {
                     *target = value_text == "true";
+                } else {
+                    note_invalid();
+                }
+            } else if (name == "SoundMatePruning") {
+                if (value_text == "true" || value_text == "false") {
+                    const bool enabled = value_text == "true";
+                    if (forge::tune::SoundMatePruning != enabled) {
+                        forge::tune::SoundMatePruning = enabled;
+                        // Scores already stored were built with the other guard.
+                        searcher.clear();
+                    }
                 } else {
                     note_invalid();
                 }
