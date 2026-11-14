@@ -1,6 +1,121 @@
 # t17: move generation and game-rule suite
 
+This section is the account of the branch. The command logs below it are the evidence. Nothing in those logs was edited to fit a result.
+
+## What changed
+
+Two commits on `grok47/t17-rules-suite`, based on `lock/combo29-20261110`.
+
+`4bdb9e95184199b8fa9344b515aa5359738f715f` added the suite and the only engine edit. `3438c19e92b3f3919b1cd089b2e7e3162bbeee45` extended the suite. The second commit did not touch engine source.
+
+Files:
+
+- `forge-combo29/include/forge/board.hpp`: three lines inside the private section of `Board`.
+
+```cpp
+    // Test probe: compares every field, including ones with no public accessor.
+    friend struct BoardStateProbe;
+```
+
+- `forge-combo29/tests_t17/rules_suite.cpp`: the C++ suite. It links `bitboard.cpp`, `board.cpp`, `eval.cpp`, `eval_params.cpp`, `nnue.cpp`, and `search.cpp`. It does not link `uci.cpp` (that file has `main`) or `book.cpp`.
+- `forge-combo29/REPORT_t17.md`: this file.
+
+The friend lets the test compare `plies_from_null_` and the king-line cache (`valid`, `pinned`, `discoverers`, `check_squares`). Those fields have no public accessor. The declaration does not change move generation, hashing, or search. After it was added, the lock was run again: bench 11 = 312866, bench 13 = 862329, perft 5 from the start = 4865609. The same three numbers came back from an address-sanitizer and undefined-behavior-sanitizer build of the engine binary.
+
 ## What I found
+
+Move generation and the draw rules the search uses already match the cases the task named. No engine rule was changed, because no case failed for a reason that was the engine's.
+
+Published perft, checked against the Chess Programming Wiki, Wasserpuncher/chess-perft, and GoBit `perft_tests.txt` before the suite was written. The three tables agree with each other and with this engine. No expected count was edited.
+
+| Position | Depth | Engine | Published |
+| --- | ---: | ---: | ---: |
+| start | 5 | 4865609 | 4865609 |
+| `r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -` | 4 | 4085603 | 4085603 |
+| `8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -` | 5 | 674624 | 674624 |
+| `r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1` | 4 | 422333 | 422333 |
+| `rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8` | 4 | 2103487 | 2103487 |
+| `r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10` | 4 | 3894594 | 3894594 |
+
+After each of those perfts, and again after a depth-3 walk of every node, the board matches the board from before the walk. Depth-3 position counts were start 9323, Kiwipete 99950, position 3 3018, position 4 9738, position 5 63910, position 6 92016, with 0 key mismatches. At every node, `key`, `pawn_key`, and `checkers` equal a from-scratch recompute.
+
+The search draw rules, at Hash 16 and one thread:
+
+- One repetition cycle is twofold. The root search does not adjudicate it (`score=370 nodes=131 best=h1h8`). Asking `is_draw` while pretending that root is an earlier occurrence returns a draw. A second cycle is threefold and the root search adjudicates it (`score=0 nodes=0 best=h1f1`).
+- Half-move 99 is not an immediate draw. Depth 2 of a quiet position returns `score=0 nodes=32` because every child has reached 100. Half-move 100 with a legal move is an immediate draw (`score=0 nodes=0`).
+- Mate on the move that reaches 100 wins. From `k7/8/1QK5/8/8/8/8/8 w - - 99 1`, `b6b7` scores `31999`. The position after that mate has half-move 100, is checkmate, `is_draw` is false, and the side to move scores `-32000`. The same position with the clock already at 100, before the mate, is a draw even though `b6b7` is still legal (`score=0 nodes=0 best=b6b1`).
+- Stalemate `7k/5Q2/6K1/8/8/8/8/8 b - - 0 1` is `score=0 nodes=0`. The parent move `g5g6` into that stalemate scores `0` with `nodes=2`.
+- Bare kings, king and knight versus king, and king and bishop versus king are immediate draws. King and rook versus king is not (`score=434 nodes=53`).
+- A pawn push or a capture at half-move 99 resets the clock. `a1a8` in `n7/8/8/8/8/7k/8/R3K3 w - - 99 1` leaves a depth-2 search of `score=-381 nodes=37 best=h3g2`. Black is to move after the capture, so the negative score is Black to move in a lost king-and-rook ending. It is not a 50-move adjudication (`nodes` is not 0).
+- A null move flips the side, clears en passant, increments the half-move clock, and matches a recomputed key. Unmake restores every field. Two null moves after one repetition cycle leave the search draw flag false, because a null move sets `plies_from_null_` to 0 and the search repetition scan does not look through it. Game-level `is_repetition()` does not use that cursor. After the null moves are taken back, the game is still twofold.
+- Two workers still return the mate `b6b7` at score 31999, and from the start at depth 3 they return the legal move `e2e4` at score 18.
+
+All 40 malformed FENs are rejected or clamped. A rejection leaves the previous board unchanged. Address and undefined-behavior sanitizers printed nothing, and the sanitizer suite output matched the release suite line for line. The sanitizer engine binary reproduced bench 11 = 312866, bench 13 = 862329, and perft 5 = 4865609, including the same per-move split.
+
+## What was wrong
+
+Three different things were wrong. They are separated below. The move generator and the draw rules were not among them.
+
+### 1. The first queenside positions were illegal, and the suite hid that
+
+The first follow-up run failed 12 checks, all from five white queenside FENs. Each one ended with `7k/R3K2R`, so the black king stood on `h2` and a white rook stood on `h1`. The rook attacks `h2`. White is to move, so the side that just moved (Black) left its king in check.
+
+`set_fen` rejected every one of those FENs with `side that moved left its king in check`. That message is the same check as malformed FEN 32. The rejection was correct.
+
+What was wrong was the test, and then the way a failed load continued. `load` prints the failure and returns the board it already had. The board constructor is the start position, and `set_fen` does not modify the board when parsing fails. The later checks therefore ran on the start position:
+
+- `e1c1` is illegal in the start position because `b1`, `c1`, and `d1` are occupied, so "cannot castle queenside through check" passed for that reason.
+- A hand-built queen-castle move is not pseudo-legal in the start position for the same reason, so that check passed too.
+- "d1 attacked, king safe", "a1 rook is attacked", and "queenside castle with the rook attacked is legal" failed, because the start position is not that position.
+
+The black king was moved off the h-file and off the file the test needs clear. Through check, out of check, the attacked `a1` rook, and `b1` attacked use the king on `c7`. Into check uses the king on `b7`, because a king on `c7` would block the c-file and `c1` would not be attacked. After that change the same checks passed for the positions they name: `e1c1` is illegal through `d1`, illegal into `c1`, illegal out of check, legal when only `a1` is attacked, and legal when only `b1` is attacked. The king lands on `c1`, the rook on `d1`, the key matches a recompute, and unmake restores every field.
+
+### 2. Two assertions were too weak to catch the regression they described
+
+The first suite printed the right facts and then checked something smaller.
+
+Double check. `d7f6` in `4k3/3N2q1/8/8/B7/8/8/4K3 w - - 0 1` leaves the black king in check from the knight and the bishop. The suite printed `e8e7 e8f7 e8d8 e8f8` and then asserted only that the list was non-empty, that every reply moved the black king, and that `g7f6` was absent. Dropping three of the four legal replies would still pass. Adding an illegal king move onto an attacked square would still pass as long as the mover was the king. The check now requires that set and no other move: `e8e7`, `e8f7`, `e8d8`, `e8f8`. The engine already produced exactly that set. The assertion was what was wrong.
+
+Oversized clocks. FENs 33 to 36 were marked `FenKind::Any`, so acceptance and rejection both counted as success. The log line showed `halfmove=65535`, but nothing asserted it. A parser that wrapped `1000000` or `LLONG_MAX` to some other `uint16_t` value would still pass. FENs 37 and 38, which overflow `long long`, were also `Any`, so accepting a truncated value would have passed. The suite now requires:
+
+- half-move `1000000` and half-move `9223372036854775807` are accepted and stored as half-move 65535, full-move 1
+- full-move `1000000` and full-move `9223372036854775807` are accepted and stored as half-move 0, full-move 65535
+- a half-move or full-move that does not fit in `long long` is rejected
+
+That is what the engine already did. `set_fen` clamps with `std::min(value, 65535)` into a `uint16_t` when extraction succeeds. When extraction fails, the six-field read fails and the error is `FEN must contain six fields`. The wording of that overflow error is easy to misread: the input has six fields, and the failure is that one of them is not a `long long`. The board is left unchanged. No crash.
+
+### 3. `board.hpp` no longer matches the published source snapshot
+
+`windows_build/SOURCE_INPUTS.sha256` is the hash list for the locked sources. After the friend was added:
+
+```
+sha256sum -c windows_build/SOURCE_INPUTS.sha256
+```
+
+exits 1. `include/forge/board.hpp` is `FAILED`. The other 19 files are `OK`. Expected hash `ced3835a829cfe766281a19827f3b919c80fdf418314c63b0f7cd55eacd0e724` is the file without the friend.
+
+What is wrong here is the snapshot check, not a chess rule. The header is one of the files that hash is supposed to identify as the source of the published lock binary. A three-line friend changes that identity even though bench 11, bench 13, and perft 5 stay on the lock numbers. The friend was left in place because the task asked for every field after make and unmake, and `plies_from_null_` and the king-line cache cannot be read from outside the class. Removing the friend would make the hash match and would drop those fields from the comparison.
+
+### Parser results that look like the wrong error, and are the parser's real order
+
+These were not changed. They are recorded so a later reader does not "fix" them.
+
+- Nine pawns on rank 8, and `4p4` on rank 8, are rejected as `pawn on promotion rank`. The file-count check never runs, because the first pawn is already on rank 8. The message is not `invalid FEN placement`, which is what a digit `9` and an `8p` rank produce.
+- A double push records the en-passant square in the FEN even when no enemy pawn can capture. `a2a4` in `8/8/8/8/8/7k/P7/4K3 w - - 99 1` sets ep `a3`, resets the clock to 0, and leaves `a3` out of the hash. The key includes an en-passant file only when a legal capture of that pawn exists. The incremental key matched a from-scratch key.
+- `is_legal` for a castling move checks the king's destination. `is_pseudo_legal` checks that the king is not in check and that every square the king crosses is safe. Generated castles are only emitted when the path is empty and safe. A hand-built castle through check fails `is_pseudo_legal`, which is the gate the transposition table uses. Search then runs `is_legal` on moves it generated. Widening `is_legal` was not done: the suite did not find a search that could play the illegal castle, and a change there can change the lock node counts.
+- Opposite-coloured bishops are not called insufficient material. King and knight versus king, and king and bishop versus king, are. King and rook versus king is not. Two knights versus a lone king is not. The task asked for bare kings and king plus minor versus king. Changing the opposite-bishop case would change bench nodes.
+- The king-line cache is filled lazily by `is_legal` and `gives_check`, which are const. A cold board compared with the board after perft differs in `king_lines_.valid`. The suite fills the cache before the snapshot. Unmake restores the cache that was saved in the undo record. A mismatch on a cold board is the lazy cache, not a failed unmake.
+- A two-thread search shares the transposition table. One pair of runs, before the node count was removed from the printed line, showed 215 nodes at `-O3` and 274 nodes under the sanitizers for the same start-position search, the same score 18, and the same move `e2e4`. The count is not a signature. The mate line stayed `b6b7` at 31999.
+
+### The build, which failed before any chess code ran
+
+`/usr/bin/c++` on this machine is Clang 18.1.3. The first CMake configure failed in the compiler test with `cannot find -lstdc++`. `g++` and `libstdc++-13-dev` were installed. The lock numbers and the suite were measured with `g++` 13.3.0, `-O3 -ffp-contract=off -fno-fast-math -march=x86-64-v3`, and the portable defines from `CMakeLists.txt` (`FORGE_PORTABLE=ON`, `FORGE_MARCH=x86-64-v3`).
+
+After that install, a bare `clang++` command still fails with `fatal error: 'array' file not found`. Clang does not search `/usr/include/c++/13` on its own. The suite was rebuilt with `-stdlib=libstdc++ -isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13 -L/usr/lib/gcc/x86_64-linux-gnu/13`. That binary's output matched the `g++` suite line for line, exit 0.
+
+No second chess engine was executed in this environment. The six perft counts were compared with the three published tables, which agree.
+
+## What I found, in the form the suite first reported it
 
 No rule fault. The engine already matches the six published perft counts, restores every board field on unmake, and keeps the incremental hash equal to a from-scratch key. The special-move cases and the draw rules the search actually uses also match. All 40 malformed FENs are rejected or clamped, with no crash under address and undefined-behavior sanitizers.
 
