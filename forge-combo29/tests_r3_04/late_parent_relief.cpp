@@ -102,6 +102,18 @@ std::vector<forge::Board> make_positions(int count) {
     return false;
 }
 
+int walk_pv(const forge::Board& board, const forge::SearchInfo& info) {
+    if (info.pv.empty() || info.pv.front() != info.best_move) return 1;
+    forge::Board cursor = board;
+    for (std::size_t ply = 0; ply < info.pv.size(); ++ply) {
+        const forge::Move move = info.pv[ply];
+        if (!move_is_legal(cursor, move)) return static_cast<int>(ply + 1);
+        forge::Undo undo;
+        if (!cursor.make_move(move, undo)) return static_cast<int>(ply + 1);
+    }
+    return 0;
+}
+
 int search_many(const std::vector<forge::Board>& positions) {
     forge::Searcher searcher(16, 1);
     int failures = 0;
@@ -115,6 +127,11 @@ int search_many(const std::vector<forge::Board>& positions) {
         nodes += info.nodes;
         if (!move_is_legal(positions[i], info.best_move)) {
             std::cerr << "illegal move at search " << i << ": " << forge::Board::move_to_uci(info.best_move) << '\n';
+            ++failures;
+        }
+        const int pv_break = walk_pv(positions[i], info);
+        if (pv_break != 0) {
+            std::cerr << "illegal pv at search " << i << " ply " << pv_break << '\n';
             ++failures;
         }
     }
