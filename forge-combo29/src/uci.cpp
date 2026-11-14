@@ -136,6 +136,7 @@ int uci_loop(std::istream& in) {
     forge::Board board;
     forge::Searcher searcher;
     int move_overhead_ms = 10;
+    int multipv = 1;
     bool ponder_enabled = false;
     forge::book::Book book;
     book.load_embedded();
@@ -174,6 +175,7 @@ int uci_loop(std::istream& in) {
                          "id author OpenAI\n"
                          "option name Hash type spin default 32 min 1 max 2048\n"
                          "option name Threads type spin default 1 min 1 max 256\n"
+                         "option name MultiPV type spin default 1 min 1 max 8\n"
                          "option name Move Overhead type spin default 10 min 0 max 1000\n"
                          "option name Ponder type check default false\n"
                          "option name OwnBook type check default " << (forge::book::embedded_available() ? "true" : "false") << "\n"
@@ -296,6 +298,8 @@ int uci_loop(std::istream& in) {
                 } else {
                     note_invalid();
                 }
+            } else if (name == "MultiPV") {
+                apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
             } else if (name == "Hash") {
                 apply_spin(1, 2048, [&](int clamped) {
                     searcher.resize_hash(static_cast<std::size_t>(clamped));
@@ -346,6 +350,7 @@ int uci_loop(std::istream& in) {
                 input.seekg(position);
                 forge::SearchLimits limits = parse_limits(input, board);
                 limits.move_overhead_ms = move_overhead_ms;
+                limits.multipv = multipv;
                 // Charge dispatch admission only to finite externally clocked searches.
                 if (!limits.infinite && !limits.ponder &&
                     (limits.time_ms >= 0 || limits.movetime_ms >= 0)) limits.start_time = command_start;
