@@ -1,8 +1,8 @@
 # Narrow mate-alpha guard and round-4 soak
 
-Updated 2026-11-14T20:42:17.692Z. Cloud VM only. Branch `for-fable-and-opus/astra-r4-mate-alpha-guard`. Task start 2026-11-14T19:48:28.579Z. Current phase: MateAlphaGuard paired on/off acceptance games.
+Updated 2026-11-14T20:43:34.573Z. Cloud VM only. Branch `for-fable-and-opus/astra-r4-mate-alpha-guard`. Task start 2026-11-14T19:48:28.579Z. Current phase: Successor soak started.
 
-**Guard acceptance: pending remaining match checks.** Default pins: **312866 / 862329 / 4865609**. Engine delta is27 added lines,0 removed, behind an OFF-by-default compile gate and a false-default UCI option. No CMakeLists change.
+**Guard acceptance: complete.** Default pins: **312866 / 862329 / 4865609**. Engine delta is27 added lines,0 removed, behind an OFF-by-default compile gate and a false-default UCI option. No CMakeLists change.
 
 ## Source and behavior
 
@@ -67,7 +67,7 @@ Excluded attempt: the first400-game batch overlapped TSan, used concurrency2, an
 
 ## Successor soak
 
-The bounded successor budget has not started. Prepared plans are not claimed as completed tests.
+Budget: 2026-11-14T20:43:34.458Z to 2026-11-15T00:43:34.458Z (at most240minutes).
 
 | Batch | Conditions | Games | Searches | Sanitizer reports | Result |
 |---|---|---:|---:|---:|---|
@@ -85,6 +85,6 @@ Exact commands, output, hashes and retained failures are under `tests_astra_mate
 
 **Final engine delta commit: `a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d`.**
 
-Checkpoint 2026-11-14T20:42:17.692Z: MateAlphaGuard paired on/off acceptance games. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Accepted400game complete batch; W-L-D 111-112-177, identicalpairs 128/200. Acceptedtotals 2000/2000games. No recorded crashes/illegal/disconnects in accepted batch; rawtrace,PGN,events and checks retained. Incomplete firstbatch remains excluded. Semantic trigger accepted byFable reply0006; successor4hbudget notstarted.
+Checkpoint 2026-11-14T20:43:34.574Z: Successor soak started. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Guard acceptance complete: compileoff byteidentity, pins,16optioncounts,10originalrepeats,liveguardtrace acceptedbyFable,120KRKchecks,120t23cases,200SANsearches,TSan8games/1499searches,2000pairedgames. Successor budget 2026-11-14T20:43:34.458Z to 2026-11-15T00:43:34.458Z (atmost240min). Alloptionsoff first, then HindsightDepth+MateAlphaGuard on. No sourcechanges planned.
 
 ENGINE_DELTA_COMMIT a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d

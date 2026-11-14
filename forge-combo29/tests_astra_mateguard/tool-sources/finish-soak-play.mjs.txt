@@ -1,7 +1,8 @@
 import fs from 'node:fs';import crypto from 'node:crypto';
 const [label,group]=process.argv.slice(2),r='/workspace/work/r4-run';if(!/^[a-z0-9-]+$/.test(label??'')||!group)throw Error('args');
 const stateFile=r+'/state.json',s=JSON.parse(fs.readFileSync(stateFile));if(!s.soakBudgetStart)throw Error('successor budget not started');
-const meta=JSON.parse(fs.readFileSync(r+'/logs/'+label+'.metadata.txt')),raw=fs.readFileSync(r+'/logs/'+label+'.txt','utf8');
+const meta=JSON.parse(fs.readFileSync(r+'/logs/'+label+'.metadata.txt'));
+const raw=JSON.stringify(meta,null,2)+'\nSTDOUT\n'+fs.readFileSync(meta.stdoutFile,'utf8')+'\nSTDERR\n'+fs.readFileSync(meta.stderrFile,'utf8');
 if((s.soakPlay??[]).some(x=>x.label===label))throw Error('already recorded');
 const summaries=[...raw.matchAll(/^SUMMARY (\{.*\})$/gm)];let counts=summaries.length===1?JSON.parse(summaries[0][1]):null;
 const findings=[...raw.matchAll(/WARNING: ThreadSanitizer|FATAL: ThreadSanitizer|ERROR: (?:AddressSanitizer|LeakSanitizer)|runtime error:/g)].map(m=>({kind:m[0],offset:m.index}));
