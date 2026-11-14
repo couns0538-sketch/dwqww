@@ -1,0 +1,11 @@
+/tmp/r4_04/fastchess-linux-x86-64/fastchess \
+  -engine cmd=/agent/repos/dwqww/forge-combo29/build/forge name=ContHist4PlyRead-on nodes=50000 proto=uci restart=on \
+    option.Threads=1 option.Hash=16 option.OwnBook=false option.ContHist4PlyRead=true \
+  -engine cmd=/agent/repos/dwqww/forge-combo29/build/forge name=ContHist4PlyRead-off nodes=50000 proto=uci restart=on \
+    option.Threads=1 option.Hash=16 option.OwnBook=false option.ContHist4PlyRead=false \
+  -openings file=/tmp/r4_04/UHO_Lichess_4852_v1.epd format=epd order=sequential start=START \
+  -rounds 500 -repeat -concurrency 2 -srand 1 \
+  -recover -ratinginterval 100 -report penta=true \
+  -event "r4-04 ContHist4PlyRead chunk CHUNK" -site "screen" \
+  -pgnout file=games.pgn notation=san nodes=true \
+  -log file=fastchess.log level=warn
