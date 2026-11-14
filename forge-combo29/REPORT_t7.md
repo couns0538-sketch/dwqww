@@ -6,7 +6,7 @@ The lock engine evaluates only the network compiled in from `src/nnue_weights.in
 
 ## The fix
 
-`NnueFile` is a string option, default `<empty>`, shown next to `UseNNUE`. Empty or `<empty>` copies the compiled-in weights back. Any other value is read as a little-endian file: 8 bytes `FORGENET`, uint32 version 1, uint32 hidden size, then int16 `W1`, `B1`, `W2`, and one `B2`. The hidden size must be this build's `HiddenSize` and the file length must be exactly 16 + 2 * (768 * hidden + hidden + 2 * hidden + 1), which is 394770 bytes at hidden 256. The int16 values are turned into floats with the same divisions the lock uses (`value / 4096`). The new table is built first and swapped in only after the whole file checks out, so a bad read cannot tear the live weights. A wrong magic, version, or size, or a file that cannot be opened, prints `info string ERROR NnueFile: ...` and leaves the active net and the hash alone. A successful load or an explicit return to the compiled-in net clears the hash, because stored scores would belong to a different evaluation. `refresh`, `update`, and `evaluate` still read the same weight table; they gained no new branch.
+`NnueFile` is a string option, default `<empty>`, shown next to `UseNNUE`. Empty or `<empty>` copies the compiled-in weights back. Any other value is read as a little-endian file: 8 bytes `FORGENET`, uint32 version 1, uint32 hidden size, then int16 `W1`, `B1`, `W2`, and one `B2`. The hidden size must be this build's `HiddenSize` and the file length must be exactly 16 + 2 * (768 * hidden + hidden + 2 * hidden + 1), which is 394770 bytes at hidden 256. The int16 values are turned into floats with the same divisions the lock uses (`value / 4096`). The new table is built first and swapped in only after the whole file checks out, so a bad read cannot tear the live weights. A wrong magic, version, or size, or a file that cannot be opened, prints `info string ERROR NnueFile: ...` and leaves the active net and the hash alone. A successful load or an explicit return to the compiled-in net calls `Searcher::clear()`. That drops the transposition table, the evaluator cache, and the correction histories `corrected_eval()` would otherwise keep adding from the previous network. A rejected file does not clear them. `refresh`, `update`, and `evaluate` still read the same weight table; they gained no new branch.
 
 ## Files
 
@@ -318,6 +318,8 @@ g1h3: 198502
 nodes 4865609
 ```
 
+After the successful-load path was changed to `Searcher::clear()`, the same binary was built again and remeasured: unset `bench 11` = 312866, `bench 13` = 862329, perft = 4865609; a bad magic stayed at `bench 11` = 312866; the converted file at `/tmp/forge t7/lock.forgenet` repeated 312866, 862329, and 4865609.
+
 A bad magic left the compiled-in net in place (`bench 11` stayed 312866). Loading the touched `B2` changed `bench 11` to 322107. A bad version left that changed net in place (322107 again). `<empty>` restored 312866, 862329, and perft 4865609. Loading the converted lock net, including through a path with a space, produced the same three counts.
 
 ### C++ test
@@ -531,6 +533,10 @@ g1f3: 233491
 g1h3: 198502
 nodes 4865609
 ```
+
+## Review notes not taken
+
+Three later review notes were not applied. A default-off compile switch would remove `NnueFile` from the CMake build this task measures, and `CMakeLists.txt` is outside the files this task may edit. The version-1 layout has no residual-mode field; the lock net is residual, and keeping `residual()` on the compiled value is what makes the converted file match the pins. Builds without `nnue_weights.inc` are not the lock binary. Turning `available()` into a runtime flag would change the search gate the pins depend on.
 
 ## What was not verified
 

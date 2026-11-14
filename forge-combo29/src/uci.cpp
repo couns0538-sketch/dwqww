@@ -270,12 +270,13 @@ int main() {
                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                 if (path.empty() || path == "<empty>") {
                     forge::nnue::use_compiled();
-                    searcher.clear_hash();
+                    // clear_hash() leaves correction histories that corrected_eval() still applies.
+                    searcher.clear();
                     std::cout << "info string NnueFile: compiled-in network" << std::endl;
                 } else {
                     std::string error;
                     if (forge::nnue::load_file(path, error)) {
-                        searcher.clear_hash();
+                        searcher.clear();
                         std::cout << "info string NnueFile loaded " << path << std::endl;
                     } else {
                         std::cout << "info string ERROR NnueFile: " << error << std::endl;
