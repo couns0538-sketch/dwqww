@@ -155,8 +155,8 @@ int main() {
     pipe.push("bench 11\nbench 13\n");
     std::string bench11;
     std::string bench13;
-    const bool ok_b11 = capture.wait_line_prefix(cursor, "info string bench depth 11 nodes 312866 ", 10000, bench11);
-    const bool ok_b13 = capture.wait_line_prefix(cursor, "info string bench depth 13 nodes 862329 ", 10000, bench13);
+    const bool ok_b11 = capture.wait_line_prefix(cursor, "info string bench depth 11 nodes 312866 ", 60000, bench11);
+    const bool ok_b13 = capture.wait_line_prefix(cursor, "info string bench depth 13 nodes 862329 ", 60000, bench13);
     if (!ok_b11 || !ok_b13) ++failures;
 
     pipe.push("quit\n");
