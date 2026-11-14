@@ -67,4 +67,8 @@ Book `UHO_Lichess_4852_v1.epd` sha256 `7a7f6470615a69c6cf23d565417701d38732876f4
 
 bench 13 nps, five alternating off/on runs at 15:27 UTC: off 1664727, 1759855, 1735068, 1721215, 1742078; on 1634043, 1663934, 1694939, 1614706, 1640593.
 
-Chunks of 500 sequential openings, two games each, option on named first, stop at 9 chunks or 6 hours. Per-chunk PGN and summary files are under `forge-combo29/tests_r3fu_04/`. The full command is in `forge-combo29/tests_r3fu_04/screen-setup.txt`. Chunk results are appended below as they finish.
+Chunks of 500 sequential openings, two games each, option on named first, stop at 9 chunks or 6 hours. Per-chunk PGN and summary files are under `forge-combo29/tests_r3fu_04/`. The full command is in `forge-combo29/tests_r3fu_04/screen-setup.txt`.
+
+### Chunk 0001
+
+Openings 1-500. 1000 games. 00:51:10. Option on first. W-L-D 257-259-484. Elo 95% -0.69 +/- 13.86. LOS 46.08%. Ptnml(0-2) [25, 115, 215, 127, 18]. Points 499.0 (49.90%). Screening measurement only.
