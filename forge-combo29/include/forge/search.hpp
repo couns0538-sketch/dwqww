@@ -283,6 +283,7 @@ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper c
 extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
 extern bool AspArmLate;              // full root window until one score lands inside; soft time ignores an open window (false = off)
 extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
