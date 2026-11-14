@@ -304,9 +304,97 @@ readyok
 info string bench depth 11 nodes 312866 time 169 nps 1851278
 ```
 
+## Follow-up
+
+A full read that reaches end of file can set `eofbit`. The loader now keeps the bytes when `gcount` equals the file length and rejects a short read. The test also compares every converted int16 with `nnue_weights.inc`, and it checks that a bad file leaves a different already-loaded net in place.
+
+Sanitized test, after rebuilding with `-I forge-combo29/src` so the test can include `nnue_weights.inc`:
+
+```
+g++ -std=c++20 -O1 -g -fno-omit-frame-pointer -ffp-contract=off -fno-fast-math -march=x86-64-v4 \
+  -fsanitize=address,undefined \
+  -I/agent/repos/dwqww/forge-combo29/include \
+  -I/agent/repos/dwqww/forge-combo29/src \
+  -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_SPD_SLIDER_PEXT=1 \
+  /agent/repos/dwqww/forge-combo29/tests_t8/nnue_file_test.cpp \
+  /agent/repos/dwqww/forge-combo29/src/nnue.cpp \
+  /agent/repos/dwqww/forge-combo29/src/board.cpp \
+  /agent/repos/dwqww/forge-combo29/src/bitboard.cpp \
+  -o /tmp/nnue_file_test
+/tmp/nnue_file_test /tmp/t8/lock.fnn
+```
+
+```
+ok load converted net
+ok startpos eval matches built-in net
+ok kiwipete eval matches built-in net
+ok converted file size
+ok converted file magic
+ok converted file version
+ok converted file hidden size
+ok w1 matches compiled-in net
+ok b1 matches compiled-in net
+ok w2 matches compiled-in net
+ok b2 matches compiled-in net
+ok load shifted bias
+ok shifted bias changes an evaluation
+ok bad magic keeps the current net
+ok eval unchanged after bad magic
+ok wrong version keeps the current net
+ok wrong hidden size keeps the current net
+ok truncated file keeps the current net
+ok oversized file keeps the current net
+ok missing file keeps the current net
+ok empty file keeps the current net
+ok header-only file keeps the current net
+ok file over 2MiB keeps the current net
+ok eval unchanged after rejected files
+ok empty path restores built-in net
+ok <empty> restores built-in net
+ok restored eval matches built-in net
+PASS
+```
+
+Exit status 0. The sanitizers printed nothing. The same source still fails to compile against the lock header: `load_file` is not a member of `forge::nnue`.
+
+Release engine rebuilt with `cmake --build /tmp/forge-t8-build -j`, then the same UCI options as above. stderr was empty. Node lines:
+
+```
+nodes 4865609
+info string bench depth 11 nodes 312866 time 161 nps 1943267
+info string bench depth 13 nodes 862329 time 433 nps 1991521
+info string loaded nnue /tmp/t8/lock.fnn
+nodes 4865609
+info string bench depth 11 nodes 312866 time 151 nps 2071960
+info string bench depth 13 nodes 862329 time 415 nps 2077901
+info string nnue: bad magic
+info string nnue: wrong size
+info string nnue: wrong size
+info string bench depth 11 nodes 312866 time 183 nps 1709650
+```
+
+The whole engine was also built with AddressSanitizer and UndefinedBehaviorSanitizer:
+
+```
+cmake -S /agent/repos/dwqww/forge-combo29 -B /tmp/forge-t8-asan -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g" -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+cmake --build /tmp/forge-t8-asan -j
+```
+
+`ASAN_OPTIONS=halt_on_error=1:detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 /tmp/forge-t8-asan/forge` with `Threads 1`, `Hash 16`, `OwnBook false`, the converted file, a file larger than 2 MiB, and `<empty>`. Exit status 0. stderr was empty (0 bytes). Node lines:
+
+```
+nodes 4865609
+info string bench depth 11 nodes 312866 time 1861 nps 168117
+info string bench depth 13 nodes 862329 time 4929 nps 174950
+info string loaded nnue /tmp/t8/lock.fnn
+info string bench depth 11 nodes 312866 time 1799 nps 173911
+info string bench depth 13 nodes 862329 time 5147 nps 167540
+info string nnue: wrong size
+info string bench depth 11 nodes 312866 time 1786 nps 175176
+```
+
 ## What was not verified
 
-- The engine binary itself was not rebuilt with AddressSanitizer or UndefinedBehaviorSanitizer. The sanitizer run is the test program above.
 - No net with a hidden size other than 256 was installed. A file that declares hidden size 128 is rejected as `nnue: wrong size`.
 - The reader was not run on a big-endian machine. The integers are decoded from little-endian bytes on this x86-64 host.
 - No strength or speed comparison was made. The `nps` figures above are the engine's own printout for those runs.

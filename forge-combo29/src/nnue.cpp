@@ -140,7 +140,9 @@ bool load_file(std::string_view path, std::string& error) {
     }
     std::vector<unsigned char> bytes(static_cast<std::size_t>(length));
     if (length > 0) input.read(reinterpret_cast<char*>(bytes.data()), length);
-    if (!input || static_cast<std::streamoff>(input.gcount()) != length) {
+    // A read that reaches end of file can set eofbit. Keep the bytes when every
+    // requested one arrived, and reject a short read.
+    if (static_cast<std::streamoff>(input.gcount()) != length) {
         error = "nnue: cannot open file";
         return false;
     }
