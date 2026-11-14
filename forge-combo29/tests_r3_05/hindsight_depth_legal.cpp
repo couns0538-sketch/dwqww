@@ -78,6 +78,36 @@ int main() {
     forge::tune::HindsightDepth = true;
 
     std::cout << "startpos depth 10 nodes off " << nodes_off << " on " << nodes_on << "\n";
+
+    // Check, promotion, stalemate, and checkmate. Terminal positions must
+    // return no move; every other best move must be legal.
+    const std::string edges[] = {
+        "4k3/8/8/8/8/8/4q3/4K3 w - - 0 1",
+        "8/P7/8/8/8/8/8/K6k w - - 0 1",
+        "7k/5Q2/6K1/8/8/8/8/8 b - - 0 1",
+        "7k/6Q1/6K1/8/8/8/8/8 b - - 0 1",
+    };
+    for (const std::string& fen : edges) {
+        forge::Board board;
+        if (!board.set_fen(fen)) {
+            std::cerr << "rejected fen " << fen << "\n";
+            return 1;
+        }
+        const forge::MoveList legal = board.legal_moves();
+        searcher.clear();
+        forge::SearchLimits limits;
+        limits.depth = 10;
+        const forge::SearchInfo info = searcher.search(
+            board, limits, false, forge::Searcher::TTAccess::Exclusive);
+        const bool terminal = legal.empty();
+        const bool best_ok = terminal ? info.best_move.is_none() : listed(legal, info.best_move);
+        if (!best_ok || !line_is_legal(board, info.pv)) {
+            std::cerr << "illegal edge move " << forge::Board::move_to_uci(info.best_move)
+                      << " fen " << fen << "\n";
+            return 1;
+        }
+    }
+
     constexpr int searches = 200;
     constexpr int depth = 10;
     for (int index = 0; index < searches; ++index) {

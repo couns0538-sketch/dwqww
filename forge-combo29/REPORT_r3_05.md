@@ -38,7 +38,7 @@ Start position, depth 10, Hash 16, one thread: 13102 nodes with the option off, 
 
 ## Legality
 
-`forge-combo29/tests_r3_05/hindsight_depth_legal.cpp` plays 200 deterministic lines from the start position (0 to 27 plies) and searches each to depth 10 with the option on, Hash 16, one thread. The best move has to be one of the legal moves, or none when the position has no legal move. Every move of the returned line has to be legal in the position where it is played. The same program checks that the option defaults off and that the start-position depth-10 node count changes when it is turned on.
+`forge-combo29/tests_r3_05/hindsight_depth_legal.cpp` plays 200 deterministic lines from the start position (0 to 27 plies) and searches each to depth 10 with the option on, Hash 16, one thread. It also searches a king in check, a promotion, a stalemate, and a checkmate. The best move has to be one of the legal moves, or none when the position has no legal move. Every move of the returned line has to be legal in the position where it is played. The same program checks that the option defaults off and that the start-position depth-10 node count changes when it is turned on.
 
 Release run: passed. Sanitizer run (`-O1 -fsanitize=address,undefined -fno-sanitize-recover=undefined`, same engine defines): passed, exit 0, no address or undefined-behavior report.
 
