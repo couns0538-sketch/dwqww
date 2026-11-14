@@ -1,0 +1,4835 @@
+NARROW EXISTING KRK TEST AUDIT SUPPORT — READER VERIFICATION
+
+The original audit reader verified2B raw measurements but explicitly excluded supplemental2KRKfull/2KRKsplit phases. Independent read-only review confirmed their state, immutable manifests, native logs and wrapper summaries were retained. The reader now supports only the exact pairs2KRKfull/existing_asan_krk_full_retry and2KRKsplit/existing_asan_krk_split_retry. Unknown phase/summary pairs remain explicitly unverified and excluded.
+
+The reader reconstructs preserved artifacts and verifies hashes; parses exact native config, Threads1 result, main SUMMARY, argv, environment and END status; compares binary provenance and wrapper/native/result-file records; and reconciles all integers exactly. Each split requires200 main runs plus100 T1 checks. Two split invocations are not labelled as completion of the original single40x10 invocation. The original timeout remains incomplete with zero completed coverage and is not classified as an engine fault. Actual runtime sanitizer evidence remains independently scanned.
+
+No --apply was run, no active task or state was changed, and no engine searches were launched. One intermediate syntax check caught unquoted object keys during editing; its actual failed output is retained below. The corrected syntax, native contract unit checks, full synthetic fixture checks, and live read-only audit all passed.
+
+
+=== COMPLETE SAVED OUTPUT /workspace/work/audit-pre-C-check.txt ===
++ node /workspace/work/all-run/audit-results.mjs --report /workspace/work/all-run/audit-pre-C.json
+AUDIT_RESULTS {"utc":"2026-11-14T12:40:30.695Z","apply":false,"batches":7,"errors":0,"warnings":1,"newFaults":0,"existingFaults":82,"report":"/workspace/work/all-run/audit-pre-C.json","firstIssues":[{"level":"warning","message":"2D:1 lacks --trace: search/move/game counts are self-reported, with SUMMARY invariants and emitted FAULT rows checked; no per-search replay enumeration available"}]}
+
+=== END SAVED OUTPUT ===
+
+=== COMPLETE SAVED OUTPUT /workspace/work/audit-pre-C-supplemental-check.txt ===
++ node --input-type=module -
+{
+  "report": "/workspace/work/all-run/audit-pre-C.json",
+  "automaticAuditErrors": 0,
+  "automaticAuditWarnings": 1,
+  "supplementalErrors": 0,
+  "supplemental": [
+    {
+      "phase": "2KRKfull",
+      "id": 1,
+      "classification": "budget-expired incomplete test; zero completed coverage; not an engine fault",
+      "counts": {},
+      "sanitizerDiagnostics": []
+    },
+    {
+      "phase": "2KRKsplit",
+      "id": 1,
+      "classification": "completed existing-test invocation; native aggregate output verified",
+      "counts": {
+        "tests_completed": 1,
+        "t1_runs": 100,
+        "t1_misses": 0,
+        "main_runs": 200,
+        "main_misses": 0,
+        "no_mate_score": 0,
+        "non_mating_move": 0,
+        "sanitizer_reports": 0
+      },
+      "sanitizerDiagnostics": []
+    }
+  ],
+  "activeIgnored": "2KRKsplit:2"
+}
+
+=== END SAVED OUTPUT ===
+
+=== COMPLETE SAVED OUTPUT /workspace/work/audit-pre-C-supported-check.txt ===
++ node --check /workspace/work/all-run/audit-results.mjs
+/workspace/work/all-run/audit-results.mjs:14
+const existingKrkTypes={2KRKfull:'existing_asan_krk_full_retry',2KRKsplit:'existing_asan_krk_split_retry'};
+                        ^
+
+SyntaxError: Invalid or unexpected token
+    at checkSyntax (node:internal/main/check_syntax:84:5)
+
+Node.js v24.22.1
++ node /workspace/work/all-run/audit-results.mjs --report /workspace/work/all-run/audit-pre-C-supported.json
+file:///workspace/work/all-run/audit-results.mjs:14
+const existingKrkTypes={2KRKfull:'existing_asan_krk_full_retry',2KRKsplit:'existing_asan_krk_split_retry'};
+                        ^
+
+SyntaxError: Invalid or unexpected token
+    at compileSourceTextModule (node:internal/modules/esm/utils:319:16)
+    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:89:18)
+    at #translate (node:internal/modules/esm/loader:438:20)
+    at afterLoad (node:internal/modules/esm/loader:506:29)
+    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:511:12)
+    at #getOrCreateModuleJobAfterResolve (node:internal/modules/esm/loader:564:36)
+    at afterResolve (node:internal/modules/esm/loader:611:52)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:617:12)
+    at node:internal/modules/esm/loader:636:32
+    at TracingChannel.tracePromise (node:diagnostics_channel:370:14)
+
+Node.js v24.22.1
+
+=== END SAVED OUTPUT ===
+
+=== COMPLETE SAVED OUTPUT /workspace/work/audit-pre-C-supported-check-final.txt ===
++ node --check /workspace/work/all-run/audit-results.mjs
++ node /workspace/work/all-run/audit-results.mjs --report /workspace/work/all-run/audit-pre-C-supported.json
+AUDIT_RESULTS {"utc":"2026-11-14T12:44:02.225Z","apply":false,"batches":10,"errors":0,"warnings":2,"newFaults":0,"existingFaults":82,"report":"/workspace/work/all-run/audit-pre-C-supported.json","firstIssues":[{"level":"warning","message":"2D:1 lacks --trace: search/move/game counts are self-reported, with SUMMARY invariants and emitted FAULT rows checked; no per-search replay enumeration available"},{"level":"warning","message":"2KRKfull:1 incomplete existing-test invocation; zero completed coverage; native budget expired; incomplete status alone is not an engine fault"}]}
+
+=== END SAVED OUTPUT ===
+
+=== COMPLETE SAVED OUTPUT /workspace/work/audit-pre-C-schema-tests.txt ===
++ node --input-type=module -
+PASS exact split200/T1-100 contract; split cannot satisfy full400 contract; one-run/T1 count discrepancies rejected; timeout remains incomplete.
++ node /workspace/work/audit-results-compact-fixture-check.mjs
+{
+  "synthetic_fixture_root": "/workspace/work/audit-results-fixture-1083284",
+  "checks": "Read-only state preservation; ten actual trial and ten extra-pair frequencies; legal vs mate-miss distinction; partial sanitizer/unexpected exit and partial illegal preserved; historical sanitizer reference ignored; dedupe on second apply; exact integer mismatch rejected; active state apply refused",
+  "initial_faults": 4,
+  "status": "PASS"
+}
++ sha256sum /workspace/work/all-run/audit-results.mjs
+69e27105d35b86040ec9363decbfb09f8f42f9e65058809f619eade710f458d0  /workspace/work/all-run/audit-results.mjs
+
+=== END SAVED OUTPUT ===
+
+=== COMPLETE SAVED OUTPUT /workspace/work/all-run/audit-pre-C.json ===
+{
+  "schema": 1,
+  "utc": "2026-11-14T12:40:30.695Z",
+  "state": "/workspace/work/all-run/state.json",
+  "stateSha256": "f7701461d7c5c783c425b58779919314148bde8d1f0007cb55cb4b2eae93efa5",
+  "apply": false,
+  "active": {
+    "phase": "2KRKsplit",
+    "id": 2,
+    "seed": "not_applicable",
+    "description": "Isolated unchanged existing ASAN KRK split retry 2/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks",
+    "log": "/workspace/work/all-run/logs/krk-split-2-controller.txt",
+    "metadata": "/workspace/work/all-run/logs/krk-split-2-controller.txt.run-spec.json",
+    "started": "2026-11-14T12:39:53.034Z"
+  },
+  "batches": [
+    {
+      "key": "2D:1",
+      "phase": "2D",
+      "id": 1,
+      "log": "/workspace/work/all-run/logs/2D-0001.txt",
+      "finishedUTC": "2026-11-14T11:58:57.355Z",
+      "recorded": {
+        "games": 194,
+        "moves": 27831,
+        "searches": 27831,
+        "opening_moves": 1552,
+        "faults": 0,
+        "illegal": 0,
+        "missing": 0,
+        "badscore": 0,
+        "mates": 146,
+        "stalemates": 0,
+        "repetitions": 24,
+        "fifty": 13,
+        "ply_caps": 2,
+        "insufficient": 9
+      },
+      "schema": "play",
+      "rawVerified": false,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2D-0001.evidence/manifest.txt",
+        "sha256": "4edbd80c04c2b90e53ac81b7aa46d7176aa8db3210329ac4fd705d665f2f1ec4",
+        "files": 3
+      },
+      "counterEvidence": {
+        "searches": "self-reported; --trace absent",
+        "moves": "self-reported",
+        "games": "self-reported; terminal count invariant checked",
+        "faults": "checked against emitted FAULT rows"
+      },
+      "lastTrigger": {
+        "seed": 8473001,
+        "game": 193,
+        "ply": 205,
+        "threads": 1,
+        "nodes": 2000,
+        "depth": 0,
+        "Hash": 16,
+        "OwnBook": false,
+        "UseNNUE": true,
+        "MultiPV": 1,
+        "ContHist4PlyRead": false,
+        "NonPawnCorrection": false,
+        "LmrDeeperShallower": false,
+        "fen": "8/8/6k1/7p/8/6PK/8/8 b - - 9 103",
+        "position": "position startpos moves b1a3 b7b5 c2c4 a7a5 e2e4 c8b7 d1e2 g8h6 a3b5 e7e5 a2a3 f8c5 d2d3 c7c6 b5c3 d7d6 c1h6 g7h6 g2g3 b7c8 e2c2 b8d7 g1f3 a8b8 f1h3 c5a7 b2b4 a7d4 f3d4 e5d4 c3e2 a5b4 a3b4 d8f6 a1a7 d7b6 h3c8 b6c8 a7c7 e8g8 c7c6 c8e7 c6c7 b8b4 e1g1 f8a8 e2d4 f6d4 c7e7 b4b2 c2d1 d4f6 e7c7 g8f8 c4c5 d6c5 d1g4 b2c2 g1g2 a8a2 g4f3 f6f3 g2f3 f8g7 f3g2 c2d2 c7c5 d2d3 c5b5 d3d4 e4e5 d4d2 g2f3 h6h5 e5e6 f7e6 b5h5 a2c2 h5b5 g7g6 b5b7 d2e2 b7b1 e6e5 b1e1 e5e4 f3g2 g6f5 e1e2 c2e2 g2g1 h7h5 f1d1 f5g4 g1g2 e4e3 d1d4 g4g5 h2h4 g5g6 g2f3 e2f2 f3e3 f2f8 d4d5 f8b8 d5g5 g6h6 g5e5 b8b3 e3f4 b3b4 f4f3 h6g6 e5g5 g6h6 f3f2 b4b3 g5e5 h6g6 e5a5 b3b2 f2f3 b2b3 f3g2 b3b1 a5g5 g6h6 g2f3 b1b4 g5e5 b4b6 e5d5 b6b3 f3f4 b3b4 f4f3 b4b3 f3f4 b3b4 f4e3 b4b3 d5d3 b3b6 e3f3 h6g6 d3d5 b6b3 f3g2 b3b2 g2h3 b2b3 d5g5 g6h6 g5c5 b3b1 c5c6 h6g7 c6c5 g7h6 c5d5 b1b4 d5e5 b4b2 e5a5 b2b4 a5f5 b4b6 f5d5 b6b4 d5a5 b4b3 a5g5 b3b4 g5f5 b4b6 f5a5 b6b3 a5a6 h6g7 a6a8 b3b5 a8a7 g7g6 a7a6 g6g7 a6a8 g7g6 a8g8 g6f6 h3g2 b5a5 g8g5 a5g5 h4g5 f6g5 g2h3 g5h6 h3h4 h6g6 h4h3 g6h6 h3h4 h6g6 h4h3"
+      },
+      "computed": {
+        "games": 194,
+        "moves": 27831,
+        "searches": 27831,
+        "opening_moves": 1552,
+        "faults": 0,
+        "illegal": 0,
+        "missing": 0,
+        "badscore": 0,
+        "mates": 146,
+        "stalemates": 0,
+        "repetitions": 24,
+        "fifty": 13,
+        "ply_caps": 2,
+        "insufficient": 9
+      }
+    },
+    {
+      "key": "2Aprep:1",
+      "phase": "2Aprep",
+      "id": 1,
+      "log": "/workspace/work/all-run/logs/2Aprep-0001.txt",
+      "finishedUTC": "2026-11-14T12:00:13.809Z",
+      "recorded": {
+        "completed_units": 1000,
+        "trials": 1233,
+        "faults": 0,
+        "selected_generated": 193,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 0,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0
+      },
+      "schema": "endgame",
+      "rawVerified": true,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2Aprep-0001.evidence/manifest.txt",
+        "sha256": "7dcaeadebc286ff59af8ba1aaa909defd7bf275f0f733dec7a6b218f38b64f2e",
+        "files": 2472
+      },
+      "wallTimeReconciliation": {
+        "serialization": "C++ defaultfloat precision 6",
+        "rule": "Absolute difference bounded by half the summary last significant digit plus the sum of half-last-digit bounds of each printed trial value, with a floating-addition bound; integer counters remain exact",
+        "groups": {}
+      },
+      "computed": {
+        "completed_units": 1000,
+        "selected_generated": 193,
+        "trials": 1233,
+        "faults": 0,
+        "nodes": 0,
+        "reported_ms": 0,
+        "wall_ms": 0,
+        "at_requested_depth": 0,
+        "early_mate_termination": 0,
+        "unfinished_depth": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 0,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0
+      }
+    },
+    {
+      "key": "2Aprep:2",
+      "phase": "2Aprep",
+      "id": 2,
+      "log": "/workspace/work/all-run/logs/2Aprep-0002.txt",
+      "finishedUTC": "2026-11-14T12:01:54.580Z",
+      "recorded": {
+        "completed_units": 1000,
+        "trials": 1209,
+        "faults": 0,
+        "selected_generated": 209,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 0,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0
+      },
+      "schema": "endgame",
+      "rawVerified": true,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2Aprep-0002.evidence/manifest.txt",
+        "sha256": "a4220b70c35cf8560e39ba5ea35a04cdb2a220835f3f835709edfded791ceaff",
+        "files": 2424
+      },
+      "wallTimeReconciliation": {
+        "serialization": "C++ defaultfloat precision 6",
+        "rule": "Absolute difference bounded by half the summary last significant digit plus the sum of half-last-digit bounds of each printed trial value, with a floating-addition bound; integer counters remain exact",
+        "groups": {}
+      },
+      "computed": {
+        "completed_units": 1000,
+        "selected_generated": 209,
+        "trials": 1209,
+        "faults": 0,
+        "nodes": 0,
+        "reported_ms": 0,
+        "wall_ms": 0,
+        "at_requested_depth": 0,
+        "early_mate_termination": 0,
+        "unfinished_depth": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 0,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0
+      }
+    },
+    {
+      "key": "2A:1",
+      "phase": "2A",
+      "id": 1,
+      "log": "/workspace/work/all-run/logs/2A-0001.txt",
+      "finishedUTC": "2026-11-14T12:08:30.308Z",
+      "recorded": {
+        "completed_units": 287,
+        "trials": 2870,
+        "faults": 182,
+        "selected_generated": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 182,
+        "krk_non_mating_moves": 55,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0,
+        "groups.lock-t2-KBBK.trials": 30,
+        "groups.lock-t2-KBBK.faults": 8,
+        "groups.lock-t2-KBBK.nodes_reported": 1501778,
+        "groups.lock-t2-KBBK.reported_ms": 285,
+        "groups.lock-t2-KBBK.wall_ms": 308.313,
+        "groups.lock-t2-KBBK.at_requested_depth": 30,
+        "groups.lock-t2-KBBK.early_mate_termination": 0,
+        "groups.lock-t2-KBBK.unfinished_depth": 0,
+        "groups.lock-t2-KBBK.shutdown_faults": 0,
+        "groups.lock-t2-KBBK.unexpected_exits": 0,
+        "groups.lock-t2-KBBK.mate_score_misses": 8,
+        "groups.lock-t2-KBBK.krk_non_mating_moves": 0,
+        "groups.lock-t2-KBBK.loses_forced_mate": 0,
+        "groups.lock-t2-KBBK.mate_bound_violations": 0,
+        "groups.lock-t2-KQK.trials": 290,
+        "groups.lock-t2-KQK.faults": 41,
+        "groups.lock-t2-KQK.nodes_reported": 23753714,
+        "groups.lock-t2-KQK.reported_ms": 4408,
+        "groups.lock-t2-KQK.wall_ms": 4619.73,
+        "groups.lock-t2-KQK.at_requested_depth": 290,
+        "groups.lock-t2-KQK.early_mate_termination": 0,
+        "groups.lock-t2-KQK.unfinished_depth": 0,
+        "groups.lock-t2-KQK.shutdown_faults": 0,
+        "groups.lock-t2-KQK.unexpected_exits": 0,
+        "groups.lock-t2-KQK.mate_score_misses": 41,
+        "groups.lock-t2-KQK.krk_non_mating_moves": 0,
+        "groups.lock-t2-KQK.loses_forced_mate": 0,
+        "groups.lock-t2-KQK.mate_bound_violations": 0,
+        "groups.lock-t2-KRK.trials": 400,
+        "groups.lock-t2-KRK.faults": 48,
+        "groups.lock-t2-KRK.nodes_reported": 12008712,
+        "groups.lock-t2-KRK.reported_ms": 2112,
+        "groups.lock-t2-KRK.wall_ms": 2391.57,
+        "groups.lock-t2-KRK.at_requested_depth": 400,
+        "groups.lock-t2-KRK.early_mate_termination": 0,
+        "groups.lock-t2-KRK.unfinished_depth": 0,
+        "groups.lock-t2-KRK.shutdown_faults": 0,
+        "groups.lock-t2-KRK.unexpected_exits": 0,
+        "groups.lock-t2-KRK.mate_score_misses": 48,
+        "groups.lock-t2-KRK.krk_non_mating_moves": 29,
+        "groups.lock-t2-KRK.loses_forced_mate": 0,
+        "groups.lock-t2-KRK.mate_bound_violations": 0,
+        "groups.lock-t4-KBBK.trials": 30,
+        "groups.lock-t4-KBBK.faults": 9,
+        "groups.lock-t4-KBBK.nodes_reported": 1747206,
+        "groups.lock-t4-KBBK.reported_ms": 184,
+        "groups.lock-t4-KBBK.wall_ms": 213.47,
+        "groups.lock-t4-KBBK.at_requested_depth": 30,
+        "groups.lock-t4-KBBK.early_mate_termination": 0,
+        "groups.lock-t4-KBBK.unfinished_depth": 0,
+        "groups.lock-t4-KBBK.shutdown_faults": 0,
+        "groups.lock-t4-KBBK.unexpected_exits": 0,
+        "groups.lock-t4-KBBK.mate_score_misses": 9,
+        "groups.lock-t4-KBBK.krk_non_mating_moves": 0,
+        "groups.lock-t4-KBBK.loses_forced_mate": 0,
+        "groups.lock-t4-KBBK.mate_bound_violations": 0,
+        "groups.lock-t4-KQK.trials": 290,
+        "groups.lock-t4-KQK.faults": 29,
+        "groups.lock-t4-KQK.nodes_reported": 32293649,
+        "groups.lock-t4-KQK.reported_ms": 3158,
+        "groups.lock-t4-KQK.wall_ms": 3399.62,
+        "groups.lock-t4-KQK.at_requested_depth": 290,
+        "groups.lock-t4-KQK.early_mate_termination": 0,
+        "groups.lock-t4-KQK.unfinished_depth": 0,
+        "groups.lock-t4-KQK.shutdown_faults": 0,
+        "groups.lock-t4-KQK.unexpected_exits": 0,
+        "groups.lock-t4-KQK.mate_score_misses": 29,
+        "groups.lock-t4-KQK.krk_non_mating_moves": 0,
+        "groups.lock-t4-KQK.loses_forced_mate": 0,
+        "groups.lock-t4-KQK.mate_bound_violations": 0,
+        "groups.lock-t4-KRK.trials": 400,
+        "groups.lock-t4-KRK.faults": 47,
+        "groups.lock-t4-KRK.nodes_reported": 15993828,
+        "groups.lock-t4-KRK.reported_ms": 1459,
+        "groups.lock-t4-KRK.wall_ms": 1783.04,
+        "groups.lock-t4-KRK.at_requested_depth": 400,
+        "groups.lock-t4-KRK.early_mate_termination": 0,
+        "groups.lock-t4-KRK.unfinished_depth": 0,
+        "groups.lock-t4-KRK.shutdown_faults": 0,
+        "groups.lock-t4-KRK.unexpected_exits": 0,
+        "groups.lock-t4-KRK.mate_score_misses": 47,
+        "groups.lock-t4-KRK.krk_non_mating_moves": 26,
+        "groups.lock-t4-KRK.loses_forced_mate": 0,
+        "groups.lock-t4-KRK.mate_bound_violations": 0,
+        "groups.merged-t2-KBBK.trials": 30,
+        "groups.merged-t2-KBBK.faults": 0,
+        "groups.merged-t2-KBBK.nodes_reported": 331661849,
+        "groups.merged-t2-KBBK.reported_ms": 39855,
+        "groups.merged-t2-KBBK.wall_ms": 39882.6,
+        "groups.merged-t2-KBBK.at_requested_depth": 30,
+        "groups.merged-t2-KBBK.early_mate_termination": 0,
+        "groups.merged-t2-KBBK.unfinished_depth": 0,
+        "groups.merged-t2-KBBK.shutdown_faults": 0,
+        "groups.merged-t2-KBBK.unexpected_exits": 0,
+        "groups.merged-t2-KBBK.mate_score_misses": 0,
+        "groups.merged-t2-KBBK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KBBK.loses_forced_mate": 0,
+        "groups.merged-t2-KBBK.mate_bound_violations": 0,
+        "groups.merged-t2-KQK.trials": 290,
+        "groups.merged-t2-KQK.faults": 0,
+        "groups.merged-t2-KQK.nodes_reported": 722856338,
+        "groups.merged-t2-KQK.reported_ms": 89380,
+        "groups.merged-t2-KQK.wall_ms": 89598.8,
+        "groups.merged-t2-KQK.at_requested_depth": 290,
+        "groups.merged-t2-KQK.early_mate_termination": 0,
+        "groups.merged-t2-KQK.unfinished_depth": 0,
+        "groups.merged-t2-KQK.shutdown_faults": 0,
+        "groups.merged-t2-KQK.unexpected_exits": 0,
+        "groups.merged-t2-KQK.mate_score_misses": 0,
+        "groups.merged-t2-KQK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KQK.loses_forced_mate": 0,
+        "groups.merged-t2-KQK.mate_bound_violations": 0,
+        "groups.merged-t2-KRK.trials": 400,
+        "groups.merged-t2-KRK.faults": 0,
+        "groups.merged-t2-KRK.nodes_reported": 298986005,
+        "groups.merged-t2-KRK.reported_ms": 32329,
+        "groups.merged-t2-KRK.wall_ms": 32606.5,
+        "groups.merged-t2-KRK.at_requested_depth": 400,
+        "groups.merged-t2-KRK.early_mate_termination": 0,
+        "groups.merged-t2-KRK.unfinished_depth": 0,
+        "groups.merged-t2-KRK.shutdown_faults": 0,
+        "groups.merged-t2-KRK.unexpected_exits": 0,
+        "groups.merged-t2-KRK.mate_score_misses": 0,
+        "groups.merged-t2-KRK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KRK.loses_forced_mate": 0,
+        "groups.merged-t2-KRK.mate_bound_violations": 0,
+        "groups.merged-t4-KBBK.trials": 30,
+        "groups.merged-t4-KBBK.faults": 0,
+        "groups.merged-t4-KBBK.nodes_reported": 425595623,
+        "groups.merged-t4-KBBK.reported_ms": 26131,
+        "groups.merged-t4-KBBK.wall_ms": 26157.3,
+        "groups.merged-t4-KBBK.at_requested_depth": 30,
+        "groups.merged-t4-KBBK.early_mate_termination": 0,
+        "groups.merged-t4-KBBK.unfinished_depth": 0,
+        "groups.merged-t4-KBBK.shutdown_faults": 0,
+        "groups.merged-t4-KBBK.unexpected_exits": 0,
+        "groups.merged-t4-KBBK.mate_score_misses": 0,
+        "groups.merged-t4-KBBK.krk_non_mating_moves": 0,
+        "groups.merged-t4-KBBK.loses_forced_mate": 0,
+        "groups.merged-t4-KBBK.mate_bound_violations": 0,
+        "groups.merged-t4-KQK.trials": 280,
+        "groups.merged-t4-KQK.faults": 0,
+        "groups.merged-t4-KQK.nodes_reported": 988513155,
+        "groups.merged-t4-KQK.reported_ms": 80025,
+        "groups.merged-t4-KQK.wall_ms": 80285.6,
+        "groups.merged-t4-KQK.at_requested_depth": 280,
+        "groups.merged-t4-KQK.early_mate_termination": 0,
+        "groups.merged-t4-KQK.unfinished_depth": 0,
+        "groups.merged-t4-KQK.shutdown_faults": 0,
+        "groups.merged-t4-KQK.unexpected_exits": 0,
+        "groups.merged-t4-KQK.mate_score_misses": 0,
+        "groups.merged-t4-KQK.krk_non_mating_moves": 0,
+        "groups.merged-t4-KQK.loses_forced_mate": 0,
+        "groups.merged-t4-KQK.mate_bound_violations": 0,
+        "groups.merged-t4-KRK.trials": 400,
+        "groups.merged-t4-KRK.faults": 0,
+        "groups.merged-t4-KRK.nodes_reported": 429437569,
+        "groups.merged-t4-KRK.reported_ms": 29026,
+        "groups.merged-t4-KRK.wall_ms": 29331.1,
+        "groups.merged-t4-KRK.at_requested_depth": 400,
+        "groups.merged-t4-KRK.early_mate_termination": 0,
+        "groups.merged-t4-KRK.unfinished_depth": 0,
+        "groups.merged-t4-KRK.shutdown_faults": 0,
+        "groups.merged-t4-KRK.unexpected_exits": 0,
+        "groups.merged-t4-KRK.mate_score_misses": 0,
+        "groups.merged-t4-KRK.krk_non_mating_moves": 0,
+        "groups.merged-t4-KRK.loses_forced_mate": 0,
+        "groups.merged-t4-KRK.mate_bound_violations": 0
+      },
+      "schema": "endgame",
+      "rawVerified": true,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2A-0001.evidence/manifest.txt",
+        "sha256": "0db83be5ca82f1a257a2c14f5404ce7ed5cf4308cf2bda923cd98e9cd994ec0c",
+        "files": 3216
+      },
+      "wallTimeReconciliation": {
+        "serialization": "C++ defaultfloat precision 6",
+        "rule": "Absolute difference bounded by half the summary last significant digit plus the sum of half-last-digit bounds of each printed trial value, with a floating-addition bound; integer counters remain exact",
+        "groups": {
+          "lock-t2-KRK": {
+            "rawSum": 2391.5670609999993,
+            "printedTrialRoundingBound": 0.005316499999999949,
+            "terms": 400,
+            "summaryHalfLastDigit": 0.005
+          },
+          "lock-t4-KRK": {
+            "rawSum": 1783.038364,
+            "printedTrialRoundingBound": 0.003403999999999993,
+            "terms": 400,
+            "summaryHalfLastDigit": 0.005
+          },
+          "merged-t2-KRK": {
+            "rawSum": 32606.521691999988,
+            "printedTrialRoundingBound": 0.05916800000000021,
+            "terms": 400,
+            "summaryHalfLastDigit": 0.05
+          },
+          "merged-t4-KRK": {
+            "rawSum": 29331.121378000007,
+            "printedTrialRoundingBound": 0.06521150000000024,
+            "terms": 400,
+            "summaryHalfLastDigit": 0.05
+          },
+          "lock-t2-KQK": {
+            "rawSum": 4619.726548000003,
+            "printedTrialRoundingBound": 0.009774999999999954,
+            "terms": 290,
+            "summaryHalfLastDigit": 0.005
+          },
+          "lock-t4-KQK": {
+            "rawSum": 3399.616785999997,
+            "printedTrialRoundingBound": 0.007812999999999962,
+            "terms": 290,
+            "summaryHalfLastDigit": 0.005
+          },
+          "merged-t2-KQK": {
+            "rawSum": 89598.77849000004,
+            "printedTrialRoundingBound": 0.2090799999999996,
+            "terms": 290,
+            "summaryHalfLastDigit": 0.05
+          },
+          "merged-t4-KQK": {
+            "rawSum": 80285.51949500009,
+            "printedTrialRoundingBound": 0.15926899999999922,
+            "terms": 280,
+            "summaryHalfLastDigit": 0.05
+          },
+          "lock-t2-KBBK": {
+            "rawSum": 308.31340300000005,
+            "printedTrialRoundingBound": 0.0009915000000000002,
+            "terms": 30,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "lock-t4-KBBK": {
+            "rawSum": 213.46998799999997,
+            "printedTrialRoundingBound": 0.0005730000000000002,
+            "terms": 30,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "merged-t2-KBBK": {
+            "rawSum": 39882.60040000001,
+            "printedTrialRoundingBound": 0.09600000000000002,
+            "terms": 30,
+            "summaryHalfLastDigit": 0.05
+          },
+          "merged-t4-KBBK": {
+            "rawSum": 26157.323900000003,
+            "printedTrialRoundingBound": 0.0735,
+            "terms": 30,
+            "summaryHalfLastDigit": 0.05
+          }
+        }
+      },
+      "computed": {
+        "completed_units": 287,
+        "selected_generated": 0,
+        "trials": 2870,
+        "faults": 182,
+        "nodes": 3284349426,
+        "reported_ms": 308352,
+        "wall_ms": 310577.5975050001,
+        "at_requested_depth": 2870,
+        "early_mate_termination": 0,
+        "unfinished_depth": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 182,
+        "krk_non_mating_moves": 55,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0
+      }
+    },
+    {
+      "key": "2A:2",
+      "phase": "2A",
+      "id": 2,
+      "log": "/workspace/work/all-run/logs/2A-0002.txt",
+      "finishedUTC": "2026-11-14T12:16:28.985Z",
+      "recorded": {
+        "completed_units": 116,
+        "trials": 1160,
+        "faults": 65,
+        "selected_generated": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 65,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0,
+        "groups.lock-t2-KBBK.trials": 180,
+        "groups.lock-t2-KBBK.faults": 26,
+        "groups.lock-t2-KBBK.nodes_reported": 5866637,
+        "groups.lock-t2-KBBK.reported_ms": 1194,
+        "groups.lock-t2-KBBK.wall_ms": 1328.99,
+        "groups.lock-t2-KBBK.at_requested_depth": 180,
+        "groups.lock-t2-KBBK.early_mate_termination": 0,
+        "groups.lock-t2-KBBK.unfinished_depth": 0,
+        "groups.lock-t2-KBBK.shutdown_faults": 0,
+        "groups.lock-t2-KBBK.unexpected_exits": 0,
+        "groups.lock-t2-KBBK.mate_score_misses": 26,
+        "groups.lock-t2-KBBK.krk_non_mating_moves": 0,
+        "groups.lock-t2-KBBK.loses_forced_mate": 0,
+        "groups.lock-t2-KBBK.mate_bound_violations": 0,
+        "groups.lock-t2-KQK.trials": 110,
+        "groups.lock-t2-KQK.faults": 12,
+        "groups.lock-t2-KQK.nodes_reported": 8694513,
+        "groups.lock-t2-KQK.reported_ms": 1600,
+        "groups.lock-t2-KQK.wall_ms": 1684.01,
+        "groups.lock-t2-KQK.at_requested_depth": 110,
+        "groups.lock-t2-KQK.early_mate_termination": 0,
+        "groups.lock-t2-KQK.unfinished_depth": 0,
+        "groups.lock-t2-KQK.shutdown_faults": 0,
+        "groups.lock-t2-KQK.unexpected_exits": 0,
+        "groups.lock-t2-KQK.mate_score_misses": 12,
+        "groups.lock-t2-KQK.krk_non_mating_moves": 0,
+        "groups.lock-t2-KQK.loses_forced_mate": 0,
+        "groups.lock-t2-KQK.mate_bound_violations": 0,
+        "groups.lock-t4-KBBK.trials": 180,
+        "groups.lock-t4-KBBK.faults": 18,
+        "groups.lock-t4-KBBK.nodes_reported": 7306497,
+        "groups.lock-t4-KBBK.reported_ms": 801,
+        "groups.lock-t4-KBBK.wall_ms": 957.501,
+        "groups.lock-t4-KBBK.at_requested_depth": 180,
+        "groups.lock-t4-KBBK.early_mate_termination": 0,
+        "groups.lock-t4-KBBK.unfinished_depth": 0,
+        "groups.lock-t4-KBBK.shutdown_faults": 0,
+        "groups.lock-t4-KBBK.unexpected_exits": 0,
+        "groups.lock-t4-KBBK.mate_score_misses": 18,
+        "groups.lock-t4-KBBK.krk_non_mating_moves": 0,
+        "groups.lock-t4-KBBK.loses_forced_mate": 0,
+        "groups.lock-t4-KBBK.mate_bound_violations": 0,
+        "groups.lock-t4-KQK.trials": 110,
+        "groups.lock-t4-KQK.faults": 9,
+        "groups.lock-t4-KQK.nodes_reported": 11971212,
+        "groups.lock-t4-KQK.reported_ms": 1154,
+        "groups.lock-t4-KQK.wall_ms": 1243.39,
+        "groups.lock-t4-KQK.at_requested_depth": 110,
+        "groups.lock-t4-KQK.early_mate_termination": 0,
+        "groups.lock-t4-KQK.unfinished_depth": 0,
+        "groups.lock-t4-KQK.shutdown_faults": 0,
+        "groups.lock-t4-KQK.unexpected_exits": 0,
+        "groups.lock-t4-KQK.mate_score_misses": 9,
+        "groups.lock-t4-KQK.krk_non_mating_moves": 0,
+        "groups.lock-t4-KQK.loses_forced_mate": 0,
+        "groups.lock-t4-KQK.mate_bound_violations": 0,
+        "groups.merged-t2-KBBK.trials": 180,
+        "groups.merged-t2-KBBK.faults": 0,
+        "groups.merged-t2-KBBK.nodes_reported": 1222265559,
+        "groups.merged-t2-KBBK.reported_ms": 146303,
+        "groups.merged-t2-KBBK.wall_ms": 146444,
+        "groups.merged-t2-KBBK.at_requested_depth": 180,
+        "groups.merged-t2-KBBK.early_mate_termination": 0,
+        "groups.merged-t2-KBBK.unfinished_depth": 0,
+        "groups.merged-t2-KBBK.shutdown_faults": 0,
+        "groups.merged-t2-KBBK.unexpected_exits": 0,
+        "groups.merged-t2-KBBK.mate_score_misses": 0,
+        "groups.merged-t2-KBBK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KBBK.loses_forced_mate": 0,
+        "groups.merged-t2-KBBK.mate_bound_violations": 0,
+        "groups.merged-t2-KQK.trials": 110,
+        "groups.merged-t2-KQK.faults": 0,
+        "groups.merged-t2-KQK.nodes_reported": 116961904,
+        "groups.merged-t2-KQK.reported_ms": 12728,
+        "groups.merged-t2-KQK.wall_ms": 12810,
+        "groups.merged-t2-KQK.at_requested_depth": 110,
+        "groups.merged-t2-KQK.early_mate_termination": 0,
+        "groups.merged-t2-KQK.unfinished_depth": 0,
+        "groups.merged-t2-KQK.shutdown_faults": 0,
+        "groups.merged-t2-KQK.unexpected_exits": 0,
+        "groups.merged-t2-KQK.mate_score_misses": 0,
+        "groups.merged-t2-KQK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KQK.loses_forced_mate": 0,
+        "groups.merged-t2-KQK.mate_bound_violations": 0,
+        "groups.merged-t4-KBBK.trials": 170,
+        "groups.merged-t4-KBBK.faults": 0,
+        "groups.merged-t4-KBBK.nodes_reported": 1578822981,
+        "groups.merged-t4-KBBK.reported_ms": 109395,
+        "groups.merged-t4-KBBK.wall_ms": 109546,
+        "groups.merged-t4-KBBK.at_requested_depth": 170,
+        "groups.merged-t4-KBBK.early_mate_termination": 0,
+        "groups.merged-t4-KBBK.unfinished_depth": 0,
+        "groups.merged-t4-KBBK.shutdown_faults": 0,
+        "groups.merged-t4-KBBK.unexpected_exits": 0,
+        "groups.merged-t4-KBBK.mate_score_misses": 0,
+        "groups.merged-t4-KBBK.krk_non_mating_moves": 0,
+        "groups.merged-t4-KBBK.loses_forced_mate": 0,
+        "groups.merged-t4-KBBK.mate_bound_violations": 0,
+        "groups.merged-t4-KQK.trials": 120,
+        "groups.merged-t4-KQK.faults": 0,
+        "groups.merged-t4-KQK.nodes_reported": 353678740,
+        "groups.merged-t4-KQK.reported_ms": 32176,
+        "groups.merged-t4-KQK.wall_ms": 32294.6,
+        "groups.merged-t4-KQK.at_requested_depth": 120,
+        "groups.merged-t4-KQK.early_mate_termination": 0,
+        "groups.merged-t4-KQK.unfinished_depth": 0,
+        "groups.merged-t4-KQK.shutdown_faults": 0,
+        "groups.merged-t4-KQK.unexpected_exits": 0,
+        "groups.merged-t4-KQK.mate_score_misses": 0,
+        "groups.merged-t4-KQK.krk_non_mating_moves": 0,
+        "groups.merged-t4-KQK.loses_forced_mate": 0,
+        "groups.merged-t4-KQK.mate_bound_violations": 0
+      },
+      "schema": "endgame",
+      "rawVerified": true,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2A-0002.evidence/manifest.txt",
+        "sha256": "21170ca2088a35d140ef21a57a0a8bd422e0281581836a1cdb989c5fbbee2590",
+        "files": 1311
+      },
+      "wallTimeReconciliation": {
+        "serialization": "C++ defaultfloat precision 6",
+        "rule": "Absolute difference bounded by half the summary last significant digit plus the sum of half-last-digit bounds of each printed trial value, with a floating-addition bound; integer counters remain exact",
+        "groups": {
+          "merged-t4-KQK": {
+            "rawSum": 32294.61041299999,
+            "printedTrialRoundingBound": 0.06805499999999998,
+            "terms": 120,
+            "summaryHalfLastDigit": 0.05
+          },
+          "lock-t2-KQK": {
+            "rawSum": 1684.00999,
+            "printedTrialRoundingBound": 0.0034524999999999994,
+            "terms": 110,
+            "summaryHalfLastDigit": 0.005
+          },
+          "lock-t4-KQK": {
+            "rawSum": 1243.392298,
+            "printedTrialRoundingBound": 0.0031285000000000015,
+            "terms": 110,
+            "summaryHalfLastDigit": 0.005
+          },
+          "merged-t2-KQK": {
+            "rawSum": 12810.002210999999,
+            "printedTrialRoundingBound": 0.02210950000000005,
+            "terms": 110,
+            "summaryHalfLastDigit": 0.05
+          },
+          "lock-t2-KBBK": {
+            "rawSum": 1328.994648999999,
+            "printedTrialRoundingBound": 0.003114,
+            "terms": 180,
+            "summaryHalfLastDigit": 0.005
+          },
+          "lock-t4-KBBK": {
+            "rawSum": 957.5009700000002,
+            "printedTrialRoundingBound": 0.0019440000000000004,
+            "terms": 180,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "merged-t2-KBBK": {
+            "rawSum": 146443.66290999998,
+            "printedTrialRoundingBound": 0.2308499999999999,
+            "terms": 180,
+            "summaryHalfLastDigit": 0.5
+          },
+          "merged-t4-KBBK": {
+            "rawSum": 109545.60944000001,
+            "printedTrialRoundingBound": 0.21594999999999986,
+            "terms": 170,
+            "summaryHalfLastDigit": 0.5
+          }
+        }
+      },
+      "computed": {
+        "completed_units": 116,
+        "selected_generated": 0,
+        "trials": 1160,
+        "faults": 65,
+        "nodes": 3305568043,
+        "reported_ms": 305351,
+        "wall_ms": 306307.782881,
+        "at_requested_depth": 1160,
+        "early_mate_termination": 0,
+        "unfinished_depth": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 65,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0
+      }
+    },
+    {
+      "key": "2A:3",
+      "phase": "2A",
+      "id": 3,
+      "log": "/workspace/work/all-run/logs/2A-0003.txt",
+      "finishedUTC": "2026-11-14T12:21:12.187Z",
+      "recorded": {
+        "completed_units": 77,
+        "trials": 770,
+        "faults": 51,
+        "selected_generated": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 51,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0,
+        "groups.lock-t2-KBBK.trials": 190,
+        "groups.lock-t2-KBBK.faults": 28,
+        "groups.lock-t2-KBBK.nodes_reported": 5250535,
+        "groups.lock-t2-KBBK.reported_ms": 1079,
+        "groups.lock-t2-KBBK.wall_ms": 1213.9,
+        "groups.lock-t2-KBBK.at_requested_depth": 190,
+        "groups.lock-t2-KBBK.early_mate_termination": 0,
+        "groups.lock-t2-KBBK.unfinished_depth": 0,
+        "groups.lock-t2-KBBK.shutdown_faults": 0,
+        "groups.lock-t2-KBBK.unexpected_exits": 0,
+        "groups.lock-t2-KBBK.mate_score_misses": 28,
+        "groups.lock-t2-KBBK.krk_non_mating_moves": 0,
+        "groups.lock-t2-KBBK.loses_forced_mate": 0,
+        "groups.lock-t2-KBBK.mate_bound_violations": 0,
+        "groups.lock-t4-KBBK.trials": 190,
+        "groups.lock-t4-KBBK.faults": 23,
+        "groups.lock-t4-KBBK.nodes_reported": 7251416,
+        "groups.lock-t4-KBBK.reported_ms": 733,
+        "groups.lock-t4-KBBK.wall_ms": 890.97,
+        "groups.lock-t4-KBBK.at_requested_depth": 190,
+        "groups.lock-t4-KBBK.early_mate_termination": 0,
+        "groups.lock-t4-KBBK.unfinished_depth": 0,
+        "groups.lock-t4-KBBK.shutdown_faults": 0,
+        "groups.lock-t4-KBBK.unexpected_exits": 0,
+        "groups.lock-t4-KBBK.mate_score_misses": 23,
+        "groups.lock-t4-KBBK.krk_non_mating_moves": 0,
+        "groups.lock-t4-KBBK.loses_forced_mate": 0,
+        "groups.lock-t4-KBBK.mate_bound_violations": 0,
+        "groups.merged-t2-KBBK.trials": 190,
+        "groups.merged-t2-KBBK.faults": 0,
+        "groups.merged-t2-KBBK.nodes_reported": 906422650,
+        "groups.merged-t2-KBBK.reported_ms": 109582,
+        "groups.merged-t2-KBBK.wall_ms": 109727,
+        "groups.merged-t2-KBBK.at_requested_depth": 190,
+        "groups.merged-t2-KBBK.early_mate_termination": 0,
+        "groups.merged-t2-KBBK.unfinished_depth": 0,
+        "groups.merged-t2-KBBK.shutdown_faults": 0,
+        "groups.merged-t2-KBBK.unexpected_exits": 0,
+        "groups.merged-t2-KBBK.mate_score_misses": 0,
+        "groups.merged-t2-KBBK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KBBK.loses_forced_mate": 0,
+        "groups.merged-t2-KBBK.mate_bound_violations": 0,
+        "groups.merged-t4-KBBK.trials": 200,
+        "groups.merged-t4-KBBK.faults": 0,
+        "groups.merged-t4-KBBK.nodes_reported": 1583274621,
+        "groups.merged-t4-KBBK.reported_ms": 105206,
+        "groups.merged-t4-KBBK.wall_ms": 105382,
+        "groups.merged-t4-KBBK.at_requested_depth": 200,
+        "groups.merged-t4-KBBK.early_mate_termination": 0,
+        "groups.merged-t4-KBBK.unfinished_depth": 0,
+        "groups.merged-t4-KBBK.shutdown_faults": 0,
+        "groups.merged-t4-KBBK.unexpected_exits": 0,
+        "groups.merged-t4-KBBK.mate_score_misses": 0,
+        "groups.merged-t4-KBBK.krk_non_mating_moves": 0,
+        "groups.merged-t4-KBBK.loses_forced_mate": 0,
+        "groups.merged-t4-KBBK.mate_bound_violations": 0
+      },
+      "schema": "endgame",
+      "rawVerified": true,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2A-0003.evidence/manifest.txt",
+        "sha256": "444a1a9b5c41daf476d4b1b7ed72a5977e4a2fa93b123e76cf33266e1aa554d4",
+        "files": 863
+      },
+      "wallTimeReconciliation": {
+        "serialization": "C++ defaultfloat precision 6",
+        "rule": "Absolute difference bounded by half the summary last significant digit plus the sum of half-last-digit bounds of each printed trial value, with a floating-addition bound; integer counters remain exact",
+        "groups": {
+          "merged-t4-KBBK": {
+            "rawSum": 105381.76784499998,
+            "printedTrialRoundingBound": 0.18294400000000005,
+            "terms": 200,
+            "summaryHalfLastDigit": 0.5
+          },
+          "lock-t2-KBBK": {
+            "rawSum": 1213.8985560000015,
+            "printedTrialRoundingBound": 0.0027184999999999952,
+            "terms": 190,
+            "summaryHalfLastDigit": 0.005
+          },
+          "lock-t4-KBBK": {
+            "rawSum": 890.9697950000002,
+            "printedTrialRoundingBound": 0.0016430000000000019,
+            "terms": 190,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "merged-t2-KBBK": {
+            "rawSum": 109726.87046900002,
+            "printedTrialRoundingBound": 0.19076000000000004,
+            "terms": 190,
+            "summaryHalfLastDigit": 0.5
+          }
+        }
+      },
+      "computed": {
+        "completed_units": 77,
+        "selected_generated": 0,
+        "trials": 770,
+        "faults": 51,
+        "nodes": 2502199222,
+        "reported_ms": 216600,
+        "wall_ms": 217213.506665,
+        "at_requested_depth": 770,
+        "early_mate_termination": 0,
+        "unfinished_depth": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 51,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0
+      }
+    },
+    {
+      "key": "2B:1",
+      "phase": "2B",
+      "id": 1,
+      "log": "/workspace/work/all-run/logs/2B-0001.txt",
+      "finishedUTC": "2026-11-14T12:33:12.810Z",
+      "recorded": {
+        "completed_units": 800,
+        "trials": 800,
+        "faults": 0,
+        "selected_generated": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 0,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0,
+        "groups.lock-t1-KBBK.trials": 66,
+        "groups.lock-t1-KBBK.faults": 0,
+        "groups.lock-t1-KBBK.nodes_reported": 1841473,
+        "groups.lock-t1-KBBK.reported_ms": 735,
+        "groups.lock-t1-KBBK.wall_ms": 783.357,
+        "groups.lock-t1-KBBK.at_requested_depth": 66,
+        "groups.lock-t1-KBBK.early_mate_termination": 0,
+        "groups.lock-t1-KBBK.unfinished_depth": 0,
+        "groups.lock-t1-KBBK.shutdown_faults": 0,
+        "groups.lock-t1-KBBK.unexpected_exits": 0,
+        "groups.lock-t1-KBBK.mate_score_misses": 0,
+        "groups.lock-t1-KBBK.krk_non_mating_moves": 0,
+        "groups.lock-t1-KBBK.loses_forced_mate": 0,
+        "groups.lock-t1-KBBK.mate_bound_violations": 0,
+        "groups.lock-t1-KQK.trials": 67,
+        "groups.lock-t1-KQK.faults": 0,
+        "groups.lock-t1-KQK.nodes_reported": 3533102,
+        "groups.lock-t1-KQK.reported_ms": 1219,
+        "groups.lock-t1-KQK.wall_ms": 1267.47,
+        "groups.lock-t1-KQK.at_requested_depth": 67,
+        "groups.lock-t1-KQK.early_mate_termination": 0,
+        "groups.lock-t1-KQK.unfinished_depth": 0,
+        "groups.lock-t1-KQK.shutdown_faults": 0,
+        "groups.lock-t1-KQK.unexpected_exits": 0,
+        "groups.lock-t1-KQK.mate_score_misses": 0,
+        "groups.lock-t1-KQK.krk_non_mating_moves": 0,
+        "groups.lock-t1-KQK.loses_forced_mate": 0,
+        "groups.lock-t1-KQK.mate_bound_violations": 0,
+        "groups.lock-t1-KRK.trials": 67,
+        "groups.lock-t1-KRK.faults": 0,
+        "groups.lock-t1-KRK.nodes_reported": 1869484,
+        "groups.lock-t1-KRK.reported_ms": 638,
+        "groups.lock-t1-KRK.wall_ms": 688.882,
+        "groups.lock-t1-KRK.at_requested_depth": 67,
+        "groups.lock-t1-KRK.early_mate_termination": 0,
+        "groups.lock-t1-KRK.unfinished_depth": 0,
+        "groups.lock-t1-KRK.shutdown_faults": 0,
+        "groups.lock-t1-KRK.unexpected_exits": 0,
+        "groups.lock-t1-KRK.mate_score_misses": 0,
+        "groups.lock-t1-KRK.krk_non_mating_moves": 0,
+        "groups.lock-t1-KRK.loses_forced_mate": 0,
+        "groups.lock-t1-KRK.mate_bound_violations": 0,
+        "groups.lock-t2-KBBK.trials": 66,
+        "groups.lock-t2-KBBK.faults": 0,
+        "groups.lock-t2-KBBK.nodes_reported": 2653500,
+        "groups.lock-t2-KBBK.reported_ms": 565,
+        "groups.lock-t2-KBBK.wall_ms": 625.698,
+        "groups.lock-t2-KBBK.at_requested_depth": 66,
+        "groups.lock-t2-KBBK.early_mate_termination": 0,
+        "groups.lock-t2-KBBK.unfinished_depth": 0,
+        "groups.lock-t2-KBBK.shutdown_faults": 0,
+        "groups.lock-t2-KBBK.unexpected_exits": 0,
+        "groups.lock-t2-KBBK.mate_score_misses": 0,
+        "groups.lock-t2-KBBK.krk_non_mating_moves": 0,
+        "groups.lock-t2-KBBK.loses_forced_mate": 0,
+        "groups.lock-t2-KBBK.mate_bound_violations": 0,
+        "groups.lock-t2-KQK.trials": 67,
+        "groups.lock-t2-KQK.faults": 0,
+        "groups.lock-t2-KQK.nodes_reported": 5187922,
+        "groups.lock-t2-KQK.reported_ms": 1002,
+        "groups.lock-t2-KQK.wall_ms": 1053.52,
+        "groups.lock-t2-KQK.at_requested_depth": 67,
+        "groups.lock-t2-KQK.early_mate_termination": 0,
+        "groups.lock-t2-KQK.unfinished_depth": 0,
+        "groups.lock-t2-KQK.shutdown_faults": 0,
+        "groups.lock-t2-KQK.unexpected_exits": 0,
+        "groups.lock-t2-KQK.mate_score_misses": 0,
+        "groups.lock-t2-KQK.krk_non_mating_moves": 0,
+        "groups.lock-t2-KQK.loses_forced_mate": 0,
+        "groups.lock-t2-KQK.mate_bound_violations": 0,
+        "groups.lock-t2-KRK.trials": 67,
+        "groups.lock-t2-KRK.faults": 0,
+        "groups.lock-t2-KRK.nodes_reported": 2695918,
+        "groups.lock-t2-KRK.reported_ms": 515,
+        "groups.lock-t2-KRK.wall_ms": 574.081,
+        "groups.lock-t2-KRK.at_requested_depth": 67,
+        "groups.lock-t2-KRK.early_mate_termination": 0,
+        "groups.lock-t2-KRK.unfinished_depth": 0,
+        "groups.lock-t2-KRK.shutdown_faults": 0,
+        "groups.lock-t2-KRK.unexpected_exits": 0,
+        "groups.lock-t2-KRK.mate_score_misses": 0,
+        "groups.lock-t2-KRK.krk_non_mating_moves": 0,
+        "groups.lock-t2-KRK.loses_forced_mate": 0,
+        "groups.lock-t2-KRK.mate_bound_violations": 0,
+        "groups.merged-t1-KBBK.trials": 66,
+        "groups.merged-t1-KBBK.faults": 0,
+        "groups.merged-t1-KBBK.nodes_reported": 1841473,
+        "groups.merged-t1-KBBK.reported_ms": 715,
+        "groups.merged-t1-KBBK.wall_ms": 761.291,
+        "groups.merged-t1-KBBK.at_requested_depth": 66,
+        "groups.merged-t1-KBBK.early_mate_termination": 0,
+        "groups.merged-t1-KBBK.unfinished_depth": 0,
+        "groups.merged-t1-KBBK.shutdown_faults": 0,
+        "groups.merged-t1-KBBK.unexpected_exits": 0,
+        "groups.merged-t1-KBBK.mate_score_misses": 0,
+        "groups.merged-t1-KBBK.krk_non_mating_moves": 0,
+        "groups.merged-t1-KBBK.loses_forced_mate": 0,
+        "groups.merged-t1-KBBK.mate_bound_violations": 0,
+        "groups.merged-t1-KQK.trials": 67,
+        "groups.merged-t1-KQK.faults": 0,
+        "groups.merged-t1-KQK.nodes_reported": 3533102,
+        "groups.merged-t1-KQK.reported_ms": 1237,
+        "groups.merged-t1-KQK.wall_ms": 1287,
+        "groups.merged-t1-KQK.at_requested_depth": 67,
+        "groups.merged-t1-KQK.early_mate_termination": 0,
+        "groups.merged-t1-KQK.unfinished_depth": 0,
+        "groups.merged-t1-KQK.shutdown_faults": 0,
+        "groups.merged-t1-KQK.unexpected_exits": 0,
+        "groups.merged-t1-KQK.mate_score_misses": 0,
+        "groups.merged-t1-KQK.krk_non_mating_moves": 0,
+        "groups.merged-t1-KQK.loses_forced_mate": 0,
+        "groups.merged-t1-KQK.mate_bound_violations": 0,
+        "groups.merged-t1-KRK.trials": 67,
+        "groups.merged-t1-KRK.faults": 0,
+        "groups.merged-t1-KRK.nodes_reported": 1869484,
+        "groups.merged-t1-KRK.reported_ms": 634,
+        "groups.merged-t1-KRK.wall_ms": 688.152,
+        "groups.merged-t1-KRK.at_requested_depth": 67,
+        "groups.merged-t1-KRK.early_mate_termination": 0,
+        "groups.merged-t1-KRK.unfinished_depth": 0,
+        "groups.merged-t1-KRK.shutdown_faults": 0,
+        "groups.merged-t1-KRK.unexpected_exits": 0,
+        "groups.merged-t1-KRK.mate_score_misses": 0,
+        "groups.merged-t1-KRK.krk_non_mating_moves": 0,
+        "groups.merged-t1-KRK.loses_forced_mate": 0,
+        "groups.merged-t1-KRK.mate_bound_violations": 0,
+        "groups.merged-t2-KBBK.trials": 66,
+        "groups.merged-t2-KBBK.faults": 0,
+        "groups.merged-t2-KBBK.nodes_reported": 271756563,
+        "groups.merged-t2-KBBK.reported_ms": 35409,
+        "groups.merged-t2-KBBK.wall_ms": 35470,
+        "groups.merged-t2-KBBK.at_requested_depth": 66,
+        "groups.merged-t2-KBBK.early_mate_termination": 0,
+        "groups.merged-t2-KBBK.unfinished_depth": 0,
+        "groups.merged-t2-KBBK.shutdown_faults": 0,
+        "groups.merged-t2-KBBK.unexpected_exits": 0,
+        "groups.merged-t2-KBBK.mate_score_misses": 0,
+        "groups.merged-t2-KBBK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KBBK.loses_forced_mate": 0,
+        "groups.merged-t2-KBBK.mate_bound_violations": 0,
+        "groups.merged-t2-KQK.trials": 67,
+        "groups.merged-t2-KQK.faults": 0,
+        "groups.merged-t2-KQK.nodes_reported": 372545627,
+        "groups.merged-t2-KQK.reported_ms": 37728,
+        "groups.merged-t2-KQK.wall_ms": 37789.9,
+        "groups.merged-t2-KQK.at_requested_depth": 67,
+        "groups.merged-t2-KQK.early_mate_termination": 0,
+        "groups.merged-t2-KQK.unfinished_depth": 0,
+        "groups.merged-t2-KQK.shutdown_faults": 0,
+        "groups.merged-t2-KQK.unexpected_exits": 0,
+        "groups.merged-t2-KQK.mate_score_misses": 0,
+        "groups.merged-t2-KQK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KQK.loses_forced_mate": 0,
+        "groups.merged-t2-KQK.mate_bound_violations": 0,
+        "groups.merged-t2-KRK.trials": 67,
+        "groups.merged-t2-KRK.faults": 0,
+        "groups.merged-t2-KRK.nodes_reported": 66446330,
+        "groups.merged-t2-KRK.reported_ms": 7802,
+        "groups.merged-t2-KRK.wall_ms": 7858.46,
+        "groups.merged-t2-KRK.at_requested_depth": 67,
+        "groups.merged-t2-KRK.early_mate_termination": 0,
+        "groups.merged-t2-KRK.unfinished_depth": 0,
+        "groups.merged-t2-KRK.shutdown_faults": 0,
+        "groups.merged-t2-KRK.unexpected_exits": 0,
+        "groups.merged-t2-KRK.mate_score_misses": 0,
+        "groups.merged-t2-KRK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KRK.loses_forced_mate": 0,
+        "groups.merged-t2-KRK.mate_bound_violations": 0
+      },
+      "schema": "endgame",
+      "rawVerified": true,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2B-0001.evidence/manifest.txt",
+        "sha256": "e7fe41d0c2096ed50980824f1b21eb8bbe4fcbb2196606a8bbe51be8d4b53029",
+        "files": 1606
+      },
+      "wallTimeReconciliation": {
+        "serialization": "C++ defaultfloat precision 6",
+        "rule": "Absolute difference bounded by half the summary last significant digit plus the sum of half-last-digit bounds of each printed trial value, with a floating-addition bound; integer counters remain exact",
+        "groups": {
+          "lock-t1-KRK": {
+            "rawSum": 688.8821089999998,
+            "printedTrialRoundingBound": 0.0018469999999999995,
+            "terms": 67,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "lock-t2-KRK": {
+            "rawSum": 574.0812090000002,
+            "printedTrialRoundingBound": 0.0012620000000000005,
+            "terms": 67,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "merged-t1-KRK": {
+            "rawSum": 688.1516240000002,
+            "printedTrialRoundingBound": 0.0017209999999999997,
+            "terms": 67,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "merged-t2-KRK": {
+            "rawSum": 7858.4603449999995,
+            "printedTrialRoundingBound": 0.01797050000000001,
+            "terms": 67,
+            "summaryHalfLastDigit": 0.005
+          },
+          "lock-t1-KQK": {
+            "rawSum": 1267.4732429999997,
+            "printedTrialRoundingBound": 0.002738000000000001,
+            "terms": 67,
+            "summaryHalfLastDigit": 0.005
+          },
+          "lock-t2-KQK": {
+            "rawSum": 1053.5236710000001,
+            "printedTrialRoundingBound": 0.0027380000000000004,
+            "terms": 67,
+            "summaryHalfLastDigit": 0.005
+          },
+          "merged-t1-KQK": {
+            "rawSum": 1287.0025429999996,
+            "printedTrialRoundingBound": 0.002738000000000001,
+            "terms": 67,
+            "summaryHalfLastDigit": 0.005
+          },
+          "merged-t2-KQK": {
+            "rawSum": 37789.92738199999,
+            "printedTrialRoundingBound": 0.06911750000000001,
+            "terms": 67,
+            "summaryHalfLastDigit": 0.05
+          },
+          "lock-t1-KBBK": {
+            "rawSum": 783.357158,
+            "printedTrialRoundingBound": 0.0021029999999999994,
+            "terms": 66,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "lock-t2-KBBK": {
+            "rawSum": 625.6979140000001,
+            "printedTrialRoundingBound": 0.0015224999999999998,
+            "terms": 66,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "merged-t1-KBBK": {
+            "rawSum": 761.2912340000004,
+            "printedTrialRoundingBound": 0.0019679999999999993,
+            "terms": 66,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "merged-t2-KBBK": {
+            "rawSum": 35469.97058299999,
+            "printedTrialRoundingBound": 0.07007100000000001,
+            "terms": 66,
+            "summaryHalfLastDigit": 0.05
+          }
+        }
+      },
+      "computed": {
+        "completed_units": 800,
+        "selected_generated": 0,
+        "trials": 800,
+        "faults": 0,
+        "nodes": 735773978,
+        "reported_ms": 88199,
+        "wall_ms": 88847.81901499999,
+        "at_requested_depth": 800,
+        "early_mate_termination": 0,
+        "unfinished_depth": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 0,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0
+      }
+    }
+  ],
+  "excluded": [
+    {
+      "key": "2KRKfull:1",
+      "reason": "Not an official Part2 runSpecResults phase or explicitly named preparation/smoke/unit artifact"
+    },
+    {
+      "key": "2KRKsplit:1",
+      "reason": "Not an official Part2 runSpecResults phase or explicitly named preparation/smoke/unit artifact"
+    }
+  ],
+  "issues": [
+    {
+      "level": "warning",
+      "message": "2D:1 lacks --trace: search/move/game counts are self-reported, with SUMMARY invariants and emitted FAULT rows checked; no per-search replay enumeration available"
+    }
+  ],
+  "faults": [
+    {
+      "audit_key": "2A:1:unit-16",
+      "file": "002.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000004; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-17",
+      "file": "003.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000004; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-36",
+      "file": "004.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000009; 7/10 mate-score misses, 0 illegal, 1 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-37",
+      "file": "005.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000009; 7/10 mate-score misses, 0 illegal, 3 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-48",
+      "file": "006.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000012; 5/10 mate-score misses, 0 illegal, 5 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-49",
+      "file": "007.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000012; 5/10 mate-score misses, 0 illegal, 5 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-52",
+      "file": "008.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000013; 5/10 mate-score misses, 0 illegal, 5 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-53",
+      "file": "009.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000013; 6/10 mate-score misses, 0 illegal, 6 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-60",
+      "file": "010.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000015; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-61",
+      "file": "011.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000015; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-68",
+      "file": "012.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000017; 1/10 mate-score misses, 0 illegal, 1 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-77",
+      "file": "013.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000019; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-88",
+      "file": "014.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000022; 4/10 mate-score misses, 0 illegal, 4 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-89",
+      "file": "015.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000022; 5/10 mate-score misses, 0 illegal, 5 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-104",
+      "file": "016.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000026; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-105",
+      "file": "017.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000026; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-108",
+      "file": "018.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000027; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-109",
+      "file": "019.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000027; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-112",
+      "file": "020.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000028; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-113",
+      "file": "021.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000028; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-116",
+      "file": "022.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000029; 5/10 mate-score misses, 0 illegal, 5 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-117",
+      "file": "023.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000029; 3/10 mate-score misses, 0 illegal, 3 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-140",
+      "file": "024.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000035; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-141",
+      "file": "025.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000035; 2/10 mate-score misses, 0 illegal, 1 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-144",
+      "file": "026.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000036; 8/10 mate-score misses, 0 illegal, 8 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-145",
+      "file": "027.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000036; 3/10 mate-score misses, 0 illegal, 3 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-172",
+      "file": "028.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000006; 8/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-173",
+      "file": "029.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000006; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-181",
+      "file": "030.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000022; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-184",
+      "file": "031.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000024; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-192",
+      "file": "032.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000040; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-193",
+      "file": "033.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000040; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-204",
+      "file": "034.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000044; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-205",
+      "file": "035.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000044; 4/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-208",
+      "file": "036.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000046; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-212",
+      "file": "037.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000048; 4/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-213",
+      "file": "038.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000048; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-221",
+      "file": "039.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000066; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-236",
+      "file": "040.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000088; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-244",
+      "file": "041.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000094; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-252",
+      "file": "042.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-000103; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-253",
+      "file": "043.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-000103; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-264",
+      "file": "044.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-000137; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-265",
+      "file": "045.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-000137; 8/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-268",
+      "file": "046.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000138; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-272",
+      "file": "047.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000140; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-273",
+      "file": "048.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000140; 4/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-276",
+      "file": "049.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000142; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-284",
+      "file": "050.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000148; 9/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-285",
+      "file": "051.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000148; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-288",
+      "file": "052.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000156; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-289",
+      "file": "053.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000156; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-308",
+      "file": "054.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000166; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-309",
+      "file": "055.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000166; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-312",
+      "file": "056.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000172; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-320",
+      "file": "057.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000184; 4/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-321",
+      "file": "058.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000184; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-324",
+      "file": "059.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000194; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-325",
+      "file": "060.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000194; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-328",
+      "file": "061.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000196; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-329",
+      "file": "062.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000196; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-344",
+      "file": "063.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-000369; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-348",
+      "file": "064.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-000441; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-349",
+      "file": "065.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-000441; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-352",
+      "file": "066.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-000473; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-356",
+      "file": "067.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-000533; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-357",
+      "file": "068.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-000533; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-392",
+      "file": "069.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-000801; 8/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-393",
+      "file": "070.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-000801; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-400",
+      "file": "071.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-000955; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-401",
+      "file": "072.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-000955; 4/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-420",
+      "file": "073.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-001203; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-421",
+      "file": "074.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-001203; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-436",
+      "file": "075.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-001401; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-437",
+      "file": "076.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-001401; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-448",
+      "file": "077.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-001577; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-449",
+      "file": "078.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-001577; 10/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-452",
+      "file": "079.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-001601; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-453",
+      "file": "080.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-001601; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-456",
+      "file": "081.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-001615; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-457",
+      "file": "082.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-001615; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-472",
+      "file": "083.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-001735; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    }
+  ],
+  "endgameGroups": {
+    "2A:lock-t2-KRK": {
+      "phase": "2A",
+      "build": "lock",
+      "threads": 2,
+      "kind": "KRK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 48,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 29,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 48
+      }
+    },
+    "2A:lock-t4-KRK": {
+      "phase": "2A",
+      "build": "lock",
+      "threads": 4,
+      "kind": "KRK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 47,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 26,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 47
+      }
+    },
+    "2A:merged-t2-KRK": {
+      "phase": "2A",
+      "build": "merged",
+      "threads": 2,
+      "kind": "KRK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2A:merged-t4-KRK": {
+      "phase": "2A",
+      "build": "merged",
+      "threads": 4,
+      "kind": "KRK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2A:lock-t2-KQK": {
+      "phase": "2A",
+      "build": "lock",
+      "threads": 2,
+      "kind": "KQK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 53,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 53
+      }
+    },
+    "2A:lock-t4-KQK": {
+      "phase": "2A",
+      "build": "lock",
+      "threads": 4,
+      "kind": "KQK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 38,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 38
+      }
+    },
+    "2A:merged-t2-KQK": {
+      "phase": "2A",
+      "build": "merged",
+      "threads": 2,
+      "kind": "KQK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2A:merged-t4-KQK": {
+      "phase": "2A",
+      "build": "merged",
+      "threads": 4,
+      "kind": "KQK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2A:lock-t2-KBBK": {
+      "phase": "2A",
+      "build": "lock",
+      "threads": 2,
+      "kind": "KBBK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 62,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 62
+      }
+    },
+    "2A:lock-t4-KBBK": {
+      "phase": "2A",
+      "build": "lock",
+      "threads": 4,
+      "kind": "KBBK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 50,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 50
+      }
+    },
+    "2A:merged-t2-KBBK": {
+      "phase": "2A",
+      "build": "merged",
+      "threads": 2,
+      "kind": "KBBK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2A:merged-t4-KBBK": {
+      "phase": "2A",
+      "build": "merged",
+      "threads": 4,
+      "kind": "KBBK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:lock-t1-KRK": {
+      "phase": "2B",
+      "build": "lock",
+      "threads": 1,
+      "kind": "KRK",
+      "units": 67,
+      "trials": 67,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 67,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:lock-t2-KRK": {
+      "phase": "2B",
+      "build": "lock",
+      "threads": 2,
+      "kind": "KRK",
+      "units": 67,
+      "trials": 67,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 67,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:merged-t1-KRK": {
+      "phase": "2B",
+      "build": "merged",
+      "threads": 1,
+      "kind": "KRK",
+      "units": 67,
+      "trials": 67,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 67,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:merged-t2-KRK": {
+      "phase": "2B",
+      "build": "merged",
+      "threads": 2,
+      "kind": "KRK",
+      "units": 67,
+      "trials": 67,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 67,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:lock-t1-KQK": {
+      "phase": "2B",
+      "build": "lock",
+      "threads": 1,
+      "kind": "KQK",
+      "units": 67,
+      "trials": 67,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 67,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:lock-t2-KQK": {
+      "phase": "2B",
+      "build": "lock",
+      "threads": 2,
+      "kind": "KQK",
+      "units": 67,
+      "trials": 67,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 67,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:merged-t1-KQK": {
+      "phase": "2B",
+      "build": "merged",
+      "threads": 1,
+      "kind": "KQK",
+      "units": 67,
+      "trials": 67,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 67,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:merged-t2-KQK": {
+      "phase": "2B",
+      "build": "merged",
+      "threads": 2,
+      "kind": "KQK",
+      "units": 67,
+      "trials": 67,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 67,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:lock-t1-KBBK": {
+      "phase": "2B",
+      "build": "lock",
+      "threads": 1,
+      "kind": "KBBK",
+      "units": 66,
+      "trials": 66,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 66,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:lock-t2-KBBK": {
+      "phase": "2B",
+      "build": "lock",
+      "threads": 2,
+      "kind": "KBBK",
+      "units": 66,
+      "trials": 66,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 66,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:merged-t1-KBBK": {
+      "phase": "2B",
+      "build": "merged",
+      "threads": 1,
+      "kind": "KBBK",
+      "units": 66,
+      "trials": 66,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 66,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:merged-t2-KBBK": {
+      "phase": "2B",
+      "build": "merged",
+      "threads": 2,
+      "kind": "KBBK",
+      "units": 66,
+      "trials": 66,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 66,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    }
+  },
+  "limitations": [
+    "Frequencies come only from complete raw recorded trial groups. Partial safety evidence has no completed reproduction frequency.",
+    "No engine is executed by this auditor. Missing ten-run reproduction groups remain pending.",
+    "Sanitizer marker locations are evidence occurrences, not a count of independent bugs. Mirrored logs can contain the same diagnostic."
+  ],
+  "newFaults": 0,
+  "errors": 0,
+  "warnings": 1,
+  "supplementalReadOnlyReview": {
+    "utc": "2026-11-14T12:42:16.980Z",
+    "errors": 0,
+    "stateUnchanged": true,
+    "helperUnchanged": true,
+    "activeIgnored": {
+      "phase": "2KRKsplit",
+      "id": 2,
+      "seed": "not_applicable",
+      "description": "Isolated unchanged existing ASAN KRK split retry 2/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks",
+      "log": "/workspace/work/all-run/logs/krk-split-2-controller.txt",
+      "metadata": "/workspace/work/all-run/logs/krk-split-2-controller.txt.run-spec.json",
+      "started": "2026-11-14T12:39:53.034Z"
+    },
+    "reviews": [
+      {
+        "phase": "2KRKfull",
+        "id": 1,
+        "type": "existing_asan_krk_full_retry",
+        "classification": "budget-expired incomplete test; zero completed coverage; not an engine fault",
+        "completed": false,
+        "passed": false,
+        "process": {
+          "exit": 124,
+          "signal": null,
+          "spawnError": null,
+          "interrupted": null,
+          "ioErrors": []
+        },
+        "counts": {},
+        "counting": "Native aggregate output independently parsed; no per-trial replay evidence inferred",
+        "sanitizerDiagnostics": [],
+        "manifest": "batches/2KRKfull-0001.evidence/manifest.txt",
+        "manifest_sha256": "574935be39be1816b2402f790d5f13373685e0b2568d608ae810daf70e877092",
+        "verifiedArtifacts": 5,
+        "binary_sha256": "4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99",
+        "rawNativeLog": "START 2026-11-14T12:23:23.996Z\nCWD /workspace/work/dwqww-all\nARGV [\"/workspace/work/all-run/tests-asan/krk_mate_test\",\"40\",\"10\",\"2\",\"16\",\"14\",\"1\"]\nENV {\"ASAN_OPTIONS\":\"detect_leaks=1:halt_on_error=1\",\"UBSAN_OPTIONS\":\"halt_on_error=1:print_stacktrace=1\"}\nCOMMAND '/usr/bin/timeout' '--signal=TERM' '--kill-after=5s' '435s' '/workspace/work/all-run/tests-asan/krk_mate_test' '40' '10' '2' '16' '14' '1'\nBINARY_SHA256 4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99\nOUTPUT\n\nEND 2026-11-14T12:30:39.011Z EXIT 124 SIGNAL null\n",
+        "checks": "Manifest identity and every copied artifact bytes/SHA; immutable metadata/state/controller SUMMARY equality; native configuration/T1/main counters and process status; exact integer consistency; incomplete-zero contract"
+      },
+      {
+        "phase": "2KRKsplit",
+        "id": 1,
+        "type": "existing_asan_krk_split_retry",
+        "classification": "completed existing-test invocation; native aggregate output verified",
+        "completed": true,
+        "passed": true,
+        "process": {
+          "exit": 0,
+          "signal": null,
+          "spawnError": null,
+          "interrupted": null,
+          "ioErrors": []
+        },
+        "counts": {
+          "tests_completed": 1,
+          "t1_runs": 100,
+          "t1_misses": 0,
+          "main_runs": 200,
+          "main_misses": 0,
+          "no_mate_score": 0,
+          "non_mating_move": 0,
+          "sanitizer_reports": 0
+        },
+        "counting": "Native aggregate output independently parsed; no per-trial replay evidence inferred",
+        "sanitizerDiagnostics": [],
+        "manifest": "batches/2KRKsplit-0001.evidence/manifest.txt",
+        "manifest_sha256": "921bf3aa679b42848d3a7f381a8e075062068ed67270776ffdf6e15314415ea0",
+        "verifiedArtifacts": 5,
+        "binary_sha256": "4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99",
+        "rawNativeLog": "START 2026-11-14T12:34:03.840Z\nCWD /workspace/work/dwqww-all\nARGV [\"/workspace/work/all-run/tests-asan/krk_mate_test\",\"40\",\"5\",\"2\",\"16\",\"14\",\"1\"]\nENV {\"ASAN_OPTIONS\":\"detect_leaks=1:halt_on_error=1\",\"UBSAN_OPTIONS\":\"halt_on_error=1:print_stacktrace=1\"}\nCOMMAND '/usr/bin/timeout' '--signal=TERM' '--kill-after=5s' '435s' '/workspace/work/all-run/tests-asan/krk_mate_test' '40' '5' '2' '16' '14' '1'\nBINARY_SHA256 4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99\nOUTPUT\nconfig positions=40 runs_per_pos=5 threads=2 hash_mb=16 depth=14 use_nnue=true\nthreads_1_check: 0 / 100 misses\nSUMMARY: misses=0 / 200 (no_mate_score=0, non_mating_move=0)\n\nEND 2026-11-14T12:38:29.488Z EXIT 0 SIGNAL null\n",
+        "checks": "Manifest identity and every copied artifact bytes/SHA; immutable metadata/state/controller SUMMARY equality; native configuration/T1/main counters and process status; exact integer consistency; incomplete-zero contract"
+      }
+    ],
+    "narrowReaderProposal": "Add only exact existing_asan_krk_full_retry/2KRKfull and existing_asan_krk_split_retry/2KRKsplit schemas, verify preserved native anchored output and process/hash provenance, require exact integer equality, classify incomplete zero-coverage attempts separately from engine faults. No generalized fallback that treats unsupported schemas as verified."
+  }
+}
+
+=== END SAVED OUTPUT ===
+
+=== COMPLETE SAVED OUTPUT /workspace/work/all-run/audit-pre-C-supported.json ===
+{
+  "schema": 1,
+  "utc": "2026-11-14T12:44:02.225Z",
+  "state": "/workspace/work/all-run/state.json",
+  "stateSha256": "04cb49c47734bbf0ecbaa8246754230aac55d6ff337fc8f0943edc5f5b3ae30f",
+  "apply": false,
+  "active": null,
+  "batches": [
+    {
+      "key": "2D:1",
+      "phase": "2D",
+      "id": 1,
+      "log": "/workspace/work/all-run/logs/2D-0001.txt",
+      "finishedUTC": "2026-11-14T11:58:57.355Z",
+      "recorded": {
+        "games": 194,
+        "moves": 27831,
+        "searches": 27831,
+        "opening_moves": 1552,
+        "faults": 0,
+        "illegal": 0,
+        "missing": 0,
+        "badscore": 0,
+        "mates": 146,
+        "stalemates": 0,
+        "repetitions": 24,
+        "fifty": 13,
+        "ply_caps": 2,
+        "insufficient": 9
+      },
+      "schema": "play",
+      "rawVerified": false,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2D-0001.evidence/manifest.txt",
+        "sha256": "4edbd80c04c2b90e53ac81b7aa46d7176aa8db3210329ac4fd705d665f2f1ec4",
+        "files": 3
+      },
+      "counterEvidence": {
+        "searches": "self-reported; --trace absent",
+        "moves": "self-reported",
+        "games": "self-reported; terminal count invariant checked",
+        "faults": "checked against emitted FAULT rows"
+      },
+      "lastTrigger": {
+        "seed": 8473001,
+        "game": 193,
+        "ply": 205,
+        "threads": 1,
+        "nodes": 2000,
+        "depth": 0,
+        "Hash": 16,
+        "OwnBook": false,
+        "UseNNUE": true,
+        "MultiPV": 1,
+        "ContHist4PlyRead": false,
+        "NonPawnCorrection": false,
+        "LmrDeeperShallower": false,
+        "fen": "8/8/6k1/7p/8/6PK/8/8 b - - 9 103",
+        "position": "position startpos moves b1a3 b7b5 c2c4 a7a5 e2e4 c8b7 d1e2 g8h6 a3b5 e7e5 a2a3 f8c5 d2d3 c7c6 b5c3 d7d6 c1h6 g7h6 g2g3 b7c8 e2c2 b8d7 g1f3 a8b8 f1h3 c5a7 b2b4 a7d4 f3d4 e5d4 c3e2 a5b4 a3b4 d8f6 a1a7 d7b6 h3c8 b6c8 a7c7 e8g8 c7c6 c8e7 c6c7 b8b4 e1g1 f8a8 e2d4 f6d4 c7e7 b4b2 c2d1 d4f6 e7c7 g8f8 c4c5 d6c5 d1g4 b2c2 g1g2 a8a2 g4f3 f6f3 g2f3 f8g7 f3g2 c2d2 c7c5 d2d3 c5b5 d3d4 e4e5 d4d2 g2f3 h6h5 e5e6 f7e6 b5h5 a2c2 h5b5 g7g6 b5b7 d2e2 b7b1 e6e5 b1e1 e5e4 f3g2 g6f5 e1e2 c2e2 g2g1 h7h5 f1d1 f5g4 g1g2 e4e3 d1d4 g4g5 h2h4 g5g6 g2f3 e2f2 f3e3 f2f8 d4d5 f8b8 d5g5 g6h6 g5e5 b8b3 e3f4 b3b4 f4f3 h6g6 e5g5 g6h6 f3f2 b4b3 g5e5 h6g6 e5a5 b3b2 f2f3 b2b3 f3g2 b3b1 a5g5 g6h6 g2f3 b1b4 g5e5 b4b6 e5d5 b6b3 f3f4 b3b4 f4f3 b4b3 f3f4 b3b4 f4e3 b4b3 d5d3 b3b6 e3f3 h6g6 d3d5 b6b3 f3g2 b3b2 g2h3 b2b3 d5g5 g6h6 g5c5 b3b1 c5c6 h6g7 c6c5 g7h6 c5d5 b1b4 d5e5 b4b2 e5a5 b2b4 a5f5 b4b6 f5d5 b6b4 d5a5 b4b3 a5g5 b3b4 g5f5 b4b6 f5a5 b6b3 a5a6 h6g7 a6a8 b3b5 a8a7 g7g6 a7a6 g6g7 a6a8 g7g6 a8g8 g6f6 h3g2 b5a5 g8g5 a5g5 h4g5 f6g5 g2h3 g5h6 h3h4 h6g6 h4h3 g6h6 h3h4 h6g6 h4h3"
+      },
+      "computed": {
+        "games": 194,
+        "moves": 27831,
+        "searches": 27831,
+        "opening_moves": 1552,
+        "faults": 0,
+        "illegal": 0,
+        "missing": 0,
+        "badscore": 0,
+        "mates": 146,
+        "stalemates": 0,
+        "repetitions": 24,
+        "fifty": 13,
+        "ply_caps": 2,
+        "insufficient": 9
+      }
+    },
+    {
+      "key": "2Aprep:1",
+      "phase": "2Aprep",
+      "id": 1,
+      "log": "/workspace/work/all-run/logs/2Aprep-0001.txt",
+      "finishedUTC": "2026-11-14T12:00:13.809Z",
+      "recorded": {
+        "completed_units": 1000,
+        "trials": 1233,
+        "faults": 0,
+        "selected_generated": 193,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 0,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0
+      },
+      "schema": "endgame",
+      "rawVerified": true,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2Aprep-0001.evidence/manifest.txt",
+        "sha256": "7dcaeadebc286ff59af8ba1aaa909defd7bf275f0f733dec7a6b218f38b64f2e",
+        "files": 2472
+      },
+      "wallTimeReconciliation": {
+        "serialization": "C++ defaultfloat precision 6",
+        "rule": "Absolute difference bounded by half the summary last significant digit plus the sum of half-last-digit bounds of each printed trial value, with a floating-addition bound; integer counters remain exact",
+        "groups": {}
+      },
+      "computed": {
+        "completed_units": 1000,
+        "selected_generated": 193,
+        "trials": 1233,
+        "faults": 0,
+        "nodes": 0,
+        "reported_ms": 0,
+        "wall_ms": 0,
+        "at_requested_depth": 0,
+        "early_mate_termination": 0,
+        "unfinished_depth": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 0,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0
+      }
+    },
+    {
+      "key": "2Aprep:2",
+      "phase": "2Aprep",
+      "id": 2,
+      "log": "/workspace/work/all-run/logs/2Aprep-0002.txt",
+      "finishedUTC": "2026-11-14T12:01:54.580Z",
+      "recorded": {
+        "completed_units": 1000,
+        "trials": 1209,
+        "faults": 0,
+        "selected_generated": 209,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 0,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0
+      },
+      "schema": "endgame",
+      "rawVerified": true,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2Aprep-0002.evidence/manifest.txt",
+        "sha256": "a4220b70c35cf8560e39ba5ea35a04cdb2a220835f3f835709edfded791ceaff",
+        "files": 2424
+      },
+      "wallTimeReconciliation": {
+        "serialization": "C++ defaultfloat precision 6",
+        "rule": "Absolute difference bounded by half the summary last significant digit plus the sum of half-last-digit bounds of each printed trial value, with a floating-addition bound; integer counters remain exact",
+        "groups": {}
+      },
+      "computed": {
+        "completed_units": 1000,
+        "selected_generated": 209,
+        "trials": 1209,
+        "faults": 0,
+        "nodes": 0,
+        "reported_ms": 0,
+        "wall_ms": 0,
+        "at_requested_depth": 0,
+        "early_mate_termination": 0,
+        "unfinished_depth": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 0,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0
+      }
+    },
+    {
+      "key": "2A:1",
+      "phase": "2A",
+      "id": 1,
+      "log": "/workspace/work/all-run/logs/2A-0001.txt",
+      "finishedUTC": "2026-11-14T12:08:30.308Z",
+      "recorded": {
+        "completed_units": 287,
+        "trials": 2870,
+        "faults": 182,
+        "selected_generated": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 182,
+        "krk_non_mating_moves": 55,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0,
+        "groups.lock-t2-KBBK.trials": 30,
+        "groups.lock-t2-KBBK.faults": 8,
+        "groups.lock-t2-KBBK.nodes_reported": 1501778,
+        "groups.lock-t2-KBBK.reported_ms": 285,
+        "groups.lock-t2-KBBK.wall_ms": 308.313,
+        "groups.lock-t2-KBBK.at_requested_depth": 30,
+        "groups.lock-t2-KBBK.early_mate_termination": 0,
+        "groups.lock-t2-KBBK.unfinished_depth": 0,
+        "groups.lock-t2-KBBK.shutdown_faults": 0,
+        "groups.lock-t2-KBBK.unexpected_exits": 0,
+        "groups.lock-t2-KBBK.mate_score_misses": 8,
+        "groups.lock-t2-KBBK.krk_non_mating_moves": 0,
+        "groups.lock-t2-KBBK.loses_forced_mate": 0,
+        "groups.lock-t2-KBBK.mate_bound_violations": 0,
+        "groups.lock-t2-KQK.trials": 290,
+        "groups.lock-t2-KQK.faults": 41,
+        "groups.lock-t2-KQK.nodes_reported": 23753714,
+        "groups.lock-t2-KQK.reported_ms": 4408,
+        "groups.lock-t2-KQK.wall_ms": 4619.73,
+        "groups.lock-t2-KQK.at_requested_depth": 290,
+        "groups.lock-t2-KQK.early_mate_termination": 0,
+        "groups.lock-t2-KQK.unfinished_depth": 0,
+        "groups.lock-t2-KQK.shutdown_faults": 0,
+        "groups.lock-t2-KQK.unexpected_exits": 0,
+        "groups.lock-t2-KQK.mate_score_misses": 41,
+        "groups.lock-t2-KQK.krk_non_mating_moves": 0,
+        "groups.lock-t2-KQK.loses_forced_mate": 0,
+        "groups.lock-t2-KQK.mate_bound_violations": 0,
+        "groups.lock-t2-KRK.trials": 400,
+        "groups.lock-t2-KRK.faults": 48,
+        "groups.lock-t2-KRK.nodes_reported": 12008712,
+        "groups.lock-t2-KRK.reported_ms": 2112,
+        "groups.lock-t2-KRK.wall_ms": 2391.57,
+        "groups.lock-t2-KRK.at_requested_depth": 400,
+        "groups.lock-t2-KRK.early_mate_termination": 0,
+        "groups.lock-t2-KRK.unfinished_depth": 0,
+        "groups.lock-t2-KRK.shutdown_faults": 0,
+        "groups.lock-t2-KRK.unexpected_exits": 0,
+        "groups.lock-t2-KRK.mate_score_misses": 48,
+        "groups.lock-t2-KRK.krk_non_mating_moves": 29,
+        "groups.lock-t2-KRK.loses_forced_mate": 0,
+        "groups.lock-t2-KRK.mate_bound_violations": 0,
+        "groups.lock-t4-KBBK.trials": 30,
+        "groups.lock-t4-KBBK.faults": 9,
+        "groups.lock-t4-KBBK.nodes_reported": 1747206,
+        "groups.lock-t4-KBBK.reported_ms": 184,
+        "groups.lock-t4-KBBK.wall_ms": 213.47,
+        "groups.lock-t4-KBBK.at_requested_depth": 30,
+        "groups.lock-t4-KBBK.early_mate_termination": 0,
+        "groups.lock-t4-KBBK.unfinished_depth": 0,
+        "groups.lock-t4-KBBK.shutdown_faults": 0,
+        "groups.lock-t4-KBBK.unexpected_exits": 0,
+        "groups.lock-t4-KBBK.mate_score_misses": 9,
+        "groups.lock-t4-KBBK.krk_non_mating_moves": 0,
+        "groups.lock-t4-KBBK.loses_forced_mate": 0,
+        "groups.lock-t4-KBBK.mate_bound_violations": 0,
+        "groups.lock-t4-KQK.trials": 290,
+        "groups.lock-t4-KQK.faults": 29,
+        "groups.lock-t4-KQK.nodes_reported": 32293649,
+        "groups.lock-t4-KQK.reported_ms": 3158,
+        "groups.lock-t4-KQK.wall_ms": 3399.62,
+        "groups.lock-t4-KQK.at_requested_depth": 290,
+        "groups.lock-t4-KQK.early_mate_termination": 0,
+        "groups.lock-t4-KQK.unfinished_depth": 0,
+        "groups.lock-t4-KQK.shutdown_faults": 0,
+        "groups.lock-t4-KQK.unexpected_exits": 0,
+        "groups.lock-t4-KQK.mate_score_misses": 29,
+        "groups.lock-t4-KQK.krk_non_mating_moves": 0,
+        "groups.lock-t4-KQK.loses_forced_mate": 0,
+        "groups.lock-t4-KQK.mate_bound_violations": 0,
+        "groups.lock-t4-KRK.trials": 400,
+        "groups.lock-t4-KRK.faults": 47,
+        "groups.lock-t4-KRK.nodes_reported": 15993828,
+        "groups.lock-t4-KRK.reported_ms": 1459,
+        "groups.lock-t4-KRK.wall_ms": 1783.04,
+        "groups.lock-t4-KRK.at_requested_depth": 400,
+        "groups.lock-t4-KRK.early_mate_termination": 0,
+        "groups.lock-t4-KRK.unfinished_depth": 0,
+        "groups.lock-t4-KRK.shutdown_faults": 0,
+        "groups.lock-t4-KRK.unexpected_exits": 0,
+        "groups.lock-t4-KRK.mate_score_misses": 47,
+        "groups.lock-t4-KRK.krk_non_mating_moves": 26,
+        "groups.lock-t4-KRK.loses_forced_mate": 0,
+        "groups.lock-t4-KRK.mate_bound_violations": 0,
+        "groups.merged-t2-KBBK.trials": 30,
+        "groups.merged-t2-KBBK.faults": 0,
+        "groups.merged-t2-KBBK.nodes_reported": 331661849,
+        "groups.merged-t2-KBBK.reported_ms": 39855,
+        "groups.merged-t2-KBBK.wall_ms": 39882.6,
+        "groups.merged-t2-KBBK.at_requested_depth": 30,
+        "groups.merged-t2-KBBK.early_mate_termination": 0,
+        "groups.merged-t2-KBBK.unfinished_depth": 0,
+        "groups.merged-t2-KBBK.shutdown_faults": 0,
+        "groups.merged-t2-KBBK.unexpected_exits": 0,
+        "groups.merged-t2-KBBK.mate_score_misses": 0,
+        "groups.merged-t2-KBBK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KBBK.loses_forced_mate": 0,
+        "groups.merged-t2-KBBK.mate_bound_violations": 0,
+        "groups.merged-t2-KQK.trials": 290,
+        "groups.merged-t2-KQK.faults": 0,
+        "groups.merged-t2-KQK.nodes_reported": 722856338,
+        "groups.merged-t2-KQK.reported_ms": 89380,
+        "groups.merged-t2-KQK.wall_ms": 89598.8,
+        "groups.merged-t2-KQK.at_requested_depth": 290,
+        "groups.merged-t2-KQK.early_mate_termination": 0,
+        "groups.merged-t2-KQK.unfinished_depth": 0,
+        "groups.merged-t2-KQK.shutdown_faults": 0,
+        "groups.merged-t2-KQK.unexpected_exits": 0,
+        "groups.merged-t2-KQK.mate_score_misses": 0,
+        "groups.merged-t2-KQK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KQK.loses_forced_mate": 0,
+        "groups.merged-t2-KQK.mate_bound_violations": 0,
+        "groups.merged-t2-KRK.trials": 400,
+        "groups.merged-t2-KRK.faults": 0,
+        "groups.merged-t2-KRK.nodes_reported": 298986005,
+        "groups.merged-t2-KRK.reported_ms": 32329,
+        "groups.merged-t2-KRK.wall_ms": 32606.5,
+        "groups.merged-t2-KRK.at_requested_depth": 400,
+        "groups.merged-t2-KRK.early_mate_termination": 0,
+        "groups.merged-t2-KRK.unfinished_depth": 0,
+        "groups.merged-t2-KRK.shutdown_faults": 0,
+        "groups.merged-t2-KRK.unexpected_exits": 0,
+        "groups.merged-t2-KRK.mate_score_misses": 0,
+        "groups.merged-t2-KRK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KRK.loses_forced_mate": 0,
+        "groups.merged-t2-KRK.mate_bound_violations": 0,
+        "groups.merged-t4-KBBK.trials": 30,
+        "groups.merged-t4-KBBK.faults": 0,
+        "groups.merged-t4-KBBK.nodes_reported": 425595623,
+        "groups.merged-t4-KBBK.reported_ms": 26131,
+        "groups.merged-t4-KBBK.wall_ms": 26157.3,
+        "groups.merged-t4-KBBK.at_requested_depth": 30,
+        "groups.merged-t4-KBBK.early_mate_termination": 0,
+        "groups.merged-t4-KBBK.unfinished_depth": 0,
+        "groups.merged-t4-KBBK.shutdown_faults": 0,
+        "groups.merged-t4-KBBK.unexpected_exits": 0,
+        "groups.merged-t4-KBBK.mate_score_misses": 0,
+        "groups.merged-t4-KBBK.krk_non_mating_moves": 0,
+        "groups.merged-t4-KBBK.loses_forced_mate": 0,
+        "groups.merged-t4-KBBK.mate_bound_violations": 0,
+        "groups.merged-t4-KQK.trials": 280,
+        "groups.merged-t4-KQK.faults": 0,
+        "groups.merged-t4-KQK.nodes_reported": 988513155,
+        "groups.merged-t4-KQK.reported_ms": 80025,
+        "groups.merged-t4-KQK.wall_ms": 80285.6,
+        "groups.merged-t4-KQK.at_requested_depth": 280,
+        "groups.merged-t4-KQK.early_mate_termination": 0,
+        "groups.merged-t4-KQK.unfinished_depth": 0,
+        "groups.merged-t4-KQK.shutdown_faults": 0,
+        "groups.merged-t4-KQK.unexpected_exits": 0,
+        "groups.merged-t4-KQK.mate_score_misses": 0,
+        "groups.merged-t4-KQK.krk_non_mating_moves": 0,
+        "groups.merged-t4-KQK.loses_forced_mate": 0,
+        "groups.merged-t4-KQK.mate_bound_violations": 0,
+        "groups.merged-t4-KRK.trials": 400,
+        "groups.merged-t4-KRK.faults": 0,
+        "groups.merged-t4-KRK.nodes_reported": 429437569,
+        "groups.merged-t4-KRK.reported_ms": 29026,
+        "groups.merged-t4-KRK.wall_ms": 29331.1,
+        "groups.merged-t4-KRK.at_requested_depth": 400,
+        "groups.merged-t4-KRK.early_mate_termination": 0,
+        "groups.merged-t4-KRK.unfinished_depth": 0,
+        "groups.merged-t4-KRK.shutdown_faults": 0,
+        "groups.merged-t4-KRK.unexpected_exits": 0,
+        "groups.merged-t4-KRK.mate_score_misses": 0,
+        "groups.merged-t4-KRK.krk_non_mating_moves": 0,
+        "groups.merged-t4-KRK.loses_forced_mate": 0,
+        "groups.merged-t4-KRK.mate_bound_violations": 0
+      },
+      "schema": "endgame",
+      "rawVerified": true,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2A-0001.evidence/manifest.txt",
+        "sha256": "0db83be5ca82f1a257a2c14f5404ce7ed5cf4308cf2bda923cd98e9cd994ec0c",
+        "files": 3216
+      },
+      "wallTimeReconciliation": {
+        "serialization": "C++ defaultfloat precision 6",
+        "rule": "Absolute difference bounded by half the summary last significant digit plus the sum of half-last-digit bounds of each printed trial value, with a floating-addition bound; integer counters remain exact",
+        "groups": {
+          "lock-t2-KRK": {
+            "rawSum": 2391.5670609999993,
+            "printedTrialRoundingBound": 0.005316499999999949,
+            "terms": 400,
+            "summaryHalfLastDigit": 0.005
+          },
+          "lock-t4-KRK": {
+            "rawSum": 1783.038364,
+            "printedTrialRoundingBound": 0.003403999999999993,
+            "terms": 400,
+            "summaryHalfLastDigit": 0.005
+          },
+          "merged-t2-KRK": {
+            "rawSum": 32606.521691999988,
+            "printedTrialRoundingBound": 0.05916800000000021,
+            "terms": 400,
+            "summaryHalfLastDigit": 0.05
+          },
+          "merged-t4-KRK": {
+            "rawSum": 29331.121378000007,
+            "printedTrialRoundingBound": 0.06521150000000024,
+            "terms": 400,
+            "summaryHalfLastDigit": 0.05
+          },
+          "lock-t2-KQK": {
+            "rawSum": 4619.726548000003,
+            "printedTrialRoundingBound": 0.009774999999999954,
+            "terms": 290,
+            "summaryHalfLastDigit": 0.005
+          },
+          "lock-t4-KQK": {
+            "rawSum": 3399.616785999997,
+            "printedTrialRoundingBound": 0.007812999999999962,
+            "terms": 290,
+            "summaryHalfLastDigit": 0.005
+          },
+          "merged-t2-KQK": {
+            "rawSum": 89598.77849000004,
+            "printedTrialRoundingBound": 0.2090799999999996,
+            "terms": 290,
+            "summaryHalfLastDigit": 0.05
+          },
+          "merged-t4-KQK": {
+            "rawSum": 80285.51949500009,
+            "printedTrialRoundingBound": 0.15926899999999922,
+            "terms": 280,
+            "summaryHalfLastDigit": 0.05
+          },
+          "lock-t2-KBBK": {
+            "rawSum": 308.31340300000005,
+            "printedTrialRoundingBound": 0.0009915000000000002,
+            "terms": 30,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "lock-t4-KBBK": {
+            "rawSum": 213.46998799999997,
+            "printedTrialRoundingBound": 0.0005730000000000002,
+            "terms": 30,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "merged-t2-KBBK": {
+            "rawSum": 39882.60040000001,
+            "printedTrialRoundingBound": 0.09600000000000002,
+            "terms": 30,
+            "summaryHalfLastDigit": 0.05
+          },
+          "merged-t4-KBBK": {
+            "rawSum": 26157.323900000003,
+            "printedTrialRoundingBound": 0.0735,
+            "terms": 30,
+            "summaryHalfLastDigit": 0.05
+          }
+        }
+      },
+      "computed": {
+        "completed_units": 287,
+        "selected_generated": 0,
+        "trials": 2870,
+        "faults": 182,
+        "nodes": 3284349426,
+        "reported_ms": 308352,
+        "wall_ms": 310577.5975050001,
+        "at_requested_depth": 2870,
+        "early_mate_termination": 0,
+        "unfinished_depth": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 182,
+        "krk_non_mating_moves": 55,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0
+      }
+    },
+    {
+      "key": "2A:2",
+      "phase": "2A",
+      "id": 2,
+      "log": "/workspace/work/all-run/logs/2A-0002.txt",
+      "finishedUTC": "2026-11-14T12:16:28.985Z",
+      "recorded": {
+        "completed_units": 116,
+        "trials": 1160,
+        "faults": 65,
+        "selected_generated": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 65,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0,
+        "groups.lock-t2-KBBK.trials": 180,
+        "groups.lock-t2-KBBK.faults": 26,
+        "groups.lock-t2-KBBK.nodes_reported": 5866637,
+        "groups.lock-t2-KBBK.reported_ms": 1194,
+        "groups.lock-t2-KBBK.wall_ms": 1328.99,
+        "groups.lock-t2-KBBK.at_requested_depth": 180,
+        "groups.lock-t2-KBBK.early_mate_termination": 0,
+        "groups.lock-t2-KBBK.unfinished_depth": 0,
+        "groups.lock-t2-KBBK.shutdown_faults": 0,
+        "groups.lock-t2-KBBK.unexpected_exits": 0,
+        "groups.lock-t2-KBBK.mate_score_misses": 26,
+        "groups.lock-t2-KBBK.krk_non_mating_moves": 0,
+        "groups.lock-t2-KBBK.loses_forced_mate": 0,
+        "groups.lock-t2-KBBK.mate_bound_violations": 0,
+        "groups.lock-t2-KQK.trials": 110,
+        "groups.lock-t2-KQK.faults": 12,
+        "groups.lock-t2-KQK.nodes_reported": 8694513,
+        "groups.lock-t2-KQK.reported_ms": 1600,
+        "groups.lock-t2-KQK.wall_ms": 1684.01,
+        "groups.lock-t2-KQK.at_requested_depth": 110,
+        "groups.lock-t2-KQK.early_mate_termination": 0,
+        "groups.lock-t2-KQK.unfinished_depth": 0,
+        "groups.lock-t2-KQK.shutdown_faults": 0,
+        "groups.lock-t2-KQK.unexpected_exits": 0,
+        "groups.lock-t2-KQK.mate_score_misses": 12,
+        "groups.lock-t2-KQK.krk_non_mating_moves": 0,
+        "groups.lock-t2-KQK.loses_forced_mate": 0,
+        "groups.lock-t2-KQK.mate_bound_violations": 0,
+        "groups.lock-t4-KBBK.trials": 180,
+        "groups.lock-t4-KBBK.faults": 18,
+        "groups.lock-t4-KBBK.nodes_reported": 7306497,
+        "groups.lock-t4-KBBK.reported_ms": 801,
+        "groups.lock-t4-KBBK.wall_ms": 957.501,
+        "groups.lock-t4-KBBK.at_requested_depth": 180,
+        "groups.lock-t4-KBBK.early_mate_termination": 0,
+        "groups.lock-t4-KBBK.unfinished_depth": 0,
+        "groups.lock-t4-KBBK.shutdown_faults": 0,
+        "groups.lock-t4-KBBK.unexpected_exits": 0,
+        "groups.lock-t4-KBBK.mate_score_misses": 18,
+        "groups.lock-t4-KBBK.krk_non_mating_moves": 0,
+        "groups.lock-t4-KBBK.loses_forced_mate": 0,
+        "groups.lock-t4-KBBK.mate_bound_violations": 0,
+        "groups.lock-t4-KQK.trials": 110,
+        "groups.lock-t4-KQK.faults": 9,
+        "groups.lock-t4-KQK.nodes_reported": 11971212,
+        "groups.lock-t4-KQK.reported_ms": 1154,
+        "groups.lock-t4-KQK.wall_ms": 1243.39,
+        "groups.lock-t4-KQK.at_requested_depth": 110,
+        "groups.lock-t4-KQK.early_mate_termination": 0,
+        "groups.lock-t4-KQK.unfinished_depth": 0,
+        "groups.lock-t4-KQK.shutdown_faults": 0,
+        "groups.lock-t4-KQK.unexpected_exits": 0,
+        "groups.lock-t4-KQK.mate_score_misses": 9,
+        "groups.lock-t4-KQK.krk_non_mating_moves": 0,
+        "groups.lock-t4-KQK.loses_forced_mate": 0,
+        "groups.lock-t4-KQK.mate_bound_violations": 0,
+        "groups.merged-t2-KBBK.trials": 180,
+        "groups.merged-t2-KBBK.faults": 0,
+        "groups.merged-t2-KBBK.nodes_reported": 1222265559,
+        "groups.merged-t2-KBBK.reported_ms": 146303,
+        "groups.merged-t2-KBBK.wall_ms": 146444,
+        "groups.merged-t2-KBBK.at_requested_depth": 180,
+        "groups.merged-t2-KBBK.early_mate_termination": 0,
+        "groups.merged-t2-KBBK.unfinished_depth": 0,
+        "groups.merged-t2-KBBK.shutdown_faults": 0,
+        "groups.merged-t2-KBBK.unexpected_exits": 0,
+        "groups.merged-t2-KBBK.mate_score_misses": 0,
+        "groups.merged-t2-KBBK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KBBK.loses_forced_mate": 0,
+        "groups.merged-t2-KBBK.mate_bound_violations": 0,
+        "groups.merged-t2-KQK.trials": 110,
+        "groups.merged-t2-KQK.faults": 0,
+        "groups.merged-t2-KQK.nodes_reported": 116961904,
+        "groups.merged-t2-KQK.reported_ms": 12728,
+        "groups.merged-t2-KQK.wall_ms": 12810,
+        "groups.merged-t2-KQK.at_requested_depth": 110,
+        "groups.merged-t2-KQK.early_mate_termination": 0,
+        "groups.merged-t2-KQK.unfinished_depth": 0,
+        "groups.merged-t2-KQK.shutdown_faults": 0,
+        "groups.merged-t2-KQK.unexpected_exits": 0,
+        "groups.merged-t2-KQK.mate_score_misses": 0,
+        "groups.merged-t2-KQK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KQK.loses_forced_mate": 0,
+        "groups.merged-t2-KQK.mate_bound_violations": 0,
+        "groups.merged-t4-KBBK.trials": 170,
+        "groups.merged-t4-KBBK.faults": 0,
+        "groups.merged-t4-KBBK.nodes_reported": 1578822981,
+        "groups.merged-t4-KBBK.reported_ms": 109395,
+        "groups.merged-t4-KBBK.wall_ms": 109546,
+        "groups.merged-t4-KBBK.at_requested_depth": 170,
+        "groups.merged-t4-KBBK.early_mate_termination": 0,
+        "groups.merged-t4-KBBK.unfinished_depth": 0,
+        "groups.merged-t4-KBBK.shutdown_faults": 0,
+        "groups.merged-t4-KBBK.unexpected_exits": 0,
+        "groups.merged-t4-KBBK.mate_score_misses": 0,
+        "groups.merged-t4-KBBK.krk_non_mating_moves": 0,
+        "groups.merged-t4-KBBK.loses_forced_mate": 0,
+        "groups.merged-t4-KBBK.mate_bound_violations": 0,
+        "groups.merged-t4-KQK.trials": 120,
+        "groups.merged-t4-KQK.faults": 0,
+        "groups.merged-t4-KQK.nodes_reported": 353678740,
+        "groups.merged-t4-KQK.reported_ms": 32176,
+        "groups.merged-t4-KQK.wall_ms": 32294.6,
+        "groups.merged-t4-KQK.at_requested_depth": 120,
+        "groups.merged-t4-KQK.early_mate_termination": 0,
+        "groups.merged-t4-KQK.unfinished_depth": 0,
+        "groups.merged-t4-KQK.shutdown_faults": 0,
+        "groups.merged-t4-KQK.unexpected_exits": 0,
+        "groups.merged-t4-KQK.mate_score_misses": 0,
+        "groups.merged-t4-KQK.krk_non_mating_moves": 0,
+        "groups.merged-t4-KQK.loses_forced_mate": 0,
+        "groups.merged-t4-KQK.mate_bound_violations": 0
+      },
+      "schema": "endgame",
+      "rawVerified": true,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2A-0002.evidence/manifest.txt",
+        "sha256": "21170ca2088a35d140ef21a57a0a8bd422e0281581836a1cdb989c5fbbee2590",
+        "files": 1311
+      },
+      "wallTimeReconciliation": {
+        "serialization": "C++ defaultfloat precision 6",
+        "rule": "Absolute difference bounded by half the summary last significant digit plus the sum of half-last-digit bounds of each printed trial value, with a floating-addition bound; integer counters remain exact",
+        "groups": {
+          "merged-t4-KQK": {
+            "rawSum": 32294.61041299999,
+            "printedTrialRoundingBound": 0.06805499999999998,
+            "terms": 120,
+            "summaryHalfLastDigit": 0.05
+          },
+          "lock-t2-KQK": {
+            "rawSum": 1684.00999,
+            "printedTrialRoundingBound": 0.0034524999999999994,
+            "terms": 110,
+            "summaryHalfLastDigit": 0.005
+          },
+          "lock-t4-KQK": {
+            "rawSum": 1243.392298,
+            "printedTrialRoundingBound": 0.0031285000000000015,
+            "terms": 110,
+            "summaryHalfLastDigit": 0.005
+          },
+          "merged-t2-KQK": {
+            "rawSum": 12810.002210999999,
+            "printedTrialRoundingBound": 0.02210950000000005,
+            "terms": 110,
+            "summaryHalfLastDigit": 0.05
+          },
+          "lock-t2-KBBK": {
+            "rawSum": 1328.994648999999,
+            "printedTrialRoundingBound": 0.003114,
+            "terms": 180,
+            "summaryHalfLastDigit": 0.005
+          },
+          "lock-t4-KBBK": {
+            "rawSum": 957.5009700000002,
+            "printedTrialRoundingBound": 0.0019440000000000004,
+            "terms": 180,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "merged-t2-KBBK": {
+            "rawSum": 146443.66290999998,
+            "printedTrialRoundingBound": 0.2308499999999999,
+            "terms": 180,
+            "summaryHalfLastDigit": 0.5
+          },
+          "merged-t4-KBBK": {
+            "rawSum": 109545.60944000001,
+            "printedTrialRoundingBound": 0.21594999999999986,
+            "terms": 170,
+            "summaryHalfLastDigit": 0.5
+          }
+        }
+      },
+      "computed": {
+        "completed_units": 116,
+        "selected_generated": 0,
+        "trials": 1160,
+        "faults": 65,
+        "nodes": 3305568043,
+        "reported_ms": 305351,
+        "wall_ms": 306307.782881,
+        "at_requested_depth": 1160,
+        "early_mate_termination": 0,
+        "unfinished_depth": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 65,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0
+      }
+    },
+    {
+      "key": "2A:3",
+      "phase": "2A",
+      "id": 3,
+      "log": "/workspace/work/all-run/logs/2A-0003.txt",
+      "finishedUTC": "2026-11-14T12:21:12.187Z",
+      "recorded": {
+        "completed_units": 77,
+        "trials": 770,
+        "faults": 51,
+        "selected_generated": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 51,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0,
+        "groups.lock-t2-KBBK.trials": 190,
+        "groups.lock-t2-KBBK.faults": 28,
+        "groups.lock-t2-KBBK.nodes_reported": 5250535,
+        "groups.lock-t2-KBBK.reported_ms": 1079,
+        "groups.lock-t2-KBBK.wall_ms": 1213.9,
+        "groups.lock-t2-KBBK.at_requested_depth": 190,
+        "groups.lock-t2-KBBK.early_mate_termination": 0,
+        "groups.lock-t2-KBBK.unfinished_depth": 0,
+        "groups.lock-t2-KBBK.shutdown_faults": 0,
+        "groups.lock-t2-KBBK.unexpected_exits": 0,
+        "groups.lock-t2-KBBK.mate_score_misses": 28,
+        "groups.lock-t2-KBBK.krk_non_mating_moves": 0,
+        "groups.lock-t2-KBBK.loses_forced_mate": 0,
+        "groups.lock-t2-KBBK.mate_bound_violations": 0,
+        "groups.lock-t4-KBBK.trials": 190,
+        "groups.lock-t4-KBBK.faults": 23,
+        "groups.lock-t4-KBBK.nodes_reported": 7251416,
+        "groups.lock-t4-KBBK.reported_ms": 733,
+        "groups.lock-t4-KBBK.wall_ms": 890.97,
+        "groups.lock-t4-KBBK.at_requested_depth": 190,
+        "groups.lock-t4-KBBK.early_mate_termination": 0,
+        "groups.lock-t4-KBBK.unfinished_depth": 0,
+        "groups.lock-t4-KBBK.shutdown_faults": 0,
+        "groups.lock-t4-KBBK.unexpected_exits": 0,
+        "groups.lock-t4-KBBK.mate_score_misses": 23,
+        "groups.lock-t4-KBBK.krk_non_mating_moves": 0,
+        "groups.lock-t4-KBBK.loses_forced_mate": 0,
+        "groups.lock-t4-KBBK.mate_bound_violations": 0,
+        "groups.merged-t2-KBBK.trials": 190,
+        "groups.merged-t2-KBBK.faults": 0,
+        "groups.merged-t2-KBBK.nodes_reported": 906422650,
+        "groups.merged-t2-KBBK.reported_ms": 109582,
+        "groups.merged-t2-KBBK.wall_ms": 109727,
+        "groups.merged-t2-KBBK.at_requested_depth": 190,
+        "groups.merged-t2-KBBK.early_mate_termination": 0,
+        "groups.merged-t2-KBBK.unfinished_depth": 0,
+        "groups.merged-t2-KBBK.shutdown_faults": 0,
+        "groups.merged-t2-KBBK.unexpected_exits": 0,
+        "groups.merged-t2-KBBK.mate_score_misses": 0,
+        "groups.merged-t2-KBBK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KBBK.loses_forced_mate": 0,
+        "groups.merged-t2-KBBK.mate_bound_violations": 0,
+        "groups.merged-t4-KBBK.trials": 200,
+        "groups.merged-t4-KBBK.faults": 0,
+        "groups.merged-t4-KBBK.nodes_reported": 1583274621,
+        "groups.merged-t4-KBBK.reported_ms": 105206,
+        "groups.merged-t4-KBBK.wall_ms": 105382,
+        "groups.merged-t4-KBBK.at_requested_depth": 200,
+        "groups.merged-t4-KBBK.early_mate_termination": 0,
+        "groups.merged-t4-KBBK.unfinished_depth": 0,
+        "groups.merged-t4-KBBK.shutdown_faults": 0,
+        "groups.merged-t4-KBBK.unexpected_exits": 0,
+        "groups.merged-t4-KBBK.mate_score_misses": 0,
+        "groups.merged-t4-KBBK.krk_non_mating_moves": 0,
+        "groups.merged-t4-KBBK.loses_forced_mate": 0,
+        "groups.merged-t4-KBBK.mate_bound_violations": 0
+      },
+      "schema": "endgame",
+      "rawVerified": true,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2A-0003.evidence/manifest.txt",
+        "sha256": "444a1a9b5c41daf476d4b1b7ed72a5977e4a2fa93b123e76cf33266e1aa554d4",
+        "files": 863
+      },
+      "wallTimeReconciliation": {
+        "serialization": "C++ defaultfloat precision 6",
+        "rule": "Absolute difference bounded by half the summary last significant digit plus the sum of half-last-digit bounds of each printed trial value, with a floating-addition bound; integer counters remain exact",
+        "groups": {
+          "merged-t4-KBBK": {
+            "rawSum": 105381.76784499998,
+            "printedTrialRoundingBound": 0.18294400000000005,
+            "terms": 200,
+            "summaryHalfLastDigit": 0.5
+          },
+          "lock-t2-KBBK": {
+            "rawSum": 1213.8985560000015,
+            "printedTrialRoundingBound": 0.0027184999999999952,
+            "terms": 190,
+            "summaryHalfLastDigit": 0.005
+          },
+          "lock-t4-KBBK": {
+            "rawSum": 890.9697950000002,
+            "printedTrialRoundingBound": 0.0016430000000000019,
+            "terms": 190,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "merged-t2-KBBK": {
+            "rawSum": 109726.87046900002,
+            "printedTrialRoundingBound": 0.19076000000000004,
+            "terms": 190,
+            "summaryHalfLastDigit": 0.5
+          }
+        }
+      },
+      "computed": {
+        "completed_units": 77,
+        "selected_generated": 0,
+        "trials": 770,
+        "faults": 51,
+        "nodes": 2502199222,
+        "reported_ms": 216600,
+        "wall_ms": 217213.506665,
+        "at_requested_depth": 770,
+        "early_mate_termination": 0,
+        "unfinished_depth": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 51,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0
+      }
+    },
+    {
+      "key": "2KRKfull:1",
+      "phase": "2KRKfull",
+      "id": 1,
+      "log": "/workspace/work/all-run/logs/krk-full-retry-controller.txt",
+      "finishedUTC": "2026-11-14T12:30:39.049Z",
+      "recorded": {},
+      "schema": "existing_krk",
+      "rawVerified": true,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKfull-0001.evidence/manifest.txt",
+        "sha256": "574935be39be1816b2402f790d5f13373685e0b2568d608ae810daf70e877092",
+        "files": 5
+      },
+      "computed": {
+        "tests_completed": 0,
+        "t1_runs": 0,
+        "t1_misses": 0,
+        "main_runs": 0,
+        "main_misses": 0,
+        "no_mate_score": 0,
+        "non_mating_move": 0,
+        "sanitizer_reports": 0
+      },
+      "existingTest": {
+        "type": "existing_asan_krk_full_retry",
+        "completed": false,
+        "passed": false,
+        "classification": "budget-expired incomplete invocation; zero completed coverage",
+        "rawNativeLog": "/workspace/work/all-run/logs/test-asan-krk-full-isolated-retry.txt",
+        "rawLogSha256": "087d9301afc4c7c8b7540e94644e9fb1e8f582e5728041152ca6a658fd1c77bd",
+        "binarySha256": "4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99",
+        "observed": {
+          "configs": [],
+          "t1": [],
+          "main": [],
+          "diagnostics": [],
+          "end": [
+            {
+              "utc": "2026-11-14T12:30:39.011Z",
+              "exit": 124,
+              "signal": null
+            }
+          ],
+          "argv": [
+            [
+              "/workspace/work/all-run/tests-asan/krk_mate_test",
+              "40",
+              "10",
+              "2",
+              "16",
+              "14",
+              "1"
+            ]
+          ],
+          "environment": [
+            {
+              "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
+              "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+            }
+          ],
+          "binaryHashes": [
+            "4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99"
+          ],
+          "configValid": false,
+          "t1Valid": false,
+          "mainValid": false
+        },
+        "coverageNote": "Original single40x10 invocation is counted only if its own complete native output and normal process termination are verified."
+      }
+    },
+    {
+      "key": "2B:1",
+      "phase": "2B",
+      "id": 1,
+      "log": "/workspace/work/all-run/logs/2B-0001.txt",
+      "finishedUTC": "2026-11-14T12:33:12.810Z",
+      "recorded": {
+        "completed_units": 800,
+        "trials": 800,
+        "faults": 0,
+        "selected_generated": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 0,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0,
+        "groups.lock-t1-KBBK.trials": 66,
+        "groups.lock-t1-KBBK.faults": 0,
+        "groups.lock-t1-KBBK.nodes_reported": 1841473,
+        "groups.lock-t1-KBBK.reported_ms": 735,
+        "groups.lock-t1-KBBK.wall_ms": 783.357,
+        "groups.lock-t1-KBBK.at_requested_depth": 66,
+        "groups.lock-t1-KBBK.early_mate_termination": 0,
+        "groups.lock-t1-KBBK.unfinished_depth": 0,
+        "groups.lock-t1-KBBK.shutdown_faults": 0,
+        "groups.lock-t1-KBBK.unexpected_exits": 0,
+        "groups.lock-t1-KBBK.mate_score_misses": 0,
+        "groups.lock-t1-KBBK.krk_non_mating_moves": 0,
+        "groups.lock-t1-KBBK.loses_forced_mate": 0,
+        "groups.lock-t1-KBBK.mate_bound_violations": 0,
+        "groups.lock-t1-KQK.trials": 67,
+        "groups.lock-t1-KQK.faults": 0,
+        "groups.lock-t1-KQK.nodes_reported": 3533102,
+        "groups.lock-t1-KQK.reported_ms": 1219,
+        "groups.lock-t1-KQK.wall_ms": 1267.47,
+        "groups.lock-t1-KQK.at_requested_depth": 67,
+        "groups.lock-t1-KQK.early_mate_termination": 0,
+        "groups.lock-t1-KQK.unfinished_depth": 0,
+        "groups.lock-t1-KQK.shutdown_faults": 0,
+        "groups.lock-t1-KQK.unexpected_exits": 0,
+        "groups.lock-t1-KQK.mate_score_misses": 0,
+        "groups.lock-t1-KQK.krk_non_mating_moves": 0,
+        "groups.lock-t1-KQK.loses_forced_mate": 0,
+        "groups.lock-t1-KQK.mate_bound_violations": 0,
+        "groups.lock-t1-KRK.trials": 67,
+        "groups.lock-t1-KRK.faults": 0,
+        "groups.lock-t1-KRK.nodes_reported": 1869484,
+        "groups.lock-t1-KRK.reported_ms": 638,
+        "groups.lock-t1-KRK.wall_ms": 688.882,
+        "groups.lock-t1-KRK.at_requested_depth": 67,
+        "groups.lock-t1-KRK.early_mate_termination": 0,
+        "groups.lock-t1-KRK.unfinished_depth": 0,
+        "groups.lock-t1-KRK.shutdown_faults": 0,
+        "groups.lock-t1-KRK.unexpected_exits": 0,
+        "groups.lock-t1-KRK.mate_score_misses": 0,
+        "groups.lock-t1-KRK.krk_non_mating_moves": 0,
+        "groups.lock-t1-KRK.loses_forced_mate": 0,
+        "groups.lock-t1-KRK.mate_bound_violations": 0,
+        "groups.lock-t2-KBBK.trials": 66,
+        "groups.lock-t2-KBBK.faults": 0,
+        "groups.lock-t2-KBBK.nodes_reported": 2653500,
+        "groups.lock-t2-KBBK.reported_ms": 565,
+        "groups.lock-t2-KBBK.wall_ms": 625.698,
+        "groups.lock-t2-KBBK.at_requested_depth": 66,
+        "groups.lock-t2-KBBK.early_mate_termination": 0,
+        "groups.lock-t2-KBBK.unfinished_depth": 0,
+        "groups.lock-t2-KBBK.shutdown_faults": 0,
+        "groups.lock-t2-KBBK.unexpected_exits": 0,
+        "groups.lock-t2-KBBK.mate_score_misses": 0,
+        "groups.lock-t2-KBBK.krk_non_mating_moves": 0,
+        "groups.lock-t2-KBBK.loses_forced_mate": 0,
+        "groups.lock-t2-KBBK.mate_bound_violations": 0,
+        "groups.lock-t2-KQK.trials": 67,
+        "groups.lock-t2-KQK.faults": 0,
+        "groups.lock-t2-KQK.nodes_reported": 5187922,
+        "groups.lock-t2-KQK.reported_ms": 1002,
+        "groups.lock-t2-KQK.wall_ms": 1053.52,
+        "groups.lock-t2-KQK.at_requested_depth": 67,
+        "groups.lock-t2-KQK.early_mate_termination": 0,
+        "groups.lock-t2-KQK.unfinished_depth": 0,
+        "groups.lock-t2-KQK.shutdown_faults": 0,
+        "groups.lock-t2-KQK.unexpected_exits": 0,
+        "groups.lock-t2-KQK.mate_score_misses": 0,
+        "groups.lock-t2-KQK.krk_non_mating_moves": 0,
+        "groups.lock-t2-KQK.loses_forced_mate": 0,
+        "groups.lock-t2-KQK.mate_bound_violations": 0,
+        "groups.lock-t2-KRK.trials": 67,
+        "groups.lock-t2-KRK.faults": 0,
+        "groups.lock-t2-KRK.nodes_reported": 2695918,
+        "groups.lock-t2-KRK.reported_ms": 515,
+        "groups.lock-t2-KRK.wall_ms": 574.081,
+        "groups.lock-t2-KRK.at_requested_depth": 67,
+        "groups.lock-t2-KRK.early_mate_termination": 0,
+        "groups.lock-t2-KRK.unfinished_depth": 0,
+        "groups.lock-t2-KRK.shutdown_faults": 0,
+        "groups.lock-t2-KRK.unexpected_exits": 0,
+        "groups.lock-t2-KRK.mate_score_misses": 0,
+        "groups.lock-t2-KRK.krk_non_mating_moves": 0,
+        "groups.lock-t2-KRK.loses_forced_mate": 0,
+        "groups.lock-t2-KRK.mate_bound_violations": 0,
+        "groups.merged-t1-KBBK.trials": 66,
+        "groups.merged-t1-KBBK.faults": 0,
+        "groups.merged-t1-KBBK.nodes_reported": 1841473,
+        "groups.merged-t1-KBBK.reported_ms": 715,
+        "groups.merged-t1-KBBK.wall_ms": 761.291,
+        "groups.merged-t1-KBBK.at_requested_depth": 66,
+        "groups.merged-t1-KBBK.early_mate_termination": 0,
+        "groups.merged-t1-KBBK.unfinished_depth": 0,
+        "groups.merged-t1-KBBK.shutdown_faults": 0,
+        "groups.merged-t1-KBBK.unexpected_exits": 0,
+        "groups.merged-t1-KBBK.mate_score_misses": 0,
+        "groups.merged-t1-KBBK.krk_non_mating_moves": 0,
+        "groups.merged-t1-KBBK.loses_forced_mate": 0,
+        "groups.merged-t1-KBBK.mate_bound_violations": 0,
+        "groups.merged-t1-KQK.trials": 67,
+        "groups.merged-t1-KQK.faults": 0,
+        "groups.merged-t1-KQK.nodes_reported": 3533102,
+        "groups.merged-t1-KQK.reported_ms": 1237,
+        "groups.merged-t1-KQK.wall_ms": 1287,
+        "groups.merged-t1-KQK.at_requested_depth": 67,
+        "groups.merged-t1-KQK.early_mate_termination": 0,
+        "groups.merged-t1-KQK.unfinished_depth": 0,
+        "groups.merged-t1-KQK.shutdown_faults": 0,
+        "groups.merged-t1-KQK.unexpected_exits": 0,
+        "groups.merged-t1-KQK.mate_score_misses": 0,
+        "groups.merged-t1-KQK.krk_non_mating_moves": 0,
+        "groups.merged-t1-KQK.loses_forced_mate": 0,
+        "groups.merged-t1-KQK.mate_bound_violations": 0,
+        "groups.merged-t1-KRK.trials": 67,
+        "groups.merged-t1-KRK.faults": 0,
+        "groups.merged-t1-KRK.nodes_reported": 1869484,
+        "groups.merged-t1-KRK.reported_ms": 634,
+        "groups.merged-t1-KRK.wall_ms": 688.152,
+        "groups.merged-t1-KRK.at_requested_depth": 67,
+        "groups.merged-t1-KRK.early_mate_termination": 0,
+        "groups.merged-t1-KRK.unfinished_depth": 0,
+        "groups.merged-t1-KRK.shutdown_faults": 0,
+        "groups.merged-t1-KRK.unexpected_exits": 0,
+        "groups.merged-t1-KRK.mate_score_misses": 0,
+        "groups.merged-t1-KRK.krk_non_mating_moves": 0,
+        "groups.merged-t1-KRK.loses_forced_mate": 0,
+        "groups.merged-t1-KRK.mate_bound_violations": 0,
+        "groups.merged-t2-KBBK.trials": 66,
+        "groups.merged-t2-KBBK.faults": 0,
+        "groups.merged-t2-KBBK.nodes_reported": 271756563,
+        "groups.merged-t2-KBBK.reported_ms": 35409,
+        "groups.merged-t2-KBBK.wall_ms": 35470,
+        "groups.merged-t2-KBBK.at_requested_depth": 66,
+        "groups.merged-t2-KBBK.early_mate_termination": 0,
+        "groups.merged-t2-KBBK.unfinished_depth": 0,
+        "groups.merged-t2-KBBK.shutdown_faults": 0,
+        "groups.merged-t2-KBBK.unexpected_exits": 0,
+        "groups.merged-t2-KBBK.mate_score_misses": 0,
+        "groups.merged-t2-KBBK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KBBK.loses_forced_mate": 0,
+        "groups.merged-t2-KBBK.mate_bound_violations": 0,
+        "groups.merged-t2-KQK.trials": 67,
+        "groups.merged-t2-KQK.faults": 0,
+        "groups.merged-t2-KQK.nodes_reported": 372545627,
+        "groups.merged-t2-KQK.reported_ms": 37728,
+        "groups.merged-t2-KQK.wall_ms": 37789.9,
+        "groups.merged-t2-KQK.at_requested_depth": 67,
+        "groups.merged-t2-KQK.early_mate_termination": 0,
+        "groups.merged-t2-KQK.unfinished_depth": 0,
+        "groups.merged-t2-KQK.shutdown_faults": 0,
+        "groups.merged-t2-KQK.unexpected_exits": 0,
+        "groups.merged-t2-KQK.mate_score_misses": 0,
+        "groups.merged-t2-KQK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KQK.loses_forced_mate": 0,
+        "groups.merged-t2-KQK.mate_bound_violations": 0,
+        "groups.merged-t2-KRK.trials": 67,
+        "groups.merged-t2-KRK.faults": 0,
+        "groups.merged-t2-KRK.nodes_reported": 66446330,
+        "groups.merged-t2-KRK.reported_ms": 7802,
+        "groups.merged-t2-KRK.wall_ms": 7858.46,
+        "groups.merged-t2-KRK.at_requested_depth": 67,
+        "groups.merged-t2-KRK.early_mate_termination": 0,
+        "groups.merged-t2-KRK.unfinished_depth": 0,
+        "groups.merged-t2-KRK.shutdown_faults": 0,
+        "groups.merged-t2-KRK.unexpected_exits": 0,
+        "groups.merged-t2-KRK.mate_score_misses": 0,
+        "groups.merged-t2-KRK.krk_non_mating_moves": 0,
+        "groups.merged-t2-KRK.loses_forced_mate": 0,
+        "groups.merged-t2-KRK.mate_bound_violations": 0
+      },
+      "schema": "endgame",
+      "rawVerified": true,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2B-0001.evidence/manifest.txt",
+        "sha256": "e7fe41d0c2096ed50980824f1b21eb8bbe4fcbb2196606a8bbe51be8d4b53029",
+        "files": 1606
+      },
+      "wallTimeReconciliation": {
+        "serialization": "C++ defaultfloat precision 6",
+        "rule": "Absolute difference bounded by half the summary last significant digit plus the sum of half-last-digit bounds of each printed trial value, with a floating-addition bound; integer counters remain exact",
+        "groups": {
+          "lock-t1-KRK": {
+            "rawSum": 688.8821089999998,
+            "printedTrialRoundingBound": 0.0018469999999999995,
+            "terms": 67,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "lock-t2-KRK": {
+            "rawSum": 574.0812090000002,
+            "printedTrialRoundingBound": 0.0012620000000000005,
+            "terms": 67,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "merged-t1-KRK": {
+            "rawSum": 688.1516240000002,
+            "printedTrialRoundingBound": 0.0017209999999999997,
+            "terms": 67,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "merged-t2-KRK": {
+            "rawSum": 7858.4603449999995,
+            "printedTrialRoundingBound": 0.01797050000000001,
+            "terms": 67,
+            "summaryHalfLastDigit": 0.005
+          },
+          "lock-t1-KQK": {
+            "rawSum": 1267.4732429999997,
+            "printedTrialRoundingBound": 0.002738000000000001,
+            "terms": 67,
+            "summaryHalfLastDigit": 0.005
+          },
+          "lock-t2-KQK": {
+            "rawSum": 1053.5236710000001,
+            "printedTrialRoundingBound": 0.0027380000000000004,
+            "terms": 67,
+            "summaryHalfLastDigit": 0.005
+          },
+          "merged-t1-KQK": {
+            "rawSum": 1287.0025429999996,
+            "printedTrialRoundingBound": 0.002738000000000001,
+            "terms": 67,
+            "summaryHalfLastDigit": 0.005
+          },
+          "merged-t2-KQK": {
+            "rawSum": 37789.92738199999,
+            "printedTrialRoundingBound": 0.06911750000000001,
+            "terms": 67,
+            "summaryHalfLastDigit": 0.05
+          },
+          "lock-t1-KBBK": {
+            "rawSum": 783.357158,
+            "printedTrialRoundingBound": 0.0021029999999999994,
+            "terms": 66,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "lock-t2-KBBK": {
+            "rawSum": 625.6979140000001,
+            "printedTrialRoundingBound": 0.0015224999999999998,
+            "terms": 66,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "merged-t1-KBBK": {
+            "rawSum": 761.2912340000004,
+            "printedTrialRoundingBound": 0.0019679999999999993,
+            "terms": 66,
+            "summaryHalfLastDigit": 0.0005
+          },
+          "merged-t2-KBBK": {
+            "rawSum": 35469.97058299999,
+            "printedTrialRoundingBound": 0.07007100000000001,
+            "terms": 66,
+            "summaryHalfLastDigit": 0.05
+          }
+        }
+      },
+      "computed": {
+        "completed_units": 800,
+        "selected_generated": 0,
+        "trials": 800,
+        "faults": 0,
+        "nodes": 735773978,
+        "reported_ms": 88199,
+        "wall_ms": 88847.81901499999,
+        "at_requested_depth": 800,
+        "early_mate_termination": 0,
+        "unfinished_depth": 0,
+        "shutdown_faults": 0,
+        "unexpected_exits": 0,
+        "mate_score_misses": 0,
+        "krk_non_mating_moves": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violations": 0
+      }
+    },
+    {
+      "key": "2KRKsplit:1",
+      "phase": "2KRKsplit",
+      "id": 1,
+      "log": "/workspace/work/all-run/logs/krk-split-1-controller.txt",
+      "finishedUTC": "2026-11-14T12:38:29.514Z",
+      "recorded": {
+        "tests_completed": 1,
+        "t1_runs": 100,
+        "t1_misses": 0,
+        "main_runs": 200,
+        "main_misses": 0,
+        "no_mate_score": 0,
+        "non_mating_move": 0,
+        "sanitizer_reports": 0
+      },
+      "schema": "existing_krk",
+      "rawVerified": true,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKsplit-0001.evidence/manifest.txt",
+        "sha256": "921bf3aa679b42848d3a7f381a8e075062068ed67270776ffdf6e15314415ea0",
+        "files": 5
+      },
+      "computed": {
+        "tests_completed": 1,
+        "t1_runs": 100,
+        "t1_misses": 0,
+        "main_runs": 200,
+        "main_misses": 0,
+        "no_mate_score": 0,
+        "non_mating_move": 0,
+        "sanitizer_reports": 0
+      },
+      "existingTest": {
+        "type": "existing_asan_krk_split_retry",
+        "completed": true,
+        "passed": true,
+        "classification": "completed native existing-test invocation",
+        "rawNativeLog": "/workspace/work/all-run/logs/test-asan-krk-split-1.txt",
+        "rawLogSha256": "9ba1f938820bb66b446d0dfdbec3f6374d0753ce7f2b4591824dad9c367c79a3",
+        "binarySha256": "4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99",
+        "observed": {
+          "configs": [
+            {
+              "positions": 40,
+              "runs_per_pos": 5,
+              "threads": 2,
+              "hash_mb": 16,
+              "depth": 14,
+              "use_nnue": true
+            }
+          ],
+          "t1": [
+            {
+              "misses": 0,
+              "runs": 100
+            }
+          ],
+          "main": [
+            {
+              "misses": 0,
+              "runs": 200,
+              "no_mate_score": 0,
+              "non_mating_move": 0
+            }
+          ],
+          "diagnostics": [],
+          "end": [
+            {
+              "utc": "2026-11-14T12:38:29.488Z",
+              "exit": 0,
+              "signal": null
+            }
+          ],
+          "argv": [
+            [
+              "/workspace/work/all-run/tests-asan/krk_mate_test",
+              "40",
+              "5",
+              "2",
+              "16",
+              "14",
+              "1"
+            ]
+          ],
+          "environment": [
+            {
+              "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
+              "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+            }
+          ],
+          "binaryHashes": [
+            "4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99"
+          ],
+          "configValid": true,
+          "t1Valid": true,
+          "mainValid": true
+        },
+        "coverageNote": "Each completed split is exactly 40x5=200 main runs plus100 T1 checks. Split invocations do not make the original single40x10 attempt complete."
+      }
+    },
+    {
+      "key": "2KRKsplit:2",
+      "phase": "2KRKsplit",
+      "id": 2,
+      "log": "/workspace/work/all-run/logs/krk-split-2-controller.txt",
+      "finishedUTC": "2026-11-14T12:43:55.665Z",
+      "recorded": {
+        "tests_completed": 1,
+        "t1_runs": 100,
+        "t1_misses": 0,
+        "main_runs": 200,
+        "main_misses": 0,
+        "no_mate_score": 0,
+        "non_mating_move": 0,
+        "sanitizer_reports": 0
+      },
+      "schema": "existing_krk",
+      "rawVerified": true,
+      "partialSafety": [],
+      "sanitizerOccurrences": [],
+      "evidenceManifest": {
+        "path": "/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKsplit-0002.evidence/manifest.txt",
+        "sha256": "c5b76b4f8a3365358ec1165bdb32c8b1ce81f17c3cc212c2992db99224b2ed06",
+        "files": 5
+      },
+      "computed": {
+        "tests_completed": 1,
+        "t1_runs": 100,
+        "t1_misses": 0,
+        "main_runs": 200,
+        "main_misses": 0,
+        "no_mate_score": 0,
+        "non_mating_move": 0,
+        "sanitizer_reports": 0
+      },
+      "existingTest": {
+        "type": "existing_asan_krk_split_retry",
+        "completed": true,
+        "passed": true,
+        "classification": "completed native existing-test invocation",
+        "rawNativeLog": "/workspace/work/all-run/logs/test-asan-krk-split-2.txt",
+        "rawLogSha256": "68bd57d562a1992b1de6bd09023132ae4b4e036fc8cce1e83e898031e1fbdad7",
+        "binarySha256": "4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99",
+        "observed": {
+          "configs": [
+            {
+              "positions": 40,
+              "runs_per_pos": 5,
+              "threads": 2,
+              "hash_mb": 16,
+              "depth": 14,
+              "use_nnue": true
+            }
+          ],
+          "t1": [
+            {
+              "misses": 0,
+              "runs": 100
+            }
+          ],
+          "main": [
+            {
+              "misses": 0,
+              "runs": 200,
+              "no_mate_score": 0,
+              "non_mating_move": 0
+            }
+          ],
+          "diagnostics": [],
+          "end": [
+            {
+              "utc": "2026-11-14T12:43:55.637Z",
+              "exit": 0,
+              "signal": null
+            }
+          ],
+          "argv": [
+            [
+              "/workspace/work/all-run/tests-asan/krk_mate_test",
+              "40",
+              "5",
+              "2",
+              "16",
+              "14",
+              "1"
+            ]
+          ],
+          "environment": [
+            {
+              "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
+              "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+            }
+          ],
+          "binaryHashes": [
+            "4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99"
+          ],
+          "configValid": true,
+          "t1Valid": true,
+          "mainValid": true
+        },
+        "coverageNote": "Each completed split is exactly 40x5=200 main runs plus100 T1 checks. Split invocations do not make the original single40x10 attempt complete."
+      }
+    }
+  ],
+  "excluded": [],
+  "issues": [
+    {
+      "level": "warning",
+      "message": "2D:1 lacks --trace: search/move/game counts are self-reported, with SUMMARY invariants and emitted FAULT rows checked; no per-search replay enumeration available"
+    },
+    {
+      "level": "warning",
+      "message": "2KRKfull:1 incomplete existing-test invocation; zero completed coverage; native budget expired; incomplete status alone is not an engine fault"
+    }
+  ],
+  "faults": [
+    {
+      "audit_key": "2A:1:unit-16",
+      "file": "002.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000004; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-17",
+      "file": "003.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000004; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-36",
+      "file": "004.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000009; 7/10 mate-score misses, 0 illegal, 1 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-37",
+      "file": "005.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000009; 7/10 mate-score misses, 0 illegal, 3 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-48",
+      "file": "006.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000012; 5/10 mate-score misses, 0 illegal, 5 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-49",
+      "file": "007.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000012; 5/10 mate-score misses, 0 illegal, 5 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-52",
+      "file": "008.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000013; 5/10 mate-score misses, 0 illegal, 5 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-53",
+      "file": "009.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000013; 6/10 mate-score misses, 0 illegal, 6 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-60",
+      "file": "010.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000015; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-61",
+      "file": "011.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000015; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-68",
+      "file": "012.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000017; 1/10 mate-score misses, 0 illegal, 1 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-77",
+      "file": "013.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000019; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-88",
+      "file": "014.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000022; 4/10 mate-score misses, 0 illegal, 4 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-89",
+      "file": "015.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000022; 5/10 mate-score misses, 0 illegal, 5 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-104",
+      "file": "016.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000026; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-105",
+      "file": "017.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000026; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-108",
+      "file": "018.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000027; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-109",
+      "file": "019.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000027; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-112",
+      "file": "020.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000028; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-113",
+      "file": "021.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000028; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-116",
+      "file": "022.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000029; 5/10 mate-score misses, 0 illegal, 5 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-117",
+      "file": "023.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000029; 3/10 mate-score misses, 0 illegal, 3 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-140",
+      "file": "024.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000035; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-141",
+      "file": "025.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000035; 2/10 mate-score misses, 0 illegal, 1 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-144",
+      "file": "026.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KRK KRK-000036; 8/10 mate-score misses, 0 illegal, 8 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-145",
+      "file": "027.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KRK KRK-000036; 3/10 mate-score misses, 0 illegal, 3 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-172",
+      "file": "028.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000006; 8/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-173",
+      "file": "029.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000006; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-181",
+      "file": "030.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000022; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-184",
+      "file": "031.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000024; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-192",
+      "file": "032.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000040; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-193",
+      "file": "033.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000040; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-204",
+      "file": "034.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000044; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-205",
+      "file": "035.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000044; 4/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-208",
+      "file": "036.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000046; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-212",
+      "file": "037.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000048; 4/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-213",
+      "file": "038.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000048; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-221",
+      "file": "039.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000066; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-236",
+      "file": "040.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000088; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-244",
+      "file": "041.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000094; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-252",
+      "file": "042.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-000103; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-253",
+      "file": "043.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-000103; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-264",
+      "file": "044.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-000137; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-265",
+      "file": "045.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-000137; 8/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-268",
+      "file": "046.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000138; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-272",
+      "file": "047.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000140; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-273",
+      "file": "048.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000140; 4/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-276",
+      "file": "049.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000142; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-284",
+      "file": "050.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000148; 9/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:1:unit-285",
+      "file": "051.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000148; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-288",
+      "file": "052.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000156; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-289",
+      "file": "053.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000156; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-308",
+      "file": "054.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000166; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-309",
+      "file": "055.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000166; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-312",
+      "file": "056.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000172; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-320",
+      "file": "057.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000184; 4/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-321",
+      "file": "058.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000184; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-324",
+      "file": "059.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000194; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-325",
+      "file": "060.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000194; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-328",
+      "file": "061.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KQK KQK-000196; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-329",
+      "file": "062.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KQK KQK-000196; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-344",
+      "file": "063.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-000369; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-348",
+      "file": "064.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-000441; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-349",
+      "file": "065.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-000441; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-352",
+      "file": "066.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-000473; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-356",
+      "file": "067.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-000533; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-357",
+      "file": "068.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-000533; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-392",
+      "file": "069.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-000801; 8/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-393",
+      "file": "070.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-000801; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-400",
+      "file": "071.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-000955; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:2:unit-401",
+      "file": "072.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-000955; 4/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-420",
+      "file": "073.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-001203; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-421",
+      "file": "074.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-001203; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-436",
+      "file": "075.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-001401; 1/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-437",
+      "file": "076.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-001401; 2/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-448",
+      "file": "077.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-001577; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-449",
+      "file": "078.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-001577; 10/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-452",
+      "file": "079.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-001601; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-453",
+      "file": "080.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-001601; 6/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-456",
+      "file": "081.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-001615; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-457",
+      "file": "082.txt",
+      "existing": true,
+      "description": "Endgame lock-t4-KBBK KBBK-001615; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    },
+    {
+      "audit_key": "2A:3:unit-472",
+      "file": "083.txt",
+      "existing": true,
+      "description": "Endgame lock-t2-KBBK KBBK-001735; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures"
+    }
+  ],
+  "endgameGroups": {
+    "2A:lock-t2-KRK": {
+      "phase": "2A",
+      "build": "lock",
+      "threads": 2,
+      "kind": "KRK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 48,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 29,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 48
+      }
+    },
+    "2A:lock-t4-KRK": {
+      "phase": "2A",
+      "build": "lock",
+      "threads": 4,
+      "kind": "KRK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 47,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 26,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 47
+      }
+    },
+    "2A:merged-t2-KRK": {
+      "phase": "2A",
+      "build": "merged",
+      "threads": 2,
+      "kind": "KRK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2A:merged-t4-KRK": {
+      "phase": "2A",
+      "build": "merged",
+      "threads": 4,
+      "kind": "KRK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2A:lock-t2-KQK": {
+      "phase": "2A",
+      "build": "lock",
+      "threads": 2,
+      "kind": "KQK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 53,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 53
+      }
+    },
+    "2A:lock-t4-KQK": {
+      "phase": "2A",
+      "build": "lock",
+      "threads": 4,
+      "kind": "KQK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 38,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 38
+      }
+    },
+    "2A:merged-t2-KQK": {
+      "phase": "2A",
+      "build": "merged",
+      "threads": 2,
+      "kind": "KQK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2A:merged-t4-KQK": {
+      "phase": "2A",
+      "build": "merged",
+      "threads": 4,
+      "kind": "KQK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2A:lock-t2-KBBK": {
+      "phase": "2A",
+      "build": "lock",
+      "threads": 2,
+      "kind": "KBBK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 62,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 62
+      }
+    },
+    "2A:lock-t4-KBBK": {
+      "phase": "2A",
+      "build": "lock",
+      "threads": 4,
+      "kind": "KBBK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 50,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 50
+      }
+    },
+    "2A:merged-t2-KBBK": {
+      "phase": "2A",
+      "build": "merged",
+      "threads": 2,
+      "kind": "KBBK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2A:merged-t4-KBBK": {
+      "phase": "2A",
+      "build": "merged",
+      "threads": 4,
+      "kind": "KBBK",
+      "units": 40,
+      "trials": 400,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 400,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:lock-t1-KRK": {
+      "phase": "2B",
+      "build": "lock",
+      "threads": 1,
+      "kind": "KRK",
+      "units": 67,
+      "trials": 67,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 67,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:lock-t2-KRK": {
+      "phase": "2B",
+      "build": "lock",
+      "threads": 2,
+      "kind": "KRK",
+      "units": 67,
+      "trials": 67,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 67,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:merged-t1-KRK": {
+      "phase": "2B",
+      "build": "merged",
+      "threads": 1,
+      "kind": "KRK",
+      "units": 67,
+      "trials": 67,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 67,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:merged-t2-KRK": {
+      "phase": "2B",
+      "build": "merged",
+      "threads": 2,
+      "kind": "KRK",
+      "units": 67,
+      "trials": 67,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 67,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:lock-t1-KQK": {
+      "phase": "2B",
+      "build": "lock",
+      "threads": 1,
+      "kind": "KQK",
+      "units": 67,
+      "trials": 67,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 67,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:lock-t2-KQK": {
+      "phase": "2B",
+      "build": "lock",
+      "threads": 2,
+      "kind": "KQK",
+      "units": 67,
+      "trials": 67,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 67,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:merged-t1-KQK": {
+      "phase": "2B",
+      "build": "merged",
+      "threads": 1,
+      "kind": "KQK",
+      "units": 67,
+      "trials": 67,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 67,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:merged-t2-KQK": {
+      "phase": "2B",
+      "build": "merged",
+      "threads": 2,
+      "kind": "KQK",
+      "units": 67,
+      "trials": 67,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 67,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:lock-t1-KBBK": {
+      "phase": "2B",
+      "build": "lock",
+      "threads": 1,
+      "kind": "KBBK",
+      "units": 66,
+      "trials": 66,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 66,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:lock-t2-KBBK": {
+      "phase": "2B",
+      "build": "lock",
+      "threads": 2,
+      "kind": "KBBK",
+      "units": 66,
+      "trials": 66,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 66,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:merged-t1-KBBK": {
+      "phase": "2B",
+      "build": "merged",
+      "threads": 1,
+      "kind": "KBBK",
+      "units": 66,
+      "trials": 66,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 66,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    },
+    "2B:merged-t2-KBBK": {
+      "phase": "2B",
+      "build": "merged",
+      "threads": 2,
+      "kind": "KBBK",
+      "units": 66,
+      "trials": 66,
+      "counts": {
+        "mate_score_miss": 0,
+        "legal_bestmove": 66,
+        "illegal_bestmove": 0,
+        "missing_or_incomplete": 0,
+        "pv_illegal": 0,
+        "krk_non_mating_move": 0,
+        "loses_forced_mate": 0,
+        "mate_bound_violation": 0,
+        "sanitizer_report": 0,
+        "shutdown_fault": 0,
+        "unexpected_exit": 0,
+        "unfinished_depth": 0,
+        "fault": 0
+      }
+    }
+  },
+  "limitations": [
+    "Frequencies come only from complete raw recorded trial groups. Partial safety evidence has no completed reproduction frequency.",
+    "No engine is executed by this auditor. Missing ten-run reproduction groups remain pending.",
+    "Sanitizer marker locations are evidence occurrences, not a count of independent bugs. Mirrored logs can contain the same diagnostic."
+  ],
+  "newFaults": 0,
+  "errors": 0,
+  "warnings": 2
+}
+
+=== END SAVED OUTPUT ===

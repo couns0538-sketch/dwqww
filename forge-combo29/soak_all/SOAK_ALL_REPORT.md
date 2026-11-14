@@ -1,8 +1,8 @@
 # Eight-hour combined Forge integration and soak
 
-Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T12:39:51.006Z.
+Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T12:45:01.912Z.
 
-Elapsed at snapshot: 88.32 minutes; current phase: 2KRKsplit; recorded pushes: 15. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
+Elapsed at snapshot: 93.50 minutes; current phase: 2KRKsplit; recorded pushes: 16. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
 
 Base: `fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca`; merged source: `f27b1971e459581ad4c85b7015f6af83bbfd4af6`; unchanged lock: `16833ecc03b425586f91f4c8834dea8807bf4c22`. [Source provenance](../INTEGRATION_ALL.md), [progress](PROGRESS.md), [raw batches](batches/), [test matrix](TEST_MATRIX.md).
 
@@ -26,7 +26,7 @@ Recorded default pins: bench11 = 312,866; bench13 = 862,329; perft5 = 4,865,609.
 | 3-NonPawnCorrection | Merged with only NonPawnCorrection enabled versus merged with all three new options disabled. | No completed counts recorded | Pending; no completed counts recorded |
 | 3-LmrDeeperShallower | Merged with only LmrDeeperShallower enabled versus merged with all three new options disabled. | No completed counts recorded | Pending; no completed counts recorded |
 | Part4 | Mate-bound/PV investigation and optional sampled KRK audit; exact DTM checks, no universal correctness claim. | 4 uninstrumented searches; 1 instrumented searches; 1 independent known roots; 0 false bounds demonstrated | Known-root investigation complete; optional broader sampled audit pending |
-| 2KRKsplit | Isolated unchanged existing ASAN KRK split retry 1/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks | 1 tests completed; 100 t1 runs; 0 t1 misses; 200 main runs; 0 main misses; 0 no mate score; 0 non mating move; 0 sanitizer reports | Running |
+| 2KRKsplit | Isolated unchanged existing ASAN KRK split retry 2/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks | 2 tests completed; 200 t1 runs; 0 t1 misses; 400 main runs; 0 main misses; 0 no mate score; 0 non mating move; 0 sanitizer reports | Complete: two unchanged40x5 invocations; 0/400 main misses,0/200 T1 misses, no sanitizer report |
 
 Counts below use committed state totals. A dash means unavailable or not applicable, never an inferred zero. Fault categories can overlap.
 
@@ -103,7 +103,7 @@ A crash can appear as a disconnect. Log markers are occurrences, not additional 
 
 ## Existing tests and limitations
 
-Existing test/check records: 60; nonzero checks: 6; reported sanitizer diagnostics: 0. The [test matrix](TEST_MATRIX.md) and raw outputs distinguish fixture mismatches, timeouts and engine failures. A nonzero fixture comparison is not automatically an engine crash.
+Existing test/check records: 61; nonzero checks: 6; reported sanitizer diagnostics: 0. The [test matrix](TEST_MATRIX.md) and raw outputs distinguish fixture mismatches, timeouts and engine failures. A nonzero fixture comparison is not automatically an engine crash.
 
 Recorded KRK coverage: release T1 100, release T2 400, ASAN T1 100, ASAN T2 40. The original full ASAN 40×10 attempt timed out without completed counts; reduced successful coverage does not convert that attempt into a pass.
 
@@ -122,6 +122,7 @@ Completed-unit totals exclude partial work; interrupted cleanup diagnostics rema
 - Initial2D batch did not enable per-search trace:194games/27831searches are driver self-reported with internal per-search legality/score checks and summary invariants; only final trigger is retained. Subsequent self-play batches enable full trace.
 - The isolated unchanged ASan/UBSan40x10 KRK retry also timed out after435seconds with no sanitizer diagnostic and buffered test output unavailable. It contributes zero completed trials. Two40x5 invocations are planned to complete ten fresh-clear trials perroot within command limits; original timeouts remain recorded.
 - Phase2B: all800 searches reacheddepth12 with legalmoves and clean exits. Threads1 move,score,bound,nodecount andcompleteddepth match exactly onall200roots; raw measurements retained in bare_king_depth12_measurements.txt.
+- Both bounded ASan KRK40x5 invocations passed on the identical binary and deterministic roots: combined400 T2 trials and200 T1 references, zero misses or sanitizer reports. Original40x10 attempts remain incomplete.
 
 These notes retain their original recording context; subsequent retry coverage is stated separately.
 
@@ -133,7 +134,7 @@ These notes retain their original recording context; subsequent retry coverage i
 | --- | --- | --- | --- | --- | --- | --- |
 | [2A #1](batches/2A-0001.txt) | 8473201 | 287 completed units; 2,870 trials; 182 faults | 1 incomplete units; 1 partial trials excluded; 0 partial faults excluded | 287 | Attempt 2 recorded as retry; completion not inferred | driver retained partial work separately |
 | [2A #2](batches/2A-0002.txt) | 8473201 | 116 completed units; 1,160 trials; 65 faults | 1 incomplete units; 6 partial trials excluded; 0 partial faults excluded | 403 | Attempt 3 recorded as retry; completion not inferred | driver retained partial work separately |
-| [2KRKfull #1](batches/2KRKfull-0001.evidence/manifest.txt) | not_applicable | None recorded | See raw partial evidence | — | Retry not recorded | expected exactly one actual config line; expected exactly one Threads-1 result; expected exactly one main SUMMARY; actual config does not match 40 10 2 16 14 1; incomplete or invalid T1 checks; incomplete or inconsistent main counts; test did not terminate normally within the budget |
+| [2KRKfull #1](batches/2KRKfull-0001.evidence/manifest.txt) | not_applicable | None recorded | See raw partial evidence | — | Attempt 2KRKsplit #1 and #2 (coverage split into5+5; originalsingleinvocation remains incomplete) recorded as retry; completion not inferred | expected exactly one actual config line; expected exactly one Threads-1 result; expected exactly one main SUMMARY; actual config does not match 40 10 2 16 14 1; incomplete or invalid T1 checks; incomplete or inconsistent main counts; test did not terminate normally within the budget |
 
 A retry link records a later attempt; it does not imply that every partial unit has completed. Retained completed units are already included once in phase totals.
 
@@ -266,7 +267,7 @@ This appendix preserves every state total, including overlapping categories and 
 | 2A | Frozen40KRK+40KQK+40KBBK, lock/merged, Threads2/4, depth14,10fresh-state trials perroot/build/thread; exactKRKoracle; noKQK/KBBKproofclaim | Complete: merged 0/2,400 and lock 298/2,400 mate-score misses |
 | Part4 | Reported mate17/short-PV reproduction and exact KRK assessment; scratch-only trace; production source unchanged | Known-root investigation complete; optional broader sampled audit pending |
 | 2B | 200 fixed-seed legal bare-king roots, no mate-score selection; lock and merged, Threads1/2, depth12; raw nodes and times only | Complete: 800 depth-12 searches on 200 roots, both builds at Threads 1/2; no fault |
-| 2KRKsplit | Isolated unchanged existing ASAN KRK split retry 1/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks | Running |
+| 2KRKsplit | Isolated unchanged existing ASAN KRK split retry 2/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks | Complete: two unchanged40x5 invocations; 0/400 main misses,0/200 T1 misses, no sanitizer report |
 
 | Phase | Counter | Recorded value |
 | --- | --- | --- |
@@ -668,15 +669,15 @@ This appendix preserves every state total, including overlapping categories and 
 | 2B | groups.merged-t2-KRK.loses_forced_mate | 0 |
 | 2B | groups.merged-t2-KRK.mate_bound_violations | 0 |
 | 2B | batches | 1 |
-| 2KRKsplit | tests_completed | 1 |
-| 2KRKsplit | t1_runs | 100 |
+| 2KRKsplit | tests_completed | 2 |
+| 2KRKsplit | t1_runs | 200 |
 | 2KRKsplit | t1_misses | 0 |
-| 2KRKsplit | main_runs | 200 |
+| 2KRKsplit | main_runs | 400 |
 | 2KRKsplit | main_misses | 0 |
 | 2KRKsplit | no_mate_score | 0 |
 | 2KRKsplit | non_mating_move | 0 |
 | 2KRKsplit | sanitizer_reports | 0 |
-| 2KRKsplit | batches | 1 |
+| 2KRKsplit | batches | 2 |
 
 </details>
 
