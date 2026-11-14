@@ -47,10 +47,15 @@ Threads 1, Hash 16, OwnBook false, every other option left at default. Printed b
 - with the option on, the bishop-and-knight total equals this formula and both the hand-crafted and network fields stay 0; with it off, the network term is not 0 and the total differs
 - depth 5 on that bishop-and-knight position: 675 nodes off, 514 nodes on
 - 200 generated positions plus five fixtures, searched to depth 10 with the option on: every best move, and every move of the PV, is in the legal move list
+- search play, option on, repeats the engine's best move. Distance is Chebyshev distance from the lone king to the nearer corner of the bishop's colour. A dark bishop uses a1 and h8; a light bishop uses h1 and a8. Lone king on a8 against a dark bishop, depth 8 for 16 plies: distance 7 to 3. Lone king on h8 against a light bishop, depth 12 for 20 plies: distance 7 to 4.
 
-Release run: 0 failures, 205 searches, 2329 ms.
+Two further lines, same rule, not folded into the test binary: a lone king on d5 against a dark bishop, depth 12 for 20 plies, distance 4 to 3; a lone king on d4 against a light bishop and knight, depth 10 for 40 plies, goes to a1 first (distance 7, the other colour) and is then pushed toward h1, best distance 2, ending distance 3. That is the score pulling the king. It is not a measure of playing strength.
 
-Sanitizer run, `-O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all`, address and undefined halt on error, leak detection on: exit 0, 0 failures, 205 searches, 21707 ms. No sanitizer report.
+Release run of the test: 0 failures, drive 7 to 3 and 7 to 4, 205 searches, 2275 ms.
+
+Pins were printed again on this tree after that test, with the same three default counts and the same option-on bench count as below.
+
+Sanitizer, `-O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all`, halt on error, leak detection on. One run of the depth-10 searches alone: exit 0, 0 failures, 205 searches, 21110 ms. The run that also plays the two corner lines: exit 0, drive 7 to 3 and 7 to 4, 0 failures, 205 searches, 21365 ms. No sanitizer report.
 
 Source diff against `e04556dd` in `forge-combo29/src` and `forge-combo29/include`: 96 insertions and 4 deletions, 100 changed lines.
 

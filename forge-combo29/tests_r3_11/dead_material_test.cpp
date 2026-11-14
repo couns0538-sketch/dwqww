@@ -82,6 +82,48 @@ bool move_is_legal(const forge::Board& board, forge::Move move) {
     return false;
 }
 
+int lone_corner_distance(const forge::Board& board) {
+    const bool white_bishop = forge::popcount(board.pieces(forge::White, forge::Bishop)) == 1;
+    const forge::Color attacker = white_bishop ? forge::White : forge::Black;
+    const bool dark = (board.pieces(attacker, forge::Bishop) & forge::DarkSquares) != 0;
+    const int lone = board.king_square(forge::opposite(attacker));
+    const int corner_a = dark ? 0 : 7;
+    const int corner_b = dark ? 63 : 56;
+    const int to_a = forge::square_distance(lone, corner_a);
+    const int to_b = forge::square_distance(lone, corner_b);
+    return to_a < to_b ? to_a : to_b;
+}
+
+void expect_search_drives(const char* name, const char* fen, int depth, int plies) {
+    forge::dead_material_enabled = true;
+    forge::Board board;
+    if (!board.set_fen(fen)) {
+        fail(std::string(name) + " fen");
+        return;
+    }
+    const int start = lone_corner_distance(board);
+    forge::Searcher searcher(16);
+    for (int ply = 0; ply < plies; ++ply) {
+        if (board.legal_moves().empty()) break;
+        forge::SearchLimits limits;
+        limits.depth = depth;
+        searcher.clear();
+        const forge::SearchInfo info = searcher.search(board, limits, false);
+        if (info.best_move.is_none() || !move_is_legal(board, info.best_move)) {
+            fail(std::string(name) + " illegal drive move");
+            return;
+        }
+        forge::Undo undo;
+        if (!board.make_move(info.best_move, undo)) {
+            fail(std::string(name) + " make");
+            return;
+        }
+    }
+    const int end = lone_corner_distance(board);
+    std::cout << "drive " << name << " " << start << " to " << end << '\n';
+    if (end >= start) fail(std::string(name) + " dist " + std::to_string(start) + " to " + std::to_string(end));
+}
+
 bool pv_is_legal(const forge::Board& board, const std::vector<forge::Move>& pv) {
     forge::Board cursor = board;
     for (const forge::Move move : pv) {
@@ -216,6 +258,10 @@ int main() {
     const std::uint64_t pair_off = nodes_at(false, light_corner, 5);
     const std::uint64_t pair_on = nodes_at(true, light_corner, 5);
     if (pair_off == 0 || pair_off == pair_on) fail("option did not change the bishop-and-knight search");
+
+    // Wrong-corner kings. A dark bishop's corners are a1 and h8; a light bishop's are h1 and a8.
+    expect_search_drives("dark", "k7/8/8/8/8/2N5/1K6/2B5 w - - 0 1", 8, 16);
+    expect_search_drives("light", "7k/8/8/8/8/N7/1K6/5B2 w - - 0 1", 12, 20);
 
     forge::dead_material_enabled = true;
     std::vector<std::string> positions;
