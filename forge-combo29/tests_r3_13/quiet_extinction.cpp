@@ -41,24 +41,39 @@ forge::Board walked(std::uint64_t salt, int plies) {
 } // namespace
 
 int main() {
+    if (forge::tune::QuietExtinction) {
+        std::cerr << "QuietExtinction default is not false\n";
+        return 1;
+    }
     forge::tune::QuietExtinction = true;
     forge::Searcher searcher(16, 1);
     int searched = 0;
     int illegal = 0;
+    std::uint64_t nodes = 0;
 
     auto check = [&](forge::Board board, int index) {
         const forge::MoveList legal = board.legal_moves();
+        const bool ruled_draw = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
+                                                    board.is_insufficient_material());
         forge::SearchLimits limits;
         limits.depth = 10;
         searcher.clear();
         const forge::SearchInfo info = searcher.search(
             board, limits, false, forge::Searcher::TTAccess::Exclusive);
         ++searched;
-        const bool ok = legal.empty() ? info.best_move.is_none() : listed(legal, info.best_move);
+        nodes += info.nodes;
+        bool ok = info.depth == 10;
+        if (legal.empty()) ok = ok && info.best_move.is_none();
+        else {
+            ok = ok && listed(legal, info.best_move);
+            forge::Undo undo;
+            ok = ok && board.make_move(info.best_move, undo);
+            if (!ruled_draw) ok = ok && info.nodes > 0;
+        }
         if (!ok) {
             ++illegal;
             std::cerr << "illegal index " << index << " move " << forge::Board::move_to_uci(info.best_move)
-                      << " legal " << legal.size() << '\n';
+                      << " legal " << legal.size() << " depth " << info.depth << " nodes " << info.nodes << '\n';
         }
     };
 
@@ -75,10 +90,15 @@ int main() {
         std::cerr << "setup fen rejected\n";
         return 1;
     }
+    if (king_pawn.has_non_pawn_material(forge::White) || king_pawn.has_non_pawn_material(forge::Black) ||
+        !checked.in_check() || !start.has_non_pawn_material(forge::White)) {
+        std::cerr << "setup position does not match the case it is meant to cover\n";
+        return 1;
+    }
     check(king_pawn, 197);
     check(checked, 198);
     check(start, 199);
 
-    std::cout << "searches " << searched << " illegal " << illegal << '\n';
-    return searched == 200 && illegal == 0 ? 0 : 1;
+    std::cout << "searches " << searched << " illegal " << illegal << " nodes " << nodes << '\n';
+    return searched == 200 && illegal == 0 && nodes > 0 ? 0 : 1;
 }
