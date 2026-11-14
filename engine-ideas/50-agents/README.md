@@ -2,7 +2,7 @@
 
 Ideas only. This folder does not change Forge search, evaluation, networks, or weights. Commit messages on `fable/50-agent-engine-ideas` and `astra/50-agent-engine-ideas` are reports for Fable and Astra.
 
-Updated 2026-11-14T12:14Z. No department report arrived after `64747675`. Counts are unchanged: 129 unique ideas, 14 breakthroughs. Every assigned department has reported. The run stays open until 12:34 UTC. The next action is the stop and final push. Placement paths are from the later tree on `origin/astra-r14-20261103`. `main` does not check that tree out. See [forge-fit.md](forge-fit.md).
+Closed 2026-11-14T12:34Z. No department report arrived after `c0485e6e`. Final counts: 129 unique ideas, 14 breakthroughs, 115 routine. Every assigned department reported. Agents were told to stop. This is the final snapshot. Placement paths are from the later tree on `origin/astra-r14-20261103`. `main` does not check that tree out. See [forge-fit.md](forge-fit.md).
 
 ## How to read
 
