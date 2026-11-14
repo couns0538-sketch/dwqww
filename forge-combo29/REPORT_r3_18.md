@@ -60,6 +60,35 @@ Base mean 1497.4 ms (spread 1493–1509). This binary mean 1442.6 ms (spread 143
 - No games, so no strength claim.
 - Threads other than 1.
 - `UseNNUE false`. The early return to the hand-crafted eval is unchanged and was not re-run.
-- The AVX-512 build (`FORGE_PORTABLE` off). This binary is the portable x86-64-v3 build.
 - Hash sizes other than 16, and MultiPV other than 1.
-- The timing is five runs on one shared VM, not a locked benchmark machine.
+- The portable timing above is five runs on one shared VM. The owner build is in the follow-up.
+
+## Follow-up: AVX-512 fused pass
+
+The first fused kernel was compiled only for AVX2 when `FORGE_SPD_NNUE_ZMM` is off. The owner build turns that kernel off and uses the 512-bit evaluate. `apply_and_evaluate` now has a 512-bit path with the same feature sums as `update` and the same output order as that evaluate: one 512-bit sum, lane j accumulating hidden units j, j+16, j+32, …, with a separate multiply and add. No `FORGE_*` macro is defined or undefined in the sources, and `CMakeLists.txt` is unchanged.
+
+This machine has AVX-512F and BMI2, so the owner configuration (portable off, `-march=x86-64-v4`) was built for `e04556dd` and for this branch. Pins on this binary: bench 11 **312866**, bench 13 **862329**, startpos perft 5 **4865609**.
+
+`tests_r3fu_18/fused_identity.cpp` drives `Worker::static_evaluate`, including null moves, promotions, castling, and en passant, and the 2-change and 3-change fused shapes. It prints the mismatch counts and exits non-zero if either is non-zero. One million fixed-seed playouts on the owner build:
+
+```
+refresh_net_mismatch 0
+refresh_total_mismatch 0
+coverage static_evals 836716 fused2 629949 fused3 56788 promo 167 castle 944 ep 123 null 89238
+```
+
+UCI `eval` against the owner-build base binary: 1,000,000 / 1,000,000 lines identical. `go depth 8`: 10,000 / 10,000 matched on best move, score, and nodes.
+
+Bench 16, seven alternating runs after those jobs, owner base then this binary. Every run was 3024920 nodes. The millisecond timer on this VM swings by hundreds of milliseconds, and the spreads overlap, so this table is not a speed result.
+
+| run | base ms | this binary ms |
+| ---: | ---: | ---: |
+| 1 | 2600 | 2352 |
+| 2 | 2230 | 1873 |
+| 3 | 2773 | 1891 |
+| 4 | 1941 | 2714 |
+| 5 | 1999 | 2578 |
+| 6 | 2612 | 2524 |
+| 7 | 2459 | 2008 |
+
+Base mean 2373.4 ms (spread 1941–2773). This binary mean 2277.1 ms (spread 1873–2714).
