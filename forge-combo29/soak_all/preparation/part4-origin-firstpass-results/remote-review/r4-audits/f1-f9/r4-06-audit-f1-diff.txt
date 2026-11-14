@@ -1,0 +1,439 @@
+diff --git a/forge-combo29/REPORT_r4_06.md b/forge-combo29/REPORT_r4_06.md
+new file mode 100644
+index 00000000..4fa95e87
+--- /dev/null
++++ b/forge-combo29/REPORT_r4_06.md
+@@ -0,0 +1,94 @@
++# R4-06 Finding 1: concurrent `attacks::init`
++
++Base: `e04556ddc` (`integrate/combo29-all`). Branch: `grok47/r4-06-audit-f1`.
++Audit read: `302a08a27` `forge-combo29/AUDIT_lock_source.md` finding 1 and `forge-combo29/tests_audit/proof_attacks_init_race.cpp`.
++
++## Result
++
++The base is already correct. No engine source change.
++
++`forge::attacks::init` in `forge-combo29/src/bitboard.cpp` fills `KnightTable`, `KingTable`, `PawnTable`, the magic tables, `LineTable`, and `BetweenTable` inside `std::call_once`. That publication landed in `edc598b7c` and is present on `e04556ddc`. A second thread that constructs `forge::Board` waits until the fill has finished, then reads the tables. The fill itself is the same code as before `call_once`.
++
++Pins stay on the default release build:
++
++- bench 11 = **312866**
++- bench 13 = **862329**
++- perft 5 = **4865609**
++
++No off-by-default option. The existing `call_once` does not change node counts, so there is nothing to hide.
++
++## How the race was checked
++
++AddressSanitizer and UBSan do not prove the absence of a data race. The check is ThreadSanitizer on `forge-combo29/tests_r4_06/concurrent_board_init.cpp`. The process does not construct a `Board` or call `attacks::init` before eight threads pass a barrier. Threads 0–3 then build the first boards together. Threads 4–7 wait 80–320 µs so they enter while a magic fill can still be running and after it has published. Each thread checks the 20 start moves, empty-board rook and bishop attacks against a geometric walk, knight a1, the 48 Kiwipete moves, and an attack-table fingerprint. The threads must agree. A mismatch returns 1. A ThreadSanitizer report exits 66 (`halt_on_error=1`).
++
++Compiler: g++ 13.3.0. `/usr/bin/c++` is Clang 18 and cannot link `libstdc++` here, so the release configure used `CXX=g++`. CMakeLists.txt was not edited. The tests do not `#define` or `#undef` any `FORGE_*` macro. g++ was given the same `FORGE_SPD_*`, `FORGE_NNUE_HIDDEN`, and `FORGE_SEARCH_SPEED2` switches `CMakeLists.txt` already sets.
++
++| Build | Result |
++|---|---|
++| `-fsanitize=thread`, `FORGE_SPD_SLIDER_PEXT=0` (magic search and its scratch arrays) | `PASS concurrent first init threads 8 fingerprint 6cb665f569fdae74`, exit 0, no ThreadSanitizer report |
++| `-fsanitize=thread`, `FORGE_SPD_SLIDER_PEXT=1` (lock slider tables) | same pass line, same fingerprint, exit 0, no ThreadSanitizer report |
++
++The two fingerprints match, so the PEXT and magic fills publish the same attack sets.
++
++### The same test still sees the old race
++
++Linked against `attacks::init` from `f0c240004` (`edc598b7c^`), which is the unsynchronized flag:
++
++```cpp
++static bool initialized = false;
++if (initialized) return;
++initialized = true;
++```
++
++ThreadSanitizer, same driver, `FORGE_SPD_SLIDER_PEXT=0`, exit **66**:
++
++```text
++WARNING: ThreadSanitizer: data race (pid=2648)
++  Write of size 1 at 0x557d9ddd0a80 by thread T1:
++    #0 forge::attacks::init() /tmp/bitboard_before_call_once.cpp:139
++  Previous read of size 1 at 0x557d9ddd0a80 by thread T3:
++    #0 forge::attacks::init() /tmp/bitboard_before_call_once.cpp:138
++  Location is global 'forge::attacks::init()::initialized' of size 1
++SUMMARY: ThreadSanitizer: data race /tmp/bitboard_before_call_once.cpp:139 in forge::attacks::init()
++```
++
++Line 138 is the read of `initialized`. Line 139 is the write, and it happens before the tables are filled. That binary is not in the tree. On `e04556ddc` the same driver does not report a race.
++
++## Depth-10 searches
++
++`forge-combo29/tests_r4_06/depth10_legal.cpp`, 200 searches, depth 10, Hash 16, one thread, lock switches (`FORGE_SPD_SLIDER_PEXT=1`, `FORGE_SPD_NNUE_ZMM=1`, `-march=x86-64-v4`), `-fsanitize=address,undefined`, `halt_on_error=1`, leak detection on.
++
++Each best move is one of the root legal moves, and the king is not left in check (king moves and castling use `move.to` as the king's destination). Every PV move must pass the same check in sequence. A failure returns 1. A sanitizer finding aborts.
++
++```text
++search 1 depth 10 move d2d4 pv 11
++...
++search 200 depth 10 move g7h6 pv 11
++PASS 200 depth-10 searches, every move legal
++```
++
++Exit 0. The log has no ASan, UBSan, or LeakSanitizer diagnostic.
++
++## Release pins
++
++```text
++cmake -S forge-combo29 -B /tmp/forge-r4-pins -DCMAKE_BUILD_TYPE=Release
++```
++
++with `CXX=g++` (default march `x86-64-v4`, portable off). Then Threads 1, Hash 16, OwnBook false:
++
++```text
++info string bench depth 11 nodes 312866 time 258 nps 1212658
++info string bench depth 13 nodes 862329 time 732 nps 1178045
++nodes 4865609
++```
++
++## Files
++
++- `forge-combo29/tests_r4_06/concurrent_board_init.cpp`
++- `forge-combo29/tests_r4_06/depth10_legal.cpp`
++- `forge-combo29/REPORT_r4_06.md`
++
++There was no engine change. Nothing under `forge-combo29/src`, `forge-combo29/include`, or `CMakeLists.txt` differs from `e04556ddc`.
++
++R4 DONE cfc321ec4c115434a55e4ab2b8d97266edccd6ee
+diff --git a/forge-combo29/tests_r4_06/concurrent_board_init.cpp b/forge-combo29/tests_r4_06/concurrent_board_init.cpp
+new file mode 100644
+index 00000000..bf1d85fb
+--- /dev/null
++++ b/forge-combo29/tests_r4_06/concurrent_board_init.cpp
+@@ -0,0 +1,195 @@
++// Concurrent first use of forge::Board. Nothing in this process may construct a
++// Board, or call attacks::init, before the worker threads pass the barrier.
++// ThreadSanitizer is what shows a data race; a clean AddressSanitizer run does not.
++
++#include "forge/board.hpp"
++
++#include <atomic>
++#include <chrono>
++#include <cstdint>
++#include <iostream>
++#include <string>
++#include <thread>
++#include <vector>
++
++namespace {
++
++constexpr int kThreads = 8;
++constexpr const char* kStartMoves[] = {
++    "a2a3", "a2a4", "b2b3", "b2b4", "c2c3", "c2c4", "d2d3", "d2d4",
++    "e2e3", "e2e4", "f2f3", "f2f4", "g2g3", "g2g4", "h2h3", "h2h4",
++    "b1a3", "b1c3", "g1f3", "g1h3",
++};
++constexpr const char* kKiwipete =
++    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
++
++forge::Bitboard slow_rook_empty(int square) {
++    forge::Bitboard result = 0;
++    const int file = forge::file_of(square);
++    const int rank = forge::rank_of(square);
++    for (int f = 0; f < 8; ++f) {
++        if (f != file) result |= forge::square_bb(forge::make_square(f, rank));
++    }
++    for (int r = 0; r < 8; ++r) {
++        if (r != rank) result |= forge::square_bb(forge::make_square(file, r));
++    }
++    return result;
++}
++
++forge::Bitboard slow_bishop_empty(int square) {
++    forge::Bitboard result = 0;
++    constexpr int kDirs[4][2] = {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
++    for (const auto& dir : kDirs) {
++        int file = forge::file_of(square);
++        int rank = forge::rank_of(square);
++        while (true) {
++            file += dir[0];
++            rank += dir[1];
++            if (file < 0 || file > 7 || rank < 0 || rank > 7) break;
++            result |= forge::square_bb(forge::make_square(file, rank));
++        }
++    }
++    return result;
++}
++
++std::uint64_t attack_fingerprint() {
++    std::uint64_t hash = 0x9E3779B97F4A7C15ULL;
++    auto mix = [&](std::uint64_t value) {
++        hash ^= value + 0x9E3779B97F4A7C15ULL + (hash << 6) + (hash >> 2);
++    };
++    for (int square = 0; square < 64; ++square) {
++        mix(forge::attacks::knight(square));
++        mix(forge::attacks::king(square));
++        mix(forge::attacks::pawn(forge::White, square));
++        mix(forge::attacks::pawn(forge::Black, square));
++        mix(forge::attacks::rook(square, 0));
++        mix(forge::attacks::bishop(square, 0));
++        const forge::Bitboard occupancy =
++            forge::square_bb((square * 3 + 1) & 63) | forge::square_bb((square * 5 + 11) & 63);
++        mix(forge::attacks::rook(square, occupancy));
++        mix(forge::attacks::bishop(square, occupancy));
++    }
++    return hash;
++}
++
++bool same_moves(const std::vector<std::string>& left, const std::vector<std::string>& right) {
++    if (left.size() != right.size()) return false;
++    for (std::size_t i = 0; i < left.size(); ++i) {
++        if (left[i] != right[i]) return false;
++    }
++    return true;
++}
++
++struct Result {
++    bool ok = false;
++    std::uint64_t fingerprint = 0;
++    std::string why;
++    std::vector<std::string> kiwipete;
++};
++
++Result check_one() {
++    Result result;
++    forge::Board board;
++    const forge::MoveList start = board.legal_moves();
++    if (start.size() != 20) {
++        result.why = "start legal count " + std::to_string(start.size());
++        return result;
++    }
++    for (const char* text : kStartMoves) {
++        bool found = false;
++        for (const forge::Move move : start) {
++            if (forge::Board::move_to_uci(move) == text) {
++                found = true;
++                break;
++            }
++        }
++        if (!found) {
++            result.why = std::string("missing start move ") + text;
++            return result;
++        }
++    }
++    if (forge::attacks::knight(0) != ((1ULL << 10) | (1ULL << 17))) {
++        result.why = "knight a1 attacks are wrong";
++        return result;
++    }
++    for (int square = 0; square < 64; ++square) {
++        if (forge::attacks::rook(square, 0) != slow_rook_empty(square)) {
++            result.why = "empty-board rook mismatch at " + std::to_string(square);
++            return result;
++        }
++        if (forge::attacks::bishop(square, 0) != slow_bishop_empty(square)) {
++            result.why = "empty-board bishop mismatch at " + std::to_string(square);
++            return result;
++        }
++    }
++    if (!board.set_fen(kKiwipete)) {
++        result.why = "kiwipete fen rejected";
++        return result;
++    }
++    const forge::MoveList kiwipete = board.legal_moves();
++    if (kiwipete.size() != 48) {
++        result.why = "kiwipete legal count " + std::to_string(kiwipete.size());
++        return result;
++    }
++    result.kiwipete.reserve(kiwipete.size());
++    for (const forge::Move move : kiwipete) result.kiwipete.push_back(forge::Board::move_to_uci(move));
++    result.fingerprint = attack_fingerprint();
++    if (result.fingerprint == 0) {
++        result.why = "attack fingerprint is zero";
++        return result;
++    }
++    result.ok = true;
++    return result;
++}
++
++}  // namespace
++
++int main() {
++    std::atomic<int> arrived{0};
++    std::atomic<bool> go{false};
++    std::vector<Result> results(static_cast<std::size_t>(kThreads));
++    std::vector<std::thread> threads;
++    threads.reserve(static_cast<std::size_t>(kThreads));
++
++    for (int index = 0; index < kThreads; ++index) {
++        threads.emplace_back([&, index] {
++            arrived.fetch_add(1, std::memory_order_acq_rel);
++            while (!go.load(std::memory_order_acquire)) {
++            }
++            // Threads 0-3 enter init together. Threads 4-7 wait long enough to
++            // arrive while a magic fill is still running, then after it has
++            // published. This is the process's first initialization.
++            if (index >= 4) {
++                std::this_thread::sleep_for(std::chrono::microseconds(80 * (index - 3)));
++            }
++            results[static_cast<std::size_t>(index)] = check_one();
++        });
++    }
++
++    while (arrived.load(std::memory_order_acquire) < kThreads) {
++    }
++    go.store(true, std::memory_order_release);
++    for (std::thread& thread : threads) thread.join();
++
++    for (int index = 0; index < kThreads; ++index) {
++        if (!results[static_cast<std::size_t>(index)].ok) {
++            std::cerr << "thread " << index << " " << results[static_cast<std::size_t>(index)].why << '\n';
++            return 1;
++        }
++    }
++    const Result& reference = results[0];
++    for (int index = 1; index < kThreads; ++index) {
++        const Result& other = results[static_cast<std::size_t>(index)];
++        if (other.fingerprint != reference.fingerprint) {
++            std::cerr << "fingerprint mismatch on thread " << index << '\n';
++            return 1;
++        }
++        if (!same_moves(other.kiwipete, reference.kiwipete)) {
++            std::cerr << "kiwipete move list mismatch on thread " << index << '\n';
++            return 1;
++        }
++    }
++    std::cout << "PASS concurrent first init threads " << kThreads << " fingerprint " << std::hex
++              << reference.fingerprint << std::dec << '\n';
++    return 0;
++}
+diff --git a/forge-combo29/tests_r4_06/depth10_legal.cpp b/forge-combo29/tests_r4_06/depth10_legal.cpp
+new file mode 100644
+index 00000000..35a29f6c
+--- /dev/null
++++ b/forge-combo29/tests_r4_06/depth10_legal.cpp
+@@ -0,0 +1,132 @@
++// 200 depth-10 searches. Every best move and every PV move must be legal.
++// Build with -fsanitize=address,undefined. A sanitizer finding aborts the process.
++
++#include "forge/board.hpp"
++#include "forge/search.hpp"
++
++#include <cstdint>
++#include <iostream>
++#include <string>
++#include <vector>
++
++namespace {
++
++constexpr int kSearches = 200;
++constexpr int kDepth = 10;
++
++bool contains(const forge::MoveList& moves, forge::Move move) {
++    for (const forge::Move candidate : moves) {
++        if (candidate == move) return true;
++    }
++    return false;
++}
++
++bool king_left_safe(const forge::Board& before, forge::Move move) {
++    const forge::Color mover = before.side_to_move();
++    int king = before.king_square(mover);
++    // Castling and ordinary king moves store the king's destination in move.to.
++    if (move.from == king) king = move.to;
++    forge::Board after = before;
++    forge::Undo undo;
++    if (!after.make_move(move, undo)) return false;
++    return !after.square_attacked(king, after.side_to_move());
++}
++
++bool line_legal(const forge::Board& root, const std::vector<forge::Move>& line, std::string& why) {
++    forge::Board board = root;
++    for (std::size_t i = 0; i < line.size(); ++i) {
++        const forge::Move move = line[i];
++        const forge::MoveList legal = board.legal_moves();
++        const bool listed = contains(legal, move);
++        const bool safe = king_left_safe(board, move);
++        if (!listed || !safe) {
++            why = "illegal pv[" + std::to_string(i) + "] " + forge::Board::move_to_uci(move) +
++                  " listed=" + std::to_string(static_cast<int>(listed)) +
++                  " safe=" + std::to_string(static_cast<int>(safe)) + " in " + board.fen();
++            return false;
++        }
++        forge::Undo undo;
++        if (!board.make_move(move, undo)) {
++            why = "make_move rejected " + forge::Board::move_to_uci(move);
++            return false;
++        }
++    }
++    return true;
++}
++
++std::vector<std::string> sample_positions() {
++    std::vector<std::string> fens;
++    fens.reserve(static_cast<std::size_t>(kSearches));
++    forge::Board walk;
++    std::uint64_t rng = 0xC0FFEE5EEDULL;
++    int ply = 0;
++    while (static_cast<int>(fens.size()) < kSearches) {
++        forge::MoveList legal = walk.legal_moves();
++        if (legal.empty() || ply >= 12) {
++            walk = forge::Board();
++            ply = 0;
++            legal = walk.legal_moves();
++        }
++        if (legal.empty()) return {};
++        fens.push_back(walk.fen());
++        rng = rng * 6364136223846793005ULL + 1ULL;
++        const forge::Move move = legal[static_cast<std::size_t>(rng % legal.size())];
++        forge::Undo undo;
++        if (!walk.make_move(move, undo)) return {};
++        ++ply;
++    }
++    return fens;
++}
++
++}  // namespace
++
++int main() {
++    const std::vector<std::string> fens = sample_positions();
++    if (static_cast<int>(fens.size()) != kSearches) {
++        std::cerr << "could not sample " << kSearches << " positions\n";
++        return 1;
++    }
++
++    forge::Searcher searcher(16, 1);
++    for (int index = 0; index < kSearches; ++index) {
++        forge::Board board;
++        if (!board.set_fen(fens[static_cast<std::size_t>(index)])) {
++            std::cerr << "rejected fen " << fens[static_cast<std::size_t>(index)] << '\n';
++            return 1;
++        }
++        const forge::MoveList legal = board.legal_moves();
++        if (legal.empty()) {
++            std::cerr << "sampled a terminal position\n";
++            return 1;
++        }
++        forge::SearchLimits limits;
++        limits.depth = kDepth;
++        searcher.clear();
++        const forge::SearchInfo info = searcher.search(board, limits, false);
++        if (info.depth != kDepth) {
++            std::cerr << "search " << index << " depth " << info.depth << " fen " << board.fen() << '\n';
++            return 1;
++        }
++        if (info.best_move.is_none() || !contains(legal, info.best_move) || !king_left_safe(board, info.best_move)) {
++            std::cerr << "search " << index << " illegal best " << forge::Board::move_to_uci(info.best_move)
++                      << " fen " << board.fen() << '\n';
++            return 1;
++        }
++        if (info.pv.empty() || !(info.pv.front() == info.best_move)) {
++            std::cerr << "search " << index << " pv does not start with the best move\n";
++            return 1;
++        }
++        std::string why;
++        if (!line_legal(board, info.pv, why)) {
++            std::cerr << "search " << index << " root " << board.fen() << " pv";
++            for (const forge::Move move : info.pv) std::cerr << ' ' << forge::Board::move_to_uci(move);
++            std::cerr << '\n' << why << '\n';
++            return 1;
++        }
++        std::cout << "search " << (index + 1) << " depth " << info.depth << " move "
++                  << forge::Board::move_to_uci(info.best_move) << " pv " << info.pv.size() << '\n';
++        std::cout.flush();
++    }
++    std::cout << "PASS " << kSearches << " depth-" << kDepth << " searches, every move legal\n";
++    return 0;
++}

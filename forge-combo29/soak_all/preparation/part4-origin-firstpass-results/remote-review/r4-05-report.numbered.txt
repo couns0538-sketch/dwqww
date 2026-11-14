@@ -1,0 +1,120 @@
+   1 # R4-05 screen: NonPawnCorrection
+   2 
+   3 Screening only. This file does not claim the option is stronger or weaker. The same binary played itself with `NonPawnCorrection` on versus off. Engine source was not changed.
+   4 
+   5 Prior result on the owner's PC, not measured here: +6.8 ± 7.2 in 4000 games.
+   6 
+   7 ## Result
+   8 
+   9 - State: running
+  10 - W-L-D (option on first): 507-538-955
+  11 - Games: 2000
+  12 - Pairs: 1000
+  13 - Elo 95% (pentanomial, logistic): -5.39 +/- 9.97
+  14 - 95% Elo bounds: -15.36 to 4.58
+  15 - LOS: 14.47 %
+  16 - Pentanomial [LL, LD, WL/DD, WD, WW]: [49, 253, 422, 232, 44]
+  17 - Terminations other than normal: none
+  18 - Match start: 2026-11-14T15:43:00Z
+  19 - Stop reason: chunk 002 published; cumulative report refreshed while chunk 003 is in progress
+  20 
+  21 Positive Elo means the option-on side scored above one half. The interval is the fastchess pentanomial 95% interval: logistic Elo of the pair score, with the half-width equal to half the distance between the Elo values of the score bounds.
+  22 
+  23 ## Chunks
+  24 
+  25 Sequential UHO slices of 500 openings, both colors, so 1000 games when a chunk is complete.
+  26 
+  27 | chunk | openings | games | W-L-D (on first) | Elo 95% | LOS | LL | LD | WL/DD | WD | WW |
+  28 | --- | --- | ---: | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
+  29 | 001 | 1-500 | 1000 | 249-270-481 | -7.30 +/- 13.46 | 14.38 % | 20 | 129 | 220 | 114 | 17 |
+  30 | 002 | 501-1000 | 1000 | 258-268-474 | -3.47 +/- 14.71 | 32.16 % | 29 | 124 | 202 | 118 | 27 |
+  31 
+  32 ## Conditions
+  33 
+  34 - Nodes: 50000
+  35 - Threads: 1
+  36 - Hash: 16
+  37 - OwnBook: false
+  38 - Other options: defaults, including `ContHist4PlyRead=false` and `LmrDeeperShallower=false`
+  39 - Concurrency: 4
+  40 - Openings: `order=sequential`, chunks of 500, no repeat of an opening inside the screen
+  41 - Games per opening: 2, option-on as White in the first game of each pair
+  42 - Adjudication: none added. fastchess still applies chess rules (mate, stalemate, repetition, fifty-move, insufficient material)
+  43 - Time box: do not start a chunk after 21600 seconds; also stop at 32400 seconds
+  44 
+  45 ## Command
+  46 
+  47 `CHUNK`, `START`, and `END` change per slice. `START=(CHUNK-1)*500+1` and `END=CHUNK*500`.
+  48 
+  49 ```
+  50 /tmp/r4_05/src/fastchess/fastchess \
+  51   -recover \
+  52   -repeat \
+  53   -games 2 \
+  54   -rounds 500 \
+  55   -concurrency 4 \
+  56   -ratinginterval 250 \
+  57   -scoreinterval 250 \
+  58   -report penta=true \
+  59   -event "r4-05 NonPawnCorrection chunk CHUNK openings START-END" \
+  60   -site "grok47/r4-05-screen-npc" \
+  61   -openings file=CHUNK_EPD format=epd order=sequential start=1 \
+  62   -engine name=NonPawnCorrectionOn cmd=/tmp/r4_05/build/forge option.NonPawnCorrection=true \
+  63   -engine name=NonPawnCorrectionOff cmd=/tmp/r4_05/build/forge option.NonPawnCorrection=false \
+  64   -each proto=uci option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 \
+  65   -pgnout file=CHUNK_PGN notation=san append=false
+  66 ```
+  67 
+  68 ## Versions
+  69 
+  70 - Engine id: Chess Engine Forge 6.4.24 candidate
+  71 - Implementation commit of `NonPawnCorrection` (source unchanged on this branch): `b68d49fedcc8e705484d06fb02cf0a417734839f`
+  72 - Base: `e04556ddc3a430b2e751159b0d46111ef56c8b89`
+  73 - Branch: `grok47/r4-05-screen-npc`
+  74 - Compiler: g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+  75 - CMake: 3.28.3
+  76 - Compile: `-O3 -std=c++20 -ffp-contract=off -fno-fast-math -march=x86-64-v4`
+  77 - Defines include `FORGE_SPD_SLIDER_PEXT=1` and `FORGE_SPD_NNUE_ZMM=1` (`FORGE_PORTABLE=OFF`)
+  78 - CPU: Intel Xeon with AVX-512F and BMI2, 4 threads
+  79 - fastchess: fastchess alpha 1.8.3 20261113-3d7a4db
+  80 - fastchess commit: `3d7a4db2493fc85a05ef010fd7e13a3884667aa2`
+  81 - Book: UHO_Lichess_4852_v1.epd from https://github.com/official-stockfish/books/raw/master/UHO_Lichess_4852_v1.epd.zip
+  82 - Book positions: 2632036
+  83 
+  84 ## sha256
+  85 
+  86 - Binary: `4a624cf990c057c9a5d7847916b2d537a38ab6b95be4339dbec30a187f7ec984`
+  87 - fastchess: `936811dcaea97a853a762d3f1e6fb600610c1be3c1f759f2f2fefa2e6500b21e`
+  88 - Book epd: `7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a`
+  89 - Book zip: `4e298f11e8acfa106babe02968f2e61582145e7874c59284690b20b9650e0e07`
+  90 
+  91 ## Pins
+  92 
+  93 Measured on this binary with Threads 1, Hash 16, OwnBook false, and `NonPawnCorrection` false.
+  94 
+  95 - bench 11: 312866
+  96 - bench 13: 862329
+  97 - perft 5: 4865609
+  98 
+  99 These are the lock pins 312866, 862329, and 4865609. With the option on, bench 13 nodes were 775585 on both on-runs below. That count is expected to move because the option changes search; it is not a default pin.
+ 100 
+ 101 ## Bench 13 nps, five alternating runs
+ 102 
+ 103 One process. The option was set immediately before each `bench 13`, in the order off, on, off, on, off. Threads 1, Hash 16, OwnBook false.
+ 104 
+ 105 | run | option | nodes | time_ms | nps |
+ 106 | ---: | --- | ---: | ---: | ---: |
+ 107 | 1 | false | 862329 | 859 | 1003875 |
+ 108 | 2 | true | 775585 | 741 | 1046673 |
+ 109 | 3 | false | 862329 | 754 | 1143672 |
+ 110 | 4 | true | 775585 | 688 | 1127303 |
+ 111 | 5 | false | 862329 | 742 | 1162168 |
+ 112 
+ 113 Nodes stayed on the two counts above. NPS is wall-clock throughput of that bench and includes the colder first pair.
+ 114 
+ 115 ## Scope
+ 116 
+ 117 The option already existed, default off, from `b68d49fedcc8e705484d06fb02cf0a417734839f`. This branch does not modify `forge-combo29/src` or `forge-combo29/include`. Logs and PGNs are under `forge-combo29/tests_r4_05/`.
+ 118 
+ 119 Screen still running. The closing token is written when the time box ends.
+ 120 

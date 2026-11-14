@@ -1,0 +1,164 @@
+// Scratch-only deterministic preparation. Does not compile, run engines, or write the repository.
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const dir = path.dirname(fileURLToPath(import.meta.url));
+const original = fs.readFileSync(path.join(dir, 'pinned-search.cpp'), 'utf8');
+const digest = s => crypto.createHash('sha256').update(s).digest('hex');
+const expected = '2b14b62cd675b047478e70b738932ce4c2c699239b3c0de4ec43551464dc8819';
+if (digest(original) !== expected) throw new Error('Pinned source hash mismatch');
+let source = original;
+const changes = [];
+function once(from, to, label) {
+    if (source.split(from).length !== 2) throw new Error('Non-unique anchor: ' + label);
+    source = source.replace(from, to);
+    changes.push({label, from, to});
+}
+function section(start, end, transform, label) {
+    const a = source.indexOf(start), b = source.indexOf(end, a + start.length);
+    if (a < 0 || b < 0) throw new Error('Missing section ' + label);
+    const from = source.slice(a, b);
+    let value = from;
+    const edits = [];
+    const replace = (old, next, name, count = 1) => {
+        if (value.split(old).length !== count + 1) throw new Error('Bad section anchor ' + label + ':' + name);
+        value = value.split(old).join(next);
+        edits.push(name);
+    };
+    transform(replace);
+    once(from, value, label + ' [' + edits.join(', ') + ']');
+}
+once('#include "forge/uci_output.hpp"\n', '#include "forge/uci_output.hpp"\n#include "origin_trace.hpp"\n', 'private logging include');
+
+section('TTProbe TranspositionTable::probe_body(', '\nTTProbe TranspositionTable::probe(std::uint64_t key)', r => {
+    r('    auto snapshot = [&](const TTEntry& entry, bool hit) {',
+`    const bool origin_watch_cluster = origin_trace::enabled() &&
+        index == static_cast<std::size_t>(&cluster_for(origin_trace::target_key()) - clusters_.get());
+    if (origin_watch_cluster) origin_trace::probe_event("PROBE_BEFORE", this, epoch_, generation_,
+        index, key, -1, false, TakeLock, cluster);
+    auto snapshot = [&](const TTEntry& entry, bool hit) {`, 'cluster before');
+    r('        return result;\n',
+`        if (origin_watch_cluster) origin_trace::probe_event("PROBE_AFTER", this, epoch_, generation_,
+            index, key, result.slot_, hit, TakeLock, cluster);
+        return result;
+`, 'selected snapshot');
+}, 'probe template');
+
+section('void TranspositionTable::store_body(', '\nvoid TranspositionTable::store(const TTProbe& probe', r => {
+    r('        probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;',
+`        probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) {
+        if (origin_trace::enabled() && key == origin_trace::target_key()) {
+            origin_trace::emit("STORE_INVALID_HANDLE", [&](auto& out) {
+                out << " table=" << this << " epoch=" << epoch_ << " requested_key=" << key
+                    << " probe_epoch=" << probe.epoch_ << " probe_key=" << probe.key_
+                    << " probe_cluster=" << probe.cluster_ << " probe_slot=" << unsigned(probe.slot_);
+                origin_trace::context(out);
+            });
+        }
+        return;
+    }`, 'invalid handle observation');
+    r('    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];',
+`    const bool origin_watch_cluster = origin_trace::enabled() &&
+        probe.cluster_ == static_cast<std::size_t>(&cluster_for(origin_trace::target_key()) - clusters_.get());
+    bool origin_admitted = false;
+    if (origin_watch_cluster) origin_trace::store_event("STORE_BEFORE", this, epoch_, generation_,
+        probe.cluster_, probe.slot_, key, score, eval, move, depth, bound, pv, halfmove_clock,
+        TakeLock, false, clusters_[probe.cluster_]);
+    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];`, 'store before');
+    r('        entry->key32 = key32;', '        origin_admitted = true;\n        entry->key32 = key32;', 'actual admission');
+    r('    }\n}\n',
+`    }
+    if (origin_watch_cluster) origin_trace::store_event("STORE_AFTER", this, epoch_, generation_,
+        probe.cluster_, probe.slot_, key, score, eval, move, depth, bound, pv, halfmove_clock,
+        TakeLock, origin_admitted, clusters_[probe.cluster_]);
+}
+`, 'store after');
+}, 'store template');
+
+// Lifecycle logs carry epoch but do not read/rewrite payloads or probe the table.
+once('    ++epoch_;\n}\n\nvoid TranspositionTable::clear()',
+`    ++epoch_;
+    if (origin_trace::enabled()) origin_trace::emit("RESIZE", [&](auto& out) {
+        out << " table=" << this << " epoch=" << epoch_ << " clusters=" << cluster_count_;
+    });
+}
+
+void TranspositionTable::clear()`, 'resize marker');
+once('    ++epoch_;\n}\n\n#if FORGE_SPD_TT_NOTLS',
+`    ++epoch_;
+    if (origin_trace::enabled()) origin_trace::emit("CLEAR", [&](auto& out) {
+        out << " table=" << this << " epoch=" << epoch_ << " clusters=" << cluster_count_;
+    });
+}
+
+#if FORGE_SPD_TT_NOTLS`, 'clear marker');
+
+section('int Worker::qsearch(', '// Main alpha-beta search', r => {
+    r('    const int ply = ss->ply;\n',
+`    const int ply = ss->ply;
+    origin_trace::Frame origin_frame(board, ss, local_nodes_, id_, root_depth_, 0, alpha, beta,
+        mate_moves_, root_history_index_, false, "QSEARCH");
+`, 'frame');
+    r('    const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;\n',
+`    const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+    origin_trace::worker_probe(origin_frame, tt_hit, tte, tt_score, alpha, beta);
+`, 'caller probe');
+    r('        return tt_score;', '        return origin_trace::result(origin_frame, "QS_TT", tt_score, alpha, beta);', 'TT return');
+    r('            eval = tt_score;',
+`            origin_trace::substitution(origin_frame, eval, tt_score, tt_bound, alpha, beta);
+            eval = tt_score;`, 'substitution');
+    r('        if (best_score >= beta) {\n#if FORGE_SPD_TT_NOTLS',
+`        if (best_score >= beta) {
+            if (!tt_hit) origin_trace::store_attempt(origin_frame, "QS_STANDPAT", best_score,
+                score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, alpha, beta);
+#if FORGE_SPD_TT_NOTLS`, 'standpat store caller');
+    r('            return best_score;', '            return origin_trace::result(origin_frame, "QS_STANDPAT", best_score, alpha, beta);', 'standpat return');
+    r('    const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);\n',
+`    const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+    origin_trace::store_attempt(origin_frame, "QS_FINAL", best_score, score_to_tt(best_score, ply),
+        in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, alpha, beta);
+`, 'final store caller');
+    r('    return best_score;', '    return origin_trace::result(origin_frame, "QS_FINAL", best_score, alpha, beta);', 'final return');
+}, 'qsearch');
+
+section('int Worker::search(Board& board, SearchStack* ss,', '// Iterative deepening driver', r => {
+    r('    if (depth <= 0) return qsearch(board, ss, alpha, beta);\n',
+`    if (depth <= 0) return qsearch(board, ss, alpha, beta);
+    origin_trace::Frame origin_frame(board, ss, local_nodes_, id_, root_depth_, depth, alpha, beta,
+        mate_moves_, root_history_index_, cut_node, "MAIN");
+`, 'frame after delegation');
+    r('    const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;\n',
+`    const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+    origin_trace::worker_probe(origin_frame, tt_hit, tte, tt_score, alpha, beta);
+`, 'caller probe');
+    r('        return tt_score;', '        return origin_trace::result(origin_frame, "MAIN_TT", tt_score, alpha, beta);', 'TT return');
+    r('            eval = tt_score;',
+`            origin_trace::substitution(origin_frame, eval, tt_score, tt_bound, alpha, beta);
+            eval = tt_score;`, 'substitution');
+    r('                if (value >= probcut_beta) {\n#if FORGE_SPD_TT_NOTLS',
+`                if (value >= probcut_beta) {
+                    origin_trace::store_attempt(origin_frame, "PROBCUT", value, score_to_tt(value, ply),
+                        ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, alpha, beta);
+#if FORGE_SPD_TT_NOTLS`, 'probcut store caller');
+    r('                    return value;', '                    return origin_trace::result(origin_frame, "PROBCUT", value, alpha, beta);', 'probcut return');
+    r('    if (excluded.is_none() && !(root_node && root_restricted_)) {\n#if FORGE_SPD_TT_NOTLS',
+`    if (excluded.is_none() && !(root_node && root_restricted_)) {
+        origin_trace::store_attempt(origin_frame, "MAIN_FINAL", best_score, score_to_tt(best_score, ply),
+            ss->raw_eval, best_move, depth, bound, ss->tt_pv, alpha, beta);
+#if FORGE_SPD_TT_NOTLS`, 'final store caller');
+    r('    return best_score;', '    return origin_trace::result(origin_frame, "MAIN_FINAL", best_score, alpha, beta);', 'final return');
+}, 'main search');
+
+let reverse = source;
+for (const c of [...changes].reverse()) {
+    if (reverse.split(c.to).length !== 2) throw new Error('Non-unique reverse: ' + c.label);
+    reverse = reverse.replace(c.to, c.from);
+}
+if (reverse !== original) throw new Error('Transformation did not round-trip exactly');
+fs.writeFileSync(path.join(dir, 'search-origin.cpp'), source);
+fs.writeFileSync(path.join(dir, 'transformations.json.txt'), JSON.stringify(changes, null, 2) + '\n');
+const summary = {inputSha256:digest(original), outputSha256:digest(source), roundTripExact:true,
+    transformations:changes.map(c=>c.label), nativeBuilds:0, engineRuns:0};
+fs.writeFileSync(path.join(dir, 'preparation-summary.json.txt'), JSON.stringify(summary, null, 2) + '\n');
+console.log(JSON.stringify(summary, null, 2));

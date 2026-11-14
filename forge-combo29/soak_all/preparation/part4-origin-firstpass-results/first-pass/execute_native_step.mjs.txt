@@ -1,0 +1,29 @@
+// One root-authorized native plan step per invocation; all outputs stay in scratch.
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+const d=path.dirname(fileURLToPath(import.meta.url));
+const plan=JSON.parse(fs.readFileSync(path.join(d,'native-plan.json.txt'),'utf8'));
+const i=Number(process.argv[2]);
+if(!Number.isInteger(i)||i<0||i>=plan.steps.length)throw Error('Invalid native step index');
+for(const [f,sha] of [['search-origin.cpp','610d5fc54034d199c938f35ee9544f0aa7be8207f6b4ba9e35b54261a9588cd6'],['origin_trace.hpp','32deefc0e3ff8c0f2234c3e556a7c4ac1ef2ded54dbe22b8e75780325402dd5e']])
+    if(crypto.createHash('sha256').update(fs.readFileSync(path.join(d,f))).digest('hex')!==sha)throw Error('Pinned tracer changed: '+f);
+const logs=path.join(d,'native-logs');fs.mkdirSync(logs,{recursive:true});
+const name=j=>String(j).padStart(2,'0')+'-'+plan.steps[j].name+'.json.txt';
+if(i>0&&JSON.parse(fs.readFileSync(path.join(logs,name(i-1)),'utf8')).exit!==0)throw Error('Previous step did not succeed');
+const out=path.join(logs,name(i));if(fs.existsSync(out))throw Error('Refusing to overwrite native evidence');
+let argv=[...plan.steps[i].argv];
+if(argv.includes('__TARGET_KEY__')){
+    const key=JSON.parse(fs.readFileSync(path.join(logs,name(2)),'utf8')).stdout.match(/^TARGET_KEY ([0-9]+) FEN /m)?.[1];
+    if(!key)throw Error('No actual query key recorded');
+    argv=argv.map(x=>x==='__TARGET_KEY__'?key:x);
+}
+const started=new Date().toISOString(),t=Date.now();
+const r=spawnSync(argv[0],argv.slice(1),{cwd:d,encoding:'utf8',timeout:445000,maxBuffer:64*1024*1024});
+const result={started,ended:new Date().toISOString(),wallMs:Date.now()-t,cwd:d,argv,
+    exit:r.status,signal:r.signal,error:r.error?String(r.error):null,stdout:r.stdout??'',stderr:r.stderr??''};
+fs.writeFileSync(out,JSON.stringify(result,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify(result,null,2));
+if(r.status!==0)process.exitCode=1;

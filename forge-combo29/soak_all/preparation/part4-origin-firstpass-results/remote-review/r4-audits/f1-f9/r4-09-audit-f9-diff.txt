@@ -1,0 +1,490 @@
+diff --git a/forge-combo29/REPORT_r4_09.md b/forge-combo29/REPORT_r4_09.md
+new file mode 100644
+index 00000000..544f29d3
+--- /dev/null
++++ b/forge-combo29/REPORT_r4_09.md
+@@ -0,0 +1,81 @@
++# R4-09 finding 9: 50-move horizon on hash scores
++
++Base `e04556ddc3a430b2e751159b0d46111ef56c8b89`. Implementation `bf4154454ddc7b226bc1734bfc84d75569cdfc07`.
++
++## What was wrong
++
++`TTEntry::score_usable` treated every stored clock below 90 as usable at every current clock below 90:
++
++```text
++(rule50_clock < 90 && current_clock < 90) || rule50_clock == capped
++```
++
++A depth-16 entry written at clock 0, including a 15-ply mate (`score = 31985`), was therefore a legal hash score at clock 88. From clock 88 that mate needs 15 more plies and lands at clock 103, which is a 50-move draw, not a win. The same was true of a non-mate whose stored depth itself reaches clock 100 (`88 + 16 = 104`).
++
++Main search and quiescence both build `tt_score` from `score_usable` before a hash cutoff (`src/search.cpp` quiescence cutoff, and the main-search cutoff that also requires `halfmove_clock() < 90`). On this base, quiescence already refuses the cutoff when `halfmove_clock() >= 90` (`!near50`). It did not have a separate horizon test. A below-90 cutoff used whatever `score_usable` accepted, so the missing horizon was the quiescence hole as well as the main-search hole. Clocks at or above 90 were already gated.
++
++## Reproduction on the base
++
++Before the edit, direct calls on a `TTEntry` returned usable:
++
++| Entry | Clock | `score_usable` | Intended |
++| --- | ---: | --- | --- |
++| mate 31985, depth 16, stored clock 0 | 88 | true | false (`88 + 15 = 103`) |
++| cp 400, depth 16, stored clock 0 | 88 | true | false (`88 + 16 = 104`) |
++| cp 400, depth 5, stored clock 0 | 88 | true | true (`88 + 5 = 93`) |
++| mate 31985, depth 16, stored clock 0 | 0 | true | true |
++
++Search check, same binary, `8/8/8/3k4/8/8/2Q5/3K4 w - - 87 50`, depth 5, Hash 16, one thread. The child after `c2b2` is that position at clock 88. An empty table searched 2852 nodes and scored 969. Storing mate 31985, depth 16, rule-50 clock 0 on that child, with eval `ValueNone` and no hash move, searched 2939 nodes. The bad score was being read. The root score stayed 969 because the root is a PV node and re-searches a fail-high; the cutoff still changed the tree.
++
++`check_pins.sh` on the unfixed release binary is the combo29 lock (312866 / 862329 / 4865609). The bug is outside those low-clock benches.
++
++## Fix
++
++`score_usable` now does two things, and nothing else moved.
++
++1. A mate whose ply distance from the current clock passes 100 is not usable, even when the clocks match. Checkmate on the move that makes the clock 100 is still a win, so the test is `>` 100. An 11-ply mate from clock 80 ends at clock 91 and stays a win.
++2. The below-90 shortcut applies only when `stored clock + depth < 100` and `current clock + depth < 100`. An exact clock match stays usable for a non-mate, because that search already applied the draw. A depth-5 score from clock 0 remains usable at clock 88.
++
++Quiescence did not need its own edit. Its hash cutoff already requires `halfmove_clock() < 90`, and it only cuts off when `tt_score` is present. `tt_score` is now `ValueNone` for a horizon-crossing entry, so the cutoff cannot return it. The same predicate feeds the main-search cutoff and the static-eval override in both routines.
++
++A same-clock non-mate at clock 95 is still usable. Quiescence does not cut off on it, because of `!near50`. Depth 4 from `8/8/8/3k4/8/8/2Q5/3K4 w - - 95 50` has no capture and no pawn move, so every line meets the draw. The search scores 0 and returns a legal move. That did not require a second code change.
++
++No `CMakeLists.txt` edit and no `FORGE_*` change. Default benches stay on the lock, so the horizon rule is not behind an option.
++
++## Astra's eight depth-9 differences
++
++These are soak faults 084 through 091. Root clocks are 72, 74, 76, or 79. All eight differ from the unchanged lock at depth 9 with Threads 1, Hash 16, OwnBook false, UseNNUE true, and the three t22 options false. This fix does not change any of them. They remain equality failures. Restoring the lock's node counts would mean dropping the per-node rule-50 gates.
++
++The gates are not a root test. `near50` is `board.halfmove_clock() >= 90` at the node being searched. From root clock 76 the depth-9 search of fault 084 reaches selective depth 23, and a descendant at ply 14 is already at clock 90 (`5k2/K7/7p/2q4P/8/8/8/8 w - - 90 143` in the soak trace). Requested depth is not a maximum path length: checks and other extensions walk into the gates from roots below 80. Masking those gates off to match the lock is the wrong result. The inequality is the intended behaviour.
++
++| Index | Fault | Root clock | Move | Lock score / nodes | This engine | Still differs |
++| ---: | --- | ---: | --- | --- | --- | --- |
++| 3228 | 084 | 76 | `b5c4` | cp -1689 / 32435 | cp -1689 / 31749 | nodes |
++| 9834 | 088 | 74 | `f3e2` | cp -1117 / 43672 | cp -1164 / 49669 | score, nodes, PV |
++| 10567 | 085 | 76 | `c1b2` | mate -8 / 7581 | mate -8 / 7582 | nodes |
++| 11000 | 089 | 79 | `g8g2` | cp 460 / 14618 | cp 460 / 14025 | nodes, PV |
++| 12276 | 086 | 79 | `f6f5` | cp 443 / 8682 | cp 443 / 8688 | nodes |
++| 12999 | 087 | 79 | `f6e5` | cp 1181 / 12873 | cp 1187 / 12663 | score, nodes, PV |
++| 14002 | 090 | 79 | `a5c7` | cp -1214 / 36360 | cp -1178 / 26217 | score, nodes, PV |
++| 25354 | 091 | 72 | `c4d4` | cp -1812 / 29685 | cp -1812 / 29687 | nodes |
++
++Best moves agree. Three scores differ (9834, 12999, 14002) and four PVs differ (those three plus 11000). Fault 090 needs the pruning-clock guards as well as the transposition gates; turning only the transposition gates off does not reproduce the lock. None of that is a reason to weaken the guards or to treat lock equality as the expected result.
++
++`tests_r4_09/horizon_test.cpp` searches each root and prints `EQUALITY_FAIL` with the lock and engine figures. The process exits non-zero if a root starts matching the lock on both score and nodes, or if the safeguarded score, nodes, or move changes. The printed failure is the equality criterion. It is not a pass.
++
++## Pins and sanitizers
++
++Release `check_pins.sh` on the built `forge` binary:
++
++```text
++net-on : 312866 862329 3024920 12389307 34048354
++net-off: 375354 907205 2448617 13573040 24506465
++perft5 : 4865609
++PINS MATCH combo29
++```
++
++The same three required counts are checked inside the sanitizer run: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609.
++
++`horizon_test` was compiled with `-O3 -DNDEBUG -fsanitize=address,undefined -fno-sanitize-recover=undefined` and the same `FORGE_*` definitions the root `CMakeLists.txt` already uses (`FORGE_NNUE_HIDDEN=256`, the speed switches, march `x86-64-v4`). No file under `CMakeLists.txt` was edited. The run printed `ALL CHECKS PASSED` and exited 0. It covered the predicate cases above, the stored-entry probe, the clock-95 draw, the clock-87/88 poison (score stays 969), the eight depth-9 roots, the pins, and 200 depth-10 searches. Every depth-10 best move was legal. A failed check returns 1.
++
++R4 DONE bf4154454ddc7b226bc1734bfc84d75569cdfc07
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6f..86e61505 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -89,10 +89,21 @@ struct TTEntry {
+     [[nodiscard]] bool pv() const { return (gen_bound & 4U) != 0; }
+     [[nodiscard]] std::uint8_t generation() const { return static_cast<std::uint8_t>(gen_bound >> 3U); }
+     [[nodiscard]] bool occupied() const { return bound() != BoundNone; }
+-    // Existing below90 policy, plus exact near50 context; not a repetition key.
++    // Below 90, a score is usable only when the stored depth cannot reach the
++    // 50-move draw from either clock. An exact clock match stays usable, except
++    // a mate the remaining half-moves cannot deliver. Not a repetition key.
+     [[nodiscard]] bool score_usable(std::uint16_t current_clock) const {
+-        const int capped = current_clock < 100 ? current_clock : 100;
+-        return (rule50_clock < 90 && capped < 90) || rule50_clock == capped;
++        if (is_mate_score(score)) {
++            const int distance = MateValue - (score < 0 ? -static_cast<int>(score) : static_cast<int>(score));
++            if (static_cast<int>(current_clock) + distance > 100) return false;
++        }
++        const int capped = current_clock < 100 ? static_cast<int>(current_clock) : 100;
++        const int stored_clock = rule50_clock;
++        const int stored_depth = depth;
++        const bool inside_horizon = stored_clock + stored_depth < 100 &&
++                                    static_cast<int>(current_clock) + stored_depth < 100 &&
++                                    stored_clock < 90 && capped < 90;
++        return inside_horizon || stored_clock == capped;
+     }
+ };
+ 
+diff --git a/forge-combo29/tests_r4_09/horizon_test.cpp b/forge-combo29/tests_r4_09/horizon_test.cpp
+new file mode 100644
+index 00000000..972f8684
+--- /dev/null
++++ b/forge-combo29/tests_r4_09/horizon_test.cpp
+@@ -0,0 +1,368 @@
++#include "forge/board.hpp"
++#include "forge/search.hpp"
++
++#include <array>
++#include <cstdint>
++#include <iostream>
++#include <string>
++#include <string_view>
++#include <vector>
++
++// Finding 9: TTEntry::score_usable treated every pair of clocks below 90 as
++// usable, so a depth-16 mate stored at clock 0 was a cutoff at clock 88.
++// Quiescence hash cutoffs use that predicate, and they already refuse clocks
++// at or above 90. These checks stay failures until that horizon is respected.
++// Astra's eight depth-9 roots stay equality failures against the lock: search
++// extensions reach the rule-50 gates from roots below 80, and that inequality
++// is the intended behaviour.
++
++namespace {
++
++int g_failures = 0;
++
++void fail(const std::string& message) {
++    std::cerr << "FAIL " << message << '\n';
++    ++g_failures;
++}
++
++void ok(const std::string& message) { std::cout << "OK " << message << '\n'; }
++
++forge::TTEntry make_entry(int score, int depth, int rule50) {
++    forge::TTEntry entry;
++    entry.score = static_cast<std::int16_t>(score);
++    entry.depth = static_cast<std::uint8_t>(depth);
++    entry.rule50_clock = static_cast<std::uint8_t>(rule50);
++    entry.eval = static_cast<std::int16_t>(forge::ValueNone);
++    entry.gen_bound = static_cast<std::uint8_t>(forge::BoundExact);
++    return entry;
++}
++
++void expect_usable(const char* label, const forge::TTEntry& entry, int clock, bool want) {
++    const bool got = entry.score_usable(static_cast<std::uint16_t>(clock));
++    if (got != want) {
++        fail(std::string(label) + " clock " + std::to_string(clock) + " usable=" + (got ? "1" : "0") +
++             " want=" + (want ? "1" : "0"));
++        return;
++    }
++    ok(std::string(label) + " clock " + std::to_string(clock));
++}
++
++void test_score_usable() {
++    // Audit trigger: 15-ply mate (31985) stored at clock 0, depth 16, probed at 88.
++    // 88 + 15 = 103, past the 50-move draw. The old predicate returned true.
++    expect_usable("mate15 depth16 from clock 0", make_entry(31985, 16, 0), 88, false);
++    expect_usable("cp depth16 from clock 0", make_entry(400, 16, 0), 88, false);
++    // 88 + 5 = 93 stays inside the horizon, and both clocks are below 90.
++    expect_usable("cp depth5 from clock 0", make_entry(400, 5, 0), 88, true);
++    // A 10-ply mate from clock 88 ends at clock 98, before the 50-move draw.
++    expect_usable("mate10 depth10 from clock 0", make_entry(31990, 10, 0), 88, true);
++    // 13-ply mate from clock 88 arrives at clock 101. Depth 10 would fit; the mate does not.
++    expect_usable("mate13 depth10 from clock 0", make_entry(31987, 10, 0), 88, false);
++    // Same clock: the search that stored the score already saw the draw, so a non-mate stays usable.
++    expect_usable("cp depth16 exact clock 88", make_entry(400, 16, 88), 88, true);
++    // Exact clocks do not rescue a mate the remaining half-moves cannot deliver.
++    expect_usable("mate15 exact clock 88", make_entry(31985, 16, 88), 88, false);
++    expect_usable("mate15 exact clock 95", make_entry(31985, 8, 95), 95, false);
++    // Quiescence still sees an exact non-mate at clock 95 as usable. The hash
++    // cutoff itself requires halfmove_clock < 90, so this score is not a cutoff.
++    expect_usable("cp depth6 exact clock 95", make_entry(400, 6, 95), 95, true);
++    expect_usable("mate15 at the clock that stored it", make_entry(31985, 16, 0), 0, true);
++    // Depth 11 from clock 89 reaches clock 100, so the stored tree can cross the draw.
++    // Depth 10 ends at clock 99 and stays usable.
++    expect_usable("cp depth11 from clock 0 at 89", make_entry(400, 11, 0), 89, false);
++    expect_usable("cp depth10 from clock 0 at 89", make_entry(400, 10, 0), 89, true);
++}
++
++void test_stored_entry() {
++    forge::Board board;
++    if (!board.set_fen("8/8/8/3k4/8/8/1Q6/3K4 b - - 88 50")) {
++        fail("child fen for the stored mate");
++        return;
++    }
++    forge::Searcher searcher(16, 1);
++    const forge::TTProbe probe = searcher.transposition_table().probe(board.key());
++    searcher.transposition_table().store(probe, board.key(), 31985, forge::ValueNone, forge::Move::none(), 16,
++                                         forge::BoundExact, false, 0);
++    const forge::TTProbe again = searcher.transposition_table().probe(board.key());
++    if (!again.hit || again.entry.score != 31985 || again.entry.depth != 16 || again.entry.rule50_clock != 0) {
++        fail("stored mate was not probed back");
++        return;
++    }
++    if (again.entry.score_usable(88)) {
++        fail("probed depth-16 mate from clock 0 is usable at clock 88");
++        return;
++    }
++    if (!again.entry.score_usable(0)) {
++        fail("probed mate is not usable at the clock that stored it");
++        return;
++    }
++    ok("stored mate from clock 0 is not usable at clock 88");
++}
++
++forge::SearchInfo search_fen(forge::Searcher& searcher, std::string_view fen, int depth) {
++    forge::Board board;
++    if (!board.set_fen(fen)) {
++        fail(std::string("set_fen ") + std::string(fen));
++        return {};
++    }
++    forge::SearchLimits limits;
++    limits.depth = depth;
++    return searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive);
++}
++
++bool move_is_legal(const forge::Board& board, forge::Move move) {
++    if (move.is_none() || !board.is_legal(move)) return false;
++    for (const forge::Move legal : board.legal_moves()) {
++        if (legal == move) return true;
++    }
++    return false;
++}
++
++void test_clock95_draw_and_poison() {
++    // No captures and no pawn moves: depth 4 from clock 95 ends on the 50-move draw.
++    const char* fen = "8/8/8/3k4/8/8/2Q5/3K4 w - - 95 50";
++    forge::Board drawn;
++    forge::Searcher empty(16, 1);
++    const forge::SearchInfo cold = search_fen(empty, fen, 4);
++    if (!drawn.set_fen(fen) || cold.score != 0 || !move_is_legal(drawn, cold.best_move)) {
++        fail("clock 95 depth 4 must be a legal 50-move draw, score " + std::to_string(cold.score));
++    } else {
++        ok("clock 95 depth 4 is a draw");
++    }
++
++    // A mate stored at clock 0 must not become the answer at clock 88.
++    const char* parent = "8/8/8/3k4/8/8/2Q5/3K4 w - - 87 50";
++    forge::Searcher cold_parent(16, 1);
++    const forge::SearchInfo base = search_fen(cold_parent, parent, 5);
++    forge::Board child;
++    if (!child.set_fen(parent)) {
++        fail("parent fen");
++        return;
++    }
++    bool found = false;
++    for (const forge::Move move : child.legal_moves()) {
++        if (forge::Board::move_to_uci(move) != "c2b2") continue;
++        forge::Undo undo;
++        if (!child.make_move(move, undo)) {
++            fail("c2b2 was not playable");
++            return;
++        }
++        found = true;
++        break;
++    }
++    if (!found || child.halfmove_clock() != 88) {
++        fail("c2b2 did not reach clock 88");
++        return;
++    }
++    forge::Searcher warm(16, 1);
++    const forge::TTProbe probe = warm.transposition_table().probe(child.key());
++    warm.transposition_table().store(probe, child.key(), 31985, forge::ValueNone, forge::Move::none(), 16,
++                                     forge::BoundExact, false, 0);
++    const forge::SearchInfo poisoned = search_fen(warm, parent, 5);
++    if (poisoned.score != base.score) {
++        fail("horizon-crossing mate changed the depth-5 score from " + std::to_string(base.score) + " to " +
++             std::to_string(poisoned.score));
++    } else if (forge::is_mate_score(poisoned.score) &&
++               static_cast<int>(child.halfmove_clock()) + (forge::MateValue - std::abs(poisoned.score)) > 100) {
++        fail("search returned a mate past the 50-move horizon");
++    } else {
++        ok("depth-5 score ignores a clock-0 mate at the clock-88 child (" + std::to_string(base.score) + ")");
++    }
++}
++
++struct Depth9Case {
++    int index;
++    const char* fen;
++    int root_clock;
++    const char* move;
++    int engine_score;
++    std::uint64_t engine_nodes;
++    int lock_score;
++    std::uint64_t lock_nodes;
++    const char* difference;
++};
++
++// Lock numbers are the unchanged combo29 binary in soak/combo29-all faults 084..091.
++// Engine numbers are this tree at depth 9, Threads 1, Hash 16, the three t22 options off.
++constexpr std::array<Depth9Case, 8> kDepth9{{
++    {3228, "5k2/8/7p/1K5P/8/8/8/7q w - - 76 136", 76, "b5c4", -1689, 31749, -1689, 32435, "nodes"},
++    {9834, "8/4k3/8/2q3b1/6K1/5B2/8/8 w - - 74 132", 74, "f3e2", -1164, 49669, -1117, 43672, "score nodes pv"},
++    {10567, "1b6/6k1/6b1/3r3r/8/8/8/2K5 w - - 76 134", 76, "c1b2", -31984, 7582, -31984, 7581, "nodes"},
++    {11000, "1k4r1/8/8/8/8/8/8/1K6 b - - 79 146", 79, "g8g2", 460, 14025, 460, 14618, "nodes pv"},
++    {12276, "8/8/5R2/8/8/8/7K/2k5 w - - 79 151", 79, "f6f5", 443, 8688, 443, 8682, "nodes"},
++    {12999, "8/1k6/5K2/B4N2/8/R7/8/8 w - - 79 147", 79, "f6e5", 1187, 12663, 1181, 12873, "score nodes pv"},
++    {14002, "8/6b1/6k1/B7/7K/4q3/8/8 w - - 79 145", 79, "a5c7", -1178, 26217, -1214, 36360, "score nodes pv"},
++    {25354, "8/r7/1k4n1/5p2/2K5/7n/8/8 w - - 72 141", 72, "c4d4", -1812, 29687, -1812, 29685, "nodes"},
++}};
++
++void test_eight_depth9() {
++    std::cout << "Eight depth-9 roots stay equality failures. Extensions reach the rule-50\n"
++                 "gates from these clocks below 80; matching the lock would weaken those gates.\n";
++    for (const Depth9Case& item : kDepth9) {
++        forge::Board board;
++        if (!board.set_fen(item.fen) || board.halfmove_clock() != item.root_clock || item.root_clock >= 80) {
++            fail(std::string("depth-9 fen ") + std::to_string(item.index));
++            continue;
++        }
++        forge::Searcher searcher(16, 1);
++        forge::SearchLimits limits;
++        limits.depth = 9;
++        const forge::SearchInfo info = searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive);
++        const std::string move = forge::Board::move_to_uci(info.best_move);
++        if (!move_is_legal(board, info.best_move) || move != item.move || info.score != item.engine_score ||
++            info.nodes != item.engine_nodes) {
++            fail("depth-9 " + std::to_string(item.index) + " move " + move + " score " + std::to_string(info.score) +
++                 " nodes " + std::to_string(info.nodes));
++            continue;
++        }
++        if (info.nodes == item.lock_nodes && info.score == item.lock_score) {
++            fail("depth-9 " + std::to_string(item.index) + " restored lock equality");
++            continue;
++        }
++        std::cout << "EQUALITY_FAIL " << item.index << " clock " << item.root_clock << " (" << item.difference
++                  << ") lock score " << item.lock_score << " nodes " << item.lock_nodes << "; engine score "
++                  << info.score << " nodes " << info.nodes << " move " << move << '\n';
++    }
++}
++
++constexpr std::uint64_t kBench11 = 312866;
++constexpr std::uint64_t kBench13 = 862329;
++constexpr std::uint64_t kPerft5 = 4865609;
++
++constexpr std::array<std::string_view, 8> kBenchFens{
++    forge::Board::StandardStartFen,
++    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
++    "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
++    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
++    "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
++    "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
++    "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
++    "r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9",
++};
++
++std::uint64_t run_bench(int depth) {
++    std::uint64_t total = 0;
++    forge::Searcher searcher(16, 1);
++    for (const std::string_view fen : kBenchFens) {
++        forge::Board board;
++        if (!board.set_fen(fen)) return 0;
++        forge::SearchLimits limits;
++        limits.depth = depth;
++        searcher.clear();
++        total += searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
++    }
++    return total;
++}
++
++void test_pins() {
++    const std::uint64_t bench11 = run_bench(11);
++    const std::uint64_t bench13 = run_bench(13);
++    forge::Board start;
++    if (!start.set_fen(forge::Board::StandardStartFen)) {
++        fail("startpos");
++        return;
++    }
++    const std::uint64_t perft5 = start.perft(5);
++    std::cout << "pins bench11 " << bench11 << " bench13 " << bench13 << " perft5 " << perft5 << '\n';
++    if (bench11 != kBench11 || bench13 != kBench13 || perft5 != kPerft5) {
++        fail("pins changed");
++    } else {
++        ok("pins 312866 862329 4865609");
++    }
++}
++
++constexpr std::array<std::string_view, 25> kSeedFens{
++    forge::Board::StandardStartFen,
++    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
++    "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
++    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
++    "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
++    "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
++    "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
++    "r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9",
++    "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
++    "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
++    "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
++    "rnbqkb1r/pp2pppp/2p2n2/3p4/2PP4/2N5/PP2PPPP/R1BQKBNR w KQkq - 0 4",
++    "r1bq1rk1/ppp2ppp/2np1n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 w - - 0 7",
++    "2rq1rk1/pb1nbppp/1p2pn2/2pp4/3P4/1PN1PN2/PB1NBPPP/2RQ1RK1 w - - 0 10",
++    "r2qkb1r/pp2pppp/2n2n2/3p1b2/3P1B2/2N2N2/PP2PPPP/R2QKB1R w KQkq - 4 6",
++    "8/5pk1/4p1p1/3pP1P1/3P4/5K2/8/8 w - - 0 1",
++    "8/8/2k5/4b3/8/3N4/4K3/8 w - - 0 1",
++    "4r1k1/p1p2ppp/1p6/3p4/3P4/1P2R3/P1P2PPP/6K1 w - - 0 1",
++    "r4rk1/pp1b1ppp/2n1p3/q2pP3/3P4/P1PB1N2/2Q2PPP/R3K2R w KQ - 1 13",
++    "r1b1k2r/pp1n1ppp/2pbpn2/q7/1b1PP3/2NB1N2/PPQ2PPP/R1B1K2R w KQkq - 4 8",
++    "r1bq1rk1/pp2ppbp/2np1np1/8/3NP3/2N1BP2/PPPQ2PP/R3KB1R w KQ - 3 8",
++    "3r2k1/pp3ppp/2n1b3/8/3p4/1B3N2/PP3PPP/3R2K1 w - - 0 1",
++    "2kr3r/ppp2ppp/2n1b3/3q4/3P4/2PB1N2/P4PPP/R2Q1RK1 w - - 0 12",
++    "8/1p4k1/p1p2pp1/2P5/1P1R4/P5P1/5PK1/3r4 w - - 0 1",
++    "r1b2rk1/ppq1bppp/2n1pn2/2pp4/3P4/1PN1PN2/PB1PBPPP/R2Q1RK1 w - - 4 9",
++};
++
++std::vector<forge::Board> build_200_positions() {
++    std::vector<forge::Board> positions;
++    positions.reserve(200);
++    std::uint64_t rng = 0x9E3779B97F4A7C15ULL;
++    auto next_u64 = [&]() {
++        rng ^= rng >> 12U;
++        rng ^= rng << 25U;
++        rng ^= rng >> 27U;
++        return rng * 0x2545F4914F6CDD1DULL;
++    };
++    for (std::size_t seed = 0; seed < kSeedFens.size() && positions.size() < 200; ++seed) {
++        forge::Board board;
++        if (!board.set_fen(kSeedFens[seed])) continue;
++        for (int step = 0; step < 8 && positions.size() < 200; ++step) {
++            const forge::MoveList legal = board.legal_moves();
++            if (legal.empty()) {
++                if (!board.set_fen(kSeedFens[(seed + 1) % kSeedFens.size()])) break;
++            }
++            if (!board.legal_moves().empty()) positions.push_back(board);
++            const forge::MoveList step_moves = board.legal_moves();
++            if (step_moves.empty()) break;
++            const forge::Move chosen = step_moves[static_cast<std::size_t>(next_u64() % step_moves.size())];
++            forge::Undo undo;
++            if (!board.make_move(chosen, undo)) break;
++        }
++    }
++    return positions;
++}
++
++void test_200_depth10() {
++    const std::vector<forge::Board> positions = build_200_positions();
++    if (positions.size() != 200) {
++        fail("expected 200 positions, got " + std::to_string(positions.size()));
++        return;
++    }
++    forge::Searcher searcher(16, 1);
++    for (std::size_t i = 0; i < positions.size(); ++i) {
++        if (i % 25 == 0) searcher.clear();
++        const forge::Board& board = positions[i];
++        forge::SearchLimits limits;
++        limits.depth = 10;
++        const forge::SearchInfo info = searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive);
++        if (!move_is_legal(board, info.best_move)) {
++            fail("illegal best move at depth 10 index " + std::to_string(i) + " " +
++                 forge::Board::move_to_uci(info.best_move));
++            return;
++        }
++    }
++    ok("200 depth-10 searches, every move legal");
++}
++
++} // namespace
++
++int main() {
++    test_score_usable();
++    test_stored_entry();
++    test_clock95_draw_and_poison();
++    test_eight_depth9();
++    test_pins();
++    test_200_depth10();
++    if (g_failures != 0) {
++        std::cerr << "FAILURES " << g_failures << '\n';
++        return 1;
++    }
++    std::cout << "ALL CHECKS PASSED\n";
++    return 0;
++}

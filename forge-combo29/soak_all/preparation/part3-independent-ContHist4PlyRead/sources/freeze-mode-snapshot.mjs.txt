@@ -1,0 +1,44 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+
+// Freeze text evidence only. Production files are inputs, never outputs.
+const here=path.dirname(new URL(import.meta.url).pathname),mode=process.argv[2];
+if(!['default','ContHist4PlyRead','NonPawnCorrection','LmrDeeperShallower'].includes(mode))throw Error('Expected comparison mode');
+const index=JSON.parse(fs.readFileSync(here+'/aggregate-index.json.txt'));
+const entries=index.entries.filter(e=>e.mode===mode&&e.status==='verified').sort((a,b)=>a.id-b.id);
+if(entries.length!==10||entries.some((e,i)=>e.id!==i+1||e.counts.games!==400))throw Error('Mode does not yet have ten verified 400-game batches');
+const root='/workspace/work/all-run',repo='/workspace/work/dwqww-all',base=root+'/part3-independent-snapshots';
+const utc=new Date().toISOString(),destination=base+'/'+mode+'-'+utc.replace(/[^0-9TZ]/g,'');
+fs.mkdirSync(base,{recursive:true});fs.mkdirSync(destination);const copies=[];
+const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+function put(relative,data,source=null){if(!/\.(txt|md|cpp|hpp)$/.test(relative))throw Error('Nontext output extension '+relative);const p=path.join(destination,relative);fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,data,{flag:'wx'});copies.push({path:relative,source,bytes:Buffer.byteLength(data),sha256:sha(data)});}
+function copy(source,relative){put(relative,fs.readFileSync(source),source);}
+const readCommands=[];
+function git(argv){const r=spawnSync('git',argv,{cwd:repo,encoding:'utf8',maxBuffer:5*1024*1024});readCommands.push({argv:['git',...argv],cwd:repo,exit:r.status,signal:r.signal,stdout:r.stdout,stderr:r.stderr});return r;}
+const head=git(['rev-parse','HEAD']);if(head.status)throw Error('Cannot inspect source commit');
+const sourceList=git(['ls-files','-z','--','forge-combo29/src','forge-combo29/include']);if(sourceList.status)throw Error('Cannot inspect source file inventory');
+const sourceDiff=git(['diff','--quiet','e04556ddc3a430b2e751159b0d46111ef56c8b89','--','forge-combo29/src','forge-combo29/include']);
+const sourceHashes=sourceList.stdout.split('\0').filter(Boolean).sort().map(file=>{const b=fs.readFileSync(path.join(repo,file));return{path:file,bytes:b.length,sha256:sha(b)};});
+const counts={};for(const e of entries)for(const[k,v]of Object.entries(e.counts))counts[k]=(counts[k]||0)+v;
+put('freeze-invocation.json.txt',JSON.stringify({argv:process.argv,cwd:process.cwd(),startedUTC:utc,nativeGamesExecuted:0,purpose:'Freeze reviewed text evidence; no production mutations'},null,2)+'\n');
+const scoped={schema:1,frozenUTC:utc,mode,verifiedBatches:10,verifiedCounts:counts,entries,nativeGamesExecutedByAuditor:0,notes:['This immutable snapshot covers only this comparison.','Every listed audit includes original/copy/chunk/Git evidence against the recorded remote advertisement.','The root owns native execution, state and publication. Counts imply no strength or speed conclusion.']};
+put('mode-index.json.txt',JSON.stringify(scoped,null,2)+'\n');copy(here+'/aggregate-index.json.txt','aggregate-all-at-freeze.json.txt');
+for(const e of entries){
+ const key=e.phase+'-'+String(e.id).padStart(4,'0');copy(e.auditReport,'audits/'+key+'.audit.json.txt');
+ const command=e.commandEvidence??here+'/'+key+'.commands.json.txt';if(fs.existsSync(command))copy(command,'commands/'+key+'.commands.json.txt');
+ const observation=e.publication.observation;if(observation&&fs.existsSync(observation)){const name='remote/'+path.basename(observation);if(!copies.some(x=>x.path===name))copy(observation,name);}
+}
+if(mode==='default'){
+ const first=root+'/part3-real-batch-0001-audit';
+ for(const e of fs.readdirSync(first,{withFileTypes:true}))if(e.isFile()&&/\.(txt|md|cpp|hpp)$/.test(e.name)&&!/^availability-/.test(e.name))copy(first+'/'+e.name,'first-batch-review/'+e.name);
+}
+for(const source of [root+'/match_all.mjs',here+'/audit-published-batch.mjs',here+'/audit-available.mjs',here+'/freeze-mode-snapshot.mjs'])copy(source,'sources/'+path.basename(source)+'.txt');
+const runner=copies.find(x=>x.path==='sources/match_all.mjs.txt');if(runner.sha256!=='3b47871bee151c78ed6f2c4247fb7f42154d16e775b2f83018d38e86abc18fc0')throw Error('Runner pin changed');
+put('source-hashes.json.txt',JSON.stringify({frozenUTC:utc,head:head.stdout.trim(),comparisonBase:'e04556ddc3a430b2e751159b0d46111ef56c8b89',sourceDiffExit:sourceDiff.status,sourceHashes,helperSources:copies.filter(x=>x.path.startsWith('sources/')),engineInputPins:entries.map(e=>({phase:e.phase,id:e.id,inputs:JSON.parse(fs.readFileSync(e.auditReport)).checks.inputs}))},null,2)+'\n');
+put('snapshot-source-commands.json.txt',JSON.stringify(readCommands,null,2)+'\n');
+put('README.md',`# Frozen independent audit: ${mode}\n\nFrozen ${utc}. Ten published batches, 4000 existing native games independently recounted, W/L/D ${counts.wins}/${counts.losses}/${counts.draws}. No native games were executed by these audits. All ten audit reports passed; raw/copy/Git identity and protocol/count checks are retained in the reports and exact command receipts.\n\nmode-index.json.txt is the comparison-specific index; aggregate-all-at-freeze.json.txt is the unfiltered auditor index at this instant. Source/helper text and hashes are preserved. Source src/include diff against the pinned base exited ${sourceDiff.status}; exact command evidence is retained.\n\nThis directory is a frozen copy, separate from the actively updated auditor directory. All files are text with approved text extensions. Files are mode0444 and directories0555 after finalization. manifest.txt lists every other file, its bytes and SHA256; verify it after copying. No strength or speed conclusion is made.\n`);
+copies.sort((a,b)=>a.path.localeCompare(b.path));const manifest=JSON.stringify({schema:1,frozenUTC:utc,mode,verifiedGames:counts.games,files:copies},null,2)+'\n';fs.writeFileSync(destination+'/manifest.txt',manifest,{flag:'wx'});
+function freeze(p){for(const e of fs.readdirSync(p,{withFileTypes:true})){const f=path.join(p,e.name);if(e.isDirectory())freeze(f);else fs.chmodSync(f,0o444);}fs.chmodSync(p,0o555);}freeze(destination);
+console.log('SNAPSHOT '+JSON.stringify({path:destination,manifestSha256:sha(manifest),manifestBytes:Buffer.byteLength(manifest),textFiles:copies.length+1,payloadBytes:copies.reduce((n,x)=>n+x.bytes,0),mode,verifiedGames:counts.games,wld:{wins:counts.wins,losses:counts.losses,draws:counts.draws},sourceDiffExit:sourceDiff.status,readOnly:true}));

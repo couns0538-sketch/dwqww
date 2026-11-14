@@ -1,0 +1,44 @@
+// Static comparison only. Does not start binaries.
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const dir=path.join(path.dirname(fileURLToPath(import.meta.url)),'runs');
+const [baselineName,traceName,repeatName]=process.argv.slice(2);
+for(const name of [baselineName,traceName,...(repeatName?[repeatName]:[])])
+    if(!/^[a-z0-9-]+$/.test(name??''))throw Error('Usage: node compare_runs.mjs baseline-label trace-label [repeat-label]');
+const load=name=>({name,
+    summary:JSON.parse(fs.readFileSync(path.join(dir,name,'summary.json.txt'),'utf8')),
+    stdout:fs.readFileSync(path.join(dir,name,'stdout.txt'),'utf8'),
+    stderr:fs.readFileSync(path.join(dir,name,'stderr.txt'),'utf8')});
+const normalize=s=>s.replace(/ nps [0-9]+/g,'').replace(/ time [0-9]+/g,'');
+const a=load(baselineName),b=load(traceName),c=repeatName?load(repeatName):null;
+const pv='b3f3 c2d2 f1f2 d2d1 f2e3 d1c2 e3e2 c2c1 f3c3 c1b2 e2d3 b2b1 d3d2 b1b2 c3f3';
+const all=c?[a,b,c]:[a,b];
+const complete=r=>r.summary.code===0&&r.summary.completed&&!r.summary.timedOut&&!r.summary.spawnError;
+const final=r=>r.stdout.split('\n').findLast(l=>l.startsWith('info depth 13 '))??'';
+const identity=r=>/ score mate 17 nodes 25568 /.test(final(r))&&final(r).endsWith(' pv '+pv)&&/^bestmove b3f3\r?$/m.test(r.stdout);
+const traceClean=r=>r.stderr.trim().split('\n').every(l=>l.startsWith('TRACE_ORIGIN'))&&
+    !r.stderr.includes('TRACE_ORIGIN_TRUNCATED')&&!r.stderr.includes('TRACE_ORIGIN_CONFIG_ERROR')&&
+    r.stderr.includes('kind=STORE_AFTER')&&r.stderr.includes('kind=WORKER_PROBE');
+const endpoint=r=>r.stderr.split('\n').some(l=>[
+    /\bkind=WORKER_PROBE\b/,/\broot_depth=13\b/,/\bply=15\b/,/\braw=-31982\b/,
+    /\badjusted=-31967\b/,/\bbound=1\b/,/\bdepth=9\b/,
+    /\bfen="8\/8\/8\/8\/8\/5R2\/1k1K4\/8 b - - 15 8"/
+].every(re=>re.test(l)));
+const expectedSettings={Threads:1,Hash:16,OwnBook:false,UseNNUE:false,depth:13};
+const expectedBinary='/workspace/work/all-run/builds/release/forge';
+const inputHashes=fs.readFileSync(path.join(dir,'..','readonly-inputs.sha256.txt'),'utf8').split('\n');
+const expectedHash=inputHashes.find(l=>l.endsWith('  '+expectedBinary))?.split('  ')[0];
+function normalizeTables(text){const ids=new Map();return text.replace(/table=0x[0-9a-f]+/gi,m=>{
+    if(!ids.has(m))ids.set(m,'table=T'+ids.size);return ids.get(m);});}
+const result={complete:all.every(complete),knownRootIdentity:all.every(identity),
+    expectedSettings:all.every(r=>Object.entries(expectedSettings).every(([k,v])=>r.summary.settings?.[k]===v)),
+    baselineArtifactMatchesPinned:a.summary.argv?.[0]===expectedBinary&&a.summary.binarySha256===expectedHash,
+    traceKeyRepeated:c?b.summary.traceEnvironment?.FORGE_ORIGIN_KEY===c.summary.traceEnvironment?.FORGE_ORIGIN_KEY:null,
+    traceArtifactRepeated:c?b.summary.binarySha256===c.summary.binarySha256&&b.summary.argv?.[0]===c.summary.argv?.[0]:null,
+    knownEndpointProbeObserved:endpoint(b)&&(!c||endpoint(c)),
+    baselineStderrEmpty:a.stderr.length===0,traceStderrExpected:traceClean(b)&&(!c||traceClean(c)),
+    fullNormalizedStdoutEqual:normalize(a.stdout)===normalize(b.stdout)&&(!c||normalize(a.stdout)===normalize(c.stdout)),
+    repeatedSemanticTraceEqual:c?normalizeTables(b.stderr)===normalizeTables(c.stderr):null};
+console.log(JSON.stringify(result,null,2));
+if(Object.values(result).some(v=>v===false))process.exitCode=1;

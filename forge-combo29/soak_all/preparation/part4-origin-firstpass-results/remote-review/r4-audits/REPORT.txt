@@ -1,0 +1,127 @@
+Static review: exact current r4-06 through r4-12 heads
+Base: e04556ddc3a430b2e751159b0d46111ef56c8b89
+Targets: parent directory targets.json.txt, not moving branch tips.
+
+Outcome: no inspected branch provides the admitted-writer provenance for the
+known NNUE-off depth-13 KRK mate17 / short-PV endpoint. None supplies a repair
+for the eight low-clock equality differences. r4-08 is a narrow nondefault
+singular-search fix; r4-09 is an additional high-clock TT-score reuse guard.
+Neither supersedes the isolated first-pass tracer on the pinned source.
+
+No compilation, native engine/key-query/oracle run, test execution, fetch,
+ref/worktree/controller mutation, or production edit was performed by this
+review or its delegated static reviewer. Python was used solely to preserve
+read-only Git command outputs. All writes are below this r4-audits directory.
+Reported branch runtime/sanitizer/pin passes are claims, not results rerun here.
+No strength or performance inference is made.
+
+Exact heads and actual changes:
+
+r4-06 d4e24c162447a6305039f3c9dd561650f5ac7537
+  Tests/report only; no engine diff. Base bitboard.cpp already wraps attack
+  table initialization in std::call_once (lines 140-141). The added concurrency
+  driver synchronizes first-use Board construction across eight threads and
+  checks attacks/legal moves/fingerprints; the depth10 driver checks bestmove
+  and existing PV legality. The report's claim that this base already contains
+  the publication fix is supported by source. This is concurrency regression
+  coverage, not a fix for a deterministic Threads=1 TT/PV symptom.
+
+r4-07 ca034824fcce1dc69468f5bdd111c1e86350708d
+  Tests/report only; no engine diff. Base retains go-mate depth cap 2N-1,
+  mate-mode guards around reductions/forward pruning, and a positive-own-mate
+  stopping comparison. The test checks the two reported small mates, continued
+  iterations after a negative mate, positive mate stopping, pins, and 200 legal
+  depth10 bestmoves. This supports a narrow rebuttal to the old audit cases;
+  it is not a general full-mate proof. The active reproducer uses go depth13,
+  mate_moves=0, so these go-mate tests do not establish its score/PV provenance.
+
+r4-08 6766b2cf4e8fd1652df19840947b7926bd5fcd9d
+  Only production change: singular_depth becomes max(1,(depth-1)/2) in search.
+  It prevents a depth2 singular verification from delegating to qsearch, which
+  does not honor the excluded-move restriction. The existing main search does
+  honor it. This is a useful local fix for the advertised SingularDepth=2
+  setting. Default SingularDepth=7 is explicit in base source; every affected
+  default call already computes a depth >=3, so the clamp cannot change the
+  default tree. The singular condition also rejects mate-valued TT scores.
+  The regression seeds a depth1 lower-bound entry in a queen/pawn position,
+  varies SingularDepth 7 vs 2, and requires a resulting child depth>=2 with
+  legal result/PV. It does not reconstruct an admitted-writer ledger, prove
+  mate distance, or run the known KRK/eight-clock fixtures. Broader 200-position
+  checks do verify nonempty PVs starting at bestmove and legality of each PV
+  move, not terminal completeness. No implication for the default KRK case.
+
+r4-09 bf6f38b8eb03615e602174faab1fc871ece48634
+  Only production change: TTEntry::score_usable in search.hpp. For mate-valued
+  raw payloads it rejects current_clock + (32000-abs(raw_score)) >100. For
+  below90 cross-clock reuse it additionally requires both stored_clock+depth
+  and current_clock+depth <100. Exact clock matches otherwise remain usable.
+  This feeds existing main/qsearch cutoff and eval-substitution gates; no TT
+  writer/replacement/layout, PV propagation, or score normalization changes.
+  The raw TT mate value is already node-relative by the inspected existing
+  score_to_tt/from_tt functions, so this distance calculation is in the right
+  frame for the specified payload.
+
+  Known endpoint remains admissible to this new predicate: current clock15,
+  raw -31982 gives distance18 and 15+18=33; depth9 gives current sum24. Since
+  the old predicate already accepted it at clock15, its stored clock must be
+  below90; the greatest possible stored sum is 89+9=98. Thus this exact known
+  endpoint cannot be filtered by the new rule. This does not predict a whole
+  rerun's tree, nor identify its earlier writer.
+
+  Its report explicitly retains all eight depth9 low-clock differences, and
+  the test source pins the safeguarded move/score/node values and rejects a
+  return to simultaneous lock score/node equality. It prints EQUALITY_FAIL
+  for continued differences while the overall regression suite can pass.
+  This is not an equality pass. Best moves in the eight fixtures agree; three
+  reported scores differ. The report discusses four PV differences, but the
+  source test does NOT compare those PVs.
+
+  Useful evidence: direct score_usable fixtures assert clock88/depth16 rejection,
+  short-horizon acceptance, and same-clock cases; a real store/probe fixture
+  verifies preserved score/depth/clock and rejected reuse. Search tests cover
+  a clock95 queen ending and a clock87 parent with a poisoned clock88 child.
+  The poisoned search only requires unchanged root score, which the report
+  says was already unchanged on the unfixed base; direct predicate assertions
+  are the regression-specific check. Its 200-search check validates bestmove
+  legality only. The tests use Searcher defaults and do not turn NNUE off.
+
+  Scope caveats: stored depth is not a maximum selective path (the report itself
+  notes extensions can reach clock90 from these low-clock roots). Therefore
+  clock+stored_depth<100 is an extra restriction, not proof that all searched
+  descendants remain before the draw horizon. Likewise current clock plus
+  mate distance assumes no intervening pawn move/capture for interpreting a
+  value as a rule50 impossibility; the predicate conservatively rejects some
+  otherwise usable payloads without tracking such resets. This does not show
+  a wrong cutoff, but is a reason not to call it a complete rule50 soundness
+  proof. Keep the existing per-node gates; do not weaken them for lock equality.
+
+r4-10 33fac1e0e4ab0fda5749d340bbf2eb4edb19511b
+  Tests/report only; base UCI already preserves internal spaces and additional
+  'value' text in Book File/NnueFile path values. No engine fix to integrate.
+
+r4-11 853120f8675f33a45e882f1284ff2fe8a92faaf7
+  Only production change: params::name rejects index<0 or index>=Count with
+  'Unknown'. Useful parameter-name API bounds safety; no evaluation, search,
+  TT, or default-option change. No base src/include caller was found.
+
+r4-12 0cfd0aa9e9736b14356fa63cafbe634dca14c2d2
+  Only production change: move_to_uci returns '0000' for is_none(). Useful
+  public-formatting correction; normal UCI bestmove already handled none.
+  Legal moves, TT payloads, and PV contents are unchanged. Its tests explicitly
+  accept empty PVs, so they do not establish full mate-line completeness.
+
+Suggested use: consider r4-08, r4-11, and r4-12 independently as small targeted
+fixes; review r4-09 as a separate high-clock score-reuse policy change with its
+stated limitations. Keep all runtime claims attributed until independently
+validated. Continue original-base TT tracing to establish the actual earlier
+admitted writer before proposing changes for the KRK symptom.
+
+Evidence map:
+- f1-f9/r4-0{6,7,8,9}-audit-*-diff.json.txt contains exact full Git argv,
+  exit, stdout, stderr and UTC. Sibling -diff.txt files contain readable full
+  report/production/test diffs. Corresponding -log files record commit ranges.
+- f1-f9/base-attack-init.json.txt, base-mate-singular-gates.json.txt, and
+  base-score-normalization.json.txt preserve exact supporting base-source reads.
+- f10-f12/REPORT.txt contains delegated static detail. Its *-full-diff.txt,
+  *-stat.txt, *-names.txt, *-log.txt and base-*.txt preserve exact command/output
+  evidence for r4-10 through r4-12 and relevant base callers.

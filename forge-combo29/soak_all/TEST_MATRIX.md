@@ -1,6 +1,6 @@
 # Existing test-folder matrix
 
-Updated 2026-11-14T17:27:43.167Z. Expected values are unchanged. Nonzero exits and sanitizer diagnostics are retained, including stale protocol fixtures.
+Updated 2026-11-14T17:32:11.626Z. Expected values are unchanged. Nonzero exits and sanitizer diagnostics are retained, including stale protocol fixtures.
 
 | Build | Group | Test/check | Exit | Sanitizer reports | Output |
 | --- | --- | --- | --- | --- | --- |

@@ -1,0 +1,1810 @@
+diff --git a/forge-combo29/include/forge/clock_plan.hpp b/forge-combo29/include/forge/clock_plan.hpp
+new file mode 100644
+index 00000000..06cd760c
+--- /dev/null
++++ b/forge-combo29/include/forge/clock_plan.hpp
+@@ -0,0 +1,52 @@
++#pragma once
++
++#include <algorithm>
++#include <cstdint>
++
++namespace forge {
++
++// One move of clock time (wtime/btime, increment, movestogo, Move Overhead).
++// movetime is a separate limit and is not planned here.
++struct ClockPlan {
++    std::int64_t soft_ms = 0;
++    std::int64_t hard_ms = 0;
++    // Nothing remains after Move Overhead. A hard limit of 0 would mean the
++    // search is not on a clock, so the caller must stop instead of searching.
++    bool reserve_empty = false;
++};
++
++// usable = max(0, time - overhead), with negatives treated as zero.
++// The plan never asks for more than usable. Soft never exceeds hard.
++// When usable is positive both limits stay in 1..usable, using the same
++// sudden-death and moves-to-go split as before. That split is left alone
++// when it already obeyed the bounds. It is pulled back when no time remains
++// after overhead, or when increment would place soft above hard.
++// soft_divisor must be positive; the UCI spin starts at 5.
++[[nodiscard]] inline ClockPlan plan_clock_budget(std::int64_t time_ms, std::int64_t increment_ms,
++                                                 std::int64_t moves_to_go, std::int64_t overhead_ms,
++                                                 int soft_divisor, int increment_percent, int hard_percent,
++                                                 int hard_soft_multiple) {
++    const std::int64_t overhead = overhead_ms > 0 ? overhead_ms : 0;
++    const std::int64_t time = time_ms > 0 ? time_ms : 0;
++    const std::int64_t increment = increment_ms > 0 ? increment_ms : 0;
++    if (time <= overhead) return ClockPlan{0, 0, true};
++
++    const std::int64_t available = time - overhead;
++    std::int64_t soft = 0;
++    std::int64_t hard = 0;
++    if (moves_to_go > 0) {
++        const std::int64_t mtg = moves_to_go < 50 ? moves_to_go : 50;
++        soft = available / (mtg + 1) + increment * 3 / 4;
++        hard = std::min(available * 4 / 5, soft * 4);
++    } else {
++        const int divisor = soft_divisor > 0 ? soft_divisor : 1;
++        soft = available / divisor + increment * increment_percent / 100;
++        hard = std::min(available * hard_percent / 100, soft * hard_soft_multiple);
++    }
++    soft = std::max<std::int64_t>(1, std::min(soft, available));
++    hard = std::max<std::int64_t>(1, std::min(hard, available));
++    if (soft > hard) soft = hard;
++    return ClockPlan{soft, hard, false};
++}
++
++} // namespace forge
+diff --git a/forge-combo29/include/forge/eval.hpp b/forge-combo29/include/forge/eval.hpp
+index 7e1c6e02..6e152993 100644
+--- a/forge-combo29/include/forge/eval.hpp
++++ b/forge-combo29/include/forge/eval.hpp
+@@ -43,6 +43,15 @@ struct EvalComponents {
+     bool in_check = false;
+ };
+ 
++// UCI check option "DeadMaterial". Off: evaluation is unchanged.
++extern bool dead_material_enabled;
++
++// Side-to-move score for a recognized ending with no pawns, rooks, or queens:
++// bare kings, king and one minor versus king, and king and two knights versus
++// king score 0; king, bishop and knight versus king scores a corner drive.
++// Returns false for every other position and leaves `score` untouched.
++[[nodiscard]] bool dead_material_score(const Board& board, int& score);
++
+ class Evaluator {
+ public:
+     // Search-local state only: public evaluation and tuning always recompute.
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6f..2ed2eb37 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -26,6 +26,9 @@ struct SearchLimits {
+     int depth = 64;
+     std::uint64_t nodes = 0;
+     bool nodes_specified = false;
++    // `go softnodes`: finish the iteration that passes `nodes`, hard-stop at 4x.
++    // Left false for bench, `go depth`, and `go nodes`.
++    bool soft_nodes = false;
+     // Milliseconds. -1 means that limit was not given. parse_clock_ms stores
+     // only non-negative values, including clocks that do not fit in 32 bits.
+     std::int64_t movetime_ms = -1;
+@@ -72,6 +75,11 @@ constexpr int ValueNone = 32002;
+     return score >= MateInMaxPly || score <= -MateInMaxPly;
+ }
+ 
++// Half-width, in centipawns, of repetition and fifty-move leaf scores.
++// 0 keeps those leaves at exactly 0. Mate scores are never adjusted.
++constexpr int DrawJitterMax = 8;
++extern int DrawJitter;
++
+ enum Bound : std::uint8_t { BoundNone = 0, BoundUpper = 1, BoundLower = 2, BoundExact = 3 };
+ 
+ struct TTEntry {
+@@ -270,13 +278,91 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
++extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
++extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
++extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
++extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
++extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
++extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
++extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
++extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
++extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
++extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
++extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
++extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
++extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
++extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++// Per-case arms. FollowOption tracks SoundMatePruning. Tests force one arm
++// without the other two. Defaults leave the option's on/off behavior unchanged.
++enum class SoundPruneArm : std::uint8_t { FollowOption, ForceOff, ForceOn };
++inline SoundPruneArm SoundArmPv = SoundPruneArm::FollowOption;
++inline SoundPruneArm SoundArmInCheck = SoundPruneArm::FollowOption;
++inline SoundPruneArm SoundArmMateAlpha = SoundPruneArm::FollowOption;
++[[nodiscard]] inline bool sound_arm_enabled(SoundPruneArm arm) {
++    switch (arm) {
++    case SoundPruneArm::ForceOn:
++        return true;
++    case SoundPruneArm::ForceOff:
++        return false;
++    case SoundPruneArm::FollowOption:
++        return SoundMatePruning;
++    }
++    return SoundMatePruning;
++}
++// Counting is off unless a test turns it on. The search does not read the counts.
++inline bool SoundPruneTrace = false;
++struct SoundPruneTraceCounts {
++    std::uint64_t pv = 0;
++    std::uint64_t in_check = 0;
++    std::uint64_t mate_alpha = 0;
++    std::uint64_t quiet_check_after_quiet_fail = 0;
++    std::uint64_t quiet_check_on_pv = 0;
++    std::uint64_t quiet_check_in_check = 0;
++    std::uint64_t quiet_check_on_mate_alpha = 0;
++};
++inline SoundPruneTraceCounts sound_prune_trace{};
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+ } // namespace tune
+ 
++// Static evaluation as a node reads it. Clock 0 keeps the whole score. Each
++// half-move already played drops one percent, so a clock near 100 keeps only
++// a sliver. Mate scores and ValueNone are never scaled. The hash table stores
++// the unscaled raw evaluation; this is not applied on the way in.
++[[nodiscard]] inline int rule50_damped_static(int score, int halfmove) {
++    if (!tune::EvalRule50Damp || score == ValueNone || is_mate_score(score)) return score;
++    const int clock = halfmove < 0 ? 0 : (halfmove > 100 ? 100 : halfmove);
++    return score * (100 - clock) / 100;
++}
++
++// Quiet late-move reduction with a signed fraction of a ply from the eval
++// correction. correction_cp is the corrected static eval minus the uncorrected
++// eval (negative when results came back worse). The adjustment is
++// correction_cp/64 rounded toward zero, then limited to -1..+1 ply. The
++// returned reduction is never negative.
++[[nodiscard]] inline int apply_lmr_signed_correction(int reduction_plies, int correction_cp) {
++    int delta = correction_cp / 64;
++    if (delta > 1) delta = 1;
++    if (delta < -1) delta = -1;
++    const int adjusted = reduction_plies - delta;
++    return adjusted > 0 ? adjusted : 0;
++}
++
++// True when an enemy piece of strictly lower SEE value attacks a piece of the side to move.
++[[nodiscard]] bool cheaper_enemy_attacks_dearer(const Board& board);
++
++// Side to move is the defender. True when the opponent has a legal capture of a
++// dearer piece by a cheaper piece and static exchange evaluation does not call
++// that capture a material loss. A capture SEE calls losing is not a threat.
++[[nodiscard]] bool null_see_veto_threat(Board& board);
++
+ // Move-ordering statistics.
+ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
++// [side][threat 0..3][from][to]. Threat bit 1: mover attacked by a cheaper enemy.
++// Threat bit 0: the destination square is attacked by a cheaper enemy than the mover.
++using ThreatQuietHistory = std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 4>, 2>;
++[[nodiscard]] int quiet_threat_index(const Board& board, Move move);
+ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
+ using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 13>;
+ using CaptureHistory = std::array<std::array<std::array<std::int16_t, 7>, 64>, 13>;
+@@ -297,8 +383,14 @@ struct SearchStack {
+     int static_eval = ValueNone;
+     int raw_eval = ValueNone;
+     int move_count = 0;
++    // 1-based index of the move that entered this node. 0 means the node was not
++    // reached by a counted move (root, null move, or a probcut capture).
++    int arrival_index = 0;
+     int cutoff_count = 0;
+     int double_extensions = 0;
++    // Plies the parent withheld when it searched the move that reached this node.
++    // Zero means that call was not a reduced search. Read only when HindsightDepth is on.
++    int withheld_plies = 0;
+     bool in_check = false;
+     bool tt_pv = false;
+     bool null_move_allowed = true;
+@@ -333,6 +425,12 @@ public:
+     void clear();
+     void clear_caches() { evaluator_.clear(); }
+     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
++    // Zero the count other workers add into a node budget. Searcher::search does
++    // this for every worker before it starts any of them.
++    void reset_node_count() {
++        local_nodes_ = 0;
++        nodes_.store(0, std::memory_order_relaxed);
++    }
+     [[nodiscard]] bool is_main() const { return id_ == 0; }
+ 
+ private:
+@@ -346,6 +444,7 @@ private:
+     int id_ = 0;
+     Evaluator evaluator_;
+     std::unique_ptr<ButterflyHistory> main_history_;
++    std::unique_ptr<ThreatQuietHistory> threat_history_;
+     std::unique_ptr<CaptureHistory> capture_history_;
+     std::unique_ptr<ContinuationHistory> continuation_history_;
+     std::unique_ptr<CounterMoveTable> counter_moves_;
+@@ -365,9 +464,14 @@ private:
+     const std::vector<Worker*>* all_workers_ = nullptr;
+     std::uint64_t node_limit_ = 0;
+     bool node_limit_specified_ = false;
++    // Nonzero only for a main-thread `go softnodes` search. 0 leaves the loop alone.
++    std::uint64_t soft_node_limit_ = 0;
+     std::int64_t soft_limit_ms_ = 0;
+     std::int64_t hard_limit_ms_ = 0;
+     bool time_managed_ = false;
++    // Clock play with no time left after Move Overhead. A hard limit of 0
++    // means "not on a clock", so this flag is what makes the search stop.
++    bool clock_reserve_empty_ = false;
+     bool aborted_ = false;
+     // Set only when the node budget itself trips should_stop. A clock stop or an
+     // external stop leaves this false so those paths keep the partial root move.
+@@ -387,6 +491,9 @@ private:
+     bool root_restricted_ = false;
+     std::uint64_t null_tries_ = 0;
+     std::uint64_t null_cutoffs_ = 0;
++    // True only inside a NullThreatVerify confirmation, so that reduced search
++    // does not use null moves. Stays false for the whole default search.
++    bool null_blocked_ = false;
+ 
+ #if FORGE_SPD_TT_NOTLS
+     // The six TT call sites of search / qsearch: one predictable branch per access.
+@@ -406,11 +513,15 @@ private:
+     [[nodiscard]] std::int64_t elapsed_ms() const;
+     [[nodiscard]] std::uint64_t total_nodes() const;
+     [[nodiscard]] bool is_draw(const Board& board, int ply) const;
++    // Score for a repetition or fifty-move leaf. Other draws stay at 0.
++    [[nodiscard]] int draw_leaf_score(const Board& board) const;
+     void update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth,
+                             const Move* quiets, int quiet_count);
+     void update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count);
+     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
+     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
++    [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
++    void update_threat_quiet(const Board& board, Move move, int bonus);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
+@@ -460,4 +571,8 @@ private:
+     std::vector<std::unique_ptr<Worker>> workers_;
+ };
+ 
++// Updates DrawJitter. A changed value drops that searcher's hash, so scores
++// stored under the previous width are not reused. An unchanged value does not.
++void set_draw_jitter(int value, Searcher& searcher);
++
+ } // namespace forge
+diff --git a/forge-combo29/include/forge/tm_finish.hpp b/forge-combo29/include/forge/tm_finish.hpp
+new file mode 100644
+index 00000000..1a287fc1
+--- /dev/null
++++ b/forge-combo29/include/forge/tm_finish.hpp
+@@ -0,0 +1,39 @@
++#pragma once
++
++#include <cstdint>
++
++namespace forge {
++
++// Clock decision for one iterative-deepening step.
++//
++// prev_ms and last_ms are the durations, in milliseconds, of the two iterations
++// that just finished. last_ms is the later one. remaining_ms is how much of
++// this move's budget is left.
++//
++// Steady growth (last no more than twice prev) is extended one step:
++// last * last / prev. A larger jump is one deep iteration, not a new rate.
++// Compounding it predicted several times the real next iteration on this
++// engine's own depth curves (one measured step was about 84 ms after 16 ms,
++// and the following iteration was about 38 ms, not about 440). After that
++// kind of jump the estimate is the geometric mean of the two durations,
++// sqrt(last * prev). The iteration cannot finish when the estimate is
++// strictly longer than remaining_ms. The caller then keeps the move from the
++// iteration that already finished.
++//
++// A non-positive duration is not a measurement, so this returns false and the
++// search does what it did without the estimate. A budget that is already used
++// up cannot hold another iteration.
++[[nodiscard]] constexpr bool iteration_will_not_finish(std::int64_t prev_ms, std::int64_t last_ms,
++                                                        std::int64_t remaining_ms) noexcept {
++    if (remaining_ms <= 0) return true;
++    if (prev_ms <= 0 || last_ms <= 0) return false;
++    const auto prev = static_cast<unsigned __int128>(static_cast<std::uint64_t>(prev_ms));
++    const auto last = static_cast<unsigned __int128>(static_cast<std::uint64_t>(last_ms));
++    const auto left = static_cast<unsigned __int128>(static_cast<std::uint64_t>(remaining_ms));
++    // Twice prev still fits in 64 bits: prev_ms is a non-negative int64.
++    const bool spike = static_cast<std::uint64_t>(last_ms) > static_cast<std::uint64_t>(prev_ms) * 2ULL;
++    if (spike) return last * prev > left * left;
++    return last * last > left * prev;
++}
++
++}  // namespace forge
+diff --git a/forge-combo29/include/forge/tm_node_share.hpp b/forge-combo29/include/forge/tm_node_share.hpp
+new file mode 100644
+index 00000000..c5509165
+--- /dev/null
++++ b/forge-combo29/include/forge/tm_node_share.hpp
+@@ -0,0 +1,69 @@
++#pragma once
++
++#include <cstdint>
++
++namespace forge {
++
++// One finished clock iteration, with timings the caller already chose.
++// best_nodes is the current best root move. root_nodes is the sum of the
++// per-root-move counters (not the whole tree).
++struct NodeShareTiming {
++    std::int64_t soft_ms = 0;
++    std::int64_t hard_ms = 0;
++    std::int64_t elapsed_ms = 0;
++    std::uint64_t best_nodes = 0;
++    std::uint64_t root_nodes = 0;
++};
++
++// soft_ms is the soft target after the node-share scale.
++// reached means elapsed_ms has met that target. Search still multiplies the
++// target by its older stability factor before it stops.
++struct NodeShareTimingDecision {
++    std::int64_t soft_ms = 0;
++    bool reached = false;
++};
++
++// Lengthen the soft target when the best root move holds under half of the
++// root nodes, shorten it when the move holds more than half, and leave a tie
++// alone. The scale is linear in thousandths of the node share:
++// 0% -> 3/2 of soft, 50% -> soft, 100% -> 1/2 of soft.
++// A positive result is at least 1 ms. When hard_ms is positive the result is
++// also at most hard_ms, so a lengthened target cannot pass the hard limit.
++// A non-positive soft_ms is unchanged and is not treated as reached.
++[[nodiscard]] constexpr NodeShareTimingDecision decide_node_share_timing(NodeShareTiming in) noexcept {
++    NodeShareTimingDecision out;
++    if (in.soft_ms <= 0) {
++        out.soft_ms = in.soft_ms;
++        out.reached = false;
++        return out;
++    }
++    std::int64_t numer = 1000;
++    if (in.root_nodes > 0) {
++        constexpr std::uint64_t kShareScale = 1000;
++        const bool dominant = in.best_nodes >= in.root_nodes || in.best_nodes > (UINT64_MAX / kShareScale);
++        const std::uint64_t share = dominant ? kShareScale : (in.best_nodes * kShareScale) / in.root_nodes;
++        numer = static_cast<std::int64_t>(kShareScale) + (500 - static_cast<std::int64_t>(share));
++    }
++    const std::int64_t whole = in.soft_ms / 1000;
++    const std::int64_t part = in.soft_ms % 1000;
++    std::int64_t adjusted = whole * numer + (part * numer) / 1000;
++    if (adjusted < 1) adjusted = 1;
++    if (in.hard_ms > 0 && adjusted > in.hard_ms) adjusted = in.hard_ms;
++    out.soft_ms = adjusted;
++    out.reached = in.elapsed_ms >= adjusted;
++    return out;
++}
++
++// Older clock factor piece: clamp(base_percent/100 - effort, 0.6, 1.4),
++// where effort is the best move's share of nodes. TmNodeShare applies that
++// share itself, so this piece stays 1 while the option is on and the share
++// is counted once. Off, the older clamp is unchanged.
++[[nodiscard]] constexpr double effort_share_factor(double effort, int base_percent, bool node_share_on) noexcept {
++    if (node_share_on) return 1.0;
++    const double raw = static_cast<double>(base_percent) / 100.0 - effort;
++    if (raw < 0.6) return 0.6;
++    if (raw > 1.4) return 1.4;
++    return raw;
++}
++
++}  // namespace forge
+diff --git a/forge-combo29/src/eval.cpp b/forge-combo29/src/eval.cpp
+index 3c6fc995..c44f6028 100644
+--- a/forge-combo29/src/eval.cpp
++++ b/forge-combo29/src/eval.cpp
+@@ -469,6 +469,59 @@ int evaluate_position(const Board& board, Evaluator::PawnEntry* cache, EvalTrace
+ 
+ } // namespace
+ 
++bool dead_material_enabled = false;
++
++bool dead_material_score(const Board& board, int& score) {
++    // Heavy pieces and pawns are ordinary positions; the network still scores them.
++    if ((board.pieces(Pawn) | board.pieces(Rook) | board.pieces(Queen)) != 0) return false;
++    const int white_knights = popcount(board.pieces(White, Knight));
++    const int black_knights = popcount(board.pieces(Black, Knight));
++    const int white_bishops = popcount(board.pieces(White, Bishop));
++    const int black_bishops = popcount(board.pieces(Black, Bishop));
++    const int white_minors = white_knights + white_bishops;
++    const int black_minors = black_knights + black_bishops;
++    if (white_minors == 0 && black_minors == 0) {
++        score = 0;
++        return true;
++    }
++    // King and one knight, or king and one bishop, against a bare king.
++    if ((white_minors == 1 && black_minors == 0) || (black_minors == 1 && white_minors == 0)) {
++        score = 0;
++        return true;
++    }
++    // Two knights cannot force mate against a lone king.
++    if ((white_knights == 2 && white_bishops == 0 && black_minors == 0) ||
++        (black_knights == 2 && black_bishops == 0 && white_minors == 0)) {
++        score = 0;
++        return true;
++    }
++    const bool white_pair = white_knights == 1 && white_bishops == 1 && black_minors == 0;
++    const bool black_pair = black_knights == 1 && black_bishops == 1 && white_minors == 0;
++    if (!white_pair && !black_pair) return false;
++    // Mate is possible only in a corner of the bishop's colour. Pull the lone
++    // king there, and bring the stronger king closer, with the corner weighted
++    // more so a step toward that corner still helps when it leaves the kings farther apart.
++    const Color attacker = white_pair ? White : Black;
++    const int lone = board.king_square(opposite(attacker));
++    const int helper = board.king_square(attacker);
++    const bool dark = (board.pieces(attacker, Bishop) & DarkSquares) != 0;
++    const int corner_a = dark ? 0 : 7;    // a1 or h1
++    const int corner_b = dark ? 63 : 56;  // h8 or a8
++    const int to_corner = std::min(square_distance(lone, corner_a), square_distance(lone, corner_b));
++    const int king_gap = square_distance(helper, lone);
++    constexpr int CornerWeight = 28;
++    constexpr int KingWeight = 12;
++    // Same taper the hand-written eval uses for this material (phase 2 of 24).
++    constexpr int minor_phase = PhaseValue[Knight] + PhaseValue[Bishop];
++    constexpr int minor_mg = PieceValueMg[Knight] + PieceValueMg[Bishop];
++    constexpr int minor_eg = PieceValueEg[Knight] + PieceValueEg[Bishop];
++    constexpr int material = (minor_mg * minor_phase + minor_eg * (MaxPhase - minor_phase)) / MaxPhase;
++    const int drive = (7 - to_corner) * CornerWeight + (7 - king_gap) * KingWeight;
++    const int attacker_cp = material + drive;
++    score = board.side_to_move() == attacker ? attacker_cp : -attacker_cp;
++    return true;
++}
++
+ Evaluator::Evaluator() : pawn_cache_(PawnCacheSize) {}
+ 
+ void Evaluator::clear() {
+@@ -488,8 +541,15 @@ EvalComponents Evaluator::static_eval_components(const Board& board) {
+     // Same combination as Worker::static_evaluate on a fresh stack: a local
+     // evaluator so the searcher's pawn cache, hash and history stay untouched.
+     EvalComponents parts;
+-    parts.hce = evaluate_uncached(board);
+     parts.in_check = board.in_check();
++    if (dead_material_enabled) {
++        int fixed = 0;
++        if (dead_material_score(board, fixed)) {
++            parts.total = fixed;
++            return parts;
++        }
++    }
++    parts.hce = evaluate_uncached(board);
+     if (!nnue::enabled || !nnue::available()) {
+         parts.nnue = 0;
+         Evaluator fresh;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a6..a6659241 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -1,4 +1,7 @@
++#include "forge/clock_plan.hpp"
+ #include "forge/search.hpp"
++#include "forge/tm_finish.hpp"
++#include "forge/tm_node_share.hpp"
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
+@@ -22,6 +25,8 @@
+ 
+ namespace forge {
+ 
++int DrawJitter = 0;
++
+ namespace tune {
+ int LmrQuietBase = 85;
+ int LmrQuietDivisor = 220;
+@@ -77,6 +82,20 @@ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
++bool EvalRule50Damp = false;
++bool ThreatHistory = false;
++bool LmrSignedCorrection = false;
++bool LmrLateParentRelief = false;
++bool HindsightDepth = false;
++bool NullThreatVerify = false;
++bool NullSeeVeto = false;
++bool AspCappedReopen = false;
++bool AspArmLate = false;
++bool EvasionOrdering = false;
++bool QuietExtinction = false;
++bool TmFinishIteration = false;
++bool TmNodeShare = false;
++bool SoundMatePruning = false;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -117,9 +136,31 @@ const std::vector<Parameter>& parameters() {
+ }
+ } // namespace tune
+ 
++// Kings are left out: this engine's SEE value for a king is 0, so a king is
++// neither a material attacker nor a material victim.
++bool cheaper_enemy_attacks_dearer(const Board& board) {
++    const Color us = board.side_to_move();
++    const Bitboard enemy = board.occupied(opposite(us));
++    Bitboard ours = board.pieces(us, Knight) | board.pieces(us, Bishop) | board.pieces(us, Rook) |
++                    board.pieces(us, Queen);
++    while (ours != 0) {
++        const int square = pop_lsb(ours);
++        const int victim = SeePieceValue[static_cast<std::size_t>(piece_type(board.piece_at(square)))];
++        Bitboard hits = board.attackers_to(square) & enemy;
++        while (hits != 0) {
++            const int from = pop_lsb(hits);
++            const int attacker = SeePieceValue[static_cast<std::size_t>(piece_type(board.piece_at(from)))];
++            if (attacker > 0 && attacker < victim) return true;
++        }
++    }
++    return false;
++}
++
+ namespace {
+ 
+ constexpr int HistoryMax = 16384;
++// A searched quiet missed alpha by at least this many centipawns.
++constexpr int QuietWideGap = 176;
+ 
+ [[nodiscard]] int score_to_tt(int score, int ply) {
+     if (score >= MateInMaxPly) return score + ply;
+@@ -127,13 +168,32 @@ constexpr int HistoryMax = 16384;
+     return score;
+ }
+ 
++// score_to_tt() shifts a mate score by the ply where it was stored. Shifting it
++// back by the ply where it is read must stay inside the mate band. A value that
++// crosses MateInMaxPly is not a centipawn score, so this ply ignores the hit.
+ [[nodiscard]] int score_from_tt(int score, int ply) {
+     if (score == ValueNone) return ValueNone;
+-    if (score >= MateInMaxPly) return score - ply;
+-    if (score <= -MateInMaxPly) return score + ply;
++    if (score >= MateInMaxPly) {
++        const int adjusted = score - ply;
++        return adjusted >= MateInMaxPly ? adjusted : ValueNone;
++    }
++    if (score <= -MateInMaxPly) {
++        const int adjusted = score + ply;
++        return adjusted <= -MateInMaxPly ? adjusted : ValueNone;
++    }
+     return score;
+ }
+ 
++// The position key does not include the half-move clock. A search score was
++// built from static evals already scaled for the clock that stored it, so it
++// is reused only at that same clock. The raw eval slot stays unscaled and is
++// scaled again for whatever clock reads it. Option off keeps every score usable.
++[[nodiscard]] bool rule50_score_for_this_clock(std::uint8_t stored_clock, int halfmove) {
++    if (!tune::EvalRule50Damp) return true;
++    const int clock = halfmove < 0 ? 0 : (halfmove > 100 ? 100 : halfmove);
++    return stored_clock == static_cast<std::uint8_t>(clock);
++}
++
+ [[nodiscard]] int mated_in(int ply) { return -MateValue + ply; }
+ [[nodiscard]] int mate_in(int ply) { return MateValue - ply; }
+ 
+@@ -206,6 +266,34 @@ std::string format_score(int score) {
+ 
+ } // namespace
+ 
++// Bit 1: the mover is attacked by a cheaper enemy piece. Bit 0: the
++// destination is. The destination test removes the mover from occupancy, so a
++// slider standing on the move's line is not hidden by the piece that is about
++// to leave. "Cheaper" follows SeePieceValue, except a king is never cheaper
++// (the SEE table stores king as 0). Nothing is cheaper than a pawn, so pawn
++// quiets stay in bucket 0. The reference value on the destination is the
++// mover, the piece that would stand there.
++int quiet_threat_index(const Board& board, Move move) {
++    const int type = piece_type(board.piece_at(move.from));
++    if (type <= Pawn) return 0;
++    const Color us = board.side_to_move();
++    const Color them = opposite(us);
++    const Bitboard from_occ = board.occupied();
++    const Bitboard to_occ = from_occ ^ square_bb(move.from);
++    const auto cheaper = [&](int square, Bitboard occ) {
++        if ((attacks::pawn(us, square) & board.pieces(them, Pawn)) != 0) return true;
++        if (type <= Bishop) return false;
++        if ((attacks::knight(square) & board.pieces(them, Knight)) != 0) return true;
++        if ((attacks::bishop(square, occ) & board.pieces(them, Bishop)) != 0) return true;
++        if (type <= Rook) return false;
++        if ((attacks::rook(square, occ) & board.pieces(them, Rook)) != 0) return true;
++        if (type <= Queen) return false;
++        const Bitboard queens = board.pieces(them, Queen);
++        return (attacks::bishop(square, occ) & queens) != 0 || (attacks::rook(square, occ) & queens) != 0;
++    };
++    return (cheaper(move.from, from_occ) ? 2 : 0) | (cheaper(move.to, to_occ) ? 1 : 0);
++}
++
+ void tune::refresh() { Reductions.refresh(); }
+ 
+ // ---------------------------------------------------------------------------
+@@ -329,11 +417,27 @@ void TranspositionTable::store_body(const TTProbe& probe, std::uint64_t key, int
+     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
+         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
+     const auto lock = TakeLock ? lock_stripe(probe.cluster_) : std::unique_lock<std::mutex>();
+-    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
++    TTCluster& cluster = clusters_[probe.cluster_];
+     const std::uint32_t key32 = verification_key(key);
++    // Probe records a slot before the subtree runs. Another store can place this
++    // key in a different entry of the same cluster; writing the stale slot would
++    // duplicate it, and probe returns the first match, so the shallow copy hides
++    // the deeper one. Re-find the key under the stripe lock and update that entry.
++    TTEntry* entry = &cluster.entries[probe.slot_];
++    for (TTEntry& candidate : cluster.entries) {
++        if (candidate.key32 == key32 && candidate.occupied()) {
++            entry = &candidate;
++            break;
++        }
++    }
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+-    if (!move.is_none() || !same_position) entry->move = move;
+-    if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
++    const bool stale_slot = entry != &cluster.entries[probe.slot_];
++    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
++                       entry->generation() != generation_;
++    // Same-slot stores still refresh the move when the new score is rejected.
++    // A stale slot must not paint that rejected move onto the deeper entry.
++    if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
++    if (admit) {
+         entry->key32 = key32;
+         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+         entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
+@@ -398,11 +502,23 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
+     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
+         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
+     const auto lock = lock_stripe(probe.cluster_);
+-    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
++    TTCluster& cluster = clusters_[probe.cluster_];
+     const std::uint32_t key32 = verification_key(key);
++    // Same cluster re-check as store_body: a probe-time slot can be stale.
++    TTEntry* entry = &cluster.entries[probe.slot_];
++    for (TTEntry& candidate : cluster.entries) {
++        if (candidate.key32 == key32 && candidate.occupied()) {
++            entry = &candidate;
++            break;
++        }
++    }
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+-    if (!move.is_none() || !same_position) entry->move = move;
+-    if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
++    const bool stale_slot = entry != &cluster.entries[probe.slot_];
++    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
++                       entry->generation() != generation_;
++    // Same rule as store_body: keep a rejected shallow move off a different slot.
++    if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
++    if (admit) {
+         entry->key32 = key32;
+         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+         entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
+@@ -505,6 +621,8 @@ public:
+                     while (index_ < count_) {
+                         const Move move = pick_best();
+                         if (move == tt_move_ || move == killers_[0] || move == killers_[1] || move == counter_) continue;
++                        // A closed tail keeps quiet checks, including discovered checks.
++                        if (quiet_tail_closed_ && !board_.gives_check(move)) continue;
+                         return move;
+                     }
+                 }
+@@ -550,6 +668,9 @@ public:
+     // Only Main/GoodCaptures returns after a successful SEE >= 0 test.
+     [[nodiscard]] bool last_move_see_nonnegative() const { return stage_ == GoodCaptures; }
+ 
++    // Drop non-checking quiets. Checks, captures, promotions, killers, and counters stay.
++    void close_quiet_tail() { quiet_tail_closed_ = true; }
++
+ private:
+     enum Stage : int {
+         MainTT, GenerateCaptures, GoodCaptures, Killer1, Killer2, CounterMove, GenerateQuiets, QuietMoves, BadCaptures,
+@@ -592,6 +713,7 @@ private:
+     MoveList buffer_;
+     std::size_t list_start_ = 0;
+     bool sorted_ = false;
++    bool quiet_tail_closed_ = false;
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+     std::array<Bitboard, 7> check_squares_;
+ #else
+@@ -625,6 +747,7 @@ private:
+         const PieceToHistory* cont2;
+         const PieceToHistory* cont4;
+         const Board& board;
++        const Worker& worker;
+ 
+         QuietScorer(const Board& b, const Worker& searcher, const SearchStack* ss)
+             : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
+@@ -632,11 +755,12 @@ private:
+               cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
+               cont4(tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+                         ? (ss - 4)->continuation : nullptr),
+-              board(b) {}
++              board(b),
++              worker(searcher) {}
+ 
+         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+             const Piece piece = board.piece_at(move.from);
+-            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move);
++            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move);
+             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
+             return value;
+         }
+@@ -762,9 +886,18 @@ private:
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+ #endif
++        // Off: the historical most-valuable-victim score, so default benches stay put.
++        // On: a capture is victim value plus capture history, and that band sits
++        // above both quiet history and the legacy promotion scores (captures first).
++        // Quiet evasions keep the same mix generate_quiets uses.
++        const bool history_evasions = tune::EvasionOrdering;
+         for (const Move move : buffer_) {
+             int score;
+-            if (move.is_capture() || move.is_promotion()) {
++            if (history_evasions && move.is_capture()) {
++                const int victim =
++                    SeePieceValue[static_cast<std::size_t>(piece_type(board_.captured_piece(move)))];
++                score = 2'000'000 + victim + searcher_.capture_history_value(board_, move);
++            } else if (move.is_capture() || move.is_promotion()) {
+                 score = 1'000'000 + 10 * capture_value(board_, move) -
+                         SeePieceValue[static_cast<std::size_t>(piece_type(board_.moved_piece(move)))] / 10;
+             } else {
+@@ -787,6 +920,7 @@ Worker::Worker(SharedSearchState& shared, int id)
+     : shared_(shared),
+       id_(id),
+       main_history_(std::make_unique<ButterflyHistory>()),
++      threat_history_(std::make_unique<ThreatQuietHistory>()),
+       capture_history_(std::make_unique<CaptureHistory>()),
+       continuation_history_(std::make_unique<ContinuationHistory>()),
+       counter_moves_(std::make_unique<CounterMoveTable>()),
+@@ -802,6 +936,7 @@ Worker::~Worker() = default;
+ void Worker::clear() {
+     evaluator_.clear();
+     *main_history_ = ButterflyHistory{};
++    *threat_history_ = ThreatQuietHistory{};
+     *capture_history_ = CaptureHistory{};
+     *continuation_history_ = ContinuationHistory{};
+     *counter_moves_ = CounterMoveTable{};
+@@ -837,6 +972,11 @@ namespace {
+ } // namespace
+ 
+ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
++    // Score recognized endings before any accumulator refresh or network call.
++    if (dead_material_enabled) {
++        int fixed = 0;
++        if (dead_material_score(board, fixed)) return fixed;
++    }
+     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
+     const bool residual = nnue::residual();
+     if (!ss->accumulator.valid) {
+@@ -869,6 +1009,30 @@ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move)
+     (ss + 1)->runtime_psqt.valid = false;
+ }
+ 
++bool null_see_veto_threat(Board& board) {
++    // Same prices as SEE, except the king. SeePieceValue prices a king at 0
++    // because the exchange walk treats it as a sentinel, not as the cheapest piece.
++    constexpr int KingWorth = 100000;
++    auto worth = [](int type) {
++        return type == King ? KingWorth : SeePieceValue[static_cast<std::size_t>(type)];
++    };
++    NullUndo undo;
++    board.make_null_move(undo);
++    bool threat = false;
++    const MoveList moves = board.pseudo_legal_moves(true);
++    for (const Move& move : moves) {
++        if (!move.is_capture()) continue;
++        const int attacker = worth(piece_type(board.moved_piece(move)));
++        const int victim = worth(piece_type(board.captured_piece(move)));
++        if (attacker >= victim) continue;
++        if (!board.is_legal(move) || !board.see_ge(move, 0)) continue;
++        threat = true;
++        break;
++    }
++    board.unmake_null_move(undo);
++    return threat;
++}
++
+ void Worker::record_null_move(SearchStack* ss) {
+     (ss + 1)->dirty.count = 0;
+     (ss + 1)->accumulator.valid = false;
+@@ -876,6 +1040,11 @@ void Worker::record_null_move(SearchStack* ss) {
+ }
+ 
+ int Worker::corrected_eval(const Board& board, int raw_eval) const {
++    // Keep the recognized ending score exact: correction history must not tilt a draw or the corner drive.
++    if (dead_material_enabled) {
++        int fixed = 0;
++        if (dead_material_score(board, fixed)) return fixed;
++    }
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
+     if (tune::MaterialCorrectionWeight > 0) {
+@@ -927,9 +1096,22 @@ std::uint64_t Worker::total_nodes() const {
+ 
+ bool Worker::should_stop_with(std::uint64_t pending_nodes) {
+     if (shared_.stop.load(std::memory_order_relaxed)) return true;
+-    if (!is_main()) return false;
++    // The budget counts every worker. A helper that ignores it keeps searching
++    // until the main thread has already unwound. MultiPV still adds the
++    // alternate line's unpublished nodes (pending_nodes) and the lines that
++    // already finished (extra_nodes_). Only the main worker records the reason:
++    // its result is the one that is returned, and a node-limit stop must stay
++    // on the last finished iteration. Helpers still ignore the clock.
+     if (node_limit_specified_ && total_nodes() + extra_nodes_ + pending_nodes >= node_limit_) {
+-        stopped_by_nodes_ = true;
++        if (is_main()) stopped_by_nodes_ = true;
++        return true;
++    }
++    // Helpers honor the node budget above and ignore the clock, including an
++    // empty reserve. The main worker stops immediately when Move Overhead has
++    // already consumed the clock.
++    if (!is_main()) return false;
++    if (clock_reserve_empty_) {
++        if (pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0) return false;
+         return true;
+     }
+     if (hard_limit_ms_ > 0) {
+@@ -959,6 +1141,16 @@ bool Worker::is_draw(const Board& board, int ply) const {
+            (!board.in_check() && !board.has_legal_move());
+ }
+ 
++int Worker::draw_leaf_score(const Board& board) const {
++    const int span = DrawJitter;
++    if (span <= 0) return 0;
++    // Stalemate and insufficient material keep a literal 0. A fifty-move leaf
++    // or a repetition walks a few centipawns with the node count.
++    if (board.halfmove_clock() < 100 && !board.is_repetition(root_history_index_) && !board.is_repetition()) return 0;
++    const int width = span * 2 + 1;
++    return static_cast<int>(local_nodes_ % static_cast<std::uint64_t>(width)) - span;
++}
++
+ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
+ #if FORGE_SEARCH_SPEED2
+     return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
+@@ -966,7 +1158,8 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move)
+                              ss != nullptr ? (ss - 2)->continuation : nullptr,
+                              tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+                                  ? (ss - 4)->continuation : nullptr,
+-                             board.moved_piece(move), move);
++                             board.moved_piece(move), move) +
++           threat_quiet_bonus(board, move);
+ #else
+     const Piece piece = board.moved_piece(move);
+     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+@@ -977,10 +1170,22 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move)
+             score += (*(ss - 4)->continuation)[static_cast<std::size_t>(piece)][move.to] / 2;
+         }
+     }
+-    return score;
++    return score + threat_quiet_bonus(board, move);
+ #endif
+ }
+ 
++int Worker::threat_quiet_bonus(const Board& board, Move move) const {
++    if (!tune::ThreatHistory) return 0;
++    const int index = quiet_threat_index(board, move);
++    return (*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to];
++}
++
++void Worker::update_threat_quiet(const Board& board, Move move, int bonus) {
++    if (!tune::ThreatHistory) return;
++    const int index = quiet_threat_index(board, move);
++    apply_history((*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to], bonus);
++}
++
+ int Worker::capture_history_value(const Board& board, Move move) const {
+     const Piece piece = board.moved_piece(move);
+     const int captured = piece_type(board.captured_piece(move));
+@@ -1010,11 +1215,13 @@ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move,
+     }
+     const Piece piece = board.moved_piece(move);
+     apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
++    update_threat_quiet(board, move, bonus);
+     update_continuation(ss, piece, move.to, bonus);
+     for (int i = 0; i < quiet_count; ++i) {
+         const Move quiet = quiets[i];
+         if (quiet == move) continue;
+         apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
++        update_threat_quiet(board, quiet, -bonus);
+         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
+     }
+ }
+@@ -1047,8 +1254,8 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+ 
+-    if (is_draw(board, ply)) return 0;
+-    if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
++    if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
++    if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
+ 
+     const bool in_check = board.in_check();
+     ss->in_check = in_check;
+@@ -1068,7 +1275,8 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     const TTEntry& tte = tt_probe.entry;
+     const bool near50 = board.halfmove_clock() >= 90;
+     const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+-    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
++    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock()) &&
++                                 rule50_score_for_this_clock(tte.rule50_clock, board.halfmove_clock())
+                              ? score_from_tt(tte.score, ply) : ValueNone;
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+     const bool tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+@@ -1088,7 +1296,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+         int eval;
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else ss->raw_eval = static_evaluate(board, ss);
+-        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
++        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+@@ -1190,8 +1398,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     ss->move_count = 0;
+ 
+     if (!root_node) {
+-        if (is_draw(board, ply)) return 0;
+-        if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
++        if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
++        if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
+         // Mate distance pruning.
+         alpha = std::max(alpha, mated_in(ply));
+         beta = std::min(beta, mate_in(ply + 1));
+@@ -1203,6 +1411,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     const Move excluded = ss->excluded_move;
+     (ss + 1)->excluded_move = Move::none();
+     (ss + 1)->cutoff_count = 0;
++    if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
+     // Children share killers with their siblings; grandchildren start afresh.
+     (ss + 2)->killers = {};
+ 
+@@ -1216,13 +1425,48 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     const TTEntry& tte = tt_probe.entry;
+     const bool near50 = board.halfmove_clock() >= 90;
+     const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+-    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
++    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock()) &&
++                                 rule50_score_for_this_clock(tte.rule50_clock, board.halfmove_clock())
+                              ? score_from_tt(tte.score, ply) : ValueNone;
+     const int tt_depth = tt_hit ? tte.depth : -1;
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
+     ss->tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+ 
++    // HindsightDepth: the parent already reduced this move. If the mover's static
++    // eval fell by a pawn or more, search one ply less; if it did not fall and
++    // three or more plies were withheld, search one ply more. A hash entry at
++    // least that deep already answers the node, so the depth stays put.
++    // A raw eval computed here is reused below so the position is not evaluated twice.
++    int reused_raw = 0;
++    bool reuse_raw = false;
++    if (tune::HindsightDepth) {
++        const int withheld = ss->withheld_plies;
++        ss->withheld_plies = 0;
++        if (withheld > 0 && !pv_node && !root_node && !in_check && excluded.is_none()) {
++            const int parent_eval = (ss - 1)->static_eval;
++            if (parent_eval != ValueNone) {
++                const bool hashed_eval = tt_hit && tte.eval != ValueNone;
++                const int raw = hashed_eval ? tte.eval : static_evaluate(board, ss);
++                if (!hashed_eval) {
++                    reused_raw = raw;
++                    reuse_raw = true;
++                }
++                const int mover_loss = parent_eval + corrected_eval(board, raw);
++                int proposed = depth;
++                if (mover_loss >= SeePieceValue[Pawn]) proposed = depth - 1;
++                else if (mover_loss <= 0 && withheld >= 3) proposed = depth + 1;
++                if (proposed != depth && !(tt_hit && tt_depth >= proposed)) {
++                    depth = proposed;
++                    if (depth <= 0) {
++                        --local_nodes_;
++                        return qsearch(board, ss, alpha, beta);
++                    }
++                }
++            }
++        }
++    }
++
+     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         board.halfmove_clock() < 90 &&
+@@ -1231,7 +1475,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         return tt_score;
+     }
+ 
+-    // Static evaluation.
++    // Static evaluation. reuse_raw is the hindsight eval of this position.
+     int eval;
+     if (in_check) {
+         eval = ss->static_eval = ss->raw_eval = ValueNone;
+@@ -1239,8 +1483,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         eval = ss->static_eval;
+     } else {
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
++        else if (reuse_raw) ss->raw_eval = reused_raw;
+         else ss->raw_eval = static_evaluate(board, ss);
+-        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
++        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+@@ -1279,9 +1524,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         }
+         // Null move pruning.
+         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+-            ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
++            ss->null_move_allowed && (!tune::NullThreatVerify || !null_blocked_) &&
++            !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+-            !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
++            !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
++            !(tune::NullSeeVeto && null_see_veto_threat(board))) {
+             ++null_tries_;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+@@ -1289,6 +1536,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             ss->moved_piece = Empty;
+             ss->continuation = &(*continuation_history_)[Empty][0];
+             (ss + 1)->ply = ply + 1;
++            (ss + 1)->arrival_index = 0;
+             record_null_move(ss);
+             NullUndo undo;
+             board.make_null_move(undo);
+@@ -1300,13 +1548,23 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (aborted_) return 0;
+             if (null_score >= beta) {
+                 if (is_mate_score(null_score)) null_score = beta;
+-                if (depth < 14) {
++                // Depth >= 14 always verifies, as before. Below that, a cutoff
++                // stands unless NullThreatVerify is on and a cheaper enemy piece
++                // attacks a dearer piece of the side to move. The option is read
++                // first, so the attack scan does not run when it is off.
++                const bool threat_gate =
++                    depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
++                if (depth < 14 && !threat_gate) {
+                     ++null_cutoffs_;
+                     return null_score;
+                 }
+-                // Verification search at high depth guards against zugzwang.
++                // Same reduced depth as the high-depth verification. A threat
++                // confirmation also refuses null moves in that whole search.
++                const bool saved_block = null_blocked_;
++                if (threat_gate) null_blocked_ = true;
+                 ss->null_move_allowed = false;
+                 const int verification = search(board, ss, depth - reduction, beta - 1, beta, false);
++                null_blocked_ = saved_block;
+                 ss->double_extensions = inherited_double_extensions;
+                 ss->null_move_allowed = true;
+                 if (aborted_) return 0;
+@@ -1329,6 +1587,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 ss->moved_piece = board.moved_piece(move);
+                 ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
+                 (ss + 1)->ply = ply + 1;
++                (ss + 1)->arrival_index = 0;
+                 record_move(ss, board, move);
+                 Undo undo;
+                 (void)board.make_move(move, undo);
+@@ -1371,7 +1630,19 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     Move best_move = Move::none();
+     int move_count = 0;
+     bool skip_quiets = false;
++    bool quiet_fail = false;
+     const bool has_material = board.has_non_pawn_material(board.side_to_move());
++    // Mate-sized losses are refused at the use sites. This gate also keeps the root,
++    // checks, mate search, bare kings, the fifty-move horizon, and pure king-and-pawn.
++    const bool may_extinguish = tune::QuietExtinction && !root_node && !in_check && mate_moves_ == 0 &&
++                                !bare_king_mode && board.halfmove_clock() + depth < 100 &&
++                                (board.has_non_pawn_material(White) || board.has_non_pawn_material(Black));
++    Move counter_move = Move::none();
++    if (may_extinguish && !(ss - 1)->current_move.is_none() && (ss - 1)->moved_piece != Empty) {
++        counter_move = (*counter_moves_)[static_cast<std::size_t>((ss - 1)->moved_piece)][(ss - 1)->current_move.to];
++    }
++    int wide_quiet_misses = 0;
++    bool futility_tight = false;
+ 
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
+@@ -1390,18 +1661,61 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
+ 
+         // Shallow-depth pruning of unpromising moves.
+-        if (mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
++        // Off by default, so the predicate below is the historical guard.
++        // Each SoundMatePruning arm skips this block in one case: a
++        // principal-variation node, in check, or alpha already a mate score.
++        // Dropping a move there can hide a faster mate and still store an
++        // exact transposition bound. FollowOption tracks the UCI option.
++        const bool sound_mate_case =
++            (tune::sound_arm_enabled(tune::SoundArmPv) && pv_node) ||
++            (tune::sound_arm_enabled(tune::SoundArmInCheck) && in_check) ||
++            (tune::sound_arm_enabled(tune::SoundArmMateAlpha) && is_mate_score(alpha));
++        if (!sound_mate_case && mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
+             best_score > -MateInMaxPly && has_material && !bare_king_mode) {
++            // Trace stays off in normal play. It records which case skipped a
++            // move, including a quiet check that follows an earlier quiet skip.
++            auto trace_case = [&]() {
++                if (!tune::SoundPruneTrace) return;
++                if (pv_node) ++tune::sound_prune_trace.pv;
++                if (in_check) ++tune::sound_prune_trace.in_check;
++                if (is_mate_score(alpha)) ++tune::sound_prune_trace.mate_alpha;
++            };
++            auto note_deferred_quiet_checks = [&]() {
++                if (!tune::SoundPruneTrace || !quiet_fail) return;
++                for (const Move candidate : board.legal_moves()) {
++                    if (candidate.is_capture() || candidate.is_promotion() || !board.gives_check(candidate)) continue;
++                    bool seen = candidate == move;
++                    for (int i = 0; i < quiet_count && !seen; ++i) seen = quiets_tried[static_cast<std::size_t>(i)] == candidate;
++                    for (int i = 0; i < capture_count && !seen; ++i) seen = captures_tried[static_cast<std::size_t>(i)] == candidate;
++                    if (seen) continue;
++                    trace_case();
++                    ++tune::sound_prune_trace.quiet_check_after_quiet_fail;
++                    if (pv_node) ++tune::sound_prune_trace.quiet_check_on_pv;
++                    if (in_check) ++tune::sound_prune_trace.quiet_check_in_check;
++                    if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
++                }
++            };
+             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             if (quiet && !gives_check) {
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
++                    trace_case();
++                    quiet_fail = true;
+                     skip_quiets = true;
++                    note_deferred_quiet_checks();
++                    continue;
++                }
++                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
++                    trace_case();
++                    quiet_fail = true;
++                    continue;
++                }
++                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
++                    trace_case();
++                    quiet_fail = true;
+                     continue;
+                 }
+-                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;
+-                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;
+             } else {
+                 // Futility pruning for captures: even winning the piece cannot
+                 // bring the position back to alpha.
+@@ -1409,11 +1723,30 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     lmr_depth <= tune::CaptureFutilityDepth &&
+                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+                             capture_value(board, move) + history / 8 <= alpha) {
++                    trace_case();
+                     continue;
+                 }
+                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+-                    !board.see_ge(move, see_threshold)) continue;
++                    !board.see_ge(move, see_threshold)) {
++                    trace_case();
++                    if (tune::SoundPruneTrace && quiet && gives_check && quiet_fail) {
++                        ++tune::sound_prune_trace.quiet_check_after_quiet_fail;
++                        if (pv_node) ++tune::sound_prune_trace.quiet_check_on_pv;
++                        if (in_check) ++tune::sound_prune_trace.quiet_check_in_check;
++                        if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
++                    }
++                    continue;
++                }
++            }
++        }
++        // One wide quiet miss halves the futility slack of later ordinary quiets.
++        if (may_extinguish && futility_tight && quiet && !gives_check && best_score > -MateInMaxPly &&
++            move != ss->killers[0] && move != ss->killers[1] && move != counter_move) {
++            const int tight_depth = std::max(0, depth - reduction(true, depth, move_count));
++            if (tight_depth <= tune::FutilityDepth) {
++                const int tight_margin = (tune::FutilityBase + tune::FutilityMultiplier * tight_depth) / 2;
++                if (ss->static_eval + tight_margin <= alpha) continue;
+             }
+         }
+ 
+@@ -1458,6 +1791,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         ss->moved_piece = moved;
+         ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(moved)][move.to];
+         (ss + 1)->ply = ply + 1;
++        (ss + 1)->arrival_index = move_count;
+         record_move(ss, board, move);
+         Undo undo;
+         (void)board.make_move(move, undo);
+@@ -1489,8 +1823,18 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
++                ss->raw_eval != ValueNone) {
++                const int correction_cp = ss->static_eval - ss->raw_eval;
++                if (correction_cp != 0) r = apply_lmr_signed_correction(r, correction_cp);
++            }
++            // A parent tried after at least six earlier moves is speculative. Its first
++            // four replies are the likely refutations, so they lose one ply of reduction.
++            if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
++            if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
++            if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+             if (full_depth_needed) {
+                 if (tune::LmrDeeperShallower) {
+@@ -1535,6 +1879,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 alpha = score;
+             }
+         }
++        // A second wide quiet miss ends non-checking quiets. Quiet checks stay in the tail.
++        if (may_extinguish && quiet && best_score > -MateInMaxPly && score <= alpha - QuietWideGap) {
++            ++wide_quiet_misses;
++            if (wide_quiet_misses == 1) futility_tight = true;
++            if (wide_quiet_misses >= 2) picker.close_quiet_tail();
++        }
+         if (quiet && quiet_count < static_cast<int>(quiets_tried.size())) quiets_tried[static_cast<std::size_t>(quiet_count++)] = move;
+         else if (!quiet && capture_count < static_cast<int>(captures_tried.size())) captures_tried[static_cast<std::size_t>(capture_count++)] = move;
+     }
+@@ -1554,6 +1904,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         // Even without a cutoff, a new PV move earned its place.
+         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+                       history_bonus(depth) / 4);
++        update_threat_quiet(board, best_move, history_bonus(depth) / 4);
+     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+         // Every move failed low: the parent's quiet move refuted this line.
+@@ -1580,9 +1931,38 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     return best_score;
+ }
+ 
++namespace {
++
++[[nodiscard]] ClockPlan clock_plan_for(const SearchLimits& limits) {
++    const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);
++    return plan_clock_budget(limits.time_ms, limits.increment_ms, limits.moves_to_go, overhead, tune::TmSoftDivisor,
++                             tune::TmIncrementPercent, tune::TmHardPercent, tune::TmHardSoftMultiple);
++}
++
++} // namespace
++
+ // ---------------------------------------------------------------------------
+ // Iterative deepening driver
+ 
++namespace {
++
++// One capped step past the score that failed. A mate, or a score already past
++// the decisive line, opens that side for the next root search.
++constexpr int AspReopenMargin = 13;
++constexpr int AspDecisiveScore = 640;
++
++[[nodiscard]] int capped_fail_low(int returned) {
++    if (is_mate_score(returned) || returned <= -AspDecisiveScore) return -Infinite;
++    return std::max(returned - AspReopenMargin, -Infinite);
++}
++
++[[nodiscard]] int capped_fail_high(int returned) {
++    if (is_mate_score(returned) || returned >= AspDecisiveScore) return Infinite;
++    return std::min(returned + AspReopenMargin, Infinite);
++}
++
++} // namespace
++
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+@@ -1598,40 +1978,48 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     pondering_ = limits.ponder;
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
++    null_blocked_ = false;
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+     root_history_index_ = board.history_size() - 1;
+     node_limit_ = limits.nodes;
++    // Helpers must observe the budget. Leaving the flag false on them made
++    // should_stop return before the count was consulted. An alternate MultiPV
++    // worker copies the parent's flag: its own limits clear the node budget,
++    // and should_stop asks the parent, passing this worker's unpublished nodes.
++    // Helpers observe a normal node budget. A softnodes search keeps the original
++    // rule that only the main worker carries the budget: its hard cap is four
++    // times the finished-iteration target, and helpers follow the main stop.
+     node_limit_specified_ = parent_worker_ != nullptr
+         ? parent_worker_->node_limit_specified_
+-        : (is_main() && (limits.nodes_specified || limits.nodes != 0));
+-
+-    // Time allocation.
++        : ((!limits.soft_nodes || is_main()) && (limits.nodes_specified || limits.nodes != 0));
++    soft_node_limit_ = 0;
++    // Soft budget is the finished-iteration target. The hard budget stays on the
++    // existing node stop, so a runaway iteration still discards its partial move.
++    if (limits.soft_nodes && parent_worker_ == nullptr && is_main() && limits.nodes > 0) {
++        constexpr std::uint64_t kMaxNodes = std::numeric_limits<std::uint64_t>::max();
++        node_limit_ = limits.nodes > kMaxNodes / 4 ? kMaxNodes : limits.nodes * 4;
++        node_limit_specified_ = true;
++        soft_node_limit_ = limits.nodes;
++    }
++
++    // Time allocation. Movetime keeps its own limit. Clock play goes through
++    // plan_clock_budget so the plan stays inside the time left after overhead.
+     const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);
+     soft_limit_ms_ = hard_limit_ms_ = 0;
+     time_managed_ = false;
++    clock_reserve_empty_ = false;
+     if (limits.infinite) {
+         soft_limit_ms_ = hard_limit_ms_ = 0;
+     } else if (limits.movetime_ms >= 0) {
+         hard_limit_ms_ = std::max<std::int64_t>(1, limits.movetime_ms - overhead);
+         soft_limit_ms_ = hard_limit_ms_;
+     } else if (limits.time_ms >= 0) {
+-        const std::int64_t time = limits.time_ms;
+-        const std::int64_t increment = std::max<std::int64_t>(0, limits.increment_ms);
+-        const std::int64_t available = std::max<std::int64_t>(1, time - overhead);
+-        std::int64_t soft;
+-        std::int64_t hard;
+-        if (limits.moves_to_go > 0) {
+-            const std::int64_t mtg = std::min<std::int64_t>(limits.moves_to_go, 50);
+-            soft = available / (mtg + 1) + increment * 3 / 4;
+-            hard = std::min(available * 4 / 5, soft * 4);
+-        } else {
+-            soft = available / tune::TmSoftDivisor + increment * tune::TmIncrementPercent / 100;
+-            hard = std::min(available * tune::TmHardPercent / 100, soft * tune::TmHardSoftMultiple);
+-        }
+-        soft_limit_ms_ = std::max<std::int64_t>(1, std::min(soft, available));
+-        hard_limit_ms_ = std::max<std::int64_t>(1, std::min(hard, available));
+-        time_managed_ = true;
++        const ClockPlan plan = clock_plan_for(limits);
++        soft_limit_ms_ = plan.soft_ms;
++        hard_limit_ms_ = plan.hard_ms;
++        clock_reserve_empty_ = plan.reserve_empty;
++        time_managed_ = !plan.reserve_empty;
+     }
+     SearchInfo result;
+     const MoveList legal = board.legal_moves();
+@@ -1651,7 +2039,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     const int mate_moves = std::clamp(limits.mate_moves, 0, 32);
+     mate_moves_ = mate_moves;
+     const int mate_depth = mate_moves > 0 ? mate_moves * 2 - 1 : 64;
+-    const int max_depth = std::clamp(std::min(limits.depth, mate_depth), 1, 64);
++    int max_depth = std::clamp(std::min(limits.depth, mate_depth), 1, 64);
+     const int multipv = std::clamp(limits.multipv, 1, 8);
+     // Overrides stay unset on the MultiPV 1 path, so that info line is unchanged.
+     int pv_index = 1;
+@@ -1688,6 +2076,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     if (root_candidates.empty() || root_drawn) {
+         int score = 0;
+         if (legal.empty() && board.in_check()) score = -MateValue;
++        else if (DrawJitter > 0 && (board.is_repetition() || board.halfmove_clock() >= 100)) {
++            score = draw_leaf_score(board);
++        }
+         for (int depth = 1; depth <= max_depth; ++depth) {
+             result.depth = depth;
+             result.score = score;
+@@ -1710,8 +2101,46 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     }
+ 
+     // Dispatch and root setup may already have consumed the entire budget.
+-    // Check helpers too before they switch to the main worker's stop signal.
+-    if (hard_limit_ms_ > 0 && elapsed_ms() >= hard_limit_ms_) {
++    // An empty reserve would otherwise play the first legal move unsearched.
++    // Play the hash move when it is legal. Otherwise search one ply and at
++    // most 2000 nodes; an unfinished ply still falls back to the first legal
++    // move. Ponder keeps thinking on the opponent's clock until ponderhit.
++    const bool waiting_to_ponder = pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0;
++    bool emergency_ply = false;
++    if (!waiting_to_ponder && clock_reserve_empty_ && !root_candidates.empty()) {
++        Move hashed = Move::none();
++#if FORGE_SPD_TT_NOTLS
++        const TTProbe tt_probe = probe_tt(board.key());
++#else
++        const TTProbe tt_probe = shared_.tt.probe(board.key());
++#endif
++        if (tt_probe.hit && !tt_probe.entry.move.is_none()) {
++            for (const Move candidate : root_candidates) {
++                if (candidate == tt_probe.entry.move) {
++                    hashed = candidate;
++                    break;
++                }
++            }
++        }
++        if (!hashed.is_none()) {
++            result.best_move = hashed;
++            result.depth = 0;
++            result.nodes = 0;
++            result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
++                std::chrono::steady_clock::now() - start_).count());
++            return result;
++        }
++        constexpr std::uint64_t kEmergencyNodes = 2000;
++        clock_reserve_empty_ = false;
++        // Helpers are not running. Their leftover counts must not consume the cap.
++        all_workers_ = nullptr;
++        if (!node_limit_specified_ || node_limit_ > kEmergencyNodes) {
++            node_limit_ = kEmergencyNodes;
++            node_limit_specified_ = true;
++        }
++        max_depth = 1;
++        emergency_ply = true;
++    } else if (!waiting_to_ponder && hard_limit_ms_ > 0 && elapsed_ms() >= hard_limit_ms_) {
+         result.best_move = root_candidates.front();
+         result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::steady_clock::now() - start_).count());
+@@ -1731,7 +2160,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         ss.static_eval = ValueNone;
+         ss.continuation = &(*continuation_history_)[Empty][0];
+         ss.double_extensions = 0;
++        ss.withheld_plies = 0;
+         ss.null_move_allowed = true;
++        ss.arrival_index = 0;
+         ss.killers = {};
+     }
+     SearchStack* ss = &stack_[4];
+@@ -1749,6 +2180,12 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     int stable_iterations = 0;
+     int score = 0;
+     int previous_score = ValueNone;
++    // AspArmLate: a finished root iteration that failed high or low at least
++    // once makes the following iteration use a full window.
++    bool reopen_full_window = false;
++    // Durations of the two finished iterations used by TmFinishIteration.
++    std::int64_t finish_prev_ms = 0;
++    std::int64_t finish_last_ms = 0;
+     root_effort_count_ = root_candidates.size();
+     assert(root_effort_count_ <= root_effort_moves_.size());
+     std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
+@@ -1768,28 +2205,51 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     }
+     for (int depth = 1; depth <= max_depth; ++depth) {
+         root_depth_ = depth;
++        // Sample only while a game clock is running and the option is on.
++        // Fixed-depth, fixed-node, movetime and ponder-wait searches stay put.
++        const bool finish_sampling =
++            tune::TmFinishIteration && time_managed_ &&
++            !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0);
++        const std::int64_t finish_origin = finish_sampling ? elapsed_ms() : 0;
+         int delta = tune::AspirationDelta;
+         int alpha = -Infinite;
+         int beta = Infinite;
+-        if (depth >= 4) {
++        // Narrow from depth 4. AspArmLate reopens a full window for one iteration
++        // after the previous iteration failed high or low at least once.
++        const bool narrow = depth >= 4 && !(tune::AspArmLate && reopen_full_window);
++        if (narrow) {
+             alpha = std::max(score - delta, -Infinite);
+             beta = std::min(score + delta, Infinite);
+         }
+         int iteration_score = score;
++        bool failed_window = false;
+         while (true) {
+             ss->ply = 0;
+             iteration_score = search(board, ss, depth, alpha, beta, false);
+             if (aborted_) break;
+             if (iteration_score <= alpha) {
++                failed_window = true;
+                 beta = (alpha + beta) / 2;
+-                alpha = std::max(iteration_score - delta, -Infinite);
++                if (tune::AspCappedReopen) {
++                    alpha = capped_fail_low(iteration_score);
++                    if (iteration_score <= alpha) break;
++                } else {
++                    alpha = std::max(iteration_score - delta, -Infinite);
++                }
+             } else if (iteration_score >= beta) {
+-                beta = std::min(iteration_score + delta, Infinite);
++                failed_window = true;
++                if (tune::AspCappedReopen) {
++                    beta = capped_fail_high(iteration_score);
++                    if (iteration_score >= beta) break;
++                } else {
++                    beta = std::min(iteration_score + delta, Infinite);
++                }
+             } else {
+                 break;
+             }
+             delta += delta / 2 + 4;
+         }
++        if (!aborted_) reopen_full_window = tune::AspArmLate && failed_window;
+         if (aborted_) {
+             // A clock or external stop may keep a root move that already raised
+             // alpha in this unfinished iteration, and the score stays the last
+@@ -1904,8 +2364,16 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         previous_score = score;
+ 
+         if (mate_moves > 0 && score >= mate_in(mate_moves * 2 - 1)) break;
++        // The iteration above is finished. Passing the soft budget stops here,
++        // keeping this move and score. The hard cap is enforced inside search.
++        if (soft_node_limit_ != 0 && total_nodes() + extra_nodes_ >= soft_node_limit_) break;
+         if (should_stop()) break;
+         if (time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
++            if (finish_sampling) {
++                const std::int64_t spent = elapsed_ms() - finish_origin;
++                finish_prev_ms = finish_last_ms;
++                finish_last_ms = spent > 0 ? spent : 0;
++            }
+             // Stop early when the best move has been stable; spend longer when it keeps changing.
+             double factor = 1.0;
+             if (stable_iterations >= 6) factor = tune::TmStableFactor / 100.0;
+@@ -1919,7 +2387,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+                 if (best_effort != effort_end) {
+                     const auto index = static_cast<std::size_t>(best_effort - root_effort_moves_.begin());
+                     const double effort = static_cast<double>(root_move_nodes_[index]) / static_cast<double>(local_nodes_);
+-                    factor *= std::clamp(tune::TmEffortBase / 100.0 - effort, 0.6, 1.4);
++                    // TmNodeShare on: this factor stays 1. The share is applied
++                    // only by decide_node_share_timing below.
++                    factor *= effort_share_factor(effort, tune::TmEffortBase, tune::TmNodeShare);
+                 }
+             }
+             // A falling evaluation deserves more thought.
+@@ -1928,7 +2398,46 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+                 factor *= 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
+             }
+             factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
+-            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
++            // TmNodeShare is clock play only: this block is skipped for depth,
++            // nodes, movetime, infinite, and ponder before ponderhit. Off, the
++            // soft limit is the one already planned. TmFinishIteration measures
++            // the same deadline the stop uses.
++            std::int64_t soft_basis = soft_limit_ms_;
++            if (tune::TmNodeShare) {
++                std::uint64_t best_nodes = 0;
++                std::uint64_t root_nodes = 0;
++                for (std::size_t slot = 0; slot < root_effort_count_; ++slot) {
++                    const std::uint64_t spent = root_move_nodes_[slot];
++                    root_nodes += spent;
++                    if (root_effort_moves_[slot] == result.best_move) best_nodes = spent;
++                }
++                const NodeShareTimingDecision decision = decide_node_share_timing(
++                    NodeShareTiming{soft_limit_ms_, hard_limit_ms_, elapsed_ms(), best_nodes, root_nodes});
++                if (emit_info && decision.soft_ms != soft_limit_ms_) {
++                    const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++                    std::cout << "info string TmNodeShare "
++                              << (decision.soft_ms > soft_limit_ms_ ? "lengthen" : "shorten")
++                              << " soft " << soft_limit_ms_ << " adjusted " << decision.soft_ms
++                              << " best " << best_nodes << " root " << root_nodes
++                              << " depth " << depth << std::endl;
++                }
++                soft_basis = decision.soft_ms;
++            }
++            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_basis) * factor)) break;
++            if (finish_sampling) {
++                const std::int64_t used_ms = elapsed_ms();
++                const auto deadline = static_cast<std::int64_t>(static_cast<double>(soft_basis) * factor);
++                const std::int64_t left_ms = deadline - used_ms;
++                if (iteration_will_not_finish(finish_prev_ms, finish_last_ms, left_ms)) {
++                    if (emit_info) {
++                        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++                        std::cout << "info string TmFinishIteration hold depth " << depth
++                                  << " prev " << finish_prev_ms << " last " << finish_last_ms
++                                  << " remaining " << left_ms << std::endl;
++                    }
++                    break;
++                }
++            }
+         }
+     }
+ 
+@@ -1937,7 +2446,16 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     result.seldepth = std::max(result.seldepth, seldepth_);
+     result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+         std::chrono::steady_clock::now() - start_).count());
++    if (emergency_ply && result.depth < 1) {
++        result.best_move = root_candidates.front();
++        result.pv.clear();
++        result.ponder_move = Move::none();
++    }
+     if (result.best_move.is_none()) result.best_move = root_candidates.front();
++    if (emit_info && soft_node_limit_ != 0) {
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "info string softnodes nodes " << result.nodes << std::endl;
++    }
+     return result;
+ }
+ 
+@@ -1965,6 +2483,13 @@ void Searcher::clear_hash() {
+     for (auto& worker : workers_) worker->clear_caches();
+ }
+ 
++void set_draw_jitter(int value, Searcher& searcher) {
++    const int clamped = std::clamp(value, 0, DrawJitterMax);
++    if (clamped == DrawJitter) return;
++    DrawJitter = clamped;
++    searcher.clear_hash();
++}
++
+ void Searcher::clear() {
+     shared_.tt.clear();
+     for (auto& worker : workers_) worker->clear();
+@@ -1979,10 +2504,14 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+         ? std::chrono::steady_clock::now() : supplied_start;
+     SearchLimits worker_limits = limits;
+     worker_limits.start_time = origin;
++    // An empty clock does not start helpers. Leave them out of the node sum so
++    // a previous search cannot make this one look like it spent their nodes.
++    const bool no_clock_left = !worker_limits.infinite && !worker_limits.ponder && worker_limits.movetime_ms < 0 &&
++                               worker_limits.time_ms >= 0 && clock_plan_for(worker_limits).reserve_empty;
+     // Above MultiPV 1 the helpers stay idle. Counting only the main worker
+     // keeps node totals on the Threads 1 path (idle workers may hold old counts).
+     std::vector<Worker*> all;
+-    if (worker_limits.multipv > 1) {
++    if (worker_limits.multipv > 1 || no_clock_left) {
+         all.push_back(workers_.front().get());
+     } else {
+         all.reserve(workers_.size());
+@@ -2010,10 +2539,16 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+         TtOwnedScope& operator=(const TtOwnedScope&) = delete;
+     } tt_owned_scope(*workers_.front(), exclusive.has_value());
+ #endif
++    // A helper can read the budget before another worker enters search() and
++    // clears the count it published last time. Zero every counter on this
++    // thread first. MultiPV leaves the extra workers idle; clearing them does
++    // not change the main-worker total.
++    for (auto& worker : workers_) worker->reset_node_count();
+     std::vector<std::thread> helpers;
+     // MultiPV above 1 runs only the main thread. Helper threads search one line
+     // and would race the excluded-root passes, so this falls back to Threads 1.
+-    if (worker_limits.multipv <= 1) {
++    // A clock with nothing left after overhead does not start those threads.
++    if (worker_limits.multipv <= 1 && !no_clock_left) {
+         for (std::size_t i = 1; i < workers_.size(); ++i) {
+             helpers.emplace_back([this, i, board, &worker_limits, &all]() {
+                 (void)workers_[i]->search(board, worker_limits, false, all);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f892..eeffcbb6 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -45,11 +45,20 @@ void apply_position(forge::Board& board, std::istringstream& input) {
+         board = candidate;
+         return;
+     }
+-    if (token != "moves") return;
++    // A token other than "moves" is not part of the FEN. Dropping the command
++    // here used to leave the engine on the previous game.
++    while (token != "moves") {
++        if (!(input >> token)) {
++            board = candidate;
++            return;
++        }
++    }
+     while (input >> token) {
+         const auto move = candidate.parse_uci(token);
+         if (!move.has_value()) {
++            // The position and every legal move before this token still stand.
+             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string illegal move " << token << std::endl; }
++            board = candidate;
+             return;
+         }
+         forge::Undo undo;
+@@ -59,9 +68,10 @@ void apply_position(forge::Board& board, std::istringstream& input) {
+ }
+ 
+ bool is_go_keyword(const std::string& token) {
+-    return token == "depth" || token == "nodes" || token == "movetime" || token == "movestogo" ||
+-           token == "infinite" || token == "wtime" || token == "btime" || token == "winc" ||
+-           token == "binc" || token == "mate" || token == "searchmoves" || token == "ponder";
++    return token == "depth" || token == "nodes" || token == "softnodes" || token == "movetime" ||
++           token == "movestogo" || token == "infinite" || token == "wtime" || token == "btime" ||
++           token == "winc" || token == "binc" || token == "mate" || token == "searchmoves" ||
++           token == "ponder";
+ }
+ 
+ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board) {
+@@ -88,7 +98,7 @@ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board)
+             return forge::parse_clock_ms(tokens[i++]);
+         };
+         if (token == "depth") limits.depth = std::clamp(read_int(), 1, 64);
+-        else if (token == "nodes") {
++        else if (token == "nodes" || token == "softnodes") {
+             if (i < tokens.size()) {
+                 const std::string& text = tokens[i++];
+                 std::uint64_t value = 0;
+@@ -96,6 +106,7 @@ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board)
+                 if (result.ec == std::errc{} && result.ptr == text.data() + text.size()) {
+                     limits.nodes = value;
+                     limits.nodes_specified = true;
++                    if (token == "softnodes") limits.soft_nodes = true;
+                 }
+             }
+         }
+@@ -188,7 +199,23 @@ int uci_loop(std::istream& in) {
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+-                         "option name LmrDeeperShallower type check default false\n";
++                         "option name LmrDeeperShallower type check default false\n"
++                         "option name EvalRule50Damp type check default false\n"
++                         "option name ThreatHistory type check default false\n"
++                         "option name LmrSignedCorrection type check default false\n"
++                         "option name LmrLateParentRelief type check default false\n"
++                         "option name HindsightDepth type check default false\n"
++                         "option name NullThreatVerify type check default false\n"
++                         "option name NullSeeVeto type check default false\n"
++                         "option name AspCappedReopen type check default false\n"
++                         "option name AspArmLate type check default false\n"
++                         "option name EvasionOrdering type check default false\n"
++                         "option name DeadMaterial type check default false\n"
++                         "option name QuietExtinction type check default false\n"
++                         "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
++                         "option name TmFinishIteration type check default false\n"
++                         "option name TmNodeShare type check default false\n"
++                         "option name SoundMatePruning type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them. Builds without this macro still accept them.
+@@ -301,15 +328,66 @@ int uci_loop(std::istream& in) {
+                 } else {
+                     note_invalid();
+                 }
+-            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
++            } else if (name == "HindsightDepth") {
++                if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
++                else note_invalid();
++            } else if (name == "NullThreatVerify") {
++                if (value_text == "true") forge::tune::NullThreatVerify = true;
++                else if (value_text == "false") forge::tune::NullThreatVerify = false;
++                else note_invalid();
++            } else if (name == "DeadMaterial") {
++                if (value_text != "true" && value_text != "false") note_invalid();
++                else if (forge::dead_material_enabled != (value_text == "true")) {
++                    forge::dead_material_enabled = value_text == "true";
++                    searcher.clear_hash();
++                }
++            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
++                       name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
++                       name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
++                       name == "QuietExtinction" || name == "TmFinishIteration") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+-                                                           : &forge::tune::LmrDeeperShallower;
++                             : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
++                             : name == "ThreatHistory" ? &forge::tune::ThreatHistory
++                             : name == "LmrSignedCorrection" ? &forge::tune::LmrSignedCorrection
++                             : name == "LmrLateParentRelief" ? &forge::tune::LmrLateParentRelief
++                             : name == "NullSeeVeto" ? &forge::tune::NullSeeVeto
++                             : name == "AspArmLate" ? &forge::tune::AspArmLate
++                             : name == "EvasionOrdering" ? &forge::tune::EvasionOrdering
++                             : name == "QuietExtinction" ? &forge::tune::QuietExtinction
++                                                        : &forge::tune::TmFinishIteration;
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "EvalRule50Damp") {
++                if (value_text == "true" || value_text == "false") {
++                    forge::tune::EvalRule50Damp = value_text == "true";
++                    searcher.clear_hash();
++                } else {
++                    note_invalid();
++                }
++            } else if (name == "AspCappedReopen") {
++                if (value_text == "true" || value_text == "false") {
++                    forge::tune::AspCappedReopen = value_text == "true";
++                } else {
++                    note_invalid();
++                }
++            } else if (name == "TmNodeShare") {
++                if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
++                else note_invalid();
++            } else if (name == "SoundMatePruning") {
++                if (value_text == "true" || value_text == "false") {
++                    const bool enabled = value_text == "true";
++                    if (forge::tune::SoundMatePruning != enabled) {
++                        forge::tune::SoundMatePruning = enabled;
++                        // Scores already stored were built with the other guard.
++                        searcher.clear();
++                    }
++                } else {
++                    note_invalid();
++                }
+             } else if (name == "MultiPV") {
+                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+             } else if (name == "Hash") {
+@@ -320,6 +398,8 @@ int uci_loop(std::istream& in) {
+                 apply_spin(1, 256, [&](int clamped) { searcher.set_threads(clamped); });
+             } else if (name == "Move Overhead") {
+                 apply_spin(0, 1000, [&](int clamped) { move_overhead_ms = clamped; });
++            } else if (name == "DrawJitter") {
++                apply_spin(0, forge::DrawJitterMax, [&](int clamped) { forge::set_draw_jitter(clamped, searcher); });
+             } else {
+                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                 std::cout << "info string unknown option " << name << std::endl;

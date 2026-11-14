@@ -1,0 +1,62 @@
+Static review of current r4-10, r4-11, r4-12 heads
+Base: e04556ddc3a430b2e751159b0d46111ef56c8b89
+
+No native builds, engine searches, tests, fetches, refs/worktrees/controller
+changes, or source changes were performed. Reports/tests were read as data.
+Every Git command executed for this review, its exit, stdout, and stderr are
+retained in the sibling *-stat.txt, *-names.txt, *-log.txt, *-full-diff.txt and
+base-*.txt files. Python was used only to retain read-only Git command output.
+
+Outcome: none of these branches explains or fixes the NNUE-off mate17 KRK
+short PV / TT-score origin, or the eight low-clock equality differences. The
+two production changes are useful independent API/formatting fixes. No search,
+TT, rule50, evaluation calculation, NNUE, default option, or layout changes are
+present in these three diffs.
+
+r4-10 / 33fac1e0e4ab0fda5749d340bbf2eb4edb19511b
+  Actual change: REPORT_r4_10.md and tests_r4_10/check.cpp only; no engine edit.
+  Report conclusion matches the inspected base source: UCI first reads a value
+  token, then Book File/NnueFile append getline(rest), retaining internal spaces,
+  tabs and later occurrences of "value". There is no source fix to integrate.
+  Test source drives UCI with paths containing spaces/value, positive book-load
+  controls, missing collapsed-path negative control, and NNUE wrong-size-after-
+  open control. It also checks reported fixed bench/perft pins and 200 bestmoves
+  against legal moves reported by the same engine's perft1. It does not validate
+  complete PVs, mate distance, NNUE-off KRK, the eight clock pairs, or TT writers.
+  Claimed sanitizer and runtime passes are branch-authored claims, not rerun
+  evidence from this review. The source supports the no-parser-change decision.
+
+r4-11 / 853120f8675f33a45e882f1284ff2fe8a92faaf7
+  Actual production diff: eval_params.cpp adds only
+    if (index < 0 || index >= Count) return "Unknown";
+  at the start of params::name(int). Base negative indices <= -64 could access
+  the six-element piece-name array out of bounds; -63..-1 produced invalid names.
+  This is a sound bounds guard and leaves valid names/evaluation values intact.
+  No params::name caller was found in the base src/include grep; it is parameter
+  naming, not evaluation computation. It cannot explain ordinary KRK search/TT
+  origin or low-clock differences on the stated path.
+  Test source checks -128..-1, other out-of-range indices, selected exact valid
+  names, every valid name nonempty, fixed bench/perft pins, and legal best/PV
+  moves in 200 depth10 searches. It does not assert full mate PVs or the known
+  endpoint, and provides no target clock-pair/TT provenance test. The report's
+  sanitizer and numeric pass results were not independently reproduced.
+
+r4-12 / 0cfd0aa9e9736b14356fa63cafbe634dca14c2d2
+  Actual production diff: Board::move_to_uci adds only
+    if (move.is_none()) return "0000";
+  This corrects the public empty-move rendering from a1a1 and also covers any
+  from==to sentinel, consistently with Move::is_none semantics. Base UCI's
+  normal search bestmove path already special-cases is_none to "0000".
+  Ordinary legal moves and search decisions/TT payloads are unchanged. It can
+  improve diagnostic/API output, but does not extend the known legal short PV,
+  explain its score, or repair low-clock equality differences.
+  Test source checks none and three ordinary move renderings, fixed bench/perft
+  pins, legal bestmoves plus UCI round-trip, and legality of each existing PV move
+  across 200 depth10 searches. It explicitly accepts an empty PV and does not
+  check mate distance or terminal PV completeness. Reported sanitizer/bench
+  results remain unverified branch claims in this static review.
+
+Integration relevance: r4-11 and r4-12 may be reviewed independently as small
+correctness hardening; r4-10 supplies regression coverage and a rebutted audit
+finding. None substitutes for the isolated first-pass TT admitted-writer trace.
+No strength or performance conclusion is supported or made.

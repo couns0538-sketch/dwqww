@@ -1,0 +1,587 @@
+argv=["git", "-C", "/workspace/work/dwqww-all", "diff", "--no-ext-diff", "e04556ddc3a430b2e751159b0d46111ef56c8b89", "33fac1e0e4ab0fda5749d340bbf2eb4edb19511b", "--", "forge-combo29"]
+exit=0
+STDOUT
+diff --git a/forge-combo29/REPORT_r4_10.md b/forge-combo29/REPORT_r4_10.md
+new file mode 100644
+index 00000000..21b16e31
+--- /dev/null
++++ b/forge-combo29/REPORT_r4_10.md
+@@ -0,0 +1,46 @@
++# R4-10 — `setoption` values with spaces or the word `value`
++
++Finding 10 from `audit/lock-source` at `302a08a2` says `setoption` drops spaces in a value and stops at the word `value`. Reproduced on base `e04556ddc3a430b2e751159b0d46111ef56c8b89`. The base already keeps those values. No engine source change.
++
++## What the parser does
++
++`forge-combo29/src/uci.cpp` reads the first word after `value` with `operator>>`, then `Book File` and `NnueFile` append the rest of the line with `std::getline`. Joining those two pieces keeps internal spaces, tabs, and a later `value` token. Whitespace immediately after the `value` keyword is the separator, so a leading run is not part of the path. Trailing spaces and `\r` are stripped. That is the same path text as the audit's proposed `getline` for these two string options.
++
++The proposed replacement was not applied. It would not change `Book File` or `NnueFile`, and it would reject a spin such as `Hash value 16 extra` instead of reading `16`. No advertised option name contains the token `value`. The name scan still treats the first `value` token as the UCI separator.
++
++## Proof
++
++`forge-combo29/tests_r4_10/check.cpp` is the check. It exits non-zero on failure. The engine was built with no `-DFORGE_*` override and linked with AddressSanitizer and UndefinedBehaviorSanitizer:
++
++```
++CXX=g++ cmake -S forge-combo29 -B /tmp/r4-10-asan -DCMAKE_BUILD_TYPE=Release \
++    -DCMAKE_CXX_FLAGS="-g -fsanitize=address,undefined -fno-omit-frame-pointer" \
++    -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
++cmake --build /tmp/r4-10-asan -j"$(nproc)"
++g++ -std=c++20 -O2 -o /tmp/r4-10-check forge-combo29/tests_r4_10/check.cpp
++/tmp/r4-10-check /tmp/r4-10-asan/forge
++```
++
++Leak detection stayed on. The run printed no sanitizer diagnostic and exited 0.
++
++String values that loaded a 16-byte book (`with 1 entries`) or opened an NNUE file (`nnue: wrong size`, which is only printed after the file opens):
++
++- `my   book.bin` (three spaces, the finding's trigger)
++- `a  b.bin`
++- `value book.bin`, `my value.bin`, `a  value  b.bin`, `value value.bin`, `Bar value Baz`
++- `tab<TAB>name.bin`
++- the three-space path again with trailing spaces on the command, trimmed back to the same path
++- extra spaces after `value` before `plain.bin`, treated as the separator
++- `nnue value.bin`
++
++The one-space path `my book.bin` was not created. The engine answered `cannot load book` for that exact path, so the three-space load was not a collapsed name. `<empty>` restores the built-in book and net with no diagnostic. `Hash 16`, `Threads 1`, `Move Overhead 10`, `OwnBook false`, `Ponder false`, and `Clear Hash` are quiet. `Not A Real Option` is still `unknown option`.
++
++Pins, same process:
++
++- `bench 11` = `312866`
++- `bench 13` = `862329`
++- `position startpos` / `go perft 5` = `4865609`
++
++Two hundred `go depth 10` searches, each checked against `go perft 1` for that position. Every `bestmove` was in the legal list. Samples: search 1 `d2d4` (20 legal), search 100 `a7a5` (35), search 200 `c5d4` (34). Elapsed 39.8s.
++
++`CMakeLists.txt` was not edited.
+diff --git a/forge-combo29/tests_r4_10/check.cpp b/forge-combo29/tests_r4_10/check.cpp
+new file mode 100644
+index 00000000..4023c036
+--- /dev/null
++++ b/forge-combo29/tests_r4_10/check.cpp
+@@ -0,0 +1,524 @@
++// Finding 10: setoption values that contain spaces or the word "value".
++// Drives a forge binary over UCI. Exits non-zero when a check fails.
++// The binary must be linked with AddressSanitizer and UndefinedBehaviorSanitizer.
++
++#include <array>
++#include <chrono>
++#include <cstdint>
++#include <cstdlib>
++#include <cstring>
++#include <errno.h>
++#include <fcntl.h>
++#include <filesystem>
++#include <fstream>
++#include <iostream>
++#include <poll.h>
++#include <signal.h>
++#include <sstream>
++#include <stdexcept>
++#include <string>
++#include <string_view>
++#include <sys/wait.h>
++#include <unistd.h>
++#include <vector>
++
++namespace {
++
++constexpr std::uint64_t kPins11 = 312866;
++constexpr std::uint64_t kPins13 = 862329;
++constexpr std::uint64_t kPerft5 = 4865609;
++
++constexpr std::array<std::string_view, 25> kSeeds = {
++    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
++    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
++    "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
++    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
++    "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
++    "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
++    "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
++    "r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9",
++    "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
++    "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
++    "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
++    "rnbqkb1r/pp2pppp/2p2n2/3p4/2PP4/2N5/PP2PPPP/R1BQKBNR w KQkq - 0 4",
++    "r1bq1rk1/ppp2ppp/2np1n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 w - - 0 7",
++    "2rq1rk1/pb1nbppp/1p2pn2/2pp4/3P4/1PN1PN2/PB1NBPPP/2RQ1RK1 w - - 0 10",
++    "r2qkb1r/pp2pppp/2n2n2/3p1b2/3P1B2/2N2N2/PP2PPPP/R2QKB1R w KQkq - 4 6",
++    "8/5pk1/4p1p1/3pP1P1/3P4/5K2/8/8 w - - 0 1",
++    "8/8/2k5/4b3/8/3N4/4K3/8 w - - 0 1",
++    "4r1k1/p1p2ppp/1p6/3p4/3P4/1P2R3/P1P2PPP/6K1 w - - 0 1",
++    "r4rk1/pp1b1ppp/2n1p3/q2pP3/3P4/P1PB1N2/2Q2PPP/R3K2R w KQ - 1 13",
++    "r1b1k2r/pp1n1ppp/2pbpn2/q7/1b1PP3/2NB1N2/PPQ2PPP/R1B1K2R w KQkq - 4 8",
++    "r1bq1rk1/pp2ppbp/2np1np1/8/3NP3/2N1BP2/PPPQ2PP/R3KB1R w KQ - 3 8",
++    "3r2k1/pp3ppp/2n1b3/8/3p4/1B3N2/PP3PPP/3R2K1 w - - 0 1",
++    "2kr3r/ppp2ppp/2n1b3/3q4/3P4/2PB1N2/P4PPP/R2Q1RK1 w - - 0 12",
++    "8/1p4k1/p1p2pp1/2P5/1P1R4/P5P1/5PK1/3r4 w - - 0 1",
++    "r1b2rk1/ppq1bppp/2n1pn2/2pp4/3P4/1PN1PN2/PB1PBPPP/R2Q1RK1 w - - 4 9",
++};
++
++struct Position {
++    std::string fen;
++    std::vector<std::string> moves;
++};
++
++[[noreturn]] void fail(const std::string& message) { throw std::runtime_error(message); }
++
++std::string trim_copy(std::string text) {
++    while (!text.empty() && (text.back() == ' ' || text.back() == '\n' || text.back() == '\r' || text.back() == '\t')) {
++        text.pop_back();
++    }
++    std::size_t begin = 0;
++    while (begin < text.size() && (text[begin] == ' ' || text[begin] == '\n' || text[begin] == '\r' || text[begin] == '\t')) {
++        ++begin;
++    }
++    return text.substr(begin);
++}
++
++std::vector<std::string> split_ws(const std::string& line) {
++    std::istringstream input(line);
++    std::vector<std::string> fields;
++    std::string token;
++    while (input >> token) fields.push_back(token);
++    return fields;
++}
++
++std::string capture_command(const std::vector<std::string>& args) {
++    if (args.empty()) fail("empty command");
++    int pipes[2];
++    if (pipe(pipes) != 0) fail("pipe");
++    const pid_t child = fork();
++    if (child < 0) fail("fork");
++    if (child == 0) {
++        dup2(pipes[1], STDOUT_FILENO);
++        dup2(pipes[1], STDERR_FILENO);
++        close(pipes[0]);
++        close(pipes[1]);
++        std::vector<char*> argv;
++        argv.reserve(args.size() + 1);
++        for (const std::string& arg : args) argv.push_back(const_cast<char*>(arg.c_str()));
++        argv.push_back(nullptr);
++        execvp(argv[0], argv.data());
++        _exit(127);
++    }
++    close(pipes[1]);
++    std::string output;
++    char buffer[4096];
++    while (true) {
++        const ssize_t count = read(pipes[0], buffer, sizeof buffer);
++        if (count > 0) output.append(buffer, static_cast<std::size_t>(count));
++        else if (count == 0) break;
++        else if (errno != EINTR) break;
++    }
++    close(pipes[0]);
++    int status = 0;
++    waitpid(child, &status, 0);
++    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) fail("command failed: " + args[0]);
++    return output;
++}
++
++void require_sanitizers(const std::string& engine_path) {
++    const std::string linked = capture_command({"ldd", engine_path});
++    if (linked.find("libasan") == std::string::npos) fail("engine is not linked with AddressSanitizer");
++    if (linked.find("libubsan") == std::string::npos) fail("engine is not linked with UndefinedBehaviorSanitizer");
++    std::cout << "sanitizers: address and undefined" << std::endl;
++}
++
++class Engine {
++public:
++    explicit Engine(const std::string& path) {
++        int input_pipe[2];
++        int output_pipe[2];
++        int error_pipe[2];
++        if (pipe(input_pipe) != 0 || pipe(output_pipe) != 0 || pipe(error_pipe) != 0) fail("pipe");
++        pid_ = fork();
++        if (pid_ < 0) fail("fork");
++        if (pid_ == 0) {
++            dup2(input_pipe[0], STDIN_FILENO);
++            dup2(output_pipe[1], STDOUT_FILENO);
++            dup2(error_pipe[1], STDERR_FILENO);
++            close(input_pipe[0]);
++            close(input_pipe[1]);
++            close(output_pipe[0]);
++            close(output_pipe[1]);
++            close(error_pipe[0]);
++            close(error_pipe[1]);
++            execl(path.c_str(), path.c_str(), static_cast<char*>(nullptr));
++            _exit(127);
++        }
++        close(input_pipe[0]);
++        close(output_pipe[1]);
++        close(error_pipe[1]);
++        to_child_ = input_pipe[1];
++        from_child_ = output_pipe[0];
++        err_child_ = error_pipe[0];
++        set_nonblock(from_child_);
++        set_nonblock(err_child_);
++    }
++
++    Engine(const Engine&) = delete;
++    Engine& operator=(const Engine&) = delete;
++
++    ~Engine() {
++        if (pid_ > 0) {
++            kill(pid_, SIGKILL);
++            waitpid(pid_, nullptr, 0);
++            pid_ = -1;
++        }
++        close_fds();
++    }
++
++    void send(const std::string& line) {
++        if (pid_ <= 0) fail("engine is not running before: " + line);
++        const std::string data = line + "\n";
++        std::size_t written = 0;
++        while (written < data.size()) {
++            const ssize_t count = write(to_child_, data.data() + written, data.size() - written);
++            if (count > 0) written += static_cast<std::size_t>(count);
++            else if (count < 0 && errno == EINTR) continue;
++            else fail("engine exited before: " + line + "; stderr=" + stderr_text());
++        }
++    }
++
++    std::string readline(int timeout_ms) {
++        const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
++        while (true) {
++            if (const auto newline = stdout_pending_.find('\n'); newline != std::string::npos) {
++                std::string line = stdout_pending_.substr(0, newline);
++                stdout_pending_.erase(0, newline + 1);
++                if (!line.empty() && line.back() == '\r') line.pop_back();
++                return line;
++            }
++            if (stdout_eof_) fail("engine closed stdout; stderr=" + stderr_text());
++            const int remain = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(
++                                                     deadline - std::chrono::steady_clock::now())
++                                                     .count());
++            if (remain <= 0) fail("timed out after " + std::to_string(timeout_ms) + "ms; stderr=" + stderr_text());
++            pollfd fds[2] = {{from_child_, POLLIN, 0}, {err_child_, POLLIN, 0}};
++            const int ready = poll(fds, 2, remain);
++            if (ready < 0) {
++                if (errno == EINTR) continue;
++                fail("poll");
++            }
++            if (ready == 0) fail("timed out after " + std::to_string(timeout_ms) + "ms; stderr=" + stderr_text());
++            if ((fds[1].revents & (POLLIN | POLLHUP | POLLERR)) != 0) drain(err_child_, stderr_raw_, stderr_eof_);
++            if ((fds[0].revents & (POLLIN | POLLHUP | POLLERR)) != 0) drain(from_child_, stdout_pending_, stdout_eof_);
++        }
++    }
++
++    std::vector<std::string> exchange(const std::string& line, int timeout_ms = 60000) {
++        send(line);
++        send("isready");
++        std::vector<std::string> rows;
++        while (true) {
++            std::string row = readline(timeout_ms);
++            if (row == "readyok") return rows;
++            rows.push_back(std::move(row));
++        }
++    }
++
++    std::string stderr_text() const { return trim_copy(stderr_raw_); }
++
++    int finish() {
++        send("quit");
++        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(60);
++        while (std::chrono::steady_clock::now() < deadline) {
++            drain(from_child_, stdout_pending_, stdout_eof_);
++            drain(err_child_, stderr_raw_, stderr_eof_);
++            int status = 0;
++            const pid_t got = waitpid(pid_, &status, WNOHANG);
++            if (got == pid_) {
++                pid_ = -1;
++                close_fds();
++                if (WIFEXITED(status)) return WEXITSTATUS(status);
++                return 1;
++            }
++            if (got < 0 && errno != EINTR) fail("waitpid");
++            pollfd fds[2] = {{from_child_, POLLIN, 0}, {err_child_, POLLIN, 0}};
++            poll(fds, 2, 50);
++        }
++        fail("engine did not exit; stderr=" + stderr_text());
++    }
++
++private:
++    static void set_nonblock(int fd) {
++        const int flags = fcntl(fd, F_GETFL, 0);
++        if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) fail("fcntl");
++    }
++
++    static void drain(int fd, std::string& dest, bool& eof) {
++        if (fd < 0 || eof) return;
++        char buffer[4096];
++        while (true) {
++            const ssize_t count = read(fd, buffer, sizeof buffer);
++            if (count > 0) dest.append(buffer, static_cast<std::size_t>(count));
++            else if (count == 0) {
++                eof = true;
++                return;
++            } else if (errno == EINTR) {
++                continue;
++            } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
++                return;
++            } else {
++                fail(std::string("read: ") + std::strerror(errno));
++            }
++        }
++    }
++
++    void close_fds() {
++        if (to_child_ >= 0) close(to_child_);
++        if (from_child_ >= 0) close(from_child_);
++        if (err_child_ >= 0) close(err_child_);
++        to_child_ = from_child_ = err_child_ = -1;
++    }
++
++    pid_t pid_ = -1;
++    int to_child_ = -1;
++    int from_child_ = -1;
++    int err_child_ = -1;
++    bool stdout_eof_ = false;
++    bool stderr_eof_ = false;
++    std::string stdout_pending_;
++    std::string stderr_raw_;
++};
++
++void expect_exact(Engine& engine, const std::string& command, const std::vector<std::string>& expected, int timeout_ms = 30000) {
++    const std::vector<std::string> got = engine.exchange(command, timeout_ms);
++    if (got != expected) {
++        std::ostringstream message;
++        message << "command " << command << "\n expected";
++        for (const std::string& row : expected) message << " [" << row << "]";
++        message << "\n got";
++        for (const std::string& row : got) message << " [" << row << "]";
++        fail(message.str());
++    }
++    std::cout << "ok " << (expected.empty() ? "(no diagnostic)" : expected[0]) << std::endl;
++}
++
++void quiet(Engine& engine, const std::string& command) {
++    const std::vector<std::string> got = engine.exchange(command);
++    for (const std::string& row : got) {
++        if (row.rfind("info string ", 0) == 0) fail("command " + command + " printed " + row);
++    }
++    std::cout << "ok quiet " << command << std::endl;
++}
++
++void write_file(const std::filesystem::path& path, std::string_view bytes) {
++    std::filesystem::create_directories(path.parent_path());
++    std::ofstream output(path, std::ios::binary);
++    if (!output) fail("cannot write " + path.string());
++    output.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
++    if (!output) fail("cannot write " + path.string());
++}
++
++std::string check_string_options(Engine& engine) {
++    std::vector<char> pattern(std::strlen("/tmp/r4_10_cpp_XXXXXX") + 1);
++    std::strcpy(pattern.data(), "/tmp/r4_10_cpp_XXXXXX");
++    if (mkdtemp(pattern.data()) == nullptr) fail("mkdtemp");
++    const std::filesystem::path root = pattern.data();
++    const std::filesystem::path directory = root / "book dir";
++    const std::filesystem::path three = directory / "my   book.bin";
++    const std::filesystem::path two = directory / "a  b.bin";
++    const std::filesystem::path value_token = directory / "value book.bin";
++    const std::filesystem::path value_word = directory / "my value.bin";
++    const std::filesystem::path value_gaps = directory / "a  value  b.bin";
++    const std::filesystem::path value_twice = directory / "value value.bin";
++    const std::filesystem::path bar_value = directory / "Bar value Baz";
++    const std::filesystem::path tabbed = directory / "tab\tname.bin";
++    const std::filesystem::path plain = directory / "plain.bin";
++    const std::filesystem::path collapsed = directory / "my book.bin";
++    const std::filesystem::path nnue = directory / "nnue value.bin";
++    const std::string zeros(16, '\0');
++    for (const std::filesystem::path& path : {three, two, value_token, value_word, value_gaps, value_twice, bar_value, tabbed, plain}) {
++        write_file(path, zeros);
++    }
++    write_file(nnue, "FORGENET");
++    if (std::filesystem::exists(collapsed)) fail("negative-control book path must not exist");
++
++    for (const std::filesystem::path& path : {three, two, value_token, value_word, value_gaps, value_twice, bar_value, tabbed}) {
++        expect_exact(engine, "setoption name Book File value " + path.string(),
++                     {"info string loaded book " + path.string() + " with 1 entries"});
++    }
++    expect_exact(engine, "setoption name Book File value " + three.string() + "   ",
++                 {"info string loaded book " + three.string() + " with 1 entries"});
++    expect_exact(engine, "setoption name Book File value   " + plain.string(),
++                 {"info string loaded book " + plain.string() + " with 1 entries"});
++    expect_exact(engine, "setoption name Book File value " + collapsed.string(),
++                 {"info string cannot load book " + collapsed.string()});
++    expect_exact(engine, "setoption name NnueFile value " + nnue.string(), {"info string nnue: wrong size"});
++    expect_exact(engine, "setoption name Book File value <empty>", {});
++    expect_exact(engine, "setoption name NnueFile value <empty>", {});
++    for (const char* command : {"setoption name Hash value 16", "setoption name Threads value 1",
++                                "setoption name Move Overhead value 10", "setoption name OwnBook value false",
++                                "setoption name Ponder value false", "setoption name Clear Hash"}) {
++        quiet(engine, command);
++    }
++    expect_exact(engine, "setoption name Not A Real Option value 1", {"info string unknown option Not A Real Option"});
++    std::cout << "PASS setoption spaces and value (" << root.string() << ")" << std::endl;
++    return root.string();
++}
++
++std::uint64_t bench_nodes(Engine& engine, int depth) {
++    const std::vector<std::string> rows = engine.exchange("bench " + std::to_string(depth), 180000);
++    const std::string prefix = "info string bench depth " + std::to_string(depth) + " nodes ";
++    std::vector<std::string> matches;
++    for (const std::string& row : rows) {
++        if (row.rfind(prefix, 0) == 0) matches.push_back(row);
++    }
++    if (matches.size() != 1) fail("bench " + std::to_string(depth) + " output count " + std::to_string(rows.size()));
++    const std::vector<std::string> fields = split_ws(matches[0]);
++    for (std::size_t i = 0; i + 1 < fields.size(); ++i) {
++        if (fields[i] == "nodes") return std::stoull(fields[i + 1]);
++    }
++    fail("bench " + std::to_string(depth) + " line " + matches[0]);
++}
++
++std::uint64_t perft_nodes(Engine& engine, int depth) {
++    engine.exchange("position startpos");
++    const std::vector<std::string> rows = engine.exchange("go perft " + std::to_string(depth), 180000);
++    std::vector<std::string> nodes;
++    for (const std::string& row : rows) {
++        if (row.rfind("nodes ", 0) == 0) nodes.push_back(row);
++    }
++    if (nodes.size() != 1) fail("perft " + std::to_string(depth) + " node lines " + std::to_string(nodes.size()));
++    return std::stoull(split_ws(nodes[0]).at(1));
++}
++
++void check_pins(Engine& engine) {
++    const std::uint64_t bench11 = bench_nodes(engine, 11);
++    const std::uint64_t bench13 = bench_nodes(engine, 13);
++    const std::uint64_t perft5 = perft_nodes(engine, 5);
++    std::cout << "pins " << bench11 << " " << bench13 << " " << perft5 << std::endl;
++    if (bench11 != kPins11 || bench13 != kPins13 || perft5 != kPerft5) {
++        fail("pin mismatch got " + std::to_string(bench11) + " " + std::to_string(bench13) + " " + std::to_string(perft5));
++    }
++    std::cout << "PASS pins 312866 862329 4865609" << std::endl;
++}
++
++std::uint64_t next_u64(std::uint64_t& state) {
++    state ^= state >> 12U;
++    state ^= state << 25U;
++    state ^= state >> 27U;
++    state *= 0x2545F4914F6CDD1DULL;
++    return state;
++}
++
++std::string position_command(const std::string& fen, const std::vector<std::string>& moves) {
++    std::string command = "position fen " + fen;
++    if (!moves.empty()) {
++        command += " moves";
++        for (const std::string& move : moves) command += " " + move;
++    }
++    return command;
++}
++
++std::vector<std::string> legal_moves(Engine& engine, const std::string& fen, const std::vector<std::string>& moves) {
++    const std::vector<std::string> placed = engine.exchange(position_command(fen, moves), 30000);
++    for (const std::string& row : placed) {
++        if (row.rfind("info string ", 0) == 0) fail("position rejected " + fen + ": " + row);
++    }
++    const std::vector<std::string> rows = engine.exchange("go perft 1", 30000);
++    std::vector<std::string> found;
++    int total = -1;
++    for (const std::string& row : rows) {
++        if (row.rfind("nodes ", 0) == 0) total = std::stoi(split_ws(row).at(1));
++        else if (const std::size_t split = row.find(": "); split != std::string::npos) {
++            const std::string move = row.substr(0, split);
++            const std::string count = row.substr(split + 2);
++            if (count != "1") fail("perft 1 count " + row);
++            found.push_back(move);
++        }
++    }
++    if (total != static_cast<int>(found.size())) {
++        fail("perft 1 nodes " + std::to_string(total) + " listed " + std::to_string(found.size()));
++    }
++    return found;
++}
++
++std::vector<Position> build_positions(Engine& engine) {
++    std::vector<Position> positions;
++    std::uint64_t state = 0x9E3779B97F4A7C15ULL;
++    for (const std::string_view seed : kSeeds) {
++        const std::string fen(seed);
++        std::vector<std::string> moves;
++        for (int step = 0; step < 8; ++step) {
++            if (positions.size() >= 200) return positions;
++            std::vector<std::string> legal = legal_moves(engine, fen, moves);
++            if (legal.empty()) break;
++            positions.push_back(Position{fen, moves});
++            moves.push_back(legal[static_cast<std::size_t>(next_u64(state) % legal.size())]);
++        }
++    }
++    if (positions.size() < 200) fail("only gathered " + std::to_string(positions.size()) + " positions");
++    return positions;
++}
++
++void check_searches(Engine& engine) {
++    const std::vector<Position> positions = build_positions(engine);
++    if (positions.size() != 200) fail("expected 200 positions, got " + std::to_string(positions.size()));
++    const auto started = std::chrono::steady_clock::now();
++    for (std::size_t index = 0; index < positions.size(); ++index) {
++        const std::vector<std::string> legal = legal_moves(engine, positions[index].fen, positions[index].moves);
++        if (legal.empty()) fail("search " + std::to_string(index + 1) + " has no legal move");
++        engine.send("go depth 10");
++        std::string best;
++        while (true) {
++            const std::string row = engine.readline(90000);
++            if (row.rfind("bestmove ", 0) == 0) {
++                const std::vector<std::string> parts = split_ws(row);
++                if (parts.size() < 2) fail("search " + std::to_string(index + 1) + " bad bestmove line " + row);
++                best = parts[1];
++                break;
++            }
++        }
++        bool found = false;
++        for (const std::string& move : legal) {
++            if (move == best) found = true;
++        }
++        if (!found) fail("search " + std::to_string(index + 1) + " bestmove " + best + " is illegal");
++        const std::size_t number = index + 1;
++        if (number == 1 || number == 200 || number % 25 == 0) {
++            std::cout << "search " << number << " bestmove " << best << " legal " << legal.size() << std::endl;
++        }
++    }
++    const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
++    std::cout << "PASS 200 depth-10 searches legal in " << (elapsed_ms / 1000) << "." << ((elapsed_ms % 1000) / 100) << "s" << std::endl;
++}
++
++}  // namespace
++
++int main(int argc, char** argv) {
++    signal(SIGPIPE, SIG_IGN);
++    if (argc != 2) {
++        std::cerr << "usage: check /path/to/forge" << std::endl;
++        return 2;
++    }
++    setenv("ASAN_OPTIONS", "halt_on_error=1:abort_on_error=1:detect_leaks=1", 1);
++    setenv("UBSAN_OPTIONS", "halt_on_error=1:abort_on_error=1:print_stacktrace=1", 1);
++    try {
++        require_sanitizers(argv[1]);
++        Engine engine(argv[1]);
++        try {
++            const std::vector<std::string> rows = engine.exchange("uci", 30000);
++            bool uciok = false;
++            for (const std::string& row : rows) {
++                if (row == "uciok") uciok = true;
++            }
++            if (!uciok) fail("uci did not answer uciok");
++            check_string_options(engine);
++            check_pins(engine);
++            check_searches(engine);
++            const int code = engine.finish();
++            if (code != 0) fail("engine exit " + std::to_string(code) + "; stderr=" + engine.stderr_text());
++            if (!engine.stderr_text().empty()) fail("sanitizer or engine stderr: " + engine.stderr_text());
++            std::cout << "PASS r4-10" << std::endl;
++            return 0;
++        } catch (const std::exception& error) {
++            std::cerr << "FAIL " << error.what() << std::endl;
++            std::cerr << engine.stderr_text() << std::endl;
++            return 1;
++        }
++    } catch (const std::exception& error) {
++        std::cerr << "FAIL " << error.what() << std::endl;
++        return 1;
++    }
++}
+
+STDERR
