@@ -1,0 +1,30 @@
+node <<'NODE'
+const fs=require('fs'),path=require('path'),crypto=require('crypto');
+const from='/workspace/work/all-run/C-3228-review';
+const target='forge-combo29/soak_all/search_equality_evidence';
+fs.mkdirSync(target,{recursive:true});
+const files=fs.readdirSync(from).filter(n=>n.endsWith('.txt')).map(n=>[path.join(from,n),n]);
+files.push([path.join(from,'search-diag.cpp'),'search-diag.cpp.txt']);
+files.push(['/workspace/work/all-run/part4-review/C-3228-initial-inspection.txt','initial-inspection.txt']);
+files.push(['/workspace/work/all-run/compare-batches/C-0001/worker-3.jsonl.pending-3228.txt','original-comparator-pending.txt']);
+let manifest='';
+for(const [source,name] of files.sort((a,b)=>a[1].localeCompare(b[1]))) {
+ const data=fs.readFileSync(source);
+ if(data.includes(0))throw Error('non-text NUL in '+source);
+ fs.copyFileSync(source,path.join(target,name),fs.constants.COPYFILE_EXCL);
+ fs.chmodSync(path.join(target,name),0o644);
+ if(!fs.readFileSync(path.join(target,name)).equals(data))throw Error('copy mismatch '+name);
+ manifest+=crypto.createHash('sha256').update(data).digest('hex')+'  '+data.length+'  '+name+'\n';
+}
+fs.writeFileSync(path.join(target,'manifest.txt'),manifest,{flag:'wx'});
+console.log('PASS copied and byte-compared '+files.length+' text evidence files; binary objects/executables excluded.');
+console.log(manifest);
+const report='forge-combo29/soak_all/search_equality_investigation.md';
+const text=fs.readFileSync(report,'utf8');
+for(const match of text.matchAll(/\]\((search_equality_evidence\/[^)]+)\)/g))
+ if(!fs.existsSync(path.join('forge-combo29/soak_all',match[1])))throw Error('broken link '+match[1]);
+console.log('PASS report evidence links resolve.');
+console.log('REPORT_SHA256='+crypto.createHash('sha256').update(text).digest('hex'));
+NODE
+git diff --name-only -- forge-combo29/src forge-combo29/include
+git diff --check -- forge-combo29/soak_all/search_equality_investigation.md forge-combo29/soak_all/search_equality_evidence

@@ -1,0 +1,82 @@
+--- forge-combo29/src/search.cpp	2026-11-14 03:16:04.795104250 -0800
++++ /workspace/work/all-run/C-3228-review/search-diag.cpp	2026-11-14 04:54:25.560018863 -0800
+@@ -3,6 +3,7 @@
+ 
+ #include <algorithm>
+ #include <cmath>
++#include <cstdlib>
+ #include <cstring>
+ #include <iostream>
+ #include <limits>
+@@ -20,6 +21,10 @@
+ #define FORGE_BARE_KING_MATE_FIX 1
+ #endif
+ 
++namespace {
++const unsigned c3228_mask = []{const char* v=std::getenv("C3228_MASK");return v?static_cast<unsigned>(std::strtoul(v,nullptr,10)):0U;}();
++const bool c3228_trace = std::getenv("C3228_TRACE") != nullptr;
++}
+ namespace forge {
+ 
+ namespace tune {
+@@ -1067,12 +1072,13 @@
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+     const bool near50 = board.halfmove_clock() >= 90;
+-    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
++    if (c3228_trace && near50) std::cerr << "C3228 Q root_depth=" << root_depth_ << " node=" << local_nodes_ << " ply=" << ply << " clock=" << board.halfmove_clock() << " alpha=" << alpha << " beta=" << beta << " tt_hit=" << tt_hit << " tt_clock=" << int(tte.rule50_clock) << " tt_move=" << Board::move_to_uci(tte.move) << " tt_depth=" << int(tte.depth) << " tt_pv=" << tte.pv() << " tt_bound=" << int(tte.bound()) << " tt_score=" << tte.score << " pv=" << pv_node << " fen=" << board.fen() << '\n';
++    const Move tt_move = tt_hit && ((c3228_mask & 1U) || !near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+                              ? score_from_tt(tte.score, ply) : ValueNone;
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+-    const bool tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+-    if (!pv_node && !near50 && tt_hit && tt_score != ValueNone &&
++    const bool tt_pv = pv_node || (tt_hit && ((c3228_mask & 2U) || !near50) && tte.pv());
++    if (!pv_node && ((c3228_mask & 4U) || !near50) && tt_hit && tt_score != ValueNone &&
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
+@@ -1215,13 +1221,14 @@
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+     const bool near50 = board.halfmove_clock() >= 90;
+-    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
++    if (c3228_trace && near50) std::cerr << "C3228 S depth=" << depth << " root_depth=" << root_depth_ << " node=" << local_nodes_ << " ply=" << ply << " clock=" << board.halfmove_clock() << " alpha=" << alpha << " beta=" << beta << " tt_hit=" << tt_hit << " tt_clock=" << int(tte.rule50_clock) << " tt_move=" << Board::move_to_uci(tte.move) << " tt_depth=" << int(tte.depth) << " tt_pv=" << tte.pv() << " tt_bound=" << int(tte.bound()) << " tt_score=" << tte.score << " pv=" << pv_node << " fen=" << board.fen() << '\n';
++    const Move tt_move = tt_hit && ((c3228_mask & 1U) || !near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+                              ? score_from_tt(tte.score, ply) : ValueNone;
+     const int tt_depth = tt_hit ? tte.depth : -1;
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
+-    ss->tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
++    ss->tt_pv = pv_node || (tt_hit && ((c3228_mask & 2U) || !near50) && tte.pv());
+ 
+     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+@@ -1265,7 +1272,7 @@
+ #endif
+ 
+     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0 &&
+-        board.halfmove_clock() + depth < 100) {
++        ((c3228_mask & 8U) || board.halfmove_clock() + depth < 100)) {
+         // Razoring: hopeless positions fall back to quiescence.
+         if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+             const int razor = qsearch(board, ss, alpha - 1, alpha);
+@@ -1390,7 +1397,7 @@
+         const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
+ 
+         // Shallow-depth pruning of unpromising moves.
+-        if (mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
++        if (mate_moves_ == 0 && ((c3228_mask & 16U) || board.halfmove_clock() + depth < 100) && !root_node &&
+             best_score > -MateInMaxPly && has_material && !bare_king_mode) {
+             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+@@ -1477,7 +1484,7 @@
+ 
+         int score = -Infinite;
+         bool full_depth_needed = !pv_node || move_count > 1;
+-        if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
++        if (mate_moves_ == 0 && ((c3228_mask & 32U) || board.halfmove_clock() + new_depth < 100) && depth >= 2 &&
+             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+             (quiet || !ss->tt_pv || move_count > 4)) {
+             int r = reduction(quiet, depth, move_count);

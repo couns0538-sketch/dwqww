@@ -1,0 +1,97 @@
++ cat /workspace/work/all-run/C-3228-review/package-command.txt
+node <<'NODE'
+const fs=require('fs'),path=require('path'),crypto=require('crypto');
+const from='/workspace/work/all-run/C-3228-review';
+const target='forge-combo29/soak_all/search_equality_evidence';
+fs.mkdirSync(target,{recursive:true});
+const files=fs.readdirSync(from).filter(n=>n.endsWith('.txt')).map(n=>[path.join(from,n),n]);
+files.push([path.join(from,'search-diag.cpp'),'search-diag.cpp.txt']);
+files.push(['/workspace/work/all-run/part4-review/C-3228-initial-inspection.txt','initial-inspection.txt']);
+files.push(['/workspace/work/all-run/compare-batches/C-0001/worker-3.jsonl.pending-3228.txt','original-comparator-pending.txt']);
+let manifest='';
+for(const [source,name] of files.sort((a,b)=>a[1].localeCompare(b[1]))) {
+ const data=fs.readFileSync(source);
+ if(data.includes(0))throw Error('non-text NUL in '+source);
+ fs.copyFileSync(source,path.join(target,name),fs.constants.COPYFILE_EXCL);
+ fs.chmodSync(path.join(target,name),0o644);
+ if(!fs.readFileSync(path.join(target,name)).equals(data))throw Error('copy mismatch '+name);
+ manifest+=crypto.createHash('sha256').update(data).digest('hex')+'  '+data.length+'  '+name+'\n';
+}
+fs.writeFileSync(path.join(target,'manifest.txt'),manifest,{flag:'wx'});
+console.log('PASS copied and byte-compared '+files.length+' text evidence files; binary objects/executables excluded.');
+console.log(manifest);
+const report='forge-combo29/soak_all/search_equality_investigation.md';
+const text=fs.readFileSync(report,'utf8');
+for(const match of text.matchAll(/\]\((search_equality_evidence\/[^)]+)\)/g))
+ if(!fs.existsSync(path.join('forge-combo29/soak_all',match[1])))throw Error('broken link '+match[1]);
+console.log('PASS report evidence links resolve.');
+console.log('REPORT_SHA256='+crypto.createHash('sha256').update(text).digest('hex'));
+NODE
+git diff --name-only -- forge-combo29/src forge-combo29/include
+git diff --check -- forge-combo29/soak_all/search_equality_investigation.md forge-combo29/soak_all/search_equality_evidence
++ node
+PASS copied and byte-compared 59 text evidence files; binary objects/executables excluded.
+36e6061bc758fdbf916ff50c3987cc3686dbd87026ee3027017376a2ac582711  1540  analyze-trace-command.txt
+66f6392ac3a58edd3a680de711af4359b9aa814c7190abe3534f41ee72ba94cc  6204  analyze-trace-transcript.txt
+00fa590a382c79c66359085ed6641439914ef360ddd9531f04d2b3c6e83f527d  17233  base-clock-changes.txt
+129884159127b2361faa9d48e4c8f814d9fd38559cf0c16b2e4423b1b54f7cfc  1552  build-diag-transcript.txt
+80b1e839334a79522f0c2a68629931a783d4f61f79515df4cea205ac0b4e101b  2867  create-diag-command.txt
+148c5403224276b96ab6f1465837b7ea42faf6c1ecd970fd2436327c3f107c4f  8840  create-diag-transcript.txt
+88566ea1aa7acc8308d2960174f24ce2a0f743869750404a7ecb9f7723696279  340627  diag-mask-0.stderr.txt
+d9f8b75d6490247539eeb2a1adc32494fe0d99ce683eb76ccac44357294a4c52  183  diag-mask-0.stdin.txt
+f474c47ec0a4a1890a2be7c8a60727b67d2c3005d03a9796ecbf7297be6b72d0  5115  diag-mask-0.stdout.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  0  diag-mask-1.stderr.txt
+d9f8b75d6490247539eeb2a1adc32494fe0d99ce683eb76ccac44357294a4c52  183  diag-mask-1.stdin.txt
+6366cd865e88d999d33bc2c92456ed51bacb92c0e0ef62283324ea5955b4b416  5115  diag-mask-1.stdout.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  0  diag-mask-16.stderr.txt
+d9f8b75d6490247539eeb2a1adc32494fe0d99ce683eb76ccac44357294a4c52  183  diag-mask-16.stdin.txt
+972c68dd48b5c8f128f46ed5e245e871a51e72385e09423f60cb98255235c2d7  5115  diag-mask-16.stdout.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  0  diag-mask-2.stderr.txt
+d9f8b75d6490247539eeb2a1adc32494fe0d99ce683eb76ccac44357294a4c52  183  diag-mask-2.stdin.txt
+cfdb633fc570aa22f71ba9c969b99e5bab5324a771ed15b9f5d028438783435a  5115  diag-mask-2.stdout.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  0  diag-mask-32.stderr.txt
+d9f8b75d6490247539eeb2a1adc32494fe0d99ce683eb76ccac44357294a4c52  183  diag-mask-32.stdin.txt
+e757c04430c61abd028e115d4284ec3142400512df93fd7e50aaabf04311299f  5125  diag-mask-32.stdout.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  0  diag-mask-4.stderr.txt
+d9f8b75d6490247539eeb2a1adc32494fe0d99ce683eb76ccac44357294a4c52  183  diag-mask-4.stdin.txt
+a44c6ccbb0d5cf0e863758581fa16a6ccce02376a6455bc8c318662cf32a9b35  5115  diag-mask-4.stdout.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  0  diag-mask-56.stderr.txt
+d9f8b75d6490247539eeb2a1adc32494fe0d99ce683eb76ccac44357294a4c52  183  diag-mask-56.stdin.txt
+2c5d0bd4179ce4532f67cd7e4d945f4abc9c1a5c0b0a88a62deea1531f0d8936  5120  diag-mask-56.stdout.txt
+51627474a07033b1fbc48819f7d34a50442b23d48d2b98fb0b7a0a7708c75ef1  446995  diag-mask-63.stderr.txt
+d9f8b75d6490247539eeb2a1adc32494fe0d99ce683eb76ccac44357294a4c52  183  diag-mask-63.stdin.txt
+edf75cb46ed847ba3f22e64a7479bc3dcc52edef8bda5f0d16ecd281f2c4f4f0  5120  diag-mask-63.stdout.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  0  diag-mask-7.stderr.txt
+d9f8b75d6490247539eeb2a1adc32494fe0d99ce683eb76ccac44357294a4c52  183  diag-mask-7.stdin.txt
+f292f9f0e990130896f2448288bf5f9d86fb42ee300ea65fd6e24233906df32a  5120  diag-mask-7.stdout.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  0  diag-mask-8.stderr.txt
+d9f8b75d6490247539eeb2a1adc32494fe0d99ce683eb76ccac44357294a4c52  183  diag-mask-8.stdin.txt
+f325673bc4f7290fff64e2343fa967f69cbea1596e2eb07ca814a2b8c2c66492  5115  diag-mask-8.stdout.txt
+ede6837cacf1bda21e05a65de08fc3df22d536acabfdfdb74e2c049420c05f84  397207  diag-pvtrace-mask-2.stderr.txt
+d9f8b75d6490247539eeb2a1adc32494fe0d99ce683eb76ccac44357294a4c52  183  diag-pvtrace-mask-2.stdin.txt
+d7936909db9a45fa4e5386e7854fe13477af6aa150923425dedd522f91da4d4f  5120  diag-pvtrace-mask-2.stdout.txt
+44eb827b7ad9d490f77466942e8327e07c472019539651307ebfd417f9203401  3574  final-provenance.txt
+b888db8ec705e24482cf223a50733943f71f1bf642cf1d8d708c85c4ad568189  8813  group-ablation-and-lines.txt
+7867f0459dbdd9e6d66a580763f4cd6c90c6eadf4f54fead35e179becd3171b5  192146  initial-inspection.txt
+e6df31fb812a2e87b7242089b6c0e9c8641b3ffe3b65e09f04a5fb1334620779  9465  initial-logging-failure.txt
+c1a6c86dcc64b9d853e28839aa3f03e2ae91fe6bd788380e8a6dd05d4029ffd6  152819  original-comparator-pending.txt
+9209b1dfdd93709f6528364fb5911a94a644212b05248bcc3f446faa607cb0cf  1992  package-command.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  0  production-lock.stderr.txt
+d9f8b75d6490247539eeb2a1adc32494fe0d99ce683eb76ccac44357294a4c52  183  production-lock.stdin.txt
+c7b1421b2470e8556cb836a682e0c4cd50fb72a1eb43425460269c9b24aa1758  4854  production-lock.stdout.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  0  production-merged.stderr.txt
+d9f8b75d6490247539eeb2a1adc32494fe0d99ce683eb76ccac44357294a4c52  183  production-merged.stdin.txt
+4b5e313f917abdcc322fde96f46f96ed7d229faa3b1c6c8f1db2f2da90ebe5bb  5120  production-merged.stdout.txt
+23b6fff4440e1a7ccaae8d665ab27335711fe56fbc2c5c274e69d19b5c5f10d2  4430  pvtrace-transcript.txt
+e8fc5b735ddc2c1e96457da42a318db404ee57455b3ff484cfc8aad021f320b8  2403  run-diag-command.txt
+9f4910ab401bf855ee84a100ec810d2c712575a9ce3fc19404f94cf779bd1af7  6351  run-diag-transcript.txt
+0caa11a7e313705c83184cd2a1d0f6147078836187727fd2011d28957136ec9f  2230  run-groups-command.txt
+2d85cf6f24bbbc5cf693317f712caaad5d1c86a6f39b42958b3934eb0f8a9377  2220  run-pvtrace-command.txt
+a7309979f33741c171d5ceb2a6d0b404d2b232f9026fd5eefcd0d62557011cbf  94685  search-diag.cpp.txt
+15bdf4c9192203a8deb639fb0f5d0aa5d4a979a40ea2e3b8c51e4b91f120a280  5598  search-diag.patch.txt
+d137770f39136dae4f69897b07e94533a6b3266b19ecebe62f22b88597025576  16424  t23-delta-and-build-flags.txt
+
+PASS report evidence links resolve.
+REPORT_SHA256=f448aaf47067c568fdb70faaee3dd175700be0571da613ead8291158a992d3db
++ git diff --name-only -- forge-combo29/src forge-combo29/include
++ git diff --check -- forge-combo29/soak_all/search_equality_investigation.md forge-combo29/soak_all/search_equality_evidence

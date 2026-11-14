@@ -1,0 +1,19 @@
+node <<'NODE'
+const fs=require('fs'),dir='/workspace/work/all-run/C-3228-review';
+const rows=name=>fs.readFileSync(dir+'/'+name+'.stderr.txt','utf8').trim().split('\n').filter(Boolean);
+const a=rows('diag-mask-0'),b=rows('diag-mask-63');
+let common=0;while(common<Math.min(a.length,b.length)&&a[common]===b[common])++common;
+for(const [name,lines] of [['merged-gates',a],['prior-gates',b]]) {
+ const by={};let maxClock=0,maxPly=0;
+ for(const line of lines){const rd=/root_depth=(\d+)/.exec(line)[1];by[rd]=(by[rd]||0)+1;maxClock=Math.max(maxClock,+/clock=(\d+)/.exec(line)[1]);maxPly=Math.max(maxPly,+/ply=(\d+)/.exec(line)[1]);}
+ console.log(JSON.stringify({name,near90TraceLines:lines.length,byRootDepth:by,maxClock,maxPly,first:lines[0]}));
+}
+console.log('COMMON_TRACE_PREFIX='+common);
+for(const [name,lines] of [['merged-gates',a],['prior-gates',b]])console.log(name+' first-divergence-context:\n'+lines.slice(Math.max(0,common-3),common+4).join('\n'));
+const eligible=a.filter(line=>{
+ const fields=Object.fromEntries([...line.matchAll(/(\w+)=([^ ]+)/g)].map(m=>[m[1],m[2]]));
+ if(fields.tt_hit!=='1')return false;
+ return (fields.tt_clock!==fields.clock && fields.tt_move!=='0000') || (fields.tt_pv==='1'&&fields.pv==='0') || (line.startsWith('C3228 Q')&&fields.tt_clock===fields.clock&&fields.pv==='0'&&(fields.tt_bound==='3'||fields.tt_bound==='2'&&+fields.tt_score>=+fields.beta||fields.tt_bound==='1'&&+fields.tt_score<=+fields.alpha));
+});
+console.log('FIRST_POTENTIAL_DIFFERENCE_GATES:\n'+eligible.slice(0,5).join('\n'));
+NODE

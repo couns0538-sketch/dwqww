@@ -1,0 +1,297 @@
++ git show --format=fuller --stat affb2cb -- forge-combo29/src/search.cpp forge-combo29/include/forge/search.hpp
+commit affb2cb97302870751ea727a96a533c5d5baa5aa
+Author:     Cursor Agent <cursoragent@cursor.com>
+AuthorDate: Sat Nov 14 08:13:35 2026 +0000
+Commit:     Cursor Agent <cursoragent@cursor.com>
+CommitDate: Sat Nov 14 08:13:35 2026 +0000
+
+    t23: fix stale TT/pruning scores near 50-move rule and add regression test
+    
+    Co-authored-by: couns0538-sketch <couns0538-sketch@users.noreply.github.com>
+
+ forge-combo29/src/search.cpp | 69 ++++++++++++++++++++++----------------------
+ 1 file changed, 35 insertions(+), 34 deletions(-)
++ git show affb2cb -- forge-combo29/src/search.cpp forge-combo29/include/forge/search.hpp
+commit affb2cb97302870751ea727a96a533c5d5baa5aa
+Author: Cursor Agent <cursoragent@cursor.com>
+Date:   Sat Nov 14 08:13:35 2026 +0000
+
+    t23: fix stale TT/pruning scores near 50-move rule and add regression test
+    
+    Co-authored-by: couns0538-sketch <couns0538-sketch@users.noreply.github.com>
+
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b41e6c7..0835ab5 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -1019,12 +1019,13 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+ #endif
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+-    const Move tt_move = tt_hit ? tte.move : Move::none();
++    const bool near50 = board.halfmove_clock() >= 90;
++    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+                              ? score_from_tt(tte.score, ply) : ValueNone;
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+-    const bool tt_pv = pv_node || (tt_hit && tte.pv());
+-    if (!pv_node && tt_hit && tt_score != ValueNone &&
++    const bool tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
++    if (!pv_node && !near50 && tt_hit && tt_score != ValueNone &&
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
+@@ -1166,13 +1167,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ #endif
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+-    const Move tt_move = tt_hit ? tte.move : Move::none();
++    const bool near50 = board.halfmove_clock() >= 90;
++    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+                              ? score_from_tt(tte.score, ply) : ValueNone;
+     const int tt_depth = tt_hit ? tte.depth : -1;
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
+-    ss->tt_pv = pv_node || (tt_hit && tte.pv());
++    ss->tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+ 
+     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+@@ -1206,7 +1208,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         else improving = true;
+     }
+ 
+-    if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0) {
++    if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0 &&
++        board.halfmove_clock() + depth < 100) {
+         // Razoring: hopeless positions fall back to quiescence.
+         if (depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+             const int razor = qsearch(board, ss, alpha - 1, alpha);
+@@ -1331,7 +1334,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
+ 
+         // Shallow-depth pruning of unpromising moves.
+-        if (mate_moves_ == 0 && !root_node && best_score > -MateInMaxPly && has_material) {
++        if (mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node && best_score > -MateInMaxPly && has_material) {
+             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             if (quiet && !gives_check) {
+@@ -1359,34 +1362,32 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ 
+         // Extensions.
+         int extension = 0;
+-        if (mate_moves_ == 0) {
+-            if (!root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() && tt_bound != BoundUpper &&
+-                tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
+-                const int singular_beta = tt_score - tune::SingularMargin * depth;
+-                const int singular_depth = (depth - 1) / 2;
+-                const bool saved_tt_pv = ss->tt_pv;
+-                ss->excluded_move = move;
+-                const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
+-                ss->tt_pv = saved_tt_pv;
+-                ss->double_extensions = inherited_double_extensions;
+-                ss->excluded_move = Move::none();
+-                if (aborted_) return 0;
+-                if (singular_score < singular_beta) {
+-                    extension = 1;
+-                    if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+-                        extension = 2;
+-                    }
+-                } else if (singular_beta >= beta) {
+-                    return singular_beta;
+-                } else if (tt_score >= beta) {
+-                    extension = -2;
+-                } else if (cut_node) {
+-                    extension = -1;
+-                }
+-            } else if (gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+-                       (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
++        if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() &&
++            tt_bound != BoundUpper && tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
++            const int singular_beta = tt_score - tune::SingularMargin * depth;
++            const int singular_depth = (depth - 1) / 2;
++            const bool saved_tt_pv = ss->tt_pv;
++            ss->excluded_move = move;
++            const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
++            ss->tt_pv = saved_tt_pv;
++            ss->double_extensions = inherited_double_extensions;
++            ss->excluded_move = Move::none();
++            if (aborted_) return 0;
++            if (singular_score < singular_beta) {
+                 extension = 1;
++                if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
++                    extension = 2;
++                }
++            } else if (singular_beta >= beta) {
++                return singular_beta;
++            } else if (tt_score >= beta) {
++                extension = -2;
++            } else if (cut_node) {
++                extension = -1;
+             }
++        } else if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
++                   (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
++            extension = 1;
+         }
+         ss->double_extensions = inherited_double_extensions + (extension == 2);
+         const int new_depth = depth - 1 + extension;
+@@ -1419,7 +1420,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ 
+         int score = -Infinite;
+         bool full_depth_needed = !pv_node || move_count > 1;
+-        if (mate_moves_ == 0 && depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && (quiet || !ss->tt_pv || move_count > 4)) {
++        if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && (quiet || !ss->tt_pv || move_count > 4)) {
+             int r = reduction(quiet, depth, move_count);
+             if (ss->tt_pv) r -= 1;
+             if (!improving) r += 1;
++ nl -ba forge-combo29/src/search.cpp
++ sed -n 1045,1115p
+  1045	    if (aborted_) return 0;
+  1046	    ++local_nodes_;
+  1047	    seldepth_ = std::max(seldepth_, ply);
+  1048	    ss->pv_length = 0;
+  1049	
+  1050	    if (is_draw(board, ply)) return 0;
+  1051	    if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
+  1052	
+  1053	    const bool in_check = board.in_check();
+  1054	    ss->in_check = in_check;
+  1055	
+  1056	    if (mate_moves_ > 0) {
+  1057	        alpha = std::max(alpha, mated_in(ply));
+  1058	        beta = std::min(beta, mate_in(ply + 1));
+  1059	        if (alpha >= beta) return alpha;
+  1060	    }
+  1061	
+  1062	#if FORGE_SPD_TT_NOTLS
+  1063	    const TTProbe tt_probe = probe_tt(board.key());
+  1064	#else
+  1065	    const TTProbe tt_probe = shared_.tt.probe(board.key());
+  1066	#endif
+  1067	    const bool tt_hit = tt_probe.hit;
+  1068	    const TTEntry& tte = tt_probe.entry;
+  1069	    const bool near50 = board.halfmove_clock() >= 90;
+  1070	    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+  1071	    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+  1072	                             ? score_from_tt(tte.score, ply) : ValueNone;
+  1073	    const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+  1074	    const bool tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+  1075	    if (!pv_node && !near50 && tt_hit && tt_score != ValueNone &&
+  1076	        (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+  1077	        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+  1078	         (tt_bound == BoundUpper && tt_score <= alpha))) {
+  1079	        return tt_score;
+  1080	    }
+  1081	
+  1082	    int best_score;
+  1083	    int futility_base;
+  1084	    if (in_check) {
+  1085	        ss->static_eval = ValueNone;
+  1086	        best_score = futility_base = -Infinite;
+  1087	    } else {
+  1088	        int eval;
+  1089	        if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+  1090	        else ss->raw_eval = static_evaluate(board, ss);
+  1091	        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+  1092	        if (tt_hit && tt_score != ValueNone &&
+  1093	            ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+  1094	             tt_bound == BoundExact)) {
+  1095	            eval = tt_score;
+  1096	        }
+  1097	        best_score = eval;
+  1098	        if (best_score >= beta) {
+  1099	#if FORGE_SPD_TT_NOTLS
+  1100	            if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+  1101	#else
+  1102	            if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+  1103	#endif
+  1104	            return best_score;
+  1105	        }
+  1106	        if (best_score > alpha) alpha = best_score;
+  1107	        futility_base = ss->static_eval + tune::QsFutilityMargin;
+  1108	    }
+  1109	
+  1110	    MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+  1111	    Move best_move = Move::none();
+  1112	    int move_count = 0;
+  1113	    Move move;
+  1114	    while (!(move = picker.next(false)).is_none()) {
+  1115	        if (!board.is_legal(move)) continue;
++ nl -ba forge-combo29/src/search.cpp
++ sed -n 1200,1270p
+  1200	
+  1201	    const bool in_check = board.in_check();
+  1202	    ss->in_check = in_check;
+  1203	    const Move excluded = ss->excluded_move;
+  1204	    (ss + 1)->excluded_move = Move::none();
+  1205	    (ss + 1)->cutoff_count = 0;
+  1206	    // Children share killers with their siblings; grandchildren start afresh.
+  1207	    (ss + 2)->killers = {};
+  1208	
+  1209	    // Transposition table probe.
+  1210	#if FORGE_SPD_TT_NOTLS
+  1211	    const TTProbe tt_probe = probe_tt(board.key());
+  1212	#else
+  1213	    const TTProbe tt_probe = shared_.tt.probe(board.key());
+  1214	#endif
+  1215	    const bool tt_hit = tt_probe.hit;
+  1216	    const TTEntry& tte = tt_probe.entry;
+  1217	    const bool near50 = board.halfmove_clock() >= 90;
+  1218	    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+  1219	    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+  1220	                             ? score_from_tt(tte.score, ply) : ValueNone;
+  1221	    const int tt_depth = tt_hit ? tte.depth : -1;
+  1222	    const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+  1223	    const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
+  1224	    ss->tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+  1225	
+  1226	    if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+  1227	        (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+  1228	        board.halfmove_clock() < 90 &&
+  1229	        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+  1230	         (tt_bound == BoundUpper && tt_score <= alpha))) {
+  1231	        return tt_score;
+  1232	    }
+  1233	
+  1234	    // Static evaluation.
+  1235	    int eval;
+  1236	    if (in_check) {
+  1237	        eval = ss->static_eval = ss->raw_eval = ValueNone;
+  1238	    } else if (!excluded.is_none()) {
+  1239	        eval = ss->static_eval;
+  1240	    } else {
+  1241	        if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+  1242	        else ss->raw_eval = static_evaluate(board, ss);
+  1243	        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+  1244	        if (tt_hit && tt_score != ValueNone &&
+  1245	            ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+  1246	             tt_bound == BoundExact)) {
+  1247	            eval = tt_score;
+  1248	        }
+  1249	    }
+  1250	
+  1251	    bool improving = false;
+  1252	    if (!in_check) {
+  1253	        if ((ss - 2)->static_eval != ValueNone) improving = ss->static_eval > (ss - 2)->static_eval;
+  1254	        else if ((ss - 4)->static_eval != ValueNone) improving = ss->static_eval > (ss - 4)->static_eval;
+  1255	        else improving = true;
+  1256	    }
+  1257	
+  1258	#if FORGE_BARE_KING_MATE_FIX
+  1259	    const bool multi_worker = all_workers_ != nullptr && all_workers_->size() > 1;
+  1260	    const bool bare_king_mode = multi_worker &&
+  1261	        (board.occupied(White) == board.pieces(White, King) ||
+  1262	         board.occupied(Black) == board.pieces(Black, King));
+  1263	#else
+  1264	    constexpr bool bare_king_mode = false;
+  1265	#endif
+  1266	
+  1267	    if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0 &&
+  1268	        board.halfmove_clock() + depth < 100) {
+  1269	        // Razoring: hopeless positions fall back to quiescence.
+  1270	        if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
++ cat /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/link.txt
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/forge.dir/link.d CMakeFiles/forge.dir/src/bitboard.cpp.o CMakeFiles/forge.dir/src/board.cpp.o CMakeFiles/forge.dir/src/book.cpp.o CMakeFiles/forge.dir/src/eval.cpp.o CMakeFiles/forge.dir/src/eval_params.cpp.o CMakeFiles/forge.dir/src/nnue.cpp.o CMakeFiles/forge.dir/src/search.cpp.o CMakeFiles/forge.dir/src/uci.cpp.o -o forge
++ taskset -pc 1150887
+pid 1150887's current affinity list: 0-4

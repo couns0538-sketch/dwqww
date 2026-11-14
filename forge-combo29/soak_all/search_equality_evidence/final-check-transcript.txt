@@ -1,0 +1,25 @@
++ cat /workspace/work/all-run/C-3228-review/final-check-command.txt
+node <<'NODE'
+const fs=require('fs'),crypto=require('crypto'),path=require('path');
+const base='forge-combo29/soak_all/search_equality_evidence';
+const copied=fs.readFileSync('/workspace/work/all-run/C-3228-package.txt');
+fs.writeFileSync(path.join(base,'package-transcript.txt'),copied,{flag:'wx'});
+fs.appendFileSync(path.join(base,'manifest.txt'),crypto.createHash('sha256').update(copied).digest('hex')+'  '+copied.length+'  package-transcript.txt\n');
+for(const line of fs.readFileSync(path.join(base,'manifest.txt'),'utf8').trim().split('\n')) {
+ const m=/^(\w+)  (\d+)  (.+)$/.exec(line);const b=fs.readFileSync(path.join(base,m[3]));
+ if(b.length!==+m[2]||crypto.createHash('sha256').update(b).digest('hex')!==m[1])throw Error('manifest mismatch '+m[3]);
+}
+const original=fs.readFileSync(path.join(base,'original-comparator-pending.txt'),'utf8');
+const attempts=[...original.matchAll(/^ATTEMPT (\d+) (.+)$/gm)].map(m=>JSON.parse(m[2]));
+if(attempts.length!==11||attempts.some(a=>a.merged.result.nodes!==31749||a.lock.result.nodes!==32435||!a.different))throw Error('original reproductions differ');
+const normalized=name=>fs.readFileSync(path.join(base,name+'.stdout.txt'),'utf8').split('\n').filter(s=>s.startsWith('info depth ')).map(s=>s.replace(/ nps \d+/,'').replace(/ time \d+/,'')).join('\n');
+if(normalized('production-merged')!==normalized('diag-mask-0'))throw Error('instrumentation changes production info');
+if(normalized('production-lock')!==normalized('diag-mask-7'))throw Error('three TT ablation does not match lock info');
+console.log('PASS manifest: 60 text evidence files byte/hash verified.');
+console.log('PASS original initial pair + ten additional pairs: merged31749 lock32435 in all11.');
+console.log('PASS all per-depth info fields excluding time/nps: mask0 equals merged; mask7 equals lock.');
+NODE
++ node
+PASS manifest: 60 text evidence files byte/hash verified.
+PASS original initial pair + ten additional pairs: merged31749 lock32435 in all11.
+PASS all per-depth info fields excluding time/nps: mask0 equals merged; mask7 equals lock.

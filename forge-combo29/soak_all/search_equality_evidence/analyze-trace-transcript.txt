@@ -1,0 +1,46 @@
++ cat /workspace/work/all-run/C-3228-review/analyze-trace-command.txt
+node <<'NODE'
+const fs=require('fs'),dir='/workspace/work/all-run/C-3228-review';
+const rows=name=>fs.readFileSync(dir+'/'+name+'.stderr.txt','utf8').trim().split('\n').filter(Boolean);
+const a=rows('diag-mask-0'),b=rows('diag-mask-63');
+let common=0;while(common<Math.min(a.length,b.length)&&a[common]===b[common])++common;
+for(const [name,lines] of [['merged-gates',a],['prior-gates',b]]) {
+ const by={};let maxClock=0,maxPly=0;
+ for(const line of lines){const rd=/root_depth=(\d+)/.exec(line)[1];by[rd]=(by[rd]||0)+1;maxClock=Math.max(maxClock,+/clock=(\d+)/.exec(line)[1]);maxPly=Math.max(maxPly,+/ply=(\d+)/.exec(line)[1]);}
+ console.log(JSON.stringify({name,near90TraceLines:lines.length,byRootDepth:by,maxClock,maxPly,first:lines[0]}));
+}
+console.log('COMMON_TRACE_PREFIX='+common);
+for(const [name,lines] of [['merged-gates',a],['prior-gates',b]])console.log(name+' first-divergence-context:\n'+lines.slice(Math.max(0,common-3),common+4).join('\n'));
+const eligible=a.filter(line=>{
+ const fields=Object.fromEntries([...line.matchAll(/(\w+)=([^ ]+)/g)].map(m=>[m[1],m[2]]));
+ if(fields.tt_hit!=='1')return false;
+ return (fields.tt_clock!==fields.clock && fields.tt_move!=='0000') || (fields.tt_pv==='1'&&fields.pv==='0') || (line.startsWith('C3228 Q')&&fields.tt_clock===fields.clock&&fields.pv==='0'&&(fields.tt_bound==='3'||fields.tt_bound==='2'&&+fields.tt_score>=+fields.beta||fields.tt_bound==='1'&&+fields.tt_score<=+fields.alpha));
+});
+console.log('FIRST_POTENTIAL_DIFFERENCE_GATES:\n'+eligible.slice(0,5).join('\n'));
+NODE
++ node
+{"name":"merged-gates","near90TraceLines":1724,"byRootDepth":{"9":1724},"maxClock":99,"maxPly":23,"first":"C3228 S depth=5 root_depth=9 node=24866 ply=14 clock=90 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=84 tt_move=a7b7 tt_depth=0 tt_pv=1 tt_bound=2 tt_score=-1229 pv=0 fen=5k2/K7/7p/2q4P/8/8/8/8 w - - 90 143"}
+{"name":"prior-gates","near90TraceLines":2260,"byRootDepth":{"9":2260},"maxClock":99,"maxPly":23,"first":"C3228 S depth=5 root_depth=9 node=24866 ply=14 clock=90 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=84 tt_move=a7b7 tt_depth=0 tt_pv=1 tt_bound=2 tt_score=-1229 pv=0 fen=5k2/K7/7p/2q4P/8/8/8/8 w - - 90 143"}
+COMMON_TRACE_PREFIX=3
+merged-gates first-divergence-context:
+C3228 S depth=5 root_depth=9 node=24866 ply=14 clock=90 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=84 tt_move=a7b7 tt_depth=0 tt_pv=1 tt_bound=2 tt_score=-1229 pv=0 fen=5k2/K7/7p/2q4P/8/8/8/8 w - - 90 143
+C3228 S depth=5 root_depth=9 node=24868 ply=14 clock=90 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=80 tt_move=a7b7 tt_depth=2 tt_pv=0 tt_bound=2 tt_score=-1298 pv=0 fen=5k2/K7/7p/7P/q7/8/8/8 w - - 90 143
+C3228 S depth=4 root_depth=9 node=24869 ply=15 clock=91 alpha=1689 beta=1690 tt_hit=1 tt_clock=83 tt_move=a1a1 tt_depth=1 tt_pv=1 tt_bound=1 tt_score=1229 pv=0 fen=5k2/1K6/7p/7P/q7/8/8/8 b - - 91 143
+C3228 S depth=3 root_depth=9 node=24871 ply=16 clock=92 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=82 tt_move=b7a7 tt_depth=2 tt_pv=0 tt_bound=2 tt_score=-1229 pv=0 fen=5k2/1K6/7p/7P/1q6/8/8/8 w - - 92 144
+C3228 S depth=2 root_depth=9 node=24872 ply=17 clock=93 alpha=1689 beta=1690 tt_hit=1 tt_clock=83 tt_move=a1a1 tt_depth=1 tt_pv=0 tt_bound=1 tt_score=1229 pv=0 fen=5k2/K7/7p/7P/1q6/8/8/8 b - - 93 144
+C3228 S depth=2 root_depth=9 node=24873 ply=18 clock=94 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=90 tt_move=a7b7 tt_depth=5 tt_pv=0 tt_bound=2 tt_score=0 pv=0 fen=5k2/K7/7p/2q4P/8/8/8/8 w - - 94 145
+C3228 S depth=2 root_depth=9 node=24876 ply=18 clock=94 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=80 tt_move=a7a8 tt_depth=3 tt_pv=0 tt_bound=2 tt_score=-1261 pv=0 fen=5k2/K7/7p/7P/3q4/8/8/8 w - - 94 145
+prior-gates first-divergence-context:
+C3228 S depth=5 root_depth=9 node=24866 ply=14 clock=90 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=84 tt_move=a7b7 tt_depth=0 tt_pv=1 tt_bound=2 tt_score=-1229 pv=0 fen=5k2/K7/7p/2q4P/8/8/8/8 w - - 90 143
+C3228 S depth=5 root_depth=9 node=24868 ply=14 clock=90 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=80 tt_move=a7b7 tt_depth=2 tt_pv=0 tt_bound=2 tt_score=-1298 pv=0 fen=5k2/K7/7p/7P/q7/8/8/8 w - - 90 143
+C3228 S depth=4 root_depth=9 node=24869 ply=15 clock=91 alpha=1689 beta=1690 tt_hit=1 tt_clock=83 tt_move=a1a1 tt_depth=1 tt_pv=1 tt_bound=1 tt_score=1229 pv=0 fen=5k2/1K6/7p/7P/q7/8/8/8 b - - 91 143
+C3228 S depth=4 root_depth=9 node=24871 ply=16 clock=92 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=82 tt_move=b7a7 tt_depth=2 tt_pv=0 tt_bound=2 tt_score=-1229 pv=0 fen=5k2/1K6/7p/7P/1q6/8/8/8 w - - 92 144
+C3228 S depth=3 root_depth=9 node=24872 ply=17 clock=93 alpha=1689 beta=1690 tt_hit=1 tt_clock=83 tt_move=a1a1 tt_depth=1 tt_pv=0 tt_bound=1 tt_score=1229 pv=0 fen=5k2/K7/7p/7P/1q6/8/8/8 b - - 93 144
+C3228 S depth=3 root_depth=9 node=24873 ply=18 clock=94 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=90 tt_move=a7b7 tt_depth=5 tt_pv=1 tt_bound=2 tt_score=0 pv=0 fen=5k2/K7/7p/2q4P/8/8/8/8 w - - 94 145
+C3228 S depth=3 root_depth=9 node=24876 ply=18 clock=94 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=80 tt_move=a7a8 tt_depth=3 tt_pv=0 tt_bound=2 tt_score=-1261 pv=0 fen=5k2/K7/7p/7P/3q4/8/8/8 w - - 94 145
+FIRST_POTENTIAL_DIFFERENCE_GATES:
+C3228 S depth=5 root_depth=9 node=24866 ply=14 clock=90 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=84 tt_move=a7b7 tt_depth=0 tt_pv=1 tt_bound=2 tt_score=-1229 pv=0 fen=5k2/K7/7p/2q4P/8/8/8/8 w - - 90 143
+C3228 S depth=5 root_depth=9 node=24868 ply=14 clock=90 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=80 tt_move=a7b7 tt_depth=2 tt_pv=0 tt_bound=2 tt_score=-1298 pv=0 fen=5k2/K7/7p/7P/q7/8/8/8 w - - 90 143
+C3228 S depth=4 root_depth=9 node=24869 ply=15 clock=91 alpha=1689 beta=1690 tt_hit=1 tt_clock=83 tt_move=a1a1 tt_depth=1 tt_pv=1 tt_bound=1 tt_score=1229 pv=0 fen=5k2/1K6/7p/7P/q7/8/8/8 b - - 91 143
+C3228 S depth=3 root_depth=9 node=24871 ply=16 clock=92 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=82 tt_move=b7a7 tt_depth=2 tt_pv=0 tt_bound=2 tt_score=-1229 pv=0 fen=5k2/1K6/7p/7P/1q6/8/8/8 w - - 92 144
+C3228 S depth=2 root_depth=9 node=24872 ply=17 clock=93 alpha=1689 beta=1690 tt_hit=1 tt_clock=83 tt_move=a1a1 tt_depth=1 tt_pv=0 tt_bound=1 tt_score=1229 pv=0 fen=5k2/K7/7p/7P/1q6/8/8/8 b - - 93 144

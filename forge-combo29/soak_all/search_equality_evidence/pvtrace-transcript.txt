@@ -1,0 +1,39 @@
++ sed -e 's/\[7,56\]/[2]/' -e 's/'\''diag-mask-'\''/'\''diag-pvtrace-mask-'\''/' -e 's/mask===0||mask===63/true/' /workspace/work/all-run/C-3228-review/run-groups-command.txt
++ cat /workspace/work/all-run/C-3228-review/run-pvtrace-command.txt
+taskset -c 4 timeout 60 node <<'NODE'
+const fs=require('fs'), {spawn}=require('child_process');
+const dir='/workspace/work/all-run/C-3228-review';
+const fen='5k2/8/7p/1K5P/8/8/8/7q w - - 76 136';
+async function run(name,exe,mask,trace=false) {
+ let stdout='',stderr='',commands='',pending='',waiters=[],closed=false,status;
+ const env={...process.env};if(mask!==undefined)env.C3228_MASK=String(mask);if(trace)env.C3228_TRACE='1';
+ const child=spawn(exe,[],{env,stdio:['pipe','pipe','pipe']});
+ const exited=new Promise(resolve=>child.on('close',(code,signal)=>{closed=true;status={code,signal};resolve(status);}));
+ child.stdout.on('data',data=>{stdout+=data;pending+=data;let n;while((n=pending.indexOf('\n'))>=0){const line=pending.slice(0,n);pending=pending.slice(n+1);for(const w of [...waiters])if(w.test(line)){waiters.splice(waiters.indexOf(w),1);w.resolve(line);}}});
+ child.stderr.on('data',data=>stderr+=data);
+ const wait=test=>new Promise((resolve,reject)=>{if(closed)return reject(Error('closed'));waiters.push({test,resolve});});
+ const send=s=>{commands+=s+'\n';child.stdin.write(s+'\n');};
+ const timer=setTimeout(()=>child.kill('SIGKILL'),10000);
+ let expected=wait(s=>s==='uciok');send('uci');await expected;
+ for(const s of ['setoption name Threads value 1','setoption name Hash value 16','setoption name OwnBook value false','ucinewgame'])send(s);
+ expected=wait(s=>s==='readyok');send('isready');await expected;
+ send('position fen '+fen);expected=wait(s=>s.startsWith('bestmove '));send('go depth 9');const bestmove=await expected;send('quit');await exited;clearTimeout(timer);
+ fs.writeFileSync(dir+'/'+name+'.stdin.txt',commands);fs.writeFileSync(dir+'/'+name+'.stdout.txt',stdout);fs.writeFileSync(dir+'/'+name+'.stderr.txt',stderr);
+ const final=stdout.trim().split('\n').filter(s=>s.startsWith('info depth 9 ')).at(-1);
+ console.log(JSON.stringify({name,exe,mask,trace,final,bestmove,...status,stderrBytes:Buffer.byteLength(stderr),artifacts:dir+'/'+name}));
+ if(status.code!==0||status.signal)throw Error('engine failed '+name);
+}
+(async()=>{
+ for(const mask of [2])await run('diag-pvtrace-mask-'+mask,dir+'/forge-diag',mask,true);
+})().catch(e=>{console.error(e);process.exitCode=1;});
+NODE
++ bash /workspace/work/all-run/C-3228-review/run-pvtrace-command.txt
+{"name":"diag-pvtrace-mask-2","exe":"/workspace/work/all-run/C-3228-review/forge-diag","mask":2,"trace":true,"final":"info depth 9 seldepth 23 score cp -1689 nodes 32156 nps 284566 hashfull 6 time 113 pv b5c4 h1h5 c4d3 h5f3 d3d2 h6h5 d2e1 f3f6 e1e2 h5h4 e2e3","bestmove":"bestmove b5c4","code":0,"signal":null,"stderrBytes":397207,"artifacts":"/workspace/work/all-run/C-3228-review/diag-pvtrace-mask-2"}
++ sed -n 1,7p /workspace/work/all-run/C-3228-review/diag-pvtrace-mask-2.stderr.txt
+C3228 S depth=5 root_depth=9 node=24866 ply=14 clock=90 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=84 tt_move=a7b7 tt_depth=0 tt_pv=1 tt_bound=2 tt_score=-1229 pv=0 fen=5k2/K7/7p/2q4P/8/8/8/8 w - - 90 143
+C3228 S depth=5 root_depth=9 node=24868 ply=14 clock=90 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=80 tt_move=a7b7 tt_depth=2 tt_pv=0 tt_bound=2 tt_score=-1298 pv=0 fen=5k2/K7/7p/7P/q7/8/8/8 w - - 90 143
+C3228 S depth=4 root_depth=9 node=24869 ply=15 clock=91 alpha=1689 beta=1690 tt_hit=1 tt_clock=83 tt_move=a1a1 tt_depth=1 tt_pv=1 tt_bound=1 tt_score=1229 pv=0 fen=5k2/1K6/7p/7P/q7/8/8/8 b - - 91 143
+C3228 S depth=4 root_depth=9 node=24871 ply=16 clock=92 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=82 tt_move=b7a7 tt_depth=2 tt_pv=0 tt_bound=2 tt_score=-1229 pv=0 fen=5k2/1K6/7p/7P/1q6/8/8/8 w - - 92 144
+C3228 S depth=3 root_depth=9 node=24872 ply=17 clock=93 alpha=1689 beta=1690 tt_hit=1 tt_clock=83 tt_move=a1a1 tt_depth=1 tt_pv=0 tt_bound=1 tt_score=1229 pv=0 fen=5k2/K7/7p/7P/1q6/8/8/8 b - - 93 144
+C3228 S depth=3 root_depth=9 node=24873 ply=18 clock=94 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=90 tt_move=a7b7 tt_depth=5 tt_pv=1 tt_bound=2 tt_score=0 pv=0 fen=5k2/K7/7p/2q4P/8/8/8/8 w - - 94 145
+C3228 S depth=3 root_depth=9 node=24876 ply=18 clock=94 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=80 tt_move=a7a8 tt_depth=3 tt_pv=0 tt_bound=2 tt_score=-1261 pv=0 fen=5k2/K7/7p/7P/3q4/8/8/8 w - - 94 145

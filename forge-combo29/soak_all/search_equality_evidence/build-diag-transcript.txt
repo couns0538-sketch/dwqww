@@ -1,0 +1,9 @@
++ node -e 'const fs=require("fs"),p="/workspace/work/all-run/C-3228-review/search-diag.cpp",slash=String.fromCharCode(92);let s=fs.readFileSync(p,"utf8");s=s.replaceAll("\u0027"+slash+slash+"n\u0027","\u0027"+slash+"n\u0027");fs.writeFileSync(p,s);'
++ diff -u forge-combo29/src/search.cpp /workspace/work/all-run/C-3228-review/search-diag.cpp
++ test 1 -eq 1
++ taskset -c 4 timeout 120 g++ -std=c++20 -O3 -DNDEBUG -ffp-contract=off -fno-fast-math -march=x86-64-v4 -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_NNUE_HIDDEN=256 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_TT_NOTLS=1 -I forge-combo29/include -c /workspace/work/all-run/C-3228-review/search-diag.cpp -o /workspace/work/all-run/C-3228-review/search-diag.o
++ taskset -c 4 timeout 60 g++ -O3 -DNDEBUG /workspace/work/all-run/C-3228-review/search-diag.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/bitboard.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/board.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/book.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/eval.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/eval_params.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/nnue.cpp.o /workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/uci.cpp.o -o /workspace/work/all-run/C-3228-review/forge-diag
++ result=0
++ printf 'BUILD_EXIT=%s\n' 0
+BUILD_EXIT=0
++ exit 0

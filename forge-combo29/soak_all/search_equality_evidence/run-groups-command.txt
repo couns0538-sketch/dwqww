@@ -1,0 +1,27 @@
+taskset -c 4 timeout 60 node <<'NODE'
+const fs=require('fs'), {spawn}=require('child_process');
+const dir='/workspace/work/all-run/C-3228-review';
+const fen='5k2/8/7p/1K5P/8/8/8/7q w - - 76 136';
+async function run(name,exe,mask,trace=false) {
+ let stdout='',stderr='',commands='',pending='',waiters=[],closed=false,status;
+ const env={...process.env};if(mask!==undefined)env.C3228_MASK=String(mask);if(trace)env.C3228_TRACE='1';
+ const child=spawn(exe,[],{env,stdio:['pipe','pipe','pipe']});
+ const exited=new Promise(resolve=>child.on('close',(code,signal)=>{closed=true;status={code,signal};resolve(status);}));
+ child.stdout.on('data',data=>{stdout+=data;pending+=data;let n;while((n=pending.indexOf('\n'))>=0){const line=pending.slice(0,n);pending=pending.slice(n+1);for(const w of [...waiters])if(w.test(line)){waiters.splice(waiters.indexOf(w),1);w.resolve(line);}}});
+ child.stderr.on('data',data=>stderr+=data);
+ const wait=test=>new Promise((resolve,reject)=>{if(closed)return reject(Error('closed'));waiters.push({test,resolve});});
+ const send=s=>{commands+=s+'\n';child.stdin.write(s+'\n');};
+ const timer=setTimeout(()=>child.kill('SIGKILL'),10000);
+ let expected=wait(s=>s==='uciok');send('uci');await expected;
+ for(const s of ['setoption name Threads value 1','setoption name Hash value 16','setoption name OwnBook value false','ucinewgame'])send(s);
+ expected=wait(s=>s==='readyok');send('isready');await expected;
+ send('position fen '+fen);expected=wait(s=>s.startsWith('bestmove '));send('go depth 9');const bestmove=await expected;send('quit');await exited;clearTimeout(timer);
+ fs.writeFileSync(dir+'/'+name+'.stdin.txt',commands);fs.writeFileSync(dir+'/'+name+'.stdout.txt',stdout);fs.writeFileSync(dir+'/'+name+'.stderr.txt',stderr);
+ const final=stdout.trim().split('\n').filter(s=>s.startsWith('info depth 9 ')).at(-1);
+ console.log(JSON.stringify({name,exe,mask,trace,final,bestmove,...status,stderrBytes:Buffer.byteLength(stderr),artifacts:dir+'/'+name}));
+ if(status.code!==0||status.signal)throw Error('engine failed '+name);
+}
+(async()=>{
+ for(const mask of [7,56])await run('diag-mask-'+mask,dir+'/forge-diag',mask,mask===0||mask===63);
+})().catch(e=>{console.error(e);process.exitCode=1;});
+NODE

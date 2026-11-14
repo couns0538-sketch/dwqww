@@ -1,0 +1,77 @@
+Exact shell command from the initial inspection (tool exit_code=1):
+{ set -x; mkdir -p /workspace/work/all-run/C-3228-review; git show -s --format='%H %P %s' fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca 91103a012c8f77f528606935dcff7184123617eb 5633a78d1ac0684bd0da6db5a0f6d26933c56031 61f59baedecd6c80d2a6803421d2f43e0890935a; git diff --stat 16833ecc03b425586f91f4c8834dea8807bf4c22 fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca -- forge-combo29/src forge-combo29/include; rg -n 'halfmove|rule50|bare_king|FORGE_T12|score_from_tt' forge-combo29/src/search.cpp forge-combo29/src/eval.cpp forge-combo29/include/forge/search.hpp; git log --format='%h %s' 16833ecc03b425586f91f4c8834dea8807bf4c22..91103a012c8f77f528606935dcff7184123617eb -- forge-combo29/src/search.cpp; } 2>&1 | tee /workspace/work/all-run/C-3228-review/scoped-source-index.txt
+
+Shell output copied verbatim from the tool response (the tee file was not created):
++ mkdir -p /workspace/work/all-run/C-3228-review
+tee: /workspace/work/all-run/C-3228-review/scoped-source-index.txt: No such file or directory
++ git show -s '--format=%H %P %s' fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca 91103a012c8f77f528606935dcff7184123617eb 5633a78d1ac0684bd0da6db5a0f6d26933c56031 61f59baedecd6c80d2a6803421d2f43e0890935a
+fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca 06535dffd3ce4d25f804ba270999e9238c01d551 Expand REPORT_t21.md with detailed root-cause analysis of what changed, findings, and defects
+91103a012c8f77f528606935dcff7184123617eb 9aacb04819186098a9eb8fb34f46ca13b1c46100 t23: document detailed root-cause analysis, traces, and line-by-line changes on branch
+5633a78d1ac0684bd0da6db5a0f6d26933c56031 b68d49fedcc8e705484d06fb02cf0a417734839f t22: expand REPORT_t22.md with detailed findings of what was wrong and what changed
+61f59baedecd6c80d2a6803421d2f43e0890935a f99d3c41026881f9d6dac322818072f7f1a57c63 Expand REPORT_t12.md and add detailed txt findings, positions, and evidence logs
++ git diff --stat 16833ecc03b425586f91f4c8834dea8807bf4c22 fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca -- forge-combo29/src forge-combo29/include
+ forge-combo29/include/forge/bitboard.hpp  |   4 +-
+ forge-combo29/include/forge/board.hpp     |   3 +
+ forge-combo29/include/forge/eval.hpp      |  13 +++
+ forge-combo29/include/forge/nnue.hpp      |   8 ++
+ forge-combo29/include/forge/search.hpp    |  16 ++-
+ forge-combo29/include/forge/uci.hpp       |  11 ++
+ forge-combo29/include/forge/uci_clock.hpp |  43 +++++++
+ forge-combo29/src/bitboard.cpp            |  10 +-
+ forge-combo29/src/eval.cpp                |  27 +++++
+ forge-combo29/src/nnue.cpp                | 124 +++++++++++++++++---
+ forge-combo29/src/search.cpp              | 186 ++++++++++++++++++++++++++----
+ forge-combo29/src/uci.cpp                 | 149 ++++++++++++++++--------
+ 12 files changed, 499 insertions(+), 95 deletions(-)
++ rg -n 'halfmove|rule50|bare_king|FORGE_T12|score_from_tt' forge-combo29/src/search.cpp forge-combo29/src/eval.cpp forge-combo29/include/forge/search.hpp
+forge-combo29/include/forge/search.hpp:85:    std::uint8_t rule50_clock = 0; // Capped at100; belongs to admitted score payload.
+forge-combo29/include/forge/search.hpp:95:        return (rule50_clock < 90 && capped < 90) || rule50_clock == capped;
+forge-combo29/include/forge/search.hpp:131:    void store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
+forge-combo29/include/forge/search.hpp:175:                    bool pv, std::uint16_t halfmove_clock);
+forge-combo29/include/forge/search.hpp:178:                     bool pv, std::uint16_t halfmove_clock);
+forge-combo29/include/forge/search.hpp:397:                  bool pv, std::uint16_t halfmove_clock) {
+forge-combo29/include/forge/search.hpp:398:        if (tt_owned_) shared_.tt.store_owned(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+forge-combo29/include/forge/search.hpp:399:        else shared_.tt.store(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+forge-combo29/src/search.cpp:130:[[nodiscard]] int score_from_tt(int score, int ply) {
+forge-combo29/src/search.cpp:326:                                    Bound bound, bool pv, std::uint16_t halfmove_clock) {
+forge-combo29/src/search.cpp:339:        entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
+forge-combo29/src/search.cpp:347:                               Bound bound, bool pv, std::uint16_t halfmove_clock) {
+forge-combo29/src/search.cpp:348:    store_body<true>(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+forge-combo29/src/search.cpp:352:                                     Bound bound, bool pv, std::uint16_t halfmove_clock) {
+forge-combo29/src/search.cpp:354:    store_body<false>(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+forge-combo29/src/search.cpp:395:                               Bound bound, bool pv, std::uint16_t halfmove_clock) {
+forge-combo29/src/search.cpp:408:        entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
+forge-combo29/src/search.cpp:952:    if (board.halfmove_clock() >= 100) {
+forge-combo29/src/search.cpp:1069:    const bool near50 = board.halfmove_clock() >= 90;
+forge-combo29/src/search.cpp:1070:    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+forge-combo29/src/search.cpp:1071:    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+forge-combo29/src/search.cpp:1072:                             ? score_from_tt(tte.score, ply) : ValueNone;
+forge-combo29/src/search.cpp:1100:            if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+forge-combo29/src/search.cpp:1102:            if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+forge-combo29/src/search.cpp:1165:    store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+forge-combo29/src/search.cpp:1167:    shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+forge-combo29/src/search.cpp:1217:    const bool near50 = board.halfmove_clock() >= 90;
+forge-combo29/src/search.cpp:1218:    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+forge-combo29/src/search.cpp:1219:    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+forge-combo29/src/search.cpp:1220:                             ? score_from_tt(tte.score, ply) : ValueNone;
+forge-combo29/src/search.cpp:1228:        board.halfmove_clock() < 90 &&
+forge-combo29/src/search.cpp:1260:    const bool bare_king_mode = multi_worker &&
+forge-combo29/src/search.cpp:1264:    constexpr bool bare_king_mode = false;
+forge-combo29/src/search.cpp:1268:        board.halfmove_clock() + depth < 100) {
+forge-combo29/src/search.cpp:1270:        if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+forge-combo29/src/search.cpp:1276:        if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+forge-combo29/src/search.cpp:1281:        if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+forge-combo29/src/search.cpp:1346:                    store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+forge-combo29/src/search.cpp:1348:                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+forge-combo29/src/search.cpp:1393:        if (mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
+forge-combo29/src/search.cpp:1394:            best_score > -MateInMaxPly && has_material && !bare_king_mode) {
+forge-combo29/src/search.cpp:1480:        if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+forge-combo29/src/search.cpp:1481:            move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+forge-combo29/src/search.cpp:1567:        store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+forge-combo29/src/search.cpp:1569:        shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+forge-combo29/src/search.cpp:1686:    const bool root_drawn = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
++ git log '--format=%h %s' 16833ecc03b425586f91f4c8834dea8807bf4c22..91103a012c8f77f528606935dcff7184123617eb -- forge-combo29/src/search.cpp
+affb2cb t23: fix stale TT/pruning scores near 50-move rule and add regression test
+4b7ba69 t23: fix go mate N missed mates without changing non-mate node counts
+32a9715 Keep completed move and score together at node limits (grok47 t6)
+f27b880 Fix losing-capture buffer overflow (grok47 t1)

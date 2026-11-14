@@ -1,8 +1,8 @@
 # Eight-hour combined Forge integration and soak
 
-Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T12:59:31.650Z.
+Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T13:06:27.678Z.
 
-Elapsed at snapshot: 107.99 minutes; current phase: 2C; recorded pushes: 18. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
+Elapsed at snapshot: 114.93 minutes; current phase: 2C; recorded pushes: 19. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
 
 Base: `fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca`; merged source: `f27b1971e459581ad4c85b7015f6af83bbfd4af6`; unchanged lock: `16833ecc03b425586f91f4c8834dea8807bf4c22`. [Source provenance](../INTEGRATION_ALL.md), [progress](PROGRESS.md), [raw batches](batches/), [test matrix](TEST_MATRIX.md).
 
@@ -16,7 +16,7 @@ Recorded default pins: bench11 = 312,866; bench13 = 862,329; perft5 = 4,865,609.
 | 2A preparation | Retain all 40 supplied KRK roots; select generated KQK/KBBK using lock T1 positive exact mate scores. | 2,000 completed units; 2,442 trials; 402 selected generated; 0 faults | Complete: 40 KRK, 40 KQK and 40 KBBK roots frozen |
 | 2A | 40 KRK + 40 KQK + 40 KBBK; lock and merged; T2/T4; depth 14; ten cold-state trials per group. | 480 completed units; 4,800 trials; 298 mate score misses; 55 original t12 criterion flags; 298 faults | Complete: merged 0/2,400 and lock 298/2,400 mate-score misses |
 | 2B | 200 fixed-seed legal bare-king positions; lock and merged; depth 12; reported T1/T2 conditions. | 800 completed units; 800 trials; 0 faults | Complete: 800 depth-12 searches on 200 roots, both builds at Threads 1/2; no fault |
-| 2C | Fixed corpus comparison; completed eligible positions and exclusions tracked separately. | 33,525 positions; 247 excluded; 1 differences low clock; 8 differences high clock; 1 fault positions | Running |
+| 2C | Fixed corpus comparison; completed eligible positions and exclusions tracked separately. | 49,664 positions; 382 excluded; 6 differences low clock; 13 differences high clock; 6 fault positions | Running |
 | 2D | Sanitizer self-play; inspect each batch for its exact node/depth/thread limits. | 194 games; 27,831 searches; 0 faults | Running |
 | 2E | ThreadSanitizer runs; exact thread and search conditions remain in batch evidence. | No completed counts recorded | Pending; no completed counts recorded |
 | 2F | ASAN+UBSAN self-play with all three new options enabled; exact limits remain in batch evidence. | No completed counts recorded | Pending; no completed counts recorded |
@@ -137,13 +137,14 @@ These notes retain their original recording context; subsequent retry coverage i
 | [2A #2](batches/2A-0002.txt) | 8473201 | 116 completed units; 1,160 trials; 65 faults | 1 incomplete units; 6 partial trials excluded; 0 partial faults excluded | 403 | Attempt 3 recorded as retry; completion not inferred | driver retained partial work separately |
 | [2KRKfull #1](batches/2KRKfull-0001.evidence/manifest.txt) | not_applicable | None recorded | See raw partial evidence | — | Attempt 2KRKsplit #1 and #2 (coverage split into5+5; originalsingleinvocation remains incomplete) recorded as retry; completion not inferred | expected exactly one actual config line; expected exactly one Threads-1 result; expected exactly one main SUMMARY; actual config does not match 40 10 2 16 14 1; incomplete or invalid T1 checks; incomplete or inconsistent main counts; test did not terminate normally within the budget |
 | [2C #1](batches/2C-0001.txt) | 4754000 | 16,865 records completed; 16,750 positions | See raw partial evidence | — | Attempt 2 recorded as retry; completion not inferred | driver retained partial work separately |
-| [2C #2](batches/2C-0002.txt) | 4754000 | 16,907 records completed; 16,775 positions | See raw partial evidence | — | Retry not recorded | driver retained partial work separately |
+| [2C #2](batches/2C-0002.txt) | 4754000 | 16,907 records completed; 16,775 positions | See raw partial evidence | — | Attempt 3 recorded as retry; completion not inferred | driver retained partial work separately |
+| [2C #3](batches/2C-0003.txt) | 4754000 | 16,274 records completed; 16,139 positions | See raw partial evidence | — | Retry not recorded | driver retained partial work separately |
 
 A retry link records a later attempt; it does not imply that every partial unit has completed. Retained completed units are already included once in phase totals.
 
 ## Findings and evidence audit
 
-84 numbered files: 1 fixture; 83 soak.
+89 numbered files: 1 fixture; 88 soak.
 
 <details>
 <summary>Numbered findings and evidence</summary>
@@ -234,10 +235,15 @@ A retry link records a later attempt; it does not imply that every partial unit 
 | [082.txt](faults/082.txt) | soak | Endgame lock-t4-KBBK KBBK-001615; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures |
 | [083.txt](faults/083.txt) | soak | Endgame lock-t2-KBBK KBBK-001735; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures |
 | [084.txt](faults/084.txt) | soak | Comparison fault at required-equality root; 10/10 additional fault pairs |
+| [085.txt](faults/085.txt) | soak | Comparison fault at required-equality root; 10/10 additional fault pairs |
+| [086.txt](faults/086.txt) | soak | Comparison fault at required-equality root; 10/10 additional fault pairs |
+| [087.txt](faults/087.txt) | soak | Comparison fault at required-equality root; 10/10 additional fault pairs |
+| [088.txt](faults/088.txt) | soak | Comparison fault at required-equality root; 10/10 additional fault pairs |
+| [089.txt](faults/089.txt) | soak | Comparison fault at required-equality root; 10/10 additional fault pairs |
 
 </details>
 
-Optional audit snapshot: 2026-11-14T12:59:14.289Z; state SHA256 `3a4e6c492600529c4f4e1b477b4a90927ad6343cb31e498f64f6175be4ed7755`; apply mode true; reported errors 0, warnings 2. This snapshot is not assumed to verify later state or active work. [Full audit](preparation/latest-audit.txt).
+Optional audit snapshot: 2026-11-14T13:05:56.592Z; state SHA256 `8f1d2a957ff090662806d08b14d33514e9cd8541570dcd21e2a51cc189597b61`; apply mode true; reported errors 0, warnings 2. This snapshot is not assumed to verify later state or active work. [Full audit](preparation/latest-audit.txt).
 
 | Audited batch | Raw verification | Partial safety observations | Sanitizer occurrences |
 | --- | --- | --- | --- |
@@ -253,6 +259,7 @@ Optional audit snapshot: 2026-11-14T12:59:14.289Z; state SHA256 `3a4e6c492600529
 | 2KRKsplit:2 | Raw records inspected; see audit issues | 0 | 0 |
 | 2C:1 | Raw records inspected; see audit issues | 0 | 0 |
 | 2C:2 | Raw records inspected; see audit issues | 0 | 0 |
+| 2C:3 | Raw records inspected; see audit issues | 0 | 0 |
 
 <details>
 <summary>Audit issues and limits</summary>
@@ -690,19 +697,19 @@ This appendix preserves every state total, including overlapping categories and 
 | 2KRKsplit | non_mating_move | 0 |
 | 2KRKsplit | sanitizer_reports | 0 |
 | 2KRKsplit | batches | 2 |
-| 2C | records_completed | 33772 |
-| 2C | positions | 33525 |
-| 2C | positions_low_clock | 33512 |
-| 2C | positions_high_clock | 13 |
-| 2C | differences_low_clock | 1 |
-| 2C | differences_high_clock | 8 |
-| 2C | fault_positions | 1 |
-| 2C | excluded | 247 |
-| 2C | excluded_no_legal | 11 |
-| 2C | excluded_insufficient | 236 |
+| 2C | records_completed | 50046 |
+| 2C | positions | 49664 |
+| 2C | positions_low_clock | 49644 |
+| 2C | positions_high_clock | 20 |
+| 2C | differences_low_clock | 6 |
+| 2C | differences_high_clock | 13 |
+| 2C | fault_positions | 6 |
+| 2C | excluded | 382 |
+| 2C | excluded_no_legal | 16 |
+| 2C | excluded_insufficient | 366 |
 | 2C | excluded_halfmove100 | 0 |
 | 2C | invalid_fens | 0 |
-| 2C | engine_runs | 67230 |
+| 2C | engine_runs | 99708 |
 | 2C | illegal | 0 |
 | 2C | missing | 0 |
 | 2C | missing_info | 0 |
@@ -712,10 +719,10 @@ This appendix preserves every state total, including overlapping categories and 
 | 2C | crashes | 0 |
 | 2C | nonzero_exits | 0 |
 | 2C | shutdown_timeouts | 0 |
-| 2C | reproduction_pairs | 90 |
-| 2C | reproduction_differences | 90 |
-| 2C | reproduction_fault_pairs | 10 |
-| 2C | batches | 2 |
+| 2C | reproduction_pairs | 190 |
+| 2C | reproduction_differences | 190 |
+| 2C | reproduction_fault_pairs | 60 |
+| 2C | batches | 3 |
 
 </details>
 

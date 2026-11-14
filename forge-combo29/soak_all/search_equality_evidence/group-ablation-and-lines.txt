@@ -1,0 +1,134 @@
++ sed -e '/await run('\''production-/d' -e 's/\[0,63,1,2,4,8,16,32\]/[7,56]/' /workspace/work/all-run/C-3228-review/run-diag-command.txt
++ cat /workspace/work/all-run/C-3228-review/run-groups-command.txt
+taskset -c 4 timeout 60 node <<'NODE'
+const fs=require('fs'), {spawn}=require('child_process');
+const dir='/workspace/work/all-run/C-3228-review';
+const fen='5k2/8/7p/1K5P/8/8/8/7q w - - 76 136';
+async function run(name,exe,mask,trace=false) {
+ let stdout='',stderr='',commands='',pending='',waiters=[],closed=false,status;
+ const env={...process.env};if(mask!==undefined)env.C3228_MASK=String(mask);if(trace)env.C3228_TRACE='1';
+ const child=spawn(exe,[],{env,stdio:['pipe','pipe','pipe']});
+ const exited=new Promise(resolve=>child.on('close',(code,signal)=>{closed=true;status={code,signal};resolve(status);}));
+ child.stdout.on('data',data=>{stdout+=data;pending+=data;let n;while((n=pending.indexOf('\n'))>=0){const line=pending.slice(0,n);pending=pending.slice(n+1);for(const w of [...waiters])if(w.test(line)){waiters.splice(waiters.indexOf(w),1);w.resolve(line);}}});
+ child.stderr.on('data',data=>stderr+=data);
+ const wait=test=>new Promise((resolve,reject)=>{if(closed)return reject(Error('closed'));waiters.push({test,resolve});});
+ const send=s=>{commands+=s+'\n';child.stdin.write(s+'\n');};
+ const timer=setTimeout(()=>child.kill('SIGKILL'),10000);
+ let expected=wait(s=>s==='uciok');send('uci');await expected;
+ for(const s of ['setoption name Threads value 1','setoption name Hash value 16','setoption name OwnBook value false','ucinewgame'])send(s);
+ expected=wait(s=>s==='readyok');send('isready');await expected;
+ send('position fen '+fen);expected=wait(s=>s.startsWith('bestmove '));send('go depth 9');const bestmove=await expected;send('quit');await exited;clearTimeout(timer);
+ fs.writeFileSync(dir+'/'+name+'.stdin.txt',commands);fs.writeFileSync(dir+'/'+name+'.stdout.txt',stdout);fs.writeFileSync(dir+'/'+name+'.stderr.txt',stderr);
+ const final=stdout.trim().split('\n').filter(s=>s.startsWith('info depth 9 ')).at(-1);
+ console.log(JSON.stringify({name,exe,mask,trace,final,bestmove,...status,stderrBytes:Buffer.byteLength(stderr),artifacts:dir+'/'+name}));
+ if(status.code!==0||status.signal)throw Error('engine failed '+name);
+}
+(async()=>{
+ for(const mask of [7,56])await run('diag-mask-'+mask,dir+'/forge-diag',mask,mask===0||mask===63);
+})().catch(e=>{console.error(e);process.exitCode=1;});
+NODE
++ bash /workspace/work/all-run/C-3228-review/run-groups-command.txt
+{"name":"diag-mask-7","exe":"/workspace/work/all-run/C-3228-review/forge-diag","mask":7,"trace":false,"final":"info depth 9 seldepth 23 score cp -1689 nodes 32435 nps 2702916 hashfull 6 time 12 pv b5c4 h1h5 c4d3 h5f3 d3d2 h6h5 d2e1 f3f6 e1e2 h5h4 e2e3","bestmove":"bestmove b5c4","code":0,"signal":null,"stderrBytes":0,"artifacts":"/workspace/work/all-run/C-3228-review/diag-mask-7"}
+{"name":"diag-mask-56","exe":"/workspace/work/all-run/C-3228-review/forge-diag","mask":56,"trace":false,"final":"info depth 9 seldepth 23 score cp -1689 nodes 31749 nps 2645750 hashfull 6 time 12 pv b5c4 h1h5 c4d3 h5f3 d3d2 h6h5 d2e1 f3f6 e1e2 h5h4 e2e3","bestmove":"bestmove b5c4","code":0,"signal":null,"stderrBytes":0,"artifacts":"/workspace/work/all-run/C-3228-review/diag-mask-56"}
++ sed -n 1352,1363p
++ nl -ba forge-combo29/src/search.cpp
+  1352	            }
+  1353	        }
+  1354	    }
+  1355	
+  1356	    // Internal iterative reduction: no hash move suggests a less important node.
+  1357	    if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
+  1358	
+  1359	    MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+  1360	#if FORGE_SPD_NO_ZERO_MOVELISTS
+  1361	    // Read only below their counts (update_quiet_stats / update_capture_stats).
+  1362	    std::array<Move, 128> quiets_tried;
+  1363	    std::array<Move, 64> captures_tried;
++ nl -ba forge-combo29/src/search.cpp
++ sed -n 1474,1501p
+  1474	            root_effort_index = static_cast<std::size_t>(std::find(root_effort_moves_.begin(), root_effort_end, move) - root_effort_moves_.begin());
+  1475	            assert(root_effort_index < root_effort_count_);
+  1476	        }
+  1477	
+  1478	        int score = -Infinite;
+  1479	        bool full_depth_needed = !pv_node || move_count > 1;
+  1480	        if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+  1481	            move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+  1482	            (quiet || !ss->tt_pv || move_count > 4)) {
+  1483	            int r = reduction(quiet, depth, move_count);
+  1484	            if (ss->tt_pv) r -= 1;
+  1485	            if (!improving) r += 1;
+  1486	            if (cut_node) r += 2;
+  1487	            if (tt_capture && quiet) r += 1;
+  1488	            if (gives_check) r -= 1;
+  1489	            if (in_check) r -= 1;
+  1490	            if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+  1491	            if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+  1492	            const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+  1493	            score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+  1494	            full_depth_needed = score > alpha && reduced_depth < new_depth;
+  1495	            if (full_depth_needed) {
+  1496	                if (tune::LmrDeeperShallower) {
+  1497	                    const bool do_deeper = score > best_score + 40 + 2 * new_depth;
+  1498	                    const bool do_shallower = score < best_score + new_depth;
+  1499	                    new_depth += static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
+  1500	                }
+  1501	                if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
++ git show 91103a012c8f77f528606935dcff7184123617eb:forge-combo29/src/search.cpp
++ nl -ba
++ sed -n 1015,1040p
+  1015	#if FORGE_SPD_TT_NOTLS
+  1016	    const TTProbe tt_probe = probe_tt(board.key());
+  1017	#else
+  1018	    const TTProbe tt_probe = shared_.tt.probe(board.key());
+  1019	#endif
+  1020	    const bool tt_hit = tt_probe.hit;
+  1021	    const TTEntry& tte = tt_probe.entry;
+  1022	    const bool near50 = board.halfmove_clock() >= 90;
+  1023	    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+  1024	    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+  1025	                             ? score_from_tt(tte.score, ply) : ValueNone;
+  1026	    const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+  1027	    const bool tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+  1028	    if (!pv_node && !near50 && tt_hit && tt_score != ValueNone &&
+  1029	        (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+  1030	        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+  1031	         (tt_bound == BoundUpper && tt_score <= alpha))) {
+  1032	        return tt_score;
+  1033	    }
+  1034	
+  1035	    int best_score;
+  1036	    int futility_base;
+  1037	    if (in_check) {
+  1038	        ss->static_eval = ValueNone;
+  1039	        best_score = futility_base = -Infinite;
+  1040	    } else {
++ git show 91103a012c8f77f528606935dcff7184123617eb:forge-combo29/src/search.cpp
++ nl -ba
++ sed -n 1163,1188p
+  1163	#if FORGE_SPD_TT_NOTLS
+  1164	    const TTProbe tt_probe = probe_tt(board.key());
+  1165	#else
+  1166	    const TTProbe tt_probe = shared_.tt.probe(board.key());
+  1167	#endif
+  1168	    const bool tt_hit = tt_probe.hit;
+  1169	    const TTEntry& tte = tt_probe.entry;
+  1170	    const bool near50 = board.halfmove_clock() >= 90;
+  1171	    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+  1172	    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+  1173	                             ? score_from_tt(tte.score, ply) : ValueNone;
+  1174	    const int tt_depth = tt_hit ? tte.depth : -1;
+  1175	    const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+  1176	    const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
+  1177	    ss->tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+  1178	
+  1179	    if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+  1180	        (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+  1181	        board.halfmove_clock() < 90 &&
+  1182	        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+  1183	         (tt_bound == BoundUpper && tt_score <= alpha))) {
+  1184	        return tt_score;
+  1185	    }
+  1186	
+  1187	    // Static evaluation.
+  1188	    int eval;

@@ -49,7 +49,7 @@ The first logged `near50` descendant in the production-equivalent scratch run is
 C3228 S depth=5 root_depth=9 node=24866 ply=14 clock=90 alpha=-1690 beta=-1689 tt_hit=1 tt_clock=84 tt_move=a7b7 tt_depth=0 tt_pv=1 tt_bound=2 tt_score=-1229 pv=0 fen=5k2/K7/7p/2q4P/8/8/8/8 w - - 90 143
 ```
 
-Thus the root clock 76 has advanced to 90 after fourteen reversible plies. Requested search depth is not a maximum path length: this search reaches selective depth 23. At the first logged node the older TT move and PV flag are suppressed by t23, while the clock-mismatched TT score was already unusable under the lock's score rule.
+Thus the root clock 76 has advanced to 90 at search ply 14. Requested search depth is not a maximum path length: this search reaches selective depth 23. The full move sequence to this internal node was not instrumented. At the first logged node the older TT move and PV flag are suppressed by t23, while the clock-mismatched TT score was already unusable under the lock's score rule.
 
 The first differing logged child depth is reached after this common parent:
 
