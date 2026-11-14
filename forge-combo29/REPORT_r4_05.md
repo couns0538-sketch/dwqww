@@ -6,7 +6,7 @@ Prior result on the owner's PC, not measured here: +6.8 ± 7.2 in 4000 games.
 
 ## Result
 
-- State: setup
+- State: running
 - W-L-D (option on first): 0-0-0
 - Games: 0
 - Pairs: 0
@@ -15,8 +15,8 @@ Prior result on the owner's PC, not measured here: +6.8 ± 7.2 in 4000 games.
 - LOS: n/a
 - Pentanomial [LL, LD, WL/DD, WD, WW]: [0, 0, 0, 0, 0]
 - Terminations other than normal: none
-- Match start: None
-- Stop reason: setup recorded; match not started
+- Match start: 2026-11-14T15:43:00Z
+- Stop reason: match started
 
 Positive Elo means the option-on side scored above one half. The interval is the fastchess pentanomial 95% interval: logistic Elo of the pair score, with the half-width equal to half the distance between the Elo values of the score bounds.
 

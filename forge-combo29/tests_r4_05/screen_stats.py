@@ -314,12 +314,13 @@ def write_outputs(repo: Path, meta: dict, state: dict) -> None:
     # pentanomial([]) is not valid because empty is even and pairs 0 is handled
     # only when called with empty list: len 0 is fine, pairs 0.
     identity = identity_block(meta)
+    match_start = state.get("match_start") or "n/a"
     lines = [
         "# Cumulative NonPawnCorrection screen",
         "",
         "Screening summary only. This is not a strength claim.",
         f"State: {state.get('state', 'running')}.",
-        f"Match start: {state.get('match_start', 'n/a')}.",
+        f"Match start: {match_start}.",
         f"Budget: {state.get('budget_s', 'n/a')} seconds. Hard cap: {state.get('cap_s', 'n/a')} seconds.",
         f"Owner's PC, cited only as prior context: {meta['owner_prior']}.",
         "",
@@ -369,6 +370,7 @@ def write_outputs(repo: Path, meta: dict, state: dict) -> None:
 
 
 def build_report(meta: dict, state: dict, chunk_stats: list[tuple[str, dict]], total: dict) -> str:
+    match_start = state.get("match_start") or "n/a"
     done = state.get("state") == "complete"
     closing = (
         f"R4 DONE {meta['implementation_commit']}"
@@ -415,7 +417,7 @@ Prior result on the owner's PC, not measured here: {meta['owner_prior']}.
 - LOS: {fmt_los(total)}
 - Pentanomial [LL, LD, WL/DD, WD, WW]: {fmt_penta(total)}
 - Terminations other than normal: {json.dumps(non_normal, sort_keys=True) if non_normal else "none"}
-- Match start: {state.get('match_start', 'n/a')}
+- Match start: {match_start}
 - Stop reason: {state.get('stop_reason', 'still running')}
 
 Positive Elo means the option-on side scored above one half. The interval is the fastchess pentanomial 95% interval: logistic Elo of the pair score, with the half-width equal to half the distance between the Elo values of the score bounds.

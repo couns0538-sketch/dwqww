@@ -2,6 +2,7 @@
 # Sequential UHO screen of NonPawnCorrection on vs off. Same binary.
 # Does not modify engine source. Publishes each finished chunk.
 set -euo pipefail
+export PYTHONDONTWRITEBYTECODE=1
 
 REPO=/agent/repos/dwqww
 ROOT=/tmp/r4_05
@@ -31,7 +32,9 @@ commit_and_push() {
   (
     flock 9
     cd "$REPO"
+    rm -rf "$REPO/forge-combo29/tests_r4_05/__pycache__"
     git add -- forge-combo29/REPORT_r4_05.md forge-combo29/tests_r4_05
+    git rm -r --cached --ignore-unmatch -- forge-combo29/tests_r4_05/__pycache__ >/dev/null
     if git diff --cached --name-only | grep -E '^forge-combo29/(src|include)/'; then
       echo "refusing to commit engine source" >&2
       exit 1
@@ -295,7 +298,9 @@ run_chunk() {
     write_state running "chunk ${id} published; match still inside the time box" "$start_iso"
     refresh_report
     cd "$REPO"
+    rm -rf "$REPO/forge-combo29/tests_r4_05/__pycache__"
     git add -- forge-combo29/REPORT_r4_05.md forge-combo29/tests_r4_05
+    git rm -r --cached --ignore-unmatch -- forge-combo29/tests_r4_05/__pycache__ >/dev/null
     if git diff --cached --name-only | grep -E '^forge-combo29/(src|include)/'; then
       echo "refusing to commit engine source" >&2
       exit 1

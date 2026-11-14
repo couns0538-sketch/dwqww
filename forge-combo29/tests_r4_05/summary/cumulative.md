@@ -1,8 +1,8 @@
 # Cumulative NonPawnCorrection screen
 
 Screening summary only. This is not a strength claim.
-State: setup.
-Match start: None.
+State: running.
+Match start: 2026-11-14T15:43:00Z.
 Budget: 21600 seconds. Hard cap: 32400 seconds.
 Owner's PC, cited only as prior context: +6.8 ± 7.2 in 4000 games.
 
