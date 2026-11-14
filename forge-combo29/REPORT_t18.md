@@ -4,18 +4,95 @@ The UCI loop survived every hand-written case and all 200000 generated lines. No
 
 ## What changed
 
-The command loop can be called as `forge::uci_loop(std::istream&)` only when `FORGE_UCI_TEST_LOOP` is 1. That switch defaults to 0. The default build keeps the lock's `int main()` and `std::getline(std::cin, line)` on the `#else` side, and still writes to `std::cout`. The fuzz driver compiles `uci.cpp` with the switch on and passes another stream into the same loop. The fuzz found nothing to fix, so the loop body is the lock's loop.
+Two edits to `src/uci.cpp`. The loop body (command parsing, search, book, options) was not rewritten.
 
-`windows_build/SOURCE_INPUTS.sha256` is the frozen lock manifest and was not rewritten. This branch's `src/uci.cpp` no longer matches that hash, because of the default-off `if`s. The default compilation unit is still `main` reading stdin.
+The first edit (`c90c9cb2`) renamed `int main()` to `forge::uci_loop(std::istream&)` and changed `std::getline(std::cin, line)` to `std::getline(in, line)`. A new `main` called `forge::uci_loop(std::cin)`. That made the reader callable from the test, and a normal run still read stdin, but it was the wrong shape for this lock. `README.md` says every engine change is a default-0 switch with the lock code under `#else`. That edit had no switch. The default build no longer contained the lock's `main`. `windows_build/SOURCE_INPUTS.sha256` still records the lock file:
+
+```
+13c7c87a377ec30616f9a733bc5d74072c697c6e48db9eb39d751409f3cc0f97  src/uci.cpp
+```
+
+The edited file does not hash to that. The manifest was not rewritten. This branch is not a new lock.
+
+The second edit (`d1d10b3e`) puts the test entry behind `FORGE_UCI_TEST_LOOP`, which defaults to 0. With the switch off, the compiled function is still `int main()` and the read is still `std::getline(std::cin, line)`. With the switch on, the same body is `forge::uci_loop(std::istream&)` and the read is `std::getline(in, line)`. The fuzz compile adds `-DFORGE_UCI_TEST_LOOP=1 -DFORGE_UCI_NO_MAIN`, so the test supplies `main` and the engine does not. The release CMake build does not define the switch. Output stays on `std::cout` in both builds.
+
+`include/forge/uci.hpp` only declares `uci_loop`. The default build does not include it. `tests_t18/uci_fuzz.cpp` is the driver. Engine source touched stays under 300 lines. No existing check was weakened or deleted.
+
+The first copy of this report also described a sanitizer link that compiled only `uci_fuzz.cpp` and reused objects already in `/tmp/t18obj`. A clean tree cannot rebuild from that command. The command later in this file compiles `bitboard.cpp`, `board.cpp`, `book.cpp`, `eval.cpp`, `eval_params.cpp`, `nnue.cpp`, `search.cpp`, `uci.cpp`, and `uci_fuzz.cpp`, then links them. That command was run.
 
 ## What was found
 
-No engine defect. The first two driver attempts failed in the test, before any search of the engine's behaviour was in doubt:
+The engine reader did not crash, hang past 5 seconds, or trip AddressSanitizer or UndefinedBehaviorSanitizer. Part A was 193 hand-written lines. Part B was 200000 lines from SplitMix64 with seed `361192554478` (`0x5418C0FFEE`). Search and parsing behaviour were left as they are.
 
-- The 2000-move line used pawn pushes that are not legal on the second lap (`e2e4` after the pawns had already moved). The driver now repeats `g1f3 g8f6 f3g1 f6g8`, which stays legal.
-- That cycle array has 4 entries and the index used `% 6`. UndefinedBehaviorSanitizer reported `uci_fuzz.cpp` index 4 out of bounds. The index is now `% 4`.
+Two failures happened in the driver, while it was building a line, before that line was sent to the engine. Two known engine defects were seen or left alone and were not patched on this branch. They already have fixes on other branches.
 
-`go wtime 3000000000` (above 2^31) was fed in part A. It did not crash or hang. This branch still parses clocks with `std::from_chars` into `int`, so an out-of-range token becomes 0. That parse is the known clock fix on `grok47/t3-clock-parse` and was not ported. The losing-capture list `bad_captures_[64]` was not searched; that overflow is the known fix on `grok47/t1-capture-overflow`.
+## What was wrong
+
+### 1. The long move list was not a legal game
+
+Part A has to send one `position startpos moves` line with 2000 moves and then one illegal token. The first generator repeated this six-move lap:
+
+`e2e4 e7e5 e1e2 e8e7 e2e1 e7e8`
+
+The first four plies are legal. White's pawn goes to e4, Black's pawn goes to e5, the white king steps to e2, the black king steps to e7. The next two plies put the kings back. On the second lap the next token is `e2e4` again. The e2-pawn is already on e4, so e2 is empty. `Board::parse_uci` rejects it.
+
+The driver checks each token on its own board before it appends the token. At ply 6 it printed `legal-move cycle broke` with that move and the FEN, and exited. The engine was not the program that failed. The line never reached `uci_loop`.
+
+The line now repeats a four-move knight shuttle that returns to the start position:
+
+`g1f3 g8f6 f3g1 f6g8`
+
+After four plies both knights are home, so the same four tokens stay legal for all 2000 plies (500 laps). The line then appends `not-a-move`. The engine's `apply_position` rejects that token, prints `info string illegal move not-a-move`, and leaves the board where the last legal move put it. That path returned.
+
+### 2. The cycle index walked off a 4-element array
+
+After the knight shuttle replaced the pawn lap, the table was:
+
+```cpp
+const char* cycle[] = {"g1f3", "g8f6", "f3g1", "f6g8"};
+```
+
+That array has 4 entries, indices 0..3. The loop still indexed it with `i % 6`, left over from the six-move lap. At `i == 4`, `4 % 6` is 4. `cycle[4]` is one past the end.
+
+The driver is compiled with `-fsanitize=undefined`. UndefinedBehaviorSanitizer reported an index 4 out of bounds on that array in `tests_t18/uci_fuzz.cpp`. This was the test reading its own table. It was not an engine read.
+
+The index is now `i % cycle_len` with `cycle_len` equal to 4. At `i == 4` the index is 0, which is `g1f3`, in range, and legal from the start position.
+
+### 3. The first engine edit replaced the lock's `main` in every build
+
+`c90c9cb2` compiled `forge::uci_loop` into the default binary. `main` became a one-line wrapper. A GUI still got the same commands and the same node counts, but the lock rule is that the old code stays on the `#else` side of a switch that defaults to 0. There was no switch, so turning fuzzing off was impossible: the new entry point was the only entry point.
+
+That is also why `sha256sum -c windows_build/SOURCE_INPUTS.sha256` cannot pass for `src/uci.cpp` on this branch. The hash above is the lock file. Adding the `if`s changes the file bytes even though the default compile is `main` reading `std::cin` again. The manifest stays the lock record.
+
+`d1d10b3e` is the correction. Default compile:
+
+```cpp
+int main() {
+    ...
+    while (std::getline(std::cin, line)) {
+```
+
+Test compile (`-DFORGE_UCI_TEST_LOOP=1`):
+
+```cpp
+int uci_loop(std::istream& in) {
+    ...
+    while (std::getline(in, line)) {
+```
+
+The release binary was rebuilt with the switch unset. `bench 11` is 312866, `bench 13` is 862329, `go perft 5` is 4865609.
+
+### 4. A clock that does not fit in `int` becomes 0
+
+Part A sends `go wtime 3000000000`. `3000000000` is above `INT_MAX` (`2147483647`). In `parse_limits`, `read_int` does `std::from_chars` into an `int`. The value does not fit, `from_chars` sets an error, and `read_int` returns 0. The `wtime` arm then does `std::max(0, 0)` and, when White is to move, stores `limits.time_ms = 0`.
+
+The command did not crash and did not hang. The wrong part is the value: a clock the token can spell is stored as no time. Parsing those clocks in 64 bits is the change on `grok47/t3-clock-parse`. It was not brought onto this branch. Search behaviour here stays the lock's behaviour.
+
+### 5. Losing captures still go into a 64-slot array
+
+`MovePicker` keeps captures that fail the static-exchange test in `bad_captures_`, a `std::array<Move, 64>`. The write is `bad_captures_[bad_count_++]` with no test that `bad_count_` is still below 64. `FORGE_SDK_BADCAP_PREFIX` defaults to 0 on this lock, so that array is the live path. More than 64 losing captures in one node writes past the array.
+
+This fuzz did not search a position that produces that many losing captures, so the run did not hit the write. The repair is on `grok47/t1-capture-overflow` and was not ported. Nothing in `search.cpp` was edited here.
 
 ## Driver limits
 
