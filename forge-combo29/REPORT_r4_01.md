@@ -34,7 +34,7 @@ Frozen input commits
 11 b27a351b71762b3f27b18e4e1a196a6f2e1da2f2 grok47/r3-11-dead-material
 12 6d8717d287cc5f1038d53355b8b03d3cbba9e604 grok47/r3-12-soft-nodes
 13 662caa22fa0752f54d97faac82b3acf3b63d3360 grok47/r3-13-quiet-extinction
-14 c3774151754e6c0c76a3e1d427c1e511e1f4318c grok47/r3-14-draw-jitter
+14 5073747042b305eba413a4e9c3f97df738c71275 grok47/r3-14-draw-jitter
 15 fa79e52ed15d57a792735c0d5dbbf4d091c432dc grok47/r3-15-tm-finish-iteration
 16 4bb15fdbe2aa38bf1a89251df294d7e56089b074 grok47/r3-16-tm-node-share
 23 1c76659e0ce0afe97091ba220ed2c5ee0cb74686 grok47/r3-23-sound-mate-pruning
@@ -73,7 +73,7 @@ AspArmLate            true   8e988f4b683f8a888e4a71a9ca255fb0d785c173    870398 
 EvasionOrdering       true   59cab756b2f3ed26761000dbdeb85c46d1f20e49    772890     772890
 DeadMaterial          true   b27a351b71762b3f27b18e4e1a196a6f2e1da2f2    862329     862329
 QuietExtinction       true   662caa22fa0752f54d97faac82b3acf3b63d3360    632155     632155
-DrawJitter            8      c3774151754e6c0c76a3e1d427c1e511e1f4318c    857947     857947
+DrawJitter            8      5073747042b305eba413a4e9c3f97df738c71275    857947     857947
 TmFinishIteration     true   fa79e52ed15d57a792735c0d5dbbf4d091c432dc    862329     862329
 TmNodeShare           true   4bb15fdbe2aa38bf1a89251df294d7e56089b074    862329     862329
 SoundMatePruning      true   1c76659e0ce0afe97091ba220ed2c5ee0cb74686    980408     980408
@@ -226,6 +226,7 @@ Tip r3-04 a334661b975c7be116b48867062e8e7399446c9f merged with no engine-source 
 Tip r3-05 5e71bcd3059db2b7674fb04be431f72c9d240b14 merged with no engine-source change; pins were not re-run.
 Tip r3-07 dd4c65ee84a7f03783406aa85835a0948dc15129 merged with no engine-source change; pins were not re-run.
 Tip r3-09 8e988f4b683f8a888e4a71a9ca255fb0d785c173 merged with no engine-source change; pins were not re-run.
+Tip r3-14 5073747042b305eba413a4e9c3f97df738c71275 merged with no engine-source change; pins were not re-run.
 Not verified. The other in-scope branches still have no
 `R3 FOLLOW-UP DONE` line in the files on origin.
 Playing strength was not measured. Address and thread sanitizers were
