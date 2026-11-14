@@ -24,6 +24,8 @@ grok47/r3-03-lmr-signed-correction 1ecc1d33156d 200 identical
 grok47/r3-04-lmr-late-parent-relief ae2cc041e24b 200 identical; feccf387e16a 200 identical
 grok47/r3-05-hindsight-depth 4ce2b8b18fd9 200 identical
 grok47/r3-08-asp-capped-reopen dc2e25b54d7c 20 identical
+grok47/r3-21-mate-score-tt af1c998304db 200 identical
+grok47/r3-24-tt-duplicate-shadow 0ca8cb1009df 200 identical
 
 ## Commands and hashes
 
@@ -69,29 +71,39 @@ engine source sha256: dc2e25b54d7c:e3397b5a3b2a673ce6b30163d531bd851813a43279027
 engine binary sha256: dc2e25b54d7c:1e647eead4e6ee779673c3463d897c06d9727ea66cc918a7a1f9762641abd480 dc2e25b54d7c:1e647eead4e6ee779673c3463d897c06d9727ea66cc918a7a1f9762641abd480
 fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/dc2e25b54d7ce176090fd439d1b4df2d5fbcefc4-7e389295b5ee/forge name=on restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.AspCappedReopen=true nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/dc2e25b54d7ce176090fd439d1b4df2d5fbcefc4-7e389295b5ee/forge name=off restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.AspCappedReopen=false nodes=50000 -rounds 10 -games 2 -concurrency 2 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-08-asp-capped-reopen/d4da1cf2a088/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-08-asp-capped-reopen/d4da1cf2a088/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
 
+grok47/r3-21-mate-score-tt af1c998304db kind nodes pgn forge-combo29/tests_r3fu_21/chunk1.pgn
+build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_COMPILER=g++
+engine source sha256: af1c998304db:2cb78b8c476020dda94a09873fc523bd61352cb7b89c5a6b50e698c2dec33f60 e04556ddc3a4:b0949c1ea74050643e14972b9d27b8d62aa568466e0e28e78587efa2c0060e16
+engine binary sha256: af1c998304db:e12981d3667fc4319920388621a591763a2ebc58c5da1c7552ed5f8f211bb197 e04556ddc3a4:4a624cf990c057c9a5d7847916b2d537a38ab6b95be4339dbec30a187f7ec984
+fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/af1c998304dbfbcb997b757a7ce43af7cdf6e933-37997d042e39/forge name=r3-21 restart=on option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/e04556ddc3a430b2e751159b0d46111ef56c8b89-37997d042e39/forge name=base restart=on option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 -rounds 100 -games 2 -concurrency 4 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-21-mate-score-tt/nr100/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-21-mate-score-tt/nr100/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
+
+grok47/r3-24-tt-duplicate-shadow 0ca8cb1009df kind nodes pgn forge-combo29/tests_r3fu_24/chunk1.pgn
+build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_COMPILER=g++
+engine source sha256: 0ca8cb1009df:7028cd9889652ee6fb17adc9c5843b47632756e12f39c3a78eb84c4cc36dedb7 e04556ddc3a4:b0949c1ea74050643e14972b9d27b8d62aa568466e0e28e78587efa2c0060e16
+engine binary sha256: 0ca8cb1009df:16f789f896392b646cac0ac54c311ed552d55e2624a616f7352caa0c468571f1 e04556ddc3a4:4a624cf990c057c9a5d7847916b2d537a38ab6b95be4339dbec30a187f7ec984
+fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/0ca8cb1009dfd1c8e58dc793c3e760d1c88628f3-37997d042e39/forge name=r3-24 restart=on option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/e04556ddc3a430b2e751159b0d46111ef56c8b89-37997d042e39/forge name=base-e04556dd restart=on option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 -rounds 100 -games 2 -concurrency 4 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-24-tt-duplicate-shadow/nr100/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-24-tt-duplicate-shadow/nr100/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
+
 ## Still open
 
-grok47/r3-06-null-threat-verify 544c10881 2026-11-14 16:42:50 +0000 Save finished UHO chunk 0 and the start of chunk 1.
-grok47/r3-07-null-see-veto 9564de36a 2026-11-14 16:36:09 +0000 Add the third NullSeeVeto screen chunk.
-grok47/r3-09-asp-arm-late 1482b396e 2026-11-14 16:56:30 +0000 Add UHO screen chunk 004 for AspArmLate.
-grok47/r3-10-evasion-ordering d13efcd0b 2026-11-14 16:50:03 +0000 Add EvasionOrdering screen chunk 006.
-grok47/r3-11-dead-material c1ed7a071 2026-11-14 16:45:35 +0000 Add UHO screen chunk 002.
+grok47/r3-06-null-threat-verify e0c1252e4 2026-11-14 17:12:31 +0000 Update in-progress UHO chunk 1.
+grok47/r3-07-null-see-veto 06b49fd5a 2026-11-14 17:05:12 +0000 Add the fourth NullSeeVeto screen chunk.
+grok47/r3-09-asp-arm-late 97b51960d 2026-11-14 17:17:17 +0000 Add UHO screen chunk 005 for AspArmLate.
+grok47/r3-10-evasion-ordering 70aa54740 2026-11-14 17:04:52 +0000 Add EvasionOrdering screen chunk 007.
+grok47/r3-11-dead-material b27a351b7 2026-11-14 17:23:14 +0000 Add UHO screen chunk 004.
 grok47/r3-12-soft-nodes 6d8717d28 2026-11-14 15:53:19 +0000 Record the 10000-position nodes and softnodes label totals
-grok47/r3-13-quiet-extinction 3f06b04a6 2026-11-14 16:48:19 +0000 Record UHO screen chunks 4 through 6.
-grok47/r3-14-draw-jitter 9bb8e1e5b 2026-11-14 16:47:42 +0000 Finish UHO chunk 2 for DrawJitter 8 against 0.
+grok47/r3-13-quiet-extinction a17b76e14 2026-11-14 17:15:53 +0000 Record UHO screen chunks 7 and 8.
+grok47/r3-14-draw-jitter c37741517 2026-11-14 17:16:30 +0000 Finish UHO chunk 3 for DrawJitter 8 against 0.
 grok47/r3-15-tm-finish-iteration 24fc1d9c0 2026-11-14 16:40:37 +0000 Push the latest clock-screen PGN and progress.
-grok47/r3-16-tm-node-share 333724999 2026-11-14 16:36:48 +0000 Checkpoint clock screen chunk 1 in progress.
+grok47/r3-16-tm-node-share 4bb15fdbe 2026-11-14 17:07:06 +0000 Checkpoint clock screen chunk 1 in progress.
 grok47/r3-17-merge-legal-node-limit 02674044d 2026-11-14 15:28:41 +0000 Record the owner-build node budget follow-up.
 grok47/r3-18-lazy-net-accumulator 820784220 2026-11-14 15:36:04 +0000 Record the AVX-512 fused-pass identity checks.
 grok47/r3-19-faster-hce 528ccdf1c 2026-11-14 15:33:17 +0000 Record the shared-slider follow-up measurements.
 grok47/r3-20-faster-search-plumbing decec3775 2026-11-14 15:37:05 +0000 Add the depth-8 and perft comparison tests.
-grok47/r3-21-mate-score-tt 28b3a7520 2026-11-14 16:46:12 +0000 Record finished chunk 3 of the no-regression match.
 grok47/r3-22-time-safety 143f3c5c6 2026-11-14 16:47:41 +0000 Record the empty-clock follow-up and the 1+0.01 match
-grok47/r3-23-sound-mate-pruning 21867c5ac 2026-11-14 16:52:27 +0000 Add UHO slice 3, openings 800-1199
-grok47/r3-24-tt-duplicate-shadow eb2dda7a6 2026-11-14 16:45:05 +0000 Add UHO chunk 3: 1000 games, r3-24 255-255-490.
-grok47/r4-03-screen-lds 1eb46fbe9 2026-11-14 16:30:39 +0000 r4-03: chunk 1 PGN and screen summary
-grok47/r4-04-screen-ch4 b3a228fe4 2026-11-14 16:57:07 +0000 r4-04: ContHist4PlyRead screen heartbeat
-grok47/r4-05-screen-npc abb28831e 2026-11-14 16:54:01 +0000 r4-05: pair screen chunks by file and publish the chunk 002 summary
+grok47/r3-23-sound-mate-pruning 1c76659e0 2026-11-14 17:15:02 +0000 Add UHO slice 4, openings 1200-1599
+grok47/r4-03-screen-lds ca20d7f52 2026-11-14 17:15:41 +0000 r4-03: chunk 501 PGN and screen summary
+grok47/r4-04-screen-ch4 51fb0b120 2026-11-14 17:11:45 +0000 r4-04: ContHist4PlyRead screen chunk001
+grok47/r4-05-screen-npc 697f52ee8 2026-11-14 17:20:41 +0000 r4-05: NonPawnCorrection screen chunk 003 (1001-1500)
 
-Last check: 2026-11-14T17:04:48Z
+Last check: 2026-11-14T17:24:32Z
 Deadline: 2026-11-15T01:52:00Z
