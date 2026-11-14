@@ -32,13 +32,28 @@ On this depth-13 bench, DrawJitter 4 still returns 862329 nodes. The leaves are 
 
 ## Tests
 
-`forge-combo29/tests_r3_14/draw_jitter_test.cpp` checks the node-count step, a fifty-move root, an in-tree fifty-move score, a constructed threefold, and mate scores with the option at 0 and at 8.
+`forge-combo29/tests_r3_14/draw_jitter_test.cpp` checks the node-count step, a fifty-move root, an in-tree fifty-move score, a capture on half-move 99, a constructed threefold, the ply just before that threefold, and mate scores with the option at 0 and at 8. Setting the option back to 0 restores an exact zero on the fifty-move root.
 
-It then runs 200 searches to depth 10 with DrawJitter 8, one thread, and a 16 MB hash. Every returned move was in that position's legal move list (0 illegal).
+It then runs 200 searches to depth 10 with DrawJitter 8, one thread, and a 16 MB hash. The best move and every move in the PV were legal, and the score stayed inside the mate bounds (0 illegal). The same 200 positions at DrawJitter 5 also returned legal lines. A two-thread depth-10 search from the start position returned a legal line.
 
 That binary was g++ 13.3 with `-O1 -fsanitize=address,undefined -fno-sanitize-recover=undefined` and the portable feature macros. Exit status 0. No sanitizer diagnostic.
 
+With DrawJitter left at 0, the existing rules suite, the repetition/mate driver, and the fifty-move transposition cases also passed, including the same drivers rebuilt with address and undefined sanitizers. Those runs were checks only. They are not part of this change.
+
 The diff in `forge-combo29/src` and `forge-combo29/include` is 28 insertions and 3 deletions.
+
+## Re-check
+
+One release process, Threads 1, Hash 16, OwnBook false:
+
+- DrawJitter 0: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609
+- DrawJitter 8: bench 13 = 857947, and the repeat was 857947
+- DrawJitter 0 again: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609
+- DrawJitter 5: bench 13 = 880111
+- Values 1, 2, 3, and 4 leave bench 13 at 862329
+- Value 9 is out of range, clamped to 8, bench 13 = 857947
+- Value -3 is out of range, clamped to 0, bench 13 = 862329
+- A non-numeric value is refused and does not change the option
 
 No strength claim.
 
