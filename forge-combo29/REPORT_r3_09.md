@@ -53,6 +53,8 @@ That run also printed the pins with the option off (`312866`, `862329`, `4865609
 
 No strength claim. These checks are node counts, perft, legality, and a clean sanitizer run.
 
+The same release pins and the same sanitizer binary were run again at 2026-11-14T14:15:43Z. `bench 11` was 312866, `bench 13` was 862329, perft 5 was 4865609, `bench 13` with the option on was 818642, and the sanitizer test passed again (200 depth-10 searches, 0 illegal; 20 timed samples, 0 illegal).
+
 setoption name AspArmLate value true
 
 bench 13 nodes 818642
