@@ -22,5 +22,5 @@ for(const label of ['t23-release-mate','t23-release-fifty','t23-asan-mate','t23-
  else {const m=raw.match(/^SUMMARY (\{.*\})$/m);check(!!m,label+' summary');if(m){counts=JSON.parse(m[1]);check(counts.games>0&&counts.searches>0&&counts.faults===0&&counts.illegal===0&&counts.missing===0&&counts.badscore===0,label+' game checks');}}
  tests.push({label,...counts,diagnostics});
 }
-const summary={utc:new Date().toISOString(),issues,pending,releaseChecksPass:!issues.length,tests,guardAccepted:false,note:'Original-root semantic depth4 versus old depth5 coverage is awaiting Fable review; 2000-game acceptance is separate. Known failed harness assertion retained, corrected precondition checked above.'};
+const summary={utc:new Date().toISOString(),issues,pending,releaseChecksPass:!issues.length,tests,guardAccepted:false,note:'Fable reply0006 accepts the live semantic trigger; 2000-game acceptance is separate. Known failed harness assertion retained, corrected precondition checked above.'};
 const stamp=new Date().toISOString().replace(/[^0-9TZ]/g,'');fs.writeFileSync(r+'/logs/acceptance-audit-'+stamp+'.txt',JSON.stringify(summary,null,2)+'\n');console.log(JSON.stringify(summary));process.exitCode=issues.length?1:0;

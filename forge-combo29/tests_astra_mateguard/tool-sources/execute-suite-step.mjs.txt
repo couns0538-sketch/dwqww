@@ -1,0 +1,22 @@
+// Executes one unchanged test-plan entry. Called only after successor budget starts.
+import fs from 'node:fs';import cp from 'node:child_process';import crypto from 'node:crypto';
+const [mode,kind,id]=process.argv.slice(2),r='/workspace/work/r4-run';
+if(!['enabled','asan','tsan'].includes(mode)||!['builds','runs'].includes(kind))throw Error('mode/kind');
+const state=JSON.parse(fs.readFileSync(r+'/state.json'));if(!state.soakBudgetStart)throw Error('successor budget not started');
+if(Date.now()-Date.parse(state.soakBudgetStart)>=state.soakBudgetMinutes*60000)throw Error('successor budget exhausted');
+const planFile='/workspace/work/r4-krk-validation/test-plan/plan-'+mode+'.json.txt',plan=JSON.parse(fs.readFileSync(planFile)),item=plan[kind].find(x=>x.id===id);if(!item)throw Error('id');
+for(const dir of plan.outputDirectories)fs.mkdirSync(dir,{recursive:true});
+const meta=item.stdoutFile+'.metadata.txt';if([item.stdoutFile,item.stderrFile,meta].some(fs.existsSync))throw Error('fresh entry required');
+const started=new Date().toISOString(),input=item.stdinFile?fs.readFileSync(item.stdinFile):undefined;
+const record={mode,kind,id,started,planFile,planSha256:crypto.createHash('sha256').update(fs.readFileSync(planFile)).digest('hex'),...item,inputSha256:input?crypto.createHash('sha256').update(input).digest('hex'):null};
+fs.writeFileSync(meta,JSON.stringify({...record,status:'running'},null,2)+'\n',{flag:'wx'});
+const out=fs.openSync(item.stdoutFile,'wx'),err=fs.openSync(item.stderrFile,'wx');
+const left=state.soakBudgetMinutes*60000-(Date.now()-Date.parse(state.soakBudgetStart));
+if(left<item.outerTimeoutMs+5000){fs.closeSync(out);fs.closeSync(err);fs.writeFileSync(meta,JSON.stringify({...record,status:'not launched',reason:'insufficient budget for full declared command'},null,2)+'\n');console.log('NOT_LAUNCHED '+id);process.exit(3);}
+const p=cp.spawnSync(item.argv[0],item.argv.slice(1),{cwd:item.cwd,env:{...process.env,...item.env},input,stdio:[input?'pipe':'ignore',out,err],timeout:item.outerTimeoutMs});fs.closeSync(out);fs.closeSync(err);
+const stdout=fs.readFileSync(item.stdoutFile),stderr=fs.readFileSync(item.stderrFile),text=stdout.toString()+'\n'+stderr.toString();
+const sanitizer=[...text.matchAll(/WARNING: ThreadSanitizer|FATAL: ThreadSanitizer|ERROR: (?:AddressSanitizer|LeakSanitizer)|runtime error:/g)].map(x=>x[0]);
+const perft=[...stdout.toString().matchAll(/^nodes (\d+)$/gm)].map(x=>+x[1]);
+const perftPass=!item.expectedPerftNodes||JSON.stringify(perft)===JSON.stringify(item.expectedPerftNodes);
+const result={...record,ended:new Date().toISOString(),exit:p.status,signal:p.signal,error:p.error?.message,stdoutSha256:crypto.createHash('sha256').update(stdout).digest('hex'),stderrSha256:crypto.createHash('sha256').update(stderr).digest('hex'),sanitizer,perft:item.expectedPerftNodes?perft:undefined,perftPass,reviewMarkers:text.split('\n').filter(x=>/\bFAIL(?:ED)?\b|\bMISMATCH\b/.test(x)),passed:p.status===0&&!sanitizer.length&&perftPass,incomplete:p.status===124||p.status===137||!!p.signal};
+fs.writeFileSync(meta,JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify({id,kind,mode,exit:result.exit,passed:result.passed,incomplete:result.incomplete,sanitizer:result.sanitizer,reviewMarkers:result.reviewMarkers,metadata:meta}));process.exitCode=result.passed?0:1;
