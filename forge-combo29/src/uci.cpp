@@ -211,7 +211,8 @@ int uci_loop(std::istream& in) {
                          "option name AspArmLate type check default false\n"
                          "option name EvasionOrdering type check default false\n"
                          "option name DeadMaterial type check default false\n"
-                         "option name QuietExtinction type check default false\n";
+                         "option name QuietExtinction type check default false\n"
+                         "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them. Builds without this macro still accept them.
@@ -379,6 +380,8 @@ int uci_loop(std::istream& in) {
                 apply_spin(1, 256, [&](int clamped) { searcher.set_threads(clamped); });
             } else if (name == "Move Overhead") {
                 apply_spin(0, 1000, [&](int clamped) { move_overhead_ms = clamped; });
+            } else if (name == "DrawJitter") {
+                apply_spin(0, forge::DrawJitterMax, [&](int clamped) { forge::DrawJitter = clamped; });
             } else {
                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                 std::cout << "info string unknown option " << name << std::endl;

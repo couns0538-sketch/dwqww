@@ -23,6 +23,8 @@
 
 namespace forge {
 
+int DrawJitter = 0;
+
 namespace tune {
 int LmrQuietBase = 85;
 int LmrQuietDivisor = 220;
@@ -1140,6 +1142,16 @@ bool Worker::is_draw(const Board& board, int ply) const {
     return !board.in_check() && !board.has_legal_move();
 }
 
+int Worker::draw_leaf_score(const Board& board) const {
+    const int span = DrawJitter;
+    if (span <= 0) return 0;
+    // Stalemate and insufficient material keep a literal 0. A fifty-move leaf
+    // or a repetition walks a few centipawns with the node count.
+    if (board.halfmove_clock() < 100 && !board.is_repetition(root_history_index_) && !board.is_repetition()) return 0;
+    const int width = span * 2 + 1;
+    return static_cast<int>(local_nodes_ % static_cast<std::uint64_t>(width)) - span;
+}
+
 int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
 #if FORGE_SEARCH_SPEED2
     return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
@@ -1243,7 +1255,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     seldepth_ = std::max(seldepth_, ply);
     ss->pv_length = 0;
 
-    if (is_draw(board, ply)) return 0;
+    if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
     if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
 
     const bool in_check = board.in_check();
@@ -1387,7 +1399,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     ss->move_count = 0;
 
     if (!root_node) {
-        if (is_draw(board, ply)) return 0;
+        if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
         if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
         // Mate distance pruning.
         alpha = std::max(alpha, mated_in(ply));
@@ -2002,6 +2014,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     if (root_candidates.empty() || root_drawn) {
         int score = 0;
         if (legal.empty() && board.in_check()) score = -MateValue;
+        else if (DrawJitter > 0 && (board.is_repetition() || board.halfmove_clock() >= 100)) {
+            score = draw_leaf_score(board);
+        }
         for (int depth = 1; depth <= max_depth; ++depth) {
             result.depth = depth;
             result.score = score;
