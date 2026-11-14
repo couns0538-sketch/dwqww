@@ -20,10 +20,9 @@ Self-check at e04556dd, portable x86-64-v3, 20000 nodes, one opening, two games,
 
 grok47/r3-01-eval-rule-50-damp c0aaf80df402 200 identical
 grok47/r3-02-threat-history f29db79a4e87 200 identical; e7f5bc837eb7 200 identical; ab21443c4607 200 identical
-grok47/r3-03-lmr-signed-correction 1ecc1d33156d 200 identical; 176aa9fc1edd 200 identical
+grok47/r3-03-lmr-signed-correction 1ecc1d33156d 200 identical; 176aa9fc1edd 200 identical; 73d9f20e5dd1 200 identical
 grok47/r3-04-lmr-late-parent-relief ae2cc041e24b 200 identical; feccf387e16a 200 identical
 grok47/r3-05-hindsight-depth 4ce2b8b18fd9 200 identical
-grok47/r3-07-null-see-veto 56b27b1398a4 200 identical
 grok47/r3-08-asp-capped-reopen dc2e25b54d7c 20 identical
 grok47/r3-21-mate-score-tt af1c998304db 200 identical
 grok47/r3-24-tt-duplicate-shadow 0ca8cb1009df 200 identical
@@ -65,6 +64,12 @@ build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-6
 engine source sha256: 176aa9fc1edd:47cb047708db6294e74b1cbe280ceff6a7ec194f64425aa6d232dad72d656221 176aa9fc1edd:47cb047708db6294e74b1cbe280ceff6a7ec194f64425aa6d232dad72d656221
 engine binary sha256: 176aa9fc1edd:c91a68b5e05822f312df0547d162e551d30c98250201e77452938ece4e41c31a 176aa9fc1edd:c91a68b5e05822f312df0547d162e551d30c98250201e77452938ece4e41c31a
 fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/176aa9fc1edd53c15b37ab966dc1eb4457a43377-37997d042e39/forge name=LmrSignedCorrectionOn restart=on option.LmrSignedCorrection=true option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/176aa9fc1edd53c15b37ab966dc1eb4457a43377-37997d042e39/forge name=LmrSignedCorrectionOff restart=on option.LmrSignedCorrection=false option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 -rounds 100 -games 2 -concurrency 4 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-03-lmr-signed-correction/b2dc26731403/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-03-lmr-signed-correction/b2dc26731403/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
+
+grok47/r3-03-lmr-signed-correction 73d9f20e5dd1 kind nodes pgn forge-combo29/screen_r3fu_03/chunk-03.pgn
+build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_COMPILER=g++
+engine source sha256: 73d9f20e5dd1:47cb047708db6294e74b1cbe280ceff6a7ec194f64425aa6d232dad72d656221 73d9f20e5dd1:47cb047708db6294e74b1cbe280ceff6a7ec194f64425aa6d232dad72d656221
+engine binary sha256: 73d9f20e5dd1:c91a68b5e05822f312df0547d162e551d30c98250201e77452938ece4e41c31a 73d9f20e5dd1:c91a68b5e05822f312df0547d162e551d30c98250201e77452938ece4e41c31a
+fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/73d9f20e5dd1d1fba1d919b1e72162ebe90f84e2-37997d042e39/forge name=LmrSignedCorrectionOn restart=on option.LmrSignedCorrection=true option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/73d9f20e5dd1d1fba1d919b1e72162ebe90f84e2-37997d042e39/forge name=LmrSignedCorrectionOff restart=on option.LmrSignedCorrection=false option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 -rounds 100 -games 2 -concurrency 4 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-03-lmr-signed-correction/db0ae2eee9d3/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-03-lmr-signed-correction/db0ae2eee9d3/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
 
 grok47/r3-04-lmr-late-parent-relief ae2cc041e24b kind nodes pgn forge-combo29/tests_r3fu_04/chunk-0001.pgn
 build flags: -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DFORGE_MARCH=x86-64-v4 -DFORGE_PORTABLE=OFF
@@ -124,5 +129,5 @@ grok47/r4-03-screen-lds ca20d7f52 2026-11-14 17:15:41 +0000 r4-03: chunk 501 PGN
 grok47/r4-04-screen-ch4 51fb0b120 2026-11-14 17:11:45 +0000 r4-04: ContHist4PlyRead screen chunk001
 grok47/r4-05-screen-npc 697f52ee8 2026-11-14 17:20:41 +0000 r4-05: NonPawnCorrection screen chunk 003 (1001-1500)
 
-Last check: 2026-11-14T17:48:49Z
+Last check: 2026-11-14T17:53:16Z
 Deadline: 2026-11-15T01:52:00Z
