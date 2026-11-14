@@ -43,6 +43,15 @@ struct EvalComponents {
     bool in_check = false;
 };
 
+// UCI check option "DeadMaterial". Off: evaluation is unchanged.
+extern bool dead_material_enabled;
+
+// Side-to-move score for a recognized ending with no pawns, rooks, or queens:
+// bare kings, king and one minor versus king, and king and two knights versus
+// king score 0; king, bishop and knight versus king scores a corner drive.
+// Returns false for every other position and leaves `score` untouched.
+[[nodiscard]] bool dead_material_score(const Board& board, int& score);
+
 class Evaluator {
 public:
     // Search-local state only: public evaluation and tuning always recompute.

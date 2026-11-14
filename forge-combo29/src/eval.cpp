@@ -469,6 +469,54 @@ int evaluate_position(const Board& board, Evaluator::PawnEntry* cache, EvalTrace
 
 } // namespace
 
+bool dead_material_enabled = false;
+
+bool dead_material_score(const Board& board, int& score) {
+    // Heavy pieces and pawns are ordinary positions; the network still scores them.
+    if ((board.pieces(Pawn) | board.pieces(Rook) | board.pieces(Queen)) != 0) return false;
+    const int white_knights = popcount(board.pieces(White, Knight));
+    const int black_knights = popcount(board.pieces(Black, Knight));
+    const int white_bishops = popcount(board.pieces(White, Bishop));
+    const int black_bishops = popcount(board.pieces(Black, Bishop));
+    const int white_minors = white_knights + white_bishops;
+    const int black_minors = black_knights + black_bishops;
+    if (white_minors == 0 && black_minors == 0) {
+        score = 0;
+        return true;
+    }
+    // King and one knight, or king and one bishop, against a bare king.
+    if ((white_minors == 1 && black_minors == 0) || (black_minors == 1 && white_minors == 0)) {
+        score = 0;
+        return true;
+    }
+    // Two knights cannot force mate against a lone king.
+    if ((white_knights == 2 && white_bishops == 0 && black_minors == 0) ||
+        (black_knights == 2 && black_bishops == 0 && white_minors == 0)) {
+        score = 0;
+        return true;
+    }
+    const bool white_pair = white_knights == 1 && white_bishops == 1 && black_minors == 0;
+    const bool black_pair = black_knights == 1 && black_bishops == 1 && white_minors == 0;
+    if (!white_pair && !black_pair) return false;
+    // Mate is possible only in a corner of the bishop's colour. Pull the lone
+    // king there, and bring the stronger king closer, with the corner weighted
+    // more so a step toward that corner still helps when it leaves the kings farther apart.
+    const Color attacker = white_pair ? White : Black;
+    const int lone = board.king_square(opposite(attacker));
+    const int helper = board.king_square(attacker);
+    const bool dark = (board.pieces(attacker, Bishop) & DarkSquares) != 0;
+    const int corner_a = dark ? 0 : 7;    // a1 or h1
+    const int corner_b = dark ? 63 : 56;  // h8 or a8
+    const int to_corner = std::min(square_distance(lone, corner_a), square_distance(lone, corner_b));
+    const int king_gap = square_distance(helper, lone);
+    constexpr int CornerWeight = 28;
+    constexpr int KingWeight = 12;
+    constexpr int Base = 48;
+    const int attacker_cp = Base + (7 - to_corner) * CornerWeight + (7 - king_gap) * KingWeight;
+    score = board.side_to_move() == attacker ? attacker_cp : -attacker_cp;
+    return true;
+}
+
 Evaluator::Evaluator() : pawn_cache_(PawnCacheSize) {}
 
 void Evaluator::clear() {
@@ -488,8 +536,15 @@ EvalComponents Evaluator::static_eval_components(const Board& board) {
     // Same combination as Worker::static_evaluate on a fresh stack: a local
     // evaluator so the searcher's pawn cache, hash and history stay untouched.
     EvalComponents parts;
-    parts.hce = evaluate_uncached(board);
     parts.in_check = board.in_check();
+    if (dead_material_enabled) {
+        int fixed = 0;
+        if (dead_material_score(board, fixed)) {
+            parts.total = fixed;
+            return parts;
+        }
+    }
+    parts.hce = evaluate_uncached(board);
     if (!nnue::enabled || !nnue::available()) {
         parts.nnue = 0;
         Evaluator fresh;
