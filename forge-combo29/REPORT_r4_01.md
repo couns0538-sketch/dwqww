@@ -21,7 +21,7 @@ Frozen input commits
 21 28b3a7520de0bdd16105c94b7496cf603127704f grok47/r3-21-mate-score-tt
 24 eb2dda7a68f6605fa298c3fddec81b099fcd5501 grok47/r3-24-tt-duplicate-shadow
 22 143f3c5c6953ecfb8826553200e90f31dc91baae grok47/r3-22-time-safety
-01 79242482ac4bff090ce73291d790ce2dad83f5e3 grok47/r3-01-eval-rule-50-damp
+01 8397bda0691562646f364b9548ef915eeb4cf941 grok47/r3-01-eval-rule-50-damp
 02 040883c378e3549d075068f0d0513a936702fbf8 grok47/r3-02-threat-history
 03 04137a9059a3dced53e292dbc66e26bf60342b17 grok47/r3-03-lmr-signed-correction
 04 a334661b975c7be116b48867062e8e7399446c9f grok47/r3-04-lmr-late-parent-relief
@@ -61,7 +61,7 @@ build of the merged commit, every other option at default. Got is the
 integrated binary with only that option changed.
 
 option                value  commit                                     expected   got
-EvalRule50Damp        true   79242482ac4bff090ce73291d790ce2dad83f5e3    1049205    1049205
+EvalRule50Damp        true   8397bda0691562646f364b9548ef915eeb4cf941    1049205    1049205
 ThreatHistory         true   040883c378e3549d075068f0d0513a936702fbf8    643389     643389
 LmrSignedCorrection   true   04137a9059a3dced53e292dbc66e26bf60342b17    862329     862329
 LmrLateParentRelief   true   a334661b975c7be116b48867062e8e7399446c9f    818656     818656
@@ -239,6 +239,7 @@ Tip r3-10 86889df387350e4d551cf54f11e77b77f3676ae0 merged with no engine-source 
 Tip r3-11 22af0ff8db4c9a04987eec7986b0a2c3b00c62bb merged with no engine-source change; pins were not re-run.
 Tip r3-13 a6724b08061ecd7522994396f6e1493b3a6179a0 merged with no engine-source change; pins were not re-run.
 Tip r3-16 9ad8ecca58750213421b51fcf3bc6543aa866b8d merged with no engine-source change; pins were not re-run.
+Tip r3-01 8397bda0691562646f364b9548ef915eeb4cf941 merged with no engine-source change; pins were not re-run.
 Not verified. The other in-scope branches still have no
 `R3 FOLLOW-UP DONE` line in the files on origin.
 Playing strength was not measured. Address and thread sanitizers were
