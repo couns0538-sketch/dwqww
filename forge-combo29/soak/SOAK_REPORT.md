@@ -1,7 +1,7 @@
 # Six-hour Forge soak
 
 Start: 2026-11-14T05:32:25Z. Scheduled end: 2026-11-14T11:32:25Z.
-Updated: 2026-11-14T08:12:34.302Z. Elapsed minutes: 160.16. Completed checkpoint pushes: 19.
+Updated: 2026-11-14T08:20:39.532Z. Elapsed minutes: 168.24. Completed checkpoint pushes: 20.
 Integration bf5574ee654a773f0ef3d06878707056b90cdad7; reference 16833ecc03b425586f91f4c8834dea8807bf4c22. Cloud-only, one agent.
 
 | Phase | What ran | Counts | Status / faults |
@@ -9,7 +9,7 @@ Integration bf5574ee654a773f0ef3d06878707056b90cdad7; reference 16833ecc03b42558
 | A | Both exact commits: Release, ASan/UBSan, TSan builds; both release bench11/13 and perft5; driver preparation | {"builds":6,"pin_checks":6,"batches":1} | Complete; faults 0 |
 | B | timeout 450 /workspace/work/soak-run/play-asan --seed 4753014 --seconds 291 --threads 1 --nodes 2000 --depth 0 --trigger /workspace/work/soak-run/last-trigger.json | {"games":3281,"moves":465894,"searches":465894,"opening_moves":26248,"faults":0,"illegal":0,"missing":0,"badscore":0,"mates":2362,"stalemates":4,"repetitions":476,"fifty":200,"ply_caps":80,"insufficient":159,"sanitizer_reports":0,"batches_threads1":14,"batches":14} | Complete; faults 0 |
 | C | timeout 450 /workspace/work/soak-run/play-tsan --seed 4753024 --seconds 248 --threads 4 --nodes 2000 --depth 9 --trigger /workspace/work/soak-run/last-trigger.json --trace | {"games":87,"moves":13414,"searches":13414,"opening_moves":693,"faults":0,"illegal":0,"missing":0,"badscore":0,"mates":47,"stalemates":0,"repetitions":25,"fifty":5,"ply_caps":6,"insufficient":4,"sanitizer_reports":0,"batches_threads2":5,"batches":10,"batches_threads4":5} | Complete; faults 0 |
-| D | timeout 450 /workspace/work/soak-run/net-driver --seed 4753035 --seconds 240 --net /workspace/work/soak-run/converted-lock.net --corpus /workspace/work/soak-run/playout-fens.txt | {"positions":927400000,"incremental_checks":1854800000,"loaded_checks":927400000,"nulls":49832453,"castles":280541,"en_passant":73037,"promotions":7360362,"captures":81425700,"damaged_file_checks":37096,"chunks":9274,"faults":0,"batches":11} | Running; faults 0 |
+| D | timeout 450 /workspace/work/soak-run/net-driver --seed 4753037 --seconds 240 --net /workspace/work/soak-run/converted-lock.net --corpus /workspace/work/soak-run/playout-fens.txt | {"positions":1095800000,"incremental_checks":2191600000,"loaded_checks":1095800000,"nulls":58880973,"castles":331271,"en_passant":86307,"promotions":8698265,"captures":96210886,"damaged_file_checks":43832,"chunks":10958,"faults":0,"batches":13} | Running; faults 0 |
 | E | Not yet run | {} | Pending; faults 0 |
 | F | Not yet run | {} | Pending; faults 0 |
 | G | Not yet run | {} | Pending; faults 0 |
