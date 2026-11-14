@@ -81,6 +81,7 @@ bool LmrDeeperShallower = false;
 bool EvalRule50Damp = false;
 bool ThreatHistory = false;
 bool LmrSignedCorrection = false;
+bool LmrLateParentRelief = false;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -1399,6 +1400,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             ss->moved_piece = Empty;
             ss->continuation = &(*continuation_history_)[Empty][0];
             (ss + 1)->ply = ply + 1;
+            (ss + 1)->arrival_index = 0;
             record_null_move(ss);
             NullUndo undo;
             board.make_null_move(undo);
@@ -1439,6 +1441,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 ss->moved_piece = board.moved_piece(move);
                 ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
                 (ss + 1)->ply = ply + 1;
+                (ss + 1)->arrival_index = 0;
                 record_move(ss, board, move);
                 Undo undo;
                 (void)board.make_move(move, undo);
@@ -1568,6 +1571,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         ss->moved_piece = moved;
         ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(moved)][move.to];
         (ss + 1)->ply = ply + 1;
+        (ss + 1)->arrival_index = move_count;
         record_move(ss, board, move);
         Undo undo;
         (void)board.make_move(move, undo);
@@ -1604,6 +1608,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 const int correction_cp = ss->static_eval - ss->raw_eval;
                 if (correction_cp != 0) r = apply_lmr_signed_correction(r, correction_cp);
             }
+            // A parent tried after at least six earlier moves is speculative. Its first
+            // four replies are the likely refutations, so they lose one ply of reduction.
+            if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
             full_depth_needed = score > alpha && reduced_depth < new_depth;
@@ -1857,6 +1864,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         ss.continuation = &(*continuation_history_)[Empty][0];
         ss.double_extensions = 0;
         ss.null_move_allowed = true;
+        ss.arrival_index = 0;
         ss.killers = {};
     }
     SearchStack* ss = &stack_[4];

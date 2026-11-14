@@ -273,6 +273,7 @@ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR befor
 extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
 extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
 extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
@@ -325,6 +326,9 @@ struct SearchStack {
     int static_eval = ValueNone;
     int raw_eval = ValueNone;
     int move_count = 0;
+    // 1-based index of the move that entered this node. 0 means the node was not
+    // reached by a counted move (root, null move, or a probcut capture).
+    int arrival_index = 0;
     int cutoff_count = 0;
     int double_extensions = 0;
     bool in_check = false;
