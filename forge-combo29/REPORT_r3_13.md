@@ -37,7 +37,19 @@ Source diff in `forge-combo29/src` and `forge-combo29/include`: 42 insertions an
 
 ## Sanitizer
 
-`tests_r3_13/quiet_extinction.cpp` was compiled with `-fsanitize=address,undefined` and `-fno-sanitize-recover=address,undefined`, the same portable search flags, Hash 16, and one thread. It ran 200 searches to depth 10 with the option on: 197 positions reached by playing 1 to 23 legal moves from the start position, plus `4k3/8/8/3p4/3P4/8/8/4K3 w - - 0 1`, `4k3/8/8/8/8/8/8/4QK2 b - - 0 1`, and the start position. Every returned move was legal (a terminal position must return no move). The process exited 0 and printed `searches 200 illegal 0`. No address or undefined-behaviour report was produced.
+`tests_r3_13/quiet_extinction.cpp` was compiled with `-O3 -fsanitize=address,undefined` and `-fno-sanitize-recover=address,undefined`, the same portable search flags, Hash 16, and one thread. It ran 200 searches to depth 10 with the option on: 197 positions reached by playing 1 to 23 legal moves from the start position, plus `4k3/8/8/3p4/3P4/8/8/4K3 w - - 0 1`, `4k3/8/8/8/8/8/8/4QK2 b - - 0 1`, and the start position. Each search had to finish at depth 10. A position that is not an immediate draw had to search at least one node. The returned move had to be legal and `make_move` had to accept it. A terminal position must return no move.
+
+The same process, still sanitized, checked the default pins before those searches and checked bench 13 again after turning the option back off. It printed:
+
+`perft5 4865609 bench11 312866 bench13_off 862329 bench13_on 602141`
+
+`searches 200 illegal 0 nodes 3592220 bench13_restored 862329`
+
+Exit code 0. A second run of that binary printed the same two lines. No address or undefined-behaviour report was produced.
+
+## Re-check
+
+The release binary was asked again, with Threads 1, Hash 16, and OwnBook false. Defaults stayed bench 11 = 312866, bench 13 = 862329, and start-position perft 5 = 4865609. With the option on, bench 13 stayed 602141. Turning the option off returned bench 13 to 862329. That UCI re-check was repeated and the node counts did not move.
 
 No strength claim is made. No games were played.
 
