@@ -85,7 +85,9 @@ bench 13 with the option on, five alternating runs, all 862329 nodes. nps in ord
 
 Mate test `forge-combo29/tests_r3fu_11/kbnk_mate_test.cpp`: 20 positions, each with both colours holding the bishop and knight, option on, 200000 nodes per move. All 40 games mated the lone king inside 50 moves. Exit 0. A failed check returns non-zero.
 
-Screen: `DeadMaterialOn` first against `DeadMaterialOff`, `nodes=50000`, Threads 1, Hash 16, OwnBook false, book `UHO_Lichess_4852_v1.epd` (sha256 `7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a`). fastchess alpha 1.8.3 (`091bf93dcf08e15d14b77bc2374d0a423982b32200e8add69f17bace3a34b31f`). Engine binary sha256 is recorded on each chunk summary. Chunks run for up to six hours and are under `forge-combo29/tests_r3fu_11/screen/`. Each summary has W-L-D for the option-on engine first, Elo with the 95% interval, LOS, pentanomial, the command, and the versions.
+Screen: `DeadMaterialOn` first against `DeadMaterialOff`, `nodes=50000`, Threads 1, Hash 16, OwnBook false, book `UHO_Lichess_4852_v1.epd` (sha256 `7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a`). fastchess alpha 1.8.3 (`091bf93dcf08e15d14b77bc2374d0a423982b32200e8add69f17bace3a34b31f`). Engine binary sha256 is recorded on each chunk summary. Chunks were started for up to six hours and live under `forge-combo29/tests_r3fu_11/screen/`. The run was stopped during chunk 7 at 18:49 UTC, so that chunk is unfinished (156 games in the PGN, not a full 300). Chunks 1 through 6 are complete. Each summary has W-L-D for the option-on engine first, the fastchess Elo line, LOS, pentanomial, the command, and the versions.
+
+Counted from the PGNs, option on first, chunks 1 through 7 including the partial chunk: 506 wins, 499 losses, 951 draws, 1956 games. Pair score gives Elo 1.24 with a 95% half-width of 2.53, LOS 83.18%. Pentanomial of the 978 finished pairs, from 0-0 through 2-0: 3, 11, 943, 18, 3. Fastchess prints its own Elo, LOS, and pentanomial in each summary; those lines are what the tool emitted. This is not a strength claim.
 
 setoption name DeadMaterial value true
 
