@@ -46,5 +46,15 @@ At 2026-11-14T14:35:25Z those four counts were unchanged. At 2026-11-14T14:36:09
 
 Not measured: playing strength, multi-thread searches, or time-control searches. Clang’s compiler-rt archive was not installed, so the sanitizer run used g++ rather than the Clang release binary. `tests_t16/options.expected.txt` still snapshots the old option list and was left untouched.
 
+## Follow-up
+
+The destination threat bit used the position occupancy with the mover still on its origin. A slider on the same line, with the mover between it and the destination, did not count. The destination test now uses occupancy with the origin square cleared. The origin test is unchanged. No `FORGE_*` define was added or removed, and `CMakeLists.txt` was not edited.
+
+The CPU has AVX-512F and BMI2, so the binary is the owner release build: `cmake -S forge-combo29 -B build-owner -DCMAKE_BUILD_TYPE=Release` (default `-march=x86-64-v4`, PEXT and ZMM on). Threads 1, Hash 16, OwnBook false, ThreatHistory left off: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609.
+
+`tests_r3fu_02/xray_destination_test.cpp` covers the queen move whose destination is behind the mover on a rook file (index 3), the square between the rook and the queen (index 3), and a destination off that file (index 2).
+
+Screening is a node-limited opening match of this same binary with the option on against itself with the option off. It is not a strength claim.
+
 option.ThreatHistory=true
-bench 13 nodes 643379
+bench 13 nodes 643389
