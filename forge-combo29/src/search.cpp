@@ -16,6 +16,10 @@
 #define FORGE_SDK_BADCAP_PREFIX 0
 #endif
 
+#ifndef FORGE_BARE_KING_MATE_FIX
+#define FORGE_BARE_KING_MATE_FIX 1
+#endif
+
 namespace forge {
 
 namespace tune {
@@ -1193,10 +1197,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         else improving = true;
     }
 
+#if FORGE_BARE_KING_MATE_FIX
     const bool multi_worker = all_workers_ != nullptr && all_workers_->size() > 1;
     const bool bare_king_mode = multi_worker &&
         (board.occupied(White) == board.pieces(White, King) ||
          board.occupied(Black) == board.pieces(Black, King));
+#else
+    constexpr bool bare_king_mode = false;
+#endif
 
     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta)) {
         // Razoring: hopeless positions fall back to quiescence.
@@ -1287,7 +1295,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     }
 
     // Internal iterative reduction: no hash move suggests a less important node.
-    if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node) && !bare_king_mode) --depth;
+    if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
 
     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
 #if FORGE_SPD_NO_ZERO_MOVELISTS
@@ -1367,11 +1375,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
                     extension = 2;
                 }
-            } else if (!bare_king_mode && singular_beta >= beta) {
+            } else if (singular_beta >= beta) {
                 return singular_beta;
-            } else if (!bare_king_mode && tt_score >= beta) {
+            } else if (tt_score >= beta) {
                 extension = -2;
-            } else if (!bare_king_mode && cut_node) {
+            } else if (cut_node) {
                 extension = -1;
             }
         } else if (gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
