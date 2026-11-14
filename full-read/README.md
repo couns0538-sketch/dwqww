@@ -16,13 +16,11 @@ Each path has a byte size or a line count from an actual read of that blob, and 
 | `03` | 29 | 29 | 69964 | 68351 | 1613 | complete |
 | `04` | 33 | 33 | 69961 | 67868 | 2093 | complete |
 | `05` | 30 | 30 | 69962 | 60265 | 9697 | complete |
-| `06` | 26 | 29 | 69780 | 67500 | 2280 | partial |
+| `06` | 29 | 29 | 69964 | 67675 | 2289 | complete |
 | `08` | 29 | 29 | 69959 | 67763 | 2196 | complete |
 | `09` | 30 | 30 | 69959 | 67165 | 2794 | complete |
-| `10` | 19 | 33 | 68963 | 66923 | 2040 | partial |
+| `10` | 33 | 33 | 69959 | 67888 | 2071 | complete |
 | `11` | 29 | 29 | 69966 | 67852 | 2114 | complete |
 | `12` | 30 | 30 | 69960 | 67859 | 2101 | complete |
 
-Slice 07 has no result file yet. Totals below count only the lines in this snapshot: **768420** files opened, **736550** text files read, **31870** binaries classified.
-
-Slices 06 and 10 were still being written when this snapshot was taken, so their commit counts are short of the slice lists.
+Slice 07 has no result file yet. Totals below count only the lines in this snapshot: **769600** files opened, **737690** text files read, **31910** binaries classified.
