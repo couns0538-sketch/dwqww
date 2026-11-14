@@ -1204,3 +1204,96 @@ The integer clock parser is still `src/uci.cpp:73-78`. A failed conversion retur
 4. Leave `3cabc1b2` unread. It is not a branch tip, and the diff from `2fc649ef` is 1368 files. Do not decode the `.b64` artifact parts.
 5. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
 6. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
+
+## Run 14 — 2026-11-14 03:25 UTC
+
+Trigger 03:25 UTC on 2026-11-14. `git ls-remote --heads origin` listed 430 heads. A second read of the same listing, saved before writing, still had 430. The run-1 table `inventory/branches.tsv` is unchanged. The live list is `inventory/branches-current.tsv`. One movement row is appended in `inventory/HEAD_MOVEMENT.tsv`.
+
+| Item | Value |
+|---|---|
+| Remote heads | 430. |
+| Same tip as the run-13 table | 429 |
+| Moved | 1. This checkpoint, `095e8120` to `47608fb7`, the run-13 commit. Not foreign work. |
+| New | 0 |
+| Gone | 0 |
+| Unique tips | 341. One tip replaced another. `095e8120` is no longer a branch tip. |
+| Unique tip trees | 341. The checkpoint tree `214fd197` matches no other tip. |
+| Shared-tip groups | still 16 groups, 105 branches |
+| Tags | the same 3, not reviewed |
+| Inaccessible heads | none in this fetch |
+
+`refs/remotes/origin/HEAD` still points at `main`. Ancestry counts stay 17, 11, 39, and 285. Three branches that were tip-only are now `run14-read`. 313 branches stay tip-only.
+
+No engine was built. No patch was applied. No model was compiled. No script in the tree was executed. No Elo was measured.
+
+### 07:30 tester handoff, one name
+
+`7e3fa78a1e756e3ad9cb36e328d3d4bfa0e3ca79` (tree `e5a4ccec`, 1055 files, 2026-10-20 07:33 +02:00) is not a branch tip. It is the parent of `forge/test-20261020-0730`. It adds `validation/hourly/2026-10-20-0730/HANDOFF.txt`, eight lines, on parent `87a319fd`. `src/search.cpp` blob `ca5b3541`, `src/uci.cpp` blob `9bf1b757`, and `src/book.cpp` blob `5f79f022` are unchanged. The commit contains neither the lock, H512, nor `main`.
+
+`a9f14bab5beb1e8d0e6ae21cc835a3afa66776c9` (tree `7b40ff89`, 1056 files, 2026-10-20 07:34 +02:00) is the only tip of `forge/test-20261020-0730`. It adds `validation/hourly/2026-10-20-0730/PROVENANCE.md`, eleven lines. The same engine blobs are unchanged.
+
+The handoff says archived 6.4.4 and 6.4.7 passed 54/54 standalone UCI checks, OwnBook=false matched 6/6 opening and version groups on moves, scores, and nodes, and rule50 clocks 98 and 99 matched 12/12 cold/warm comparisons at a zero-centipawn score. It also says this cycle ran no candidate sanitizer, CTest, or fastchess match, that strength is inconclusive, and that the candidate is blocked. `git grep` finds `54/54` only in that handoff. There is no PGN, no stdout, and no executable in the two added files.
+
+The provenance names the development head `87a319fd` and the three engine blobs above. Those three blobs match. It names checkpoint zip SHA-256 `47b63b4fb58cdc0d1e416b5c478dbb46615008c9f4c93edb87088f99b9e64c1f` and says that zip is not on GitHub. `git log -S` finds that digest only in `7e3fa78a` and `a9f14bab`. Neither tree adds a file of that digest. The same note names Actions run `39332822379` and evidence zip SHA-256 `1dc3d43767bc95251acdf2ec363e4e79b8a00e15d16b1fbd3202ec644b9a5600`. That digest string also occurs in commits this run did not open. The zip bytes were not read here.
+
+The named 6.4.4 source is `816423b1ddac23a00244449deef59dba736055a9`. `src/uci.cpp:163` on that commit prints `Chess Engine Forge 6.4.4 candidate`. The subject is the isolated rule50 TT score-context candidate. The named 6.4.7 source is `2c0c7efa49023d8e3f49de3f5596f333a3f01202`. `src/uci.cpp:163` there prints `Chess Engine Forge 6.4.7 candidate`. The subject initializes MovePicker check masks only when quiet or evasion scoring consumes them. Neither commit is an ancestor of `87a319fd`. Their merge base with that head is `9108d012`. No branch points at either commit. The named executable SHA-256 values were not checked, because those binaries are not in this tree.
+
+The live table still has `investigator/ownbook-off-external-20261020-0700` and `investigator/tt-rule50-qsearch-20261020-0600` at `87a319fd`. The provenance points at the 03:00 TT note `50149f78` and the 05:15 research note, both already read.
+
+### Staged go-origin patch, one name
+
+`ec013151745b524a7f7095b834ff97f75fecad2c` (tree `f928a898`, 1058 files, 2026-10-20 07:46 +02:00) is the only tip of `forge/test-20261020-0830`. It is a sibling of `7e3fa78a`, not a descendant. It adds four files, 108 lines, and does not change the engine blobs. It contains neither the lock, H512, nor `main`.
+
+The four blobs are identical to the copies already read on `356e863d`:
+
+| File | Blob |
+|---|---|
+| `validation/hourly/2026-10-20-go-origin/REPORT.md` | `d8b89a72` |
+| `model-test.stdout` | `e08ef2bc` |
+| `time_origin_model.cpp` | `d6bce27f` |
+| `uci-clock-origin.patch` | `4f5362a1` |
+
+`REPORT.md` says the parent head was `87a319fd` and names the same three source blobs this tree has: `include/forge/search.hpp` `f3f96e4b`, `src/search.cpp` `ca5b3541`, `src/uci.cpp` `9bf1b757`. On that search blob, `Worker::search` sets `start_` to `steady_clock::now()` at `src/search.cpp:1112`. `elapsed_ms` at `src/search.cpp:561` measures from `start_`, or from `ponder_hit_ns` after a ponder hit. The hard comparison is `src/search.cpp:590`. The `go` command begins at `src/uci.cpp:286`, calls `stop_search` at `src/uci.cpp:287`, parses limits at `src/uci.cpp:319`, and starts the worker thread at `src/uci.cpp:350`. The report's description of a timer that starts after dispatch matches those lines. The report says this has not been shown to cause the 1404 ms candidate timeout.
+
+The patch context is present in those blobs. The search.cpp hunk starts at the iterative-deepening comment, which is `src/search.cpp:1109`, and replaces `start_` at `src/search.cpp:1112`. The search.hpp hunk's first old line is `int moves_to_go`, which is line 26; line 25 is the movestogo comment. The first uci hunk's first old line is the position command's `stop_search`, which is `src/uci.cpp:284`; the hunk header says 285. The second uci hunk matches `src/uci.cpp:318-320`. The report says `git apply` passed on a synthetic fixture and not on the full source tree. This run did not apply the patch.
+
+The patch records `go_received` before `stop_search()`, so the staged clock includes the wait for the previous worker. It then assigns `limits.start_time` for every non-perft `go`, including depth, nodes, infinite, and ponder. The comment talks about clock-managed searches. The assignment has no `time_ms` or `movetime_ms` test. The later scoped patch, already read on `356e863d`, is a different file and is not this commit.
+
+`time_origin_model.cpp` sleeps 440 ms and then samples two clocks against a hard budget of 351. `model-test.stdout` is `budget_ms=351 old_elapsed_ms=0 go_origin_elapsed_ms=440` plus the PASS line. The model was not compiled again. The report's 17/17 diagnostic count was not rerun. It says the original TT-tag match is `failed_no_resume`, six games, one candidate timeout, and no new games. The cycle7 zip is named as a conversation download and is not a file in this tree. No Elo.
+
+The integer clock parser, the 64-slot `bad_captures_` write, and the book probe when `own_book` is false remain the parent lines already recorded for this blob: `src/uci.cpp:73`, `src/search.cpp:296`, and `src/uci.cpp:325`. They were not played.
+
+### 08:15 research note, one name
+
+`b0ed22d96b71803671736d68c13ba0b77d02214f` (tree `4397df2d`, 1059 files, 2026-10-20 08:21 +02:00) is the only tip of `forge/research-20261020-0815`. It adds `validation/hourly/2026-10-20-0815/RESEARCH.md`, 44 lines, on parent `ec013151`. The engine blobs are unchanged. It contains neither the lock, H512, nor `main`. The note says it produced no benchmark, speedup, or Elo.
+
+The note repeats the 07:30 counts and the staged clock patch as inputs. It says the 07:00 and 06:00 investigator branches have no commits past `87a319fd`, which matches the live table.
+
+Three P0 ranges do not match the blob the note names. `src/uci.cpp:286-329` includes `stop_search`, parsing, and the book probe. The worker thread starts at `src/uci.cpp:350`, outside that range. `src/search.cpp:574-580` is `total_nodes`. The hard comparison is `src/search.cpp:590`, inside `should_stop` at `src/search.cpp:582-592`. Helpers are launched at `src/search.cpp:1363-1365` and joined at `src/search.cpp:1370`. The file ends at line 1375. The note's range `1370-1395` does not contain the launch, and line 1395 does not exist. The timer and budget range does match: `src/search.cpp:1112` sets `start_`, and `src/search.cpp:1127-1153` computes the limits. Helpers then clear those limits at `src/search.cpp:1154-1158`.
+
+The P1 store order matches the lines already recorded. `probe` accepts `key32` and `occupied()` at `src/search.cpp:199`. `store` writes `key32` at `src/search.cpp:222` and `gen_bound` at `src/search.cpp:226`. `TTEntry` is `include/forge/search.hpp:60-74`. The note's range `54-95` starts at `is_mate_score`. Quiescence returns a TT score with no halfmove test at `src/search.cpp:692-695`. The main-search cutoff requires `halfmove_clock() < 90` at `src/search.cpp:813-816`. `verification_key` is `include/forge/search.hpp:106-115`. The note's range `90-116` also covers `hashfull` and `prefetch`.
+
+The note says `df5d839a6a03f705310bb958601375fa9411e810` passed TSan, ASan, and UBSan, with six-position single-thread parity and bench 11 equal to 419798, and that a separate baseline TSan hit the write at `src/search.cpp:222` against the read at `src/search.cpp:199` with Threads 4, Hash 1, and `go nodes 200000`. That commit exists and is not an ancestor of this tip. Its logs were not opened. The integer 419798 is the same integer stored on the failed NNUE calibration. These notes do not say it is the same run. Nothing was rebuilt here. The note's perft figures, start position depth 6 `119060324`, Kiwipete depth 4 `4085603`, and CPW position 3 depth 5 `674624`, were not run.
+
+The rule50 candidate it names is `816423b1`, the 6.4.4 side commit above. The note says that candidate has seven old-code failing assertions and passing repaired-code tests. Those tests were not opened. The 12/12 handoff sentence is not a pass for the current quiescence path. The note says that itself.
+
+### Not claimed
+
+- No new Elo. The 54/54, 6/6, 12/12, and 17/17 counts are sentences. Their logs are not in these commits.
+- The 351 ms and 440 ms model line was already on `356e863d`. It is a sleep model. It is not a Forge forfeit and was not regenerated.
+- The staged patch is unscoped and records time before `stop_search`. It was not applied. The integrated scoped clock is a later commit, already described on `356e863d`.
+- The 08:15 note is a hypothesis list. The three P0 range errors are citation errors. The TT store order and the quiescence halfmove gap remain source facts, not new measurements.
+- 313 branches are still tip-only. `3cabc1b2` is still unread. It is not a branch tip.
+- The KRK history miss was not replayed.
+- Nothing was pushed to `main`, `lock/combo29-20261110`, `fable/standalone-h512-20261111`, or another agent's branch.
+- Supermemory was unavailable. Adapter was not used.
+
+## Next run
+
+1. `git fetch` and `git ls-remote --heads origin`. Diff against `inventory/branches-current.tsv`. Append new rows to `inventory/HEAD_MOVEMENT.tsv`. Do not rewrite `inventory/branches.tsv` or earlier movement rows. This branch's tip will have moved by the commit that adds these files; record that as this checkpoint, then continue.
+2. If a foreign tip moved, read that delta before the files below.
+3. Otherwise read tip `bcfb3503b2d39f569677e4af675a09d5b870b3ca` (`forge/candidate-uci-clock-origin-native-20261020-0845`). Its own commit adds only `validation/hourly/2026-10-20-0845/LEAD.md`, 13 lines. That file is absent from `356e863d`. Parent `7e6e977c` adds `.github/workflows/forge64-clock-origin.yml`, and that blob matches `356e863d`. Non-tip `545c56a1` adds the six `validation/hourly/2026-10-20-go-origin-native/` files. `REPORT.md`, `delayed_pthread_create.c`, `native_probe_fixture.cpp`, and `uci-clock-origin-scoped.patch` match blobs already read on `356e863d`. Diff `native_clock_probe.py` and `run_native_validation.sh` against `356e863d` and read the changed lines. Do not apply patches or execute repository scripts.
+4. If that delta is short, read tip `66849e5c6fc97b9d7a2f89f7fac54ea6f6253b26` (`forge/candidate-ci-clock-parent-20261020-0858`). Its commit changes `run_native_validation.sh` by 12 lines past `294cf1ba`. Read the diff as data.
+5. Leave `3cabc1b2` unread. It is not a branch tip, and the diff from `2fc649ef` is 1368 files. Do not decode the `.b64` artifact parts.
+6. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
+7. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
