@@ -1,0 +1,129 @@
++ read -r -a defines
+++ sed -n 's/^CXX_DEFINES = //p' /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/flags.make
++ read -r -a flags
+++ sed -n 's/^CXX_FLAGS = //p' /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/flags.make
++ g++ -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_NNUE_HIDDEN=256 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_TT_NOTLS=1 -DNDEBUG -O3 -DNDEBUG -std=c++20 -O3 -ffp-contract=off -fno-fast-math -march=x86-64-v4 -I forge-combo29/include forge-combo29/soak/search_compare.cpp /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/src/board.cpp.o /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/src/bitboard.cpp.o -pthread -o /workspace/work/soak-run/search-compare
++ /workspace/work/fastchess/fastchess --help
++ sed -n '/srand/,+8p; /openings/,+18p; /repeat/,+10p; /adjud/,+8p'
+    [1;94m-repeat[0m
+    Set the number of games to 2. Equivalent to [1;94m-games 2[0m.
+
+    [1;94m-sprt elo0=ELO0 elo1=ELO1 alpha=ALPHA beta=BETA[0m
+    [1;94mmodel=(normalized|logistic|bayesian)[0m
+    Set parameters for a Sequential Probability Ratio Test (SPRT).
+
+    [93m  · [0m[1;94mmodel[0m: 
+        [93m  · [0m[1;94mnormalized[0m - Uses nElo (default). 
+        [93m  · [0m[1;94mlogistic[0m - Uses regular/logistic Elo. 
+        [93m  · [0m[1;94mbayesian[0m - Uses BayesElo. 
+    Enables draw adjudication based on number of moves, move count, and
+    score threshold.
+
+    [93m  · [0m[1;94mmovenumber[0m - number of moves before checking for a draw. Default
+        is 0. 
+    [93m  · [0m[1;94mmovecount[0m - number of consecutive moves below the score
+        threshold. Default is 1. 
+    [93m  · [0m[1;94mscore[0m - score threshold (in centipawns) for a draw. Default is 0.
+
+    Enables draw adjudication if the game reaches N moves without a
+    result.
+
+    [1;94m-tb PATHS[0m
+    Adjudicate games using Syzygy tablebases. PATHS must be a
+    semicolon-separated (on Windows) or colon-separated (other platforms)
+    list of paths to the tablebase directories. Only the WDL tablebase
+    files are required.
+
+    Only use tablebase adjudication for positions with N pieces or less.
+
+    [1;94m-tbignore50[0m
+    Disable the fifty move rule for tablebase adjudication.
+
+    [1;94m-tbadjudicate (BOTH|WIN_LOSS|DRAW)[0m
+    Control when tablebase adjudication is applied. SETTING can be: - [0m
+    [1;94mBOTH[0m - Adjudicate both wins and draws (default) - [1;94mWIN_LOSS[0m - Only
+    adjudicate won/lost positions - [1;94mDRAW[0m - Only adjudicate drawn
+    [1;94m-openings file=NAME format=(epd|pgn) [order=(sequential|random)][0m
+    [1;94m[plies=(Max plies|N)] [start=(1|N)][0m
+    Specifies an opening book file and its format for game starting
+    positions.
+
+    [93m  · [0m[1;94mformat[0m - file format, either epd or pgn. 
+    [93m  · [0m[1;94morder[0m - order of openings ([1;94mrandom[0m or [1;94msequential[0m). Default is [0m
+        [1;94msequential[0m. 
+    [93m  · [0m[1;94mplies[0m - number of plies for pgn. Defaults to max available plies.
+    [93m  · [0m[1;94mstart[0m - starting index of the opening book. Default is 1. 
+
+    [1;94m-srand SEED[0m
+    [1;94m-srand SEED[0m
+    Specify the seed for opening book randomization.
+    Specify the seed for opening book randomization.
+
+
+[1;36m## [0m[1;36mOutput & Reporting[0m
+[1;36m## [0m[1;36mOutput & Reporting[0m
+
+
+    [1;94m-output format=(fastchess|cutechess)[0m
+    [1;94m-output format=(fastchess|cutechess)[0m
+    Choose the output format for game results ([1;94mfastchess[0m or [1;94mcutechess[0m).
+    Choose the output format for game results ([1;94mfastchess[0m or [1;94mcutechess[0m).
+    Default is [1;94mfastchess[0m.
+    Default is [1;94mfastchess[0m.
+
+    To start a match between two engines using random openings from
+    book.epd:
+
+    [1;94m  | [0m[1m$ fastchess -engine cmd=Engine1.exe name=Engine1 -engine cmd=Engine2.exe \[0m
+    [1;94m  | [0m[1m  name=Engine2 -openings file=book.epd format=epd order=random \[0m
+    [1;94m  | [0m[1m  -each tc=60+0.6 option.Hash=64 -rounds 200 -repeat -concurrency 4[0m
+    [1;94m  | [0m[1m  -each tc=60+0.6 option.Hash=64 -rounds 200 -repeat -concurrency 4[0m
+
+
+    To start a SPRT test between two engines up to 100000 rounds (200000
+    To start a SPRT test between two engines up to 100000 rounds (200000
+    games) with 3 concurrent games with one engine playing with 2 million
+    games) with 3 concurrent games with one engine playing with 2 million
+    nodes per move and 1 thread and the other playing with 1 million
+    nodes per move and 1 thread and the other playing with 1 million
+    nodes per move and 2 threads, and both having a time control of 5
+    nodes per move and 2 threads, and both having a time control of 5
+    minutes plus 5 seconds increment per move, using random openings from
+    minutes plus 5 seconds increment per move, using random openings from
+    UHO_Lichess_4852_v1.epd, Fishtest adjudication rules, and saving the
+    UHO_Lichess_4852_v1.epd, Fishtest adjudication rules, and saving the
+    UHO_Lichess_4852_v1.epd, Fishtest adjudication rules, and saving the
+    games to a file in a specific folder with SAN notation and nodes
+    games to a file in a specific folder with SAN notation and nodes
+    games to a file in a specific folder with SAN notation and nodes
+    count:
+    count:
+    count:
+
+
+
+    [1;94m  | [0m[1m$ fastchess \[0m
+    [1;94m  | [0m[1m$ fastchess \[0m
+    [1;94m  | [0m[1m  -engine cmd=Engine1.exe name=Engine1 option.Threads=1 nodes=2000000 \[0m
+    [1;94m  | [0m[1m  -engine cmd=Engine1.exe name=Engine1 option.Threads=1 nodes=2000000 \[0m
+    [1;94m  | [0m[1m  -engine cmd=Engine2.exe name=Engine2 option.Threads=2 nodes=1000000 \[0m
+    [1;94m  | [0m[1m  -engine cmd=Engine2.exe name=Engine2 option.Threads=2 nodes=1000000 \[0m
+    [1;94m  | [0m[1m  -openings file=UHO_Lichess_4852_v1.epd format=epd order=random \[0m
+    [1;94m  | [0m[1m  -openings file=UHO_Lichess_4852_v1.epd format=epd order=random \[0m
+    [1;94m  | [0m[1m  -each tc=300+5 -resign movecount=3 score=600 -draw movenumber=34 movecount=8 score=20 \[0m
+    [1;94m  | [0m[1m  -each tc=300+5 -resign movecount=3 score=600 -draw movenumber=34 movecount=8 score=20 \[0m
+    [1;94m  | [0m[1m  -sprt elo0=0 elo1=2 alpha=0.05 beta=0.05 \[0m
+    [1;94m  | [0m[1m  -rounds 100000 -concurrency 3 -pgnout notation=san nodes=true file=./games/sprt.pgn[0m
+
+[1;91m[0m[1;91mAUTHORS[0m
+
+    Fastchess was written by Disservin, Szil, PGG106, and contributors.
+
+[1;91m[0m[1;91mREPORTING BUGS[0m
+
+    Report any bugs to [4;32mhttps://github.com/Disservin/fastchess/issues[0m.
+
+[1;91m[0m[1;91mCOPYRIGHT[0m
+
+    This software is licensed under the MIT license. See the LICENSE file
+    for details.
