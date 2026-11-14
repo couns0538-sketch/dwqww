@@ -291,6 +291,7 @@ extern bool EvasionOrdering;         // in check, history-order evasions (false 
 extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
 extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
 extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();

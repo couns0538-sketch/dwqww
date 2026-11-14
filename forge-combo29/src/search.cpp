@@ -95,6 +95,7 @@ bool EvasionOrdering = false;
 bool QuietExtinction = false;
 bool TmFinishIteration = false;
 bool TmNodeShare = false;
+bool SoundMatePruning = false;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -1656,7 +1657,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
 
         // Shallow-depth pruning of unpromising moves.
-        if (mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
+        // Off by default, so the predicate below is the historical guard.
+        // With SoundMatePruning, skip this block on a principal-variation node,
+        // while in check, and when alpha is already a mate score. Those are the
+        // three cases where dropping a move can hide a faster mate and still
+        // store an exact transposition bound.
+        const bool sound_mate_case =
+            tune::SoundMatePruning && (pv_node || in_check || is_mate_score(alpha));
+        if (!sound_mate_case && mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
             best_score > -MateInMaxPly && has_material && !bare_king_mode) {
             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
