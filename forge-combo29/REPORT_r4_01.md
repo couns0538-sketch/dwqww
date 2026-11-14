@@ -26,7 +26,7 @@ Frozen input commits
 03 176aa9fc1edd53c15b37ab966dc1eb4457a43377 grok47/r3-03-lmr-signed-correction
 04 d71f002fde848d2a4c3ef661dde152a442d395c6 grok47/r3-04-lmr-late-parent-relief
 05 c50314ab9472610847194d9fd871ae38d7eef666 grok47/r3-05-hindsight-depth
-06 e6bb8f273849f5c8fc9382638e1864e3e28b4859 grok47/r3-06-null-threat-verify
+06 544c108818eaaaaf25336b3e26531353876773e1 grok47/r3-06-null-threat-verify
 07 9564de36aa9d4ed17b19d8f7d6468f61ac286efc grok47/r3-07-null-see-veto
 08 3b41775159d67c1336876ece36cdfcb71c4a8c86 grok47/r3-08-asp-capped-reopen
 09 3b94d827fee3239e3be920e42619f3db7cf01e20 grok47/r3-09-asp-arm-late
@@ -66,7 +66,7 @@ ThreatHistory         true   8fe3867a098b7df57d731a3e3581c1be51ea5c57    643389 
 LmrSignedCorrection   true   176aa9fc1edd53c15b37ab966dc1eb4457a43377    862329     862329
 LmrLateParentRelief   true   d71f002fde848d2a4c3ef661dde152a442d395c6    818656     818656
 HindsightDepth        true   c50314ab9472610847194d9fd871ae38d7eef666    840387     840387
-NullThreatVerify      true   e6bb8f273849f5c8fc9382638e1864e3e28b4859    789456     789456
+NullThreatVerify      true   544c108818eaaaaf25336b3e26531353876773e1    789456     789456
 NullSeeVeto           true   9564de36aa9d4ed17b19d8f7d6468f61ac286efc    929140     929140
 AspCappedReopen       true   3b41775159d67c1336876ece36cdfcb71c4a8c86    850997     850997
 AspArmLate            true   3b94d827fee3239e3be920e42619f3db7cf01e20    870398     870398
@@ -168,6 +168,7 @@ Tip r3-24 eb2dda7a68f6605fa298c3fddec81b099fcd5501 merged with no source change;
 Tip r3-22 143f3c5c6953ecfb8826553200e90f31dc91baae merged with no source change; pins and the option table matched.
 Tip r3-01 485e27bd80e76c7973cb5428d0df307baad5123d merged with no source change; pins and the option table matched.
 Tip r3-04 d71f002fde848d2a4c3ef661dde152a442d395c6 merged with no source change; pins and the option table matched.
+Tip r3-06 544c108818eaaaaf25336b3e26531353876773e1 merged with no source change; pins and the option table matched.
 Not verified. No `R3 FOLLOW-UP DONE` commit existed to merge.
 Playing strength was not measured. Address and thread sanitizers were
 not run on the integrated tree. The KRK threads-2 miss above was not
