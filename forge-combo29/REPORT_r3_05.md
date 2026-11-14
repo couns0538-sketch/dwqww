@@ -82,4 +82,8 @@ Chunk 010, openings 3601-4000, 800 games, option on first: W-L-D 218-193-389. El
 
 Chunk 011, openings 4001-4400, 800 games, option on first: W-L-D 223-175-402. Elo 20.87, 95% +/- 15.72. LOS 99.55%. Pentanomial 11, 93, 155, 119, 22. This chunk's interval does not include zero. Details: forge-combo29/tests_r3fu_05/chunk-011-summary.txt. PGN: forge-combo29/tests_r3fu_05/chunk-011.pgn.
 
-After 8800 games: W-L-D 2311-2189-4300. Pentanomial 183, 1064, 1813, 1128, 212. Elo 4.82, 95% +/- 4.75. LOS 97.65%. The lower end is just above zero. This is a screen, not a strength claim.
+Chunk 012, openings 4401-4800, 800 games, option on first: W-L-D 221-198-381. Elo 9.99, 95% +/- 15.48. LOS 89.74%. Pentanomial 15, 93, 162, 114, 16. The interval includes zero. Details: forge-combo29/tests_r3fu_05/chunk-012-summary.txt. PGN: forge-combo29/tests_r3fu_05/chunk-012.pgn.
+
+After 9600 complete games: W-L-D 2532-2387-4681. Pentanomial 198, 1157, 1975, 1242, 228. Elo 5.25, 95% +/- 4.54. LOS 98.82%. This is a screen, not a strength claim.
+
+Chunk 013 was stopped unfinished at 440 games (openings from 4801, both colors). Option on first, W-L-D 114-103-223. Pentanomial of the 220 complete pairs: 7, 51, 96, 56, 10. Those games are not in the 9600-game total. Details: forge-combo29/tests_r3fu_05/chunk-013-summary.txt. PGN: forge-combo29/tests_r3fu_05/chunk-013.pgn. The book has 8533 lines; the screen did not reach the end.
