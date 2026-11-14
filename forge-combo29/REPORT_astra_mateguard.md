@@ -1,6 +1,6 @@
 # Narrow mate-alpha guard and round-4 soak
 
-Updated 2026-11-14T21:07:41.326Z. Cloud VM only. Branch `for-fable-and-opus/astra-r4-mate-alpha-guard`. Task start 2026-11-14T19:48:28.579Z. Current phase: Successor soak: sanitizer self-play.
+Updated 2026-11-14T21:10:57.906Z. Cloud VM only. Branch `for-fable-and-opus/astra-r4-mate-alpha-guard`. Task start 2026-11-14T19:48:28.579Z. Current phase: Successor soak: sanitizer self-play.
 
 **Guard acceptance: complete.** Default pins: **312866 / 862329 / 4865609**. Engine delta is27 added lines,0 removed, behind an OFF-by-default compile gate and a false-default UCI option. No CMakeLists change.
 
@@ -77,6 +77,7 @@ Budget: 2026-11-14T20:43:34.458Z to 2026-11-15T00:43:34.458Z (at most240minutes)
 | soak-asan-off-t2-n20000 | asan-off | 16 | 2982 | 0 | pass |
 | soak-tsan-off-t2-n0 | tsan-off | 7 | 742 | 0 | pass |
 | soak-tsan-off-t4-n0 | tsan-off | 7 | 899 | 0 | pass |
+| soak-asan-hindsight-and-guard-t1-n2000 | asan-hindsight-and-guard | 128 | 17588 | 0 | pass |
 
 Self-play games count normal terminal/capped games; fault-aborted games are separate in raw summaries and totals. Searches include searches in fault-aborted games when the harness finishes. A final SUMMARY with TSan exit66 is completed but failed, not discarded. Sanitizer counts are report-marker occurrences, including DEADLYSIGNAL; all raw diagnostics are retained and any distinct races require source-line grouping. These recorder corrections do not alter the engine or expected results.
 
@@ -95,6 +96,6 @@ Exact commands, output, hashes and retained failures are under `tests_astra_mate
 
 **Final engine delta commit: `a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d`.**
 
-Checkpoint 2026-11-14T21:07:41.326Z: Successor soak: sanitizer self-play. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Successor tsan-off completed: {"seed":202611143006,"threads":4,"nodes":0,"first_game":0,"max_games":1000000,"seconds":180,"Hash":16,"OwnBook":false,"UseNNUE":true,"MultiPV":1,"ContHist4PlyRead":false,"NonPawnCorrection":false,"LmrDeeperShallower":false,"MateAlphaGuard":false,"HindsightDepth":false,"depth":9,"games":7,"moves":899,"searches":899,"opening_moves":56,"faults":0,"illegal":0,"missing":0,"badscore":0,"mates":3,"stalemates":0,"repetitions":2,"fifty":0,"ply_caps":0,"insufficient":2}. Sanitizer reports 0. Accepted completed self-play totals {"games":342,"faultAbortedGames":0,"searches":48552,"faults":0,"sanitizerReports":0}. All raw inputs/outputs retained; incomplete attempts excluded from totals.
+Checkpoint 2026-11-14T21:10:57.907Z: Successor soak: sanitizer self-play. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Successor asan-hindsight-and-guard completed: {"seed":202611143007,"threads":1,"nodes":2000,"first_game":0,"max_games":1000000,"seconds":180,"Hash":16,"OwnBook":false,"UseNNUE":true,"MultiPV":1,"ContHist4PlyRead":false,"NonPawnCorrection":false,"LmrDeeperShallower":false,"MateAlphaGuard":true,"HindsightDepth":true,"depth":0,"games":128,"moves":17588,"searches":17588,"opening_moves":1024,"faults":0,"illegal":0,"missing":0,"badscore":0,"mates":93,"stalemates":0,"repetitions":17,"fifty":13,"ply_caps":2,"insufficient":3}. Sanitizer reports 0. Accepted completed self-play totals {"games":470,"faultAbortedGames":0,"searches":66140,"faults":0,"sanitizerReports":0}. All raw inputs/outputs retained; incomplete attempts excluded from totals.
 
 ENGINE_DELTA_COMMIT a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d
