@@ -88,4 +88,12 @@ Chunk 5, openings 1500 through 1899, 800 games. Command: `/tmp/screen_match /tmp
 
 W-L-D option on first: 194-202-404. Elo 95%: -3.47 [-18.38, 11.43]. LOS: 0.3239. Pentanomial: 17, 96, 175, 102, 10. PGN and summary: `forge-combo29/tests_r3fu_07/chunk_0005.pgn` and `forge-combo29/tests_r3fu_07/chunk_0005_summary.txt`.
 
-Cumulative after 3800 games (1900 pairs): W-L-D option on first 923-920-1957. Elo 95%: 0.27 [-6.68, 7.23]. LOS: 0.5308. Pentanomial: 73, 466, 812, 483, 66. The interval includes zero. Individual chunks move around that zero. Not a strength result. Play stopped here; the cap was 6 or 9 hours and was not used up.
+Cumulative after 3800 games (1900 pairs): W-L-D option on first 923-920-1957. Elo 95%: 0.27 [-6.68, 7.23]. LOS: 0.5308. Pentanomial: 73, 466, 812, 483, 66. The interval includes zero. Individual chunks move around that zero. Not a strength result.
+
+The first 1900 openings (book lines 1 through 1900, fastchess start index 1 through 1900) are already played. Later chunks use fastchess alpha 1.8.3, commit `3d7a4db2493fc85a05ef010fd7e13a3884667aa2`, built from that tree. Concurrency is 3, one less than the 4 effective CPUs. Each chunk is 500 openings (1000 games). Book line 1901 is the next unused opening, so the first fastchess chunk uses `start=1901`. Play time counts from 15:32 UTC and stops at 9000 games or 21:32 UTC, whichever comes first.
+
+```
+/tmp/fastchess/fastchess -engine cmd=/tmp/build-owner/forge name=NullSeeVetoOn option.NullSeeVeto=true -engine cmd=/tmp/build-owner/forge name=NullSeeVetoOff option.NullSeeVeto=false -each nodes=50000 option.Threads=1 option.Hash=16 option.OwnBook=false -openings file=/tmp/uho/UHO_Lichess_4852_v1.epd format=epd order=sequential start=START -rounds 500 -repeat -games 2 -recover -concurrency 3 -pgnout file=CHUNK.pgn append=false nodes=true -config outname=CONFIG.json -ratinginterval 0
+```
+
+`START` is the 1-based book line. `CHUNK.pgn` and `CONFIG.json` change per chunk. The same command is not repeated below.
