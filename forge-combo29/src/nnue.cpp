@@ -26,7 +26,12 @@
 #include <immintrin.h>
 #endif
 
-#if __has_include("nnue_weights.inc")
+// 512 selects the lock net widened with zero hidden units (tests_t19). The
+// default 256 build keeps including src/nnue_weights.inc.
+#if FORGE_NNUE_HIDDEN == 512
+#include "../tests_t19/nnue_weights_512.inc"
+#define FORGE_HAS_NNUE 1
+#elif __has_include("nnue_weights.inc")
 #include "nnue_weights.inc"
 #define FORGE_HAS_NNUE 1
 #else
