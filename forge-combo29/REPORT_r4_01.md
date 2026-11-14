@@ -36,7 +36,7 @@ Frozen input commits
 13 dfe64bf8200e449ca0ff37127f1535e8f841f254 grok47/r3-13-quiet-extinction
 14 158b5d61a9bf708b39eed350f73f1a6ac3daa599 grok47/r3-14-draw-jitter
 15 cbe5010c012512ecdaecba830595e81ed1219883 grok47/r3-15-tm-finish-iteration
-16 f8d188b7b0597a6ec629012edd4e6655d4474c47 grok47/r3-16-tm-node-share
+16 3337249994829603e92da529a25f42fc3149d4bb grok47/r3-16-tm-node-share
 23 2bba512e6f88bc2953e27445f1a2156a758a9b21 grok47/r3-23-sound-mate-pruning
 
 Conflict handling. Helpers observe the shared node budget and then
@@ -75,7 +75,7 @@ DeadMaterial          true   1f613a1b026451289ff1a8a3b90d1b174c5e013e    862329 
 QuietExtinction       true   dfe64bf8200e449ca0ff37127f1535e8f841f254    632155     632155
 DrawJitter            8      158b5d61a9bf708b39eed350f73f1a6ac3daa599    857947     857947
 TmFinishIteration     true   cbe5010c012512ecdaecba830595e81ed1219883    862329     862329
-TmNodeShare           true   f8d188b7b0597a6ec629012edd4e6655d4474c47    862329     862329
+TmNodeShare           true   3337249994829603e92da529a25f42fc3149d4bb    862329     862329
 SoundMatePruning      true   2bba512e6f88bc2953e27445f1a2156a758a9b21    980408     980408
 
 softnodes is a go keyword, not a setoption. The r3-12 commit
@@ -161,6 +161,7 @@ Tip r3-08 3b41775159d67c1336876ece36cdfcb71c4a8c86 merged with no source change;
 Tip r3-10 0c89887f480e71e5068d736f80a48e9aa2b9e8c1 merged with no source change; pins and the option table matched.
 Tip r3-11 1f613a1b026451289ff1a8a3b90d1b174c5e013e merged with no source change; pins and the option table matched.
 Tip r3-15 cbe5010c012512ecdaecba830595e81ed1219883 merged with no source change; pins and the option table matched.
+Tip r3-16 3337249994829603e92da529a25f42fc3149d4bb merged with no source change; pins and the option table matched.
 Not verified. No `R3 FOLLOW-UP DONE` commit existed to merge.
 Playing strength was not measured. Address and thread sanitizers were
 not run on the integrated tree. The KRK threads-2 miss above was not
