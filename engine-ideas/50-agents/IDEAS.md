@@ -14,6 +14,22 @@ Breakthrough. Leela policy ordering. Net. See [BREAKTHROUGHS.md](BREAKTHROUGHS.m
 
 Breakthrough. Leela self-play value. Eval. The Stockfish long-term-sacrifice report’s game-result labels on quiet material deficits are a filter inside this residual, not a second model. See [BREAKTHROUGHS.md](BREAKTHROUGHS.md).
 
+### B3. Clock-gated reductions
+
+Breakthrough. Stockfish short time controls. Search. See [BREAKTHROUGHS.md](BREAKTHROUGHS.md).
+
+### B4. Conflict-gated steep blend
+
+Breakthrough. RubiChess eval tapering. Eval. E3 is a one-score stretch, not this two-opinion gate. See [BREAKTHROUGHS.md](BREAKTHROUGHS.md).
+
+### B5. Lesser-safe empty flights
+
+Breakthrough. Ethereal mobility. Net. See [BREAKTHROUGHS.md](BREAKTHROUGHS.md).
+
+### B6. Matched-count exclusion bakeoff
+
+Breakthrough. Koivisto training pipeline. Data. See [BREAKTHROUGHS.md](BREAKTHROUGHS.md).
+
 ## Search allocation
 
 ### S1. Long-clock live set
@@ -240,7 +256,7 @@ Breakthrough. Leela self-play value. Eval. The Stockfish long-term-sacrifice rep
 
 ### V1. Outcome head that may contradict the pawn score
 
-- Sources: Stockfish fortress gap and Stockfish strategic-plans gap. One head, two uses. https://lczero.org/blog/2020/04/wdl-head/ https://github.com/official-stockfish/WDL_model https://official-stockfish.github.io/docs/stockfish-wiki/Stockfish-FAQ.html https://tcec-chess.com/articles/Sufi_17_-_Sadler.pdf https://tcec-chess.com/articles/Sufi_15_-_Sadler.pdf
+- Sources: Stockfish fortress gap, Stockfish strategic-plans gap, and Leela WDL. The WDL report is the tighter specification: bin by pawn score and material first, and keep only the leftover draw rate. One head, two uses, and the leftover stays out of the pawn score. https://lczero.org/blog/2020/04/wdl-head/ https://lczero.org/blog/2023/07/the-lc0-v0.30.0-wdl-rescale/contempt-implementation https://github.com/official-stockfish/WDL_model https://official-stockfish.github.io/docs/stockfish-wiki/Useful-data.html https://tcec-chess.com/articles/Sufi_17_-_Sadler.pdf https://tcec-chess.com/articles/Sufi_15_-_Sadler.pdf
 - Where: net
 - What to add: A small head that predicts win, draw, and loss from how games end, not from the pawn score. Leave the pawn score as the search value. Two uses, tested separately. Fortress use: if the position is quiet, the pawn score is large, and this head says the game is very likely drawn, pull that leaf toward equality. Plan use: when root pawn scores lie in one narrow band, break the tie toward the move that most raises win chance relative to loss chance. Keep the fortress discount off in checks, captures, and lines where the score is still swinging.
 - Why: A single pawn score folds a draw in as half a win, and a published display curve gives the same draw chance to two positions with the same score and the same material. A dead draw and a sharp equal position are not the same. A published superfinal game sat on 0.0 while the other engine still gave both sides winning chances.
@@ -397,9 +413,403 @@ Breakthrough. Leela self-play value. Eval. The Stockfish long-term-sacrifice rep
 - Risks: One tactical cutoff can disable a prior that was right for the rest of the tree.
 - Falsify if: The prior’s top quiet is already the cutoff so often that the rule almost never fires, or the rule scores lower than the fading prior with the rule off.
 
+## Additions after the first snapshot
+
+### S12. Locked-node shelf
+
+- Sources: Stockfish closed-maneuvering gap. https://wiki.chessdom.org/TCEC_Season_16_Division_P_Game_64_%E2%80%93_Leela-Stockfish https://chessprogramming.org/Late_Move_Reductions
+- Where: search (`alphabeta.inc`)
+- What to add: Where both sides have very few pawn moves that change the structure, and the side to move is not in check, keep the normal search for the table move and captures. Also search at most two non-capturing piece moves that history already ranks highly, plus the one legal pawn break, with a smaller depth cut than other late quiets. Cap how often this runs.
+- Why: The published games are a long piece improvement with a fixed structure, then a break. Reductions spend depth on moves that already look forcing.
+- Risks: Closed openings become tactical after the break. History may not rank the preparatory move.
+- Falsify if: On French, Stonewall, Hedgehog, and closed Ruy positions the root move matches the unpatched search, or a paired match on a normal book and on that closed book is both negative.
+
+### S13. Credit the quiet move before the break
+
+- Sources: Stockfish closed-maneuvering gap. Related to B1, but this is a history table, not a net head. https://lczero.org/blog/2020/04/tcec-s17-super-final-report/ https://tcec-chess.com/articles/Sufi_22_-_Sadler.pdf
+- Where: search (`history.hpp`)
+- What to add: A separate history for a non-capturing piece move that was followed, a few plies later with the structure unchanged, by a pawn move that raised the score. Use it only to order those piece moves and to shorten their reduction. Do not add it to the evaluation.
+- Why: Cutoff history rewards the break, not the earlier regrouping.
+- Risks: It can reward a piece move that merely happened before a good break. It overlaps continuation history.
+- Falsify if: In locked positions this history does not agree with a much deeper search, or turning it on does not change root moves.
+
+### S14. One quiet non-reduction before a table win
+
+- Sources: Stockfish endgames beyond tablebases. https://official-stockfish.github.io/docs/stockfish-wiki/Advanced-topics.html https://lczero.org/blog/2018/08/tablebase-support-and-leela-weirdness/
+- Where: search
+- What to add: At a node with one more piece than the probe limit, look one ply past each quiet move for a single capture or pawn push. If that child is a table win and the distance fits the fifty-move budget, do not late-move-reduce that one quiet move. Do not extend it. Cap at one quiet move per node.
+- Why: The published win signal is a line that enters the table. The moves that get dropped are the quiet moves before that entry.
+- Risks: Many quiet moves sit one capture from a table win. The general-play value of seeing the table at all is now about zero to three Elo.
+- Falsify if: At the same node count the best move is unchanged on a suite whose win is a quiet move followed by one table entry, or a long-control match loses Elo.
+
+### S15. Full depth for the rook that meets the passer
+
+- Sources: Stockfish endgames beyond tablebases. https://github.com/official-stockfish/Stockfish/issues/2288#issuecomment-599162276
+- Where: search
+- What to add: In rook endings with eight or more pieces and a passed pawn, if the rook reaches the passer’s file in no more moves than the pawn needs for its next step, search that rook move at full depth. Do not extend it and do not add an eval term.
+- Why: The win and the draw in that family were described as the rook being one tempo late. Rook and three pawns versus rook and two was the most common eight-piece material in the cited sample.
+- Risks: The net may already rank that rook move first. Unreducing a class of rook moves inflates the tree.
+- Falsify if: The unreduced swing changes the best move on none of a suite where the rook is one tempo short, or a long-control match loses Elo.
+
+### S16. Quiet lever, no candidate bonus
+
+- Sources: Ethereal passed pawns. https://github.com/AndyGrant/Ethereal/blob/0e47e9b67f345c75eb965d9fb3e2493b6a11d09a/src/evaluate.c https://github.com/official-stockfish/Stockfish/pull/2613
+- Where: search
+- What to add: Detect a pawn whose every stopper is a lever, with at least as many helpers as attackers on the push square. Give the quiet or non-losing capture that clears the last stopper a higher order and a milder reduction. Add no static bonus.
+- Why: The passer does not exist until the lever is played. A discounted eval bonus was the tool a published test rejected.
+- Risks: Common in closed positions. A reduction change can weaken pruning around bad breaks.
+- Falsify if: The baseline already searches that lever within the first few moves, or a match shows no gain and a clear node increase.
+
+### S17. Commit gate
+
+- Sources: Ethereal search structure. https://raw.githubusercontent.com/AndyGrant/Ethereal/master/src/search.c
+- Where: search
+- What to add: A node answers its parent only through one final phase. Earlier phases fill a result record. The final phase applies mate distance, then any tablebase floor and ceiling, then the table write, then ordering-memory training from moves actually dispatched. A table cutoff that must skip the tablebase window marks that exception. The time abort stays outside the gate.
+- Why: Late phases protect mate distance, tablebase bounds, and the ordering update. Early answers never reach them, so a new preface experiment can publish a score the epilogue never sees.
+- Risks: Clamping table cutoffs to a tablebase window would change scores. The exception has to stay explicit.
+- Falsify if: With the table exception preserved, the chosen move changes on a fixed suite, or a new preface can still answer the parent without passing the gate.
+
+### S18. Verification verdict
+
+- Sources: Ethereal search structure. Koivisto’s null-move verification is a different probe. https://raw.githubusercontent.com/AndyGrant/Ethereal/master/src/search.c
+- Where: search
+- What to add: Singular verification is its own node class. It returns only whether the move is unique, ordinary, or whether several moves beat the raised window. The parent turns that verdict into an extension, a normal search, or a multi-cut. The child does not mark the parent’s move generator finished.
+- Why: A verification that reuses the parent’s generator can end the parent as a side effect.
+- Risks: A second cursor repeats generation. Dropping the “several moves” verdict removes multi-cut.
+- Falsify if: After a non-singular verification the parent’s next move differs on a fixed suite, or node counts rise and results fall by that cost alone.
+
+### S19. Frozen preface
+
+- Sources: Ethereal search structure. https://raw.githubusercontent.com/AndyGrant/Ethereal/master/src/search.c
+- Where: search
+- What to add: Choose the node class once at entry. The preface freezes depth, eval, improving, the table move, and whether quiet stages are allowed. The move phase may attach a depth budget to a child edge. It may not rewrite the node’s own depth or turn quiet stages back on. A quiet leaf is entered only when the king is not attacked.
+- Why: A preface that edits the node depth makes every later move inherit an experiment aimed at one condition.
+- Risks: That depth edit is intentional. Moving it onto edges can lose strength. An in-check node must not go to a quiet leaf that assumes a stand-pat eval.
+- Falsify if: Edge budgets are move-identical to the current depth edit, or they diverge and the divergent side loses.
+
+### S20. Two-regime probcut witness
+
+- Sources: RubiChess probcut. https://raw.githubusercontent.com/Matthies/RubiChess/master/src/search.cpp https://raw.githubusercontent.com/official-stockfish/Stockfish/master/src/search.cpp
+- Where: search. ProbCut is already present.
+- What to add: Keep Forge’s own margin and split the proof. If static eval already clears beta by the full margin, confirm with one non-losing tactical move searched more than one ply. Quiescence may reject the try. It may not cut by itself. If static eval is short of the raised bound, try a tactical move only when its exchange value covers the whole gap, with the same real-search requirement. Stay off principal-variation nodes and skip the search proof while in check.
+- Why: One implementation always uses a real reduced search. Another lets the witness depth collapse to quiescence exactly when eval is already high. The local proof demands that eval already clear the cushion, so a capture cannot close a shortfall.
+- Risks: The surplus regime can pile onto standing-pat pruning. The gap regime can miss a quiet move that was the real reason the position holds.
+- Falsify if: The surplus regime mostly fires on nodes standing-pat would already have taken, or the gap regime raises the cutoff count while a fixed-node match or a tactical suite loses.
+
+### S21. Honest proof in the table
+
+- Sources: RubiChess probcut. https://github.com/official-stockfish/Stockfish/commit/e18619d07802882136b583a01e56791b61abede6
+- Where: search
+- What to add: On a successful witness, store a lower bound equal to the stripped value the parent was given, tagged with the witness depth. If the table already has a bound at least that deep that misses the raised window, skip the attempt.
+- Why: Storing the raw witness and returning a stripped value lets a later probe cut on a stronger score than the proof allowed.
+- Risks: A shallow stored bound can prune a later iteration.
+- Falsify if: A tactical suite drops while node count falls, or the skip almost never happens.
+
+### S22. One-ply tactical cooldown
+
+- Sources: RubiChess probcut. https://chessprogramming.org/ProbCut
+- Where: search
+- What to add: Refuse the shallow proof for one ply after a capture or a check, including when the side to move is no longer in check. Leave the margin unchanged.
+- Why: Shallow and deep scores diverge most right after a forcing move.
+- Risks: Recaptures are often the witnesses that make the prune pay.
+- Falsify if: Most successful witnesses are recaptures or replies to check, and disabling them loses the node reduction without improving tactical accuracy.
+
+### T9. Spend the clock on equal positions that are still alive
+
+- Sources: Leela WDL. Depends on the leftover in V1. https://lczero.org/blog/2020/04/wdl-head
+- Where: time (`timeman.hpp`)
+- What to add: When the pawn score is near zero, allow more time if the draw leftover is low, and less if the leftover says the position is a dead draw. Leave eval and move order unchanged. Cap the shift.
+- Why: A dead draw and a sharp equal position can share a zero score. Move choice stays with the pawn score.
+- Risks: A false dead draw saves time and then loses. A clock rule on a raw label at very few nodes chases noise.
+- Falsify if: Paired games with the same total time are unchanged, or the positions that receive extra time are ones where a longer search leaves the chosen move unchanged.
+
+### T10. Reserved short-clock allocation
+
+- Sources: Stockfish short time controls. https://github.com/official-stockfish/Stockfish/pull/4472
+- Where: time
+- What to add: Keep a root-complexity adjustment to thinking time. At bullet, cap it so one unstable move cannot take more than a fixed share of the remaining clock, and hold back a reserve.
+- Why: A merged change that scaled time from root complexity was described as especially effective at short controls. At 1+1 an uncapped extension spends the increment on one position.
+- Risks: The cap can cut the one move that needed the time.
+- Falsify if: Bullet score does not rise, the engine loses on time more often, or long games lose because the cap is still active.
+
+### D10. Label the extra-pawn parent from real captures only
+
+- Sources: Stockfish endgames beyond tablebases. https://en.chessbase.com/post/study-of-the-month-endgame-studies-endgame-theory https://github.com/official-stockfish/Stockfish/issues/2288 https://github.com/official-stockfish/Stockfish/pull/4143
+- Where: data
+- What to add: Sample eight-piece positions with at least one pair of opposing pawns on the same file. Probe only legal captures that remove one of those pawns and land in a table already available. Label the parent when every such capture is a draw or a loss for the side to move. If any capture is a win, keep the ordinary search label. Mix a small share into the existing Syzygy rescore path. Keep a single net.
+- Why: The common eight-piece ending in the cited sample is one pawn above a seven-piece table. A label from a legal capture avoids a deletion probe that was about 5 Elo weaker.
+- Risks: A drawn capture-child can hide a win played by a quiet move first. The modern match value of perfect six-piece knowledge is about zero to three Elo.
+- Falsify if: On held-out eight-piece rook endings with a blocked opposing pair, a deep search allowed to use seven-piece tables disagrees with the all-captures-draw label on more than a small fraction, or a long-control match with the mix loses Elo.
+
+### D5. Deep targets only where a locked search drifts
+
+- Sources: Stockfish closed maneuvering. Related to D1. The trigger here is a score gap with the structure unchanged, not a result that followed a quiet move. https://tcec-chess.com/articles/Sufi_15_-_Sadler.pdf
+- Where: data
+- What to add: Keep locked middlegames. Store a shallow score and a much deeper score. Add a thin training slice only where those scores disagree by a wide margin while material and the pawn structure stay the same. Use the deeper score as the target.
+- Why: If labels are the shallow view, the net learns the shrug and then tells search the quiet moves are not worth depth.
+- Risks: Deep scores are expensive and can be wrong. A loose filter becomes a general “trust long search” relabel.
+- Falsify if: In locked middlegames the shallow and deep scores already lie in a narrow band, or the slice loses more on a tactical book than it gains on the closed book.
+
+### D6. Label unequal draws before the position is small
+
+- Sources: Komodo Dragon endgame technique. Related to V2, which mines high-score quiet draws. This slice is materially unequal endings and perpetuals that are still too big for a table. https://en.chessbase.com/post/gm-kaufman-speaks-about-his-pet-dragon
+- Where: data
+- What to add: Positions too large for a tablebase, where one trade leads to a materially unequal draw or to a win that exists only along one exact path, including perpetuals that material still calls lost. Label from the finished ending. Fine-tune so the defender wants the trade and the attacker refuses it. No fortress detector and no new tablebase probe.
+- Why: The published claim is that recognizing those endings would gain Elo by seeking or avoiding them, while tablebases themselves add only a few Elo because the few-piece ending is already played well.
+- Risks: Rare positions. Wrong labels teach the engine to hold a loss.
+- Falsify if: The known drawn-but-ahead endings are already on the drawing side of the edge, and a fine-tune leaves self-play unchanged.
+
+### D7. Replace blitz ending labels with a long search
+
+- Sources: Komodo Dragon endgame technique. https://en.chessbase.com/post/komodo-dragon-2-is-here
+- Where: data
+- What to add: Take endgame positions from ultra-fast self-play and score them again with a much longer search. Fine-tune only where the two labels disagree on which side of the win/draw edge the position is on.
+- Why: A net trained on ultra-fast games can memorize the wrong conversion. Endgame quality was described as depending on enough increment.
+- Risks: A longer search can still be wrong in a fortress. If training is already on long games, the slice is empty.
+- Falsify if: The blitz label and the long-search label agree on the side of the edge, or the fine-tune loses match score.
+
+### D8. Host labels on foreign positions
+
+- Sources: Koivisto training pipeline. https://github.com/Luecx/Koivisto/releases/tag/v9.0
+- Where: data
+- What to add: Three equal-size sets. Host-only games. Games whose moves come from a second mover, relabeled by the host search and the game result. The same foreign games with the second mover’s scores left on.
+- Why: A published mix of two engines’ data was about 20 Elo at a short control and a long one. The note does not separate new positions from the other engine’s scores.
+- Risks: A second mover fills the set with positions the host never meets. A shallow host relabel can be a worse teacher.
+- Falsify if: The host-only net matches the relabeled foreign net, or the foreign scores beat the host relabel by a clear margin.
+
+### D9. Disagreement-conditioned target
+
+- Sources: Koivisto training pipeline. Same family as B2, different mechanism: a mix weight, not an additive residual. https://github.com/Luecx/Koivisto/releases/tag/v6.0
+- Where: data
+- What to add: Keep search score and game result. Where they agree, let the search score dominate. Where they disagree, let the result dominate. Compare with one global mix on the same positions.
+- Why: A single mix treats a position the search already understands like a position it got wrong.
+- Risks: Results are noisy. A global mix that moves across training can win without the split.
+- Falsify if: One global mix matches the conditioned mix at the same position count.
+
+### V6. Judge a trade by which side of the edge it lands on
+
+- Sources: Komodo Dragon endgame technique. https://komodochess.com/dragon-3.3.htm https://new.uschess.org/news/inside-story-kaufman-what-your-computer-trying-tell-you
+- Where: net
+- What to add: A second value, used only when a move trades into a pawn ending, a rook ending, or a minor-piece ending. It answers whether that ending is on the winning side or the drawing side of the win/draw edge. A healthy extra pawn in a pawn ending should come out as a win. A materially better ending that is blocked or theoretically drawn should come out as a draw. Leave the displayed score alone. A monotone rescale does not change moves.
+- Why: The same material converts differently by stage. A score anchored in the opening can mis-rank a trade whose result appears only after the pieces come off. This does not assume Stockfish is weak. Its published anchor is already a later move number.
+- Risks: If the net already knows the phase, the extra value double-counts.
+- Falsify if: The current score already predicts endgame win rate as well as opening win rate, or the edge rule picks the same trade as the uncalibrated engine.
+
+### E2. Shuffle shrink at the node
+
+- Sources: Berserk eval scaling. https://raw.githubusercontent.com/jhonnold/berserk/main/src/search.c https://raw.githubusercontent.com/official-stockfish/Stockfish/master/src/position.cpp
+- Where: eval, applied when a static score is read, including from the transposition table.
+- What to add: Store the phase-scaled static score with no fifty-move factor. At the node being searched, shrink that score from the counter on the board. Leave mate and tablebase scores unshrunk.
+- Why: One placement can be reached with a short counter and a long one, and those nodes share a hash entry whose key ignores the counter.
+- Risks: The improving signal compares static scores across plies. If the damped score is stored, a later probe damps it twice.
+- Falsify if: Positions that differ only in the fifty-move counter still produce the same searched static score, or a paired match gains nothing against a version that forces the counter equal.
+
+### E3. Heavy-piece residual at a fixed piece count
+
+- Sources: Berserk eval scaling and Koivisto’s pawn-counted multiplier. Written once. The Koivisto form is a 1.5-to-1.15 multiplier that counts pawns and weights a knight slightly above a bishop. The Berserk form stretches by non-pawn piece type and leaves a pawn ending on the raw scale. Test them as two arms, not as a stack on B4. https://github.com/official-stockfish/Stockfish/commit/1dbd2a1ad548b3ca676f7da949e1a998c64b836b https://github.com/Luecx/Koivisto/blob/master/src_files/board.cpp
+- Where: eval. `NetScale`, the phase taper, and `scale_factor` already touch this score. Retune margins in a separate match.
+- What to add: At the same piece count, stretch the score when the remaining pieces are heavy and leave a pawn ending closer to the network’s own scale. A second arm counts pawns in the phase. Keep the material-agreement adjustment out of this patch.
+- Why: A queen ending and a minor-piece ending can share a head and still need different scores. A 2020 stretch of this family passed a short test and a long test.
+- Risks: A louder middlegame changes pruning even when the ranking is unchanged. Over-weighting queens refuses sound trades.
+- Falsify if: A multiplier that depends only on piece count matches the heavy-piece residual, or the residual wins and then loses once margins are adjusted so one pawn is the same threshold in the opening and the ending.
+
+### P7. Lever-resolved pawn class
+
+- Sources: Ethereal pawn structure. Distinct from P5, which splits doubled pawns into structures. This one is the gap between the class now and the class after a pawn capture. https://raw.githubusercontent.com/AndyGrant/Ethereal/master/src/evaluate.c
+- Where: eval, cached with the pawn key.
+- What to add: Score the gap between isolated, stacked, backward, or connected now and after each side’s pawn captures. A capture can remove isolation. A side-by-side pawn is not connected when the step forward is attacked and nothing stands behind. Fit the size on Forge’s games. Do not import another engine’s numbers.
+- Why: The label on the diagram is wrong when one pawn capture changes it. The capture is not the move being searched at most nodes.
+- Risks: Captures are already searched early. The residual can double-count the net.
+- Falsify if: A paired test shows no gain, or the gain disappears when the residual is limited to captures quiescence already tries.
+
+### P8. Healthy wing majority
+
+- Sources: Ethereal pawn structure. Ethereal has neither a majority term nor an island term. https://raw.githubusercontent.com/AndyGrant/Ethereal/master/src/evaluate.c
+- Where: eval
+- What to add: Credit an extra pawn on one wing only when it is not stacked and the wing contains a lever that can trade an isolated pawn or join a neighbor. An island penalty applies only to a group with no lever into the next group.
+- Why: Pair features stop at the next file. A majority is a count across the wing. Restricting it to a mobile extra pawn avoids paying for a doubled or locked majority.
+- Risks: Isolated and stacked penalties may already contain the Elo. The term can leak into passed-pawn value.
+- Falsify if: The feature does not change results once stacked and leverless majorities are removed, or a match shows no gain.
+
+### P9. Pawn-only correction head
+
+- Sources: Ethereal pawn structure. https://github.com/AndyGrant/Ethereal/commit/513a93c23219f2a71b70085c3f88def359399567
+- Where: net, cached by the pawn key.
+- What to add: A small net on pawn squares only, trained to predict the main net’s error, added as a residual. No king and no pieces. Do not reuse another engine’s weights.
+- Why: A measured gain came from a small location net trained as a correction and cached so piece moves do not redo it. Stripping the kings keeps this out of king safety. The old result included kings and a hand-written eval, so a pawn-only head against a modern net should be smaller.
+- Risks: A net that already sees every pawn square can make the head redundant.
+- Falsify if: The head fails a paired test against the main net alone, or its gain is explained by positions where only the kings differ.
+
+### P10. Passer path when material and the net disagree
+
+- Sources: Ethereal passed pawns. https://github.com/official-stockfish/Stockfish/blob/1e7e6bdeb97669a950b8e4c063770d135f54f55b/src/evaluate.cpp
+- Where: eval
+- What to add: Classify each leading passer: next square occupied, empty but attacked, empty and safe, or the promotion file clear. When the net prefers the side that is materially behind and that side has an empty-and-safe or clear passer, skip a material-disagreement shrink if one exists. Otherwise fit one small term per leading passer. Do not add a second king-distance term unless the fit shows the net still misses it.
+- Why: A clear passer is a concrete reason to be ahead while down material. A disagreement shrink pulls that score back.
+- Risks: The shrink exists because messy compensation is drawish. Exempting passers can overvalue a passer that is still stopped.
+- Falsify if: The exemption changes the eval by noise, or a match loses strength.
+
+### P11. Two safe adjacent passers
+
+- Sources: Ethereal passed pawns. https://github.com/AndyGrant/Ethereal/blob/0e47e9b67f345c75eb965d9fb3e2493b6a11d09a/src/evaluate.c
+- Where: eval
+- What to add: When two passers stand on adjacent files and both next squares are empty and safe, add a pair term that is zero if either next square is occupied or attacked. Fit it on Forge endgame games. Keep it off for a connected pawn that is not passed.
+- Why: One piece can blockade one passer. Two passers that can both step safely make that blockade fail. A per-file passer score never sees the pair.
+- Risks: A king-piece net may already score a phalanx on the sixth rank.
+- Falsify if: The pair term does not change the chosen move when one passer is removed, or a match is flat.
+
+### P12. Battery reach apart from real moves
+
+- Sources: Ethereal mobility. https://raw.githubusercontent.com/AndyGrant/Ethereal/0e47e9b67f345c75eb965d9fb3e2493b6a11d09a/src/evaluate.c
+- Where: eval
+- What to add: Score the squares a bishop or rook attacks on the real board apart from the extra squares it sees only through our own bishop, rook, or queen. Keep the pawn-safe area. Give the latent squares a much smaller signal.
+- Why: Folding battery sight into the same curve as immediate reach makes a bishop behind our queen look as free as a bishop with an open diagonal.
+- Risks: A battery really does increase scope after one trade. The split overlaps B5 if both ship together.
+- Falsify if: The split loses to one combined pawn-safe count on the same positions.
+
+### P13. Restrict only the piece that cannot leave
+
+- Sources: Ethereal mobility. Uses the flight definition in B5. Do not also add a large negative eval on the same mark. https://raw.githubusercontent.com/AndyGrant/Ethereal/0e47e9b67f345c75eb965d9fb3e2493b6a11d09a/src/evaluate.c
+- Where: eval
+- What to add: Charge a friendly piece only when the enemy attacks its square more times than we do, our pawns do not defend it, and the piece has no lesser-safe empty flight or only one. Drop the penalty on empty contested squares.
+- Why: A square-count restriction punishes a piece with many real flights for standing on one awkward square.
+- Risks: The square count may be doing useful work about attacks that bite on granite. It double-counts B5 if both are large negative terms.
+- Falsify if: The piece-gated penalty loses to the square count when both use the same flight definition.
+
+### P14. Shrink the positional surplus when material disagrees
+
+- Sources: Koivisto leftover eval, describing a signal Stockfish still uses and Koivisto does not. Not a copied formula. https://github.com/official-stockfish/Stockfish/blob/master/src/evaluate.cpp
+- Where: eval
+- What to add: From the piece values Forge already uses, compute a material-only score. When that score and the full eval disagree in sign, move the full eval halfway toward the material score. When they agree, leave the eval alone. No optimism term.
+- Why: Mobility, shelter, and file terms can outvote material. This tests whether that surplus is overconfident exactly where a net would later be trusted instead.
+- Risks: Some real compensation is exactly a positional surplus against material.
+- Falsify if: The shrunk eval loses a paired match, or the lost games are mostly ones where shelter, an open file, or the bishop pair was the true advantage.
+
+### P15. Knock out one classical family at a time
+
+- Sources: Koivisto leftover eval. https://github.com/Luecx/Koivisto/wiki/Evaluation
+- Where: eval (`tools/tune/texel.cpp` already traces the terms)
+- What to add: Six matches. In each, zero exactly one family: mobility, doubled and isolated pawns, rook files, king shelter, the bishop pair, or the flat tempo. Leave passers alone. A family stays only when its removal loses. A family whose removal is noise is deleted so it is not carried beside a future net.
+- Why: The published result of this department is that those families no longer exist as their own score. The knockout asks which of Forge’s terms are still doing work.
+- Risks: One-family matches hide terms that matter only together. A short match calls a real small term noise.
+- Falsify if: Removal loses beyond paired-match noise: that family stays. Call a family dead only when two opening sets both tie.
+
+### P16. Pawn-counted phase multiplier
+
+Merged into E3. Not counted separately.
+
+### P17. Separate attacker clock and pawn clock
+
+- Sources: RubiChess eval tapering. Distinct from B4, which is one blend that gets steep when two opinions conflict. https://raw.githubusercontent.com/Matthies/RubiChess/master/src/eval.cpp
+- Where: eval
+- What to add: Mix king-safety and pawn-storm terms from the opponent’s remaining attackers that can reach that king’s flank. Mix passed pawns and king activity from the pawn map: a full wall keeps the middlegame opinion, and open files plus missing stoppers move toward the endgame opinion.
+- Why: One global weight cannot say that one king is still under attack while the other king should already centralize.
+- Risks: The two clocks can double-count the same pieces. Imbalanced positions are a minority of a normal book.
+- Falsify if: A single clock matches the split on a set stratified by material imbalance, including queen versus two rooks and opposite-side pawn majorities.
+
+### P18. Pawn-lock phase shift
+
+- Sources: RubiChess eval tapering. https://raw.githubusercontent.com/Matthies/RubiChess/master/src/eval.cpp https://www.chessprogramming.org/Tapered_Eval
+- Where: eval
+- What to add: When the pawn skeleton has almost no legal pawn captures and almost no pawn pushes that change the structure, move pawn-break and king-centralization terms toward the endgame opinion even while queens remain. Keep king-attack terms on a blend that still depends on whether heavy pieces are on the board.
+- Why: Both a non-pawn phase and a material total move only when material changes. A locked center with queens on is already an endgame of pawn breaks.
+- Risks: Early closed openings can be misread as endgames.
+- Falsify if: Closed-center games show no gain against a material-only blend, or the shift loses development in locked openings.
+
+### N3. Product collapse against a residual wide path
+
+- Sources: Berserk net structure. https://github.com/jhonnold/berserk https://official-stockfish.github.io/docs/nnue-pytorch-wiki/docs/nnue.html
+- Where: net
+- What to add: Two nets with the same feature families and the same first-map width. One multiplies paired channels so the tower stays one perspective wide, then scores through a narrow summary. The other concatenates the perspectives with side to move first and keeps a residual path from the wide values into the score. Compare at equal nodes.
+- Why: Collapsing width buys a later tower and can erase a signal that is strong for only one side. The open question is whether the product still wins once speed is taken out.
+- Risks: A hard summary drops tactics the wide map already represented. The residual path spends the speed the product was meant to save.
+- Falsify if: At equal nodes the product loses to the residual concatenation, or the win vanishes once nodes are equalized.
+
+### N4. Placement and attacks meet after the nonlinearity
+
+- Sources: Berserk net structure. https://github.com/official-stockfish/Stockfish/commit/f4bcd40409f94bd397a083c5d6243bac6dcc6d85
+- Where: net
+- What to add: Give king-region placement, attack relations, and adjacent-file pawn geometry their own first maps. Activate each, then let the tower read them together. Hold total width and eval time against one fused map.
+- Why: Those families change on different moves and do not all need the king’s bucket as their frame. A fused map mixes them before the nonlinearity.
+- Risks: Early mixing is where a hanging piece becomes a cheap feature. A split can lose that pattern.
+- Falsify if: The fused map matches the split at the same eval time, or the split wins only while it is allowed to be slower.
+
+### N5. A joint expert when the heavy pieces are gone
+
+- Sources: Berserk net structure. https://github.com/official-stockfish/Stockfish/commit/5c4cef0bfe61fb3249178b2bcf21f5673557efe7
+- Where: net
+- What to add: For positions with no rook or queen, change the placement frame and the small tower together. Compare that with a new output head on the ordinary features, and with a new feature block on the ordinary tower. Drop combinations that almost never occur.
+- Why: A published ablation said each single addition failed against the combination, with a head-only variant only the closest. A phase head may pay only when the inputs are specialized for that phase.
+- Risks: Rare experts starve. A joint expert also refreshes when the condition flips.
+- Falsify if: The head-only split matches the joint expert at the same speed, or the joint expert loses to the unchanged net.
+
+### N6. Low-budget eval lane
+
+- Sources: Stockfish short time controls. https://talkchess.com/viewtopic.php?t=85854
+- Where: net
+- What to add: When the projected nodes are in the bullet range, score quiet non-PV nodes with a cheaper evaluation and keep the full network on the principal line and on tactical nodes. At long controls, use the full network on every node.
+- Why: At bullet, a slightly finer score that costs an iteration is the expensive purchase. At long controls the full score is what produces the draws.
+- Risks: A cheap score misses tactics. If the speedup is too small to finish another iteration, the lane only adds error.
+- Falsify if: Bullet results fall, the cheap path stays on in long games and those games fall, or nodes per second do not rise enough to complete another iteration.
+
+### U1. Commit-point accumulator
+
+- Sources: RubiChess incremental updates. https://github.com/Matthies/RubiChess/blob/263f15d7960eb32b45ce1a06fbe64d750729803f/src/nnue.cpp
+- Where: search, calling the accumulator in `src/nnue.cpp`
+- What to add: Once a node has survived the early exits and will try moves, build its accumulator before the first child if it is still dirty and the dirty chain is already longer than one ply.
+- Why: A reused static score skips the build, then every child repeats the walk. The v4 net on another branch rebuilds both accumulators every eval, so this idea applies to the incremental net, not to that rebuild.
+- Risks: Nodes that fail on the first move pay for an accumulator nobody reuses.
+- Falsify if: A fixed-depth bench shows no node-rate gain, or any position’s evaluation differs from a full rebuild.
+
+### U2. Two-anchor fused chain
+
+- Sources: RubiChess incremental updates. https://github.com/Matthies/RubiChess/blob/263f15d7960eb32b45ce1a06fbe64d750729803f/src/nnue.cpp
+- Where: eval
+- What to add: When a lazy chain is needed, build only the oldest missing ply and the ply being evaluated. Fold the plies between them into one add and subtract. Leave the middle plies dirty.
+- Why: Writing every intermediate accumulator moves a wide vector for plies that are often never evaluated.
+- Risks: A high-branching middle ply stays dirty, so each evaluated child repeats that ply’s change. A missed change corrupts every deeper evaluation.
+- Falsify if: Node rate does not rise against a builder that writes every ply, or a from-scratch evaluator disagrees.
+
+### U3. Cheaper of fused delta and king-square cache
+
+- Sources: RubiChess incremental updates. https://github.com/official-stockfish/Stockfish/blob/1e7e6bdeb97669a950b8e4c063770d135f54f55b/src/nnue/nnue_accumulator.cpp
+- Where: eval
+- What to add: Count the feature columns in the fused dirty chain and the piece differences against the cached accumulator for that side and king square. Apply whichever set is smaller. A null move is an empty change, not a king change.
+- Why: A long run of skipped evaluations can change more columns than a cache diff of the pieces on the board.
+- Risks: The cache entry can itself be far from the position. Threat features missing from the piece cache must stay on the rebuild side.
+- Falsify if: The chooser does not reduce columns applied per evaluation, or the two paths produce different scores.
+
+### X1. Wrapper-aware joint step
+
+- Sources: Ethereal tuning method. https://talkchess.com/viewtopic.php?t=74877 https://www.chessprogramming.org/Texel%27s_Tuning_Method
+- Where: eval, via `tools/tune/texel.cpp`
+- What to add: Fit every explicit term in one run, using the derivative of the evaluation search actually receives, including the phase blend and any later shrink. Compare with a fit that pretends each term is independent, and with the current weights. Accept a winner only from a match.
+- Why: A gradient on linear terms misses a change that a later adjustment undoes. Reported gains from the coupled step were small, about +10, +3.4, and +2.3 Elo, and the joint fit was the smallest.
+- Risks: The surrogate can reward a feature the engine should not play for. A short run can look like a null result.
+- Falsify if: The coupled and uncoupled runs move the terms the same way, or the coupled weights lose the match.
+
+### X2. Resolved quiet band with a second book
+
+- Sources: Ethereal tuning method. https://github.com/AndyGrant/Ethereal/releases/tag/V12.50
+- Where: data
+- What to add: Quiet ends of depth-12 lines, one position from a game, only inside a modest score band. Fit explicit terms to the game result. Reject the fit unless error also falls on a second book, then play a match. Repeat with a set that keeps many positions from each game.
+- Why: Stacking positions from one game was reported to lower dataset quality, and a band keeps solved positions from owning the scale.
+- Risks: Dropping decided positions means the fit only moves the uncertain band. A second book can reject a real gain that is uneven across openings.
+- Falsify if: The many-positions-per-game set wins the match, or neither set beats the current weights.
+
+### X3. Game-result target against a search-score target
+
+- Sources: Ethereal tuning method. This is for explicit terms, not for the net mix in D9. https://pdfhost.io/v/btdMpXUqt_Tuningpdf
+- Where: data
+- What to add: Freeze one position set and fit the same explicit terms twice. One target is the game result. The other is a deeper search score through the same curve. Play the two results against each other and against the current weights.
+- Why: A result label and a search-score label teach different mistakes. The match, not the training error, chooses.
+- Risks: A result label repeats one outcome across a game. A search-score label copies present mistakes.
+- Falsify if: The two fits agree within a small tolerance, or neither beats the current weights.
+
 ## Counts in this snapshot
 
-- Breakthroughs: 2 (B1, B2)
-- Other unique ideas: 41 (S1–S11, T1–T8, O1–O5, V1–V5, P1–P6, D1–D4, N1–N2)
-- Unique ideas in this snapshot: 43
-- Merged away, not counted twice: game-result labels on quiet material deficits (into B2), near-tie sampling, result-weighted book choice, and personality directions (into O1), fortress discount and plan tie-break (into V1)
+- Breakthroughs: 6 (B1–B6)
+- Other unique ideas: 84
+- Unique ideas in this snapshot: 90
+- Not counted separately: P16 (merged into E3)
+- Merged away, not counted twice: game-result labels on quiet material deficits (into B2); near-tie sampling, result-weighted book choice, and personality directions (into O1); fortress discount, plan tie-break, and the WDL leftover (into V1); capture-filter variants (into B6)

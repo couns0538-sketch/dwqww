@@ -1,6 +1,6 @@
 # Stockfish gaps
 
-Ideas only. Departments still waiting: closed maneuvering positions, short time controls, endgames tablebases do not solve.
+Ideas only. All seven departments are in as of 11:47 UTC.
 
 ## Long-term sacrifices and material imbalance
 
@@ -41,6 +41,36 @@ What others do. Rank a quiet plan by expected game result when every pawn score 
 Where Stockfish is weaker. Futility and late-move pruning drop quiet moves whose static score sits a margin below alpha. In superfinal game 61 the engines split on a pawn move. After the structure closed, one score was positive and the other was negative. The reason given is a plan: the kingside pawns are fixed, pieces tied to a loose pawn are missing from the other wing. A larger kibitzing Stockfish was still on the positive side of zero. More of the same evaluation had not crossed over. A later note shows a pawn score of 0.0 on every move of a draw while separate win and loss chances stayed alive. Weeks, citing Sadler and Regan, reports AlphaZero-match positions where several alpha-beta lines were all 0.00.
 
 Ideas. The tie-break use of the outcome head is the second use of V1. The extra plies on a tied root cluster are S8. The one-ply exception for a quiet move inside the band is S7.
+
+## Closed maneuvering positions
+
+Importance: routine. The match evidence is from 2019–2020. After the neural evaluation, a 2022 superfinal report gives Stockfish maneuvering wins against Dragon. No opened 2023–2026 page isolates a current Elo gap.
+
+What others do. A prior proposes a few quiet moves that continue a plan, and a small visit budget is spent on those moves. The published style is maximum activity for one’s own pieces and restricted activity for the opponent.
+
+Where Stockfish is weaker. In equal blocked positions, not in every closed position. Game 61 of the 2019 superfinal still showed 0.00 at move 32 while a larger Stockfish showed 0.74, with pieces tied to a fragile pawn. A season 16 French kept Black’s structure fixed from move 20 to 52 while pieces improved. Late-move reduction searches the first moves fully and cuts later quiets harder than captures. A fifteen-move knight reroute does nothing on the ply it is played.
+
+Ideas. The locked-node shelf is S12. History credit for the quiet move before the break is S13. Deep targets only where a locked search drifts are D5.
+
+## Short time controls
+
+Importance: breakthrough. See B3.
+
+What the short budget wants. More depth when few nodes remain, and fewer blind spots when many remain. One 2020 trial passed the short test and was failing the long test. A later time-allocation change, scaling think time from root complexity, passed both tests and was described as especially effective at short controls.
+
+Where Stockfish is weaker. Not in the 2025 standings. It has won the main events since 2020. The relative weakness is an older place drop, a modest 1+1 margin against the next CPU engine, and a reduction setting the authors already saw fail when it was left on for both clocks. CCC 24 bullet final was 567.5–432.5 over 1000 games. CCRL leads on the opened lists are a few Elo. A fixed-node curve puts the largest NNUE gain over an older Stockfish at short node counts, then a flatten because many positions become draws.
+
+Ideas. Clock-gated reductions are B3. The bullet cap on complexity time is T10. The cheap eval on quiet non-PV nodes at bullet is N6.
+
+## Endgames tablebases do not solve
+
+Importance: routine. Six-piece tables in current top engines were measured near zero to a few Elo. The open hole is the parent the probe never sees.
+
+What still works. Ordinary search until a line enters the table. Separate nets by piece count, and deleting a piece to probe the remainder, missed. A win/draw/loss label with no distance taught the outcome and skipped whether the entry was playable. About half of practical eight-piece endings were described as the blocked-opposing-pawn subset, and that subset is what has been generated, for small pawn counts only.
+
+Where Stockfish is weaker. It already probes during search. On 2020 books drawn from its own long games, the eval overlapped table wins and table draws in a seven-piece rook ending, and the most common eight-piece material was rook and three pawns versus rook and two. Those figures are classical, bullet, and not a current match deficit. A 2026 description of eight-piece pawn races whose scores jump with depth has no game count.
+
+Ideas. The capture-parent label is D10. The one quiet non-reduction before a table win is S14. The rook that meets the passer is S15.
 
 ## Sources
 

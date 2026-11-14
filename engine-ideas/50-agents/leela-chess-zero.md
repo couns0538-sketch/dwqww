@@ -1,6 +1,6 @@
 # Leela Chess Zero
 
-Ideas only. The WDL department has not reported yet. Fortress and plan reports already use the public WDL write-up; see V1.
+Ideas only. All seven departments are in. The WDL report does not add a second head. It tightens V1: bin by pawn score and material, keep the leftover draw rate beside the pawn score, and do not fold it back in. The clock use of that leftover is T9.
 
 ## Policy-guided move ordering
 

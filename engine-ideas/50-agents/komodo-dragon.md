@@ -1,6 +1,6 @@
 # Komodo Dragon
 
-Ideas only. Closed-source engine: these notes use published articles and interviews. Endgame technique has not reported yet.
+Ideas only. Closed-source engine: these notes use published articles and interviews. All seven departments are in.
 
 ## Hybrid selective search
 
@@ -61,6 +61,14 @@ What is worth rebuilding. A published database study treats an unpaired bishop a
 Where Stockfish is weaker. A large hole is unlikely once a network is trained. Introducing the neural evaluation gained about 90 Elo over the hand-made eval. Removing the classical eval later cost about two Elo. A 2024 article describes that class of engine as keeping much of the positional strength associated with Leela, and describes Stockfish as the engine that generally leads. One opened case where a hand correction still mattered is a bishop shut in a corner under Fischer Random castling. That is a different starting array. The official Dragon pages did not load for this department, so claims that appear only there are unused.
 
 Ideas. The bad-piece residual is P4. Doubled pawns as separate structures are P5. Durable square control tested only where it disagrees with mobility is P6.
+
+## Endgame technique
+
+Importance: routine. A 2024 article puts Stockfish first on the lists. Both engines use a 1.00 win/draw edge. The published difference is a detail: Stockfish pegs the 50 percent line to move 32, Komodo to the opening. On a drawn four-versus-three rook ending, current Stockfish with tablebases off moved from +0.04 to 0.00. No Dragon score for that position was given. Tablebases were described as only a few Elo because the ending is already played well. A 2014 quotation that Stockfish was best in the endgame refers to Komodo 8, not Dragon.
+
+What Dragon publishes. 1.00 is the edge between a win and a draw. A bigger number is more certainty, not an easier win. From 0 to 1 an advantage is still more likely drawn if both sides are perfect. A healthy extra pawn in a pawn ending can be easier to win than a queen-up middlegame. The defensive rule, stated as a wish rather than a finished feature, is telling which ahead-in-material endings are still draws. Against engines, the published policy is the objective move when the position is good. Setting a practical problem is for a bad position against a human, and scored worse against an engine.
+
+Ideas. The trade judged by which side of the edge it lands on is V6. Unequal draws labeled before the position is small are D6. Replacing blitz ending labels with a long search is D7.
 
 ## Sources
 

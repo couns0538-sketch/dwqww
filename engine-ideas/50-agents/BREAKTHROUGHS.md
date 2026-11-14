@@ -52,3 +52,85 @@ Sources:
 - Narrower material-deficit slice: https://starcraft.ai/documents/260/alphazero_preprint.pdf
 - https://stockfishchess.org/blog/2020/introducing-nnue-evaluation
 - https://danamackenzie.com/blog/?p=5072
+
+## B3. Clock-gated reductions
+
+- Importance: breakthrough
+- Engine / department: Stockfish gaps / short time controls
+- Also considered: not the same as a always-on deeper search, and not the same as the bullet clock reserve (that one stays routine). Berserk’s short-time department has not been merged in yet.
+- Where it would live: search, in late-move reductions. On the later Forge tree that is `src/search/alphabeta.inc`. The node budget comes from `src/search/timeman.hpp`.
+
+What to add. Before each move, estimate the nodes this clock and the recent search speed will allow. Under a bullet-sized budget, increase late-move reductions so the root can finish another iteration. Above a rapid-sized budget, ease those reductions so the extra nodes look at moves the short search would have cut. When the budget is large, leave the long-control reductions as they are.
+
+Why it might help. A 2020 Stockfish discussion proposed pruning more when few nodes remain and less when many remain. One trial passed the short test and was failing the long test. The same reduction setting is the wrong setting at both clocks. A 1+1 final in CCC 24 was 567.5–432.5 over 1000 games against a near peer, so a policy that only changes the short budget has a match of that size to move. An always-on deeper search is the version that already failed the long test. Stockfish is still the winner at modern short controls. The gap is the search shape, not a missing bullet title.
+
+Risks. The short-test pass has no Elo figure on the issue page. A 10-second game may never reach the “relax the cuts” side, so a bad threshold either never switches or over-prunes a tactic. A deeper tree of worse moves can lose to a shallower sound tree.
+
+What would falsify it. Bullet games, around 1+0.1 or 1+1, do not improve against a fixed opponent and book, or long games, around 60+0.6 or 10+3, get worse while the gate should be off.
+
+Sources:
+
+- https://github.com/official-stockfish/Stockfish/issues/2758
+- https://liquipedia.net/chess/Computer_Chess_Championship/24/Bullet
+
+## B4. Conflict-gated steep blend
+
+- Importance: breakthrough
+- Engine / department: RubiChess / eval tapering
+- Also considered: Koivisto’s pawn-counted phase multiplier and Berserk’s heavy-piece stretch are one-score rescales. This idea needs two opinions that can disagree. Stockfish’s material-agreement scale asks a different question.
+- Where it would live: eval. On the later Forge tree, `src/eval.cpp` already keeps a middlegame/endgame pair and a phase taper.
+
+What to add. Keep a middlegame opinion and an endgame opinion. If they agree in sign and are close in size, emit a phase-flat combination so a capture barely moves the blend. If they disagree, give phase a steep vote: stay near one opinion until a short band, then move quickly to the other, so search is not handed the average of two plans. Apply any drawish shrink to the opinion that is about to be abandoned. Leave a passed-pawn term that both opinions like at full size.
+
+Why it might help. A linear mix is harmless when both opinions agree, and it is worst when they conflict. Those positions are the long attacks that lose the ending, and the ugly middlegames that are already a won pawn ending. A compromise score recommends a plan that neither opinion believes. RubiChess always mixes in proportion to one piece weight. The classical blend was removed from Stockfish, which now rescales one network score. A steep, agreement-gated blend changes the move only in the conflict, which is where a large gain would have to come from.
+
+Risks. A steep switch can reintroduce the eval jumps that tapering was meant to remove, thrash the transposition table, and make the search change plans when one piece falls. If the two opinions are noisy, the gate will flip on noise. `NetScale`, the phase taper, and `scale_factor` already rescale the same score. Stacking this on top of those moves every pruning margin.
+
+What would falsify it. On a balanced suite, a proportional mix of the same two opinions scores equal or better, and the steep blend’s extra wins are limited to positions where the two opinions already share a sign.
+
+Sources:
+
+- https://raw.githubusercontent.com/Matthies/RubiChess/master/src/eval.cpp
+- https://raw.githubusercontent.com/official-stockfish/Stockfish/master/src/evaluate.cpp
+- https://www.chessprogramming.org/Tapered_Eval
+
+## B5. Lesser-safe empty flights
+
+- Importance: breakthrough
+- Engine / department: Ethereal / mobility
+- Also considered: the idle-piece reduction (S6) asks which piece to search. This idea is a training feature for a piece that has nowhere quiet to step. Do not ship both as large negative eval terms.
+- Where it would live: the network, as a small extra input. On the later Forge tree that is `src/nnue.cpp` / `include/forge/nnue.hpp`.
+
+What to add. For each knight, bishop, rook, and queen, count empty destination squares that an enemy pawn does not attack and a strictly lesser enemy piece does not attack. Knights care about pawns. Bishops care about pawns and knights. Rooks care about pawns, knights, and bishops. Queens care about pawns, knights, and bishops. Leave out captures, friendly squares, and squares seen only through our own pieces. Give each piece one of three marks: no such flight, one flight, or more. Train those marks as a small extra input beside the existing piece-square or threat inputs. Do not import another engine’s curves or weights.
+
+Why it might help. A trapped piece is a large local error. A single mobility count still calls a piece mobile when its “safe” squares are captures, friendly pieces, or squares a lesser enemy piece attacks. A threat-only net records who attacks whom and never records an empty flight. A piece with nowhere quiet to step never appears unless some other piece’s attack lands on a listed target. A two-bit mark states that fact directly.
+
+Risks. A net that already sees blockers and threats may already approximate the mark, so the extra input can cost speed and add nothing. A square attacked by an equal or greater piece can still be a good move. Search already sees one-move traps once depth is high.
+
+What would falsify it. A matched retrain with the marks fails to beat the same net without them, at equal nodes, on positions where some piece has no lesser-safe empty flight.
+
+Sources:
+
+- https://raw.githubusercontent.com/AndyGrant/Ethereal/0e47e9b67f345c75eb965d9fb3e2493b6a11d09a/src/evaluate.c
+- https://github.com/official-stockfish/Stockfish/blob/1e7e6bdeb97669a950b8e4c063770d135f54f55b/src/nnue/features/full_threats.h
+
+## B6. Matched-count exclusion bakeoff
+
+- Importance: breakthrough
+- Engine / department: Koivisto / net training pipeline
+- Also considered: the stable-miss residual (B2) trains a correction on positions the eval got wrong. This idea does not change the target. It only changes which positions are kept, at a matched count. Stockfish’s capture filter is one arm of the bakeoff, not a separate idea.
+- Where it would live: data. On the later Forge tree, `src/datagen.cpp` and `tools/nnue/train_resid_v3b.py`.
+
+What to add. Freeze one pool of self-play games and the trainer. Build several position sets that differ only by which positions are kept, and train one net on each set at the same count. The arms: keep every legal non-terminal position; drop positions whose best move is a capture or promotion; drop only captures that do not lose material; drop positions where a fresh short search disagrees with the stored score. Play the nets against each other.
+
+Why it might help. A published Koivisto account treats the exclusion rule as the difference between a modest net and a much stronger one on one tuner: about 40 Elo with the wrong filter, about 104 after the correction, about 150 on another engine’s positions. Those matches are against an old evaluation, so part of the jump is “a working net.” If Forge’s rule was inherited, this stage can move strength by tens of Elo with the trainer left alone. Stockfish already has a broader pipeline. The experiment is still worth running on Forge’s own pool, because good sets are still chosen empirically.
+
+Risks. Different rules also change which kinds of positions remain, so a win can be coverage rather than the filter. Quiescence already asks the net about quiet positions, so keeping tactical ones can spend capacity on states search rarely scores. The published jump is not a paired filter test.
+
+What would falsify it. At matched counts the nets are within noise, or the set that keeps every legal position is strongest.
+
+Sources:
+
+- https://github.com/Luecx/Koivisto/releases/tag/v5.0
+- https://github.com/official-stockfish/Stockfish/pull/4324
+- https://github.com/official-stockfish/Stockfish/pull/5090
