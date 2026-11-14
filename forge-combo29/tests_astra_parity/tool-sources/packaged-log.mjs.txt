@@ -1,0 +1,15 @@
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';
+const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
+export function linkPackagedLog(src,dst,data,tests){
+ const sha256=hash(data),base=tests+'/soak-batches';
+ if(fs.existsSync(dst))throw Error('Retain prior snapshot explicitly before replacing large log '+dst);
+ for(const name of fs.existsSync(base)?fs.readdirSync(base):[]){
+  const directory=base+'/'+name,manifestFile=directory+'/MANIFEST.txt';if(!fs.existsSync(manifestFile))continue;
+  const manifest=JSON.parse(fs.readFileSync(manifestFile)),entry=manifest.files.find(x=>x.source===src&&x.sha256===sha256&&x.bytes===data.length);if(!entry)continue;
+  const chunks=[];let offset=0;
+  for(const c of entry.chunks){const target=path.resolve(directory,c.path);if(!target.startsWith(directory+'/'))throw Error('Chunk path');const b=fs.readFileSync(target);if(c.offset!==offset||c.bytes!==b.length||c.sha256!==hash(b))throw Error('Chunk mismatch');chunks.push(b);offset+=b.length;}
+  if(!Buffer.concat(chunks).equals(data))throw Error('Reconstruction mismatch');
+  fs.writeFileSync(dst+'.packaged.txt',JSON.stringify({source:src,bytes:data.length,sha256,manifest:path.relative(path.dirname(dst),manifestFile),chunks:entry.chunks,note:'Full immutable raw output is in the linked package. Concatenate chunks in order without separators; original source bytes verified before this pointer was written.'},null,2)+'\n',{mode:0o644});return;
+ }
+ throw Error('Large raw log requires a verified immutable package before checkpoint: '+src);
+}
