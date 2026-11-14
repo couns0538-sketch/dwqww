@@ -2,6 +2,7 @@
 #include "forge/book.hpp"
 #include "forge/nnue.hpp"
 #include "forge/search.hpp"
+#include "forge/uci_clock.hpp"
 #include "forge/uci_output.hpp"
 
 #include <algorithm>
@@ -79,6 +80,12 @@ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board)
             }
             return value;
         };
+        // Clocks are 64-bit. A 32-bit parse turns 3000000000 into 0, and the
+        // search then stops at once.
+        auto read_clock = [&]() -> std::int64_t {
+            if (i >= tokens.size()) return 0;
+            return forge::parse_clock_ms(tokens[i++]);
+        };
         if (token == "depth") limits.depth = std::clamp(read_int(), 1, 64);
         else if (token == "nodes") {
             if (i < tokens.size()) {
@@ -91,15 +98,15 @@ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board)
                 }
             }
         }
-        else if (token == "movetime") limits.movetime_ms = std::max(0, read_int());
+        else if (token == "movetime") limits.movetime_ms = read_clock();
         else if (token == "movestogo") limits.moves_to_go = std::max(1, read_int());
         else if (token == "mate") limits.mate_moves = std::clamp(read_int(), 0, 32);
         else if (token == "infinite") limits.infinite = true;
         else if (token == "ponder") limits.ponder = true;
-        else if (token == "wtime") { const int value = std::max(0, read_int()); if (side == forge::White) limits.time_ms = value; }
-        else if (token == "btime") { const int value = std::max(0, read_int()); if (side == forge::Black) limits.time_ms = value; }
-        else if (token == "winc") { const int value = std::max(0, read_int()); if (side == forge::White) limits.increment_ms = value; }
-        else if (token == "binc") { const int value = std::max(0, read_int()); if (side == forge::Black) limits.increment_ms = value; }
+        else if (token == "wtime") { const std::int64_t value = read_clock(); if (side == forge::White) limits.time_ms = value; }
+        else if (token == "btime") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.time_ms = value; }
+        else if (token == "winc") { const std::int64_t value = read_clock(); if (side == forge::White) limits.increment_ms = value; }
+        else if (token == "binc") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.increment_ms = value; }
         else if (token == "searchmoves") {
             limits.search_moves_specified = true;
             while (i < tokens.size() && !is_go_keyword(tokens[i])) {
@@ -170,7 +177,10 @@ int main() {
                          "option name Book File type string default <empty>\n"
                          "option name Book Depth type spin default 30 min 0 max 100\n"
                          "option name Book Variety type spin default 30 min 0 max 100\n";
-            if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+            if (forge::nnue::available()) {
+                std::cout << "option name UseNNUE type check default true\n"
+                             "option name NnueFile type string default <empty>\n";
+            }
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -258,6 +268,22 @@ int main() {
                     book_depth = std::clamp(value, 0, 100);
                 } else {
                     book_variety = std::clamp(value, 0, 100);
+                }
+            } else if (name == "NnueFile") {
+                std::string rest;
+                std::getline(input, rest);
+                std::string path = value_text + rest;
+                while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
+                std::string error;
+                if (!forge::nnue::load_file(path, error)) {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string " << error << std::endl;
+                } else {
+                    searcher.clear_hash();
+                    if (!path.empty() && path != "<empty>") {
+                        const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                        std::cout << "info string loaded nnue " << path << std::endl;
+                    }
                 }
             } else if (name == "UseNNUE") {
                 if (value_text == "true") forge::nnue::enabled = true;
