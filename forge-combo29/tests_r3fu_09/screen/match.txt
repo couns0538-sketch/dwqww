@@ -1,0 +1,42 @@
+AspArmLate UHO screen. Same binary, option on versus option off.
+Screening only. Not a strength claim.
+
+Command (chunk 001; later chunks change start and the chunk number):
+
+/tmp/fastchess/fastchess-linux-x86-64/fastchess \
+  -engine cmd=/agent/repos/dwqww/build/forge name=AspArmLateOn proto=uci option.AspArmLate=true \
+  -engine cmd=/agent/repos/dwqww/build/forge name=AspArmLateOff proto=uci option.AspArmLate=false \
+  -each nodes=50000 option.Threads=1 option.Hash=16 option.OwnBook=false \
+  -openings file=/tmp/uho/UHO_4060_v4.epd format=epd order=sequential start=1 \
+  -games 2 -rounds 200 -concurrency 2 \
+  -resign movecount=3 score=600 twosided=true \
+  -draw movenumber=34 movecount=8 score=20 \
+  -maxmoves 200 \
+  -pgnout file=forge-combo29/tests_r3fu_09/screen/chunk-001.pgn notation=san \
+  -ratinginterval 50 \
+  -event "AspArmLate UHO chunk 001" \
+  -site grok47/r3-09-asp-arm-late
+
+Versions
+- Engine id: Chess Engine Forge 6.4.24 candidate
+- Implementation commit: a6cb38efffbc9f5d6247adc4a8a57e2d6db27a71
+- Compiler: g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+- Build: CMake Release, march=x86-64-v4, FORGE_SPD_SLIDER_PEXT=1, FORGE_SPD_NNUE_ZMM=1 (owner build; AVX-512F and BMI2 present). No CMakeLists edit and no extra FORGE_* override.
+- fastchess: alpha 1.8.3 compiled for ubuntu-22.04 20261107-d7b47e8 (CI)
+- Book: official-stockfish/books UHO_4060_v4.epd
+
+sha256
+- build/forge: 0cb69581f2ad1ba0d49c606fd5b90223249803911c629fb84d4ac54759c8ddb0
+- fastchess: 091bf93dcf08e15d14b77bc2374d0a423982b32200e8add69f17bace3a34b31f
+- UHO_4060_v4.epd: 3f499996ff0b674a04f85f2634811d102dd53b5115841e8f11d18e1f550ba2ca
+- UHO_4060_v4.epd.zip: a97424c5b98b42f8c27ff450f0681ad11696148548c975752350e98417ead11d
+
+bench 13 nps, five alternating runs, same binary, option off/on/off/on/off
+- off nodes 862329 time 512 nps 1684236
+- on  nodes 870398 time 565 nps 1540527
+- off nodes 862329 time 509 nps 1694163
+- on  nodes 870398 time 522 nps 1667429
+- off nodes 862329 time 513 nps 1680953
+
+Cumulative through chunk 001 (on first): 109-102-189
+Elo 6.08 +/- 22.28 (95%), LOS 70.39%, Ptnml(0-2) [6, 56, 71, 59, 8]

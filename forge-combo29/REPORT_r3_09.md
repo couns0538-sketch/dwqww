@@ -78,3 +78,7 @@ Those three held after the option was turned on and then off.
 Option on, same binary:
 
 bench 13 nodes 870398
+
+Five alternating `bench 13` runs on that binary, off/on/off/on/off, kept those node counts. The nps figures were 1684236, 1540527, 1694163, 1667429, and 1680953.
+
+Screening is the same binary with the option on against the option off, `nodes 50000`, UHO_4060_v4 sequential pairs. It is a screen, not a strength claim. Chunk 001 (200 openings, 400 games) finished 109-102-189 for the option-on side, Elo 6.08 +/- 22.28 (95%), LOS 70.39%, pentanomial [6, 56, 71, 59, 8]. Details and later chunks are under `forge-combo29/tests_r3fu_09/screen/`.
