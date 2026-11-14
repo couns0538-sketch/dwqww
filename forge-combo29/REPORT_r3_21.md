@@ -116,6 +116,8 @@ No-regression games of this branch against `e04556dd`, owner build on both sides
 
 Match settings, command, versions, and sha256 of both binaries and the UHO book are in `forge-combo29/tests_r3fu_21/match-command.txt`. Four sequential UHO chunks of 1000 games, `nodes=50000`, Threads 1, Hash 16, OwnBook false, this branch named first. Chunk logs are under `forge-combo29/tests_r3fu_21/`. Counts below are game results only.
 
+Chunk 1 (openings 1–500, both colors), fastchess exit 0, 00:22:07: W-L-D 253-253-494. Elo -0.00 +/- 0.00. LOS printed as `-nan %`. Ptnml(0-2) `[0, 0, 500, 0, 0]`. PGN `forge-combo29/tests_r3fu_21/chunk1.pgn`.
+
 ## Not verified
 
 - The cmake command with the default `c++` compiler. It does not link here. The binaries above were built with GCC 13.3.0 and the flags in `CMakeLists.txt`.
