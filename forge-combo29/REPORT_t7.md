@@ -1,28 +1,98 @@
 # Task 7: load a net from a file
 
+Branch `grok47/t7-nnue-file`, base `origin/lock/combo29-20261110` (`16833ecc`). This file is the account of what was wrong, what was measured, and what the branch changes. The command logs are below.
+
 ## What was wrong
 
-The lock engine evaluates only the network compiled in from `src/nnue_weights.inc` (int16, scale 4096, hidden 256: `NnueW1[768*256]`, `NnueB1[256]`, `NnueW2[512]`, scalar `NnueB2`). There is no UCI way to replace that table. On the unchanged lock binary, `uci` does not print `NnueFile`, and `tests_t7/nnue_file_test.cpp` does not compile against the lock headers because `forge::nnue::load_file` and `forge::nnue::use_compiled` do not exist.
+### The lock cannot load a net
 
-## The fix
+On the lock, the only network is the one compiled into `src/nnue_weights.inc`. That file is int16, scale 4096, hidden 256:
 
-`NnueFile` is a string option, default `<empty>`, shown next to `UseNNUE`. Empty or `<empty>` copies the compiled-in weights back. Any other value is read as a little-endian file: 8 bytes `FORGENET`, uint32 version 1, uint32 hidden size, then int16 `W1`, `B1`, `W2`, and one `B2`. The hidden size must be this build's `HiddenSize` and the file length must be exactly 16 + 2 * (768 * hidden + hidden + 2 * hidden + 1), which is 394770 bytes at hidden 256. The int16 values are turned into floats with the same divisions the lock uses (`value / 4096`). The new table is built first and swapped in only after the whole file checks out, so a bad read cannot tear the live weights. A wrong magic, version, or size, or a file that cannot be opened, prints `info string ERROR NnueFile: ...` and leaves the active net and the hash alone. A successful load or an explicit return to the compiled-in net calls `Searcher::clear()`. That drops the transposition table, the evaluator cache, and the correction histories `corrected_eval()` would otherwise keep adding from the previous network. A rejected file does not clear them. `refresh`, `update`, and `evaluate` still read the same weight table; they gained no new branch.
+- `NnueW1[768 * 256]` (196608 values)
+- `NnueB1[256]`
+- `NnueW2[512]` (both perspectives)
+- `NnueB2`, one int16, value 127
 
-## Files
+`nnue.cpp` copies those into a function-local `const` float table the first time `weights()` runs. `refresh`, `update`, and `evaluate` only read that table. The object is const, so a later call cannot replace it. `uci` prints `UseNNUE` and does not print `NnueFile`. Setting an unknown option is ignored. There is no reader for an external file of this shape.
 
-Engine source, 139 insertions and 11 deletions:
+That is why `tests_t7/nnue_file_test.cpp` fails against the lock. Compiled with the lock headers it stops at `forge::nnue::load_file` and `forge::nnue::use_compiled`, which are not members of `forge::nnue`. The compile errors are in the log below. The lock binary's own `uci` transcript also has no `option name NnueFile` line, and its pins are `bench 11` = 312866, `bench 13` = 862329, startpos `go perft 5` = 4865609.
 
-- `forge-combo29/include/forge/nnue.hpp`
-- `forge-combo29/src/nnue.cpp`
-- `forge-combo29/src/uci.cpp`
+The include also sets `FORGE_NNUE_RESIDUAL 1`. Search adds the network output to the hand-crafted evaluation. A file loader that only swapped weights, and left `residual()` as the compiled flag, evaluates a converted copy of this same net the same way. That is the round-trip the task asked for.
 
-Tests and this report:
+### A bad file must not replace the live net
 
-- `forge-combo29/tests_t7/forgenet_convert.cpp` writes `nnue_weights.inc` out as a FORGENET file
-- `forge-combo29/tests_t7/nnue_file_test.cpp`
-- `forge-combo29/tests_t7/nnue_file_uci.txt`
-- `forge-combo29/tests_t7/nnue_file_loaded_uci.txt`
-- `forge-combo29/REPORT_t7.md`
+The first cut of the loader had to refuse a wrong magic, a version other than 1, a hidden size other than the compiled 256, and a length other than the exact body. If it wrote the live table while still reading, a short file could leave a half-updated net. The loader now builds a temporary table and swaps it in only after the header and the body both check out. A failure returns before that swap.
+
+Measured on the start position, the compiled net and the converted file both score 20 centipawns from the side to move. Raising the file's `B2` by 400 moved that score to 37 and moved `bench 11` from 312866 to 322107, so the load was actually reaching the search. After that, each of these left the score at 37 and, for the ones run through UCI, left the changed `bench 11` at 322107:
+
+- magic byte changed (`wrong magic`)
+- version byte changed from 1 to 2 (`wrong version`)
+- hidden size changed from 256 to 128 (`wrong size`)
+- one byte truncated (`wrong size`)
+- path that does not exist (`cannot open`)
+
+Setting the option back to `<empty>` restored the compiled score of 20 and the pins 312866, 862329, and 4865609.
+
+### clear_hash() keeps the old net's correction
+
+The first commit cleared the hash on a successful load, the same call `UseNNUE` uses. That is not enough once a search has already run.
+
+`Searcher::clear_hash()` clears the transposition table and calls `Worker::clear_caches()`, which is only `evaluator_.clear()`. It does not touch `correction_history_` or `material_correction_`.
+
+`Worker::corrected_eval()` still does this on every static eval:
+
+```
+correction = correction_history_[side][pawn_key]
+if MaterialCorrectionWeight > 0:
+    correction += material_correction_[side][material_key] * MaterialCorrectionWeight / 100
+return raw_eval + correction / CorrectionGrain
+```
+
+`update_correction()` fills those tables from `best_score - static_eval` during search. The entries are an adjustment learned for the evaluation that was active then. After a different net is loaded, the new net's raw score is still added to the old adjustment. The same pawn key or material key then carries a correction that belonged to the previous network.
+
+`Worker::clear()` assigns both tables to `{}`. `Searcher::clear()` calls that on every worker and also clears the transposition table. A successful `NnueFile` load, and an explicit return to the compiled-in net, now call `searcher.clear()`. A rejected file does not. `bench` is unaffected either way: it builds its own `Searcher(16)` and calls `clear()` before each position. Remeasured after this change, the unset option and the converted lock net both still give 312866, 862329, and 4865609.
+
+`UseNNUE` still calls only `clear_hash()`. That older option has the same leftover-correction gap. This branch does not change it. The task was the file loader, and the pins for `UseNNUE` were left as they are.
+
+## What changed
+
+`NnueFile` is a string option, default `<empty>`, printed next to `UseNNUE` when a network is compiled in. Empty or `<empty>` copies `NnueW1`, `NnueB1`, `NnueW2`, and `NnueB2` back into the active float table with the same divisions the lock uses (`int16 / 4096`). Any other value is a path, including spaces, read the same way `Book File` reads a path.
+
+The file is little-endian and exact length, 394770 bytes at hidden 256:
+
+- 8 bytes `FORGENET`
+- uint32 version, must be 1
+- uint32 hidden size, must equal compiled `HiddenSize` (256 in this build)
+- int16 `W1[768 * hidden]`, `B1[hidden]`, `W2[2 * hidden]`, `B2[1]`
+
+`refresh`, `update`, and `evaluate` still call `weights()` and have no new branch. The table is no longer a const object, so a successful load can replace the floats. With the option never set, the first fill is the compiled-in net, and the measured node counts match the lock.
+
+Engine diff against the lock: 140 insertions and 11 deletions.
+
+- `forge-combo29/include/forge/nnue.hpp` adds `load_file` and `use_compiled`
+- `forge-combo29/src/nnue.cpp` holds the float table, the quantise loop, and the reader
+- `forge-combo29/src/uci.cpp` advertises the option and calls `searcher.clear()` only after a successful load or restore
+
+Tests:
+
+- `forge-combo29/tests_t7/forgenet_convert.cpp` writes `nnue_weights.inc` out as that file
+- `forge-combo29/tests_t7/nnue_file_test.cpp` checks the converted file, a changed `B2`, and the rejected files
+- `forge-combo29/tests_t7/nnue_file_uci.txt` and `nnue_file_loaded_uci.txt` are the UCI transcripts
+
+## What the measurements found
+
+GCC 13.3.0, `-march=x86-64-v4`, `Threads 1`, `Hash 16`, `OwnBook false`. `time` and `nps` move between runs. The node counts are the result. No Elo claim.
+
+- Lock binary, option absent: `bench 11` = 312866, `bench 13` = 862329, perft 5 = 4865609.
+- This branch, option unset: the same three counts.
+- Converted lock net, including the path `/tmp/forge t7/lock.forgenet`: the same three counts.
+- Bad magic while the compiled net was active: `bench 11` stayed 312866.
+- `B2` plus 400: start-position network output 20 became 37, and `bench 11` became 322107.
+- Bad version after that load: `bench 11` stayed 322107.
+- `<empty>` after that: 312866, 862329, and 4865609 again.
+- `nnue_file_test` exited 0. The same test under AddressSanitizer and UndefinedBehaviorSanitizer exited 0 with no sanitizer report.
+
+The full command output is in the sections below.
 
 ## Commands and output
 
@@ -534,9 +604,15 @@ g1h3: 198502
 nodes 4865609
 ```
 
-## Review notes not taken
+## Review notes that were checked and not applied
 
-Three later review notes were not applied. A default-off compile switch would remove `NnueFile` from the CMake build this task measures, and `CMakeLists.txt` is outside the files this task may edit. The version-1 layout has no residual-mode field; the lock net is residual, and keeping `residual()` on the compiled value is what makes the converted file match the pins. Builds without `nnue_weights.inc` are not the lock binary. Turning `available()` into a runtime flag would change the search gate the pins depend on.
+A review asked for three further changes. They were checked against the lock source and the required file layout. They were not applied.
+
+A default-off compile switch, with the lock code under `#else`, is what `README.md` asks of engine edits. This task's build line is `cmake -S forge-combo29 -B build -DCMAKE_BUILD_TYPE=Release` with no extra `-D`. A switch that defaults to 0 would leave `NnueFile` out of that binary, so the converted-net bench could not be run on the build the task names. `CMakeLists.txt` is also outside the files this task may edit, so the specified command cannot turn a default-off switch on.
+
+The version-1 layout given for the file is magic, version, hidden size, then the four int16 arrays. There is no residual-mode field. The lock include sets `FORGE_NNUE_RESIDUAL` to 1, and `residual()` still returns that. A converted copy of the lock net is therefore still added to the hand-crafted evaluation, which is why its bench matches. Rejecting every file because the mode is not stored would reject that converted lock net. Adding a mode byte would make a legal version-1 file the wrong length.
+
+`available()` is true only when `nnue_weights.inc` was compiled in. The lock ships that file. Search skips the network when `available()` is false. A build that omits the include is not the lock binary. Making `available()` a runtime flag, so a file could turn the network on in that build, would change the gate the pin searches go through.
 
 ## What was not verified
 
