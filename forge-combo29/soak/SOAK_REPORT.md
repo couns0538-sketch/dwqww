@@ -1,19 +1,19 @@
 # Six-hour Forge soak
 
 Start: 2026-11-14T05:32:25Z. Scheduled end: 2026-11-14T11:32:25Z.
-Updated: 2026-11-14T10:28:08.232Z. Elapsed minutes: 295.72. Completed checkpoint pushes: 37.
+Updated: 2026-11-14T10:38:32.470Z. Elapsed minutes: 306.12. Completed checkpoint pushes: 38.
 Integration bf5574ee654a773f0ef3d06878707056b90cdad7; reference 16833ecc03b425586f91f4c8834dea8807bf4c22. Cloud-only, one agent.
 
 | Phase | What ran | Counts | Status / faults |
 | --- | --- | --- | --- |
 | A | Both exact commits: Release, ASan/UBSan, TSan builds; both release bench11/13 and perft5; driver preparation | {"builds":6,"pin_checks":6,"batches":1} | Complete; faults 0 |
-| B | timeout 450 /workspace/work/soak-run/play-asan --seed 4753014 --seconds 291 --threads 1 --nodes 2000 --depth 0 --trigger /workspace/work/soak-run/last-trigger.json | {"games":3281,"moves":465894,"searches":465894,"opening_moves":26248,"faults":0,"illegal":0,"missing":0,"badscore":0,"mates":2362,"stalemates":4,"repetitions":476,"fifty":200,"ply_caps":80,"insufficient":159,"sanitizer_reports":0,"batches_threads1":14,"batches":14} | Complete; faults 0 |
+| B | timeout -k 5 450 /workspace/work/soak-run/play-asan --seed 4753073 --seconds 292 --threads 1 --nodes 20000 --depth 0 --trigger /workspace/work/soak-run/last-trigger.json | {"games":3585,"moves":508679,"searches":508679,"opening_moves":28680,"faults":0,"illegal":0,"missing":0,"badscore":0,"mates":2585,"stalemates":4,"repetitions":525,"fifty":218,"ply_caps":83,"insufficient":170,"sanitizer_reports":0,"batches_threads1":16,"batches":16} | Running; faults 0 |
 | C | timeout 450 /workspace/work/soak-run/play-tsan --seed 4753024 --seconds 248 --threads 4 --nodes 2000 --depth 9 --trigger /workspace/work/soak-run/last-trigger.json --trace | {"games":87,"moves":13414,"searches":13414,"opening_moves":693,"faults":0,"illegal":0,"missing":0,"badscore":0,"mates":47,"stalemates":0,"repetitions":25,"fifty":5,"ply_caps":6,"insufficient":4,"sanitizer_reports":0,"batches_threads2":5,"batches":10,"batches_threads4":5} | Complete; faults 0 |
 | D | timeout 450 /workspace/work/soak-run/net-driver --seed 4753038 --seconds 398 --net /workspace/work/soak-run/converted-lock.net --corpus /workspace/work/soak-run/playout-fens.txt | {"positions":1228600000,"incremental_checks":2457200000,"loaded_checks":1228600000,"nulls":66016048,"castles":371219,"en_passant":96725,"promotions":9752254,"captures":107868310,"damaged_file_checks":49144,"chunks":12286,"faults":0,"batches":14} | Complete; faults 0 |
 | E | timeout -k 5 450 /workspace/work/soak-run/search-compare --mode compare --input /workspace/work/soak-run/compare-fens.txt --offset 114706 --lock /workspace/work/soak-run/build-lock-rel/forge --integration /workspace/work/soak-run/build-int-rel/forge --fault-dir /workspace/work/soak-run/pending-faults --seed 4753048 --seconds 282 | {"positions":129793,"differences":0,"selection_attempts":0,"selected":0,"lock_runs":0,"integration_runs":0,"lock_misses":0,"integration_misses":0,"lock_lost_mates":0,"integration_lost_mates":0,"lock_failures":0,"integration_failures":0,"faults":0,"batches":10} | Complete; faults 0 |
 | F | timeout -k 5 450 /workspace/work/fastchess/fastchess -engine cmd=/workspace/work/soak-run/build-int-rel/forge name=integration -engine cmd=/workspace/work/soak-run/build-lock-rel/forge name=lock -each nodes=20000 option.Threads=1 option.Hash=16 option.OwnBook=false -rounds 100 -games 2 -recover -concurrency 2 -ratinginterval 0 -output format=cutechess -scoreinterval 1 -srand 4753069 -openings file=/workspace/work/soak-run/openings/UHO_Lichess_4852_v1.epd format=epd order=random -pgnout file=/workspace/work/soak-run/matches/F-69-4753069.pgn append=false nodes=true -events file=/workspace/work/soak-run/matches/F-69-4753069.events -config outname=/workspace/work/soak-run/matches/F-69-4753069.config.json -log file=/workspace/work/soak-run/matches/F-69-4753069.engine.log level=trace append=false engine=true | {"games":4200,"wins":1136,"losses":1205,"draws":1859,"moves":594779,"illegal":0,"crashes":0,"disconnects":0,"other_abnormal":0,"unfinished":0,"aborted":0,"pair_0":45,"pair_half":342,"pair_1":1390,"pair_1half":283,"pair_2":40,"faults":0,"batches":21} | Complete; faults 0 |
 | G | timeout -k 5 450 /workspace/work/soak-run/search-compare --mode krk --input /workspace/work/soak-run/krk-fens.txt --offset 0 --lock /workspace/work/soak-run/build-lock-rel/forge --integration /workspace/work/soak-run/build-int-rel/forge --fault-dir /workspace/work/soak-run/pending-faults --seed 4753071 --seconds 240 | {"positions":40,"differences":0,"selection_attempts":208,"selected":40,"lock_runs":400,"integration_runs":400,"lock_misses":58,"integration_misses":53,"lock_lost_mates":0,"integration_lost_mates":0,"lock_failures":58,"integration_failures":53,"faults":27,"batches":2} | Complete: 40 roots, 400 runs per build; missing-mate faults recorded; faults 27 |
-| H | Not yet run | {} | Pending; faults 0 |
+| H | Additional B/C/F rotations | {"batches":2,"B_batches":2,"B_games":304,"B_moves":42785,"B_searches":42785,"B_opening_moves":2432,"B_faults":0,"B_illegal":0,"B_missing":0,"B_badscore":0,"B_mates":223,"B_stalemates":0,"B_repetitions":49,"B_fifty":18,"B_ply_caps":3,"B_insufficient":11,"B_sanitizer_reports":0,"B_batches_threads1":2,"B_batches_nodes2000":1,"B_batches_nodes20000":1} | Running; faults 0 |
 
 Fault files: 27.
 - [001.txt](faults/001.txt): integration: missing mate score 3/10; FEN 8/3R4/8/8/8/k7/8/4K3 w - - 0 1
@@ -43,6 +43,8 @@ Fault files: 27.
 - [025.txt](faults/025.txt): lock: missing mate score 1/10; FEN 8/8/8/8/1R6/5k2/3K4/8 w - - 0 1
 - [026.txt](faults/026.txt): integration: missing mate score 10/10; FEN 7k/8/3K4/8/8/8/8/5R2 w - - 0 1
 - [027.txt](faults/027.txt): lock: missing mate score 10/10; FEN 7k/8/3K4/8/8/8/8/5R2 w - - 0 1
+
+B/C/F totals include their H repetitions. The H row lists the additional H work separately.
 
 Engine sources/headers and existing tests are unchanged. Test programs and evidence only are added under soak/. Tools, temporary controllers, generated networks, opening book and binaries stay in the VM. No Elo or speed claim.
 
