@@ -1,6 +1,6 @@
 # Narrow mate-alpha guard and round-4 soak
 
-Updated 2026-11-14T22:59:32.092Z. Cloud VM only. Branch `for-fable-and-opus/astra-r4-mate-alpha-guard`. Task start 2026-11-14T19:48:28.579Z. Current phase: Bounded KRK candidate/reference recurrence comparison.
+Updated 2026-11-14T23:04:14.614Z. Cloud VM only. Branch `for-fable-and-opus/astra-r4-mate-alpha-guard`. Task start 2026-11-14T19:48:28.579Z. Current phase: Bounded KRK candidate/reference recurrence comparison.
 
 **Guard acceptance: complete.** Default pins: **312866 / 862329 / 4865609**. Engine delta is27 added lines,0 removed, behind an OFF-by-default compile gate and a false-default UCI option. No CMakeLists change.
 
@@ -121,8 +121,8 @@ KRK status: Open rare two-thread mate-score miss; original selected move remains
 Bounded alternating KRK comparison; counts exclude original suite and focused repetitions:
 | Build | Complete invocations | Main T2 searches | Missing mate score | Non-mating move | T1 preflight searches | T1 misses |
 |---|---:|---:|---:|---:|---:|---:|
-| candidate | 3 | 1200 | 0 | 0 | 300 | 0 |
-| reference | 2 | 800 | 0 | 0 | 200 | 0 |
+| candidate | 5 | 2000 | 1 | 0 | 500 | 0 |
+| reference | 4 | 1600 | 0 | 0 | 400 | 0 |
 Fixed window 2026-11-14T22:53:55.385Z to 2026-11-14T23:23:55.385Z. Each command retains its440-second native bound; no new trial starts with less than465seconds remaining. Selection searches are outside reported denominators. Exact trial commands, outputs and aggregates are in `tests_astra_mateguard/logs/krk-rate-*`. The first launcher check incorrectly matched its timeout ancestor and failed before any trial; full failure and corrected launcher evidence are retained.
 
 Existing-suite compilation: {"enabled":{"commands":50,"passed":50,"executables":47,"helperObjects":3,"artifactBytes":36375672},"asan":{"commands":50,"passed":50,"executables":47,"helperObjects":3,"artifactBytes":797963480},"sourceFilesVerified":99,"sourceHashesUnchanged":true,"failures":0,"runtimeTestsRun":0}. Compilation counts do not establish runtime test results. [Plans and build manifest](tests_astra_mateguard/existing-suite-plans/BUILDS.md).
@@ -138,6 +138,6 @@ Exact commands, output, hashes and retained failures are under `tests_astra_mate
 
 **Final engine delta commit: `a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d`.**
 
-Checkpoint 2026-11-14T22:59:32.093Z: Bounded KRK candidate/reference recurrence comparison. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Full unchanged t12 invocation40 10 2 16 14 1, alternating candidate/reference, fixed30minute ceiling. Totals [{"mode":"candidate","completeInvocations":3,"mainTests":1200,"mainMisses":0,"noMateScore":0,"nonMatingMove":0,"t1PreflightTests":300,"t1PreflightMisses":0},{"mode":"reference","completeInvocations":2,"mainTests":800,"mainMisses":0,"noMateScore":0,"nonMatingMove":0,"t1PreflightTests":200,"t1PreflightMisses":0}]. Original suite failure remains retained; focused10repeats had0misses. No causal regression claim from counts alone.
+Checkpoint 2026-11-14T23:04:14.614Z: Bounded KRK candidate/reference recurrence comparison. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Full unchanged t12 invocation40 10 2 16 14 1, alternating candidate/reference, fixed30minute ceiling. Totals [{"mode":"candidate","completeInvocations":5,"mainTests":2000,"mainMisses":1,"noMateScore":1,"nonMatingMove":0,"t1PreflightTests":500,"t1PreflightMisses":0},{"mode":"reference","completeInvocations":4,"mainTests":1600,"mainMisses":0,"noMateScore":0,"nonMatingMove":0,"t1PreflightTests":400,"t1PreflightMisses":0}]. Original suite failure remains retained; focused10repeats had0misses. No causal regression claim from counts alone.
 
 ENGINE_DELTA_COMMIT a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d

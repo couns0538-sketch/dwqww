@@ -1,0 +1,12 @@
+import fs from 'node:fs';import cp from 'node:child_process';import crypto from 'node:crypto';import assert from 'node:assert/strict';
+const root='/workspace/work/r4-run',s=JSON.parse(fs.readFileSync(root+'/state.json')),hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex'),gitRecords=[];
+function git(args){const p=cp.spawnSync('git',args,{cwd:s.repo,encoding:'utf8',timeout:30000,maxBuffer:16*1024*1024});gitRecords.push({argv:['git',...args],cwd:s.repo,exit:p.status,stdout:p.stdout,stderr:p.stderr});assert.equal(p.status,0);return p.stdout.trim();}
+assert.equal(git(['branch','--show-current']),s.branch);
+const unchangedPaths=['forge-combo29/src','forge-combo29/include','forge-combo29/CMakeLists.txt'];
+const sourceDiff=git(['diff','--name-only',s.engineDeltaCommit,'--',...unchangedPaths]);assert.equal(sourceDiff,'','engine changed after accepted source commit');
+const hashes=JSON.parse(fs.readFileSync(root+'/inputs/guard-source-sha256.txt')),checked={};for(const [name,pin]of Object.entries(hashes)){const actual=hash(s.repo+'/forge-combo29/'+name);assert.equal(actual,pin);checked[name]=actual;}
+const pins=fs.readFileSync(root+'/logs/final-candidate-pins.stdout.txt','utf8');for(const pattern of [/bench depth 11 nodes 312866\b/,/bench depth 13 nodes 862329\b/,/^nodes 4865609$/m])assert.match(pins,pattern);
+const meta=JSON.parse(fs.readFileSync(root+'/logs/final-candidate-pins.metadata.txt'));assert.equal(meta.exit,0);assert.equal(meta.signal,null);assert.equal(hash(meta.stdoutFile),meta.stdoutSha256);assert.equal(hash(meta.stderrFile),meta.stderrSha256);assert.equal(fs.readFileSync(meta.stderrFile,'utf8'),'');
+assert.equal(hash(root+'/builds/guard-enabled/forge'),'710cfcf73fcc3b9897281113759ed18565feb167eb0effe7023cbbe1706037dc');
+const faults=fs.readdirSync(s.repo+'/forge-combo29/tests_astra_mateguard/faults').filter(x=>x.endsWith('.txt')).sort().map(name=>({name,sha256:hash(s.repo+'/forge-combo29/tests_astra_mateguard/faults/'+name)}));
+console.log(JSON.stringify({utc:new Date().toISOString(),engineDeltaCommit:s.engineDeltaCommit,sourceUnchanged:true,sourceHashes:checked,finalPins:{bench11:312866,bench13:862329,perft5:4865609},candidateSha256:hash(root+'/builds/guard-enabled/forge'),faultFiles:faults,gitRecords},null,2));
