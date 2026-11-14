@@ -26,9 +26,11 @@ struct SearchLimits {
     int depth = 64;
     std::uint64_t nodes = 0;
     bool nodes_specified = false;
-    int movetime_ms = -1;
-    int time_ms = -1;
-    int increment_ms = 0;
+    // Milliseconds. -1 on movetime_ms and time_ms means the limit was not set.
+    // int64 so a clock past INT_MAX (for example 3000000000) is not read as 0.
+    std::int64_t movetime_ms = -1;
+    std::int64_t time_ms = -1;
+    std::int64_t increment_ms = 0;
     // 0 means the increment/sudden-death time control (no movestogo given).
     int moves_to_go = 0;
     int mate_moves = 0;

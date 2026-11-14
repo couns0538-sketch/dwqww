@@ -1,0 +1,128 @@
+# UCI clock-parser transcript. Threads 1, Hash 16, OwnBook false.
+# Send one line at a time and wait for bestmove after every go. The engine
+# reads the next command on the main thread and that command stops a search
+# still in progress, so a single pipe of this file aborts the searches.
+# Blank lines and lines starting with # are not sent.
+uci
+setoption name Threads value 1
+setoption name Hash value 16
+setoption name OwnBook value false
+setoption name Move Overhead value 0
+isready
+
+# 1. Leading '+' is a positive depth, not a failed parse (depth 1).
+ucinewgame
+position startpos
+go depth +8
+
+# 2. 3000000000 does not fit in a signed 32-bit int. It must not become 0.
+ucinewgame
+position startpos
+go depth 12 wtime 3000000000 btime 3000000000
+
+# 3. First integer above INT_MAX.
+ucinewgame
+position startpos
+go depth 12 wtime 2147483648
+
+# 4. INT_MAX still fits in the old parser and must keep working.
+ucinewgame
+position startpos
+go depth 12 wtime 2147483647
+
+# 5. Bigger than int64: clamp to the clock ceiling, do not become 0.
+ucinewgame
+position startpos
+go depth 12 wtime 999999999999999999999
+
+# 6. An ordinary in-range clock still obeys the depth cap.
+ucinewgame
+position startpos
+go depth 3 wtime 1000
+
+# 7. movetime +80 is 80 ms, not a failed parse.
+ucinewgame
+position startpos
+go movetime +80
+
+# 8. Plain movetime 80, the same budget without a sign.
+ucinewgame
+position startpos
+go movetime 80
+
+# 9. Leading '+' and zeros.
+ucinewgame
+position startpos
+go movetime +00080
+
+# 10. Negative movetime clamps to 0 (a 1 ms budget), not 80 ms.
+ucinewgame
+position startpos
+go movetime -80
+
+# 11. Malformed movetime.
+ucinewgame
+position startpos
+go movetime zz
+
+# 12. Trailing junk is malformed, including after a plus.
+ucinewgame
+position startpos
+go movetime +80ms
+
+# 13. Explicit +0 is zero.
+ucinewgame
+position startpos
+go movetime +0
+
+# 14. Negative wtime clamps to 0, so depth 12 does not finish.
+ucinewgame
+position startpos
+go depth 12 wtime -5
+
+# 15. Black to move: btime 3000000000 is our clock.
+ucinewgame
+position startpos moves e2e4
+go depth 10 btime 3000000000
+
+# 16. Black to move: wtime is the opponent clock and must be ignored.
+ucinewgame
+position startpos moves e2e4
+go depth 10 wtime 3000000000
+
+# 17. White to move: btime 0 is the opponent clock and must be ignored.
+ucinewgame
+position startpos
+go depth 12 btime 0
+
+# 18. winc past INT_MAX counts as increment, so a 200 ms clock is not sudden-death with inc 0.
+ucinewgame
+position startpos
+go wtime 200 winc 3000000000
+
+# 19. A leading '+' on the clock value 3000000000.
+ucinewgame
+position startpos
+go depth 12 wtime +3000000000
+
+# 20. Leading zeros still parse as 3000000000, which does not fit in int32.
+ucinewgame
+position startpos
+go depth 12 wtime 03000000000
+
+# 21. Black to move: btime with a leading '+'.
+ucinewgame
+position startpos moves e2e4
+go depth 10 btime +3000000000
+
+# 22. nodes +1000 is a 1000-node budget, not an unset limit.
+ucinewgame
+position startpos
+go depth 12 nodes +1000
+
+# 23. A leading '+' on winc past INT_MAX.
+ucinewgame
+position startpos
+go wtime 200 winc +3000000000
+
+quit
