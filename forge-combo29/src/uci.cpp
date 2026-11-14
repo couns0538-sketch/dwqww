@@ -2,6 +2,7 @@
 #include "forge/book.hpp"
 #include "forge/nnue.hpp"
 #include "forge/search.hpp"
+#include "forge/uci.hpp"
 #include "forge/uci_clock.hpp"
 #include "forge/uci_output.hpp"
 
@@ -129,10 +130,13 @@ int game_ply(const forge::Board& board) {
 
 } // namespace
 
-int main() {
+namespace forge {
+
+int uci_loop(std::istream& in) {
     forge::Board board;
     forge::Searcher searcher;
     int move_overhead_ms = 10;
+    int multipv = 1;
     bool ponder_enabled = false;
     forge::book::Book book;
     book.load_embedded();
@@ -160,7 +164,7 @@ int main() {
     };
 
     std::string line;
-    while (std::getline(std::cin, line)) {
+    while (std::getline(in, line)) {
         const auto command_start = std::chrono::steady_clock::now();
         std::istringstream input(line);
         std::string command;
@@ -171,6 +175,7 @@ int main() {
                          "id author OpenAI\n"
                          "option name Hash type spin default 32 min 1 max 2048\n"
                          "option name Threads type spin default 1 min 1 max 256\n"
+                         "option name MultiPV type spin default 1 min 1 max 8\n"
                          "option name Move Overhead type spin default 10 min 0 max 1000\n"
                          "option name Ponder type check default false\n"
                          "option name OwnBook type check default " << (forge::book::embedded_available() ? "true" : "false") << "\n"
@@ -183,7 +188,7 @@ int main() {
             }
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
-            // runners can set them; release builds accept them silently.
+            // runners can set them. Builds without this macro still accept them.
             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
                 std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
                           << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
@@ -210,38 +215,45 @@ int main() {
                 }
                 if (token == "value") input >> value_text;
             }
+            auto note_invalid = [&]() {
+                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                std::cout << "info string invalid value for option " << name << std::endl;
+            };
+            // A non-integer leaves the stored value unchanged. An integer outside
+            // the advertised range is reported and still clamped, as this lock
+            // already did without a message.
+            auto apply_spin = [&](int minimum, int maximum, auto&& assign) {
+                int value = 0;
+                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                    note_invalid();
+                    return;
+                }
+                if (value < minimum || value > maximum) note_invalid();
+                assign(std::clamp(value, minimum, maximum));
+            };
             bool handled_tunable = false;
             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
                 if (name != parameter.name) continue;
                 handled_tunable = true;
-                int value = 0;
-                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
-                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
-                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-                    std::cout << "info string invalid value for option " << name << std::endl;
-                } else {
-                    *parameter.value = std::clamp(value, parameter.minimum, parameter.maximum);
+                apply_spin(parameter.minimum, parameter.maximum, [&](int clamped) {
+                    *parameter.value = clamped;
                     forge::tune::refresh();
-                }
+                });
             }
             if (handled_tunable) {
                 // Unlisted development options; nothing else to do.
             } else if (name == "Clear Hash") {
-                searcher.clear_hash();
+                if (value_text.empty()) searcher.clear_hash();
+                else note_invalid();
             } else if (name == "Ponder") {
                 if (value_text == "true") ponder_enabled = true;
                 else if (value_text == "false") ponder_enabled = false;
-                else {
-                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-                    std::cout << "info string invalid value for option Ponder" << std::endl;
-                }
+                else note_invalid();
             } else if (name == "OwnBook") {
                 if (value_text == "true") own_book = true;
                 else if (value_text == "false") own_book = false;
-                else {
-                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-                    std::cout << "info string invalid value for option OwnBook" << std::endl;
-                }
+                else note_invalid();
             } else if (name == "Book File") {
                 std::string rest;
                 std::getline(input, rest);
@@ -259,16 +271,10 @@ int main() {
                     std::cout << "info string cannot load book " << path << std::endl;
                 }
             } else if (name == "Book Depth" || name == "Book Variety") {
-                int value = 0;
-                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
-                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
-                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-                    std::cout << "info string invalid value for option " << name << std::endl;
-                } else if (name == "Book Depth") {
-                    book_depth = std::clamp(value, 0, 100);
-                } else {
-                    book_variety = std::clamp(value, 0, 100);
-                }
+                apply_spin(0, 100, [&](int clamped) {
+                    if (name == "Book Depth") book_depth = clamped;
+                    else book_variety = clamped;
+                });
             } else if (name == "NnueFile") {
                 std::string rest;
                 std::getline(input, rest);
@@ -286,26 +292,25 @@ int main() {
                     }
                 }
             } else if (name == "UseNNUE") {
-                if (value_text == "true") forge::nnue::enabled = true;
-                else if (value_text == "false") forge::nnue::enabled = false;
-                else {
-                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-                    std::cout << "info string invalid value for option UseNNUE" << std::endl;
-                }
-                searcher.clear_hash();
-            } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
-                int value = 0;
-                const auto parsed = std::from_chars(
-                    value_text.data(), value_text.data() + value_text.size(), value);
-                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
-                    { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string invalid value for option " << name << std::endl; }
-                } else if (name == "Hash") {
-                    searcher.resize_hash(static_cast<std::size_t>(std::clamp(value, 1, 2048)));
-                } else if (name == "Threads") {
-                    searcher.set_threads(std::clamp(value, 1, 256));
+                if (value_text == "true" || value_text == "false") {
+                    forge::nnue::enabled = value_text == "true";
+                    searcher.clear_hash();
                 } else {
-                    move_overhead_ms = std::clamp(value, 0, 1000);
+                    note_invalid();
                 }
+            } else if (name == "MultiPV") {
+                apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+            } else if (name == "Hash") {
+                apply_spin(1, 2048, [&](int clamped) {
+                    searcher.resize_hash(static_cast<std::size_t>(clamped));
+                });
+            } else if (name == "Threads") {
+                apply_spin(1, 256, [&](int clamped) { searcher.set_threads(clamped); });
+            } else if (name == "Move Overhead") {
+                apply_spin(0, 1000, [&](int clamped) { move_overhead_ms = clamped; });
+            } else {
+                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                std::cout << "info string unknown option " << name << std::endl;
             }
         } else if (command == "position") {
             stop_search();
@@ -345,6 +350,7 @@ int main() {
                 input.seekg(position);
                 forge::SearchLimits limits = parse_limits(input, board);
                 limits.move_overhead_ms = move_overhead_ms;
+                limits.multipv = multipv;
                 // Charge dispatch admission only to finite externally clocked searches.
                 if (!limits.infinite && !limits.ponder &&
                     (limits.time_ms >= 0 || limits.movetime_ms >= 0)) limits.start_time = command_start;
@@ -400,6 +406,13 @@ int main() {
                     std::cout << "bestmove " << best << prediction << std::endl;
                 });
             }
+        } else if (command == "eval") {
+            const forge::EvalComponents parts = forge::Evaluator::static_eval_components(board);
+            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+            std::cout << "info string eval hce " << parts.hce << " nnue " << parts.nnue
+                      << " total " << parts.total;
+            if (parts.in_check) std::cout << " incheck 1";
+            std::cout << std::endl;
         } else if (command == "bench") {
             // Fixed-depth search over a small position set; prints a node
             // signature and speed for quick regression and performance checks.
@@ -454,3 +467,11 @@ int main() {
     stop_search();
     return 0;
 }
+
+}  // namespace forge
+
+#ifndef FORGE_UCI_NO_MAIN
+int main() {
+    return forge::uci_loop(std::cin);
+}
+#endif

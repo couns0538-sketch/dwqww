@@ -16,6 +16,9 @@ set(FORGE_MARCH "x86-64-v4" CACHE STRING "value for -march (lock exe uses znver5
 # FORGE_PORTABLE=ON drops the two ISA-bound speed switches (SLIDER_PEXT, NNUE_ZMM) so it
 # builds on CPUs without AVX-512/BMI2. Use -DFORGE_MARCH=x86-64-v3 or native with it.
 option(FORGE_PORTABLE "build without the PEXT/AVX-512 speed switches" OFF)
+set(FORGE_NNUE_HIDDEN 256 CACHE STRING "NNUE hidden units per side")
+set(FORGE_NNUE_WEIGHTS "src/nnue_weights.inc" CACHE STRING "path of the NNUE weights file")
+get_filename_component(FORGE_NNUE_WEIGHTS_FILE "${FORGE_NNUE_WEIGHTS}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
 file(GLOB FORGE_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 add_executable(forge ${FORGE_SOURCES})
@@ -23,7 +26,8 @@ target_include_directories(forge PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_compile_definitions(forge PRIVATE
   NDEBUG
-  FORGE_NNUE_HIDDEN=256
+  FORGE_NNUE_HIDDEN=${FORGE_NNUE_HIDDEN}
+  FORGE_NNUE_WEIGHTS="${FORGE_NNUE_WEIGHTS_FILE}"
   FORGE_EXPOSE_TUNABLES=1
   FORGE_SPD_TT_NOTLS=1
   FORGE_SPD_NO_ZERO_MOVELISTS=2

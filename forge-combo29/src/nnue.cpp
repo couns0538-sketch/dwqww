@@ -30,7 +30,10 @@
 #include <immintrin.h>
 #endif
 
-#if __has_include("nnue_weights.inc")
+#if defined(FORGE_NNUE_WEIGHTS)
+#include FORGE_NNUE_WEIGHTS
+#define FORGE_HAS_NNUE 1
+#elif __has_include("nnue_weights.inc")
 #include "nnue_weights.inc"
 #define FORGE_HAS_NNUE 1
 #else

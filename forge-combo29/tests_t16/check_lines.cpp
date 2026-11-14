@@ -1,0 +1,92 @@
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <string_view>
+#include <vector>
+
+// Checks an engine transcript. Spec lines:
+//   # comment
+//   find <exact line>          next matching line at or after the cursor
+//   find-prefix <prefix>       next line that starts with the prefix
+//   forbid-next <substring>    substring that must not appear on lines skipped
+//                              by the following find / find-prefix
+// Lines the find walks past are otherwise unrestricted (search info varies).
+
+namespace {
+
+void fail(int& errors, const std::string& message) {
+    std::cerr << message << '\n';
+    ++errors;
+}
+
+} // namespace
+
+int main(int argc, char** argv) {
+    if (argc != 3) {
+        std::cerr << "usage: check_lines <engine-output> <spec>\n";
+        return 2;
+    }
+    std::ifstream output_file(argv[1]);
+    std::ifstream spec_file(argv[2]);
+    if (!output_file || !spec_file) {
+        std::cerr << "cannot open input\n";
+        return 2;
+    }
+    std::vector<std::string> lines;
+    for (std::string line; std::getline(output_file, line);) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        lines.push_back(std::move(line));
+    }
+
+    std::size_t cursor = 0;
+    std::vector<std::string> forbid;
+    int errors = 0;
+    int spec_line_no = 0;
+    for (std::string spec; std::getline(spec_file, spec);) {
+        ++spec_line_no;
+        if (!spec.empty() && spec.back() == '\r') spec.pop_back();
+        if (spec.empty() || spec[0] == '#') continue;
+        constexpr std::string_view find_prefix_key = "find-prefix ";
+        constexpr std::string_view find_key = "find ";
+        constexpr std::string_view forbid_key = "forbid-next ";
+        if (spec.rfind(forbid_key, 0) == 0) {
+            forbid.push_back(spec.substr(forbid_key.size()));
+            continue;
+        }
+        const bool prefix = spec.rfind(find_prefix_key, 0) == 0;
+        const bool exact = spec.rfind(find_key, 0) == 0;
+        if (!prefix && !exact) {
+            fail(errors, "bad spec line " + std::to_string(spec_line_no) + ": " + spec);
+            continue;
+        }
+        const std::string needle = prefix ? spec.substr(find_prefix_key.size()) : spec.substr(find_key.size());
+        bool found = false;
+        for (std::size_t i = cursor; i < lines.size(); ++i) {
+            const bool match = prefix ? lines[i].compare(0, needle.size(), needle) == 0 : lines[i] == needle;
+            if (!match) {
+                for (const std::string& text : forbid) {
+                    if (lines[i].find(text) != std::string::npos) {
+                        fail(errors, "forbidden '" + text + "' on output line " + std::to_string(i + 1) + ": " + lines[i]);
+                    }
+                }
+                continue;
+            }
+            cursor = i + 1;
+            found = true;
+            forbid.clear();
+            break;
+        }
+        if (!found) {
+            fail(errors, "missing '" + spec + "' (spec line " + std::to_string(spec_line_no) + ") after output line " +
+                             std::to_string(cursor));
+            forbid.clear();
+        }
+    }
+    if (!forbid.empty()) fail(errors, "forbid-next with no following find");
+    if (errors != 0) {
+        std::cerr << errors << " error(s)\n";
+        return 1;
+    }
+    std::cout << "ok " << lines.size() << " lines\n";
+    return 0;
+}
