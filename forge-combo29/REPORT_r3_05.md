@@ -44,7 +44,7 @@ Release run: passed. Sanitizer run (`-O1 -fsanitize=address,undefined -fno-sanit
 
 ## Not checked
 
-No games were played, and no strength is claimed. One start-position search to depth 8 with Threads 2 and the option on returned d2d4 and did not crash. The node-count pins and the 200 depth-10 searches were not repeated at Threads 2. Ponder, MultiPV, and clock time were not re-run with the option on. Suites outside this engine folder were not run. The clang driver here still cannot link.
+No strength is claimed. The follow-up section is a separate node-limited screen. One start-position search to depth 8 with Threads 2 and the option on returned d2d4 and did not crash. The node-count pins and the 200 depth-10 searches were not repeated at Threads 2. Ponder, MultiPV, and clock time were not re-run with the option on. Suites outside this engine folder were not run. The clang driver here still cannot link.
 
 option name HindsightDepth type check default false
 
@@ -64,4 +64,6 @@ Chunk 001, openings 1-400, 800 games, option on first: W-L-D 214-190-396. Elo 10
 
 Chunk 002, openings 401-800, 800 games, option on first: W-L-D 189-202-409. Elo -5.65, 95% +/- 15.63. LOS 23.93%. Pentanomial 20, 96, 180, 85, 19. The interval includes zero. Details: forge-combo29/tests_r3fu_05/chunk-002-summary.txt. PGN: forge-combo29/tests_r3fu_05/chunk-002.pgn.
 
-After 1600 games: W-L-D 403-392-805. Pentanomial 38, 186, 342, 195, 39. Elo 2.39, 95% +/- 11.18. LOS 66.23%. The interval includes zero.
+Chunk 003, openings 801-1200, 800 games, option on first: W-L-D 209-195-396. Elo 6.08, 95% +/- 14.89. LOS 78.84%. Pentanomial 10, 99, 175, 99, 17. The interval includes zero. Details: forge-combo29/tests_r3fu_05/chunk-003-summary.txt. PGN: forge-combo29/tests_r3fu_05/chunk-003.pgn.
+
+After 2400 games: W-L-D 612-587-1201. Pentanomial 48, 285, 517, 294, 56. Elo 3.62, 95% +/- 8.95. LOS 78.59%. The interval includes zero.
