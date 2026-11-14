@@ -126,6 +126,7 @@ int main() {
     forge::Board board;
     forge::Searcher searcher;
     int move_overhead_ms = 10;
+    int multipv = 1;
     bool ponder_enabled = false;
     forge::book::Book book;
     book.load_embedded();
@@ -164,6 +165,7 @@ int main() {
                          "id author OpenAI\n"
                          "option name Hash type spin default 32 min 1 max 2048\n"
                          "option name Threads type spin default 1 min 1 max 256\n"
+                         "option name MultiPV type spin default 1 min 1 max 8\n"
                          "option name Move Overhead type spin default 10 min 0 max 1000\n"
                          "option name Ponder type check default false\n"
                          "option name OwnBook type check default " << (forge::book::embedded_available() ? "true" : "false") << "\n"
@@ -267,6 +269,15 @@ int main() {
                     std::cout << "info string invalid value for option UseNNUE" << std::endl;
                 }
                 searcher.clear_hash();
+            } else if (name == "MultiPV") {
+                int value = 0;
+                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option MultiPV" << std::endl;
+                } else {
+                    multipv = std::clamp(value, 1, 8);
+                }
             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
                 int value = 0;
                 const auto parsed = std::from_chars(
@@ -319,6 +330,7 @@ int main() {
                 input.seekg(position);
                 forge::SearchLimits limits = parse_limits(input, board);
                 limits.move_overhead_ms = move_overhead_ms;
+                limits.multipv = multipv;
                 // Charge dispatch admission only to finite externally clocked searches.
                 if (!limits.infinite && !limits.ponder &&
                     (limits.time_ms >= 0 || limits.movetime_ms >= 0)) limits.start_time = command_start;
