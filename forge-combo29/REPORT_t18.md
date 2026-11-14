@@ -4,7 +4,9 @@ The UCI loop survived every hand-written case and all 200000 generated lines. No
 
 ## What changed
 
-`main` was split so the existing command loop is `forge::uci_loop(std::istream&)`. The engine still calls it with `std::cin` and still writes to `std::cout`. A test can pass another stream and run the same reader. The fuzz found nothing to fix, so the loop body is the lock's loop.
+The command loop can be called as `forge::uci_loop(std::istream&)` only when `FORGE_UCI_TEST_LOOP` is 1. That switch defaults to 0. The default build keeps the lock's `int main()` and `std::getline(std::cin, line)` on the `#else` side, and still writes to `std::cout`. The fuzz driver compiles `uci.cpp` with the switch on and passes another stream into the same loop. The fuzz found nothing to fix, so the loop body is the lock's loop.
+
+`windows_build/SOURCE_INPUTS.sha256` is the frozen lock manifest and was not rewritten. This branch's `src/uci.cpp` no longer matches that hash, because of the default-off `if`s. The default compilation unit is still `main` reading stdin.
 
 ## What was found
 
@@ -30,7 +32,7 @@ Seed `361192554478` (`0x5418C0FFEE`). Part B lines: 200000. Generator: SplitMix6
 ## Files
 
 - `forge-combo29/include/forge/uci.hpp` (new)
-- `forge-combo29/src/uci.cpp` (loop entry point only; +13 / -2)
+- `forge-combo29/src/uci.cpp` (default-off `FORGE_UCI_TEST_LOOP`; lock `main` stays on the `#else` side)
 - `forge-combo29/tests_t18/uci_fuzz.cpp` (new)
 - `forge-combo29/REPORT_t18.md` (this file)
 
@@ -107,7 +109,42 @@ nodes 4865609
 
 `bench 11` = 312866, `bench 13` = 862329, `go perft 5` = 4865609.
 
-Sanitizer build. Same macros as the release CMake (`FORGE_PORTABLE` / `x86-64-v3`). Compiler diagnostics: none. Exit status 0. The objects below are what the 200000-line binary was linked from; `uci_fuzz.o` was rebuilt after the `% 4` fix and the engine objects were not rebuilt after that because `src/` did not change again.
+Same three counts after `FORGE_UCI_TEST_LOOP` was made default-off (the release binary does not define the switch):
+
+```
+cmake --build build -j && printf 'setoption name Threads value 1\nsetoption name Hash value 16\nsetoption name OwnBook value false\nbench 11\nbench 13\nposition startpos\ngo perft 5\nquit\n' | ./build/forge
+```
+
+```
+[ 11%] Building CXX object CMakeFiles/forge.dir/src/uci.cpp.o
+[ 22%] Linking CXX executable forge
+[100%] Built target forge
+info string bench depth 11 nodes 312866 time 155 nps 2018490
+info string bench depth 13 nodes 862329 time 413 nps 2087963
+a2a3: 181046
+b2b3: 215255
+c2c3: 222861
+d2d3: 328511
+e2e3: 402988
+f2f3: 178889
+g2g3: 217210
+h2h3: 181044
+a2a4: 217832
+b2b4: 216145
+c2c4: 240082
+d2d4: 361790
+e2e4: 405385
+f2f4: 198473
+g2g4: 214048
+h2h4: 218829
+b1a3: 198572
+b1c3: 234656
+g1f3: 233491
+g1h3: 198502
+nodes 4865609
+```
+
+First sanitizer link. Same macros as the release CMake (`FORGE_PORTABLE` / `x86-64-v3`). This command recompiled only the test and linked engine objects already sitting in `/tmp/t18obj`. It is not enough to rebuild from a clean tree. The complete compile is in the next section. Compiler diagnostics: none. Exit status 0.
 
 ```
 c++ -std=c++20 -O1 -g -fno-omit-frame-pointer \
@@ -185,6 +222,74 @@ part_b 170000
 part_b 180000
 part_b 190000
 part_b seed=361192554478 lines=200000 ok time_ms=222245
+SANITIZERS clean
+```
+
+Complete sanitizer build from this tree, after `FORGE_UCI_TEST_LOOP` was defaulted to 0. Every engine translation unit is compiled here. `uci.cpp` is the only one built with `-DFORGE_UCI_TEST_LOOP=1 -DFORGE_UCI_NO_MAIN`. The other units use the same flags as the release portable build. The compiler printed nothing. The shell then printed `LINK_OK` and the part-A result below. Exit status 0.
+
+```
+set -e
+mkdir -p /tmp/t18obj
+FLAGS=(-std=c++20 -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -fno-sanitize-recover=address,undefined -ffp-contract=off -fno-fast-math -march=x86-64-v3 -I forge-combo29/include -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -Wall -Wextra -Wno-unused-parameter)
+c++ "${FLAGS[@]}" -c forge-combo29/src/bitboard.cpp -o /tmp/t18obj/bitboard.o &
+c++ "${FLAGS[@]}" -c forge-combo29/src/board.cpp -o /tmp/t18obj/board.o &
+c++ "${FLAGS[@]}" -c forge-combo29/src/book.cpp -o /tmp/t18obj/book.o &
+c++ "${FLAGS[@]}" -c forge-combo29/src/eval.cpp -o /tmp/t18obj/eval.o &
+c++ "${FLAGS[@]}" -c forge-combo29/src/eval_params.cpp -o /tmp/t18obj/eval_params.o &
+c++ "${FLAGS[@]}" -c forge-combo29/src/nnue.cpp -o /tmp/t18obj/nnue.o &
+c++ "${FLAGS[@]}" -c forge-combo29/src/search.cpp -o /tmp/t18obj/search.o &
+c++ "${FLAGS[@]}" -DFORGE_UCI_TEST_LOOP=1 -DFORGE_UCI_NO_MAIN -c forge-combo29/src/uci.cpp -o /tmp/t18obj/uci.o &
+c++ "${FLAGS[@]}" -c forge-combo29/tests_t18/uci_fuzz.cpp -o /tmp/t18obj/uci_fuzz.o &
+wait
+c++ -fsanitize=address,undefined -fno-sanitize-recover=address,undefined -pthread \
+  /tmp/t18obj/bitboard.o /tmp/t18obj/board.o /tmp/t18obj/book.o /tmp/t18obj/eval.o \
+  /tmp/t18obj/eval_params.o /tmp/t18obj/nnue.o /tmp/t18obj/search.o /tmp/t18obj/uci.o \
+  /tmp/t18obj/uci_fuzz.o -o /tmp/uci_fuzz_t18
+echo LINK_OK
+ASAN_OPTIONS=halt_on_error=1:abort_on_error=1:detect_leaks=1 \
+UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1:print_stacktrace=1 \
+/tmp/uci_fuzz_t18 0
+```
+
+```
+LINK_OK
+seed=361192554478 generated_lines=0
+part_a hand_written=193
+part_a cases=193 ok time_ms=166
+part_b seed=361192554478 lines=0 ok time_ms=28
+SANITIZERS clean
+```
+
+Full part A and part B on that binary. Exit status 0. No sanitizer report.
+
+```
+ASAN_OPTIONS=halt_on_error=1:abort_on_error=1:detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1:print_stacktrace=1 /tmp/uci_fuzz_t18
+```
+
+```
+seed=361192554478 generated_lines=200000
+part_a hand_written=193
+part_a cases=193 ok time_ms=171
+part_b 10000
+part_b 20000
+part_b 30000
+part_b 40000
+part_b 50000
+part_b 60000
+part_b 70000
+part_b 80000
+part_b 90000
+part_b 100000
+part_b 110000
+part_b 120000
+part_b 130000
+part_b 140000
+part_b 150000
+part_b 160000
+part_b 170000
+part_b 180000
+part_b 190000
+part_b seed=361192554478 lines=200000 ok time_ms=216664
 SANITIZERS clean
 ```
 

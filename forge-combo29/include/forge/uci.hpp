@@ -4,8 +4,8 @@
 
 namespace forge {
 
-// Reads UCI commands from `in` until EOF or `quit`. `main` passes `std::cin`.
-// Output stays on `std::cout`. Behaviour matches the engine's stdin loop.
+// Compiled only when FORGE_UCI_TEST_LOOP is 1 (default 0). The lock build keeps
+// main() reading std::cin. Tests pass another stream; output stays on std::cout.
 int uci_loop(std::istream& in);
 
 }  // namespace forge

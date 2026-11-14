@@ -2,8 +2,16 @@
 #include "forge/book.hpp"
 #include "forge/nnue.hpp"
 #include "forge/search.hpp"
-#include "forge/uci.hpp"
 #include "forge/uci_output.hpp"
+
+// Default 0: the lock's main() reads stdin. The fuzz driver sets this to 1 so
+// the same loop can take another stream. Lock code is the #else branch.
+#ifndef FORGE_UCI_TEST_LOOP
+#define FORGE_UCI_TEST_LOOP 0
+#endif
+#if FORGE_UCI_TEST_LOOP
+#include "forge/uci.hpp"
+#endif
 
 #include <algorithm>
 #include <array>
@@ -123,9 +131,13 @@ int game_ply(const forge::Board& board) {
 
 } // namespace
 
+#if FORGE_UCI_TEST_LOOP
 namespace forge {
 
 int uci_loop(std::istream& in) {
+#else
+int main() {
+#endif
     forge::Board board;
     forge::Searcher searcher;
     int move_overhead_ms = 10;
@@ -156,7 +168,11 @@ int uci_loop(std::istream& in) {
     };
 
     std::string line;
+#if FORGE_UCI_TEST_LOOP
     while (std::getline(in, line)) {
+#else
+    while (std::getline(std::cin, line)) {
+#endif
         const auto command_start = std::chrono::steady_clock::now();
         std::istringstream input(line);
         std::string command;
@@ -431,11 +447,12 @@ int uci_loop(std::istream& in) {
     stop_search();
     return 0;
 }
-
+#if FORGE_UCI_TEST_LOOP
 }  // namespace forge
 
 #ifndef FORGE_UCI_NO_MAIN
 int main() {
     return forge::uci_loop(std::cin);
 }
+#endif
 #endif
