@@ -2,7 +2,7 @@
 
 **The user's under-80 equality check failed and remains failed.** The root halfmove clock is 76. The merged engine searches 31,749 nodes and the unchanged lock searches 32,435 nodes at depth 9. Both return `b5c4`, score `cp -1689`, and the same PV. Identifying the requested t23 change responsible for the difference does not change the expected equality criterion or turn this comparison into a pass.
 
-The failure is caused by the t23 rule-50 transposition-table gates introduced in commit `affb2cb97302870751ea727a96a533c5d5baa5aa`, present in requested merge input `91103a012c8f77f528606935dcff7184123617eb`. Descendants reach halfmove clock 90 even though the root clock is below 80. The scratch-only counterfactual that restores the three previous TT behaviors reproduces the lock's exact node count while retaining every other merged production change. No production source, option, compile switch, branch or expected result was changed for this investigation.
+The original index-3228 failure is caused by the t23 rule-50 transposition-table gates introduced in commit `affb2cb97302870751ea727a96a533c5d5baa5aa`, present in requested merge input `91103a012c8f77f528606935dcff7184123617eb`. Descendants reach halfmove clock 90 even though the root clock is below 80. For that original case, the scratch-only counterfactual that restores the three previous TT behaviors reproduces the lock's exact node count while retaining every other merged production change. Later case-specific extensions below distinguish where restoring only those TT behaviors is sufficient and where it is not. No production source, option, compile switch, branch or expected result was changed for this investigation.
 
 ## Reproducer and observed results
 
@@ -115,3 +115,56 @@ For **every case**, mask 0 matches all production-merged per-depth `info` fields
 The two score differences are reproduced observations, not proof that either score is correct or that one build is stronger. The requested equality criterion is unchanged: the original index 3228 and these five additional cases all fail it. No production repair or compile switch was introduced.
 
 The [exact command and run transcript](search_equality_evidence/C3-run-transcript.txt), [machine-readable case summary](search_equality_evidence/C3-ablation-summary.json.txt), and [input index and unchanged binary/source hashes](search_equality_evidence/C3-new-failure-index.txt) retain the comparison details. Each run's stdin/stdout/stderr is saved under `C3-<index>-<variant>.*.txt`. The five complete original pending-fault files are retained as `C3-original-<index>-pending.txt` in the same evidence directory.
+
+## Extension: C-0004 index 14002, fault 090
+
+**Fault 090 remains a required under-80 equality failure, with score, node-count and PV differences.** Its root is:
+
+```text
+8/6b1/6k1/B7/7K/4q3/8/8 w - - 79 145
+```
+
+The original initial pair and ten additional fresh pairs reproduce the same compared results. The existing five diagnostic/control variants were then run once each, sequentially on CPU 4, under a 40-second outer timeout, with no rebuild. Conditions remain fresh process/hash, depth 9, Threads 1, Hash 16, OwnBook false, UseNNUE true and all three new options false. All five processes exited 0 with empty stderr. These five searches are diagnostic observations outside the primary C corpus totals.
+
+| Variant | Best move | Score | Nodes | Comparison |
+| --- | --- | --- | ---: | --- |
+| Production lock | `a5c7` | `cp -1214` | 36,360 | Original lock result reproduced |
+| Production merged | `a5c7` | `cp -1178` | 26,217 | Original merged result reproduced |
+| Scratch mask 0 | `a5c7` | `cp -1178` | 26,217 | Matches merged at every depth, excluding time/NPS |
+| Scratch mask 7: restore three TT behaviors only | `a5c7` | `cp -1204` | 207,059 | **Matches neither production result**; its PV also differs from both |
+| Scratch mask 63: restore all six rule-50 families | `a5c7` | `cp -1214` | 36,360 | Matches lock at every depth, excluding time/NPS |
+
+This case limits the earlier TT-only conclusion. Restoring the three TT behaviors is **not sufficient** for index 14002. Restoring all six t23 rule-50 families is sufficient to reproduce the lock's move, score, bound, nodes, depth and PV, and all normalized per-depth `info` fields. The difference between masks 7 and 63 shows that one or more of the additional early-pruning, shallow-pruning and LMR clock guards affects the counterfactual search when the TT behaviors are restored. Those guards are at merged `src/search.cpp:1268`, `:1393` and `:1480`. Their individual contributions and the first internal divergence were not isolated for this root; no additional variants or per-node traces were run. The node counts do not support a speed conclusion, and the different scores do not establish which evaluation is correct.
+
+Evidence: [exact command and five-run output](search_equality_evidence/C4-run-transcript.txt), [machine-readable comparison](search_equality_evidence/C4-ablation-summary.json.txt), [original eleven-pair record](search_equality_evidence/C4-original-14002-pending.txt), and [unchanged source/binary hashes](search_equality_evidence/C4-fault090-index.txt). Raw stdin/stdout/stderr files use the `C4-14002-<variant>` prefix. This attribution does not alter the original expectation or convert fault 090 into a pass. Production remains unchanged.
+
+
+## Extension: C-0007 index 25354, fault 091
+
+**Fault 091 remains a required under-80 equality failure.** Its root is:
+
+```text
+8/r7/1k4n1/5p2/2K5/7n/8/8 w - - 72 141
+```
+
+The initial pair and ten additional fresh pairs have identical compared results: both builds choose `c4d4`, score `cp -1812`, with the same PV, but merged searches 29,687 nodes and lock searches 29,685 nodes. One additional fresh process for each production build and each scratch mask reproduced the following results. These five processes ran sequentially on CPU 4, within a 40-second outer timeout, with no rebuild. They use the same fresh-process/hash, depth-9 options as the preceding extension. Every process exited 0 with empty stderr. These diagnostic searches are excluded from the primary C corpus totals.
+
+| Variant | Best move | Score | Nodes | Comparison |
+| --- | --- | --- | ---: | --- |
+| Production lock | `c4d4` | `cp -1812` | 29,685 | Original lock result reproduced |
+| Production merged | `c4d4` | `cp -1812` | 29,687 | Original merged result reproduced |
+| Scratch mask 0 | `c4d4` | `cp -1812` | 29,687 | Matches merged at every depth, excluding time/NPS |
+| Scratch mask 7 | `c4d4` | `cp -1812` | 29,685 | Matches lock at every depth, excluding time/NPS |
+| Scratch mask 63 | `c4d4` | `cp -1812` | 29,685 | Matches lock at every depth, excluding time/NPS |
+
+Restoring the three TT behaviors is sufficient for this case. The original root clock is 72; no per-node trace was collected for this extension, so the first internal divergence was not identified. This result does not show that the pruning guards are universally inactive or that the same internal path as index 3228 caused this difference.
+
+Evidence: [exact command and five-run output](search_equality_evidence/C7-run-transcript.txt), [machine-readable comparison](search_equality_evidence/C7-ablation-summary.json.txt), [original eleven-pair record](search_equality_evidence/C7-original-25354-pending.txt), and [unchanged source/binary hashes](search_equality_evidence/C7-fault091-index.txt). Raw stdin/stdout/stderr files use the `C7-25354-<variant>` prefix.
+
+## Scope across all eight required failures
+
+The eight investigated low-clock cases are indices 3228, 9834, 10567, 11000, 12276, 12999, 14002 and 25354. **All eight continue to fail the user's required equality criterion.** Each has differing production node counts; three also have differing scores (9834, 12999, 14002), and four have differing PVs (9834, 11000, 12999, 14002). The best move agrees in all eight observations. Each original fault record includes an initial fresh pair and ten reproducing additional pairs.
+
+For all eight roots, scratch mask 0 reproduces merged and mask 63 reproduces lock, comparing every per-depth `info` field after removing only time and NPS, plus the final best move. Restoring only the three TT behaviors (mask 7) is sufficient for seven roots. It is **not sufficient for index 14002 / fault 090**: that counterfactual returns `cp -1204` and 207,059 nodes, distinct from both production results. Restoring all six rule-50 behavior families is sufficient there, but the minimum additional pruning change needed was not isolated. Sufficiency of the combined mask does not establish that all six families are individually necessary.
+
+These counterfactuals attribute the measured differences to the requested t23 rule-50 changes in the tested merged context. They do not establish which score is correct, an illegal move, a false mate bound, a speed or strength change, or equivalence for other positions. Only the original index-3228 case has internal search-entry tracing. All added control and counterfactual searches remain outside the primary 100,000-comparison totals. No production repair, option change, compile switch, branch mutation or expected-result adjustment was made.

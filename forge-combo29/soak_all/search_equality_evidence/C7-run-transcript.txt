@@ -1,0 +1,70 @@
++ node -e 'const fs=require("fs"),from="/workspace/work/all-run/C-3228-review/C4-run-command.txt",to="/workspace/work/all-run/C-3228-review/C7-run-command.txt";const text=fs.readFileSync(from,"utf8").replaceAll("C4-","C7-").replaceAll("C4 input","C7 input").replaceAll("C-0004","C-0007").replaceAll("14002","25354").replaceAll("8/6b1/6k1/B7/7K/4q3/8/8 w - - 79 145","8/r7/1k4n1/5p2/2K5/7n/8/8 w - - 72 141");fs.writeFileSync(to,text,{flag:"wx"});'
++ cat /workspace/work/all-run/C-3228-review/C7-run-command.txt
+taskset -c 4 timeout 40 node <<'NODE'
+const fs=require('fs'),path=require('path'),{spawn}=require('child_process');
+const dir='/workspace/work/all-run/C-3228-review',input='/workspace/work/all-run/compare-batches/C-0007';
+const signature=r=>({bestmove:r.bestmove,score_kind:r.score_kind,score:r.score,bound:r.bound,nodes:r.nodes,depth:r.depth,pv:r.pv});
+const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+const normalize=s=>s.split('\n').filter(l=>l.startsWith('info depth ')).map(l=>l.replace(/ nps \d+/,'').replace(/ time \d+/,'')).join('\n');
+const cases=fs.readdirSync(input).filter(f=>f.includes('pending')).map(file=>{
+ const text=fs.readFileSync(path.join(input,file),'utf8');
+ const root=JSON.parse(/^CASE (.+)$/m.exec(text)[1]);
+ const attempts=[...text.matchAll(/^ATTEMPT (\d+) (.+)$/gm)].map(m=>JSON.parse(m[2]));
+ if(attempts.length!==11||attempts.some(a=>!a.complete||!a.different||!same(signature(a.merged.result),signature(attempts[0].merged.result))||!same(signature(a.lock.result),signature(attempts[0].lock.result))))throw Error('original reproduction mismatch '+file);
+ return {file,root,expected:{merged:signature(attempts[0].merged.result),lock:signature(attempts[0].lock.result)}};
+}).sort((a,b)=>a.root.index-b.root.index);
+if(cases.length!==1||cases[0].root.index!==25354||cases[0].root.fen!=="8/r7/1k4n1/5p2/2K5/7n/8/8 w - - 72 141")throw Error("unexpected C7 input");
+async function run(test,label,exe,mask){
+ const name='C7-'+test.root.index+'-'+label;
+ let stdout='',stderr='',commands='',pending='',waiters=[],closed=false,status;
+ const env={...process.env};delete env.C3228_TRACE;if(mask===undefined)delete env.C3228_MASK;else env.C3228_MASK=String(mask);
+ const child=spawn(exe,[],{env,stdio:['pipe','pipe','pipe']});
+ const exited=new Promise(resolve=>child.on('close',(code,signal)=>{closed=true;status={code,signal};for(const w of waiters)w.reject(Error('engine closed while waiting'));waiters=[];resolve(status);}));
+ child.stdout.on('data',data=>{stdout+=data;pending+=data;let n;while((n=pending.indexOf('\n'))>=0){const line=pending.slice(0,n);pending=pending.slice(n+1);for(const w of [...waiters])if(w.test(line)){waiters.splice(waiters.indexOf(w),1);w.resolve(line);}}});
+ child.stderr.on('data',data=>stderr+=data);
+ const wait=test=>new Promise((resolve,reject)=>{if(closed)return reject(Error('closed'));waiters.push({test,resolve,reject});});
+ const send=s=>{commands+=s+'\n';child.stdin.write(s+'\n');};
+ const timer=setTimeout(()=>child.kill('SIGKILL'),10000);
+ try{
+  let ack=wait(s=>s==='uciok');send('uci');await ack;
+  for(const s of ['setoption name Threads value 1','setoption name Hash value 16','setoption name OwnBook value false','ucinewgame'])send(s);
+  ack=wait(s=>s==='readyok');send('isready');await ack;
+  send('position fen '+test.root.fen);ack=wait(s=>s.startsWith('bestmove '));send('go depth '+test.root.depth);const bestmove=await ack;send('quit');await exited;
+  const final=stdout.trim().split('\n').filter(s=>s.startsWith('info depth '+test.root.depth+' ')).at(-1);
+  if(!final)throw Error('missing final info');
+  const score=/ score (cp|mate) (-?\d+)(?: (lowerbound|upperbound))?/.exec(final);
+  const result={bestmove:bestmove.split(' ')[1],score_kind:score[1],score:+score[2],bound:score[3]||'',nodes:+/ nodes (\d+)/.exec(final)[1],depth:+/info depth (\d+)/.exec(final)[1],pv:final.includes(' pv ')?final.split(' pv ')[1].split(' '):[]};
+  console.log(JSON.stringify({name,exe,mask,fen:test.root.fen,result,...status,stderrBytes:Buffer.byteLength(stderr)}));
+  if(status.code!==0||status.signal||stderr)throw Error('engine failure or unexpected stderr '+name);
+  return {result,stdout};
+ }finally{
+  clearTimeout(timer);
+  if(!closed){child.kill('SIGKILL');await exited;}
+  fs.writeFileSync(dir+'/'+name+'.stdin.txt',commands);fs.writeFileSync(dir+'/'+name+'.stdout.txt',stdout);fs.writeFileSync(dir+'/'+name+'.stderr.txt',stderr);
+ }
+}
+(async()=>{
+ const summary=[];
+ for(const test of cases){
+  const locked=await run(test,'production-lock','/workspace/work/soak-run/build-lock-rel/forge');
+  const merged=await run(test,'production-merged','/workspace/work/all-run/builds/release/forge');
+  if(!same(locked.result,test.expected.lock)||!same(merged.result,test.expected.merged))throw Error('fresh production differs from original evidence');
+  const variants={};
+  for(const mask of [0,7,63]){
+   const variant=await run(test,'mask-'+mask,dir+'/forge-diag',mask);
+   variants[mask]={...variant.result,matches_lock:same(variant.result,locked.result),matches_merged:same(variant.result,merged.result),all_info_matches_lock:normalize(variant.stdout)===normalize(locked.stdout),all_info_matches_merged:normalize(variant.stdout)===normalize(merged.stdout)};
+  }
+  if(!variants[0].all_info_matches_merged)throw Error('diagnostic semantics differ with mask0');
+  const record={index:test.root.index,fen:test.root.fen,halfmove:test.root.halfmove,required_equality:test.root.required_equality,original_fresh_pairs:11,lock:locked.result,merged:merged.result,variants};
+  summary.push(record);console.log('CASE_SUMMARY '+JSON.stringify(record));
+ }
+ fs.writeFileSync(dir+'/C7-ablation-summary.json.txt',JSON.stringify(summary,null,2)+'\n');
+})().catch(e=>{console.error(e);process.exitCode=1;});
+NODE
++ bash /workspace/work/all-run/C-3228-review/C7-run-command.txt
+{"name":"C7-25354-production-lock","exe":"/workspace/work/soak-run/build-lock-rel/forge","fen":"8/r7/1k4n1/5p2/2K5/7n/8/8 w - - 72 141","result":{"bestmove":"c4d4","score_kind":"cp","score":-1812,"bound":"","nodes":29685,"depth":9,"pv":["c4d4","a7a4","d4c3","h3f4","c3b3","b6b5","b3c3","f4d5","c3d3","g6e5","d3e2","f5f4","e2f2"]},"code":0,"signal":null,"stderrBytes":0}
+{"name":"C7-25354-production-merged","exe":"/workspace/work/all-run/builds/release/forge","fen":"8/r7/1k4n1/5p2/2K5/7n/8/8 w - - 72 141","result":{"bestmove":"c4d4","score_kind":"cp","score":-1812,"bound":"","nodes":29687,"depth":9,"pv":["c4d4","a7a4","d4c3","h3f4","c3b3","b6b5","b3c3","f4d5","c3d3","g6e5","d3e2","f5f4","e2f2"]},"code":0,"signal":null,"stderrBytes":0}
+{"name":"C7-25354-mask-0","exe":"/workspace/work/all-run/C-3228-review/forge-diag","mask":0,"fen":"8/r7/1k4n1/5p2/2K5/7n/8/8 w - - 72 141","result":{"bestmove":"c4d4","score_kind":"cp","score":-1812,"bound":"","nodes":29687,"depth":9,"pv":["c4d4","a7a4","d4c3","h3f4","c3b3","b6b5","b3c3","f4d5","c3d3","g6e5","d3e2","f5f4","e2f2"]},"code":0,"signal":null,"stderrBytes":0}
+{"name":"C7-25354-mask-7","exe":"/workspace/work/all-run/C-3228-review/forge-diag","mask":7,"fen":"8/r7/1k4n1/5p2/2K5/7n/8/8 w - - 72 141","result":{"bestmove":"c4d4","score_kind":"cp","score":-1812,"bound":"","nodes":29685,"depth":9,"pv":["c4d4","a7a4","d4c3","h3f4","c3b3","b6b5","b3c3","f4d5","c3d3","g6e5","d3e2","f5f4","e2f2"]},"code":0,"signal":null,"stderrBytes":0}
+{"name":"C7-25354-mask-63","exe":"/workspace/work/all-run/C-3228-review/forge-diag","mask":63,"fen":"8/r7/1k4n1/5p2/2K5/7n/8/8 w - - 72 141","result":{"bestmove":"c4d4","score_kind":"cp","score":-1812,"bound":"","nodes":29685,"depth":9,"pv":["c4d4","a7a4","d4c3","h3f4","c3b3","b6b5","b3c3","f4d5","c3d3","g6e5","d3e2","f5f4","e2f2"]},"code":0,"signal":null,"stderrBytes":0}
+CASE_SUMMARY {"index":25354,"fen":"8/r7/1k4n1/5p2/2K5/7n/8/8 w - - 72 141","halfmove":72,"required_equality":true,"original_fresh_pairs":11,"lock":{"bestmove":"c4d4","score_kind":"cp","score":-1812,"bound":"","nodes":29685,"depth":9,"pv":["c4d4","a7a4","d4c3","h3f4","c3b3","b6b5","b3c3","f4d5","c3d3","g6e5","d3e2","f5f4","e2f2"]},"merged":{"bestmove":"c4d4","score_kind":"cp","score":-1812,"bound":"","nodes":29687,"depth":9,"pv":["c4d4","a7a4","d4c3","h3f4","c3b3","b6b5","b3c3","f4d5","c3d3","g6e5","d3e2","f5f4","e2f2"]},"variants":{"0":{"bestmove":"c4d4","score_kind":"cp","score":-1812,"bound":"","nodes":29687,"depth":9,"pv":["c4d4","a7a4","d4c3","h3f4","c3b3","b6b5","b3c3","f4d5","c3d3","g6e5","d3e2","f5f4","e2f2"],"matches_lock":false,"matches_merged":true,"all_info_matches_lock":false,"all_info_matches_merged":true},"7":{"bestmove":"c4d4","score_kind":"cp","score":-1812,"bound":"","nodes":29685,"depth":9,"pv":["c4d4","a7a4","d4c3","h3f4","c3b3","b6b5","b3c3","f4d5","c3d3","g6e5","d3e2","f5f4","e2f2"],"matches_lock":true,"matches_merged":false,"all_info_matches_lock":true,"all_info_matches_merged":false},"63":{"bestmove":"c4d4","score_kind":"cp","score":-1812,"bound":"","nodes":29685,"depth":9,"pv":["c4d4","a7a4","d4c3","h3f4","c3b3","b6b5","b3c3","f4d5","c3d3","g6e5","d3e2","f5f4","e2f2"],"matches_lock":true,"matches_merged":false,"all_info_matches_lock":true,"all_info_matches_merged":false}}}

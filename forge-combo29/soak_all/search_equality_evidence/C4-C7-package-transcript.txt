@@ -1,0 +1,68 @@
+set -euxo pipefail
+node <<'NODE'
+const fs=require('fs'), crypto=require('crypto'), path=require('path');
+const scratch='/workspace/work/all-run/C-3228-review';
+const root='/workspace/work/dwqww-all/forge-combo29/soak_all';
+const dest=path.join(root,'search_equality_evidence');
+const report=path.join(root,'search_equality_investigation.md');
+const addition=`
+
+## Extension: C-0007 index 25354, fault 091
+
+**Fault 091 remains a required under-80 equality failure.** Its root is:
+
+\`\`\`text
+8/r7/1k4n1/5p2/2K5/7n/8/8 w - - 72 141
+\`\`\`
+
+The initial pair and ten additional fresh pairs have identical compared results: both builds choose \`c4d4\`, score \`cp -1812\`, with the same PV, but merged searches 29,687 nodes and lock searches 29,685 nodes. One additional fresh process for each production build and each scratch mask reproduced the following results. These five processes ran sequentially on CPU 4, within a 40-second outer timeout, with no rebuild. They use the same fresh-process/hash, depth-9 options as the preceding extension. Every process exited 0 with empty stderr. These diagnostic searches are excluded from the primary C corpus totals.
+
+| Variant | Best move | Score | Nodes | Comparison |
+| --- | --- | --- | ---: | --- |
+| Production lock | \`c4d4\` | \`cp -1812\` | 29,685 | Original lock result reproduced |
+| Production merged | \`c4d4\` | \`cp -1812\` | 29,687 | Original merged result reproduced |
+| Scratch mask 0 | \`c4d4\` | \`cp -1812\` | 29,687 | Matches merged at every depth, excluding time/NPS |
+| Scratch mask 7 | \`c4d4\` | \`cp -1812\` | 29,685 | Matches lock at every depth, excluding time/NPS |
+| Scratch mask 63 | \`c4d4\` | \`cp -1812\` | 29,685 | Matches lock at every depth, excluding time/NPS |
+
+Restoring the three TT behaviors is sufficient for this case. The original root clock is 72; no per-node trace was collected for this extension, so the first internal divergence was not identified. This result does not show that the pruning guards are universally inactive or that the same internal path as index 3228 caused this difference.
+
+Evidence: [exact command and five-run output](search_equality_evidence/C7-run-transcript.txt), [machine-readable comparison](search_equality_evidence/C7-ablation-summary.json.txt), [original eleven-pair record](search_equality_evidence/C7-original-25354-pending.txt), and [unchanged source/binary hashes](search_equality_evidence/C7-fault091-index.txt). Raw stdin/stdout/stderr files use the \`C7-25354-<variant>\` prefix.
+
+## Scope across all eight required failures
+
+The eight investigated low-clock cases are indices 3228, 9834, 10567, 11000, 12276, 12999, 14002 and 25354. **All eight continue to fail the user's required equality criterion.** Each has differing production node counts; three also have differing scores (9834, 12999, 14002), and four have differing PVs (9834, 11000, 12999, 14002). The best move agrees in all eight observations. Each original fault record includes an initial fresh pair and ten reproducing additional pairs.
+
+For all eight roots, scratch mask 0 reproduces merged and mask 63 reproduces lock, comparing every per-depth \`info\` field after removing only time and NPS, plus the final best move. Restoring only the three TT behaviors (mask 7) is sufficient for seven roots. It is **not sufficient for index 14002 / fault 090**: that counterfactual returns \`cp -1204\` and 207,059 nodes, distinct from both production results. Restoring all six rule-50 behavior families is sufficient there, but the minimum additional pruning change needed was not isolated. Sufficiency of the combined mask does not establish that all six families are individually necessary.
+
+These counterfactuals attribute the measured differences to the requested t23 rule-50 changes in the tested merged context. They do not establish which score is correct, an illegal move, a false mate bound, a speed or strength change, or equivalence for other positions. Only the original index-3228 case has internal search-entry tracing. All added control and counterfactual searches remain outside the primary 100,000-comparison totals. No production repair, option change, compile switch, branch mutation or expected-result adjustment was made.
+`;
+if(fs.readFileSync(report,'utf8').includes('## Extension: C-0007 index 25354'))throw Error('C7 report section already exists');
+fs.appendFileSync(report,addition);
+const entries=fs.readdirSync(scratch).filter(n=>(n.startsWith('C4-')||n.startsWith('C7-'))&&n.endsWith('.txt')).sort().map(n=>[path.join(scratch,n),n]);
+entries.push(['/workspace/work/all-run/compare-batches/C-0004/worker-3.jsonl.pending-14002.txt','C4-original-14002-pending.txt']);
+entries.push(['/workspace/work/all-run/compare-batches/C-0007/worker-1.jsonl.pending-25354.txt','C7-original-25354-pending.txt']);
+const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
+let lines=[];
+for(const [source,name] of entries){const bytes=fs.readFileSync(source);if(bytes.includes(0))throw Error('NUL in '+source);fs.copyFileSync(source,path.join(dest,name),fs.constants.COPYFILE_EXCL);fs.chmodSync(path.join(dest,name),0o644);if(!fs.readFileSync(path.join(dest,name)).equals(bytes))throw Error('Copy mismatch '+name);lines.push(hash(bytes)+'  '+bytes.length+'  '+name);}
+const manifest=path.join(dest,'manifest.txt');
+fs.appendFileSync(manifest,lines.join('\n')+'\n');
+let verified=0;
+for(const line of fs.readFileSync(manifest,'utf8').trim().split('\n')){const m=line.match(/^([a-f0-9]{64})\s+(\d+)\s+(.+)$/);if(!m)throw Error('Bad manifest line '+line);const b=fs.readFileSync(path.join(dest,m[3]));if(hash(b)!==m[1]||b.length!==+m[2])throw Error('Manifest mismatch '+m[3]);verified++;}
+const reportText=fs.readFileSync(report,'utf8');let links=0;
+for(const m of reportText.matchAll(/\]\((search_equality_evidence\/[^)]+)\)/g)){if(!fs.existsSync(path.join(root,m[1])))throw Error('Missing link '+m[1]);links++;}
+console.log(JSON.stringify({copiedFiles:entries.length,verifiedManifestEntries:verified,verifiedReportLinks:links,reportSha256:hash(fs.readFileSync(report)),reportBytes:fs.statSync(report).size}));
+for(const prefix of ['C4','C7']){const data=JSON.parse(fs.readFileSync(path.join(dest,prefix+'-ablation-summary.json.txt'),'utf8'))[0];console.log(JSON.stringify({prefix,index:data.index,lock:data.lock.nodes,merged:data.merged.nodes,mask0MatchesMerged:data.variants['0'].all_info_matches_merged,mask7MatchesLock:data.variants['7'].all_info_matches_lock,mask63MatchesLock:data.variants['63'].all_info_matches_lock}));}
+NODE
+git -C /workspace/work/dwqww-all diff --name-only -- forge-combo29/src forge-combo29/include
+sha256sum /workspace/work/dwqww-all/forge-combo29/src/search.cpp /workspace/work/soak-run/build-lock-rel/forge /workspace/work/all-run/builds/release/forge /workspace/work/all-run/C-3228-review/forge-diag
++ node
+{"copiedFiles":41,"verifiedManifestEntries":186,"verifiedReportLinks":22,"reportSha256":"5a17d70bca18ce645b05c3d64fcfe9275cea2f2f3ccf13d1891290989d97b76c","reportBytes":19311}
+{"prefix":"C4","index":14002,"lock":36360,"merged":26217,"mask0MatchesMerged":true,"mask7MatchesLock":false,"mask63MatchesLock":true}
+{"prefix":"C7","index":25354,"lock":29685,"merged":29687,"mask0MatchesMerged":true,"mask7MatchesLock":true,"mask63MatchesLock":true}
++ git -C /workspace/work/dwqww-all diff --name-only -- forge-combo29/src forge-combo29/include
++ sha256sum /workspace/work/dwqww-all/forge-combo29/src/search.cpp /workspace/work/soak-run/build-lock-rel/forge /workspace/work/all-run/builds/release/forge /workspace/work/all-run/C-3228-review/forge-diag
+2b14b62cd675b047478e70b738932ce4c2c699239b3c0de4ec43551464dc8819  /workspace/work/dwqww-all/forge-combo29/src/search.cpp
+1371770e2ad61aa2fe3c038acc7da3912da5d64c9cb1dcc5e4668221fb3226f6  /workspace/work/soak-run/build-lock-rel/forge
+e2788a101d11acfca637b14471e2b067ae11e551500cfb0656019a193ec2cb3e  /workspace/work/all-run/builds/release/forge
+5a27423eac709a21689a1c98e0602da181d328b34f38f8d32678e57ac46c6837  /workspace/work/all-run/C-3228-review/forge-diag
