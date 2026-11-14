@@ -108,3 +108,5 @@ Chunk 5 finished 500 games (openings 1001-1250, both colors) in 20 minutes 20 se
 Chunk 6 finished 500 games (openings 1251-1500, both colors) in 18 minutes 50 seconds. PGN: `forge-combo29/tests_r3fu_14/screen/chunk006.pgn`. Value 8 first: W-L-D 132-125-243, Elo 4.86 ± 21.86 (95%), LOS 66.88%, pentanomial 10, 54, 115, 61, 10. Summary: `forge-combo29/tests_r3fu_14/screen/chunk006-summary.md`.
 
 Chunks 1-6 together, value 8 first: 3000 games, W-L-D 774-787-1439, Elo -1.51, 95% -8.78 to 5.76, LOS 34.24%, pentanomial 50, 329, 745, 336, 40. That combined interval is the paired normal approximation on the summed pentanomial, not a fastchess print.
+
+Chunk 7 was stopped unfinished. Snapshot of 352 games: `forge-combo29/tests_r3fu_14/screen/chunk007.pgn`. Value 8 first: W-L-D 88-91-173, Elo -2.96, 95% -23.43 to 17.49, LOS 38.82%, pentanomial 4, 41, 89, 38, 4. Summary: `forge-combo29/tests_r3fu_14/screen/chunk007-summary.md`. No further chunk was started.
