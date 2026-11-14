@@ -127,10 +127,19 @@ constexpr int HistoryMax = 16384;
     return score;
 }
 
+// score_to_tt() shifts a mate score by the ply where it was stored. Shifting it
+// back by the ply where it is read must stay inside the mate band. A value that
+// crosses MateInMaxPly is not a centipawn score, so this ply ignores the hit.
 [[nodiscard]] int score_from_tt(int score, int ply) {
     if (score == ValueNone) return ValueNone;
-    if (score >= MateInMaxPly) return score - ply;
-    if (score <= -MateInMaxPly) return score + ply;
+    if (score >= MateInMaxPly) {
+        const int adjusted = score - ply;
+        return adjusted >= MateInMaxPly ? adjusted : ValueNone;
+    }
+    if (score <= -MateInMaxPly) {
+        const int adjusted = score + ply;
+        return adjusted <= -MateInMaxPly ? adjusted : ValueNone;
+    }
     return score;
 }
 
