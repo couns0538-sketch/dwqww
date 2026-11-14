@@ -1,18 +1,15 @@
-# UHO chunk 1 snapshot
+# UHO chunk 1
 
-Still playing toward 500 games. This file matches the PGN committed with it: 324 finished games.
+Finished 2026-11-14T16:02:39Z. 500 games, 22 minutes 58 seconds. Value 8 is listed first.
 
-Value 8 is DrawJitter8. W-L-D is value 8 first.
+- W-L-D: 132-138-230
+- Elo: -4.17
+- Elo 95%: -4.17 ± 22.41 (fastchess)
+- LOS: 35.75% (fastchess)
+- Draw ratio: 46.00%
+- Pentanomial LL, LD, DD+WL, WD, WW: 9, 46, 141, 50, 4 (250 pairs, counted from the PGN)
 
-- W-L-D: 87-92-145
-- Games: 324
-- Score: 0.4923
-- Elo: -5.36
-- Elo 95%: -25.72 to 14.96
-- LOS: 30.25%
-- Pentanomial LL, LD, DD+WL, WD, WW: 6, 29, 93, 32, 2 (162 pairs)
-
-The interval is a paired normal approximation. Each opening is one pair. The pair score is 0, 0.5, 1, 1.5, or 2 for value 8. The game score is that pair score divided by 2. The 95% bounds are 1.96 standard errors of the game score, converted with the logistic Elo map. LOS is the normal probability that the true game score is above one half.
+fastchess printed the Elo, the ± interval, and LOS. The pentanomial is the pair count from the PGN: 0, 0.5, 1, 1.5, and 2 points for value 8 on each opening.
 
 ## Command
 
@@ -35,7 +32,7 @@ The interval is a paired normal approximation. Each opening is one pair. The pai
 
 - Engine `id name`: Chess Engine Forge 6.4.24 candidate
 - fastchess alpha 1.8.3, ubuntu-22.04 20261107-d7b47e8
-- Book: UHO_4060_v4.epd (official-stockfish/books), sequential from opening 1
+- Book: UHO_4060_v4.epd, sequential openings 1 through 250, both colors
 - Build: owner, Clang 18.1.3, `-O3 -march=x86-64-v4`, portable off, no extra `FORGE_*` flag
 - Both sides are that same binary. Hash 16, Threads 1, OwnBook false, nodes 50000
 
@@ -55,4 +52,4 @@ The interval is a paired normal approximation. Each opening is one pair. The pai
 | 8 | 857947 | 1893922 |
 | 0 | 862329 | 1878712 |
 
-These are node counts and a speed sample. They are not a strength claim.
+These figures describe the match and the bench. They are not a strength claim.

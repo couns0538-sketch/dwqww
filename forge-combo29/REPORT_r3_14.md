@@ -93,4 +93,4 @@ Binary sha256: `1e3ca575f62687793050f72e23a05fd30c800a7234ea5b5b1442704511583896
 
 The check is `forge-combo29/tests_r3fu_14/same_searcher_bench.cpp`. This is a node-count check, not a strength claim.
 
-UHO screen, same owner binary, nodes 50000, book `UHO_4060_v4.epd`. Chunk 1 is 250 openings, both colors. A snapshot of 324 games is in `forge-combo29/tests_r3fu_14/screen/chunk001.pgn`. Value 8 first: W-L-D 87-92-145, Elo -5.36, 95% -25.72 to 14.96, LOS 30.25%, pentanomial 6, 29, 93, 32, 2. Detail, command, versions, and sha256s are in `forge-combo29/tests_r3fu_14/screen/chunk001-summary.md`. The chunk was still running when that snapshot was taken.
+UHO screen, same owner binary, nodes 50000, book `UHO_4060_v4.epd`. Chunk 1 finished 500 games (openings 1-250, both colors) in 22 minutes 58 seconds. PGN: `forge-combo29/tests_r3fu_14/screen/chunk001.pgn`. Value 8 first: W-L-D 132-138-230, Elo -4.17 ± 22.41 (95%), LOS 35.75%, pentanomial 9, 46, 141, 50, 4. Command, versions, and sha256s: `forge-combo29/tests_r3fu_14/screen/chunk001-summary.md`.
