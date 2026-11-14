@@ -270,10 +270,16 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the 
 extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
 extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
 extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
 } // namespace tune
+
+// Side to move is the defender. True when the opponent has a legal capture of a
+// dearer piece by a cheaper piece and static exchange evaluation does not call
+// that capture a material loss. A capture SEE calls losing is not a threat.
+[[nodiscard]] bool null_see_veto_threat(Board& board);
 
 // Move-ordering statistics.
 using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;

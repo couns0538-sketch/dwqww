@@ -77,6 +77,7 @@ int FailLowContinuationBonus = 0;
 bool ContHist4PlyRead = false;
 bool NonPawnCorrection = false;
 bool LmrDeeperShallower = false;
+bool NullSeeVeto = false;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -869,6 +870,30 @@ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) 
     (ss + 1)->runtime_psqt.valid = false;
 }
 
+bool null_see_veto_threat(Board& board) {
+    // Same prices as SEE, except the king. SeePieceValue prices a king at 0
+    // because the exchange walk treats it as a sentinel, not as the cheapest piece.
+    constexpr int KingWorth = 100000;
+    auto worth = [](int type) {
+        return type == King ? KingWorth : SeePieceValue[static_cast<std::size_t>(type)];
+    };
+    NullUndo undo;
+    board.make_null_move(undo);
+    bool threat = false;
+    const MoveList moves = board.pseudo_legal_moves(true);
+    for (const Move& move : moves) {
+        if (!move.is_capture()) continue;
+        const int attacker = worth(piece_type(board.moved_piece(move)));
+        const int victim = worth(piece_type(board.captured_piece(move)));
+        if (attacker >= victim) continue;
+        if (!board.is_legal(move) || !board.see_ge(move, 0)) continue;
+        threat = true;
+        break;
+    }
+    board.unmake_null_move(undo);
+    return threat;
+}
+
 void Worker::record_null_move(SearchStack* ss) {
     (ss + 1)->dirty.count = 0;
     (ss + 1)->accumulator.valid = false;
@@ -1281,7 +1306,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
             board.has_non_pawn_material(board.side_to_move()) &&
-            !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
+            !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
+            !(tune::NullSeeVeto && null_see_veto_threat(board))) {
             ++null_tries_;
             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
