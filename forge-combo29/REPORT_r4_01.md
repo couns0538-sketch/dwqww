@@ -23,7 +23,7 @@ Frozen input commits
 22 b8d47952f21fec0185df8509d53a2bafd7373313 grok47/r3-22-time-safety
 01 c0aaf80df40213f867038d2280abbc954d8b9e98 grok47/r3-01-eval-rule-50-damp
 02 8fe3867a098b7df57d731a3e3581c1be51ea5c57 grok47/r3-02-threat-history
-03 1ecc1d33156d1833701b98586f9c17bd4f67da91 grok47/r3-03-lmr-signed-correction
+03 176aa9fc1edd53c15b37ab966dc1eb4457a43377 grok47/r3-03-lmr-signed-correction
 04 feccf387e16ac19233f77413a113134467b3f0f3 grok47/r3-04-lmr-late-parent-relief
 05 f9022e2b0fe573fdf1265b115ff9d48ce895273e grok47/r3-05-hindsight-depth
 06 55d714b10c4aa837cab381e2f8cd46e62cea1c48 grok47/r3-06-null-threat-verify
@@ -63,7 +63,7 @@ integrated binary with only that option changed.
 option                value  commit                                     expected   got
 EvalRule50Damp        true   c0aaf80df40213f867038d2280abbc954d8b9e98    1049205    1049205
 ThreatHistory         true   8fe3867a098b7df57d731a3e3581c1be51ea5c57    643389     643389
-LmrSignedCorrection   true   1ecc1d33156d1833701b98586f9c17bd4f67da91    862329     862329
+LmrSignedCorrection   true   176aa9fc1edd53c15b37ab966dc1eb4457a43377    862329     862329
 LmrLateParentRelief   true   feccf387e16ac19233f77413a113134467b3f0f3    818656     818656
 HindsightDepth        true   f9022e2b0fe573fdf1265b115ff9d48ce895273e    840387     840387
 NullThreatVerify      true   55d714b10c4aa837cab381e2f8cd46e62cea1c48    789456     789456
@@ -153,6 +153,7 @@ of those merges and matched the numbers above. Where a newer tip does not change
 src or include, the expected bench is the number already measured
 on that same engine source.
 
+Tip r3-03 176aa9fc1edd53c15b37ab966dc1eb4457a43377 merged with no source change; pins and the option table matched.
 Not verified. No `R3 FOLLOW-UP DONE` commit existed to merge.
 Playing strength was not measured. Address and thread sanitizers were
 not run on the integrated tree. The KRK threads-2 miss above was not
