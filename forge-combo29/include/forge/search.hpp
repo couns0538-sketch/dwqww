@@ -277,6 +277,7 @@ extern bool LmrLateParentRelief;     // one ply less reduction on the first few 
 extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
 extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
 extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();

@@ -85,6 +85,7 @@ bool LmrLateParentRelief = false;
 bool HindsightDepth = false;
 bool NullThreatVerify = false;
 bool NullSeeVeto = false;
+bool AspCappedReopen = false;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -1804,6 +1805,25 @@ namespace {
 // ---------------------------------------------------------------------------
 // Iterative deepening driver
 
+namespace {
+
+// One capped step past the score that failed. A mate, or a score already past
+// the decisive line, opens that side for the next root search.
+constexpr int AspReopenMargin = 13;
+constexpr int AspDecisiveScore = 640;
+
+[[nodiscard]] int capped_fail_low(int returned) {
+    if (is_mate_score(returned) || returned <= -AspDecisiveScore) return -Infinite;
+    return std::max(returned - AspReopenMargin, -Infinite);
+}
+
+[[nodiscard]] int capped_fail_high(int returned) {
+    if (is_mate_score(returned) || returned >= AspDecisiveScore) return Infinite;
+    return std::min(returned + AspReopenMargin, Infinite);
+}
+
+} // namespace
+
 SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
         ? limits.start_time : limits.request_start;
@@ -2005,9 +2025,19 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             if (aborted_) break;
             if (iteration_score <= alpha) {
                 beta = (alpha + beta) / 2;
-                alpha = std::max(iteration_score - delta, -Infinite);
+                if (tune::AspCappedReopen) {
+                    alpha = capped_fail_low(iteration_score);
+                    if (iteration_score <= alpha) break;
+                } else {
+                    alpha = std::max(iteration_score - delta, -Infinite);
+                }
             } else if (iteration_score >= beta) {
-                beta = std::min(iteration_score + delta, Infinite);
+                if (tune::AspCappedReopen) {
+                    beta = capped_fail_high(iteration_score);
+                    if (iteration_score >= beta) break;
+                } else {
+                    beta = std::min(iteration_score + delta, Infinite);
+                }
             } else {
                 break;
             }

@@ -204,7 +204,8 @@ int uci_loop(std::istream& in) {
                          "option name LmrLateParentRelief type check default false\n"
                          "option name HindsightDepth type check default false\n"
                          "option name NullThreatVerify type check default false\n"
-                         "option name NullSeeVeto type check default false\n";
+                         "option name NullSeeVeto type check default false\n"
+                         "option name AspCappedReopen type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them. Builds without this macro still accept them.
@@ -343,6 +344,12 @@ int uci_loop(std::istream& in) {
                 if (value_text == "true" || value_text == "false") {
                     forge::tune::EvalRule50Damp = value_text == "true";
                     searcher.clear_hash();
+                } else {
+                    note_invalid();
+                }
+            } else if (name == "AspCappedReopen") {
+                if (value_text == "true" || value_text == "false") {
+                    forge::tune::AspCappedReopen = value_text == "true";
                 } else {
                     note_invalid();
                 }
