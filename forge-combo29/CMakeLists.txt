@@ -17,26 +17,34 @@ set(FORGE_MARCH "x86-64-v4" CACHE STRING "value for -march (lock exe uses znver5
 # builds on CPUs without AVX-512/BMI2. Use -DFORGE_MARCH=x86-64-v3 or native with it.
 option(FORGE_PORTABLE "build without the PEXT/AVX-512 speed switches" OFF)
 
-file(GLOB FORGE_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
-add_executable(forge ${FORGE_SOURCES})
-target_include_directories(forge PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+file(GLOB FORGE_LIB_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+list(FILTER FORGE_LIB_SOURCES EXCLUDE REGEX "/uci\\.cpp$")
+add_library(forge_lib STATIC ${FORGE_LIB_SOURCES})
+add_executable(forge src/uci.cpp)
+add_executable(search_bounds_test tests/search_bounds_test.cpp)
 
-target_compile_definitions(forge PRIVATE
-  NDEBUG
-  FORGE_NNUE_HIDDEN=256
-  FORGE_EXPOSE_TUNABLES=1
-  FORGE_SPD_TT_NOTLS=1
-  FORGE_SPD_NO_ZERO_MOVELISTS=2
-  FORGE_SEARCH_SPEED2=1
-  FORGE_SPD_PREFETCH_EARLY=1)
-if(FORGE_PORTABLE)
-  target_compile_definitions(forge PRIVATE FORGE_SPD_SLIDER_PEXT=0 FORGE_SPD_NNUE_ZMM=0)
-else()
-  target_compile_definitions(forge PRIVATE FORGE_SPD_SLIDER_PEXT=1 FORGE_SPD_NNUE_ZMM=1)
-endif()
-
-# Strict floating-point operation order (required for bit-exact node counts).
-target_compile_options(forge PRIVATE -O3 -ffp-contract=off -fno-fast-math -march=${FORGE_MARCH})
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-target_link_libraries(forge PRIVATE Threads::Threads)
+
+foreach(target forge_lib forge search_bounds_test)
+  target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  target_compile_definitions(${target} PRIVATE
+    NDEBUG
+    FORGE_NNUE_HIDDEN=256
+    FORGE_EXPOSE_TUNABLES=1
+    FORGE_SPD_TT_NOTLS=1
+    FORGE_SPD_NO_ZERO_MOVELISTS=2
+    FORGE_SEARCH_SPEED2=1
+    FORGE_SPD_PREFETCH_EARLY=1)
+  if(FORGE_PORTABLE)
+    target_compile_definitions(${target} PRIVATE FORGE_SPD_SLIDER_PEXT=0 FORGE_SPD_NNUE_ZMM=0)
+  else()
+    target_compile_definitions(${target} PRIVATE FORGE_SPD_SLIDER_PEXT=1 FORGE_SPD_NNUE_ZMM=1)
+  endif()
+  # Strict floating-point operation order (required for bit-exact node counts).
+  target_compile_options(${target} PRIVATE -O3 -ffp-contract=off -fno-fast-math -march=${FORGE_MARCH})
+endforeach()
+
+target_link_libraries(forge_lib PUBLIC Threads::Threads)
+target_link_libraries(forge PRIVATE forge_lib)
+target_link_libraries(search_bounds_test PRIVATE forge_lib)

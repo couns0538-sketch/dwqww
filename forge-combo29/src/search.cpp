@@ -123,10 +123,27 @@ constexpr int HistoryMax = 16384;
     return score;
 }
 
-[[nodiscard]] int score_from_tt(int score, int ply) {
+// `score` is the stored, ply-adjusted value: a mate of distance D is MateValue - D,
+// a loss of distance D is -MateValue + D. Distance is in plies from the node.
+// A mate the 50-move rule will draw before it lands is not a usable bound.
+[[nodiscard]] int score_from_tt(int score, int ply, int halfmove) {
     if (score == ValueNone) return ValueNone;
-    if (score >= MateInMaxPly) return score - ply;
-    if (score <= -MateInMaxPly) return score + ply;
+    if (score >= MateInMaxPly) {
+        if (search_fixes().mate_horizon) {
+            const int distance = MateValue - score;
+            const int room = 100 - std::min(halfmove, 100);
+            if (distance < 0 || distance > room) return ValueNone;
+        }
+        return score - ply;
+    }
+    if (score <= -MateInMaxPly) {
+        if (search_fixes().mate_horizon) {
+            const int distance = MateValue + score;
+            const int room = 100 - std::min(halfmove, 100);
+            if (distance < 0 || distance > room) return ValueNone;
+        }
+        return score + ply;
+    }
     return score;
 }
 
@@ -202,6 +219,40 @@ std::string format_score(int score) {
 } // namespace
 
 void tune::refresh() { Reductions.refresh(); }
+
+SearchFixes& search_fixes() {
+    static SearchFixes fixes;
+    return fixes;
+}
+
+bool widen_aspiration(int& alpha, int& beta, int& delta, int score, bool& give_up) {
+    give_up = false;
+    if (score > alpha && score < beta) return false;
+    // Already the full range and the score is still outside it. Another pass
+    // would rebuild the same window (the old fail-high / fail-low update does
+    // not move a rail that integer division has already pinned).
+    if (alpha <= -Infinite && beta >= Infinite) {
+        give_up = true;
+        return false;
+    }
+    const int old_alpha = alpha;
+    const int old_beta = beta;
+    if (score <= alpha) {
+        beta = (alpha + beta) / 2;
+        alpha = std::max(score - delta, -Infinite);
+    } else {
+        const long long raised = static_cast<long long>(score) + static_cast<long long>(delta);
+        beta = static_cast<int>(std::min(raised, static_cast<long long>(Infinite)));
+    }
+    delta += delta / 2 + 4;
+    // Toward-zero division leaves [-Infinite, -Infinite + 1] unchanged, and a
+    // full-range fail-high cannot raise beta past Infinite. Open the window.
+    if (alpha >= beta || (alpha == old_alpha && beta == old_beta)) {
+        alpha = -Infinite;
+        beta = Infinite;
+    }
+    return true;
+}
 
 // ---------------------------------------------------------------------------
 // Transposition table
@@ -1263,14 +1314,29 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     const bool tt_hit = tt_probe.hit;
     const TTEntry& tte = tt_probe.entry;
     const Move tt_move = tt_hit ? tte.move : Move::none();
-    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
-                             ? score_from_tt(tte.score, ply) : ValueNone;
+    int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+                       ? score_from_tt(tte.score, ply, board.halfmove_clock()) : ValueNone;
+    const int tt_depth = tt_hit ? static_cast<int>(tte.depth) : -1;
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
     const bool tt_pv = pv_node || (tt_hit && tte.pv());
-    if (!pv_node && tt_hit && tt_score != ValueNone &&
+    const bool tt_cutoff = !pv_node && tt_hit && tt_score != ValueNone &&
         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
-         (tt_bound == BoundUpper && tt_score <= alpha))) {
-        return tt_score;
+         (tt_bound == BoundUpper && tt_score <= alpha));
+    if (tt_cutoff) {
+        // A depth-0 entry is a previous qsearch. Stand-pat is a lower bound, so
+        // an upper or exact score below the current stand-pat cannot be true
+        // (the static eval moved, usually via correction history). Dropping the
+        // score stops the stand-pat block below from copying it back into eval.
+        bool contradicted = false;
+        if (search_fixes().qsearch_shallow_bound && !in_check && tt_depth <= 0 &&
+            (tt_bound == BoundUpper || tt_bound == BoundExact)) {
+            if (tte.eval != ValueNone) ss->raw_eval = tte.eval;
+            else ss->raw_eval = static_evaluate(board, ss);
+            const int stand = ss->static_eval = corrected_eval(board, ss->raw_eval);
+            contradicted = tt_score < stand;
+        }
+        if (!contradicted) return tt_score;
+        tt_score = ValueNone;
     }
 
     int best_score;
@@ -1408,11 +1474,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 #endif
     const bool tt_hit = tt_probe.hit;
     const TTEntry& tte = tt_probe.entry;
-    const Move tt_move = tt_hit ? tte.move : Move::none();
+    Move tt_move = tt_hit ? tte.move : Move::none();
     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
-                             ? score_from_tt(tte.score, ply) : ValueNone;
+                             ? score_from_tt(tte.score, ply, board.halfmove_clock()) : ValueNone;
     const int tt_depth = tt_hit ? tte.depth : -1;
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+    if (root_node && !audit_first_move_.is_none()) tt_move = audit_first_move_;
     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
     ss->tt_pv = pv_node || (tt_hit && tte.pv());
 
@@ -1658,7 +1725,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
         int score = -Infinite;
         bool full_depth_needed = !pv_node || move_count > 1;
-        if (depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && (quiet || !ss->tt_pv || move_count > 4)) {
+        // new_depth < 1 makes std::clamp(lo=1, hi=new_depth) undefined. That
+        // happens when a negative extension (singular) meets a shallow depth.
+        // The unreduced call below treats depth <= 0 as quiescence.
+        if (new_depth >= 1 && depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && (quiet || !ss->tt_pv || move_count > 4)) {
             int r = reduction(quiet, depth, move_count);
             if (ss->tt_pv) r -= 1;
             if (!improving) r += 1;
@@ -1671,7 +1741,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
             full_depth_needed = score > alpha && reduced_depth < new_depth;
-            if (full_depth_needed) {
+            if (full_depth_needed && !aborted_) {
                 score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
                 full_depth_needed = false;
             }
@@ -1705,6 +1775,15 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                     break;
                 }
                 alpha = score;
+                // The aspiration floor is below the last completed score, and this
+                // move beat only that floor. Stop so the driver can keep the move
+                // that already beat the completed score.
+                if (root_node && audit_abort_after_worse_pv_ && audit_have_guard_ &&
+                    audit_window_alpha_ < audit_guard_score_ && move != audit_guard_move_ &&
+                    score < audit_guard_score_) {
+                    aborted_ = true;
+                    return 0;
+                }
             }
         }
         if (quiet && quiet_count < static_cast<int>(quiets_tried.size())) quiets_tried[static_cast<std::size_t>(quiet_count++)] = move;
@@ -1756,6 +1835,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 // Iterative deepening driver
 
 SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
+    struct AuditReset {
+        Worker& worker;
+        ~AuditReset() {
+            worker.audit_abort_after_worse_pv_ = false;
+            worker.audit_have_guard_ = false;
+            worker.audit_first_move_ = Move::none();
+        }
+    } audit_reset{*this};
     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
         ? limits.start_time : limits.request_start;
     start_ = origin == std::chrono::steady_clock::time_point{}
@@ -1935,29 +2022,91 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             alpha = std::max(score - delta, -Infinite);
             beta = std::min(score + delta, Infinite);
         }
+        // Best finished bound at this depth. A fail-high is a completed search
+        // even though the window is not resolved yet; an abort during the
+        // re-search must not throw that move away.
+        int proven_score = result.depth > 0 ? result.score : -Infinite;
+        std::vector<Move> proven_pv = result.pv;
         int iteration_score = score;
+        int attempt = 0;
         while (true) {
+            ++attempt;
+            if (limits.audit_abort_on_attempt > 0 && attempt == limits.audit_abort_on_attempt) {
+                aborted_ = true;
+                break;
+            }
+            audit_abort_after_worse_pv_ = limits.audit_abort_after_worse_pv && depth >= 4 && result.depth > 0;
+            audit_guard_move_ = result.best_move;
+            audit_guard_score_ = result.score;
+            audit_window_alpha_ = alpha;
+            audit_have_guard_ = result.depth > 0;
+            audit_first_move_ = depth >= 4 ? limits.audit_first_move : Move::none();
             ss->ply = 0;
             iteration_score = search(board, ss, depth, alpha, beta, false);
             if (aborted_) break;
-            if (iteration_score <= alpha) {
-                beta = (alpha + beta) / 2;
-                alpha = std::max(iteration_score - delta, -Infinite);
-            } else if (iteration_score >= beta) {
-                beta = std::min(iteration_score + delta, Infinite);
-            } else {
+            if (iteration_score > alpha && iteration_score < beta) break;
+            if (search_fixes().aspiration && iteration_score >= beta && ss->pv_length > 0 &&
+                iteration_score > proven_score) {
+                proven_score = iteration_score;
+                proven_pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
+            }
+            if (!search_fixes().aspiration) {
+                if (iteration_score <= alpha) {
+                    beta = (alpha + beta) / 2;
+                    alpha = std::max(iteration_score - delta, -Infinite);
+                } else {
+                    beta = std::min(iteration_score + delta, Infinite);
+                }
+                delta += delta / 2 + 4;
+                continue;
+            }
+            bool give_up = false;
+            const bool again = widen_aspiration(alpha, beta, delta, iteration_score, give_up);
+            if (give_up) {
+                // A sentinel outside [-Infinite, Infinite] is not a mate score.
+                if (iteration_score < -MateValue || iteration_score > MateValue) {
+                    iteration_score = proven_score > -Infinite ? proven_score : 0;
+                }
                 break;
             }
-            delta += delta / 2 + 4;
+            if (!again) break;
         }
         if (aborted_) {
-            // A partially searched iteration that already raised alpha at the
-            // root has found a move at least as good as the previous best.
-            if (ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
+            if (!search_fixes().aspiration) {
+                // Historical behaviour: any different partial PV replaces the
+                // completed move, and the published score stays the old one.
+                if (ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
+                    result.best_move = ss->pv[0];
+                    result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
+                    result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+                    emit(depth, result.score, result.pv);
+                }
+                break;
+            }
+            const bool have_base = result.depth > 0 || !proven_pv.empty();
+            int base_score = result.depth > 0 ? result.score : -Infinite;
+            std::vector<Move> base_pv = result.pv;
+            if (proven_score > base_score && !proven_pv.empty()) {
+                base_score = proven_score;
+                base_pv = proven_pv;
+            }
+            const bool partial = ss->pv_length > 0;
+            const bool different = partial && (base_pv.empty() || base_pv.front() != ss->pv[0]);
+            // A partial PV beat the aspiration floor. That floor is the previous
+            // score only when alpha was already at least that high. Otherwise the
+            // new first move can be worse than the completed line.
+            if (different && (!have_base || alpha >= base_score)) {
                 result.best_move = ss->pv[0];
                 result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
-                // Publish the revised line so GUIs see a PV consistent with the move.
+                if (have_base) result.score = base_score;
+                emit(depth, result.score, result.pv);
+            } else if (proven_score > result.score && !proven_pv.empty()) {
+                result.best_move = proven_pv.front();
+                result.pv = proven_pv;
+                result.score = proven_score;
+                result.depth = depth;
+                result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
                 emit(depth, result.score, result.pv);
             }
             break;
