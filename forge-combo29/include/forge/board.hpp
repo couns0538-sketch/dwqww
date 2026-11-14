@@ -261,6 +261,9 @@ public:
     }
 
 private:
+    // Test probe: compares every field, including ones with no public accessor.
+    friend struct BoardStateProbe;
+
     std::array<Piece, 64> squares_{};
     std::array<Bitboard, 13> bitboards_{};
     std::array<Bitboard, 2> occupied_{};
