@@ -1,0 +1,108 @@
+// Seeded self-play for phases B/C/H. Links unchanged engine objects, excluding uci.cpp.
+#include "forge/search.hpp"
+#include <algorithm>
+#include <chrono>
+#include <cstdint>
+#include <fstream>
+#include <iostream>
+#include <random>
+#include <string>
+
+using Clock = std::chrono::steady_clock;
+static std::uint64_t mix(std::uint64_t x) {
+    x += 0x9e3779b97f4a7c15ULL;
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+    return x ^ (x >> 31);
+}
+int main(int argc, char** argv) {
+    std::uint64_t seed=1, nodes=2000, max_games=1000000, first_game=0;
+    int threads=1, depth=0, seconds=240;
+    bool trace=false;
+    std::string trigger_path;
+    for (int i=1;i<argc;++i) {
+        const std::string a=argv[i];
+        if(a=="--trace") { trace=true; continue; }
+        if(i+1>=argc) return 2;
+        const std::string v=argv[++i];
+        if(a=="--seed") seed=std::stoull(v);
+        else if(a=="--nodes") nodes=std::stoull(v);
+        else if(a=="--threads") threads=std::stoi(v);
+        else if(a=="--depth") depth=std::stoi(v);
+        else if(a=="--seconds") seconds=std::stoi(v);
+        else if(a=="--games") max_games=std::stoull(v);
+        else if(a=="--first-game") first_game=std::stoull(v);
+        else if(a=="--trigger") trigger_path=v;
+        else return 2;
+    }
+    forge::nnue::enabled=true;
+    forge::Searcher searcher(16,threads);
+    const auto deadline=Clock::now()+std::chrono::seconds(seconds);
+    std::uint64_t games=0,moves=0,searches=0,opening_moves=0,faults=0,illegal=0,missing=0,badscore=0;
+    std::uint64_t mates=0,stalemates=0,repetitions=0,fifty=0,caps=0,insufficient=0;
+    while(games<max_games && Clock::now()<deadline) {
+        const auto game=first_game+games;
+        std::mt19937_64 random(mix(seed ^ mix(game)));
+        forge::Board board;
+        if(!board.set_fen(forge::Board::StandardStartFen)) return 3;
+        searcher.clear();
+        std::string history;
+        int ply=0;
+        for(;ply<8;++ply) {
+            const auto legal=board.legal_moves();
+            if(legal.empty()) break;
+            const auto move=legal[static_cast<std::size_t>(random()%legal.size())];
+            forge::Undo undo;
+            if(!board.make_move(move,undo)) return 4;
+            history += " " + forge::Board::move_to_uci(move);
+            ++opening_moves;
+        }
+        for(;ply<300;++ply) {
+            const auto legal=board.legal_moves();
+            if(legal.empty()) { if(board.in_check()) ++mates; else ++stalemates; break; }
+            if(board.is_repetition()) { ++repetitions; break; }
+            if(board.halfmove_clock()>=100) { ++fifty; break; }
+            if(board.is_insufficient_material()) { ++insufficient; break; }
+            const std::string context="{\"seed\":"+std::to_string(seed)+",\"game\":"+std::to_string(game)+
+                ",\"ply\":"+std::to_string(ply)+",\"threads\":"+std::to_string(threads)+
+                ",\"nodes\":"+std::to_string(nodes)+",\"depth\":"+std::to_string(depth)+
+                ",\"fen\":\""+board.fen()+"\",\"position\":\"position startpos moves"+history+"\"}";
+            if(trace) std::cout << "TRIGGER " << context << std::endl;
+            if(!trigger_path.empty()) { std::ofstream out(trigger_path); out << context << '\n'; }
+            forge::SearchLimits limits;
+            if(depth>0) limits.depth=depth;
+            else { limits.depth=64; limits.nodes=nodes; limits.nodes_specified=true; }
+            const auto result=searcher.search(board,limits,false,forge::Searcher::TTAccess::Exclusive);
+            ++searches;
+            std::string problem;
+            if(result.best_move.is_none()) { ++missing; problem="missing_move"; }
+            else if(std::find(legal.begin(),legal.end(),result.best_move)==legal.end()) { ++illegal; problem="illegal_move"; }
+            if(result.score < -forge::MateValue || result.score > forge::MateValue) { ++badscore; problem += " score_out_of_range"; }
+            if(!problem.empty()) {
+                ++faults;
+                std::cout << "FAULT " << context << " kind=" << problem << " bestmove="
+                    << forge::Board::move_to_uci(result.best_move) << " score=" << result.score
+                    << " search_nodes=" << result.nodes << std::endl;
+                break;
+            }
+            forge::Undo undo;
+            if(!board.make_move(result.best_move,undo)) {
+                ++faults; ++illegal;
+                std::cout << "FAULT " << context << " kind=make_move_rejected" << std::endl;
+                break;
+            }
+            history += " " + forge::Board::move_to_uci(result.best_move);
+            ++moves;
+        }
+        if(ply==300) ++caps;
+        ++games;
+        if(games%10==0) std::cout << "PROGRESS games=" << games << " searches=" << searches << " faults=" << faults << std::endl;
+    }
+    std::cout << "SUMMARY {\"seed\":" << seed << ",\"threads\":" << threads << ",\"nodes\":" << nodes
+        << ",\"depth\":" << depth << ",\"games\":" << games << ",\"moves\":" << moves << ",\"searches\":" << searches
+        << ",\"opening_moves\":" << opening_moves << ",\"faults\":" << faults << ",\"illegal\":" << illegal
+        << ",\"missing\":" << missing << ",\"badscore\":" << badscore << ",\"mates\":" << mates
+        << ",\"stalemates\":" << stalemates << ",\"repetitions\":" << repetitions << ",\"fifty\":" << fifty
+        << ",\"ply_caps\":" << caps << ",\"insufficient\":" << insufficient << "}" << std::endl;
+    return faults?1:0;
+}
