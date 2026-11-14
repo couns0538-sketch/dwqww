@@ -4,6 +4,8 @@
 
 #include <array>
 #include <cstdint>
+#include <string>
+#include <string_view>
 
 namespace forge::nnue {
 
@@ -66,6 +68,12 @@ struct DirtyPieces {
 [[nodiscard]] bool residual();
 // Runtime switch (UCI option); only effective when available().
 extern bool enabled;
+
+// Empty path, or "<empty>", restores the compiled-in net. A FORGENET file is
+// 8-byte magic, uint32 version 1, uint32 hidden size, then little-endian
+// int16 W1, B1, W2 and one int16 B2. A wrong magic, version or size leaves
+// the current net in place and writes the reason into error.
+[[nodiscard]] bool load_file(std::string_view path, std::string& error);
 
 void refresh(const Board& board, Accumulator& accumulator);
 void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty);
