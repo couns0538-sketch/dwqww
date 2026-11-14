@@ -23,6 +23,7 @@ grok47/r3-02-threat-history f29db79a4e87 200 identical
 grok47/r3-03-lmr-signed-correction 1ecc1d33156d 200 identical
 grok47/r3-04-lmr-late-parent-relief ae2cc041e24b 200 identical; feccf387e16a 200 identical
 grok47/r3-05-hindsight-depth 4ce2b8b18fd9 200 identical
+grok47/r3-06-null-threat-verify 55d714b10c4a 0 verification error: invalid literal for int() with base 10: '0.0.1'
 grok47/r3-08-asp-capped-reopen dc2e25b54d7c 20 identical
 
 ## Commands and hashes
@@ -63,6 +64,11 @@ engine source sha256: 4ce2b8b18fd9:ddef1ee036558f512c1bcd23720a33977d72db5f726b2
 engine binary sha256: 4ce2b8b18fd9:453e4757662bf45230623455f63da64657e6a7cee0120f49fe0ee0eb3e8d8a02 4ce2b8b18fd9:453e4757662bf45230623455f63da64657e6a7cee0120f49fe0ee0eb3e8d8a02
 fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/4ce2b8b18fd9490fb07cd7f6be2fb6d81f8c9a6e-37997d042e39/forge name=HindsightOn restart=on option.HindsightDepth=true option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/4ce2b8b18fd9490fb07cd7f6be2fb6d81f8c9a6e-37997d042e39/forge name=HindsightOff restart=on option.HindsightDepth=false option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 -rounds 100 -games 2 -concurrency 4 -draw movenumber=40 movecount=8 score=10 -resign movecount=4 score=800 -maxmoves 200 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-05-hindsight-depth/ce71a2d4c861/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-05-hindsight-depth/ce71a2d4c861/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
 
+grok47/r3-06-null-threat-verify 55d714b10c4a kind nodes pgn forge-combo29/tests_r3fu_06/chunk_000.pgn
+build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3 -DCMAKE_CXX_COMPILER=g++
+engine source sha256: 
+engine binary sha256: 
+
 grok47/r3-08-asp-capped-reopen dc2e25b54d7c kind nodes pgn forge-combo29/tests_r3fu_08/chunk-001.pgn
 build flags: -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ -DFORGE_MARCH=x86-64-v4 -DFORGE_PORTABLE=OFF
 engine source sha256: dc2e25b54d7c:e3397b5a3b2a673ce6b30163d531bd851813a43279027ea30f502e376f455327 dc2e25b54d7c:e3397b5a3b2a673ce6b30163d531bd851813a43279027ea30f502e376f455327
@@ -71,7 +77,6 @@ fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/h
 
 ## Still open
 
-grok47/r3-06-null-threat-verify 55d714b10 2026-11-14 16:05:41 +0000 Save the in-progress UHO chunk 0 screen.
 grok47/r3-07-null-see-veto 7e738ba98 2026-11-14 16:02:02 +0000 Add the second NullSeeVeto screen chunk.
 grok47/r3-09-asp-arm-late 3b8c3fe58 2026-11-14 16:07:54 +0000 Add UHO screen chunk 002 for AspArmLate.
 grok47/r3-10-evasion-ordering 1664a6020 2026-11-14 16:06:28 +0000 Add EvasionOrdering screen chunk 003.
@@ -93,5 +98,5 @@ grok47/r4-03-screen-lds a9435da00 2026-11-14 16:12:00 +0000 r4-03: heartbeat scr
 grok47/r4-04-screen-ch4 a144ac8d9 2026-11-14 16:11:13 +0000 r4-04: ContHist4PlyRead screen heartbeat
 grok47/r4-05-screen-npc 07eea4272 2026-11-14 16:15:27 +0000 r4-05: NonPawnCorrection screen chunk 001 (1-500)
 
-Last check: 2026-11-14T16:49:39Z
+Last check: 2026-11-14T16:49:43Z
 Deadline: 2026-11-15T02:17:29Z
