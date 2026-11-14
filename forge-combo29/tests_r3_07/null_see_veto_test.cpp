@@ -81,6 +81,12 @@ void check_positions() {
     expect_exchange("R7/4k3/1n6/8/8/8/8/4K3 w - - 0 1", "b6a8", false, "loose rook exchange wins");
     expect_threat("R7/1P2k3/1n6/8/8/8/8/4K3 w - - 0 1", false, "promoting pawn makes the rook safe");
     expect_exchange("R7/1P2k3/1n6/8/8/8/8/4K3 w - - 0 1", "b6a8", true, "promoting recapture loses for the knight");
+    expect_threat("4k3/8/8/p7/1Q6/8/8/4K3 w - - 0 1", true, "pawn takes a loose queen");
+    expect_exchange("4k3/8/8/p7/1Q6/8/8/4K3 w - - 0 1", "a5b4", false, "pawn takes queen wins the exchange");
+    expect_threat("4k3/8/8/Q7/8/8/r7/7K w - - 0 1", true, "rook takes a loose queen");
+    expect_exchange("4k3/8/8/Q7/8/8/r7/7K w - - 0 1", "a2a5", false, "rook takes queen wins the exchange");
+    expect_threat("4k3/8/8/7K/q7/8/8/R7 w - - 0 1", false, "queen takes a rook is not cheaper");
+    expect_threat("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1", false, "en passant is not a cheaper capture");
 }
 
 void check_searches() {
@@ -108,6 +114,27 @@ void check_searches() {
                           << " fen " << board.fen() << " search " << done << '\n';
                 ++failures;
                 return;
+            }
+            forge::Board line = board;
+            for (const forge::Move& pv_move : info.pv) {
+                bool pv_listed = false;
+                const forge::MoveList pv_legal = line.legal_moves();
+                for (const forge::Move& candidate : pv_legal) {
+                    if (candidate == pv_move) pv_listed = true;
+                }
+                if (!pv_listed || !line.is_legal(pv_move)) {
+                    std::cerr << "fail: illegal pv move " << forge::Board::move_to_uci(pv_move)
+                              << " fen " << line.fen() << " search " << done << '\n';
+                    ++failures;
+                    return;
+                }
+                forge::Undo pv_undo;
+                if (!line.make_move(pv_move, pv_undo)) {
+                    std::cerr << "fail: pv move rejected " << forge::Board::move_to_uci(pv_move)
+                              << " search " << done << '\n';
+                    ++failures;
+                    return;
+                }
             }
             ++done;
             if (done % 40 == 0) std::cout << "searches " << done << '\n';
