@@ -101,11 +101,12 @@ struct TTEntry {
     // 50-move draw from either clock. An exact clock match stays usable, except
     // a mate the remaining half-moves cannot deliver. Not a repetition key.
     [[nodiscard]] bool score_usable(std::uint16_t current_clock) const {
+        const int capped = current_clock < 100 ? static_cast<int>(current_clock) : 100;
+        if (rule50_clock == capped) return true;
         if (is_mate_score(score)) {
             const int distance = MateValue - (score < 0 ? -static_cast<int>(score) : static_cast<int>(score));
             if (static_cast<int>(current_clock) + distance > 100) return false;
         }
-        const int capped = current_clock < 100 ? static_cast<int>(current_clock) : 100;
         const int stored_clock = rule50_clock;
         const int stored_depth = depth;
         const bool inside_horizon = stored_clock + stored_depth < 100 &&
