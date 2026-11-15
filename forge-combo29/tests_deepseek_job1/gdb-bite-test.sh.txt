@@ -1,0 +1,17 @@
+#!/bin/sh
+# Send go infinite, wait, then quit. gdb catches Worker::search entry and prints
+# how many threads were live when quit's stop path ran.
+{
+  printf 'setoption name Threads value 4\nsetoption name Hash value 16\n'
+  printf 'position fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1\n'
+  printf 'go infinite\n'
+  sleep 1
+  printf 'quit\n'
+} | timeout 120 gdb -batch \
+    -ex 'set pagination off' \
+    -ex 'break forge::Worker::search' \
+    -ex 'run' \
+    -ex 'info threads' \
+    -ex 'printf "LIVE_THREADS_AT_SEARCH_ENTRY\n"' \
+    -ex 'continue' \
+    --args /tmp/ds/build-tsan/forge 2>&1

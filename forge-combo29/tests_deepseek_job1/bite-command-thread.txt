@@ -1,0 +1,38 @@
+BITE TEST for S1, S2, S3 (the command thread against the search threads).
+
+Question: when stop / quit / a setoption is sent, is the search really running, or
+has it already ended? gdb breaks at forge::Worker::search and dumps every thread.
+If the MAIN thread is parked in read() on fd 0 while helper threads are inside
+Worker::search, then the next UCI line (stop, quit, setoption) is delivered to a
+live search rather than after it ended.
+
+Command:
+  (printf 'setoption name Threads value 4'; printf 'setoption name Hash value 16';
+   printf 'position fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1';
+   printf 'go infinite'; sleep 1; printf 'quit')
+  | gdb -batch -ex 'set pagination off' -ex 'break forge::Worker::search' -ex run \
+        -ex 'info threads' -ex continue --args /tmp/ds/build-tsan/forge
+
+=== raw gdb output, unfiltered ===
+Breakpoint 1 at 0x431f0: forge::Worker::search. (2 locations)
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff39ff6c0 (LWP 27820)]
+[New Thread 0x7ffff31fe6c0 (LWP 27821)]
+[New Thread 0x7ffff29fd6c0 (LWP 27822)]
+[Switching to Thread 0x7ffff29fd6c0 (LWP 27822)]
+
+Thread 4 "forge" hit Breakpoint 1.2, forge::Worker::search (this=this@entry=0x7ffff4fa1000, board=..., limits=..., emit_info=emit_info@entry=false, all=std::vector of length 4, capacity 4 = {...}) at /agent/repos/dwqww/forge-combo29/src/search.cpp:2143
+2143	SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
+  Id   Target Id                                 Frame 
+  1    Thread 0x7ffff7e98f40 (LWP 27817) "forge" 0x00007ffff671bd2a in __GI___libc_read (nbytes=4096, buf=0x728000000000, fd=0) at ../sysdeps/unix/sysv/linux/read.c:26
+  2    Thread 0x7ffff39ff6c0 (LWP 27820) "forge" 0x00007ffff6ecff77 in __sanitizer::internal_usleep (useconds=useconds@entry=100000) at ../../../../src/libsanitizer/sanitizer_common/sanitizer_linux.cpp:519
+  3    Thread 0x7ffff31fe6c0 (LWP 27821) "forge" clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:62
+* 4    Thread 0x7ffff29fd6c0 (LWP 27822) "forge" forge::Worker::search (this=this@entry=0x7ffff4fa1000, board=..., limits=..., emit_info=emit_info@entry=false, all=std::vector of length 4, capacity 4 = {...}) at /agent/repos/dwqww/forge-combo29/src/search.cpp:2143
+LIVE_THREADS_AT_SEARCH_ENTRY
+[New Thread 0x7ffff02416c0 (LWP 27823)]
+[New Thread 0x7fffefa406c0 (LWP 27824)]
+[Switching to Thread 0x7ffff02416c0 (LWP 27823)]
+
+Thread 5 "forge" hit Breakpoint 1.2, forge::Worker::search (this=this@entry=0x7ffff4f41000, board=..., limits=..., emit_info=emit_info@entry=false, all=std::vector of length 4, capacity 4 = {...}) at /agent/repos/dwqww/forge-combo29/src/search.cpp:2143
+2143	SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
