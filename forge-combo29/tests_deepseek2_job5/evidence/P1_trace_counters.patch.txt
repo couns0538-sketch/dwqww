@@ -1,0 +1,202 @@
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index 98959af..25420cc 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -291,6 +291,13 @@ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
++// Update and read the continuation history 4 plies back (1) and also 6 plies back (2).
++// 0 leaves the search exactly as it was.
++extern int ContHistDeep;
++#if FORGE_DS2_TRACE_CH
++extern std::uint64_t ch_reads4, ch_reads6, ch_writes6, ch_writes6_big;
++extern std::uint64_t ch_reads4_zero, ch_reads6_zero;
++#endif
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+diff --git a/src/search.cpp b/src/search.cpp
+index b803a7e..81dab79 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -91,6 +91,13 @@ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
++#if FORGE_DS2_TRACE_CH
++std::uint64_t ch_reads4 = 0, ch_reads6 = 0, ch_writes6 = 0, ch_writes6_big = 0;
++std::uint64_t ch_reads4_zero = 0, ch_reads6_zero = 0;
++std::uint64_t ch_nodes = 0;
++#endif
++int ContHistDeep = 0;
++
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
+@@ -259,12 +266,14 @@ void apply_history(std::int16_t& entry, int bonus) {
+ // previous plies (and optionally 4 plies back at half weight), summed in this order (= Worker::quiet_history).
+ [[nodiscard]] inline int quiet_history_sum(const std::array<std::array<std::int16_t, 64>, 64>& main,
+                                            const PieceToHistory* cont1, const PieceToHistory* cont2,
+-                                           const PieceToHistory* cont4, Piece piece, Move move) {
++                                           const PieceToHistory* cont4, const PieceToHistory* cont6,
++                                           Piece piece, Move move) {
+     const std::size_t p = static_cast<std::size_t>(piece);
+     int score = main[move.from][move.to];
+     if (cont1 != nullptr) score += (*cont1)[p][move.to];
+     if (cont2 != nullptr) score += (*cont2)[p][move.to];
+     if (cont4 != nullptr) score += (*cont4)[p][move.to] / 2;
++    if (cont6 != nullptr) score += (*cont6)[p][move.to] / 2;
+     return score;
+ }
+ #endif
+@@ -781,6 +790,7 @@ private:
+         const PieceToHistory* cont1;
+         const PieceToHistory* cont2;
+         const PieceToHistory* cont4;
++        const PieceToHistory* cont6;
+         const Board& board;
+         const Worker& worker;
+ 
+@@ -788,14 +798,18 @@ private:
+             : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
+               cont1(ss != nullptr ? (ss - 1)->continuation : nullptr),
+               cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
+-              cont4(tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
++              cont4((tune::ContHist4PlyRead || tune::ContHistDeep >= 1) && ss != nullptr && ss->ply >= 4 &&
++                            !(ss - 4)->current_move.is_none()
+                         ? (ss - 4)->continuation : nullptr),
++              cont6(tune::ContHistDeep >= 2 && ss != nullptr && ss->ply >= 6 &&
++                            !(ss - 6)->current_move.is_none()
++                        ? (ss - 6)->continuation : nullptr),
+               board(b),
+               worker(searcher) {}
+ 
+         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+             const Piece piece = board.piece_at(move.from);
+-            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move);
++            int value = quiet_history_sum(main, cont1, cont2, cont4, cont6, piece, move) + worker.threat_quiet_bonus(board, move);
+             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
+             return value;
+         }
+@@ -1321,11 +1335,27 @@ int Worker::draw_leaf_score(const Board& board) const {
+ 
+ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
+ #if FORGE_SEARCH_SPEED2
++#if FORGE_DS2_TRACE_CH
++    if (tune::ContHistDeep >= 1 && ss != nullptr && ss->ply >= 4) {
++        ++forge::tune::ch_reads4;
++        if ((ss - 4)->continuation != nullptr &&
++            (*((ss - 4)->continuation))[static_cast<std::size_t>(board.moved_piece(move))][move.to] == 0) ++forge::tune::ch_reads4_zero;
++    }
++    if (tune::ContHistDeep >= 2 && ss != nullptr && ss->ply >= 6) {
++        ++forge::tune::ch_reads6;
++        if ((ss - 6)->continuation != nullptr &&
++            (*((ss - 6)->continuation))[static_cast<std::size_t>(board.moved_piece(move))][move.to] == 0) ++forge::tune::ch_reads6_zero;
++    }
++#endif
+     return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
+                              ss != nullptr ? (ss - 1)->continuation : nullptr,
+                              ss != nullptr ? (ss - 2)->continuation : nullptr,
+-                             tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
++                             (tune::ContHist4PlyRead || tune::ContHistDeep >= 1) && ss != nullptr &&
++                                     !(ss - 4)->current_move.is_none()
+                                  ? (ss - 4)->continuation : nullptr,
++                             tune::ContHistDeep >= 2 && ss != nullptr && ss->ply >= 6 &&
++                                     !(ss - 6)->current_move.is_none()
++                                 ? (ss - 6)->continuation : nullptr,
+                              board.moved_piece(move), move) +
+            threat_quiet_bonus(board, move);
+ #else
+@@ -1334,9 +1364,14 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move)
+     if (ss != nullptr) {
+         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
+         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
+-        if (tune::ContHist4PlyRead && (ss - 4)->continuation != nullptr && !(ss - 4)->current_move.is_none()) {
++        const bool read4 = (tune::ContHist4PlyRead || tune::ContHistDeep >= 1) && ss->ply >= 4;
++        if (read4 && (ss - 4)->continuation != nullptr && !(ss - 4)->current_move.is_none()) {
+             score += (*(ss - 4)->continuation)[static_cast<std::size_t>(piece)][move.to] / 2;
+         }
++        if (tune::ContHistDeep >= 2 && ss->ply >= 6 && (ss - 6)->continuation != nullptr &&
++            !(ss - 6)->current_move.is_none()) {
++            score += (*(ss - 6)->continuation)[static_cast<std::size_t>(piece)][move.to] / 2;
++        }
+     }
+     return score + threat_quiet_bonus(board, move);
+ #endif
+@@ -1361,12 +1396,28 @@ int Worker::capture_history_value(const Board& board, Move move) const {
+ }
+ 
+ void Worker::update_continuation(SearchStack* ss, Piece piece, int to, int bonus) {
++    // Distances 1, 2 and 4 are updated exactly as before. Distance 6 is new and
++    // only written when the option asks for it.
+     for (const int back : {1, 2, 4}) {
+         const SearchStack* previous = ss - back;
+         if (previous->continuation == nullptr || previous->current_move.is_none()) continue;
+         apply_history((*previous->continuation)[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)],
+                       back == 4 ? bonus / 2 : bonus);
+     }
++    if (tune::ContHistDeep >= 2 && ss->ply >= 6) {
++        const SearchStack* previous = ss - 6;
++        if (previous->continuation != nullptr && !previous->current_move.is_none()) {
++            auto& slot = (*previous->continuation)[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)];
++#if FORGE_DS2_TRACE_CH
++            const std::int16_t before = slot;
++#endif
++            apply_history(slot, bonus / 2);
++#if FORGE_DS2_TRACE_CH
++            ++forge::tune::ch_writes6;
++            if (std::abs(static_cast<int>(slot) - static_cast<int>(before)) > 0) ++forge::tune::ch_writes6_big;
++#endif
++        }
++    }
+ }
+ 
+ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth, const Move* quiets,
+diff --git a/src/uci.cpp b/src/uci.cpp
+index e0d8aee..bd09add 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -219,6 +219,7 @@ int uci_loop(std::istream& in) {
+                          "option name LmrDeeperShallower type check default false\n"
+                          "option name EvalRule50Damp type check default false\n"
+                          "option name ThreatHistory type check default false\n"
++                         "option name ContHistDeep type spin default 0 min 0 max 2\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+@@ -400,6 +401,14 @@ int uci_loop(std::istream& in) {
+                     forge::dead_material_enabled = value_text == "true";
+                     searcher.clear_hash();
+                 }
++            } else if (name == "ContHistDeep") {
++                int value = 0;
++                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
++                if (parsed.ec == std::errc{} && parsed.ptr == value_text.data() + value_text.size()) {
++                    forge::tune::ContHistDeep = std::clamp(value, 0, 2);
++                } else {
++                    note_invalid();
++                }
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+@@ -624,6 +633,19 @@ int uci_loop(std::istream& in) {
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
+                       << std::endl;
++#if FORGE_DS2_TRACE_CH
++            std::cout << "info string CHTRACE reads4 " << forge::tune::ch_reads4
++                      << " reads4_zero " << forge::tune::ch_reads4_zero
++                      << " reads6 " << forge::tune::ch_reads6
++                      << " reads6_zero " << forge::tune::ch_reads6_zero
++                      << " writes6 " << forge::tune::ch_writes6
++                      << " writes6_changed " << forge::tune::ch_writes6_big
++                      << " nodes " << total_nodes
++                      << " reads4_per_node " << (total_nodes ? double(forge::tune::ch_reads4) / double(total_nodes) : 0.0)
++                      << " reads6_per_node " << (total_nodes ? double(forge::tune::ch_reads6) / double(total_nodes) : 0.0)
++                      << " writes6_per_node " << (total_nodes ? double(forge::tune::ch_writes6) / double(total_nodes) : 0.0)
++                      << std::endl;
++#endif
+         } else if (command == "ponderhit") {
+             if (ponder_search_active) {
+                 searcher.ponderhit();

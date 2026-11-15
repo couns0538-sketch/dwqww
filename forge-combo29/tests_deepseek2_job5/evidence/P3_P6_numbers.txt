@@ -1,0 +1,36 @@
+P3 - option on must differ from the pins (build /tmp/ds2/chbuild/forge, -DFORGE_NNUE_V3=1)
+
+OFF (identical to the pins):
+  bench 11 nodes 312866
+  bench 13 nodes 862329
+  bench 16 nodes 3024920
+  perft 5 nodes 4865609
+
+ON = 1 (must differ):
+  bench 11 nodes 335384
+  bench 13 nodes 989877
+  bench 16 nodes 2980250
+
+ON = 2 (must differ):
+  bench 11 nodes 317482
+  bench 13 nodes 729826
+  bench 16 nodes 3565744
+
+P6 - speed, bench 16 nps, 10 interleaved pairs (off, on2, off, on2, ...)
+  off nps: 1907263 1897691 1868387 1887036 1878832 1831065 1801620 1934092 1887036 1982254
+  on  nps: 1689125 1641686 1656944 1699591 1670920 1663902 1777539 1675631 1698782 1778425
+  off mean 1887528 sd 50161
+  on  mean 1695254 sd 47205
+  paired difference (off - on): mean 192273 sd 65672   (~ -10.2 % of the off mean)
+  Different search trees, so this is a rough figure.
+
+P4 - sanitizers (ASan+UBSan build of the patched tree)
+  planted fault (sanitizer_planted_fault.cpp, from job 3) reported both:
+     UBSan "store to address ... with insufficient space for an object of type 'int'"
+     ASan  "ERROR: AddressSanitizer: heap-buffer-overflow" WRITE of size 4
+  engine, bench 13 with ContHistDeep 2: 729826 nodes, stderr 0 lines
+  engine, 200 UHO positions with ContHistDeep 2: sha256 651b66756e345f7663e5196dc425f967347009b6938c9bb9620712deec44737b,
+     min nodes 3992, total 2688902, stderr 0 lines
+
+Memory: one ContinuationHistory = 13 pieces * 64 squares * (13 * 64 int16) = 1382656 bytes = 1.32 MB
+per thread. The deep levels reuse that same table: no new allocation.
