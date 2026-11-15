@@ -5,7 +5,7 @@
   "start": "2026-11-14T23:19:40.000Z",
   "budgetMinutes": 180,
   "deadline": "2026-11-15T02:19:40.000Z",
-  "phase": "Resuming final corpus S2-0002 under pinned reference-event classification; new depth64 sanitizer protocol in preparation",
+  "phase": "Final exact corpus S2-0003 running",
   "sourceCommits": [
     {
       "step": 1,
@@ -55,8 +55,8 @@
       "stat": "c488e88f Apply source-only r3-20-faster-search-plumbing by three-way merge from e04556dd\n forge-combo29/include/forge/bitboard.hpp |   6 ++\n forge-combo29/include/forge/board.hpp    |  29 +++++++\n forge-combo29/src/bitboard.cpp           |   7 ++\n forge-combo29/src/board.cpp              | 144 +++++++++++++++++++------------\n forge-combo29/src/search.cpp             | 120 ++++++++++++++++++++------\n 5 files changed, 227 insertions(+), 79 deletions(-)"
     }
   ],
-  "pushes": 16,
-  "lastPush": "2026-11-15T01:03:54.043Z",
+  "pushes": 17,
+  "lastPush": "2026-11-15T01:08:33.370Z",
   "sourceChangesOnly": [
     "forge-combo29/src",
     "forge-combo29/include"
@@ -74,7 +74,7 @@
     "step1 any equality difference stops dependent work",
     "counts only; owner no Elo/speed claims overrides external request"
   ],
-  "lastCommit": "aff1125bd9c5eb97b01da003d5bb069e58f21c68",
+  "lastCommit": "127289c6083946654dea8c249b5fcd27e1563a54",
   "validation": {
     "step1": {
       "build": "passed",
@@ -527,22 +527,22 @@
       },
       "equality": {
         "stage": "final",
-        "id": "S2-0001",
-        "recorderFile": "/workspace/work/parity-equality-recording-preparation/record-equality.mjs",
-        "recorderSha256": "00f0395b58746b279672d1a9a82f551904abad5e05d0dee680f24ec11dc09063",
+        "id": "S2-0002",
+        "recorderFile": "/workspace/work/parity-reference-continuation-v4/record-equality.mjs",
+        "recorderSha256": "c6444695564305cf42f17ceaa9d8b5be1d831049da66f20278e040e6e4847949",
         "packageToolSha256": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
-        "receipt": "/workspace/work/parity-run/equality-final-v3/receipts/S2-0001.txt",
-        "receiptSha256": "6e21def71035af80beffa958df95611a784b77099f1c86352ed8bc2ab2bd4e9b",
-        "audit": "/workspace/work/parity-run/equality-final-v3/audits/S2-0001.txt",
-        "auditSha256": "99948f308384500ae7de078118b215e84889cd8cb452606402040301b089d660",
-        "completed": 14959,
-        "lowClock": 14951,
-        "highClock": 8,
+        "receipt": "/workspace/work/parity-run/equality-final-v4/receipts/S2-0002.txt",
+        "receiptSha256": "7e582236fa1f6f01a80023829c5ea022929ccc71d1bdcd59de4c1c306727cd5c",
+        "audit": "/workspace/work/parity-run/equality-final-v4/audits/S2-0002.txt",
+        "auditSha256": "3635ad116a8bc095b752dc420d6086a32d264b64abe148fe4e1da4f921d1c8e0",
+        "completed": 31710,
+        "lowClock": 31697,
+        "highClock": 13,
         "differences": 0,
         "partialDifferences": 0,
         "operationalFindings": 1,
         "exactOriginal100k": false,
-        "continuationAllowed": false,
+        "continuationAllowed": true,
         "attributionPending": false,
         "gatePassed": false,
         "shutdownTiming": {
@@ -550,16 +550,16 @@
           "measurement": "steady_clock immediately before full quit write to first successful waitpid observation; null when unavailable; total shutdown duration and actual requested budget retained",
           "bySide": {
             "merged": {
-              "observed": 14963,
-              "measured": 14962,
+              "observed": 31718,
+              "measured": 31717,
               "unavailable": 1,
               "legacyUnmeasured": 0,
-              "maxMs": 31.549119,
+              "maxMs": 35.662007,
               "over100ms": 0
             },
             "lock": {
-              "observed": 14961,
-              "measured": 14961,
+              "observed": 31714,
+              "measured": 31714,
               "unavailable": 0,
               "legacyUnmeasured": 0,
               "maxMs": 53.985518,
@@ -568,24 +568,24 @@
           },
           "byBudgetAndForcedStatus": {
             "merged:budget=false:forced=false": {
-              "observed": 14961,
-              "measured": 14961,
+              "observed": 31714,
+              "measured": 31714,
               "unavailable": 0,
               "legacyUnmeasured": 0,
-              "maxMs": 31.549119,
+              "maxMs": 35.662007,
               "over100ms": 0
             },
             "lock:budget=false:forced=false": {
-              "observed": 14959,
-              "measured": 14959,
+              "observed": 31710,
+              "measured": 31710,
               "unavailable": 0,
               "legacyUnmeasured": 0,
               "maxMs": 53.985518,
               "over100ms": 0
             },
             "merged:budget=true:forced=false": {
-              "observed": 1,
-              "measured": 1,
+              "observed": 3,
+              "measured": 3,
               "unavailable": 0,
               "legacyUnmeasured": 0,
               "maxMs": 8.387916,
@@ -608,11 +608,19 @@
               "over100ms": 0
             },
             "lock:budget=true:forced=false": {
+              "observed": 2,
+              "measured": 2,
+              "unavailable": 0,
+              "legacyUnmeasured": 0,
+              "maxMs": 40.976163,
+              "over100ms": 0
+            },
+            "lock:budget=true:forced=true": {
               "observed": 1,
               "measured": 1,
               "unavailable": 0,
               "legacyUnmeasured": 0,
-              "maxMs": 15.131342,
+              "maxMs": 2.953413,
               "over100ms": 0
             }
           },
@@ -652,19 +660,19 @@
         },
         "nativeRuns": 0,
         "counts": {
-          "records_completed": 15064,
-          "positions": 14959,
-          "positions_low_clock": 14951,
-          "positions_high_clock": 8,
+          "records_completed": 31942,
+          "positions": 31710,
+          "positions_low_clock": 31697,
+          "positions_high_clock": 13,
           "differences_low_clock": 0,
           "differences_high_clock": 0,
           "fault_positions": 0,
-          "excluded": 105,
-          "excluded_no_legal": 5,
-          "excluded_insufficient": 100,
+          "excluded": 232,
+          "excluded_no_legal": 11,
+          "excluded_insufficient": 221,
           "excluded_halfmove100": 0,
           "invalid_fens": 0,
-          "engine_runs": 29918,
+          "engine_runs": 63420,
           "illegal": 0,
           "missing": 0,
           "missing_info": 0,
@@ -678,8 +686,27 @@
           "reproduction_differences": 0,
           "reproduction_fault_pairs": 0
         },
-        "package": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step2/S2-0001",
-        "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step2-records/S2-0001"
+        "package": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step2/S2-0002",
+        "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step2-records/S2-0002",
+        "supplementalReferenceClassification": {
+          "schema": 1,
+          "allowed": true,
+          "exceptionApplied": true,
+          "originalPolicyAllowed": false,
+          "exactExceptionDeclaration": "/workspace/work/parity-reference-continuation-v4/EXACT-REFERENCE-EXCEPTION.txt",
+          "exactExceptionSha256": "52b46495577fef404292cc840ebbfb2c37159a53642c2c2c80907f3bf4b19f2b",
+          "authorization": "FABLE_ANSWER_0012 at7188f6b5f8ecc0ba88d4ec1997aaf2dd1161a82d: One event more on the reference changes nothing.",
+          "interpretation": "Exact reference-only driver-forced teardown after2ms graceful stage of4ms total; operational finding retained, incomplete pair excluded. No general signal or crash exception.",
+          "retainedOperationalFindings": 1,
+          "retainedExceptionCount": 1,
+          "otherOperationalFaultsAfterExactException": 0,
+          "candidateTimeoutOccurrences": 1,
+          "escalationRequired": false,
+          "rawAuditFieldsUnchanged": true,
+          "originalAuditSha256": "99948f308384500ae7de078118b215e84889cd8cb452606402040301b089d660",
+          "originalReceiptSha256": "6e21def71035af80beffa958df95611a784b77099f1c86352ed8bc2ab2bd4e9b",
+          "internalPolicyReplayOnly": true
+        }
       },
       "coverageOrdering": "Final-tree sanitizer evidence starts while the second corpus awaits a narrowly pinned reference-only teardown classification; no corpus completion or full-job acceptance is claimed.",
       "softnodesIndependentReview": "tests_astra_parity/softnodes-fault-peer-review/REVIEW.md"
@@ -859,12 +886,12 @@
       "faultCountingUnit": "Batches with observed engine, label, diagnostic or shutdown findings; failed/zero-coverage/incomplete batches listed separately."
     }
   },
-  "checkpointNote": "Fable0013-0015 confirms same-clock semantics, accepts exactreference cutoff classification, and amendsitem4 with completeddepth64 exception. Originalcontractfailure retained; noenginefix/repeats. Resumingunchangedcorpus, thennewprotocolsanitizers.",
-  "progressBatch": "paired-softnodes-asan-off-t1-n2000-d0 seed202611155001",
+  "checkpointNote": "step2 31710/100000 exact selected comparisons; 0 differences, 1 retained operational findings. Continuation authorized; corpus completion pending. Raw evidence and v3 metadata packaged immutably; source/commit/push state preserved.",
+  "progressBatch": "S2-0002 seed1449540002",
   "active": {
     "stage": "final",
-    "batch": "S2-0002",
-    "started": "2026-11-15T01:06:43.146Z"
+    "batch": "S2-0003",
+    "started": "2026-11-15T01:13:02.363Z"
   },
   "equalityTotals": {
     "step1": {
@@ -1033,22 +1060,22 @@
     },
     "step2": {
       "stage": "final",
-      "id": "S2-0001",
-      "recorderFile": "/workspace/work/parity-equality-recording-preparation/record-equality.mjs",
-      "recorderSha256": "00f0395b58746b279672d1a9a82f551904abad5e05d0dee680f24ec11dc09063",
+      "id": "S2-0002",
+      "recorderFile": "/workspace/work/parity-reference-continuation-v4/record-equality.mjs",
+      "recorderSha256": "c6444695564305cf42f17ceaa9d8b5be1d831049da66f20278e040e6e4847949",
       "packageToolSha256": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
-      "receipt": "/workspace/work/parity-run/equality-final-v3/receipts/S2-0001.txt",
-      "receiptSha256": "6e21def71035af80beffa958df95611a784b77099f1c86352ed8bc2ab2bd4e9b",
-      "audit": "/workspace/work/parity-run/equality-final-v3/audits/S2-0001.txt",
-      "auditSha256": "99948f308384500ae7de078118b215e84889cd8cb452606402040301b089d660",
-      "completed": 14959,
-      "lowClock": 14951,
-      "highClock": 8,
+      "receipt": "/workspace/work/parity-run/equality-final-v4/receipts/S2-0002.txt",
+      "receiptSha256": "7e582236fa1f6f01a80023829c5ea022929ccc71d1bdcd59de4c1c306727cd5c",
+      "audit": "/workspace/work/parity-run/equality-final-v4/audits/S2-0002.txt",
+      "auditSha256": "3635ad116a8bc095b752dc420d6086a32d264b64abe148fe4e1da4f921d1c8e0",
+      "completed": 31710,
+      "lowClock": 31697,
+      "highClock": 13,
       "differences": 0,
       "partialDifferences": 0,
       "operationalFindings": 1,
       "exactOriginal100k": false,
-      "continuationAllowed": false,
+      "continuationAllowed": true,
       "attributionPending": false,
       "gatePassed": false,
       "shutdownTiming": {
@@ -1056,16 +1083,16 @@
         "measurement": "steady_clock immediately before full quit write to first successful waitpid observation; null when unavailable; total shutdown duration and actual requested budget retained",
         "bySide": {
           "merged": {
-            "observed": 14963,
-            "measured": 14962,
+            "observed": 31718,
+            "measured": 31717,
             "unavailable": 1,
             "legacyUnmeasured": 0,
-            "maxMs": 31.549119,
+            "maxMs": 35.662007,
             "over100ms": 0
           },
           "lock": {
-            "observed": 14961,
-            "measured": 14961,
+            "observed": 31714,
+            "measured": 31714,
             "unavailable": 0,
             "legacyUnmeasured": 0,
             "maxMs": 53.985518,
@@ -1074,24 +1101,24 @@
         },
         "byBudgetAndForcedStatus": {
           "merged:budget=false:forced=false": {
-            "observed": 14961,
-            "measured": 14961,
+            "observed": 31714,
+            "measured": 31714,
             "unavailable": 0,
             "legacyUnmeasured": 0,
-            "maxMs": 31.549119,
+            "maxMs": 35.662007,
             "over100ms": 0
           },
           "lock:budget=false:forced=false": {
-            "observed": 14959,
-            "measured": 14959,
+            "observed": 31710,
+            "measured": 31710,
             "unavailable": 0,
             "legacyUnmeasured": 0,
             "maxMs": 53.985518,
             "over100ms": 0
           },
           "merged:budget=true:forced=false": {
-            "observed": 1,
-            "measured": 1,
+            "observed": 3,
+            "measured": 3,
             "unavailable": 0,
             "legacyUnmeasured": 0,
             "maxMs": 8.387916,
@@ -1114,11 +1141,19 @@
             "over100ms": 0
           },
           "lock:budget=true:forced=false": {
+            "observed": 2,
+            "measured": 2,
+            "unavailable": 0,
+            "legacyUnmeasured": 0,
+            "maxMs": 40.976163,
+            "over100ms": 0
+          },
+          "lock:budget=true:forced=true": {
             "observed": 1,
             "measured": 1,
             "unavailable": 0,
             "legacyUnmeasured": 0,
-            "maxMs": 15.131342,
+            "maxMs": 2.953413,
             "over100ms": 0
           }
         },
@@ -1142,6 +1177,25 @@
         ],
         "timingErrors": []
       },
+      "supplementalReferenceClassification": {
+        "schema": 1,
+        "allowed": true,
+        "exceptionApplied": true,
+        "originalPolicyAllowed": false,
+        "exactExceptionDeclaration": "/workspace/work/parity-reference-continuation-v4/EXACT-REFERENCE-EXCEPTION.txt",
+        "exactExceptionSha256": "52b46495577fef404292cc840ebbfb2c37159a53642c2c2c80907f3bf4b19f2b",
+        "authorization": "FABLE_ANSWER_0012 at7188f6b5f8ecc0ba88d4ec1997aaf2dd1161a82d: One event more on the reference changes nothing.",
+        "interpretation": "Exact reference-only driver-forced teardown after2ms graceful stage of4ms total; operational finding retained, incomplete pair excluded. No general signal or crash exception.",
+        "retainedOperationalFindings": 1,
+        "retainedExceptionCount": 1,
+        "otherOperationalFaultsAfterExactException": 0,
+        "candidateTimeoutOccurrences": 1,
+        "escalationRequired": false,
+        "rawAuditFieldsUnchanged": true,
+        "originalAuditSha256": "99948f308384500ae7de078118b215e84889cd8cb452606402040301b089d660",
+        "originalReceiptSha256": "6e21def71035af80beffa958df95611a784b77099f1c86352ed8bc2ab2bd4e9b",
+        "internalPolicyReplayOnly": true
+      },
       "operationalClassification": {
         "commit": "7188f6b5f8ecc0ba88d4ec1997aaf2dd1161a82d",
         "file": "/workspace/work/parity-equality-preparation-v3/FABLE_ANSWER_0012.md",
@@ -1158,19 +1212,19 @@
       },
       "nativeRuns": 0,
       "counts": {
-        "records_completed": 15064,
-        "positions": 14959,
-        "positions_low_clock": 14951,
-        "positions_high_clock": 8,
+        "records_completed": 31942,
+        "positions": 31710,
+        "positions_low_clock": 31697,
+        "positions_high_clock": 13,
         "differences_low_clock": 0,
         "differences_high_clock": 0,
         "fault_positions": 0,
-        "excluded": 105,
-        "excluded_no_legal": 5,
-        "excluded_insufficient": 100,
+        "excluded": 232,
+        "excluded_no_legal": 11,
+        "excluded_insufficient": 221,
         "excluded_halfmove100": 0,
         "invalid_fens": 0,
-        "engine_runs": 29918,
+        "engine_runs": 63420,
         "illegal": 0,
         "missing": 0,
         "missing_info": 0,
@@ -1184,8 +1238,8 @@
         "reproduction_differences": 0,
         "reproduction_fault_pairs": 0
       },
-      "package": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step2/S2-0001",
-      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step2-records/S2-0001"
+      "package": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step2/S2-0002",
+      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step2-records/S2-0002"
     }
   },
   "coordination": {
@@ -2872,6 +2926,229 @@
           "id": "S2-0001",
           "path": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step2/S2-0001",
           "manifestSha256": "f4244fc7e8966826fc279bbf70bfcf3676e9183db307e4c546241bbf7efe421d"
+        }
+      ]
+    },
+    {
+      "stage": "final",
+      "id": "S2-0002",
+      "recorderFile": "/workspace/work/parity-reference-continuation-v4/record-equality.mjs",
+      "recorderSha256": "c6444695564305cf42f17ceaa9d8b5be1d831049da66f20278e040e6e4847949",
+      "packageToolSha256": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
+      "receipt": "/workspace/work/parity-run/equality-final-v4/receipts/S2-0002.txt",
+      "receiptSha256": "7e582236fa1f6f01a80023829c5ea022929ccc71d1bdcd59de4c1c306727cd5c",
+      "audit": "/workspace/work/parity-run/equality-final-v4/audits/S2-0002.txt",
+      "auditSha256": "3635ad116a8bc095b752dc420d6086a32d264b64abe148fe4e1da4f921d1c8e0",
+      "completed": 31710,
+      "lowClock": 31697,
+      "highClock": 13,
+      "differences": 0,
+      "partialDifferences": 0,
+      "operationalFindings": 1,
+      "exactOriginal100k": false,
+      "continuationAllowed": true,
+      "attributionPending": false,
+      "gatePassed": false,
+      "shutdownTiming": {
+        "schema": 1,
+        "measurement": "steady_clock immediately before full quit write to first successful waitpid observation; null when unavailable; total shutdown duration and actual requested budget retained",
+        "bySide": {
+          "merged": {
+            "observed": 31718,
+            "measured": 31717,
+            "unavailable": 1,
+            "legacyUnmeasured": 0,
+            "maxMs": 35.662007,
+            "over100ms": 0
+          },
+          "lock": {
+            "observed": 31714,
+            "measured": 31714,
+            "unavailable": 0,
+            "legacyUnmeasured": 0,
+            "maxMs": 53.985518,
+            "over100ms": 0
+          }
+        },
+        "byBudgetAndForcedStatus": {
+          "merged:budget=false:forced=false": {
+            "observed": 31714,
+            "measured": 31714,
+            "unavailable": 0,
+            "legacyUnmeasured": 0,
+            "maxMs": 35.662007,
+            "over100ms": 0
+          },
+          "lock:budget=false:forced=false": {
+            "observed": 31710,
+            "measured": 31710,
+            "unavailable": 0,
+            "legacyUnmeasured": 0,
+            "maxMs": 53.985518,
+            "over100ms": 0
+          },
+          "merged:budget=true:forced=false": {
+            "observed": 3,
+            "measured": 3,
+            "unavailable": 0,
+            "legacyUnmeasured": 0,
+            "maxMs": 8.387916,
+            "over100ms": 0
+          },
+          "lock:budget=false:forced=true": {
+            "observed": 1,
+            "measured": 1,
+            "unavailable": 0,
+            "legacyUnmeasured": 0,
+            "maxMs": 3.014613,
+            "over100ms": 0
+          },
+          "merged:budget=true:forced=true": {
+            "observed": 1,
+            "measured": 0,
+            "unavailable": 1,
+            "legacyUnmeasured": 0,
+            "maxMs": null,
+            "over100ms": 0
+          },
+          "lock:budget=true:forced=false": {
+            "observed": 2,
+            "measured": 2,
+            "unavailable": 0,
+            "legacyUnmeasured": 0,
+            "maxMs": 40.976163,
+            "over100ms": 0
+          },
+          "lock:budget=true:forced=true": {
+            "observed": 1,
+            "measured": 1,
+            "unavailable": 0,
+            "legacyUnmeasured": 0,
+            "maxMs": 2.953413,
+            "over100ms": 0
+          }
+        },
+        "maxMs": 53.985518,
+        "over100ms": 0,
+        "candidateTimeoutOccurrences": 1,
+        "referenceTimeoutOccurrences": 1,
+        "inheritedCandidateTimeoutOccurrences": 1,
+        "timeoutOccurrences": [
+          {
+            "batch": "/workspace/work/parity-run/equality-batches/step2/S2-0001/summary.txt",
+            "worker": 1,
+            "localIndex": 3929,
+            "globalRecordIndex": 15717,
+            "attempt": 0,
+            "side": "lock",
+            "pureShutdownAllowanceOccurrence": false,
+            "quitToExitMs": 3.014613,
+            "shutdownBudgetMs": 4
+          }
+        ],
+        "timingErrors": []
+      },
+      "supplementalReferenceClassification": {
+        "schema": 1,
+        "allowed": true,
+        "exceptionApplied": true,
+        "originalPolicyAllowed": false,
+        "exactExceptionDeclaration": "/workspace/work/parity-reference-continuation-v4/EXACT-REFERENCE-EXCEPTION.txt",
+        "exactExceptionSha256": "52b46495577fef404292cc840ebbfb2c37159a53642c2c2c80907f3bf4b19f2b",
+        "authorization": "FABLE_ANSWER_0012 at7188f6b5f8ecc0ba88d4ec1997aaf2dd1161a82d: One event more on the reference changes nothing.",
+        "interpretation": "Exact reference-only driver-forced teardown after2ms graceful stage of4ms total; operational finding retained, incomplete pair excluded. No general signal or crash exception.",
+        "retainedOperationalFindings": 1,
+        "retainedExceptionCount": 1,
+        "otherOperationalFaultsAfterExactException": 0,
+        "candidateTimeoutOccurrences": 1,
+        "escalationRequired": false,
+        "rawAuditFieldsUnchanged": true,
+        "originalAuditSha256": "99948f308384500ae7de078118b215e84889cd8cb452606402040301b089d660",
+        "originalReceiptSha256": "6e21def71035af80beffa958df95611a784b77099f1c86352ed8bc2ab2bd4e9b",
+        "internalPolicyReplayOnly": true
+      },
+      "operationalClassification": {
+        "commit": "7188f6b5f8ecc0ba88d4ec1997aaf2dd1161a82d",
+        "file": "/workspace/work/parity-equality-preparation-v3/FABLE_ANSWER_0012.md",
+        "sha256": "c43cf885c83df3be5453fbe71087e8311506cbd7a97af298b43d3c24c2515642",
+        "rawOperationalFaultsRetained": 1,
+        "classifiedShutdownAllowanceOccurrences": 0,
+        "otherOperationalFaults": 1,
+        "escalationRequired": false,
+        "requiredDiagnostic": null,
+        "operationalContinuationAllowed": false,
+        "continuationAllowed": false,
+        "completionGateSatisfied": false,
+        "engineFaultClassification": "Pure retained shutdown allowance occurrences are operational findings; all other faults remain blocking."
+      },
+      "nativeRuns": 0,
+      "counts": {
+        "records_completed": 16878,
+        "positions": 16751,
+        "positions_low_clock": 16746,
+        "positions_high_clock": 5,
+        "differences_low_clock": 0,
+        "differences_high_clock": 0,
+        "fault_positions": 0,
+        "excluded": 127,
+        "excluded_no_legal": 6,
+        "excluded_insufficient": 121,
+        "excluded_halfmove100": 0,
+        "invalid_fens": 0,
+        "engine_runs": 33502,
+        "illegal": 0,
+        "missing": 0,
+        "missing_info": 0,
+        "wrong_depth": 0,
+        "sanitizer_issues": 0,
+        "transport_issues": 0,
+        "crashes": 0,
+        "nonzero_exits": 0,
+        "shutdown_timeouts": 0,
+        "reproduction_pairs": 0,
+        "reproduction_differences": 0,
+        "reproduction_fault_pairs": 0
+      },
+      "cumulativeCounts": {
+        "records_completed": 31942,
+        "positions": 31710,
+        "positions_low_clock": 31697,
+        "positions_high_clock": 13,
+        "differences_low_clock": 0,
+        "differences_high_clock": 0,
+        "fault_positions": 0,
+        "excluded": 232,
+        "excluded_no_legal": 11,
+        "excluded_insufficient": 221,
+        "excluded_halfmove100": 0,
+        "invalid_fens": 0,
+        "engine_runs": 63420,
+        "illegal": 0,
+        "missing": 0,
+        "missing_info": 0,
+        "wrong_depth": 0,
+        "sanitizer_issues": 0,
+        "transport_issues": 0,
+        "crashes": 0,
+        "nonzero_exits": 0,
+        "shutdown_timeouts": 0,
+        "reproduction_pairs": 0,
+        "reproduction_differences": 0,
+        "reproduction_fault_pairs": 0
+      },
+      "rawPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step2/S2-0002",
+      "metadataSource": "/workspace/work/parity-run/equality-recording/step2/S2-0002/metadata",
+      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step2-records/S2-0002",
+      "rawPackages": [
+        {
+          "id": "S2-0001",
+          "path": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step2/S2-0001",
+          "manifestSha256": "f4244fc7e8966826fc279bbf70bfcf3676e9183db307e4c546241bbf7efe421d"
+        },
+        {
+          "id": "S2-0002",
+          "path": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step2/S2-0002",
+          "manifestSha256": "dfbdb0671604da507e56be2c4b2646eeffa35744a069ce73974b583c181a932e"
         }
       ]
     }
