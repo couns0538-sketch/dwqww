@@ -1,0 +1,17 @@
+--- /agent/repos/dwqww/forge-combo29/src/search.cpp	2026-11-15 09:06:53.215018736 +0000
++++ src/search.cpp	2026-11-15 12:47:21.283018736 +0000
+@@ -408,6 +408,14 @@
+         }
+     }
+     if (found != nullptr) {
++        if (std::getenv("DS_TT_HIT")) {
++            const std::lock_guard<std::mutex> ol(uci_output_mutex());
++            std::cerr << "TTHIT key=" << std::hex << key << std::dec
++                      << " key32=" << std::hex << key32 << std::dec
++                      << " depth=" << static_cast<int>(found->depth)
++                      << " bound=" << static_cast<int>(found->bound())
++                      << " score=" << found->score << std::endl;
++        }
+         // Reused entries remain recent even when search returns a TT cutoff.
+         if (found->generation() != generation) {
+             found->gen_bound = static_cast<std::uint8_t>(

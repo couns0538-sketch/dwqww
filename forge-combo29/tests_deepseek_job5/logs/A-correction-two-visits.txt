@@ -1,0 +1,29 @@
+JOB 5, correction to job 4 part A: the NODE depth 1 and RET depth 0 lines are TWO VISITS.
+
+Fable was right that HindsightDepth cannot be the cause: it is a UCI option whose default is
+false (src/search.cpp:100 `bool HindsightDepth = false;`, src/uci.cpp:224 `default false`),
+so the block at src/search.cpp:1604 does nothing with default settings.
+
+Re-reading the trace in order (grep -n on the ordered output):
+
+  line  9: NODE ply 0 depth 1 a -32001 b 32001 pv 1 eval -886   fen 6KR/4k3/2Q5/8/8/8/8/8 b
+  line 10: RET qsearch_depth0 line 1557 ply 1 depth 0 a -32001 b 32001 pv 1
+           fen 3k2KR/8/2Q5/8/8/8/8/8 w   <- the mating node, ALREADY at depth 0 on entry
+  line 11: NODE ply 0 depth 2 ...
+  line 12: NODE ply 1 depth 1 a -31999 b 31998 pv 1 eval 1166   (the same mating node, later)
+
+So the RET line with depth 0 is a SEPARATE visit from the NODE line with depth 1: the RET
+comes first, from the DEPTH-1 ITERATION, where the root (depth 1) calls its only child with
+depth 0. Its alpha/beta are the untouched -32001/32001, which is what a fresh call looks like,
+not a node whose window was already narrowed by a move loop. The NODE depth 1 line is the
+depth-2 iteration's visit of the same position.
+
+The correct statement: at the depth-1 iteration the mating node is handed depth 0, so it goes
+straight to qsearch and the quiet mating move Kf7 is never generated. That is the ordinary
+behaviour of a depth-limited search reaching the horizon one ply above a mate, not a pruning
+rule and not HindsightDepth. What makes this position special is that the depth-4 search still
+reports mate 4 at depths 12 and 16: the deeper iterations keep choosing a different branch, so
+the horizon visit at ply 1 is never replaced by a real search of Kf7 until depth 18.
+
+Evidence: /tmp/ds trace with DS_TRACE_RET=1 DS_TRACE_NODES=1, ordered output above;
+the traced engine is build-trace/forge from trace_patch.txt.

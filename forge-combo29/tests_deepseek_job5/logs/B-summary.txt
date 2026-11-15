@@ -1,0 +1,44 @@
+JOB 5 PART B: does a stale table entry change a RESULT?
+
+Target: 2Q3KR/4k3/8/8/8/8/8/8 w - - 0 1, go depth 12, Threads 1, Hash 16, built-in net.
+Truth: mate in 2 moves (3 plies), line Qc6 Kd8 Kf7#.
+
+B1. Fresh process, three times: mate 4, mate 4, mate 4  (stable)
+    One earlier search of 8/8/8/1K6/8/8/1k6/2R1R3 w - - 0 1 at depth 12 -> target reports mate 2.
+    So ONE earlier search is enough, and in this case it makes the answer CORRECT.
+
+B1a. 35 of 40 candidate earlier positions change the target's score. Distribution:
+     mate 2: 4 cases, mate 3: 20, mate 5: 9, mate 7: 1, cp 1637: 1, unchanged: 5
+     (the truth is mate 2, so most of these make the answer WORSE, not better)
+
+B1b. The trigger depends on the earlier search's depth, non-monotonically.
+     witness searched at depth 1 -> target mate 4 (unchanged)
+     witness at depth 2         -> target mate 3
+     witness at depth 4, 6, 8   -> target mate 4 (unchanged)
+     witness at depth 12        -> target mate 2
+
+B1c. Hash size does not matter: 1, 4, 16, 64 and 256 MB all behave the same
+     (fresh mate 4, after the witness mate 2). So it is not index pressure or a
+     small-table collision.
+
+B2. Instrumented probe (private copy, trace_patch.txt adds a print at every TT hit):
+    second search (target at depth 12) after the witness: 17,575 TT hits,
+    6,924 distinct keys, of which 0 were written during the first search.
+    The hit entries carry depth=0, bounds 1/2, scores +-1000..1300 cp: these are
+    QUIESCENCE entries, and they were written during the target's own search.
+
+    The two roots share NO position: exhaustive trees to 6 plies have 0 common
+    positions (70,138 vs 64,071 nodes). Their keys differ in all 32 low bits
+    (b6f0e35d vs feca1fb4), so the two ROOTS do not collide either.
+
+B3. Therefore the differing score is NOT explained by a transposition of a stored
+    entry from the first search: nothing from the first search is ever read.
+    What differs is the state the second search starts from. What I can show is
+    that the second search's own quiescence entries are being reused across its
+    own nodes (17,575 hits, all self-written), and that its result changes when
+    the table starts non-empty instead of empty. Why a self-written depth-0 entry
+    should flip a mate distance is NOT established.
+
+    No claim about harm: I did not find a search that returns a wrong result in
+    the sense of a losing move where a winning one exists. Every case above is a
+    mate DISTANCE (or a cp score where a mate exists), not a reversed verdict.

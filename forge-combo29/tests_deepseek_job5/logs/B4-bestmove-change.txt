@@ -1,0 +1,24 @@
+JOB 5, B4: the score change also changes the BESTMOVE, and neither move is mating.
+
+Position: 2Q3KR/4k3/8/8/8/8/8/8 w - - 0 1   go depth 12, Threads 1, Hash 16, built-in net.
+Truth (brute force): mate in 2 moves (3 plies). Only Qc6 keeps it (child truth -2).
+
+FRESH   : bestmove c8c5 | score mate 4
+WARMED  : bestmove c8f8 | score cp 1637
+  (warmed by one search of 8/3k4/8/8/6K1/3q1r2/3q4/8 b - - 0 1 at depth 12)
+
+What each move does, checked by brute force:
+  c8c5 : child truth None  -> does NOT keep the mate
+  c8f8 : child truth None  -> does NOT keep the mate
+  c8c6 : child truth -2    -> keeps the mate (mate in 2 moves)
+
+So:
+  * the fresh search already plays a non-mating move while claiming mate 4;
+  * a single unrelated earlier search changes both the score (mate 4 -> cp 1637)
+    and the move played (c8c5 -> c8f8), and neither is the mating move.
+
+This is the closest I got to the job's 'wrong RESULT' bar: a move chosen that
+throws away a forced mate. It happens in the FRESH search too, so it is not caused
+by a stale table - the table only changes which non-mating move is chosen and how
+the score is reported. I am not claiming a fresh-vs-warmed correctness difference:
+both are wrong about the mate, and only their wrongness differs.

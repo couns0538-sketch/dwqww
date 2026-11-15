@@ -1,0 +1,54 @@
+JOB 5 PART A4: what the FORGENN4 specification left open or ambiguous
+(asked for in the order the text gives them; each is small)
+
+1. Header offset 145 vs 148. The spec writes `145 u8 zero[3]` then `148 u32 D1`, so
+   bytes 145,146,147 are zero and D1 starts at 148. The FORGENN3 header it descends
+   from has `145 u8 reserved[47]`. Reading the v4 layout as v3 plus D1/D2/w_scale/
+   act_max at 148 is the only reading that fits both, but a reader who assumes
+   "reserved is 47 bytes from 145" gets a file 16 bytes shorter. It would be
+   clearer as `145 u8 zero[3]  (then 148 D1)` with the size restated.
+
+2. Whether the 33-entry output_bucket_map is indexed by MIN(pieces, 32) where
+   "pieces" counts both kings. Step 3 says `min(number of pieces, 32)`. FORGENN3
+   used `popcount(board.occupied())`, which counts kings too, so the natural reading
+   is the same, but the spec never states "kings included". I assumed kings count.
+
+3. y1 and y2 rounding. Step 5 gives `y1_j = min(max(s1_j,0),16320) * 127 / 16320`
+   and step 6 gives `y2_k = min(max(s2_k,0),8128) / 64`. The first multiplies before
+   dividing (so 16320 -> 127 exactly), the second divides by 64 with no scaling
+   factor (8128 -> 127 exactly). Both are consistent, but it is easy to read the
+   second as "* 127 / 8128" by analogy with the first. The spec would be safer
+   saying `8128 -> 127` explicitly for both.
+
+4. Whether s1/s2 sums are accumulated in int32 or int64. The bounds section says
+   |b1d|,|b2d|,|b3d| <= 2^28 'so every sum of steps 5 to 7 fits int32'. With
+   D1 = 16, |w1d| <= 127 and x <= 255, a row sum is at most 16*127*255 = 518,160,
+   so int32 is safe; I used int64 in numpy anyway. Not a problem, but the spec's
+   justification for the 2^28 bound does not follow from the numbers it gives
+   (the bound is far more generous than needed).
+
+5. What `w_scale = 64` and `act_max = 127` are FOR. They are in the header and the
+   float-meaning table, but steps 5-7 use the literals 16320, 8128, 127, 64 and they
+   never enter the integer evaluation. A reader cannot tell whether they are
+   informational (for the trainer) or whether a reader must honour them. I treated
+   them as informational and used the literals. If a future net may carry different
+   values, the steps should say which constant comes from the header.
+
+6. The exact draw order for the test net is given as a list of rng.integers calls
+   with inclusive upper bounds written as "-40..40", "-127..127" etc. The parenthetical
+   `low, high_inclusive + 1` makes it unambiguous; without that sentence "-127..127"
+   could be read as high=127 exclusive. Worth keeping that parenthetical.
+
+7. `w1d (OB,16,2H) -8..8 int8` with dtype given as int8: a value of -8..8 fits, so
+   the dtype is consistent; but the spec says |w1d| <= 127 in the bounds section,
+   while the test net only draws -8..8. Both statements are about different things
+   (a validity bound vs this test net), which the text does not spell out.
+
+8. FORGENN4 is said to be "FORGENN3 plus a small dense part" and "stand-alone
+   (flags bit 0 = 0)". The spec never says what a reader should do if bit 0 is set.
+   I refuse the file. A silent ignore would also be defensible.
+
+9. Endianness is stated once ("little-endian") and the arrays are given without
+   a byte order suffix; I used '<' for everything. Consistent, but the checksum is
+   over "every preceding byte", i.e. the serialised bytes, not the values - worth
+   stating because a reader that checksums values would disagree.
