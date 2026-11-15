@@ -1,0 +1,19 @@
+Part B: proving the wrapper's setoption lines arrive.
+
+fastchess's -log engine=true records the traffic between fastchess and the
+engine PROCESS. The wrapper writes its own setoption lines straight into the
+engine's stdin, so those lines never pass through fastchess and cannot appear in
+fastchess's log. The log therefore proves only that fastchess sent Threads/Hash/
+OwnBook -- it cannot prove anything about the wrapper.
+
+What does prove it: the same wrapper, run as the engine command, produces a
+different bench 13 node count than the bare exe.
+
+  bare exe, no options        bench 13 -> 862329   (the known off number)
+  wrapper_B_12.sh (Mult 12)   bench 13 -> 748790
+  wrapper_B_48.sh (Mult 48)   bench 13 -> 597400
+  wrapper_B_24_400.sh         bench 13 -> 758728
+
+So the options written by the wrapper reach the search. Commands in
+logs/step1-B-known.txt show the multi-option case reaching the documented
+690187 as well.
