@@ -1,0 +1,49 @@
+=================================================================
+==3783674==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x50200000002c at pc 0x55d6f1419242 bp 0x7ffe91728000 sp 0x7ffe91727ff0
+WRITE of size 4 at 0x50200000002c thread T0
+    #0 0x55d6f1419241 in main /tmp/engine_job4/forge-combo29/planted_fault.cpp:6
+    #1 0x7fa931c2a1c9  (/lib/x86_64-linux-gnu/libc.so.6+0x2a1c9) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #2 0x7fa931c2a28a in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2a28a) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #3 0x55d6f1419124 in _start (/tmp/planted_fault7+0x1124) (BuildId: 6863f685a0bc3439ef8ddac0102bffb84d42cf15)
+
+0x50200000002c is located 12 bytes after 16-byte region [0x502000000010,0x502000000020)
+allocated by thread T0 here:
+    #0 0x7fa9324fe6c8 in operator new[](unsigned long) ../../../../src/libsanitizer/asan/asan_new_delete.cpp:98
+    #1 0x55d6f14191fe in main /tmp/engine_job4/forge-combo29/planted_fault.cpp:5
+    #2 0x7fa931c2a1c9  (/lib/x86_64-linux-gnu/libc.so.6+0x2a1c9) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #3 0x7fa931c2a28a in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2a28a) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #4 0x55d6f1419124 in _start (/tmp/planted_fault7+0x1124) (BuildId: 6863f685a0bc3439ef8ddac0102bffb84d42cf15)
+
+SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/engine_job4/forge-combo29/planted_fault.cpp:6 in main
+Shadow bytes around the buggy address:
+  0x501ffffffd80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x501ffffffe00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x501ffffffe80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x501fffffff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x501fffffff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x502000000000: fa fa 00 00 fa[fa]fa fa fa fa fa fa fa fa fa fa
+  0x502000000080: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000100: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000180: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000200: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000280: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==3783674==ABORTING

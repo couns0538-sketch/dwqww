@@ -1,0 +1,125 @@
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -293,6 +293,16 @@
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern int ThreatCorrection;         // threat (hanging pieces) correction history, weight in percent (0 = off)
++// TRACED COPY ONLY:
++extern std::uint64_t ThreatCorrReads;
++extern std::uint64_t ThreatCorrUpdates;
++extern std::uint64_t ThreatCorrUpdatesChanged;
++extern std::uint64_t ThreatCorrEmptyBoth;
++extern double ThreatCorrSumAbsPawn;
++extern double ThreatCorrSumAbsMaterial;
++extern double ThreatCorrSumAbsThreat;
++extern std::uint64_t threat_corr_distinct_keys();
++extern std::uint64_t threat_corr_distinct_indices();
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -10,6 +10,7 @@
+ #include <iostream>
+ #include <limits>
+ #include <optional>
++#include <unordered_set>
+ #if FORGE_NNUE_V3
+ #ifndef FORGE_NNUE_V3_VERIFY
+ #define FORGE_NNUE_V3_VERIFY 0
+@@ -77,6 +78,20 @@
+ int LmrCutoffThreshold = 3;
+ int MaterialCorrectionWeight = 100;
+ int ThreatCorrection = 0;
++// TRACED COPY ONLY: counters for the threat correction table, reset by Worker::clear().
++std::uint64_t ThreatCorrReads = 0;
++std::uint64_t ThreatCorrUpdates = 0;
++std::uint64_t ThreatCorrUpdatesChanged = 0;
++std::uint64_t ThreatCorrEmptyBoth = 0;
++double ThreatCorrSumAbsPawn = 0.0;
++double ThreatCorrSumAbsMaterial = 0.0;
++double ThreatCorrSumAbsThreat = 0.0;
++std::uint64_t ThreatCorrDistinctKeys = 0;   // size of the key set at print time
++std::uint64_t ThreatCorrDistinctIndices = 0;
++std::unordered_set<std::uint64_t> ThreatCorrKeySet;
++std::unordered_set<std::uint64_t> ThreatCorrIndexSet;
++std::uint64_t threat_corr_distinct_keys() { return ThreatCorrKeySet.size(); }
++std::uint64_t threat_corr_distinct_indices() { return ThreatCorrIndexSet.size(); }
+ int TmSoftDivisor = 22;
+ int TmIncrementPercent = 75;
+ int TmHardPercent = 60;
+@@ -1031,6 +1046,15 @@
+     *non_pawn_white_correction_ = CorrectionHistory{};
+     *non_pawn_black_correction_ = CorrectionHistory{};
+     *threat_correction_ = CorrectionHistory{};
++    tune::ThreatCorrReads = 0;
++    tune::ThreatCorrUpdates = 0;
++    tune::ThreatCorrUpdatesChanged = 0;
++    tune::ThreatCorrEmptyBoth = 0;
++    tune::ThreatCorrSumAbsPawn = 0.0;
++    tune::ThreatCorrSumAbsMaterial = 0.0;
++    tune::ThreatCorrSumAbsThreat = 0.0;
++    tune::ThreatCorrKeySet.clear();
++    tune::ThreatCorrIndexSet.clear();
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
+@@ -1273,7 +1297,19 @@
+         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+     }
+     if (tune::ThreatCorrection > 0) {
+-        correction += (*threat_correction_)[side][threat_key(board) & (CorrectionSize - 1U)] * tune::ThreatCorrection / 100;
++        const std::uint64_t tkey = threat_key(board);
++        const std::int32_t tterm = (*threat_correction_)[side][tkey & (CorrectionSize - 1U)] * tune::ThreatCorrection / 100;
++        correction += tterm;
++        ++tune::ThreatCorrReads;
++        if (tkey == 0) ++tune::ThreatCorrEmptyBoth;
++        tune::ThreatCorrKeySet.insert(tkey);
++        tune::ThreatCorrIndexSet.insert((static_cast<std::uint64_t>(side) << 14) | (tkey & (CorrectionSize - 1U)));
++        const std::int32_t pterm = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
++        const std::int32_t mterm = tune::MaterialCorrectionWeight > 0
++            ? (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100 : 0;
++        tune::ThreatCorrSumAbsPawn += std::abs(pterm);
++        tune::ThreatCorrSumAbsMaterial += std::abs(mterm);
++        tune::ThreatCorrSumAbsThreat += std::abs(tterm);
+     }
+     if (tune::NonPawnCorrection) {
+         const std::int32_t np_w = (*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)];
+@@ -1292,7 +1328,13 @@
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
+-    if (tune::ThreatCorrection > 0) apply((*threat_correction_)[side][threat_key(board) & (CorrectionSize - 1U)]);
++    if (tune::ThreatCorrection > 0) {
++        std::int32_t& entry = (*threat_correction_)[side][threat_key(board) & (CorrectionSize - 1U)];
++        const std::int32_t before = entry;
++        apply(entry);
++        ++tune::ThreatCorrUpdates;
++        if (entry != before) ++tune::ThreatCorrUpdatesChanged;
++    }
+     if (tune::NonPawnCorrection) {
+         apply((*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)]);
+         apply((*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)]);
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -624,6 +624,20 @@
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
+                       << std::endl;
++            // TRACED COPY ONLY: threat correction counters and term means for this bench run.
++            const double reads = static_cast<double>(forge::tune::ThreatCorrReads);
++            std::cout << "info string threatcorr reads " << forge::tune::ThreatCorrReads
++                      << " updates " << forge::tune::ThreatCorrUpdates
++                      << " changed " << forge::tune::ThreatCorrUpdatesChanged
++                      << " empty_both " << forge::tune::ThreatCorrEmptyBoth
++                      << " mean_abs_pawn_grain " << (reads > 0 ? forge::tune::ThreatCorrSumAbsPawn / reads : 0.0)
++                      << " mean_abs_material_grain " << (reads > 0 ? forge::tune::ThreatCorrSumAbsMaterial / reads : 0.0)
++                      << " mean_abs_threat_grain " << (reads > 0 ? forge::tune::ThreatCorrSumAbsThreat / reads : 0.0)
++                      << " mean_abs_pawn_cp " << (reads > 0 ? forge::tune::ThreatCorrSumAbsPawn / reads / 256.0 : 0.0)
++                      << " mean_abs_material_cp " << (reads > 0 ? forge::tune::ThreatCorrSumAbsMaterial / reads / 256.0 : 0.0)
++                      << " mean_abs_threat_cp " << (reads > 0 ? forge::tune::ThreatCorrSumAbsThreat / reads / 256.0 : 0.0)
++                      << " distinct_keys " << forge::tune::threat_corr_distinct_keys()
++                      << " distinct_indices " << forge::tune::threat_corr_distinct_indices() << std::endl;
+         } else if (command == "ponderhit") {
+             if (ponder_search_active) {
+                 searcher.ponderhit();
