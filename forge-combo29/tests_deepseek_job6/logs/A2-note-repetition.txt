@@ -1,0 +1,19 @@
+JOB 6 A2: what 'repetition' means in my tally, checked on one game.
+
+Game start: 2K4k/Q7/8/8/8/8/8/8 w - - 0 1   (KQvK, white to move, a won position)
+Result recorded by my harness: repetition, after 22 plies.
+
+Checked with python-chess on the final position:
+  final fen                 : K7/7k/8/8/8/6Q1/8/8 w - - 22 12
+  is_repetition(3)          : False
+  can_claim_threefold_rep   : True
+
+So the draw in my tally is a CLAIMABLE threefold repetition, not an automatic one.
+My A2 loop ends the game on can_claim_threefold_repetition(), which is what a
+defender would do at the board, but the position itself is not yet a drawn game
+by the automatic rule. Every 'repetition' row below should be read as
+'the engine allowed a position to occur for the third time, so the defender can
+claim a draw', not 'the engine repeated a position that is already drawn'.
+
+The move sequence that produced it (white shuffles Qd4-g4-g3, black Kh7-h8-h7):
+  c8g4 h7h8 g4d4 h8h7 d4g4 h7h8 g4g3 h8h7 ...
