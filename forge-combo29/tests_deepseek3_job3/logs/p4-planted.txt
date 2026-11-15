@@ -1,0 +1,10 @@
+## planted faults: the sanitizer must catch each before the clean run is trusted
+=== mode=overflow
+exit_code=1
+pf.cpp:29:17: runtime error: index 13 out of bounds for type 'short int [13][64][7]'
+pf.cpp:29:25: runtime error: store to address 0x5605c1093560 with insufficient space for an object of type 'int16_t'
+=== mode=ub
+exit_code=0
+pf.cpp:36:28: runtime error: signed integer overflow: 2147483647 + 1 cannot be represented in type 'int'
+=== mode=ok
+exit_code=0

@@ -1,0 +1,66 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..f9ee78cc2 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -302,6 +302,7 @@ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null sea
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
++extern int LmrCaptureHistory;        // divisor of the capture-history term in capture LMR; 0 = off (no node changes)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..53d074341 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -102,6 +102,9 @@ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
++// Divisor (0 = off) of the capture-history term in the late-move reduction of a
++// CAPTURE, mirroring the quiet term below it. 0 keeps every node identical.
++int LmrCaptureHistory = 0;
+ bool EvasionOrdering = false;
+ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+@@ -2000,6 +2003,13 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            // A capture is reduced less when its capture history is good and more when
++            // it is bad, exactly as a quiet move is.  `history` already holds
++            // capture_history_value() for a capture (see its assignment above), so no
++            // extra lookup is needed.  Divisor 0 means off, and then nothing changes.
++            if (!quiet && tune::LmrCaptureHistory > 0) {
++                r -= std::clamp(history / tune::LmrCaptureHistory, -2, 2);
++            }
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..49ed1504e 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -226,6 +226,7 @@ int uci_loop(std::istream& in) {
+                          "option name NullSeeVeto type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+                          "option name AspArmLate type check default false\n"
++                         "option name LmrCaptureHistory type spin default 0 min 0 max 65536\n"
+                          "option name EvasionOrdering type check default false\n"
+                          "option name DeadMaterial type check default false\n"
+                          "option name QuietExtinction type check default false\n"
+@@ -459,6 +460,13 @@ int uci_loop(std::istream& in) {
+                     note_invalid();
+                 }
+ #endif
++            } else if (name == "LmrCaptureHistory") {
++                apply_spin(0, 65536, [&](int clamped) {
++                    if (forge::tune::LmrCaptureHistory != clamped) {
++                        forge::tune::LmrCaptureHistory = clamped;
++                        searcher.clear();
++                    }
++                });
+             } else if (name == "MultiPV") {
+                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+             } else if (name == "Hash") {

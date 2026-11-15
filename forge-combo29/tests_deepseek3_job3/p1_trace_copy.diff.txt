@@ -1,0 +1,41 @@
+--- /agent/repos/dwqww/forge-combo29/src/search.cpp	2026-11-15 14:04:56.246400612 +0000
++++ /home/ubuntu/work/src3/src/search.cpp	2026-11-15 17:20:48.846400612 +0000
+@@ -5,7 +5,9 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++#include <atomic>
+ #include <cmath>
++#include <cstdio>
+ #include <cstring>
+ #include <iostream>
+ #include <limits>
+@@ -1999,6 +2001,28 @@
+             if (gives_check) r -= 1;
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
++            // TRACE (local only): for a list of candidate divisors, count what the
++            // clamp would do to each capture that reaches this reduction.
++            if (!quiet) {
++                static const int kCand[] = {256, 512, 1024, 2048, 4096, 8192, 12000, 16384};
++                static std::atomic<std::uint64_t> cnt[8][5] = {};
++                static std::atomic<std::uint64_t> total{0};
++                const std::uint64_t idx = total.fetch_add(1);
++                for (int c = 0; c < 8; ++c) {
++                    const int v = std::clamp(history / kCand[c], -2, 2) + 2;
++                    cnt[c][v].fetch_add(1);
++                }
++                if ((idx & 0xFFF) == 0) {
++                    for (int c = 0; c < 8; ++c) {
++                        const std::uint64_t t = cnt[c][0].load()+cnt[c][1].load()+cnt[c][2].load()+cnt[c][3].load()+cnt[c][4].load();
++                        std::fprintf(stderr, "CAPLMRDIV D=%d n=%llu -2:%llu -1:%llu 0:%llu +1:%llu +2:%llu\n",
++                            kCand[c], (unsigned long long)t,
++                            (unsigned long long)cnt[c][0].load(), (unsigned long long)cnt[c][1].load(),
++                            (unsigned long long)cnt[c][2].load(), (unsigned long long)cnt[c][3].load(),
++                            (unsigned long long)cnt[c][4].load());
++                    }
++                }
++            }
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
