@@ -7,6 +7,10 @@
 #include <string>
 #include <string_view>
 
+#ifndef FORGE_NNUE_V3
+#define FORGE_NNUE_V3 0
+#endif
+
 namespace forge::nnue {
 
 // Architecture: for each colour's perspective, 768 piece-square inputs feed a

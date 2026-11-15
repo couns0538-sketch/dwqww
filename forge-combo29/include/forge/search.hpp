@@ -3,6 +3,9 @@
 #include "forge/board.hpp"
 #include "forge/eval.hpp"
 #include "forge/nnue.hpp"
+#if FORGE_NNUE_V3
+#include "forge/nnue_v3.hpp"
+#endif
 
 #include <array>
 #include <atomic>
@@ -476,6 +479,9 @@ private:
     std::unique_ptr<CorrectionHistory> non_pawn_white_correction_;
     std::unique_ptr<CorrectionHistory> non_pawn_black_correction_;
     std::array<SearchStack, MaxPly + 8> stack_{};
+#if FORGE_NNUE_V3
+    std::unique_ptr<nnue::v3::WorkerState> v3_state_;
+#endif
     std::array<Move, 256> root_effort_moves_{};
     std::array<std::uint64_t, 256> root_move_nodes_{};
     std::size_t root_effort_count_ = 0;
@@ -549,6 +555,9 @@ private:
     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
     void update_correction(const Board& board, int depth, int best_score, int static_eval);
     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+#if FORGE_NNUE_V3
+    [[nodiscard]] int static_evaluate_v3(const Board& board, SearchStack* ss);
+#endif
     void record_move(SearchStack* ss, const Board& board, const Move& move);
     void record_null_move(SearchStack* ss);
 };
