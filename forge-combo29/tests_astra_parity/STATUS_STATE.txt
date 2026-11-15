@@ -5,7 +5,7 @@
   "start": "2026-11-14T23:19:40.000Z",
   "budgetMinutes": 180,
   "deadline": "2026-11-15T04:20:00.000Z",
-  "phase": "STOP: two Threads2 softnodes item4 findings; publish and askFable/Opus before any furthernative",
+  "phase": "Stopped on two Threads2 soft-node item4 failures; Fable/Opus decision pending",
   "sourceCommits": [
     {
       "step": 1,
@@ -55,8 +55,8 @@
       "stat": "c488e88f Apply source-only r3-20-faster-search-plumbing by three-way merge from e04556dd\n forge-combo29/include/forge/bitboard.hpp |   6 ++\n forge-combo29/include/forge/board.hpp    |  29 +++++++\n forge-combo29/src/bitboard.cpp           |   7 ++\n forge-combo29/src/board.cpp              | 144 +++++++++++++++++++------------\n forge-combo29/src/search.cpp             | 120 ++++++++++++++++++++------\n 5 files changed, 227 insertions(+), 79 deletions(-)"
     }
   ],
-  "pushes": 25,
-  "lastPush": "2026-11-15T02:04:46.791Z",
+  "pushes": 26,
+  "lastPush": "2026-11-15T02:15:48.145Z",
   "sourceChangesOnly": [
     "forge-combo29/src",
     "forge-combo29/include"
@@ -74,7 +74,7 @@
     "step1 any equality difference stops dependent work",
     "counts only; owner no Elo/speed claims overrides external request"
   ],
-  "lastCommit": "cd1a6f9f99982a0d23a7a4f4e3ccd3b6ee5fb5b5",
+  "lastCommit": "f51a9e79bfafb58d85ca8e923125383065eb2e34",
   "validation": {
     "step1": {
       "build": "passed",
@@ -1483,8 +1483,8 @@
       "originalProtocolCreditIncluded": false
     }
   },
-  "checkpointNote": "Final paired UCI batch extended-c01-paired-softnodes-asan-on-t2-n2000-d0: accepted-clean 0 games / 0 searches; cumulative 108 games / 15514 searches. 2 batches with observed findings; 0 incomplete. Preliminary coverage excluded. STOP and send item3/4 trigger before further engine work.",
-  "progressBatch": "extended-c01-paired-softnodes-asan-on-t2-n2000-d0 seed202611155209",
+  "checkpointNote": "Full exact histories and output preserved for both item4 failures. Items2/3 passed; zero sanitizer diagnostics. Earlier clean Threads1 coverage remains108games/15514searches; two failed batches receive zero clean credit. No further engine runs or source changes.",
+  "progressBatch": "extended indices2/8; seeds202611155203/202611155209",
   "active": {
     "stage": "extended-sanitizers",
     "wave": 1,
@@ -6512,7 +6512,7 @@
     "relativeReportLinks": 14,
     "engineRuns": 0
   },
-  "commitMessage": "Accept complete same-clock corpus with explicit attribution and retained cutoffs",
+  "commitMessage": "Preserve both Threads2 soft-node contract failures and exact histories",
   "referenceShutdown068919": {
     "utc": "2026-11-15T01:38:57.812Z",
     "pairs": 10,
@@ -10315,5 +10315,79 @@
     "protocol": "softnodes-depth64-strict-extended",
     "retainedOriginalContractFailureBatches": 1,
     "originalProtocolCreditIncluded": false
+  },
+  "softnodesThreads2Faults": {
+    "recordedUTC": "2026-11-15T02:16:48.085Z",
+    "sourceCommit": "d9a8587df8ad4d0ff1231632cb1ac72b590c04bf",
+    "faults": [
+      {
+        "index": 2,
+        "label": "extended-c01-paired-softnodes-asan-off-t2-n2000-d0",
+        "seed": 202611155203,
+        "file": "forge-combo29/tests_astra_parity/faults/softnodes-threads2-item4-0017-2.txt",
+        "sha256": "626432c1862e79d87f37df9054af522b786f989d0719b50ba96a02b6517b3656",
+        "context": {
+          "seed": 202611155203,
+          "pair": 0,
+          "half": 1,
+          "mode": "soft",
+          "ply": 124,
+          "threads": 2,
+          "fen": "8/p3K3/8/8/1n6/8/p1r5/k7 w - - 0 63",
+          "position": "position startpos moves g1h3 g8f6 b1a3 f6h5 h3f4 h5f4 h1g1 e7e6 d2d4 f8b4 c2c3 b4a3 b2a3 f4g6 g1h1 e8g8 h2h4 h7h6 e2e4 d7d5 h4h5 g6e7 d1g4 g8h8 e4e5 c7c5 a1b1 b8c6 h1h3 c5d4 c3d4 e7f5 f1d3 f5d4 c1b2 d8g5 g4g5 h6g5 h5h6 d4f5 h6g7 h8g7 h3h5 f8h8 h5g5 g7f8 f2f4 f5e7 e1f2 b7b6 g2g4 d5d4 d3e4 c8b7 f4f5 e6f5 g4f5 a8d8 f5f6 e7d5 f2g3 d5c3 b2c3 d4c3 e5e6 f7e6 g5g7 h8g8 b1c1 c6d4 e4d3 d8c8 g3f4 g8g7 f6g7 f8g7 f4e5 d4f3 e5e6 c8c5 e6d6 g7f6 a3a4 f3g5 c1f1 b7f3 d3c2 g5f7 d6d7 f7e5 d7d8 f6e6 f1e1 f3b7 c2b3 b7d5 b3d5 e6d5 e1d1 d5c4 d1e1 c4b4 a4a5 b6a5 e1c1 b4a3 d8e7 e5d3 c1c2 d3b4 c2g2 c3c2 g2c2 c5c2 e7d6 a3a2 d6e6 a2a1 e6e7 a5a4 e7f7 a4a3 f7e7 a3a2",
+          "go": "go softnodes 2500"
+        },
+        "check": {
+          "pair": 0,
+          "mode": "soft",
+          "ply": 124,
+          "bestmove": "e7f8",
+          "last_exact": "info depth 4 seldepth 7 score cp -1782 nodes 2418 nps 186000 hashfull 13 time 13 pv e7f8 c2c8 f8g7 a1b2 g7h6",
+          "soft_lines": 1,
+          "last_score_info": "info depth 4 seldepth 7 score cp -1782 nodes 2418 nps 186000 hashfull 13 time 13 pv e7f8 c2c8 f8g7 a1b2 g7h6",
+          "x": 2766,
+          "item2": 1,
+          "item3": 1,
+          "item4": 0
+        },
+        "rawStdoutSha256": "e0ef1f379a5c6306db53af71e5baa7cc0e412dfbc31c25fb29fa21fca7ee43de",
+        "auditSha256": "0a87c2ee9c454cbe51c49ddc250f485b9db9f11b5ce77ab653b7260ddcc385de"
+      },
+      {
+        "index": 8,
+        "label": "extended-c01-paired-softnodes-asan-on-t2-n2000-d0",
+        "seed": 202611155209,
+        "file": "forge-combo29/tests_astra_parity/faults/softnodes-threads2-item4-0017-8.txt",
+        "sha256": "9800abbaca16ea53ca6bca34338aadfba1c7b3967c206b6758ede9e44c73c88d",
+        "context": {
+          "seed": 202611155209,
+          "pair": 0,
+          "half": 1,
+          "mode": "soft",
+          "ply": 56,
+          "threads": 2,
+          "fen": "8/6rp/1p1kp2P/3p4/3Pp2q/1PP1P3/4QP2/4KN2 w - - 0 29",
+          "position": "position startpos moves b2b3 f7f6 g2g4 b8a6 g1f3 g8h6 a2a4 b7b5 a4b5 a6c5 b1c3 c8b7 d2d4 c5e4 c3e4 b7e4 c1h6 g7h6 e2e3 e7e6 c2c3 h6h5 g4h5 f6f5 h1g1 f8d6 f1d3 d8f6 d3e4 f5e4 f3d2 d6h2 g1h1 h8g8 h1h2 g8g1 d2f1 d7d5 h5h6 e8d7 e1d2 a8g8 a1a7 g8g2 d1e2 g2h2 f1h2 f6h4 h2f1 g1g2 d2e1 d7d6 b5b6 c7b6 a7g7 g2g7",
+          "go": "go softnodes 2500"
+        },
+        "check": {
+          "pair": 0,
+          "mode": "soft",
+          "ply": 56,
+          "bestmove": "h6g7",
+          "last_exact": "info depth 9 seldepth 18 score cp 898 nodes 2379 nps 297375 hashfull 1 time 8 pv h6g7 h4g5 e2a6 g5g7 a6b6 d6e7 b6c7 e7f6 c7g7 f6g7 b3b4 g7f8 f1d2 f8e7 c3c4",
+          "soft_lines": 1,
+          "last_score_info": "info depth 9 seldepth 18 score cp 898 nodes 2379 nps 297375 hashfull 1 time 8 pv h6g7 h4g5 e2a6 g5g7 a6b6 d6e7 b6c7 e7f6 c7g7 f6g7 b3b4 g7f8 f1d2 f8e7 c3c4",
+          "x": 2887,
+          "item2": 1,
+          "item3": 1,
+          "item4": 0
+        },
+        "rawStdoutSha256": "e7e8ad6f957a8964465f7ca8e410361ba5b6db3207befd27cd744bf60184d7bd",
+        "auditSha256": "1b47d7ef622d7bef885e256284a3d271927fa3d0c50cb4d4bee43170b06026ba"
+      }
+    ],
+    "resolved": false,
+    "repeatSearches": 0
   }
 }

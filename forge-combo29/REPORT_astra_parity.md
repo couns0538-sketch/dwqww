@@ -1,11 +1,11 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:15:42.549Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:16:49.584Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
-STOP: two Threads2 softnodes item4 findings; publish and askFable/Opus before any furthernative.
-Final paired UCI batch extended-c01-paired-softnodes-asan-on-t2-n2000-d0: accepted-clean 0 games / 0 searches; cumulative 108 games / 15514 searches. 2 batches with observed findings; 0 incomplete. Preliminary coverage excluded. STOP and send item3/4 trigger before further engine work.
+Stopped on two Threads2 soft-node item4 failures; Fable/Opus decision pending.
+Full exact histories and output preserved for both item4 failures. Items2/3 passed; zero sanitizer diagnostics. Earlier clean Threads1 coverage remains108games/15514searches; two failed batches receive zero clean credit. No further engine runs or source changes.
 
 | Check | Result |
 |---|---|
@@ -86,6 +86,12 @@ Before this stop, two whole pairs completed (4 games,611 searches). Including th
 
 In those51 capped searches, X was10000 each; the last completed exact iteration averaged1624 nodes (range196–2474) and depth8.627. Those observations include the partial third pair; they do not compare cap factors or establish a strength result. [Per-search transcript-derived values](tests_astra_parity/inputs/soft-cap-observations.txt).
 
+Two later Threads2 batches failed item4: the last exact info line reported fewer than2500 nodes, while final X was above2500 and below10000. Items2/3 passed. Both complete histories and output are retained; no targeted repeats were run and neither batch receives clean credit.
+- Seed 202611155203, options off: info depth 4 seldepth 7 score cp -1782 nodes 2418 nps 186000 hashfull 13 time 13 pv e7f8 c2c8 f8g7 a1b2 g7h6; X=2766; bestmove e7f8. [Full fault](tests_astra_parity/faults/softnodes-threads2-item4-0017-2.txt).
+- Seed 202611155209, options HindsightDepth+MateAlphaGuard on: info depth 9 seldepth 18 score cp 898 nodes 2379 nps 297375 hashfull 1 time 8 pv h6g7 h4g5 e2a6 g5g7 a6b6 d6e7 b6c7 e7f6 c7g7 f6g7 b3b4 g7f8 f1d2 f8e7 c3c4; X=2887; bestmove h6g7. [Full fault](tests_astra_parity/faults/softnodes-threads2-item4-0017-8.txt).
+
+Further engine work is paused pending Fable/Opus review. No source or acceptance rule was changed.
+
 Preliminary sanitizer results test the three-import tree and are recorded separately from final-tree coverage. The old in-process driver reuses a Searcher through successive moves. The new UCI harness pairs usual-limit and softnodes2500 games and checks the exact training-label contract.
 
 The actual owner-PC compiler, PGO profile, runtime tuning and active network were not independently tested here. This report covers the specifically requested source changes, cloud builds and recorded options. Fable reports an independent source comparison in answer0012; that is attributed evidence, not a cloud run on the PC.
@@ -95,4 +101,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 26, including this checkpoint.
+Progress pushes: 27, including this checkpoint.

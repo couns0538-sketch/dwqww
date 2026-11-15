@@ -1,0 +1,27 @@
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+const root='/workspace/work/parity-run', sf=root+'/state.json', s=JSON.parse(fs.readFileSync(sf));
+const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+assert.equal(s.blockFurtherEngineWork,true);
+const faults=[];
+for(const index of [2,8]) {
+ const r=s.extendedPairedSoftnodesRows.find(x=>x.index===index);
+ assert.equal(r.passed,false); assert.equal(r.labelFaultContexts.length,1); assert.equal(r.failingLabelChecks.length,1);
+ const c=r.labelFaultContexts[0], check=r.failingLabelChecks[0];
+ const parts=['Soft-node item4 finding0017; original observation, not a replay.',`Recorded ${new Date().toISOString()}`,`Source ${s.sameClockCommit}`,`Batch ${r.label}; seed ${r.seed}; Threads2; Hash16; OwnBookfalse; MultiPV1; UseNNUEtrue.`, `HindsightDepth and MateAlphaGuard ${r.enabled}; every other option at default.`, 'A single engine process played an ordinary and soft-node game from the same eight opening plies. ucinewgame was sent between games, not between moves. Prior search state is part of the trigger; a FEN-only search would be a different experiment.', 'Repetition frequency: not measured (zero targeted repeats). Both active batches had already finalized on the finding; no engine run started afterward. The immediate-stop instruction remains in force.', 'Items2/3 pass; item4 fails. No sanitizer output, illegal move, missing move or abnormal engine exit was reported in this batch. This is not a race-detector result.', 'Batch receives zero accepted-clean credit. Its finished game and partial observations remain separate.', 'EXACT FAULT CONTEXT',JSON.stringify(c,null,2),'EXACT LABEL CHECK',JSON.stringify(check,null,2)];
+ for(const name of ['command.txt','input-pins.txt','start.txt','stdout.txt','stderr.txt']) {
+  const b=fs.readFileSync(r.rawSource+'/'+name);assert.equal(sha(b),r.rawPins[r.rawSource+'/'+name]);
+  parts.push(`FULL ${name}; bytes=${b.length}; sha256=${sha(b)}`,b.toString('utf8'),`END ${name}`);
+ }
+ const rel=`forge-combo29/tests_astra_parity/faults/softnodes-threads2-item4-0017-${index}.txt`, body=parts.join('\n')+'\n';
+ fs.writeFileSync(s.repo+'/'+rel,body,{flag:'wx'});
+ faults.push({index,label:r.label,seed:r.seed,file:rel,sha256:sha(body),context:c,check,rawStdoutSha256:r.rawPins[r.rawSource+'/stdout.txt'],auditSha256:r.auditSha256});
+}
+s.softnodesThreads2Faults={recordedUTC:new Date().toISOString(),sourceCommit:s.sameClockCommit,faults,resolved:false,repeatSearches:0};
+s.phase='Stopped on two Threads2 soft-node item4 failures; Fable/Opus decision pending';
+s.progressBatch='extended indices2/8; seeds202611155203/202611155209';
+s.checkpointNote='Full exact histories and output preserved for both item4 failures. Items2/3 passed; zero sanitizer diagnostics. Earlier clean Threads1 coverage remains108games/15514searches; two failed batches receive zero clean credit. No further engine runs or source changes.';
+s.commitMessage='Preserve both Threads2 soft-node contract failures and exact histories';
+fs.writeFileSync(sf,JSON.stringify(s,null,2)+'\n');
+console.log(JSON.stringify({faults:faults.map(({index,file,sha256})=>({index,file,sha256})),blocked:s.blockFurtherEngineWork}));
