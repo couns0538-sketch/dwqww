@@ -5,7 +5,7 @@
   "start": "2026-11-14T23:19:40.000Z",
   "budgetMinutes": 180,
   "deadline": "2026-11-15T04:20:00.000Z",
-  "phase": "Final paired sanitizer workload 4/12 distinct groups covered; 4 clean batches",
+  "phase": "Final paired sanitizer workload 8/12 distinct groups covered; 8 clean batches",
   "sourceCommits": [
     {
       "step": 1,
@@ -55,8 +55,8 @@
       "stat": "c488e88f Apply source-only r3-20-faster-search-plumbing by three-way merge from e04556dd\n forge-combo29/include/forge/bitboard.hpp |   6 ++\n forge-combo29/include/forge/board.hpp    |  29 +++++++\n forge-combo29/src/bitboard.cpp           |   7 ++\n forge-combo29/src/board.cpp              | 144 +++++++++++++++++++------------\n forge-combo29/src/search.cpp             | 120 ++++++++++++++++++++------\n 5 files changed, 227 insertions(+), 79 deletions(-)"
     }
   ],
-  "pushes": 36,
-  "lastPush": "2026-11-15T03:16:18.041Z",
+  "pushes": 37,
+  "lastPush": "2026-11-15T03:26:07.535Z",
   "sourceChangesOnly": [
     "forge-combo29/src",
     "forge-combo29/include"
@@ -74,7 +74,7 @@
     "step1 any equality difference stops dependent work",
     "counts only; owner no Elo/speed claims overrides external request"
   ],
-  "lastCommit": "b16f8335ce00967f148e79961220becc42d4db1b",
+  "lastCommit": "c5370f04cb5fd8e5ed257ac81b866b4593b701fe",
   "validation": {
     "step1": {
       "build": "passed",
@@ -1828,27 +1828,27 @@
     },
     "continuationPairedSoftnodes": {
       "smpSamplingExceptions": {
-        "observed": 63,
-        "completedPairObservations": 63,
-        "acceptedClean": 63
+        "observed": 246,
+        "completedPairObservations": 246,
+        "acceptedClean": 246
       },
-      "recordedBatches": 4,
-      "completeBatches": 4,
-      "passedBatches": 4,
+      "recordedBatches": 8,
+      "completeBatches": 8,
+      "passedBatches": 8,
       "failedBatches": 0,
       "incompleteBatches": 0,
       "zeroCoverageBatches": 0,
-      "pairs": 54,
+      "pairs": 194,
       "usual": {
-        "games": 54,
-        "searches": 7786,
-        "moves": 7786,
-        "mates": 41,
+        "games": 194,
+        "searches": 26654,
+        "moves": 26654,
+        "mates": 143,
         "stalemates": 0,
-        "repetitions": 11,
-        "fifty": 1,
-        "insufficient": 0,
-        "ply_caps": 1,
+        "repetitions": 36,
+        "fifty": 6,
+        "insufficient": 6,
+        "ply_caps": 3,
         "opening_terminals": 1,
         "soft_x_count": 0,
         "soft_x_sum": 0,
@@ -1856,33 +1856,33 @@
         "soft_mean_x": null
       },
       "soft": {
-        "games": 54,
-        "searches": 7764,
-        "moves": 7764,
-        "mates": 36,
+        "games": 194,
+        "searches": 27399,
+        "moves": 27399,
+        "mates": 120,
         "stalemates": 0,
-        "repetitions": 10,
-        "fifty": 4,
-        "insufficient": 2,
-        "ply_caps": 2,
+        "repetitions": 48,
+        "fifty": 11,
+        "insufficient": 10,
+        "ply_caps": 5,
         "opening_terminals": 1,
-        "soft_x_count": 7764,
-        "soft_x_sum": 43319647,
-        "soft_hard_cap_reached": 1095,
-        "soft_mean_x": 5579.552679031427
+        "soft_x_count": 27399,
+        "soft_x_sum": 151920469,
+        "soft_hard_cap_reached": 3812,
+        "soft_mean_x": 5544.745027190774
       },
       "completedPairObservations": {
-        "pairs": 54,
+        "pairs": 194,
         "usual": {
-          "games": 54,
-          "searches": 7786,
-          "moves": 7786,
-          "mates": 41,
+          "games": 194,
+          "searches": 26654,
+          "moves": 26654,
+          "mates": 143,
           "stalemates": 0,
-          "repetitions": 11,
-          "fifty": 1,
-          "insufficient": 0,
-          "ply_caps": 1,
+          "repetitions": 36,
+          "fifty": 6,
+          "insufficient": 6,
+          "ply_caps": 3,
           "opening_terminals": 1,
           "soft_x_count": 0,
           "soft_x_sum": 0,
@@ -1890,20 +1890,20 @@
           "soft_mean_x": null
         },
         "soft": {
-          "games": 54,
-          "searches": 7764,
-          "moves": 7764,
-          "mates": 36,
+          "games": 194,
+          "searches": 27399,
+          "moves": 27399,
+          "mates": 120,
           "stalemates": 0,
-          "repetitions": 10,
-          "fifty": 4,
-          "insufficient": 2,
-          "ply_caps": 2,
+          "repetitions": 48,
+          "fifty": 11,
+          "insufficient": 10,
+          "ply_caps": 5,
           "opening_terminals": 1,
-          "soft_x_count": 7764,
-          "soft_x_sum": 43319647,
-          "soft_hard_cap_reached": 1095,
-          "soft_mean_x": 5579.552679031427
+          "soft_x_count": 27399,
+          "soft_x_sum": 151920469,
+          "soft_hard_cap_reached": 3812,
+          "soft_mean_x": 5544.745027190774
         }
       },
       "diagnosticLines": 0,
@@ -1921,22 +1921,67 @@
       "unknownUnassignedSoftBatches": 0,
       "faultReasons": {},
       "shutdownTiming": {
-        "events": 4,
-        "measured": 4,
+        "events": 8,
+        "measured": 8,
         "unavailable": 0,
         "over100ms": 0,
-        "maxMs": 56.511988,
+        "maxMs": 77.276126,
         "groups": {
           "forced=false:batchComplete=true": {
-            "events": 4,
-            "measured": 4,
+            "events": 8,
+            "measured": 8,
             "unavailable": 0,
             "over100ms": 0,
-            "maxMs": 56.511988
+            "maxMs": 77.276126
           }
         }
       },
       "groups": {
+        "asan/off/t1/n2000/d0": {
+          "smpSamplingExceptions": {
+            "observed": 0,
+            "completedPairObservations": 0,
+            "acceptedClean": 0
+          },
+          "batches": 1,
+          "pairs": 27,
+          "usual": {
+            "games": 27,
+            "searches": 3940,
+            "moves": 3940,
+            "mates": 17,
+            "stalemates": 0,
+            "repetitions": 3,
+            "fifty": 3,
+            "insufficient": 3,
+            "ply_caps": 1,
+            "opening_terminals": 0,
+            "soft_x_count": 0,
+            "soft_x_sum": 0,
+            "soft_hard_cap_reached": 0,
+            "soft_mean_x": null
+          },
+          "soft": {
+            "games": 27,
+            "searches": 4098,
+            "moves": 4098,
+            "mates": 15,
+            "stalemates": 0,
+            "repetitions": 7,
+            "fifty": 3,
+            "insufficient": 0,
+            "ply_caps": 2,
+            "opening_terminals": 0,
+            "soft_x_count": 4098,
+            "soft_x_sum": 22235890,
+            "soft_hard_cap_reached": 515,
+            "soft_mean_x": 5426.034651049293
+          },
+          "passed": 1,
+          "failed": 0,
+          "diagnosticLines": 0,
+          "faultRows": 0
+        },
         "asan/off/t1/n20000/d0": {
           "smpSamplingExceptions": {
             "observed": 0,
@@ -1976,6 +2021,51 @@
             "soft_x_sum": 8027847,
             "soft_hard_cap_reached": 159,
             "soft_mean_x": 5250.390451275343
+          },
+          "passed": 1,
+          "failed": 0,
+          "diagnosticLines": 0,
+          "faultRows": 0
+        },
+        "asan/off/t2/n2000/d0": {
+          "smpSamplingExceptions": {
+            "observed": 84,
+            "completedPairObservations": 84,
+            "acceptedClean": 84
+          },
+          "batches": 1,
+          "pairs": 43,
+          "usual": {
+            "games": 43,
+            "searches": 5621,
+            "moves": 5621,
+            "mates": 30,
+            "stalemates": 0,
+            "repetitions": 11,
+            "fifty": 1,
+            "insufficient": 1,
+            "ply_caps": 0,
+            "opening_terminals": 0,
+            "soft_x_count": 0,
+            "soft_x_sum": 0,
+            "soft_hard_cap_reached": 0,
+            "soft_mean_x": null
+          },
+          "soft": {
+            "games": 43,
+            "searches": 5655,
+            "moves": 5655,
+            "mates": 31,
+            "stalemates": 0,
+            "repetitions": 8,
+            "fifty": 1,
+            "insufficient": 3,
+            "ply_caps": 0,
+            "opening_terminals": 0,
+            "soft_x_count": 5655,
+            "soft_x_sum": 31863271,
+            "soft_hard_cap_reached": 849,
+            "soft_mean_x": 5634.530680813439
           },
           "passed": 1,
           "failed": 0,
@@ -2027,6 +2117,51 @@
           "diagnosticLines": 0,
           "faultRows": 0
         },
+        "asan/on/t1/n2000/d0": {
+          "smpSamplingExceptions": {
+            "observed": 0,
+            "completedPairObservations": 0,
+            "acceptedClean": 0
+          },
+          "batches": 1,
+          "pairs": 29,
+          "usual": {
+            "games": 29,
+            "searches": 3946,
+            "moves": 3946,
+            "mates": 20,
+            "stalemates": 0,
+            "repetitions": 7,
+            "fifty": 1,
+            "insufficient": 1,
+            "ply_caps": 0,
+            "opening_terminals": 0,
+            "soft_x_count": 0,
+            "soft_x_sum": 0,
+            "soft_hard_cap_reached": 0,
+            "soft_mean_x": null
+          },
+          "soft": {
+            "games": 29,
+            "searches": 3915,
+            "moves": 3915,
+            "mates": 14,
+            "stalemates": 0,
+            "repetitions": 12,
+            "fifty": 1,
+            "insufficient": 2,
+            "ply_caps": 0,
+            "opening_terminals": 0,
+            "soft_x_count": 3915,
+            "soft_x_sum": 20911841,
+            "soft_hard_cap_reached": 414,
+            "soft_mean_x": 5341.4664112388255
+          },
+          "passed": 1,
+          "failed": 0,
+          "diagnosticLines": 0,
+          "faultRows": 0
+        },
         "asan/on/t1/n20000/d0": {
           "smpSamplingExceptions": {
             "observed": 0,
@@ -2066,6 +2201,51 @@
             "soft_x_sum": 7596988,
             "soft_hard_cap_reached": 145,
             "soft_mean_x": 5323.747722494744
+          },
+          "passed": 1,
+          "failed": 0,
+          "diagnosticLines": 0,
+          "faultRows": 0
+        },
+        "asan/on/t2/n2000/d0": {
+          "smpSamplingExceptions": {
+            "observed": 99,
+            "completedPairObservations": 99,
+            "acceptedClean": 99
+          },
+          "batches": 1,
+          "pairs": 41,
+          "usual": {
+            "games": 41,
+            "searches": 5361,
+            "moves": 5361,
+            "mates": 35,
+            "stalemates": 0,
+            "repetitions": 4,
+            "fifty": 0,
+            "insufficient": 1,
+            "ply_caps": 1,
+            "opening_terminals": 0,
+            "soft_x_count": 0,
+            "soft_x_sum": 0,
+            "soft_hard_cap_reached": 0,
+            "soft_mean_x": null
+          },
+          "soft": {
+            "games": 41,
+            "searches": 5967,
+            "moves": 5967,
+            "mates": 24,
+            "stalemates": 0,
+            "repetitions": 11,
+            "fifty": 2,
+            "insufficient": 3,
+            "ply_caps": 1,
+            "opening_terminals": 0,
+            "soft_x_count": 5967,
+            "soft_x_sum": 33589820,
+            "soft_hard_cap_reached": 939,
+            "soft_mean_x": 5629.264286911346
           },
           "passed": 1,
           "failed": 0,
@@ -2120,36 +2300,36 @@
       },
       "observedIncludingPartialPair": {
         "usual": {
-          "games": 54,
-          "searches": 7786
+          "games": 194,
+          "searches": 26654
         },
         "soft": {
-          "games": 54,
-          "searches": 7764
+          "games": 194,
+          "searches": 27399
         }
       },
-      "games": 108,
-      "searches": 15550,
+      "games": 388,
+      "searches": 54053,
       "plannedBatchInventory": 72,
       "uniqueGroupsRequired": 12,
       "completePlan": false,
       "passedPlan": false,
-      "uniqueGroupsTested": 4,
-      "uniqueGroupsPassed": 4,
+      "uniqueGroupsTested": 8,
+      "uniqueGroupsPassed": 8,
       "matrixCoverageComplete": false,
       "repeatBatches": 0,
-      "unrunPlannedBatches": 68,
+      "unrunPlannedBatches": 64,
       "cycles": {
         "0": {
-          "recorded": 4,
-          "passed": 4,
+          "recorded": 8,
+          "passed": 8,
           "failed": 0
         }
       },
-      "softXSum": 43319647,
-      "softXCount": 7764,
-      "softMeanX": 5579.552679031427,
-      "softHardCaps": 1095,
+      "softXSum": 151920469,
+      "softXCount": 27399,
+      "softMeanX": 5544.745027190774,
+      "softHardCaps": 3812,
       "preliminaryIncluded": false,
       "blockFurtherEngineWork": false,
       "auditUnavailableBatches": 0,
@@ -2175,8 +2355,8 @@
       "smpProtocolCreditIncluded": false
     }
   },
-  "checkpointNote": "Final paired UCI batch continuation0018-c01-paired-softnodes-asan-on-t2-n20000-d0: accepted-clean 28 games / 4611 searches; cumulative 108 games / 15550 searches. 0 batches with observed findings; 0 incomplete. Preliminary coverage excluded. ",
-  "progressBatch": "continuation0018-c01-paired-softnodes-asan-on-t2-n20000-d0 seed202611170110",
+  "checkpointNote": "Final paired UCI batch continuation0018-c01-paired-softnodes-asan-on-t2-n2000-d0: accepted-clean 82 games / 11328 searches; cumulative 388 games / 54053 searches. 0 batches with observed findings; 0 incomplete. Preliminary coverage excluded. ",
+  "progressBatch": "continuation0018-c01-paired-softnodes-asan-on-t2-n2000-d0 seed202611170109",
   "active": null,
   "equalityTotals": {
     "step1": {
@@ -2906,7 +3086,7 @@
       "excludedAttempts": 0
     },
     "finalTree": {
-      "status": "4/12 distinct amended groups covered (4 clean batches); 0 failed or incomplete; original contract failure retained",
+      "status": "8/12 distinct amended groups covered (8 clean batches); 0 failed or incomplete; original contract failure retained",
       "pairedSoftnodes": {
         "recordedBatches": 1,
         "completeBatches": 1,
@@ -3081,8 +3261,8 @@
         "continuationAllowed": false,
         "faultCountingUnit": "Batches with observed engine, label, diagnostic or shutdown findings; failed/zero-coverage/incomplete batches listed separately."
       },
-      "games": 108,
-      "searches": 15550,
+      "games": 388,
+      "searches": 54053,
       "faults": 5,
       "faultCountingUnit": "Continuation0018 finding batches plus separately retained original, extended and SMP failure batches; old acceptance is never rewritten.",
       "extendedPairedSoftnodes": {
@@ -3742,27 +3922,27 @@
       },
       "continuationPairedSoftnodes": {
         "smpSamplingExceptions": {
-          "observed": 63,
-          "completedPairObservations": 63,
-          "acceptedClean": 63
+          "observed": 246,
+          "completedPairObservations": 246,
+          "acceptedClean": 246
         },
-        "recordedBatches": 4,
-        "completeBatches": 4,
-        "passedBatches": 4,
+        "recordedBatches": 8,
+        "completeBatches": 8,
+        "passedBatches": 8,
         "failedBatches": 0,
         "incompleteBatches": 0,
         "zeroCoverageBatches": 0,
-        "pairs": 54,
+        "pairs": 194,
         "usual": {
-          "games": 54,
-          "searches": 7786,
-          "moves": 7786,
-          "mates": 41,
+          "games": 194,
+          "searches": 26654,
+          "moves": 26654,
+          "mates": 143,
           "stalemates": 0,
-          "repetitions": 11,
-          "fifty": 1,
-          "insufficient": 0,
-          "ply_caps": 1,
+          "repetitions": 36,
+          "fifty": 6,
+          "insufficient": 6,
+          "ply_caps": 3,
           "opening_terminals": 1,
           "soft_x_count": 0,
           "soft_x_sum": 0,
@@ -3770,33 +3950,33 @@
           "soft_mean_x": null
         },
         "soft": {
-          "games": 54,
-          "searches": 7764,
-          "moves": 7764,
-          "mates": 36,
+          "games": 194,
+          "searches": 27399,
+          "moves": 27399,
+          "mates": 120,
           "stalemates": 0,
-          "repetitions": 10,
-          "fifty": 4,
-          "insufficient": 2,
-          "ply_caps": 2,
+          "repetitions": 48,
+          "fifty": 11,
+          "insufficient": 10,
+          "ply_caps": 5,
           "opening_terminals": 1,
-          "soft_x_count": 7764,
-          "soft_x_sum": 43319647,
-          "soft_hard_cap_reached": 1095,
-          "soft_mean_x": 5579.552679031427
+          "soft_x_count": 27399,
+          "soft_x_sum": 151920469,
+          "soft_hard_cap_reached": 3812,
+          "soft_mean_x": 5544.745027190774
         },
         "completedPairObservations": {
-          "pairs": 54,
+          "pairs": 194,
           "usual": {
-            "games": 54,
-            "searches": 7786,
-            "moves": 7786,
-            "mates": 41,
+            "games": 194,
+            "searches": 26654,
+            "moves": 26654,
+            "mates": 143,
             "stalemates": 0,
-            "repetitions": 11,
-            "fifty": 1,
-            "insufficient": 0,
-            "ply_caps": 1,
+            "repetitions": 36,
+            "fifty": 6,
+            "insufficient": 6,
+            "ply_caps": 3,
             "opening_terminals": 1,
             "soft_x_count": 0,
             "soft_x_sum": 0,
@@ -3804,20 +3984,20 @@
             "soft_mean_x": null
           },
           "soft": {
-            "games": 54,
-            "searches": 7764,
-            "moves": 7764,
-            "mates": 36,
+            "games": 194,
+            "searches": 27399,
+            "moves": 27399,
+            "mates": 120,
             "stalemates": 0,
-            "repetitions": 10,
-            "fifty": 4,
-            "insufficient": 2,
-            "ply_caps": 2,
+            "repetitions": 48,
+            "fifty": 11,
+            "insufficient": 10,
+            "ply_caps": 5,
             "opening_terminals": 1,
-            "soft_x_count": 7764,
-            "soft_x_sum": 43319647,
-            "soft_hard_cap_reached": 1095,
-            "soft_mean_x": 5579.552679031427
+            "soft_x_count": 27399,
+            "soft_x_sum": 151920469,
+            "soft_hard_cap_reached": 3812,
+            "soft_mean_x": 5544.745027190774
           }
         },
         "diagnosticLines": 0,
@@ -3835,22 +4015,67 @@
         "unknownUnassignedSoftBatches": 0,
         "faultReasons": {},
         "shutdownTiming": {
-          "events": 4,
-          "measured": 4,
+          "events": 8,
+          "measured": 8,
           "unavailable": 0,
           "over100ms": 0,
-          "maxMs": 56.511988,
+          "maxMs": 77.276126,
           "groups": {
             "forced=false:batchComplete=true": {
-              "events": 4,
-              "measured": 4,
+              "events": 8,
+              "measured": 8,
               "unavailable": 0,
               "over100ms": 0,
-              "maxMs": 56.511988
+              "maxMs": 77.276126
             }
           }
         },
         "groups": {
+          "asan/off/t1/n2000/d0": {
+            "smpSamplingExceptions": {
+              "observed": 0,
+              "completedPairObservations": 0,
+              "acceptedClean": 0
+            },
+            "batches": 1,
+            "pairs": 27,
+            "usual": {
+              "games": 27,
+              "searches": 3940,
+              "moves": 3940,
+              "mates": 17,
+              "stalemates": 0,
+              "repetitions": 3,
+              "fifty": 3,
+              "insufficient": 3,
+              "ply_caps": 1,
+              "opening_terminals": 0,
+              "soft_x_count": 0,
+              "soft_x_sum": 0,
+              "soft_hard_cap_reached": 0,
+              "soft_mean_x": null
+            },
+            "soft": {
+              "games": 27,
+              "searches": 4098,
+              "moves": 4098,
+              "mates": 15,
+              "stalemates": 0,
+              "repetitions": 7,
+              "fifty": 3,
+              "insufficient": 0,
+              "ply_caps": 2,
+              "opening_terminals": 0,
+              "soft_x_count": 4098,
+              "soft_x_sum": 22235890,
+              "soft_hard_cap_reached": 515,
+              "soft_mean_x": 5426.034651049293
+            },
+            "passed": 1,
+            "failed": 0,
+            "diagnosticLines": 0,
+            "faultRows": 0
+          },
           "asan/off/t1/n20000/d0": {
             "smpSamplingExceptions": {
               "observed": 0,
@@ -3890,6 +4115,51 @@
               "soft_x_sum": 8027847,
               "soft_hard_cap_reached": 159,
               "soft_mean_x": 5250.390451275343
+            },
+            "passed": 1,
+            "failed": 0,
+            "diagnosticLines": 0,
+            "faultRows": 0
+          },
+          "asan/off/t2/n2000/d0": {
+            "smpSamplingExceptions": {
+              "observed": 84,
+              "completedPairObservations": 84,
+              "acceptedClean": 84
+            },
+            "batches": 1,
+            "pairs": 43,
+            "usual": {
+              "games": 43,
+              "searches": 5621,
+              "moves": 5621,
+              "mates": 30,
+              "stalemates": 0,
+              "repetitions": 11,
+              "fifty": 1,
+              "insufficient": 1,
+              "ply_caps": 0,
+              "opening_terminals": 0,
+              "soft_x_count": 0,
+              "soft_x_sum": 0,
+              "soft_hard_cap_reached": 0,
+              "soft_mean_x": null
+            },
+            "soft": {
+              "games": 43,
+              "searches": 5655,
+              "moves": 5655,
+              "mates": 31,
+              "stalemates": 0,
+              "repetitions": 8,
+              "fifty": 1,
+              "insufficient": 3,
+              "ply_caps": 0,
+              "opening_terminals": 0,
+              "soft_x_count": 5655,
+              "soft_x_sum": 31863271,
+              "soft_hard_cap_reached": 849,
+              "soft_mean_x": 5634.530680813439
             },
             "passed": 1,
             "failed": 0,
@@ -3941,6 +4211,51 @@
             "diagnosticLines": 0,
             "faultRows": 0
           },
+          "asan/on/t1/n2000/d0": {
+            "smpSamplingExceptions": {
+              "observed": 0,
+              "completedPairObservations": 0,
+              "acceptedClean": 0
+            },
+            "batches": 1,
+            "pairs": 29,
+            "usual": {
+              "games": 29,
+              "searches": 3946,
+              "moves": 3946,
+              "mates": 20,
+              "stalemates": 0,
+              "repetitions": 7,
+              "fifty": 1,
+              "insufficient": 1,
+              "ply_caps": 0,
+              "opening_terminals": 0,
+              "soft_x_count": 0,
+              "soft_x_sum": 0,
+              "soft_hard_cap_reached": 0,
+              "soft_mean_x": null
+            },
+            "soft": {
+              "games": 29,
+              "searches": 3915,
+              "moves": 3915,
+              "mates": 14,
+              "stalemates": 0,
+              "repetitions": 12,
+              "fifty": 1,
+              "insufficient": 2,
+              "ply_caps": 0,
+              "opening_terminals": 0,
+              "soft_x_count": 3915,
+              "soft_x_sum": 20911841,
+              "soft_hard_cap_reached": 414,
+              "soft_mean_x": 5341.4664112388255
+            },
+            "passed": 1,
+            "failed": 0,
+            "diagnosticLines": 0,
+            "faultRows": 0
+          },
           "asan/on/t1/n20000/d0": {
             "smpSamplingExceptions": {
               "observed": 0,
@@ -3980,6 +4295,51 @@
               "soft_x_sum": 7596988,
               "soft_hard_cap_reached": 145,
               "soft_mean_x": 5323.747722494744
+            },
+            "passed": 1,
+            "failed": 0,
+            "diagnosticLines": 0,
+            "faultRows": 0
+          },
+          "asan/on/t2/n2000/d0": {
+            "smpSamplingExceptions": {
+              "observed": 99,
+              "completedPairObservations": 99,
+              "acceptedClean": 99
+            },
+            "batches": 1,
+            "pairs": 41,
+            "usual": {
+              "games": 41,
+              "searches": 5361,
+              "moves": 5361,
+              "mates": 35,
+              "stalemates": 0,
+              "repetitions": 4,
+              "fifty": 0,
+              "insufficient": 1,
+              "ply_caps": 1,
+              "opening_terminals": 0,
+              "soft_x_count": 0,
+              "soft_x_sum": 0,
+              "soft_hard_cap_reached": 0,
+              "soft_mean_x": null
+            },
+            "soft": {
+              "games": 41,
+              "searches": 5967,
+              "moves": 5967,
+              "mates": 24,
+              "stalemates": 0,
+              "repetitions": 11,
+              "fifty": 2,
+              "insufficient": 3,
+              "ply_caps": 1,
+              "opening_terminals": 0,
+              "soft_x_count": 5967,
+              "soft_x_sum": 33589820,
+              "soft_hard_cap_reached": 939,
+              "soft_mean_x": 5629.264286911346
             },
             "passed": 1,
             "failed": 0,
@@ -4034,36 +4394,36 @@
         },
         "observedIncludingPartialPair": {
           "usual": {
-            "games": 54,
-            "searches": 7786
+            "games": 194,
+            "searches": 26654
           },
           "soft": {
-            "games": 54,
-            "searches": 7764
+            "games": 194,
+            "searches": 27399
           }
         },
-        "games": 108,
-        "searches": 15550,
+        "games": 388,
+        "searches": 54053,
         "plannedBatchInventory": 72,
         "uniqueGroupsRequired": 12,
         "completePlan": false,
         "passedPlan": false,
-        "uniqueGroupsTested": 4,
-        "uniqueGroupsPassed": 4,
+        "uniqueGroupsTested": 8,
+        "uniqueGroupsPassed": 8,
         "matrixCoverageComplete": false,
         "repeatBatches": 0,
-        "unrunPlannedBatches": 68,
+        "unrunPlannedBatches": 64,
         "cycles": {
           "0": {
-            "recorded": 4,
-            "passed": 4,
+            "recorded": 8,
+            "passed": 8,
             "failed": 0
           }
         },
-        "softXSum": 43319647,
-        "softXCount": 7764,
-        "softMeanX": 5579.552679031427,
-        "softHardCaps": 1095,
+        "softXSum": 151920469,
+        "softXCount": 27399,
+        "softMeanX": 5544.745027190774,
+        "softHardCaps": 3812,
         "preliminaryIncluded": false,
         "blockFurtherEngineWork": false,
         "auditUnavailableBatches": 0,
@@ -4091,7 +4451,7 @@
     }
   },
   "toolingRecovery": "Soak aggregate initially expected a faults field absent from two manually recorded rows. Failure retained; revised aggregator reads immutable original audit evidence for every row and verifies counts/accepted status. No engine rerun or raw result change.",
-  "newRequiredCoverage": "The amended SMP protocol is declared; all remaining sanitizer conditions and JobB still require actual runs. Historical clean coverage108games/15514searches remains separate.",
+  "newRequiredCoverage": "The tables above report actual accepted coverage for each final-tree protocol. Earlier failed batches remain retained with zero clean credit. The continuation reserves eight ASan/UBSan conditions and four node-capped TSan conditions; only audited, recorded runs count. JobB is underway under decision0018 and its actual completed-game counts are reported separately.",
   "equalityRows": [
     {
       "stage": "speed",
@@ -13499,27 +13859,189 @@
       "seed": 202611150011,
       "openingStart": 1,
       "requestedGames": 100
+    },
+    {
+      "schema": 1,
+      "protocol": "hindsight-fixed-node-counts-only-0018",
+      "decision0018": {
+        "commit": "fe59dc3ab072480f7360f0b356ff01a900d2ab35",
+        "file": "/workspace/work/parity-run/inputs/FABLE_ANSWER_0018.md.txt",
+        "sha256": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b"
+      },
+      "step2AcceptanceEvidence": [
+        {
+          "file": "/workspace/work/parity-run/inputs/step2-effective-acceptance-S2-0007.txt",
+          "sha256": "11284dcae54beb48546c53f0ca9f4d3c4f92d8cdc97fbd0872452cfbb30f3c5e"
+        }
+      ],
+      "jobACompleteAtDeclaration": false,
+      "sanitizerPendingAtDeclaration": true,
+      "id": "B-0002",
+      "sourceCommit": "d9a8587df8ad4d0ff1231632cb1ac72b590c04bf",
+      "declarationSha256": "272aabae9c842dafd067b55c5d1bb079684a4e81e345b8ca9bc1e64d3b10b84d",
+      "receiptFile": "/workspace/work/parity-run/matches-hindsight/receipts/B-0002.txt",
+      "receiptSha256": "db902a44b22e6af69de32b056368631e65a2e18ac16913b54fe985d8a707fefc",
+      "summaryFile": "/workspace/work/parity-run/matches-hindsight/batches/B-0002.summary.txt",
+      "summarySha256": "d802460f57bd04de5f7718832b05b8ba17834f9a4cbe7ea5fa4c3c11468af4b0",
+      "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0002.artifact-hashes.txt",
+      "artifactHashesSha256": "60424cd1c7f344091cded9ef376f800040af4ba5b633fa1dd58b3e2b3b8693c5",
+      "rawPins": {
+        "/workspace/work/parity-run/matches-hindsight/plans/B-0002.txt": "5ab459a174ca52c9a9184119b25e3b3f931d9fbbe395a593cd7f7ea322679753",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0002.summary.txt": "d802460f57bd04de5f7718832b05b8ba17834f9a4cbe7ea5fa4c3c11468af4b0",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0002.artifact-hashes.txt": "60424cd1c7f344091cded9ef376f800040af4ba5b633fa1dd58b3e2b3b8693c5",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0002.command.txt": "be66cfccc0d4cfc753f7dee7bcabc5bec5dfe28a28bf2faded855edadff1093c",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0002.stdout.txt": "3d7b056b46d5ccfae110c7128c99fbe8418095e6f9e409bd3515e76193c9bf1b",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0002.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0002.console.txt": "3d7b056b46d5ccfae110c7128c99fbe8418095e6f9e409bd3515e76193c9bf1b",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0002.events.ndjson": "47dd4ed615487299105efc670893bd369e0b40e52ff439284aad71be06692d00",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0002.pgn": "f93aab2ee982a93aac4ea27e950286cca2eccdbd6a0de1f692ece919ab0ebaaf",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0002.engine.log": "3d21cdeb29d7871eb5420ef8011c9ed67b492b55f98f9c9327127f96d2cab678",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0002.config.json": "d6874788c22767f452c1c4115fceb55f2e3a22927ca0387d69d91e8cb960bcfd",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0002.process.txt": "dd5225b6fbf286b3219792435f967f717e0d2652f726371460b30feb3028daaa"
+      },
+      "recorderPins": {
+        "/workspace/work/parity-match-0018-recording-preparation/record.mjs": "2160080f7d70c37cd309fe494b2d2cc0da4affbcbf63bffd2bd09dff738d62a6",
+        "/workspace/work/parity-match-0018-recording-preparation/accounting.mjs": "234d6013b14fa9ad5179bb41cd671ab0ecee1adab75d1ad490bca8580ed91040",
+        "/workspace/work/parity-match-0018-recording-preparation/validate.mjs": "dd1fc5900f0e806ba0feb208bda074292501f00b8386381b18f06890f4247334"
+      },
+      "externalPins": {
+        "/workspace/work/parity-run/package-evidence.mjs": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
+        "/workspace/work/parity-equality-preparation-v3/evidence-integrity.mjs": "33d1373916608c7cd3ffc97a1e0c1ca774fb949b38745a4cc5f73f9117202601",
+        "/workspace/work/parity-match-0018-preparation/controller.mjs": "a17da2efce953f84c1eab052d892210e45ed8adc3e153a48d3ec88ff00a4dbea",
+        "/workspace/work/parity-match-0018-preparation/protocol.mjs": "6421456840bc13431da54085bb99c40533d60ed34027dd759482ec84928e7892",
+        "/workspace/work/parity-match-0018-preparation/audit-command.mjs": "69e7bd8677ce4cff4f6d55e2470169d78afb2737175a4f947c14c13b133719d7",
+        "/workspace/work/parity-match-0018-preparation/audit-core.mjs": "d030f12a43778eb2768aea2a97eeb7ecbbb9d5b7a926570e4cc3b4b135386533",
+        "/workspace/work/parity-match-0018-preparation/audit-extra.mjs": "4133210f0061c643262e684c3ba7262b267d612822c776ee59c2ac75a929cd64"
+      },
+      "completed": true,
+      "passed": true,
+      "credit": {
+        "games": 100,
+        "pairs": 50,
+        "wins": 29,
+        "losses": 26,
+        "draws": 45,
+        "pentanomial": [
+          0,
+          15,
+          19,
+          14,
+          2
+        ]
+      },
+      "rawCounts": {
+        "started": 100,
+        "finished": 100,
+        "pgnGames": 100,
+        "consoleGames": 100,
+        "eventLines": 14923,
+        "moves": 14721,
+        "wins": 29,
+        "losses": 26,
+        "draws": 45
+      },
+      "rawPairBins": {
+        "labels": [
+          "LL",
+          "LD",
+          "DD_or_WL",
+          "DW",
+          "WW"
+        ],
+        "counts": [
+          0,
+          15,
+          19,
+          14,
+          2
+        ],
+        "completePairs": 50,
+        "incompletePairs": [],
+        "abnormalPairs": []
+      },
+      "failureCounts": {
+        "illegalMoveEvents": 0,
+        "illegalMoveGames": 0,
+        "disconnectGames": 0,
+        "stallGames": 0,
+        "abortedGames": 0,
+        "abnormalTerminations": 0,
+        "crashMarkers": 0,
+        "illegalMarkers": 0,
+        "disconnectMarkers": 0,
+        "stallMarkers": 0
+      },
+      "sideAccounting": {
+        "bySide": {
+          "hindsight-on": {
+            "illegalMoveEvents": 0,
+            "illegalMoveGames": 0,
+            "disconnectGames": 0,
+            "stallGames": 0,
+            "timeForfeitGames": 0,
+            "nonzeroProcessExits": 0,
+            "processSignals": 0,
+            "crashSignals": 0,
+            "controllerCleanupSignals": 0
+          },
+          "hindsight-off": {
+            "illegalMoveEvents": 0,
+            "illegalMoveGames": 0,
+            "disconnectGames": 0,
+            "stallGames": 0,
+            "timeForfeitGames": 0,
+            "nonzeroProcessExits": 0,
+            "processSignals": 0,
+            "crashSignals": 0,
+            "controllerCleanupSignals": 0
+          }
+        },
+        "faultGames": [],
+        "unattributedAbortsOrGames": [],
+        "processEvidence": [],
+        "unattributedProcessEvidence": [],
+        "definition": "Game faults by losing configuration; illegal move attempts retain their event engine. Process exits/signals are separate observations, not extra distinct games. Disconnect does not establish a crash cause. Controller timeout cleanup signals are separated."
+      },
+      "errors": [],
+      "process": {
+        "code": 0,
+        "signal": null,
+        "spawnError": null,
+        "interrupted": null,
+        "ioErrors": [],
+        "timedOut": false,
+        "finishedUTC": "2026-11-15T03:27:55.344Z"
+      },
+      "rawExcludedFinishedGames": 0,
+      "evidenceIdentity": "c8c55cca2ba8b0771068b6bf74ab5c563049a1be3d9eb7b5f4faef7f436a71b4",
+      "rawSource": "/workspace/work/parity-run/match-recording/B-0002/raw",
+      "metadataSource": "/workspace/work/parity-run/match-recording/B-0002/metadata",
+      "rawPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0002",
+      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0002",
+      "seed": 202611150011,
+      "openingStart": 51,
+      "requestedGames": 100
     }
   ],
   "matchTotals": {
-    "games": 100,
-    "pairs": 50,
-    "wins": 24,
-    "losses": 27,
-    "draws": 49,
+    "games": 200,
+    "pairs": 100,
+    "wins": 53,
+    "losses": 53,
+    "draws": 94,
     "pentanomial": [
       4,
-      11,
-      20,
-      14,
-      1
+      26,
+      39,
+      28,
+      3
     ],
-    "batches": 1,
-    "passedBatches": 1,
+    "batches": 2,
+    "passedBatches": 2,
     "failedOrIncompleteBatches": 0,
     "incompleteBatches": 0,
     "rawExcludedFinishedGames": 0,
-    "rawObservedFinishedGames": 100,
+    "rawObservedFinishedGames": 200,
     "rawFailureCounts": {
       "illegalMoveEvents": 0,
       "illegalMoveGames": 0,
@@ -13560,6 +14082,260 @@
     "status": "Running; completed batches only"
   },
   "continuationPairedSoftnodesRows": [
+    {
+      "smpSamplingExceptions": {
+        "observed": 0,
+        "completedPairObservations": 0,
+        "acceptedClean": 0
+      },
+      "index": 0,
+      "groupIndex": 0,
+      "cycle": 0,
+      "wave": 2,
+      "label": "continuation0018-c01-paired-softnodes-asan-off-t1-n2000-d0",
+      "seed": 202611170101,
+      "group": "asan/off/t1/n2000/d0",
+      "mode": "asan",
+      "threads": 1,
+      "enabled": false,
+      "complete": true,
+      "passed": true,
+      "coverage": true,
+      "auditUnavailable": false,
+      "parseIssues": [],
+      "exit": 0,
+      "signal": null,
+      "credit": {
+        "pairs": 27,
+        "usual": {
+          "games": 27,
+          "searches": 3940,
+          "moves": 3940,
+          "mates": 17,
+          "stalemates": 0,
+          "repetitions": 3,
+          "fifty": 3,
+          "insufficient": 3,
+          "ply_caps": 1,
+          "opening_terminals": 0,
+          "soft_x_count": 0,
+          "soft_x_sum": 0,
+          "soft_hard_cap_reached": 0,
+          "soft_mean_x": null
+        },
+        "soft": {
+          "games": 27,
+          "searches": 4098,
+          "moves": 4098,
+          "mates": 15,
+          "stalemates": 0,
+          "repetitions": 7,
+          "fifty": 3,
+          "insufficient": 0,
+          "ply_caps": 2,
+          "opening_terminals": 0,
+          "soft_x_count": 4098,
+          "soft_x_sum": 22235890,
+          "soft_hard_cap_reached": 515,
+          "soft_mean_x": 5426.034651049293
+        }
+      },
+      "completedPairObservations": {
+        "pairs": 27,
+        "usual": {
+          "games": 27,
+          "searches": 3940,
+          "moves": 3940,
+          "mates": 17,
+          "stalemates": 0,
+          "repetitions": 3,
+          "fifty": 3,
+          "insufficient": 3,
+          "ply_caps": 1,
+          "opening_terminals": 0,
+          "soft_x_count": 0,
+          "soft_x_sum": 0,
+          "soft_hard_cap_reached": 0,
+          "soft_mean_x": null
+        },
+        "soft": {
+          "games": 27,
+          "searches": 4098,
+          "moves": 4098,
+          "mates": 15,
+          "stalemates": 0,
+          "repetitions": 7,
+          "fifty": 3,
+          "insufficient": 0,
+          "ply_caps": 2,
+          "opening_terminals": 0,
+          "soft_x_count": 4098,
+          "soft_x_sum": 22235890,
+          "soft_hard_cap_reached": 515,
+          "soft_mean_x": 5426.034651049293
+        }
+      },
+      "observedIncludingPartialPair": {
+        "usual": {
+          "games": 27,
+          "searches": 3940,
+          "moves": 3940,
+          "mates": 17,
+          "stalemates": 0,
+          "repetitions": 3,
+          "fifty": 3,
+          "insufficient": 3,
+          "ply_caps": 1,
+          "opening_terminals": 0,
+          "soft_x_count": 0,
+          "soft_x_sum": 0,
+          "soft_mean_x": null,
+          "soft_hard_cap_reached": 0
+        },
+        "soft": {
+          "games": 27,
+          "searches": 4098,
+          "moves": 4098,
+          "mates": 15,
+          "stalemates": 0,
+          "repetitions": 7,
+          "fifty": 3,
+          "insufficient": 0,
+          "ply_caps": 2,
+          "opening_terminals": 0,
+          "soft_x_count": 4098,
+          "soft_x_sum": 22235890,
+          "soft_mean_x": 5426.034651,
+          "soft_hard_cap_reached": 515
+        }
+      },
+      "rawRows": {
+        "checks": 8038,
+        "triggers": 8038,
+        "games": 54,
+        "pairs": 27
+      },
+      "diagnosticLines": 0,
+      "diagnosticObserved": false,
+      "faultRows": 0,
+      "faultReasons": {},
+      "labelFault": false,
+      "failingLabelChecks": [],
+      "labelFaultContexts": [],
+      "unassignedSoftLines": 0,
+      "summaryFault": "",
+      "shutdowns": [
+        {
+          "reaped": 1,
+          "exit": 0,
+          "signal": 0,
+          "timed_out": 0,
+          "driver_sigterm": 0,
+          "driver_sigkill": 0,
+          "quit_attempted": 1,
+          "quit_sent": 1,
+          "quit_to_exit_ms": 49.245509,
+          "shutdown_budget_ms": 250,
+          "shutdown_total_ms": 49.254192,
+          "error": ""
+        }
+      ],
+      "timingGroups": {
+        "forced=false:batchComplete=true": {
+          "events": 1,
+          "measured": 1,
+          "unavailable": 0,
+          "over100ms": 0,
+          "maxMs": 49.245509
+        }
+      },
+      "exclusion": null,
+      "schema": 1,
+      "protocol": "softnodes-0018-continuation",
+      "continuationDecision": {
+        "commit": "fe59dc3ab072480f7360f0b356ff01a900d2ab35",
+        "file": "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0018.md.txt",
+        "sha256": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b"
+      },
+      "retainedSmpEvidenceIdentities": [
+        "0ce06c7e139b6cf909fb3c0f8b2786fcddc65e12463a0a8d13332cd542d2d471",
+        "fc4394b9a6e279f36308624fec04ef89a394f48c2bdb1a139482aa92684cc7fc",
+        "1788198dd84c53cbeb1eb3825816a31a06be92271ceef1c82872a6da3c27194a",
+        "a6acf2380e92ec65730c879d00f66ae58af2f1717b5182cda986fcc138dced93"
+      ],
+      "smpDecision": {
+        "commit": "8bd329545d4ad9d0ac50d8dc1dd697f14b0daa1a",
+        "file": "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0017.md.txt",
+        "sha256": "c6c15eb30c204424339dbad34bdebeed320440358ce9c2f5afdac3efee35848c"
+      },
+      "retainedExtendedEvidenceIdentities": [
+        "f5275b01331d729545dd6afb22c58e73510da2855b5f0533f571a3d7214fc406",
+        "18afe7de896de81c39dce86d1f328da0df7d417703361b4661a56fcde5873059",
+        "cda725f1bd248328494028e5672aae94b317ce1454383651bfc9b1f4cfa1bcf2",
+        "fa292e6a2db8e69bd73a4e868d4fdce4e73b3add7d42cc2d15e6313593f0ed71"
+      ],
+      "predecessorStatePinsSha256": "8e5b687bcb32762b7235c801ab966f1b2b1aa4f2fef809622cb5f669ed1932cc",
+      "decision": {
+        "commit": "55ddf61a754ceffc4f940b847ad97143148d0434",
+        "file": "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0013_0014_0015.md",
+        "sha256": "5e2d573b7e553ec49e84918bd1dfd6a28ccfd2ca7236b6834c3b041965945e2f"
+      },
+      "extensionDecision": {
+        "commit": "6f52b2dfe18d289a201e3a06fd756152ba28a539",
+        "file": "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0016.md.txt",
+        "sha256": "1ca13976a15e8e8b7dbd994aeca5176d8158a18ff71db87422095adf83d6c1b2",
+        "deadline": "2026-11-15T04:20:00.000Z"
+      },
+      "unusedStrictV2DeclarationSha256": "adad4f9d99ebba6871d818efc241fab96d29cc0b96817f1741998ddc46a07b7c",
+      "retainedOriginalEvidenceIdentity": "066d170dc7ef848f71871d70b6425026f0d2c96a713c48f148b67b6386cf0f34",
+      "unusedPredecessorDeclarationSha256": "6ea2f582ab117ba9e9dd5122a70406cd49319f502759d758a811e057c9d34e04",
+      "sourceCommit": "d9a8587df8ad4d0ff1231632cb1ac72b590c04bf",
+      "declarationSha256": "ef211853255f6dd6c7f9b1f16a95061151c175c8325b2637dac7d4f099b04f6f",
+      "auditFile": "/workspace/work/parity-run/logs/continuation-audit-0.stdout.txt",
+      "auditSha256": "4cbc5145ede35117e9f7c0b65b461b666a6c6bbafb4df88654e2085f89a0263e",
+      "rawPins": {
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-off-t1-n2000-d0/command.txt": "8e0d3b36e50180ee1575ea7c5cec87ae16a88417e35e5e9a173fee0a8a7f2a18",
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-off-t1-n2000-d0/input-pins.txt": "c014d6f9d23e9bcb9b4c000ae1522b630c64eb20314b3bb456aa1227afa1bc21",
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-off-t1-n2000-d0/start.txt": "e8003f6d171cfa4fcd7987ea3807a2f0ec0d4a78d5212fb8f501a6939b69540c",
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-off-t1-n2000-d0/stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-off-t1-n2000-d0/stdout.txt": "920ae7c839586d3703c0430cb38eaded21b39cde13f00b64947cb176881d6538"
+      },
+      "recorderPins": {
+        "/workspace/work/parity-soak-0018-recording-preparation/record.mjs": "171b155553d3fc5be3789ee44fc75829a78d1551b13601b61bbdb911e0bbc144",
+        "/workspace/work/parity-soak-0018-recording-preparation/accounting.mjs": "6a9a221c4dcd1a5ae8836b4501df74d90fb2f7f1424aee83fc947dc0083b2f11",
+        "/workspace/work/parity-soak-0018-recording-preparation/test-accounting.mjs": "ae67b87e1744b16754cdf4112a4c09ab9ec4bb0f66b1aa5b7a5629c098def030",
+        "/workspace/work/parity-soak-0018-recording-preparation/EXTERNAL-PINS.txt": "c9eca8321c499bfad4e910044dba4715a05c5ef14030a26490477cb1d8ed8be8",
+        "/workspace/work/parity-soak-0018-recording-preparation/NATIVE-PIN.txt": "48f721483037440721a8cd1085c77cf8de0edf09a376caed4e237e016a4aca1b",
+        "/workspace/work/parity-soak-0018-recording-preparation/PREDECESSOR-STATE-PINS.txt": "8e5b687bcb32762b7235c801ab966f1b2b1aa4f2fef809622cb5f669ed1932cc",
+        "/workspace/work/parity-soak-0018-recording-preparation/FABLE_ANSWER_0018.md.txt": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b",
+        "/workspace/work/parity-soak-0018-recording-preparation/PREPARED.md": "841f991c40a5b376a536b09dcba89892aa0136136727ffc349058bb9e861c80a",
+        "/workspace/work/parity-soak-0018-recording-preparation/VALIDATION.txt": "cde4aae152ccb03e8bd9f5b6461fc29bd5b0cbc10c5f8377c38b0d25d18d4ad6"
+      },
+      "externalPins": {
+        "/workspace/work/parity-soak-0018-preparation/audit.mjs": "68617a78341edce10ce0e0b9e0285a5bc300dbcdf1b0e2da958d7c3a85fb9b7a",
+        "/workspace/work/parity-soak-0018-preparation/control.mjs": "f23304a5d2072625e9fa1eaa22d9d7919bc0c6b8b7e0d90735e723a452fbdb86",
+        "/workspace/work/parity-soak-0018-preparation/plan.txt": "4d2f15d6a55db1989680e62338d1e4ad8599ec81e4d06bf433f6428f13a59f10",
+        "/workspace/work/parity-soak-0018-preparation/DRIVER-PINS-v3.txt": "7fb106bfb57d554b9d379db134e74b7e59049f0ec658a7daa6062f06bfd1ffe5",
+        "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0013_0014_0015.md": "5e2d573b7e553ec49e84918bd1dfd6a28ccfd2ca7236b6834c3b041965945e2f",
+        "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0016.md.txt": "1ca13976a15e8e8b7dbd994aeca5176d8158a18ff71db87422095adf83d6c1b2",
+        "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0017.md.txt": "c6c15eb30c204424339dbad34bdebeed320440358ce9c2f5afdac3efee35848c",
+        "/workspace/work/parity-soak-0018-preparation/SUPERSEDED-DECLARATIONS.txt": "60be04467ba5fc37c71fe3109ce2b465d6022439e78030eb3af15a8138882ce9",
+        "/workspace/work/parity-run/softnodes-depth64-batches/declaration.txt": "6ea2f582ab117ba9e9dd5122a70406cd49319f502759d758a811e057c9d34e04",
+        "/workspace/work/parity-run/softnodes-depth64-v2-batches/declaration.txt": "adad4f9d99ebba6871d818efc241fab96d29cc0b96817f1741998ddc46a07b7c",
+        "/workspace/work/parity-run/softnodes-extended-batches/declaration.txt": "1e391da605259304995bef5a9985fe501b4279643e2522bcd037b886812befe4",
+        "/workspace/work/parity-run/package-evidence.mjs": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
+        "/workspace/work/parity-equality-preparation-v3/evidence-integrity.mjs": "33d1373916608c7cd3ffc97a1e0c1ca774fb949b38745a4cc5f73f9117202601",
+        "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0018.md.txt": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b",
+        "/workspace/work/parity-soak-0018-preparation/USED-PREDECESSOR-DECLARATION.txt": "6291c8f62197f9a8a57a37806801366d0f512ff34bc63a1e09b9c10c2e317741",
+        "/workspace/work/parity-run/softnodes-smp-batches/declaration.txt": "ddf3bd4dcfb45beefaf95450f1d362904f0836d6a417fd6d7696f18e5285cc02"
+      },
+      "evidenceIdentity": "ab8c9756b2fe95a70a408b07db9247af1863163c8c4eac69a2a2111e9e3eef37",
+      "derivedSha256": "e05ec8126fcb2cc514d362d5912dfc90da88df26e0f8954818680e7c7142d8d1",
+      "rawSource": "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-off-t1-n2000-d0",
+      "rawPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/final-paired-softnodes-0018/continuation0018-c01-paired-softnodes-asan-off-t1-n2000-d0",
+      "metadataSource": "/workspace/work/parity-run/softnodes-0018-recording/continuation0018-c01-paired-softnodes-asan-off-t1-n2000-d0/metadata",
+      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/final-paired-softnodes-0018-records/continuation0018-c01-paired-softnodes-asan-off-t1-n2000-d0"
+    },
     {
       "smpSamplingExceptions": {
         "observed": 0,
@@ -13813,6 +14589,260 @@
       "rawPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/final-paired-softnodes-0018/continuation0018-c01-paired-softnodes-asan-off-t1-n20000-d0",
       "metadataSource": "/workspace/work/parity-run/softnodes-0018-recording/continuation0018-c01-paired-softnodes-asan-off-t1-n20000-d0/metadata",
       "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/final-paired-softnodes-0018-records/continuation0018-c01-paired-softnodes-asan-off-t1-n20000-d0"
+    },
+    {
+      "smpSamplingExceptions": {
+        "observed": 84,
+        "completedPairObservations": 84,
+        "acceptedClean": 84
+      },
+      "index": 2,
+      "groupIndex": 2,
+      "cycle": 0,
+      "wave": 3,
+      "label": "continuation0018-c01-paired-softnodes-asan-off-t2-n2000-d0",
+      "seed": 202611170103,
+      "group": "asan/off/t2/n2000/d0",
+      "mode": "asan",
+      "threads": 2,
+      "enabled": false,
+      "complete": true,
+      "passed": true,
+      "coverage": true,
+      "auditUnavailable": false,
+      "parseIssues": [],
+      "exit": 0,
+      "signal": null,
+      "credit": {
+        "pairs": 43,
+        "usual": {
+          "games": 43,
+          "searches": 5621,
+          "moves": 5621,
+          "mates": 30,
+          "stalemates": 0,
+          "repetitions": 11,
+          "fifty": 1,
+          "insufficient": 1,
+          "ply_caps": 0,
+          "opening_terminals": 0,
+          "soft_x_count": 0,
+          "soft_x_sum": 0,
+          "soft_hard_cap_reached": 0,
+          "soft_mean_x": null
+        },
+        "soft": {
+          "games": 43,
+          "searches": 5655,
+          "moves": 5655,
+          "mates": 31,
+          "stalemates": 0,
+          "repetitions": 8,
+          "fifty": 1,
+          "insufficient": 3,
+          "ply_caps": 0,
+          "opening_terminals": 0,
+          "soft_x_count": 5655,
+          "soft_x_sum": 31863271,
+          "soft_hard_cap_reached": 849,
+          "soft_mean_x": 5634.530680813439
+        }
+      },
+      "completedPairObservations": {
+        "pairs": 43,
+        "usual": {
+          "games": 43,
+          "searches": 5621,
+          "moves": 5621,
+          "mates": 30,
+          "stalemates": 0,
+          "repetitions": 11,
+          "fifty": 1,
+          "insufficient": 1,
+          "ply_caps": 0,
+          "opening_terminals": 0,
+          "soft_x_count": 0,
+          "soft_x_sum": 0,
+          "soft_hard_cap_reached": 0,
+          "soft_mean_x": null
+        },
+        "soft": {
+          "games": 43,
+          "searches": 5655,
+          "moves": 5655,
+          "mates": 31,
+          "stalemates": 0,
+          "repetitions": 8,
+          "fifty": 1,
+          "insufficient": 3,
+          "ply_caps": 0,
+          "opening_terminals": 0,
+          "soft_x_count": 5655,
+          "soft_x_sum": 31863271,
+          "soft_hard_cap_reached": 849,
+          "soft_mean_x": 5634.530680813439
+        }
+      },
+      "observedIncludingPartialPair": {
+        "usual": {
+          "games": 43,
+          "searches": 5621,
+          "moves": 5621,
+          "mates": 30,
+          "stalemates": 0,
+          "repetitions": 11,
+          "fifty": 1,
+          "insufficient": 1,
+          "ply_caps": 0,
+          "opening_terminals": 0,
+          "soft_x_count": 0,
+          "soft_x_sum": 0,
+          "soft_mean_x": null,
+          "soft_hard_cap_reached": 0
+        },
+        "soft": {
+          "games": 43,
+          "searches": 5655,
+          "moves": 5655,
+          "mates": 31,
+          "stalemates": 0,
+          "repetitions": 8,
+          "fifty": 1,
+          "insufficient": 3,
+          "ply_caps": 0,
+          "opening_terminals": 0,
+          "soft_x_count": 5655,
+          "soft_x_sum": 31863271,
+          "soft_mean_x": 5634.530681,
+          "soft_hard_cap_reached": 849
+        }
+      },
+      "rawRows": {
+        "checks": 11276,
+        "triggers": 11276,
+        "games": 86,
+        "pairs": 43
+      },
+      "diagnosticLines": 0,
+      "diagnosticObserved": false,
+      "faultRows": 0,
+      "faultReasons": {},
+      "labelFault": false,
+      "failingLabelChecks": [],
+      "labelFaultContexts": [],
+      "unassignedSoftLines": 0,
+      "summaryFault": "",
+      "shutdowns": [
+        {
+          "reaped": 1,
+          "exit": 0,
+          "signal": 0,
+          "timed_out": 0,
+          "driver_sigterm": 0,
+          "driver_sigkill": 0,
+          "quit_attempted": 1,
+          "quit_sent": 1,
+          "quit_to_exit_ms": 77.276126,
+          "shutdown_budget_ms": 250,
+          "shutdown_total_ms": 77.282856,
+          "error": ""
+        }
+      ],
+      "timingGroups": {
+        "forced=false:batchComplete=true": {
+          "events": 1,
+          "measured": 1,
+          "unavailable": 0,
+          "over100ms": 0,
+          "maxMs": 77.276126
+        }
+      },
+      "exclusion": null,
+      "schema": 1,
+      "protocol": "softnodes-0018-continuation",
+      "continuationDecision": {
+        "commit": "fe59dc3ab072480f7360f0b356ff01a900d2ab35",
+        "file": "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0018.md.txt",
+        "sha256": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b"
+      },
+      "retainedSmpEvidenceIdentities": [
+        "0ce06c7e139b6cf909fb3c0f8b2786fcddc65e12463a0a8d13332cd542d2d471",
+        "fc4394b9a6e279f36308624fec04ef89a394f48c2bdb1a139482aa92684cc7fc",
+        "1788198dd84c53cbeb1eb3825816a31a06be92271ceef1c82872a6da3c27194a",
+        "a6acf2380e92ec65730c879d00f66ae58af2f1717b5182cda986fcc138dced93"
+      ],
+      "smpDecision": {
+        "commit": "8bd329545d4ad9d0ac50d8dc1dd697f14b0daa1a",
+        "file": "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0017.md.txt",
+        "sha256": "c6c15eb30c204424339dbad34bdebeed320440358ce9c2f5afdac3efee35848c"
+      },
+      "retainedExtendedEvidenceIdentities": [
+        "f5275b01331d729545dd6afb22c58e73510da2855b5f0533f571a3d7214fc406",
+        "18afe7de896de81c39dce86d1f328da0df7d417703361b4661a56fcde5873059",
+        "cda725f1bd248328494028e5672aae94b317ce1454383651bfc9b1f4cfa1bcf2",
+        "fa292e6a2db8e69bd73a4e868d4fdce4e73b3add7d42cc2d15e6313593f0ed71"
+      ],
+      "predecessorStatePinsSha256": "8e5b687bcb32762b7235c801ab966f1b2b1aa4f2fef809622cb5f669ed1932cc",
+      "decision": {
+        "commit": "55ddf61a754ceffc4f940b847ad97143148d0434",
+        "file": "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0013_0014_0015.md",
+        "sha256": "5e2d573b7e553ec49e84918bd1dfd6a28ccfd2ca7236b6834c3b041965945e2f"
+      },
+      "extensionDecision": {
+        "commit": "6f52b2dfe18d289a201e3a06fd756152ba28a539",
+        "file": "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0016.md.txt",
+        "sha256": "1ca13976a15e8e8b7dbd994aeca5176d8158a18ff71db87422095adf83d6c1b2",
+        "deadline": "2026-11-15T04:20:00.000Z"
+      },
+      "unusedStrictV2DeclarationSha256": "adad4f9d99ebba6871d818efc241fab96d29cc0b96817f1741998ddc46a07b7c",
+      "retainedOriginalEvidenceIdentity": "066d170dc7ef848f71871d70b6425026f0d2c96a713c48f148b67b6386cf0f34",
+      "unusedPredecessorDeclarationSha256": "6ea2f582ab117ba9e9dd5122a70406cd49319f502759d758a811e057c9d34e04",
+      "sourceCommit": "d9a8587df8ad4d0ff1231632cb1ac72b590c04bf",
+      "declarationSha256": "ef211853255f6dd6c7f9b1f16a95061151c175c8325b2637dac7d4f099b04f6f",
+      "auditFile": "/workspace/work/parity-run/logs/continuation-audit-2.stdout.txt",
+      "auditSha256": "b7cc645d71e0b6192dee4834224e51f56bc1adf259db103bec875cb1934904b4",
+      "rawPins": {
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-off-t2-n2000-d0/command.txt": "65635040e9054179c4b3b8259fe53077abc2696ca07e5382d595e514259fff82",
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-off-t2-n2000-d0/input-pins.txt": "2d3ce37110a475667ee93839558961ed2d8568ac3d63df7278076e7e21960739",
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-off-t2-n2000-d0/start.txt": "80e739f383c182bf5f36135b16dc8a14c255847a3d3444279f06026eed209b91",
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-off-t2-n2000-d0/stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-off-t2-n2000-d0/stdout.txt": "ec570586fafd5318deef4c24fd11aab2f58747b23c3ae3c45260ee7985454f0f"
+      },
+      "recorderPins": {
+        "/workspace/work/parity-soak-0018-recording-preparation/record.mjs": "171b155553d3fc5be3789ee44fc75829a78d1551b13601b61bbdb911e0bbc144",
+        "/workspace/work/parity-soak-0018-recording-preparation/accounting.mjs": "6a9a221c4dcd1a5ae8836b4501df74d90fb2f7f1424aee83fc947dc0083b2f11",
+        "/workspace/work/parity-soak-0018-recording-preparation/test-accounting.mjs": "ae67b87e1744b16754cdf4112a4c09ab9ec4bb0f66b1aa5b7a5629c098def030",
+        "/workspace/work/parity-soak-0018-recording-preparation/EXTERNAL-PINS.txt": "c9eca8321c499bfad4e910044dba4715a05c5ef14030a26490477cb1d8ed8be8",
+        "/workspace/work/parity-soak-0018-recording-preparation/NATIVE-PIN.txt": "48f721483037440721a8cd1085c77cf8de0edf09a376caed4e237e016a4aca1b",
+        "/workspace/work/parity-soak-0018-recording-preparation/PREDECESSOR-STATE-PINS.txt": "8e5b687bcb32762b7235c801ab966f1b2b1aa4f2fef809622cb5f669ed1932cc",
+        "/workspace/work/parity-soak-0018-recording-preparation/FABLE_ANSWER_0018.md.txt": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b",
+        "/workspace/work/parity-soak-0018-recording-preparation/PREPARED.md": "841f991c40a5b376a536b09dcba89892aa0136136727ffc349058bb9e861c80a",
+        "/workspace/work/parity-soak-0018-recording-preparation/VALIDATION.txt": "cde4aae152ccb03e8bd9f5b6461fc29bd5b0cbc10c5f8377c38b0d25d18d4ad6"
+      },
+      "externalPins": {
+        "/workspace/work/parity-soak-0018-preparation/audit.mjs": "68617a78341edce10ce0e0b9e0285a5bc300dbcdf1b0e2da958d7c3a85fb9b7a",
+        "/workspace/work/parity-soak-0018-preparation/control.mjs": "f23304a5d2072625e9fa1eaa22d9d7919bc0c6b8b7e0d90735e723a452fbdb86",
+        "/workspace/work/parity-soak-0018-preparation/plan.txt": "4d2f15d6a55db1989680e62338d1e4ad8599ec81e4d06bf433f6428f13a59f10",
+        "/workspace/work/parity-soak-0018-preparation/DRIVER-PINS-v3.txt": "7fb106bfb57d554b9d379db134e74b7e59049f0ec658a7daa6062f06bfd1ffe5",
+        "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0013_0014_0015.md": "5e2d573b7e553ec49e84918bd1dfd6a28ccfd2ca7236b6834c3b041965945e2f",
+        "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0016.md.txt": "1ca13976a15e8e8b7dbd994aeca5176d8158a18ff71db87422095adf83d6c1b2",
+        "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0017.md.txt": "c6c15eb30c204424339dbad34bdebeed320440358ce9c2f5afdac3efee35848c",
+        "/workspace/work/parity-soak-0018-preparation/SUPERSEDED-DECLARATIONS.txt": "60be04467ba5fc37c71fe3109ce2b465d6022439e78030eb3af15a8138882ce9",
+        "/workspace/work/parity-run/softnodes-depth64-batches/declaration.txt": "6ea2f582ab117ba9e9dd5122a70406cd49319f502759d758a811e057c9d34e04",
+        "/workspace/work/parity-run/softnodes-depth64-v2-batches/declaration.txt": "adad4f9d99ebba6871d818efc241fab96d29cc0b96817f1741998ddc46a07b7c",
+        "/workspace/work/parity-run/softnodes-extended-batches/declaration.txt": "1e391da605259304995bef5a9985fe501b4279643e2522bcd037b886812befe4",
+        "/workspace/work/parity-run/package-evidence.mjs": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
+        "/workspace/work/parity-equality-preparation-v3/evidence-integrity.mjs": "33d1373916608c7cd3ffc97a1e0c1ca774fb949b38745a4cc5f73f9117202601",
+        "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0018.md.txt": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b",
+        "/workspace/work/parity-soak-0018-preparation/USED-PREDECESSOR-DECLARATION.txt": "6291c8f62197f9a8a57a37806801366d0f512ff34bc63a1e09b9c10c2e317741",
+        "/workspace/work/parity-run/softnodes-smp-batches/declaration.txt": "ddf3bd4dcfb45beefaf95450f1d362904f0836d6a417fd6d7696f18e5285cc02"
+      },
+      "evidenceIdentity": "7f3b635d47153b27435fa664906a04e97591871da84b2cf85fcb5fd4bdc791ed",
+      "derivedSha256": "087703315812124725cb25a2045bb4e82462c7482f81924ae3ee68f640cb4189",
+      "rawSource": "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-off-t2-n2000-d0",
+      "rawPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/final-paired-softnodes-0018/continuation0018-c01-paired-softnodes-asan-off-t2-n2000-d0",
+      "metadataSource": "/workspace/work/parity-run/softnodes-0018-recording/continuation0018-c01-paired-softnodes-asan-off-t2-n2000-d0/metadata",
+      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/final-paired-softnodes-0018-records/continuation0018-c01-paired-softnodes-asan-off-t2-n2000-d0"
     },
     {
       "smpSamplingExceptions": {
@@ -14074,6 +15104,260 @@
         "completedPairObservations": 0,
         "acceptedClean": 0
       },
+      "index": 6,
+      "groupIndex": 6,
+      "cycle": 0,
+      "wave": 2,
+      "label": "continuation0018-c01-paired-softnodes-asan-on-t1-n2000-d0",
+      "seed": 202611170107,
+      "group": "asan/on/t1/n2000/d0",
+      "mode": "asan",
+      "threads": 1,
+      "enabled": true,
+      "complete": true,
+      "passed": true,
+      "coverage": true,
+      "auditUnavailable": false,
+      "parseIssues": [],
+      "exit": 0,
+      "signal": null,
+      "credit": {
+        "pairs": 29,
+        "usual": {
+          "games": 29,
+          "searches": 3946,
+          "moves": 3946,
+          "mates": 20,
+          "stalemates": 0,
+          "repetitions": 7,
+          "fifty": 1,
+          "insufficient": 1,
+          "ply_caps": 0,
+          "opening_terminals": 0,
+          "soft_x_count": 0,
+          "soft_x_sum": 0,
+          "soft_hard_cap_reached": 0,
+          "soft_mean_x": null
+        },
+        "soft": {
+          "games": 29,
+          "searches": 3915,
+          "moves": 3915,
+          "mates": 14,
+          "stalemates": 0,
+          "repetitions": 12,
+          "fifty": 1,
+          "insufficient": 2,
+          "ply_caps": 0,
+          "opening_terminals": 0,
+          "soft_x_count": 3915,
+          "soft_x_sum": 20911841,
+          "soft_hard_cap_reached": 414,
+          "soft_mean_x": 5341.4664112388255
+        }
+      },
+      "completedPairObservations": {
+        "pairs": 29,
+        "usual": {
+          "games": 29,
+          "searches": 3946,
+          "moves": 3946,
+          "mates": 20,
+          "stalemates": 0,
+          "repetitions": 7,
+          "fifty": 1,
+          "insufficient": 1,
+          "ply_caps": 0,
+          "opening_terminals": 0,
+          "soft_x_count": 0,
+          "soft_x_sum": 0,
+          "soft_hard_cap_reached": 0,
+          "soft_mean_x": null
+        },
+        "soft": {
+          "games": 29,
+          "searches": 3915,
+          "moves": 3915,
+          "mates": 14,
+          "stalemates": 0,
+          "repetitions": 12,
+          "fifty": 1,
+          "insufficient": 2,
+          "ply_caps": 0,
+          "opening_terminals": 0,
+          "soft_x_count": 3915,
+          "soft_x_sum": 20911841,
+          "soft_hard_cap_reached": 414,
+          "soft_mean_x": 5341.4664112388255
+        }
+      },
+      "observedIncludingPartialPair": {
+        "usual": {
+          "games": 29,
+          "searches": 3946,
+          "moves": 3946,
+          "mates": 20,
+          "stalemates": 0,
+          "repetitions": 7,
+          "fifty": 1,
+          "insufficient": 1,
+          "ply_caps": 0,
+          "opening_terminals": 0,
+          "soft_x_count": 0,
+          "soft_x_sum": 0,
+          "soft_mean_x": null,
+          "soft_hard_cap_reached": 0
+        },
+        "soft": {
+          "games": 29,
+          "searches": 3915,
+          "moves": 3915,
+          "mates": 14,
+          "stalemates": 0,
+          "repetitions": 12,
+          "fifty": 1,
+          "insufficient": 2,
+          "ply_caps": 0,
+          "opening_terminals": 0,
+          "soft_x_count": 3915,
+          "soft_x_sum": 20911841,
+          "soft_mean_x": 5341.466411,
+          "soft_hard_cap_reached": 414
+        }
+      },
+      "rawRows": {
+        "checks": 7861,
+        "triggers": 7861,
+        "games": 58,
+        "pairs": 29
+      },
+      "diagnosticLines": 0,
+      "diagnosticObserved": false,
+      "faultRows": 0,
+      "faultReasons": {},
+      "labelFault": false,
+      "failingLabelChecks": [],
+      "labelFaultContexts": [],
+      "unassignedSoftLines": 0,
+      "summaryFault": "",
+      "shutdowns": [
+        {
+          "reaped": 1,
+          "exit": 0,
+          "signal": 0,
+          "timed_out": 0,
+          "driver_sigterm": 0,
+          "driver_sigkill": 0,
+          "quit_attempted": 1,
+          "quit_sent": 1,
+          "quit_to_exit_ms": 47.814402,
+          "shutdown_budget_ms": 250,
+          "shutdown_total_ms": 47.821283,
+          "error": ""
+        }
+      ],
+      "timingGroups": {
+        "forced=false:batchComplete=true": {
+          "events": 1,
+          "measured": 1,
+          "unavailable": 0,
+          "over100ms": 0,
+          "maxMs": 47.814402
+        }
+      },
+      "exclusion": null,
+      "schema": 1,
+      "protocol": "softnodes-0018-continuation",
+      "continuationDecision": {
+        "commit": "fe59dc3ab072480f7360f0b356ff01a900d2ab35",
+        "file": "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0018.md.txt",
+        "sha256": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b"
+      },
+      "retainedSmpEvidenceIdentities": [
+        "0ce06c7e139b6cf909fb3c0f8b2786fcddc65e12463a0a8d13332cd542d2d471",
+        "fc4394b9a6e279f36308624fec04ef89a394f48c2bdb1a139482aa92684cc7fc",
+        "1788198dd84c53cbeb1eb3825816a31a06be92271ceef1c82872a6da3c27194a",
+        "a6acf2380e92ec65730c879d00f66ae58af2f1717b5182cda986fcc138dced93"
+      ],
+      "smpDecision": {
+        "commit": "8bd329545d4ad9d0ac50d8dc1dd697f14b0daa1a",
+        "file": "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0017.md.txt",
+        "sha256": "c6c15eb30c204424339dbad34bdebeed320440358ce9c2f5afdac3efee35848c"
+      },
+      "retainedExtendedEvidenceIdentities": [
+        "f5275b01331d729545dd6afb22c58e73510da2855b5f0533f571a3d7214fc406",
+        "18afe7de896de81c39dce86d1f328da0df7d417703361b4661a56fcde5873059",
+        "cda725f1bd248328494028e5672aae94b317ce1454383651bfc9b1f4cfa1bcf2",
+        "fa292e6a2db8e69bd73a4e868d4fdce4e73b3add7d42cc2d15e6313593f0ed71"
+      ],
+      "predecessorStatePinsSha256": "8e5b687bcb32762b7235c801ab966f1b2b1aa4f2fef809622cb5f669ed1932cc",
+      "decision": {
+        "commit": "55ddf61a754ceffc4f940b847ad97143148d0434",
+        "file": "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0013_0014_0015.md",
+        "sha256": "5e2d573b7e553ec49e84918bd1dfd6a28ccfd2ca7236b6834c3b041965945e2f"
+      },
+      "extensionDecision": {
+        "commit": "6f52b2dfe18d289a201e3a06fd756152ba28a539",
+        "file": "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0016.md.txt",
+        "sha256": "1ca13976a15e8e8b7dbd994aeca5176d8158a18ff71db87422095adf83d6c1b2",
+        "deadline": "2026-11-15T04:20:00.000Z"
+      },
+      "unusedStrictV2DeclarationSha256": "adad4f9d99ebba6871d818efc241fab96d29cc0b96817f1741998ddc46a07b7c",
+      "retainedOriginalEvidenceIdentity": "066d170dc7ef848f71871d70b6425026f0d2c96a713c48f148b67b6386cf0f34",
+      "unusedPredecessorDeclarationSha256": "6ea2f582ab117ba9e9dd5122a70406cd49319f502759d758a811e057c9d34e04",
+      "sourceCommit": "d9a8587df8ad4d0ff1231632cb1ac72b590c04bf",
+      "declarationSha256": "ef211853255f6dd6c7f9b1f16a95061151c175c8325b2637dac7d4f099b04f6f",
+      "auditFile": "/workspace/work/parity-run/logs/continuation-audit-6.stdout.txt",
+      "auditSha256": "3aa2a2f397ea9e8decf91a9ccb48edf669798fd0d99d82f6bd91cd14ddbf5a2e",
+      "rawPins": {
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-on-t1-n2000-d0/command.txt": "25548146db0821cd92e391428ba9d3aa693b36cf1cc0924621b4c5503ef8be32",
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-on-t1-n2000-d0/input-pins.txt": "245b4d1b477b0f4e3284ae11b02328d291cbd4a2d5b0413023aff9c601fbbd6b",
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-on-t1-n2000-d0/start.txt": "1bcbc6486584c57e25031570ab688208dcd3a61e2c42c859967cf3f69e0f757f",
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-on-t1-n2000-d0/stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-on-t1-n2000-d0/stdout.txt": "f49b016b770a2aab936cfeae7cd2e8f757e843c057d2d9e0cd127ef08bd17369"
+      },
+      "recorderPins": {
+        "/workspace/work/parity-soak-0018-recording-preparation/record.mjs": "171b155553d3fc5be3789ee44fc75829a78d1551b13601b61bbdb911e0bbc144",
+        "/workspace/work/parity-soak-0018-recording-preparation/accounting.mjs": "6a9a221c4dcd1a5ae8836b4501df74d90fb2f7f1424aee83fc947dc0083b2f11",
+        "/workspace/work/parity-soak-0018-recording-preparation/test-accounting.mjs": "ae67b87e1744b16754cdf4112a4c09ab9ec4bb0f66b1aa5b7a5629c098def030",
+        "/workspace/work/parity-soak-0018-recording-preparation/EXTERNAL-PINS.txt": "c9eca8321c499bfad4e910044dba4715a05c5ef14030a26490477cb1d8ed8be8",
+        "/workspace/work/parity-soak-0018-recording-preparation/NATIVE-PIN.txt": "48f721483037440721a8cd1085c77cf8de0edf09a376caed4e237e016a4aca1b",
+        "/workspace/work/parity-soak-0018-recording-preparation/PREDECESSOR-STATE-PINS.txt": "8e5b687bcb32762b7235c801ab966f1b2b1aa4f2fef809622cb5f669ed1932cc",
+        "/workspace/work/parity-soak-0018-recording-preparation/FABLE_ANSWER_0018.md.txt": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b",
+        "/workspace/work/parity-soak-0018-recording-preparation/PREPARED.md": "841f991c40a5b376a536b09dcba89892aa0136136727ffc349058bb9e861c80a",
+        "/workspace/work/parity-soak-0018-recording-preparation/VALIDATION.txt": "cde4aae152ccb03e8bd9f5b6461fc29bd5b0cbc10c5f8377c38b0d25d18d4ad6"
+      },
+      "externalPins": {
+        "/workspace/work/parity-soak-0018-preparation/audit.mjs": "68617a78341edce10ce0e0b9e0285a5bc300dbcdf1b0e2da958d7c3a85fb9b7a",
+        "/workspace/work/parity-soak-0018-preparation/control.mjs": "f23304a5d2072625e9fa1eaa22d9d7919bc0c6b8b7e0d90735e723a452fbdb86",
+        "/workspace/work/parity-soak-0018-preparation/plan.txt": "4d2f15d6a55db1989680e62338d1e4ad8599ec81e4d06bf433f6428f13a59f10",
+        "/workspace/work/parity-soak-0018-preparation/DRIVER-PINS-v3.txt": "7fb106bfb57d554b9d379db134e74b7e59049f0ec658a7daa6062f06bfd1ffe5",
+        "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0013_0014_0015.md": "5e2d573b7e553ec49e84918bd1dfd6a28ccfd2ca7236b6834c3b041965945e2f",
+        "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0016.md.txt": "1ca13976a15e8e8b7dbd994aeca5176d8158a18ff71db87422095adf83d6c1b2",
+        "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0017.md.txt": "c6c15eb30c204424339dbad34bdebeed320440358ce9c2f5afdac3efee35848c",
+        "/workspace/work/parity-soak-0018-preparation/SUPERSEDED-DECLARATIONS.txt": "60be04467ba5fc37c71fe3109ce2b465d6022439e78030eb3af15a8138882ce9",
+        "/workspace/work/parity-run/softnodes-depth64-batches/declaration.txt": "6ea2f582ab117ba9e9dd5122a70406cd49319f502759d758a811e057c9d34e04",
+        "/workspace/work/parity-run/softnodes-depth64-v2-batches/declaration.txt": "adad4f9d99ebba6871d818efc241fab96d29cc0b96817f1741998ddc46a07b7c",
+        "/workspace/work/parity-run/softnodes-extended-batches/declaration.txt": "1e391da605259304995bef5a9985fe501b4279643e2522bcd037b886812befe4",
+        "/workspace/work/parity-run/package-evidence.mjs": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
+        "/workspace/work/parity-equality-preparation-v3/evidence-integrity.mjs": "33d1373916608c7cd3ffc97a1e0c1ca774fb949b38745a4cc5f73f9117202601",
+        "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0018.md.txt": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b",
+        "/workspace/work/parity-soak-0018-preparation/USED-PREDECESSOR-DECLARATION.txt": "6291c8f62197f9a8a57a37806801366d0f512ff34bc63a1e09b9c10c2e317741",
+        "/workspace/work/parity-run/softnodes-smp-batches/declaration.txt": "ddf3bd4dcfb45beefaf95450f1d362904f0836d6a417fd6d7696f18e5285cc02"
+      },
+      "evidenceIdentity": "3cd13705abf3e0c5e2dfa55b56de94651ad03ef70ed4b3497064e589e81dfb4f",
+      "derivedSha256": "f32d3f6ebd2c7f0ef246aa99927a699f6dd174b58655c5913bec1b039881d317",
+      "rawSource": "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-on-t1-n2000-d0",
+      "rawPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/final-paired-softnodes-0018/continuation0018-c01-paired-softnodes-asan-on-t1-n2000-d0",
+      "metadataSource": "/workspace/work/parity-run/softnodes-0018-recording/continuation0018-c01-paired-softnodes-asan-on-t1-n2000-d0/metadata",
+      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/final-paired-softnodes-0018-records/continuation0018-c01-paired-softnodes-asan-on-t1-n2000-d0"
+    },
+    {
+      "smpSamplingExceptions": {
+        "observed": 0,
+        "completedPairObservations": 0,
+        "acceptedClean": 0
+      },
       "index": 7,
       "groupIndex": 7,
       "cycle": 0,
@@ -14321,6 +15605,260 @@
       "rawPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/final-paired-softnodes-0018/continuation0018-c01-paired-softnodes-asan-on-t1-n20000-d0",
       "metadataSource": "/workspace/work/parity-run/softnodes-0018-recording/continuation0018-c01-paired-softnodes-asan-on-t1-n20000-d0/metadata",
       "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/final-paired-softnodes-0018-records/continuation0018-c01-paired-softnodes-asan-on-t1-n20000-d0"
+    },
+    {
+      "smpSamplingExceptions": {
+        "observed": 99,
+        "completedPairObservations": 99,
+        "acceptedClean": 99
+      },
+      "index": 8,
+      "groupIndex": 8,
+      "cycle": 0,
+      "wave": 3,
+      "label": "continuation0018-c01-paired-softnodes-asan-on-t2-n2000-d0",
+      "seed": 202611170109,
+      "group": "asan/on/t2/n2000/d0",
+      "mode": "asan",
+      "threads": 2,
+      "enabled": true,
+      "complete": true,
+      "passed": true,
+      "coverage": true,
+      "auditUnavailable": false,
+      "parseIssues": [],
+      "exit": 0,
+      "signal": null,
+      "credit": {
+        "pairs": 41,
+        "usual": {
+          "games": 41,
+          "searches": 5361,
+          "moves": 5361,
+          "mates": 35,
+          "stalemates": 0,
+          "repetitions": 4,
+          "fifty": 0,
+          "insufficient": 1,
+          "ply_caps": 1,
+          "opening_terminals": 0,
+          "soft_x_count": 0,
+          "soft_x_sum": 0,
+          "soft_hard_cap_reached": 0,
+          "soft_mean_x": null
+        },
+        "soft": {
+          "games": 41,
+          "searches": 5967,
+          "moves": 5967,
+          "mates": 24,
+          "stalemates": 0,
+          "repetitions": 11,
+          "fifty": 2,
+          "insufficient": 3,
+          "ply_caps": 1,
+          "opening_terminals": 0,
+          "soft_x_count": 5967,
+          "soft_x_sum": 33589820,
+          "soft_hard_cap_reached": 939,
+          "soft_mean_x": 5629.264286911346
+        }
+      },
+      "completedPairObservations": {
+        "pairs": 41,
+        "usual": {
+          "games": 41,
+          "searches": 5361,
+          "moves": 5361,
+          "mates": 35,
+          "stalemates": 0,
+          "repetitions": 4,
+          "fifty": 0,
+          "insufficient": 1,
+          "ply_caps": 1,
+          "opening_terminals": 0,
+          "soft_x_count": 0,
+          "soft_x_sum": 0,
+          "soft_hard_cap_reached": 0,
+          "soft_mean_x": null
+        },
+        "soft": {
+          "games": 41,
+          "searches": 5967,
+          "moves": 5967,
+          "mates": 24,
+          "stalemates": 0,
+          "repetitions": 11,
+          "fifty": 2,
+          "insufficient": 3,
+          "ply_caps": 1,
+          "opening_terminals": 0,
+          "soft_x_count": 5967,
+          "soft_x_sum": 33589820,
+          "soft_hard_cap_reached": 939,
+          "soft_mean_x": 5629.264286911346
+        }
+      },
+      "observedIncludingPartialPair": {
+        "usual": {
+          "games": 41,
+          "searches": 5361,
+          "moves": 5361,
+          "mates": 35,
+          "stalemates": 0,
+          "repetitions": 4,
+          "fifty": 0,
+          "insufficient": 1,
+          "ply_caps": 1,
+          "opening_terminals": 0,
+          "soft_x_count": 0,
+          "soft_x_sum": 0,
+          "soft_mean_x": null,
+          "soft_hard_cap_reached": 0
+        },
+        "soft": {
+          "games": 41,
+          "searches": 5967,
+          "moves": 5967,
+          "mates": 24,
+          "stalemates": 0,
+          "repetitions": 11,
+          "fifty": 2,
+          "insufficient": 3,
+          "ply_caps": 1,
+          "opening_terminals": 0,
+          "soft_x_count": 5967,
+          "soft_x_sum": 33589820,
+          "soft_mean_x": 5629.264287,
+          "soft_hard_cap_reached": 939
+        }
+      },
+      "rawRows": {
+        "checks": 11328,
+        "triggers": 11328,
+        "games": 82,
+        "pairs": 41
+      },
+      "diagnosticLines": 0,
+      "diagnosticObserved": false,
+      "faultRows": 0,
+      "faultReasons": {},
+      "labelFault": false,
+      "failingLabelChecks": [],
+      "labelFaultContexts": [],
+      "unassignedSoftLines": 0,
+      "summaryFault": "",
+      "shutdowns": [
+        {
+          "reaped": 1,
+          "exit": 0,
+          "signal": 0,
+          "timed_out": 0,
+          "driver_sigterm": 0,
+          "driver_sigkill": 0,
+          "quit_attempted": 1,
+          "quit_sent": 1,
+          "quit_to_exit_ms": 68.593144,
+          "shutdown_budget_ms": 250,
+          "shutdown_total_ms": 68.602006,
+          "error": ""
+        }
+      ],
+      "timingGroups": {
+        "forced=false:batchComplete=true": {
+          "events": 1,
+          "measured": 1,
+          "unavailable": 0,
+          "over100ms": 0,
+          "maxMs": 68.593144
+        }
+      },
+      "exclusion": null,
+      "schema": 1,
+      "protocol": "softnodes-0018-continuation",
+      "continuationDecision": {
+        "commit": "fe59dc3ab072480f7360f0b356ff01a900d2ab35",
+        "file": "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0018.md.txt",
+        "sha256": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b"
+      },
+      "retainedSmpEvidenceIdentities": [
+        "0ce06c7e139b6cf909fb3c0f8b2786fcddc65e12463a0a8d13332cd542d2d471",
+        "fc4394b9a6e279f36308624fec04ef89a394f48c2bdb1a139482aa92684cc7fc",
+        "1788198dd84c53cbeb1eb3825816a31a06be92271ceef1c82872a6da3c27194a",
+        "a6acf2380e92ec65730c879d00f66ae58af2f1717b5182cda986fcc138dced93"
+      ],
+      "smpDecision": {
+        "commit": "8bd329545d4ad9d0ac50d8dc1dd697f14b0daa1a",
+        "file": "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0017.md.txt",
+        "sha256": "c6c15eb30c204424339dbad34bdebeed320440358ce9c2f5afdac3efee35848c"
+      },
+      "retainedExtendedEvidenceIdentities": [
+        "f5275b01331d729545dd6afb22c58e73510da2855b5f0533f571a3d7214fc406",
+        "18afe7de896de81c39dce86d1f328da0df7d417703361b4661a56fcde5873059",
+        "cda725f1bd248328494028e5672aae94b317ce1454383651bfc9b1f4cfa1bcf2",
+        "fa292e6a2db8e69bd73a4e868d4fdce4e73b3add7d42cc2d15e6313593f0ed71"
+      ],
+      "predecessorStatePinsSha256": "8e5b687bcb32762b7235c801ab966f1b2b1aa4f2fef809622cb5f669ed1932cc",
+      "decision": {
+        "commit": "55ddf61a754ceffc4f940b847ad97143148d0434",
+        "file": "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0013_0014_0015.md",
+        "sha256": "5e2d573b7e553ec49e84918bd1dfd6a28ccfd2ca7236b6834c3b041965945e2f"
+      },
+      "extensionDecision": {
+        "commit": "6f52b2dfe18d289a201e3a06fd756152ba28a539",
+        "file": "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0016.md.txt",
+        "sha256": "1ca13976a15e8e8b7dbd994aeca5176d8158a18ff71db87422095adf83d6c1b2",
+        "deadline": "2026-11-15T04:20:00.000Z"
+      },
+      "unusedStrictV2DeclarationSha256": "adad4f9d99ebba6871d818efc241fab96d29cc0b96817f1741998ddc46a07b7c",
+      "retainedOriginalEvidenceIdentity": "066d170dc7ef848f71871d70b6425026f0d2c96a713c48f148b67b6386cf0f34",
+      "unusedPredecessorDeclarationSha256": "6ea2f582ab117ba9e9dd5122a70406cd49319f502759d758a811e057c9d34e04",
+      "sourceCommit": "d9a8587df8ad4d0ff1231632cb1ac72b590c04bf",
+      "declarationSha256": "ef211853255f6dd6c7f9b1f16a95061151c175c8325b2637dac7d4f099b04f6f",
+      "auditFile": "/workspace/work/parity-run/logs/continuation-audit-8.stdout.txt",
+      "auditSha256": "3b5346ac5e0f0614da3874d5344e1f6edbbfa016aacc50c11c88c9f06b6dcc39",
+      "rawPins": {
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-on-t2-n2000-d0/command.txt": "7773021763ca1d319513f2213dc38204b44008e044ca88ec83c713941f007dfc",
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-on-t2-n2000-d0/input-pins.txt": "5f0f1e54d960ffa9114695809de9085a80cb0608e8fa83671716526fadf12b4c",
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-on-t2-n2000-d0/start.txt": "281fe8dc486a0a0c68cce8fc9c8c1f93f5fd381533a091a4660136d8ec2e23f7",
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-on-t2-n2000-d0/stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-on-t2-n2000-d0/stdout.txt": "2c7243cd1b397f007ee29a2996bda3cd83e35f0c9adf4d6ed1a5e74a84527a7c"
+      },
+      "recorderPins": {
+        "/workspace/work/parity-soak-0018-recording-preparation/record.mjs": "171b155553d3fc5be3789ee44fc75829a78d1551b13601b61bbdb911e0bbc144",
+        "/workspace/work/parity-soak-0018-recording-preparation/accounting.mjs": "6a9a221c4dcd1a5ae8836b4501df74d90fb2f7f1424aee83fc947dc0083b2f11",
+        "/workspace/work/parity-soak-0018-recording-preparation/test-accounting.mjs": "ae67b87e1744b16754cdf4112a4c09ab9ec4bb0f66b1aa5b7a5629c098def030",
+        "/workspace/work/parity-soak-0018-recording-preparation/EXTERNAL-PINS.txt": "c9eca8321c499bfad4e910044dba4715a05c5ef14030a26490477cb1d8ed8be8",
+        "/workspace/work/parity-soak-0018-recording-preparation/NATIVE-PIN.txt": "48f721483037440721a8cd1085c77cf8de0edf09a376caed4e237e016a4aca1b",
+        "/workspace/work/parity-soak-0018-recording-preparation/PREDECESSOR-STATE-PINS.txt": "8e5b687bcb32762b7235c801ab966f1b2b1aa4f2fef809622cb5f669ed1932cc",
+        "/workspace/work/parity-soak-0018-recording-preparation/FABLE_ANSWER_0018.md.txt": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b",
+        "/workspace/work/parity-soak-0018-recording-preparation/PREPARED.md": "841f991c40a5b376a536b09dcba89892aa0136136727ffc349058bb9e861c80a",
+        "/workspace/work/parity-soak-0018-recording-preparation/VALIDATION.txt": "cde4aae152ccb03e8bd9f5b6461fc29bd5b0cbc10c5f8377c38b0d25d18d4ad6"
+      },
+      "externalPins": {
+        "/workspace/work/parity-soak-0018-preparation/audit.mjs": "68617a78341edce10ce0e0b9e0285a5bc300dbcdf1b0e2da958d7c3a85fb9b7a",
+        "/workspace/work/parity-soak-0018-preparation/control.mjs": "f23304a5d2072625e9fa1eaa22d9d7919bc0c6b8b7e0d90735e723a452fbdb86",
+        "/workspace/work/parity-soak-0018-preparation/plan.txt": "4d2f15d6a55db1989680e62338d1e4ad8599ec81e4d06bf433f6428f13a59f10",
+        "/workspace/work/parity-soak-0018-preparation/DRIVER-PINS-v3.txt": "7fb106bfb57d554b9d379db134e74b7e59049f0ec658a7daa6062f06bfd1ffe5",
+        "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0013_0014_0015.md": "5e2d573b7e553ec49e84918bd1dfd6a28ccfd2ca7236b6834c3b041965945e2f",
+        "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0016.md.txt": "1ca13976a15e8e8b7dbd994aeca5176d8158a18ff71db87422095adf83d6c1b2",
+        "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0017.md.txt": "c6c15eb30c204424339dbad34bdebeed320440358ce9c2f5afdac3efee35848c",
+        "/workspace/work/parity-soak-0018-preparation/SUPERSEDED-DECLARATIONS.txt": "60be04467ba5fc37c71fe3109ce2b465d6022439e78030eb3af15a8138882ce9",
+        "/workspace/work/parity-run/softnodes-depth64-batches/declaration.txt": "6ea2f582ab117ba9e9dd5122a70406cd49319f502759d758a811e057c9d34e04",
+        "/workspace/work/parity-run/softnodes-depth64-v2-batches/declaration.txt": "adad4f9d99ebba6871d818efc241fab96d29cc0b96817f1741998ddc46a07b7c",
+        "/workspace/work/parity-run/softnodes-extended-batches/declaration.txt": "1e391da605259304995bef5a9985fe501b4279643e2522bcd037b886812befe4",
+        "/workspace/work/parity-run/package-evidence.mjs": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
+        "/workspace/work/parity-equality-preparation-v3/evidence-integrity.mjs": "33d1373916608c7cd3ffc97a1e0c1ca774fb949b38745a4cc5f73f9117202601",
+        "/workspace/work/parity-soak-0018-preparation/FABLE_ANSWER_0018.md.txt": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b",
+        "/workspace/work/parity-soak-0018-preparation/USED-PREDECESSOR-DECLARATION.txt": "6291c8f62197f9a8a57a37806801366d0f512ff34bc63a1e09b9c10c2e317741",
+        "/workspace/work/parity-run/softnodes-smp-batches/declaration.txt": "ddf3bd4dcfb45beefaf95450f1d362904f0836d6a417fd6d7696f18e5285cc02"
+      },
+      "evidenceIdentity": "196bf254849da2ef5512645d4c8d0cfbb1a1803a50b6e24b1124431a43c34511",
+      "derivedSha256": "38c9b38c3b1c4413dadc75aab744643e347e98d6f2bc38ba3961a64552940d40",
+      "rawSource": "/workspace/work/parity-run/softnodes-0018-batches/continuation0018-c01-paired-softnodes-asan-on-t2-n2000-d0",
+      "rawPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/final-paired-softnodes-0018/continuation0018-c01-paired-softnodes-asan-on-t2-n2000-d0",
+      "metadataSource": "/workspace/work/parity-run/softnodes-0018-recording/continuation0018-c01-paired-softnodes-asan-on-t2-n2000-d0/metadata",
+      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/final-paired-softnodes-0018-records/continuation0018-c01-paired-softnodes-asan-on-t2-n2000-d0"
     },
     {
       "smpSamplingExceptions": {
@@ -14579,27 +16117,27 @@
   ],
   "continuationPairedSoftnodes": {
     "smpSamplingExceptions": {
-      "observed": 63,
-      "completedPairObservations": 63,
-      "acceptedClean": 63
+      "observed": 246,
+      "completedPairObservations": 246,
+      "acceptedClean": 246
     },
-    "recordedBatches": 4,
-    "completeBatches": 4,
-    "passedBatches": 4,
+    "recordedBatches": 8,
+    "completeBatches": 8,
+    "passedBatches": 8,
     "failedBatches": 0,
     "incompleteBatches": 0,
     "zeroCoverageBatches": 0,
-    "pairs": 54,
+    "pairs": 194,
     "usual": {
-      "games": 54,
-      "searches": 7786,
-      "moves": 7786,
-      "mates": 41,
+      "games": 194,
+      "searches": 26654,
+      "moves": 26654,
+      "mates": 143,
       "stalemates": 0,
-      "repetitions": 11,
-      "fifty": 1,
-      "insufficient": 0,
-      "ply_caps": 1,
+      "repetitions": 36,
+      "fifty": 6,
+      "insufficient": 6,
+      "ply_caps": 3,
       "opening_terminals": 1,
       "soft_x_count": 0,
       "soft_x_sum": 0,
@@ -14607,33 +16145,33 @@
       "soft_mean_x": null
     },
     "soft": {
-      "games": 54,
-      "searches": 7764,
-      "moves": 7764,
-      "mates": 36,
+      "games": 194,
+      "searches": 27399,
+      "moves": 27399,
+      "mates": 120,
       "stalemates": 0,
-      "repetitions": 10,
-      "fifty": 4,
-      "insufficient": 2,
-      "ply_caps": 2,
+      "repetitions": 48,
+      "fifty": 11,
+      "insufficient": 10,
+      "ply_caps": 5,
       "opening_terminals": 1,
-      "soft_x_count": 7764,
-      "soft_x_sum": 43319647,
-      "soft_hard_cap_reached": 1095,
-      "soft_mean_x": 5579.552679031427
+      "soft_x_count": 27399,
+      "soft_x_sum": 151920469,
+      "soft_hard_cap_reached": 3812,
+      "soft_mean_x": 5544.745027190774
     },
     "completedPairObservations": {
-      "pairs": 54,
+      "pairs": 194,
       "usual": {
-        "games": 54,
-        "searches": 7786,
-        "moves": 7786,
-        "mates": 41,
+        "games": 194,
+        "searches": 26654,
+        "moves": 26654,
+        "mates": 143,
         "stalemates": 0,
-        "repetitions": 11,
-        "fifty": 1,
-        "insufficient": 0,
-        "ply_caps": 1,
+        "repetitions": 36,
+        "fifty": 6,
+        "insufficient": 6,
+        "ply_caps": 3,
         "opening_terminals": 1,
         "soft_x_count": 0,
         "soft_x_sum": 0,
@@ -14641,20 +16179,20 @@
         "soft_mean_x": null
       },
       "soft": {
-        "games": 54,
-        "searches": 7764,
-        "moves": 7764,
-        "mates": 36,
+        "games": 194,
+        "searches": 27399,
+        "moves": 27399,
+        "mates": 120,
         "stalemates": 0,
-        "repetitions": 10,
-        "fifty": 4,
-        "insufficient": 2,
-        "ply_caps": 2,
+        "repetitions": 48,
+        "fifty": 11,
+        "insufficient": 10,
+        "ply_caps": 5,
         "opening_terminals": 1,
-        "soft_x_count": 7764,
-        "soft_x_sum": 43319647,
-        "soft_hard_cap_reached": 1095,
-        "soft_mean_x": 5579.552679031427
+        "soft_x_count": 27399,
+        "soft_x_sum": 151920469,
+        "soft_hard_cap_reached": 3812,
+        "soft_mean_x": 5544.745027190774
       }
     },
     "diagnosticLines": 0,
@@ -14672,22 +16210,67 @@
     "unknownUnassignedSoftBatches": 0,
     "faultReasons": {},
     "shutdownTiming": {
-      "events": 4,
-      "measured": 4,
+      "events": 8,
+      "measured": 8,
       "unavailable": 0,
       "over100ms": 0,
-      "maxMs": 56.511988,
+      "maxMs": 77.276126,
       "groups": {
         "forced=false:batchComplete=true": {
-          "events": 4,
-          "measured": 4,
+          "events": 8,
+          "measured": 8,
           "unavailable": 0,
           "over100ms": 0,
-          "maxMs": 56.511988
+          "maxMs": 77.276126
         }
       }
     },
     "groups": {
+      "asan/off/t1/n2000/d0": {
+        "smpSamplingExceptions": {
+          "observed": 0,
+          "completedPairObservations": 0,
+          "acceptedClean": 0
+        },
+        "batches": 1,
+        "pairs": 27,
+        "usual": {
+          "games": 27,
+          "searches": 3940,
+          "moves": 3940,
+          "mates": 17,
+          "stalemates": 0,
+          "repetitions": 3,
+          "fifty": 3,
+          "insufficient": 3,
+          "ply_caps": 1,
+          "opening_terminals": 0,
+          "soft_x_count": 0,
+          "soft_x_sum": 0,
+          "soft_hard_cap_reached": 0,
+          "soft_mean_x": null
+        },
+        "soft": {
+          "games": 27,
+          "searches": 4098,
+          "moves": 4098,
+          "mates": 15,
+          "stalemates": 0,
+          "repetitions": 7,
+          "fifty": 3,
+          "insufficient": 0,
+          "ply_caps": 2,
+          "opening_terminals": 0,
+          "soft_x_count": 4098,
+          "soft_x_sum": 22235890,
+          "soft_hard_cap_reached": 515,
+          "soft_mean_x": 5426.034651049293
+        },
+        "passed": 1,
+        "failed": 0,
+        "diagnosticLines": 0,
+        "faultRows": 0
+      },
       "asan/off/t1/n20000/d0": {
         "smpSamplingExceptions": {
           "observed": 0,
@@ -14727,6 +16310,51 @@
           "soft_x_sum": 8027847,
           "soft_hard_cap_reached": 159,
           "soft_mean_x": 5250.390451275343
+        },
+        "passed": 1,
+        "failed": 0,
+        "diagnosticLines": 0,
+        "faultRows": 0
+      },
+      "asan/off/t2/n2000/d0": {
+        "smpSamplingExceptions": {
+          "observed": 84,
+          "completedPairObservations": 84,
+          "acceptedClean": 84
+        },
+        "batches": 1,
+        "pairs": 43,
+        "usual": {
+          "games": 43,
+          "searches": 5621,
+          "moves": 5621,
+          "mates": 30,
+          "stalemates": 0,
+          "repetitions": 11,
+          "fifty": 1,
+          "insufficient": 1,
+          "ply_caps": 0,
+          "opening_terminals": 0,
+          "soft_x_count": 0,
+          "soft_x_sum": 0,
+          "soft_hard_cap_reached": 0,
+          "soft_mean_x": null
+        },
+        "soft": {
+          "games": 43,
+          "searches": 5655,
+          "moves": 5655,
+          "mates": 31,
+          "stalemates": 0,
+          "repetitions": 8,
+          "fifty": 1,
+          "insufficient": 3,
+          "ply_caps": 0,
+          "opening_terminals": 0,
+          "soft_x_count": 5655,
+          "soft_x_sum": 31863271,
+          "soft_hard_cap_reached": 849,
+          "soft_mean_x": 5634.530680813439
         },
         "passed": 1,
         "failed": 0,
@@ -14778,6 +16406,51 @@
         "diagnosticLines": 0,
         "faultRows": 0
       },
+      "asan/on/t1/n2000/d0": {
+        "smpSamplingExceptions": {
+          "observed": 0,
+          "completedPairObservations": 0,
+          "acceptedClean": 0
+        },
+        "batches": 1,
+        "pairs": 29,
+        "usual": {
+          "games": 29,
+          "searches": 3946,
+          "moves": 3946,
+          "mates": 20,
+          "stalemates": 0,
+          "repetitions": 7,
+          "fifty": 1,
+          "insufficient": 1,
+          "ply_caps": 0,
+          "opening_terminals": 0,
+          "soft_x_count": 0,
+          "soft_x_sum": 0,
+          "soft_hard_cap_reached": 0,
+          "soft_mean_x": null
+        },
+        "soft": {
+          "games": 29,
+          "searches": 3915,
+          "moves": 3915,
+          "mates": 14,
+          "stalemates": 0,
+          "repetitions": 12,
+          "fifty": 1,
+          "insufficient": 2,
+          "ply_caps": 0,
+          "opening_terminals": 0,
+          "soft_x_count": 3915,
+          "soft_x_sum": 20911841,
+          "soft_hard_cap_reached": 414,
+          "soft_mean_x": 5341.4664112388255
+        },
+        "passed": 1,
+        "failed": 0,
+        "diagnosticLines": 0,
+        "faultRows": 0
+      },
       "asan/on/t1/n20000/d0": {
         "smpSamplingExceptions": {
           "observed": 0,
@@ -14817,6 +16490,51 @@
           "soft_x_sum": 7596988,
           "soft_hard_cap_reached": 145,
           "soft_mean_x": 5323.747722494744
+        },
+        "passed": 1,
+        "failed": 0,
+        "diagnosticLines": 0,
+        "faultRows": 0
+      },
+      "asan/on/t2/n2000/d0": {
+        "smpSamplingExceptions": {
+          "observed": 99,
+          "completedPairObservations": 99,
+          "acceptedClean": 99
+        },
+        "batches": 1,
+        "pairs": 41,
+        "usual": {
+          "games": 41,
+          "searches": 5361,
+          "moves": 5361,
+          "mates": 35,
+          "stalemates": 0,
+          "repetitions": 4,
+          "fifty": 0,
+          "insufficient": 1,
+          "ply_caps": 1,
+          "opening_terminals": 0,
+          "soft_x_count": 0,
+          "soft_x_sum": 0,
+          "soft_hard_cap_reached": 0,
+          "soft_mean_x": null
+        },
+        "soft": {
+          "games": 41,
+          "searches": 5967,
+          "moves": 5967,
+          "mates": 24,
+          "stalemates": 0,
+          "repetitions": 11,
+          "fifty": 2,
+          "insufficient": 3,
+          "ply_caps": 1,
+          "opening_terminals": 0,
+          "soft_x_count": 5967,
+          "soft_x_sum": 33589820,
+          "soft_hard_cap_reached": 939,
+          "soft_mean_x": 5629.264286911346
         },
         "passed": 1,
         "failed": 0,
@@ -14871,36 +16589,36 @@
     },
     "observedIncludingPartialPair": {
       "usual": {
-        "games": 54,
-        "searches": 7786
+        "games": 194,
+        "searches": 26654
       },
       "soft": {
-        "games": 54,
-        "searches": 7764
+        "games": 194,
+        "searches": 27399
       }
     },
-    "games": 108,
-    "searches": 15550,
+    "games": 388,
+    "searches": 54053,
     "plannedBatchInventory": 72,
     "uniqueGroupsRequired": 12,
     "completePlan": false,
     "passedPlan": false,
-    "uniqueGroupsTested": 4,
-    "uniqueGroupsPassed": 4,
+    "uniqueGroupsTested": 8,
+    "uniqueGroupsPassed": 8,
     "matrixCoverageComplete": false,
     "repeatBatches": 0,
-    "unrunPlannedBatches": 68,
+    "unrunPlannedBatches": 64,
     "cycles": {
       "0": {
-        "recorded": 4,
-        "passed": 4,
+        "recorded": 8,
+        "passed": 8,
         "failed": 0
       }
     },
-    "softXSum": 43319647,
-    "softXCount": 7764,
-    "softMeanX": 5579.552679031427,
-    "softHardCaps": 1095,
+    "softXSum": 151920469,
+    "softXCount": 27399,
+    "softMeanX": 5544.745027190774,
+    "softHardCaps": 3812,
     "preliminaryIncluded": false,
     "blockFurtherEngineWork": false,
     "auditUnavailableBatches": 0,
