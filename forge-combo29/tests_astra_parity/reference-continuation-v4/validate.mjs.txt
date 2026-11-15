@@ -1,0 +1,26 @@
+import fs from 'node:fs';import cp from 'node:child_process';import assert from 'node:assert/strict';import crypto from 'node:crypto';
+import {allows} from './policy.mjs';import {classifyExactReference} from './exact-reference.mjs';
+const dir='/workspace/work/parity-reference-continuation-v4',auditFile='/workspace/work/parity-run/equality-final-v3/audits/S2-0001.txt',raw=fs.readFileSync(auditFile,'utf8'),a=JSON.parse(raw),records=[];
+function check(name,mutate,expected){const x=structuredClone(a);mutate(x);const before=JSON.stringify(x),got=allows(x,true);assert.equal(got,expected,name);assert.equal(JSON.stringify(x),before,'mutation '+name);records.push({name,expected,got});}
+check('exact pinned reference event',()=>{},true);
+check('candidate count2 blocks',x=>{x.shutdownTiming.candidateTimeoutOccurrences=2;x.decision0012.escalationRequired=true;},false);
+check('global crash counter blocks',x=>x.counts.crashes++,false);
+check('missing completed search blocks',x=>x.partialEvidence.find(p=>p.worker===1).partial.initial.lock.result=null,false);
+check('unrequested signal blocks',x=>x.partialEvidence.find(p=>p.worker===1).partial.initial.lock.shutdown.driver_sigterm=false,false);
+check('SIGSEGV blocks',x=>x.partialEvidence.find(p=>p.worker===1).partial.initial.lock.shutdown.signal=11,false);
+check('unreaped status blocks',x=>x.partialEvidence.find(p=>p.worker===1).partial.initial.lock.shutdown.reaped=false,false);
+check('diagnostic blocks',x=>x.partialEvidence.find(p=>p.worker===1).partial.initial.lock.sanitizer_issues=1,false);
+check('changed FEN blocks',x=>x.partialEvidence.find(p=>p.worker===1).partial.context.fen+=' ',false);
+check('changed raw summary hash blocks',x=>x.batches[0].sha256='0'.repeat(64),false);
+check('changed occurrence side blocks',x=>x.shutdownTiming.timeoutOccurrences[0].side='merged',false);
+check('additional forced reference event blocks',x=>{x.operationalFaults++;x.partialOperationalFaults++;x.decision0012.otherOperationalFaults++;x.shutdownTiming.timeoutOccurrences.push({...x.shutdownTiming.timeoutOccurrences[0],localIndex:3930,globalRecordIndex:15721});x.partialOperationalFindings.push({...x.partialOperationalFindings[0],localIndex:3930});},false);
+check('other partial fault blocks',x=>x.partialOperationalFindings[0].faults.transport_issues=1,false);
+check('validation error blocks',x=>x.validationErrors.push({test:true}),false);
+const withDifference=structuredClone(a);withDifference.totalDifferences=1;assert.equal(allows(withDifference,false),false);assert.equal(allows(withDifference,true),true);records.push({name:'final attribution remains separately required',passed:true});
+function command(name,args,expected=0){const p=cp.spawnSync('node',args,{encoding:'utf8',timeout:95000,maxBuffer:64*1024*1024});const item={name,argv:['node',...args],exit:p.status,signal:p.signal,stdout:p.stdout,stderr:p.stderr};fs.writeFileSync(dir+'/'+name+'.command.txt',JSON.stringify(item,null,2)+'\n',{flag:'wx'});assert.equal(p.status,expected,name+' '+p.stderr);return p.stdout;}
+for(const name of ['control.mjs','audit-all-differences.mjs','policy.mjs','exact-reference.mjs','record-equality.mjs'])command('syntax-'+name.replaceAll('.','-'),['--check',dir+'/'+name]);
+const preview=command('preview-migration',[dir+'/control.mjs','preview-migration','final','/workspace/work/parity-run/equality-final-v3/stage.txt']);fs.writeFileSync(dir+'/preview-stage.txt',preview,{flag:'wx'});
+const audited=command('preview-aggregate',[dir+'/audit-all-differences.mjs',dir+'/preview-stage.txt','/workspace/work/parity-run/equality-batches/step2/S2-0001/summary.txt'],1),next=JSON.parse(audited);for(const key of Object.keys(a))assert.deepEqual(next[key],a[key],'raw audit field changed '+key);assert.equal(next.continuationDecision.allowed,true);assert.equal(next.supplementalReferenceClassification.retainedExceptionCount,1);assert.equal(next.decision0012.continuationAllowed,false);assert.equal(next.operationalFaults,1);assert.equal(next.counts.positions,14959);fs.writeFileSync(dir+'/preview-audit.txt',audited,{flag:'wx'});
+assert.equal(fs.readFileSync(auditFile,'utf8'),raw,'Old audit changed');
+fs.writeFileSync(dir+'/VALIDATION.txt',JSON.stringify({utc:new Date().toISOString(),tests:records,rawAuditFieldsUnchanged:true,previewContinuationAllowed:true,nativeRuns:0,rootStateWrites:0,gitWrites:0,priorAuditSha256:crypto.createHash('sha256').update(raw).digest('hex'),classification:classifyExactReference(a,true)},null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify({tests:records.length,passed:true,nativeRuns:0,rootStateWrites:0,gitWrites:0}));
