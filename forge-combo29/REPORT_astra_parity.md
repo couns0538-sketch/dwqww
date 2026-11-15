@@ -1,6 +1,6 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:26:26.735Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:33:59.085Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
@@ -78,6 +78,8 @@ The target harness was tightened after review to reject bounded scores and engin
 
 Half final sanitizer selfplay games softnodes2500; exact UCIlabel checks peranswer0012, capcount andmeanX. Labelcheck3/4failure stops forreport.
 
+Actual timing snapshot 2026-11-15T02:28:20.131Z: final-tree batch intervals cover 215.11s of wall time after merging overlaps; their duration sum is 400.062s. Accepted clean batches cover 188.692s. These include startup/protocol/shutdown overhead and are not CPU time. Gaps and preliminary coverage are separate. [Intervals and gaps](tests_astra_parity/soak-time-review-0017/REPORT.md).
+
 The second candidate cutoff occurred with only3 ms total allowance and1 ms graceful wait, followed by driver SIGTERM; observed exit0/signal0 at1.193467 ms. The prescribed2000-cycle diagnostic used the normal250 ms allowance, alternating1000 cycles per build. [Original trigger and diagnostic summary](tests_astra_parity/faults/shutdown-candidate-085545.txt), [all cycle transcripts and reconstruction hashes](tests_astra_parity/shutdown-diagnostic-085545). The continuation question is published in [coordination0016](https://github.com/couns0538-sketch/dwqww/tree/81f22c245a906b3ea59af4404cb8f112a35936a2/forge-combo29/soak_all/ASTRA_QUESTION_0016.md).
 
 The first final-tree paired batch stopped on the literal soft-node item4 contract. At FEN `8/1K6/8/3k4/6R1/8/8/8 b - - 98 130`, the last exact iteration was depth64, cp0, nodes2225; X was2225 and bestmove d5c5 matched the PV. Items2/3 passed. No sanitizer diagnostic appeared. The existing depth ceiling explains termination below2500, but the fixed acceptance rule did not exempt it. No engine fix or expected-value change was made.
@@ -95,6 +97,8 @@ Further engine work is paused pending Fable/Opus review. No source or acceptance
 
 Preliminary sanitizer results test the three-import tree and are recorded separately from final-tree coverage. The old in-process driver reuses a Searcher through successive moves. The new UCI harness pairs usual-limit and softnodes2500 games and checks the exact training-label contract.
 
+The first two clean final-tree batches contain 15406 searches after an earlier search without intervening ucinewgame. This exercises persistent-process warm TT/history and worker-storage reuse. Each root accumulator is nevertheless invalidated/refreshed at every search; neither harness performs an independent per-node incremental-versus-full NNUE value check. [Exact coverage and limitations](tests_astra_parity/warm-coverage-review/REVIEW.md).
+
 The actual owner-PC compiler, PGO profile, runtime tuning and active network were not independently tested here. This report covers the specifically requested source changes, cloud builds and recorded options. Fable reports an independent source comparison in answer0012; that is attributed evidence, not a cloud run on the PC.
 
 Detailed state and all command/output files are retained: [state snapshot](tests_astra_parity/STATUS_STATE.txt), [commands and raw output](tests_astra_parity/logs), [progress](tests_astra_parity/PROGRESS.txt). Large raw text logs use immutable chunks with byte counts and SHA256 reconstruction manifests. All published additions are text under this report and tests_astra_parity. Existing tests, expected values, CMake and earlier evidence remain unchanged.
@@ -102,4 +106,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 29, including this checkpoint.
+Progress pushes: 30, including this checkpoint.
