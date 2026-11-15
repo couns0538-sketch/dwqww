@@ -1,6 +1,6 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T05:02:10.752Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T05:04:46.902Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
@@ -10,7 +10,7 @@ Job A closed at 2026-11-15T04:20:00.000Z; accepted sanitizer coverage 846 games 
 
 Job B is closed: 1400 of 6000 requested games. [Verified match closeout](tests_astra_parity/job-b-closeout-final/REPORT.md); [shutdown context and limitations](tests_astra_parity/job-b-closeout-context.md). Last native batch finished 2026-11-15T05:00:27.265Z; actual native batch intervals total 1743.2379999999998 seconds. This is not a claim of two continuous hours of play.
 
-Jobs A and B closed; final publication before Job C.
+Jobs A and B reported and publication audited; handoff0022 sent.
 Job A: 846 accepted games / 120313 searches, 12/12 sampled conditions; 2312.736 seconds accepted sanitizer interval union, below 7200. Six failed sanitizer batches retained separately. One full shutdown replay matched 8291 searches and exited naturally in 38.103431 ms; original cause unresolved, zero diagnostic credit. Job B: 1400/6000 games, W389-L350-D661, pair bins 28,154,302,183,33, no recorded operational findings; 1743.238 seconds of native match batch time, no continuous-two-hour claim. Job C has not started; question0021 requests timing clarification and next useful work.
 
 | Check | Result |
@@ -159,4 +159,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 49, including this checkpoint.
+Progress pushes: 50, including this checkpoint.
