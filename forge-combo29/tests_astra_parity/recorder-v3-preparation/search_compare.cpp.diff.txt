@@ -1,0 +1,15 @@
+--- /workspace/work/parity-equality-preparation-v3/search_compare.cpp.original.txt	2026-11-14 16:05:16.884374197 -0800
++++ /workspace/work/parity-equality-preparation-v3/search_compare.cpp	2026-11-14 16:05:16.884374197 -0800
+@@ -114,7 +114,11 @@
+             ",\"shutdown\":{\"observed\":" + boolean(shutdown_observed) + ",\"reaped\":" + boolean(shutdown.reaped) +
+             ",\"exit_code\":" + std::to_string(shutdown.exit_code) + ",\"signal\":" + std::to_string(shutdown.signal) +
+             ",\"timed_out\":" + boolean(shutdown.timed_out) + ",\"driver_sigterm\":" + boolean(shutdown.driver_sigterm) +
+-            ",\"driver_sigkill\":" + boolean(shutdown.driver_sigkill) + ",\"error\":" + quote(shutdown.error) + "}}";
++            ",\"driver_sigkill\":" + boolean(shutdown.driver_sigkill) + ",\"error\":" + quote(shutdown.error) +
++            ",\"timing_schema\":1,\"shutdown_budget_ms\":" + std::to_string(shutdown.shutdown_budget_ms) +
++            ",\"quit_attempted\":" + boolean(shutdown.quit_attempted) + ",\"quit_sent\":" + boolean(shutdown.quit_sent) +
++            ",\"quit_to_exit_ms\":" + (shutdown.quit_to_exit_ms < 0 ? std::string("null") : std::to_string(shutdown.quit_to_exit_ms)) +
++            ",\"shutdown_total_ms\":" + std::to_string(shutdown.shutdown_total_ms) + "}}";
+     }
+ };
+ struct Engine {
