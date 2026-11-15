@@ -1,0 +1,7 @@
+Step3 source review passed with no blocking issue. The diff against91dd06c713807dfe6f31b08d44d0faa26d6db34c touches only search.cpp (20 insertions,1 replaced return), and the two imported V3 blob IDs remain unchanged.
+
+FORGE_NNUE_V3_VERIFY defaults to0 inside the V3 build guard. All checking work is confined to Worker::static_evaluate_v3. It evaluates the same incremental accumulator once, independently obtains evaluate_reference(net,board), and compares the resulting integer values. With verification disabled, the original value is returned with no reference call or diagnostic path.
+
+A mismatch writes ply, incremental/reference values and the full FEN to stderr under the existing output mutex and flushes with endl before std::_Exit(3). The conditional cstdlib include declares that function. Immediate exit avoids concurrent worker/destructor teardown replacing the primary mismatch with another exit status. It deliberately skips normal cleanup only on a detected mismatch; the harness must count exit3 as a finding, not a clean sanitizer shutdown or leak-check pass. Normal-path cleanup is unchanged.
+
+No builds or engines were run by this review, so compiler integration, actual mismatch signaling and the requested reference/sanitizer checks remain runtime validation. Exact source/import hashes and read-only diff command outputs are retained alongside the report. No source, Git or root-state mutation was made.

@@ -1,0 +1,76 @@
+{
+  "utc": "2026-11-15T05:16:20.662Z",
+  "base": "91dd06c713807dfe6f31b08d44d0faa26d6db34c",
+  "files": [
+    "forge-combo29/src/search.cpp"
+  ],
+  "additions": 20,
+  "deletions": 1,
+  "pins": {
+    "/workspace/work/dwqww-v3/forge-combo29/src/search.cpp": "421e5ce19054d2defc70be2ea09b8bdef1eec14c80a96bcc5a9aa1106a09c5da",
+    "/workspace/work/dwqww-v3/forge-combo29/include/forge/nnue_v3.hpp": "cc76d8d7d0237a78e65b66a4a46a105ef60b551219415320ae02b016351b79e2",
+    "/workspace/work/dwqww-v3/forge-combo29/src/nnue_v3.cpp": "8dc8b061e2c4f087965d8dd300889c87b0213b39c2d0f310cce42bc262a35ae1"
+  },
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/work/dwqww-v3",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit": 0,
+      "signal": null,
+      "stdout": "91dd06c713807dfe6f31b08d44d0faa26d6db34c\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/work/dwqww-v3",
+        "diff",
+        "--name-only",
+        "91dd06c713807dfe6f31b08d44d0faa26d6db34c"
+      ],
+      "exit": 0,
+      "signal": null,
+      "stdout": "forge-combo29/src/search.cpp\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/work/dwqww-v3",
+        "diff",
+        "--numstat",
+        "91dd06c713807dfe6f31b08d44d0faa26d6db34c"
+      ],
+      "exit": 0,
+      "signal": null,
+      "stdout": "20\t1\tforge-combo29/src/search.cpp\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/workspace/work/dwqww-v3",
+        "diff",
+        "91dd06c713807dfe6f31b08d44d0faa26d6db34c",
+        "--",
+        "forge-combo29/src/search.cpp"
+      ],
+      "exit": 0,
+      "signal": null,
+      "stdout": "diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp\nindex 9e818063..b803a7e8 100644\n--- a/forge-combo29/src/search.cpp\n+++ b/forge-combo29/src/search.cpp\n@@ -10,6 +10,14 @@\n #include <iostream>\n #include <limits>\n #include <optional>\n+#if FORGE_NNUE_V3\n+#ifndef FORGE_NNUE_V3_VERIFY\n+#define FORGE_NNUE_V3_VERIFY 0\n+#endif\n+#if FORGE_NNUE_V3_VERIFY\n+#include <cstdlib>\n+#endif\n+#endif\n #if defined(__AVX2__)\n #include <immintrin.h>\n #endif\n@@ -1129,7 +1137,18 @@ int Worker::static_evaluate_v3(const Board& board, SearchStack* ss) {\n         return frame.dirty;\n     };\n     nnue::v3::make_valid(net, state, ss->ply + 4, board, dirty_of);\n-    return nnue::v3::evaluate(net, board, state.stack[static_cast<std::size_t>(ss->ply + 4)]);\n+    const int value = nnue::v3::evaluate(net, board, state.stack[static_cast<std::size_t>(ss->ply + 4)]);\n+#if FORGE_NNUE_V3_VERIFY\n+    const int reference = nnue::v3::evaluate_reference(net, board);\n+    if (value != reference) {\n+        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());\n+        std::cerr << \"NNUE v3 verification mismatch ply \" << ss->ply\n+                  << \" incremental \" << value << \" reference \" << reference\n+                  << \" fen \" << board.fen() << std::endl;\n+        std::_Exit(3);\n+    }\n+#endif\n+    return value;\n }\n #endif\n void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {\n",
+      "stderr": ""
+    }
+  ],
+  "engineRuns": 0,
+  "builds": 0,
+  "gitMutations": 0,
+  "rootStateWrites": 0
+}

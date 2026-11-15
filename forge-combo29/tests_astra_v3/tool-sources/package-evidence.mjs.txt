@@ -1,0 +1,16 @@
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';
+const [source,destination]=process.argv.slice(2),root='/workspace/work/dwqww-v3/forge-combo29/tests_astra_v3/';
+if(!source?.startsWith('/workspace/work/')||!destination?.startsWith(root))throw Error('paths');
+if(fs.existsSync(destination))throw Error('immutable destination exists');fs.mkdirSync(destination,{recursive:true});
+const manifest=[],hash=b=>crypto.createHash('sha256').update(b).digest('hex'),chunkLimit=16*1024*1024;
+function copy(file,relative){const data=fs.readFileSync(file);if(data.includes(0))throw Error('binary '+file);new TextDecoder('utf8',{fatal:true}).decode(data);
+ const rel=/\.(cpp|hpp|md|txt)$/.test(relative)?relative:relative+'.txt',entry={source:file,relative:rel,bytes:data.length,sha256:hash(data),chunks:[]};
+ fs.mkdirSync(path.dirname(destination+'/'+rel),{recursive:true});
+ for(let start=0,part=1;start<data.length||part===1;part++){
+  let end=Math.min(start+chunkLimit,data.length);if(end<data.length){const newline=data.lastIndexOf(10,end);if(newline>start)end=newline+1;}
+  const chunk=data.subarray(start,end),name=data.length<=chunkLimit?rel:rel+'.part-'+String(part).padStart(3,'0')+'.txt';
+  fs.writeFileSync(destination+'/'+name,chunk,{mode:0o644,flag:'wx'});entry.chunks.push({path:name,offset:start,bytes:chunk.length,sha256:hash(chunk)});start=end;if(start===data.length)break;
+ }manifest.push(entry);}
+function walk(p,rel=''){for(const e of fs.readdirSync(p,{withFileTypes:true})){if(e.isDirectory())walk(p+'/'+e.name,rel+e.name+'/');else if(/\.(cpp|hpp|md|txt|json|jsonl|mjs|pgn|log|ndjson|reserved)$/.test(e.name)){if(e.name.endsWith('.mjs')&&fs.existsSync(p+'/'+e.name+'.txt')){if(!fs.readFileSync(p+'/'+e.name).equals(fs.readFileSync(p+'/'+e.name+'.txt')))throw Error('different inert tool copy '+e.name);continue;}copy(p+'/'+e.name,rel+e.name);}}}
+if(fs.existsSync(source)&&fs.statSync(source).isDirectory())walk(source);else {const parent=path.dirname(source),stem=path.basename(source);for(const name of fs.readdirSync(parent).filter(n=>n.startsWith(stem+'.')))copy(parent+'/'+name,name);}
+fs.writeFileSync(destination+'/MANIFEST.txt',JSON.stringify({utc:new Date().toISOString(),source,files:manifest,reconstruction:'Concatenate each file chunks in listed order without separators; verify original SHA256.'},null,2)+'\n');console.log(JSON.stringify({destination,files:manifest.length,bytes:manifest.reduce((n,x)=>n+x.bytes,0)}));

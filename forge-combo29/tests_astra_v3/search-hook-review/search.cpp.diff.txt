@@ -1,0 +1,67 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -1066,6 +1066,9 @@
+         if (dead_material_score(board, fixed)) return fixed;
+     }
+     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
++#if FORGE_NNUE_V3
++    if (nnue::v3::active()) return static_evaluate_v3(board, ss);
++#endif
+     const bool residual = nnue::residual();
+     // Features used for this evaluation. A null move keeps the parent's
+     // accumulator: the piece set is unchanged, and a float copy would be the
+@@ -1114,6 +1117,21 @@
+     return std::clamp(evaluator_.evaluate_runtime(board, *psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+ 
++#if FORGE_NNUE_V3
++int Worker::static_evaluate_v3(const Board& board, SearchStack* ss) {
++    if (!v3_state_) v3_state_ = std::make_unique<nnue::v3::WorkerState>();
++    const nnue::v3::Net& net = *nnue::v3::loaded();
++    nnue::v3::WorkerState& state = *v3_state_;
++    nnue::v3::prepare(net, state, MaxPly + 8);
++    auto dirty_of = [this](int k) -> const nnue::DirtyPieces& {
++        SearchStack& frame = stack_[static_cast<std::size_t>(k)];
++        ensure_piece_diff(&frame);
++        return frame.dirty;
++    };
++    nnue::v3::make_valid(net, state, ss->ply + 4, board, dirty_of);
++    return nnue::v3::evaluate(net, board, state.stack[static_cast<std::size_t>(ss->ply + 4)]);
++}
++#endif
+ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {
+     // Called before make_move. The change list is ready, but the feature
+     // columns are added only when this position is evaluated.
+@@ -1128,6 +1146,9 @@
+                                           static_cast<Color>(child->entered_side));
+     child->diff_known = true;
+     child->accumulator.valid = false;
++#if FORGE_NNUE_V3
++    if (v3_state_) v3_state_->stack[static_cast<std::size_t>(ss->ply + 5)].valid = false;
++#endif
+     child->runtime_psqt.valid = false;
+ }
+ 
+@@ -1161,6 +1182,9 @@
+     child->diff_known = true;
+     child->dirty.count = 0;
+     child->accumulator.valid = false;
++#if FORGE_NNUE_V3
++    if (v3_state_) v3_state_->stack[static_cast<std::size_t>(ss->ply + 5)].valid = false;
++#endif
+     child->runtime_psqt.valid = false;
+ }
+ 
+@@ -2308,6 +2332,12 @@
+         entry.entered_null = false;
+         entry.dirty.count = 0;
+     }
++#if FORGE_NNUE_V3
++    if (v3_state_) v3_state_->invalidate();
++    if (nnue::enabled && nnue::available() && nnue::v3::active()) {
++        (void)static_evaluate_v3(board, ss);
++    } else
++#endif
+     if (nnue::enabled && nnue::available()) {
+         nnue::refresh(board, ss->accumulator);
+         if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);

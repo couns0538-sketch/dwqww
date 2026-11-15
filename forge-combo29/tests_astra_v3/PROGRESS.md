@@ -1,2 +1,3 @@
 2026-11-15T05:06:02.932Z
 2026-11-15T05:14:23.617Z | 8.34 minutes | Job C step 2 hooks committed; checking switch pending | metadata checkpoint; seed none | No new runtime result claimed
+2026-11-15T05:25:59.392Z | 19.94 minutes | Job C source steps committed; validation pending | metadata checkpoint; seed none | Three source steps committed separately. Decision0021 permits bounded consecutive segments, accepts A/B closure and keeps0020 unresolved with no further diagnostic. Two archive attempts hit the prior branch path guard; a new packager with the JobC destination guard is prepared, original commands retained.

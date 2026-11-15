@@ -1,0 +1,155 @@
+[
+  {
+    "utc": "2026-11-15T05:17:11.046Z",
+    "argv": [
+      "git",
+      "branch",
+      "--show-current"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "for-fable-and-opus/astra-0017-v3-path\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:17:11.065Z",
+    "argv": [
+      "git",
+      "diff",
+      "--cached",
+      "--name-only"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:17:11.075Z",
+    "argv": [
+      "git",
+      "diff",
+      "--name-only"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "forge-combo29/src/search.cpp\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:17:11.083Z",
+    "argv": [
+      "git",
+      "hash-object",
+      "forge-combo29/include/forge/nnue_v3.hpp"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "cc2d0bcfba41993098061cd43d7a88eb450b2074\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:17:11.091Z",
+    "argv": [
+      "git",
+      "hash-object",
+      "forge-combo29/src/nnue_v3.cpp"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "122ce37ad66b43438c3c8c73a15c61255083b541\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:17:11.102Z",
+    "argv": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:17:11.119Z",
+    "argv": [
+      "git",
+      "diff",
+      "--",
+      "forge-combo29/src/search.cpp"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp\nindex 9e818063..b803a7e8 100644\n--- a/forge-combo29/src/search.cpp\n+++ b/forge-combo29/src/search.cpp\n@@ -10,6 +10,14 @@\n #include <iostream>\n #include <limits>\n #include <optional>\n+#if FORGE_NNUE_V3\n+#ifndef FORGE_NNUE_V3_VERIFY\n+#define FORGE_NNUE_V3_VERIFY 0\n+#endif\n+#if FORGE_NNUE_V3_VERIFY\n+#include <cstdlib>\n+#endif\n+#endif\n #if defined(__AVX2__)\n #include <immintrin.h>\n #endif\n@@ -1129,7 +1137,18 @@ int Worker::static_evaluate_v3(const Board& board, SearchStack* ss) {\n         return frame.dirty;\n     };\n     nnue::v3::make_valid(net, state, ss->ply + 4, board, dirty_of);\n-    return nnue::v3::evaluate(net, board, state.stack[static_cast<std::size_t>(ss->ply + 4)]);\n+    const int value = nnue::v3::evaluate(net, board, state.stack[static_cast<std::size_t>(ss->ply + 4)]);\n+#if FORGE_NNUE_V3_VERIFY\n+    const int reference = nnue::v3::evaluate_reference(net, board);\n+    if (value != reference) {\n+        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());\n+        std::cerr << \"NNUE v3 verification mismatch ply \" << ss->ply\n+                  << \" incremental \" << value << \" reference \" << reference\n+                  << \" fen \" << board.fen() << std::endl;\n+        std::_Exit(3);\n+    }\n+#endif\n+    return value;\n }\n #endif\n void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:17:11.158Z",
+    "argv": [
+      "git",
+      "add",
+      "--sparse",
+      "--",
+      "forge-combo29/src/search.cpp"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:17:11.167Z",
+    "argv": [
+      "git",
+      "diff",
+      "--cached",
+      "--name-only"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "forge-combo29/src/search.cpp\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:17:11.200Z",
+    "argv": [
+      "git",
+      "-c",
+      "user.name=Codex",
+      "-c",
+      "user.email=codex@openai.com",
+      "commit",
+      "-m",
+      "Add optional per-evaluation NNUE v3 reference verification"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "[for-fable-and-opus/astra-0017-v3-path b479f044] Add optional per-evaluation NNUE v3 reference verification\n 1 file changed, 20 insertions(+), 1 deletion(-)\n",
+    "stderr": ""
+  },
+  {
+    "utc": "2026-11-15T05:17:11.204Z",
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "cwd": "/workspace/work/dwqww-v3",
+    "exit": 0,
+    "signal": null,
+    "stdout": "b479f044a5fa1acfbbc8b24a4701c221e0d0fbe5\n",
+    "stderr": ""
+  }
+]
