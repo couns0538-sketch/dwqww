@@ -1,0 +1,45 @@
+Job 13 Step 0.
+
+a. The existing switch, quoted from the tree (base 6b98f217 + my job-12 Rule50Scale patch):
+   $ printf 'uci\n' | ./forge | grep EvalRule50Damp
+   option name EvalRule50Damp type check default false
+
+   Every place that reads it:
+     include/forge/search.hpp:356  rule50_damped_static()  - the divisor choice
+     src/search.cpp:208            rule50_score_for_this_clock() - TT reuse guarded by the clock
+     src/uci.cpp:220               the uci option line
+     src/uci.cpp:423-425           the setoption handler
+     src/search.cpp:96             the global (default false)
+   Every place that reads mine:
+     include/forge/search.hpp:356  the same line: divisor = Rule50Scale > 0 ? Rule50Scale : (EvalRule50Damp ? 100 : 0)
+     src/search.cpp:97             the global (default 0)
+     src/search.cpp:148            the tune parameter table (spin 0..400)
+
+b. How the two designs differ (ten lines):
+   1. Both scale the same function (rule50_damped_static) at the same two call sites
+      (search.cpp:1474 quiescence, 1663 main search), after correction history.
+   2. EvalRule50Damp uses a FIXED divisor of 100: at clock 100 the eval is exactly halved.
+   3. Rule50Scale uses a CONFIGURABLE divisor D (my job-12 patch; D=300 is what job 12 measured).
+   4. EvalRule50Damp ALSO changes the hash: rule50_score_for_this_clock (search.cpp:205-211)
+      refuses a stored score whose rule50_clock differs from the current clock. That forbids
+      TT reuse ACROSS clocks, which the fixed-divisor design needs because a score built at one
+      clock is wrong at another.
+   5. Rule50Scale does not touch that function, so it blocks no reuse (measured: 0).
+   6. Neither scales mate scores or ValueNone.
+   7. Neither touches raw_eval in the TT: the stored static eval stays unscaled.
+   8. EvalRule50Damp is a check (on/off); Rule50Scale is a spin where 0 = off and D = the strength.
+   9. With Rule50Scale = 0 and EvalRule50Damp false, the divisor is 0 and neither fires.
+  10. With both on, Rule50Scale's D wins the divisor, but EvalRule50Damp's TT guard still applies.
+
+   Counters, bench 13, from the traced copy (side by side):
+     off            : calls 0       scaled 0       tt_checked 285437  tt_blocked 0
+     EvalRule50Damp : calls 859786  scaled 427335  tt_checked 409279  tt_blocked 103989
+     Rule50Scale 300: calls 636854  scaled 283597  tt_checked 242214  tt_blocked 0
+   So per node: EvalRule50Damp scales 0.496 times and blocks 0.121 TT reuses;
+   Rule50Scale scales 0.365 times and blocks none. The existing design fires MORE often per
+   node and additionally pays the TT cost; mine fires less often and blocks nothing.
+
+c. bench with each switch on (my job-12 tree, the flags of all my jobs):
+   nothing (the four known answers):  312866 / 862329 / 3024920 / perft 5 4865609   HOLDS
+   EvalRule50Damp = true:             335103 / 1049205 / 3064920
+   Rule50Scale   = 300:               300200 /  777549 / 2474484
