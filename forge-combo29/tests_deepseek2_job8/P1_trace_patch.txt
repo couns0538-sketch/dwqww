@@ -1,0 +1,166 @@
+diff --git b4/include/forge/search.hpp mctr/include/forge/search.hpp
+index 98959af..fdd5f0f 100644
+--- b4/include/forge/search.hpp
++++ mctr/include/forge/search.hpp
+@@ -275,6 +275,12 @@ extern int LmrHistoryDivisor;
+ extern int CheckExtensionDepth;
+ extern int LmrCutoffThreshold;    // child cutoff count above which late moves are reduced more (0 = off)
+ extern int MaterialCorrectionWeight; // 0 = off, 100 = same weight as the pawn correction
++// Correction history indexed by where the knights and bishops stand: 0 = off,
++// otherwise the weight in percent, as MaterialCorrectionWeight is.
++extern int MinorCorrection;
++#if FORGE_DS2_TRACE_MC
++extern std::uint64_t mc_reads, mc_updates, mc_changed, mc_reads_zero;
++#endif
+ // Time management (sudden-death / increment controls).
+ extern int TmSoftDivisor;         // soft limit = remaining / divisor + increment share
+ extern int TmIncrementPercent;    // share of the increment added to the soft limit
+@@ -476,6 +482,8 @@ private:
+     std::unique_ptr<CounterMoveTable> counter_moves_;
+     std::unique_ptr<CorrectionHistory> correction_history_;
+     std::unique_ptr<CorrectionHistory> material_correction_;
++    // R16 MinorCorrection: same shape as the two tables above, indexed by the minor-piece key.
++    std::unique_ptr<CorrectionHistory> minor_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_white_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_black_correction_;
+     std::array<SearchStack, MaxPly + 8> stack_{};
+diff --git b4/src/search.cpp mctr/src/search.cpp
+index b803a7e..2431660 100644
+--- b4/src/search.cpp
++++ mctr/src/search.cpp
+@@ -76,6 +76,10 @@ int LmrHistoryDivisor = 6000;
+ int CheckExtensionDepth = 2;
+ int LmrCutoffThreshold = 3;
+ int MaterialCorrectionWeight = 100;
++int MinorCorrection = 0;
++#if FORGE_DS2_TRACE_MC
++std::uint64_t mc_reads = 0, mc_updates = 0, mc_changed = 0, mc_reads_zero = 0;
++#endif
+ int TmSoftDivisor = 22;
+ int TmIncrementPercent = 75;
+ int TmHardPercent = 60;
+@@ -138,6 +142,7 @@ const std::vector<Parameter>& parameters() {
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
+         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
++        {"MinorCorrection", &MinorCorrection, 0, 300},
+         {"TmSoftDivisor", &TmSoftDivisor, 5, 80},            {"TmIncrementPercent", &TmIncrementPercent, 0, 150},
+         {"TmHardPercent", &TmHardPercent, 10, 95},           {"TmHardSoftMultiple", &TmHardSoftMultiple, 1, 20},
+         {"TmStableFactor", &TmStableFactor, 20, 150},        {"TmSemiStableFactor", &TmSemiStableFactor, 20, 150},
+@@ -1009,6 +1014,7 @@ Worker::Worker(SharedSearchState& shared, int id)
+       counter_moves_(std::make_unique<CounterMoveTable>()),
+       correction_history_(std::make_unique<CorrectionHistory>()),
+       material_correction_(std::make_unique<CorrectionHistory>()),
++      minor_correction_(std::make_unique<CorrectionHistory>()),
+       non_pawn_white_correction_(std::make_unique<CorrectionHistory>()),
+       non_pawn_black_correction_(std::make_unique<CorrectionHistory>()) {
+     clear();
+@@ -1025,6 +1031,7 @@ void Worker::clear() {
+     *counter_moves_ = CounterMoveTable{};
+     *correction_history_ = CorrectionHistory{};
+     *material_correction_ = CorrectionHistory{};
++    *minor_correction_ = CorrectionHistory{};
+     *non_pawn_white_correction_ = CorrectionHistory{};
+     *non_pawn_black_correction_ = CorrectionHistory{};
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+@@ -1042,6 +1049,26 @@ namespace {
+     return key * 0x9E3779B97F4A7C15ULL;
+ }
+ 
++// Where the knights and bishops of both sides stand. Each side's minors are mixed
++// with the splitmix64 finalizer, then the two sides are combined the same way, so a
++// move of one minor changes about half the bits of the result.
++[[nodiscard]] std::uint64_t minor_key(const Board& board) {
++    auto mix = [](std::uint64_t x) {
++        x += 0x9E3779B97F4A7C15ULL;
++        x = (x ^ (x >> 30)) * 0xBF58476D1CE4E5B9ULL;
++        x = (x ^ (x >> 27)) * 0x94D049BB133111EBULL;
++        return x ^ (x >> 31);
++    };
++    // Each piece type gets its OWN multiplier before mixing. Sharing one between
++    // knights and bishops would make a knight and a bishop on the same square the
++    // same key (they would XOR to zero), which the 100,000-position test found.
++    const std::uint64_t wk = mix(static_cast<std::uint64_t>(board.pieces(White, Knight)) ^ 0x243F6A8885A308D3ULL);
++    const std::uint64_t wb = mix(static_cast<std::uint64_t>(board.pieces(White, Bishop)) ^ 0x13198A2E03707344ULL);
++    const std::uint64_t bk = mix(static_cast<std::uint64_t>(board.pieces(Black, Knight)) ^ 0xA4093822299F31D0ULL);
++    const std::uint64_t bb = mix(static_cast<std::uint64_t>(board.pieces(Black, Bishop)) ^ 0x082EFA98EC4E6C89ULL);
++    return mix(mix(wk ^ wb) ^ (mix(bk ^ bb) * 0x9E3779B97F4A7C15ULL));
++}
++
+ // Hash of non-pawn piece placements of one side, for non-pawn correction history.
+ [[nodiscard]] std::uint64_t non_pawn_key(const Board& board, Color color) {
+     std::uint64_t key = static_cast<std::uint64_t>(color) * 0x517CC1B727220A95ULL;
+@@ -1218,6 +1245,14 @@ int Worker::corrected_eval(const Board& board, int raw_eval) const {
+     if (tune::MaterialCorrectionWeight > 0) {
+         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+     }
++    if (tune::MinorCorrection > 0) {
++        const std::int32_t mc = (*minor_correction_)[side][minor_key(board) & (CorrectionSize - 1U)];
++#if FORGE_DS2_TRACE_MC
++        ++tune::mc_reads;
++        if (mc == 0) ++tune::mc_reads_zero;
++#endif
++        correction += mc * tune::MinorCorrection / 100;
++    }
+     if (tune::NonPawnCorrection) {
+         const std::int32_t np_w = (*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)];
+         const std::int32_t np_b = (*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)];
+@@ -1235,6 +1270,17 @@ void Worker::update_correction(const Board& board, int depth, int best_score, in
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
++    if (tune::MinorCorrection > 0) {
++        auto& mc = (*minor_correction_)[side][minor_key(board) & (CorrectionSize - 1U)];
++#if FORGE_DS2_TRACE_MC
++        const std::int32_t before = mc;
++#endif
++        apply(mc);
++#if FORGE_DS2_TRACE_MC
++        ++tune::mc_updates;
++        if (mc != before) ++tune::mc_changed;
++#endif
++    }
+     if (tune::NonPawnCorrection) {
+         apply((*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)]);
+         apply((*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)]);
+diff --git b4/src/uci.cpp mctr/src/uci.cpp
+index e0d8aee..5b4c42d 100644
+--- b4/src/uci.cpp
++++ mctr/src/uci.cpp
+@@ -219,6 +219,7 @@ int uci_loop(std::istream& in) {
+                          "option name LmrDeeperShallower type check default false\n"
+                          "option name EvalRule50Damp type check default false\n"
+                          "option name ThreatHistory type check default false\n"
++                         "option name MinorCorrection type spin default 0 min 0 max 300\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+@@ -400,6 +401,14 @@ int uci_loop(std::istream& in) {
+                     forge::dead_material_enabled = value_text == "true";
+                     searcher.clear_hash();
+                 }
++            } else if (name == "MinorCorrection") {
++                int value = 0;
++                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
++                if (parsed.ec == std::errc{} && parsed.ptr == value_text.data() + value_text.size()) {
++                    forge::tune::MinorCorrection = std::clamp(value, 0, 300);
++                } else {
++                    note_invalid();
++                }
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+@@ -624,6 +633,13 @@ int uci_loop(std::istream& in) {
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
+                       << std::endl;
++#if FORGE_DS2_TRACE_MC
++            std::cout << "info string MCTRACE reads " << forge::tune::mc_reads
++                      << " reads_zero " << forge::tune::mc_reads_zero
++                      << " updates " << forge::tune::mc_updates
++                      << " changed " << forge::tune::mc_changed
++                      << " nodes " << total_nodes << std::endl;
++#endif
+         } else if (command == "ponderhit") {
+             if (ponder_search_active) {
+                 searcher.ponderhit();

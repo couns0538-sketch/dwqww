@@ -1,0 +1,50 @@
+P1 - counters, bench 13, traced private build (/tmp/ds2/mctr, diff in P1_trace_patch.txt)
+  option OFF   : reads 0, reads_zero 0, updates 0, changed 0, nodes 862329
+  option 100   : reads 705170 (0.81/node), reads_zero 278438 (39.5%), updates 63718 (0.073/node),
+                 changed 60101 (94.3% of updates), nodes 867866
+
+KEY TEST (key_test.py, 100,000 random legal positions)
+  shipped key          : 51,684 distinct placements, 51,684 distinct keys, 0 collisions,
+                         15,670 of 16,384 table slots reached
+  control (weak XOR)   : 189 of 16,384 slots reached
+  MY FIRST KEY (shared knight/bishop multiplier): 228 collisions in 51,684 placements.
+     Counter-example: 3K3N/8/8/8/8/8/8/1k6 and 7B/7K/8/7k/8/8/8/8 gave the same key.
+     Fixed by giving each piece type its own multiplier before the mix.
+
+KEY COST - bench 13 time, 5 runs each, median (machine idle)
+  option off: times 685 641 645 848 660  -> median 660 ms, nodes 862329
+  option 100: times 620 909 884 994 882  -> median 884 ms, nodes 867866
+  The node counts differ too, so this is tree difference PLUS key cost, not a clean
+  per-node figure. Do not quote it as the key's cost.
+
+P3 - option ON must differ from the pins
+  OFF: bench 11 312866, bench 13 862329, bench 16 3024920, perft 5 4865609
+  ON 100: bench 11 314930, bench 13 937258, bench 16 3780562
+  uci answer lists: option name MinorCorrection type spin default 0 min 0 max 300
+
+P4 - sanitizers (ASan+UBSan build of the patched tree)
+  planted fault first: both UBSan and ASan reported by the control program.
+  bench 13 with MinorCorrection 100: 867866 nodes, stderr 0 lines
+  200 UHO positions with MinorCorrection 100:
+    sha256 2157f05650c5ab6138e2c927e80f7d42a80aa270f0649424dac7984be47e6c91
+    min nodes 5015, total 2666988, stderr 0 lines
+
+P2 - identity, option off vs the unpatched build
+  (2000 UHO lines, ucinewgame + position fen + go depth 9, answer = fen|bestmove|score|nodes)
+  unpatched  : sha256 7ea6746d44b77c6ea403649b8a94a87f604463fea295007cfbb675181b964eee
+               min nodes 4534, total 27176921
+  patched off: the same sha256, min 4534, total 27176921
+  With the option off the key is never computed (the block is behind `if (MinorCorrection > 0)`),
+  so this identity holds for the shipped build as well as for the pre-key-fix build used here.
+
+P5 - matches (nodes=20000, Threads 1, Hash 16, OwnBook false, UHO, order=random + -srand,
+     each opening twice with colours reversed, no adjudication, concurrency 4)
+  C  20000 vs 10000, seed 7850, 300 games : Elo +186.25 +/- 31.90, 0 crashes, 0 illegal
+  M1 MinorCorrection 100 vs off, seed 7851, 2000 games : Elo +0.52 +/- 10.37
+     pairs [55, 241, 406, 242, 56], Points 50.08 %, LOS 53.92 %
+  M2 (seed 7852, weight 100) and M3 (seed 7853, weight 50): still running at the deadline,
+     no numbers quoted. See the report.
+  Raw fastchess output: out8_C.txt, out8_M1.txt in this folder.
+  Probe before the matches: no "doesn't have option MinorCorrection" warning.
+
+TABLE SIZE: 2 sides * 16384 entries * 4 bytes = 131,072 bytes = 128 KB per search thread.
