@@ -1,0 +1,13 @@
+file:///workspace/work/parity-run/record-soak.mjs:10
+const rows=s[key],accepted=rows.filter(x=>x.accepted),totals={batches:accepted.length,games:0,searches:0,faults:rows.reduce((n,x)=>n+x.diagnostics+x.faults.length+Number(!x.accepted),0),excludedAttempts:rows.filter(x=>!x.accepted).length};for(const r of accepted){totals.games+=r.counts.games;totals.searches+=r.counts.searches;}
+                                                                                                                                                            ^
+
+TypeError: Cannot read properties of undefined (reading 'length')
+    at file:///workspace/work/parity-run/record-soak.mjs:10:157
+    at Array.reduce (<anonymous>)
+    at file:///workspace/work/parity-run/record-soak.mjs:10:118
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.22.1

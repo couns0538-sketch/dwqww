@@ -1,0 +1,149 @@
+--- /workspace/work/parity-match-preparation/match_guard.original.mjs.txt	2026-11-14 15:50:26.797081092 -0800
++++ /workspace/work/parity-match-preparation/audit-core.mjs	2026-11-14 15:50:26.797081092 -0800
+@@ -42,36 +42,6 @@
+   if (!Number.isSafeInteger(n) || n < minimum || n > maximum) throw new Error(name + ' out of range');
+   return n;
+ }
+-export function makePlan(mode, seed, games=400, concurrency=4, prefix) {
+-  if (!MODES.includes(mode)) throw new Error('Unknown mode: ' + mode);
+-  seed = integer(seed,'seed',0,Number.MAX_SAFE_INTEGER);
+-  games = integer(games,'games',2,400);
+-  concurrency = integer(concurrency,'concurrency',1,4);
+-  if (games % 2) throw new Error('games must be even for color-swapped pairs');
+-  prefix ??= ROOT + '/matches/' + mode + '-' + seed + '-' + new Date().toISOString().replace(/[^0-9TZ]/g,'') + '-' + process.pid + '-' + crypto.randomBytes(3).toString('hex');
+-  prefix = path.resolve(prefix);
+-  if (!prefix.startsWith(ROOT + '/') || prefix === ROOT + '/match_all.mjs') throw new Error('Artifact prefix must be inside ' + ROOT);
+-  const suffixes = {command:'.command.json',shell:'.command.txt',stdout:'.stdout.txt',stderr:'.stderr.txt',console:'.console.txt',events:'.events.ndjson',pgn:'.pgn',trace:'.engine.log',config:'.config.json',summary:'.summary.json',hashes:'.artifact-hashes.json',reservation:'.reserved'};
+-  const files = Object.fromEntries(Object.entries(suffixes).map(([k,v])=>[k,prefix+v]));
+-  const common = [['Threads','1'],['Hash','16'],['OwnBook','false']];
+-  const engines = [
+-    {name:'candidate',cmd:MERGED,options:[...common,...(mode==='default'?[]:MODES.slice(1).map(option=>[option,option===mode?'true':'false']))]},
+-    {name:'baseline',cmd:mode==='default'?LOCK:MERGED,options:[...common,...(mode==='default'?[]:MODES.slice(1).map(option=>[option,'false']))]}
+-  ];
+-  const args = [];
+-  for (const e of engines) args.push('-engine','cmd='+e.cmd,'name='+e.name,...e.options.map(([k,v])=>'option.'+k+'='+v));
+-  args.push('-each','nodes=20000','-rounds',String(games/2),'-games','2','-recover','-concurrency',String(concurrency),
+-    '-openings','file='+BOOK,'format=epd','order=random','-srand',String(seed),
+-    '-ratinginterval','0','-output','format=cutechess','-scoreinterval','1',
+-    '-pgnout','file='+files.pgn,'append=false','nodes=true',
+-    '-log','file='+files.trace,'level=trace','append=false','engine=true',
+-    '-events','file='+files.events,'-config','outname='+files.config);
+-  const timeoutArgs = ['-k','5s','420s',FASTCHESS,...args];
+-  return {schema:1,mode,seed,games,rounds:games/2,concurrency,prefix,files,engines,book:BOOK,fastchess:FASTCHESS,
+-    executable:'/usr/bin/timeout',args:timeoutArgs,cwd:path.dirname(prefix),
+-    shellCommand:['/usr/bin/timeout',...timeoutArgs].map(quote).join(' '),timeoutSeconds:420,killAfterSeconds:5};
+-}
+-
+ export async function auditBatch(plan, processResult={}, inputHashes={}) {
+   const errors=[],starts=new Map(),finishes=new Map(),aborts=new Map(),moveStats=new Map();
+   const illegalMoves=[],abnormalGames=[],eventProblems=[],tournaments=[],traceFindings=[],consoleFindings=[],moveCountsByEngine={};
+@@ -175,13 +145,13 @@
+     const m=line.match(/\[Engine\].*?\s(\S+)\s+<--- (.*)$/);
+     if(m&&plan.engines.some(e=>e.name===m[1])){
+       const engine=plan.engines.find(e=>e.name===m[1]);
+-      if(m[2].startsWith('go ')){inputGo[m[1]]=(inputGo[m[1]]||0)+1;check(m[2]==='go nodes 20000','unexpected search command line '+n+': '+m[2]);}
++      if(m[2].startsWith('go ')){inputGo[m[1]]=(inputGo[m[1]]||0)+1;check(m[2]==='go nodes '+(plan.nodes??20000),'unexpected search command line '+n+': '+m[2]);}
+       if(m[2].startsWith('setoption ')){
+         optionCommands[m[1]+': '+m[2]]=(optionCommands[m[1]+': '+m[2]]||0)+1;
+         check(engine.options.some(([k,v])=>m[2]==='setoption name '+k+' value '+v),'unexpected option command line '+n+': '+m[2]);
+       }
+     }
+-    const a=line.match(/\[Engine\].*?\s(\S+)\s+---> option name (MateAlphaGuard) type check default (\S+)/);
++    const a=line.match(/\[Engine\].*?\s(\S+)\s+---> option name (MateAlphaGuard|HindsightDepth) type check default (\S+)/);
+     if(a){const key=a[1]+': '+a[2];advertisedDefaults[key]??=[];if(!advertisedDefaults[key].includes(a[3]))advertisedDefaults[key].push(a[3]);}
+   });
+   check(tracePresent,'missing full engine trace');
+@@ -193,7 +163,7 @@
+       check(unmatchedGoCounts[e.name]===0,'go/move event count mismatch: '+e.name);
+     }
+     for(const [k,v] of e.options)check((optionCommands[e.name+': setoption name '+k+' value '+v]||0)>0,'option not observed: '+e.name+' '+k);
+-    if(e.cmd===MERGED)for(const option of MODES.slice(1))check(equal(advertisedDefaults[e.name+': '+option],['false']),'default advertisement mismatch: '+e.name+' '+option);
++    if(e.cmd===MERGED||plan.enforceDefaults)for(const option of (plan.expectedBooleanDefaults??MODES.slice(1)))check(equal(advertisedDefaults[e.name+': '+option],['false']),'default advertisement mismatch: '+e.name+' '+option);
+   }
+   let savedConfig=null;
+   if(exists(p.config)){
+@@ -201,14 +171,14 @@
+   }else check(false,'missing saved config');
+   if(savedConfig){
+     const c=savedConfig;
+-    check(c.seed===plan.seed&&c.opening?.file===plan.book&&c.opening?.format===0&&c.opening?.order===0&&c.opening?.start===1&&c.opening?.plies===-1,'saved opening/seed mismatch');
++    check(c.seed===plan.seed&&c.opening?.file===plan.book&&c.opening?.format===0&&c.opening?.order===0&&c.opening?.start===(plan.openingStart??1)&&c.opening?.plies===-1,'saved opening/seed mismatch');
+     check(c.games===2&&c.rounds===plan.rounds&&c.concurrency===plan.concurrency&&c.recover===true&&c.noswap===false&&c.reverse===false,'saved schedule mismatch');
+     check(c.ratinginterval===2147483647&&c.output===1&&c.scoreinterval===1,'saved reporting mismatch');
+     for(const k of ['draw','resign','maxmoves','tb_adjudication','sprt'])check(c[k]?.enabled===false,'unexpected adjudication/SPRT '+k);
+     check(c.engines?.length===2,'saved engine count');
+     for(const e of plan.engines){
+       const actual=c.engines?.find(x=>x.name===e.name);
+-      check(!!actual&&actual.cmd===e.cmd&&actual.args===''&&actual.limit?.nodes===20000&&actual.limit?.plies===0&&Object.values(actual.limit?.tc||{}).length>0&&Object.values(actual.limit.tc).every(x=>x===0),'saved engine/limits mismatch '+e.name);
++      check(!!actual&&actual.cmd===e.cmd&&actual.args===''&&actual.limit?.nodes===(plan.nodes??20000)&&actual.limit?.plies===0&&Object.values(actual.limit?.tc||{}).length>0&&Object.values(actual.limit.tc).every(x=>x===0),'saved engine/limits mismatch '+e.name);
+       check(!!actual&&equal([...actual.options].sort(),[...e.options].sort()),'saved options mismatch '+e.name);
+     }
+     const stats=c.stats?.[candidate+' vs '+baseline];
+@@ -236,67 +206,3 @@
+     inputHashes,afterInputHashes:afterHashes,errors,tournaments,
+     note:'Counts only. Scored abnormal games remain in W/L/D and complete pair bins. A crash can be reported by fastchess as disconnect; log markers are not additional distinct games. No strength or speed conclusion. Raw final Elo text, if emitted by fastchess despite ratinginterval 0, is retained only in artifacts.'};
+ }
+-
+-async function persistSummary(plan,summary) {
+-  summary.persistenceErrors=[];
+-  try{summary.artifacts=await hashFiles(Object.entries(plan.files).filter(([k])=>!['summary','hashes'].includes(k)).map(([,v])=>v));}
+-  catch(e){summary.persistenceErrors.push('artifact hashing: '+e.message);summary.passed=false;}
+-  try{
+-    await fsp.writeFile(plan.files.summary,json(summary),{flag:'wx'});
+-    const hashes={...summary.artifacts,...await hashFiles([plan.files.summary])};
+-    await fsp.writeFile(plan.files.hashes,json(hashes),{flag:'wx'});
+-  }catch(e){
+-    summary.persistenceErrors.push('summary/hash persistence: '+e.message);summary.passed=false;
+-    try{if(exists(plan.files.summary))await fsp.writeFile(plan.files.summary,json(summary));}catch{}
+-  }
+-  console.log('SUMMARY '+JSON.stringify({...summary,artifactHashesFile:plan.files.hashes}));
+-  process.exitCode=summary.passed?0:summary.completed?2:3;
+-}
+-
+-async function runBatch(plan) {
+-  await fsp.mkdir(path.dirname(plan.prefix),{recursive:true});
+-  for(const file of Object.values(plan.files))if(exists(file))throw new Error('Refusing to overwrite existing batch artifact: '+file);
+-  await fsp.writeFile(plan.files.reservation,json({pid:process.pid,startedUTC:new Date().toISOString()}),{flag:'wx'});
+-  const record={...plan,startedUTC:new Date().toISOString(),inputHashes:{}};
+-  await fsp.writeFile(plan.files.command,json(record),{flag:'wx'});
+-  await fsp.writeFile(plan.files.shell,'# cwd: '+plan.cwd+'\n'+plan.shellCommand+'\n',{flag:'wx'});
+-  console.log('START '+JSON.stringify({mode:plan.mode,seed:plan.seed,games:plan.games,concurrency:plan.concurrency,prefix:plan.prefix,command:plan.shellCommand}));
+-  let before;
+-  try{
+-    before=await hashFiles([plan.fastchess,plan.book,...plan.engines.map(e=>e.cmd)]);
+-    record.inputHashes=before;await fsp.writeFile(plan.files.command,json(record));
+-    for(const [file,h]of Object.entries(before))if(h.missing)throw new Error('Missing input: '+file);
+-  }catch(e){await persistSummary(plan,{schema:1,mode:plan.mode,seed:plan.seed,prefix:plan.prefix,requestedGames:plan.games,completed:false,passed:false,process:{launched:false},preflightError:e.stack,inputHashes:before||{}});return;}
+-  const out=fs.createWriteStream(plan.files.stdout,{flags:'wx'}),err=fs.createWriteStream(plan.files.stderr,{flags:'wx'}),combined=fs.createWriteStream(plan.files.console,{flags:'wx'});
+-  let child,interrupted=null,killTimer=null,spawnError=null;const ioErrors=[];
+-  const interrupt=signal=>{interrupted??=signal;try{if(child?.pid)process.kill(-child.pid,'SIGTERM');}catch{};killTimer??=setTimeout(()=>{try{if(child?.pid)process.kill(-child.pid,'SIGKILL');}catch{}},5000);};
+-  for(const [file,stream]of [[plan.files.stdout,out],[plan.files.stderr,err],[plan.files.console,combined]])stream.on('error',e=>{ioErrors.push({file,error:e.message});interrupt('artifact_io_error');});
+-  child=spawn(plan.executable,plan.args,{cwd:plan.cwd,stdio:['ignore','pipe','pipe'],detached:true});
+-  child.stdout.on('data',x=>{if(!out.destroyed)out.write(x);if(!combined.destroyed)combined.write(x);});child.stderr.on('data',x=>{if(!err.destroyed)err.write(x);if(!combined.destroyed)combined.write(x);});
+-  const onInt=()=>interrupt('SIGINT'),onTerm=()=>interrupt('SIGTERM');process.on('SIGINT',onInt);process.on('SIGTERM',onTerm);
+-  const progress=setInterval(()=>{try{const t=fs.readFileSync(plan.files.console,'utf8');const last=[...t.matchAll(/^Score of (\S+) vs (\S+): (\d+) - (\d+) - (\d+).*\s(\d+)$/gm)].at(-1);console.log('PROGRESS '+JSON.stringify({prefix:plan.prefix,finished:last?+last[6]:0,wins:last?+last[3]:0,losses:last?+last[4]:0,draws:last?+last[5]:0}));}catch{}},30000);
+-  const result=await new Promise(resolve=>{child.on('error',e=>{spawnError=e.message;});child.on('close',(code,signal)=>resolve({code,signal,spawnError,interrupted,ioErrors,timedOut:code===124||code===137,finishedUTC:new Date().toISOString()}));});
+-  clearInterval(progress);if(killTimer)clearTimeout(killTimer);process.off('SIGINT',onInt);process.off('SIGTERM',onTerm);
+-  await Promise.all([out,err,combined].map(stream=>new Promise(resolve=>{if(stream.destroyed)resolve();else {stream.once('error',resolve);stream.end(resolve);}})));
+-  result.interrupted=interrupted;
+-  let summary;
+-  try{summary=await auditBatch(plan,result,before);}catch(e){summary={schema:1,mode:plan.mode,seed:plan.seed,prefix:plan.prefix,requestedGames:plan.games,completed:false,passed:false,process:result,auditException:e.stack,inputHashes:before};}
+-  await persistSummary(plan,summary);
+-}
+-
+-async function main(argv) {
+-  if(argv.includes('--help')||!argv.length){console.log('Usage: node match_all.mjs MODE SEED [GAMES=400] [CONCURRENCY=4] [PREFIX] [--dry-run]\nMODE: '+MODES.join(' | ')+'\nEach invocation is one bounded batch, maximum 400 games, paired UHO openings, fixed seed, timeout 420s plus kill-after 5s, leaving time for audit and persistence within the controller budget. No clocks, adjudication, SPRT or strength/speed conclusions.\n--dry-run prints the exact command/config without launching engines or writing artifacts.\n--audit-only PREFIX rechecks existing artifacts read-only and prints SUMMARY; it never launches a match.');return;}
+-  if(argv[0]==='--audit-only'){
+-    if(argv.length!==2)throw new Error('--audit-only requires one artifact prefix');
+-    const r=JSON.parse(await fsp.readFile(path.resolve(argv[1])+'.command.json','utf8'));
+-    const saved=exists(r.files.summary)?JSON.parse(await fsp.readFile(r.files.summary,'utf8')):{};
+-    const summary=await auditBatch(r,saved.process||{},r.inputHashes||{});
+-    console.log('SUMMARY '+JSON.stringify(summary));process.exitCode=summary.passed?0:summary.completed?2:3;return;
+-  }
+-  const dry=argv.includes('--dry-run'),pos=argv.filter(x=>x!=='--dry-run');
+-  if(pos.length<2||pos.length>5)throw new Error('Expected MODE SEED [GAMES] [CONCURRENCY] [PREFIX]');
+-  const plan=makePlan(pos[0],pos[1],pos[2]??400,pos[3]??4,pos[4]);
+-  if(dry){console.log('PLAN '+JSON.stringify(plan));return;}
+-  await runBatch(plan);
+-}
+-if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))main(process.argv.slice(2)).catch(e=>{console.error('SUMMARY '+JSON.stringify({passed:false,completed:false,fatal:e.stack}));process.exitCode=3;});
