@@ -1,0 +1,22 @@
+==================
+WARNING: ThreadSanitizer: data race (pid=7547)
+  Read of size 4 at 0x55b92985901c by thread T2:
+    #0 reader /tmp/glmflash/tsan_control_race.cpp:5 (tsan_control_race+0x13da) (BuildId: 0162177d030b3c4e02e94ec6d6497de520828825)
+
+  Previous write of size 4 at 0x55b92985901c by thread T1:
+    #0 writer /tmp/glmflash/tsan_control_race.cpp:4 (tsan_control_race+0x139d) (BuildId: 0162177d030b3c4e02e94ec6d6497de520828825)
+
+  Location is global 'g' of size 4 at 0x55b92985901c (tsan_control_race+0x401c)
+
+  Thread T2 (tid=7550, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 main /tmp/glmflash/tsan_control_race.cpp:9 (tsan_control_race+0x1223) (BuildId: 0162177d030b3c4e02e94ec6d6497de520828825)
+
+  Thread T1 (tid=7549, finished) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 main /tmp/glmflash/tsan_control_race.cpp:8 (tsan_control_race+0x1210) (BuildId: 0162177d030b3c4e02e94ec6d6497de520828825)
+
+SUMMARY: ThreadSanitizer: data race /tmp/glmflash/tsan_control_race.cpp:5 in reader
+==================
+1409965408
+ThreadSanitizer: reported 1 warnings
