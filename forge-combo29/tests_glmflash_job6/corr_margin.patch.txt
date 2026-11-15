@@ -1,0 +1,131 @@
+--- forge-combo29/src/search.cpp
++++ forge-combo29/src/search.cpp
+@@ -50,6 +50,7 @@
+ int RfpDepth = 8;
+ int RfpMargin = 72;
+ int RfpImproving = 40;
++int CorrMargin = 0;
+ int RazorDepth = 2;
+ int RazorBase = 150;
+ int RazorMultiplier = 350;
+@@ -119,7 +120,7 @@
+         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
+         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+-        {"RfpImproving", &RfpImproving, 0, 200},         {"RazorDepth", &RazorDepth, 0, 6},
++        {"RfpImproving", &RfpImproving, 0, 200},         {"CorrMargin", &CorrMargin, 0, 64},         {"RazorDepth", &RazorDepth, 0, 6},
+         {"RazorBase", &RazorBase, 0, 1000},              {"RazorMultiplier", &RazorMultiplier, 0, 1000},
+         {"FutilityDepth", &FutilityDepth, 0, 15},        {"FutilityBase", &FutilityBase, 0, 500},
+         {"FutilityMultiplier", &FutilityMultiplier, 0, 500},
+@@ -1207,7 +1208,7 @@
+     child->runtime_psqt.valid = false;
+ }
+ 
+-int Worker::corrected_eval(const Board& board, int raw_eval) const {
++int Worker::corrected_eval(const Board& board, int raw_eval, int* corr_size_out) const {
+     // Keep the recognized ending score exact: correction history must not tilt a draw or the corner drive.
+     if (dead_material_enabled) {
+         int fixed = 0;
+@@ -1223,6 +1224,7 @@
+         const std::int32_t np_b = (*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)];
+         correction += (np_w + np_b) / 2;
+     }
++    if (corr_size_out != nullptr) *corr_size_out = std::abs(correction / CorrectionGrain);
+     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+ 
+@@ -1459,6 +1461,7 @@
+     int futility_base;
+     if (in_check) {
+         ss->static_eval = ValueNone;
++        ss->corr_size = 0;
+         best_score = futility_base = -Infinite;
+     } else {
+         int eval;
+@@ -1647,6 +1650,7 @@
+     int eval;
+     if (in_check) {
+         eval = ss->static_eval = ss->raw_eval = ValueNone;
++        ss->corr_size = 0;
+     } else if (!excluded.is_none()) {
+         eval = ss->static_eval;
+     } else {
+@@ -1686,7 +1690,7 @@
+             if (razor < alpha) return razor;
+         }
+         // Reverse futility pruning.
+-        if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
++        if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving + ss->corr_size * tune::CorrMargin / 64) >= beta &&
+             eval < MateInMaxPly) {
+             return eval;
+         }
+@@ -1870,7 +1874,7 @@
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+                     (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+ #endif
+-                    ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
++                    ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth + ss->corr_size * tune::CorrMargin / 64 <= alpha) {
+                     trace_case();
+                     quiet_fail = true;
+                     skip_quiets = true;
+@@ -2335,6 +2339,7 @@
+         ss.excluded_move = Move::none();
+         ss.moved_piece = Empty;
+         ss.static_eval = ValueNone;
++        ss.corr_size = 0;
+         ss.continuation = &(*continuation_history_)[Empty][0];
+         ss.double_extensions = 0;
+         ss.withheld_plies = 0;
+--- forge-combo29/src/uci.cpp
++++ forge-combo29/src/uci.cpp
+@@ -244,6 +244,7 @@
+                           << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
+             }
+ #endif
++            std::cout << "option name CorrMargin type spin default 0 min 0 max 64\n";
+             std::cout << "option name Clear Hash type button\n"
+                          "uciok" << std::endl;
+         } else if (command == "isready") {
+@@ -461,6 +462,15 @@
+ #endif
+             } else if (name == "MultiPV") {
+                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
++            } else if (name == "CorrMargin") {
++                int value = 0;
++                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
++                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option " << name << std::endl;
++                } else {
++                    forge::tune::CorrMargin = std::clamp(value, 0, 64);
++                }
+             } else if (name == "Hash") {
+                 apply_spin(1, 2048, [&](int clamped) {
+                     searcher.resize_hash(static_cast<std::size_t>(clamped));
+--- forge-combo29/include/forge/search.hpp
++++ forge-combo29/include/forge/search.hpp
+@@ -248,6 +248,7 @@
+ extern int NullMoveEvalDivisor;
+ extern int RfpDepth;
+ extern int RfpMargin;
++extern int CorrMargin;  // correction-size widening of prune margins (0 = off; else K of size*K/64)
+ extern int RfpImproving;
+ extern int RazorDepth;
+ extern int RazorBase;
+@@ -399,6 +400,7 @@
+     std::array<Move, 2> killers{};
+     Piece moved_piece = Empty;
+     int static_eval = ValueNone;
++    int corr_size = 0;  // |correction| in centipawns behind static_eval (CorrMargin)
+     int raw_eval = ValueNone;
+     int move_count = 0;
+     // 1-based index of the move that entered this node. 0 means the node was not
+@@ -552,7 +554,7 @@
+     [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
+     void update_threat_quiet(const Board& board, Move move, int bonus);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+-    [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
++    [[nodiscard]] int corrected_eval(const Board& board, int raw_eval, int* corr_size_out = nullptr) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
+     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+ #if FORGE_NNUE_V3

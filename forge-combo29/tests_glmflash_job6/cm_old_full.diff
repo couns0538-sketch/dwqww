@@ -1,0 +1,145 @@
+--- /tmp/forge_base6/src/search.cpp	2026-10-27 01:32:27.000000000 +0000
++++ /tmp/forge_cm/src/search.cpp	2026-11-15 19:38:13.682234376 +0000
+@@ -22,6 +22,7 @@
+ int RfpDepth = 8;
+ int RfpMargin = 72;
+ int RfpImproving = 40;
++int CorrMargin = 0;
+ int RazorDepth = 2;
+ int RazorBase = 150;
+ int RazorMultiplier = 350;
+@@ -71,7 +72,7 @@
+         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
+         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+-        {"RfpImproving", &RfpImproving, 0, 200},         {"RazorDepth", &RazorDepth, 0, 6},
++        {"RfpImproving", &RfpImproving, 0, 200},         {"CorrMargin", &CorrMargin, 0, 64},         {"RazorDepth", &RazorDepth, 0, 6},
+         {"RazorBase", &RazorBase, 0, 1000},              {"RazorMultiplier", &RazorMultiplier, 0, 1000},
+         {"FutilityDepth", &FutilityDepth, 0, 15},        {"FutilityBase", &FutilityBase, 0, 500},
+         {"FutilityMultiplier", &FutilityMultiplier, 0, 500},
+@@ -635,12 +636,13 @@
+     (ss + 1)->runtime_psqt.valid = false;
+ }
+ 
+-int Worker::corrected_eval(const Board& board, int raw_eval) const {
++int Worker::corrected_eval(const Board& board, int raw_eval, int* corr_size_out) const {
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
+     if (tune::MaterialCorrectionWeight > 0) {
+         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+     }
++    if (corr_size_out != nullptr) *corr_size_out = std::abs(correction / CorrectionGrain);
+     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+ 
+@@ -801,12 +803,13 @@
+     int futility_base;
+     if (in_check) {
+         ss->static_eval = ValueNone;
++        ss->corr_size = 0;
+         best_score = futility_base = -Infinite;
+     } else {
+         int eval;
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else ss->raw_eval = static_evaluate(board, ss);
+-        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
++        eval = ss->static_eval = corrected_eval(board, ss->raw_eval, &ss->corr_size);
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+@@ -929,12 +932,13 @@
+     int eval;
+     if (in_check) {
+         eval = ss->static_eval = ss->raw_eval = ValueNone;
++        ss->corr_size = 0;
+     } else if (!excluded.is_none()) {
+         eval = ss->static_eval;
+     } else {
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else ss->raw_eval = static_evaluate(board, ss);
+-        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
++        eval = ss->static_eval = corrected_eval(board, ss->raw_eval, &ss->corr_size);
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+@@ -957,7 +961,7 @@
+             if (razor < alpha) return razor;
+         }
+         // Reverse futility pruning.
+-        if (depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
++        if (depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving + ss->corr_size * tune::CorrMargin / 64) >= beta &&
+             eval < MateInMaxPly) {
+             return eval;
+         }
+@@ -1063,7 +1067,7 @@
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             if (quiet && !gives_check) {
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+-                    ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
++                    ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth + ss->corr_size * tune::CorrMargin / 64 <= alpha) {
+                     skip_quiets = true;
+                     continue;
+                 }
+@@ -1352,6 +1356,7 @@
+         ss.excluded_move = Move::none();
+         ss.moved_piece = Empty;
+         ss.static_eval = ValueNone;
++        ss.corr_size = 0;
+         ss.continuation = &(*continuation_history_)[Empty][0];
+         ss.double_extensions = 0;
+         ss.null_move_allowed = true;
+--- /tmp/forge_base6/src/uci.cpp	2026-10-27 01:32:27.000000000 +0000
++++ /tmp/forge_cm/src/uci.cpp	2026-11-15 19:38:13.682234376 +0000
+@@ -179,6 +179,7 @@
+                           << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
+             }
+ #endif
++            std::cout << "option name CorrMargin type spin default 0 min 0 max 64\n";
+             std::cout << "option name Clear Hash type button\n"
+                          "uciok" << std::endl;
+         } else if (command == "isready") {
+@@ -273,7 +274,16 @@
+                     value_text.data(), value_text.data() + value_text.size(), value);
+                 if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                     { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string invalid value for option " << name << std::endl; }
+-                } else if (name == "Hash") {
++                } else if (name == "CorrMargin") {
++                int value = 0;
++                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
++                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option " << name << std::endl;
++                } else {
++                    forge::tune::CorrMargin = std::clamp(value, 0, 64);
++                }
++            } else if (name == "Hash") {
+                     searcher.resize_hash(static_cast<std::size_t>(std::clamp(value, 1, 2048)));
+                 } else if (name == "Threads") {
+                     searcher.set_threads(std::clamp(value, 1, 256));
+--- /tmp/forge_base6/include/forge/search.hpp	2026-10-27 01:32:27.000000000 +0000
++++ /tmp/forge_cm/include/forge/search.hpp	2026-11-15 19:38:13.670234376 +0000
+@@ -201,6 +201,7 @@
+ extern int NullMoveEvalDivisor;
+ extern int RfpDepth;
+ extern int RfpMargin;
++extern int CorrMargin;  // correction-size widening of prune margins (0 = off; else K of size*K/64)
+ extern int RfpImproving;
+ extern int RazorDepth;
+ extern int RazorBase;
+@@ -268,6 +269,7 @@
+     std::array<Move, 2> killers{};
+     Piece moved_piece = Empty;
+     int static_eval = ValueNone;
++    int corr_size = 0;  // |correction| in centipawns behind static_eval (CorrMargin)
+     int raw_eval = ValueNone;
+     int move_count = 0;
+     int cutoff_count = 0;
+@@ -357,7 +359,7 @@
+     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
+     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+-    [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
++    [[nodiscard]] int corrected_eval(const Board& board, int raw_eval, int* corr_size_out = nullptr) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
+     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
