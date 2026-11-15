@@ -1,0 +1,26 @@
+// Read-only bounded monitor; no engine execution, signals, or state writes.
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const plan=JSON.parse(fs.readFileSync('/workspace/work/parity-softnodes-smp-preparation/plan.txt'));
+const indices=process.argv.slice(2).map(Number);assert.ok(indices.length>=1&&indices.length<=2);
+const rows=indices.map(index=>{assert.ok(Number.isInteger(index)&&plan.batches[index]);return {index,dir:'/workspace/work/parity-run/softnodes-smp-batches/'+plan.batches[index].label};});
+assert.ok(plan.waves.some(w=>indices.every(i=>w.includes(i))));
+const until=Date.now()+450000;
+while(true){
+ const states=rows.map(({index,dir})=>{
+  const findings=[];let checks=0,last=null;
+  for(const stream of ['stdout.txt','stderr.txt']){
+   const file=dir+'/'+stream;if(!fs.existsSync(file))continue;
+   const text=fs.readFileSync(file,'utf8');
+   for(const line of text.split('\n').slice(0,-1)){
+    if(/(?:Address|UndefinedBehavior|Leak|Thread|Memory|HWAddress)Sanitizer|runtime error:|Sanitizer CHECK failed|terminate called|Segmentation fault|core dumped|^FAULT /i.test(line))findings.push({stream,line});
+    if(line.startsWith('CHECK ')){try{const c=JSON.parse(line.slice(6));checks++;last={pair:c.pair,mode:c.mode,ply:c.ply};if(c.mode==='soft'&&(c.item3===0||c.item4===0))findings.push({stream,labelCheck:c});}catch(error){findings.push({stream,parseError:error.message,line});}}
+   }
+  }
+  const command=dir+'/command.txt',result=fs.existsSync(command)?JSON.parse(fs.readFileSync(command)):null;
+  return {index,checks,last,finalized:!!result,exit:result?.exit??null,signal:result?.signal??null,findings};
+ });
+ const stop=states.some(x=>x.findings.length||x.finalized&&(x.exit!==0||x.signal));
+ if(stop||states.every(x=>x.finalized)||Date.now()>=until){console.log(JSON.stringify({utc:new Date().toISOString(),states,stopNewLaunches:stop,scope:'Live observations only; formal audit supplies credited counts.'}));process.exitCode=stop?1:0;break;}
+ await new Promise(resolve=>setTimeout(resolve,1000));
+}

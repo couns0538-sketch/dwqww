@@ -1,11 +1,11 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:36:57.740Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:43:06.884Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
-Preparing separately declared SMP soft-node rule under Fable0017; engine unchanged.
-Fable0017 explicitly authorizes the SMP sampling exception and a new-seed Threads2 repeat. Threads1 strict rule and all label/legal/sanitizer/exit checks stay. Both old failed batches remain zero-credit. Native runs stay blocked until new harness, declaration and peer checks are ready; source d9a8587 unchanged. JobC received for after A/B only.
+Resuming final-tree sanitizers under separately declared Fable0017 SMP rule.
+New harness46syntheticchecks, recorder24accountingchecks and independentreview passed. Amended declaration ddf3bd4d pins unchanged final engines. Global stop cleared only under explicit0017 resolution; all historical stops/audits/zero-credit failures preserved.
 
 | Check | Result |
 |---|---|
@@ -18,7 +18,7 @@ Fable0017 explicitly authorizes the SMP sampling exception and a new-seed Thread
 | Step 2 option checks and unit rows | 16/16 option counts; 9 unit rows, 0 failures |
 | Step 2 targeted position | a1b2, mate -5, 2566746 nodes; depth9, Threads1 |
 | Step 2 exact corpus | 100000/100000; 1 differences; effective gate accepted with listed same-clock attribution; strict audit retained |
-| Prescribed shutdown diagnostic | 2000/2000 cycles; candidate/reference timeouts 0/0; max quit-to-exit 16.077182/14.05392 ms; ordinary runs paused |
+| Prescribed shutdown diagnostic | 2000/2000 cycles; candidate/reference timeouts 0/0; max quit-to-exit 16.077182/14.05392 ms; ordinary runs resumed by separate decision |
 | Preliminary step 1 sanitizers | 393 games / 52681 searches; 0 findings |
 | Preliminary paired UCI check | 132 ordinary / 87 soft-node searches; 8 cap cases; 0 label faults |
 | Final-tree original protocol | 5 finished games / 1102 searches observed; 0 accepted batches; 1 historical contract-failure batches retained |
@@ -41,8 +41,8 @@ Fable0017 explicitly authorizes the SMP sampling exception and a new-seed Thread
 
 Game and search counts in that table include only accepted clean batches in the current protocol; diagnostic and fault columns retain every recorded finding. Earlier protocol results remain separate. Both earlier depth64 declarations were unused. The SMP amendment changes the harness check only; the engine bytes remain unchanged.
 
-The extended plan reserves72 batches across6 cycles; 68 have not run. Distinct-condition coverage is the12-condition check, not completion of all72 reserved batches. Repeated batches: 0.
-Cycle 0: 2 clean batches from 4 recorded; 2 failed or incomplete.
+The current plan reserves72 batches; 68 have not run. Distinct-condition coverage is the12-condition check, not completion of the reserved inventory. Repeated batches: 0.
+Cycle 1: 2 clean batches from 4 recorded; 2 failed or incomplete.
 
 
 The complete corpus is accepted through a separate, explicit decision for global position36729: unchanged a1b2, mate−6/2565143 before and mate−5/2566746 after, original plus10 fresh pairs. All other positions match. The source proof requires equal capped clocks with an old mate-distance rejection; no runtime TT-entry clock is claimed. The strict audit still lists its original difference and operational findings. [Acceptance evidence](tests_astra_parity/inputs/step2-effective-acceptance-S2-0007.txt).
@@ -76,7 +76,7 @@ The only second-step engine change is inside TTEntry::score_usable. [Exact sourc
 
 The target harness was tightened after review to reject bounded scores and engine stderr. Its repeat passed with unchanged expected values. [Strict transcript](tests_astra_parity/logs/same-clock-position-step2-strict.stdout.txt), [independent review](tests_astra_parity/same-clock-peer-review/REVIEW.md).
 
-Half final sanitizer selfplay games softnodes2500; exact UCIlabel checks peranswer0012, capcount andmeanX. Labelcheck3/4failure stops forreport.
+The amended SMP protocol is declared; all remaining sanitizer conditions and JobB still require actual runs. Historical clean coverage108games/15514searches remains separate.
 
 Actual timing snapshot 2026-11-15T02:28:20.131Z: final-tree batch intervals cover 215.11s of wall time after merging overlaps; their duration sum is 400.062s. Accepted clean batches cover 188.692s. These include startup/protocol/shutdown overhead and are not CPU time. Gaps and preliminary coverage are separate. [Intervals and gaps](tests_astra_parity/soak-time-review-0017/REPORT.md).
 
@@ -92,7 +92,7 @@ Two later Threads2 batches failed item4: the last exact info line reported fewer
 - Seed 202611155203, options off: info depth 4 seldepth 7 score cp -1782 nodes 2418 nps 186000 hashfull 13 time 13 pv e7f8 c2c8 f8g7 a1b2 g7h6; X=2766; bestmove e7f8. [Full fault](tests_astra_parity/faults/softnodes-threads2-item4-0017-2.txt).
 - Seed 202611155209, options HindsightDepth+MateAlphaGuard on: info depth 9 seldepth 18 score cp 898 nodes 2379 nps 297375 hashfull 1 time 8 pv h6g7 h4g5 e2a6 g5g7 a6b6 d6e7 b6c7 e7f6 c7g7 f6g7 b3b4 g7f8 f1d2 f8e7 c3c4; X=2887; bestmove h6g7. [Full fault](tests_astra_parity/faults/softnodes-threads2-item4-0017-8.txt).
 
-The later resolution is recorded separately; original failures remain unchanged.
+Fable0017 explicitly permits, for Threads above1 only, an info count belowN when X is at leastN. Threads1 stays strict; items2/3 and all legal/sanitizer/exit checks stay enforced. The engine is unchanged and old failures retain zero clean credit. The intermediate stop count was not instrumented. [Decision](tests_astra_parity/inputs/FABLE_ANSWER_0017.md.txt).
 [Question0017](https://github.com/couns0538-sketch/dwqww/blob/64c1624964b684e3ab54b22cf98004f2463850e6/forge-combo29/soak_all/ASTRA_QUESTION_0017.md).
 
 Preliminary sanitizer results test the three-import tree and are recorded separately from final-tree coverage. The old in-process driver reuses a Searcher through successive moves. The new UCI harness pairs usual-limit and softnodes2500 games and checks the exact training-label contract.
@@ -106,4 +106,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 31, including this checkpoint.
+Progress pushes: 32, including this checkpoint.
