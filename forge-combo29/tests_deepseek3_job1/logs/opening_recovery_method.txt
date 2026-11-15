@@ -1,0 +1,23 @@
+Recovering the opening FENs for M1 and M2 (their games.pgn was deleted before the
+per-game parser was fixed).
+
+fastchess draws openings deterministically from -srand: the same seed yields the
+same round -> opening map, independent of the node limit.  Two things were checked
+before the recovered FENs were written into the M1 and M2 games.txt files.
+
+1. Method validated against a match whose real PGN was kept (M4, seed 7306).
+   A 600-node re-run with -srand 7306 produced 750 rounds; every round's opening
+   FEN was compared with the FEN fastchess actually recorded in M4's surviving
+   PGN (via M4's games.txt, copied before its pgn was deleted):
+       rounds compared 750   mismatches 0
+
+2. M1 spot-check: seed 7303's round 1 opening is
+       rn1qk1nr/1ppbbppp/p2p4/3Pp3/2P1P3/5N1P/PP2BPP1/RNBQK2R b KQkq - 0 8
+   which is the same FEN already written into M1's games.txt from M1's own
+   full.txt (round 1 there had no FEN, but round 1's pairing is unambiguous).
+   Seed 7304 likewise reproduced 750/750 rounds for M2.
+
+So M1's and M2's opening_fen field comes from the seed, not from their own log.
+The round, colour and result fields come from their own logs.  If the opening
+draw and the game record ever disagreed, the results would be unaffected: the
+results are read from each game's own "Finished game ... {reason}" line.

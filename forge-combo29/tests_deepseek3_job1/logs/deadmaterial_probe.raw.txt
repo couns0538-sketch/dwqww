@@ -1,0 +1,11 @@
+# DeadMaterial aliveness probe: is the switch alive on a pawnless position?
+# Engine: ~/work/build/forge (commit 6b98f217, Release, g++ 13.3.0).
+# One fresh process per line; the FEN is K+N vs K, which has no pawns/rooks/queens.
+
+== setoption name DeadMaterial value false
+info string eval hce 10 nnue -36 total -26
+== setoption name DeadMaterial value true
+info string eval hce 0 nnue 0 total 0
+
+== control: same switch, position WITH a pawn (should not take the dead-material path)
+info string eval hce 18 nnue 20 total 38
