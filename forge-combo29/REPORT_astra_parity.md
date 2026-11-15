@@ -1,9 +1,11 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T01:55:40.645Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:04:41.880Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
-Step 2: S2-0006 corpus continuation under explicit0016 bilateral cutoff policy.
-0016 authorizes unchanged corpus, sanitizer groups andJobB; JobA extendedto04:20UTC. Native/comparator/source/selection unchanged; cutoff operational findings remain3, rawcandidatecount2 includingoriginal, completeddiagnostic retained. VM-only oldtrace compression finished with hashverified reconstruction; publishedtextchunks andoldbranches unchanged.
+The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
+
+Full100000-position same-clock gate accepted; starting extended paired sanitizer soak.
+100000/100000 exactselectedpositions:99958lowclockallmatch,42highclockwithsole036729 differenceoriginal+10freshpairs. Explicitnarrow sourceattributionaccepted; rawstrictaudit/difference/cutoffcounts unchanged. Threepins312866/862329/4865609,16optioncounts,9unitrowspass. Extendedpairedsanitizerplan declared; sourceunchanged.
 
 | Check | Result |
 |---|---|
@@ -15,7 +17,7 @@ Step 2: S2-0006 corpus continuation under explicit0016 bilateral cutoff policy.
 | Step 2 default pins | 312866 / 862329 / 4865609 |
 | Step 2 option checks and unit rows | 16/16 option counts; 9 unit rows, 0 failures |
 | Step 2 targeted position | a1b2, mate -5, 2566746 nodes; depth9, Threads1 |
-| Step 2 exact corpus | 81185/100000; 1 differences; completion/attribution pending |
+| Step 2 exact corpus | 100000/100000; 1 differences; effective gate accepted with listed same-clock attribution; strict audit retained |
 | Prescribed shutdown diagnostic | 2000/2000 cycles; candidate/reference timeouts 0/0; max quit-to-exit 16.077182/14.05392 ms; ordinary runs resumed by separate decision |
 | Preliminary step 1 sanitizers | 393 games / 52681 searches; 0 findings |
 | Preliminary paired UCI check | 132 ordinary / 87 soft-node searches; 8 cap cases; 0 label faults |
@@ -29,6 +31,9 @@ Step 2: S2-0006 corpus continuation under explicit0016 bilateral cutoff policy.
 | grok47/r3-18-lazy-net-accumulator | 8207842201cadf2b7e70948b9845cd4965a184a2 | 4fd62b3a4319d695d986695128d7f77fd92b6f09 | 0 |
 | grok47/r3-19-faster-hce | 528ccdf1cbba5366c78b8bc75d89237d783a0171 | d7326b9b94eb06e8863843db893ae36ed8372198 | 0 |
 | grok47/r3-20-faster-search-plumbing | decec377588a446e2020a7e3634f6cc2a00533be | c488e88fddc71a7ceadddb15270d3f62f6add8d9 | 0 |
+
+
+The complete corpus is accepted through a separate, explicit decision for global position36729: unchanged a1b2, mate−6/2565143 before and mate−5/2566746 after, original plus10 fresh pairs. All other positions match. The source proof requires equal capped clocks with an old mate-distance rejection; no runtime TT-entry clock is claimed. The strict audit still lists its original difference and operational findings. [Acceptance evidence](tests_astra_parity/inputs/step2-effective-acceptance-S2-0007.txt).
 
 Each source change has its own commit. The three merges use e04556dd as their per-file ancestor. Full base/ours/theirs/output snapshots are in [merge evidence](tests_astra_parity/merges).
 
@@ -78,4 +83,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 24, including this checkpoint.
+Progress pushes: 25, including this checkpoint.
