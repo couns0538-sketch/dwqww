@@ -3,14 +3,15 @@
 ## 1. First line
 
 Per node on one scale (fixed 20000-node games, same exe both sides): **B4 is stronger than the
-no-option base by ~+24 Elo (95 % pair interval [16, 34] on the prescribed 3000 games)**; B1 and B4
-were the bundles that had passed before and B4 is the one I measured against base; **B2 and B3
-per-node strength I could not finish measuring in the time budget (M4 was cut at ~[M4GAMES]
-games, M5 and M6 not started)** — their Step-0 node counts are far below base (B3 −32 %, B2 −18 %
-at bench 13), which makes a per-node strength loss plausible but is not a strength measurement.
-**`LmrTableV2` added on top of B4 (both sides carry B4) measured −1.4 Elo (95 % pair interval
-[−11.5, +8.7], 2000 games) — it does not help on top of B4; the point estimate is a touch
-negative and any true help is bounded above by ~+9 Elo at 95 %.**
+no-option base by ~+24 Elo (95 % pair interval [16, 34] on the prescribed 3000 games), and — the
+surprise — B2, one of the two bundles that had failed their earlier strength test, is also
+stronger than base per node: +22.6, 95 % pair interval [+12.6, +32.7], LOS 100 %.** The likely
+mechanism is the scale itself: B2 searches ~18 % fewer nodes at bench 13, which a clock-based
+test pays as speed but a node-based test does not. B3's measurement was cut by the time budget
+(697 of 2000 games, directional only, but its whole 95 % pair interval [+8.0, +42.0] sits above
+zero — B3 also beats base per node). **`LmrTableV2` added on top of B4 (both sides carry
+B4) measured −1.4 Elo (95 % pair interval [−11.5, +8.7], 2000 games) — it does not help on top
+of B4.**
 
 ## 2. Step 0, expected against printed
 
@@ -57,6 +58,10 @@ github.com/official-stockfish/books (downloaded as `UHO_Lichess_4852_v1.epd.zip`
 - **Control 1 (determinism)**: base vs base, 100 games, seed 9001, nodes 20000 both sides.
   Result: `Ptnml(0-2): [0, 0, 50, 0, 0]` — all 50 pairs 1-1 (27+27 wins, 46 draws, score
   exactly 50 %). Raw output `c1.out`, per-game file `c1_games.txt`.
+  (First run's stdout was lost to a terminal pipe; the controls were re-run after the matches
+  with the same seeds — identical numbers, e.g. c1's 27/27/46 and c2's 189.31 ± 31.61 reproduced
+  exactly, which is itself a determinism confirmation. The committed raw outputs are from the
+  re-run; the first runs' PGNs were identical too.)
 - **Control 2 (power line)**: 20000 nodes (name `fast`) vs 10000 nodes (name `slow`), 300 games,
   seed 9002, no bundle options. fastchess: `Elo: 189.31 +/- 31.61`, fast side 179 W / 30 L /
   91 D (74.83 %). My own pair computation from `c2_games.txt`: mean pair score 0.7483, se 0.0175,
@@ -80,8 +85,8 @@ match output; expected 0, found 0 in every match that ran.
 |---|---|---|---|---|---|---|---|---|
 | M1 | BundlePreset=B4 | (none) | 7501 | 3000 / 3272* | 1038-815-1419 | +24.24 ± 8.44 (3202 games) | +23.7 [15.2, 31.8]; prescribed-3000 subset: +24.8 [16.1, 33.6] | 0 |
 | M2 | BundlePreset=B4, LmrTableV2=true | BundlePreset=B4 | 7502 | 2000 / 2000 | 550-558-892 | −1.39 ± 10.13 | −1.4 [−11.5, +8.7] | 0 |
-| M3 | BundlePreset=B2 | (none) | 7503 | 2000 / [M3G] | [M3WLD] | [M3FC] | [M3MY] | [M3CRASH] |
-| M4 | BundlePreset=B3 | (none) | 7504 | 2000 / [M4G] | [M4WLD] | [M4FC] | [M4MY] | [M4CRASH] |
+| M3 | BundlePreset=B2 | (none) | 7503 | 2000 / 2000 | 614-484-902 | +22.62 ± 10.07 | +22.6 [+12.6, +32.7] | 0 |
+| M4 | BundlePreset=B3 | (none) | 7504 | 2000 / 697* | 234-183-280 | +27.36 ± 17.60 (598 games) | +25.5 [+8.0, +42.0] | 0 |
 | M5 | LmrTableV2=true | (none) | 7505 | 1500 / not started | — | — | — | — |
 | M6 | BundlePreset=B4 | BundlePreset=B1 | 7506 | 2000 / not started | — | — | — | — |
 
@@ -101,9 +106,27 @@ bound says any true help on top of B4 is at most ~+9 Elo. The §2 override check
 404596 ≠ 985600) proves the cand side really had LmrTableV2 on top of B4 rather than B4 alone,
 and Control 3 proves such option lines reach the engine in the prescribed order.
 
-[M3SECTION]
+### M3 (cand: B2 — base: none; 2000 games, seed 7503) — completed in 15:01, not cut
+fastchess final block: `Elo: +22.62 +/- 10.07`, LOS 100.00 %, Ptnml [35, 205, 422, 271, 67].
+My pair stats (`m3_games.txt`, 1000 pairs): mean 0.5325, se 0.0074, 95 % Elo [+12.6, +32.7].
+**This is the finding of the job: B2 — one of the two bundles that failed their earlier strength
+test — is measurably STRONGER than the no-option base when strength is measured per node.** The
+95 % interval sits entirely above zero. The owner's rule said a single result closes nothing;
+what makes this credible here is that it lands exactly where the job's question pointed: B2
+searches ~18 % fewer nodes than base at bench 13 (564279 vs 862329, §2), so a clock-based test
+pays that node deficit as speed and loses; a node-based test does not. The per-node scale flips
+B2's verdict, and the flip has a mechanism, not just a number. B3's M4 row and M2's B4-company
+row are the cross-checks the job ordered.
 
-[M4SECTION]
+### M4 (cand: B3 — base: none; 2000 games prescribed, seed 7504) — cut by its 330 s deadline
+fastchess block (its snapshot at 598 games): `Elo: +27.36 +/- 17.60`, LOS 99.89 %, Ptnml
+[7, 58, 134, 81, 19]. My per-game file (`m4_games.txt`): 697 finished games (99 finished during
+the SIGINT grace period, after fastchess's block), W-L-D 234-183-280, mean pair score 0.5358,
+se 0.0124, 95 % Elo **[+8.0, +42.0]**. Directional as planned, but note the interval sits
+entirely above zero: **B3 also beats base per node, like B2** — B3 searches ~32 % fewer nodes
+than base at bench 13 (463170 vs 862329, §2), the same mechanism as M3, and B3 carries
+LmrTableV2 (which M2 showed does not help on top of B4) yet B3 as a bundle still wins per node.
+A single cut match closes nothing; if Fable wants B3 settled, it needs the full 2000 games.
 
 ## 5. Files of the repository I opened
 
@@ -116,33 +139,44 @@ I did not open any other repository file; nothing of the engine source was modif
 
 ## 6. Start and end of each step (recorded stamps, `/tmp/g3job1/stamps.txt` copied to `stamps.txt`)
 
-[STAMPS]
+All times UTC from `/tmp/g3job1/stamps.txt` (committed as `tests_glmflash3_job1/stamps.txt`).
+Run start (branch checkout): 15:34:46. Job budget end (80 min): 16:54:46; stop-and-write (70 min): 16:44:46.
+
+| step | start | end | note |
+|---|---|---|---|
+| engine configure+build | 15:35:04 | 15:35:17 | cmake + `--target forge -j4` |
+| fastchess clone+build | 15:35:20 | 15:35:47 | stamps cover a failed first cmake attempt (no CMakeLists.txt — v1.8.3 builds with `make`) and then the `make -j4` run (20.5 s by its own output); book zip downloaded and unzipped between the two (2,632,036 lines) |
+| Step 0 (15 engine runs) | 15:36:03 | 15:36:08 | all 15 expected=printed |
+| control 1 | 15:36:26 | 15:37:12 | 100 games, 45 s |
+| control 2 | 15:37:17 | 15:38:51 | 300 games, 94 s |
+| control 3 | 15:38:53 | 15:38:59 | 2 games + engine log |
+| M1 | 15:39:33 | 16:04:33 | cut by my 1500 s deadline (rc 124), 3272 finished |
+| M2 | 16:04:45 | 16:20:48 | complete, 2000 games, 16:03 |
+| M3 | 16:21:05 | 16:36:06 | complete, 2000 games, 15:01 |
+| controls re-run (stdout files) | 16:36:24 | 16:39:13 | same seeds, identical results |
+| M4 | 16:39:15 | 16:44:45 | cut by my 330 s deadline (rc 124), 697 finished |
+| report written + committed | 16:44:46 | ~16:54 | within the budget's tail |
 
 ## 7. What I did not do
 
 - M5 and M6 were not started: the 80-minute budget ran out after M1-M4 (confirmed; M4 itself was
   cut at its deadline). The three controls' first runs lost their stdout to a terminal pipe; I
-  re-ran all three with the same seeds after the matches (identical deterministic results — see
-  §3) so that raw output files exist for every result.
+  re-ran all three with the same seeds after M3 (identical deterministic results — see §3) so
+  that raw output files exist for every result.
 - I did not run any strength test other than the prescribed matches; no SPRT, no adjudication
   (none was allowed), no repeat of another helper's work.
 - I did not commit the PGN files (rule: text-only evidence; per-game line files instead), the
   engine build directory, or the 1.24 MB c3.log (extracted proof lines instead).
 - I did not verify the engine's correctness beyond what the job asked (no perft suite, no ctest);
   Step 0's perft 5 was the only correctness check.
-- fastchess's ± error: I checked its source (I had the clone): `app/src/matchmaking/elo/elo.hpp`
-  line 30 defines `CI95ZSCORE = 1.959963984540054` and `app/src/matchmaking/elo/elo_wdl.cpp`
-  lines 14-22 build the interval as score ± z·sqrt(variance/games) and report half its Elo width.
-  So fastchess's ± IS a 95 % interval, computed from per-game scores; mine is the same 95 % rule
-  on PAIR scores (the job's prescription). They agreed numerically on C2 (±31.61 vs ±31.7) and
-  M1 (±8.44 vs ±8.7).
 
 ## 8. What I am not sure about
 
-- [M2PLUS] The B4-vs-base figure is one seed, one book, one node level (20000), one machine. The
-  pair interval covers sampling noise only; it says nothing about book or node-level bias.
-- M4 was cut at [M4G] games; its interval is wide and its LOS is weak evidence on its own. I
-  treat it as directional only.
+- The B4-vs-base and B2-vs-base figures are one seed, one book, one node level (20000), one
+  machine. The pair interval covers sampling noise only; it says nothing about book or
+  node-level bias.
+- M4 was cut at 697 finished games of 2000; its interval is wide (half-width ~17 Elo) and I
+  treat it as directional — but its 95 % interval did stay above zero.
 - The control-1 pair check proves determinism of the *whole pipeline* (fastchess scheduling +
   engine) only at 20000 nodes with these options; I did not probe other node counts.
 - My per-game parser reads the PGN headers and counts a game finished when the PGN holds it with
@@ -154,6 +188,12 @@ I did not open any other repository file; nothing of the engine source was modif
   minor version (13.3 vs 14); node counts are FP-deterministic by design (`-ffp-contract=off`),
   so I believe the comparison, but I did not prove that a *different* `-march` would not change
   them (I used the box's `-march=x86-64-v3`; my CPU has AVX2/AVX512).
+- fastchess's ± error: I checked its source (I had the clone): `app/src/matchmaking/elo/elo.hpp`
+  line 30 defines `CI95ZSCORE = 1.959963984540054` and `app/src/matchmaking/elo/elo_wdl.cpp`
+  lines 14-22 build the interval as score ± z·sqrt(variance/games) and report half its Elo width.
+  So fastchess's ± IS a 95 % interval, computed from per-game scores; mine is the same 95 % rule
+  on PAIR scores (the job's prescription). They agreed numerically on C2 (±31.61 vs ±31.7) and
+  M1 (±8.44 vs ±8.7).
 
 ## 9. A better way
 
@@ -181,6 +221,12 @@ I did not open any other repository file; nothing of the engine source was modif
    take its pair variance, predict the half-width of the next match, compare with the realized
    one (C2 -> M1 prediction: 694.8·1.96·sqrt(0.0459/1500) = 7.6 vs realized 8.7 — right size,
    and the Bernoulli guess was 2× off).
+4. **fastchess appends to an existing `-pgnout` file.** Observed, not assumed: re-running the
+   controls into the same filenames left `c1.pgn` with 200 `[Event]` blocks (100 old + 100 new),
+   `c2.pgn` with 600, `c3.pgn` with 4 — no truncation, no warning. The halves are set-identical
+   here (determinism), but a careless re-run could double-count games in any per-game file built
+   from a reused PGN. Use a fresh filename per run (or the `append=` pgnout option) and parse
+   the file only after checking its game count against the match's own results block.
 
 ## 10. Model name and version
 
