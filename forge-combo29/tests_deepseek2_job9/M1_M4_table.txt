@@ -1,0 +1,24 @@
+MinorCorrection matches, job 9. Same exe, same patch, same match form as job 8:
+  nodes=20000, option.Threads=1 option.Hash=16, OwnBook false, UHO, order=random + -srand,
+  each opening twice with colours reversed, no adjudication, concurrency 4.
+  The patched exe on both sides, option.MinorCorrection on the A side only.
+
+  M1  weight 100 seed 7851  2000 games  Elo  +0.52 +/- 10.37  pairs [55, 241, 406, 242, 56]  pts 50.08 %  0 crashes 0 illegal
+  M2  weight 100 seed 7852  2000 games  Elo  +1.56 +/- 10.70  pairs [69, 223, 397, 252, 59]  pts 50.22 %  0 crashes 0 illegal
+  M3  weight  50 seed 7853  2000 games  Elo  -2.43 +/- 10.36  pairs [55, 248, 410, 230, 57]  pts 49.65 %  0 crashes 0 illegal
+  M4  weight  50 seed 7854  2000 games  Elo +13.38 +/- 10.45  pairs [43, 238, 385, 267, 67]  pts 51.92 %  0 crashes 0 illegal
+
+  pooled weight 100 (M1+M2, inverse variance): +1.02 +/- 7.45
+  pooled weight  50 (M3+M4, inverse variance): +5.41 +/- 7.36
+  pooled all four                            : +3.24 +/- 5.23
+
+  Raw fastchess output: out8_M1.txt, out8_M2.txt (job 8 folder), out8_M3.txt, out8_M4.txt (this folder).
+
+POINT 4 - what the table reads on bench 13 (traced copy /tmp/ds2/mctr2, MinorCorrection 100,
+                                                      705,170 correction calls):
+  term                          mean absolute size   share non-zero
+  pawn correction               1.32 cp              -
+  material correction           6.38 cp              -
+  MINOR-piece correction        5.67 cp              60.5 % (426,732 of 705,170)
+  So the table is not near zero: its term is 89 % of the material term and 4.3x the pawn term,
+  and it fires on three calls in five, yet gains nothing per node in 8,000 games.
