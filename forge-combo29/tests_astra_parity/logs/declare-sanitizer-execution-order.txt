@@ -1,0 +1,488 @@
+{
+  "label": "declare-sanitizer-execution-order",
+  "started": "2026-11-15T01:22:12.080Z",
+  "cwd": "/workspace/work/dwqww-parity",
+  "argv": [
+    "timeout",
+    "-k",
+    "2",
+    "440",
+    "node",
+    "-e",
+    "const fs=require(\"fs\"),assert=require(\"assert/strict\"),r=\"/workspace/work/parity-run\",plan=JSON.parse(fs.readFileSync(\"/workspace/work/parity-softnodes-depth64-v2-preparation/plan.txt\")),groups=[[0,6],[1,7],[2,8],[3,9],[4,10],[5],[11]],rows=groups.map(indices=>({indices,totalEngineThreads:indices.reduce((n,i)=>n+plan.batches[i].threads,0),batches:indices.map(i=>plan.batches[i])}));for(const x of rows)assert.ok(x.totalEngineThreads<=4);const out={utc:new Date().toISOString(),mode:\"independent concurrent sanitizer groups after corpus gate; no match overlap\",cpuQuota:fs.readFileSync(\"/sys/fs/cgroup/cpu.max\",\"utf8\").trim(),groups:rows,policy:\"Separate engine processes, seeds, pipes and immutable output directories. No native corpus or match overlaps. At most4 aggregateengineThreads. Audit and state recording sequential. Any failure stops additionallaunches; preserve allpartialoutput if an activepeer is interrupted. Same frozen180second perbatchtarget and440second externalbound; deadline unchanged. This schedule changes noengine, limits, expectedvalues or seeds.\"};fs.writeFileSync(r+\"/inputs/sanitizer-execution-order.txt\",JSON.stringify(out,null,2)+\"\\n\",{flag:\"wx\"});console.log(JSON.stringify(out,null,2));"
+  ],
+  "inputFile": null,
+  "ended": "2026-11-15T01:22:12.139Z",
+  "exit": 0,
+  "signal": null,
+  "stdoutFile": "/workspace/work/parity-run/logs/declare-sanitizer-execution-order.stdout.txt",
+  "stderrFile": "/workspace/work/parity-run/logs/declare-sanitizer-execution-order.stderr.txt",
+  "stdoutSha256": "c6317296ad373bc00dfd52eabbd8522eccb468c58fa1c01fcf2866ab1292316f",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
+
+STDOUT
+{
+  "utc": "2026-11-15T01:22:12.129Z",
+  "mode": "independent concurrent sanitizer groups after corpus gate; no match overlap",
+  "cpuQuota": "400000 100000",
+  "groups": [
+    {
+      "indices": [
+        0,
+        6
+      ],
+      "totalEngineThreads": 2,
+      "batches": [
+        {
+          "index": 0,
+          "label": "depth64-v2-paired-softnodes-asan-off-t1-n2000-d0",
+          "mode": "asan",
+          "threads": 1,
+          "nodes": 2000,
+          "depth": 0,
+          "HindsightAndGuard": false,
+          "seed": 202611155201,
+          "seconds": 180,
+          "engine": "/workspace/work/parity-run/builds/final-asan/forge",
+          "argv": [
+            "env",
+            "ASAN_OPTIONS=detect_leaks=1:halt_on_error=1",
+            "UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1",
+            "/workspace/work/parity-softnodes-depth64-v2-preparation/softnodes_play_depth64_v2",
+            "--engine",
+            "/workspace/work/parity-run/builds/final-asan/forge",
+            "--seed",
+            "202611155201",
+            "--threads",
+            "1",
+            "--nodes",
+            "2000",
+            "--depth",
+            "0",
+            "--seconds",
+            "180",
+            "--HindsightAndGuard",
+            "false"
+          ],
+          "timeoutSeconds": 440
+        },
+        {
+          "index": 6,
+          "label": "depth64-v2-paired-softnodes-asan-on-t1-n2000-d0",
+          "mode": "asan",
+          "threads": 1,
+          "nodes": 2000,
+          "depth": 0,
+          "HindsightAndGuard": true,
+          "seed": 202611155207,
+          "seconds": 180,
+          "engine": "/workspace/work/parity-run/builds/final-asan/forge",
+          "argv": [
+            "env",
+            "ASAN_OPTIONS=detect_leaks=1:halt_on_error=1",
+            "UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1",
+            "/workspace/work/parity-softnodes-depth64-v2-preparation/softnodes_play_depth64_v2",
+            "--engine",
+            "/workspace/work/parity-run/builds/final-asan/forge",
+            "--seed",
+            "202611155207",
+            "--threads",
+            "1",
+            "--nodes",
+            "2000",
+            "--depth",
+            "0",
+            "--seconds",
+            "180",
+            "--HindsightAndGuard",
+            "true"
+          ],
+          "timeoutSeconds": 440
+        }
+      ]
+    },
+    {
+      "indices": [
+        1,
+        7
+      ],
+      "totalEngineThreads": 2,
+      "batches": [
+        {
+          "index": 1,
+          "label": "depth64-v2-paired-softnodes-asan-off-t1-n20000-d0",
+          "mode": "asan",
+          "threads": 1,
+          "nodes": 20000,
+          "depth": 0,
+          "HindsightAndGuard": false,
+          "seed": 202611155202,
+          "seconds": 180,
+          "engine": "/workspace/work/parity-run/builds/final-asan/forge",
+          "argv": [
+            "env",
+            "ASAN_OPTIONS=detect_leaks=1:halt_on_error=1",
+            "UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1",
+            "/workspace/work/parity-softnodes-depth64-v2-preparation/softnodes_play_depth64_v2",
+            "--engine",
+            "/workspace/work/parity-run/builds/final-asan/forge",
+            "--seed",
+            "202611155202",
+            "--threads",
+            "1",
+            "--nodes",
+            "20000",
+            "--depth",
+            "0",
+            "--seconds",
+            "180",
+            "--HindsightAndGuard",
+            "false"
+          ],
+          "timeoutSeconds": 440
+        },
+        {
+          "index": 7,
+          "label": "depth64-v2-paired-softnodes-asan-on-t1-n20000-d0",
+          "mode": "asan",
+          "threads": 1,
+          "nodes": 20000,
+          "depth": 0,
+          "HindsightAndGuard": true,
+          "seed": 202611155208,
+          "seconds": 180,
+          "engine": "/workspace/work/parity-run/builds/final-asan/forge",
+          "argv": [
+            "env",
+            "ASAN_OPTIONS=detect_leaks=1:halt_on_error=1",
+            "UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1",
+            "/workspace/work/parity-softnodes-depth64-v2-preparation/softnodes_play_depth64_v2",
+            "--engine",
+            "/workspace/work/parity-run/builds/final-asan/forge",
+            "--seed",
+            "202611155208",
+            "--threads",
+            "1",
+            "--nodes",
+            "20000",
+            "--depth",
+            "0",
+            "--seconds",
+            "180",
+            "--HindsightAndGuard",
+            "true"
+          ],
+          "timeoutSeconds": 440
+        }
+      ]
+    },
+    {
+      "indices": [
+        2,
+        8
+      ],
+      "totalEngineThreads": 4,
+      "batches": [
+        {
+          "index": 2,
+          "label": "depth64-v2-paired-softnodes-asan-off-t2-n2000-d0",
+          "mode": "asan",
+          "threads": 2,
+          "nodes": 2000,
+          "depth": 0,
+          "HindsightAndGuard": false,
+          "seed": 202611155203,
+          "seconds": 180,
+          "engine": "/workspace/work/parity-run/builds/final-asan/forge",
+          "argv": [
+            "env",
+            "ASAN_OPTIONS=detect_leaks=1:halt_on_error=1",
+            "UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1",
+            "/workspace/work/parity-softnodes-depth64-v2-preparation/softnodes_play_depth64_v2",
+            "--engine",
+            "/workspace/work/parity-run/builds/final-asan/forge",
+            "--seed",
+            "202611155203",
+            "--threads",
+            "2",
+            "--nodes",
+            "2000",
+            "--depth",
+            "0",
+            "--seconds",
+            "180",
+            "--HindsightAndGuard",
+            "false"
+          ],
+          "timeoutSeconds": 440
+        },
+        {
+          "index": 8,
+          "label": "depth64-v2-paired-softnodes-asan-on-t2-n2000-d0",
+          "mode": "asan",
+          "threads": 2,
+          "nodes": 2000,
+          "depth": 0,
+          "HindsightAndGuard": true,
+          "seed": 202611155209,
+          "seconds": 180,
+          "engine": "/workspace/work/parity-run/builds/final-asan/forge",
+          "argv": [
+            "env",
+            "ASAN_OPTIONS=detect_leaks=1:halt_on_error=1",
+            "UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1",
+            "/workspace/work/parity-softnodes-depth64-v2-preparation/softnodes_play_depth64_v2",
+            "--engine",
+            "/workspace/work/parity-run/builds/final-asan/forge",
+            "--seed",
+            "202611155209",
+            "--threads",
+            "2",
+            "--nodes",
+            "2000",
+            "--depth",
+            "0",
+            "--seconds",
+            "180",
+            "--HindsightAndGuard",
+            "true"
+          ],
+          "timeoutSeconds": 440
+        }
+      ]
+    },
+    {
+      "indices": [
+        3,
+        9
+      ],
+      "totalEngineThreads": 4,
+      "batches": [
+        {
+          "index": 3,
+          "label": "depth64-v2-paired-softnodes-asan-off-t2-n20000-d0",
+          "mode": "asan",
+          "threads": 2,
+          "nodes": 20000,
+          "depth": 0,
+          "HindsightAndGuard": false,
+          "seed": 202611155204,
+          "seconds": 180,
+          "engine": "/workspace/work/parity-run/builds/final-asan/forge",
+          "argv": [
+            "env",
+            "ASAN_OPTIONS=detect_leaks=1:halt_on_error=1",
+            "UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1",
+            "/workspace/work/parity-softnodes-depth64-v2-preparation/softnodes_play_depth64_v2",
+            "--engine",
+            "/workspace/work/parity-run/builds/final-asan/forge",
+            "--seed",
+            "202611155204",
+            "--threads",
+            "2",
+            "--nodes",
+            "20000",
+            "--depth",
+            "0",
+            "--seconds",
+            "180",
+            "--HindsightAndGuard",
+            "false"
+          ],
+          "timeoutSeconds": 440
+        },
+        {
+          "index": 9,
+          "label": "depth64-v2-paired-softnodes-asan-on-t2-n20000-d0",
+          "mode": "asan",
+          "threads": 2,
+          "nodes": 20000,
+          "depth": 0,
+          "HindsightAndGuard": true,
+          "seed": 202611155210,
+          "seconds": 180,
+          "engine": "/workspace/work/parity-run/builds/final-asan/forge",
+          "argv": [
+            "env",
+            "ASAN_OPTIONS=detect_leaks=1:halt_on_error=1",
+            "UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1",
+            "/workspace/work/parity-softnodes-depth64-v2-preparation/softnodes_play_depth64_v2",
+            "--engine",
+            "/workspace/work/parity-run/builds/final-asan/forge",
+            "--seed",
+            "202611155210",
+            "--threads",
+            "2",
+            "--nodes",
+            "20000",
+            "--depth",
+            "0",
+            "--seconds",
+            "180",
+            "--HindsightAndGuard",
+            "true"
+          ],
+          "timeoutSeconds": 440
+        }
+      ]
+    },
+    {
+      "indices": [
+        4,
+        10
+      ],
+      "totalEngineThreads": 4,
+      "batches": [
+        {
+          "index": 4,
+          "label": "depth64-v2-paired-softnodes-tsan-off-t2-n0-d9",
+          "mode": "tsan",
+          "threads": 2,
+          "nodes": 0,
+          "depth": 9,
+          "HindsightAndGuard": false,
+          "seed": 202611155205,
+          "seconds": 180,
+          "engine": "/workspace/work/parity-run/builds/final-tsan/forge",
+          "argv": [
+            "env",
+            "TSAN_OPTIONS=halt_on_error=0",
+            "/workspace/work/parity-softnodes-depth64-v2-preparation/softnodes_play_depth64_v2",
+            "--engine",
+            "/workspace/work/parity-run/builds/final-tsan/forge",
+            "--seed",
+            "202611155205",
+            "--threads",
+            "2",
+            "--nodes",
+            "0",
+            "--depth",
+            "9",
+            "--seconds",
+            "180",
+            "--HindsightAndGuard",
+            "false"
+          ],
+          "timeoutSeconds": 440
+        },
+        {
+          "index": 10,
+          "label": "depth64-v2-paired-softnodes-tsan-on-t2-n0-d9",
+          "mode": "tsan",
+          "threads": 2,
+          "nodes": 0,
+          "depth": 9,
+          "HindsightAndGuard": true,
+          "seed": 202611155211,
+          "seconds": 180,
+          "engine": "/workspace/work/parity-run/builds/final-tsan/forge",
+          "argv": [
+            "env",
+            "TSAN_OPTIONS=halt_on_error=0",
+            "/workspace/work/parity-softnodes-depth64-v2-preparation/softnodes_play_depth64_v2",
+            "--engine",
+            "/workspace/work/parity-run/builds/final-tsan/forge",
+            "--seed",
+            "202611155211",
+            "--threads",
+            "2",
+            "--nodes",
+            "0",
+            "--depth",
+            "9",
+            "--seconds",
+            "180",
+            "--HindsightAndGuard",
+            "true"
+          ],
+          "timeoutSeconds": 440
+        }
+      ]
+    },
+    {
+      "indices": [
+        5
+      ],
+      "totalEngineThreads": 4,
+      "batches": [
+        {
+          "index": 5,
+          "label": "depth64-v2-paired-softnodes-tsan-off-t4-n0-d9",
+          "mode": "tsan",
+          "threads": 4,
+          "nodes": 0,
+          "depth": 9,
+          "HindsightAndGuard": false,
+          "seed": 202611155206,
+          "seconds": 180,
+          "engine": "/workspace/work/parity-run/builds/final-tsan/forge",
+          "argv": [
+            "env",
+            "TSAN_OPTIONS=halt_on_error=0",
+            "/workspace/work/parity-softnodes-depth64-v2-preparation/softnodes_play_depth64_v2",
+            "--engine",
+            "/workspace/work/parity-run/builds/final-tsan/forge",
+            "--seed",
+            "202611155206",
+            "--threads",
+            "4",
+            "--nodes",
+            "0",
+            "--depth",
+            "9",
+            "--seconds",
+            "180",
+            "--HindsightAndGuard",
+            "false"
+          ],
+          "timeoutSeconds": 440
+        }
+      ]
+    },
+    {
+      "indices": [
+        11
+      ],
+      "totalEngineThreads": 4,
+      "batches": [
+        {
+          "index": 11,
+          "label": "depth64-v2-paired-softnodes-tsan-on-t4-n0-d9",
+          "mode": "tsan",
+          "threads": 4,
+          "nodes": 0,
+          "depth": 9,
+          "HindsightAndGuard": true,
+          "seed": 202611155212,
+          "seconds": 180,
+          "engine": "/workspace/work/parity-run/builds/final-tsan/forge",
+          "argv": [
+            "env",
+            "TSAN_OPTIONS=halt_on_error=0",
+            "/workspace/work/parity-softnodes-depth64-v2-preparation/softnodes_play_depth64_v2",
+            "--engine",
+            "/workspace/work/parity-run/builds/final-tsan/forge",
+            "--seed",
+            "202611155212",
+            "--threads",
+            "4",
+            "--nodes",
+            "0",
+            "--depth",
+            "9",
+            "--seconds",
+            "180",
+            "--HindsightAndGuard",
+            "true"
+          ],
+          "timeoutSeconds": 440
+        }
+      ]
+    }
+  ],
+  "policy": "Separate engine processes, seeds, pipes and immutable output directories. No native corpus or match overlaps. At most4 aggregateengineThreads. Audit and state recording sequential. Any failure stops additionallaunches; preserve allpartialoutput if an activepeer is interrupted. Same frozen180second perbatchtarget and440second externalbound; deadline unchanged. This schedule changes noengine, limits, expectedvalues or seeds."
+}
+
+STDERR
+
