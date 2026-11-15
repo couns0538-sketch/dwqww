@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+# P2/P3 driver: N positions, clock search each, fresh position (ucinewgame), ONE process.
+# Records: bestmove, score(cp), depth, nodes of the last info line + bestmove.
+# Usage: p2_driver.py <binary> <epd> <n> <nodeclock> <outfile> [seedoffset]
+import subprocess, sys
+binary, epd, n, nc, out = sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5]
+off = int(sys.argv[6]) if len(sys.argv) > 6 else 0
+fens = [l.strip() for l in open(epd) if l.strip()][off:off+n]
+p = subprocess.Popen([binary], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+def send(s): p.stdin.write(s + "\n"); p.stdin.flush()
+send("setoption name OwnBook value false")
+send(f"setoption name NodeClock value {nc}")
+rows = []
+for fen in fens:
+    send("ucinewgame")
+    send("position fen " + fen)
+    send("go wtime 10000 btime 10000 winc 100 binc 100")
+    last = None; bm = "?"
+    while True:
+        line = p.stdout.readline()
+        if not line: raise RuntimeError("eof")
+        if line.startswith("info depth"): last = line.strip()
+        elif line.startswith("bestmove"):
+            bm = line.split()[1]; break
+    toks = last.split()
+    def field(name):
+        return toks[toks.index(name) + 1] if name in toks else "?"
+    sc = field("score")
+    if sc == "cp": sc = toks[toks.index("cp") + 1]
+    elif sc == "mate": sc = "mate" + toks[toks.index("mate") + 1]
+    rows.append(f"{bm} {field('depth')} {sc} {field('nodes')}")
+send("quit"); p.wait()
+open(out, "w").write("\n".join(rows) + "\n")
+print("wrote", out, len(rows))

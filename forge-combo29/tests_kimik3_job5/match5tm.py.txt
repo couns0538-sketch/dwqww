@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+# TmFinishIteration on-vs-off match on the node clock, two engine processes.
+# Colors alternate by game: in even games engine A (switch ON) is White, odd games Black.
+# Usage: match5tm.py <binary> <epd> <games> <nodeclock N> <outfile> <count> <index>
+import subprocess, sys, chess
+binary, epd, games, nc, out, count, index = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5], int(sys.argv[6]), int(sys.argv[7])
+opens = [l.strip() for l in open(epd) if l.strip()]
+def start_engine(finish_iteration):
+    p = subprocess.Popen([binary], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+    def send(s): p.stdin.write(s + "\n"); p.stdin.flush()
+    send("setoption name OwnBook value false")
+    send("setoption name Threads value 1")
+    send("setoption name Hash value 16")
+    send(f"setoption name NodeClock value {nc}")
+    send(f"setoption name TmFinishIteration value {'true' if finish_iteration else 'false'}")
+    return p, send
+engA, sendA = start_engine(True)    # A: TmFinishIteration ON
+engB, sendB = start_engine(False)   # B: off
+def search(send, stdout, fen, moves, wms, bms):
+    send("position fen " + fen + (" moves " + " ".join(moves) if moves else ""))
+    send(f"go wtime {wms} btime {bms} winc 100 binc 100")
+    last = None
+    while True:
+        line = stdout.readline()
+        if not line: raise RuntimeError("engine died")
+        if line.startswith("info depth"): last = line.strip()
+        elif line.startswith("bestmove"):
+            bm = line.split()[1]
+            t = 0
+            if last:
+                toks = last.split()
+                t = int(toks[toks.index("time") + 1]) if "time" in toks else 0
+            return bm, t
+for g in range(index, games, count):
+    board = chess.Board(opens[g % len(opens)])
+    a_white = (g % 2 == 0)
+    sendA("ucinewgame"); sendB("ucinewgame")
+    moves, wms, bms, result = [], 10000, 10000, None
+    while result is None:
+        if board.is_game_over(claim_draw=True):
+            result = board.result(claim_draw=True); break
+        if board.fullmove_number > 200:
+            result = "1/2-1/2 (cap)"; break
+        white_to_move = board.turn == chess.WHITE
+        use_a = (white_to_move == a_white)
+        send, eng = (sendA, engA) if use_a else (sendB, engB)
+        bm, used = search(send, eng.stdout, board.fen(), moves, wms, bms)
+        if white_to_move: wms = wms - used + 100
+        else: bms = bms - used + 100
+        if wms < 0: result = "0-1 (nodetime W)"; break
+        if bms < 0: result = "1-0 (nodetime B)"; break
+        if bm == "(none)" or bm == "0000":
+            result = board.result(claim_draw=True); break
+        mv = chess.Move.from_uci(bm)
+        if mv not in board.legal_moves:
+            result = "0-1 (illegal W)" if white_to_move else "1-0 (illegal B)"; break
+        board.push(mv); moves.append(bm)
+    # score from A's (switch ON) perspective
+    if result.startswith("1-0"): score_a = 1 if a_white else 0
+    elif result.startswith("0-1"): score_a = 0 if a_white else 1
+    else: score_a = 0.5
+    with open(out, "a") as f:
+        f.write(f"game {g} A_white={a_white} result {result} scoreA {score_a} moves {' '.join(moves)}\n")
+sendA("quit"); sendB("quit"); engA.wait(); engB.wait()
+print("done", out)

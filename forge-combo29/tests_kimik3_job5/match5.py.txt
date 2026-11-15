@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+# Deterministic self-play match on the node clock.
+# Usage: match5.py <binary> <epd> <games> <nodeclock N> <outfile> <concurrency-index-count> <index>
+# Runs games g where g % count == index, so several processes share one match.
+import subprocess, sys, chess
+binary, epd, games, nc, out, count, index = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5], int(sys.argv[6]), int(sys.argv[7])
+opens = [l.strip() for l in open(epd) if l.strip()]
+def start_engine():
+    p = subprocess.Popen([binary], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+    def send(s): p.stdin.write(s + "\n"); p.stdin.flush()
+    send("setoption name OwnBook value false")
+    send("setoption name Threads value 1")
+    send("setoption name Hash value 16")
+    send(f"setoption name NodeClock value {nc}")
+    return p, send
+eng, send = start_engine()
+def search(fen, moves, wms, bms):
+    send("position fen " + fen + (" moves " + " ".join(moves) if moves else ""))
+    send(f"go wtime {wms} btime {bms} winc 100 binc 100")
+    last = None
+    while True:
+        line = eng.stdout.readline()
+        if not line: raise RuntimeError("engine died")
+        if line.startswith("info depth"): last = line.strip()
+        elif line.startswith("bestmove"):
+            parts = line.split()
+            bm = parts[1]
+            t = 0
+            if last:
+                toks = last.split()
+                t = int(toks[toks.index("time") + 1]) if "time" in toks else 0
+            return bm, t
+lines = []
+for g in range(index, games, count):
+    board = chess.Board(opens[g % len(opens)])
+    send("ucinewgame")
+    moves, wms, bms, result = [], 10000, 10000, None
+    while result is None:
+        if board.is_game_over(claim_draw=True):
+            result = board.result(claim_draw=True); break
+        if board.fullmove_number > 200:
+            result = "1/2-1/2 (cap)"; break
+        bm, used = search(board.fen(), moves, wms, bms)
+        if board.turn == chess.WHITE: wms = wms - used + 100
+        else: bms = bms - used + 100
+        if wms < 0: result = "0-1 (nodetime)"; break
+        if bms < 0: result = "1-0 (nodetime)"; break
+        if bm == "(none)" or bm == "0000":
+            result = board.result(claim_draw=True); break
+        mv = chess.Move.from_uci(bm)
+        if mv not in board.legal_moves:
+            result = "0-1 (illegal W)" if board.turn == chess.WHITE else "1-0 (illegal B)"; break
+        board.push(mv); moves.append(bm)
+    lines.append(f"game {g} opening {g % len(opens)} result {result} moves {' '.join(moves)}")
+    with open(out, "a") as f: f.write(lines[-1] + "\n")
+send("quit"); eng.wait()
+print("done", out, len(lines))

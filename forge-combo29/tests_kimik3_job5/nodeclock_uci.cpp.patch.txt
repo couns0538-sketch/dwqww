@@ -1,0 +1,19 @@
+--- /tmp/v3_src/src/uci.cpp	2026-11-15 18:42:16.658885460 +0000
++++ /tmp/v3_nc/src/uci.cpp	2026-11-15 20:27:24.318885460 +0000
+@@ -232,6 +232,7 @@
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
++                         "option name NodeClock type spin default 0 min 0 max 1000000000\n"
+                          "option name SoundMatePruning type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+@@ -436,6 +437,8 @@
+             } else if (name == "TmNodeShare") {
+                 if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                 else note_invalid();
++            } else if (name == "NodeClock") {
++                apply_spin(0, 1000000000, [&](int clamped) { forge::tune::NodeClock = clamped; });
+             } else if (name == "SoundMatePruning") {
+                 if (value_text == "true" || value_text == "false") {
+                     const bool enabled = value_text == "true";

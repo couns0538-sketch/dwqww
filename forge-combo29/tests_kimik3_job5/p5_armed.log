@@ -1,0 +1,75 @@
+=================================================================
+==56450==ERROR: AddressSanitizer: heap-use-after-free on address 0x502000001070 at pc 0x563b3e3ebf1e bp 0x7efdc2df79d0 sp 0x7efdc2df79c0
+READ of size 4 at 0x502000001070 thread T1
+    #0 0x563b3e3ebf1d in forge::Worker::elapsed_ms() const /tmp/v3_nc/src/search.cpp:1251
+    #1 0x563b3e440cd8 in forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/v3_nc/src/search.cpp:2333
+    #2 0x563b3e44e2fa in forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess) /tmp/v3_nc/src/search.cpp:2761
+    #3 0x563b3e4ad749 in operator() /tmp/v3_nc/src/uci.cpp:558
+    #4 0x7efdc8aecdb3  (/lib/x86_64-linux-gnu/libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #5 0x7efdc8e5ea41 in asan_thread_start ../../../../src/libsanitizer/asan/asan_interceptors.cpp:234
+    #6 0x7efdc7e9cb63 in start_thread nptl/pthread_create.c:447
+    #7 0x7efdc7f29e8b in clone3 ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+0x502000001070 is located 0 bytes inside of 4-byte region [0x502000001070,0x502000001074)
+freed by thread T1 here:
+    #0 0x7efdc8eff5e8 in operator delete(void*, unsigned long) ../../../../src/libsanitizer/asan/asan_new_delete.cpp:164
+    #1 0x563b3e3ebdcb in forge::Worker::elapsed_ms() const /tmp/v3_nc/src/search.cpp:1251
+    #2 0x563b3e440cd8 in forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/v3_nc/src/search.cpp:2333
+    #3 0x563b3e44e2fa in forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess) /tmp/v3_nc/src/search.cpp:2761
+    #4 0x563b3e4ad749 in operator() /tmp/v3_nc/src/uci.cpp:558
+    #5 0x7efdc8aecdb3  (/lib/x86_64-linux-gnu/libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #6 0x7efdc8e5ea41 in asan_thread_start ../../../../src/libsanitizer/asan/asan_interceptors.cpp:234
+    #7 0x7efdc7e9cb63 in start_thread nptl/pthread_create.c:447
+
+previously allocated by thread T1 here:
+    #0 0x7efdc8efe548 in operator new(unsigned long) ../../../../src/libsanitizer/asan/asan_new_delete.cpp:95
+    #1 0x563b3e3ebda1 in forge::Worker::elapsed_ms() const /tmp/v3_nc/src/search.cpp:1251
+    #2 0x563b3e440cd8 in forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/v3_nc/src/search.cpp:2333
+    #3 0x563b3e44e2fa in forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess) /tmp/v3_nc/src/search.cpp:2761
+    #4 0x563b3e4ad749 in operator() /tmp/v3_nc/src/uci.cpp:558
+    #5 0x7efdc8aecdb3  (/lib/x86_64-linux-gnu/libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #6 0x7efdc8e5ea41 in asan_thread_start ../../../../src/libsanitizer/asan/asan_interceptors.cpp:234
+    #7 0x7efdc7e9cb63 in start_thread nptl/pthread_create.c:447
+
+Thread T1 created by T0 here:
+    #0 0x7efdc8ef51f9 in pthread_create ../../../../src/libsanitizer/asan/asan_interceptors.cpp:245
+    #1 0x7efdc8aeceb0 in std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) (/lib/x86_64-linux-gnu/libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 0x563b3e4c29d2 in thread<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/std_thread.h:164
+    #3 0x563b3e4c29d2 in forge::uci_loop(std::istream&) /tmp/v3_nc/src/uci.cpp:555
+    #4 0x7efdc7e2a1c9 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+    #5 0x7efdc7e2a28a in __libc_start_main_impl ../csu/libc-start.c:360
+    #6 0x563b3e1e35c4 in _start (/tmp/nc_asan/forge+0x4375c4) (BuildId: 559b48eae3834189fa19b6bcd26d68e9932a7b15)
+
+SUMMARY: AddressSanitizer: heap-use-after-free /tmp/v3_nc/src/search.cpp:1251 in forge::Worker::elapsed_ms() const
+Shadow bytes around the buggy address:
+  0x502000000d80: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000e00: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000e80: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000f00: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000f80: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+=>0x502000001000: fa fa 00 fa fa fa 00 fa fa fa 00 fa fa fa[fd]fa
+  0x502000001080: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000001100: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000001180: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000001200: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000001280: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==56450==ABORTING
