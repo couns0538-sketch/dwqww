@@ -1,0 +1,9 @@
+#!/bin/bash
+# O1: node counts of bench 11/13/16 with my net and built-in, one binary
+BIN=$1; NET=$2; TAG=$3; OUT=$4
+{
+echo "== $TAG builtin =="
+for d in 11 13 16; do printf "bench $d\nquit\n" | "$BIN" 2>/dev/null | grep "bench depth $d "; done
+echo "== $TAG mynet =="
+for d in 11 13 16; do printf "setoption name NNUEArchFile value $NET\nsetoption name NNUEArch value true\nbench $d\nquit\n" | "$BIN" 2>/dev/null | grep "bench depth $d "; done
+} | tee "$OUT"

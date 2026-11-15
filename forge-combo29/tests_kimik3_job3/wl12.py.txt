@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+# Workload driver: N positions, ucinewgame each, go depth D; prints total nodes.
+# Usage: wl12.py <binary> <net> <n> <depth>
+import subprocess, sys
+binary, net, n, depth = sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4]
+fens = [l.strip() for l in open('/tmp/UHO_Lichess_4852_v1.epd') if l.strip()][:n]
+p = subprocess.Popen([binary], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+def send(s): p.stdin.write(s + "\n"); p.stdin.flush()
+send(f"setoption name NNUEArchFile value {net}")
+send("setoption name NNUEArch value true")
+total = 0
+for fen in fens:
+    send("ucinewgame")
+    send("position fen " + fen)
+    send(f"go depth {depth}")
+    last_nodes = 0
+    while True:
+        line = p.stdout.readline()
+        if not line: raise RuntimeError("eof")
+        if " nodes " in line:
+            try: last_nodes = int(line.split("nodes")[1].split()[0])
+            except Exception: pass
+        if line.startswith("bestmove"):
+            total += last_nodes
+            break
+send("quit"); p.wait()
+print("total nodes:", total)

@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+# Job 3 O2 driver, two parts:
+#   eval N positions (command `eval`), print sha256 over the raw answer lines
+#   search M positions `go depth 8`, record bestmove/score/nodes per position
+#     mode A: ucinewgame before each position; mode B: one process throughout
+# Usage: run_o2_v3.py <binary> <net> eval <epdfile> <n> <rawout>
+#        run_o2_v3.py <binary> <net> search <epdfile> <n> <A|B> <rawout> <sumout>
+import subprocess, sys, hashlib
+
+binary, net, what = sys.argv[1], sys.argv[2], sys.argv[3]
+
+if what == "eval":
+    epdfile, n, rawout = sys.argv[4], int(sys.argv[5]), sys.argv[6]
+    fens = [l.strip() for l in open(epdfile) if l.strip()][:n]
+    p = subprocess.Popen([binary], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+    def send(s): p.stdin.write(s + "\n"); p.stdin.flush()
+    def read_eval():
+        while True:
+            line = p.stdout.readline()
+            if not line: raise RuntimeError("engine closed stdout")
+            if "eval" in line and ("nnue" in line or "cp" in line or "string" in line):
+                return line.strip()
+    send(f"setoption name NNUEArchFile value {net}")
+    send("setoption name NNUEArch value true")
+    raw = open(rawout, "w")
+    h = hashlib.sha256()
+    for fen in fens:
+        send("position fen " + fen)
+        send("eval")
+        line = read_eval()
+        raw.write(fen + " -> " + line + "\n")
+        h.update((line + "\n").encode())
+    send("quit"); p.wait()
+    raw.close()
+    print("SHA256", h.hexdigest(), "n", len(fens))
+else:
+    epdfile, n, mode, rawout, sumout = sys.argv[4], int(sys.argv[5]), sys.argv[6], sys.argv[7], sys.argv[8]
+    fens = [l.strip() for l in open(epdfile) if l.strip()][:n]
+    p = subprocess.Popen([binary], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+    def send(s): p.stdin.write(s + "\n"); p.stdin.flush()
+    def read_until_bestmove():
+        lines = []
+        while True:
+            line = p.stdout.readline()
+            if not line: raise RuntimeError("engine closed stdout")
+            line = line.strip()
+            lines.append(line)
+            if line.startswith("bestmove"): return lines
+    send(f"setoption name NNUEArchFile value {net}")
+    send("setoption name NNUEArch value true")
+    raw = open(rawout, "w"); summ = open(sumout, "w")
+    for i, fen in enumerate(fens):
+        if mode == "A": send("ucinewgame")
+        send("position fen " + fen)
+        send("go depth 8")
+        lines = read_until_bestmove()
+        best = [l for l in lines if l.startswith("bestmove")][0]
+        infos = [l for l in lines if " depth 8 " in l and "score" in l]
+        last = infos[-1] if infos else ""
+        score = last.split("score")[1].strip() if last else "?"
+        nodes = "?"
+        for l in reversed(lines):
+            if "nodes" in l:
+                nodes = l.split("nodes")[1].split()[0]; break
+        for l in lines: raw.write(l + "\n")
+        summ.write(f"{i} {best} score {score} nodes {nodes}\n")
+    send("quit"); p.wait()
+    raw.close(); summ.close()
+    print("DONE", mode, n)

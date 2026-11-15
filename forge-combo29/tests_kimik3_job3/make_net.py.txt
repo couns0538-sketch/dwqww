@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+# Seeded random FORGENN3 net (hidden 512, 8 king buckets mirrored, 8 output
+# buckets, stand-alone) in the shape the loader in src/nnue_v3.cpp expects.
+# Weights are uniform random in the ranges the header documents:
+#   w1 in [-54, 54]: within the documented +/-540 range; the full range saturates
+#   ~88% of SCReLU inputs (acc stdev ~1700 >> QA 255) and every eval collapses to a
+#   constant (measured: 300 on 22/22 positions) with a degenerate 15.5M-node bench 13.
+#   b1 in [-64, 64], w2 in [-127, 127] (loader bound MaxW2), b2 = 0
+# king_bucket_map[sq] = rank(sq): 8 buckets, file-independent, so consistent
+# with the mirror flag (files e-h flip to a-d before indexing).
+# output_bucket_map[p] = min(7, p // 4) over p = min(pieces, 32).
+# eval_scale is calibrated so eval stdev on ordinary positions is ~150-250 cp
+# (measured on 20 startpos-ish positions; see report).
+import random, struct, sys
+
+SEED = 20261115
+EVAL_SCALE = int(sys.argv[2]) if len(sys.argv) > 2 else 9
+OUT = sys.argv[1] if len(sys.argv) > 1 else "/tmp/kimik3_v3.nnue"
+
+rng = random.Random(SEED)
+HIDDEN, KB, OB, INPUTS = 512, 8, 8, 768
+
+h = bytearray(192)
+h[0:8] = b"FORGENN3"
+struct.pack_into("<I", h, 8, 3)          # version
+struct.pack_into("<I", h, 12, 192)       # header_bytes
+struct.pack_into("<I", h, 16, INPUTS)    # inputs per bucket
+struct.pack_into("<I", h, 20, HIDDEN)
+struct.pack_into("<I", h, 24, KB)
+struct.pack_into("<I", h, 28, OB)
+struct.pack_into("<I", h, 32, 2)         # flags: mirror (bit1), stand-alone
+struct.pack_into("<i", h, 36, 255)       # qa
+struct.pack_into("<i", h, 40, 64)        # qb
+struct.pack_into("<i", h, 44, EVAL_SCALE)
+for sq in range(64):
+    h[48 + sq] = sq >> 3                 # bucket = rank of (relative) king square
+for p in range(33):
+    h[112 + p] = min(7, p // 4)
+# bytes 145..191 stay zero
+
+body = bytearray()
+pack = body.extend
+for i in range(KB * INPUTS * HIDDEN):
+    pack(struct.pack("<h", round(rng.uniform(-54, 54))))
+for i in range(HIDDEN):
+    pack(struct.pack("<h", rng.randint(-64, 64)))
+for i in range(OB * 2 * HIDDEN):
+    pack(struct.pack("<h", rng.randint(-127, 127)))
+for i in range(OB):
+    pack(struct.pack("<i", 0))
+
+blob = bytes(h) + bytes(body)
+fnv = 14695981039346656037
+for b in blob:
+    fnv ^= b
+    fnv = (fnv * 1099511628211) & 0xFFFFFFFFFFFFFFFF
+blob += struct.pack("<Q", fnv)
+open(OUT, "wb").write(blob)
+print(f"wrote {OUT}: {len(blob)} bytes (expected {192 + 2*KB*INPUTS*HIDDEN + 2*HIDDEN + 2*OB*2*HIDDEN + 4*OB + 8}), eval_scale {EVAL_SCALE}, seed {SEED}")

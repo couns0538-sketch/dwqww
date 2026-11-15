@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+# Interleaved native wall-clock: N pairs (base,p1), bench 11 with net, core 2.
+# Prints per-run ms; then per-binary: mean, stdev, best.
+import subprocess, statistics, sys
+PAIRS = int(sys.argv[1]) if len(sys.argv) > 1 else 12
+NET = "/tmp/kimik3_v3.nnue"
+def run(binary):
+    cmd = f"setoption name NNUEArchFile value {NET}\nsetoption name NNUEArch value true\nbench 11\nquit\n"
+    out = subprocess.run(["taskset","-c","2",binary], input=cmd, capture_output=True, text=True).stdout
+    for line in out.splitlines():
+        if "bench depth 11" in line:
+            parts = line.split()
+            return int(parts[parts.index("time")+1]), int(parts[parts.index("nodes")+1])
+    raise RuntimeError("no bench line")
+base_times, p1_times = [], []
+for i in range(PAIRS):
+    tb, nb = run("/tmp/v3_src/build_v4/forge")
+    tp, np_ = run("/tmp/p1_build/v4/forge")
+    assert nb == np_, (nb, np_)
+    base_times.append(tb); p1_times.append(tp)
+    print(f"pair {i}: base {tb} ms   p1 {tp} ms   (nodes {nb})", flush=True)
+def stats(x): return f"mean {statistics.mean(x):.1f} ms  stdev {statistics.stdev(x):.1f}  best {min(x)}"
+print("BASE:", stats(base_times))
+print("P1:  ", stats(p1_times))
+mb, mp = statistics.mean(base_times), statistics.mean(p1_times)
+print(f"DELTA mean: {(mb-mp)/mb*100:+.2f}%   best: {(min(base_times)-min(p1_times))/min(base_times)*100:+.2f}%")
