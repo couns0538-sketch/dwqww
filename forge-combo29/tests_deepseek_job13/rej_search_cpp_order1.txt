@@ -1,0 +1,23 @@
+--- src/search.cpp
++++ src/search.cpp
+@@ -792,14 +796,18 @@ private:
+             : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
+               cont1(ss != nullptr ? (ss - 1)->continuation : nullptr),
+               cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
+-              cont4(tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
++              cont4((tune::ContHist4PlyRead || tune::ContHistDeep >= 1) && ss != nullptr && ss->ply >= 4 &&
++                            !(ss - 4)->current_move.is_none()
+                         ? (ss - 4)->continuation : nullptr),
++              cont6(tune::ContHistDeep >= 2 && ss != nullptr && ss->ply >= 6 &&
++                            !(ss - 6)->current_move.is_none()
++                        ? (ss - 6)->continuation : nullptr),
+               board(b),
+               worker(searcher) {}
+ 
+         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+             const Piece piece = board.piece_at(move.from);
+-            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move);
++            int value = quiet_history_sum(main, cont1, cont2, cont4, cont6, piece, move) + worker.threat_quiet_bonus(board, move);
+             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
+             return value;
+         }
