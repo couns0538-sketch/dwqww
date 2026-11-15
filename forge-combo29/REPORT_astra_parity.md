@@ -1,6 +1,6 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T04:46:33.070Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T04:55:41.670Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
@@ -9,7 +9,7 @@ Job A closed at 2026-11-15T04:20:00.000Z; accepted sanitizer coverage 846 games 
 [Shutdown finding0020 at the Job A deadline](tests_astra_parity/job-a-closeout-0020-supplement.md). The closeout does not authorize resuming a paused job.
 
 Job B: HindsightDepth fixed-node match.
-Job B B-0009: credited 100 games; cumulative 900, W-L-D 253-232-415, pairs 21,97,192,120,20. 0 blocked batches; 0 raw finished games excluded. Counts only.
+Job B B-0012: credited 100 games; cumulative 1200, W-L-D 332-300-568, pairs 26,130,256,162,26. 0 blocked batches; 0 raw finished games excluded. Counts only.
 
 | Check | Result |
 |---|---|
@@ -32,7 +32,7 @@ Job B B-0009: credited 100 games; cumulative 900, W-L-D 253-232-415, pairs 21,97
 | Current paired labels | 295 ordinary / 295 soft-node games; soft X 229824203/41812, mean 5496.6087008514305; 5647 hard-cap cases |
 | Accepted final-tree totals across protocols | 846 games / 120313 searches; failed batches excluded |
 | Current-protocol SMP sampling exception | 454 accepted-clean searches; 454 observed; historical failures unchanged |
-| HindsightDepth match | 900 games; W-L-D 253-232-415; pair counts 21,97,192,120,20; Running; completed batches only |
+| HindsightDepth match | 1200 games; W-L-D 332-300-568; pair counts 26,130,256,162,26; Running; completed batches only |
 | Match operational findings | 0 crash markers; 0 illegal-move games; 0 disconnect games; 0 stalls; 0 aborts; raw side/process accounting retained separately |
 | Response-deadline diagnostics | 40/40 release and 2/2 TSan searches completed before quit; 0 response timeouts, sanitizer reports or abnormal exits; zero soak credit |
 | ASan shutdown finding0020 | Seed 202611171101; declared250ms allowance; driver SIGTERM then SIGKILL, reaped signal9; 235.556687ms quit-to-reap; failed batch has zero clean credit; unresolved; release Job B and separate diagnostic authorized by decision0020 |
@@ -157,4 +157,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 47, including this checkpoint.
+Progress pushes: 48, including this checkpoint.
