@@ -1,0 +1,36 @@
+P1, bench 13, traced copy (passive: nodes stayed 862329).
+
+Late quiet moves reaching the reduction: 284,673.
+Distribution of the signed applied correction (cp):
+
+  below -40 :   2,441   0.86%
+  -40..-16  :  32,701  11.49%
+  -15..-5   :  20,801   7.31%
+   -4..4    : 172,253  60.51%   <- the correction is 0 or tiny for three fifths of them
+    5..15   :  17,695   6.22%
+   16..40   :  29,469  10.35%
+  above 40  :   9,313   3.27%
+
+So 60.5% of late quiet moves carry a correction in -4..4 cp, which cannot move `r` at any
+sensible K (the term is (c*K)/1024 and needs |c*K| >= 512 to change a ply, i.e. |c| >= 16 at
+K=32). That is the first thing to know about this feature: it is silent on three fifths of
+the moves it could act on.
+
+K, share of reductions that change by at least one ply (lo = less reduction, hi = more):
+
+  K= 4, 8, 12 : 0.00% (nothing: |c|*K < 512 for every observed c)
+  K=16        : 0.01%  (40 moves)
+  K=24        : 3.08%  (2.53% lo, 0.55% hi)      <- MILD, target "about 3%"
+  K=28        : 6.82%
+  K=30        : 8.94%
+  K=31        : 10.08%
+  K=32        : 13.41% (9.35% lo, 4.07% hi)      <- STRONG, closest to target "about 12%"
+  K=34        : 15.25%
+  K=48        : 22.45% (12.60% lo, 9.85% hi)
+  K=64        : 25.97%
+
+CHOSEN: mild K = 24 (3.08%), strong K = 32 (13.41%, nearest to 12%).
+
+Design note on the clamp: the job says the change is limited to one ply either way, so the
+term is clamp(-(c*K)/1024, -1, +1). At K=32 a correction of 16 cp is already enough to change
+a ply, and the clamp caps it there.

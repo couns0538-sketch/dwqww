@@ -1,0 +1,44 @@
+/* Planted-fault program for the P4 sanitizer check.
+ *
+ * The point: prove that the AddressSanitizer + UBSan build in ~/work/build3s can
+ * actually catch the two classes of fault this feature could have (a write past
+ * a table, and an undefined integer operation), BEFORE the clean run of
+ * `bench 13` is trusted to mean anything.
+ *
+ * Build (same flags as the engine):
+ *   g++ -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 planted_fault.cpp -o planted_fault
+ * Run: ./planted_fault overflow   -> must abort with an ASan report
+ *      ./planted_fault ub         -> must abort with a UBSan report
+ *      ./planted_fault ok         -> must exit 0 and print OK
+ *
+ * This file is evidence; it is not part of the engine and is not compiled into it.
+ */
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+
+int main(int argc, char** argv) {
+    const char* mode = argc > 1 ? argv[1] : "ok";
+
+    // A table shaped like the engine's capture history: 13 pieces x 64 squares x 7 victims.
+    static std::int16_t table[13][64][7];
+
+    if (std::strcmp(mode, "overflow") == 0) {
+        // One past the end, in the same shape as the real table: this is the bug
+        // a mis-indexed capture-history update would produce.
+        table[13][0][0] = 1;
+        std::printf("wrote past the end\n");
+        return 0;
+    }
+    if (std::strcmp(mode, "ub") == 0) {
+        // Signed overflow: the class of fault a bad clamp in an arithmetic term shows.
+        int x = 2147483647;
+        volatile int y = x + 1;
+        std::printf("ub result %d\n", y);
+        return 0;
+    }
+    // Clean use of the same table.
+    table[12][63][6] = -5;
+    std::printf("OK %d\n", table[12][63][6]);
+    return 0;
+}

@@ -1,0 +1,65 @@
+--- /tmp/j7/forge-combo29/src/search.cpp	2026-11-15 22:22:11.702400612 +0000
++++ /home/ubuntu/work/j7t/src/search.cpp	2026-11-15 22:22:49.054400612 +0000
+@@ -5,7 +5,9 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++#include <atomic>
+ #include <cmath>
++#include <cstdio>
+ #include <cstring>
+ #include <iostream>
+ #include <limits>
+@@ -1207,6 +1209,9 @@
+     child->runtime_psqt.valid = false;
+ }
+ 
++// TRACE only (local traced copy): the signed correction corrected_eval applied, in cp.
++static thread_local int trace_corr_signed_cp = 0;
++
+ int Worker::corrected_eval(const Board& board, int raw_eval) const {
+     // Keep the recognized ending score exact: correction history must not tilt a draw or the corner drive.
+     if (dead_material_enabled) {
+@@ -1223,6 +1228,7 @@
+         const std::int32_t np_b = (*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)];
+         correction += (np_w + np_b) / 2;
+     }
++    trace_corr_signed_cp = correction / CorrectionGrain;
+     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+ 
+@@ -2000,6 +2006,34 @@
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            // TRACE (local only): distribution of the signed correction over late quiet
++            // moves that reach this reduction, and what each candidate K would do.
++            if (quiet && move_count > 1) {
++                static const int kK[] = {24, 28, 30, 31, 32, 34, 36};
++                static std::atomic<std::uint64_t> n_reached{0}, hist[7] = {};
++                static std::atomic<std::uint64_t> chg_lo[7] = {}, chg_hi[7] = {};
++                const std::uint64_t idx = n_reached.fetch_add(1);
++                const int c = trace_corr_signed_cp;
++                hist[c < -40 ? 0 : (c <= -16 ? 1 : (c <= -5 ? 2 : (c <= 4 ? 3 : (c <= 15 ? 4 : (c <= 40 ? 5 : 6)))))] .fetch_add(1);
++                for (int k = 0; k < 7; ++k) {
++                    int d = -(c * kK[k]) / 1024;
++                    d = std::clamp(d, -1, 1);
++                    if (d < 0) chg_lo[k].fetch_add(1);
++                    if (d > 0) chg_hi[k].fetch_add(1);
++                }
++                if ((idx & 0x3FF) == 0) {
++                    std::fprintf(stderr, "CORRLMR n=%llu | <-40:%llu [-40,-16]:%llu [-15,-5]:%llu [-4,4]:%llu [5,15]:%llu [16,40]:%llu >40:%llu",
++                        (unsigned long long)n_reached.load(), (unsigned long long)hist[0].load(),
++                        (unsigned long long)hist[1].load(), (unsigned long long)hist[2].load(),
++                        (unsigned long long)hist[3].load(), (unsigned long long)hist[4].load(),
++                        (unsigned long long)hist[5].load(), (unsigned long long)hist[6].load());
++                    for (int k = 0; k < 7; ++k)
++                        std::fprintf(stderr, " K=%d_lo=%llu_hi=%llu", kK[k],
++                                     (unsigned long long)chg_lo[k].load(), (unsigned long long)chg_hi[k].load());
++                    std::fprintf(stderr, "\n");
++                }
++            }
++
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
