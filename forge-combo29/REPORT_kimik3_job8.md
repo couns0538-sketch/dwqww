@@ -1,5 +1,8 @@
 # kimik3 job 8 report: runner repaired, a second fault found, and the first true TmFinishIteration number
 
+**Stopped here per file 9 (received 23:16 after this report was pushed): step 1's proofs, the V0m control and
+V1 were completed and are reported in full below; V2-V5 were never started; the run ends here by instruction.**
+
 **The faults, in my own words.** Fault one (Fable's recount caught it): `match6.py` and its job-7 children sent
 `position fen <board.fen()> moves <all moves of the game>` — the FEN was the position *after* all moves and the
 move list the *whole game*. The engine applies the list from that FEN until the first illegal token and keeps
