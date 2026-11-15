@@ -1,0 +1,170 @@
+--- /tmp/v3_src/src/nnue_v3.cpp	2026-11-15 18:42:16.654885460 +0000
++++ /tmp/v3_hoist/src/nnue_v3.cpp	2026-11-15 19:33:19.278885460 +0000
+@@ -189,37 +189,139 @@
+ }
+ 
+ void apply_changes_scalar(const std::int16_t* source, std::int16_t* destination, const Changes& c, int hidden) {
++    const int count = c.count;
++    const std::int16_t* col0 = c.columns[0];
++    const std::int16_t* col1 = c.columns[1];
++    const std::int16_t* col2 = c.columns[2];
++    const std::int16_t* col3 = c.columns[3];
++    const int sign0 = c.adds[0] ? 1 : -1;
++    const int sign1 = c.adds[1] ? 1 : -1;
++    const int sign2 = c.adds[2] ? 1 : -1;
++    const int sign3 = c.adds[3] ? 1 : -1;
+     for (int h = 0; h < hidden; ++h) {
+         int v = source[h];
+-        for (int i = 0; i < c.count; ++i) v += c.adds[i] ? c.columns[i][h] : -c.columns[i][h];
++        if (count > 0) v += sign0 * col0[h];
++        if (count > 1) v += sign1 * col1[h];
++        if (count > 2) v += sign2 * col2[h];
++        if (count > 3) v += sign3 * col3[h];
+         destination[h] = static_cast<std::int16_t>(v);
+     }
+ }
+ 
++void apply_changes_pair_scalar(const std::int16_t* source0, std::int16_t* destination0, const Changes& c0,
++                               const std::int16_t* source1, std::int16_t* destination1, const Changes& c1, int hidden) {
++    for (int h = 0; h < hidden; ++h) {
++        int v0 = source0[h];
++        for (int i = 0; i < c0.count; ++i) v0 += c0.adds[i] ? c0.columns[i][h] : -c0.columns[i][h];
++        destination0[h] = static_cast<std::int16_t>(v0);
++        int v1 = source1[h];
++        for (int i = 0; i < c1.count; ++i) v1 += c1.adds[i] ? c1.columns[i][h] : -c1.columns[i][h];
++        destination1[h] = static_cast<std::int16_t>(v1);
++    }
++}
++
+ #if FORGE_NNUE_V3_AVX2
+ void apply_changes_avx2(const std::int16_t* source, std::int16_t* destination, const Changes& c, int hidden) {
++    const int count = c.count;
++    const std::int16_t* col0 = c.columns[0];
++    const std::int16_t* col1 = c.columns[1];
++    const std::int16_t* col2 = c.columns[2];
++    const std::int16_t* col3 = c.columns[3];
++    const bool add0 = c.adds[0];
++    const bool add1 = c.adds[1];
++    const bool add2 = c.adds[2];
++    const bool add3 = c.adds[3];
+     for (int h = 0; h < hidden; h += 16) {
+         __m256i v = _mm256_load_si256(reinterpret_cast<const __m256i*>(source + h));
+-        for (int i = 0; i < c.count; ++i) {
+-            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(c.columns[i] + h));
+-            v = c.adds[i] ? _mm256_add_epi16(v, col) : _mm256_sub_epi16(v, col);
++        if (count > 0) {
++            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(col0 + h));
++            v = add0 ? _mm256_add_epi16(v, col) : _mm256_sub_epi16(v, col);
++        }
++        if (count > 1) {
++            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(col1 + h));
++            v = add1 ? _mm256_add_epi16(v, col) : _mm256_sub_epi16(v, col);
++        }
++        if (count > 2) {
++            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(col2 + h));
++            v = add2 ? _mm256_add_epi16(v, col) : _mm256_sub_epi16(v, col);
++        }
++        if (count > 3) {
++            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(col3 + h));
++            v = add3 ? _mm256_add_epi16(v, col) : _mm256_sub_epi16(v, col);
+         }
+         _mm256_store_si256(reinterpret_cast<__m256i*>(destination + h), v);
+     }
+ }
++
++void apply_changes_pair_avx2(const std::int16_t* source0, std::int16_t* destination0, const Changes& c0,
++                             const std::int16_t* source1, std::int16_t* destination1, const Changes& c1, int hidden) {
++    for (int h = 0; h < hidden; h += 16) {
++        __m256i v0 = _mm256_load_si256(reinterpret_cast<const __m256i*>(source0 + h));
++        for (int i = 0; i < c0.count; ++i) {
++            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(c0.columns[i] + h));
++            v0 = c0.adds[i] ? _mm256_add_epi16(v0, col) : _mm256_sub_epi16(v0, col);
++        }
++        _mm256_store_si256(reinterpret_cast<__m256i*>(destination0 + h), v0);
++        __m256i v1 = _mm256_load_si256(reinterpret_cast<const __m256i*>(source1 + h));
++        for (int i = 0; i < c1.count; ++i) {
++            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(c1.columns[i] + h));
++            v1 = c1.adds[i] ? _mm256_add_epi16(v1, col) : _mm256_sub_epi16(v1, col);
++        }
++        _mm256_store_si256(reinterpret_cast<__m256i*>(destination1 + h), v1);
++    }
++}
+ #endif
+ 
+ #if FORGE_NNUE_V3_AVX512
+ void apply_changes_avx512(const std::int16_t* source, std::int16_t* destination, const Changes& c, int hidden) {
++    const int count = c.count;
++    const std::int16_t* col0 = c.columns[0];
++    const std::int16_t* col1 = c.columns[1];
++    const std::int16_t* col2 = c.columns[2];
++    const std::int16_t* col3 = c.columns[3];
++    const bool add0 = c.adds[0];
++    const bool add1 = c.adds[1];
++    const bool add2 = c.adds[2];
++    const bool add3 = c.adds[3];
+     for (int h = 0; h < hidden; h += 32) {
+         __m512i v = _mm512_load_si512(reinterpret_cast<const __m512i*>(source + h));
+-        for (int i = 0; i < c.count; ++i) {
+-            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(c.columns[i] + h));
+-            v = c.adds[i] ? _mm512_add_epi16(v, col) : _mm512_sub_epi16(v, col);
++        if (count > 0) {
++            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(col0 + h));
++            v = add0 ? _mm512_add_epi16(v, col) : _mm512_sub_epi16(v, col);
++        }
++        if (count > 1) {
++            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(col1 + h));
++            v = add1 ? _mm512_add_epi16(v, col) : _mm512_sub_epi16(v, col);
++        }
++        if (count > 2) {
++            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(col2 + h));
++            v = add2 ? _mm512_add_epi16(v, col) : _mm512_sub_epi16(v, col);
++        }
++        if (count > 3) {
++            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(col3 + h));
++            v = add3 ? _mm512_add_epi16(v, col) : _mm512_sub_epi16(v, col);
+         }
+         _mm512_store_si512(reinterpret_cast<__m512i*>(destination + h), v);
+     }
+ }
++
++void apply_changes_pair_avx512(const std::int16_t* source0, std::int16_t* destination0, const Changes& c0,
++                               const std::int16_t* source1, std::int16_t* destination1, const Changes& c1, int hidden) {
++    for (int h = 0; h < hidden; h += 32) {
++        __m512i v0 = _mm512_load_si512(reinterpret_cast<const __m512i*>(source0 + h));
++        for (int i = 0; i < c0.count; ++i) {
++            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(c0.columns[i] + h));
++            v0 = c0.adds[i] ? _mm512_add_epi16(v0, col) : _mm512_sub_epi16(v0, col);
++        }
++        _mm512_store_si512(reinterpret_cast<__m512i*>(destination0 + h), v0);
++        __m512i v1 = _mm512_load_si512(reinterpret_cast<const __m512i*>(source1 + h));
++        for (int i = 0; i < c1.count; ++i) {
++            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(c1.columns[i] + h));
++            v1 = c1.adds[i] ? _mm512_add_epi16(v1, col) : _mm512_sub_epi16(v1, col);
++        }
++        _mm512_store_si512(reinterpret_cast<__m512i*>(destination1 + h), v1);
++    }
++}
+ #endif
+ 
+ } // namespace
+@@ -554,6 +656,20 @@
+ #endif
+ }
+ 
++void apply_changes_pair(const Net& net, const std::int16_t* source0, std::int16_t* destination0, KingKey key0,
++                        const std::int16_t* source1, std::int16_t* destination1, KingKey key1,
++                        const DirtyPieces& dirty) {
++    const Changes c0 = collect_changes(net, key0, White, dirty);
++    const Changes c1 = collect_changes(net, key1, Black, dirty);
++#if FORGE_NNUE_V3_AVX512
++    apply_changes_pair_avx512(source0, destination0, c0, source1, destination1, c1, net.hidden);
++#elif FORGE_NNUE_V3_AVX2
++    apply_changes_pair_avx2(source0, destination0, c0, source1, destination1, c1, net.hidden);
++#else
++    apply_changes_pair_scalar(source0, destination0, c0, source1, destination1, c1, net.hidden);
++#endif
++}
++
+ void apply_changes_with(Kernel kernel, const Net& net, const std::int16_t* source, std::int16_t* destination, KingKey key,
+                         Color perspective, const DirtyPieces& dirty) {
+     const Changes c = collect_changes(net, key, perspective, dirty);

@@ -1,0 +1,230 @@
+--- /tmp/v3_p1/src/nnue_v3.cpp	2026-11-15 19:07:11.718885460 +0000
++++ /tmp/v3_b1/src/nnue_v3.cpp	2026-11-15 19:34:08.690885460 +0000
+@@ -210,12 +210,64 @@
+ 
+ void apply_changes_pair_scalar(const std::int16_t* source0, std::int16_t* destination0, const Changes& c0,
+                                const std::int16_t* source1, std::int16_t* destination1, const Changes& c1, int hidden) {
+-    for (int h = 0; h < hidden; ++h) {
++    const int count0 = c0.count;
++    const std::int16_t* a0 = c0.columns[0];
++    const std::int16_t* a1 = c0.columns[1];
++    const std::int16_t* a2 = c0.columns[2];
++    const std::int16_t* a3 = c0.columns[3];
++    const int sa0 = c0.adds[0] ? 1 : -1;
++    const int sa1 = c0.adds[1] ? 1 : -1;
++    const int sa2 = c0.adds[2] ? 1 : -1;
++    const int sa3 = c0.adds[3] ? 1 : -1;
++    const int count1 = c1.count;
++    const std::int16_t* b0 = c1.columns[0];
++    const std::int16_t* b1 = c1.columns[1];
++    const std::int16_t* b2 = c1.columns[2];
++    const std::int16_t* b3 = c1.columns[3];
++    const int sb0 = c1.adds[0] ? 1 : -1;
++    const int sb1 = c1.adds[1] ? 1 : -1;
++    const int sb2 = c1.adds[2] ? 1 : -1;
++    const int sb3 = c1.adds[3] ? 1 : -1;
++    int h = 0;
++    for (; h + 2 <= hidden; h += 2) {
+         int v0 = source0[h];
+-        for (int i = 0; i < c0.count; ++i) v0 += c0.adds[i] ? c0.columns[i][h] : -c0.columns[i][h];
++        if (count0 > 0) v0 += sa0 * a0[h];
++        if (count0 > 1) v0 += sa1 * a1[h];
++        if (count0 > 2) v0 += sa2 * a2[h];
++        if (count0 > 3) v0 += sa3 * a3[h];
+         destination0[h] = static_cast<std::int16_t>(v0);
+         int v1 = source1[h];
+-        for (int i = 0; i < c1.count; ++i) v1 += c1.adds[i] ? c1.columns[i][h] : -c1.columns[i][h];
++        if (count1 > 0) v1 += sb0 * b0[h];
++        if (count1 > 1) v1 += sb1 * b1[h];
++        if (count1 > 2) v1 += sb2 * b2[h];
++        if (count1 > 3) v1 += sb3 * b3[h];
++        destination1[h] = static_cast<std::int16_t>(v1);
++        const int g = h + 1;
++        int w0 = source0[g];
++        if (count0 > 0) w0 += sa0 * a0[g];
++        if (count0 > 1) w0 += sa1 * a1[g];
++        if (count0 > 2) w0 += sa2 * a2[g];
++        if (count0 > 3) w0 += sa3 * a3[g];
++        destination0[g] = static_cast<std::int16_t>(w0);
++        int w1 = source1[g];
++        if (count1 > 0) w1 += sb0 * b0[g];
++        if (count1 > 1) w1 += sb1 * b1[g];
++        if (count1 > 2) w1 += sb2 * b2[g];
++        if (count1 > 3) w1 += sb3 * b3[g];
++        destination1[g] = static_cast<std::int16_t>(w1);
++    }
++    for (; h < hidden; ++h) {
++        int v0 = source0[h];
++        if (count0 > 0) v0 += sa0 * a0[h];
++        if (count0 > 1) v0 += sa1 * a1[h];
++        if (count0 > 2) v0 += sa2 * a2[h];
++        if (count0 > 3) v0 += sa3 * a3[h];
++        destination0[h] = static_cast<std::int16_t>(v0);
++        int v1 = source1[h];
++        if (count1 > 0) v1 += sb0 * b0[h];
++        if (count1 > 1) v1 += sb1 * b1[h];
++        if (count1 > 2) v1 += sb2 * b2[h];
++        if (count1 > 3) v1 += sb3 * b3[h];
+         destination1[h] = static_cast<std::int16_t>(v1);
+     }
+ }
+@@ -255,20 +307,68 @@
+ 
+ void apply_changes_pair_avx2(const std::int16_t* source0, std::int16_t* destination0, const Changes& c0,
+                              const std::int16_t* source1, std::int16_t* destination1, const Changes& c1, int hidden) {
+-    for (int h = 0; h < hidden; h += 16) {
++    const int count0 = c0.count;
++    const std::int16_t* a0 = c0.columns[0];
++    const std::int16_t* a1 = c0.columns[1];
++    const std::int16_t* a2 = c0.columns[2];
++    const std::int16_t* a3 = c0.columns[3];
++    const bool pa0 = c0.adds[0];
++    const bool pa1 = c0.adds[1];
++    const bool pa2 = c0.adds[2];
++    const bool pa3 = c0.adds[3];
++    const int count1 = c1.count;
++    const std::int16_t* b0 = c1.columns[0];
++    const std::int16_t* b1 = c1.columns[1];
++    const std::int16_t* b2 = c1.columns[2];
++    const std::int16_t* b3 = c1.columns[3];
++    const bool pb0 = c1.adds[0];
++    const bool pb1 = c1.adds[1];
++    const bool pb2 = c1.adds[2];
++    const bool pb3 = c1.adds[3];
++    const auto step = [&](int h) {
+         __m256i v0 = _mm256_load_si256(reinterpret_cast<const __m256i*>(source0 + h));
+-        for (int i = 0; i < c0.count; ++i) {
+-            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(c0.columns[i] + h));
+-            v0 = c0.adds[i] ? _mm256_add_epi16(v0, col) : _mm256_sub_epi16(v0, col);
++        if (count0 > 0) {
++            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(a0 + h));
++            v0 = pa0 ? _mm256_add_epi16(v0, col) : _mm256_sub_epi16(v0, col);
++        }
++        if (count0 > 1) {
++            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(a1 + h));
++            v0 = pa1 ? _mm256_add_epi16(v0, col) : _mm256_sub_epi16(v0, col);
++        }
++        if (count0 > 2) {
++            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(a2 + h));
++            v0 = pa2 ? _mm256_add_epi16(v0, col) : _mm256_sub_epi16(v0, col);
++        }
++        if (count0 > 3) {
++            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(a3 + h));
++            v0 = pa3 ? _mm256_add_epi16(v0, col) : _mm256_sub_epi16(v0, col);
+         }
+         _mm256_store_si256(reinterpret_cast<__m256i*>(destination0 + h), v0);
+         __m256i v1 = _mm256_load_si256(reinterpret_cast<const __m256i*>(source1 + h));
+-        for (int i = 0; i < c1.count; ++i) {
+-            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(c1.columns[i] + h));
+-            v1 = c1.adds[i] ? _mm256_add_epi16(v1, col) : _mm256_sub_epi16(v1, col);
++        if (count1 > 0) {
++            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(b0 + h));
++            v1 = pb0 ? _mm256_add_epi16(v1, col) : _mm256_sub_epi16(v1, col);
++        }
++        if (count1 > 1) {
++            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(b1 + h));
++            v1 = pb1 ? _mm256_add_epi16(v1, col) : _mm256_sub_epi16(v1, col);
++        }
++        if (count1 > 2) {
++            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(b2 + h));
++            v1 = pb2 ? _mm256_add_epi16(v1, col) : _mm256_sub_epi16(v1, col);
++        }
++        if (count1 > 3) {
++            const __m256i col = _mm256_load_si256(reinterpret_cast<const __m256i*>(b3 + h));
++            v1 = pb3 ? _mm256_add_epi16(v1, col) : _mm256_sub_epi16(v1, col);
+         }
+         _mm256_store_si256(reinterpret_cast<__m256i*>(destination1 + h), v1);
++    };
++    int h = 0;
++    for (; h + 32 <= hidden; h += 32) {
++        step(h);
++        step(h + 16);
+     }
++    for (; h < hidden; h += 16) step(h);
+ }
+ #endif
+ 
+@@ -306,21 +406,69 @@
+ }
+ 
+ void apply_changes_pair_avx512(const std::int16_t* source0, std::int16_t* destination0, const Changes& c0,
+-                               const std::int16_t* source1, std::int16_t* destination1, const Changes& c1, int hidden) {
+-    for (int h = 0; h < hidden; h += 32) {
+-        __m512i v0 = _mm512_load_si512(reinterpret_cast<const __m512i*>(source0 + h));
+-        for (int i = 0; i < c0.count; ++i) {
+-            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(c0.columns[i] + h));
+-            v0 = c0.adds[i] ? _mm512_add_epi16(v0, col) : _mm512_sub_epi16(v0, col);
+-        }
+-        _mm512_store_si512(reinterpret_cast<__m512i*>(destination0 + h), v0);
+-        __m512i v1 = _mm512_load_si512(reinterpret_cast<const __m512i*>(source1 + h));
+-        for (int i = 0; i < c1.count; ++i) {
+-            const __m512i col = _mm512_load_si512(reinterpret_cast<const __m512i*>(c1.columns[i] + h));
+-            v1 = c1.adds[i] ? _mm512_add_epi16(v1, col) : _mm512_sub_epi16(v1, col);
+-        }
+-        _mm512_store_si512(reinterpret_cast<__m512i*>(destination1 + h), v1);
++                             const std::int16_t* source1, std::int16_t* destination1, const Changes& c1, int hidden) {
++    const int count0 = c0.count;
++    const std::int16_t* a0 = c0.columns[0];
++    const std::int16_t* a1 = c0.columns[1];
++    const std::int16_t* a2 = c0.columns[2];
++    const std::int16_t* a3 = c0.columns[3];
++    const bool pa0 = c0.adds[0];
++    const bool pa1 = c0.adds[1];
++    const bool pa2 = c0.adds[2];
++    const bool pa3 = c0.adds[3];
++    const int count1 = c1.count;
++    const std::int16_t* b0 = c1.columns[0];
++    const std::int16_t* b1 = c1.columns[1];
++    const std::int16_t* b2 = c1.columns[2];
++    const std::int16_t* b3 = c1.columns[3];
++    const bool pb0 = c1.adds[0];
++    const bool pb1 = c1.adds[1];
++    const bool pb2 = c1.adds[2];
++    const bool pb3 = c1.adds[3];
++    const auto step = [&](int h) {
++        __m512i v0 = _mm512_load_si256(reinterpret_cast<const __m512i*>(source0 + h));
++        if (count0 > 0) {
++            const __m512i col = _mm512_load_si256(reinterpret_cast<const __m512i*>(a0 + h));
++            v0 = pa0 ? _mm512_add_epi16(v0, col) : _mm512_sub_epi16(v0, col);
++        }
++        if (count0 > 1) {
++            const __m512i col = _mm512_load_si256(reinterpret_cast<const __m512i*>(a1 + h));
++            v0 = pa1 ? _mm512_add_epi16(v0, col) : _mm512_sub_epi16(v0, col);
++        }
++        if (count0 > 2) {
++            const __m512i col = _mm512_load_si256(reinterpret_cast<const __m512i*>(a2 + h));
++            v0 = pa2 ? _mm512_add_epi16(v0, col) : _mm512_sub_epi16(v0, col);
++        }
++        if (count0 > 3) {
++            const __m512i col = _mm512_load_si256(reinterpret_cast<const __m512i*>(a3 + h));
++            v0 = pa3 ? _mm512_add_epi16(v0, col) : _mm512_sub_epi16(v0, col);
++        }
++        _mm512_store_si256(reinterpret_cast<__m512i*>(destination0 + h), v0);
++        __m512i v1 = _mm512_load_si256(reinterpret_cast<const __m512i*>(source1 + h));
++        if (count1 > 0) {
++            const __m512i col = _mm512_load_si256(reinterpret_cast<const __m512i*>(b0 + h));
++            v1 = pb0 ? _mm512_add_epi16(v1, col) : _mm512_sub_epi16(v1, col);
++        }
++        if (count1 > 1) {
++            const __m512i col = _mm512_load_si256(reinterpret_cast<const __m512i*>(b1 + h));
++            v1 = pb1 ? _mm512_add_epi16(v1, col) : _mm512_sub_epi16(v1, col);
++        }
++        if (count1 > 2) {
++            const __m512i col = _mm512_load_si256(reinterpret_cast<const __m512i*>(b2 + h));
++            v1 = pb2 ? _mm512_add_epi16(v1, col) : _mm512_sub_epi16(v1, col);
++        }
++        if (count1 > 3) {
++            const __m512i col = _mm512_load_si256(reinterpret_cast<const __m512i*>(b3 + h));
++            v1 = pb3 ? _mm512_add_epi16(v1, col) : _mm512_sub_epi16(v1, col);
++        }
++        _mm512_store_si256(reinterpret_cast<__m512i*>(destination1 + h), v1);
++    };
++    int h = 0;
++    for (; h + 64 <= hidden; h += 64) {
++        step(h);
++        step(h + 32);
+     }
++    for (; h < hidden; h += 32) step(h);
+ }
+ #endif
+ 

@@ -1,0 +1,11 @@
+--- /tmp/v3_b2/src/nnue_v3.cpp	2026-11-15 19:34:13.750885460 +0000
++++ /tmp/v3_b2fault/src/nnue_v3.cpp	2026-11-15 19:49:23.734885460 +0000
+@@ -179,7 +179,7 @@
+ 
+ Changes collect_changes(const Net& net, KingKey key, Color perspective, const DirtyPieces& dirty) {
+     Changes c;
+-    c.count = dirty.count;
++    c.count = dirty.count > 0 ? dirty.count - 1 : 0;  // PLANTED FAULT (job 4 O4)
+     const std::size_t column_bytes = static_cast<std::size_t>(net.hidden) * sizeof(std::int16_t);
+     for (int i = 0; i < dirty.count; ++i) {
+         const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];

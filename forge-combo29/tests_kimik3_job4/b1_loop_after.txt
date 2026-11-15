@@ -1,0 +1,755 @@
+0000000000023f60 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)>:
+   23f60:	endbr64
+   23f64:	push   %rbp
+   23f65:	mov    %rdi,%r11
+   23f68:	mov    %rdx,%rdi
+   23f6b:	mov    %ecx,%edx
+   23f6d:	vpxor  %xmm0,%xmm0,%xmm0
+   23f71:	mov    %rsp,%rbp
+   23f74:	push   %r15
+   23f76:	push   %r14
+   23f78:	push   %r13
+   23f7a:	push   %r12
+   23f7c:	push   %rbx
+   23f7d:	movzbl %dh,%ebx
+   23f80:	and    $0xffffffffffffffe0,%rsp
+   23f84:	sub    $0xe0,%rsp
+   23f8b:	mov    0x18(%rbp),%rcx
+   23f8f:	mov    0x20(%r11),%r13d
+   23f93:	mov    %rsi,0x38(%rsp)
+   23f98:	mov    %r9,0x30(%rsp)
+   23f9d:	mov    %fs:0x28,%rax
+   23fa6:	mov    %rax,0xd8(%rsp)
+   23fae:	xor    %eax,%eax
+   23fb0:	mov    0x20(%rcx),%eax
+   23fb3:	mov    %r13d,0x54(%rsp)
+   23fb8:	movl   $0x0,0xa0(%rsp)
+   23fc3:	vmovdqa %ymm0,0x80(%rsp)
+   23fcc:	test   %eax,%eax
+   23fce:	jle    248f8 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x998>
+   23fd4:	mov    (%rcx),%r15d
+   23fd7:	movzbl %dl,%edx
+   23fda:	lea    0x2b97f(%rip),%r9        # 4f960 <forge::detail::PieceTypeTable>
+   23fe1:	movzbl 0x4(%rcx),%r14d
+   23fe6:	lea    (%rdx,%rdx,2),%r10d
+   23fea:	mov    0xb0(%r11),%r11
+   23ff1:	mov    %r15d,%edx
+   23ff4:	shl    $0x2,%r10d
+   23ff8:	mov    %r14b,0x70(%rsp)
+   23ffd:	and    $0xf,%edx
+   24000:	movzbl (%r9,%rdx,1),%edx
+   24005:	sub    $0x1,%edx
+   24008:	mov    %edx,%r9d
+   2400b:	mov    %edx,0x6c(%rsp)
+   2400f:	movslq %r13d,%rdx
+   24012:	xor    %r13d,%r13d
+   24015:	lea    (%rdx,%rdx,1),%r12
+   24019:	cmp    $0x6,%r15d
+   2401d:	mov    %r13d,%edx
+   24020:	mov    %r12,%rsi
+   24023:	mov    %r12,0x78(%rsp)
+   24028:	mov    $0x6,%r12d
+   2402e:	cmovg  %r12d,%edx
+   24032:	xor    %ebx,%r14d
+   24035:	movzbl %r14b,%r14d
+   24039:	add    %r9d,%edx
+   2403c:	add    %r10d,%edx
+   2403f:	shl    $0x6,%edx
+   24042:	add    %r14d,%edx
+   24045:	movslq %edx,%rdx
+   24048:	imul   %rsi,%rdx
+   2404c:	add    %r11,%rdx
+   2404f:	mov    %rdx,0x28(%rsp)
+   24054:	cmp    $0x1,%eax
+   24057:	je     249f8 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xa98>
+   2405d:	mov    0x8(%rcx),%edx
+   24060:	lea    0x2b8f9(%rip),%r9        # 4f960 <forge::detail::PieceTypeTable>
+   24067:	mov    %edx,%r14d
+   2406a:	and    $0xf,%r14d
+   2406e:	cmp    $0x6,%edx
+   24071:	mov    %r13d,%edx
+   24074:	cmovg  %r12d,%edx
+   24078:	movzbl (%r9,%r14,1),%r14d
+   2407d:	mov    0x78(%rsp),%r9
+   24082:	lea    -0x1(%r14,%rdx,1),%edx
+   24087:	movzbl 0xc(%rcx),%r14d
+   2408c:	add    %r10d,%edx
+   2408f:	xor    %ebx,%r14d
+   24092:	shl    $0x6,%edx
+   24095:	movzbl %r14b,%r14d
+   24099:	add    %r14d,%edx
+   2409c:	movslq %edx,%rdx
+   2409f:	imul   %r9,%rdx
+   240a3:	add    %r11,%rdx
+   240a6:	mov    %rdx,0x88(%rsp)
+   240ae:	cmp    $0x2,%eax
+   240b1:	je     24a08 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xaa8>
+   240b7:	mov    0x10(%rcx),%edx
+   240ba:	mov    %r9,%rsi
+   240bd:	lea    0x2b89c(%rip),%r9        # 4f960 <forge::detail::PieceTypeTable>
+   240c4:	mov    %edx,%r14d
+   240c7:	and    $0xf,%r14d
+   240cb:	cmp    $0x6,%edx
+   240ce:	mov    %r13d,%edx
+   240d1:	cmovg  %r12d,%edx
+   240d5:	movzbl (%r9,%r14,1),%r14d
+   240da:	lea    -0x1(%r14,%rdx,1),%edx
+   240df:	movzbl 0x14(%rcx),%r14d
+   240e4:	add    %r10d,%edx
+   240e7:	xor    %ebx,%r14d
+   240ea:	shl    $0x6,%edx
+   240ed:	movzbl %r14b,%r14d
+   240f1:	add    %r14d,%edx
+   240f4:	movslq %edx,%rdx
+   240f7:	imul   %rsi,%rdx
+   240fb:	add    %r11,%rdx
+   240fe:	mov    %rdx,0x90(%rsp)
+   24106:	cmp    $0x3,%eax
+   24109:	je     249d0 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xa70>
+   2410f:	mov    0x18(%rcx),%edx
+   24112:	mov    %edx,%r14d
+   24115:	and    $0xf,%r14d
+   24119:	cmp    $0x6,%edx
+   2411c:	cmovle %r13d,%r12d
+   24120:	movzbl (%r9,%r14,1),%r14d
+   24125:	xor    0x1c(%rcx),%bl
+   24128:	movzbl %bl,%ebx
+   2412b:	lea    -0x1(%r14,%r12,1),%edx
+   24130:	add    %r10d,%edx
+   24133:	movzbl 0xd(%rcx),%r10d
+   24138:	shl    $0x6,%edx
+   2413b:	add    %ebx,%edx
+   2413d:	mov    %r10b,0xa1(%rsp)
+   24145:	movzbl 0x15(%rcx),%r10d
+   2414a:	movslq %edx,%rdx
+   2414d:	imul   %rsi,%rdx
+   24151:	mov    %r10b,0xa2(%rsp)
+   24159:	movzbl 0x1d(%rcx),%r10d
+   2415e:	mov    %r10b,0xa3(%rsp)
+   24166:	add    %r11,%rdx
+   24169:	mov    %rdx,0x98(%rsp)
+   24171:	movzbl 0x5(%rcx),%edx
+   24175:	movzbl 0x10(%rbp),%r10d
+   2417a:	xor    %r14d,%r14d
+   2417d:	movzwl 0x10(%rbp),%ebx
+   24181:	vpxor  %xmm0,%xmm0,%xmm0
+   24185:	mov    $0x6,%r13d
+   2418b:	mov    0x6c(%rsp),%r9d
+   24190:	movl   $0x0,0xd0(%rsp)
+   2419b:	vmovdqu %ymm0,0xb0(%rsp)
+   241a4:	lea    (%r10,%r10,2),%r12d
+   241a8:	mov    %r14d,%r10d
+   241ab:	movzbl %bh,%ebx
+   241ae:	shl    $0x2,%r12d
+   241b2:	cmp    $0x6,%r15d
+   241b6:	movzbl 0x70(%rsp),%r15d
+   241bc:	cmovle %r13d,%r10d
+   241c0:	xor    %ebx,%r15d
+   241c3:	add    %r9d,%r10d
+   241c6:	xor    $0x38,%r15d
+   241ca:	mov    0x78(%rsp),%r9
+   241cf:	add    %r12d,%r10d
+   241d2:	movzbl %r15b,%r15d
+   241d6:	shl    $0x6,%r10d
+   241da:	add    %r15d,%r10d
+   241dd:	movslq %r10d,%r10
+   241e0:	imul   %r9,%r10
+   241e4:	add    %r11,%r10
+   241e7:	mov    %r10,0x40(%rsp)
+   241ec:	cmp    $0x1,%eax
+   241ef:	je     24325 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x3c5>
+   241f5:	mov    0x8(%rcx),%r10d
+   241f9:	lea    0x2b760(%rip),%rsi        # 4f960 <forge::detail::PieceTypeTable>
+   24200:	mov    %r10d,%r15d
+   24203:	and    $0xf,%r15d
+   24207:	cmp    $0x6,%r10d
+   2420b:	mov    %r14d,%r10d
+   2420e:	cmovle %r13d,%r10d
+   24212:	movzbl (%rsi,%r15,1),%r15d
+   24217:	lea    -0x1(%r15,%r10,1),%r10d
+   2421c:	movzbl 0xc(%rcx),%r15d
+   24221:	add    %r12d,%r10d
+   24224:	xor    %ebx,%r15d
+   24227:	shl    $0x6,%r10d
+   2422b:	xor    $0x38,%r15d
+   2422f:	movzbl %r15b,%r15d
+   24233:	add    %r15d,%r10d
+   24236:	movslq %r10d,%r10
+   24239:	imul   %r9,%r10
+   2423d:	add    %r11,%r10
+   24240:	mov    %r10,0xb8(%rsp)
+   24248:	cmp    $0x2,%eax
+   2424b:	je     24a20 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xac0>
+   24251:	mov    0x10(%rcx),%r10d
+   24255:	lea    0x2b704(%rip),%rsi        # 4f960 <forge::detail::PieceTypeTable>
+   2425c:	mov    %r10d,%r15d
+   2425f:	and    $0xf,%r15d
+   24263:	cmp    $0x6,%r10d
+   24267:	mov    %r14d,%r10d
+   2426a:	cmovle %r13d,%r10d
+   2426e:	movzbl (%rsi,%r15,1),%r15d
+   24273:	mov    0x78(%rsp),%rsi
+   24278:	lea    -0x1(%r15,%r10,1),%r10d
+   2427d:	movzbl 0x14(%rcx),%r15d
+   24282:	add    %r12d,%r10d
+   24285:	xor    %ebx,%r15d
+   24288:	shl    $0x6,%r10d
+   2428c:	xor    $0x38,%r15d
+   24290:	movzbl %r15b,%r15d
+   24294:	add    %r15d,%r10d
+   24297:	movslq %r10d,%r10
+   2429a:	imul   %rsi,%r10
+   2429e:	add    %r11,%r10
+   242a1:	mov    %r10,0xc0(%rsp)
+   242a9:	cmp    $0x3,%eax
+   242ac:	je     24ab0 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xb50>
+   242b2:	mov    0x18(%rcx),%r10d
+   242b6:	lea    0x2b6a3(%rip),%rsi        # 4f960 <forge::detail::PieceTypeTable>
+   242bd:	mov    %r10d,%r15d
+   242c0:	and    $0xf,%r15d
+   242c4:	cmp    $0x6,%r10d
+   242c8:	cmovg  %r14d,%r13d
+   242cc:	movzbl (%rsi,%r15,1),%r15d
+   242d1:	xor    0x1c(%rcx),%bl
+   242d4:	xor    $0x38,%ebx
+   242d7:	lea    -0x1(%r15,%r13,1),%r10d
+   242dc:	movzbl %bl,%ebx
+   242df:	add    %r12d,%r10d
+   242e2:	shl    $0x6,%r10d
+   242e6:	add    %ebx,%r10d
+   242e9:	mov    0x78(%rsp),%rbx
+   242ee:	movslq %r10d,%r10
+   242f1:	imul   %rbx,%r10
+   242f5:	add    %r10,%r11
+   242f8:	movzbl 0xd(%rcx),%r10d
+   242fd:	mov    %r11,0xc8(%rsp)
+   24305:	mov    %r10b,0xd1(%rsp)
+   2430d:	movzbl 0x15(%rcx),%r10d
+   24312:	movzbl 0x1d(%rcx),%ecx
+   24316:	mov    %r10b,0xd2(%rsp)
+   2431e:	mov    %cl,0xd3(%rsp)
+   24325:	movzbl 0xa2(%rsp),%ecx
+   2432d:	mov    0x90(%rsp),%rbx
+   24335:	cmpl   $0x1f,0x54(%rsp)
+   2433a:	mov    0x88(%rsp),%r14
+   24342:	mov    %cl,0x6c(%rsp)
+   24346:	movzbl 0xa3(%rsp),%ecx
+   2434e:	mov    %rbx,0x78(%rsp)
+   24353:	mov    0x98(%rsp),%rbx
+   2435b:	mov    %cl,0x6b(%rsp)
+   2435f:	mov    0xc0(%rsp),%rcx
+   24367:	mov    %rbx,0x70(%rsp)
+   2436c:	mov    0xb8(%rsp),%r12
+   24374:	mov    %rcx,0x60(%rsp)
+   24379:	mov    0xc8(%rsp),%rcx
+   24381:	movzbl 0xa1(%rsp),%ebx
+   24389:	movzbl 0xd1(%rsp),%r13d
+   24392:	movzbl 0xd3(%rsp),%r15d
+   2439b:	mov    %rcx,0x58(%rsp)
+   243a0:	movzbl 0xd2(%rsp),%ecx
+   243a8:	mov    %cl,0x6a(%rsp)
+   243ac:	jle    24a80 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xb20>
+   243b2:	cmp    $0x1,%eax
+   243b5:	je     24acd <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xb6d>
+   243bb:	mov    0x54(%rsp),%esi
+   243bf:	mov    %rdi,0x20(%rsp)
+   243c4:	lea    0x20(%rdi),%r11
+   243c8:	lea    0x20(%r8),%r10
+   243cc:	mov    0x40(%rsp),%rdi
+   243d1:	mov    0x30(%rsp),%r9
+   243d6:	mov    %r8,0x18(%rsp)
+   243db:	mov    %edx,%r8d
+   243de:	lea    -0x20(%rsi),%ecx
+   243e1:	mov    %r15b,0x69(%rsp)
+   243e6:	mov    0x28(%rsp),%rdx
+   243eb:	shr    $0x5,%ecx
+   243ee:	mov    %ecx,0x50(%rsp)
+   243f2:	shl    $0x6,%rcx
+   243f6:	lea    0x60(%rcx),%rsi
+   243fa:	mov    $0x20,%ecx
+   243ff:	mov    %rsi,0x48(%rsp)
+   24404:	mov    0x38(%rsp),%rsi
+   24409:	jmp    245f7 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x697>
+   2440e:	xchg   %ax,%ax
+   24410:	vpaddw %ymm1,%ymm0,%ymm0
+   24414:	vmovdqa %ymm0,%ymm1
+   24418:	cmp    $0x2,%eax
+   2441b:	je     24630 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x6d0>
+   24421:	mov    0x78(%rsp),%r15
+   24426:	cmpb   $0x0,0x6c(%rsp)
+   2442b:	vmovdqa -0x20(%r15,%rcx,1),%ymm1
+   24432:	je     24720 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x7c0>
+   24438:	vpaddw %ymm1,%ymm0,%ymm0
+   2443c:	vmovdqa %ymm0,%ymm1
+   24440:	cmp    $0x4,%eax
+   24443:	jne    24630 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x6d0>
+   24449:	mov    0x70(%rsp),%r15
+   2444e:	cmpb   $0x0,0x6b(%rsp)
+   24453:	vmovdqa -0x20(%r15,%rcx,1),%ymm1
+   2445a:	je     24708 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x7a8>
+   24460:	vpaddw %ymm1,%ymm0,%ymm0
+   24464:	vmovdqa %ymm0,-0x20(%r11)
+   2446a:	vmovdqa -0x20(%r10),%ymm2
+   24470:	vmovdqa -0x20(%rdi,%rcx,1),%ymm1
+   24476:	vpsubw %ymm1,%ymm2,%ymm0
+   2447a:	test   %r8b,%r8b
+   2447d:	je     24483 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x523>
+   2447f:	vpaddw %ymm2,%ymm1,%ymm0
+   24483:	vmovdqa -0x20(%r12,%rcx,1),%ymm1
+   2448a:	test   %r13b,%r13b
+   2448d:	je     24680 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x720>
+   24493:	vpaddw %ymm1,%ymm0,%ymm0
+   24497:	vmovdqa %ymm0,%ymm1
+   2449b:	cmp    $0x2,%eax
+   2449e:	je     24691 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x731>
+   244a4:	mov    0x60(%rsp),%r15
+   244a9:	cmpb   $0x0,0x6a(%rsp)
+   244ae:	vmovdqa -0x20(%r15,%rcx,1),%ymm1
+   244b5:	je     246e8 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x788>
+   244bb:	vpaddw %ymm1,%ymm0,%ymm0
+   244bf:	vmovdqa %ymm0,%ymm1
+   244c3:	cmp    $0x4,%eax
+   244c6:	jne    24691 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x731>
+   244cc:	mov    0x58(%rsp),%r15
+   244d1:	cmpb   $0x0,0x69(%rsp)
+   244d6:	vmovdqa -0x20(%r15,%rcx,1),%ymm1
+   244dd:	je     246d0 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x770>
+   244e3:	vpaddw %ymm1,%ymm0,%ymm0
+   244e7:	vmovdqa %ymm0,-0x20(%r9,%rcx,1)
+   244ee:	vmovdqa (%rsi,%rcx,1),%ymm1
+   244f3:	vmovdqa (%rdx,%rcx,1),%ymm2
+   244f8:	vpsubw %ymm2,%ymm1,%ymm0
+   244fc:	test   %r8b,%r8b
+   244ff:	je     24505 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x5a5>
+   24501:	vpaddw %ymm1,%ymm2,%ymm0
+   24505:	vmovdqa (%r14,%rcx,1),%ymm1
+   2450b:	test   %bl,%bl
+   2450d:	je     24658 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x6f8>
+   24513:	vpaddw %ymm1,%ymm0,%ymm0
+   24517:	vmovdqa %ymm0,%ymm1
+   2451b:	cmp    $0x2,%eax
+   2451e:	je     24669 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x709>
+   24524:	mov    0x78(%rsp),%r15
+   24529:	cmpb   $0x0,0x6c(%rsp)
+   2452e:	vmovdqa (%r15,%rcx,1),%ymm1
+   24534:	je     246c0 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x760>
+   2453a:	vpaddw %ymm1,%ymm0,%ymm0
+   2453e:	vmovdqa %ymm0,%ymm1
+   24542:	cmp    $0x4,%eax
+   24545:	jne    24669 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x709>
+   2454b:	mov    0x70(%rsp),%r15
+   24550:	cmpb   $0x0,0x6b(%rsp)
+   24555:	vmovdqa (%r15,%rcx,1),%ymm1
+   2455b:	je     246a8 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x748>
+   24561:	vpaddw %ymm1,%ymm0,%ymm0
+   24565:	vmovdqa %ymm0,(%r11)
+   2456a:	vmovdqa (%r10),%ymm1
+   2456f:	vmovdqa (%rdi,%rcx,1),%ymm2
+   24574:	vpsubw %ymm2,%ymm1,%ymm0
+   24578:	test   %r8b,%r8b
+   2457b:	je     24581 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x621>
+   2457d:	vpaddw %ymm1,%ymm2,%ymm0
+   24581:	vmovdqa (%r12,%rcx,1),%ymm1
+   24587:	test   %r13b,%r13b
+   2458a:	je     24648 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x6e8>
+   24590:	vpaddw %ymm1,%ymm0,%ymm0
+   24594:	vmovdqa %ymm0,%ymm1
+   24598:	cmp    $0x2,%eax
+   2459b:	je     245da <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x67a>
+   2459d:	mov    0x60(%rsp),%r15
+   245a2:	cmpb   $0x0,0x6a(%rsp)
+   245a7:	vmovdqa (%r15,%rcx,1),%ymm1
+   245ad:	je     246f8 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x798>
+   245b3:	vpaddw %ymm1,%ymm0,%ymm0
+   245b7:	vmovdqa %ymm0,%ymm1
+   245bb:	cmp    $0x4,%eax
+   245be:	jne    245da <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x67a>
+   245c0:	mov    0x58(%rsp),%r15
+   245c5:	cmpb   $0x0,0x69(%rsp)
+   245ca:	vmovdqa (%r15,%rcx,1),%ymm2
+   245d0:	vpsubw %ymm2,%ymm0,%ymm1
+   245d4:	je     245da <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x67a>
+   245d6:	vpaddw %ymm2,%ymm0,%ymm1
+   245da:	vmovdqa %ymm1,(%r9,%rcx,1)
+   245e0:	add    $0x40,%r11
+   245e4:	add    $0x40,%r10
+   245e8:	add    $0x40,%rcx
+   245ec:	cmp    %rcx,0x48(%rsp)
+   245f1:	je     24730 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x7d0>
+   245f7:	vmovdqa -0x20(%rsi,%rcx,1),%ymm2
+   245fd:	vmovdqa -0x20(%rdx,%rcx,1),%ymm1
+   24603:	vpsubw %ymm1,%ymm2,%ymm0
+   24607:	test   %r8b,%r8b
+   2460a:	je     24610 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x6b0>
+   2460c:	vpaddw %ymm1,%ymm2,%ymm0
+   24610:	vmovdqa -0x20(%r14,%rcx,1),%ymm1
+   24617:	test   %bl,%bl
+   24619:	jne    24410 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x4b0>
+   2461f:	vpsubw %ymm1,%ymm0,%ymm0
+   24623:	vmovdqa %ymm0,%ymm1
+   24627:	cmp    $0x2,%eax
+   2462a:	jne    24421 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x4c1>
+   24630:	vmovdqa %ymm1,-0x20(%r11)
+   24636:	vmovdqa -0x20(%r10),%ymm2
+   2463c:	jmp    24470 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x510>
+   24641:	nopl   0x0(%rax)
+   24648:	vpsubw %ymm1,%ymm0,%ymm0
+   2464c:	vmovdqa %ymm0,%ymm1
+   24650:	jmp    24598 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x638>
+   24655:	nopl   (%rax)
+   24658:	vpsubw %ymm1,%ymm0,%ymm0
+   2465c:	vmovdqa %ymm0,%ymm1
+   24660:	cmp    $0x2,%eax
+   24663:	jne    24524 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x5c4>
+   24669:	vmovdqa %ymm1,(%r11)
+   2466e:	vmovdqa (%r10),%ymm1
+   24673:	jmp    2456f <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x60f>
+   24678:	nopl   0x0(%rax,%rax,1)
+   24680:	vpsubw %ymm1,%ymm0,%ymm0
+   24684:	vmovdqa %ymm0,%ymm1
+   24688:	cmp    $0x2,%eax
+   2468b:	jne    244a4 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x544>
+   24691:	vmovdqa %ymm1,-0x20(%r9,%rcx,1)
+   24698:	vmovdqa (%rsi,%rcx,1),%ymm1
+   2469d:	jmp    244f3 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x593>
+   246a2:	nopw   0x0(%rax,%rax,1)
+   246a8:	vpsubw %ymm1,%ymm0,%ymm0
+   246ac:	vmovdqa %ymm0,(%r11)
+   246b1:	vmovdqa (%r10),%ymm1
+   246b6:	jmp    2456f <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x60f>
+   246bb:	nopl   0x0(%rax,%rax,1)
+   246c0:	vpsubw %ymm1,%ymm0,%ymm0
+   246c4:	vmovdqa %ymm0,%ymm1
+   246c8:	jmp    24542 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x5e2>
+   246cd:	nopl   (%rax)
+   246d0:	vpsubw %ymm1,%ymm0,%ymm0
+   246d4:	vmovdqa %ymm0,-0x20(%r9,%rcx,1)
+   246db:	vmovdqa (%rsi,%rcx,1),%ymm1
+   246e0:	jmp    244f3 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x593>
+   246e5:	nopl   (%rax)
+   246e8:	vpsubw %ymm1,%ymm0,%ymm0
+   246ec:	vmovdqa %ymm0,%ymm1
+   246f0:	jmp    244c3 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x563>
+   246f5:	nopl   (%rax)
+   246f8:	vpsubw %ymm1,%ymm0,%ymm0
+   246fc:	vmovdqa %ymm0,%ymm1
+   24700:	jmp    245bb <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x65b>
+   24705:	nopl   (%rax)
+   24708:	vpsubw %ymm1,%ymm0,%ymm0
+   2470c:	vmovdqa %ymm0,-0x20(%r11)
+   24712:	vmovdqa -0x20(%r10),%ymm2
+   24718:	jmp    24470 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x510>
+   2471d:	nopl   (%rax)
+   24720:	vpsubw %ymm1,%ymm0,%ymm0
+   24724:	vmovdqa %ymm0,%ymm1
+   24728:	jmp    24440 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x4e0>
+   2472d:	nopl   (%rax)
+   24730:	mov    0x50(%rsp),%ecx
+   24734:	mov    %r8d,%edx
+   24737:	mov    %rsi,0x38(%rsp)
+   2473c:	movzbl 0x69(%rsp),%r15d
+   24742:	mov    0x20(%rsp),%rdi
+   24747:	mov    %r9,0x30(%rsp)
+   2474c:	add    $0x1,%ecx
+   2474f:	mov    0x18(%rsp),%r8
+   24754:	shl    $0x5,%ecx
+   24757:	cmp    %ecx,0x54(%rsp)
+   2475b:	jle    2499e <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xa3e>
+   24761:	mov    %edx,%r11d
+   24764:	mov    %r15b,0x69(%rsp)
+   24769:	mov    0x28(%rsp),%rdx
+   2476e:	movslq %ecx,%rcx
+   24771:	mov    0x54(%rsp),%r10d
+   24776:	mov    0x38(%rsp),%rsi
+   2477b:	mov    0x30(%rsp),%r9
+   24780:	jmp    24869 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x909>
+   24785:	nopl   (%rax)
+   24788:	vpaddw %ymm1,%ymm0,%ymm0
+   2478c:	vmovdqa %ymm0,%ymm1
+   24790:	cmp    $0x2,%eax
+   24793:	je     2489f <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x93f>
+   24799:	mov    0x78(%rsp),%r15
+   2479e:	cmpb   $0x0,0x6c(%rsp)
+   247a3:	vmovdqa (%r15,%rcx,2),%ymm1
+   247a9:	je     248e8 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x988>
+   247af:	vpaddw %ymm1,%ymm0,%ymm0
+   247b3:	vmovdqa %ymm0,%ymm1
+   247b7:	cmp    $0x4,%eax
+   247ba:	jne    2489f <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x93f>
+   247c0:	mov    0x70(%rsp),%r15
+   247c5:	cmpb   $0x0,0x6b(%rsp)
+   247ca:	vmovdqa (%r15,%rcx,2),%ymm1
+   247d0:	je     248c0 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x960>
+   247d6:	vpaddw %ymm1,%ymm0,%ymm0
+   247da:	vmovdqa %ymm0,(%rdi,%rcx,2)
+   247df:	vmovdqa (%r8,%rcx,2),%ymm1
+   247e5:	mov    0x40(%rsp),%r15
+   247ea:	vmovdqa (%r15,%rcx,2),%ymm2
+   247f0:	vpsubw %ymm2,%ymm1,%ymm0
+   247f4:	test   %r11b,%r11b
+   247f7:	je     247fd <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x89d>
+   247f9:	vpaddw %ymm1,%ymm2,%ymm0
+   247fd:	vmovdqa (%r12,%rcx,2),%ymm1
+   24803:	test   %r13b,%r13b
+   24806:	je     248b0 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x950>
+   2480c:	vpaddw %ymm1,%ymm0,%ymm0
+   24810:	vmovdqa %ymm0,%ymm1
+   24814:	cmp    $0x2,%eax
+   24817:	je     24856 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x8f6>
+   24819:	mov    0x60(%rsp),%r15
+   2481e:	cmpb   $0x0,0x6a(%rsp)
+   24823:	vmovdqa (%r15,%rcx,2),%ymm1
+   24829:	je     248d8 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x978>
+   2482f:	vpaddw %ymm1,%ymm0,%ymm0
+   24833:	vmovdqa %ymm0,%ymm1
+   24837:	cmp    $0x4,%eax
+   2483a:	jne    24856 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x8f6>
+   2483c:	mov    0x58(%rsp),%r15
+   24841:	cmpb   $0x0,0x69(%rsp)
+   24846:	vmovdqa (%r15,%rcx,2),%ymm2
+   2484c:	vpsubw %ymm2,%ymm0,%ymm1
+   24850:	je     24856 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x8f6>
+   24852:	vpaddw %ymm2,%ymm0,%ymm1
+   24856:	vmovdqa %ymm1,(%r9,%rcx,2)
+   2485c:	add    $0x10,%rcx
+   24860:	cmp    %ecx,%r10d
+   24863:	jle    2499e <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xa3e>
+   24869:	vmovdqa (%rsi,%rcx,2),%ymm2
+   2486e:	vmovdqa (%rdx,%rcx,2),%ymm1
+   24873:	vpsubw %ymm1,%ymm2,%ymm0
+   24877:	test   %r11b,%r11b
+   2487a:	je     24880 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x920>
+   2487c:	vpaddw %ymm1,%ymm2,%ymm0
+   24880:	vmovdqa (%r14,%rcx,2),%ymm1
+   24886:	test   %bl,%bl
+   24888:	jne    24788 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x828>
+   2488e:	vpsubw %ymm1,%ymm0,%ymm0
+   24892:	vmovdqa %ymm0,%ymm1
+   24896:	cmp    $0x2,%eax
+   24899:	jne    24799 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x839>
+   2489f:	vmovdqa %ymm1,(%rdi,%rcx,2)
+   248a4:	vmovdqa (%r8,%rcx,2),%ymm1
+   248aa:	jmp    247e5 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x885>
+   248af:	nop
+   248b0:	vpsubw %ymm1,%ymm0,%ymm0
+   248b4:	vmovdqa %ymm0,%ymm1
+   248b8:	jmp    24814 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x8b4>
+   248bd:	nopl   (%rax)
+   248c0:	vpsubw %ymm1,%ymm0,%ymm0
+   248c4:	vmovdqa %ymm0,(%rdi,%rcx,2)
+   248c9:	vmovdqa (%r8,%rcx,2),%ymm1
+   248cf:	jmp    247e5 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x885>
+   248d4:	nopl   0x0(%rax)
+   248d8:	vpsubw %ymm1,%ymm0,%ymm0
+   248dc:	vmovdqa %ymm0,%ymm1
+   248e0:	jmp    24837 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x8d7>
+   248e5:	nopl   (%rax)
+   248e8:	vpsubw %ymm1,%ymm0,%ymm0
+   248ec:	vmovdqa %ymm0,%ymm1
+   248f0:	jmp    247b7 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x857>
+   248f5:	nopl   (%rax)
+   248f8:	cmpl   $0x1f,0x54(%rsp)
+   248fd:	jle    24a30 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xad0>
+   24903:	mov    %r13d,%eax
+   24906:	sub    $0x20,%eax
+   24909:	shr    $0x5,%eax
+   2490c:	lea    0x1(%rax),%ecx
+   2490f:	xor    %eax,%eax
+   24911:	mov    %rcx,%rdx
+   24914:	shl    $0x6,%rcx
+   24918:	nopl   0x0(%rax,%rax,1)
+   24920:	vmovdqa (%rsi,%rax,1),%ymm3
+   24925:	vmovdqa %ymm3,(%rdi,%rax,1)
+   2492a:	vmovdqa (%r8,%rax,1),%ymm4
+   24930:	vmovdqa %ymm4,(%r9,%rax,1)
+   24936:	vmovdqa 0x20(%rsi,%rax,1),%ymm5
+   2493c:	vmovdqa %ymm5,0x20(%rdi,%rax,1)
+   24942:	vmovdqa 0x20(%r8,%rax,1),%ymm6
+   24949:	vmovdqa %ymm6,0x20(%r9,%rax,1)
+   24950:	add    $0x40,%rax
+   24954:	cmp    %rax,%rcx
+   24957:	jne    24920 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x9c0>
+   24959:	mov    %edx,%eax
+   2495b:	mov    0x54(%rsp),%ebx
+   2495f:	mov    %rsi,0x38(%rsp)
+   24964:	shl    $0x5,%eax
+   24967:	mov    %r9,0x30(%rsp)
+   2496c:	cmp    %ebx,%eax
+   2496e:	jge    2499e <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xa3e>
+   24970:	mov    0x54(%rsp),%edx
+   24974:	mov    0x38(%rsp),%rsi
+   24979:	cltq
+   2497b:	mov    0x30(%rsp),%r9
+   24980:	vmovdqa (%rsi,%rax,2),%ymm7
+   24985:	vmovdqa %ymm7,(%rdi,%rax,2)
+   2498a:	vmovdqa (%r8,%rax,2),%ymm3
+   24990:	vmovdqa %ymm3,(%r9,%rax,2)
+   24996:	add    $0x10,%rax
+   2499a:	cmp    %eax,%edx
+   2499c:	jg     24980 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xa20>
+   2499e:	mov    0xd8(%rsp),%rax
+   249a6:	sub    %fs:0x28,%rax
+   249af:	jne    24c81 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xd21>
+   249b5:	vzeroupper
+   249b8:	lea    -0x28(%rbp),%rsp
+   249bc:	pop    %rbx
+   249bd:	pop    %r12
+   249bf:	pop    %r13
+   249c1:	pop    %r14
+   249c3:	pop    %r15
+   249c5:	pop    %rbp
+   249c6:	ret
+   249c7:	nopw   0x0(%rax,%rax,1)
+   249d0:	movzbl 0xd(%rcx),%r10d
+   249d5:	movzbl 0x5(%rcx),%edx
+   249d9:	mov    %r10b,0xa1(%rsp)
+   249e1:	movzbl 0x15(%rcx),%r10d
+   249e6:	mov    %r10b,0xa2(%rsp)
+   249ee:	jmp    24175 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x215>
+   249f3:	nopl   0x0(%rax,%rax,1)
+   249f8:	movzbl 0x5(%rcx),%edx
+   249fc:	jmp    24175 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x215>
+   24a01:	nopl   0x0(%rax)
+   24a08:	movzbl 0xd(%rcx),%r10d
+   24a0d:	movzbl 0x5(%rcx),%edx
+   24a11:	mov    %r10b,0xa1(%rsp)
+   24a19:	jmp    24175 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x215>
+   24a1e:	xchg   %ax,%ax
+   24a20:	movzbl 0xd(%rcx),%ecx
+   24a24:	mov    %cl,0xd1(%rsp)
+   24a2b:	jmp    24325 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x3c5>
+   24a30:	xor    %esi,%esi
+   24a32:	xor    %ecx,%ecx
+   24a34:	xor    %r9d,%r9d
+   24a37:	movb   $0x0,0x6a(%rsp)
+   24a3c:	mov    %rcx,0x40(%rsp)
+   24a41:	xor    %edx,%edx
+   24a43:	xor    %r15d,%r15d
+   24a46:	xor    %r13d,%r13d
+   24a49:	movb   $0x0,0x6b(%rsp)
+   24a4e:	xor    %r12d,%r12d
+   24a51:	xor    %ebx,%ebx
+   24a53:	xor    %r14d,%r14d
+   24a56:	movb   $0x0,0x6c(%rsp)
+   24a5b:	mov    %rsi,0x70(%rsp)
+   24a60:	mov    %rsi,0x78(%rsp)
+   24a65:	mov    %r9,0x28(%rsp)
+   24a6a:	mov    %rdx,0x58(%rsp)
+   24a6f:	mov    %rdx,0x60(%rsp)
+   24a74:	xor    %edx,%edx
+   24a76:	cs nopw 0x0(%rax,%rax,1)
+   24a80:	mov    0x54(%rsp),%r10d
+   24a85:	test   %r10d,%r10d
+   24a88:	jle    2499e <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xa3e>
+   24a8e:	test   %eax,%eax
+   24a90:	jle    24c7a <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xd1a>
+   24a96:	xor    %ecx,%ecx
+   24a98:	cmp    $0x1,%eax
+   24a9b:	jne    24761 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x801>
+   24aa1:	xor    %eax,%eax
+   24aa3:	jmp    24b80 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xc20>
+   24aa8:	nopl   0x0(%rax,%rax,1)
+   24ab0:	movzbl 0xd(%rcx),%r10d
+   24ab5:	movzbl 0x15(%rcx),%ecx
+   24ab9:	mov    %r10b,0xd1(%rsp)
+   24ac1:	mov    %cl,0xd2(%rsp)
+   24ac8:	jmp    24325 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0x3c5>
+   24acd:	mov    0x54(%rsp),%eax
+   24ad1:	mov    0x38(%rsp),%rsi
+   24ad6:	mov    0x28(%rsp),%rbx
+   24adb:	mov    0x40(%rsp),%r11
+   24ae0:	sub    $0x20,%eax
+   24ae3:	vmovdqa (%rsi),%ymm0
+   24ae7:	mov    0x30(%rsp),%r9
+   24aec:	shr    $0x5,%eax
+   24aef:	vmovdqa (%rbx),%ymm1
+   24af3:	lea    0x1(%rax),%r10d
+   24af7:	xor    %eax,%eax
+   24af9:	mov    %r10,%rcx
+   24afc:	shl    $0x6,%r10
+   24b00:	test   %dl,%dl
+   24b02:	je     24bba <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xc5a>
+   24b08:	jmp    24b1a <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xbba>
+   24b0a:	nopw   0x0(%rax,%rax,1)
+   24b10:	vmovdqa (%rsi,%rax,1),%ymm0
+   24b15:	vmovdqa (%rbx,%rax,1),%ymm1
+   24b1a:	vpaddw %ymm1,%ymm0,%ymm0
+   24b1e:	vmovdqa %ymm0,(%rdi,%rax,1)
+   24b23:	vmovdqa (%r8,%rax,1),%ymm4
+   24b29:	vpaddw (%r11,%rax,1),%ymm4,%ymm0
+   24b2f:	vmovdqa %ymm0,(%r9,%rax,1)
+   24b35:	vmovdqa 0x20(%rsi,%rax,1),%ymm5
+   24b3b:	vpaddw 0x20(%rbx,%rax,1),%ymm5,%ymm0
+   24b41:	vmovdqa %ymm0,0x20(%rdi,%rax,1)
+   24b47:	vmovdqa 0x20(%r8,%rax,1),%ymm6
+   24b4e:	vpaddw 0x20(%r11,%rax,1),%ymm6,%ymm0
+   24b55:	vmovdqa %ymm0,0x20(%r9,%rax,1)
+   24b5c:	add    $0x40,%rax
+   24b60:	cmp    %rax,%r10
+   24b63:	jne    24b10 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xbb0>
+   24b65:	mov    %ecx,%eax
+   24b67:	mov    0x54(%rsp),%ebx
+   24b6b:	mov    %rsi,0x38(%rsp)
+   24b70:	shl    $0x5,%eax
+   24b73:	mov    %r9,0x30(%rsp)
+   24b78:	cmp    %ebx,%eax
+   24b7a:	jge    2499e <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xa3e>
+   24b80:	mov    0x38(%rsp),%rsi
+   24b85:	mov    0x28(%rsp),%r10
+   24b8a:	cltq
+   24b8c:	test   %dl,%dl
+   24b8e:	mov    0x54(%rsp),%ecx
+   24b92:	mov    0x40(%rsp),%rdx
+   24b97:	vmovdqa (%rsi,%rax,2),%ymm1
+   24b9c:	vmovdqa (%r10,%rax,2),%ymm0
+   24ba2:	mov    0x30(%rsp),%r9
+   24ba7:	je     24c53 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xcf3>
+   24bad:	jmp    24c1b <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xcbb>
+   24baf:	nop
+   24bb0:	vmovdqa (%rsi,%rax,1),%ymm0
+   24bb5:	vmovdqa (%rbx,%rax,1),%ymm1
+   24bba:	vpsubw %ymm1,%ymm0,%ymm0
+   24bbe:	vmovdqa %ymm0,(%rdi,%rax,1)
+   24bc3:	vmovdqa (%r8,%rax,1),%ymm4
+   24bc9:	vpsubw (%r11,%rax,1),%ymm4,%ymm0
+   24bcf:	vmovdqa %ymm0,(%r9,%rax,1)
+   24bd5:	vmovdqa 0x20(%rsi,%rax,1),%ymm5
+   24bdb:	vpsubw 0x20(%rbx,%rax,1),%ymm5,%ymm0
+   24be1:	vmovdqa %ymm0,0x20(%rdi,%rax,1)
+   24be7:	vmovdqa 0x20(%r8,%rax,1),%ymm6
+   24bee:	vpsubw 0x20(%r11,%rax,1),%ymm6,%ymm0
+   24bf5:	vmovdqa %ymm0,0x20(%r9,%rax,1)
+   24bfc:	add    $0x40,%rax
+   24c00:	cmp    %r10,%rax
+   24c03:	jne    24bb0 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xc50>
+   24c05:	jmp    24b65 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xc05>
+   24c0a:	nopw   0x0(%rax,%rax,1)
+   24c10:	vmovdqa (%rsi,%rax,2),%ymm1
+   24c15:	vmovdqa (%r10,%rax,2),%ymm0
+   24c1b:	vpaddw %ymm1,%ymm0,%ymm0
+   24c1f:	vmovdqa %ymm0,(%rdi,%rax,2)
+   24c24:	vmovdqa (%r8,%rax,2),%ymm7
+   24c2a:	vpaddw (%rdx,%rax,2),%ymm7,%ymm0
+   24c2f:	vmovdqa %ymm0,(%r9,%rax,2)
+   24c35:	add    $0x10,%rax
+   24c39:	cmp    %eax,%ecx
+   24c3b:	jg     24c10 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xcb0>
+   24c3d:	jmp    2499e <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xa3e>
+   24c42:	nopw   0x0(%rax,%rax,1)
+   24c48:	vmovdqa (%rsi,%rax,2),%ymm1
+   24c4d:	vmovdqa (%r10,%rax,2),%ymm0
+   24c53:	vpsubw %ymm0,%ymm1,%ymm1
+   24c57:	vmovdqa %ymm1,(%rdi,%rax,2)
+   24c5c:	vmovdqa (%r8,%rax,2),%ymm7
+   24c62:	vpsubw (%rdx,%rax,2),%ymm7,%ymm0
+   24c67:	vmovdqa %ymm0,(%r9,%rax,2)
+   24c6d:	add    $0x10,%rax
+   24c71:	cmp    %eax,%ecx
+   24c73:	jg     24c48 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xce8>
+   24c75:	jmp    2499e <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xa3e>
+   24c7a:	xor    %eax,%eax
+   24c7c:	jmp    24970 <forge::nnue::v3::apply_changes_pair(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, short const*, short*, forge::nnue::v3::KingKey, forge::nnue::DirtyPieces const&)+0xa10>
+   24c81:	vzeroupper
+   24c84:	call   47a0 <__stack_chk_fail@plt>
+   24c89:	nopl   0x0(%rax)
+

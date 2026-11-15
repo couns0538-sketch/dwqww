@@ -1,0 +1,53 @@
+--- /tmp/v3_src/include/forge/nnue_v3.hpp	2026-11-15 18:42:16.662885460 +0000
++++ /tmp/v3_paironly/include/forge/nnue_v3.hpp	2026-11-15 19:33:19.374885460 +0000
+@@ -198,6 +198,10 @@
+ // destination = source with the recorded changes applied under `key` (both arrays hold `hidden` values).
+ void apply_changes(const Net& net, const std::int16_t* source, std::int16_t* destination, KingKey key, Color perspective,
+                    const DirtyPieces& dirty);
++// Both perspectives in one pass over h (same arithmetic per element as two apply_changes calls).
++void apply_changes_pair(const Net& net, const std::int16_t* source0, std::int16_t* destination0, KingKey key0,
++                        const std::int16_t* source1, std::int16_t* destination1, KingKey key1,
++                        const DirtyPieces& dirty);
+ // Accumulator of `perspective` for the placement `pieces` (own king on `king_square`), through the cache.
+ void refresh_from_pieces(const Net& net, RefreshCache& cache, const Pieces& pieces, Color perspective, int king_square,
+                          std::int16_t* destination);
+@@ -210,6 +214,12 @@
+     const Accumulator& parent = state.stack[static_cast<std::size_t>(k - 1)];
+     Accumulator& child = state.stack[static_cast<std::size_t>(k)];
+     const DirtyPieces& dirty = dirty_of(k);
++    // Fast common case first: both perspectives keep their king key and can be
++    // updated in one pass; the per-perspective code below then does nothing.
++    bool done[2] = {false, false};
++    KingKey pair_keys[2];
++    int pair_kings[2] = {0, 0};
++    bool pair_ok = true;
+     for (const Color p : {White, Black}) {
+         const auto pi = static_cast<std::size_t>(p);
+         int king_square = parent.king_sq[pi];
+@@ -217,7 +227,25 @@
+             const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
+             if (change.add && change.piece == make_piece(p, King)) king_square = change.square;
+         }
+-        const KingKey key = king_key(net, p, king_square);
++        pair_kings[pi] = king_square;
++        pair_keys[pi] = king_key(net, p, king_square);
++        if (!(pair_keys[pi] == parent.keys[pi])) pair_ok = false;
++    }
++    if (pair_ok) {
++        apply_changes_pair(net, parent.values[0].data(), child.values[0].data(), pair_keys[0],
++                           parent.values[1].data(), child.values[1].data(), pair_keys[1], dirty);
++        for (const Color p : {White, Black}) {
++            const auto pi = static_cast<std::size_t>(p);
++            child.king_sq[pi] = static_cast<std::uint8_t>(pair_kings[pi]);
++            child.keys[pi] = pair_keys[pi];
++            done[pi] = true;
++        }
++    }
++    for (const Color p : {White, Black}) {
++        if (done[static_cast<std::size_t>(p)]) continue;
++        const auto pi = static_cast<std::size_t>(p);
++        const int king_square = pair_kings[pi];
++        const KingKey key = pair_keys[pi];
+         child.king_sq[pi] = static_cast<std::uint8_t>(king_square);
+         child.keys[pi] = key;
+         if (key == parent.keys[pi]) {

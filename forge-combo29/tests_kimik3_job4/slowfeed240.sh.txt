@@ -1,0 +1,10 @@
+#!/bin/bash
+printf 'setoption name NNUEArchFile value /tmp/kimik3_v3.nnue\n'
+printf 'setoption name NNUEArch value true\n'
+n=0
+while IFS= read -r fen && [ $n -lt 4 ]; do
+  printf 'ucinewgame\nposition fen %s\ngo depth 12\n' "$fen"
+  sleep 240
+  n=$((n+1))
+done < /tmp/UHO_Lichess_4852_v1.epd
+printf 'quit\n'

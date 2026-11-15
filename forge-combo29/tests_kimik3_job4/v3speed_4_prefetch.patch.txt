@@ -1,0 +1,16 @@
+--- /tmp/v3_b1/src/nnue_v3.cpp	2026-11-15 19:34:08.690885460 +0000
++++ /tmp/v3_b2/src/nnue_v3.cpp	2026-11-15 19:34:13.750885460 +0000
+@@ -180,10 +180,13 @@
+ Changes collect_changes(const Net& net, KingKey key, Color perspective, const DirtyPieces& dirty) {
+     Changes c;
+     c.count = dirty.count;
++    const std::size_t column_bytes = static_cast<std::size_t>(net.hidden) * sizeof(std::int16_t);
+     for (int i = 0; i < dirty.count; ++i) {
+         const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
+         c.columns[i] = column(net, feature_index(key, perspective, change.piece, change.square));
+         c.adds[i] = change.add;
++        const char* prefetch_base = reinterpret_cast<const char*>(c.columns[i]);
++        for (std::size_t off = 0; off < column_bytes; off += 64) __builtin_prefetch(prefetch_base + off, 0, 3);
+     }
+     return c;
+ }
