@@ -1,0 +1,1005 @@
+diff --git a/include/forge/board.hpp b/include/forge/board.hpp
+index 776614d..6a1120b 100644
+--- a/include/forge/board.hpp
++++ b/include/forge/board.hpp
+@@ -80,6 +80,7 @@ struct Undo {
+     std::uint16_t fullmove = 1;
+     std::uint64_t key = 0;
+     std::uint64_t pawn_key = 0;
++    std::array<std::uint64_t, 2> nonpawn_key{};
+     Bitboard checkers = 0;
+     std::uint16_t plies_from_null = 0;
+ };
+@@ -154,6 +155,17 @@ public:
+     [[nodiscard]] Color side_to_move() const { return side_; }
+     [[nodiscard]] std::uint64_t key() const { return key_; }
+     [[nodiscard]] std::uint64_t pawn_key() const { return pawn_key_; }
++    // Zobrist-style key of one colour's non-pawn pieces (knights, bishops, rooks,
++    // queens and the king) by piece and square. Kept incrementally by make/unmake;
++    // a null move changes no piece, so it leaves both keys unchanged.
++    [[nodiscard]] std::uint64_t nonpawn_key(Color color) const {
++        return nonpawn_key_[static_cast<std::size_t>(color)];
++    }
++    // Full recomputation from the piece placement (tests and debug asserts).
++    [[nodiscard]] std::uint64_t compute_nonpawn_key(Color color) const;
++    // Zobrist term of `color`'s king (0 if there is none). XOR it out of nonpawn_key(color) for a king-less key.
++    // Read-only accessor added by packa-epa; the incremental key code is untouched.
++    [[nodiscard]] std::uint64_t king_key_term(Color color) const;
+     [[nodiscard]] int halfmove_clock() const { return halfmove_; }
+     [[nodiscard]] int fullmove_number() const { return fullmove_; }
+     [[nodiscard]] int ep_square() const { return ep_square_; }
+@@ -178,6 +190,7 @@ private:
+     std::uint16_t fullmove_ = 1;
+     std::uint64_t key_ = 0;
+     std::uint64_t pawn_key_ = 0;
++    std::array<std::uint64_t, 2> nonpawn_key_{};
+     Bitboard checkers_ = 0;
+     // Plies since the last null move; bounds search-level repetition scans.
+     std::uint16_t plies_from_null_ = 1024;
+@@ -189,6 +202,9 @@ private:
+     [[nodiscard]] bool has_legal_en_passant_capture() const;
+     [[nodiscard]] std::uint64_t compute_key() const;
+     [[nodiscard]] std::uint64_t compute_pawn_key() const;
++#ifndef NDEBUG
++    void assert_nonpawn_keys() const;
++#endif
+     [[nodiscard]] Bitboard compute_checkers() const;
+     [[nodiscard]] bool square_attacked_with_occupancy(int square, Color by, Bitboard occupancy,
+                                                        Bitboard removed = 0) const;
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index e976c71..762b756 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -228,6 +228,13 @@ extern int LmrHistoryDivisor;
+ extern int CheckExtensionDepth;
+ extern int LmrCutoffThreshold;    // child cutoff count above which late moves are reduced more (0 = off)
+ extern int MaterialCorrectionWeight; // 0 = off, 100 = same weight as the pawn correction
++// Pack A "history" (P1 / P3 / P7); every switch defaults to OFF so the default build is node-identical to the base.
++extern int NonPawnCorr;               // P1: 1 = add the two non-pawn correction tables (keyed by Board::nonpawn_key)
++extern int NonPawnCorrWeight;         // P1: percent weight of each non-pawn table (100 = same as the pawn table)
++extern int NonPawnKeyIncludesKing;    // P1: 1 = king term kept in the non-pawn key (as the CR-passed board key), 0 = king-less key at lookup only
++extern int PawnHist;                  // P3: 1 = add the pawn-structure-keyed quiet history
++extern int PawnHistDivisor;           // P3: the pawn history term is divided by this when summed into quiet_history
++extern int LmrCorrThreshold;          // P7: cp; r -= 1 when |static_eval - raw_eval| > threshold (0 = off)
+ // Time management (sudden-death / increment controls).
+ extern int TmSoftDivisor;         // soft limit = remaining / divisor + increment share
+ extern int TmIncrementPercent;    // share of the increment added to the soft limit
+@@ -243,6 +250,10 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++// Pack E2 (move ordering and TT eval store). Every option defaults to 0 = off, which leaves the search bit-identical.
++extern int ContHist4Pct;     // percent weight of the 4-ply continuation history in quiet ordering (0 = off)
++extern int EvalOnlyStore;    // 1 = store the static eval in the TT (no score, no move) before early pruning
++extern int EvalOnlyStoreMinDepth; // EvalOnlyStore=1 only: store the eval-only entry only when depth >= N (0 = always)
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+@@ -251,6 +262,7 @@ void refresh();
+ // Move-ordering statistics.
+ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
+ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
++using PawnHistoryRow = PieceToHistory;
+ using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 13>;
+ using CaptureHistory = std::array<std::array<std::array<std::int16_t, 7>, 64>, 13>;
+ using CounterMoveTable = std::array<std::array<Move, 64>, 13>;
+@@ -258,6 +270,8 @@ constexpr std::size_t CorrectionSize = 1U << 14U;
+ constexpr int CorrectionGrain = 256;
+ constexpr int CorrectionLimit = 32 * CorrectionGrain;
+ using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
++constexpr std::size_t PawnHistorySize = 512; // pawn_key buckets (power of two)
++using PawnHistory = std::array<PawnHistoryRow, PawnHistorySize>;
+ 
+ struct SearchStack {
+     std::array<Move, MaxPly + 1> pv{};
+@@ -321,6 +335,8 @@ private:
+     std::unique_ptr<CounterMoveTable> counter_moves_;
+     std::unique_ptr<CorrectionHistory> correction_history_;
+     std::unique_ptr<CorrectionHistory> material_correction_;
++    std::array<std::unique_ptr<CorrectionHistory>, 2> nonpawn_correction_; // P1, indexed by the colour whose pieces form the key
++    std::unique_ptr<PawnHistory> pawn_history_;                            // P3
+     std::array<SearchStack, MaxPly + 8> stack_{};
+     std::array<Move, 256> root_effort_moves_{};
+     std::array<std::uint64_t, 256> root_move_nodes_{};
+@@ -359,6 +375,9 @@ private:
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
++    // P1: slot index (always < CorrectionSize) of one colour's non-pawn table; applies NonPawnKeyIncludesKing.
++    void update_pawn_history(const Board& board, Piece piece, int to, int bonus);
++    [[nodiscard]] static std::size_t nonpawn_slot(const Board& board, Color color);
+     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+     void record_null_move(SearchStack* ss);
+diff --git a/src/board.cpp b/src/board.cpp
+index 19d4ff2..eb6cc14 100644
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -349,6 +349,7 @@ bool Board::set_fen(std::string_view fen_text, std::string* error) {
+     }
+     candidate.key_ = candidate.compute_key();
+     candidate.pawn_key_ = candidate.compute_pawn_key();
++    candidate.nonpawn_key_ = {candidate.compute_nonpawn_key(White), candidate.compute_nonpawn_key(Black)};
+     candidate.checkers_ = candidate.compute_checkers();
+     candidate.plies_from_null_ = 1024;
+     candidate.key_history_.clear();
+@@ -727,6 +728,7 @@ bool Board::make_move(const Move& move, Undo& undo) {
+     undo.fullmove = fullmove_;
+     undo.key = key_;
+     undo.pawn_key = pawn_key_;
++    undo.nonpawn_key = nonpawn_key_;
+     undo.checkers = checkers_;
+     undo.plies_from_null = plies_from_null_;
+ 
+@@ -745,21 +747,25 @@ bool Board::make_move(const Move& move, Undo& undo) {
+     } else if (undo.captured != Empty) {
+         key_ ^= piece_key(move.to, undo.captured);
+         if (piece_type(undo.captured) == Pawn) pawn_key_ ^= piece_key(move.to, undo.captured);
++        else nonpawn_key_[static_cast<std::size_t>(them)] ^= piece_key(move.to, undo.captured);
+         remove_piece(move.to);
+     }
+     if (undo.captured != Empty || piece_type(moving) == Pawn) halfmove_ = 0;
+ 
+     key_ ^= piece_key(move.from, moving);
+     if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.from, moving);
++    else nonpawn_key_[static_cast<std::size_t>(us)] ^= piece_key(move.from, moving);
+     move_piece(move.from, move.to);
+     if (move.is_promotion()) {
+         const Piece promoted = make_piece(us, move.promotion);
+         remove_piece(move.to);
+         put_piece(promoted, move.to);
+         key_ ^= piece_key(move.to, promoted);
++        nonpawn_key_[static_cast<std::size_t>(us)] ^= piece_key(move.to, promoted);
+     } else {
+         key_ ^= piece_key(move.to, moving);
+         if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.to, moving);
++        else nonpawn_key_[static_cast<std::size_t>(us)] ^= piece_key(move.to, moving);
+     }
+     if (piece_type(moving) == King) king_squares_[static_cast<std::size_t>(us)] = move.to;
+ 
+@@ -769,6 +775,7 @@ bool Board::make_move(const Move& move, Undo& undo) {
+         const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+         const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
+         key_ ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
++        nonpawn_key_[static_cast<std::size_t>(us)] ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
+         move_piece(rook_from, rook_to);
+     }
+ 
+@@ -786,6 +793,9 @@ bool Board::make_move(const Move& move, Undo& undo) {
+     checkers_ = attackers_to(king_square(them), occupied()) & occupied(us);
+     plies_from_null_ = static_cast<std::uint16_t>(std::min<int>(plies_from_null_ + 1, 1024));
+     key_history_.push_back(key_);
++#ifndef NDEBUG
++    assert_nonpawn_keys();
++#endif
+     return true;
+ }
+ 
+@@ -816,8 +826,12 @@ void Board::unmake_move(const Move& move, const Undo& undo) {
+     fullmove_ = undo.fullmove;
+     key_ = undo.key;
+     pawn_key_ = undo.pawn_key;
++    nonpawn_key_ = undo.nonpawn_key;
+     checkers_ = undo.checkers;
+     plies_from_null_ = undo.plies_from_null;
++#ifndef NDEBUG
++    assert_nonpawn_keys();
++#endif
+ }
+ 
+ void Board::make_null_move(NullUndo& undo) {
+@@ -836,6 +850,9 @@ void Board::make_null_move(NullUndo& undo) {
+     plies_from_null_ = 0;
+     checkers_ = 0;
+     key_history_.push_back(key_);
++#ifndef NDEBUG
++    assert_nonpawn_keys();
++#endif
+ }
+ 
+ void Board::unmake_null_move(const NullUndo& undo) {
+@@ -846,6 +863,9 @@ void Board::unmake_null_move(const NullUndo& undo) {
+     halfmove_ = undo.halfmove;
+     plies_from_null_ = undo.plies_from_null;
+     checkers_ = undo.checkers;
++#ifndef NDEBUG
++    assert_nonpawn_keys();
++#endif
+ }
+ 
+ std::optional<Move> Board::parse_uci(std::string_view text) {
+@@ -1055,4 +1075,27 @@ std::uint64_t Board::compute_pawn_key() const {
+     return key;
+ }
+ 
++std::uint64_t Board::compute_nonpawn_key(Color color) const {
++    std::uint64_t key = 0;
++    Bitboard others = occupied(color) & ~pieces(color, Pawn);
++    while (others != 0) {
++        const int square = pop_lsb(others);
++        key ^= piece_key(square, squares_[static_cast<std::size_t>(square)]);
++    }
++    return key;
++}
++
++std::uint64_t Board::king_key_term(Color color) const {
++    const int square = king_square(color);
++    if (square < 0) return 0;
++    return piece_key(square, squares_[static_cast<std::size_t>(square)]);
++}
++
++#ifndef NDEBUG
++void Board::assert_nonpawn_keys() const {
++    assert(nonpawn_key_[White] == compute_nonpawn_key(White));
++    assert(nonpawn_key_[Black] == compute_nonpawn_key(Black));
++}
++#endif
++
+ } // namespace forge
+diff --git a/src/search.cpp b/src/search.cpp
+index 74de5d3..00ebb06 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -3,6 +3,7 @@
+ 
+ #include <algorithm>
+ #include <cmath>
++#include <cstdio>
+ #include <cstring>
+ #include <iostream>
+ #include <limits>
+@@ -62,6 +63,15 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++int ContHist4Pct = 0;
++int EvalOnlyStore = 0;
++int EvalOnlyStoreMinDepth = 0;
++int NonPawnCorr = 0;
++int NonPawnCorrWeight = 100;
++int NonPawnKeyIncludesKing = 1;
++int PawnHist = 0;
++int PawnHistDivisor = 2;
++int LmrCorrThreshold = 0;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -97,6 +107,12 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"ContHist4Pct", &ContHist4Pct, 0, 200},                 {"EvalOnlyStore", &EvalOnlyStore, 0, 1},
++        {"EvalOnlyStoreMinDepth", &EvalOnlyStoreMinDepth, 0, 64},
++        {"NonPawnCorr", &NonPawnCorr, 0, 1},                 {"NonPawnCorrWeight", &NonPawnCorrWeight, 0, 300},
++        {"NonPawnKeyIncludesKing", &NonPawnKeyIncludesKing, 0, 1},
++        {"PawnHist", &PawnHist, 0, 1},                       {"PawnHistDivisor", &PawnHistDivisor, 1, 16},
++        {"LmrCorrThreshold", &LmrCorrThreshold, 0, 500},
+     };
+     return table;
+ }
+@@ -106,7 +122,36 @@ namespace {
+ 
+ constexpr int HistoryMax = 16384;
+ 
++#ifdef FORGE_CORR_STATS
++// Debug-only (compile with -DFORGE_CORR_STATS): histogram of |static_eval - raw_eval| over the LMR candidate moves
++// (every move that reaches the reduction computation, not in check). Single-thread use; printed to stderr at exit.
++struct CorrStats {
++    static constexpr int Buckets = 12; // 0-9, 10-19, ..., 90-99, 100-199, >=200
++    static inline std::uint64_t counts[Buckets] = {};
++    static void record(int magnitude) { ++counts[magnitude >= 200 ? 11 : (magnitude >= 100 ? 10 : magnitude / 10)]; }
++    struct Printer {
++        ~Printer() {
++            std::uint64_t total = 0;
++            for (const std::uint64_t c : counts) total += c;
++            if (total == 0) return;
++            std::fprintf(stderr, "corr_stats total_lmr_moves %llu\n", static_cast<unsigned long long>(total));
++            static const char* const labels[Buckets] = {"0-9", "10-19", "20-29", "30-39", "40-49", "50-59",
++                                                         "60-69", "70-79", "80-89", "90-99", "100-199", ">=200"};
++            std::uint64_t tail = total; // moves with |corr| >= this bucket's lower bound
++            for (int i = 0; i < Buckets; ++i) {
++                std::fprintf(stderr, "corr_stats bucket %-8s %12llu  %6.2f%%   share with |corr| >= lower bound: %6.2f%%\n", labels[i],
++                             static_cast<unsigned long long>(counts[i]), 100.0 * static_cast<double>(counts[i]) / static_cast<double>(total),
++                             100.0 * static_cast<double>(tail) / static_cast<double>(total));
++                tail -= counts[i];
++            }
++        }
++    };
++    static inline Printer printer{};
++};
++#endif
++
+ [[nodiscard]] int score_to_tt(int score, int ply) {
++    if (score == ValueNone) return ValueNone; // no score (eval-only entry): never ply-adjusted into the mate range
+     if (score >= MateInMaxPly) return score + ply;
+     if (score <= -MateInMaxPly) return score - ply;
+     return score;
+@@ -526,10 +571,17 @@ private:
+         board_.generate_pseudo_legal(buffer_, false);
+         index_ = 0;
+         count_ = 0;
++        // Pack E2 ordering term. It only changes the order of quiet moves; it is not read by
++        // pruning or reductions (those use Worker::quiet_history, which is untouched).
++        const bool cont4_on = tune::ContHist4Pct > 0 && ss_ != nullptr && (ss_ - 4)->continuation != nullptr;
+         for (const Move move : buffer_) {
+             if (move.is_capture() || move.is_promotion()) continue;
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
++            if (cont4_on) {
++                const Piece piece = board_.moved_piece(move);
++                score += (*(ss_ - 4)->continuation)[static_cast<std::size_t>(piece)][move.to] * tune::ContHist4Pct / 100;
++            }
+             moves_[count_++] = Scored{move, score};
+         }
+         sort_moves();
+@@ -566,7 +618,9 @@ Worker::Worker(SharedSearchState& shared, int id)
+       continuation_history_(std::make_unique<ContinuationHistory>()),
+       counter_moves_(std::make_unique<CounterMoveTable>()),
+       correction_history_(std::make_unique<CorrectionHistory>()),
+-      material_correction_(std::make_unique<CorrectionHistory>()) {
++      material_correction_(std::make_unique<CorrectionHistory>()),
++      nonpawn_correction_{std::make_unique<CorrectionHistory>(), std::make_unique<CorrectionHistory>()},
++      pawn_history_(std::make_unique<PawnHistory>()) {
+     clear();
+ }
+ 
+@@ -580,6 +634,8 @@ void Worker::clear() {
+     *counter_moves_ = CounterMoveTable{};
+     *correction_history_ = CorrectionHistory{};
+     *material_correction_ = CorrectionHistory{};
++    for (auto& table : nonpawn_correction_) *table = CorrectionHistory{};
++    *pawn_history_ = PawnHistory{};
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
+@@ -635,12 +691,26 @@ void Worker::record_null_move(SearchStack* ss) {
+     (ss + 1)->runtime_psqt.valid = false;
+ }
+ 
++std::size_t Worker::nonpawn_slot(const Board& board, Color color) {
++    std::uint64_t key = board.nonpawn_key(color);
++    if (tune::NonPawnKeyIncludesKing == 0) key ^= board.king_key_term(color);
++    const std::size_t slot = static_cast<std::size_t>(key & (CorrectionSize - 1U));
++    assert(slot < CorrectionSize);
++    return slot;
++}
++
+ int Worker::corrected_eval(const Board& board, int raw_eval) const {
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
+     if (tune::MaterialCorrectionWeight > 0) {
+         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+     }
++    if (tune::NonPawnCorr != 0 && tune::NonPawnCorrWeight > 0) {
++        for (const Color color : {White, Black}) {
++            correction += (*nonpawn_correction_[static_cast<std::size_t>(color)])[side][nonpawn_slot(board, color)] *
++                          tune::NonPawnCorrWeight / 100;
++        }
++    }
+     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+ 
+@@ -653,6 +723,11 @@ void Worker::update_correction(const Board& board, int depth, int best_score, in
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
++    if (tune::NonPawnCorr != 0 && tune::NonPawnCorrWeight > 0) {
++        for (const Color color : {White, Black}) {
++            apply((*nonpawn_correction_[static_cast<std::size_t>(color)])[side][nonpawn_slot(board, color)]);
++        }
++    }
+ }
+ 
+ std::int64_t Worker::elapsed_ms() const {
+@@ -708,6 +783,10 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move)
+         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
+         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
+     }
++    if (tune::PawnHist != 0) {
++        score += (*pawn_history_)[static_cast<std::size_t>(board.pawn_key() & (PawnHistorySize - 1U))]
++                                 [static_cast<std::size_t>(piece)][move.to] / tune::PawnHistDivisor;
++    }
+     return score;
+ }
+ 
+@@ -726,6 +805,13 @@ void Worker::update_continuation(SearchStack* ss, Piece piece, int to, int bonus
+     }
+ }
+ 
++void Worker::update_pawn_history(const Board& board, Piece piece, int to, int bonus) {
++    if (tune::PawnHist == 0) return;
++    assert(static_cast<std::size_t>(piece) < 13 && to >= 0 && to < 64);
++    apply_history((*pawn_history_)[static_cast<std::size_t>(board.pawn_key() & (PawnHistorySize - 1U))]
++                                  [static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)], bonus);
++}
++
+ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth, const Move* quiets,
+                                   int quiet_count) {
+     const int bonus = history_bonus(depth);
+@@ -741,11 +827,13 @@ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move,
+     const Piece piece = board.moved_piece(move);
+     apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
+     update_continuation(ss, piece, move.to, bonus);
++    update_pawn_history(board, piece, move.to, bonus);
+     for (int i = 0; i < quiet_count; ++i) {
+         const Move quiet = quiets[i];
+         if (quiet == move) continue;
+         apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
+         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
++        update_pawn_history(board, board.moved_piece(quiet), quiet.to, -bonus);
+     }
+ }
+ 
+@@ -935,6 +1023,16 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else ss->raw_eval = static_evaluate(board, ss);
+         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
++        // EvalOnlyStore: remember the raw eval of a position that missed the table, so a node that
++        // leaves through an early exit (razor, RFP, null move, ProbCut) does not lose it. The entry has
++        // no score (ValueNone), no move and depth 0; every later store to this key replaces it
++        // (depth + 4 > 0). All score reads of the table test ValueNone, see README audit.
++        // EvalOnlyStoreMinDepth: only nodes with depth >= N write the eval-only entry (0 = every node, the
++        // original behaviour; depth is >= 1 here, so N = 1 is identical to N = 0).
++        if (tune::EvalOnlyStore != 0 && !tt_hit && depth >= tune::EvalOnlyStoreMinDepth) {
++            shared_.tt.store(tt_probe, board.key(), ValueNone, ss->raw_eval, Move::none(), 0, BoundUpper, ss->tt_pv,
++                             static_cast<std::uint16_t>(board.halfmove_clock()));
++        }
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+@@ -965,7 +1063,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+-            !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
++            !(tt_hit && tt_score != ValueNone && tt_bound == BoundUpper && tt_score < beta)) {
+             ++null_tries_;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+@@ -1144,6 +1242,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++#ifdef FORGE_CORR_STATS
++            if (!in_check && ss->static_eval != ValueNone && ss->raw_eval != ValueNone)
++                CorrStats::record(std::abs(ss->static_eval - ss->raw_eval));
++#endif
++            if (tune::LmrCorrThreshold > 0 && !in_check && ss->static_eval != ValueNone && ss->raw_eval != ValueNone &&
++                std::abs(ss->static_eval - ss->raw_eval) > tune::LmrCorrThreshold) {
++                r -= 1;
++            }
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+@@ -1202,6 +1308,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         // Even without a cutoff, a new PV move earned its place.
+         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+                       history_bonus(depth) / 4);
++        update_pawn_history(board, board.moved_piece(best_move), best_move.to, history_bonus(depth) / 4);
+     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+         // Every move failed low: the parent's quiet move refuted this line.
+diff --git a/tests/nonpawn_key_tests.cpp b/tests/nonpawn_key_tests.cpp
+new file mode 100644
+index 0000000..e293166
+--- /dev/null
++++ b/tests/nonpawn_key_tests.cpp
+@@ -0,0 +1,133 @@
++// Checks Board::nonpawn_key(colour) against a full recompute at every ply of
++// random legal-move walks (make, null move, unmake), plus FEN round trips.
++#include "forge/board.hpp"
++
++#include <cstdint>
++#include <iostream>
++#include <string>
++#include <vector>
++
++namespace {
++
++int failures = 0;
++
++void check(bool ok, const std::string& what) {
++    if (!ok) {
++        ++failures;
++        if (failures <= 20) std::cerr << "FAIL: " << what << '\n';
++    }
++}
++
++std::uint64_t rng_state = 0x9E3779B97F4A7C15ULL;
++std::uint64_t next_random() {
++    rng_state ^= rng_state << 13;
++    rng_state ^= rng_state >> 7;
++    rng_state ^= rng_state << 17;
++    return rng_state;
++}
++
++struct Keys {
++    std::uint64_t white, black;
++};
++
++Keys keys_of(const forge::Board& board) {
++    return {board.nonpawn_key(forge::White), board.nonpawn_key(forge::Black)};
++}
++
++void check_consistent(const forge::Board& board, const std::string& label) {
++    check(board.nonpawn_key(forge::White) == board.compute_nonpawn_key(forge::White), label + ": white key vs recompute");
++    check(board.nonpawn_key(forge::Black) == board.compute_nonpawn_key(forge::Black), label + ": black key vs recompute");
++}
++
++void walk(const std::string& fen, int games, int plies) {
++    forge::Board board;
++    check(board.set_fen(fen), "parse " + fen);
++    std::uint64_t checked = 0;
++    for (int game = 0; game < games; ++game) {
++        check(board.set_fen(fen), "reparse " + fen);
++        check_consistent(board, fen + " initial");
++        std::vector<forge::Move> moves_made;
++        std::vector<forge::Undo> undos;
++        std::vector<Keys> before;
++        for (int ply = 0; ply < plies; ++ply) {
++            const forge::MoveList legal = board.legal_moves();
++            if (legal.empty()) break;
++            const Keys here = keys_of(board);
++            // Every few plies: null move and back (not while in check).
++            if (!board.in_check() && next_random() % 5 == 0) {
++                forge::NullUndo null_undo;
++                board.make_null_move(null_undo);
++                check(keys_of(board).white == here.white && keys_of(board).black == here.black, fen + ": null move changed keys");
++                check_consistent(board, fen + " after null");
++                board.unmake_null_move(null_undo);
++                check(keys_of(board).white == here.white && keys_of(board).black == here.black, fen + ": unmake null changed keys");
++                ++checked;
++            }
++            // Try every legal move once and unmake it (covers all castling/ep/promotion/capture kinds).
++            for (const forge::Move move : legal) {
++                forge::Undo undo;
++                check(board.make_move(move, undo), "make_move");
++                check_consistent(board, fen + " after make " + forge::Board::move_to_uci(move));
++                board.unmake_move(move, undo);
++                check(keys_of(board).white == here.white && keys_of(board).black == here.black,
++                      fen + ": unmake restores keys " + forge::Board::move_to_uci(move));
++                ++checked;
++            }
++            const forge::Move chosen = legal[next_random() % legal.size()];
++            forge::Undo undo;
++            check(board.make_move(chosen, undo), "make chosen");
++            check_consistent(board, fen + " walk");
++            // FEN round trip rebuilds the keys from scratch.
++            forge::Board rebuilt;
++            check(rebuilt.set_fen(board.fen()), "fen round trip");
++            check(rebuilt.nonpawn_key(forge::White) == board.nonpawn_key(forge::White) &&
++                      rebuilt.nonpawn_key(forge::Black) == board.nonpawn_key(forge::Black),
++                  fen + ": FEN rebuild equals incremental keys");
++            moves_made.push_back(chosen);
++            undos.push_back(undo);
++            before.push_back(here);
++            ++checked;
++        }
++        while (!moves_made.empty()) {
++            board.unmake_move(moves_made.back(), undos.back());
++            const Keys expected = before.back();
++            check(keys_of(board).white == expected.white && keys_of(board).black == expected.black, fen + ": unwind restores keys");
++            check_consistent(board, fen + " unwind");
++            moves_made.pop_back();
++            undos.pop_back();
++            before.pop_back();
++            ++checked;
++        }
++    }
++    std::cout << "nonpawn_key walk ok: " << fen << " (" << checked << " checks)\n";
++}
++
++} // namespace
++
++int main() {
++    forge::Board start;
++    check(start.nonpawn_key(forge::White) != 0 && start.nonpawn_key(forge::Black) != 0, "startpos keys nonzero");
++    check(start.nonpawn_key(forge::White) != start.nonpawn_key(forge::Black), "colour keys differ");
++    // Kings-and-pawns only: only the kings contribute.
++    forge::Board kp;
++    check(kp.set_fen("4k3/pppppppp/8/8/8/8/PPPPPPPP/4K3 w - - 0 1"), "kp fen");
++    check_consistent(kp, "kp");
++
++    const std::vector<std::string> fens = {
++        std::string(forge::Board::StandardStartFen),
++        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",   // castling, captures
++        "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",                                // ep / rook endgame
++        "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",        // promotions
++        "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",               // promotion captures
++        "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
++        "rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3",           // en passant available
++        "4k3/1P6/8/8/8/8/6p1/4K3 w - - 0 1",                                        // both sides promote
++    };
++    for (const std::string& fen : fens) walk(fen, 40, 120);
++    if (failures != 0) {
++        std::cerr << failures << " nonpawn_key test failure(s)\n";
++        return 1;
++    }
++    std::cout << "nonpawn_key tests passed\n";
++    return 0;
++}
+diff --git a/tests/pack_e_tests.cpp b/tests/pack_e_tests.cpp
+new file mode 100644
+index 0000000..475806f
+--- /dev/null
++++ b/tests/pack_e_tests.cpp
+@@ -0,0 +1,379 @@
++// Own tests for Pack E2: ContHist4Pct (quiet move ordering only) and EvalOnlyStore (eval-only TT entry).
++// P14 ThreatOrderPct and P18 LowPlyPct were removed for provenance (parked).
++// EvalOnlyStoreMinDepth (fc_packe2r): depth gate on the eval-only store, checked below.
++// Uses only the public Searcher / TranspositionTable API.
++// No copied code: written for Forge from the idea descriptions in FORGE_IDEA_BOARD.md batch 3.
++#include "forge/board.hpp"
++#include "forge/nnue.hpp"
++#include "forge/search.hpp"
++
++#include <chrono>
++#include <cstdlib>
++#include <iostream>
++#include <string>
++#include <vector>
++
++namespace forge {
++// Same friendship the existing rule50/tests.cpp diagnostics use: run one non-root node of the real
++// search (ply 1, caller's window) against the shared table, with worker-local state reset.
++struct SearcherTestProbe {
++    static Worker& prepare(Searcher& searcher, const Board& board) {
++        auto& worker = searcher.main_worker();
++        worker.clear();
++        worker.shared_.stop.store(false, std::memory_order_relaxed);
++        worker.shared_.ponder_hit_ns.store(0, std::memory_order_relaxed);
++        worker.all_workers_ = nullptr;
++        worker.aborted_ = false;
++        worker.local_nodes_ = 0;
++        worker.nodes_.store(0, std::memory_order_relaxed);
++        worker.node_limit_ = 0;
++        worker.node_limit_specified_ = false;
++        worker.hard_limit_ms_ = worker.soft_limit_ms_ = 0;
++        worker.time_managed_ = worker.pondering_ = false;
++        worker.start_ = std::chrono::steady_clock::now();
++        worker.seldepth_ = 0;
++        worker.root_history_index_ = board.history_size() - 1;
++        for (SearchStack& entry : worker.stack_) {
++            entry = SearchStack{};
++            entry.continuation = &(*worker.continuation_history_)[Empty][0];
++        }
++        for (int i = 0; i < MaxPly + 4; ++i) worker.stack_[static_cast<std::size_t>(i)].ply = i - 4;
++        auto* ss = &worker.stack_[5];
++        nnue::refresh(board, ss->accumulator);
++        return worker;
++    }
++    static int run(Searcher& searcher, Board board, int depth, int alpha, int beta) {
++        Worker& worker = prepare(searcher, board);
++        auto* ss = &worker.stack_[5];
++        return depth == 0 ? worker.qsearch(board, ss, alpha, beta) : worker.search(board, ss, depth, alpha, beta, false);
++    }
++    static std::uint64_t visited(Searcher& searcher) { return searcher.main_worker().local_nodes_; }
++    static int raw_eval(Searcher& searcher, const Board& board) {
++        Worker& worker = prepare(searcher, board);
++        return worker.static_evaluate(board, &worker.stack_[5]);
++    }
++};
++} // namespace forge
++
++namespace {
++int assertions = 0, failures = 0;
++void check(bool okay, const std::string& label) {
++    ++assertions;
++    if (!okay) { ++failures; std::cerr << "FAIL " << label << '\n'; }
++}
++
++struct Options { int cont4 = 0, store = 0; const char* name = "off"; };
++
++struct Restore {
++    int cont4 = forge::tune::ContHist4Pct, store = forge::tune::EvalOnlyStore, min_depth = forge::tune::EvalOnlyStoreMinDepth;
++    ~Restore() {
++        forge::tune::ContHist4Pct = cont4; forge::tune::EvalOnlyStore = store; forge::tune::EvalOnlyStoreMinDepth = min_depth;
++    }
++};
++
++void apply(const Options& o) {
++    forge::tune::ContHist4Pct = o.cont4; forge::tune::EvalOnlyStore = o.store;
++}
++
++forge::SearchInfo run_depth(forge::Searcher& searcher, const forge::Board& board, int depth, bool clear = true) {
++    forge::SearchLimits limits;
++    limits.depth = depth;
++    searcher.reset_stop();
++    if (clear) searcher.clear();
++    return searcher.search(board, limits);
++}
++
++int mate_distance(int score) { return score > 0 ? forge::MateValue - score : -(forge::MateValue + score); }
++} // namespace
++
++int main() {
++    using namespace forge;
++    Restore restore;
++
++    check(tune::ContHist4Pct == 0 && tune::EvalOnlyStore == 0, "Pack E2 defaults are all off");
++    check(tune::EvalOnlyStoreMinDepth == 0, "EvalOnlyStoreMinDepth default is 0 (original EvalOnlyStore behaviour)");
++    bool listed[3] = {false, false, false};
++    bool removed_present = false;
++    for (const tune::Parameter& p : tune::parameters()) {
++        const std::string name = p.name;
++        if (name == "ContHist4Pct") listed[0] = p.minimum == 0 && p.maximum == 200 && *p.value == 0;
++        if (name == "EvalOnlyStore") listed[1] = p.minimum == 0 && p.maximum == 1 && *p.value == 0;
++        if (name == "EvalOnlyStoreMinDepth") listed[2] = p.minimum == 0 && p.maximum == 64 && *p.value == 0;
++        if (name == "ThreatOrderPct" || name == "LowPlyPct") removed_present = true;
++    }
++    check(listed[0] && listed[1], "Pack E2 options are in the tunables table with default 0");
++    check(listed[2], "EvalOnlyStoreMinDepth is in the tunables table, 0..64, default 0");
++    check(!removed_present, "removed P14/P18 options are not in the tunables table");
++
++    // --- EvalOnlyStore entry semantics on the table itself ---
++    {
++        TranspositionTable tt(1);
++        const std::uint64_t key = 0x9E3779B97F4A7C15ULL;
++        TTProbe miss = tt.probe(key);
++        check(!miss.hit, "fresh table misses");
++        tt.store(miss, key, ValueNone, 123, Move::none(), 0, BoundUpper, false, 0);
++        TTProbe hit = tt.probe(key);
++        check(hit.hit && hit.entry.score == ValueNone && hit.entry.eval == 123 && hit.entry.move.is_none() &&
++                  hit.entry.depth == 0 && hit.entry.bound() == BoundUpper,
++              "eval-only entry: occupied, score ValueNone, eval kept, no move, depth 0");
++        // Any later store for the same key replaces the whole payload (depth + 4 > 0), including a
++        // depth-0 qsearch store with a non-exact bound.
++        tt.store(hit, key, -57, 99, Move::none(), 0, BoundLower, false, 0);
++        TTProbe after = tt.probe(key);
++        check(after.hit && after.entry.score == -57 && after.entry.eval == 99 && after.entry.bound() == BoundLower,
++              "eval-only entry is replaced by a depth-0 bound store");
++        tt.store(miss, key, ValueNone, 5, Move::none(), 0, BoundUpper, false, 0);
++        TTProbe again = tt.probe(key);
++        tt.store(again, key, 300, 5, Move{12, 28, 0, 0}, 7, BoundExact, true, 0);
++        TTProbe main_store = tt.probe(key);
++        check(main_store.hit && main_store.entry.score == 300 && main_store.entry.depth == 7 &&
++                  main_store.entry.bound() == BoundExact && !main_store.entry.move.is_none(),
++              "eval-only entry is replaced by the main search store");
++    }
++
++    // --- An eval-only entry never yields a cutoff, a TT-derived score or a mate-range score (real search code) ---
++    {
++        const std::vector<std::string> probe_fens = {
++            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
++            "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
++            "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
++            "6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1",
++            "8/8/8/8/8/5k2/8/4K2q w - - 89 120",
++            "7k/8/8/8/8/8/8/K6R b - - 99 80",
++        };
++        apply(Options{});
++        int compared = 0;
++        int engine_eval_only_seen = 0;
++        int early_exit_windows = 0;
++        int min_depth_windows = 0;
++        for (const std::string& fen : probe_fens) {
++            Board board;
++            check(board.set_fen(fen), "probe fen parses: " + fen);
++            Searcher cold(16, 1), warm(16, 1), planted_score(16, 1);
++            const int raw = SearcherTestProbe::raw_eval(cold, board);
++            for (const Bound bound : {BoundUpper, BoundLower}) {
++                for (const int planted_eval : {raw, static_cast<int>(ValueNone)}) {
++                    for (int depth = 0; depth <= 4; ++depth) {
++                        for (const int centre : {-31990, -600, -1, 0, 1, 250, 31990}) {
++                            const int alpha = centre - 1, beta = centre;
++                            cold.clear_hash();
++                            const int cold_score = SearcherTestProbe::run(cold, board, depth, alpha, beta);
++                            const std::uint64_t cold_nodes = SearcherTestProbe::visited(cold);
++                            warm.clear_hash();
++                            TranspositionTable& tt = warm.transposition_table();
++                            tt.store(tt.probe(board.key()), board.key(), ValueNone, planted_eval, Move::none(), 0, bound, false,
++                                     static_cast<std::uint16_t>(board.halfmove_clock()));
++                            const TTProbe planted = tt.probe(board.key());
++                            check(planted.hit && planted.entry.score == ValueNone, "planted eval-only entry is a hit with no score");
++                            const int warm_score = SearcherTestProbe::run(warm, board, depth, alpha, beta);
++                            const std::string tag = fen + " d" + std::to_string(depth) + " w" + std::to_string(beta) +
++                                                    (bound == BoundUpper ? " upper" : " lower") +
++                                                    (planted_eval == ValueNone ? " evalnone" : " evalraw");
++                            // Same score and same node count as a miss: no cutoff and no TT-derived score.
++                            check(warm_score == cold_score, "eval-only entry behaves like a miss (score): " + tag);
++                            check(SearcherTestProbe::visited(warm) == cold_nodes, "eval-only entry behaves like a miss (nodes): " + tag);
++                            check(warm_score > -MateValue && warm_score < MateValue, "eval-only entry: score in bounds: " + tag);
++                            if (!is_mate_score(cold_score)) check(!is_mate_score(warm_score), "eval-only entry: no mate-range score: " + tag);
++                            ++compared;
++                        }
++                    }
++                }
++            }
++            // Control: the harness does see TT scores. A scored, deep, exact entry is returned at once.
++            planted_score.clear_hash();
++            TranspositionTable& tt = planted_score.transposition_table();
++            tt.store(tt.probe(board.key()), board.key(), 777, raw, Move::none(), 30, BoundExact, false,
++                     static_cast<std::uint16_t>(board.halfmove_clock()));
++            if (board.halfmove_clock() < 90) {
++                check(SearcherTestProbe::run(planted_score, board, 3, 776, 777) == 777, "control: a scored entry does cut off: " + fen);
++            }
++            // EvalOnlyStore never replaces a scored entry of the same position (store only on a miss).
++            tune::EvalOnlyStore = 1;
++            planted_score.clear_hash();
++            tt.store(tt.probe(board.key()), board.key(), 100, raw, Move::none(), 3, BoundLower, false,
++                     static_cast<std::uint16_t>(board.halfmove_clock()));
++            (void)SearcherTestProbe::run(planted_score, board, 1, 900, 901);
++            const TTProbe kept = tt.probe(board.key());
++            check(kept.hit && kept.entry.score != ValueNone, "EvalOnlyStore=1: a scored same-key entry is never turned eval-only: " + fen);
++            // Same rule in a window where the node leaves through an early exit (RFP far below the eval), so
++            // no final store can overwrite the slot afterwards. The planted scored entry is shallower than the
++            // search (depth 0 or 1 < 2), so it is a hit that does not cut off: the node reaches the P17 site
++            // with tt_hit = true. A control run with EvalOnlyStore=0 first proves the window really has no final
++            // store for this key (in-check and rule-50 positions search on and store, so they are skipped).
++            // A store-on-hit mutation leaves an eval-only entry in every such window and fails.
++            for (const int planted_depth : {0, 1}) {
++                bool survives[2] = {false, false};
++                for (const int store_on : {0, 1}) {
++                    tune::EvalOnlyStore = store_on;
++                    planted_score.clear_hash();
++                    tt.store(tt.probe(board.key()), board.key(), 100, raw, Move::none(), planted_depth, BoundLower, false,
++                             static_cast<std::uint16_t>(board.halfmove_clock()));
++                    (void)SearcherTestProbe::run(planted_score, board, 2, -3001, -3000);
++                    const TTProbe early = tt.probe(board.key());
++                    survives[store_on] = early.hit && early.entry.score == 100 && early.entry.depth == planted_depth;
++                }
++                if (survives[0]) {
++                    ++early_exit_windows;
++                    check(survives[1], "EvalOnlyStore=1 early-exit window: a scored same-key entry survives untouched: d" +
++                                           std::to_string(planted_depth) + " " + fen);
++                }
++            }
++            tune::EvalOnlyStore = 1;
++            // With EvalOnlyStore=1 on a miss, the node itself leaves either its real result or an eval-only entry.
++            planted_score.clear_hash();
++            const int stored_run = SearcherTestProbe::run(planted_score, board, 2, -1, 0);
++            check(stored_run > -MateValue && stored_run < MateValue, "EvalOnlyStore=1: score in bounds: " + fen);
++            // A window far below the eval makes the node leave through reverse futility (no final store), so
++            // what remains for this key is the eval-only entry written by the engine itself.
++            planted_score.clear_hash();
++            const int rfp_run = SearcherTestProbe::run(planted_score, board, 2, -3001, -3000);
++            const TTProbe left = tt.probe(board.key());
++            if (left.hit && left.entry.depth == 0) {
++                ++engine_eval_only_seen;
++                check(left.entry.score == ValueNone && left.entry.move.is_none() && left.entry.bound() == BoundUpper &&
++                          (board.in_check() || left.entry.eval == raw),
++                      "engine eval-only entry: score ValueNone, no move, upper, eval = raw eval: " + fen);
++            }
++            check(rfp_run > -MateValue && rfp_run < MateValue, "EvalOnlyStore=1 RFP run: score in bounds: " + fen);
++            // EvalOnlyStoreMinDepth gate, same depth-2 RFP window. When MinDepth 0 left the engine's own
++            // eval-only entry (so the node exits with no final store), MinDepth 1 and 2 (<= depth) must leave the
++            // identical entry and MinDepth 3 and 8 (> depth) must leave the slot empty. EvalOnlyStore=0 ignores
++            // MinDepth. A gate on the wrong side (> vs >=) or ignoring the option fails one of these.
++            if (left.hit && left.entry.depth == 0 && left.entry.score == ValueNone) {
++                ++min_depth_windows;
++                for (const int min_depth : {1, 2, 3, 8}) {
++                    tune::EvalOnlyStoreMinDepth = min_depth;
++                    planted_score.clear_hash();
++                    const int gated = SearcherTestProbe::run(planted_score, board, 2, -3001, -3000);
++                    const TTProbe g = tt.probe(board.key());
++                    const std::string tag = "MinDepth " + std::to_string(min_depth) + " " + fen;
++                    check(gated == rfp_run, "EvalOnlyStoreMinDepth: RFP-window score unchanged: " + tag);
++                    if (min_depth <= 2) {
++                        check(g.hit && g.entry.score == ValueNone && g.entry.depth == 0 && g.entry.eval == left.entry.eval &&
++                                  g.entry.move.is_none() && g.entry.bound() == BoundUpper,
++                              "EvalOnlyStoreMinDepth <= depth: eval-only entry still stored: " + tag);
++                    } else {
++                        check(!g.hit, "EvalOnlyStoreMinDepth > depth: no eval-only entry stored: " + tag);
++                    }
++                }
++                tune::EvalOnlyStore = 0;
++                tune::EvalOnlyStoreMinDepth = 8;
++                planted_score.clear_hash();
++                (void)SearcherTestProbe::run(planted_score, board, 2, -3001, -3000);
++                check(!tt.probe(board.key()).hit, "EvalOnlyStore=0 with MinDepth 8: still no store (option inert when off): " + fen);
++                tune::EvalOnlyStoreMinDepth = 0;
++            }
++            tune::EvalOnlyStore = 0;
++        }
++        check(compared == 6 * 2 * 2 * 5 * 7, "eval-only miss-equivalence grid fully run");
++        check(engine_eval_only_seen > 0, "the engine's own EvalOnlyStore path was exercised");
++        check(early_exit_windows >= 4, "store-on-hit early-exit windows were exercised");
++        check(min_depth_windows >= 2, "EvalOnlyStoreMinDepth windows were exercised");
++        std::cout << "EvalOnlyStoreMinDepth windows checked: " << min_depth_windows << '\n';
++        std::cout << "store-on-hit early-exit windows checked: " << early_exit_windows << '\n';
++        std::cout << "engine eval-only entries inspected: " << engine_eval_only_seen << '\n';
++    }
++
++    const std::vector<Options> configs = {
++        {0, 0, "off"}, {100, 0, "cont4"}, {0, 1, "evalstore"}, {100, 1, "pair"}, {200, 1, "max"},
++    };
++    const std::vector<std::string> fens = {
++        std::string(Board::StandardStartFen),
++        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
++        "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
++        "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
++        "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4", // mate in 1 (Qxf7#)
++        "6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1",                                // mate in 1 (Rd8#)
++        "1k6/ppp5/8/8/8/8/5PPP/3R2K1 b - - 0 1",                                // black to move, mated soon by back rank
++        "7k/8/6K1/8/8/8/8/1Q6 w - - 0 1",                                       // K+Q vs K, mate in few
++        "8/8/8/8/8/5k2/8/4K2q w - - 0 1",                                       // white king in check
++    };
++
++    for (int threads : {1, 2}) {
++        Searcher searcher(16, threads);
++        for (const std::string& fen : fens) {
++            Board board;
++            check(board.set_fen(fen), "fen parses: " + fen);
++            apply(Options{});
++            const SearchInfo off = run_depth(searcher, board, 9);
++            for (const Options& o : configs) {
++                apply(o);
++                const SearchInfo r = run_depth(searcher, board, 9);
++                const std::string tag = std::string(o.name) + " T" + std::to_string(threads) + " " + fen;
++                check(!r.best_move.is_none() && board.is_legal(r.best_move), "legal bestmove: " + tag);
++                check(r.score > -MateValue && r.score < MateValue, "score within mate bounds: " + tag);
++                // A mate the base finds at this depth must still be found; better ordering may find a
++                // mate the base misses, which is reported, not failed.
++                if (is_mate_score(off.score)) check(is_mate_score(r.score), "base mate still found: " + tag);
++                if (is_mate_score(r.score) != is_mate_score(off.score)) {
++                    std::cout << "note: " << tag << " off score " << off.score << " option score " << r.score
++                              << " bestmove " << int(r.best_move.from) << "-" << int(r.best_move.to) << '\n';
++                }
++                if (is_mate_score(off.score) && is_mate_score(r.score)) {
++                    check((r.score > 0) == (off.score > 0), "mate sign unchanged: " + tag);
++                    if (off.score > 0) check(mate_distance(r.score) <= mate_distance(off.score), "own mate not delayed: " + tag);
++                }
++                // Searching again without clearing (warm histories and TT, eval-only entries present).
++                const SearchInfo warm = run_depth(searcher, board, 9, false);
++                check(!warm.best_move.is_none() && board.is_legal(warm.best_move), "legal bestmove warm: " + tag);
++                check(warm.score > -MateValue && warm.score < MateValue, "warm score within bounds: " + tag);
++                if (threads == 1 && o.cont4 == 0 && o.store == 0) {
++                    check(r.nodes == off.nodes && r.best_move == off.best_move && r.score == off.score,
++                          "off is deterministic: " + tag);
++                }
++            }
++        }
++        // EvalOnlyStoreMinDepth whole-search identities (T1 only, deterministic): with EvalOnlyStore=1, MinDepth 1
++        // equals MinDepth 0 (search depth is >= 1 at the store); with EvalOnlyStore=0, MinDepth has no effect.
++        // MinDepth 3/6 must still give legal moves and in-bounds scores and keep base mates.
++        if (threads == 1) {
++            for (const std::string& fen : fens) {
++                Board board;
++                check(board.set_fen(fen), "fen parses: " + fen);
++                apply(Options{0, 1, "evalstore"});
++                tune::EvalOnlyStoreMinDepth = 0;
++                const SearchInfo m0 = run_depth(searcher, board, 9);
++                tune::EvalOnlyStoreMinDepth = 1;
++                const SearchInfo m1 = run_depth(searcher, board, 9);
++                check(m0.nodes == m1.nodes && m0.best_move == m1.best_move && m0.score == m1.score,
++                      "EvalOnlyStore=1: MinDepth 1 identical to MinDepth 0: " + fen);
++                apply(Options{});
++                tune::EvalOnlyStoreMinDepth = 0;
++                const SearchInfo off = run_depth(searcher, board, 9);
++                tune::EvalOnlyStoreMinDepth = 6;
++                const SearchInfo off6 = run_depth(searcher, board, 9);
++                check(off.nodes == off6.nodes && off.best_move == off6.best_move && off.score == off6.score,
++                      "EvalOnlyStore=0: MinDepth 6 identical to off: " + fen);
++                for (const int min_depth : {3, 6}) {
++                    apply(Options{0, 1, "evalstore"});
++                    tune::EvalOnlyStoreMinDepth = min_depth;
++                    const SearchInfo r = run_depth(searcher, board, 9);
++                    const std::string tag = "MinDepth " + std::to_string(min_depth) + " " + fen;
++                    check(!r.best_move.is_none() && board.is_legal(r.best_move), "legal bestmove: " + tag);
++                    check(r.score > -MateValue && r.score < MateValue, "score within mate bounds: " + tag);
++                    if (is_mate_score(off.score)) check(is_mate_score(r.score), "base mate still found: " + tag);
++                    if (is_mate_score(off.score) && is_mate_score(r.score) && off.score > 0)
++                        check(mate_distance(r.score) <= mate_distance(off.score), "own mate not delayed: " + tag);
++                }
++                tune::EvalOnlyStoreMinDepth = 0;
++                apply(Options{});
++            }
++        }
++        // Turning everything off again restores the base search exactly (no state leaks after clear()).
++        Board start;
++        check(start.set_fen(Board::StandardStartFen), "startpos parses");
++        if (threads == 1) {
++            apply(Options{});
++            const SearchInfo before = run_depth(searcher, start, 10);
++            apply(configs.back());
++            (void)run_depth(searcher, start, 10);
++            apply(Options{});
++            const SearchInfo after = run_depth(searcher, start, 10);
++            check(before.nodes == after.nodes && before.best_move == after.best_move && before.score == after.score,
++                  "options off after on: identical to never on");
++        }
++    }
++
++    std::cout << "pack_e_tests: " << assertions << " assertions, " << failures << " failures\n";
++    return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
++}

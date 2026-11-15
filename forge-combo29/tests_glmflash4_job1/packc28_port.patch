@@ -1,0 +1,113 @@
+diff --git a/src/search.cpp b/src/search.cpp
+index 74de5d3..2e32742 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -3,6 +3,7 @@
+ 
+ #include <algorithm>
+ #include <cmath>
++#include <cstdio>
+ #include <cstring>
+ #include <iostream>
+ #include <limits>
+@@ -62,6 +63,12 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++// Pack C switches (all default OFF). Own implementations of public ideas.
++int AspFailHighReduce = 0;
++int AspFailHighMaxReduce = 3;
++int EvalSwingMult = 0;
++int EvalSwingMax = 200;
++int TtCutoffHistory = 0;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -97,6 +104,9 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"AspFailHighReduce", &AspFailHighReduce, 0, 1},     {"AspFailHighMaxReduce", &AspFailHighMaxReduce, 1, 6},
++        {"EvalSwingMult", &EvalSwingMult, 0, 64},            {"EvalSwingMax", &EvalSwingMax, 50, 400},
++        {"TtCutoffHistory", &TtCutoffHistory, 0, 1},
+     };
+     return table;
+ }
+@@ -119,6 +129,15 @@ constexpr int HistoryMax = 16384;
+     return score;
+ }
+ 
++#ifdef FORGE_ASP_STATS
++// Compile-time-only debug counters (not part of the normal build).
++struct AspStats {
++    long long iterations = 0, fail_highs = 0;
++    ~AspStats() { std::fprintf(stderr, "ASP_STATS aspirated_iterations=%lld root_fail_highs=%lld\n", iterations, fail_highs); }
++};
++AspStats& asp_stats() { static AspStats stats; return stats; }
++#endif
++
+ [[nodiscard]] int mated_in(int ply) { return -MateValue + ply; }
+ [[nodiscard]] int mate_in(int ply) { return MateValue - ply; }
+ 
+@@ -922,6 +941,13 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         board.halfmove_clock() < 90 &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
++        // Pack C / P10: a stored fail-high by a quiet move teaches the ordering tables.
++        if (tune::TtCutoffHistory != 0 && tt_score >= beta && !tt_move.is_none() && !tt_move.is_capture() &&
++            !tt_move.is_promotion() && board.is_pseudo_legal(tt_move)) {
++            const int bonus = history_bonus(depth);
++            apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][tt_move.from][tt_move.to], bonus);
++            update_continuation(ss, board.moved_piece(tt_move), tt_move.to, bonus);
++        }
+         return tt_score;
+     }
+ 
+@@ -949,6 +975,19 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         else improving = true;
+     }
+ 
++    // Pack C / P9: the previous quiet move changed the static eval by `swing` (from its mover's view);
++    // feed that into the mover's main history. Skipped for check, excluded-move searches, captures, promotions.
++    if (tune::EvalSwingMult != 0 && !in_check && excluded.is_none()) {
++        const SearchStack* parent = ss - 1;
++        if (parent->static_eval != ValueNone && ss->static_eval != ValueNone && !parent->in_check &&
++            !parent->current_move.is_none() && !parent->current_move.is_capture() && !parent->current_move.is_promotion()) {
++            const int swing = std::clamp(-(ss->static_eval + parent->static_eval), -tune::EvalSwingMax, tune::EvalSwingMax);
++            apply_history((*main_history_)[static_cast<std::size_t>(opposite(board.side_to_move()))][parent->current_move.from]
++                                          [parent->current_move.to],
++                          swing * tune::EvalSwingMult / 16);
++        }
++    }
++
+     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta)) {
+         // Razoring: hopeless positions fall back to quiescence.
+         if (depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+@@ -1386,14 +1425,26 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+             beta = std::min(score + delta, Infinite);
+         }
+         int iteration_score = score;
++#ifdef FORGE_ASP_STATS
++        if (depth >= 4) ++asp_stats().iterations;
++#endif
++        // Pack C / P8: consecutive fail-highs of this iteration; main worker only.
++        int fail_highs = 0;
+         while (true) {
+             ss->ply = 0;
+-            iteration_score = search(board, ss, depth, alpha, beta, false);
++            const int search_depth =
++                (tune::AspFailHighReduce != 0 && is_main()) ? std::max(1, depth - std::min(fail_highs, tune::AspFailHighMaxReduce)) : depth;
++            iteration_score = search(board, ss, search_depth, alpha, beta, false);
+             if (aborted_) break;
+             if (iteration_score <= alpha) {
++                fail_highs = 0;
+                 beta = (alpha + beta) / 2;
+                 alpha = std::max(iteration_score - delta, -Infinite);
+             } else if (iteration_score >= beta) {
++                ++fail_highs;
++#ifdef FORGE_ASP_STATS
++                ++asp_stats().fail_highs;
++#endif
+                 beta = std::min(iteration_score + delta, Infinite);
+             } else {
+                 break;
