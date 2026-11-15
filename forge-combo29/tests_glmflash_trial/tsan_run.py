@@ -73,7 +73,7 @@ def main() -> None:
         proc.stdin.flush()
 
     def wait_for(token: str, timeout: float, what: str) -> bool:
-        global nnue_error_line
+        nonlocal nnue_error_line
         deadline = time.monotonic() + timeout
         while True:
             remaining = deadline - time.monotonic()
