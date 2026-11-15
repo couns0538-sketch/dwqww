@@ -1,0 +1,54 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -374,7 +374,11 @@
+     // written only while the option is on. threat_maps_[ply] holds the lesser-attacker maps of the node at ply.
+     std::unique_ptr<LesserThreatHistory> threat_history_;
+     std::unique_ptr<CorrectionHistory> joint_correction_;
+-    std::array<hist_rework::LesserThreats, MaxPly + 8> threat_maps_{};
++    // Lazy maps (speed idea 1): threat_maps_[ply] is built by threat_history_entry on this node's first read,
++    // not at node entry; threat_maps_ready_[ply] false means "not built for this node yet". mutable: the read
++    // path (threat_history_entry) is const.
++    mutable std::array<hist_rework::LesserThreats, MaxPly + 8> threat_maps_{};
++    mutable std::array<bool, MaxPly + 8> threat_maps_ready_{};
+     // CorrHistPlus tables (forge/correction_plus.hpp), owned by this worker: null until the option is on and the
+     // first update allocates them; freed by Worker::clear(). TtPruneV2: this search's snapshot of the option.
+     std::unique_ptr<corrplus::Tables> correction_plus_;
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -875,7 +875,14 @@
+ 
+ // HistRework: the threat-keyed butterfly slot of a quiet move at the node of `ss` (its maps are threat_maps_[ply]).
+ std::int16_t& Worker::threat_history_entry(const Board& board, const SearchStack* ss, Move move) const {
+-    const hist_rework::LesserThreats& threats = threat_maps_[static_cast<std::size_t>(ss->ply)];
++    // Lazy maps (speed idea 1): build this node's lesser-attacker maps on first read. Identical value to the
++    // eager build: every reading node marked itself stale at entry, and `board` is this node's own board.
++    const std::size_t map_ply = static_cast<std::size_t>(ss->ply);
++    if (!threat_maps_ready_[map_ply]) {
++        threat_maps_[map_ply] = hist_rework::lesser_threats(board);
++        threat_maps_ready_[map_ply] = true;
++    }
++    const hist_rework::LesserThreats& threats = threat_maps_[map_ply];
+     const Bitboard set = threats.by_type[static_cast<std::size_t>(piece_type(board.moved_piece(move)))];
+     return (*threat_history_)[static_cast<std::size_t>(board.side_to_move())][hist_rework::square_bit(set, move.from)]
+                              [hist_rework::square_bit(set, move.to)][move.from][move.to];
+@@ -1056,8 +1063,9 @@
+     }
+ 
+     // HistRework: check evasions score quiet moves with quiet_history, which reads this node's maps.
++    // Lazy maps (speed idea 1): only mark the node stale here; the maps are built on first read.
+     if (in_check && search_options::hist_rework != 0) [[unlikely]]
+-        threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board);
++        threat_maps_ready_[static_cast<std::size_t>(ply)] = false;
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+     Move best_move = Move::none();
+     int move_count = 0;
+@@ -1279,7 +1287,8 @@
+              tt_bound == BoundUpper && !ss->tt_pv) --depth;
+ 
+     // HistRework: lesser-attacker maps of this node, read by quiet_history and the history updates below.
+-    if (search_options::hist_rework != 0) [[unlikely]] threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board);
++    // Lazy maps (speed idea 1): only mark the node stale here; the maps are built on first read.
++    if (search_options::hist_rework != 0) [[unlikely]] threat_maps_ready_[static_cast<std::size_t>(ply)] = false;
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+     std::array<Move, 128> quiets_tried{};
+     std::array<Move, 64> captures_tried{};
