@@ -1,0 +1,139 @@
+diff --git a/src/search.cpp b/src/search.cpp
+index 90d02dc..f17ccd0 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -15,6 +15,8 @@ namespace forge {
+ // tunables keep their addresses.
+ namespace search_options {
+ int hist_rework = 0;
++bool pawn_history = false;  // second quiet history keyed by the pawn structure (false = off)
++int pawn_history_bits = 9;  // index width in bits (9-13); the table is allocated for 2^13 buckets
+ } // namespace search_options
+ 
+ // B1 bundle options (R13 port of forge-bundle-int b7c17722; forge/search.hpp), all OFF.
+@@ -589,6 +591,7 @@ Worker::Worker(SharedSearchState& shared, int id)
+       correction_history_(std::make_unique<CorrectionHistory>()),
+       material_correction_(std::make_unique<CorrectionHistory>()),
+       threat_history_(std::make_unique<LesserThreatHistory>()),
++      pawn_history_(std::make_unique<PawnHistoryTable>()),
+       joint_correction_(std::make_unique<CorrectionHistory>()) {
+     clear();
+ }
+@@ -605,6 +608,7 @@ void Worker::clear() {
+     *material_correction_ = CorrectionHistory{};
+     correction_plus_.reset();  // CorrHistPlus tables, reallocated (zeroed) by the next update
+     *threat_history_ = LesserThreatHistory{};
++    pawn_history_->fill({});
+     *joint_correction_ = CorrectionHistory{};
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+@@ -901,9 +905,20 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move)
+         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
+         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
+     }
++    score += pawn_history_value(board, move);
+     return score;
+ }
+ 
++int Worker::pawn_history_value(const Board& board, Move move) const {
++    if (!search_options::pawn_history) return 0;
++    return (*pawn_history_)[static_cast<std::size_t>(board.pawn_key() & ((1U << search_options::pawn_history_bits) - 1))][static_cast<std::size_t>(board.moved_piece(move))][move.to];
++}
++
++void Worker::update_pawn_history(const Board& board, Move move, int bonus) {
++    if (!search_options::pawn_history) return;
++    apply_history((*pawn_history_)[static_cast<std::size_t>(board.pawn_key() & ((1U << search_options::pawn_history_bits) - 1))][static_cast<std::size_t>(board.moved_piece(move))][move.to], bonus);
++}
++
+ int Worker::capture_history_value(const Board& board, Move move) const {
+     const Piece piece = board.moved_piece(move);
+     const int captured = piece_type(board.captured_piece(move));
+@@ -933,11 +948,13 @@ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move,
+     }
+     const Piece piece = board.moved_piece(move);
+     apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
++    update_pawn_history(board, move, bonus);
+     update_continuation(ss, piece, move.to, bonus);
+     for (int i = 0; i < quiet_count; ++i) {
+         const Move quiet = quiets[i];
+         if (quiet == move) continue;
+         apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
++        update_pawn_history(board, quiet, -bonus);
+         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
+     }
+     // HistRework: the threat-keyed twin learns the same bonus and maluses (lock gravity, apply_history).
+diff --git a/src/uci.cpp b/src/uci.cpp
+index d69d610..08362b0 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -173,6 +173,8 @@ int main() {
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+             // Search option added after AL1 s198 (Astra A1); default 0 = the lock's search (forge/hist_rework.hpp).
+             std::cout << "option name HistRework type spin default 0 min 0 max " << forge::hist_rework::MaxLevel << "\n";
++            std::cout << "option name PawnHistory type check default false\n";
++            std::cout << "option name PawnHistoryBits type spin default 9 min 9 max 13\n";
+             // B1 bundle options (R13 port of forge-bundle-int b7c17722); all default OFF.
+             std::cout << "option name CorrHistPlus type spin default 0 min 0 max 7\n"
+                          "option name CuckooRep type check default false\n"
+@@ -275,6 +277,22 @@ int main() {
+                 } else {
+                     forge::search_options::hist_rework = std::clamp(value, 0, forge::hist_rework::MaxLevel);
+                 }
++            } else if (name == "PawnHistoryBits") {
++                int value = 0;
++                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
++                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option " << name << std::endl;
++                } else {
++                    forge::search_options::pawn_history_bits = std::clamp(value, 9, 13);
++                }
++            } else if (name == "PawnHistory") {
++                if (value_text != "true" && value_text != "false") {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option " << name << std::endl;
++                } else {
++                    forge::search_options::pawn_history = value_text == "true";
++                }
+             } else if (name == "CorrHistPlus") {
+                 int value = 0;
+                 const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index 6d15b35..3ff568c 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -285,6 +285,17 @@ extern bool tt_prune_v2;
+ // UCI HistRework: [side][from attacked by a lesser enemy piece][to attacked by a lesser enemy piece][from][to].
+ using LesserThreatHistory = std::array<std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>, 2>, 2>;
+ 
++// Pawn-structure history (glmflash3 job 2/3 feature, ported): [pawn key bucket][moved piece][to square],
++// 16-bit entries. The table is allocated for 2^13 buckets; search_options::pawn_history_bits masks the
++// index at both the read and the update (reachable bytes: 2^Bits x 13 x 64 x 2).
++constexpr std::size_t PawnHistoryBuckets = 1U << 13U;
++using PawnHistoryTable = std::array<std::array<std::array<std::int16_t, 64>, 13>, PawnHistoryBuckets>;
++
++namespace search_options {
++extern bool pawn_history;  // second quiet history keyed by the pawn structure (false = off)
++extern int pawn_history_bits;  // index width in bits (9-13); the table is allocated for 2^13 buckets
++} // namespace search_options
++
+ struct SearchStack {
+     std::array<Move, MaxPly + 1> pv{};
+     int pv_length = 0;
+@@ -373,6 +384,7 @@ private:
+     // UCI HistRework (forge/hist_rework.hpp). Last members, so every lock member keeps its offset; read and
+     // written only while the option is on. threat_maps_[ply] holds the lesser-attacker maps of the node at ply.
+     std::unique_ptr<LesserThreatHistory> threat_history_;
++    std::unique_ptr<PawnHistoryTable> pawn_history_;
+     std::unique_ptr<CorrectionHistory> joint_correction_;
+     std::array<hist_rework::LesserThreats, MaxPly + 8> threat_maps_{};
+     // CorrHistPlus tables (forge/correction_plus.hpp), owned by this worker: null until the option is on and the
+@@ -401,6 +413,8 @@ private:
+                                int quiet_count);
+     [[nodiscard]] std::int16_t& threat_history_entry(const Board& board, const SearchStack* ss, Move move) const;
+     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
++    [[nodiscard]] int pawn_history_value(const Board& board, Move move) const;
++    void update_pawn_history(const Board& board, Move move, int bonus);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
