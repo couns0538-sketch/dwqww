@@ -36,7 +36,7 @@ concurrency:
 
 env:
   ENGINE_COMMIT: ${{ inputs.engine_commit || '6b98f2170a3210e71beed04bbd2553972c253ed7' }}
-  # first push: the two short suites only, to see the whole path (build, test, publish) work; the next commit
+  # staged start: the two short suites only, to see the whole path (build, test, publish) work; the next commit
   # on this branch makes all four the default
   SUITES: ${{ inputs.suites || 'perft,mates' }}
 
@@ -70,9 +70,16 @@ jobs:
 
       - name: Python packages (PyPI, pinned)
         if: contains(format(',{0},', env.SUITES), format(',{0},', matrix.suite))
+        env:
+          SUITE: ${{ matrix.suite }}
         run: |
+          set -o pipefail
+          mkdir -p "results/$SUITE"
           python3 -m venv "$RUNNER_TEMP/venv" || { sudo apt-get update -q && sudo apt-get install -y -q python3-venv && python3 -m venv "$RUNNER_TEMP/venv"; }
-          "$RUNNER_TEMP/venv/bin/pip" install --quiet python-chess==1.11.2 numpy==1.26.4
+          # python-chess is published on PyPI under the name "chess" since its version 1.0 (the first run of this
+          # workflow failed here with "python-chess==1.11.2": no such version). pip's last lines are kept as a result
+          # file, so a failure of this step can be read on the results branch.
+          "$RUNNER_TEMP/venv/bin/pip" install chess==1.11.2 numpy==1.26.4 2>&1 | tail -n 40 | tee "results/$SUITE/pip_install.txt"
 
       - name: Run the suite
         if: contains(format(',{0},', env.SUITES), format(',{0},', matrix.suite))

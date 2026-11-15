@@ -30,7 +30,7 @@ write token, checks them (plain UTF-8 text, safe names, size limits, no links) a
 - Permissions: read-only for the test jobs; `contents: write` only for the publishing job; no secrets.
 - Actions: only GitHub's own `checkout`, `upload-artifact`, `download-artifact`, pinned to full commit ids
   (v7.0.1, v7.0.2, v8.0.2 at the time of writing), `persist-credentials: false`.
-- Python packages from PyPI, pinned: python-chess 1.11.2, numpy 1.26.4.
+- Python packages from PyPI, pinned: chess 1.11.2 (python-chess; that is its PyPI name since version 1.0), numpy 1.26.4.
 
 ## Files
 
