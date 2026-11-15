@@ -1,0 +1,25 @@
+diff --git a/src/search.cpp b/src/search.cpp
+index b803a7e..066ab52 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2247,15 +2247,14 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         std::cout << std::endl;
+     };
+ 
+-    // Terminal or adjudicated roots: report without searching.
+-    const bool root_drawn = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
+-                                               board.is_insufficient_material());
++    // Terminal roots: report without searching. A third occurrence or an expired
++    // fifty-move counter is a draw that MAY be claimed, so that root is searched;
++    // only a position with no legal move or an immediate insufficient-material
++    // draw is answered here.
++    const bool root_drawn = !legal.empty() && board.is_insufficient_material();
+     if (root_candidates.empty() || root_drawn) {
+         int score = 0;
+         if (legal.empty() && board.in_check()) score = -MateValue;
+-        else if (DrawJitter > 0 && (board.is_repetition() || board.halfmove_clock() >= 100)) {
+-            score = draw_leaf_score(board);
+-        }
+         for (int depth = 1; depth <= max_depth; ++depth) {
+             result.depth = depth;
+             result.score = score;

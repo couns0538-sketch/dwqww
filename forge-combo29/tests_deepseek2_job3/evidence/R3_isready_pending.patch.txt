@@ -1,0 +1,44 @@
+diff --git a/include/forge/nnue_v3.hpp b/include/forge/nnue_v3.hpp
+index cc2d0bc..b566ad9 100644
+--- a/include/forge/nnue_v3.hpp
++++ b/include/forge/nnue_v3.hpp
+@@ -158,6 +158,9 @@ extern bool requested;
+ [[nodiscard]] inline bool active() { return requested && loaded() != nullptr; }
+ // Non-empty when NNUEArch is requested but no v3 net is usable (the fail-loud rule).
+ [[nodiscard]] std::string problem();
++// True while NNUEArch is on and no network has been loaded yet: an unfinished
++// configuration. isready answers for it; a search request still stops.
++[[nodiscard]] bool pending();
+ void set_problem(const std::string& text);
+ // Kernels: the search uses the best one compiled in (AVX-512 BW, else AVX2, else scalar); the others stay
+ // available for the equality tests (scalar == AVX2 == AVX-512).
+diff --git a/src/nnue_v3.cpp b/src/nnue_v3.cpp
+index 122ce37..d41ec4b 100644
+--- a/src/nnue_v3.cpp
++++ b/src/nnue_v3.cpp
+@@ -392,6 +392,8 @@ std::string describe(const Net& net) {
+     return out.str();
+ }
+ 
++bool pending() { return requested && loaded() == nullptr && g_problem.empty(); }
++
+ std::string problem() {
+     if (!requested) return {};
+     if (loaded() == nullptr) {
+diff --git a/src/uci.cpp b/src/uci.cpp
+index e0d8aee..c8692d3 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -248,7 +248,11 @@ int uci_loop(std::istream& in) {
+                          "uciok" << std::endl;
+         } else if (command == "isready") {
+ #if FORGE_NNUE_V3
+-            if (!v3_ready()) return 2;
++            // An unfinished configuration (NNUEArch on, no net yet) is not an error:
++            // answer, and say so. A real problem still ends the engine.
++            if (forge::nnue::v3::pending()) {
++                { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string NNUE v3: no network loaded yet" << std::endl; }
++            } else if (!v3_ready()) return 2;
+ #endif
+             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "readyok" << std::endl; }
+         } else if (command == "ucinewgame") {

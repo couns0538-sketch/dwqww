@@ -1,0 +1,16 @@
+diff --git a/src/uci.cpp b/src/uci.cpp
+index e0d8aee..35cb956 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -574,7 +574,10 @@ int uci_loop(std::istream& in) {
+             }
+         } else if (command == "eval") {
+ #if FORGE_NNUE_V3
+-            if (forge::nnue::v3::active()) {
++            // Mirror Worker::static_evaluate (search.cpp:1076-1078) exactly, in the
++            // same order: UseNNUE off or no small net loaded means HCE, and only then
++            // does an active v3 net take over. `eval` must name what a search uses.
++            if (forge::nnue::enabled && forge::nnue::available() && forge::nnue::v3::active()) {
+                 const int value = forge::nnue::v3::evaluate_reference(*forge::nnue::v3::loaded(), board);
+                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                 std::cout << "info string eval nnue_v3 " << value << std::endl;

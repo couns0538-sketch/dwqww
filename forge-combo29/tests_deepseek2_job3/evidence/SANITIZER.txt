@@ -1,0 +1,26 @@
+Sanitizer build and runs (job 3, proof e)
+
+Build of the fully patched tree (/tmp/ds2/pall), private copy:
+  cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DFORGE_MARCH=native \
+        -DCMAKE_CXX_FLAGS="-DFORGE_NNUE_V3=1 -fsanitize=address,undefined -fno-omit-frame-pointer -g" \
+        -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+  g++ 13.3.0
+
+Environment for every run:
+  ASAN_OPTIONS=detect_leaks=0   (the engine is stopped with `quit` mid-teardown)
+  UBSAN_OPTIONS=print_stacktrace=1
+
+Planted-fault control, compiled with the same flags and run FIRST:
+  sanitizer_planted_fault.cpp -> "runtime error: store to address ... with insufficient
+  space for an object of type 'int'" (UBSan) and "ERROR: AddressSanitizer:
+  heap-buffer-overflow" WRITE of size 4 (ASan).  Both reported, so the harness sees faults.
+
+The four test sets, all against the sanitizer build of the patched engine:
+
+  R1_test.py                5 of 5 PASS   stderr 0 lines
+  R2_test.py (96 combos)    PASS, 0 inconsistent   stderr 0 lines
+  R3_test.py                8 of 8 PASS   stderr 0 lines
+  partC_go_faults.py        57 rows, 0 fails   stderr 0 lines
+
+"stderr 0 lines" was measured by redirecting the engine's stderr to a file per test set
+and counting lines; ASan and UBSan both write to stderr, so any report would appear there.
