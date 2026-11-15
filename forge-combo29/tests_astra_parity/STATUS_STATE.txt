@@ -5,7 +5,7 @@
   "start": "2026-11-14T23:19:40.000Z",
   "budgetMinutes": 180,
   "deadline": "2026-11-15T04:20:00.000Z",
-  "phase": "Job A closed; Job B resumed under Fable0020; shutdown replay pending",
+  "phase": "Job B: HindsightDepth fixed-node match",
   "sourceCommits": [
     {
       "step": 1,
@@ -55,8 +55,8 @@
       "stat": "c488e88f Apply source-only r3-20-faster-search-plumbing by three-way merge from e04556dd\n forge-combo29/include/forge/bitboard.hpp |   6 ++\n forge-combo29/include/forge/board.hpp    |  29 +++++++\n forge-combo29/src/bitboard.cpp           |   7 ++\n forge-combo29/src/board.cpp              | 144 +++++++++++++++++++------------\n forge-combo29/src/search.cpp             | 120 ++++++++++++++++++++------\n 5 files changed, 227 insertions(+), 79 deletions(-)"
     }
   ],
-  "pushes": 44,
-  "lastPush": "2026-11-15T04:21:04.575Z",
+  "pushes": 45,
+  "lastPush": "2026-11-15T04:29:36.428Z",
   "sourceChangesOnly": [
     "forge-combo29/src",
     "forge-combo29/include"
@@ -74,7 +74,7 @@
     "step1 any equality difference stops dependent work",
     "counts only; owner no Elo/speed claims overrides external request"
   ],
-  "lastCommit": "3a3e534c608ecce2a7f03562b17c01f5e61988f5",
+  "lastCommit": "b0a32c8fcf0e22da092374f70130bdf81e4b483e",
   "validation": {
     "step1": {
       "build": "passed",
@@ -2549,8 +2549,8 @@
       "smpProtocolCreditIncluded": false
     }
   },
-  "checkpointNote": "Job A frozen846games/120313searches. Fable0020 explicitly resumes release JobB and authorizes a separate full-history ASan replay with5s signal-free shutdown. Original finding remains unresolved and failed batch remains zero-credit. No new engine result claimed.",
-  "progressBatch": "Answer0020; next match B-0006, seed202611150011",
+  "checkpointNote": "JobA closed846games/120313searches, six zero-credit failed sanitizer batches. JobB800games W223-L215-D362, pair bins21,88,172,100,19; no operational match findings. Fable0020 full-history diagnostic pending independent review, deadline04:50; original shutdown finding unresolved. JobC readiness and authorized tool source reviewed offline only.",
+  "progressBatch": "B-0008 audited; 800 games; replay0020 preparation",
   "active": null,
   "equalityTotals": {
     "step1": {
@@ -8684,7 +8684,7 @@
     "relativeReportLinks": 14,
     "engineRuns": 0
   },
-  "commitMessage": "Record Fable0020 decision and preserve Job A closure",
+  "commitMessage": "Checkpoint 800 match games and authorized shutdown replay preparation",
   "referenceShutdown068919": {
     "utc": "2026-11-15T01:38:57.812Z",
     "pairs": 10,
@@ -14945,27 +14945,513 @@
       "seed": 202611150011,
       "openingStart": 201,
       "requestedGames": 100
+    },
+    {
+      "schema": 1,
+      "protocol": "hindsight-fixed-node-counts-only-0018",
+      "decision0018": {
+        "commit": "fe59dc3ab072480f7360f0b356ff01a900d2ab35",
+        "file": "/workspace/work/parity-run/inputs/FABLE_ANSWER_0018.md.txt",
+        "sha256": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b"
+      },
+      "step2AcceptanceEvidence": [
+        {
+          "file": "/workspace/work/parity-run/inputs/step2-effective-acceptance-S2-0007.txt",
+          "sha256": "11284dcae54beb48546c53f0ca9f4d3c4f92d8cdc97fbd0872452cfbb30f3c5e"
+        }
+      ],
+      "jobACompleteAtDeclaration": false,
+      "sanitizerPendingAtDeclaration": true,
+      "id": "B-0006",
+      "sourceCommit": "d9a8587df8ad4d0ff1231632cb1ac72b590c04bf",
+      "declarationSha256": "272aabae9c842dafd067b55c5d1bb079684a4e81e345b8ca9bc1e64d3b10b84d",
+      "receiptFile": "/workspace/work/parity-run/matches-hindsight/receipts/B-0006.txt",
+      "receiptSha256": "c0367aa633d722004666b3d7aa6f594b6618b20a202523ccea2d4ab6661fc08c",
+      "summaryFile": "/workspace/work/parity-run/matches-hindsight/batches/B-0006.summary.txt",
+      "summarySha256": "25946fbb9e451166671416b2c49a1df732a9f7977144bb565aa9b32894241191",
+      "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0006.artifact-hashes.txt",
+      "artifactHashesSha256": "4354b2581bb088725156e88916a5fe5e3aa3ad961c5fb2e1768a950028dff984",
+      "rawPins": {
+        "/workspace/work/parity-run/matches-hindsight/plans/B-0006.txt": "2f7296a9f1b5c31c7c8dbc2624ed4517716068bfeaa66f1b92d8e46d8d55328f",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0006.summary.txt": "25946fbb9e451166671416b2c49a1df732a9f7977144bb565aa9b32894241191",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0006.artifact-hashes.txt": "4354b2581bb088725156e88916a5fe5e3aa3ad961c5fb2e1768a950028dff984",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0006.command.txt": "4c0fc15103c2ed6f6adbaba6cc969d87c955ac11bf85971935beb9a0d9fbeaae",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0006.stdout.txt": "798e0f4a0eeaf17698c4d62a97008be334a5750e3e32c674d3f3604e1f850597",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0006.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0006.console.txt": "798e0f4a0eeaf17698c4d62a97008be334a5750e3e32c674d3f3604e1f850597",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0006.events.ndjson": "76f81ace6c1db75fa06df0c1836a7b85ca9f5bb35ee943246fe779a81b03f969",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0006.pgn": "9ad952d0fffd57ff765430fcfb568cbe898072ef86ea4f67926239eedcc84a59",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0006.engine.log": "7aa60a60128e502809c00056ea2a9bec0a86f8806b718e46d3ad43414389d48a",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0006.config.json": "d2b9ac698ec672bf5f9f8b6eea2a49d12f28b983c8e481db38b62b1a944b351d",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0006.process.txt": "99c5131f0cd8da5a9579dfbc9d158d43a928665b6ed5a5fe08e15fafec8b9ab0"
+      },
+      "recorderPins": {
+        "/workspace/work/parity-match-0018-recording-preparation/record.mjs": "2160080f7d70c37cd309fe494b2d2cc0da4affbcbf63bffd2bd09dff738d62a6",
+        "/workspace/work/parity-match-0018-recording-preparation/accounting.mjs": "234d6013b14fa9ad5179bb41cd671ab0ecee1adab75d1ad490bca8580ed91040",
+        "/workspace/work/parity-match-0018-recording-preparation/validate.mjs": "dd1fc5900f0e806ba0feb208bda074292501f00b8386381b18f06890f4247334"
+      },
+      "externalPins": {
+        "/workspace/work/parity-run/package-evidence.mjs": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
+        "/workspace/work/parity-equality-preparation-v3/evidence-integrity.mjs": "33d1373916608c7cd3ffc97a1e0c1ca774fb949b38745a4cc5f73f9117202601",
+        "/workspace/work/parity-match-0018-preparation/controller.mjs": "a17da2efce953f84c1eab052d892210e45ed8adc3e153a48d3ec88ff00a4dbea",
+        "/workspace/work/parity-match-0018-preparation/protocol.mjs": "6421456840bc13431da54085bb99c40533d60ed34027dd759482ec84928e7892",
+        "/workspace/work/parity-match-0018-preparation/audit-command.mjs": "69e7bd8677ce4cff4f6d55e2470169d78afb2737175a4f947c14c13b133719d7",
+        "/workspace/work/parity-match-0018-preparation/audit-core.mjs": "d030f12a43778eb2768aea2a97eeb7ecbbb9d5b7a926570e4cc3b4b135386533",
+        "/workspace/work/parity-match-0018-preparation/audit-extra.mjs": "4133210f0061c643262e684c3ba7262b267d612822c776ee59c2ac75a929cd64"
+      },
+      "completed": true,
+      "passed": true,
+      "credit": {
+        "games": 100,
+        "pairs": 50,
+        "wins": 29,
+        "losses": 26,
+        "draws": 45,
+        "pentanomial": [
+          2,
+          10,
+          23,
+          13,
+          2
+        ]
+      },
+      "rawCounts": {
+        "started": 100,
+        "finished": 100,
+        "pgnGames": 100,
+        "consoleGames": 100,
+        "eventLines": 15001,
+        "moves": 14799,
+        "wins": 29,
+        "losses": 26,
+        "draws": 45
+      },
+      "rawPairBins": {
+        "labels": [
+          "LL",
+          "LD",
+          "DD_or_WL",
+          "DW",
+          "WW"
+        ],
+        "counts": [
+          2,
+          10,
+          23,
+          13,
+          2
+        ],
+        "completePairs": 50,
+        "incompletePairs": [],
+        "abnormalPairs": []
+      },
+      "failureCounts": {
+        "illegalMoveEvents": 0,
+        "illegalMoveGames": 0,
+        "disconnectGames": 0,
+        "stallGames": 0,
+        "abortedGames": 0,
+        "abnormalTerminations": 0,
+        "crashMarkers": 0,
+        "illegalMarkers": 0,
+        "disconnectMarkers": 0,
+        "stallMarkers": 0
+      },
+      "sideAccounting": {
+        "bySide": {
+          "hindsight-on": {
+            "illegalMoveEvents": 0,
+            "illegalMoveGames": 0,
+            "disconnectGames": 0,
+            "stallGames": 0,
+            "timeForfeitGames": 0,
+            "nonzeroProcessExits": 0,
+            "processSignals": 0,
+            "crashSignals": 0,
+            "controllerCleanupSignals": 0
+          },
+          "hindsight-off": {
+            "illegalMoveEvents": 0,
+            "illegalMoveGames": 0,
+            "disconnectGames": 0,
+            "stallGames": 0,
+            "timeForfeitGames": 0,
+            "nonzeroProcessExits": 0,
+            "processSignals": 0,
+            "crashSignals": 0,
+            "controllerCleanupSignals": 0
+          }
+        },
+        "faultGames": [],
+        "unattributedAbortsOrGames": [],
+        "processEvidence": [],
+        "unattributedProcessEvidence": [],
+        "definition": "Game faults by losing configuration; illegal move attempts retain their event engine. Process exits/signals are separate observations, not extra distinct games. Disconnect does not establish a crash cause. Controller timeout cleanup signals are separated."
+      },
+      "errors": [],
+      "process": {
+        "code": 0,
+        "signal": null,
+        "spawnError": null,
+        "interrupted": null,
+        "ioErrors": [],
+        "timedOut": false,
+        "finishedUTC": "2026-11-15T04:31:03.948Z"
+      },
+      "rawExcludedFinishedGames": 0,
+      "evidenceIdentity": "d2088e759f58695d376394eaaf995fd8373931b80216fd93d65ebc01d18e1866",
+      "rawSource": "/workspace/work/parity-run/match-recording/B-0006/raw",
+      "metadataSource": "/workspace/work/parity-run/match-recording/B-0006/metadata",
+      "rawPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0006",
+      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0006",
+      "seed": 202611150011,
+      "openingStart": 251,
+      "requestedGames": 100
+    },
+    {
+      "schema": 1,
+      "protocol": "hindsight-fixed-node-counts-only-0018",
+      "decision0018": {
+        "commit": "fe59dc3ab072480f7360f0b356ff01a900d2ab35",
+        "file": "/workspace/work/parity-run/inputs/FABLE_ANSWER_0018.md.txt",
+        "sha256": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b"
+      },
+      "step2AcceptanceEvidence": [
+        {
+          "file": "/workspace/work/parity-run/inputs/step2-effective-acceptance-S2-0007.txt",
+          "sha256": "11284dcae54beb48546c53f0ca9f4d3c4f92d8cdc97fbd0872452cfbb30f3c5e"
+        }
+      ],
+      "jobACompleteAtDeclaration": false,
+      "sanitizerPendingAtDeclaration": true,
+      "id": "B-0007",
+      "sourceCommit": "d9a8587df8ad4d0ff1231632cb1ac72b590c04bf",
+      "declarationSha256": "272aabae9c842dafd067b55c5d1bb079684a4e81e345b8ca9bc1e64d3b10b84d",
+      "receiptFile": "/workspace/work/parity-run/matches-hindsight/receipts/B-0007.txt",
+      "receiptSha256": "6937de87131eba84eef4839d597fbb697e9b37cb09380ac4951f11c1be29f476",
+      "summaryFile": "/workspace/work/parity-run/matches-hindsight/batches/B-0007.summary.txt",
+      "summarySha256": "cab2ac32b503110cb53b8aa36ef028f738a2fc7ce467bae63a73a00b6eff149f",
+      "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0007.artifact-hashes.txt",
+      "artifactHashesSha256": "2bd032217fa601d85c18fa203e726bbd5db16a03c220a6ba3e088f5fbcad385c",
+      "rawPins": {
+        "/workspace/work/parity-run/matches-hindsight/plans/B-0007.txt": "4333685ad85e08a9d6b39a641e61081a0fe0718ce6227abf2d519fe53abafbd6",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0007.summary.txt": "cab2ac32b503110cb53b8aa36ef028f738a2fc7ce467bae63a73a00b6eff149f",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0007.artifact-hashes.txt": "2bd032217fa601d85c18fa203e726bbd5db16a03c220a6ba3e088f5fbcad385c",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0007.command.txt": "fcd87ef6d9a495dc6ac26f912a15c308c85daa62b8c6c082dff934422487b8d1",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0007.stdout.txt": "c7fd8231c2810718820d9325265a1e55a67fbc02f775cec4d8c8012685ea16d1",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0007.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0007.console.txt": "c7fd8231c2810718820d9325265a1e55a67fbc02f775cec4d8c8012685ea16d1",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0007.events.ndjson": "2ad727d237e13ace10ace0dc9f972b20f7f0a848f7492ae43644ee1dffb19d13",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0007.pgn": "136164bc41ef70bbb3fddd46ecd90a280bdd2544107c2ba96e88b37bcfac4ac9",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0007.engine.log": "2371ee56ec22c9dd9388af94ca42d8f1420cbe0bb84bb7f81920a5e35d4dddba",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0007.config.json": "a2e617f1f884a310e8a71fc11f4fceba1c4baced0a0cc691d64d89eb325f4e11",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0007.process.txt": "6edff6d1f2e89fc69895c234a4b6b619cd50af9a4e4d1a0a084c5a3057280a60"
+      },
+      "recorderPins": {
+        "/workspace/work/parity-match-0018-recording-preparation/record.mjs": "2160080f7d70c37cd309fe494b2d2cc0da4affbcbf63bffd2bd09dff738d62a6",
+        "/workspace/work/parity-match-0018-recording-preparation/accounting.mjs": "234d6013b14fa9ad5179bb41cd671ab0ecee1adab75d1ad490bca8580ed91040",
+        "/workspace/work/parity-match-0018-recording-preparation/validate.mjs": "dd1fc5900f0e806ba0feb208bda074292501f00b8386381b18f06890f4247334"
+      },
+      "externalPins": {
+        "/workspace/work/parity-run/package-evidence.mjs": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
+        "/workspace/work/parity-equality-preparation-v3/evidence-integrity.mjs": "33d1373916608c7cd3ffc97a1e0c1ca774fb949b38745a4cc5f73f9117202601",
+        "/workspace/work/parity-match-0018-preparation/controller.mjs": "a17da2efce953f84c1eab052d892210e45ed8adc3e153a48d3ec88ff00a4dbea",
+        "/workspace/work/parity-match-0018-preparation/protocol.mjs": "6421456840bc13431da54085bb99c40533d60ed34027dd759482ec84928e7892",
+        "/workspace/work/parity-match-0018-preparation/audit-command.mjs": "69e7bd8677ce4cff4f6d55e2470169d78afb2737175a4f947c14c13b133719d7",
+        "/workspace/work/parity-match-0018-preparation/audit-core.mjs": "d030f12a43778eb2768aea2a97eeb7ecbbb9d5b7a926570e4cc3b4b135386533",
+        "/workspace/work/parity-match-0018-preparation/audit-extra.mjs": "4133210f0061c643262e684c3ba7262b267d612822c776ee59c2ac75a929cd64"
+      },
+      "completed": true,
+      "passed": true,
+      "credit": {
+        "games": 100,
+        "pairs": 50,
+        "wins": 20,
+        "losses": 26,
+        "draws": 54,
+        "pentanomial": [
+          3,
+          13,
+          21,
+          13,
+          0
+        ]
+      },
+      "rawCounts": {
+        "started": 100,
+        "finished": 100,
+        "pgnGames": 100,
+        "consoleGames": 100,
+        "eventLines": 15151,
+        "moves": 14949,
+        "wins": 20,
+        "losses": 26,
+        "draws": 54
+      },
+      "rawPairBins": {
+        "labels": [
+          "LL",
+          "LD",
+          "DD_or_WL",
+          "DW",
+          "WW"
+        ],
+        "counts": [
+          3,
+          13,
+          21,
+          13,
+          0
+        ],
+        "completePairs": 50,
+        "incompletePairs": [],
+        "abnormalPairs": []
+      },
+      "failureCounts": {
+        "illegalMoveEvents": 0,
+        "illegalMoveGames": 0,
+        "disconnectGames": 0,
+        "stallGames": 0,
+        "abortedGames": 0,
+        "abnormalTerminations": 0,
+        "crashMarkers": 0,
+        "illegalMarkers": 0,
+        "disconnectMarkers": 0,
+        "stallMarkers": 0
+      },
+      "sideAccounting": {
+        "bySide": {
+          "hindsight-on": {
+            "illegalMoveEvents": 0,
+            "illegalMoveGames": 0,
+            "disconnectGames": 0,
+            "stallGames": 0,
+            "timeForfeitGames": 0,
+            "nonzeroProcessExits": 0,
+            "processSignals": 0,
+            "crashSignals": 0,
+            "controllerCleanupSignals": 0
+          },
+          "hindsight-off": {
+            "illegalMoveEvents": 0,
+            "illegalMoveGames": 0,
+            "disconnectGames": 0,
+            "stallGames": 0,
+            "timeForfeitGames": 0,
+            "nonzeroProcessExits": 0,
+            "processSignals": 0,
+            "crashSignals": 0,
+            "controllerCleanupSignals": 0
+          }
+        },
+        "faultGames": [],
+        "unattributedAbortsOrGames": [],
+        "processEvidence": [],
+        "unattributedProcessEvidence": [],
+        "definition": "Game faults by losing configuration; illegal move attempts retain their event engine. Process exits/signals are separate observations, not extra distinct games. Disconnect does not establish a crash cause. Controller timeout cleanup signals are separated."
+      },
+      "errors": [],
+      "process": {
+        "code": 0,
+        "signal": null,
+        "spawnError": null,
+        "interrupted": null,
+        "ioErrors": [],
+        "timedOut": false,
+        "finishedUTC": "2026-11-15T04:33:26.650Z"
+      },
+      "rawExcludedFinishedGames": 0,
+      "evidenceIdentity": "117dae9d23da75fbf7c82b2b23de779245852feadee23682503a84391b41f81e",
+      "rawSource": "/workspace/work/parity-run/match-recording/B-0007/raw",
+      "metadataSource": "/workspace/work/parity-run/match-recording/B-0007/metadata",
+      "rawPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0007",
+      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0007",
+      "seed": 202611150011,
+      "openingStart": 301,
+      "requestedGames": 100
+    },
+    {
+      "schema": 1,
+      "protocol": "hindsight-fixed-node-counts-only-0018",
+      "decision0018": {
+        "commit": "fe59dc3ab072480f7360f0b356ff01a900d2ab35",
+        "file": "/workspace/work/parity-run/inputs/FABLE_ANSWER_0018.md.txt",
+        "sha256": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b"
+      },
+      "step2AcceptanceEvidence": [
+        {
+          "file": "/workspace/work/parity-run/inputs/step2-effective-acceptance-S2-0007.txt",
+          "sha256": "11284dcae54beb48546c53f0ca9f4d3c4f92d8cdc97fbd0872452cfbb30f3c5e"
+        }
+      ],
+      "jobACompleteAtDeclaration": false,
+      "sanitizerPendingAtDeclaration": true,
+      "id": "B-0008",
+      "sourceCommit": "d9a8587df8ad4d0ff1231632cb1ac72b590c04bf",
+      "declarationSha256": "272aabae9c842dafd067b55c5d1bb079684a4e81e345b8ca9bc1e64d3b10b84d",
+      "receiptFile": "/workspace/work/parity-run/matches-hindsight/receipts/B-0008.txt",
+      "receiptSha256": "d987cc3d3f6a0f0fee6d682d10179389d379ca1085aff0dbf91c375b72278e47",
+      "summaryFile": "/workspace/work/parity-run/matches-hindsight/batches/B-0008.summary.txt",
+      "summarySha256": "1ee2f756927c66ad010a9600a5923eb90e747415853e94ce9debba548dc87353",
+      "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0008.artifact-hashes.txt",
+      "artifactHashesSha256": "1f1c2202112aaeb0dae3baf190181fdd0bf3a0358b9a3c3417911a38f9fc2cbd",
+      "rawPins": {
+        "/workspace/work/parity-run/matches-hindsight/plans/B-0008.txt": "c39772a2dd81847f262ceba6b2559f98f669c13b750ecdf152ce5ec1b3dd6b1c",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0008.summary.txt": "1ee2f756927c66ad010a9600a5923eb90e747415853e94ce9debba548dc87353",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0008.artifact-hashes.txt": "1f1c2202112aaeb0dae3baf190181fdd0bf3a0358b9a3c3417911a38f9fc2cbd",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0008.command.txt": "061cd7f710e52387ff746d2c337a8f98b687143de360cde1d9ee3ad311bad260",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0008.stdout.txt": "641ba4bfc90c0234ab237c5a6a98e3939eebadb59ce7982157453380ee46e5d2",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0008.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0008.console.txt": "641ba4bfc90c0234ab237c5a6a98e3939eebadb59ce7982157453380ee46e5d2",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0008.events.ndjson": "3b1b08bedea1a8df2acef2b985cd023f8688f27e9e39b89e63fdadd92b7315f1",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0008.pgn": "a1e48102e0ea01e0599922fcb522b4d0fef7ec57d743f87763c5b8522039b614",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0008.engine.log": "c854dda864ec0b1c0d0309b4fdbaded1242d33af1c531a3f52c40886b9e54cac",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0008.config.json": "f115ed2f1d2ffd624318ba88e18ac71ac1ffc4fb361ae38610d901db39b2e7dd",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0008.process.txt": "9fca60a582aff858648cc7873b038c2b9e77e9bc50bf3cd4e53212ff05c603ad"
+      },
+      "recorderPins": {
+        "/workspace/work/parity-match-0018-recording-preparation/record.mjs": "2160080f7d70c37cd309fe494b2d2cc0da4affbcbf63bffd2bd09dff738d62a6",
+        "/workspace/work/parity-match-0018-recording-preparation/accounting.mjs": "234d6013b14fa9ad5179bb41cd671ab0ecee1adab75d1ad490bca8580ed91040",
+        "/workspace/work/parity-match-0018-recording-preparation/validate.mjs": "dd1fc5900f0e806ba0feb208bda074292501f00b8386381b18f06890f4247334"
+      },
+      "externalPins": {
+        "/workspace/work/parity-run/package-evidence.mjs": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
+        "/workspace/work/parity-equality-preparation-v3/evidence-integrity.mjs": "33d1373916608c7cd3ffc97a1e0c1ca774fb949b38745a4cc5f73f9117202601",
+        "/workspace/work/parity-match-0018-preparation/controller.mjs": "a17da2efce953f84c1eab052d892210e45ed8adc3e153a48d3ec88ff00a4dbea",
+        "/workspace/work/parity-match-0018-preparation/protocol.mjs": "6421456840bc13431da54085bb99c40533d60ed34027dd759482ec84928e7892",
+        "/workspace/work/parity-match-0018-preparation/audit-command.mjs": "69e7bd8677ce4cff4f6d55e2470169d78afb2737175a4f947c14c13b133719d7",
+        "/workspace/work/parity-match-0018-preparation/audit-core.mjs": "d030f12a43778eb2768aea2a97eeb7ecbbb9d5b7a926570e4cc3b4b135386533",
+        "/workspace/work/parity-match-0018-preparation/audit-extra.mjs": "4133210f0061c643262e684c3ba7262b267d612822c776ee59c2ac75a929cd64"
+      },
+      "completed": true,
+      "passed": true,
+      "credit": {
+        "games": 100,
+        "pairs": 50,
+        "wins": 27,
+        "losses": 28,
+        "draws": 45,
+        "pentanomial": [
+          3,
+          10,
+          26,
+          7,
+          4
+        ]
+      },
+      "rawCounts": {
+        "started": 100,
+        "finished": 100,
+        "pgnGames": 100,
+        "consoleGames": 100,
+        "eventLines": 14423,
+        "moves": 14221,
+        "wins": 27,
+        "losses": 28,
+        "draws": 45
+      },
+      "rawPairBins": {
+        "labels": [
+          "LL",
+          "LD",
+          "DD_or_WL",
+          "DW",
+          "WW"
+        ],
+        "counts": [
+          3,
+          10,
+          26,
+          7,
+          4
+        ],
+        "completePairs": 50,
+        "incompletePairs": [],
+        "abnormalPairs": []
+      },
+      "failureCounts": {
+        "illegalMoveEvents": 0,
+        "illegalMoveGames": 0,
+        "disconnectGames": 0,
+        "stallGames": 0,
+        "abortedGames": 0,
+        "abnormalTerminations": 0,
+        "crashMarkers": 0,
+        "illegalMarkers": 0,
+        "disconnectMarkers": 0,
+        "stallMarkers": 0
+      },
+      "sideAccounting": {
+        "bySide": {
+          "hindsight-on": {
+            "illegalMoveEvents": 0,
+            "illegalMoveGames": 0,
+            "disconnectGames": 0,
+            "stallGames": 0,
+            "timeForfeitGames": 0,
+            "nonzeroProcessExits": 0,
+            "processSignals": 0,
+            "crashSignals": 0,
+            "controllerCleanupSignals": 0
+          },
+          "hindsight-off": {
+            "illegalMoveEvents": 0,
+            "illegalMoveGames": 0,
+            "disconnectGames": 0,
+            "stallGames": 0,
+            "timeForfeitGames": 0,
+            "nonzeroProcessExits": 0,
+            "processSignals": 0,
+            "crashSignals": 0,
+            "controllerCleanupSignals": 0
+          }
+        },
+        "faultGames": [],
+        "unattributedAbortsOrGames": [],
+        "processEvidence": [],
+        "unattributedProcessEvidence": [],
+        "definition": "Game faults by losing configuration; illegal move attempts retain their event engine. Process exits/signals are separate observations, not extra distinct games. Disconnect does not establish a crash cause. Controller timeout cleanup signals are separated."
+      },
+      "errors": [],
+      "process": {
+        "code": 0,
+        "signal": null,
+        "spawnError": null,
+        "interrupted": null,
+        "ioErrors": [],
+        "timedOut": false,
+        "finishedUTC": "2026-11-15T04:35:48.655Z"
+      },
+      "rawExcludedFinishedGames": 0,
+      "evidenceIdentity": "6d7146ce8cf4ab1303cd60c5493b38d8991ab9467617101ffa0f6839729c1ca9",
+      "rawSource": "/workspace/work/parity-run/match-recording/B-0008/raw",
+      "metadataSource": "/workspace/work/parity-run/match-recording/B-0008/metadata",
+      "rawPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0008",
+      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0008",
+      "seed": 202611150011,
+      "openingStart": 351,
+      "requestedGames": 100
     }
   ],
   "matchTotals": {
-    "games": 500,
-    "pairs": 250,
-    "wins": 147,
-    "losses": 135,
-    "draws": 218,
+    "games": 800,
+    "pairs": 400,
+    "wins": 223,
+    "losses": 215,
+    "draws": 362,
     "pentanomial": [
-      13,
-      55,
-      102,
-      67,
-      13
+      21,
+      88,
+      172,
+      100,
+      19
     ],
-    "batches": 5,
-    "passedBatches": 5,
+    "batches": 8,
+    "passedBatches": 8,
     "failedOrIncompleteBatches": 0,
     "incompleteBatches": 0,
     "rawExcludedFinishedGames": 0,
-    "rawObservedFinishedGames": 500,
+    "rawObservedFinishedGames": 800,
     "rawFailureCounts": {
       "illegalMoveEvents": 0,
       "illegalMoveGames": 0,
