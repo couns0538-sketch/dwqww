@@ -1,11 +1,11 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:18:25.599Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:26:26.735Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
 Stopped on two Threads2 soft-node item4 failures; Fable/Opus decision pending.
-Full exact histories and output preserved for both item4 failures. Items2/3 passed; zero sanitizer diagnostics. Earlier clean Threads1 coverage remains108games/15514searches; two failed batches receive zero clean credit. No further engine runs or source changes. Question0017 pushed at64c1624964b684e3ab54b22cf98004f2463850e6; independent source review verifies26sourcepins and explains possible helper-publication sampling, without claiming observed stopbranch.
+Paused since the two Threads2 item4 findings at02:10. Question0017 and complete fault histories pushed; no reply as of02:25. Source d9a8587 unchanged. Clean final coverage108games/15514searches, two failed batches zero-credit. Publication audit03 verifies5235textpaths,87packages,26sourcefiles unchanged. Match inputs verify; zero match games. Pause is not sanitizer run time.
 
 | Check | Result |
 |---|---|
@@ -102,4 +102,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 28, including this checkpoint.
+Progress pushes: 29, including this checkpoint.

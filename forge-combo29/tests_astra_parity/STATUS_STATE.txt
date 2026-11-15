@@ -55,8 +55,8 @@
       "stat": "c488e88f Apply source-only r3-20-faster-search-plumbing by three-way merge from e04556dd\n forge-combo29/include/forge/bitboard.hpp |   6 ++\n forge-combo29/include/forge/board.hpp    |  29 +++++++\n forge-combo29/src/bitboard.cpp           |   7 ++\n forge-combo29/src/board.cpp              | 144 +++++++++++++++++++------------\n forge-combo29/src/search.cpp             | 120 ++++++++++++++++++++------\n 5 files changed, 227 insertions(+), 79 deletions(-)"
     }
   ],
-  "pushes": 27,
-  "lastPush": "2026-11-15T02:16:52.589Z",
+  "pushes": 28,
+  "lastPush": "2026-11-15T02:18:27.954Z",
   "sourceChangesOnly": [
     "forge-combo29/src",
     "forge-combo29/include"
@@ -74,7 +74,7 @@
     "step1 any equality difference stops dependent work",
     "counts only; owner no Elo/speed claims overrides external request"
   ],
-  "lastCommit": "5c2d5965c3029febe44bd580ddb166e4f2d7705f",
+  "lastCommit": "db78435d4a229d84ca4360998078bee6a105a72d",
   "validation": {
     "step1": {
       "build": "passed",
@@ -1483,7 +1483,7 @@
       "originalProtocolCreditIncluded": false
     }
   },
-  "checkpointNote": "Full exact histories and output preserved for both item4 failures. Items2/3 passed; zero sanitizer diagnostics. Earlier clean Threads1 coverage remains108games/15514searches; two failed batches receive zero clean credit. No further engine runs or source changes. Question0017 pushed at64c1624964b684e3ab54b22cf98004f2463850e6; independent source review verifies26sourcepins and explains possible helper-publication sampling, without claiming observed stopbranch.",
+  "checkpointNote": "Paused since the two Threads2 item4 findings at02:10. Question0017 and complete fault histories pushed; no reply as of02:25. Source d9a8587 unchanged. Clean final coverage108games/15514searches, two failed batches zero-credit. Publication audit03 verifies5235textpaths,87packages,26sourcefiles unchanged. Match inputs verify; zero match games. Pause is not sanitizer run time.",
   "progressBatch": "extended indices2/8; seeds202611155203/202611155209",
   "active": {
     "stage": "extended-sanitizers",
@@ -6519,7 +6519,7 @@
     "relativeReportLinks": 14,
     "engineRuns": 0
   },
-  "commitMessage": "Preserve both Threads2 soft-node contract failures and exact histories",
+  "commitMessage": "Checkpoint pending soft-node review with publication and match-input verification",
   "referenceShutdown068919": {
     "utc": "2026-11-15T01:38:57.812Z",
     "pairs": 10,
@@ -8895,6 +8895,20 @@
       "relativeReportLinks": 18,
       "engineRuns": 0,
       "outputSha256": "395bc27484ae152c9e17ec84ce112b61150129e3439b1c1597cea11b8dd8bd12"
+    },
+    {
+      "file": "/workspace/work/parity-run/logs/publication-audit-03.stdout.txt",
+      "sha256": "b56ab5e3eb2cd92bf548151a4dd65319dd205fb1be8f180e2f7a7b66e5cb6f18",
+      "head": "db78435d4a229d84ca4360998078bee6a105a72d",
+      "utc": "2026-11-15T02:18:58.249Z",
+      "changedPaths": 5235,
+      "textBytes": 619553189,
+      "sourceFilesUnchanged": 26,
+      "manifests": 87,
+      "packageFiles": 4084,
+      "chunks": 4087,
+      "packageBytes": 577866194,
+      "relativeReportLinks": 22
     }
   ],
   "originalDeadline": "2026-11-15T02:19:40.000Z",
@@ -10399,6 +10413,15 @@
     "review": {
       "path": "forge-combo29/tests_astra_parity/softnodes-threads2-0017-review/REVIEW.md",
       "sha256": "fba348a80a3c8e224e670ecfbbe4cf415da6e56e0876d30bcd659b38935bf1e1"
+    },
+    "pendingReviewUTC": "2026-11-15T02:26:25.888Z",
+    "relatedBranchReview": {
+      "file": "/workspace/work/parity-run/logs/relevant-softnodes-branch-review.stdout.txt",
+      "heads": {
+        "grok47/r3-12-soft-nodes": "6d8717d287cc5f1038d53355b8b03d3cbba9e604",
+        "grok47/r4-01-integrate-r3": "110a87b06704cad16545b3ac8082ca6b3e38ac7a"
+      },
+      "finding": "Both tips still sample aggregate nodes separately for exact-info emission and soft-stop decision; no existing fix identified for this sampling case in these two tips."
     }
   }
 }
