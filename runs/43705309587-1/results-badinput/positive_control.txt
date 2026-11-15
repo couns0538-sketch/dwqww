@@ -1,0 +1,13 @@
+positive control, asan build: /home/runner/work/_temp/forge-ci-badinput/build-asan/san_control
+  none    exit    0 | expected: exit 0, 'clean run', no report | OK
+  heap    exit    1 | expected: exit not 0 and 'ERROR: AddressSanitizer' on stderr | OK
+          first report line: ==2740==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x503000000060 at pc 0x5576d9ae4dbc bp 0x7fff617532c0 sp 0x7fff617532b0
+  stack   exit    1 | expected: exit not 0 and 'ERROR: AddressSanitizer' or 'runtime error:' on stderr | OK
+          first report line: /home/runner/work/dwqww/dwqww/ours/ci/controls/san_control.cpp:25:12: runtime error: index 12 out of bounds for type 'int [8]'
+  uaf     exit    1 | expected: exit not 0 and 'ERROR: AddressSanitizer' on stderr | OK
+          first report line: ==2743==ERROR: AddressSanitizer: heap-use-after-free on address 0x502000000014 at pc 0x56378b81a091 bp 0x7ffcb7399330 sp 0x7ffcb7399320
+  signed  exit    1 | expected: exit not 0 and 'runtime error:' on stderr | OK
+          first report line: /home/runner/work/dwqww/dwqww/ours/ci/controls/san_control.cpp:34:21: runtime error: signed integer overflow: 2147483647 + 1 cannot be represented in type 'int'
+  shift   exit    1 | expected: exit not 0 and 'runtime error:' on stderr | OK
+          first report line: /home/runner/work/dwqww/dwqww/ours/ci/controls/san_control.cpp:38:19: runtime error: shift exponent 40 is too large for 32-bit type 'int'
+RESULT: PASS (every planted fault reported, the clean run clean)
