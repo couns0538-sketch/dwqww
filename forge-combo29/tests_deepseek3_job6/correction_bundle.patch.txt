@@ -1,0 +1,269 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..3ab92acad 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -275,6 +275,9 @@ extern int LmrHistoryDivisor;
+ extern int CheckExtensionDepth;
+ extern int LmrCutoffThreshold;    // child cutoff count above which late moves are reduced more (0 = off)
+ extern int MaterialCorrectionWeight; // 0 = off, 100 = same weight as the pawn correction
++// Correction history indexed by where the knights and bishops stand: 0 = off,
++// otherwise the weight in percent, as MaterialCorrectionWeight is.
++extern int MinorCorrection;
+ // Time management (sudden-death / increment controls).
+ extern int TmSoftDivisor;         // soft limit = remaining / divisor + increment share
+ extern int TmIncrementPercent;    // share of the increment added to the soft limit
+@@ -302,6 +305,7 @@ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null sea
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
++extern int CorrMargin;               // static-eval correction size widens the pruning margins; 0 = off (no node changes)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+@@ -399,6 +403,10 @@ struct SearchStack {
+     std::array<Move, 2> killers{};
+     Piece moved_piece = Empty;
+     int static_eval = ValueNone;
++    // Size in centipawns of the correction that corrected_eval() applied to
++    // static_eval (0 when in check or when no evaluation was computed). Read by
++    // CorrMargin to widen the pruning margins; always set, costs no node.
++    int corr_size_cp = 0;
+     int raw_eval = ValueNone;
+     int move_count = 0;
+     // 1-based index of the move that entered this node. 0 means the node was not
+@@ -476,6 +484,8 @@ private:
+     std::unique_ptr<CounterMoveTable> counter_moves_;
+     std::unique_ptr<CorrectionHistory> correction_history_;
+     std::unique_ptr<CorrectionHistory> material_correction_;
++    // R16 MinorCorrection: same shape as the two tables above, indexed by the minor-piece key.
++    std::unique_ptr<CorrectionHistory> minor_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_white_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_black_correction_;
+     std::array<SearchStack, MaxPly + 8> stack_{};
+@@ -552,7 +562,9 @@ private:
+     [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
+     void update_threat_quiet(const Board& board, Move move, int bonus);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+-    [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
++    // corr_size_out, when given, receives the size in centipawns of the correction
++    // this call applied; the two pruning sites use it to widen their margins.
++    [[nodiscard]] int corrected_eval(const Board& board, int raw_eval, int* corr_size_out = nullptr) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
+     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+ #if FORGE_NNUE_V3
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..4064b4ac0 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -76,6 +76,7 @@ int LmrHistoryDivisor = 6000;
+ int CheckExtensionDepth = 2;
+ int LmrCutoffThreshold = 3;
+ int MaterialCorrectionWeight = 100;
++int MinorCorrection = 0;
+ int TmSoftDivisor = 22;
+ int TmIncrementPercent = 75;
+ int TmHardPercent = 60;
+@@ -102,6 +103,9 @@ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
++// Size of the static eval correction widens the pruning margins: 0 = off.
++// Any other value is K, and a margin grows by corr_size_cp * K / 64.
++int CorrMargin = 0;
+ bool EvasionOrdering = false;
+ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+@@ -138,6 +142,7 @@ const std::vector<Parameter>& parameters() {
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
+         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
++        {"MinorCorrection", &MinorCorrection, 0, 300},
+         {"TmSoftDivisor", &TmSoftDivisor, 5, 80},            {"TmIncrementPercent", &TmIncrementPercent, 0, 150},
+         {"TmHardPercent", &TmHardPercent, 10, 95},           {"TmHardSoftMultiple", &TmHardSoftMultiple, 1, 20},
+         {"TmStableFactor", &TmStableFactor, 20, 150},        {"TmSemiStableFactor", &TmSemiStableFactor, 20, 150},
+@@ -1009,6 +1014,7 @@ Worker::Worker(SharedSearchState& shared, int id)
+       counter_moves_(std::make_unique<CounterMoveTable>()),
+       correction_history_(std::make_unique<CorrectionHistory>()),
+       material_correction_(std::make_unique<CorrectionHistory>()),
++      minor_correction_(std::make_unique<CorrectionHistory>()),
+       non_pawn_white_correction_(std::make_unique<CorrectionHistory>()),
+       non_pawn_black_correction_(std::make_unique<CorrectionHistory>()) {
+     clear();
+@@ -1025,6 +1031,7 @@ void Worker::clear() {
+     *counter_moves_ = CounterMoveTable{};
+     *correction_history_ = CorrectionHistory{};
+     *material_correction_ = CorrectionHistory{};
++    *minor_correction_ = CorrectionHistory{};
+     *non_pawn_white_correction_ = CorrectionHistory{};
+     *non_pawn_black_correction_ = CorrectionHistory{};
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+@@ -1042,6 +1049,26 @@ namespace {
+     return key * 0x9E3779B97F4A7C15ULL;
+ }
+ 
++// Where the knights and bishops of both sides stand. Each side's minors are mixed
++// with the splitmix64 finalizer, then the two sides are combined the same way, so a
++// move of one minor changes about half the bits of the result.
++[[nodiscard]] std::uint64_t minor_key(const Board& board) {
++    auto mix = [](std::uint64_t x) {
++        x += 0x9E3779B97F4A7C15ULL;
++        x = (x ^ (x >> 30)) * 0xBF58476D1CE4E5B9ULL;
++        x = (x ^ (x >> 27)) * 0x94D049BB133111EBULL;
++        return x ^ (x >> 31);
++    };
++    // Each piece type gets its OWN multiplier before mixing. Sharing one between
++    // knights and bishops would make a knight and a bishop on the same square the
++    // same key (they would XOR to zero), which the 100,000-position test found.
++    const std::uint64_t wk = mix(static_cast<std::uint64_t>(board.pieces(White, Knight)) ^ 0x243F6A8885A308D3ULL);
++    const std::uint64_t wb = mix(static_cast<std::uint64_t>(board.pieces(White, Bishop)) ^ 0x13198A2E03707344ULL);
++    const std::uint64_t bk = mix(static_cast<std::uint64_t>(board.pieces(Black, Knight)) ^ 0xA4093822299F31D0ULL);
++    const std::uint64_t bb = mix(static_cast<std::uint64_t>(board.pieces(Black, Bishop)) ^ 0x082EFA98EC4E6C89ULL);
++    return mix(mix(wk ^ wb) ^ (mix(bk ^ bb) * 0x9E3779B97F4A7C15ULL));
++}
++
+ // Hash of non-pawn piece placements of one side, for non-pawn correction history.
+ [[nodiscard]] std::uint64_t non_pawn_key(const Board& board, Color color) {
+     std::uint64_t key = static_cast<std::uint64_t>(color) * 0x517CC1B727220A95ULL;
+@@ -1207,7 +1234,7 @@ void Worker::record_null_move(SearchStack* ss) {
+     child->runtime_psqt.valid = false;
+ }
+ 
+-int Worker::corrected_eval(const Board& board, int raw_eval) const {
++int Worker::corrected_eval(const Board& board, int raw_eval, int* corr_size_out) const {
+     // Keep the recognized ending score exact: correction history must not tilt a draw or the corner drive.
+     if (dead_material_enabled) {
+         int fixed = 0;
+@@ -1218,12 +1245,19 @@ int Worker::corrected_eval(const Board& board, int raw_eval) const {
+     if (tune::MaterialCorrectionWeight > 0) {
+         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+     }
++    if (tune::MinorCorrection > 0) {
++        correction += (*minor_correction_)[side][minor_key(board) & (CorrectionSize - 1U)] * tune::MinorCorrection / 100;
++    }
+     if (tune::NonPawnCorrection) {
+         const std::int32_t np_w = (*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)];
+         const std::int32_t np_b = (*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)];
+         correction += (np_w + np_b) / 2;
+     }
+-    return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
++    const int correction_cp = correction / CorrectionGrain;
++    // Tell the caller how big the correction was, so a pruning site can widen its
++    // margin by it. Nothing else about the evaluation changes.
++    if (corr_size_out != nullptr) *corr_size_out = std::abs(correction_cp);
++    return std::clamp(raw_eval + correction_cp, -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+ 
+ void Worker::update_correction(const Board& board, int depth, int best_score, int static_eval) {
+@@ -1235,6 +1269,7 @@ void Worker::update_correction(const Board& board, int depth, int best_score, in
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
++    if (tune::MinorCorrection > 0) apply((*minor_correction_)[side][minor_key(board) & (CorrectionSize - 1U)]);
+     if (tune::NonPawnCorrection) {
+         apply((*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)]);
+         apply((*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)]);
+@@ -1459,12 +1494,13 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     int futility_base;
+     if (in_check) {
+         ss->static_eval = ValueNone;
++        ss->corr_size_cp = 0;
+         best_score = futility_base = -Infinite;
+     } else {
+         int eval;
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else ss->raw_eval = static_evaluate(board, ss);
+-        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());
++        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval, &ss->corr_size_cp), board.halfmove_clock());
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+@@ -1647,13 +1683,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     int eval;
+     if (in_check) {
+         eval = ss->static_eval = ss->raw_eval = ValueNone;
++        ss->corr_size_cp = 0;
+     } else if (!excluded.is_none()) {
+         eval = ss->static_eval;
+     } else {
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else if (reuse_raw) ss->raw_eval = reused_raw;
+         else ss->raw_eval = static_evaluate(board, ss);
+-        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());
++        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval, &ss->corr_size_cp), board.halfmove_clock());
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+@@ -1685,8 +1722,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (aborted_) return 0;
+             if (razor < alpha) return razor;
+         }
+-        // Reverse futility pruning.
+-        if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
++        // Reverse futility pruning. A large static-eval correction says the static
++        // eval has been unreliable in positions of this kind, so the margin widens
++        // by corr_size_cp * K / 64 (CorrMargin = K; 0 leaves this line unchanged).
++        const int corr_margin = tune::CorrMargin > 0 ? ss->corr_size_cp * tune::CorrMargin / 64 : 0;
++        if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving + corr_margin) >= beta &&
+             eval < MateInMaxPly) {
+             return eval;
+         }
+@@ -1870,7 +1910,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+                     (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+ #endif
+-                    ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
++                    // Same correction-size term as reverse futility above.
++                    ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth +
++                            (tune::CorrMargin > 0 ? ss->corr_size_cp * tune::CorrMargin / 64 : 0) <= alpha) {
+                     trace_case();
+                     quiet_fail = true;
+                     skip_quiets = true;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..d5a0771b7 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -219,6 +219,7 @@ int uci_loop(std::istream& in) {
+                          "option name LmrDeeperShallower type check default false\n"
+                          "option name EvalRule50Damp type check default false\n"
+                          "option name ThreatHistory type check default false\n"
++                         "option name MinorCorrection type spin default 0 min 0 max 300\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+@@ -226,6 +227,7 @@ int uci_loop(std::istream& in) {
+                          "option name NullSeeVeto type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+                          "option name AspArmLate type check default false\n"
++                         "option name CorrMargin type spin default 0 min 0 max 256\n"
+                          "option name EvasionOrdering type check default false\n"
+                          "option name DeadMaterial type check default false\n"
+                          "option name QuietExtinction type check default false\n"
+@@ -400,6 +402,14 @@ int uci_loop(std::istream& in) {
+                     forge::dead_material_enabled = value_text == "true";
+                     searcher.clear_hash();
+                 }
++            } else if (name == "MinorCorrection") {
++                int value = 0;
++                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
++                if (parsed.ec == std::errc{} && parsed.ptr == value_text.data() + value_text.size()) {
++                    forge::tune::MinorCorrection = std::clamp(value, 0, 300);
++                } else {
++                    note_invalid();
++                }
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+@@ -459,6 +469,13 @@ int uci_loop(std::istream& in) {
+                     note_invalid();
+                 }
+ #endif
++            } else if (name == "CorrMargin") {
++                apply_spin(0, 256, [&](int clamped) {
++                    if (forge::tune::CorrMargin != clamped) {
++                        forge::tune::CorrMargin = clamped;
++                        searcher.clear();
++                    }
++                });
+             } else if (name == "MultiPV") {
+                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+             } else if (name == "Hash") {

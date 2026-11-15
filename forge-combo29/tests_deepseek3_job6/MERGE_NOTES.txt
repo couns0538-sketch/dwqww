@@ -1,0 +1,45 @@
+Merging the two patches: what happened, and one error found in the other helper's report.
+
+a. Files each patch touches (grep '^+++ ')
+   C (my job 5, corr_margin.patch.txt):
+       forge-combo29/include/forge/search.hpp, forge-combo29/src/search.cpp, forge-combo29/src/uci.cpp
+       (paths carry the forge-combo29/ prefix, so it applies with `patch -p2` from inside forge-combo29)
+   M (deepseek2 job 8, minor_correction.patch.txt):
+       include/forge/search.hpp, src/search.cpp, src/uci.cpp
+       (no prefix, so `patch -p1` from inside forge-combo29)
+
+b. `git apply` IS NOT RELIABLE HERE, and this nearly cost the whole job.
+   `git apply --check` reported that M applied cleanly to a C-patched tree, and `git apply` exited 0,
+   but `grep MinorCorrection` afterwards found nothing: git printed only
+   "Skipped patch 'include/forge/search.hpp'" once -v was used, and returned success.
+   The same happened applying M alone to a CLEAN 6b98f217 tree. `patch -p1` applied it correctly
+   every time. So every merge in this job was done with patch(1), and each was verified by grepping
+   for the option names AND by the bench numbers below, not by an exit code.
+
+   Orders: both orders apply with patch(1). I used M then C, because M's hunks are anchored on the
+   unmodified corrected_eval/update_correction bodies and C's hunk on that same region shifts by a
+   fixed offset (2 hunks reported "succeeded at ... offset 28 lines"). No hunk had to be placed by
+   hand, and no hunk was rejected.
+
+c. Design point: the size CorrMargin uses DOES include the minor table's term. The merged
+   corrected_eval sums pawn + material + minor + non-pawn into `correction` and then computes
+   `correction_cp = correction / CorrectionGrain` once; `corr_size_out` is set from that single sum.
+   That is what the job expected ("the size of the whole correction that is applied") and it is also
+   the only version that makes sense: CorrMargin's premise is "the static eval has been wrong here
+   before", and any component of the correction is evidence of that.
+   bench 13 with both on (K=20, weight 50): 709481.
+
+e. A MISMATCH IN THE OTHER HELPER'S REPORT, reported as the job asks ("if one differs, say which line").
+   The job's check is: "MinorCorrection 100 alone = the other helper's bench numbers".
+   Their report has TWO different sets:
+       their P1 table (line "| nodes | 862,329 | 867,866 |")     bench 13 = 867866
+       their P4 line  ("bench 13 with MinorCorrection 100 | 867,866 nodes")   bench 13 = 867866
+       their P3 table ("bench 13 | 862329 | 937258")             bench 13 = 937258
+                                          ("bench 16 | 3024920 | 3780562")   bench 16 = 3780562
+   I built M ALONE on a clean 6b98f217 tree (no C, no hand edits) and got:
+       bench 11 = 314930, bench 13 = 867866, bench 16 = 3751556
+   So bench 11 matches their P3, but bench 13 and bench 16 match their P1/P4, NOT their P3.
+   Conclusion: their shipped minor_correction.patch.txt produces 867866 / 3751556; the P3 row
+   (937258 / 3780562) does not correspond to the patch they committed. My merge is consistent with
+   the patch, so I treat 867866 / 3751556 as the true "M alone" numbers and the merge as correct.
+   Command and output: logs/m-alone-verification.txt
