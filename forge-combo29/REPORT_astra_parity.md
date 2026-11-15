@@ -1,11 +1,11 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T03:52:26.262Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T04:02:23.174Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
-Final paired sanitizer workload 11/12 distinct groups covered; 11 clean batches.
-Final paired UCI batch continuation0018-c01-paired-softnodes-tsan-off-t4-n20000-d0: accepted-clean 12 games / 2303 searches; cumulative 416 games / 58475 searches. 0 batches with observed findings; 0 incomplete. Preliminary coverage excluded.
+Final paired sanitizer workload 12/12 distinct groups covered; 14 clean batches.
+Final paired UCI batch continuation0018-c02-paired-softnodes-asan-on-t1-n20000-d0: accepted-clean 18 games / 2877 searches; cumulative 472 games / 66295 searches. 0 batches with observed findings; 0 incomplete. Preliminary coverage excluded.
 
 | Check | Result |
 |---|---|
@@ -24,11 +24,11 @@ Final paired UCI batch continuation0018-c01-paired-softnodes-tsan-off-t4-n20000-
 | Final-tree original protocol | 5 finished games / 1102 searches observed; 0 accepted batches; 1 historical contract-failure batches retained |
 | Earlier strict-v2 protocol | 2 clean batches; 108 accepted games / 15514 searches; 2 historical sampling findings, zero clean credit for those batches |
 | Earlier SMP-amended protocol | 2 clean batches; 148 accepted games / 21436 searches; 2 retained deadline-finding batches, zero clean credit for those batches |
-| Final-tree0018 continuation | 11/12 distinct conditions covered; 11 clean batches from 11 recorded; 416 accepted games / 58475 searches; 0 diagnostic lines; 0 finding batches |
-| Current paired labels | 208 ordinary / 208 soft-node games; soft X 163147319/29500, mean 5530.417593220339; 4068 hard-cap cases |
-| Accepted final-tree totals across protocols | 672 games / 95425 searches; failed batches excluded |
-| Current-protocol SMP sampling exception | 327 accepted-clean searches; 327 observed; historical failures unchanged |
-| HindsightDepth match | 300 games; W-L-D 89-80-131; pair counts 6,36,61,37,10; Running; completed batches only |
+| Final-tree0018 continuation | 12/12 distinct conditions covered; 14 clean batches from 14 recorded; 472 accepted games / 66295 searches; 0 diagnostic lines; 0 finding batches |
+| Current paired labels | 236 ordinary / 236 soft-node games; soft X 184995468/33657, mean 5496.4930920759425; 4525 hard-cap cases |
+| Accepted final-tree totals across protocols | 728 games / 103245 searches; failed batches excluded |
+| Current-protocol SMP sampling exception | 395 accepted-clean searches; 395 observed; historical failures unchanged |
+| HindsightDepth match | 400 games; W-L-D 116-114-170; pair counts 10,48,84,46,12; Running; completed batches only |
 | Match operational findings | 0 crash markers; 0 illegal-move games; 0 disconnect games; 0 stalls; 0 aborts; raw side/process accounting retained separately |
 | Response-deadline diagnostics | 40/40 release and 2/2 TSan searches completed before quit; 0 response timeouts, sanitizer reports or abnormal exits; zero soak credit |
 
@@ -41,21 +41,23 @@ Final paired UCI batch continuation0018-c01-paired-softnodes-tsan-off-t4-n20000-
 | Current sanitizer group | Passed batches | Ordinary games/searches | Soft-node games/searches | Cap cases | Diagnostic lines / fault rows |
 |---|---|---|---|---|---|
 | asan/off/t1/n2000/d0 | 1/1 | 27/3940 | 27/4098 | 515 | 0/0 |
-| asan/off/t1/n20000/d0 | 1/1 | 11/1562 | 11/1529 | 159 | 0/0 |
+| asan/off/t1/n20000/d0 | 2/2 | 22/2900 | 22/3199 | 353 | 0/0 |
 | asan/off/t2/n2000/d0 | 1/1 | 43/5621 | 43/5655 | 849 | 0/0 |
 | asan/off/t2/n20000/d0 | 1/1 | 18/2384 | 18/2365 | 403 | 0/0 |
 | tsan/off/t2/n20000/d0 | 1/1 | 4/533 | 4/463 | 71 | 0/0 |
 | tsan/off/t4/n20000/d0 | 1/1 | 6/1139 | 6/1164 | 121 | 0/0 |
 | asan/on/t1/n2000/d0 | 1/1 | 29/3946 | 29/3915 | 414 | 0/0 |
-| asan/on/t1/n20000/d0 | 1/1 | 11/1672 | 11/1427 | 145 | 0/0 |
+| asan/on/t1/n20000/d0 | 2/2 | 20/2978 | 20/2998 | 317 | 0/0 |
 | asan/on/t2/n2000/d0 | 1/1 | 41/5361 | 41/5967 | 939 | 0/0 |
 | asan/on/t2/n20000/d0 | 1/1 | 14/2168 | 14/2443 | 388 | 0/0 |
 | tsan/on/t2/n20000/d0 | 1/1 | 4/649 | 4/474 | 64 | 0/0 |
+| tsan/on/t4/n20000/d0 | 1/1 | 8/1019 | 8/916 | 91 | 0/0 |
 
 Game and search counts in that table include only accepted clean batches in the current protocol; diagnostic and fault columns retain every recorded finding. Earlier protocol results remain separate. Both earlier depth64 declarations were unused. The SMP amendment changes the harness check only; the engine bytes remain unchanged.
 
-The current plan reserves72 batches; 61 have not run. Distinct-condition coverage is the12-condition check, not completion of the reserved inventory. Repeated batches: 0.
-Cycle 1: 11 clean batches from 11 recorded; 0 failed or incomplete.
+The current plan reserves72 batches; 58 have not run. Distinct-condition coverage is the12-condition check, not completion of the reserved inventory. Repeated batches: 2.
+Cycle 1: 12 clean batches from 12 recorded; 0 failed or incomplete.
+Cycle 2: 2 clean batches from 2 recorded; 0 failed or incomplete.
 
 
 The complete corpus is accepted through a separate, explicit decision for global position36729: unchanged a1b2, mate−6/2565143 before and mate−5/2566746 after, original plus10 fresh pairs. All other positions match. The source proof requires equal capped clocks with an old mate-distance rejection; no runtime TT-entry clock is claimed. The strict audit still lists its original difference and operational findings. [Acceptance evidence](tests_astra_parity/inputs/step2-effective-acceptance-S2-0007.txt).
@@ -132,4 +134,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 40, including this checkpoint.
+Progress pushes: 41, including this checkpoint.

@@ -1,0 +1,24 @@
+// Metadata only: audit and record one already finalized match batch.
+import fs from 'node:fs';
+import cp from 'node:child_process';
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+const root='/workspace/work/parity-run',id=process.argv[2];
+assert.match(id??'',/^B-\d{4}$/);
+assert.ok(fs.existsSync(root+'/matches-hindsight/batches/'+id+'.process.txt'));
+const suffix=id.slice(2);
+function invoke(label,args){
+ const p=cp.spawnSync('node',[root+'/command.mjs',label,...args],{cwd:root,encoding:'utf8',timeout:160000,maxBuffer:8*1024*1024});
+ const m=JSON.parse(fs.readFileSync(root+'/logs/'+label+'.metadata.txt'));
+ assert.equal(p.signal,null);assert.equal(m.signal,null);assert.equal(p.status,m.exit);
+ assert.equal(crypto.createHash('sha256').update(fs.readFileSync(m.stdoutFile)).digest('hex'),m.stdoutSha256);
+ console.log(JSON.stringify({label,exit:m.exit,stdoutFile:m.stdoutFile,stdoutSha256:m.stdoutSha256}));
+ return m;
+}
+const audit=invoke('job-b-audit-'+suffix,['node','/workspace/work/parity-match-0018-preparation/controller.mjs','audit',id]);
+assert.equal(audit.exit,0,'Audit did not pass; preserve all raw output and inspect before more native work');
+const value=JSON.parse(fs.readFileSync(audit.stdoutFile));assert.equal(value.passed,true);
+const rec=invoke('job-b-record-'+suffix,['node','/workspace/work/parity-match-0018-recording-preparation/record.mjs',id]);
+assert.equal(rec.exit,0);const s=JSON.parse(fs.readFileSync(root+'/state.json'));
+assert.equal(s.matchRows.find(x=>x.id===id)?.passed,true);
+console.log(JSON.stringify({utc:new Date().toISOString(),id,totals:s.matchTotals,engineRuns:0}));

@@ -5,6 +5,7 @@ export function renderReport(s,now){
  return ['# Requested source integration and cloud validation','',
  `Started ${s.start}; Job A deadline ${s.deadline}. Updated ${now}. Cloud VM only. Branch: \`${s.branch}\`. Base: \`${s.base}\`.`,
  ...(s.originalDeadline?['',`The original deadline was ${s.originalDeadline}. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to ${s.deadline} and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.`]:[]),
+ ...(s.jobAClosure?['',`Job A closed at ${s.jobAClosure.deadline}; accepted sanitizer coverage ${s.jobAClosure.acceptedGames} games / ${s.jobAClosure.acceptedSearches} searches, ${s.jobAClosure.coverage.covered}/${s.jobAClosure.coverage.required} conditions. [Deadline closeout and unverified work](${s.jobAClosure.report}). Job B retains its separate deadline ${s.jobAClosure.jobBDeadlineUnchanged}.`]:[]),
  '',s.phase+'.',s.checkpointNote??'',
  '','| Check | Result |','|---|---|',
  `| Step 1 default pins | ${step1.pins?`${step1.pins.bench11} / ${step1.pins.bench13} / ${step1.pins.perft5}`:'Pending'} |`,
