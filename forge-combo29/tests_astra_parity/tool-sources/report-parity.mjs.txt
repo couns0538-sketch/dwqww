@@ -24,6 +24,7 @@ export function renderReport(s,now){
  `| ${smp?'Final-tree SMP-amended protocol':'Final-tree strict depth64 v2'} | ${strict?`${strict.uniqueGroupsPassed??strict.passedBatches}/12 distinct conditions covered; ${strict.passedBatches} clean batches from ${strict.recordedBatches} recorded; ${strict.games} accepted games / ${strict.searches} searches; ${strict.diagnosticLines} diagnostic lines; ${strict.faultBatches} finding batches`:'Not started; no new coverage claimed'} |`,
  `| Current paired labels | ${strict?`${strict.usual.games} ordinary / ${strict.soft.games} soft-node games; soft X ${strict.softXSum}/${strict.softXCount}, mean ${strict.softMeanX??'unavailable'}; ${strict.softHardCaps} hard-cap cases`:'Pending'} |`,
  ...(smp?[`| Accepted final-tree totals across protocols | ${extended.games+smp.games} games / ${extended.searches+smp.searches} searches; failed batches excluded |`]:[]),
+ ...(smp?.smpSamplingExceptions?[`| SMP sampling exception | ${smp.smpSamplingExceptions.acceptedClean} accepted-clean searches; ${smp.smpSamplingExceptions.observed} observed in all new batches; historical failures unchanged |`]:[]),
  `| HindsightDepth match | ${s.matchTotals?.games??0} games; ${s.matchTotals?.status??'Not started'} |`,
  '','| Imported source branch | Source commit | Applied commit | Conflicts |','|---|---|---|---|',
  ...s.sourceCommits.map(x=>`| ${x.sourceBranch} | ${x.source} | ${x.commit} | ${x.conflicts} |`),

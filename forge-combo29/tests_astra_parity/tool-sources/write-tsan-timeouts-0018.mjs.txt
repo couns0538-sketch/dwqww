@@ -1,0 +1,19 @@
+import fs from 'node:fs';import crypto from 'node:crypto';import assert from 'node:assert/strict';
+const root='/workspace/work/parity-run',sf=root+'/state.json',s=JSON.parse(fs.readFileSync(sf)),sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+assert.equal(s.blockFurtherEngineWork,true);const faults=[];
+for(const index of [4,10]){
+ const r=s.smpPairedSoftnodesRows.find(x=>x.index===index);assert.equal(r.passed,false);assert.equal(r.diagnosticLines,0);
+ const raw=fs.readFileSync(r.rawSource+'/stdout.txt','utf8'),f=JSON.parse(raw.split('\n').find(x=>x.startsWith('FAULT ')).slice(6));assert.equal(f.reason.split('\n')[0],'engine response timeout');assert.equal(f.label_fault,false);
+ const lastInfo=f.reason.split('\n').filter(x=>/^< stdout info .*\bscore /.test(x)).at(-1);
+ const file=`forge-combo29/tests_astra_parity/faults/tsan-response-timeout-0018-${index}.txt`;
+ const body=[`TSan response-deadline finding0018, batch${index}; ${new Date().toISOString()}`,`Source ${s.sameClockCommit}; seed${r.seed}; Threads2, Hash16, OwnBookfalse, HindsightDepth+MateAlphaGuard ${r.enabled}.`,
+ 'The ordinary go depth9 search did not supply bestmove within the frozen harness per-search15second deadline (softnodes_play.cpp218–222). This is not the180second batch target or420second hard batch bound.',
+ 'No TSan diagnostic or illegal/missing move was observed before timeout. The timeout prevented a completed result for the triggering search; no correctness result is credited for it. The engine subsequently accepted quit and exited normally. A timeout does not by itself establish a deadlock or engine defect.',
+ 'Original failed batch retains zero accepted-clean credit; prior completed pairs and partial observations are separate. Exact full position history and prior warm process state are retained. Zero targeted repeat searches so far; a10-try repetition frequency has not been measured.',
+ 'EXACT TRIGGER',JSON.stringify(f.context,null,2),'LAST INFO AT DEADLINE',lastInfo??'No score line found','SHUTDOWN',JSON.stringify(r.shutdowns,null,2),
+ ...['command.txt','input-pins.txt','start.txt','stdout.txt','stderr.txt'].flatMap(n=>{const b=fs.readFileSync(r.rawSource+'/'+n);assert.equal(sha(b),r.rawPins[r.rawSource+'/'+n]);return[`FULL ${n}; bytes=${b.length}; sha256=${sha(b)}`,b.toString('utf8'),`END ${n}`];})].join('\n')+'\n';
+ assert.ok(Buffer.byteLength(body)<16*1024*1024);fs.writeFileSync(s.repo+'/'+file,body,{flag:'wx'});
+ faults.push({index,seed:r.seed,label:r.label,file,sha256:sha(body),context:f.context,lastInfo,shutdowns:r.shutdowns,auditSha256:r.auditSha256,rawStdoutSha256:r.rawPins[r.rawSource+'/stdout.txt'],repeatSearches:0});
+}
+s.tsanResponseTimeouts={recordedUTC:new Date().toISOString(),sourceCommit:s.sameClockCommit,perSearchSeconds:15,faults,resolved:false};
+s.phase='Stopped on two TSan depth9 response-deadline findings; preserve and classify';s.progressBatch='SMP indices4/10 seeds202611160105/202611160111';s.checkpointNote='Both TSanT2 ordinary depth9 searches exceeded15s. No sanitizer diagnostic; normalquit24.00694/29.126809ms. Both failed batches zero-credit. Acceptedfinal totals across protocols256games/36950searches;137amendedsamplingcases. Source unchanged. No new native launch after first timeoutfinding.';s.commitMessage='Preserve both TSan response-deadline findings with full warm histories';fs.writeFileSync(sf,JSON.stringify(s,null,2)+'\n');console.log(JSON.stringify({faults:faults.map(({index,file,sha256,lastInfo})=>({index,file,sha256,lastInfo})),blocked:s.blockFurtherEngineWork}));

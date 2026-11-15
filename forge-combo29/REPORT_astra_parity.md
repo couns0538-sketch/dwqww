@@ -1,11 +1,11 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:43:06.884Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:51:26.118Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
-Resuming final-tree sanitizers under separately declared Fable0017 SMP rule.
-New harness46syntheticchecks, recorder24accountingchecks and independentreview passed. Amended declaration ddf3bd4d pins unchanged final engines. Global stop cleared only under explicit0017 resolution; all historical stops/audits/zero-credit failures preserved.
+Stopped on two TSan depth9 response-deadline findings; preserve and classify.
+Both TSanT2 ordinary depth9 searches exceeded15s. No sanitizer diagnostic; normalquit24.00694/29.126809ms. Both failed batches zero-credit. Acceptedfinal totals across protocols256games/36950searches;137amendedsamplingcases. Source unchanged. No new native launch after first timeoutfinding.
 
 | Check | Result |
 |---|---|
@@ -18,12 +18,15 @@ New harness46syntheticchecks, recorder24accountingchecks and independentreview p
 | Step 2 option checks and unit rows | 16/16 option counts; 9 unit rows, 0 failures |
 | Step 2 targeted position | a1b2, mate -5, 2566746 nodes; depth9, Threads1 |
 | Step 2 exact corpus | 100000/100000; 1 differences; effective gate accepted with listed same-clock attribution; strict audit retained |
-| Prescribed shutdown diagnostic | 2000/2000 cycles; candidate/reference timeouts 0/0; max quit-to-exit 16.077182/14.05392 ms; ordinary runs resumed by separate decision |
+| Prescribed shutdown diagnostic | 2000/2000 cycles; candidate/reference timeouts 0/0; max quit-to-exit 16.077182/14.05392 ms; ordinary runs paused |
 | Preliminary step 1 sanitizers | 393 games / 52681 searches; 0 findings |
 | Preliminary paired UCI check | 132 ordinary / 87 soft-node searches; 8 cap cases; 0 label faults |
 | Final-tree original protocol | 5 finished games / 1102 searches observed; 0 accepted batches; 1 historical contract-failure batches retained |
-| Final-tree strict depth64 v2 | 2/12 distinct conditions covered; 2 clean batches from 4 recorded; 108 accepted games / 15514 searches; 0 diagnostic lines; 2 finding batches |
-| Current paired labels | 54 ordinary / 54 soft-node games; soft X 42226157/7874, mean 5362.7326644653285; 911 hard-cap cases |
+| Earlier strict-v2 protocol | 2 clean batches; 108 accepted games / 15514 searches; 2 historical sampling findings, zero clean credit for those batches |
+| Final-tree SMP-amended protocol | 2/12 distinct conditions covered; 2 clean batches from 4 recorded; 148 accepted games / 21436 searches; 0 diagnostic lines; 2 finding batches |
+| Current paired labels | 74 ordinary / 74 soft-node games; soft X 63473324/11143, mean 5696.250919860002; 1871 hard-cap cases |
+| Accepted final-tree totals across protocols | 256 games / 36950 searches; failed batches excluded |
+| SMP sampling exception | 137 accepted-clean searches; 144 observed in all new batches; historical failures unchanged |
 | HindsightDepth match | 0 games; Not started |
 
 | Imported source branch | Source commit | Applied commit | Conflicts |
@@ -34,10 +37,10 @@ New harness46syntheticchecks, recorder24accountingchecks and independentreview p
 
 | Current sanitizer group | Passed batches | Ordinary games/searches | Soft-node games/searches | Cap cases | Diagnostic lines / fault rows |
 |---|---|---|---|---|---|
-| asan/off/t1/n2000/d0 | 1/1 | 26/3563 | 26/4073 | 443 | 0/0 |
-| asan/off/t2/n2000/d0 | 0/1 | 0/0 | 0/0 | 0 | 0/1 |
-| asan/on/t1/n2000/d0 | 1/1 | 28/4077 | 28/3801 | 468 | 0/0 |
-| asan/on/t2/n2000/d0 | 0/1 | 0/0 | 0/0 | 0 | 0/1 |
+| asan/off/t2/n2000/d0 | 1/1 | 38/5053 | 38/5616 | 932 | 0/0 |
+| tsan/off/t2/n0/d9 | 0/1 | 0/0 | 0/0 | 0 | 0/1 |
+| asan/on/t2/n2000/d0 | 1/1 | 36/5240 | 36/5527 | 939 | 0/0 |
+| tsan/on/t2/n0/d9 | 0/1 | 0/0 | 0/0 | 0 | 0/1 |
 
 Game and search counts in that table include only accepted clean batches in the current protocol; diagnostic and fault columns retain every recorded finding. Earlier protocol results remain separate. Both earlier depth64 declarations were unused. The SMP amendment changes the harness check only; the engine bytes remain unchanged.
 
@@ -106,4 +109,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 32, including this checkpoint.
+Progress pushes: 33, including this checkpoint.
