@@ -1,0 +1,42 @@
+export function renderReport(s,now){
+ const step1=s.validation?.step1??{},eq=s.equalityTotals?.step1??{},step2=s.validation?.step2??{},pre=s.soakTotals?.preliminaryStep1??{},final=s.soakTotals?.finalTree??{};
+ const json=x=>JSON.stringify(x??{status:'not started'});
+ const e=typeof eq==='object'?eq:{};
+ return ['# Requested source integration and cloud validation','',
+ `Started ${s.start}; Job A deadline ${s.deadline}. Updated ${now}. Cloud VM only. Branch: \`${s.branch}\`. Base: \`${s.base}\`.`,
+ '',s.phase+'.',s.checkpointNote??'',
+ '','| Check | Result |','|---|---|',
+ `| Step 1 default pins | ${step1.pins?`${step1.pins.bench11} / ${step1.pins.bench13} / ${step1.pins.perft5}`:'Pending'} |`,
+ `| Step 1 option bench counts | ${step1.options?`${step1.options.passed} passed; ${step1.options.failed} failed`:'Pending'} |`,
+ `| Step 1 hand evaluation | ${step1.handEval?.matched?'375354 / 907205; frozen reference and candidate match':'Pending'} |`,
+ `| Step 1 exact corpus | ${e.completed??e.positions??0} / 100000 completed; ${e.differences??0} differences; ${e.operationalFindings??e.operationalFaults??0} retained operational findings; ${e.gatePassed?'gate passed':'gate incomplete'} |`,
+ `| Same-clock refinement | ${s.sameClockCommit??'Not applied; full step 1 gate required'} |`,
+ `| Preliminary step 1 sanitizers | ${pre.games??0} games / ${pre.searches??0} searches; ${pre.faults??0} findings |`,
+ `| Final-tree sanitizers | ${final.games??0} games / ${final.searches??0} searches; ${final.status??'See detailed evidence below'} |`,
+ `| HindsightDepth match | ${s.matchTotals?.games??0} games; ${s.matchTotals?.status??'Not started'} |`,
+ '','| Imported source branch | Source commit | Applied commit | Conflicts |','|---|---|---|---|',
+ ...s.sourceCommits.map(x=>`| ${x.sourceBranch} | ${x.source} | ${x.commit} | ${x.conflicts} |`),
+ '',
+ 'Each source change has its own commit. The three merges use e04556dd as their per-file ancestor. Full base/ours/theirs/output snapshots are in [merge evidence](tests_astra_parity/merges).',
+ '',
+ s.coordination?.answer0012?'The original S1-0001 shutdown allowance occurrence remains under operational findings. Ten fresh candidate/reference pairs returned the same move, score and nodes with 20 normal exits. Fable answer0012 permits continuation from the retained cursors; a second candidate occurrence requires the prescribed diagnostic. The original allowance and elapsed time were not logged. New comparisons measure shutdown timing. [Decision](tests_astra_parity/inputs/FABLE_ANSWER_0012.md.txt), [original finding](tests_astra_parity/faults/shutdown-017629.txt), [repeat results](tests_astra_parity/shutdown-review-017629/REPRODUCTION.txt).':'The initial equality audit and any retained findings remain separate from search equality.',
+ '',
+ 'The isolated nine-row same-clock test was first run before the edit: only row5 failed, as expected for the unchanged function. Its expected values are fixed. [Before-edit output](tests_astra_parity/logs/same-clock-table-step1-before-edit.stdout.txt).',
+ '',
+ s.newRequiredCoverage??'Final-tree sanitizer coverage is pending.',
+ '',
+ 'Preliminary sanitizer results test the three-import tree and are recorded separately from final-tree coverage. The old in-process driver reuses a Searcher through successive moves. The new UCI harness pairs usual-limit and softnodes2500 games and checks the exact training-label contract.',
+ '',
+ 'The actual owner-PC compiler, PGO profile, runtime tuning and active network were not independently tested here. This report covers the specifically requested source changes, cloud builds and recorded options. Fable reports an independent source comparison in answer0012; that is attributed evidence, not a cloud run on the PC.',
+ '',
+ 'Detailed state and all command/output files are retained: [state snapshot](tests_astra_parity/STATUS_STATE.txt), [commands and raw output](tests_astra_parity/logs), [progress](tests_astra_parity/PROGRESS.txt). Large raw text logs use immutable chunks with byte counts and SHA256 reconstruction manifests. All published additions are text under this report and tests_astra_parity. Existing tests, expected values, CMake and earlier evidence remain unchanged.',
+ '',
+ `Step 2 details: ${json(step2)}.`,
+ `Final soak details: ${json(final)}.`,
+ `Match details: ${json(s.matchTotals)}.`,
+ '',
+ 'No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.',
+ `Progress pushes: ${s.pushes+1}, including this checkpoint.`,
+ ''
+ ].join('\n');
+}

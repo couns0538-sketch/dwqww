@@ -1,0 +1,967 @@
+{
+  "repo": "/workspace/work/dwqww-parity",
+  "branch": "for-fable-and-opus/astra-0011-pc-parity",
+  "base": "65e600e237ce6cc955abd3dd4637f92defc85f5f",
+  "start": "2026-11-14T23:19:40.000Z",
+  "budgetMinutes": 180,
+  "deadline": "2026-11-15T02:19:40.000Z",
+  "phase": "Step1 exact corpus in progress",
+  "sourceCommits": [
+    {
+      "step": 1,
+      "sourceBranch": "grok47/r3-18-lazy-net-accumulator",
+      "source": "8207842201cadf2b7e70948b9845cd4965a184a2",
+      "mergeBase": "e04556ddc3a430b2e751159b0d46111ef56c8b89",
+      "before": "65e600e237ce6cc955abd3dd4637f92defc85f5f",
+      "commit": "4fd62b3a4319d695d986695128d7f77fd92b6f09",
+      "files": [
+        "forge-combo29/include/forge/nnue.hpp",
+        "forge-combo29/include/forge/search.hpp",
+        "forge-combo29/src/nnue.cpp",
+        "forge-combo29/src/search.cpp"
+      ],
+      "conflicts": 0,
+      "stat": "4fd62b3a Apply source-only r3-18-lazy-net-accumulator by three-way merge from e04556dd\n forge-combo29/include/forge/nnue.hpp   |  10 +++\n forge-combo29/include/forge/search.hpp |  12 ++-\n forge-combo29/src/nnue.cpp             | 160 ++++++++++++++++++++++++++++++---\n forge-combo29/src/search.cpp           |  81 ++++++++++++++---\n 4 files changed, 233 insertions(+), 30 deletions(-)",
+      "recovery": "Initial diff check failed on missing historical report blob95d0c4d1334ff300aa4df1ef27f4aa099a2fb79f. Changed sparse-checkout metadata to exact authorized paths; all merge outputs remain byte-identical. Repeated diff check passes."
+    },
+    {
+      "step": 2,
+      "sourceBranch": "grok47/r3-19-faster-hce",
+      "source": "528ccdf1cbba5366c78b8bc75d89237d783a0171",
+      "mergeBase": "e04556ddc3a430b2e751159b0d46111ef56c8b89",
+      "before": "4fd62b3a4319d695d986695128d7f77fd92b6f09",
+      "commit": "d7326b9b94eb06e8863843db893ae36ed8372198",
+      "files": [
+        "forge-combo29/src/eval.cpp"
+      ],
+      "conflicts": 0,
+      "stat": "d7326b9b Apply source-only r3-19-faster-hce by three-way merge from e04556dd\n forge-combo29/src/eval.cpp | 228 +++++++++++++++++++++++++++------------------\n 1 file changed, 135 insertions(+), 93 deletions(-)"
+    },
+    {
+      "step": 3,
+      "sourceBranch": "grok47/r3-20-faster-search-plumbing",
+      "source": "decec377588a446e2020a7e3634f6cc2a00533be",
+      "mergeBase": "e04556ddc3a430b2e751159b0d46111ef56c8b89",
+      "before": "d7326b9b94eb06e8863843db893ae36ed8372198",
+      "commit": "c488e88fddc71a7ceadddb15270d3f62f6add8d9",
+      "files": [
+        "forge-combo29/include/forge/bitboard.hpp",
+        "forge-combo29/include/forge/board.hpp",
+        "forge-combo29/src/bitboard.cpp",
+        "forge-combo29/src/board.cpp",
+        "forge-combo29/src/search.cpp"
+      ],
+      "conflicts": 0,
+      "stat": "c488e88f Apply source-only r3-20-faster-search-plumbing by three-way merge from e04556dd\n forge-combo29/include/forge/bitboard.hpp |   6 ++\n forge-combo29/include/forge/board.hpp    |  29 +++++++\n forge-combo29/src/bitboard.cpp           |   7 ++\n forge-combo29/src/board.cpp              | 144 +++++++++++++++++++------------\n forge-combo29/src/search.cpp             | 120 ++++++++++++++++++++------\n 5 files changed, 227 insertions(+), 79 deletions(-)"
+    }
+  ],
+  "pushes": 8,
+  "lastPush": "2026-11-15T00:17:28.908Z",
+  "sourceChangesOnly": [
+    "forge-combo29/src",
+    "forge-combo29/include"
+  ],
+  "newFilesOnly": [
+    "forge-combo29/REPORT_astra_parity.md",
+    "forge-combo29/tests_astra_parity"
+  ],
+  "constraints": [
+    "cloud only",
+    "no existing test/expected file changes",
+    "no CMake edits",
+    "text only",
+    "stop and ask team on any merge conflict",
+    "step1 any equality difference stops dependent work",
+    "counts only; owner no Elo/speed claims overrides external request"
+  ],
+  "lastCommit": "42a1dc6d49c85964b1b37b7e50341d6acc3e78bc",
+  "validation": {
+    "step1": {
+      "build": "passed",
+      "pins": {
+        "bench11": 312866,
+        "bench13": 862329,
+        "perft5": 4865609
+      },
+      "options": {
+        "passed": 16,
+        "failed": 0,
+        "rows": [
+          {
+            "name": "EvalRule50Damp",
+            "value": "true",
+            "expected": 1049205,
+            "got": 1049205
+          },
+          {
+            "name": "ThreatHistory",
+            "value": "true",
+            "expected": 643389,
+            "got": 643389
+          },
+          {
+            "name": "LmrSignedCorrection",
+            "value": "true",
+            "expected": 862329,
+            "got": 862329
+          },
+          {
+            "name": "LmrLateParentRelief",
+            "value": "true",
+            "expected": 818656,
+            "got": 818656
+          },
+          {
+            "name": "HindsightDepth",
+            "value": "true",
+            "expected": 840387,
+            "got": 840387
+          },
+          {
+            "name": "NullThreatVerify",
+            "value": "true",
+            "expected": 789456,
+            "got": 789456
+          },
+          {
+            "name": "NullSeeVeto",
+            "value": "true",
+            "expected": 929140,
+            "got": 929140
+          },
+          {
+            "name": "AspCappedReopen",
+            "value": "true",
+            "expected": 850997,
+            "got": 850997
+          },
+          {
+            "name": "AspArmLate",
+            "value": "true",
+            "expected": 870398,
+            "got": 870398
+          },
+          {
+            "name": "EvasionOrdering",
+            "value": "true",
+            "expected": 772890,
+            "got": 772890
+          },
+          {
+            "name": "DeadMaterial",
+            "value": "true",
+            "expected": 862329,
+            "got": 862329
+          },
+          {
+            "name": "QuietExtinction",
+            "value": "true",
+            "expected": 632155,
+            "got": 632155
+          },
+          {
+            "name": "DrawJitter",
+            "value": "8",
+            "expected": 857947,
+            "got": 857947
+          },
+          {
+            "name": "TmFinishIteration",
+            "value": "true",
+            "expected": 862329,
+            "got": 862329
+          },
+          {
+            "name": "TmNodeShare",
+            "value": "true",
+            "expected": 862329,
+            "got": 862329
+          },
+          {
+            "name": "SoundMatePruning",
+            "value": "true",
+            "expected": 980408,
+            "got": 980408
+          }
+        ]
+      },
+      "equality": {
+        "completed": 49964,
+        "lowClock": 49944,
+        "highClock": 20,
+        "differences": 0,
+        "operationalFindings": 1,
+        "gatePassed": false,
+        "targetMet": false,
+        "shutdownTiming": {
+          "schema": 1,
+          "measurement": "steady_clock immediately before full quit write to first successful waitpid observation; null when unavailable; total shutdown duration and actual requested budget retained",
+          "bySide": {
+            "merged": {
+              "observed": 49976,
+              "measured": 33251,
+              "unavailable": 2,
+              "legacyUnmeasured": 16723,
+              "maxMs": 36.161626,
+              "over100ms": 0
+            },
+            "lock": {
+              "observed": 49971,
+              "measured": 33247,
+              "unavailable": 2,
+              "legacyUnmeasured": 16722,
+              "maxMs": 29.247164,
+              "over100ms": 0
+            }
+          },
+          "byBudgetAndForcedStatus": {
+            "merged:budget=false:forced=false": {
+              "observed": 49970,
+              "measured": 33249,
+              "unavailable": 0,
+              "legacyUnmeasured": 16721,
+              "maxMs": 36.161626,
+              "over100ms": 0
+            },
+            "lock:budget=false:forced=false": {
+              "observed": 49964,
+              "measured": 33245,
+              "unavailable": 0,
+              "legacyUnmeasured": 16719,
+              "maxMs": 29.247164,
+              "over100ms": 0
+            },
+            "merged:budget=true:forced=true": {
+              "observed": 3,
+              "measured": 0,
+              "unavailable": 2,
+              "legacyUnmeasured": 1,
+              "maxMs": null,
+              "over100ms": 0
+            },
+            "merged:budget=false:forced=true": {
+              "observed": 1,
+              "measured": 0,
+              "unavailable": 0,
+              "legacyUnmeasured": 1,
+              "maxMs": null,
+              "over100ms": 0
+            },
+            "lock:budget=true:forced=false": {
+              "observed": 4,
+              "measured": 2,
+              "unavailable": 0,
+              "legacyUnmeasured": 2,
+              "maxMs": 6.71076,
+              "over100ms": 0
+            },
+            "lock:budget=true:forced=true": {
+              "observed": 3,
+              "measured": 0,
+              "unavailable": 2,
+              "legacyUnmeasured": 1,
+              "maxMs": null,
+              "over100ms": 0
+            },
+            "merged:budget=true:forced=false": {
+              "observed": 2,
+              "measured": 2,
+              "unavailable": 0,
+              "legacyUnmeasured": 0,
+              "maxMs": 16.134311,
+              "over100ms": 0
+            }
+          },
+          "maxMs": 36.161626,
+          "over100ms": 0,
+          "candidateTimeoutOccurrences": 1,
+          "referenceTimeoutOccurrences": 0,
+          "inheritedCandidateTimeoutOccurrences": 0,
+          "timeoutOccurrences": [
+            {
+              "batch": "/workspace/work/parity-run/equality-batches/step1/S1-0001/summary.txt",
+              "worker": 1,
+              "localIndex": 4407,
+              "globalRecordIndex": 17629,
+              "attempt": 0,
+              "side": "merged",
+              "pureShutdownAllowanceOccurrence": true,
+              "quitToExitMs": null,
+              "shutdownBudgetMs": null
+            }
+          ],
+          "timingErrors": []
+        },
+        "audit": "/workspace/work/parity-run/equality-speed-v3/audits/S1-0003.txt",
+        "stage": "speed",
+        "id": "S1-0003",
+        "recorderFile": "/workspace/work/parity-equality-recording-preparation/record-equality.mjs",
+        "recorderSha256": "00f0395b58746b279672d1a9a82f551904abad5e05d0dee680f24ec11dc09063",
+        "packageToolSha256": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
+        "receipt": "/workspace/work/parity-run/equality-speed-v3/receipts/S1-0003.txt",
+        "receiptSha256": "2d9128069397b419baac519d4edcbcc3f7cb3dc442899a666f3d9a5907239b50",
+        "auditSha256": "85aaa9783e4458bc4606ec7ad37b82bbedf15372c6550ef4ce1d51631bd3f8a0",
+        "partialDifferences": 0,
+        "exactOriginal100k": false,
+        "continuationAllowed": true,
+        "attributionPending": false,
+        "operationalClassification": {
+          "commit": "7188f6b5f8ecc0ba88d4ec1997aaf2dd1161a82d",
+          "file": "/workspace/work/parity-equality-preparation-v3/FABLE_ANSWER_0012.md",
+          "sha256": "c43cf885c83df3be5453fbe71087e8311506cbd7a97af298b43d3c24c2515642",
+          "rawOperationalFaultsRetained": 1,
+          "classifiedShutdownAllowanceOccurrences": 1,
+          "otherOperationalFaults": 0,
+          "escalationRequired": false,
+          "requiredDiagnostic": null,
+          "operationalContinuationAllowed": true,
+          "continuationAllowed": true,
+          "completionGateSatisfied": false,
+          "engineFaultClassification": "Pure retained shutdown allowance occurrences are operational findings; all other faults remain blocking."
+        },
+        "nativeRuns": 0,
+        "counts": {
+          "records_completed": 50351,
+          "positions": 49964,
+          "positions_low_clock": 49944,
+          "positions_high_clock": 20,
+          "differences_low_clock": 0,
+          "differences_high_clock": 0,
+          "fault_positions": 0,
+          "excluded": 387,
+          "excluded_no_legal": 17,
+          "excluded_insufficient": 370,
+          "excluded_halfmove100": 0,
+          "invalid_fens": 0,
+          "engine_runs": 99928,
+          "illegal": 0,
+          "missing": 0,
+          "missing_info": 0,
+          "wrong_depth": 0,
+          "sanitizer_issues": 0,
+          "transport_issues": 0,
+          "crashes": 0,
+          "nonzero_exits": 0,
+          "shutdown_timeouts": 0,
+          "reproduction_pairs": 0,
+          "reproduction_differences": 0,
+          "reproduction_fault_pairs": 0
+        },
+        "package": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0003",
+        "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1-records/S1-0003"
+      },
+      "binarySha256": "f02cd1cfc2f81b7b2cd3e6306d6b63c3d4afa3d641fdc847da584f89fc6e9569",
+      "handEval": {
+        "frozen": [
+          {
+            "depth": 11,
+            "nodes": 375354
+          },
+          {
+            "depth": 13,
+            "nodes": 907205
+          }
+        ],
+        "candidate": [
+          {
+            "depth": 11,
+            "nodes": 375354
+          },
+          {
+            "depth": 13,
+            "nodes": 907205
+          }
+        ],
+        "matched": true,
+        "reason": "The imported eval.cpp path is otherwise disabled by default NNUE; this cheap targeted check exercises that changed path."
+      },
+      "sameClockBeforeEdit": {
+        "cases": 9,
+        "failures": 1,
+        "failedRows": [
+          5
+        ],
+        "meaning": "Intended before-edit demonstration: requested row5 is refused by unchanged function; all other requested rows already pass. Expected values fixed for later step2."
+      },
+      "preliminaryAsanBuild": "passed; instrumented core and unchanged driver linked; final-tree coverage not yet started"
+    }
+  },
+  "checkpointNote": "step1 49964/100000 exact selected comparisons; 0 differences, 1 retained operational findings. Continuation authorized; corpus completion pending. Raw evidence and v3 metadata packaged immutably; source/commit/push state preserved.",
+  "progressBatch": "S1-0003 seed1449530003",
+  "active": null,
+  "equalityTotals": {
+    "step1": {
+      "stage": "speed",
+      "id": "S1-0003",
+      "recorderFile": "/workspace/work/parity-equality-recording-preparation/record-equality.mjs",
+      "recorderSha256": "00f0395b58746b279672d1a9a82f551904abad5e05d0dee680f24ec11dc09063",
+      "packageToolSha256": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
+      "receipt": "/workspace/work/parity-run/equality-speed-v3/receipts/S1-0003.txt",
+      "receiptSha256": "2d9128069397b419baac519d4edcbcc3f7cb3dc442899a666f3d9a5907239b50",
+      "audit": "/workspace/work/parity-run/equality-speed-v3/audits/S1-0003.txt",
+      "auditSha256": "85aaa9783e4458bc4606ec7ad37b82bbedf15372c6550ef4ce1d51631bd3f8a0",
+      "completed": 49964,
+      "lowClock": 49944,
+      "highClock": 20,
+      "differences": 0,
+      "partialDifferences": 0,
+      "operationalFindings": 1,
+      "exactOriginal100k": false,
+      "continuationAllowed": true,
+      "attributionPending": false,
+      "gatePassed": false,
+      "shutdownTiming": {
+        "schema": 1,
+        "measurement": "steady_clock immediately before full quit write to first successful waitpid observation; null when unavailable; total shutdown duration and actual requested budget retained",
+        "bySide": {
+          "merged": {
+            "observed": 49976,
+            "measured": 33251,
+            "unavailable": 2,
+            "legacyUnmeasured": 16723,
+            "maxMs": 36.161626,
+            "over100ms": 0
+          },
+          "lock": {
+            "observed": 49971,
+            "measured": 33247,
+            "unavailable": 2,
+            "legacyUnmeasured": 16722,
+            "maxMs": 29.247164,
+            "over100ms": 0
+          }
+        },
+        "byBudgetAndForcedStatus": {
+          "merged:budget=false:forced=false": {
+            "observed": 49970,
+            "measured": 33249,
+            "unavailable": 0,
+            "legacyUnmeasured": 16721,
+            "maxMs": 36.161626,
+            "over100ms": 0
+          },
+          "lock:budget=false:forced=false": {
+            "observed": 49964,
+            "measured": 33245,
+            "unavailable": 0,
+            "legacyUnmeasured": 16719,
+            "maxMs": 29.247164,
+            "over100ms": 0
+          },
+          "merged:budget=true:forced=true": {
+            "observed": 3,
+            "measured": 0,
+            "unavailable": 2,
+            "legacyUnmeasured": 1,
+            "maxMs": null,
+            "over100ms": 0
+          },
+          "merged:budget=false:forced=true": {
+            "observed": 1,
+            "measured": 0,
+            "unavailable": 0,
+            "legacyUnmeasured": 1,
+            "maxMs": null,
+            "over100ms": 0
+          },
+          "lock:budget=true:forced=false": {
+            "observed": 4,
+            "measured": 2,
+            "unavailable": 0,
+            "legacyUnmeasured": 2,
+            "maxMs": 6.71076,
+            "over100ms": 0
+          },
+          "lock:budget=true:forced=true": {
+            "observed": 3,
+            "measured": 0,
+            "unavailable": 2,
+            "legacyUnmeasured": 1,
+            "maxMs": null,
+            "over100ms": 0
+          },
+          "merged:budget=true:forced=false": {
+            "observed": 2,
+            "measured": 2,
+            "unavailable": 0,
+            "legacyUnmeasured": 0,
+            "maxMs": 16.134311,
+            "over100ms": 0
+          }
+        },
+        "maxMs": 36.161626,
+        "over100ms": 0,
+        "candidateTimeoutOccurrences": 1,
+        "referenceTimeoutOccurrences": 0,
+        "inheritedCandidateTimeoutOccurrences": 0,
+        "timeoutOccurrences": [
+          {
+            "batch": "/workspace/work/parity-run/equality-batches/step1/S1-0001/summary.txt",
+            "worker": 1,
+            "localIndex": 4407,
+            "globalRecordIndex": 17629,
+            "attempt": 0,
+            "side": "merged",
+            "pureShutdownAllowanceOccurrence": true,
+            "quitToExitMs": null,
+            "shutdownBudgetMs": null
+          }
+        ],
+        "timingErrors": []
+      },
+      "operationalClassification": {
+        "commit": "7188f6b5f8ecc0ba88d4ec1997aaf2dd1161a82d",
+        "file": "/workspace/work/parity-equality-preparation-v3/FABLE_ANSWER_0012.md",
+        "sha256": "c43cf885c83df3be5453fbe71087e8311506cbd7a97af298b43d3c24c2515642",
+        "rawOperationalFaultsRetained": 1,
+        "classifiedShutdownAllowanceOccurrences": 1,
+        "otherOperationalFaults": 0,
+        "escalationRequired": false,
+        "requiredDiagnostic": null,
+        "operationalContinuationAllowed": true,
+        "continuationAllowed": true,
+        "completionGateSatisfied": false,
+        "engineFaultClassification": "Pure retained shutdown allowance occurrences are operational findings; all other faults remain blocking."
+      },
+      "nativeRuns": 0,
+      "counts": {
+        "records_completed": 50351,
+        "positions": 49964,
+        "positions_low_clock": 49944,
+        "positions_high_clock": 20,
+        "differences_low_clock": 0,
+        "differences_high_clock": 0,
+        "fault_positions": 0,
+        "excluded": 387,
+        "excluded_no_legal": 17,
+        "excluded_insufficient": 370,
+        "excluded_halfmove100": 0,
+        "invalid_fens": 0,
+        "engine_runs": 99928,
+        "illegal": 0,
+        "missing": 0,
+        "missing_info": 0,
+        "wrong_depth": 0,
+        "sanitizer_issues": 0,
+        "transport_issues": 0,
+        "crashes": 0,
+        "nonzero_exits": 0,
+        "shutdown_timeouts": 0,
+        "reproduction_pairs": 0,
+        "reproduction_differences": 0,
+        "reproduction_fault_pairs": 0
+      },
+      "package": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0003",
+      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1-records/S1-0003"
+    }
+  },
+  "coordination": {
+    "question0012": {
+      "utc": "2026-11-14T23:46:04.280Z",
+      "branch": "for-fable-and-opus/astra-parity-shutdown-review-0012",
+      "commit": "0e329284430f4b9eee19fcebdf212157187b5095",
+      "pushed": true,
+      "path": "forge-combo29/soak_all/ASTRA_QUESTION_0012.md"
+    },
+    "status": "Continuation authorized; timing-only comparator preparation underway.",
+    "answer0012": {
+      "commit": "7188f6b5f8ecc0ba88d4ec1997aaf2dd1161a82d",
+      "path": "forge-combo29/soak_all/FABLE_ANSWER_0012.md",
+      "decision": "Retain original shutdown-limit occurrence and continue identical corpus from all cursors. No diagnostic required before continuation. Add quit-to-observed-exit timing; second candidate timeout triggers2000alternating cycles."
+    }
+  },
+  "preliminarySoak": [
+    {
+      "stage": "step1",
+      "index": 0,
+      "label": "step1-parity-soak-asan-off-t1-n2000",
+      "counts": {
+        "seed": 202611144101,
+        "threads": 1,
+        "nodes": 2000,
+        "first_game": 0,
+        "max_games": 1000000,
+        "seconds": 180,
+        "Hash": 16,
+        "OwnBook": false,
+        "UseNNUE": true,
+        "MultiPV": 1,
+        "ContHist4PlyRead": false,
+        "NonPawnCorrection": false,
+        "LmrDeeperShallower": false,
+        "MateAlphaGuard": false,
+        "HindsightDepth": false,
+        "depth": 0,
+        "games": 154,
+        "moves": 21134,
+        "searches": 21134,
+        "opening_moves": 1232,
+        "faults": 0,
+        "illegal": 0,
+        "missing": 0,
+        "badscore": 0,
+        "mates": 113,
+        "stalemates": 0,
+        "repetitions": 18,
+        "fifty": 11,
+        "ply_caps": 1,
+        "insufficient": 11
+      },
+      "diagnostics": 0,
+      "accepted": true,
+      "audit": "/workspace/work/parity-run/logs/step1-soak-audit-0.stdout.txt"
+    },
+    {
+      "stage": "step1",
+      "index": 2,
+      "label": "step1-parity-soak-asan-off-t2-n2000",
+      "counts": {
+        "seed": 202611144103,
+        "threads": 2,
+        "nodes": 2000,
+        "first_game": 0,
+        "max_games": 1000000,
+        "seconds": 180,
+        "Hash": 16,
+        "OwnBook": false,
+        "UseNNUE": true,
+        "MultiPV": 1,
+        "ContHist4PlyRead": false,
+        "NonPawnCorrection": false,
+        "LmrDeeperShallower": false,
+        "MateAlphaGuard": false,
+        "HindsightDepth": false,
+        "depth": 0,
+        "games": 225,
+        "moves": 29997,
+        "searches": 29997,
+        "opening_moves": 1800,
+        "faults": 0,
+        "illegal": 0,
+        "missing": 0,
+        "badscore": 0,
+        "mates": 166,
+        "stalemates": 1,
+        "repetitions": 33,
+        "fifty": 14,
+        "ply_caps": 2,
+        "insufficient": 9
+      },
+      "diagnostics": 0,
+      "accepted": true,
+      "audit": "/workspace/work/parity-run/logs/step1-soak-audit-2.stdout.txt"
+    },
+    {
+      "stage": "step1",
+      "index": 4,
+      "label": "step1-parity-soak-tsan-off-t2-n0",
+      "counts": {
+        "seed": 202611144105,
+        "threads": 2,
+        "nodes": 0,
+        "first_game": 0,
+        "max_games": 1000000,
+        "seconds": 180,
+        "Hash": 16,
+        "OwnBook": false,
+        "UseNNUE": true,
+        "MultiPV": 1,
+        "ContHist4PlyRead": false,
+        "NonPawnCorrection": false,
+        "LmrDeeperShallower": false,
+        "MateAlphaGuard": false,
+        "HindsightDepth": false,
+        "depth": 9,
+        "games": 7,
+        "moves": 938,
+        "searches": 938,
+        "opening_moves": 56,
+        "faults": 0,
+        "illegal": 0,
+        "missing": 0,
+        "badscore": 0,
+        "mates": 3,
+        "stalemates": 0,
+        "repetitions": 3,
+        "fifty": 1,
+        "ply_caps": 0,
+        "insufficient": 0
+      },
+      "diagnostics": 0,
+      "faults": [],
+      "accepted": true,
+      "audit": "/workspace/work/parity-run/logs/step1-soak-audit-4.stdout.txt",
+      "auditSha256": "8c4f28632e52c31ad200dc332b18809acc75a3fd05af8826de949ee9fe713b80",
+      "package": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/soak-batches/step1-4"
+    },
+    {
+      "stage": "step1",
+      "index": 5,
+      "label": "step1-parity-soak-tsan-off-t4-n0",
+      "counts": {
+        "seed": 202611144106,
+        "threads": 4,
+        "nodes": 0,
+        "first_game": 0,
+        "max_games": 1000000,
+        "seconds": 180,
+        "Hash": 16,
+        "OwnBook": false,
+        "UseNNUE": true,
+        "MultiPV": 1,
+        "ContHist4PlyRead": false,
+        "NonPawnCorrection": false,
+        "LmrDeeperShallower": false,
+        "MateAlphaGuard": false,
+        "HindsightDepth": false,
+        "depth": 9,
+        "games": 7,
+        "moves": 612,
+        "searches": 612,
+        "opening_moves": 56,
+        "faults": 0,
+        "illegal": 0,
+        "missing": 0,
+        "badscore": 0,
+        "mates": 3,
+        "stalemates": 0,
+        "repetitions": 3,
+        "fifty": 1,
+        "ply_caps": 0,
+        "insufficient": 0
+      },
+      "diagnostics": 0,
+      "faults": [],
+      "accepted": true,
+      "audit": "/workspace/work/parity-run/logs/step1-soak-audit-5.stdout.txt",
+      "auditSha256": "e9e5c76f19297f2b2d3654416a41cc22009c39d502b1c7c50fb7cc6a02398bac",
+      "package": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/soak-batches/step1-5"
+    }
+  ],
+  "soakTotals": {
+    "preliminaryStep1": {
+      "batches": 4,
+      "games": 393,
+      "searches": 52681,
+      "faults": 0,
+      "excludedAttempts": 0
+    },
+    "finalTree": {
+      "status": "not started"
+    }
+  },
+  "toolingRecovery": "Soak aggregate initially expected a faults field absent from two manually recorded rows. Failure retained; revised aggregator reads immutable original audit evidence for every row and verifies counts/accepted status. No engine rerun or raw result change.",
+  "newRequiredCoverage": "Half final sanitizer selfplay games softnodes2500; exact UCIlabel checks peranswer0012, capcount andmeanX. Labelcheck3/4failure stops forreport.",
+  "equalityRows": [
+    {
+      "stage": "speed",
+      "id": "S1-0003",
+      "recorderFile": "/workspace/work/parity-equality-recording-preparation/record-equality.mjs",
+      "recorderSha256": "00f0395b58746b279672d1a9a82f551904abad5e05d0dee680f24ec11dc09063",
+      "packageToolSha256": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
+      "receipt": "/workspace/work/parity-run/equality-speed-v3/receipts/S1-0003.txt",
+      "receiptSha256": "2d9128069397b419baac519d4edcbcc3f7cb3dc442899a666f3d9a5907239b50",
+      "audit": "/workspace/work/parity-run/equality-speed-v3/audits/S1-0003.txt",
+      "auditSha256": "85aaa9783e4458bc4606ec7ad37b82bbedf15372c6550ef4ce1d51631bd3f8a0",
+      "completed": 49964,
+      "lowClock": 49944,
+      "highClock": 20,
+      "differences": 0,
+      "partialDifferences": 0,
+      "operationalFindings": 1,
+      "exactOriginal100k": false,
+      "continuationAllowed": true,
+      "attributionPending": false,
+      "gatePassed": false,
+      "shutdownTiming": {
+        "schema": 1,
+        "measurement": "steady_clock immediately before full quit write to first successful waitpid observation; null when unavailable; total shutdown duration and actual requested budget retained",
+        "bySide": {
+          "merged": {
+            "observed": 49976,
+            "measured": 33251,
+            "unavailable": 2,
+            "legacyUnmeasured": 16723,
+            "maxMs": 36.161626,
+            "over100ms": 0
+          },
+          "lock": {
+            "observed": 49971,
+            "measured": 33247,
+            "unavailable": 2,
+            "legacyUnmeasured": 16722,
+            "maxMs": 29.247164,
+            "over100ms": 0
+          }
+        },
+        "byBudgetAndForcedStatus": {
+          "merged:budget=false:forced=false": {
+            "observed": 49970,
+            "measured": 33249,
+            "unavailable": 0,
+            "legacyUnmeasured": 16721,
+            "maxMs": 36.161626,
+            "over100ms": 0
+          },
+          "lock:budget=false:forced=false": {
+            "observed": 49964,
+            "measured": 33245,
+            "unavailable": 0,
+            "legacyUnmeasured": 16719,
+            "maxMs": 29.247164,
+            "over100ms": 0
+          },
+          "merged:budget=true:forced=true": {
+            "observed": 3,
+            "measured": 0,
+            "unavailable": 2,
+            "legacyUnmeasured": 1,
+            "maxMs": null,
+            "over100ms": 0
+          },
+          "merged:budget=false:forced=true": {
+            "observed": 1,
+            "measured": 0,
+            "unavailable": 0,
+            "legacyUnmeasured": 1,
+            "maxMs": null,
+            "over100ms": 0
+          },
+          "lock:budget=true:forced=false": {
+            "observed": 4,
+            "measured": 2,
+            "unavailable": 0,
+            "legacyUnmeasured": 2,
+            "maxMs": 6.71076,
+            "over100ms": 0
+          },
+          "lock:budget=true:forced=true": {
+            "observed": 3,
+            "measured": 0,
+            "unavailable": 2,
+            "legacyUnmeasured": 1,
+            "maxMs": null,
+            "over100ms": 0
+          },
+          "merged:budget=true:forced=false": {
+            "observed": 2,
+            "measured": 2,
+            "unavailable": 0,
+            "legacyUnmeasured": 0,
+            "maxMs": 16.134311,
+            "over100ms": 0
+          }
+        },
+        "maxMs": 36.161626,
+        "over100ms": 0,
+        "candidateTimeoutOccurrences": 1,
+        "referenceTimeoutOccurrences": 0,
+        "inheritedCandidateTimeoutOccurrences": 0,
+        "timeoutOccurrences": [
+          {
+            "batch": "/workspace/work/parity-run/equality-batches/step1/S1-0001/summary.txt",
+            "worker": 1,
+            "localIndex": 4407,
+            "globalRecordIndex": 17629,
+            "attempt": 0,
+            "side": "merged",
+            "pureShutdownAllowanceOccurrence": true,
+            "quitToExitMs": null,
+            "shutdownBudgetMs": null
+          }
+        ],
+        "timingErrors": []
+      },
+      "operationalClassification": {
+        "commit": "7188f6b5f8ecc0ba88d4ec1997aaf2dd1161a82d",
+        "file": "/workspace/work/parity-equality-preparation-v3/FABLE_ANSWER_0012.md",
+        "sha256": "c43cf885c83df3be5453fbe71087e8311506cbd7a97af298b43d3c24c2515642",
+        "rawOperationalFaultsRetained": 1,
+        "classifiedShutdownAllowanceOccurrences": 1,
+        "otherOperationalFaults": 0,
+        "escalationRequired": false,
+        "requiredDiagnostic": null,
+        "operationalContinuationAllowed": true,
+        "continuationAllowed": true,
+        "completionGateSatisfied": false,
+        "engineFaultClassification": "Pure retained shutdown allowance occurrences are operational findings; all other faults remain blocking."
+      },
+      "nativeRuns": 0,
+      "counts": {
+        "records_completed": 16877,
+        "positions": 16734,
+        "positions_low_clock": 16727,
+        "positions_high_clock": 7,
+        "differences_low_clock": 0,
+        "differences_high_clock": 0,
+        "fault_positions": 0,
+        "excluded": 143,
+        "excluded_no_legal": 6,
+        "excluded_insufficient": 137,
+        "excluded_halfmove100": 0,
+        "invalid_fens": 0,
+        "engine_runs": 33468,
+        "illegal": 0,
+        "missing": 0,
+        "missing_info": 0,
+        "wrong_depth": 0,
+        "sanitizer_issues": 0,
+        "transport_issues": 0,
+        "crashes": 0,
+        "nonzero_exits": 0,
+        "shutdown_timeouts": 0,
+        "reproduction_pairs": 0,
+        "reproduction_differences": 0,
+        "reproduction_fault_pairs": 0
+      },
+      "cumulativeCounts": {
+        "records_completed": 50351,
+        "positions": 49964,
+        "positions_low_clock": 49944,
+        "positions_high_clock": 20,
+        "differences_low_clock": 0,
+        "differences_high_clock": 0,
+        "fault_positions": 0,
+        "excluded": 387,
+        "excluded_no_legal": 17,
+        "excluded_insufficient": 370,
+        "excluded_halfmove100": 0,
+        "invalid_fens": 0,
+        "engine_runs": 99928,
+        "illegal": 0,
+        "missing": 0,
+        "missing_info": 0,
+        "wrong_depth": 0,
+        "sanitizer_issues": 0,
+        "transport_issues": 0,
+        "crashes": 0,
+        "nonzero_exits": 0,
+        "shutdown_timeouts": 0,
+        "reproduction_pairs": 0,
+        "reproduction_differences": 0,
+        "reproduction_fault_pairs": 0
+      },
+      "rawPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0003",
+      "metadataSource": "/workspace/work/parity-run/equality-recording/step1/S1-0003/metadata",
+      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1-records/S1-0003",
+      "rawPackages": [
+        {
+          "id": "S1-0001",
+          "path": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0001",
+          "manifestSha256": "74757cfa0aeb011c904339cd137ebffad5960924fdd800bda38118b4bd3e2061"
+        },
+        {
+          "id": "S1-0002",
+          "path": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0002",
+          "manifestSha256": "c93be912f455072425ab946fec571b229ee58a843211fd27e0949e40a4ddacc5"
+        },
+        {
+          "id": "S1-0003",
+          "path": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0003",
+          "manifestSha256": "0ddf5b25d07e32836873c744fdce115dfcf599c62a773cbcf469e4b2ed1a76cd"
+        }
+      ]
+    }
+  ],
+  "step1gatePassed": false
+}
