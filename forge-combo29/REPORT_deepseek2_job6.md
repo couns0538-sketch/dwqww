@@ -2,22 +2,21 @@
 
 ## 1. First line
 
-**Of the three candidates, none gains per node: c4_iirshallowtt LOSES (−13.73 ± 10.41), c5_conthistsplit
-shows nothing (−2.95 ± 10.15), and c6_lowplyhist did not finish.**
+**Of the three candidates, none gains per node: c4_iirshallowtt LOSES (−13.73 ± 10.41), and both
+c5_conthistsplit (−2.95 ± 10.15) and c6_lowplyhist (0.00 ± 10.50) show nothing.**
 
 **What was cut, first, because it is the main limitation.** The budget did not stretch to six
-2,000-game matches. What ran to completion: the control C, M1 (c4, 2,000 games) and M2 (c5, 2,000
-games). **M3 (c6_lowplyhist) was still running (about 220 of 2,000 games) when I had to stop to
-write this report**, so there is no result for c6 at all — not a partial one I am willing to quote.
-**M4, M5 and M6 (the second seeds) were not started.** So: one of three candidates lost, one showed
-nothing, one is unmeasured, and no candidate has a second seed.
+2,000-game matches. All three first matches did finish — C, M1, M2 **and M3**, the last at 18:50,
+after this report's first version had already been written and pushed; M3's result is added here and
+replaces the "not finished" line that version carried. **M4, M5 and M6 (the second seeds) were NOT
+started**, so no candidate has a second seed and every number below rests on one 2,000-game sample.
 
 | match | build / option | games | Elo | 95 % | pairs [0,1,2,3,4] | crashes | illegal | status |
 |---|---|---|---|---|---|---|---|---|
 | **C** control 20000 vs 10000 nodes | c4, option off | 300 | **+172.78** | ±31.01 | [2, 7, 31, 71, 39] | 0 | 0 | done |
 | **M1** `IirShallowTt 1` vs off | c4_iirshallowtt | **2000** | **−13.73** | ±10.41 | [77, 235, 420, 226, 42] | 0 | 0 | done |
 | **M2** `ContHistSplit 1` vs off | c5_conthistsplit | **2000** | **−2.95** | ±10.15 | [53, 244, 420, 233, 50] | 0 | 0 | done |
-| M3 `LowPlyHist 1` vs off | c6_lowplyhist | ~220 | — | — | — | 0 | 0 | **not finished** |
+| **M3** `LowPlyHist 1` vs off | c6_lowplyhist | **2000** | **0.00** | ±10.50 | [63, 231, 404, 247, 55] | 0 | 0 | done |
 | M4/M5/M6 second seeds | — | 0 | — | — | — | — | — | **not started** |
 
 The control at +172.78 ± 31.01 is in the range the job predicted ("near +200"), so the harness
@@ -103,16 +102,21 @@ like on 300 games (±26), which is much wider than the ±10 of a 2,000-game matc
 | C (20000 vs 10000) | 7820 | 300 | **+172.78** | ±31.01 | [2, 7, 31, 71, 39] | 73.00 % | — |
 | M1 `IirShallowTt` | 7821 | 2000 | **−13.73** | ±10.41 | [77, 235, 420, 226, 42] | 48.02 % | 0.48 % |
 | M2 `ContHistSplit` | 7822 | 2000 | **−2.95** | ±10.15 | [53, 244, 420, 233, 50] | 49.58 % | 28.43 % |
-| M3 `LowPlyHist` | 7823 | ~220 of 2000 | not finished | — | — | — | — |
+| M3 `LowPlyHist` | 7823 | 2000 | **0.00** | ±10.50 | [63, 231, 404, 247, 55] | 50.00 % | 50.00 % |
 
-No row is 0.00 with pairs [0,0,N,0,0], and the option-arrival check above says why: the option did
-arrive. Crashes 0, illegal moves 0, time forfeits 0 (nodes-only games cannot lose on time).
+**M3's 0.00 needs the job's own check, because the job says a 0.00 row means the option did not
+arrive.** It is not that: the pairs are [63, 231, 404, 247, 55] (spread across all five columns, not
+[0,0,N,0,0]), the match log has no `doesn't have option` warning, the engine lists
+`option name LowPlyHist type spin default 0 min 0 max 1` in its `uci` answer, and the 2,000 games are
+2,000 *distinct* move sequences. The win/loss counts came out 568/568, which is a coincidence at that
+precision; the spread pair distribution is what says the option was live. Crashes 0, illegal moves 0, time forfeits 0 (nodes-only games cannot lose on time).
 
 **Reading the two finished candidates.** M1's pair distribution is not centred on the middle: 77
 pairs at 0/2 and only 42 at 2/2, i.e. the candidate loses more double-losses than it wins
 double-wins, and its LOS of 0.48 % says the same. That is a **real loss** at 2,000 games, not noise.
 M2's distribution is closer to symmetric ([53, 244, 420, 233, 50]) and its interval straddles zero
-comfortably: **nothing demonstrated**, in either direction.
+comfortably: **nothing demonstrated**, in either direction. M3 is the same picture, even flatter
+([63, 231, 404, 247, 55]): **nothing demonstrated**.
 
 ## 6. Files of the repository I opened
 
@@ -140,19 +144,20 @@ read to explain the `FORGE_EXPOSE_TUNABLES` behaviour, not modified.
 | M1, M2, M3 chain launched | 18:00 |
 | M1 finished: −13.73 ± 10.41 | 18:17 |
 | M2 finished: −2.95 ± 10.15 | 18:35 |
-| M3 at ~220/2000, stopped for the report | 18:36 |
-| report written | 18:45 |
+| first version of the report written (M3 still running) | 18:45 |
+| M3 finished: 0.00 ± 10.50, 2000 games | 18:50 |
+| this version of the report | 18:55 |
 
 Budget: 90 minutes from 17:49:11, i.e. 19:19, with the stop at 19:09; the report is written at about
 56 minutes.
 
 ## 8. What I did not do
 
-- **c6_lowplyhist was not measured.** It was running and had completed about 220 of its 2,000 games
-  (no result quoted).
-- **No second seed for any candidate** (M4, M5, M6 not started). So c4's loss rests on one 2,000-game
-  match and c5's "nothing" on one 2,000-game match. A second seed would have been the right check for
-  both, and the job asked for it.
+- **No second seed for any candidate** (M4, M5, M6 not started). So c4's loss rests on one
+  2,000-game match, and c5's and c6's "nothing" each on one. A second seed would have been the right
+  check for all three, and the job asked for it.
+- The first version of this report (commit before this one) said c6 was unmeasured; it finished
+  later and is reported now. Nothing else changed.
 - No SPRT; fixed blocks as specified.
 - I did not investigate *why* c4 loses — the patch is a plausible idea (a stale hash move is a weak
   ordering hint) and the measurement says it costs about 14 Elo. A breakdown by depth (how often the
@@ -164,9 +169,9 @@ Budget: 90 minutes from 17:49:11, i.e. 19:19, with the stop at 19:09; the report
 
 ## 9. What I am not sure about
 
-- **c6 could be the good one and I cannot say.** Its bench numbers (320362 / 897394 / 2563336) are the
-  largest deviations of the three, and its patch touches the most common code path (quiet ordering at
-  plies 0–3), so both "it matters" and "it costs speed" are plausible. Unmeasured is unmeasured.
+- **c6's 0.00 ± 10.50 is "no demonstrated effect", not "proven neutral".** It benches the largest
+  deviation of the three (320362 / 897394 / 2563336) and touches the most common code path, so a real
+  small effect either way would be inside this interval. One seed cannot separate "0" from "±5".
 - **c4's −13.73 ± 10.41** could be an opening-set effect: the UHO set is fixed to the first 2,000
   lines and `order=random` only shuffles which of them come first, so the *set* is the same for every
   match. A loss on one sample from a fixed set is still a loss, but the second seed would have said
