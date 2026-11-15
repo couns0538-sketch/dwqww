@@ -1,18 +1,19 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T02:19:40.000Z. Updated 2026-11-15T00:30:50.086Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T02:19:40.000Z. Updated 2026-11-15T00:37:07.287Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 Step1 exact corpus in progress.
-step1 66754/100000 exact selected comparisons; 0 differences, 1 retained operational findings. Continuation authorized; corpus completion pending. Raw evidence and v3 metadata packaged immutably; source/commit/push state preserved.
+step1 83125/100000 exact selected comparisons; 0 differences, 1 retained operational findings. Continuation authorized; corpus completion pending. Raw evidence and v3 metadata packaged immutably; source/commit/push state preserved.
 
 | Check | Result |
 |---|---|
 | Step 1 default pins | 312866 / 862329 / 4865609 |
 | Step 1 option bench counts | 16 passed; 0 failed |
 | Step 1 hand evaluation | 375354 / 907205; frozen reference and candidate match |
-| Step 1 exact corpus | 66754 / 100000 completed; 0 differences; 1 retained operational findings; gate incomplete |
+| Step 1 exact corpus | 83125 / 100000 completed; 0 differences; 1 retained operational findings; gate incomplete |
 | Same-clock refinement | Not applied; full step 1 gate required |
 | Preliminary step 1 sanitizers | 393 games / 52681 searches; 0 findings |
+| Preliminary paired UCI check | 132 ordinary / 87 soft-node searches; 8 cap cases; 0 label faults |
 | Final-tree sanitizers | 0 games / 0 searches; not started |
 | HindsightDepth match | 0 games; Not started |
 
@@ -41,4 +42,4 @@ Final soak details: {"status":"not started"}.
 Match details: {"status":"not started"}.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 10, including this checkpoint.
+Progress pushes: 11, including this checkpoint.

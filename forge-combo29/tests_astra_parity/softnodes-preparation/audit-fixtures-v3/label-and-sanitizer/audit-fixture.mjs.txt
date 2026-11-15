@@ -1,0 +1,51 @@
+// Read-only batch accounting and whole-stream diagnostic scan. No engine runs.
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+const prep='/workspace/work/parity-softnodes-preparation',root='/workspace/work/parity-softnodes-preparation/audit-fixtures-v3/label-and-sanitizer';
+const index=Number(process.argv[2]),plan=JSON.parse(fs.readFileSync(prep+'/plan.txt')),b=plan.batches[index];
+assert.ok(Number.isInteger(index)&&b);
+const dir=root+'/'+b.label,meta=JSON.parse(fs.readFileSync(dir+'/command.txt'));
+const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
+const stdout=fs.readFileSync(meta.stdout),stderr=fs.readFileSync(meta.stderr);
+assert.equal(hash(stdout),meta.stdoutSha256);assert.equal(hash(stderr),meta.stderrSha256);
+assert.deepEqual(meta.argv,['timeout','-k','2','440',...b.argv]);
+const lines=stdout.toString().split('\n'),jsonRows=prefix=>lines.filter(x=>x.startsWith(prefix+' ')).map(x=>JSON.parse(x.slice(prefix.length+1)));
+const configs=jsonRows('CONFIG'),summaries=jsonRows('SUMMARY'),checks=jsonRows('CHECK'),triggers=jsonRows('TRIGGER'),games=jsonRows('GAME'),pairs=jsonRows('PAIR'),shutdowns=jsonRows('SHUTDOWN'),faults=jsonRows('FAULT');
+const diagnostics=[];const pattern=/(?:Address|UndefinedBehavior|Leak|Thread|Memory|HWAddress)Sanitizer|runtime error:|Sanitizer CHECK failed|terminate called|Segmentation fault|core dumped/i;
+for(const [stream,bytes]of [['stdout',stdout],['stderr',stderr]]){let line=0;for(const text of bytes.toString().split('\n')){line++;if(pattern.test(text))diagnostics.push({stream,line,text});}}
+const result={utc:new Date().toISOString(),index,label:b.label,exit:meta.exit,signal:meta.signal,complete:false,passed:false,diagnostics,faults,summary:summaries.length===1?summaries[0]:null,shutdowns,triggerRows:triggers.length,checkRows:checks.length,stdoutSha256:meta.stdoutSha256,stderrSha256:meta.stderrSha256};
+if(configs.length!==1||summaries.length!==1||meta.signal!==null||[124,137].includes(meta.exit)){
+ console.log(JSON.stringify(result,null,2));process.exit(1);
+}
+const c=configs[0],s=summaries[0];assert.ok(lines.filter(x=>x.trim()).at(-1).startsWith('SUMMARY '));
+for(const [k,v]of Object.entries({engine:b.engine,seed:b.seed,threads:b.threads,nodes:b.nodes,depth:b.depth,seconds:b.seconds,HindsightDepth:b.HindsightAndGuard,MateAlphaGuard:b.HindsightAndGuard,Hash:16,OwnBook:false,softnodes:2500,soft_cap:10000,opening_plies:8,ply_limit:300}))assert.equal(c[k],v,k);
+assert.equal(pairs.length,s.pairs_completed);assert.equal(s.usual.games,s.pairs_completed);assert.equal(s.soft.games,s.pairs_completed);
+const terminations=['mates','stalemates','repetitions','fifty','insufficient','ply_caps'];
+for(const mode of ['usual','soft']){
+ const accepted=s[mode],observed=s['observed_'+mode+'_including_partial_pair'];
+ for(const row of [accepted,observed]){
+  for(const [k,v]of Object.entries(row))if(k!=='soft_mean_x')assert.ok(Number.isSafeInteger(v)&&v>=0,k);
+  assert.equal(terminations.reduce((n,k)=>n+row[k],0),row.games);
+  assert.equal(row.soft_mean_x===null,row.soft_x_count===0);
+  if(row.soft_x_count)assert.ok(Math.abs(row.soft_mean_x-row.soft_x_sum/row.soft_x_count)<=0.000001);
+ }
+ const selected=checks.filter(x=>x.mode===mode);assert.equal(selected.length,observed.searches);
+ assert.equal(games.filter(x=>x.mode===mode).length,observed.games);
+ if(mode==='soft'){
+  const withX=selected.filter(x=>x.x!==null);assert.equal(withX.length,observed.soft_x_count);
+  assert.equal(withX.reduce((n,x)=>n+x.x,0),observed.soft_x_sum);
+  assert.equal(withX.filter(x=>x.x>=10000).length,observed.soft_hard_cap_reached);
+ }
+}
+result.complete=true;
+result.coverage=s.pairs_completed>0&&s.usual.searches>0&&s.soft.searches>0;
+result.passed=result.coverage&&meta.exit===0&&s.fault===''&&!s.label_fault&&!s.diagnostic_observed&&!s.unassigned_soft_lines&&!diagnostics.length&&!faults.length;
+if(result.passed){
+ assert.equal(triggers.length,checks.length);assert.equal(games.length,pairs.length*2);
+ assert.deepEqual(s.usual,s.observed_usual_including_partial_pair);assert.deepEqual(s.soft,s.observed_soft_including_partial_pair);
+ for(let i=0;i<checks.length;i++){const x=checks[i],t=triggers[i];assert.equal(x.pair,t.pair);assert.equal(x.mode,t.mode);assert.equal(x.ply,t.ply);assert.equal(t.seed,b.seed);assert.equal(t.threads,b.threads);if(x.mode==='soft'){assert.equal(t.go,'go softnodes 2500');assert.equal(x.item2,1);assert.equal(x.item3,1);assert.equal(x.item4,1);}}
+ assert.equal(shutdowns.length,1);assert.equal(shutdowns[0].exit,0);assert.equal(shutdowns[0].signal,0);assert.equal(shutdowns[0].reaped,1);assert.equal(shutdowns[0].timed_out,0);
+}
+result.shutdownMeasurements={observed:shutdowns.filter(x=>x.quit_to_exit_ms!==null).length,unavailable:shutdowns.filter(x=>x.quit_to_exit_ms===null).length,above100ms:shutdowns.filter(x=>x.quit_to_exit_ms!==null&&x.quit_to_exit_ms>100).length,maxMs:shutdowns.some(x=>x.quit_to_exit_ms!==null)?Math.max(...shutdowns.filter(x=>x.quit_to_exit_ms!==null).map(x=>x.quit_to_exit_ms)):null};
+console.log(JSON.stringify(result,null,2));process.exitCode=result.passed?0:1;

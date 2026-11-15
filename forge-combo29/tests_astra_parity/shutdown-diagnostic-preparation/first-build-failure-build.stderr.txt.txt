@@ -1,0 +1,25 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: /workspace/work/parity-shutdown-diagnostic-preparation/diagnostic.cpp: In function ‘int main(int, char**)’:
+/workspace/work/parity-shutdown-diagnostic-preparation/diagnostic.cpp:14:340: error: inconsistent deduction for ‘auto’: ‘const long long int’ and then ‘const long int’
+   14 |  const std::string dir=argv[1];std::ifstream fen_input(argv[2]);std::string fen,extra;if(!std::getline(fen_input,fen)||fen.empty()||std::getline(fen_input,extra))throw std::runtime_error("exactly one FEN line required");const int seconds=std::stoi(argv[5]);if(seconds<1||seconds>390)throw std::runtime_error("seconds outside1..390");const auto epoch_ms=std::stoll(argv[6]),now_epoch=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();const auto started=Clock::now(),deadline=started+std::chrono::milliseconds(std::max<std::int64_t>(0,std::min<std::int64_t>(seconds*1000,epoch_ms-now_epoch-1000)));
+      |                                                                                                                                                                                                                                                                                                                                                    ^~~~
+
+
+1 !== 0
+
+    at file:///workspace/work/parity-shutdown-diagnostic-preparation/build.mjs:2:1026
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 1,
+  expected: 0,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.22.1

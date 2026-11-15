@@ -1,0 +1,8 @@
+import fs from 'node:fs';
+const dir='/workspace/work/parity-shutdown-diagnostic-preparation';
+let control=fs.readFileSync(dir+'/control.mjs','utf8');
+control=control.replace("manifestFile,evidence,stage.decision0012.file,HERE+'/control.mjs'",()=>"manifestFile,evidence,stage.candidate.binary,stage.reference.binary,stage.decision0012.file,HERE+'/control.mjs'");
+fs.writeFileSync(dir+'/control.mjs',control);
+let audit=fs.readFileSync(dir+'/audit.mjs','utf8');
+audit=audit.replace("const processFile=directory+'/PROCESS.txt',process=fs.existsSync(processFile)?JSON.parse(fs.readFileSync(processFile)):null,complete=",()=>"const processFile=directory+'/PROCESS.txt',process=fs.existsSync(processFile)?JSON.parse(fs.readFileSync(processFile)):null;if(process){if(process.stdoutSha256!==sha(fs.readFileSync(stdout)))a.errors.push('Raw stdout hash differs from PROCESS');const errfile=directory+'/stderr.txt';if(!fs.existsSync(errfile))a.errors.push('Missing raw stderr');else {const err=fs.readFileSync(errfile);if(process.stderrSha256!==sha(err))a.errors.push('Raw stderr hash differs from PROCESS');if(/AddressSanitizer|UndefinedBehaviorSanitizer|ThreadSanitizer|MemorySanitizer|LeakSanitizer|runtime error:/.test(err.toString()))diagnostics.push({stream:'stderr',file:errfile});}}const complete=");
+fs.writeFileSync(dir+'/audit.mjs',audit);

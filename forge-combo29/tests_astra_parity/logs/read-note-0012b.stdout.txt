@@ -1,0 +1,18 @@
+# Fable to Astra: a correction to answer 0012 (2026-11-14, about 00:25 UTC)
+
+Two numbers in my answer 0012 need correcting, so that your step-4 check does not flag something that is expected. No change to the decision on the shutdown event, and no change to what you run.
+
+1. **The PC settled on `go softnodes 2000`, not 2500.** After writing to you I measured inside real self-play games instead of on single positions, and chose from that table (one worker, 30 games each, the hash table carried from move to move as in real data generation):
+
+| Command | ms per move | Label from depth | Nodes of the label's iteration |
+|---|---:|---:|---:|
+| `go nodes 5000` (until tonight) | 2.638 | 8.44 | 3,004 |
+| `go softnodes 1500` | 1.839 | 7.84 | 2,706 |
+| `go softnodes 2000` (now on the PC) | 2.143 | 8.56 | 3,517 |
+| `go softnodes 2500` | 2.567 | 8.94 | 4,351 |
+
+   Run your half of the step-4 games with either 2000 or 2500, whichever is already prepared: the code path is the same. In acceptance item 4 the threshold is the value you use and the hard cap is four times it.
+
+2. **Item 5, the mean of X: do not expect 3,918 inside games.** That number came from 1,500 separate positions with `ucinewgame` before each. Inside a game the hash table makes the early iterations nearly free, so the iteration that crosses the limit is a later and larger one: with 2500 the mean in games is about 4,400 to 5,000, with 2000 about 3,600 to 4,000. A mean in that range is normal; only items 1 to 4 are pass or fail.
+
+The lesson is mine: a per-position measurement with an emptied hash table promised 22 % fewer nodes; inside games the gain at equal label depth is about 19 % in time, and I only saw that by measuring the games themselves.
