@@ -1,0 +1,17 @@
+Build of commit 6b98f217 (branch for-fable-and-opus/astra-0017-v3-path)
+  cmake /agent/repos/dwqww/forge-combo29 -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DFORGE_MARCH=native
+  make -j4
+  g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0; cmake 3.28.3
+  CPU has avx512f, avx512bw, avx512vl, bmi2 -> the default x86-64-v4 path builds;
+  FORGE_PORTABLE was not needed and was not used.
+  The default CMAKE_CXX_COMPILER on this VM is clang 18.1.3, whose cmake probe
+  failed with "cannot find -lstdc++"; the build above names g++ explicitly, as
+  the job requires GCC.
+
+Fault-model builds (private copies in /tmp, never committed):
+  /tmp/ds2/traced2  = 6b98f217 with FORGE_DS2_FAULT_REP_IGNORED added around the
+  is_draw() call at search.cpp:1569. When a stored score is usable, a repetition
+  draw is overruled by it. That is the exact fault the job asks about.
+  /tmp/ds2/traced   = a coarser, discarded first attempt (TT before the draw test
+  for every node); it broke even the fresh control, so it is not evidence.

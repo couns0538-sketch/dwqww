@@ -1,0 +1,30 @@
+Instrumented builds (private /tmp copies, never committed) used to MEASURE what each
+test form actually reaches. All were rebuilt from commit 6b98f217 with g++ and the
+same Release flags as the real build.
+
+traced7  - traces every non-root node at the draw test: ply, pv flag, whether the
+           position is a repetition, and whether a stored score would have been usable.
+traced8  - traces nodes where a stored score is usable while halfmove_clock >= 90,
+           and which condition saved it (pv, or the clock<90 guard).
+
+Result 1: where the repetition node sits
+  B1 (C searched as root), case 4K3/8/5Q2/8/8/4k3/8/8:
+      rep=1 nodes: 11, all at ply=1, all pv=1  (C itself is never a repetition node;
+      the repetition is one ply BELOW C, at S0 after k')
+  sharper_test (restricted root), same case:
+      rep=1 nodes: 10, all at ply=2, all pv=1
+  Six cases, per form:
+      B1_C_as_root     rep=74   rep_nonpv=8     searches=6
+      B2_warmed_walk   rep=4642 rep_nonpv=4414  searches=24
+      sharper_ply1     rep=60   rep_nonpv=0     searches=6
+
+Result 2: the clock<90 guard at search.cpp:1640 is load-bearing
+  8 Part C positions, clock 0 then clock 97, depth 12:
+      TT-usable-at-clock>=90 events = 517
+      of those at non-PV nodes    = 517
+      of those at PV nodes        = 0
+      e.g. "DST50 ply=2 pv=0 clock=99 stored=99 ttscore=0 depth=2 ... saved_by_clock=1"
+      and  "DST50 ply=2 pv=0 clock=99 stored=99 ttscore=31997 depth=2 ... saved_by_clock=1"
+  Every one is saved by that single condition. Part C as written still reports 100
+  draws when that condition and the score_usable mate test are both removed, because
+  its searches start at the root where the cutoff cannot fire.

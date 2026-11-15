@@ -1,0 +1,24 @@
+--- /agent/repos/dwqww/forge-combo29/src/search.cpp	2026-11-15 14:04:37.298314583 +0000
++++ traced2/src/search.cpp	2026-11-15 14:20:53.294314583 +0000
+@@ -1566,6 +1566,21 @@
+     ss->move_count = 0;
+ 
+     if (!root_node) {
++#if FORGE_DS2_FAULT_REP_IGNORED
++        // Fault model: the ONLY change is that a repetition draw is overruled by
++        // a usable stored score. Fifty-move and material draws keep the normal
++        // path, so the fault bites exactly where the job asks.
++        if (board.is_repetition(root_history_index_) || board.is_repetition()) {
++            const TTProbe rep_probe = shared_.tt.probe(board.key());
++            if (rep_probe.hit) {
++                const TTEntry& rep_entry = rep_probe.entry;
++                if (rep_entry.score_usable(board.halfmove_clock())) {
++                    const int rep_score = score_from_tt(rep_entry.score, ply);
++                    if (rep_score != ValueNone) return rep_score;
++                }
++            }
++        }
++#endif
+         if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
+         if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
+         // Mate distance pruning.
