@@ -1,0 +1,85 @@
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 3aa79c4..37b8abc 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -96,6 +96,9 @@ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
+ bool PawnHistory = false;
++std::uint64_t pawn_trace_reads = 0;
++std::uint64_t pawn_trace_updates = 0;
++std::uint64_t pawn_trace_changed = 0;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+@@ -1359,14 +1362,21 @@ void Worker::update_threat_quiet(const Board& board, Move move, int bonus) {
+ 
+ int Worker::pawn_history_value(const Board& board, Move move) const {
+     if (!tune::PawnHistory) return 0;
++    ++tune::pawn_trace_reads;
+     return (*pawn_history_)[static_cast<std::size_t>(board.pawn_key() & (PawnHistoryBuckets - 1))][static_cast<std::size_t>(board.moved_piece(move))][move.to];
+ }
+ 
+ void Worker::update_pawn_history(const Board& board, Move move, int bonus) {
+     if (!tune::PawnHistory) return;
+-    apply_history((*pawn_history_)[static_cast<std::size_t>(board.pawn_key() & (PawnHistoryBuckets - 1))][static_cast<std::size_t>(board.moved_piece(move))][move.to], bonus);
++    ++tune::pawn_trace_updates;
++    auto& entry_ref = (*pawn_history_)[static_cast<std::size_t>(board.pawn_key() & (PawnHistoryBuckets - 1))][static_cast<std::size_t>(board.moved_piece(move))][move.to];
++    const auto before = entry_ref;
++    apply_history(entry_ref, bonus);
++    if (entry_ref != before) ++tune::pawn_trace_changed;
++    return;
+ }
+ 
++
+ int Worker::capture_history_value(const Board& board, Move move) const {
+     const Piece piece = board.moved_piece(move);
+     const int captured = piece_type(board.captured_piece(move));
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index b9094c8..3cf673e 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -21,6 +21,7 @@
+ #include <string_view>
+ #include <thread>
+ #include <vector>
++namespace forge::tune { extern std::uint64_t pawn_trace_reads; extern std::uint64_t pawn_trace_updates; extern std::uint64_t pawn_trace_changed; }
+ 
+ namespace {
+ 
+@@ -625,7 +626,10 @@ int uci_loop(std::istream& in) {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
+-                      << std::endl;
++                      << std::endl
++            << "\ninfo string pawntrace reads " << forge::tune::pawn_trace_reads
++            << " updates " << forge::tune::pawn_trace_updates
++            << " changed " << forge::tune::pawn_trace_changed;
+         } else if (command == "ponderhit") {
+             if (ponder_search_active) {
+                 searcher.ponderhit();
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index b9094c8..3cf673e 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -21,6 +21,7 @@
+ #include <string_view>
+ #include <thread>
+ #include <vector>
++namespace forge::tune { extern std::uint64_t pawn_trace_reads; extern std::uint64_t pawn_trace_updates; extern std::uint64_t pawn_trace_changed; }
+ 
+ namespace {
+ 
+@@ -625,7 +626,10 @@ int uci_loop(std::istream& in) {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
+-                      << std::endl;
++                      << std::endl
++            << "\ninfo string pawntrace reads " << forge::tune::pawn_trace_reads
++            << " updates " << forge::tune::pawn_trace_updates
++            << " changed " << forge::tune::pawn_trace_changed;
+         } else if (command == "ponderhit") {
+             if (ponder_search_active) {
+                 searcher.ponderhit();

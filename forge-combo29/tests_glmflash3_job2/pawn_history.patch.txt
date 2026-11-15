@@ -1,0 +1,156 @@
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e..3aa79c4 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -95,6 +95,7 @@ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
++bool PawnHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+@@ -795,7 +796,7 @@ private:
+ 
+         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+             const Piece piece = board.piece_at(move.from);
+-            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move);
++            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move) + worker.threat_quiet_bonus(board, move) + worker.pawn_history_value(board, move);
+             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
+             return value;
+         }
+@@ -1004,6 +1005,7 @@ Worker::Worker(SharedSearchState& shared, int id)
+       id_(id),
+       main_history_(std::make_unique<ButterflyHistory>()),
+       threat_history_(std::make_unique<ThreatQuietHistory>()),
++      pawn_history_(std::make_unique<PawnHistoryTable>()),
+       capture_history_(std::make_unique<CaptureHistory>()),
+       continuation_history_(std::make_unique<ContinuationHistory>()),
+       counter_moves_(std::make_unique<CounterMoveTable>()),
+@@ -1020,6 +1022,7 @@ void Worker::clear() {
+     evaluator_.clear();
+     *main_history_ = ButterflyHistory{};
+     *threat_history_ = ThreatQuietHistory{};
++    pawn_history_->fill({});
+     *capture_history_ = CaptureHistory{};
+     *continuation_history_ = ContinuationHistory{};
+     *counter_moves_ = CounterMoveTable{};
+@@ -1327,7 +1330,7 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move)
+                              tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+                                  ? (ss - 4)->continuation : nullptr,
+                              board.moved_piece(move), move) +
+-           threat_quiet_bonus(board, move);
++           threat_quiet_bonus(board, move) + pawn_history_value(board, move);
+ #else
+     const Piece piece = board.moved_piece(move);
+     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+@@ -1338,7 +1341,7 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move)
+             score += (*(ss - 4)->continuation)[static_cast<std::size_t>(piece)][move.to] / 2;
+         }
+     }
+-    return score + threat_quiet_bonus(board, move);
++    return score + threat_quiet_bonus(board, move) + pawn_history_value(board, move);
+ #endif
+ }
+ 
+@@ -1354,6 +1357,16 @@ void Worker::update_threat_quiet(const Board& board, Move move, int bonus) {
+     apply_history((*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to], bonus);
+ }
+ 
++int Worker::pawn_history_value(const Board& board, Move move) const {
++    if (!tune::PawnHistory) return 0;
++    return (*pawn_history_)[static_cast<std::size_t>(board.pawn_key() & (PawnHistoryBuckets - 1))][static_cast<std::size_t>(board.moved_piece(move))][move.to];
++}
++
++void Worker::update_pawn_history(const Board& board, Move move, int bonus) {
++    if (!tune::PawnHistory) return;
++    apply_history((*pawn_history_)[static_cast<std::size_t>(board.pawn_key() & (PawnHistoryBuckets - 1))][static_cast<std::size_t>(board.moved_piece(move))][move.to], bonus);
++}
++
+ int Worker::capture_history_value(const Board& board, Move move) const {
+     const Piece piece = board.moved_piece(move);
+     const int captured = piece_type(board.captured_piece(move));
+@@ -1384,12 +1397,14 @@ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move,
+     const Piece piece = board.moved_piece(move);
+     apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
+     update_threat_quiet(board, move, bonus);
++    update_pawn_history(board, move, bonus);
+     update_continuation(ss, piece, move.to, bonus);
+     for (int i = 0; i < quiet_count; ++i) {
+         const Move quiet = quiets[i];
+         if (quiet == move) continue;
+         apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
+         update_threat_quiet(board, quiet, -bonus);
++        update_pawn_history(board, quiet, -bonus);
+         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
+     }
+ }
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee..b9094c8 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -219,6 +219,7 @@ int uci_loop(std::istream& in) {
+                          "option name LmrDeeperShallower type check default false\n"
+                          "option name EvalRule50Damp type check default false\n"
+                          "option name ThreatHistory type check default false\n"
++                         "option name PawnHistory type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+@@ -401,13 +402,14 @@ int uci_loop(std::istream& in) {
+                     searcher.clear_hash();
+                 }
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+-                       name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
++                       name == "ThreatHistory" || name == "PawnHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+                        name == "QuietExtinction" || name == "TmFinishIteration") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+                              : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
+                              : name == "ThreatHistory" ? &forge::tune::ThreatHistory
++                             : name == "PawnHistory" ? &forge::tune::PawnHistory
+                              : name == "LmrSignedCorrection" ? &forge::tune::LmrSignedCorrection
+                              : name == "LmrLateParentRelief" ? &forge::tune::LmrLateParentRelief
+                              : name == "NullSeeVeto" ? &forge::tune::NullSeeVeto
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af..b2a1269 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -295,6 +295,7 @@ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correctio
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
++extern bool PawnHistory;             // second quiet history keyed by the pawn structure (false = off)
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+ extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+@@ -386,6 +387,11 @@ using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 13>;
+ using CaptureHistory = std::array<std::array<std::array<std::int16_t, 7>, 64>, 13>;
+ using CounterMoveTable = std::array<std::array<Move, 64>, 13>;
+ constexpr std::size_t CorrectionSize = 1U << 14U;
++
++// Pawn-structure history: [pawn key bucket][moved piece][to square], 16-bit entries.
++// 4096 buckets x 13 x 64 x 2 B = 6.8 MB per search thread.
++constexpr std::size_t PawnHistoryBuckets = 1U << 12U;
++using PawnHistoryTable = std::array<std::array<std::array<std::int16_t, 64>, 13>, PawnHistoryBuckets>;
+ constexpr int CorrectionGrain = 256;
+ constexpr int CorrectionLimit = 32 * CorrectionGrain;
+ using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
+@@ -471,6 +477,7 @@ private:
+     Evaluator evaluator_;
+     std::unique_ptr<ButterflyHistory> main_history_;
+     std::unique_ptr<ThreatQuietHistory> threat_history_;
++    std::unique_ptr<PawnHistoryTable> pawn_history_;
+     std::unique_ptr<CaptureHistory> capture_history_;
+     std::unique_ptr<ContinuationHistory> continuation_history_;
+     std::unique_ptr<CounterMoveTable> counter_moves_;
+@@ -551,6 +558,8 @@ private:
+     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
+     [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
+     void update_threat_quiet(const Board& board, Move move, int bonus);
++    [[nodiscard]] int pawn_history_value(const Board& board, Move move) const;
++    void update_pawn_history(const Board& board, Move move, int bonus);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
