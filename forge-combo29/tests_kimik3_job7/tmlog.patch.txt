@@ -1,0 +1,133 @@
+--- v3_nc/src/search.cpp	2026-11-15 20:39:21.010885460 +0000
++++ v3_log/src/search.cpp	2026-11-15 22:48:57.742885460 +0000
+@@ -106,6 +106,7 @@
+ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
++bool TmLog = false;
+ std::int64_t NodeClock = 0;
+ bool SoundMatePruning = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+@@ -2206,6 +2207,9 @@
+         time_managed_ = !plan.reserve_empty;
+     }
+     SearchInfo result;
++    // TmLog: why the iterative loop below ended. Written only at the exit
++    // sites; read only when the TmLog option is on, so off changes nothing.
++    const char* stop_reason = "depth";
+     const MoveList legal = board.legal_moves();
+     MoveList root_candidates;
+     for (const Move move : legal) {
+@@ -2328,6 +2332,7 @@
+         }
+         max_depth = 1;
+         emergency_ply = true;
++        stop_reason = "other";
+     } else if (!waiting_to_ponder && hard_limit_ms_ > 0 && elapsed_ms() >= hard_limit_ms_) {
+         result.best_move = root_candidates.front();
+         result.elapsed_ms = static_cast<std::uint64_t>(tune::NodeClock > 0
+@@ -2450,6 +2455,9 @@
+         }
+         if (!aborted_) reopen_full_window = tune::AspArmLate && failed_window;
+         if (aborted_) {
++            if (stopped_by_nodes_) stop_reason = "nodes";
++            else if (time_managed_ && hard_limit_ms_ > 0 && elapsed_ms() >= hard_limit_ms_) stop_reason = "hard";
++            else stop_reason = "other";
+             // A clock or external stop may keep a root move that already raised
+             // alpha in this unfinished iteration, and the score stays the last
+             // finished one. A node limit must not do that: training labels from
+@@ -2551,7 +2559,12 @@
+                 result.best_move = lines.front().pv.front();
+                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+             }
+-            if (aborted_) break;
++            if (aborted_) {
++                if (stopped_by_nodes_) stop_reason = "nodes";
++                else if (time_managed_ && hard_limit_ms_ > 0 && elapsed_ms() >= hard_limit_ms_) stop_reason = "hard";
++                else stop_reason = "other";
++                break;
++            }
+         } else {
+             emit(depth, score, result.pv);
+         }
+@@ -2562,11 +2575,16 @@
+         const int iteration_previous_score = previous_score;
+         previous_score = score;
+ 
+-        if (mate_moves > 0 && score >= mate_in(mate_moves * 2 - 1)) break;
++        if (mate_moves > 0 && score >= mate_in(mate_moves * 2 - 1)) { stop_reason = "other"; break; }
+         // The iteration above is finished. Passing the soft budget stops here,
+         // keeping this move and score. The hard cap is enforced inside search.
+-        if (soft_node_limit_ != 0 && total_nodes() + extra_nodes_ >= soft_node_limit_) break;
+-        if (should_stop()) break;
++        if (soft_node_limit_ != 0 && total_nodes() + extra_nodes_ >= soft_node_limit_) { stop_reason = "nodes"; break; }
++        if (should_stop()) {
++            if (stopped_by_nodes_) stop_reason = "nodes";
++            else if (time_managed_ && hard_limit_ms_ > 0 && elapsed_ms() >= hard_limit_ms_) stop_reason = "hard";
++            else stop_reason = "other";
++            break;
++        }
+         if (time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
+             if (finish_sampling) {
+                 const std::int64_t spent = elapsed_ms() - finish_origin;
+@@ -2622,7 +2640,10 @@
+                 }
+                 soft_basis = decision.soft_ms;
+             }
+-            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_basis) * factor)) break;
++            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_basis) * factor)) {
++                stop_reason = "soft";
++                break;
++            }
+             if (finish_sampling) {
+                 const std::int64_t used_ms = elapsed_ms();
+                 const auto deadline = static_cast<std::int64_t>(static_cast<double>(soft_basis) * factor);
+@@ -2634,6 +2655,7 @@
+                                   << " prev " << finish_prev_ms << " last " << finish_last_ms
+                                   << " remaining " << left_ms << std::endl;
+                     }
++                    stop_reason = "finish";
+                     break;
+                 }
+             }
+@@ -2641,6 +2663,10 @@
+     }
+ 
+     nodes_.store(local_nodes_, std::memory_order_relaxed);
++    if (tune::TmLog && emit_info) {
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "info string stop " << stop_reason << std::endl;
++    }
+     result.nodes = total_nodes() + extra_nodes_;
+     result.seldepth = std::max(result.seldepth, seldepth_);
+     result.elapsed_ms = static_cast<std::uint64_t>(tune::NodeClock > 0
+--- v3_nc/include/forge/search.hpp	2026-11-15 20:27:24.314885460 +0000
++++ v3_log/include/forge/search.hpp	2026-11-15 22:08:15.086885460 +0000
+@@ -306,6 +306,7 @@
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;
++extern bool TmLog;                    // print one "info string stop <reason>" per search (false = off)
+ extern std::int64_t NodeClock;        // nodes per millisecond; 0 = wall clock (off)             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+--- v3_nc/src/uci.cpp	2026-11-15 20:27:24.318885460 +0000
++++ v3_log/src/uci.cpp	2026-11-15 22:08:15.950885460 +0000
+@@ -232,6 +232,7 @@
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
++                         "option name TmLog type check default false\n"
+                          "option name NodeClock type spin default 0 min 0 max 1000000000\n"
+                          "option name SoundMatePruning type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+@@ -437,6 +438,9 @@
+             } else if (name == "TmNodeShare") {
+                 if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                 else note_invalid();
++            } else if (name == "TmLog") {
++                if (value_text == "true" || value_text == "false") forge::tune::TmLog = value_text == "true";
++                else note_invalid();
+             } else if (name == "NodeClock") {
+                 apply_spin(0, 1000000000, [&](int clamped) { forge::tune::NodeClock = clamped; });
+             } else if (name == "SoundMatePruning") {
