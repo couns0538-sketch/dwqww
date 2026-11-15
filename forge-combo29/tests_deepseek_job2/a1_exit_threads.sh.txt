@@ -1,0 +1,37 @@
+#!/bin/sh
+# Job 2 A1: with Threads 4 and the file net, start `go infinite`, wait, send `quit`,
+# and stop inside exit() to see which threads still exist at that moment.
+# Run from the directory holding the gdb recipe; prints one block per run.
+#
+# Usage: a1_exit_threads.sh <runs> <outfile>
+RUNS=${1:-10}
+OUT=${2:-/tmp/ds/job2/A1-exit-threads.txt}
+i=1
+: > "$OUT"
+while [ "$i" -le "$RUNS" ]; do
+  echo "########## run $i ##########" >> "$OUT"
+  {
+    printf 'setoption name Threads value 4\n'
+    printf 'setoption name Hash value 16\n'
+    printf 'setoption name NNUEArchFile value /tmp/ds/netgen/random_h512.fnn3\n'
+    printf 'setoption name NNUEArch value true\n'
+    printf 'isready\n'
+    printf 'position fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1\n'
+    printf 'go infinite\n'
+    sleep 0.1
+    printf 'quit\n'
+    sleep 0.5
+  } | timeout 120 gdb -batch \
+        -ex 'set pagination off' \
+        -ex 'set breakpoint pending on' \
+        -ex 'break exit' \
+        -ex 'break _exit' \
+        -ex 'run' \
+        -ex 'printf "=== AT_EXIT ===\n"' \
+        -ex 'info threads' \
+        -ex 'thread apply all bt 3' \
+        --args /tmp/ds/build-tsan/forge >> "$OUT" 2>&1
+  echo "" >> "$OUT"
+  i=$((i + 1))
+done
+echo "done: $OUT"
