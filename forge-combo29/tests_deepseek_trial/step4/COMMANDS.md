@@ -42,14 +42,28 @@ first race.
 
 | run | positions searched | exit code | TSan reports | wall time |
 |---|---|---|---|---|
-| Threads 2 | 500 / 500 | 0 | 0 | 46.0 s |
-| Threads 4 | 500 / 500 | 0 | 0 | 43.1 s |
+| Threads 2, depth 8 | 500 / 500 | 0 | 0 | 46.0 s |
+| Threads 4, depth 8 | 500 / 500 | 0 | 0 | 43.1 s |
+| Threads 4, depth 8, repeated after a relink | 500 / 500 | 0 | 0 | 42.5 s |
+| Threads 4, depth 12 (supplementary) | 500 / 500 | 0 | 0 | 795.7 s |
 
 Raw: `tsan-t2.stdout.log` (433486 B), `tsan-t2.stderr.log` (**0 B**),
-`tsan-t4.stdout.log` (437987 B), `tsan-t4.stderr.log` (**0 B**). Both logs are
-under 1 MB, so no truncation was needed. sha256 of both stderr logs is
+`tsan-t4.stdout.log` (437987 B), `tsan-t4.stderr.log` (**0 B**),
+`tsan-t4-depth12.stdout.log` (725314 B), `tsan-t4-depth12.stderr.log` (**0 B**),
+`tsan-t4-relinked.stdout.log` (437731 B), `tsan-t4-relinked.stderr.log` (**0 B**).
+Every log is under 1 MB, so no truncation was needed. sha256 of every stderr log is
 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`, the hash of
 the empty file.
+
+The depth-12 run is not in the job's protocol; I added it because depth-8 searches
+finish in about 90 ms and I wanted a longer window where the workers overlap. It is
+reported separately so it is not confused with the required depth-8 result.
+
+The last row exists because I relinked the engine after the first two runs (to
+trace the real compiler invocation for the `-O2` proof). The relink used
+byte-identical source - `git hash-object src/nnue_v3.cpp` still equals the blob in
+the commit - but I did not want the "0 reports" claim to rest on a binary that was
+no longer the one in the build tree, so I repeated the Threads 4 run.
 
 No `info string ERROR NNUE v3` line appeared: the net loaded in both runs, and
 the first stdout line of each run is the `NNUE v3: loaded ...` message.

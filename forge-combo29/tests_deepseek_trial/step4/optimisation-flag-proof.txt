@@ -1,0 +1,11 @@
+Proof that the CMake-requested -O2 survives into the real compiler invocation.
+Rebuilt src/nnue_v3.cpp through cmake --build with the compiler launcher on the
+compiler path, tracing execve:
+  strace -f -e trace=execve -s 4000 -o execve-build.txt cmake --build build-tsan --target forge
+
+Optimisation flags seen in the cc1plus executions during that build:
+      3 -O2
+(three -O2 and no -O3, i.e. the CMakeLists -O3 was rewritten before gcc saw it)
+
+Raw trace lines mentioning cc1plus (paths abbreviated):
+10179 execve("/usr/libexec/gcc/x86_64-linux-gnu/13/cc1plus", ["/usr/libexec/gcc/x86_64-linux-gnu/13/cc1plus", "-quiet", "-I", "/agent/repos/dwqww/forge-combo29/include", "-imultiarch", "x86_64-linux-gnu", "-MD", "CMakeFiles/forge.dir/src/nnue_v3.cpp.d", "-MF", "CMakeFiles/forge.dir/src/nnue_v3.cpp.o.d", "-MT", "CMakeFiles/forge.dir/src/nnue_v3.cpp.o", "-D_GNU_SOURCE", "-D", "FORGE_EXPOSE_TUNABLES=

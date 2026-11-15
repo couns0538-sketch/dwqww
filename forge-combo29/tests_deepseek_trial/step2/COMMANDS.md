@@ -39,8 +39,10 @@ The net file is deliberately not committed (it is a binary).
 
 The generator draws from `numpy.random.default_rng(seed)` with the default seed 1
 (no `--seed` was given, so the default applies) and the job's command was used
-unchanged. A rerun on a different numpy version may produce different weights and
-therefore a different sha256; the value above is for numpy 1.26.4 on this machine.
+unchanged. I reran the command a second time on this machine and got a
+byte-identical file (`step2/netgen-reproducibility.txt`), so the sha256 above is
+reproducible here with numpy 1.26.4. I did **not** test another machine or another
+numpy version, so I cannot say whether the hash would survive an environment change.
 
 ## Load check
 
