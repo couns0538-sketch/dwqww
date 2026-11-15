@@ -1,17 +1,17 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T02:19:40.000Z. Updated 2026-11-15T00:44:48.470Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T02:19:40.000Z. Updated 2026-11-15T00:49:09.875Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
-Step1 exact corpus in progress.
-step1 97621/100000 exact selected comparisons; 0 differences, 1 retained operational findings. Continuation authorized; corpus completion pending. Raw evidence and v3 metadata packaged immutably; source/commit/push state preserved.
+Step2 exact corpus S2-0001 running.
+Step1 100000/100000 identical. Same-clock commit d9a8587df8ad4d0ff1231632cb1ac72b590c04bf passes three default pins,16 option counts,9 unit rows and the required mate -5/2566746 position. Second100000 corpus and final sanitizer workload pending.
 
 | Check | Result |
 |---|---|
 | Step 1 default pins | 312866 / 862329 / 4865609 |
 | Step 1 option bench counts | 16 passed; 0 failed |
 | Step 1 hand evaluation | 375354 / 907205; frozen reference and candidate match |
-| Step 1 exact corpus | 97621 / 100000 completed; 0 differences; 1 retained operational findings; gate incomplete |
-| Same-clock refinement | Not applied; full step 1 gate required |
+| Step 1 exact corpus | 100000 / 100000 completed; 0 differences; 1 retained operational findings; gate passed |
+| Same-clock refinement | d9a8587df8ad4d0ff1231632cb1ac72b590c04bf |
 | Preliminary step 1 sanitizers | 393 games / 52681 searches; 0 findings |
 | Preliminary paired UCI check | 132 ordinary / 87 soft-node searches; 8 cap cases; 0 label faults |
 | Final-tree sanitizers | 0 games / 0 searches; not started |
@@ -37,9 +37,9 @@ The actual owner-PC compiler, PGO profile, runtime tuning and active network wer
 
 Detailed state and all command/output files are retained: [state snapshot](tests_astra_parity/STATUS_STATE.txt), [commands and raw output](tests_astra_parity/logs), [progress](tests_astra_parity/PROGRESS.txt). Large raw text logs use immutable chunks with byte counts and SHA256 reconstruction manifests. All published additions are text under this report and tests_astra_parity. Existing tests, expected values, CMake and earlier evidence remain unchanged.
 
-Step 2 details: {}.
+Step 2 details: {"sourceCommit":"d9a8587df8ad4d0ff1231632cb1ac72b590c04bf","status":"local checks passed; exact corpus and final sanitizers pending","build":"passed","binarySha256":"df76cddaea8a37dae7f8d1a5178700e0168aad8c463764ed6870d9c4fce2dc56","pins":{"bench11":312866,"bench13":862329,"perft5":4865609},"options":{"passed":16,"failed":0,"rows":[{"name":"EvalRule50Damp","value":"true","expected":1049205,"got":1049205},{"name":"ThreatHistory","value":"true","expected":643389,"got":643389},{"name":"LmrSignedCorrection","value":"true","expected":862329,"got":862329},{"name":"LmrLateParentRelief","value":"true","expected":818656,"got":818656},{"name":"HindsightDepth","value":"true","expected":840387,"got":840387},{"name":"NullThreatVerify","value":"true","expected":789456,"got":789456},{"name":"NullSeeVeto","value":"true","expected":929140,"got":929140},{"name":"AspCappedReopen","value":"true","expected":850997,"got":850997},{"name":"AspArmLate","value":"true","expected":870398,"got":870398},{"name":"EvasionOrdering","value":"true","expected":772890,"got":772890},{"name":"DeadMaterial","value":"true","expected":862329,"got":862329},{"name":"QuietExtinction","value":"true","expected":632155,"got":632155},{"name":"DrawJitter","value":"8","expected":857947,"got":857947},{"name":"TmFinishIteration","value":"true","expected":862329,"got":862329},{"name":"TmNodeShare","value":"true","expected":862329,"got":862329},{"name":"SoundMatePruning","value":"true","expected":980408,"got":980408}]},"unit":{"cases":9,"failures":0,"expectedValuesUnchanged":true},"targetPosition":{"fen":"8/8/2n2r2/3qN1k1/8/8/8/K7 w - - 90 141","depth":9,"threads":1,"move":"a1b2","scoreKind":"mate","score":-5,"nodes":2566746,"normalExit":true}}.
 Final soak details: {"status":"not started"}.
 Match details: {"status":"not started"}.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 12, including this checkpoint.
+Progress pushes: 13, including this checkpoint.

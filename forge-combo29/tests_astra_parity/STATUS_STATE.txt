@@ -5,7 +5,7 @@
   "start": "2026-11-14T23:19:40.000Z",
   "budgetMinutes": 180,
   "deadline": "2026-11-15T02:19:40.000Z",
-  "phase": "Step1 exact corpus in progress",
+  "phase": "Step2 exact corpus S2-0001 running",
   "sourceCommits": [
     {
       "step": 1,
@@ -55,8 +55,8 @@
       "stat": "c488e88f Apply source-only r3-20-faster-search-plumbing by three-way merge from e04556dd\n forge-combo29/include/forge/bitboard.hpp |   6 ++\n forge-combo29/include/forge/board.hpp    |  29 +++++++\n forge-combo29/src/bitboard.cpp           |   7 ++\n forge-combo29/src/board.cpp              | 144 +++++++++++++++++++------------\n forge-combo29/src/search.cpp             | 120 ++++++++++++++++++++------\n 5 files changed, 227 insertions(+), 79 deletions(-)"
     }
   ],
-  "pushes": 11,
-  "lastPush": "2026-11-15T00:37:11.717Z",
+  "pushes": 12,
+  "lastPush": "2026-11-15T00:44:52.068Z",
   "sourceChangesOnly": [
     "forge-combo29/src",
     "forge-combo29/include"
@@ -74,7 +74,7 @@
     "step1 any equality difference stops dependent work",
     "counts only; owner no Elo/speed claims overrides external request"
   ],
-  "lastCommit": "f5907a63bdd19f801a6285ecea328ee31ccf963a",
+  "lastCommit": "a545a9cb184c37521095efbff84d704dd6595e91",
   "validation": {
     "step1": {
       "build": "passed",
@@ -186,28 +186,28 @@
         ]
       },
       "equality": {
-        "completed": 97621,
-        "lowClock": 97579,
+        "completed": 100000,
+        "lowClock": 99958,
         "highClock": 42,
         "differences": 0,
         "operationalFindings": 1,
-        "gatePassed": false,
+        "gatePassed": true,
         "targetMet": false,
         "shutdownTiming": {
           "schema": 1,
           "measurement": "steady_clock immediately before full quit write to first successful waitpid observation; null when unavailable; total shutdown duration and actual requested budget retained",
           "bySide": {
             "merged": {
-              "observed": 97643,
-              "measured": 80915,
+              "observed": 100022,
+              "measured": 83294,
               "unavailable": 5,
               "legacyUnmeasured": 16723,
               "maxMs": 36.161626,
               "over100ms": 0
             },
             "lock": {
-              "observed": 97632,
-              "measured": 80905,
+              "observed": 100011,
+              "measured": 83284,
               "unavailable": 5,
               "legacyUnmeasured": 16722,
               "maxMs": 52.721913,
@@ -216,16 +216,16 @@
           },
           "byBudgetAndForcedStatus": {
             "merged:budget=false:forced=false": {
-              "observed": 97631,
-              "measured": 80910,
+              "observed": 100010,
+              "measured": 83289,
               "unavailable": 0,
               "legacyUnmeasured": 16721,
               "maxMs": 36.161626,
               "over100ms": 0
             },
             "lock:budget=false:forced=false": {
-              "observed": 97621,
-              "measured": 80902,
+              "observed": 100000,
+              "measured": 83281,
               "unavailable": 0,
               "legacyUnmeasured": 16719,
               "maxMs": 52.721913,
@@ -292,17 +292,17 @@
           ],
           "timingErrors": []
         },
-        "audit": "/workspace/work/parity-run/equality-speed-v3/audits/S1-0006.txt",
+        "audit": "/workspace/work/parity-run/equality-speed-v3/audits/S1-0007.txt",
         "stage": "speed",
-        "id": "S1-0006",
+        "id": "S1-0007",
         "recorderFile": "/workspace/work/parity-equality-recording-preparation/record-equality.mjs",
         "recorderSha256": "00f0395b58746b279672d1a9a82f551904abad5e05d0dee680f24ec11dc09063",
         "packageToolSha256": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
-        "receipt": "/workspace/work/parity-run/equality-speed-v3/receipts/S1-0006.txt",
-        "receiptSha256": "a8b610cc617ca46920839ec69cf5af13ecacf42847be1afca2e71701db0ee8a2",
-        "auditSha256": "d7fbf05ad55ad58cd5949cb4a2619039696eb7af1c801246823ca2e3e8d06ed4",
+        "receipt": "/workspace/work/parity-run/equality-speed-v3/receipts/S1-0007.txt",
+        "receiptSha256": "09d0f091ce7f202c0d86151fdc7515717a8fc47ff37cb0164ee93f89f8873f24",
+        "auditSha256": "85f836ded971388b78b42780f8d894bb29a0ec1009c8ebb73c71ac4497252814",
         "partialDifferences": 0,
-        "exactOriginal100k": false,
+        "exactOriginal100k": true,
         "continuationAllowed": true,
         "attributionPending": false,
         "operationalClassification": {
@@ -316,14 +316,14 @@
           "requiredDiagnostic": null,
           "operationalContinuationAllowed": true,
           "continuationAllowed": true,
-          "completionGateSatisfied": false,
+          "completionGateSatisfied": true,
           "engineFaultClassification": "Pure retained shutdown allowance occurrences are operational findings; all other faults remain blocking."
         },
         "nativeRuns": 0,
         "counts": {
-          "records_completed": 98336,
-          "positions": 97621,
-          "positions_low_clock": 97579,
+          "records_completed": 100715,
+          "positions": 100000,
+          "positions_low_clock": 99958,
           "positions_high_clock": 42,
           "differences_low_clock": 0,
           "differences_high_clock": 0,
@@ -333,7 +333,7 @@
           "excluded_insufficient": 680,
           "excluded_halfmove100": 1,
           "invalid_fens": 0,
-          "engine_runs": 195242,
+          "engine_runs": 200000,
           "illegal": 0,
           "missing": 0,
           "missing_info": 0,
@@ -347,8 +347,8 @@
           "reproduction_differences": 0,
           "reproduction_fault_pairs": 0
         },
-        "package": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0006",
-        "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1-records/S1-0006"
+        "package": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0007",
+        "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1-records/S1-0007"
       },
       "binarySha256": "f02cd1cfc2f81b7b2cd3e6306d6b63c3d4afa3d641fdc847da584f89fc6e9569",
       "handEval": {
@@ -384,47 +384,179 @@
         "meaning": "Intended before-edit demonstration: requested row5 is refused by unchanged function; all other requested rows already pass. Expected values fixed for later step2."
       },
       "preliminaryAsanBuild": "passed; instrumented core and unchanged driver linked; final-tree coverage not yet started"
+    },
+    "step2": {
+      "sourceCommit": "d9a8587df8ad4d0ff1231632cb1ac72b590c04bf",
+      "status": "local checks passed; exact corpus and final sanitizers pending",
+      "build": "passed",
+      "binarySha256": "df76cddaea8a37dae7f8d1a5178700e0168aad8c463764ed6870d9c4fce2dc56",
+      "pins": {
+        "bench11": 312866,
+        "bench13": 862329,
+        "perft5": 4865609
+      },
+      "options": {
+        "passed": 16,
+        "failed": 0,
+        "rows": [
+          {
+            "name": "EvalRule50Damp",
+            "value": "true",
+            "expected": 1049205,
+            "got": 1049205
+          },
+          {
+            "name": "ThreatHistory",
+            "value": "true",
+            "expected": 643389,
+            "got": 643389
+          },
+          {
+            "name": "LmrSignedCorrection",
+            "value": "true",
+            "expected": 862329,
+            "got": 862329
+          },
+          {
+            "name": "LmrLateParentRelief",
+            "value": "true",
+            "expected": 818656,
+            "got": 818656
+          },
+          {
+            "name": "HindsightDepth",
+            "value": "true",
+            "expected": 840387,
+            "got": 840387
+          },
+          {
+            "name": "NullThreatVerify",
+            "value": "true",
+            "expected": 789456,
+            "got": 789456
+          },
+          {
+            "name": "NullSeeVeto",
+            "value": "true",
+            "expected": 929140,
+            "got": 929140
+          },
+          {
+            "name": "AspCappedReopen",
+            "value": "true",
+            "expected": 850997,
+            "got": 850997
+          },
+          {
+            "name": "AspArmLate",
+            "value": "true",
+            "expected": 870398,
+            "got": 870398
+          },
+          {
+            "name": "EvasionOrdering",
+            "value": "true",
+            "expected": 772890,
+            "got": 772890
+          },
+          {
+            "name": "DeadMaterial",
+            "value": "true",
+            "expected": 862329,
+            "got": 862329
+          },
+          {
+            "name": "QuietExtinction",
+            "value": "true",
+            "expected": 632155,
+            "got": 632155
+          },
+          {
+            "name": "DrawJitter",
+            "value": "8",
+            "expected": 857947,
+            "got": 857947
+          },
+          {
+            "name": "TmFinishIteration",
+            "value": "true",
+            "expected": 862329,
+            "got": 862329
+          },
+          {
+            "name": "TmNodeShare",
+            "value": "true",
+            "expected": 862329,
+            "got": 862329
+          },
+          {
+            "name": "SoundMatePruning",
+            "value": "true",
+            "expected": 980408,
+            "got": 980408
+          }
+        ]
+      },
+      "unit": {
+        "cases": 9,
+        "failures": 0,
+        "expectedValuesUnchanged": true
+      },
+      "targetPosition": {
+        "fen": "8/8/2n2r2/3qN1k1/8/8/8/K7 w - - 90 141",
+        "depth": 9,
+        "threads": 1,
+        "move": "a1b2",
+        "scoreKind": "mate",
+        "score": -5,
+        "nodes": 2566746,
+        "normalExit": true
+      }
     }
   },
-  "checkpointNote": "step1 97621/100000 exact selected comparisons; 0 differences, 1 retained operational findings. Continuation authorized; corpus completion pending. Raw evidence and v3 metadata packaged immutably; source/commit/push state preserved.",
-  "progressBatch": "S1-0006 seed1449530006",
-  "active": null,
+  "checkpointNote": "Step1 100000/100000 identical. Same-clock commit d9a8587df8ad4d0ff1231632cb1ac72b590c04bf passes three default pins,16 option counts,9 unit rows and the required mate -5/2566746 position. Second100000 corpus and final sanitizer workload pending.",
+  "progressBatch": "S1-0007 seed1449530007",
+  "active": {
+    "stage": "final",
+    "batch": "S2-0001",
+    "started": "2026-11-15T00:49:07.809Z"
+  },
   "equalityTotals": {
     "step1": {
       "stage": "speed",
-      "id": "S1-0006",
+      "id": "S1-0007",
       "recorderFile": "/workspace/work/parity-equality-recording-preparation/record-equality.mjs",
       "recorderSha256": "00f0395b58746b279672d1a9a82f551904abad5e05d0dee680f24ec11dc09063",
       "packageToolSha256": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
-      "receipt": "/workspace/work/parity-run/equality-speed-v3/receipts/S1-0006.txt",
-      "receiptSha256": "a8b610cc617ca46920839ec69cf5af13ecacf42847be1afca2e71701db0ee8a2",
-      "audit": "/workspace/work/parity-run/equality-speed-v3/audits/S1-0006.txt",
-      "auditSha256": "d7fbf05ad55ad58cd5949cb4a2619039696eb7af1c801246823ca2e3e8d06ed4",
-      "completed": 97621,
-      "lowClock": 97579,
+      "receipt": "/workspace/work/parity-run/equality-speed-v3/receipts/S1-0007.txt",
+      "receiptSha256": "09d0f091ce7f202c0d86151fdc7515717a8fc47ff37cb0164ee93f89f8873f24",
+      "audit": "/workspace/work/parity-run/equality-speed-v3/audits/S1-0007.txt",
+      "auditSha256": "85f836ded971388b78b42780f8d894bb29a0ec1009c8ebb73c71ac4497252814",
+      "completed": 100000,
+      "lowClock": 99958,
       "highClock": 42,
       "differences": 0,
       "partialDifferences": 0,
       "operationalFindings": 1,
-      "exactOriginal100k": false,
+      "exactOriginal100k": true,
       "continuationAllowed": true,
       "attributionPending": false,
-      "gatePassed": false,
+      "gatePassed": true,
       "shutdownTiming": {
         "schema": 1,
         "measurement": "steady_clock immediately before full quit write to first successful waitpid observation; null when unavailable; total shutdown duration and actual requested budget retained",
         "bySide": {
           "merged": {
-            "observed": 97643,
-            "measured": 80915,
+            "observed": 100022,
+            "measured": 83294,
             "unavailable": 5,
             "legacyUnmeasured": 16723,
             "maxMs": 36.161626,
             "over100ms": 0
           },
           "lock": {
-            "observed": 97632,
-            "measured": 80905,
+            "observed": 100011,
+            "measured": 83284,
             "unavailable": 5,
             "legacyUnmeasured": 16722,
             "maxMs": 52.721913,
@@ -433,16 +565,16 @@
         },
         "byBudgetAndForcedStatus": {
           "merged:budget=false:forced=false": {
-            "observed": 97631,
-            "measured": 80910,
+            "observed": 100010,
+            "measured": 83289,
             "unavailable": 0,
             "legacyUnmeasured": 16721,
             "maxMs": 36.161626,
             "over100ms": 0
           },
           "lock:budget=false:forced=false": {
-            "observed": 97621,
-            "measured": 80902,
+            "observed": 100000,
+            "measured": 83281,
             "unavailable": 0,
             "legacyUnmeasured": 16719,
             "maxMs": 52.721913,
@@ -520,14 +652,14 @@
         "requiredDiagnostic": null,
         "operationalContinuationAllowed": true,
         "continuationAllowed": true,
-        "completionGateSatisfied": false,
+        "completionGateSatisfied": true,
         "engineFaultClassification": "Pure retained shutdown allowance occurrences are operational findings; all other faults remain blocking."
       },
       "nativeRuns": 0,
       "counts": {
-        "records_completed": 98336,
-        "positions": 97621,
-        "positions_low_clock": 97579,
+        "records_completed": 100715,
+        "positions": 100000,
+        "positions_low_clock": 99958,
         "positions_high_clock": 42,
         "differences_low_clock": 0,
         "differences_high_clock": 0,
@@ -537,7 +669,7 @@
         "excluded_insufficient": 680,
         "excluded_halfmove100": 1,
         "invalid_fens": 0,
-        "engine_runs": 195242,
+        "engine_runs": 200000,
         "illegal": 0,
         "missing": 0,
         "missing_info": 0,
@@ -551,8 +683,8 @@
         "reproduction_differences": 0,
         "reproduction_fault_pairs": 0
       },
-      "package": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0006",
-      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1-records/S1-0006"
+      "package": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0007",
+      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1-records/S1-0007"
     }
   },
   "coordination": {
@@ -1622,9 +1754,238 @@
           "manifestSha256": "9e8b1804d11e8c2f7555ed6a9b0d246cfca7fd45c23e6f80afe811382a81a129"
         }
       ]
+    },
+    {
+      "stage": "speed",
+      "id": "S1-0007",
+      "recorderFile": "/workspace/work/parity-equality-recording-preparation/record-equality.mjs",
+      "recorderSha256": "00f0395b58746b279672d1a9a82f551904abad5e05d0dee680f24ec11dc09063",
+      "packageToolSha256": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
+      "receipt": "/workspace/work/parity-run/equality-speed-v3/receipts/S1-0007.txt",
+      "receiptSha256": "09d0f091ce7f202c0d86151fdc7515717a8fc47ff37cb0164ee93f89f8873f24",
+      "audit": "/workspace/work/parity-run/equality-speed-v3/audits/S1-0007.txt",
+      "auditSha256": "85f836ded971388b78b42780f8d894bb29a0ec1009c8ebb73c71ac4497252814",
+      "completed": 100000,
+      "lowClock": 99958,
+      "highClock": 42,
+      "differences": 0,
+      "partialDifferences": 0,
+      "operationalFindings": 1,
+      "exactOriginal100k": true,
+      "continuationAllowed": true,
+      "attributionPending": false,
+      "gatePassed": true,
+      "shutdownTiming": {
+        "schema": 1,
+        "measurement": "steady_clock immediately before full quit write to first successful waitpid observation; null when unavailable; total shutdown duration and actual requested budget retained",
+        "bySide": {
+          "merged": {
+            "observed": 100022,
+            "measured": 83294,
+            "unavailable": 5,
+            "legacyUnmeasured": 16723,
+            "maxMs": 36.161626,
+            "over100ms": 0
+          },
+          "lock": {
+            "observed": 100011,
+            "measured": 83284,
+            "unavailable": 5,
+            "legacyUnmeasured": 16722,
+            "maxMs": 52.721913,
+            "over100ms": 0
+          }
+        },
+        "byBudgetAndForcedStatus": {
+          "merged:budget=false:forced=false": {
+            "observed": 100010,
+            "measured": 83289,
+            "unavailable": 0,
+            "legacyUnmeasured": 16721,
+            "maxMs": 36.161626,
+            "over100ms": 0
+          },
+          "lock:budget=false:forced=false": {
+            "observed": 100000,
+            "measured": 83281,
+            "unavailable": 0,
+            "legacyUnmeasured": 16719,
+            "maxMs": 52.721913,
+            "over100ms": 0
+          },
+          "merged:budget=true:forced=true": {
+            "observed": 6,
+            "measured": 0,
+            "unavailable": 5,
+            "legacyUnmeasured": 1,
+            "maxMs": null,
+            "over100ms": 0
+          },
+          "merged:budget=false:forced=true": {
+            "observed": 1,
+            "measured": 0,
+            "unavailable": 0,
+            "legacyUnmeasured": 1,
+            "maxMs": null,
+            "over100ms": 0
+          },
+          "lock:budget=true:forced=false": {
+            "observed": 5,
+            "measured": 3,
+            "unavailable": 0,
+            "legacyUnmeasured": 2,
+            "maxMs": 6.71076,
+            "over100ms": 0
+          },
+          "lock:budget=true:forced=true": {
+            "observed": 6,
+            "measured": 0,
+            "unavailable": 5,
+            "legacyUnmeasured": 1,
+            "maxMs": null,
+            "over100ms": 0
+          },
+          "merged:budget=true:forced=false": {
+            "observed": 5,
+            "measured": 5,
+            "unavailable": 0,
+            "legacyUnmeasured": 0,
+            "maxMs": 19.272102,
+            "over100ms": 0
+          }
+        },
+        "maxMs": 52.721913,
+        "over100ms": 0,
+        "candidateTimeoutOccurrences": 1,
+        "referenceTimeoutOccurrences": 0,
+        "inheritedCandidateTimeoutOccurrences": 0,
+        "timeoutOccurrences": [
+          {
+            "batch": "/workspace/work/parity-run/equality-batches/step1/S1-0001/summary.txt",
+            "worker": 1,
+            "localIndex": 4407,
+            "globalRecordIndex": 17629,
+            "attempt": 0,
+            "side": "merged",
+            "pureShutdownAllowanceOccurrence": true,
+            "quitToExitMs": null,
+            "shutdownBudgetMs": null
+          }
+        ],
+        "timingErrors": []
+      },
+      "operationalClassification": {
+        "commit": "7188f6b5f8ecc0ba88d4ec1997aaf2dd1161a82d",
+        "file": "/workspace/work/parity-equality-preparation-v3/FABLE_ANSWER_0012.md",
+        "sha256": "c43cf885c83df3be5453fbe71087e8311506cbd7a97af298b43d3c24c2515642",
+        "rawOperationalFaultsRetained": 1,
+        "classifiedShutdownAllowanceOccurrences": 1,
+        "otherOperationalFaults": 0,
+        "escalationRequired": false,
+        "requiredDiagnostic": null,
+        "operationalContinuationAllowed": true,
+        "continuationAllowed": true,
+        "completionGateSatisfied": true,
+        "engineFaultClassification": "Pure retained shutdown allowance occurrences are operational findings; all other faults remain blocking."
+      },
+      "nativeRuns": 0,
+      "counts": {
+        "records_completed": 2379,
+        "positions": 2379,
+        "positions_low_clock": 2379,
+        "positions_high_clock": 0,
+        "differences_low_clock": 0,
+        "differences_high_clock": 0,
+        "fault_positions": 0,
+        "excluded": 0,
+        "excluded_no_legal": 0,
+        "excluded_insufficient": 0,
+        "excluded_halfmove100": 0,
+        "invalid_fens": 0,
+        "engine_runs": 4758,
+        "illegal": 0,
+        "missing": 0,
+        "missing_info": 0,
+        "wrong_depth": 0,
+        "sanitizer_issues": 0,
+        "transport_issues": 0,
+        "crashes": 0,
+        "nonzero_exits": 0,
+        "shutdown_timeouts": 0,
+        "reproduction_pairs": 0,
+        "reproduction_differences": 0,
+        "reproduction_fault_pairs": 0
+      },
+      "cumulativeCounts": {
+        "records_completed": 100715,
+        "positions": 100000,
+        "positions_low_clock": 99958,
+        "positions_high_clock": 42,
+        "differences_low_clock": 0,
+        "differences_high_clock": 0,
+        "fault_positions": 0,
+        "excluded": 715,
+        "excluded_no_legal": 34,
+        "excluded_insufficient": 680,
+        "excluded_halfmove100": 1,
+        "invalid_fens": 0,
+        "engine_runs": 200000,
+        "illegal": 0,
+        "missing": 0,
+        "missing_info": 0,
+        "wrong_depth": 0,
+        "sanitizer_issues": 0,
+        "transport_issues": 0,
+        "crashes": 0,
+        "nonzero_exits": 0,
+        "shutdown_timeouts": 0,
+        "reproduction_pairs": 0,
+        "reproduction_differences": 0,
+        "reproduction_fault_pairs": 0
+      },
+      "rawPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0007",
+      "metadataSource": "/workspace/work/parity-run/equality-recording/step1/S1-0007/metadata",
+      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1-records/S1-0007",
+      "rawPackages": [
+        {
+          "id": "S1-0001",
+          "path": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0001",
+          "manifestSha256": "74757cfa0aeb011c904339cd137ebffad5960924fdd800bda38118b4bd3e2061"
+        },
+        {
+          "id": "S1-0002",
+          "path": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0002",
+          "manifestSha256": "c93be912f455072425ab946fec571b229ee58a843211fd27e0949e40a4ddacc5"
+        },
+        {
+          "id": "S1-0003",
+          "path": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0003",
+          "manifestSha256": "0ddf5b25d07e32836873c744fdce115dfcf599c62a773cbcf469e4b2ed1a76cd"
+        },
+        {
+          "id": "S1-0004",
+          "path": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0004",
+          "manifestSha256": "ae4dadbfe523246dcbf4da6f310362ce91a14b506d39822febc374a226ba06c8"
+        },
+        {
+          "id": "S1-0005",
+          "path": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0005",
+          "manifestSha256": "ab900cee2e090439aa4b2f60925cc659020e2c60cf70b13c47f4bf5f0507438b"
+        },
+        {
+          "id": "S1-0006",
+          "path": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0006",
+          "manifestSha256": "9e8b1804d11e8c2f7555ed6a9b0d246cfca7fd45c23e6f80afe811382a81a129"
+        },
+        {
+          "id": "S1-0007",
+          "path": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/equality-step1/S1-0007",
+          "manifestSha256": "6e392d10e3ac778be83a70952520bf8e5658f78acd0b5742b4fe3a3550a25710"
+        }
+      ]
     }
   ],
-  "step1gatePassed": false,
+  "step1gatePassed": true,
   "preliminarySoftnodes": {
     "source": "c488e88fddc71a7ceadddb15270d3f62f6add8d9",
     "pairs": 1,
@@ -1641,5 +2002,14 @@
     "quitMs": 24.851733,
     "audit": "tests_astra_parity/softnodes-preliminary-audit/REVIEW.md",
     "meaning": "Separate preliminary source/harness integration check, excluded from final-tree soak totals. Concurrent with equality S1-0004."
+  },
+  "stateRecorderCorrection": "S1-0007 initial recorder refused root active metadata keyed id instead of batch; raw completed evidence unchanged, no rerun. Added required batch key and retried.",
+  "sameClockCommit": "d9a8587df8ad4d0ff1231632cb1ac72b590c04bf",
+  "sameClockSource": {
+    "file": "forge-combo29/include/forge/search.hpp",
+    "beforeSha256": "6396815f6b2ef582151890bf5586019f0eab12e9f2586c9fafd6543ea4919e15",
+    "afterSha256": "44a77666b8ad0a91232a11dbced7deae101f85a426b17d67d31671ccf9fa89e8",
+    "diffSha256": "c6cf57424b372bd06e221262730bf862785ead9ad92ae384fd718877a00f8767",
+    "step1Audit": "/workspace/work/parity-run/equality-speed-v3/audits/S1-0007.txt"
   }
 }

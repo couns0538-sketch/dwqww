@@ -1,0 +1,12 @@
+import fs from 'node:fs';import crypto from 'node:crypto';import assert from 'node:assert/strict';
+const r='/workspace/work/parity-run',sf=r+'/state.json',s=JSON.parse(fs.readFileSync(sf)),read=p=>JSON.parse(fs.readFileSync(p));
+for(const n of ['step2-release-configure','step2-release-build','step2-default-pins','step2-option-counts','same-clock-table-step2-compile','same-clock-table-step2-after-edit','same-clock-position-step2']){const m=read(r+'/logs/'+n+'.metadata.txt');assert.equal(m.exit,0);assert.equal(fs.readFileSync(m.stderrFile).length,0);}
+const pinText=fs.readFileSync(r+'/logs/step2-default-pins.stdout.txt','utf8');
+assert.match(pinText,/bench depth 11 nodes 312866\b/);assert.match(pinText,/bench depth 13 nodes 862329\b/);assert.match(pinText,/^nodes 4865609$/m);
+const opts=read(r+'/option-counts-step2-release/summary.json.txt');assert.equal(opts.rows.length,16);assert.equal(opts.violations.length,0);
+assert.match(fs.readFileSync(r+'/logs/same-clock-table-step2-after-edit.stdout.txt','utf8'),/cases=9 failures=0/);
+assert.match(fs.readFileSync(r+'/logs/same-clock-position-step2.stdout.txt','utf8'),/RESULT depth=9 score=mate:-5 nodes=2566746 move=a1b2 passed=1/);
+const sha=crypto.createHash('sha256').update(fs.readFileSync(r+'/builds/step2-release/forge')).digest('hex');
+s.validation.step2={...s.validation.step2,build:'passed',binarySha256:sha,pins:{bench11:312866,bench13:862329,perft5:4865609},options:{passed:16,failed:0,rows:opts.rows.map(x=>({name:x.name,value:x.value,expected:x.expected,got:x.count}))},unit:{cases:9,failures:0,expectedValuesUnchanged:true},targetPosition:{fen:'8/8/2n2r2/3qN1k1/8/8/8/K7 w - - 90 141',depth:9,threads:1,move:'a1b2',scoreKind:'mate',score:-5,nodes:2566746,normalExit:true},status:'local checks passed; exact corpus and final sanitizers pending'};
+s.phase='Step2 local checks passed; second exact corpus begins';s.checkpointNote='Step1 100000/100000 identical. Same-clock commit '+s.sameClockCommit+' passes three default pins,16 option counts,9 unit rows and the required mate -5/2566746 position. Second100000 corpus and final sanitizer workload pending.';
+fs.writeFileSync(sf,JSON.stringify(s,null,2)+'\n');console.log(JSON.stringify(s.validation.step2,null,2));
