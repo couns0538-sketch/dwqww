@@ -1,0 +1,60 @@
+// Root opt-in only. No Git mutation or global experiment-state writes.
+import fs from 'node:fs';
+import cp from 'node:child_process';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+const prep='/workspace/work/parity-soak-0018-preparation',run='/workspace/work/parity-run';
+const repo='/workspace/work/dwqww-parity',out=run+'/softnodes-0018-batches';
+const declaration=out+'/declaration.txt',planFile=prep+'/plan.txt',decisionFile=prep+'/FABLE_ANSWER_0013_0014_0015.md',decisionSha='5e2d573b7e553ec49e84918bd1dfd6a28ccfd2ca7236b6834c3b041965945e2f';
+const plan=JSON.parse(fs.readFileSync(planFile)),driver=JSON.parse(fs.readFileSync(prep+'/DRIVER-PINS-v3.txt'));
+const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+const put=(p,x)=>fs.writeFileSync(p,JSON.stringify(x,null,2)+'\n',{flag:'wx'});
+const [action,arg,authorization]=process.argv.slice(2);
+const continuationDecision=plan.continuationDecision,usedPredecessor=JSON.parse(fs.readFileSync(prep+'/USED-PREDECESSOR-DECLARATION.txt'));
+const smpDecision=plan.smpDecision;
+const extension=plan.extensionDecision,superseded=JSON.parse(fs.readFileSync(prep+'/SUPERSEDED-DECLARATIONS.txt'));
+function verifyPredecessors(){verify(superseded.files);for(const p of Object.keys(superseded.files))assert.deepEqual(fs.readdirSync(p.slice(0,p.lastIndexOf('/'))),['declaration.txt'],'Superseded protocol must remain unused');assert.equal(hash(extension.file),extension.sha256);assert.equal(hash(smpDecision.file),smpDecision.sha256);assert.equal(hash(continuationDecision.file),continuationDecision.sha256);assert.equal(hash(usedPredecessor.file),usedPredecessor.sha256);}
+verifyPredecessors();
+function verify(pins){for(const [p,pin]of Object.entries(pins))assert.equal(hash(p),pin,p);}
+if(action==='declare'){
+ assert.equal(authorization,'--freeze-authorized');assert.match(arg??'',/^[0-9a-f]{40}$/);
+ assert.ok(!fs.existsSync(declaration),'Declaration is immutable');
+ verify(driver.inputPins);assert.equal(hash(driver.binary),driver.sha256);assert.equal(hash(decisionFile),decisionSha);
+ const git=args=>{const r=cp.spawnSync('git',['-C',repo,...args],{encoding:'utf8',timeout:30000,maxBuffer:32*1024*1024});assert.equal(r.status,0,r.stderr);return r.stdout;};
+ const files=git(['ls-tree','-r','--name-only',arg,'--','forge-combo29/src','forge-combo29/include','forge-combo29/CMakeLists.txt']).trim().split('\n');
+ const sourcePins={};for(const relative of files){const file=repo+'/'+relative;assert.ok(Buffer.from(git(['show',arg+':'+relative])).equals(fs.readFileSync(file)),relative);sourcePins[file]=hash(file);}
+ const engines={};for(const mode of ['asan','tsan']){
+  const dir=run+'/builds/final-'+mode,binary=dir+'/forge',flagsFile=dir+'/CMakeFiles/forge.dir/flags.make';
+  const flags=fs.readFileSync(flagsFile,'utf8');assert.ok(flags.includes('-DFORGE_MATE_ALPHA_GUARD=1'));
+  assert.ok(flags.includes('-fsanitize='+(mode==='asan'?'address,undefined':'thread')));
+  const objects=dir+'/CMakeFiles/forge.dir/src';const objectPins=Object.fromEntries(fs.readdirSync(objects).filter(n=>n.endsWith('.cpp.o')).map(n=>[objects+'/'+n,hash(objects+'/'+n)]));
+  assert.equal(Object.keys(objectPins).length,8);engines[mode]={binary,sha256:hash(binary),flagsFile,flagsSha256:hash(flagsFile),objectPins};
+ }
+ fs.mkdirSync(out,{recursive:true});
+ const oldDeclaration=JSON.parse(fs.readFileSync(run+'/softnodes-depth64-v2-batches/declaration.txt'));assert.deepEqual(sourcePins,oldDeclaration.sourcePins);assert.deepEqual(engines,oldDeclaration.engines);
+ const previousUsed=JSON.parse(fs.readFileSync(usedPredecessor.file));assert.deepEqual(sourcePins,previousUsed.sourcePins);assert.deepEqual(engines,previousUsed.engines);
+ const toolPins=Object.fromEntries([continuationDecision.file,prep+'/USED-PREDECESSOR-DECLARATION.txt',usedPredecessor.file,smpDecision.file,extension.file,prep+'/SUPERSEDED-DECLARATIONS.txt',...Object.keys(superseded.files),decisionFile,planFile,prep+'/control.mjs',prep+'/audit.mjs',prep+'/DRIVER-PINS-v3.txt',driver.binary,...Object.keys(driver.inputPins)].map(p=>[p,hash(p)]));
+ put(declaration,{utc:new Date().toISOString(),decision:{commit:'55ddf61a754ceffc4f940b847ad97143148d0434',file:decisionFile,sha256:decisionSha},continuationDecision,smpDecision,extensionDecision:extension,sourceCommit:arg,sourcePins,engines,toolPins,deadline:plan.deadline,protocol:plan.protocol,engineRuns:0});
+ console.log(JSON.stringify({declaration,sha256:hash(declaration),engineRuns:0}));
+}else if(action==='run'){
+ assert.equal(authorization,'--execute-authorized');const index=Number(arg),b=plan.batches[index];
+ assert.ok(Number.isInteger(index)&&b,'Index0..71');assert.ok(Date.now()+475000<Date.parse(plan.deadline),'Need bounded-run and recording margin');
+ const d=JSON.parse(fs.readFileSync(declaration));verify(d.sourcePins);verify(d.toolPins);assert.deepEqual(d.extensionDecision,extension);assert.deepEqual(d.smpDecision,smpDecision);assert.deepEqual(d.continuationDecision,continuationDecision);
+ const launchLock=out+'/.launch-reservation';fs.mkdirSync(launchLock);let ownsLaunchLock=true;process.on('exit',()=>{if(ownsLaunchLock)fs.rmdirSync(launchLock);});
+ const state=JSON.parse(fs.readFileSync(run+'/state.json'));assert.equal(state.blockFurtherEngineWork,false,'Global engine stop remains active');assert.equal(state.continuation0018Resolution?.commit,continuationDecision.commit);assert.equal(state.continuation0018Resolution?.sha256,continuationDecision.sha256);assert.equal(state.continuation0018Resolution?.oldAuditsUnchanged,true);assert.equal(state.smpSoftnodesResolution?.commit,smpDecision.commit);assert.equal(state.smpSoftnodesResolution?.sha256,smpDecision.sha256);assert.equal(state.smpSoftnodesResolution?.oldAuditsAndFaultsUnchanged,true);assert.equal(state.secondCandidateResolution?.decision?.commit,extension.commit);assert.equal(state.secondCandidateResolution?.decision?.sha256,extension.sha256);assert.equal(state.secondCandidateResolution?.decision?.resume,true);assert.equal(state.deadline,plan.deadline);assert.ok(state.continuationPairedSoftnodes?.continuationAllowed!==false,'New finding or incomplete batch requires review before launching');
+ const waveIndex=plan.waves.findIndex(w=>w.includes(index)),thisWave=plan.waves[waveIndex];for(const priorIndex of plan.waves.slice(0,waveIndex).flat())assert.ok(state.continuationPairedSoftnodesRows?.some(r=>r.index===priorIndex&&r.passed),'Earlier planned wave must have passing recorded audits');let concurrentThreads=b.threads;
+ for(const prior of plan.batches){const p=out+'/'+prior.label;if(!fs.existsSync(p))continue;const command=p+'/command.txt';if(fs.existsSync(command)){const row=state.continuationPairedSoftnodesRows?.find(r=>r.index===prior.index);assert.ok(row?.passed,'Previous completed batch needs a passing recorded audit before new launch: '+prior.label);assert.equal(row.rawPins[command],hash(command));assert.equal(row.rawPins[p+'/stdout.txt'],hash(p+'/stdout.txt'));assert.equal(row.rawPins[p+'/stderr.txt'],hash(p+'/stderr.txt'));}
+ else{assert.ok(thisWave.includes(prior.index),'Only one planned wave may run at once');for(const stream of ['stdout.txt','stderr.txt']){const file=p+'/'+stream;if(!fs.existsSync(file))continue;const text=fs.readFileSync(file,'utf8');assert.ok(!/(?:Address|UndefinedBehavior|Leak|Thread|Memory|HWAddress)Sanitizer|runtime error:|Sanitizer CHECK failed|terminate called|Segmentation fault|core dumped|^FAULT /mi.test(text),'Finding in active sibling blocks new launch: '+prior.label);for(const line of text.split('\n').slice(0,-1)){if(!line.startsWith('CHECK '))continue;const check=JSON.parse(line.slice(6));assert.ok(!(check.mode==='soft'&&(check.item3===0||check.item4===0)),'Active sibling item3/4 finding blocks new launch');}}concurrentThreads+=prior.threads;}}
+ assert.ok(concurrentThreads<=plan.maxAggregateEngineThreads,'Aggregate engine thread cap');
+ const engine=d.engines[b.mode];assert.equal(engine.binary,b.engine);assert.equal(hash(engine.binary),engine.sha256);
+ assert.equal(hash(engine.flagsFile),engine.flagsSha256);verify(engine.objectPins);
+ const dir=out+'/'+b.label;assert.ok(!fs.existsSync(dir),'Never overwrite or rerun an existing label');
+ fs.mkdirSync(dir);put(dir+'/input-pins.txt',{batch:b,declaration,sha256:hash(declaration),engine,driver});
+ const argv=['timeout','-k','2','440',...b.argv],started=new Date().toISOString();
+ const stdout=dir+'/stdout.txt',stderr=dir+'/stderr.txt',fds=[fs.openSync(stdout,'wx'),fs.openSync(stderr,'wx')];
+ put(dir+'/start.txt',{argv,cwd:repo,started,batch:b});fs.rmdirSync(launchLock);ownsLaunchLock=false;console.log(JSON.stringify({started,label:b.label,argv}));
+ const r=cp.spawnSync(argv[0],argv.slice(1),{cwd:repo,stdio:['ignore',...fds],timeout:450000});
+ fds.forEach(fd=>fs.closeSync(fd));
+ const meta={argv,cwd:repo,started,ended:new Date().toISOString(),exit:r.status,signal:r.signal,error:r.error?.message??null,stdout,stderr,stdoutSha256:hash(stdout),stderrSha256:hash(stderr)};
+ put(dir+'/command.txt',meta);console.log(JSON.stringify(meta));process.exitCode=r.status??1;
+}else throw Error('declare SOURCE_COMMIT --freeze-authorized | run INDEX --execute-authorized');
