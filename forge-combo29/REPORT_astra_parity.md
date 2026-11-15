@@ -1,9 +1,9 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T02:19:40.000Z. Updated 2026-11-15T01:46:12.034Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T01:55:40.645Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
-Awaiting answer0016; all 2000 diagnostic cycles and raw evidence published.
-Diagnostic2000/2000 (1000each), all identical e3a3cp-949nodes25093; zero timeouts/forced/signals/nonzero exits/errors. Maxquit candidate16.077182ms/reference14.053920ms; zero above100ms. Original3ms cutoff retained. Corpus81185/100000; ordinarynativepaused forFable/Opus classification. Environment restarted01:44:xx after diagnostic completion; retained audit/output hashes reverified before publication, no rerun.
+Step 2: S2-0006 corpus continuation under explicit0016 bilateral cutoff policy.
+0016 authorizes unchanged corpus, sanitizer groups andJobB; JobA extendedto04:20UTC. Native/comparator/source/selection unchanged; cutoff operational findings remain3, rawcandidatecount2 includingoriginal, completeddiagnostic retained. VM-only oldtrace compression finished with hashverified reconstruction; publishedtextchunks andoldbranches unchanged.
 
 | Check | Result |
 |---|---|
@@ -16,7 +16,7 @@ Diagnostic2000/2000 (1000each), all identical e3a3cp-949nodes25093; zero timeout
 | Step 2 option checks and unit rows | 16/16 option counts; 9 unit rows, 0 failures |
 | Step 2 targeted position | a1b2, mate -5, 2566746 nodes; depth9, Threads1 |
 | Step 2 exact corpus | 81185/100000; 1 differences; completion/attribution pending |
-| Prescribed shutdown diagnostic | 2000/2000 cycles; candidate/reference timeouts 0/0; max quit-to-exit 16.077182/14.05392 ms; ordinary runs paused |
+| Prescribed shutdown diagnostic | 2000/2000 cycles; candidate/reference timeouts 0/0; max quit-to-exit 16.077182/14.05392 ms; ordinary runs resumed by separate decision |
 | Preliminary step 1 sanitizers | 393 games / 52681 searches; 0 findings |
 | Preliminary paired UCI check | 132 ordinary / 87 soft-node searches; 8 cap cases; 0 label faults |
 | Final-tree original protocol | 5 finished games / 1102 searches observed; 0 accepted batches; 1 historical contract-failure batches retained |
@@ -78,4 +78,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 23, including this checkpoint.
+Progress pushes: 24, including this checkpoint.
