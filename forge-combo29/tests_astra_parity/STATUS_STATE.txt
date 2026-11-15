@@ -5,7 +5,7 @@
   "start": "2026-11-14T23:19:40.000Z",
   "budgetMinutes": 180,
   "deadline": "2026-11-15T04:20:00.000Z",
-  "phase": "STOP: ASan shutdown finding0020; no further engine launches",
+  "phase": "Job A closed; Job B resumed under Fable0020; shutdown replay pending",
   "sourceCommits": [
     {
       "step": 1,
@@ -55,8 +55,8 @@
       "stat": "c488e88f Apply source-only r3-20-faster-search-plumbing by three-way merge from e04556dd\n forge-combo29/include/forge/bitboard.hpp |   6 ++\n forge-combo29/include/forge/board.hpp    |  29 +++++++\n forge-combo29/src/bitboard.cpp           |   7 ++\n forge-combo29/src/board.cpp              | 144 +++++++++++++++++++------------\n forge-combo29/src/search.cpp             | 120 ++++++++++++++++++++------\n 5 files changed, 227 insertions(+), 79 deletions(-)"
     }
   ],
-  "pushes": 43,
-  "lastPush": "2026-11-15T04:14:51.514Z",
+  "pushes": 44,
+  "lastPush": "2026-11-15T04:21:04.575Z",
   "sourceChangesOnly": [
     "forge-combo29/src",
     "forge-combo29/include"
@@ -74,7 +74,7 @@
     "step1 any equality difference stops dependent work",
     "counts only; owner no Elo/speed claims overrides external request"
   ],
-  "lastCommit": "ac3c34df124b85bac4bd363d92b94a2188d5ae5a",
+  "lastCommit": "3a3e534c608ecce2a7f03562b17c01f5e61988f5",
   "validation": {
     "step1": {
       "build": "passed",
@@ -2549,8 +2549,8 @@
       "smpProtocolCreditIncluded": false
     }
   },
-  "checkpointNote": "Batch12 retained with zero clean credit after finalshutdownSIGKILL9; sibling18passed58games/8108searches. Globalstop explicitly asserted after metadata recording. No source edits or repeats.",
-  "progressBatch": "continuation0018-c02-paired-softnodes-asan-on-t1-n2000-d0 seed202611171107",
+  "checkpointNote": "Job A frozen846games/120313searches. Fable0020 explicitly resumes release JobB and authorizes a separate full-history ASan replay with5s signal-free shutdown. Original finding remains unresolved and failed batch remains zero-credit. No new engine result claimed.",
+  "progressBatch": "Answer0020; next match B-0006, seed202611150011",
   "active": null,
   "equalityTotals": {
     "step1": {
@@ -3120,6 +3120,13 @@
       "commit": "b44ac0405b22a80c9c5236f80bb59a7e3ef9c181",
       "file": "/workspace/work/parity-run/inputs/FABLE_ANSWER_0019.md.txt",
       "sha256": "af01eb88a35a4a19a2c04fa084120b00724329873c16eab0efac82fcefbc3e3a"
+    },
+    "answer0020": {
+      "commit": "e8f982a2a957e2a85d6fb192f4bdae1c61c429e8",
+      "blob": "2f787bd788fcd25a223ecbf6b17ddf2be715e459",
+      "file": "/workspace/work/parity-run/inputs/FABLE_ANSWER_0020.md.txt",
+      "sha256": "5d504f4a1a22ab4ac9abec9911f795a34a85f11a60a781f0375dc001359b9227",
+      "receivedUTC": "2026-11-15T04:28:54.675Z"
     }
   },
   "preliminarySoak": [
@@ -8590,7 +8597,7 @@
       "forge-combo29/src/search.cpp:2594"
     ]
   },
-  "blockFurtherEngineWork": true,
+  "blockFurtherEngineWork": false,
   "softnodesResolution": {
     "utc": "2026-11-15T01:06:43.146Z",
     "commit": "55ddf61a754ceffc4f940b847ad97143148d0434",
@@ -8677,7 +8684,7 @@
     "relativeReportLinks": 14,
     "engineRuns": 0
   },
-  "commitMessage": "Checkpoint first HindsightDepth match and continued ASAN coverage",
+  "commitMessage": "Record Fable0020 decision and preserve Job A closure",
   "referenceShutdown068919": {
     "utc": "2026-11-15T01:38:57.812Z",
     "pairs": 10,
@@ -20891,5 +20898,31 @@
     "globalStopAtCapture": true,
     "zeroCleanCredit": true,
     "resumeAuthority": false
+  },
+  "resumeScope0020": {
+    "decision": {
+      "commit": "e8f982a2a957e2a85d6fb192f4bdae1c61c429e8",
+      "blob": "2f787bd788fcd25a223ecbf6b17ddf2be715e459",
+      "file": "/workspace/work/parity-run/inputs/FABLE_ANSWER_0020.md.txt",
+      "sha256": "5d504f4a1a22ab4ac9abec9911f795a34a85f11a60a781f0375dc001359b9227",
+      "receivedUTC": "2026-11-15T04:28:54.675Z"
+    },
+    "recordedUTC": "2026-11-15T04:28:54.676Z",
+    "jobBReleaseMayResume": true,
+    "diagnosticOnly": true,
+    "diagnosticDeadlineUTC": "2026-11-15T04:50:00.000Z",
+    "fullRecordedInputReplay": true,
+    "unchangedAsanBinary": true,
+    "searchAndLegalityChecksPreserved": true,
+    "naturalExitGraceMilliseconds": 5000,
+    "noSignalsBeforeGrace": true,
+    "coldControlRequired": false,
+    "oldBatchCredit": 0,
+    "jobAClosureUnchanged": true,
+    "jobBDeadlineUnchanged": true,
+    "jobCStartsAfterAAndBReported": true,
+    "newSanitizerShutdownProtocolMilliseconds": 5000,
+    "releaseShutdownProtocolMilliseconds": 250,
+    "unresolvedFindingRetained": true
   }
 }

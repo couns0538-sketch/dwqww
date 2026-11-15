@@ -1,6 +1,6 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T04:20:51.819Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T04:29:30.081Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
@@ -8,8 +8,8 @@ Job A closed at 2026-11-15T04:20:00.000Z; accepted sanitizer coverage 846 games 
 
 [Shutdown finding0020 at the Job A deadline](tests_astra_parity/job-a-closeout-0020-supplement.md). The closeout does not authorize resuming a paused job.
 
-STOP: ASan shutdown finding0020; no further engine launches.
-Batch12 retained with zero clean credit after finalshutdownSIGKILL9; sibling18passed58games/8108searches. Globalstop explicitly asserted after metadata recording. No source edits or repeats.
+Job A closed; Job B resumed under Fable0020; shutdown replay pending.
+Job A frozen846games/120313searches. Fable0020 explicitly resumes release JobB and authorizes a separate full-history ASan replay with5s signal-free shutdown. Original finding remains unresolved and failed batch remains zero-credit. No new engine result claimed.
 
 | Check | Result |
 |---|---|
@@ -22,7 +22,7 @@ Batch12 retained with zero clean credit after finalshutdownSIGKILL9; sibling18pa
 | Step 2 option checks and unit rows | 16/16 option counts; 9 unit rows, 0 failures |
 | Step 2 targeted position | a1b2, mate -5, 2566746 nodes; depth9, Threads1 |
 | Step 2 exact corpus | 100000/100000; 1 differences; effective gate accepted with listed same-clock attribution; strict audit retained |
-| Prescribed shutdown diagnostic | 2000/2000 cycles; candidate/reference timeouts 0/0; max quit-to-exit 16.077182/14.05392 ms; ordinary runs paused |
+| Prescribed shutdown diagnostic | 2000/2000 cycles; candidate/reference timeouts 0/0; max quit-to-exit 16.077182/14.05392 ms; ordinary runs resumed by separate decision |
 | Preliminary step 1 sanitizers | 393 games / 52681 searches; 0 findings |
 | Preliminary paired UCI check | 132 ordinary / 87 soft-node searches; 8 cap cases; 0 label faults |
 | Final-tree original protocol | 5 finished games / 1102 searches observed; 0 accepted batches; 1 historical contract-failure batches retained |
@@ -35,7 +35,7 @@ Batch12 retained with zero clean credit after finalshutdownSIGKILL9; sibling18pa
 | HindsightDepth match | 500 games; W-L-D 147-135-218; pair counts 13,55,102,67,13; Running; completed batches only |
 | Match operational findings | 0 crash markers; 0 illegal-move games; 0 disconnect games; 0 stalls; 0 aborts; raw side/process accounting retained separately |
 | Response-deadline diagnostics | 40/40 release and 2/2 TSan searches completed before quit; 0 response timeouts, sanitizer reports or abnormal exits; zero soak credit |
-| ASan shutdown finding0020 | Seed 202611171101; declared250ms allowance; driver SIGTERM then SIGKILL, reaped signal9; 235.556687ms quit-to-reap; failed batch has zero clean credit; new engine runs paused pending review |
+| ASan shutdown finding0020 | Seed 202611171101; declared250ms allowance; driver SIGTERM then SIGKILL, reaped signal9; 235.556687ms quit-to-reap; failed batch has zero clean credit; unresolved; release Job B and separate diagnostic authorized by decision0020 |
 
 | Imported source branch | Source commit | Applied commit | Conflicts |
 |---|---|---|---|
@@ -145,6 +145,8 @@ Fable's [decision0019](tests_astra_parity/inputs/FABLE_ANSWER_0019.md.txt) class
 A later ASan Threads1 batch completed28 pairs (56 games,8291 checked searches) but failed its final shutdown. No sanitizer report appeared. The sibling batch passed58 games/8108 searches. The failed batch remains zero-credit, and no targeted repeats have been run. The declared250ms budget is distinct from graceful wait time: the frozen transport reserves its first150ms for quit before escalating. Observed quit-to-reap235.556687ms does not make this a short assigned-budget cutoff; signal9 also falls outside decision0016. The cause is unknown. [Exact input, command and full output](tests_astra_parity/faults/asan-shutdown-0020.txt).
 [Independent shutdown review](tests_astra_parity/asan-shutdown-review-0020/REVIEW.md).
 [Request to Fable and Opus](https://github.com/couns0538-sketch/dwqww/blob/412df76d87027b53629f3cb15c6173f40fbe7122/forge-combo29/soak_all/ASTRA_QUESTION_0020.md).
+
+[Fable decision0020](tests_astra_parity/inputs/FABLE_ANSWER_0020.md.txt) resumes the unchanged release match and authorizes a separate replay of all retained UCI inputs on the unchanged ASan binary. The diagnostic gives quit a full five seconds without driver signals; the failed batch retains zero credit. Job A stays closed, Job B keeps its original deadline, and the new shutdown protocol applies only to future sanitizer declarations. The suggested leak-check explanation is a hypothesis until measured; no diagnostic result is implied by this authorization.
 The actual owner-PC compiler, PGO profile, runtime tuning and active network were not independently tested here. This report covers the specifically requested source changes, cloud builds and recorded options. Fable reports an independent source comparison in answer0012; that is attributed evidence, not a cloud run on the PC.
 
 Detailed state and all command/output files are retained: [state snapshot](tests_astra_parity/STATUS_STATE.txt), [commands and raw output](tests_astra_parity/logs), [progress](tests_astra_parity/PROGRESS.txt). Large raw text logs use immutable chunks with byte counts and SHA256 reconstruction manifests. All published additions are text under this report and tests_astra_parity. Existing tests, expected values, CMake and earlier evidence remain unchanged.
@@ -152,4 +154,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 44, including this checkpoint.
+Progress pushes: 45, including this checkpoint.
