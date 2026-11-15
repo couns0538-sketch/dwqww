@@ -1,0 +1,49 @@
+25: #ifndef FORGE_BARE_KING_MATE_FIX
+26: #define FORGE_BARE_KING_MATE_FIX 1
+27: #endif
+1628: #if FORGE_BARE_KING_MATE_FIX
+1629:     const bool multi_worker = all_workers_ != nullptr && all_workers_->size() > 1;
+1630:     const bool bare_king_mode = multi_worker &&
+1631:         (board.occupied(White) == board.pieces(White, King) ||
+1632:          board.occupied(Black) == board.pieces(Black, King));
+1633: #else
+1634:     constexpr bool bare_king_mode = false;
+1635: #endif
+1636: 
+1637:     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0 &&
+1638:         board.halfmove_clock() + depth < 100) {
+1639:         // Razoring: hopeless positions fall back to quiescence.
+1640:         if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+1641:             const int razor = qsearch(board, ss, alpha - 1, alpha);
+1642:             if (aborted_) return 0;
+1643:             if (razor < alpha) return razor;
+1644:         }
+1645:         // Reverse futility pruning.
+1646:         if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+1647:             eval < MateInMaxPly) {
+1648:             return eval;
+1649:         }
+1650:         // Null move pruning.
+1651:         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+1652:             ss->null_move_allowed && (!tune::NullThreatVerify || !null_blocked_) &&
+1653:             !(ss - 1)->current_move.is_none() &&
+1654:             board.has_non_pawn_material(board.side_to_move()) &&
+1655:             !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
+1656:             !(tune::NullSeeVeto && null_see_veto_threat(board))) {
+1792:         // Dropping a move there can hide a faster mate and still store an
+1793:         // exact transposition bound. FollowOption tracks the UCI option.
+1794:         const bool sound_mate_case =
+1795:             (tune::sound_arm_enabled(tune::SoundArmPv) && pv_node) ||
+1796:             (tune::sound_arm_enabled(tune::SoundArmInCheck) && in_check) ||
+1797:             (tune::sound_arm_enabled(tune::SoundArmMateAlpha) && is_mate_score(alpha));
+1798:         if (!sound_mate_case && mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
+1799:             best_score > -MateInMaxPly && has_material && !bare_king_mode) {
+1800:             // Trace stays off in normal play. It records which case skipped a
+1947:         bool full_depth_needed = !pv_node || move_count > 1;
+1948:         if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+1949:             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+1950:             (quiet || !ss->tt_pv || move_count > 4)) {
+1951:             int r = reduction(quiet, depth, move_count);
+1952:             if (ss->tt_pv) r -= 1;
+1953:             if (!improving) r += 1;
+1954:             if (cut_node) r += 2;

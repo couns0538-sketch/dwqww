@@ -1,0 +1,28 @@
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+const run='/workspace/work/parity-run',sf=run+'/state.json',s=JSON.parse(fs.readFileSync(sf));
+const base=run+'/response-diagnostic-recording-0018/snapshot-01';
+const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+const summary=JSON.parse(fs.readFileSync(base+'/SUMMARY.txt'));
+const complete=JSON.parse(fs.readFileSync(base+'/COMPLETE.txt'));
+assert.equal(hash(base+'/SUMMARY.txt'),complete.summarySha256);
+assert.equal(hash(base+'/REPORT.md'),complete.reportSha256);
+assert.equal(summary.recorded,42);assert.equal(summary.completed,42);
+assert.equal(summary.blocked,0);assert.equal(summary.responseTimeouts,0);
+assert.equal(summary.pending.length,0);assert.equal(summary.auditParseErrors.length,0);
+assert.equal(summary.sourceCommit,'d9a8587df8ad4d0ff1231632cb1ac72b590c04bf');
+assert.ok(!s.responseDiagnosticResults0018,'Already recorded');
+const value={recordedUTC:new Date().toISOString(),sourceCommit:summary.sourceCommit,
+ snapshot:base,summarySha256:complete.summarySha256,reportSha256:complete.reportSha256,
+ report:'tests_astra_parity/response-diagnostic-records-0018/snapshot-01/REPORT.md',
+ completed:42,releaseCompleted:40,tsanCompleted:2,responseTimeouts:0,blocked:0,soakCredit:0,
+ groups:summary.groups,comparisons:summary.comparisons,
+ interpretation:'All five release T2 node counts exceed all five T1 counts for both positions at both depths. This establishes greater search work in these tested SMP ending configurations. Source guard conditions are relevant but were not instrumented; original warm TT/history state and original timeout recurrence were not reproduced. No engine fix, speed or strength claim.',
+ historicalFailedBatchesUnchanged:true};
+s.responseDiagnosticResults0018=value;
+s.tsanResponseTimeouts.diagnosticCompleted=true;
+s.tsanResponseTimeouts.currentDiagnosis=value.interpretation;
+fs.writeFileSync(sf,JSON.stringify(s,null,2)+'\n');
+fs.writeFileSync(run+'/inputs/response-diagnostic-results-0018.txt',JSON.stringify(value,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify(value,null,2));

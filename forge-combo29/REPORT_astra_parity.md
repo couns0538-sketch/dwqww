@@ -1,11 +1,11 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T03:35:12.697Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T03:43:12.238Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
-Final paired sanitizer workload 8/12 distinct groups covered; 8 clean batches.
-Final paired UCI batch continuation0018-c01-paired-softnodes-asan-on-t2-n2000-d0: accepted-clean 82 games / 11328 searches; cumulative 388 games / 54053 searches. 0 batches with observed findings; 0 incomplete. Preliminary coverage excluded.
+Job B: HindsightDepth fixed-node match.
+Job B B-0003: credited 100 games; cumulative 300, W-L-D 89-80-131, pairs 6,36,61,37,10. 0 blocked batches; 0 raw finished games excluded. Counts only.
 
 | Check | Result |
 |---|---|
@@ -28,8 +28,9 @@ Final paired UCI batch continuation0018-c01-paired-softnodes-asan-on-t2-n2000-d0
 | Current paired labels | 194 ordinary / 194 soft-node games; soft X 151920469/27399, mean 5544.745027190774; 3812 hard-cap cases |
 | Accepted final-tree totals across protocols | 644 games / 91003 searches; failed batches excluded |
 | Current-protocol SMP sampling exception | 246 accepted-clean searches; 246 observed; historical failures unchanged |
-| HindsightDepth match | 200 games; W-L-D 53-53-94; pair counts 4,26,39,28,3; Running; completed batches only |
+| HindsightDepth match | 300 games; W-L-D 89-80-131; pair counts 6,36,61,37,10; Running; completed batches only |
 | Match operational findings | 0 crash markers; 0 illegal-move games; 0 disconnect games; 0 stalls; 0 aborts; raw side/process accounting retained separately |
+| Response-deadline diagnostics | 40/40 release and 2/2 TSan searches completed before quit; 0 response timeouts, sanitizer reports or abnormal exits; zero soak credit |
 
 | Imported source branch | Source commit | Applied commit | Conflicts |
 |---|---|---|---|
@@ -116,6 +117,11 @@ Two later TSanThreads2 ordinary depth9 searches exceeded the15second harness res
 
 [Independent timeout review](tests_astra_parity/tsan-timeout-0018-review/REVIEW.md). [Question0018](https://github.com/couns0538-sketch/dwqww/blob/4a9704895419099a6947c2d1c54694451c1841fe/forge-combo29/soak_all/ASTRA_QUESTION_0018.md).
 
+
+All five release T2 node counts exceed all five T1 counts for both positions at both depths. This establishes greater search work in these tested SMP ending configurations. Source guard conditions are relevant but were not instrumented; original warm TT/history state and original timeout recurrence were not reproduced. No engine fix, speed or strength claim.
+[Complete diagnostic tables, all completed-depth counts and source conditions](tests_astra_parity/response-diagnostic-records-0018/snapshot-01/REPORT.md). The original two deadline-finding batches retain zero clean credit. Decision0018 permits the continuation and changes only the ordinary TSan search limit to nodes20000; the soft half remains softnodes2500. No engine source was changed.
+[Full ending-workload finding and all 42 diagnostic transcripts](tests_astra_parity/faults/smp-ending-workload-0019.txt); [independent review](tests_astra_parity/response-diagnostic-findings-0018/REVIEW.md).
+
 The actual owner-PC compiler, PGO profile, runtime tuning and active network were not independently tested here. This report covers the specifically requested source changes, cloud builds and recorded options. Fable reports an independent source comparison in answer0012; that is attributed evidence, not a cloud run on the PC.
 
 Detailed state and all command/output files are retained: [state snapshot](tests_astra_parity/STATUS_STATE.txt), [commands and raw output](tests_astra_parity/logs), [progress](tests_astra_parity/PROGRESS.txt). Large raw text logs use immutable chunks with byte counts and SHA256 reconstruction manifests. All published additions are text under this report and tests_astra_parity. Existing tests, expected values, CMake and earlier evidence remain unchanged.
@@ -123,4 +129,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 38, including this checkpoint.
+Progress pushes: 39, including this checkpoint.

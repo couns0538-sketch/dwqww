@@ -1,0 +1,30 @@
+export function classify(audit){
+ const reasons=[];if(!audit||typeof audit!=='object')return{kind:'invalid',continueAllowed:false,reasons:['Missing audit'],naturalCompletion:false};
+ const r=audit.result,p=audit.process;
+ if(audit.soakCredit!==0||audit.warmTtReproduced!==false)reasons.push('Unexpected scope/credit');
+ if(!audit.evidenceFinalized||!Array.isArray(audit.errors)||audit.errors.length)reasons.push('Audit evidence incomplete or invalid');
+ if(!Array.isArray(audit.diagnostics)||audit.diagnostics.length)reasons.push('Diagnostic report observed or list missing');
+ if(!r||!p)reasons.push('Missing result/process');
+ if(r&&p){
+  if(p.signal!==null||p.error!==null||![0,1].includes(p.exit))reasons.push('Unexpected controller/process outcome');
+  if(r.sanitizer_report_observed!==0)reasons.push('Native diagnostic flag');
+  const q=r.shutdown;if(r.normal_exit!==1||!q||q.reaped!==1||q.exit!==0||q.signal!==0||q.timed_out!==0||q.driver_sigterm!==0||q.driver_sigkill!==0||q.error!=='')reasons.push('Abnormal engine shutdown');
+  if(r.bestmove_received_before_quit&&r.legal_returned_move!==1)reasons.push('Illegal returned move');
+  if(r.last_exact&&r.score_in_range!==1)reasons.push('Observed exact score outside legal range');
+ }
+ const natural=!!audit.searchCompletedBeforeQuit;
+ if(reasons.length)return{kind:'blocked',continueAllowed:false,reasons,naturalCompletion:natural};
+ if(natural&&r.diagnostic_success===1&&p.exit===0&&r.error===''&&r.parser_error===''&&r.response_timed_out===0)return{kind:'completed',continueAllowed:true,reasons:[],naturalCompletion:true};
+ if(r.response_timed_out===1&&r.bestmove_received_before_quit===0&&!natural&&r.diagnostic_success===0&&p.exit===1&&r.parser_error==='bestmove_count'&&['engine response timeout','diagnostic deadline reached'].includes(r.error))return{kind:'response-timeout',continueAllowed:true,reasons:['Retained bounded timeout; no target completion credit'],naturalCompletion:false};
+ return{kind:'blocked',continueAllowed:false,reasons:['Unexpected non-timeout or contradictory completion'],naturalCompletion:natural};
+}
+export function summarizeAudits(entries,planned){
+ const groups={},flat=[];
+ for(const e of entries){const a=e.audit,c=classify(a),row=e.row,gkey=e.mode==='tsan'?`tsan/case${row.caseIndex}/t2/d9`:`release/case${row.caseIndex}/t${row.threads}/d${row.depth}`,g=groups[gkey]??={attempts:0,completed:0,responseTimeouts:0,blocked:0,normalExits:0,diagnosticReports:0,completedNodes:[],completedEngineTimeMs:[],responseMs:[],ids:[]};
+  g.attempts++;g.completed+=Number(c.kind==='completed');g.responseTimeouts+=Number(c.kind==='response-timeout');g.blocked+=Number(!c.continueAllowed);g.normalExits+=Number(a.result?.normal_exit===1);g.diagnosticReports+=a.diagnostics?.length??0;g.ids.push(e.id);if(Number.isFinite(a.result?.response_ms))g.responseMs.push(a.result.response_ms);
+  const depths=e.finishedDepths??a.finishedDepths??[],last=depths.at(-1);if(c.kind==='completed'){g.completedNodes.push(a.result.nodes);if(last?.depth===row.depth)g.completedEngineTimeMs.push(last.timeMs);}
+  flat.push({mode:e.mode,id:e.id,row,classification:c,process:a.process,result:a.result,finishedDepths:depths,diagnostics:a.diagnostics,errors:a.errors});
+ }
+ const comparisons=[];for(const caseIndex of [4,10])for(const depth of [9,12]){const one=groups[`release/case${caseIndex}/t1/d${depth}`],two=groups[`release/case${caseIndex}/t2/d${depth}`];const allFive=one?.completed===5&&two?.completed===5&&one.attempts===5&&two.attempts===5;comparisons.push({caseIndex,depth,completeFivePerSide:allFive,threads1Nodes:one?.completedNodes??[],threads2Nodes:two?.completedNodes??[],threads1Timeouts:one?.responseTimeouts??0,threads2Timeouts:two?.responseTimeouts??0,...(allFive?{allThreads2NodeCountsExceedAllThreads1:Math.min(...two.completedNodes)>Math.max(...one.completedNodes)}:{}),interpretation:allFive?'Descriptive node-count comparison only; no cause, speed or strength conclusion.':'Incomplete or timeout-affected comparison; no target-depth node ratio inferred.'});}
+ return{planned,recorded:entries.length,completed:flat.filter(x=>x.classification.kind==='completed').length,responseTimeouts:flat.filter(x=>x.classification.kind==='response-timeout').length,blocked:flat.filter(x=>!x.classification.continueAllowed).length,soakCredit:0,warmTtReproduced:false,groups,comparisons,rows:flat};
+}
