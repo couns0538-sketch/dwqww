@@ -1,0 +1,37 @@
+Job 6 Step 0 and probes. Base: clean export of d4f43124dde1d1e37de90e18930e374f32ea7ffa,
+each candidate patch applied ALONE with `patch -p1 --fuzz=0` (no fuzz, no rejects).
+
+Build flags, the same for all three, written down once:
+  cmake <tree> -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc \
+        -DFORGE_MARCH=native -DFORGE_EXPOSE_TUNABLES=ON -DCMAKE_CXX_FLAGS="-DFORGE_NNUE_HIDDEN=256"
+  g++ 13.3.0.  FORGE_EXPOSE_TUNABLES=ON is REQUIRED and is not the tree's default: without it the
+  switches are accepted silently but never advertised in the `uci` answer, so fastchess refuses to
+  set them ("Warning; ON doesn't have option IirShallowTt"). See the note at the end.
+
+STEP 0, option OFF (all three builds), must be the known numbers:
+  bench 11 = 312866    bench 13 = 862329    bench 16 = 3024920    go perft 5 = 4865609
+  c4_iirshallowtt: 312866 / 862329 / 3024920, perft 4865609   OK
+  c5_conthistsplit: 312866 / 862329 / 3024920, perft 4865609  OK
+  c6_lowplyhist:    312866 / 862329 / 3024920, perft 4865609  OK
+
+STEP 0, option ON (bench 11 / 13 / 16), against the numbers the branch recorded:
+  IirShallowTt  = 1 -> 309855 / 724372  / 2173900   (recorded 309855 / 724372 / 2173900)   MATCH
+  ContHistSplit = 1 -> 323985 / 753650  / 3128498   (recorded 323985 / 753650 / 3128498)   MATCH
+  LowPlyHist    = 1 -> 320362 / 897394  / 2563336   (recorded 320362 / 897394 / 2563336)   MATCH
+  All nine ON numbers match exactly.
+
+The `uci` answer lists each option once exposed:
+  option name IirShallowTt type spin default 0 min 0 max 1
+  option name ContHistSplit type spin default 0 min 0 max 1
+  option name LowPlyHist type spin default 0 min 0 max 1
+
+PROBES (2 games each, the match's exact command, seed in the name)
+  probeB  seed 7831 c4_iirshallowtt: opening FENs
+     r1bqk1nr/4ppbp/p1np2p1/2p5/1p2P3/1BPPBN1P/PP3PP1/RN1QK2R w KQkq - 0 9
+  probeC  seed 7821 c4_iirshallowtt: opening FENs
+     rn1qk2r/pp3pp1/2p1bn1p/8/Bb6/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 0 8
+  The two seeds choose DIFFERENT openings (different FENs above), which is what
+  `order=random` with `-srand` is for and what job 5's M2 failed to do.
+  The option-arrival check: after the FORGE_EXPOSE_TUNABLES rebuild the fastchess
+  warning "ON doesn't have option IirShallowTt" is gone (probeC output has no such
+  line), and the engine's `uci` answer above lists it.
