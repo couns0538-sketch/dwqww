@@ -1,0 +1,15 @@
+gdb breakpoint on forge::nnue::v3::evaluate, Threads default (1 + TSan internal threads)
+command used:
+  gdb -batch -x gdbcmd.txt --args /tmp/ds/build-tsan/forge < gdb-in.txt
+
+Breakpoint 1 at 0x2f1e0: file /agent/repos/dwqww/forge-combo29/src/nnue_v3.cpp, line 523.
+[New Thread 0x7ffff13fd6c0 (LWP 8817)]
+[New Thread 0x7ffff0bfc6c0 (LWP 8818)]
+[Switching to Thread 0x7ffff0bfc6c0 (LWP 8818)]
+Thread 3 "forge" hit Breakpoint 1, forge::nnue::v3::evaluate (net=..., board=..., accumulator=...) at /agent/repos/dwqww/forge-combo29/src/nnue_v3.cpp:523
+HIT_V3_EVALUATE
+  1    Thread 0x7ffff7e98f40 (LWP 8814) "forge" 0x00007ffff6698e31 in __futex_abstimed_wait_common64 (private=128, cancel=true, abstime=0x0, op=265, expected=8818, futex_word=0x7ffff0bfc990) at ./nptl/futex-internal.c:57
+  2    Thread 0x7ffff13fd6c0 (LWP 8817) "forge" 0x00007ffff6ecff77 in __sanitizer::internal_usleep (useconds=useconds@entry=100000) at ../../../../src/libsanitizer/sanitizer_common/sanitizer_linux.cpp:519
+#0  forge::nnue::v3::evaluate (net=..., board=..., accumulator=...) at /agent/repos/dwqww/forge-combo29/src/nnue_v3.cpp:523
+#1  0x00005555555912b1 in forge::Worker::static_evaluate_v3 (this=this@entry=0x7ffff5890000, board=..., ss=ss@entry=0x7ffff5892c80) at /usr/include/c++/13/bits/stl_vector.h:1126
+#2  0x00005555555a3718 in forge::Worker::search (this=this@entry=0x7ffff5890000, board=..., limits=..., emit_info=<optimized out>, emit_info@entry=true, all=std::vector of length 1, capacity 1 = {...}) at /agent/repos/dwqww/forge-combo29/src/search.cpp:2357

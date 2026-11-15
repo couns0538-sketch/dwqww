@@ -1,0 +1,15 @@
+=== TSAN_OPTIONS=help=1 with the TSan engine (first 6 lines) ===
+Available flags for ThreadSanitizer:
+	enable_annotations
+		- Enable dynamic annotations, otherwise they are no-ops. (Current Value: true)
+	suppress_equal_stacks
+		- Suppress a race report if we've already output another race report with the same stack. (Current Value: true)
+	report_bugs
+
+=== same environment with the release engine (should be empty) ===
+(end)
+
+=== ldd build-tsan/forge | grep tsan ===
+	libtsan.so.2 => /lib/x86_64-linux-gnu/libtsan.so.2 (0x00007f6159400000)
+=== ldd build-release/forge | grep -c tsan ===
+0

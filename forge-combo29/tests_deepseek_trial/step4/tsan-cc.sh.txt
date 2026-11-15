@@ -1,0 +1,14 @@
+#!/bin/sh
+# Build-only helper for step 4 of the deepseek trial. Not part of the engine.
+# CMakeLists.txt ends its compile options with -O3, which would override an
+# -O1/-O2 given through CMAKE_CXX_FLAGS. The job asks for TSan at -O1 or -O2,
+# so this launcher rewrites -O3 to -O2 and changes nothing else.
+args=""
+for a in "$@"; do
+    if [ "$a" = "-O3" ]; then
+        a="-O2"
+    fi
+    args="$args $a"
+done
+# shellcheck disable=SC2086
+exec g++-13 $args

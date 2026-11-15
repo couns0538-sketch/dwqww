@@ -1,0 +1,10 @@
+Proof that the v3 evaluator runs on HELPER worker threads, not only the main thread.
+gdb breakpoint on forge::Worker::static_evaluate_v3 with Threads=4, Hash 16, v3 net loaded.
+Each line is the frame above the breakpoint: Worker::search with emit_info false = helper, true = main.
+The 'all=std::vector of length 4' field is the worker vector, i.e. 4 search threads.
+
+Breakpoint 1 at 0x3cca0: file /agent/repos/dwqww/forge-combo29/src/search.cpp, line 1129.
+HIT id_frame_emitinfo=#1  0x00005555555a3718 in forge::Worker::search (this=this@entry=0x7ffff4fa1000, board=..., limits=..., emit_info=<optimized out>, emit_info@entry=false, all=std::vector of length 4, capacity 4 = {...}) at /agent/repos/dwqww/forge-combo29/src/search.cpp:2357
+HIT id_frame_emitinfo=#1  0x00005555555a3718 in forge::Worker::search (this=this@entry=0x7ffff4f41000, board=..., limits=..., emit_info=<optimized out>, emit_info@entry=false, all=std::vector of length 4, capacity 4 = {...}) at /agent/repos/dwqww/forge-combo29/src/search.cpp:2357
+HIT id_frame_emitinfo=#1  0x00005555555a3718 in forge::Worker::search (this=this@entry=0x7ffff5890000, board=..., limits=..., emit_info=<optimized out>, emit_info@entry=true, all=std::vector of length 4, capacity 4 = {...}) at /agent/repos/dwqww/forge-combo29/src/search.cpp:2357
+HIT id_frame_emitinfo=#1  0x00005555555a3718 in forge::Worker::search (this=this@entry=0x7ffff4da1000, board=..., limits=..., emit_info=<optimized out>, emit_info@entry=false, all=std::vector of length 4, capacity 4 = {...}) at /agent/repos/dwqww/forge-combo29/src/search.cpp:2357
