@@ -77,7 +77,9 @@ Threads 2 depth 8 = 46.0 s, Threads 4 depth 8 = 43.1 s, Threads 4 depth 12 =
 ## 4. What I am not sure about
 
 - **The clean TSan result is the main thing to be sceptical about.** 0 reports
-  across 1000 searches is a strong statement. I defended it in
+  across 2000 searches (500 positions each at Threads 2/depth 8, Threads 4/depth 8,
+  Threads 4/depth 12, and Threads 4/depth 8 again after a relink) is a strong
+  statement. I defended it in
   `step5/README.md` by showing the sanitizer catches a known race on this machine,
   that `libtsan.so.2` is linked and `TSAN_OPTIONS=help=1` is answered by the engine
   binary, that all 9 object files are instrumented, that `forge::nnue::v3::evaluate`
