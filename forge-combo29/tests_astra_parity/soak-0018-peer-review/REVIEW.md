@@ -1,0 +1,9 @@
+# Independent review of 0018 continuation adapters
+
+READY: no blocking issue found. Reviewed control.mjs, audit.mjs, check-metadata.mjs, record.mjs and accounting.mjs. The frozen manifests and six historical state namespaces verified; prior SMP failed batches 4 and 10 retain failed status, their original audit hashes, and zero accepted pairs/games. Detailed commands and actual outputs are in VALIDATION.txt.
+
+The read-only metadata check verified the same native executable, all 26 engine source/header/CMake pins, both sanitizer engines and 16 objects. All ASan command parameters remain unchanged after seed normalization. Only ordinary TSan searches change from depth 9 to nodes 20000/depth 0; the soft half remains unchanged. All 72 seeds/labels are fresh; first waves prioritize ASan coverage.
+
+The controller requires the exact 0018 resolution and an already-cleared effective global stop; it cannot clear historical or current stop flags itself. Launches retain the bounded deadline, immutable labels, wave ordering and aggregate-thread guard. The recorder pins prior raw/audit/package evidence, maintains separate continuation totals and never credits failed historical batches under the new protocol. New incomplete/faulted batches receive zero accepted-clean coverage. New soft-label failures reassert the effective global stop.
+
+Limits: this review ran only metadata verification and 25 pure accounting tests. It did not launch engines, exercise real new-batch publication, mutate experiment state or Git, or classify the prior depth-9 TSan triggers. Root must continue serial state recording and avoid overlapping resource-sensitive matches with sanitizer runs. Cosmetic status wording still says extended in a few continuation messages; numeric fields and protocol namespace are correct.

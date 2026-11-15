@@ -1,0 +1,31 @@
+// Audit and publish finalized batches sequentially. Never launches an engine.
+import fs from 'node:fs';
+import cp from 'node:child_process';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+const root='/workspace/work/parity-run',prep='/workspace/work/parity-soak-0018-preparation',rec='/workspace/work/parity-soak-0018-recording-preparation';
+const plan=JSON.parse(fs.readFileSync(prep+'/plan.txt')),indices=process.argv.slice(2).map(Number);
+assert.ok(indices.length>=1&&indices.length<=2&&plan.waves.some(w=>w.length===indices.length&&w.every((n,i)=>n===indices[i])));
+for(const index of indices)assert.ok(fs.existsSync(root+'/softnodes-0018-batches/'+plan.batches[index].label+'/command.txt'),'All siblings must finalize before this helper');
+let failed=false;
+function invoke(label,args){
+ const argv=['node',root+'/command.mjs',label,...args];
+ const p=cp.spawnSync(argv[0],argv.slice(1),{cwd:root,encoding:'utf8',timeout:180000,maxBuffer:8*1024*1024});
+ const file=root+'/logs/'+label+'.metadata.txt';
+ assert.ok(fs.existsSync(file),p.stderr||p.stdout);const m=JSON.parse(fs.readFileSync(file));
+ assert.equal(p.signal,null);assert.equal(m.signal,null);assert.equal(p.status,m.exit);
+ console.log(JSON.stringify({label,exit:m.exit,stdoutFile:m.stdoutFile,stdoutSha256:m.stdoutSha256,stderrFile:m.stderrFile}));
+ return m;
+}
+for(const index of indices){
+ const audit=invoke('continuation-audit-'+index,['node',prep+'/audit.mjs',String(index)]);
+ assert.ok([0,1].includes(audit.exit),'Unexpected audit failure retained for manual inspection');
+ const bytes=fs.readFileSync(audit.stdoutFile),hash=crypto.createHash('sha256').update(bytes).digest('hex');assert.equal(hash,audit.stdoutSha256);
+ const value=JSON.parse(bytes);assert.ok(typeof value.passed==='boolean');
+ if(!(JSON.parse(fs.readFileSync(root+'/state.json')).continuationPairedSoftnodesRows??[]).length){const check=invoke('continuation-record-check-'+index,['node',rec+'/record.mjs',String(index),audit.stdoutFile,hash,'--check']);assert.equal(check.exit,0);}
+ const record=invoke('continuation-record-'+index,['node',rec+'/record.mjs',String(index),audit.stdoutFile,hash]);assert.equal(record.exit,0);
+ const state=JSON.parse(fs.readFileSync(root+'/state.json')),row=state.continuationPairedSoftnodesRows.find(x=>x.index===index);assert.ok(row);assert.equal(row.passed,value.passed);failed||=!row.passed;
+}
+const state=JSON.parse(fs.readFileSync(root+'/state.json')),t=state.continuationPairedSoftnodes;
+console.log(JSON.stringify({utc:new Date().toISOString(),indices,allPassed:!failed,uniqueGroups:t.uniqueGroupsPassed,batches:t.passedBatches,games:t.games,searches:t.searches,softSearches:t.softXCount,softXSum:t.softXSum,caps:t.softHardCaps,faultBatches:t.faultBatches,diagnosticLines:t.diagnosticLines,blockFurtherEngineWork:state.blockFurtherEngineWork}));
+process.exitCode=failed?1:0;

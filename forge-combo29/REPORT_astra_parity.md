@@ -1,11 +1,11 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T03:08:07.284Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T03:16:08.481Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
-JobB first100gamebatch running; no overlapping native workload.
-JobBdeclared03:06:50.313→05:06:50.313UTC,50knodes,HindsightDepthon/off,onefrozensourcebinary,d9a8587;JobAstillincomplete,Step2accepted,sanitizerspending. First100gamesrunning,zeroauditedgamesyet. OldTSanresponsefailuresretainedzero-credit;0018permitsunaffectedwork.
+ASAN/UBSAN Threads2 nodes20000 pairedsoftnodes running; firstcontinuationwavepassed.
+ContinuationT1n20000wavepassed44games/6190searches,2956softsearches,Xsum15624835,304caps,0faults. Totalacceptedfinalsanitizers300games/43140searches acrossseparateprotocols. B-0001 remains100games24-27-49,bins4/11/20/14/1,0faults. T2n20000wave running; diagnosticsnotrun;sourceunchanged.
 
 | Check | Result |
 |---|---|
@@ -23,11 +23,13 @@ JobBdeclared03:06:50.313→05:06:50.313UTC,50knodes,HindsightDepthon/off,onefroz
 | Preliminary paired UCI check | 132 ordinary / 87 soft-node searches; 8 cap cases; 0 label faults |
 | Final-tree original protocol | 5 finished games / 1102 searches observed; 0 accepted batches; 1 historical contract-failure batches retained |
 | Earlier strict-v2 protocol | 2 clean batches; 108 accepted games / 15514 searches; 2 historical sampling findings, zero clean credit for those batches |
-| Final-tree SMP-amended protocol | 2/12 distinct conditions covered; 2 clean batches from 4 recorded; 148 accepted games / 21436 searches; 0 diagnostic lines; 2 finding batches |
-| Current paired labels | 74 ordinary / 74 soft-node games; soft X 63473324/11143, mean 5696.250919860002; 1871 hard-cap cases |
-| Accepted final-tree totals across protocols | 256 games / 36950 searches; failed batches excluded |
-| SMP sampling exception | 137 accepted-clean searches; 144 observed in all new batches; historical failures unchanged |
-| HindsightDepth match | 0 games; Not started |
+| Earlier SMP-amended protocol | 2 clean batches; 148 accepted games / 21436 searches; 2 retained deadline-finding batches, zero clean credit for those batches |
+| Final-tree0018 continuation | 2/12 distinct conditions covered; 2 clean batches from 2 recorded; 44 accepted games / 6190 searches; 0 diagnostic lines; 0 finding batches |
+| Current paired labels | 22 ordinary / 22 soft-node games; soft X 15624835/2956, mean 5285.803450608931; 304 hard-cap cases |
+| Accepted final-tree totals across protocols | 300 games / 43140 searches; failed batches excluded |
+| Current-protocol SMP sampling exception | 0 accepted-clean searches; 0 observed; historical failures unchanged |
+| HindsightDepth match | 100 games; W-L-D 24-27-49; pair counts 4,11,20,14,1; Running; completed batches only |
+| Match operational findings | 0 crash markers; 0 illegal-move games; 0 disconnect games; 0 stalls; 0 aborts; raw side/process accounting retained separately |
 
 | Imported source branch | Source commit | Applied commit | Conflicts |
 |---|---|---|---|
@@ -37,20 +39,20 @@ JobBdeclared03:06:50.313→05:06:50.313UTC,50knodes,HindsightDepthon/off,onefroz
 
 | Current sanitizer group | Passed batches | Ordinary games/searches | Soft-node games/searches | Cap cases | Diagnostic lines / fault rows |
 |---|---|---|---|---|---|
-| asan/off/t2/n2000/d0 | 1/1 | 38/5053 | 38/5616 | 932 | 0/0 |
-| tsan/off/t2/n0/d9 | 0/1 | 0/0 | 0/0 | 0 | 0/1 |
-| asan/on/t2/n2000/d0 | 1/1 | 36/5240 | 36/5527 | 939 | 0/0 |
-| tsan/on/t2/n0/d9 | 0/1 | 0/0 | 0/0 | 0 | 0/1 |
+| asan/off/t1/n20000/d0 | 1/1 | 11/1562 | 11/1529 | 159 | 0/0 |
+| asan/on/t1/n20000/d0 | 1/1 | 11/1672 | 11/1427 | 145 | 0/0 |
 
 Game and search counts in that table include only accepted clean batches in the current protocol; diagnostic and fault columns retain every recorded finding. Earlier protocol results remain separate. Both earlier depth64 declarations were unused. The SMP amendment changes the harness check only; the engine bytes remain unchanged.
 
-The current plan reserves72 batches; 68 have not run. Distinct-condition coverage is the12-condition check, not completion of the reserved inventory. Repeated batches: 0.
-Cycle 1: 2 clean batches from 4 recorded; 2 failed or incomplete.
+The current plan reserves72 batches; 70 have not run. Distinct-condition coverage is the12-condition check, not completion of the reserved inventory. Repeated batches: 0.
+Cycle 1: 2 clean batches from 2 recorded; 0 failed or incomplete.
 
 
 The complete corpus is accepted through a separate, explicit decision for global position36729: unchanged a1b2, mate−6/2565143 before and mate−5/2566746 after, original plus10 fresh pairs. All other positions match. The source proof requires equal capped clocks with an old mate-distance rejection; no runtime TT-entry clock is claimed. The strict audit still lists its original difference and operational findings. [Acceptance evidence](tests_astra_parity/inputs/step2-effective-acceptance-S2-0007.txt).
 
 Each source change has its own commit. The three merges use e04556dd as their per-file ancestor. Full base/ours/theirs/output snapshots are in [merge evidence](tests_astra_parity/merges).
+
+JobB was declared at 2026-11-15T03:06:50.313Z, with deadline 2026-11-15T05:06:50.313Z, seed 202611150011,50000 nodes/move, Threads1/Hash16/OwnBookfalse/MateAlphaGuardfalse; one binary, HindsightDepth on versus off, paired UHO openings and no adjudication. JobA was incomplete and sanitizers pending at declaration; Step2 was accepted. This admission is explicit in [decision0018](tests_astra_parity/inputs/FABLE_ANSWER_0018.md.txt). [Frozen declaration](tests_astra_parity/inputs/job-b-0018-frozen-declaration.txt). Pair bins count0,0.5,1,1.5,2 points for the on side across each two-game opening pair. Counts only.
 
 | Option alone at bench13 | Value | Frozen expected | Step1 | Step2 |
 |---|---|---|---|---|
@@ -115,4 +117,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 35, including this checkpoint.
+Progress pushes: 36, including this checkpoint.
