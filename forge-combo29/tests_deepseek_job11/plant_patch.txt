@@ -1,0 +1,18 @@
+--- /agent/repos/dwqww/forge-combo29/src/uci.cpp	2026-11-15 09:06:53.215018736 +0000
++++ src-plant/src/uci.cpp	2026-11-15 16:29:54.071018736 +0000
+@@ -541,6 +541,15 @@
+                         continue;
+                     }
+                 }
++                // DEEPSEEK JOB 11 PLANT (local build only): when a node limit is
++                // given, answer at once with the first legal move and print no info.
++                if (std::getenv("DS_PLANT_BLIND") && limits.nodes_specified) {
++                    const auto moves = board.legal_moves();
++                    const forge::Move first = *moves.begin();
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "bestmove " << forge::Board::move_to_uci(first) << std::endl;
++                    continue;
++                }
+                 const forge::Board search_board = board;
+                 {
+                     const std::lock_guard<std::mutex> lock(stop_mutex);
