@@ -2,9 +2,8 @@
 
 ## 1. First paragraph
 
-**`EvalRule50Damp` LOSES heavily: X1 = −42.60 ± 10.73 Elo over 2,000 games (seed 7971, pairs
-[97, 302, 389, 172, 40], 43.90 %).** X2 is in §4 with how far it got, and the pooled figure is given
-there when both have finished. The control read +224.97 ± 32.45, so the harness is sound. **The
+**`EvalRule50Damp` LOSES heavily: pooled over both seeds −38.82 ± 7.50 Elo** (X1 −42.60 ± 10.73 on
+seed 7971; X2 −35.21 ± 10.49 on seed 7972; 2,000 games each). The control read +224.97 ± 32.45, so the harness is sound. **The
 existing switch is not a neutral term that was never measured — on this engine it costs about 43 Elo
 per node**, which is the answer to "it was built once and never measured". **X3 (my `Rule50Scale` at D=300 against `EvalRule50Damp`) and X4 (both against
 neither) are in §4 too, marked with exactly how far they got.** What was cut is stated there, not
@@ -79,8 +78,9 @@ match.
 |---|---|---|---|---|---|---|---|---|
 | **C** control 20000 vs 10000 | — | — | 300 | **+224.97** | ±32.45 | [0, 3, 28, 64, 55] | 0 | W193 L22 D85 |
 | **X1** `EvalRule50Damp` | on | off | 2000 | **−42.60** | ±10.73 | [97, 302, 389, 172, 40] | 0 | W447 L691 D862 |
-| X2 `EvalRule50Damp` | on | off | 2000 | *(see below)* | | | 0 | |
-| X3 `Rule50Scale=300` | mine | `EvalRule50Damp` | — | *(see below)* | | | | |
+| **X2** `EvalRule50Damp` | on | off | 2000 | **−35.21** | ±10.49 | [85, 294, 396, 188, 37] | 0 | W450 L652 D898 |
+| **pooled X1+X2** | on | off | 4000 | **−38.82** | ±7.50 | — | 0 | 50.4 % draws |
+| X3 `Rule50Scale=300` | mine | `EvalRule50Damp` | (199 of 2000 at the stop) | *(not quoted)* | | | 0 | |
 | X4 both | both on | both off | — | *(see below)* | | | | |
 
 **How the games ended**, for the matches that finished (fastchess prints the termination of every
@@ -90,6 +90,7 @@ game; these are its own counts):
 |---|---|---|---|---|
 | C | 193 wins / 22 losses | 85 draws | 0 (node games cannot lose on time) | **0** |
 | X1 | 447 wins / 691 losses | 862 draws (43.1 %) | 0 | **0** |
+| X2 | 450 wins / 652 losses | 898 draws (44.9 %) | 0 | **0** |
 
 The fault column is 0 for every match that ran: no crash, no illegal move, no disconnect.
 
@@ -114,9 +115,13 @@ Budget: 80 minutes from 23:07:09, i.e. 00:27, stop at 00:17.
 
 ## 7. What I did not do
 
-- **X3 and X4 are the two matches the job most wants and the two least likely to finish**: the chain
-  order put them last. The job says "if the time does not reach, the last match is cut first", so
-  that is the instruction I followed, but it means the head-to-head may be missing.
+- **X3 reached 199 of its 2,000 games and X4 never started.** I do not quote a partial result: 199
+  games is about ±33 Elo of noise on a difference that the step-0 counters suggest is small. **The
+  head-to-head the job asks for is therefore NOT delivered**, and that is the main gap in this report.
+  The job says the last match is cut first, and X4 was; X3 was cut too because the chain ran C, X1,
+  X2, X3, X4 and each 2,000-game match takes about 13 minutes on 4 cores.
+- The pooled `EvalRule50Damp` result is two seeds and is solid; what it does *not* tell us is whether
+  my design would do better, because the only match that could answer that is the missing X3.
 - I did not vary the weight of `Rule50Scale` in X3: D=300 is job 12's better setting, as the job says.
 - I did not run X3 with `EvalRule50Damp` *also* disabling my scaling (both on) beyond X4.
 
