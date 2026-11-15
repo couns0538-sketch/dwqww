@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+# Job 8 step-1d probe: prove the engine's position is the runner's position.
+# No `d` command exists in uci.cpp (checked: commands are position/go/setoption/
+# eval/bench/...; eval prints a score, not the board). Fallback per the job file:
+# `go depth 1` best move must be legal in the python-chess board of the same
+# position. For the first NG games of a results file, probe the position before
+# each of the last 10 moves (games shorter than 10 moves: all their positions).
+# Usage: probe8.py <binary> <epd> <games> <seed> <results_file> [ngames]
+import subprocess, sys, chess, random
+(binary, epd, games, seed, results, ngames) = (
+    sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]),
+    sys.argv[5], int(sys.argv[6]) if len(sys.argv) > 6 else 20)
+opens = [l.strip() for l in open(epd) if l.strip()]
+npairs = (games + 1) // 2
+pairs = [chess.Board(opens[k % len(opens)]).fen() for k in range(npairs)]
+random.Random(seed).shuffle(pairs)
+
+p = subprocess.Popen([binary], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+def send(s): p.stdin.write(s + "\n"); p.stdin.flush()
+send("setoption name OwnBook value false")
+send("setoption name Threads value 1")
+send("setoption name Hash value 16")
+
+total = ok = 0
+fails = []
+seen = 0
+for line in open(results):
+    if not line.startswith("game "):
+        continue
+    if seen >= ngames:
+        break
+    seen += 1
+    toks = line.split()
+    pair = int(toks[toks.index("pair") + 1])
+    mi = toks.index("moves")
+    moves = toks[mi + 1:]
+    opening = pairs[pair]
+    board = chess.Board(opening)
+    positions = []
+    for k, bm in enumerate(moves):
+        positions.append(board.fen())
+        board.push(chess.Move.from_uci(bm))
+    last10 = positions[-10:]
+    n_before = len(moves) - len(last10)
+    for j, pfen in enumerate(last10):
+        prefix = moves[:n_before + j]
+        b2 = chess.Board(pfen)
+        if opening == chess.STARTING_FEN:
+            cmd = "position startpos" + (" moves " + " ".join(prefix) if prefix else "")
+        else:
+            cmd = "position fen " + opening + (" moves " + " ".join(prefix) if prefix else "")
+        send(cmd)
+        send("go depth 1")
+        bm = None
+        while True:
+            rl = p.stdout.readline()
+            if not rl:
+                print("FAULT engine died"); sys.exit(3)
+            if rl.startswith("bestmove"):
+                bm = rl.split()[1]
+                break
+        total += 1
+        try:
+            mv = chess.Move.from_uci(bm)
+            legal = mv in b2.legal_moves
+        except ValueError:
+            legal = False
+        if legal:
+            ok += 1
+        else:
+            fails.append((line.split()[1], j, bm, pfen))
+send("quit"); p.wait()
+print(f"probe: {ok}/{total} depth-1 best moves legal in the runner's position; fails {len(fails)}")
+for f in fails[:10]:
+    print("FAIL", f)

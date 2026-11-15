@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+# Job 8 match runner: repaired position feed. Every search gets
+#   position fen <OPENING fen> moves <all moves of the game so far>
+# (the opening is constant per game). A game that ends by an illegal move or an
+# unreadable bestmove is a fault of the test: it is never scored, it stops the
+# match (exit 3). Endings counted: mate, stalemate, threefold, fifty,
+# insufficient, nodetime forfeit, cap, illegal.
+# Usage: match8.py <binary> <epd> <games> <nodeclock> <outfile> <count> <index> <seed> <optA> <optB>
+import subprocess, sys, chess, random
+(binary, epd, games, nc, out, count, index, seed, optA, optB) = (
+    sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5],
+    int(sys.argv[6]), int(sys.argv[7]), int(sys.argv[8]), sys.argv[9], sys.argv[10])
+opens = [l.strip() for l in open(epd) if l.strip()]
+npairs = (games + 1) // 2
+pairs = [chess.Board(opens[k % len(opens)]).fen() for k in range(npairs)]
+random.Random(seed).shuffle(pairs)
+
+def fault(msg):
+    with open(out, "a") as f:
+        f.write("FAULT " + msg + "\n")
+    sys.stderr.write("FAULT " + msg + "\n")
+    sys.exit(3)
+
+def start_engine(opt):
+    p = subprocess.Popen([binary], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+    def send(s): p.stdin.write(s + "\n"); p.stdin.flush()
+    send("setoption name OwnBook value false")
+    send("setoption name Threads value 1")
+    send("setoption name Hash value 16")
+    send(f"setoption name NodeClock value {nc}")
+    if opt:
+        for one in opt.split(","):
+            name, val = one.split("=")
+            send(f"setoption name {name} value {val}")
+    return p, send
+
+engA, sendA = start_engine(optA)
+engB, sendB = start_engine(optB)
+stopA, stopB = {}, {}
+
+def search(send, stdout, opening_fen, moves, wms, bms, side_a):
+    if opening_fen == chess.STARTING_FEN:
+        send("position startpos" + (" moves " + " ".join(moves) if moves else ""))
+    else:
+        send("position fen " + opening_fen + (" moves " + " ".join(moves) if moves else ""))
+    send(f"go wtime {wms} btime {bms} winc 100 binc 100")
+    last = None
+    while True:
+        line = stdout.readline()
+        if not line:
+            fault("engine died")
+        if "illegal move" in line:
+            fault("engine reported illegal history token: " + line.strip())
+        if line.startswith("info depth"):
+            last = line.strip()
+        elif line.startswith("info string stop "):
+            reason = line.strip().split()[-1]
+            (stopA if side_a else stopB)[reason] = (stopA if side_a else stopB).get(reason, 0) + 1
+        elif line.startswith("bestmove"):
+            toks = line.split()
+            if len(toks) < 2:
+                fault("unreadable bestmove line: " + line.strip())
+            bm = toks[1]
+            t = 0
+            if last:
+                lt = last.split()
+                t = int(lt[lt.index("time") + 1]) if "time" in lt else 0
+            return bm, t
+
+def classify(board):
+    # Order per the job file: mate, stalemate, threefold, fifty, insufficient.
+    # can_claim_* matches python-chess claim semantics exactly (fifty is claimable
+    # at halfmove 99 when a non-zeroing move exists); fivefold and the automatic
+    # 75-move draw fall inside the threefold/fifty buckets.
+    if board.is_checkmate():
+        return ("1-0" if board.turn == chess.BLACK else "0-1", "mate")
+    if board.is_stalemate():
+        return ("1/2-1/2", "stalemate")
+    if board.is_repetition(3) or board.can_claim_threefold_repetition():
+        return ("1/2-1/2", "threefold")
+    if board.is_fifty_moves() or board.can_claim_fifty_moves() or board.is_seventyfive_moves():
+        return ("1/2-1/2", "fifty")
+    if board.is_insufficient_material():
+        return ("1/2-1/2", "insufficient")
+    return ("1/2-1/2", "otherdraw")
+
+st = [[0, 0, 0.0, 0], [0, 0, 0.0, 0]]  # moves, sum_used, sum_softshare, hardstops per side
+forfeit_A = forfeit_B = cap_hits = 0
+endings = {}
+for g in range(index, games, count):
+    pair = g // 2
+    opening = pairs[pair]
+    board = chess.Board(opening)
+    a_white = (g % 2 == 0)
+    sendA("ucinewgame"); sendB("ucinewgame")
+    moves, wms, bms, result, why = [], 10000, 10000, None, None
+    while result is None:
+        if board.is_game_over(claim_draw=True):
+            result, why = classify(board)
+            break
+        if board.fullmove_number > 200:
+            result, why = "1/2-1/2", "cap"
+            cap_hits += 1
+            break
+        white_to_move = board.turn == chess.WHITE
+        use_a = (white_to_move == a_white)
+        send, eng = (sendA, engA) if use_a else (sendB, engB)
+        budget = wms if white_to_move else bms
+        avail = max(budget - 10, 0)  # Move Overhead 10 node-ms
+        soft = avail / 22.0 + 75.0
+        hard = min(avail * 0.6, soft * 5)
+        bm, used = search(send, eng.stdout, opening, moves, wms, bms, use_a)
+        if white_to_move:
+            wms = wms - used + 100
+        else:
+            bms = bms - used + 100
+        side = 0 if use_a else 1
+        st[side][0] += 1
+        st[side][1] += used
+        st[side][2] += (used / soft) if soft > 0 else 0.0
+        if hard > 0 and used >= 0.95 * hard:
+            st[side][3] += 1
+        if wms < 0:
+            result, why = "0-1", "nodetime"
+            if use_a: forfeit_A += 1
+            else: forfeit_B += 1
+            break
+        if bms < 0:
+            result, why = "1-0", "nodetime"
+            if use_a: forfeit_B += 1
+            else: forfeit_A += 1
+            break
+        if bm == "(none)" or bm == "0000":
+            fault(f"unreadable bestmove '{bm}' in game {g}")
+        try:
+            mv = chess.Move.from_uci(bm)
+        except ValueError:
+            fault(f"unparseable bestmove '{bm}' in game {g}")
+        if mv not in board.legal_moves:
+            fault(f"illegal bestmove '{bm}' in game {g} fen {board.fen()}")
+        board.push(mv)
+        moves.append(bm)
+    endings[why] = endings.get(why, 0) + 1
+    if result.startswith("1-0"):
+        score_a = 1 if a_white else 0
+    elif result.startswith("0-1"):
+        score_a = 0 if a_white else 1
+    else:
+        score_a = 0.5
+    with open(out, "a") as f:
+        f.write(f"game {g} pair {pair} A_white={a_white} result {result} end {why} scoreA {score_a} moves {' '.join(moves)}\n")
+sendA("quit"); sendB("quit"); engA.wait(); engB.wait()
+with open(out, "a") as f:
+    f.write(f"SUMMARY shard={index} movesA {st[0][0]} nodesA {st[0][1]} softshareA {st[0][2]:.2f} hardA {st[0][3]}"
+            f" movesB {st[1][0]} nodesB {st[1][1]} softshareB {st[1][2]:.2f} hardB {st[1][3]}"
+            f" forfeitA {forfeit_A} forfeitB {forfeit_B} caps {cap_hits}"
+            f" endings {endings}"
+            f" stopA {stopA} stopB {stopB}\n")
+print("done", out)
