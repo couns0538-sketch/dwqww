@@ -1,0 +1,106 @@
+--- /tmp/j5/forge-combo29/src/search.cpp	2026-11-15 19:57:42.970400612 +0000
++++ /home/ubuntu/work/j5t/src/search.cpp	2026-11-15 19:58:22.278400612 +0000
+@@ -5,7 +5,9 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++#include <atomic>
+ #include <cmath>
++#include <cstdio>
+ #include <cstring>
+ #include <iostream>
+ #include <limits>
+@@ -1207,7 +1209,12 @@
+     child->runtime_psqt.valid = false;
+ }
+ 
++// TRACE only (local traced copy, never committed as engine source):
++// the size in cp of the correction the last corrected_eval() applied.
++static thread_local int trace_corr_size_cp = 0;
++
+ int Worker::corrected_eval(const Board& board, int raw_eval) const {
++
+     // Keep the recognized ending score exact: correction history must not tilt a draw or the corner drive.
+     if (dead_material_enabled) {
+         int fixed = 0;
+@@ -1223,6 +1230,7 @@
+         const std::int32_t np_b = (*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)];
+         correction += (np_w + np_b) / 2;
+     }
++    trace_corr_size_cp = std::abs(correction / CorrectionGrain);
+     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+ 
+@@ -1685,6 +1693,38 @@
+             if (aborted_) return 0;
+             if (razor < alpha) return razor;
+         }
++        // TRACE (local only): size distribution at the reverse futility site, and how
++        // many RFP cutoffs each candidate K would remove.
++        {
++            static const int kCand[] = {16, 20, 32, 48, 64, 96, 128};
++            static std::atomic<std::uint64_t> reached{0}, size_hist[5] = {};
++            static std::atomic<std::uint64_t> base_cut{0}, cut_removed[7] = {};
++            const std::uint64_t idx = reached.fetch_add(1);
++            const int sz = trace_corr_size_cp;
++            size_hist[sz == 0 ? 0 : (sz <= 4 ? 1 : (sz <= 15 ? 2 : (sz <= 40 ? 3 : 4)))].fetch_add(1);
++            const int margin_base = tune::RfpMargin * depth - tune::RfpImproving * improving;
++            const bool is_cut = !bare_king_mode && depth <= tune::RfpDepth && eval - margin_base >= beta &&
++                                eval < MateInMaxPly;
++            if (is_cut) {
++                base_cut.fetch_add(1);
++                for (int c = 0; c < 7; ++c) {
++                    const int extra = sz * kCand[c] / 64;
++                    if (!(eval - (margin_base + extra) >= beta)) cut_removed[c].fetch_add(1);
++                }
++            }
++            if ((idx & 0x3FF) == 0) {
++                std::fprintf(stderr,
++                    "CORRMARGIN reached=%llu size0=%llu size1_4=%llu size5_15=%llu size16_40=%llu size40p=%llu "
++                    "rfp_cutoffs=%llu",
++                    (unsigned long long)reached.load(), (unsigned long long)size_hist[0].load(),
++                    (unsigned long long)size_hist[1].load(), (unsigned long long)size_hist[2].load(),
++                    (unsigned long long)size_hist[3].load(), (unsigned long long)size_hist[4].load(),
++                    (unsigned long long)base_cut.load());
++                for (int c = 0; c < 7; ++c)
++                    std::fprintf(stderr, " K=%d_removed=%llu", kCand[c], (unsigned long long)cut_removed[c].load());
++                std::fprintf(stderr, "\n");
++            }
++        }
+         // Reverse futility pruning.
+         if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+             eval < MateInMaxPly) {
+@@ -1866,6 +1906,33 @@
+             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             if (quiet && !gives_check) {
++                // TRACE (local only): how many quiet futility skips each K would remove.
++                {
++                    static const int kFCand[] = {16, 20, 32, 48, 64, 96, 128};
++                    static std::atomic<std::uint64_t> q_reached{0}, q_skips{0}, q_removed[7] = {};
++                    const std::uint64_t qidx = q_reached.fetch_add(1);
++                    const int qsz = trace_corr_size_cp;
++                    const int qmargin = tune::FutilityBase + tune::FutilityMultiplier * lmr_depth;
++                    const bool q_skip = !in_check && lmr_depth <= tune::FutilityDepth
++#if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
++                        && (!tune::MateAlphaGuard || !is_mate_score(alpha))
++#endif
++                        && ss->static_eval + qmargin <= alpha;
++                    if (q_skip) {
++                        q_skips.fetch_add(1);
++                        for (int c = 0; c < 7; ++c) {
++                            if (!(ss->static_eval + qmargin + qsz * kFCand[c] / 64 <= alpha))
++                                q_removed[c].fetch_add(1);
++                        }
++                    }
++                    if ((qidx & 0x3FF) == 0) {
++                        std::fprintf(stderr, "CORRMARGIN_Q reached=%llu skips=%llu",
++                                     (unsigned long long)q_reached.load(), (unsigned long long)q_skips.load());
++                        for (int c = 0; c < 7; ++c)
++                            std::fprintf(stderr, " K=%d_removed=%llu", kFCand[c], (unsigned long long)q_removed[c].load());
++                        std::fprintf(stderr, "\n");
++                    }
++                }
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+                     (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&

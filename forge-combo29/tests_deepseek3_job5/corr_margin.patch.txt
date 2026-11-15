@@ -1,0 +1,152 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..860c460f9 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -302,6 +302,7 @@ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null sea
+ extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
+ extern bool AspArmLate;              // after a root iteration that failed high or low, the next iteration uses a full window (false = off)
++extern int CorrMargin;               // static-eval correction size widens the pruning margins; 0 = off (no node changes)
+ extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+@@ -399,6 +400,10 @@ struct SearchStack {
+     std::array<Move, 2> killers{};
+     Piece moved_piece = Empty;
+     int static_eval = ValueNone;
++    // Size in centipawns of the correction that corrected_eval() applied to
++    // static_eval (0 when in check or when no evaluation was computed). Read by
++    // CorrMargin to widen the pruning margins; always set, costs no node.
++    int corr_size_cp = 0;
+     int raw_eval = ValueNone;
+     int move_count = 0;
+     // 1-based index of the move that entered this node. 0 means the node was not
+@@ -552,7 +557,9 @@ private:
+     [[nodiscard]] int threat_quiet_bonus(const Board& board, Move move) const;
+     void update_threat_quiet(const Board& board, Move move, int bonus);
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+-    [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
++    // corr_size_out, when given, receives the size in centipawns of the correction
++    // this call applied; the two pruning sites use it to widen their margins.
++    [[nodiscard]] int corrected_eval(const Board& board, int raw_eval, int* corr_size_out = nullptr) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
+     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+ #if FORGE_NNUE_V3
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..34295e78f 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -102,6 +102,9 @@ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
++// Size of the static eval correction widens the pruning margins: 0 = off.
++// Any other value is K, and a margin grows by corr_size_cp * K / 64.
++int CorrMargin = 0;
+ bool EvasionOrdering = false;
+ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+@@ -1207,7 +1210,7 @@ void Worker::record_null_move(SearchStack* ss) {
+     child->runtime_psqt.valid = false;
+ }
+ 
+-int Worker::corrected_eval(const Board& board, int raw_eval) const {
++int Worker::corrected_eval(const Board& board, int raw_eval, int* corr_size_out) const {
+     // Keep the recognized ending score exact: correction history must not tilt a draw or the corner drive.
+     if (dead_material_enabled) {
+         int fixed = 0;
+@@ -1223,7 +1226,11 @@ int Worker::corrected_eval(const Board& board, int raw_eval) const {
+         const std::int32_t np_b = (*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)];
+         correction += (np_w + np_b) / 2;
+     }
+-    return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
++    const int correction_cp = correction / CorrectionGrain;
++    // Tell the caller how big the correction was, so a pruning site can widen its
++    // margin by it. Nothing else about the evaluation changes.
++    if (corr_size_out != nullptr) *corr_size_out = std::abs(correction_cp);
++    return std::clamp(raw_eval + correction_cp, -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+ 
+ void Worker::update_correction(const Board& board, int depth, int best_score, int static_eval) {
+@@ -1459,12 +1466,13 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     int futility_base;
+     if (in_check) {
+         ss->static_eval = ValueNone;
++        ss->corr_size_cp = 0;
+         best_score = futility_base = -Infinite;
+     } else {
+         int eval;
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else ss->raw_eval = static_evaluate(board, ss);
+-        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());
++        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval, &ss->corr_size_cp), board.halfmove_clock());
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+@@ -1647,13 +1655,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     int eval;
+     if (in_check) {
+         eval = ss->static_eval = ss->raw_eval = ValueNone;
++        ss->corr_size_cp = 0;
+     } else if (!excluded.is_none()) {
+         eval = ss->static_eval;
+     } else {
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else if (reuse_raw) ss->raw_eval = reused_raw;
+         else ss->raw_eval = static_evaluate(board, ss);
+-        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());
++        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval, &ss->corr_size_cp), board.halfmove_clock());
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+@@ -1685,8 +1694,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (aborted_) return 0;
+             if (razor < alpha) return razor;
+         }
+-        // Reverse futility pruning.
+-        if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
++        // Reverse futility pruning. A large static-eval correction says the static
++        // eval has been unreliable in positions of this kind, so the margin widens
++        // by corr_size_cp * K / 64 (CorrMargin = K; 0 leaves this line unchanged).
++        const int corr_margin = tune::CorrMargin > 0 ? ss->corr_size_cp * tune::CorrMargin / 64 : 0;
++        if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving + corr_margin) >= beta &&
+             eval < MateInMaxPly) {
+             return eval;
+         }
+@@ -1870,7 +1882,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+                     (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+ #endif
+-                    ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
++                    // Same correction-size term as reverse futility above.
++                    ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth +
++                            (tune::CorrMargin > 0 ? ss->corr_size_cp * tune::CorrMargin / 64 : 0) <= alpha) {
+                     trace_case();
+                     quiet_fail = true;
+                     skip_quiets = true;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..39a1fcb1a 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -226,6 +226,7 @@ int uci_loop(std::istream& in) {
+                          "option name NullSeeVeto type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+                          "option name AspArmLate type check default false\n"
++                         "option name CorrMargin type spin default 0 min 0 max 256\n"
+                          "option name EvasionOrdering type check default false\n"
+                          "option name DeadMaterial type check default false\n"
+                          "option name QuietExtinction type check default false\n"
+@@ -459,6 +460,13 @@ int uci_loop(std::istream& in) {
+                     note_invalid();
+                 }
+ #endif
++            } else if (name == "CorrMargin") {
++                apply_spin(0, 256, [&](int clamped) {
++                    if (forge::tune::CorrMargin != clamped) {
++                        forge::tune::CorrMargin = clamped;
++                        searcher.clear();
++                    }
++                });
+             } else if (name == "MultiPV") {
+                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+             } else if (name == "Hash") {
