@@ -1,0 +1,167 @@
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -294,6 +294,14 @@
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern int MinorCorrection;          // minor-piece correction history, weight in percent (0 = off)
+ extern int ThreatCorrection;         // threat (hanging pieces) correction history, weight in percent (0 = off)
++// TRACED COPY ONLY:
++extern std::uint64_t FamReads;
++extern double FamSumAbsPawn, FamSumAbsMaterial, FamSumAbsMinor, FamSumAbsThreat, FamSumAbsTotal;
++extern std::uint64_t FamSameSign, FamOppSign, FamOneZero;
++extern double FamX, FamY, FamXX, FamYY, FamXY;
++extern std::uint64_t FamMinorUpdates, FamMinorChanged, FamThreatUpdates, FamThreatChanged;
++extern std::uint64_t fam_distinct_minor_keys();
++extern std::uint64_t fam_distinct_threat_keys();
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -9,6 +9,7 @@
+ #include <cstring>
+ #include <iostream>
+ #include <limits>
++#include <unordered_set>
+ #include <optional>
+ #if FORGE_NNUE_V3
+ #ifndef FORGE_NNUE_V3_VERIFY
+@@ -78,6 +79,15 @@
+ int MaterialCorrectionWeight = 100;
+ int MinorCorrection = 0;
+ int ThreatCorrection = 0;
++// TRACED COPY ONLY: family counters, reset by Worker::clear().
++std::uint64_t FamReads = 0;
++double FamSumAbsPawn = 0.0, FamSumAbsMaterial = 0.0, FamSumAbsMinor = 0.0, FamSumAbsThreat = 0.0, FamSumAbsTotal = 0.0;
++std::uint64_t FamSameSign = 0, FamOppSign = 0, FamOneZero = 0;
++double FamX = 0, FamY = 0, FamXX = 0, FamYY = 0, FamXY = 0;
++std::uint64_t FamMinorUpdates = 0, FamMinorChanged = 0, FamThreatUpdates = 0, FamThreatChanged = 0;
++std::unordered_set<std::uint64_t> FamMinorKeySet, FamThreatKeySet;
++std::uint64_t fam_distinct_minor_keys() { return FamMinorKeySet.size(); }
++std::uint64_t fam_distinct_threat_keys() { return FamThreatKeySet.size(); }
+ int TmSoftDivisor = 22;
+ int TmIncrementPercent = 75;
+ int TmHardPercent = 60;
+@@ -1035,6 +1045,13 @@
+     *non_pawn_black_correction_ = CorrectionHistory{};
+     *minor_correction_ = CorrectionHistory{};
+     *threat_correction_ = CorrectionHistory{};
++    tune::FamReads = 0;
++    tune::FamSumAbsPawn = tune::FamSumAbsMaterial = tune::FamSumAbsMinor = tune::FamSumAbsThreat = tune::FamSumAbsTotal = 0.0;
++    tune::FamSameSign = tune::FamOppSign = tune::FamOneZero = 0;
++    tune::FamX = tune::FamY = tune::FamXX = tune::FamYY = tune::FamXY = 0.0;
++    tune::FamMinorUpdates = tune::FamMinorChanged = tune::FamThreatUpdates = tune::FamThreatChanged = 0;
++    tune::FamMinorKeySet.clear();
++    tune::FamThreatKeySet.clear();
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
+@@ -1288,15 +1305,33 @@
+         if (dead_material_score(board, fixed)) return fixed;
+     }
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+-    std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
++    const std::int32_t pawn_term = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
++    std::int32_t correction = pawn_term;
++    std::int32_t material_term = 0, minor_term = 0, threat_term = 0;
+     if (tune::MaterialCorrectionWeight > 0) {
+-        correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
++        material_term = (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
++        correction += material_term;
+     }
+     if (tune::MinorCorrection > 0) {
+-        correction += (*minor_correction_)[side][minor_key(board) & (CorrectionSize - 1U)] * tune::MinorCorrection / 100;
++        minor_term = (*minor_correction_)[side][minor_key(board) & (CorrectionSize - 1U)] * tune::MinorCorrection / 100;
++        correction += minor_term;
+     }
+     if (tune::ThreatCorrection > 0) {
+-        correction += (*threat_correction_)[side][threat_key(board) & (CorrectionSize - 1U)] * tune::ThreatCorrection / 100;
++        threat_term = (*threat_correction_)[side][threat_key(board) & (CorrectionSize - 1U)] * tune::ThreatCorrection / 100;
++        correction += threat_term;
++    }
++    {
++        ++tune::FamReads;
++        tune::FamSumAbsPawn += std::abs(pawn_term);
++        tune::FamSumAbsMaterial += std::abs(material_term);
++        tune::FamSumAbsMinor += std::abs(minor_term);
++        tune::FamSumAbsThreat += std::abs(threat_term);
++        tune::FamSumAbsTotal += std::abs(pawn_term + material_term + minor_term + threat_term);
++        if ((minor_term > 0 && threat_term > 0) || (minor_term < 0 && threat_term < 0)) ++tune::FamSameSign;
++        else if ((minor_term > 0 && threat_term < 0) || (minor_term < 0 && threat_term > 0)) ++tune::FamOppSign;
++        else ++tune::FamOneZero;
++        const double x = minor_term, y = threat_term;
++        tune::FamX += x; tune::FamY += y; tune::FamXX += x * x; tune::FamYY += y * y; tune::FamXY += x * y;
+     }
+     if (tune::NonPawnCorrection) {
+         const std::int32_t np_w = (*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)];
+@@ -1315,8 +1350,22 @@
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
+-    if (tune::MinorCorrection > 0) apply((*minor_correction_)[side][minor_key(board) & (CorrectionSize - 1U)]);
+-    if (tune::ThreatCorrection > 0) apply((*threat_correction_)[side][threat_key(board) & (CorrectionSize - 1U)]);
++    if (tune::MinorCorrection > 0) {
++        std::int32_t& me_ = (*minor_correction_)[side][minor_key(board) & (CorrectionSize - 1U)];
++        const std::int32_t mb = me_;
++        apply(me_);
++        ++tune::FamMinorUpdates;
++        if (me_ != mb) ++tune::FamMinorChanged;
++        tune::FamMinorKeySet.insert(minor_key(board));
++    }
++    if (tune::ThreatCorrection > 0) {
++        std::int32_t& te_ = (*threat_correction_)[side][threat_key(board) & (CorrectionSize - 1U)];
++        const std::int32_t tb_ = te_;
++        apply(te_);
++        ++tune::FamThreatUpdates;
++        if (te_ != tb_) ++tune::FamThreatChanged;
++        tune::FamThreatKeySet.insert(threat_key(board));
++    }
+     if (tune::NonPawnCorrection) {
+         apply((*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)]);
+         apply((*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)]);
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -9,6 +9,8 @@
+ #include "forge/uci_clock.hpp"
+ #include "forge/uci_output.hpp"
+ 
++#include <cmath>
++
+ #include <algorithm>
+ #include <array>
+ #include <charconv>
+@@ -624,6 +626,35 @@
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
+                       << std::endl;
++            // TRACED COPY ONLY: four-table family counters for this bench run.
++            {
++                const double n = static_cast<double>(forge::tune::FamReads);
++                const double sx = forge::tune::FamX, sy = forge::tune::FamY;
++                const double sxx = forge::tune::FamXX, syy = forge::tune::FamYY, sxy = forge::tune::FamXY;
++                double corr = 0.0;
++                if (n > 1) {
++                    const double cov = sxy / n - (sx / n) * (sy / n);
++                    const double vx = sxx / n - (sx / n) * (sx / n);
++                    const double vy = syy / n - (sy / n) * (sy / n);
++                    if (vx > 0 && vy > 0) corr = cov / std::sqrt(vx * vy);
++                }
++                std::cout << "info string family reads " << forge::tune::FamReads
++                          << " mean_abs_pawn_cp " << (n > 0 ? forge::tune::FamSumAbsPawn / n / 256.0 : 0.0)
++                          << " mean_abs_material_cp " << (n > 0 ? forge::tune::FamSumAbsMaterial / n / 256.0 : 0.0)
++                          << " mean_abs_minor_cp " << (n > 0 ? forge::tune::FamSumAbsMinor / n / 256.0 : 0.0)
++                          << " mean_abs_threat_cp " << (n > 0 ? forge::tune::FamSumAbsThreat / n / 256.0 : 0.0)
++                          << " mean_abs_total_cp " << (n > 0 ? forge::tune::FamSumAbsTotal / n / 256.0 : 0.0)
++                          << " same_sign " << forge::tune::FamSameSign
++                          << " opp_sign " << forge::tune::FamOppSign
++                          << " one_zero " << forge::tune::FamOneZero
++                          << " pearson_minor_threat " << corr
++                          << " minor_updates " << forge::tune::FamMinorUpdates
++                          << " minor_changed " << forge::tune::FamMinorChanged
++                          << " threat_updates " << forge::tune::FamThreatUpdates
++                          << " threat_changed " << forge::tune::FamThreatChanged
++                          << " distinct_minor_keys " << forge::tune::fam_distinct_minor_keys()
++                          << " distinct_threat_keys " << forge::tune::fam_distinct_threat_keys() << std::endl;
++            }
+         } else if (command == "ponderhit") {
+             if (ponder_search_active) {
+                 searcher.ponderhit();

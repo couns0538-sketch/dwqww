@@ -1,0 +1,96 @@
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -292,6 +292,7 @@
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
++extern int MinorCorrection;          // minor-piece correction history, weight in percent (0 = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+@@ -478,6 +479,7 @@
+     std::unique_ptr<CorrectionHistory> material_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_white_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_black_correction_;
++    std::unique_ptr<CorrectionHistory> minor_correction_;
+     std::array<SearchStack, MaxPly + 8> stack_{};
+ #if FORGE_NNUE_V3
+     std::unique_ptr<nnue::v3::WorkerState> v3_state_;
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -76,6 +76,7 @@
+ int CheckExtensionDepth = 2;
+ int LmrCutoffThreshold = 3;
+ int MaterialCorrectionWeight = 100;
++int MinorCorrection = 0;
+ int TmSoftDivisor = 22;
+ int TmIncrementPercent = 75;
+ int TmHardPercent = 60;
+@@ -138,6 +139,7 @@
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
+         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
++        {"MinorCorrection", &MinorCorrection, 0, 100},
+         {"TmSoftDivisor", &TmSoftDivisor, 5, 80},            {"TmIncrementPercent", &TmIncrementPercent, 0, 150},
+         {"TmHardPercent", &TmHardPercent, 10, 95},           {"TmHardSoftMultiple", &TmHardSoftMultiple, 1, 20},
+         {"TmStableFactor", &TmStableFactor, 20, 150},        {"TmSemiStableFactor", &TmSemiStableFactor, 20, 150},
+@@ -1010,7 +1012,8 @@
+       correction_history_(std::make_unique<CorrectionHistory>()),
+       material_correction_(std::make_unique<CorrectionHistory>()),
+       non_pawn_white_correction_(std::make_unique<CorrectionHistory>()),
+-      non_pawn_black_correction_(std::make_unique<CorrectionHistory>()) {
++      non_pawn_black_correction_(std::make_unique<CorrectionHistory>()),
++      minor_correction_(std::make_unique<CorrectionHistory>()) {
+     clear();
+ }
+ 
+@@ -1027,6 +1030,7 @@
+     *material_correction_ = CorrectionHistory{};
+     *non_pawn_white_correction_ = CorrectionHistory{};
+     *non_pawn_black_correction_ = CorrectionHistory{};
++    *minor_correction_ = CorrectionHistory{};
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
+@@ -1052,6 +1056,23 @@
+     }
+     return key ^ (key >> 31U);
+ }
++
++// Hash of the minor-piece placements of BOTH sides (knights and bishops,
++// kings excluded), for the minor-piece correction history. The four placement
++// bitboards are multiplied by distinct odd constants derived from the golden
++// ratio constant, XOR-folded, then run through a xorshift-multiply finalizer;
++// every step is its own mixing choice, no table is needed.
++[[nodiscard]] std::uint64_t minor_key(const Board& board) {
++    constexpr std::uint64_t golden = 0x9E3779B97F4A7C15ULL;
++    std::uint64_t key = board.pieces(White, Knight) * golden;
++    key ^= board.pieces(White, Bishop) * (golden * 3);
++    key ^= board.pieces(Black, Knight) * (golden * 5);
++    key ^= board.pieces(Black, Bishop) * (golden * 7);
++    key ^= key >> 29U;
++    key *= golden * 9;
++    key ^= key >> 32U;
++    return key;
++}
+ } // namespace
+ 
+ namespace {
+@@ -1218,6 +1239,9 @@
+     if (tune::MaterialCorrectionWeight > 0) {
+         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+     }
++    if (tune::MinorCorrection > 0) {
++        correction += (*minor_correction_)[side][minor_key(board) & (CorrectionSize - 1U)] * tune::MinorCorrection / 100;
++    }
+     if (tune::NonPawnCorrection) {
+         const std::int32_t np_w = (*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)];
+         const std::int32_t np_b = (*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)];
+@@ -1235,6 +1259,7 @@
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
++    if (tune::MinorCorrection > 0) apply((*minor_correction_)[side][minor_key(board) & (CorrectionSize - 1U)]);
+     if (tune::NonPawnCorrection) {
+         apply((*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)]);
+         apply((*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)]);
