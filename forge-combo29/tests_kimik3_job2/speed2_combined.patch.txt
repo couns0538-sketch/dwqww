@@ -1,0 +1,65 @@
+--- a/include/forge/hist_rework.hpp
++++ b/include/forge/hist_rework.hpp
+@@ -81,11 +81,23 @@
+ }
+ 
+ // Non-pawn material signature: 4 bits per (colour, knight/bishop/rook/queen) count, saturated at 15.
++// Bit count of a set with at most 10 pieces (the knight..queen men of one colour): a short clear loop is
++// cheaper here than the libgcc popcount call this build target compiles std::popcount to. Same value for
++// every input bitboard (it counts set bits, nothing else).
++[[nodiscard]] inline int small_piece_count(Bitboard bb) {
++    int count = 0;
++    while (bb != 0) {
++        bb &= bb - 1;
++        ++count;
++    }
++    return count;
++}
++
+ [[nodiscard]] inline std::uint32_t non_pawn_material(const Board& board) {
+     std::uint32_t signature = 0;
+     for (const Color color : {White, Black}) {
+         for (int type = Knight; type <= Queen; ++type) {
+-            const int count = popcount(board.pieces(color, static_cast<PieceType>(type)));
++            const int count = small_piece_count(board.pieces(color, static_cast<PieceType>(type)));
+             signature = (signature << 4U) | static_cast<std::uint32_t>(count < 15 ? count : 15);
+         }
+     }
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -375,6 +375,10 @@
+     std::unique_ptr<LesserThreatHistory> threat_history_;
+     std::unique_ptr<CorrectionHistory> joint_correction_;
+     std::array<hist_rework::LesserThreats, MaxPly + 8> threat_maps_{};
++    // Speed idea: the option and the blend weight are constant within one search (the option is set only
++    // between searches); refreshed at the root entry instead of being re-read and re-derived per move.
++    int threat_level_cache_ = 0;
++    int threat_quarters_cache_ = 0;
+     // CorrHistPlus tables (forge/correction_plus.hpp), owned by this worker: null until the option is on and the
+     // first update allocates them; freed by Worker::clear(). TtPruneV2: this search's snapshot of the option.
+     std::unique_ptr<corrplus::Tables> correction_plus_;
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -893,9 +893,9 @@
+ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
+     const Piece piece = board.moved_piece(move);
+     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+-    if (const int level = search_options::hist_rework; level != 0 && ss != nullptr) [[unlikely]] {
++    if (threat_level_cache_ != 0 && ss != nullptr) [[unlikely]] {
+         // |score| <= 16384 after the blend, as for the lock table alone (hist_rework::blend).
+-        score = hist_rework::blend(score, threat_history_entry(board, ss, move), hist_rework::threat_quarters(level));
++        score = hist_rework::blend(score, threat_history_entry(board, ss, move), threat_quarters_cache_);
+     }
+     if (ss != nullptr) {
+         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
+@@ -1488,6 +1488,10 @@
+ // Iterative deepening driver
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++    // Speed idea: snapshot the HistRework option and its blend weight once per search (it changes only
++    // between searches), so the hot quiet_history path reads two members instead of a global + clamp + add.
++    threat_level_cache_ = search_options::hist_rework;
++    threat_quarters_cache_ = hist_rework::threat_quarters(search_options::hist_rework);
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}

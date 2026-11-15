@@ -1,0 +1,63 @@
+# R3 (baseline_src BundlePreset B1, bench 13) raw-parse shares
+TOTAL CEst 8,954,464,213 (official summary CEst 8,877,249,048 R0a / 8,954,464,215 R3; parser loses exactly 2 Ir)
+ 27.09%  everything else
+ 22.91%  evaluation (net)
+ 18.97%  evaluation (other)
+ 11.97%  move generation
+  6.70%  move picker/sorting
+  5.05%  history reads/updates
+  2.89%  make/unmake
+  2.48%  SEE
+  1.94%  TT probe/store
+--- top 25 functions by CEst (self) ---
+ 1,425,596,214 (15.92%) Ir=  900,364,794  forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)  [(278)]
+ 1,252,510,546 (13.99%) Ir=  990,951,286  int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .constprop.0]  [/tmp/baseline_src/src/eval.cpp]
+   760,906,039 ( 8.50%) Ir=  760,817,379  __popcountdi2  [???]
+   674,895,858 ( 7.54%) Ir=  425,492,118  int forge::Worker::search<true>(forge::Board&, forge::SearchStack*, int, int, int, bool)'2  [(213)]
+   568,025,743 ( 6.34%) Ir=  449,499,763  forge::MovePicker::next(bool)  [(213)]
+   480,655,090 ( 5.37%) Ir=  450,771,360  forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)  [(278)]
+   442,331,472 ( 4.94%) Ir=  426,973,032  forge::attacks::(anonymous namespace)::init_magics(bool, unsigned long*, std::array<forge::attacks::Magic, 64ul>&)  [/tmp/baseline_src/src/bitboard.cpp]
+   408,369,860 ( 4.56%) Ir=  353,053,440  forge::Worker::quiet_history(forge::Board const&, forge::SearchStack const*, forge::Move) const  [(213)]
+   328,319,127 ( 3.67%) Ir=  208,663,187  __memset_avx2_unaligned_erms  [./string/../sysdeps/x86_64/multiarch/memset-vec-unaligned-erms.S]
+   283,294,552 ( 3.16%) Ir=  256,981,392  forge::Worker::corrected_eval_plus(forge::Board const&, int) const  [(213)]
+   264,990,538 ( 2.96%) Ir=  206,450,498  forge::Board::generate_pseudo_legal(forge::MoveList&, bool) const  [/tmp/baseline_src/src/board.cpp]
+   238,534,494 ( 2.66%) Ir=  211,296,974  forge::Board::is_legal(forge::Move const&) const  [/tmp/baseline_src/src/board.cpp]
+   221,761,642 ( 2.48%) Ir=  165,100,162  forge::Board::see_ge(forge::Move const&, int) const  [/tmp/baseline_src/src/board.cpp]
+   179,395,839 ( 2.00%) Ir=  144,211,329  forge::Board::make_move(forge::Move const&, forge::Undo&)  [/tmp/baseline_src/src/board.cpp]
+   147,107,150 ( 1.64%) Ir=   91,629,980  int forge::Worker::qsearch<true>(forge::Board&, forge::SearchStack*, int, int)'2  [(213)]
+   127,597,986 ( 1.42%) Ir=   73,478,516  int forge::Worker::qsearch<true>(forge::Board&, forge::SearchStack*, int, int)  [(213)]
+   125,452,208 ( 1.40%) Ir=   99,019,028  forge::Board::gives_check(forge::Move const&) const  [/tmp/baseline_src/src/board.cpp]
+    91,354,813 ( 1.02%) Ir=   69,562,733  forge::Evaluator::update_runtime_psqt(forge::Evaluator::RuntimePsqt const&, forge::Evaluator::RuntimePsqt&, forge::nnue::DirtyPieces const&)  [/tmp/baseline_src/src/eval.cpp]
+    89,958,016 ( 1.00%) Ir=   62,970,576  forge::Board::attackers_to(int, unsigned long) const  [/tmp/baseline_src/src/board.cpp]
+    78,907,659 ( 0.88%) Ir=   54,513,389  forge::Board::unmake_move(forge::Move const&, forge::Undo const&)  [/tmp/baseline_src/src/board.cpp]
+    75,199,698 ( 0.84%) Ir=   47,725,138  forge::TranspositionTable::probe(unsigned long) const  [(213)]
+    74,695,036 ( 0.83%) Ir=   59,266,856  forge::hist_rework::joint_key(forge::Board const&)  [/tmp/baseline_src/include/forge/hist_rework.hpp]
+    72,727,018 ( 0.81%) Ir=   72,458,798  0x000000000010c7e0  [(175)]
+    57,014,045 ( 0.64%) Ir=   47,634,245  forge::TranspositionTable::store(forge::TTProbe const&, unsigned long, int, int, forge::Move, int, forge::Bound, bool, unsigned short)  [(213)]
+    54,152,130 ( 0.60%) Ir=   38,373,100  forge::Worker::static_evaluate(forge::Board const&, forge::SearchStack*)  [(213)]
+--- top 25 source lines by CEst (self) ---
+   760,913,230 ( 8.50%) Ir=  760,817,880  ???:0
+   494,277,344 ( 5.52%) Ir=  257,675,264  (278):139
+   474,597,328 ( 5.30%) Ir=  250,395,648  (278):116
+   328,315,193 ( 3.67%) Ir=  208,661,603  ./string/../sysdeps/x86_64/multiarch/memset-vec-unaligned-erms.S:328
+   220,812,925 ( 2.47%) Ir=  112,994,915  (213):345
+   135,477,774 ( 1.51%) Ir=  129,405,884  (213):205
+   135,300,140 ( 1.51%) Ir=  124,350,720  (278):204
+   131,723,294 ( 1.47%) Ir=  125,197,824  (278):114
+   130,779,052 ( 1.46%) Ir=  121,288,552  (278):137
+   129,294,440 ( 1.44%) Ir=  128,529,570  /tmp/baseline_src/src/bitboard.cpp:150
+   124,836,565 ( 1.39%) Ir=  124,836,465  (278):240
+    91,630,940 ( 1.02%) Ir=   81,942,830  /tmp/baseline_src/src/board.cpp:205
+    80,997,989 ( 0.90%) Ir=   52,836,889  /tmp/baseline_src/src/eval.cpp:119
+    73,696,723 ( 0.82%) Ir=   72,658,633  (175):0
+    71,987,083 ( 0.80%) Ir=   47,107,523  (213):94
+    67,969,020 ( 0.76%) Ir=   67,348,700  (213):618
+    62,649,460 ( 0.70%) Ir=   62,175,360  (278):192
+    62,175,360 ( 0.69%) Ir=   62,175,360  (278):234
+    60,009,452 ( 0.67%) Ir=   48,185,362  /tmp/baseline_src/src/eval.cpp:36
+    59,114,240 ( 0.66%) Ir=   50,111,880  /tmp/baseline_src/src/board.cpp:150
+    52,451,506 ( 0.59%) Ir=   47,028,436  /tmp/baseline_src/src/bitboard.cpp:99
+    50,785,510 ( 0.57%) Ir=   43,333,970  /tmp/baseline_src/src/eval.cpp:35
+    49,801,735 ( 0.56%) Ir=   39,844,955  /tmp/baseline_src/src/eval.cpp:150
+    48,142,000 ( 0.54%) Ir=   42,368,040  (278):27
+    47,641,220 ( 0.53%) Ir=   47,144,090  (213):301

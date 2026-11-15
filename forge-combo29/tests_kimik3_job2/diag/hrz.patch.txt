@@ -1,0 +1,101 @@
+--- a/include/forge/hist_rework.hpp
++++ b/include/forge/hist_rework.hpp
+@@ -19,6 +19,8 @@
+ namespace search_options {
+ // 0 = off (the lock). 1..3 = the tune steps below. Set only between searches (UCI setoption stops the search).
+ extern int hist_rework;
++extern int hrz_factor;
++extern unsigned long long hrz_trace_builds, hrz_trace_reads;
+ } // namespace search_options
+ 
+ namespace hist_rework {
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -3,6 +3,7 @@
+ 
+ #include <algorithm>
+ #include <cmath>
++#include <cstdlib>
+ #include <cstring>
+ #include <iostream>
+ #include <limits>
+@@ -15,6 +16,15 @@
+ // tunables keep their addresses.
+ namespace search_options {
+ int hist_rework = 0;
++// HRZ diagnostic (job 2, local only): a factor the compiler cannot know at build time. Every HistRework
++// contribution to a move score or the static-eval correction is multiplied by it; 0 erases the effect while
++// all computation, table reads and table updates still happen. Read once from the environment at startup.
++int hrz_factor = [] {
++    const char* s = std::getenv("FORGE_HRZ_FACTOR");
++    return s != nullptr ? std::atoi(s) : 1;
++}();
++// HRZ trace: proof the work still happens (build sites and table reads).
++unsigned long long hrz_trace_builds = 0, hrz_trace_reads = 0;
+ } // namespace search_options
+ 
+ // B1 bundle options (R13 port of forge-bundle-int b7c17722; forge/search.hpp), all OFF.
+@@ -674,7 +684,7 @@
+     if (const int level = search_options::hist_rework; level != 0) [[unlikely]] {
+         // HistRework: pawn structure x non-pawn material. |entry| <= 8192, weight <= 100: |term| <= 8192.
+         correction += (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)] *
+-                      hist_rework::joint_weight(level) / 100;
++                      hist_rework::joint_weight(level) / 100 * search_options::hrz_factor; // HRZ diag: x0 erases the contribution
+     }
+     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+@@ -774,7 +784,7 @@
+     if (const int level = search_options::hist_rework; level != 0) [[unlikely]] {
+         // HistRework: pawn structure x non-pawn material. |entry| <= 8192, weight <= 100: |term| <= 8192.
+         correction += (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)] *
+-                      hist_rework::joint_weight(level) / 100;
++                      hist_rework::joint_weight(level) / 100 * search_options::hrz_factor; // HRZ diag: x0 erases the contribution
+     }
+     correction += correction_plus(board);
+     return std::clamp(raw_eval + corrplus::div_pow2<8>(correction), -MateInMaxPly + 1, MateInMaxPly - 1);
+@@ -875,6 +885,7 @@
+ 
+ // HistRework: the threat-keyed butterfly slot of a quiet move at the node of `ss` (its maps are threat_maps_[ply]).
+ std::int16_t& Worker::threat_history_entry(const Board& board, const SearchStack* ss, Move move) const {
++    ++search_options::hrz_trace_reads; // HRZ trace
+     const hist_rework::LesserThreats& threats = threat_maps_[static_cast<std::size_t>(ss->ply)];
+     const Bitboard set = threats.by_type[static_cast<std::size_t>(piece_type(board.moved_piece(move)))];
+     return (*threat_history_)[static_cast<std::size_t>(board.side_to_move())][hist_rework::square_bit(set, move.from)]
+@@ -895,7 +906,8 @@
+     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+     if (const int level = search_options::hist_rework; level != 0 && ss != nullptr) [[unlikely]] {
+         // |score| <= 16384 after the blend, as for the lock table alone (hist_rework::blend).
+-        score = hist_rework::blend(score, threat_history_entry(board, ss, move), hist_rework::threat_quarters(level));
++        const int hrz_blended = hist_rework::blend(score, threat_history_entry(board, ss, move), hist_rework::threat_quarters(level));
++        score = hrz_blended * search_options::hrz_factor + score * (1 - search_options::hrz_factor); // HRZ diag: x0 erases the contribution
+     }
+     if (ss != nullptr) {
+         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
+@@ -1057,7 +1069,7 @@
+ 
+     // HistRework: check evasions score quiet moves with quiet_history, which reads this node's maps.
+     if (in_check && search_options::hist_rework != 0) [[unlikely]]
+-        threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board);
++        { threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board); ++search_options::hrz_trace_builds; }
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+     Move best_move = Move::none();
+     int move_count = 0;
+@@ -1279,7 +1291,7 @@
+              tt_bound == BoundUpper && !ss->tt_pv) --depth;
+ 
+     // HistRework: lesser-attacker maps of this node, read by quiet_history and the history updates below.
+-    if (search_options::hist_rework != 0) [[unlikely]] threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board);
++    if (search_options::hist_rework != 0) [[unlikely]] { threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board); ++search_options::hrz_trace_builds; }
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+     std::array<Move, 128> quiets_tried{};
+     std::array<Move, 64> captures_tried{};
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -475,5 +475,7 @@
+         }
+     }
+     stop_search();
++    std::fprintf(stderr, "HRZTRACE builds %llu reads %llu\n", forge::search_options::hrz_trace_builds,
++                 forge::search_options::hrz_trace_reads);
+     return 0;
+ }

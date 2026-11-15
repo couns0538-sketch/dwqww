@@ -1,0 +1,27 @@
+--- a/include/forge/hist_rework.hpp
++++ b/include/forge/hist_rework.hpp
+@@ -81,11 +81,23 @@
+ }
+ 
+ // Non-pawn material signature: 4 bits per (colour, knight/bishop/rook/queen) count, saturated at 15.
++// Bit count of a set with at most 10 pieces (the knight..queen men of one colour): a short clear loop is
++// cheaper here than the libgcc popcount call this build target compiles std::popcount to. Same value for
++// every input bitboard (it counts set bits, nothing else).
++[[nodiscard]] inline int small_piece_count(Bitboard bb) {
++    int count = 0;
++    while (bb != 0) {
++        bb &= bb - 1;
++        ++count;
++    }
++    return count;
++}
++
+ [[nodiscard]] inline std::uint32_t non_pawn_material(const Board& board) {
+     std::uint32_t signature = 0;
+     for (const Color color : {White, Black}) {
+         for (int type = Knight; type <= Queen; ++type) {
+-            const int count = popcount(board.pieces(color, static_cast<PieceType>(type)));
++            const int count = small_piece_count(board.pieces(color, static_cast<PieceType>(type)));
+             signature = (signature << 4U) | static_cast<std::uint32_t>(count < 15 ? count : 15);
+         }
+     }
