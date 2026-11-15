@@ -1,0 +1,6 @@
+import assert from 'node:assert/strict';import {derive} from './derive.mjs';
+const make=n=>Array.from({length:n},(_,i)=>({cycle:i+1,side:i%2?'reference':'candidate',searched:true,depth:9,bestmove:'e3a3',score_kind:'cp',score:-949,bound:'',nodes:25093,shutdown:{reaped:true,exit_code:0,signal:0,timed_out:false,driver_sigterm:false,driver_sigkill:false,error:'',quit_to_exit_ms:2}}));
+let rows=make(2000),r=derive(rows);assert.equal(r.bySide.candidate.cycles,1000);assert.equal(r.bySide.reference.cycles,1000);assert.equal(r.identicalPairs,1000);assert.equal(r.bySide.candidate.firstTen.frequency,'0/10');
+rows=make(13);r=derive(rows);assert.equal(r.bySide.candidate.firstTen.frequency,'0/7');assert.equal(r.bySide.reference.firstTen.frequency,'0/6');assert.equal(r.bySide.candidate.firstTen.isFullTen,false);assert.equal(r.incompleteOrMissingPairs,1);
+rows=make(20);rows[2].shutdown.timed_out=true;rows[2].shutdown.driver_sigterm=true;rows[3].shutdown.timed_out=true;rows[3].score=-950;r=derive(rows);assert.equal(r.bySide.candidate.firstTen.frequency,'1/10');assert.equal(r.bySide.reference.firstTen.frequency,'1/10');assert.equal(r.bySide.candidate.normalExits,9);assert.equal(r.differentPairs,1);
+console.log(JSON.stringify({syntheticCases:3,passed:3,engineRuns:0,stateWrites:0}));

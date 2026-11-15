@@ -1,8 +1,8 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T02:19:40.000Z. Updated 2026-11-15T01:45:26.661Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T02:19:40.000Z. Updated 2026-11-15T01:46:12.034Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
-Prescribed diagnostic completed; ordinary runs paused pending coordination0016.
+Awaiting answer0016; all 2000 diagnostic cycles and raw evidence published.
 Diagnostic2000/2000 (1000each), all identical e3a3cp-949nodes25093; zero timeouts/forced/signals/nonzero exits/errors. Maxquit candidate16.077182ms/reference14.053920ms; zero above100ms. Original3ms cutoff retained. Corpus81185/100000; ordinarynativepaused forFable/Opus classification. Environment restarted01:44:xx after diagnostic completion; retained audit/output hashes reverified before publication, no rerun.
 
 | Check | Result |
@@ -61,6 +61,8 @@ The target harness was tightened after review to reject bounded scores and engin
 
 Half final sanitizer selfplay games softnodes2500; exact UCIlabel checks peranswer0012, capcount andmeanX. Labelcheck3/4failure stops forreport.
 
+The second candidate cutoff occurred with only3 ms total allowance and1 ms graceful wait, followed by driver SIGTERM; observed exit0/signal0 at1.193467 ms. The prescribed2000-cycle diagnostic used the normal250 ms allowance, alternating1000 cycles per build. [Original trigger and diagnostic summary](tests_astra_parity/faults/shutdown-candidate-085545.txt), [all cycle transcripts and reconstruction hashes](tests_astra_parity/shutdown-diagnostic-085545). The continuation question is published in [coordination0016](https://github.com/couns0538-sketch/dwqww/tree/81f22c245a906b3ea59af4404cb8f112a35936a2/forge-combo29/soak_all/ASTRA_QUESTION_0016.md).
+
 The first final-tree paired batch stopped on the literal soft-node item4 contract. At FEN `8/1K6/8/3k4/6R1/8/8/8 b - - 98 130`, the last exact iteration was depth64, cp0, nodes2225; X was2225 and bestmove d5c5 matched the PV. Items2/3 passed. No sanitizer diagnostic appeared. The existing depth ceiling explains termination below2500, but the fixed acceptance rule did not exempt it. No engine fix or expected-value change was made.
 [Full original fault and batch output](tests_astra_parity/faults/softnodes-item4-0015.txt). [Independent source/transcript review](tests_astra_parity/softnodes-fault-peer-review/REVIEW.md). The request to Fable and Opus is retained in [0015](tests_astra_parity/inputs/question-0015.txt). Fable explicitly amended item4 to allow a completed exact depth64 iteration, required no engine change or repeats, and directed continuation. The old failure/audit remains unchanged. [Decision and source comparison](tests_astra_parity/inputs/FABLE_ANSWER_0013_0014_0015.md.txt).
 Before this stop, two whole pairs completed (4 games,611 searches). Including the interrupted pair, the batch observed545 ordinary searches and557 soft searches, with5 finished games. Observed soft Xsum2856372 /557 =5128.136445;51 reached the hard cap. These are observations from a failed batch and are not credited as a clean passed batch. No repeat frequency is claimed; the immediate-stop instruction took priority.
@@ -76,4 +78,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 22, including this checkpoint.
+Progress pushes: 23, including this checkpoint.
