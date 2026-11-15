@@ -1,11 +1,11 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T04:02:23.174Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T04:11:52.134Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
-Final paired sanitizer workload 12/12 distinct groups covered; 14 clean batches.
-Final paired UCI batch continuation0018-c02-paired-softnodes-asan-on-t1-n20000-d0: accepted-clean 18 games / 2877 searches; cumulative 472 games / 66295 searches. 0 batches with observed findings; 0 incomplete. Preliminary coverage excluded.
+STOP: ASan shutdown finding0020; no further engine launches.
+Batch12 retained with zero clean credit after finalshutdownSIGKILL9; sibling18passed58games/8108searches. Globalstop explicitly asserted after metadata recording. No source edits or repeats.
 
 | Check | Result |
 |---|---|
@@ -18,19 +18,20 @@ Final paired UCI batch continuation0018-c02-paired-softnodes-asan-on-t1-n20000-d
 | Step 2 option checks and unit rows | 16/16 option counts; 9 unit rows, 0 failures |
 | Step 2 targeted position | a1b2, mate -5, 2566746 nodes; depth9, Threads1 |
 | Step 2 exact corpus | 100000/100000; 1 differences; effective gate accepted with listed same-clock attribution; strict audit retained |
-| Prescribed shutdown diagnostic | 2000/2000 cycles; candidate/reference timeouts 0/0; max quit-to-exit 16.077182/14.05392 ms; ordinary runs resumed by separate decision |
+| Prescribed shutdown diagnostic | 2000/2000 cycles; candidate/reference timeouts 0/0; max quit-to-exit 16.077182/14.05392 ms; ordinary runs paused |
 | Preliminary step 1 sanitizers | 393 games / 52681 searches; 0 findings |
 | Preliminary paired UCI check | 132 ordinary / 87 soft-node searches; 8 cap cases; 0 label faults |
 | Final-tree original protocol | 5 finished games / 1102 searches observed; 0 accepted batches; 1 historical contract-failure batches retained |
 | Earlier strict-v2 protocol | 2 clean batches; 108 accepted games / 15514 searches; 2 historical sampling findings, zero clean credit for those batches |
 | Earlier SMP-amended protocol | 2 clean batches; 148 accepted games / 21436 searches; 2 retained deadline-finding batches, zero clean credit for those batches |
-| Final-tree0018 continuation | 12/12 distinct conditions covered; 14 clean batches from 14 recorded; 472 accepted games / 66295 searches; 0 diagnostic lines; 0 finding batches |
-| Current paired labels | 236 ordinary / 236 soft-node games; soft X 184995468/33657, mean 5496.4930920759425; 4525 hard-cap cases |
-| Accepted final-tree totals across protocols | 728 games / 103245 searches; failed batches excluded |
-| Current-protocol SMP sampling exception | 395 accepted-clean searches; 395 observed; historical failures unchanged |
-| HindsightDepth match | 400 games; W-L-D 116-114-170; pair counts 10,48,84,46,12; Running; completed batches only |
+| Final-tree0018 continuation | 12/12 distinct conditions covered; 17 clean batches from 18 recorded; 590 accepted games / 83363 searches; 0 diagnostic lines; 1 finding batches |
+| Current paired labels | 295 ordinary / 295 soft-node games; soft X 229824203/41812, mean 5496.6087008514305; 5647 hard-cap cases |
+| Accepted final-tree totals across protocols | 846 games / 120313 searches; failed batches excluded |
+| Current-protocol SMP sampling exception | 454 accepted-clean searches; 454 observed; historical failures unchanged |
+| HindsightDepth match | 500 games; W-L-D 147-135-218; pair counts 13,55,102,67,13; Running; completed batches only |
 | Match operational findings | 0 crash markers; 0 illegal-move games; 0 disconnect games; 0 stalls; 0 aborts; raw side/process accounting retained separately |
 | Response-deadline diagnostics | 40/40 release and 2/2 TSan searches completed before quit; 0 response timeouts, sanitizer reports or abnormal exits; zero soak credit |
+| ASan shutdown finding0020 | Seed 202611171101; declared250ms allowance; driver SIGTERM then SIGKILL, reaped signal9; 235.556687ms quit-to-reap; failed batch has zero clean credit; new engine runs paused pending review |
 
 | Imported source branch | Source commit | Applied commit | Conflicts |
 |---|---|---|---|
@@ -40,24 +41,24 @@ Final paired UCI batch continuation0018-c02-paired-softnodes-asan-on-t1-n20000-d
 
 | Current sanitizer group | Passed batches | Ordinary games/searches | Soft-node games/searches | Cap cases | Diagnostic lines / fault rows |
 |---|---|---|---|---|---|
-| asan/off/t1/n2000/d0 | 1/1 | 27/3940 | 27/4098 | 515 | 0/0 |
+| asan/off/t1/n2000/d0 | 1/2 | 27/3940 | 27/4098 | 515 | 0/1 |
 | asan/off/t1/n20000/d0 | 2/2 | 22/2900 | 22/3199 | 353 | 0/0 |
 | asan/off/t2/n2000/d0 | 1/1 | 43/5621 | 43/5655 | 849 | 0/0 |
-| asan/off/t2/n20000/d0 | 1/1 | 18/2384 | 18/2365 | 403 | 0/0 |
+| asan/off/t2/n20000/d0 | 2/2 | 32/4844 | 32/4400 | 751 | 0/0 |
 | tsan/off/t2/n20000/d0 | 1/1 | 4/533 | 4/463 | 71 | 0/0 |
 | tsan/off/t4/n20000/d0 | 1/1 | 6/1139 | 6/1164 | 121 | 0/0 |
-| asan/on/t1/n2000/d0 | 1/1 | 29/3946 | 29/3915 | 414 | 0/0 |
+| asan/on/t1/n2000/d0 | 2/2 | 58/8316 | 58/7653 | 840 | 0/0 |
 | asan/on/t1/n20000/d0 | 2/2 | 20/2978 | 20/2998 | 317 | 0/0 |
 | asan/on/t2/n2000/d0 | 1/1 | 41/5361 | 41/5967 | 939 | 0/0 |
-| asan/on/t2/n20000/d0 | 1/1 | 14/2168 | 14/2443 | 388 | 0/0 |
+| asan/on/t2/n20000/d0 | 2/2 | 30/4251 | 30/4825 | 736 | 0/0 |
 | tsan/on/t2/n20000/d0 | 1/1 | 4/649 | 4/474 | 64 | 0/0 |
 | tsan/on/t4/n20000/d0 | 1/1 | 8/1019 | 8/916 | 91 | 0/0 |
 
 Game and search counts in that table include only accepted clean batches in the current protocol; diagnostic and fault columns retain every recorded finding. Earlier protocol results remain separate. Both earlier depth64 declarations were unused. The SMP amendment changes the harness check only; the engine bytes remain unchanged.
 
-The current plan reserves72 batches; 58 have not run. Distinct-condition coverage is the12-condition check, not completion of the reserved inventory. Repeated batches: 2.
+The current plan reserves72 batches; 54 have not run. Distinct-condition coverage is the12-condition check, not completion of the reserved inventory. Repeated batches: 6.
 Cycle 1: 12 clean batches from 12 recorded; 0 failed or incomplete.
-Cycle 2: 2 clean batches from 2 recorded; 0 failed or incomplete.
+Cycle 2: 5 clean batches from 6 recorded; 1 failed or incomplete.
 
 
 The complete corpus is accepted through a separate, explicit decision for global position36729: unchanged a1b2, mate−6/2565143 before and mate−5/2566746 after, original plus10 fresh pairs. All other positions match. The source proof requires equal capped clocks with an old mate-distance rejection; no runtime TT-entry clock is claimed. The strict audit still lists its original difference and operational findings. [Acceptance evidence](tests_astra_parity/inputs/step2-effective-acceptance-S2-0007.txt).
@@ -127,6 +128,8 @@ All five release T2 node counts exceed all five T1 counts for both positions at 
 [Complete diagnostic tables, all completed-depth counts and source conditions](tests_astra_parity/response-diagnostic-records-0018/snapshot-01/REPORT.md). The original two deadline-finding batches retain zero clean credit. Decision0018 permits the continuation and changes only the ordinary TSan search limit to nodes20000; the soft half remains softnodes2500. No engine source was changed.
 [Full ending-workload finding and all 42 diagnostic transcripts](tests_astra_parity/faults/smp-ending-workload-0019.txt); [independent review](tests_astra_parity/response-diagnostic-findings-0018/REVIEW.md).
 
+
+A later ASan Threads1 batch completed28 pairs (56 games,8291 checked searches) but failed its final shutdown. No sanitizer report appeared. The sibling batch passed58 games/8108 searches. The failed batch remains zero-credit, and no targeted repeats have been run. The declared250ms budget is distinct from graceful wait time: the frozen transport reserves its first150ms for quit before escalating. Observed quit-to-reap235.556687ms does not make this a short assigned-budget cutoff; signal9 also falls outside decision0016. The cause is unknown. [Exact input, command and full output](tests_astra_parity/faults/asan-shutdown-0020.txt).
 The actual owner-PC compiler, PGO profile, runtime tuning and active network were not independently tested here. This report covers the specifically requested source changes, cloud builds and recorded options. Fable reports an independent source comparison in answer0012; that is attributed evidence, not a cloud run on the PC.
 
 Detailed state and all command/output files are retained: [state snapshot](tests_astra_parity/STATUS_STATE.txt), [commands and raw output](tests_astra_parity/logs), [progress](tests_astra_parity/PROGRESS.txt). Large raw text logs use immutable chunks with byte counts and SHA256 reconstruction manifests. All published additions are text under this report and tests_astra_parity. Existing tests, expected values, CMake and earlier evidence remain unchanged.
@@ -134,4 +137,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 41, including this checkpoint.
+Progress pushes: 42, including this checkpoint.
