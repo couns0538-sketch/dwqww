@@ -1,0 +1,30 @@
+diff --git a/src/search.cpp b/src/search.cpp
+index b803a7e..b8a724b 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2284,7 +2284,12 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     // move. Ponder keeps thinking on the opponent's clock until ponderhit.
+     const bool waiting_to_ponder = pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0;
+     bool emergency_ply = false;
+-    if (!waiting_to_ponder && clock_reserve_empty_ && !root_candidates.empty()) {
++    // An empty reserve and an already expired hard limit are the same situation:
++    // there is no time to search, so answer with the hash move when it is legal and
++    // otherwise with one cheap ply instead of an unsearched first move.
++    const bool clock_already_spent = !clock_reserve_empty_ && !waiting_to_ponder &&
++                                     hard_limit_ms_ > 0 && elapsed_ms() >= hard_limit_ms_;
++    if (!waiting_to_ponder && (clock_reserve_empty_ || clock_already_spent) && !root_candidates.empty()) {
+         Move hashed = Move::none();
+ #if FORGE_SPD_TT_NOTLS
+         const TTProbe tt_probe = probe_tt(board.key());
+@@ -2317,11 +2322,6 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         }
+         max_depth = 1;
+         emergency_ply = true;
+-    } else if (!waiting_to_ponder && hard_limit_ms_ > 0 && elapsed_ms() >= hard_limit_ms_) {
+-        result.best_move = root_candidates.front();
+-        result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+-            std::chrono::steady_clock::now() - start_).count());
+-        return result;
+     }
+     if (!is_main()) {
+         // Helpers run until the main thread stops them.

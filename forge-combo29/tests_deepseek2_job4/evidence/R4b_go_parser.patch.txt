@@ -1,0 +1,121 @@
+diff --git a/src/uci.cpp b/src/uci.cpp
+index e0d8aee..b81868f 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -85,43 +85,76 @@ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board)
+     const forge::Color side = board.side_to_move();
+     for (std::size_t i = 0; i < tokens.size();) {
+         token = tokens[i++];
+-        auto read_int = [&]() {
+-            int value = 0;
+-            if (i < tokens.size()) {
+-                const std::string& text = tokens[i++];
+-                const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+-                if (result.ec != std::errc{} || result.ptr != text.data() + text.size()) return 0;
++        // A keyword is never a value: the parameter is then absent and nothing is
++        // consumed. A token that is not a complete integer is consumed and the
++        // parameter is absent. A complete integer keeps the old clamping rules, so
++        // a negative clock still means "no time left" rather than "no clock".
++        auto next_is_value = [&]() {
++            return i < tokens.size() && !is_go_keyword(tokens[i]);
++        };
++        auto is_integer = [](const std::string& text) {
++            std::size_t at = 0;
++            if (at < text.size() && (text[at] == '+' || text[at] == '-')) ++at;
++            if (at == text.size()) return false;
++            for (; at < text.size(); ++at) {
++                if (text[at] < '0' || text[at] > '9') return false;
+             }
+-            return value;
++            return true;
++        };
++        auto take_integer = [&](std::string& text) {
++            if (!next_is_value()) return false;
++            text = tokens[i++];
++            return is_integer(text);
++        };
++        auto read_int = [&](int& out) {
++            std::string text;
++            if (!take_integer(text)) return false;
++            const auto result = std::from_chars(text.data(), text.data() + text.size(), out);
++            return result.ec == std::errc{} && result.ptr == text.data() + text.size();
+         };
+         // Clocks are 64-bit. A 32-bit parse turns 3000000000 into 0, and the
+-        // search then stops at once.
+-        auto read_clock = [&]() -> std::int64_t {
+-            if (i >= tokens.size()) return 0;
+-            return forge::parse_clock_ms(tokens[i++]);
++        // search then stops at once. A negative clock clamps to 0 and a clock above
++        // the ceiling clamps to it, as it always did.
++        auto read_clock = [&](std::int64_t& out) {
++            std::string text;
++            if (!take_integer(text)) return false;
++            out = forge::parse_clock_ms(text);
++            return true;
+         };
+-        if (token == "depth") limits.depth = std::clamp(read_int(), 1, 64);
++        // nodes: a complete integer, and a value of 0 or below is one node, which
++        // is an immediate bounded answer. A value too large for 64 bits stays
++        // absent, as before. Returns false when the parameter is absent.
++        auto read_nodes = [&](std::uint64_t& out) {
++            std::string text;
++            if (!take_integer(text)) return false;
++            if (!text.empty() && text.front() == '-') {
++                out = 1;
++                return true;
++            }
++            std::uint64_t magnitude = 0;
++            const auto result = std::from_chars(text.data(), text.data() + text.size(), magnitude);
++            if (result.ec != std::errc{} || result.ptr != text.data() + text.size()) return false;
++            out = magnitude == 0 ? 1 : magnitude;
++            return true;
++        };
++        if (token == "depth") { int v = 0; if (read_int(v)) limits.depth = std::clamp(v, 1, 64); }
+         else if (token == "nodes" || token == "softnodes") {
+-            if (i < tokens.size()) {
+-                const std::string& text = tokens[i++];
+-                std::uint64_t value = 0;
+-                const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+-                if (result.ec == std::errc{} && result.ptr == text.data() + text.size()) {
+-                    limits.nodes = value;
+-                    limits.nodes_specified = true;
+-                    if (token == "softnodes") limits.soft_nodes = true;
+-                }
++            std::uint64_t value = 0;
++            if (read_nodes(value)) {
++                limits.nodes = value;
++                limits.nodes_specified = true;
++                if (token == "softnodes") limits.soft_nodes = true;
+             }
+         }
+-        else if (token == "movetime") limits.movetime_ms = read_clock();
+-        else if (token == "movestogo") limits.moves_to_go = std::max(1, read_int());
+-        else if (token == "mate") limits.mate_moves = std::clamp(read_int(), 0, 32);
++        else if (token == "movetime") { std::int64_t v = 0; if (read_clock(v)) limits.movetime_ms = v; }
++        else if (token == "movestogo") { int v = 0; if (read_int(v)) limits.moves_to_go = std::max(1, v); }
++        else if (token == "mate") { int v = 0; if (read_int(v)) limits.mate_moves = std::clamp(v, 0, 32); }
+         else if (token == "infinite") limits.infinite = true;
+         else if (token == "ponder") limits.ponder = true;
+-        else if (token == "wtime") { const std::int64_t value = read_clock(); if (side == forge::White) limits.time_ms = value; }
+-        else if (token == "btime") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.time_ms = value; }
+-        else if (token == "winc") { const std::int64_t value = read_clock(); if (side == forge::White) limits.increment_ms = value; }
+-        else if (token == "binc") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.increment_ms = value; }
++        else if (token == "wtime") { std::int64_t v = 0; if (read_clock(v)) { if (side == forge::White) limits.time_ms = v; } }
++        else if (token == "btime") { std::int64_t v = 0; if (read_clock(v)) { if (side == forge::Black) limits.time_ms = v; } }
++        else if (token == "winc") { std::int64_t v = 0; if (read_clock(v)) { if (side == forge::White) limits.increment_ms = v; } }
++        else if (token == "binc") { std::int64_t v = 0; if (read_clock(v)) { if (side == forge::Black) limits.increment_ms = v; } }
+         else if (token == "searchmoves") {
+             limits.search_moves_specified = true;
+             while (i < tokens.size() && !is_go_keyword(tokens[i])) {
+@@ -130,6 +163,11 @@ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board)
+             }
+         }
+     }
++    // A movetime is a request to think exactly that long; it may not outlast the
++    // clock the same line gives for the side to move.
++    if (limits.movetime_ms >= 0 && limits.time_ms >= 0) {
++        limits.movetime_ms = std::min(limits.movetime_ms, limits.time_ms);
++    }
+     return limits;
+ }
+ 
