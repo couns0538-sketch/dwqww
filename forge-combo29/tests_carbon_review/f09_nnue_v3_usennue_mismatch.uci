@@ -1,0 +1,20 @@
+# Prerequisite: generate /tmp/test_v3.nnue with:
+#   python3 fable_nnue_v3.py random /tmp/test_v3.nnue --hidden 512 --king-buckets 8 --output-buckets 8 --mirror --seed 1
+# Interactive sequence (run via run_all_tests.py):
+setoption name OwnBook value false
+setoption name UseNNUE value false
+setoption name NNUEArchFile value /tmp/test_v3.nnue
+setoption name NNUEArch value true
+isready
+position startpos
+eval
+go depth 4
+# [wait for bestmove]
+setoption name UseNNUE value true
+setoption name DeadMaterial value true
+isready
+position fen 8/8/8/4k3/8/8/3K1N2/8 w - - 0 1
+eval
+go depth 4
+# [wait for bestmove]
+quit
