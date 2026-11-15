@@ -1,9 +1,9 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T02:19:40.000Z. Updated 2026-11-15T01:03:51.039Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T02:19:40.000Z. Updated 2026-11-15T01:08:30.984Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
-Softnodes item4 failure reported; further engine runs paused for team review.
-FinalpairedASAN firstbatch stopped after1102 observed searches (545ordinary/557soft),5completed games,2fullpairs;1 literal item4 failure atdepth64/X2225/cp0. Item2/3 pass,0sanitizerdiagnostics. Allraw retained; no further engines launched. Step2 corpus14959/100000,0searchdifferences,reference teardown occurrence retained.
+Resuming final corpus S2-0002 under pinned reference-event classification; new depth64 sanitizer protocol in preparation.
+Fable0013-0015 confirms same-clock semantics, accepts exactreference cutoff classification, and amendsitem4 with completeddepth64 exception. Originalcontractfailure retained; noenginefix/repeats. Resumingunchangedcorpus, thennewprotocolsanitizers.
 
 | Check | Result |
 |---|---|
@@ -19,7 +19,7 @@ FinalpairedASAN firstbatch stopped after1102 observed searches (545ordinary/557s
 | Preliminary step 1 sanitizers | 393 games / 52681 searches; 0 findings |
 | Preliminary paired UCI check | 132 ordinary / 87 soft-node searches; 8 cap cases; 0 label faults |
 | Final-tree sanitizer observations | 5 finished games / 1102 searches; 1 batches with findings |
-| Final-tree accepted clean batches | 0; 0 games / 0 searches; STOP: soft-label item3/4 finding |
+| Final-tree accepted clean batches | 0; 0 games / 0 searches; Original contract finding retained; amended protocol authorized |
 | HindsightDepth match | 0 games; Not started |
 
 | Imported source branch | Source commit | Applied commit | Conflicts |
@@ -60,8 +60,10 @@ The target harness was tightened after review to reject bounded scores and engin
 Half final sanitizer selfplay games softnodes2500; exact UCIlabel checks peranswer0012, capcount andmeanX. Labelcheck3/4failure stops forreport.
 
 The first final-tree paired batch stopped on the literal soft-node item4 contract. At FEN `8/1K6/8/3k4/6R1/8/8/8 b - - 98 130`, the last exact iteration was depth64, cp0, nodes2225; X was2225 and bestmove d5c5 matched the PV. Items2/3 passed. No sanitizer diagnostic appeared. The existing depth ceiling explains termination below2500, but the fixed acceptance rule did not exempt it. No engine fix or expected-value change was made.
-[Full original fault and batch output](tests_astra_parity/faults/softnodes-item4-0015.txt). [Independent source/transcript review](tests_astra_parity/softnodes-fault-peer-review/REVIEW.md). The request to Fable and Opus is retained in [0015](tests_astra_parity/inputs/question-0015.txt); further engine runs remain paused pending its resolution.
+[Full original fault and batch output](tests_astra_parity/faults/softnodes-item4-0015.txt). [Independent source/transcript review](tests_astra_parity/softnodes-fault-peer-review/REVIEW.md). The request to Fable and Opus is retained in [0015](tests_astra_parity/inputs/question-0015.txt). Fable explicitly amended item4 to allow a completed exact depth64 iteration, required no engine change or repeats, and directed continuation. The old failure/audit remains unchanged. [Decision and source comparison](tests_astra_parity/inputs/FABLE_ANSWER_0013_0014_0015.md.txt).
 Before this stop, two whole pairs completed (4 games,611 searches). Including the interrupted pair, the batch observed545 ordinary searches and557 soft searches, with5 finished games. Observed soft Xsum2856372 /557 =5128.136445;51 reached the hard cap. These are observations from a failed batch and are not credited as a clean passed batch. No repeat frequency is claimed; the immediate-stop instruction took priority.
+
+In those51 capped searches, X was10000 each; the last completed exact iteration averaged1624 nodes (range196–2474) and depth8.627. Those observations include the partial third pair; they do not compare cap factors or establish a strength result. [Per-search transcript-derived values](tests_astra_parity/inputs/soft-cap-observations.txt).
 
 Preliminary sanitizer results test the three-import tree and are recorded separately from final-tree coverage. The old in-process driver reuses a Searcher through successive moves. The new UCI harness pairs usual-limit and softnodes2500 games and checks the exact training-label contract.
 
@@ -72,4 +74,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 16, including this checkpoint.
+Progress pushes: 17, including this checkpoint.

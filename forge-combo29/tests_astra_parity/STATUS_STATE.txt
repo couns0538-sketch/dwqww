@@ -5,7 +5,7 @@
   "start": "2026-11-14T23:19:40.000Z",
   "budgetMinutes": 180,
   "deadline": "2026-11-15T02:19:40.000Z",
-  "phase": "Softnodes item4 failure reported; further engine runs paused for team review",
+  "phase": "Resuming final corpus S2-0002 under pinned reference-event classification; new depth64 sanitizer protocol in preparation",
   "sourceCommits": [
     {
       "step": 1,
@@ -55,8 +55,8 @@
       "stat": "c488e88f Apply source-only r3-20-faster-search-plumbing by three-way merge from e04556dd\n forge-combo29/include/forge/bitboard.hpp |   6 ++\n forge-combo29/include/forge/board.hpp    |  29 +++++++\n forge-combo29/src/bitboard.cpp           |   7 ++\n forge-combo29/src/board.cpp              | 144 +++++++++++++++++++------------\n forge-combo29/src/search.cpp             | 120 ++++++++++++++++++++------\n 5 files changed, 227 insertions(+), 79 deletions(-)"
     }
   ],
-  "pushes": 15,
-  "lastPush": "2026-11-15T01:01:07.840Z",
+  "pushes": 16,
+  "lastPush": "2026-11-15T01:03:54.043Z",
   "sourceChangesOnly": [
     "forge-combo29/src",
     "forge-combo29/include"
@@ -74,7 +74,7 @@
     "step1 any equality difference stops dependent work",
     "counts only; owner no Elo/speed claims overrides external request"
   ],
-  "lastCommit": "ec66c4409dbffac396415d078c73ead297a70fed",
+  "lastCommit": "aff1125bd9c5eb97b01da003d5bb069e58f21c68",
   "validation": {
     "step1": {
       "build": "passed",
@@ -859,9 +859,13 @@
       "faultCountingUnit": "Batches with observed engine, label, diagnostic or shutdown findings; failed/zero-coverage/incomplete batches listed separately."
     }
   },
-  "checkpointNote": "FinalpairedASAN firstbatch stopped after1102 observed searches (545ordinary/557soft),5completed games,2fullpairs;1 literal item4 failure atdepth64/X2225/cp0. Item2/3 pass,0sanitizerdiagnostics. Allraw retained; no further engines launched. Step2 corpus14959/100000,0searchdifferences,reference teardown occurrence retained.",
+  "checkpointNote": "Fable0013-0015 confirms same-clock semantics, accepts exactreference cutoff classification, and amendsitem4 with completeddepth64 exception. Originalcontractfailure retained; noenginefix/repeats. Resumingunchangedcorpus, thennewprotocolsanitizers.",
   "progressBatch": "paired-softnodes-asan-off-t1-n2000-d0 seed202611155001",
-  "active": null,
+  "active": {
+    "stage": "final",
+    "batch": "S2-0002",
+    "started": "2026-11-15T01:06:43.146Z"
+  },
   "equalityTotals": {
     "step1": {
       "stage": "speed",
@@ -3565,5 +3569,91 @@
       "forge-combo29/src/search.cpp:2594"
     ]
   },
-  "blockFurtherEngineWork": true
+  "blockFurtherEngineWork": false,
+  "softnodesResolution": {
+    "utc": "2026-11-15T01:06:43.146Z",
+    "commit": "55ddf61a754ceffc4f940b847ad97143148d0434",
+    "file": "tests_astra_parity/inputs/FABLE_ANSWER_0013_0014_0015.md.txt",
+    "sha256": "5e2d573b7e553ec49e84918bd1dfd6a28ccfd2ca7236b6834c3b041965945e2f",
+    "amendment": "A completed exact depth64 iteration is an additional item4 exception; no engine change or targeted repeats; retain original contractfailure and resume.",
+    "oldAuditAndFaultUnchanged": true
+  },
+  "softCapObservations": {
+    "utc": "2026-11-15T01:07:13.581Z",
+    "rawSha256": "55f6f4b76b38bae018322d868e670f4d21f7a09b1b8d2e9006d2b6cb1be603e7",
+    "allObservedSoftSearches": 557,
+    "allObservedCapCases": {
+      "count": 51,
+      "xSum": 510000,
+      "exactNodeSum": 82824,
+      "meanExactNodes": 1624,
+      "minExactNodes": 196,
+      "medianExactNodes": 1749,
+      "maxExactNodes": 2474,
+      "meanDepth": 8.627450980392156,
+      "minDepth": 4,
+      "maxDepth": 11,
+      "meanAdditionalNodesAfterLastExact": 8376
+    },
+    "completedPairsOnly": {
+      "count": 24,
+      "xSum": 240000,
+      "exactNodeSum": 36988,
+      "meanExactNodes": 1541.1666666666667,
+      "minExactNodes": 550,
+      "medianExactNodes": 1879,
+      "maxExactNodes": 2474,
+      "meanDepth": 8.875,
+      "minDepth": 7,
+      "maxDepth": 11,
+      "meanAdditionalNodesAfterLastExact": 8458.833333333334
+    },
+    "scope": "Original failed-contract batch; includes the partial third pair in allObservedCapCases. Pure transcript analysis, no additional engine run, strength or speed inference."
+  },
+  "publicationAudit": {
+    "utc": "2026-11-15T01:04:55.860Z",
+    "head": "aff1125bd9c5eb97b01da003d5bb069e58f21c68",
+    "branch": "for-fable-and-opus/astra-0011-pc-parity",
+    "changedPaths": 1604,
+    "textBytes": 310119152,
+    "sourceFilesUnchangedSinceSameClockCommit": 26,
+    "sourceHashes": {
+      "forge-combo29/CMakeLists.txt": "bfa17f8cb5f2f6358e88951f385fc67ddca279af06301b22945efdcc1ceaca5f",
+      "forge-combo29/include/forge/bitboard.hpp": "6e6ee73aa83c902fdd6972b56e2802dea60559b5df9aa7b2c97b5e3176ea42c1",
+      "forge-combo29/include/forge/board.hpp": "0c490f982b9de6b441920b8c424c7b04bfbc4851c5e4c561369fcccb3a34663d",
+      "forge-combo29/include/forge/book.hpp": "10a283bd0474568c0e378f7117d4869336384599307305c405dac81e1569663e",
+      "forge-combo29/include/forge/clock_plan.hpp": "9917f142848a873226fd0bae28bec93d4968eea6d949a951d4854510b8645298",
+      "forge-combo29/include/forge/eval.hpp": "91042a4ab1cc03a6546ae2ff19bd355172f2a176afb23d4eec7c71233da8fde1",
+      "forge-combo29/include/forge/eval_params.hpp": "56f6ae706d53dfb6e76169e86d0cf09e74e096b17885f60632a92f080ee77a96",
+      "forge-combo29/include/forge/nnue.hpp": "6edef325008b665792bac78ac5ea42236b3e1f0244a796526a18aee50d6ff46f",
+      "forge-combo29/include/forge/search.hpp": "44a77666b8ad0a91232a11dbced7deae101f85a426b17d67d31671ccf9fa89e8",
+      "forge-combo29/include/forge/tm_finish.hpp": "111142f6addd9942c54f9184075b954c881db071f01d6847c442268c7f65ac18",
+      "forge-combo29/include/forge/tm_node_share.hpp": "af86c2e0be87efbe761c02b202c686ad16f8b0312e116a5d39ff0a6ae79a814b",
+      "forge-combo29/include/forge/uci.hpp": "7168a871238e3bff78c85335d612675229044910184774a7682649fb929e5312",
+      "forge-combo29/include/forge/uci_clock.hpp": "b9a0839170e3315537f2968f1406f0e0e9b3073dbf661a1b4a843b0a01bc5dc3",
+      "forge-combo29/include/forge/uci_output.hpp": "3bc09a099ae04bf6d8972125b0778be342de78ba39fcb8510321238e788dbef3",
+      "forge-combo29/src/bitboard.cpp": "bd825d5520f98b653a70e4532df616c690dbadd1cc28865d3710eaef428f60b4",
+      "forge-combo29/src/board.cpp": "c20109ea787c020134b88eb686e7f0ed6c49e0c626fbb0264f75345de23006e8",
+      "forge-combo29/src/book.cpp": "464c91efee889d7cbf5f07c7051f0f741de06f091d9bdc2cda98692cfa63aca5",
+      "forge-combo29/src/book_data.inc": "9209c608ca3f07285c3f8b2739a3399c3385c8ed8ffc739fd16a273eb8190149",
+      "forge-combo29/src/eval.cpp": "515ecdd9ad8201fc4fa5737f4ce558f1ca3b65bacc59ed829f3506f9b93097c7",
+      "forge-combo29/src/eval_params.cpp": "dc58cb21d817d7793cb79020c8d6e963ab1ecbc520826cbccd9bef1dcb80a9a6",
+      "forge-combo29/src/eval_params_table.inc": "acfd94c951d5212b3ec095edbe7859fe2707f982741b0afaf1d23be58c91400c",
+      "forge-combo29/src/nnue.cpp": "e9b9e80d8d9dbccf10e64eef038d0fd003173328048aaca562c885a9ed31bc31",
+      "forge-combo29/src/nnue_weights.inc": "a7ebcf3a319675f347e6e8e3f2539901d38d8036cb9b5935f31dd43d084c9638",
+      "forge-combo29/src/polyglot_keys.inc": "7deca335907224e422adab41c8238851fba27a72b50ab37d01af7b0dd3b8fbb5",
+      "forge-combo29/src/search.cpp": "893580667728646bbcf0496f5e5322671d0ba3e07ecf9df1b05a32cc645210b3",
+      "forge-combo29/src/uci.cpp": "3724b9b6da8ae0c63e7d59f75ed671875a42df3bbc2ac2a6c995f3e8de321fe1"
+    },
+    "manifests": 41,
+    "packageFiles": 984,
+    "chunks": 985,
+    "packageBytes": 281853862,
+    "emptyManifests": [
+      "forge-combo29/tests_astra_parity/final-sanitizer-declaration/MANIFEST.txt"
+    ],
+    "emptyManifestExplanation": "The retained first single-file declaration package selected0 files; corrected directory package is separately present and verifies.",
+    "relativeReportLinks": 14,
+    "engineRuns": 0
+  }
 }
