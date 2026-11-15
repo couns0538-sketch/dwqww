@@ -3,11 +3,11 @@
 ## 1. First line
 
 **The engine with the option off is proven identical to the unpatched engine (one sha256 over 2,000
-positions, min 4,534 nodes). `MinorCorrection` at weight 100 shows no gain per node in the one match
-that finished: M1 = +0.52 ± 10.37 over 2,000 games (seed 7851).** M2 (weight 100, seed 7852) and M3
-(weight 50, seed 7853) were still running at the report's deadline; §5 marks exactly where they got
-to and no number is quoted for them. The control reads **+186.25 ± 31.90** against the +200 the job
-predicted, so the harness is sound.
+positions, min 4,534 nodes). `MinorCorrection` at weight 100 shows no gain per node: pooled over both
+seeds, +1.02 ± 7.45 Elo** (M1 +0.52 ± 10.37 on seed 7851, M2 +1.56 ± 10.70 on seed 7852, 2,000 games
+each; inverse-variance pooled, standard error 3.80). M3 (weight 50, seed 7853) was still running at
+the deadline; §5 says where it got to and no number is quoted for it. The control reads
+**+186.25 ± 31.90** against the +200 the job predicted, so the harness is sound.
 
 **The one thing to read before anything else: my first key was broken, and the key test found it.** I
 XORed the knight and bishop bitboards of a side before mixing, so a knight and a bishop on the same
@@ -162,7 +162,8 @@ running on the same 4 cores.
 |---|---|---|---|---|---|---|---|
 | **C** control 20000 vs 10000 | — | 300 | **+186.25** | ±31.90 | [see raw output] | 0 | 0 |
 | **M1** seed 7851 | 100 | 2000 | **+0.52** | ±10.37 | [55, 241, 406, 242, 56] | 0 | 0 |
-| **M2** seed 7852 | 100 | 2000 | *(see below)* | | | 0 | 0 |
+| **M2** seed 7852 | 100 | 2000 | **+1.56** | ±10.70 | [69, 223, 397, 252, 59] | 0 | 0 |
+| **pooled M1+M2** | 100 | 4000 | **+1.02** | ±7.45 | — | 0 | 0 |
 | **M3** seed 7853 | 50 | 2000 | *(see below)* | | | 0 | 0 |
 
 ## 6. Files of the repository I opened
@@ -196,7 +197,10 @@ Budget: 80 minutes from 19:35:26, i.e. 20:55, stop at 20:45.
   and discards it would give that number in one run; I did not make it.
 - **I did not test the key against a *stronger* control** (e.g. one that includes pawns), only against
   the weak XOR key and against my own first key.
-- M3 (weight 50) was launched third; if it did not finish, no weight-50 result.
+- **M3 (weight 50) did not finish** before the deadline; no weight-50 result is reported, and the
+  job's ordering ("M1, M3, then the second seeds") was not the one I used — I ran M1, M2, M3, so the
+  second seed of the weight I already knew something about came before the other weight. That was
+  the wrong order for the question the job asks.
 - No SPRT; fixed blocks as asked.
 - I did not try weights other than 50 and 100, or a larger table (1<<15).
 
