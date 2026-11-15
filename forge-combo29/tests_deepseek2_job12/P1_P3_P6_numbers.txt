@@ -1,0 +1,39 @@
+Job 12 numbers.
+
+P1 - where the evaluation is taken: rule50_damped_static(corrected_eval(...)) at
+     src/search.cpp:1474 (quiescence) and 1663 (main search). Scaled AFTER the correction
+     history, because the correction is a centipawn quantity learned for the position.
+
+P1 - counter distribution, bench 13, D=300, traced build
+  info string R50TRACE calls 636854 c0_9 636489 c10_19 365 c20_39 0 c40_69 0 c70plus 0 scaled 283597
+  c0_9   636489  99.94 %
+  c10_19    365   0.06 %
+  c20_39      0
+  c40_69      0
+  c70plus     0
+
+P1 - counter distribution, 200 positions from real games after move 60
+  20 self-play games of the UNPATCHED exe at 20,000 nodes, 10 positions each after ply 120,
+  each searched by the traced engine: 120,908 eval calls
+  c0_9   113937  94.23 %
+  c10_19   6971   5.77 %
+  c20_39      0
+  c40_69      0
+  c70plus     0
+  NOTE: all 20 games were identical (147 plies, draw) - self-play of one exe from the start
+  position at a fixed node limit is deterministic, so this is one game sampled 20 times.
+
+P1 - hash persistence test (one process, Hash 64, D=200, fifth FEN field 0 then 60)
+  clock  0: depth 10, score cp +12, 23410 nodes, 19976 eval calls, 0 calls in 40-69
+  clock 60: depth 10, score cp  -4, 10304 nodes,  7904 eval calls, 21 calls in 40-69
+  With D=200 the factor is (200-clock)/200: 1.00 at clock 0, 0.70 at clock 60, 0.50 at 100.
+  The hash was kept between the two searches and the two evaluations differ, so the scaling is
+  applied at the node and is not overwritten by the stored (unscaled) value.
+
+P3 - option ON must differ
+  OFF: bench 11 312866, bench 13 862329, bench 16 3024920, perft 5 4865609   (= the pins)
+  ON D=300: bench 11 300200, bench 13 777549, bench 16 2474484
+  uci answer: option name Rule50Scale type spin default 0 min 0 max 400
+
+P6 - speed: bench 16 nps, 10 interleaved pairs (see the report for the spread).
+  New table: NONE. 0 bytes per thread.

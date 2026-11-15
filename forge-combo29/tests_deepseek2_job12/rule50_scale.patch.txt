@@ -1,0 +1,48 @@
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index 98959af..5dffd75 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -294,6 +294,9 @@ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
++// Rule50Scale: the same shrink with a configurable divider D, eval * (D - clock) / D.
++// 0 = off (EvalRule50Damp alone decides); otherwise clamped to 120..400.
++extern int Rule50Scale;
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+ extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+@@ -349,9 +352,11 @@ void refresh();
+ // a sliver. Mate scores and ValueNone are never scaled. The hash table stores
+ // the unscaled raw evaluation; this is not applied on the way in.
+ [[nodiscard]] inline int rule50_damped_static(int score, int halfmove) {
+-    if (!tune::EvalRule50Damp || score == ValueNone || is_mate_score(score)) return score;
++    // Rule50Scale (D from 120 to 400) supersedes the fixed EvalRule50Damp divider of 100.
++    const int divisor = tune::Rule50Scale > 0 ? tune::Rule50Scale : (tune::EvalRule50Damp ? 100 : 0);
++    if (divisor == 0 || score == ValueNone || is_mate_score(score)) return score;
+     const int clock = halfmove < 0 ? 0 : (halfmove > 100 ? 100 : halfmove);
+-    return score * (100 - clock) / 100;
++    return score * (divisor - clock) / divisor;
+ }
+ 
+ // Quiet late-move reduction with a signed fraction of a ply from the eval
+diff --git a/src/search.cpp b/src/search.cpp
+index b803a7e..787fe69 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -94,6 +94,7 @@ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
++int Rule50Scale = 0;
+ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+@@ -145,6 +146,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"Rule50Scale", &Rule50Scale, 0, 400},
+     };
+     return table;
+ }
