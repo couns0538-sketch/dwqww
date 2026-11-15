@@ -27,8 +27,9 @@ Usage:
 
 import argparse
 import subprocess
+import threading
 import time
-import select
+import queue
 
 def main() -> None:
     ap = argparse.ArgumentParser()
@@ -44,6 +45,7 @@ def main() -> None:
 
     fens = [l.strip() for l in open(args.positions) if l.strip()][: args.limit]
     done = 0
+    nnue_error_line = None
 
     log = open(args.out, "wb", buffering=0)  # unbuffered; stderr shares this file
     proc = subprocess.Popen(
@@ -51,32 +53,50 @@ def main() -> None:
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=log,
         text=True, bufsize=1)
 
+    # A reader thread pumps every stdout line into a queue; the main thread
+    # consumes it with a timeout. (select() on a TextIOWrapper deadlocks once
+    # the wrapper has buffered lines the pipe no longer holds.)
+    lines: "queue.Queue[str | None]" = queue.Queue()
+
+    def reader() -> None:
+        try:
+            for line in proc.stdout:  # type: ignore[union-attr]
+                lines.put(line)
+        finally:
+            lines.put(None)
+
+    threading.Thread(target=reader, daemon=True).start()
+
     def send(line: str) -> None:
         log.write(f">>> {line}\n".encode())
         proc.stdin.write(line + "\n")
         proc.stdin.flush()
 
     def wait_for(token: str, timeout: float, what: str) -> bool:
-        """Read engine stdout until `token`; tee every line to the log."""
+        global nnue_error_line
         deadline = time.monotonic() + timeout
         while True:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 log.write(f"### TIMEOUT waiting for {what!r} after {timeout}s\n".encode())
                 return False
-            ready, _, _ = select.select([proc.stdout], [], [], min(remaining, 5.0))
-            if not ready:
+            try:
+                line = lines.get(timeout=min(remaining, 5.0))
+            except queue.Empty:
                 continue
-            line = proc.stdout.readline()
-            if line == "":
+            if line is None:
                 log.write(f"### ENGINE CLOSED stdout while waiting for {what!r}\n".encode())
                 return False
             log.write(line.encode())
+            if "info string ERROR NNUE v3" in line and nnue_error_line is None:
+                nnue_error_line = line.strip()
             if token in line:
                 return True
 
     started = time.monotonic()
     try:
+        log.write(f"### run start pid={proc.pid} threads={args.threads} "
+                  f"limit={args.limit} net={args.net}\n".encode())
         send("uci")
         if not wait_for("uciok", 60, "uciok"):
             log.write(b"### ABORT: no uciok\n")
@@ -113,8 +133,11 @@ def main() -> None:
         log.write(f"### wall seconds: {elapsed:.1f}\n".encode())
         log.write(f"### engine: {args.engine} threads={args.threads} net={args.net}\n".encode())
         log.write(f"### positions searched: {done} of {len(fens)}\n".encode())
+        if nnue_error_line:
+            log.write(f"### NNUE error seen: {nnue_error_line}\n".encode())
         log.close()
-        print(f"run threads={args.threads} exit={proc.returncode} wall={elapsed:.1f}s")
+        print(f"run threads={args.threads} exit={proc.returncode} wall={elapsed:.1f}s "
+              f"searched={done}/{len(fens)} nnue_error={nnue_error_line is not None}")
 
 if __name__ == "__main__":
     main()
