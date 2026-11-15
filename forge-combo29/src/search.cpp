@@ -10,6 +10,14 @@
 #include <iostream>
 #include <limits>
 #include <optional>
+#if FORGE_NNUE_V3
+#ifndef FORGE_NNUE_V3_VERIFY
+#define FORGE_NNUE_V3_VERIFY 0
+#endif
+#if FORGE_NNUE_V3_VERIFY
+#include <cstdlib>
+#endif
+#endif
 #if defined(__AVX2__)
 #include <immintrin.h>
 #endif
@@ -1129,7 +1137,18 @@ int Worker::static_evaluate_v3(const Board& board, SearchStack* ss) {
         return frame.dirty;
     };
     nnue::v3::make_valid(net, state, ss->ply + 4, board, dirty_of);
-    return nnue::v3::evaluate(net, board, state.stack[static_cast<std::size_t>(ss->ply + 4)]);
+    const int value = nnue::v3::evaluate(net, board, state.stack[static_cast<std::size_t>(ss->ply + 4)]);
+#if FORGE_NNUE_V3_VERIFY
+    const int reference = nnue::v3::evaluate_reference(net, board);
+    if (value != reference) {
+        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+        std::cerr << "NNUE v3 verification mismatch ply " << ss->ply
+                  << " incremental " << value << " reference " << reference
+                  << " fen " << board.fen() << std::endl;
+        std::_Exit(3);
+    }
+#endif
+    return value;
 }
 #endif
 void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {
