@@ -5,7 +5,7 @@
   "start": "2026-11-14T23:19:40.000Z",
   "budgetMinutes": 180,
   "deadline": "2026-11-15T04:20:00.000Z",
-  "phase": "Stopped on two Threads2 soft-node item4 failures; Fable/Opus decision pending",
+  "phase": "Preparing separately declared SMP soft-node rule under Fable0017; engine unchanged",
   "sourceCommits": [
     {
       "step": 1,
@@ -55,8 +55,8 @@
       "stat": "c488e88f Apply source-only r3-20-faster-search-plumbing by three-way merge from e04556dd\n forge-combo29/include/forge/bitboard.hpp |   6 ++\n forge-combo29/include/forge/board.hpp    |  29 +++++++\n forge-combo29/src/bitboard.cpp           |   7 ++\n forge-combo29/src/board.cpp              | 144 +++++++++++++++++++------------\n forge-combo29/src/search.cpp             | 120 ++++++++++++++++++++------\n 5 files changed, 227 insertions(+), 79 deletions(-)"
     }
   ],
-  "pushes": 29,
-  "lastPush": "2026-11-15T02:26:32.274Z",
+  "pushes": 30,
+  "lastPush": "2026-11-15T02:34:05.175Z",
   "sourceChangesOnly": [
     "forge-combo29/src",
     "forge-combo29/include"
@@ -74,7 +74,7 @@
     "step1 any equality difference stops dependent work",
     "counts only; owner no Elo/speed claims overrides external request"
   ],
-  "lastCommit": "58330d7647836d1576d2b566f752987da03dff1a",
+  "lastCommit": "fe9620789c7451273f100c00682229ab94d37a18",
   "validation": {
     "step1": {
       "build": "passed",
@@ -1483,8 +1483,8 @@
       "originalProtocolCreditIncluded": false
     }
   },
-  "checkpointNote": "Paused since the two Threads2 item4 findings at02:10. Question0017 and complete fault histories pushed; no reply as of02:25. Source d9a8587 unchanged. Clean final coverage108games/15514searches, two failed batches zero-credit. Publication audit03 verifies5235textpaths,87packages,26sourcefiles unchanged. Match inputs verify; zero match games. Pause is not sanitizer run time.",
-  "progressBatch": "extended indices2/8; seeds202611155203/202611155209",
+  "checkpointNote": "Fable0017 explicitly authorizes the SMP sampling exception and a new-seed Threads2 repeat. Threads1 strict rule and all label/legal/sanitizer/exit checks stay. Both old failed batches remain zero-credit. Native runs stay blocked until new harness, declaration and peer checks are ready; source d9a8587 unchanged. JobC received for after A/B only.",
+  "progressBatch": "Metadata preparation; no new engine run since02:10",
   "active": {
     "stage": "extended-sanitizers",
     "wave": 1,
@@ -2028,6 +2028,12 @@
       "commit": "64c1624964b684e3ab54b22cf98004f2463850e6",
       "pushed": true,
       "path": "forge-combo29/soak_all/ASTRA_QUESTION_0017.md"
+    },
+    "answer0017": {
+      "commit": "8bd329545d4ad9d0ac50d8dc1dd697f14b0daa1a",
+      "file": "/workspace/work/parity-run/inputs/FABLE_ANSWER_0017.md.txt",
+      "sha256": "c6c15eb30c204424339dbad34bdebeed320440358ce9c2f5afdac3efee35848c",
+      "receivedUTC": "2026-11-15T02:35:55.107Z"
     }
   },
   "preliminarySoak": [
@@ -6519,7 +6525,7 @@
     "relativeReportLinks": 14,
     "engineRuns": 0
   },
-  "commitMessage": "Checkpoint pending soft-node review with publication and match-input verification",
+  "commitMessage": "Record Fable0017 SMP acceptance decision without altering original failures",
   "referenceShutdown068919": {
     "utc": "2026-11-15T01:38:57.812Z",
     "pairs": 10,
@@ -10408,7 +10414,7 @@
         "auditSha256": "1b47d7ef622d7bef885e256284a3d271927fa3d0c50cb4d4bee43170b06026ba"
       }
     ],
-    "resolved": false,
+    "resolved": true,
     "repeatSearches": 0,
     "review": {
       "path": "forge-combo29/tests_astra_parity/softnodes-threads2-0017-review/REVIEW.md",
@@ -10422,6 +10428,17 @@
         "grok47/r4-01-integrate-r3": "110a87b06704cad16545b3ac8082ca6b3e38ac7a"
       },
       "finding": "Both tips still sample aggregate nodes separately for exact-info emission and soft-stop decision; no existing fix identified for this sampling case in these two tips."
+    },
+    "resolution": {
+      "commit": "8bd329545d4ad9d0ac50d8dc1dd697f14b0daa1a",
+      "file": "/workspace/work/parity-run/inputs/FABLE_ANSWER_0017.md.txt",
+      "sha256": "c6c15eb30c204424339dbad34bdebeed320440358ce9c2f5afdac3efee35848c",
+      "receivedUTC": "2026-11-15T02:35:55.107Z",
+      "classification": "Fable classifies both as info sample below limit, stop sample above it (Threads2). The raw stop sample was not instrumented; source review establishes the possible mechanism, not its measured value.",
+      "historicalCreditUnchanged": true,
+      "engineChange": false,
+      "rule": "T1 strict unchanged; threads>1 additionally accept exact info nodes<N AND X>=N; all other gates unchanged.",
+      "next": "Fresh declared protocol and new-seed Threads2 wave; no old audit changed."
     }
   },
   "soakTimeReviews": [
@@ -10442,5 +10459,11 @@
     "failedBatchObservedNoNewgameSearches": 304,
     "rootRefreshEverySearch": true,
     "perNodeIncrementalVsFullCheckRun": false
+  },
+  "futureJobC": {
+    "commit": "8bd329545d4ad9d0ac50d8dc1dd697f14b0daa1a",
+    "file": "/workspace/work/parity-run/inputs/FABLE_JOB_C_0017.md.txt",
+    "sha256": "e4a5ce5b4193bc54b3121eba9726affcc0056ad84bc8345d5434edd0cf55ab1e",
+    "status": "Received; not started. Only after A and B reported."
   }
 }

@@ -1,11 +1,11 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:33:59.085Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:36:57.740Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
-Stopped on two Threads2 soft-node item4 failures; Fable/Opus decision pending.
-Paused since the two Threads2 item4 findings at02:10. Question0017 and complete fault histories pushed; no reply as of02:25. Source d9a8587 unchanged. Clean final coverage108games/15514searches, two failed batches zero-credit. Publication audit03 verifies5235textpaths,87packages,26sourcefiles unchanged. Match inputs verify; zero match games. Pause is not sanitizer run time.
+Preparing separately declared SMP soft-node rule under Fable0017; engine unchanged.
+Fable0017 explicitly authorizes the SMP sampling exception and a new-seed Threads2 repeat. Threads1 strict rule and all label/legal/sanitizer/exit checks stay. Both old failed batches remain zero-credit. Native runs stay blocked until new harness, declaration and peer checks are ready; source d9a8587 unchanged. JobC received for after A/B only.
 
 | Check | Result |
 |---|---|
@@ -22,8 +22,8 @@ Paused since the two Threads2 item4 findings at02:10. Question0017 and complete 
 | Preliminary step 1 sanitizers | 393 games / 52681 searches; 0 findings |
 | Preliminary paired UCI check | 132 ordinary / 87 soft-node searches; 8 cap cases; 0 label faults |
 | Final-tree original protocol | 5 finished games / 1102 searches observed; 0 accepted batches; 1 historical contract-failure batches retained |
-| Final-tree strict depth64 v2 | 2/12 distinct conditions covered; 2 clean batches from 4 recorded; 108 accepted games / 15514 searches; 0 diagnostic lines; 2 new finding batches |
-| Strict-v2 paired labels | 54 ordinary / 54 soft-node games; soft X 42226157/7874, mean 5362.7326644653285; 911 hard-cap cases |
+| Final-tree strict depth64 v2 | 2/12 distinct conditions covered; 2 clean batches from 4 recorded; 108 accepted games / 15514 searches; 0 diagnostic lines; 2 finding batches |
+| Current paired labels | 54 ordinary / 54 soft-node games; soft X 42226157/7874, mean 5362.7326644653285; 911 hard-cap cases |
 | HindsightDepth match | 0 games; Not started |
 
 | Imported source branch | Source commit | Applied commit | Conflicts |
@@ -32,14 +32,14 @@ Paused since the two Threads2 item4 findings at02:10. Question0017 and complete 
 | grok47/r3-19-faster-hce | 528ccdf1cbba5366c78b8bc75d89237d783a0171 | d7326b9b94eb06e8863843db893ae36ed8372198 | 0 |
 | grok47/r3-20-faster-search-plumbing | decec377588a446e2020a7e3634f6cc2a00533be | c488e88fddc71a7ceadddb15270d3f62f6add8d9 | 0 |
 
-| Strict-v2 sanitizer group | Passed batches | Ordinary games/searches | Soft-node games/searches | Cap cases | Diagnostic lines / fault rows |
+| Current sanitizer group | Passed batches | Ordinary games/searches | Soft-node games/searches | Cap cases | Diagnostic lines / fault rows |
 |---|---|---|---|---|---|
 | asan/off/t1/n2000/d0 | 1/1 | 26/3563 | 26/4073 | 443 | 0/0 |
 | asan/off/t2/n2000/d0 | 0/1 | 0/0 | 0/0 | 0 | 0/1 |
 | asan/on/t1/n2000/d0 | 1/1 | 28/4077 | 28/3801 | 468 | 0/0 |
 | asan/on/t2/n2000/d0 | 0/1 | 0/0 | 0/0 | 0 | 0/1 |
 
-Game and search counts in that table include only accepted clean batches; diagnostic and fault columns retain every recorded finding. The original failed contract batch is separate. Both earlier depth64 declarations were unused; the extended plan reuses the exact strict-v2 native binary.
+Game and search counts in that table include only accepted clean batches in the current protocol; diagnostic and fault columns retain every recorded finding. Earlier protocol results remain separate. Both earlier depth64 declarations were unused. The SMP amendment changes the harness check only; the engine bytes remain unchanged.
 
 The extended plan reserves72 batches across6 cycles; 68 have not run. Distinct-condition coverage is the12-condition check, not completion of all72 reserved batches. Repeated batches: 0.
 Cycle 0: 2 clean batches from 4 recorded; 2 failed or incomplete.
@@ -92,7 +92,7 @@ Two later Threads2 batches failed item4: the last exact info line reported fewer
 - Seed 202611155203, options off: info depth 4 seldepth 7 score cp -1782 nodes 2418 nps 186000 hashfull 13 time 13 pv e7f8 c2c8 f8g7 a1b2 g7h6; X=2766; bestmove e7f8. [Full fault](tests_astra_parity/faults/softnodes-threads2-item4-0017-2.txt).
 - Seed 202611155209, options HindsightDepth+MateAlphaGuard on: info depth 9 seldepth 18 score cp 898 nodes 2379 nps 297375 hashfull 1 time 8 pv h6g7 h4g5 e2a6 g5g7 a6b6 d6e7 b6c7 e7f6 c7g7 f6g7 b3b4 g7f8 f1d2 f8e7 c3c4; X=2887; bestmove h6g7. [Full fault](tests_astra_parity/faults/softnodes-threads2-item4-0017-8.txt).
 
-Further engine work is paused pending Fable/Opus review. No source or acceptance rule was changed.
+The later resolution is recorded separately; original failures remain unchanged.
 [Question0017](https://github.com/couns0538-sketch/dwqww/blob/64c1624964b684e3ab54b22cf98004f2463850e6/forge-combo29/soak_all/ASTRA_QUESTION_0017.md).
 
 Preliminary sanitizer results test the three-import tree and are recorded separately from final-tree coverage. The old in-process driver reuses a Searcher through successive moves. The new UCI harness pairs usual-limit and softnodes2500 games and checks the exact training-label contract.
@@ -106,4 +106,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 30, including this checkpoint.
+Progress pushes: 31, including this checkpoint.
