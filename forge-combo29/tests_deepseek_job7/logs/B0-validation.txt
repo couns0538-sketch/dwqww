@@ -1,0 +1,22 @@
+JOB 7 PART B: validation of the repaired KPvK table against hand-checkable cases.
+
+Fable's position  8/3k4/8/8/8/5p2/8/3K4 b - - 0 1
+  job 6 table (old): W   <- wrong
+  repaired table   : D   <- Fable's answer
+
+Positions checkable by elementary pawn-endgame theory:
+  W  expected W  8/P7/1K6/8/8/8/8/7k w - - 0 1
+        (pawn a7 with the king on b6 controlling b7/a8: win)
+  L  expected L  8/1P6/8/8/2k5/8/4K3/8 b - - 0 1
+        (black to move, pawn b7 promotes next move and b8 cannot be reached: loss)
+  W  expected W  4k3/8/8/8/8/8/4P3/4K3 w - - 0 1
+        (king behind its e-pawn, defender on e8: win)
+
+Totals of the repaired table (662,704 states):
+  W: 125172
+  D: 439902
+  L: 97630
+
+Old table totals for comparison: W 259,624 / D 195,848 / L 207,232.
+The repair moved a lot of states from W and L into D (the immediately-capturable
+promotions were the main cause), which is the direction the fault implies.

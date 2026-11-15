@@ -1,0 +1,39 @@
+JOB 7 PART B: Fable's KPvK fault - found, explained, and the repair.
+
+The position Fable named:
+  8/3k4/8/8/8/5p2/8/3K4 b - - 0 1   (black to move, black pawn f3, black king d7,
+                                     white king d1)
+  my job 6 table said: W  (black wins)
+  Fable says         : D  (draw, the white king reaches f2)
+
+WHY MY TABLE SAID W - the fault, and it is a rule error, not a convergence error:
+
+  My job 6 retrograde solver scored a promotion as
+      'promote to Q or R -> WIN for the mover; promote to B or N -> DRAW'
+  (retrograde.py, the `if m.promotion is not None:` branch).
+  That is wrong whenever the new piece can be captured at once. In this exact
+  position the line is:
+
+    f3f2   -> 8/3k4/8/8/8/8/5p2/3K4 w - - 0 2
+    d1e2   -> 8/3k4/8/8/8/8/4Kp2/8 b - - 1 2
+    f2f1q  -> 8/3k4/8/8/8/8/4K3/5q2 w - - 0 3
+
+  After f2f1q the white king on e2 simply takes the queen: Kxf1, and the game is
+  a draw (K v K). So the promotion 'win' was really a draw, and every position that
+  relied on that shortcut inherited a wrong W.
+
+  It follows that the pawn side is NOT winning in the disputed position: after
+  f3f2 white plays Ke2 (or Kd2/Kc2/Kc1) and either takes the promoted queen or holds
+  the draw, and the exhaustive check agrees - see B0-exhaustive-check.txt.
+
+  The same shortcut also explains why the repair is not just 'one wrong square':
+  any KPvK position whose only winning idea was an immediately capturable promotion
+  was mislabelled W.
+
+THE REPAIR (kpvk.py): do not score promotions by the piece alone. A promotion is
+  evaluated by the resulting position like any other move: push the move, look the
+  child up if it is still K+P vs K, and for a promoted Q/R/B/N judge the resulting
+  K+Q/K+R/K+B/K+N vs K as a win for the mover only if that class is really won.
+  Since K+Q v K and K+R v K are always won (my KQvK/KRvK tables) EXCEPT when the
+  new piece can be captured immediately, the cheapest correct rule is: push the
+  move and let the child's own value decide, with 'insufficient material' -> draw.
