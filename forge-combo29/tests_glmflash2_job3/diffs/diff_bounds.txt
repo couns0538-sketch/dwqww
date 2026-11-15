@@ -1,0 +1,778 @@
+diff --git a/forge-combo29/CMakeLists.txt b/forge-combo29/CMakeLists.txt
+index 2bb0af3ca..8de94be61 100644
+--- a/forge-combo29/CMakeLists.txt
++++ b/forge-combo29/CMakeLists.txt
+@@ -19,9 +19,14 @@ option(FORGE_PORTABLE "build without the PEXT/AVX-512 speed switches" OFF)
+ 
+ file(GLOB FORGE_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+ add_executable(forge ${FORGE_SOURCES})
+-target_include_directories(forge PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+ 
+-target_compile_definitions(forge PRIVATE
++# Same search translation units as the engine, without the UCI main().
++set(FORGE_TEST_SOURCES ${FORGE_SOURCES})
++list(REMOVE_ITEM FORGE_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/uci.cpp)
++list(APPEND FORGE_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/search_bounds_test.cpp)
++add_executable(forge_search_tests ${FORGE_TEST_SOURCES})
++
++set(FORGE_COMPILE_DEFS
+   NDEBUG
+   FORGE_NNUE_HIDDEN=256
+   FORGE_EXPOSE_TUNABLES=1
+@@ -30,13 +35,23 @@ target_compile_definitions(forge PRIVATE
+   FORGE_SEARCH_SPEED2=1
+   FORGE_SPD_PREFETCH_EARLY=1)
+ if(FORGE_PORTABLE)
+-  target_compile_definitions(forge PRIVATE FORGE_SPD_SLIDER_PEXT=0 FORGE_SPD_NNUE_ZMM=0)
++  list(APPEND FORGE_COMPILE_DEFS FORGE_SPD_SLIDER_PEXT=0 FORGE_SPD_NNUE_ZMM=0)
+ else()
+-  target_compile_definitions(forge PRIVATE FORGE_SPD_SLIDER_PEXT=1 FORGE_SPD_NNUE_ZMM=1)
++  list(APPEND FORGE_COMPILE_DEFS FORGE_SPD_SLIDER_PEXT=1 FORGE_SPD_NNUE_ZMM=1)
+ endif()
+ 
++target_compile_definitions(forge PRIVATE ${FORGE_COMPILE_DEFS})
++target_compile_definitions(forge_search_tests PRIVATE ${FORGE_COMPILE_DEFS})
++target_include_directories(forge PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
++target_include_directories(forge_search_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
++
+ # Strict floating-point operation order (required for bit-exact node counts).
+ target_compile_options(forge PRIVATE -O3 -ffp-contract=off -fno-fast-math -march=${FORGE_MARCH})
++target_compile_options(forge_search_tests PRIVATE -O3 -ffp-contract=off -fno-fast-math -march=${FORGE_MARCH})
+ set(THREADS_PREFER_PTHREAD_FLAG ON)
+ find_package(Threads REQUIRED)
+ target_link_libraries(forge PRIVATE Threads::Threads)
++target_link_libraries(forge_search_tests PRIVATE Threads::Threads)
++
++enable_testing()
++add_test(NAME search_bounds COMMAND forge_search_tests)
+diff --git a/forge-combo29/docs/search_bounds_audit.md b/forge-combo29/docs/search_bounds_audit.md
+new file mode 100644
+index 000000000..288f9426d
+--- /dev/null
++++ b/forge-combo29/docs/search_bounds_audit.md
+@@ -0,0 +1,90 @@
++# Search bounds audit
++
++Audit of alpha-beta / PVS, aspiration windows, transposition bounds, and aborted re-searches in `forge-combo29`. The lock search is unchanged when `PvBoundFix` and `AspirationKeepExact` stay at 0. Two corrections are always on because they do not change a completed search: an aborted aspiration attempt no longer pairs a new best move with the previous iteration's score, and a mate stored in the transposition table is ignored when the fifty-move rule cannot reach it.
++
++This is not an Elo result. The bench numbers below are node-count pins. The recorded times are only how long that run took on this machine.
++
++## What was reproduced
++
++### Unfinished aspiration re-search
++
++Baseline binary, NNUE off, OwnBook off, Hash 16, one thread, `ucinewgame` before the search. Start position, `go depth 10 nodes 2066`:
++
++```
++info depth 5 seldepth 8 score cp 3 nodes 1275 pv d2d3 e7e6 c1f4 d7d5 g1f3
++info depth 6 seldepth 11 score cp 3 nodes 2066 pv g1f3 d7d5 d2d3 g8f6 c1f4 e7e6
++bestmove g1f3
++```
++
++A finished depth 6 of the same position is `cp 18` and `e2e3` (2524 nodes). Depth 6 did not finish. The engine still printed depth 6 and played `g1f3`, while the score stayed at the depth-5 score of the move `d2d3`.
++
++The same command on the patched engine prints `depth 6 score cp 17 pv g1f3 ...` and plays `g1f3`. The score belongs to that partial PV. It is higher than the last finished iteration, so the partial line replaces it. Depth, score, and PV are that same attempt. A partial whose score is not strictly higher is dropped, and the last finished iteration stands.
++
++### PV-node pruning
++
++Move pruning (late-move pruning, quiet futility, history, SEE, and the capture SEE / futility tests) runs on PV nodes below the root. A PV node then stores `BoundExact` when a move beats alpha, or `BoundUpper` when none does. A skipped legal move makes that bound false: the side to move can be scored too low, and after the negation the opponent's score is too high.
++
++At the start position, depth 7, NNUE off, the main-search counter of those skips is 201 and the quiescence counter is 18 with `PvBoundFix` at 0. Both are 0 with `PvBoundFix` at 1. Quiescence futility and SEE use the same switch: a PV quiescence node can store `BoundExact` after skipping a capture.
++
++`PvBoundFix` stays 0. Turning it on changes the tree. On the sample below, NNUE off, it changes the root score or the best move at depth 7 and at depth 9. One case is a proven mate, not a false one:
++
++Position `2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1`. An exhaustive generation of legal moves, with no pruning, proves `g3g6` is mate in two: every black reply loses to a mate in one. The lock search reports mate 2 and `g3g6` at depth 7 (2725 nodes) and still does so at depth 10 (3229 nodes). With `PvBoundFix` at 1 the same mate is missed at depth 7 (`cp 148`, `f6e8`, 3359 nodes) and at depth 10 (`cp 133`, `f6e8`, 32191 nodes). It is found again at depth 11 (`g3g6`, 66435 nodes). Searching the moves the lock skips, including quiescence captures, changes reductions and move ordering, so the quiet mate is proved later and the node count grows. The switch is a bound correction with a tactical cost, not a strength patch.
++
++Other depth-7 changes with the switch on (lock score and move, then the switch):
++
++| Position | Lock | PvBoundFix 1 |
++| --- | --- | --- |
++| startpos | -7 `d2d4` | 10 `e2e3` |
++| Kiwipete | -231 `d5e6` | -61 `d5e6` |
++| `8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1` | 52 `b4f4` | 43 `b4f4` |
++| `r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8` | -274 `c4d5` | -278 `a1c1` |
++| `6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1` | -610 `g7g6` | -611 `g7g6` |
++| `rnbq1rk1/pppp1ppp/5n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQK2R w KQ - 0 6` | 43 `e1g1` | 104 `f3e5` |
++| `8/8/8/2k5/2p5/2K5/1R6/8 w - - 0 1` | 467 `b2d2` | 452 `b2b1` |
++
++### Aspiration fail-low after a clamped beta
++
++From depth 4 the window is the previous score ± `AspirationDelta` (18). A fail-low sets beta to `(alpha + beta) / 2`, then alpha to `max(score - delta, -Infinite)`. When the previous beta was already `Infinite` (32001), the midpoint can fall below the last exact score. Example used by the unit test: alpha 31972, beta 32001, fail-low score 31950, delta 18, last exact score 31990. The lock midpoint is 31986, which excludes 31990. Alpha becomes 31932. `AspirationKeepExact` holds beta at 31990 and leaves alpha at 31932. An ordinary window whose beta was not clamped is unchanged (the midpoint is the previous score). The switch stays 0. On the start position at depth 8, NNUE off, both settings search 8151 nodes and score 10.
++
++### Fifty-move mate bounds
++
++`score_from_tt` adjusts mate scores by ply and did not look at the halfmove clock. A stored mate whose distance is greater than `99 - min(clock, 99)` is now treated as a miss, so the node is searched. The test plants exact TT scores at clock 80 (room 19):
++
++| Stored score | Meaning | Result |
++| --- | --- | --- |
++| 31981 | mate distance 19 | cutoff, score 31981 |
++| 31980 | mate distance 20 | not a cutoff (search returned 18) |
++| -31980 | loss in 20 plies | not a cutoff (search returned 18) |
++| 40 | centipawn exact | cutoff, score 40 |
++
++Distance 19 is accepted and distance 20 is rejected at clock 80. That is one ply short of the draw, on purpose: a mate that only just fits is searched again. Clocks of 90 and above already refuse a TT cutoff through `TTEntry::score_usable`. Bench FENs use clock 0. At clock 0 the filter only drops mates longer than 99 plies. The pin node counts did not move, so those searches never used such a mate.
++
++## Fixes
++
++| Change | Default | Why it can stay on |
++| --- | --- | --- |
++| Aborted root attempt returns the best move that finished. The driver keeps a partial PV only when its score is strictly above the last finished iteration, and then records that attempt's depth. A stale PV is cleared when a node is entered already aborted. | always | Bench searches are not aborted. Pins match. |
++| `score_from_tt` rejects mate scores the fifty-move rule cannot reach. | always | Pins match, including mates that do fit. |
++| `PvBoundFix`: skip move pruning on PV nodes in the main search and in quiescence. | 0 | Changes nodes and root scores. |
++| `AspirationKeepExact`: fail-low beta does not drop below the last exact score. | 0 | Changes the window only after a clamped beta. Left off so the lock tree stays bit-exact. |
++
++Both switches are UCI spin options (`0` or `1`) because tunables are exposed in this build.
++
++## Tests and pins
++
++`forge_search_tests` (NNUE off, hash 16, one thread) covers the window arithmetic, the planted fifty-move cutoffs, the PV-prune counter, the score changes with `PvBoundFix`, a node-limit scan of three positions through depth 8, the exhaustive mate proof, the `nodes 2066` regression, and a depth-8 search with `AspirationKeepExact`. CTest runs it as `search_bounds`. Result: `all passed`.
++
++Build: `g++-13`, `NDEBUG`, the same `FORGE_*` defines as the engine, `-O3 -ffp-contract=off -fno-fast-math -march=x86-64-v4`. Clang 18 on this machine does not link (it looks for a GCC 14 libstdc++ that is not installed).
++
++Lock pins, Threads 1, Hash 16, this binary. Net on: 312866 / 862329 / 3024920 / 12389307 / 34048354 at depths 11 / 13 / 16 / 20 / 22. Net off: 375354 / 907205 / 2448617 / 13573040 / 24506465. Start-position perft 5: 4865609.
++
++## Left as they are
++
++- A quiescence stand-pat fail-high stores `BoundLower` with `pv` false, and only when the position was not already in the table. Capture futility and SEE on PV quiescence nodes are under `PvBoundFix` and stay at the lock behaviour while that switch is 0.
++- Null-move and probcut cutoffs are not always written back. A singular multicut returns `singular_beta` without a store. Both match the existing search and were not retuned.
++- The PVS shape is unchanged: the first move at a PV node is a full window; later moves are a zero window, then a full window if they beat alpha, including when the zero window already failed high. A full-window re-search can replace that fail-high.
++- A TT move can be replaced when the stored score is not replaced. That affects ordering only.
++- Mate-distance pruning before the TT probe, internal iterative reduction storing the reduced depth, and two-fold repetition inside the tree are unchanged.
++- An unfinished iteration may still change the best move when the partial score is strictly higher. That partial is not a completed depth: at `nodes 2066` the patched engine plays `g1f3` at 17 centipawns, while a finished depth 6 plays `e2e3` at 18.
++- `PvBoundFix` does not make the search exact. Late-move reductions and null move remain, and a quiescence stand-pat can still cut a PV node. Leaving the switch at 0 preserves the lock, including the earlier mate on `g3g6`.
++- The fifty-move filter does not serve mates at clocks 90–99, because `score_usable` already blocks those cutoffs. It also refuses a mate that lands on the last ply of the rule.
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 9fc5b170c..aa2025b91 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -269,11 +269,29 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++// 0 = the lock search. 1 = do not prune moves at PV nodes in the main search
++// or in quiescence, so a stored exact or upper bound is not built from a
++// line that skipped legal moves.
++extern int PvBoundFix;
++// 0 = the lock search. 1 = a fail-low aspiration re-search does not pull beta
++// below the last completed iteration's score (the midpoint does that when the
++// previous beta was already clamped).
++extern int AspirationKeepExact;
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+ } // namespace tune
+ 
++// One fail-low step of the root aspiration window. keep_last_exact holds beta
++// at least at the last completed iteration's score.
++struct AspirationWindow {
++    int alpha = 0;
++    int beta = 0;
++};
++
++[[nodiscard]] AspirationWindow aspiration_fail_low(int alpha, int beta, int iteration_score, int delta, int last_exact,
++                                                   bool keep_last_exact);
++
+ // Move-ordering statistics.
+ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
+ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
+@@ -393,6 +411,10 @@ private:
+     bool root_restricted_ = false;
+     std::uint64_t null_tries_ = 0;
+     std::uint64_t null_cutoffs_ = 0;
++    // Moves skipped by shallow pruning while this node was a PV node.
++    // Counting them does not change which move is searched.
++    std::uint64_t pv_moves_pruned_ = 0;
++    std::uint64_t qs_pv_moves_pruned_ = 0;
+ 
+ #if FORGE_SPD_TT_NOTLS
+     // The six TT call sites of search / qsearch: one predictable branch per access.
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 3ca25955f..d7f248053 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -73,6 +73,8 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++int PvBoundFix = 0;
++int AspirationKeepExact = 0;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -108,6 +110,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"PvBoundFix", &PvBoundFix, 0, 1},                      {"AspirationKeepExact", &AspirationKeepExact, 0, 1},
+     };
+     return table;
+ }
+@@ -123,10 +126,23 @@ constexpr int HistoryMax = 16384;
+     return score;
+ }
+ 
+-[[nodiscard]] int score_from_tt(int score, int ply) {
++// Stored mate scores are ply-independent distances. A distance the fifty-move
++// rule cannot survive is not a usable bound: the side to move is drawn before
++// that mate is delivered. room is one ply short of the rule (99 - clock), the
++// same conservative test used by strong engines; a mate that only just fits is
++// searched again instead of trusted from the table.
++[[nodiscard]] int score_from_tt(int score, int ply, int halfmove) {
+     if (score == ValueNone) return ValueNone;
+-    if (score >= MateInMaxPly) return score - ply;
+-    if (score <= -MateInMaxPly) return score + ply;
++    const int clock = std::clamp(halfmove, 0, 99);
++    const int room = 99 - clock;
++    if (score >= MateInMaxPly) {
++        if (MateValue - score > room) return ValueNone;
++        return score - ply;
++    }
++    if (score <= -MateInMaxPly) {
++        if (MateValue + score > room) return ValueNone;
++        return score + ply;
++    }
+     return score;
+ }
+ 
+@@ -201,6 +217,17 @@ std::string format_score(int score) {
+ 
+ } // namespace
+ 
++AspirationWindow aspiration_fail_low(int alpha, int beta, int iteration_score, int delta, int last_exact,
++                                     bool keep_last_exact) {
++    int next_beta = (alpha + beta) / 2;
++    const int next_alpha = std::max(iteration_score - delta, -Infinite);
++    if (keep_last_exact) {
++        next_beta = std::max(next_beta, last_exact);
++        if (next_alpha >= next_beta) next_beta = next_alpha + 1;
++    }
++    return {next_alpha, next_beta};
++}
++
+ void tune::refresh() { Reductions.refresh(); }
+ 
+ // ---------------------------------------------------------------------------
+@@ -795,6 +822,8 @@ void Worker::clear() {
+     *counter_moves_ = CounterMoveTable{};
+     *correction_history_ = CorrectionHistory{};
+     *material_correction_ = CorrectionHistory{};
++    pv_moves_pruned_ = 0;
++    qs_pv_moves_pruned_ = 0;
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
+@@ -1264,7 +1293,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     const TTEntry& tte = tt_probe.entry;
+     const Move tt_move = tt_hit ? tte.move : Move::none();
+     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+-                             ? score_from_tt(tte.score, ply) : ValueNone;
++                             ? score_from_tt(tte.score, ply, board.halfmove_clock()) : ValueNone;
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+     const bool tt_pv = pv_node || (tt_hit && tte.pv());
+     if (!pv_node && tt_hit && tt_score != ValueNone &&
+@@ -1308,14 +1337,21 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     while (!(move = picker.next(false)).is_none()) {
+         if (!board.is_legal(move)) continue;
+         ++move_count;
+-        if (!in_check && best_score > -MateInMaxPly) {
++        // The same PV-bound hole as the main search: a skipped capture can
++        // still raise alpha, and this node may store that score as exact.
++        // PvBoundFix 0 keeps the lock pruning. The counter is diagnostic.
++        if (!in_check && best_score > -MateInMaxPly && !(pv_node && tune::PvBoundFix != 0)) {
+             const bool gives_check = board.gives_check(move);
+             // Futility: even winning the captured piece cannot raise alpha.
+             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));
++                if (pv_node) ++qs_pv_moves_pruned_;
++                continue;
++            }
++            if (!board.see_ge(move, -tune::QsSeeMargin)) {
++                if (pv_node) ++qs_pv_moves_pruned_;
+                 continue;
+             }
+-            if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
+         }
+ #if FORGE_SPD_PREFETCH_EARLY
+         std::uint64_t child_key = 0;
+@@ -1377,7 +1413,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     const int inherited_double_extensions = (ss - 1)->double_extensions;
+     ss->double_extensions = inherited_double_extensions;
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+-    if (aborted_) return 0;
++    if (aborted_) {
++        // A previous attempt on this frame may have left a PV. Drop it so an
++        // aborted root does not adopt that line with a zero return.
++        ss->pv_length = 0;
++        return 0;
++    }
+     ++local_nodes_;
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+@@ -1410,7 +1451,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     const TTEntry& tte = tt_probe.entry;
+     const Move tt_move = tt_hit ? tte.move : Move::none();
+     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+-                             ? score_from_tt(tte.score, ply) : ValueNone;
++                             ? score_from_tt(tte.score, ply, board.halfmove_clock()) : ValueNone;
+     const int tt_depth = tt_hit ? tte.depth : -1;
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
+@@ -1572,17 +1613,30 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
+ 
+         // Shallow-depth pruning of unpromising moves.
+-        if (!root_node && best_score > -MateInMaxPly && has_material) {
+-            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
++        // PV nodes store an exact score once a move beats alpha. Skipping a
++        // legal move there makes that bound false. PvBoundFix keeps the lock
++        // behaviour at 0 and turns the pruning off at PV nodes at 1.
++        if (!root_node && best_score > -MateInMaxPly && has_material && !(pv_node && tune::PvBoundFix != 0)) {
++            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) {
++                skip_quiets = true;
++                if (pv_node) ++pv_moves_pruned_;
++            }
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             if (quiet && !gives_check) {
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
+                     skip_quiets = true;
++                    if (pv_node) ++pv_moves_pruned_;
++                    continue;
++                }
++                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
++                    if (pv_node) ++pv_moves_pruned_;
++                    continue;
++                }
++                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
++                    if (pv_node) ++pv_moves_pruned_;
+                     continue;
+                 }
+-                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;
+-                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;
+             } else {
+                 // Futility pruning for captures: even winning the piece cannot
+                 // bring the position back to alpha.
+@@ -1590,11 +1644,15 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     lmr_depth <= tune::CaptureFutilityDepth &&
+                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+                             capture_value(board, move) + history / 8 <= alpha) {
++                    if (pv_node) ++pv_moves_pruned_;
+                     continue;
+                 }
+                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+-                    !board.see_ge(move, see_threshold)) continue;
++                    !board.see_ge(move, see_threshold)) {
++                    if (pv_node) ++pv_moves_pruned_;
++                    continue;
++                }
+             }
+         }
+ 
+@@ -1687,7 +1745,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             score = -search(board, ss + 1, new_depth, -beta, -alpha, false);
+         }
+         board.unmake_move(move, undo);
+-        if (aborted_) return 0;
++        // Root keeps the best finished move of this attempt. Callers above the
++        // root discard the value as soon as they see the abort flag.
++        if (aborted_) return root_node ? best_score : 0;
+         if (root_node && root_effort_index < root_effort_count_)
+             root_move_nodes_[root_effort_index] += local_nodes_ - nodes_before;
+ 
+@@ -1768,6 +1828,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     pondering_ = limits.ponder;
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
++    pv_moves_pruned_ = 0;
++    qs_pv_moves_pruned_ = 0;
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+     root_history_index_ = board.history_size() - 1;
+@@ -1941,8 +2003,10 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+             iteration_score = search(board, ss, depth, alpha, beta, false);
+             if (aborted_) break;
+             if (iteration_score <= alpha) {
+-                beta = (alpha + beta) / 2;
+-                alpha = std::max(iteration_score - delta, -Infinite);
++                const AspirationWindow widened = aspiration_fail_low(
++                    alpha, beta, iteration_score, delta, score, tune::AspirationKeepExact != 0);
++                alpha = widened.alpha;
++                beta = widened.beta;
+             } else if (iteration_score >= beta) {
+                 beta = std::min(iteration_score + delta, Infinite);
+             } else {
+@@ -1951,13 +2015,21 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+             delta += delta / 2 + 4;
+         }
+         if (aborted_) {
+-            // A partially searched iteration that already raised alpha at the
+-            // root has found a move at least as good as the previous best.
+-            if (ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
++            // The partial score is the best move that finished in this attempt.
++            // A move that only beat a lowered alpha is not a reason to replace
++            // the last completed iteration.
++            const bool have_completed = result.depth > 0;
++            const bool partial = ss->pv_length > 0 && iteration_score > -Infinite;
++            if (partial && (!have_completed || iteration_score > result.score)) {
+                 result.best_move = ss->pv[0];
+                 result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
+                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+-                // Publish the revised line so GUIs see a PV consistent with the move.
++                result.score = iteration_score;
++                // Depth, score and PV describe this attempt together. Leaving
++                // the depth at the previous iteration paired a new move with
++                // an older search.
++                result.depth = depth;
++                result.seldepth = std::max(seldepth_, depth);
+                 emit(depth, result.score, result.pv);
+             }
+             break;
+diff --git a/forge-combo29/tests/search_bounds_test.cpp b/forge-combo29/tests/search_bounds_test.cpp
+new file mode 100644
+index 000000000..6c07a1212
+--- /dev/null
++++ b/forge-combo29/tests/search_bounds_test.cpp
+@@ -0,0 +1,342 @@
++#include "forge/board.hpp"
++#include "forge/nnue.hpp"
++#include "forge/search.hpp"
++
++#include <cstdint>
++#include <cstdlib>
++#include <iostream>
++#include <string>
++#include <string_view>
++#include <vector>
++
++namespace {
++
++int g_failures = 0;
++
++void expect(bool condition, std::string_view name) {
++    if (condition) {
++        std::cout << "ok   " << name << '\n';
++        return;
++    }
++    std::cout << "FAIL " << name << '\n';
++    ++g_failures;
++}
++
++forge::Board board_from(std::string_view fen) {
++    forge::Board board;
++    std::string error;
++    if (!board.set_fen(fen, &error)) {
++        std::cerr << "bad fen: " << error << " | " << fen << '\n';
++        std::exit(2);
++    }
++    return board;
++}
++
++forge::SearchInfo search_of(const forge::Board& board, int depth, std::uint64_t nodes = 0, bool nodes_specified = false) {
++    forge::nnue::enabled = false;
++    forge::Searcher searcher(16);
++    forge::SearchLimits limits;
++    limits.depth = depth;
++    limits.nodes = nodes;
++    limits.nodes_specified = nodes_specified;
++    return searcher.search(board, limits);
++}
++
++} // namespace
++
++namespace forge {
++
++struct SearcherTestProbe {
++    static void disarm(Worker& worker) {
++        worker.all_workers_ = nullptr;
++        worker.aborted_ = false;
++        worker.node_limit_specified_ = false;
++        worker.node_limit_ = 0;
++        worker.pondering_ = false;
++        worker.hard_limit_ms_ = 0;
++        worker.soft_limit_ms_ = 0;
++        worker.time_managed_ = false;
++        worker.local_nodes_ = 1;
++        worker.root_restricted_ = false;
++#if FORGE_SPD_TT_NOTLS
++        worker.tt_owned_ = false;
++#endif
++    }
++
++    // Zero-window search at the root, after a normal search has built the stack.
++    static int zero_window(Worker& worker, Board board, int depth, int beta) {
++        disarm(worker);
++        SearchStack* ss = &worker.stack_[4];
++        ss->ply = 0;
++        ss->excluded_move = Move::none();
++        ss->current_move = Move::none();
++        ss->null_move_allowed = true;
++        ss->static_eval = ValueNone;
++        ss->pv_length = 0;
++        if (ss->continuation == nullptr) ss->continuation = &(*worker.continuation_history_)[Empty][0];
++        (ss - 1)->continuation = ss->continuation;
++        (ss - 2)->continuation = ss->continuation;
++        (ss - 1)->current_move = Move::none();
++        (ss - 2)->current_move = Move::none();
++        (ss - 1)->static_eval = ValueNone;
++        (ss - 2)->static_eval = ValueNone;
++        (ss - 1)->moved_piece = Empty;
++        (ss - 2)->moved_piece = Empty;
++        return worker.search(board, ss, depth, beta - 1, beta, false);
++    }
++
++    static std::uint64_t pv_pruned(const Worker& worker) { return worker.pv_moves_pruned_; }
++    static std::uint64_t qs_pv_pruned(const Worker& worker) { return worker.qs_pv_moves_pruned_; }
++};
++
++} // namespace forge
++
++namespace {
++
++void plant(forge::TranspositionTable& tt, std::uint64_t key, int score, int depth) {
++    const forge::TTProbe probe = tt.probe(key);
++    tt.store(probe, key, score, 0, forge::Move::none(), depth, forge::BoundExact, false, 0);
++}
++
++int cutoff_score(std::string_view fen, int stored, int depth) {
++    forge::nnue::enabled = false;
++    forge::Searcher searcher(8);
++    forge::Board board = board_from(fen);
++    forge::SearchLimits warmup;
++    warmup.depth = 1;
++    (void)searcher.search(board, warmup);
++    searcher.clear_hash();
++    plant(searcher.transposition_table(), board.key(), stored, 10);
++    return forge::SearcherTestProbe::zero_window(searcher.main_worker(), board, depth, 1);
++}
++
++void test_aspiration_window() {
++    constexpr int kInfinite = 32001;
++    constexpr int kLastExact = 31990;
++    constexpr int kAlpha = 31972;
++    constexpr int kBeta = 32001;
++    constexpr int kFailLow = 31950;
++    constexpr int kDelta = 18;
++    const forge::AspirationWindow locked = forge::aspiration_fail_low(
++        kAlpha, kBeta, kFailLow, kDelta, kLastExact, false);
++    const forge::AspirationWindow kept = forge::aspiration_fail_low(
++        kAlpha, kBeta, kFailLow, kDelta, kLastExact, true);
++    const int midpoint = (kAlpha + kBeta) / 2;
++    expect(locked.beta == midpoint, "fail-low midpoint matches the lock formula");
++    expect(locked.beta < kLastExact, "clamped fail-low drops beta under the last exact score");
++    expect(locked.alpha == kFailLow - kDelta, "fail-low alpha steps back by delta");
++    expect(kept.beta >= kLastExact, "keep-exact holds beta at the last exact score");
++    expect(kept.alpha < kept.beta, "kept window is non-empty");
++    expect(kept.alpha == locked.alpha, "keep-exact does not change the lowered alpha");
++
++    const forge::AspirationWindow ordinary = forge::aspiration_fail_low(-18, 18, -18, 18, 0, true);
++    const forge::AspirationWindow ordinary_lock = forge::aspiration_fail_low(-18, 18, -18, 18, 0, false);
++    expect(ordinary.alpha == ordinary_lock.alpha && ordinary.beta == ordinary_lock.beta,
++           "unclamped fail-low window is unchanged by keep-exact");
++    expect(ordinary.alpha > -kInfinite && ordinary.beta < kInfinite, "ordinary window stays inside the mate range");
++}
++
++void test_fifty_move_mate_bounds() {
++    constexpr int kMateValue = 32000;
++    const std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 80 40";
++    const int room = 99 - 80;
++    const int accepted = cutoff_score(fen, kMateValue - room, 2);
++    const int rejected_win = cutoff_score(fen, kMateValue - (room + 1), 2);
++    const int rejected_loss = cutoff_score(fen, -(kMateValue - (room + 1)), 2);
++    const int ordinary = cutoff_score(fen, 40, 2);
++    expect(accepted == kMateValue - room, "mate that fits in the fifty-move room is still a TT cutoff");
++    expect(!forge::is_mate_score(rejected_win), "winning mate past the fifty-move room is not a TT cutoff");
++    expect(!forge::is_mate_score(rejected_loss), "losing mate past the fifty-move room is not a TT cutoff");
++    expect(ordinary == 40, "a non-mate exact score is still a TT cutoff");
++    std::cout << "     fifty-move samples: fit " << accepted << " win " << rejected_win
++              << " loss " << rejected_loss << " cp " << ordinary << '\n';
++}
++
++struct PruneCounts {
++    std::uint64_t main = 0;
++    std::uint64_t quiescence = 0;
++};
++
++PruneCounts prune_counts(const forge::Board& board, int depth, int fix) {
++    forge::nnue::enabled = false;
++    forge::tune::PvBoundFix = fix;
++    forge::Searcher searcher(16);
++    forge::SearchLimits limits;
++    limits.depth = depth;
++    (void)searcher.search(board, limits);
++    const forge::Worker& worker = searcher.main_worker();
++    return {forge::SearcherTestProbe::pv_pruned(worker), forge::SearcherTestProbe::qs_pv_pruned(worker)};
++}
++
++void test_pv_pruning() {
++    const forge::Board start = board_from(forge::Board::StandardStartFen);
++    const PruneCounts locked = prune_counts(start, 7, 0);
++    expect(locked.main > 0, "lock search prunes moves inside PV nodes");
++    expect(locked.quiescence > 0, "lock quiescence prunes moves inside PV nodes");
++    std::cout << "     pv moves pruned at depth 7, fix off: main " << locked.main
++              << " quiescence " << locked.quiescence << '\n';
++    const PruneCounts repaired = prune_counts(start, 7, 1);
++    expect(repaired.main == 0 && repaired.quiescence == 0,
++           "PvBoundFix does not prune moves inside PV nodes");
++
++    const std::vector<std::string> fens = {
++        std::string(forge::Board::StandardStartFen),
++        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
++        "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
++        "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
++        "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
++        "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
++        "rnbq1rk1/pppp1ppp/5n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQK2R w KQ - 0 6",
++        "8/8/8/2k5/2p5/2K5/1R6/8 w - - 0 1",
++    };
++    int differences = 0;
++    for (int depth : {7, 9}) {
++        for (const std::string& fen : fens) {
++            const forge::Board board = board_from(fen);
++            forge::tune::PvBoundFix = 0;
++            const forge::SearchInfo locked = search_of(board, depth);
++            forge::tune::PvBoundFix = 1;
++            const forge::SearchInfo repaired = search_of(board, depth);
++            if (locked.score != repaired.score || !(locked.best_move == repaired.best_move)) {
++                ++differences;
++                std::cout << "     pv fix changes depth " << depth << " " << fen
++                          << " lock " << locked.score << ' ' << forge::Board::move_to_uci(locked.best_move)
++                          << " fix " << repaired.score << ' ' << forge::Board::move_to_uci(repaired.best_move)
++                          << '\n';
++            }
++        }
++    }
++    expect(differences > 0, "PvBoundFix changes a root score or move on the sample");
++    forge::tune::PvBoundFix = 0;
++}
++
++void test_unfinished_aspiration() {
++    const std::vector<std::string> fens = {
++        std::string(forge::Board::StandardStartFen),
++        "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
++        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
++    };
++    int stale = 0;
++    for (const std::string& fen : fens) {
++        const forge::Board board = board_from(fen);
++        std::vector<forge::SearchInfo> full(9);
++        for (int depth = 1; depth <= 8; ++depth) full[static_cast<std::size_t>(depth)] = search_of(board, depth);
++        const std::uint64_t ceiling = full[8].nodes;
++        for (std::uint64_t nodes = 40; nodes < ceiling; nodes = nodes * 3 / 2 + 1) {
++            const forge::SearchInfo limited = search_of(board, 10, nodes, true);
++            if (limited.depth <= 0 || limited.depth > 8) continue;
++            const forge::SearchInfo& done = full[static_cast<std::size_t>(limited.depth)];
++            if (limited.score == done.score && !(limited.best_move == done.best_move)) {
++                ++stale;
++                std::cout << "     stale best move at nodes " << nodes << " depth " << limited.depth
++                          << " score " << limited.score << " move " << forge::Board::move_to_uci(limited.best_move)
++                          << " completed " << forge::Board::move_to_uci(done.best_move) << " fen " << fen << '\n';
++            }
++        }
++    }
++    expect(stale == 0, "an unfinished aspiration re-search does not replace the best move with a stale score");
++}
++
++// Every defender reply is searched. White mates in two only if some first move
++// leaves no reply that escapes a mate in one.
++bool white_mates_in_two(forge::Board board, forge::Move* mate_move) {
++    const forge::MoveList first = board.legal_moves();
++    for (std::size_t i = 0; i < first.size(); ++i) {
++        forge::Undo undo;
++        (void)board.make_move(first[i], undo);
++        const forge::MoveList replies = board.legal_moves();
++        bool all_replies_mate = true;
++        if (replies.empty()) all_replies_mate = board.in_check();
++        for (std::size_t j = 0; j < replies.size() && all_replies_mate; ++j) {
++            forge::Undo reply_undo;
++            (void)board.make_move(replies[j], reply_undo);
++            const forge::MoveList finishes = board.legal_moves();
++            bool mate_in_one = false;
++            for (std::size_t k = 0; k < finishes.size(); ++k) {
++                forge::Undo finish_undo;
++                (void)board.make_move(finishes[k], finish_undo);
++                mate_in_one = board.legal_moves().empty() && board.in_check();
++                board.unmake_move(finishes[k], finish_undo);
++                if (mate_in_one) break;
++            }
++            board.unmake_move(replies[j], reply_undo);
++            if (!mate_in_one) all_replies_mate = false;
++        }
++        board.unmake_move(first[i], undo);
++        if (all_replies_mate) {
++            if (mate_move != nullptr) *mate_move = first[i];
++            return true;
++        }
++    }
++    return false;
++}
++
++void test_mate_and_pv_fix_cost() {
++    const forge::Board board = board_from("2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1");
++    forge::Move proven = forge::Move::none();
++    expect(white_mates_in_two(board, &proven), "exhaustive search proves a mate in two");
++    expect(forge::Board::move_to_uci(proven) == "g3g6", "the proven mate move is g3g6");
++
++    forge::tune::PvBoundFix = 0;
++    forge::tune::AspirationKeepExact = 0;
++    const forge::SearchInfo locked = search_of(board, 7);
++    expect(forge::is_mate_score(locked.score) && locked.score > 0, "lock depth 7 reports the mate");
++    expect(forge::Board::move_to_uci(locked.best_move) == "g3g6", "lock depth 7 plays g3g6");
++
++    forge::tune::PvBoundFix = 1;
++    const forge::SearchInfo shallow = search_of(board, 7);
++    const forge::SearchInfo deeper = search_of(board, 11);
++    std::cout << "     PvBoundFix depth 7 score " << shallow.score << ' '
++              << forge::Board::move_to_uci(shallow.best_move) << " nodes " << shallow.nodes
++              << "; depth 11 score " << deeper.score << ' ' << forge::Board::move_to_uci(deeper.best_move)
++              << " nodes " << deeper.nodes << '\n';
++    // Searching the moves the lock skips, in the main search and in
++    // quiescence, raises reductions on the quiet mate. Depth 7 no longer
++    // proves it. The mate is still there at depth 11.
++    expect(!forge::is_mate_score(shallow.score), "PvBoundFix depth 7 does not yet prove the mate");
++    expect(forge::is_mate_score(deeper.score) && forge::Board::move_to_uci(deeper.best_move) == "g3g6",
++           "PvBoundFix depth 11 still finds g3g6");
++    forge::tune::PvBoundFix = 0;
++}
++
++void test_reproduced_node_limit() {
++    const forge::Board start = board_from(forge::Board::StandardStartFen);
++    forge::tune::PvBoundFix = 0;
++    forge::tune::AspirationKeepExact = 0;
++    const forge::SearchInfo depth5 = search_of(start, 5);
++    const forge::SearchInfo limited = search_of(start, 10, 2066, true);
++    std::cout << "     nodes 2066 depth " << limited.depth << " score " << limited.score
++              << " move " << forge::Board::move_to_uci(limited.best_move) << '\n';
++    expect(!(limited.score == depth5.score && !(limited.best_move == depth5.best_move)),
++           "the depth-5 score is not reported on a different best move");
++}
++
++void test_keep_exact_smoke() {
++    const forge::Board start = board_from(forge::Board::StandardStartFen);
++    forge::tune::AspirationKeepExact = 0;
++    const forge::SearchInfo locked = search_of(start, 8);
++    forge::tune::AspirationKeepExact = 1;
++    const forge::SearchInfo kept = search_of(start, 8);
++    forge::tune::AspirationKeepExact = 0;
++    expect(!kept.best_move.is_none(), "keep-exact search returns a move");
++    std::cout << "     AspirationKeepExact depth 8 nodes " << locked.nodes << " -> " << kept.nodes
++              << " score " << locked.score << " -> " << kept.score << '\n';
++}
++
++} // namespace
++
++int main() {
++    test_aspiration_window();
++    test_fifty_move_mate_bounds();
++    test_pv_pruning();
++    test_unfinished_aspiration();
++    test_mate_and_pv_fix_cost();
++    test_reproduced_node_limit();
++    test_keep_exact_smoke();
++    if (g_failures != 0) {
++        std::cout << g_failures << " failed\n";
++        return 1;
++    }
++    std::cout << "all passed\n";
++    return 0;
++}

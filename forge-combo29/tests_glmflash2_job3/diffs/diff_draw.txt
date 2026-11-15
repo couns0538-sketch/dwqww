@@ -1,0 +1,589 @@
+diff --git a/forge-combo29/CMakeLists.txt b/forge-combo29/CMakeLists.txt
+index 2bb0af3ca..5d2ccd1f6 100644
+--- a/forge-combo29/CMakeLists.txt
++++ b/forge-combo29/CMakeLists.txt
+@@ -40,3 +40,10 @@ target_compile_options(forge PRIVATE -O3 -ffp-contract=off -fno-fast-math -march
+ set(THREADS_PREFER_PTHREAD_FLAG ON)
+ find_package(Threads REQUIRED)
+ target_link_libraries(forge PRIVATE Threads::Threads)
++
++# Draw-rule checks (repetition, 50-move horizon, insufficient material, TT clock).
++# No NNUE objects: the cases call Board and the header-only TT helpers.
++add_executable(draw_rules_test tests/draw_rules_test.cpp src/board.cpp src/bitboard.cpp)
++target_include_directories(draw_rules_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
++target_compile_features(draw_rules_test PRIVATE cxx_std_20)
++target_compile_options(draw_rules_test PRIVATE -Wall -Wextra -Werror)
+diff --git a/forge-combo29/docs/draw_rules_check_20261113.md b/forge-combo29/docs/draw_rules_check_20261113.md
+new file mode 100644
+index 000000000..64c5bd632
+--- /dev/null
++++ b/forge-combo29/docs/draw_rules_check_20261113.md
+@@ -0,0 +1,169 @@
++# Repetition, the 50-move rule, and the transposition table
++
++Branch `cursor/draw-rules-history-tt-cb8e`, compared with `efb2ff96` (`fable/standalone-h512-20261111`).
++Nothing on this branch has been merged.
++
++The root of a finished game was already adjudicated correctly: threefold repetition, a 50-move clock of 100 or more (checkmate still wins when the side to move has no legal move), and insufficient material. The mistakes were inside the search. A line could be called a draw before it was one, a draw could be missed and replaced by a material score, and a score saved in the transposition table could be replayed in a position where that score was no longer true.
++
++## 1. Returning to the root was called a draw
++
++`Board::is_repetition(root_index)` walks the position keys of the reversible moves. The old test was `i >= root_index`: any earlier copy of the current position at or after the root returned a draw immediately.
++
++The copy at `root_index` is the position the search started from. Seeing it again is the second occurrence. Under the threefold rule that is not yet a draw. It becomes a draw only when the same position has occurred twice before this visit, or when the repeat is a position that was reached strictly after the root (the line has cycled and can be repeated forever).
++
++The comparison is now `i > root_index`. A hit at the root itself only increments the earlier-occurrence count, and the function returns a draw when that count reaches two.
++
++What that looked like in the engine, `Threads 1`, `OwnBook false`, `UseNNUE false`:
++
++- Twofold knight shuttle (`g1f3 g8f6 f3g1 f6g8` once), `go depth 4`: the search continues, `cp 13`, 235 nodes, `bestmove d2d4`.
++- The same shuttle twice, so the start position has occurred three times, `go depth 3`: `cp 0`, 0 nodes. The root adjudicates before any node is searched.
++- One repeat of a position that was first reached after the root is a search draw. `draw_rules_test` plays `g1f3 b8c6 f3g1 c6b8` and checks that returning to the root is not a draw, then plays `g1f3` again and checks that the repeat of the post-root position is a draw.
++
++A pawn move still clears the clock and the repetition window. `draw_rules_test` checks `e2e4` after a shuttle: the clock is 0 and neither the game test nor the search test reports a repetition.
++
++## 2. A null move was counted as a 50-move ply
++
++`Board::make_null_move` passed the turn without moving a piece, then did `halfmove_ + 1`. A null move is a search device, not a game ply. It must not move the 50-move clock. The undo record already stored the old clock, so unmake was restoring a value the make had changed for no game reason.
++
++On queen versus king at clock 92, that extra ply was enough for the unmodified search (`efb2ff96`) to report a draw at depth 8: `cp 0`, 87721 nodes. Depths 1 through 7 were material scores (`cp 696` at depth 7). The draw was an artifact of the null-move clock, not a proof that every real line had reached 100.
++
++After the increment was removed, and before the quiescence change below, the same search reported `cp 695` at depth 8 (86842 nodes). The leaf one ply short of the limit stood pat on the material evaluation. The null-move child was no longer a false draw, and the real draw was not seen either.
++
++`plies_from_null_ = 0` was already set, and the repetition walk stops at that barrier, so a null move still cannot be looked through for a repetition. `draw_rules_test` checks that the clock is unchanged across make and unmake, and that a cycle played after the null is still a search draw.
++
++## 3. Quiescence at clock 99 kept the material score
++
++At clock 99 the side to move can play a legal quiet non-pawn move. The child has clock 100. `Worker::is_draw` then returns a draw unless that move is checkmate: checkmate on the hundredth half-move still wins, and every other position at clock 100 is a draw. The side to move can therefore choose a draw, unless every quiet non-pawn move is illegal and the only tries are captures or pawn moves, which reset the clock.
++
++Quiescence does not search quiet moves. It stood pat on the static evaluation. Queen versus king was scored as a win of several hundred centipawns at the exact ply where any queen move that did not mate was a draw. The losing side had the same bug in the other direction: a king-only position was scored as a loss even though any king move drew.
++
++The quiescence stand-pat is now 0 when clock is at least 99, the evaluation is not a mate score, and at least one legal quiet non-pawn, non-promotion move exists. Captures and pawn moves are still generated and searched, so a capture that resets the clock can still raise the score above 0. If no such quiet move exists, the static evaluation is left alone, because a capture is forced. A mate score is not replaced by 0.
++
++Measured after this correction, before the horizon guard in section 6:
++
++- Rook versus king, clock 99, `go depth 4`: `cp 0`, 76 nodes.
++- `r7/8/8/8/4k3/8/8/R3K3 w - - 99 80`, `go depth 3`: `cp 415`, `a1a8`. The capture resets the clock, so the score stays a win.
++- Queen versus king, clock 92: the draw returned at depth 8, `cp 0`, 90783 nodes. Depth 10 was `cp 0`, 341655 nodes. The 13 November note recorded depth 6 as `cp 704` and depth 7 as `cp 722` on that search.
++
++## 4. A mate in the table was trusted past the 50-move horizon
++
++Before a score is stored, a mate is converted to plies-to-mate from the node that produced it. On the way out, the old `score_from_tt(score, ply)` only subtracted or added `ply`. It did not ask whether that many plies still exist before the 50-move draw.
++
++At clock 80, twenty plies remain before clock 100. A stored mate in 20 fits. A stored mate in 21 does not: the game would be drawn before that mate, unless an unrecorded capture or pawn move resets the clock. The table entry does not prove that such a move is in the line, so the score is not proof. The old function returned it anyway, and the search treated it as a cutoff.
++
++`score_from_tt(score, ply, halfmove)` now refuses the mate when `MateValue - score` (or `MateValue + score` for a loss) is greater than `100 - clock`. The caller then searches again. A non-mate score is not a horizon decision. Mate in 1 at clock 99 is one ply and is kept; mate in 1 at clock 100 is refused because the move is no longer playable. `draw_rules_test` checks those boundaries.
++
++The engine check used `6k1/8/6K1/8/8/8/8/R7`. `Ra8` is mate. At clock 0 and at clock 99, `go depth 3` is `mate 1`, `a1a8`. At clock 100 the root is adjudicated: `cp 0`, 0 nodes.
++
++## 5. A stored score from a short clock answered a search that could reach the draw
++
++The position hash does not include the 50-move clock or the repetition path. The old `score_usable` accepted an entry when both clocks were below 90, or when the clocks were equal. A depth-20 search stored at clock 0 could therefore answer a search at clock 89. The stored search finished at clock 20 and never saw the draw. The new search, at clock 89 and depth 20, reaches clock 109. The stored score is a material or mate result from a different rule.
++
++The rule is now:
++
++- If this search can reach clock 100 and the stored search could not, the entry is refused.
++- If neither search can reach clock 100, the entry is usable. Both are inside the same rule.
++- If both can reach it, the clocks must be equal. A draw proved at one clock is not a draw proved at another.
++
++`use_depth` is the depth the caller is about to trust. The test takes the greater of that depth and the stored depth, so a deep entry cannot be laundered by asking about it from a shallow call. `draw_rules_test` checks clock 0 depth 20 against clock 89, a short search at clock 89 against a longer one at the same clock, and two different clocks that both cross the horizon.
++
++Cutoffs in both `search` and `qsearch` are also refused when the clock is 90 or more. At that clock the same hash still covers different repetition histories, and the stored score does not carry the path. The mate-horizon test above has already dropped mates the 50-move rule can falsify; the clock-90 test is the repetition boundary. Below 90, a score from another history can still be used. That is the same boundary the main search already had, and this branch does not add the repetition path to the hash.
++
++A direct check of that boundary: a threefold knight shuttle returns `cp 0` at 0 nodes because the root adjudicates. The same piece placement sent as a FEN, with no move list, has no earlier history. It searched as a normal opening, `cp 13`, 235 nodes at depth 4, both in the process that had just seen the threefold draw and in a fresh process. The table did not reuse the adjudicated draw for the FEN.
++
++## 6. What the 14 November probes found
++
++Clock 99 at the root, and the interior nodes of the short searches below, were already draws, mates, or captures. These used `/tmp/forge-draw/forge`, `Threads 1`, `Hash 16`, `OwnBook false`, `UseNNUE false`, and `ucinewgame` before each search.
++
++| Case | Result |
++| --- | --- |
++| `6k1/8/6K1/8/8/8/8/R7 w - - 99 80`, `go depth 3` | `mate 1`, `a1a8`, 60 nodes |
++| Same position at clock 0, `go depth 3` | `mate 1`, `a1a8`, 60 nodes |
++| Same position at clock 100, `go depth 2` | `cp 0`, 0 nodes |
++| `6k1/8/8/8/8/8/7r/Q5K1 w - - 99 80`, `go depth 3` | `cp 838`, `g1h2`, 128 nodes. `Kxh2` captures the rook and resets the clock |
++| `4k3/8/8/8/8/8/4P3/4K3 w - - 99 40`, `go depth 3` | `cp 71`, `e2e4`, 66 nodes. The pawn move resets the clock |
++| `r7/8/8/8/4k3/8/8/R3K3 w - - 99 80`, `go depth 3` | `cp 415`, `a1a8`, 160 nodes |
++| `8/8/8/4k3/8/8/8/3QK3 w - - 99 80`, `go depth 4` | `cp 0`, 88 nodes |
++| Same position at clock 98, `go depth 3` | `cp 0`, 144 nodes |
++| `4k3/8/8/8/3q4/8/8/4K3 w - - 98 80`, `go depth 4` | `cp 0`, 35 nodes |
++
++The miss was one ply earlier than clock 99. On `8/8/8/4k3/8/8/8/3QK3 w - - 92 80`, a depth-7 search is the first iteration whose quiet leaves stand on clock 99, where quiescence now returns a draw. Before the horizon guard that search still printed a material score:
++
++| Depth | Score before the guard | Nodes |
++| --- | --- | --- |
++| 5 | `cp 895` | 2889 |
++| 6 | `cp 767` | 12937 |
++| 7 | `cp 722` | 44921 |
++| 8 | `cp 0` | 113125 |
++
++Reverse futility pruning returns the static evaluation when it is far enough above beta, without searching the moves. Null-move pruning searches a reduced depth after passing the turn. Neither looks at the quiet line that walks into the clock-99 draw, so both were cutting off with the material score. The 13 November numbers for depth 8 (90783 nodes) are the earlier queen-versus-king measurement after the quiescence correction. This table is a fresh search of the FEN above, on that same code, immediately before the guard.
++
++Both prunes are now skipped when `halfmove_clock + depth >= 99`. The same position then printed:
++
++| Depth | Score | Nodes |
++| --- | --- | --- |
++| 5 | `cp 860` | 1876 |
++| 6 | `cp 722` | 18650 |
++| 7 | `cp 0` | 44478 |
++| 8 | `cp 0` | 65779 |
++
++Depth 6 stays a material score. Clock 92 plus 6 plies reaches clock 98, and the clock-99 stand-pat is not in that tree. Depth 5 also moves, from `cp 895` to `cp 860`, because a check extension can make some node inside that iteration satisfy `clock + depth >= 99`. The score is still a material score.
++
++Mate in 1, the rook capture `a1a8` at `cp 415`, the pawn push `e2e4` at `cp 71`, and the hanging-rook capture `g1h2` at `cp 838` were unchanged by the guard.
++
++## What changed
++
++- `forge-combo29/src/board.cpp`: `make_null_move` no longer increments `halfmove_`. `is_repetition(root_index)` uses `i > root_index` for an immediate search draw.
++- `forge-combo29/include/forge/board.hpp`: the comment on `is_repetition(root_index)` matches that rule.
++- `forge-combo29/include/forge/search.hpp`: `score_from_tt` takes the halfmove clock and refuses a mate past the horizon. `TTEntry::score_usable` takes the depth the caller wants to trust and applies the three cases in section 5.
++- `forge-combo29/src/search.cpp`: the old ply-only `score_from_tt` was removed. Search and quiescence pass the clock and the depth into `score_usable`. Cutoffs require clock below 90. Quiescence stand-pat at clock 99 is 0 when a legal quiet non-pawn move exists. Reverse futility and null-move pruning are skipped when `halfmove_clock + depth >= 99`.
++- `forge-combo29/tests/draw_rules_test.cpp`: twofold against threefold, a repeat strictly after the root, the null-move clock and the repetition barrier, insufficient material, and the mate-horizon and table-usability predicates.
++- `forge-combo29/CMakeLists.txt`: builds `draw_rules_test` from the test, `board.cpp`, and `bitboard.cpp`.
++
++Commits:
++
++- `7639e548930ed3b4b68dc4679adfb63f97bc6b12` — sections 1 through 5, the quiescence stand-pat, and `draw_rules_test`.
++- `844cef9a167be65a30c98d8da8f7c85f98cddc0f` — the first version of this note.
++- `21996d6ed1b87d254fcf16d3f0ee8bfb656a05f2` — the horizon guard in section 6.
++
++## Checks that stayed the same
++
++Unit test, from `forge-combo29`, compiler `/usr/bin/g++`, `FORGE_PORTABLE=ON`, `FORGE_MARCH=x86-64-v3`, `Release`:
++
++```text
++cmake --build /tmp/forge-draw --target draw_rules_test
++/tmp/forge-draw/draw_rules_test
++```
++
++`draw_rules_test passed`. The same file does not cover the search prunes; those are the engine searches above.
++
++`go perft 4` from the start position: `197281`.
++
++`bench`, fresh process, default network, the eight built-in positions, all of which have clock 0:
++
++| Depth | Nodes |
++| --- | --- |
++| 8 | 67223 |
++| 10 | 172081 |
++
++Both match `efb2ff96`. Clock 0 plus depth 10 does not reach the horizon guard.
++
++Other adjudication, `Hash 32` for these rows:
++
++| Case | Result |
++| --- | --- |
++| King versus king | `cp 0`, 0 nodes |
++| Same-color bishops | `cp 0`, 0 nodes |
++| Opposite-color bishops, `go depth 3` | `cp 2`, 122 nodes, not adjudicated |
++| King and two knights versus king, `go depth 3` | `cp 493`, 319 nodes, not adjudicated |
++| Rook versus king, clock 100 | `cp 0`, 0 nodes |
++| Queen versus king, clock 96, `go depth 6` | `cp 0` from depth 3 onward |
++
++## What is still wrong, or deliberately unchanged
++
++- A search that stops before clock 99 still prints a material score. On the queen-versus-king FEN in section 6, depth 6 is `cp 722`, 18650 nodes.
++- The transposition table does not store the repetition path. Below clock 90 a score from another history can still be used.
++- A FEN has no history before that FEN. Repetition from earlier in the game is visible only when the UCI `moves` list is sent.
++- King and two knights versus king is not adjudicated. A mate exists if the lone king cooperates, so this is not insufficient material. King and bishop versus king, king and knight versus king, king versus king, and bishops all on one color are adjudicated.
++- When every move draws, the chosen move is whichever line the search keeps. A warm table changed queen versus king at clock 92 from one drawing move to another. The score stayed `cp 0`.
++- No strength match was played.
+diff --git a/forge-combo29/include/forge/board.hpp b/forge-combo29/include/forge/board.hpp
+index 9a94c15ff..9ccd2f7e4 100644
+--- a/forge-combo29/include/forge/board.hpp
++++ b/forge-combo29/include/forge/board.hpp
+@@ -225,8 +225,10 @@ public:
+ 
+     // Game-level threefold repetition of the current position.
+     [[nodiscard]] bool is_repetition() const;
+-    // Search-level repetition: any earlier occurrence at or after history
+-    // index root_index counts, otherwise two earlier occurrences are needed.
++    // Search repetition. root_index is the history index of the root. One
++    // earlier occurrence strictly after the root is a draw (the line would
++    // cycle). An occurrence at or before the root counts only towards
++    // threefold: this visit is a draw when two such earlier occurrences exist.
+     [[nodiscard]] bool is_repetition(std::size_t root_index) const;
+     [[nodiscard]] bool is_insufficient_material() const;
+     [[nodiscard]] bool has_non_pawn_material(Color color) const;
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 9fc5b170c..f05726c40 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -10,6 +10,7 @@
+ #include "forge/nnue_halfka.hpp"
+ #endif
+ 
++#include <algorithm>
+ #include <array>
+ #include <atomic>
+ #include <chrono>
+@@ -74,6 +75,25 @@ constexpr int ValueNone = 32002;
+     return score >= MateInMaxPly || score <= -MateInMaxPly;
+ }
+ 
++// Inverse of the mate-distance adjustment applied before a score is stored.
++// Mate scores in the table are plies-to-mate from the stored position. If that
++// distance runs past the 50-move horizon, the score is not proof (the line may
++// still contain a capture or pawn move), so the caller searches again.
++[[nodiscard]] inline int score_from_tt(int score, int ply, int halfmove) {
++    if (score == ValueNone) return ValueNone;
++    const int capped = halfmove < 0 ? 0 : (halfmove > 100 ? 100 : halfmove);
++    const int horizon = 100 - capped;
++    if (score >= MateInMaxPly) {
++        if (MateValue - score > horizon) return ValueNone;
++        return score - ply;
++    }
++    if (score <= -MateInMaxPly) {
++        if (MateValue + score > horizon) return ValueNone;
++        return score + ply;
++    }
++    return score;
++}
++
+ enum Bound : std::uint8_t { BoundNone = 0, BoundUpper = 1, BoundLower = 2, BoundExact = 3 };
+ 
+ struct TTEntry {
+@@ -91,10 +111,21 @@ struct TTEntry {
+     [[nodiscard]] bool pv() const { return (gen_bound & 4U) != 0; }
+     [[nodiscard]] std::uint8_t generation() const { return static_cast<std::uint8_t>(gen_bound >> 3U); }
+     [[nodiscard]] bool occupied() const { return bound() != BoundNone; }
+-    // Existing below90 policy, plus exact near50 context; not a repetition key.
+-    [[nodiscard]] bool score_usable(std::uint16_t current_clock) const {
+-        const int capped = current_clock < 100 ? current_clock : 100;
+-        return (rule50_clock < 90 && capped < 90) || rule50_clock == capped;
++    // The stored score does not include repetition history. It is reusable when
++    // neither side of the comparison can reach the 50-move horizon, or when a
++    // search that did reach it was stored at this same clock. A stored search
++    // that stopped short of the horizon must not answer a deeper one that would
++    // cross it. use_depth is the depth the caller is about to trust the score for.
++    [[nodiscard]] bool score_usable(std::uint16_t current_clock, int use_depth) const {
++        const int stored_clock = static_cast<int>(rule50_clock);
++        const int current = current_clock < 100 ? static_cast<int>(current_clock) : 100;
++        const int stored_depth = static_cast<int>(depth);
++        const int adopt = std::max(use_depth, stored_depth);
++        const bool stored_reaches = stored_clock + stored_depth >= 100;
++        const bool current_reaches = current + adopt >= 100;
++        if (current_reaches && !stored_reaches) return false;
++        if (!stored_reaches && !current_reaches) return true;
++        return stored_clock == current;
+     }
+ };
+ 
+diff --git a/forge-combo29/src/board.cpp b/forge-combo29/src/board.cpp
+index c6a2cfe51..7d737c6d2 100644
+--- a/forge-combo29/src/board.cpp
++++ b/forge-combo29/src/board.cpp
+@@ -1123,7 +1123,8 @@ void Board::make_null_move(NullUndo& undo) {
+     ep_square_ = -1;
+     side_ = opposite(side_);
+     key_ ^= Z.side;
+-    halfmove_ = static_cast<std::uint16_t>(std::min<int>(halfmove_ + 1, 65535));
++    // A null move is not a game ply, so it must not advance the 50-move clock.
++    // plies_from_null_ == 0 already stops repetition from looking through it.
+     plies_from_null_ = 0;
+     checkers_ = 0;
+     key_history_.push_back(key_);
+@@ -1205,7 +1206,8 @@ bool Board::is_repetition(std::size_t root_index) const {
+     int count = 0;
+     for (std::ptrdiff_t i = size - 5; i >= limit; i -= 2) {
+         if (key_history_[static_cast<std::size_t>(i)] == key_) {
+-            if (i >= static_cast<std::ptrdiff_t>(root_index)) return true;
++            // The root occurrence itself is twofold, not yet a draw.
++            if (i > static_cast<std::ptrdiff_t>(root_index)) return true;
+             if (++count >= 2) return true;
+         }
+     }
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 3ca25955f..bcd462a1c 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -123,13 +123,6 @@ constexpr int HistoryMax = 16384;
+     return score;
+ }
+ 
+-[[nodiscard]] int score_from_tt(int score, int ply) {
+-    if (score == ValueNone) return ValueNone;
+-    if (score >= MateInMaxPly) return score - ply;
+-    if (score <= -MateInMaxPly) return score + ply;
+-    return score;
+-}
+-
+ [[nodiscard]] int mated_in(int ply) { return -MateValue + ply; }
+ [[nodiscard]] int mate_in(int ply) { return MateValue - ply; }
+ 
+@@ -1263,11 +1256,14 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+     const Move tt_move = tt_hit ? tte.move : Move::none();
+-    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+-                             ? score_from_tt(tte.score, ply) : ValueNone;
++    const int tt_score = tt_hit && tte.score_usable(static_cast<std::uint16_t>(board.halfmove_clock()), 0)
++                             ? score_from_tt(tte.score, ply, board.halfmove_clock()) : ValueNone;
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+     const bool tt_pv = pv_node || (tt_hit && tte.pv());
+-    if (!pv_node && tt_hit && tt_score != ValueNone &&
++    // Clocks at or above 90 share a position key with different repetition
++    // histories. Refuse the cutoff there; the mate-horizon check above already
++    // dropped scores the 50-move rule can falsify.
++    if (!pv_node && tt_hit && tt_score != ValueNone && board.halfmove_clock() < 90 &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
+         return tt_score;
+@@ -1288,6 +1284,21 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+              tt_bound == BoundExact)) {
+             eval = tt_score;
+         }
++        // Clock 99: a quiet non-pawn move reaches the 50-move draw unless it
++        // is mate. Stand-pat would keep the static eval, so the side about to
++        // draw is scored as winning or losing. Mate scores stay. Captures and
++        // pawn moves still reset the clock and are searched below. With no
++        // such quiet move the eval stands, because a capture is forced.
++        if (board.halfmove_clock() >= 99 && !is_mate_score(eval)) {
++            MoveList quiets;
++            board.generate_pseudo_legal(quiets, Board::GenMode::Quiets);
++            for (const Move candidate : quiets) {
++                if (candidate.is_promotion() || piece_type(board.piece_at(candidate.from)) == Pawn) continue;
++                if (!board.is_legal(candidate)) continue;
++                eval = 0;
++                break;
++            }
++        }
+         best_score = eval;
+         if (best_score >= beta) {
+ #if FORGE_SPD_TT_NOTLS
+@@ -1409,8 +1420,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+     const Move tt_move = tt_hit ? tte.move : Move::none();
+-    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+-                             ? score_from_tt(tte.score, ply) : ValueNone;
++    const int tt_score = tt_hit && tte.score_usable(static_cast<std::uint16_t>(board.halfmove_clock()), depth)
++                             ? score_from_tt(tte.score, ply, board.halfmove_clock()) : ValueNone;
+     const int tt_depth = tt_hit ? tte.depth : -1;
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
+@@ -1454,15 +1465,24 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (aborted_) return 0;
+             if (razor < alpha) return razor;
+         }
++        // A quiet line of this many plies reaches the 50-move draw (qsearch
++        // stands pat at clock 99). Static eval and a reduced null search do
++        // not see that draw, so neither may cut the node off.
++        const bool reaches_rule50 = board.halfmove_clock() + depth >= 99;
+         // Reverse futility pruning.
+-        if (depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
++        if (!reaches_rule50 && depth <= tune::RfpDepth &&
++            eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+             eval < MateInMaxPly) {
+             return eval;
+         }
+         // Null move pruning.
++        // At clock 99 a null move used to increment the 50-move counter and the
++        // child returned an immediate draw. Skip the prune on the last ply, and
++        // on any node whose real search can reach that ply.
+         if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
++            !reaches_rule50 &&
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
+             ++null_tries_;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+diff --git a/forge-combo29/tests/draw_rules_test.cpp b/forge-combo29/tests/draw_rules_test.cpp
+new file mode 100644
+index 000000000..333dc1636
+--- /dev/null
++++ b/forge-combo29/tests/draw_rules_test.cpp
+@@ -0,0 +1,193 @@
++// Repetition, 50-move horizon, insufficient material, and TT clock checks.
++// Build: cmake --build <build> --target draw_rules_test
++#include "forge/search.hpp"
++
++#include <cstdlib>
++#include <iostream>
++#include <string>
++#include <string_view>
++
++namespace {
++
++int failures = 0;
++
++void expect(bool condition, std::string_view name) {
++    if (condition) return;
++    std::cerr << "FAIL " << name << '\n';
++    ++failures;
++}
++
++void play(forge::Board& board, std::string_view uci) {
++    const auto move = board.parse_uci(uci);
++    if (!move) {
++        std::cerr << "illegal " << uci << " in " << board.fen() << '\n';
++        std::exit(2);
++    }
++    forge::Undo undo;
++    (void)board.make_move(*move, undo);
++}
++
++// Knight shuttle: start, then Nf3 Nf6 Ng1 Ng8, repeated `cycles` times.
++void shuttle(forge::Board& board, int cycles) {
++    for (int n = 0; n < cycles; ++n) {
++        play(board, "g1f3");
++        play(board, "g8f6");
++        play(board, "f3g1");
++        play(board, "f6g8");
++    }
++}
++
++void test_repetition() {
++    using forge::Board;
++    Board game;
++    const std::size_t root = game.history_size() - 1;
++    shuttle(game, 1);
++    expect(!game.is_repetition(), "twofold is not a game draw");
++    expect(!game.is_repetition(root), "twofold of the root is not a search draw");
++    shuttle(game, 1);
++    expect(game.is_repetition(), "threefold is a game draw");
++    expect(game.is_repetition(root), "threefold of the root is a search draw");
++
++    Board inner;
++    const std::size_t inner_root = inner.history_size() - 1;
++    play(inner, "g1f3");
++    play(inner, "b8c6");
++    play(inner, "f3g1");
++    play(inner, "c6b8");
++    expect(!inner.is_repetition(inner_root), "returning only to the root is twofold");
++    play(inner, "g1f3");
++    expect(inner.is_repetition(inner_root), "repeating a position reached after the root is a draw");
++
++    // Two occurrences of the start position are already on the board before
++    // the root. The third visit, with no copy after the root, is a draw.
++    Board before;
++    shuttle(before, 1);
++    play(before, "g1f3");
++    const std::size_t before_root = before.history_size() - 1;
++    play(before, "g8f6");
++    play(before, "f3g1");
++    play(before, "f6g8");
++    expect(before.is_repetition(), "third visit is a game draw");
++    expect(before.is_repetition(before_root), "third visit counts two copies at or before the root");
++
++    Board reset;
++    shuttle(reset, 1);
++    play(reset, "e2e4");
++    expect(reset.halfmove_clock() == 0, "pawn move resets the 50-move clock");
++    expect(!reset.is_repetition(), "pawn move breaks the repetition window");
++    expect(!reset.is_repetition(0), "search repetition does not cross the pawn move");
++}
++
++void test_null_move_clock() {
++    forge::Board board;
++    expect(board.set_fen("8/8/4k3/8/8/3K4/8/8 w - - 99 40"), "null-move fen");
++    const int clock = board.halfmove_clock();
++    const auto root = board.history_size() - 1;
++    forge::NullUndo undo;
++    board.make_null_move(undo);
++    expect(board.halfmove_clock() == clock, "null move does not advance the 50-move clock");
++    expect(board.side_to_move() == forge::Black, "null move passes the turn");
++    expect(!board.is_repetition(root), "null move blocks repetition through plies_from_null");
++    board.unmake_null_move(undo);
++    expect(board.halfmove_clock() == clock, "unmake restores the 50-move clock");
++    expect(board.side_to_move() == forge::White, "unmake restores the side to move");
++
++    // The null move clears the span, so the twofold already on the board is not
++    // visible. A later cycle that stays after the null is an ordinary search draw.
++    forge::Board crossed;
++    shuttle(crossed, 1);
++    const auto crossed_root = crossed.history_size() - 1;
++    forge::NullUndo crossed_undo;
++    crossed.make_null_move(crossed_undo);
++    expect(!crossed.is_repetition(crossed_root), "a null move clears the search repetition span");
++    play(crossed, "g8f6");
++    play(crossed, "g1f3");
++    play(crossed, "f6g8");
++    play(crossed, "f3g1");
++    expect(crossed.is_repetition(crossed_root), "a cycle after the null is still a search draw");
++}
++
++void test_insufficient_material() {
++    const struct {
++        const char* fen;
++        bool draw;
++        const char* name;
++    } cases[] = {
++        {"8/8/4k3/8/8/3K4/8/8 w - - 0 1", true, "K vs K"},
++        {"8/8/4k3/8/8/3KN3/8/8 w - - 0 1", true, "KN vs K"},
++        {"8/8/4k3/8/8/3KB3/8/8 w - - 0 1", true, "KB vs K"},
++        {"k4b2/8/8/8/8/8/8/2B4K w - - 0 1", true, "same-color bishops"},
++        {"k1b5/8/8/8/8/8/8/2B4K w - - 0 1", false, "opposite-color bishops"},
++        {"7k/8/8/8/8/8/4B1B1/4K3 w - - 0 1", true, "two bishops on one color"},
++        {"7k/8/8/8/8/8/6B1/4K1B1 w - - 0 1", false, "two bishops on both colors"},
++        {"8/8/4k3/8/8/2NNK3/8/8 w - - 0 1", false, "KNN vs K can mate"},
++        {"8/8/4k3/8/8/2NBK3/8/8 w - - 0 1", false, "KBN vs K is a win"},
++        {"8/8/4k3/8/8/3KN3/6b1/8 w - - 0 1", false, "KB vs KN"},
++        {"8/8/4k3/8/8/3K1R2/8/8 w - - 99 80", false, "KR vs K has mating material"},
++        {"8/8/4k3/8/4p3/3K4/8/8 w - - 0 1", false, "a pawn is mating material"},
++    };
++    for (const auto& item : cases) {
++        forge::Board board;
++        std::string error;
++        expect(board.set_fen(item.fen, &error), item.name);
++        expect(board.is_insufficient_material() == item.draw, item.name);
++    }
++}
++
++void test_tt_horizon() {
++    using forge::MateValue;
++    using forge::ValueNone;
++    using forge::score_from_tt;
++    // Mate in 1 is one ply. It still wins on the move that makes the clock 100.
++    expect(score_from_tt(MateValue - 1, 0, 99) == MateValue - 1, "mate in 1 at clock 99 stands");
++    expect(score_from_tt(MateValue - 1, 3, 99) == MateValue - 1 - 3, "mate in 1 keeps its ply adjustment");
++    expect(score_from_tt(MateValue - 1, 0, 100) == ValueNone, "mate in 1 at clock 100 is not playable");
++    // Distance 20 fits in the 20 plies left at clock 80; distance 21 does not.
++    expect(score_from_tt(MateValue - 20, 0, 80) == MateValue - 20, "mate on the horizon ply stands");
++    expect(score_from_tt(MateValue - 21, 0, 80) == ValueNone, "mate past the horizon is refused");
++    expect(score_from_tt(-MateValue + 21, 4, 80) == ValueNone, "loss past the horizon is refused");
++    expect(score_from_tt(-MateValue, 4, 99) == -MateValue + 4, "checkmate already on the board stands");
++    expect(score_from_tt(30, 2, 99) == 30, "a non-mate score is not a horizon decision");
++
++    forge::TTEntry shallow;
++    shallow.depth = 8;
++    shallow.rule50_clock = 0;
++    shallow.gen_bound = forge::BoundExact;
++    expect(shallow.score_usable(50, 8), "both searches finish before the horizon");
++    expect(shallow.score_usable(89, 8), "clock 89 depth 8 still finishes at 97");
++
++    forge::TTEntry deep;
++    deep.depth = 20;
++    deep.rule50_clock = 0;
++    deep.gen_bound = forge::BoundExact;
++    expect(!deep.score_usable(89, 20), "clock 0 depth 20 must not answer clock 89 depth 20");
++    expect(!deep.score_usable(89, 0), "a deep clock-0 score must not answer qsearch at clock 89");
++
++    forge::TTEntry same;
++    same.depth = 20;
++    same.rule50_clock = 89;
++    same.gen_bound = forge::BoundExact;
++    expect(same.score_usable(89, 20), "the same clock can cross the horizon");
++    expect(!same.score_usable(80, 20), "a different clock that also reaches the horizon cannot");
++
++    forge::TTEntry blind;
++    blind.depth = 5;
++    blind.rule50_clock = 89;
++    blind.gen_bound = forge::BoundLower;
++    expect(!blind.score_usable(89, 20), "a short search at clock 89 must not answer a longer one");
++}
++
++} // namespace
++
++int main() {
++    test_repetition();
++    test_null_move_clock();
++    test_insufficient_material();
++    test_tt_horizon();
++    if (failures != 0) {
++        std::cerr << failures << " failed\n";
++        return 1;
++    }
++    std::cout << "draw_rules_test passed\n";
++    return 0;
++}

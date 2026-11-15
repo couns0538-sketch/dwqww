@@ -1,0 +1,72 @@
+PASS cp score is unchanged
+PASS ValueNone stays ValueNone
+PASS mate in 1 at ply 4 stores distance 1
+PASS distance 1 restores the ply-adjusted mate
+PASS distance 10 fits in a fresh 50-move clock
+PASS distance 10 does not fit in 5 halfmoves
+PASS mate in 1 fits at clock 99
+PASS mate in 1 at ply 4 still fits at clock 99
+PASS mate in 1 does not fit at clock 100
+PASS already-mated score is kept at clock 100
+PASS loss in 10 does not fit in 5 halfmoves
+PASS loss in 10 fits at clock 0
+PASS distance 100 fits in 100 halfmoves
+PASS distance 101 does not fit in 100 halfmoves
+PASS one audit key
+PASS ValueNone score and eval survive the int16 store
+PASS exact and PV bits round-trip
+PASS MateValue round-trips
+PASS lower bound clears the PV bit
+PASS scores outside int16 clamp to 32767
+PASS halfmove clock above 100 is stored as 100
+PASS capped clocks compare equal, and 100 does not match 90
+PASS middle key bit shares the 1 MB cluster
+PASS middle key bit shares the 32-bit tag
+PASS low bit stays in the same cluster
+PASS low bit changes the tag
+PASS original key is stored
+PASS different tag in the same cluster is stored
+PASS known limitation: unchecked middle key bits alias
+PASS five keys in one cluster
+PASS depth 10 survives a full cluster
+PASS depth 40 survives a full cluster
+PASS depth 25 survives a full cluster
+PASS the lowest depth is the replacement victim
+PASS the new key occupies the victim slot
+PASS a shallow non-exact store does not replace depth or score
+PASS a rejected shallow store still updates a real move
+PASS an exact store replaces a deeper entry
+PASS five keys for the age test
+PASS three searches make a depth-10 entry lose to a fresh depth-0 entry
+PASS the fresh depth-0 entry stays
+PASS the replacing entry is stored
+PASS known limitation: 32 searches wrap generation and preserve the old entry
+PASS after a generation wrap the fresh shallow entry is replaced first
+PASS two keys for the stale-probe test
+PASS stale-probe keys share a cluster
+PASS both probes miss on an empty cluster
+PASS a stale probe does not destroy the deeper entry
+PASS the shallow key is stored in a free slot
+PASS a stale probe does not overwrite the deepest entry of a full cluster
+PASS the stale store replaces the least valuable slot
+PASS mate-in-1 fen at clock 0
+PASS mate in 1 is found at clock 0
+PASS best move is checkmate at clock 0
+PASS mate-in-1 fen at clock 50
+PASS mate in 1 is found at clock 50
+PASS best move is checkmate at clock 50
+PASS mate-in-1 fen at clock 99
+PASS mate in 1 is found at clock 99
+PASS best move is checkmate at clock 99
+PASS qsearch mate fen
+PASS depth 1 plays the mating move
+PASS make the depth-1 mating move
+PASS qsearch stores the checkmate position as an exact mate
+PASS main-search mate fen
+PASS make the depth-2 mating move
+PASS main search stores the checkmate position as an exact mate
+INFO kqk clean score 994 nodes 691
+INFO kqk poisoned score 994 nodes 691
+PASS clean KQK depth 5 is a centipawn score
+PASS impossible mate entries do not change the depth-5 score or node count
+ALL PASS
