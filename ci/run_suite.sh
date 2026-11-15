@@ -11,6 +11,9 @@ here="$(cd "$(dirname "$0")" && pwd)"
 py="${PYTHON:-python3}"
 work="${RUNNER_TEMP:-/tmp}/forge-ci-$suite"
 mkdir -p "$res" "$work"
+# A first line at once (Fable's point, 2026-11-15 09:34): if the run stops before the suite has written its own
+# summary (a build error, a crash of a script), this line is what arrives, and the logs next to it say where.
+echo "suite $suite started $(date -u '+%F %T') UTC; if this is the only line, the run ended before the suite's own summary (see build-*.log, setup files)" > "$res/summary.txt"
 {
   echo "suite: $suite"
   echo "date (UTC): $(date -u '+%F %T')"
