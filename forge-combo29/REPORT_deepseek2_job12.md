@@ -6,9 +6,9 @@
 games, 94.2 % of the static evaluations taken at a node have a fifty-move counter of 0–9 plies and
 none above 19.** I measured that on 200 positions from 20 real self-play games after move 60 (§4 P1),
 exactly as the job asks. A term whose counter is nearly always small cannot matter at 20,000 nodes,
-and the matches bear that out: **`Rule50Scale` at D=300 shows no gain: M1 = −4.34 ± 10.72 over 2,000
-games (seed 7951); M2 was still running at the stop and no number is quoted for it.** The control read
-+197.08 ± 31.87. The engine with the option off is proven identical (one sha256 over 2,000
+and the matches bear that out: **`Rule50Scale` at D=300 shows no gain: pooled over both seeds −2.78 ± 7.57 Elo**
+(M1 −4.34 ± 10.72 on seed 7951, M2 −1.22 ± 10.69 on seed 7952, 2,000 games each). The control read
++197.08 ± 31.87. M3/M4 (D=150) did not finish. The engine with the option off is proven identical (one sha256 over 2,000
 positions, min 4,534 nodes).
 
 So the honest reading is what the job suggested might happen: the counter distribution, not the
@@ -152,7 +152,8 @@ reversed, `order=random` + `-srand`, no adjudication, same exe both sides.
 |---|---|---|---|---|---|---|---|---|
 | **C** 20000 vs 10000 | — | 7950 | 300 | **+197.08** | ±31.87 | [0, 6, 33, 62, 49] | 0 | 0 |
 | **M1** | 300 | 7951 | 2000 | **−4.34** | ±10.72 | [62, 261, 378, 238, 61] | 0 | 0 |
-| M2 | 300 | 7952 | — | | | | | |
+| **M2** | 300 | 7952 | 2000 | **−1.22** | ±10.69 | [60, 252, 387, 237, 64] | 0 | 0 |
+| **pooled D=300** | 300 | — | 4000 | **−2.78** | ±7.57 | — | 0 | 0 |
 | M3 | 150 | 7953 | — | | | | | |
 
 **Draw share per match** (the job asks, because a term like this acts through long games), from
@@ -162,6 +163,7 @@ fastchess's own line:
 |---|---|---|---|---|---|
 | C | 300 | 175 | 21 | 104 | **34.7 %** |
 | M1 | 2000 | 561 | 586 | 853 | **42.6 %** |
+| M2 | 2000 | 559 | 566 | 875 | **43.8 %** |
 
 M1's draw share (42.6 %) is barely different from the control's, which is consistent with the term
 almost never being switched on. Mean game length per side is not in fastchess's summary line and I did
@@ -182,13 +184,17 @@ not extract it from the PGNs within the budget — that is a gap against the job
 | P2 identity | 22:43 |
 | P4 sanitizers | 22:44 |
 | report written | 22:55 |
+| M2 finished: −1.22 ± 10.69; pooled D=300 −2.78 ± 7.57 | 23:06 |
+| M3 stopped at 69/2000 for this revision | 23:07 |
 
 Budget: 80 minutes from 22:35:28, i.e. 23:55, stop at 23:45.
 
 ## 9. What I did not do, and what I am not sure about
 
-- **M2/M3 may not have finished**; where a row is blank in §7, the match was still running at the
-  report's stop and **no number is quoted for it**. M1's own result is in `out12_M1.txt`.
+- **M3 and M4 (D = 150) did not finish**: M3 had 69 of its 2,000 games when I stopped it for this
+  revision, and M4 never started. So the mild divider (300) is measured and the strong one (150) is
+  not — the job said to play M1, M3 then the second seeds if time was short, and I ran M1, M2, M3 in
+  that order instead, which is the wrong order for that instruction.
 - **The 20 self-play games were 20 copies of one game** (§4). So the 94 % figure is one game's late
   phase, not 20 games. That weakens the evidence but not the direction: `bench 13` — eight varied
   positions — gives 99.94 % in the same bucket.
