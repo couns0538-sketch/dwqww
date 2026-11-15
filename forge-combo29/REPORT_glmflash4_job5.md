@@ -289,16 +289,16 @@ one `python3` heredoc that parsed the README's tools table into
 
 ## Stamps (date -u)
 
-- 20:59:18 fetches started (budget start ≈ 20:59:30 when file 5 was read)
-- 21:00:0x gaps commit pinned (04e6aa4b...), 155 files counted
-- 21:00:3x folder exported to /tmp/gaps; README read
-- 21:02:xx GAP_LEDGER read; 21:04:xx STATUS + REPORT read; 21:08:xx BENCH read
-- 21:10:xx inventory built (155 rows); manifest verified (153 OK)
-- 21:11:xx port patch fetched, md5 verified, applied to the fresh export
-- 21:12:xx three dry-runs (first pass), re-run with true exit codes + `--forward`
-- 21:14:xx hunk map + macro-gate read of all 18 hunks; ± counts
-- 21:17:xx script greps (two rounds); 21:19:xx HANDOFF read; scripts_notes built
-- 21:35-21:5x report written, committed, pushed
+All from recorded command outputs and file mtimes; the doc-reading steps in
+the middle have no individual stamps — the whole job fits between the first
+and last stamp.
+
+- 20:59:18 first fetch of the gaps branch (recorded command output; budget start)
+- 20:59:50 inventory file written (mtime)
+- 20:59:55-20:59:56 port patch saved and fresh export made (mtimes)
+- 21:00:02 w6p6 dry-run output written; 21:00:14 combined `--forward` dry-run output written (mtimes; the port's real apply sits between them, `fit/port_apply_output.txt`)
+- 21:01:05 scripts_notes.txt written (mtime)
+- 21:01:38 report pushed (git's own record)
 
 ## What I did not do
 
