@@ -1,0 +1,28 @@
+Job 9 point 4: the size of each correction term on bench 13, MinorCorrection 100.
+Source: a traced private copy (/tmp/ds2/mctr2) whose only additions are counters in
+Worker::corrected_eval; its diff is P4_term_counters.patch.txt beside this file.
+
+Method: every call of corrected_eval accumulates |pawn term|, |material term| and
+|minor term| separately, plus the number of calls and the number of calls where the
+minor term is non-zero. The printed means are those sums divided by the call count
+and by CorrectionGrain (256), i.e. in centipawns.
+
+$ printf 'uci\nsetoption name MinorCorrection value 100\nbench 13\nquit\n' | ./forge
+info string bench depth 13 nodes 867866 time 521 nps 1665769
+info string MCTERMS calls 705170 minor_nonzero 426732 mean_abs_pawn 1.32369 mean_abs_material 6.37812 mean_abs_minor 5.67174
+
+Three numbers the job asked for:
+  * how often the new table's term is non-zero when the evaluation is corrected: 426,732 / 705,170 = 60.5 %
+  * mean |minor term|      : 5.67 cp
+  * beside  |pawn term|    : 1.32 cp
+           |material term|: 6.38 cp
+
+So the table is not read-but-near-zero: its term is 89 % of the material term and 4.3x
+the pawn term, and it fires on three calls in five. With weight 100 and 8,000 games
+(M1-M4) it still showed no gain per node, which is the more informative of the two
+possible answers.
+
+Caveat, also in the report: the pawn table is the base table the others are added to and
+is updated at every node, so it self-corrects toward zero; the material and minor terms
+are scaled by their weights on read. The three means are reported as asked, not as a
+like-for-like experiment.

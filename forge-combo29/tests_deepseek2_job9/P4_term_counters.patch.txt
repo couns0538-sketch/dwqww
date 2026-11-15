@@ -1,0 +1,77 @@
+diff --git mc/include/forge/search.hpp mctr2/include/forge/search.hpp
+index f8bb5ef..3d94ce4 100644
+--- mc/include/forge/search.hpp
++++ mctr2/include/forge/search.hpp
+@@ -278,6 +278,9 @@ extern int MaterialCorrectionWeight; // 0 = off, 100 = same weight as the pawn c
+ // Correction history indexed by where the knights and bishops stand: 0 = off,
+ // otherwise the weight in percent, as MaterialCorrectionWeight is.
+ extern int MinorCorrection;
++#if FORGE_DS2_TRACE_MC
++extern std::uint64_t tc_calls, tc_minor_nonzero, tc_abs_pawn, tc_abs_material, tc_abs_minor;
++#endif
+ // Time management (sudden-death / increment controls).
+ extern int TmSoftDivisor;         // soft limit = remaining / divisor + increment share
+ extern int TmIncrementPercent;    // share of the increment added to the soft limit
+diff --git mc/src/search.cpp mctr2/src/search.cpp
+index 8559d86..db4a610 100644
+--- mc/src/search.cpp
++++ mctr2/src/search.cpp
+@@ -77,6 +77,10 @@ int CheckExtensionDepth = 2;
+ int LmrCutoffThreshold = 3;
+ int MaterialCorrectionWeight = 100;
+ int MinorCorrection = 0;
++#if FORGE_DS2_TRACE_MC
++std::uint64_t tc_calls = 0, tc_minor_nonzero = 0;
++std::uint64_t tc_abs_pawn = 0, tc_abs_material = 0, tc_abs_minor = 0;
++#endif
+ int TmSoftDivisor = 22;
+ int TmIncrementPercent = 75;
+ int TmHardPercent = 60;
+@@ -1239,11 +1243,26 @@ int Worker::corrected_eval(const Board& board, int raw_eval) const {
+     }
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
++#if FORGE_DS2_TRACE_MC
++    ++tune::tc_calls;
++    tune::tc_abs_pawn += static_cast<std::uint64_t>(correction < 0 ? -correction : correction);
++#endif
+     if (tune::MaterialCorrectionWeight > 0) {
+-        correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
++        const std::int32_t material =
++            (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
++        correction += material;
++#if FORGE_DS2_TRACE_MC
++        tune::tc_abs_material += static_cast<std::uint64_t>(material < 0 ? -material : material);
++#endif
+     }
+     if (tune::MinorCorrection > 0) {
+-        correction += (*minor_correction_)[side][minor_key(board) & (CorrectionSize - 1U)] * tune::MinorCorrection / 100;
++        const std::int32_t minor =
++            (*minor_correction_)[side][minor_key(board) & (CorrectionSize - 1U)] * tune::MinorCorrection / 100;
++        correction += minor;
++#if FORGE_DS2_TRACE_MC
++        if (minor != 0) ++tune::tc_minor_nonzero;
++        tune::tc_abs_minor += static_cast<std::uint64_t>(minor < 0 ? -minor : minor);
++#endif
+     }
+     if (tune::NonPawnCorrection) {
+         const std::int32_t np_w = (*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)];
+diff --git mc/src/uci.cpp mctr2/src/uci.cpp
+index f19b867..1927709 100644
+--- mc/src/uci.cpp
++++ mctr2/src/uci.cpp
+@@ -633,6 +633,14 @@ int uci_loop(std::istream& in) {
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
+                       << std::endl;
++#if FORGE_DS2_TRACE_MC
++            std::cout << "info string MCTERMS calls " << forge::tune::tc_calls
++                      << " minor_nonzero " << forge::tune::tc_minor_nonzero
++                      << " mean_abs_pawn " << (forge::tune::tc_calls ? double(forge::tune::tc_abs_pawn) / double(forge::tune::tc_calls) / 256.0 : 0.0)
++                      << " mean_abs_material " << (forge::tune::tc_calls ? double(forge::tune::tc_abs_material) / double(forge::tune::tc_calls) / 256.0 : 0.0)
++                      << " mean_abs_minor " << (forge::tune::tc_calls ? double(forge::tune::tc_abs_minor) / double(forge::tune::tc_calls) / 256.0 : 0.0)
++                      << std::endl;
++#endif
+         } else if (command == "ponderhit") {
+             if (ponder_search_active) {
+                 searcher.ponderhit();

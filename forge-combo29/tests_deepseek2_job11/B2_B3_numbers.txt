@@ -1,0 +1,28 @@
+Job 11, Part B: threads.
+
+B2 - ThreadSanitizer (g++ -fsanitize=thread, RelWithDebInfo, FORGE_NNUE_HIDDEN=256)
+  Harness controls, both run before the engine:
+    1. standalone tsanrace.cpp (two threads, one non-atomic ++counter): 1 report
+    2. a planted race INSIDE the engine (/tmp/ds2/syrace: ++counter in Worker::qsearch,
+       unsynchronised): 30,830 "WARNING: ThreadSanitizer: data race", exit 66
+  The real patched engine (base + syzygy_port.patch), 60 searches per block
+  (40 from 3-4 piece positions that probe the tables, 20 from UHO openings), tables = the
+  35 bundled WDL tables:
+    Threads 2 ProbeDepth 1 : searched 60  races 0  san 0  illegal 0  exit 0
+    Threads 2 ProbeDepth 4 : searched 60  races 0  san 0  illegal 0  exit 0
+    Threads 4 ProbeDepth 1 : searched 60  races 0  san 0  illegal 0  exit 0
+    Threads 4 ProbeDepth 4 : searched 60  races 0  san 0  illegal 0  exit 0
+  total race warnings 0 of 240 searches.
+
+  NOTE, because it matters: my first planted-race attempt reported 0 because the build had
+  failed and I read the error count as a race count. The 0 above is only reported after the
+  same binary family produced 30,830 on a planted fault.
+
+  Why the engine can be clean: load() maps and parses every table on the UCI thread inside
+  setoption, then publishes an immutable Registry through an atomic pointer; probes only read
+  it, so there is no lazy load for search threads to race on. The one path that would be
+  unsafe (load() deleting the old registry with no reference count) is unreachable while
+  searching because setoption calls stop_search() first.
+
+B3 - the same 60 searches at Threads 4 under AddressSanitizer + UBSan:
+  searched 60, sanitizer lines 0, illegal 0, exit 0, stderr 0 lines.
