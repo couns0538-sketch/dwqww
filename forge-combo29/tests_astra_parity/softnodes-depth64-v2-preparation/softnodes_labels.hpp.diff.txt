@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "diff",
+    "-u",
+    "/workspace/work/parity-softnodes-depth64-preparation/softnodes_labels.hpp",
+    "/workspace/work/parity-softnodes-depth64-v2-preparation/softnodes_labels.hpp"
+  ],
+  "exit": 1,
+  "stdout": "--- /workspace/work/parity-softnodes-depth64-preparation/softnodes_labels.hpp\t2026-11-14 17:07:42.889065643 -0800\n+++ /workspace/work/parity-softnodes-depth64-v2-preparation/softnodes_labels.hpp\t2026-11-14 17:15:15.422660875 -0800\n@@ -1,6 +1,7 @@\n #pragma once\n #include <charconv>\n #include <cstdint>\n+#include <limits>\n #include <sstream>\n #include <string>\n #include <vector>\n@@ -47,11 +48,19 @@\n             continue;\n         }\n         std::string kind, bound, pv_first;\n-        int score = 0, depth = 0, multipv = 1;\n+        int score = 0, depth = 0, multipv = 1, depth_fields = 0;\n         std::uint64_t nodes = 0;\n         bool has_score = false, has_nodes = false, has_depth = false;\n         do {\n-            if (token == \"depth\") has_depth = static_cast<bool>(in >> depth);\n+            if (token == \"depth\") {\n+                std::string text;\n+                std::uint64_t parsed_depth = 0;\n+                ++depth_fields;\n+                const bool valid = static_cast<bool>(in >> text) && decimal_nodes(text, parsed_depth)\n+                    && parsed_depth <= static_cast<std::uint64_t>(std::numeric_limits<int>::max());\n+                has_depth = depth_fields == 1 && valid;\n+                if (has_depth) depth = static_cast<int>(parsed_depth);\n+            }\n             else if (token == \"score\") {\n                 has_score = static_cast<bool>(in >> kind >> score) && (kind == \"cp\" || kind == \"mate\");\n             } else if (token == \"nodes\") {\n",
+  "stderr": ""
+}

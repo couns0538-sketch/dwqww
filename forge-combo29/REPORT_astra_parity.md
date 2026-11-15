@@ -1,9 +1,9 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T02:19:40.000Z. Updated 2026-11-15T01:13:04.365Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T02:19:40.000Z. Updated 2026-11-15T01:19:23.366Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
-Final exact corpus S2-0003 running.
-step2 31710/100000 exact selected comparisons; 0 differences, 1 retained operational findings. Continuation authorized; corpus completion pending. Raw evidence and v3 metadata packaged immutably; source/commit/push state preserved.
+Final exact corpus S2-0004 running; same-clock difference attribution in progress.
+step2 48209/100000 exact selected comparisons; 1 differences, 1 retained operational findings. Attribution remains pending. Raw evidence and v3 metadata packaged immutably; source/commit/push state preserved.
 
 | Check | Result |
 |---|---|
@@ -15,7 +15,7 @@ step2 31710/100000 exact selected comparisons; 0 differences, 1 retained operati
 | Step 2 default pins | 312866 / 862329 / 4865609 |
 | Step 2 option checks and unit rows | 16/16 option counts; 9 unit rows, 0 failures |
 | Step 2 targeted position | a1b2, mate -5, 2566746 nodes; depth9, Threads1 |
-| Step 2 exact corpus | 31710/100000; 0 differences; completion/attribution pending |
+| Step 2 exact corpus | 48209/100000; 1 differences; completion/attribution pending |
 | Preliminary step 1 sanitizers | 393 games / 52681 searches; 0 findings |
 | Preliminary paired UCI check | 132 ordinary / 87 soft-node searches; 8 cap cases; 0 label faults |
 | Final-tree sanitizer observations | 5 finished games / 1102 searches; 1 batches with findings |
@@ -74,4 +74,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 18, including this checkpoint.
+Progress pushes: 19, including this checkpoint.
