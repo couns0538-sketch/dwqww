@@ -1,0 +1,23 @@
+--- /agent/repos/dwqww/forge-combo29/src/uci.cpp	2026-11-15 14:04:37.298314583 +0000
++++ tA3/src/uci.cpp	2026-11-15 15:19:23.247192003 +0000
+@@ -573,6 +573,20 @@
+                 });
+             }
+         } else if (command == "eval") {
++#if FORGE_DS2_EVAL_LIES
++            // PLANTED FAULT for the power check; nothing else changes.
++            // State: exactly the all-defaults combination (UseNNUE true, NNUEArch
++            // false -> the search uses the SMALL net, no v3 net loaded).
++            // `eval` names v3 anyway, printing a v3-scaled value. This is the
++            // "eval names one evaluator, search silently uses another" fault.
++            if (forge::nnue::enabled && !forge::nnue::v3::requested &&
++                forge::nnue::v3::loaded() == nullptr) {
++                const forge::EvalComponents parts = forge::Evaluator::static_eval_components(board);
++                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                std::cout << "info string eval nnue_v3 " << parts.total * 4 << std::endl;
++                continue;
++            }
++#endif
+ #if FORGE_NNUE_V3
+             if (forge::nnue::v3::active()) {
+                 const int value = forge::nnue::v3::evaluate_reference(*forge::nnue::v3::loaded(), board);

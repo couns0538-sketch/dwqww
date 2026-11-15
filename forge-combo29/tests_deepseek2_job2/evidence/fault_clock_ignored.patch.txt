@@ -1,0 +1,14 @@
+--- /agent/repos/dwqww/forge-combo29/include/forge/uci_clock.hpp	2026-11-15 14:04:37.210314583 +0000
++++ tC/include/forge/uci_clock.hpp	2026-11-15 15:19:50.039192003 +0000
+@@ -37,6 +37,11 @@
+     if (negative || magnitude > static_cast<std::uint64_t>(kMaxClockMs)) {
+         return negative ? 0 : kMaxClockMs;
+     }
++#if FORGE_DS2_CLOCK_IGNORED
++    // PLANTED FAULT for the power check: a well-formed clock is inflated, so the
++    // engine runs past it. Nothing else changes.
++    if (magnitude == 2000) return 60000;
++#endif
+     return static_cast<std::int64_t>(magnitude);
+ }
+ 
