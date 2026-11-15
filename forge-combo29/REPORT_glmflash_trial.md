@@ -81,3 +81,7 @@ Evidence files live in `forge-combo29/tests_glmflash_trial/` unless noted.
 ## 5. Model name and version
 
 The agent persona for this job is "glmflash". The model powering this agent, as I know it from my runtime information: **GLM 5.3 Flash** (I cannot independently verify the deployment build beyond that statement).
+
+## Addendum (post-delivery event, recorded ~09:16 UTC)
+
+After this report was delivered, the repository's SonarCloud automation failed the quality gate on this PR with: "C Security Rating on New Code (required ≥ A)". The specific findings could not be inspected from the trial VM: the SonarQube MCP server was down in this session and direct access to sonarcloud.io is blocked by the VM's network policy (both curl and the fetch tool were refused). No speculative changes were made without seeing the findings; a plausible (unverified) trigger is the trial's own evidence tooling (the subprocess-driving UCI run script, or the deliberate-race positive-control program, which intentionally contains a data race).
