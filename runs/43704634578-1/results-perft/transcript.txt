@@ -1,0 +1,302 @@
+     0.001 >> uci
+     0.016 << id name Chess Engine Forge 6.4.24 candidate
+     0.016 << id author OpenAI
+     0.016 << option name Hash type spin default 32 min 1 max 2048
+     0.016 << option name Threads type spin default 1 min 1 max 256
+     0.016 << option name MultiPV type spin default 1 min 1 max 8
+     0.016 << option name Move Overhead type spin default 10 min 0 max 1000
+     0.016 << option name Ponder type check default false
+     0.016 << option name OwnBook type check default true
+     0.016 << option name Book File type string default <empty>
+     0.016 << option name Book Depth type spin default 30 min 0 max 100
+     0.016 << option name Book Variety type spin default 30 min 0 max 100
+     0.016 << option name UseNNUE type check default true
+     0.016 << option name NnueFile type string default <empty>
+     0.016 << option name NNUEArch type check default false
+     0.016 << option name NNUEArchFile type string default <empty>
+     0.016 << option name ContHist4PlyRead type check default false
+     0.016 << option name NonPawnCorrection type check default false
+     0.016 << option name LmrDeeperShallower type check default false
+     0.016 << option name EvalRule50Damp type check default false
+     0.016 << option name ThreatHistory type check default false
+     0.016 << option name LmrSignedCorrection type check default false
+     0.016 << option name LmrLateParentRelief type check default false
+     0.016 << option name HindsightDepth type check default false
+     0.016 << option name NullThreatVerify type check default false
+     0.016 << option name NullSeeVeto type check default false
+     0.016 << option name AspCappedReopen type check default false
+     0.016 << option name AspArmLate type check default false
+     0.016 << option name EvasionOrdering type check default false
+     0.016 << option name DeadMaterial type check default false
+     0.016 << option name QuietExtinction type check default false
+     0.016 << option name DrawJitter type spin default 0 min 0 max 8
+     0.016 << option name TmFinishIteration type check default false
+     0.016 << option name TmNodeShare type check default false
+     0.016 << option name SoundMatePruning type check default false
+     0.016 << option name LmrQuietBase type spin default 85 min 0 max 300
+     0.016 << option name LmrQuietDivisor type spin default 220 min 100 max 500
+     0.016 << option name LmrNoisyBase type spin default 10 min 0 max 300
+     0.016 << option name LmrNoisyDivisor type spin default 340 min 100 max 800
+     0.016 << option name NullMoveMinDepth type spin default 3 min 1 max 10
+     0.016 << option name NullMoveBase type spin default 3 min 1 max 6
+     0.016 << option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+     0.016 << option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+     0.016 << option name RfpDepth type spin default 8 min 0 max 15
+     0.016 << option name RfpMargin type spin default 72 min 10 max 300
+     0.016 << option name RfpImproving type spin default 40 min 0 max 200
+     0.016 << option name RazorDepth type spin default 2 min 0 max 6
+     0.016 << option name RazorBase type spin default 150 min 0 max 1000
+     0.016 << option name RazorMultiplier type spin default 350 min 0 max 1000
+     0.016 << option name FutilityDepth type spin default 7 min 0 max 15
+     0.016 << option name FutilityBase type spin default 100 min 0 max 500
+     0.016 << option name FutilityMultiplier type spin default 110 min 0 max 500
+     0.016 << option name LmpBase type spin default 4 min 0 max 20
+     0.016 << option name HistoryPruneDepth type spin default 3 min 0 max 10
+     0.016 << option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+     0.016 << option name SeeQuietMultiplier type spin default 24 min 0 max 200
+     0.016 << option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+     0.016 << option name SingularDepth type spin default 7 min 2 max 20
+     0.016 << option name SingularMargin type spin default 2 min 0 max 10
+     0.016 << option name IirDepth type spin default 4 min 1 max 20
+     0.016 << option name ProbcutDepth type spin default 5 min 1 max 20
+     0.016 << option name ProbcutMargin type spin default 180 min 0 max 1000
+     0.016 << option name QsFutilityMargin type spin default 160 min 0 max 1000
+     0.016 << option name QsSeeMargin type spin default 40 min 0 max 500
+     0.016 << option name AspirationDelta type spin default 18 min 4 max 200
+     0.016 << option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+     0.016 << option name HistoryBonusLinear type spin default 48 min 0 max 500
+     0.016 << option name HistoryBonusMax type spin default 2048 min 100 max 10000
+     0.016 << option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+     0.016 << option name CheckExtensionDepth type spin default 2 min 1 max 30
+     0.016 << option name LmrCutoffThreshold type spin default 3 min 0 max 20
+     0.016 << option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+     0.016 << option name TmSoftDivisor type spin default 22 min 5 max 80
+     0.016 << option name TmIncrementPercent type spin default 75 min 0 max 150
+     0.016 << option name TmHardPercent type spin default 60 min 10 max 95
+     0.016 << option name TmHardSoftMultiple type spin default 5 min 1 max 20
+     0.016 << option name TmStableFactor type spin default 60 min 20 max 150
+     0.016 << option name TmSemiStableFactor type spin default 80 min 20 max 150
+     0.016 << option name TmUnstableFactor type spin default 140 min 50 max 300
+     0.016 << option name TmEffortBase type spin default 155 min 100 max 250
+     0.016 << option name TmFallingEvalPercent type spin default 100 min 0 max 400
+     0.016 << option name TmMinFactorPercent type spin default 45 min 10 max 100
+     0.016 << option name CaptureFutilityBase type spin default 0 min 0 max 1000
+     0.016 << option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+     0.016 << option name CaptureFutilityDepth type spin default 6 min 0 max 15
+     0.016 << option name FailLowContinuationBonus type spin default 0 min 0 max 300
+     0.016 << option name Clear Hash type button
+     0.016 << uciok
+     0.016 >> setoption name OwnBook value false
+     0.016 >> isready
+     0.016 << readyok
+     0.016 >> position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+     0.016 >> go perft 5
+     0.017 << a2a3: 181046
+     0.018 << b2b3: 215255
+     0.019 << c2c3: 222861
+     0.020 << d2d3: 328511
+     0.022 << e2e3: 402988
+     0.023 << f2f3: 178889
+     0.024 << g2g3: 217210
+     0.025 << h2h3: 181044
+     0.025 << a2a4: 217832
+     0.026 << b2b4: 216145
+     0.027 << c2c4: 240082
+     0.029 << d2d4: 361790
+     0.031 << e2e4: 405385
+     0.032 << f2f4: 198473
+     0.033 << g2g4: 214048
+     0.034 << h2h4: 218829
+     0.034 << b1a3: 198572
+     0.035 << b1c3: 234656
+     0.036 << g1f3: 233491
+     0.037 << g1h3: 198502
+     0.037 << nodes 4865609
+     0.037 >> position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+     0.037 >> go perft 6
+     0.057 << a2a3: 4463267
+     0.080 << b2b3: 5310358
+     0.104 << c2c3: 5417640
+     0.139 << d2d3: 8073082
+     0.183 << e2e3: 9726018
+     0.203 << f2f3: 4404141
+     0.226 << g2g3: 5346260
+     0.245 << h2h3: 4463070
+     0.268 << a2a4: 5363555
+     0.291 << b2b4: 5293555
+     0.317 << c2c4: 5866666
+     0.356 << d2d4: 8879566
+     0.401 << e2e4: 9771632
+     0.422 << f2f4: 4890429
+     0.445 << g2g4: 5239875
+     0.468 << h2h4: 5385554
+     0.490 << b1a3: 4856835
+     0.515 << b1c3: 5708064
+     0.540 << g1f3: 5723523
+     0.562 << g1h3: 4877234
+     0.562 << nodes 119060324
+     0.562 >> position fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1
+     0.563 >> go perft 4
+     0.563 << a2a3: 94405
+     0.563 << b2b3: 81066
+     0.564 << g2g3: 77468
+     0.564 << d5d6: 79551
+     0.565 << a2a4: 90978
+     0.565 << g2g4: 75677
+     0.565 << g2h3: 82759
+     0.566 << d5e6: 97464
+     0.566 << c3b1: 84773
+     0.566 << c3d1: 84782
+     0.567 << c3a4: 91447
+     0.567 << c3b5: 81498
+     0.567 << e5d3: 77431
+     0.568 << e5c4: 77752
+     0.568 << e5g4: 79912
+     0.569 << e5c6: 83885
+     0.569 << e5g6: 83866
+     0.569 << e5d7: 93913
+     0.570 << e5f7: 88799
+     0.570 << d2c1: 83037
+     0.570 << d2e3: 90274
+     0.571 << d2f4: 84869
+     0.571 << d2g5: 87951
+     0.572 << d2h6: 82323
+     0.572 << e2d1: 74963
+     0.572 << e2f1: 88728
+     0.573 << e2d3: 85119
+     0.573 << e2c4: 84835
+     0.573 << e2b5: 79739
+     0.574 << e2a6: 69334
+     0.574 << a1b1: 83348
+     0.574 << a1c1: 83263
+     0.575 << a1d1: 79695
+     0.575 << h1f1: 81563
+     0.575 << h1g1: 84876
+     0.576 << f3d3: 83727
+     0.576 << f3e3: 92505
+     0.577 << f3g3: 94461
+     0.577 << f3h3: 98524
+     0.577 << f3f4: 90488
+     0.578 << f3g4: 92037
+     0.578 << f3f5: 104992
+     0.579 << f3h5: 95034
+     0.579 << f3f6: 77838
+     0.579 << e1d1: 79989
+     0.580 << e1f1: 77887
+     0.580 << e1g1: 86975
+     0.580 << e1c1: 79803
+     0.580 << nodes 4085603
+     0.580 >> position fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1
+     0.580 >> go perft 5
+     0.598 << a2a3: 4627439
+     0.613 << b2b3: 3768824
+     0.627 << g2g3: 3472039
+     0.641 << d5d6: 3835265
+     0.658 << a2a4: 4387586
+     0.671 << g2g4: 3338154
+     0.686 << g2h3: 3819456
+     0.704 << d5e6: 4727437
+     0.719 << c3b1: 3996171
+     0.733 << c3d1: 3995761
+     0.751 << c3a4: 4628497
+     0.766 << c3b5: 4317482
+     0.779 << e5d3: 3288812
+     0.793 << e5c4: 3494887
+     0.807 << e5g4: 3415992
+     0.823 << e5c6: 4083458
+     0.838 << e5g6: 3949417
+     0.855 << e5d7: 4404043
+     0.871 << e5f7: 4164923
+     0.886 << d2c1: 3793390
+     0.903 << d2e3: 4407041
+     0.919 << d2f4: 3941257
+     0.936 << d2g5: 4370915
+     0.952 << d2h6: 3967365
+     0.964 << e2d1: 3074219
+     0.979 << e2f1: 4095479
+     0.996 << e2d3: 4066966
+     1.012 << e2c4: 4182989
+     1.027 << e2b5: 4032348
+     1.041 << e2a6: 3553501
+     1.055 << a1b1: 3827454
+     1.069 << a1c1: 3814203
+     1.083 << a1d1: 3568344
+     1.096 << h1f1: 3685756
+     1.111 << h1g1: 3989454
+     1.126 << f3d3: 3949570
+     1.143 << f3e3: 4477772
+     1.161 << f3g3: 4669768
+     1.180 << f3h3: 5067173
+     1.197 << f3f4: 4327936
+     1.214 << f3g4: 4514010
+     1.234 << f3f5: 5271134
+     1.252 << f3h5: 4743335
+     1.267 << f3f6: 3975992
+     1.280 << e1d1: 3559113
+     1.294 << e1f1: 3377351
+     1.308 << e1g1: 4119629
+     1.320 << e1c1: 3551583
+     1.320 << nodes 193690690
+     1.320 >> position fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1
+     1.320 >> go perft 5
+     1.321 << e2e3: 45326
+     1.321 << g2g3: 14747
+     1.321 << e2e4: 36889
+     1.322 << g2g4: 53895
+     1.322 << b4b1: 69665
+     1.323 << b4b2: 48498
+     1.323 << b4b3: 59719
+     1.323 << b4a4: 45591
+     1.324 << b4c4: 63781
+     1.324 << b4d4: 59574
+     1.325 << b4e4: 54192
+     1.325 << b4f4: 10776
+     1.325 << a5a4: 52943
+     1.325 << a5a6: 59028
+     1.325 << nodes 674624
+     1.325 >> position fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1
+     1.325 >> go perft 6
+     1.331 << e2e3: 745505
+     1.333 << g2g3: 271220
+     1.337 << e2e4: 597519
+     1.343 << g2g4: 892781
+     1.351 << b4b1: 1160678
+     1.357 << b4b2: 818501
+     1.363 << b4b3: 941129
+     1.369 << b4a4: 745667
+     1.376 << b4c4: 1027199
+     1.383 << b4d4: 957108
+     1.390 << b4e4: 860971
+     1.391 << b4f4: 174919
+     1.398 << a5a4: 868162
+     1.404 << a5a6: 968724
+     1.404 << nodes 11030083
+     1.405 >> position fen r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1
+     1.405 >> go perft 4
+     1.405 << c4c5: 60769
+     1.405 << d2d4: 72051
+     1.406 << f3d4: 75736
+     1.406 << b4c5: 58167
+     1.406 << f1f2: 73972
+     1.407 << g1h1: 81638
+     1.407 << nodes 422333
+     1.407 >> position fen r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1
+     1.407 >> go perft 5
+     1.418 << c4c5: 2145218
+     1.430 << d2d4: 2816009
+     1.445 << f3d4: 2928923
+     1.456 << b4c5: 2027632
+     1.469 << f1f2: 2703427
+     1.482 << g1h1: 3212083
+     1.482 << nodes 15833292
+     1.482 >> position fen rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8
+     1.482 >> go perft 4
+     1.483 << a2a3: 46833
+     1.483 << b2b3: 46497
+     1.483 << c2c3: 49406
+     1.483 << g2g3: 44509
+     1.483 << h2h3: 46762
+     1.483 << a2a4: 48882
+     1.484 << b2b4: 46696
+
+[CUT by cap_logs.py: the whole file had 1052683 bytes, 39381 lines, sha256 9fda1f7d2361b0df3be3e282cfd7093c916a6afcc1f9786532f092d2fd5a211a; counts in the whole file: 'WARNING: ThreadSanitizer:' 0, 'ERROR: AddressSanitizer' 0, 'ERROR: LeakSanitizer' 0, 'runtime error:' 0]
