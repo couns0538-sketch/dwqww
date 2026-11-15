@@ -11,6 +11,7 @@ int main(int argc, char** argv) {
         std::cout << "FEN " << fen << '\n' << engine.transcript();
         const bool passed = result.depth == 9 && result.score_kind == "mate"
             && result.score == -5 && result.nodes == 2566746
+            && result.score_bound.empty() && engine.stderr_output().empty()
             && !result.move.empty() && result.move != "0000"
             && shutdown.reaped && shutdown.exit_code == 0
             && shutdown.signal == 0 && !shutdown.timed_out
@@ -18,7 +19,9 @@ int main(int argc, char** argv) {
         std::cout << "EXPECTED depth=9 score=mate:-5 nodes=2566746\n"
                   << "RESULT depth=" << result.depth << " score=" << result.score_kind
                   << ':' << result.score << " nodes=" << result.nodes
-                  << " move=" << result.move << " passed=" << passed << '\n';
+                  << " move=" << result.move << " bound=" << result.score_bound
+                  << " stderr_bytes=" << engine.stderr_output().size()
+                  << " passed=" << passed << '\n';
         return passed ? 0 : 1;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';
