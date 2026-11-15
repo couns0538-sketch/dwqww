@@ -1,0 +1,71 @@
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index e8160dc..4f98f8d 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -96,6 +96,12 @@ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
+ int NullMoveHanging = 0;  // 0 = off, 1 = no null move when a piece hangs, 2 = verify the cutoff then
++std::uint64_t nh_cand = 0;        // null candidates (all other conditions passed), option on
++std::uint64_t nh_hang = 0;        // of those, hanging (value 1 gate counts here)
++std::uint64_t nh_tried = 0;       // value 2: null searches actually made
++std::uint64_t nh_tried_hang = 0;  // value 2: of those, at a hanging node
++std::uint64_t nh_cut_hang = 0;    // value 2: null cutoffs at a hanging node
++std::uint64_t nh_verify_ok = 0;   // value 2: of those cutoffs, confirmed by the verification search
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+@@ -1699,8 +1705,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             board.has_non_pawn_material(board.side_to_move()) &&
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
+             !(tune::NullSeeVeto && null_see_veto_threat(board)) &&
+-            !(tune::NullMoveHanging == 1 && cheaper_enemy_attacks_dearer(board))) {
++            !(tune::NullMoveHanging >= 1 && (tune::nh_cand++, tune::NullMoveHanging == 1 && (cheaper_enemy_attacks_dearer(board) ? (tune::nh_hang++, true) : false)))) {
+             ++null_tries_;
++            if (tune::NullMoveHanging >= 2) {
++                ++tune::nh_tried;
++                if (cheaper_enemy_attacks_dearer(board)) ++tune::nh_tried_hang;
++            }
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+             ss->current_move = Move::none();
+@@ -1725,7 +1735,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 // first, so the attack scan does not run when it is off.
+                 const bool threat_gate =
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+-                if (depth < 14 && !threat_gate && !(tune::NullMoveHanging >= 2 && cheaper_enemy_attacks_dearer(board))) {
++                const bool nh_hanging_cut = tune::NullMoveHanging >= 2 && (cheaper_enemy_attacks_dearer(board) ? (tune::nh_cut_hang++, true) : false);
++                if (depth < 14 && !threat_gate && !nh_hanging_cut) {
+                     ++null_cutoffs_;
+                     return null_score;
+                 }
+@@ -1740,6 +1751,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 ss->null_move_allowed = true;
+                 if (aborted_) return 0;
+                 if (verification >= beta) {
++                    if (nh_hanging_cut) ++tune::nh_verify_ok;
+                     ++null_cutoffs_;
+                     return null_score;
+                 }
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee..edcfc97 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -21,6 +21,7 @@
+ #include <string_view>
+ #include <thread>
+ #include <vector>
++namespace forge::tune { extern std::uint64_t nh_cand, nh_hang, nh_tried, nh_tried_hang, nh_cut_hang, nh_verify_ok; }
+ 
+ namespace {
+ 
+@@ -623,6 +624,9 @@ int uci_loop(std::istream& in) {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
++                      << "\ninfo string nhtrace cand " << forge::tune::nh_cand << " hang " << forge::tune::nh_hang
++                      << " tried " << forge::tune::nh_tried << " tried_hang " << forge::tune::nh_tried_hang
++                      << " cut_hang " << forge::tune::nh_cut_hang << " verify_ok " << forge::tune::nh_verify_ok
+                       << std::endl;
+         } else if (command == "ponderhit") {
+             if (ponder_search_active) {

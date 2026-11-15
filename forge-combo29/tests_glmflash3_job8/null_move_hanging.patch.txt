@@ -1,0 +1,39 @@
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e..e8160dc 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -95,6 +95,7 @@ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
+ bool ThreatHistory = false;
++int NullMoveHanging = 0;  // 0 = off, 1 = no null move when a piece hangs, 2 = verify the cutoff then
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+@@ -145,6 +146,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"NullMoveHanging", &NullMoveHanging, 0, 2},
+     };
+     return table;
+ }
+@@ -1696,7 +1698,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
+-            !(tune::NullSeeVeto && null_see_veto_threat(board))) {
++            !(tune::NullSeeVeto && null_see_veto_threat(board)) &&
++            !(tune::NullMoveHanging == 1 && cheaper_enemy_attacks_dearer(board))) {
+             ++null_tries_;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+@@ -1722,7 +1725,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 // first, so the attack scan does not run when it is off.
+                 const bool threat_gate =
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+-                if (depth < 14 && !threat_gate) {
++                if (depth < 14 && !threat_gate && !(tune::NullMoveHanging >= 2 && cheaper_enemy_attacks_dearer(board))) {
+                     ++null_cutoffs_;
+                     return null_score;
+                 }
