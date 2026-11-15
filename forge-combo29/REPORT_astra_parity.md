@@ -1,6 +1,6 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:51:26.118Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:57:11.957Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
@@ -102,6 +102,12 @@ Preliminary sanitizer results test the three-import tree and are recorded separa
 
 The first two clean final-tree batches contain 15406 searches after an earlier search without intervening ucinewgame. This exercises persistent-process warm TT/history and worker-storage reuse. Each root accumulator is nevertheless invalidated/refreshed at every search; neither harness performs an independent per-node incremental-versus-full NNUE value check. [Exact coverage and limitations](tests_astra_parity/warm-coverage-review/REVIEW.md).
 
+Two later TSanThreads2 ordinary depth9 searches exceeded the15second harness response allowance. Neither produced a sanitizer diagnostic, and both responded to quit and exited normally. These are retained deadline findings, not proven hangs or race reports. Both failed batches receive zero clean credit.
+- Seed202611160105, FEN 8/8/3k4/8/6P1/1Q3K2/8/8 b - - 0 54; last completed < stdout info depth 8 seldepth 13 score cp -2191 nodes 14812 nps 200162 hashfull 10 time 74 pv d6e7 g4g5 e7d6 f3e4 d6d7 b3d5 d7c7 g5g6 c7c8 e4f4; quit-to-exit 24.00694ms. [Full fault](tests_astra_parity/faults/tsan-response-timeout-0018-4.txt).
+- Seed202611160111, FEN 8/B2P4/2K5/P7/8/5k2/8/8 b - - 0 73; last completed < stdout info depth 8 seldepth 13 score cp -2451 nodes 4879 nps 113465 hashfull 4 time 43 pv f3e4 a5a6 e4f5 a7c5 f5f6 a6a7 f6e5 a7a8q e5e6; quit-to-exit 29.126809ms. [Full fault](tests_astra_parity/faults/tsan-response-timeout-0018-10.txt).
+
+[Independent timeout review](tests_astra_parity/tsan-timeout-0018-review/REVIEW.md). [Question0018](https://github.com/couns0538-sketch/dwqww/blob/4a9704895419099a6947c2d1c54694451c1841fe/forge-combo29/soak_all/ASTRA_QUESTION_0018.md).
+
 The actual owner-PC compiler, PGO profile, runtime tuning and active network were not independently tested here. This report covers the specifically requested source changes, cloud builds and recorded options. Fable reports an independent source comparison in answer0012; that is attributed evidence, not a cloud run on the PC.
 
 Detailed state and all command/output files are retained: [state snapshot](tests_astra_parity/STATUS_STATE.txt), [commands and raw output](tests_astra_parity/logs), [progress](tests_astra_parity/PROGRESS.txt). Large raw text logs use immutable chunks with byte counts and SHA256 reconstruction manifests. All published additions are text under this report and tests_astra_parity. Existing tests, expected values, CMake and earlier evidence remain unchanged.
@@ -109,4 +115,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 33, including this checkpoint.
+Progress pushes: 34, including this checkpoint.

@@ -13,7 +13,7 @@ while(true){
    const file=dir+'/'+stream;if(!fs.existsSync(file))continue;
    const text=fs.readFileSync(file,'utf8');
    for(const line of text.split('\n').slice(0,-1)){
-    if(/(?:Address|UndefinedBehavior|Leak|Thread|Memory|HWAddress)Sanitizer|runtime error:|Sanitizer CHECK failed|terminate called|Segmentation fault|core dumped|^FAULT /i.test(line))findings.push({stream,line});
+    if(/(?:Address|UndefinedBehavior|Leak|Thread|Memory|HWAddress)Sanitizer|runtime error:|Sanitizer CHECK failed|terminate called|Segmentation fault|core dumped|^FAULT /i.test(line))findings.push({stream,linePrefix:line.slice(0,300),fullLineBytes:Buffer.byteLength(line),rawFile:file});
     if(line.startsWith('CHECK ')){try{const c=JSON.parse(line.slice(6));checks++;last={pair:c.pair,mode:c.mode,ply:c.ply};if(c.mode==='soft'&&(c.item3===0||c.item4===0))findings.push({stream,labelCheck:c});}catch(error){findings.push({stream,parseError:error.message,line});}}
    }
   }
