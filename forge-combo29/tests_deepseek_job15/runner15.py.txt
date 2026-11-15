@@ -1,0 +1,248 @@
+#!/usr/bin/env python3
+"""runner15.py -- node-clock game runner for deepseek job 15.
+
+Properties (job text):
+ a. One engine process per side (per worker). Each search: `position fen <opening fen> moves <all so far>`,
+    then `go wtime <w> btime <b> winc 100 binc 100` where w/b are OUR node-millisecond bookkeeping:
+    start 10,000 each; after a move subtract the `time` value of the search's LAST info line
+    (the final `info ... score ... time <X> ...` line before `bestmove` — with NodeClock that value is
+    node milliseconds) and add 100. A side whose clock falls below 0 loses on node time.
+ b. Any `info string illegal move` / `invalid FEN` from the engine, a bestmove that is not legal on our
+    python-chess board, or an unreadable answer STOPS the match with an error; such a game is never scored.
+ c. Game ends from python-chess with claim_draw=True; cap 300 full moves. Endings counted per match:
+    mate, stalemate, threefold, fifty, insufficient, node-time forfeit, cap, fault (must be 0).
+ d. Openings: UHO epd; each opening twice with colours reversed; pair order from random.Random(seed).
+ e. Proofs before any match: 20 games twice same seed identical at NodeClock 100; NodeClock 0 must differ;
+    replay 20 finished games from the opening with python-chess alone -> same final position and result.
+"""
+import chess
+import json
+import random
+import subprocess
+import sys
+import time
+
+ENGINE = "/tmp/ds14_nc/build/forge"
+
+class Engine:
+    def __init__(self, name, options):
+        self.name = name
+        self.p = subprocess.Popen([ENGINE], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                  stderr=subprocess.DEVNULL, text=True, bufsize=1)
+        self.send("uci")
+        while True:
+            if self.p.stdout.readline().startswith("uciok"):
+                break
+        for o in options:
+            self.send(f"setoption name {o[0]} value {o[1]}")
+        self.send("isready")
+        while True:
+            if self.stdout_line().startswith("readyok"):
+                break
+
+    def send(self, line):
+        self.p.stdin.write(line + "\n")
+        self.p.stdin.flush()
+
+    def stdout_line(self):
+        return self.p.stdout.readline()
+
+    def new_game(self):
+        self.send("ucinewgame")
+        self.send("isready")
+        while True:
+            if self.stdout_line().startswith("readyok"):
+                break
+
+    def search(self, fen, moves_uci, wtime, btime, winc, binc, white_to_move):
+        self.send(f"position fen {fen} moves {' '.join(moves_uci)}".strip())
+        self.send(f"go wtime {wtime} btime {btime} winc {winc} binc {binc}")
+        last_time = None
+        while True:
+            line = self.stdout_line()
+            if not line:
+                raise RuntimeError(f"{self.name}: engine closed its stdout")
+            line = line.strip()
+            if line.startswith("info string illegal move") or "invalid FEN" in line or "illegal" in line:
+                raise RuntimeError(f"{self.name}: engine reports fault: {line}")
+            if line.startswith("info") and " time " in line:
+                t = line.split()
+                try:
+                    last_time = int(t[t.index("time") + 1])
+                except (ValueError, IndexError):
+                    pass
+            if line.startswith("bestmove"):
+                parts = line.split()
+                if len(parts) < 2:
+                    raise RuntimeError(f"{self.name}: unreadable bestmove line: {line}")
+                return parts[1], last_time
+            if line.startswith("info string") and "illegal" in line:
+                raise RuntimeError(f"{self.name}: {line}")
+
+    def quit(self):
+        try:
+            self.send("quit")
+            self.p.wait(timeout=10)
+        except Exception:
+            self.p.kill()
+
+def play_pair(eng_a_opts, eng_b_opts, opening_fen, pair_seed, games_tag):
+    """One opening, two games with colours reversed. Returns two game dicts."""
+    out = []
+    for color_swap in (0, 1):
+        board = chess.Board()
+        board.set_fen(opening_fen)
+        w_opts, b_opts = (eng_a_opts, eng_b_opts) if color_swap == 0 else (eng_b_opts, eng_a_opts)
+        wname, bname = ("A", "B") if color_swap == 0 else ("B", "A")
+        ea = Engine(f"{games_tag}-g{color_swap}-w", w_opts)
+        eb = Engine(f"{games_tag}-g{color_swap}-b", b_opts)
+        ea.new_game(); eb.new_game()
+        w_ms = b_ms = 10000
+        moves_uci = []
+        end = None
+        fault = None
+        while True:
+            if board.fullmove_number > 300:
+                end = "cap"
+                break
+            white_to_move = board.turn == chess.WHITE
+            eng = ea if white_to_move else eb
+            try:
+                mv, tval = eng.search(opening_fen, moves_uci,
+                                      w_ms if white_to_move else b_ms,
+                                      b_ms if white_to_move else w_ms,
+                                      100, 100, white_to_move)
+            except RuntimeError as e:
+                fault = str(e)
+                break
+            try:
+                move = chess.Move.from_uci(mv)
+            except Exception:
+                fault = f"unreadable move token {mv!r}"
+                break
+            if move not in board.legal_moves:
+                fault = f"bestmove {mv} not legal on the runner's board"
+                break
+            board.push(move)
+            moves_uci.append(mv)
+            # clock bookkeeping: subtract the search's own last-reported time (node ms), add increment
+            spent = tval if tval is not None else 0
+            if white_to_move:
+                w_ms -= spent; w_ms += 100
+                if w_ms < 0:
+                    end = "node-time forfeit"; break
+            else:
+                b_ms -= spent; b_ms += 100
+                if b_ms < 0:
+                    end = "node-time forfeit"; break
+            if board.is_game_over(claim_draw=True):
+                break
+        if fault is not None:
+            for e in (ea, eb): e.quit()
+            raise RuntimeError(f"FAULT in {games_tag}: {fault}")
+        reason = None
+        if end is None:
+            if board.is_checkmate():
+                end, reason = "mate", ("white" if board.turn == chess.BLACK else "black")
+            elif board.is_stalemate():
+                end, reason = "stalemate", None
+            elif board.can_claim_threefold_repetition():
+                end, reason = "threefold", None
+            elif board.can_claim_fifty_moves():
+                end, reason = "fifty", None
+            elif board.is_insufficient_material():
+                end, reason = "insufficient", None
+            else:
+                end, reason = "cap", None
+        if end == "node-time forfeit":
+            winner = "white" if b_ms < 0 else "black"
+        elif end == "mate":
+            winner = reason
+        else:
+            winner = None
+        out.append({
+            "opening": opening_fen, "tag": games_tag, "swap": color_swap,
+            "white": wname, "black": bname, "end": end, "winner": winner,
+            "plies": len(moves_uci), "moves": moves_uci,
+            "final_fen": board.fen(),
+            "w_ms_left": w_ms, "b_ms_left": b_ms,
+        })
+        for e in (ea, eb): e.quit()
+    return out
+
+def _pair_worker(args):
+    base_opts, cand_opts, fen, seed, tag = args
+    return play_pair(base_opts, cand_opts, fen, seed, tag)
+
+def main():
+    # argv: mode match|proof|replay  -- then per-mode args
+    from multiprocessing import Pool
+    mode = sys.argv[1]
+    if mode == "match":
+        # runner15.py match <seed> <ngames_per_side_pairs> <cand_opts_json> <base_opts_json> <out_json>
+        seed = int(sys.argv[2]); pairs_wanted = int(sys.argv[3])
+        cand_opts = json.loads(sys.argv[4]); base_opts = json.loads(sys.argv[5])
+        out_path = sys.argv[6]
+        fens = [l.strip() for l in open("/tmp/glmflash/UHO_Lichess_4852_v1.epd",
+                                        encoding="utf-8", errors="replace") if l.strip()]
+        rng = random.Random(seed)
+        idx = list(range(len(fens)))
+        rng.shuffle(idx)
+        idx = idx[:pairs_wanted]
+        jobs = [(base_opts, cand_opts, fens[i], seed, f"p{k}") for k, i in enumerate(idx)]
+        results = []
+        t0 = time.time()
+        with Pool(4) as pool:
+            for k, res in enumerate(pool.imap_unordered(_pair_worker, jobs)):
+                results.extend(res)
+                if (k + 1) % 25 == 0:
+                    print(f"progress {k+1}/{len(idx)} pairs, {time.time()-t0:.0f}s", flush=True)
+        json.dump(results, open(out_path, "w"))
+        print(f"DONE games={len(results)}")
+    elif mode == "proof_twice":
+        seed = int(sys.argv[2]); pairs_wanted = int(sys.argv[3]); out_path = sys.argv[4]
+        opts = json.loads(sys.argv[5])
+        fens = [l.strip() for l in open("/tmp/glmflash/UHO_Lichess_4852_v1.epd",
+                                        encoding="utf-8", errors="replace") if l.strip()]
+        rng = random.Random(seed)
+        idx = list(range(len(fens))); rng.shuffle(idx); idx = idx[:pairs_wanted]
+        with Pool(4) as pool:
+            run1 = [g for pair in pool.map(_pair_worker,
+                    [(opts, opts, fens[i], seed, f"r1p{k}") for k, i in enumerate(idx)]) for g in pair]
+        with Pool(4) as pool:
+            run2 = [g for pair in pool.map(_pair_worker,
+                    [(opts, opts, fens[i], seed, f"r2p{k}") for k, i in enumerate(idx)]) for g in pair]
+        same = all(a["moves"] == b["moves"] and a["final_fen"] == b["final_fen"]
+                   and a["end"] == b["end"] for a, b in zip(run1, run2))
+        first_diff = None
+        for k, (a, b) in enumerate(zip(run1, run2)):
+            if a["moves"] != b["moves"]:
+                for j, (x, y) in enumerate(zip(a["moves"], b["moves"])):
+                    if x != y:
+                        first_diff = (k, j, x, y); break
+                if first_diff is None:
+                    first_diff = (k, "length", len(a["moves"]), len(b["moves"]))
+                break
+        json.dump({"run1": run1, "run2": run2}, open(out_path, "w"))
+        print(f"IDENTICAL={same} first_diff={first_diff} games={len(run1)}")
+    elif mode == "replay":
+        data = json.load(open(sys.argv[2]))
+        games = []
+        if isinstance(data, dict):
+            games = data.get("run1", []) + data.get("run2", [])
+        else:
+            games = data
+        bad = 0
+        checked = 0
+        for g in games:
+            board = chess.Board(); board.set_fen(g["opening"])
+            for mv in g["moves"]:
+                board.push(chess.Move.from_uci(mv))
+            over = board.is_game_over(claim_draw=True) or g["end"] in ("node-time forfeit", "cap")
+            checked += 1
+            if not over or board.fen() != g["final_fen"]:
+                bad += 1
+        print(f"replay: games={checked} mismatches={bad}")
+
+if __name__ == "__main__":
+    main()
