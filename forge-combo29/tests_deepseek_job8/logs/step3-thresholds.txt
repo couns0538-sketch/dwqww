@@ -1,0 +1,28 @@
+JOB 8 STEP 3: where the engine stops searching, and where it stops finding the mate.
+
+Thresholds per configuration (from the step 2 tables):
+
+            config   first clock with mate>=195/200     clocks where no-search>0
+Threads 1, Hash 16                                0                         none
+Threads 1, Hash 512                                0                         none
+Threads 8, Hash 16                                0                         none
+Threads 8, Hash 512                                0                         none
+
+Read this carefully: `first clock with mate>=195/200` is 0 for EVERY
+configuration, because the engine found the mate in 200/200 at every clock
+including 0. And `no-search>0` is `none` everywhere: there is no clock at which
+the engine answered without searching.
+
+The cells where a flag is possible are the CLOCK-0 cells only, plus clock 1 with
+Hash 512 or 8 threads, where the median search time cannot fit under the clock.
+
+Worst cells by `answered later than the clock`, and their transcripts:
+  Threads 8, Hash 512 MB, clock 0 ms: 200/200 answered later than the clock; median 1.52 ms, max 2.744 ms,
+     searched 200/200, mating 200/200,
+     Move Overhead default: option name Move Overhead type spin default 10 min 0 max 1000
+  Threads 8, Hash 16 MB, clock 0 ms: 200/200 answered later than the clock; median 1.343 ms, max 2.852 ms,
+     searched 200/200, mating 200/200,
+     Move Overhead default: option name Move Overhead type spin default 10 min 0 max 1000
+  Threads 1, Hash 512 MB, clock 0 ms: 200/200 answered later than the clock; median 0.763 ms, max 1.338 ms,
+     searched 200/200, mating 200/200,
+     Move Overhead default: option name Move Overhead type spin default 10 min 0 max 1000
