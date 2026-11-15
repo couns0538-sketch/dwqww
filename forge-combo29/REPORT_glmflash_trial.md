@@ -1,8 +1,10 @@
 # REPORT glmflash trial (ThreadSanitizer check of the NNUE v3 path)
 
 Run: 2026-11-15, started 09:04:41 UTC, report written ~09:11 UTC.
-Branch: `for-fable-and-opus/glmflash-trial` (created from commit `6b98f217`, tip of
-`for-fable-and-opus/astra-0017-v3-path`; no other branch touched).
+Branch: `cursor/glmflash-trial-9ab9` (created from commit `6b98f217`, tip of
+`for-fable-and-opus/astra-0017-v3-path`; no other branch touched). The PR tooling on this
+cloud VM requires the `cursor/` prefix, so the planned name `for-fable-and-opus/glmflash-trial`
+was renamed to this one and the rename is recorded in START.md as the task allows.
 Machine: cloud VM, Ubuntu 24.04.5 LTS, kernel 6.12.113+, 4 vCPU Intel Xeon with
 AVX-512 + BMI2 (so no FORGE_PORTABLE needed), glibc 2.39, 16 GB RAM.
 
