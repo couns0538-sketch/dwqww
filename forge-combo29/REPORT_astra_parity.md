@@ -1,6 +1,6 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T04:55:41.670Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T05:02:10.752Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
@@ -8,8 +8,10 @@ Job A closed at 2026-11-15T04:20:00.000Z; accepted sanitizer coverage 846 games 
 
 [Shutdown finding0020 at the Job A deadline](tests_astra_parity/job-a-closeout-0020-supplement.md). The closeout does not authorize resuming a paused job.
 
-Job B: HindsightDepth fixed-node match.
-Job B B-0012: credited 100 games; cumulative 1200, W-L-D 332-300-568, pairs 26,130,256,162,26. 0 blocked batches; 0 raw finished games excluded. Counts only.
+Job B is closed: 1400 of 6000 requested games. [Verified match closeout](tests_astra_parity/job-b-closeout-final/REPORT.md); [shutdown context and limitations](tests_astra_parity/job-b-closeout-context.md). Last native batch finished 2026-11-15T05:00:27.265Z; actual native batch intervals total 1743.2379999999998 seconds. This is not a claim of two continuous hours of play.
+
+Jobs A and B closed; final publication before Job C.
+Job A: 846 accepted games / 120313 searches, 12/12 sampled conditions; 2312.736 seconds accepted sanitizer interval union, below 7200. Six failed sanitizer batches retained separately. One full shutdown replay matched 8291 searches and exited naturally in 38.103431 ms; original cause unresolved, zero diagnostic credit. Job B: 1400/6000 games, W389-L350-D661, pair bins 28,154,302,183,33, no recorded operational findings; 1743.238 seconds of native match batch time, no continuous-two-hour claim. Job C has not started; question0021 requests timing clarification and next useful work.
 
 | Check | Result |
 |---|---|
@@ -32,7 +34,7 @@ Job B B-0012: credited 100 games; cumulative 1200, W-L-D 332-300-568, pairs 26,1
 | Current paired labels | 295 ordinary / 295 soft-node games; soft X 229824203/41812, mean 5496.6087008514305; 5647 hard-cap cases |
 | Accepted final-tree totals across protocols | 846 games / 120313 searches; failed batches excluded |
 | Current-protocol SMP sampling exception | 454 accepted-clean searches; 454 observed; historical failures unchanged |
-| HindsightDepth match | 1200 games; W-L-D 332-300-568; pair counts 26,130,256,162,26; Running; completed batches only |
+| HindsightDepth match | 1400 games; W-L-D 389-350-661; pair counts 28,154,302,183,33; Closed at the declared batch-budget limit |
 | Match operational findings | 0 crash markers; 0 illegal-move games; 0 disconnect games; 0 stalls; 0 aborts; raw side/process accounting retained separately |
 | Response-deadline diagnostics | 40/40 release and 2/2 TSan searches completed before quit; 0 response timeouts, sanitizer reports or abnormal exits; zero soak credit |
 | ASan shutdown finding0020 | Seed 202611171101; declared250ms allowance; driver SIGTERM then SIGKILL, reaped signal9; 235.556687ms quit-to-reap; failed batch has zero clean credit; unresolved; release Job B and separate diagnostic authorized by decision0020 |
@@ -157,4 +159,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 48, including this checkpoint.
+Progress pushes: 49, including this checkpoint.

@@ -5,7 +5,7 @@
   "start": "2026-11-14T23:19:40.000Z",
   "budgetMinutes": 180,
   "deadline": "2026-11-15T04:20:00.000Z",
-  "phase": "Job B: HindsightDepth fixed-node match",
+  "phase": "Jobs A and B closed; final publication before Job C",
   "sourceCommits": [
     {
       "step": 1,
@@ -55,8 +55,8 @@
       "stat": "c488e88f Apply source-only r3-20-faster-search-plumbing by three-way merge from e04556dd\n forge-combo29/include/forge/bitboard.hpp |   6 ++\n forge-combo29/include/forge/board.hpp    |  29 +++++++\n forge-combo29/src/bitboard.cpp           |   7 ++\n forge-combo29/src/board.cpp              | 144 +++++++++++++++++++------------\n forge-combo29/src/search.cpp             | 120 ++++++++++++++++++++------\n 5 files changed, 227 insertions(+), 79 deletions(-)"
     }
   ],
-  "pushes": 47,
-  "lastPush": "2026-11-15T04:46:43.337Z",
+  "pushes": 48,
+  "lastPush": "2026-11-15T04:55:59.995Z",
   "sourceChangesOnly": [
     "forge-combo29/src",
     "forge-combo29/include"
@@ -74,7 +74,7 @@
     "step1 any equality difference stops dependent work",
     "counts only; owner no Elo/speed claims overrides external request"
   ],
-  "lastCommit": "1282d322c8326ea5b681e154dae3809cbe1821ed",
+  "lastCommit": "5eaf225be85beb4c7ce312805dd68f423f1bed99",
   "validation": {
     "step1": {
       "build": "passed",
@@ -2549,8 +2549,8 @@
       "smpProtocolCreditIncluded": false
     }
   },
-  "checkpointNote": "Job B B-0012: credited 100 games; cumulative 1200, W-L-D 332-300-568, pairs 26,130,256,162,26. 0 blocked batches; 0 raw finished games excluded. Counts only.",
-  "progressBatch": "B-0012 seed202611150011 openingStart551",
+  "checkpointNote": "Job A: 846 accepted games / 120313 searches, 12/12 sampled conditions; 2312.736 seconds accepted sanitizer interval union, below 7200. Six failed sanitizer batches retained separately. One full shutdown replay matched 8291 searches and exited naturally in 38.103431 ms; original cause unresolved, zero diagnostic credit. Job B: 1400/6000 games, W389-L350-D661, pair bins 28,154,302,183,33, no recorded operational findings; 1743.238 seconds of native match batch time, no continuous-two-hour claim. Job C has not started; question0021 requests timing clarification and next useful work.",
+  "progressBatch": "Job B closeout: 14 batches, seed 202611150011",
   "active": null,
   "equalityTotals": {
     "step1": {
@@ -8691,7 +8691,7 @@
     "relativeReportLinks": 14,
     "engineRuns": 0
   },
-  "commitMessage": "Record complete shutdown replay without changing original failure",
+  "commitMessage": "Close Jobs A and B with measured shortfalls and retained findings",
   "referenceShutdown068919": {
     "utc": "2026-11-15T01:38:57.812Z",
     "pairs": 10,
@@ -16086,27 +16086,351 @@
       "seed": 202611150011,
       "openingStart": 551,
       "requestedGames": 100
+    },
+    {
+      "schema": 1,
+      "protocol": "hindsight-fixed-node-counts-only-0018",
+      "decision0018": {
+        "commit": "fe59dc3ab072480f7360f0b356ff01a900d2ab35",
+        "file": "/workspace/work/parity-run/inputs/FABLE_ANSWER_0018.md.txt",
+        "sha256": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b"
+      },
+      "step2AcceptanceEvidence": [
+        {
+          "file": "/workspace/work/parity-run/inputs/step2-effective-acceptance-S2-0007.txt",
+          "sha256": "11284dcae54beb48546c53f0ca9f4d3c4f92d8cdc97fbd0872452cfbb30f3c5e"
+        }
+      ],
+      "jobACompleteAtDeclaration": false,
+      "sanitizerPendingAtDeclaration": true,
+      "id": "B-0013",
+      "sourceCommit": "d9a8587df8ad4d0ff1231632cb1ac72b590c04bf",
+      "declarationSha256": "272aabae9c842dafd067b55c5d1bb079684a4e81e345b8ca9bc1e64d3b10b84d",
+      "receiptFile": "/workspace/work/parity-run/matches-hindsight/receipts/B-0013.txt",
+      "receiptSha256": "fc6888356e347483b0e49720d16b2f4f97b5b5dc326ef7a0fa54df3f75587c3b",
+      "summaryFile": "/workspace/work/parity-run/matches-hindsight/batches/B-0013.summary.txt",
+      "summarySha256": "55763df2a62235782d9a338413c79275d091cf10e35ac79d834c98adee568c1a",
+      "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0013.artifact-hashes.txt",
+      "artifactHashesSha256": "cc80f7e55cf1f917451ec2cd0cfa98b137a2a01fedea69b8a359dbb537472894",
+      "rawPins": {
+        "/workspace/work/parity-run/matches-hindsight/plans/B-0013.txt": "db361c8bb65619cfd4619af4270f53ef50e91e82e564fe63b7328b69b39d449a",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0013.summary.txt": "55763df2a62235782d9a338413c79275d091cf10e35ac79d834c98adee568c1a",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0013.artifact-hashes.txt": "cc80f7e55cf1f917451ec2cd0cfa98b137a2a01fedea69b8a359dbb537472894",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0013.command.txt": "b26da2c055121d173d021d9c029484d6d932d0d036702945bc25ae342513adc4",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0013.stdout.txt": "6394a0f712c676c5b98ca8882f5cdf487f73dae0c32242ed827362debe757ea9",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0013.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0013.console.txt": "6394a0f712c676c5b98ca8882f5cdf487f73dae0c32242ed827362debe757ea9",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0013.events.ndjson": "39c3168e673379119fd3e8302d8ae7863a38affeae2a9f24a574c72ad4b17912",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0013.pgn": "bd185d0abcd8b988afcfae466813425d05220fda0941d5f715a1108da090d281",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0013.engine.log": "5f8b0e44ecd5a5fe8b182e620555b18da9c2577fae318678da6fbfd25d065165",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0013.config.json": "7a4053d6d759ca6e0ef81faa6ec3d488c80453decee4691ddfec97b6f68f86c3",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0013.process.txt": "b24e63e90e4fce7ea3205feba7a6ffbfb47767270ff23273df27f22cacde077b"
+      },
+      "recorderPins": {
+        "/workspace/work/parity-match-0018-recording-preparation/record.mjs": "2160080f7d70c37cd309fe494b2d2cc0da4affbcbf63bffd2bd09dff738d62a6",
+        "/workspace/work/parity-match-0018-recording-preparation/accounting.mjs": "234d6013b14fa9ad5179bb41cd671ab0ecee1adab75d1ad490bca8580ed91040",
+        "/workspace/work/parity-match-0018-recording-preparation/validate.mjs": "dd1fc5900f0e806ba0feb208bda074292501f00b8386381b18f06890f4247334"
+      },
+      "externalPins": {
+        "/workspace/work/parity-run/package-evidence.mjs": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
+        "/workspace/work/parity-equality-preparation-v3/evidence-integrity.mjs": "33d1373916608c7cd3ffc97a1e0c1ca774fb949b38745a4cc5f73f9117202601",
+        "/workspace/work/parity-match-0018-preparation/controller.mjs": "a17da2efce953f84c1eab052d892210e45ed8adc3e153a48d3ec88ff00a4dbea",
+        "/workspace/work/parity-match-0018-preparation/protocol.mjs": "6421456840bc13431da54085bb99c40533d60ed34027dd759482ec84928e7892",
+        "/workspace/work/parity-match-0018-preparation/audit-command.mjs": "69e7bd8677ce4cff4f6d55e2470169d78afb2737175a4f947c14c13b133719d7",
+        "/workspace/work/parity-match-0018-preparation/audit-core.mjs": "d030f12a43778eb2768aea2a97eeb7ecbbb9d5b7a926570e4cc3b4b135386533",
+        "/workspace/work/parity-match-0018-preparation/audit-extra.mjs": "4133210f0061c643262e684c3ba7262b267d612822c776ee59c2ac75a929cd64"
+      },
+      "completed": true,
+      "passed": true,
+      "credit": {
+        "games": 100,
+        "pairs": 50,
+        "wins": 25,
+        "losses": 29,
+        "draws": 46,
+        "pentanomial": [
+          2,
+          13,
+          24,
+          9,
+          2
+        ]
+      },
+      "rawCounts": {
+        "started": 100,
+        "finished": 100,
+        "pgnGames": 100,
+        "consoleGames": 100,
+        "eventLines": 14428,
+        "moves": 14226,
+        "wins": 25,
+        "losses": 29,
+        "draws": 46
+      },
+      "rawPairBins": {
+        "labels": [
+          "LL",
+          "LD",
+          "DD_or_WL",
+          "DW",
+          "WW"
+        ],
+        "counts": [
+          2,
+          13,
+          24,
+          9,
+          2
+        ],
+        "completePairs": 50,
+        "incompletePairs": [],
+        "abnormalPairs": []
+      },
+      "failureCounts": {
+        "illegalMoveEvents": 0,
+        "illegalMoveGames": 0,
+        "disconnectGames": 0,
+        "stallGames": 0,
+        "abortedGames": 0,
+        "abnormalTerminations": 0,
+        "crashMarkers": 0,
+        "illegalMarkers": 0,
+        "disconnectMarkers": 0,
+        "stallMarkers": 0
+      },
+      "sideAccounting": {
+        "bySide": {
+          "hindsight-on": {
+            "illegalMoveEvents": 0,
+            "illegalMoveGames": 0,
+            "disconnectGames": 0,
+            "stallGames": 0,
+            "timeForfeitGames": 0,
+            "nonzeroProcessExits": 0,
+            "processSignals": 0,
+            "crashSignals": 0,
+            "controllerCleanupSignals": 0
+          },
+          "hindsight-off": {
+            "illegalMoveEvents": 0,
+            "illegalMoveGames": 0,
+            "disconnectGames": 0,
+            "stallGames": 0,
+            "timeForfeitGames": 0,
+            "nonzeroProcessExits": 0,
+            "processSignals": 0,
+            "crashSignals": 0,
+            "controllerCleanupSignals": 0
+          }
+        },
+        "faultGames": [],
+        "unattributedAbortsOrGames": [],
+        "processEvidence": [],
+        "unattributedProcessEvidence": [],
+        "definition": "Game faults by losing configuration; illegal move attempts retain their event engine. Process exits/signals are separate observations, not extra distinct games. Disconnect does not establish a crash cause. Controller timeout cleanup signals are separated."
+      },
+      "errors": [],
+      "process": {
+        "code": 0,
+        "signal": null,
+        "spawnError": null,
+        "interrupted": null,
+        "ioErrors": [],
+        "timedOut": false,
+        "finishedUTC": "2026-11-15T04:57:46.534Z"
+      },
+      "rawExcludedFinishedGames": 0,
+      "evidenceIdentity": "a0b8754e0bfce9f4749f159c3c007dc5cc6d4080cb5bde55b2cc4d005027d4f7",
+      "rawSource": "/workspace/work/parity-run/match-recording/B-0013/raw",
+      "metadataSource": "/workspace/work/parity-run/match-recording/B-0013/metadata",
+      "rawPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0013",
+      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0013",
+      "seed": 202611150011,
+      "openingStart": 601,
+      "requestedGames": 100
+    },
+    {
+      "schema": 1,
+      "protocol": "hindsight-fixed-node-counts-only-0018",
+      "decision0018": {
+        "commit": "fe59dc3ab072480f7360f0b356ff01a900d2ab35",
+        "file": "/workspace/work/parity-run/inputs/FABLE_ANSWER_0018.md.txt",
+        "sha256": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b"
+      },
+      "step2AcceptanceEvidence": [
+        {
+          "file": "/workspace/work/parity-run/inputs/step2-effective-acceptance-S2-0007.txt",
+          "sha256": "11284dcae54beb48546c53f0ca9f4d3c4f92d8cdc97fbd0872452cfbb30f3c5e"
+        }
+      ],
+      "jobACompleteAtDeclaration": false,
+      "sanitizerPendingAtDeclaration": true,
+      "id": "B-0014",
+      "sourceCommit": "d9a8587df8ad4d0ff1231632cb1ac72b590c04bf",
+      "declarationSha256": "272aabae9c842dafd067b55c5d1bb079684a4e81e345b8ca9bc1e64d3b10b84d",
+      "receiptFile": "/workspace/work/parity-run/matches-hindsight/receipts/B-0014.txt",
+      "receiptSha256": "0924390bed427d9eae2fe5d9cb4c5757abedd9cffbe1f1318f0fa30c2d338c8a",
+      "summaryFile": "/workspace/work/parity-run/matches-hindsight/batches/B-0014.summary.txt",
+      "summarySha256": "1c7964a131c6fe5a472e5679c50e84d0f06513f9dd1f4431bebbc9ef6ddbb536",
+      "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0014.artifact-hashes.txt",
+      "artifactHashesSha256": "83efe43ad8f61438549924140dd2c9e4a7187b64e3248e005e915178b6ae9a6f",
+      "rawPins": {
+        "/workspace/work/parity-run/matches-hindsight/plans/B-0014.txt": "d35282e9e4ad75fad2ba89101861e3d3e7ff2c59b3e46611cf03f8aef962ae39",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0014.summary.txt": "1c7964a131c6fe5a472e5679c50e84d0f06513f9dd1f4431bebbc9ef6ddbb536",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0014.artifact-hashes.txt": "83efe43ad8f61438549924140dd2c9e4a7187b64e3248e005e915178b6ae9a6f",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0014.command.txt": "51561f429e76c3a7632d90c6911749be8eadba76783445a705fb6572aecc8273",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0014.stdout.txt": "dd4052742e6a254aba61f511e2ecd459b8613c4589d31b39aa05ad27ab95075c",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0014.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0014.console.txt": "dd4052742e6a254aba61f511e2ecd459b8613c4589d31b39aa05ad27ab95075c",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0014.events.ndjson": "c870eca211240eb5cd490f91914568191837ff66d9c9f70849abecac8494706b",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0014.pgn": "4c5054deb3a199bf3cc1d67b546efd282b8929cb2793a66d6cd06e0116fbdc1b",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0014.engine.log": "1a0ba1c92075a751761499c05de5f80ed364d6507ab2bdc18e6deaede53da16f",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0014.config.json": "cdee042572f160d78dd7e30e49c847426ceb8ba20827695d2b246b682f27dd23",
+        "/workspace/work/parity-run/matches-hindsight/batches/B-0014.process.txt": "cb1c13e8c51b1e1b72b251e2d529dce1d7f48d3a51f130db1dba07fceb1b4f1d"
+      },
+      "recorderPins": {
+        "/workspace/work/parity-match-0018-recording-preparation/record.mjs": "2160080f7d70c37cd309fe494b2d2cc0da4affbcbf63bffd2bd09dff738d62a6",
+        "/workspace/work/parity-match-0018-recording-preparation/accounting.mjs": "234d6013b14fa9ad5179bb41cd671ab0ecee1adab75d1ad490bca8580ed91040",
+        "/workspace/work/parity-match-0018-recording-preparation/validate.mjs": "dd1fc5900f0e806ba0feb208bda074292501f00b8386381b18f06890f4247334"
+      },
+      "externalPins": {
+        "/workspace/work/parity-run/package-evidence.mjs": "ae2fd86422f0df44369b9ea8b01367784172ca63a40f5c3836036725bc256c33",
+        "/workspace/work/parity-equality-preparation-v3/evidence-integrity.mjs": "33d1373916608c7cd3ffc97a1e0c1ca774fb949b38745a4cc5f73f9117202601",
+        "/workspace/work/parity-match-0018-preparation/controller.mjs": "a17da2efce953f84c1eab052d892210e45ed8adc3e153a48d3ec88ff00a4dbea",
+        "/workspace/work/parity-match-0018-preparation/protocol.mjs": "6421456840bc13431da54085bb99c40533d60ed34027dd759482ec84928e7892",
+        "/workspace/work/parity-match-0018-preparation/audit-command.mjs": "69e7bd8677ce4cff4f6d55e2470169d78afb2737175a4f947c14c13b133719d7",
+        "/workspace/work/parity-match-0018-preparation/audit-core.mjs": "d030f12a43778eb2768aea2a97eeb7ecbbb9d5b7a926570e4cc3b4b135386533",
+        "/workspace/work/parity-match-0018-preparation/audit-extra.mjs": "4133210f0061c643262e684c3ba7262b267d612822c776ee59c2ac75a929cd64"
+      },
+      "completed": true,
+      "passed": true,
+      "credit": {
+        "games": 100,
+        "pairs": 50,
+        "wins": 32,
+        "losses": 21,
+        "draws": 47,
+        "pentanomial": [
+          0,
+          11,
+          22,
+          12,
+          5
+        ]
+      },
+      "rawCounts": {
+        "started": 100,
+        "finished": 100,
+        "pgnGames": 100,
+        "consoleGames": 100,
+        "eventLines": 15298,
+        "moves": 15096,
+        "wins": 32,
+        "losses": 21,
+        "draws": 47
+      },
+      "rawPairBins": {
+        "labels": [
+          "LL",
+          "LD",
+          "DD_or_WL",
+          "DW",
+          "WW"
+        ],
+        "counts": [
+          0,
+          11,
+          22,
+          12,
+          5
+        ],
+        "completePairs": 50,
+        "incompletePairs": [],
+        "abnormalPairs": []
+      },
+      "failureCounts": {
+        "illegalMoveEvents": 0,
+        "illegalMoveGames": 0,
+        "disconnectGames": 0,
+        "stallGames": 0,
+        "abortedGames": 0,
+        "abnormalTerminations": 0,
+        "crashMarkers": 0,
+        "illegalMarkers": 0,
+        "disconnectMarkers": 0,
+        "stallMarkers": 0
+      },
+      "sideAccounting": {
+        "bySide": {
+          "hindsight-on": {
+            "illegalMoveEvents": 0,
+            "illegalMoveGames": 0,
+            "disconnectGames": 0,
+            "stallGames": 0,
+            "timeForfeitGames": 0,
+            "nonzeroProcessExits": 0,
+            "processSignals": 0,
+            "crashSignals": 0,
+            "controllerCleanupSignals": 0
+          },
+          "hindsight-off": {
+            "illegalMoveEvents": 0,
+            "illegalMoveGames": 0,
+            "disconnectGames": 0,
+            "stallGames": 0,
+            "timeForfeitGames": 0,
+            "nonzeroProcessExits": 0,
+            "processSignals": 0,
+            "crashSignals": 0,
+            "controllerCleanupSignals": 0
+          }
+        },
+        "faultGames": [],
+        "unattributedAbortsOrGames": [],
+        "processEvidence": [],
+        "unattributedProcessEvidence": [],
+        "definition": "Game faults by losing configuration; illegal move attempts retain their event engine. Process exits/signals are separate observations, not extra distinct games. Disconnect does not establish a crash cause. Controller timeout cleanup signals are separated."
+      },
+      "errors": [],
+      "process": {
+        "code": 0,
+        "signal": null,
+        "spawnError": null,
+        "interrupted": null,
+        "ioErrors": [],
+        "timedOut": false,
+        "finishedUTC": "2026-11-15T05:00:27.265Z"
+      },
+      "rawExcludedFinishedGames": 0,
+      "evidenceIdentity": "efd8f468acd1b49c43d161156d2ad3ac398815b1b67180136d96f3b4e2c78b01",
+      "rawSource": "/workspace/work/parity-run/match-recording/B-0014/raw",
+      "metadataSource": "/workspace/work/parity-run/match-recording/B-0014/metadata",
+      "rawPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0014",
+      "metadataPackage": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0014",
+      "seed": 202611150011,
+      "openingStart": 651,
+      "requestedGames": 100
     }
   ],
   "matchTotals": {
-    "games": 1200,
-    "pairs": 600,
-    "wins": 332,
-    "losses": 300,
-    "draws": 568,
+    "games": 1400,
+    "pairs": 700,
+    "wins": 389,
+    "losses": 350,
+    "draws": 661,
     "pentanomial": [
-      26,
-      130,
-      256,
-      162,
-      26
+      28,
+      154,
+      302,
+      183,
+      33
     ],
-    "batches": 12,
-    "passedBatches": 12,
+    "batches": 14,
+    "passedBatches": 14,
     "failedOrIncompleteBatches": 0,
     "incompleteBatches": 0,
     "rawExcludedFinishedGames": 0,
-    "rawObservedFinishedGames": 1200,
+    "rawObservedFinishedGames": 1400,
     "rawFailureCounts": {
       "illegalMoveEvents": 0,
       "illegalMoveGames": 0,
@@ -22122,5 +22446,1008 @@
       "file": "tests_astra_parity/asan-shutdown-result-review-0020/REVIEW.md",
       "sha256": "4c8984249b8c52d156b9386ce109204aed51603e59e93f2cc7fc0fc3e0c2d2c2"
     }
+  },
+  "jobBClosure": {
+    "schema": 1,
+    "kind": "job-b-counts-only-closure",
+    "closed": true,
+    "source": {
+      "commit": "d9a8587df8ad4d0ff1231632cb1ac72b590c04bf",
+      "binary": "/workspace/work/parity-run/builds/step2-release/forge",
+      "binarySha256": "df76cddaea8a37dae7f8d1a5178700e0168aad8c463764ed6870d9c4fce2dc56"
+    },
+    "fastchess": {
+      "file": "/workspace/work/fastchess/fastchess",
+      "sha256": "f8f1706b6b4906d524dd0ac0547deb9ec2b6b10b4e32d7bde66914ddee0ebd4f",
+      "officialSourceCommit": "3d7a4db2493fc85a05ef010fd7e13a3884667aa2"
+    },
+    "book": {
+      "file": "/workspace/work/soak-run/openings/UHO_Lichess_4852_v1.epd",
+      "sha256": "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a"
+    },
+    "conditions": {
+      "nodes": 50000,
+      "seed": 202611150011,
+      "concurrency": 4,
+      "batchGames": 100,
+      "engines": [
+        {
+          "name": "hindsight-on",
+          "cmd": "/workspace/work/parity-run/builds/step2-release/forge",
+          "options": [
+            [
+              "Threads",
+              "1"
+            ],
+            [
+              "Hash",
+              "16"
+            ],
+            [
+              "OwnBook",
+              "false"
+            ],
+            [
+              "MateAlphaGuard",
+              "false"
+            ],
+            [
+              "HindsightDepth",
+              "true"
+            ]
+          ]
+        },
+        {
+          "name": "hindsight-off",
+          "cmd": "/workspace/work/parity-run/builds/step2-release/forge",
+          "options": [
+            [
+              "Threads",
+              "1"
+            ],
+            [
+              "Hash",
+              "16"
+            ],
+            [
+              "OwnBook",
+              "false"
+            ],
+            [
+              "MateAlphaGuard",
+              "false"
+            ],
+            [
+              "HindsightDepth",
+              "false"
+            ]
+          ]
+        }
+      ],
+      "remainingOptions": "Advertised defaults",
+      "noAdjudication": true,
+      "colorReversedPairs": true,
+      "recover": true
+    },
+    "declaration": {
+      "file": "/workspace/work/parity-run/matches-hindsight/DECLARATION.txt",
+      "sha256": "272aabae9c842dafd067b55c5d1bb079684a4e81e345b8ca9bc1e64d3b10b84d",
+      "decision0018": {
+        "commit": "fe59dc3ab072480f7360f0b356ff01a900d2ab35",
+        "file": "/workspace/work/parity-run/inputs/FABLE_ANSWER_0018.md.txt",
+        "sha256": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b"
+      },
+      "jobACompleteAtDeclaration": false,
+      "sanitizerPendingAtDeclaration": true
+    },
+    "clock": {
+      "declaredStartUTC": "2026-11-15T03:06:50.313Z",
+      "declaredDeadlineUTC": "2026-11-15T05:06:50.313Z",
+      "closureUTC": "2026-11-15T05:01:43.995Z",
+      "lastNativeBatchFinishedUTC": "2026-11-15T05:00:27.265Z",
+      "declarationToNativeStopSeconds": 6816.952,
+      "sumNativeBatchWallSeconds": 1743.2379999999998,
+      "declarationToClosureSeconds": 6893.682,
+      "continuousTwoHourPlayClaim": false
+    },
+    "gate": {
+      "eligible": true,
+      "targetMet": false,
+      "budgetPreventsNextBatch": true,
+      "lastSafeLaunchUTC": "2026-11-15T04:59:00.313Z",
+      "reason": "Remaining declared budget cannot admit another full bounded batch",
+      "blockers": []
+    },
+    "totals": {
+      "games": 1400,
+      "pairs": 700,
+      "wins": 389,
+      "losses": 350,
+      "draws": 661,
+      "pentanomial": [
+        28,
+        154,
+        302,
+        183,
+        33
+      ],
+      "batches": 14,
+      "passedBatches": 14,
+      "failedOrIncompleteBatches": 0,
+      "incompleteBatches": 0,
+      "rawExcludedFinishedGames": 0,
+      "rawObservedFinishedGames": 1400,
+      "rawFailureCounts": {
+        "illegalMoveEvents": 0,
+        "illegalMoveGames": 0,
+        "disconnectGames": 0,
+        "stallGames": 0,
+        "abortedGames": 0,
+        "abnormalTerminations": 0,
+        "crashMarkers": 0,
+        "illegalMarkers": 0,
+        "disconnectMarkers": 0,
+        "stallMarkers": 0
+      },
+      "rawSideAccounting": {
+        "hindsight-on": {
+          "illegalMoveEvents": 0,
+          "illegalMoveGames": 0,
+          "disconnectGames": 0,
+          "stallGames": 0,
+          "timeForfeitGames": 0,
+          "nonzeroProcessExits": 0,
+          "processSignals": 0,
+          "crashSignals": 0,
+          "controllerCleanupSignals": 0
+        },
+        "hindsight-off": {
+          "illegalMoveEvents": 0,
+          "illegalMoveGames": 0,
+          "disconnectGames": 0,
+          "stallGames": 0,
+          "timeForfeitGames": 0,
+          "nonzeroProcessExits": 0,
+          "processSignals": 0,
+          "crashSignals": 0,
+          "controllerCleanupSignals": 0
+        }
+      },
+      "countsOnly": true,
+      "status": "Running; completed batches only"
+    },
+    "pairLabels": [
+      "LL",
+      "LD",
+      "DD_or_WL",
+      "DW",
+      "WW"
+    ],
+    "faults": {
+      "bySide": {
+        "hindsight-on": {
+          "illegalMoveEvents": 0,
+          "illegalMoveGames": 0,
+          "disconnectGames": 0,
+          "stallGames": 0,
+          "timeForfeitGames": 0,
+          "nonzeroProcessExits": 0,
+          "processSignals": 0,
+          "crashSignals": 0,
+          "controllerCleanupSignals": 0
+        },
+        "hindsight-off": {
+          "illegalMoveEvents": 0,
+          "illegalMoveGames": 0,
+          "disconnectGames": 0,
+          "stallGames": 0,
+          "timeForfeitGames": 0,
+          "nonzeroProcessExits": 0,
+          "processSignals": 0,
+          "crashSignals": 0,
+          "controllerCleanupSignals": 0
+        }
+      },
+      "gameFaults": [],
+      "unattributed": {
+        "abortsOrGames": [],
+        "processEvidence": []
+      },
+      "batchFailures": [],
+      "definition": "Crashes/signals, nonzero exits and disconnect games are retained separately; they are not summed as independent crashing games. Counts include raw observations even when a batch is excluded."
+    },
+    "target": {
+      "requestedGames": 6000,
+      "creditedGames": 1400,
+      "uncompletedGames": 4600,
+      "optional250000NodeLeg": {
+        "games": 0,
+        "status": "Not run in this declared experiment"
+      }
+    },
+    "unusedPreparedPlans": [],
+    "unreceiptedRaw": [],
+    "verification": {
+      "receipts": 14,
+      "packages": 28,
+      "packagedBytes": 1136012039,
+      "chunkCount": 868,
+      "noEngineRuns": true,
+      "noGitWrites": true,
+      "noRootStateWrites": true,
+      "stateSha256": "361ba1c1598546157953436832dd11d21305b80e4dbdc4f946030501e9a55f30",
+      "toolPins": {
+        "files": {
+          "/workspace/work/parity-match-closure-preparation/close.mjs": "6d22581c76cc255a4bba6f65402b4974522b430e4d95ff1c51a467934821c6e2",
+          "/workspace/work/parity-match-closure-preparation/closure-model.mjs": "1ffeb57497968a8550cec3633d24a774a8e1c19d835af1e97d29eb20c6e74d10",
+          "/workspace/work/parity-match-closure-preparation/validate.mjs": "95172a4dcee99aae3e44a637acb5a1365f08f603c601bb9563dec1c3fa6b7e2c"
+        },
+        "external": {
+          "/workspace/work/parity-match-0018-preparation/protocol.mjs": "6421456840bc13431da54085bb99c40533d60ed34027dd759482ec84928e7892",
+          "/workspace/work/parity-match-0018-recording-preparation/accounting.mjs": "234d6013b14fa9ad5179bb41cd671ab0ecee1adab75d1ad490bca8580ed91040",
+          "/workspace/work/parity-equality-preparation-v3/evidence-integrity.mjs": "33d1373916608c7cd3ffc97a1e0c1ca774fb949b38745a4cc5f73f9117202601",
+          "/workspace/work/parity-run/matches-hindsight/DECLARATION.txt": "272aabae9c842dafd067b55c5d1bb079684a4e81e345b8ca9bc1e64d3b10b84d"
+        },
+        "engineRuns": 0
+      }
+    },
+    "processWindows": [
+      {
+        "id": "B-0001",
+        "start": 1794712036990,
+        "end": 1794712154923,
+        "startedUTC": "2026-11-15T03:07:16.990Z",
+        "finishedUTC": "2026-11-15T03:09:14.923Z",
+        "seconds": 117.933
+      },
+      {
+        "id": "B-0002",
+        "start": 1794713146080,
+        "end": 1794713275344,
+        "startedUTC": "2026-11-15T03:25:46.080Z",
+        "finishedUTC": "2026-11-15T03:27:55.344Z",
+        "seconds": 129.264
+      },
+      {
+        "id": "B-0003",
+        "start": 1794713992932,
+        "end": 1794714124884,
+        "startedUTC": "2026-11-15T03:39:52.932Z",
+        "finishedUTC": "2026-11-15T03:42:04.884Z",
+        "seconds": 131.952
+      },
+      {
+        "id": "B-0004",
+        "start": 1794714859669,
+        "end": 1794714977151,
+        "startedUTC": "2026-11-15T03:54:19.669Z",
+        "finishedUTC": "2026-11-15T03:56:17.151Z",
+        "seconds": 117.482
+      },
+      {
+        "id": "B-0005",
+        "start": 1794715420921,
+        "end": 1794715541881,
+        "startedUTC": "2026-11-15T04:03:40.921Z",
+        "finishedUTC": "2026-11-15T04:05:41.881Z",
+        "seconds": 120.96
+      },
+      {
+        "id": "B-0006",
+        "start": 1794716937219,
+        "end": 1794717063948,
+        "startedUTC": "2026-11-15T04:28:57.219Z",
+        "finishedUTC": "2026-11-15T04:31:03.948Z",
+        "seconds": 126.729
+      },
+      {
+        "id": "B-0007",
+        "start": 1794717084143,
+        "end": 1794717206650,
+        "startedUTC": "2026-11-15T04:31:24.143Z",
+        "finishedUTC": "2026-11-15T04:33:26.650Z",
+        "seconds": 122.507
+      },
+      {
+        "id": "B-0008",
+        "start": 1794717229306,
+        "end": 1794717348655,
+        "startedUTC": "2026-11-15T04:33:49.306Z",
+        "finishedUTC": "2026-11-15T04:35:48.655Z",
+        "seconds": 119.349
+      },
+      {
+        "id": "B-0009",
+        "start": 1794717807128,
+        "end": 1794717932224,
+        "startedUTC": "2026-11-15T04:43:27.128Z",
+        "finishedUTC": "2026-11-15T04:45:32.224Z",
+        "seconds": 125.096
+      },
+      {
+        "id": "B-0010",
+        "start": 1794717991160,
+        "end": 1794718114836,
+        "startedUTC": "2026-11-15T04:46:31.160Z",
+        "finishedUTC": "2026-11-15T04:48:34.836Z",
+        "seconds": 123.676
+      },
+      {
+        "id": "B-0011",
+        "start": 1794718196773,
+        "end": 1794718318433,
+        "startedUTC": "2026-11-15T04:49:56.773Z",
+        "finishedUTC": "2026-11-15T04:51:58.433Z",
+        "seconds": 121.66
+      },
+      {
+        "id": "B-0012",
+        "start": 1794718383059,
+        "end": 1794718514735,
+        "startedUTC": "2026-11-15T04:53:03.059Z",
+        "finishedUTC": "2026-11-15T04:55:14.735Z",
+        "seconds": 131.676
+      },
+      {
+        "id": "B-0013",
+        "start": 1794718539958,
+        "end": 1794718666534,
+        "startedUTC": "2026-11-15T04:55:39.958Z",
+        "finishedUTC": "2026-11-15T04:57:46.534Z",
+        "seconds": 126.576
+      },
+      {
+        "id": "B-0014",
+        "start": 1794718698887,
+        "end": 1794718827265,
+        "startedUTC": "2026-11-15T04:58:18.887Z",
+        "finishedUTC": "2026-11-15T05:00:27.265Z",
+        "seconds": 128.378
+      }
+    ],
+    "receiptIndex": [
+      {
+        "id": "B-0001",
+        "receipt": "/workspace/work/parity-run/matches-hindsight/receipts/B-0001.txt",
+        "receiptSha256": "4fbf83f6f56ce01e9ab5d7728d95eff8f3ab8b8500182c018b37734ef4f9caef",
+        "summary": "/workspace/work/parity-run/matches-hindsight/batches/B-0001.summary.txt",
+        "summarySha256": "08281732594f9cd82882c3744b6e9f55f81f4346751e800b1bd4713430cce71d",
+        "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0001.artifact-hashes.txt",
+        "artifactHashesSha256": "8961e4fca7afcdec836e98333dcb30634a1fbef44e2ed3e58926644b512db28d",
+        "evidenceIdentity": "0747e7363aa2552f2c0124eeaf9155d9e6db8ffa43a054b6be468baf280545d6",
+        "credit": {
+          "games": 100,
+          "pairs": 50,
+          "wins": 24,
+          "losses": 27,
+          "draws": 49,
+          "pentanomial": [
+            4,
+            11,
+            20,
+            14,
+            1
+          ]
+        },
+        "completed": true,
+        "passed": true,
+        "packages": [
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0001/raw",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0001",
+            "manifestSha256": "67eb763e8031198e2e8eb77b96650fbd8314731033f4baa87d0a8a70d1ec2fb6",
+            "files": 12,
+            "bytes": 79418644,
+            "chunks": 16
+          },
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0001/metadata",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0001",
+            "manifestSha256": "24c4ca5396e7440ef8c5c6dec3f360653d00c055d8c6e98def590812bb9d080f",
+            "files": 46,
+            "bytes": 1764766,
+            "chunks": 46
+          }
+        ]
+      },
+      {
+        "id": "B-0002",
+        "receipt": "/workspace/work/parity-run/matches-hindsight/receipts/B-0002.txt",
+        "receiptSha256": "db902a44b22e6af69de32b056368631e65a2e18ac16913b54fe985d8a707fefc",
+        "summary": "/workspace/work/parity-run/matches-hindsight/batches/B-0002.summary.txt",
+        "summarySha256": "d802460f57bd04de5f7718832b05b8ba17834f9a4cbe7ea5fa4c3c11468af4b0",
+        "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0002.artifact-hashes.txt",
+        "artifactHashesSha256": "60424cd1c7f344091cded9ef376f800040af4ba5b633fa1dd58b3e2b3b8693c5",
+        "evidenceIdentity": "c8c55cca2ba8b0771068b6bf74ab5c563049a1be3d9eb7b5f4faef7f436a71b4",
+        "credit": {
+          "games": 100,
+          "pairs": 50,
+          "wins": 29,
+          "losses": 26,
+          "draws": 45,
+          "pentanomial": [
+            0,
+            15,
+            19,
+            14,
+            2
+          ]
+        },
+        "completed": true,
+        "passed": true,
+        "packages": [
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0002/raw",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0002",
+            "manifestSha256": "e45e300687fb5c0a8af5433708b6a2f0f5a35dc79307b841ad5f37a14d1b8c59",
+            "files": 12,
+            "bytes": 79280364,
+            "chunks": 16
+          },
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0002/metadata",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0002",
+            "manifestSha256": "215e314d827934c37e0b33010ddf6d1bbdbb0d036714be745694f9862ee5441e",
+            "files": 46,
+            "bytes": 1764950,
+            "chunks": 46
+          }
+        ]
+      },
+      {
+        "id": "B-0003",
+        "receipt": "/workspace/work/parity-run/matches-hindsight/receipts/B-0003.txt",
+        "receiptSha256": "fd95988947c7485da902602b2937cc5509c7dc1d9f3e4281a38d32db43d94486",
+        "summary": "/workspace/work/parity-run/matches-hindsight/batches/B-0003.summary.txt",
+        "summarySha256": "d4efa8e682ff137233badaf12e45b5c73601f4c35d948ef9d9308469023f2079",
+        "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0003.artifact-hashes.txt",
+        "artifactHashesSha256": "c6421b6c599c41cfcbb486769a34fa9e3183a3b68e1846e1eb3192c17d36720b",
+        "evidenceIdentity": "e6aa6849949808f55a51f6d1bde1faaffa9dcbc57867ab6e1cd3bef18b918851",
+        "credit": {
+          "games": 100,
+          "pairs": 50,
+          "wins": 36,
+          "losses": 27,
+          "draws": 37,
+          "pentanomial": [
+            2,
+            10,
+            22,
+            9,
+            7
+          ]
+        },
+        "completed": true,
+        "passed": true,
+        "packages": [
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0003/raw",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0003",
+            "manifestSha256": "1d59728172f93d805a013f4d642c5927bf3963051241044891804e96d0575b7f",
+            "files": 12,
+            "bytes": 82856306,
+            "chunks": 16
+          },
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0003/metadata",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0003",
+            "manifestSha256": "2a007f853d20c46bb507dd1947c201760f86dd45bbc17e9eeb61e14542337a9a",
+            "files": 46,
+            "bytes": 1765129,
+            "chunks": 46
+          }
+        ]
+      },
+      {
+        "id": "B-0004",
+        "receipt": "/workspace/work/parity-run/matches-hindsight/receipts/B-0004.txt",
+        "receiptSha256": "0df9c38a0f0415b1a9ebf5293d2c57b5fe51c72acb4210b758d61bcb84c50988",
+        "summary": "/workspace/work/parity-run/matches-hindsight/batches/B-0004.summary.txt",
+        "summarySha256": "1faba2fb2e3723a79c6f6ffaaaa96076c1d2263dff82d6b23ea853f293c4560c",
+        "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0004.artifact-hashes.txt",
+        "artifactHashesSha256": "013e1ea3220f792791623aa270c38e4c5306ab2afafca386b49b544c9ed4eab0",
+        "evidenceIdentity": "692a6971a5f8e90c2ac88851379ed497041e080c42042b5a5db117353621243b",
+        "credit": {
+          "games": 100,
+          "pairs": 50,
+          "wins": 27,
+          "losses": 34,
+          "draws": 39,
+          "pentanomial": [
+            4,
+            12,
+            23,
+            9,
+            2
+          ]
+        },
+        "completed": true,
+        "passed": true,
+        "packages": [
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0004/raw",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0004",
+            "manifestSha256": "f2055b13d33e65d24f0acf7d5be9addb41f4b1cecd521bf5206931b8e7d88153",
+            "files": 12,
+            "bytes": 75586215,
+            "chunks": 16
+          },
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0004/metadata",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0004",
+            "manifestSha256": "26d3863e9af489bf6b02f32a27c598de9f30bec5a358479e08d081583c7a8cc2",
+            "files": 46,
+            "bytes": 1765307,
+            "chunks": 46
+          }
+        ]
+      },
+      {
+        "id": "B-0005",
+        "receipt": "/workspace/work/parity-run/matches-hindsight/receipts/B-0005.txt",
+        "receiptSha256": "a1eb5dd0938217e4761e51efc0bc92bf8831ef372e8a17ebd41c0f92bf4464d3",
+        "summary": "/workspace/work/parity-run/matches-hindsight/batches/B-0005.summary.txt",
+        "summarySha256": "f4b93f9d7c85fe3b38bdd4211dca9aa9c3976fdd38afc6c630c0273e9f9beadd",
+        "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0005.artifact-hashes.txt",
+        "artifactHashesSha256": "9de2d68e9bbca41e6ed83c26d78b16efd6533f4b6fe5ab341d750d5cb6a5cd4a",
+        "evidenceIdentity": "bfa45cdf59dca2ba17f7ac07886b78c77ce368991f6e2b833ad62742c5c195ec",
+        "credit": {
+          "games": 100,
+          "pairs": 50,
+          "wins": 31,
+          "losses": 21,
+          "draws": 48,
+          "pentanomial": [
+            3,
+            7,
+            18,
+            21,
+            1
+          ]
+        },
+        "completed": true,
+        "passed": true,
+        "packages": [
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0005/raw",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0005",
+            "manifestSha256": "55391cd5580cb30a041503f6a269c7c176c7dcd3e8e5b9029b3fc553874aace0",
+            "files": 12,
+            "bytes": 73630938,
+            "chunks": 16
+          },
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0005/metadata",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0005",
+            "manifestSha256": "89eecd3ae2269f7392e7ea5b029b4487deeb012c9cf8c885373896e907850bcc",
+            "files": 46,
+            "bytes": 1765485,
+            "chunks": 46
+          }
+        ]
+      },
+      {
+        "id": "B-0006",
+        "receipt": "/workspace/work/parity-run/matches-hindsight/receipts/B-0006.txt",
+        "receiptSha256": "c0367aa633d722004666b3d7aa6f594b6618b20a202523ccea2d4ab6661fc08c",
+        "summary": "/workspace/work/parity-run/matches-hindsight/batches/B-0006.summary.txt",
+        "summarySha256": "25946fbb9e451166671416b2c49a1df732a9f7977144bb565aa9b32894241191",
+        "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0006.artifact-hashes.txt",
+        "artifactHashesSha256": "4354b2581bb088725156e88916a5fe5e3aa3ad961c5fb2e1768a950028dff984",
+        "evidenceIdentity": "d2088e759f58695d376394eaaf995fd8373931b80216fd93d65ebc01d18e1866",
+        "credit": {
+          "games": 100,
+          "pairs": 50,
+          "wins": 29,
+          "losses": 26,
+          "draws": 45,
+          "pentanomial": [
+            2,
+            10,
+            23,
+            13,
+            2
+          ]
+        },
+        "completed": true,
+        "passed": true,
+        "packages": [
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0006/raw",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0006",
+            "manifestSha256": "24aa27ebb21b6a2ca0e835c8e8fe8cb132208523eaa0126629a10c03d93996d7",
+            "files": 12,
+            "bytes": 79883883,
+            "chunks": 16
+          },
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0006/metadata",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0006",
+            "manifestSha256": "f5e99a957886c7f999d661dbd3ce0c6fb94a0650a714e34bf1a6a3c8e2241743",
+            "files": 46,
+            "bytes": 1765666,
+            "chunks": 46
+          }
+        ]
+      },
+      {
+        "id": "B-0007",
+        "receipt": "/workspace/work/parity-run/matches-hindsight/receipts/B-0007.txt",
+        "receiptSha256": "6937de87131eba84eef4839d597fbb697e9b37cb09380ac4951f11c1be29f476",
+        "summary": "/workspace/work/parity-run/matches-hindsight/batches/B-0007.summary.txt",
+        "summarySha256": "cab2ac32b503110cb53b8aa36ef028f738a2fc7ce467bae63a73a00b6eff149f",
+        "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0007.artifact-hashes.txt",
+        "artifactHashesSha256": "2bd032217fa601d85c18fa203e726bbd5db16a03c220a6ba3e088f5fbcad385c",
+        "evidenceIdentity": "117dae9d23da75fbf7c82b2b23de779245852feadee23682503a84391b41f81e",
+        "credit": {
+          "games": 100,
+          "pairs": 50,
+          "wins": 20,
+          "losses": 26,
+          "draws": 54,
+          "pentanomial": [
+            3,
+            13,
+            21,
+            13,
+            0
+          ]
+        },
+        "completed": true,
+        "passed": true,
+        "packages": [
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0007/raw",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0007",
+            "manifestSha256": "aeadfa27e5f0c20aca8d60cffefc349e6335cfc880ba37fcbd6e1e29ce42e153",
+            "files": 12,
+            "bytes": 81118615,
+            "chunks": 16
+          },
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0007/metadata",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0007",
+            "manifestSha256": "9abc81796088c51abadb50fd6c2a9b24cab45257479ca61802b9cdc11f1e12fe",
+            "files": 46,
+            "bytes": 1765844,
+            "chunks": 46
+          }
+        ]
+      },
+      {
+        "id": "B-0008",
+        "receipt": "/workspace/work/parity-run/matches-hindsight/receipts/B-0008.txt",
+        "receiptSha256": "d987cc3d3f6a0f0fee6d682d10179389d379ca1085aff0dbf91c375b72278e47",
+        "summary": "/workspace/work/parity-run/matches-hindsight/batches/B-0008.summary.txt",
+        "summarySha256": "1ee2f756927c66ad010a9600a5923eb90e747415853e94ce9debba548dc87353",
+        "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0008.artifact-hashes.txt",
+        "artifactHashesSha256": "1f1c2202112aaeb0dae3baf190181fdd0bf3a0358b9a3c3417911a38f9fc2cbd",
+        "evidenceIdentity": "6d7146ce8cf4ab1303cd60c5493b38d8991ab9467617101ffa0f6839729c1ca9",
+        "credit": {
+          "games": 100,
+          "pairs": 50,
+          "wins": 27,
+          "losses": 28,
+          "draws": 45,
+          "pentanomial": [
+            3,
+            10,
+            26,
+            7,
+            4
+          ]
+        },
+        "completed": true,
+        "passed": true,
+        "packages": [
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0008/raw",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0008",
+            "manifestSha256": "e3ff0a6cdbf8729cd22ea80995d0c7b9ba61b3c030713011198cd2816baa6a0c",
+            "files": 12,
+            "bytes": 76831014,
+            "chunks": 16
+          },
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0008/metadata",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0008",
+            "manifestSha256": "e41db21e2217283d31b286a0b6f99e32ad7743f6bfe7d5e0b2ad06131bf5aaf6",
+            "files": 46,
+            "bytes": 1766019,
+            "chunks": 46
+          }
+        ]
+      },
+      {
+        "id": "B-0009",
+        "receipt": "/workspace/work/parity-run/matches-hindsight/receipts/B-0009.txt",
+        "receiptSha256": "02133bc9f60951963b819a3526df307cccb6888186dfaaebab596d55b7265f08",
+        "summary": "/workspace/work/parity-run/matches-hindsight/batches/B-0009.summary.txt",
+        "summarySha256": "3254992d6c9449e7d4f2f17a809d2112b9e528edf28385c1e55c7c06f3607e0f",
+        "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0009.artifact-hashes.txt",
+        "artifactHashesSha256": "d931baf6e060f7a210f10318801cfb68a05bbed6c20d38a490c4a08d6bbc6b61",
+        "evidenceIdentity": "5587580751a1ed868d2e9b44f5283adfb68ddcdd25504e5c5087745371293a2d",
+        "credit": {
+          "games": 100,
+          "pairs": 50,
+          "wins": 30,
+          "losses": 17,
+          "draws": 53,
+          "pentanomial": [
+            0,
+            9,
+            20,
+            20,
+            1
+          ]
+        },
+        "completed": true,
+        "passed": true,
+        "packages": [
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0009/raw",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0009",
+            "manifestSha256": "a3a9bfa58b0a326937ca64d05683db29af1d143af1ec988ff610cb63b3af6715",
+            "files": 12,
+            "bytes": 78754875,
+            "chunks": 16
+          },
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0009/metadata",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0009",
+            "manifestSha256": "37c05f86240b10f9278b066b3c1348e27ba8783d204c2f7d775163c8a21300e9",
+            "files": 46,
+            "bytes": 1766197,
+            "chunks": 46
+          }
+        ]
+      },
+      {
+        "id": "B-0010",
+        "receipt": "/workspace/work/parity-run/matches-hindsight/receipts/B-0010.txt",
+        "receiptSha256": "06737394852a0ea3aa3fab83dbc66231f979ad31471499317ac8944c50bc5202",
+        "summary": "/workspace/work/parity-run/matches-hindsight/batches/B-0010.summary.txt",
+        "summarySha256": "b88470b793c5e57d0c5764a8cf7182edffe80743e32bf51741d79cbeac9759d8",
+        "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0010.artifact-hashes.txt",
+        "artifactHashesSha256": "941182b61bfba30cd273ac6c849a69997d1a8852a688cfb85d099aef594cf460",
+        "evidenceIdentity": "ffbfa25ee842f15a7543bfda3d69cad33b16569b2326c776eedc9566b937ea57",
+        "credit": {
+          "games": 100,
+          "pairs": 50,
+          "wins": 32,
+          "losses": 23,
+          "draws": 45,
+          "pentanomial": [
+            2,
+            9,
+            20,
+            16,
+            3
+          ]
+        },
+        "completed": true,
+        "passed": true,
+        "packages": [
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0010/raw",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0010",
+            "manifestSha256": "912e8565e633ac05b89bfd2b9b86db00dd1737d94cd01ff47e551aa8b42072ab",
+            "files": 12,
+            "bytes": 79663831,
+            "chunks": 16
+          },
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0010/metadata",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0010",
+            "manifestSha256": "059413cb7db0620c39faeef6ef312a0d3cb561f42d46e659b4d7dc1855235a96",
+            "files": 46,
+            "bytes": 1766375,
+            "chunks": 46
+          }
+        ]
+      },
+      {
+        "id": "B-0011",
+        "receipt": "/workspace/work/parity-run/matches-hindsight/receipts/B-0011.txt",
+        "receiptSha256": "3305604fe695d3708f5c52b8b0bdeb5de762bd4642c984f3e54a7ef1fb9ffa37",
+        "summary": "/workspace/work/parity-run/matches-hindsight/batches/B-0011.summary.txt",
+        "summarySha256": "82e44f0cb639523269d498a16aed23ce1bce3be9d8b2fe75809baabe160bd518",
+        "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0011.artifact-hashes.txt",
+        "artifactHashesSha256": "c4c50a6e6c2673c9dce3c58d738478ac89971a70a1b3e58f65fba83049425ed4",
+        "evidenceIdentity": "d811811eb25e3dfa3af2db52b25ba7c508bfc055bb84c2949b5a8ee61fc6aa24",
+        "credit": {
+          "games": 100,
+          "pairs": 50,
+          "wins": 17,
+          "losses": 27,
+          "draws": 56,
+          "pentanomial": [
+            2,
+            17,
+            22,
+            7,
+            2
+          ]
+        },
+        "completed": true,
+        "passed": true,
+        "packages": [
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0011/raw",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0011",
+            "manifestSha256": "af38b30bd31fdeebd80c6a3682e1d8b1c869263760e66ddecea8a21b026eee12",
+            "files": 12,
+            "bytes": 78771938,
+            "chunks": 16
+          },
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0011/metadata",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0011",
+            "manifestSha256": "8803571996940fcb6a27feb1c66ed2e1922e7be9e56f61577e7c2d7ed3ca4951",
+            "files": 46,
+            "bytes": 1766553,
+            "chunks": 46
+          }
+        ]
+      },
+      {
+        "id": "B-0012",
+        "receipt": "/workspace/work/parity-run/matches-hindsight/receipts/B-0012.txt",
+        "receiptSha256": "671af38d29e8cc9655e170bb8805f4d32df0c37dc12acd848dea4175eea47d74",
+        "summary": "/workspace/work/parity-run/matches-hindsight/batches/B-0012.summary.txt",
+        "summarySha256": "b3132e64d2f6275c3d55b2eeeffbf0bd13c6694580b89ea6791ea116856a6339",
+        "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0012.artifact-hashes.txt",
+        "artifactHashesSha256": "328c876d7681396235a62da030e0ec91fd4ee7eb3c70b84b495c1146201ec849",
+        "evidenceIdentity": "804dfbe3b685d963f30a130fd3e7ab1cd565cf1bc264d8ccc8b0b0892cd32f5b",
+        "credit": {
+          "games": 100,
+          "pairs": 50,
+          "wins": 30,
+          "losses": 18,
+          "draws": 52,
+          "pentanomial": [
+            1,
+            7,
+            22,
+            19,
+            1
+          ]
+        },
+        "completed": true,
+        "passed": true,
+        "packages": [
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0012/raw",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0012",
+            "manifestSha256": "a6c4fd62c60a995edabbb9ca77d339247596ae0d0191f3d1814063027336d5d4",
+            "files": 12,
+            "bytes": 85723325,
+            "chunks": 16
+          },
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0012/metadata",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0012",
+            "manifestSha256": "8b2442394938ddf21139382385eeb5987282bb9655b2b16fbde59a2fd182d58c",
+            "files": 46,
+            "bytes": 1766731,
+            "chunks": 46
+          }
+        ]
+      },
+      {
+        "id": "B-0013",
+        "receipt": "/workspace/work/parity-run/matches-hindsight/receipts/B-0013.txt",
+        "receiptSha256": "fc6888356e347483b0e49720d16b2f4f97b5b5dc326ef7a0fa54df3f75587c3b",
+        "summary": "/workspace/work/parity-run/matches-hindsight/batches/B-0013.summary.txt",
+        "summarySha256": "55763df2a62235782d9a338413c79275d091cf10e35ac79d834c98adee568c1a",
+        "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0013.artifact-hashes.txt",
+        "artifactHashesSha256": "cc80f7e55cf1f917451ec2cd0cfa98b137a2a01fedea69b8a359dbb537472894",
+        "evidenceIdentity": "a0b8754e0bfce9f4749f159c3c007dc5cc6d4080cb5bde55b2cc4d005027d4f7",
+        "credit": {
+          "games": 100,
+          "pairs": 50,
+          "wins": 25,
+          "losses": 29,
+          "draws": 46,
+          "pentanomial": [
+            2,
+            13,
+            24,
+            9,
+            2
+          ]
+        },
+        "completed": true,
+        "passed": true,
+        "packages": [
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0013/raw",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0013",
+            "manifestSha256": "1a9f167c7fd3a1f6bfd68833f0b72b35dae9cb7649a8aa2991b71aec1312951a",
+            "files": 12,
+            "bytes": 76676971,
+            "chunks": 16
+          },
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0013/metadata",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0013",
+            "manifestSha256": "7d99bcfe87c1fe52f209bf2ef5e71e7a2ab20019785512d1ff2086bee1e192e7",
+            "files": 46,
+            "bytes": 1766909,
+            "chunks": 46
+          }
+        ]
+      },
+      {
+        "id": "B-0014",
+        "receipt": "/workspace/work/parity-run/matches-hindsight/receipts/B-0014.txt",
+        "receiptSha256": "0924390bed427d9eae2fe5d9cb4c5757abedd9cffbe1f1318f0fa30c2d338c8a",
+        "summary": "/workspace/work/parity-run/matches-hindsight/batches/B-0014.summary.txt",
+        "summarySha256": "1c7964a131c6fe5a472e5679c50e84d0f06513f9dd1f4431bebbc9ef6ddbb536",
+        "artifactHashes": "/workspace/work/parity-run/matches-hindsight/batches/B-0014.artifact-hashes.txt",
+        "artifactHashesSha256": "83efe43ad8f61438549924140dd2c9e4a7187b64e3248e005e915178b6ae9a6f",
+        "evidenceIdentity": "efd8f468acd1b49c43d161156d2ad3ac398815b1b67180136d96f3b4e2c78b01",
+        "credit": {
+          "games": 100,
+          "pairs": 50,
+          "wins": 32,
+          "losses": 21,
+          "draws": 47,
+          "pentanomial": [
+            0,
+            11,
+            22,
+            12,
+            5
+          ]
+        },
+        "completed": true,
+        "passed": true,
+        "packages": [
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0014/raw",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight/B-0014",
+            "manifestSha256": "64282b8efab4f2aa94b922349c7ba2e1c3bde40d829595be314e362ef778264c",
+            "files": 12,
+            "bytes": 83092099,
+            "chunks": 16
+          },
+          {
+            "source": "/workspace/work/parity-run/match-recording/B-0014/metadata",
+            "destination": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/matches-hindsight-records/B-0014",
+            "manifestSha256": "94a08c0757bed62c690d10a1daa398d84cf52ee023384d66d39d0ba90a2f2301",
+            "files": 46,
+            "bytes": 1767090,
+            "chunks": 46
+          }
+        ]
+      }
+    ],
+    "pauseAtClosure": {
+      "globalEngineStop": false,
+      "rootPhase": "Job B: HindsightDepth fixed-node match",
+      "asanShutdown0020": {
+        "utc": "2026-11-15T04:11:30.796Z",
+        "resolved": false,
+        "file": "/workspace/work/dwqww-parity/forge-combo29/tests_astra_parity/faults/asan-shutdown-0020.txt",
+        "sha256": "f205dfeaa23737f6ba4d36a1f5354639d24e5400d36429084b427bdde2eb882b",
+        "auditFile": "/workspace/work/parity-run/logs/continuation-audit-12.stdout.txt",
+        "auditSha256": "b94f76bba0c2c0140dd8e886928846d59d2b67ac213c5ecbf4c21c7390479255",
+        "repeatReason": "Immediate stop under0016 full-allowance shutdown policy; classification/diagnostic request sent through GitHub. No engine source or expectations changed.",
+        "repeats": 0,
+        "resolution": null
+      }
+    },
+    "evidenceFile": "/workspace/work/parity-run/match-closure/final-20261115/CLOSURE.txt",
+    "evidenceSha256": "5e9b6d1b77e92ce66ad93eecb28e68d256f9c9f0e6ce90acc34d524ce1d0888e",
+    "reportFile": "/workspace/work/parity-run/match-closure/final-20261115/REPORT.md",
+    "reportSha256": "f352755b70dad7ec7dbbbf41be570fea25377b4bd169d2cf5fa6c2cfd367950b"
+  },
+  "jobBClosurePublication": {
+    "recordedUTC": "2026-11-15T05:01:55.706Z",
+    "report": "tests_astra_parity/job-b-closeout-final/REPORT.md",
+    "reportSha256": "f352755b70dad7ec7dbbbf41be570fea25377b4bd169d2cf5fa6c2cfd367950b",
+    "context": "tests_astra_parity/job-b-closeout-context.md",
+    "contextSha256": "f62e688d05b1c4e48f24d2cd9e022fc4cd7a0b90607a84eacd00e112f842e1ed"
   }
 }
