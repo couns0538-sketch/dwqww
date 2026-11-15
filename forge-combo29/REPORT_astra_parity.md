@@ -1,11 +1,11 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:57:11.957Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T03:08:07.284Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
-Stopped on two TSan depth9 response-deadline findings; preserve and classify.
-Both TSanT2 ordinary depth9 searches exceeded15s. No sanitizer diagnostic; normalquit24.00694/29.126809ms. Both failed batches zero-credit. Acceptedfinal totals across protocols256games/36950searches;137amendedsamplingcases. Source unchanged. No new native launch after first timeoutfinding.
+JobB first100gamebatch running; no overlapping native workload.
+JobBdeclared03:06:50.313→05:06:50.313UTC,50knodes,HindsightDepthon/off,onefrozensourcebinary,d9a8587;JobAstillincomplete,Step2accepted,sanitizerspending. First100gamesrunning,zeroauditedgamesyet. OldTSanresponsefailuresretainedzero-credit;0018permitsunaffectedwork.
 
 | Check | Result |
 |---|---|
@@ -18,7 +18,7 @@ Both TSanT2 ordinary depth9 searches exceeded15s. No sanitizer diagnostic; norma
 | Step 2 option checks and unit rows | 16/16 option counts; 9 unit rows, 0 failures |
 | Step 2 targeted position | a1b2, mate -5, 2566746 nodes; depth9, Threads1 |
 | Step 2 exact corpus | 100000/100000; 1 differences; effective gate accepted with listed same-clock attribution; strict audit retained |
-| Prescribed shutdown diagnostic | 2000/2000 cycles; candidate/reference timeouts 0/0; max quit-to-exit 16.077182/14.05392 ms; ordinary runs paused |
+| Prescribed shutdown diagnostic | 2000/2000 cycles; candidate/reference timeouts 0/0; max quit-to-exit 16.077182/14.05392 ms; ordinary runs resumed by separate decision |
 | Preliminary step 1 sanitizers | 393 games / 52681 searches; 0 findings |
 | Preliminary paired UCI check | 132 ordinary / 87 soft-node searches; 8 cap cases; 0 label faults |
 | Final-tree original protocol | 5 finished games / 1102 searches observed; 0 accepted batches; 1 historical contract-failure batches retained |
@@ -115,4 +115,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 34, including this checkpoint.
+Progress pushes: 35, including this checkpoint.

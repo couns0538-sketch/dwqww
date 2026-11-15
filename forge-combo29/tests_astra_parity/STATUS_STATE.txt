@@ -5,7 +5,7 @@
   "start": "2026-11-14T23:19:40.000Z",
   "budgetMinutes": 180,
   "deadline": "2026-11-15T04:20:00.000Z",
-  "phase": "Stopped on two TSan depth9 response-deadline findings; preserve and classify",
+  "phase": "JobB first100gamebatch running; no overlapping native workload",
   "sourceCommits": [
     {
       "step": 1,
@@ -55,8 +55,8 @@
       "stat": "c488e88f Apply source-only r3-20-faster-search-plumbing by three-way merge from e04556dd\n forge-combo29/include/forge/bitboard.hpp |   6 ++\n forge-combo29/include/forge/board.hpp    |  29 +++++++\n forge-combo29/src/bitboard.cpp           |   7 ++\n forge-combo29/src/board.cpp              | 144 +++++++++++++++++++------------\n forge-combo29/src/search.cpp             | 120 ++++++++++++++++++++------\n 5 files changed, 227 insertions(+), 79 deletions(-)"
     }
   ],
-  "pushes": 33,
-  "lastPush": "2026-11-15T02:51:32.583Z",
+  "pushes": 34,
+  "lastPush": "2026-11-15T02:57:15.874Z",
   "sourceChangesOnly": [
     "forge-combo29/src",
     "forge-combo29/include"
@@ -74,7 +74,7 @@
     "step1 any equality difference stops dependent work",
     "counts only; owner no Elo/speed claims overrides external request"
   ],
-  "lastCommit": "af82420417f09c1bf541952a584322dd351d0b53",
+  "lastCommit": "25a3aac326266657020ffe899d42f376caf1a31d",
   "validation": {
     "step1": {
       "build": "passed",
@@ -1827,20 +1827,13 @@
       "extendedProtocolCreditIncluded": false
     }
   },
-  "checkpointNote": "Both TSanT2 ordinary depth9 searches exceeded15s. No sanitizer diagnostic; normalquit24.00694/29.126809ms. Both failed batches zero-credit. Acceptedfinal totals across protocols256games/36950searches;137amendedsamplingcases. Source unchanged. No new native launch after first timeoutfinding.",
-  "progressBatch": "SMP indices4/10 seeds202611160105/202611160111",
+  "checkpointNote": "JobBdeclared03:06:50.313→05:06:50.313UTC,50knodes,HindsightDepthon/off,onefrozensourcebinary,d9a8587;JobAstillincomplete,Step2accepted,sanitizerspending. First100gamesrunning,zeroauditedgamesyet. OldTSanresponsefailuresretainedzero-credit;0018permitsunaffectedwork.",
+  "progressBatch": "B-0001 seed202611150011 openingstart1",
   "active": {
-    "stage": "extended-sanitizers",
-    "wave": 1,
-    "indices": [
-      2,
-      8
-    ],
-    "labels": [
-      "extended-c01-paired-softnodes-asan-off-t2-n2000-d0",
-      "extended-c01-paired-softnodes-asan-on-t2-n2000-d0"
-    ],
-    "started": "2026-11-15T02:09:55.305Z"
+    "kind": "match",
+    "batch": "B-0001",
+    "started": "2026-11-15T03:07:16.040Z",
+    "nativeSession": 9200
   },
   "equalityTotals": {
     "step1": {
@@ -2385,6 +2378,12 @@
       "commit": "4a9704895419099a6947c2d1c54694451c1841fe",
       "pushed": true,
       "path": "forge-combo29/soak_all/ASTRA_QUESTION_0018.md"
+    },
+    "answer0018": {
+      "commit": "fe59dc3ab072480f7360f0b356ff01a900d2ab35",
+      "file": "/workspace/work/parity-run/inputs/FABLE_ANSWER_0018.md.txt",
+      "sha256": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b",
+      "receivedUTC": "2026-11-15T03:01:17.579Z"
     }
   },
   "preliminarySoak": [
@@ -7133,7 +7132,7 @@
       "forge-combo29/src/search.cpp:2594"
     ]
   },
-  "blockFurtherEngineWork": true,
+  "blockFurtherEngineWork": false,
   "softnodesResolution": {
     "utc": "2026-11-15T01:06:43.146Z",
     "commit": "55ddf61a754ceffc4f940b847ad97143148d0434",
@@ -7220,7 +7219,7 @@
     "relativeReportLinks": 14,
     "engineRuns": 0
   },
-  "commitMessage": "Preserve both TSan response-deadline findings with full warm histories",
+  "commitMessage": "Declare default HindsightDepth match under explicit0018 admission",
   "referenceShutdown068919": {
     "utc": "2026-11-15T01:38:57.812Z",
     "pairs": 10,
@@ -12571,7 +12570,18 @@
         "repeatSearches": 0
       }
     ],
-    "resolved": false
+    "resolved": false,
+    "continuationDecision": {
+      "commit": "fe59dc3ab072480f7360f0b356ff01a900d2ab35",
+      "file": "/workspace/work/parity-run/inputs/FABLE_ANSWER_0018.md.txt",
+      "sha256": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b",
+      "receivedUTC": "2026-11-15T03:01:17.579Z",
+      "oldFailedCreditUnchanged": true,
+      "engineChange": false,
+      "ordinaryTsanFuture": "go nodes20000",
+      "allowUnchangedAsanAndJobBNow": true,
+      "diagnosticOutstanding": true
+    }
   },
   "responseDiagnosticAuthorization": {
     "utc": "2026-11-15T02:55:19.899Z",
@@ -12581,6 +12591,59 @@
       4,
       10
     ],
-    "ordinarySoakRemainsBlocked": true
+    "ordinarySoakRemainsBlocked": true,
+    "fableDecision": {
+      "commit": "fe59dc3ab072480f7360f0b356ff01a900d2ab35",
+      "file": "/workspace/work/parity-run/inputs/FABLE_ANSWER_0018.md.txt",
+      "sha256": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b",
+      "receivedUTC": "2026-11-15T03:01:17.579Z"
+    },
+    "releaseExtension": {
+      "freshProcesses": 40,
+      "caseIndices": [
+        4,
+        10
+      ],
+      "threads": [
+        1,
+        2
+      ],
+      "depths": [
+        9,
+        12
+      ],
+      "repeatsEach": 5,
+      "responseSeconds": 60,
+      "shutdownMilliseconds": 250,
+      "order": "Depth9 then12 within eachcase/thread/repeat, eachsearchfresh toavoid cross-depthTTwarming; no warm-state reproductionclaim.",
+      "status": "Preparation only; no new engine run"
+    }
+  },
+  "continuation0018Resolution": {
+    "commit": "fe59dc3ab072480f7360f0b356ff01a900d2ab35",
+    "sha256": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b",
+    "oldAuditsUnchanged": true
+  },
+  "continuation0018Resume": {
+    "utc": "2026-11-15T03:06:25.232Z",
+    "decision": {
+      "commit": "fe59dc3ab072480f7360f0b356ff01a900d2ab35",
+      "sha256": "a85053e51b66fb82cbc2033acf27d5e4cb83f22d64938c430870a15eeaf7fe3b",
+      "oldAuditsUnchanged": true
+    },
+    "scope": "UnchangedASAN,JobB,explicitdiagnostics andnewcappedTSan; historicalfailedprotocolsremainblocked/zero-credit",
+    "tsanTimeoutClassificationPending": true
+  },
+  "jobBDeclaration": {
+    "file": "/workspace/work/parity-run/matches-hindsight/DECLARATION.txt",
+    "sha256": "272aabae9c842dafd067b55c5d1bb079684a4e81e345b8ca9bc1e64d3b10b84d",
+    "startedUTC": "2026-11-15T03:06:50.313Z",
+    "deadlineUTC": "2026-11-15T05:06:50.313Z",
+    "sourceCommit": "d9a8587df8ad4d0ff1231632cb1ac72b590c04bf",
+    "nodes": 50000,
+    "seed": 202611150011,
+    "jobACompleteAtDeclaration": false,
+    "step2AcceptedAtDeclaration": true,
+    "sanitizerPendingAtDeclaration": true
   }
 }
