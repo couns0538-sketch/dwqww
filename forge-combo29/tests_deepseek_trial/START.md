@@ -1,0 +1,3 @@
+1. Understood: build forge-combo29 with -DFORGE_NNUE_V3=1, pin bench 11 / bench 13 / perft 5, make a random FORGENN3 net, generate 500 seeded legal positions, then run a ThreadSanitizer build with the v3 net loaded at Threads=2 and Threads=4 over those positions (waiting for bestmove each time), group the TSan reports, and write REPORT_deepseek_trial.md with raw logs.
+2. First: read CMakeLists.txt, nnue_v3.cpp and the h512 net generator, then commit this file and start the optimised build.
+3. Working branch: for-fable-and-opus/deepseek-trial, started from 6b98f217 (tip of for-fable-and-opus/astra-0017-v3-path); no engine source is touched, all new files live under forge-combo29/tests_deepseek_trial/.
