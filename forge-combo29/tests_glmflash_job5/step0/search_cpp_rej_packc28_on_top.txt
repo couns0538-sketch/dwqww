@@ -1,0 +1,53 @@
+--- src/search.cpp
++++ src/search.cpp
+@@ -63,6 +64,12 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++// Pack C switches (all default OFF). Own implementations of public ideas.
++int AspFailHighReduce = 0;
++int AspFailHighMaxReduce = 3;
++int EvalSwingMult = 0;
++int EvalSwingMax = 200;
++int TtCutoffHistory = 0;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -98,6 +105,9 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"AspFailHighReduce", &AspFailHighReduce, 0, 1},     {"AspFailHighMaxReduce", &AspFailHighMaxReduce, 1, 6},
++        {"EvalSwingMult", &EvalSwingMult, 0, 64},            {"EvalSwingMax", &EvalSwingMax, 50, 400},
++        {"TtCutoffHistory", &TtCutoffHistory, 0, 1},
+     };
+     return table;
+ }
+@@ -1416,14 +1455,26 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+             beta = std::min(score + delta, Infinite);
+         }
+         int iteration_score = score;
++#ifdef FORGE_ASP_STATS
++        if (depth >= 4) ++asp_stats().iterations;
++#endif
++        // Pack C / P8: consecutive fail-highs of this iteration; main worker only.
++        int fail_highs = 0;
+         while (true) {
+             ss->ply = 0;
+-            iteration_score = search(board, ss, depth, alpha, beta, false);
++            const int search_depth =
++                (tune::AspFailHighReduce != 0 && is_main()) ? std::max(1, depth - std::min(fail_highs, tune::AspFailHighMaxReduce)) : depth;
++            iteration_score = search(board, ss, search_depth, alpha, beta, false);
+             if (aborted_) break;
+             if (iteration_score <= alpha) {
++                fail_highs = 0;
+                 beta = (alpha + beta) / 2;
+                 alpha = std::max(iteration_score - delta, -Infinite);
+             } else if (iteration_score >= beta) {
++                ++fail_highs;
++#ifdef FORGE_ASP_STATS
++                ++asp_stats().fail_highs;
++#endif
+                 beta = std::min(iteration_score + delta, Infinite);
+             } else {
+                 break;
