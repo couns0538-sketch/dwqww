@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+# Paired Elo from match6 output files. Usage: elo_pairs.py <label> <file...>
+# A complete pair has both colour-reversed games. Elo and 95% interval are
+# computed from the per-pair score distribution of side A.
+import sys, math
+label = sys.argv[1]
+pairs = {}
+W = L = D = 0
+for path in sys.argv[2:]:
+    for line in open(path):
+        if not line.startswith("game "): continue
+        t = line.split()
+        pair = int(t[t.index("pair") + 1])
+        score_a = float(t[t.index("scoreA") + 1])
+        result = t[t.index("result") + 1]
+        a_white = next(x for x in t if x.startswith("A_white=")).split("=")[1] == "True"
+        pairs.setdefault(pair, []).append(score_a)
+        if result == "1-0":
+            if a_white: W += 1
+            else: L += 1
+        elif result == "0-1":
+            if a_white: L += 1
+            else: W += 1
+        else: D += 1
+forfeitA = forfeitB = 0
+for path in sys.argv[2:]:
+    for line in open(path):
+        if not line.startswith("SUMMARY"): continue
+        t = line.split()
+        forfeitA += int(t[t.index("forfeitA") + 1])
+        forfeitB += int(t[t.index("forfeitB") + 1])
+complete = [sum(v) for v in pairs.values() if len(v) == 2]
+n = len(complete)
+if n == 0:
+    print(f"{label}: no complete pairs"); sys.exit(0)
+mean = sum(complete) / n
+sd = math.sqrt(sum((x - mean) ** 2 for x in complete) / (n - 1)) if n > 1 else 0.0
+# t quantile approx: use 1.96 for n>30 else rough t values
+tq = 1.96 if n > 30 else 2.0
+half = tq * sd / math.sqrt(n)
+def elo(p):
+    p = min(max(p / 2.0, 1e-9), 1 - 1e-9)
+    return 400 * math.log10(p / (1 - p))
+print(f"{label}: pairs {n} (of {len(pairs)}), W{W}-L{L}-D{D} from A view; "
+      f"pair mean {mean:.3f}/2 -> Elo {elo(mean):+.1f} [{elo(mean-half):+.1f}, {elo(mean+half):+.1f}] 95%; "
+      f"nodetime forfeits A:{forfeitA} B:{forfeitB}")

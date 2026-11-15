@@ -1,0 +1,128 @@
+--- /dev/null	2026-11-14 03:49:21.926208465 +0000
++++ v3_stab/include/forge/tm_stability.hpp	2026-11-15 21:31:09.890885460 +0000
+@@ -0,0 +1,39 @@
++#pragma once
++
++#include <cstdint>
++
++namespace forge {
++
++// TmStability: an extra soft-limit scale from how settled the root search is,
++// on top of the factors the engine already applies. Two readings, one number.
++//
++// (a) Best-move stability: stable_iterations counts finished iterations in a
++// row that kept the same best move. A move that just changed (0) gets
++// unstable_pct percent of the soft target; one stable for 8 or more iterations
++// gets stable_pct percent; between them the scale falls linearly.
++//
++// (b) Score trend: score_drop_cp is how much the score fell against the
++// previous iteration (positive when falling, 0 otherwise), capped at 200 cp.
++// Each 100 cp of drop adds fall_per100_pct percent on top.
++//
++// The product is clamped to [min_pct, max_pct] percent and returned in
++// thousandths (1000 = soft target unchanged). Constants are the author's
++// first guess, deliberately milder than the engine's always-on stability and
++// falling-eval terms (which stay in place either way).
++[[nodiscard]] constexpr std::int64_t tm_stability_thousandths(std::int64_t stable_iterations, std::int64_t score_drop_cp,
++                                                              std::int64_t unstable_pct, std::int64_t stable_pct,
++                                                              std::int64_t fall_per100_pct, std::int64_t min_pct,
++                                                              std::int64_t max_pct) noexcept {
++    std::int64_t stab = stable_pct;
++    if (stable_iterations <= 0) stab = unstable_pct;
++    else if (stable_iterations < 8) stab = unstable_pct + (stable_pct - unstable_pct) * stable_iterations / 8;
++    std::int64_t drop = score_drop_cp;
++    if (drop < 0) drop = 0;
++    if (drop > 200) drop = 200;
++    const std::int64_t total = stab * (1000 + fall_per100_pct * 10 * drop / 100) / 1000;
++    if (total < min_pct) return min_pct * 10;
++    if (total > max_pct) return max_pct * 10;
++    return total * 10;
++}
++
++}  // namespace forge
+--- v3_nc/src/search.cpp	2026-11-15 20:39:21.010885460 +0000
++++ v3_stab/src/search.cpp	2026-11-15 21:31:18.494885460 +0000
+@@ -2,6 +2,7 @@
+ #include "forge/search.hpp"
+ #include "forge/tm_finish.hpp"
+ #include "forge/tm_node_share.hpp"
++#include "forge/tm_stability.hpp"
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
+@@ -106,6 +107,12 @@
+ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
++bool TmStability = false;
++int TmStabUnstablePct = 145;
++int TmStabStablePct = 65;
++int TmStabFallPer100 = 25;
++int TmStabMinPct = 50;
++int TmStabMaxPct = 160;
+ std::int64_t NodeClock = 0;
+ bool SoundMatePruning = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+@@ -144,6 +151,9 @@
+         {"TmStableFactor", &TmStableFactor, 20, 150},        {"TmSemiStableFactor", &TmSemiStableFactor, 20, 150},
+         {"TmUnstableFactor", &TmUnstableFactor, 50, 300},    {"TmEffortBase", &TmEffortBase, 100, 250},
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
++        {"TmStabUnstablePct", &TmStabUnstablePct, 100, 300},     {"TmStabStablePct", &TmStabStablePct, 20, 100},
++        {"TmStabFallPer100", &TmStabFallPer100, 0, 200},         {"TmStabMinPct", &TmStabMinPct, 20, 100},
++        {"TmStabMaxPct", &TmStabMaxPct, 100, 300},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
+     };
+@@ -2596,6 +2606,17 @@
+                 const int drop = std::min(iteration_previous_score - score, 150);
+                 factor *= 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
+             }
++            // TmStability: an extra scale from how settled the root is. Off by
++            // default; with it off not one decision changes.
++            if (tune::TmStability) {
++                const std::int64_t drop =
++                    (iteration_previous_score != ValueNone && !is_mate_score(score) && score < iteration_previous_score)
++                        ? static_cast<std::int64_t>(iteration_previous_score - score)
++                        : 0;
++                factor *= static_cast<double>(tm_stability_thousandths(
++                              stable_iterations, drop, tune::TmStabUnstablePct, tune::TmStabStablePct,
++                              tune::TmStabFallPer100, tune::TmStabMinPct, tune::TmStabMaxPct)) / 1000.0;
++            }
+             factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
+             // TmNodeShare is clock play only: this block is skipped for depth,
+             // nodes, movetime, infinite, and ponder before ponderhit. Off, the
+--- v3_nc/include/forge/search.hpp	2026-11-15 20:27:24.314885460 +0000
++++ v3_stab/include/forge/search.hpp	2026-11-15 21:31:13.274885460 +0000
+@@ -306,6 +306,12 @@
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;
++extern bool TmStability;              // extra soft scaling from best-move stability and score trend (false = off)
++extern int TmStabUnstablePct;         // x0.01 soft scale when the best move just changed
++extern int TmStabStablePct;           // x0.01 soft scale after 8 stable iterations
++extern int TmStabFallPer100;          // extra percent per 100 cp of score drop since the previous iteration
++extern int TmStabMinPct;              // x0.01 clamp, lower bound of the TmStability multiplier
++extern int TmStabMaxPct;              // x0.01 clamp, upper bound of the TmStability multiplier
+ extern std::int64_t NodeClock;        // nodes per millisecond; 0 = wall clock (off)             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+--- v3_nc/src/uci.cpp	2026-11-15 20:27:24.318885460 +0000
++++ v3_stab/src/uci.cpp	2026-11-15 21:31:16.454885460 +0000
+@@ -232,6 +232,7 @@
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
++                         "option name TmStability type check default false\n"
+                          "option name NodeClock type spin default 0 min 0 max 1000000000\n"
+                          "option name SoundMatePruning type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+@@ -437,6 +438,9 @@
+             } else if (name == "TmNodeShare") {
+                 if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                 else note_invalid();
++            } else if (name == "TmStability") {
++                if (value_text == "true" || value_text == "false") forge::tune::TmStability = value_text == "true";
++                else note_invalid();
+             } else if (name == "NodeClock") {
+                 apply_spin(0, 1000000000, [&](int clamped) { forge::tune::NodeClock = clamped; });
+             } else if (name == "SoundMatePruning") {

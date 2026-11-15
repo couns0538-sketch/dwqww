@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+# Job 6 match runner: node-clock matches with per-side options and seeded pair order.
+# Pairs: each opening is played twice, colours reversed (game g and g^1 are one pair,
+# pair id = opening index). Pair order is shuffled with random.Random(seed) — this is
+# the runner's equivalent of cutechess order=random -srand <seed>.
+# No adjudication: games end by the laws of chess (python-chess is_game_over with
+# claim_draw) or a 200-fullmove safety cap. A side out of node time loses.
+# Usage: match6.py <binary> <epd> <games> <nodeclock> <outfile> <count> <index> <seed> <optA> <optB>
+#   optA/optB: "" (defaults) or e.g. "TmFinishIteration=1". A = the tested side.
+import subprocess, sys, chess, random
+(binary, epd, games, nc, out, count, index, seed, optA, optB) = (
+    sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5],
+    int(sys.argv[6]), int(sys.argv[7]), int(sys.argv[8]), sys.argv[9], sys.argv[10])
+opens = [l.strip() for l in open(epd) if l.strip()]
+npairs = (games + 1) // 2
+pairs = [opens[k % len(opens)] for k in range(npairs)]
+random.Random(seed).shuffle(pairs)
+def start_engine(opt):
+    p = subprocess.Popen([binary], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+    def send(s): p.stdin.write(s + "\n"); p.stdin.flush()
+    send("setoption name OwnBook value false")
+    send("setoption name Threads value 1")
+    send("setoption name Hash value 16")
+    send(f"setoption name NodeClock value {nc}")
+    if opt:
+        for one in opt.split(","):
+            name, val = one.split("=")
+            send(f"setoption name {name} value {val}")
+    return p, send
+engA, sendA = start_engine(optA)
+engB, sendB = start_engine(optB)
+def search(send, stdout, fen, moves, wms, bms):
+    send("position fen " + fen + (" moves " + " ".join(moves) if moves else ""))
+    send(f"go wtime {wms} btime {bms} winc 100 binc 100")
+    last = None
+    while True:
+        line = stdout.readline()
+        if not line: raise RuntimeError("engine died")
+        if line.startswith("info depth"): last = line.strip()
+        elif line.startswith("bestmove"):
+            bm = line.split()[1]
+            t = 0
+            if last:
+                toks = last.split()
+                t = int(toks[toks.index("time") + 1]) if "time" in toks else 0
+            return bm, t
+# stats accumulators: [moves, sum_used, sum_softshare, hardstops] per side (0=A, 1=B)
+st = [[0, 0, 0.0, 0], [0, 0, 0.0, 0]]
+forfeit_A = forfeit_B = 0
+cap_hits = 0
+for g in range(index, games, count):
+    pair = g // 2
+    board = chess.Board(pairs[pair])
+    a_white = (g % 2 == 0)
+    sendA("ucinewgame"); sendB("ucinewgame")
+    moves, wms, bms, result = [], 10000, 10000, None
+    while result is None:
+        if board.is_game_over(claim_draw=True):
+            result = board.result(claim_draw=True); break
+        if board.fullmove_number > 200:
+            result = "1/2-1/2 (cap)"; cap_hits += 1; break
+        white_to_move = board.turn == chess.WHITE
+        use_a = (white_to_move == a_white)
+        send, eng = (sendA, engA) if use_a else (sendB, engB)
+        budget = wms if white_to_move else bms
+        avail = max(budget - 10, 0)  # Move Overhead 10 node-ms
+        soft = avail / 22.0 + 75.0
+        hard = min(avail * 0.6, soft * 5)
+        bm, used = search(send, eng.stdout, board.fen(), moves, wms, bms)
+        if white_to_move: wms = wms - used + 100
+        else: bms = bms - used + 100
+        side = 0 if use_a else 1
+        st[side][0] += 1; st[side][1] += used
+        st[side][2] += (used / soft) if soft > 0 else 0.0
+        if hard > 0 and used >= 0.95 * hard: st[side][3] += 1
+        if wms < 0:
+            result = "0-1 (nodetime W)"
+            if use_a: forfeit_A += 1
+            else: forfeit_B += 1
+            break
+        if bms < 0:
+            result = "1-0 (nodetime B)"
+            if use_a: forfeit_B += 1
+            else: forfeit_A += 1
+            break
+        if bm == "(none)" or bm == "0000":
+            result = board.result(claim_draw=True); break
+        mv = chess.Move.from_uci(bm)
+        if mv not in board.legal_moves:
+            result = "0-1 (illegal W)" if white_to_move else "1-0 (illegal B)"; break
+        board.push(mv); moves.append(bm)
+    if result.startswith("1-0"): score_a = 1 if a_white else 0
+    elif result.startswith("0-1"): score_a = 0 if a_white else 1
+    else: score_a = 0.5
+    with open(out, "a") as f:
+        f.write(f"game {g} pair {pair} A_white={a_white} result {result} scoreA {score_a} moves {' '.join(moves)}\n")
+sendA("quit"); sendB("quit"); engA.wait(); engB.wait()
+with open(out, "a") as f:
+    f.write(f"SUMMARY shard={index} movesA {st[0][0]} nodesA {st[0][1]} softshareA {st[0][2]:.2f} hardA {st[0][3]}"
+            f" movesB {st[1][0]} nodesB {st[1][1]} softshareB {st[1][2]:.2f} hardB {st[1][3]}"
+            f" forfeitA {forfeit_A} forfeitB {forfeit_B} caps {cap_hits}\n")
+print("done", out)
