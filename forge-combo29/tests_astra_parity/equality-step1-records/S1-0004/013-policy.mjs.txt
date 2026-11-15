@@ -1,0 +1,11 @@
+import crypto from 'node:crypto';
+const expected='615ecc9b31bbbf60ae8d0c4815799c9da7f68c44917d367f0260668b6ea47a0d';
+const otherFields=['invalid_fens','illegal','missing','missing_info','wrong_depth','sanitizer_issues','transport_issues','crashes','nonzero_exits'];
+export function allows(a,allowUnattributedDifferences=false){
+ if((!allowUnattributedDifferences&&(a.totalDifferences||a.partialDifferenceObservations?.length))||a.validationErrors?.length)return false;
+ if(otherFields.some(k=>(a.counts?.[k]??0)!==0))return false;
+ if(a.partialOperationalFindings?.some(f=>Object.entries(f.faults).some(([k,n])=>k!=='shutdown_timeouts'&&n)))return false;
+ if(a.decision0012){const t=a.shutdownTiming,p=a.decision0012;if(!t||t.timingErrors?.length||t.candidateTimeoutOccurrences>1||p.escalationRequired||p.otherOperationalFaults!==0)return false;if(a.operationalFaults!==p.classifiedShutdownAllowanceOccurrences)return false;if(t.timeoutOccurrences.some(x=>!x.pureShutdownAllowanceOccurrence))return false;if(t.timeoutOccurrences.some(x=>x.side==='merged'&&!(x.batch==='/workspace/work/parity-run/equality-batches/step1/S1-0001/summary.txt'&&x.worker===1&&x.localIndex===4407&&x.attempt===0)))return false;return true;}
+ if(a.batches?.length!==1||a.batches[0].file!=='/workspace/work/parity-run/equality-batches/step1/S1-0001/summary.txt')return false;
+ return crypto.createHash('sha256').update(JSON.stringify(a,null,2)+'\n').digest('hex')===expected&&a.operationalFaults===1&&a.partialOperationalFindings.length===1&&a.partialOperationalFindings[0].worker===1&&a.partialOperationalFindings[0].localIndex===4407&&a.partialOperationalFindings[0].engine==='merged'&&JSON.stringify(a.partialOperationalFindings[0].faults)==='{"shutdown_timeouts":1}';
+}
