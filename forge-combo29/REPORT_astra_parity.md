@@ -1,11 +1,11 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:04:41.880Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T02:15:42.549Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
-Full100000-position same-clock gate accepted; starting extended paired sanitizer soak.
-100000/100000 exactselectedpositions:99958lowclockallmatch,42highclockwithsole036729 differenceoriginal+10freshpairs. Explicitnarrow sourceattributionaccepted; rawstrictaudit/difference/cutoffcounts unchanged. Threepins312866/862329/4865609,16optioncounts,9unitrowspass. Extendedpairedsanitizerplan declared; sourceunchanged.
+STOP: two Threads2 softnodes item4 findings; publish and askFable/Opus before any furthernative.
+Final paired UCI batch extended-c01-paired-softnodes-asan-on-t2-n2000-d0: accepted-clean 0 games / 0 searches; cumulative 108 games / 15514 searches. 2 batches with observed findings; 0 incomplete. Preliminary coverage excluded. STOP and send item3/4 trigger before further engine work.
 
 | Check | Result |
 |---|---|
@@ -18,12 +18,12 @@ Full100000-position same-clock gate accepted; starting extended paired sanitizer
 | Step 2 option checks and unit rows | 16/16 option counts; 9 unit rows, 0 failures |
 | Step 2 targeted position | a1b2, mate -5, 2566746 nodes; depth9, Threads1 |
 | Step 2 exact corpus | 100000/100000; 1 differences; effective gate accepted with listed same-clock attribution; strict audit retained |
-| Prescribed shutdown diagnostic | 2000/2000 cycles; candidate/reference timeouts 0/0; max quit-to-exit 16.077182/14.05392 ms; ordinary runs resumed by separate decision |
+| Prescribed shutdown diagnostic | 2000/2000 cycles; candidate/reference timeouts 0/0; max quit-to-exit 16.077182/14.05392 ms; ordinary runs paused |
 | Preliminary step 1 sanitizers | 393 games / 52681 searches; 0 findings |
 | Preliminary paired UCI check | 132 ordinary / 87 soft-node searches; 8 cap cases; 0 label faults |
 | Final-tree original protocol | 5 finished games / 1102 searches observed; 0 accepted batches; 1 historical contract-failure batches retained |
-| Final-tree strict depth64 v2 | Not started; no new coverage claimed |
-| Strict-v2 paired labels | Pending |
+| Final-tree strict depth64 v2 | 2/12 distinct conditions covered; 2 clean batches from 4 recorded; 108 accepted games / 15514 searches; 0 diagnostic lines; 2 new finding batches |
+| Strict-v2 paired labels | 54 ordinary / 54 soft-node games; soft X 42226157/7874, mean 5362.7326644653285; 911 hard-cap cases |
 | HindsightDepth match | 0 games; Not started |
 
 | Imported source branch | Source commit | Applied commit | Conflicts |
@@ -31,6 +31,18 @@ Full100000-position same-clock gate accepted; starting extended paired sanitizer
 | grok47/r3-18-lazy-net-accumulator | 8207842201cadf2b7e70948b9845cd4965a184a2 | 4fd62b3a4319d695d986695128d7f77fd92b6f09 | 0 |
 | grok47/r3-19-faster-hce | 528ccdf1cbba5366c78b8bc75d89237d783a0171 | d7326b9b94eb06e8863843db893ae36ed8372198 | 0 |
 | grok47/r3-20-faster-search-plumbing | decec377588a446e2020a7e3634f6cc2a00533be | c488e88fddc71a7ceadddb15270d3f62f6add8d9 | 0 |
+
+| Strict-v2 sanitizer group | Passed batches | Ordinary games/searches | Soft-node games/searches | Cap cases | Diagnostic lines / fault rows |
+|---|---|---|---|---|---|
+| asan/off/t1/n2000/d0 | 1/1 | 26/3563 | 26/4073 | 443 | 0/0 |
+| asan/off/t2/n2000/d0 | 0/1 | 0/0 | 0/0 | 0 | 0/1 |
+| asan/on/t1/n2000/d0 | 1/1 | 28/4077 | 28/3801 | 468 | 0/0 |
+| asan/on/t2/n2000/d0 | 0/1 | 0/0 | 0/0 | 0 | 0/1 |
+
+Game and search counts in that table include only accepted clean batches; diagnostic and fault columns retain every recorded finding. The original failed contract batch is separate. Both earlier depth64 declarations were unused; the extended plan reuses the exact strict-v2 native binary.
+
+The extended plan reserves72 batches across6 cycles; 68 have not run. Distinct-condition coverage is the12-condition check, not completion of all72 reserved batches. Repeated batches: 0.
+Cycle 0: 2 clean batches from 4 recorded; 2 failed or incomplete.
 
 
 The complete corpus is accepted through a separate, explicit decision for global position36729: unchanged a1b2, mate−6/2565143 before and mate−5/2566746 after, original plus10 fresh pairs. All other positions match. The source proof requires equal capped clocks with an old mate-distance rejection; no runtime TT-entry clock is claimed. The strict audit still lists its original difference and operational findings. [Acceptance evidence](tests_astra_parity/inputs/step2-effective-acceptance-S2-0007.txt).
@@ -83,4 +95,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 25, including this checkpoint.
+Progress pushes: 26, including this checkpoint.

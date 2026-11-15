@@ -5,7 +5,7 @@ const plan=JSON.parse(fs.readFileSync('/workspace/work/parity-softnodes-extended
 const indices=process.argv.slice(2).map(Number);assert.ok(indices.length>=1&&indices.length<=2);
 const rows=indices.map(index=>{assert.ok(Number.isInteger(index)&&plan.batches[index]);return {index,dir:'/workspace/work/parity-run/softnodes-extended-batches/'+plan.batches[index].label};});
 assert.ok(plan.waves.some(w=>indices.every(i=>w.includes(i))));
-const until=Date.now()+45000;
+const until=Date.now()+450000;
 while(true){
  const states=rows.map(({index,dir})=>{
   const findings=[];let checks=0,last=null;
