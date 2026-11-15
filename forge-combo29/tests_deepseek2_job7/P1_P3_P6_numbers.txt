@@ -1,0 +1,43 @@
+P1 - counters, bench 13, traced private build (/tmp/ds2/qctr, diff in P1_trace_patch.txt)
+  option OFF: qs_nodes 378946 first_ply_nodes 192450 checks_generated 0 checks_searched 0 checks_raised_alpha 0 nodes 862329
+  option ON : qs_nodes 333083 first_ply_nodes 153939 checks_generated 22446 checks_searched 22154 checks_raised_alpha 407 nodes 724581
+  alpha-raise share = 407 / 22154 = 1.84 %
+  (My first alpha-raise counter reported 0 because the edit had silently failed and the counter was
+   never incremented; 407 is the corrected build. See report section 4.)
+
+P3 - option ON must differ from the pins (patched build, -DFORGE_NNUE_V3=1)
+  OFF: bench 11 312866, bench 13 862329, bench 16 3024920, perft 5 4865609   (= the pins)
+  ON : bench 11 320441, bench 13 724581, bench 16 2470662
+  The uci answer lists: option name QsQuietChecks type check default false
+
+P6 - speed, bench 16 nps, 10 interleaved pairs (off, on, off, on, ...)
+  off: 1856918 1751546 1835509 1834396 1637747 1788835 1639523 1739459 1763801 1737461
+  on : 1669366 1783871 1680722 1722916 1755978 1588850 1599133 1621169 1650408 1603284
+  off mean 1758520 sd 75950; on mean 1667570 sd 68347
+  paired off-on mean 90950 sd 100192   (~ -5.2 %)
+  Rough: different search trees, and the three matches were running on the same 4 cores.
+  New table: NONE. 0 bytes per thread. Quiet checks are ordered by the existing quiet history.
+
+P4 - sanitizers (ASan+UBSan build of the patched tree)
+  Planted fault FIRST: the control program was reported by both UBSan
+    ("runtime error: store to address ... with insufficient space for an object of type 'int'")
+    and ASan ("ERROR: AddressSanitizer: heap-buffer-overflow"), so the harness sees faults.
+  bench 13 with QsQuietChecks true: 724581 nodes, stderr 0 lines
+  200 UHO positions with QsQuietChecks true:
+    sha256 2157f05650c5ab6138e2c927e80f7d42a80aa270f0649424dac7984be47e6c91
+    min nodes 5015, total 2666988, stderr 0 lines
+
+P2 - identity, option off against the unpatched build
+  (2000 UHO lines, ucinewgame + position fen + go depth 9, answer = fen|bestmove|score|nodes)
+  unpatched  : sha256 7ea6746d44b77c6ea403649b8a94a87f604463fea295007cfbb675181b964eee
+               min nodes 4534, total 27176921
+  patched off: the same sha256, min 4534, total 27176921
+
+P5 - matches (nodes=20000, Threads 1, Hash 16, OwnBook false, UHO, order=random + -srand,
+     each opening twice with colours reversed, no adjudication, concurrency 4)
+  C  20000 vs 10000, seed 7840, 300 games : Elo +213.19 +/- 32.34  pairs [0, 5, 28, 65, 52]  0 crashes 0 illegal
+  M1 QsQuietChecks on vs off, seed 7841, 2000 : Elo -2.43 +/- 10.13  pairs [49, 247, 428, 221, 55]
+  M2 QsQuietChecks on vs off, seed 7842, 2000 : Elo +9.90 +/- 10.45  pairs [58, 212, 402, 271, 57]
+  pooled (inverse variance) M1+M2: +3.54 +/- 7.27
+  Raw fastchess output: out7_C.txt, out7_M1.txt, out7_M2.txt in this folder.
+  Probe before the matches: no "doesn't have option QsQuietChecks" warning, so the option arrived.

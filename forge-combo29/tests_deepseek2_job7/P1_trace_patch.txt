@@ -1,0 +1,249 @@
+diff --git b4/include/forge/search.hpp qctr/include/forge/search.hpp
+index 98959af..bf72282 100644
+--- b4/include/forge/search.hpp
++++ qctr/include/forge/search.hpp
+@@ -291,6 +291,12 @@ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
++// Try quiet checks at the FIRST quiescence ply, after the captures (false = off).
++extern bool QsQuietChecks;
++#if FORGE_DS2_TRACE_QC
++extern std::uint64_t qc_qs_nodes, qc_first_ply_nodes, qc_checks_generated, qc_checks_searched;
++extern std::uint64_t qc_checks_raised_alpha;
++#endif
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+@@ -536,7 +542,7 @@ private:
+     }
+ #endif
+     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+-    int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
++    int qsearch(Board& board, SearchStack* ss, int alpha, int beta, bool first_qsearch_ply);
+     [[nodiscard]] bool should_stop();
+     [[nodiscard]] bool should_stop_with(std::uint64_t pending_nodes);
+     [[nodiscard]] std::int64_t elapsed_ms() const;
+diff --git b4/src/search.cpp qctr/src/search.cpp
+index b803a7e..d3e09fd 100644
+--- b4/src/search.cpp
++++ qctr/src/search.cpp
+@@ -91,6 +91,11 @@ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
++bool QsQuietChecks = false;
++#if FORGE_DS2_TRACE_QC
++std::uint64_t qc_qs_nodes = 0, qc_first_ply_nodes = 0, qc_checks_generated = 0;
++std::uint64_t qc_checks_searched = 0, qc_checks_raised_alpha = 0;
++#endif
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+ bool EvalRule50Damp = false;
+@@ -578,12 +583,14 @@ class MovePicker {
+ public:
+     enum class Mode { Main, Quiescence };
+ 
+-    MovePicker(const Board& board, const Worker& searcher, const SearchStack* ss, Move tt_move, Mode mode)
+-        : board_(board), searcher_(searcher), ss_(ss), tt_move_(tt_move) {
++    MovePicker(const Board& board, const Worker& searcher, const SearchStack* ss, Move tt_move, Mode mode,
++               bool first_qsearch_ply = false)
++        : board_(board), searcher_(searcher), ss_(ss), tt_move_(tt_move), quiet_checks_(mode == Mode::Quiescence &&
++              first_qsearch_ply && tune::QsQuietChecks && !board.in_check()) {
+         const bool in_check = board.in_check();
+         if (!tt_move_.is_none() && !board_.is_pseudo_legal(tt_move_)) tt_move_ = Move::none();
+         if (mode == Mode::Quiescence && !in_check && !tt_move_.is_none() && !tt_move_.is_capture() &&
+-            !tt_move_.is_promotion()) {
++            !tt_move_.is_promotion() && !(quiet_checks_ && board_.gives_check(tt_move_))) {
+             tt_move_ = Move::none();
+         }
+         if (in_check) stage_ = tt_move_.is_none() ? EvasionGenerate : EvasionTT;
+@@ -677,6 +684,20 @@ public:
+                     if (move == tt_move_) continue;
+                     return move;
+                 }
++                if (!quiet_checks_) return Move::none();
++                stage_ = QsGenerateChecks;
++                [[fallthrough]];
++            case QsGenerateChecks:
++                generate_quiet_checks();
++                stage_ = QsQuietCheckMoves;
++                [[fallthrough]];
++            case QsQuietCheckMoves:
++                if (index_ < count_) {
++#if FORGE_DS2_TRACE_QC
++                    ++tune::qc_checks_searched;
++#endif
++                    return pick_best();
++                }
+                 return Move::none();
+ 
+             case EvasionGenerate:
+@@ -704,7 +725,7 @@ public:
+ private:
+     enum Stage : int {
+         MainTT, GenerateCaptures, GoodCaptures, Killer1, Killer2, CounterMove, GenerateQuiets, QuietMoves, BadCaptures,
+-        QsTT, QsGenerate, QsCaptures,
++        QsTT, QsGenerate, QsCaptures, QsGenerateChecks, QsQuietCheckMoves,
+         EvasionTT, EvasionGenerate, Evasions
+     };
+     struct Scored {
+@@ -716,6 +737,7 @@ private:
+     const Worker& searcher_;
+     const SearchStack* ss_;
+     Move tt_move_;
++    bool quiet_checks_ = false;
+     std::array<Move, 2> killers_{};
+     Move counter_{};
+     Stage stage_;
+@@ -959,6 +981,32 @@ private:
+ #endif
+     }
+ 
++    // Quiet moves that give check, for the first quiescence ply only. They are
++    // ordered by the same quiet history the main search uses, so no new table and
++    // no new scoring term is needed.
++    void generate_quiet_checks() {
++        init_check_squares();
++        buffer_.clear();
++        board_.generate_pseudo_legal(buffer_, Board::GenMode::Quiets);
++        index_ = 0;
++        count_ = 0;
++        seeded_ = false;
++#if FORGE_SEARCH_SPEED2
++        const QuietScorer scorer(board_, searcher_, ss_);
++#endif
++        for (const Move move : buffer_) {
++            if (!board_.gives_check(move)) continue;
++#if FORGE_DS2_TRACE_QC
++            ++tune::qc_checks_generated;
++#endif
++#if FORGE_SEARCH_SPEED2
++            moves_[count_++] = Scored{move, scorer.score(move, check_squares_)};
++#else
++            moves_[count_++] = Scored{move, searcher_.quiet_history(board_, ss_, move)};
++#endif
++        }
++    }
++
+     void generate_evasions() {
+         init_check_squares();
+         buffer_.clear();
+@@ -1413,9 +1461,13 @@ void Worker::update_capture_stats(const Board& board, Move best, int depth, cons
+ // ---------------------------------------------------------------------------
+ // Quiescence search
+ 
+-int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
++int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta, bool first_qsearch_ply) {
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
++#if FORGE_DS2_TRACE_QC
++    ++tune::qc_qs_nodes;
++    if (first_qsearch_ply) ++tune::qc_first_ply_nodes;
++#endif
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+     if (aborted_) return 0;
+     ++local_nodes_;
+@@ -1483,7 +1535,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+         futility_base = ss->static_eval + tune::QsFutilityMargin;
+     }
+ 
+-    MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
++    MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence, first_qsearch_ply);
+     Move best_move = Move::none();
+     int move_count = 0;
+     Move move;
+@@ -1517,12 +1569,16 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+ #else
+         shared_.tt.prefetch(board.key());
+ #endif
+-        const int score = -qsearch(board, ss + 1, -beta, -alpha);
++        const int score = -qsearch(board, ss + 1, -beta, -alpha, false);
+         board.unmake_move(move, undo);
+         if (aborted_) return 0;
+         if (score > best_score) {
+             best_score = score;
+             if (score > alpha) {
++#if FORGE_DS2_TRACE_QC
++                if (first_qsearch_ply && !in_check && !move.is_capture() && !move.is_promotion() &&
++                    board.gives_check(move)) ++forge::tune::qc_checks_raised_alpha;
++#endif
+                 best_move = move;
+                 if (pv_node) {
+                     ss->pv[0] = move;
+@@ -1553,7 +1609,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;
+ 
+-    if (depth <= 0) return qsearch(board, ss, alpha, beta);
++    if (depth <= 0) return qsearch(board, ss, alpha, beta, true);
+     // The frame is reused across siblings and same-ply verification searches.
+     // Keep this call's inherited path budget independent of those mutations.
+     const int inherited_double_extensions = (ss - 1)->double_extensions;
+@@ -1628,7 +1684,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     depth = proposed;
+                     if (depth <= 0) {
+                         --local_nodes_;
+-                        return qsearch(board, ss, alpha, beta);
++                        return qsearch(board, ss, alpha, beta, true);
+                     }
+                 }
+             }
+@@ -1681,7 +1737,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         board.halfmove_clock() + depth < 100) {
+         // Razoring: hopeless positions fall back to quiescence.
+         if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+-            const int razor = qsearch(board, ss, alpha - 1, alpha);
++            const int razor = qsearch(board, ss, alpha - 1, alpha, true);
+             if (aborted_) return 0;
+             if (razor < alpha) return razor;
+         }
+@@ -1762,7 +1818,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ #if FORGE_SEARCH_SPEED2
+                 shared_.tt.prefetch(board.key());
+ #endif
+-                int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
++                int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1, false);
+                 if (value >= probcut_beta && !aborted_) {
+                     value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+                 }
+diff --git b4/src/uci.cpp qctr/src/uci.cpp
+index e0d8aee..27c6160 100644
+--- b4/src/uci.cpp
++++ qctr/src/uci.cpp
+@@ -219,6 +219,7 @@ int uci_loop(std::istream& in) {
+                          "option name LmrDeeperShallower type check default false\n"
+                          "option name EvalRule50Damp type check default false\n"
+                          "option name ThreatHistory type check default false\n"
++                         "option name QsQuietChecks type check default false\n"
+                          "option name LmrSignedCorrection type check default false\n"
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+@@ -400,6 +401,12 @@ int uci_loop(std::istream& in) {
+                     forge::dead_material_enabled = value_text == "true";
+                     searcher.clear_hash();
+                 }
++            } else if (name == "QsQuietChecks") {
++                if (value_text == "true" || value_text == "false") {
++                    forge::tune::QsQuietChecks = value_text == "true";
++                } else {
++                    note_invalid();
++                }
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
+@@ -624,6 +631,14 @@ int uci_loop(std::istream& in) {
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
+                       << std::endl;
++#if FORGE_DS2_TRACE_QC
++            std::cout << "info string QCTRACE qs_nodes " << forge::tune::qc_qs_nodes
++                      << " first_ply_nodes " << forge::tune::qc_first_ply_nodes
++                      << " checks_generated " << forge::tune::qc_checks_generated
++                      << " checks_searched " << forge::tune::qc_checks_searched
++                      << " checks_raised_alpha " << forge::tune::qc_checks_raised_alpha
++                      << " nodes " << total_nodes << std::endl;
++#endif
+         } else if (command == "ponderhit") {
+             if (ponder_search_active) {
+                 searcher.ponderhit();
