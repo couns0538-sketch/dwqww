@@ -1,0 +1,73 @@
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -293,6 +293,10 @@
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern int MinorCorrection;          // minor-piece correction history, weight in percent (0 = off)
++// TRACED COPY ONLY:
++extern std::uint64_t MinorCorrReads;
++extern std::uint64_t MinorCorrUpdates;
++extern std::uint64_t MinorCorrUpdatesChanged;
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -77,6 +77,10 @@
+ int LmrCutoffThreshold = 3;
+ int MaterialCorrectionWeight = 100;
+ int MinorCorrection = 0;
++// TRACED COPY ONLY: counters for the minor correction table, reset by Worker::clear().
++std::uint64_t MinorCorrReads = 0;
++std::uint64_t MinorCorrUpdates = 0;
++std::uint64_t MinorCorrUpdatesChanged = 0;
+ int TmSoftDivisor = 22;
+ int TmIncrementPercent = 75;
+ int TmHardPercent = 60;
+@@ -1031,7 +1035,9 @@
+     *non_pawn_white_correction_ = CorrectionHistory{};
+     *non_pawn_black_correction_ = CorrectionHistory{};
+     *minor_correction_ = CorrectionHistory{};
+-    for (SearchStack& ss : stack_) ss = SearchStack{};
++    tune::MinorCorrReads = 0;
++    tune::MinorCorrUpdates = 0;
++    tune::MinorCorrUpdatesChanged = 0;    for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
+ namespace {
+@@ -1241,6 +1247,7 @@
+     }
+     if (tune::MinorCorrection > 0) {
+         correction += (*minor_correction_)[side][minor_key(board) & (CorrectionSize - 1U)] * tune::MinorCorrection / 100;
++        ++tune::MinorCorrReads;
+     }
+     if (tune::NonPawnCorrection) {
+         const std::int32_t np_w = (*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)];
+@@ -1259,7 +1266,13 @@
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
+-    if (tune::MinorCorrection > 0) apply((*minor_correction_)[side][minor_key(board) & (CorrectionSize - 1U)]);
++    if (tune::MinorCorrection > 0) {
++        std::int32_t& entry = (*minor_correction_)[side][minor_key(board) & (CorrectionSize - 1U)];
++        const std::int32_t before = entry;
++        apply(entry);
++        ++tune::MinorCorrUpdates;
++        if (entry != before) ++tune::MinorCorrUpdatesChanged;
++    }
+     if (tune::NonPawnCorrection) {
+         apply((*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)]);
+         apply((*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)]);
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -624,6 +624,10 @@
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
+                       << std::endl;
++            // TRACED COPY ONLY: minor correction table counters for this bench run.
++            std::cout << "info string minorcorr reads " << forge::tune::MinorCorrReads
++                      << " updates " << forge::tune::MinorCorrUpdates
++                      << " changed " << forge::tune::MinorCorrUpdatesChanged << std::endl;
+         } else if (command == "ponderhit") {
+             if (ponder_search_active) {
+                 searcher.ponderhit();
