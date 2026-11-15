@@ -1,0 +1,161 @@
+# Fable/Opus checks of the Forge engine, run on GitHub's free runners (public repository).
+# Drafted 2026-11-15 by the Opus session; every line read by Fable before it is pushed; the owner allowed this branch
+# on 2026-11-15 ("yes" to: one new branch with a test recipe and test scripts that GitHub runs for free).
+# Rules this file keeps (Fable's conditions of 08:50):
+#  - runs only on this branch: by hand (workflow_dispatch) or when this branch is pushed; never on pull requests, never
+#    on a schedule;
+#  - the test job has a read-only token and no secrets; GitHub's own actions only, pinned to full commit ids,
+#    credentials not kept;
+#  - the engine source is fetched at a fixed commit into its own folder; only the engine built from it runs;
+#  - the results reach Fable and Opus as text in git: a second job, which runs no engine code, commits the text files
+#    of the test job (size-capped, checked) to the branch ci-results/fable-opus;
+#  - every job has a time limit, and two runs never overlap.
+name: fable-opus-checks
+
+on:
+  workflow_dispatch:
+    inputs:
+      engine_commit:
+        description: "Commit of the engine source to test (a forge-combo29 tree)"
+        required: true
+        default: "6b98f2170a3210e71beed04bbd2553972c253ed7"
+      suites:
+        description: "Comma-separated suites: perft,mates,badinput,tsan"
+        required: true
+        default: "perft,mates,badinput,tsan"
+  push:
+    branches:
+      - ci/fable-opus-checks
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fable-opus-checks
+  cancel-in-progress: false
+
+env:
+  ENGINE_COMMIT: ${{ inputs.engine_commit || '6b98f2170a3210e71beed04bbd2553972c253ed7' }}
+  # first push: the two short suites only, to see the whole path (build, test, publish) work; the next commit
+  # on this branch makes all four the default
+  SUITES: ${{ inputs.suites || 'perft,mates' }}
+
+jobs:
+  test:
+    name: test (${{ matrix.suite }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [perft, mates, badinput, tsan]
+    steps:
+      - name: Our scripts (this branch)
+        if: contains(format(',{0},', env.SUITES), format(',{0},', matrix.suite))
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          path: ours
+          persist-credentials: false
+
+      - name: Engine source at the commit under test
+        if: contains(format(',{0},', env.SUITES), format(',{0},', matrix.suite))
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ env.ENGINE_COMMIT }}
+          path: engine
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Python packages (PyPI, pinned)
+        if: contains(format(',{0},', env.SUITES), format(',{0},', matrix.suite))
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv" || { sudo apt-get update -q && sudo apt-get install -y -q python3-venv && python3 -m venv "$RUNNER_TEMP/venv"; }
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet python-chess==1.11.2 numpy==1.26.4
+
+      - name: Run the suite
+        if: contains(format(',{0},', env.SUITES), format(',{0},', matrix.suite))
+        env:
+          PYTHON: ${{ runner.temp }}/venv/bin/python
+          SUITE: ${{ matrix.suite }}
+        run: |
+          test -d engine/forge-combo29 || { echo "no forge-combo29 folder at $ENGINE_COMMIT"; exit 2; }
+          bash ours/ci/run_suite.sh "$SUITE" engine/forge-combo29 "results/$SUITE"
+
+      - name: Keep the text results
+        if: always() && contains(format(',{0},', env.SUITES), format(',{0},', matrix.suite))
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: results-${{ matrix.suite }}
+          path: results/${{ matrix.suite }}
+          retention-days: 7
+          if-no-files-found: warn
+
+  publish:
+    name: publish the text results to ci-results/fable-opus
+    needs: test
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Fetch the result files of this run
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          path: incoming
+          pattern: results-*
+
+      - name: Check them and commit them as text
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          dest="runs/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p pub && cd pub
+          git init -q
+          git config user.name "fable-opus-checks"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git fetch -q --depth 1 origin "refs/heads/ci-results/fable-opus" 2>/dev/null; then
+            git checkout -q -b work FETCH_HEAD
+          else
+            git checkout -q --orphan work
+          fi
+          mkdir -p "$dest"
+          # Only plain text files, only safe names, size limits; nothing under a .github folder; no links.
+          python3 - "$GITHUB_WORKSPACE/incoming" "$dest" <<'PY'
+          import os, re, sys
+          src, dst = sys.argv[1], sys.argv[2]
+          ok_name = re.compile(r"^[A-Za-z0-9._-]+$")
+          ok_ext = {".txt", ".log", ".json", ".md", ".csv", ".tsv"}
+          total, kept, refused = 0, 0, []
+          for dirpath, dirs, files in os.walk(src):
+              for f in files:
+                  p = os.path.join(dirpath, f)
+                  rel = os.path.relpath(p, src)
+                  parts = rel.split(os.sep)
+                  if (os.path.islink(p) or any(not ok_name.match(x) or x.startswith(".") for x in parts)
+                          or os.path.splitext(f)[1] not in ok_ext or len(parts) > 3):
+                      refused.append(rel); continue
+                  data = open(p, "rb").read()
+                  if len(data) > 2_000_000 or total + len(data) > 40_000_000:
+                      refused.append(rel + " (too large)"); continue
+                  try:
+                      data.decode("utf-8")
+                  except UnicodeDecodeError:
+                      refused.append(rel + " (not UTF-8 text)"); continue
+                  out = os.path.join(dst, *parts)
+                  os.makedirs(os.path.dirname(out), exist_ok=True)
+                  open(out, "wb").write(data)
+                  total += len(data); kept += 1
+          with open(os.path.join(dst, "PUBLISH_NOTES.txt"), "w") as fh:
+              fh.write(f"kept {kept} files, {total} bytes; refused {len(refused)}\n" + "".join(f"refused: {r}\n" for r in refused))
+          print(f"kept {kept}, refused {len(refused)}")
+          PY
+          printf 'run %s (attempt %s), engine commit %s, suites %s, workflow commit %s\n' \
+            "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$ENGINE_COMMIT" "$SUITES" "$GITHUB_SHA" > "$dest/RUN.txt"
+          git add -- "$dest"
+          git commit -q -m "fable-opus-checks: results of run ${GITHUB_RUN_ID} (engine ${ENGINE_COMMIT})"
+          git push -q origin HEAD:refs/heads/ci-results/fable-opus
