@@ -1,0 +1,248 @@
+diff --git a/forge-combo29/include/forge/nnue.hpp b/forge-combo29/include/forge/nnue.hpp
+index 2a2cd783..659ae8d3 100644
+--- a/forge-combo29/include/forge/nnue.hpp
++++ b/forge-combo29/include/forge/nnue.hpp
+@@ -7,6 +7,10 @@
+ #include <string>
+ #include <string_view>
+ 
++#ifndef FORGE_NNUE_V3
++#define FORGE_NNUE_V3 0
++#endif
++
+ namespace forge::nnue {
+ 
+ // Architecture: for each colour's perspective, 768 piece-square inputs feed a
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index a1edeaa4..98959af8 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -3,6 +3,9 @@
+ #include "forge/board.hpp"
+ #include "forge/eval.hpp"
+ #include "forge/nnue.hpp"
++#if FORGE_NNUE_V3
++#include "forge/nnue_v3.hpp"
++#endif
+ 
+ #include <array>
+ #include <atomic>
+@@ -476,6 +479,9 @@ private:
+     std::unique_ptr<CorrectionHistory> non_pawn_white_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_black_correction_;
+     std::array<SearchStack, MaxPly + 8> stack_{};
++#if FORGE_NNUE_V3
++    std::unique_ptr<nnue::v3::WorkerState> v3_state_;
++#endif
+     std::array<Move, 256> root_effort_moves_{};
+     std::array<std::uint64_t, 256> root_move_nodes_{};
+     std::size_t root_effort_count_ = 0;
+@@ -549,6 +555,9 @@ private:
+     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
+     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
++#if FORGE_NNUE_V3
++    [[nodiscard]] int static_evaluate_v3(const Board& board, SearchStack* ss);
++#endif
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+     void record_null_move(SearchStack* ss);
+ };
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 0640bc4f..9e818063 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -1066,6 +1066,9 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+         if (dead_material_score(board, fixed)) return fixed;
+     }
+     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
++#if FORGE_NNUE_V3
++    if (nnue::v3::active()) return static_evaluate_v3(board, ss);
++#endif
+     const bool residual = nnue::residual();
+     // Features used for this evaluation. A null move keeps the parent's
+     // accumulator: the piece set is unchanged, and a float copy would be the
+@@ -1114,6 +1117,21 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+     return std::clamp(evaluator_.evaluate_runtime(board, *psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+ 
++#if FORGE_NNUE_V3
++int Worker::static_evaluate_v3(const Board& board, SearchStack* ss) {
++    if (!v3_state_) v3_state_ = std::make_unique<nnue::v3::WorkerState>();
++    const nnue::v3::Net& net = *nnue::v3::loaded();
++    nnue::v3::WorkerState& state = *v3_state_;
++    nnue::v3::prepare(net, state, MaxPly + 8);
++    auto dirty_of = [this](int k) -> const nnue::DirtyPieces& {
++        SearchStack& frame = stack_[static_cast<std::size_t>(k)];
++        ensure_piece_diff(&frame);
++        return frame.dirty;
++    };
++    nnue::v3::make_valid(net, state, ss->ply + 4, board, dirty_of);
++    return nnue::v3::evaluate(net, board, state.stack[static_cast<std::size_t>(ss->ply + 4)]);
++}
++#endif
+ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {
+     // Called before make_move. The change list is ready, but the feature
+     // columns are added only when this position is evaluated.
+@@ -1128,6 +1146,9 @@ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move)
+                                           static_cast<Color>(child->entered_side));
+     child->diff_known = true;
+     child->accumulator.valid = false;
++#if FORGE_NNUE_V3
++    if (v3_state_) v3_state_->stack[static_cast<std::size_t>(ss->ply + 5)].valid = false;
++#endif
+     child->runtime_psqt.valid = false;
+ }
+ 
+@@ -1161,6 +1182,9 @@ void Worker::record_null_move(SearchStack* ss) {
+     child->diff_known = true;
+     child->dirty.count = 0;
+     child->accumulator.valid = false;
++#if FORGE_NNUE_V3
++    if (v3_state_) v3_state_->stack[static_cast<std::size_t>(ss->ply + 5)].valid = false;
++#endif
+     child->runtime_psqt.valid = false;
+ }
+ 
+@@ -2308,6 +2332,12 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         entry.entered_null = false;
+         entry.dirty.count = 0;
+     }
++#if FORGE_NNUE_V3
++    if (v3_state_) v3_state_->invalidate();
++    if (nnue::enabled && nnue::available() && nnue::v3::active()) {
++        (void)static_evaluate_v3(board, ss);
++    } else
++#endif
+     if (nnue::enabled && nnue::available()) {
+         nnue::refresh(board, ss->accumulator);
+         if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 66d4bf70..e0d8aee0 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -1,6 +1,9 @@
+ #include "forge/board.hpp"
+ #include "forge/book.hpp"
+ #include "forge/nnue.hpp"
++#if FORGE_NNUE_V3
++#include "forge/nnue_v3.hpp"
++#endif
+ #include "forge/search.hpp"
+ #include "forge/uci.hpp"
+ #include "forge/uci_clock.hpp"
+@@ -173,6 +176,16 @@ int uci_loop(std::istream& in) {
+         if (worker.joinable()) worker.join();
+         ponder_search_active = false;
+     };
++#if FORGE_NNUE_V3
++    auto v3_ready = [&]() {
++        const std::string error = forge::nnue::v3::problem();
++        if (error.empty()) return true;
++        stop_search();
++        const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++        std::cout << "info string ERROR NNUE v3: " << error << std::endl;
++        return false;
++    };
++#endif
+ 
+     std::string line;
+     while (std::getline(in, line)) {
+@@ -196,6 +209,10 @@ int uci_loop(std::istream& in) {
+             if (forge::nnue::available()) {
+                 std::cout << "option name UseNNUE type check default true\n"
+                              "option name NnueFile type string default <empty>\n";
++#if FORGE_NNUE_V3
++                std::cout << "option name NNUEArch type check default false\n"
++                             "option name NNUEArchFile type string default <empty>\n";
++#endif
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+@@ -230,6 +247,9 @@ int uci_loop(std::istream& in) {
+             std::cout << "option name Clear Hash type button\n"
+                          "uciok" << std::endl;
+         } else if (command == "isready") {
++#if FORGE_NNUE_V3
++            if (!v3_ready()) return 2;
++#endif
+             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "readyok" << std::endl; }
+         } else if (command == "ucinewgame") {
+             stop_search();
+@@ -324,6 +344,42 @@ int uci_loop(std::istream& in) {
+                         std::cout << "info string loaded nnue " << path << std::endl;
+                     }
+                 }
++#if FORGE_NNUE_V3
++            } else if (name == "NNUEArchFile") {
++                std::string rest;
++                std::getline(input, rest);
++                std::string path = value_text + rest;
++                while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
++                std::string message;
++                if (path.empty() || path == "<empty>") {
++                    forge::nnue::v3::unload();
++                    forge::nnue::v3::set_problem("");
++                    message = "unloaded";
++                } else {
++                    std::string error;
++                    if (!forge::nnue::v3::load(path, &error)) {
++                        forge::nnue::v3::set_problem(error);
++                        message = error;
++                    } else if (forge::nnue::v3::loaded()->residual) {
++                        forge::nnue::v3::unload();
++                        message = "residual v3 networks are not supported";
++                        forge::nnue::v3::set_problem(message);
++                    } else {
++                        forge::nnue::v3::set_problem("");
++                        message = "loaded " + forge::nnue::v3::describe(*forge::nnue::v3::loaded());
++                    }
++                }
++                searcher.clear_hash();
++                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                std::cout << "info string NNUE v3: " << message << std::endl;
++            } else if (name == "NNUEArch") {
++                if (value_text == "true" || value_text == "false") {
++                    forge::nnue::v3::requested = value_text == "true";
++                    searcher.clear_hash();
++                } else {
++                    note_invalid();
++                }
++#endif
+             } else if (name == "UseNNUE") {
+                 if (value_text == "true" || value_text == "false") {
+                     forge::nnue::enabled = value_text == "true";
+@@ -424,6 +480,9 @@ int uci_loop(std::istream& in) {
+             apply_position(board, input);
+         } else if (command == "go") {
+             stop_search();
++#if FORGE_NNUE_V3
++            if (!v3_ready()) return 2;
++#endif
+             std::string first;
+             const auto position = input.tellg();
+             input >> first;
+@@ -514,6 +573,14 @@ int uci_loop(std::istream& in) {
+                 });
+             }
+         } else if (command == "eval") {
++#if FORGE_NNUE_V3
++            if (forge::nnue::v3::active()) {
++                const int value = forge::nnue::v3::evaluate_reference(*forge::nnue::v3::loaded(), board);
++                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                std::cout << "info string eval nnue_v3 " << value << std::endl;
++                continue;
++            }
++#endif
+             const forge::EvalComponents parts = forge::Evaluator::static_eval_components(board);
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+             std::cout << "info string eval hce " << parts.hce << " nnue " << parts.nnue
+@@ -524,6 +591,9 @@ int uci_loop(std::istream& in) {
+             // Fixed-depth search over a small position set; prints a node
+             // signature and speed for quick regression and performance checks.
+             stop_search();
++#if FORGE_NNUE_V3
++            if (!v3_ready()) return 2;
++#endif
+             int depth = 13;
+             if (int parsed = 0; input >> parsed) depth = std::clamp(parsed, 1, 64);
+             constexpr std::array<std::string_view, 8> fens{
