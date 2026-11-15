@@ -1,0 +1,31 @@
+// Apply only the reviewed closure field and an explicit0020 supplement.
+import fs from 'node:fs';import crypto from 'node:crypto';import assert from 'node:assert/strict';
+const run='/workspace/work/parity-run',sf=run+'/state.json',base=run+'/job-a-closeout-0420/evidence';
+const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+const before=fs.readFileSync(sf),beforeSha=crypto.createHash('sha256').update(before).digest('hex'),s=JSON.parse(before);
+const p=JSON.parse(fs.readFileSync(base+'/PROPOSED-STATE-PATCH.txt'));
+assert.ok(Date.now()>=Date.parse('2026-11-15T04:20:00.000Z'));
+assert.equal(p.expectedStateSha256AtCapture,beforeSha,'Reconcile newer state rather than restoring the capture');
+assert.equal(p.operations.length,1);const op=p.operations[0];assert.equal(op.op,'add');assert.equal(op.path,'/jobAClosure');
+assert.equal(s.jobAClosure,undefined);assert.equal(s.sameClockCommit,op.value.sourceCommit);
+assert.equal(hash(base+'/CLOSURE.txt'),op.value.closureSha256);
+assert.equal(s.jobBDeclaration.deadlineUTC,'2026-11-15T05:06:50.313Z');
+s.jobAClosure=op.value;
+if(s.asanShutdownFault0020){
+ const f=s.asanShutdownFault0020;assert.equal(hash(f.file),f.sha256);
+ const rel='forge-combo29/tests_astra_parity/job-a-closeout-0020-supplement.md',file=s.repo+'/'+rel;
+ const lines=['# Job A closeout: shutdown finding0020','',
+  'This supplements the frozen closeout without changing its evidence or counts.',
+  `Recorded ${new Date().toISOString()}. Source ${s.sameClockCommit}.`,
+  `Finding resolved: ${f.resolved}. Effective engine-work stop: ${s.blockFurtherEngineWork}. No resume authority is granted by closing Job A.`,
+  '', 'The ASan Threads1 batch with seed202611171101 completed56 games and8291 checked searches, then failed shutdown. It receives zero clean credit. The driver assigned250ms total, escalated to SIGTERM then SIGKILL, and reaped signal9 at235.556687ms after quit. No sanitizer report appeared. Cause remains unverified; no targeted repeat had run when the finding was recorded.',
+  '', `Job B retains deadline ${s.jobBDeclaration.deadlineUTC}; the closeout does not reset its clock or override any stop. Current credited match games: ${s.matchTotals.games}.`,
+  '', '[Full trigger, command and output](faults/asan-shutdown-0020.txt)',
+  '[Independent review](asan-shutdown-review-0020/REVIEW.md)',
+  '[Frozen Job A closeout](job-a-closeout-0420/REPORT.md)',
+  '',`Fault SHA256 ${f.sha256}.`,''];
+ fs.writeFileSync(file,lines.join('\n'),{flag:'wx'});
+ s.jobAClosureSupplement0020={recordedUTC:new Date().toISOString(),report:'tests_astra_parity/job-a-closeout-0020-supplement.md',sha256:hash(file),faultSha256:f.sha256,unresolved:!f.resolved,globalStopAtCapture:s.blockFurtherEngineWork,zeroCleanCredit:true,resumeAuthority:false};
+}
+assert.equal(hash(sf),beforeSha);const temp=sf+'.job-a-closeout-stage';fs.writeFileSync(temp,JSON.stringify(s,null,2)+'\n',{flag:'wx'});const fd=fs.openSync(temp,'r');fs.fsyncSync(fd);fs.closeSync(fd);assert.equal(hash(sf),beforeSha);fs.renameSync(temp,sf);
+console.log(JSON.stringify({utc:new Date().toISOString(),jobAClosure:s.jobAClosure,supplement:s.jobAClosureSupplement0020??null,jobBUnchanged:true,globalStopUnchanged:s.blockFurtherEngineWork,engineRuns:0},null,2));

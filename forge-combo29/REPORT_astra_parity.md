@@ -1,8 +1,12 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T04:14:47.006Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T04:20:51.819Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
+
+Job A closed at 2026-11-15T04:20:00.000Z; accepted sanitizer coverage 846 games / 120313 searches, 12/12 conditions. [Deadline closeout and unverified work](tests_astra_parity/job-a-closeout-0420/REPORT.md). Job B retains its separate deadline 2026-11-15T05:06:50.313Z.
+
+[Shutdown finding0020 at the Job A deadline](tests_astra_parity/job-a-closeout-0020-supplement.md). The closeout does not authorize resuming a paused job.
 
 STOP: ASan shutdown finding0020; no further engine launches.
 Batch12 retained with zero clean credit after finalshutdownSIGKILL9; sibling18passed58games/8108searches. Globalstop explicitly asserted after metadata recording. No source edits or repeats.
@@ -125,8 +129,17 @@ Two later TSanThreads2 ordinary depth9 searches exceeded the15second harness res
 
 
 All five release T2 node counts exceed all five T1 counts for both positions at both depths. This establishes greater search work in these tested SMP ending configurations. Source guard conditions are relevant but were not instrumented; original warm TT/history state and original timeout recurrence were not reproduced. No engine fix, speed or strength claim.
+
+| Ending case | Target depth | Threads1 nodes (five runs) | Threads2 nodes (range of five) |
+|---|---:|---:|---:|
+| 4 | 9 | 10121–10121 | 992145–3684319 |
+| 4 | 12 | 58553–58553 | 3600466–16711738 |
+| 10 | 9 | 9596–9596 | 594403–1426601 |
+| 10 | 12 | 41173–41173 | 18248572–35892370 |
+
 [Complete diagnostic tables, all completed-depth counts and source conditions](tests_astra_parity/response-diagnostic-records-0018/snapshot-01/REPORT.md). The original two deadline-finding batches retain zero clean credit. Decision0018 permits the continuation and changes only the ordinary TSan search limit to nodes20000; the soft half remains softnodes2500. No engine source was changed.
 [Full ending-workload finding and all 42 diagnostic transcripts](tests_astra_parity/faults/smp-ending-workload-0019.txt); [independent review](tests_astra_parity/response-diagnostic-findings-0018/REVIEW.md).
+Fable's [decision0019](tests_astra_parity/inputs/FABLE_ANSWER_0019.md.txt) classifies the original two batches as "response deadline exceeded by real search work (several threads, bare-king ending)" and keeps their zero credit. The source guard was not instrumented here and the original warm-state recurrence remains unverified. The outlined follow-up is JobD after JobC; it has not started.
 
 
 A later ASan Threads1 batch completed28 pairs (56 games,8291 checked searches) but failed its final shutdown. No sanitizer report appeared. The sibling batch passed58 games/8108 searches. The failed batch remains zero-credit, and no targeted repeats have been run. The declared250ms budget is distinct from graceful wait time: the frozen transport reserves its first150ms for quit before escalating. Observed quit-to-reap235.556687ms does not make this a short assigned-budget cutoff; signal9 also falls outside decision0016. The cause is unknown. [Exact input, command and full output](tests_astra_parity/faults/asan-shutdown-0020.txt).
@@ -139,4 +152,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 43, including this checkpoint.
+Progress pushes: 44, including this checkpoint.
