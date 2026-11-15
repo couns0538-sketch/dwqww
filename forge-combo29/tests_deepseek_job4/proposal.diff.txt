@@ -1,0 +1,48 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@
+ // Job 4 part C proposal (deepseek). NOT APPLIED to the branch source.
+ //
+ // What it does, in one paragraph:
+ //   The move-loop pruning block at the bottom of Worker::search is currently
+ //   skipped only for three cases: a PV node, a node in check, and a node whose
+ //   alpha is already a mate score (SoundMatePruning, off by default). This adds a
+ //   fourth arm: a node that is still inside the mate distance we could possibly
+ //   deliver, i.e. `ply <= MateInMaxPly` AND the node's depth is large enough that a
+ //   mate could still be found within it, AND the node's static eval is not far
+ //   below alpha. When that arm is on, the quiet-move pruning inside the block is
+ //   skipped, so a quiet mating move in a position that is otherwise "hopeless" is
+ //   still searched. It is a strictly narrower change than turning reverse futility
+ //   or the whole prune block off, because it only fires on nodes that can still
+ //   reach a mate within the remaining depth.
+ //
+ // Why it cannot change any search when the switch is off:
+ //   The new arm is guarded by `tune::MateWindowGuard` which defaults to false, so
+ //   with the default configuration `sound_mate_case` evaluates exactly as it does
+ //   today: the three existing arms with their existing FollowOption behaviour. The
+ //   added expression is short-circuited behind the flag, so no other predicate,
+ //   counter or side effect is reached.
+ 
+ namespace forge::tune {
+ bool MateWindowGuard = false;   // NEW, default off
+ }
+ 
+@@
+-        const bool sound_mate_case =
+-            (tune::sound_arm_enabled(tune::SoundArmPv) && pv_node) ||
+-            (tune::sound_arm_enabled(tune::SoundArmInCheck) && in_check) ||
+-            (tune::sound_arm_enabled(tune::SoundArmMateAlpha) && is_mate_score(alpha));
++        const bool mate_window_case =
++            tune::MateWindowGuard &&
++            ply <= MateInMaxPly &&
++            mate_moves_ == 0 &&
++            !is_mate_score(beta) &&
++            // A mate in the remaining depth is still reachable, and the node is
++            // not so far below alpha that every quiet move is pointless.
++            ss->static_eval >= alpha - (tune::RfpMargin * depth + tune::RfpImproving);
++        const bool sound_mate_case =
++            mate_window_case ||
++            (tune::sound_arm_enabled(tune::SoundArmPv) && pv_node) ||
++            (tune::sound_arm_enabled(tune::SoundArmInCheck) && in_check) ||
++            (tune::sound_arm_enabled(tune::SoundArmMateAlpha) && is_mate_score(alpha));
+*** End Patch

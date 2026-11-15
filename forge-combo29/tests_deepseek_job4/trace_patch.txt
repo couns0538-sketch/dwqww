@@ -1,0 +1,105 @@
+--- /agent/repos/dwqww/forge-combo29/src/search.cpp	2026-11-15 09:06:53.215018736 +0000
++++ src/search.cpp	2026-11-15 11:52:06.735018736 +0000
+@@ -1436,6 +1436,7 @@
+ 
+ #if FORGE_SPD_TT_NOTLS
+     const TTProbe tt_probe = probe_tt(board.key());
++
+ #else
+     const TTProbe tt_probe = shared_.tt.probe(board.key());
+ #endif
+@@ -1553,7 +1554,7 @@
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;
+ 
+-    if (depth <= 0) return qsearch(board, ss, alpha, beta);
++    if (depth <= 0) { if (std::getenv("DS_TRACE_RET")) { const std::lock_guard<std::mutex> ol(uci_output_mutex()); std::cerr << "RET qsearch_depth0 line 1557 ply " << ply << " depth " << depth << " a " << alpha << " b " << beta << " pv " << (pv_node?1:0) << " fen " << board.fen() << std::endl; } return qsearch(board, ss, alpha, beta); }
+     // The frame is reused across siblings and same-ply verification searches.
+     // Keep this call's inherited path budget independent of those mutations.
+     const int inherited_double_extensions = (ss - 1)->double_extensions;
+@@ -1640,6 +1641,7 @@
+         board.halfmove_clock() < 90 &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
++        if (std::getenv("DS_TRACE_RET")) { const std::lock_guard<std::mutex> ol(uci_output_mutex()); std::cerr << "RET tt_cut line 1644 ply " << ply << " depth " << depth << " a " << alpha << " b " << beta << " pv " << (pv_node?1:0) << " fen " << board.fen() << std::endl; }
+         return tt_score;
+     }
+ 
+@@ -1661,6 +1663,13 @@
+         }
+     }
+ 
++    if (std::getenv("DS_TRACE_NODES")) {
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cerr << "NODE ply " << ply << " depth " << depth << " a " << alpha << " b " << beta
++                  << " pv " << (pv_node?1:0) << " chk " << (in_check?1:0)
++                  << " eval " << eval << " mv " << ((ss-1)->current_move.is_none() ? std::string("null") : forge::Board::move_to_uci((ss-1)->current_move))
++                  << " fen " << board.fen() << std::endl;
++    }
+     bool improving = false;
+     if (!in_check) {
+         if ((ss - 2)->static_eval != ValueNone) improving = ss->static_eval > (ss - 2)->static_eval;
+@@ -1683,11 +1692,20 @@
+         if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+             const int razor = qsearch(board, ss, alpha - 1, alpha);
+             if (aborted_) return 0;
+-            if (razor < alpha) return razor;
++            if (razor < alpha) { if (std::getenv("DS_TRACE_RET")) { const std::lock_guard<std::mutex> ol(uci_output_mutex()); std::cerr << "RET razoring line 1694 ply " << ply << " depth " << depth << " a " << alpha << " b " << beta << " fen " << board.fen() << std::endl; } return razor; }
+         }
+-        // Reverse futility pruning.
++        // Reverse futility pruning. [DEEPSEEK TRACE: prints when it fires]
+         if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+             eval < MateInMaxPly) {
++            if (std::getenv("DS_TRACE")) {
++                const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++                std::cerr << "TRACE_RFP ply " << ply << " depth " << depth
++                          << " alpha " << alpha << " beta " << beta
++                          << " eval " << eval << " pv " << (pv_node ? 1 : 0)
++                          << " incheck " << (in_check ? 1 : 0)
++                          << " fen " << board.fen() << std::endl;
++            }
++            if (std::getenv("DS_TRACE_RET")) { const std::lock_guard<std::mutex> ol(uci_output_mutex()); std::cerr << "RET rfp line 1707 ply " << ply << " depth " << depth << " a " << alpha << " b " << beta << " pv " << (pv_node?1:0) << " fen " << board.fen() << std::endl; }
+             return eval;
+         }
+         // Null move pruning.
+@@ -1724,6 +1742,7 @@
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+                 if (depth < 14 && !threat_gate) {
+                     ++null_cutoffs_;
++                    if (std::getenv("DS_TRACE_RET")) { const std::lock_guard<std::mutex> ol(uci_output_mutex()); std::cerr << "RET null_move line 1743 ply " << ply << " depth " << depth << " a " << alpha << " b " << beta << " pv " << (pv_node?1:0) << " fen " << board.fen() << std::endl; }
+                     return null_score;
+                 }
+                 // Same reduced depth as the high-depth verification. A threat
+@@ -1738,6 +1757,7 @@
+                 if (aborted_) return 0;
+                 if (verification >= beta) {
+                     ++null_cutoffs_;
++                    if (std::getenv("DS_TRACE_RET")) { const std::lock_guard<std::mutex> ol(uci_output_mutex()); std::cerr << "RET null_move2 line 1757 ply " << ply << " depth " << depth << " a " << alpha << " b " << beta << " pv " << (pv_node?1:0) << " fen " << board.fen() << std::endl; }
+                     return null_score;
+                 }
+             }
+@@ -1774,6 +1794,7 @@
+ #else
+                     shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #endif
++                    if (std::getenv("DS_TRACE_RET")) { const std::lock_guard<std::mutex> ol(uci_output_mutex()); std::cerr << "RET singular line 1793 ply " << ply << " depth " << depth << " a " << alpha << " b " << beta << " pv " << (pv_node?1:0) << " fen " << board.fen() << std::endl; }
+                     return value;
+                 }
+             }
+@@ -1946,6 +1967,7 @@
+                     extension = 2;
+                 }
+             } else if (singular_beta >= beta) {
++                if (std::getenv("DS_TRACE_RET")) { const std::lock_guard<std::mutex> ol(uci_output_mutex()); std::cerr << "RET singular_beta line 1965 ply " << ply << " depth " << depth << " a " << alpha << " b " << beta << " pv " << (pv_node?1:0) << " fen " << board.fen() << std::endl; }
+                 return singular_beta;
+             } else if (tt_score >= beta) {
+                 extension = -2;
+@@ -2067,7 +2089,7 @@
+     }
+ 
+     if (move_count == 0) {
+-        if (!excluded.is_none()) return alpha;
++        if (!excluded.is_none()) { if (std::getenv("DS_TRACE_RET")) { const std::lock_guard<std::mutex> ol(uci_output_mutex()); std::cerr << "RET excluded_alpha line 2086 ply " << ply << " depth " << depth << " a " << alpha << " b " << beta << " fen " << board.fen() << std::endl; } return alpha; }
+         if (root_node && root_restricted_) return 0;
+         return in_check ? mated_in(ply) : 0;
+     }

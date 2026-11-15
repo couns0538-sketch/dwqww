@@ -1,0 +1,15 @@
+PART A: which node returns without Kf7 being searched.
+
+Position (root): 2Q3KR/4k3/8/8/8/8/8/8 w - - 0 1   after Qc6 (black to move, only Kd8 legal)
+Engine: private tracing build of commit 6b98f217 with DS_TRACE/DS_TRACE_NODES/DS_TRACE_RET prints.
+
+=== the mating node is entered at depth 1, and leaves through qsearch ===
+NODE ply 1 depth 1 a -31999 b 31998 pv 1 chk 0 eval 1166 mv e7d8 fen 3k2KR/8/2Q5/8/8/8/8/8 w - - 2 2
+RET qsearch_depth0 line 1557 ply 1 depth 0 a -32001 b 32001 pv 1 fen 3k2KR/8/2Q5/8/8/8/8/8 w - - 2 2
+
+=== that node is white to move with Kf7# available (verified separately) ===
+g8f7 gives_check = 1
+after make_move: in_check(black) = 1, legal_replies = 0 (0 => mate)
+
+=== full engine report at that root ===
+info depth 4 seldepth 7 score cp -1509 nodes 283 pv e7d8 c6d6 d8c8 d6f8 c8c7 h8h7 c7b6

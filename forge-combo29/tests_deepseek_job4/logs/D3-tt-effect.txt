@@ -1,0 +1,30 @@
+JOB 4 D3, and a correction to job 3: the reported mate distance depends on the transposition table.
+
+Position: 2Q3KR/4k3/8/8/8/8/8/8 w - - 0 1   truth: mate in 2 moves = 3 plies, line Qc6 Kd8 Kf7#
+Engine: optimised build, Threads 1, Hash 16, built-in net, go depth 12.
+
+ISOLATED, fresh process      : score mate 4
+AFTER 5 OTHER POSITIONS       : score mate 3
+AFTER 5 OTHERS + ucinewgame   : score mate 4
+
+Same position, same depth, same engine: mate 4 or mate 3 depending only on what was
+searched before it in the same process. ucinewgame, which clears the table, restores mate 4.
+
+Replaying job 3's B1 protocol (one process, no ucinewgame): 100 mate3 positions at
+go depth 12 give 11 misses, which matches the job 3 report. With ucinewgame before each
+position the same positions report the correct mate 2. So the job 3 'misses' were caused
+by the transposition table carrying entries between unrelated positions, not by the search
+failing to reach the mate.
+
+Per-position detail, with ucinewgame before each search (D3-results.txt has the full lines):
+  2Q3KR/4k3/8/8/8/8/8/8 w - - 0 1              truth mate 2   engine d12=  4  d18=  2
+  8/8/3q4/2q5/8/5n2/1K6/5k2 b - - 0 1          truth mate 2   engine d12=  2  d18=  2
+  6Q1/R1K5/8/8/5R2/3k4/8/8 w - - 0 1           truth mate 2   engine d12=  2  d18=  2
+  8/2K1k3/8/8/4r3/8/1n1q4/8 b - - 0 1          truth mate 2   engine d12=  2  d18=  2
+  5K2/1q6/8/3n4/8/6k1/8/8 b - - 0 1            truth mate 2   engine d12=  2  d18=  2
+  8/1K6/8/8/rk3q2/q7/8/8 b - - 0 1             truth mate 2   engine d12=  2  d18=  2
+  8/8/7k/2nr4/8/1r6/8/K7 b - - 0 1             truth mate 2   engine d12=  2  d18=  2
+  8/8/8/8/2r1k3/K7/8/1q6 b - - 0 1             truth mate 2   engine d12=  2  d18=  2
+  8/8/2r1q3/8/4k3/8/3K4/8 b - - 0 1            truth mate 2   engine d12=  2  d18=  2
+  8/8/8/8/1k6/6q1/6n1/3K2b1 b - - 0 1          truth mate 2   engine d12=  2  d18=  2
+  8/8/Q7/4K3/8/1Q6/6k1/8 w - - 0 1             truth mate 2   engine d12=  2  d18=  2
