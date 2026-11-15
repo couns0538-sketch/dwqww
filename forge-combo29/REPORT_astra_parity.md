@@ -1,6 +1,6 @@
 # Requested source integration and cloud validation
 
-Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T04:38:01.333Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
+Started 2026-11-14T23:19:40.000Z; Job A deadline 2026-11-15T04:20:00.000Z. Updated 2026-11-15T04:46:33.070Z. Cloud VM only. Branch: `for-fable-and-opus/astra-0011-pc-parity`. Base: `65e600e237ce6cc955abd3dd4637f92defc85f5f`.
 
 The original deadline was 2026-11-15T02:19:40.000Z. [Fable decision0016](tests_astra_parity/inputs/FABLE_ANSWER_0016.md.txt) extended Job A to 2026-11-15T04:20:00.000Z and classified measured short-budget, driver-forced cutoffs for both builds. All original counters, strict audits and the2000-cycle diagnostic remain on record.
 
@@ -9,7 +9,7 @@ Job A closed at 2026-11-15T04:20:00.000Z; accepted sanitizer coverage 846 games 
 [Shutdown finding0020 at the Job A deadline](tests_astra_parity/job-a-closeout-0020-supplement.md). The closeout does not authorize resuming a paused job.
 
 Job B: HindsightDepth fixed-node match.
-JobA closed846games/120313searches, six zero-credit failed sanitizer batches. JobB800games W223-L215-D362, pair bins21,88,172,100,19; no operational match findings. Fable0020 full-history diagnostic pending independent review, deadline04:50; original shutdown finding unresolved. JobC readiness and authorized tool source reviewed offline only.
+Job B B-0009: credited 100 games; cumulative 900, W-L-D 253-232-415, pairs 21,97,192,120,20. 0 blocked batches; 0 raw finished games excluded. Counts only.
 
 | Check | Result |
 |---|---|
@@ -32,7 +32,7 @@ JobA closed846games/120313searches, six zero-credit failed sanitizer batches. Jo
 | Current paired labels | 295 ordinary / 295 soft-node games; soft X 229824203/41812, mean 5496.6087008514305; 5647 hard-cap cases |
 | Accepted final-tree totals across protocols | 846 games / 120313 searches; failed batches excluded |
 | Current-protocol SMP sampling exception | 454 accepted-clean searches; 454 observed; historical failures unchanged |
-| HindsightDepth match | 800 games; W-L-D 223-215-362; pair counts 21,88,172,100,19; Running; completed batches only |
+| HindsightDepth match | 900 games; W-L-D 253-232-415; pair counts 21,97,192,120,20; Running; completed batches only |
 | Match operational findings | 0 crash markers; 0 illegal-move games; 0 disconnect games; 0 stalls; 0 aborts; raw side/process accounting retained separately |
 | Response-deadline diagnostics | 40/40 release and 2/2 TSan searches completed before quit; 0 response timeouts, sanitizer reports or abnormal exits; zero soak credit |
 | ASan shutdown finding0020 | Seed 202611171101; declared250ms allowance; driver SIGTERM then SIGKILL, reaped signal9; 235.556687ms quit-to-reap; failed batch has zero clean credit; unresolved; release Job B and separate diagnostic authorized by decision0020 |
@@ -142,11 +142,14 @@ All five release T2 node counts exceed all five T1 counts for both positions at 
 Fable's [decision0019](tests_astra_parity/inputs/FABLE_ANSWER_0019.md.txt) classifies the original two batches as "response deadline exceeded by real search work (several threads, bare-king ending)" and keeps their zero credit. The source guard was not instrumented here and the original warm-state recurrence remains unverified. The outlined follow-up is JobD after JobC; it has not started.
 
 
-A later ASan Threads1 batch completed28 pairs (56 games,8291 checked searches) but failed its final shutdown. No sanitizer report appeared. The sibling batch passed58 games/8108 searches. The failed batch remains zero-credit, and no targeted repeats have been run. The declared250ms budget is distinct from graceful wait time: the frozen transport reserves its first150ms for quit before escalating. Observed quit-to-reap235.556687ms does not make this a short assigned-budget cutoff; signal9 also falls outside decision0016. The cause is unknown. [Exact input, command and full output](tests_astra_parity/faults/asan-shutdown-0020.txt).
+A later ASan Threads1 batch completed28 pairs (56 games,8291 checked searches) but failed its final shutdown. No sanitizer report appeared. The sibling batch passed58 games/8108 searches. The failed batch remains zero-credit. No targeted repeat had run when the finding was recorded. The declared250ms budget is distinct from graceful wait time: the frozen transport reserves its first150ms for quit before escalating. Observed quit-to-reap235.556687ms does not make this a short assigned-budget cutoff; signal9 also falls outside decision0016. The cause is unknown. [Exact input, command and full output](tests_astra_parity/faults/asan-shutdown-0020.txt).
 [Independent shutdown review](tests_astra_parity/asan-shutdown-review-0020/REVIEW.md).
 [Request to Fable and Opus](https://github.com/couns0538-sketch/dwqww/blob/412df76d87027b53629f3cb15c6173f40fbe7122/forge-combo29/soak_all/ASTRA_QUESTION_0020.md).
 
-[Fable decision0020](tests_astra_parity/inputs/FABLE_ANSWER_0020.md.txt) resumes the unchanged release match and authorizes a separate replay of all retained UCI inputs on the unchanged ASan binary. The diagnostic gives quit a full five seconds without driver signals; the failed batch retains zero credit. Job A stays closed, Job B keeps its original deadline, and the new shutdown protocol applies only to future sanitizer declarations. The suggested leak-check explanation is a hypothesis until measured; no diagnostic result is implied by this authorization.
+[Fable decision0020](tests_astra_parity/inputs/FABLE_ANSWER_0020.md.txt) resumes the unchanged release match and authorizes a separate replay of all retained UCI inputs on the unchanged ASan binary. The diagnostic gives quit a full five seconds without driver signals; the failed batch retains zero credit. Job A stays closed, Job B keeps its original deadline, and the new shutdown protocol applies only to future sanitizer declarations. The suggested leak-check explanation is a hypothesis; no diagnostic result is implied by this authorization.
+
+The [completed full replay](tests_astra_parity/asan-shutdown-0020-replay-report.md) matched all 8291 searches and exited naturally in 38.103431ms, exit0, without signals, stderr or sanitizer reports. The original failure did not recur in this one replay; its cause remains unresolved. The observed exit did not exceed250ms, so it does not establish the proposed exit-work explanation. Both the original failed batch and this separate diagnostic retain zero soak credit.
+[Independent replay-result review](tests_astra_parity/asan-shutdown-result-review-0020/REVIEW.md) verified all retained commands, searches, timing fields and stderr evidence. Original failure recurrence was0/1 in full diagnostic replays.
 The actual owner-PC compiler, PGO profile, runtime tuning and active network were not independently tested here. This report covers the specifically requested source changes, cloud builds and recorded options. Fable reports an independent source comparison in answer0012; that is attributed evidence, not a cloud run on the PC.
 
 Detailed state and all command/output files are retained: [state snapshot](tests_astra_parity/STATUS_STATE.txt), [commands and raw output](tests_astra_parity/logs), [progress](tests_astra_parity/PROGRESS.txt). Large raw text logs use immutable chunks with byte counts and SHA256 reconstruction manifests. All published additions are text under this report and tests_astra_parity. Existing tests, expected values, CMake and earlier evidence remain unchanged.
@@ -154,4 +157,4 @@ Detailed state and all command/output files are retained: [state snapshot](tests
 Per-batch accounting, including completed pairs before any failure and partial observations, is retained in the state snapshot and immutable batch audits. Current acceptance and unresolved findings are stated above; preparation checks do not count as engine searches.
 
 No Elo or speed claim is made. Match reporting is counts only; raw unmodified runner output is retained.
-Progress pushes: 46, including this checkpoint.
+Progress pushes: 47, including this checkpoint.

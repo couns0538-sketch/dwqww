@@ -1,0 +1,11 @@
+# Independent 0020 controller/auditor review
+
+READY for frozen manifest 4c3a98932ad71e359f3ab67b3e28d965e0ffe5f5622b4771189b34bd406b4cfe. Native SHA256 df109a5063d84550b2d47d5dbc5a645e923fb048b6c57fd27e9d865d987fabed; declaration SHA256 3100e2f9818418c0a8906081840abbeeacb0c50b810c558478f0cddfdefded0d. All133 pins and both JavaScript syntax checks verified. All26 source pins and the ASan engine/build pins equal the prior0018 declaration. Parent separately reviewed native shutdown/transport.
+
+The controller allows one full replay only, under exact0020 authority, with immutable evidence and zero soak credit. It cannot select the cold fixture. The450-second launch reservation covers430-second native outer timeout,435-second controller bound and440-second root logger margin before04:50. Root must serialize native work; neither root state nor original failure is modified.
+
+Independently verified all8291 frames against retained trigger/output data:24,994 commands,56 game halves,28 pairs,one final quit. The audit verifies exact environment/argv/cwd/declaration. The offline trace verifier independently reconstructs command order and board history, checks legal moves/scores/labels, compares stable tuples, and rejects further nonquit input after the first drift. Success requires all8291 matched searches and exact full command sequence.
+
+The audit checks the5000ms natural quit deadline and signal timing, rejects emergency fallback on success, and retains full stderr as byte-exact hex with a digest as well as readable text. Nonzero exits, diagnostics and failure to exit within5s remain findings. Audit exit0 means valid evidence, not diagnostic success; diagnosticSuccess and findings must be read. continuationAllowed stays false and manualReviewRequired true. Batch12 is never retrospectively credited or automatically resolved.
+
+Final corrections reviewed: adequate cutoff reservation, exact argv/environment, independent first-drift stop, complete stderr bytes, and rejection of emergency cleanup as successful evidence. No controller, auditor, native executable, engine, Git or root-state operation was executed by this reviewer. This review establishes readiness only; it does not claim a replay result.
