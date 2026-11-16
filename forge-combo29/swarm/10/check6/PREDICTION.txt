@@ -1,0 +1,20 @@
+seat 10 check6 — reproduce seat 25's S-F7 (and its companion S-F6) from their own text, MY OWN harness, BOTH builds.
+Claims:
+  S-F7: on a TERMINAL root, `go nodes 100` and `go movetime 50` emit 64 info lines (depths 1..64) at
+        ZERO nodes each, where `go depth 5` correctly emits 5.
+  S-F6: a CHECKMATED root reports `score mate 0` while a STALEMATED root reports `score cp 0`.
+Prediction, committed and pushed ALONE before the first measuring command:
+
+P1. On a checkmated root, `go depth 5` emits exactly 5 `info depth` lines and `bestmove 0000`.
+    (kill: any other count or bestmove)
+P2. On the same root, `go nodes 100` emits MANY more lines than 5 -- I predict 64 -- with node count 0 on
+    every line. (kill: 5 or fewer lines, or a non-zero node count)
+P3. The checkmated root's last score is `mate 0` and the stalemated root's is `cp 0`, in BOTH cases.
+    (kill: either differs)
+P4. All of P1-P3 hold on the BASE build (S14) and on PC r15 (PC20), Threads 1, so S-F7/S-F6 survive the PC
+    repairs exactly as seat 25 states.
+P5. The `mate 0` is a cosmetic score-labelling issue only: `bestmove 0000` is correct on both terminal
+    roots, so nothing downstream is harmed except a consumer reading the score. (kill: a non-0000 bestmove)
+P6. The 64-line count is a depth CAP, not a time effect: I predict `go depth 64` on the terminal root also
+    emits 64 lines, and `go depth 70` is clamped (the brief's own bench clamps depth to 64).
+    (kill: depth 70 emits 70 lines)
