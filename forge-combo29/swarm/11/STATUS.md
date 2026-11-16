@@ -453,3 +453,6 @@ Settings: **none** (no setoption), **S14** (the 14 settings), **PC20** (S14 + th
 - S-F72: match decisions are REPRODUCIBLE at Threads 1 — 0/12 unstable at nodes 20000/50000/250000
   (bestmove+nodes+score all identical across fresh processes). The S-F49/S-F50 unequal-depth problem
   is cross-build fairness, NOT within-build randomness: two separate issues, only one needs a fix.
+- S-F75: as the node budget grows the search SETTLES — depth monotone up every time, 7/8 positions
+  keep the same bestmove across 20k/50k/250k, the 8th changes once then holds. Combined with S-F72
+  (reproducible), node-limited matches are converged as well as stable.
