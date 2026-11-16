@@ -4,6 +4,27 @@
 - area: 5 (PRINCIPAL VARIATIONS AND SCORES)
 - seed: 1501
 
+## 2026-11-16T23:15:15Z
+
+- 15-F34 NO movetime cutoff between 1000 and 3000 ms: honoured at 99-100% of both slices on every
+  board with real work; the only early stops are the two depth-64 boards (identical nodes at both
+  slices — the ladder ended, not the clock). All 10 cells node-identical across 5 runs.
+- 15-F35 CLOCK CAN LOSE A GAME? 36 self-play games, 4,648 searches at 6s+0.06: **0 forfeits,
+  0 illegal moves**, clock never <= 0 — **but the margin is 174 ms and a game past ~165 plies would
+  forfeit.** Median 105 ms used vs a 60 ms increment = **-45 ms/move net**; heaviest games drained
+  5,826 of 6,000 ms over 160 plies (~73 ms/move). Saved only because search cost FALLS in the
+  endgame (217 -> 83 ms, first to last 40 plies). 6s+0.06 with a 105 ms search is a negative-sum
+  clock by construction.
+
+TOTALS: 35 findings, 6 checks, 5 self-corrections. Every line names build + settings; Threads 1.
+
+Running now: nothing.
+
+Next exact command:
+  cd /agent/repos/dwqww && git fetch -q --depth 1 origin for-fable-and-opus/swarm-05 && git show FETCH_HEAD:forge-combo29/swarm/05/FINDINGS.md | grep -E "^\| S-F2[0-9]" | head -6
+  -> cycle 2(a): find another unconfirmed NEW finding and reproduce it with my own harness on the
+     PC build under PC20.
+
 ## 2026-11-16T22:55:30Z
 
 CLOCK PATH FILLED IN — all four budget modes are now characterised on the same five boards.
