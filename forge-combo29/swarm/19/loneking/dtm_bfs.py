@@ -124,6 +124,18 @@ def solve(sig, strong=chess.WHITE):
     return dtm, succ, turn_of, boards
 
 
+# ---------------------------------------------------------------------------
+# HALFMOVE WINDOW (seat 21's trap, 19-C10)
+# A DTM from solve() is UNCONSTRAINED. Under match rules only 100 - counter half-moves remain, so a position
+# whose mate needs more plies than the window allows is a DRAW, not a win. Never read a DTM without clamping:
+def windowed_verdict(dtm_plies, halfmove_counter):
+    """True result under the fifty-move rule, given an unconstrained DTM."""
+    if dtm_plies is None:
+        return "draw"                      # the solver proved no forced mate at all
+    window = 100 - halfmove_counter
+    return "win" if dtm_plies <= window else "draw-by-window"
+
+
 if __name__ == "__main__":
     sig = sys.argv[1] if len(sys.argv) > 1 else "Q"
     out = sys.argv[2] if len(sys.argv) > 2 else "/tmp/dtm"
