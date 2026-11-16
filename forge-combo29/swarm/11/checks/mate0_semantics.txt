@@ -1,0 +1,11 @@
+build base  Threads 1, depth 10
+case                       expect                     score          bm        nodes
+checkmated NOW (black)     mate 0 expected if UCI-correct ('mate', 0)    0000          0  (py legal 0)
+mate in 1 (white)          mate 1                     ('mate', 1)    d1d8        280  (py legal 27)
+mate in 2 (white)          mate 2 or 1                ('mate', 1)    c1c8        280  (py legal 27)
+stalemated NOW (black)     cp 0                       ('cp', 0)      0000          0  (py legal 0)
+dead draw                  cp 0                       ('cp', 0)      e1d1          0  (py legal 5)
+clear win (KQvK)           mate N or big cp           ('cp', 1082)   f1g1      41310  (py legal 22)
+
+UCI: `score mate y` = mate in y MOVES for the side to move. y=0 therefore means
+'already mated', and bestmove 0000 is the only sensible move. Seat 21's withdrawal matches that.
