@@ -1,0 +1,38 @@
+# PREDICTION — S28 job 1 (AREA 8, THE CLOCK)
+
+Committed and pushed ALONE before the first measuring command of this job. Never edited afterwards.
+Written 2026-11-16, before any timed search was run on this machine.
+
+Machine: 4 vCPU (nproc = 4), Release build, Threads 1, Hash 16, S14 settings.
+
+Definitions used below: `limit` = the search's own declared budget, taken as
+`movetime` when given, else `wtime / 30 + winc` (the divisor this engine's own answer suggests; it is a
+prediction, not a measured fact — job 1 reports the measured budget the engine actually used).
+`over` = wall time > limit (movetime cases) or > wtime/30 + winc.
+
+| # | measurement | predicted | range that KILLS the prediction |
+|---|---|---|---|
+| P1 | movetime 50 run A, median wall ms | 51.5 | outside 45..70 |
+| P2 | movetime 50 run B, median wall ms | 51.5 | outside 45..70 |
+| P3 | run A vs run B median difference (ms) | 0.4 | outside 0..3 |
+| P4 | movetime 50, largest wall ms (both runs, 200 each) | 56 | outside 50..110 |
+| P5 | movetime 50, searches over limit (of 400) | 3 | outside 0..40 |
+| P6 | movetime 500, median wall ms | 502 | outside 460..570 |
+| P7 | movetime 500, largest wall ms | 512 | outside 500..700 |
+| P8 | movetime 500, searches over limit (of 400) | 0 | outside 0..20 |
+| P9 | wtime 1000 btime 1000 winc 10, median wall ms | 45 | outside 25..90 |
+| P10 | wtime 1000 btime 1000 winc 10, largest wall ms | 55 | outside 40..150 |
+| P11 | wtime 1000 ..., searches over wtime/30+winc (of 400) | 0 | outside 0..25 |
+| P12 | wtime 10000 btime 10000 winc 100, median wall ms | 350 | outside 150..600 |
+| P13 | wtime 10000 ..., largest wall ms | 380 | outside 250..900 |
+| P14 | wtime 10000 ..., searches over wtime/30+winc (of 400) | 0 | outside 0..25 |
+| P15 | median wall grows with the budget (50 < 500 and 45 < 350) | true | either inequality reversed |
+
+Reasoning behind the numbers (written before measuring): an adaptive time manager that stops on
+`movetime` should add only the loop latency of one 1 ms poll, so the median sits 1-2 ms above the
+budget; the largest sits a few ms higher because a single poll can be delayed by the OS scheduler on a
+busy 4-core box while the other 2-3 jobs of this seat run. `wtime/30+winc` is the most common
+allocation and I expect this engine to use a similar fraction, giving ~43 ms for the 1 s case and
+~433 ms for the 10 s case; I predict it slightly under and slightly over respectively because I do not
+know the divisor. Kill ranges are deliberately wide: the point of this job is the distribution's tail,
+not a single number.
