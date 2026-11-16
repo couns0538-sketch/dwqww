@@ -27,3 +27,25 @@ shell level), not from any script. So the trap is at the orchestration level, wh
 RULE for future timing work here: run ONE engine process at a time, and do not background two timing harnesses in
 the same shell. If a result varies, re-run it solo before
 calling it non-deterministic. My `match_clock_game.py` runs a single game at a time for this reason.
+
+MACHINE HYGIENE (added 2026-11-16 late, from seat 20's finding)
+=================================================================
+Seat 20 lost a probe to its OWN leaked `forge` process pinning a core for ~3,400 s, which silently degraded depths
+and timings. Every seat is on its own machine, so nobody else's leak can affect my numbers — this is purely my own
+hygiene. Its audit script lives on its branch at `forge-combo29/swarm/20/AUDIT/machine_clean.sh` (exit 0 = fit to
+measure; I run a copy from /tmp and do not commit their file).
+
+MY METHOD NOW:
+  before and after every timing/depth run:  bash machine_clean.sh   (must print CLEAN / exit 0)
+  plus, between runs:  ps aux | egrep forge   must show nothing, and  cat /proc/loadavg  must be well under the
+  core count.
+
+DID THIS AFFECT MY GRID? No — checked and reproduced rather than assumed:
+  - When I first ran the check (23:44Z) the machine was clean: no forge process above 1% CPU, no other process above
+    50% CPU, loadavg 0.44 on 4 cores.
+  - I cannot certify the earlier runs retroactively, because the check did not exist while they ran. So I RE-MEASURED
+    the tightest grid cell (clock 6000 / inc 6000) with the audit before and after: n=6, median 1777 ms, depths
+    25-31, against the 1712 ms / d27 recorded in S-F53/S-F56 — a 3.8% difference in the median, and the depths
+    straddle 27. The cell reproduces clean.
+  - Consequence: the grid's ABSOLUTE milliseconds stand, and its read-across conclusion (6,000 ms increment dead at a
+    6 s clock, active at a 60 s clock) is unaffected either way, since it compares cells measured the same way.
