@@ -140,3 +140,6 @@ NEXT: continue area-1 work; push again by 22:30.
 - S-F18 NEW: mate-throwing boundary is exactly H=100 (mate 140 nodes at 95..99, f2f3 cp 0 at
   100..102). Hard 0-node adjudication — a SEPARATE mechanism from S-F10/S-F11's depth-dependent
   draw threshold.
+- S-F19: located the exact cause of 21-F9 — src/search.cpp:2251 root_drawn omits the mate
+  exception that is_draw() at :1302 deliberately has ("Checkmate on the hundredth half-move
+  still wins"). Root returns score 0 before any search, so the mate is never played.
