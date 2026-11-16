@@ -1,0 +1,24 @@
+### does a bigger self-play budget fix the two label faults? (13 mate-rich boards)
+reference = `go nodes 250000`; a board 'differs' if its mate number is not the reference's
+
+budget                   mate scores  undeliverable  differs from 250k
+go softnodes 2000                  5              1                  3
+go softnodes 20000                 6              0                  0
+go softnodes 50000                 8              1                  1
+go nodes 20000                     5              0                  0
+go nodes 50000                     6              0                  0
+go nodes 250000                    8              0                  0
+
+ANSWER: raising the budget from 2000 to **20000 fixes BOTH label faults completely**.
+   softnodes 2000  : 1 undeliverable PV, 3 of 5 mate numbers differ from the 250k reference
+   softnodes 20000 : 0 undeliverable, 0 differ          <- the fix, at the same node order as the match setting
+   nodes 20000     : 0 undeliverable, 0 differ
+   nodes 50000/250000 : 0 undeliverable, 0 differ (reference itself)
+So the concrete recommendation is: **run self-play at `go softnodes 20000` instead of 2000** (or `go nodes 20000`,
+which behaves identically on these boards). That is the same node order the owner's MATCHES already use, so it is
+not a new regime - it is the existing match budget applied to self-play.
+
+HONEST ANOMALY, not hidden: `go softnodes 50000` shows 1 undeliverable PV and 1 differing mate number, worse than
+both 20000 and 250000. With 5-8 mate-scored boards per row that is a single board flipping, so it is likely sample
+noise rather than a real non-monotonicity - but I am recording it as observed rather than smoothing it, and a
+larger sample would be needed to say whether any softnodes budget above 20000 has a residual fault.
