@@ -63,3 +63,4 @@ that fooled me (`6k1/5ppp/8/8/8/8/5PPP/1q4K1 b - - 0 1` and `7k/8/8/8/8/8/8/K6R 
 `is_valid()` False / status 1024), an empty board (status 2307), an already-checkmated position and a stalemate
 (both 0 legal moves) — it refused all five and accepted both good positions. Evidence:
 `pc/guardcheck/guard.json`.
+| **NEW: legality at match budgets** | 60 real game positions x the three match budgets = 180 lines: **0 illegal moves**, 0 unmeasured; and 0 of the 60 real FENs were rejected by the guard (the 2 invalid FENs earlier were from MY hand-written list, not real data) | new measurement | PC r15 / PC20 / Threads 1 | **YES — match budgets on real positions** | no defect; the FEN hazard is a hand-written-input hazard |

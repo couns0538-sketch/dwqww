@@ -595,3 +595,24 @@ I am not claiming this is a new engine fault: file 1 lists the prefix rule as kn
 defensible. What I am adding is that the ENGINE'S ONLY SIGNAL IS ONE INFO STRING and `readyok` follows, so a
 GUI has no way to know its move list was rejected. Whether the owner wants a harder signal is his call; the
 measurement is `pc/sc9b/hazard.json` plus `pc/sc9b/*.log`.
+
+## Legality sweep at the three match budgets: 180 lines, 0 illegal moves
+
+PC r15, PC20, Threads 1, Hash 16. 60 real game positions (set G, all validated with the three-line guard
+first) x `go nodes` 20000 / 50000 / 250000 = **180 lines**, fresh process each, read to bestmove, every
+returned move checked against python-chess's legal move set for that exact position.
+
+| measure | value |
+|---|---|
+| positions | 60 |
+| lines | 180 |
+| **illegal moves returned** | **0** |
+| lines with no measurement | 0 |
+
+Also worth recording: **0 of the 60 real game FENs were rejected by the guard.** The 2 invalid FENs I hit
+earlier came from my own hand-written list, not from real game data — real positions from actual games are
+clean. That supports file 6's ranking: the FEN hazard is a hand-written-input hazard, not something a
+game-derived position set will hit.
+
+GUI-reachable: **YES, the match budgets on real positions.** Evidence: `pc/legality/legality.json`,
+`pc/legality/rejected_fens.json`, `pc/legality/p*_*.log`.
