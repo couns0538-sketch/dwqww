@@ -1,60 +1,32 @@
 --- a/forge-combo29/src/search.cpp	2026-11-16 21:32:57.925527857 +0000
-+++ b/forge-combo29/src/search.cpp	2026-11-16 21:33:06.293527857 +0000
-@@ -2248,8 +2248,30 @@
++++ b/forge-combo29/src/search.cpp	2026-11-16 21:34:58.413527857 +0000
+@@ -2248,8 +2248,27 @@
      };
  
      // Terminal or adjudicated roots: report without searching.
 -    const bool root_drawn = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
 -                                               board.is_insufficient_material());
-+    // A drawn root (fifty-move counter, threefold repetition, dead material) must not hide a
-+    // mate that is on the board right now: a draw must be claimed, and a mate-in-one ends the
-+    // game before any claim can be made. So the draw adjudication is skipped when the side to
-+    // move has a move that mates immediately. Everything else about the adjudication (score,
-+    // chosen reply, node count) is unchanged when no such mate exists.
-+    bool root_mate_in_one = false;
-+    Move root_mate_move = Move::none();
-+    if (!legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
-+                           board.is_insufficient_material())) {
++    //
++    // A draw is CLAIMED, and a claim is not available once the side to move has mated: a
++    // mate ends the game immediately. So a root that would be adjudicated drawn (fifty-move
++    // counter at 100, threefold repetition, dead material) is searched normally when the side
++    // to move has a move that mates at once. When there is no such move the adjudication is
++    // exactly as before, score and reply included.
++    bool root_draw_adjudicated = !legal.empty() && (board.is_repetition() ||
++                                                    board.halfmove_clock() >= 100 ||
++                                                    board.is_insufficient_material());
++    if (root_draw_adjudicated) {
 +        for (const Move move : legal) {
 +            Board child = board;
 +            Undo undo;
 +            (void)child.make_move(move, undo);
-+            const MoveList replies = child.legal_moves();
-+            if (replies.empty() && child.in_check()) {
-+                root_mate_in_one = true;
-+                root_mate_move = move;
++            if (child.legal_moves().empty() && child.in_check()) {
++                root_draw_adjudicated = false;      // a mate on the board outranks the claim
 +                break;
 +            }
 +        }
 +    }
-+    const bool root_drawn = !legal.empty() && !root_mate_in_one &&
-+                            (board.is_repetition() || board.halfmove_clock() >= 100 ||
-+                             board.is_insufficient_material());
++    const bool root_drawn = root_draw_adjudicated;
      if (root_candidates.empty() || root_drawn) {
          int score = 0;
          if (legal.empty() && board.in_check()) score = -MateValue;
-@@ -2376,6 +2398,24 @@
-     assert(root_effort_count_ <= root_effort_moves_.size());
-     std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
-     root_move_nodes_.fill(0);
-+
-+    if (root_mate_in_one) {
-+        // The root draw conditions were overridden by a mate on the board. Report it in the
-+        // same shape as any other mate-in-one: a `mate 1` score, the mating move as bestmove,
-+        // and the mate itself on the PV.
-+        const int mate_score = MateValue - 1;
-+        for (int depth = 1; depth <= max_depth; ++depth) {
-+            result.depth = depth;
-+            result.score = mate_score;
-+            emit(depth, mate_score, {root_mate_move});
-+            if (should_stop()) break;
-+        }
-+        result.best_move = root_mate_move;
-+        result.nodes = total_nodes();
-+        result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
-+            std::chrono::steady_clock::now() - start_).count());
-+        return result;
-+    }
-     // Secondary lines use their own table and histories, so the primary
-     // iterative deepening stays the MultiPV 1 search.
-     std::unique_ptr<SharedSearchState> alt_shared;
