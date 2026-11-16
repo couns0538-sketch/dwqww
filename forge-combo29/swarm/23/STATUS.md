@@ -1017,3 +1017,18 @@ the OPPOSITE of the truth. Caught by counting actual occurrences with my own key
 not the condition.
 
 82 findings, 18 confirmations, eleven named faults. 10 h 20 m remain.
+## 2026-11-16T23:59:45Z  proxy rule at the top of the page; eleven instances; heading count re-verified
+2026-11-16T23:59:45Z
+
+The page now opens with THREE sentences, each tied to its instance:
+  1. a quoted move is incomplete without its search limit (instance 10);
+  2. a control that cannot fail is not a control (instance 9);
+  3. a proxy for the condition is not the condition - assert it in the same terms the system under test uses,
+     because a library predicate that is NEARLY the same is the most dangerous kind: it passes review (11).
+Instance 11 also joined the lead block beside 7 and 9, since all three are 'looked right, passed review'.
+
+23-F58 keeps its headline row: same board, third occurrence reached naturally at ply 31 / halfmove 11 -
+  base cp 0, 0 nodes, e6e5   vs   PC cp 0, 1,376,300 nodes, b6b4.
+
+Heading count re-verified against the subtitle again (11 headings, ELEVEN instances) - the check that has now
+caught me twice. 82 findings, 18 confirmations. 10 h 19 m remain.
