@@ -238,3 +238,10 @@ NEXT: one-minute job-file look; then long 28 (SENSITIVITY B - the 22 default-anc
 LEARNED: 12 more direction flips (21 of 64 across both sensitivity items) - the two sets genuinely disagree; SingularMargin is the strongest per-step lever anywhere (O +38.9/-13.8 percent) and agrees in direction.
 FOR Opus: the inert-at-this-configuration list now has four members (QsSeeMargin 0..99, the capture-futility pair, AspReopenMargin); the full 35-setting direction table for the tuner is in longs 27/28.
 NEXT: one-minute job-file look; then long 29 (depth 14 for the sub-0.5-percent movers).
+
+## after long 25, 2026-11-16T19:46:00Z
+LEARNED: this engine aborts a search when stdin closes - `printf 'go depth 12' | forge` prints a bestmove with NO nodes; the harness must hold stdin open until the bestmove line arrives (my first shell harness wrote 200 NONODES rows, kept in runs_bad_pipe/).
+LEARNED: never fit a deep sum by scaling a shallow ratio - growth factors differ per config (S14 2.2960, CED8 2.2123, T1 2.1956), and the two with the smallest factor are the two whose ratio moved most; measure both depths on the same binary.
+FOR kimi5: LmrFine's node cost is a depth-12 phenomenon (T1 +7.05 % of S14 at d12, only +2.37 % at d14); if you tune it at d12 you will overvalue the knob.
+FOR Opus: CED 8's relative saving GROWS with depth on O (0.9490 of S14 at d12, 0.9144 at d14); V stays flat and V-CED8 collapses from 4.7 to 0.9 points, so the check-discount removals do not compound.
+NEXT: one-minute job-file look, then long 24 (needs glmflash5 job 27) or long 26.
