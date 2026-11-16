@@ -607,3 +607,20 @@ The common shape: a harness is only trustworthy where it has been shown to fire 
 known. All three were caught by controls, none by the happy path.
 
 Standing: 47 findings, 11 confirmations. Window ends 2026-11-17T10:18:40Z; the FINAL block goes there.
+## 2026-11-16T23:36:03Z  rule page: units rule is review item 4; C13 confirms a fourth seat's baseline
+2026-11-16T23:36:03Z
+
+Rule page (forge-combo29/swarm/23/RULE_known_answer_control.md) now has FOUR numbered review items:
+  1 every checker gets a known-answer control in the same invocation and refuses to report if it fails;
+  2 every expected count is asserted (rows vs depths, positions vs expected, PARTIAL printed);
+  3 a zero is a claim like any other and needs the same evidence as a positive result;
+  4 the tolerance's UNITS must match the claim's units (my 4 %-of-5 ms test printed a false refutation).
+Four instances of the family from me today, all caught by a control, none by the happy path.
+
+23-C13: seat 04's 04-F20 Threads-1 baseline reproduces to the NODE on my build — 75,311 nodes, f3f8,
+cp 2207, identical 6 of 6, wall 0.025-0.026 s. I deliberately did not test their Threads-4 half: file 6 rule 2
+makes multi-thread variation not-a-defect, the PC plays one thread, and the swarm rule confines my scores to
+Threads 1. Their own framing (a hazard for threaded use, not PC games) is the reading I would give too.
+
+23-C12: movetime stops at M - MoveOverhead, 16 of 16 cells within 0.8 ms.
+Standing: 51 findings, 13 confirmations.

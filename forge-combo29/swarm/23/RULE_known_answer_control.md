@@ -51,6 +51,10 @@ any fails. That is why 23-C11 confirms the engine behaviour but asserts nothing 
    expected; and a partial run must say "PARTIAL" in the output, not only in a report written later.
 3. **A zero is a claim like any other** and needs the same evidence as a positive result. A zero from a checker
    with no positive control is "not shown".
+4. **The tolerance's units must match the claim's units.** "Within 1-2 ms" is tested in milliseconds, not in
+   percent. A tolerance relative to a small quantity is not a stricter test but a wrong one: 4 % of a 5 ms plan is
+   0.2 ms, so it fails a 0.8 ms error that the claim itself allows (23-F38 — and it made my checker print a false
+   refutation of a correct finding).
 
 ## Why this family is worth naming
 
