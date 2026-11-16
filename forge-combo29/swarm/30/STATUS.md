@@ -91,3 +91,9 @@ Seat kept: 30 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-30, folde
 **Method fix + confirmation (30-C11)**: my earlier PC20 instability was MY harness (burst setoptions with 4ms sleeps, no readyok), not the engine. With a strict harness (every setoption read to readyok, every search awaited) the engine is deterministic: same score AND same nodes 5/5 and PC20 repeats 8/8. Confirmatory rates unchanged: base 16/40, PC defaults 27/40, PC PC20 23/40 report a python-chess-provable mate at depth 12, Threads 1.
 **Rule I now follow everywhere**: no burst setoptions; readyok after each one.
 **Next command**: `cd pc && python3 mate_rate_strict.py out_strict40 20 14` at depth 14 to see whether PC20's deficit disappears with depth.
+
+## Mon Nov 16 11:06:34 PM UTC 2026
+
+**30-C13 (methodology, with the control the brief demands)**: ucinewgame restores cold EXACTLY on both builds, proven three ways — fresh process, one process WITH ucinewgame (identical nodes), one process WITHOUT (diverges from the 2nd position). That is a zero with a planted failure beside it, not an unbacked claim. 30-F37: PC20 switches carry no state across ucinewgame, so a match may reuse one process.
+**Totals**: 51 lines in FINDINGS.md (30-F1..F37, 30-C1..C13), including self-corrections C6-C13.
+**Next command**: `cd pc && python3 - <<'PY' ... search 30-F33's six boards under S14 (not just defaults) ` — to state which settings the KRvK failure needs.
