@@ -4,6 +4,103 @@
 - area: 5 (PRINCIPAL VARIATIONS AND SCORES)
 - seed: 1501
 
+## 2026-11-16T23:25:13Z FINAL
+
+### 1. THE HEADLINE: at 6 s + 0.06 the clock is NEGATIVE-SUM
+
+Measured on the PC's own path — PC r15 build, PC20, Threads 1, Hash 16, self-play, a real clock
+decremented by the measured wall time of every search. **30 games, 3,834 searches** (`games/games30.jsonl`).
+
+Per-move search time: **median 104 ms, p90 269 ms, p95 368 ms, p99 564 ms, max 1,293 ms, mean 139.3 ms.**
+**80.3 % of all moves take longer than the 60 ms increment.**
+
+The arithmetic, for any control the owner chooses:
+
+> **moves until the clock is empty = B / (search_time - increment)**
+
+| basis | search time | net drain/move | moves of one side from 6,000 ms |
+|---|---|---|---|
+| median | 104 ms | 44 ms | **136** |
+| **p90** | **269 ms** | **209 ms** | **29** |
+| mean | 139.3 ms | 79.3 ms | **76** |
+
+**60 ms is below the median**, so the control is negative-sum on more than half of every game's moves.
+The tail is what decides when the clock runs out: 136 moves at the median but only **29 at p90**.
+
+- **0 forfeits in 36 games** — but the narrowest margin was **115 ms remaining at 160 plies** (game 13),
+  and the 160-ply cap was reached repeatedly. A game a few moves longer forfeits.
+- Sizing an increment that survives a bad stretch: **≥ 269 ms** covers p90, **≥ 368 ms** covers p95,
+  **≥ 1,293 ms** covers every move seen. That is roughly **4x the current 60 ms**.
+- Why it did not forfeit yet: search cost **falls** in the endgame (217 → 83 ms from the first to the
+  last 40 plies), which decelerates the drain. The middlegame phase carries the cost.
+
+This is not the engine mis-managing time. It is the control being negative-sum for the engine's actual
+search cost, and it is sustained only because games end before the clock does.
+
+### 2. Then: no movetime cutoff between 1000 and 3000 ms (15-F34)
+
+Slice honoured at **99-100 %** of both; the only early stops are positions whose **depth ladder ends at
+64** (identical node counts at both slices). All 10 cells node-identical across 5 runs.
+
+### 3. ALL FINDS, WITH STATE, BUILD AND SETTINGS
+
+Base tree = 6b98f217. PC build = r15 from FABLE_TO_swarm_5.md (sha256 d6bd72c531f785f4…, all nine known
+numbers reproduced). Threads 1 in every run of mine, Hash 16 unless stated.
+
+| id | one line | build / settings | state |
+|---|---|---|---|
+| 15-F1 | mate -12 vs true mate -4 on `8/8/1p6/8/p3p3/8/2Kpk3/8 w`, PV never reaches mate | base / S14 d12 | **open on base**; repaired on PC (15-F18) |
+| 15-F2 | 9 of 10 mate scores obey the PV-length rule, 1 violates it (553 pos) | base / S14 d12 | open |
+| 15-F3 | KNN v K scored a win (+309); `DeadMaterial true` zeroes all 20 | base / S14 d10 | CONFIRMED by seat 05 (S-C5) |
+| 15-F4 | dead-draw roots print an EMPTY pv, defeating a `" pv "` grep | base / S14 d10 | CONFIRMED by seat 05 (S-C6) |
+| 15-F5 | terminal root walks the depth ladder to 64 with nodes 0 | base / S14 + ASan | open; score half withdrawn (15-R1) |
+| 15-F6 | mate machinery exact on 8 fresh mate positions (negative result) | base / S14 d12 | open (bounds 15-F1) |
+| 15-F7 | O depth-14 sum 21,812,100 exact | base / S14 d14 | open |
+| 15-F8 | O carries 0 mate scores at d14; all 10 of job 1's were in G | base / S14 | open |
+| 15-F9 | SECOND mate fault, wrong by 6 moves (`k7/6R1/…`) | base / S14 d14 | repaired on PC (15-F18) |
+| 15-F10 | harness fidelity exact at four (set,depth) points | base / S14 | open |
+| 15-F11 | 15-F9 self-corrects at d16; PV-shorter-than-score is the signature | base / S14 | open |
+| 15-F12 | drawn-root thread all correct on PC → **patch is base-tree-only** | both | CONFIRMED by measurement |
+| 15-F13 | *(withdrawn)* terminal `mate 0` is correct output | both | **WITHDRAWN (15-R1)** |
+| 15-F14 | patch reproduces all nine known numbers | PC / none,S14,PC20 | open |
+| 15-F15 | the UCI spec does not define terminal-root output | — | scoping note |
+| 15-F16 | thrice-repeated ROOT is SEARCHED on the PC build | PC / PC20 | superseded by 15-F23 |
+| 15-F17 | insufficient material short-circuits at 0 nodes on both builds | both | open (corrects my own claim) |
+| 15-F18 | **both mate faults GONE on the PC build** (`mate -4`/`mate -3` at true distance) | PC / PC20 d12,d14 | open |
+| 15-F19 | *(closed)* attribution to MateAlphaGuard was untested | PC / PC20 | closed by 15-F20 |
+| 15-F20 | **`MateAlphaGuard true` ALONE fixes both**; CuckooRep worsens one | PC / S14+1 opt | CONFIRMED by seat 08 (08-C9) |
+| 15-F21 | in-tree repetition works on PC → the ROOT check is the gap | both | framing corrected by 15-F23 |
+| 15-F22 | 16 mate scores, 0 violations at d14 on PC | PC / PC20 d14 | open |
+| 15-F23 | **root test IS called, returns TRUE, and the guard ignores it by design** | PC+base, instrumented | open |
+| 15-F24 | `FORGE_FIX_ROOT_DRAWN` conflates two repairs | PC, flag ON/OFF | open |
+| 15-F25 | **one-line split gives BOTH behaviours**, pins unchanged | PC / PC20 | open |
+| 15-F26 | a drawn root still returns a REAL move (18/18 cells) | both, 3 builds | open |
+| 15-F27 | pawn/capture reset makes a counter-100 mate reachable | both | open |
+| 15-F28 | **counter-100 gap: base misses 7 of 7, PC finds 7 of 7** | both | open |
+| 15-F29 | softnodes deterministic + finished-depth, overshoot to +233 % | PC / PC20 | open |
+| 15-F30 | `nodes` = hard ceiling; `softnodes` = soft, brackets from opposite sides | PC / PC20 | open |
+| 15-F31 | under-budget cell resolved: 1-legal-move position, not a hidden stop | PC / PC20 | open |
+| 15-F32 | **clock path is a THIRD kind**; 6 s clock buys 22-358 ms | PC / PC20 | open |
+| 15-F33 | one non-determinism at `movetime 100` (4/5 vs 1/5) | PC / PC20 | open |
+| 15-F34 | no movetime cutoff 1000-3000; depth-64 ladder ends first | PC / PC20 | open |
+| 15-F35 | 36 games 0 forfeits, but 115-174 ms margin | PC / PC20 6s+0.06 | open |
+| 15-F36 | **p90 269 ms; 80.3 % of moves exceed the increment** | PC / PC20 6s+0.06 | open |
+
+CHECKS I wrote: 15-C1 CONFIRMS 05-F8 | 15-C2 CONFIRMS 07-F1 | 15-C3 CONFIRMS 10-F6 |
+15-C4 CONFIRMS 05-F1 | 15-C5 CONFIRMS 19-F33 | 15-C6 CONFIRMS 08-F22 (measurement; defect framing
+withdrawn as 15-R3) | 15-C7 CONFIRMS 08-F23 + 08-C9 (both switch claims).
+
+SELF-CORRECTIONS (7): 15-R1 terminal `mate 0` was correct output · 15-R2 a harness measured a REFUSED
+FEN's stale board · "insufficient material is searched" (it is 0 nodes) · 15-R3 the fifty-move band is
+correct, not a defect · the 15-F21 "gap" framing · 15-F19 (attribution now isolated) · the softnodes P3
+overshoot band, and the movetime P1-P3 bands, were my under-specified predictions.
+
+### 4. WHAT I DID NOT DO
+No match against another engine; no + at other builds; no frequency estimate for the
+counter-100 gap; no clock-path test above 6 s or with a stronger opponent. The 30-game sample gives no
+forfeit *rate* — only "0 in 36" and a 115 ms worst margin.
+
+
 ## 2026-11-16T23:15:15Z
 
 - 15-F34 NO movetime cutoff between 1000 and 3000 ms: honoured at 99-100% of both slices on every
