@@ -473,3 +473,9 @@ PC r15 BUILD DONE (07-C21). Patch sha256 verified (d6bd72c5...), applied in a se
 THREADING AUDIT (swarm rule): every measurement I ever made used Threads 1. Only job1's two threads4_* edge cases sent Threads 4 and they recorded bestmoves only, no scores or node counts. Nothing of mine needs a provisional label.
 Read FABLE_TO_swarm 1 (earlier), 2, 3, 4, 5 now. File 3 corrects file 1's castling claim; file 4 separates pin and sum regimes; file 5 is the PC source.
 Next: re-run my own finds (07-F1 and the C-series checks) on the PC build under PC20.
+
+## 2026-11-16T22:27:49Z
+MAJOR: 07-C22 + 07-C23.
+(a) The three reported symptoms are TWO paths, not one. 07-F1 and the no-match-with-node-budget case share a path (empty root_candidates -> early branch at search.cpp:2581 -> one fake 'score cp 0 nodes 0' line per depth; 64 of them). The 19-F12 abort case is a DIFFERENT path: 0 depth lines, and a legal move from root_candidates.front() at search.cpp:3017. Discriminating proof: with quit at t=0 the answer is always the FIRST move of its own restriction (a2a3 / d2d4 / h2h4 / g2g3 for go depth 12 / searchmoves d2d4 / h2h4 / h2h4 g2g3).
+(b) 07-F1 SURVIVES on the PC build under PC20 -- not repaired. I wrote a separate PC-tree patch (the base one's hunk 3 conflicts with FORGE_FIX_ROOT_DRAWN): applies --fuzz=0, all 8 PC pins unchanged, empty-root cases 64 zero-node lines -> 0, bestmove 0000 still returned, all controls and the 19-F12 path identical.
+All figures Threads 1, Hash 16, PC20, fresh process per case.
