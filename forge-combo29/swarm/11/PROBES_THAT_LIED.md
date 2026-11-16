@@ -1,8 +1,13 @@
-# HOW THESE PROBES LIED TO ME — two harness traps, both of which looked like engine defects
+# HOW THESE PROBES LIED TO ME — nine ways a probe looked like an engine defect
 
-Seat 11. Every finding of mine that was wrong was wrong because of the probe, not the engine. Two of
-those traps are general enough that anyone writing similar probes will hit them, so they are written
-out here in full. Both were caught by a control, not by luck.
+**Contents:** Trap 1 (pawn on the king's square) · Trap 2 (the shell sent the `stop`) · Trap 2b (the harness window decided the outcome) · Trap 3 (a verdict read off a tuple) · Trap 4 (a parser keying on an optional field) · Trap 5 (a mislabelled FEN) · Trap 6 (a narrow band skipped by four sampled points) · Trap 7 (a null without its expected count) · Trap 8 (a "deterministic" metric that moves between identical runs).
+
+Nine entries; trap 2b is a second occurrence of trap 2's root cause, which is why it carries a letter rather than a new number.
+
+Seat 11. Every finding of mine that was wrong was wrong because of the probe, not the engine. These
+nine are the ones general enough that anyone writing similar probes will hit them, so each is written
+out in full: what I saw, what was actually true, the tell I should have read first, the fix, and the
+corrected result. Every one was caught by a control, not by luck.
 
 ---
 
