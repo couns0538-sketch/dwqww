@@ -131,6 +131,23 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:41Z - 27-F12 SETTLED/closed; S-C21 finds the clock x MultiPV pair
+
+27-F12 now reads SETTLED/closed in S-C18/S-C19/S-C20 and in the FINAL: two independent refutations (mine on both
+builds, seat 30's 30-C40 with matching numbers and a 12-of-12 side-to-move check) plus the origin of the number -
+286,156 nodes is the BASE build's wtime-3000 answer, read as invariant.
+
+S-C21 (new): checked seat 30's 30-F50 and it holds, with a narrower cause. 6 fresh runs per cell:
+  wtime 5000 + MPV3 -> depths [1,4], nodes 73-622, 8.5x spread      (their instability reproduced)
+  wtime 5000 + MPV1 -> depth 16, 172,312 nodes every run, 1.0x      (clock alone exact)
+  nodes 50000 + MPV3 -> depth 10, 6,386, 1.0x ; depth 12 + MPV3 -> 12, 94,994, 1.0x  (MultiPV alone exact)
+So the CLOCK x MULTIPV pair starves the search: depth 1-4 where MPV1 reaches 16 on the same clock - a 12-15 ply
+loss that also varies run to run. Neither factor alone causes it. Numbers are position-dependent (they saw {7,11}
+at Hash 256, I saw {1,4}); the structure reproduces.
+
+State: 65 findings, working tree clean, local = remote. Next: keep cycling.
+
 ## 2026-11-16T23:41Z - S-C20: 27-F12 SETTLED - the 286,156 "constant" is the base build's wtime-3000 answer
 
 Verified the origin of the number myself: on seat 27's own FEN, base 6b98f217 at `go wtime 3000` gives
