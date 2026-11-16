@@ -177,3 +177,20 @@ NEW AREA, job 6 — `go softnodes N`, PC r15 build, PC20, Threads 1, Hash 16, re
          still chosen; reproduced identically. So "softnodes 2000" does not guarantee 2,000 nodes of work.
 job5 (cycle c, new seed 2401) reference perft still running, 1891/5000 rows flushed (workers alive at 99% CPU,
 output is buffered, not stalled).
+
+## 2026-11-16T23:05Z  job 7 (PC match path) done; Threads-1 stamped on every new finding
+job 7, the path file 6 says finds are worth most on — PC r15 build, PC20, **Threads 1**, Hash 16, real-game
+positions:
+  23-F17 `go nodes N` stops SHORT of N, systematically: 100 -> 42, 500 -> 384, 1000 -> 889, 2000 -> 1628,
+         5000 -> 3190, 20000 -> 18055, 50000 -> 23472, 250000 -> 205119 on one position; over 10 positions at
+         the PC's three match values the shortfall was 0.8-45.1% (N=20000), 7.8-51.9% (N=50000) and 1.6-49.2%
+         (N=250000). Never above N, never equal to N in 150 runs. Mechanism read off the ladders: it stops after
+         the last depth that FITS UNDER N, so the shortfall is one depth's cost. Fully deterministic (30 of 30
+         (N,position) combos identical across 5 fresh processes) and always at a finished depth.
+  23-F19 the control that makes F17 measurable: same sweep, shortfall at EVERY N, and real node counts (not the
+         fabricated 0-node a2a3) from N=100 up.
+  23-F18 the 6 s + 0.06 clock is barely used: 20 searches, median 207.6 ms, max 876.5 ms, 0 over 1000 ms,
+         0 over 6000 ms, moves identical in both phases on 10 of 10 positions. It spends ~3% of its clock.
+Every finding line of jobs 6 and 7 now states Threads 1, Hash 16, PC20 (checked one by one, 7 of 7).
+FINDINGS.md re-sorted: F1..F19 then C1..C4 (23 findings, 4 confirmations).
+job5 (cycle c, seed 2401) reference still running, 2309/5000 flushed.
