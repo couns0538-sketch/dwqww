@@ -31,6 +31,15 @@ their raw rows are in `job11/margins.out`, which I read):
   scale and I will not divide one by the other to produce a clean 2x2. Anyone wanting that denominator needs a
   single run measuring the top-two gap for both changed and unchanged positions on the same instrument.
 
+> **THE 2x2 IS INCOMPLETE BY CHOICE, and here is how to complete it.** The missing cell is "what fraction of
+> UNCHANGED positions were forced or large-margin", which I do not have on the same instrument. To complete it:
+> take the 60 positions of seat 23's `job10/out_60.json`, classify each CHANGED/UNCHANGED from their recorded
+> bestmoves at N = 20000/50000/250000, then for EVERY position — both halves — measure the top-two gap at the depth
+> the 20000 budget actually reached, by scoring each of the top two moves alone with `go depth D searchmoves
+> <move>`. That is one run and it puts both halves on one instrument. `gap_2x2.py` in this folder does exactly
+> that; I started it and its result is reported below if it completed, and if it did not the script is the
+> instruction. This paragraph exists so a reader does not mistake the missing half for an oversight.
+
 ## so the rule stands as: small margin is necessary, being forced is what makes it safe
 **Necessary:** seat 23's 94 % — changed positions are almost always small-margin, so a large margin is a reliable
 "safe" signal.
