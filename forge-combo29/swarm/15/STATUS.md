@@ -4,6 +4,31 @@
 - area: 5 (PRINCIPAL VARIATIONS AND SCORES)
 - seed: 1501
 
+## 2026-11-16T22:55:30Z
+
+CLOCK PATH FILLED IN — all four budget modes are now characterised on the same five boards.
+
+- 15-F32: the clock path is a THIRD kind, neither ceiling nor depth-complete. `movetime 100` uses
+  ~90 ms of 100, but `wtime 6000+60` uses only **22-358 ms of 6,000 (0.4%-6%)** — a 6 s clock does not
+  buy a 6 s search. And on the one-legal-move board BOTH clock modes stop at depth 64 / 94,406 nodes /
+  22 ms identically: the depth ladder (clamp max 64) ends before the clock is consulted.
+- 15-F33: one genuine non-determinism on a SHORT slice — G-mid-2 movetime 100 gave depth 15 in 4 of 5
+  runs, depth 14 in 1, same 90 ms, same move, scores -251 vs -262. Absent at the 6 s setting.
+- Two predictions refuted (P1 wall-time band, P5 node variation), recorded as such: this engine's clock
+  search is far more deterministic and thrifty than I assumed.
+
+THE COMPLETE PICTURE: `nodes` = hard ceiling (never exceeds, down to -78%); `softnodes` =
+depth-complete soft budget (overshoots by the next depth, to +233%); `movetime` = short slice honoured
+(~90%); `wtime/btime/winc` = 2.5%-6% of a 6 s clock, deterministic at that setting.
+
+TOTALS: 33 findings, 6 checks, 5 self-corrections. Threads 1 throughout, build+settings on every line.
+
+Running now: nothing.
+
+Next exact command:
+  cd /agent/repos/dwqww && for s in 26 27 28 30; do git fetch -q --depth 1 origin for-fable-and-opus/swarm-$s; git show FETCH_HEAD:forge-combo29/swarm/$s/FINDINGS.md 2>/dev/null | grep -cE "CONFIRMS"; done
+  -> find an unconfirmed NEW finding of another seat and reproduce it with my own harness.
+
 ## 2026-11-16T22:51:31Z
 
 TWO DELIVERABLES DONE since the last block.
