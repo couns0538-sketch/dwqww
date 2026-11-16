@@ -397,3 +397,9 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   Overshoot 1.00x..2.18x; consecutive N can report the SAME nodes (1,740 at N=1000 and 1500; 4,121 at N=2000 and 3000)
   because the engine finishes the depth in progress. At the PC's own N=2000: 2.06x startpos, 1.24x G0, 1.15x middlegame.
 - next command: the same ladder on the BASE build under S14, to see whether the quantisation is a PC-build property.
+
+## $(date -u)
+- S-F33: the softnodes quantisation is an ENGINE property, not PC-specific. Base build + S14 ladder: 1.00x..2.37x, same
+  plateaus, deterministic on every cell. At N=2000 base vs PC: startpos 1.75x vs 2.06x, G0 1.00x vs 1.24x, middlegame
+  1.03x vs 1.15x. At N=10000 the PC build is cheaper on 2 of 3 boards and dearer on 1.
+- next command: continue the cycle on the PC's real path — `go nodes` 20000/50000/250000 determinism, per file 6.
