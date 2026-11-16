@@ -577,3 +577,17 @@ New result this session: 23-F33, third independent seed (2501) at depth 5 — 10
 2,603,588,130 nodes per side. Depth 5 now covers 330 positions across two seeds and set G.
 
 Standing state: 44 findings, 10 confirmations. Real time pasted above. Window ends 2026-11-17T10:18:40Z.
+## 2026-11-16T23:24:25Z  harness copies fixed and guarded; the rule is now in the scripts, not just in prose
+2026-11-16T23:24:25Z
+
+As ordered: all five hardcoded-depth copies replaced with the DEPTHS-aware one (job2, job4, job5, check03,
+check13; job8 already had it), and every copy now carries a ROW COUNT GUARD that dies if the table would be
+shorter than the depths the job asked for, plus a printed PARTIAL note when positions-compared < expected.
+Proved on the exact fault case (ask for 1..5, data has 1..4): now HARD FAILURE, previously a passing 4-row
+table. All real jobs re-run unchanged: job1 4 rows, job5 4 rows, job16 5 rows. Recorded as 23-F35.
+
+The rule for the FINAL block, as ordered, with my own case as the example:
+  A HARNESS THAT COMPARES FEWER CASES THAN THE JOB ASKED FOR REPORTS SUCCESS. Check the printed row count
+  against the expected count and the positions-compared line against the expected positions BEFORE believing
+  the summary sentence. My case: compare_perft.py hardcoded depths 1-4, a depth-5 job printed 4 rows and said
+  "no mismatches at any compared depth" (23-F34), caught only because I grepped for the missing row.
