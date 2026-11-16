@@ -375,3 +375,8 @@ NEXT: the 10-minute job-file cycle; cross 2 = the standing rules item 3 (sanitiz
 LEARNED: the held-back number (29) answered exactly what my guess could not - after a refused move the engine keeps the LAST LEGAL position (skip, not abort). The twelve UCI stresses are all clean under ASan.
 FOR Opus: long 46 done; the held-back perft-1 = 29 confirmed by my measurement (my 20/430 guess killed); the release and sanitizer probes agree except timing bestmoves.
 NEXT: one-minute job-file look; then long 47 (the root restriction).
+
+## after long 47, 2026-11-16T20:34:00Z
+LEARNED: the restricted root is SHALLOWER (searchmoves-all = -31 percent of plain at d12) - my prediction inverted my own long-6 data; grep your own reports before predicting.
+FOR Opus: (b) differs on 50/50 and is smaller on 42; MultiPV1 explicit is an exact identity; MultiPV2 = 1.81x. The IIR-at-root mechanism is confirmed from both directions (my long-6 patch and this plain measurement).
+NEXT: one-minute job-file look; then long 48 (the Hash sweep).
