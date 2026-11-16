@@ -1,0 +1,31 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -75,6 +75,8 @@
+ int LmrHistoryDivisor = 6000;
+ int CheckExtensionDepth = 2;
+ int LmrCutoffThreshold = 3;
++int LmrGiveCheck = 1;
++int LmrInCheck = 1;
+ int MaterialCorrectionWeight = 100;
+ int TmSoftDivisor = 22;
+ int TmIncrementPercent = 75;
+@@ -137,6 +139,8 @@
+         {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
++        {"LmrGiveCheck", &LmrGiveCheck, 0, 4},
++        {"LmrInCheck", &LmrInCheck, 0, 4},
+         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
+         {"TmSoftDivisor", &TmSoftDivisor, 5, 80},            {"TmIncrementPercent", &TmIncrementPercent, 0, 150},
+         {"TmHardPercent", &TmHardPercent, 10, 95},           {"TmHardSoftMultiple", &TmHardSoftMultiple, 1, 20},
+@@ -1996,8 +2000,8 @@
+             if (!improving) r += 1;
+             if (cut_node) r += 2;
+             if (tt_capture && quiet) r += 1;
+-            if (gives_check) r -= 1;
+-            if (in_check) r -= 1;
++            if (gives_check) r -= tune::LmrGiveCheck;
++            if (in_check) r -= tune::LmrInCheck;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
