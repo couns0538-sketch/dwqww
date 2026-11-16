@@ -481,3 +481,23 @@ JOB 13: is the built-in book's play good by the engine's own judgement? (follows
   the statistics are over the 16 book plies only.
   Finding S-F16. Report job13/REPORT_job13.md.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## Mon Nov 16 11:38:46 PM UTC 2026
+
+JOB 14: verified FABLE file 6's headline claim — the PC build REPAIRS the drawn-root defect. All 9 checks hold:
+  halfmove 100: base 0 nodes, plays a1b1, MATE MISSED | PC 144 nodes, mate 1, a1a8
+  halfmove 150: same | genuine THIRD-OCCURRENCE root: base 0 nodes mate missed | PC finds it
+  controls: both builds find the mate at halfmove 0 and 99; both find it at TWO occurrences;
+  both still answer K vs K at once (0 nodes) — so the repair did not overshoot.
+  Finding S-F17. Report job14/REPORT_job14.md.
+
+TWO MISTAKES of mine in this job, both caught by asserting the construction rather than the result:
+  (1) first case E used a bare `position fen` — a FEN carries no occurrence history, so the case tested
+      NOTHING and "passed";
+  (2) second attempt used `position ... moves` but keyed the repetition count on the FULL FEN, whose move
+      counters change each shuffle, so it reported 1 occurrence for a real 3-fold. My own guard fired.
+  Now keyed on pieces+side+castling+ep like the engine, and the guard permanently refuses to run the case
+  unless the position is genuinely on the board three times.
+  Lesson recorded: a test that PASSES FOR THE WRONG REASON is harder to spot than one that fails, because
+  expected and observed agree. Assert the input construction, not just the outcome.
+Next command: cd forge-combo29/swarm/13/job14 && python3 drawroot.py ~/b/rel/forge ~/b/pc/forge /tmp/dr
