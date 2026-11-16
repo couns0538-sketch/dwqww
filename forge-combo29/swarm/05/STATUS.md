@@ -243,3 +243,12 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   plants on the same harness give startpos cp 21 / 9,575 and KNN v K cp 231 / 65,604. Zero claim now shown.
 - Boundary-vs-depth identical under S14 and PC20 on the PC build (95/92or93/91/90 for d6/8/10/12).
 - next command: python3 pcbuild/rerun_finds.py on the BASE build under S14, to have a same-regime base column.
+
+## $(date -u)
+- THREE-WAY table done (base S14 / PC S14 / PC PC20, Threads 1, same harness):
+  * S-F3: cliff at halfmove 91 on ALL THREE columns; base column reproduces my published cp 314 -> cp 0 exactly,
+    which validates the harness across builds. PC build does not fix it.
+  * S-F1: base mate -12 short by 6; PC S14 mate -9 short by 4; PC PC20 mate -4 consistent. Setting effect.
+  * S-F9 R/120: IDENTICAL on base and PC under S14 (mate -13, 14 of 26 plies) — the PC patch does not fix it;
+    under PC20 the engine stops reporting a mate at all (cp -2713), which is a different measurement.
+- next command: python3 pcbuild/rerun_finds.py /tmp/build-pc/forge PC20 with MultiPV off check, then continue.

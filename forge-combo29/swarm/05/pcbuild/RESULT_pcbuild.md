@@ -71,3 +71,35 @@ Checkmate root, `go depth 5`: `mate 0`, 0 nodes — same as the base tree.
   shows K v K / KN v K / KB v K all at `cp 0` with 0 nodes while two plants on the same harness report real nodes
   (startpos `cp 21` / 9,575; KNN v K `cp 231` / 65,604). So the zero is **shown**, not assumed (file 2 rule 1).
 - Everything here is Threads 1; nothing was measured above Threads 1 on the PC build.
+
+
+## Three-way table (base vs PC, same harness, Threads 1)
+
+The base build re-run in the *same regime* reproduces my original numbers exactly, which is the control that my
+harness gives the same answer on two different executables:
+
+### S-F3 fifty-move cliff — K+R vs K, depth 10
+| halfmove | base S14 | PC S14 | PC PC20 |
+|---|---|---|---|
+| 0 | cp 472 | cp 458 | cp 490 |
+| 85 | cp 349 | cp 351 | mate 8 |
+| 88 | cp 320 | cp 352 | cp 271 |
+| 90 | cp 314 | cp 289 | cp 231 |
+| **91** | **cp 0** | **cp 0** | **cp 0** |
+| 95 / 99 / 100 | cp 0 | cp 0 | cp 0 |
+
+**The cliff is at 91 on all three columns.** Base S14 reproduces the `cp 314 → cp 0` I published in S-F3 exactly, so
+the base column validates the harness, and the PC columns show the fault is untouched by the PC's changes.
+
+### S-F1 / S-F9 consistency at depth 12 (2N-1 rule)
+| board | base S14 | PC S14 | PC PC20 |
+|---|---|---|---|
+| G/192 | `mate -12`, pv 18 → **short by 6** | `mate -9`, pv 14 → **short by 4** | `mate -4`, pv 8 → **yes** |
+| R/120 | `mate -13`, pv 14 → **short by 12** | `mate -13`, pv 14 → **short by 12** | `cp -2713`, pv 19 → no mate score |
+| G/306 | `mate +5`, pv 9 → yes | `mate +5`, pv 9 → yes | `mate +2`, pv 3 → yes |
+
+Note R/120: the truncation is **identical on both builds under S14** (`mate -13`, 14 of 26 plies), so the PC patch
+does not fix it either — it only disappears under PC20, where the engine stops reporting a mate at all. That makes
+S-F9's instance a *setting* effect, not a build effect.
+
+Evidence: `out/rerun_base_s14.txt`, `out/rerun_s14.txt`, `out/rerun_pc20.txt`, `out/three_way.txt`.
