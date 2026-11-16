@@ -1,0 +1,26 @@
+# PREDICTION — seat 24, area 4, job 3 (`go infinite` + stop after 1..200 ms, Threads 8, 1000 times, under TSan)
+
+Written and pushed BEFORE the first measuring command of job 3. Never edited afterwards.
+
+Work: one engine process, Threads 8, Hash 16, S14, on a cycling list of the first 100 of G. Each of 1000 rounds:
+`position fen F` + `isready` (every line to readyok), `go infinite`, sleep a random 1..200 ms (rng seed 2403),
+`stop`, read lines until `bestmove`. Count: missing bestmove, bestmove not legal, extra `bestmove` lines,
+process crashes, hangs (no bestmove in 60 s after stop), and TSan report blocks.
+
+## Predictions (each with the range that kills it)
+
+1. TSan report blocks over all 1000 rounds: **0**. KILL if one or more appear.
+2. Rounds with no bestmove after `stop`: **0**. KILL if more than 0.
+3. Rounds with more than one bestmove line: **0**. KILL if more than 2 of 1000 (a stop/stop race is the only
+   plausible source, and the UCI loop joins the worker before reading the next line).
+4. Illegal bestmoves: **0 of 1000**. KILL if any.
+5. `bestmove 0000` rounds: **0** — every FEN in the first 100 of G has legal moves (python-chess agrees).
+   KILL if any 0000 appears.
+6. Crashes: **0**. KILL if the process must be restarted.
+7. Wall time: **under 25 minutes** for 1000 rounds (the sleeps alone are 100 s mean 100 ms).
+   KILL if over 60 minutes.
+
+## The proof for "0 reports"
+nm __tsan_ in the .meta must be above 0 (21), and the same runner must count a planted fault. job3/run_planted3.sh
+runs the scratch planted-fault executable (~/work/planted, one unlocked global incremented per node check) through
+the identical infinite/stop loop; it must produce >= 1 TSan report.
