@@ -1,0 +1,32 @@
+BRANCH HYGIENE CHECK (swarm seat 01, run before close)
+
+I audited my own branch against the rules rather than assuming compliance. Three checks, each with its
+result, including the two things that looked like violations until I checked them.
+
+1. ENGINE SOURCE COMMITTED AS SOURCE? None.
+   `git ls-tree -r <branch> forge-combo29/swarm/01 | grep -E '\.(cpp|hpp|h|c)$'` -> empty.
+   Every engine change of mine is a `.patch.txt` (job2, job2b, job2c, job1/sanitizer_proof) or a scratch
+   diff in a proof folder. Nothing was ever committed as a source file.
+
+2. BINARIES? Four `.pyc` files were committed by accident (Python bytecode caches).
+   Found by listing every non-text extension on the branch, removed with `git rm --cached`, deleted from the
+   working tree, and a `.gitignore` (`__pycache__/`, `*.pyc`) added so they cannot come back.
+   After the cleanup: `git ls-tree -r <branch> forge-combo29/swarm/01 | grep -v` for the text extensions
+   returns nothing. So the branch now holds text only.
+
+3. "13,289 files outside my folder in commit acb76364d" — NOT a violation, and here is the proof.
+   My branch root `acb76364d` has NO KNOWN PARENT in this checkout (`git cat-file -t acb76364d^` ->
+   "Not a valid object name"), because the clone is shallow (`git rev-list --max-parents=0 HEAD` returns my
+   branch root as the root commit). So `git show acb76364d` renders the ENTIRE base tree as newly added.
+   The tree itself is correct, and these two comparisons prove I touched nothing outside my folder:
+     - files in my branch's tree that are NOT in base, outside my folder: EMPTY
+     - files in base that my branch MODIFIED, outside my folder:            EMPTY
+   The two `.zip` files the rules forbid are present with blob hashes IDENTICAL to the base tree's
+   (`695fe198...`, `50676f2c...`), i.e. inherited from base `6b98f217`, not added by me. I did not remove
+   them because deleting files I did not add, from a shared base tree, is outside my remit and would show up
+   as a deletion on my branch.
+
+CONCLUSION: my branch adds and modifies files only under `forge-combo29/swarm/01/`, holds text only now,
+and contains no engine source except as patch text. The two apparent violations are (a) four .pyc caches,
+fixed, and (b) a shallow-clone artifact in `git show`, explained above with the tree comparison that
+settles it.
