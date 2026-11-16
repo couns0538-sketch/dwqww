@@ -97,3 +97,6 @@ Next command: `cd /agent/repos/dwqww && git worktree add ../base 6b98f2170a3210e
   rows are warm: bestmove differs in 4/120 sampled cases warm-vs-cold, BUT illegal bestmoves are
   0 cold AND 0 warm, so the job-1 conclusion holds. Per-position bestmoves/node counts are labelled
   warm-dependent, not cold.
+- S-F12 MY PREDICTION FAILED: I predicted the draw flip at depth 14 would be H~87; it is H=89,
+  identical to depth 12. So the flip saturates by ~depth 12 — S-F11's "monotone with depth" is
+  too strong and is corrected. What survives: flip is depth-dependent (96@d4 vs 89@d12/d14).
