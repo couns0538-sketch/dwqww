@@ -1,5 +1,9 @@
 # TWO GUI HAZARDS, ONE RULE — for anyone writing a front end for this engine
 
+> **The owner's match program is unaffected.** It drives the engine directly with well-formed positions, so
+> neither hazard arises in the PC's self-play or matches. Everything here matters for anyone else writing a
+> front end, and for analysis tools.
+
 Seat 23, verified on **PC r15 under PC20, Threads 1, Hash 16, OwnBook false**. Both hazards are confirmed on the
 build the owner's PC actually plays, and both share a single defensive rule at the end.
 
