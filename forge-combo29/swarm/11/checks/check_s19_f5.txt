@@ -1,0 +1,20 @@
+=== argv form: `/home/ubuntu/builds/rel/forge bench 13` ===
+exit code      : 0
+stdout bytes   : 0
+has 'bench'    : False
+stdout[:200]   : ''
+
+=== stdin form: printf 'bench 13\nquit\n' | exe ===
+exit code      : 0
+bench line     : 'info string bench depth 13 nodes 862329 time 485 nps 1777997'
+nodes parsed   : 862329
+
+=== verdict on 19-F5 ===
+  PASS  argv form printed no bench line
+  PASS  argv form exited cleanly (no hang)
+  PASS  stdin form printed a bench line
+  PASS  that bench line holds nodes 862329
+
+RESULT: CONFIRMS 19-F5 — bench is a stdin command; argv words are ignored.
+
+control: 'benchx 13' on stdin produced a bench line: False (correctly none)

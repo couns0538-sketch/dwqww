@@ -16,7 +16,7 @@ usage: runner.py --exe E --out DIR --cases TSV [--batch 500] [--depth 2]
                  [--timeout 20] [--setoption "Threads 1" ...]
 cases TSV columns: id <TAB> fen-or-COMMAND <TAB> note
 """
-import argparse, hashlib, json, os, subprocess, sys, time
+import argparse, hashlib, json, os, queue, subprocess, sys, threading, time
 
 SAN_PATTERNS = ("ERROR: AddressSanitizer", "runtime error:", "SUMMARY: ",
                 "ERROR: LeakSanitizer", "WARNING: ThreadSanitizer")
@@ -40,6 +40,8 @@ class Engine:
         self.env["UBSAN_OPTIONS"] = "print_stacktrace=1:halt_on_error=1"
         self.env.pop("LSAN_OPTIONS", None)
         self.proc = None
+        self._reader = None
+        self._queue = None
         self.idname = ""
         self.stderr_path = None
         self.san_lines = []
@@ -70,8 +72,26 @@ class Engine:
     def readline(self, deadline):
         if time.monotonic() > deadline:
             raise TimeoutError("read timeout")
-        line = self.proc.stdout.readline()
-        if line == "":
+        # stdout.readline() blocks with no timeout, so a hung engine would hang the harness.
+        # A reader thread fills a queue; we wait on the queue with the real deadline.
+        if self._reader is None:
+            self._queue = queue.Queue()
+            def pump(stream, q):
+                try:
+                    for ln in iter(stream.readline, ""):
+                        q.put(ln)
+                except Exception:
+                    pass
+                q.put(None)          # EOF sentinel
+            self._reader = threading.Thread(target=pump, args=(self.proc.stdout, self._queue),
+                                            daemon=True)
+            self._reader.start()
+        remaining = max(0.0, deadline - time.monotonic())
+        try:
+            line = self._queue.get(timeout=remaining)
+        except queue.Empty:
+            raise TimeoutError("engine produced no line before the deadline (HANG)")
+        if line is None:
             raise EOFError("engine closed stdout")
         return line.rstrip("\n")
 

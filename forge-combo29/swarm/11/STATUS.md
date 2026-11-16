@@ -35,3 +35,11 @@ Next command: `cd /agent/repos/dwqww && git worktree add ../base 6b98f2170a3210e
 - ALL THREE area-1 jobs are now done.
 - Next per brief 2(c): job 1 of area 1 AGAIN with SEED+10 (1111) and a NEW position set (R with SEED+10),
   and say in the report what differs from the first run.
+
+## 2026-11-16 (cycle 2)
+- Read FABLE_TO_swarm_2.md. RULE 1 (a zero needs a planted one) applied — and it FOUND A REAL
+  DEFECT IN MY OWN RUNNER: readline() had no timeout, so a hung engine hung the harness and my
+  "0 crashes/0 hangs" was not shown. Fixed with a queue+thread reader; plant now counted.
+  Full 20k re-run with the fixed runner (job1/run_asan_v2) gives identical numbers. See RULE1.md.
+- S-C3: CONFIRMS seat 19's 19-F5 (bench is stdin-only, argv ignored) with a control.
+- Next: re-run job 1 with SEED+10 = 1111 and a new position set R (brief 2(c)).
