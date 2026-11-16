@@ -1,0 +1,17 @@
+# 07-F1 on the PC build (PC r15 sha256 068f0927...) under PC20, Threads 1
+# Harness: forge-combo29/swarm/27/job2/paced_session.py (waits for bestmove, never closes stdin early)
+
+## defect cases
+  position fen 7k/5Q2/6K1/8/8/8/8/8 b - - 0 1 + go depth 3 searchmoves a1a2
+     info depth 3 seldepth 3 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+     bestmove 0000
+  position startpos + go depth 4 searchmoves      (empty list)
+     info depth 4 seldepth 4 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+     bestmove 0000
+
+## CONTROL through the same harness (proves the harness can see a real search)
+  position startpos + go depth 6 searchmoves e2e4
+     info depth 6 seldepth 6 score cp -1 nodes 438 nps 438000 hashfull 0 time 1 pv e2e4 c7c5 d2d3 e7e6 c2c3
+     bestmove e2e4
+
+Verdict: 07-F1 reproduces identically on the PC build; not repaired there.
