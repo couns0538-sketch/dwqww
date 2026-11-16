@@ -726,3 +726,19 @@ exactly. checks/CHECK_01F8.md.
   My own slip, corrected: the script printed "mate board gives 38" as the expected perft-1; the true value
     is 17, verified in python-chess. The printed measurement was always right; the comment was wrong.
 Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py
+
+## Mon Nov 16 11:59:55 PM UTC 2026
+
+ADDED LESSON C to the traps note, as asked: "the comment can be wrong while the measurement is right —
+the inverse of the usual case". In the over-65535 check the printed value `perft 1 = 17` was correct while
+my hand-typed annotation beside it said "the mate board gives 38" when it has 17 legal moves. Normally the
+number is wrong and the label right, so you read the label and miss the number; here a plausible annotation
+lends a trustworthy figure an authority it never earned.
+  internal/absence-of-output-traps.md retitled "five traps, THREE instrument lessons, one shared tell";
+  HARNESS_TRAPS.md carries the condensed version.
+THEN I APPLIED IT rather than only recording it: check_01f8.py now COMPUTES both expectations from
+python-chess (startpos = 20, mate board = 17) and prints an explicit verdict ("ACCEPTED (the new board)" /
+"STARTED FROM STARTPOS - the FEN was probably refused" / "UNEXPECTED"), instead of a typed annotation.
+Re-ran: all three cases read "ACCEPTED (the new board)". No hand-typed expectation remains in that output.
+FINDINGS_check.py still green (23 S-F, 5 S-C).
+Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py

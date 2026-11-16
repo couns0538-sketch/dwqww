@@ -1,6 +1,6 @@
 # Harness traps: absence of output is not absence of function
 
-Five cases, two instrument lessons, one shared tell. Full note (with the cross-reference to the stale-shard fault) lives in the
+Five cases, three instrument lessons, one shared tell. Full note (with the cross-reference to the stale-shard fault) lives in the
 project store at `internal/absence-of-output-traps.md`; this file is the pointer so a reader here finds it.
 
 | # | command | looks like | actually is |
@@ -50,3 +50,10 @@ expectation to 5 columns, it flagged all four S-C rows — correctly, given the 
 handed. The output looked like "all my rows are broken". Same disposition as case 4: suspect the instrument
 before believing its verdict, and when a check flags *everything* uniformly, suspect its assumption rather
 than each row independently.
+
+**C. The comment can be wrong while the measurement is right.** In the over-65535 counter check, the
+printed value `perft 1 = 17` was correct but the hand-typed annotation beside it said "the mate board gives
+38" when the board has 17 legal moves. That is the inverse of the usual failure — normally the number is
+wrong and the label right, so you read the label and miss the number. Here a plausible annotation lends a
+trustworthy figure an authority the annotation never earned. Either compute the expected value or keep it
+out of the output line; never hand-type an expectation next to a measurement.

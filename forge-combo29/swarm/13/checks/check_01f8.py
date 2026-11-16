@@ -32,6 +32,8 @@ import re
 import subprocess
 import sys
 
+import chess
+
 EXE = sys.argv[1]
 OUTDIR = sys.argv[2]
 os.makedirs(OUTDIR, exist_ok=True)
@@ -192,8 +194,14 @@ for label, fen in (("halfmove 65536 (startpos set first)", MATE.format(65536, 1)
                    ("control: halfmove 50 (startpos set first)", MATE.format(50, 1))):
     n, ref = perft_after(fen)
     iso.append({"label": label, "perft1": n, "refusals": ref})
-    print("  %-44s perft 1 = %-5s refusals=%s  (startpos gives 20; the mate board gives 17, so 17 == ACCEPTED)"
-          % (label, n, ref or "none"))
+    # lesson C: COMPUTE the expected values rather than typing them
+    startpos_legal = chess.Board().legal_moves.count()
+    mate_legal = chess.Board(MATE.format(50, 1)).legal_moves.count()
+    verdict = ("ACCEPTED (the new board)" if n == mate_legal
+               else "STARTED FROM STARTPOS - the FEN was probably refused" if n == startpos_legal
+               else "UNEXPECTED - investigate")
+    print("  %-44s perft 1 = %-5s refusals=%s  [startpos=%d, mate board=%d] -> %s"
+          % (label, n, ref or "none", startpos_legal, mate_legal, verdict))
 
 summary = {"exe": os.path.abspath(EXE), "fens": len(FENS),
            "accepted_over_65535": sum(1 for r in rows if r["refusal"] is None and "6553" in r["label"] or
