@@ -116,6 +116,24 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:33Z - FINAL opens with the determinism one-liner; clock regimes S-F32 all safe
+
+TOP OF FINAL now reads: moves stable run to run across every command; scores from a CLOCK search approximate
+(6 runs gave cp 55 and cp 67 at depths 16/18); scores from `go nodes` and `go softnodes` exact. A pipeline may
+label moves freely from any command, but clock-derived scores are approximate only.
+
+NEW S-F32: every degenerate clock regime returns a legal, stable move - `movestogo 10` (depth 19, 312 ms, by
+design heavier per plan_clock_budget's 1/(mtg+1) branch), increment-only, `wtime 50`, and `wtime 0 btime 0
+winc 0 binc 0` (depth 1, 25 nodes, 1 ms, legal f1e2). No hang, no crash, no illegal move; move identical in all
+3 runs of each regime.
+
+TIMING PICTURE COMPLETE: safe legal moves in every regime; approximate scores from clocks; exact scores from node
+limits. Fifty-four findings in FINDINGS.md; working tree clean; local = remote.
+
+Running: nothing. Next: keep cycling - remaining seats' unconfirmed finds against the PC20 harness, and any
+owner-relevant behaviour still untested.
+
 ## 2026-11-16T23:32Z - SEVENTH self-correction: clock searches are deterministic in the MOVE only (S-C15)
 
 Corrects my own S-F26. Six runs per command (PC20, Threads 1, Hash 16):
