@@ -169,3 +169,13 @@ STOPPING. Nothing running, everything pushed.
 ## 2026-11-16T22:19:16Z CONTINUE: 12 more hours, ends at 2026-11-17T10:19:16Z
 Seat 10 kept, branch for-fable-and-opus/swarm-10, folder forge-combo29/swarm/10.
 next command: git fetch -q --depth 1 origin handoff/fable-opus-combo29-all-20261114 && git ls-tree -r --name-only FETCH_HEAD forge-combo29/soak_all/ | grep FABLE_TO_swarm
+
+## Mon Nov 16 10:20:48 PM UTC 2026
+PC BUILD (file 5) BUILT AND VERIFIED. Patch sha256 d6bd72c531f785f4... matches; 11 files, no fuzz;
+built with -DFORGE_MATE_ALPHA_GUARD=1. ALL THREE known-answer rows MATCH to the digit:
+  none 312866/862329/3024920/4865609, S14 242796/656517, PC20 278024/587276.
+All 42 S14+PC20 option names present in the exe's uci list (92 listed), 0 bad lines. See pc/PC_BUILD.txt.
+Read FABLE_TO_swarm 1..5 in full. THREAD RULE audited against my own history: every score is Threads 1
+(1149 recorded "Threads value 1"; the non-1 values are K2's out-of-range probes and the job2 fuzz grammar;
+k14.py/clean56_fixed.py send none and both builds default to 1). No score of mine needs retracting.
+next: re-run my own finds on the PC build under PC20 (K14/K21 family first) and say build+settings per line.

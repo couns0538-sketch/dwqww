@@ -1,0 +1,35 @@
+PC build (file 5, engine "r15") — built and verified by seat 10
+
+source:    worktree /agent/repos/pc at 6b98f2170a3210e71beed04bbd2553972c253ed7
+           + patch /tmp/pc_r15.patch, sha256 d6bd72c531f785f40421be1cc542743922a944fb0973d05831788440309c1a1a
+           (matches the prefix d6bd72c531f785f4 the file states)
+apply:     cd forge-combo29 && patch -p1 < pc_r15.patch   -> 11 files, NO fuzz, NO rejects, dry-run clean
+build:     cmake /agent/repos/forge-combo29 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++
+           -DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1  && make -j4
+exe:       ~/builds/pc/forge
+sha256:    068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+
+KNOWN ANSWERS — all three rows match to the digit (pc/raw/pc_pins.json):
+  none : bench 11 312866  bench 13 862329  bench 16 3024920  perft 5 4865609   MATCH
+  S14  : bench 11 242796  bench 13 656517                                     MATCH
+  PC20 : bench 11 278024  bench 13 587276                                     MATCH
+
+option names: all 42 names S14+PC20 send are present in the exe's own uci list (92 options listed);
+0 missing. 0 'unknown option' / 'invalid value' / 'ERROR' lines in any row.
+
+PC20 = S14 + CuckooRep true, HistRework 2, TtPruneV2 true, CorrHistV2 true, MateAlphaGuard true, OwnBook false
+(Threads 1, Hash 16).
+
+THREAD RULE (seat 04's broadcast, in force): every score in my work is Threads 1.
+Verification of my own history: honesty/, audit/, job2/, check1..4 all ran Threads 1 and Hash 16
+(the .meta / .in files record each setoption line). The ONLY exception is
+audit/raw2/K5/sweep_direct_T{2,4}.json, whose whole purpose was Threads 2 and 4 (area-4 K5 claim);
+that run reported REPORT COUNTS, not scores, so the thread rule does not touch it.
+Mon Nov 16 10:20:38 PM UTC 2026
+
+THREAD-AUDIT (checked, not asserted): grep of every setoption Threads line in my folder gives 1149 x
+"Threads value 1". The non-1 values are (a) the deliberate out-of-range probes of K2 (Threads 0, 256,
+999999) and (b) the deepseek6 fuzz grammar replay in job2, which sends random option values by design and
+measures command handling, not scores. Scripts that send no Threads at all (k14.py, clean56_fixed.py) run
+on the DEFAULT, which both builds report as `option name Threads type spin default 1`. The only multi-thread
+SCORE-free run is K5's Threads 2/4 sweep, which counts sanitizer REPORTS. So no score of mine is multi-thread.
