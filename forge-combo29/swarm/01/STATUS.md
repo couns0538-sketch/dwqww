@@ -783,3 +783,23 @@ SEAT 06's S-F31 CONFIRMED (S-C25): PC r15 under PC20 and base under S14 evaluate
   WHY IT MATTERS (S-F81), and it is the most useful thing in this confirmation: it divides the swarm's findings cleanly into two classes. EVALUATION findings on base 6b98f217 TRANSFER to the owner's engine, because hce/nnue/total are identical. SEARCH findings - drawn roots, mate distance, depth reached, node counts - need re-testing per build, which is exactly what my own area found: FORGE_FIX_ROOT_DRAWN changed the search and nothing in the parser or the evaluation. A reader can now tell which of the swarm's results apply to the engine he actually plays.
   This is also a positive result for the PC build's construction: the patch changed 11 files and 1,200 lines, and the evaluation of 120 positions is bit-identical afterwards.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+### SIXTH UPDATE — the two classes of findings, and which ones reach the owner's engine
+
+**S-C25 / S-F81.** PC r15 (under PC20) and the base build (under S14) evaluate a position **identically: 120 of
+120 positions, `hce` / `nnue` / `total` equal, 0 differing.** Identical FENs only, so the side-to-move eval trap
+cannot arise.
+
+That single fact sorts every finding in the swarm:
+
+| class | reaches the engine the owner plays? | evidence |
+|---|---|---|
+| **evaluation** — `hce`/`nnue`/`total`, eval terms, evaluation symmetry | **YES** | identical 120/120 across builds |
+| **search** — drawn roots, mate distance, depth, node counts, clock behaviour, PV truncation | **NO — re-test per build** | `FORGE_FIX_ROOT_DRAWN` changed the search and nothing else (S-F37, S-F41) |
+
+So a **base-tree evaluation result is a statement about the owner's engine**; a **base-tree search result is
+not**. That is the practical rule a reader needs before carrying any of tonight's findings across, and it came
+out of a check that was only meant to confirm someone else's number.
+
+It is also a good sign for the patch itself: **11 files and ~1,200 lines changed, and the evaluation of 120
+positions is bit-identical afterwards.**
