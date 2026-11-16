@@ -1,0 +1,81 @@
+# 6 s + 0.06 clock on PC r15 / PC20 / Threads 1 / Hash 16, cold, fresh process per search
+
+## class definitions, as code
+
+```
+heavy = knights + bishops + rooks + queens, both colours
+nm    = legal moves in the position
+sparse = heavy <= 4 ;  full = heavy >= 10 ;  otherwise mid
+within sparse/full:  few = nm <= 20 ;  many = nm > 20
+```
+
+## how many positions of this FEN file land in each class
+
+| class | positions in file | tested |
+|---|---|---|
+| sparse_few | **124** | 10 |
+| sparse_many | **59** | 10 |
+| mid | **92** | 10 |
+| full_many | **76** | 10 |
+| full_few | **2** | 2 |
+
+## per position
+
+| class | heavy | nm | last-iteration ms | wall ms | depth |
+|---|---|---|---|---|---|
+| sparse_few | 2 | 10 | 434 | 435.1 | 18 |
+| sparse_few | 4 | 12 | 237 | 237.3 | 19 |
+| sparse_few | 1 | 14 | 171 | 172.2 | 19 |
+| sparse_few | 0 | 6 | 857 | 857.7 | 18 |
+| sparse_few | 3 | 18 | 306 | 306.8 | 16 |
+| sparse_few | 2 | 13 | 856 | 856.3 | 17 |
+| sparse_few | 4 | 18 | 224 | 225.2 | 16 |
+| sparse_few | 2 | 17 | 314 | 315.0 | 26 |
+| sparse_few | 2 | 13 | 217 | 217.9 | 22 |
+| sparse_few | 2 | 18 | 221 | 221.8 | 27 |
+| sparse_many | 4 | 25 | 213 | 214.1 | 17 |
+| sparse_many | 4 | 23 | 317 | 318.3 | 18 |
+| sparse_many | 4 | 22 | 299 | 299.8 | 16 |
+| sparse_many | 4 | 31 | 196 | 196.5 | 17 |
+| sparse_many | 2 | 30 | 202 | 202.9 | 17 |
+| sparse_many | 2 | 23 | 296 | 297.1 | 21 |
+| sparse_many | 1 | 22 | 718 | 718.6 | 19 |
+| sparse_many | 2 | 28 | 146 | 146.5 | 16 |
+| sparse_many | 4 | 25 | 167 | 167.8 | 18 |
+| sparse_many | 2 | 22 | 332 | 332.2 | 17 |
+| mid | 6 | 37 | 166 | 166.7 | 18 |
+| mid | 8 | 53 | 194 | 194.3 | 17 |
+| mid | 7 | 36 | 371 | 371.2 | 18 |
+| mid | 8 | 34 | 209 | 210.2 | 16 |
+| mid | 5 | 30 | 328 | 329.0 | 17 |
+| mid | 5 | 2 | 162 | 162.5 | 17 |
+| mid | 8 | 35 | 498 | 498.8 | 22 |
+| mid | 6 | 27 | 418 | 418.3 | 18 |
+| mid | 6 | 36 | 749 | 1585.8 | 20 |
+| mid | 9 | 42 | 321 | 322.1 | 19 |
+| full_many | 12 | 51 | 301 | 301.4 | 18 |
+| full_many | 14 | 29 | 148 | 149.0 | 17 |
+| full_many | 11 | 46 | 174 | 174.7 | 18 |
+| full_many | 14 | 44 | 259 | 260.0 | 14 |
+| full_many | 14 | 46 | 277 | 277.6 | 17 |
+| full_many | 12 | 36 | 173 | 174.1 | 16 |
+| full_many | 12 | 45 | 369 | 370.0 | 18 |
+| full_many | 14 | 38 | 159 | 159.6 | 15 |
+| full_many | 12 | 35 | 201 | 201.4 | 17 |
+| full_many | 12 | 43 | 669 | 670.2 | 18 |
+| full_few | 10 | 2 | 210 | 210.8 | 17 |
+| full_few | 11 | 4 | 277 | 278.2 | 18 |
+
+## correlation
+
+Spearman rho between the LAST-ITERATION cost and WALL time over 42 positions: **0.999**
+
+## class medians
+
+| class | n | median wall ms | max ms |
+|---|---|---|---|
+| sparse_few | 10 | 272.1 | 857.7 |
+| sparse_many | 10 | 255.6 | 718.6 |
+| mid | 10 | 325.6 | 1585.8 |
+| full_many | 10 | 230.7 | 670.2 |
+| full_few | 2 | 244.5 | 278.2 |
