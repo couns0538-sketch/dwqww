@@ -438,3 +438,7 @@ Settings: **none** (no setoption), **S14** (the 14 settings), **PC20** (S14 + th
 - Hazard note: rule line now "Fatal on invalid FEN or illegal move: resync only with ucinewgame plus
   a well-formed position, never isready." S-F62 proved isready/eval/stop do NOT clear it. S-F63 proved
   no hash residue (identical 60,955-node search), so blast radius = one command, one answer, no residue.
+- PROBES_THAT_LIED.md WRITTEN and linked from the hazard note: the promotion probe whose FEN put the
+  pawn on the king's square (looked like missing promotions; python-chess agreeing 5=5 was the tell),
+  the go-infinite probe whose own shell sent the stop (looked like a fix), plus the tuple-unpacking
+  false-defect and the mislabelled-FEN cases. Each with the tell, the control, and the corrected result.

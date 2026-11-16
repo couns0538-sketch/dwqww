@@ -182,3 +182,9 @@ In order of strength:
 - `checks/recovery_test.txt`, `checks/recovery_sweep.txt` — the one-move blast radius.
 
 All runs: PC r15, PC20, Threads 1, Hash 16, fresh process per run, every value parsed.
+
+**Writing a probe like these?** Two of my own probes produced plausible-looking engine defects
+that were entirely the harness — a promotion test whose FEN put the pawn on the king's square, and
+a `go infinite` test whose own shell sent the `stop` it was testing for. Both, plus two shorter
+cases, are written up with the tells and the controls in **`PROBES_THAT_LIED.md`**, so anyone
+building similar probes can skip straight past them.
