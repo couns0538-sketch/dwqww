@@ -1,0 +1,18 @@
+# PREDICTION — job15 (area 1 job 2, THIRD run, SEED 2121), seat 21
+written before the first measuring command; not edited afterwards.
+
+Third pass over the extreme-FEN-field cases with the seed-2121 values this time (the values
+themselves are fixed by the job's definition, so what differs from job3/job8 is the run and the
+driver only; that is stated plainly rather than dressed up as a new input set).
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | fullmove 0 refused; fullmove -1 refused; fullmove 1, 10, 10^9, 65535, 65536 accepted | killed by any deviation |
+| P2 | every halfmove >= 100 gives `nodes 0` and `score cp 0` at depth 4 | killed by any one with nodes > 0 |
+| P3 | a mate in 1 at halfmove 100 is missed; the same board at 99 finds it | killed if found at 100 |
+| P4 | every ep square on a rank other than 3 or 6 is refused | killed if accepted |
+| P5 | two kings, no kings, a pawn on rank 1 all refused | killed if accepted |
+| P6 | 0 crashes, 0 sanitizer lines, 0 perft-2 disagreements on accepted FENs | killed by any one |
+
+Direction: identical to job3 and job8, because the engine is unchanged. If anything differs,
+that difference is the finding.
