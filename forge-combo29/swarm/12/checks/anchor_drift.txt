@@ -1,0 +1,16 @@
+=== ANCHOR TEMPORAL DRIFT on this box (idle, load average 0.51)
+anchor = go nodes 1000000 -> 920,173 reported nodes, Threads 1, Hash 16, MultiPV 1
+5 blocks of 4 runs, ~20 s apart:
+
+  block 1: median  653 ms/M   runs [631, 675, 693, 626]
+  block 2: median  625 ms/M   runs [608, 638, 612, 642]
+  block 3: median  636 ms/M   runs [632, 642, 637, 636]
+  block 4: median  608 ms/M   runs [601, 630, 605, 611]
+  block 5: median  623 ms/M   runs [626, 622, 623, 618]
+
+overall median 628   min 601   max 693   spread 1.15x
+
+An earlier session on the same box measured 594 ms/M (range 591-633). So one machine wanders over
+roughly 590-700 ms/M depending on the minute, which is why the tool's band is 540-820 and why the
+tool says the anchor is only meaningful for gross differences (2x or more), not small ones.
+A narrow band around a single session's number would have flagged this very box as broken.

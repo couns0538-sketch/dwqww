@@ -1,0 +1,27 @@
+engine under test: /home/ubuntu/build/pc_r15/forge
+Threads 1 (no Threads option sent)
+
+=== CHECK 1: fabricated bestmove (go depth 12 + immediate quit)
+  bestmove a2a3 with 0 info depth line(s), nodes None
+  first legal move in generator order: a2a3  (move equals it: True)
+  verdict: FABRICATED
+  NOTE: on this engine FABRICATED is EXPECTED and is a real engine defect, not yours —
+        the point is that your harness must never record such an answer as a result.
+
+=== CHECK 2: searchmoves branches
+  legal   `searchmoves e2e4` -> bestmove e2e4, 6 info lines, nodes 438  [ok]
+  no-match `searchmoves zzzz` -> bestmove 0000, nodes [0, 0, 0, 0, 0, 0]  [ok]
+  note line: info string searchmoves restriction has no legal root moves
+  verdict: ok (both branches correct)
+
+=== planted controls (the checks must CATCH these)
+  fabricating fake: verdict FABRICATED  -> CAUGHT
+  bad-searchmoves fake: verdict WRONG BRANCH BEHAVIOUR  -> CAUGHT
+
+controls working: True
+{
+ "engine": "FABRICATED",
+ "searchmoves": "ok (both branches correct)",
+ "control_fabricating_caught": true,
+ "control_searchmoves_caught": true
+}

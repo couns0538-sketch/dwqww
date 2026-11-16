@@ -1,21 +1,34 @@
-=== real PC r15, 5 runs (anchor with band)
+=== real PC r15, 5 runs
 engine : /home/ubuntu/build/pc_r15/forge
 runs   : 5 fresh processes per setting, Threads 1, position startpos
 search : go depth 6
 
 setting                  cloud   median     min     max   ratio  runs  verdict
 ----------------------------------------------------------------------------------
-MultiPV 2, Hash  16       17ms     16ms    14ms    16ms    0.9x     5  PASS (within 4x)
-MultiPV 2, Hash  64       52ms     47ms    38ms    48ms    0.9x     5  PASS (within 4x)
-MultiPV 4, Hash  64       82ms     72ms    69ms    80ms    0.9x     5  PASS (within 4x)
-MultiPV 2, Hash 256      250ms    216ms   214ms   284ms    0.9x     5  PASS (within 4x)
+MultiPV 2, Hash  16       17ms     17ms    15ms    18ms    1.0x     5  PASS (within 4x)
+MultiPV 2, Hash  64       52ms     53ms    53ms    54ms    1.0x     5  PASS (within 4x)
+MultiPV 4, Hash  64       82ms     85ms    82ms    99ms    1.0x     5  PASS (within 4x)
+MultiPV 2, Hash 256      250ms    294ms   250ms   311ms    1.2x     5  PASS (within 4x)
+
+=== harness checks (is a MEASUREMENT from this engine trustworthy?)
+  fabricated-bestmove test: `go depth 12` + immediate `quit`
+    -> bestmove a2a3 with 0 info depth line(s)
+    FABRICATED: the engine published a2a3 without searching (first legal move: True).
+    YOUR harness must read to `bestmove` before quitting and must never
+    record a reply with no info lines. This is an engine defect, not a
+    setting: it is present on every build measured.
+  searchmoves branches:
+    legal   `searchmoves e2e4` -> e2e4, 6 info lines, nodes 438   [ok]
+    no-match `searchmoves zzzz` -> 0000, nodes [0, 0, 0, 0, 0, 0]   [ok]
 
 === absolute machine-speed anchor (fixed node count, not a ratio of a depth search)
-  `go nodes 1,000,000` -> 920,173 reported nodes in 538 ms  =  585 ms per million nodes
-  reference box (4 cores, measured): 600 ms per million
-  same-class band                  : 560-700 ms per million   -> your machine is 0.98x the reference   [in band]
+  `go nodes 1,000,000` -> 920,173 reported nodes in 639 ms  =  695 ms per million nodes
+  reference box (4 cores, measured): 630 ms per million
+  same-class band                  : 540-820 ms per million   -> your machine is 1.10x the reference   [in band]
   core count does NOT move this anchor (a Threads 1 search uses one core: measured
   601 ms/M pinned to 1 core vs 594 unpinned). CPU generation and clock do.
+  the SAME box drifts ~15% between minutes (block medians 653/625/636/608/623), so
+  this anchor only means something for GROSS differences (2x or more), not small ones.
 
 How to read this
   cloud = median on the 4-core machine these tables came from; ratio = yours / cloud.
