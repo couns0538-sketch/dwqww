@@ -54,3 +54,12 @@ committed. Re-audit of my other parser (engine_perft.py): it does not grep a pri
 illegal move; a missing nodes line cannot become 0 there.
 job1: python-chess reference 4045/5000 (still running, ~10 more min), engine side 5000/5000 done in 26.3 s.
 Next: finish reference, run compare_perft.py, write REPORT_job1.md, add the perft verdict finding, push by 22:30.
+
+## 2026-11-16T21:42Z  JOB 1 COMPLETE — perft 1..4 over 5000 positions, 0 mismatches
+Reference finished 21:40Z (5000/5000). compare_perft.py: 5000 of 5000 compared, 0 differences at depth 1/2/3/4.
+Node totals engine == reference: 154284 / 4744101 / 154034311 / 4974073896 (sum 5,151,986,592 per side).
+REPORT_job1.md written (prediction scored: P1/P2/P4/P5 held, P3 KILLED — actual 4.97e9 above my 3.0e9 bound,
+reported as measured, prediction not edited). Findings on GitHub: 23-F1, 23-F2, 23-F3, 23-F4.
+Next: job 2 of area 3 (500 special positions filtered by python-chess: castling over an attacked transit square,
+en passant that would expose the king, capture-promotion with check, double check, pinned piece capturing its
+pinner) — perft 1..4 on each. Prediction goes in first, alone.
