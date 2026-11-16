@@ -56,3 +56,10 @@ Next command: `cd /agent/repos/dwqww && git worktree add ../base 6b98f2170a3210e
 - S-F8 NEW: `setoption name X false` without the `value` word is silently ignored (uci.cpp:265
   name loop swallows the token). This broke my own runner first; fixed, v3 re-run identical numbers.
 - Next: area 10 job 2 (recount deepseek6's longK report from its raw files).
+
+## 2026-11-16 (cycle 3, area 10 job 2)
+- DONE: recount of deepseek6 long58. The brief's named `REPORT_deepseek6_longK.md` /
+  `tests_deepseek6_longK/` DO NOT EXIST on that branch (it has long1..long58); seat 10 had
+  long56, so I took long58. All numbers reproduce EXCEPT "best moves changed 6-33", which is
+  really 2-33 (FutilityDepth_p 2, FutilityDepth_m 4). S-F9.
+- Next: area 10 job 1 (check a NEW unconfirmed peer finding; 19-F2..F4 and 29-F2 remain).
