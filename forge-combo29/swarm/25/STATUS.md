@@ -140,6 +140,22 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:45Z - compliance_check.sh: the binary gate is now mechanical and plant-tested
+
+Added forge-combo29/swarm/25/compliance_check.sh, run before every push, exit 1 on violation:
+  (1) tracked binaries in my folder (extension list)   (2) files touched outside my folder
+  (3) non-text files by `file` content                 (4) engine source committed
+  (5) uncommitted changes -> WARN so nothing is forgotten at a push boundary
+PLANT TESTED: staged a fake .pyc -> caught two independent ways (extension + content, reported as `data`),
+exit 1; after removal, exit 0. So a green run means something.
+CURRENT: COMPLIANCE PASS on all four hard checks.
+
+Cause noted by the coordinator and fixed at the class level: a .pyc can only come from a script run next to
+itself, so the gate catches the failure mode rather than the instance.
+
+State: 71 findings, working tree clean, local = remote. Next: keep cycling.
+
 ## 2026-11-16T23:44Z - COMPLIANCE AUDIT of my own folder, and the four-step thread order in the FINAL
 
 COMPLIANCE (checked against the brief's rules):
