@@ -1,0 +1,40 @@
+--- a/src/search.cpp	2026-11-16 21:39:00.936602054 +0000
++++ b/src/search.cpp	2026-11-16 21:39:03.144602054 +0000
+@@ -2200,6 +2200,9 @@
+     }
+     SearchInfo result;
+     const MoveList legal = board.legal_moves();
++    // True when `searchmoves` named no legal root move. The root is empty because
++    // of the caller's restriction, not because of the position.
++    bool restricted_root_empty = false;
+     MoveList root_candidates;
+     for (const Move move : legal) {
+         if (!root_restricted_ ||
+@@ -2208,6 +2211,7 @@
+         }
+     }
+     result.restricted_root_empty = root_restricted_ && !legal.empty() && root_candidates.empty();
++    restricted_root_empty = result.restricted_root_empty;
+     if (result.restricted_root_empty && emit_info) {
+         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+         std::cout << "info string searchmoves restriction has no legal root moves" << std::endl;
+@@ -2256,6 +2260,19 @@
+         else if (DrawJitter > 0 && (board.is_repetition() || board.halfmove_clock() >= 100)) {
+             score = draw_leaf_score(board);
+         }
++        if (restricted_root_empty) {
++            // The caller restricted the root to moves that are not legal in this
++            // position. Print no depth line: there is no search and no score, and a
++            // `score cp 0 nodes 0` line reads as a drawn position to any GUI or test
++            // harness that parses it. best_move stays none, so the UCI layer answers
++            // `bestmove 0000` exactly as before. Keep the nodes that were counted and
++            // the elapsed time, so the caller's accounting is unchanged.
++            result.nodes = total_nodes();
++            result.elapsed_ms = static_cast<std::uint64_t>(
++                std::chrono::duration_cast<std::chrono::milliseconds>(
++                    std::chrono::steady_clock::now() - start_).count());
++            return result;
++        }
+         for (int depth = 1; depth <= max_depth; ++depth) {
+             result.depth = depth;
+             result.score = score;

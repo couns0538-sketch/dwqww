@@ -41,3 +41,27 @@ three searchmoves cases, text patch, honesty pins unchanged).
 
 Next command:
 `cd /agent/repos/base/forge-combo29 && cmake -S . -B build-dbg -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER=g++-13 -DCMAKE_CXX_FLAGS="-D_GLIBCXX_ASSERTIONS -fsanitize=address,undefined -fno-omit-frame-pointer" -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" && cmake --build build-dbg -j4`
+## 2026-11-16T21:41:14Z
+job2 done: 2640 refuted (detector + reachability controls), searchmoves cases measured, patch applies --fuzz=0, honesty pins identical, bestmoves identical.
+### git status --short
+ M STATUS.md
+ D job2/detector_control
+?? REPORT_job2.md
+?? job2/compare_searchmoves.py
+?? job2/honesty.sh
+?? job2/raw_patched/
+?? job2/raw_patched_honesty/
+?? job2/searchmoves_empty_root.patch.txt
+### ls job2
+cases_searchmoves.txt
+compare_searchmoves.py
+detector_control.cpp
+honesty.sh
+raw_dbg
+raw_patched
+raw_patched_honesty
+raw_reach
+searchmoves_empty_root.patch.txt
+stamps.txt
+uci_drive.py
+Next: job 3 of area 7 (position and move making). Next command: cd /agent/repos/base/forge-combo29 && wc -l src/board.cpp
