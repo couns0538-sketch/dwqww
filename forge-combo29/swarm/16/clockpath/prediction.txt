@@ -1,0 +1,17 @@
+# PREDICTION — the PC's MATCH path: `go wtime 6000 btime 6000 winc 60 binc 60` under PC20, Threads 1
+
+This is the path the owner's strength matches use, so it counts most (file 6). The question is not whether the
+clock search finds a good move, but whether it is REPRODUCIBLE and whether it stays inside the clock.
+
+P1. The BESTMOVE is identical across 20 runs of the same position. Predicted identical. Kills it: two distinct
+    bestmoves (at Threads 1 with a clock — that would be a real reproducibility problem for matches).
+P2. The SCORE is identical across the 20 runs. Predicted NOT identical: a clock-limited search stops at
+    whichever depth it reaches, and small timing differences change that depth. Kills it (as a statement):
+    if identical, I report that too, but I predict a spread.
+P3. The TIME USED is within the engine's own plan: predicted median between 40 % and 65 % of the 6 s budget plus
+    the increment share, and NO run above 6.06 s (that would be a lost-on-time risk). Kills it: any run over
+    6.06 s.
+P4. The node count per run varies by at least 2x between the fastest and slowest run (the depth reached differs).
+    Kills it: less than 20 % variation (then the search is effectively depth-bounded rather than time-bounded).
+P5. The bestmove is the same move the fixed-node run of the same position picks at a similar node count, i.e.
+    the clock does not produce a move that no depth reached. Kills it: a bestmove absent from every PV of the run.
