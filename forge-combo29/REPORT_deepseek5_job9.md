@@ -39,3 +39,53 @@
 8. A better way: the four-build pattern (clean / plain-plant / atomic-plant / true-shared-plant) generalizes to ANY "is X shared" question in one run each — I would keep it as the standard refutation instrument, replacing single-counter headlines entirely (my job 8 was the counterexample).
 9. times: see stamps.txt
 10. Model: deepseek5 — DeepSeek (the model serving this cloud-agent run).
+commit 5118682652de72f3c0c7e3a4748d9d86fd77aa72
+Author: Cursor Agent <cursoragent@cursor.com>
+Date:   Mon Nov 16 06:51:53 2026 +0000
+
+    deepseek5 job 9 report
+    
+    Co-authored-by: couns0538-sketch <couns0538-sketch@users.noreply.github.com>
+
+ forge-combo29/NOTES_deepseek5.md                   |   6 +
+ forge-combo29/REPORT_deepseek5_job9.md             |  41 +++
+ forge-combo29/tests_deepseek5_job9/A_b11.txt       |  86 +++++
+ forge-combo29/tests_deepseek5_job9/A_b13.txt       |  86 +++++
+ forge-combo29/tests_deepseek5_job9/A_b16.txt       |  86 +++++
+ forge-combo29/tests_deepseek5_job9/A_perft.txt     | 106 ++++++
+ forge-combo29/tests_deepseek5_job9/C_b11.txt       |  86 +++++
+ forge-combo29/tests_deepseek5_job9/C_b13.txt       |  86 +++++
+ forge-combo29/tests_deepseek5_job9/C_b16.txt       |  86 +++++
+ forge-combo29/tests_deepseek5_job9/C_perft.txt     | 106 ++++++
+ .../tests_deepseek5_job9/J9_ASAN_r1_T5.json        |  19 +
+ forge-combo29/tests_deepseek5_job9/J9_A_r1_T1.json |  15 +
+ forge-combo29/tests_deepseek5_job9/J9_C_r1_T1.json |  15 +
+ forge-combo29/tests_deepseek5_job9/J9_P.counts.txt |   3 +
+ forge-combo29/tests_deepseek5_job9/J9_P_r1_T1.json |  15 +
+ .../J9_P_r1_T1.tsan.3127358.first300last100.txt    | 401 +++++++++++++++++++++
+ forge-combo29/tests_deepseek5_job9/J9_S.counts.txt |   2 +
+ forge-combo29/tests_deepseek5_job9/J9_S_r1_T1.json |  15 +
+ .../J9_S_r1_T1.tsan.3128981.first300last100.txt    | 401 +++++++++++++++++++++
+ forge-combo29/tests_deepseek5_job9/J9_T6_T6.json   |  18 +
+ forge-combo29/tests_deepseek5_job9/P_b11.txt       |  86 +++++
+ forge-combo29/tests_deepseek5_job9/P_b13.txt       |  86 +++++
+ forge-combo29/tests_deepseek5_job9/P_b16.txt       |  86 +++++
+ forge-combo29/tests_deepseek5_job9/P_perft.txt     | 106 ++++++
+ forge-combo29/tests_deepseek5_job9/S_b11.txt       |  86 +++++
+ forge-combo29/tests_deepseek5_job9/S_b13.txt       |  86 +++++
+ forge-combo29/tests_deepseek5_job9/S_b16.txt       |  86 +++++
+ forge-combo29/tests_deepseek5_job9/S_perft.txt     | 106 ++++++
+ .../tests_deepseek5_job9/ds5_job9_builds.py        |  75 ++++
+ forge-combo29/tests_deepseek5_job9/ds5_job9_t6.py  |  69 ++++
+ forge-combo29/tests_deepseek5_job9/id_base_fi.txt  |   1 +
+ .../tests_deepseek5_job9/id_base_hindsight.txt     |   1 +
+ forge-combo29/tests_deepseek5_job9/id_base_ns.txt  |   1 +
+ forge-combo29/tests_deepseek5_job9/id_base_ref.txt |   1 +
+ forge-combo29/tests_deepseek5_job9/id_leak_on.txt  |   1 +
+ forge-combo29/tests_deepseek5_job9/id_leak_on2.txt |   1 +
+ forge-combo29/tests_deepseek5_job9/id_tms_off.txt  |   1 +
+ forge-combo29/tests_deepseek5_job9/id_tms_on.txt   |   1 +
+ forge-combo29/tests_deepseek5_job9/stamps.txt      |  16 +
+ 39 files changed, 2575 insertions(+)
+
+--- git show --stat HEAD (the evidence list, pasted per the evidence rule) ---
