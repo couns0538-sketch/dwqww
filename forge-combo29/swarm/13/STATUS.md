@@ -111,3 +111,14 @@ process = 5 separate), mechanism verified by opening uci.cpp:611/617 and search.
 measured: go depth 12 in one process = 56720 / 4951 / 4516, fresh = 56720.
 Area 3 jobs 1, 2, 3 complete. Checks: S-C1 (21-F1), S-C2 (27-F2), S-C3 (19-F23).
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## 2026-11-16T22:13:42Z
+
+CYCLE step (c): job 1 repeat started with next seed. job1b/ = 5,000 positions from SEED 1311,
+harnessed with the HARDENED compare.py/ref_par.py.
+  Engine side DONE: 20,000/20,000 records OK, 12.3 s.
+  Reference side RUNNING (4 shards, ~15 min expected, same as the first run).
+  Prediction committed before measuring (prediction.txt), including the "what differs" note the brief asks for.
+Blocker for the 22:30 push: the reference pass has not finished yet; if it does not finish I will push
+the engine-side counts and label the comparison NOT DONE rather than guess.
+Next command: cd forge-combo29/swarm/13/job1b && python3 compare.py raw_engine.txt raw_ref.txt R_1311.fens comparison.md 5000
