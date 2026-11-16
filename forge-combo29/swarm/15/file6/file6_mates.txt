@@ -1,0 +1,18 @@
+=== also test the pawn-move / halfmove-100 mate cases under file 6's rule ===
+For a mate to be a DEFECT at counter H, the mate must end by half-move 100:
+  case: mate-in-1 at halfmove 100 -> 2N-1 = 1 ply, 100-100 = 0 left => 1 <= 0 is FALSE
+  i.e. at counter 100 the half-move rule has ALREADY fired before the mate lands.
+
+=== but at counter 99: 1 <= 1 TRUE -> mate-in-1 IS a real defect there ===
+exe: /home/ubuntu/builds/pc/forge  Threads 1  PC20
+board template: 6k1/5ppp/8/8/8/8/8/R5K1 w - - {} 1
+
+STEP 1: counter 0, deep search -> mate N
+  counter 0 at go depth 8: mate 1 (reached depth 8)
+  => mate +1 means 1 plies; half-moves left at counter 99: 1
+  INEQUALITY 2N-1 <= 100-counter : 1 <= 1 : TRUE
+
+STEP 2: the real counter at the same depth as the finding
+  counter 99 at go depth 10: mate 1  a1a8
+
+VERDICT: NOT A DEFECT - the mate is not reachable before half-move 100, or the real counter is not cp 0
