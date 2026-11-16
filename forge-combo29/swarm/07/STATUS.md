@@ -142,3 +142,20 @@ legal_move_probe.cpp
 legal_move_run_control.txt
 legal_move_run.txt
 stamps.txt
+
+## 2026-11-16T21:52:04Z
+job9 done: S14 sum for O at depth 12 reproduces the brief exactly (9,500,069; 41,311/24,872/28,574). 07-C3 in FINDINGS. Also audited every harness of mine against seat 10's warm-search trap: none used Clear Hash as a baseline, none compared node counts across warm searches.
+### git status --short
+ M FINDINGS.md
+ M STATUS.md
+?? REPORT_job9.md
+?? job9/
+### ls job9
+job9:
+raw
+run_d12.log
+s14_sums.py
+stamps.txt
+
+job9/raw:
+sum_d12.json
