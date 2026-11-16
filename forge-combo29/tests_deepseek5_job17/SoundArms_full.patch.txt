@@ -1,0 +1,48 @@
+# SoundArms_full.patch.txt - applies from the REPOSITORY ROOT (paths a/forge-combo29/..., apply with patch -p1) on base 6b98f2170a3210e71beed04bbd2553972c253ed7 + kimi5's tests_kimi5_job4/LmrDS_tunables.patch.txt.
+#
+# The arms' DEFINITION and the SEARCH READ are already in the BASE commit - no hunk needed for them:
+#   include/forge/search.hpp lines 315-326: enum class SoundPruneArm { FollowOption, ForceOff, ForceOn };
+#     inline SoundPruneArm SoundArmPv/SoundArmInCheck/SoundArmMateAlpha = FollowOption;
+#     inline bool sound_arm_enabled(SoundPruneArm arm) { ForceOn -> true; ForceOff -> false; FollowOption -> SoundMatePruning; }
+#   src/search.cpp lines 1836-1844: const bool sound_mate_case =
+#     (tune::sound_arm_enabled(tune::SoundArmPv) && pv_node) ||
+#     (tune::sound_arm_enabled(tune::SoundArmInCheck) && in_check) ||
+#     (tune::sound_arm_enabled(tune::SoundArmMateAlpha) && is_mate_score(alpha));
+#   (an arm at +1 activates its case ALONE, even with SoundMatePruning false; at -1 it is removed
+#    from the switch; at 0 it follows the option - V2..V8 below pin this)
+#
+# This file adds the only missing piece: the UCI plumbing (option declarations + the by-name mapping).
+# Proof: applied on a fresh copy of base+kimi5; exe sha256 fb9152ca... before, 6e75f502... after (they differ);
+# the three names appear in the uci option list; V2..V8 on set O depth 12 = 12,573,318 / 12,558,811 /
+# 12,399,593 / 12,326,599 / 12,573,482 / 12,558,811 / 12,573,318 (rows + .meta committed in this folder).
+#
+@@ -236,7 +236,10 @@
+                          "option name LmrDeeperBase type spin default 40 min 0 max 100000\n"
+                          "option name LmrDeeperDepthMul type spin default 2 min 0 max 16\n"
+                          "option name LmrShallowerBase type spin default 0 min -100000 max 400\n"
+-                         "option name LmrShallowerDepthMul type spin default 1 min 0 max 16\n";
++                         "option name LmrShallowerDepthMul type spin default 1 min 0 max 16\n"
++                         "option name SoundPvArm type spin default 0 min -1 max 1\n"
++                         "option name SoundInCheckArm type spin default 0 min -1 max 1\n"
++                         "option name SoundMateAlphaArm type spin default 0 min -1 max 1\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -300,6 +303,17 @@
+             }
+             if (handled_tunable) {
+                 // Unlisted development options; nothing else to do.
++            } else if (name == "SoundPvArm" || name == "SoundInCheckArm" || name == "SoundMateAlphaArm") {
++                apply_spin(-1, 1, [&](int clamped) {
++                    forge::tune::SoundPruneArm& target = name == "SoundPvArm" ? forge::tune::SoundArmPv
++                        : name == "SoundInCheckArm" ? forge::tune::SoundArmInCheck
++                        : forge::tune::SoundArmMateAlpha;
++                    // The enum's order is FollowOption=0, ForceOff=1, ForceOn=2 — the option's
++                    // -1/0/+1 must be mapped by NAME, never by a static_cast of the number.
++                    target = clamped > 0 ? forge::tune::SoundPruneArm::ForceOn
++                           : clamped < 0 ? forge::tune::SoundPruneArm::ForceOff
++                           : forge::tune::SoundPruneArm::FollowOption;
++                });
+             } else if (name == "LmrDeeperBase" || name == "LmrDeeperDepthMul" ||
+                        name == "LmrShallowerBase" || name == "LmrShallowerDepthMul") {
+                 int* target = name == "LmrDeeperBase" ? &forge::tune::LmrDeeperBase
