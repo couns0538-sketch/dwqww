@@ -97,3 +97,15 @@ Confirmed since the last block, every row `Threads 1` explicit, both builds name
 - **S-C20** seat 21 21-F11 — `mate 0` on a checkmated root reproduces on BOTH builds, so it is **LIVE on the PC**.
 Remaining short list: seat 21 21-F9, seat 27 S-F8 chain, seat 01 S-F19/S-F22/S-F23, seat 28 S-F21/S-F19.
 No new FABLE_TO_swarm file above 5 (checked; newest swarm file is still 5).
+
+## 2026-11-16T22:32:17Z queue: 6 of 8 short-list entries confirmed at Threads 1
+- **S-C21** seat 21 21-F9 — the halfmove counter test is `>= 100` with NO upper bound (fails identically at 100,
+  101, 150, 9999 and 65536 on the base tree); the PC build answers the mate correctly at all of them.
+- **S-C22** seat 01 S-F22 + S-F23 — both confirmed, and this pair gives the cleanest statement of the whole defect:
+  on `8/8/8/8/2K4Q/8/8/1k6 w - - 100 1` the fifty-move claim IS available and no mating line resets the counter,
+  so `cp 0` is correct chess — the base tree reaches it with **0 nodes** (shortcut) and the PC build with **135
+  nodes** (searched). On seat 01's discriminating board `8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1` a forced mate exists
+  and the base tree still says `cp 0 / 0 nodes`, while the PC build finds **`mate 2`**. Node count, not score,
+  separates "shortcut" from "correct draw".
+Remaining: seat 27's S-F8 chain, seat 28's S-F21/S-F19 (competing patches).
+Counts: 64 FINDINGS lines (22 checks), tree clean, every push includes this file.
