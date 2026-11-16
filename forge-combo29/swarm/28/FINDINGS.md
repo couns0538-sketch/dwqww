@@ -24,3 +24,19 @@ One line per finding, only ever ADDED.
 | S-F2-REVISED | 8 | REVISED after the iteration-granularity re-check: my "41 % run past the budget" measured the engine against `wtime/30+winc` = 43.3 ms, a threshold I invented, not the engine's plan. Against the ENGINE's own plan (soft 52 ms, hard 260 ms at wtime 1000 winc 10) the same 200 raw searches exceed soft 54 times and hard ZERO times, with median 38.2 ms = 74 % of soft. Same shape at wtime 10000 winc 100 (soft 529/hard 2645): 33 over soft, 0 over hard, median 61 % of soft. The engine does not over-spend on average; it completes an iteration that crosses soft, which is ordinary ID. | forge-combo29/swarm/28/CORRECTION_2_clock.md, correction/sf2_recount_out.txt (again: `python3 correction/sf2_recount.py .`) | REVISED |
 | S-F6-REVISED | 8 | CONFIRMED and strengthened by the re-check, and now stated as a claim about the PLAN not the achieved time: at the same 2600 ms total clock the increment side attains 556 ms of its 822 ms soft plan while the clock side attains 101 ms of its 117 ms soft plan (0.18x achieved, 0.14x planned), with both sides attaining 0.68-1.05 of their own plan. So the direction is a PLANNING difference (`clock_plan.hpp:41` hard = min(available*60/100, soft*5) with `available = time - overhead`, no increment term) and cannot be an iteration artefact. Also: the `if (soft > hard) soft = hard` clamp on line 47 is part of the mechanism (wtime 200 winc 1000 plans soft=hard=114). | forge-combo29/swarm/28/CORRECTION_2_clock.md, correction/sf6_recheck_out.txt | CONFIRMED |
 | S-F9-REVISED | 8 | S-F9's numbers stand (movestogo 1 at wtime 1000: achieved median 323 ms against plan soft 495), but the mechanism I implied was wrong: achieved and the engine's own reported time are 1 ms apart here (323 vs 322), not 10-70 ms apart as in the movetime cells, so the search genuinely stops at 323 ms and my "65 % of its own soft plan" was a target undershoot, not an iteration artefact. Beyond it: 2 of 40 movestogo-1 searches exceeded the engine's HARD plan of 792 ms — the only place in my clock work where the engine breaks a bound it set itself. | forge-combo29/swarm/28/CORRECTION_2_clock.md, correction/clock_with_plan_out.txt | REVISED |
+
+## How to read the REVISED lines (added $(date -u), never edits an earlier line)
+
+Four of my lines are superseded in wording by later ones, because seat 16 refuted my S-F1 and the
+re-check found the same confound in the others. A reader should take the REVISED line, not the original:
+
+| original | superseded by | the correction in one sentence |
+|---|---|---|
+| S-F1 | S-F1-REVISED | the M-10 plan is real and IS the stop (wall/plan 1.00-1.02 over 16 cells); my "every search finishes 9.5 ms early" was a defect claim and is withdrawn — that 10 ms is Move Overhead working. |
+| S-F2 | S-F2-REVISED | my 43.3 ms threshold was invented, not the engine's; against the engine's own plan it exceeds soft 54/200 and hard 0/200. |
+| S-F6 | S-F6-REVISED | unchanged in direction, now stated as a claim about the PLAN (soft 822 vs 117 ms at equal total clock), not about achieved time. |
+| S-F9 | S-F9-REVISED | numbers stand; mechanism corrected — achieved equals reported within 1 ms, so it is a target undershoot, not an iteration artefact; plus 2/40 exceeded the engine's own hard plan. |
+
+S-F3 is narrowed by S-F12 (movetime timing is reproducible; bench timing is not). S-F5, S-F7, S-F8,
+S-F10, S-F11 and S-F13 are unaffected by the confound: they report node counts, legality, answered/not,
+or a clamp, none of which is a time ratio. S-C1, S-C2 and S-C3 are checks of other seats and stand.
