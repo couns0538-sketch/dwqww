@@ -669,3 +669,11 @@ S-F42's strength implication.
   plies; 0.06->6 s gives 9.7x and +7 median plies. Power-law exponent 0.494 over two decades. Every cited file verified
   to exist, and the script re-run at small scale reproduces the same direction (178 -> 652 ms, +5 plies).
 - next command: continue the cycle.
+
+## $(date -u) — CLARIFICATION for every exponent quoted earlier in this file
+Earlier blocks of mine in this STATUS.md quote "exponent 0.494 => t ~ sqrt(increment)" and "YES, as sqrt(increment)"
+WITHOUT its clock size. Read them all with this correction, which is now the way the finding is stated everywhere else:
+**at a six-second clock the exponent is 0.494 (doubling the thinking time needs about 4x the increment); at a
+two-second clock it is 0.758, so the gain is larger on smaller clocks.** The bare "sqrt" phrasing above is incomplete,
+not wrong for the 6 s case; ANSWER_increment.md and FINDINGS.md S-F51/S-F52 now pair the exponent with its clock in
+every sentence.
