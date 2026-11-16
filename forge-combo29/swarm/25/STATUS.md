@@ -1,3 +1,27 @@
+## 2026-11-16T23:15Z - file 6 closed; PC path measured; two confirmations
+
+FILE 6 POSITIVE CONTROL (S-C6): the inequality DOES fire. Board 8/8/8/8/3k4/8/8/K1Q5 w: counter 0 depth 20 =
+mate 8 (needs 15 half-moves); counter 91 (budget 9) = cp 0, 15 > 9, correctly not a defect. At counters 0/50/70
+(budget 100/50/30) the engine says mate 8 - so it finds mates when they can finish in time. CAUTION: at depth 14
+the same board says cp 1334, so the rule needs depth 20+ or it produces false "no mate" answers.
+
+PC PATH (the path file 6 says counts most):
+- S-F25 `go softnodes`: deterministic 3/3 (same score, nodes, move), stops at a finished depth, overshoot 1.06-1.55x.
+  One position's MOVE changes with budget (g1f2 @2000 vs d1c1 @20000), so 2000-node self-play is weaker search.
+- S-F26 node limits and 6s match clock: all 3/3 reproducible -> match results at Threads 1 are trustworthy.
+  Low clock usage (178 ms of 6000) is CORRECT: plan_clock_budget soft limit at 6 s is 317 ms (TmSoftDivisor 22).
+  Recorded as a NEAR-MISS so nobody "fixes" correct behaviour.
+
+CONFIRMATIONS: S-C7 checks seat 05's S-F14 -> C1 confirmed (my 21-piece board flat cp 0 at counter 99, depths
+6..12 on PC20), C2 REFUTED (pawnless variant scores +63..+87 at counter 100, not a draw); caveat: they used the
+base tree, I used PC r15, so build may explain it.
+
+THIRD SELF-CAUGHT ERROR, recorded: my check compared a regex match to "cp 0" while it returns "score cp 0", so the
+verdict line said NOT flat while the printed rows were flat. Same species as the other two: a conclusion not
+matching its own evidence.
+
+Findings still fully standing: S-F1/S-F8/S-F9/S-F10 (wrong mate numbers; S-F1/S-F8 repaired on PC), S-F6/S-F7
+(terminal-root reporting), S-F25, S-F26, S-C3, S-C4, S-C6, S-C7.
 ## 2026-11-16T22:51Z - FILE 6: clock-99 thread RECLASSIFIED (0 of 8 survive); repair priced at 11-20 plies
 
 Read FABLE_TO_swarm_6. Applied its test to all 8 of my clock-99 boards: counter-0 at depth 24 has NO forced mate
