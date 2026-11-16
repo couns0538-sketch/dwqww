@@ -266,3 +266,7 @@ Next: continue on PC20 with provably-applied options; STATUS every 25 min.
   safest is a fresh process per game.
 - PC_SWITCHES.md updated: explicit "still unmeasured" list = ISREADY_PENDING, HARD_LIMIT_EMERGENCY,
   ABORT_PUBLISH (no probe distinguishes ON from OFF; not evidence of no effect).
+- S-F46 (blast radius): the stale-board damage is CONFINED to the one rejected command. game1 -> BAD
+  -> game3 gives f3e5 (legal only in game 3) both via `position fen` and `position startpos moves`;
+  swept 20 trials: 18 recovered correctly, 0 infected, 2 ambiguous-because-legal-in-both. So a bad FEN
+  costs exactly one move, not the session — the rule stands but the radius is one move.
