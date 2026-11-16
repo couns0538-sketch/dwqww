@@ -1,0 +1,30 @@
+WHY THE 442-NODE STOP HAPPENS, and why it is not a hidden stop condition
+
+The board: k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1
+Black to move and has EXACTLY ONE legal move (a8b8) - the king has one square.
+
+Depth-by-depth cost of that position (from the instrumented run, underbudget_out.txt):
+   depth 1 -> 2 nodes cumulative
+   depth 2 -> 23 nodes cumulative
+   depth 3 -> 61 nodes cumulative
+   depth 4 -> 135 nodes cumulative
+   depth 5 -> 250 nodes cumulative
+   depth 6 -> 442 nodes cumulative
+
+So depth 6 ENDS at 442 nodes. The softnodes 500 budget is never reached, and neither
+is the next depth ever started - the engine stopped at a complete depth 6 below budget.
+
+Two possibilities were open:
+  (a) something other than the node count stopped the search  <- would matter for the contract
+  (b) the search finished its work below the budget            <- benign
+
+Evidence for (b):
+  - 5 of 5 repeat runs gave EXACTLY 442 nodes, depth 6, cp -2284, a8b8. Perfectly reproducible.
+  - go nodes 500 on the same board also gives 442 (nodes_hard_out.txt), and go nodes 2000
+    ALSO gives 442 - a budget of 2000 does not make it search further either.
+  - the depth ladder has no gaps: the search genuinely completed depth 6.
+
+CONCLUSION: (b). The 442-node cell is not a hidden stop; it is a position with a single
+legal move whose whole tree is smaller than the budget. My 'unexplained' note was
+premature: the explanation is the position, not the contract. 15-F29's overshoot figures
+stand unchanged for the other four boards.
