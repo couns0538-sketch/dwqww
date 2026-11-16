@@ -1,0 +1,20 @@
+# PREDICTION — the PC's match node budgets: `go nodes 20000 / 50000 / 250000`
+
+File 6 says the owner's matches use `go nodes` at 20,000 / 50,000 / 250,000 on the PC build under PC20 at
+Threads 1. The most valuable question is not determinism (S-F16 already showed `go nodes` is deterministic here)
+but: does the MOVE change as the budget rises, and is any move at a real budget demonstrably wrong?
+
+P1. The move is the SAME at all three budgets on most positions: predicted the same move at 20000 and 250000 on
+    at least half of 40 G positions. Kills it: fewer than a third (a move changing with more search is normal,
+    but that would make the budget a strong determinant and worth its own study).
+P2. Every move at every budget is a LEGAL move from the position (checked with python-chess), on all 40 x 3.
+    Kills it: any illegal move (a serious fault).
+P3. The score IMPROVES for the side to move as the budget rises, in the sense that the score does not get worse
+    by more than 30 cp from 20000 to 250000 on most positions. Predicted at least 60 % within 30 cp. Kills it:
+    fewer than 40 % (a large score regression with more search would be suspicious).
+P4. A move that appears at 20000 but is replaced at 250000 is predicted to be a move the deeper search rates at
+    most 30 cp worse — not a blunder replaced by a much better move. Kills it: any replacement improving the
+    score by more than 100 cp (that would mean the lower budget plays a real blunder, the most valuable possible
+    find here, and I would report it with the position).
+P5. Both `go nodes` budgets finish a depth and report it, so the reported depth differs between 20000 and 250000.
+    Kills it: the same depth at both (then the node limit is not doing anything).
