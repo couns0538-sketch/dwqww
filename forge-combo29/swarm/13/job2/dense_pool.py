@@ -27,7 +27,7 @@ def note(cls, game, ply, b, detail):
     if counts.get(cls, 0) >= MAXPER:
         return
     counts[cls] = counts.get(cls, 0) + 1
-    hits.setdefault(cls, []).append((game, ply, b.fen(), detail))
+    hits.setdefault(cls, []).append((game, ply, b.fen(en_passant="fen"), detail))
 
 
 def test(b, game, ply):

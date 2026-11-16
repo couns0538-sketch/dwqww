@@ -26,3 +26,20 @@ Next command: cd forge-combo29/swarm/13 && tail -1 STATUS.md   # then start area
 DONE check of 21-F1: CONFIRMS. Own harness, 5 cases, all hold. checks/CHECK_21F1.md.
 Consequence noted: the brief/Opus "impossible castling is accepted" line does not hold at 6b98f217.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## 2026-11-16T21:36:16Z
+
+HARNESS AUDIT after coordinator broadcast of 19-F12 (fabricated bestmove on mid-search quit):
+- Reproduced 19-F12 myself on my build: pipelined `go depth 12` + `quit` -> `bestmove a2a3`, 0 info lines;
+  same search read to bestmove -> `e2e4` nodes 56720. Real, and it is seat 19's finding, not mine.
+- AUDIT of my own harnesses: job1/job2 engine_perft.py read stdout to `nodes` after every command and
+  send `quit` only at the end -> NOT affected. job2/divide_check.py and checks/check_21f1.py use
+  `subprocess.run(input=...)` pipelining.
+- TESTED whether pipelining invalidates them: perft is SYNCHRONOUS on this build. Pipelined
+  `go perft 6` = 119060324 = interactive `go perft 6`; pipelined perft 5 = 4865609; pipelined
+  bench 13 = 862329. The fabrication fires on ASYNC SEARCH `go nodes/depth` + quit, not on perft.
+- So job1/job2 perft results and all perft-based findings STAND on this evidence; honesty pins re-checked.
+- Re-running the honesty pins interactively anyway (no mid-search stdin close); script
+  honesty/recheck_interactive.py committed.
+
+Next command: python3 honesty/recheck_interactive.py ~/b/rel/forge
