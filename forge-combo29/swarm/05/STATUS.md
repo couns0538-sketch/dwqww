@@ -298,3 +298,12 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   S14, Threads 1, from my committed rows.jsonl. The two boards are exactly G/192 and R/120 — which is why my S-F19
   "TtPruneV2 fixes it" was luck, and why a small mate-PV assertion usually passes.
 - next command: re-run those 2 exact boards + a fresh sample on the PC build to measure the PC rate, then write FINAL.
+
+## $(date -u)
+- S-F23 NEW: same 28 mate positions (from committed rows.jsonl, not re-selected), depth 12, Threads 1:
+  * base build + S14   : 2/28 truncated = 7.1% (G/192 short 6, R/120 short 12)
+  * PC r15 + S14       : 2/28 truncated = 7.1% — the SAME two boards
+  * PC r15 + PC20      : 0 of 27 mate scores truncated (R/120 stops being a mate score, cp -2713)
+  So PC20 eliminates the truncation as a RATE while no single option does (S-F21). Stated carefully: 0 of the 27 that
+  remain mate scores, not "the 28th was fixed".
+- next command: write the FINAL block with every find, its state and its build/settings.
