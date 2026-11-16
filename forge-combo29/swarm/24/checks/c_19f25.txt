@@ -1,0 +1,29 @@
+SEAT 19 19-F25 — independent check by seat 24 (PC r15 build, Threads 1, Hash 16, OwnBook false)
+
+P1 (black to move) = rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1
+P2 (white to move) = rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1
+
+| measure | value |
+|---|---|
+| P1 engine `go perft 1` generator order (first 3) | ['a7a6', 'b7b6', 'c7c6'] |
+| P1 python-chess lexicographic first (first 3) | ['a7a5', 'a7a6', 'b7b5'] |
+| **P1 aborted bestmove** | **a7a6** with 0 info depth lines |
+| P1 aborted, repeated | a7a6 with 0 info depth lines |
+| P2 engine perft order (first 3) | ['a2a3', 'b2b3', 'c2c3'] |
+| P2 python-chess first (first 3) | ['a2a3', 'a2a4', 'b1a3'] |
+| **P2 aborted bestmove** | **a2a3** with 0 info depth lines |
+| completed search on P2 (depth 8) | g1f3 |
+| then P1 aborted in the same process | a7a6 with 0 info depth lines |
+
+VERDICT: CONFIRMS seat 19 19-F25
+
+P1 aborted bestmove == P1's own generator-first move: True (a7a6 vs a7a6)
+P2 aborted bestmove == P2's own generator-first move: True (a2a3 vs a2a3)
+engine generator order differs from python-chess lexicographic: True (a7a6 vs a7a5)
+aborted searches emitted 0 info depth lines: True (0, 0)
+not stale (same move after a completed search on the other side): True (a7a6 vs a7a6)
+
+Consequence for harnesses (which is why this seat checked it): an aborted search answers with a move that
+the engine has NOT evaluated. Any harness that closes stdin or sends `quit` while a search runs records that
+move as the engine's answer. My runners read to `bestmove` before the next command, so they are not affected
+(checks/harness_audit.py, 590 rows, none shaped like this artefact).
