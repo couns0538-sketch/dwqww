@@ -127,6 +127,18 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:40Z - S-C19: 27-F12 does not reproduce on the base build either
+
+Base tree 6b98f217 / S14, same four tests as S-C18:
+  go wtime 3000 -> depth 20 / 122,327 nodes (clock scales; their claim needs it frozen for every wtime)
+  white wtime 0 -> depth 1 / 21 nodes ; black -> depth 1 / 39 ; startpos 26 vs 26 (no side asymmetry)
+  go movetime 5 -> depth 5 / 588 nodes (not depth 1)
+So both builds I can test behave identically and agree with my S-F32. Caveat upgraded: "builds may differ" is now
+"behaviour is consistent across both builds I can test; their named binary 068f0927 remains untested by me."
+
+State: 62 findings, working tree clean, local = remote. Next: keep cycling.
+
 ## 2026-11-16T23:40Z - S-C18: 27-F12 (clock ignored for black) does not reproduce on my build
 
 Seat 27's most striking claim was that `go wtime N` is ignored entirely when BLACK is to move. On my PC build
