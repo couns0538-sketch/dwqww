@@ -1,0 +1,28 @@
+# PREDICTION — seat 20, area 10, job 18 (check of seat 17's S-F1)
+
+Committed alone BEFORE the first measuring command. Never edited afterwards.
+
+Subject (seat 17, S-F1): "`go depth N searchmoves <name with no legal root move>` answers `bestmove 0000` on a
+position that HAS legal moves (startpos: 20 legal, 0000 returned) — UCI defines 0000 as 'no legal move exists', so a
+GUI reads it as an illegal move."
+
+Note: this overlaps my own S-C2 (confirming seat 02's S-F2), which is the same engine behaviour reached from a
+different seat. Seat 17's S-F1 states it in terms of a GUI reading 0000 as an illegal move; mine stated it as the
+info-string + 0000 combination. I check THEIR sentence and will record whether it adds anything.
+
+Predictions:
+1. CONFIRMS: on startpos (20 legal moves), `go depth 2 searchmoves` and `go depth 4 searchmoves` both answer
+   `bestmove 0000`, while `go depth 2 searchmoves a2a3` answers `a2a3`.
+   KILLED IF: any empty-searchmoves form answers a real move, or the restricted form answers 0000.
+
+2. The answer is 0000 with ZERO nodes searched in every empty-restriction case.
+   KILLED IF: nodes > 0 with a 0000 answer.
+
+3. NEW DETAIL I predict and will record separately: the number of `info depth` lines equals the requested depth,
+   because the drawn-root reporting loop runs `for depth = 1..max_depth` — so `go depth 4 searchmoves` emits 4
+   lines and a search with no `depth` limit emits the full 64. If so, a GUI sees a full-depth "search" that used
+   0 nodes, which is worse than a silent 0000.
+   KILLED IF: the line count does not track the requested depth.
+
+4. This does not depend on the position being startpos: the same happens on a midgame FEN.
+   KILLED IF: a midgame position answers a real move for an empty restriction.
