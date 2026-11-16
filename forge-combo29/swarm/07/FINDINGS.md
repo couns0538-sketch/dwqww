@@ -24,6 +24,17 @@ cheapest to apply and caught me three separate times tonight:**
 > **ASSERT YOUR HARNESS SETTINGS EXPLICITLY, AND RECORD THEM: `Threads 1`, `MultiPV 1`, `OwnBook false`.** Defaults are fine; a leftover non-default silently changes the measurement with no error and a plausible node count. `MultiPV 2` costs **3 plies on startpos at `go nodes 20000`** (d11 → d8) and 2 on a middlegame, monotone in MultiPV, and reproduced exactly in all 16 cells (07-C49). Node *stops* are deterministic here — every cell of that test matched across two runs — whereas node counts under a **clock** are not (07-C47), so quote a clock result by its move and wall time.
 
 > **IF A DEFECT SHOULD VANISH WITH MORE BUDGET AND IT DOES NOT, SUSPECT THE CHECKER.** This is the cheapest tell I found: my PV-length checker called a **correct** 9-ply PV for `mate 5` truncated at **all three** budgets including 250,000 nodes, when the thing under test was a truncation that is supposed to disappear as the budget rises. A "defect" that does not improve with more nodes, more depth or more time is far more likely to be my arithmetic than the engine's (I had required `2|N|` plies for a positive mate instead of `2N−1`). Corollary: **an empty scan means scarcity, not absence** — only **2.2 %** of positions (8 of 361) report a mate at `go nodes 20000`, so a 120-position filter for long mates legitimately finds nothing, and a sample with no mate scores cannot measure mate-score truncation at all (07-C51).
+> 
+> **THE SAME SWEEP DECIDES WHICH, IN EITHER DIRECTION — pair this rule with 07-C53.**
+> - A defect that **does not** vanish with more budget/depth/time is most likely **my checker being wrong**
+>   (07-C51: `2|N|` instead of `2N−1` called a correct PV truncated at every budget).
+> - A defect that **does** vanish with more depth is a **horizon artefact, not a defect** (07-C53: `f6e7` at
+>   depth 20 becomes `f6f5` at depth 24 on `6k1/8/5K2/8/6r1/8/8/8 w`, so a harness testing only at match depth
+>   would have filed a bug that does not exist).
+> 
+> So before reporting any defect: **sweep the budget or depth and see which way it moves.** It collapsing at
+> higher effort means the engine was fine; it refusing to move means I am measuring my own arithmetic. Both
+> answers are decided by one sweep that costs a few minutes, and both errors are avoided by it.
 
 > **A warning from a harness that has not validated its own input is not a finding.**
 > Five of my controls were initially blind, and each was caught by its own planted fault, not by me.

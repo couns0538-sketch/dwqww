@@ -690,3 +690,11 @@ Moved the constant-clock caveat from the end of REPORT_job52 to directly under t
   That is exactly their account: below the depth where the longer losing line is visible both moves read cp -490 and cannot be distinguished; at greater depth the longer defence is found. Calibration case, not a bug.
   Difference stated rather than smoothed: they report d24 as mate -15 with a 29-ply line, I measure mate -16 with 26 plies -- same move, adjacent distance, likely a depth-boundary or convention difference (cf 07-C40's 2|N| note). It does not affect the conclusion, which rests on the MOVE changing with depth.
   Cleanest example tonight of a claim that LOOKS like a defect and is not: distinguishable only by varying depth. A harness testing only at the owner's match depth would have filed a bug that does not exist -- the converse of the header rule about defects that fail to vanish with more budget.
+
+## 2026-11-16T23:57:09Z
+Paired the two header rules explicitly, as one instrument with two directions:
+  > THE SAME SWEEP DECIDES WHICH, IN EITHER DIRECTION.
+  > - A defect that DOES NOT vanish with more budget/depth/time is most likely MY CHECKER being wrong (07-C51: 2|N| instead of 2N-1 called a correct PV truncated at every budget).
+  > - A defect that DOES vanish with more depth is a HORIZON ARTEFACT, not a defect (07-C53: f6e7 at depth 20 becomes f6f5 at depth 24, so a harness testing only at match depth would have filed a bug that does not exist).
+  > So before reporting any defect: sweep the budget or depth and see which way it moves. It collapsing at higher effort means the engine was fine; it refusing to move means I am measuring my own arithmetic. One sweep, a few minutes, avoids both errors.
+That is the most compact form of the two lessons: they are not two rules but one sweep read in two directions.
