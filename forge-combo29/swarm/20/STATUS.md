@@ -341,3 +341,14 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - **No timing number added**: I did not re-run seat 30's 2.0-4.2x table; a weak timing claim on this shared box would
   be worse than none.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-16T23:38:48Z cross-check: clock-table DEPTH is warm/cold dependent by ~2 plies
+- **S-C36** (seat 05's S-F51 inc-60 cell, 10 G-set positions, PC r15 + PC20, Threads 1, Hash 16):
+  **wall time agrees** (my median 211 ms vs their 202 ms) but **depth does not** (my 18 vs their 22) — and the cause is
+  measured: fresh process per position -> median **18**; ONE warm process -> median **20**. **Warm gains +2 plies at
+  the same wall time.** Their note says runs were "SEQUENTIAL"; a warm run lands where their 22 sits.
+- NOT calling their numbers wrong: the depth column of a clock-based table depends on process discipline, the same
+  warm/cold class as seat 10's node rule — now shown to affect DEPTH.
+- For the owner: his matches run many moves in ONE process, so **warm depth (~20) is the match-realistic figure**; my
+  earlier fresh-process S-F49 (17-18) answers "how deep does a cold engine get" instead. Both stated in the file.
+Next: continue in the window (ends 2026-11-17T10:18Z).
