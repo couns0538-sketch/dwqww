@@ -98,3 +98,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Deliverables on the branch: 9 reports (job1-job9), 3 patch files (pinned_only_king_lines, tt_replace_skip_slot0, tt_slot0_and_vector_probe), HONESTY.txt, STATUS.md, and every jobN/ raw output + script.
 - Best result of the run: 29-F14 TT patch, -18,708,563 instructions (-0.414%) per bench 13, correctness proven 5 ways (4 honesty counts, 40/40 searches, 4/4 hash pressure, 1/4/8 threads, byte-identical cluster trace vs base). No wall-clock claim (29-N6).
 - next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: final consolidation for deadline' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 10:02:48 PM UTC 2026
+- 29-N10: method limit found while trying to extend the TT result to deep search. bench-13 instruction counts are EXACTLY reproducible (4,513,768,543 twice, to the digit). A single go-depth-12 count is NOT: same build, same position gave 84,270,074 and 84,194,377 (0.09% spread). My deep-search comparison showed both signs across 5 positions and was DISCARDED.
+- So the -18,708,563 figure for 29-F14 stands on the deterministic bench measurement only, and I make no deep-search claim for it.
+- next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: record N10 callgrind determinism limit' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
