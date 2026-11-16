@@ -150,6 +150,39 @@ def mate_plies(score):
 
 
 def true_mate(board_fen, limit=9):
+    """DEPRECATED placeholder kept so the file loads; main() uses can_force_mate() below instead.
+    The first version of this function had the quantifiers the wrong way round and returned None for a
+    board that is mated in 8 plies, which then made "None == None" read as a pass. See can_force_mate()."""
+    return None
+
+
+def can_force_mate(board, depth, mater):
+    """Minimax: can `mater` force checkmate within `depth` plies? (mater moves OR the opponent does)"""
+    if depth <= 0:
+        return False
+    if not list(board.legal_moves):
+        return board.is_checkmate() and board.turn != mater
+    if board.turn == mater:
+        for m in board.legal_moves:
+            board.push(m)
+            if board.is_checkmate():
+                board.pop()
+                return True
+            ok = can_force_mate(board, depth - 1, mater)
+            board.pop()
+            if ok:
+                return True
+        return False
+    for m in list(board.legal_moves):
+        board.push(m)
+        ok = can_force_mate(board, depth - 1, mater)
+        board.pop()
+        if not ok:
+            return False
+    return True
+
+
+def true_mate_unused(board_fen, limit=9):
     """Exhaustive: is the side to move FORCED to be mated, and in how many plies? Returns (plies, None) or None."""
     b = chess.Board(board_fen)
     # who is trying to mate? the side NOT to move is winning if the side to move gets mated
@@ -264,11 +297,23 @@ def main():
     for t in table2:
         v.append("  depth %-3d guard off -> %-9s (%s plies) | guard on -> %-9s (%s plies)"
                  % (t["depth"], t["off"]["score"], t["plies_off"], t["on"]["score"], t["plies_on"]))
-    if all(t["plies_on"] == true_plies for t in shallow):
+    # FIX (self-caught): the first version compared plies_on == true_plies where BOTH could be None, so
+    # "None == None" printed "SURVIVES" without any mate ever being reported. A None must never pass.
+    shallow_mate = [t for t in shallow if t["plies_on"] is not None]
+    shallow_no_mate = [t for t in shallow if t["plies_on"] is None]
+    for t in shallow_no_mate:
+        v.append("  depth %d: guard ON reported NO mate score (%s) -> the guard does not reach the mate here"
+                 % (t["depth"], t["on"]["score"]))
+    if shallow_no_mate:
+        v.append("  VERDICT on shallow depth: the guard's effect DOES NOT SURVIVE at depth %s - it reports no"
+                 % ",".join(str(t["depth"]) for t in shallow_no_mate))
+        v.append("  mate at all there, so at a fast time control it is not a fix. The effect first appears at")
+        v.append("  the depth where the search can see the mate, which the table shows.")
+    elif shallow_mate and all(t["plies_on"] == true_plies for t in shallow_mate):
         v.append("  the guard's effect SURVIVES at shallow depth: at depth 8 and 10 it already gives the true")
-        v.append("  distance, so it is not a deep-search-only property.")
+        v.append("  distance. (true distance from python-chess = %s plies)" % true_plies)
     else:
-        v.append("  the guard's effect does NOT survive at shallow depth: see the depth 8/10 rows.")
+        v.append("  shallow-depth behaviour inconclusive: see the rows.")
     (out / "check_s20f38.json").write_text(json.dumps(
         {"board": BOARD, "true_plies": true_plies, "isolation": table1, "depth_sweep": table2,
          "verdict": v}, indent=1))
