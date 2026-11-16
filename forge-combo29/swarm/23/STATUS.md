@@ -756,3 +756,13 @@ pair that shows why a fixed-depth build comparison overstates the difference (ba
 PC depth 17-23 mating 5 of 6 at the same clock). Board 6 is named there as the inert case.
 
 Standing: 66 findings, 18 confirmations. Continuing to the close.
+## 2026-11-16T23:45:52Z  PC_BUILD_SUMMARY.md written (one page on the r15 build)
+2026-11-16T23:45:52Z
+
+Gathers what I verified about the engine the owner's PC plays, with the clock-as-common-denominator framing
+as its organising idea: at depth 24 the base looks broken (cp on all six lone-king boards) while at a 6 s
+clock the base reaches depth 25-32 and mates on 4 of 6 — so a fixed-depth comparison OVERSTATES the gap.
+It names board 6 as the inert case, lists what the PC does NOT fix (19-F12 still fabricates a bestmove on
+quit/EOF), and puts a switch-by-switch table of what it does change (drawn-root, lone-king, go-parse), each
+with the measurement. It repeats the caveat that the PC's trained net is NOT shared, so these numbers
+reproduce the PC's engine but not its evaluation.
