@@ -961,3 +961,18 @@ All four predictions held. Limit: 20 positions, one clock setting; the clock was
 
 Also: GUI_HAZARDS.md now opens with 'the owner's match program is unaffected', as ordered.
 77 findings, 18 confirmations. 10 h 24 m remain.
+## 2026-11-16T23:55:28Z  23-F55: fast control is deterministic but a different player on 4 of 20
+2026-11-16T23:55:28Z
+
+1 s+0.01 clock, two independent processes: SAME MOVE on all 20 (0 disagreements), exactly as 6 s did.
+But 1 s differs from 6 s on 4 of 20 positions (e7e5/b8c6, f1g2/d4d5, h7h6/e6e5, e7e5/a7a5) and reaches a LOWER
+depth on all 20 (median 13 vs 17).
+
+Clean statement now available, combining this with 23-F54:
+  determinism comes from Threads 1 plus a FIXED search limit, whichever limit;
+  what changes the MOVE is the limit's VALUE - a clock or a node budget alike.
+So a fast self-play loop is reproducible (no lottery) but is NOT evidence about strength at a slower control:
+1 s and 6 s results are different measurements, not two estimates of one.
+
+Limit stated and enforced: 20 positions, two clock settings, and the 20 % is explicitly NOT claimed as a
+general rate - the over-generalisation 23-F31 caught earlier. 78 findings, 18 confirmations. 10 h 23 m remain.
