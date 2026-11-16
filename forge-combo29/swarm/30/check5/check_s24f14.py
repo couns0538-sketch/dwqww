@@ -22,7 +22,8 @@ import time
 
 import chess
 
-EXES = {"base": "/home/ubuntu/b/rel/forge", "pc": "/home/ubuntu/b/pc/forge"}
+EXES = json.loads(os.environ["CHECK_EXES"]) if os.environ.get("CHECK_EXES") \
+    else {"base": "/home/ubuntu/b/rel/forge", "pc": "/home/ubuntu/b/pc/forge"}
 ENV = {k: v for k, v in os.environ.items()
        if k not in ("ASAN_OPTIONS", "UBSAN_OPTIONS", "TSAN_OPTIONS", "LSAN_OPTIONS")}
 ROOTS = {
