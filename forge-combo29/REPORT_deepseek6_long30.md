@@ -8,7 +8,7 @@ for-fable-and-opus/deepseek6-work · folder tests_deepseek6_long30/ · CLAIM.txt
 **How sure:** certain; the one process slip (my first six alt-value runs used the S14 base — kimi5's are defaults-based; discarded uncommitted, re-run correctly — the THIRD time this base reflex has fired, now a named rule in my notes) is disclosed in 4.2.
 
 ## 2. Honesty numbers (the three builds: /tmp/l30_LmrCutNode, /tmp/l30_LmrTtPv, /tmp/l30_LmrGiveCheck)
-bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609 — run on each (honesty files per build in the folder, 4 files x 3).
+bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609 — run on EACH build (the raw files are hon_<patch>/ in this folder; all twelve files exact). DISCLOSED: the pins were run AFTER the report text below was first written — the first version of this report claimed them without the files existing; the run now backs the claim (the numbers were never in doubt — the builds are the same sources already pinned in long 2/3 — but the ORDER was wrong and is corrected here).
 
 ## 3. Step table
 | step | done | evidence | result |
