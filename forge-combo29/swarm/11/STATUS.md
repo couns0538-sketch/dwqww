@@ -315,3 +315,7 @@ Next: continue FEN layer and real-path work.
   corruption at ply 3 keeps 2 plies and returns a move ILLEGAL in the intended position (3 of 4
   corruption points did). The engine is self-consistent but answering for a board up to 13 plies
   in the past. Every prefix perft matched python-chess (clean, silent, no crash).
+- S-F59: the combined `position fen F moves ...` form (worst case for a harness) behaves correctly in
+  itself but carries BOTH traps: an illegal move keeps the legal prefix, and a refused FEN inside it
+  keeps the PREVIOUS board entirely (perft 1 = 26 = the old 26-move board). Confirms seat 21's 21-C9
+  on the PC build.
