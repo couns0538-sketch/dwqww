@@ -211,3 +211,11 @@ Extreme FEN, go depth 12, PC r15/PC20, fresh process per run:
 File 6's D1 asks for "no bestmove within 10x the 1-thread time". Here bestmove DOES arrive but the worst run
 takes 238x, so it fails the 10x TIME criterion without being a literal hang. I state both readings.
 Scope: extreme lost position, bestmove f3f8 never varied, owner's PC is Threads 1 => threaded-use hazard only.
+
+## 2026-11-16T23:06:34Z 04-F21 the fabrication is reachable on the PC match path (go nodes 20000)
+PC r15/PC20/T1: go nodes 20000 read normally -> d2d4 after 11 depth lines. Same command with quit written
+immediately -> bestmove a2a3 with 0 INFO LINES. Both write patterns fabricate 5/5 (one write with go+quit;
+two separate writes, no sleep). Window: quit at 0 ms fabricates; at 1 ms already a real search (g7g6, 5 info
+lines); at 200 ms a full 18-line search. => unsafe only if stdin closes in the same breath as go, which is what
+ does.
+NEXT: REPORT_quit_path.md, then keep working; FINAL when the window closes at 10:18:50Z.
