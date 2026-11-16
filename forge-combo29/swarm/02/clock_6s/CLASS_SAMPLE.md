@@ -1,5 +1,11 @@
 # The authoritative clock result: 20 boards, 4 shape classes, 5 runs each, owner's 6 s + 0.06 clock
 
+> **Headline, in one line each.** (1) A move's wall time IS the last completed iteration's cost (Spearman
+> rho = 0.998, 17 of 20 boards within 2 %), and the engine uses only 3.3-5.8 % of a 6 s clock. (2) **A wall-to-
+> last-iteration ratio near 2.4 identifies a hard-limit cut after the fact** — useful for auditing clock logs,
+> though it cannot predict one. (3) The cut is the only route to an expensive move: 1585.6 ms = 26.2 % of the
+> clock, which is the engine's hard plan for this clock, hit to 0.5 ms.
+
 PC r15 build, **PC20**, **Threads 1**, Hash 16, OwnBook false, fresh process per run, interactive driver.
 `class_tail.py`, raw `tail_rows.json`, `correlation.json`. **My own boards — none of seat 08's or seat 28's.**
 
