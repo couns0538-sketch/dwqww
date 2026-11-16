@@ -30,6 +30,16 @@ Bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609 — 
 `nnue` is the network's own output, `total` is `hce + nnue` clamped to `±(MateInMaxPly-1)` when the net is
 residual; with `UseNNUE false` it prints `nnue 0` and `total` is the hand-written evaluation.
 
+## CORRECTION (made while running job 2, 2026-11-16, same commit series)
+
+The table row for `total` in the code-review table below says "with the built-in net `residual()` is false".
+That is WRONG. `src/nnue_weights.inc` line 3 is `#define FORGE_NNUE_RESIDUAL 1`, so `nnue::residual()` returns
+true and `total = hce + nnue` (clamped), which is what the raw files show: position 6 of `job1/out_G.txt` has
+`hce 169 nnue -7 total 162`. The mistake did not change any measurement or any conclusion of job 1 — both `hce`
+and `nnue` were compared separately and both were symmetric, so `total` is symmetric either way — but the
+prose was wrong and is corrected here. The sentence in "what I am NOT sure about" that leans on the
+non-residual claim is superseded by this correction. Show the flag: `head -3 src/nnue_weights.inc`.
+
 ## Table
 
 | step | done / partly / not done | evidence file | result |
@@ -107,7 +117,7 @@ black pieces' PSQT). The candidates and their verdicts:
 | tempo | `eval.cpp:496-497` | `if side_to_move == White add<White>(Tempo) else add<Black>(Tempo)` — the sign comes out as `+Tempo` for the side to move either way, and the mirror flips the side to move |
 | dead material | `eval.cpp:516-565` | `score = side_to_move == attacker ? attacker_cp : -attacker_cp` — written in side-to-move terms, and the mirror flips both. The corner set (`corner_a`/`corner_b`) is chosen by the bishop's *colour*, which is a board property, not a side property |
 | NNUE accumulator | `nnue.cpp:195-215` | each perspective gets its own accumulator, features are indexed relative to that perspective |
-| `total` | `eval.cpp:604-612` | with the built-in net `residual()` is false (no residual flag in the weights), so `total = nnue`; with the net off, `total = hce` |
+| `total` | `eval.cpp:604-612` | with the built-in net `residual()` is TRUE (`nnue_weights.inc:3`), so `total = hce + nnue` clamped; with the net off, `total = hce`. Corrected in the section above |
 
 The `scale_factor` tie-break is the only place a colour is named from a number's sign instead of from the side to
 move, and the report records it as a **suspicion that was tested and cleared**, not as a fault.
