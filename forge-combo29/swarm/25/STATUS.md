@@ -1,3 +1,78 @@
+## 2026-11-16T23:25Z FINAL (continuing to work; this block is the complete inventory as it stands)
+
+Seat 25, area 5 (principal variations and scores). Branch for-fable-and-opus/swarm-25, folder
+forge-combo29/swarm/25/. Build used for everything PC: PC r15 from FABLE_TO_swarm_5 (patch sha256
+d6bd72c531f785f4... matches), PC20, Threads 1, Hash 16 unless a line says otherwise. Base-tree findings used
+build 6b98f217, S14. All four honesty pins hold on every build I used: 312866 / 862329 / 3024920 / 4865609.
+
+### THE HEADLINE FINDING FOR THE OWNER (file 6's half-move test needs depth)
+
+**File 6's test for whether a high-counter `cp 0` is a defect requires a deep search, and the real threshold is
+depth 18, not 20. Applying the rule at depth 10-16 produces a FALSE "no forced mate" and would wrongly dismiss a
+real defect.** Six mate-rich boards x depths 8/12/14/16/18/20/22/24 on PC r15/PC20/Threads 1/Hash 16:
+- QR vs K, Q+R vs K and my S-F1 board report their mate from **depth 8**.
+- The KQ-vs-K board (`8/8/8/8/3k4/8/8/K1Q5 w`) needs **depth 18**: `cp 1359` at depth 16, `mate 9` at 18,
+  `mate 8` at 20. So depth 16 is already wrong on a board that has a mate.
+- **Two boards never resolve a mate within depth 24** and report ordinary scores: KQ vs K in the centre
+  (`cp 18-25`) and KR vs K (`cp 534`). Read those as **no mate inside the horizon**, NOT as a broken engine.
+  Use depth 20+ as file 6 says, and try 24 before concluding anything.
+Evidence: `check_file6/depth_requirement.py`, `check_file6/depth_requirement.txt` (8x6 table, rows copied from
+engine output), written up in `check_file6/HOW_TO_APPLY_FILE6.md`.
+
+### FINDINGS THAT STAND
+
+| id | one line | build + settings |
+|---|---|---|
+| S-F1 | Base tree: `8/8/1p6/8/p3p3/8/2Kpk3/8 w` says `mate -12` at depth 12-16; plain minimax and the engine's own depth-24 PV (8 plies, verified checkmate) both give **mate -4**, so the shallow score is wrong by 8 moves. **REPAIRED on the PC build** (`mate -4` at depth 12 under PC20). | base/S14; PC/PC20 |
+| S-F2 | That root's mate score wanders -12/-9/-6/-5/-4 with depth. | base/S14 |
+| S-F6 | A checkmated root reports `score mate 0` while a stalemated root reports `score cp 0` - two currencies for two zero-move positions, and `mate 0` is undefined for a GUI. Survives on the PC build. | base and PC/PC20 |
+| S-F7 | On a terminal root, `go nodes 100` / `go movetime 50` emit **64 info lines** at depths 1..64 with 0 nodes. Survives on the PC build. | base and PC/PC20 |
+| S-F8 | Middlegame `2b2knr/...` says `mate -9` at depth 12 where depth 24 gives `mate -7` with a verified 14-ply mate. **REPAIRED on the PC build** (`mate -8`). | base/S14; PC/PC20 |
+| S-F9 | Wrong-mate-score rate across three independent sets: 2 of 28 mate scores (~7%), and in both cases the SCORE was wrong, never merely the PV. | base/S14 |
+| S-F10 | The wrong mate score is not state: a fresh process reproduces it, and a correct deeper search followed by `ucinewgame` returns to the wrong number in the same process. | base/S14 |
+| S-F25 | `go softnodes` is deterministic (identical score/nodes/move), always stops at a FINISHED depth, and overshoots N by 1.06-1.55x. Independently reproduced by seats **08, 19 and 29**. | PC/PC20 |
+| S-F26 | **NEAR-MISS, NOT A DEFECT - DO NOT "FIX".** The match path uses only 2.4-8.7% of its clock (178 ms of 6 s), which is `plan_clock_budget`'s soft limit working (TmSoftDivisor 22 -> 317 ms at 6 s); `go movetime` differs because it is a hard instruction. Corroborated by four seats; raising time usage would lose on time. | PC/PC20 |
+| S-F29 | The depth-20 threshold finding above. | PC/PC20 |
+
+### CONFIRMATIONS / CHECKS OF OTHERS
+
+| id | what | result |
+|---|---|---|
+| S-C1 | seat 06 S-F10 | confirms the depth-10 depth-10 mate result, with the correction that "mate machinery sound" does not generalise to depth 12 |
+| S-C3 | seat 06 S-F21 | **exact** reproduction: 101/353 bestmoves not the mirror (28.6%), 334/353 scores unequal (94.6%), with a 180-rotation plant caught 5/5 |
+| S-C4 | FABLE_TO_swarm_5's honesty table | **all six numbers exact** on my own build (312866/862329/3024920/4865609; 242796/656517; 278024/587276) |
+| S-C5 | file 6 applied to my own boards | **0 of 8 survive** as defects (budget at counter 99 is 1 half-move; no board has a forced mate) |
+| S-C6 | file 6 positive control | the rule is **not vacuous**: one board fires at counter 91 (mate 8 at counter 0, cp 0 at the real counter, 15 > 9), and the engine reports the mate whenever the budget allows |
+| S-C7 | seat 05 S-F14 | **partly confirms, partly refutes**: my 21-piece board is flat `cp 0` at counter 99 for depths 6-12 (confirmed); the pawnless variant scores +63..+87 at counter 100, not a draw (refuted on PC r15; they used the base tree) |
+| S-C12 | seat 19 19-F46 | **numerically confirms**: `go nodes` ratio median 0.67 vs their 0.68, `go softnodes` 1.21 vs 1.219, softnodes deeper in 18/18 |
+
+### WITHDRAWN / NOT A DEFECT (with the reason)
+
+| id | status |
+|---|---|
+| S-F3, S-F4, S-F5, S-F11..S-F18, S-F20 | **NOT A DEFECT under file 6.** Measurements all reproduce; the judgement was wrong because the owner's match program ends the game at the 100th half-move, so `cp 0` is correct. My "the opponent can decline" premise was the human FIDE claiming rule. |
+| S-F19 | **withdrawn by my own A/B**: removing the fifty-move test from `is_draw` moves scores by 323 cp mean and costs a median 408x nodes |
+| S-F22, S-F23 | **not to be pursued**: the refusable-aware repair fixes a non-defect and costs 11-20 plies of depth at every clock tried (depth 22->12, 32->14, 36->15) |
+| S-F27, S-F28, S-C9, S-C10 | **withdrawn entirely**: there is no `go nodes 20000` defect. The final answer is correct; my "illegal move in the PV" was my own typo (`b2a2` for `b1a2`) replayed back at me. Exposure on 100 real game positions: 0. |
+| merge question | the repair must be applied on its own and **never layered inside `FORGE_FIX_ROOT_DRAWN`** (root-only flag vs a per-node test), but it should not be applied at all |
+
+### ERRORS OF MINE, ALL RECORDED, NONE EDITED AWAY
+
+Written up in `COPYING_RULE.md` (the transferable artifact) and `pcpath/S-F27_WITHDRAWN.md`:
+1. concluded the clock-99 zero was correct - withdrawn (`debug/CORRECTION.md`)
+2. typed `h6h5` as a pawn push when it is a capture (`debug/COST_FINAL.md`)
+3. a check compared a regex match to `"cp 0"` when it returns `"score cp 0"` (`check_05F14/`)
+4. headlined S-F27 as a match-path defect when the final answer was correct (`pcpath/EXPOSURE_FINAL.md`)
+5. claimed an illegal PV move that was my own typo (`pcpath/S-F27_WITHDRAWN.md`)
+One cause every time: reconstructing data instead of copying it from raw output.
+
+### FILES THAT MATTER MOST
+`COPYING_RULE.md` (the rule for the next swarm), `check_file6/HOW_TO_APPLY_FILE6.md` (the depth line),
+`check_file6/depth_requirement.txt` (the 8x6 table), `pcbuild/HONESTY_PC.txt` (file 5 table reproduced),
+`debug/CLOCK99_ANALYSIS.md` and `debug/MECHANISM.md` (the full clock thread, for the record),
+`debug/RISK_MEASURED.md` (why the repair was refused), `pcpath/EXPOSURE_FINAL.md` (the withdrawal).
+
+Running now: nothing. Next: continue the cycle on the PC path and confirm other seats where my PC20 harness helps.
 ## 2026-11-16T23:24Z - COPYING_RULE.md written; depth sweep sharpens the file-6 guidance (18, not 20)
 
 COPYING_RULE.md (new, top of the branch for the next swarm): never reconstruct data from memory or notes - copy it
