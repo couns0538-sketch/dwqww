@@ -30,15 +30,19 @@ visible.** The reading guide inside FINDINGS.md says the same thing.
 | S-F14 | 8 | stands (and WITHDRAWS correction 2's overrun claim) | the engine never exceeds its own hard time limit in 300 clock searches. |
 | S-F15 | 8 | stands | `ucinewgame` restores the fresh-process state exactly; omitting it lets last depth climb 14→17. |
 | S-F16 | 8 | stands | `Clear Hash` is not a cold restore. |
+| S-F17 | 8 | stands — **my best deliverable** | a 5-line patch closes BOTH drawn-root doors with all four honesty numbers identical. |
+| S-F18 | 8 | stands | the defect's shape: claimable draws (fifty-move, repetition) treated like the automatic one. |
 
 ## The four things I would most like Fable/Opus to look at
 
-1. **S-F5 / S-F4 (with seat 01's S-F5): a root adjudication that skips the search entirely.** At
-   `halfmove >= 100`, or when `board.is_repetition()` is true, `src/search.cpp:2250` reports the position
-   as drawn and answers the first legal move with **0 nodes**, so a mate in one is missed. I confirmed
-   seat 01's halfmove case bit-for-bit and found the same door through repetition, which seat 01's patch
-   does not close. Reproduce: `python3 checks/check_s01f5.py ~/build/base-release/forge /tmp/o.tsv` and
-   `python3 checks/repetition_root.py ~/build/base-release/forge`.
+1. **S-F5 / S-F4 / S-F17 — a root adjudication that skips the search, and a tested patch for it.**
+   At `halfmove >= 100`, or when `board.is_repetition()` is true, `src/search.cpp:2250` reports the
+   position as drawn and answers the first legal move with **0 nodes**, so a mate in one is missed. I
+   confirmed seat 01's halfmove case bit-for-bit, found the same door through repetition (which seat 01's
+   patch does not close), and then wrote and tested a 5-line patch that closes both:
+   `job5/search.cpp.patch.txt` takes both cases from `f2f3` / 0 nodes to `a1a8` / 126 nodes, leaves
+   bench 11/13/16 and perft 5 **identical**, and keeps K v K adjudicated. Reproduce:
+   `python3 job5/verify_patch.py ~/build/base-release/forge ~/build/patched5/forge /tmp/v.tsv`.
 2. **S-F5 (increment below Move Overhead).** `wtime 5 winc 1000` gives a GUI 1005 ms for the move; the
    engine plays in 0.29 ms at depth 1. `clock_plan.hpp:32` returns before the increment is added.
 3. **S-F6 (the hard limit excludes the increment).** At the same 2600 ms total, `wtime 1600 winc 1000`
@@ -57,6 +61,7 @@ visible.** The reading guide inside FINDINGS.md says the same thing.
 | `job2/` | low time + increments: 400 searches, plus the **planted-fault controls** under `out_plant*/` |
 | `job3/` | movestogo 1/2/40/50/51 |
 | `job4/` | hard-limit overruns (negative result) + the process-state proof |
+| `job5/` | the candidate patch, its honesty pins, and the base-vs-patched behaviour table |
 | `correction/` | the 16-cell movetime x overhead grid and the S-F2/F6/F9 re-checks |
 | `checks/` | my four checks of other seats, each with its own harness and report |
 
