@@ -1,0 +1,12 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -2248,8 +2248,7 @@
+     };
+ 
+     // Terminal or adjudicated roots: report without searching.
+-    const bool root_drawn = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
+-                                               board.is_insufficient_material());
++    const bool root_drawn = !legal.empty() && (board.is_repetition() || board.is_insufficient_material());
+     if (root_candidates.empty() || root_drawn) {
+         int score = 0;
+         if (legal.empty() && board.in_check()) score = -MateValue;
