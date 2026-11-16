@@ -1,0 +1,92 @@
+# LmrTerms.patch.txt - applies from the REPOSITORY ROOT (patch -p1) on the PLAIN base 6b98f2170a3210e71beed04bbd2553972c253ed7 (no other patch). Seven spin options (0..4), each replacing ONE literal of the reduction's correction terms right after 'int r = reduction(quiet, depth, move_count);' (src/search.cpp 1994-2001): LmrTtPv (default 1), LmrNotImproving (1), LmrCutNode (2), LmrTtCapture (1), LmrGiveCheck (1), LmrInCheck (1), LmrCutoffAdd (1; the +1 of the cutoff_count line; LmrCutoffThreshold untouched). The defaults reproduce the base exactly.
+#
+--- ds5_base_src/include/forge/search.hpp	2026-11-16 08:48:42.475794560 +0000
++++ ds5_lt/include/forge/search.hpp	2026-11-16 11:23:34.391794560 +0000
+@@ -273,6 +273,13 @@
+ extern int HistoryBonusMax;
+ extern int LmrHistoryDivisor;
+ extern int CheckExtensionDepth;
++extern int LmrTtPv;
++extern int LmrNotImproving;
++extern int LmrCutNode;
++extern int LmrTtCapture;
++extern int LmrGiveCheck;
++extern int LmrInCheck;
++extern int LmrCutoffAdd;
+ extern int LmrCutoffThreshold;    // child cutoff count above which late moves are reduced more (0 = off)
+ extern int MaterialCorrectionWeight; // 0 = off, 100 = same weight as the pawn correction
+ // Time management (sudden-death / increment controls).
+--- ds5_base_src/src/search.cpp	2026-11-16 08:48:42.515794560 +0000
++++ ds5_lt/src/search.cpp	2026-11-16 11:23:34.391794560 +0000
+@@ -74,6 +74,13 @@
+ int HistoryBonusMax = 2048;
+ int LmrHistoryDivisor = 6000;
+ int CheckExtensionDepth = 2;
++int LmrTtPv = 1;
++int LmrNotImproving = 1;
++int LmrCutNode = 2;
++int LmrTtCapture = 1;
++int LmrGiveCheck = 1;
++int LmrInCheck = 1;
++int LmrCutoffAdd = 1;
+ int LmrCutoffThreshold = 3;
+ int MaterialCorrectionWeight = 100;
+ int TmSoftDivisor = 22;
+@@ -1992,13 +1999,13 @@
+             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+             (quiet || !ss->tt_pv || move_count > 4)) {
+             int r = reduction(quiet, depth, move_count);
+-            if (ss->tt_pv) r -= 1;
+-            if (!improving) r += 1;
+-            if (cut_node) r += 2;
+-            if (tt_capture && quiet) r += 1;
+-            if (gives_check) r -= 1;
+-            if (in_check) r -= 1;
+-            if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
++            if (ss->tt_pv) r -= tune::LmrTtPv;
++            if (!improving) r += tune::LmrNotImproving;
++            if (cut_node) r += tune::LmrCutNode;
++            if (tt_capture && quiet) r += tune::LmrTtCapture;
++            if (gives_check) r -= tune::LmrGiveCheck;
++            if (in_check) r -= tune::LmrInCheck;
++            if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += tune::LmrCutoffAdd;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+--- ds5_base_src/src/uci.cpp	2026-11-16 08:48:42.515794560 +0000
++++ ds5_lt/src/uci.cpp	2026-11-16 11:23:41.655794560 +0000
+@@ -198,6 +198,13 @@
+             std::cout << "id name Chess Engine Forge 6.4.24 candidate\n"
+                          "id author OpenAI\n"
+                          "option name Hash type spin default 32 min 1 max 2048\n"
++                         "option name LmrTtPv type spin default 1 min 0 max 4\n"
++                         "option name LmrNotImproving type spin default 1 min 0 max 4\n"
++                         "option name LmrCutNode type spin default 2 min 0 max 4\n"
++                         "option name LmrTtCapture type spin default 1 min 0 max 4\n"
++                         "option name LmrGiveCheck type spin default 1 min 0 max 4\n"
++                         "option name LmrInCheck type spin default 1 min 0 max 4\n"
++                         "option name LmrCutoffAdd type spin default 1 min 0 max 4\n"
+                          "option name Threads type spin default 1 min 1 max 256\n"
+                          "option name MultiPV type spin default 1 min 1 max 8\n"
+                          "option name Move Overhead type spin default 10 min 0 max 1000\n"
+@@ -323,6 +330,20 @@
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "info string cannot load book " << path << std::endl;
+                 }
++            } else if (name == "LmrTtPv") {
++                apply_spin(0, 4, [&](int clamped) { forge::tune::LmrTtPv = clamped; });
++            } else if (name == "LmrNotImproving") {
++                apply_spin(0, 4, [&](int clamped) { forge::tune::LmrNotImproving = clamped; });
++            } else if (name == "LmrCutNode") {
++                apply_spin(0, 4, [&](int clamped) { forge::tune::LmrCutNode = clamped; });
++            } else if (name == "LmrTtCapture") {
++                apply_spin(0, 4, [&](int clamped) { forge::tune::LmrTtCapture = clamped; });
++            } else if (name == "LmrGiveCheck") {
++                apply_spin(0, 4, [&](int clamped) { forge::tune::LmrGiveCheck = clamped; });
++            } else if (name == "LmrInCheck") {
++                apply_spin(0, 4, [&](int clamped) { forge::tune::LmrInCheck = clamped; });
++            } else if (name == "LmrCutoffAdd") {
++                apply_spin(0, 4, [&](int clamped) { forge::tune::LmrCutoffAdd = clamped; });
+             } else if (name == "Book Depth" || name == "Book Variety") {
+                 apply_spin(0, 100, [&](int clamped) {
+                     if (name == "Book Depth") book_depth = clamped;
