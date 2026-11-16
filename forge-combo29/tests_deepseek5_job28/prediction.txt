@@ -1,0 +1,16 @@
+job 28 prediction (committed before the first run)
+
+THE QUESTION: under S14 a history drop whose margin lies further below the threshold is regretted MORE
+often when searched anyway (the rate rises with k). A margin should work the other way.
+
+My prediction, before any split is counted:
+1. The rise is a NODE-MIX effect: the moves that survive the wider margins (the k >= 1.5 classes) sit in
+   nodes where the base regret rate is higher - I expect the (static eval - alpha) classes near 0 and the
+   expected-cut-node kind to carry them. WITHIN one (eval - alpha) class the rate should be flat or
+   falling with k.
+2. The futility comparison behaves (its rate falls with k) because its margin scales with lmr_depth
+   (the node's depth), so its k class is NOT a node-mix marker the way history's is.
+3. I expect a high-rate history class above 250/1,000 to exist at node depth 1 (the (eval-alpha) >= 0
+   or the cut-node kind) and a safe class under 30/1,000 among the deep (eval-alpha) cells.
+If the within-class rates still rise with k, the margin genuinely selects worse moves backwards and the
+history term's direction is the finding.
