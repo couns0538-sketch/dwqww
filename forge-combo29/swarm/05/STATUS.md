@@ -158,3 +158,16 @@
 ## $(date -u)
 - S-F15 repeated on ASan+UBSan: identical (95/93/91/89 tracking vs flat 98), no sanitizer output.
 - next command: python3 - <<'PY' to total up every job folder's file counts for the final STATUS, then final push.
+
+## $(date -u) — FINAL PUSH (owner deadline 22:30; all work pushed well before it)
+SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw files.
+- Findings (F): S-F1 S-F2 S-F3 S-F4 S-F5 S-F6 S-F7 S-F8 S-F9 S-F10 S-F11 S-F12 S-F13 S-F14 S-F15
+- Checks (C): S-C1 (seat 06 S-F9) S-C2 (seat 19 19-F12) S-C3 (honesty re-verify) S-C4 (my own parser fix)
+             S-C5 (seat 15 F3) S-C6 (seat 15 F4) S-C7 (seat 25 S-F4 + correction of my S-F11) S-C8 (seat 15 F5)
+- Jobs: job1 (PV legality + mate distances on O+G), job2 (draw scores + the fifty-move cliff), job3 (terminal
+  roots under ASan+UBSan), job1b (fresh-set repeat, seed 511), job3b (fresh-root repeat, seed 521).
+- Every job has a REPORT_jobN.md built from committed raw files; every check has a RESULT.md.
+- Sanitizer claims carry both proofs the brief requires (nm counts + a planted fault counted by the same runner).
+- FINAL_SUMMARY.md lists everything including every mistake I made and corrected.
+- next command (if the session resumes): python3 job2/what_makes_flat.py with a SECOND pawn placement, to test
+  whether S-F15's flat-98 depends on where the pawn is or only on there being one.

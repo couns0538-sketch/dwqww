@@ -25,7 +25,9 @@ position sets. That is S-F1 + S-F9.
 | S-F10 | R-set baseline: 200/200 bestmove+PV, 0 illegal PV moves, 18 mate scores (17 exact), 12,230,484 nodes, median 46,976 |
 | S-F11 | the S-F3 cliff is not a fixed counter: the boundary tracks counter+depth at 100–101, which reconciles my "9 plies early" with seat 25's "1 ply early" — same rule, different mate distances |
 | S-F12 | `DeadMaterial true` is a pure material key for exactly two knights: 8/8 KNNk positions across eight placements go cp 216..326 -> cp 0, and 0/3 KNNNk are touched (three knights can mate) |
-| S-F13 | that boundary rule is material-independent: K+B+B vs K gives the same counter+depth = 100 at all four depths tested |
+| S-F13 | that boundary pattern holds across FOUR bare endgames (K+R, K+Q, K+B+B, K+N+N vs K): counter+depth = 100-101 at d6/d8/d10/d12, the counter just below scoring +33..+390 cp |
+| S-F14 | **CORRECTION of my own S-F11/S-F13**: the boundary is POSITION-dependent, not one law. Seat 25's 21-piece middlegame is flat at 99; the same board pawnless is flat at 100. My "counter+depth" claim is scoped to bare endgames only |
+| S-F15 | ONE black pawn flips it: bare K+R tracks depth (95/93/91/89), the same board with a pawn is flat at 98 — though stripping pawns from a middlegame does NOT restore tracking, so I claim no mechanism |
 
 ## Checks of other seats
 | id | verdict |
@@ -36,6 +38,8 @@ position sets. That is S-F1 + S-F9.
 | S-C4 | after seat 19's parse warning I found and fixed a real false-verdict path in my own `job1/mate_check.py` (a missing parse fell through to MISMATCH, i.e. an invented REFUTES); proven by control, published numbers unchanged |
 | S-C5 | CONFIRMS seat 15's 15-F3 on my own 20 KNN v K positions (20/20 non-zero off, 20/20 cp 0 on) + the correctness control: DeadMaterial true leaves K+Q/K+R wins at cp 472..1162 |
 | S-C6 | CONFIRMS seat 15's 15-F4 (dead-draw roots emit an EMPTY pv with 0 nodes, one line per depth) and audits my own exposure: 600/600 empty pv lines in my job2 draw sets, but my cp 0 conclusions stand |
+| S-C7 | CONFIRMS seat 25's S-F4 on their board (break at clock 99, 341 nodes) **and corrects my own S-F11** — their boundary is flat at 99, mine only tracked depth on bare endgames; also: no option (EvalRule50Damp, UseNNUE, Hash, Threads) or depth 1..20 escapes the clock-99 zero, while clock 0 searches normally (-164 cp, 19,621 nodes) |
+| S-C8 | CONFIRMS seat 15's 15-F5 on 20 fresh seed-521 roots: 60/60 runs give mate 0 / cp 0 with 0 nodes and 0000, and the depth ladder runs to 64 for `go nodes`/`go movetime` vs 5 for `go depth 5` |
 
 ## Jobs
 - `job1/` — PV legality + mate distances on O(200)+G(353) at depth 12. REPORT_job1.md
@@ -62,6 +66,13 @@ position sets. That is S-F1 + S-F9.
   upward scan is what produced S-F11/S-F13.
 - `honesty_safe.py` first waited for a `bestmove` that `bench` never prints and hung; it now waits for the
   `readyok` queued behind the command.
+- I claimed (S-F11) that my "9 plies early" and seat 25's "1 ply early" were "the same rule". Testing their board
+  showed their boundary is flat at 99 while mine only tracked depth on bare endgames; I scoped S-F11/S-F13 and wrote
+  S-F14 as the correction. I then proposed a "reach the counter" mechanism and TESTED it — stripping all 12 pawns
+  left the boundary flat at 100, so the hypothesis was withdrawn.
+- One fifty-move test ran on the wrong FEN: `8/8/8/8/8/8/8/K1N4k` is K+N (a dead draw), not K+N+N, so every clock
+  scored cp 0 and the scan measured nothing. Discarded, material asserted, re-run; both runs are recorded in
+  `job2/out/cliff_vs_depth_KNN.txt`.
 
 ## Not done / open
 - No cause is claimed for S-F1/S-F9: I did not read `search.cpp` (area 7's job).
