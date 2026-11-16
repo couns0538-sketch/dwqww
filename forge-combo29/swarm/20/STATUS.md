@@ -109,3 +109,13 @@ No new FABLE_TO_swarm file above 5 (checked; newest swarm file is still 5).
   separates "shortcut" from "correct draw".
 Remaining: seat 27's S-F8 chain, seat 28's S-F21/S-F19 (competing patches).
 Counts: 64 FINDINGS lines (22 checks), tree clean, every push includes this file.
+
+## 2026-11-16T22:33:15Z queue: 7 of 8 done + a swarm-wide labelling audit
+- **S-C23** seat 27 S-F8/S-F8b: substance CONFIRMED (a `searchmoves` restriction changes the reported score on both
+  builds at Threads 1) — but their quoted `cp 30 / 56720` labelled "S14" is the **default-settings** answer; real S14
+  is `d2d4 / cp 24 / 22459`. NEW: on the PC build under PC20 the two-move restriction nearly closes the effect.
+- **S-F42** (new, swarm-wide): audited every seat's FINDINGS for "S14" next to a node number. **Exactly one real
+  mislabel (seat 27's), no others.** Ground truth measured: defaults = e2e4/cp 30/56720 on BOTH builds; S14 =
+  d2d4/cp 24/22459; PC20 = d2d4/cp 25/21600. So the S14 labelling is otherwise sound, and the default answer being
+  identical on both builds is why the four honesty pins stay comparable.
+Remaining: seat 28's S-F21/S-F19 (three competing drawn-root patches — which one to advise).
