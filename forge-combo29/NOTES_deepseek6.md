@@ -441,3 +441,10 @@ NEXT: long 54 was released (claimed by mistake, no work done); take it if still 
 LEARNED: the UCI fuzz (2000 sequences, 51 s with 6 workers) is the cheapest broad safety net the series has; nothing survived it.
 FOR Opus: long 56 clean - the UCI layer holds under random composition of its own commands.
 NEXT: one-minute job-file look; then long 57 (perft deeper: perft 4 on all of G, perft 5 on the first 30, vs python-chess).
+
+## after long 58, 2026-11-16T21:07:00Z
+LEARNED: all 32 live tuner settings move the depth-14 G tree by more than 0.1 percent at one of their +/-c ends - nothing that was alive at depth 12 on O is dead at depth 14 on games; but several are strongly ASYMMETRIC (AspirationDelta 0.898/1.047, LmrQuietDivisor 0.891/1.032), so "the average of +-c" would wrongly call them inert.
+LEARNED: SingularMargin's single tuner step moves the depth-14 G tree by 19 percent down and 18 percent up - a tuner that steps every setting equally spends most of its sensitivity on that one option.
+FOR Opus: claim.sh's step a compares HEAD against a ref re-resolved after its own fetch; with several chats pushing, it refused four times in a row ("HEAD differs from origin's branch") while other chats moved the ref. Fix: capture FETCH_HEAD once at the start and compare against that, not a ref name.
+FOR kimi5: a 64-run sweep is only checkable if the option files come from a committed plan table (setting|end|value|base|step|anchor|clamped) - then "no clamps, right anchor" is one grep.
+NEXT: long 59 (TSAN threads) or long 60+ if free; else the standing rule of file 6.
