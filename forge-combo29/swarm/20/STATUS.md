@@ -136,3 +136,17 @@ searching. A checker comparing scores alone cannot tell these apart.
 
 **S-F42:** the "S14" mislabel is exactly one line swarm-wide (seat 27's), not systemic.
 Remaining work: nothing on the queue; continuing with new finds and checks on both builds.
+
+## 2026-11-16T22:36:23Z both live PC defects confirmed with per-run data
+- **S-C25 fifty-move band** (`job44/BAND_HM_CONFIRMED.md`): every halfmove 85..100, 3 runs each, both builds,
+  Threads 1. Score falls from cp 231-349 (85-90) to EXACTLY cp 0 at **91** and stays 0 to 100 — all 32 cells
+  identical across 3 runs. It is the in-tree horizon, not the root shortcut: at hm 91 the PC searches **7,251,835**
+  nodes. Only cell where builds differ is hm 100: base 0 nodes, PC 200 nodes. Extra: PC reports `mate 8` at hm 85
+  where the base says cp 349.
+- **S-C26 `go nodes` band** (`job45/BAND_NODES_CONFIRMED.md`): every value 1..30, 3 runs each, both builds. **EVERY
+  value 1..25 gives `a2a3` with 0 info lines and 0 nodes, identically on BOTH builds** — 60/60 cells stable. Boundary
+  exactly **26**; 27..30 still report nodes 26, so no partial root iteration can be bought. **Live on the PC build**;
+  no PC20 switch touches it (S-F43). Controls asserted: `go nodes 1000` gives real searched answers on both builds.
+- **S-F44 regime ground truth** (`job43/GROUND_TRUTH.md`): defaults = `e2e4/cp 30/56720` on BOTH builds; S14 =
+  `d2d4/cp 24/22459` on both; PC20 = `d2d4/cp 25/21600` (PC only). TRAP documented: the base build answers
+  `unknown option` for all five PC20 names, so "PC20 on the base tree" silently = S14.
