@@ -50,13 +50,15 @@ def main(outdir):
             continue
         accepted += 1
         fen = fen_by_idx[idx]
-        # python-chess view of THIS exact FEN (as the engine read it)
+        # python-chess view of THIS exact FEN. "valid" means parseable AND chess.Board.is_valid(),
+        # because python-chess's constructor happily parses boards with no king, two kings, pawns on
+        # rank 1/8 and impossible checkers; is_valid() is the judgement the job asks for.
+        board = None
         try:
             board = chess.Board(fen)
-            py_ok = True
-            py_reason = ""
+            py_ok = board.is_valid()
+            py_reason = "" if py_ok else "python-chess status %d" % board.status()
         except Exception as exc:  # noqa: BLE001
-            board = None
             py_ok = False
             py_reason = str(exc).split("\n")[0]
         if py_ok:
@@ -71,7 +73,7 @@ def main(outdir):
             pass
         # legality: if python-chess accepts the FEN, the engine's position is that board;
         # if it does not, we cannot judge from python-chess, so skip and count the skip.
-        if board is not None and bm and bm != "0000":
+        if board is not None and py_ok and bm and bm != "0000":
             illegal_checked += 1
             try:
                 mv = chess.Move.from_uci(bm)
@@ -80,7 +82,7 @@ def main(outdir):
                 continue
             if mv not in board.legal_moves:
                 illegal.append((idx, fen, bm, "not legal in python-chess board"))
-        elif board is not None and bm == "0000":
+        elif board is not None and py_ok and bm == "0000":
             if list(board.legal_moves):
                 illegal.append((idx, fen, bm, "0000 but python-chess has legal moves"))
             illegal_checked += 1
@@ -93,6 +95,7 @@ def main(outdir):
     lines.append("total FENs: %d" % total)
     lines.append("refused by the engine: %d (%.2f %%)" % (refused, 100.0 * refused / total))
     lines.append("accepted by the engine: %d" % accepted)
+    lines.append("python-chess validity rule used: chess.Board(fen) parses AND board.is_valid() is true")
     lines.append("accepted and python-chess valid: %d" % accepted_valid)
     lines.append("accepted and python-chess INVALID: %d" % len(accepted_invalid))
     lines.append("crashes: %d" % crashes)
