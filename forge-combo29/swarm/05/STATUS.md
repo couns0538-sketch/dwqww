@@ -415,3 +415,11 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   stops at a finished depth, and overshoots N by 1.00x..2.37x, QUANTISED by the depth ladder, on BOTH builds.
 - S-W3: withdrew my own false nondeterminism claim (probe compared wall-clock nps/time).
 - next command: `go nodes` 20000/50000/250000 determinism on the PC build under PC20, Threads 1.
+
+## $(date -u)
+- S-F34 NEW and operationally important: `go nodes N` UNDER-shoots on the PC build — it abandons the depth in progress
+  and reports as little as 47% of N. PC r15 + PC20, Threads 1, Hash 16, 3 fresh runs per cell, deterministic on all 9
+  cells: startpos 0.680/0.937/0.665, G0 0.467/0.588/0.812, mid 0.686/0.780/0.971 of N at N=20k/50k/250k. Worst cell
+  G0 at N=20,000 stops at depth 11 with 9,330 nodes and never reports depth 12. Opposite direction from softnodes,
+  which overshoots (S-F31/S-F32). These are exactly the N values the owner's matches use.
+- next command: check whether the base build shows the same `go nodes` undershoot.
