@@ -349,3 +349,8 @@ calls `tt.new_search()`.
 **08-F18** (+the OwnBook trap) · **24-F14**, **24-F16** (applied and built the patch) · **15-F24**, **15-F25** (built the split fix, both settings, pins unchanged) · **15-F30** (`nodes` hard ceiling 0/15, `softnodes` overshoots 14/15).
 Reports: `REPORT_job2.md`, `REPORT_job3.md`, `REPORT_check1.md`, `REPORT_check2.md`,
 `REPORT_pc_multipv.md`, `REPORT_pc_repairs.md`, `NOTE_go_nodes_budget.md`.
+
+## Mon Nov 16 11:29:39 PM UTC 2026
+
+**30-F50/C38: reproducibility stated separately and prominently**, now its own section in the FINAL ahead of the patch section and in the patch header. 8 fresh processes per cell: at Hash 256 the SHIPPED build gives depths **{7,11}** with nodes **5,395..47,818 (8.9x spread)** across identical runs, while the PATCHED build gives **depth 13 / exactly 106,863 nodes on 8 of 8**; at Hash 512 shipped is depth 1 (5/5) vs patched depth 12 / 71,070 (8/8). Two identical searches differing by 9x in work cannot be a measurement — that is the strongest argument for the patch and it is independent of the speed. Patch re-verified `patch -p1 --fuzz=0` rc=0 after the header edit (sha256 updated).
+**Next command**: continue the cycle toward 10:18 UTC; next is the board read for an unconfirmed finding of another seat.
