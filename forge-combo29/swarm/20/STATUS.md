@@ -466,3 +466,18 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - Refined takeaway: the patch is still worth having (no cost at safe sizes, +2.5-3 plies at 64/128) but **does not make
   a 2 GB table as good as 16 MB**, so "huge Hash with MultiPV" stays a bad idea even repaired.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-16T23:56:58Z residual MPV cost is a SECOND FULL-SIZE TABLE, not cache pressure (S-F55, refutes my own guess)
+- Control that settles it: on the REPAIRED build, **MultiPV 1 is FLAT in Hash — 17.0/17.0/17.0/16.5 at Hash
+  16/128/512/2048** — so a 2 GB table costs a normal search nothing here. My "cache/TLB pressure" guess was refuted by
+  its own control.
+- Source `src/search.cpp:2726-2732`: `alt_shared = std::make_unique<SharedSearchState>(hash_mb)` — with MultiPV > 1 the
+  engine allocates **a SECOND table the same size as the main one**. At Hash 2048 that is two 2 GB tables allocated and
+  first-touched before the first line is searched — which is why **the repaired build still collapses at 2048**.
+- Gradient has TWO causes: (1) per-line `tt.clear()` (~3 of 4-5 plies at Hash 128, removed by seat 30's patch);
+  (2) the second-table allocation (residual above 128 MB, NOT removed). Further lever would be sizing/sharing that
+  table, not another `clear()`.
+- Owner takeaway kept: patch is worth having, but **does not make a huge Hash as good as a small one**.
+- PROCESS: the missing-directory heredoc mistake recurred and duplicated the S-F55 row; **findings_lint.py caught it
+  immediately** — the defect class the rule and tool exist for.
+Next: continue in the window (ends 2026-11-17T10:18Z).
