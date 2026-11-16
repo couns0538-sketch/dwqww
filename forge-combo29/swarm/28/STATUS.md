@@ -125,3 +125,6 @@ PC BUILD READY. Patch sha256 d6bd72c531f785f4... MATCHES the expected prefix; 11
 
 ## Mon Nov 16 10:21:49 PM UTC 2026
 SWARM THREADS RULE applied. THREADS_AUDIT.md: 08-F11's base numbers came from seat 08's harness which DID send Threads 1 explicitly (their job5/raw/.meta); my 10 search harnesses all send Threads 1 explicitly except pcbuild/pins.py, which must not (pins are default-option per file 4, and the default IS 1). Score reproducibility measured: Threads 1 identical 5/5 (e1g1, cp 54, 27066 nodes); Threads 4 gives 5 distinct scores, 5 distinct node counts AND 2 distinct moves - so I reproduce seat 04 and extend it (the move varies too). S-F20: 08-F11 re-tested on PC r15/PC20 - tail shape reproduces (p99/median 2.20-4.43) but absolute p99 is 1.5-1.8x lower than base and 0/120 searches exceeded its clock.
+
+## Mon Nov 16 10:22:00 PM UTC 2026
+DRAWN-ROOT re-run on PC r15 / PC20 / Threads 1 / depth 12: ALL REPAIRED, exactly as FABLE_TO_swarm_3 says. hm99/hm100/hm150 and third-repetition all search and find a1a8 / mate 1 (252/252/252/240 nodes) vs base 0 nodes/f2f3; seat 01 counter-reset board gives mate 2 / 398 nodes; K v K still 0-node shortcut. S-F5, S-F4, S-F17, S-F18 are BASE-TREE ONLY - my patch must NOT be applied to the PC tree. (S-F23)
