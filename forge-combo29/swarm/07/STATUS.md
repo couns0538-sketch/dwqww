@@ -366,3 +366,23 @@ inc_tiny_clock.txt
 
 ## 2026-11-16T22:08:48Z
 re-verification: 07-F1 reproduces identically on a fresh build (info depth 4 ... score cp 0 nodes 0 -> bestmove 0000 for searchmoves naming no legal root; control e2e4 gives 438 nodes), and job2/searchmoves_empty_root.patch.txt still applies to clean 6b98f217 with --fuzz=0 (dry-run exit 0). 07-C18.
+
+## 2026-11-16T22:11:14Z
+job21 done: checked 27-S-F7 (nobody had) -> CONFIRMS on 82 options / 437 cases, 0 refused valid values, 0 unknown options (07-C19). Control: advertising a PhantomOption gives 6 UNKNOWN detections. Stated gap: the REFUSED-VALID half has no control.
+### git status --short
+ M FINDINGS.md
+ M STATUS.md
+?? REPORT_job21.md
+?? job21/
+### ls job21
+job21:
+check_27SF7.py
+raw
+raw_control
+stamps.txt
+
+job21/raw:
+summary.txt
+
+job21/raw_control:
+summary.txt
