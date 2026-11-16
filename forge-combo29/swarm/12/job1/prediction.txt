@@ -1,0 +1,19 @@
+# PREDICTION — seat 12, area 2, job 1 (2,000 random UCI command sequences under ASan + UBSan)
+# Written and pushed BEFORE the first measuring command. Never edited afterwards.
+
+Build under test: ASan+UBSan RelWithDebInfo of 6b98f217, g++-13
+Sequences: generate.py with SEED 1201, 2,000 sequences x 5..30 lines, every one ends isready + quit.
+
+| quantity                                  | predicted | range that kills it |
+|-------------------------------------------|-----------|---------------------|
+| sequences with a crash (signal)           | 0         | >= 1                |
+| sequences with a HANG (>20 s no answer)   | 0         | >= 1                |
+| sequences with a sanitizer line           | 0         | >= 1                |
+| sequences with an illegal bestmove        | 0         | >= 1                |
+| sequences with a nonzero exit status      | 0         | >= 1                |
+
+Reasoning: the sequences are generated from the engine's own documented grammar and every
+deliberately broken input (unknown option, bad value, bad move, garbage line) is one the
+FABLE_TO_swarm_1 file already says the engine refuses with a line or ignores. The one place I
+expect trouble is a `setoption` with `Threads` > 1 sent between searches, and `go ponder` followed
+by `quit`; if anything fires it should be there.
