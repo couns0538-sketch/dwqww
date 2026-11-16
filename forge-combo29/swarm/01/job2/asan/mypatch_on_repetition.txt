@@ -1,0 +1,24 @@
+my patch against seat 12's REPETITION door (seat 12's own case, my harness)
+go: 'go depth 6'; every case a fresh process; no setoption sent; quit sent only after bestmove
+SETUP VERIFICATION (python-chess):
+   mate_in_1_on_base = ['a1a8']
+   shuffle_all_legal = True
+   threefold_after_shuffle = True
+   halfmove_after_shuffle = 8
+   fen_after_shuffle = 6k1/5ppp/8/8/8/8/8/R5NK w - - 8 5
+   board_has_knights = True
+base    /home/ubuntu/builds/release/forge sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+mine    /home/ubuntu/builds/mine/forge sha256 81c52608ee74ddea5b23a37402add8543c29b13af51c316adc6247f6e3da37c9
+seat12  /home/ubuntu/builds/s12/forge sha256 6e0e95225a985d6fd3bfbc96b61f067c90a045be4ca5c26b1dadedeae5cc9d2f
+
+case	what	base	mine	seat12	door closed?
+control_fen	no history	base mate 1/108/a1a8	mine mate 1/108/a1a8	seat12 mate 1/108/a1a8	still closed on: nobody
+door1_h99	fifty-move door, 99	base mate 1/108/a1a8	mine mate 1/108/a1a8	seat12 mate 1/108/a1a8	still closed on: nobody
+door1_h100	fifty-move door, 100	base cp 0/0/g1e2	mine mate 1/108/a1a8	seat12 mate 1/108/a1a8	still closed on: base
+door2_rep	REPETITION door, counter 8	base cp 0/0/g1e2	mine cp 0/0/g1e2	seat12 mate 1/108/a1a8	still closed on: base,mine
+
+VERDICT: my patch does NOT fix the repetition door -> the two patches cover DIFFERENT
+doors and a merger must choose by which door matters:
+   counter-resetting mates (incl. mate-in-1 at 100) : mine
+   mate-in-1 at a threefold root, counter well under 100 : seat 12's
+   mate-in-1 at halfmove 100                                : BOTH

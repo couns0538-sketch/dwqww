@@ -72,3 +72,13 @@ MATE-IN-3 UNDER CLOCKS, run as the coordinator asked, and it CORRECTED ME TWICE.
 (d) I also found my own test of seat 12's repetition advantage measured NOTHING (S-F25): the shuffle was refused because the FEN root had no knights, so no threefold formed; that advantage stays UNVERIFIED and the summary now says so instead of claiming seat 12's patch is a superset.
 PATCH_SUMMARY_fifty_move.md section 6 now opens with the sentence a merger acts on: neither patch is complete, the measured boundary is a mate whose line does not reset the fifty-move counter, with a 3-row board table showing unpatched / mine / seat 12 side by side.
 Next command if time remained: rebuild a genuine threefold-with-mate-in-1 root using 'position startpos moves' from a position that HAS knights, to settle seat 12's repetition claim.
+
+## 2026-11-16T21:54:22Z
+DECIDING TEST DONE — the two patches are COMPLEMENTARY, not ranked. Ran seat 12's OWN repetition case (board 6k1/5ppp/8/8/8/8/8/R5NK, knight+king shuffle to a threefold at halfmove 8, setup VERIFIED with python-chess: shuffle legal, is_repetition(3) True) against MY patch. job2/asan/mypatch_on_repetition.txt, go depth 6, fresh process per case:
+  mate-in-1 no history        base mate 1/108 | mine mate 1/108 | s12 mate 1/108
+  mate-in-1 at halfmove 99    base mate 1/108 | mine mate 1/108 | s12 mate 1/108
+  mate-in-1 at halfmove 100   base cp 0/0     | mine mate 1/108 | s12 mate 1/108
+  mate-in-1 at THREEFOLD, c=8 base cp 0/0     | mine cp 0/0     | s12 mate 1/108  <-- MINE DOES NOT FIX THIS
+So my patch does NOT close the repetition door, exactly as its diff predicts (it only removes the halfmove>=100 test and leaves the repetition branch adjudicating). COVERAGE: counter-resetting mates incl. mate-in-1 and pawn-move mate-in-3 at 100 = MINE (seat 12's misses); mate at a threefold root with counter under 100 = SEAT 12's (mine misses); plain mate-in-1 at 100 = both. Seat 21's verification of seat 12's repetition door is CONFIRMED from the other side, and my earlier S-F25 was my own bad setup, not a refutation. New findings S-F26, S-F27, S-F28.
+PATCH_SUMMARY_fifty_move.md section 6 now leads with the deciding measurement and a two-row coverage table naming which door each patch fixes, removes the stale 'seat 12 is a superset' paragraph, and ends the fifty-move table with 'Neither patch is the whole fix.'
+Next command if time remained: build the combined fix (my reset-aware root test PLUS seat 12's immediate-mate bypass for the repetition and dead-material doors) as a THIRD patch, honesty-check and regression-test it, since neither existing patch alone is complete.

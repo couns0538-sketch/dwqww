@@ -113,14 +113,31 @@ output `patch_compose.txt`, each run a fresh copy of `6b98f217` in /tmp, applies
 | **seat 12 then seat 27** | CLEAN, and the final file is byte-identical to seat 27 then seat 12 |
 | mine then seat 12 (or the reverse) | **FAILED — the hunk is already applied** |
 
-**Which to choose — what I measured, and what I did not.** Seat 12's patch keeps every root adjudication and
-bypasses it only when the side to move has an **immediate** mate; that bypass is inside the shared condition, so
-in principle it also covers the repetition and dead-material doors. Mine removes the halfmove test from the root
-entirely. Measured consequences are in the table below: **mine is the more complete of the two on the
-counter-resetting class, and they are equal on mate-in-1.** I did **not** verify seat 12's repetition claim: my
-attempt to build a threefold root on a board with a mate in 1 failed (the FEN root I chose had no knights, so
-the shuffle moves were refused and `python-chess` reports `is_threefold=False`), so that test measured nothing
-(`repetition_door.py`, `job2/asan/repetition_door.txt`). Treat the repetition advantage as **unverified**.
+**THE DECIDING MEASUREMENT (do not rank the two patches — they are complementary).** I ran seat 12's own
+repetition case against my patch (`mypatch_on_repetition.py`, output `job2/asan/mypatch_on_repetition.txt`).
+The case is seat 12's, taken from its `two_doors.py`; the harness is mine; the setup is verified with
+python-chess before any verdict (shuffle legal, `is_repetition(3)` True, halfmove clock 8). Board
+`6k1/5ppp/8/8/8/8/8/R5NK` with `a1a8` mate in 1, `go depth 6`, fresh process per case:
+
+| case | unpatched | **my patch** | seat 12's patch |
+|---|---|---|---|
+| mate-in-1, no history (control) | mate 1 / 108 / a1a8 | mate 1 / 108 / a1a8 | mate 1 / 108 / a1a8 |
+| mate-in-1 at **halfmove 99** | mate 1 / 108 / a1a8 | mate 1 / 108 / a1a8 | mate 1 / 108 / a1a8 |
+| mate-in-1 at **halfmove 100** | **cp 0 / 0 / g1e2** | **mate 1 / 108 / a1a8** | **mate 1 / 108 / a1a8** |
+| mate-in-1 at a **threefold root**, counter 8 | **cp 0 / 0 / g1e2** | **cp 0 / 0 / g1e2** | **mate 1 / 108 / a1a8** |
+
+**So my patch does NOT fix the repetition door** — exactly as its diff predicts, because it only removes the
+`halfmove_clock() >= 100` test and leaves the repetition branch adjudicating. The two patches cover
+**different doors** and a merger must choose by which door matters:
+
+| door | fixed by |
+|---|---|
+| a mate at halfmove >= 100 whose line resets the counter (incl. mate-in-1, and a pawn-move mate-in-3) | **my patch** (seat 12's does not) |
+| a mate at a **threefold root** with the counter well under 100 | **seat 12's** (mine does not) |
+| a plain mate-in-1 at halfmove 100 | both |
+
+This also **confirms seat 21's verification** of seat 12's repetition door from the other side, and it means my
+earlier S-F25 "could not reproduce" was my own bad setup, not a refutation of seat 12.
 
 **Plainly: neither patch is complete, and the measured boundary is a mate whose line does not reset the
 fifty-move counter.** My patch fixes mate-in-1 *and* any mate whose first move is a capture or a pawn move (that
@@ -134,9 +151,11 @@ is the **correct** answer, not a bug. Board-by-board:
 | `8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1` | 3 plies, first move `h6h7` is a pawn move | yes (pawn move resets) | cp 0, 0 nodes | **mate 2**, 398 nodes | cp 0, 0 nodes |
 | `8/8/8/8/2K4Q/8/8/1k6 w - - 100 1` | 3 plies, all quiet | **no — Black claims** | cp 0, 0 nodes | cp 0, 324 nodes | cp 0, 0 nodes |
 
-So: **my patch is strictly more complete than seat 12's** on the counter-resetting class (row 2), and on the
+So: **on the counter-resetting class my patch is strictly more complete than seat 12's** (row 2), and on the
 third row `cp 0` is correct chess for all three builds — I had earlier read that row as a missed mate and was
 wrong (S-F19 corrected by S-F22/S-F23). The clock path behaves identically to the depth path in every case.
+But this table covers only the fifty-move door. **For the repetition door the result is the other way round**
+(see the deciding measurement above): mine does not fix it, seat 12's does. Neither patch is the whole fix.
 
 **An earlier limit I claimed, now withdrawn** (`compare_two_fixes.py`, output `compare_two_fixes.txt`): on a
 halfmove-100 board where the mate is **3 plies** away (`8/8/8/8/2K4Q/8/8/1k6 w - - 100 1`), **neither patch
