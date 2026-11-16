@@ -227,3 +227,15 @@ stamps.txt
 
 job12/raw:
 differences.txt
+
+## 2026-11-16T21:56:56Z
+
+All four published S14 sums reproduced exactly from cold starts:
+| figure | published | mine | finding |
+|---|---|---|---|
+| O depth 12 | 9,500,069 | 9,500,069 | 07-C3 |
+| G depth 12 | 18,466,239 | 18,466,239 | 07-C4 |
+| O depth 14 | 21,812,100 | 21,812,100 | 07-C6 |
+| G depth 14 | 43,345,893 | 43,345,893 | 07-C8 |
+First-three O d12: 41,311 / 24,872 / 28,574 — also exact.
+
