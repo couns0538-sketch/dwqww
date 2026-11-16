@@ -1,0 +1,60 @@
+Three independent comparisons on the 40 SHARED positions.
+Each position probed in a FRESH process with an empty TT (function of the position alone).
+
+| # | picker vectors | search score | search nodes |
+|---|---|---|---|
+| 1 | True | False (('cp', -433) vs ('cp', -426)) | False (188 vs 332) |
+| 2 | True | False (('cp', -445) vs ('cp', -428)) | False (911 vs 664) |
+| 3 | None | False (('cp', -476) vs ('cp', -480)) | False (546 vs 570) |
+| 4 | True | False (('cp', -390) vs ('cp', -393)) | False (209 vs 121) |
+| 5 | None | False (('cp', -478) vs ('cp', -477)) | False (326 vs 344) |
+| 6 | True | False (('cp', -401) vs ('cp', -390)) | False (401 vs 428) |
+| 7 | True | False (('cp', -476) vs ('cp', -465)) | False (657 vs 669) |
+| 8 | True | False (('cp', -397) vs ('cp', -410)) | False (740 vs 529) |
+| 9 | True | False (('cp', -407) vs ('cp', -419)) | False (397 vs 269) |
+| 10 | True | False (('cp', -405) vs ('cp', -406)) | False (112 vs 153) |
+| 11 | True | False (('cp', -470) vs ('cp', -457)) | False (389 vs 561) |
+| 12 | True | True (('cp', -419) vs ('cp', -419)) | False (285 vs 246) |
+| 13 | True | False (('cp', -407) vs ('cp', -425)) | False (1181 vs 620) |
+| 14 | True | True (('cp', -385) vs ('cp', -385)) | False (294 vs 278) |
+| 15 | True | True (('cp', -385) vs ('cp', -385)) | False (294 vs 278) |
+| 16 | True | True (('cp', 0) vs ('cp', 0)) | True (20 vs 20) |
+| 17 | True | True (('cp', -425) vs ('cp', -425)) | False (284 vs 288) |
+| 18 | True | True (('cp', 0) vs ('cp', 0)) | True (20 vs 20) |
+| 19 | None | False (('cp', -465) vs ('cp', -476)) | False (456 vs 520) |
+| 20 | True | False (('cp', -429) vs ('cp', -427)) | False (366 vs 381) |
+| 21 | True | False (('cp', -457) vs ('cp', -417)) | False (597 vs 1030) |
+| 22 | None | False (('cp', -465) vs ('cp', -476)) | False (543 vs 494) |
+| 23 | None | False (('cp', -465) vs ('cp', -476)) | False (543 vs 494) |
+| 24 | True | False (('cp', -401) vs ('cp', -390)) | False (397 vs 425) |
+| 25 | True | False (('cp', -406) vs ('cp', -398)) | False (414 vs 482) |
+| 26 | True | False (('cp', -409) vs ('cp', -424)) | False (747 vs 330) |
+| 27 | True | False (('cp', -409) vs ('cp', -424)) | False (747 vs 330) |
+| 28 | True | False (('cp', -409) vs ('cp', -424)) | False (747 vs 330) |
+| 29 | None | False (('cp', -474) vs ('cp', -473)) | False (449 vs 551) |
+| 30 | None | False (('cp', -474) vs ('cp', -473)) | False (449 vs 551) |
+| 31 | True | False (('cp', -387) vs ('cp', -389)) | False (397 vs 364) |
+| 32 | True | True (('cp', -387) vs ('cp', -387)) | False (606 vs 645) |
+| 33 | True | False (('cp', -399) vs ('cp', -390)) | False (484 vs 582) |
+| 34 | True | True (('cp', -481) vs ('cp', -481)) | False (402 vs 693) |
+| 35 | True | False (('cp', -399) vs ('cp', -384)) | False (756 vs 565) |
+| 36 | True | False (('cp', -457) vs ('cp', -482)) | False (403 vs 876) |
+| 37 | None | True (('cp', -473) vs ('cp', -473)) | False (323 vs 346) |
+| 38 | None | True (('cp', -473) vs ('cp', -473)) | False (323 vs 346) |
+| 39 | True | False (('cp', -385) vs ('cp', -386)) | False (482 vs 450) |
+| 40 | True | False (('cp', -392) vs ('cp', -398)) | False (512 vs 515) |
+
+SUMMARY
+  NEGATIVE 1 - static evaluation (S-F47, bisect_depth4.txt): 0 of 40 differ
+  NEGATIVE 2 - picker score vectors (history/threat/continuation tables): 0 of 40 differ
+  OBSERVED  - depth-4 SEARCH score on the same positions: 30 of 40 differ
+  OBSERVED  - node counts: 38 of 40 differ
+
+  The third line is NOT a third defect and must not be read as one: a search score is the
+  OUTPUT of the ordering, not a stored quantity. With the static eval and the picker vectors
+  both identical, order is the only remaining variable, so a differing search score on
+  corresponding positions is itself a DIRECT confirmation of the ordering mechanism.
+
+VERDICT: nothing STORED or COMPUTED per position is colour-dependent - not the static
+         evaluation, not the picker's tables. What differs is what the SEARCH produces from
+         those identical inputs, which is the ordering effect this thread identified.

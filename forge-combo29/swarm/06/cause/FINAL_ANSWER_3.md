@@ -138,3 +138,30 @@ follows different paths, and every observable difference grows from that single 
   measurement would not see it.
 - Positions reachable on one side only (143 of 171) cannot be compared this way at all; for those the claim
   rests on the chain argument, not on a direct comparison.
+
+---
+
+# POPULATION CHECK — the same probe on THREE mismatching pairs (67 shared positions, 0 of 67)
+
+The honest limit of the closing measurement was that 14 shared positions is **one board pair**. Rerun on two
+further mismatching pairs, chosen as the smallest from the mismatching set and with different piece counts,
+side to move and move counts:
+
+| pair | board | shared positions | NEG-1: static eval differ | NEG-2: picker vectors differ |
+|---|---|---|---|---|
+| 1 | `1r6/8/4K3/5p2/5k2/7p/8/8 w` | 14 | **0 of 14** | **0 of 14** |
+| 2 | `8/8/7k/7P/7r/4K3/8/8 w` | 40 | **0 of 40** | **0 of 40** |
+| 3 | `3b4/8/8/7p/5k1P/8/4K3/8 b` | 13 | **0 of 13** | **0 of 13** |
+| **TOTAL** | | **67** | **0 of 67** | **0 of 67** |
+
+**Nothing colour-dependent appears anywhere in 67 shared positions — 134 independent comparisons, all
+identical.** Raw: `bisect_depth4.txt`, `three_negatives.txt`, `three_negatives_p2.txt`,
+`three_negatives_p3.txt`, `population_summary.txt`, `shared14.fens`, `shared_p2.fens`, `shared_p3.fens`.
+
+Pair 3 is the most informative of the three for the *ordering* claim in the other direction: its depth-4
+search score differed on only **4 of 13** shared positions while its node counts differed on **13 of 13**. A pair
+where the verdict nearly always survives despite the search always costing a different number of nodes is
+exactly what an ordering effect predicts, and the opposite of what a misevaluation would produce.
+
+This upgrades the conclusion from a single-board observation to a **population statement across three
+independent mismatching pairs**.

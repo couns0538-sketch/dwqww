@@ -1,0 +1,33 @@
+Three independent comparisons on the 13 SHARED positions.
+Each position probed in a FRESH process with an empty TT (function of the position alone).
+
+| # | picker vectors | search score | search nodes |
+|---|---|---|---|
+| 1 | True | True (('cp', 641) vs ('cp', 641)) | False (159 vs 178) |
+| 2 | True | True (('cp', 646) vs ('cp', 646)) | False (137 vs 143) |
+| 3 | True | True (('cp', 641) vs ('cp', 641)) | False (211 vs 207) |
+| 4 | True | True (('cp', 646) vs ('cp', 646)) | False (134 vs 144) |
+| 5 | True | True (('cp', 556) vs ('cp', 556)) | False (341 vs 351) |
+| 6 | True | True (('cp', 555) vs ('cp', 555)) | False (180 vs 183) |
+| 7 | True | True (('cp', 840) vs ('cp', 840)) | False (178 vs 199) |
+| 8 | True | False (('cp', 466) vs ('cp', 473)) | False (370 vs 459) |
+| 9 | True | True (('cp', 573) vs ('cp', 573)) | False (170 vs 176) |
+| 10 | True | True (('cp', 770) vs ('cp', 770)) | False (204 vs 210) |
+| 11 | True | False (('cp', 463) vs ('cp', 464)) | False (423 vs 317) |
+| 12 | True | False (('cp', 454) vs ('cp', 457)) | False (379 vs 356) |
+| 13 | True | False (('cp', 760) vs ('cp', 716)) | False (229 vs 244) |
+
+SUMMARY
+  NEGATIVE 1 - static evaluation (S-F47, bisect_depth4.txt): 0 of 13 differ
+  NEGATIVE 2 - picker score vectors (history/threat/continuation tables): 0 of 13 differ
+  OBSERVED  - depth-4 SEARCH score on the same positions: 4 of 13 differ
+  OBSERVED  - node counts: 13 of 13 differ
+
+  The third line is NOT a third defect and must not be read as one: a search score is the
+  OUTPUT of the ordering, not a stored quantity. With the static eval and the picker vectors
+  both identical, order is the only remaining variable, so a differing search score on
+  corresponding positions is itself a DIRECT confirmation of the ordering mechanism.
+
+VERDICT: nothing STORED or COMPUTED per position is colour-dependent - not the static
+         evaluation, not the picker's tables. What differs is what the SEARCH produces from
+         those identical inputs, which is the ordering effect this thread identified.
