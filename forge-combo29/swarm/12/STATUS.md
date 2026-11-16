@@ -274,3 +274,22 @@ PC r15: cases 1, 2, 4 correct but cases 3 and the no-reset control are still wro
 so it cannot be called correct on the build the owner plays. Not investigated; the pins decide.
 
 Labeled a correctness experiment, not a candidate. job5/experiment_report.md.
+
+## 2026-11-16T22:33:21Z — interaction with FORGE_FIX_ROOT_DRAWN CONFIRMED
+
+Single experiment, as asked. PC tree + corrected condition, `FORGE_FIX_ROOT_DRAWN` compiled OFF via
+`-DFORGE_FIX_ROOT_DRAWN=0` (the switch is #ifndef-guarded, so no source edit); switch proven active:
+the clock-100 mate root answers cp 0 / 0 nodes with it OFF and mate 1 / 180 nodes on stock r15.
+
+With the root fix OFF: case 3 cp -1237 -> **cp 0** and the no-reset control cp -450 / 11,419 ->
+**cp 0 / 0 nodes**. Cases 1, 2, 4 unchanged and correct. So **4/4 cases + control correct with the
+root fix off, 2 failures with it on** — the two fixes cannot be layered; the claimable-draw rule has
+to be merged inside the root-drawn path deliberately.
+
+Pins: unchanged AGAIN, identical to every other patched build (353312 / 979723 / 2893009, perft 5
+exact) — so the cost is the repetition branch, not the root path.
+
+Incidental, reported not chased: root-fix-ON + corrected condition answers **cp 488 on a root where
+White has mate in one** — a third wrong answer, so layering is not merely imperfect but wrong there.
+
+Stopping on this thread. job5/root_off_report.md; S-F19 in FINDINGS.
