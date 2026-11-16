@@ -373,3 +373,16 @@ had two ILLEGAL FENs, and one board I labelled "mate in 3" was 3 PLIES = mate in
 depth with Threads 1 / Hash 16 / OwnBook false. I did not have that FEN, so the request stays OPEN rather than
 the question being closed -- a refutation on verified boards is the result, and the counter-example is the next
 thing to look for.
+
+## 2026-11-17T00:02Z S-C12 extended to the owner's third budget (250,000)
+Re-ran the `go nodes` vs `go softnodes` comparison over **all three of the owner's match budgets** {20,000 /
+50,000 / 250,000} x 6 real-game FENs = 18 cells, 2 fresh processes each, **18 of 18 deterministic**:
+  hard nodes/N **median 0.740** (0.467-0.993); soft nodes/N **median 1.232** (1.037-3.464);
+  **soft is exactly one ply deeper in 18 of 18 cells**; same bestmove in **16 of 18** (NOT all 18 as seat 19
+  reported - pos 3 N=20000 and pos 5 N=50000 differ, which is a correction to their line).
+  At the largest budget: `go nodes 250000` spends 167,506 of it on one board (0.67x) while `go softnodes 250000`
+  spends 1.05x-1.25x and is a ply deeper.
+  Cliff unchanged: `go depth 12` = 21,812; `go nodes 21812` -> depth 12 / 21,812; `go nodes 21811` -> depth 11 /
+  9,330 (57 % drop for one node).
+**Owner consequence, now at every budget he uses: a match labelled "nodes N" spends median 74 % of it and lands
+one ply shallower than `go softnodes N` on the same position.**
