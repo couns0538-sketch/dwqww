@@ -81,3 +81,20 @@ Read FABLE_TO_swarm_2, _3, _4, _5 (all five now). File 5's PC source built and v
 Swarm rule Threads 1 (22:20Z): perft does not use threads or the hash at all — `Board::perft`
 (src/board.cpp:1205-1222) is a plain recursive walk with no hash probe — but I now state `setoption name
 Threads value 1` (and Hash 16) explicitly in job4/engine_perft_t1.py so no table of mine can be misread.
+
+## 2026-11-16T22:23Z
+
+**job4 DONE — the owner's first job for my area.** PC r15 vs base, perft: **62,406 of 62,406 (position, depth)
+values identical** across five sets, depths 1..5:
+A 5,000 R SEED 301 (perft-4 sum 2,196,757,662 both), B 5,000 R SEED 311 (2,159,914,969 both), C 314 special,
+D 230 positions to depth 5 (perft-5 **3,925,995,728 both**), E 320 en-passant pins (320/320 + control 320/320).
+Under the full PC20 option set set A is still 20,000/20,000 identical. Settings: Threads 1, Hash 16 stated
+explicitly in every job4 process; `ucinewgame`+`isready` before each `go`.
+Findings: S-F6, S-F7, S-F8. Report: REPORT_job4.md.
+Also job1b complete (SEED 311): 20,000/20,000 equal, move sets identical, 0 duplicate FENs.
+
+Next in the cycle: check another seat's unconfirmed finding with my own harness on BOTH builds (area 10 duty
+inside my cycle step 2a), then re-run my own findings on the PC build where they are search-adjacent.
+
+Next command:
+`cd /agent/repos/dwqww/forge-combo29/swarm/03 && bash board2.sh 2>&1 | tail -20`
