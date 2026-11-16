@@ -1,0 +1,58 @@
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -309,6 +309,14 @@
+     std::uint64_t s1_faillow = 0;
+     std::uint64_t mate_best = 0;
+     std::uint64_t inf_best = 0;
++    // Part 5 statistics build only: at every S1/S2 case the old code's re-search (at the
++    // unchanged new_depth) is run as well, purely to count how often it contradicts the
++    // shortcut. Indexed by new_depth band 1-3 / 4-7 / 8+.
++    std::uint64_t s1_old_high[3] = {};
++    std::uint64_t s1_old_low[3] = {};
++    std::uint64_t s1_contra[3] = {};   // (old > alpha) != (shortcut > alpha)
++    std::uint64_t s2_old_high[3] = {};
++    std::uint64_t s2_old_low[3] = {};  // low = the unverified stand was wrong
+ };
+ extern K5J4Counters k5j4;
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -2037,7 +2037,19 @@
+                 }
+                 if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
+                     score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+-                    if (k5_cls == 1 && score <= alpha) ++tune::k5j4.s1_faillow;
++                    if (k5_cls == 1) {
++                        // Statistics only: the re-search the old code would have run.
++                        const int k5_old = -search(board, ss + 1, new_depth + 1, -alpha - 1, -alpha, !cut_node);
++                        const int b = new_depth + 1 <= 3 ? 0 : new_depth + 1 <= 7 ? 1 : 2;
++                        if (k5_old > alpha) ++tune::k5j4.s1_old_high[b]; else ++tune::k5j4.s1_old_low[b];
++                        if ((k5_old > alpha) != (score > alpha)) ++tune::k5j4.s1_contra[b];
++                        if (score <= alpha) ++tune::k5j4.s1_faillow;
++                    }
++                } else if (k5_cls == 2) {
++                    // Statistics only: the skipped re-search the old code would have run.
++                    const int k5_old = -search(board, ss + 1, new_depth + 1, -alpha - 1, -alpha, !cut_node);
++                    const int b = new_depth + 1 <= 3 ? 0 : new_depth + 1 <= 7 ? 1 : 2;
++                    if (k5_old > alpha) ++tune::k5j4.s2_old_high[b]; else ++tune::k5j4.s2_old_low[b];
+                 }
+                 full_depth_needed = false;
+             }
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -588,6 +588,15 @@
+                               << " mate_best " << forge::tune::k5j4.mate_best
+                               << " inf_best " << forge::tune::k5j4.inf_best;
+                     {
++                        static const char* k5db2[3] = {"d13", "d47", "d8p"};
++                        for (int i = 0; i < 3; ++i)
++                            std::cout << " s1_old_high_" << k5db2[i] << ' ' << forge::tune::k5j4.s1_old_high[i]
++                                      << " s1_old_low_" << k5db2[i] << ' ' << forge::tune::k5j4.s1_old_low[i]
++                                      << " s1_contra_" << k5db2[i] << ' ' << forge::tune::k5j4.s1_contra[i]
++                                      << " s2_old_high_" << k5db2[i] << ' ' << forge::tune::k5j4.s2_old_high[i]
++                                      << " s2_old_low_" << k5db2[i] << ' ' << forge::tune::k5j4.s2_old_low[i];
++                    }
++                    {
+                         static const char* k5cls[4] = {"unch", "s1", "s2", "s3"};
+                         static const char* k5nt[3] = {"pv", "cut", "oth"};
+                         static const char* k5db[3] = {"d13", "d47", "d8p"};

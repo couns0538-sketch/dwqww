@@ -1,0 +1,70 @@
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -293,6 +293,10 @@
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
++extern int LmrDeeperBase;            // do_deeper margin base (default 40)
++extern int LmrDeeperDepthMul;        // do_deeper margin per ply of new_depth (default 2)
++extern int LmrShallowerBase;         // do_shallower margin base (default 0)
++extern int LmrShallowerDepthMul;     // do_shallower margin per ply of new_depth (default 1)
+ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+ extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+ extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -107,6 +107,10 @@
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
++int LmrDeeperBase = 40;
++int LmrDeeperDepthMul = 2;
++int LmrShallowerBase = 0;
++int LmrShallowerDepthMul = 1;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -2015,8 +2019,10 @@
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+             if (full_depth_needed) {
+                 if (tune::LmrDeeperShallower) {
+-                    const bool do_deeper = score > best_score + 40 + 2 * new_depth;
+-                    const bool do_shallower = score < best_score + new_depth;
++                    const bool do_deeper =
++                        score > best_score + tune::LmrDeeperBase + tune::LmrDeeperDepthMul * new_depth;
++                    const bool do_shallower =
++                        score < best_score + tune::LmrShallowerBase + tune::LmrShallowerDepthMul * new_depth;
+                     new_depth += static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
+                 }
+                 if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,11 @@
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name LmrDeeperBase type spin default 40 min 0 max 100000\n"
++                         "option name LmrDeeperDepthMul type spin default 2 min 0 max 16\n"
++                         "option name LmrShallowerBase type spin default 0 min -100000 max 400\n"
++                         "option name LmrShallowerDepthMul type spin default 1 min 0 max 16\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -296,6 +300,15 @@
+             }
+             if (handled_tunable) {
+                 // Unlisted development options; nothing else to do.
++            } else if (name == "LmrDeeperBase" || name == "LmrDeeperDepthMul" ||
++                       name == "LmrShallowerBase" || name == "LmrShallowerDepthMul") {
++                int* target = name == "LmrDeeperBase" ? &forge::tune::LmrDeeperBase
++                            : name == "LmrDeeperDepthMul" ? &forge::tune::LmrDeeperDepthMul
++                            : name == "LmrShallowerBase" ? &forge::tune::LmrShallowerBase
++                                                         : &forge::tune::LmrShallowerDepthMul;
++                const int lo = name == "LmrShallowerBase" ? -100000 : 0;
++                const int hi = name == "LmrDeeperBase" ? 100000 : name == "LmrShallowerBase" ? 400 : 16;
++                apply_spin(lo, hi, [&](int clamped) { *target = clamped; });
+             } else if (name == "Clear Hash") {
+                 if (value_text.empty()) searcher.clear_hash();
+                 else note_invalid();
