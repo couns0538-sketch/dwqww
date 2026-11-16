@@ -139,6 +139,26 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:44Z - COMPLIANCE AUDIT of my own folder, and the four-step thread order in the FINAL
+
+COMPLIANCE (checked against the brief's rules):
+  * text files only: PASS after a fix - I had committed ONE .pyc binary
+    (job1c/__pycache__/classify_mates...pyc); removed from the index, deleted, and a .gitignore added.
+    Remaining non-ASCII files are all valid UTF-8 TEXT (em-dashes in prose), not binaries: `file` reports
+    "Unicode text, UTF-8 text" for every one.
+  * only my own folder: PASS - `git log --name-only ae78bd1c2..HEAD` filtered to outside
+    forge-combo29/swarm/25/ returns 0 files.
+  * no binaries in the index: PASS (0 files matching .pyc/.so/.a/.o).
+  * no pull request, no engine source committed (patch files are .patch.txt only), branch is mine alone.
+
+FINAL now carries the FOUR-STEP THREAD ORDER for the MultiPV work, with the superseded first statement kept in
+place: S-C21 (my too-narrow "clock x MultiPV", measured at one Hash) -> S-C22 (three conditions + the Hash-16
+control ladder) -> S-C23 (mechanism, nodes/ms 559->183->2 vs MPV1 flat ~1,500, plus the falsifiable patch
+threshold) -> S-C24 (Hash 16 on a clock with multiple lines; Hash free under a depth/node limit).
+
+State: 70 findings, working tree clean, local = remote. Next: keep cycling.
+
 ## 2026-11-16T23:43Z - S-C24: the MultiPV thread ends with a measured recommendation
 
 On a CLOCK (go wtime 5000, MPV3) depth falls monotonically with Hash: 16 -> 13 (fine), 32 -> 10, 64 -> 10,
