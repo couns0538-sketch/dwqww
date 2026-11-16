@@ -447,3 +447,6 @@ Settings: **none** (no setoption), **S14** (the 14 settings), **PC20** (S14 + th
 - S-F69: self-play at softnodes 2000 is deterministic and terminating — two games each exactly 212
   plies ending by insufficient material, 424 moves 0 illegal; each passed 9 threefold positions
   without the engine ending it (correct: that is the match program's job, per file 6).
+- S-F71: ponder is sound on PC20 — `go ponder` alone waits (emits nothing in 3 s), +ponderhit gives a
+  real searched move (g1f3, legal), +stop gives the shallow first-legal move (a2a3, correct UCI
+  semantics). A pondering match program will not hang.
