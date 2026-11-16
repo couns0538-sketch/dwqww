@@ -1,0 +1,26 @@
+EXE        : /tmp/bld/pc/forge
+EXE SHA256 : 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+FEN        : 1r6/5b2/2K5/8/8/5n2/5k2/8 w - - 18 183
+SETTINGS   : PC20, Threads 1, fresh process per number, OwnBook false
+Hypothesis : the wrong choice is RESOURCE-LIMITED (hash/time), not a static ordering error.
+
+=== free choice (no searchmoves) under different resources ===
+| arm | hash | go | bestmove | depth | score | nodes |
+|---|---|---|---|---|---|---|
+| A reported setting | 16 MB | `go depth 18` | c6c7 | 18 | mate -16 | 14312112 |
+| B hash only | 512 MB | `go depth 18` | c6c7 | 18 | cp -1185 | 696704 |
+| C time only | 16 MB | `go movetime 60000` | c6c7 | 19 | mate -10 | 29756934 |
+| D hash and time | 512 MB | `go movetime 60000` | c6c7 | 21 | mate -10 | 34254018 |
+
+=== each move's OWN score under the larger hash (restricted root) ===
+| move | hash | go | score | nodes |
+|---|---|---|---|---|
+| c6c7 | 16 MB | `go depth 18` | cp -1195 | 407934 |
+| c6c7 | 512 MB | `go depth 18` | cp -1195 | 407934 |
+| c6d6 | 16 MB | `go depth 18` | mate -9 | 21429391 |
+| c6d6 | 512 MB | `go depth 18` | mate -17 | 14254197 |
+
+free choice per arm: A reported setting -> c6c7; B hash only -> c6c7; C time only -> c6c7; D hash and time -> c6c7
+VERDICT: the free choice does NOT switch to c6d6 under larger resources -> the wrong
+         choice is not merely a budget effect.
+
