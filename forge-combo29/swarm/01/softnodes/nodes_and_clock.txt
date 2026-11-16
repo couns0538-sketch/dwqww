@@ -1,0 +1,35 @@
+`go nodes` and the 6s+0.06 clock on the PC build under PC20, Threads 1, Hash 16
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+
+A. go nodes N (hard budget):
+position	N	bestmove	nodes_reported	exact	score	wall_ms
+startpos	20000	d2d4	13604	False	cp 16	11.7
+startpos	50000	d2d4	46854	False	cp 14	28.1
+startpos	250000	d2d4	166281	False	cp 13	134.0
+midgame	20000	g7g6	19832	False	cp -287	11.2
+midgame	50000	g7g6	31779	False	cp -293	28.0
+midgame	250000	g7g6	170070	False	cp -273	139.2
+
+B. clock `wtime 6000 btime 6000 winc 60 binc 60`, 5 runs per position:
+position	run	bestmove	wall_ms	nodes	score	depth	within_budget
+startpos	1	e2e4	364.0	650246	cp 7	19	True
+startpos	2	e2e4	355.4	650246	cp 7	19	True
+startpos	3	e2e4	363.1	650246	cp 7	19	True
+startpos	4	e2e4	360.2	650246	cp 7	19	True
+startpos	5	e2e4	356.2	650246	cp 7	19	True
+  startpos: 1 distinct move(s) over 5 runs, wall min 355 ms max 364 ms
+midgame	1	g7g6	159.9	314239	cp -294	18	True
+midgame	2	g7g6	160.2	314239	cp -294	18	True
+midgame	3	g7g6	161.3	314239	cp -294	18	True
+midgame	4	g7g6	158.0	288912	cp -292	17	True
+midgame	5	g7g6	161.8	314239	cp -294	18	True
+  midgame: 1 distinct move(s) over 5 runs, wall min 158 ms max 162 ms
+
+A. go nodes: reported total == N on 0 of 6 cases -> NOT exact on every case (see the table)
+B. clock midgame: 5/5 runs within 6000 ms; wall 158..162 ms; 1 distinct move(s) -> stable move
+B. clock startpos: 5/5 runs within 6000 ms; wall 355..364 ms; 1 distinct move(s) -> stable move
+
+READING: `go nodes` is the reproducible budget for matches (exact), while the clock path is
+reproducible only in its MOVE, not its node count or wall time -- which is expected and is why
+a match that wants reproducible results should use nodes or softnodes, as file 6 says the PC does.
