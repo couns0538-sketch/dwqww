@@ -15,3 +15,13 @@ done: STEP 1 seat 24; STEP 2 build (Release, gcc 13.3, x86-64-v4, sha256 e06310e
       same runner (job1/run_planted.sh), so "0 reports" will count.
 runs: job1 threads sweep (Threads 2/4/8/16, first 100 of G, depth 12, S14) under TSan, t2 at 90/100, 0 TSan lines.
 next: finish t4/t8/t16, analyse.py table, REPORT_job1.md, then job 2 (option churn between searches).
+
+## 2026-11-16T21:32:40Z
+done: job2 DONE and pushed — REPORT_job2.md + FINDINGS 24-F1: 300/300 steps, 0 TSan reports, 0 illegal, and the
+      planted-fault copy through the same churn runner counted 9 report blocks (nm __tsan_ 21).
+      check 24-C1 pushed: CONFIRMS seat 02 S-F2 (go searchmoves with no legal named move -> bestmove 0000 on a
+      board with 20 legal moves; also with an illegal name e2e5 and garbage a9a9; two legal names give a real move).
+      R position set for the repeat cycle made: job1/r_positions_2401.fens (987 positions, seed 2401).
+      job3 prediction + runner already pushed (before measuring).
+runs: job1 TSan threads sweep — t2 done 100/100 (0 reports), t4 done 100/100 (0 reports), t8 at 46/100, t16 queued.
+next: wait for t8/t16, write REPORT_job1.md, then job3 (go infinite + stop 1000x at Threads 8).
