@@ -1,0 +1,32 @@
+# PREDICTION — area 1, job 1 (FEN input, mutated FENs, ASan + UBSan build)
+
+Committed and pushed ALONE before the first measuring command of job 1.
+
+## What the job will do
+20,000 FENs made from G (353 positions, set_G.epd) and R (random-game positions, SEED 101) by one random mutation
+each (replace / insert / delete one character; swap two fields; drop one field). Each FEN sent as
+`position fen <FEN>` + `isready` + `go depth 2`, one engine process per 500 FENs, ASan+UBSan build.
+Control: a 3,000-character first field must be refused without a crash.
+
+## Numbers I predict (each with the range that kills it)
+
+P1. Refused by the engine: 72 % of the 20,000 (60 %–85 %). Outside that range my reading of `set_fen` is wrong.
+P2. Accepted by the engine but rejected by python-chess (INVALID): between 5 and 300 FENs (0–2,000).
+    Above 2,000 means the FEN filter is far looser than the code I read suggests.
+    My named cause: consecutive digits in a rank are ADDED, so "17"/"44" style ranks and
+    digit-sum-8-but-wrong shapes pass.
+P3. Crashes (engine process dies before `bestmove`): 0–2. Above 2 is a real fault.
+P4. Sanitizer lines (ASan/UBSan) on the whole run: 0. Any single line kills this prediction.
+P5. Illegal bestmoves (bestmove not legal per python-chess on the position the engine says it kept): 0–3.
+P6. Control FEN with a 3,000-character first field: refused with an `info string invalid FEN` line, no crash,
+    no sanitizer line. Any crash here kills it.
+P7. Accept/refuse decision is stable: no FEN accepted in one process run and refused in another.
+    Any instability kills it.
+
+## Why
+I read `Board::set_fen` (src/board.cpp lines 211-…) before writing this: it counts a rank as "file" summed over
+digits, requires exactly one king per side, refuses pawns on ranks 1/8, checks the piece inventory and promoted
+counts, requires the castling right to sit on a real king+rook, validates the ep square against the pawn that
+would have to have just moved, refuses adjacent kings and a side that left its own king in check. What it does
+NOT check is what a legal game can reach beyond that (e.g. two bishops on the same colour square from promotion
+maths, or pawn placement that no game could reach). So most mutations should be refused, a small tail accepted.
