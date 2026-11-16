@@ -14,6 +14,9 @@ different moves at the same nominal budget, while the clock and the node mode ag
 depth — so mix no results, and never compare different depths.**
 
 ## deliverables, for the FINAL block (see DELIVERABLES.md for the full ranking)
+- **`check_s23f27/COMBINED_RULE.md`** — WHICH COMPARISONS ARE SAFE, quantified: budget-safe only if the answer is
+  FORCED or the margin is LARGE (94 % of changed positions were within 30 cp; at zero margin, found mates changed
+  0 of 6 while quiet ties changed 2 of 3).
 - **`check_s17f1/TRIGGER_TABLE.md`** — the portable artifact: four ways to make this engine answer `bestmove 0000`
   on a position with legal moves, the one-line guard that covers all four (about the move LIST, not any move
   NAME), and a after-the-fact detector. Self-contained, no other file needed.

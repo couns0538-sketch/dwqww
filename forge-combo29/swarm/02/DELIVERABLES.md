@@ -2,6 +2,16 @@
 
 Written so a reader can use each one without tonight's context. Order is what I would hand to the next swarm.
 
+
+## 0. `check_s23f27/COMBINED_RULE.md` — which comparisons are SAFE (read this first)
+**A position is budget-safe only if its answer is FORCED or its top-two margin is LARGE.** Quantified: of the
+positions that changed move between budgets, **94 % (16 of 17) had a margin within 30 cp** (seat 23's rows, median
+14 cp); and at an identical ZERO margin, forcedness decides completely — **found mates changed 0 % (0 of 6) while
+quiet ties changed 67 % (2 of 3)**. That second half is the mechanism: a mate in 1 is found at every budget, so no
+extra search can flip it, whereas a quiet tie is re-broken at every depth. Use it before comparing results across
+budgets, modes or depths; the file also states the one denominator I could not compute, so nobody inherits a
+number I did not measure.
+
 ## 1. `check_s17f1/TRIGGER_TABLE.md` — the portable one
 **Four ways to make this engine answer `bestmove 0000` on a position with legal moves**, the one-line guard that
 covers all four, and the detector for auditing after the fact. Self-contained; needs no other file. The key
