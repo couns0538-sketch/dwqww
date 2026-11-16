@@ -90,3 +90,11 @@ Also worth recording: the assertions did their job twice here. They refused to s
 illegal (`8/8/8/3k4/3N4/4N3/8/K7` — two white knights, no black king issue but an illegal king placement), and they
 refused to score a FEN python-chess could not parse (`6NN1k1` had nine columns). Without them both bad rows would
 have gone into a table silently.
+
+
+## ASan + UBSan repeat
+
+The same 11 positions on the sanitizer build give the same verdict (KNNk 8/8 zeroed, KNNNk 0/3) and **byte-identical
+cp values** to the release build; the run produced no sanitizer output (`raw/knn_same_material_asan.txt`).
+I do not call that "0 sanitizer lines proven": the two proofs the brief requires for a sanitizer claim belong to the
+job3 runner, not to this script, and I say so in `raw/scope_summary.txt` rather than borrowing them.

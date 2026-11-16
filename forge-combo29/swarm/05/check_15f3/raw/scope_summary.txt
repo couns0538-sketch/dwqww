@@ -24,3 +24,15 @@ What this establishes:
 This SUPPORTS seat 15's 15-F3 (the option zeroes KNN v K) and adds the scope: exactly two knights yes, three
 knights no. It does NOT support any claim that the switch is wrong — my earlier attempt to show that was my error,
 not the engine's.
+
+ASan + UBSan repeat (raw/knn_same_material_asan.txt)
+----------------------------------------------------
+The same 11 positions on the ASan+UBSan build (env cleared with `ASAN_OPTIONS= UBSAN_OPTIONS=`):
+  KNNk  8 of 8 zeroed, KNNNk 0 of 3 zeroed — the SAME verdict as the release build.
+  The cp values are byte-identical between the two builds (diff of the parsed scores: no difference).
+  Sanitizer lines in that run: 0.
+Caveat on the "0 sanitizer lines": this folder does NOT carry the two proofs the brief requires for that
+statement (no nm count in a .meta for this run, and no planted fault through THIS script). Those two proofs exist
+for the job3 runner (../job3/planted_fault.patch.txt, ../job3/out_planted/), not for this script, so here the
+honest phrasing is: "the ASan+UBSan build produced no sanitizer output in these 22 searches", not "0 sanitizer
+lines proven".
