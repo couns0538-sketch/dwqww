@@ -8,3 +8,9 @@
 - Best finding: a restricted root stores no TT entry (`search.cpp:2093`), so `IirRootExclude=1` is inert without searchmoves but +55.0 % with them and +25.8 % under MultiPV 2 (long 6).
 - Runs now: nothing. Waiting for `soak_all/FABLE_TO_deepseek6_N.md`, checking every ~20 min.
 - Branch for-fable-and-opus/deepseek6-work, at e5e10e8aa. No pull request, as required.
+
+## Mon Nov 16 04:43:40 PM UTC 2026
+- New session of deepseek6 resumed at 2026-11-16T16:27:50Z; found the branch already at b02325980 (the whole long list done by the earlier run, ended 16:11 UTC). Adopted that history; did NOT redo longs 1-8.
+- Job file FABLE_TO_deepseek6_1.md read and DONE: Step 0 + 3 controls exact, Part 0 settles depth-vs-build (release d10 == sanitizer d10, 200 of 200 both ways), 70 O runs + 70 G runs + Part 3 +4c done; inert set = QsSeeMargin, CaptureFutilityMultiplier, CaptureFutilityDepth on BOTH sets; 64 of 70 runs differ on each set. Report REPORT_deepseek6_job1.md pushed (092080d97).
+- No job file 2 yet (checked 16:43 UTC). Running now: closing the recorded gap - LmrFine's F options under the sanitizer.
+- Raw files so far: tests_deepseek6_job1/ (150 rows files + metas + logs), tests_deepseek6_long1..long8 (prior run).
