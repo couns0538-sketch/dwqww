@@ -146,3 +146,20 @@ My audit:
   check, and the S-F1/S-F8/S-C9..S-C12 checks are Threads 1.
 - Finding lines from here state "Threads 1" explicitly, plus build (base or PC r15) and settings
   (none / S14 / PC20).
+
+## PC r15 re-run of my finds and checks (2026-11-16T22:22Z) — every line Threads 1
+
+Build: PC r15 (base 6b98f217 + FABLE_TO_swarm_5.patch, sha256 d6bd72c531f785f4..., built with
+-DFORGE_MATE_ALPHA_GUARD=1). Settings: PC20 (S14 + CuckooRep/HistRework 2/TtPruneV2/CorrHistV2/
+MateAlphaGuard/OwnBook false). Threads 1, Hash 16. Comparison column is the base tree under S14.
+
+| my id | base tree (S14, Threads 1) | PC r15 (PC20, Threads 1) | verdict |
+|---|---|---|---|
+| S-F1 (`bestmove 0000` on a live 20-move position) | 0000, 5 zero-node depth lines | **0000, 5 zero-node depth lines** | **STILL PRESENT on the PC build** |
+| S-F8 (no-match `searchmoves` prints depth lines of `nodes 0`) | 64 lines, nodes 0 | 64 lines, nodes 0 | STILL PRESENT |
+| S-C10 (`fullmove 0` refused, old board kept) | refused, plays old board | refused, plays old board | STILL PRESENT |
+| S-C11 (halfmove 100 misses a mate in 1) | `f2f3`, `cp 0 nodes 0` | **`a1a8`, `score mate 1`, nodes 84/105** | **REPAIRED on the PC build** (FORGE_FIX_ROOT_DRAWN) |
+
+So of my own finds, S-F1 and S-F8 are live defects on the engine the owner actually plays, and the
+missed-mate I confirmed for seat 21 is fixed there. Evidence: `pc/recheck/S-F1_pc20.log`,
+`S-F8_pc20.log`, `S-C11_pc20.log`, `S-C11_base.log`, `S-C10_*`, summary `pc/recheck/recheck.json`.
