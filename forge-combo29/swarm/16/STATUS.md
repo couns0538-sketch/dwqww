@@ -107,3 +107,14 @@ seed: 1601
 - also this window: full-window root does NOT restore symmetry (S-F8, 11x nodes, text patch only);
   S-F7 rewritten as the numbered "how to reintroduce the vacuity bug" list; S-C7 reconciled with seat 08.
 - branch: S-F1..S-F9, S-C1..S-C7. Continuing area 6 until 22:30.
+
+## 2026-11-16T22:20Z
+- area 6 COMPLETE. Final additions this block:
+  * S-F8 sharpened and made to AGREE with seat 06's S-F17/S-F18/S-F19 (two independent refutations of the
+    root-window hypothesis = settled, not two dead ends). NEW result: the full-window root restores EXACT
+    node symmetry at DEPTH 1 (65 vs 65, from 25 vs 30) and fails from depth 2 on (336 vs 334), and at depth 3
+    it even changes the score (929 vs 1098) — so the asymmetry is created BELOW the root inside one search.
+  * S-F10 added as its own statement: `eval` carries no state, so eval comparisons need no process discipline
+    (5,853 pairs in ONE process gave 0 differences; warm == fresh byte for byte).
+- reports: REPORT_fullwindow.md (agreement section + depth-1/2/3 table), REPORT_warmcold.md (S-F10 note).
+- FINDINGS: S-F1..S-F10, S-C1..S-C7. Next command: none — area 6 complete; do a final push at 22:30.

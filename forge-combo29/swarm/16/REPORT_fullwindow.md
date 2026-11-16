@@ -18,6 +18,26 @@ At depth 6 the full-window root gives the identical score-agreement (4/20) as th
 bestmove agreement (14/20 vs 15/20), and costs **11.1×** the nodes. So the root's accumulated alpha is **not**
 the source of the asymmetry — removing it entirely changes nothing except the price.
 
+## The sharper result: depth 1 SUCCEEDS, depth 2 fails
+
+Running the same position and mirror at depths 1-3 with a fresh process AND `ucinewgame` before every search
+(seat 10's cold discipline), full-window root on and off:
+
+```
+depth 1  base root          A 25 nodes   mirror 30 nodes   nodes equal FALSE   score equal TRUE   bm equal TRUE
+depth 1  FULL-WINDOW root   A 65 nodes   mirror 65 nodes   nodes equal TRUE    score equal TRUE   bm equal TRUE
+depth 2  base root          A 66 nodes   mirror 60 nodes   nodes equal FALSE   score equal TRUE   bm equal TRUE
+depth 2  FULL-WINDOW root   A 336 nodes  mirror 334 nodes  nodes equal FALSE   score equal TRUE   bm equal TRUE
+depth 3  base root          A 129 nodes  mirror 111 nodes  nodes equal FALSE   score equal TRUE   bm equal TRUE
+depth 3  FULL-WINDOW root   A 927 nodes  mirror 919 nodes  nodes equal FALSE   score equal FALSE  bm equal TRUE
+```
+
+**At depth 1 the full-window root restores EXACT node symmetry (65 = 65, from 25 vs 30). From depth 2 on it
+fails, and at depth 3 the full-window root even makes the SCORE differ (929 vs 1098).** So the root's running
+alpha is the whole story at depth 1 and none of the story from depth 2 — the asymmetry is then created below
+the root, inside a single search. This is the sharpest form of the answer: it rules the root mechanism in at
+one ply and out thereafter, and it is why the same fix costs 2.4×-11.1× nodes for no benefit.
+
 **What this means for the depth-1 evidence:** my S-C6 found per-move subtrees mirror-identical (18/18) while the
 whole search differed (25 vs 30). The natural explanation was that the root's running best score creates the
 difference. This experiment tests that directly and **refutes it**: with the running score removed and every
@@ -26,6 +46,16 @@ asymmetry must live inside the subtrees — which are only identical *when searc
 when searched from a root that has already searched other moves (shared hash entries, history/LMR counters,
 and the transposition table are all still shared). That is consistent with my earlier S-F4 conclusion (order
 dependence, not evaluation) and narrows it: it is **cross-move state sharing**, not root alpha accumulation.
+
+**AGREEMENT WITH SEAT 06 (independent, same experiment):** seat 06's **S-F17** ran the same hypothesis and
+also found the full-window root fails — and found symmetry made *worse* (101 → 149 mismatched bestmoves of 353
+at depth 10) at **31.4×** the nodes. My run found score agreement unchanged and bestmove agreement slightly
+worse (15/20 → 14/20) at 11.1× the nodes at depth 6. Different positions, different depth, same conclusion:
+root-window purity is ruled out. Seat 06's **S-F18** records the same three refutations, and its **S-F19**
+adds the decisive detail from my side of the question: fresh process, original-first and mirror-first all give
+IDENTICAL per-pair results (353/353), so the state is carried **within a single search**, not across searches.
+That is why my S-F9 found the warm/cold discipline immaterial. Two independent refutations make this settled,
+not two separate dead ends.
 
 **How sure:** high that the full-window root does not fix it — 20 positions × 4 depths × 2 roots × 2 mirror
 searches = 320 searches, and the table is monotone and consistent. NOT proven *which* shared state carries it
@@ -71,7 +101,10 @@ fuzz. No engine source file is committed.
 ## What I did NOT do
 
 - Did not isolate TT vs history (needs a further patch).
-- Did not run this at depths above 6 (the full-window node cost grows ~5× per 2 plies).
+- Did not run the 20-position sweep at depths above 6 (the full-window node cost grows ~5× per 2 plies). The
+  single-position depths 1-3 probe above is reported separately and is where the depth-1 success shows.
+- Did not identify WHICH below-root shared state carries it (TT vs history vs killers). Seat 06's S-F18 stops
+  at the same place after three refutations; I do not offer a fourth guess.
 - Did not test `MultiPV` as a full-window proxy beyond one check: MultiPV is clamped to 8 (`search.cpp:2220`),
   and with `searchmoves` naming all 18 root moves the counts were still 25 vs 30, identical to the base — so
   no UCI-only route bypasses the accumulation.

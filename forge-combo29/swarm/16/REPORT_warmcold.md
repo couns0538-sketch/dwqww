@@ -47,6 +47,12 @@ configuration, which is the warmest discipline possible. It reported **0 differe
 two directions: the eval is colour-symmetric, AND the `eval` path is immune to the state carry-over that
 affects `go` searches.
 
+**Recorded as a separate statement (S-F10): `eval` carries no state, so eval comparisons need no process
+discipline.** Anyone comparing engine evaluations — including another seat auditing a symmetry claim — can put
+every position in one process and get the same numbers as fresh processes. It is only `go` searches that carry
+TT/history state. Verified two ways: 5,853 pairs in one process gave 0 differences, and the same position
+evaluated twice in one process (and a position evaluated after another) is byte-identical to a fresh process.
+
 ## Why `go` is affected and `eval` is not
 
 `eval` prints `hce`, `nnue`, `total` from a static evaluation of the current position and does not consult the
