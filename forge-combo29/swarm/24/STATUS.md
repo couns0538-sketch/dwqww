@@ -25,3 +25,12 @@ done: job2 DONE and pushed — REPORT_job2.md + FINDINGS 24-F1: 300/300 steps, 0
       job3 prediction + runner already pushed (before measuring).
 runs: job1 TSan threads sweep — t2 done 100/100 (0 reports), t4 done 100/100 (0 reports), t8 at 46/100, t16 queued.
 next: wait for t8/t16, write REPORT_job1.md, then job3 (go infinite + stop 1000x at Threads 8).
+
+## 2026-11-16T21:35:00Z  (owner checkpoint 1)
+done: job2 complete (REPORT_job2.md, FINDINGS 24-F1: 300/300 steps, 0 TSan reports, planted control 9 blocks).
+      check 24-C1 CONFIRMS seat 02 S-F2. Harness audit against seat 19's 19-F12: 590 recorded rows, 0 shaped like
+      the a2a3/0-node artefact; all four runners read stdout to `bestmove` and send `quit` only in close()
+      (checks/harness_audit.py). R sets for seed 2401 and 2411 written (987 positions each).
+runs now: job1 TSan threads sweep — t2 100/100 (0 reports), t4 100/100 (0 reports), t8 90/100 (0 reports),
+      t16 queued. Partial table in job1/table.txt.
+next command: cd /agent/repos/dwqww/forge-combo29/swarm/24/job1 && python3 analyse.py   (after `tail -1 stamps.txt` shows "done job1")
