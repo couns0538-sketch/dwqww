@@ -167,3 +167,36 @@ State: findings 08-F1..F12, checks 08-C1..C4. Six job reports pushed.
   between go and bestmove is 2, and 08-F12's book effect on the O/G sets is measured at 1 of 200 / 0.04 ms).
 
 next: board read for a NEW finding with no C line; seats 03 and 07 are the only ones with unchecked findings.
+
+## 2026-11-16T21:53Z — FINAL BLOCK (22:30 deadline met early; stopping here)
+All work committed and pushed. Nothing uncommitted.
+
+### Findings 08-F1 .. 08-F15 (15)
+F1 clock tail ~4x median past own soft limit | F2 movetime spends T-MoveOverhead (restated with planned vs
+achieved) | F3 a book move inside the timing set | F4 baseline repeatability 0.20 % | F5 <=10 ms clock collapses
+to a 1-ply 2000-node emergency search, increment does not lift it | F6 1 ms hard limit overrun | F7 0 of 2,000
+searches exceeded the clock, 0 illegal | F8 movestogo 1/2 land on the 792 ms hard limit | F9 engine achieves only
+55-79 % of planned soft (restated) | F10 the two stop paths have OPPOSITE error modes | F11 tail scales linearly,
+p99/median 3.1-4.8x, median/soft 100->61 % | F12 the book answers 9 of 14 opening lines INCLUDING startpos, and
+varies between runs | F13 the four PINNED honesty numbers do not depend on OwnBook | F14 worst clock overshoot
++33.2 ms at 200 ms and +180.8 ms at 1000 ms, 22 %/14 % over one iteration | F15 every timing search verified COLD
+
+### Checks 08-C1 .. 08-C5 (5)
+C1 CONFIRMS seat 06 S-F4 (left-right eval) | C2 CONFIRMS seat 27 S-F2 (nodes dead zone, boundary is
+position-dependent) | C3 CONFIRMS seat 21 21-F2 (refused FEN keeps previous board) | C4 CONFIRMS seat 03 S-F3
+(en-passant pin) | C5 CONFIRMS seat 03 S-F1 (perft 1..4 + move sets)
+
+### Reports
+REPORT_job1.md, REPORT_job1b.md, REPORT_job2.md, REPORT_job3.md, job5/REPORT_job5.md,
+job5/REPORT_overshoot_and_pins.md, job6/REPORT_book_width.md, reconcile_seat16_F2.md, audit_assumptions.md
+
+### Measurement integrity (all disclosed, none hidden)
+- A stale run_job1.sh of mine re-ran concurrently during the FIRST job1/job2 measurement; both first datasets are
+  kept at job*/raw and are NOT used. Everything reported uses raw2 from a guard that refuses to start unless no
+  other engine process exists and loadavg < 0.5.
+- My own v1 of the seat-21 check and of job2's probe piped `quit` mid-search (seat 19's 19-F12); both are kept
+  as *_v1_INVALID with the mistake named, and the claims resting on them were re-measured properly.
+- All controls are enforced by assertion; `negative_control.sh` proves a fake engine aborts a check rather than
+  producing a CONFIRMS.
+
+STOPPING per the owner's instruction: no new jobs after the two closing measurements.
