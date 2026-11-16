@@ -143,6 +143,21 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:48Z - terminal-root family CLOSED: S-F6 withdrawn, S-F7 reclassified cosmetic (S-C26/S-C27)
+
+S-F6 WITHDRAWN as a defect: verified seat 11's ladder myself (checkmated -> mate 0/0000/0 nodes; mate in 1 ->
+mate 1/a1a8/105 nodes; stalemated -> cp 0/0000; dead draw -> cp 0; KQvK -> cp 1107/2,779). mate 0 and mate 1 are
+different signals in one encoding; UCI's y=0 naturally encodes "mated now". Consumer note kept, labelled as advice.
+
+S-F7 RECLASSIFIED cosmetic: the answer on a resolved root is identical in score and move to go depth 10; the burst
+is bounded at exactly 64 (the depth cap); and go movetime bursts identically, so it is not a node-limit fault but
+what the loop does when a root resolves. Consumer advice: read the last line or the bestmove, not iteration counts.
+Also recorded: my first comparison used different depths (nodes 50000 stopped at 13 vs depth 10) and reported a
+false mismatch; the correct control is "same depth". Caught and noted rather than dropped.
+
+State: 71 findings, compliance PASS, working tree clean, local = remote. Continuing at cadence.
+
 ## 2026-11-16T23:47Z - S-C26: S-F6 WITHDRAWN as a defect (seat 11 was right; ladder verified on my build)
 
 Verified seat 11's ladder myself on PC r15/PC20, go depth 5, Threads 1, Hash 16:
