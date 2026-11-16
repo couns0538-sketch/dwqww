@@ -1,0 +1,17 @@
+PC ENGINE ("r15"), from handoff/fable-opus-combo29-all-20261114 forge-combo29/soak_all/FABLE_TO_swarm_5.md
+patch sha256 verified: d6bd72c531f785f40421be1cc542743922a944fb0973d05831788440309c1a1a  (file says it starts d6bd72c531f785f4 — match)
+applied: patch -p1 in a SEPARATE copy /home/ubuntu/pcsrc (never in the base worktree), 11 files, no fuzz, exit 0
+built:   cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-13 -DFORGE_MARCH=x86-64-v4
+         -DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1   ->   /home/ubuntu/builds/pc/forge  sha256 in pc_build/pc.meta
+machine: 4 cores, GCC 13.3.0, AVX-512 + BMI2 present
+
+KNOWN ANSWERS vs MEASURED (fresh process per line; pins with NO setoption at all, per file 4):
+| settings | bench 11 | bench 13 | bench 16 | go perft 5 |
+| none (no setoption) | 312866 | 862329 | 3024920 | 4865609 |
+measured                | 312866 | 862329 | 3024920 | 4865609 |   ALL FOUR MATCH
+| S14   | 242796 | 656517 | - | - |      measured 242796 | 656517 |   BOTH MATCH
+| PC20  | 278024 | 587276 | - | - |      measured 278024 | 587276 |   BOTH MATCH
+No `unknown option`, `invalid value` or `ERROR` line in any of the runs (grep empty).
+
+So this build is usable and its numbers are the PC's. Both builds are kept: base /home/ubuntu/builds/rel/forge
+and PC /home/ubuntu/builds/pc/forge. Every finding line from now on names build + settings.

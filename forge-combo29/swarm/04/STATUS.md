@@ -91,3 +91,13 @@ aspiration/nullmove ruled out, gated quit table confirming 19-F12 with Q2/Q3 ans
 NEXT COMMAND (gap 2, fixed node count) if this seat is resumed:
   python3 forge-combo29/swarm/04/job1/divergence.py /home/ubuntu/builds/rel/forge /tmp/nodes nodes100m \
     --threads 1,4 --depths 12 --runs 3 --limit 300
+
+## 2026-11-16T22:19:37Z CONTINUE: 12 more hours, ends at 2026-11-17T10:19:37Z
+Read FABLE_TO_swarm_2, 3, 4, 5 (1 was read earlier). Rules now in force for me: a zero needs a planted case
+through the SAME harness; pins are taken with NO setoption, sums under S14; PC20 = S14 + CuckooRep true,
+HistRework 2, TtPruneV2 true, CorrHistV2 true, MateAlphaGuard true, OwnBook false.
+PC BUILD DONE: patch sha256 d6bd72c531f785f4 verified, applied with patch -p1 in a separate copy, built with
+-DFORGE_MATE_ALPHA_GUARD=1. ALL SEVEN known numbers match to the digit (pins 312866/862329/3024920/4865609,
+S14 242796/656517, PC20 278024/587276), no unknown option. See PC_BUILD.txt and pc_build/.
+NEXT: re-run my own finds on the PC build under PC20 — first the score-nondeterminism (04-F7), since it is the
+finding that matters; then the thread-node blow-up (04-F1); then the quit/EOF fault (04-C1).
