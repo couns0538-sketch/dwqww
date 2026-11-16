@@ -421,3 +421,14 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - So the three known zero-node paths — terminal root, empty restriction, bare `go searchmoves` — share ONE cause and
   ONE fix direction: emit one line instead of one per depth. The PC r15 patch changes none of them.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-16T23:49:17Z S-F52 reconciles seat 25; two defects in my own FINDINGS file fixed
+- **S-F52 reconciliation** (as requested, both readings true, neither supersedes): seat 25's point is the ANSWER is right
+  at the requested depth, so nothing downstream breaks; mine is the LINE COUNT misreports how much search happened.
+  **Cosmetic for a consumer of `bestmove`/`score`; NOT cosmetic for a consumer of `depth`.** Consumer cost kept as:
+  **64 false progress reports, with the `nodes 0` easy to miss.**
+- **Own-file defects found while consolidating, both fixed:** (a) a **duplicated S-F52 row** (an earlier heredoc appended
+  the FINDINGS line then failed before writing the job file, so I re-appended) — dedup, 98 -> 97 rows; (b) a **stale
+  status cell on the original S-C20 row** still saying "confirmed and STILL LIVE" — now leads with WITHDRAWN, and the
+  withdrawal row's id cell reads `S-C20 WITHDRAWN` so a skimmer sees it in column one.
+Next: continue in the window (ends 2026-11-17T10:18Z).
