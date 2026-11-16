@@ -1,0 +1,20 @@
+exe /home/ubuntu/build/release/forge   Threads 1, Hash 16, MultiPV 1, OwnBook false, 6 runs per case
+
+case                                       plan  wall med  kept med  wall-plan  kept-plan  depth
+----------------------------------------------------------------------------------------------------
+go movetime 50                               40      40.8      32.0       +0.8       -8.0     11
+go movetime 500                             490     490.6     317.5       +0.6     -172.5     16
+go movetime 200                             190     190.7     166.5       +0.7      -23.5     14
+go movetime 50 ovh 0                         50      50.7      39.0       +0.7      -11.0     11
+go movetime 50 ovh 45                         5       5.7       2.0       +0.7       -3.0      6
+go wtime 1000 btime 1000                      ?      44.6      44.0                           12
+go wtime 500 btime 500                        ?      30.2      29.0                           11
+go wtime 1000 btime 1000 movestogo 1          ?     320.9     320.0                           16
+go wtime 200 btime 200                        ?      15.5      15.0                            9
+
+=== verdict
+movetime path: wall-plan in +0.6..+0.8 ms (tight to the plan)
+               kept-plan in -172.5..-3.0 ms (kept iteration is BELOW the plan — partial work discarded)
+  -> 08-F10 movetime half: CONFIRMED
+clock path: kept times [44.0, 29.0, 320.0, 15.0] ms, wall [44.6, 30.2, 320.9, 15.5] ms
+  -> 08-F10 clock half: the kept iteration carries the time actually spent (see table); compare with the movetime rows where it does not
