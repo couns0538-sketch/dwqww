@@ -1,0 +1,17 @@
+--- /agent/repos/base/forge-combo29/src/uci.cpp	2026-11-16 21:06:38.429978246 +0000
++++ /tmp/fault-src/src/uci.cpp	2026-11-16 21:27:18.101978246 +0000
+@@ -36,6 +36,14 @@
+             if (!fen.empty()) fen += ' ';
+             fen += token;
+         }
++        // PLANTED FAULT (scratch copy only, never committed as source): a heap over-read behind input the
++        // runner controls, so a sanitizer run can be proved able to report something.
++        if (fen.size() > 6 && fen.rfind(" 777 1") != std::string::npos) {
++            volatile int* probe = new int[4];
++            int sink = probe[4];          // one past the end: heap-buffer-overflow
++            probe[0] = sink;
++            delete[] probe;
++        }
+         std::string error;
+         if (!candidate.set_fen(fen, &error)) {
+             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string invalid FEN: " << error << std::endl; }

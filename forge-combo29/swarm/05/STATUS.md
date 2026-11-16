@@ -26,3 +26,15 @@
 - NEW S-F3: fifty-move draw fires ~9 plies early — cliff between halfmove 90 (cp 314) and 91 (cp 0), same for K+Q.
 - next command: python3 job3/run_job3.py /tmp/build-asan/forge out3  (job 3: checkmated and stalemated root
   positions, 10 each, go depth 5 / go nodes 100 / go movetime 50, under ASan + UBSan)
+
+## CHECKPOINT (push per owner's 30-minute request)
+- done since last block: job2 report+findings pushed (S-F3 fifty-move cliff at 91, S-F4, S-F5, S-F6); job3 roots
+  generated and verified (10 checkmate + 10 stalemate, python-chess asserted); job3 ASan+UBSan run complete:
+  60/60 runs, 0 sanitizer lines, 0 crashes, 0 hangs, all bestmove 0000.
+- job3 SANITIZER PROOF both halves done: nm shows 35 __asan_ / 15 __ubsan_ symbols; a planted heap over-read
+  (planted_fault.patch.txt, built in /tmp only) run through THE SAME runner is counted (3 sanitizer lines/run).
+- 19-F12 audit: my job1 harness is CLEAN — its node sums reproduce the brief exactly (O 9,500,069 with first
+  three 41,311/24,872/28,574; G 18,466,239), which a fabricated bestmove could not do. The risky piped-quit
+  pattern reproduces a2a3/0 nodes on my build; my job3/job2/rows harnesses all read to bestmove first.
+  job0/honesty.sh did pipe quit — re-running honesty with a read-to-terminator harness now.
+- next command: python3 audit19f12/honesty_safe.py /tmp/build-rel/forge audit19f12/out

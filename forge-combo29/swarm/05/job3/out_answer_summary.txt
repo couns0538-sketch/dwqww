@@ -1,0 +1,14 @@
+Exact answers per (kind, go command), aggregated over the 10 verified roots each.
+
+| root kind | go command | distinct info lines | bestmove | depth reached | score | nodes | sanitizer |
+|---|---|---|---|---|---|---|---|
+| mate | go depth 5 | [5] per run | bestmove 0000 | 1..5 | ['mate 0'] | [0] | 0 |
+| mate | go nodes 100 | [64] per run | bestmove 0000 | 1..64 | ['mate 0'] | [0] | 0 |
+| mate | go movetime 50 | [64] per run | bestmove 0000 | 1..64 | ['mate 0'] | [0] | 0 |
+| stale | go depth 5 | [5] per run | bestmove 0000 | 1..5 | ['cp 0'] | [0] | 0 |
+| stale | go nodes 100 | [64] per run | bestmove 0000 | 1..64 | ['cp 0'] | [0] | 0 |
+| stale | go movetime 50 | [64] per run | bestmove 0000 | 1..64 | ['cp 0'] | [0] | 0 |
+
+Note: for a terminal root the engine still emits one info line per depth up to the depth it reports;
+`go movetime 50` reaches the highest depth because the search is over instantly and the time manager
+keeps iterating. No `bestmove` other than 0000 appears, and no run had a sanitizer line.
