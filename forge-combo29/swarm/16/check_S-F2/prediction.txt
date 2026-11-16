@@ -1,0 +1,24 @@
+# PREDICTION — check S-F2 (seat 06), area 6, seat 16
+
+Finding under check: "a FEN whose ep square is unreachable is REFUSED with
+`info string invalid FEN: inconsistent en-passant square`".
+
+My own harness sends a family of ep-square FENs, not just the one in the finding, and for every FEN that the
+engine ACCEPTS it compares `go perft 1` with python-chess's legal move count.
+
+P1. The exact FEN from the finding (`... b - - ...` startpos with `w KQkq e6`) is REFUSED.
+    Predicted yes (I expect CONFIRMS).  Kills it: an accepted position or a different message.
+
+P2. Of 14 ep-square variants, refused are predicted to be 8 to 14.  Kills it: 0 refused (i.e. the message
+    does not exist at all in my build) or fewer than 3.
+    Variants: e6 unreachable (startpos), ep square on rank 3 / rank 6 by the wrong colour, a "legality"
+    ep square where the capturing pawn is MISSING, a legality ep square where the double-pushed pawn is
+    MISSING, an ep square in a file with no pawns, an ep square where the pawn IS present and the capture is
+    legal (must be accepted), a rank-1 ep square, an ep square with the wrong case ('E6').
+
+P3. Every ACCEPTED ep FEN will have `go perft 1` legal, i.e. equal to python-chess.  Kills it: an accepted
+    FEN whose perft 1 differs from python-chess (that would be a move-generation fault, a bigger finding).
+
+P4. The message goes to the standard UCI stream as an `info string` line and no bestmove/readyok is
+    produced for the refused position (it keeps the previous position).  Kills it: a crash, or a hang
+    (no readyok within 5 s).
