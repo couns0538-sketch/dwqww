@@ -3,6 +3,12 @@
 Run after the 29-F39 correction, over the whole seat folder. Every surviving instance of 11.1 / 26.5 / 19.5 / 54.7 /
 44.8 is listed with what it is: a historical record, a correction pointer, or a cell of the four-cell table.
 
+**APPEND-ONLY EXCEPTION, stated first because it is the one place an old figure is deliberately left standing:**
+`STATUS.md` is never rewritten. Blocks written before 29-F39 still present 11.1 % as *the* figure, because that is
+what I believed when I wrote them; the later blocks overturn it. Editing those blocks would erase the record of when
+I concluded what, and a record that can be audited for judgement is worth more than a clean file. Everywhere else in
+the folder the old numbers survive only where explicitly marked superseded.
+
 ## The two statements allowed to appear as current
 1. bench 13 reaches the age/depth comparison **50 times in 861,904 probes (0.006 %)**, matching seat 19's 19-F18
    bench figure to the digit.
