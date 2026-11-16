@@ -20,3 +20,9 @@ Controls both pass (published perft values reproduced; planted 1-node error caug
 Report: job1/REPORT_job1.md. Finding S-F1 written (null result, NEW).
 Times: engine side 12.2 s, reference side ~850 s wall over 4 shards.
 Next command: cd forge-combo29/swarm/13 && tail -1 STATUS.md   # then start area 3 job 2 (special positions)
+
+## 2026-11-16T21:25:40Z
+
+DONE check of 21-F1: CONFIRMS. Own harness, 5 cases, all hold. checks/CHECK_21F1.md.
+Consequence noted: the brief/Opus "impossible castling is accepted" line does not hold at 6b98f217.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
