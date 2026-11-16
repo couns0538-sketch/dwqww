@@ -114,7 +114,13 @@ Same three boards, PC20, Threads 1, Hash 16, OwnBook false — depth each of the
 
 **This materially qualifies the story above.** The clock path is *not* the weakest control — it beats even the
 250,000-node match budget by 2-3 plies, because it reaches 300k-780k nodes while only "spending" 0.35-0.78 s. The
-shortfall is only against `go movetime`, which reaches depth 24-28 for the same wall clock. So the accurate statement
+shortfall is only against `go movetime`, which reaches depth 24-28 for the same wall clock.
+
+**One caveat on that table:** the clock row is the only non-deterministic one, because it is a wall-clock limit on a
+shared machine. Repeating the deep middlegame three times gives d18/784,328 then d17/542,082 twice, whereas
+`nodes 250000` gives d15/172,365 three times and `movetime 6000` gives d24/8,752,347 three times. So read the clock
+row as a range (d17-19), not a point — the ranking is unaffected because the margin to `nodes 250000` (d15) and to
+`movetime` (d24) is larger than the spread. So the accurate statement
 is: **the owner's strength matches are not starved relative to the node-limited matches; they are 5-9 plies
 shallower than their own 6 seconds could buy.** `match/out/budget_translation.txt`.
 
