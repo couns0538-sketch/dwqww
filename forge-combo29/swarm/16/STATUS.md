@@ -192,3 +192,14 @@ seed: 1601
   FINISHED depth, but OVERSHOOTS up to 2.06x the budget (2314-4121 nodes at N=2000). REPORT_softnodes.md.
 - next: stress the overshoot bound on quiet positions; then the clock path (6s + 0.06), which is the PC's
   match path and is untested by me.
+
+## 2026-11-16T22:53Z
+- S-F17: softnodes overshoot bounded ~2.06x RELATIVELY (12 positions at N=2000, none above 2.061x) but NOT
+  absolutely: at N=200000 one quiet position overshoots to 1.767x = 353,498 nodes. My P1 (that a quiet position
+  would exceed 2.06x) was REFUTED. Determinism and finished-depth held on all 16 runs.
+- S-F18: the PC's MATCH path (6s+0.06, PC20, Threads 1) is reproducible in the MOVE (1 distinct bestmove over
+  20 runs x 4 positions, bestmove inside its own PV 80/80) but uses only 156-325 ms of the 6060 ms allowed
+  (2.6%-5.3%), stopping at depth 17-19; the score has two values per position because the depth reached varies.
+  0 of 80 runs over the clock.
+- next: does the used-clock fraction change with the clock size (1s / 60s)? That separates "time manager soft
+  limit" from "the search really is depth-bounded on this machine".
