@@ -1,0 +1,24 @@
+CHECK of seat 20's S-F51: does a WARM process reach +2 plies at the same clock?
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+PC r15 + PC20, Threads 1, Hash 16, go wtime 6000 btime 6000 winc 60 binc 60
+COLD = fresh process per position; WARM = one process, same positions in the same order
+boards: first 10 of set_G
+
+board	cold_depth	cold_wall	warm_depth	warm_wall	depth_delta
+1	18	161.8	18	164.4	0
+2	18	292.8	17	168.3	-1
+3	17	194.1	16	150.9	-1
+4	18	413.1	20	375.3	2
+5	20	251.4	20	247.8	0
+6	19	157.7	20	228.4	1
+7	18	217.1	19	257.6	1
+8	18	825.3	18	536.3	0
+9	17	143.2	16	195.2	-1
+10	16	283.7	18	162.1	2
+
+COLD: median depth 18.0, median wall 234 ms (n=10)
+WARM: median depth 18.0, median wall 212 ms (n=10)
+DEPTH DELTA (warm - cold): +0 plies at a wall difference of -22 ms
+
+VERDICT: no depth advantage for the warm process on my boards; does NOT reproduce S-F51.
