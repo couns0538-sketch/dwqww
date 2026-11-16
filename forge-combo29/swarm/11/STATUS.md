@@ -500,3 +500,6 @@ retracted after the uci double-wrap bug), S-F25/S-F33/S-F25 corrections of my ow
   nodes (mate 9), depth 100 identical to depth 64 (converged). No overflow at 10^9 nodes.
 - uci_guard.py usage rewritten as a runnable example: the three calls in order (position, bestmove,
   exception handler) plus a context-manager form; syntax-checked and the self-test still passes.
+- S-F86: no gross blunders at match budget — playing the engine's own move and re-searching the reply
+  at the same budget, the largest score swing one ply later is 48 cp (median ~13) over 10 positions.
+  Its evaluation is self-consistent under its own best reply.
