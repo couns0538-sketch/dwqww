@@ -19,5 +19,11 @@ from my own harness. Consequences:
     3/3 identical even in the contended batch), because their stopping condition does not depend on the wall clock.
     A WALL-CLOCK limit is the one that suffers.
 
-RULE for future timing work here: run ONE engine process at a time. If a result varies, re-run it solo before
+WHERE the contention came from (checked): none of my scripts run two engines at once — every one uses a single
+`subprocess.Popen` in a loop, and a grep for ThreadPool/multiprocessing/`&` in my .py and .sh files finds nothing. The
+contention came from MY SHELL running two of my own harnesses as background jobs at the same time (`cmd &` at the
+shell level), not from any script. So the trap is at the orchestration level, which is where it is easiest to miss.
+
+RULE for future timing work here: run ONE engine process at a time, and do not background two timing harnesses in
+the same shell. If a result varies, re-run it solo before
 calling it non-deterministic. My `match_clock_game.py` runs a single game at a time for this reason.
