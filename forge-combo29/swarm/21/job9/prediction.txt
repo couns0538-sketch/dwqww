@@ -1,0 +1,23 @@
+# PREDICTION — job9: CHECK of seat 30's 30-F7, seat 21
+written before the first measuring command; not edited afterwards.
+
+30-F7 claims three things: (a) the halfmove ≥ 100 root shortcut is side-blind (a BLACK
+mate-in-1 is missed), (b) it is mate-blind in general, (c) ANY position at counter 100
+collapses to a 0-node `cp 0`, "even +13 cp".
+
+I check it with my own harness (`job8/mate100.py` pattern) on boards I chose myself, not
+seat 30's: a black mate-in-1, a white mate-in-1, and a quiet position that is clearly better
+for one side, each at counters 99 and 100, with `go depth 5` and `go nodes 100`.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | the black mate-in-1 at counter 100 is missed (bestmove is not a mating move) | REFUTES if found |
+| P2 | the same board at counter 99 finds the mate | if not, my control is broken and the check is inconclusive |
+| P3 | the quiet +material position at counter 100 answers `nodes 0` and `cp 0` | REFUTES if nodes > 0 |
+| P4 | the same quiet position at counter 99 searches > 0 nodes and reports a non-zero score | control |
+| P5 | the white mate-in-1 at 100 is missed too (side-blindness is symmetric) | REFUTES if found |
+| P6 | 0 crashes, 0 sanitizer lines | killed by any one |
+
+Direction: CONFIRMS. (a) and (c) agree with what I already measured as 21-F9; the value of
+this check is that it is an independent harness on independently chosen boards, which is what
+the brief requires for a finding to count.
