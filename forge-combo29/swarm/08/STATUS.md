@@ -200,3 +200,15 @@ job5/REPORT_overshoot_and_pins.md, job6/REPORT_book_width.md, reconcile_seat16_F
   producing a CONFIRMS.
 
 STOPPING per the owner's instruction: no new jobs after the two closing measurements.
+
+## 2026-11-16T22:19Z CONTINUE: 12 more hours, ends at 2026-11-17T10:19Z
+Seat 08 kept (`~/swarm_seat.txt` = 08), branch for-fable-and-opus/swarm-08, folder forge-combo29/swarm/08.
+Area 8 (THE CLOCK), seed base 801.
+Plan: (1) read every unread FABLE_TO_swarm_N.md from lowest N up, (2) build the PC engine from file 5's patch as
+it says (-DFORGE_MATE_ALPHA_GUARD=1, separate copy) and check its known bench numbers, (3) re-run my own findings
+on the PC build under settings PC20 so every finding line names its build and settings, (4) THE CYCLE.
+STATUS every 25 minutes or less; findings pushed with each block.
+
+next command:
+
+    cd /agent/repos/dwqww && git fetch -q --depth 1 origin handoff/fable-opus-combo29-all-20261114 && git ls-tree -r --name-only FETCH_HEAD | grep -E 'FABLE_TO_swarm_[0-9]+\.md' | sort
