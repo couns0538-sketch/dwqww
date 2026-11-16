@@ -162,6 +162,12 @@ afterwards to recover from (`checks/defence_protocol2.txt`, `checks/fixup_sweep.
 The `fixup` protocol was then swept over 15 different truncated-then-corrected positions:
 **15 correct, 0 wrong**. So both `detect` and `fixup` work; `naive` fails.
 
+**A ready-made implementation:** `uci_guard.py` in this folder wraps an engine so that a refused
+`position` raises `PositionRejected` and resyncs with `ucinewgame` + startpos before returning, so
+the stale board cannot leak into the next search. It is self-tested against the real engine
+(`checks/uci_guard_selftest.txt`) and also refuses a one-sided clock (see
+`HAZARD_match_protocol.md`).
+
 In order of strength:
 1. **Best:** after a refusal, discard the game outright and start a fresh process for the next one.
 2. **Acceptable:** send `ucinewgame` *and* re-send the intended position, well-formed, before `go`.

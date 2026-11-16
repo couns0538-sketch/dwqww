@@ -57,6 +57,10 @@ Two related facts from the same measurements:
 
 ## Always send BOTH clocks
 
+(`uci_guard.py` in this folder enforces this: `bestmove(wtime=...)` without `btime` raises rather
+than silently searching for twelve seconds.)
+
+
 | command | wall time | depth reached |
 |---|---|---|
 | `go wtime 6000 btime 6000` | **136 ms** | shallow |
