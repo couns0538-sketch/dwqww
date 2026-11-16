@@ -79,3 +79,9 @@ Seat kept: 30 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-30, folde
 
 **Completed a full defect->repair chain (30-F33/F34)**: 6 of 40 lone-king boards where python-chess proves mate in <=5 plies still read as centipawns on the BASE tree at depth 24 (5 of the 6 are KRvK); the PC r15 build reports a mate on **6/6, twice each**. Deterministic, Threads 1, fresh process per search. Also 30-C10 (the one board, sharpened) and 30-C9 (most cases are only depth, corrected honestly).
 **Next command**: `cd pc && python3 go_parse_diff.py out_goparse2` — no: next is to re-check my check1/check2 findings under PC20 for the fifty-move spike on the PC at depth 12 with a smaller node budget, then push.
+
+## Mon Nov 16 11:04:51 PM UTC 2026
+
+**30-F35 (practical)**: the fifty-move draw is INVISIBLE below depth 9 on the PC build under PC20 — H=90 and H=91 score identically at go nodes 2000/20000/200000/2000000 and depth 4-8; only depth 9 (4,848,748 nodes) or depth 10 (7,251,835) shows cp 0. 2,000-node self-play (glmflash5's effort) cannot see a fifty-move draw at all.
+**Counts so far**: 48 lines in FINDINGS.md — 30-F1..F35, 30-C1..C10, incl. 5 self-corrections (C6, C7, C8, C9, C10) and 2 withdrawn-strength claims rewritten in place.
+**Next command**: `cd pc && python3 bare_king_mates.py out_bareking_pc20 20 12` with PC20 to see if the PC20 switches change the lone-king mate rate (30-F31 was measured with defaults).
