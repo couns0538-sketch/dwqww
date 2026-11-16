@@ -280,3 +280,19 @@ next: does any single search switch change CLOCK behaviour (F16 tested the bundl
   not an iteration (corrected to 157 ms).
 
 next: `go softnodes N` on PC20/Threads 1 — determinism, finished depth, overshoot past N (new area from file 6).
+
+## 2026-11-16T22:45Z
+- **RECONCILED with seat 28 (08-F27): their tail is RIGHT, my 08-F24 "worst 482 ms" was not a population figure.**
+  Ran their exact outlier FENs on my harness at 6 s + 0.06 / PC20 / Threads 1: `8/8/6k1/Q7/1P4PP/1K3P2/8/8 b`
+  gives **1585.4 ms against their 1585.3 — to 0.1 ms**; their other outliers 834.9, 985.0, one run at 1585.9.
+  My 3 boards were startpos + two full-material middlegames — the two fastest classes.
+- **08-F28: the tail is POSITION-DEPENDENT.** Median by shape (5 boards each): few pieces + few moves **853.1 ms**
+  (worst 1585.4) | few pieces + many moves 388.9 | full material + few moves 386.2 | full material + many moves
+  **161.2 ms** (worst 398.5). A **5.3x spread**; driver is the last iteration's cost (415 vs 57 ms), since the
+  engine stops at an iteration boundary. Engines never over the 6 s clock (0 of their 120, 0 of my 240).
+- 08-N1 extended with this third instance: **a three-position median is not a population median.**
+- Could not message seat 28 directly (tool only allows my parent); asked the coordinator to relay my 3 FENs.
+- Earlier this block: 08-F25 (H=91 fits the real clock, absorbs), 08-F26 (softnodes deterministic, +1.3-2.1x N),
+  08-C6W (withdrew the fifty-move defect wording — cp 0 is correct chess there).
+
+next: extend the shape-class sample to a size that can support a FREQUENCY claim (seat 28's 5-of-120), per class.
