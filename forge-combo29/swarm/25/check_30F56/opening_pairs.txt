@@ -1,0 +1,30 @@
+### both colours from one opening: are the two games related? (S-C36's unmeasured half)
+opening                              as-given sha   mirrored sha  same?  mirror-of?
+rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP   0729b43578ed   4523b0754aed  False  False
+r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/   39c045921ba9   b04fcf5c1b01  False  False
+rnbqkb1r/pppppppp/5n2/8/8/8/PPPPPP   2c646120cfdf   540ae033a5ea  False  False
+rnbqkbnr/pp2pppp/2p5/3p4/3P4/8/PPP   b6977b8eecbb   130a310c2620  False  False
+
+openings where the two colour games are DIFFERENT move lists: 4/4
+If they differ, each pair carries two distinct outcomes (though not independent ones); if they are exact
+mirrors, the pair carries one. Either way the point stands that repeating an opening adds no information.
+
+RESULT: all 4 of 4 openings gave DIFFERENT move lists for the two colour games, and none was an exact mirror of
+the other (mirror-of check False in every case).
+
+WHAT THIS MEANS - and it REFINES rather than confirms the "sample size is openings" claim:
+  * the two games from one opening are NOT the same game, so a colour pair does carry two DISTINCT outcomes. That
+    part of seat 30's phrasing overstates the case if read as "a pair is one sample".
+  * but they are still not independent: they are determined by the same opening position, and the difference
+    between them comes from the engine's known colour asymmetry (my S-C3 reproduced seat 06's 101/353 non-mirrored
+    bestmoves). So the pair is two correlated samples, not two independent ones.
+  * the part of seat 30's claim that is exactly right and measured: REPEATING a game adds nothing, because the game
+    is deterministic (S-C36: identical SHA on replay).
+
+SO THE DEFENSIBLE STATEMENT IS: **repetition of the same starting position yields no new information; playing both
+colours from one opening yields two distinct but correlated games. The effective sample size is therefore between
+the number of openings and twice that number, and I did not compute it** - as instructed, the inflation factor stays
+UNMEASURED rather than estimated from 4 openings.
+
+This is a fourth case for my scope-narrowness pattern, applied to someone else's claim: seat 30's "openings, not
+games" is right in direction and too strong in degree.
