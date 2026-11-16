@@ -1,0 +1,51 @@
+THE QUESTION (from the coordinator): on the depth-14 instance, is the engine's bestmove part of a
+correct forced-mate line? If the move leads to mate in the right number of plies while the score says
+-9, it is a score/PV REPORTING fault. If the move abandons the mate, it is a SEARCH fault.
+
+=== idx 69: k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1  (black to move, black is lost) ===
+$ python3 moveline.py 'k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1' a8b8 16
+  engine's move: a8b8
+  a8b8     5 plies (mate in 3)    <-- ENGINE'S MOVE
+  best defence (longest loss): 5 plies; quickest loss: 5 plies
+  ENGINE'S MOVE = longest defence (5 plies) => CORRECT best defence
+
+  DEGENERATE CASE, stated plainly: black has exactly ONE legal move here
+  ($ python3 -c "import chess;b=chess.Board('k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1');print(b.legal_moves.count())"
+   -> 1). So this position cannot show whether the engine CHOOSES a good defence; it shows only that
+  the one move it plays is a correct one.
+
+=== idx 192 (the depth-12 instance): 8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1 ===
+  white has THREE legal moves: c2b1, c2b2, c2c3.
+$ python3 moveline.py '8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1' c2c3 12
+  move     opponent mates in
+  c2c3     7 plies (mate in 4)    <-- ENGINE'S MOVE
+  c2b2     7 plies (mate in 4)
+  c2b1     7 plies (mate in 4)
+  best defence (longest loss): 7 plies; quickest loss: 7 plies
+  ENGINE'S MOVE = longest defence (7 plies) => CORRECT best defence
+
+  Here ALL THREE moves lose in the same 7 plies, so the move choice cannot be distinguished
+  either -- but at least the engine's move is definitively not one that abandons the mate or walks
+  into a faster one.
+
+=== NOTE ON THE PLY NUMBERS (honest) ===
+moveline.py reports "opponent mates in 7 plies" for idx 192, whereas solvemate2.py/matedbf.py
+reported MATED_IN_PLIES 8 for the same root. The difference is one ply of bookkeeping: moveline
+measures from AFTER the loser's move (opponent to move, mate in 7), while the solvers measure from
+the root (loser to move, mated in 8 = 1 + 7). They agree; I state the convention rather than
+present two numbers that look contradictory. Same for idx 69: 5 plies after black's move
+= MATED_IN_PLIES 6 from the root.
+
+=== VERDICT ===
+REPORTING FAULT, not a search fault, on the evidence of both instances.
+- The engine's move is a correct (here: the only, or an equally good) best defence in both positions.
+- The engine's SCORE and PV are wrong: it says 18 plies where the truth is 6 (idx 69) / 8 (idx 192),
+  and its PV is 15 plies in both cases, short of the 18 it promises.
+- Consistent with, and now explained by, 15-F11: one iteration later (depth 16) the same engine
+  gives the true mate -3 with a 6-ply PV ending in checkmate.
+
+LIMIT OF THIS EVIDENCE, stated so nobody over-reads it:
+Neither position offers a CHOICE among moves of different loss length, so I have shown that the move
+played is correct, not that the engine always picks the longest defence when a shorter one exists.
+That distinction matters: a wrong distance could still mis-rank moves in a position where two moves
+lose in different numbers of plies. I did not construct such a position; it is the obvious next test.

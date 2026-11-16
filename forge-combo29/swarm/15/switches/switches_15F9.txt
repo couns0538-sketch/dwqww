@@ -1,0 +1,14 @@
+exe: /home/ubuntu/builds/pc/forge   Threads 1   Hash 16
+board: k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1
+TRUE distance (from python-chess solvers): MATED_IN_PLIES 6 by both solvers => correct score mate -3 with a 6-ply PV
+
+arm                          d    score      nodes     pv    mate?  consistency
+S14 baseline                 12   cp -2206   24059     12    False  no mate score
+S14 baseline                 14   mate -9    42957     15    False  plies 15 != want 18
+S14 baseline                 16   mate -3    45476     6     True   plies==want
++ CuckooRep true ALONE       12   cp -2224   23544     16    False  no mate score
++ CuckooRep true ALONE       14   mate -3    47957     6     True   plies==want
++ CuckooRep true ALONE       16   mate -3    48634     6     True   plies==want
++ MateAlphaGuard true ALONE  12   cp -2206   24059     12    False  no mate score
++ MateAlphaGuard true ALONE  14   mate -3    42354     6     True   plies==want
++ MateAlphaGuard true ALONE  16   mate -3    44366     6     True   plies==want
