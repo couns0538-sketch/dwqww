@@ -60,9 +60,17 @@ At `go nodes 250000` the same position is consistent (`mate 7`, 13/13), as is `g
 So the honest statement is: **the rate falls as the budget rises, but the defect is still present at a 50,000-node match
 budget on long mates, and I have NOT established any budget at which it is absent.**
 
-**And where it does occur, the move does not change.** On G/59 at `go softnodes 2000` the score is `mate 4` with a 6-ply
-PV (needing 7), but the chosen move is `c4a6` at softnodes 2000, 5000, `go depth 12` **and** `go nodes 20000` — identical.
-So the truncated case I could test changes the *reported score*, not the *move played*.
+**And where it does occur, the move does not change — now checked on the match-budget case too.** Two positions:
+
+- G/59 at `go softnodes 2000`: score `mate 4` with a 6-ply PV (needing 7), but the move is `c4a6` at softnodes 2000, 5000,
+  `go depth 12` and `go nodes 20000` — identical.
+- The S-F58 position that truncates at `go nodes 50000` (`mate 11`, 18 of 21 plies): the move is **`b3c2` at every budget** —
+  softnodes 2000, nodes 20000, nodes 50000, nodes 250000 and depth 20 — and the PV's first move equals the bestmove in
+  every row.
+
+So the defect as I can observe it is confined to the **score and PV-length reporting**: the engine chose the same move
+whether or not its PV was long enough to justify its own score. That is two positions, not a distribution — enough to say
+"the move did not change here", not enough to claim it never does.
 
 ## What I got wrong along the way, and corrected
 

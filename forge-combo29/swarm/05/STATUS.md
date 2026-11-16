@@ -730,3 +730,12 @@ every sentence.
   S-W7. Correct statement: the rate falls as the budget rises, the defect is still present at 50,000 on long mates, and
   I have NOT established a budget where it is absent.
 - next command: continue the cycle.
+
+## $(date -u)
+- S-F59: where the truncation DOES occur at a match budget, the MOVE is still right. The S-F58 position: move `b3c2` at
+  softnodes 2000 (cp 3725), nodes 20000 (cp 4056), nodes 50000 (the truncating row: mate 11, 18/21), nodes 250000
+  (mate 7, 13/13), depth 20 (mate 7, 13/13) — identical, and the PV's first move equals the bestmove in every row.
+  => the defect corrupts the reported score/PV length, not the play, on both positions I can test. Two positions, not a
+  distribution: enough to say "did not change here", not "never changes".
+- Kept the phrasing "I have established no budget where it is absent" as instructed.
+- next command: continue at cadence.
