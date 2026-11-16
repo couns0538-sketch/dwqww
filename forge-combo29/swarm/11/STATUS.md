@@ -223,3 +223,7 @@ Next: continue on PC20 with provably-applied options; STATUS every 25 min.
   UNMEASURED (stated as such): ISREADY_PENDING, HARD_LIMIT_EMERGENCY, BARE_KING_LMR_CAP, ABORT_PUBLISH.
   Includes the one-command cross-seat check: bench 11 must read 278024 for PC20, 242796 for S14,
   312866 means NO options were applied.
+- Closed the BARE_KING_LMR_CAP gap: it is MEASURED and live — lone-king `6k1/8/8/8/8/8/8/4QK2 w`
+  gives e1e7/106,270 nodes with it ON vs f1g1/26,973 with it OFF (bestmove changes); normal
+  positions unaffected. PC_SWITCHES.md updated. Remaining UNMEASURED: ISREADY_PENDING,
+  HARD_LIMIT_EMERGENCY, ABORT_PUBLISH (stated as such, not inferred).
