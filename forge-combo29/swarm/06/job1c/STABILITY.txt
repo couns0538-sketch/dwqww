@@ -1,0 +1,25 @@
+STABILITY OF THE COLOUR-MIRROR SEARCH ASYMMETRY — seat 06
+Every search is the FIRST search in a FRESH process, ucinewgame + isready before every go,
+Threads 1, Hash 16, depth 10. 3 runs per position.
+
+| set | build / settings | positions | mismatch in EVERY run | in SOME runs (flips) | in NO run |
+|---|---|---|---|---|---|
+| the 101 positions that mismatched on base | base, S14 | 101 | 101 (100%) | 0 | 0 |
+| the 120 positions that mismatched on PC | PC r15, PC20 | 120 | 120 (100%) | 0 | 0 |
+| 80 positions that did NOT mismatch on PC (converse control) | PC r15, PC20 | 80 | 0 | 0 | 80 (100%) |
+
+Raw: out_stab_base.jsonl, out_stab_pc.jsonl, out_stab_ok.jsonl (each line carries the per-run hit count
+and a 2-run sample of the actual bestmoves and scores).
+
+ANSWER: the asymmetry is fully DETERMINISTIC, per position, on both builds. No position flips. The
+80-position converse shows determinism runs the other way too: positions that agree keep agreeing.
+
+What this rules in and out for a fixer:
+  RULED OUT: a marginal tie-break whose winner depends on run-to-run accident (memory layout, process
+    start state, hash seed). Nothing here is a coin flip, so a fix does not need to chase nondeterminism,
+    and a "run it again and see" strategy will never find it.
+  RULED IN: a systematic, reproducible difference that is a deterministic function of the position. The
+    same 101 / 120 positions mismatch every single time, so the cause can be found by bisecting on ONE
+    fixed position repeatedly, which is far cheaper than sampling more positions.
+  ALSO RULED IN: it is not a boundary effect of "which positions happen to sit near a tie" - the
+    positions that agree are equally stable.
