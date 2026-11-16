@@ -5,30 +5,27 @@ area 10 (CHECKING THE OTHERS)
 branch for-fable-and-opus/swarm-20
 seed 2001
 
-## 2026-11-16T21:53Z — deadline 22:30 noted; everything below is already pushed
+## 2026-11-16T22:00Z — pre-22:05 checkpoint
 
 STEP 1 + STEP 2 done (HONESTY.txt 4/4 pins). Sanitizer runner proof built (planted fault 3 lines / real 0).
 
-### THREE BROADCAST AUDITS, ALL COMPLETE (folder AUDIT/)
-1. **19-F12 (fabricated bestmove on mid-search quit):** audited every harness. Valid ones wait for `bestmove`
-   before `quit`. Two were already discarded before the broadcast (`job3/out/fallback.out.txt`, `job2/quitcut.sh`).
-   New driver `AUDIT/hardened.py`. Re-verified: startpos depth 12 -> e2e4, cp 30, **56,720 nodes**.
-2. **Silent-parse verdicts:** fed every parsing checker a FAKE engine that answers uciok then nothing.
-   **All 7 hung; none printed a verdict.** No silent-parse defect, but I record that hanging is weaker than failing
-   loudly (`AUDIT/AUDIT.md`).
-3. **Seat 10's warm/cold node warning:** `Clear Hash` is used NOWHERE in my work (grep: no matches); every node count
-   of mine comes from a fresh process per search; three fresh runs of startpos depth 12 give 56,720 three times.
-   No table of mine compares warm searches, so nothing needs a "warm" label (`AUDIT/AUDIT_node_counts.md`).
+### AUDITS (all three broadcasts answered, folder AUDIT/)
+- **19-F12** fabricated bestmove on mid-search quit: every harness audited; valid ones wait for `bestmove`;
+  two already-discarded scripts named; new driver `AUDIT/hardened.py`. Re-verified startpos depth 12 = e2e4, 56,720.
+- **silent-parse** (seat 19 warning 2): 7 parsing checkers fed a silent fake engine -> ALL hung, none printed a
+  verdict. No silent-parse defect; noted that hanging is weaker than failing loudly.
+- **seat 10 warm/cold**: `Clear Hash` never used; every node count from a fresh process; 56,720 x3.
 
-### CHECKS (9, all CONFIRMS, none REFUTED)
+### CHECKS: 12 written, ALL CONFIRMS, none REFUTED
 S-C1 seat01 S-F5 | S-C2 seat02 S-F2 | S-C3 seat12 S-F1 | S-C4 seat28 S-F4 | S-C5 seat02 S-F1
 S-C6 seat06 S-F1 | S-C7 seat28 S-F1 | S-C8 seat05 S-F3 | S-C9 seat05+seat25 S-F1 (S14-conditional)
-RECOUNTS: deepseek6 long56 (S-F1..S-F10); glmflash5 job27 (every number exact).
+S-C10 seat27 S-F3 (hashfull 1000-cluster window; nodes identical 87,135)
+S-C11 seat17 S-F1 (0000 on a live board; + the 64-info-line detail)
+S-C12 seat17 S-F3 (bench pins immune to history drift: 862329 x3)
+RECOUNTS: deepseek6 long56, glmflash5 job27 (every number exact).
 
 ### FINDINGS
-S-F1..S-F20 live. **S-F21 WITHDRAWN** (my error). New: **S-F22** true mate distance on the S-F19 board is exactly
-8 plies (`mate -4`), proved by an exact predicate both ways plus an exhibited 8-ply line ending in verified
-checkmate — the engine's depth-12 `mate -7` overstates it by 6 plies. **S-F23** records two of my own job16 scripts
-whose mate "distance" no line realised; both discarded, no number recorded.
+S-F1..S-F20 live; S-F21 WITHDRAWN (my error); S-F22 true mate distance = 8 plies (proved both ways);
+S-F23 my own discarded mate scripts recorded; S-F24 node-count audit statement.
 
-Next command: `cd /agent/repos/dwqww && bash forge-combo29/swarm/20/board_read.sh 01 05 19 28`
+Next command: `cd /agent/repos/dwqww && bash forge-combo29/swarm/20/board_read.sh 01 06 27 28`
