@@ -55,3 +55,6 @@ Branch tip before this block: ce87c538c.
 
 ## Mon Nov 16 09:45:12 PM UTC 2026
 CYCLE 4: S-C4 CONFIRMS 21-F2 with a perft control (55117 vs 8902). Two more of my own harness bugs found and fixed (perft prints 'nodes' not 'Nodes searched'; ucinewgame prints no readyok) - both recorded in the check.
+
+## Mon Nov 16 09:55:54 PM UTC 2026
+job4 DONE + Report. S-F14 WITHDRAWS correction-2's hard-limit overrun claim (300 searches; engine time never exceeds hard, wall excess <=1.2 ms pipe). S-F15: ucinewgame == fresh process bit-identically (112623 nodes x5, depth 14 x5) vs no-ucinewgame climbing 14->17. S-F16: Clear Hash is not cold.
