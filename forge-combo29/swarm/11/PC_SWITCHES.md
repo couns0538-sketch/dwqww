@@ -37,9 +37,15 @@ Built three ways, all with `-DCMAKE_BUILD_TYPE=Release -DFORGE_MATE_ALPHA_GUARD=
 Measured and reported above: `ROOT_DRAWN`, `GO_PARSE`, `BARE_KING_LMR_CAP`, and
 `BARE_KING_ONE_THREAD` (the last from its OFF→ON build).
 
+**PROVEN INERT (better than unmeasured):**
+- `FORGE_FIX_ISREADY_PENDING` — ON in the source, but **cannot fire in this binary**. Its whole
+  body sits inside `#if FORGE_NNUE_V3`, which is **0** in the patched tree
+  (`include/forge/nnue.hpp:40`), and it only acts when `NNUEArch` is on with no net loaded — and
+  the shipped exe lists **no `NNUEArch`/`NNUEArchFile` option at all**. So the state it protects
+  is unreachable, which is exactly why my probe found no ON/OFF difference. (S-F90)
+
 **Still unmeasured — I have no probe that distinguishes the switch ON from OFF, so I make no claim
 either way about its effect:**
-- `FORGE_FIX_ISREADY_PENDING` — ON in the binary.
 - `FORGE_FIX_HARD_LIMIT_EMERGENCY` — ON in the binary.
 - `FORGE_FIX_ABORT_PUBLISH` — OFF in the binary.
 
