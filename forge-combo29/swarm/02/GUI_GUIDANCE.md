@@ -137,3 +137,6 @@ waiting forever with no diagnostic to show a user.
 Both are GUI-side only. Neither is detectable from the engine's output today, which is why the recommendation in
 the SHOULD section is for the engine to emit an `info string` — until it does, there is nothing on the engine
 side to wait for.
+
+## scope of the "silent" finding — do not build on it
+S-F3 and S-F4 print **no warning line in THIS build** (`6b98f217`, `id name Chess Engine Forge 6.4.24 candidate`); that is a description of today's behaviour and not a guarantee, so a GUI must not write code that depends on the silence — check `info string` lines if they appear, and do not treat their absence as proof that the command was understood.
