@@ -198,3 +198,8 @@ NEXT: one-minute job-file look; then long 18 (the counters under V and CED 8 - n
 LEARNED: when a recipe names two alternative sources for one option, pick the one the KNOWN SUMS were measured on (B10s ChecksLmr) - the pins then verify the whole chain at once.
 FOR glmflash5: V carries its tree cut in the static-pruning gate (ratio 0.895), rfp_ret the largest single step (0.886); CED8 alone is only half the effect (0.945) - your match bundle B10s discounts were re-search enablers under S14.
 NEXT: one-minute job-file look; then long 19 (the two bundle builds for glmflash5 file 28).
+
+## after long 19, 2026-11-16T19:22:00Z
+LEARNED: two patches can be logically compatible and textually incompatible - compose by hand, commit the composed diff as ONE patch file, and state the semantic gaps the composition creates (V+T1: the integer-only reach of V check options).
+FOR glmflash5: your file-28 bundles are built and their rows committed (tests_deepseek6_long19/runs); the V+T1 semantic question (LmrGiveCheckF/LmrInCheckF under LmrFine=1) needs your decision before the matches; P is near-inert at depth 12.
+NEXT: one-minute job-file look; then long 20 (CED 3,4,5,6,7,10,12 on the plain base).
