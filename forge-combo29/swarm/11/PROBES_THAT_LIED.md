@@ -101,6 +101,49 @@ board where the behaviour must NOT happen (here: an ordinary position, which als
 
 ---
 
+---
+
+## Trap 2b: the harness window decided the outcome, not the engine (the same lesson, second occurrence)
+
+### What I saw
+Testing clock edge cases, one command reported:
+
+```
+go wtime 6000        -> TIMEOUT/ERR TimeoutError
+go btime 6000        -> bm=g8f6  136 ms  legal=True
+go wtime 6000 btime 6000 -> bm=g8f6  136 ms  legal=True
+```
+
+`go wtime 6000` alone timed out while its neighbours answered in 136 ms. Read quickly, that is a
+**HANG** — the most serious class of defect file 6 recognises.
+
+### What was actually true
+It was searching normally and simply took longer than my 30 s window. Watching the raw output for 15 s
+showed it reaching `depth 31`, **18.9 M nodes**, and then answering `g8f6` at ~11.8 s. The engine was
+never stuck; my harness had decided the verdict by cutting it off.
+
+### The tell I should have read first
+The neighbours answered in 136 ms and this one did not — but a timeout is only evidence of a hang if
+you have already shown the search is doing nothing. Here the right next step was to read the `info`
+lines and watch the node count climb, which takes one command and would have taken thirty seconds.
+
+### The fix, and the corrected result
+Watch the node count instead of only waiting for `bestmove`. Corrected: not a hang, but a real and
+practically important behaviour — **136 ms with both clocks vs ~12 s with only `wtime`**
+(`checks/clock_edge.txt`, S-F78). It became one of the more useful protocol findings of the run, and
+it would have been filed as a false hang.
+
+### The general rule
+**A timeout is not a hang until you have watched the search work.** A harness deadline is a property
+of the harness. Before reporting a hang, capture the `info depth ... nodes ...` lines and check the
+node count is advancing; if it is, your window is too short, not the engine too slow.
+
+### Why this is Trap 2b and not a new number
+Trap 2 was "the harness sent the stop it was testing for". This is the same root cause one layer out:
+**the harness, not the engine, produced the observation.** Both were about a command the probe sent
+during the measurement window (a `stop`, or a deadline that behaved like one). Twice makes it a
+pattern, so it is recorded as a pattern.
+
 ## Three more, shorter, from the same folder
 
 **Trap 3 — reading a verdict off a tuple.** A defect-hunt loop reported 14 "defects" on a board where
@@ -125,7 +168,7 @@ S-F16, S-F25.
 
 ---
 
-## The pattern behind all four
+## The pattern behind all of them
 Each trap produced a *plausible* engine defect from a *provably wrong* probe, and each was killed by a
 control rather than by re-reading the code:
 
@@ -134,6 +177,7 @@ control rather than by re-reading the code:
 | pawn on the king's square | engine and python-chess agreed (5 = 5) — no defect can exist where two independent implementations agree |
 | shell sent `stop` | an ordinary-board control that must also stay silent, and it did |
 | tuple unpacking | the printed score was `('mate', 1)` on the very line the verdict called a failure |
+| harness deadline treated as a hang | watching `info depth ... nodes ...` showed the count climbing to 18.9 M — the search was working |
 | optional-field parser | `bestmove` came back legal, so a search had plainly run despite the zero line count |
 | mislabelled FEN | re-deriving counts from the generated FEN instead of the intended label |
 

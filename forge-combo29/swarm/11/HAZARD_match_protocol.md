@@ -56,11 +56,17 @@ Two related facts from the same measurements:
 - `go softnodes N` does the opposite and overshoots N (median ~33 % over at N=2000).
 
 ## Always send BOTH clocks
-`go wtime 6000` **without** `btime` does not hang, but it searches about two orders of magnitude
-longer: **136 ms** with both clocks vs **~12 s** (depth 31, 18.9 M nodes) with only `wtime`.
-The time manager needs both clocks to build a plan; given only one, the side to move's budget is
-effectively unbounded. Send `wtime` and `btime` on every `go`, or a 0.14 s move becomes a 12 s
-move and can lose on time. (`go btime` alone behaves normally — it is the side to move's clock
+
+| command | wall time | depth reached |
+|---|---|---|
+| `go wtime 6000 btime 6000` | **136 ms** | shallow |
+| `go wtime 6000` (no `btime`) | **~12 s** (11.8 s measured) | depth 31, 18.9 M nodes |
+
+**136 ms versus 12 seconds — about two orders of magnitude, from one missing field.** `go wtime 6000`
+without `btime` does not hang and does not play an illegal move, but it searches ~12 s instead of
+0.14 s. The time manager needs BOTH clocks to build a plan; given only one, the side to move's
+budget is effectively unbounded. Send `wtime` and `btime` on every `go`, or a 0.14 s move becomes a
+12 s move and can lose on time. (`go btime` alone behaves normally — it is the side to move's clock
 that must not be omitted.) Evidence: `checks/clock_edge.txt`.
 
 ## The engine relies on YOUR program to end a game
