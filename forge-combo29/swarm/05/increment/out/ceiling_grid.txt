@@ -1,0 +1,20 @@
+exe: /tmp/build-pc/forge   PC20, Threads 1, Hash 16, OwnBook false   SEQUENTIAL
+3 G positions x 2 runs per cell   date_utc: 2026-11-16T23:34:47Z
+
+| clock (ms) | increment (ms) | n | median wall (ms) | max wall (ms) | median engine time (ms) | median depth | max depth |
+|---|---|---|---|---|---|---|---|
+| 6000 | 60 | 6 | 177 | 300 | 176 | 18 | 23 |
+| 6000 | 6000 | 6 | 1712 | 3442 | 1712 | 27 | 31 |
+| 6000 | 24000 | 6 | 1720 | 3457 | 1719 | 27 | 31 |
+| 20000 | 60 | 6 | 796 | 970 | 796 | 23 | 26 |
+| 20000 | 6000 | 6 | 2755 | 3446 | 2754 | 27 | 32 |
+| 20000 | 24000 | 6 | 8838 | 11995 | 8836 | 30 | 39 |
+| 60000 | 6000 | 6 | 3423 | 3811 | 3422 | 27 | 35 |
+| 60000 | 24000 | 6 | 11934 | 35995 | 11934 | 31 | 44 |
+
+largest wall time seen anywhere in the grid: 35995 ms at clock/increment (60000, 24000)
+
+Reading: compare the inc 6000 and inc 24000 rows INSIDE each clock block. If they are equal at clock 6000 but
+differ at clock 20000/60000, the ceiling scales with the clock (hypothesis a). If they are equal everywhere,
+the ceiling is absolute (hypothesis b).
+DONE

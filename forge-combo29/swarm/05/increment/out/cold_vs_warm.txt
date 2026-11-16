@@ -1,0 +1,11 @@
+exe: /tmp/build-pc/forge   clock 6000 inc 60000   Threads 1, Hash 16, OwnBook false
+board: r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8
+5 runs per discipline, SEQUENTIAL   date_utc: 2026-11-16T23:39:06Z
+
+| discipline | n | median wall (ms) | median depth | depths seen |
+|---|---|---|---|---|
+| COLD (fresh process per run) | 5 | 3595 | 24 | [24] |
+| WARM (one process, no ucinewgame) | 5 | 2658 | 26 | [24, 25, 26, 27] |
+| UCINEW (one process, ucinewgame each) | 5 | 3595 | 24 | [24] |
+
+This is the direct test: my increment_scaling.py calls subprocess.Popen inside run(), so it is the COLD row.
