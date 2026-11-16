@@ -50,3 +50,22 @@ RUNNING
 
 NEXT COMMAND
 cd /agent/repos/dwqww/forge-combo29/swarm/17/job1 && python3 run_asan.py /agent/repos/base/forge-combo29/build-asan/forge G.epd 41 20 16 asan_G_41_60
+## 2026-11-16T21:57Z (block 6)
+
+seat 17 | area 7 | branch for-fable-and-opus/swarm-17 | seed 1701
+
+DONE since block 5
+- REPORT_job1.md pushed; job 2 (move picker + histories) done, REPORT_job2.md pushed with it.
+- NEW: S-F7 (history tunables at both advertised extremes under ASan: 0 lines, 40x node spread proves applied),
+  S-F8 (no-legal-match searchmoves ignores node/movetime budgets: 64 depth lines all nodes 0), S-F4 (OwnBook
+  default true voided my first clock run - methodological trap), S-F3/S-F5/S-F6 negatives.
+- CONFIRMS: 10 (warm/cold rule, all four parts reproduced exactly), 07-R1, 07-F1, 27-F2, 27-F4 (re-labelled),
+  19-F12. My own S-F2 WITHDRAWN (my source attribution was wrong; the observable S-F1 stands).
+
+CORRECTION on record
+- After seat 10's rule: my S-C6 baseline was a fresh process vs a post-Clear-Hash search, which conflates warm
+  drift with a TT clear. FINDINGS now says so and keeps only the narrower surviving claim (hashfull -> 0, so
+  the residual drift is the histories). All my ASan sweeps are one-search-per-process, so they are unaffected.
+
+NEXT
+- Check remaining seat findings; finish area 7 job 3 (transposition table) as far as time allows.
