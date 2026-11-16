@@ -1,0 +1,18 @@
+exe: /tmp/build-pc/forge   regime PC20   Threads 1   depth 20   date_utc: 2026-11-16T22:40:08Z
+board: 1K6/8/8/3R4/8/8/8/k7 w - - 0 1   real counter: 91
+
+step 1: same board at counter 0, deep search, read the mate distance
+  counter 0, depth 20: mate 8 (pv 15 plies)
+
+step 2: the board with the REAL counter, same depth
+  counter 91, depth 20: cp 0 (pv 4 plies)
+
+step 3: file 6's inequality
+  forced mate at counter 0: mate +8 -> needs 15 plies
+  half-moves left before the 100th: 100 - 91 = 9
+  inequality 2N-1 <= 100-counter : 15 <= 9 -> FALSE
+  real-counter score: cp 0
+
+VERDICT under file 6: NOT A DEFECT
+  (the mate needs 15 plies but only 9 half-moves remain, so scoring the real-counter
+   board cp 0 is the match program's own outcome — correct behaviour)

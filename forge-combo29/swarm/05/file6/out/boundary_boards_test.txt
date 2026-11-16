@@ -1,0 +1,30 @@
+
+--- bare K+R boundary (counter 91)
+  forced mate at counter 0: mate +8 -> needs 15 plies
+  half-moves left before the 100th: 100 - 91 = 9
+  inequality 2N-1 <= 100-counter : 15 <= 9 -> FALSE
+  real-counter score: cp 0
+
+VERDICT under file 6: NOT A DEFECT
+  (the mate needs 15 plies but only 9 half-moves remain, so scoring the real-counter
+   board cp 0 is the match program's own outcome — correct behaviour)
+
+--- K+R+pawn flat 98 (counter 98)
+step 1: same board at counter 0, deep search, read the mate distance
+  counter 0, depth 20: cp 522 (pv 21 plies)
+
+step 2: the board with the REAL counter, same depth
+  counter 98, depth 20: cp 0 (pv 2 plies)
+
+step 3: no forced mate found at counter 0 within depth 20 (cp 522)
+VERDICT under file 6: NOT A DEFECT — no mate exists inside the counter budget, so cp 0 is correct.
+
+--- bare K+B+B boundary (counter 90)
+step 1: same board at counter 0, deep search, read the mate distance
+  counter 0, depth 20: cp 507 (pv 22 plies)
+
+step 2: the board with the REAL counter, same depth
+  counter 90, depth 20: cp 0 (pv 6 plies)
+
+step 3: no forced mate found at counter 0 within depth 20 (cp 507)
+VERDICT under file 6: NOT A DEFECT — no mate exists inside the counter budget, so cp 0 is correct.

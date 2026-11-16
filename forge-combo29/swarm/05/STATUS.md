@@ -370,3 +370,15 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   rule and its 0-truncated result is not evidence against S-F27. A repeat must SELECT for long mates, not sample at
   random.
 - next command: build a long-mate set (|N| >= 8) deliberately, then measure the truncation rate on it.
+
+## $(date -u) — FILE 6 READ AND APPLIED
+- File 6 changes two verdicts. I applied its test to MY OWN fifty-move findings:
+  * S-F3 board at counter 91: counter-0 depth-20 gives mate 8 -> needs 15 plies; 100-91 = 9 half-moves remain;
+    15 <= 9 is FALSE. **S-F3 is NOT a defect** (match program ends at the 100th half-move). S-F16 (same claim on the
+    PC build) WITHDRAWN with it.
+  * S-F11/S-F13/S-F14/S-F15/S-F20 are DESCRIPTIONS of where the draw verdict lands, not defects: the K+R+pawn board at
+    98 and the K+B+B board at 90 have NO forced mate at all at counter 0 (cp 522 / cp 507 at depth 20).
+  * S-F4 same family, WITHDRAWN as a defect.
+- Recorded as S-W1 and S-W2 so the withdrawal is explicit and dated, and every affected finding line is marked.
+- My mate-PV findings are UNAFFECTED: they are about PV length vs score, nothing to do with draws.
+- next command: take file 6's suggested area — `go softnodes N` on PC r15 + PC20, Threads 1.
