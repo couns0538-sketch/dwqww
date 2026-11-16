@@ -1,0 +1,29 @@
+# PREDICTION — seat 20, area 10, job 15 (is a mate in 3 really invisible to depth 14?)
+
+Committed alone BEFORE the first measuring command. Never edited afterwards.
+
+Background (my S-F21): on `6k1/6pp/8/8/8/8/5PPP/R5K1 w - - 0 1` python-chess finds 18 mate-in-3 move triples
+(e.g. `g1h1 g8h8 a1a8`), yet the engine reports `cp 1219`–`cp 1368` at depths 8, 10, 12 and 14 with default settings
+and with `LmpBase=8`. A forced mate in 3 plies (white to move: white plays, black replies, white mates) is within a
+depth-14 tree by any reckoning.
+
+Careful, this may be MY error: my python-chess "mate-in-3" counts 3 PLIES (white, black, white), which is a mate in
+2 MOVES. The engine's `mate 2` means "mate in 2 moves" = 3 plies. So an engine answer of `cp` here really would be
+missing a mate in 2 moves.
+
+Predictions:
+1. The engine does NOT report a mate at any depth 8..20 on that board; it keeps reporting a large cp.
+   KILLED IF: any depth reports `mate N`.
+
+2. The mate really is forced and reachable in 3 plies, proved independently: I will replay `g1h1 g8h8 a1a8` with
+   python-chess and confirm checkmate, and confirm black had no alternative defence by enumerating black's replies
+   after `g1h1`.
+   KILLED IF: black has a defence (then there is no mate in 3 and the engine is right).
+
+3. If black HAS a defence to `g1h1`, then the 18 "mate-in-3" triples are not all forced and my count was counting
+   white's free choice rather than a forced line; in that case my S-F21 is WITHDRAWN and I say so.
+   In other words: prediction 3 is the alternative branch, and which holds decides the finding.
+
+4. If the mate is genuinely forced and the engine misses it at depth 20, the cause is a pruning/extension rule, and
+   the score should be a large positive cp (near a winning advantage) rather than a random number.
+   KILLED IF: the engine's score at depth 20 is below +300 cp (which would mean it does not even see the advantage).
