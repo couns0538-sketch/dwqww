@@ -18,7 +18,7 @@ import sys
 EXPECTED = int(__import__("os").environ.get("EXPECTED", "5000"))
 ENG_FILE = __import__("os").environ.get("ENG_FILE", "engine_R.jsonl")
 REF_GLOB = __import__("os").environ.get("REF_GLOB", "pych_R_*.jsonl")
-DEPTHS = ["1", "2", "3", "4"]
+DEPTHS = __import__("os").environ.get("DEPTHS", "1,2,3,4").split(",")
 
 
 def die(msg):
@@ -122,10 +122,10 @@ if len(bad["1"]) == 0 and compared != EXPECTED:
     print("NOTE: 0 perft-1 mismatches, but only %d of %d positions were compared so far"
           % (compared, EXPECTED))
 
-if bad["4"]:
+if bad[DEPTHS[-1]]:
     print()
-    print("MISMATCHES at depth 4 (with divide diff):")
-    for i in bad["4"][:50]:
+    print("MISMATCHES at depth %s (with divide diff):" % DEPTHS[-1])
+    for i in bad[DEPTHS[-1]][:50]:
         e, r = eng[i], ref[i]
         print("i=%d fen=%s" % (i, r["fen"]))
         print("   nodes eng=%s ref=%s" % (e["nodes"], r["nodes"]))
@@ -143,6 +143,11 @@ else:
     print("no mismatches at any compared depth (1..4)")
 
 print()
+if len(DEPTHS) != len(tot_eng):
+    die("ROW COUNT GUARD: asked for %d depths, printed %d rows" % (len(DEPTHS), len(tot_eng)))
+if compared != EXPECTED:
+    print("NOTE: compared %d of %d positions — this is a PARTIAL result, not a full one"
+          % (compared, EXPECTED))
 print("RESULT LINE FOR FINDINGS: perft 1..4 over %d of %d R positions, engine nodes == python-chess nodes at"
       % (compared, EXPECTED))
 print("every depth; mismatch counts %s." % {d: len(bad[d]) for d in DEPTHS})

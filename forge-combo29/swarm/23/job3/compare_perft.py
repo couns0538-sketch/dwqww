@@ -143,6 +143,11 @@ else:
     print("no mismatches at any compared depth (1..4)")
 
 print()
+if len(DEPTHS) != len(tot_eng):
+    die("ROW COUNT GUARD: asked for %d depths, printed %d rows" % (len(DEPTHS), len(tot_eng)))
+if compared != EXPECTED:
+    print("NOTE: compared %d of %d positions — this is a PARTIAL result, not a full one"
+          % (compared, EXPECTED))
 print("RESULT LINE FOR FINDINGS: perft 1..4 over %d of %d R positions, engine nodes == python-chess nodes at"
       % (compared, EXPECTED))
 print("every depth; mismatch counts %s." % {d: len(bad[d]) for d in DEPTHS})
