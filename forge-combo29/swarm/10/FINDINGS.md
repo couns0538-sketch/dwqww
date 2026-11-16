@@ -1,0 +1,9 @@
+# FINDINGS — seat 10 (area 10, checking the others)
+
+Format: | id | area | one sentence | file with the exact command that shows it again | NEW |
+
+| 10-F1 | 10 | deepseek6 long56's committed raw summary says `'seqs': 0` while its report says 2,000 sequences; the runner's `seqs` key is never assigned, so the count lives only in `ok`. | job2/out/summary_vs_report.txt | NEW |
+| 10-F2 | 10 | deepseek6 long56's "illegal bestmoves 0" is vacuous: its legality guard is gated on `pos_line`, which is only set from engine stdout lines starting with `position`, and the engine never prints one — a fake engine answering `bestmove a1a8` for startpos still scores `illegal 0`. | job2/raw/vacuity/planted_summary.txt | NEW |
+| 10-F3 | 10 | deepseek6 long56's report says "the per-sequence records are in out/", but its committed out/ holds exactly two files (bad_sequences.txt 0 bytes, fuzz56_summary.txt). | job2/out/out_dir_listing.txt | NEW |
+| 10-F4 | 10 | deepseek6 long56's "0 sanitizer lines" carried neither of the brief's two proofs, so it was "not shown" as committed — but it is nonetheless TRUE: with my own ASan+UBSan build (35 asan/15 ubsan symbols), a planted heap over-read counted by the same runner (3 lines), the 2,000 sequences give 0 sanitizer lines, 0 crashes, 0 hangs in 58.4 s. | job2/out/asan/asan_result.json and job2/out/proof/planted_result.json | NEW |
+| 10-F5 | 10 | deepseek6 long56's four headline conclusions reproduce independently: 4,803 (position, go) pairs replayed one per fresh process give 0 illegal bestmoves per python-chess (its own check, by contrast, was dead code). | job2/out/clean56_summary.json | NEW |
