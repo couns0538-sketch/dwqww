@@ -1,0 +1,22 @@
+# PREDICTION — job7 (area 1 job 1 AGAIN, SEED 2111, new position set), seat 21
+written before the first measuring command; not edited afterwards.
+
+What differs from job1 (SEED 2101): the seed (+10), a new R2 position set built from that
+seed, and a mutation mix weighted by job1's measured per-kind acceptance rates (so the
+accepted set is not dominated by `replace`). Everything else — engine, driver, batch size,
+the four known-value checks — is identical.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | refused count rises above job1's 18,775 because `dropfld` (never accepted) now carries weight 1.0 | killed if refused < 18,775 |
+| P2 | refused between 18,000 and 19,700 of 20,000 | killed outside |
+| P3 | accepted between 300 and 2,000 | killed outside |
+| P4 | of the accepted, python-chess-INVALID share is HIGHER than job1's 3.2 % because `replace`-only adjacent-digit ranks are no longer the whole story | killed if the share is below 3.2 % |
+| P5 | 0 crashes, 0 hangs, 0 sanitizer lines | killed by any one |
+| P6 | 0 illegal bestmoves by the corrected classifier (bestmove `0000` in a mate position counts legal) | killed by any one |
+| P7 | the four honesty numbers still hold on this build (312866 / 862329 / 3024920 / 4865609) | killed by any miss |
+| P8 | the `info string invalid FEN` reasons are dominated by the same structural checks as job1 (`invalid FEN fields` first, then `invalid FEN placement`) | killed if a new reason appears in more than 5 % of refusals |
+
+Why: the mix change is the only lever; the engine is unchanged, so the honesty numbers must
+reproduce exactly. The refused share can only go up, since every kind I down-weighted was a
+kind that produced some acceptances.
