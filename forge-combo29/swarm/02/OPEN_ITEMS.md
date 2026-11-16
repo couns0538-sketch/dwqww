@@ -53,6 +53,10 @@ effect (it should be ~2-4x A's 160-380 ms).
 
 **What the result would mean.** If B scores above 55 %, the 5 % utilisation is wasted strength and `TmSoftDivisor`
 is a strength knob worth tuning on the owner's clock; if B sits inside 45-55 % while using 2-4x the time, the
-conservatism is correct and the current setting should stay. Either answer is useful, which is why this is worth
+conservatism is correct and the current setting should stay. In strength terms, a 55 % score is **+35 Elo** and
+52 % is +14 Elo (the brief's own conversion, `-400*log10(1/m-1)`), so the band 45.1-54.9 % at 400 games
+corresponds to roughly **-35 to +34 Elo** — i.e. this test detects an effect of about 35 Elo and would NOT detect
+a real 15-Elo gain. If the owner suspects the effect is small, use 1,000 games, where the band tightens to
+46.9-53.1 % (+/-3.1 %, about +/-22 Elo). The arithmetic for both is in the file's own numbers: 1.96*sqrt(0.25/n). Either answer is useful, which is why this is worth
 400 games — and it is the only way to answer it, since both settings produce legal, deterministic, reproducible
 search and only a score can separate them.
