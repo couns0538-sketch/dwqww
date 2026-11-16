@@ -42,3 +42,15 @@ FINDINGS.md pushed now as ordered (2 findings: 23-F1 the 19-F12 boundary is sync
 has no Board.perft()). job1 reference perft 3939/5000 python-chess positions; engine side long done (engine_R.jsonl,
 5000 rows, 26.3 s, meta records exe path + sha256 e06310ec... + id name "Chess Engine Forge 6.4.24 candidate").
 Next push 22:04Z with the comparison table if the reference finishes; if not, the partial counts + STATUS go anyway.
+
+## 2026-11-16T21:36:50Z  CHECKPOINT (owner: findings on GitHub by 22:30, pushes every 30 min)
+Done since last block: FINDINGS.md on GitHub with 23-F1, 23-F2 and now 23-F3.
+Seat-19 NaN warning acted on: compare_perft.py rewritten with an integrity contract (no .get() into a comparison,
+every depth key and every count asserted integer, a 0-position comparison is a HARD FAILURE, totals always printed
+with "positions actually compared: N of 5000", and the word CONFIRMS never printed). Proved with
+integrity_selftest.sh: 7 malformed cases all exit 2 HARD FAILURE, the clean case exits 0. integrity_selftest.out
+committed. Re-audit of my other parser (engine_perft.py): it does not grep a printed value at all — it reads the
+ line and RAISES if the engine dies or if a line contains unknown option / invalid value / invalid FEN /
+illegal move; a missing  line cannot become 0 there.
+job1: python-chess reference 4045/5000 (still running, ~10 more min), engine side 5000/5000 done in 26.3 s.
+Next: finish reference, run compare_perft.py, write REPORT_job1.md, add the perft verdict finding, push by 22:30.
