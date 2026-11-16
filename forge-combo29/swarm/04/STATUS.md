@@ -42,3 +42,17 @@ INTEGRITY (seat 19): check_quit.py has a gate that refuses a verdict when a fiel
 stale records AND a PASSED-while-all-missing bug in itself; both fixed. Quit re-run in progress.
 FINDINGS.md + REPORT_job1.md pushed. Next command:
   cd /home/ubuntu/runs && python3 /agent/repos/dwqww/forge-combo29/swarm/04/job1/check_quit.py /home/ubuntu/runs/quit_rel2
+
+## 2026-11-16T21:58:36Z CORRECTNESS + GENERALITY (coordinator's 3 follow-ups)
+STEP 2 (correctness) DONE — the waste DOES change the score. Hang FEN, fresh process each cell:
+  Threads 1 d12 = +2188 cp (2/2 runs identical), d14 = +2315 cp (2/2 identical), bestmove f3f8
+  Threads 4 d12 = mate 17 / mate 15 (the two runs DISAGREE), d14 = mate 13 / mate 12, bestmove f3f8
+  => same bestmove everywhere, but Threads 1 never sees the mate and Threads 4 reports a different
+     mate distance on every run at the same depth. Correctness consequence, not only time.
+STEP 1 (generality) DONE — the explosion is NOT general. Two same-shape positions:
+  6k1/5pp1/8/8/8/8/1q3PPP/6K1 w : 221,942 -> 494,718 nodes (2.2x) T1->T4, <0.06 s
+  8/6k1/8/8/8/5q2/5PPP/6K1 w   :  10,385 -> 116,072 nodes (11x)   T1->T4, <0.02 s
+  hang FEN                      :  79,980 -> 1,253,000,000 (15,600x)
+STEP 3 (aspiration / NullMove) NOT DONE — out of time after steps 1 and 2; recorded as not done.
+Table: job1/table_divergence.md. Next command:
+  python3 job1/divergence.py /home/ubuntu/builds/rel/forge /tmp/d3 asp --threads 4 --depths 12 --runs 2 --opts AspirationDelta=200
