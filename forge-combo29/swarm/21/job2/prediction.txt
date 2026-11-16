@@ -1,0 +1,18 @@
+# PREDICTION — job2 (a CHECK of seat 30's 30-F6), area 1, seat 21, seed 2101
+written before the first measuring command of this check; not edited afterwards.
+
+Claim under test (30-F6): `ucinewgame` resets the board to the start position
+(src/uci.cpp:254-257), so `position ...` then `ucinewgame` before `go` searches startpos.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | N1 (no ucinewgame, after e2e4) perft 1 = 29 | must be exactly 29 |
+| P2 | P (position then ucinewgame) perft 1 = 20 | must be exactly 20 for CONFIRMS; anything else REFUTES |
+| P3 | P2 (FEN then ucinewgame) perft 1 = 20 | same |
+| P4 | N2 (ucinewgame before the position) perft 1 = 29 | must be 29, else ucinewgame's reset is not the cause |
+| P5 | B2: a `position startpos moves d2d4` sent after ucinewgame counts 20 | 20; any other value means the reset is order-dependent in a second way |
+| P6 | B3: `go depth 8` bestmoves differ between with/without ucinewgame in at least 1 case | if identical in all, the TT clear is not observable at depth 8 |
+
+Direction of my expectation: CONFIRMS. `src/uci.cpp:254-257` visibly calls
+`board.set_fen(StandardStartFen)` inside the `ucinewgame` branch, so P2/P3 should read 20 —
+but a code read is not a measurement, so this is still a measurement with a prediction.
