@@ -1,0 +1,22 @@
+CorrHistV2 ablation, PC r15, Threads 1, 2026-11-16T22:31:51Z
+all other PC20 options held constant; only CorrHistV2 toggled
+
+rep 1:
+  CorrHistV2 true : nodes   587276  time  409 ms  nps 1435882
+  CorrHistV2 false: nodes   613774  time  539 ms  nps 1138727
+rep 2:
+  CorrHistV2 true : nodes   587276  time  425 ms  nps 1381825
+  CorrHistV2 false: nodes   613774  time  424 ms  nps 1447580
+rep 3:
+  CorrHistV2 true : nodes   587276  time  339 ms  nps 1732377
+  CorrHistV2 false: nodes   613774  time  375 ms  nps 1636730
+
+## reading these numbers honestly
+Node counts are DETERMINISTIC and repeat exactly: CorrHistV2 true = 587,276 in all three reps, false = 613,774
+in all three reps. So CorrHistV2 changes the SEARCH by -26,498 nodes (-4.3 % of the 613,774 run).
+
+Times are NOT usable from this: 409/425/339 ms with it on, 539/424/375 ms with it off. The ranges overlap
+almost completely, and rep 2 has the OFF run FASTER. Per my own METHOD_timing_tt.md, this workload needs
+alternating paired runs and resolves only ~2.9 % at 6 rounds; three back-to-back runs cannot support a speed
+claim in either direction. So: "CorrHistV2 saves 4.3 % of nodes" is a measurement; "CorrHistV2 is faster" is
+NOT, and I am not claiming it.
