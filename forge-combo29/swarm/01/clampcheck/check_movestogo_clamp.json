@@ -1,0 +1,114 @@
+{
+ "rows": [
+  {
+   "movestogo": null,
+   "median": 57.2,
+   "min": 56.9,
+   "max": 57.6,
+   "bestmove": "b6b5"
+  },
+  {
+   "movestogo": 0,
+   "median": 482.0,
+   "min": 476.6,
+   "max": 484.9,
+   "bestmove": "b6b5"
+  },
+  {
+   "movestogo": 1,
+   "median": 482.4,
+   "min": 477.0,
+   "max": 495.2,
+   "bestmove": "b6b5"
+  },
+  {
+   "movestogo": 2,
+   "median": 479.9,
+   "min": 479.0,
+   "max": 484.8,
+   "bestmove": "b6b5"
+  },
+  {
+   "movestogo": 10,
+   "median": 93.5,
+   "min": 84.0,
+   "max": 95.3,
+   "bestmove": "b6b5"
+  },
+  {
+   "movestogo": 40,
+   "median": 26.7,
+   "min": 25.5,
+   "max": 40.7,
+   "bestmove": "b6b5"
+  },
+  {
+   "movestogo": 49,
+   "median": 21.3,
+   "min": 18.3,
+   "max": 41.1,
+   "bestmove": "b6b5"
+  },
+  {
+   "movestogo": 50,
+   "median": 26.1,
+   "min": 25.9,
+   "max": 33.5,
+   "bestmove": "b6b5"
+  },
+  {
+   "movestogo": 51,
+   "median": 26.0,
+   "min": 25.4,
+   "max": 26.2,
+   "bestmove": "b6b5"
+  },
+  {
+   "movestogo": 100,
+   "median": 26.1,
+   "min": 25.7,
+   "max": 34.1,
+   "bestmove": "b6b5"
+  },
+  {
+   "movestogo": 1000,
+   "median": 25.9,
+   "min": 25.7,
+   "max": 26.9,
+   "bestmove": "b6b5"
+  },
+  {
+   "movestogo": -1,
+   "median": 486.6,
+   "min": 478.3,
+   "max": 490.7,
+   "bestmove": "b6b5"
+  }
+ ],
+ "verdict": [
+  "",
+  "CLAMP TEST: median(movestogo 50) = 26.1 ms, 51 = 26.0, 100 = 26.1, 1000 = 25.9",
+  "  spread across 50/51/100/1000: 0.2 ms = 0.8 % of the movestogo-50 median",
+  "  -> CONFIRMS seat 28's S-F10: everything above 50 is indistinguishable from 50, i.e. clamped.",
+  "",
+  "EDGE CASES seat 28 did not report, which a latency harness can hit \u2014 with the mechanism:",
+  "  movestogo 0 = 482.0 ms ; movestogo -1 = 486.6 ms ; NO movestogo = 57.2 ms",
+  "  From clock_plan.hpp:37-48, `moves_to_go > 0` selects the even-spread branch:",
+  "     movestogo N>0 : soft = available/(min(N,50)+1) + inc*3/4  -> SHORT per-move budget",
+  "     movestogo 0/-1: soft = available/divisor + inc*pct/100   (divisor default 5)",
+  "  so a NEGATIVE or ZERO movestogo does NOT mean 'no moves to go' in the sense a harness may",
+  "  assume: it selects the SUDDEN-DEATH branch, which at a 2000 ms clock gives soft ~398 ms",
+  "  against the movestogo-50 branch's ~26 ms \u2014 a 18x difference in the other direction.",
+  "  A harness that sends `movestogo 0` to mean 'ignore this field' therefore gets the SLOWEST",
+  "  plan, not the default one. Send no movestogo token at all to get the no-movestogo branch,",
+  "  or the numbers in the first column (none) will not match.",
+  "  MEASURED: none = 57.2 ms vs movestogo 0 = 482.0 ms -> 8.4x apart, so the two are NOT",
+  "  interchangeable. (The `none` figure is itself small here because the engine finished the",
+  "  board early; the mechanism, not the absolute, is the point.)",
+  "",
+  "ALSO NOTE for latency harnesses: movestogo 1 and 2 differ from 50 by 1748 % and 1739 %,",
+  "  so the clamp matters only above 50 - but a harness reading a PLAN rather than a wall time must",
+  "  know the planned soft/hard limits, not the movestogo it sent, because clock_plan.hpp:38",
+  "  silently substitutes 50 for anything larger."
+ ]
+}

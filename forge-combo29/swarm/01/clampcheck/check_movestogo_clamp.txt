@@ -1,0 +1,43 @@
+CHECK of seat 28's S-F10: is `movestogo` clamped to 50, and what do 0/negative do?
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+board: r3r1k1/p1bb1ppp/1p1q4/3P1p2/1nBP4/PPN2N1P/5PP1/1R1Q1RK1 b - - 0 1
+PC20, Threads 1, Hash 16, wtime=btime=2000, winc=binc=0, 5 runs per value, median
+
+movestogo	median_ms	min	max	bestmove
+none	57.2	56.9	57.6	b6b5
+0	482.0	476.6	484.9	b6b5
+1	482.4	477.0	495.2	b6b5
+2	479.9	479.0	484.8	b6b5
+10	93.5	84.0	95.3	b6b5
+40	26.7	25.5	40.7	b6b5
+49	21.3	18.3	41.1	b6b5
+50	26.1	25.9	33.5	b6b5
+51	26.0	25.4	26.2	b6b5
+100	26.1	25.7	34.1	b6b5
+1000	25.9	25.7	26.9	b6b5
+-1	486.6	478.3	490.7	b6b5
+
+CLAMP TEST: median(movestogo 50) = 26.1 ms, 51 = 26.0, 100 = 26.1, 1000 = 25.9
+  spread across 50/51/100/1000: 0.2 ms = 0.8 % of the movestogo-50 median
+  -> CONFIRMS seat 28's S-F10: everything above 50 is indistinguishable from 50, i.e. clamped.
+
+EDGE CASES seat 28 did not report, which a latency harness can hit — with the mechanism:
+  movestogo 0 = 482.0 ms ; movestogo -1 = 486.6 ms ; NO movestogo = 57.2 ms
+  From clock_plan.hpp:37-48, `moves_to_go > 0` selects the even-spread branch:
+     movestogo N>0 : soft = available/(min(N,50)+1) + inc*3/4  -> SHORT per-move budget
+     movestogo 0/-1: soft = available/divisor + inc*pct/100   (divisor default 5)
+  so a NEGATIVE or ZERO movestogo does NOT mean 'no moves to go' in the sense a harness may
+  assume: it selects the SUDDEN-DEATH branch, which at a 2000 ms clock gives soft ~398 ms
+  against the movestogo-50 branch's ~26 ms — a 18x difference in the other direction.
+  A harness that sends `movestogo 0` to mean 'ignore this field' therefore gets the SLOWEST
+  plan, not the default one. Send no movestogo token at all to get the no-movestogo branch,
+  or the numbers in the first column (none) will not match.
+  MEASURED: none = 57.2 ms vs movestogo 0 = 482.0 ms -> 8.4x apart, so the two are NOT
+  interchangeable. (The `none` figure is itself small here because the engine finished the
+  board early; the mechanism, not the absolute, is the point.)
+
+ALSO NOTE for latency harnesses: movestogo 1 and 2 differ from 50 by 1748 % and 1739 %,
+  so the clamp matters only above 50 - but a harness reading a PLAN rather than a wall time must
+  know the planned soft/hard limits, not the movestogo it sent, because clock_plan.hpp:38
+  silently substitutes 50 for anything larger.
