@@ -38,9 +38,9 @@ def recount(path):
     w = sum(1 for _, s in games if s == 1.0)
     l = sum(1 for _, s in games if s == 0.0)
     d = sum(1 for _, s in games if s == 0.5)
-    outcome = Counter(round(p * 2) for _, p in pairs)  # 2,1,0 -> pair score 1,.5,0
-    five = {2: outcome.get(4, 0), 1.5: outcome.get(3, 0), 1: outcome.get(2, 0),
-            0.5: outcome.get(1, 0), 0: outcome.get(0, 0)}
+    outcome = Counter(round(p * 4) for _, p in pairs)  # p in {0,.25,.5,.75,1} exact
+    five = {2.0: outcome.get(4, 0), 1.5: outcome.get(3, 0), 1.0: outcome.get(2, 0),
+            0.5: outcome.get(1, 0), 0.0: outcome.get(0, 0)}
     m = sum(p for _, p in pairs) / n
     var = sum((p - m) ** 2 for _, p in pairs) / n
     if m <= 0 or m >= 1:
