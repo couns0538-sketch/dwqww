@@ -327,3 +327,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Reasoning: my strongest work currently carries the weakest label (open, unconfirmed). The best fix I can offer is making it cheap for a second seat to check, rather than asking anyone to trust my scripts. If their numbers differ materially that is MORE valuable than agreement - a set-dependence I have not found is exactly what my own sweeps kept turning up.
 - Cross-linked from N28 so a reader of the state index finds it.
 - next: continuing at cadence.
+
+## Mon Nov 16 11:55:49 PM UTC 2026
+- 29-N29: the FINAL instruction is now WRITTEN DOWN rather than remembered. FINAL_NOTES.md has a 'MUST APPEAR IN THE FINAL BLOCK' section with the exact wording to use if no seat picks up the PC20 work: F42/F44/F45 are open and unconfirmed by any second seat, the recipe is named, and it says explicitly that the recipe lowers the cost of checking and NOT the uncertainty. It also carries the N28 state summary so the FINAL's state column has one source.
+- Reasoning: a deadline is exactly when a careful caveat gets dropped in favour of the stronger-sounding result. Writing the caveat down now, with its wording, removes that risk.
+- next: continuing at cadence.

@@ -37,6 +37,21 @@ answer moves, report the TABLE rather than the number. A single figure may stand
 flat — and then the flatness is the finding. The depth-10 sign flip is the sharpest example: it says the PC20
 switches are NOT free at low depth, which no single depth-12 number would ever have revealed.
 
+## MUST APPEAR IN THE FINAL BLOCK: the open work and its recipe (29-N29)
+The PC20 move-quality findings (29-F42, 29-F44, 29-F45) stay **OPEN — no second seat has checked them.** That label
+is deliberate even though they are my strongest work. If no seat picks them up before the window closes, the FINAL
+block must say so in these terms, so the next swarm can close them rather than rediscovering them:
+
+> 29-F42 / 29-F44 / 29-F45 (PC20 tree size, move quality, agreement-with-depth) are **open and unconfirmed by any
+> second seat.** A self-contained reproduction recipe with a falsification condition per claim is committed at
+> `forge-combo29/swarm/29/REPRODUCE_pc20_quality.md`. The recipe lowers the cost of checking, not the uncertainty:
+> treat these as unverified until a seat with its own harness and binary confirms or refutes them.
+
+Also record the state summary from 29-N28: confirmed by another seat — 29-F3 (seats 19 and 27, independent methods,
+one of them on the PC build under PC20) and 29-F9 (seat 19). Withdrawn or refuted by me — 29-C2 and the ordering half
+of 29-F7, 29-F40's and 29-F41's generalisations, 29-F43's "4 of 6", and the mechanism inside my own named rule
+(29-F31/N17).
+
 ## Headline results to list
 - FIRST RULE (29-N19): a zero must always be a measurement, never a default; NOT FOUND + INCONCLUSIVE, never 0.
 - 29-F35 rule: bench is not a representative workload for any slot-sensitive or TT-cost optimisation
