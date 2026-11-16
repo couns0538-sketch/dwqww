@@ -189,7 +189,7 @@ PC-BUILD RECHECK of my finds under PC20 (Threads 1) vs base under S14 — most S
   10-F14 searchmoves-to-all-20 changes the score: STILL PRESENT, and the SIGN IS NOW POSITIVE
          (PC20 unrestricted cp 25/d2d4 vs restricted cp 29/d2d4; base was cp 30/e2e4 vs cp 23/d2d4).
   10-F19 gap with IIR off: survives on PC20.
-NEW RETRACTION 10-R4: 10-F8 ( -> bestmove a2a3) was an EOF-abort artefact. Held open, 
-  starts an UNLIMITED search on BOTH builds (24/22 info depth lines) and never answers without .
-  What survives: garbage  lines are NOT ignored, they hang a harness. pc/raw3/go_banana.json
+NEW RETRACTION 10-R4: 10-F8 (go banana -> bestmove a2a3) was an EOF-abort artefact. Held open, go banana
+  starts an UNLIMITED search on BOTH builds (24/22 info depth lines) and never answers without a stop command.
+  What survives: garbage go lines are NOT ignored, they hang a harness. pc/raw3/go_banana.json
 next: write pc/REPORT_pc_recheck.md with the full both-build table, then continue the cycle.
