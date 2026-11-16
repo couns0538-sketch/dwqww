@@ -90,3 +90,12 @@
   also refused an illegal FEN and an unparsable one.
 - next command: python3 check_15f3/knn_same_material.py against the ASan+UBSan build, to confirm the same 8/8 and
   0/3 there and that no sanitizer line appears in these eval paths.
+
+## Mon Nov 16 09:41:18 PM UTC 2026
+- S-C6 CONFIRMS seat 15's 15-F4: dead-draw roots emit an EMPTY pv () with 0 nodes,
+  one empty line PER DEPTH; control = KNN v K on the same harness has a 10-move pv and real nodes.
+- SELF-AUDIT: this applies to my own job2 (600/600 empty pv lines in K v K / KN v K / KB v K / threefold). My
+  cp 0 conclusions stand (regex matches the empty line, reads its score) and I made no pv-content claim there.
+  My job1 count was unaffected: 0 empty pv lines out of 6,636.
+- next command: python3 job2/cliff_vs_depth.py on a second material (K+B+B vs K) to test whether S-F11's
+  counter+depth rule is material-independent.

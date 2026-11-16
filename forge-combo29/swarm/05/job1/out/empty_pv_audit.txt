@@ -1,0 +1,16 @@
+15-F4 says an EMPTY pv (`... time 0 pv`) exists and a harness grepping ' pv ' with a move would lose it.
+My check_pv.py used regex r'^info\b.*\bpv\b(.*)$' and then .split() -> an empty pv yields moves == [].
+Question: did any of my 553 job1 positions have an EMPTY pv, and did I count them as 'with_pv'?
+
+pv-matching info lines in my job1 raw files: 6636
+  of those with an EMPTY move list: 0
+
+NOTE: my check_pv.py kept only the LAST pv line per position, so the count above is over ALL pv lines,
+not per position. The decisive check is per position:
+  positions: 553
+  last pv line EMPTY (no moves): 0
+  no pv line at all: 0
+
+CONCLUSION for my job1: TABLE A reported with_pv=553. If any of those 553 had an empty pv, the count
+meant 'has a pv field' not 'has a pv with moves'. The numbers show whether that distinction mattered:
+  empty-pv positions: 0 -> the distinction did NOT matter in job1
