@@ -1,0 +1,20 @@
+# PREDICTION — area 6: PC code vs PC20 settings, which causes the extra asymmetry?
+
+S-F14 measured base+S14 = 101/353 bestmove mismatch and PC+PC20 = 120/353. Two things changed at once.
+This job crosses them:
+
+  A. PC build, S14 only   (PC code, base settings)
+  B. base build, PC20     (base code, PC settings)  <- PC20's four options do not exist on the base build
+                                                        except OwnBook; so B is base + S14 + OwnBook false,
+                                                        i.e. "S14 with the book off" as the closest usable cell
+  C. PC build, S14 + the three options that exist without a rebuild, one at a time
+
+P1. Cell A (PC code, S14) mismatch: predicted 100 to 125. Kills it: outside that band, which would put the whole
+    effect in the settings rather than the code.
+P2. The PC CODE carries most of the shift: predicted |A - 101| > |PC20 - A|, i.e. changing code from base to PC
+    (at fixed S14) moves the number further than changing settings from S14 to PC20 (at fixed PC code).
+    Kills it: the reverse, which would mean the settings dominate.
+P3. Each of the four options individually, added to PC+S14, moves the mismatch count by at most 10 of 353.
+    Kills it: any single option moving it by more than 25 (that would name one option as the asymmetry driver).
+P4. Threads 1 throughout, so every comparison is reproducible; a 10-position re-run of cell A must be identical.
+    Kills it: any difference (then the whole comparison is void).
