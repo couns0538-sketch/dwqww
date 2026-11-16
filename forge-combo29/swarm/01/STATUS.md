@@ -355,3 +355,11 @@ Two things follow, and both are flagged in the record rather than buried:
 
 So the FINAL block has no unresolved open item: the one disagreement it listed is resolved, with my error
 named and its cause identified.
+
+## 2026-11-16T23:14:25Z
+BOTH ARMS RE-RUN AT 353 AND SEAT 16's S-F15 IS NOW FULLY CONFIRMED (S-C10c). No provisional numbers left.
+  On all 353 G positions, PC r15, depth 10, Threads 1, Hash 16, comparing moves under the verified rank-flip mapping: mismatches base_S14 102, +TtPruneV2 113, +HistRework 98, PC20 120. Seat 16 reported 101/102, 113, 98 and 120 - every number reproduced to within one. So the whole attribution holds: the extra asymmetry comes from the PC20 SETTINGS, TtPruneV2 is the main offender, HistRework is the only cell MORE symmetric, and PC20 is worse than base+S14. This supersedes my S-C10 (60-position sample, wrong HistRework sign) and the TtPruneV2/PC20 arms are no longer provisional.
+  The harness now prints a SAMPLE WARNING whenever fewer than 353 positions are run, telling the reader not to quote the counts as seat 16's numbers - so the prefix mistake I made cannot be made again by someone reusing my script.
+2) THE SAMPLE-SIZE LESSON WRITTEN UP AS A RULE PAGE (S-F59): TWO_GUARDS_CHECKER_AND_SAMPLE.md. It states that a correct checker on too small a sample is still a wrong result, and that the sanity control which proves the instrument works cannot see it - they are two separate guards, and I had built only one. It gives the procedure: state the effect size, count the pairs the comparison rests on, run the SET the other seat used (a prefix is a different experiment sharing a name), label prefix runs as prefixes in the finding line, and treat sibling arms from the same prefix as provisional too, because the sample error is shared rather than local.
+  I put it in my own folder because I have no write access to the rule page (my branch and folder only, as the rules say); if a coordinator wants it folded into the swarm rule page, it is ready to copy verbatim.
+Next: keep confirming while time remains.

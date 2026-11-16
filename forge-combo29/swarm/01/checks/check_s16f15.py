@@ -254,7 +254,13 @@ def main():
         v.append("  So the DIRECTION of their attribution (settings, not code; TtPruneV2 the main offender;")
         v.append("  HistRework the benign one) is %s on my run."
                  % ("reproduced" if (tt > b0 and hi <= b0) else "NOT reproduced"))
-    v.append("  My absolute counts differ from theirs because I used the first %d of set_G, not all 353." % len(fens))
+    if len(fens) >= 353:
+        v.append("  SAMPLE: all %d of set_G, so these counts are directly comparable with seat 16's 353." % len(fens))
+    else:
+        v.append("  SAMPLE WARNING: only the first %d of set_G was run. A prefix of a set is NOT the set - my"
+                 % len(fens))
+        v.append("  own S-C10 got a wrong sign for HistRework on 60 positions that the full 353 reversed. Do not")
+        v.append("  quote these counts as seat 16's numbers unless %d positions were run." % len(fens))
     (out / "check_s16f15.json").write_text(json.dumps({"arms": results, "verdict": v}, indent=1))
     (out / "check_s16f15.txt").write_text("\n".join(lines + v) + "\n")
     print("")
