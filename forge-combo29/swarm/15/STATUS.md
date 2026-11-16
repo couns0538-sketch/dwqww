@@ -6,17 +6,37 @@
 
 ## 2026-11-16T23:25:13Z FINAL
 
-### 1. THE HEADLINE: at 6 s + 0.06 the clock is NEGATIVE-SUM
+### 1. THE FORMULA — recompute this for any control you choose
+
+> **moves until the clock is empty = clock budget ÷ (per-move search time − increment)**
+
+It applies to any base `B`, any increment `I`, and any per-move cost `T`: if `T > I` the control is
+**negative-sum** and the clock empties after `B / (T − I)` moves of that side. If `T ≤ I` the clock never
+empties and the control is safe.
+
+**Worked example, the owner's actual setting — 6,000 ms base, 60 ms increment:**
+
+| per-move cost `T` | `T − I` | moves until empty |
+|---|---|---|
+| 104 ms (median) | 44 ms | **136** |
+| **269 ms (p90)** | **209 ms** | **29** |
+| 368 ms (p95) | 308 ms | 19 |
+| 60 ms (the increment itself) | 0 | never empties |
+
+So at the *median* cost the clock lasts 136 moves; at the *p90* cost only 29. **Which number you believe
+decides whether the control survives a game**, and the p90 is the one that governs a bad stretch.
+
+**Sizing the increment the other way** — to survive a run of moves at cost `T`, set `I = T`:
+`I ≥ 269 ms` covers the p90 move, `I ≥ 368 ms` covers p95, `I ≥ 1,293 ms` covers every move observed.
+The current `I = 60 ms` is below the median, hence negative-sum on most moves.
+
+### 2. THE EVIDENCE BEHIND THOSE NUMBERS
 
 Measured on the PC's own path — PC r15 build, PC20, Threads 1, Hash 16, self-play, a real clock
 decremented by the measured wall time of every search. **30 games, 3,834 searches** (`games/games30.jsonl`).
 
 Per-move search time: **median 104 ms, p90 269 ms, p95 368 ms, p99 564 ms, max 1,293 ms, mean 139.3 ms.**
 **80.3 % of all moves take longer than the 60 ms increment.**
-
-The arithmetic, for any control the owner chooses:
-
-> **moves until the clock is empty = B / (search_time - increment)**
 
 | basis | search time | net drain/move | moves of one side from 6,000 ms |
 |---|---|---|---|
@@ -37,12 +57,12 @@ The tail is what decides when the clock runs out: 136 moves at the median but on
 This is not the engine mis-managing time. It is the control being negative-sum for the engine's actual
 search cost, and it is sustained only because games end before the clock does.
 
-### 2. Then: no movetime cutoff between 1000 and 3000 ms (15-F34)
+### 3. Then: no movetime cutoff between 1000 and 3000 ms (15-F34)
 
 Slice honoured at **99-100 %** of both; the only early stops are positions whose **depth ladder ends at
 64** (identical node counts at both slices). All 10 cells node-identical across 5 runs.
 
-### 3. ALL FINDS, WITH STATE, BUILD AND SETTINGS
+### 4. ALL FINDS, WITH STATE, BUILD AND SETTINGS
 
 Base tree = 6b98f217. PC build = r15 from FABLE_TO_swarm_5.md (sha256 d6bd72c531f785f4…, all nine known
 numbers reproduced). Threads 1 in every run of mine, Hash 16 unless stated.
@@ -95,7 +115,7 @@ FEN's stale board · "insufficient material is searched" (it is 0 nodes) · 15-R
 correct, not a defect · the 15-F21 "gap" framing · 15-F19 (attribution now isolated) · the softnodes P3
 overshoot band, and the movetime P1-P3 bands, were my under-specified predictions.
 
-### 4. WHAT I DID NOT DO
+### 5. WHAT I DID NOT DO
 No match against another engine; no `movetime` above 3000 at other builds; no frequency estimate for the
 counter-100 gap; no clock-path test above 6 s or with a stronger opponent. The 30-game sample gives no
 forfeit *rate* — only "0 in 36" and a 115 ms worst margin.
