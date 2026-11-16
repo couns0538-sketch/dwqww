@@ -1,0 +1,119 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -34,10 +34,44 @@
+ #define FORGE_BARE_KING_MATE_FIX 1
+ #endif
+ 
++// FORGE_FHB_CHECK (kimi5 job 12; default 0 = the code before it): FailHighBlend
++// counters, observe only. 1 = one FHB counter line per UCI search.
++#ifndef FORGE_FHB_CHECK
++#define FORGE_FHB_CHECK 0
++#endif
++
+ namespace forge {
+ 
+ int DrawJitter = 0;
+ 
++#if FORGE_FHB_CHECK
++// FailHighBlend counters (kimi5 job 12). Observe only: no value, control flow or
++// table entry of the search changes. All runs of this job use Threads 1, so plain
++// counters. One counter set per UCI search: reset where the search's own counters
++// reset, one FHB line printed where the search result returns.
++// place: 0 reverse futility, 1 qsearch stand pat, 2 qsearch end, 3 main search end.
++// kind: 0 A blends applied, 1 L blended < beta, 2 R blended > raw, 3 M mate involved.
++namespace fhbc {
++std::uint64_t cnt[4][4] = {};
++void reset() { std::memset(cnt, 0, sizeof(cnt)); }
++void note(int place, int blended, int beta, int raw) {
++    ++cnt[place][0];
++    if (blended < beta) ++cnt[place][1];
++    if (blended > raw) ++cnt[place][2];
++    if (is_mate_score(raw) || is_mate_score(beta) || is_mate_score(blended)) ++cnt[place][3];
++}
++void print() {
++    const char* names[4] = {"rfp", "standpat", "qend", "mainend"};
++    std::cout << "info string FHB v1";
++    for (int p = 0; p < 4; ++p) {
++        std::cout << ' ' << names[p];
++        for (int k = 0; k < 4; ++k) std::cout << ' ' << cnt[p][k];
++    }
++    std::cout << std::endl;
++}
++} // namespace fhbc
++#endif
++
+ namespace tune {
+ int LmrQuietBase = 85;
+ int LmrQuietDivisor = 220;
+@@ -1474,7 +1508,12 @@
+         }
+         best_score = eval;
+         if (best_score >= beta) {
+-            if ((tune::FailHighBlend & 2) && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta)) best_score = (best_score + beta) / 2;
++            if ((tune::FailHighBlend & 2) && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta)) {
++#if FORGE_FHB_CHECK
++                fhbc::note(1, (best_score + beta) / 2, beta, best_score);
++#endif
++                best_score = (best_score + beta) / 2;
++            }
+ #if FORGE_SPD_TT_NOTLS
+             if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+ #else
+@@ -1539,7 +1578,12 @@
+     }
+     if (in_check && move_count == 0) return mated_in(ply);
+ 
+-    if ((tune::FailHighBlend & 2) && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta)) best_score = (best_score + beta) / 2;
++    if ((tune::FailHighBlend & 2) && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta)) {
++#if FORGE_FHB_CHECK
++        fhbc::note(2, (best_score + beta) / 2, beta, best_score);
++#endif
++        best_score = (best_score + beta) / 2;
++    }
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+ #if FORGE_SPD_TT_NOTLS
+@@ -1693,6 +1737,9 @@
+         // Reverse futility pruning.
+         if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+             eval < MateInMaxPly) {
++#if FORGE_FHB_CHECK
++            if (tune::FailHighBlend & 1) fhbc::note(0, beta + (eval - beta) / 3, beta, eval);
++#endif
+             return (tune::FailHighBlend & 1) ? beta + (eval - beta) / 3 : eval;
+         }
+         // Null move pruning.
+@@ -2095,7 +2142,12 @@
+     }
+ 
+     const int raw_best = best_score;
+-    if ((tune::FailHighBlend & 4) && !pv_node && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta)) best_score = (best_score * depth + beta) / (depth + 1);
++    if ((tune::FailHighBlend & 4) && !pv_node && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta)) {
++#if FORGE_FHB_CHECK
++        fhbc::note(3, (best_score * depth + beta) / (depth + 1), beta, best_score);
++#endif
++        best_score = (best_score * depth + beta) / (depth + 1);
++    }
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+     if (excluded.is_none() && !(root_node && root_restricted_)) {
+@@ -2164,6 +2216,9 @@
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
+     null_blocked_ = false;
++#if FORGE_FHB_CHECK
++    fhbc::reset(); // one counter set per UCI search (Threads 1: only this worker runs)
++#endif
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+     root_history_index_ = board.history_size() - 1;
+@@ -2755,6 +2810,9 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#if FORGE_FHB_CHECK
++    fhbc::print(); // one FHB counter line per UCI search
++#endif
+     return result;
+ }
+ 
