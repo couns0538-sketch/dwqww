@@ -116,3 +116,6 @@ COMPETING-FIX NOTICE in the patch header (one of three; only one may apply; befo
 
 ## Mon Nov 16 10:02:48 PM UTC 2026
 FINAL LINE added to README.md as asked: if the choice were mine I would take seat 01's job2c combined patch, with the reason (closes both doors with the smallest loss of the instant answer via the reset-aware test, widest tested matrix) and the counter-reason for my own (a single removed term, easier to read). Added one verified sentence explaining why the reset-aware test still catches the pawn-move mate at halfmove 100: White holds a queen there, so the halfmove door is skipped and the root is searched -> mate 2 / 398 nodes, the same figure my patch gives. Checked with python-chess (White pieces Q, P, K).
+
+## Mon Nov 16 10:19:01 PM UTC 2026 CONTINUE: 12 more hours, ends at 2026-11-17T10:19:01Z
+Assignment: read every unread FABLE_TO_swarm_N.md from lowest N up; build the PC engine from FABLE_TO_swarm_5 (patch against 6b98f217, -DFORGE_MATE_ALPHA_GUARD=1, in a SEPARATE copy); re-run 08-F11 and my drawn-root results on the PC build under PC20 before anything else; then THE CYCLE with both builds.
