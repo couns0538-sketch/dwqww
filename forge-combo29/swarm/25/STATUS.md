@@ -163,6 +163,23 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:57Z - S-C33: CONFIRMS 30-F55 (movestogo 0 costs 4-11x the time) and flags where the cause is NOT
+
+Match clock 6s+0.06, PC20, Threads 1, Hash 16, 3 runs x 3 positions:
+  field omitted : 179/161/381 ms (3.0-6.3% of 6,060) at depth 18
+  movestogo 0   : 1,514/1,804/1,892 ms (25.0-31.2%) at depth 22-26
+  movestogo 1   : 1,503/1,812/1,894 ms - essentially identical to 0
+So 0 costs 4-11x the time and buys 4-8 plies. PRACTICAL: a match program must OMIT movestogo (or send a large
+value), never 0; the owner's own setting omits it, so his matches are unaffected.
+
+CODE/MEASUREMENT DISAGREEMENT worth someone's time: include/forge/clock_plan.hpp:37 branches on `moves_to_go > 0`,
+so 0 and absent should take the SAME else-branch and behave identically - yet they differ by 4x. So the cause is NOT
+in plan_clock_budget; it must be the UCI layer treating a PRESENT movestogo 0 differently from an absent field. I
+did not read the UCI parser, so this is a report of the disagreement, not a diagnosis.
+
+State: 77 findings, guards green, working tree clean, local = remote. Continuing at cadence.
+
 ## 2026-11-16T23:55Z - near-miss detail beside the filter caveat
 
 Both files now pair the caveat with the practical warning: the filter catches every observed failure but does NOT
