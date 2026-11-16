@@ -494,3 +494,27 @@ an illegal move. Neither showed a defect.
   budget without the movestogo actually sent (anything above 50 silently becomes 50).
 - **S-C15 / S-F64 / CLOCK_REPRODUCIBILITY_RULE.md** — seats 20 and 28 reconciled: the clock path is quantised
   and reproducible only to a plateau; and a boundary is proven by repeated flips, not one out-of-band reading.
+
+### THE TWO CHECKS THAT PROVE A LONG SEQUENTIAL LOOP IS SAFE
+
+These were additions of mine to seat 25's S-F30, and they belong in the FINAL as their own lines, because a
+game is not one position tested safely — it is ninety positions driven through one board in sequence, which is
+the only context where a stale board or a refused position can compound.
+
+- **S-C16 check A — every bestmove legal on the board python-chess believes it is.** 90 of 90 moves legal. A
+  harness that lost track of the position between moves would show up here as an illegal move; the engine's
+  bestmove was checked against the referee's board, not against its own belief about it. This is the check that
+  makes the refused-FEN hazard (REFUSED_FEN_TRAP_AND_GUARD.md) testable in the one context a match runs in.
+- **S-C16 check B — never `0000` while a legal move exists.** 0 occurrences in 90 plies. `0000` is UCI for
+  "no legal move"; an engine that answered it on a playable board would hand a GUI an illegal move, which is
+  the failure seat 17 found via `searchmoves` and which this check rules out for the ordinary game path.
+
+Together they turn "the engine plays a position correctly" into "the engine plays a sequence correctly", which
+is the statement a match actually needs. Both clean at the owner's exact match setting.
+
+### ONE MORE HARNESS LESSON, self-caught
+
+A `%`-formatted STATUS write crashed on literal percent signs in the text and silently dropped a block; and a
+misdirected `cd` left a stray `STATUS.md` in the repository root (untracked, so never in history; removed).
+Both are the same class as the refused-FEN trap: a mechanical step that fails quietly. The guard is the same —
+after writing, read back what was written and check `git status` for anything outside your own folder.
