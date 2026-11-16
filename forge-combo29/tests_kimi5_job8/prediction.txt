@@ -1,0 +1,31 @@
+kimi5 job 8 prediction, written 2026-11-16T13:05Z from the source only (6b98f217), before any measurement.
+Block: src/search.cpp 1680-1781 (gate 1680-1681; razoring 1683-1687; reverse futility 1689-1692; null move 1693-1743; ProbCut 1745-1779).
+
+(a) Predicted MISSED per 1,000 returns (probe = node re-searched at its own depth, own null window, four steps off at this node only):
+               defaults   S14
+  razoring       40        35     (depth 1-2 nodes; qsearch already answered; full search adds quiet moves only)
+  reverse fut.   25        30     (static eval >= beta+margin is strong but uncorrected for tactics below)
+  null move      20        35     (zugzwang/threat blindness; S14 makes the null search a qsearch at depths <=7)
+  ProbCut         5         5     (a qsearch AND a depth-4 search at a raised beta both agreed before returning)
+
+(b) S14 NullMoveBase 5 (default 3), reduction = 5 + depth/3 + min((eval-beta)/200, 3); null search depth = depth - reduction.
+  Null search is a quiescence (depth-5-depth/3-term <= 0) at node depths 3..7 always (7-5-2=0), and at depths 8-9 when
+  eval-beta >= 200 resp. 400 (8-5-2-1=0, 9-5-3-1=0). At defaults the quiescence zone is only depths 3-4.
+  Expected effect on (a): a quiescence null search sees captures only, so at node depths 5-9 it fails high where a real
+  search would have seen the quiet refutation or the zugzwang: the null-missed rate at those depths rises under S14,
+  and the bulk of null returns shifts into the quiescence class.
+
+(c) Literals of the block that are NOT options: `24 * depth + 180` (1693, null static-eval admission gate),
+  `50 * improving` (1746, ProbCut margin temper), `14` (1724, null verification depth threshold),
+  `depth - 4` (1766, ProbCut reduced search depth) and `depth - 3` (1747 ProbCut tt gate, 1773/1775 store depth).
+  Make an option FIRST: `24 * depth + 180` (as a slope and an intercept). It is the only eval-based admission filter
+  of the null move: it decides how many of the ~5.76M gate nodes even try a null (K2: 171,326 tries), so both the cost
+  and the risk mix scale with it, and this job's counters already split tries/returns by eval-beta and node depth, so
+  its effect is measurable with the harness built here before any match is played.
+
+(d) The review suspicion is TRUE in this source. The verification (1734) sets ss->null_move_allowed = false at 1733
+  and restores it at 1737 on its OWN frame; no child frame ever receives the flag (the only other write is the root
+  stack init at 2341, default true at search.hpp:414). One ply below the verification the null condition at 1695 reads
+  a frame whose flag is true again, and the only remaining bar there is the no-two-adjacent-nulls rule
+  (!(ss-1)->current_move.is_none(), 1696), which a verification child satisfies. So a zugzwang whose refutation needs
+  a null two plies under the verified node is not protected; the guard covers exactly one node.
