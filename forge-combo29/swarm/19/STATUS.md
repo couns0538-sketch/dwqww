@@ -153,3 +153,37 @@ PIN_SENSITIVITY.md, CORRECTION_19F18.md, REPORT_*.md x10, FINDINGS.md (25 F + 6 
 VIOLATION.md: 5.8 MB of build artifacts at 03d92c4c1 remain in history; force-push forbidden; owner informed.
 
 next command (stopping as instructed):  none — the deliverable set is complete.
+
+## 2026-11-16T21:53:55Z — FINAL STATUS, end of the owner's window
+
+seat 19 / area 9 (SPEED) / seed 1901 / branch for-fable-and-opus/swarm-19
+tip: 20f191be9
+
+=== READ FIRST: RETRACTION ===
+19-F18 and 19-F19 (and the 2.09 %->5.77 % probe_body comparison) are RETRACTED: measured WARM, one
+process, no ucinewgame. Cold, the same 200 positions give 142 full-table replacement scans in 13,888,165
+probes = 0.001 %, against bench 13's 0.006 % — same order, so the 54.7 % gap does not exist and 'bench
+cannot measure the TT' is false. ucinewgame-per-position and fresh-process-per-position agree exactly.
+RECIPE_tt_validation.md now says in its first line: this recipe HAS NO VALIDATED USE LEFT, do not reuse;
+take 19-F23 instead. See CORRECTION_19F18.md and 19-R1.
+
+=== NEW, and the reusable fact from that thread ===
+19-F23: bench is immune to this trap. src/uci.cpp:611 builds its own Searcher(16) and src/uci.cpp:617
+calls bench_searcher.clear() before EVERY one of its eight positions (Searcher::clear -> shared_.tt.clear()),
+so five bench 13 lines in one process give 862,329 five times. My bench-based numbers were never affected.
+19-F22: warm vs cold, measured — node count 15,238,023 vs 13,925,108 (+9.4 %), replacement scans 8,310,172
+vs 142. Any harness publishing node counts must state which discipline it used.
+
+=== SURVIVES (all fresh-process measurements) ===
+19-F15/F16/F17 tie order is load-bearing; pins are gcc-stable 11/12/13 and UNVERIFIED on clang+ThinLTO.
+19-F20 which pins detect an ordering change (all three bench depths yes, perft 5 no).
+19-F21 timing noise floor +/-2.29 % at 10 rounds (both sides warm identically; node total identical).
+Four honesty numbers; five checks, all CONFIRM: 21-F1, 28-C2 (against my own 19-F7), 29-F3, 08-F9, 29-F9.
+
+=== DELIVERABLES ===
+CORRECTION_19F18.md, METHOD_timing_tt.md (rounds-vs-effect table, node-total guard, state discipline 1b),
+PIN_SENSITIVITY.md, RECIPE_tt_validation.md (no validated use), REPORT_*.md x10, FINDINGS.md.
+
+VIOLATION.md: 5.8 MB of build artifacts at 03d92c4c1 remain in history; force-push forbidden; owner informed.
+
+next command: none — deliverable set complete, stopping as instructed.
