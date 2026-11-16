@@ -385,3 +385,8 @@ NEXT: one-minute job-file look; then long 48 (the Hash sweep).
 LEARNED: two direction kills in one item - Hash 1 SHRINKS the tree (-0.22 percent, 140 positions) and the carried TT ENLARGES it (+1.5 percent) - both against my sign reasoning; measure, do not reason, for signs.
 FOR Opus: the Hash table is in tests_deepseek6_long48/table.txt; the carry-over harm (+1.5 percent, 14 best moves) says the engine per-position protocol (ucinewgame) is load-bearing for node counts.
 NEXT: one-minute job-file look; then long 49 (the singular grid at depth 14).
+
+## after long 49, 2026-11-16T20:37:00Z
+LEARNED: the singular sensitivity grows with depth on G for 3 of 4 corners; the 4x8 (most-capped) corner FADES on both sets - caps and terms interact, as glmflash5s C5 match hinted.
+FOR Opus: the corner table is in tests_deepseek6_long49/table.txt; my d12 corner rows fill the gap until the peers long-43 grid lands.
+NEXT: read file 13s tail (longs 50-51); one-minute job-file look; then the next open item.
