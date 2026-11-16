@@ -16,6 +16,18 @@ Very sure of the observation (deterministic, reproduced in a fresh process, raw 
 cause: I did not prove which line of the search produces it. The score is provably WRONG, not merely odd: at
 depth 28 the same root reports `mate -4`, and that 8-ply PV verifiably ends in checkmate.
 
+**Rule 1 (Opus file 2): a zero needs a planted one.** Two plants were run through the SAME harness, unchanged
+(`run_pv.py` -> `check_pv.py`), and both were counted:
+- `fake_engine.py` (illegal PV `a1a8` on every go) -> `PVs with illegal: 5` of 5 records — `plant_illegal.txt`.
+- `fake_mate_engine.py` (legal 3-ply PV, claims `mate 5`) -> `mate PVs wrong: 5` of 5 — `plant_mate.txt`.
+So the "0 illegal PVs" and the mate tally below are shown, not assumed. Note: running the plants forced a real
+fix to `run_pv.py` (it now accepts a command with arguments, `shlex.split`); before that the plant could not run
+through the harness at all and the first plant attempt produced `records: 0` — which on its own would have looked
+like a pass. That failure is kept in the history, not hidden.
+
+Determinism check: the whole O set was run twice in separate processes; ignoring `nps`, `time` and `hashfull`,
+0 of 200 positions differ in any info line and 0 of 200 differ in bestmove (`determinism_check.txt`).
+
 ## Honesty numbers (this build, before the job)
 bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609 — all four match. See `../HONESTY.txt`.
 
@@ -24,8 +36,10 @@ bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609 — 
 | step | done-partly-not done | evidence file | result |
 |---|---|---|---|
 | prediction written and pushed alone | done | `PREDICTION.md` (commit b2daa7c03) | committed before any measuring command |
-| 200 searches on O at depth 12, S14 | done | `../positions/set_O.fens`, `G_d12.jsonl` (O run raw is summarised in `check_O_d12.txt`; the O raw jsonl was not committed — see "what I did NOT do") | 200 records, 0 illegal PVs, 0 mate scores |
+| 200 searches on O at depth 12, S14 | done | `O_d12.jsonl` (committed), `check_O_d12.txt` | 200 records, 0 illegal PVs, 0 mate scores |
 | 353 searches on G at depth 12, S14 | done | `G_d12.jsonl`, `check_G_d12.txt` | 353 records, 0 illegal PVs, 10 mate scores, 1 wrong |
+| Rule 1 plants through the same harness | done | `fake_engine.py` -> `plant_illegal.txt`; `fake_mate_engine.py` -> `plant_mate.txt` | 5/5 illegal caught; 5/5 wrong-mate caught |
+| O set run twice, compared | done | `determinism_check.txt` | 0/200 differ in info lines (ignoring nps/time/hashfull), 0/200 differ in bestmove |
 | checker control (planted illegal last move) | done | `control.txt` | caught exactly 1 of 1: `bad_move=e1e8@11` |
 | re-run the one bad position at depths 10..16 with S14, fresh process each | done | `mate_pv_probe_s14.sh`, `mate_probe_s14.txt` | reproduces `mate -12`/18 plies at depths 12, 13; also at 14, 15, 16 the depth-12 line repeats identically |
 | same position, `go depth 18..28` | done | `mate_deep.sh`, `mate_deep.txt` | converges to `mate -4` (8 plies) and it verifies as real mate |
@@ -76,12 +90,11 @@ is much smaller and the search finds it only when it gets deep enough. I did NOT
   way to separate them.
 
 ## What I did NOT do
-- I did not commit the O raw jsonl (200 records, ~1.5 MB); the O result is only in `check_O_d12.txt`. The G raw
-  jsonl IS committed (`G_d12.jsonl`). This is a real gap in the evidence for O.
 - I did not finish the independent exact-mate proof (`true_mate3.py` timed out at 16 plies).
 - I did not test a patched engine, and I did not bisect which search change (IirDepth, SingularDepth, the LMR
   settings of S14) triggers the bad score as opposed to the default settings.
 - I did not run this position under a sanitizer (job 3 of my area is where sanitizers belong).
+- The earlier gap (O raw jsonl not committed) is CLOSED: `O_d12.jsonl` is in this folder now.
 
 ## What I am NOT sure about
 - Whether the true mate distance is 4 (engine's depth-28 answer) or shorter. python-chess proved no mate inside 14

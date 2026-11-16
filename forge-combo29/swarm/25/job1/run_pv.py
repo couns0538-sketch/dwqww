@@ -6,6 +6,7 @@ Keeps every info line the engine sent, so the raw record is complete.
 One engine process per position (fresh, so no transposition carry-over).
 """
 import json
+import shlex
 import subprocess
 import sys
 import time
@@ -20,7 +21,7 @@ S14 = [
 
 
 def run_one(exe, fen, depth):
-    p = subprocess.Popen(exe, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+    p = subprocess.Popen(shlex.split(exe), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, text=True, bufsize=1)
     lines = []
 
