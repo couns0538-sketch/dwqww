@@ -101,3 +101,11 @@ PC BUILD DONE: patch sha256 d6bd72c531f785f4 verified, applied with patch -p1 in
 S14 242796/656517, PC20 278024/587276), no unknown option. See PC_BUILD.txt and pc_build/.
 NEXT: re-run my own finds on the PC build under PC20 — first the score-nondeterminism (04-F7), since it is the
 finding that matters; then the thread-node blow-up (04-F1); then the quit/EOF fault (04-C1).
+
+## 2026-11-16T22:19:57Z 04-F9: THE PC BUILD SCORE IS NONDETERMINISTIC TOO — 4 runs, 4 scores
+On PC r15 under PC20, Threads 4, depth 12, hang FEN, fresh process each run:
+  +2576 cp / mate 13 / mate 18 / mate 16   (four distinct scores, four runs)
+  nodes 5,008,136 / 7,217,375 / 8,242,575 / 31,386,512
+Threads 1 under the SAME settings: +2207 cp in 4/4 runs, 75,311 nodes identical each time.
+bestmove f3f8 in every run. So the PC's eight fixes do NOT repair the nondeterministic score, and this is the
+engine the owner actually plays. This is the strongest form of 04-F7.
