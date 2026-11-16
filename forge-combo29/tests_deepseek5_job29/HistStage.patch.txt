@@ -1,0 +1,528 @@
+# HistStage.patch.txt - applies from the REPOSITORY ROOT (patch -p1) ON TOP of RegretTop.patch.txt (job 19) on base 6b98f217 + kimi5's three job-5 patches. The FULL RegretTop state after job 29 (supersedes HistSplit.patch.txt / RegretTopC24.patch.txt): everything of jobs 21-28 plus the job-29 counters (the exact move number, the picker's stage via the new stage_now() getter, improving x move-number class, the move-number x k and stage x k crosses for node depths 1-2, the history parts' sums for the move-number <= 4 drops, and the futility's history-would-drop counter computed at the call site).
+#
+--- ds5_rt19/include/forge/search.hpp	2026-11-16 10:01:57.283794560 +0000
++++ ds5_rt21/include/forge/search.hpp	2026-11-16 12:43:07.931794560 +0000
+@@ -368,10 +368,41 @@
+ inline bool RegretTop = false;
+ inline bool RegretTopCount = false;
+ inline bool regret_top_inside = false;
+-inline long long rt_n[5][4][4] = {{{0}}};   // [step 2..6 -> 0..4][depth 1-3,4-6,7-9,10+][pv*2+in_check]
+-inline long long rt_r1[5][4][4] = {{{0}}};  // beat alpha at the reduced depth
+-inline long long rt_r2[5][4][4] = {{{0}}};  // ALSO beat alpha at the full depth
++inline long long rt_n[5][5][4] = {{{{0}}}};
++inline long long rt_r1[5][5][4] = {{{{0}}}};
++inline long long rt_r2[5][5][4] = {{{{0}}}};
+ inline long long rt_probe_nodes = 0;
++inline long long rt_cls_n[3][5] = {{0}};
++inline long long rt_cls_win[3][5] = {{0}};
++inline long long rt_cls_nodes[3] = {0};
++inline long long rt_full[5] = {0};
++inline long long rt_strict[5] = {0};
++inline long long rt_strict_events[5] = {0};
++inline long long rt_strict_nodes = 0;
++// job22 part B: the margin curve. k classes 0..4 = the margin taken 1, 3/2, 2, 3, 5 times
++// (the largest k for which the move would still be dropped); node depth classes 0..2 = 1, 2, 3+.
++inline long long rt_k_n[4][5][5] = {{{{0}}}};
++inline long long rt_k_full[4][5][5] = {{{{0}}}};
++// job28: the history and futility drop splits (counters only)
++inline long long hsp_n[2][4][8] = {{{0}}};
++inline long long hsp_f[2][4][8] = {{{0}}};
++inline long long hcross_n[2][2][6][5] = {{{{0}}}};
++inline long long hcross_f[2][2][6][5] = {{{{0}}}};
++// job29: the exact move number, the picker's stage, the history parts, the futility's history-would-drop
++inline long long hst_num_n[2][10] = {{0}};
++inline long long hst_num_f[2][10] = {{0}};
++inline long long hst_stage_n[2][6] = {{0}};   // Killer1, Killer2, CounterMove, QuietMoves, other, spare
++inline long long hst_stage_f[2][6] = {{0}};
++inline long long hst_imp_n[2][5][2] = {{{0}}};  // [depth 1/2][number class 2,3,4,5-8,9+][improving 0/1]
++inline long long hst_imp_f[2][5][2] = {{{0}}};
++inline long long hst_numk_n[2][4][5] = {{{0}}};
++inline long long hst_numk_f[2][4][5] = {{{0}}};
++inline long long hst_stagek_n[2][5][5] = {{{{0}}}};
++inline long long hst_stagek_f[2][5][5] = {{{{0}}}};
++inline long long hparts_sum[5][2] = {{0}};     // [part][regretted 0/1]
++inline long long hparts_cnt[5][2] = {{0}};
++inline long long hparts_alone[5] = {0};
++inline long long hfut_hist[2][2] = {{0}};      // [would-history-drop 0/1][n, full]
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+@@ -424,6 +455,9 @@
+ using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
+ 
+ struct SearchStack {
++    std::uint8_t rt_full_steps = 0;
++    std::uint8_t rt_full_events[5] = {0};
++
+     std::array<Move, MaxPly + 1> pv{};
+     int pv_length = 0;
+     int ply = 0;
+--- ds5_rt19/src/search.cpp	2026-11-16 10:01:57.287794560 +0000
++++ ds5_rt21/src/search.cpp	2026-11-16 12:53:43.003794560 +0000
+@@ -598,6 +598,7 @@
+         }
+     }
+ 
++    [[nodiscard]] int stage_now() const { return static_cast<int>(stage_); }
+     [[nodiscard]] Move next(bool skip_quiets) {
+         while (true) {
+             switch (stage_) {
+@@ -1579,6 +1580,10 @@
+     const Move excluded = ss->excluded_move;
+     (ss + 1)->excluded_move = Move::none();
+     (ss + 1)->cutoff_count = 0;
++#ifdef FORGE_CHECKS5B
++    ss->rt_full_steps = 0;
++    for (int s = 0; s < 5; ++s) ss->rt_full_events[s] = 0;
++#endif
+     if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
+     // Children share killers with their siblings; grandchildren start afresh.
+     (ss + 2)->killers = {};
+@@ -1891,21 +1896,77 @@
+         }
+     };
+ 
+-    // job19 RegretTop: my own count of what the steps drop, with a probe that asks whether the
+-    // dropped move would have beaten alpha (r1) and then also at the full depth (r2). The depth
+-    // classes are the node's depth (1-3, 4-6, 7-9, 10+); the kinds are pv x in_check. Steps are
+-    // numbered as the job names them: 2 quiet futility, 3 history, 4 quiet SEE, 5 capture
+-    // futility, 6 noisy SEE. Step 1 (late-move pruning) is not probed: its dropped moves never
+-    // come out of the picker.
++    // job21 part A: the probe made equal to the loop (base search.cpp 1989-2034). Three classes:
++    // F - the loop would NOT reduce this move (its condition false; node depth 1 always): one search
++    //     at the new depth with (-alpha-1, -alpha, !cut_node); new depth 0 is qsearch, as search()
++    //     does by itself. The verdict IS the full-depth verdict.
++    // E - the loop would reduce it and reduced == new depth: one search with cut_node true.
++    // R - reduced < new depth: r1 at the reduced depth (cut_node true); if it beats alpha, r2 at the
++    //     new depth with !cut_node. No clamp whose lower limit can lie above its upper one.
+     auto regret_top = [&](int step, const Move& dropped, bool dropped_quiet, int dropped_history,
+-                          int dropped_move_count) {
++                          int dropped_move_count, int rt_kidx, int rt_kcell, int rt_fwc) {
+         if (!tune::RegretTop && !tune::RegretTopCount) return;
+         if (tune::regret_top_inside) return;
+         const int sidx = step - 2;
+         if (sidx < 0 || sidx > 4) return;
+-        const int rt_dcls = depth <= 3 ? 0 : depth <= 6 ? 1 : depth <= 9 ? 2 : 3;
++        bool rt_part_valid = false;
++        bool rt_won = false;
++        int rt_part_vals[5] = {0, 0, 0, 0, 0};
++        int rt_fut_would = -1;
++        const int rt_dcls = depth <= 1 ? 0 : depth == 2 ? 1 : depth == 3 ? 2 : depth <= 6 ? 3 : 4;
+         const int rt_kcls = (pv_node ? 2 : 0) + (in_check ? 1 : 0);
+         ++tune::rt_n[sidx][rt_dcls][rt_kcls];
++        if (rt_kidx >= 0) ++tune::rt_k_n[rt_kidx][rt_kcell][rt_dcls];
++        if (rt_kidx == 1 || rt_kidx == 0) {  // the history (3) and futility (2) steps' splits
++            const int hs = rt_kidx == 1 ? 0 : 1;
++            const int rt_kind = pv_node ? 0 : cut_node ? 1 : 2;
++            const int mc = dropped_move_count;
++            const int rt_mnum = mc <= 4 ? 0 : mc <= 8 ? 1 : mc <= 16 ? 2 : 3;
++            const int rt_eva = ss->static_eval - alpha;
++            const int rt_ecls = rt_eva < -200 ? 0 : rt_eva < -50 ? 1 : rt_eva < 0 ? 2 : rt_eva < 50 ? 3 : rt_eva < 200 ? 4 : 5;
++            ++tune::hsp_n[hs][0][rt_kind];
++            ++tune::hsp_n[hs][1][rt_mnum];
++            ++tune::hsp_n[hs][2][rt_ecls];
++            ++tune::hsp_n[hs][3][improving ? 1 : 0];
++            if (hs == 0 && rt_dcls <= 1) {
++                ++tune::hcross_n[0][rt_dcls][rt_ecls][rt_kcell];
++            }
++            if (rt_dcls <= 1) {
++                // job29: the exact move number, the picker's stage, improving x number class
++                const int stg = picker.stage_now();
++                const int stg_b = stg == 3 ? 0 : stg == 4 ? 1 : stg == 5 ? 2 : stg == 7 ? 3 : 4;
++                const int num = std::min(mc - 1, 9);
++                ++tune::hst_num_n[rt_dcls][num];
++                ++tune::hst_stage_n[rt_dcls][stg_b];
++                const int ncls = mc == 2 ? 0 : mc == 3 ? 1 : mc == 4 ? 2 : mc <= 8 ? 3 : 4;
++                ++tune::hst_imp_n[rt_dcls][ncls][improving ? 1 : 0];
++                if (hs == 0) {
++                    ++tune::hst_numk_n[rt_dcls][mc >= 5 ? 3 : mc - 2 < 0 ? 0 : mc - 2][rt_kcell];
++                    ++tune::hst_stagek_n[rt_dcls][stg_b][rt_kcell];
++                }
++                // (e) history only: the parts of quiet_history for the drops with move number <= 4
++                if (hs == 0 && mc <= 4) {
++                    const Piece pc = board.moved_piece(dropped);
++                    const int p_main = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][dropped.from][dropped.to];
++                    const int p_c1 = (ss - 1)->continuation != nullptr ? (*(ss - 1)->continuation)[static_cast<std::size_t>(pc)][dropped.to] : 0;
++                    const int p_c2 = (ss - 2)->continuation != nullptr ? (*(ss - 2)->continuation)[static_cast<std::size_t>(pc)][dropped.to] : 0;
++                    const int p_c4 = (tune::ContHist4PlyRead && (ss - 4)->continuation != nullptr && !(ss - 4)->current_move.is_none())
++                                         ? (*(ss - 4)->continuation)[static_cast<std::size_t>(pc)][dropped.to] / 2 : 0;
++                    const int p_thr = threat_quiet_bonus(board, dropped);
++                    const int parts[5] = {p_main, p_c1, p_c2, p_c4, p_thr};
++                    for (int pi = 0; pi < 5; ++pi) {
++                        if (parts[pi] < -tune::HistoryPruneMultiplier * depth) ++tune::hparts_alone[pi];
++                    }
++                    rt_part_vals[0] = p_main; rt_part_vals[1] = p_c1; rt_part_vals[2] = p_c2;
++                    rt_part_vals[3] = p_c4; rt_part_vals[4] = p_thr;
++                    rt_part_valid = true;
++                } else {
++                    rt_part_valid = false;
++                }
++            } else {
++                rt_part_valid = false;
++            }
++        }
+         if (!tune::RegretTop) return;
+         const bool rt_gives_check = board.gives_check(dropped);
+         int rt_extension = 0;
+@@ -1913,24 +1974,47 @@
+             rt_extension = 1;
+         }
+         const int rt_new_depth = depth - 1 + rt_extension;
+-        int rt_r = reduction(dropped_quiet, depth, dropped_move_count);
+-        if (ss->tt_pv) rt_r -= 1;
+-        if (!improving) rt_r += 1;
+-        if (cut_node) rt_r += 2;
+-        if (tt_capture && dropped_quiet) rt_r += 1;
+-        if (rt_gives_check) rt_r -= 1;
+-        if (in_check) rt_r -= 1;
+-        if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) rt_r += 1;
+-        if (dropped_quiet) rt_r -= std::clamp(dropped_history / tune::LmrHistoryDivisor, -2, 2);
+-        if (tune::LmrSignedCorrection && dropped_quiet && ss->static_eval != ValueNone &&
+-            ss->raw_eval != ValueNone) {
+-            const int correction_cp = ss->static_eval - ss->raw_eval;
+-            if (correction_cp != 0) rt_r = apply_lmr_signed_correction(rt_r, correction_cp);
++        const bool rt_would_reduce =
++            mate_moves_ == 0 && board.halfmove_clock() + rt_new_depth < 100 && depth >= 2 &&
++            dropped_move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
++            (dropped_quiet || !ss->tt_pv || dropped_move_count > 4);
++        int rt_r = 0;
++        if (rt_would_reduce) {
++            rt_r = reduction(dropped_quiet, depth, dropped_move_count);
++            if (ss->tt_pv) rt_r -= 1;
++            if (!improving) rt_r += 1;
++            if (cut_node) rt_r += 2;
++            if (tt_capture && dropped_quiet) rt_r += 1;
++            if (rt_gives_check) rt_r -= 1;
++            if (in_check) rt_r -= 1;
++            if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) rt_r += 1;
++            if (dropped_quiet) rt_r -= std::clamp(dropped_history / tune::LmrHistoryDivisor, -2, 2);
++            if (tune::LmrSignedCorrection && dropped_quiet && ss->static_eval != ValueNone &&
++                ss->raw_eval != ValueNone) {
++                const int correction_cp = ss->static_eval - ss->raw_eval;
++                if (correction_cp != 0) rt_r = apply_lmr_signed_correction(rt_r, correction_cp);
++            }
++            if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && dropped_move_count <= 4) --rt_r;
+         }
+-        if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && dropped_move_count <= 4) --rt_r;
+-        const int rt_reduced = std::clamp(rt_new_depth - rt_r, 1, rt_new_depth);
++        int rt_cls = 0;  // 0 = F, 1 = E, 2 = R
++        int rt_probe_depth = rt_new_depth;
++        bool rt_probe_cutnode = !cut_node;
++        if (rt_would_reduce && rt_new_depth > 0) {
++            const int rt_reduced = std::clamp(rt_new_depth - rt_r, 1, rt_new_depth);
++            if (rt_reduced < rt_new_depth) {
++                rt_cls = 2;
++                rt_probe_depth = rt_reduced;
++                rt_probe_cutnode = true;
++            } else {
++                rt_cls = 1;
++                rt_probe_depth = rt_reduced;
++                rt_probe_cutnode = true;
++            }
++        }
++        ++tune::rt_cls_n[rt_cls][rt_dcls];
+         const Piece rt_moved = board.moved_piece(dropped);
+         tune::regret_top_inside = true;
++        (void)rt_part_valid;
+         Undo rt_undo;
+         (void)board.make_move(dropped, rt_undo);
+         ss->current_move = dropped;
+@@ -1939,14 +2023,18 @@
+         (ss + 1)->ply = ply + 1;
+         (ss + 1)->arrival_index = dropped_move_count;
+         const std::uint64_t rt_before = local_nodes_;
+-        const int rt_s1 = -search(board, ss + 1, rt_reduced, -alpha - 1, -alpha, true);
+-        tune::rt_probe_nodes += static_cast<long long>(local_nodes_ - rt_before);
+-        board.unmake_move(dropped, rt_undo);
+-        tune::regret_top_inside = false;
+-        if (aborted_) return;
+-        if (rt_s1 > alpha) {
+-            ++tune::rt_r1[sidx][rt_dcls][rt_kcls];
+-            if (rt_reduced < rt_new_depth) {
++        const int rt_saved_cc = (ss + 1)->cutoff_count;
++        if (rt_cls == 2) {
++            const int rt_s1 = -search(board, ss + 1, rt_probe_depth, -alpha - 1, -alpha, rt_probe_cutnode);
++            (ss + 1)->cutoff_count = rt_saved_cc;
++            const long long rt_d = static_cast<long long>(local_nodes_ - rt_before);
++            tune::rt_probe_nodes += rt_d;
++            tune::rt_cls_nodes[rt_cls] += rt_d;
++            board.unmake_move(dropped, rt_undo);
++            tune::regret_top_inside = false;
++            if (aborted_) return;
++            if (rt_s1 > alpha) {
++                ++tune::rt_r1[sidx][rt_dcls][rt_kcls];
+                 tune::regret_top_inside = true;
+                 const std::uint64_t rt_before2 = local_nodes_;
+                 (void)board.make_move(dropped, rt_undo);
+@@ -1955,12 +2043,110 @@
+                 ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(rt_moved)][dropped.to];
+                 (ss + 1)->ply = ply + 1;
+                 (ss + 1)->arrival_index = dropped_move_count;
++                const int rt_saved_cc2 = (ss + 1)->cutoff_count;
+                 const int rt_s2 = -search(board, ss + 1, rt_new_depth, -alpha - 1, -alpha, !cut_node);
+-                tune::rt_probe_nodes += static_cast<long long>(local_nodes_ - rt_before2);
++                (ss + 1)->cutoff_count = rt_saved_cc2;
++                const long long rt_d2 = static_cast<long long>(local_nodes_ - rt_before2);
++                tune::rt_probe_nodes += rt_d2;
++                tune::rt_cls_nodes[rt_cls] += rt_d2;
+                 board.unmake_move(dropped, rt_undo);
+                 tune::regret_top_inside = false;
+                 if (aborted_) return;
+-                if (rt_s2 > alpha) ++tune::rt_r2[sidx][rt_dcls][rt_kcls];
++                if (rt_s2 > alpha) {
++                    ++tune::rt_r2[sidx][rt_dcls][rt_kcls];
++                    ++tune::rt_cls_win[rt_cls][rt_dcls];
++                    ++tune::rt_full[sidx];
++                    rt_won = true;
++                    if (rt_kidx >= 0) ++tune::rt_k_full[rt_kidx][rt_kcell][rt_dcls];
++                    if (rt_kidx == 1 && rt_dcls <= 1) {
++                        const int mc2 = dropped_move_count;
++                        ++tune::hst_numk_f[rt_dcls][mc2 >= 5 ? 3 : mc2 - 2 < 0 ? 0 : mc2 - 2][rt_kcell];
++                    }
++                    if (rt_part_valid) {
++                        for (int pi = 0; pi < 5; ++pi) {
++                            tune::hparts_sum[pi][1] += rt_part_vals[pi];
++                            ++tune::hparts_cnt[pi][1];
++                        }
++                        if (rt_kidx == 1 && rt_dcls <= 1) {
++                            const int stg2 = picker.stage_now();
++                            const int sb2 = stg2 == 3 ? 0 : stg2 == 4 ? 1 : stg2 == 5 ? 2 : stg2 == 7 ? 3 : 4;
++                            ++tune::hst_stagek_f[rt_dcls][sb2][rt_kcell];
++                        }
++                    }
++                    if (rt_fwc >= 0) ++tune::hfut_hist[rt_fwc][1];                    if (rt_kidx == 1 || rt_kidx == 0) {
++                        const int hs2 = rt_kidx == 1 ? 0 : 1;
++                        const int rt_kind2 = pv_node ? 0 : cut_node ? 1 : 2;
++                        const int mc2 = dropped_move_count;
++                        const int rt_mnum2 = mc2 <= 4 ? 0 : mc2 <= 8 ? 1 : mc2 <= 16 ? 2 : 3;
++                        const int rt_eva2 = ss->static_eval - alpha;
++                        const int rt_ecls2 = rt_eva2 < -200 ? 0 : rt_eva2 < -50 ? 1 : rt_eva2 < 0 ? 2 : rt_eva2 < 50 ? 3 : rt_eva2 < 200 ? 4 : 5;
++                        ++tune::hsp_f[hs2][0][rt_kind2];
++                        ++tune::hsp_f[hs2][1][rt_mnum2];
++                        ++tune::hsp_f[hs2][2][rt_ecls2];
++                        ++tune::hsp_f[hs2][3][improving ? 1 : 0];
++                        if (hs2 == 0 && rt_dcls <= 1) {
++                            ++tune::hcross_f[0][rt_dcls][rt_ecls2][rt_kcell];
++                        }
++                    }
++
++                    ss->rt_full_steps |= (1 << sidx);
++                    ++ss->rt_full_events[sidx];
++                }
++            }
++        } else {
++            const int rt_s = -search(board, ss + 1, rt_probe_depth, -alpha - 1, -alpha, rt_probe_cutnode);
++            (ss + 1)->cutoff_count = rt_saved_cc;
++            const long long rt_d = static_cast<long long>(local_nodes_ - rt_before);
++            tune::rt_probe_nodes += rt_d;
++            tune::rt_cls_nodes[rt_cls] += rt_d;
++            board.unmake_move(dropped, rt_undo);
++            tune::regret_top_inside = false;
++            if (aborted_) return;
++            if (rt_s > alpha) {
++                ++tune::rt_cls_win[rt_cls][rt_dcls];
++                ++tune::rt_full[sidx];
++                rt_won = true;
++                if (rt_kidx >= 0) ++tune::rt_k_full[rt_kidx][rt_kcell][rt_dcls];
++                if (rt_kidx == 1 && rt_dcls <= 1) {
++                    const int mc2 = dropped_move_count;
++                    ++tune::hst_numk_f[rt_dcls][mc2 >= 5 ? 3 : mc2 - 2 < 0 ? 0 : mc2 - 2][rt_kcell];
++                }
++                if (rt_part_valid) {
++                    for (int pi = 0; pi < 5; ++pi) {
++                        tune::hparts_sum[pi][1] += rt_part_vals[pi];
++                        ++tune::hparts_cnt[pi][1];
++                    }
++                    if (rt_kidx == 1 && rt_dcls <= 1) {
++                        const int stg2 = picker.stage_now();
++                        const int sb2 = stg2 == 3 ? 0 : stg2 == 4 ? 1 : stg2 == 5 ? 2 : stg2 == 7 ? 3 : 4;
++                        ++tune::hst_stagek_f[rt_dcls][sb2][rt_kcell];
++                    }
++                }
++                if (rt_fwc >= 0) ++tune::hfut_hist[rt_fwc][1];
++                    if (rt_kidx == 1 || rt_kidx == 0) {
++                        const int hs2 = rt_kidx == 1 ? 0 : 1;
++                        const int rt_kind2 = pv_node ? 0 : cut_node ? 1 : 2;
++                        const int mc2 = dropped_move_count;
++                        const int rt_mnum2 = mc2 <= 4 ? 0 : mc2 <= 8 ? 1 : mc2 <= 16 ? 2 : 3;
++                        const int rt_eva2 = ss->static_eval - alpha;
++                        const int rt_ecls2 = rt_eva2 < -200 ? 0 : rt_eva2 < -50 ? 1 : rt_eva2 < 0 ? 2 : rt_eva2 < 50 ? 3 : rt_eva2 < 200 ? 4 : 5;
++                        ++tune::hsp_f[hs2][0][rt_kind2];
++                        ++tune::hsp_f[hs2][1][rt_mnum2];
++                        ++tune::hsp_f[hs2][2][rt_ecls2];
++                        ++tune::hsp_f[hs2][3][improving ? 1 : 0];
++                        if (hs2 == 0 && rt_dcls <= 1) {
++                            ++tune::hcross_f[0][rt_dcls][rt_ecls2][rt_kcell];
++                        }
++                    }
++
++                ss->rt_full_steps |= (1 << sidx);
++                ++ss->rt_full_events[sidx];
++            }
++        }
++        if (rt_part_valid && !rt_won) {
++            for (int pi = 0; pi < 5; ++pi) {
++                tune::hparts_sum[pi][0] += rt_part_vals[pi];
++                ++tune::hparts_cnt[pi][0];
+             }
+         }
+     };
+@@ -2034,7 +2220,14 @@
+ #endif
+                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
+                     trace_case();
+-                    regret_top(2, move, true, history, move_count);
++                    int rt_kc = 0;
++                    if (ss->static_eval + (3 * (tune::FutilityBase + tune::FutilityMultiplier * lmr_depth)) / 2 <= alpha) rt_kc = 1;
++                    if (ss->static_eval + 2 * (tune::FutilityBase + tune::FutilityMultiplier * lmr_depth) <= alpha) rt_kc = 2;
++                    if (ss->static_eval + 3 * (tune::FutilityBase + tune::FutilityMultiplier * lmr_depth) <= alpha) rt_kc = 3;
++                    if (ss->static_eval + 5 * (tune::FutilityBase + tune::FutilityMultiplier * lmr_depth) <= alpha) rt_kc = 4;
++                    const int rt_fwc = history < -tune::HistoryPruneMultiplier * depth ? 1 : 0;
++                    ++tune::hfut_hist[rt_fwc][0];
++                    regret_top(2, move, true, history, move_count, 0, rt_kc, rt_fwc);
+                     sound_regret_drop(1, move, true, history, move_count);
+                     if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+                     if (sr_skip_origin == 0) {
+@@ -2048,7 +2241,12 @@
+                 }
+                 if (!(sound_step_gate & 4) && lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
+                     trace_case();
+-                    regret_top(3, move, true, history, move_count);
++                    int rt_kc = 0;
++                    if (2 * history < -3 * tune::HistoryPruneMultiplier * depth) rt_kc = 1;
++                    if (history < -2 * tune::HistoryPruneMultiplier * depth) rt_kc = 2;
++                    if (history < -3 * tune::HistoryPruneMultiplier * depth) rt_kc = 3;
++                    if (history < -5 * tune::HistoryPruneMultiplier * depth) rt_kc = 4;
++                    regret_top(3, move, true, history, move_count, 1, rt_kc, 0);
+                     sound_regret_drop(2, move, true, history, move_count);
+                     if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+                     quiet_fail = true;
+@@ -2056,7 +2254,13 @@
+                 }
+                 if (!(sound_step_gate & 8) && !board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+                     trace_case();
+-                    regret_top(4, move, true, history, move_count);
++                    int rt_kc = 0;
++                    const int rt_qprod = tune::SeeQuietMultiplier * lmr_depth * lmr_depth;
++                    if (!board.see_ge(move, -(3 * rt_qprod) / 2)) rt_kc = 1;
++                    if (!board.see_ge(move, -2 * rt_qprod)) rt_kc = 2;
++                    if (!board.see_ge(move, -3 * rt_qprod)) rt_kc = 3;
++                    if (!board.see_ge(move, -5 * rt_qprod)) rt_kc = 4;
++                    regret_top(4, move, true, history, move_count, 2, rt_kc, 0);
+                     sound_regret_drop(3, move, true, history, move_count);
+                     if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+                     quiet_fail = true;
+@@ -2073,7 +2277,7 @@
+                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+                             capture_value(board, move) + history / 8 <= alpha) {
+                     trace_case();
+-                    regret_top(5, move, false, history, move_count);
++                    regret_top(5, move, false, history, move_count, -1, 0, 0);
+                     sound_regret_drop(4, move, false, history, move_count);
+                     if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+                     continue;
+@@ -2082,7 +2286,13 @@
+                 if (!(sound_step_gate & 32) && !(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                     !board.see_ge(move, see_threshold)) {
+                     trace_case();
+-                    regret_top(6, move, quiet, history, move_count);
++                    int rt_kc = 0;
++                    const int rt_nprod = tune::SeeNoisyMultiplier * depth;
++                    if (!board.see_ge(move, -(3 * rt_nprod) / 2)) rt_kc = 1;
++                    if (!board.see_ge(move, -2 * rt_nprod)) rt_kc = 2;
++                    if (!board.see_ge(move, -3 * rt_nprod)) rt_kc = 3;
++                    if (!board.see_ge(move, -5 * rt_nprod)) rt_kc = 4;
++                    regret_top(6, move, quiet, history, move_count, 3, rt_kc, 0);
+                     sound_regret_drop(5, move, quiet, history, move_count);
+                     if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+                     if (tune::SoundPruneTrace && quiet && gives_check && quiet_fail) {
+@@ -2289,6 +2499,21 @@
+     }
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
++#ifdef FORGE_CHECKS5B
++    if (ss->rt_full_steps) {
++        for (int s = 0; s < 5; ++s) {
++            if (ss->rt_full_steps & (1 << s)) {
++                if (best_score < beta) {
++                    ++tune::rt_strict[s];
++                    tune::rt_strict_events[s] += ss->rt_full_events[s];
++                }
++            }
++        }
++        ++tune::rt_strict_nodes;
++        ss->rt_full_steps = 0;
++        for (int s = 0; s < 5; ++s) ss->rt_full_events[s] = 0;
++    }
++#endif
+     if (excluded.is_none() && !(root_node && root_restricted_)) {
+ #if FORGE_SPD_TT_NOTLS
+         store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+@@ -2946,14 +3171,64 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+-      auto rt_dump = [](const char* k, long long a[5][4][4]) {
++      auto rt_dump = [](const char* k, long long a[5][5][4]) {
+           std::cout << "\"" << k << "\": [";
+-          for (int s = 0; s < 5; ++s) { std::cout << "["; for (int d = 0; d < 4; ++d) { std::cout << "["; for (int kk = 0; kk < 4; ++kk) std::cout << a[s][d][kk] << (kk == 3 ? "" : ","); std::cout << "]" << (d == 3 ? "" : ","); } std::cout << "]" << (s == 4 ? "" : ","); }
++          for (int s = 0; s < 5; ++s) { std::cout << "["; for (int d = 0; d < 5; ++d) { std::cout << "["; for (int kk = 0; kk < 4; ++kk) std::cout << a[s][d][kk] << (kk == 3 ? "" : ","); std::cout << "]" << (d == 4 ? "" : ","); } std::cout << "]" << (s == 4 ? "" : ","); }
+           std::cout << "]"; };
+       std::cout << "info string RT {";
+       rt_dump("n", tune::rt_n); std::cout << ",";
+       rt_dump("r1", tune::rt_r1); std::cout << ",";
+-      rt_dump("r2", tune::rt_r2); std::cout << ",\"pn\":" << tune::rt_probe_nodes << "}" << std::endl; }
++      rt_dump("r2", tune::rt_r2); std::cout << ",";
++      std::cout << "\"cls_n\":[" << tune::rt_cls_n[0][0];
++      for (int c = 0; c < 3; ++c) for (int dd = 0; dd < 5; ++dd) { if (c == 0 && dd == 0) continue; std::cout << "," << tune::rt_cls_n[c][dd]; }
++      std::cout << "],\"cls_win\":[" << tune::rt_cls_win[0][0];
++      for (int c = 0; c < 3; ++c) for (int dd = 0; dd < 5; ++dd) { if (c == 0 && dd == 0) continue; std::cout << "," << tune::rt_cls_win[c][dd]; }
++      std::cout << "],\"cls_nodes\":[" << tune::rt_cls_nodes[0] << "," << tune::rt_cls_nodes[1] << "," << tune::rt_cls_nodes[2]
++                << "],\"full\":[" << tune::rt_full[0] << "," << tune::rt_full[1] << "," << tune::rt_full[2] << "," << tune::rt_full[3] << "," << tune::rt_full[4]
++                << "],\"strict\":[" << tune::rt_strict[0] << "," << tune::rt_strict[1] << "," << tune::rt_strict[2] << "," << tune::rt_strict[3] << "," << tune::rt_strict[4]
++                << "],\"strict_ev\":[" << tune::rt_strict_events[0] << "," << tune::rt_strict_events[1] << "," << tune::rt_strict_events[2] << "," << tune::rt_strict_events[3] << "," << tune::rt_strict_events[4]
++                << "],\"strict_nodes\":" << tune::rt_strict_nodes << ",\"pn\":" << tune::rt_probe_nodes;
++      std::cout << ",\"k_n\":[";
++      for (int s = 0; s < 4; ++s) { std::cout << "["; for (int dd = 0; dd < 5; ++dd) { std::cout << "["; for (int kc = 0; kc < 5; ++kc) std::cout << tune::rt_k_n[s][dd][kc] << (kc == 4 ? "" : ","); std::cout << "]" << (dd == 4 ? "" : ","); } std::cout << "]" << (s == 3 ? "" : ","); }
++      std::cout << "],\"k_full\":[";
++      for (int s = 0; s < 4; ++s) { std::cout << "["; for (int dd = 0; dd < 5; ++dd) { std::cout << "["; for (int kc = 0; kc < 5; ++kc) std::cout << tune::rt_k_full[s][dd][kc] << (kc == 4 ? "" : ","); std::cout << "]" << (dd == 4 ? "" : ","); } std::cout << "]" << (s == 3 ? "" : ","); }
++      std::cout << "]";
++      std::cout << ",\"hsp_n\":[";
++      for (int h = 0; h < 2; ++h) { std::cout << "["; for (int sp = 0; sp < 4; ++sp) { std::cout << "["; for (int c = 0; c < 8; ++c) std::cout << tune::hsp_n[h][sp][c] << (c == 7 ? "" : ","); std::cout << "]" << (sp == 3 ? "" : ","); } std::cout << "]" << (h == 1 ? "" : ","); }
++      std::cout << "],\"hsp_f\":[";
++      for (int h = 0; h < 2; ++h) { std::cout << "["; for (int sp = 0; sp < 4; ++sp) { std::cout << "["; for (int c = 0; c < 8; ++c) std::cout << tune::hsp_f[h][sp][c] << (c == 7 ? "" : ","); std::cout << "]" << (sp == 3 ? "" : ","); } std::cout << "]" << (h == 1 ? "" : ","); }
++      std::cout << "],\"hcross_n\":[";
++      for (int h = 0; h < 2; ++h) { std::cout << "["; for (int dd = 0; dd < 2; ++dd) { std::cout << "["; for (int e = 0; e < 6; ++e) { std::cout << "["; for (int kc = 0; kc < 5; ++kc) std::cout << tune::hcross_n[h][dd][e][kc] << (kc == 4 ? "" : ","); std::cout << "]" << (e == 5 ? "" : ","); } std::cout << "]" << (dd == 1 ? "" : ","); } std::cout << "]" << (h == 1 ? "" : ","); }
++      std::cout << "],\"hcross_f\":[";
++      for (int h = 0; h < 2; ++h) { std::cout << "["; for (int dd = 0; dd < 2; ++dd) { std::cout << "["; for (int e = 0; e < 6; ++e) { std::cout << "["; for (int kc = 0; kc < 5; ++kc) std::cout << tune::hcross_f[h][dd][e][kc] << (kc == 4 ? "" : ","); std::cout << "]" << (e == 5 ? "" : ","); } std::cout << "]" << (dd == 1 ? "" : ","); } std::cout << "]" << (h == 1 ? "" : ","); }
++      std::cout << "]";
++      std::cout << ",\"hst_num_n\":[";
++      for (int dd = 0; dd < 2; ++dd) { std::cout << "["; for (int i = 0; i < 10; ++i) std::cout << tune::hst_num_n[dd][i] << (i == 9 ? "" : ","); std::cout << "]" << (dd == 1 ? "" : ","); }
++      std::cout << "],\"hst_num_f\":[";
++      for (int dd = 0; dd < 2; ++dd) { std::cout << "["; for (int i = 0; i < 10; ++i) std::cout << tune::hst_num_f[dd][i] << (i == 9 ? "" : ","); std::cout << "]" << (dd == 1 ? "" : ","); }
++      std::cout << "],\"hst_stage_n\":[";
++      for (int dd = 0; dd < 2; ++dd) { std::cout << "["; for (int s = 0; s < 6; ++s) std::cout << tune::hst_stage_n[dd][s] << (s == 5 ? "" : ","); std::cout << "]" << (dd == 1 ? "" : ","); }
++      std::cout << "],\"hst_stage_f\":[";
++      for (int dd = 0; dd < 2; ++dd) { std::cout << "["; for (int s = 0; s < 6; ++s) std::cout << tune::hst_stage_f[dd][s] << (s == 5 ? "" : ","); std::cout << "]" << (dd == 1 ? "" : ","); }
++      std::cout << "],\"hst_imp_n\":[";
++      for (int dd = 0; dd < 2; ++dd) { std::cout << "["; for (int nc = 0; nc < 5; ++nc) { std::cout << "["; for (int im = 0; im < 2; ++im) std::cout << tune::hst_imp_n[dd][nc][im] << (im == 1 ? "" : ","); std::cout << "]" << (nc == 4 ? "" : ","); } std::cout << "]" << (dd == 1 ? "" : ","); }
++      std::cout << "],\"hst_imp_f\":[";
++      for (int dd = 0; dd < 2; ++dd) { std::cout << "["; for (int nc = 0; nc < 5; ++nc) { std::cout << "["; for (int im = 0; im < 2; ++im) std::cout << tune::hst_imp_f[dd][nc][im] << (im == 1 ? "" : ","); std::cout << "]" << (nc == 4 ? "" : ","); } std::cout << "]" << (dd == 1 ? "" : ","); }
++      std::cout << "],\"hst_numk_n\":[";
++      for (int dd = 0; dd < 2; ++dd) { std::cout << "["; for (int nc = 0; nc < 4; ++nc) { std::cout << "["; for (int kc = 0; kc < 5; ++kc) std::cout << tune::hst_numk_n[dd][nc][kc] << (kc == 4 ? "" : ","); std::cout << "]" << (nc == 3 ? "" : ","); } std::cout << "]" << (dd == 1 ? "" : ","); }
++      std::cout << "],\"hst_numk_f\":[";
++      for (int dd = 0; dd < 2; ++dd) { std::cout << "["; for (int nc = 0; nc < 4; ++nc) { std::cout << "["; for (int kc = 0; kc < 5; ++kc) std::cout << tune::hst_numk_f[dd][nc][kc] << (kc == 4 ? "" : ","); std::cout << "]" << (nc == 3 ? "" : ","); } std::cout << "]" << (dd == 1 ? "" : ","); }
++      std::cout << "],\"hst_stagek_n\":[";
++      for (int dd = 0; dd < 2; ++dd) { std::cout << "["; for (int sb = 0; sb < 5; ++sb) { std::cout << "["; for (int kc = 0; kc < 5; ++kc) std::cout << tune::hst_stagek_n[dd][sb][kc] << (kc == 4 ? "" : ","); std::cout << "]" << (sb == 4 ? "" : ","); } std::cout << "]" << (dd == 1 ? "" : ","); }
++      std::cout << "],\"hst_stagek_f\":[";
++      for (int dd = 0; dd < 2; ++dd) { std::cout << "["; for (int sb = 0; sb < 5; ++sb) { std::cout << "["; for (int kc = 0; kc < 5; ++kc) std::cout << tune::hst_stagek_f[dd][sb][kc] << (kc == 4 ? "" : ","); std::cout << "]" << (sb == 4 ? "" : ","); } std::cout << "]" << (dd == 1 ? "" : ","); }
++      std::cout << "],\"hparts_sum\":[";
++      for (int pi = 0; pi < 5; ++pi) std::cout << "[" << tune::hparts_sum[pi][0] << "," << tune::hparts_sum[pi][1] << "]" << (pi == 4 ? "" : ",");
++      std::cout << "],\"hparts_cnt\":[";
++      for (int pi = 0; pi < 5; ++pi) std::cout << "[" << tune::hparts_cnt[pi][0] << "," << tune::hparts_cnt[pi][1] << "]" << (pi == 4 ? "" : ",");
++      std::cout << "],\"hparts_alone\":[" << tune::hparts_alone[0] << "," << tune::hparts_alone[1] << "," << tune::hparts_alone[2] << "," << tune::hparts_alone[3] << "," << tune::hparts_alone[4] << "]";
++      std::cout << ",\"hfut_hist\":[[" << tune::hfut_hist[0][0] << "," << tune::hfut_hist[0][1] << "],[" << tune::hfut_hist[1][0] << "," << tune::hfut_hist[1][1] << "]]";
++      std::cout << "}" << std::endl; }
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
+     return result;
+ }
