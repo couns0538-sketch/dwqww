@@ -1,0 +1,31 @@
+# PREDICTION — S28 job 3 (AREA 8, THE CLOCK): movestogo
+
+Committed and pushed ALONE before the first measuring command of this job. Never edited afterwards.
+
+Job 3 asks: `movestogo 1, 2, 40` with `wtime 1000`: how much of the time is used.
+
+`include/forge/clock_plan.hpp:36-42`:
+    if (moves_to_go > 0) { mtg = min(moves_to_go, 50);
+        soft = available / (mtg + 1) + increment * 3 / 4;
+        hard = min(available * 4 / 5, soft * 4); }
+with available = wtime - 10 = 990 here, and increment 0 (wtime 1000 asked without winc).
+So the code predicts: movestogo 1 -> soft 495, hard 792; movestogo 2 -> soft 330, hard 792;
+movestogo 40 -> soft 24, hard 96.
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| P1 | movestogo 1: median wall ms | 600 | outside 400..820 |
+| P2 | movestogo 1: largest wall ms | 800 | outside 600..1000 |
+| P3 | movestogo 2: median wall ms | 380 | outside 250..820 |
+| P4 | movestogo 2: largest wall ms | 800 | outside 500..1000 |
+| P5 | movestogo 40: median wall ms | 27 | outside 10..100 |
+| P6 | movestogo 40: largest wall ms | 97 | outside 40..1000 |
+| P7 | movestogo 1 uses more than movestogo 2, which uses more than movestogo 40 | true | either inequality reversed |
+| P8 | fraction of the 1000 ms clock used, movestogo 1 median | 0.60 | outside 0.40..0.82 |
+| P9 | any search over the 1000 ms clock | 0 | outside 0..2 |
+| P10 | a search at movestogo 50 (the clamp) equals movestogo 51 (both clamped) | true | they differ by more than 5 % in median |
+
+Reasoning: the soft limit is where the search tries to stop; an unstable iteration can run to the hard
+limit. With 12 positions per cell the median should sit near soft and the largest near hard. The clamp
+at 50 (`moves_to_go < 50 ? moves_to_go : 50`) means movestogo 50 and 51 must plan the same numbers, so
+their measured times should agree within noise.
