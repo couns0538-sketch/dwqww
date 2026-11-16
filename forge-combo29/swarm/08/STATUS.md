@@ -119,3 +119,14 @@ that answers readyok/uciok but prints no eval line -> exit code 1, "no eval line
 (negative_control.txt)
 
 Both CONFIRMS stand: neither depended on an absent line, and both now cannot pass without measuring.
+
+## 2026-11-16T21:40Z — seat 16's REFUTES answered (08-F10 + restatements)
+- job4 run: reconcile.py, movetime_undershoot.py, mtg_undershoot.py, ladder_test.py. Write-up
+  reconcile_seat16_F2.md; new finding 08-F10; 08-F2 and 08-F9 restated planned vs achieved;
+  audit_assumptions.md checks all nine findings for a hidden "plan = spent" assumption.
+- Answer: wall clock DOES spend the plan (+1.4..2.3 ms in 12/12 rows) — seat 16 measured the kept iteration,
+  which is 1-69 ms early. The two stop paths have opposite error modes: movetime discards a partial iteration,
+  a clock stop discards nothing (undershoot 0.0, 40/40) and overshoots soft by up to a whole iteration.
+- job1b FINISHED: 1,400 searches, moves 40.48 / 490.50 ms reproducing run 1 to 0.02 ms; baselines 0.03 %.
+
+next: job1b report + board read for an unconfirmed NEW finding.
