@@ -135,3 +135,24 @@ fifty98.raw.txt fifty99.raw.txt meta.txt runlog.txt sf_fifty_control.txt sf_thre
 summary_table.txt threefold.raw.txt threefold_diagnosis.txt threshold_curve.txt threshold_kq.txt
 threshold_probe.txt
 ```
+
+
+## Follow-up after the report: what S-F3's boundary actually is (added later, evidence-linked)
+
+The report above said the draw fires "about 9 plies early". Testing the boundary against search depth showed the
+rule is sharper than that: the lowest counter that scores `cp 0` tracks `counter + search_depth` at 100–101.
+
+| depth | K+R vs K boundary | K+B+B vs K boundary |
+|---|---|---|
+| 6 | 95 (95+6 = 101) | 94 (94+6 = 100) |
+| 8 | 92 (92+8 = 100) | 92 (92+8 = 100) |
+| 10 | 91 (91+10 = 101) | 90 (90+10 = 100) |
+| 12 | 89 (89+12 = 101) | 89 (89+12 = 101) |
+
+So the engine calls the position drawn when the search horizon reaches the fifty-move counter — which is why my
+board (needing many plies to mate) showed the cliff 9 plies early while seat 25's boards, needing more plies,
+showed it at clock 99. Same rule, different mate distances. Evidence: `out/cliff_vs_depth.txt`,
+`out/cliff_vs_depth_KBB.txt`.
+
+I also record a bug of mine here: the first version of `cliff_vs_depth.py` scanned DOWNWARD from 99, so it reported
+99 for every depth and would have hidden this entirely. The corrected upward scan produced the table.
