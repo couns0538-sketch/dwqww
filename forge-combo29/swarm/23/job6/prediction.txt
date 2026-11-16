@@ -1,0 +1,35 @@
+PREDICTION — SW-23 job 6 (NEW AREA, from FABLE_TO_swarm_6's suggestion)
+`go softnodes N` on the PC build under PC20, Threads 1, Hash 16.
+Written before the first measuring command. Never edited afterwards.
+
+What I will measure, on the PC r15 build (sha 068f0927) under PC20, Threads 1, Hash 16:
+ (a) determinism: the same `go softnodes N` run in fresh processes, K times, and (separately) several times in
+     ONE process — do the bestmove, the score and the node count all repeat?
+ (b) stopping behaviour: does it stop at the END of a depth (i.e. every `info depth` line reports a completed
+     depth, no partial-depth line), and what node count does the LAST info line report?
+ (c) how far past N it goes: the ratio (nodes actually searched) / N, and the number of extra nodes.
+ (d) N sweep: N = 2000 (the PC's self-play value), plus 500, 1000, 5000, 20000, to see whether the overshoot
+     grows with N or is a fixed depth-granularity effect.
+Positions: real-game positions (set G's first 10), not synthetic ones, per file 6's "positions from real games".
+
+Prediction (each number with the range that kills it):
+  P1  run-to-run determinism in FRESH processes: identical (bestmove, score, nodes) for all K runs. KILLED if not.
+  P2  determinism WITHIN one process (repeat `go softnodes 2000` 3 times, `ucinewgame` between): NOT identical —
+      I expect the hash to still hold entries and later runs to search fewer nodes. KILLED if identical.
+      (I flag this because file 6 asks "is it deterministic run to run (it must be)"; I do not know whether
+      "run to run" means fresh process or in-process, and the two answers differ for the search, as seat 10 and
+      my own 23-F7 control showed for `go depth`.)
+  P3  the search stops at a COMPLETED depth: every info line is a finished depth. KILLED if a partial depth line
+      appears (identifiable by two lines with the same `depth` number and increasing nodes).
+  P4  the overshoot is real and bounded: nodes/N between 1.0 and 3.0 for N = 2000. KILLED outside.
+  P5  the overshoot grows with N (because depth granularity is coarser at higher N): overshoot at N = 20000 >
+      overshoot at N = 500. KILLED if equal or smaller.
+  P6  `go softnodes 2000` never searches less than 2000 nodes: nodes >= N always. KILLED if any run < N.
+
+Reasoning: "soft" implies a depth-granularity stop, so the node count should land at or above N and stop at a
+depth boundary; that also makes fresh-process runs deterministic (same input, same binary, no thread race at
+Threads 1). In-process repeats differ because the TT persists unless ucinewgame clears it — and even ucinewgame
+may not clear everything, which is exactly why I measure it rather than assume it.
+
+If P1 is killed that is the important result: a self-play pipeline that assumes determinism would be building on
+sand, and it goes in FINDINGS with the raw runs.
