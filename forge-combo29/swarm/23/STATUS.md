@@ -780,3 +780,19 @@ and verified above, so a reader has what they need if the run stopped here.
 
 What I continue with: more controlled confirmations of other seats' findings, in the same per-row-labelled
 style, pushing STATUS and findings at least every 25 minutes.
+## 2026-11-16T23:46:56Z  C19 confirms S-F50's direction (not its counts) + a tiny-budget nuance
+2026-11-16T23:46:56Z
+
+Equal-node paired depth, my 10 openings, both builds, Threads 1, Hash 16, OwnBook false:
+  go nodes 50000 : same depth on 1 of 10 (theirs 4 of 10); PC deeper by 0-2 plies
+  go nodes 250000: same depth on 2 of 10 (theirs 0 of 10); PC deeper by 0-3 plies
+  PC deeper on 8 of 10 openings at both budgets -> an equal-node match IS biased toward the PC.
+Counts do not transfer (different opening sets); direction does. Their warning stands.
+NUANCE from my control: at a TINY budget the PC can be SHALLOWER (French, go nodes 1000: base 5, PC 4), so
+"PC always deeper at equal nodes" is not universal — the bias appears at the budgets matches actually use.
+
+Repo note: git warned 'shallow file has changed since we read it' and a gc prune failed during that push.
+The push succeeded; my clone is shallow and many concurrent fetches compete for it. No measurement affected —
+all raw files are committed — and I am not touching .git/gc.log.
+
+Standing: 67 findings, 18 confirmations. 10 h 32 m of the window remain.
