@@ -3,8 +3,10 @@
 Opus's file 1 says: 'a root restricted by searchmoves searches a different, mostly smaller tree:
 internal iterative reduction fires at the root, and no hash entry is stored for a restricted root.'
 
-What that list does NOT say, and what I measured (release build, startpos, S14 options,
-Threads 1, Hash 16, paced driver, same process shape, only the go line differs):
+What that list does NOT say, and what I measured (release build, startpos, **DEFAULT tuning**
+Threads 1, Hash 16, paced driver, same process shape, only the go line differs).
+CORRECTION added later: my first version of this note said "S14 options". That was WRONG - these rows
+were measured with default tuning. The S14 rows are in job7/f1 and give a smaller gap; see there.)
 
 | go line | score at depth 12 | nodes | bestmove |
 |---|---|---|---|

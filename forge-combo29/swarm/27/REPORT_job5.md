@@ -40,7 +40,8 @@ The partial patch build also keeps all four (raw in `job5/honesty_searchmoves/`)
 ### S-F8 — `searchmoves` changes the reported score, not only the tree (area 7; beyond Opus file 1's item)
 Opus's file 1 already records that a restricted root "searches a different, mostly smaller tree: internal
 iterative reduction fires at the root, and no hash entry is stored for a restricted root". It does **not**
-record that the score itself moves. Measured, release build, startpos, S14, Threads 1, Hash 16, paced driver:
+record that the score itself moves. Measured, release build, startpos, **DEFAULT tuning** (CORRECTION: an earlier version of this report said
+S14; these rows are default tuning — verified afterwards), Threads 1, Hash 16, paced driver:
 
 | go line | score at depth 12 | nodes | bestmove |
 |---|---|---|---|

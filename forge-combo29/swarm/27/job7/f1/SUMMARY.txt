@@ -1,0 +1,25 @@
+exe /agent/repos/base/build-release/forge
+sha e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+depth 12, startpos, S14, Threads 1, Hash 16, 3 reps per cell
+date 2026-11-16T21:45:29Z
+
+| IirDepth | go line | score | nodes | bestmove | 3 reps identical |
+|---|---|---|---|---|---|
+| 2 | `go depth 12` | cp 24 | 22459 | d2d4 | True |
+| 2 | `go depth 12 searchmoves e2e4` | cp 28 | 15392 | e2e4 | True |
+| 2 | `go depth 12 searchmoves e2e4 d2d4` | cp 28 | 28909 | e2e4 | True |
+| 4 | `go depth 12` | cp 24 | 27383 | e2e4 | True |
+| 4 | `go depth 12 searchmoves e2e4` | cp 20 | 21680 | e2e4 | True |
+| 4 | `go depth 12 searchmoves e2e4 d2d4` | cp 25 | 42097 | e2e4 | True |
+| 20 | `go depth 12` | cp 34 | 47560 | e2e4 | True |
+| 20 | `go depth 12 searchmoves e2e4` | cp 26 | 27066 | e2e4 | True |
+| 20 | `go depth 12 searchmoves e2e4 d2d4` | cp 27 | 38419 | e2e4 | True |
+
+score gap plain - searchmoves(e2e4):
+  IirDepth 2  (S14, IIR active):          -4 cp   (22459 vs 15392 nodes)
+  IirDepth 4  (IIR active at depth 12): +4 cp   (27383 vs 21680 nodes)
+  IirDepth 20 (IIR inactive at depth 12): +8 cp   (47560 vs 27066 nodes)
+
+verdict:
+  the score difference SURVIVES with IIR inactive (+8 cp) -> IIR is not the whole
+  cause; there is at least one more, unidentified, and it is bounded by this number

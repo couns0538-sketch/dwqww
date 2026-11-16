@@ -1,51 +1,106 @@
-# Three patches from seat 27 — each verified alone AND all three together
+# Patches from seat 27 — and how to combine them with seat 12's patch without a silent miss
 
-Base commit `6b98f217`. Every patch applies with plain `patch -p1` from the root of `forge-combo29/`,
-with **no fuzz**, in any order, and the three together build Release with g++ 13.3.
+## READ THIS FIRST: the two patches touch the same block, and the path prefixes differ
 
-| # | file | what it changes | finding | verified alone | verified in the set |
-|---|---|---|---|---|---|
-| 1 | `job1/drawn_root_reporting.patch.txt` | a drawn root reports ONE `info depth 1` line instead of one per depth up to the limit | S-F1 | honesty identical, 10 info lines → 1 | yes |
-| 2 | `job2/clear_hash.patch.txt` | `Searcher::clear_hash()` calls `worker->clear()` so `Clear Hash` also drops the histories | S-F4 | 9/20 → 0/20 differing bestmoves | yes |
-| 3 | `job3/halfmove_clock.patch.txt` | refuses a FEN half-move clock above 100 instead of clamping it to 65535 | S-C3 (seat 01's 01-F5/01-F8) | clocks > 100 refused, clock 100 still a draw | yes |
+Seat 12's `two_doors_mate.patch.txt` and my `job1/drawn_root_reporting.patch.txt` **rewrite the same block**
+of `src/search.cpp` (the drawn-root adjudication around lines 2248–2270). They do compose, but only in one
+order and only if each is applied from the right directory — **the two patch files use different path roots**:
 
-## The combined build
+- seat 12's hunks name `a/forge-combo29/src/search.cpp` → apply with `-p1` **from the directory that contains
+  `forge-combo29/`**
+- my hunks name `a/src/search.cpp` → apply with `-p1` **from inside `forge-combo29/`**
 
+Get that wrong and `patch` prints `Skipping patch. 1 out of 1 hunk ignored` — it does *not* half-apply, so you
+will not get a corrupted tree, but a script that ignores exit codes will think it succeeded. **Check the exit
+code of every `patch` call.**
+
+### The exact sequence (verified twice, sha256 reproduces)
+
+From a clean tree at base commit `6b98f217`:
+
+```bash
+# 1. seat 12's patch FIRST, from the directory that CONTAINS forge-combo29/
+cd <dir-containing-forge-combo29>
+patch -p1 < seat12/job1/two_doors_mate.patch.txt          # must exit 0
+#    (it also applies as -p2 from inside forge-combo29/, but -p1 from the parent is what I verified)
+
+# 2. seat 27's drawn-root patch SECOND, from INSIDE forge-combo29/
+cd forge-combo29
+patch -p1 < seat27/job1/drawn_root_reporting.patch.txt    # must exit 0
+#    patch reports: "Hunk #1 succeeded at 2275 (offset 19 lines)" — an offset, no fuzz, no failed hunk
+
+# 3. the two other seat 27 patches are independent of that block and can go in any order
+patch -p1 < seat27/job2/clear_hash.patch.txt              # must exit 0
+patch -p1 < seat27/job3/halfmove_clock.patch.txt          # must exit 0
 ```
-$ cd /tmp/allthree && for p in job1/drawn_root_reporting job2/clear_hash job3/halfmove_clock; do
-    patch -p1 < forge-combo29/swarm/27/$p.patch.txt; done
-job1/drawn_root_reporting apply=0
-job2/clear_hash apply=0
-job3/halfmove_clock apply=0
-$ cmake -S /tmp/allthree -B build-all -DCMAKE_BUILD_TYPE=Release && cmake --build build-all -j4
-build=0        sha256 d3f1a40fbae0593e3da3ad56d55b9c5938e33e4876639f7172de1070dd7cb53a
+
+**Reverse order fails**: my patch first, then seat 12's, gives `1 out of 1 hunk ignored` because my change
+removes the loop their hunk context expects. So: **seat 12 first, always.**
+
+### Resulting tree, and the sha256 to compare against
+
+Built with `cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++`, `cmake --build . -j4`:
+
+| tree | forge sha256 |
+|---|---|
+| seat 12 + seat 27's three patches | `80b5e535fad4ea12305868198c4c4cc4994b9caec75113f617a59c95b5573507` |
+| seat 27's three patches alone | `d3f1a40fbae0593e3da3ad56d55b9c5938e33e4876639f7172de1070dd7cb53a` |
+| base `6b98f217` | `e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83` |
+
+A different compiler or flags will give a different sha256 — **the sha256 proves *my* builds were the same as
+each other, not that yours is correct. The assertion below is what proves the composition took.**
+
+### The one-position assertion a merger can run
+
+```bash
+bash forge-combo29/swarm/27/assert_composition.sh <path-to-your-forge>
 ```
 
-## Honesty numbers, base vs all three patches (raw in `job5/honesty_all3/`)
+It searches `6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 100 60` — a fifty-move-clock root (clock 100) where White has
+**Ra8#**. The three states are cleanly separated:
 
-| check | required | base `e06310ec` | all three `d3f1a40f` |
-|---|---|---|---|
-| bench 11 | 312866 | 312866 | 312866 |
-| bench 13 | 862329 | 862329 | 862329 |
-| bench 16 | 3024920 | 3024920 | 3024920 |
-| go perft 5 | 4865609 | 4865609 | 4865609 |
+| tree | bestmove | score | info lines | assertion |
+|---|---|---|---|---|
+| base, no patch | `f2f3` | cp 0 | 8, every pv **empty** | **FAIL** |
+| seat 27's drawn-root patch **alone** | `f2f3` | cp 0 | **1** (was 8) | FAIL (correctly: seat 12's is not in) |
+| seat 12's patch (with or without mine) | **`a1a8`** | **mate 1** | 8, real pv | **PASS** |
 
-## Behaviour in the combined build (`job5/f3_all3/`)
+So `PASS` means seat 12's mate scan is in and the search really ran; the `info lines` figure tells you whether
+my reporting change is in as well when you run it on a drawn root with no mate available. Exit code is 0 on
+PASS and 1 otherwise — wire it into your merge script and ignore the sha256 if you like.
 
-| case | base | all three |
-|---|---|---|
-| drawn root (threefold) `go depth 10` | 10 info lines claiming depth 10, nodes 0, `a2a3` | **1** info line at depth 1, nodes 0, `a2a3` |
-| same position, one repetition fewer (control) | 10 info lines, real search | 10 info lines, real search, `d2d4` |
-| fifty-move root `go depth 10` | 10 info lines claiming depth 10 | **1** info line |
-| clock 101 / 150 / 65535 in a FEN | accepted, scored `cp 0` with 0 nodes | **refused**: `info string invalid FEN: … half-move clock above 100` |
-| clock 100 in a FEN | draw, 0 nodes | draw, 0 nodes (correctly unchanged) |
-| `setoption name Clear Hash` then the same position | 9 of 20 bestmoves differ from a fresh game | **0 of 20** |
+**Why the clock-100 case is the right canary:** on base the engine adjudicates the root as a fifty-move draw and
+returns `cp 0` with an empty pv, hiding a mate in one. Seat 12's patch scans the children for a mate before
+trusting the claim. If your tree still says `f2f3`, their patch did not land.
+
+---
+
+## The patches themselves
+
+| # | file | what it changes | finding | applies |
+|---|---|---|---|---|
+| 1 | `job1/drawn_root_reporting.patch.txt` | a drawn root reports ONE `info depth 1` line instead of one per depth up to the limit | S-F1 | `-p1` from inside `forge-combo29/` |
+| 2 | `job2/clear_hash.patch.txt` | `Searcher::clear_hash()` calls `worker->clear()` so `Clear Hash` also drops the move-ordering histories | S-F4 | `-p1` from inside `forge-combo29/` |
+| 3 | `job3/halfmove_clock.patch.txt` | refuses a FEN half-move clock above 100 instead of clamping it to 65535 | S-C3 (seat 01's 01-F5/01-F8) | `-p1` from inside `forge-combo29/` |
+| — | `job5/searchmoves_iir.PARTIAL.patch.txt` | **PARTIAL ONLY** — stops IIR firing at a `searchmoves`-restricted root; does **not** close S-F8 | S-F8a | `-p1` from inside `forge-combo29/` |
+
+## Honesty numbers for every build named above
+
+| build | bench 11 | bench 13 | bench 16 | perft 5 |
+|---|---|---|---|---|
+| required | 312866 | 862329 | 3024920 | 4865609 |
+| base `e06310ec` | 312866 | 862329 | 3024920 | 4865609 |
+| seat 27's three `d3f1a40f` | 312866 | 862329 | 3024920 | 4865609 |
+| seat 12 + seat 27 `80b5e535` | 312866 | 862329 | 3024920 | 4865609 |
+
+Raw: `honesty/`, `job6/honesty_all3/`, `job6/honesty_integ/`, `job6/honesty_final/`.
 
 ## What none of these patches does
 
-- **No strength change is claimed or measured.** Patch 1 and 3 change reporting/validation only; patch 2 changes
-  what a GUI command clears. None touches the search's decisions on a legal position.
-- **No speed change is claimed.** Node counts are identical on all four honesty checks, so `bench` speed is
-  comparable, but I did not time them.
-- Patch 3 is seat 01's finding, not mine (see S-C3 in `FINDINGS.md`); my contribution there is independent
-  confirmation on the release build plus this patch.
+- **No strength change is claimed or measured.** Patches 1 and 3 change reporting/validation; patch 2 changes
+  what a GUI command clears. None alters the search's choice on a legal, undrawn position.
+- **No speed change is claimed.** Node counts are identical on all four honesty checks.
+- Patch 3 is seat 01's finding, not mine (S-C3); my contribution is the independent confirmation on the release
+  build plus this patch.
+- The composition result is **seat 12's finding plus my measurement** — they own the mate scan; I only verified
+  the two do not collide.
