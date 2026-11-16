@@ -1,0 +1,52 @@
+--- forge-combo29/src/search.cpp
++++ forge-combo29/src/search.cpp
+@@ -35,6 +35,12 @@
+ #endif
+ 
+ namespace forge {
++// job13 Part B: rule counters (candidates and the gap classes), cumulative; printed per search.
++long long jc_candidates[5] = {0, 0, 0, 0, 0};
++long long jc_deeper[5] = {0, 0, 0, 0, 0};
++long long jc_shal_fire[5] = {0, 0, 0, 0, 0};
++long long jc_shal_reran[5] = {0, 0, 0, 0, 0};
++long long jc_shal_skip[5] = {0, 0, 0, 0, 0};
+ 
+ int DrawJitter = 0;
+ 
+@@ -2023,6 +2029,17 @@
+                         score > best_score + tune::LmrDeeperBase + tune::LmrDeeperDepthMul * new_depth;
+                     const bool do_shallower =
+                         score < best_score + tune::LmrShallowerBase + tune::LmrShallowerDepthMul * new_depth;
++                    {
++                        const int gap = alpha - best_score;
++                        const int cls = gap <= 0 ? 0 : gap <= 50 ? 1 : gap <= 300 ? 2 : gap <= 3000 ? 3 : 4;
++                        ++jc_candidates[cls];
++                        if (do_deeper) ++jc_deeper[cls];
++                        if (do_shallower) {
++                            ++jc_shal_fire[cls];
++                            const int nd2 = new_depth + static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
++                            if (reduced_depth < nd2) ++jc_shal_reran[cls]; else ++jc_shal_skip[cls];
++                        }
++                    }
+                     new_depth += static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
+                 }
+                 if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
+@@ -2752,6 +2769,18 @@
+     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
++    { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++      std::cout << "info string JC cand";
++      for (int k = 0; k < 5; ++k) std::cout << " " << jc_candidates[k];
++      std::cout << " deeper";
++      for (int k = 0; k < 5; ++k) std::cout << " " << jc_deeper[k];
++      std::cout << " sfire";
++      for (int k = 0; k < 5; ++k) std::cout << " " << jc_shal_fire[k];
++      std::cout << " sreran";
++      for (int k = 0; k < 5; ++k) std::cout << " " << jc_shal_reran[k];
++      std::cout << " sskip";
++      for (int k = 0; k < 5; ++k) std::cout << " " << jc_shal_skip[k];
++      std::cout << std::endl; }
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
+     return result;
+ }
