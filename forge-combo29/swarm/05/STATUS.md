@@ -214,3 +214,12 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
 - next command: none. Stopping.
 
 ## 2026-11-16T22:18:50Z CONTINUE: 12 more hours, ends at 2026-11-17T10:18:00Z
+
+## Mon Nov 16 10:19:48 PM UTC 2026 — PC r15 build ready
+- Read FABLE_TO_swarm files 2, 3, 4, 5 (file 1 read earlier). File 3 says the drawn-root defect I found (S-F3/F4/F5/
+  F11/F13/F14/F15) is REPAIRED on the PC; file 5 ships that source.
+- PC r15 patch: sha256 prefix d6bd72c531f785f4 VERIFIED; applied with patch -p1 in a separate copy; built with
+  -DFORGE_MATE_ALPHA_GUARD=1.
+- PC build honesty: 8 of 8 numbers exact — none: 312866/862329/3024920/4865609; S14: 242796/656517;
+  PC20: 278024/587276. All six PC20 options present in the uci list.
+- next command: re-run my own finds on the PC build under PC20, starting with the fifty-move findings.
