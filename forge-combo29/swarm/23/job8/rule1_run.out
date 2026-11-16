@@ -1,0 +1,27 @@
+exe /home/ubuntu/pcbuild/forge depth 20 threads 1
+
+| board | counter H | counter-0 score | plies needed | slack (100-H) | score at H | verdict under file 6 |
+|---|---|---|---|---|---|---|
+| KQ_vs_K | 0 | mate 6 | 11 | 100 | mate 6 | not a defect (mate fits but score is mate 6) |
+| KQ_vs_K | 50 | mate 6 | 11 | 50 | mate 6 | not a defect (mate fits but score is mate 6) |
+| KQ_vs_K | 90 | mate 6 | 11 | 10 | cp 0 | not a defect (needs 11 plies, only 10 left) |
+| KQ_vs_K | 91 | mate 6 | 11 | 9 | cp 0 | not a defect (needs 11 plies, only 9 left) |
+| KQ_vs_K | 99 | mate 6 | 11 | 1 | cp 0 | not a defect (needs 11 plies, only 1 left) |
+| KQ_vs_K | 100 | mate 6 | 11 | drawn | cp 0 | game already drawn at this counter (no claim applies) |
+| KQ_vs_K | 150 | mate 6 | 11 | drawn | cp 0 | game already drawn at this counter (no claim applies) |
+Traceback (most recent call last):
+  File "/agent/repos/dwqww/forge-combo29/swarm/23/job8/file6_rule1.py", line 103, in <module>
+    ref, refnodes = search(base_fen, DEPTH)
+                    ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/agent/repos/dwqww/forge-combo29/swarm/23/job8/file6_rule1.py", line 48, in search
+    check_fen(fen)
+  File "/agent/repos/dwqww/forge-combo29/swarm/23/job8/file6_rule1.py", line 42, in check_fen
+    b = chess.Board(fen)
+        ^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/.local/lib/python3.12/site-packages/chess/__init__.py", line 1711, in __init__
+    self.set_fen(fen)
+  File "/home/ubuntu/.local/lib/python3.12/site-packages/chess/__init__.py", line 2646, in set_fen
+    self._set_board_fen(board_part)
+  File "/home/ubuntu/.local/lib/python3.12/site-packages/chess/__init__.py", line 1132, in _set_board_fen
+    raise ValueError(f"expected 8 rows in position part of fen: {fen!r}")
+ValueError: expected 8 rows in position part of fen: '8/1K6/8/8/3R4/8/8/8/k7'

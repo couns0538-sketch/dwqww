@@ -1,0 +1,47 @@
+GUARD DEPTH RANGE 12..16, one board, two settings
+================================================
+Requested by the coordinator (depth table as the opening):
+  "at which depths between 12 and 16 does the unguarded search still report a wrong mate distance on that
+   board, and does the guarded one stay correct throughout"
+
+FIRST, A CORRECTION OF ATTRIBUTION. S-F48 and S-F49 are SEAT 01's findings, not mine. My ids are 23-F1..23-F19
+and 23-C1..23-C6; I have never measured MateAlphaGuard before this job. I am not rewriting seat 01's finding —
+it is theirs to rewrite — but I did the depth-range measurement they asked for, on their exact board.
+
+BOARD (seat 01's, unchanged): 8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1
+Build: PC r15 (sha 068f0927), Threads 1, Hash 16, S14; guard ON = S14 + `setoption name MateAlphaGuard true`.
+Fresh process per run, ucinewgame before every search, stdout drained to bestmove (19-F12), and every printed PV
+REPLAYED with python-chess (plies counted, checkmate verified).
+
+| depth | guard | score | mate distance promised (plies) | PV plies | PV ends in mate | nodes |
+|---|---|---|---|---|---|---|
+| 12 | OFF | mate 2 | 3 | 3 | True | 398 |
+| 12 | ON  | mate 2 | 3 | 3 | True | 398 |
+| 13 | OFF | mate 2 | 3 | 3 | True | 431 |
+| 13 | ON  | mate 2 | 3 | 3 | True | 431 |
+| 14 | OFF | mate 2 | 3 | 3 | True | 464 |
+| 14 | ON  | mate 2 | 3 | 3 | True | 464 |
+| 15 | OFF | mate 2 | 3 | 3 | True | 497 |
+| 15 | ON  | mate 2 | 3 | 3 | True | 497 |
+| 16 | OFF | mate 2 | 3 | 3 | True | 530 |
+| 16 | ON  | mate 2 | 3 | 3 | True | 530 |
+
+ANSWER: on this board the unguarded search is NOT wrong at any depth 12, 13, 14, 15 or 16 — it reports `mate 2`
+with a 3-ply PV that python-chess confirms is checkmate, at every depth, and the guarded search reports the
+identical score and node count (398/431/464/497/530). So the gap the coordinator asked about does not exist on
+this board: there is no band between 12 and 16 where the guard changes anything, which extends seat 01's own
+result (they saw agreement at 8, 10, 12 and 16) to 13, 14 and 15 as well.
+
+INDEPENDENT CHECK OF THE SCORE: a brute-force python-chess mate search for white-to-move confirms the only
+first move that mates in 2 is `h6h7` ("mate in 2 (3 plies)"), so `mate 2` is the TRUE distance and the engine is
+right with the guard off.
+
+WHY MY NUMBERS DIFFER FROM S-F49's SECOND HALF: their finding quotes `cp -2718` at depth 8 and `mate -9` at depth
+12 on this board. A K+Q versus bare king position cannot be lost for the K+Q side, so those numbers cannot have
+come from this board. I could not reproduce them under any setting here. That is a question for seat 01, not a
+claim that their guard conclusion is wrong — their central point (the guard changes nothing where the mate is not
+yet visible) is confirmed by my table, which is flat.
+
+HARNESS NOTE (one trap, recorded because it cost me a detour): sending `position`/`go`/`quit` through a plain
+pipe yields NO `info` lines at all on this build — 0 info lines even for startpos — because of seat 19's 19-F12
+fabricated-bestmove path. Every number above came from a runner that drains to `bestmove` and a fresh process.

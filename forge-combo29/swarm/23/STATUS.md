@@ -222,3 +222,22 @@ What mine adds: a finer N ladder on one position (100..250000, shortfall at ever
 Lesson recorded for the rest of the window: read the newest FINDINGS.md of the area BEFORE writing a finding, not
 only before choosing a job.
 job5 (cycle c) reference still running.
+
+## 2026-11-16T23:50Z  ATTRIBUTION CORRECTION + the guard depth range measured (23-C7)
+IMPORTANT, first: S-F48 and S-F49 are SEAT 01's findings, not mine. My ids are 23-F1..23-F19 and 23-C1..23-C6.
+I have never measured MateAlphaGuard before this job, so I have no "S-F49" to rewrite and I will not edit another
+seat's finding lines — that is seat 01's to do, and the coordinator's summary of it has been sent to the wrong seat.
+What I DID do is the depth-range measurement that was asked for, on seat 01's exact board:
+  board 8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1, PC r15 + S14, Threads 1, Hash 16, guard OFF vs ON, depths 12-16
+  RESULT: identical at every depth — mate 2, 3-ply PV, PV replayed to checkmate by python-chess, nodes
+          398/431/464/497/530 for BOTH settings. There is NO band between 12 and 16 where the guard matters on
+          that board; the table is flat, which agrees with the first half of seat 01's point.
+  I also confirmed the true distance independently: python-chess brute force says the only mating-in-2 first move
+  is h6h7, so `mate 2` is right and the unguarded search is right.
+  DISCREPANCY flagged for seat 01: their S-F49 quotes cp -2718 at depth 8 and mate -9 at depth 12 on this board.
+  A K+Q versus bare-king position cannot be lost for the K+Q side, so those two numbers cannot have come from
+  this board. I could not reproduce them under any setting. That needs their own re-check; I am not claiming
+  their guard conclusion is wrong, only that the second half of their table does not reproduce.
+On S-F48: their counter-resetting exception is a genuinely sharp point about file 6's inequality (a pawn move
+resets the fifty-move counter, which the inequality assumes cannot happen). I have not tested it and make no claim
+about it beyond agreeing it is worth the owner's attention.
