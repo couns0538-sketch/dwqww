@@ -158,3 +158,6 @@ OWNER'S REAL CONTROL (6s + 0.06, PC20, Threads 1, Hash 16) DONE - S-F30/S-F31. B
 
 ## Mon Nov 16 10:44:35 PM UTC 2026
 S-F32: soft-scaled rule arithmetic (no new experiment). FREE on 15/24 base and 18/24 PC20 (zero plies lost), buys 300-1240 ms on the tail for 1-3 plies; biggest single win 1239 ms for 1 ply. Stated plainly: ladders are at wtime 10000 (soft 454) not the 6 s control, so ms do not transfer directly, ratios do. Also recorded that heavy searches are build-AND-position dependent: base#7 is 1585 on base vs 843 on PC20, pc#57 is 281 on base vs 1586 on PC20 - the tail board differs by build, consistent with S-F27.
+
+## Mon Nov 16 10:45:02 PM UTC 2026
+S-F33 softnodes DONE (short, as promised): DETERMINISTIC at every N (5 repeats x 3 positions, identical nodes/depth/move), ALWAYS stops at a finished depth, overshoot 1.02x-1.99x and the ratio GROWS with N (1.02-1.59 at 2k, 1.24-1.99 at 250k). Owner's 'first depth after 2000 nodes' is literally true; but a 250k softnodes search can spend nearly 2x the stated budget, so a match control treating it as a hard cap is wrong. 4N cap never fired.
