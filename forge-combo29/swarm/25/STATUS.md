@@ -141,6 +141,24 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:45Z - TESTED MY OWN S-C23 PREDICTION: direction right, magnitude wrong (S-C25)
+
+Applied seat 30's ttclear_no_alt_clear patch to the PC r15 tree (pins unchanged - a clean controlled change) and
+ran my S-C23 command, go wtime 5000, MPV3:
+  Hash  16: 13 / 559 -> 13 / 677 nodes/ms
+  Hash  64:  9 / 183 -> 13 / 583   (3.2x, full depth restored)
+  Hash 256:  4 /   2 ->  7 /  29   (14x, 3 plies recovered)
+  Hash1024:        ->  1 /   0
+  MPV1 control: ~1,500 flat at every Hash, unchanged between builds
+So the redundant clear WAS a large part of the cost - seat 30's diagnosis of the clear is vindicated - but it does
+NOT reach MPV1's ~1,500, which is what I predicted. A SECOND cost at large Hash remains; its shape (583 -> 29 -> 0)
+points at the still-present alt_worker->clear() per line or the alt table's per-line touch. HYPOTHESIS, not measured.
+VERDICT: seat 30's patch is necessary and not sufficient - a genuine 14x improvement that should go in, but the
+collapse survives in reduced form. S-C24 advice unchanged and better grounded: on a clock with MPV>1 keep Hash 16.
+
+State: 72 findings, working tree clean, local = remote. Next: keep cycling.
+
 ## 2026-11-16T23:45Z - compliance_check.sh: the binary gate is now mechanical and plant-tested
 
 Added forge-combo29/swarm/25/compliance_check.sh, run before every push, exit 1 on violation:
