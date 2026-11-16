@@ -178,3 +178,14 @@ MultiPV/Hash collapse live.
   clock matches cannot be replayed exactly (node-limited ones can), and raising the clock buys almost nothing.
 Next: keep confirming on the PC path — the `go nodes` 20000/50000/250000 ladder is done (all deterministic, 3/3);
 remaining: MultiPV/Hash strength collapse (live per the owner) and any new seat claims on the PC build.
+
+## 2026-11-16T22:50:07Z MultiPV x Hash collapse confirmed — and it changes the MOVE
+- **S-C27** (seat 02's S-F7b/S-F7c): PC r15, Threads 1, `go wtime 5000`, 3 runs/cell. MultiPV 1 safe at Hash
+  16/256/2048; Hash 16 safe at MultiPV 8 (d12); **Hash 256/MultiPV 3 -> depths 2,5,7**; **Hash 2048/MultiPV 3 and 8 ->
+  depth 1, 3/3**, burning 1.1-1.3 s. **NEW: the collapsed cells change the MOVE** — healthy cells play `g7g6`,
+  Hash 256/MultiPV 8 plays `f6d7` (3/3), Hash 2048/MultiPV 3,8 play `b8a8` (3/3). A reproducibly WORSE root move in
+  analysis, not just a shallow one. Correction to their table: Hash 256/MultiPV 3 is not a clean d8 (I got 2,5,7 with
+  a varying move — collapsed AND erratic). Advice: MultiPV 1 at any Hash, or Hash <= 16 MB with MultiPV > 1.
+- **S-F49** clock path: 6s+0.06 uses only 2-5% of the budget (129-301 ms), depth 17-18, but depth/node count flips
+  17 vs 18 across runs at Threads 1 — clock matches are not exactly replayable, `go nodes` matches are.
+Next: continue confirming PC-path claims; MultiPV/Hash stays the live strength item.
