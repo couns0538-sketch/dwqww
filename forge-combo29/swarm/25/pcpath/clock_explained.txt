@@ -1,0 +1,11 @@
+wtime   1000: soft    90 ms  hard   450 ms  (available 990) -> soft is 9.0% of the clock
+wtime   3000: soft   180 ms  hard   900 ms  (available 2990) -> soft is 6.0% of the clock
+wtime   6000: soft   317 ms  hard  1585 ms  (available 5990) -> soft is 5.3% of the clock
+wtime  20000: soft   953 ms  hard  4765 ms  (available 19990) -> soft is 4.8% of the clock
+
+Observed usage: 78/99/178/479 ms at wtime 1000/3000/6000/20000 (middlegame w).
+Every observed time is UNDER the computed soft limit, i.e. the engine stopped at a completed depth
+before the soft limit was reached. That is the design: TmSoftDivisor 22 = 'assume ~22 moves left',
+so a 6 s clock budgets ~272 ms + increment for this move. Using 178 ms of 6000 is CORRECT.
+
+NOT a defect. Recording it as a near-miss precisely because it looked like one.
