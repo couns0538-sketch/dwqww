@@ -1,0 +1,28 @@
+OUT-OF-SAMPLE TEST OF 23-F29 — the correction story DOES NOT REPLICATE
+2026-11-16T23:07:07Z
+
+30 NEW quiet positions (seed 2401, excluding every FEN in fresh20/fresh60), same protocol: PC r15, PC20,
+Threads 1, Hash 16, 5 fresh processes per cell = 450 searches. Prediction committed alone before this run.
+
+| measure | 60-position run (23-F29, in sample) | 30-position run (out of sample) |
+|---|---|---|
+| rate of move changes between budgets | 18 of 60 = 30 % | 8 of 30 = **27 %** |
+| 'only 250000 differs' share of changes | 11 of 18 = 61 % | 3 of 8 = 38 % |
+| 250000's move scores HIGHER at D_big, within that shape | **9 of 11 = 82 %** | **1 of 3 = 33 %** |
+| 'only 20000 differs' positions where 250000's move is better | 1 of 4 | 3 of 4 |
+| non-deterministic (position,budget) cells | 0 of 180 | 0 of 90 |
+
+WHAT REPLICATES: the RATE. 27 % against 30 % on an independent sample, so "about a quarter to a third of
+quiet positions change move between the three match budgets" is solid.
+
+WHAT DOES NOT REPLICATE: the CORRECTION reading. In sample, 9 of 11 flips favoured the larger budget; out of
+sample only 1 of 3 did, and in the 'only 20000 differs' shape the direction REVERSED (in sample 1 of 4
+favoured 250000; out of sample 3 of 4 did). With 3 and 4 cases those are too small to settle anything, which
+is exactly the point:
+
+  **23-F29's "the extra budget mostly corrects the move" was over-fitted to 11 positions. On a fresh sample the
+  direction is not stable in either shape. The defensible statement is only that the flips happen and are
+  concentrated in quiet, near-tied positions (23-F30), NOT that they mostly improve the move.**
+
+Prediction scored: P1 (only-250000 >= 40 % of changes) MISSED at 38 %, marginally; P2 (>= 60 % corrections)
+KILLED at 33 %; P3 (rate 15-45 %) HELD at 27 %; P4 (at least one regression) HELD.
