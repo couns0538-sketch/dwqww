@@ -57,7 +57,13 @@ found**: `job4/f1_options.py` ran the Threads 1 vs 2 comparison in ONE process, 
 WARM. My first correction (14,883) was ALSO wrong: a parallel search has no single cold value. Measured 5 fresh
 processes per setting: Threads 1 = 13,102 / d2d4 in **5 of 5**; Threads 2 = 18,993 / 25,249 / 27,138 / 27,508 /
 34,983 with two different bestmoves. **Never used to argue scaling** (the row only showed the option takes
-effect). Harness rule: node-count pins are only meaningful at Threads 1; Threads > 1 needs a range. Everything else is a fresh
+effect). Harness rule: node-count pins are only meaningful at Threads 1; Threads > 1 needs a range.
+**REPOSITORY-WIDE: every pinned node total (bench 11/13/16, perft 5, and the brief's known sums O d12
+9,500,069 / G d12 18,466,239 / O d14 21,812,100 / G d14 43,345,893) is a Threads 1 statement and must be
+compared ONLY against Threads 1 runs.** `bench` and perft are immune by construction: bench builds its own
+single-threaded `Searcher bench_searcher(16)` (uci.cpp:612) and ignores `Threads` — verified, bench 13 = 862,329
+at both Threads 1 and Threads 8. I checked my own tables with git grep: none ever put a Threads > 1 number
+against a known sum, and honesty.sh sets no Threads line, so all my honesty numbers are Threads 1. Everything else is a fresh
 process per search; the S-F8 chain (job7/f1, f2, f3) is cold-measured and re-ran identical after the rule came
 out. S-F4 is CORROBORATED by the rule: seat 10's third value (40,569) for Clear Hash is exactly what S-F4 predicts.
 
