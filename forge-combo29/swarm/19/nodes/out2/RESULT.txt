@@ -1,0 +1,44 @@
+# `go nodes` vs `go softnodes` on PC r15, PC20, Threads 1, Hash 16, cold; 5 runs per cell
+
+| pos | N | mode | deterministic | bestmove | last finished depth | nodes there | vs N |
+|---|---|---|---|---|---|---|---|
+| 0 | 20000 | nodes | **yes** | g7g6 | 11 | 19832 | -0.8 % |
+| 0 | 20000 | softnodes | **yes** | g7g6 | 12 | 31779 | +58.9 % |
+| 0 | 50000 | nodes | **yes** | g7g6 | 12 | 31779 | -36.4 % |
+| 0 | 50000 | softnodes | **yes** | g7g6 | 13 | 52904 | +5.8 % |
+| 0 | 250000 | nodes | **yes** | g7g6 | 16 | 170070 | -32.0 % |
+| 0 | 250000 | softnodes | **yes** | g7g6 | 17 | 288912 | +15.6 % |
+| 1 | 20000 | nodes | **yes** | b6b5 | 10 | 10973 | -45.1 % |
+| 1 | 20000 | softnodes | **yes** | b6b5 | 11 | 21089 | +5.4 % |
+| 1 | 50000 | nodes | **yes** | b6b5 | 12 | 46086 | -7.8 % |
+| 1 | 50000 | softnodes | **yes** | b6b5 | 13 | 79187 | +58.4 % |
+| 1 | 250000 | nodes | **yes** | b6b5 | 17 | 237233 | -5.1 % |
+| 1 | 250000 | softnodes | **yes** | b6b5 | 18 | 514093 | +105.6 % |
+| 2 | 20000 | nodes | **yes** | g1g6 | 9 | 14978 | -25.1 % |
+| 2 | 20000 | softnodes | **yes** | g1g6 | 10 | 24052 | +20.3 % |
+| 2 | 50000 | nodes | **yes** | g1g6 | 10 | 24052 | -51.9 % |
+| 2 | 50000 | softnodes | **yes** | g1g6 | 11 | 50818 | +1.6 % |
+| 2 | 250000 | nodes | **yes** | g1g6 | 16 | 195014 | -22.0 % |
+| 2 | 250000 | softnodes | **yes** | g1g6 | 17 | 348815 | +39.5 % |
+| 3 | 20000 | nodes | **yes** | f6e7 | 9 | 11606 | -42.0 % |
+| 3 | 20000 | softnodes | **yes** | f6e7 | 10 | 20983 | +4.9 % |
+| 3 | 50000 | nodes | **yes** | f6e7 | 12 | 39919 | -20.2 % |
+| 3 | 50000 | softnodes | **yes** | f6e7 | 13 | 95288 | +90.6 % |
+| 3 | 250000 | nodes | **yes** | f6e7 | 14 | 127007 | -49.2 % |
+| 3 | 250000 | softnodes | **yes** | f6e7 | 15 | 275729 | +10.3 % |
+| 4 | 20000 | nodes | **yes** | f6g5 | 11 | 16008 | -20.0 % |
+| 4 | 20000 | softnodes | **yes** | f6g5 | 12 | 29038 | +45.2 % |
+| 4 | 50000 | nodes | **yes** | f6g5 | 13 | 44062 | -11.9 % |
+| 4 | 50000 | softnodes | **yes** | f6g5 | 14 | 60951 | +21.9 % |
+| 4 | 250000 | nodes | **yes** | f6g5 | 17 | 164992 | -34.0 % |
+| 4 | 250000 | softnodes | **yes** | f6g5 | 18 | 317966 | +27.2 % |
+| 5 | 20000 | nodes | **yes** | f4f5 | 12 | 11797 | -41.0 % |
+| 5 | 20000 | softnodes | **yes** | f4f5 | 13 | 25628 | +28.1 % |
+| 5 | 50000 | nodes | **yes** | f4f5 | 13 | 25628 | -48.7 % |
+| 5 | 50000 | softnodes | **yes** | f4f5 | 14 | 53533 | +7.1 % |
+| 5 | 250000 | nodes | **yes** | f4f5 | 16 | 137673 | -44.9 % |
+| 5 | 250000 | softnodes | **yes** | f4f5 | 17 | 292128 | +16.9 % |
+
+## boundary test, position 0: depth-12 finished at exactly 31779 nodes
+- `go nodes 31779` (exactly on the boundary): deterministic=True  bestmove g7g6  depth 12 at 31779 nodes (+0.00 %)
+- `go nodes 31778` (one node short): deterministic=True  bestmove g7g6  depth 11 at 19832 nodes (-37.59 %)
