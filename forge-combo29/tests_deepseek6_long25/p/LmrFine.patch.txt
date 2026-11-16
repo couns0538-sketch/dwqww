@@ -1,0 +1,75 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -97,6 +97,16 @@
+ bool ThreatHistory = false;
+ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
++int LmrFine = 0;
++int LmrFineHistory = 0;
++int LmrRoundF = 512;
++int LmrTtPvF = 1024;
++int LmrNotImprovingF = 1024;
++int LmrCutNodeF = 2048;
++int LmrTtCaptureF = 1024;
++int LmrGiveCheckF = 1024;
++int LmrInCheckF = 1024;
++int LmrCutoffAddF = 1024;
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
+ bool NullSeeVeto = false;
+@@ -113,6 +123,12 @@
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
++        {"LmrFine", &LmrFine, 0, 1},                   {"LmrFineHistory", &LmrFineHistory, 0, 1},
++        {"LmrRoundF", &LmrRoundF, 0, 1023},
++        {"LmrTtPvF", &LmrTtPvF, 0, 4096},            {"LmrNotImprovingF", &LmrNotImprovingF, 0, 4096},
++        {"LmrCutNodeF", &LmrCutNodeF, 0, 4096},      {"LmrTtCaptureF", &LmrTtCaptureF, 0, 4096},
++        {"LmrGiveCheckF", &LmrGiveCheckF, 0, 4096},  {"LmrInCheckF", &LmrInCheckF, 0, 4096},
++        {"LmrCutoffAddF", &LmrCutoffAddF, 0, 4096},
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
+@@ -1991,15 +2007,33 @@
+         if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+             (quiet || !ss->tt_pv || move_count > 4)) {
+-            int r = reduction(quiet, depth, move_count);
+-            if (ss->tt_pv) r -= 1;
+-            if (!improving) r += 1;
+-            if (cut_node) r += 2;
+-            if (tt_capture && quiet) r += 1;
+-            if (gives_check) r -= 1;
+-            if (in_check) r -= 1;
+-            if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+-            if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            int r;
++            if (tune::LmrFine == 0) {
++                r = reduction(quiet, depth, move_count);
++                if (ss->tt_pv) r -= 1;
++                if (!improving) r += 1;
++                if (cut_node) r += 2;
++                if (tt_capture && quiet) r += 1;
++                if (gives_check) r -= 1;
++                if (in_check) r -= 1;
++                if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
++                if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            } else {
++                int f = 1024 * reduction(quiet, depth, move_count);
++                if (ss->tt_pv)           f -= tune::LmrTtPvF;
++                if (!improving)          f += tune::LmrNotImprovingF;
++                if (cut_node)            f += tune::LmrCutNodeF;
++                if (tt_capture && quiet) f += tune::LmrTtCaptureF;
++                if (gives_check)         f -= tune::LmrGiveCheckF;
++                if (in_check)            f -= tune::LmrInCheckF;
++                if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold)
++                    f += tune::LmrCutoffAddF;
++                if (quiet)
++                    f -= tune::LmrFineHistory
++                             ? std::clamp(history * 1024 / tune::LmrHistoryDivisor, -2048, 2048)
++                             : 1024 * std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++                r = (f + tune::LmrRoundF) >> 10;   // arithmetic shift: rounds down, also for negative f
++            }
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
