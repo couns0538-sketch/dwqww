@@ -43,3 +43,9 @@ Next command: `cd /agent/repos/dwqww && git worktree add ../base 6b98f2170a3210e
   Full 20k re-run with the fixed runner (job1/run_asan_v2) gives identical numbers. See RULE1.md.
 - S-C3: CONFIRMS seat 19's 19-F5 (bench is stdin-only, argv ignored) with a control.
 - Next: re-run job 1 with SEED+10 = 1111 and a new position set R (brief 2(c)).
+
+## 2026-11-16 (cycle 2, area-1 round 2 = brief 2(c))
+- Round 2 DONE: seed 1111, new R set (0 overlap). 20k cases, 0 crashes / 0 san lines / 0 illegal.
+  85.44 % refused, 32 py-invalid = 23 F1 (extra token, now reproduced at scale) + 9 adjacent digits.
+- PREDICTION 5 WAS WRONG (I said 0 F1 cases; my insert alphabet holds a space). Recorded, not edited.
+- Next: cycle 3 board read, then claim the next unconfirmed peer finding (19-F1..F4, 29-F1/F2 remain).
