@@ -1,23 +1,30 @@
 --- a/forge-combo29/src/search.cpp
 +++ b/forge-combo29/src/search.cpp
-@@ -2248,8 +2248,29 @@
+@@ -2248,8 +2248,36 @@
      };
  
      // Terminal or adjudicated roots: report without searching.
 -    const bool root_drawn = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
 -                                               board.is_insufficient_material());
 +    //
-+    // A draw by claim (fifty-move, threefold, dead material) is not available when the side to move has a
-+    // mate on the board: a mate ends the game at once, so it outranks any claim. Two separate cases:
-+    //  (1) the fifty-move counter is at or past 100 AND the side to move can still mate - i.e. it has
-+    //      non-pawn material. A lone king cannot mate, and there the adjudication is exactly as before.
-+    //  (2) the root is drawn by repetition or dead material, whatever the counter, and a legal move mates
-+    //      at once. Then no adjudication happens either.
++    // A drawn root is a CLAIM, and a claim is not available once a mate is on the board: a mate ends the
++    // game at once. Two different mechanisms cover the two kinds of door, and they are deliberately not
++    // merged, because one guard per condition is what survives a refactor:
++    //
++    //  (1) FIFTY-MOVE door - handled by the test itself, with no mate bypass. When the counter is at or
++    //      past 100 the root is adjudicated ONLY if the side to move has no non-pawn material, i.e. a lone
++    //      king, which cannot mate. Any side with a piece keeps its fifty-move root un-adjudicated and the
++    //      search finds whatever mate exists, including a counter-resetting mate several plies away.
++    //  (2) REPETITION and DEAD-MATERIAL doors - nothing in the test above can cover these, whatever the
++    //      counter, so they keep the adjudication and get seat 12's bypass: one legal move that mates
++    //      lifts it. (The dead-material term can never actually hide a mate: is_insufficient_material()
++    //      is exactly the material in which no mate exists.)
++    const bool other_door_drawn = !legal.empty() &&
++        (board.is_repetition() || board.is_insufficient_material());
 +    bool root_draw_adjudicated = !legal.empty() &&
-+        (board.is_repetition() ||
-+         (board.halfmove_clock() >= 100 && !board.has_non_pawn_material(board.side_to_move())) ||
-+         board.is_insufficient_material());
-+    if (root_draw_adjudicated) {
++        ((board.halfmove_clock() >= 100 && !board.has_non_pawn_material(board.side_to_move())) ||
++         other_door_drawn);
++    if (other_door_drawn) {
 +        for (const Move move : legal) {
 +            Board child = board;
 +            Undo undo;

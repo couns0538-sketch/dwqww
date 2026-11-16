@@ -1,6 +1,44 @@
 # Fifty-move root shortcut — patch summary for Opus
 
-**Seat 01, area 1. One page. Applies to commit `6b98f217`.**
+> ## ⚠ BEFORE APPLYING — READ THIS FIRST
+>
+> **This is measured on base `6b98f217`. Opus reports the drawn-root defect repaired on the PC tree since
+> 15 Nov.** If your tree already adjudicates a halfmove-100 mate-in-1 correctly, **do not apply any patch from
+> this file**. Verify with the four commands below, and only then decide.
+>
+> Seat 20 reports, from reading `FABLE_TO_swarm_3`, that the drawn-root defect is **base-tree only** and
+> already fixed on the owner's PC. Everything in this file is therefore evidence **about the base tree**; it is
+> not a recommendation to patch a tree that already fixes it. **Run the four commands first — they take a
+> minute and they settle it.**
+>
+> ```
+> # 1. Does YOUR tree find the mate at halfmove 99?  (every tree should)
+> printf 'position fen 6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 99 1\nisready\ngo depth 6\nquit\n' | ./forge
+> #    expect: info depth 6 ... score mate 1 ... pv a1a8     bestmove a1a8
+>
+> # 2. Does YOUR tree find the mate at halfmove 100?  (the defect)
+> printf 'position fen 6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 100 1\nisready\ngo depth 6\nquit\n' | ./forge
+> #    if it answers "score mate 1 ... bestmove a1a8"  -> ALREADY FIXED, apply NOTHING from this file
+> #    if it answers "score cp 0 nodes 0 ... bestmove f2f3" -> the defect is present, read on
+>
+> # 3. Does YOUR tree find a counter-resetting mate at halfmove 100?  (the case seat 12's patch misses)
+> printf 'position fen 8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1\nisready\ngo depth 12\nquit\n' | ./forge
+> #    expect a fixed tree to say "score mate 2"
+>
+> # 4. Does YOUR tree still call a genuine fifty-move draw a draw?
+> printf 'position fen 8/5K2/7Q/4k3/8/8/8/8 w - - 150 1\nisready\ngo depth 10\nquit\n' | ./forge
+> #    expect: score cp 0   (a fixed tree must not turn a real draw into a win)
+> ```
+>
+> If command 2 prints `mate 1`, stop here — your tree is ahead of this file.
+>
+> *Caveat on these commands:* sent through a single pipe, `quit` can reach the search thread before it has
+> searched, and the engine then answers `bestmove` with **no** info line. If you see a bare `bestmove` with no
+> `score`, re-run with a pause instead, e.g.
+> `{ printf 'position fen ...\nisready\ngo depth 6\n'; sleep 1; printf 'quit\n'; } | ./forge`.
+
+**Seat 01, area 1. Applies to commit `6b98f217`.** The combined patch in section 5b is the one I would apply
+to that base; sections 6–8 record why neither single-door patch is complete.
 
 ## 1. The bug
 
@@ -119,6 +157,16 @@ if (root_draw_adjudicated) {
 }
 const bool root_drawn = root_draw_adjudicated;
 ```
+
+**The bypass is scoped, not duplicated.** Seat 12's immediate-mate loop is kept **only** for the repetition and
+dead-material doors. It is deliberately **not** also used to rescue the halfmove-100 door, because the
+reset-aware test above already leaves that root un-adjudicated whenever the side to move has non-pawn material —
+so one mechanism covers it and a second, overlapping guard is avoided (two guards over the same condition is
+what breaks on a future refactor). The dead-material term never even reaches the loop: the engine's
+`is_insufficient_material()` is exactly material in which no mate exists (section 8). I verified by building a
+scoped variant with the loop guarding **only** `is_repetition() || is_insufficient_material()` and **not** the
+fifty-move term: it still answers `mate 1` at halfmove 100, `mate 1` at the threefold root, and `mate 2` on the
+counter-resetting board, i.e. the fifty-move door needs no bypass at all.
 
 Measured (`job2c/`, `job2/asan/mypatch_on_repetition.txt`, `job2/asan/mate3_clocks.txt`):
 
@@ -256,6 +304,13 @@ with insufficient material, **0** had any legal mating move, and 0 of 40 engine 
 (`job2c/dead_material_door.txt`). I still have not tested a mate that both resets the counter and lands on a
 later move with the opponent able to claim nothing — that case is unmeasured. So "closes every door" means every
 door that can actually hide a mate on the evidence I have.
+
+**A FOURTH DOOR that NEITHER patch closes, and the combined patch does not either (seat 21's finding,
+reproduced by me):** a **checkmated root** reports `score mate 0` instead of a loss. On
+`4R1k1/5ppp/8/8/8/8/5PPP/6K1 b - - 1 60` (`is_checkmate()` true, 0 legal moves) the unpatched engine and my
+combined build both answer `info depth N ... score mate 0 ... pv` and `bestmove 0000`
+(`job2c/checkmated_root.txt`). So "closes every door" in section 5b means every door **that can hide a mate**;
+a mate **already delivered** is a separate defect and no patch in this file touches it.
 
 Elo cost of any of these patches: not measured (no game-pair match).
 
