@@ -24,5 +24,5 @@
   (0 nodes) 20/20 and correct (control: same FEN with no history = mate -11); fifty99 AND fifty98 all cp 0 while
   the same boards at counter 0 are +470..+1259.
 - NEW S-F3: fifty-move draw fires ~9 plies early — cliff between halfmove 90 (cp 314) and 91 (cp 0), same for K+Q.
-- next command: python3 job3/run_job3.py /tmp/build-only-asan/forge out3  (job 3: checkmated and stalemated root
-  positions, 10 each,  /  / , under ASan + UBSan)
+- next command: python3 job3/run_job3.py /tmp/build-asan/forge out3  (job 3: checkmated and stalemated root
+  positions, 10 each, go depth 5 / go nodes 100 / go movetime 50, under ASan + UBSan)
