@@ -796,3 +796,18 @@ The push succeeded; my clone is shallow and many concurrent fetches compete for 
 all raw files are committed — and I am not touching .git/gc.log.
 
 Standing: 67 findings, 18 confirmations. 10 h 32 m of the window remain.
+## 2026-11-16T23:47:51Z  C20 REFUTES S-F53: FEN form vs moves form differ (move history), reproducible
+2026-11-16T23:47:51Z
+
+5 openings, both forms, PC r15 + PC20 + OwnBook false, Threads 1, Hash 16, go softnodes 2000, fresh process:
+  agree on 3 of 5, not all
+  London : fen c2c4 @ 4,532  vs  moves c2c4 @ 3,336
+  Ruy    : fen b4f8          vs  moves f1b5  <-- DIFFERENT MOVE
+  cause isolated: FEN with ep c6 -> 4,532; FEN with '-' -> 4,532; move list -> 3,336; each 3/3 reproducible
+  => the FEN form carries no move history and the search depends on it at this budget.
+For any GUI or harness: the two forms are NOT interchangeable; prefer the moves form when history exists.
+Caveat stated in the finding: their 8 of 8 and my 3 of 5 are different opening sets (the S-F50 trap again),
+so the accurate claim is 'on my five, two differ, one in the move' — a reproducible MOVE difference is still
+stronger than a count difference.
+
+Standing: 68 findings, 18 confirmations (one a refutation). 10 h 31 m remain.
