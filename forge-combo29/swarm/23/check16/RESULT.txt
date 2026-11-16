@@ -1,0 +1,31 @@
+CHECK of seat 16's S-F4 — the search is NOT colour-symmetric (my own position set, my mirror)
+============================================================================================
+Claim: at depth 10 a position and its colour-flipped mirror give an equal score on only ~5-6 % of pairs, bestmoves
+mirror on ~71-80 %, and the cause is order/depth dependence rather than the evaluation (depth 1-2 are ~equal).
+
+My method: 30 positions from MY seed-2401 stream, mirror built with python-chess `board.mirror()`, both searched at
+the same depth, Threads 1, Hash 16, drained, fresh process per search. Base build.
+
+| depth | run | score EQUAL pairs | bestmove mirrors | of |
+|---|---|---|---|---|
+| 1 | 1 | 30 (100.0 %) | 29 (96.7 %) | 30 |
+| 1 | 2 | 30 (100.0 %) | 29 (96.7 %) | 30 |
+| 2 | 1 | 22 (73.3 %) | 24 (80.0 %) | 30 |
+| 2 | 2 | 22 (73.3 %) | 24 (80.0 %) | 30 |
+| 10 | 1 | **2 (6.7 %)** | **23 (76.7 %)** | 30 |
+| 10 | 2 | **2 (6.7 %)** | 23 (76.7 %) | 30 |
+
+VERDICT: CONFIRMS S-F4 on an independent position set. Depth 10: 2 of 30 = 6.7 % equal scores, inside their
+5.4-6.5 % band; 76.7 % mirrored bestmoves, inside their 71.4-79.5 % band. Identical in two runs.
+
+ONE DIFFERENCE FROM THEIR ACCOUNT, stated because it is a genuine disagreement about the CAUSE: they say
+"depth-1 and depth-2 pair scores are exactly equal on every re-run position". On my set depth 1 is 30 of 30 equal
+(matching), but **depth 2 is only 22 of 30 (73.3 %) equal**, reproducibly. So the asymmetry appears one ply earlier
+than their summary suggests, at least on these positions. That does not weaken their main claim (the depth-10
+asymmetry is confirmed); it narrows the "exactly equal at depths 1 and 2" part to "exactly equal at depth 1".
+
+MY OWN BUG, caught by a self-test before any number above was believed: my first mirror helper mapped `e2e4` to
+`e5e3` instead of `e7e5` (I used 7 - rank instead of python-chess's `square ^ 56`). The script now asserts
+e2e4->e7e5, a1h8->a8h1, e1g1->e8g8 and that a mirrored startpos has 20 legal moves, and prints PASS before
+measuring. Without those four assertions every mirrored-bestmove number in the table would have been meaningless.
+This is instance 5 of 23-F37's family, caught this time BEFORE the measurement rather than after.
