@@ -1,0 +1,29 @@
+# PREDICTION — job3 (area 1, job 2: extreme numbers in the FEN fields), seat 21, seed 2101
+written before the first measuring command; not edited afterwards.
+
+Setup: one base board is used and exactly one field is varied per case. Base:
+  r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1
+Fields varied: halfmove clock 0/99/100/150/9999/-1; fullmove 0/1/10^9; ep square on a wrong
+rank / a legal ep square / a wrong file; two kings of one colour; pawns on rank 1 or 8.
+Each case: fresh process, `position fen`, `isready` answer lines, `go depth 4`, then
+`go perft 2` compared with python-chess when python-chess accepts the FEN. ASan+UBSan build.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | halfmove 100 and 150 are ACCEPTED (no refusal line) | killed if either is refused |
+| P2 | halfmove 9999 is ACCEPTED or refused, but does not crash | killed by any crash |
+| P3 | halfmove -1 is REFUSED (a '-' cannot parse as a number) | killed if accepted |
+| P4 | fullmove 0 is ACCEPTED | killed if refused |
+| P5 | fullmove 10^9 is ACCEPTED (fits an int) | killed if refused |
+| P6 | ep square on a wrong rank (e.g. e3) is REFUSED | killed if accepted |
+| P7 | two kings of one colour is REFUSED | killed if accepted |
+| P8 | a pawn on rank 1 / rank 8 is ACCEPTED | killed if refused |
+| P9 | sanitizer lines over the whole set: 0 | killed by any one line |
+| P10 | perft 2 equals python-chess on every FEN python-chess accepts | killed by any difference |
+| P11 | halfmove 100 changes the SEARCH score (fifty-move draw reported at the root) | killed if the depth-4 score is identical to halfmove 0 |
+
+Why: the parser is strict about structure (it refused 94 % of my 20,000 mutations) but the
+clock fields are read as plain integers, and I saw `parse_clock_ms` handle 64-bit values;
+100 is a legal FEN value, so P1 should hold. The root-draw shortcut at halfmove >= 100 was
+reported by other seats (01-F5 / 30-F7), so P11 is the interesting one and I expect it to
+hold.
