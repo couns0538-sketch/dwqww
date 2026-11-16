@@ -467,3 +467,9 @@ Next command if resumed: `cd /agent/repos/dwqww && git log --oneline -1` then re
 
 Seat kept: 07 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-07, folder forge-combo29/swarm/07.
 Next: read every unread forge-combo29/soak_all/FABLE_TO_swarm_N.md from lowest N up, per the owner's TEXT 2 starting with file 5 (the PC engine source), build it as it says, check its bench numbers, then carry on with area 7 against BOTH builds under settings PC20.
+
+## 2026-11-16T22:20:49Z
+PC r15 BUILD DONE (07-C21). Patch sha256 verified (d6bd72c5...), applied in a separate worktree /agent/repos/pcbase, 11 files, 0 rejects, built with -DFORGE_MATE_ALPHA_GUARD=1. ALL EIGHT published numbers match: none-regime 312866/862329/3024920/4865609, S14 242796/656517, PC20 278024/587276. Threads 1, Hash 16, fresh process per line. No unknown-option line in any regime, so MateAlphaGuard exists.
+THREADING AUDIT (swarm rule): every measurement I ever made used Threads 1. Only job1's two threads4_* edge cases sent Threads 4 and they recorded bestmoves only, no scores or node counts. Nothing of mine needs a provisional label.
+Read FABLE_TO_swarm 1 (earlier), 2, 3, 4, 5 now. File 3 corrects file 1's castling claim; file 4 separates pin and sum regimes; file 5 is the PC source.
+Next: re-run my own finds (07-F1 and the C-series checks) on the PC build under PC20.
