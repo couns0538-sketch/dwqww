@@ -1,0 +1,32 @@
+# S02 — PREDICTION for AREA 2 job 1, second run (cycle item 2(c)), seed 211
+
+Committed and pushed BEFORE the first measuring command. Never edited afterwards.
+This is the brief's "job 1 of your area again with the next seed and a new position set (R with SEED + 10),
+and say in the report what differs from your first run".
+
+Build: /agent/repos/base/forge-combo29/build-asan/forge sha256 b109a0a5acce5b0ddad5707c04f8263fe51f48a890df4a7a2ea6ffcef8a43f99
+Seed 211. New R set: R_seed211.fens, 996 positions from 60 random games, one position every 7 plies.
+
+What differs from run 1 (seed 201), stated before measuring:
+  - a different grammar draw: different option names, different `go` forms, different move lists;
+  - the position pool now includes 996 fresh R positions, so `position fen` lines hit middlegame boards rather
+    than the nine fixed FENs;
+  - the driver is v3 from the start (interactive, owns search length, clock-aware) — run 1's first two
+    attempts were invalid and are documented in ../HARNESS_INVALIDATION.md.
+
+| # | what I predict | number | range that KILLS it |
+|---|---|---|---|
+| 1 | crashes | 0 | >= 1 |
+| 2 | hangs | 0 | >= 1 |
+| 3 | sanitizer lines | 0 | >= 1 |
+| 4 | illegal bestmoves | 0 | >= 1 |
+| 5 | searches with no bestmove | 0 | >= 1 |
+| 6 | `0000` on a board WITH legal moves, go WITHOUT searchmoves | 0 | >= 1 |
+| 7 | `0000` on a board WITH legal moves, go WITH searchmoves (S-F2 recurrence) | > 0 | 0 exactly (S-F2 would not reproduce) |
+| 8 | bestmoves answered from the book | 0 to 200 | >= 400 |
+| 9 | sequences needing the driver to stop the search itself | 400 to 900 | outside that band |
+
+The one I want to falsify: 7. S-F2 says an empty `searchmoves` restriction returns `0000` on a board with legal
+moves. If the new seed never draws an empty searchmoves line, 7 reads 0 for a boring reason (no cases), so the
+report will also print HOW MANY searchmoves lines were drawn — a 0 with 0 cases is not a refutation and I will
+not present it as one.
