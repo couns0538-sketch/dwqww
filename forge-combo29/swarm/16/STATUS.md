@@ -212,3 +212,13 @@ seed: 1601
 - next: back to area 6 substance on the PC path — does the generation-order cause (S-F11/S-F12) behave the same
   on the PC build under PC20? I have the reverse-list patch for the base tree; rebuilding it against the PC tree
   is the direct test.
+
+## 2026-11-16T23:01Z
+- S-F20: TtPruneV2 NAMED as the lever. With TtPruneV2 on and the other four EXPLICITLY off, the depth-10
+  mismatch is 113/353 (all off 102, PC20 120), and the explicit-off run is identical to the default-off run on
+  353/353 positions — so nothing rests on defaults. Turning the option off restores the asymmetry to base level.
+- S-F21: the generation-order mechanism transfers to the PC build UNCHANGED — the PC build gives the same node
+  counts as the base tree on the S-F12 probe (25/30 base, 34/42 reversed; 66/60, 67/84). So S-F12's
+  "necessary, not sufficient" holds on the PC build too, and S-F20's lever is a separate layer on top.
+- next: the PC path again — `go nodes` at the match budgets (20000/50000/250000) determinism is done; next is
+  whether the TtPruneV2 lever also changes the SCORE asymmetry at depth 10, not just the move mismatch.
