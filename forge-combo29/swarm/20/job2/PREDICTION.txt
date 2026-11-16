@@ -1,0 +1,50 @@
+# PREDICTION — seat 20, area 10, job 2 (recount deepseek6's newest report from its raw files)
+
+Committed alone BEFORE the first measuring command of the job. Never edited afterwards.
+
+Subject: branch for-fable-and-opus/deepseek6-work, newest report REPORT_deepseek6_long56.md
+(the brief names REPORT_deepseek6_longK.md and folder tests_deepseek6_longK/ — neither exists; see below),
+raw files in forge-combo29/tests_deepseek6_long56/.
+
+Each claim with the range that kills it.
+
+1. The report's headline "ok 2000" for 2,000 sequences is CONSISTENT with its committed raw summary
+   file out/fuzz56_summary.txt (the dict has ok: 2000).
+   KILLED IF: the raw summary's ok count is not 2000, or the number of sequences the committed generator
+   would have produced is not 2000.
+
+2. The raw summary's own `seqs` field is 0, while the job claims 2,000 sequences: the counter was never
+   incremented. This is a raw-file defect, not a wrong claim about the run.
+   KILLED IF: the committed out/fuzz56_summary.txt does not contain 'seqs': 0.
+
+3. The reported "ZERO illegal bestmoves" is NOT SHOWN by the committed runner: the runner only runs its
+   legality check when `pos_line` is set, and `pos_line` comes from a line of the ENGINE'S STDOUT that
+   begins with "position"; the engine never prints "position". Therefore that branch is dead and the
+   check never executes on any sequence.
+   KILLED IF: the engine echoes a stdout line starting with "position", or the runner sets pos_line from
+   anything other than stdout.
+
+4. The reported "ZERO sanitizer lines" is NOT SHOWN by the materials on the branch: there is no .meta
+   with `nm -C <exe> | grep -c __asan_`, no sha256 of the exe, no planted-fault run through the same
+   runner, and the exe path (/tmp/l46_san/build/forge) is outside the repository.
+   KILLED IF: a .meta or equivalent with the nm count and a planted-fault proof exists in
+   forge-combo29/tests_deepseek6_long56/.
+
+5. The run is NOT reproducible from the branch: the 2,000 sequences live in /tmp/uci56_seqs.txt, which is
+   not committed; the job folder holds only CLAIM.txt, PREDICTION.md, fuzzuci56.py, make_uci56.py,
+   out/bad_sequences.txt, out/fuzz56_summary.txt, stamps.txt (7 files).
+   KILLED IF: the committed folder contains the sequence file or a seed-fixed generator that provably
+   emits the same 2,000 sequences.
+
+6. The hang detector can report a readyok that belonged to an EARLIER isready: it scans the last 30 stdout
+   lines rather than clearing a per-command buffer. It does not change 0 hangs here (every sequence ended,
+   and bad_sequences.txt is empty) but "0 hangs" is weaker evidence than the report's wording implies.
+   KILLED IF: the runner clears/empties the buffer at each isready, or tracks a per-isready position.
+
+7. My own recount on my build (bench pins verified: 11/13/16 + perft 5) of a same-shaped fuzz sample will
+   find: the UCI layer survives it. Specifically, on 200 sequences of the same grammar shape I predict
+   0 crashes and 0 hangs.
+   KILLED IF: any crash or hang in my 200 sequences.
+
+Decided, because nobody answers questions: I recount the newest EXISTING report (long56) because the named
+longK does not exist; I say so plainly in the report rather than inventing a subject.
