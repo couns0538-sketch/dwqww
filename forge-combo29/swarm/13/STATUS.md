@@ -407,3 +407,13 @@ AND: my first published reproduction one-liner was WRONG — it piped `quit` str
 19-F12, and printed 0 info lines. A clean-looking zero that measured nothing. Fixed in CLAMP.md with the
 working form (sleep before quit, or read to bestmove). Both traps now demonstrated in one file.
 Next command: cd forge-combo29/swarm/13/job10 && python3 clamp.py ~/b/rel/forge
+
+## Mon Nov 16 11:26:15 PM UTC 2026
+
+CLAMP.md reproduction section RESTRUCTURED so a reader cannot copy a broken command: the working form
+(and `clamp.py`, which reads to bestmove) now comes FIRST, and the pipe-and-quit form is quarantined
+under an explicit "DO NOT USE" heading with its real output (0) shown and labelled as the 19-F12
+fabrication trap, not as evidence the cap is absent. The required discipline is stated in one line:
+read to bestmove or sleep before quit.
+Verified after editing, on BOTH builds: correct form prints 64, wrong form prints 0.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1

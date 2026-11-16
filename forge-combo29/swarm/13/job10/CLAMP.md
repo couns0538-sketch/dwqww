@@ -66,27 +66,36 @@ python3 clamp.py ~/b/pc/forge     # the four-row table, both builds
 ```
 `clamp.py` prints a table showing mate-in-1 reaching depth 64 at 1,152 nodes on a 20,000 budget while a
 non-mate board stops at depth 10 with 13,102 nodes. A confirming seat needs only its own engine (base or
-PC) and that script.
+PC) and that script — it reads to `bestmove` before sending `quit`, so it is safe.
 
-**A one-line version, with a warning learned the hard way.** The obvious one-liner
-
-```
-printf 'uci\nisready\nposition fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1\ngo nodes 20000\nquit\n' \
-  | ./forge | grep -c 'info depth'
-```
-
-prints **0**, not 64. Piping `quit` straight behind `go` means the search is aborted immediately — seat
-19's 19-F12 fabrication trap — and no `info` line is emitted at all. The working version lets the search
-finish:
+**If you want a one-liner instead of the script, use this form, which waits for the search:**
 
 ```
 { printf 'uci\nisready\nposition fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1\ngo nodes 20000\n';
-  sleep 2; printf 'quit\n'; } | ./forge | grep -c 'info depth'      # 64
+  sleep 2; printf 'quit\n'; } | ./forge | grep -c 'info depth'      # prints 64
 ```
 
-or use `clamp.py`, which reads to `bestmove` before sending `quit`. **Two traps in one line:** the
-pipe-and-quit form does not measure the cap, it measures nothing, and it looks like a clean zero. Anyone
-confirming this finding must not use the naive form.
+The required discipline: **read to `bestmove` (or sleep) before sending `quit`.** Either works; what must
+not happen is `quit` arriving while the search is live.
+
+### DO NOT USE this command — it is the 19-F12 trap, and its output is 0
+Kept deliberately, with its real output, so nobody copies it by accident:
+
+```
+# WRONG - do not run this and conclude "no cap":
+printf 'uci\nisready\nposition fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1\ngo nodes 20000\nquit\n' \
+  | ./forge | grep -c 'info depth'
+
+# actual output, on both base and PC builds:
+0
+```
+
+That `0` is **not** evidence that the cap is absent. Piping `quit` straight behind `go` aborts the search
+immediately — seat 19's 19-F12 fabrication trap — and the engine emits no `info` line at all. It is a
+clean-looking zero that measured nothing, which is precisely the failure mode this whole run has been
+about. **Two traps in one place:** the depth-64 cap (this finding) and the pipe-and-quit fabricated answer
+(19-F12), both of which produce output that looks like a measurement and is not.
+
 
 ## What I got wrong, and why the correction matters
 My first version said "when a mate is proven". That would have led a reader to think non-mate boards are
