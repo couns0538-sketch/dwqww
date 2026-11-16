@@ -1,0 +1,70 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -90,6 +90,7 @@
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++int FailHighBlend = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+@@ -145,6 +146,7 @@
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"FailHighBlend", &FailHighBlend, 0, 7},
+     };
+     return table;
+ }
+@@ -1472,6 +1474,7 @@
+         }
+         best_score = eval;
+         if (best_score >= beta) {
++            if ((tune::FailHighBlend & 2) && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta)) best_score = (best_score + beta) / 2;
+ #if FORGE_SPD_TT_NOTLS
+             if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+ #else
+@@ -1536,6 +1539,8 @@
+     }
+     if (in_check && move_count == 0) return mated_in(ply);
+ 
++    if ((tune::FailHighBlend & 2) && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta)) best_score = (best_score + beta) / 2;
++
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+ #if FORGE_SPD_TT_NOTLS
+     store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+@@ -1688,7 +1693,7 @@
+         // Reverse futility pruning.
+         if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+             eval < MateInMaxPly) {
+-            return eval;
++            return (tune::FailHighBlend & 1) ? beta + (eval - beta) / 3 : eval;
+         }
+         // Null move pruning.
+         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+@@ -2089,6 +2094,9 @@
+                             history_bonus(depth) * tune::FailLowContinuationBonus / 100);
+     }
+ 
++    const int raw_best = best_score;
++    if ((tune::FailHighBlend & 4) && !pv_node && best_score >= beta && !is_mate_score(best_score) && !is_mate_score(beta)) best_score = (best_score * depth + beta) / (depth + 1);
++
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+     if (excluded.is_none() && !(root_node && root_restricted_)) {
+ #if FORGE_SPD_TT_NOTLS
+@@ -2099,11 +2107,11 @@
+     }
+     // Teach the static evaluation about this pawn structure when the search
+     // result is a usable bound in the direction of the difference.
+-    if (!in_check && excluded.is_none() && !is_mate_score(best_score) &&
++    if (!in_check && excluded.is_none() && !is_mate_score(raw_best) &&
+         (best_move.is_none() || !best_move.is_capture()) &&
+-        !(bound == BoundLower && best_score <= ss->static_eval) &&
+-        !(bound == BoundUpper && best_score >= ss->static_eval)) {
+-        update_correction(board, depth, best_score, ss->static_eval);
++        !(bound == BoundLower && raw_best <= ss->static_eval) &&
++        !(bound == BoundUpper && raw_best >= ss->static_eval)) {
++        update_correction(board, depth, raw_best, ss->static_eval);
+     }
+     return best_score;
+ }
