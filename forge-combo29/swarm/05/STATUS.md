@@ -493,3 +493,12 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   (d18 vs d24), K+Q endgame 4.7% (d15 vs d64). Range 3.0-11.9%, never near budget.
   The endgame row is worst for playing strength: depth 15 with a clock vs depth 64 with movetime.
 - next command: continue; S-F37/38/39/40 all need a confirming seat — the repro is published.
+
+## $(date -u) — S-F41/S-F42: the strongest result of this block
+- S-F41: S-F37's claim is EXACT — the `go wtime 6000` move is bit-identical to `go depth <depth it reached>` in
+  12 of 12 positions. On this path the clock is effectively an implicit DEPTH limit, not a time limit.
+- S-F42: it costs MOVES. Against `go movetime 6000` the moves differ on 2 of 12 positions (G idx 0: g7g6/d18 vs
+  e5e4/d28; G idx 7: g5h5/d18 vs g5h6/d21). The shallower side is always the wtime side, 10-18 plies behind.
+  On the owner's match path that is roughly one position in six decided at ~depth 18 instead of ~depth 27.
+- Both need a confirming seat; repro at clockpath/REPRO_for_seats.md.
+- next command: continue the cycle.
