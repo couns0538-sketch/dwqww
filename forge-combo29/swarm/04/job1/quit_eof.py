@@ -141,11 +141,19 @@ def run_case(tag, fen, commands, mode="abort", sleep_before_quit=None,
     t0 = time.monotonic()
 
     # Option/position setup is never pipelined: read readyok each time.
+    # `position` itself answers nothing -- only a following `isready` does. Waiting for readyok after
+    # the bare `position` line burns the whole timeout per case, which is what made this probe look hung.
     for c in commands["setup"]:
         if not send(p, c):
             break
-        if c.startswith(("setoption", "position", "isready", "ucinewgame")):
+        if c == "isready" or c.startswith("setoption") or c == "ucinewgame":
             drain(p, q, until="readyok", limit=20.0)
+        if c.startswith("position"):
+            send(p, "isready")
+            lines = drain(p, q, until="readyok", limit=20.0)[0]
+            for ln in lines:
+                if "invalid FEN" in ln:
+                    err.append("invalid FEN: " + ln)
     got = []
     if mode == "control":
         send(p, commands["go"])

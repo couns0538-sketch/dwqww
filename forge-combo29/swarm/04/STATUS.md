@@ -183,3 +183,13 @@ family max gives full work but over-searches the fastest position by 76% / 102% 
 => per-position computation is the only correct route. One-page procedure + exact commands:
   job3/HOWTO_node_budgets.md  (scripts: boundaries.py, boundary_spread.py, family_spread.py)
 NEXT: quit/EOF re-check on PC20 (still running), then explosion numbers on PC20.
+
+## 2026-11-16T23:00:41Z FALSE DEFECT CAUGHT IN MY OWN HARNESS — isready during search is HARMLESS
+My new test said "isready during a search stops bestmove on BOTH builds, 3/3 cases, 45 s". I did not report it;
+I checked it, and it was MY BUG: after sending isready I read until readyok, and the engine's bestmove for the
+running search arrives IN THAT SAME BATCH. Measured batch: 'info depth 12 ... nodes 56720' then
+'bestmove e2e4' then 'readyok'. My code then waited for a SECOND bestmove that never comes.
+=> Seat 19's 19-F14 is right: isready during a search is harmless on base (S14) and on PC r15 (PC20).
+Recorded as 04-C4 in FINDINGS.md, with the retraction explicit. No defect claim filed.
+This is the second time a gate in my own tooling caught me (the first was check_quit printing PASSED with every
+case missing). Both are in the findings file rather than quietly fixed.
