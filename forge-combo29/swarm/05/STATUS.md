@@ -559,3 +559,10 @@ S-F34/S-F35 framing (S-W4), my false softnodes nondeterminism (S-W3), my OwnBook
   INCREMENT (60->4000 ms buys 4 plies), not the clock.
   => S-F37/S-F39 now have an independent seat agreeing on the phenomenon (though not on identical numbers).
 - next command: continue the cycle.
+
+## $(date -u)
+- S-C17: seat 17's S-F4 documents the SAME OwnBook trap that ruined my first clock table (S-W5) — startpos answered from the
+  book in ~0 ms with no info depth line; its first clock run measured nothing that way (5 "results", 0 depth lines). Two
+  seats, same trap, both caught only by making a missing parse loud. Third independent sighting of the vacuity pattern
+  this swarm (19's clock_plan, 10-F2, 17's S-F4 + my S-W5) — strongest argument for CHECKER_RULE.md.
+- next command: continue the cycle.
