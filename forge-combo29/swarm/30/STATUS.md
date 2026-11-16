@@ -302,6 +302,22 @@ and never recovers, while the **wall time RISES** as the node count collapses (2
 instability right at 256: depth 7/5/10 on identical runs). **On the patched build the ceiling rises
 to 512 MB (depth 12, stable)** and above it MultiPV > 1 still collapses on a clock.
 
+### REPRODUCIBILITY — the gain that matters more than the speed
+
+Near the collapse boundary the shipped engine is **not reproducible on identical runs**, and the patch
+fixes that. 8 fresh processes per cell, MultiPV 3, `go wtime 5000`, Threads 1, PC20:
+
+| Hash | SHIPPED build | PATCHED build |
+|---|---|---|
+| 256 MB | depths **{7, 11}** across 8 identical runs; nodes **5,395 to 47,818 = 8.9x spread** (5, 7, 10 and 11 were all seen at this Hash) | **depth 13, exactly 106,863 nodes, 8 of 8 runs** |
+| 512 MB | depth 1, 220 nodes — consistently bad | **depth 12, exactly 71,070 nodes, 8 of 8** |
+| 2048 MB | nodes 143–220 (1.5x) at depth 1 | 202 flat at depth 1 |
+
+Two identical searches on the shipped build at 256 MB can differ by **nine times the work and several
+plies of depth**. For a match, an analysis run or a regression test at those settings, **exact
+reproducibility is worth more than the 2–4x speed**: a result you cannot repeat is not a measurement.
+That is the strongest argument for the patch, and it is independent of the timing win.
+
 ### THE PATCH — worth shipping on its measured merits, with its scope stated
 
 One statement deleted at `src/search.cpp:2879`: the per-PV-line `alt_shared->tt.clear()`, which walked
