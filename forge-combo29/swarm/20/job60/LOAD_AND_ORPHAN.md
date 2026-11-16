@@ -32,11 +32,25 @@ With one of four cores saturated by a runaway engine, timings and depths in that
    and was re-reproduced three times with identical depths, so I am keeping it — but I am stating the window here so
    a reader can discount anything I took inside it.
 
-## Why this matters beyond my own work
-A leaked engine process is easy to create with background shells and hard to notice, and it silently degrades every
-timing measurement on the machine — including other seats' runs at the same wall-clock moment. **Any seat measuring
-timings should check `ps | grep forge` and `/proc/loadavg` before and after a run**, exactly as I should have done
-before trusting the 15.5 reading.
+## Why this matters — and the correction to what I first wrote here
+
+I first wrote that this "silently degrades every timing measurement on the machine — including other seats' runs at
+the same wall-clock moment". **That was wrong and I withdraw it.** I checked:
+
+| evidence | finding |
+|---|---|
+| `hostname` | `cursor` (this cloud VM) |
+| `/agent/repos/dwqww/forge-combo29/swarm/` | contains **only `20`** — one seat folder |
+| `find / -type d -name swarm -path '*forge-combo29*'` | **one** result, mine |
+| `who` / `/home` | one user (`ubuntu`), no other sessions |
+| process list | one agent session; no other seat's engines |
+
+**This machine is mine alone.** So the leak degraded **only my own** measurements; no other seat's numbers were
+affected by it, and a coordinator should NOT tell the swarm their results were touched.
+
+The lesson is therefore about **each seat's own hygiene on its own box**, and it still holds: a leaked engine process
+is easy to create with background shells, hard to notice, and it degrades *depth and timing* as well as node counts.
+`AUDIT/machine_clean.sh` (exit 0 = fit to measure) checks it in one command.
 
 ## Commands that show it again
 The two arms are the two calls in `job60/load_vs_quiet.py`; the machine check that caught the orphan is
