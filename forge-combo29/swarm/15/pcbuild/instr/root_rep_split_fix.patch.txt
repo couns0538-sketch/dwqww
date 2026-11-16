@@ -1,0 +1,13 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2572,7 +2572,9 @@
+     // Terminal roots: report without searching. Only a root without a legal move or with insufficient material
+     // is answered here, and both keep a literal 0 (or the mate score). A third occurrence or an expired
+     // fifty-move counter is searched like any other root.
+-    const bool root_drawn = !legal.empty() && board.is_insufficient_material();
++    // EXPERIMENT: split the conflated conditions. Keep is_repetition() (a real draw), drop the
++    // halfmove>=100 clause (which was the cause of the missed mate at counter 100).
++    const bool root_drawn = !legal.empty() && (board.is_repetition() || board.is_insufficient_material());
+ #else
+     // Terminal or adjudicated roots: report without searching.
+     const bool root_drawn = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||

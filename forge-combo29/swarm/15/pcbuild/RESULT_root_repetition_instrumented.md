@@ -142,3 +142,53 @@ separable, since `is_repetition()` returns the correct answer independently.
 
 I did **not** build or test that split. It is a one-line change to `root_drawn` and an obvious next
 experiment; I am naming it rather than claiming it works.
+
+---
+
+## The split fix — TESTED, and it gives both behaviours at once
+
+The fix I named above as "obvious next experiment" is now built and measured. Text patch:
+**`instr/root_rep_split_fix.patch.txt`** (unified diff, relative `a/` `b/` paths, applies to a clean
+PC tree with `patch -p1 --fuzz=0`, dry-run verified, one hunk, `src/search.cpp` only).
+
+One line changes:
+
+```cpp
+-    const bool root_drawn = !legal.empty() && board.is_insufficient_material();
++    const bool root_drawn = !legal.empty() && (board.is_repetition() || board.is_insufficient_material());
+```
+
+i.e. put `is_repetition()` back into the root condition and leave `halfmove_clock() >= 100` out —
+the two conditions `FORGE_FIX_ROOT_DRAWN` had conflated.
+
+Built with `-DFORGE_MATE_ALPHA_GUARD=1`. **Honesty pins all unchanged**: 312866 / 862329 / 3024920 /
+4865609, default option regime. Threads 1, PC20. Raw: `split_fix_test.txt`.
+
+| what | PC r15 as shipped | `FORGE_FIX_ROOT_DRAWN=0` | **the split** |
+|---|---|---|---|
+| thrice-repeated root | `cp 23`, 13,424 nodes, **searched** | `cp 0`, 0 nodes, drawn | **`cp 0`, 0 nodes, DRAWN** |
+| twice-repeated root | searched | searched | **searched** (correct: 2 is not a draw) |
+| mate in 1, halfmove 99 | `mate 1` | `mate 1` | **`mate 1`** |
+| mate in 1, **halfmove 100** | `mate 1` | `cp 0`, 0 nodes, **MISSED** | **`mate 1`, 144 nodes, FOUND** |
+| pawn-move mate, halfmove 100 | `mate 1` | `cp 0`, **MISSED** | **`mate 1`, 265 nodes, FOUND** |
+| same board as plain FEN | searched | searched | **searched** (control) |
+| checkmated / stalemated root | `mate 0` / `cp 0`, `0000` | same | **same** (unchanged, and correct) |
+
+**The split gives every correct behaviour simultaneously and breaks nothing I measured.** It is the
+first configuration in this whole thread that does: the shipped PC build loses the repetition
+adjudication, flag=0 loses the halfmove-100 mate, and the split keeps both.
+
+## What I have and have not established about the split
+
+Established, measured, Threads 1, PC20:
+- the seven rows above, on three builds;
+- the four honesty pins unchanged with the patch applied;
+- the patch applies with `--fuzz=0` to a clean copy of the PC tree.
+
+NOT established, and I say so plainly:
+- **search-strength cost.** I did not run a match, so I cannot say the split costs nothing in play.
+  It is a one-line change to a root-only condition, so the plausible cost is nil, but plausible is not
+  measured.
+- whether declaring a thrice-repeated root drawn is what the owner WANTS — that is his call, not mine;
+  the split simply makes the two behaviours independent so he can choose.
+- behaviour at repetition counts above four, or with `halfmove>=100` **and** a repetition together.
