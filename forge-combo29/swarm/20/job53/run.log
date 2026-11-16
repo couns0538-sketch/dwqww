@@ -1,0 +1,21 @@
+exe /agent/repos/build-pc/forge   go wtime 5000 btime 5000
+
+== IDLE machine
+  Hash2048+MPV8 collapsed    0-node answers 1/10  moves ['b8a8', 'd5d4']
+                             node counts [0, 220]
+  Hash16+MPV1 healthy        0-node answers 0/10  moves ['g7g6']
+                             node counts [121306, 170070, 288912]
+
+== UNDER LOAD: 3 busy-loop processes (isready timeout raised to 120s: the engine is starved, not hung; the 19-F12 discipline is unchanged — we still refuse to continue without a readyok)
+  Hash2048+MPV8 collapsed    0-node answers 6/10  moves ['b8a8', 'd5d4']
+                             node counts [0, 67, 143]
+  Hash16+MPV1 healthy        0-node answers 0/10  moves ['g7g6']
+                             node counts [121306, 170070, 288912]
+
+== verdict
+  collapsed: 0-node answers idle 1/10 -> under load 6/10
+  healthy  : 0-node answers idle 0/10 -> under load 0/10
+  -> load makes the COLLAPSED cell worse while the healthy cell stays clean: the 0-node answer is
+     specific to the collapse and is aggravated by contention.
+
+wrote zero_node.json
