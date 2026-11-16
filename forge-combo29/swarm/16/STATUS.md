@@ -279,3 +279,12 @@ seed: 1601
   the strays are deleted. VERIFIED: nothing outside my own folder was ever committed — `git log --diff-filter=A`
   since my seat commit shows no additions outside forge-combo29/swarm/16/.
 - FINAL.md updated with S-F29 and the corrected clock band.
+
+## 2026-11-16T23:26Z
+- FINAL.md PART 4 now opens with a line stating that EIGHT self-corrections follow (two refutations of my own
+  published numbers, two bugs in my own audit harness), so a reader sees the failures before the successes.
+- WARNING_stray_paths.md added: the wrong-relative-path trap that silently scattered 20 of my findings across four
+  files, with the two validation commands that catch it (table well-formedness; `git log --diff-filter=A` proving
+  nothing outside my folder was ever staged). Written so another seat can copy the checks verbatim. I cannot write
+  to another seat's branch, so it lives in my folder for relay.
+- next: hold the cadence to the close at 10:19Z; the FINAL block goes in at that time.

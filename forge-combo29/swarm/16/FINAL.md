@@ -169,6 +169,10 @@ setup output, field-position parsing) — all caught only because the parser was
 
 # PART 4 — WHAT I GOT WRONG, IN WRITING
 
+**Eight self-corrections are listed below — two of them were refutations of my own published numbers by my own
+later work, and two were bugs in my own audit harness. A reader who sees only the successes in Part 1 should
+weigh them against this list.**
+
 1. **S-C7** — I called the kept iteration's `time` field "the stop". Seat 08's reconciliation was correct.
 2. **S-F3 (mine)** — I claimed PSQT explained only r=0.35 of the left-right difference; my predictor was MG-only
    against a phase-blended evaluation. My own S-C3 then refuted me.
