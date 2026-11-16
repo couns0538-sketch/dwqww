@@ -1,0 +1,118 @@
+# counters.patch.txt -- unified diff of the job-3b counter copy against 6b98f2170a3210e71beed04bbd2553972c253ed7
+# made with diff -u; applies with patch -p1 without fuzz from the checkout root (paths a/forge-combo29/src/...)
+# counter copy: candidates/deficits/pruned of the capture-futility gate (search.cpp), printed once per go
+# as 'info string cfp ...' before bestmove (uci.cpp). Observation only: the search reads none of it.
+diff -ruN j3b_pristine/forge-combo29/src/search.cpp j3b_edit/forge-combo29/src/search.cpp
+--- j3b_pristine/forge-combo29/src/search.cpp	2026-11-15 05:25:59.000000000 +0000
++++ j3b_edit/forge-combo29/src/search.cpp	2026-11-16 17:44:22.613213603 +0000
+@@ -8,6 +8,8 @@
+ #include <cmath>
+ #include <cstring>
+ #include <iostream>
++#include <sstream>
++#include <string>
+ #include <limits>
+ #include <optional>
+ #if FORGE_NNUE_V3
+@@ -34,6 +36,38 @@
+ #define FORGE_BARE_KING_MATE_FIX 1
+ #endif
+ 
++// job-3b capture-futility counters (observation only; never read by the search)
++namespace forge_cfp {
++    long long cand[16] = {0};
++    long long in_depth[16] = {0};
++    long long pruned[16] = {0};
++    long long cand_over = 0;
++    long long deficit[16][32] = {{0}};
++    void cfp_reset() {
++        for (int i = 0; i < 16; ++i) {
++            cand[i] = 0;
++            in_depth[i] = 0;
++            pruned[i] = 0;
++            for (int b = 0; b < 32; ++b) deficit[i][b] = 0;
++        }
++        cand_over = 0;
++    }
++    std::string cfp_line() {
++        std::ostringstream os;
++        os << "cand";
++        for (int i = 0; i < 16; ++i) os << (i ? "," : "=") << cand[i];
++        os << " ind";
++        for (int i = 0; i < 16; ++i) os << (i ? "," : "=") << in_depth[i];
++        os << " prn";
++        for (int i = 0; i < 16; ++i) os << (i ? "," : "=") << pruned[i];
++        os << " over=" << cand_over;
++        for (int i = 0; i < 16; ++i) {
++            os << " d" << i << "=";
++            for (int b = 0; b < 32; ++b) os << (b ? "," : "") << deficit[i][b];
++        }
++        return os.str();
++    }
++}
+ namespace forge {
+ 
+ int DrawJitter = 0;
+@@ -1890,6 +1924,18 @@
+             } else {
+                 // Futility pruning for captures: even winning the piece cannot
+                 // bring the position back to alpha.
++                if (capture && !in_check && !gives_check) {
++                    if (lmr_depth <= 15) {
++                        ++forge_cfp::cand[lmr_depth];
++                        if (lmr_depth <= tune::CaptureFutilityDepth) ++forge_cfp::in_depth[lmr_depth];
++                        const int cfp_e =
++                            alpha - (ss->static_eval + capture_value(board, move) + history / 8);
++                        const int cfp_bin = cfp_e < 0 ? 0 : (cfp_e >= 3000 ? 31 : cfp_e / 100 + 1);
++                        ++forge_cfp::deficit[lmr_depth][cfp_bin];
++                    } else {
++                        ++forge_cfp::cand_over;
++                    }
++                }
+                 if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
+                     lmr_depth <= tune::CaptureFutilityDepth &&
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+@@ -1897,6 +1943,7 @@
+ #endif
+                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+                             capture_value(board, move) + history / 8 <= alpha) {
++                    ++forge_cfp::pruned[lmr_depth <= 15 ? lmr_depth : 15];
+                     trace_case();
+                     continue;
+                 }
+diff -ruN j3b_pristine/forge-combo29/src/uci.cpp j3b_edit/forge-combo29/src/uci.cpp
+--- j3b_pristine/forge-combo29/src/uci.cpp	2026-11-15 05:25:59.000000000 +0000
++++ j3b_edit/forge-combo29/src/uci.cpp	2026-11-16 17:44:22.617213603 +0000
+@@ -10,6 +10,16 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++
++namespace forge_cfp {
++extern long long cand[16];
++extern long long in_depth[16];
++extern long long pruned[16];
++extern long long cand_over;
++extern long long deficit[16][32];
++void cfp_reset();
++std::string cfp_line();
++}
+ #include <array>
+ #include <charconv>
+ #include <chrono>
+@@ -551,6 +561,7 @@
+                 searcher.reset_stop();
+                 worker = std::thread([&searcher, &stop_mutex, &stop_cv, &stop_requested,
+                                       &ponder_hit_received, search_board, limits, ponder_enabled]() mutable {
++                    forge_cfp::cfp_reset();
+                     const forge::SearchInfo result = searcher.search(
+                         search_board, limits, true, forge::Searcher::TTAccess::Exclusive);
+                     if (limits.infinite || limits.ponder) {
+@@ -569,6 +580,7 @@
+                         prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
+                     }
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string cfp " << forge_cfp::cfp_line() << std::endl;
+                     std::cout << "bestmove " << best << prediction << std::endl;
+                 });
+             }
