@@ -20,7 +20,7 @@ import time
 import chess
 
 GO = "go depth 6"
-TIMEOUT = 60.0
+TIMEOUT = float(os.environ.get("CHECK_TIMEOUT", "60"))
 MATE1 = "6k1/5ppp/8/8/8/8/5PPP/R5K1"
 QUIET = "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R"
 COUNTERS = [0, 97, 98, 99, 100, 101, 150]

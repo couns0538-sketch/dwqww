@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+import sys
+for line in sys.stdin:
+    c = line.strip()
+    if c == "uci":
+        print("id name STUB nonsense"); print("uciok"); sys.stdout.flush()
+    elif c == "isready":
+        print("readyok"); sys.stdout.flush()
+    elif c.startswith("go"):
+        print("info depth 1 pv")
+        print("bestmove")
+        sys.stdout.flush()
+    elif c == "eval":
+        print("evaluation unavailable")
+        sys.stdout.flush()
+    elif c == "quit":
+        break

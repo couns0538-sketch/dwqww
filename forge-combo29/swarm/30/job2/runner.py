@@ -198,8 +198,11 @@ def run_one(idx, lines, exe):
         if p.poll() is None:
             if pending_go:
                 k0 = n_best()
-                send("stop")
-                wait_best(k0, BESTMOVE_WAIT)
+                send("ponderhit")   # a pending ponder search answers this, not stop
+                wait_best(k0, 2.0)
+                if n_best() == k0:
+                    send("stop")
+                    wait_best(k0, 2.0)
             send("quit")
         try:
             p.wait(timeout=EXIT_WAIT)
