@@ -4,6 +4,33 @@
 - area: 5 (PRINCIPAL VARIATIONS AND SCORES)
 - seed: 1501
 
+## 2026-11-16T22:35:57Z
+
+Both closing items for area 5 are DONE, plus one confirmation of another seat.
+
+- **APPLY SHEET written**: `pcbuild/APPLY_root_drawn_split.md` — one page, the conflation with both
+  flag states and measured outputs, the one-line change, the five case outputs, the four pins, and an
+  explicit "no match was run; the drawn-root policy is the owner's choice".
+- **15-F26 GUI CONTRACT tested**: with the split applied, a thrice-repeated root still returns a REAL
+  move (`a2a3`), and `0000` appears only where there is genuinely no legal move (checkmated and
+  stalemated roots, both verified 0 legal moves). 18 of 18 cells correct across three builds. So the
+  draw adjudication does not break the GUI contract — the game can continue if the draw is not claimed.
+- **15-C5 CONFIRMS 19-F33** with my own harness: PC r15, PC20 with only CorrHistV2 toggled, Threads 1,
+  depth 12, 200 of G — 156 (78.0%) same bestmove, 44 (22.0%) different, 183/200 different scores,
+  node delta -1.46%, 148 same-move cp positions mean +0.4 / median +1 cp, range -358..+435. Every
+  derived number matches seat 19 exactly; my "off" node total differs by 28 in 10,146,239 (flagged,
+  not chased).
+
+TOTALS: 26 findings, 5 checks, 4 self-corrections. Threads 1 throughout; every line names its build
+and settings.
+
+Running now: nothing.
+
+Next exact command:
+  cd /agent/repos/dwqww && git fetch -q --depth 1 origin for-fable-and-opus/swarm-08 && git show FETCH_HEAD:forge-combo29/swarm/08/FINDINGS.md | grep -E "08-F2[0-9]"
+  -> cycle step 2(a) again: their 08-F22 (the fifty-move score BAND at H=91..99 vs a single node
+     spike at 91) is unconfirmed and is my thread; check it on the PC build myself.
+
 ## 2026-11-16T22:32:55Z
 
 AREA 5 IS COMPLETE, on BOTH builds. The thrice-repeated root is instrumented and answered.
