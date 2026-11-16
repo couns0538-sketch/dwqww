@@ -131,3 +131,20 @@ Then send exactly the prefix you validated, or send nothing and reload.
   signal**, not about a new engine defect.
 - Whether the owner wants the engine to emit a harder error (an explicit `info string position rejected` plus
   withholding `readyok`) is a design decision I am flagging, not making.
+
+## When exactly the line arrives (measured — and easy to miss)
+
+The `info string illegal move` line is emitted in response to the **`position`** command, i.e. BEFORE the
+following `readyok`, not in response to `go`. Measured on the self-play idiom (PC r15, PC20, Threads 1) with a
+deliberately corrupted last token:
+
+```
+info string illegal move zzzz      <- in response to `position ... moves ...`
+readyok
+info depth 1 ...                   <- in response to `go`
+bestmove c8a8
+```
+
+A harness that starts reading only after `readyok` will never see the line and will believe its move list was
+accepted. Read the engine's output for the `position` command too, and treat the line as fatal wherever it
+appears. Evidence: `pc/guardsp/guard_selfplay.json`.

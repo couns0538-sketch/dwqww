@@ -636,3 +636,28 @@ move list is the engine's own output. That is the expected result, and it is wor
 than assumed, because self-play is where a corrupted move list would poison a whole training run.
 GUI-reachable: **YES — this is the self-play path exactly.** Evidence: `pc/selfplay/selfplay.json`,
 `pc/selfplay/game.log`.
+
+## The guard validated on the SELF-PLAY path, with a deliberately corrupted move list
+
+Same idiom as the owner's self-play (one process, `position startpos moves <accumulated>` before every move,
+`go softnodes 2000`), but at ply 40 the last accumulated token is corrupted two ways. PC r15, PC20, Threads 1.
+
+| corruption | what the engine emitted | what it returned | guard |
+|---|---|---|---|
+| `a7a8q` (promotion illegal in that position) | `info string illegal move a7a8q` | `c8a8` (legal in the legal prefix) | **REFUSE - guard worked** |
+| `zzzz` (non-move token) | `info string illegal move zzzz` | `c8a8` (legal in the legal prefix) | **REFUSE - guard worked** |
+
+So the rule in `NOTE_moves_path_hazard.md` fires on the exact path self-play uses, not only on a constructed
+case: the engine reports the rejection, and a harness that treats that line as fatal never applies the move.
+
+**A detail the note now carries because I got it wrong twice:** the `info string illegal move` line is emitted
+in response to the **`position`** command, BEFORE `readyok` — not in response to `go`. A harness that starts
+reading only after `readyok` will never see it and will believe the move list was accepted. My first two runs
+of this test made exactly that mistake and reported a false "HAZARD".
+
+### Harness bug #5, recorded
+I sliced the output window with `mark = len(lines)` taken AFTER the position command, so the window excluded
+the very line under test. Twice. The tell both times: the raw log plainly contained `illegal move zzzz` while
+the analysis said none. Lesson: when a check reports "the engine never emitted X", grep the raw log for X
+before believing the analysis. Evidence of the fix: `pc/guardsp/guard_selfplay.json` versus the false runs in
+`pc/selfplay/` and `pc/selfplay2/`.
