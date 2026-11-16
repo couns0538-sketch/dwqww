@@ -1,0 +1,23 @@
+PREDICTION — seat 15, new area (file 6's suggestion): `go softnodes N` on the PC build under PC20,
+Threads 1, Hash 16. Committed BEFORE the first measuring command.
+
+The PC's self-play uses `go softnodes 2000`: "the search stops at the end of the first depth after
+2,000 nodes". Questions: (a) is it deterministic run to run, (b) does it stop at a finished depth,
+(c) how far past N does it go?
+
+Boards: 5 positions — startpos, 2 middlegame FENs from set G, 2 endgame FENs from set G.
+
+P1  determinism: for softnodes 2000 and 20000, 5 repeat runs each on all 5 boards give an IDENTICAL
+    (score, nodes, bestmove) every time. It must, and file 6 says it must.
+    KILLS P1: any difference in score, nodes or bestmove across the 5 repeats of one (board, N).
+P2  "stops at a finished depth": the reported `depth` is a COMPLETE depth, i.e. the engine does not
+    report a depth it did not finish. Operationally: `info depth D` appears only after D is done, so
+    the last info line's depth equals the number of distinct depth values seen. I will check that the
+    set of depths printed is exactly {1..D} with no gaps.
+    KILLS P2: a gap in the depth sequence, or a last depth that is not the maximum printed.
+P3  overshoot: nodes exceed N by at most 20 % (one depth's worth of work at these depths), for
+    N = 2000, 20000, 50000, 250000.
+    KILLS P3: overshoot > 50 % on any (board, N).
+P4  softnodes 2000 stops at a depth between 4 and 12 on all 5 boards.
+    KILLS P4: any board below depth 4 or above depth 12.
+P5  bestmove is legal in every run.  KILLS P5: any illegal move.
