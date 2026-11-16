@@ -276,3 +276,10 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
 - Also noted in S-C11: their 101-D rule holds for BARE endgames only (my S-F20 shows flat 98 and flat 99 boards).
 - next command: check whether any seat has confirmed S-F16/S-F19 (the new PC-build findings) and, if not, leave them
   marked open in the FINAL block.
+
+## $(date -u)
+- S-C12: BOUNDS seat 01's 101-D formula. It holds on both bare endgames I measured (K+R 95/93/91/90, K+B+B 95/92/91/89,
+  all within 1 of 101-D) and FAILS on every pawned board (K+R + one pawn flat 98 vs predicted 95/93/91/89; middlegame
+  97/99/99/99). So 101-D is a bare-endgame rule, not a general fifty-move law — which is exactly the gap my S-F15/S-F20
+  fill. PC r15 + PC20, Threads 1.
+- next command: write the FINAL block with every find, its state and its build/settings, then verify push.
