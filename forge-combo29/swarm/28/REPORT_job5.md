@@ -61,6 +61,16 @@ sha256 `4ac1095de67c683e…` versus base `e06310eca3368556…`, so the binaries 
 - **T8 SURVIVES**: K v K is still answered with 0 nodes (insufficient material kept), and a normal K+Q
   search is untouched (3007 nodes both binaries), so the patch is narrow.
 
+## Is the patch narrow? (`patch_narrow.py`, `patch_narrow_out.tsv`)
+
+120 positions from O and G at `go depth 10`, both binaries, fresh process each: **0 differences** in
+bestmove, node count or score. So the patch does not touch the search on ordinary positions.
+
+**The honest limit of this test:** all 120 positions were SEARCHED by the base engine (0 of them fired
+the shortcut), so this shows the patch leaves normal search untouched but does **not** itself exercise the
+shortcut path. The shortcut path is exercised by the five targeted cases in `verify_patch_out.md` above,
+where the base engine's 0-node answers become real searches. Together the two tables cover both sides.
+
 ## Speed cost (T9)
 Ten alternating `bench 13` runs, base vs patched (`out_ab/ab_summary.txt`): nodes identical (862,329)
 every time; time median 444 vs 462 ms, ratio 1.0405, **95 % bootstrap interval [0.9712, 1.1018]**, which

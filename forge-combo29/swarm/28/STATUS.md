@@ -67,3 +67,6 @@ Self-audit catch: my S-F9/CORRECTION-2 sentence 'achieved equals reported within
 
 ## Mon Nov 16 09:57:48 PM UTC 2026
 job5 DONE + Report. S-F17: a 5-line patch closes BOTH drawn-root doors (halfmove 100 and repetition: 0 nodes/f2f3 -> 126 nodes/a1a8) with all four honesty numbers IDENTICAL and K v K still adjudicated at 0 nodes; cost not resolvable (bench 13 ratio 1.0405, 95% CI [0.9712,1.1018]). S-F18 states the defect: claimable vs automatic draws. Patch is text only.
+
+## Mon Nov 16 09:58:13 PM UTC 2026
+job5 narrowness check: 120 positions at depth 10, patched vs base, 0 differences in bestmove/nodes/score -> the patch does not touch normal search. Honest limit: none of the 120 fired the shortcut, so the shortcut path is covered only by the 5 targeted cases.
