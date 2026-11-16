@@ -914,3 +914,18 @@ section now says four in four consecutive reads. Word count preserved (3,261) an
 
 Order: headline sentences, the rule, ten instances, the fix, live verification, the refused-vs-accepted guard,
 the tying sentence, why it matters, documents-accumulate. 74 findings, 18 confirmations. 10 h 26 m remain.
+## 2026-11-16T23:53:33Z  C24 confirms the illegal-token truncation; two GUI hazards now named
+2026-11-16T23:53:33Z
+
+8-ply Ruy line with one ply corrupted, PC r15 + PC20: engine prints 'illegal move e2e4' once, answers readyok,
+and searches the legal PREFIX — perft 1 = 29 / 27 / 33 for corruption at plies 3 / 5 / 7 vs the intended 38;
+clean control exactly 38. Everything after the first illegal token is DISCARDED, so corruption at ply 3 loses
+five good plies.
+
+TWO GUI HAZARDS now confirmed on the PC build:
+  21-F2b  a REFUSED position fen answers readyok and the next search returns the PREVIOUS game's move;
+  S-F57/8 one bad token in a move list silently plays a DIFFERENT game from that point on.
+A GUI rule covering both: after every position command, check whether the engine printed ANY 'info string'
+diagnostic, and if so rebuild from scratch rather than continuing — the diagnostics are the only signals.
+
+75 findings, 18 confirmations. 10 h 25 m remain; cadence continuing.
