@@ -272,3 +272,16 @@ CorrHistV2 measurement STOPPED as instructed (games question).
 
 next command: continue PC-relevant family profiling at depth 16 on PC r15 under PC20 (move ordering 17.12 %%,
   see_ge 4.88 %%), looking for the next attackable PC-relevant cost.
+
+## 2026-11-16T22:38:29Z
+
+19-F39 probe_body split: index 32.7 %% / SCAN 39.4 %% / after 27.9 %% at depth 16 (stable at d13).
+19-F40 vector-compare patch: ALL SEVEN PINS HOLD; ratio 0.9865 CI [0.9626,1.0104] and 20 interleaved
+  runs 1.0001 -> no win. Disassembly: GCC scalarised my _mm_cmpeq_epi32 back into the same four
+  scalar compares (patched binary has 0 pcmpeqd, 0 pmovmskb), so the test compared scalar-vs-scalar.
+  Corrected my report: this does NOT show the scan is load-bound. NOT recommending this patch.
+19-F41 valgrind/callgrind CANNOT run this engine (SIGILL on AVX-512 at static init); any totals it
+  prints are preamble. Likely affects seat 29's 29-F5 callgrind numbers - flagged to the coordinator.
+
+next command: continue PC-relevant families — move ordering 17-18 %% is the largest remaining,
+  and 19-F26 showed its tie order moves the owner's own pins, so any change there needs care.
