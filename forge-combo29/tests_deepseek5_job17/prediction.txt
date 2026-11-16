@@ -1,0 +1,19 @@
+job 17 Part B prediction (written before ANY Part-B run; never edited after commit)
+Question: per depth class of the re-search WITHOUT the extra ply (2 | 3-4 | 5-6 | 7-8 | 9-12 | 13+),
+of 1,000 deeper re-searches, in how many does the extra ply change the verdict (set G)?
+
+My reading before measuring:
+- n concentrates at the low end (most deepers fire at small new_depth); the share of verdict-changed
+  FALLS as the depth class rises: a shallow reduced search is cheap and noisy, so one more ply
+  overturns more verdicts there; a deep re-search is already close to decided.
+- Predicted share per 1,000 (band = outside it I call my reading wrong):
+    d2:      120-190   (point 150)
+    3-4:      80-150   (point 110)
+    5-6:      55-125   (point 85)
+    7-8:      35-105   (point 65)
+    9-12:     15-85    (point 45)
+    13+:      no band (n expected ~0 on these sets)
+- Cheapest per changed verdict: the d2 class (its re-search subtrees are the smallest, so the fewest
+  nodes per verdict change). I expect the cost per changed verdict to RISE with the depth class.
+- Basis: job 16's rates were per EXCESS class (138.6 falling to ~65-72); the depth split is new.
+  If instead the share is flat or RISES with depth, my model of "cheap and noisy" is wrong.
