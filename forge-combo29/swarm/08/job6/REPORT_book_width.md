@@ -55,3 +55,26 @@ Raw output committed as `book_width.txt`.
 - Did not map the whole book (I tested 14 lines, not the book's full key set).
 - Did not test whether `Book File` (default `<empty>`) can change the book.
 - Did not measure the book's hit rate over O and G beyond 08-F3's 1-in-200.
+
+---
+
+## Closing the gap 08-F12 opened in my own datasets
+
+job1, job2 and job3 ran on `clock_latency.py`, which did NOT send `OwnBook false`. After 08-F12 (the book answers
+startpos) that had to be closed by measurement, not argument. `ownbook_effect_on_OG.py` runs the SAME 200 O/G
+positions twice on one engine process — once with `OwnBook` at its default true, once false:
+
+| quantity | OwnBook true | OwnBook false |
+|---|---|---|
+| records | 200 | 200 |
+| answered from the book | **1** | 0 |
+| median wall ms | 40.43 | 40.47 |
+| differing bestmoves | 3 | |
+
+The single book answer is index 3 — the position already named in 08-F3 — at 0.35 ms and 2 stdout lines. The
+median moves by 0.04 ms between the two settings. **So the default book cannot have changed any job1/job2/job3
+number**, and the one record it did touch was already identified and excluded from the latency claims (08-F3).
+
+Cross-check on the datasets that DID disable the book: `book_contamination_audit.py` finds 6 records sitting on
+positions 08-F12 proved book-answerable (all from the OR set, i.e. positions like `1.e4 e5 ...`), and every one of
+them has 14-15 stdout lines and 33-83 ms wall — real searches, because the book was off. No contamination there.

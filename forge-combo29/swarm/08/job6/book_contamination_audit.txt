@@ -1,0 +1,20 @@
+## which committed timing datasets set OwnBook false (from the committed runner text)
+| dataset | runner | OwnBook false in the runner? |
+|---|---|---|
+| job1/raw | job1/clock_latency.py | **NO** |
+| job1/raw2 | job1/clock_latency.py | **NO** |
+| job1b/raw | job1b/clock_latency2.py | YES |
+| job2/raw2 | job1/clock_latency.py | **NO** |
+| job3/raw | job1/clock_latency.py | **NO** |
+| job4 | job4/reconcile.py | YES |
+| job5/raw | job1b/clock_latency2.py | YES |
+
+## any timing record on a position 08-F12 proved the book answers?
+| file | records | records on a book-answerable position | their nlines | their wall ms |
+|---|---|---|---|---|
+| job1b/raw/OR_mt50.jsonl | 200 | 3 | 14,14,14 | 40.6,40.6,40.9 |
+| job1b/raw/OR_tc1000.jsonl | 200 | 3 | 15,15,14 | 82.6,82.5,33.0 |
+
+RESULT: 6 records sit on book-answerable positions - check their nlines: a book answer has NO
+info depth line, so nlines == 2 means book, nlines >= 2 with a depth line means a real search.
+Every one of these must be re-run with OwnBook false before its latency is used.
