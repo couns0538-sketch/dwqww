@@ -1,0 +1,37 @@
+# PREDICTION — S28: how accurate is a naive next-iteration cost predictor?
+
+Committed and pushed ALONE before the first measuring command. Never edited afterwards.
+Written 2026-11-16 ~22:50 UTC.
+
+## Why
+S-F34 recommends a gated soft-stop rule whose correctness depends on predicting the next iteration's cost
+(`P = t_last + C * c_last`). I flagged that a real implementation must ESTIMATE that cost and can be wrong.
+This measures how wrong, from the committed ladders — so the recommendation file can say whether a naive
+predictor is safe or whether the gate is riskier than the arithmetic suggests.
+
+## Method
+For every ladder (depth_i, t_i) with iteration costs c_i, predict c_{i+1} = g * c_i for several candidate
+`s`, using ONLY information available at iteration i:
+  - **global mean growth** across all ladders (what a simple implementation would hard-code or compute once);
+  - **global median growth**;
+  - **this position's own last growth ratio** (c_i / c_{i-1}), which a search can compute for free.
+Then report the distribution of the relative error `predicted/actual - 1` for each predictor.
+
+A predictor is "safe enough" for the gate if the ABSOLUTE relative error is within 20 % most of the time —
+say the median within 20 % and the 90th percentile within 50 %.
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| E1 | median |error| of the global-mean predictor | below 30 % | above 50 % |
+| E2 | 90th percentile |error| of the global-mean predictor | below 60 % | above 100 % |
+| E3 | median |error| of the per-position last-ratio predictor | below 25 % | above 50 % |
+| E4 | the per-position predictor beats the global one | yes | it is worse |
+| E5 | the worst tail error (max |error|) | above 200 % | below 100 % |
+| E6 | fraction of predictions within 20 % | 40-70 % | below 25 % |
+
+Reasoning: iteration costs grow in jumps, not smoothly — the ladder data I have shows growth factors from
+0.30x to 5.60x on individual steps. So I expect the 90th percentile to be poor and the tail to be very
+poor, and the median to be tolerable. If that is what I find, the honest conclusion is that a naive
+predictor is fine for the GATE's purpose (the gate only needs to know whether the overshoot is decisively
+large, not the exact cost) but not fine as a precise scheduler — and the file should say exactly that,
+because the gate's threshold G * c_i scales WITH the estimate, which partially forgives an error.
