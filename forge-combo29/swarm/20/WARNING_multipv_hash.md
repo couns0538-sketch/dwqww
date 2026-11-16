@@ -128,8 +128,10 @@ The repaired build keeps **all four honesty pins** (312,866 / 862,329 / 3,024,92
 path is byte-identical** to the shipped build, so it changes only what it claims to. Whether to adopt it is the
 owner's decision; this page only records that its evidence reproduces on an independent build. **What is measured on the analysis side: the patch costs NOTHING at the safe Hash sizes and gains depth
 there** — Hash 16 median 13.5 -> 14.0, Hash 64 11.5 -> 14.0, Hash 128 11.0 -> 14.0 (10 positions, MultiPV 3, 5 s
-clock, Threads 1; `job64/REPAIR_AT_SAFE_HASHES.md`). The repaired build is flat at ~14 plies from Hash 16 to 128, so
-the multi-PV gradient is mostly the `clear()`, not the table size.
+clock, Threads 1; `job64/REPAIR_AT_SAFE_HASHES.md`). The repaired build is flat at ~14 plies from Hash 16 to 128 (14.0/14.0/14.0) but **still declines above that**
+(256 -> 12.0, 512 -> 10.0), so the multi-PV gradient is **mostly** the per-line `clear()` — about 3 of the 4-5 plies at
+Hash 128 — with a further ~2 plies per doubling above 256 MB coming from table size itself. **The patch does not make a
+2 GB table as good as a 16 MB one**, so "huge Hash with MultiPV" stays a bad idea even repaired.
 
 **What is NOT measured: whether the patch makes the engine stronger in PLAY.** Depth at a fixed clock is not a match
 result; a strength claim would need interleaved matches, which I did not run.
