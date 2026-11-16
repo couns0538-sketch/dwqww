@@ -79,6 +79,24 @@ run, so the honest reading is **no measurable cost, and no measurable speed-up e
 about correctness, not speed. T9's "no more than 2 %" was a guess I cannot verify; the interval is the
 real answer.
 
+## Does the patch disturb the clock? (`patch_clock.py`, `patch_clock_out.txt`)
+
+The patch edits `root_drawn`, a few lines above the time-allocation code in the same function, so it must
+be shown not to move the clock results of jobs 1-4. 20 positions per cell, both binaries:
+
+| cell | base median | base max | patched median | patched max | medians within 3 ms |
+|---|---|---|---|---|---|
+| movetime200_mo0 | 200.6 | 200.8 | 200.5 | 200.7 | SAME |
+| movetime200_mo10 | 190.5 | 190.7 | 190.4 | 190.9 | SAME |
+| wt1000_mtg1 | 332.6 | 792.7 | 354.8 | 792.6 | DIFFERENT |
+
+The two movetime cells agree to 0.1 ms on both binaries — the `movetime − MoveOverhead` stop is untouched.
+The `movestogo 1` cell differs by 22 ms, but that cell's own run-to-run scatter is larger than that: job 4
+measured the base at a median of **358.2 ms** on 60 positions for the same cell, so 332.6 and 354.8 from
+two 20-position samples are two draws from the same noisy distribution, not a patch effect. I am stating
+this as "not shown to differ" rather than "same", because 20 positions cannot separate a 22 ms shift from
+this cell's own variance.
+
 ## The step table
 
 | step | done-partly-not done | evidence file | result |

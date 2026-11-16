@@ -70,3 +70,6 @@ job5 DONE + Report. S-F17: a 5-line patch closes BOTH drawn-root doors (halfmove
 
 ## Mon Nov 16 09:58:13 PM UTC 2026
 job5 narrowness check: 120 positions at depth 10, patched vs base, 0 differences in bestmove/nodes/score -> the patch does not touch normal search. Honest limit: none of the 120 fired the shortcut, so the shortcut path is covered only by the 5 targeted cases.
+
+## Mon Nov 16 09:58:58 PM UTC 2026
+job5 clock independence: movetime 200 at overhead 0/10 agree to 0.1 ms between base and patched (200.6 vs 200.5; 190.5 vs 190.4), so the M-10 stop is untouched. movestogo-1 differs 22 ms but that cell's own scatter is larger (job4 base median 358.2 on 60 positions), so it is 'not shown to differ', not 'same'.
