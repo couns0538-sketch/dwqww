@@ -124,3 +124,9 @@ Seat kept: 30 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-30, folde
 
 **30-C18: seat 20's S-F50 zero-node answer CONFIRMED at last** — under three CPU hogs, P1 / Hash 2048 / MultiPV 3 gave 1 zero-node answer in 4 runs with moves b8a8 AND d5d4: the same cell and one of the same two moves seat 20 published. It is rare even under load (1/16 of the 2048-MB probes) but real. Chain is now complete: 30-F41 (clock-only collapse, fixed depth searches MORE), 30-F42 (~18 ms per node warm or cold), 30-C18 (load turns it into a literal 0-node answer).
 **Next command**: `cd check6 && python3 check_s20f50.py out_load2 6` for a second load run to state the rate honestly.
+
+## Mon Nov 16 11:16:17 PM UTC 2026
+
+**30-F43 — the owner-facing answer, measured**: MultiPV 1 is SAFE at every Hash size — Hash 16/64/256/512/1024/2048 MB all give depth 16 and EXACTLY 266,687 nodes (132-164 ms) on the same position. The risk is entirely MultiPV > 1 + large Hash: at MPV 3 the tree is identical (229,977 nodes) but wall time grows ~65 % per Hash doubling (242 -> 305 -> 399 ms) and ends in the 67-node collapse at 2048 MB. At MPV 8 the tree is larger (374,431 nodes). Recommendation: keep MultiPV 1 at any Hash; if MultiPV > 1 is needed for analysis, keep Hash small.
+**Also fixed**: 30-F41's row had an inline table whose pipes broke the markdown — repaired and validated (no malformed rows).
+**Next command**: `cd check6` and measure whether the MPV>1 slowdown at small Hash is the SAME memory path (per-node cost) — to name the code site for the owner.
