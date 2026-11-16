@@ -141,6 +141,11 @@ BETTER by >30 cp             : 3 positions   (best -109)
 > falls monotonically with the budget. `S-F32` measured it: total damage 213 cp at 2,000 nodes → 180 at 8,000 →
 > **96 at 20,000** → 69 at 50,000, so 2.5x more nodes beyond 20,000 buys only 27 cp. **The concrete recommendation
 > is 20,000 nodes for self-play.**
+>
+> **Caveat that belongs with that number:** every figure above is measured RELATIVE to a 250,000-node judgement,
+> which is itself not ground truth. The monotone ordering and the knee are the robust part; the exact centipawns
+> are not. Also, the cost of raising the budget is throughput — 10x the nodes at 20,000 versus 2,000 — which I did
+> not quantify, and for a training loop that may matter as much as the 117 cp of damage it saves.
 
 The 2,000-node budget loses ground on four positions and **gains it on three** — so the concern that it is
 uniformly underpowered is not supported. **But the count is the wrong measure, and `S-F31` corrects it:** I

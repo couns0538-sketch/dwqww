@@ -379,3 +379,11 @@ seed: 1601
   median was the wrong statistic in S-F30 and the SUM of positive costs is the right one for a budget used over
   many moves.
 - check_folder.py: ALL CHECKS PASS (387 files, 37 findings rows). Holding cadence to the close at 10:19Z.
+
+## 2026-11-17T00:12Z
+- FINAL 2.3a: the relative-to-250k caveat moved from the report INTO the verdict box, beside the number it
+  qualifies, as the coordinator asked. It now also states a cost I had been leaving out of the recommendation:
+  raising the budget to 20,000 is 10x the nodes of 2,000, which I did not quantify, and for a training loop
+  throughput may matter as much as the 117 cp of accumulated damage it saves. A recommendation that quotes only
+  its benefit is not a complete recommendation.
+- check_folder.py: ALL CHECKS PASS. Holding cadence to the close at 10:19Z.
