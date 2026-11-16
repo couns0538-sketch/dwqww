@@ -85,3 +85,15 @@ the PC build gives the true `mate -4` at EVERY depth 12-22 on that board.
 OWN CORRECTION: **S-F41** — my audit mis-flagged 30-C4 (it says "Threads 1/S14"; my regex missed that form), so the
 122 count includes false positives and must not be quoted as a number of defective lines.
 Next: queue entry 3 (seat 28's S-F4 repetition door at Threads 1), then seat 21's 21-F11.
+
+## 2026-11-16T22:31:44Z queue progress — 4 of 8 short-list entries confirmed at Threads 1
+Confirmed since the last block, every row `Threads 1` explicit, both builds named:
+- **S-C17** seat 30 30-C4 — reproduces exactly (base collapses at hm 100; PC gives the mate; their quiet board
+  `cp 6 / 1091 nodes` matched to the node).
+- **S-C18** seat 25 S-F1/S-F2 — ladder `-12/-9/-6/-5/-4` reproduces and is bit-stable at Threads 1; the PC build
+  gives the true `mate -4` at EVERY depth 12-22.
+- **S-C19** seat 28 S-F4 — third occurrence collapses on the base tree (f2f3/cp 0/0 n), repaired on the PC
+  (d1d8/mate 1/162 n); second occurrence searched normally, i.e. the `matches >= 2` rule measured.
+- **S-C20** seat 21 21-F11 — `mate 0` on a checkmated root reproduces on BOTH builds, so it is **LIVE on the PC**.
+Remaining short list: seat 21 21-F9, seat 27 S-F8 chain, seat 01 S-F19/S-F22/S-F23, seat 28 S-F21/S-F19.
+No new FABLE_TO_swarm file above 5 (checked; newest swarm file is still 5).
