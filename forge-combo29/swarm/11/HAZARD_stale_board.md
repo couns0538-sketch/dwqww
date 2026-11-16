@@ -183,12 +183,36 @@ In order of strength:
    refused, or try to "resync" with `isready`/`eval`/`stop` — none of those clears the stale board. A harness that only waits for `bestmove` cannot tell "move for the new game" from
    "move for the old one" — both are legal moves.
 
+## The same theme, one door over: a state that should not occur
+The hazard above is one instance of a single pattern: **the harness feeds the engine a state its own
+arbiter should already have dealt with, and the engine answers confidently from a different board.**
+A second instance is the drawn-root adjudication. A position that has occurred **three times** is
+adjudicated at the root in **0 nodes** with `cp 0` — so on the board `6k1/5ppp/8/8/8/8/5PPP/3Q2K1 w`
+a mate in 1 (`d1d8`, 224 nodes, `mate 1`) is silently discarded if that position arrives as a third
+occurrence by move list instead of as a bare FEN. The difference between the two doors:
+
+| | stale board (this note) | repetition door |
+|---|---|---|
+| what triggers it | a refused `position` command | a root position that is its third occurrence |
+| what the engine answers | a legal move for the PREVIOUS board | `cp 0` at 0 nodes for the right board |
+| is the answer wrong? | **yes — wrong position** | no: the arbiter should have ended the game |
+| who is exposed | any harness that trusts `readyok` | only one feeding back an already-finished position |
+
+I confirmed the repetition door independently (S-C13) and then bounded it (S-C14): it fires **only**
+when the root is itself a third occurrence — repetitions *inside* the search evaluate normally, with
+scores rising sensibly by depth and node counts growing — so ordinary analysis is unaffected. That is
+why the stale board is the hazard worth fixing and the repetition door is a note; but they belong
+together, because the defence is the same shape: **know which state you are in before trusting an
+answer.**
+
 ## Where this is measured
 - `checks/full_game_hazard.txt` — the self-play demonstration at the top.
 - `checks/fen_on_real_path.txt` — Route 1 under all three search modes.
 - `checks/illegal_move_route.txt` — Route 2 (illegal move in a list).
 - `checks/prefix_divergence.txt` — how far a corrupted list diverges (up to 13 plies).
 - `checks/fen_moves_form.txt` — the combined `fen ... moves ...` form, which carries both traps.
+- `checks/check_s28f4.txt` — the repetition door (S-C13).
+- `checks/repetition_inside_search.txt` — that it is root-only (S-C14).
 - `checks/fen_truncation_pc20.txt` — every truncation length, and the stale perft 1.
 - `checks/ucinewgame_clears.txt` — the `ucinewgame` test.
 - `checks/refused_then_various.txt` — which follow-up commands clear the stale board (only `ucinewgame`).
