@@ -7,7 +7,7 @@ import sys, math, os, json, itertools
 #  two games of one opening as one unit).
 
 GAMELIST_DIR = sys.argv[1] if len(sys.argv) > 1 else "."
-MATCHES = ["M51", "M52", "M53", "M54", "M55", "M56", "M57", "M58", "M59", "M60"]
+MATCHES = os.environ.get("MATCHES", "M51 M52 M53 M54 M55 M56 M57 M58 M59 M60").split()
 
 
 def load(match):
@@ -231,19 +231,14 @@ def main():
     print()
     print("== POOLS (glmflash5's own groupings, recomputed on my n5)")
     pools = [
-        ("variant@2000 M49+M51+M52 (3 looks, using glmflash5 M49 n5)", None),
+        ("variant@2000 M49+M51+M52 (3 looks, M49 recounted here too)", ["M49", "M51", "M52"] if "M49" in per else None),
         ("variant@2000 M51+M52+M55+M56 (4 looks I can recount)", ["M51", "M52", "M55", "M56"]),
         ("CED8alone@2000 M53+M57+M58", ["M53", "M57", "M58"]),
         ("variant@20000 M54+M59", ["M54", "M59"]),
     ]
     for tag, ms in pools:
         if ms is None:
-            # M49's n5 is published in glmflash5's stats output; recompute with it
-            m49 = [79, 207, 386, 208, 120]
-            n5s = [m49] + [per[x]["n5"] for x in ["M51", "M52"]]
-            p = pool_summary(n5s)
-            print("%s: pairs=%d n5=%s Elo=%+.2f 95%%[%+.2f,%+.2f]" %
-                  (tag, p["P"], p["n5"], p["elo"], p["elo"] - p["half"], p["elo"] + p["half"]))
+            print("%s: not run in this invocation (M49 rows not loaded)" % tag)
             continue
         p = pool_summary([per[x]["n5"] for x in ms])
         print("%s: pairs=%d n5=%s Elo=%+.2f 95%%[%+.2f,%+.2f]" %
