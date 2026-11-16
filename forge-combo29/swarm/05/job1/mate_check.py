@@ -22,13 +22,23 @@ for line in open(rows_file):
     n = lp["score"][1]
     p = subprocess.run([sys.executable, "dtm2.py", r["fen"], MAXPLY, CAP],
                        capture_output=True, text=True, timeout=float(CAP) * 3 + 60)
-    verdict = next((l for l in p.stdout.splitlines() if l.startswith("verdict")), "(no verdict)")
+    verdict = next((l for l in p.stdout.splitlines() if l.startswith("verdict")), None)
+    if verdict is None:
+        # A MISSING verdict must never be scored as a measurement. Fixing this after seat 19's
+        # measurement-integrity warning: the old code fell through to "MISMATCH", i.e. it would have
+        # invented a REFUTES from an empty parse.
+        tag = "NO_VERDICT"
+        n_bad += 0
+        n_unk += 1
+        lines.append(f"{tag:10s} {r['set']} pos {r['pos']:3d} engine_mate={n:+3d}  dtm2 printed NO verdict "
+                     f"line (stdout was {len(p.stdout)} chars) -- counted as UNKNOWN, never as a mismatch")
+        continue
     vpl = ""
     m = re.search(r"(MATES|IS MATED) in (\d+) plies", verdict)
     if m:
         vpl = m.group(2)
-    if "unknown" in verdict:
-        tag = "UNKNOWN"
+    if "unknown" in verdict or m is None:
+        tag = "UNKNOWN"          # no parsed number => not a measurement, in EITHER direction
         n_unk += 1
     elif n > 0:
         want = 2 * n - 1

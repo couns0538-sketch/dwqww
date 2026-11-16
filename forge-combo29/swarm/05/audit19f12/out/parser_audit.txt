@@ -1,0 +1,33 @@
+====================================================================================================
+CHECK A — S-C1: seat 06's S-F9, re-derived with hard parse assertions
+====================================================================================================
+  G196 orig      parsed=cp +4402  claimed=cp +4402  MATCH
+      from line: info depth 10 seldepth 23 score cp 4402 nodes 13149 nps 3287250 hashfull 1 time 4 pv f8d6 b7a7 d6c7 a7a8 c7c6 a8b8 d5d6 
+  G196 mirror    parsed=mate +14  claimed=mate +14  MATCH
+      from line: info depth 10 seldepth 38 score mate 14 nodes 37782 nps 2906307 hashfull 8 time 13 pv f1d3 b2c1 d3c4 c1d1 c4a4 d1c1 a4a1
+  G217 orig      parsed=cp +2557  claimed=cp +2557  MATCH
+      from line: info depth 10 seldepth 26 score cp 2557 nodes 20357 nps 2908142 hashfull 4 time 7 pv c2c1q g3g2 c1d2 g2g3 d2a5 g3g2 h5h4
+  G217 mirror    parsed=mate +11  claimed=mate +11  MATCH
+      from line: info depth 10 seldepth 34 score mate 11 nodes 19276 nps 2753714 hashfull 3 time 7 pv c7c8q g6g7 c8a8 g7g6 a8g8 g6h5 g8e8
+
+====================================================================================================
+CHECK B — job1's mate table: every engine `mate N` re-parsed with assertions, dtm2 re-run
+====================================================================================================
+  mate rows found: 10 (asserted > 0)
+  G/ 59 mate  +4 wants  7 plies, pv has  7, ends_mate=True  consistent
+  G/133 mate  -3 wants  6 plies, pv has  6, ends_mate=True  consistent
+  G/168 mate  +2 wants  3 plies, pv has  3, ends_mate=True  consistent
+  G/174 mate  +2 wants  3 plies, pv has  3, ends_mate=True  consistent
+  G/184 mate  -5 wants 10 plies, pv has 10, ends_mate=True  consistent
+  G/192 mate -12 wants 24 plies, pv has 18, ends_mate=False  INCONSISTENT
+  G/196 mate  +6 wants 11 plies, pv has 11, ends_mate=True  consistent
+  G/217 mate  +7 wants 13 plies, pv has 13, ends_mate=True  consistent
+  G/276 mate  -2 wants  4 plies, pv has  4, ends_mate=True  consistent
+  G/306 mate  +5 wants  9 plies, pv has  9, ends_mate=True  consistent
+  => 9/10 consistent (published: 9/10)
+
+====================================================================================================
+RESULT: every parse asserted and every published number re-derived. No NaN, no empty parse, no
+        missing line could have reached a verdict in these two checks.
+        NOTE: this audit cannot retro-fix job1/mate_check.py, which maps a MISSING verdict line to
+        MISMATCH; that direction invents a REFUTES rather than a CONFIRMS. Recorded in RESULT.md.

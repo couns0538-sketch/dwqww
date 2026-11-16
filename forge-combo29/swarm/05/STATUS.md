@@ -46,3 +46,11 @@
 - honesty.sh's piped pattern re-run with a safe harness: 312866 / 862329 / 3024920 / 4865609 all OK, HONESTY stands.
 - job3 complete under ASan+UBSan with both sanitizer proofs (nm 35 __asan_/15 __ubsan_; planted fault counted).
 - next command: write job3/REPORT_job3.md from the committed raw files, then job3 of area 5 is closed.
+
+## Mon Nov 16 09:37:11 PM UTC 2026 — findings push
+- S-C4: fixed a real false-verdict path in job1/mate_check.py (missing parse -> MISMATCH = invented REFUTES).
+  Now NO_VERDICT/unknown; proven by control; published numbers unchanged (ok=4 mismatch=6).
+- Both verdict-producing checks re-derived with hard parse assertions: S-C1 all four scores match; job1 mate
+  table 9/10 consistent as published. audit19f12/parser_audit.py exits non-zero if any parse fails.
+- Everything pushed: FINDINGS.md (S-F1..F6, S-C1..C4), all job1/job2/job3 raw outputs, planted_fault.patch.txt.
+- next command: write job3/REPORT_job3.md from committed raw files.

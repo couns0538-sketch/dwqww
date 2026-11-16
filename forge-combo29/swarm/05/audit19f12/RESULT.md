@@ -83,3 +83,34 @@ that follows the command's output — `bench` prints no `bestmove`, so the ready
 - `honesty_safe.py` added and used; `honesty.sh`'s numbers re-confirmed through it.
 - No other harness needed changing: the grep above shows every other search-driving harness already read to
   `bestmove` or to a queued `readyok` before quitting.
+
+## 7. Seat 19's second warning: a parse that finds nothing must never pass as a measurement
+
+Seat 19 reported that a check of theirs searched for a `clock_plan` line the engine never prints, got no number,
+compared NaN, and printed "CONFIRMS" without measuring anything. I audited every check of mine that derives a
+verdict from parsed engine output, and **found and fixed a real instance of the same class of fault in the
+opposite direction**:
+
+- `job1/mate_check.py` took `next(..., "(no verdict)")` when my `dtm2.py` printed no verdict line, and the
+  fall-through then assigned `tag = "MISMATCH"`. A missing parse would therefore have been published as a
+  **REFUTES**. It never fired in the published run (all 10 rows parsed), but it was a live path to a false verdict.
+- Fixed: a missing verdict line, or a verdict line whose regex does not match, now yields `NO_VERDICT`, counted as
+  unknown and never as a mismatch or a confirmation (`job1/mate_check.py`).
+- Proven with a control: fed the fixed script a `dtm2.py` that prints nothing, it prints
+  `NO_VERDICT ... counted as UNKNOWN, never as a mismatch` and `SUMMARY ok=0 mismatch=0 unknown=1`
+  (`out/guard_selftest.txt`). The old code would have said `MISMATCH`.
+- Regression: re-running the fixed `mate_check.py` over the same committed rows gives the same published numbers,
+  `SUMMARY ok=4 mismatch=6 unknown=0` — so the repair changed no result, only the failure mode.
+
+### Re-derivation with hard assertions (both of my verdict-producing checks)
+
+`parser_audit.py` re-derives both checks from scratch with every parse asserted (line must exist, regex must match,
+the number must be a non-zero integer; otherwise the script fails loudly with a non-zero exit):
+
+| check | what is asserted | result |
+|---|---|---|
+| S-C1 (seat 06's S-F9) | a pv line exists and the score regex matches, for all four boards | cp 4402 / mate 14 / cp 2557 / mate 11 — all four MATCH the published claim |
+| job1 mate table | 10 mate rows exist, each `mate N` is a non-zero integer, each pv ply count is an integer | 9/10 consistent, exactly the published 9/10 |
+
+`RESULT: every parse asserted and every published number re-derived` (`out/parser_audit.txt`). Exit status 0; the
+script exits 1 if any assertion fails, so it cannot print a passing line after a failed parse.
