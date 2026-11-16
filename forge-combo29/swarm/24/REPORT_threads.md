@@ -6,11 +6,13 @@
 thread-scaled node explosion on one special position) led me to ask the question that actually matters for the
 owner — if nodes vary by 1,000x under threading, does the *chosen move* vary too?
 
-**The answer.** Yes, on ordinary middlegame positions, at Threads 2 and 4, on both builds. On the PC r15 build under
-PC20, depth 12: **8 of the first 20 G positions (40 %) returned more than one distinct bestmove** over 6 fresh
-processes each at Threads 4, and **10 of 20 (50 %) at Threads 2**. At **Threads 1 the same positions are
-single-valued with a node ratio of exactly 1.00**. The base tree shows the same instability. So threaded search on
-this machine is not reproducible for move choice, and Threads 2 is not a safe compromise.
+**The answer.** Yes, on ordinary middlegame positions, at Threads 2 and 4, on BOTH builds. At depth 12, 6 fresh
+processes per position, the same first 20 positions of G:
+base tree (S14) **0 of 20 at Threads 1, 8 of 20 at Threads 2, 9 of 20 at Threads 4**;
+PC r15 (PC20) **0 of 20 at Threads 1, 10 of 20 at Threads 2, 8 of 20 at Threads 4**.
+Every node count at Threads 1 was identical to the digit; every thread count above 1 varied in nodes on all 20.
+So threaded search is not reproducible for move choice, it is a property of the search ARCHITECTURE rather than of
+the PC build, and Threads 2 is not a safer setting than Threads 4.
 
 **How sure.** High on the measurements: fresh process per run, 6–8 runs per position, Threads-1 control with exact
 node reproducibility, OwnBook false, no book line in any transcript. The mechanism is NOT identified (see §5).
@@ -38,12 +40,19 @@ d5e7,d5f6,d5f6,d5f6,d5e7,d5f6,d5e7,d5f6 -> 2 moves  | d5f6 x8 -> 1 move, nodes 3
 
 | build | settings | Threads | positions with >1 move | positions with varying nodes |
 |---|---|---|---|---|
+| base tree | S14, depth 12, Hash 16, OwnBook false | **1** | **0 of 20** | 0 of 20 (bit-identical) |
+| base tree | S14 | 2 | **8 of 20 (40 %)** | 20 of 20 |
+| base tree | S14 | 4 | **9 of 20 (45 %)** | 20 of 20 |
 | PC r15 | PC20, depth 12, Hash 16, OwnBook false | **1** | **0 of 20** | 0 of 20 (ratio exactly 1.00) |
 | PC r15 | PC20 | 2 | **10 of 20 (50 %)** | 20 of 20 |
 | PC r15 | PC20 | 4 | **8 of 20 (40 %)** | 20 of 20 (ratios 1.49–4.34) |
-| base tree | S14 | 4 | 2 of 4 on the disagreeing four | 4 of 4 (ratios 1.78–2.47) |
 
-Worst single example: `8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w` at Threads 4 gave **e4f5 / e3f5 / f4f5** across 6 runs.
+**This is the table that answers the owner's question:** the instability is the same order of magnitude on both
+builds and at both 2 and 4 threads, and Threads 1 is exact on both. It is a property of the threaded search
+architecture, not of the PC build, and 2 threads is not a safer choice than 4.
+
+Worst single examples: PC `8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w` at Threads 4 gave **e4f5 / e3f5 / f4f5**; base tree
+`8/5pk1/4p3/3nK1p1/8/R5P1/5P2/8 b` at Threads 2 gave **d5e7 / d5f6 / g7g6 / d5b6** across 6 runs.
 
 ## 4. Findings
 
@@ -53,6 +62,7 @@ Worst single example: `8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w` at Threads 4 gave **e4f5 
 | 24-F21b | base tree | S14, Threads 4 (6 runs/position) | the same instability is on the base tree, so it is not PC-specific | open |
 | 24-F22 | PC r15 | PC20, Threads 4, 20 positions | 8 of 20 (40 %) of ordinary positions change move at Threads 4 | open |
 | 24-F23 | PC r15 | PC20, Threads 2, 20 positions | Threads 2 is worse (10 of 20), so there is no safe thread count above 1 | open |
+| 24-F24 | both builds | S14 / PC20, Threads 1, 2, 4, 20 positions each | base tree: 0 / 8 / 9 of 20; PC build: 0 / 10 / 8 of 20 — architecture, not build | open, needs another seat |
 
 This also reverses **seat 04's 04-F10a**, which withdrew their 04-F10 (that the effect changes the move). My data
 says the withdrawal was wrong and the original claim was right.
