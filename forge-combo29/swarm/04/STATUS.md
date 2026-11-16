@@ -56,3 +56,21 @@ STEP 1 (generality) DONE — the explosion is NOT general. Two same-shape positi
 STEP 3 (aspiration / NullMove) NOT DONE — out of time after steps 1 and 2; recorded as not done.
 Table: job1/table_divergence.md. Next command:
   python3 job1/divergence.py /home/ubuntu/builds/rel/forge /tmp/d3 asp --threads 4 --depths 12 --runs 2 --opts AspirationDelta=200
+
+## 2026-11-16T22:00:56Z FINAL — THE FINDING, AND THE TWO NAMED GAPS
+THE SENTENCE FOR THE OWNER: at identical settings Threads 4 gives a different mate distance on successive
+runs (17 and 15 at depth 12; 13 and 12 at depth 14), and with null move effectively off, three runs gave
++2402 cp, mate 14 and mate 21. A multi-threaded SCORE is not reproducible even when the MOVE is (f3f8 every
+time). That is the finding; the node count is only the symptom that exposed it.
+STEP 3 DONE, NEGATIVE: AspirationDelta=200 -> +2637 then mate 14; NullMoveMinDepth=10 -> +2402, mate 14,
+mate 21. Neither the aspiration window nor null move is the cause. (04-F8)
+NOT STARTED, as instructed, each with its exact next command in REPORT_job1.md:
+  GAP 1 shape condition:
+    python3 forge-combo29/swarm/04/job1/divergence.py /home/ubuntu/builds/rel/forge /tmp/shape bisect \
+      --threads 1,4 --depths 12 --runs 2 --fen '5R2/1p5k/6p1/8/1K6/5q2/8/8 b - - 0 1'
+  GAP 2 divergence at a fixed NODE count rather than a fixed depth:
+    python3 forge-combo29/swarm/04/job1/divergence.py /home/ubuntu/builds/rel/forge /tmp/nodes nodes100m \
+      --threads 1,4 --depths 12 --runs 3 --limit 300   (needs a --go variant sending go nodes 100000000)
+Files: FINDINGS.md (10 lines: 04-F1..F8, 04-C1..C2), REPORT_job1.md, job1/table_threads.md,
+job1/table_divergence.md, job1/table_quit.md, job1/hang/ (raw JSONL + gdb stacks), honesty/.
+No source file changed; no patch offered; no PR opened.
