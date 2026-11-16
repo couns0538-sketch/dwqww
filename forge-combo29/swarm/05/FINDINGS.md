@@ -1,0 +1,4 @@
+| id | area | finding | evidence file with the command | status |
+|---|---|---|---|---|
+| S-F1 | 5 | At depth 12 on G/192 the engine reports `score mate -12` (a promise of mate in 24 plies) but its own PV is 18 plies and does not end in checkmate; searching the same position deeper it abandons -12 for -9, -6, then -4, so the depth-12 root score is wrong, and a mate in 6 plies is provable by hand. | `job1/out/mate_table.md`, `job1/out/criterion_table.txt`, `job1/out/probe_192_trend.txt`; rerun with `python3 job1/mate_repeat.py /tmp/build-rel/forge "8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1" 12 3` | NEW |
+| S-F2 | 5 | All 553 last PV lines of the O+G depth-12 rows run replay with python-chess without a single illegal move, and 9 of the 10 mate rows have a PV that is exactly the 2N-1 / 2\|N\| mate the score claims. | `job1/out/check_table.txt`, `job1/out/criterion_table.txt`; rerun with `python3 job1/check_pv.py O=job1/out/O.d12.raw.txt G=job1/out/G.d12.raw.txt` | NEW |
