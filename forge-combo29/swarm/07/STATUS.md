@@ -698,3 +698,10 @@ Paired the two header rules explicitly, as one instrument with two directions:
   > - A defect that DOES vanish with more depth is a HORIZON ARTEFACT, not a defect (07-C53: f6e7 at depth 20 becomes f6f5 at depth 24, so a harness testing only at match depth would have filed a bug that does not exist).
   > So before reporting any defect: sweep the budget or depth and see which way it moves. It collapsing at higher effort means the engine was fine; it refusing to move means I am measuring my own arithmetic. One sweep, a few minutes, avoids both errors.
 That is the most compact form of the two lessons: they are not two rules but one sweep read in two directions.
+
+## 2026-11-16T23:57:26Z
+07-C54 -- CONFIRMED 20-S-F53 on 6 paths x 2 builds, and it REFRAMES MY OWN 07-F1. All six cases are 0 nodes on BOTH builds:
+  go depth 2 (mate root) 2 lines; go nodes 100 64 lines; empty searchmoves depth 2 -> 2; go searchmoves no depth -> 64; go nodes 100 searchmoves -> 64; go searchmoves e2e5 -> 64.
+  So the rule is exactly as seat 20 states: one info-depth line per depth, capped at 64 when no depth is given -- and it makes no difference whether the reason for not searching is a terminal root or an empty restriction.
+  CONSEQUENCE I state rather than defend my own work: 07-F1 is ONE INSTANCE of a shared reporting habit, not a searchmoves defect. My patch removes the lines for the empty-restriction case only, which is NARROWER THAN THE DEFECT. A repair aimed at the shared report path -- so all of these emit one honest line -- is the better shape. My patch is not wrong; it is too narrow.
+  Why it matters: three separate findings (terminal root, empty restriction, bare searchmoves) could have produced three separate patches. They are one loop's worth of lines from one path, and the shared diagnosis lets the owner fix them once.
