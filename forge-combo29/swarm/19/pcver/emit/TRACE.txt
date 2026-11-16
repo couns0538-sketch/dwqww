@@ -1,0 +1,41 @@
+emit-path trace, 2026-11-16T22:24:14Z
+
+src/uci.cpp:726  std::cout << "bestmove " << best << prediction  (the ONLY bestmove writer for a search)
+  best comes from result.best_move, result from searcher.search(...) at uci.cpp:709
+
+src/search.cpp:3017  if (result.best_move.is_none()) result.best_move = root_candidates.front();
+  ^ THE CATCH-ALL: after the whole search, if nothing set best_move, take the first root candidate.
+  A search stopped before any iteration completes leaves best_move == Move::none(), so this line fires.
+
+src/search.cpp:2524-2529  root_candidates is built in board.legal_moves() order, unrestricted:
+  MoveList legal = board.legal_moves(); for (move : legal) if (!root_restricted_ || ...) root_candidates.push_back(move);
+  ^ so root_candidates.front() is the FIRST move in the ENGINE'S generator order — which is why P1 gives
+    a7a6 (its perft-1 divide's first line) and not python-chess's lexicographic a7a5.
+
+src/search.cpp:2595  if (!root_candidates.empty()) result.best_move = root_candidates.front();
+  same move, but on the root_drawn / no-candidates path, which is NOT the abort path (P1 has 20+ legal moves).
+  So 3017 is the line; 2595 is a separate same-shaped fallback.
+
+The fixer's target: src/search.cpp:3017 (and its twin at 2595 if the drawn path should change too).
+A fix must still keep the four honesty pins: the none-regime bench roots always complete an iteration,
+so 3017 does not fire there (my measurement: all four pins unchanged).
+
+=== CAUSAL PROOF that line 3017 is the one (not merely co-located) ===
+Probe build ~/pcnofix: the SAME PC r15 source with ONE test-only edit at that line —
+  front()  ->  root_candidates[root_candidates.size() - 1]   (last candidate instead of first)
+Result on the P1 abort (Black to move, `go depth 12`, immediate quit):
+  unmodified PC r15   -> bestmove a7a6
+  probe build         -> bestmove g8h6
+And P1's own `go perft 1` divide order is:  first line a7a6, LAST line g8h6.
+So the aborted answer tracks exactly the index this line picks. That is a causal demonstration that
+src/search.cpp:3017 is the fabrication site, not an inference from proximity.
+
+Kept: the probe edit stays in ~/pcnofix only, never committed, never proposed as a patch.
+Note the honest limits: this shows the line produces the move; it does not show what the CORRECT answer
+should be (a fix could search one ply, answer the hash move, or refuse to answer) — that is a design
+decision for whoever fixes it, and any fix must keep the four honesty pins.
+
+coincidence test, repeats:
+  rep 1: PC r15+stable 292627/939494/2925608/   base+stable 292627/939494/2925608/   IDENTICAL
+  rep 2: PC r15+stable 292627/939494/2925608/   base+stable 292627/939494/2925608/   IDENTICAL
+  rep 3: PC r15+stable 292627/939494/2925608/   base+stable 292627/939494/2925608/   IDENTICAL
