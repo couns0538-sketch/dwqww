@@ -525,3 +525,21 @@ SEAT 25's S-F7 CONFIRMED AND EXTENDED (S-C18, S-F65). A terminal root emits 64 i
   THE CONTROL that makes this a finding: a NORMAL root gives 1 line for go nodes 100 (max depth 1, 67 nodes) and 13 for go movetime 50. So the phantom iterations are TERMINAL-SPECIFIC, not a general loop defect - which is exactly the scoping seat 25 asked for.
   MECHANISM FROM THE CODE (S-F65): the iterative-deepening loop emits one info line per iteration and leaves only on a break; on a terminal root nothing increments the node count, so should_stop() is never true and the loop runs to max_depth emitting an empty line each time. Harmless for strength, but a depth-keyed training label or progress bar reads 64 iterations of progress on 0 nodes of work, and a latency harness timing a terminal position is timing an empty loop.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+### ONE MORE DOOR, now with a confirmed scope: the terminal root
+
+S-C18 / S-F65 confirm seat 25's S-F7 and fix its scope. On a **terminal** root (checkmated OR stalemated),
+`go nodes 100`, `go movetime 50` and `go depth 64` each emit **64 `info depth` lines at 0 nodes**, while
+`go depth 5` correctly emits 5. A **normal** root emits 1 line for `go nodes 100`. So it is terminal-specific:
+the iterative-deepening loop leaves only on a `break`, and a terminal root does no work, so nothing trips the
+stop condition and the loop runs to the 64-depth cap.
+
+Why it is in the FINAL despite being cosmetic: it is the one remaining defect my area can see on the PC build,
+and it is a **harness hazard rather than a strength hazard** — a depth-keyed training label reads 64 iterations
+of progress on 0 nodes, a progress display shows a search that never happened, and a latency harness timing a
+terminal position times an empty loop. It is not the fifty-move family and it is not `mate 0`; it survives on
+the r15 tree.
+
+**State of my area, one line:** no defect that affects play; both of the owner's game endings confirmed clean at
+his match setting; one cosmetic harness hazard on terminal roots, scoped and explained; no patch of mine to be
+applied anywhere.
