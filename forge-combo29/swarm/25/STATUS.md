@@ -147,6 +147,22 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:49Z - third guard (final_selfcheck.py, 4/4 PASS) and the EIGHTH control error, again inside a checker
+
+New final_selfcheck.py re-runs the four cheap live headline claims: S-F29 (cp 1359 at depth 16, mate 8 at 20),
+S-C26 (mate 0/0000/0n vs mate 1/a1a8/105n), S-C27 (64-line burst, answer == go depth 10), S-C22 (MPV3 clock:
+Hash16 depth 13 > Hash256 depth 4). **4/4 PASS.**
+Its FIRST run reported S-F29 as FAIL while printing exactly the numbers S-F29 claims - my assertion tested
+`startswith("cp")` against "score cp 1359". Eighth instance of the control pattern, and the SECOND inside a checker
+I wrote to prevent them.
+
+FINAL pattern line now names all three guards (compliance_check.sh, audit_final.py, final_selfcheck.py) and says
+plainly that two of them exhibited the pattern on their own first run - the best illustration the line could have.
+
+State: compliance PASS, 0 audit mismatches, 4/4 self-check, working tree clean, local = remote.
+Next: re-run audit_final.py near the close (FINDINGS keeps growing), and keep cycling.
+
 ## 2026-11-16T23:48Z - control-error pattern line in the FINAL + audit_final.py guard
 
 FINAL now opens with the pattern: "six times tonight the real finding was a CONTROL error in my own test, not the
