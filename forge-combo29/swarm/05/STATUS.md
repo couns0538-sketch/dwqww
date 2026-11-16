@@ -653,3 +653,12 @@ S-F42's strength implication.
   +2 median plies (up to +17 on one board). But it is SUB-linear: 10x increment -> 2.5x time, i.e. roughly
   the square root. So a bigger increment does buy thinking time, just not proportionally.
 - next command: continue the cycle.
+
+## $(date -u) — S-F51: the scaling law
+- Three increments, clock 6000 ms, same 10 positions, 5 runs/cell, sequential (PC20, Threads 1, Hash 16, OwnBook false):
+  inc 60 -> 202 ms / depth 22 / 3.4% of clock; inc 600 -> 504 / d24 / 8.4% (2.50x per decade);
+  inc 6000 -> 1968 / d29 / 32.8% (3.90x per decade).
+- Power-law fit: exponent 0.494 => t ~ sqrt(increment). NOT a plateau, NOT linear.
+- Owner translation: 0.06 -> 0.6 s buys 2.5x time and +2 median plies; 0.06 -> 6 s buys 9.7x and +7 median plies
+  (max depth 64 on one board). So raising the increment DOES buy thinking time.
+- next command: write this up as the ANSWER file the coordinator asked for, then continue.

@@ -1,0 +1,20 @@
+Three increments, median wall time, same 10 positions and protocol (PC20, Threads 1, sequential):
+
+| increment (ms) | median wall (ms) | median depth | time/clock | x vs previous |
+|---|---|---|---|---|
+| 60 | 202 | 22 | 3.4% | - |
+| 600 | 504 | 24 | 8.4% | 2.50x |
+| 6000 | 1968 | 29 | 32.8% | 3.90x |
+
+What law fits? Each 10x increment multiplies the time by:
+  60 -> 600: 2.50x
+  600 -> 6000: 3.90x
+
+sqrt law would give 3.16x per decade; proportional (linear) would give 10x per decade.
+Measured: 2.49x then 3.90x per decade. So it is BETWEEN, and rising toward the sqrt law at the top.
+A power law t ~ inc^a: a = log(1968/202)/log(6000/60) = 0.494
+
+Interpretation for the owner: raising the increment DOES buy time, with diminishing returns in the sense
+that the exponent is ~0.49 (close to sqrt), but the practical effect is real and large:
+  0.06 -> 0.6 s increment buys 2.5x the time and +2 median plies
+  0.06 -> 6 s increment buys 9.7x the time and +7 median plies (max depth 64 on one board)

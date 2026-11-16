@@ -1,0 +1,22 @@
+exe: /tmp/build-pc/forge   clock 6000 ms   increments 60 vs 600 ms   5 runs each
+PC20, Threads 1, Hash 16, OwnBook false, SEQUENTIAL (one engine at a time)
+positions: 10 from G.epd (real games)   date_utc: 2026-11-16T23:25:16Z
+
+Third increment to test the scaling law: is time ~ sqrt(increment)?
+Same 10 positions, same protocol, 5 runs each, SEQUENTIAL.
+
+pos  0 inc 6000: median   3422 ms  depth 27.0
+pos  1 inc 6000: median   3594 ms  depth 30.0
+pos  2 inc 6000: median   1767 ms  depth 28.0
+pos  3 inc 6000: median   1756 ms  depth 38.0
+pos  4 inc 6000: median   2055 ms  depth 26.0
+pos  5 inc 6000: median   3594 ms  depth 24.0
+pos  6 inc 6000: median    976 ms  depth 64.0
+pos  7 inc 6000: median   1891 ms  depth 48.0
+pos  8 inc 6000: median   1633 ms  depth 26.0
+pos  9 inc 6000: median   3595 ms  depth 30.0
+
+inc 6000: n=50 median 1968 ms  p90 3595  max 3595  median depth 29  max depth 64
+
+SCALING LAW CHECK (medians): 60 -> 202 ms, 600 -> 504 ms, 6000 -> ?
+  sqrt law predicts: 6000 ms increment ~ 504 * sqrt(10) = 1594 ms
