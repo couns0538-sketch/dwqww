@@ -6,7 +6,7 @@ job clock from `job3_start.txt` = `Mon Nov 16 05:06:52 PM UTC 2026`
 ## 1. Three lines
 
 **Asked (file 2, kimi5's job-12 hand-off):** test kimi5's `FailHighBlend.patch.txt` — identity at the default, each bit, and sanitizers.
-**Answer:** the patch applies with zero fuzz and its sha256 equals the one kimi5 publishes (**`8083a257…`**), so I tested the same text; at `FailHighBlend=0` it is an **exact identity** (200/200 O, 353/353 G, all four pins) and sending `0` explicitly is the same program as not sending it; **all seven non-zero values differ from the default on O (0 of 200 nodes equal in every one)**, the seven composition claims all hold, and **10 sanitizer runs (5 values × 2 sets, 2,765 positions) report 0 lines with FHB=0 bit-identical to the depth-10 baseline**.
+**Answer:** the patch applies with zero fuzz and its sha256 equals the one kimi5 publishes (**`8083a257…`**), so I tested the same text; at `FailHighBlend=0` it is an **exact identity** (200/200 O, 353/353 G, all four pins) and sending `0` explicitly is the same program as not sending it; **all seven non-zero values differ from the default on O (0 of 200 nodes equal in every one)**, the seven composition claims all hold, and **14 sanitizer runs (all seven values x both sets, 3,871 positions) report 0 lines with FHB=0 bit-identical to the depth-10 baseline**.
 **How sure:** certain of every number. My one directional prediction was wrong for bit 2 on O and right on G, and I score it below.
 
 ## 2. Honesty numbers (raw files here)
@@ -38,7 +38,7 @@ Clean copy `/agent/repos/p17` at 6b98f2170a3210e71beed04bbd2553972c253ed7.
 | each bit on O: 1, 2, 4, 3, 5, 7 | done | `O_S14_fhb{1,2,4,3,5,7}.rows` | all seven differ (0 of 200 nodes equal each) |
 | composition: 3 vs 1, 3 vs 2, 5 vs 1, 5 vs 4, 7 vs 1/2/4 | done | `cmp2.py` output in 4.3 | **all seven pairs differ**, 0 of 200 nodes equal each |
 | G for 1, 2, 4, 7 | done | `G_S14_fhb{1,2,4,7}.rows` | all differ; sums in 4.2 |
-| sanitizer: values 0,1,2,4,7 on O and G at depth 10 | done | `runs_san/fhb*_{O,G}.rows`, `san_table.txt` | **0 sanitizer lines in all 10**, 2,765 positions |
+| sanitizer: all seven values (0,1,2,3,4,5,7) on O and G at depth 10 | done | `runs_san/fhb*_{O,G}.rows`, `san_table.txt` | **0 sanitizer lines in all 14**, 3,871 positions, every exit 0 |
 | sanitizer identity: FHB=0 vs the depth-10 baseline | done | `cmpcols.py` output in 4.5 | **200 of 200** and **353 of 353 equal** |
 
 ## 4. Findings
@@ -104,19 +104,26 @@ On O, single-bit values change the best move on 46–58 of 200 positions (145–
 
 ```
 cat san_table.txt
-FHB=0 O rows 200 sum 3809466 sanlines 0
-FHB=0 G rows 353 sum 7290580 sanlines 0
-FHB=1 O rows 200 sum 3660124 sanlines 0
-FHB=1 G rows 353 sum 7018051 sanlines 0
-FHB=2 O rows 200 sum 3700481 sanlines 0
-FHB=2 G rows 353 sum 6890296 sanlines 0
-FHB=4 O rows 200 sum 3852095 sanlines 0
-FHB=4 G rows 353 sum 6866843 sanlines 0
-FHB=7 O rows 200 sum 3809353 sanlines 0
-FHB=7 G rows 353 sum 6740141 sanlines 0
+FHB=0 O rows 200 sum 3809466 sanlines 0 exits ['0']
+FHB=0 G rows 353 sum 7290580 sanlines 0 exits ['0']
+FHB=1 O rows 200 sum 3660124 sanlines 0 exits ['0']
+FHB=1 G rows 353 sum 7018051 sanlines 0 exits ['0']
+FHB=2 O rows 200 sum 3700481 sanlines 0 exits ['0']
+FHB=2 G rows 353 sum 6890296 sanlines 0 exits ['0']
+FHB=3 O rows 200 sum 3779750 sanlines 0 exits ['0']
+FHB=3 G rows 353 sum 6940235 sanlines 0 exits ['0']
+FHB=4 O rows 200 sum 3852095 sanlines 0 exits ['0']
+FHB=4 G rows 353 sum 6866843 sanlines 0 exits ['0']
+FHB=5 O rows 200 sum 3620925 sanlines 0 exits ['0']
+FHB=5 G rows 353 sum 6827593 sanlines 0 exits ['0']
+FHB=7 O rows 200 sum 3809353 sanlines 0 exits ['0']
+FHB=7 G rows 353 sum 6740141 sanlines 0 exits ['0']
+
+runs 14 positions 3871 sanlines 0
 ```
-Every position in its own process, **2,765 positions, 0 AddressSanitizer or UndefinedBehaviorSanitizer lines, and
-0 nonzero exits**. FHB=0's rows are byte-identical to the depth-10 baseline (3,809,466 / 7,290,580, 200 of 200 and
+
+Every position in its own process, **3,871 positions (all seven values x both sets), 0 AddressSanitizer or
+UndefinedBehaviorSanitizer lines, and 0 nonzero exits**. FHB=0's rows are byte-identical to the depth-10 baseline (3,809,466 / 7,290,580, 200 of 200 and
 353 of 353), so the sanitizer build of this patch is the plain build when disabled.
 
 At depth 10 the O numbers do not mirror the depth-12 pattern: bit 4 GROWS the sanitizer tree (3,852,095 vs
@@ -144,7 +151,9 @@ build-dependent, and only the "it is wired" conclusion is stable.
 
 - I did not build `FORGE_FHB_CHECK=1` (the counting variant). kimi5's report covers the counters and the job only
   asks me for the identity, the bits and the sanitizers.
-- I did not run values 3 and 5 on G, or 0 explicitly on G (0 on O plus the no-option G run cover the identity).
+- Nothing: after this report's first push I noticed values 3 and 5 were missing from the sanitizer sweep on both
+  sets and ran all four, so the table above covers the full 7 x 2 grid. (0 explicitly on G is still not sent; the
+  no-option G run plus the `FailHighBlend=0` O run cover the identity.)
 - I did not search for a strength result; node sums are not that.
 - I did not test at depth 14.
 - I did not commit engine source; the patch is committed as text.
