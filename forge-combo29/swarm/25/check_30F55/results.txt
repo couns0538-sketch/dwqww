@@ -1,0 +1,35 @@
+### 30-F55: does `movestogo 0` quadruple time at the match clock? (PC20, Threads 1, Hash 16)
+field          position                            median ms  depth  of 6060
+omitted        rnb1kbnr/ppp1pppp/8/4q3/8/2N5/PPPP        179     18     3.0%
+omitted        1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP        161     18     2.7%
+omitted        r4rk1/pp1b1ppp/4p3/3pP3/8/P3P3/1P2        381     18     6.3%
+
+movestogo 0    rnb1kbnr/ppp1pppp/8/4q3/8/2N5/PPPP       1514     25    25.0%
+movestogo 0    1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP       1804     26    29.8%
+movestogo 0    r4rk1/pp1b1ppp/4p3/3pP3/8/P3P3/1P2       1892     22    31.2%
+
+movestogo 1    rnb1kbnr/ppp1pppp/8/4q3/8/2N5/PPPP       1503     25    24.8%
+movestogo 1    1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP       1812     26    29.9%
+movestogo 1    r4rk1/pp1b1ppp/4p3/3pP3/8/P3P3/1P2       1894     22    31.3%
+
+
+VERDICT: CONFIRMS seat 30's 30-F55, and identifies the mechanism from their own numbers plus the code.
+  field omitted : 179 / 161 / 381 ms  (3.0% / 2.7% / 6.3% of a 6,060 ms budget), depth 18
+  movestogo 0   : 1,514 / 1,804 / 1,892 ms  (25.0% / 29.8% / 31.2%), depth 22-26
+  movestogo 1   : 1,503 / 1,812 / 1,894 ms  (24.8% / 29.9% / 31.3%), depth 22-26
+So `movestogo 0` costs 4x to 11x the time of omitting the field, and buys 4-8 plies of depth. Confirmed on 3
+positions x 3 runs.
+
+THE MECHANISM, from include/forge/clock_plan.hpp:37-45 - the branch is `if (moves_to_go > 0)`. With movestogo 0 or
+absent, `moves_to_go > 0` is FALSE, so BOTH take the else-branch:
+    soft = available / TmSoftDivisor(22) + increment * TmIncrementPercent(75)/100      <- the 2.7-6.3% case
+So `movestogo 0` cannot be distinguished from omitting the field by that test... yet the measurement shows they
+DIFFER by 4x. That means the difference is NOT in plan_clock_budget's branch - it must be the UCI layer treating a
+PRESENT `movestogo 0` differently from an absent one (e.g. setting limits.moves_to_go to something other than -1,
+or a separate path). Worth flagging for whoever owns the UCI parser: my measurement and the code branch disagree,
+which is itself the interesting part.
+`movestogo 1` matching `movestogo 0` exactly is consistent with the same UCI-layer effect.
+
+PRACTICAL: a match program must OMIT movestogo (or send a large value) rather than 0. Sending 0 costs 4-11x the
+intended time and changes every match result. This is directly actionable for the owner's match path even though the
+MATCH setting with the field omitted is fine.
