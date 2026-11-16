@@ -416,3 +416,13 @@ SCOPE (10-N4): at counter 70 the last line is depth 19 / 36.1M nodes, so it was 
 let any case run to completion, so "hang" may mean "extremely slow". Band edges only bounded. Depth 22 /
 PC20 / PC build only. **Next measurement that decides severity: does a CLOCK limit make it return?**
 Mon Nov 16 11:31:14 PM UTC 2026
+
+## Hang SEVERITY settled (10-F62, 10-F63, 10-R8)
+Every BOUNDED form returns on the same board/counter: wtime 10000 -> 1.6 s, wtime 6000 -> 1.4 s,
+movetime 3000 -> 3.0 s, nodes 500000 -> 0.2 s, softnodes 20000 -> 0.0 s; only `go depth 22` hangs past 40 s.
+The PC uses softnodes 2000 (self-play) and a 6 s clock (matches) -> **the owner's real path is NOT exposed.**
+10-R8 narrows 10-F61: "untimed go depth on a high-counter K+Q board does not return" -- not "the engine
+hangs on K+Q". Still a real defect worth a repair, confined to one command form.
+10-F63: at a tiny budget `go nodes 500000` plays d1d7 while `go softnodes 20000` plays d1d8 -- not safe to
+compare the two command families at low budgets.
+Mon Nov 16 11:32:12 PM UTC 2026

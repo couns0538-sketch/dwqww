@@ -1,0 +1,29 @@
+THE SEVERITY TEST FOR 10-F61: does a CLOCK limit make the search return? -- YES, EVERY LIMIT DOES.
+
+Board 5k2/8/8/8/8/8/8/1K1Q4 w - - 80 1, PC r15 PC20, Threads 1, Hash 16, interactive reader, 40 s cap:
+
+  go depth 22                  **HUNG**  (40 s cap, still searching)
+  go wtime 10000 btime 10000     DONE   1.6 s   d1d7
+  go wtime 6000  btime 6000      DONE   1.4 s   d1d7
+  go movetime 3000               DONE   3.0 s   d1d7
+  go nodes 500000                DONE   0.2 s   d1d7
+  go softnodes 20000             DONE   0.0 s   d1d8
+
+SO THE FINDING NARROWS SHARPLY, and this is the honest reading:
+ * the hang is NOT reachable on the owner's real path. The PC uses `go softnodes 2000` for self-play and a
+   6 s + 0.06 clock for matches; BOTH return normally here (softnodes 20000 in 0.0 s, the 6 s clock in
+   1.4 s). The match program also always sends a clock, so an unbounded depth search never happens in play.
+ * what IS true: `go depth 22` on this board at counters 70-90 does not terminate within 40 s, while the
+   same board at counter 0 finishes a depth-22 mate search in 1.1 s. That is a real and reproducible
+   behaviour difference worth a repair, but it is confined to UNTIMED depth searches.
+ * it was found only because my harness used `go depth 22` (the shape file 6's own test recipe names).
+   File 6's recipe is fine for TESTING, but a test harness that runs untimed depth searches on high-counter
+   king-and-queen boards can hang -- so this also matters for any seat still doing that.
+
+WHAT IS STILL NOT ESTABLISHED
+ * whether it is an infinite loop or simply a very slow search: at counter 70 the last line was depth 19 /
+   36.1 M nodes, so it was still working at the cap. I did not run it past 40 s.
+ * whether the base build does it too, and whether the band is depth-specific (I tested depth 22 only).
+ * a `go nodes` run returned d1d7 at 500 k nodes in 0.2 s while `softnodes 20000` returned **d1d8** in
+   0.0 s -- different moves at the same tiny budget. That is consistent with 10-F51 (bestmove depends on the
+   budget) but the d1d7-vs-d1d8 split at such small budgets is worth knowing before anyone compares them.
