@@ -10,9 +10,10 @@ ASan+UBSan build built and used, with the planted-fault runner proof (3 sanitize
 ## 1. What I did
 
 Area 10's three jobs: reproduce other seats' NEW findings, recount the two helpers' reports, and check each other.
-- **15 CONFIRMS checks** written (S-C1 … S-C15), each with my own harness, my own positions, and a control.
+- **16 checks** written (S-C1 … S-C16), each with my own harness and a control.
 - **2 helper reports recounted** from their own raw files (deepseek6 long56; glmflash5 job 27).
-- **26 own findings** (S-F1 … S-F26), one **WITHDRAWN** by me (S-F21).
+- **31 own findings** (S-F1 … S-F31), one **WITHDRAWN** by me (S-F21), and one of my own check readings
+  **corrected in another seat's favour** (S-C16: seat 06's 28.6 % reproduces exactly on their own 353 positions).
 - **3 broadcast audits** (19-F12 fabricated bestmove; silent-parse verdicts; seat 10's warm/cold node counts).
 
 ## 2. The findings that matter most for the PC
@@ -75,9 +76,26 @@ Area 10's three jobs: reproduce other seats' NEW findings, recount the two helpe
   three runs of startpos depth 12 give 56,720 three times. And `bench` pins are immune to history drift
   (862,329 after 0/1/5 preceding searches, S-C12).
 
+## 5b. Two late resolutions that the coordinator asked for (job24)
+
+1. **S-F28 / S-F31 — the drawn-root repair, with verbatim source.** Branch
+   `handoff/fable-opus-combo29-all-20261114`, commit `511d334f`, file `forge-combo29/soak_all/FABLE_TO_swarm_3.md`
+   (blob `8b668cd5`, sha256 `cefd84fb…`), lines 13–18, quote: *"On the owner's PC this is REPAIRED since 15 November:
+   the PC's engine searches such a root like any other (only a root with insufficient material is still answered at
+   once) … Seat 20's 'the repetition door stays open' is covered by that repair. A patch for the base tree is not
+   needed."* It does **not** say a patch is harmful, and it does not show the repair (no file or commit for it is in
+   this repository). My **narrow** reading stands — on `6b98f217`, seat 01's patch is insufficient (measured,
+   `job7/`); my **wide** reading (a live PC defect) is withdrawn. **Recommendation: hold the patch off.**
+   Details: `job24/S-F28_SOURCE.md`.
+2. **S-C16 — the 10.0 % vs 28.6 % conflict is resolved in seat 06's favour.** I ran *their* `G_353.fens` with
+   *their* settings (depth 10, S14, Threads 1, Hash 16, OwnBook false) and reproduced **101/353 = 28.6 %** and
+   **334/353 = 94.6 %** exactly, in two process arms that agreed in 353/353 rows. My 10.0 % was my 20-position
+   sample; its Wilson interval (~1–32 %) overlaps their figure, so it was never evidence against them. The
+   "rate not reproduced" reading of my S-C13 is withdrawn. Details: `job24/RESOLUTION_s06f6.md`.
+
 ## 6. What I did NOT do
-- I did not run seat 06's 353-position G set, so their 28.6 % is neither reproduced nor refuted — only my 10.0 % on
-  my own 20 positions stands.
+- I did run seat 06's 353-position G set (job24, after the first draft of this report), and it reproduces their
+  numbers exactly — see 5b.2. What I still have not done is test whether their set's rate holds at other depths.
 - I did not bisect the 11 remaining S14 options in combination, nor find where the `LmpBase=8` mate delay ends.
 - I did not write a patch for the repetition door (S-F13 only shows seat 01's patch is insufficient).
 - I did not test the Windows build, or any GUI behaviour after `bestmove 0000`.
