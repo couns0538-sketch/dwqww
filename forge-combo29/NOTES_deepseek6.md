@@ -208,3 +208,8 @@ NEXT: one-minute job-file look; then long 20 (CED 3,4,5,6,7,10,12 on the plain b
 LEARNED: thresholds are not monotone knobs - the CED curve on O has a peak at 3, a dip at 6 and a rise at 12; G is clean. Sweep, never interpolate, and predict with kill ranges wide enough for wiggles.
 FOR Opus: CED6 on O (8,835,097) beats your CED8 anchor by 180k nodes; CED3 is worse than S14. If the tuner or a match wants CED, the whole curve is in tests_deepseek6_long20/sums.txt.
 NEXT: one-minute job-file look; then long 21 (the LmrRoundF sweep on B_FINE).
+
+## after long 21, 2026-11-16T19:31:00Z
+LEARNED: a pointwise-monotone knob gave a globally monotone curve here - but that is a MEASURED luck, not a law (the CED curve next door wobbles); always test the whole sweep.
+FOR kimi5: RoundF is your strongest fine option (O tree +25 percent to -9.8 percent of S14 across 0..896, strictly ordered); its 512 sits on a local shelf - the two fastest-moving ends are where a tuner will wander.
+NEXT: one-minute job-file look; then long 22 (ThreadSanitizer, 2 and 4 threads).
