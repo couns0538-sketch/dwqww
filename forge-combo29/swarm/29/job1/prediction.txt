@@ -1,0 +1,23 @@
+# PREDICTION - seat 29, area 9, job 1 (profile bench 13) - committed BEFORE the first profiling command
+#
+# Basis: I have not profiled this engine before. These are guesses from how a C++20 alpha-beta engine with an
+# NNUE net usually spends time, not from any measurement of mine.
+P1  bench 13 (862329 nodes) wall time on this 4-core Xeon, Threads 1, Hash 16, plain build:
+    predicted 0.30 s to 1.20 s. KILLED if outside 0.10 s .. 4.00 s.
+P2  The single hottest symbol in the profile will be a search / NNUE-evaluation symbol (search, evaluation,
+    move generation or move ordering), NOT I/O, NOT malloc/free.
+    Predicted share of the hottest single symbol: 12% .. 45% exclusive.
+    KILLED if the hottest symbol is < 6% exclusive (i.e. the profile is flat).
+P3  The ten hottest symbols together will hold >= 60% of all samples.
+    KILLED if the top ten hold < 45%.
+P4  NNUE evaluation work (accumulator update / affine transform / forward pass, whatever the symbols are called)
+    will be the largest single area and I predict it at 20% .. 50% of samples when the whole NNUE family is summed.
+    KILLED if the NNUE family sums to < 12% or > 65%.
+P5  libc/libstdc++/kernel symbols (memcpy, malloc, free, memset, page faults) together: predicted <= 8%.
+    KILLED if they sum to more than 15%.
+P6  No single symbol outside the forge binary and the C++ runtime will exceed 3% of samples (so no hidden
+    kernel-side hotspot).
+#
+# Method fixed in advance: perf record/report on `bench 13` if perf works on this host; if perf is blocked I say so
+# and fall back to gprof (instrumented build, which changes absolute times but not the function ranking) or
+# callgrind (valgrind --tool=callgrind, instruction counts). The fallback is named in the report.
