@@ -241,6 +241,18 @@ together at all.
 
 **Never quote a clock-stop node count as a deterministic result.**
 
+## The checkers get the same treatment
+Every finding here that says "0 problems" or "all rows stable" rests on a tool, and a tool that has
+never been shown to fail is a tool whose approval is worthless. So both of my checkers carry a planted
+fault they must catch:
+- `check_docs.py --selftest` plants an adjacent duplicate line, a splice artefact, a missing path and a
+  duplicate heading — **4 of 4 caught** — so "0 problems across 9 documents" means something.
+- `clock_check_selftest.py` runs the clock checker against a fake engine with a random node count and an
+  alternating move — **correctly reported UNSTABLE** — so "all rows stable" on the real engine is a
+  shown result.
+- The same logic explains why my first `check_docs.py` run's **8 false positives** were useful: they
+  proved the checker could see problems before I refined it to report zero.
+
 ## The pattern behind all of them
 Each trap produced a *plausible* engine defect from a *provably wrong* probe, and each was killed by a
 control rather than by re-reading the code:

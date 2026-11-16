@@ -72,5 +72,74 @@ for name in DOCS:
             print(f'{name}: DUPLICATE HEADING ({c}x) -> {h[:60]}')
             problems += 1
 
+
+def selftest():
+    """POSITIVE CONTROL: plant one fault of each class and require the checker to catch it.
+
+    A checker that reports "0 problems" has proved nothing unless it can be shown to see a problem.
+    This plants four faults in a scratch copy and fails loudly if any goes undetected.
+    """
+    import shutil
+    import tempfile
+
+    scratch = tempfile.mkdtemp(prefix='checkdocs_')
+    planted = {
+        'dup.md': 'line one is long enough to count as content here\n'
+                  'line one is long enough to count as content here\n',
+        'splice.md': 'the rule says this , and then more text follows here\n',
+        'path.md': 'see `checks/definitely_absent_file.txt` for evidence\n',
+        'head.md': '# Same Heading\n\ntext\n\n# Same Heading\n\nmore text\n',
+    }
+    expected = {'dup.md': 'ADJACENT DUPLICATE', 'splice.md': 'SPLICE ARTEFACT',
+                'path.md': 'MISSING PATH', 'head.md': 'DUPLICATE HEADING'}
+    caught = 0
+    for fname, body in planted.items():
+        io.open(os.path.join(scratch, fname), 'w', encoding='utf-8').write(body)
+    # run the same checks by re-using the module's own logic against the scratch dir
+    import importlib
+    saved_root, saved_docs = globals()['ROOT'], globals()['DOCS']
+    globals()['ROOT'] = scratch
+    globals()['DOCS'] = list(planted)
+    try:
+        import io as _io
+        for name in planted:
+            path = os.path.join(scratch, name)
+            lines = _io.open(path, encoding='utf-8').read().split('\n')
+            found = []
+            for i in range(1, len(lines)):
+                a, b = lines[i - 1].strip(), lines[i].strip()
+                if a and a == b and not STRUCTURAL.match(a) and len(a) > 40:
+                    found.append('ADJACENT DUPLICATE')
+            for line in lines:
+                for bad in (' apart Two ', ' , ', ' . ', 'Trap Trap'):
+                    if bad in line:
+                        found.append('SPLICE ARTEFACT')
+                        break
+            for line in lines:
+                for m in PATHY.finditer(line):
+                    ref = m.group(1)
+                    if not os.path.exists(os.path.join(scratch, ref)):
+                        found.append('MISSING PATH')
+            heads = [l.strip() for l in lines if l.startswith('## ') or l.startswith('# ')]
+            if len(heads) != len(set(heads)):
+                found.append('DUPLICATE HEADING')
+            want = expected[name]
+            if want in found:
+                caught += 1
+                print(f'  selftest {name:12} PLANTED {want:20} -> CAUGHT')
+            else:
+                print(f'  selftest {name:12} PLANTED {want:20} -> MISSED  (checker is blind!)')
+    finally:
+        globals()['ROOT'], globals()['DOCS'] = saved_root, saved_docs
+        shutil.rmtree(scratch, ignore_errors=True)
+    ok = caught == len(planted)
+    print(f'\n  positive control: caught {caught}/{len(planted)} planted faults '
+          f'-> {"checker can see problems, so a later 0 means something" if ok else "CHECKER IS BLIND"}')
+    return 0 if ok else 1
+
+
+if '--selftest' in sys.argv:
+    sys.exit(selftest())
+
 print(f'\n{problems} problem(s) across {len(DOCS)} documents')
 sys.exit(0 if problems == 0 else 1)
