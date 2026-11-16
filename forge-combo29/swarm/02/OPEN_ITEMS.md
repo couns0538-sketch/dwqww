@@ -29,10 +29,30 @@ depth 17, and was killed at the 1585 ms hard limit.
 than the remaining plan. 20 boards establish the mechanism, not a rate — seat 08's 08-F29 puts the heavy-tail rate
 at ~4 % of searches over 60 boards per class, which is a larger sample than mine and I would defer to it.
 
-## O-3: the utilisation number is not explained by the tail
-**Known.** The engine uses 3.3-5.8 % of a 6 s clock in the median, in every class, and 26.2 % at the worst single
-board in twenty.
-**Unknown.** Whether using ~5 % of the clock is intended conservatism or leaves strength on the table. Seat 05's
-S-F37 measures the same shape from the other side (`go movetime 6000` uses 5.99 s and reaches depth 27 where the
-clock path reaches depth 19 in 0.36 s), which suggests the gap is a time-management choice rather than a limit of
-the search. Settling which is right needs a strength match, not more measurement.
+## O-3: is the ~5 % clock utilisation intended conservatism, or wasted strength? — the test, ready to run
+
+**Known.** The engine uses 3.3-5.8 % of a 6 s + 0.06 clock in the median on every shape class (my S-F13), and on
+startpos the clock path is literally identical to `go depth 19` — 650,246 nodes in 360 ms — while the same
+6 seconds given as `go movetime 6000` buys depth 27 (seat 05's S-F37, which I confirmed to the digit as S-C6). The
+knob that drives this is `TmSoftDivisor` (default 22): **the soft plan is `available/22 + increment*0.75`, so
+22 gives 317 ms of a 6 s clock**, and lowering it measurably buys depth on the same board — I measured
+`TmSoftDivisor` 22 -> 364 ms / depth 19, 14 -> 519 ms / depth 20, 10 -> 1265 ms / depth 21, 6 -> 1290 ms / depth 21.
+
+**The fair test, which settles it with games rather than measurement.** Play two versions of the PC r15 engine
+against each other, differing in ONE UCI option and nothing else: **A = PC20 unchanged (`TmSoftDivisor` 22)** versus
+**B = PC20 plus `setoption name TmSoftDivisor value 10`** (soft plan 644 ms of the same 6 s clock, the setting I
+measured at 1265 ms wall and depth 21 on startpos). Send BOTH the same `setoption` list — the full 22-name PC20 set
+plus `TmSoftDivisor` at its two values — plus `Threads 1`, `Hash 16`, `MultiPV 1`, `OwnBook false`, and the clock
+`wtime 6000 btime 6000 winc 60 binc 60` for every move; change no other constant, no code, and no build (both
+sides run the same exe, so any difference is the option alone). Use **positions from real games, not startpos**,
+and **at least 400 games** with colours reversed in pairs (200 opening pairs) so a 55 % score is not mistaken for a
+real effect: with 400 games the 95 % interval on a 50 % score is about +/-5 %, so **a score outside 45-55 % for B
+is evidence the extra time is worth something, and a score inside 45-55 % is evidence it is not**. Report wins,
+losses and draws separately, and report B's actual clock usage per move so the reader can see the option took
+effect (it should be ~2-4x A's 160-380 ms).
+
+**What the result would mean.** If B scores above 55 %, the 5 % utilisation is wasted strength and `TmSoftDivisor`
+is a strength knob worth tuning on the owner's clock; if B sits inside 45-55 % while using 2-4x the time, the
+conservatism is correct and the current setting should stay. Either answer is useful, which is why this is worth
+400 games — and it is the only way to answer it, since both settings produce legal, deterministic, reproducible
+search and only a score can separate them.
