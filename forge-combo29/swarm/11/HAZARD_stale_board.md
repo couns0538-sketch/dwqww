@@ -176,6 +176,13 @@ the stale board cannot leak into the next search. It is self-tested against the 
 (`checks/uci_guard_selftest.txt`) and also refuses a one-sided clock (see
 `HAZARD_match_protocol.md`).
 
+**What it costs, priced rather than just approved:** recovery is **1.8 ms**, and in a 40-game soak with
+a malformed FEN injected every fifth game the worst **search-plus-recovery was 6 ms** — 8 faults
+injected, 8 rejected, 32 positions searched, 0 illegal moves, the whole run 0.1 s
+(`checks/guard_cost.txt`, `checks/guard_loop_soak.txt`). Recovery also *composes*: after each of the
+eight recoveries the next real position still searched correctly, with no drift and no leaked stale
+board. So the guard is affordable at the scale of a training run, not merely correct once.
+
 In order of strength:
 1. **Best:** after a refusal, discard the game outright and start a fresh process for the next one.
 2. **Acceptable:** send `ucinewgame` *and* re-send the intended position, well-formed, before `go`.
