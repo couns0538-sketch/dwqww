@@ -1,0 +1,18 @@
+# PREDICTION — job34: the clock at the END of a 6s+0.06 game (where matches are lost)
+written before the first measuring command.
+
+The owner's matches: `wtime 6000 btime 6000 winc 60 binc 60`. job31 showed a fresh 6 s clock answers
+in ~600 ms. The risk is the LAST few moves of a real game, when the clock is nearly gone.
+
+Method: simulate a game clock — start at 6000 ms, subtract measured think time, add 60 ms increment,
+for 60 moves, on real positions, PC20 Threads 1. Record every overrun (think time > remaining clock).
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | 0 time forfeits over a 60-move simulated game (never think longer than the remaining clock) | killed by any forfeit |
+| P2 | the engine keeps a rising share of the clock as it runs out: think time shrinks as wtime shrinks | killed if think time does not fall |
+| P3 | at a forced low clock (wtime 200/100/50/10/1) the engine still returns a LEGAL move | killed by any illegal move or hang |
+| P4 | the deepest danger case is the last-second one: at `wtime 10` the engine answers in under 100 ms | killed if a 10 ms clock produces a multi-second search |
+| P5 | 0 crashes, 0 sanitizer lines | killed by any one |
+
+This is the clock test that a match program would actually exercise.
