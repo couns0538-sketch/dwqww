@@ -4,6 +4,11 @@
 PC plays (PC r15, built from the FABLE_TO_swarm_5 patch, `-DFORGE_MATE_ALPHA_GUARD=1`, PC20
 settings, Threads 1, Hash 16).
 
+## Priority, in one sentence
+**Route 2 below is the one to fix first: a GUI sends a move list every single move, so one bad
+token in `position startpos moves ...` is a likely event, while a malformed FEN is rare — and both
+routes end with the engine answering a legal move for the WRONG board after a `readyok`.**
+
 ## The demonstration that matters: a real game, one bad command, a plausible wrong move
 
 Played out on the PC's own self-play setting (`go softnodes 2000`), engine against itself. Normal
@@ -66,6 +71,23 @@ build: seat 21's **21-C9** (`position fen F moves`, illegal at ply 10, keeps the
 same on the PC build) and **21-C2** (illegal at plies 1, 10 and 500 of a 1,000-ply list keeps the
 legal prefix exactly) — and seat 21's 21-C9 also records that a REFUSED FEN inside the
 `fen ... moves` form keeps the old position, i.e. Route 1 inside Route 2's syntax.
+
+**How far it diverges** (`checks/prefix_divergence.txt`): take a 16-ply Ruy Lopez line and corrupt
+one ply. The engine keeps the legal prefix, searches it consistently, and answers a legal move for
+*that* board — but the board is up to 13 plies in the past, and the move is usually illegal in the
+position the GUI thinks it is playing:
+
+| corruption | plies actually kept | perft 1 (engine = python-chess) | move returned | legal in the intended position? |
+|---|---|---|---|---|
+| illegal token at ply 3 | 2 | 29 | `g1f3` | **no** |
+| illegal token at ply 7 | 6 | 32 | `b5c6` | **no** |
+| illegal token at ply 11 | 10 | 25 | `a4c6` | **no** |
+| illegal token at ply 15 | 14 | 27 | `a2a4` | yes (by luck — one ply short) |
+
+Every prefix's perft 1 matched python-chess exactly, so the truncation is clean and silent and
+never crashes. This is why Route 2 is the more dangerous of the two in practice: a GUI sends a move
+list every move, so one bad token is a likely event, and the result is a legal move for a position
+that may be a dozen plies out of date.
 
 **Both routes share one shape:** the engine reports the problem on an `info string` line, keeps a
 board it was not asked for, and answers `readyok` as if nothing happened.
