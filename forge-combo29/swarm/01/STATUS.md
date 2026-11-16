@@ -662,3 +662,12 @@ seat 27's point is correct and my S-F70 reads as **"not mine"**, not "nobody pub
 retracted the prediction in its own `15-R4`**, keeping the distribution and the 0-forfeits result and deriving
 the same fixed point (its 116.7 ms against my 110 ms, differing only in where the overhead enters). No
 contradiction remains for a reader of 15-F35.
+
+## 2026-11-16T23:53:32Z — 25-minute cadence
+I HAVE TO CORRECT MY OWN S-F74, and it is the same class of error as the others (S-F74b, S-F75).
+  S-F74 said the warm policy is slower per move (156.9 vs 129.2 ms). That compared a WARM 80-PLY GAME against a COLD 144-PLY GAME - so it mixed process policy with position mix, which is precisely the confound seat 27 and I were trying to separate.
+  THE CONTROLLED TEST holds the positions and their order FIXED and varies only the policy: clock 6000 -> warm x0.88 wall (194.0 vs 219.9 ms), depth x1.06; clock 2000 -> x1.13 (87.8 vs 77.5), x1.07; clock 1000 -> x1.02; clock 300 -> x1.05. So the wall ratio swings 0.88 to 1.13 - EITHER DIRECTION, within about 13% - while DEPTH is consistently a fraction better warm (x0.96-1.07).
+  HONEST STATEMENT: process policy changes per-move wall time by about +-10% with NO STABLE SIGN, and warm is usually slightly DEEPER. My 'warm is slower' claim is WITHDRAWN. What survives from S-F74 is only that the policy should be STATED, not a direction.
+  THE METHOD LESSON (S-F75), the fourth of its kind tonight: I changed policy AND changed the sample, then credited the difference to policy. 'I changed X and the number moved' is not evidence when the sample also changed. Same family as S-C10's 60-position sample and S-F63's single anomaly - the number was real in each case and the CAUSAL reading was wrong.
+  This also means seat 27's process-policy separator is now cleanly answered by the EXCHANGE's other half: warmth moved my median +8.3% on the same positions, which is the controlled result and stands.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.

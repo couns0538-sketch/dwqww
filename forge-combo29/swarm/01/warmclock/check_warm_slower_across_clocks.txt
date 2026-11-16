@@ -1,0 +1,20 @@
+warm vs cold per-move cost ACROSS CLOCKS - both arms on the SAME positions in the SAME order,
+so the only difference is process policy (this fixes S-F74's confound, which compared two games)
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+PC20, Threads 1, Hash 16, winc=binc=60, 6 positions
+
+clock	cold_med_wall	cold_med_depth	warm_med_wall	warm_med_depth	warm/cold wall	warm/cold depth
+6000	219.9	18.0	194.0	19.0	0.882	1.056
+2000	77.5	15.0	87.8	16.0	1.134	1.067
+1000	52.9	14.0	53.8	14.5	1.017	1.036
+300	40.1	13.5	42.1	13.0	1.051	0.963
+
+RESULT across clocks [6000, 2000, 1000, 300]: warm is slower at 2, comparable at 1, faster at 1.
+  clock 6000  warm/cold wall x0.88 (warm 194.0 vs cold 219.9 ms), depth x1.06 (19.0 vs 18.0)
+  clock 2000  warm/cold wall x1.13 (warm 87.8 vs cold 77.5 ms), depth x1.07 (16.0 vs 15.0)
+  clock 1000  warm/cold wall x1.02 (warm 53.8 vs cold 52.9 ms), depth x1.04 (14.5 vs 14.0)
+  clock 300   warm/cold wall x1.05 (warm 42.1 vs cold 40.1 ms), depth x0.96 (13.0 vs 13.5)
+
+VERDICT: the effect REVERSES at short clocks (warm faster), so S-F74 is a 6 s result, not a law;
+  a cold benchmark understates cost only at the longer controls. Reported as is.
