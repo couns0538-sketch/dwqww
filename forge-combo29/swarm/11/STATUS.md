@@ -235,3 +235,6 @@ Next: continue on PC20 with provably-applied options; STATUS every 25 min.
 - FEN layer on PC20: S-F36 castling field order-independent + duplicates refused; S-F37 553/553
   real positions accepted with 0 perft-1 mismatches.
 - Next: continue FEN layer on PC20; STATUS every 25 min.
+- S-F38 (systematic S-F28): on PC20 every SHORT FEN (5/4/3/1 fields, and bare `position fen`) is
+  refused yet the engine keeps the PREVIOUS board (perft 1 = 26 = old board), while a 7-field FEN is
+  silently accepted. Too few = refused-but-stale; too many = accepted-silently.
