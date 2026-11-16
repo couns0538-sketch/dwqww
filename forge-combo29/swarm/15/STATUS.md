@@ -96,7 +96,7 @@ correct, not a defect · the 15-F21 "gap" framing · 15-F19 (attribution now iso
 overshoot band, and the movetime P1-P3 bands, were my under-specified predictions.
 
 ### 4. WHAT I DID NOT DO
-No match against another engine; no + at other builds; no frequency estimate for the
+No match against another engine; no `movetime` above 3000 at other builds; no frequency estimate for the
 counter-100 gap; no clock-path test above 6 s or with a stronger opponent. The 30-game sample gives no
 forfeit *rate* — only "0 in 36" and a 115 ms worst margin.
 
