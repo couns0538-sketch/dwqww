@@ -176,3 +176,6 @@ S-F40 longer games (6, different openings): median 99 ms, p90 262 ms, max 792 ms
 
 ## Mon Nov 16 11:21:54 PM UTC 2026
 S-F41 RETRACTS my own transition mechanism. Constructed the case as asked (4 complex middlegames x clock 300/200/150/111, 16 searches): ZERO flagged, and the walls (22-50 ms) were far below even the hard plan (60-174) because the engine finishes its ladder early. And the arithmetic says it must be so: hard = min(available*60/100, soft*5) means a search can never spend more than 60% of the remaining clock, so hard < clock+60 at EVERY clock size. S-F39/S-F40's numbers stand; the 'one p90 move from flagging' interpretation does not. Correct statement is STRUCTURAL not adaptive: spending is proportional to what remains. Written in TRANSITION_REFUTED.md.
+
+## Mon Nov 16 11:22:37 PM UTC 2026
+S-F42 structural result, as asked: spend <= hard <= clock - MoveOverhead < clock + increment for EVERY overhead and increment, so the margin is overhead+increment (70 ms at the owner's control) at EVERY clock size - and it follows from the final clamp alone, independent of the 60%/80% constants. Spend is proportional to what remains. RESIDUAL RISK kept in the file as three items: (1) plan violation, (2) stall outside the search (the real one; machine/GUI not engine), (3) refused position -> unintended board. Written in CLOCK_CANNOT_BE_LOST.md.
