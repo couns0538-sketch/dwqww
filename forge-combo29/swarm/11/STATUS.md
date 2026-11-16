@@ -77,3 +77,8 @@ Next command: `cd /agent/repos/dwqww && git worktree add ../base 6b98f2170a3210e
 - New file: ucio.py — a waiting UCI driver for all future score-based work.
 - Next: verify perft is not fabricated, re-verify a runner.py result with the waiting driver,
   then finish the S-F3 check.
+- AUDIT COMPLETE, evidence `checks/verify_runner_not_fabricated.txt`: 12/12 sampled job1r2 cases give
+  the same bestmove via runner.py and via the waiting driver, all with real info lines; control
+  shows the piped form fabricating `a2a3` with 0 info lines. Perft unaffected (4,865,609 both ways).
+- NOT affected: all job1/job2/job1r2 results, S-F1..S-F9, S-C2..S-C6, job3, castle_battery, perft2cmp.
+- DISCARDS: one draft of check_s05f3 (piped go depth) — no numbers from it were ever recorded.
