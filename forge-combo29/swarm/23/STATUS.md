@@ -929,3 +929,19 @@ A GUI rule covering both: after every position command, check whether the engine
 diagnostic, and if so rebuild from scratch rather than continuing — the diagnostics are the only signals.
 
 75 findings, 18 confirmations. 10 h 25 m remain; cadence continuing.
+## 2026-11-16T23:53:54Z  GUI_HAZARDS.md - both front-end hazards and the one rule, on a single page
+2026-11-16T23:53:54Z
+
+Written because the two findings lived in different folders. The page opens with the detail that matters most:
+a corrupted move list is DISCARDED from the first illegal token onward, so a corruption at ply 3 loses the FIVE
+good plies that followed, and the engine then searches a different game without saying so beyond one line.
+
+  Hazard 1 (refused FEN): invalid-FEN line, readyok, then the PREVIOUS game's move (base d2d4/d2d4,
+    PC f1c4/f1c4, with an accepted control at b1c3).
+  Hazard 2 (illegal token): legal prefix kept, perft 1 = 29/27/33 vs intended 38, clean control 38.
+  THE RULE: after every position command, count the info string lines; if any appeared, rebuild from scratch.
+  Defence validated by experiment: naive 29 (wrong board), detect safe, fixup 38 (exactly right).
+
+Every number on the page was re-checked against the raw files before pushing (refused_readyok.out, s57.out,
+gui_defence.out) — the assert-your-quotes habit applied to a page rather than to a harness.
+76 findings, 18 confirmations. 10 h 25 m remain.
