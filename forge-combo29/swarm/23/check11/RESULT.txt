@@ -1,0 +1,27 @@
+CHECK of seat 11's S-F1 — junk after the sixth FEN field is silently ignored
+=========================================================================
+Claim: `position fen` reads only six tokens and the following loop discards any extra token, so a malformed FEN with
+junk after the sixth field is ACCEPTED rather than refused.
+
+Method (mine): send startpos first, then the test FEN, then `go perft 1`. startpos answers perft 1 = 20, so 20 means
+"refused and startpos kept"; any other count means the test board was taken. Base build, Threads 1, Hash 16.
+
+| case | invalid-FEN line? | perft 1 | reading |
+|---|---|---|---|
+| clean startpos-like | no | 20 | accepted, and 20 is startpos's own count |
+| junk word after 6th | no | 20 | ACCEPTED — no refusal, board is startpos as asked |
+| junk number after 6th | no | 20 | ACCEPTED |
+| junk gibberish `@@@ $$$` | no | 20 | ACCEPTED |
+| junk on a MID-GAME FEN | no | **27** | **ACCEPTED** — 27 is that mid-game board's own count |
+| mid-game clean twin | no | **27** | identical to the junk version |
+| CONTROL: too many squares | yes — `invalid FEN: invalid placement` | 20 | REFUSED, startpos kept |
+
+VERDICT: CONFIRMS S-F1. The decisive row is the mid-game pair: the junk-suffixed FEN gives exactly the clean
+twin's count (27), so the junk was ignored and the position used — not refused. The control proves the same harness
+CAN see a refusal (the too-many-squares FEN is refused and leaves startpos at 20), so the "no invalid-FEN line" in
+the other rows is a real absence, not a blind checker.
+
+CONSEQUENCE worth stating: a GUI or test harness that builds a FEN by concatenation and ends up with a trailing
+field (a stray space plus a token, a seventh field from a buggy formatter) gets its position searched silently and
+correctly-with-respect-to-the-first-six-fields. That is forgiving rather than dangerous, but it means "the engine
+accepted my FEN" does not imply "my FEN was valid".

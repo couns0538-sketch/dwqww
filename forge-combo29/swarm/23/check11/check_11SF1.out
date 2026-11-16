@@ -1,0 +1,12 @@
+`position fen` with junk after the sixth field — base build, Threads 1, Hash 16
+startpos alone answers perft 1 = 20, so 20 means REFUSED and startpos kept
+
+| case | invalid-FEN line? | perft 1 | reading |
+|---|---|---|---|
+| clean startpos-like | no | 20 | **ACCEPTED** (junk ignored) |
+| junk word after 6th | no | 20 | **ACCEPTED** (junk ignored) |
+| junk number after 6th | no | 20 | **ACCEPTED** (junk ignored) |
+| junk gibberish | no | 20 | **ACCEPTED** (junk ignored) |
+| junk on a mid-game FEN | no | 27 | accepted |
+| mid-game clean twin | no | 27 | accepted |
+| CONTROL too many squares | yes: info string invalid FEN: invalid FEN placement | 20 | REFUSED — startpos kept |
