@@ -423,3 +423,11 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   G0 at N=20,000 stops at depth 11 with 9,330 nodes and never reports depth 12. Opposite direction from softnodes,
   which overshoots (S-F31/S-F32). These are exactly the N values the owner's matches use.
 - next command: check whether the base build shows the same `go nodes` undershoot.
+
+## $(date -u)
+- S-F35: the `go nodes` undershoot is ENGINE-WIDE, not PC-specific. Base + S14 (deterministic on all 9 cells):
+  startpos 0.719/0.743/0.963, G0 0.983/0.826/0.658, mid 0.488/0.557/0.637 of N. Worst base cell = mid at N=20000 with
+  9,753 of 20,000 (48.8%) at depth 10, the same shape as the PC build's worst 46.7%. PC20 does not fix it.
+- So on BOTH builds `go nodes N` is a soft ceiling: 47-98% of N used, never overshooting, while `go softnodes`
+  overshoots by 1.0-2.37x. The two limits behave in OPPOSITE directions.
+- next command: continue the cycle on the PC's clock path (6s + 0.06) per file 6.
