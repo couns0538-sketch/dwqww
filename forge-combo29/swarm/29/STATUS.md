@@ -293,3 +293,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-F43 closes the F40-F42 thread's open question: is PC20's smaller tree sound or lossy? PC r15, 40 real-game positions, depth 12, Threads 1, Hash 16: SAME bestmove 34/40 = 85.0%. Of the 6 disagreements, each move judged under the NEUTRAL S14 regime at depth 15: PC20's move scores better 4 of 6, S14's 2 of 6, no ties.
 - Caveat stated in the finding: 4-of-6 cannot prove PC20 plays BETTER, but it rules out the pruning losing moves (unsound pruning would give 0 or 1 of 6). Claim is 'smaller tree, no detected loss of move quality on 40 positions'.
 - next: continuing on the PC path.
+
+## Mon Nov 16 11:49:41 PM UTC 2026
+- 29-F44 SUPERSEDES 29-F43's '4 of 6': at 100 positions the comparison is a DEAD HEAT. 83 of 100 same bestmove (83.0%); of the 17 disagreements judged under the neutral S14 regime at depth 13: PC20 better 7, S14 better 7, tie 3. So the regimes are indistinguishable in move quality on this sample and my earlier 4-of-6 was small-sample noise. Stable claim stays 'no detected loss of move quality', and the 4-of-6 must NOT be quoted as PC20 choosing better moves.
+- 29-N27: the bug was MINE - my first tally regex matched only cp scores and silently dropped 4 of 17 rows, all mate judgements. The rewritten tally requires every row to parse and aborts otherwise. That flipped the conclusion. Lesson: a tally whose denominator is smaller than the rows visible in the raw file is a parse bug, not a result.
+- next: continuing toward the close.
