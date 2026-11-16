@@ -235,12 +235,28 @@ File: REPORT_job10_item2.md, job10/playout_base_d12.txt.
 ply, always on `c6d7`, never on `c6d6` or `c6c7`**. So the cap is the ~1000x node COST, and the root comparison is
 the CAUSE. **State: open, not confirmed.** File: REPORT_job10_item2.md, job10/cap_depth18_summary.txt.
 
-**Population rate, stated plainly: mostly benign.** Build: PC r15; settings PC20, Threads 1, Hash 16, depth 16,
+**Population rate, stated plainly: mostly benign — but see S-F25 below: the signature that does occur is reachable at the match budget.** Build: PC r15; settings PC20, Threads 1, Hash 16, depth 16,
 50 real-game lone-king positions. Strict S-F20 signature (chosen worse than an alternative by > a queen):
 **0 of 50** — my prediction of 5-20 was killed by its own <2 kill range. Any-margin mismatch: **11 of 45** scorable,
 median 36 cp, max 161 cp. Play-out on the largest gaps: only **one** position shows a large, depth-stable ply cost
 (S-F23, weakened by its own depth-16 re-test). S-F22/S-F23/S-F24. **The population does not show the defect at
 anything like 155's severity.**
+
+### S-F25 raises the headline: the defect is reachable in the owner's matches
+
+At the owner's match budget, `go nodes 20000`, on the **four** positions where play-out established the engine's
+choice is worse, the engine picks the **same wrong move as at depth 16 — 4 of 4, deterministic 3/3 each**, with three
+controls also agreeing. Build PC r15; settings PC20, Threads 1, Hash 16, fresh process per search.
+File: REPORT_job12.md, job12/nodes20k.txt.
+
+So S-F20 is **not a deep-search curiosity**: across a 10x difference in effort the choice does not change, which rules
+out "not enough search" and points at the root comparison — consistent with S-F19 (hash and depth inert) and S-F21
+(the cap does not touch either candidate).
+
+**S-F26, a named hypothesis for the cause:** in 3 of those 4 positions the chosen move scores **cp 0** at 20,000 nodes
+while the alternative scores −725 to −953, in bare-king endgames where cp 0 is the drawn-root /
+insufficient-material answer rather than an evaluation. The engine very likely chooses on a "drawn" adjudication that
+play-out contradicts. Labelled a hypothesis; the test (rebuild with the drawn-root fix off) was not run.
 
 ### Area 3 — move generation (all CONFIRMED elsewhere where marked)
 
