@@ -33,3 +33,46 @@ which is itself the interesting part.
 PRACTICAL: a match program must OMIT movestogo (or send a large value) rather than 0. Sending 0 costs 4-11x the
 intended time and changes every match result. This is directly actionable for the owner's match path even though the
 MATCH setting with the field omitted is fine.
+
+*** THE CAUSE IS FOUND - it is the UCI parser, exactly as I suspected but had not read. ***
+
+src/uci.cpp:172 and src/uci.cpp:241 BOTH do:   limits.moves_to_go = std::max(1, value)
+So `movestogo 0` is CLAMPED TO 1, not passed through as 0.
+
+And clock_plan.hpp:37 branches on `if (moves_to_go > 0)`, so:
+  omitted  -> moves_to_go stays at its 'absent' sentinel (<= 0) -> else-branch:
+              soft = 6050/22 + 60*75/100 = 320 ms
+  movestogo 0 -> clamped to 1 -> if-branch:
+              soft = 6050/(1+1) + 60*3/4 = 3070 ms   <- ~14x larger
+
+Predicted ratio: 9.6x  |  Measured: 1514/179 = 8.5x, 1804/161 = 11.2x, 1892/381 = 5.0x
+
+So the mechanism is EXACTLY the clamp: `movestogo 0` means 'one move to go', which budgets half the remaining
+clock instead of a 1/22 share. It is not a bug in the time manager - it is the documented `max(1, ...)` guard
+doing what it says, combined with a caller that sent 0 expecting 'unknown'.
+
+PRACTICAL, now with the reason: NEVER send `movestogo 0` to mean 'unknown' - omit the field (or send a large
+value). 0 is clamped to 1 = 'last move', which spends half the clock. The owner's matches omit it, so they are
+unaffected; any harness that sends 0 is silently playing a different time control.
+Traceback (most recent call last):
+  File "<stdin>", line 25, in <module>
+NameError: name 'EOF' is not defined
+
+*** DIAGNOSIS COMPLETE - the three code facts, read not guessed. ***
+1. include/forge/search.hpp:42      int moves_to_go = 0;        <- the ABSENT sentinel is 0
+2. src/uci.cpp:172 (and :241)       limits.moves_to_go = std::max(1, value);   <- a SUPPLIED value is clamped to >= 1
+3. include/forge/clock_plan.hpp:37  if (moves_to_go > 0) { ... } else { ... }  <- two different formulas
+
+So:
+  field ABSENT   -> moves_to_go = 0        -> `0 > 0` false -> else-branch: soft = 5990/22 + 45 = 317 ms
+  `movestogo 0`  -> clamped to 1           -> `1 > 0` true  -> if-branch:   soft = 5990/2 + 45 = 3040 ms
+and the predicted ratio 3040/317 = 9.6x sits inside the measured range (4.2x, 11.2x, 5.0x).
+
+WHY my earlier flag was half-right: I said "the cause must be the UCI layer treating a PRESENT movestogo 0
+differently from an absent field, e.g. a sentinel other than -1" - correct about the layer and about a sentinel,
+wrong only in assuming the sentinel was not 0. It IS 0, and the clamp on the write side is what breaks the
+symmetry: absent writes nothing (0), supplied 0 writes 1.
+
+FINAL FORM: it is NOT a bug. `movestogo 0` legitimately means "one move to go" after the clamp, and one move to go
+correctly budgets about half the clock. The error is in the CALLER that sends 0 meaning "unknown". Practical advice
+stands and is now explained: omit the field (or send a large value), never 0.
