@@ -649,3 +649,7 @@ RULE ADDED to the FINDINGS header, and applied to my own work: 'A node count und
   ALL 16 CELLS REPRODUCED EXACTLY -- depth and node total identical across the two runs. Worth stating: node STOPS are deterministic even though node counts under a CLOCK are not (07-C47).
   Depth MPV1 -> MPV4: startpos nodes20000 d11->d8 (3 plies); startpos softnodes2000 d7->d5 (2); middlegame nodes20000 d10->d8 (2); middlegame softnodes2000 d7->d5 (2). Monotone in MultiPV everywhere.
   Seat 01 reported d10->d7 and d8->d2: same kind, SMALLER in my positions. So the finding stands but the magnitude must be quoted per position, not as one figure. Their operational advice is confirmed and I would keep it verbatim: assert MultiPV 1 explicitly in any benchmark or match harness, exactly as Threads 1 -- a leftover from an analysis session silently costs 2-3 plies with no warning.
+
+## 2026-11-16T23:50:27Z
+Added the harness-settings rule to the FINDINGS header, since the coordinator is relaying 'assert MultiPV 1 exactly as Threads 1' as a match-harness rule:
+  > ASSERT YOUR HARNESS SETTINGS EXPLICITLY, AND RECORD THEM: Threads 1, MultiPV 1, OwnBook false. Defaults are fine; a leftover non-default silently changes the measurement with no error and a plausible node count. MultiPV 2 costs 3 plies on startpos at go nodes 20000 (d11 -> d8) and 2 on a middlegame, monotone in MultiPV, reproduced exactly in all 16 cells (07-C49). Node STOPS are deterministic here; node counts under a CLOCK are not (07-C47), so quote a clock result by its move and wall time.

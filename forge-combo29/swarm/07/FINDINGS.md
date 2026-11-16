@@ -12,8 +12,7 @@ path** (07-F3, 07-F4 and their rate), **two withdrawn claims of my own** (07-R1 
 **Rules that will save the next person more time than any individual result here. The first one is the
 cheapest to apply and caught me three separate times tonight:**
 
-> **THE FIRST RULE: if the answer does not belong to the position, the position was not accepted.**
-> This engine **refuses** an invalid FEN and keeps the PREVIOUS board, so a harness that does not read
+> **THE FIRST RULE: if the answer does not belong to the position, the position was not accepted.**> This engine **refuses** an invalid FEN and keeps the PREVIOUS board, so a harness that does not read
 > the setup output confidently measures the wrong position and reports it as a result. The tell is in the
 > answer itself: a move that could not occur on the board you sent means the board you sent was
 > rejected. Mine gave `e2e4` for a position with a lone black king on h8 — impossible, so the FEN had
@@ -21,6 +20,8 @@ cheapest to apply and caught me three separate times tonight:**
 > line between `position` and `readyok`, and sanity-check that the bestmove is legal on YOUR board**
 > (07-C46). Validate every FEN with python-chess before using it; two of my three occurrences would have
 > been caught by that alone.
+
+> **ASSERT YOUR HARNESS SETTINGS EXPLICITLY, AND RECORD THEM: `Threads 1`, `MultiPV 1`, `OwnBook false`.** Defaults are fine; a leftover non-default silently changes the measurement with no error and a plausible node count. `MultiPV 2` costs **3 plies on startpos at `go nodes 20000`** (d11 → d8) and 2 on a middlegame, monotone in MultiPV, and reproduced exactly in all 16 cells (07-C49). Node *stops* are deterministic here — every cell of that test matched across two runs — whereas node counts under a **clock** are not (07-C47), so quote a clock result by its move and wall time.
 
 > **A warning from a harness that has not validated its own input is not a finding.**
 > Five of my controls were initially blind, and each was caught by its own planted fault, not by me.
