@@ -9,13 +9,17 @@
 > **Instance 9:** I wrote the sentence *"a control that cannot fail is not a control"* on this page, then minutes
 > later built a control that could not fail — it shared the tested board's best move — and it passed silently.
 >
-> Everything below is the same story in different clothes: **ten** faults, none of which produced an error message,
+> **Instance 11:** I used a convenient library predicate (`can_claim_threefold_repetition()`) as a proxy for the
+> engine's own repetition condition. It is *nearly* the same condition, so it passed review — and it made me test
+> a position the engine does not consider drawn, which nearly produced a published refutation of a correct finding.
+>
+> Everything below is the same story in different clothes: **eleven** faults, none of which produced an error message,
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, TEN instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, ELEVEN instances from this seat (23) and the fix. For any seat measuring anything.**
 
-## Two sentences to carry into any measurement of this engine
+## Three sentences to carry into any measurement of this engine
 
 > **A quoted move is incomplete without its search limit.** A best move depends on the budget — `go depth`,
 > `go nodes`, `go softnodes`, the clock — so a board+move claim must state the budget or it cannot be reproduced.
@@ -23,8 +27,11 @@
 >
 > **A control that cannot fail is not a control.** If the control's own row could have come out either way, the
 > main result is not evidence (instance 9).
+>
+> **A proxy for the condition is not the condition.** Assert it in the same terms the system under test uses; a
+> library predicate that is *nearly* the same is the most dangerous kind, because it passes review (instance 11).
 
-Both were learned by breaking them in the same session they were written in.
+All three were learned by breaking them in the same session they were written in.
 
 ## The rule
 
@@ -201,6 +208,23 @@ reproducible — and two true numbers from different budgets can be combined int
 
 This is the first fault in the family caught by a **tool** rather than by a control row or by re-reading. It is also
 the first caught *before publication*, which is what `assert_quoted.py` was written for.
+
+## Instance 11 — a proxy for the condition is not the condition (23-F59)
+
+Testing whether the drawn-root defect fires on a repetition reached by a real clock game, I stopped the self-play
+when python-chess's `can_claim_threefold_repetition()` became true — and then both builds searched normally, so the
+honest-looking conclusion was **"the defect does not fire on a natural game"**, the opposite of the truth.
+
+The predicate was the wrong one: `can_claim_threefold_repetition()` is also true when a third occurrence **could be
+reached by a move**. The engine's test needs the position to have actually **occurred three times** (file 3). So my
+stopping rule fired at two actual occurrences, and I tested a position the engine does not consider drawn.
+
+**How it was caught:** counting ACTUAL occurrences with my own key — `(board, side, castling, ep)` — instead of
+trusting the library. With the count reaching 3 the defect fired immediately (base 0 nodes, PC 1,376,300).
+
+**The rule:** assert the condition **in the same terms the system under test uses**. A convenient library predicate
+is a proxy, and a proxy that is *nearly* the same condition is the most dangerous kind, because it passes review.
+
 ## The fix, in one line each
 
 1. **Every checker gets a known-answer control**, run in the same invocation, and the checker refuses to report if
