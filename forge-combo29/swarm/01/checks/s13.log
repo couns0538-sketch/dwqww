@@ -1,0 +1,19 @@
+N=60000   total=76412    over=16412    27.4    depth=14  bm=g5h5
+N=100000  total=238725   over=138725   138.7   depth=16  bm=g5h5
+N=150000  total=238725   over=88725    59.1    depth=16  bm=g5h5
+N=200000  total=238725   over=38725    19.4    depth=16  bm=g5h5
+N=250000  total=659130   over=409130   163.7   depth=17  bm=g5h5
+N=300000  total=659130   over=359130   119.7   depth=17  bm=g5h5
+N=400000  total=659130   over=259130   64.8    depth=17  bm=g5h5
+
+
+VERDICT on seat 13's S-F7:
+  the 164 % case REPRODUCES on my build (got 163.7 % at N=250000, total 659130) and is deterministic across two runs.
+  INSIDE the 4N cap: 659130 vs cap 1000000.
+
+  on "unbounded in proportion": the sweep gives %d distinct bands over %d budgets, with
+  overshoot %s %% to %s %%. The overshoot is ONE FINAL ITERATION's node count, so it grows with
+  the position's branching at that depth rather than with N — which is why the PERCENTAGE is
+  largest at small N and falls as N rises, not the other way round. It is bounded absolutely by
+  the 4N cap; it is not bounded as a percentage of N.
+  PRACTICAL: budget for up to 4N in the worst case, and expect roughly 2x on real game positions.

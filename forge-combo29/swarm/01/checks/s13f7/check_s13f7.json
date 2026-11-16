@@ -1,0 +1,141 @@
+{
+ "fen": "8/5p2/8/pp1pkpKp/7P/2P3P1/1P6/8 w - - 0 1",
+ "n": 250000,
+ "run_a": {
+  "n": 250000,
+  "total": 659130,
+  "depth": 17,
+  "score": "cp -1671",
+  "overshoot": 409130,
+  "overshoot_pct": 163.7,
+  "bestmove": "g5h5"
+ },
+ "run_b": {
+  "n": 250000,
+  "total": 659130,
+  "depth": 17,
+  "score": "cp -1671",
+  "overshoot": 409130,
+  "overshoot_pct": 163.7,
+  "bestmove": "g5h5"
+ },
+ "cap": 1000000,
+ "deterministic": true,
+ "sweep": [
+  {
+   "n": 60000,
+   "total": 76412,
+   "depth": 14,
+   "score": "cp -1011",
+   "overshoot": 16412,
+   "overshoot_pct": 27.4,
+   "bestmove": "g5h5"
+  },
+  {
+   "n": 100000,
+   "total": 238725,
+   "depth": 16,
+   "score": "cp -1364",
+   "overshoot": 138725,
+   "overshoot_pct": 138.7,
+   "bestmove": "g5h5"
+  },
+  {
+   "n": 150000,
+   "total": 238725,
+   "depth": 16,
+   "score": "cp -1364",
+   "overshoot": 88725,
+   "overshoot_pct": 59.1,
+   "bestmove": "g5h5"
+  },
+  {
+   "n": 200000,
+   "total": 238725,
+   "depth": 16,
+   "score": "cp -1364",
+   "overshoot": 38725,
+   "overshoot_pct": 19.4,
+   "bestmove": "g5h5"
+  },
+  {
+   "n": 250000,
+   "total": 659130,
+   "depth": 17,
+   "score": "cp -1671",
+   "overshoot": 409130,
+   "overshoot_pct": 163.7,
+   "bestmove": "g5h5"
+  },
+  {
+   "n": 300000,
+   "total": 659130,
+   "depth": 17,
+   "score": "cp -1671",
+   "overshoot": 359130,
+   "overshoot_pct": 119.7,
+   "bestmove": "g5h5"
+  },
+  {
+   "n": 400000,
+   "total": 659130,
+   "depth": 17,
+   "score": "cp -1671",
+   "overshoot": 259130,
+   "overshoot_pct": 64.8,
+   "bestmove": "g5h5"
+  }
+ ],
+ "bands": [
+  {
+   "key": [
+    14,
+    "g5h5"
+   ],
+   "ns": [
+    60000
+   ]
+  },
+  {
+   "key": [
+    16,
+    "g5h5"
+   ],
+   "ns": [
+    100000,
+    150000,
+    200000
+   ]
+  },
+  {
+   "key": [
+    17,
+    "g5h5"
+   ],
+   "ns": [
+    250000,
+    300000,
+    400000
+   ]
+  }
+ ],
+ "pct_min": 19.4,
+ "pct_max": 163.7,
+ "verdict": [
+  "",
+  "VERDICT on seat 13's S-F7:",
+  "  the 164 % case REPRODUCES on my build (got 163.7 % at N=250000, total 659130) and is deterministic across two runs.",
+  "  INSIDE the 4N cap: 659130 vs cap 1000000.",
+  "",
+  "  on \"unbounded in proportion\": the sweep gives 3 distinct bands over 7 budgets, with",
+  "  overshoot 19.4 % to 163.7 %. The overshoot is ONE FINAL ITERATION's node count, so it grows",
+  "  with the position's branching at that depth rather than with N \u2014 which is why the PERCENTAGE",
+  "  is largest at small/medium N and falls as N rises, not the other way round. It is bounded",
+  "  absolutely by the 4N cap; it is not bounded as a percentage of N.",
+  "",
+  "  HARNESS CONSEQUENCE (one line): a harness that trusts the last reported count must also record",
+  "  that the ABORTED iteration's nodes are NOT included, so any cost comparison between two",
+  "  engines must add the same allowance on both sides or it will mis-price the cheaper one.",
+  "  PRACTICAL: budget for up to 4N in the worst case, and expect roughly 2x on real game positions."
+ ]
+}

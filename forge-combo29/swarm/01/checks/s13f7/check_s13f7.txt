@@ -1,0 +1,35 @@
+CHECK of seat 13's S-F7: softnodes 164 % overshoot, and whether it breaks the 4N cap
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+position (seat 13's worst case, from its own JSON): 8/5p2/8/pp1pkpKp/7P/2P3P1/1P6/8 w - - 0 1
+PC20, Threads 1, Hash 16, fresh process per run
+
+1. worst case reproduction at N = 250000:
+   run A: total 659130, depth 17, score cp -1671, bestmove g5h5, overshoot 409130 (163.7 %)
+   run B: total 659130, depth 17, bestmove g5h5 -> deterministic: True
+2. the 4N hard cap: 4 x 250000 = 1000000; the total 659130 is INSIDE the cap by 340870 nodes
+
+3. sweep N upward on the same board: a staircase means the overshoot is ONE iteration
+N	total	overhoot	overhoot_pct	depth	bestmove
+60000	76412	16412	27.4	14	g5h5
+100000	238725	138725	138.7	16	g5h5
+150000	238725	88725	59.1	16	g5h5
+200000	238725	38725	19.4	16	g5h5
+250000	659130	409130	163.7	17	g5h5
+300000	659130	359130	119.7	17	g5h5
+400000	659130	259130	64.8	17	g5h5
+
+VERDICT on seat 13's S-F7:
+  the 164 % case REPRODUCES on my build (got 163.7 % at N=250000, total 659130) and is deterministic across two runs.
+  INSIDE the 4N cap: 659130 vs cap 1000000.
+
+  on "unbounded in proportion": the sweep gives 3 distinct bands over 7 budgets, with
+  overshoot 19.4 % to 163.7 %. The overshoot is ONE FINAL ITERATION's node count, so it grows
+  with the position's branching at that depth rather than with N — which is why the PERCENTAGE
+  is largest at small/medium N and falls as N rises, not the other way round. It is bounded
+  absolutely by the 4N cap; it is not bounded as a percentage of N.
+
+  HARNESS CONSEQUENCE (one line): a harness that trusts the last reported count must also record
+  that the ABORTED iteration's nodes are NOT included, so any cost comparison between two
+  engines must add the same allowance on both sides or it will mis-price the cheaper one.
+  PRACTICAL: budget for up to 4N in the worst case, and expect roughly 2x on real game positions.

@@ -220,3 +220,10 @@ N = 250,000 is 164 % over N but sits 340,870 nodes INSIDE the 4N = 1,000,000 cap
 Useful bound: overshoot up to 164 % observed, hard-capped at 4N.
 
 Next: keep confirming other seats' findings on the PC build under PC20.
+
+## 2026-11-16T22:52:39Z
+SEAT 13's S-F7 CONFIRMED EXACTLY (S-C8) and the harness consequence stated (S-F57).
+  Reproduced on seat 13's own worst-case board 8/5p2/8/pp1pkpKp/7P/2P3P1/1P6/8 w - - 0 1 at N=250000, PC20, Threads 1, Hash 16, fresh process: 163.7 % overshoot, total 659,130 nodes, depth 17, g5h5 - their numbers to the node, identical across two runs. It sits 340,870 nodes INSIDE the 4N hard cap of 1,000,000, so their figure and my cap claim are both true, which is what I wanted to settle.
+  A 7-point N sweep on that board gives 3 distinct bands with overshoot from 19.4 % to 163.7 %, LARGEST AT MEDIUM N (N=100000 overshoots 138.7 % while N=200000 overshoots only 19.4 %). That is what shows the overshoot is one final iteration's size and not a proportion of N - so 'unbounded in proportion' overstates it, while the numbers in it are exactly right.
+  THE LINE YOU ASKED FOR, now in both the report and FINDINGS (S-F57): a harness that trusts the last reported count must also record that the ABORTED iteration's nodes are NOT included, so any cost comparison between two engines must add the same allowance on both sides - otherwise it mis-prices whichever engine aborts a larger iteration, and at 164 % that error exceeds most Elo-relevant differences. Related: go nodes reports only completed iterations (S-F54b) while softnodes reports its true total including the final iteration, so a cost table mixing the two is comparing different quantities.
+Next: keep confirming other seats' findings on the PC build under PC20.
