@@ -1,0 +1,32 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -91,6 +91,9 @@
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
+ int FailHighBlend = 0;
++int RfpNoTtPv = 0;
++int RfpTtGuard = 0;
++int RfpCorrMul = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+@@ -147,6 +150,8 @@
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
+         {"FailHighBlend", &FailHighBlend, 0, 7},
++        {"RfpNoTtPv", &RfpNoTtPv, 0, 1},         {"RfpTtGuard", &RfpTtGuard, 0, 1},
++        {"RfpCorrMul", &RfpCorrMul, 0, 64},
+     };
+     return table;
+ }
+@@ -1691,7 +1696,9 @@
+             if (razor < alpha) return razor;
+         }
+         // Reverse futility pruning.
+-        if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
++        const bool rfp_ok = !(tune::RfpNoTtPv && ss->tt_pv) && !(tune::RfpTtGuard && !tt_move.is_none() && !tt_capture);
++        const int rfp_corr = tune::RfpCorrMul ? tune::RfpCorrMul * std::abs(ss->static_eval - ss->raw_eval) / 16 : 0;
++        if (rfp_ok && !bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving + rfp_corr) >= beta &&
+             eval < MateInMaxPly) {
+             return (tune::FailHighBlend & 1) ? beta + (eval - beta) / 3 : eval;
+         }

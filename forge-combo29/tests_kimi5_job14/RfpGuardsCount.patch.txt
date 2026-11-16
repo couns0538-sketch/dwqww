@@ -1,0 +1,77 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -34,10 +34,40 @@
+ #define FORGE_BARE_KING_MATE_FIX 1
+ #endif
+ 
++// FORGE_RFP_COUNT (kimi5 job 14; default 0 = the code before it): reverse
++// futility guard counters, observe only. 1 = one RFP counter line per UCI search.
++#ifndef FORGE_RFP_COUNT
++#define FORGE_RFP_COUNT 0
++#endif
++
+ namespace forge {
+ 
+ int DrawJitter = 0;
+ 
++#if FORGE_RFP_COUNT
++// RfpGuards counters (kimi5 job 14). Observe only: no value, control flow or
++// table entry of the search changes. All runs of this job use Threads 1, so plain
++// counters. One counter set per UCI search: reset where the search's own counters
++// reset, one RFP line printed where the search result returns.
++// P = the plain test of today true (it would return); N/T/C = the returns each
++// option blocked where it decides (RfpNoTtPv / RfpTtGuard / RfpCorrMul).
++namespace rfpc {
++std::uint64_t cnt[4] = {};
++void reset() { std::memset(cnt, 0, sizeof(cnt)); }
++void note(int opt_notpv, int opt_ttg, int opt_cmul, bool tt_pv, bool tt_quiet, bool grown_ok, bool plain_true) {
++    if (!plain_true) return;
++    ++cnt[0];
++    if (opt_notpv && tt_pv) ++cnt[1];
++    if (opt_ttg && tt_quiet) ++cnt[2];
++    if (opt_cmul && !grown_ok) ++cnt[3];
++}
++void print() {
++    std::cout << "info string RFP v1 P " << cnt[0] << " N " << cnt[1] << " T " << cnt[2] << " C " << cnt[3]
++              << std::endl;
++}
++} // namespace rfpc
++#endif
++
+ namespace tune {
+ int LmrQuietBase = 85;
+ int LmrQuietDivisor = 220;
+@@ -1698,6 +1728,13 @@
+         // Reverse futility pruning.
+         const bool rfp_ok = !(tune::RfpNoTtPv && ss->tt_pv) && !(tune::RfpTtGuard && !tt_move.is_none() && !tt_capture);
+         const int rfp_corr = tune::RfpCorrMul ? tune::RfpCorrMul * std::abs(ss->static_eval - ss->raw_eval) / 16 : 0;
++#if FORGE_RFP_COUNT
++        rfpc::note(tune::RfpNoTtPv, tune::RfpTtGuard, tune::RfpCorrMul, ss->tt_pv, !tt_move.is_none() && !tt_capture,
++                   eval - (tune::RfpMargin * depth - tune::RfpImproving * improving + rfp_corr) >= beta,
++                   !bare_king_mode && depth <= tune::RfpDepth &&
++                       eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
++                       eval < MateInMaxPly);
++#endif
+         if (rfp_ok && !bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving + rfp_corr) >= beta &&
+             eval < MateInMaxPly) {
+             return (tune::FailHighBlend & 1) ? beta + (eval - beta) / 3 : eval;
+@@ -2171,6 +2208,9 @@
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
+     null_blocked_ = false;
++#if FORGE_RFP_COUNT
++    rfpc::reset(); // one counter set per UCI search (Threads 1: only this worker runs)
++#endif
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+     root_history_index_ = board.history_size() - 1;
+@@ -2762,6 +2802,9 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#if FORGE_RFP_COUNT
++    rfpc::print(); // one RFP counter line per UCI search
++#endif
+     return result;
+ }
+ 

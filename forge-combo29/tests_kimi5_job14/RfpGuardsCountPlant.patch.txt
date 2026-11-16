@@ -1,0 +1,15 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -1726,10 +1726,10 @@
+             if (razor < alpha) return razor;
+         }
+         // Reverse futility pruning.
+-        const bool rfp_ok = !(tune::RfpNoTtPv && ss->tt_pv) && !(tune::RfpTtGuard && !tt_move.is_none() && !tt_capture);
++        const bool rfp_ok = !(tune::RfpNoTtPv && ss->tt_pv) && !(tune::RfpTtGuard && true); // PLANT (job 14 control): RfpTtGuard blocks EVERY return
+         const int rfp_corr = tune::RfpCorrMul ? tune::RfpCorrMul * std::abs(ss->static_eval - ss->raw_eval) / 16 : 0;
+ #if FORGE_RFP_COUNT
+-        rfpc::note(tune::RfpNoTtPv, tune::RfpTtGuard, tune::RfpCorrMul, ss->tt_pv, !tt_move.is_none() && !tt_capture,
++        rfpc::note(tune::RfpNoTtPv, tune::RfpTtGuard, tune::RfpCorrMul, ss->tt_pv, true, // PLANT (job 14 control): the guard's blocked set is every plain-true site
+                    eval - (tune::RfpMargin * depth - tune::RfpImproving * improving + rfp_corr) >= beta,
+                    !bare_king_mode && depth <= tune::RfpDepth &&
+                        eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
