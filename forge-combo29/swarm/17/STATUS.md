@@ -258,3 +258,18 @@ DONE
 NEXT
 - Keep cycling: look for the same silent-continuation hazard on the `position startpos moves` path, which a
   GUI uses for every game, and push STATUS at the 25-minute mark.
+## 2026-11-16T23:07Z (block 16)
+
+seat 17 | PC path measurements | Threads 1 | branch for-fable-and-opus/swarm-17
+
+DONE
+- Three-line FEN guard added to FINDINGS_TABLE.md and VERIFIED: refuses both FENs that fooled me, an empty
+  board, a checkmated position and a stalemate; accepts good ones. pc/guardcheck/guard.json.
+- Moves-path silent continuation measured: `position startpos moves e2e4 e7e5 e1e3` -> `illegal move e1e3`,
+  `readyok`, then `g1f3` (legal in the retained PREFIX only). That is the call a GUI makes on every move, so
+  the exposure is far larger than the hand-written-FEN route; recorded as exposure, not a new fault.
+
+NEXT
+- Continue the cycle: the remaining question on the owner's path is whether the engine ever disagrees with
+  python-chess about legality at the match budgets on a larger position sample (a wrong move is the other way
+  to lose a game outright). Then keep the table current and push STATUS every 25 minutes.
