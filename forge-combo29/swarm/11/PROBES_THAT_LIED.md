@@ -224,6 +224,11 @@ slower-looking engine may just be playing harder positions. **Four independent m
 with only the position mix differing** (S-F98). Anyone comparing two such rows would think one engine was
 different; neither was. (S-F96b, S-F98)
 
+**This is a structural problem, not a mistake any one seat can fix:** a report table that lists timing
+medians side by side across seats is comparing incomparable numbers even when every row is individually
+correct. Either the position set becomes a mandatory column, or the medians should not be tabulated
+together at all.
+
 **Never quote a clock-stop node count as a deterministic result.**
 
 ## The pattern behind all of them
