@@ -1,28 +1,26 @@
-## 2026-11-16T23:30Z - FINAL carries the four-way agreement; PC path end-to-end is clean (S-F30)
-
-FINAL (top of this file) now states the FOUR-WAY AGREEMENT on softnodes: my S-F25 reproduced by seats 08, 19 and
-29, and I reproduced seat 19's budget ratios to a hundredth (S-C12). Agreed cost model: 1.3-2.1x N for
-`go softnodes`, ~0.5-0.7x N for `go nodes`.
-
-NEW S-F30 - end-to-end health at the owner's exact match setting (PC r15/PC20/Threads 1/Hash 16, go nodes 20000,
-one fresh process per move, 90 plies): 0 illegal moves, 0 missing info lines, 90/90 moves from a COMPLETED
-iteration, normal termination by threefold repetition, nodes spent/N median 0.75 (0.34-1.00). So at the setting his
-matches use, over a full game, nothing in my findings fires. That is the reassuring half and it is in the FINAL.
-
-NEW S-C13 - checked seat 21's 21-F2 and REFUTED its wrong-side half on the PC build: after a refused FEN,
-`go perft 1` = 5 (White's legal-move count) not Black's 44, and the returned move is the retained position's own
-correct move. Its other half is TRUE and actionable: a refused FEN still answers `readyok`, so a GUI must watch
-for `info string invalid FEN`, not `readyok`. Recorded with a build caveat - refuted in MY scenario, not proof
-seat 21 was wrong.
-
-Next: keep cycling the PC path (other seats' unconfirmed finds where my PC20 harness helps; the S-F6/S-F7
-terminal-root items under a game that ends by mate rather than repetition).
 ## 2026-11-16T23:25Z FINAL (continuing to work; this block is the complete inventory as it stands)
 
 Seat 25, area 5 (principal variations and scores). Branch for-fable-and-opus/swarm-25, folder
 forge-combo29/swarm/25/. Build used for everything PC: PC r15 from FABLE_TO_swarm_5 (patch sha256
 d6bd72c531f785f4... matches), PC20, Threads 1, Hash 16 unless a line says otherwise. Base-tree findings used
 build 6b98f217, S14. All four honesty pins hold on every build I used: 312866 / 862329 / 3024920 / 4865609.
+
+### REASSURANCE FIRST: the owner's real match setting is clean end-to-end (S-F30)
+
+A full **90-ply self-play game** at the owner's exact match configuration - PC r15, PC20, Threads 1, Hash 16,
+`go nodes 20000`, one fresh process per move - came out clean:
+
+| check | result |
+|---|---|
+| illegal moves / no legal move | **0** |
+| moves whose final `info` line was missing | **0** |
+| moves chosen from a COMPLETED iteration (non-empty PV) | **90 / 90** |
+| game termination | normal (threefold repetition) |
+| nodes actually spent / 20000 | median **0.75** (0.34-1.00) |
+
+So at the setting his matches actually use, over a whole game, **none of the defects in this report fires**.
+The 0.75 figure independently reproduces the budget ratio I confirmed against seat 19 (S-C12).
+Evidence: `pcpath/match_game.py`, `pcpath/match_game.txt`.
 
 ### THE HEADLINE FINDING FOR THE OWNER (file 6's half-move test needs depth)
 
@@ -52,7 +50,6 @@ engine output), written up in `check_file6/HOW_TO_APPLY_FILE6.md`.
 | S-F25 | `go softnodes` is deterministic (identical score/nodes/move), always stops at a FINISHED depth, and overshoots N by 1.06-1.55x. Independently reproduced by seats **08, 19 and 29**. | PC/PC20 |
 | S-F26 | **NEAR-MISS, NOT A DEFECT - DO NOT "FIX".** The match path uses only 2.4-8.7% of its clock (178 ms of 6 s), which is `plan_clock_budget`'s soft limit working (TmSoftDivisor 22 -> 317 ms at 6 s); `go movetime` differs because it is a hard instruction. Corroborated by four seats; raising time usage would lose on time. | PC/PC20 |
 | S-F29 | The depth-20 threshold finding above. | PC/PC20 |
-| S-F30 | **The owner's exact match setting is clean end-to-end.** A full 90-ply self-play game at PC20/Threads 1/Hash 16/`go nodes 20000`, one fresh process per move: 0 illegal moves, 0 missing final info lines, **90/90** moves from a completed iteration, normal termination by threefold repetition, nodes spent/N median **0.75**. Independently reproduces the budget ratio on a real game rather than 6 isolated positions. | PC/PC20 |
 
 ### CONFIRMATIONS / CHECKS OF OTHERS
 
@@ -102,6 +99,26 @@ One cause every time: reconstructing data instead of copying it from raw output.
 `debug/RISK_MEASURED.md` (why the repair was refused), `pcpath/EXPOSURE_FINAL.md` (the withdrawal).
 
 Running now: nothing. Next: continue the cycle on the PC path and confirm other seats where my PC20 harness helps.
+
+## 2026-11-16T23:30Z - FINAL carries the four-way agreement; PC path end-to-end is clean (S-F30)
+
+FINAL (top of this file) now states the FOUR-WAY AGREEMENT on softnodes: my S-F25 reproduced by seats 08, 19 and
+29, and I reproduced seat 19's budget ratios to a hundredth (S-C12). Agreed cost model: 1.3-2.1x N for
+`go softnodes`, ~0.5-0.7x N for `go nodes`.
+
+NEW S-F30 - end-to-end health at the owner's exact match setting (PC r15/PC20/Threads 1/Hash 16, go nodes 20000,
+one fresh process per move, 90 plies): 0 illegal moves, 0 missing info lines, 90/90 moves from a COMPLETED
+iteration, normal termination by threefold repetition, nodes spent/N median 0.75 (0.34-1.00). So at the setting his
+matches use, over a full game, nothing in my findings fires. That is the reassuring half and it is in the FINAL.
+
+NEW S-C13 - checked seat 21's 21-F2 and REFUTED its wrong-side half on the PC build: after a refused FEN,
+`go perft 1` = 5 (White's legal-move count) not Black's 44, and the returned move is the retained position's own
+correct move. Its other half is TRUE and actionable: a refused FEN still answers `readyok`, so a GUI must watch
+for `info string invalid FEN`, not `readyok`. Recorded with a build caveat - refuted in MY scenario, not proof
+seat 21 was wrong.
+
+Next: keep cycling the PC path (other seats' unconfirmed finds where my PC20 harness helps; the S-F6/S-F7
+terminal-root items under a game that ends by mate rather than repetition).
 ## 2026-11-16T23:24Z - COPYING_RULE.md written; depth sweep sharpens the file-6 guidance (18, not 20)
 
 COPYING_RULE.md (new, top of the branch for the next swarm): never reconstruct data from memory or notes - copy it
