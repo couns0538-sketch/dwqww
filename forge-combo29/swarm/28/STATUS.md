@@ -167,3 +167,6 @@ S-F34 gated rule measured. RECOMMENDATION: adopt G=1.5 (stop only when projected
 
 ## Mon Nov 16 11:15:55 PM UTC 2026
 Hourly check received. Clock thread (S-F26..S-F38) is closed. Now starting the per-move p90 measurement at 6s+0.06 on REAL GAME positions, as asked: median 105 ms against a 60 ms increment means each move loses clock and the tail decides when it runs out. Plan: simulate a REAL COUNTDOWN (not a constant 6000 ms clock, which I showed inflates the tail - constant gave 1585 ms outliers, countdown gave max 828 ms), play actual games engine-vs-engine at 6s+0.06 under PC20 Threads 1, record every move's search time and the clock trajectory, and report median/p90/p99/max plus whether and when a clock flags.
+
+## Mon Nov 16 11:18:30 PM UTC 2026
+S-F39 per-move p90 at the owner's control measured ON REAL GAMES: 4 games, 281 moves, real countdown. median 132 ms, p90 359 ms, p99 550, max 608 ms; 275/281 moves (98%) exceed the 60 ms increment so the clock falls almost every move; 0 of 4 flagged, all repetition draws at 58-101 plies. p90/max far below my constant-clock 1585 ms figure - another confirmation that a constant clock inflates the tail. Limits: self-play draws end early so these games never probe the long-game regime; extrapolation says the clock lasts ~83 moves/side at the median, ~20 at the p90.
