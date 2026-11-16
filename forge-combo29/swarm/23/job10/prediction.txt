@@ -1,0 +1,27 @@
+PREDICTION — SW-23 job 10 (three budgets on FRESH positions)
+Written before the first measuring command. Never edited afterwards.
+
+Why: 23-C9 confirmed seat 17's "1 of 10 positions changes move between budgets 20000/50000/250000", but both
+their 10 and mine came from set G, so the RATE was untested. This job tests it on positions never searched by
+either of us: my seed-2401 games, filtered to quiet middlegames (no check, no capture available in the last move,
+at least 20 legal moves), which is where a budget difference is most plausible.
+
+Protocol identical to the confirmed run: PC r15 build, PC20, Threads 1, Hash 16, a fresh process per
+(position, budget), stdout drained to `bestmove` (19-F12), bestmove compared across the three budgets.
+
+Prediction (each number with the range that kills it):
+  P1  positions where the move changes between the three budgets: I predict 1 to 4 out of 20 fresh positions
+      (5%-20%). KILLED if 0, or if >= 8.
+      Reasoning: file 6's budgets differ by 12.5x, so on quiet middlegames with several near-equal moves a change
+      should show more often than "never", but most positions have one clearly best move, so I do not expect a
+      large rate. If 0 of 20, seat 17's 1-in-10 is likely specific to their board.
+  P2  where a move changes, the 50000 and 250000 answers will AGREE with each other and differ from 20000
+      (the 20000 budget is the weak one), not an arbitrary pattern. KILLED if a change is not of that shape.
+  P3  every position gives a legal move at every budget: 60 of 60. KILLED if any illegal.
+  P4  all three budgets are deterministic on repeat: I will re-run 20000 twice on every position and require the
+      same bestmove. KILLED if any position differs between the two 20000 runs.
+  P5  the node counts reported at a given budget will be identical to the earlier run on the same (position,
+      budget) — i.e. nothing in the PC20 regime has drift. KILLED if any differ.
+
+If P1 comes out 0 of 20 that is a real result and gets reported as such: seat 17's finding would then be
+board-specific rather than a rate.
