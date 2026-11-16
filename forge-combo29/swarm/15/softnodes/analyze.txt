@@ -1,0 +1,28 @@
+P1 determinism (5 reps, score+nodes+bestmove identical):
+  non-deterministic rows: 0 of 15  -> HELD
+
+P2 finished depth (depths printed are exactly 1..D, no gaps):
+  rows with a gap in the depth sequence: 0 of 15 -> HELD
+
+P3 overshoot <= 20%% (kill: > 50%%):
+  overshoot by N:
+    N=500    min   -11.6%  max  +233.4%  (n=5)
+    N=2000   min    +1.2%  max  +106.1%  (n=5)
+    N=20000  min    +5.4%  max   +58.9%  (n=5)
+  rows over 20%: 10 of 15 -> P3 REFUTED as stated
+  rows over 50% (the KILL threshold): 6 of 15 -> KILL TRIGGERED
+
+P4 softnodes 2000 depth between 4 and 12:
+  depths: [('startpos', 7), ('G-mid-1', 7), ('G-mid-2', 8), ('G-end-1', 5), ('G-end-2', 7)] -> HELD
+
+P5 bestmove legal in every run:
+  (all rows reported legal=True above)
+
+MAXIMUM OVERSHOOT: +233.4% on G-end-1 at N=500
+
+THE WORST CASE FOR SELF-PLAY: how far past 2000 nodes does 'softnodes 2000' go?
+  startpos  4121 nodes = +106.1% over (2121 past N), depth 7
+  G-mid-1   2671 nodes =  +33.5% over (671 past N), depth 7
+  G-mid-2   3312 nodes =  +65.6% over (1312 past N), depth 8
+  G-end-1   3496 nodes =  +74.8% over (1496 past N), depth 5
+  G-end-2   2025 nodes =   +1.2% over (25 past N), depth 7
