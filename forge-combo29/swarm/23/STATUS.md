@@ -370,3 +370,15 @@ Why it failed (suspicion, not proven): for changed positions both candidates are
 so which ranks second at D-1 is close to arbitrary; and I measured at the 20000 budget's final depth, not at the
 depth where the 250000 flip actually happens — a mismatch I could not remove without knowing the flip depth.
 Recorded so no seat spends an hour on it again.
+
+## 2026-11-17T03:05Z  23-F30: where budget sensitivity concentrates (71 % vs 28 %), and it is still not a detector
+The four-case study, then the denominator it needed:
+  the four "only 20000 differs" positions: 3 of 4 quiet-vs-quiet, gaps at the small depth 1/12/16 cp; the fourth is
+  the tactical one with 59 cp. Exactly ONE is a genuine regression (`2bqk1nr/...`: extra depth moved to a move
+  scoring 35 cp WORSE at that depth); the other three are near-ties resolved the other way.
+  DENOMINATOR (the thing that made the hypothesis unfalsifiable, now measured): changed positions are 12/17 = 71 %
+  quiet-and-within-20-cp, unchanged are 12/43 = 28 %. So the property genuinely concentrates — factor 2.5.
+  AS A PREDICTOR it fires on 12 changed and 12 unchanged: precision 50 %, recall 71 %. Adding quietness did not
+  break 23-F27's ceiling. Final word on this thread: we know WHERE to expect budget-dependent moves, not WHICH.
+Files: job15/RESULT.txt, gap_all.out, unstable_four.out.
+Remaining before the FINAL block: keep working the PC path in the same per-row-labelled style.
