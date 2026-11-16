@@ -1,0 +1,18 @@
+# S02: what does the engine do with a PARTIAL clock, and what should it do?
+# (needed for the one-sentence GUI guidance on S-F4)
+
+| position | go | ended on its own within 2 s | elapsed ms | info depth lines |
+|---|---|---|---|---|
+| White to move | `go wtime 100` | True | 6.4 | 9 |
+| White to move | `go btime 100` | False | 2001.6 | 22 |
+| White to move | `go wtime 100 btime 100` | True | 6.2 | 9 |
+| White to move | `go wtime 100 btime 999999` | True | 6.3 | 9 |
+| Black to move | `go wtime 100` | False | 2001.5 | 21 |
+| Black to move | `go btime 100` | True | 8.4 | 9 |
+| Black to move | `go wtime 100 btime 100` | True | 6.3 | 9 |
+| Black to move | `go wtime 100 btime 999999` | False | 2001.5 | 21 |
+
+# Reading: a clock naming the player who is NOT to move bounds nothing, so the search has NO limit and
+# runs until it is stopped. The last row shows the engine does not 'ignore a missing clock' — a huge
+# btime DOES bound a White-to-move search, because btime is White's clock in that branch. The engine
+# simply never reads the clock named for the other side.
