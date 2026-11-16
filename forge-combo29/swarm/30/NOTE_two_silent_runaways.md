@@ -1,4 +1,9 @@
-# NOTE — two silent runaways: a bad node budget, and a one-sided clock
+# NOTE — two silent runaways: a bad node budget, and a clock line with no usable time in it
+
+**THE TWO RULES, in one line each:**
+1. **Send a node budget only after validating it as a positive integer** — an unusable value means *no* node limit.
+2. **Send the MOVER's own clock, or both clocks; never the wrong side's clock alone, and never `movestogo` unless it is genuinely known** — `movestogo 0` is read as maximum urgency and quadruples the time spent.
+
 
 Seat 30, area 10. **Both of these are HARNESS TRAPS, not engine defects.** The engine computes
 correct chess in both cases; it simply does not stop. Both are silent — a driver waiting for
@@ -71,7 +76,11 @@ That is what seat 27 measured as "the clock is ignored"; the real cause is the *
 the side to move (see 30-C40/C41/C42/C43). With both clocks present the engine obeys the clock
 monotonically (30-F51).
 
-**Rule: a `go` line must carry BOTH clocks.**
+**Rule: send the MOVER's own clock, or both clocks — never the wrong side's clock alone.**
+(Narrowed from my earlier "always send both clocks", which was safe advice but not the cause: on a
+WHITE-to-move board `go wtime 6000` alone is the mover's own clock and works normally at depth 16 /
+223,639 nodes / 136 ms, while on a BLACK-to-move board `go wtime 6000` alone runs to 26,264,563 nodes
+with no bestmove and `go btime 6000` alone works at depth 26 / 328,863 nodes / 160 ms — 30-C49.)
 
 ## Why these belong together
 
@@ -84,7 +93,12 @@ monotonically (30-F51).
 | looks like | an engine hang | an engine hang |
 | actually is | a malformed `go` line | a malformed `go` line |
 
-In both cases the fix is in the harness, not the engine: validate the budget, send both clocks, and
+A THIRD, related trap on the same `go` line (30-F55): **`movestogo 0` is read as maximum urgency.**
+At the owner's own match clock, `go wtime 6000 btime 6000 winc 60 binc 60` spends 498 ms of a
+6,060 ms budget (8 %), while the same line plus `movestogo 0` spends **2,023 ms (33 %)** — 4.1x the
+time from one placeholder field, 3 of 3 identical. Omit `movestogo` unless it is genuinely known.
+
+In all three cases the fix is in the harness, not the engine: validate the budget, send both clocks, and
 **always** run searches under a wall-clock guard that reports `RUNAWAY` rather than blocking. On the
 base tree the node-budget form additionally has a one-line engine repair (the PC build has it); the
 one-sided-clock form has no engine-side fix at all, because a `go` line that omits a clock carries no
