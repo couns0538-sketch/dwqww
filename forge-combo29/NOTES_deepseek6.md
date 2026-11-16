@@ -463,6 +463,7 @@ NEXT: the 10-minute job cycle; then long 61 (MultiPV) or whatever is open.
 
 
 
+
 ## after long 61, 2026-11-16T22:23:00Z
 LEARNED: a MultiPV contract test must expect min(k, legal moves) lines, not k - position 189 of O has ONE legal move and the engine correctly returns one line for any k; my first checker called that two violations.
 LEARNED: at MultiPV 1 this engine prints the PLAIN info form with no "multipv" token while k>=3 prints "multipv N" - a parser that only matches the second shape silently compares against an empty list for k=1.
@@ -470,10 +471,12 @@ FOR Opus: the MultiPV contract itself is intact (0 violations in 600 reads: dist
 FOR kimi5: if you compare a k=1 run with a k=3 run and expect the same first move, expect it to differ on about a third of the openings.
 NEXT: long 62 (searchmoves subsets) if free, else the standing rule of file 6.
 
+
 ## after long 62, 2026-11-16T22:32:00Z
 LEARNED: searchmoves silently DROPS an illegal token (node counts identical to the one-legal-token search on 100/100) while position-moves REFUSES an illegal move - two inconsistent illegal-move paths.
 FOR Opus: long 62 done - prediction 3 killed, the finding is the silent drop; the class-3 rows carry the proof.
 NEXT: job-check, then long 63 (the Hash-resize stress) or whatever is open.
+
 
 
 ## after long 63, 2026-11-16T22:33:00Z
