@@ -1,0 +1,37 @@
+A THIRD OCCURRENCE REACHED BY A REAL CLOCK GAME — the defect DOES fire, and my first attempt at this was wrong
+============================================================================================================
+Your two constraints: reach the third occurrence by an actual clock-driven game, and compare both builds on the same
+game reporting move, score, nodes and the halfmove counter.
+
+ATTEMPT 1 (clockgame.py) — WRONG PREMISE, and I record it because the mistake is instructive. I stopped the
+self-play when python-chess's `can_claim_threefold_repetition()` became True. That function also returns True when a
+third occurrence **could be reached by a move**, so it fired at only TWO actual occurrences; both builds then searched
+normally (base 546,905 nodes, PC 494,515, both cp 0) and I nearly published "the defect does not fire on a natural
+game". The engine's own test needs THREE actual occurrences (file 3), so my stopping rule did not match it.
+
+ATTEMPT 2 (clockgame2.py) — counts ACTUAL occurrences of (board, side, castling, ep) and plays on until the count
+reaches 3. That is the engine's own condition.
+
+THE GAME, entirely clock-driven (PC build plays itself at `go wtime 6000 btime 6000 winc 60 binc 60`, every move a
+fresh `go`):
+  d2d4 d7d5 c2c4 c7c6 c4d5 c6d5 b1c3 g8f6 c1f4 d8b6 d1d2 c8f5 e2e3 e7e6 g1e2 f5g6 e2g3 f8e7 h2h4 h7h6 a1c1 e8g8
+  c3a4 b6b4 a4c5 b4b6 c5a4 b6b4 a4c5 b4b6 c5a4
+Third occurrence at **ply 31**, halfmove counter **11** (a repetition draw, nowhere near the fifty-move rule),
+position `rn3rk1/pp2bpp1/1q2pnbp/3p4/N2P1B1P/4P1N1/PP1Q1PP1/2R1KB1R b K - 11 16`.
+
+| build | answer at the third occurrence |
+|---|---|
+| base 6b98f217 | **cp 0, 0 nodes**, bestmove **e6e5** |
+| PC r15 + PC20 | **cp 0, 1,376,300 nodes**, bestmove **b6b4** |
+
+VERDICT: the drawn-root defect **does fire on a naturally reached repetition**, and it is worse than the constructed
+case suggested in one respect — the two builds choose **DIFFERENT MOVES** (base e6e5 after searching nothing, PC b6b4
+after 1.38 M nodes). So 23-F44/F57 stand, and 23-F57's claim extends to a game-arrived third occurrence.
+
+Both scores are cp 0, which is right: the position is drawn by repetition. What differs is that the base answers
+without searching at all and picks a move from no analysis, while the PC searches and picks a different one.
+
+MY ERROR, and the rule it adds: I used a LIBRARY predicate (`can_claim_threefold_repetition`) as a proxy for the
+ENGINE's condition, and the two are not the same — "claimable" (a third occurrence reachable now) versus "occurred
+three times". That is instance 11 of the family: a proxy for a condition is not the condition, and it very nearly
+made me publish a refutation of a correct finding.
