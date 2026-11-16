@@ -1,0 +1,375 @@
+# Checks5C21.patch.txt - the job-20 Checks5 patch UPDATED for job 21 part C: c5_store takes best_score itself (not the ply-shifted TT form), every V5 site split by pv_node (four extra slots), the recorded flag and detail reset at every root search, and the nested-singular counter printed.
+#
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1,3 +1,4 @@
++#include <cstdarg>
+ #include "forge/clock_plan.hpp"
+ #include "forge/search.hpp"
+ #include "forge/tm_finish.hpp"
+@@ -208,6 +209,90 @@
+     return stored_clock == static_cast<std::uint8_t>(clock);
+ }
+ 
++#ifdef FORGE_CHECKS5
++namespace checks5 {
++struct Site { const char* name; long long made; long long breaches; bool recorded; int ply; char detail[224]; };
++enum { C5_RAZOR, C5_RFP, C5_NULL, C5_NULLVERIFY, C5_PROBCUT, C5_MULTI, C5_HASHCUT, C5_QHASHCUT,
++       C5_V5QPRE, C5_V5QFINAL, C5_V5PC, C5_V5MAIN, C5_SINGMADE, C5_SINGSTORE, C5_PICKYIELD, C5_PICKSEARCH,
++       C5_IMPSE, C5_IMP2, C5_IMP4, C5_QSFUT, C5_RFPM, C5_NULLM, C5_SINGREUSE,
++       C5_KQSEARCH, C5_KNULL, C5_KPC, C5_KMAIN, C5_V5QPREPV, C5_V5QFINALPV, C5_V5PCPV, C5_V5MAINPV, C5_NSITES };
++inline Site sites[C5_NSITES] = {};
++inline const char* site_names[C5_NSITES] = {
++    "V4 razor@1686", "V4 rfp@1693", "V4 null@1728", "V4 nullverify@1741", "V4 probcut@1777",
++    "V4 multicut-singularbeta@1949", "V4 hashcut@1643", "V4 qhashcut@1455",
++    "V5 qsearch-pre@1478", "V5 qsearch-final@1543", "V5 probcut@1775", "V5 main@2097",
++    "V6 singular-made@1938", "V6 store-under-excluded-key", "V6 picker-yield", "V6 picker-searched",
++    "V8 improving-se@1664", "V8 improving-2back@1665", "V8 improving-4back@1666",
++    "V8 qsearch-futility@1483", "V8 rfp-margin@1690", "V8 null-margin@1712", "V8 singular-reuse@1651",
++    "V13 qsearch@1513", "V13 null@1710", "V13 probcut@1761", "V13 mainloop@1974",
++    "V5 qsearch-pre@1478 PV", "V5 qsearch-final@1543 PV", "V5 probcut@1775 PV", "V5 main@2097 PV"};
++inline char root_fen[96] = {0};
++inline int root_depth = 0;
++inline int singular_active = 0;
++inline std::uint64_t singular_key = 0;
++inline long long nested_singular = 0;
++inline void set_root(const char* fen, int depth) {
++    std::snprintf(root_fen, sizeof root_fen, "%s", fen);
++    root_depth = depth;
++    for (int s = 0; s < C5_NSITES; ++s) { sites[s].recorded = false; sites[s].detail[0] = 0; }
++}
++inline void breach(int s, int ply, const char* fmt, ...) {
++    auto& x = sites[s];
++    ++x.breaches;
++    if (!x.recorded) {
++        x.recorded = true;
++        x.ply = ply;
++        va_list ap;
++        va_start(ap, fmt);
++        std::vsnprintf(x.detail, sizeof x.detail, fmt, ap);
++        va_end(ap);
++    }
++}
++}
++#endif
++
++// job20 Checks5 wrappers: with FORGE_CHECKS5 they count made/breaches and never change a value;
++// without the flag they compile to nothing, so the tree is the base exe.
++#ifdef FORGE_CHECKS5
++namespace checks5 {
++inline int c5_ret(int s, int v, int ply) {
++    ++sites[s].made;
++    if (is_mate_score(v)) breach(s, ply, "returned mate-scored value %d", v);
++    return v;
++}
++inline int c5_eval(int s, int v, int ply) {
++    ++sites[s].made;
++    if (v == ValueNone) breach(s, ply, "read the ValueNone eval marker in arithmetic");
++    return v;
++}
++inline void c5_store(int v5, int bound, int score, int beta, int alpha0, int ply, bool under_singular_key, bool pv) {
++    const int slot = v5 + (pv ? 4 : 0);
++    ++sites[slot].made;
++    if (bound == BoundLower && !(score >= beta)) breach(slot, ply, "LOWER store with score %d < beta %d", score, beta);
++    if (bound == BoundUpper && !(score <= alpha0)) breach(slot, ply, "UPPER store with score %d > entry alpha %d", score, alpha0);
++    if (bound == BoundExact && !(score > alpha0)) breach(slot, ply, "EXACT store with score %d <= entry alpha %d", score, alpha0);
++    if (under_singular_key) breach(C5_SINGSTORE, ply, "hash store under the singular node's key while excluded");
++}
++inline void c5_keys(int s, std::uint64_t before, std::uint64_t after, int ply) {
++    ++sites[s].made;
++    if (before != after) breach(s, ply, "key after unmake %llu != key before make %llu", (unsigned long long)after, (unsigned long long)before);
++}
++}
++#else
++namespace checks5 {
++enum { C5_RAZOR, C5_RFP, C5_NULL, C5_NULLVERIFY, C5_PROBCUT, C5_MULTI, C5_HASHCUT, C5_QHASHCUT,
++       C5_V5QPRE, C5_V5QFINAL, C5_V5PC, C5_V5MAIN, C5_SINGMADE, C5_SINGSTORE, C5_PICKYIELD, C5_PICKSEARCH,
++       C5_IMPSE, C5_IMP2, C5_IMP4, C5_QSFUT, C5_RFPM, C5_NULLM, C5_SINGREUSE,
++       C5_KQSEARCH, C5_KNULL, C5_KPC, C5_KMAIN, C5_NSITES };
++inline int c5_ret(int, int v, int) { return v; }
++inline int c5_eval(int, int v, int) { return v; }
++inline void c5_store(int, int, int, int, int, int, bool, bool) {}
++inline void c5_keys(int, std::uint64_t, std::uint64_t, int) {}
++inline void breach(int, int, const char*, ...) {}
++inline void set_root(const char*, int) {}
++}
++#endif
++
+ [[nodiscard]] int mated_in(int ply) { return -MateValue + ply; }
+ [[nodiscard]] int mate_in(int ply) { return MateValue - ply; }
+ 
+@@ -1414,6 +1499,9 @@
+ // Quiescence search
+ 
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
++#ifdef FORGE_CHECKS5
++    const int c5_a0 = alpha;
++#endif
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+@@ -1452,7 +1540,7 @@
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
+-        return tt_score;
++        return checks5::c5_ret(checks5::C5_QHASHCUT, tt_score, ss->ply);
+     }
+ 
+     int best_score;
+@@ -1472,6 +1560,7 @@
+         }
+         best_score = eval;
+         if (best_score >= beta) {
++            checks5::c5_store(checks5::C5_V5QPRE, BoundLower, best_score, beta, c5_a0, ss->ply, checks5::singular_active > 0 && board.key() == checks5::singular_key, pv_node);
+ #if FORGE_SPD_TT_NOTLS
+             if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+ #else
+@@ -1480,7 +1569,7 @@
+             return best_score;
+         }
+         if (best_score > alpha) alpha = best_score;
+-        futility_base = ss->static_eval + tune::QsFutilityMargin;
++        futility_base = checks5::c5_eval(checks5::C5_QSFUT, ss->static_eval, ply) + tune::QsFutilityMargin;
+     }
+ 
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+@@ -1510,6 +1599,9 @@
+         (ss + 1)->ply = ply + 1;
+         record_move(ss, board, move);
+         Undo undo;
++#ifdef FORGE_CHECKS5
++        const std::uint64_t c5_k0 = board.key();
++#endif
+         (void)board.make_move(move, undo);
+ #if FORGE_SPD_PREFETCH_EARLY
+         assert(!early_key || child_key == board.key());
+@@ -1519,6 +1611,9 @@
+ #endif
+         const int score = -qsearch(board, ss + 1, -beta, -alpha);
+         board.unmake_move(move, undo);
++#ifdef FORGE_CHECKS5
++        checks5::c5_keys(checks5::C5_KQSEARCH, c5_k0, board.key(), ss->ply);
++#endif
+         if (aborted_) return 0;
+         if (score > best_score) {
+             best_score = score;
+@@ -1537,6 +1632,7 @@
+     if (in_check && move_count == 0) return mated_in(ply);
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
++    checks5::c5_store(checks5::C5_V5QFINAL, bound, best_score, beta, c5_a0, ss->ply, checks5::singular_active > 0 && board.key() == checks5::singular_key, pv_node);
+ #if FORGE_SPD_TT_NOTLS
+     store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+ #else
+@@ -1552,6 +1648,10 @@
+     const bool pv_node = beta - alpha > 1;
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;
++#ifdef FORGE_CHECKS5
++    const int c5_a0 = alpha;
++    if (root_node) checks5::set_root(board.fen().c_str(), depth);
++#endif
+ 
+     if (depth <= 0) return qsearch(board, ss, alpha, beta);
+     // The frame is reused across siblings and same-ply verification searches.
+@@ -1640,7 +1740,7 @@
+         board.halfmove_clock() < 90 &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
+-        return tt_score;
++        return checks5::c5_ret(checks5::C5_HASHCUT, tt_score, ss->ply);
+     }
+ 
+     // Static evaluation. reuse_raw is the hindsight eval of this position.
+@@ -1648,7 +1748,7 @@
+     if (in_check) {
+         eval = ss->static_eval = ss->raw_eval = ValueNone;
+     } else if (!excluded.is_none()) {
+-        eval = ss->static_eval;
++        eval = checks5::c5_eval(checks5::C5_SINGREUSE, ss->static_eval, ply);
+     } else {
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else if (reuse_raw) ss->raw_eval = reused_raw;
+@@ -1663,8 +1763,8 @@
+ 
+     bool improving = false;
+     if (!in_check) {
+-        if ((ss - 2)->static_eval != ValueNone) improving = ss->static_eval > (ss - 2)->static_eval;
+-        else if ((ss - 4)->static_eval != ValueNone) improving = ss->static_eval > (ss - 4)->static_eval;
++        if ((ss - 2)->static_eval != ValueNone) improving = checks5::c5_eval(checks5::C5_IMPSE, ss->static_eval, ply) > checks5::c5_eval(checks5::C5_IMP2, (ss - 2)->static_eval, ply);
++        else if ((ss - 4)->static_eval != ValueNone) improving = checks5::c5_eval(checks5::C5_IMPSE, ss->static_eval, ply) > checks5::c5_eval(checks5::C5_IMP4, (ss - 4)->static_eval, ply);
+         else improving = true;
+     }
+ 
+@@ -1683,15 +1783,15 @@
+         if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+             const int razor = qsearch(board, ss, alpha - 1, alpha);
+             if (aborted_) return 0;
+-            if (razor < alpha) return razor;
++            if (razor < alpha) return checks5::c5_ret(checks5::C5_RAZOR, razor, ply);
+         }
+         // Reverse futility pruning.
+-        if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
++        if (!bare_king_mode && depth <= tune::RfpDepth && checks5::c5_eval(checks5::C5_RFPM, eval, ply) - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+             eval < MateInMaxPly) {
+-            return eval;
++            return checks5::c5_ret(checks5::C5_RFP, eval, ply);
+         }
+         // Null move pruning.
+-        if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
++        if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && checks5::c5_eval(checks5::C5_NULLM, ss->static_eval, ply) >= beta - 24 * depth + 180 &&
+             ss->null_move_allowed && (!tune::NullThreatVerify || !null_blocked_) &&
+             !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+@@ -1707,12 +1807,18 @@
+             (ss + 1)->arrival_index = 0;
+             record_null_move(ss);
+             NullUndo undo;
++#ifdef FORGE_CHECKS5
++            const std::uint64_t c5_k0n = board.key();
++#endif
+             board.make_null_move(undo);
+ #if FORGE_SEARCH_SPEED2
+             shared_.tt.prefetch(board.key());
+ #endif
+             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
++#ifdef FORGE_CHECKS5
++            checks5::c5_keys(checks5::C5_KNULL, c5_k0n, board.key(), ply);
++#endif
+             if (aborted_) return 0;
+             if (null_score >= beta) {
+                 if (is_mate_score(null_score)) null_score = beta;
+@@ -1724,7 +1830,7 @@
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+                 if (depth < 14 && !threat_gate) {
+                     ++null_cutoffs_;
+-                    return null_score;
++                    return checks5::c5_ret(checks5::C5_NULL, null_score, ply);
+                 }
+                 // Same reduced depth as the high-depth verification. A threat
+                 // confirmation also refuses null moves in that whole search.
+@@ -1738,7 +1844,7 @@
+                 if (aborted_) return 0;
+                 if (verification >= beta) {
+                     ++null_cutoffs_;
+-                    return null_score;
++                    return checks5::c5_ret(checks5::C5_NULLVERIFY, null_score, ply);
+                 }
+             }
+         }
+@@ -1758,6 +1864,9 @@
+                 (ss + 1)->arrival_index = 0;
+                 record_move(ss, board, move);
+                 Undo undo;
++#ifdef FORGE_CHECKS5
++                const std::uint64_t c5_k0p = board.key();
++#endif
+                 (void)board.make_move(move, undo);
+ #if FORGE_SEARCH_SPEED2
+                 shared_.tt.prefetch(board.key());
+@@ -1767,14 +1876,18 @@
+                     value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+                 }
+                 board.unmake_move(move, undo);
++#ifdef FORGE_CHECKS5
++                checks5::c5_keys(checks5::C5_KPC, c5_k0p, board.key(), ply);
++#endif
+                 if (aborted_) return 0;
+                 if (value >= probcut_beta) {
++                    checks5::c5_store(checks5::C5_V5PC, BoundLower, value, probcut_beta, c5_a0, ss->ply, checks5::singular_active > 0 && board.key() == checks5::singular_key, pv_node);
+ #if FORGE_SPD_TT_NOTLS
+                     store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #else
+                     shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #endif
+-                    return value;
++                    return checks5::c5_ret(checks5::C5_PROBCUT, value, ply);
+                 }
+             }
+         }
+@@ -1814,6 +1927,9 @@
+ 
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
++#ifdef FORGE_CHECKS5
++        if (move == excluded) ++checks5::sites[checks5::C5_PICKYIELD].made;
++#endif
+         if (move == excluded) continue;
+         if (root_node && root_restricted_ &&
+             std::none_of(root_moves_.begin(), root_moves_.end(), [&](const Move& m) { return m == move; })) {
+@@ -1935,7 +2051,16 @@
+             const int singular_depth = std::max(1, (depth - 1) / 2);
+             const bool saved_tt_pv = ss->tt_pv;
+             ss->excluded_move = move;
++#ifdef FORGE_CHECKS5
++            ++checks5::sites[checks5::C5_SINGMADE].made;
++            if (checks5::singular_active > 0) ++checks5::nested_singular;
++            checks5::singular_active = 1;
++            checks5::singular_key = board.key();
++#endif
+             const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
++#ifdef FORGE_CHECKS5
++            checks5::singular_active = 0;
++#endif
+             ss->tt_pv = saved_tt_pv;
+             ss->double_extensions = inherited_double_extensions;
+             ss->excluded_move = Move::none();
+@@ -1946,7 +2071,7 @@
+                     extension = 2;
+                 }
+             } else if (singular_beta >= beta) {
+-                return singular_beta;
++                return checks5::c5_ret(checks5::C5_MULTI, singular_beta, ply);
+             } else if (tt_score >= beta) {
+                 extension = -2;
+             } else if (cut_node) {
+@@ -1970,6 +2095,10 @@
+         (ss + 1)->ply = ply + 1;
+         (ss + 1)->arrival_index = move_count;
+         record_move(ss, board, move);
++#ifdef FORGE_CHECKS5
++        if (move == excluded) checks5::breach(checks5::C5_PICKSEARCH, ply, "the excluded move reached make at ply %d", ply);
++        const std::uint64_t c5_k0m = board.key();
++#endif
+         Undo undo;
+         (void)board.make_move(move, undo);
+ #if FORGE_SPD_PREFETCH_EARLY
+@@ -2036,6 +2165,9 @@
+             score = -search(board, ss + 1, new_depth, -beta, -alpha, false);
+         }
+         board.unmake_move(move, undo);
++#ifdef FORGE_CHECKS5
++        checks5::c5_keys(checks5::C5_KMAIN, c5_k0m, board.key(), ply);
++#endif
+         if (aborted_) return 0;
+         if (root_node && root_effort_index < root_effort_count_)
+             root_move_nodes_[root_effort_index] += local_nodes_ - nodes_before;
+@@ -2091,6 +2223,7 @@
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+     if (excluded.is_none() && !(root_node && root_restricted_)) {
++        checks5::c5_store(checks5::C5_V5MAIN, bound, best_score, beta, c5_a0, ss->ply, checks5::singular_active > 0 && board.key() == checks5::singular_key, pv_node);
+ #if FORGE_SPD_TT_NOTLS
+         store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+ #else
+@@ -2746,6 +2879,18 @@
+     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
++#ifdef FORGE_CHECKS5
++    { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++      for (int s = 0; s < checks5::C5_NSITES; ++s) {
++          std::cout << "info string CHECK " << checks5::site_names[s] << " "
++                    << checks5::sites[s].made << " " << checks5::sites[s].breaches << std::endl;
++          std::cout << "info string CHECK nested_singular " << checks5::nested_singular << std::endl;
++          if (checks5::sites[s].recorded)
++              std::cout << "info string CHECKBREACH " << checks5::site_names[s] << " rootfen|"
++                        << checks5::root_fen << "|rootdepth " << checks5::root_depth
++                        << " ply " << checks5::sites[s].ply << " | " << checks5::sites[s].detail << std::endl;
++      } }
++#endif
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
+     return result;
+ }
