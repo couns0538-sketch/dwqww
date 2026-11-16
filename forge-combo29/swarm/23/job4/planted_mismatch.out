@@ -1,0 +1,23 @@
+== build a 200-position subset of the REAL reference rows
+real rows: 200
+
+== case A: the real data UNCHANGED (must show 0 mismatches)
+   exit=0
+    4 |    218150726 |       218150726 |   yes | 0
+perft-1 mismatch count: 0
+
+== case B: ONE node count planted +1 at depth 4 (must be caught)
+planted +1 node at depth 4 on i=0 fen=rnbqkbnr/pppp3p/6p1/4pp2/7P/1P1BP3/P1PP1PP1/RNBQK1NR b KQkq - 0 4
+   exit=0
+    4 |    218150726 |       218150727 |    NO | 1
+perft-1 mismatch count: 0
+
+== case C: a whole depth key deleted (must be a HARD FAILURE, not a silent skip)
+   exit=2
+HARD FAILURE: reference row 0 has no depth 4
+NO VERDICT: comparison did not run to completion.
+
+== verdict
+A (clean)   : 1 table lines, depth-4 mismatches= 0
+B (planted) : depth-4 mismatches= 1  <-- must be >= 1
+C (missing) : 1 HARD FAILURE line(s)  <-- must be 1

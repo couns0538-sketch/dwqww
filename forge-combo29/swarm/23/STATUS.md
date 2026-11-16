@@ -118,3 +118,16 @@ harnesses ever sends a Threads option (checked by grep over all my scripts). No 
 job3 depth 5: 150 of 200 R positions compared at depth 5, **0 mismatches**, 5,098,723,948 nodes per side; 50
 positions and the 30 G positions still to do. Report updated to say exactly that.
 Next: finish the job3 depth-5 reference, then re-run my own finds on the PC build under PC20 (file 5's order).
+
+## 2026-11-16T22:32Z PC20 RERUN OF MY FINDS — all three new findings
+job4 (prediction committed alone first, job4/prediction.txt). Threads 1, Hash 16 throughout.
+- 23-F9: PC r15 build under PC20 has an IDENTICAL move generator to base 6b98f217. perft 1..4 over the same
+  5000 R positions = exactly 154284 / 4744101 / 154034311 / 4974073896, 0 mismatches vs python-chess; pinned-ep
+  positions 4/4/8 and control 5 on both builds; perft repeatable twice in one process on the PC build too.
+  So every area-3 result transfers to the PC unchanged.
+- 23-F8: the PC build STILL fabricates `bestmove a2a3` on `quit`/EOF mid-search (0 info depth lines) — file 5's
+  FORGE_FIX_ABORT_PUBLISH fixes `stop` (12 info lines, e2e4; depth 14 -> 14 lines) but NOT input termination.
+  So 19-F12 is NOT repaired on the PC's engine.
+- 23-F10: planted control for my perft zeros — same script, same data, one node added to one reference row is
+  caught (1 mismatch, 218150726 vs 218150727); a deleted depth key exits 2 HARD FAILURE. My zeros are measured.
+job3 depth 5 now 198/200 reference rows written.
