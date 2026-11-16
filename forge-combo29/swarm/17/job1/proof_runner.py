@@ -17,6 +17,7 @@ import hashlib
 import json
 import os
 import subprocess
+import time
 import sys
 
 
@@ -34,20 +35,53 @@ def symbol_count(exe, marker):
 
 
 def drive(exe, lines, timeout_s, log_path):
-    """Write commands, read to the end of output, then quit. Returns (rc, timed_out, text)."""
+    """Drive the engine one command at a time, reading each answer before the next.
+
+    NEVER pipelines `quit` into a running search: swarm broadcast 19-F12 shows that a pipelined
+    `quit` makes this build answer a fabricated `bestmove` with 0 nodes, so the search under test
+    would not have run at all and "0 sanitizer lines" would mean nothing. `go` is read until
+    `bestmove`; `isready`/`setoption` are read until `readyok`.
+    The planted-fault engines still fire their fault: their hook runs before the search starts.
+    """
     proc = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True, bufsize=1)
     chunks = []
     timed_out = False
+    start = time.monotonic()
     try:
-        payload = "\n".join(lines) + "\n"
-        proc.stdin.write(payload)
-        proc.stdin.flush()
-        # Read everything until the process closes or the timeout hits.
-        out, _ = proc.communicate(timeout=timeout_s)
+        for line in lines:
+            if line == "quit":
+                break
+            proc.stdin.write(line + "\n")
+            proc.stdin.flush()
+            if line.startswith("go"):
+                deadline = time.monotonic() + timeout_s
+                while time.monotonic() < deadline:
+                    reply = proc.stdout.readline()
+                    if reply == "":
+                        break
+                    chunks.append(reply)
+                    if reply.startswith("bestmove"):
+                        break
+                else:
+                    timed_out = True
+                    proc.kill()
+                    break
+            elif line == "isready" or line.startswith("setoption") or line == "uci":
+                deadline = time.monotonic() + 120
+                while time.monotonic() < deadline:
+                    reply = proc.stdout.readline()
+                    if reply == "":
+                        break
+                    chunks.append(reply)
+                    if reply.strip() in ("readyok", "uciok"):
+                        break
+        if proc.poll() is None:
+            proc.stdin.write("quit\n")
+            proc.stdin.flush()
+        out, _ = proc.communicate(timeout=60)
         chunks.append(out or "")
-    except subprocess.TimeoutExpired:
-        timed_out = True
+    except (BrokenPipeError, subprocess.TimeoutExpired):
         proc.kill()
         out, _ = proc.communicate()
         chunks.append(out or "")
