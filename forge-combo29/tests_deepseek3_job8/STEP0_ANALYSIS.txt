@@ -1,0 +1,45 @@
+Step 0 for job 8: what is already there, and how the two designs differ.
+
+a. The option and its code.
+   uci: "option name LmrSignedCorrection type check default false"   (src/uci.cpp:222)
+   every place that reads it:
+     src/search.cpp:2018-2022   the only read (the LMR site in Worker::search)
+     include/forge/search.hpp:363  apply_lmr_signed_correction(), the arithmetic
+     src/uci.cpp:405,412        the setoption dispatch (shared bool-option list)
+     src/search.cpp:98          the bool itself
+     include/forge/search.hpp:298  the extern declaration
+   With my job 7 patch applied, the tree also has my CorrLmr at src/search.cpp:2016-2018.
+
+b. The two designs, in ten lines.
+   Existing (LmrSignedCorrection):
+     * signal = static_eval - raw_eval, i.e. the corrected eval minus the raw one. That difference
+       also contains the rule50 damping (rule50_damped_static wraps the corrected eval), so it is not
+       purely the history correction.
+     * scale: correction_cp / 64, rounded toward zero. So 64 cp of correction = one ply.
+     * clamp: the DELTA is clamped to -1..+1 ply.
+     * floor: the RETURNED REDUCTION is floored at 0 (adjusted > 0 ? adjusted : 0), so it can never
+       push r negative.
+     * direction: r - delta, so a positive correction reduces LESS (same sign convention as mine).
+     * scope: quiet, ss->static_eval and ss->raw_eval both set, correction_cp != 0. Same site.
+   Mine (CorrLmr): signal = the signed history correction only (no damping); scale 1024 cp per ply
+   (16x finer); delta clamped to -1..+1; NO floor on the resulting reduction; same site and same
+   direction. K is a knob (0..400), the existing one is a fixed check.
+
+   Which fires more often, bench 13, counted at the same site on the same run:
+     LMR site reached (quiet moves):                    284,673
+     existing: eval available                           273,315  (96.0% of the site)
+     existing: correction_cp != 0                       205,385  (72.2%)
+     existing: r actually changes                        4,668  ( 1.64%)
+     existing: change survives the depth clamp                 3  <- the reason bench 11 and 13 do not move
+     mine K=24: r changes                              11,204  ( 3.94%)
+     mine K=32: r changes                              46,721  (16.41%)
+   bench 16: site 1,097,729; existing changes 66,501; mine K=24 changes 203,690; K=32 347,445.
+
+   The reason the existing switch does nothing on bench 11 and bench 13 is its FLOOR, not its scale:
+   with correction_cp/64 and |correction_cp| < 64 most of the time, delta is 0 or the floor cancels the
+   +1, and only 3 of 4,668 changes survive into reduced_depth. At depth 16 there is far more reduction
+   to work with, and it does move (3024920 -> 2817322).
+
+c. bench numbers on the job 7 tree, everything off: 312866 / 862329 / 3024920 / perft 4865609 (all four
+   hold). LmrSignedCorrection on: 312866 / 862329 / 2817322. My CorrLmr 24: 312866 / 873952 / 2445948.
+   Both on: 312866 / 873952 / 2457422.

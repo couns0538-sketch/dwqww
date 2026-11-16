@@ -1,0 +1,56 @@
+--- /tmp/j7p/forge-combo29/src/search.cpp	2026-11-15 22:23:14.946400612 +0000
++++ /home/ubuntu/work/j8t/src/search.cpp	2026-11-15 23:23:21.762400612 +0000
+@@ -5,7 +5,9 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++#include <atomic>
+ #include <cmath>
++#include <cstdio>
+ #include <cstring>
+ #include <iostream>
+ #include <limits>
+@@ -2020,6 +2022,43 @@
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
+                 if (correction_cp != 0) r = apply_lmr_signed_correction(r, correction_cp);
+             }
++            // TRACE (local only): how often each design would change r, side by side.
++            if (quiet) {
++                static const int kKc[] = {24, 32};
++                static std::atomic<std::uint64_t> site{0}, old_eval_ok{0}, old_nonzero{0}, old_changed{0}, old_survives{0};
++                static std::atomic<std::uint64_t> mine_changed[2] = {};
++                const std::uint64_t n = site.fetch_add(1);
++                const bool ev_ok = ss->static_eval != ValueNone && ss->raw_eval != ValueNone;
++                if (ev_ok) {
++                    old_eval_ok.fetch_add(1);
++                    const int c = ss->static_eval - ss->raw_eval;
++                    if (c != 0) {
++                        old_nonzero.fetch_add(1);
++                        const int adj = apply_lmr_signed_correction(r, c);
++                        if (adj != r) {
++                            old_changed.fetch_add(1);
++                            // does the change survive the reduced_depth clamp?
++                            const int rd_a = std::clamp(new_depth - r, 1, new_depth);
++                            const int rd_b = std::clamp(new_depth - adj, 1, new_depth);
++                            if (rd_a != rd_b) old_survives.fetch_add(1);
++                        }
++                    }
++                }
++                for (int k = 0; k < 2; ++k) {
++                    if (tune::CorrLmr != 0 || true) {
++                        if (std::clamp(-(ss->corr_signed_cp * kKc[k]) / 1024, -1, 1) != 0) mine_changed[k].fetch_add(1);
++                    }
++                }
++                if ((n & 0x3FF) == 0) {
++                    std::fprintf(stderr, "CORRCMP site=%llu old_eval_ok=%llu old_nonzero_c=%llu old_changed_r=%llu "
++                        "mine_changed_K24=%llu mine_changed_K32=%llu\n",
++                        (unsigned long long)site.load(), (unsigned long long)old_eval_ok.load(),
++                        (unsigned long long)old_nonzero.load(), (unsigned long long)old_changed.load(),
++                        (unsigned long long)mine_changed[0].load(), (unsigned long long)mine_changed[1].load());
++                    std::fprintf(stderr, "CORRCMP_SURVIVE old_changed=%llu old_survives_clamp=%llu\n",
++                        (unsigned long long)old_changed.load(), (unsigned long long)old_survives.load());
++                }
++            }
+             // A parent tried after at least six earlier moves is speculative. Its first
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
