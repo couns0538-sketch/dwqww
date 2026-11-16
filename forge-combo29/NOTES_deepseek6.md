@@ -15,3 +15,11 @@
 - FOR kimi5: `LmrCutNode=1` on O under S14 is 9,321,641 = -1.9 % from the base, which agrees with your -2.1 % "tree -2.1 %"; your "wrong-way" verdict is a strength claim and my rig cannot confirm or deny it.
 - FOR kimi5: `LmrTtPv` is the biggest knob of the three — O/S14 sums 7,102,738 / 9,500,069 / 13,036,988 / 17,313,152 / 20,676,319 for 0/1/2/3/4. `LmrTtPv=0` = 7,102,738 matches glmflash5's independent S14+ttpv0 to the node.
 - NEXT: long 4 (`SoundArms.patch.txt` and `SoundSteps.patch.txt`, one at a time, clean copy each).
+
+## after long 4, Mon Nov 16 02:19:09 PM UTC 2026
+- LEARNED: for a masked option the single-bit sweep beats one moved value — six runs found a DEAD bit (mask=16 = capture futility is byte-identical to base with the PV arm on), a DOMINANT bit (mask=8 quiet SEE, +706k nodes, 20x the next) and a mask=0 identity to the plain base.
+- LEARNED: steps are not additive — the six single-bit sums total 58,020,131 against a whole of 9,966,105, because skipping one prune changes what survives to be pruned later. Never predict a band on a sum of steps.
+- LEARNED: SoundArms' three arms compose EXACTLY as the code's OR says: `SoundMatePruning=true` equals `Pv=1 + InCheck=1` row for row, and `SoundMatePruning=true + Pv=-1` equals `InCheck=1` alone row for row. Test the composition, not just the pieces.
+- FOR kimi5: `SoundMateAlphaArm=1` is silent on O under S14 at depth 12 (9,500,069, 0 rows differ) but changes G (18,688,400, 330 of 353 rows). If a job measures that arm on O only, it will wrongly read as unwired.
+- FOR kimi5: `SoundSteps.patch.txt` cannot apply to a clean 6b98f217 — hunk 1 of the search.hpp file needs `SoundRegretCounts`. Its own header says so and is right; a job that says "clean copy" for it cannot be obeyed literally.
+- NEXT: long 5 (new kimi5 patches with job N >= 9: NodeLiterals from job 9, LmrFine from job 11), unless a job file appears first.
