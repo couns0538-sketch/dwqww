@@ -250,3 +250,42 @@ The pawn-promotion board `r7/1P6/8/8/8/8/8/k1K5 w` at counter 100 is the same st
 `b7b8q` / `cp 0`, which is correct, and PC r15 answers `b7a8q` / `mate 1`. Neither is a defect. My earlier
 "mate MISSED / REPAIRED" framing for that board is WITHDRAWN for the same reason.
 Evidence: `pc/file6/inequality.json`, `pc/file6/boundary.json`.
+
+## NEW AREA (file 6): `go softnodes N` on the PC build — deterministic but overshoots up to 2.06x
+
+Build PC r15, settings PC20, Threads 1, Hash 16. Fresh process per run, 3 runs per cell, read to `bestmove`
+(never a pipelined quit — 19-F12; my first attempt at this measured `nodes 0` on every cell for exactly that
+reason and is thrown away, not reported).
+
+| position | softnodes | last depth | nodes reported | overshoot | ratio | 3 runs identical | depth sequence complete |
+|---|---|---|---|---|---|---|---|
+| G1 `1r6/2k2pp1/...` | 2000 | 7 | 2671 | +671 | 1.34x | YES | yes |
+| G2 `r3r1k1/...` | 2000 | 8 | 3312 | +1312 | 1.66x | YES | yes |
+| G3 `6k1/p4r1p/...` | 2000 | 7 | 2314 | +314 | 1.16x | YES | yes |
+| G1 | 20000 | 12 | 31779 | +11779 | 1.59x | YES | yes |
+| G2 | 20000 | 11 | 21089 | +1089 | 1.05x | YES | yes |
+| G3 | 20000 | 10 | 24052 | +4052 | 1.20x | YES | yes |
+| G1 | 50000 | 13 | 52904 | +2904 | 1.06x | YES | yes |
+| G2 | 50000 | 13 | 79187 | +29187 | 1.58x | YES | yes |
+| G3 | 50000 | 11 | 50818 | +818 | 1.02x | YES | yes |
+| G1 | 250000 | 17 | 288912 | +38912 | 1.16x | YES | yes |
+| G2 | 250000 | 18 | **514117** | +264117 | **2.06x** | YES | yes |
+| G3 | 250000 | 17 | 348824 | +98824 | 1.40x | YES | yes |
+
+Answers:
+- **Deterministic run to run: YES.** 12 of 12 cells gave 3 identical runs (`distinct_runs` = 1 everywhere),
+  comparing depth, nodes, score, seldepth and the full PV. So `go softnodes` is reproducible at Threads 1,
+  which means a self-play game replayed with the same inputs repeats.
+- **Stops at a finished depth: YES.** Every cell's `info depth` sequence is 1,2,3,...,D with no gap
+  (`depth_sequence_complete` true everywhere), so the search stops at the end of an iteration rather than
+  abandoning one. That is what the softnodes contract says it should do.
+- **How far past N: up to 2.06x, and the factor does not shrink with N.** 1.02x-1.66x at N=2000-50000 and
+  1.16x-2.06x at N=250000. The overshoot is the cost of finishing the iteration in progress, so it is bounded
+  by ONE iteration's node count, which grows with depth. The worst cell here is G2 at 250000: 514,117 nodes
+  for a 250,000 budget.
+- **GUI-reachable: YES, and it is the owner's own self-play path.** `go softnodes 2000` is what the PC sends
+  for self-play (file 6), so a 1.16x-1.66x overshoot at that budget is on the production path: a 2000-node
+  target can cost up to ~3,312 nodes. Whether that matters is a design question (an iteration must finish to
+  be reportable), not a fault - the engine reports the true count in `info string softnodes nodes <N>`.
+
+Evidence: `pc/softnodes/softnodes.json`, `pc/softnodes/*.log`.
