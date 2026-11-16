@@ -587,3 +587,23 @@ list and the exact command to run once a hard set exists:
 Window noted: ends 2026-11-17T10:18:40Z, about 10 hours out. Continuing at cadence with STATUS every 25
 minutes and the real FINAL at the close.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## Mon Nov 16 11:48:48 PM UTC 2026
+
+JOB 17: answers S-F10's open question — how does the engine allocate its clock? S-F19.
+  ALLOCATION IS DEPTH-STEP QUANTISED, NOT PROPORTIONAL: `go wtime` 10,000 / 12,000 / 15,000 / 20,000 ALL
+  give the identical search (depth 23, 1,520,334 nodes, ~800 ms). 8,000 -> depth 19; 30,000 -> depth 25.
+  So the fraction used FALLS as the clock grows: 7.9 % at 10 s, 4.0 % at 20 s. Raising the clock from 10 s
+  to 20 s changes NOTHING on this position.
+  ALSO: `movestogo 0` gives the LARGEST allocation of any cell — 29.3 % of a 6 s clock, depth 26 — versus
+  2.4 % with movestogo omitted. If the owner's match tooling emits movestogo 0 the engine thinks hard;
+  worth knowing either way.
+  Reproducible to ~1 ms, identical node counts across repeats.
+  S-F10's ~4 % headline is confirmed in magnitude (2.4-2.7 % on this position vs S-F10's 4.1 % median over
+  80 moves on 4 positions); what this adds is that the cause is depth quantisation, not a fixed share.
+MY OWN MISTAKE, recorded again: my first timealloc.py PC20 list OMITTED ALL FOURTEEN S14 SETTINGS, so the
+  grid measured PC6 while labelling itself PC20 and doubled the allocation figure (457 ms vs the true
+  145 ms). Caught by bisecting an unexplained 2x difference; the tell was again a number contradicting its
+  neighbours (fraction rising then falling across a monotonic sweep). The script now asserts
+  len(PC20)==22. out/ and out2/ are deliberately kept as the mislabelled PC6 runs; out3/ is the corrected data.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
