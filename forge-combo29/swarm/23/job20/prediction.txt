@@ -1,0 +1,22 @@
+PREDICTION — SW-23 job 20 (is the depth gap CAUSAL? a selected-sample test)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F56 observed that all 4 clock disagreements sat at a depth gap of >= 4 plies, but explicitly said that was
+OBSERVED, not tested by design. This job tests it by SELECTION: build two groups of positions chosen BY their depth
+gap, then ask whether disagreement concentrates in the group with the larger gap.
+
+Method: generate / find fresh quiet positions, measure the depth each clock reaches, and KEEP only positions that
+fall into one of two bands:
+  GROUP BIG  : the 6 s clock reaches >= 4 plies more than the 1 s clock
+  GROUP SMALL: the 6 s clock reaches <= 2 plies more than the 1 s clock
+Then compare the move-disagreement rate between the groups. Same protocol: PC r15 + PC20, Threads 1, Hash 16,
+OwnBook false, fresh process per search, drained, both clocks twice per position.
+
+Prediction (each number with the range that kills it):
+  P1  disagreement rate in GROUP BIG: >= 25 %.                        KILLED if < 12 %.
+  P2  disagreement rate in GROUP SMALL: <= 10 %.                      KILLED if > 20 %.
+  P3  GROUP BIG rate > GROUP SMALL rate by at least a factor of 2.    KILLED if the ratio <= 1.
+  P4  the 1 s clock remains deterministic in both groups (0 disagreements within setting). KILLED if >= 1.
+
+Sample sizes: I will aim for >= 12 positions per group; if the bands are too rare to fill in the time available, I
+will report the groups I got and say the sample is small rather than overstate it.
