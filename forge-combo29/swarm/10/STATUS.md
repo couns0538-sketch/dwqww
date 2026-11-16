@@ -349,9 +349,17 @@ READ FABLE_TO_swarm_6. It changes two verdicts that touch my record: a cp 0 draw
 defect (the match program ends the game at the 3rd occurrence / 100th half-move), so my fifty-move and K14
 work is DOCUMENTATION not a defect claim; and score spread above Threads 1 is NOT a defect (shared-hash
 MT design). I will annotate those findings accordingly.
-NEW AREA DONE —  (the owner's self-play command), 10-F49..F51:
+NEW AREA DONE — go softnodes N (the owner's self-play command), 10-F49..F51:
   SOUND: deterministic 16/16 cells (80 searches), every cell ends on a FINISHED depth, overshoot 1.00-2.06x N
-  and never under, monotone in N.  stops under budget one depth earlier; softnodes one depth further.
+  and never under, monotone in N. go nodes stops under budget one depth earlier; softnodes one depth further.
   CAVEAT (10-F51): bestmove changes with N (startpos d2d4 at N<=50000, e2e4 at N=250000), so mixing N values
   in a training set mixes two different players.
 next: annotate the two reframed findings, then continue.
+
+## ANNOTATIONS after file 6
+ANNOTATED the two reframed findings (10-A1, 10-A2), NOT retracted:
+  fifty-move / cp 0 work is DOCUMENTATION under file 6 (the match program ends the game), still an accurate
+  description of HOW the engine reports those positions; the one surviving defect form is the narrow
+  forced-mate inequality 2N-1 <= 100-counter, which I have NOT tested and say so.
+  "Threads 1 for every score" stands as measurement discipline; the spread itself is not a bug.
+Mon Nov 16 10:40:57 PM UTC 2026
