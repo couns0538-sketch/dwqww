@@ -1,5 +1,23 @@
 # Exact command lines for the lone-king board, and the free-choice answer
 
+> ## METHOD NOTE 1 — a longer mate is BETTER in a lost position
+> **In a lost position the longer mate is the better score, and any comparison of two mate scores must first
+> establish whose perspective the score is from and which side is lost.** The lone-king claim died on exactly this:
+> White was to move and White was lost, so with scores from White's point of view `mate -10` (mated in 10) beats
+> `mate -8` (mated in 8), and the engine choosing `c6c7`/`mate -10` over the `mate -8` moves was playing maximum
+> resistance. Anyone reading `mate -8` and `mate -10` as "8 is smaller so 8 is better" will get the preference
+> backwards. This is the mistake that is likely to recur across the swarm, so it is stated before the numbers.
+
+> ## METHOD NOTE 2 — `searchmoves` scores and free-choice scores are NOT interchangeable
+> **A score from `go depth D searchmoves <move>` is not comparable with a score from a free `go depth D` at the
+> same D, because the root restriction changes the search: on this board `searchmoves c6c7` reached seldepth 43 on
+> 16,066,180 nodes and reported `mate -11`, while free-choice `go depth 20` (which then chose `c6c7` itself)
+> reached seldepth 37 on 165,764,722 nodes and reported `mate -10`** — 10x the nodes and 6 plies less selective
+> depth for the same move name at the same nominal depth. Comparing the two without matching the instrument will
+> manufacture an apparent inconsistency; the same applies to comparing two seats' numbers when one used
+> `searchmoves` and the other did not.
+
+
 Board: `1r6/5b2/2K5/8/8/5n2/5k2/8 w - - 18 183` — White (side to move) has a bare king, 1 man against 4.
 
 ## 1. the exact option sequence (PC r15 + PC20), in the order sent
