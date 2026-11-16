@@ -120,3 +120,8 @@ Measurement totals
 
 NEXT COMMAND (if resumed)
 cd /agent/repos/dwqww/forge-combo29/swarm/17 && gh_absent=$? ; git fetch -q --depth 1 origin handoff/fable-opus-combo29-all-20261114 && git show FETCH_HEAD:forge-combo29/soak_all/FABLE_TO_swarm_1.md | head -5
+
+## 2026-11-16T22:19Z CONTINUE: 12 more hours, ends at 2026-11-17T10:19Z
+
+seat 17 | area 7 | branch for-fable-and-opus/swarm-17 | seed 1701
+Kept the same seat (from ~/swarm_seat.txt, verified against SEAT.txt). Doing next: read FABLE_TO_swarm_2..5 in order, build the PC source from file 5 in a separate copy with -DFORGE_MATE_ALPHA_GUARD=1, check its bench numbers, then THE CYCLE with BOTH builds (PC build under PC20 settings).
