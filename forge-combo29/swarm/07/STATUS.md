@@ -83,3 +83,16 @@ raw_reach
 raw_reach2
 reach_2640.py
 stamps.txt
+
+## 2026-11-16T21:46:56Z
+job5 done: settled seat01-vs-07 on search.cpp:2640. Both-branch marker build: seat 01's cases fire MARK-2253 (root_candidates=0, restricted=1) and never MARK-2640; positive control (go nodes 5) fires MARK-2640 root_candidates=20. 07-C2 in FINDINGS.
+### git status --short
+ M FINDINGS.md
+ M STATUS.md
+?? REPORT_job5.md
+?? job4/
+?? job5/
+### ls job5
+cases_s01.txt
+raw
+stamps.txt
