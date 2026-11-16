@@ -1,0 +1,21 @@
+PREDICTION — seat 15, clock-path game losses. Committed BEFORE the first game.
+
+The question the owner asked: can the clock path LOSE a game? Four games at 6s+0.06 with zero forfeits
+is a start; this runs more.
+
+Setup: the PC build (r15) under PC20, Threads 1, Hash 16, playing ITSELF, `go wtime X btime X winc 60
+binc 60` with a real clock decremented by the measured wall time of each search, both sides.
+Openings: the first 20 positions of O (set first200.fens), each played once, colours alternating.
+A game is lost by the CLOCK PATH if a side's clock reaches <= 0 before it produces bestmove, i.e. a
+forfeit. Resignation/adjudication is NOT a clock loss and is counted separately.
+
+P1  zero forfeits (no side ever loses on time).
+    KILLS P1: any forfeit — that is the whole question.
+P2  the clock never goes negative on any move before bestmove is read.
+    KILLS P2: any negative clock.
+P3  every move is legal (verified with python-chess as the game is played).
+    KILLS P3: any illegal move.
+P4  median clock used per move is under 400 ms (consistent with 15-F32's 2.5-6% of 6 s).
+    KILLS P4: median over 1000 ms.
+P5  games terminate: all 20 reach a result (mate, stalemate, 50-move, threefold, or the 200-ply cap)
+    within the run.  KILLS P5: any game still running at the ply cap after 2 hours total.
