@@ -1,0 +1,16 @@
+--- /home/ubuntu/noaltclear_src/src/search.cpp	2026-11-16 23:24:23.356169113 +0000
++++ /home/ubuntu/noclear2_src/src/search.cpp	2026-11-16 23:47:48.724169113 +0000
+@@ -2880,7 +2880,12 @@
+                 // (alt_shared is constructed at :2730), and each line's search calls
+                 // tt.new_search() internally, which already bumps the generation. The full-table
+                 // clear() here was therefore redundant work done once per line per depth.
+-                alt_worker->clear();
++                // EXPERIMENT (seat 30, 30-C44): the residual per-line cost -- measured by another seat as
++                // 583 -> 29 -> 0 nodes/ms across Hash 64/256/1024 after the tt.clear() removal -- points at
++                // this full Worker::clear(), which zeroes every history table (one of them 13.6 MB) per
++                // line per depth. The alternative worker is a scratch searcher for ONE line; its histories
++                // are re-learned within that line anyway.
++                // alt_worker->clear();
+                 const SearchInfo alt = alt_worker->search(board, narrowed, false, alt_list);
+                 extra_nodes_ += alt.nodes;
+                 if (alt_worker->aborted_ || alt.depth < depth) {

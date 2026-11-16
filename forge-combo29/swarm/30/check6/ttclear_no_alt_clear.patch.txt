@@ -35,6 +35,19 @@
 #     which is exactly the control that shows the patch touches only the path it claims.
 #   Evidence: forge-combo29/swarm/20/job57/CONFIRM_30C36.md + confirm_30c36.json.
 #
+# NECESSARY BUT NOT SUFFICIENT (measured by another seat on the PC r15 tree, pins unchanged):
+#   Direction confirmed, MAGNITUDE refuted. This patch restores most of the lost depth but not the
+#   throughput, and the collapse SURVIVES IN REDUCED FORM. Measured at MultiPV 3, nodes/ms:
+#     Hash 64 : 9 plies at 183 nodes/ms  ->  13 plies at 583 nodes/ms   (3.2x, depth restored)
+#     Hash 256: 4 plies at   2 nodes/ms  ->   7 plies at  29 nodes/ms   (14x, three plies recovered)
+#     Hash 1024: still 0 nodes/ms
+#   The MultiPV 1 control stayed flat throughout, so the change remains correctly scoped.
+#   It does NOT reach MultiPV 1's ~1,500 nodes/ms: 583 -> 29 -> 0 across those Hash sizes.
+#   RESIDUAL HYPOTHESIS (NOT measured by me): the remaining per-line cost has the same shape as the
+#   clear's -- it points at the per-line `alt_worker->clear()` (:2880, left in place by this patch) or
+#   at the alternative table being touched per line. Apply this patch for the depth it restores, not
+#   as a complete fix.
+#
 # REVIEWER CHECK (do these four things before accepting):
 #   1. bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, go perft 5 = 4865609 - ALL UNCHANGED.
 #      (This is the gate the tempting generation-bump variant FAILED: it moved bench 16 to 3030186.)
