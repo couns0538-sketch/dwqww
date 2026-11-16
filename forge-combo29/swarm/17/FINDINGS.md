@@ -572,3 +572,26 @@ move. That is the realistic failure: not a crash, not an illegal move by the eng
 move for the wrong board. Combined with my 2-in-30 accidental hit rate, this is the highest-exposure item I
 have found on any path, even though the engine's refusal logic is itself correct.
 Evidence: `pc/sc9/gui_session.log`.
+
+## The same silent-continuation hazard on `position startpos moves` — the path every GUI uses
+
+The known rule (file 1) is "after an illegal move in `position ... moves`, the engine keeps the legal prefix".
+That is correct bookkeeping, but I measured what a GUI actually SEES, in one session, PC r15 / PC20 / Threads 1:
+
+| script | error line | `readyok` | bestmove(s) | interpretation |
+|---|---|---|---|---|
+| `position startpos moves e2e4 e7e5` then `position startpos moves e2e4 e7e5 e1e3` | `info string illegal move e1e3` | yes, twice | `g1f3`, then **`g1f3`** | the second answer is for the LEGAL PREFIX (e2e4 e7e5), not the position requested; `g1f3` is legal there |
+| `position startpos moves e2e5` | `info string illegal move e2e5` | yes | `d2d4` | ran on STARTPOS, the prefix is empty |
+| `position startpos moves e2e4 zzzz` | `info string illegal move zzzz` | yes | `e7e6` | ran on the prefix (e2e4), answered for Black |
+| control: `... moves e2e4 e7e5 g1f3` | none | yes | `g1f3` then `b8c6` | correct, no hazard |
+
+So the hazard is not special to FENs: any GUI that sends a move list containing one move the engine considers
+illegal — a click on an illegal square, a stale move from a desync, a book line with a typo, a move from a
+variant — gets a legal move back for a DIFFERENT position, with `readyok` and one info line as the only trace.
+`position startpos moves` is the call a GUI makes on every single move of every game, so this path is far more
+exposed than the hand-written-FEN route.
+
+I am not claiming this is a new engine fault: file 1 lists the prefix rule as known, and keeping the prefix is
+defensible. What I am adding is that the ENGINE'S ONLY SIGNAL IS ONE INFO STRING and `readyok` follows, so a
+GUI has no way to know its move list was rejected. Whether the owner wants a harder signal is his call; the
+measurement is `pc/sc9b/hazard.json` plus `pc/sc9b/*.log`.
