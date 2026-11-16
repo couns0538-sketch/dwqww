@@ -184,3 +184,7 @@ NEXT: one-minute job-file look; then long 15 (NodeLiterals 22751e23 + QsSteps ee
 - LEARNED: the `mask1` and `pvmask1` configurations are row-identical on O (200/200) and differ on G (10 of 353) — the mask only gates inside an active case, so on O both reduce to the PV case, while G reaches the in-check case too. This is the third independent sighting of "O silent, G live" for the Sound arms.
 - FOR kimi5: your job-5 json files made R4 exact rather than approximate; five G configurations (pvchk, off7, cnt, cntsmp, mask0) have no file, so I report them "not comparable" rather than guessing.
 - NEXT: the list's lowest unclaimed item; long 9-16 are the other session's, so check 17 onward.
+## after long 16, 2026-11-16T19:10:00Z
+LEARNED: kimi5 jsons carry per_position as bare node ints and bestmove as a separate list; strip row fields before comparing or spaces fake a mismatch.
+FOR kimi5: your FHB counters reproduce exactly (five runs, all four places, L=R=M=0 confirmed on a second build); the check build is search-transparent under S14.
+NEXT: one-minute job-file look; then long 17 (the eleven node-step counters on the plain base - my own counter copy, kimi5-independent).
