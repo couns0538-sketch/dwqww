@@ -1,0 +1,33 @@
+# PREDICTION — S28: is the PC build's better tail deeper search or an earlier stop?
+
+Committed and pushed ALONE before the first measuring command. Never edited afterwards.
+Written 2026-11-16 ~22:30 UTC.
+
+## What S-F20 established
+On PC r15/PC20 at Threads 1, 20 positions per clock, the tail shape reproduces (p99/median 2.20-4.43)
+but absolute p99 is 1.5-1.8x LOWER than seat 08's base/S14 numbers at every clock, and 0/120 searches
+exceeded its clock. Two explanations fit that symptom:
+  (D) the PC build searches DEEPER per unit time (faster search or better pruning), so the same soft plan
+      buys more depth — a strength;
+  (S) the PC build STOPS EARLIER for the same clock (shorter plan, earlier cut), so it uses less time —
+      not a strength, just less work.
+
+The measurement that separates them: per cell, the achieved time AND the last completed depth, on BOTH
+builds, with each build on its own settings (base: Threads 1/Hash 16/OwnBook false/S14; PC: PC20).
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| V1 | median achieved time, PC vs base, at wtime 1000 | PC lower by 15-45 % | PC within 10 %, or PC higher |
+| V2 | median last depth, PC vs base, at wtime 1000 | PC equal or higher | PC strictly lower at the median |
+| V3 | nodes per second, PC vs base (from the last info line) | PC higher | PC lower |
+| V4 | for a matched achieved time, PC reaches a greater depth | yes | no |
+| V5 | the PC build's achieved/soft ratio vs base's | PC lower (stops earlier relative to its plan) | PC higher |
+| V6 | the ratio of depths PC/base at wtime 30000 | 1.0-1.4 | below 0.9 |
+
+Reasoning: the PC patch adds four search switches (CuckooRep, HistRework 2, TtPruneV2, CorrHistV2) which
+are pruning/ordering changes, and a faster net update in nnue_v3.cpp. Pruning changes reduce nodes per
+depth, so at a fixed time budget I expect MORE depth, not less — V2/V3/V6 predict the "deeper" branch. But
+I also cannot rule out that the PC's time manager simply budgets less: its bench 11 under PC20 is 278,024
+nodes vs S14's 242,796, so at the same nps the bench takes longer, which is not evidence either way about
+the clock plan. If V1 and V5 both show the PC stopping earlier with no depth gain, the honest answer is
+"stops earlier", and S-F20 is not a strength claim.
