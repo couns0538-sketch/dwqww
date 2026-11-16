@@ -150,3 +150,5 @@ NEXT: continue area-1 work; push again by 22:30.
   Their 348s figure does not transfer here; likely TSan-specific. I do not claim their numbers are wrong.
 - S-C11 CONFIRMS S-F2/24-C1: searchmoves naming no legal root move -> quoted info line +
   bestmove 0000 on a 20-move board; legal names do NOT trigger it (negative control asserted).
+- S-C12 CONFIRMS S-F1(12)/24-C2: ucinewgame alone resets to startpos (6/e1f2 -> 20/e2e4 -> 6/e1f2
+  after re-sending the position), with python-chess agreeing on both ends.
