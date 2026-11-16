@@ -16,6 +16,17 @@ the denominator is the program total, not the subset; print "NOT FOUND" and a ve
 is missing, never 0.
 
 
+## NAMED RULE (29-N23): sweep the second variable before any number reaches a summary
+Twice in one hour a single-cell percentage of mine was wrong the same way, and both times the fix was to vary one
+more axis:
+- replacement-scan rate: first measured **11.1 %** at one depth/hash, actually **0.1 % to 44.8 %** across the 2x2
+  (29-F38 -> 29-F39);
+- PC20 tree size: first measured **-19.5 %** nodes at depth 12, actually **+2.3 % at depth 10**, -19.5 % at 12,
+  -14.1 % at 14 — the switches are NOT free at low depth (29-F40 -> 29-F41).
+Practice: before a figure enters a finding, a rule or a summary, measure it at another value of whatever it most
+plausibly depends on (depth, hash, position set, settings regime, sample size). If the answer moves, report the TABLE,
+not the number. A single figure may stand only when the sweep shows it is flat — and then the flatness is the finding.
+
 ## NAMED RULE (29-N16): an instruction-count saving on one build is NOT evidence about another build
 Worked example, my own TT patch, same two source changes:
 - base tree 6b98f217:            -18,708,563 instructions  (-0.414 %)
@@ -122,3 +133,4 @@ transposition-table work on BOTH grounds: the distribution it samples and the co
 | 29-F40 | 9 | **CORRECTED BY 29-F41 — the 19.5 % is the depth-12 cell only; the effect changes sign with depth.** The PC20 option set does real search work, measured on the PC r15 build over 30 real-game positions at depth 12, Threads 1, Hash 16: **S14 = 3,078,383 nodes (102,612 per position) against PC20 = 2,478,658 (82,621 per position), i.e. PC20 searches 19.5 % FEWER nodes** for the same depth and the same positions. So the four switches (`CuckooRep`, `HistRework 2`, `TtPruneV2`, `CorrHistV2`) are not cosmetic: they measurably reduce the tree, which is why PC20's `bench 13` pin is 587,276 against S14's 656,517. Anyone comparing a base-tree number with a PC20 number is comparing trees of different size, not just different ordering. | `slots/pc20_tt_effect.py`, `raw_pc20_nodes.txt` | NEW |
 | 29-F41 | 9 | **CORRECTS 29-F40: the PC20 tree-size advantage is DEPTH-DEPENDENT and changes sign — my "19.5 % fewer nodes" was one cell.** Same build, same 30 (resp. 20) real-game positions, Threads 1, Hash 16: **depth 10: S14 861,000 vs PC20 880,419 = +2.3 % MORE nodes**; **depth 12: 3,078,383 vs 2,478,658 = -19.5 %**; **depth 14: 5,888,909 vs 5,061,004 = -14.1 %**. So the four switches only pay for themselves from roughly depth 12 upward; at shallow depth they cost slightly more. The qualitative point that base/S14 and PC20 numbers are trees of different SIZE still holds at the depths the PC actually plays, but the magnitude must be quoted WITH the depth, and no single percentage is valid. Same error class as 29-F39 (one cell presented as a constant), caught this time before it reached a summary. | `slots/pc20_tt_effect.py`, `raw_pc20_nodes.txt`, `raw_pc20_d10.txt`, `raw_pc20_d14.txt` | NEW |
 | 29-N22 | 9 | WITHDRAWAL of the specific number in 29-F40 ("19.5 % fewer nodes") as a general statement: it is the depth-12 row only. The corrected claim is that PC20 REDUCES the tree from about depth 12 upward (-19.5 % at d12, -14.1 % at d14) and slightly INCREASES it at depth 10 (+2.3 %). 29-F40's row is annotated with this pointer; the finding's qualitative half (different tree sizes, not merely different ordering) is unaffected at match depths. | `raw_pc20_d10.txt`, `raw_pc20_d14.txt` | NEW |
+| 29-N23 | 9 | **NAMED RULE (my default from here on): SWEEP THE SECOND VARIABLE BEFORE ANY NUMBER REACHES A SUMMARY.** Twice in one hour a single-cell percentage of mine was wrong in the same way — the replacement-scan rate (29-F38 "11.1 %" → 29-F39: 0.1-44.8 % across depth x hash) and the PC20 tree-size effect (29-F40 "19.5 % fewer" → 29-F41: +2.3 % at depth 10, -19.5 % at 12, -14.1 % at 14). Both were caught by varying one more axis before believing the first measurement. The rule, concretely: before a figure goes into a finding line, a rule block or a summary, measure it with at least one other value of whatever it most plausibly depends on — depth, hash, position set, settings regime, sample size — and if the answer changes sign or materially changes magnitude, report the TABLE, not the number. A single figure is only allowed to stand when the sweep shows it is flat, and then the flatness is itself the finding. | `slots/raw_sweep.txt`, `slots/raw_pc20_d10.txt`, `raw_pc20_d14.txt` | NEW |

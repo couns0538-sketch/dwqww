@@ -24,6 +24,16 @@ only changes how often a scan finds an EMPTY slot, i.e. whether the table is sat
    depth and hash** (0.1 % to 44.8 % across the four cells above). Seat 19's 19-F18 54.7 % sits within that range:
    it is a different position set and a different saturation, NOT an error — their bench figure matches mine exactly.
 
+## NAMED RULE FOR THE FINAL, to carry forward (29-N23)
+**Sweep the second variable before any number reaches a summary.** Twice in one hour a single-cell percentage of mine
+was wrong for the same reason: the replacement-scan rate (11.1 % was one cell of a 0.1-44.8 % range across depth and
+hash) and the PC20 tree-size effect (19.5 % fewer nodes at depth 12, but **+2.3 % MORE at depth 10** and -14.1 % at
+depth 14). Both were caught by varying one more axis before believing the first measurement. Before a figure goes
+into a finding, a rule or a summary: measure it at another value of whatever it most plausibly depends on, and if the
+answer moves, report the TABLE rather than the number. A single figure may stand only when the sweep shows it is
+flat — and then the flatness is the finding. The depth-10 sign flip is the sharpest example: it says the PC20
+switches are NOT free at low depth, which no single depth-12 number would ever have revealed.
+
 ## Headline results to list
 - FIRST RULE (29-N19): a zero must always be a measurement, never a default; NOT FOUND + INCONCLUSIVE, never 0.
 - 29-F35 rule: bench is not a representative workload for any slot-sensitive or TT-cost optimisation
