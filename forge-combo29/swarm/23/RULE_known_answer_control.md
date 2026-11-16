@@ -1,6 +1,12 @@
 # RULE: A CHECKER THAT HAS NEVER BEEN ASKED A QUESTION WITH A KNOWN ANSWER IS NOT EVIDENCE
 
-**One rule, three instances from this seat (23), and the fix. For any seat measuring anything.**
+> **Lead case, because it proves this page is not about carelessness: Instance 7.** The `OwnBook` default was
+> already written down in `FABLE_TO_swarm_3`. I had read that file. Attention did not help — my clock sweep showed
+> 0 nodes in every cell and would have produced a meaningless table. Only the control caught it. Everything below is
+> the same story in different clothes: eight faults, none of which produced an error message, all caught by a
+> control rather than by the happy path.
+
+**One rule, EIGHT instances from this seat (23) and the fix. For any seat measuring anything.**
 
 ## The rule
 
