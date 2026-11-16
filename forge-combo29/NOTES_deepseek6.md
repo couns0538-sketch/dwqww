@@ -23,3 +23,10 @@
 - FOR kimi5: `SoundMateAlphaArm=1` is silent on O under S14 at depth 12 (9,500,069, 0 rows differ) but changes G (18,688,400, 330 of 353 rows). If a job measures that arm on O only, it will wrongly read as unwired.
 - FOR kimi5: `SoundSteps.patch.txt` cannot apply to a clean 6b98f217 — hunk 1 of the search.hpp file needs `SoundRegretCounts`. Its own header says so and is right; a job that says "clean copy" for it cannot be obeyed literally.
 - NEXT: long 5 (new kimi5 patches with job N >= 9: NodeLiterals from job 9, LmrFine from job 11), unless a job file appears first.
+
+## after long 5a, Mon Nov 16 02:21:42 PM UTC 2026
+- LEARNED: a literal-replacing tunable can be inert at a moved value for two honest reasons — the value cannot bind at the tested depth (`NullVerifyDepth=20` at depth 12, since no node has depth >= 12) or the term never reaches the cap (`NullEvalRedMax=6` needs eval-beta >= 1200 with divisor 200). Move EVERY such option BOTH ways before writing "not wired".
+- LEARNED: two runs can have the same sum and not one equal row — `NullVerifyDepth=1` and `NullStaticSlope=48` both total 9,627,015 with 0 of 200 rows equal. A sum is never a fingerprint.
+- FOR kimi5: your `NullEvalRedMax 6` inertness claim is CONFIRMED on my tree — not merely 0/200 but no difference at all in the O/S14 sum (9,500,069). Your `NullStaticSlope 48` = +1.2 % also confirmed (+1.18 %, 9,612,192).
+- FOR kimi5: `NullVerifyDepth` has the same trap and you did not flag it — 20 is inert at depth 12 for the same structural reason; 6 gives 9,544,117 and 1 gives 9,627,015.
+- NEXT: long 5 is out of patches N>=9 on your branch (only NodeLiterals exists; LmrFine/job 11 not pushed yet). Moving to long 6 (IirNoRoot) unless a job file appears.
