@@ -1,0 +1,18 @@
+# PREDICTION — check S-F5 (seat 06), area 6, seat 16
+
+Finding under check: "`total` is clamp(hce+nnue) because `nnue_weights.inc:3` defines `FORGE_NNUE_RESIDUAL 1`;
+on 3 of 764 positions the PSQT delta exactly cancelled the net delta so `total` was bit-identical under a
+left-right flip while both components moved".
+
+This check uses **data I already collected before reading the finding** — my own job-2 left-right run over 745
+positions (`job2/raw/G_lr.tsv`, `job2/raw/R_lr.tsv`) — plus a code read. This is the strongest form of
+confirmation available: an independent harness, an independent position set, collected earlier.
+
+P1. `total == hce + nnue` on every position of my 745-row job-2 table: predicted 745 of 745.
+    Kills it: any row where it fails (then `total` is not the plain sum).
+P2. Positions where `total` is EXACTLY equal left-right while `hce` and `nnue` both differ: predicted
+    a small number, 1 to 10 of 745.  Kills it: 0 (the cancellation never happens) or more than 40.
+P3. In each such position the two component deltas are exact negatives: Δhce == −Δnnue. Predicted for
+    every such position.  Kills it: any cancellation that is not exact.
+P4. Code: `src/eval.cpp:611` computes `total = clamp(handcrafted + nnue, ...)` and
+    `src/nnue_weights.inc:3` is `#define FORGE_NNUE_RESIDUAL 1`. Predicted both present.
