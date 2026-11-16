@@ -1,0 +1,102 @@
+# applies from the repository root, AFTER SoundRegret.patch.txt: patch -p1 < SoundSteps.patch.txt
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -237,7 +237,8 @@
+                          "option name SoundInCheckArm type spin default 0 min -1 max 1\n"
+                          "option name SoundMateAlphaArm type spin default 0 min -1 max 1\n"
+                          "option name SoundRegretCount type check default false\n"
+-                         "option name SoundRegretProbe type check default false\n";
++                         "option name SoundRegretProbe type check default false\n"
++                         "option name SoundStepMask type spin default 63 min 0 max 63\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -470,6 +471,8 @@
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "SoundStepMask") {
++                apply_spin(0, 63, [&](int clamped) { forge::tune::SoundStepMask = clamped; });
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             } else if (name == "MateAlphaGuard") {
+                 if (value_text == "true" || value_text == "false") {
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -1917,7 +1917,10 @@
+             (tune::sound_arm_enabled(tune::SoundArmPv) && pv_node) ||
+             (tune::sound_arm_enabled(tune::SoundArmInCheck) && in_check) ||
+             (tune::sound_arm_enabled(tune::SoundArmMateAlpha) && is_mate_score(alpha));
+-        if (!sound_mate_case && mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
++        // kimi5 job 5 Part 4: inside an arm's case the steps whose SoundStepMask bit is
++        // set are skipped; 63 skips the whole block (today's arm), 0 skips nothing.
++        const int sound_step_gate = sound_mate_case ? tune::SoundStepMask : 0;
++        if (sound_step_gate != 63 && mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
+             best_score > -MateInMaxPly && has_material && !bare_king_mode) {
+             // Trace stays off in normal play. It records which case skipped a
+             // move, including a quiet check that follows an earlier quiet skip.
+@@ -1942,7 +1945,7 @@
+                     if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
+                 }
+             };
+-            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) {
++            if (!(sound_step_gate & 1) && quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) {
+                 skip_quiets = true;
+                 if (sr_skip_origin == 0) {
+                     sr_skip_origin = 1;
+@@ -1951,7 +1954,7 @@
+             }
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             if (quiet && !gives_check) {
+-                if (!in_check && lmr_depth <= tune::FutilityDepth &&
++                if (!(sound_step_gate & 2) && !in_check && lmr_depth <= tune::FutilityDepth &&
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+                     (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+ #endif
+@@ -1968,14 +1971,14 @@
+                     note_deferred_quiet_checks();
+                     continue;
+                 }
+-                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
++                if (!(sound_step_gate & 4) && lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
+                     trace_case();
+                     sound_regret_drop(2, move, true, history, move_count);
+                     if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+                     quiet_fail = true;
+                     continue;
+                 }
+-                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
++                if (!(sound_step_gate & 8) && !board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+                     trace_case();
+                     sound_regret_drop(3, move, true, history, move_count);
+                     if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+@@ -1985,7 +1988,7 @@
+             } else {
+                 // Futility pruning for captures: even winning the piece cannot
+                 // bring the position back to alpha.
+-                if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
++                if (!(sound_step_gate & 16) && tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
+                     lmr_depth <= tune::CaptureFutilityDepth &&
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+                     (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+@@ -1998,7 +2001,7 @@
+                     continue;
+                 }
+                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+-                if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
++                if (!(sound_step_gate & 32) && !(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                     !board.see_ge(move, see_threshold)) {
+                     trace_case();
+                     sound_regret_drop(5, move, quiet, history, move_count);
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -354,6 +354,10 @@
+     std::uint64_t probe_nodes = 0;
+ };
+ inline SoundRegretCounts sound_regret{};
++// kimi5 job 5 Part 4: in an arm's case only the steps whose bit is set are skipped
++// (bit 0 = s1 .. bit 5 = s6). 63 = today's arm behavior, 0 = the case prunes like an
++// ordinary node. Outside an arm's case the mask has no effect.
++inline int SoundStepMask = 63;
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
