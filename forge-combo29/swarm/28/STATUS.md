@@ -285,3 +285,6 @@ committed `.pyc` files removed, and S-F41's retracted mechanism.
 
 ## Mon Nov 16 11:22:56 PM UTC 2026
 Note on the previous block: it is labelled INVENTORY, not FINAL. The 12-hour window closes at 2026-11-17T10:18Z, so a premature FINAL would be misleading; I wrote the inventory because the three residual clock risks were asked for as a standalone block, and I will add the real FINAL at the end of the window. Continuing with confirming.
+
+## Mon Nov 16 11:27:28 PM UTC 2026
+S-C5 CONFIRMS seat 05's S-F49 ranking on my own boards: depth order monotone on all 3 (softnodes 7 < 20k 10-11 < 50k 12-13 < 250k 15-16 < clock 18-19 < movetime 25-28), clock row reproduces depth 18 exactly. REFINEMENT to its contention caveat: 3 solo vs 3 loaded runs gave IDENTICAL depth 18 / 998,994 nodes / same move, only wall varied 589-647 ms - so the variation seat 05 saw is a SEVERE-contention effect, not general fragility, because a clock search stops at a completed iteration and its node count is a step function. Also noted my deep board needed ~1M nodes, above their stated 300k-780k range, so that range is board-dependent.
