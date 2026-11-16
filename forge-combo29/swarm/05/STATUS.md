@@ -581,3 +581,11 @@ S-F34/S-F35 framing (S-W4), my false softnodes nondeterminism (S-W3), my OwnBook
   => the low clock usage is not a single-search artefact, does not accumulate into a time problem, and the game is
   effectively played at depth 16-24.
 - next command: a second game from a different start (a G-set middlegame) to check the pattern is not startpos-specific.
+
+## $(date -u)
+- S-F47: second full match-clock game from a real middlegame (r4rk1/pp1b1ppp/...): 120 plies, 0 illegal moves, no loss
+  on time, final clocks 406/884 ms, per-move wall min 0.03 / median 0.11 / max 0.69 s, depths min 16 / median 22 / max 36.
+- Across BOTH games (151 + 120 plies) the engine never spent more than 0.71 s of a 6-second clock. In endgames it reaches
+  depth 32-36 because the trees are small. Conclusion: the clock is unused, NOT harmful — games complete with stable
+  clocks, legal moves, no forfeits.
+- next command: continue the cycle.
