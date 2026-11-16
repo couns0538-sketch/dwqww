@@ -1,0 +1,29 @@
+THIRD-SEED PERFT 5 — result, and a harness error I caught in my own run
+2026-11-16T23:23:42Z
+
+BOARD SET: R_2501.fens, 100 positions, seed 2501, 0 FENs in common with seeds 2301 and 2401 (checked).
+Build: base 6b98f217 (sha e06310ec), no setoption, Threads 1, Hash 16, one engine process.
+
+| depth | engine nodes | python-chess nodes | equal | mismatches |
+|---|---|---|---|---|
+|    1 |         2984 |            2984 |   yes | 0|
+|    2 |        86880 |           86880 |   yes | 0|
+|    3 |      2684412 |         2684412 |   yes | 0|
+|    4 |     81631216 |        81631216 |   yes | 0|
+|    5 |   2603588130 |      2603588130 |   yes | 0|
+
+perft-5 total 2,603,588,130 per side over 100 positions; mean perft-1 branching 29.84.
+All five predictions held: P1 0 mismatches, P2 total 2.60e9 inside 2.0-5.0e9, P3 branching 29.84 inside 29-33,
+P4 overlap 0, P5 reference ~16 min inside the 25-minute bound.
+
+PROCESS ERROR, MINE, CAUGHT AND FIXED — recorded because it could have produced a false claim:
+  I copied compare_perft.py from job2, which HARDCODES depths 1-4. My first run in this job therefore
+  compared depths 1-4 ONLY while the job was about depth 5, and its output looked like a complete result
+  ("no mismatches at any compared depth") with the depth-5 row simply absent. The table had 5 rows expected
+  and 4 printed; I noticed because I grepped for the depth-5 line rather than trusting the summary sentence.
+  Only job3's copy of that script honours a DEPTHS environment variable; job2, job4, job5, job16, check03,
+  check13 and job8 copies do not. job5's 23-F22 claimed depths 1-4 only, so its result is unaffected —
+  I checked that before writing this. The depth-5 numbers above come from the job3 copy.
+
+  LESSON: a harness that silently compares FEWER cases than the job asks for produces a passing result.
+  This is the same class of fault as the parser that found no number and printed CONFIRMS (23-F3).
