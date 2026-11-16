@@ -162,6 +162,19 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:55Z - near-miss detail beside the filter caveat
+
+Both files now pair the caveat with the practical warning: the filter catches every observed failure but does NOT
+validate a pass, AND both rejected cases were only ONE MOVE long (mate 4 with 6 plies where 7 were needed; mate 5
+with 8 where 9 were needed) - so they came within a single ply of passing while being wrong about the distance.
+Anyone relying on the filter should expect a barely-failing score to be the common case, not a distant one.
+
+Sentence to keep: the filter removes scores I have measured to be bad; it does not certify the ones it keeps.
+
+State: 76 findings, guards green (compliance PASS / audit 0 mismatches / self-check 4/4), working tree clean,
+local = remote. Continuing at cadence; guards re-run once more at the close.
+
 ## 2026-11-16T23:55Z - S-C32: tried to demonstrate the PV-length filter's blind spot, could not (null result)
 
 Five boards, softnodes 1000 vs 100000: the two failures (mate 4/SHORT, mate 5/SHORT) are correctly REJECTED; the two
