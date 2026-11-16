@@ -706,3 +706,23 @@ and FINDINGS_check.py caught it immediately. Rebuilt without literal pipes; chec
 rows all 7 columns, 4 check rows all 6 columns, no missing ids. That is the second time in ten minutes the
 check has paid for itself, on the very row describing the lesson it enforces.
 Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py
+
+## Mon Nov 16 11:59:13 PM UTC 2026
+
+CYCLE STEP (a) — checked an unconfirmed finding: seat 01's S-F8 (over-65535 halfmove/fullmove silently
+clamped). Verdict: S-C5 CONFIRMS 01-F8, with the base-vs-PC comparison showing its stated consequence
+exactly. checks/CHECK_01F8.md.
+  base 6b98f217: halfmove 100 / 65535 / 65536 / 70000 / 300000 ALL give 0 nodes and MISS the mate
+    (a1b1 instead of a1a8) — identical behaviour once the counter is >= 100, which is seat 01's claim.
+  PC r15: EVERY one of those values FINDS the mate (mate 1, 144 nodes) because the drawn-root repair (S-F17)
+    removes the shortcut — so the whole class of absurd-counter FENs is HARMLESS on the owner's build.
+  No over-65535 value is ever refused, on either build, across ten FENs covering both fields.
+  Acceptance verified by a perft-1 probe with startpos set FIRST: every case gives 17 (the new board's
+    legal moves, checked in python-chess) not 20 (startpos) — so the board really was replaced, which is the
+    trap that produced a false defect report earlier in this run (traps note case 5).
+  STATED LIMIT: the stored value itself is NOT observable from UCI (both 65535 and 70000 are >= 100 and every
+    consumer compares against 100), so the uint16 CLAMP is seat 01's source reading, not my measurement; I
+    confirm the consequence they state, not the storage width.
+  My own slip, corrected: the script printed "mate board gives 38" as the expected perft-1; the true value
+    is 17, verified in python-chess. The printed measurement was always right; the comment was wrong.
+Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py
