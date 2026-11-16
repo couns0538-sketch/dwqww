@@ -97,3 +97,19 @@ set applied (Threads 1, Hash <size>, S14's 14, the four switches, MateAlphaGuard
 | 2048 | 2 ms | **6966 ms** |
 
 Same behaviour, so S-F7 is not an artefact of leaving the other options at default.
+
+## the proof that the extra time buys NOTHING (same nodes, same PVs)
+
+Hash 16 vs Hash 2048, MultiPV 5, `go depth 4`, base build (`identical_work_proof.py`):
+
+```
+Hash 16   depth 4 multipv 1 score cp 30 nodes 404  time 23   pv e2e4 e7e5 c2c3 c7c6
+          depth 4 multipv 5 score cp -10 nodes 1320 time 23   pv h2h3 b7b6 e2e3
+Hash 2048 depth 4 multipv 1 score cp 30 nodes 404  time 3088 pv e2e4 e7e5 c2c3 c7c6
+          depth 4 multipv 5 score cp -10 nodes 1320 time 3088 pv h2h3 b7b6 e2e3
+```
+
+**Identical node counts (404 … 1320), identical scores, identical PVs, identical hashfull** — only `time` and
+`nps` differ, by 134x. The engine does exactly the same search and spends 3 seconds clearing a transposition
+table it does not need to clear. That is what makes this a defect rather than a tuning question: all five
+`multipv` lines are emitted correctly in both cases, so the output is right and only the wall time is wrong.
