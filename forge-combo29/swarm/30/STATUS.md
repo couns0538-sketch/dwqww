@@ -203,3 +203,8 @@ and verified both behaviours under S14 and PC20 with the honesty gate unchanged)
 **30-C26: seat 23's budget-sensitivity phenomenon CONFIRMED, at 18.3 % (11/60) on MY OWN quiet positions** (seed 3011, random-game mid-games with >=8 quiet moves), vs their 27-30 % on their own selection. Same direction and same character (quiet, near-tied; 30-F46: where the move changes, both candidates score within a few cp), but a lower rate — binomial interval on 18.3 % at n=60 is ~10-30 %, so it overlaps theirs only at the edge. Reported as a rate difference, not a refutation.
 **Also pushed**: NOTE_go_nodes_budget.md (the malformed `go nodes` item, re-verified on the PC build under full PC20) and the early FINAL block with the MultiPV per-node table as its headline.
 **Next command**: `cd /agent/repos/dwqww && bash forge-combo29/swarm/30/read_board.sh /tmp/board12` then the next unconfirmed finding.
+
+## Mon Nov 16 11:22:16 PM UTC 2026
+
+**30-C27 — my headline number is now confirmed on a SECOND position**, so it is not position-specific: on a normal middlegame (`r1bqk2r/...`), PC r15 + PC20, Threads 1, go depth 8: MultiPV 3 gives 8,806 nodes at every Hash with **3.7 / 33.3 / 187.1 / 366.3 us per node** (Hash 16/256/1024/2048) while MultiPV 1 gives 4,515 nodes with **0.9 / 0.9 / 1.8 / 0.9** — flat. At 2 GB the MultiPV-3 price is 366 us/node here vs 204 us on P1, i.e. the penalty is if anything larger on a middlegame.
+**Next command**: `cd /agent/repos/dwqww && bash forge-combo29/swarm/30/read_board.sh /tmp/board12` then the next unconfirmed finding.
