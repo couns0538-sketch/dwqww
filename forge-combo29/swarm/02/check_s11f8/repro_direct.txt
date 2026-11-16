@@ -1,0 +1,21 @@
+# direct: what the engine says for the omitted-'value' form
+
+$ printf 'uci\nisready\nsetoption name UseNNUE false\nisready\nquit\n' | forge   (all info string lines)
+uciok
+readyok
+info string unknown option UseNNUE false
+readyok
+
+$ same on the ASan build
+readyok
+info string unknown option UseNNUE false
+readyok
+
+$ the correct form, for contrast
+readyok
+readyok
+
+$ a name that matches nothing at all, for contrast
+readyok
+info string unknown option Bogus
+readyok
