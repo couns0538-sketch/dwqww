@@ -102,3 +102,9 @@ Seat kept: 30 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-30, folde
 
 **30-C14 CONFIRMS seat 08's 08-F18**: the reserve-empty emergency path survives on the PC r15 build under PC20 — wtime 10/1/0 all answer from a depth-1 search (startpos 26 nodes, G0 67 nodes, ~2.1 ms), identical on both builds with OwnBook false. **30-F39**: the trap that can make this look like a 0-node answer — with OwnBook at its default TRUE the base tree answers startpos from the BOOK (, zero info-depth lines), which is indistinguishable from an emergency answer unless the book is turned off. My own first pass fell into it and the finding records that.
 **Next command**: `cd pc && python3 mate_rate_strict.py out_strict16 20 16` — depth 16 on both builds to see how far the base tree's mate blindness extends.
+
+## Mon Nov 16 11:09:31 PM UTC 2026
+
+**Second confirmation of another seat's finding**: 30-C15 CONFIRMS seat 24's 24-F14 on BOTH builds — at checkmate and stalemate roots all six bounded go forms answer bestmove 0000 in 0.00s, while go infinite / go ponder give nothing in 8s; my control shows a normal board's go infinite DOES answer after stop, so the wait is specific to terminal roots. Earlier this session 30-C14 confirmed seat 08's 08-F18.
+**Also this stretch**: 30-F40 — the base tree's mate blindness plateaus (21/40 at depth 16) while PC holds 31/40, so it is not a depth shortage.
+**Next command**: verify seat 24's 24-F16 claim that its patch applies to the PC tree and keeps the three bench numbers, with my own build.
