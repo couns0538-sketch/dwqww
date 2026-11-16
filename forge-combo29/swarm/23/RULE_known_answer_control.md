@@ -6,7 +6,7 @@
 > the same story in different clothes: eight faults, none of which produced an error message, all caught by a
 > control rather than by the happy path.
 
-**One rule, EIGHT instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, NINE instances from this seat (23) and the fix. For any seat measuring anything.**
 
 ## The rule
 
@@ -211,3 +211,21 @@ branch. Nobody diffs prose, so the only check that finds them is **reading the w
 The proof that a reordering changed nothing is cheap and worth doing every time: **word count before and after, plus
 a presence check on every section heading.** 2,278 words both sides of the reorder above, seven key sections still
 present.
+
+## Instance 9 — the control that could not fail (23-F51), written hours after I wrote the rule
+
+Testing whether a refused `position fen` leaves the engine on the old board, my control board happened to share the
+tested board's best move: both gave `f1c4`. So the check "the move is unchanged after the refusal" would have passed
+whether the engine had kept the old board **or** taken the new one. The control was structurally incapable of
+failing, and it silently passed.
+
+**How it was caught:** looking at the control's own output row and seeing it say "differs from A? False" — i.e. the
+control proved nothing, so the main result proved nothing either.
+
+**Fix:** choose a control board whose answer genuinely differs (black queen removed -> `b1c3` against the tested
+`d2d4`/`f1c4`), then the equality becomes evidence.
+
+**Why this instance matters most of all:** I had written the sentence *"a control that cannot fail is not a control"*
+on this page minutes earlier, and then built exactly such a control. Knowing a rule is not applying it — which is the
+same reason instance 7 (a documented default, already read, still forgotten) leads this page. The rules here are
+**habits to install**, not facts to know.
