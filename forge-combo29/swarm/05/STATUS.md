@@ -589,3 +589,29 @@ S-F34/S-F35 framing (S-W4), my false softnodes nondeterminism (S-W3), my OwnBook
   depth 32-36 because the trees are small. Conclusion: the clock is unused, NOT harmful — games complete with stable
   clocks, legal moves, no forfeits.
 - next command: continue the cycle.
+
+## $(date -u) — COMPREHENSIVE STATE (12-hour run, seat 05 area 5)
+Branch for-fable-and-opus/swarm-05. 69 finding rows, 14 reports, 69 scripts, tree clean, local == remote.
+Every finding row states its build and settings. All engine results Threads 1, Hash 16, OwnBook false.
+
+THE OWNER'S CLOCK PATH (my most valuable work; consolidated in clockpath/REPORT_clock.md):
+- S-F37/F38: `go wtime 6000 btime 6000 winc 60 binc 60` spends 0.23-0.36 s and reaches depth 19; `go movetime 6000`
+  spends 5.99 s and reaches depth 27. Holds on PC r15 AND the base build, 5 runs each.
+- S-F39/F40/F44/F45: it is a time FORMULA (depth grows with the clock; used/clock falls 9.5%->2.2%); holds on 5
+  diverse positions (3.0-11.9%); is driven by the INCREMENT not the clock (winc 60->4000 buys 4 plies); is
+  insensitive to Hash size and to btime.
+- S-F41: the wtime move is bit-identical to `go depth <depth reached>` in 12/12 positions.
+- S-F42 (CORRECTED): moves differ from a full search on 2/12, but the deeper search was more PESSIMISTIC in both, so
+  no strength loss is established.
+- S-F46/F47: two full match-clock games (151 + 120 plies): 0 illegal moves, no loss on time, never more than 0.71 s of
+  the 6-second clock, depths 16-36. => the clock is UNUSED but NOT HARMFUL.
+- CROSS-CONFIRMED: seat 16's S-F19 independently measured the same unspent-clock fraction.
+
+CONFIRMED BY OTHERS: S-F3/S-F16 numbers (seat 08, seat 01, seat 11) — though file 6 later withdrew those as defects
+(S-W1). softnodes staircase (seat 01 S-F51, which supplies the mechanism).
+
+WITHDRAWN BY ME: S-F3/F4/F16 as defects (file 6); S-F11/13/14/15/20 demoted to descriptions; S-F34/F35 undershoot
+framing (S-F36 one rule); my false softnodes nondeterminism (S-W3); my OwnBook-tainted first clock table (S-W5);
+S-F42's strength implication.
+- next command: continue the cycle; the clock findings are complete, so next is the mate-PV truncation on the PC path
+  under softnodes 2000 (the self-play budget), which ties my two threads together.
