@@ -341,3 +341,18 @@ hard-coded, PC r15. WARM = one process per game; COLD = a fresh process per move
   this control, not to either process policy - which is the "narrow margin, both true" framing.
 Also: Move Overhead is now reported BOTH ways in every clock table (raw and raw-10 ms), so no figure of mine can
 be mistaken about the convention again.
+
+## 2026-11-16T23:58Z S-C13: the deep-mate premise does NOT reproduce on verified lone-king boards
+Checked the claim "base reports centipawns where the PC reports mate" on boards VERIFIED with python-chess first
+(legality + exact plies), PC r15/PC20 and base/S14, Threads 1, Hash 16, OwnBook false hard-coded, depths 8/12/16:
+  KR vs lone K (mate in 1): **both builds `mate 1`**, bm h4h8, nodes 170/254/338 on BOTH.
+  KQ vs lone K (mate in 1): **both `mate 1`**, bm c7b7, nodes 198/294/390 on both.
+  KQ vs lone K (mate in 2 moves / 3 plies): **both `mate 2`**, nodes 570/816/1063 vs 593/853/1111; same score,
+  same distance, different first move (base c6c7, PC f4f7), both mating.
+  Controls (quiet middlegame, startpos): `cp` at every depth on both builds, never a mate score.
+**So there is no cp-vs-mate split on lone-king mates at depths 8-16** - the claim I was asked to check does not
+reproduce, and seat 23's 23-F46 already showed the lone-king failures were a DEPTH effect. Depth is stated beside
+every row per that caution.
+**Two of my own errors caught in this job, both before any result was recorded:** my first hand-written mate set
+had two ILLEGAL FENs, and one board I labelled "mate in 3" was 3 PLIES = mate in 2 MOVES, so the engine's
+`mate 2` looked wrong when it was right. The script now verifies every board and refuses to run if one fails.
