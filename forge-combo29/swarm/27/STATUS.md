@@ -226,3 +226,11 @@ no score) and what a dataset recorded (a2a3 = the generator's first entry, with 
 trainer's filter, or a default 0 that teaches "equal, play a2a3"). The 26-node threshold is not guessable, so
 such rows cannot be repaired by inspection. I did NOT measure what fraction of any dataset falls in that band.
 Both paragraphs also in the store note `internal/swarm/seat-27-fifty-move-band-and-nodes.md`.
+
+## 2026-11-16T22:38Z cycle 4: 29-F3 confirmed on the PC build by a different method
+S-C9: fitting reported `time` against reported `nodes` over depths 10-14 (PC r15/PC20, Threads 1, fresh process
+per bench, two rounds) gives intercepts **+14.84 ms** and **+18.53 ms** with r2 0.994 / 0.996, slope 585-586
+ms per M-node. A timer containing only search work fits through the origin; this one does not, and the intercept
+is the fixed cost by construction. Seat 29 found ~14 ms by timing; I found ~16.7 ms by the shape of the curve -
+two methods, same conclusion. Consequence: the fixed part is 3-4 % of a bench 13 report, under 2 % of bench 16,
+so shallow-bench nps is understated. **Node totals are unaffected**, which is why the pins stay comparable.
