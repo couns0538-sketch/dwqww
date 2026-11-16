@@ -255,3 +255,7 @@ Next: continue on PC20 with provably-applied options; STATUS every 25 min.
   (0/25 differ) and always stops at a finished depth, but overruns N by median 33.6% at N=2000
   (max 220%) and 30.5% at N=20000 (max 135%) across 25 real G positions. One position is not enough
   to characterise it (my single probe had shown 13.4% and 1.5%).
+- S-F42: the stale-board defect fires on the PC's REAL path — g8f6 (a GAME-1 move) returned under
+  `go softnodes 2000` (self-play), `go nodes 20000` (matches) AND `go movetime 100` (clock) after a
+  truncated game-2 FEN. Refusal line IS emitted; a harness must treat it as fatal. This is a live
+  wrong-move hazard for the owner's own harness, not a UCI edge case.
