@@ -86,3 +86,26 @@ Plan for the 12 hours, in the order the owner set:
 3. re-run my own findings on the PC build under PC20 and say in each finding line which build and settings;
 4. then THE CYCLE: area-2 jobs on both builds, checks of other seats, STATUS every 25 minutes or less.
 Final block "## <time> FINAL" with every find of mine, its state and the build it used, before 10:18Z.
+
+## 2026-11-16T22:41Z — PC r15 build done and verified; my findings re-run on it
+Read FABLE_TO_swarm_4.md and FABLE_TO_swarm_5.md in full (1, 2, 3 were already read).
+PC r15 built in a SEPARATE copy (/agent/repos/pc) from 6b98f217: patch extracted from file 5, sha256
+d6bd72c531f785f40421be1cc542743922a944fb0973d05831788440309c1a1a == file 5's stated prefix; patch -p1 with
+0 fuzz / 0 offsets / no .rej; 11 files touched, CMakeLists untouched; -DFORGE_MATE_ALPHA_GUARD=1; BUILD_EXIT=0.
+ALL EIGHT stated bench numbers reproduce exactly (none: 312866/862329/3024920/4865609; S14: 242796/656517;
+PC20: 278024/587276). The PC build is USABLE. pc_build/README.md.
+Threads 1 set explicitly on every run (seat 04's rule); every search cold in a fresh process; interactive driver.
+
+RESULT of re-running my four findings on the PC build under PC20: NONE of them is repaired.
+S-F2 `0000` on an empty searchmoves: still there. S-F3 ponderhit no-op: still there (and correct). S-F4
+opponent-only clock searches forever: still there, silent. S-F5 Clear Hash with a value: still there.
+NEW S-F6: `go btime wtime 50` — an eaten-keyword parse — DOES hang the base build (2000 ms) and is FIXED on
+the PC build (2.4 ms); that is FORGE_FIX_GO_PARSE, and it is a DIFFERENT mechanism from S-F4, which the patch
+does not touch. pc_rerun/RESULT.md.
+
+Harness note: my first base-vs-PC comparison left OwnBook at its default on the base build and two rows came
+back from the BOOK in ~1 ms, which reads exactly like "the defect is gone". Fixed to OwnBook false on both
+builds plus an assertion that aborts on any `book move` line in those rows.
+
+Next: area-2 job work on BOTH builds, starting with the S-F6 family (which other `go` keyword orders hang?) and
+re-running job 1 and job 3 on the PC build under PC20.
