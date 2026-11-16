@@ -1,0 +1,42 @@
+WHAT THE TWO SERIOUSLY-WRONG CASES HAVE IN COMMON (10-F53's 2 positions at >=200 cp)
+
+THE TWO POSITIONS
+ i=12  rn2r1k1/pp3pp1/1q3n2/2bpp3/6bR/1BPP1N2/PP1NQP2/R1B1K3 b Q - 0 1
+       softnodes 20000 -> b6e6, cp +222, depth 10, 24,553 nodes
+       nodes 250000    -> b6c6, cp +364, depth 13, 214,451 nodes
+       the 20000 move b6e6, re-searched AT the large budget -> cp +85, depth 16
+       -> the small budget called b6e6 +222; a deep search of that same move calls it +85. 137 cp too hopeful.
+ i=99  8/6qp/8/1K6/6Pb/7P/8/1k6 w - - 0 1
+       softnodes 20000 -> b5b6, cp -1665, depth 9, 21,314 nodes
+       nodes 250000    -> b5c6, cp -1883, depth 13, 194,097 nodes
+       the 20000 move b5b6, re-searched AT the large budget -> cp -2100, depth 14
+       -> the small budget called b5b6 -1665; a deep search calls it -2100. 435 cp too hopeful.
+
+WHAT THEY SHARE -- and what they do not
+NOT position type: one is a heavy middlegame (queens and rooks on), the other a bare king-and-pawns
+endgame. NOT depth reached: 10 and 9. NOT node count: 24,553 and 21,314 -- both are ordinary
+softnodes-20000 overshoots, neither is an outlier. NOT a close second move: in both, the deep search
+prefers a DIFFERENT move by a wide margin.
+
+They share ONE thing, and it is a scoring property rather than a position property: in both, the
+shallow search is far too OPTIMISTIC about its own chosen move.
+     i=12 : optimism +137 cp    i=99 : optimism +435 cp
+and these are the two LARGEST optimisms in the whole set of 17 disagreements.
+
+HOW FAR THAT GOES -- stated honestly
+Across the 17 positions where 20000 and 250000 disagree, optimism = score(20000 choice, at 20000)
+- score(same move, at 250000):
+     median +7 cp, mean +31 cp, positive on 10 of 17
+     Pearson correlation with the real damage: 0.65  -- but that is carried by the one huge outlier
+     SPEARMAN RANK correlation: only 0.27
+So: optimism identifies the two extremes, but it does NOT rank the middle of the set. The honest
+statement is "both serious cases are severe shallow-optimism cases; shallow optimism is NOT a reliable
+predictor of which positions will hurt". A seat should not build a filter on it without a wider sample.
+
+MECHANISM, in one sentence: the small budget stops at depth 9-10 and reports a score it has not yet
+corrected; a deep search of the SAME move finds it 137-435 cp worse. So the damage comes from an
+unconverged score on the chosen move, not from picking a different move out of a tie.
+
+WHAT THIS MEANS OPERATIONALLY: you cannot detect the bad small-budget move from the small-budget record
+alone -- its score looks normal and its move is legal. Detection requires re-searching that move deeper,
+which is exactly why the fix is DISCIPLINE (record the budget, do not mix) rather than a filter.

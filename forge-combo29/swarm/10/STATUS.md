@@ -380,3 +380,14 @@ paid once per extra PV line: ~6 s of clearing inside a 3 s budget at MultiPV 8. 
 10-F54: record the budget with the data and never mix budgets; or filter to the 81% that agree; 50000 is the
 cheapest single safe budget (92/100 agreement with 250000).
 Mon Nov 16 10:42:12 PM UTC 2026
+
+## Worst cases + rule 14
+10-F55: the two >=200 cp budget cases share a SCORING property, not a position one -- shallow OPTIMISM about
+its own move: i=12 calls b6e6 +222 while a deep search of b6e6 gives +85 (137 too hopeful); i=99 calls b5b6
+-1665 while a deep search gives -2100 (435 too hopeful). The two largest optimisms in the set.
+Different in position type, depth, node count and second-move closeness.
+10-F56: honesty limit -- optimism picks the extremes but Spearman rank correlation with real damage is only
+0.27, so it is NOT a usable predictor of which positions hurt.
+10-F57: the bad move is undetectable from the record (legal move, normal-looking score) -> DISCIPLINE not a
+filter. Rule 14 added to the capstone page with the one-line operational rule.
+Mon Nov 16 10:42:49 PM UTC 2026

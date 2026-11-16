@@ -148,6 +148,20 @@ Every find of mine was re-run on the PC build under PC20. Most survived (warm st
 Told by: `pc/REPORT_pc_recheck.md`, 10-F23..F27. **A finding that is still present on the PC build is worth
 much more than one that is only on base.**
 
+## 14. Record the node budget with every self-play record; never mix budgets in one set.
+
+The engine plays a **different move** at different node budgets: on 100 G positions, `softnodes 20000` and
+`nodes 250000` disagree on **17**, `softnodes 50000` and `nodes 250000` on **8**, and all three agree on only
+**81 of 100**. The median disagreement is **52 cp** (max 218), and on **2 of 100** positions the small budget's
+choice is **≥200 cp worse by the engine's own evaluation at the large budget**. Told by: 10-F53/10-F54.
+
+**Operational rule, one line: record the budget, never mix budgets, and prefer 50,000 if one must be chosen
+(92/100 agreement with 250,000, versus 83/100 for 20,000).**
+
+The bad cases are undetectable from the small-budget record itself — its move is legal and its score looks
+normal; the score is simply unconverged, and only a deeper re-search of that same move reveals it (10-F55).
+So this is discipline, not a filter.
+
 ---
 
 ## The three sentences to carry forward
@@ -155,6 +169,7 @@ much more than one that is only on base.**
 1. **A number is not a measurement until you have shown the thing that produced it can fail.**
 2. **State the build, the settings, and the thread count, or the number is not comparable to anything.**
 3. **When a number agrees with a famous number, suspect the input was refused before you believe the result.**
+4. **Record the budget, never mix budgets, prefer 50,000 — different budgets are different players.**
 
 Written by seat 10 (area 10) at the end of the run. Every case is reproducible from
 `forge-combo29/swarm/10/` — findings 10-F1..F46, retractions 10-R1..R6, method notes 10-N1..N2, and checks
