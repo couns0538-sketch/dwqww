@@ -1,0 +1,22 @@
+# PREDICTION — are S-F30's largest costs real, or depth-12 proxy artefacts?
+
+S-F30 measured the cost of the 2,000-node self-play move against the 250,000-node match move using a SINGLE
+depth-12 reference search of each resulting position. That is a proxy: in a sharp or lost position a depth-12
+score is not ground truth, and four of my "worse" cases and three "better" ones are within a range where the
+proxy could be wrong.
+
+Method: take the 8 positions where |cost| > 30 cp from S-F30 and re-judge each pair with DEEPER reference
+searches (depths 14, 16, 18), independently of the low/ref budgets. For each position, for each candidate move,
+search the resulting position once per depth and record the mover's score. The cost is then the difference
+at each depth, so I can see whether the sign and size are stable as the reference deepens.
+
+P1. The sign is STABLE for at least 6 of the 8 positions across depths 12/14/16/18. Kills it: fewer than 4
+    (then S-F30's individual cases are proxy artefacts and only its aggregate "wash" claim survives).
+P2. The magnitude SHRINKS with depth for most positions, as the deeper search finds resources for the losing
+    side. Predicted the median |cost| at depth 18 is smaller than at depth 12. Kills it: growth, which would
+    mean the shallow budget's choices get worse with more search (also worth knowing, in the other direction).
+P3. idx 34's +109 cp (the largest loss) SURVIVES at depth 18 at more than 50 cp. Kills it: it falls below
+    30 cp, in which case the single largest "loss" in S-F30 is an artefact and I must say so.
+P4. idx 37's -109 cp (the largest GAIN, h8h1 winning a rook) SURVIVES at depth 18, because a won rook is a
+    material fact that deeper search cannot take back. Kills it: it reverses, which would mean my hand-check
+    at depth 14 was also wrong.
