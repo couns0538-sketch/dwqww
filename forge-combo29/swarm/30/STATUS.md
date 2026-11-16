@@ -197,3 +197,9 @@ and verified both behaviours under S14 and PC20 with the honesty gate unchanged)
 (`go nodes` a hard ceiling 0/15, `go softnodes` overshoots 14/15 up to +118.8 %). Reports:
 `REPORT_job2.md`, `REPORT_job3.md`, `REPORT_check1.md`, `REPORT_check2.md`, `REPORT_pc_multipv.md`,
 `REPORT_pc_repairs.md`, `NOTE_go_nodes_budget.md`.
+
+## Mon Nov 16 11:21:55 PM UTC 2026
+
+**30-C26: seat 23's budget-sensitivity phenomenon CONFIRMED, at 18.3 % (11/60) on MY OWN quiet positions** (seed 3011, random-game mid-games with >=8 quiet moves), vs their 27-30 % on their own selection. Same direction and same character (quiet, near-tied; 30-F46: where the move changes, both candidates score within a few cp), but a lower rate — binomial interval on 18.3 % at n=60 is ~10-30 %, so it overlaps theirs only at the edge. Reported as a rate difference, not a refutation.
+**Also pushed**: NOTE_go_nodes_budget.md (the malformed `go nodes` item, re-verified on the PC build under full PC20) and the early FINAL block with the MultiPV per-node table as its headline.
+**Next command**: `cd /agent/repos/dwqww && bash forge-combo29/swarm/30/read_board.sh /tmp/board12` then the next unconfirmed finding.
