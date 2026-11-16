@@ -43,8 +43,22 @@ grep -E 'LeakSanitizer|SUMMARY' leak_run_out.txt
 SUMMARY: AddressSanitizer: 512 byte(s) leaked in 8 allocation(s).
 ```
 exit code 1. The size is exactly what the planted code leaks: 16 ints × 4 bytes = 64 bytes, × 8 root searches
-(`go depth 6` enters the root once per iteration) = 512 bytes in 8 allocations. **The count reconciles with the
-planted fault**, which is the check that proves the report is about MY leak and not some pre-existing one.
+= 512 bytes in 8 allocations. **The count reconciles with the planted fault**, which is the check that proves the
+report is about MY leak and not some pre-existing one.
+
+**CORRECTION (job file 2, item 2).** My first version explained the 8 as "once per iteration", which would be 6,
+and asserted it without counting. It is corrected here by measurement, not by rewording: I instrumented the root
+entry with a counter (`tests_deepseek6_job2/rootcount/rootcount.patch.txt`, applies to 6b98f217 with
+`patch -p1 --fuzz=0`), built it, and ran `go depth 6` from startpos waiting for `bestmove`. The engine printed
+
+```
+info string DS6ROOT calls 8
+bestmove d2d4
+```
+
+so **the root is entered 8 times: 6 iterative-deepening iterations plus 2 re-searches** — the count, not a
+reading of the code. The 8 allocations in the leak report are therefore exactly one per root call, which is what
+the planted fault does.
 
 This retires the caveat I wrote twice (long 7 section 7 and long 8 section 7): the 14,931 positions with 0
 sanitizer lines in long 8 were run by a build whose leak checker is demonstrably working.

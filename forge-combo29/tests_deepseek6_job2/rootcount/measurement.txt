@@ -1,0 +1,14 @@
+# The measurement job file 2 asked for (item 2): count the root calls at "go depth 6".
+# exe: /agent/repos/work/build-rootct/forge (sha256 in exe.sha256), built from a clean
+# copy of 6b98f217 with rootcount.patch.txt applied (applies with patch -p1 --fuzz=0).
+# Protocol: uci, isready, position startpos, go depth 6, WAIT for bestmove, then quit.
+# Output, verbatim:
+info string DS6ROOT calls 8
+bestmove d2d4
+info depth 6 seldepth 10 score cp 34 nodes 1703 nps 1703000 hashfull 0 time 1 pv
+#
+# So "go depth 6" from startpos enters the root search EIGHT times:
+#   6 iterative-deepening iterations + 2 re-searches = 8 root calls.
+# That is exactly the 8 allocations the planted-leak report showed
+# (512 bytes = 16 ints x 4 bytes x 8), so the reconciliation in
+# REPORT_deepseek6_gaps.md section 4.1 is now a COUNT, not a reading.

@@ -243,4 +243,9 @@ the output of a committed command, not a transcription.
 
 ## 10. times
 
-see `stamps.txt`. Model: DeepSeek V4.1 Flash 1017 (`deepseek-v41-flash-1017`, as named by this runtime).
+see `stamps.txt`. Model: **DeepSeek V4.1 Flash 1017** (`deepseek-v41-flash-1017`, as named by this runtime).
+
+**On the `glm-5p3-flash` signature (job file 2, item 3).** That name appears in this report only where I quote the
+OTHER session's commit `092080d97`, which pushed a competing job-1 report onto this branch; it is not my model
+name and never was. Every report I have written — long 1 through long 8b and this one — says DeepSeek V4.1 Flash
+1017, which is what my runtime gives.
