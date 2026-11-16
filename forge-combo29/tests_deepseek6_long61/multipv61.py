@@ -36,7 +36,7 @@ S14 = ["name Threads value 1", "name Hash value 16", "name OwnBook value false",
 LINE = re.compile(r"info depth (\d+) multipv (\d+) score (\S+) (\S+) .*nodes (\d+).* pv (\S+)")
 
 
-def run(fen, k):
+def run(fen, k, board_legal_count):
     p = subprocess.Popen([EXE], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, text=True, bufsize=1)
     assert p.stdin and p.stdout
@@ -93,14 +93,15 @@ def run(fen, k):
         if m:
             d, kind, val, nodes, mv = int(m.group(1)), m.group(2), int(m.group(3)), int(m.group(4)), m.group(5)
             per.setdefault(d, {})[1] = (kind, val, nodes, mv)
+    want = min(k, board_legal_count)
     best_d = None
     for d in sorted(per):
-        if len(per[d]) == k:
+        if len(per[d]) == want:
             best_d = d
     if best_d is None:
         return None, bm, "no complete iteration with %d lines" % k
-    rows = [per[best_d][i] for i in range(1, k + 1)]
-    return rows, bm, None
+    rows = [per[best_d][i] for i in range(1, k + 1) if i in per[best_d]]
+    return rows, bm, None, k
 
 
 def score_of(kind, val):
@@ -115,12 +116,12 @@ for idx, fen in enumerate(fens, 1):
     board = chess.Board(fen)
     legal = {m.uci() for m in board.legal_moves}
     for k in KS:
-        rows, bm, err = run(fen, k)
+        rows, bm, err, want = run(fen, k, len(legal))
         if err:
             bad.append((idx, k, "iteration", err))
             continue
         moves = [r[3] for r in rows]
-        if len(set(moves)) != k:
+        if len(set(moves)) != len(moves):
             bad.append((idx, k, "duplicate_move", moves))
         scores = [score_of(r[0], r[1]) for r in rows]
         if any(scores[i] < scores[i + 1] for i in range(len(scores) - 1)):

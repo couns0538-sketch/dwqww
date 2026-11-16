@@ -1,0 +1,38 @@
+# deepseek6 long 61 — prediction scorecard (PREDICTION.md committed before the first full-set run, never edited)
+
+P1 zero violations of the three properties across all 600 reads.
+   MEASURED: **0** — distinct moves, non-increasing scores and legality all hold on 200 x {1,3,5};
+   plus a fourth check I added (first line == `bestmove`) also 0 mismatches. -> **HELD.**
+
+P2 the first line under k=3 and k=5 equals k=1's bestmove on at least 170 of 200.
+   MEASURED **130 of 200** (k=3) and **124 of 200** (k=5) — i.e. the top move CHANGES on 70 and 76 positions.
+   -> **KILLED**, and by a wide margin (my floor was 150 and I missed it).
+
+P3 k=5 differs from k=1 more often than k=3 does.
+   MEASURED k=3 changes 70, k=5 changes 76. -> **HELD** (the ordering I predicted, by 6 positions).
+
+P4 the k=5 first-line score is never lower than the k=1 score on the same position.
+   NOT TESTED. The checker records the scores but the committed run asserts only the ordering WITHIN a list;
+   I did not add the cross-k score comparison before the run, so I do not claim this prediction either way.
+   (Cheap to add — one more pass over the same 600 reads — and I would do it first in a next version.)
+
+P5 budget 10-20 minutes for 600 searches.
+   ACTUAL about 9 minutes for the reported run (plus two earlier aborted runs while I fixed the checker, about
+   9 more). -> **HELD.**
+
+Score: 3 held (P1, P3, P5), 1 killed (P2), 1 not tested (P4).
+
+## The result that matters
+
+The MultiPV contract is **intact**: 0 violations of distinctness, ordering or legality across 600 reads, and the
+first line always equals the reported bestmove. But **MultiPV is not a superset search in this engine** — the top
+move itself changes on more than a third of the openings (70/200 at k=3, 76/200 at k=5). Anyone who runs "MultiPV 1"
+and "MultiPV 3" and compares the first lines is comparing two different searches, not one search reported twice.
+
+## Two harness bugs I hit and fixed before the reported run (kept, not hidden)
+
+1. At **k=1** this engine prints the plain `info depth … seldepth … score …` form with **no `multipv` token**; k=3/5
+   print `info depth … multipv N score …`. My first parser only matched the second shape, so every k=1 comparison
+   would have been against an empty list.
+2. My first version demanded exactly k lines. **Position 189 has one legal move**, so the engine correctly returns
+   one line for any k — the checker now expects `min(k, legal)`.
