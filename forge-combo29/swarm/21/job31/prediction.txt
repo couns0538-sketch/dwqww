@@ -1,0 +1,19 @@
+# PREDICTION — job31: the PC's match path — `go nodes` and the clock, on real-game positions
+written before the first measuring command.
+
+File 6 item 3: the owner's matches use `go nodes` 20000 / 50000 / 250000 and a clock of 6 s + 0.06
+per move, on positions from real games. This job measures that path on the PC build under PC20,
+Threads 1, looking for the things file 6 says count: a wrong move, a wrong score, a crash, a slow
+path.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | `go nodes 20000` reports a node count within 1 % of 20000 (a hard limit, unlike softnodes) | killed if it is far off |
+| P2 | `go nodes 20000` is bit-identical across 5 fresh processes | killed by any difference |
+| P3 | `go nodes 50000` and `250000` are likewise deterministic and within 1 % of the budget | killed by any difference |
+| P4 | the score at 250000 nodes is not worse than at 20000 for the side to move by more than 50 cp in EITHER direction... (a large swing would suggest instability) | killed only by a swing > 300 cp, which would be a finding |
+| P5 | `go wtime 6000 btime 6000 winc 60 binc 60` returns in under 6000 ms wall time with a legal move | killed by an overrun or an illegal move |
+| P6 | every bestmove is legal per python-chess | killed by any illegal move |
+| P7 | 0 crashes, 0 sanitizer lines | killed by any one |
+
+Positions: 10 from set G (real games).
