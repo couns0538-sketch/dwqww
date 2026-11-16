@@ -192,3 +192,22 @@ credibility and, in instance 3, would have contradicted a correct finding by a c
 **Corollary for reviewers:** when you read another seat's "0 of N", ask what its positive control was. If there is
 no answer, the number is not yet evidence — including when the number is mine.
 
+## Documents accumulate defects the way code does (three in three consecutive edits)
+
+This page was edited ten times while growing. Reading it end to end, rather than appending to it, caught a defect on
+three consecutive occasions:
+
+1. **A missing instance.** Instance 7 (the `OwnBook` default) existed as a finding but had never been added to the
+   page, so the numbering jumped 6 → 8. Found while adding the column rule.
+2. **A stale count.** The subtitle still said "One rule, **three** instances" from the page's first draft while the
+   body held eight. Found while adding the lead case.
+3. **Broken order.** Because each new instance had been inserted *before instance 8* rather than in place, the page
+   ran: instances 1–3, then "the fix", then instances 4–8. Found while leading the guard section.
+
+The pattern: **a document accumulates defects exactly as code does when things are appended rather than inserted** —
+a stale count is a stale constant, a jumping number is an off-by-one, a misplaced section is dead code in the wrong
+branch. Nobody diffs prose, so the only check that finds them is **reading the whole document**.
+
+The proof that a reordering changed nothing is cheap and worth doing every time: **word count before and after, plus
+a presence check on every section heading.** 2,278 words both sides of the reorder above, seven key sections still
+present.
