@@ -147,3 +147,15 @@ done: C9 CONFIRMS seat 19's 19-F25 with my own harness (aborted search publishes
       added to APPLY_SHEET.md.
 runs now: nothing long. Continuing the cycle; FINAL block at the 12-hour close (10:18:45Z).
 next command: cd /agent/repos/dwqww && date -u
+
+## 2026-11-16T23:21Z
+done: FINDINGS_FINAL.md pushed — every find with its state, the seat that confirmed it, its build and settings, plus
+      a section of my own recorded mistakes. It opens with the one-line rule for a tuner: **no result above one
+      thread is reproducible on either build, at 2 or 4 threads, so any A/B must be single-threaded or repeated
+      enough to average the spread**, followed by the base-vs-PC matrix.
+      Confirmed by other seats: 24-F1 (21-C5), 24-C1 (21-C8, seat 11 S-C11), 24-C2 (seat 11 S-C12), 24-F14
+      (30-C15), 24-F16 (30-C16, verified with their own build).
+      Still single-seat and most in need of a second seat: the threaded move instability (24-F21/F21b/F22/F23/
+      F24/F26).
+runs now: nothing long. Continuing the cycle; the "## <time> FINAL" block goes in at the 12-hour close 10:18:45Z.
+next command: cd /agent/repos/dwqww && date -u
