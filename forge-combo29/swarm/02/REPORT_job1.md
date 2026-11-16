@@ -1,146 +1,95 @@
-# REPORT job 1 — AREA 2 (UCI COMMANDS under ASan + UBSan)
+# REPORT job 1 (v3) — AREA 2 (UCI COMMANDS under ASan + UBSan) — this supersedes REPORT_job1.md
 
-what was asked / the answer / how sure
-- Asked: 2,000 random command sequences of 5 to 30 lines from the brief's grammar, every sequence ending
-  `isready` + `quit`; count sequences / crashes / hangs / sanitizer lines / illegal bestmoves; commit every
-  bad sequence.
-- Answer: 2,000 sequences run in 2,000 fresh engine processes. 0 crashes, 0 hangs, 0 sanitizer lines,
-  0 illegal bestmoves, 0 missing `readyok`/`uciok`. One behaviour worth knowing was found and is reproducible
-  in isolation: a `go searchmoves` that names no legal root move answers `info string searchmoves restriction
-  has no legal root moves` and then `bestmove 0000` on a board that HAS legal moves (67 of the 108
-  `go searchmoves` lines in the set were of this empty form).
-- How sure: high on the counts (every one is a re-count of committed raw output by `make_tables.py`);
-  medium-high on "no illegal bestmove", because the legality check pairs the k-th `bestmove` with the k-th
-  `go` line, and that pairing is only exact when the engine answers searches in order (it did: 5,827 `go`
-  and 5,827 `bestmove` lines, 0 sequences with differing counts).
+STATUS: v1 WITHDRAWN (pipelined stdin -> fabricated bestmoves, seat 19's 19-F12; see
+../HARNESS_INVALIDATION.md). v2 discarded (it waited on unbounded searches). v3 below is the result.
 
-## honesty numbers (build under test)
+what was asked / answer / how sure
+- Asked: 2,000 random command sequences of 5-30 lines from the brief's grammar, each ending isready+quit;
+  counts of sequences / crashes / hangs / sanitizer lines / illegal bestmoves; every bad sequence committed.
+- Answer: 2,000 sequences, 5,827 `go` lines, all 5,827 answered by a `bestmove`. 0 crashes, 0 hangs,
+  0 sanitizer lines, 0 illegal bestmoves, 0 missing readyok, 0 missing uciok, 0 sequences with any flag.
+  One reproducible behaviour stands out: a `go searchmoves` naming no legal root move answers
+  `info string searchmoves restriction has no legal root moves` and then `bestmove 0000` on a board with
+  20 legal moves (67 of the 108 searchmoves lines in the set).
+- How sure: high on every count (all re-counted from the committed per-sequence records by
+  make_tables_v3.py, which refuses to print if the record set is short or a field is missing);
+  medium-high on "illegal bestmoves 0" because the legality check depends on my model of which board the
+  engine holds, and that model is stated below.
 
-```
-exe     /agent/repos/base/forge-combo29/build-asan/forge
-sha256  b109a0a5acce5b0ddad5707c04f8263fe51f48a890df4a7a2ea6ffcef8a43f99
-nm -C | grep -c __asan_ = 35        __ubsan_ = 15        __tsan_ = 0
-release build used for the honesty numbers: sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
-bench 11 = 312866   bench 13 = 862329   bench 16 = 3024920   go perft 5 = 4865609   (all PASS, see HONESTY.txt)
-```
+honesty numbers
+  release build sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+    bench 11 312866 / bench 13 862329 / bench 16 3024920 / perft 5 4865609 -> HONESTY PASS
+  sanitizer build sha256 b109a0a5acce5b0ddad5707c04f8263fe51f48a890df4a7a2ea6ffcef8a43f99
+    nm __asan_ 35, __ubsan_ 15, __tsan_ 0; planted fault counted 3 lines, control 0 (sanitizer/NOTES.md)
 
-Sanitizer claim proofs (both required ones, see `sanitizer/NOTES.md` and `sanitizer/meta.txt`):
-`nm` counts above 0, and a planted fault (heap over-read `sanprobe`, signed overflow `ubprobe`) on a scratch
-copy of the engine at /tmp/forge-fault, run through the SAME runner: clean engine 0 sanitizer lines, fault
-build 3 sanitizer lines, fault build with the probe lines removed from the input 0 lines.
-
-## the table
-
-Produced by `python3 make_tables.py out` from `out/results.jsonl`; pasted, not typed.
+the table (python3 make_tables_v3.py out3/final 2000; pasted)
 
 | quantity | value |
 |---|---|
 | sequences run | 2000 |
 | engine processes started | 2000 (one fresh process per sequence) |
-| crashes (non-zero exit, not a timeout) | 0 |
-| hangs (no exit within 25 s -> SIGKILL) | 0 |
-| sanitizer lines (ASan/UBSan) | 0 |
 | `go` lines sent | 5827 |
-| `bestmove` lines seen | 5827 |
-| sequences where go/bestmove counts differ | 0 |
-| sequences where at least one search was judged | 1779 |
+| `bestmove` lines received | 5827 |
+| searches with NO bestmove | 0 |
+| crashes (signal / non-zero exit) | 0 |
+| hangs (process alive after 5 s of quit) | 0 |
+| sanitizer lines (ASan/UBSan) | 0 |
 | illegal bestmoves | 0 |
-| `bestmove 0000` on a board WITH legal moves, go without searchmoves | 0 |
-| `bestmove 0000` on a board WITH legal moves, go WITH searchmoves | 67 |
-| `isready` answered late/missing (`readyok` absent) | 0 |
-| `uci` answered without `uciok` | 0 |
-| sequences with any flag set | 0 |
-| wall time per sequence: median / p99 / max (s) | 0.044 / 1.832 / 4.691 |
-| sum of all wall times (s) | 393.4 |
+| `bestmove 0000` on a board with legal moves, go WITHOUT searchmoves | 0 |
+| `bestmove 0000` on a board with legal moves, go WITH searchmoves (empty restriction) | 67 |
+| `isready` without `readyok` | 0 |
+| `uci` without `uciok` | 0 |
+| bestmoves with 0 preceding `info depth` lines (counted, NOT a fault) | 463 |
+| bestmoves answered from the built-in book | 764 |
+| searches the driver had to stop itself (unbounded/ponder/opponent-clock-only) | 1123 |
+| sequences with any fault flag | 0 |
+| wall per sequence: median / p99 / max (s) | 0.102 / 1.979 / 21.636 |
 
-go forms exercised: depth 2412, nodes 1148, movetime 1038, infinite 552, ponder 351, searchmoves 108,
-bare/other 218 (full list in `out/tables.md`).
+step | done-partly-not done | evidence | result
+- grammar + 2,000 sequences (seed 201) | done | seqs.jsonl | 5,827 go lines, forms: depth 2412, nodes 1148,
+  movetime 1038, infinite 552, ponder 351, searchmoves 108
+- interactive driver v3 | done | run_sequences_v3.py | sends one line, reads its answer to completion,
+  stops unbounded/ponder/opponent-clock-only searches itself after 30 ms
+- 2,000 sequences run | done | out3/results.jsonl, out3/final/results.jsonl | table above
+- 9 sequences the first pass mis-flagged re-run after the driver fix | done | out3_clock9/, seqs_clock9.jsonl |
+  43 go / 43 bestmove, 0 flags
+- table built from raw by a script that refuses a short set | done | make_tables_v3.py | pasted above
 
-### step | done-partly-not done | evidence file | result
+findings
+S-F2  `go searchmoves` with no legal root move -> `bestmove 0000` on a board with legal moves.
+      again: printf 'position startpos\ngo searchmoves depth 2\nquit\n' | <exe>   (reproduce_zero.out: 89-97)
+S-F4  `go <clock>` naming only the OPPONENT's clock sets no limit at all, so the search never ends by itself.
+      `go wtime N` with Black to move, and `go btime N` with White to move, both run until `stop`
+      (reproduce: ../finding_clock/repro.txt). Source: src/uci.cpp:118-121 reads wtime into limits.time_ms
+      only when side == White, btime only when side == Black; with neither set, limits.time_ms keeps its
+      unset value and the time manager plans nothing. Beyond the known list (which does not mention clocks).
+      This is what 9 of my own 2,000 sequences hit; a GUI that sends a partial clock gets an unbounded search.
 
-| step | state | evidence | result |
-|---|---|---|---|
-| grammar generator written and committed | done | `gen_sequences.py`, `seqs.jsonl` (2,000 lines of JSON) | seed 201, 5-30 lines each, last two always isready+quit |
-| runner written and committed | done | `run_sequences.py` | one fresh process per sequence, 25 s deadline, env cleared of ASAN/UBSAN/TSAN_OPTIONS |
-| sanitizer build proven | done | `sanitizer/verify_san.sh`, `sanitizer/planted_proof.sh`, `sanitizer/meta.txt` | nm counts 35/15, planted fault counted 3 lines, control 0 |
-| 2,000 sequences run | done | `out/results.jsonl`, `out/summary.txt` | 2000/2000, table above |
-| every bad sequence committed | done (vacuously) | `out/bad/` is empty; `out/tables.md` says `count 0` | no sequence set a flag |
-| the empty-`searchmoves` behaviour reproduced alone | done | `reproduce_zero.txt`, `reproduce_zero.out` | see finding S-F2 |
-| prediction checked against the result | done | `prediction.txt` vs table | all seven predictions held (see below) |
+suspicions, not proven
+- 463 bestmoves had no preceding `info depth` line. `go nodes 10` legitimately produces that (budget spent
+  before depth 1 completes), so I do not call these faults; whether every one of the 463 is a node-budget
+  case rather than something else, I did not check individually.
+- 764 of the bestmoves are book moves (`info string book move`), so fewer real searches ran than the 5,827
+  go lines suggest. OwnBook defaults to true; my sequences did not disable it.
 
-### prediction, as committed before measuring (`prediction.txt`)
+what I did NOT do
+- No Threads > 1 (single-threaded throughout); no TSan (that is area 4).
+- Did not judge bestmoves against the engine's internal board: I model the board in python-chess from the
+  command stream (refused FEN drops the whole line, ucinewgame resets to startpos, illegal move keeps prefix).
+  If the engine's real board differed from that model, "0 illegal" would be wrong in the same direction.
+- Did not test `go infinite` followed by `quit` as a "does it fabricate" check beyond what job 2 covers.
 
-| # | predicted | got | verdict |
-|---|---|---|---|
-| 1 | crashes 0 | 0 | held |
-| 2 | hangs 0 | 0 | held |
-| 3 | sanitizer lines 0 | 0 | held |
-| 4 | illegal bestmoves 0 | 0 | held |
-| 5 | searches with no bestmove, no hang: 0 to 3 | 0 (every `go` got a `bestmove`) | held |
-| 6 | quit during a search leaves the process alive: 0 | 0 (no sequence outlived its 25 s deadline) | held |
-| 7 | missing readyok/uciok: 0 | 0 | held |
+what I am NOT sure about
+- Whether the 20 s per-answer timeout is generous on a loaded box; the largest wall was 21.6 s for one
+  sequence (many searches in it), well inside 25 s per answer, so no false timeout appeared.
+- Whether `bestmove 0000` after an empty `searchmoves` is deliberate. I read the parsing (src/uci.cpp:125)
+  and the message, not the search root that emits it.
 
-## findings
+times: see stamps.txt and out3/meta.txt (started_utc); per-run wall times are in the records.
 
-S-F2 — a `go searchmoves` that names no legal root move answers `bestmove 0000` on a board that has
-legal moves, after the line `info string searchmoves restriction has no legal root moves`.
-Show it again:
-
-```
-printf 'position startpos\ngo searchmoves depth 2\nquit\n' | /agent/repos/base/forge-combo29/build/forge
-```
-
-Raw output: `reproduce_zero.out` lines 89-91 (`info string searchmoves restriction has no legal root moves`,
-`info depth 1 ... nodes 0 ... pv`, `bestmove 0000`), while line 97 shows the same board answering
-`bestmove a2a3` for a plain `go depth 2`. Beyond the known list: the known list says `bestmove 0000` is the
-answer on a position WITHOUT legal moves; here the position HAS 20 legal moves and the empty restriction is
-what produces `0000`. A GUI that trusts `bestmove` without checking the restriction will treat this as a
-resignation/loss.
-
-Also from this job (not a NEW finding, a confirmation of the known list): `position ... moves` keeps the legal
-prefix and prints `info string illegal move <token>`; an illegal `e2e4e4` is refused.
-
-## suspicions, not proven
-
-- The empty-`searchmoves` path prints `info depth 1 ... nodes 0 ... pv` with an EMPTY pv and score cp 0.
-  I did not check whether a `searchmoves` restriction naming only ILLEGAL moves behaves the same as one naming
-  no move at all (`go searchmoves e2e5 depth 2` was not in the generated set in a way I isolated). That is
-  job 3's territory (searchmoves/option values) and I left it there rather than guess now.
-- `setoption name NnueFile value x` prints `info string nnue: cannot open file` and the next search answers
-  normally. I did not check whether the net is then DISABLED or the built-in net is kept — a search whose
-  node count I could compare would settle it, and I have not run that.
-
-## what I did NOT do
-
-- I did not test concurrency/races: the grammar never sends `stop`/`setoption` while a search is genuinely
-  running for long, so job 2's subject is untouched here.
-- I did not judge the legality of a bestmove for sequences where the go/bestmove counts could differ; there
-  were none, so nothing was skipped in practice, but the method is stated.
-- I did not compare node counts or scores between the release and sanitizer builds.
-- I did not investigate the book: `OwnBook` is true by default and several `bestmove` lines are preceded by
-  `info string book move ...`, so a share of the "searched" positions were answered from the book. That does
-  not affect the counts above (a legal book move is still a legal bestmove) but it does mean fewer real
-  searches ran than `go` lines suggest.
-
-## what I am NOT sure about
-
-- Whether the 25 s deadline is generous enough on a loaded machine. The largest wall time seen was 4.7 s, so
-  there is margin, but a 16-thread `setoption name Threads value 256` followed by `go infinite` is the case
-  that came closest.
-- Whether `bestmove 0000` after an empty `searchmoves` is deliberate (a "no move to play" signal) or an
-  accident of the same code path that handles a mated root. The source path is in `search.cpp`'s root
-  restriction; I read only `uci.cpp`'s parsing (`src/uci.cpp:125`) and did not trace the search root.
-
-## times
-
-see `stamps.txt` and the `date -u` line in each commit; `out/meta.txt` also carries `started_utc`.
-
-## last command's output
-
-```
-$ git status --short
-(clean at the time of writing this report; the report itself is the next commit)
+last command's output
 $ ls job1
-gen_sequences.py  make_tables.py  out  prediction.txt  reproduce_zero.out  reproduce_zero.txt
-run_sequences.py  run.log  seqs.jsonl  seqs_smoke.jsonl  smoke  stamps.txt  uci_answer.txt
-```
+argv_vs_stdin.txt  gen_sequences.py  make_tables.py  make_tables_v3.py  out  out3  out3_clock9
+prediction.txt  probe_clock.py  reproduce_zero.out  reproduce_zero.txt  run.log  run3.log
+run_sequences.py  run_sequences_v2.py  run_sequences_v3.py  seqs.jsonl  seqs_clock9.jsonl
+seqs_smoke2.jsonl  seqs_smoke3.jsonl  smoke2  smoke3  stamps.txt  uci_answer.txt
