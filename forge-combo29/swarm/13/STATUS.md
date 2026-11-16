@@ -267,3 +267,15 @@ Job 9: forced-mate positions at the PC's three match budgets (PC20, Threads 1, H
 reported mate score imply a mate actually reachable in 2M-1 plies (M>0) or 2|M| plies (M<0),
 verified by replaying the PV, and is it stable across 20000/50000/250000?
 Next command: cd forge-combo29/swarm/13/job9 && python3 mates.py
+
+## 2026-11-16T23:11:55Z
+
+DONE job 9 (closes a gap I named myself in job 7: mate scores were untested on the PC path).
+  21 positions (14 mate-in-1, 3 mate-in-2, 2 mate-in-3, 2 deliberate no-mate controls), true
+  distances computed exhaustively in python-chess. 3 budgets = 63 runs.
+  57 positive mate claims, 0 not delivered by the engine's own PV, 0 distance disagreements,
+  0 illegal bestmoves, 0 score changes between budgets. mate 1/2/3 delivered at plies 1/3/5 exactly.
+  Rule-1 control: real claim accepted, 4 planted failures (claim too short, truncated PV, illegal PV
+  move, empty PV) all rejected.
+  Finding S-F11. NOT covered and stated: negative mate scores; mates deeper than 3; elementary endings only.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
