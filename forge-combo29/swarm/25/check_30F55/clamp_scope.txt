@@ -1,0 +1,21 @@
+### does the 0-vs-absent asymmetry affect fields other than movestogo?
+field      supplied: depth/move         zero: depth/move            same?  errors
+depth      8 / f1e2                     1 / f1e2                    False
+nodes      11 / f1e2                    0 / g1e2                    False
+movetime   15 / f1e2                    5 / f1e2                    False
+clock      18 / f1e2                    25 / f1e2                   False
+
+IMPORTANT RE-READING of the table above: it compared 'supplied value' vs 'zero', which is the WRONG control for
+S-C34's question. The question is whether 0 behaves like ABSENT, not whether 0 behaves like a big number.
+Of course depth 0 != depth 8 - that is a different query. So the table answers nothing on its own.
+
+What it DOES show and what matters:
+  clock row: supplied (movestogo absent) depth 18, with movestogo 0 depth 25 - the S-C34 asymmetry, restated.
+  depth 0   -> depth 1  : treated as 'minimum one', NOT as 'no search' - a clamp, same shape as movestogo.
+  nodes 0   -> depth 0, move g1e2 (a DIFFERENT move from f1e2) : the zero-node path answers immediately, which
+              is the documented behaviour ('an explicit zero node budget is an immediate bounded answer').
+  movetime 0 -> depth 5 : not zero-time, so there is a floor too.
+
+So this table is a SCOPE PROBE, not a result about 0-vs-absent - and I am labelling it that way rather than
+reading conclusions off a control I did not design for the question. The movestogo finding (S-C33/S-C34) is
+unaffected: it was measured with the CORRECT control (field omitted vs field present as 0).
