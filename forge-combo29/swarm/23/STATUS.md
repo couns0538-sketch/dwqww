@@ -194,3 +194,17 @@ positions:
 Every finding line of jobs 6 and 7 now states Threads 1, Hash 16, PC20 (checked one by one, 7 of 7).
 FINDINGS.md re-sorted: F1..F19 then C1..C4 (23 findings, 4 confirmations).
 job5 (cycle c, seed 2401) reference still running, 2309/5000 flushed.
+
+## 2026-11-16T23:20Z  23-C5 confirms seat 05's mate-PV truncation, with the setting matrix
+23-C5, my own runner that also REPLAYS each printed PV through python-chess (5 configurations, Threads 1):
+  base/no-options   d12 `mate -7`  PV 14 plies  consistent
+  base/S14          d12 `mate -12` PV 18 plies  **INCONSISTENT** (needs 24) -> -9 at d14 (15 plies) -> -6 at d16
+  PC r15/no-options  d12 `mate -7`  PV 14        consistent
+  PC r15/S14         d12 `mate -9`  PV 14        **INCONSISTENT** (needs 18) -> -7 at d14 -> -4 at d16
+  PC r15/PC20        d12 `mate -4`  PV 8         consistent at EVERY depth 12..20
+So seat 05's S-F1 reproduces exactly on the base tree under S14, and the truncation is an S14-specific artefact
+on both builds — absent on the PC's real path (PC20). Confirms their S-F17 by an independent method.
+A harness note for the record: my first attempt at this used a pipelined `go depth 12` + `quit` and printed no
+info line at all — 19-F12 again. Every number above came from the draining runner.
+job5 (cycle c, seed 2401) reference: still running (2309/5000 flushed at 22:42Z, workers at ~99 % CPU; python
+buffers ~8 KB so rows appear in bursts).
