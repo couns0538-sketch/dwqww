@@ -8,6 +8,17 @@ seat 10 (area 10, CHECKING THE OTHERS) · commit 6b98f217 · release build
 Predictions for every row were committed ALONE at `a306832b6` (`PREDICTIONS.md`) before the first
 measuring command. This file is ADDED to as rows settle; nothing in it is typed from memory.
 
+## METHOD ROW 1 — read this before measuring anything (10-F21, 10-F22)
+
+| # | method rule | why | evidence |
+|---|---|---|---|
+| M1 | **A cold baseline is a FRESH PROCESS or `ucinewgame`. Never `Clear Hash`. And repeated searches in one process are NOT reproducible.** Two identical unrestricted searches (depth 12, startpos, no change between them) give **56,720 then 4,951** nodes, and a third gives 4,516; three separate processes give 56,720 three times. `ucinewgame` restores 56,720 exactly; `Clear Hash` instead yields a **third** value, 40,569 at cp 28, deterministically. Any table whose rows were measured by repeated searches in one process is a **warm-state** table and its node counts are not comparable to the brief's cold sums. | `audit/raw2/K14control/summary.json`, `audit/raw2/K14control/clearhash_probe.out`; `python3 forge-combo29/swarm/10/audit/k14_control.py <outdir>` |
+
+This is the single most load-bearing line in this file: it invalidates a **measurement technique**, not a
+feature, so it applies to every other seat's numbers as well as to mine. A harness that runs many searches
+per process reports warm numbers no matter how carefully it reads `bestmove`.
+
+
 ## Read this first — my own harness was broken, and this is the retraction
 
 Seat 19's 19-F12 (broadcast by the coordinator) is **real and I reproduced it independently**:
@@ -48,7 +59,7 @@ evidence: `audit/raw_E1/E1_V1_stdin_closed.txt`, `audit/raw_E1/E1_V2_stdin_held_
 | K4 | Area 3 job 3: "G perft 3 and the first 60 at perft 4 were equal in an earlier check" | **PASS** | `audit/raw2/K4/summary.json` | 353/353 equal at depth 3, 60/60 equal at depth 4, 0 null totals; "equal" tested against python-chess 1.11.2 since the brief does not say equal to what |
 | K5 | Area 4: "Threads 2 and 4 on the first 50 of O gave 0 reports" | **PASS (0 reports, SHOWN)** | `audit/raw2/K5/summary_direct.json`, `meta_direct.json`, `proof_planted_direct.json`, `sweep_direct_T2.json`, `sweep_direct_T4.json` | both proofs obtained on my own builds: `nm -C` = 21 `__tsan_` symbols, planted race counted (6 reports, exit 66) by the same runner, then 50 positions x Threads 2 and 50 x Threads 4 at depth 12 S14 = **0 reports, 0 null nodes** |
 | K13 | the four sums (O d12 9,500,069 / G d12 18,466,239 / O d14 21,812,100 / G d14 43,345,893) | **PASS, ALL FOUR EXACT, in the S14 regime** | `audit/raw2/sums_summary.json` | see K13 below; the first three O depth-12 values 41,311 / 24,872 / 28,574 also reproduce exactly |
-| K14 | FABLE-1: "a root restricted by searchmoves (even to every legal move) searches a different, mostly smaller tree: IIR fires at the root, and no hash entry is stored for a restricted root" | **REFUTED — and it is a genuine DEFECT, not "a smaller tree"** | `audit/raw2/K14_summary.json`, `audit/raw2/k14_tt_summary.json`, `audit/raw2/K14_summary.json` | "no hash entry is stored" is FALSE (repeat shrinks 21,640 -> 17,847). Beyond that: restricting to **all 20 of 20 legal moves** yields a *worse* answer that never converges to the unrestricted one (depth 16: score 23 vs 35), and it corrupts a LATER unrestricted search in the same process (36,745 vs 4,951 nodes, score 29 vs 30). See §K14 below. |
+| K14 | FABLE-1: "a root restricted by searchmoves (even to every legal move) searches a different, mostly smaller tree: IIR fires at the root, and no hash entry is stored for a restricted root" | **PARTLY REFUTED, mechanism now KNOWN — NOT a defect** (see CURRENT STATE in §K14; the "genuine DEFECT" wording I first used is withdrawn, 10-R2) | `audit/raw2/K14_summary.json`, `audit/raw2/k14_tt_summary.json` | "no hash entry is stored" is FALSE (a repeat shrinks 21,640 -> 17,847). But the all-20 case is fully explained by **two intentional design choices — an extra reduced ply at the root plus the skipped root store** (seat 27: both fixes together give cp 30 / 56,720 / e2e4 on both sides, exactly equal). The single-move residual and the warm-state caveat are OPEN: see §K14 CURRENT STATE and 10-F19/10-F21. |
 
 ## K6 in detail — the pins and S14 are two different regimes
 
@@ -127,7 +138,11 @@ attempt did hit exactly this class of bug — it parsed `info ... nodes` from a 
 for a piped search, got `None`, and the run died rather than reporting a result; that is the failure mode,
 and it is why every row now names the line it parsed.
 
-## K14 in detail — it is a genuine DEFECT, not a merely smaller tree
+## K14 in detail — measured history (SUPERSEDED headings below; see "CURRENT STATE" above)
+
+> The heading this section used to carry said "it is a genuine DEFECT". **That framing is withdrawn**
+> (10-R2). What follows is the measurement record in the order it was taken, left intact on purpose;
+> read it with the CURRENT STATE block at the top of K14, and do not cite the withdrawn wording.
 
 `audit/raw2/K14_summary.json`, depth 12, startpos, restricted to all 20 legal moves:
 
@@ -143,7 +158,7 @@ and it is why every row now names the line it parsed.
   17,847, a 17.5 % reduction, so a root entry clearly IS stored and reused. The reduction is smaller than the
   unrestricted case (56,720 -> 4,951) because the restricted search's own tree was already small, but it is
   not zero, and "no entry is stored" predicts exactly zero reduction.
-### Is that a defect or intended? A defect — and here is the experiment that separates them
+### Is that a defect or intended? (the "defect" answer here is SUPERSEDED — see CURRENT STATE; kept as measurement record)
 
 "An entry is reused" is consistent with two very different things, so I ran the discriminating test
 (`audit/k14_tt.py`, `audit/raw2/k14_tt_summary.json`): does a restricted search **corrupt a later
@@ -216,11 +231,22 @@ sweep to Threads 1/2/4/8 — two independent seats now agree.
 
 ## Totals
 
-12 claims audited: **11 PASS**, **2 REFUTED or half-refuted** (K6 as stated, K14's "restricted tree is
-merely smaller"), **1 PASS with a scope correction** (K10). Nothing is left UNTESTABLE — K5 was settled by
-building the TSan proofs myself. The rows that matter most for other seats are K6 (pins are default-regime,
-sums are S14-regime), the `ucinewgame`-after-`position` reset, and K14 (a `searchmoves` root is not merely a
-smaller tree, it is a *wrong* one).
+12 claims audited (K1-K14). Current state after the corrections:
+
+| verdict | claims |
+|---|---|
+| PASS | K1, K2, K3, K4, K5, K7, K8, K9, K11, K12, K13 |
+| PASS with a scope correction | K10 (silent only when the first token is unknown; `go banana` searches) |
+| REFUTED as stated | K6 (the pins hold only in the DEFAULT regime; the sums only in the S14 regime) |
+| PARTLY REFUTED, mechanism now known, NOT a defect | K14 (see CURRENT STATE; the "defect" wording is withdrawn) |
+
+**Plus the two method rows that matter more than any single claim**: M1 (cold baseline = fresh process or
+`ucinewgame`, never `Clear Hash`; repeated searches in one process are not reproducible) and the
+parse-before-compare rule. M1 invalidates a measurement technique rather than a feature, so it travels with
+the swarm.
+
+Nothing in this file is left UNTESTABLE. K5 was settled by building the TSan two-proof myself; the earlier
+"UNTESTABLE" verdict is superseded.
 
 ## Re-run of my own job2 legality check (this is the honest correction)
 
@@ -257,6 +283,13 @@ nobody cites them from the trail of corrections.
    DEFECTS" (see 10-R2), and 10-F18's depth table whose depths 8 and 10 compared **different moves** (see
    10-R1). The bytes are still in the branch history; this block is the corrected reading of them.
 
+**The one sentence that ties this together:** *much of the residual gap after a single-move restriction may
+be warm-state rather than the restriction itself* — repeated searches in one process are not reproducible
+(10-F21 shows 56,720 -> 4,951 for two identical searches), so the single-move sweep above **must be re-run
+with `ucinewgame` before every search, or with one fresh process per search, before anyone calls it a
+defect.** Until that re-run exists, treat every residual number in this K14 section as **unsettled, not as a
+fault in the engine.** The same applies to 10-F19.
+
 ## K14 is ONE problem, seen from three angles — cross-reference
 
 This is the same underlying defect as **seat 27's S-F8 / S-F8a / S-F8b** (branch
@@ -275,7 +308,7 @@ these as one entry, not three. The three views are complementary and interlock e
 `D_restricted_only_e2e4` cp 23 / 26,329, and their `searchmoves e2e4 d2d4` cp 23 / 16,770 is my
 `E_restricted_e2e4_d2d4` cp 23 / 16,770. Two seats, two independently written harnesses, same digits.
 
-### One defect or two? Settled — TWO, and the restricted root is the one that is wrong on its own
+### One defect or two? (this subsection's "TWO" answer is WITHDRAWN — see 10-R2 and 10-R3)
 
 The experiment asked for (`audit/k14_split.py`, `audit/raw2/K14split/summary.json`):
 

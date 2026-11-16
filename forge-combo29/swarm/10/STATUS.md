@@ -153,3 +153,15 @@ the all-20 case is settled by byte-identity to the cold all-20 cell instead.
 Named next step recorded: re-run the single-move sweep with ucinewgame before each search, one fresh process
 per search, to separate "genuine restriction" from "warm measurement".
 STOPPING. Nothing running, everything pushed.
+
+## Mon Nov 16 09:52:14 PM UTC 2026  [FINAL SHAPE]
+1. Tie-together sentence added INSIDE the K14 CURRENT STATE block: the residual after a single-move
+   restriction may be warm-state rather than the restriction, and the sweep must be re-run with ucinewgame
+   or a fresh process before any defect claim. 10-F19 numbers are marked unsettled, not a fault.
+2. 10-F21/10-F22 promoted to "METHOD ROW 1" at the TOP of AUDIT_KNOWN.md, above the claim table:
+   cold baseline = fresh process or ucinewgame, NEVER Clear Hash; repeated searches in one process are not
+   reproducible (56,720 -> 4,951 -> 4,516 vs 56,720 x3 across processes); Clear Hash gives 40,569 / cp 28.
+Also cleaned the trail so no reader meets a withdrawn claim first: the primary K14 table row, the old
+"genuine DEFECT" section heading and the "Settled — TWO" subsection heading are all marked superseded and
+point at CURRENT STATE; Totals rewritten to the post-correction verdicts (nothing UNTESTABLE).
+STOPPING. Nothing running, everything pushed.
