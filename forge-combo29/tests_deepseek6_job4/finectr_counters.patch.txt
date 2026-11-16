@@ -1,0 +1,175 @@
+# finectr_counters.patch.txt -- the job-4 counters ON TOP of kimi5's LmrFine patch.
+# Apply order: patch -p1 LmrFine.patch.txt (from tests_kimi5_job11, sha starts f7bf3f43) FIRST on a clean
+# 6b98f2170 tree, then this file with patch -p1 without fuzz. Made with diff -u (diff -ruN of the two src trees).
+# Counters are observation only. Two d sets: d_run (run-configured fine minus integer; K1/K2/K4, mismatch_used)
+# and d_t1 (the T1 reference: FineHistory 1, RoundF 512 forced) for D0's would-be analysis.
+diff -ruN j4_tree/forge-combo29/src/search.cpp j4_ctr/forge-combo29/src/search.cpp
+--- j4_tree/forge-combo29/src/search.cpp	2026-11-16 18:08:48.765213603 +0000
++++ j4_ctr/forge-combo29/src/search.cpp	2026-11-16 18:09:37.969213603 +0000
+@@ -34,6 +34,46 @@
+ #define FORGE_BARE_KING_MATE_FIX 1
+ #endif
+ 
++// job-4 LMR counters (observation only; never read by the search)
++namespace lmr_ctr {
++    // d buckets: index 0..6 = d -3..+3, index 7 = |d| > 3
++    long long q_sites[8] = {0};
++    long long n_sites[8] = {0};
++    long long q_hist[14][8] = {{0}};
++    long long q_depth[15][8] = {{0}};
++    long long beat_alpha[8] = {0};
++    long long q_t1[8] = {0};
++    long long beat_t1[8] = {0};
++    long long mismatch_used = 0;
++    long long hist_sample_n = 0;
++    std::string hist_sample;
++    void reset() {
++        for (int i = 0; i < 8; ++i) { q_sites[i] = 0; n_sites[i] = 0; beat_alpha[i] = 0; q_t1[i] = 0; beat_t1[i] = 0; }
++        for (int b = 0; b < 14; ++b) for (int i = 0; i < 8; ++i) q_hist[b][i] = 0;
++        for (int d = 0; d < 15; ++d) for (int i = 0; i < 8; ++i) q_depth[d][i] = 0;
++        mismatch_used = 0;
++        hist_sample_n = 0;
++        hist_sample.clear();
++    }
++    std::string line() {
++        std::ostringstream os;
++        auto arr = [&os](const long long* a, int n) {
++            for (int i = 0; i < n; ++i) os << (i ? "," : "=") << a[i];
++        };
++        os << " q"; arr(q_sites, 8);
++        os << " n"; arr(n_sites, 8);
++        os << " ba"; arr(beat_alpha, 8);
++        os << " qt"; arr(q_t1, 8);
++        os << " bat"; arr(beat_t1, 8);
++        os << " mm=" << mismatch_used;
++        os << " bh";
++        for (int b = 0; b < 14; ++b) { os << (b ? ";" : "="); arr(q_hist[b], 8); }
++        os << " bd";
++        for (int d = 0; d < 15; ++d) { os << (d ? ";" : "="); arr(q_depth[d], 8); }
++        os << " hs_n=" << hist_sample_n << " hs=" << hist_sample;
++        return os.str();
++    }
++}
+ namespace forge {
+ 
+ int DrawJitter = 0;
+@@ -2008,6 +2048,8 @@
+             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+             (quiet || !ss->tt_pv || move_count > 4)) {
+             int r;
++            int lmr_ctr_d_slot = 7;
++            int lmr_ctr_dt1_slot = 7;
+             if (tune::LmrFine == 0) {
+                 r = reduction(quiet, depth, move_count);
+                 if (ss->tt_pv) r -= 1;
+@@ -2034,6 +2076,60 @@
+                              : 1024 * std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+                 r = (f + tune::LmrRoundF) >> 10;   // arithmetic shift: rounds down, also for negative f
+             }
++            {
++                // job-4 counters (observation only): recompute both formulas from the same inputs.
++                int c_int = reduction(quiet, depth, move_count);
++                if (ss->tt_pv) c_int -= 1;
++                if (!improving) c_int += 1;
++                if (cut_node) c_int += 2;
++                if (tt_capture && quiet) c_int += 1;
++                if (gives_check) c_int -= 1;
++                if (in_check) c_int -= 1;
++                if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) c_int += 1;
++                if (quiet) c_int -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++                auto fine_r = [&](int hist_mode, int round_f) {
++                    int fr = 1024 * reduction(quiet, depth, move_count);
++                    if (ss->tt_pv)           fr -= tune::LmrTtPvF;
++                    if (!improving)          fr += tune::LmrNotImprovingF;
++                    if (cut_node)            fr += tune::LmrCutNodeF;
++                    if (tt_capture && quiet) fr += tune::LmrTtCaptureF;
++                    if (gives_check)         fr -= tune::LmrGiveCheckF;
++                    if (in_check)            fr -= tune::LmrInCheckF;
++                    if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold)
++                        fr += tune::LmrCutoffAddF;
++                    if (quiet)
++                        fr -= hist_mode
++                                 ? std::clamp(history * 1024 / tune::LmrHistoryDivisor, -2048, 2048)
++                                 : 1024 * std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++                    return (fr + round_f) >> 10;
++                };
++                const int c_fine_run = fine_r(tune::LmrFineHistory, tune::LmrRoundF);
++                const int c_fine_t1 = fine_r(1, 512);
++                const int d_run = c_fine_run - c_int;
++                const int d_t1 = c_fine_t1 - c_int;
++                const int slot = (d_run >= -3 && d_run <= 3) ? d_run + 3 : 7;
++                const int slot_t1 = (d_t1 >= -3 && d_t1 <= 3) ? d_t1 + 3 : 7;
++                const int dclamp = depth < 15 ? depth : 15;
++                long long* sites = quiet ? lmr_ctr::q_sites : lmr_ctr::n_sites;
++                ++sites[slot];
++                if (quiet) {
++                    ++lmr_ctr::q_t1[slot_t1];
++                    const double bfloor = std::floor(history / 1000.0);
++                    int b = bfloor < -6.0 ? 0 : (bfloor > 5.0 ? 13 : static_cast<int>(bfloor) + 7);
++                    ++lmr_ctr::q_hist[b][slot];
++                    ++lmr_ctr::q_depth[dclamp - 1][slot];
++                    if (history >= 5643 || history <= -5643) {
++                        if (lmr_ctr::hist_sample_n < 64) {
++                            if (!lmr_ctr::hist_sample.empty()) lmr_ctr::hist_sample += ",";
++                            lmr_ctr::hist_sample += std::to_string(history) + ":" + std::to_string(d_run);
++                        }
++                        ++lmr_ctr::hist_sample_n;
++                    }
++                }
++                lmr_ctr::mismatch_used += (tune::LmrFine == 0) ? (r != c_int) : (r != c_fine_run);
++                lmr_ctr_d_slot = slot;
++                lmr_ctr_dt1_slot = slot_t1;
++            }
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
+@@ -2045,6 +2141,8 @@
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
++            ++lmr_ctr::beat_alpha[lmr_ctr_d_slot];
++            ++lmr_ctr::beat_t1[lmr_ctr_dt1_slot];
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+             if (full_depth_needed) {
+diff -ruN j4_tree/forge-combo29/src/uci.cpp j4_ctr/forge-combo29/src/uci.cpp
+--- j4_tree/forge-combo29/src/uci.cpp	2026-11-15 05:25:59.000000000 +0000
++++ j4_ctr/forge-combo29/src/uci.cpp	2026-11-16 18:09:37.969213603 +0000
+@@ -10,6 +10,21 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++
++namespace lmr_ctr {
++extern long long q_sites[8];
++extern long long n_sites[8];
++extern long long q_hist[14][8];
++extern long long q_depth[15][8];
++extern long long beat_alpha[8];
++extern long long q_t1[8];
++extern long long beat_t1[8];
++extern long long mismatch_used;
++extern long long hist_sample_n;
++extern std::string hist_sample;
++void reset();
++std::string line();
++}
+ #include <array>
+ #include <charconv>
+ #include <chrono>
+@@ -551,6 +566,7 @@
+                 searcher.reset_stop();
+                 worker = std::thread([&searcher, &stop_mutex, &stop_cv, &stop_requested,
+                                       &ponder_hit_received, search_board, limits, ponder_enabled]() mutable {
++                    lmr_ctr::reset();
+                     const forge::SearchInfo result = searcher.search(
+                         search_board, limits, true, forge::Searcher::TTAccess::Exclusive);
+                     if (limits.infinite || limits.ponder) {
+@@ -569,6 +585,7 @@
+                         prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
+                     }
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string lmrctr " << lmr_ctr::line() << std::endl;
+                     std::cout << "bestmove " << best << prediction << std::endl;
+                 });
+             }
