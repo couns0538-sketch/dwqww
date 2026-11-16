@@ -49,41 +49,6 @@ find an obvious mate in 1 cannot be trusted to report "no mate" on anything.
 KR-vs-K within 9, K-vs-K *not* a mate, black-to-move-not-mated) and **`sys.exit(2)` with "refusing to report"** if
 any fails. That is why 23-C11 confirms the engine behaviour but asserts nothing about the mate distance.
 
-## The fix, in one line each
-
-1. **Every checker gets a known-answer control**, run in the same invocation, and the checker refuses to report if
-   the control fails. Not "the control exists somewhere": the run must die without it.
-2. **Every expected count is asserted**: rows printed == depths asked for; positions compared == positions
-   expected; and a partial run must say "PARTIAL" in the output, not only in a report written later.
-3. **A zero is a claim like any other** and needs the same evidence as a positive result. A zero from a checker
-   with no positive control is "not shown".
-4. **The tolerance's units must match the claim's units.** "Within 1-2 ms" is tested in milliseconds, not in
-   percent. A tolerance relative to a small quantity is not a stricter test but a wrong one: 4 % of a 5 ms plan is
-   0.2 ms, so it fails a 0.8 ms error that the claim itself allows (23-F38 — and it made my checker print a false
-   refutation of a correct finding).
-
-## Why this family is worth naming
-
-Three separate harnesses of mine failed in three different ways and every single one produced a *clean pass* or a
-*wrong verdict*, never an error. The happy path cannot distinguish a working checker from a blind one — only a
-planted case whose answer is known can. The plants cost minutes; the false results they prevent cost a seat's
-credibility and, in instance 3, would have contradicted a correct finding by a colleague.
-
-**Corollary for reviewers:** when you read another seat's "0 of N", ask what its positive control was. If there is
-no answer, the number is not yet evidence — including when the number is mine.
-
-## The three fixes are LIVE and verified in this folder (not just described)
-
-| instance | fix, and where it lives | verified how (command + result) |
-|---|---|---|
-| 1. parse found nothing | `job1/integrity_selftest.sh` — feeds the comparison script 7 malformed inputs | `bash job1/integrity_selftest.sh` -> **7 cases exit 2 with HARD FAILURE**, 1 clean case exits 0 |
-| 2. compared fewer cases | `ROW COUNT GUARD` in every `*/compare_perft.py` (8 files) plus a printed PARTIAL note | `grep -l "ROW COUNT GUARD" */compare_perft.py \| wc -l` -> **8**; fault case (ask DEPTHS=1..5 against 4-depth data) -> `HARD FAILURE: engine row 0 has no depth 5 / NO VERDICT` |
-| 3. prover returned zero | `check30/mate_solve.py` — mandatory self-test, `sys.exit(2)` with "refusing to report" if any known-answer case fails | shallow known-answer controls: KQ-vs-K mate in 1 -> **1 PASS**, KQ-vs-K within 3 -> **1 PASS**, K-vs-K no mate -> **None PASS**; on failure the script exits 2 and reports nothing |
-
-Note on cost: the 9-ply KR-vs-K self-test in `mate_solve.py` is too slow to run casually (>100 s), which is itself
-worth knowing — the cheap controls (mate in 1, within 3, and a drawn position) are enough to prove the prover can
-both FIND a mate and REFUSE to invent one, and they run in under a second.
-
 ## Instance 4 — the tolerance that fired for an unrelated reason (23-F38)
 
 Added after the rule was written, because the family is wider than the first three suggested. My movetime checker
@@ -170,12 +135,30 @@ A silently-asserted property can also be wrong (an assertion written from the sa
 a PRINTED one lets the reader check the premise independently. That is the difference between "my test passed" and
 "my test was about what I said it was about".
 
-## The sentence that ties the family together
+## The fix, in one line each
 
-> Every one of these eight faults produced a **clean pass or a confident wrong verdict** — never an error message —
-> and every one was caught by a **control**, not by the happy path.
+1. **Every checker gets a known-answer control**, run in the same invocation, and the checker refuses to report if
+   the control fails. Not "the control exists somewhere": the run must die without it.
+2. **Every expected count is asserted**: rows printed == depths asked for; positions compared == positions
+   expected; and a partial run must say "PARTIAL" in the output, not only in a report written later.
+3. **A zero is a claim like any other** and needs the same evidence as a positive result. A zero from a checker
+   with no positive control is "not shown".
+4. **The tolerance's units must match the claim's units.** "Within 1-2 ms" is tested in milliseconds, not in
+   percent. A tolerance relative to a small quantity is not a stricter test but a wrong one: 4 % of a 5 ms plan is
+   0.2 ms, so it fails a 0.8 ms error that the claim itself allows (23-F38 — and it made my checker print a false
+   refutation of a correct finding).
 
-That is why the controls are worth their cost. The happy path cannot distinguish a working checker from a blind one.
+## The three fixes are LIVE and verified in this folder (not just described)
+
+| instance | fix, and where it lives | verified how (command + result) |
+|---|---|---|
+| 1. parse found nothing | `job1/integrity_selftest.sh` — feeds the comparison script 7 malformed inputs | `bash job1/integrity_selftest.sh` -> **7 cases exit 2 with HARD FAILURE**, 1 clean case exits 0 |
+| 2. compared fewer cases | `ROW COUNT GUARD` in every `*/compare_perft.py` (8 files) plus a printed PARTIAL note | `grep -l "ROW COUNT GUARD" */compare_perft.py \| wc -l` -> **8**; fault case (ask DEPTHS=1..5 against 4-depth data) -> `HARD FAILURE: engine row 0 has no depth 5 / NO VERDICT` |
+| 3. prover returned zero | `check30/mate_solve.py` — mandatory self-test, `sys.exit(2)` with "refusing to report" if any known-answer case fails | shallow known-answer controls: KQ-vs-K mate in 1 -> **1 PASS**, KQ-vs-K within 3 -> **1 PASS**, K-vs-K no mate -> **None PASS**; on failure the script exits 2 and reports nothing |
+
+Note on cost: the 9-ply KR-vs-K self-test in `mate_solve.py` is too slow to run casually (>100 s), which is itself
+worth knowing — the cheap controls (mate in 1, within 3, and a drawn position) are enough to prove the prover can
+both FIND a mate and REFUSE to invent one, and they run in under a second.
 
 ## A control that cannot distinguish "refused" from "accepted the same board"
 
@@ -192,3 +175,20 @@ alone proves nothing: a refusal, and an acceptance of a board identical to start
 
 This is a milder form of instance 3: there a prover returned a **wrong zero**; here the count would have returned a
 **right-looking number for the wrong reason**. Both are cases where the number was never the evidence.
+## The sentence that ties the family together
+
+> Every one of these eight faults produced a **clean pass or a confident wrong verdict** — never an error message —
+> and every one was caught by a **control**, not by the happy path.
+
+That is why the controls are worth their cost. The happy path cannot distinguish a working checker from a blind one.
+
+## Why this family is worth naming
+
+Three separate harnesses of mine failed in three different ways and every single one produced a *clean pass* or a
+*wrong verdict*, never an error. The happy path cannot distinguish a working checker from a blind one — only a
+planted case whose answer is known can. The plants cost minutes; the false results they prevent cost a seat's
+credibility and, in instance 3, would have contradicted a correct finding by a colleague.
+
+**Corollary for reviewers:** when you read another seat's "0 of N", ask what its positive control was. If there is
+no answer, the number is not yet evidence — including when the number is mine.
+

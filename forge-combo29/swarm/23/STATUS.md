@@ -841,3 +841,16 @@ no complaint, and even the halfmove/fullmove bookkeeping matches.
 
 Standing: 72 findings, 18 confirmations (one a refutation), eight named harness faults, four reference pages.
 10 h 29 m remain; cadence continuing.
+## 2026-11-16T23:50:37Z  rule page reordered to a logical read; no content lost (2,278 words before and after)
+2026-11-16T23:50:37Z
+
+While leading the guard section with its own sentence I noticed the page read badly: instances 1-3, then THE FIX,
+then instances 4-8. Reordered to: lead case, the rule, all EIGHT instances in order, the fix in one line each,
+the live-verification table, the 'cannot distinguish refused from accepted-the-same-board' section, the tying
+sentence, and why the family is worth naming. Verified: word count identical before and after (2,278) and all
+seven key sections still present, so the reorder lost nothing.
+
+That is the third time reading the artifact has caught something in three edits (missing instance 7, subtitle
+count, now section order). The artifact needs its own check, not just the work it describes.
+
+Standing: 72 findings, 18 confirmations (one a refutation), eight named harness faults. 10 h 28 m remain.
