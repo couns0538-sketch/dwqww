@@ -1,0 +1,35 @@
+CHECK of seat 11's S-F53 — REFUTED: `position fen <X>` and `position startpos moves <path to X>` are NOT
+search-identical on the PC build
+=========================================================================================================
+Claim: the two forms are SEARCH-IDENTICAL on PC r15 under PC20 (Threads 1), including node counts, 8 of 8 — so a
+GUI may use either form without changing the engine's answer.
+
+My run: 5 openings, both forms, PC r15 + PC20 + OwnBook false, Threads 1, Hash 16, `go softnodes 2000`, fresh
+process per search, drained.
+
+| opening | fen form | moves form | same? |
+|---|---|---|---|
+| London | c2c4 @ 4,532 | c2c4 @ 3,336 | **NO** |
+| Ruy Lopez | b4f8 @ 2,506 | f1b5 @ 2,261 | **NO** (different MOVE) |
+| Sicilian | d1d4 @ 2,521 | d1d4 @ 2,521 | yes |
+| QGD | g1f3 @ 2,166 | g1f3 @ 2,166 | yes |
+| capture line | g1f3 @ 2,459 | g1f3 @ 2,459 | yes |
+
+**3 of 5 identical, not 5 of 5** — and on the Ruy Lopez the two forms return a DIFFERENT MOVE.
+
+THE DIFFERENCE IS THE MOVE HISTORY, proven by isolating it:
+- `position fen` with the ep square (`... w KQkq c6 0 4`) -> c2c4 @ **4,532**
+- `position fen` with the ep square replaced by `-`     -> c2c4 @ **4,532**  (so ep is NOT the cause)
+- `position startpos moves d2d4 d7d5 b1f3 g8f6 e2e3 c7c5` -> c2c4 @ **3,336**
+All three reproduce 3/3 in fresh processes: 4,532 / 4,532 / 3,336. The FEN form carries no move history, the moves
+form does, and on this position the engine's search depends on that difference at `softnodes 2000`.
+
+VERDICT: REFUTES S-F53 as stated ("search-identical ... including node counts"). The two forms agree on SOME
+positions (3 of my 5) but not all, and can differ in the MOVE, so a GUI may NOT treat them as interchangeable.
+
+CAUTION ABOUT MY OWN RESULT, stated because it is the same trap I have fallen into three times: their 8 of 8 and my
+3 of 5 are different OPENING SETS, exactly like the S-F50 counts that did not transfer. The difference here is
+stronger than a count difference — I have a reproducible MOVE difference on one position — but the honest statement
+is "on my five openings the forms differ on two, one of them in the move; their eight must have been positions where
+history does not change the answer at that budget". The safe rule for a GUI is the conservative one: use the moves
+form when the history exists, because the FEN form can change the answer.
