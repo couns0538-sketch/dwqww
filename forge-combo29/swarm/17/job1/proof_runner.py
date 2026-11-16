@@ -108,14 +108,20 @@ def main():
               "runs": []}
 
     cases = [
-        ("real_normal_search", real, ["uci", "isready", "position startpos", "go depth 6", "quit"]),
-        ("planted_heap_overread", planted_asan, ["uci", "isready", "bench 5", "quit"]),
-        ("planted_signed_overflow", planted_ubsan, ["uci", "isready", "position startpos", "go depth 1", "quit"]),
+        ("real_normal_search", real, ["uci", "isready", "position startpos", "go depth 6", "quit"], 1, 0),
+        ("planted_heap_overread", planted_asan, ["uci", "isready", "bench 5", "quit"], 0, 2),
+        ("planted_signed_overflow", planted_ubsan, ["uci", "isready", "position startpos", "go depth 1", "quit"], 0, 1),
     ]
-    for name, exe, lines in cases:
+    for name, exe, lines, min_depth_lines, min_sanitizer in cases:
         log_path = os.path.join(outdir, name + ".log")
         rc, timed_out, text = drive(exe, lines, 240, log_path)
         hits = collect(text)
+        depth_lines = [ln for ln in text.splitlines() if ln.startswith("info depth")]
+        nodes = None
+        for ln in reversed(depth_lines):
+            if " nodes " in ln:
+                nodes = int(ln.split(" nodes ")[1].split()[0])
+                break
         meta = {
             "name": name,
             "exe": exe,
@@ -125,9 +131,24 @@ def main():
             "commands": lines,
             "rc": rc,
             "timed_out": timed_out,
+            "info_depth_lines": len(depth_lines),
+            "last_nodes": nodes,
             "sanitizer_lines": len(hits),
             "sanitizer_examples": hits[:3],
         }
+        # Fail loudly: a case must show the evidence it exists to show. The real-search case must
+        # have actually searched (depth lines and a node count); the planted cases must have been
+        # counted by the runner. A missing line can never pass as a clean zero.
+        problems = []
+        if len(depth_lines) < min_depth_lines:
+            problems.append("expected >= %d info depth line(s), saw %d"
+                            % (min_depth_lines, len(depth_lines)))
+        if min_depth_lines > 0 and nodes is None:
+            problems.append("no 'nodes' field in any info depth line")
+        if len(hits) < min_sanitizer:
+            problems.append("expected >= %d sanitizer line(s), saw %d" % (min_sanitizer, len(hits)))
+        if problems:
+            raise SystemExit("FATAL: case %s proves nothing: %s" % (name, "; ".join(problems)))
         with open(os.path.join(outdir, name + ".meta"), "w") as handle:
             json.dump(meta, handle, indent=1)
         report["runs"].append(meta)

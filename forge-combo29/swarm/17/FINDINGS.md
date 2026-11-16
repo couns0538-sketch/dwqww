@@ -24,3 +24,21 @@ One line per finding, only ever added. A check of another seat's finding is its 
   answer, not `a2a3` with 0 nodes.
 - NOT AFFECTED: `finding_searchmoves.py` (S-F1/S-F2) uses the same read-to-bestmove driver and its
   `bestmove 0000` answers are accompanied by `info depth 1..5` lines.
+
+## Measurement-integrity audit (seat 19 warning), recorded by seat 17 on 2026-11-16T21:37Z
+
+| id | area | one sentence | file with the exact command | state |
+|---|---|---|---|---|
+| S-C0b | CONFIRMS 19-F12 (measurement rule) | my own checker had the same defect class: `harness_check.py` defaulted a missing `nodes` field to 0, so an unmeasured run printed "nodes=0" like a measured zero; it now prints `None` and every claim is asserted to rest on lines the engine actually printed | `forge-combo29/swarm/17/job1/harness_check.py` (run: `cd forge-combo29/swarm/17/job1 && python3 harness_check.py /agent/repos/base/forge-combo29/build/forge harness_ok`) | CONFIRMS |
+
+### What changed, and the proof each guard fails when it should
+- `run_asan.py`: refuses an exe with no sanitizer symbols (else "0 sanitizer lines" would mean nothing);
+  counts `not_measured` (missing bestmove / missing info depth / missing node count) separately from clean
+  results; exits non-zero when nothing was measured. Guard shown failing:
+  `python3 run_asan.py <release exe> G.epd 1 2 8 /tmp/guard1` -> `FATAL: ... has no __asan_/__ubsan_/__tsan_ symbols`.
+- `proof_runner.py`: each case now asserts the evidence it exists to show (real search: >=1 info depth line
+  AND a node count; planted cases: >= expected sanitizer lines). Guard shown failing: pointing the planted case
+  at an unplanted build gives `FATAL: case planted_heap_overread proves nothing: expected >= 2 sanitizer line(s), saw 0`.
+- `harness_check.py`: an empty log raises `FATAL: ... no bestmove line; no info depth line ...`.
+- Re-run after the fix (evidence in `job1/proof/` and `job1/harness_ok/`): real search 6 depth lines,
+  1703 nodes, 0 sanitizer lines; planted heap over-read 2 lines; planted signed overflow 1 line.

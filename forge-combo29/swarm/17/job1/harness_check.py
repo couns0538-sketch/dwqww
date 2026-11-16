@@ -41,15 +41,32 @@ def pipelined(exe, go_line, log_path, delay_s=0.0):
 
 
 def parse(text):
+    """Parse an engine log. A field that is NOT in the output is None ("not measured"),
+    never 0: seat 19's warning is that a missing line must not read as a measured zero."""
     lines = text.splitlines()
     infos = [ln for ln in lines if ln.startswith("info depth")]
     moves = [ln for ln in lines if ln.startswith("bestmove")]
-    nodes = 0
+    nodes = None
     if infos:
         last = infos[-1]
         if " nodes " in last:
             nodes = int(last.split(" nodes ")[1].split()[0])
     return {"bestmove": moves[-1] if moves else None, "info_depth_lines": len(infos), "last_nodes": nodes}
+
+
+def require_measured(tag, record, expect_search):
+    """Fail loudly when a claim rests on a line the engine never printed."""
+    problems = []
+    if record["bestmove"] is None:
+        problems.append("no bestmove line")
+    if expect_search:
+        if record["info_depth_lines"] == 0:
+            problems.append("no info depth line (the search did not run)")
+        if record["last_nodes"] is None:
+            problems.append("no 'nodes' field in the last info depth line")
+    if problems:
+        raise SystemExit("FATAL: %s is not a measurement: %s" % (tag, "; ".join(problems)))
+    return record
 
 
 def main():
@@ -63,6 +80,9 @@ def main():
         c_info = run_one(exe, ["uci", "isready", "position startpos", "isready", go_line],
                          180, os.path.join(outdir, "B_readbestmove_%s.log" % tag))
         c = parse(open(os.path.join(outdir, "B_readbestmove_%s.log" % tag)).read())
+        # The pipelined cases are EXPECTED to be empty (that is 19-F12); the read-to-bestmove
+        # case is the one that must be a real measurement, so only it is asserted.
+        require_measured("B read-to-bestmove %s" % go_line, c, expect_search=True)
         rows.append((go_line, "A pipelined+closed", a, "A2 pipelined+2s", b,
                      "B read-to-bestmove (mine)", {**c, "bestmove": c_info["bestmove"]}))
     print("%-14s | %-28s | %-28s | %s" % ("go", "A pipelined, stdin closed", "A2 pipelined, quit at 2s", "B read-to-bestmove (my harness)"))

@@ -66,11 +66,18 @@ def main():
     env["UBSAN_OPTIONS"] = "print_stacktrace=1:halt_on_error=0"
     env.pop("TSAN_OPTIONS", None)
 
+    san_symbols = sanitizer_symbol_count(exe)
+    # A "0 sanitizer lines" verdict is only meaningful on an instrumented binary whose searches
+    # actually ran. Seat 19's warning: an empty result must never pass as a confirmation.
+    if san_symbols <= 0:
+        raise SystemExit("FATAL: %s has no __asan_/__ubsan_/__tsan_ symbols, so a 0-line "
+                         "result would mean nothing" % exe)
+
     meta = {
         "exe": exe,
         "sha256": sha256(exe),
         "id_name": id_name(exe),
-        "sanitizer_symbols": sanitizer_symbol_count(exe),
+        "sanitizer_symbols": san_symbols,
         "setoption_lines": extra,
         "epd": epd,
         "first": first,
@@ -81,6 +88,8 @@ def main():
 
     results = []
     san_lines = []
+    not_measured = []
+    depths_seen = []
     for offset in range(count):
         index = first + offset
         if index < 1 or index > len(fens):
@@ -91,25 +100,48 @@ def main():
         info = run_one(exe, commands, 180, log_path, env=env)
         text = open(log_path).read()
         bad = [word for word in SAN_WORDS if word in text]
-        info.update({"index": index, "fen": fen, "sanitizer_words": bad})
+        depth_lines = [ln for ln in text.splitlines() if ln.startswith("info depth")]
+        last_depth = None
+        last_nodes = None
+        if depth_lines:
+            fields = depth_lines[-1].split()
+            if "depth" in fields:
+                last_depth = int(fields[fields.index("depth") + 1])
+            if "nodes" in fields:
+                last_nodes = int(fields[fields.index("nodes") + 1])
+        depths_seen.append(last_depth)
+        info.update({"index": index, "fen": fen, "sanitizer_words": bad,
+                     "depth_lines": len(depth_lines), "last_depth": last_depth, "last_nodes": last_nodes})
         results.append(info)
         if bad:
             san_lines.append("line %d: %s | %s" % (index, fen, ",".join(bad)))
         if info["rc"] != 0 and info["rc"] is not None:
             san_lines.append("line %d: exit %s | %s" % (index, info["rc"], fen))
+        # A missing bestmove, a missing info depth line or a missing node count means this
+        # position was NOT measured; it is recorded as such, never as a clean result.
         if info["bestmove"] is None:
-            san_lines.append("line %d: NO bestmove | %s" % (index, fen))
+            not_measured.append("line %d: NO bestmove | %s" % (index, fen))
+        elif last_depth is None or last_nodes is None:
+            not_measured.append("line %d: no info depth/nodes line | %s" % (index, fen))
+        elif last_depth < min(depth, 1):
+            not_measured.append("line %d: search stopped at depth %s | %s" % (index, last_depth, fen))
 
     meta["searches"] = len(results)
+    meta["measured_searches"] = len(results) - len(not_measured)
+    meta["not_measured"] = len(not_measured)
     meta["sanitizer_lines"] = len(san_lines)
     meta["date_end"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     with open(os.path.join(outdir, "results.json"), "w") as handle:
         json.dump(results, handle, indent=1)
     with open(os.path.join(outdir, "sanitizer_lines.txt"), "w") as handle:
         handle.write("\n".join(san_lines) + ("\n" if san_lines else ""))
+    with open(os.path.join(outdir, "not_measured.txt"), "w") as handle:
+        handle.write("\n".join(not_measured) + ("\n" if not_measured else ""))
     with open(os.path.join(outdir, "run.meta"), "w") as handle:
         json.dump(meta, handle, indent=1)
     print(json.dumps(meta, indent=1))
+    if meta["measured_searches"] == 0:
+        raise SystemExit("FATAL: no search was measured at all, so this run proves nothing")
 
 
 if __name__ == "__main__":
