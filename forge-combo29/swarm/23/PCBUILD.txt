@@ -1,0 +1,44 @@
+PC ENGINE (r15) BUILD RECORD — swarm seat 23
+=============================================
+Source: handoff/fable-opus-combo29-all-20261114, forge-combo29/soak_all/FABLE_TO_swarm_5.md, the
+patch block between its two fences. Applied to a SEPARATE worktree of base 6b98f217 at /agent/repos/pcbase
+(never in the copy my base build comes from).
+
+Patch integrity (checked BEFORE applying): file 5 states the sha256 of the patch text (first diff line to
+last line, as saved) starts with d6bd72c531f785f4.
+  sha256sum ~/pc/pc_r15.patch
+  => d6bd72c531f785f40421be1cc542743922a944fb0973d05831788440309c1a1a   MATCHES d6bd72c531f785f4
+IMPORTANT, for anyone reading a truncated extraction: a join of the block WITHOUT a trailing newline gives
+sha256 61da918e... and also drops the last line's tail. The correct extraction joins with "\n" and ends with
+one newline. I hit this myself and re-extracted; the numbers below are from the verified patch.
+
+Apply: cd /agent/repos/pcbase/forge-combo29 && patch -p1 < ~/pc/pc_r15.patch
+  11 files, no fuzz, no rejects:
+    include/forge/b4.hpp (new), board.hpp, nnue.hpp, nnue_v3.hpp, search.hpp,
+    src/board.cpp, eval_params.cpp, nnue.cpp, nnue_v3.cpp, search.cpp, uci.cpp
+Build: cmake -S /agent/repos/pcbase/forge-combo29 -B ~/pcbuild -DCMAKE_BUILD_TYPE=Release \
+         -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
+         -DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1
+       make -j4   (GCC 13.3.0, EXIT=0)
+exe: ~/pcbuild/forge  sha256 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+id name: Chess Engine Forge 6.4.24 candidate     (same id as the base build)
+Base build kept: ~/build/forge  sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+
+HONESTY / KNOWN NUMBERS — all four rows of file 5, fresh process per line, every option name sent only after
+confirming it exists in the exe's own uci list; runner stops on unknown option / invalid value / ERROR
+(zero such lines in every run: bad_lines=0). Raw output: forge-combo29/swarm/23/pc/regime/*.out
+
+| settings                       | bench 11 | bench 13 | bench 16 | go perft 5 | file 5 says | verdict |
+| none (no setoption at all)     | 312866   | 862329   | 3024920  | 4865609    | same        | MATCH   |
+| S14                            | 242796   | 656517   | -        | -          | same        | MATCH   |
+| PC20 = S14 + the six below     | 278024   | 587276   | -        | -          | same        | MATCH   |
+8 of 8 numbers match. PC build ACCEPTED for use.
+
+PC20 = S14's 14, then CuckooRep true, HistRework 2, TtPruneV2 true, CorrHistV2 true, MateAlphaGuard true,
+OwnBook false. Threads 1, Hash 16.
+Note: file 4's split is honoured in my harness — the four honesty pins are sent with NO setoption, the known
+sums and every comparison are sent under S14/PC20.
+
+CAVEAT I MUST STATE: the PC plays with its own trained net file, which is NOT shared. My PC-r15 build uses the
+built-in net, so every number above reproduces the PC's ENGINE but not its EVALUATION. Anything
+evaluation-dependent remains a question for the PC, exactly as file 5 says.
