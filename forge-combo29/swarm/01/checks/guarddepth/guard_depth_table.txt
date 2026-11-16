@@ -1,0 +1,49 @@
+MateAlphaGuard depth table — BOARD NAMED ON EVERY ROW
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+
+BOARD A (this table): 8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1
+  = white Kc2 + pawn d2 vs black Ke2 + pawns a4, e4, b6.
+  Black forces mate in 8 plies, so the correct score is `mate -4`.
+  The large NEGATIVE cp values before the mate is seen are normal for a LOST PAWN ENDING.
+  There is NO queen on this board; a queen board is case B below and is not in this table.
+
+BOARD B (separate counter-reset case, NOT in this table): 8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1
+  = white Kd7 + pawn h6 + queen g1 vs black Kh3, at halfmove 100.
+
+depths: 8, 10, 12, 13, 14, 15, 16. guard OFF = S14 only; guard ON = S14 + MateAlphaGuard true.
+PC r15, Threads 1, Hash 16, fresh process per row.
+
+board	depth	guard	score	plies	pv_moves	nodes	reached_depth	bestmove
+8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1	8	off	cp -2718	None	11	5755	8	c2b2
+8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1	8	on	cp -2718	None	11	5755	8	c2b2
+8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1	10	off	cp -3154	None	15	15860	10	c2b1
+8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1	10	on	cp -3154	None	15	15860	10	c2b1
+8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1	12	off	mate -9	18	14	37664	12	c2b1
+8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1	12	on	mate -4	8	8	31996	12	c2b1
+8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1	13	off	mate -9	18	17	49307	13	c2b1
+8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1	13	on	mate -4	8	8	35525	13	c2b1
+8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1	14	off	mate -7	14	14	69360	14	c2b1
+8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1	14	on	mate -4	8	8	39960	14	c2b1
+8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1	15	off	mate -4	8	8	78688	15	c2b1
+8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1	15	on	mate -4	8	8	44008	15	c2b1
+8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1	16	off	mate -4	8	8	83450	16	c2b1
+8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1	16	on	mate -4	8	8	48022	16	c2b1
+
+TRUE DISTANCE: 8 plies (`mate -4`), proved by exhaustive minimax in python on this same board
+(black forces mate in 8, not in 2, 4 or 6), so `mate -4` is the correct answer and any other
+mate value is wrong.
+
+FIRST DEPTH GIVING THE TRUE DISTANCE: guard ON at depth 12, guard OFF at depth 15.
+HEADLINE: the guard is DECISIVE at depths 12 to 14, and at depth 15-16 the two agree on the
+verdict while the guarded search is CHEAPER, not redundant.
+   depth 15: both give mate -4; guard ON 44008 nodes vs OFF 78688 nodes (44 % fewer)
+   depth 16: both give mate -4; guard ON 48022 nodes vs OFF 83450 nodes (42 % fewer)
+   So from depth 15 upward the SCORE converges and what remains is a node cost, not a
+   correctness difference. The guard's actionable value is the 12-14 band.
+
+ROWS WITH A MATE SCORE THAT IS NOT THE TRUE DISTANCE (each is a wrong answer, and the board
+is named so a reader can check it):
+   depth 12  guard off -> mate -9  (18 plies): 8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1
+   depth 13  guard off -> mate -9  (18 plies): 8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1
+   depth 14  guard off -> mate -7  (14 plies): 8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1

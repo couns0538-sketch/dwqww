@@ -1,0 +1,65 @@
+softnodes staircase on REAL GAME positions (set_G), per-position band boundaries
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+PC20, Threads 1, Hash 16; budgets: [1000, 2000, 3000, 4000, 6000, 8000, 12000, 16000, 20000, 30000]
+positions: first 5 of ../job1/set_G.epd
+
+pos1 1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b - - 0 1
+   N [1000]                 depth 6   g7g6  cp -303
+   N [2000]                 depth 7   g7g6  cp -306
+   N [3000]                 depth 8   g7g6  cp -306
+   N [4000]                 depth 9   g7g6  cp -299
+   N [6000, 8000]           depth 10  g7g6  cp -304
+   N [12000, 16000]         depth 11  g7g6  cp -287
+   N [20000, 30000]         depth 12  g7g6  cp -293
+pos2 r3r1k1/p1bb1ppp/1p1q4/3P1p2/1nBP4/PPN2N1P/5PP1/1R1Q1RK1 b - - 0 1
+   N [1000]                 depth 7   b6b5  cp -217
+   N [2000, 3000]           depth 8   b6b5  cp -288
+   N [4000, 6000]           depth 9   b6b5  cp -234
+   N [8000]                 depth 10  b6b5  cp -265
+   N [12000, 16000, 20000]  depth 11  b6b5  cp -257
+   N [30000]                depth 12  b6b5  cp -258
+pos3 6k1/p4r1p/1p2Q3/2p5/2P1N3/1P3P2/PK6/6q1 b - - 0 1
+   N [1000]                 depth 5   g1g6  cp 226
+   N [2000]                 depth 7   g1g6  cp 223
+   N [3000, 4000]           depth 8   g1g6  cp 246
+   N [6000, 8000, 12000]    depth 9   g1g6  cp 275
+   N [16000, 20000]         depth 10  g1g6  cp 255
+   N [30000]                depth 11  g1g6  cp 271
+pos4 5R2/5npp/5k2/8/4p3/4P3/3K1PPP/8 b - - 0 1
+   N [1000, 2000]           depth 6   f6e7  cp -557
+   N [3000]                 depth 7   f6e7  cp -595
+   N [4000]                 depth 8   f6e7  cp -600
+   N [6000, 8000]           depth 9   f6e7  cp -590
+   N [12000, 16000, 20000]  depth 10  f6e7  cp -607
+   N [30000]                depth 11  f6e7  cp -601
+pos5 8/1p1k1KN1/4pB2/4P2P/8/P2p3r/2b5/8 w - - 0 1
+   N [1000]                 depth 6   f6g5  cp -252
+   N [2000]                 depth 7   f6g5  cp -384
+   N [3000, 4000]           depth 8   f6g5  cp -325
+   N [6000]                 depth 9   f6g5  cp -388
+   N [8000]                 depth 10  f6g5  cp -450
+   N [12000, 16000]         depth 11  f6g5  cp -463
+   N [20000]                depth 12  f6g5  cp -519
+   N [30000]                depth 13  f6g5  cp -573
+
+FIRST BUDGET AT WHICH EACH DEPTH APPEARS, per position (the band boundary):
+depth	pos1	pos2	pos3	pos4	pos5	spread_factor
+5	1000	1000	1000	1000	1000	1.00
+6	1000	1000	2000	1000	1000	2.00
+7	2000	1000	2000	3000	2000	3.00
+8	3000	2000	3000	4000	3000	2.00
+9	4000	4000	6000	6000	6000	1.50
+10	6000	8000	16000	12000	8000	2.67
+11	12000	12000	30000	30000	12000	2.50
+12	20000	30000	-	-	20000	1.50
+13	-	-	-	-	30000	-
+
+BOUNDARY SPREAD across the 5 positions (max/min of the first budget reaching a depth):
+   min 1.00, median 2.00, max 3.00  (1.00 = perfectly stable across positions)
+ADVICE: READ THE STAIRCASE PER POSITION. The boundaries move by up to 3.00x across real
+positions, so a single fixed N is not safe; the per-position bands above are the tool.
+
+WITHIN a position the total is constant inside a band (that is what makes the staircase), and
+the ratio total/N therefore depends only on where N falls inside the band - so a budget should
+be placed at or just above a band's FIRST budget, not at its last.

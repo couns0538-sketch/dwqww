@@ -1,0 +1,23 @@
+depth 8   OFF cp -2718   (None plies, 5755     nodes) | ON cp -2718   (None plies, 5755     nodes)
+depth 10  OFF cp -3154   (None plies, 15860    nodes) | ON cp -3154   (None plies, 15860    nodes)
+depth 12  OFF mate -9    (18   plies, 37664    nodes) | ON mate -4    (8    plies, 31996    nodes)
+depth 13  OFF mate -9    (18   plies, 49307    nodes) | ON mate -4    (8    plies, 35525    nodes)
+depth 14  OFF mate -7    (14   plies, 69360    nodes) | ON mate -4    (8    plies, 39960    nodes)
+depth 15  OFF mate -4    (8    plies, 78688    nodes) | ON mate -4    (8    plies, 44008    nodes)
+depth 16  OFF mate -4    (8    plies, 83450    nodes) | ON mate -4    (8    plies, 48022    nodes)
+
+
+TRUE DISTANCE: 8 plies (`mate -4`), proved by exhaustive minimax in python on this same board
+(black forces mate in 8, not in 2, 4 or 6), so `mate -4` is the correct answer and any other
+mate value is wrong.
+
+FIRST DEPTH GIVING THE TRUE DISTANCE: guard ON at depth 12, guard OFF at depth 15.
+So the guard reaches the correct answer %d depth(s) earlier — this is the actionable
+part: it is a correctness gain at intermediate depths, not at shallow ones (where
+neither reports a mate) and not at deep ones (where both are already right).
+
+ROWS WITH A MATE SCORE THAT IS NOT THE TRUE DISTANCE (each is a wrong answer, and the board
+is named so a reader can check it):
+   depth 12  guard off -> mate -9  (18 plies): 8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1
+   depth 13  guard off -> mate -9  (18 plies): 8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1
+   depth 14  guard off -> mate -7  (14 plies): 8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1
