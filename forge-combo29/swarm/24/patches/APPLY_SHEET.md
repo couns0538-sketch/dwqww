@@ -49,6 +49,18 @@ limits.movetime_ms = 0;`). No new behaviour is invented; the engine already had 
 | Black, `go btime 1000` (own clock) | e7e5, 0.02 s | unchanged |
 | White, `go wtime 1000 btime 1000` | d2d4, 0.03 s | unchanged |
 
+## Regression: the PONDER path on a normal board is unchanged
+
+```
+| build | bestmove before ponderhit | bestmove after ponderhit | legal | info lines |
+|---|---|---|---|---|
+| PC unpatched | no (correct) | bestmove e2e4 | legal | 21 |
+| PC + patch   | no (correct) | bestmove e2e4 | legal | 21 |
+```
+
+Same script both times (`regress_ponder.py`, committed beside this sheet). The patch only skips the wait when the
+root has no legal move, and a normal board never takes that branch.
+
 ## Honesty numbers with both fixes — unchanged
 
 | probe | expected | patched |
