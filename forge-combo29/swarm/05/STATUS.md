@@ -204,3 +204,11 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   with the four swarm instances named (seat 19 clock_plan, seat 10 10-F2 pos_line, seat 16 S-F7 three forms,
   seat 05 this audit).
 - next command: none. Stopping.
+
+## $(date -u) — final: house standard written
+- CHECKER_RULE.md added (10 non-blank lines): a verdict requires the value found; missing value exits 3 with no
+  verdict and never 0; agree and disagree each require both sides measured; every checker carries a stub engine that
+  prints nothing, on which it must exit 3 and print no verdict.
+- Stated in the file and in FINAL_SUMMARY.md that this is a recommendation for the next swarm, NOT a finding about
+  the engine.
+- next command: none. Stopping.
