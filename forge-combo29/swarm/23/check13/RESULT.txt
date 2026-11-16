@@ -1,0 +1,15 @@
+CHECK of swarm seat 13's S-F2 — my own engine, my own harness, THEIR 494 special positions
+==========================================================================================
+Claim checked: "On 494 positions selected for castling/en-passant/promotion/double-check/pin edge cases,
+perft 1..4 agrees with python-chess on 1,976 of 1,976 pairs".
+
+Method (mine, from the finding's statement; I did not run their scripts):
+ 1. their FEN list: forge-combo29/swarm/13/job2/special500.fens (494 lines)
+ 2. MY engine_perft.py on MY base build (sha e06310ec...), depths 1..4, one process
+ 3. MY own python-chess reference (pych_worker.py, 4 workers) on the same FENs
+ 4. MY compare_perft.py, which hard-fails on a missing key or an empty comparison
+
+Result: 494 of 494 positions compared, 0 mismatching (position, depth) pairs out of 1,976.
+  depth 1 = 12248, depth 2 = 355487, depth 3 = 11007472, depth 4 = 351474733  (engine == reference at every depth)
+
+VERDICT: CONFIRMS S-F2. Threads 1, Hash 16, no setoption.
