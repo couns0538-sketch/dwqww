@@ -135,6 +135,26 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:43Z - S-C23 MECHANISM MEASURED: the between-line TT clear eats the clock budget
+
+go wtime 5000, MPV3, nodes searched per ms of wall time:
+  Hash  16 -> depth 13, 118,566 nodes, 559 nodes/ms
+  Hash  64 -> depth  9,  20,518 nodes, 183 nodes/ms
+  Hash 256 -> depth  4,     622 nodes,   2 nodes/ms   (290 ms spent to search 622 nodes)
+  MPV1 at every Hash 16..1024 -> depth 16 / 172,312 nodes / ~1,500 nodes/ms (completely unaffected by Hash)
+So a large Hash alone is harmless; the clock budget at MPV3 is consumed WITHOUT searching - the clear's cost,
+monotone in Hash. The clean Hash-16 ladder (MPV1/2/3/4 -> 16/15/13/11, all exact) is the control proving MultiPV
+itself is sound and only the clear is at fault.
+
+FALSIFIABLE PREDICTION recorded: a patch removing the redundant clear should bring MPV3+Hash256 to ~1,500 nodes/ms,
+not ~0. That distinguishes "removes the clear" from "changes MultiPV behaviour".
+
+S-C21 marked superseded in the FINAL; S-C22 (three conditions + control ladder) and S-C23 (mechanism) are in it.
+Match path (MPV1) unaffected at every Hash.
+
+State: 68 findings, working tree clean, local = remote. Next: keep cycling.
+
 ## 2026-11-16T23:42Z - S-C22 CORRECTS my S-C21: the MultiPV collapse needs a LARGE HASH too
 
 Same position, go wtime 5000, 4 fresh runs per cell:
