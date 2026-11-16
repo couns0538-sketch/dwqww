@@ -1,0 +1,36 @@
+# PREDICTION — S28: why does the 10 s clock lose a ply? Plan arithmetic or stop behaviour?
+
+Committed and pushed ALONE before the first measuring command. Never edited afterwards.
+Written 2026-11-16 ~22:27 UTC.
+
+## What S-F25-REVISED left open
+At wtime 10000 on PC20 the PC r15 build reaches median depth 19 where the base build reaches 20, using
+0.89x the wall time (305.9 vs 344.1 ms, 40 positions). At wtime 1000 it is the same depth in 0.88x the
+time; at 3000 there is no separation. So the PC build spends less time and, at the long clock, buys that
+with a ply. The question: does the PC build PLAN less time (arithmetic — one number), or plan the same and
+STOP earlier (behaviour — the check)?
+
+The plan is computed by `plan_clock_budget` (include/forge/clock_plan.hpp) from the clock, the increment,
+and the tunables `TmSoftDivisor` (22), `TmIncrementPercent` (75), `TmHardPercent` (60),
+`TmHardSoftMultiple` (5), minus `Move Overhead` (10). All of those are UCI options on both builds, so the
+engine's OWN defaults can be read straight out of each exe's `uci` answer — that is the measurement, not a
+guess from source. `FORGE_FIX_HARD_LIMIT_EMERGENCY` is in the PC patch and touches the stop path, which is
+where a behaviour cause would live.
+
+At wtime 10000: available = 9990, soft = 9990/22 = 454 ms, hard = min(9990*60/100, soft*5) = 2270 ms.
+At wtime 3000: available = 2990, soft = 135 ms, hard = min(1794, 675) = 675 ms.
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| W1 | the five plan inputs (TmSoftDivisor, TmIncrementPercent, TmHardPercent, TmHardSoftMultiple, Move Overhead) have IDENTICAL defaults on both builds | yes | any differ |
+| W2 | therefore soft/hard plan at 3000 and 10000 are identical on both builds | yes | differ |
+| W3 | achieved median is BELOW soft on both builds at both clocks | yes | achieved above soft |
+| W4 | achieved/soft ratio at 10000: PC is smaller than base (PC 0.67, base 0.76 from the last sample) | yes, by >= 0.05 | within 0.05 of each other |
+| W5 | last completed iteration time at 10000 is lower on PC than base | yes | PC higher |
+| W6 | so the cause is the CHECK, not the arithmetic | yes | W1 or W2 fails |
+
+Reasoning: the patch description lists no change to `TmSoftDivisor` or the other three tunables, and
+`FORGE_FIX_HARD_LIMIT_EMERGENCY` is a fix to the emergency stop path — i.e. exactly where a search decides
+to stop inside/at the end of an iteration. If W1 holds and the achieved/plan ratio still differs, the one
+number is not the plan and the bug report is about the stop condition. If W1 fails, the whole thing
+collapses to a single changed default and I must say so plainly instead.
