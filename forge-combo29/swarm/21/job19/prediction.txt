@@ -1,0 +1,18 @@
+# PREDICTION — job19: the 20,000-mutation FEN sweep on the PC BUILD under PC20
+written before the first measuring command.
+
+Third build, same input set as job1/job7/job14 (SEED 2101 mutations.tsv, uniform mix), now on
+the PC r15 build under PC20 with Threads 1 and the ASan+UBSan PC build.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | the refused/accepted split is IDENTICAL to the base tree's (18,775 / 1,225), because the patch does not touch FEN parsing | killed by any difference — a difference would name a parser change the patch hid |
+| P2 | 0 crashes, 0 hangs, 0 sanitizer lines | killed by any one |
+| P3 | 0 illegal bestmoves | killed by any one |
+| P4 | the accepted-but-python-invalid set is the same 39 rows as job1 | killed by any difference |
+| P5 | `fullmove 0` mutations are still refused (21-F8 survives), so any fullmove-0 case appears in the refused set | killed if any is accepted |
+| P6 | the four pins still hold on this exact binary | killed by any miss |
+
+Direction: P1 is the interesting one. file 5 says the patch changes src/board.cpp (one of the 11
+files), so a difference in acceptance is possible; if it appears, that is a real parser change
+on the PC and worth reporting to the owner.

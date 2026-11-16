@@ -1,18 +1,17 @@
-## 2026-11-16T22:22:54Z
-seat 21, area 1 (FEN INPUT). **Threads 1 in every run.** Both builds: base 6b98f217 and PC r15.
+## 2026-11-16T22:25:14Z
+seat 21, area 1 (FEN INPUT). **Threads 1 in every run.** Builds: base 6b98f217 and PC r15
+(both Release-verified and ASan+UBSan-built).
 
-**HEADLINE: 21-F9 is REPAIRED on the PC build.** Base tree misses a mate in 1 at halfmove 100
-in both colours; PC build finds it in both colours, under PC20 AND with no setoption. Cause
-isolated to the compile-time FORGE_FIX_ROOT_DRAWN, not the PC20 options (base + S14 still
-misses). `job18/isolate/summary.md`.
+**Done since the last push**
+- job19: the full 20,000-mutation FEN sweep on the PC build under PC20. **Identical to the base
+  tree case for case** — 18,775 refused / 1,225 accepted / 39 python-invalid / 0 crash / 0 hang
+  / 0 sanitizer / 0 illegal; the per-FEN diff against job1 is EMPTY. The PC patch does not touch
+  FEN acceptance. `job19/out/pc20_summary.txt`.
+- job18 (pushed earlier): 21-F9 REPAIRED on the PC build (compile-time FORGE_FIX_ROOT_DRAWN, not
+  the PC20 options); 21-F8, 21-F11 and 21-F2 all SURVIVE on the PC build.
 
-**Three finds SURVIVE on the PC build** (all Threads 1, PC20 and no-option runs agree):
-- 21-F8: fullmove 0 still refused → stale board (perft 20 vs true 15).
-- 21-F11: checkmated root still scored `mate 0`.
-- 21-F2: refused FEN still answers readyok and the next search plays the old game.
+**Findings state**: 11 base-tree findings F1..F11; of these F9 is repaired on the PC build,
+F8/F11/F2 confirmed still open there, F10 confirmed identical there. 6 checks, 1 verified patch.
 
-**PC build verified**: patch sha256 d6bd72c5… matches file 5; all three honesty rows match
-(default 312866/862329/3024920/4865609, S14 242796/656517, PC20 278024/587276).
-
-**Next**: check whether 21-F11 (`mate 0`) also affects stalemate and insufficient-material
-roots on the PC build, and run the area-1 job 1 mutation sweep on the PC build under PC20.
+**Next**: probe 21-F11 (mate 0) on stalemate and insufficient-material roots on the PC build,
+then look for a new find in the PC patch's own new code paths (the six FORGE_FIX_ switches).
