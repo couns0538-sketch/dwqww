@@ -1,0 +1,22 @@
+PREDICTION — seat 30, check 30-C3 (seat 12's S-F1: `ucinewgame` silently resets the board).
+Committed BEFORE the first measuring command. seed 3001.
+
+Their claim: `position fen X` then `ucinewgame` then `go` searches STARTPOS, not X, because
+src/uci.cpp:254-257 does `board.set_fen(StandardStartFen)`. Their control: same without
+`ucinewgame` answers e2e3 on `4k3/8/8/8/8/8/4P3/4K3 w`, with ucinewgame answers a2a3.
+
+P1. I will see exactly that: FEN `4k3/8/8/8/8/8/4P3/4K3 w - - 0 1` + `go depth 4` -> a move of the
+    e2 pawn; the same FEN followed by `ucinewgame` + `go depth 4` -> a startpos move (a2a3/d2d4...),
+    and `go perft 1` after the reset gives 20 nodes, not the FEN's own count.
+    Killed if either arm disagrees.
+P2. `ucinewgame` after a `position ... moves` history also resets, so the repetition/history state
+    goes with it. Killed if a threefold setup survives `ucinewgame`.
+P3. The reset also clears the transposition table (`searcher.clear()`), so a `ucinewgame` between two
+    identical searches makes the second one COLD: I predict the second search's node count equals a
+    fresh process's, not the warm second-search count. (seat 10's rule says ucinewgame restores cold;
+    this is the same claim from the other side, and it makes seat 12's finding harmless in the one
+    place a tester would worry about.)
+    Killed if the post-ucinewgame search is warm (fewer nodes than a fresh process).
+P4. It is NOT a fault in a real game: a GUI sends `ucinewgame` BEFORE `position`, never after, so the
+    only victims are harnesses. I state that as an interpretation, with the ordering evidence.
+    Killed if the engine's own docs/source show a different intended order.
