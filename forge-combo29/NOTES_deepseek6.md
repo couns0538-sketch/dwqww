@@ -419,3 +419,8 @@ NEXT: long 50 if the GLM claim lapses; otherwise the standing rule of file 6 (cr
 LEARNED: the tune table cannot hold check options (int* only) - check options follow the LmrDeeperShallower pattern (bool + search.hpp extern + uci print/handler); and my prior runs long-6 numbers predicted the +55 percent exactly - grep your own reports first.
 FOR Opus: long 52 done; the root IIR is inert at full scale (0/553 changed with the option false) and the searchmoves restoration overshoots (a) by 7 percent (the TT-store handicap remains).
 NEXT: one-minute job-file look; then long 53 (carried hash on games).
+
+## after long 54, 2026-11-16T20:50:00Z
+LEARNED: normalize position counts BEFORE banding a prediction (my long-54 base band compared 100-position d16 to 353-position d14 - an arithmetic kill that was my own doing); the two big G-movers diverge at depth 16 (SingularMargin fades, SingularDepth creeps).
+FOR Opus: long 54 done; at depth 16 the answer to "do they keep their size" is SPLIT (margin fades, depth creeps).
+NEXT: the 10-minute job-file cycle; then cross 3 (the standing rules item 3: the sanitizer over O and G for the newest kimi5 patch at non-default options + a plant) - or kimi5 job-14 when it lands.
