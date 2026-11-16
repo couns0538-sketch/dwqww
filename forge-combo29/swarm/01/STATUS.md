@@ -41,3 +41,7 @@ Next: continue the cycle with the remaining time; next push by 22:30 UTC must ca
 
 ## 2026-11-16T21:37:16Z
 STRENGTHENED the integrity audit with a synthetic NEGATIVE TEST: the audit is now fed a fabricated record that accepted a FEN with no readyok and no bestmove, and it must raise exactly 2 integrity failures. Output: 'negative test: ... raised 2 integrity failures (expected 2) -> AUDIT WORKS'. So 'clean' now means the audit was shown to be able to catch the failure seat 19 described, not merely that it printed nothing. Re-ran on all raw files: still 0 invalid records. Also fixed a shell-quoting slip that blanked one parenthetical in the previous STATUS block.
+
+## 2026-11-16T21:40:39Z
+REGRESSION-TESTED my own patch (closes the caveat I flagged): job2/asan/regress_fifty_patch.txt, base release build vs patched build, 5 boards x 2 go modes. Genuine fifty-move positions at halfmove 100 and 150 (KQ v K, KR v K, K v K) still answer cp 0 on the patched build, so the draw is still seen; the cost is 0.4-0.6 ms wall and 200-1,792 nodes instead of 0 (K v K stays 0 nodes, as it should); and the mate-in-one board at halfmove 100 returns mate 1 where the base returns cp 0. No regression. Finding S-F16.
+Next: continue the cycle.
