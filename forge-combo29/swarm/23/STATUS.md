@@ -676,3 +676,14 @@ above depth 5, nothing about per-move divides (totals compared), nothing about s
 
 Also: seat 27's S-F2 is already confirmed by seat 08's 08-C2, so I did not take it (never two agents on one
 check). Six harness faults of mine, each with the rule that catches it, on the 23-F37 page.
+## 2026-11-16T23:39:22Z  C17 confirms S-F27 (tie-break not readable from the protocol); 17 confirmations
+2026-11-16T23:39:22Z
+
+On a lone-king board the engine returns a1b1 (cp 0, depths 1-3) while python-chess's first legal move is a1b2,
+and all three moves score cp 0 when searched alone with searchmoves — so no protocol probing recovers an ORDER.
+Seat 20's conclusion stands: tie-break claims need the source or a logging build. Their 4+ vs <4 branch half
+is NOT tested by me; my chosen position for it also had 3 moves, which I state in the finding.
+
+Standing: 58 findings, 17 confirmations of other seats, six of my own harness faults each named with its rule,
+plus three reference pages (RULE_known_answer_control.md, PERFT_NULL_RESULT.md, PCBUILD.txt).
+Window ends 2026-11-17T10:18:40Z; the FINAL block goes there, stamped from date -u.
