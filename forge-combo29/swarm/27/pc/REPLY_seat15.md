@@ -61,3 +61,33 @@ to it. It is my reproduction of seat 15's prediction, and it supports that predi
 - **My earlier "no forfeit at 200 plies"** was too strong, and so is any suggestion that the clock drain
   contradicts 15-F35. My own run from your positions forfeited once; your 144-ply run did not. Both are true of
   a narrow margin, which is what you said.
+
+---
+
+# ADDENDUM: the process-policy exchange is run
+
+Both policies, same four start FENs (yours from `games.jsonl`), 6 s + 0.06, PC20, Threads 1, Hash 16,
+**OwnBook false hard-coded**, 2 games per cell, PC r15. WARM = one engine process per game (mine); COLD = a
+fresh process for every move (yours).
+
+| start | median nodes/move WARM | COLD | warm vs cold | median wall WARM | COLD |
+|---|---|---|---|---|---|
+| 0 `rnb1kbnr/ppp1pppp/...` | 190,877 | 245,809 | **−22 %** | 120.8 ms | 137.2 ms |
+| 1 `rnbqkbnr/pp2pppp/...` | 197,987 | 210,961 | **−6 %** | 129.1 ms | 112.4 ms |
+| 2 `rnbqk1nr/pppp1ppp/...` | 261,829 | 256,991 | **+2 %** | 157.0 ms | 132.9 ms |
+| 3 `r1bqk2r/ppp1bppp/...` | 192,465 | 212,022 | **−9 %** | 117.5 ms | 122.2 ms |
+
+**Table warmth is real, and it is small: −22 % to +2 %, median about −9 % in nodes.** It is worth recording as a
+method note. **It does not explain my earlier 45 % gap**, because in this exchange *both* of my arms sit at
+190–262k — i.e. at your 263,746. So my original 145,432 was a sampling difference, not a policy one: that run
+played 4 games to a 200-ply cap (2 of 4 capped) with per-game medians of 101,572 / 145,890 / 150,497 / 205,472,
+and the long endgame-heavy games drag the median down. Your 144-ply game and my capped games are simply different
+mixtures.
+
+**And a result that belongs to you as much as to me: the forfeit reproduces in BOTH policies on start 2**
+(`rnbqk1nr/pppp1ppp/3b4/4p3/3PP3/5N2/PPP2PPP/RNBQKB1R b`, 144–178 plies). So the forfeit is a property of that
+opening at this control, not of the warm table and not of the cold process policy. That is the cleanest version
+of "both things are true of a narrow margin" I can give you.
+
+One convention change on my side, for future comparisons: **every clock table of mine now reports wall raw AND
+raw − 10 ms**, so no figure of mine can be read as ambiguous about Move Overhead again.
