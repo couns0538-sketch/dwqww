@@ -318,3 +318,16 @@ the boundary end.
 - General rule that survives: **big Hash + multiple lines is the incompatible pair**; 256 MB+ with any MultiPV > 1 is
   unusable.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-16T23:37:00Z CAUSE FOUND AND REPAIR CONFIRMED — the MultiPV collapse is fixable
+- **S-C35** (independent: my own build of seat 30's patch, 5 fresh processes/cell, Threads 1):
+  - CAUSE verified by reading the source: `src/search.cpp:2879 alt_shared->tt.clear();` sits inside the per-line
+    loop opened at **2851**, so a FULL-TABLE clear runs once per extra PV line **per depth**.
+  - REPAIR reproduces seat 30's exact figures: Hash 256 MPV 3 shipped depths **[11,11,11,7,11]** nodes
+    [47818/5395] (unstable) -> repaired **[13,13,13,13,13] / 106863** (stable); Hash 512 shipped **[1,1,1,1,1]/220**
+    -> repaired **[12,12,12,12,12] / 71070**.
+  - GATES: repaired build keeps **all four honesty pins** (312866/862329/3024920/4865609); the **MultiPV 1 path is
+    byte-identical** on both builds (depth 17, 288912 nodes, 3/3 at Hash 16 and 512).
+- Owner page now records the cause and repair, so the warning is no longer "avoid this setting" but "here is why and
+  here is the fix". Adoption remains Opus's call. Did NOT re-run their 2.0-4.2x timing table.
+Next: continue in the window (ends 2026-11-17T10:18Z).
