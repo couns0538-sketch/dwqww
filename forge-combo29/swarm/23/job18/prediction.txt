@@ -1,0 +1,21 @@
+PREDICTION — SW-23 job 18 (does clock determinism survive a FAST control?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F54 showed the clock path is deterministic at 6 s + 0.06 (0 of 20 disagreements). Its stated gap: one clock
+setting only. A fast control reaches shallower depths, where - by 23-F45's depth-onset work - the search has less
+margin and a move change is more plausible. This job closes that gap.
+
+Method: the same 20 fresh quiet positions (job17/fresh20c.fens), PC r15 + PC20, Threads 1, Hash 16, OwnBook false,
+fresh process per search, drained. For each position, `go wtime 1000 btime 1000 winc 10 binc 10` twice in two
+independent processes; also `go movetime 100` twice. Compare moves and depths reached.
+
+Prediction (each number with the range that kills it):
+  P1  1 s + 0.01 clock, two fresh processes: 0 of 20 disagreements.    KILLED if >= 1.
+  P2  `go movetime 100` twice: 0 of 20 disagreements.                  KILLED if >= 1.
+  P3  the depth reached at 1 s is LOWER than at 6 s on a majority of positions (>= 14 of 20). KILLED if < 8.
+  P4  positions where the 1 s clock chooses a DIFFERENT move from the 6 s clock: between 0 and 8 of 20.
+      KILLED if > 10 (which would mean a fast control is a different player, undermining fast-control testing).
+
+Reasoning: determinism within a setting is a property of Threads 1 and a fixed search limit, so I expect P1/P2 to
+hold; the interesting question is P4 - whether the fast control plays differently, which bounds how much a fast
+self-play loop can stand in for a match.
