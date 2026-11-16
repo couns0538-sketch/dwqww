@@ -167,3 +167,8 @@ NEXT: continue area-1 work; push again by 22:30.
   VERIFIED: default 4/4 pins; S14 242796/656517; PC20 278024/587276. All Threads 1.
 - THREAD RULE: audited — every result I have recorded used Threads 1 (default or explicit). Nothing to retract.
 - NEXT: re-run my finds on the PC build under PC20, labelling each with build + settings.
+- RE-RUNS ON PC r15 UNDER PC20 (Threads 1), checks/rerun_pc20.txt:
+  * 21-F9 / my S-C9+S-F18: REPAIRED (H=100 mate now found: d1d8, mate 1, 140 nodes; base gave f2f3 cp 0 0 nodes).
+    My S-P1 patch is SUPERSEDED — file 3 says no base-tree patch is needed.
+  * S-F8: HALF-repaired — now answers `unknown option UseNNUE false` instead of silence.
+  * S-F1: STILL PRESENT — extra token still silently dropped on the PC build.
