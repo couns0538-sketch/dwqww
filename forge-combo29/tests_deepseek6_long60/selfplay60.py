@@ -74,13 +74,17 @@ def game(gi, fen):
         send("go nodes 20000")
         best = None
         t0 = time.monotonic()
-        seen0 = sum(1 for l in out if l.startswith("bestmove "))
+        last_n = len(out)
         while time.monotonic() - t0 < 180:
-            cnt = sum(1 for l in out if l.startswith("bestmove "))
-            if cnt > seen0:
-                best = [l for l in out if l.startswith("bestmove ")][-1].split()[1]
+            new_lines = out[last_n:]
+            last_n = len(out)
+            for l in new_lines:
+                if l.startswith("bestmove "):
+                    best = l.split()[1]
+                    break
+            if best is not None:
                 break
-            time.sleep(0.02)
+            time.sleep(0.01)
         if best is None:
             reason = "NO BESTMOVE"
             break
