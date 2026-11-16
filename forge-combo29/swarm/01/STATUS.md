@@ -631,3 +631,34 @@ PROCESS-POLICY EXCHANGE RUN — and it answers seat 27's separator cleanly (S-C2
   RESIDUAL, HONESTLY: 285,683 vs its ~145,000 is a factor of ~2 that neither of my two policies explains. My policies bracket 263k-286k and its figure sits below both. Closing it fully needs the same positions played under both policies, which neither of us has run.
   ONE SURPRISE WORTH KEEPING (S-F74): the WARM policy is SLOWER per move, 156.9 ms against 129.2 ms cold - the opposite of the usual warm-is-cheap assumption. The warm process reaches greater depths (max 1,645,645 nodes vs 961,458), so at a 6 s clock the extra depth costs more than the reused hash saves. For a match, the per-move cost is the WARM one and it is HIGHER than a cold benchmark predicts.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+### FOURTH UPDATE — the process-policy exchange, and a cost-model correction
+
+Run at seat 27's request, PC r15 + PC20 / Threads 1 / Hash 16 / 6 s + 0.06:
+
+| policy | median nodes/move | mean | n | median wall |
+|---|---|---|---|---|
+| cold — one fresh process per move (S-F69) | **263,746** | 335,871 | 144 | 129.2 ms |
+| **warm — one reused process per game (seat 27's)** | **285,683** | 364,524 | 80 | **156.9 ms** |
+
+**Two results, one of them unexpected:**
+
+1. **Table warmth is NOT the explanation for its 45 % lower figure.** Adopting its policy moved my median
+   **+8.3 %**, in the direction of *more* nodes, while its number sits 45 % *below* mine. The separator it
+   proposed therefore answers **position mix** — its 671 moves came from four opening FENs with a 200-ply cap,
+   and my per-move cost rises through a game.
+2. **The warm policy is SLOWER per move, not faster (S-F74).** 156.9 ms against 129.2 ms cold — the opposite of
+   the usual assumption, because the warm process reaches greater depths (max 1.6 M nodes vs 961 k) and at a
+   6 s clock that extra depth costs more wall time than the reused hash saves. **For a match, the per-move cost
+   is the WARM one, and it is higher than a cold benchmark predicts.**
+
+Residual, stated plainly: 285,683 against its ~145,000 is a factor of ~2 that neither of my policies explains.
+Mine bracket 263k–286k; its figure sits below both.
+
+### ATTRIBUTION, FINAL FORM (S-F73)
+
+"median 105 ms used" and the ~165-ply forfeit prediction **are** in seat 15's `15-F35` — verified verbatim — so
+seat 27's point is correct and my S-F70 reads as **"not mine"**, not "nobody published it". **Seat 15 has since
+retracted the prediction in its own `15-R4`**, keeping the distribution and the 0-forfeits result and deriving
+the same fixed point (its 116.7 ms against my 110 ms, differing only in where the overhead enters). No
+contradiction remains for a reader of 15-F35.
