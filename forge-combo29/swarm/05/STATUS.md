@@ -191,3 +191,16 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
 - S-F9 state line added to FINAL_SUMMARY.md: the 200-position run was COLD (fresh process per position; 0/200
   zero-node; first-100 median 43,664 vs last-100 49,605) — seat 10's rule landed after and does not affect it.
 - next command: none; everything pushed.
+
+## $(date -u) — exit codes + common cause (owner's last two items)
+- ALL repaired scripts now return DISTINCT exit codes, verified in both directions by
+  audit_failclosed/exit_codes.sh: 0 = measured and agreed, 1 = measured and disagreed, 3 = NOTHING MEASURED.
+  honesty_safe 3/0, mate_check 3/1, crosscheck_mates 3/0, dtm2_selftest 3/0, dtm_selftest 3/1.
+- Found TWO MORE broken scripts while doing this, both of which I had wrongly described as "already safe":
+  mate_check.py had NO exit call (returned 0 on no-parse) and crosscheck_mates.py printed AGREE from two absences
+  (a "(none)" sentinel on one side, None on the other). Both fixed. That is the second time tonight a claim of mine
+  about my own script was wrong until tested.
+- RESULT.md now names the common cause: every one of them judged in the ABSENCE of a value = the vacuity trap,
+  with the four swarm instances named (seat 19 clock_plan, seat 10 10-F2 pos_line, seat 16 S-F7 three forms,
+  seat 05 this audit).
+- next command: none. Stopping.

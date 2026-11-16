@@ -62,3 +62,9 @@ with open(out_file, "w") as f:
     f.write(f"\nSUMMARY ok={n_ok} mismatch={n_bad} unknown={n_unk}\n")
 print("\n".join(lines))
 print(f"SUMMARY ok={n_ok} mismatch={n_bad} unknown={n_unk}")
+# EXIT 3 = nothing was measured (every row failed to parse); 1 = at least one real mismatch; 0 = measured, no
+# mismatch. Without this a chaining caller reads "no measurement" as success.
+if n_ok == 0 and n_bad == 0:
+    print(f"RESULT: INCONCLUSIVE — no row produced a parsed comparison ({n_unk} unparsed). Nothing was measured.")
+    sys.exit(3)
+sys.exit(1 if n_bad else 0)

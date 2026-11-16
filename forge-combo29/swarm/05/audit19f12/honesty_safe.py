@@ -116,5 +116,9 @@ for name, cmd, tok, want in CASES:
 print()
 if noparse:
     print(f"HONESTY RECHECK INCONCLUSIVE — {noparse} of {len(CASES)} lines produced no parseable node count")
+    # EXIT 3 = "no measurement", deliberately distinct from 0 (success) and 1 (a real mismatch). A script that
+    # chains this must not read exit 0 as success.
+    sys.exit(3)
 else:
     print("HONESTY RECHECK", "PASS 4/4" if allok else "FAIL")
+    sys.exit(0 if allok else 1)

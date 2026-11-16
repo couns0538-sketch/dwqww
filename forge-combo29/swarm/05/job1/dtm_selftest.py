@@ -14,6 +14,8 @@ CASES = [
 
 import chess
 
+n_noparse = 0
+n_mismatch = 0
 for fen, maxply, exp, who in CASES:
     out = subprocess.run([sys.executable, "dtm.py", fen, str(maxply)],
                          capture_output=True, text=True, timeout=600)
@@ -21,6 +23,7 @@ for fen, maxply, exp, who in CASES:
     # FAIL CLOSED: no verdict line means nothing was measured. Calling that MISMATCH would invent a refutation
     # of dtm.py. Added after the owner flagged this class of fault.
     if not tail:
+        n_noparse += 1
         print(f"NO_VERDICT {fen}  maxply={maxply}  expected={exp} plies {who}  ::  "
               f"(dtm.py printed no verdict line; {len(out.stdout)} chars of stdout)")
         continue
@@ -32,4 +35,13 @@ for fen, maxply, exp, who in CASES:
         ok = "OK" if "no mate" in verdict or "draw" in verdict else "CHECK"
     else:
         ok = "OK" if (f"in {exp} plies" in verdict and who in verdict) else "MISMATCH"
+    if ok == "MISMATCH":
+        n_mismatch += 1
     print(f"{ok:9s} {fen}  maxply={maxply}  expected={exp} plies {who}  ::  {verdict}")
+
+# EXIT CODES, distinct on purpose: 0 = every case measured and agreed, 1 = a real disagreement, 3 = nothing was
+# measured. A script chaining this must not treat "no measurement" as success.
+if n_noparse:
+    print(f"SUMMARY INCONCLUSIVE — {n_noparse} of {len(CASES)} cases produced no parse")
+    sys.exit(3)
+sys.exit(1 if n_mismatch else 0)

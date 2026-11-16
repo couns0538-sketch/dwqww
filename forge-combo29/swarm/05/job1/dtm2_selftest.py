@@ -95,5 +95,8 @@ for fen in CASES:
     print(f"{'OK' if ok else 'MISMATCH':10s} {fen:44s} {exp:16s} {verdict}")
 if n_noparse:
     print(f"SELFTEST INCONCLUSIVE — {n_noparse} of {len(CASES)} cases produced no parse, so this run measures nothing")
+    # EXIT 3 = "no measurement", distinct from 0 (pass) and 1 (real mismatch).
+    sys.exit(3)
 else:
     print("SELFTEST", "PASS" if allok else "FAIL")
+    sys.exit(0 if allok else 1)

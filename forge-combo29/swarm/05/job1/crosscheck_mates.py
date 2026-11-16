@@ -55,15 +55,39 @@ def brute_distance(fen, maxply):
 
 
 maxply = int(sys.argv[1])
+n_agree = n_disagree = n_noparse = 0
 for fen in sys.argv[2:]:
     kind, d = brute_distance(fen, maxply)
     p = subprocess.run([sys.executable, "dtm2.py", fen, str(maxply + 2), "300"],
                        capture_output=True, text=True, timeout=1200)
-    verdict = next((l for l in p.stdout.splitlines() if l.startswith("verdict")), "(none)")
+    verdict = next((l for l in p.stdout.splitlines() if l.startswith("verdict")), None)
+    if verdict is None:
+        # FAIL CLOSED: with no verdict line there is nothing to compare. The old code fell through with
+        # dv=None, which printed AGREE whenever the brute force also had no answer — a pass from nothing.
+        n_noparse += 1
+        print(f"NO_VERDICT  brute={kind} in {d}   (dtm2 printed no verdict line)")
+        print(f"          fen={fen}")
+        continue
     dtm_word = "MATES" if " MATES " in verdict else ("IS MATED" if "IS MATED" in verdict else "?")
     import re
     m = re.search(r"in (\d+) plies", verdict)
-    dv = int(m.group(1)) if m else None
+    if m is None:
+        n_noparse += 1
+        print(f"NO_VERDICT  brute={kind} in {d}   (verdict line held no number: {verdict!r})")
+        print(f"          fen={fen}")
+        continue
+    dv = int(m.group(1))
     agree = (dv == d and ((kind == "win") == (dtm_word == "MATES"))) or (d is None and dv is None)
+    if agree:
+        n_agree += 1
+    else:
+        n_disagree += 1
     print(f"{'AGREE' if agree else 'DISAGREE'}  brute={kind} in {d}   dtm2={verdict}")
     print(f"          fen={fen}")
+
+# EXIT 3 = nothing was measured, 1 = a real disagreement, 0 = all compared and agreed.
+print(f"SUMMARY agree={n_agree} disagree={n_disagree} no_verdict={n_noparse}")
+if n_agree == 0 and n_disagree == 0:
+    print("RESULT: INCONCLUSIVE — no case produced a parsed comparison. Nothing was measured.")
+    sys.exit(3)
+sys.exit(1 if n_disagree else 0)
