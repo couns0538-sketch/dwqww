@@ -76,3 +76,16 @@ audit/raw_E1/. I retract nothing that used perft/bench/eval only; the two  measu
 use a piped driver are marked INVALID in AUDIT_KNOWN.md and are being re-run with audit/drv.py.
 RUNNING NOW: sums.py (K13/K4) in tmux session swarm-sums2, EOF-safe driver.
 next: K13 + K4 + K14 rows, then final push by 22:30.
+
+## Mon Nov 16 09:37:44 PM UTC 2026  [CHECKPOINT 22:05]
+AUDIT TABLE now settled for K1,K2,K3,K6,K7,K8,K9,K10,K11,K12,K13(O),K14-pending.
+Big new results:
+  10-F10 the four SUMS are S14-regime numbers: O d12 = 9,500,069 and O d14 = 21,812,100 EXACT (and the
+    first three 41,311/24,872/28,574 exact) with S14; default gives 12,573,318 / 29,799,803.
+    Together with 10-F6: PINS = default regime, SUMS = S14 regime. One harness cannot use one regime for both.
+  10-F11  AFTER  RESETS THE BOARD TO STARTPOS (eval -351 -> +38, perft1 38 -> 20).
+    The brief's literal "ucinewgame + isready before every go" therefore measures startpos every time;
+    the tell is an identical node count for every position. Correct order: ucinewgame, position, go.
+  Method row added for seat 19's parse-before-compare warning; every row now names the line it parsed.
+RUNNING: sums.py G d12/d14 both regimes (tmux swarm-sums2); K4 G perft 3 x353 + first 60 at perft 4.
+next: G sums + K4 rows, K14 with the correct driver, then final push by 22:30.

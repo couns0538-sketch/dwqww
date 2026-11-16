@@ -48,6 +48,7 @@ def run_regime(regime, which, depth):
     d.isready()
     d.opt("Threads", "1")
     d.opt("Hash", "16")
+    d.opt("OwnBook", "false")
     if regime == "s14":
         for k, v in S14:
             d.opt(k, v)
@@ -55,9 +56,11 @@ def run_regime(regime, which, depth):
     rows = []
     t0 = time.monotonic()
     for i, fen in enumerate(fens):
-        d.pos("position fen " + fen)
+        # ORDER MATTERS: ucinewgame AFTER position silently resets the board to startpos
+        # (proved in AUDIT_KNOWN.md section "ucinewgame resets the board"), so it goes FIRST.
         d.write("ucinewgame")
         d.isready()
+        d.pos("position fen " + fen)
         nodes, best, lines = d.go("go depth %d" % depth)
         rows.append({"i": i, "fen": fen, "nodes": nodes, "bestmove": best})
         if i % 40 == 0:
