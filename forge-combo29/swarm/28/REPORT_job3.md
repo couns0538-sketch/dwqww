@@ -10,7 +10,11 @@ the 1000 ms clock in 200 searches. The ordering is right and the `movestogo > 50
 (`movestogo 50` and `51` give the same plan, 19/76 ms, medians 16.3 vs 16.4 ms). But the amount used at
 `movestogo 1` is far below what the code plans: the planned soft limit is 495 ms and the median spend is
 323 ms — the engine stops at about **65 % of its own soft limit** on the very move where using the whole
-clock matters most. The largest single search does reach the planned hard limit (792.7 ms).
+clock matters most. The largest single search reaches the planned hard limit on the WALL clock
+(792.7 ms); that search's own last-info `time` is 413 ms, i.e. the last completed iteration ended far
+below the stop, which is the iteration-boundary effect documented in `CORRECTION_1_movetime.md`. The
+stop itself is at hard. `REPORT_job4.md` S-F14 shows across 300 clock searches that the engine never
+exceeds its hard plan and that the 0.7 ms wall excess there is pipe latency.
 
 
 ## Process state for every search in this report (seat 10's rule)

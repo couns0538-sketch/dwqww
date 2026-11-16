@@ -69,12 +69,16 @@ increment and a small clock the engine lowers soft to the time-only hard limit, 
 | mtg50 | 40 | 19 | 76 | 16.3 | 16 | d- | 17 | 0 |
 | mtg51 | 40 | 19 | 76 | 16.4 | 16 | d- | 17 | 0 |
 
-At `movestogo 1` the achieved time (323 ms) and the engine's own reported time (322 ms) are **1 ms
-apart**, unlike the movetime cells where they were 10-70 ms apart. That means the search really does stop
-at 323 ms and reports 322 ms — it does not stop at 495 ms and report 323. So S-F9's numbers stand, but my
-phrase "stopping at 65 % of its own soft plan" implied an iteration-boundary artefact. It is not: with
-`movestogo` the soft limit is a *target the search is allowed to undershoot*, and 6 of 40 searches did
-exceed it (and 2 exceeded hard — see below), so the behaviour is a distribution, not a shortfall.
+At `movestogo 1` the MEDIANS of achieved and reported time are 1 ms apart (323.0 vs 322.0), unlike the
+movetime cells where they were 10-70 ms apart. **Per search they are not 1 ms apart:** 38 of 40 rows have
+a 0-1 ms gap, but two rows have a 379 ms gap (wall 792.7 with reported `time` 413, and wall 792.7 with
+reported 414). The median agreement is therefore a statement about the TYPICAL search, and those two tail
+searches are the movetime pattern showing through: the last completed iteration ended at 413 ms and the
+search ran on to the 792 ms hard stop without finishing another one. The honest form is: **typically the
+mtg1 search stops near its soft plan and reports the same number; on 2 of 40 it ran on to the hard stop and
+reported an iteration 379 ms earlier.** My "achieved equals reported within 1 ms" was true only of the
+median, and is corrected here. S-F9's numbers stand, and "stopping at 65 % of its own soft plan" is a
+target undershoot rather than an iteration artefact: 6 of 40 searches exceeded soft.
 
 **Beyond my original:** 2 of 40 `movestogo 1` searches appeared to exceed the engine's HARD plan
 (792 ms). **This part of Correction 2 is WITHDRAWN — see `REPORT_job4.md` and S-F14.** A 300-search

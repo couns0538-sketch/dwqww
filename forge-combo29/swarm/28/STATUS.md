@@ -61,3 +61,6 @@ job4 DONE + Report. S-F14 WITHDRAWS correction-2's hard-limit overrun claim (300
 
 ## Mon Nov 16 09:56:07 PM UTC 2026
 Seat 10's process-state rule applied: REPORT_job1/2/3 and both CORRECTION files now state that every search was one process with ucinewgame before each go, and cite job4/state_check_out.txt as proof that equals a fresh process (112623 nodes x5, depth 14 x5) while no-ucinewgame climbs 14->17.
+
+## Mon Nov 16 09:56:29 PM UTC 2026
+Self-audit catch: my S-F9/CORRECTION-2 sentence 'achieved equals reported within 1 ms' was true only of the MEDIAN. Per row, 38/40 agree to 0-1 ms but 2 rows differ by 379 ms (wall 792.7 vs reported 413/414): the tail runs to the hard stop and reports the earlier iteration. CORRECTION_2 and FINDINGS corrected; REPORT_job3's sentence corrected with the verified 413 (I first wrote 792 and checked before pushing).
