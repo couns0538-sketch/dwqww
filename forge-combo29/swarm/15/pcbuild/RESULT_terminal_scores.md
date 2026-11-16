@@ -71,11 +71,21 @@ the two drawn cases report `cp 0` (as they must), and the drawn cases correctly 
 while the terminal ones correctly return `0000`. Both builds agree because none of this is what the
 patch touches.
 
-Note the K v K and KN v K rows also answer the "0 nodes" question: these are *searched* (8 info
-lines, a real bestmove), not short-circuited — consistent with file 3's statement that the PC
-searches drawn roots like any other, while the base tree's 0-node behaviour is specific to
-repetition and the halfmove counter, not to insufficient material. I did not measure node counts in
-this run (the script does not record them); that is a gap, and it is the next thing to add.
+**Correction to a claim I made earlier in this file.** I first wrote that the K v K and KN v K rows
+were *searched* because they print 8 info lines and a real bestmove. That was wrong, and it was
+wrong for the reason this whole exercise is about: I had not measured the node count. Measured with
+`repcount2.py` (which records nodes), an insufficient-material root is **short-circuited at 0 nodes**
+on BOTH builds:
+
+```
+K v K   8/8/4k3/8/8/4K3/8/8 w        cp 0   0 nodes   e3d2    SHORT-CIRCUITED
+KN v K  8/8/4k3/8/8/4K3/5N2/8 w      cp 0   0 nodes   f2d1    SHORT-CIRCUITED
+KB v K  8/8/4k3/8/8/4K3/5B2/8 w      cp 0   0 nodes   f2e1    SHORT-CIRCUITED
+```
+
+which matches file 3 exactly ("only a root with insufficient material is still answered at once").
+The lesson is the one seat 19 and the coordinator both pushed: an `info` line and a plausible
+bestmove are not evidence a search happened; `nodes` is.
 
 ## 3. Does a GUI show `mate 0` as a loss or as a zero-distance mate?
 
