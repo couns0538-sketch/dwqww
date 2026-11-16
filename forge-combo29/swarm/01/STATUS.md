@@ -462,3 +462,35 @@ SEAT 25's S-F31 CONFIRMED EXACTLY (S-C17) - the OTHER game ending, so both of se
   AND I CHECKED THE PVs PROPERLY rather than trusting the score: each PV was sliced from the engine's own info line and REPLAYED with python-chess. mate 2 with a 3-ply PV mating at pv ply 3; mate -1 with a 2-ply PV mating at ply 2; mate 1 with a 1-ply PV mating at ply 1. So score and PV agree at all three plies - which is precisely the mate-PV-truncation question seat 05 spent the night on, and here it is clean.
   My area now has both of the owner's real game endings covered: claim ending (S-C16) and mate ending (S-C17), neither showing a defect.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+### THIRD UPDATE TO THE FINAL BLOCK — the owner's real game paths are clean
+
+Since the FINAL block was written I confirmed both of the owner's actual game endings at his exact match
+setting (PC r15 + PC20, Threads 1, Hash 16, OwnBook false, `go nodes 20000`, one fresh process per move):
+
+- **claim ending** (S-C16): 90 plies ending by seventyfive/repetition; **0 illegal moves, 0 `0000` on a
+  playable board, 0 moves with an empty PV**; nodes spent / N **median 0.75, min 0.34, max 1.00** — seat 25's
+  reported band reproduced to the digit.
+- **mate ending** (S-C17): **checkmate at ply 3**, 0 illegal, **3 mate scores of which 0 had a PV that fails
+  to play out** — each PV sliced from the engine's `info` line and replayed with python-chess; score and PV
+  agree at all three plies.
+
+These are the strongest play-level statements in my record because a match is what they test: many positions
+driven in sequence through one board, the context where a refused position or a stale board would surface as
+an illegal move. Neither showed a defect.
+
+### ALSO ADDED SINCE THE FINAL BLOCK
+
+- **S-C12b / S-C14** — the clock floor derived from the engine's own constants:
+  `MoveOverhead + increment*100/TmHardPercent` = **110 ms** (111 with integer division), reached
+  independently by seat 28's S-F44 and by the coordinator's argument. My earlier S-C12 figure of 493 ms is
+  corrected: it iterated with the observed spend (14 percent of clock) rather than the hard cap (60 percent)
+  the bound is defined over.
+- **S-F61** — control on that derivation: on five clocks, predicted soft/hard vs measured spend gave **5 of 5
+  inside the planned window, 0 over the hard cap**, with the spend at **0.10-0.33 of hard** — which is why the
+  realistic floor is ~340-360 ms while 111 ms bounds a forfeit.
+- **S-F62 / MOVESTOGO_RULE.md** — the two rules for every latency harness: never send `movestogo 0` to mean
+  unset (it selects sudden-death and is 8.4x slower than omitting the token), and never quote a plan-derived
+  budget without the movestogo actually sent (anything above 50 silently becomes 50).
+- **S-C15 / S-F64 / CLOCK_REPRODUCIBILITY_RULE.md** — seats 20 and 28 reconciled: the clock path is quantised
+  and reproducible only to a plateau; and a boundary is proven by repeated flips, not one out-of-band reading.
