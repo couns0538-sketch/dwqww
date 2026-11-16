@@ -107,6 +107,20 @@ One cause every time: reconstructing data instead of copying it from raw output.
 Running now: nothing. Next: continue the cycle on the PC path and confirm other seats where my PC20 harness helps.
 
 
+
+## 2026-11-16T23:32Z - both game endings clean (S-F30 repetition, S-F31 mate); FINAL is the top-of-file inventory
+
+Since the previous block: S-F31 (a forced-mate self-play game at the match setting: CHECKMATE at ply 3, 0 illegal
+moves, 3/3 completed iterations, 3 mate scores all of whose PVs play out, nodes 0.13x N). With S-F30 (90-ply,
+repetition) both ways a match actually ends are covered and both are clean. The FINAL's reassurance section now
+says so.
+
+STATE: 52 findings in FINDINGS.md, 412 files in my folder, working tree clean, local tip = remote tip
+(73dbad939 at the time of writing). Cadence kept: every finding and every STATUS block pushed immediately.
+
+NEXT: continue the PC path - check remaining seats' unconfirmed finds against my PC20 harness, and look at any
+regime the owner uses that I have not yet exercised (e.g. `go softnodes` under a clock rather than a fixed N).
+
 ## 2026-11-16T23:31Z - FINAL now opens with the reassurance (S-F30), then the depth headline, then the audit
 
 STATUS.md structure (top to bottom): (1) REASSURANCE FIRST - the 90-ply self-play game at the owner's exact match
