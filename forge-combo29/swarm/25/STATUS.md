@@ -155,6 +155,21 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:54Z - the PV-length filter now states its LIMIT (catches every observed failure; does not validate a pass)
+
+Both FINDINGS and the FINAL now say: the filter **catches every observed failure - which is all it is shown to do; it
+does NOT validate a passing score**, because a right-length PV ending in checkmate could still be a longer mate than
+necessary, and I did not test for that. A filter for the measured failure shape, not a correctness proof.
+(My earlier "a correct mate score always passes" implied validation the data does not support.)
+
+The CONVERGENCE explanation stays beside the rule: a still-converging mate reports one move longer than the truth -
+which is why the PV is short, why the failure is budget-dependent on one board (mate 4/SHORT at softnodes 1000-2000,
+mate 3/ok from 5000), and why a random 40-board sample missed it (the converging window is narrow per board).
+
+State: guards green (audit 0 mismatches, self-check 4/4, compliance PASS), working tree clean, local = remote.
+Continuing at cadence; three guards re-run once more near the close.
+
 ## 2026-11-16T23:54Z - S-C31: the label rule MEASURED on a non-empty set (filter, not a budget)
 
 After the empty-set error (S-C30), the same question asked on boards that DO fail: classes SHORT 4, ok 8,
