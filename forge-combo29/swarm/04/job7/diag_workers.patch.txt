@@ -1,0 +1,40 @@
+--- src/search.cpp
++++ src/search.cpp
+@@ -9,6 +9,7 @@
+ #include <cstdlib>
+ #include <cstring>
+ #include <iostream>
++#include <sstream>
+ #include <limits>
+ #include <optional>
+ #if defined(__AVX2__)
+@@ -3124,6 +3125,29 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#ifdef FORGE_DIAG_WORKERS
++    // DIAGNOSTIC ONLY (text patch, never in a competitive build): report what each worker spent and
++    // how full the shared table is at the moment the search ends. Adds no work to the search itself:
++    // it prints after every join, so the node counts and the tree are untouched.
++    {
++        std::uint64_t sum = 0;
++        std::uint64_t maxn = 0;
++        int argmax = -1;
++        std::ostringstream line;
++        line << "info string diagworkers n " << workers_.size() << " nodes";
++        for (std::size_t i = 0; i < workers_.size(); ++i) {
++            const std::uint64_t n = workers_[i]->nodes();
++            line << " " << n;
++            sum += n;
++            if (n > maxn) { maxn = n; argmax = static_cast<int>(i); }
++        }
++        const std::uint64_t total = workers_.empty() ? 0 : workers_.front()->total_nodes();
++        line << " sum " << sum << " total " << total << " argmax " << argmax
++             << " maxshare " << (sum == 0 ? 0 : static_cast<int>(maxn * 1000 / sum))
++             << " hashfull " << shared_.tt.hashfull();
++        std::cout << line.str() << std::endl;
++    }
++#endif
+     return result;
+ }
+ 
