@@ -1,0 +1,23 @@
+PREDICTION — SW-23 job 3 (AREA 3, MOVE GENERATION, perft 5)
+Written before the first measuring command of job 3. Never edited afterwards.
+
+What I will measure: perft 5 on 200 R positions and on the first 30 of G, engine vs python-chess at perft 5.
+Also, as the brief's known control, startpos perft 5 = 4,865,609.
+
+Prediction (each number with the range that kills it):
+  P1  startpos perft 5 = 4,865,609.                              KILLED if not exactly that.
+  P2  mismatch count over the 200 R positions at depth 5 = 0.     KILLED if >= 1.
+  P3  mismatch count over the first 30 G positions at depth 5 = 0. KILLED if >= 1.
+  P4  engine wall clock for the whole run < 15 minutes.           KILLED if >= 15 min.
+  P5  python-chess wall clock for the whole run:
+      between 3 and 40 minutes (4 parallel workers).              KILLED outside.
+  P6  total nodes over the 230 positions will exceed 1.0e9.       KILLED if <= 1.0e9.
+
+Reasoning: job 1 already showed exact agreement at depths 1..4 over 5,000 positions, so depth 5 should agree
+too — the generator does not behave differently one ply deeper, and perft 5 is the same walk repeated. The risk
+is wall clock, not correctness: job 1's 5,000 positions took 207 s of single-core python for depth 4, so depth 5
+on 230 positions should be roughly 20-40x the depth-4 cost of those 230 (~10 s) = 200-400 s over 4 workers,
+which is comfortably inside P5's bounds. P6: job 1 averaged ~1.0e6 nodes per position at depth 4, so depth 5
+should average ~1.0e7 per position = 2.3e9 over 230; the 1.0e9 floor is safe but not trivially so.
+
+If P2 or P3 is killed I report the class of the position, the FEN, the divide at depth 5, and add a FINDINGS line.
