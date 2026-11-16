@@ -139,3 +139,17 @@ NOT touched by the PC r15 patch. hash_multipv/RESULT.md + scaling.txt + clear_vs
 Two sequences flagged "no bestmove": both were the S-F7 slowdown under the 20 s driver timeout, not hangs —
 `go depth 6` replayed at 11.5 s in a sequence that had set Hash 1000000000 (clamped to 2048) and MultiPV 8.
 Base build had 0 such flags only because its random draw differed. job1_pc/.
+
+## 2026-11-16T23:45Z — S-F7 threshold grid DONE (owner's two questions)
+TABLE 1, depth on a 5 s clock (PC r15, Threads 1, 3 runs/cell):
+            MPV1  MPV2  MPV3  MPV5  MPV8
+  Hash 16   d16   d15   d14   d13   d12
+  Hash 64   d16   d14   d14   d10   d9
+  Hash 256  d16   d8    d8    d4    d2
+  Hash 2048 d16   d1    d1    d1    d1
+=> MultiPV 3 at Hash 256 is ALREADY RUINED (d8 against d16). Safe region: MultiPV 1 at any Hash, or Hash <= 16 MB
+at any MultiPV. The two knobs multiply; neither is dangerous alone.
+TABLE 3, fixed depth `go depth 12`: 31 ms (Hash 16, MPV 1), 40 ms (Hash 2048, MPV 1), **13709 ms** (Hash 2048,
+MPV 8) — same depth 12, same result, 343x. So it is also a latency problem for batch analysis, not just a clock
+problem. No fix attempted, as instructed.
+Next: re-run area-2 job 3 (option sweep) on the PC build under PC20, then check another seat's NEW finding.
