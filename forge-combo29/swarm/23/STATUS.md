@@ -50,7 +50,7 @@ every depth key and every count asserted integer, a 0-position comparison is a H
 with "positions actually compared: N of 5000", and the word CONFIRMS never printed). Proved with
 integrity_selftest.sh: 7 malformed cases all exit 2 HARD FAILURE, the clean case exits 0. integrity_selftest.out
 committed. Re-audit of my other parser (engine_perft.py): it does not grep a printed value at all — it reads the
- line and RAISES if the engine dies or if a line contains unknown option / invalid value / invalid FEN /
-illegal move; a missing  line cannot become 0 there.
+"nodes N" line and RAISES if the engine dies or if a line contains unknown option / invalid value / invalid FEN /
+illegal move; a missing nodes line cannot become 0 there.
 job1: python-chess reference 4045/5000 (still running, ~10 more min), engine side 5000/5000 done in 26.3 s.
 Next: finish reference, run compare_perft.py, write REPORT_job1.md, add the perft verdict finding, push by 22:30.
