@@ -828,3 +828,16 @@ tools/assert_quoted.py, the publish-time checker that re-runs a quoted claim and
 a wrong one - the only tool here that checks my prose rather than the engine.
 
 Standing: 71 findings, 18 confirmations (one a refutation), eight named harness faults. 10 h 30 m remain.
+## 2026-11-16T23:50:02Z  C22 complete both halves: pathological FENs refused, 5,000-ply move list accepted
+2026-11-16T23:50:02Z
+
+First half: 3,000-char field, 1,500 ranks, 70 ranks, 64-digit rank are each REFUSED with a specific and
+DIFFERENT diagnostic, no crash, startpos preserved. My build's string for the 3,000-char case is
+'invalid FEN: invalid FEN placement' where seat 11 reports 'pawn on promotion rank' — their finding anticipates
+build-dependent reasons, so I record mine exactly.
+Second half: a 5,000-ply list (1,250 x g1f3 g8f6 f3g1 f6g8) is accepted SILENTLY and reaches exactly
+python-chess's board including the counters (... w KQkq - 5000 2501), engine perft 1 = 20. No truncation,
+no complaint, and even the halfmove/fullmove bookkeeping matches.
+
+Standing: 72 findings, 18 confirmations (one a refutation), eight named harness faults, four reference pages.
+10 h 29 m remain; cadence continuing.
