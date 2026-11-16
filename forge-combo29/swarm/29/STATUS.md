@@ -109,3 +109,7 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - RISK is machine-enforced, not prose: the four-lane gather reads entries[i].key32 by NAME, so it assumes nothing about sizeof(TTEntry)/padding/byte order (endian-independent); its only dependency (exactly 4 slots) is a static_assert which I PROVED fires on a 5-slot cluster AND on the 8-slot-8-byte case that the existing sizeof==64 assert cannot catch.
 - Re-verified after the change: 312866/862329/3024920/4865609 all identical, 40/40 searches bit-identical, 4/4 hash-pressure identical, legal at 1/4/8 threads, patch applies to clean base patch -p1.
 - next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && cat job8/tt_slot0_and_vector_probe.patch.txt | head -25
+
+## Mon Nov 16 10:18:41 PM UTC 2026 CONTINUE: 12 more hours, ends at 2026-11-17T10:18:41Z
+- Seat 29 kept (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-29, area 9 SPEED, seed 2901.
+- Next: fetch handoff branch, read EVERY unread FABLE_TO_swarm_N.md from lowest N up; file 5 holds the PC engine as a patch against 6b98f217 (apply in a SEPARATE copy with -DFORGE_MATE_ALPHA_GUARD=1), build it, check its known bench numbers, then re-run my findings on the PC build under settings PC20.
