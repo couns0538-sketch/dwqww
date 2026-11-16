@@ -101,3 +101,21 @@ PASS or refuses to run.
 
 **The sharpening:** build the control **at the same time as the helper**, not after the numbers look odd. A control
 written after the fact is written by someone who already believes the answer.
+
+## Instance 6 — the wrong EXPECTATION, not a wrong measurement (23-F40)
+
+I tested `eval` symmetry as `original + mirror == 0`, assuming a colour flip negates the evaluation. This engine's
+`eval` is side-to-move relative, so a mirrored position reports the **same** number. My script printed
+
+    | total | 0 | 60 |
+
+— a clean refutation of a correct finding — while its own rows read
+`orig=(2933,847,3780) mirror=(2933,847,3780)`: two **identical** tuples. The verdict contradicted every row.
+
+**How it was caught:** by reading the rows instead of the verdict, then running a direct sign-convention probe
+(same board white-to-move totals +825, black-to-move −784). The correct test is equality, and it then gave 60/60.
+
+**The rule this adds:** when a verdict disagrees with every row, believe the rows and re-derive the **expected
+relation** before touching the data. "0 of 60" alongside 60 identical tuples is not a finding, it is a mis-specified
+test. Two of the six faults here are of this kind — the expectation was wrong, not the measurement (23-F29, 23-F40) —
+and they are the hardest to see, because they produce a confident, well-formatted, entirely wrong table.
