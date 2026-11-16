@@ -1,0 +1,23 @@
+exe: /tmp/build-rel/forge
+base fen: 1K6/8/8/3R4/8/8/8/k7 w - - 0 1
+
+Finding the LOWEST halfmove counter that scores exactly cp 0, per search depth.
+Scanned UPWARD from 60, because scanning downward would stop at the highest zero and never find
+the first one (that was a real bug in my first version of this script).
+
+| depth | lowest counter scoring cp 0 | counter + depth | scores just below the boundary |
+|---|---|---|---|
+| 6 | 95 | 101 | 94:cp 392, 93:cp 327 |
+| 8 | 92 | 100 | 91:cp 338, 90:cp 341 |
+| 10 | 91 | 101 | 90:cp 271, 89:cp 364 |
+| 12 | 89 | 101 | 88:cp 334, 87:cp 386 |
+
+INTERPRETATION (derived from the table above, not typed by hand):
+  depth 6  -> boundary 95   (95+6  = 101)
+  depth 8  -> boundary 92   (92+8  = 100)
+  depth 10 -> boundary 91   (91+10 = 101)
+  depth 12 -> boundary 89   (89+12 = 101)
+The boundary falls by ~1 per depth unit, i.e. the engine decides "drawn" when the search horizon reaches the
+50-move counter, not at a fixed counter. Note the first version of cliff_vs_depth.py scanned DOWNWARD from 99
+and therefore reported 99 for every depth; that was my bug and the corrected upward scan is what produced
+this table.
