@@ -85,3 +85,9 @@
 - FOR kimi5: `QsSteps` with `FORGE_QS_STEPS=1` is bit-identical to the baseline under ASan+UBSan on 553 positions — the "observe only" claim holds with the instrumentation active, not just with it compiled out.
 - FOR kimi5: `LmrFine` at its defaults is likewise clean and identical under the sanitizer.
 - NEXT: LmrFine's eight F options have not been swept under the sanitizer; otherwise waiting for a job file.
+
+## after job 1, 2026-11-16T16:44:20Z
+LEARNED: the Part-0 pair (release vs sanitizer at the SAME depth) settled the depth-or-build question in two 4-second runs — comparing across depths was my earlier mistake.
+FOR kimi5: CaptureFutilityMultiplier AND CaptureFutilityDepth are provably dead at CaptureFutilityBase=0 (identities even at +4c); if the tuner is to move them, CaptureFutilityBase must join S14 or the two must leave the tune table.
+FOR kimi5: QsSeeMargin inert 0..99 confirmed by measurement on the plain build; your job-10 reading holds.
+NEXT: loop step 1 — look for job file 2; long list is complete, so between job files push progress every 30 min.
