@@ -1,0 +1,28 @@
+case                             info lines  bestmove        score
+terminal: checkmated                     64      0000 score mate 0
+mate-in-1 root (NOT terminal)            64      a1a8 score mate 1
+mate-in-2 root                           64      a1a8 score mate 1
+ordinary middlegame                      11      f1e2  score cp 89
+terminal: stalemated                     64      0000   score cp 0
+
+Reading: if NON-terminal mate roots also emit 64 lines, then S-F7's '64 phantom lines' is not a
+terminal-root property at all - it is what happens whenever a `go nodes` search finishes before the
+node budget (the loop then runs to the depth cap emitting zero-node iterations).
+
+VERDICT (corrects S-F7's scope):
+S-F7 said "on a TERMINAL root, go nodes 100 / go movetime 50 emit 64 info lines at 0 nodes". The 64-line
+behaviour is REAL but it is NOT a terminal-root property:
+   terminal checkmated   : 64 lines, 0000, mate 0
+   mate-in-1 root        : 64 lines, a1a8, mate 1   <- NOT terminal, still 64 lines
+   mate-in-2 root        : 64 lines, a1a8, mate 1   <- NOT terminal, still 64 lines
+   ordinary middlegame   : 11 lines, f1e2, cp 89    <- normal
+   terminal stalemated   : 64 lines, 0000, cp 0
+So the trigger is "the search finishes before the node budget is consumed" - a mate is found (or the root is
+terminal), the remaining depths have nothing to do, and the loop still runs to the depth cap emitting a
+zero-node iteration each time. It is a COSMETIC reporting artifact on a resolved position, not a terminal-root
+bug, and it does not affect the move or the score.
+
+S-F6 IS confirmed as a terminal-root property in a real game: after the mating move a1a8, asking the engine on
+the mated position returns `score mate 0` with bestmove 0000, while the position one ply earlier returns the
+correct `mate 1`. So a naive match program that calls `go` on a finished game gets `mate 0`, whereas a match
+program that stops at checkmate never sees it. That is the accurate scope of S-F6.
