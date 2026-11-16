@@ -1,0 +1,25 @@
+seat 10 check8 — two checks in one job, my own harness, Threads 1 throughout.
+
+A) seat 20's S-F16 (UNCONFIRMED): two DIFFERENT mechanisms produce `cp 0` and must not be confused --
+   the ROOT shortcut fires at exactly halfmove 100 with 0 NODES and an EMPTY pv, while the FIFTY-MOVE
+   HORIZON inside the tree fires from halfmove ~90 with MILLIONS of nodes and a full pv; a checker that
+   tests only the score cannot tell them apart.
+   B) seat 02's S-F7c (MultiPV x Hash grid): on PC r15, Threads 1, a 5 s clock, MultiPV 1 is safe at every
+      Hash size; Hash 16 MB is safe to MultiPV 8; Hash 64 MB degrades by MultiPV 5/8; Hash 256 MB is already
+      ruined at MultiPV 2.
+
+Prediction, committed and pushed ALONE before the first measuring command:
+
+P1. On a WON K+R vs K board at halfmove 100, the engine reports `cp 0` (or equivalent) with **NODES 0** and
+    an **EMPTY pv** -- the root shortcut. (kill: nodes > 0 or a non-empty pv)
+P2. On the SAME board at halfmove ~91..99, the engine reports `cp 0` (or near-0) with **nodes in the
+    thousands-to-millions** and a **FULL pv** -- the horizon. (kill: nodes 0 there too)
+P3. Both statements hold on BASE (S14) and on PC r15 (PC20), so the distinction is not build-specific.
+    (kill: either build conflates them)
+P4. Therefore a score-only checker genuinely cannot separate the two: I will show two records with the same
+    score and pv/nodes differing by orders of magnitude.
+P5. For B: Hash 16 + MultiPV 8 reaches a HIGHER depth than Hash 2048 + MultiPV 8 under the same 5 s clock,
+    by at least 4 plies, on PC r15 Threads 1. (kill: within 3 plies)
+P6. The MultiPV/Hash coupling is at least partly a `Clear Hash`-like cost: I predict the reachable depth
+    falls MONOTONICALLY as Hash grows at fixed MultiPV 8 (16 -> 64 -> 256 -> 2048), because the per-line
+    table clear walks every cluster. (kill: depth not monotone in Hash)
