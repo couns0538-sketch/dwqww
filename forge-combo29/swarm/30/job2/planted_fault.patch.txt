@@ -1,0 +1,32 @@
+--- /agent/repos/base/forge-combo29/src/uci.cpp	2026-11-16 21:06:31.540169113 +0000
++++ /home/ubuntu/planted_src/src/uci.cpp	2026-11-16 21:10:10.616169113 +0000
+@@ -10,6 +10,7 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++#include <cstdlib>
+ #include <array>
+ #include <charconv>
+ #include <chrono>
+@@ -24,6 +25,7 @@
+ 
+ namespace {
+ 
++static int line_len_planted = 5;
+ void apply_position(forge::Board& board, std::istringstream& input) {
+     forge::Board candidate = board;
+     std::string token;
+@@ -44,6 +46,13 @@
+     } else {
+         return;
+     }
++    // PLANTED FAULT (scratch copy only, never committed): heap over-read behind input control
++    if (token == "startpos" && std::getenv("FORGE_PLANT_FAULT")) {
++        volatile char* heap = new char[4];
++        heap[3] = 1;
++        volatile char leak = heap[3 + (line_len_planted % 8)];
++        (void)leak;
++    }
+     if (!(input >> token)) {
+         board = candidate;
+         return;

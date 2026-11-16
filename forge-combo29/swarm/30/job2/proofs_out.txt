@@ -1,0 +1,35 @@
+Mon Nov 16 09:11:06 PM UTC 2026
+== PROOF 1: the exe really carries ASan + UBSan
+$ sha256sum /home/ubuntu/b/asan/forge
+a3614d4f1faa65d2c2e72ace32b7bd8d55ea697339e3a1c225e9d791babf677c  /home/ubuntu/b/asan/forge
+$ nm -C /home/ubuntu/b/asan/forge | grep -c __asan_
+35
+$ nm -C /home/ubuntu/b/asan/forge | grep -c __ubsan_
+15
+$ printf 'uci\nisready\nquit\n' | /home/ubuntu/b/asan/forge | grep '^id name'
+id name Chess Engine Forge 6.4.24 candidate
+$ env | grep -c 'ASAN_OPTIONS\|UBSAN_OPTIONS\|TSAN_OPTIONS\|LSAN_OPTIONS'
+0
+
+options sent: none but uci/isready (no setoption in this job's sequences beyond the generated ones)
+
+== PROOF 2: ONE planted fault behind input I control, built the same way, run through THE SAME RUNNER
+   planted source: ~/planted_src (scratch copy, never committed; the diff is in planted_fault.patch.txt)
+$ sha256sum /home/ubuntu/b/planted/forge
+4cbf04424fd0d1bc70b124b1e8633e66d33fa5d2547836967fcca3c3a20330f9  /home/ubuntu/b/planted/forge
+$ nm -C /home/ubuntu/b/planted/forge | grep -c __asan_
+35
+
+$ FORGE_PLANT_FAULT=1 python3 runner.py ~/b/planted/forge planted_seqs.txt out_planted_on 3
+{"sequences": 3, "wall_seconds": 0.1, "workers": 3, "illegal_bestmoves": 0, "bestmoves_checked": 1, "go_bounded": 3, "go_open": 0, "go_invalid": 0, "bestmoves_seen": 1, "readyok": 4, "ready_sent": 4, "runner_errors": 0, "crash": 2, "hangs": 0, "san_count": 2, "no_bestmove": 2, "unpaired": 2}
+$ python3 runner.py ~/b/planted/forge planted_seqs.txt out_planted_off 3
+{"sequences": 3, "wall_seconds": 0.1, "workers": 3, "illegal_bestmoves": 0, "bestmoves_checked": 3, "go_bounded": 3, "go_open": 0, "go_invalid": 0, "bestmoves_seen": 3, "readyok": 6, "ready_sent": 6, "runner_errors": 0, "crash": 0, "hangs": 0, "san_count": 0, "no_bestmove": 0, "unpaired": 0}
+
+the sanitizer lines the runner kept (proof it saw them):
+### seq 0: {"crash": 1, "hangs": 0, "san": ["/home/ubuntu/planted_src/src/uci.cpp:53:61: runtime error: load of address 0x502000000098 with insufficient space for an object of type 'volatile char'"], "exit": 1, "illegal": [], "runner_error": null}
+uci
+isready
+position startpos
+go depth 1
+isready
+Mon Nov 16 09:11:07 PM UTC 2026
