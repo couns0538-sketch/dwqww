@@ -1,0 +1,37 @@
+# FINDINGS — seat 07 (area 7: reading the code for faults)
+
+One line per finding, only ever ADDED. A check of someone else's finding is its own line.
+
+| id | area | one sentence | file with the exact command that shows it again | NEW |
+|---|---|---|---|---|
+| 07-F1 | 7 | `position` + `go depth N searchmoves <no legal root move>` answers `info depth N ... score cp 0 nodes 0` plus `bestmove 0000`, i.e. it presents an unsearched non-position as a 0-node draw score; `result.restricted_root_empty` (search.cpp:2210) is computed and printed as an info string but is never carried to the UCI answer, so a GUI sees only `bestmove 0000`. | job2/cases_searchmoves.txt (`sm_illegal_only`, `sm_illegal_startpos`, `sm_empty_list`) driven by job2/uci_drive.py; raw in job2/raw_dbg/ | NEW |
+| 07-R1 | 7 | REFUTES my own suspicion: search.cpp:2640 (`result.best_move = root_candidates.front()`) is **not** an empty-container read. The early return at search.cpp:2253 (`if (root_candidates.empty() \|\| root_drawn)`) means every path reaching 2640 has a non-empty `root_candidates`, so there is no UB there. | job2/raw_reach/: a scratch copy with a stderr marker on 2640 (/tmp/reach) prints `REACHED-LINE-2640 root_candidates=<n>` for normal searches and never for any of the six searchmoves cases; and the debug-STL build (job2/raw_dbg) aborts on nothing. | NEW (correction) |
+
+## How the negative in 07-R1 was made trustworthy (detector controls)
+
+A "nothing happened" result is only worth something if the detector can fire. Two controls, both in this folder:
+
+1. `job2/detector_control.cpp`, built with the same `-D_GLIBCXX_ASSERTIONS -D_GLIBCXX_DEBUG
+   -fsanitize=address,undefined` flags as build-dbg, aborts with
+   `Error: attempt to access an element in an empty container.` on `empty.front()`
+   (exit 134). So the debug STL in this build really does catch empty `front()`.
+2. The reachability marker proves the line itself is executed in ordinary searches
+   (`REACHED-LINE-2640 root_candidates=20` on `position startpos` + `go depth 2`),
+   so the same instrumentation would have shown it being reached with an empty
+   vector had that path existed.
+
+Build used: GCC 13.3.0, RelWithDebInfo, `-D_GLIBCXX_ASSERTIONS -D_GLIBCXX_DEBUG
+-fsanitize=address,undefined`; `nm -C build-dbg/forge | grep -c __asan_` = 35.
+
+## Behaviour established for the three asked cases (all `go depth 6`, S14, Threads 1, Hash 16)
+
+| case | command | bestmove | last info line | nodes |
+|---|---|---|---|---|
+| no legal root move | `position fen 7k/5Q2/6K1/8/8/8/8/8 b - - 0 1` + `go depth 3 searchmoves a1a2` | `0000` | `info depth 3 seldepth 3 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv` | 0 |
+| one legal root move | `position startpos` + `go depth 6 searchmoves e2e4` | `e2e4` | `info depth 6 seldepth 6 score cp -1 nodes 438 ... pv e2e4 c7c5 d2d3 e7e6 c2c3` | 438 |
+| two named, one legal | `position startpos` + `go depth 6 searchmoves e2e4 e2e5` | `e2e4` | `info depth 6 ... score cp -1 nodes 438 ... pv e2e4 c7c5 ...` | 438 |
+| empty list | `position startpos` + `go depth 4 searchmoves` | `0000` | `info depth 4 ... score cp 0 nodes 0 ...` | 0 |
+
+The one-legal and two-one-legal cases produce the identical 438-node tree, which is
+the same number a plain `go depth 6 searchmoves e2e4` gives: the illegal extra name
+is simply dropped by the intersection at search.cpp:2204-2209.
