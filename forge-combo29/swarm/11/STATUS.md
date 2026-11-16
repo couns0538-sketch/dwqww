@@ -450,3 +450,6 @@ Settings: **none** (no setoption), **S14** (the 14 settings), **PC20** (S14 + th
 - S-F71: ponder is sound on PC20 — `go ponder` alone waits (emits nothing in 3 s), +ponderhit gives a
   real searched move (g1f3, legal), +stop gives the shallow first-legal move (a2a3, correct UCI
   semantics). A pondering match program will not hang.
+- S-F72: match decisions are REPRODUCIBLE at Threads 1 — 0/12 unstable at nodes 20000/50000/250000
+  (bestmove+nodes+score all identical across fresh processes). The S-F49/S-F50 unequal-depth problem
+  is cross-build fairness, NOT within-build randomness: two separate issues, only one needs a fix.
