@@ -1,0 +1,50 @@
+## table A: the ten hottest symbols by SELF time (perf report --no-children -g none)
+
+| # | symbol | self share |
+|---|---|---|
+| 1 | `int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .constprop.0]` | 14.36 % |
+| 2 | `forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)` | 12.73 % |
+| 3 | `forge::nnue::apply_and_evaluate(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&, forge::Board const&)` | 9.59 % |
+| 4 | `forge::TTProbe forge::TranspositionTable::probe_body<false>(unsigned long) const` | 8.47 % |
+| 5 | `forge::MovePicker::next(bool)` | 6.47 % |
+| 6 | `forge::MovePicker::pick_best()` | 6.27 % |
+| 7 | `forge::Worker::corrected_eval(forge::Board const&, int, forge::SearchStack const*) const` | 5.77 % |
+| 8 | `forge::Board::see_ge(forge::Move const&, int) const` | 4.88 % |
+| 9 | `forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)` | 3.20 % |
+| 10 | `forge::MovePicker::generate_evasions()` | 2.43 % |
+
+## table B: family sums of self time
+
+| family | symbols | summed self share |
+|---|---|---|
+| main search recursion (Worker::search) | 4 | 12.83 % |
+| quiescence only (Worker::qsearch) | 1 | 3.20 % |
+| NNUE accumulator work (forge::nnue::*) | 8 | 12.17 % |
+| HCE term walk (evaluate_position) | 1 | 14.36 % |
+| evaluation glue (corrected_eval/static_evaluate/scale_factor/update_runtime_psqt) | 4 | 7.87 % |
+| move generation (fill_pseudo_legal*) | 3 | 4.26 % |
+| move ordering (MovePicker::*) | 4 | 17.12 % |
+| static exchange (see_ge) | 1 | 4.88 % |
+| make/unmake move | 2 | 2.89 % |
+| hash key (key_after/is_repetition) | 2 | 1.31 % |
+| memset/memcpy | 1 | 1.04 % |
+| std library helpers (std::*) | 10 | 1.96 % |
+| transposition table (probe/store) | 2 | 9.10 % |
+| legality checks (is_legal_complete/is_pseudo_legal/has_legal_move/refresh_king_lines) | 4 | 4.52 % |
+| **all evaluation** (NNUE + HCE walk + glue, the three rows above together) | - | **34.40 %** |
+| **all named rows together** (a symbol can only land in one row) | - | 97.51 % |
+
+## table C: counts behind the prediction verdicts
+
+- symbols listed at all: 101
+- symbols at or above 0.5 % self time: 26
+- symbols at or above 0.5 % below the top ten: 16
+- top ten summed self share: 74.17 %
+- # Samples: 33K of event 'task-clock:ppp'
+Traceback (most recent call last):
+  File "/agent/repos/dwqww/forge-combo29/swarm/19/job1b/summarize2.py", line 158, in <module>
+    main()
+  File "/agent/repos/dwqww/forge-combo29/swarm/19/job1b/summarize2.py", line 105, in main
+    bench = [l.strip() for l in open(STDOUT, encoding="utf-8", errors="replace")
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/agent/repos/dwqww/forge-combo29/swarm/19/pcspeed/prof16/drive/results.txt'

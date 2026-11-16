@@ -5,7 +5,7 @@
 # `bench 13` repeated REPS times in one process (bench is self-clearing, so every position is cold — 19-F23),
 # which is the cheapest way to get many samples under PC20.
 set -u
-EXE="${1:?exe}"; OUT="${2:?outdir}"; REPS="${3:-40}"
+EXE="${1:?exe}"; OUT="${2:?outdir}"; REPS="${3:-40}"; DEPTH="${4:-13}"
 mkdir -p "$OUT"
 PERF=/usr/lib/linux-tools/6.8.0-149-generic/perf
 EXE_ABS="$(readlink -f "$EXE")"
@@ -17,7 +17,7 @@ PC=("CuckooRep true" "HistRework 2" "TtPruneV2 true" "CorrHistV2 true" "MateAlph
 {
   echo uci; echo isready
   for s in "${S14[@]}" "${PC[@]}"; do echo "setoption name ${s% *} value ${s##* }"; echo isready; done
-  for i in $(seq 1 "$REPS"); do echo "bench 13"; done
+  for i in $(seq 1 "$REPS"); do echo "bench ${DEPTH:-13}"; done
   echo quit
 } > "$OUT/stream.txt"
 {
@@ -39,6 +39,6 @@ grep -cE "unknown option|invalid value|ERROR" "$OUT/bench.stdout.txt" > "$OUT/re
 "$PERF" report -i "$OUT/perf.data" --stdio --children --sort symbol > "$OUT/perf_children.txt" 2>&1
 rm -f "$OUT/perf.data"
 date -u
-grep -oE "bench depth 13 nodes [0-9]+" "$OUT/bench.stdout.txt" | sort | uniq -c
+grep -oE "bench depth $DEPTH nodes [0-9]+" "$OUT/bench.stdout.txt" | sort | uniq -c
 echo "refusals: $(cat "$OUT/refusals.txt")"
 grep -E '^# Samples:' "$OUT/perf_symbols_all.txt"
