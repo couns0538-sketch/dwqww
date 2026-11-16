@@ -100,3 +100,9 @@ job3: engine side COMPLETE (R200 perft 1..5 = 200/200 rows in 35.1 s, G30 = 30/3
 4,865,609 exact. python-chess depth-5 reference: 4 workers, 20+ min in at 99 % CPU each, rows buffered so they
 flush only at process exit; expects to finish ~22:21Z. If it does, the comparison is pasted and pushed by 22:30;
 if not, REPORT_job3.md already says the depth-5 comparison is NOT DONE and I claim nothing about it.
+
+## 2026-11-16T22:18:41Z CONTINUE: 12 more hours, ends at 2026-11-17T10:18:41Z
+Seat kept: 23 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-23, folder forge-combo29/swarm/23/.
+Next: fetch handoff/fable-opus-combo29-all-20261114, read every FABLE_TO_swarm_N.md not yet read (read 1 already),
+lowest N to highest; file 5 holds the PC engine source as a patch against 6b98f217 and must be built in a
+separate copy with -DFORGE_MATE_ALPHA_GUARD=1 and its known bench numbers checked.
