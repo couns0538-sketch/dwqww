@@ -1,0 +1,13 @@
+# PREDICTION - seat 27 - area 7 job 1 (read src/search.cpp of 6b98f217 for faults)
+committed and pushed BEFORE the first measuring command; never edited afterwards.
+
+Kill ranges (a number outside its range kills that prediction):
+P1. Distinct suspicious lines I list from src/search.cpp (2753 lines): between 3 and 14 (kill if < 3 or > 14).
+P2. Of those, at least 1 and at most 4 will be provable by a command on the unmodified build (kill if 0 provable).
+P3. At least 1 of the provable ones will be an out-of-range / signedness / shift issue in the tuning or
+    score_to_tt / score_from_tt band rather than in the main alpha-beta body (kill if none is).
+P4. I predict NOT to find a fault that changes bench 11/13/16 or perft 5 on the shipped build, i.e. the shipped
+    numbers stay at 312866 / 862329 / 3024920 / 4865609 (kill if any of the four differs from these while I only
+    read and run the unmodified build).
+P5. Wall clock for the whole job (reading + provable tests + report + one patch): under 90 minutes
+    (kill if the job's own stamps.txt spans more than 90 minutes).
