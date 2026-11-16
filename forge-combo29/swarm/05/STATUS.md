@@ -307,3 +307,9 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   So PC20 eliminates the truncation as a RATE while no single option does (S-F21). Stated carefully: 0 of the 27 that
   remain mate scores, not "the 28th was fixed".
 - next command: write the FINAL block with every find, its state and its build/settings.
+
+## $(date -u)
+- S-F24: an independent 120-position pool (R_seed511 + G, screened at depth 8 then re-searched at depth 12) yields only
+  8 mate scores — all consistent under PC20, 0 truncated. Recorded with the caveat that 8 positions cannot distinguish
+  0% from 5%; combined with S-F23 I have 35 mate positions total, which is not enough for a precise rate.
+- next command: python3 pcbuild/mate_sample_pc.py /tmp/build-pc/forge S14 120 for the same pool under S14.
