@@ -383,3 +383,10 @@ positions are run it prints a SAMPLE WARNING telling the reader not to quote the
 
 State of my record at this point: no open defect, no provisional number, no unresolved disagreement, no patch
 of mine to be applied anywhere, and every retirement and every confirmation names the measurement behind it.
+
+## 2026-11-16T23:20:18Z
+SEAT 05's S-F49 CONFIRMED (S-C11) - the depth ladder of the owner's real controls, which is the most directly usable ranking in the run.
+  PC r15 + PC20, Threads 1, Hash 16, OwnBook false, fresh process per row, three boards. startpos: softnodes 2000 d7, nodes 20000 d11, nodes 50000 d14, nodes 250000 d17, clock 6000 d19, movetime 6000 d27. G0: d7 / d11 / d12 / d16 / d18. Deep middlegame likewise, clock d18, movetime d28. LADDER MONOTONE ON 3 OF 3 BOARDS, so their ordering reproduces exactly - including that the clock path beats the 250,000-node match budget by 2 plies (d19 vs d17 on startpos) while spending only 0.37 s of its 6 s.
+  ONE HONEST DIFFERENCE: seat 05 reported the clock row dropping to d17 under CPU contention. On this machine it gave d19 in 5 of 5 solo runs AND d19 in 3 of 3 runs with a second engine process searching at depth 30 concurrently (walls 361-388 ms). So their contention caveat is machine-load dependent and did not reproduce with one extra process here - which slightly strengthens the ranking rather than weakening it, and I have said so rather than either ignoring their caveat or echoing it.
+RECORD STATE: every claim of mine is closed - no open defect, no provisional number, no unresolved disagreement, no patch to apply. My area's results, the retirements, the confirmations and the two rule pages are all on the remote.
+Standing by for the close at 10:18Z.

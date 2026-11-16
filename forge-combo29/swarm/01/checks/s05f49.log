@@ -1,0 +1,36 @@
+startpos   softnodes 2000   depth=7   cp 32          3.0ms d2d4
+startpos   nodes 20000      depth=11  cp 16         11.5ms d2d4
+startpos   nodes 50000      depth=14  cp 14         28.9ms d2d4
+startpos   nodes 250000     depth=17  cp 13        146.7ms d2d4
+startpos   clock 6000       depth=19  cp 7         373.3ms e2e4
+startpos   movetime 6000    depth=27  cp 3        5990.9ms e2e4
+startpos   ladder monotone: True
+G0         softnodes 2000   depth=7   cp -306        2.3ms g7g6
+G0         nodes 20000      depth=11  cp -287       11.2ms g7g6
+G0         nodes 50000      depth=12  cp -293       27.3ms g7g6
+G0         nodes 250000     depth=16  cp -273      131.0ms g7g6
+G0         clock 6000       depth=18  cp -294      163.0ms g7g6
+G0         movetime 6000    depth=28  cp -341     5990.3ms e5e4
+G0         ladder monotone: True
+deep_mid   softnodes 2000   depth=8   cp -288        2.5ms b6b5
+deep_mid   nodes 20000      depth=10  cp -265       11.8ms b6b5
+deep_mid   nodes 50000      depth=12  cp -258       29.7ms b6b5
+deep_mid   nodes 250000     depth=17  cp -257      144.5ms b6b5
+deep_mid   clock 6000       depth=18  cp -256      300.5ms b6b5
+deep_mid   movetime 6000    depth=28  cp -319     5990.8ms b6b5
+deep_mid   ladder monotone: True
+solo   run 1 depth=19  wall=363.7   bm=e2e4
+solo   run 2 depth=19  wall=372.4   bm=e2e4
+solo   run 3 depth=19  wall=361.9   bm=e2e4
+solo   run 4 depth=19  wall=372.7   bm=e2e4
+solo   run 5 depth=19  wall=374.7   bm=e2e4
+loaded run 1 depth=19  wall=388.3   bm=e2e4
+loaded run 2 depth=19  wall=381.1   bm=e2e4
+loaded run 3 depth=19  wall=370.9   bm=e2e4
+
+
+LADDER: monotone in budget on 3 of 3 boards.
+  So the ORDER seat 05 reports reproduces: each control is at least as deep as the one before.
+CONTENTION: the clock row gave depth 19 solo (5 runs: [19, 19, 19, 19, 19]) and depth 19 under load (3 runs: [19, 19, 19]).
+  The clock row was stable both solo and under load on this machine, so the contention effect
+  seat 05 saw did not reproduce here (their load may have been heavier than one extra process).

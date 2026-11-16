@@ -1,0 +1,41 @@
+CHECK of seat 05's S-F49: the depth ladder of the owner's real controls
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+PC20, Threads 1, Hash 16, OwnBook false; fresh process per row
+
+board	control	depth	score	wall_ms	bestmove
+startpos	softnodes 2000	7	cp 32	3.0	d2d4
+startpos	nodes 20000	11	cp 16	11.5	d2d4
+startpos	nodes 50000	14	cp 14	28.9	d2d4
+startpos	nodes 250000	17	cp 13	146.7	d2d4
+startpos	clock 6000	19	cp 7	373.3	e2e4
+startpos	movetime 6000	27	cp 3	5990.9	e2e4
+G0	softnodes 2000	7	cp -306	2.3	g7g6
+G0	nodes 20000	11	cp -287	11.2	g7g6
+G0	nodes 50000	12	cp -293	27.3	g7g6
+G0	nodes 250000	16	cp -273	131.0	g7g6
+G0	clock 6000	18	cp -294	163.0	g7g6
+G0	movetime 6000	28	cp -341	5990.3	e5e4
+deep_mid	softnodes 2000	8	cp -288	2.5	b6b5
+deep_mid	nodes 20000	10	cp -265	11.8	b6b5
+deep_mid	nodes 50000	12	cp -258	29.7	b6b5
+deep_mid	nodes 250000	17	cp -257	144.5	b6b5
+deep_mid	clock 6000	18	cp -256	300.5	b6b5
+deep_mid	movetime 6000	28	cp -319	5990.8	b6b5
+
+contention test on the clock row (startpos), SOLO then with a second engine process running:
+mode	run	depth	wall_ms	bestmove
+solo	1	19	363.7	e2e4
+solo	2	19	372.4	e2e4
+solo	3	19	361.9	e2e4
+solo	4	19	372.7	e2e4
+solo	5	19	374.7	e2e4
+loaded	1	19	388.3	e2e4
+loaded	2	19	381.1	e2e4
+loaded	3	19	370.9	e2e4
+
+LADDER: monotone in budget on 3 of 3 boards.
+  So the ORDER seat 05 reports reproduces: each control is at least as deep as the one before.
+CONTENTION: the clock row gave depth 19 solo (5 runs: [19, 19, 19, 19, 19]) and depth 19 under load (3 runs: [19, 19, 19]).
+  The clock row was stable both solo and under load on this machine, so the contention effect
+  seat 05 saw did not reproduce here (their load may have been heavier than one extra process).
