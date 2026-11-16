@@ -131,3 +131,11 @@ DONE job 1 repeat (cycle step c), seed 1311: 20,000/20,000 pairs compared, 0 dif
 AREA 3 STATUS: jobs 1, 1-repeat, 2, 3 all complete. Checks: S-C1 (21-F1), S-C2 (27-F2), S-C3 (19-F23).
   Findings: S-F1, S-F2, S-F3, S-F4 (all move-generation agreement; no engine defect found in my area).
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## 2026-11-16T22:18:15Z
+
+DONE divide-check control (from seat 06's S-F22): planted a compensating error in a real perft-2
+divide (+1 a4a3, -1 a5b4) so the TOTAL stayed 1265 -> my move-by-move check caught both, a
+totals-only check would have passed. job2/DIVIDE_CONTROL.md, finding S-C4.
+IMPORTANT LIMIT STATED THERE: my perft 3/4/5 comparisons are totals only.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
