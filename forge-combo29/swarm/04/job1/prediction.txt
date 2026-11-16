@@ -1,0 +1,30 @@
+# prediction — area 4 job 1 (written before the first measuring command)
+
+Seat 04, seed 402. Written before any TSAN measurement of the real build.
+
+Setup: TSAN build (g++-13, -fsanitize=thread -O1 -g, -march=x86-64-v4) of 6b98f217, first 100 positions of
+set G, `go depth 12` with S14 tunables, Threads 2 / 4 / 8 / 16, Hash 16, one fresh process per search.
+
+What I predict (each with the range that kills it):
+
+P1. Threads 1 control run (same 100 positions, same build): 0 TSan race reports. KILLED if > 0.
+P2. At Threads 8 over the 100 positions, at least one DISTINCT TSan race report appears. KILLED if 0 reports.
+    Reason: FORGE_SPD_TT_NOTLS=1 means the transposition table is shared and probed by helper threads without
+    a lock; TSan reports every unsynchronised read/write pair on it. I expect the count to be large (dozens of
+    distinct stacks), certainly >= 1.
+P3. At Threads 2 also at least one race report (same reason). KILLED if 0.
+P4. Crashes (non-zero exit not explained by TSan, i.e. exit code >= 128 or abort without a TSAN line): 0 out of
+    all 400 searches. KILLED if >= 1.
+P5. Hangs (no bestmove within 180 s): 0. KILLED if >= 1.
+P6. bestmove legality: 100 % of the 400 bestmoves legal in python-chess (or `0000` only where python-chess says
+    there is no legal move). KILLED if >= 1 illegal.
+P7. TSan slowdown at Threads 1: median wall time of `go depth 12` on this set is between 3x and 60x the Release
+    build's median on the same positions. KILLED outside that band.
+P8. Node counts at Threads 2 and Threads 4 are NOT reproducible run-to-run (the two runs differ on at least one
+    of the 100 positions), while Threads 1 IS reproducible. KILLED for Threads 1 if any position's node count
+    differs between its two runs; killed for Threads 2/4 if all 100 match across runs.
+
+What I am NOT predicting: that any race is a *bug* that changes a node count or a bestmove. A data race on TT
+entries is still undefined behaviour by the standard, but I will not claim a wrong move without evidence.
+
+## written 2026-11-16, before the first TSAN measuring command of this job
