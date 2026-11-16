@@ -65,3 +65,21 @@ searchmoves_empty_root.patch.txt
 stamps.txt
 uci_drive.py
 Next: job 3 of area 7 (position and move making). Next command: cd /agent/repos/base/forge-combo29 && wc -l src/board.cpp
+
+## 2026-11-16T21:41:57Z
+job3 done: checked 17-S-F2 -> REFUTED (07-C1). Symptom of 17-S-F1 confirmed; cause is the fabricated depth line (07-F1), not an empty front().
+Both instruments carry live positive controls. Next: area 7 job 1 again is done, so job 3 = position/move-making read (src/board.cpp).
+### git status --short
+ M FINDINGS.md
+ M STATUS.md
+?? REPORT_job3.md
+?? job2/__pycache__/
+?? job3/
+### ls job3
+cases_17sf2.txt
+check_17SF2.py
+raw_dbg
+raw_reach
+raw_reach2
+reach_2640.py
+stamps.txt
