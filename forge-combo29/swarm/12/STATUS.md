@@ -107,3 +107,10 @@ WEAK ZERO: job1/qms/quit_mid_search.json
   BY DESIGN: the search is interrupted before it produces an info line, so this table can never prove a search ran. A zero here is evidence about the stop/print path only, and is reported as such.
 
 raw -> /agent/repos/dwqww/forge-combo29/swarm/12/job1/audit.json, then write REPORT_job2.md.
+
+## 2026-11-16T21:56Z — halfmove sweep of the ply-down limit
+
+The node-level fault (S-F4) exists ONLY at halfmove exactly 99, its last reachable value: 94-98
+answer the true `mate -1` in 63 nodes, 99 answers `cp 0` in 36, and 100/101/110/149/150/151/200/
+500/999/9999 all give identical `cp 0` / 0 nodes because the ROOT adjudication takes over — stable,
+no degradation at very high counters. Raw: job1/node_draw_hm_sweep.txt.

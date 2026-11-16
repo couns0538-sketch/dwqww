@@ -269,3 +269,31 @@ as it says.
 
 Honesty pins on the composed build: bench 11/13/16 = 312866 / 862329 / 3024920, perft 5 =
 4865609 — all four unchanged. Raw: `job1/integration/compose_table.txt`.
+
+### How serious is the ply-down limit: the halfmove sweep
+
+Asked by the coordinator. Exactly one counter value is affected, and the behaviour above it is
+stable rather than degrading.
+
+| halfmove | bestmove | score | nodes | what the node path does |
+|---|---|---|---|---|
+| 94-98 | g8h8 | **mate -1** | 63 | no child reaches 100, so the search runs and finds the mate |
+| **99** | g8f8 | **cp 0** | **36** | both children land on 100 → the node-level draw return fires on each |
+| 100 | g8f8 | cp 0 | 0 | the ROOT is drawn (the root path, not this bug) |
+| 101, 110, 149, 150, 151, 200, 500, 999, 9999 | g8f8 | cp 0 | 0 | same root adjudication |
+
+**In one line: the ply-down fault exists only at halfmove exactly 99, its last possible value;
+from 100 upward the root adjudication takes over and the answers are identical for every counter
+I tried up to 9999, so the behaviour is stable and does not degrade at very high counters.**
+
+The reason it can only be 99: the node-level door needs a node whose counter is at least 100 made
+by a move from a root that is *not* itself drawn. The root is not drawn while the counter is below
+100, and a legal move raises the counter by at most one, so 99 is the only starting point that can
+reach a 100 node in one ply. Above 100 the root is drawn first, and the root fix already covers
+that. Counter 100 itself being 0 nodes is the root path working as intended, not this fault.
+
+Counter-resetting control (same board shape, but Black has pawn moves that reset the counter):
+hm 99 → cp 0 / 227 nodes (correct — Black really escapes), hm 100+ → cp 0 / 0 nodes at the root.
+So the first table's cp 0 at hm 99 is the fault precisely because that board has no such escape.
+
+Raw: `job1/node_draw_hm_sweep.txt`, `job1/node_draw_hm_sweep.json`.
