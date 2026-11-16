@@ -154,3 +154,7 @@
   "pawns" is not the whole story and I claim no mechanism. The castling variant was skipped: python-chess calls
   "1K6/8/8/3R4/8/8/8/k7 w KQkq" invalid, and I did not force it.
 - next command: python3 job2/what_makes_flat.py /tmp/build-asan/forge for the sanitizer-build repeat.
+
+## $(date -u)
+- S-F15 repeated on ASan+UBSan: identical (95/93/91/89 tracking vs flat 98), no sanitizer output.
+- next command: python3 - <<'PY' to total up every job folder's file counts for the final STATUS, then final push.
