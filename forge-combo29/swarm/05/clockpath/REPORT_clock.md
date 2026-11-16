@@ -99,6 +99,25 @@ these games at roughly depth 16-24 (deeper in endgames) and the games complete c
 5.5 s would make it *stronger* is a separate question that my move-level evidence (§6) does not settle — the two move
 differences I found were both positions already lost, where the shallow search was merely over-optimistic.
 
+## 6c. Where the clock path sits against the owner's other controls
+
+Same three boards, PC20, Threads 1, Hash 16, OwnBook false — depth each of the owner's real controls reaches:
+
+| control | startpos | G0 middlegame | deep middlegame |
+|---|---|---|---|
+| `go softnodes 2000` (self-play) | d7 | d8 | d7 |
+| `go nodes 20000` (match) | d11 | d11 | d10 |
+| `go nodes 50000` (match) | d14 | d13 | d12 |
+| `go nodes 250000` (match) | d17 | d17 | d15 |
+| **`go wtime 6000 … winc 60` (strength match)** | **d19** | **d18** | **d18** |
+| `go movetime 6000` | d27 | d28 | d24 |
+
+**This materially qualifies the story above.** The clock path is *not* the weakest control — it beats even the
+250,000-node match budget by 2-3 plies, because it reaches 300k-780k nodes while only "spending" 0.35-0.78 s. The
+shortfall is only against `go movetime`, which reaches depth 24-28 for the same wall clock. So the accurate statement
+is: **the owner's strength matches are not starved relative to the node-limited matches; they are 5-9 plies
+shallower than their own 6 seconds could buy.** `match/out/budget_translation.txt`.
+
 ## 7. Confidence and limits
 
 - **High** on §1–§5: deterministic, 5 runs per cell where it matters, and §5 is a 12/12 bit-match.
