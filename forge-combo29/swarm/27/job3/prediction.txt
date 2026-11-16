@@ -1,0 +1,16 @@
+# PREDICTION - seat 27 - area 7 job 3 (the position and move making: src/board.cpp, 1429 lines)
+committed and pushed BEFORE the first measuring command of job 3; never edited afterwards.
+
+Kill ranges (a number outside its range kills that prediction):
+P1. Distinct suspicious lines I list from src/board.cpp: between 2 and 10. Kill if < 2 or > 10.
+P2. At least 1 of them will be provable by a command on the unmodified build. Kill if 0 are provable.
+P3. The halfmove clock is stored in std::uint16_t and capped at 65535 (board.cpp:351, :1044); I predict a
+    FEN with halfmove clock 65535 ACCEPTED and that one more half-move cannot overflow it (it stays 65535),
+    so perft and the fifty-move test (`halfmove_clock() >= 100`) both keep working. Kill if the engine
+    refuses 65535, or if the value wraps to a small number after a move.
+P4. I predict the move generator has NO legality-count error: perft 1..4 on 20 positions of G will equal
+    python-chess exactly (0 differences). Kill if any position differs.
+P5. I predict the `undo` path is exact: perft 2 with a make/unmake cycle inside (i.e. `go perft 2` after a
+    long `position ... moves` list) gives the same node count as the same position given as a FEN.
+    Kill if those two differ on any of 20 positions.
+P6. Whole job under 45 minutes by the job's own stamps.txt (the deadline is 22:30 UTC). Kill if longer.
