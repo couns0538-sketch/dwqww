@@ -1,0 +1,34 @@
+=== check_s21f9.py on the PATCHED build ===
+board          H go form          bestmove  score        nodes  mates?
+white-mate    99 go depth 5       d1d8      ('mate', 1)     140  True
+white-mate    99 go nodes 100     d1d8      ('mate', 1)      84  True
+white-mate    99 go movetime 50   d1d8      ('mate', 1)    1792  True
+white-mate   100 go depth 5       d1d8      ('mate', 1)     140  True
+white-mate   100 go nodes 100     d1d8      ('mate', 1)      84  True
+white-mate   100 go movetime 50   d1d8      ('mate', 1)    1792  True
+black-mate    99 go depth 5       d8d1      ('mate', 1)     140  True
+black-mate    99 go nodes 100     d8d1      ('mate', 1)      84  True
+black-mate    99 go movetime 50   d8d1      ('mate', 1)    1792  True
+black-mate   100 go depth 5       d8d1      ('mate', 1)     140  True
+black-mate   100 go nodes 100     d8d1      ('mate', 1)      84  True
+black-mate   100 go movetime 50   d8d1      ('mate', 1)    1792  True
+
+=== verdict on 21-F9 ===
+  FAIL  at H=100 NO go form finds the mate in 1  — 0/6 play a non-mate
+  PASS  at H=99 EVERY go form finds the mate in 1  — 6/6 mate
+  FAIL  both colours are affected at H=100
+  FAIL  the H=100 answers are 0-node adjudications  — 0/6 at H=100 report 0 nodes
+
+RESULT: does NOT reproduce 21-F9 as stated — see FAIL lines.
+
+=== honesty on the patched build ===
+nodes 312866
+nodes 862329
+nodes 3024920
+-- perft 5:
+nodes 4865609
+
+=== regression: genuine draws still adjudicated at 0 nodes ===
+bare kings H=100         -> info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv bestmove b8a7 
+KRvK H=100               -> info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv bestmove d5d1 
+checkmated root          -> info depth 1 seldepth 1 score mate 0 nodes 0 nps 0 hashfull 0 time 0 pv bestmove 0000 
