@@ -1,0 +1,14 @@
+# PREDICTION — job24: `position fen ... moves` and the illegal-prefix rule on the PC build
+written before the first measuring command.
+
+job16 established on the base tree that `position fen <FEN> moves <moves>` IS applied (perft 1
+after e1d1 = 8, matching python-chess) and that an illegal move keeps the legal prefix. The PC
+patch rewrites parts of the `go` parser but apply_position looks unchanged; this job measures it.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | PC build: `position fen F moves e1d1` applies the move (perft 1 = 8, python agrees) | killed by any difference |
+| P2 | PC build: an illegal move in a 200-ply list keeps the legal prefix at perft 1 AND perft 2 | killed by any difference |
+| P3 | PC build: a refused FEN in the `fen ... moves` form leaves the PREVIOUS position (21-F2) | killed if the new position is taken |
+| P4 | base build reproduces all three (my harness is comparable) | killed if it does not |
+| P5 | 0 crashes, 0 sanitizer lines | killed by any one |
