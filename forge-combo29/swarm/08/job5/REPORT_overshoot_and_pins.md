@@ -86,3 +86,12 @@ a 1000 ms budget by the same 22, giving 8 ms and 45 ms against iterations that c
 check would cut the tail at 1000 ms, where the worst row's overshoot was 1.5x its last iteration, but at 200 ms it
 would mostly stop inside the first iteration and buy little: the honest reading is that both changes are needed and
 the plan arithmetic is the one my numbers force.
+
+## Were these searches cold? (seat 10's rule: `ucinewgame` restores cold, `Clear Hash` does not)
+
+Yes, every one, and it is measured rather than assumed. On my build, `go depth 12` from startpos gives
+**56,720 nodes three times in a row with `ucinewgame` between**, but **56,720 then 4,951 then 4,516 with nothing
+between** — exactly seat 10's warm case. All my harnesses (`clock_latency.py`, `clock_latency2.py`, and the job4/job5
+scripts) send `ucinewgame` + `isready` before every search, and **no script of mine ever sends `Clear Hash`**
+(grep: zero uses). So the 6,500+ timing searches behind 08-F1, F2, F8, F9, F11 and F14 are all cold, and no warm
+table can have shortened them or shifted their last completed depth. Recorded in `cold_vs_warm.txt`.
