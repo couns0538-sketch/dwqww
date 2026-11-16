@@ -1,0 +1,49 @@
+board: r4rk1/pp1b1ppp/4p3/3pP3/8/P3P3/1P2N1PP/R2R2K1 w - - 0 1
+pieces on the board: 21 (seat 05 says 21-piece middlegame)
+  -> CONSISTENT
+
+C1: this board at counter 99, depths 6..12 (seat 05 says 'sits flat at 99')
+   depth  6: score cp 0 flat cp 0
+   depth  7: score cp 0 flat cp 0
+   depth  8: score cp 0 flat cp 0
+   depth  9: score cp 0 flat cp 0
+   depth 10: score cp 0 flat cp 0
+   depth 11: score cp 0 flat cp 0
+   depth 12: score cp 0 flat cp 0
+   C1 verdict: CONFIRMED flat
+
+C2: same board with all pawns removed: r4rk1/3b4/8/8/8/8/4N3/R2R2K1 w - - 0 1
+   pieces now: 8
+   seat 05 says this sits flat at COUNTER 100 for depths 4..10 (not 99).
+   counter 99, depth  4: score cp 63
+   counter 99, depth  5: score cp 64
+   counter 99, depth  6: score cp 71
+   counter 99, depth  7: score cp 72
+   counter 99, depth  8: score cp 87
+   counter 99, depth  9: score cp 76
+   counter 99, depth 10: score cp 67
+
+   counter 100, depth  4: score cp 63
+   counter 100, depth  5: score cp 64
+   counter 100, depth  6: score cp 71
+   counter 100, depth  7: score cp 72
+   counter 100, depth  8: score cp 87
+   counter 100, depth  9: score cp 76
+   counter 100, depth 10: score cp 67
+
+
+VERDICT (PC r15, PC20, Threads 1, Hash 16 — a build/settings seat 05 did not measure on):
+C1 CONFIRMED: the board r4rk1/pp1b1ppp/4p3/3pP3/8/P3P3/1P2N1PP/R2R2K1 w is a 21-piece middlegame (verified),
+   and at counter 99 it scores exactly `cp 0` at every depth 6..12. Seat 05's description of MY board reproduces.
+C2 REFUTED: the same board with all 12 pawns removed (8 pieces: r4rk1/3b4/8/8/8/8/4N3/R2R2K1 w) does NOT sit flat
+   at counter 100. It scores +63/+64/+71/+72/+87/+76/+67 at depths 4..10 at counter 99, and +63/+64/+71/+72/+87
+   at counter 100 (depths 4..8). So the "pawnless version flattens at 100" half of S-F14 does not reproduce here:
+   the pawnless board is not drawn at all, it is about +70 cp for white.
+   Honest caveat: seat 05 measured this on the BASE tree; I measured on the PC r15 build under PC20. The difference
+   could be the build (r15's FORGE_FIX_ROOT_DRAWN changes root draw handling) rather than an error in seat 05.
+
+A BUG I MADE IN THIS CHECK, recorded rather than hidden: my first version compared the regex match to "cp 0" while
+the regex actually returns the full match "score cp 0", so the flat/not-flat verdict was always "NOT flat" even
+when the numbers printed cp 0. The per-depth numbers were right; my summary line was wrong. Caught by reading the
+printed rows against the verdict, fixed, re-run. This is the third self-caught error tonight and it is the same
+species as the other two: a conclusion not matching its own evidence.
