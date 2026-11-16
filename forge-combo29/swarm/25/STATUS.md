@@ -1,3 +1,21 @@
+## 2026-11-16T22:28Z - COST QUANTIFIED (S-F20); win positions unaffected; repair consequence stated
+
+Task 1 (cost): scanned 17 candidates from G, required the opponent's reply to be a clock-RESETTING move before
+counting a cost. 8 of 17 pass: cp 0 at clock 99 where clock-0 is -40..-1039 cp, and the opponent refuses with a
+capture or pawn push (verified mechanically: 4 pawns, 4 captures, clock 0 afterwards). WINNING positions are NOT
+affected (+2232 -> +1965, +423 -> +417, +2570 -> +2563), so only the losing side is hurt - consistent with the
+mechanism, since a 0-valued draw line is attractive only to the side that is worse.
+NOT claimed: that a game result changes. In all 8 the side was already worse; I hunted a "real draw thrown away"
+case and every candidate I verified had the opponent NOT resetting, i.e. the engine was right there.
+
+Task 2 (repair consequence): remove the fifty-move test from is_draw entirely, do not move it to the root -
+terminality tests must be decidable without searching, and a claimable draw is not. Risks stated: quiet lines to
+the horizon are re-valued (slightly overvaluing about-to-be-drawn positions, the same direction as the PC's own
+root-drawn fix), and 341-node answers become 15k-19k nodes. For the forced case the legitimate predicate is
+"clock >= 100 AND neither side has a capture or pawn move". Not implemented; patch unchanged.
+
+Also in this cycle: S-F15/S-F16 mechanism, S-F17 predictions, S-F18/S-F20 cost, S-F19 repair proposal,
+S-C3 (seat 06 S-F21, exact), S-C4 (file 5 table, exact). Next: cycle - other seats' unconfirmed finds.
 ## 2026-11-16T22:27Z - MECHANISM FOUND (instrumented build), and a correction of my own reasoning
 
 Instrumented build done as the coordinator asked: scratch copy, stderr-only prints behind FORGE_CLOCK99_DEBUG,
