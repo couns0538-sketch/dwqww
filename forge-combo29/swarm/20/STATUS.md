@@ -412,3 +412,12 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   terminal-root path generally. Fix direction: emit ONE line there — a reporting change that cannot move a node count.
 - **machine_clean.sh**: defunct (zombie) processes no longer fail the gate — a zombie holds no CPU. Exit 0 = fit.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-16T23:48:40Z the 64-line volume is ONE reporting habit across three zero-node paths (S-F53)
+- **S-F53**: S-F52 is not a terminal-root quirk. **Any path that reports without searching emits one info-depth line
+  per depth, capped at 64 when no depth is given.** Verified on BOTH builds, machine certified clean (exit 0):
+  `go depth 2 searchmoves` -> 2 lines at 0 nodes (base and PC r15); **`go searchmoves` and `go nodes 100 searchmoves`
+  -> 64 lines at 0 nodes on base AND PC r15**; terminal root behaves the same (`mate 0` / `cp 0`, 0 nodes).
+- So the three known zero-node paths — terminal root, empty restriction, bare `go searchmoves` — share ONE cause and
+  ONE fix direction: emit one line instead of one per depth. The PC r15 patch changes none of them.
+Next: continue in the window (ends 2026-11-17T10:18Z).
