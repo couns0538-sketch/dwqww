@@ -12,3 +12,11 @@ base    6b98f2170a3210e71beed04bbd2553972c253ed7
 HONESTY: all four pins MATCH (312866 / 862329 / 3024920 / 4865609). Build used.
 Build: /home/ubuntu/b/rel/forge, g++ 13.3.0, -march=x86-64-v4, sha256 e06310ec...
 Next: area 3 job 1 -- perft 1..4 on 5,000 R positions.
+
+## 2026-11-16T21:24:45Z
+
+DONE area 3 job 1: perft 1..4 on 5,000 R positions (SEED 1301). 20,000/20,000 pairs equal, 0 differences.
+Controls both pass (published perft values reproduced; planted 1-node error caught by the checker).
+Report: job1/REPORT_job1.md. Finding S-F1 written (null result, NEW).
+Times: engine side 12.2 s, reference side ~850 s wall over 4 shards.
+Next command: cd forge-combo29/swarm/13 && tail -1 STATUS.md   # then start area 3 job 2 (special positions)
