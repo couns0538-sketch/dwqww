@@ -1,0 +1,31 @@
+IS THE ~20 % CLOCK-DISAGREEMENT RATE STABLE? — yes, and every disagreement sits at a depth gap of 4+ plies
+========================================================================================================
+Second sample: 30 DIFFERENT fresh quiet positions (excluding every FEN used in job10 and job17/18), PC r15 + PC20,
+Threads 1, Hash 16, OwnBook false, fresh process per search, both clocks run twice.
+
+| measure | first sample (23-F55, n=20) | second sample (n=30) | prediction |
+|---|---|---|---|
+| 1 s vs 6 s move disagreement | 4 of 20 = 20 % | **4 of 30 = 13 %** | P1 held (10-33 %) |
+| 1 s reaches a lower depth | 20 of 20 | **30 of 30** | P2 held |
+| determinism within each setting | 0 disagreements | **0 and 0** | P4 held |
+
+THE RATE REPLICATES within its interval: 13 % against 20 %, on a sample that shares no positions with the first.
+So "a fast control chooses a different move on roughly a sixth to a fifth of quiet positions" is supported, while I
+still do not claim a precise general rate — two samples give a band, not a constant.
+
+P3 HELD AND IS THE INTERESTING PART: every one of the 4 disagreements sits where the 6 s clock reached at least **4
+plies deeper** than the 1 s clock (gaps of 6, 6, 5 and 4 plies). The positions with a small depth gap had 0
+disagreements. So the disagreement is not random — it is what happens when the two clocks end at materially
+different depths. That is a mechanism rather than a rate, and it is consistent with 23-F26's finding that the move
+depends on the MARGIN: a 4-6 ply depth difference is enough to overturn a close call, a 1-2 ply difference is not.
+
+| position | 6 s | 1 s | depth 6 s | depth 1 s | gap |
+|---|---|---|---|---|---|
+| rnbq1bnr/ppppkppp/8/4p3/6P1/1PP4P/... | h7h5 | e7e8 | 21 | 15 | 6 |
+| rnbqkbnr/pp1pp1p1/8/2p2p1p/2P2P2/6... | e7e5 | h5h4 | 18 | 12 | 6 |
+| rnbqkbnr/p1pppp1p/8/1p4N1/8/3P3P/P... | e7e6 | h7h6 | 20 | 15 | 5 |
+| 2r1k1r1/n4p1p/Pp6/1pppP1p1/6P1/1RP... | c8a8 | e8d7 | 17 | 13 | 4 |
+
+LIMIT: two samples, both from my seed-2401 stream, all quiet middlegames. The depth-gap mechanism is consistent with
+the margin finding but was not tested by DESIGN (I did not select for depth gaps), so it is an observation across
+34 positions rather than a controlled experiment.
