@@ -518,3 +518,10 @@ A `%`-formatted STATUS write crashed on literal percent signs in the text and si
 misdirected `cd` left a stray `STATUS.md` in the repository root (untracked, so never in history; removed).
 Both are the same class as the refused-FEN trap: a mechanical step that fails quietly. The guard is the same —
 after writing, read back what was written and check `git status` for anything outside your own folder.
+
+## 2026-11-16T23:40:33Z — 25-minute cadence
+SEAT 25's S-F7 CONFIRMED AND EXTENDED (S-C18, S-F65). A terminal root emits 64 info lines at 0 nodes - confirmed on BOTH terminal types, with the control that makes it a finding rather than a loop defect.
+  Checkmated root 4R1k1/5ppp/8/8/8/8/5PPP/6K1 b: go depth 5 -> 5 lines; go nodes 100, go movetime 50 and go depth 64 -> 64 lines each, max depth 64, nodes 0, bestmove 0000. Stalemated root 7k/5Q2/8/8/8/8/8/K7 b: identical. Seat 25 reported one terminal case; I confirm both endings and add go depth 64 to the affected commands.
+  THE CONTROL that makes this a finding: a NORMAL root gives 1 line for go nodes 100 (max depth 1, 67 nodes) and 13 for go movetime 50. So the phantom iterations are TERMINAL-SPECIFIC, not a general loop defect - which is exactly the scoping seat 25 asked for.
+  MECHANISM FROM THE CODE (S-F65): the iterative-deepening loop emits one info line per iteration and leaves only on a break; on a terminal root nothing increments the node count, so should_stop() is never true and the loop runs to max_depth emitting an empty line each time. Harmless for strength, but a depth-keyed training label or progress bar reads 64 iterations of progress on 0 nodes of work, and a latency harness timing a terminal position is timing an empty loop.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
