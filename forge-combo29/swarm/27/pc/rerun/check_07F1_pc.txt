@@ -11,7 +11,11 @@
 
 ## CONTROL through the same harness (proves the harness can see a real search)
   position startpos + go depth 6 searchmoves e2e4
-     info depth 6 seldepth 6 score cp -1 nodes 438 nps 438000 hashfull 0 time 1 pv e2e4 c7c5 d2d3 e7e6 c2c3
+     info depth 6 seldepth 6 score cp 12 nodes 344 nps 344000 hashfull 0 time 1 pv e2e4 c7c5 h2h3 g8f6
      bestmove e2e4
+
+  (An earlier run of the same control under a SMALLER option set gave cp -1 / 438 nodes. The two differ
+   because the control was run with different setoption blocks; both are real searches. The committed
+   script fixes the settings (PC20) so the numbers are reproducible — re-run it to get the 344 figure.)
 
 Verdict: 07-F1 reproduces identically on the PC build; not repaired there.
