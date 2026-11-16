@@ -1,0 +1,18 @@
+--- /tmp/prev_exp_base.cpp	2026-11-16 22:31:36.433527857 +0000
++++ /agent/repos/exp_base/forge-combo29/src/search.cpp	2026-11-16 22:31:47.145527857 +0000
+@@ -1316,10 +1316,13 @@
+     if (!board.in_check() && !board.has_legal_move()) return true;   // stalemate
+     if (board.is_insufficient_material()) return true;               // nobody can mate
+     if (board.halfmove_clock() >= 100) {
++        // CORRECTNESS EXPERIMENT: the claim cannot be avoided only when NO legal move resets the
++        // counter, i.e. no pawn move and no capture anywhere. (The earlier version required ALL
++        // moves to reset, which is the opposite case: there the clock drops to 0 and play goes on.)
+         for (const Move move : board.legal_moves()) {
+-            if (!move.is_capture() && piece_type(board.piece_at(move.from)) != Pawn) return false;
++            if (move.is_capture() || piece_type(board.piece_at(move.from)) == Pawn) return false;
+         }
+-        return true;      // every move resets the counter: the claim cannot be avoided
++        return true;      // no reset available: a genuine fifty-move draw
+     }
+     return false;         // a repetition is claimable and refusable: real evaluation
+ }

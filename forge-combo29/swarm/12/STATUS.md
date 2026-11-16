@@ -255,3 +255,22 @@ error in MY condition (it requires ALL moves to reset; that board has NONE), not
 
 Verdict: diagnosis right, direction right, patch NOT ready. Full table in job5/fix_report.md.
 S-F17 records it in FINDINGS as NOT READY.
+
+## 2026-11-16T22:32:24Z — correctness experiment on the claimable-draw condition
+
+Inverted exactly one condition (terminal only when NO legal move resets the clock), scratch copy,
+nothing else touched — verified by diff: one block, two lines.
+
+BASE tree: **all four cases land correctly** plus the no-reset control. Fifty-move claimable cp 0 ->
+-163 (real value), repetition-winning-side cp 0 -> -1197, losing-side stays cp 0, K v K stays cp 0 /
+0 nodes, no-reset control stays cp 0 / 0 nodes. So the earlier regressions were caused entirely by my
+polarity error.
+
+PINS: **unchanged to the node** vs the not-ready build — bench 11 353312, bench 13 979723,
+bench 16 2893009, perft 5 exact. Since correcting the fifty-move half left the pins bit-identical,
+**the 13 % pin cost comes from the REPETITION half**, not from the fifty-move condition.
+
+PC r15: cases 1, 2, 4 correct but cases 3 and the no-reset control are still wrong (-1237 and -450),
+so it cannot be called correct on the build the owner plays. Not investigated; the pins decide.
+
+Labeled a correctness experiment, not a candidate. job5/experiment_report.md.
