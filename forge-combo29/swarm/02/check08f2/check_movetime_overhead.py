@@ -87,6 +87,23 @@ def main():
             proc.stdin.flush()
             proc.wait(timeout=30)
             walls = [r["wall_s"] * 1000.0 for r in rows if r["wall_s"] is not None]
+            # INTEGRITY GUARD (seat 19's warning): a cell with missing measurements must never be able to
+            # produce a number that reads like a result. Anything less than the full set is a hard failure.
+            expected = TRIALS * len(POSITIONS)
+            if len(walls) != expected:
+                sys.exit("FAIL cell %s: %d of %d searches measured; the missing ones would silently "
+                         "disappear from the median. Fix the harness, do not report this number."
+                         % (key, len(walls), expected))
+            if not walls:
+                sys.exit("FAIL cell %s: no measurements at all" % key)
+            for v in walls:
+                if v != v or v in (float("inf"), float("-inf")):  # NaN / inf can never pass as a result
+                    sys.exit("FAIL cell %s: non-finite measurement %r" % (key, v))
+            # the engine must have printed a bestmove for every search, or the "wall time" is the
+            # time until something else happened
+            no_bm = [r for r in rows if "bestmove" not in (r.get("out") or "")]
+            if no_bm:
+                sys.exit("FAIL cell %s: %d searches produced no bestmove line" % (key, len(no_bm)))
             results[key] = walls
             json.dump(rows, open(os.path.join(OUT, "raw_%s.json" % key), "w"), indent=1)
             print("%-10s n=%2d median %7.2f ms  mean %7.2f  min %7.2f  max %7.2f"
@@ -108,6 +125,44 @@ def main():
     print(text)
     open(os.path.join(OUT, "table.md"), "w").write(
         "| cell | n | median ms | mean ms | gap to the movetime |\n|---|---|---|---|---|\n" + text + "\n")
+    verdict(results)
+
+
+def verdict(results):
+    """Print CONFIRMS / REFUTES only after asserting the numbers exist and the control moved.
+
+    This is the guard seat 19's warning asks for: no empty list, no NaN, no missing line may reach a
+    verdict. If a needed number is absent the function exits non-zero instead of guessing."""
+    for mt in (50, 200):
+        for ov in (10, 0):
+            key = "%d_ov%d" % (mt, ov)
+            if key not in results or not results[key]:
+                sys.exit("FAIL verdict: cell %s missing; cannot confirm or refute" % key)
+    gaps = {}
+    for mt in (50, 200):
+        for ov in (10, 0):
+            w = results["%d_ov%d" % (mt, ov)]
+            gaps[(mt, ov)] = mt - statistics.median(w)
+    # CLAIM: the gap with overhead 10 is ~10 ms and is an ABSOLUTE amount, the same at both movetimes
+    g50_10, g200_10 = gaps[(50, 10)], gaps[(200, 10)]
+    g50_0, g200_0 = gaps[(50, 0)], gaps[(200, 0)]
+    if any(v != v for v in (g50_10, g200_10, g50_0, g200_0)):
+        sys.exit("FAIL verdict: a gap is NaN")
+    checks = {
+        "gap at movetime 50 overhead 10 is 8..12 ms": 8.0 <= g50_10 <= 12.0,
+        "gap at movetime 200 overhead 10 is 8..12 ms": 8.0 <= g200_10 <= 12.0,
+        "the two gaps differ by under 1.5 ms (absolute, not a fraction)": abs(g50_10 - g200_10) < 1.5,
+        "overhead 0 gap at movetime 50 is under 2 ms": abs(g50_0) < 2.0,
+        "overhead 0 gap at movetime 200 is under 2 ms": abs(g200_0) < 2.0,
+    }
+    print()
+    print("### verdict checks (each must pass, printed by the script that measured them)")
+    for name, ok in checks.items():
+        print("- %-58s %s" % (name, "PASS" if ok else "FAIL"))
+    if not all(checks.values()):
+        sys.exit("CONCLUSION: REFUTES 08-F2 (at least one mechanism check failed)")
+    print()
+    print("CONCLUSION: CONFIRMS 08-F2 — the loss is the absolute Move Overhead, and zeroing the option removes it.")
 
 
 if __name__ == "__main__":

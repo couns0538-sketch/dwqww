@@ -161,11 +161,41 @@ def board_after(lines, upto):
     return board
 
 
+def _judge_go(out, eng, lines, i, line):
+    """Count, record and judge the bestmove that answered the `go` at lines[i]."""
+    parts = line.split()
+    with eng.lock:
+        # the bestmove is the newest one in the buffer
+        at = max(idx for idx, l in enumerate(eng.lines) if l.startswith("bestmove"))
+        bm_line = eng.lines[at]
+    out["n_bestmove"] += 1
+    m = BESTMOVE_RE.match(bm_line)
+    bm = m.group(1) if m else "?"
+    board = board_after(lines, i)
+    legal = {mv.uci() for mv in board.legal_moves}
+    has_sm = "searchmoves" in parts
+    if bm == "0000" and legal:
+        if has_sm:
+            out["zero_with_searchmoves"] += 1
+        else:
+            out["zero_no_searchmoves"] += 1
+            out["illegal_bestmoves"].append({"i": i, "bestmove": bm, "fen": board.fen(),
+                                             "go": line, "kind": "0000 on a board with legal moves"})
+    elif bm != "0000" and bm not in legal:
+        out["illegal_bestmoves"].append({"i": i, "bestmove": bm, "fen": board.fen(), "go": line,
+                                         "legal_sample": sorted(legal)[:12],
+                                         "kind": "move not legal in the engine's board"})
+    out["bestmoves"].append({"i": i, "bestmove": bm, "go": line})
+    out["steps"].append({"i": i, "line": line, "answer": bm_line})
+    return bm_line
+
+
 def run_one(exe, rec):
     sid, lines = rec["id"], rec["lines"]
     out = {"id": sid, "steps": [], "crashed": False, "hung": False, "sanitizer_lines": 0,
            "sanitizer_first": [], "illegal_bestmoves": [], "readyok_missing": 0, "uciok_missing": 0,
            "zero_no_searchmoves": 0, "zero_with_searchmoves": 0, "bestmoves": [], "n_go": 0,
+           "outstanding_go": None, "go_without_info_depth": 0,
            "n_bestmove": 0, "go_without_bestmove": 0, "timeouts": []}
     eng = Engine(exe)
     t0 = time.monotonic()
@@ -192,38 +222,32 @@ def run_one(exe, rec):
                 out["steps"].append({"i": i, "line": line, "answer": "readyok" if at >= 0 else "NONE"})
             elif cmd == "go":
                 out["n_go"] += 1
+                # A `go infinite` (or `go ponder`) owes no bestmove until a `stop`/`ponderhit` arrives, so it
+                # must NOT be waited on here: doing so is a harness hang, not an engine fault. Record it as
+                # outstanding and let the sequence's own `stop` collect the answer.
+                if parts.count("infinite") or parts.count("ponder"):
+                    out["outstanding_go"] = {"i": i, "line": line, "start": start}
+                    out["steps"].append({"i": i, "line": line,
+                                         "answer": "(no answer owed: unbounded search)"})
+                    continue
                 at = eng.wait_for("bestmove", start)
                 if at < 0:
                     out["go_without_bestmove"] += 1
                     out["timeouts"].append({"i": i, "line": line, "waiting_for": "bestmove"})
                     out["steps"].append({"i": i, "line": line, "answer": "NONE"})
                     continue
-                with eng.lock:
-                    bm_line = eng.lines[at]
-                    info_before = [l for l in eng.lines[start:at] if l.startswith("info depth")]
-                out["n_bestmove"] += 1
-                m = BESTMOVE_RE.match(bm_line)
-                bm = m.group(1) if m else "?"
-                board = board_after(lines, i)
-                legal = {mv.uci() for mv in board.legal_moves}
-                has_sm = "searchmoves" in parts
-                if bm == "0000" and legal:
-                    if has_sm:
-                        out["zero_with_searchmoves"] += 1
-                    else:
-                        out["zero_no_searchmoves"] += 1
-                        out["illegal_bestmoves"].append({"i": i, "bestmove": bm, "fen": board.fen(),
-                                                         "go": line, "kind": "0000 on a board with legal moves"})
-                elif bm != "0000" and bm not in legal:
-                    out["illegal_bestmoves"].append({"i": i, "bestmove": bm, "fen": board.fen(),
-                                                     "go": line,
-                                                     "legal_sample": sorted(legal)[:12],
-                                                     "kind": "move not legal in the engine's board"})
-                out["bestmoves"].append({"i": i, "bestmove": bm, "info_depth_lines": len(info_before),
-                                         "go": line})
-                out["steps"].append({"i": i, "line": line, "answer": bm_line})
+                _judge_go(out, eng, lines, i, line)
             elif cmd in ("stop", "ponderhit", "ucinewgame", "setoption", "position", ""):
-                # no answer is owed; give the engine a moment to emit anything it wants to
+                og = out.get("outstanding_go")
+                if og is not None and cmd in ("stop", "ponderhit", "ucinewgame"):
+                    at = eng.wait_for("bestmove", og["start"])
+                    if at < 0:
+                        out["go_without_bestmove"] += 1
+                        out["timeouts"].append({"i": og["i"], "line": og["line"],
+                                                "waiting_for": "bestmove after %s" % cmd})
+                    else:
+                        _judge_go(out, eng, lines, og["i"], og["line"])
+                    out.pop("outstanding_go", None)
                 time.sleep(0.004)
                 out["steps"].append({"i": i, "line": line, "answer": "(no answer owed)"})
             else:
@@ -247,8 +271,13 @@ def run_one(exe, rec):
         out["sanitizer_lines"] = len(san)
         out["sanitizer_first"] = san[:2]
         out["output_lines"] = len(text)
+        # 19-F12 detector: a fabricated bestmove comes with no `info depth` line at all for that search.
+        # Counted per sequence: bestmoves whose search produced no info line before them is measured below.
+        out["info_depth_lines"] = sum(1 for l in text if l.startswith("info depth"))
         out["wall_s"] = round(time.monotonic() - t0, 3)
-        bad = (out["crashed"] or out["hung"] or san or out["illegal_bestmoves"]
+        # a sequence that got bestmoves but produced no `info depth` line at all is the fabrication signature
+        out["fabrication_suspected"] = bool(out["n_bestmove"] and out["info_depth_lines"] == 0)
+        bad = (out["crashed"] or out["hung"] or san or out["illegal_bestmoves"] or out["fabrication_suspected"]
                or out["readyok_missing"] or out["uciok_missing"] or out["zero_no_searchmoves"]
                or out["go_without_bestmove"])
         out["bad"] = bool(bad)

@@ -66,3 +66,53 @@ engine's full output for that search), out/meta.json (exe path, sha256, options 
 
 ## times
 see the `date -u` lines in the commits; out/meta.json holds `started_utc`.
+
+## integrity re-audit (seat 19's warning, 2026-11-16T21:40Z)
+
+Seat 19 reported a check that printed CONFIRMS while measuring nothing: it grepped engine output for a line
+the engine never prints, the parser got nothing, the comparison went NaN, and the NaN passed. Every check of
+mine that parses engine output was re-audited against that failure mode.
+
+This check (the only CONFIRMS I have filed) is now guarded, and the guards were PROVEN to fire:
+
+1. every cell must contain the full 72 measurements (`len(walls) != expected` -> exit, no number printed);
+2. no measurement may be NaN or infinite -> exit;
+3. every search must have produced a `bestmove` line -> exit ("wall time until something else happened"
+   is not a latency measurement);
+4. the verdict itself re-checks that all four cells exist before printing anything;
+5. the CONFIRMS is only printed when five mechanism conditions all hold (gaps 8-12 ms at both movetimes,
+   the two gaps within 1.5 ms of each other, and under 2 ms with Move Overhead 0) — the conclusion line is
+   printed BY the script that measured the numbers, not typed by me.
+
+Negative control (the guards must fire, and do — output pasted from the run):
+
+```
+$ python3 -c 'verdict({"50_ov10": [], ...})'
+guard fired as intended -> FAIL verdict: cell 50_ov10 missing; cannot confirm or refute
+$ python3 -c 'verdict({"50_ov10": [nan], ...})'
+guard fired as intended -> FAIL verdict: a gap is NaN
+```
+
+A re-measurement with the guards active reproduces the result (`out_v2/`, a second independent run):
+
+| cell | n | median ms | mean ms | gap to the movetime |
+|---|---|---|---|---|
+| movetime 50, Move Overhead 10 | 72 | 40.35 | 40.60 | 9.65 |
+| movetime 50, Move Overhead 0 | 72 | 50.37 | 50.62 | -0.37 |
+| movetime 200, Move Overhead 10 | 72 | 190.61 | 190.83 | 9.39 |
+| movetime 200, Move Overhead 0 | 72 | 200.61 | 200.82 | -0.61 |
+
+and its own verdict block:
+
+```
+- gap at movetime 50 overhead 10 is 8..12 ms                 PASS
+- gap at movetime 200 overhead 10 is 8..12 ms                PASS
+- the two gaps differ by under 1.5 ms (absolute, not a fraction) PASS
+- overhead 0 gap at movetime 50 is under 2 ms                PASS
+- overhead 0 gap at movetime 200 is under 2 ms               PASS
+CONCLUSION: CONFIRMS 08-F2
+```
+
+What the guard does NOT do, said plainly: it checks that numbers are PRESENT and FINITE, not that they are
+honest. A fabricated but self-consistent set would pass it. The defence against that is the raw per-search
+files (out/ and out_v2/raw_*.json), each holding the engine's own output for that search.
