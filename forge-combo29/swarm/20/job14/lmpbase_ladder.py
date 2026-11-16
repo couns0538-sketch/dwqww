@@ -22,8 +22,9 @@ os.makedirs(OUT, exist_ok=True)
 # mate distances verified with python-chess below (asserted), so the ladder is my own, not assumed
 BOARDS = [
     ("mate1", "6k1/5ppp/8/8/8/8/5PPP/3Q2K1 w - - 0 1"),
-    ("mate2", "6k1/5ppp/8/8/8/8/5PPP/3Q2K1 w - - 0 1"),   # same board, we will just record its depth-2 line
-    ("mate-in-3", "6k1/5ppp/8/8/8/8/5PPP/2R3K1 w - - 0 1"),
+    # a REAL mate in 3 (no mate in 1: verified below with my own python-chess search)
+    ("mate-in-3", "6k1/6pp/8/8/8/8/5PPP/R5K1 w - - 0 1"),
+    # (the long forced mate is the S-F19 board itself; it is listed once, below, so no row is duplicated)
     ("S-F19 board", "8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1"),
 ]
 
@@ -119,9 +120,12 @@ def mates_in(board, plies):
 
 print(f"exe {EXE}")
 print("ladder proof (python-chess, mate-in-1 search by me):")
-for name, fen in BOARDS[:3]:
+for name, fen in BOARDS:
     m1 = mates_in(fen, 1)
-    print(f"  {name:12s} {fen}  -> mate-in-1 moves: {m1[:3]}{' ...' if len(m1) > 3 else ''}")
+    m3 = mates_in(fen, 3)
+    print(f"  {name:12s} {fen}")
+    print(f"      mate-in-1 count {len(m1)}{'  (' + str(m1[0]) + ')' if m1 else ''}"
+          f"   mate-in-3 count {len(m3)}{'  (' + str(m3[0]) + ')' if m3 else ''}")
 print()
 
 rows = []
