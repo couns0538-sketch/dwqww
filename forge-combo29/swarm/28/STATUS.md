@@ -131,3 +131,6 @@ DRAWN-ROOT re-run on PC r15 / PC20 / Threads 1 / depth 12: ALL REPAIRED, exactly
 
 ## Mon Nov 16 10:22:35 PM UTC 2026
 TASK 1 DONE: DRAWN_ROOT_DOORS.md - per-door base vs PC20 side by side with node counts, one sentence at the top saying no drawn-root patch from this swarm is needed on the PC tree. All 4 doors: base 0 nodes/cp 0/f2f3 -> PC20 240-398 nodes with mate score. Controls unchanged (K v K still 0 nodes; KQ v K still cp 0). A first run of the script reported A3 as STILL BROKEN because my judge tested for immediate checkmate and mate 2 is not immediate - fixed to judge by score, and that wrong verdict was corrected before anything was written up.
+
+## Mon Nov 16 10:24:26 PM UTC 2026
+TASK 2 DONE, and it went AGAINST my prediction (S-F25). Same grid both builds, Threads 1 each, 16 pos/cell, achieved time + last depth: wtime 1000 PC same depth 13 in 36% less wall; wtime 3000 same depth, same time; wtime 10000 PC depth 18 vs base 20 in 12% less time. nps is NOT higher on PC (1.02x / 0.87x / 0.90x). So S-F20's better tail = STOPS EARLIER, not deeper searching — and at the long clock it costs 2 ply. V2/V3/V6 refuted. This reframes S-F20 from a strength claim to a time-management difference; will verify with more positions before stating it as final.
