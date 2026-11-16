@@ -1,0 +1,47 @@
+[
+ {
+  "case": "halfmove_65536",
+  "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 65536 1",
+  "corrected_board_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  "engine_perft1": "20",
+  "corrected_legal": 20,
+  "board_is_corrected_board": true,
+  "python_chess_reading": "python-chess accepts and the board is legal",
+  "engine_score_at_depth10": "cp 20",
+  "engine_nodes_at_depth10": "14621",
+  "sanitizer_lines": [],
+  "refused": false,
+  "who_would_send_this": "a GUI that writes the halfmove counter as a 16-bit value wrapping past 65535, or one reading a corrupt/PGN-derived counter",
+  "realism": "counter beyond the range a real game can produce (a halfmove counter cannot exceed 150 in a real game: the seventy-five-move rule ends it, and 100 ends it by claim)"
+ },
+ {
+  "case": "fullmove_1e9",
+  "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1000000000",
+  "corrected_board_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  "engine_perft1": "20",
+  "corrected_legal": 20,
+  "board_is_corrected_board": true,
+  "python_chess_reading": "python-chess accepts and the board is legal",
+  "engine_score_at_depth10": "cp 24",
+  "engine_nodes_at_depth10": "13102",
+  "sanitizer_lines": [],
+  "refused": false,
+  "who_would_send_this": "a GUI that derives the move number from a clock, a ply count, or an arithmetic bug (10^9 is a round number in a float or a parsed overflow)",
+  "realism": "move number beyond any game; the engine has no observable use for it"
+ },
+ {
+  "case": "junk_after_six",
+  "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 zzz",
+  "corrected_board_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  "engine_perft1": "20",
+  "corrected_legal": 20,
+  "board_is_corrected_board": true,
+  "python_chess_reading": "python-chess accepts and the board is legal",
+  "engine_score_at_depth10": "cp 24",
+  "engine_nodes_at_depth10": "13102",
+  "sanitizer_lines": [],
+  "refused": false,
+  "who_would_send_this": "a GUI appending its own annotation, a trailing separator, or a second FEN's fields to a valid FEN",
+  "realism": "the board itself is a perfectly legal board; only the trailing token is malformed"
+ }
+]

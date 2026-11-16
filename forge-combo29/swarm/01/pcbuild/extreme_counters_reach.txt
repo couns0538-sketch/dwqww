@@ -1,0 +1,26 @@
+can the three extreme-counter FEN accepts reach a REAL GAME?
+pc   (PC r15, no setoption used here) /home/ubuntu/builds/pc/forge sha256 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+asan (PC r15 ASan+UBSan)          /home/ubuntu/builds/pcasan/forge sha256 ae1a49b6eb642cc198689d0d0cf8ea1f5a8e622148bf2c72073bf5a77172aea2
+every case: fresh process, ucinewgame + isready before the position, guard = go perft 1 vs
+python-chess's legal count for the CORRECTED FEN
+
+case	engine accepts	board is the CORRECTED board	python-chess	ASan+UBSan	who would send it
+halfmove_65536	True	True	python-chess accepts and the board is legal	0 lines	a GUI that writes the halfmove counter as a 16-bit value wrapping past 65535, or one reading a corrupt/PGN-derived counter
+fullmove_1e9	True	True	python-chess accepts and the board is legal	0 lines	a GUI that derives the move number from a clock, a ply count, or an arithmetic bug (10^9 is a round number in a float or a parsed overflow)
+junk_after_six	True	True	python-chess accepts and the board is legal	0 lines	a GUI appending its own annotation, a trailing separator, or a second FEN's fields to a valid FEN
+
+RANKING, on whether malformed input is REQUIRED to trigger each one (all three: yes):
+  halfmove_65536   needs malformed input: True   board still legal: True    sanitizer lines: 0
+  fullmove_1e9     needs malformed input: True   board still legal: True    sanitizer lines: 0
+  junk_after_six   needs malformed input: True   board still legal: True    sanitizer lines: 0
+
+One detail the numbers show rather than the code: halfmove 65536 scored cp 20 in 14621 nodes
+while the same board at halfmove 0 scored cp 24 in 13102, so the accepted-but-out-of-range
+counter IS used by the search (it drives the fifty-move damping), it is just not refused.
+
+All three need a FEN field that no legal game can produce (a halfmove counter above 150, a move
+number of 10^9) or a malformed trailing token. A well-formed GUI sending a legal game never
+produces any of them. They are COSMETIC: no legal board is misread, no move is misgenerated,
+and no sanitizer fires. Ranked, the most plausible to see in the wild is junk_after_six
+(a GUI appending an annotation to a valid FEN still gets a correct board), then the two
+counters, which need an arithmetic or width bug in the GUI.
