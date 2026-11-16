@@ -435,3 +435,16 @@ owner's real path is not exposed -- THE HEADLINE); untimed go depth 22 at a high
 (250M nodes to depth 15). Practical note (10-F65): a harness running untimed deep searches on high-counter
 K+Q boards will look hung -- file 6's own recipe has that shape, so cap it or send a clock.
 Mon Nov 16 11:34:57 PM UTC 2026
+
+## FINAL EDIT — 10-F65 now leads with the action
+Reworded so the imperative comes first: "ACTION FOR EVERY SEAT STILL USING FILE 6'S DIAGNOSTIC RECIPE: CAP
+THE TIME" -- send wtime/btime, movetime or a node budget instead of an untimed `go depth 20+` on a
+high-counter board, or wrap the call in a timeout. The recipe is fine on the counter-0 board where it is
+specified; it is the high-counter variant that is slow (250 M nodes to depth 15, nothing at 120 s).
+
+AREA 10 CLOSED. Final state: 97 findings lines (10-F1..F65, 10-C1..C18, 10-R1..R8, 10-N1..N4, 10-A1/A2),
+HONESTY.txt (4/4 pins), REPORT_job2.md, pc/REPORT_pc_recheck.md, audit/AUDIT_KNOWN.md (the 12-claim brief
+audit), regimes/rule-r1-unfinished-searches.md (the checker rule + cp0 classification),
+regimes/measurement-rules-a-future-swarm-must-apply.md (14 rules, three with verified raw-data pointers),
+and the committed tools is_unfinished.py / classify_cp0.py / scan_repo.py. Working tree clean.
+Mon Nov 16 11:35:35 PM UTC 2026
