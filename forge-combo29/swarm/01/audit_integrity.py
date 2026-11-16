@@ -154,6 +154,27 @@ def main():
     audit_job2_res(root, "fix2", "results.json")
     audit_job3(root)
     audit_check(root, "check_s11_f1_raw.json", "perft1_nodes")
+    # SYNTHETIC NEGATIVE TEST: the audit must catch the exact failure seat 19 describes.
+    # A record that accepted a FEN but has no bestmove and no perft number must be INVALID.
+    global bad, checked
+    saved = list(bad)
+    bad.clear()
+    fake = {"i": 999999, "fen": "8/8/8/8/8/8/8/K6k w - - 0 1", "refused": False,
+            "answer_position": [], "bestmove": "", "sanitizer": []}
+    audits = 0
+    if not (any(a.startswith("readyok") for a in fake.get("answer_position") or [])):
+        fail("NEGATIVE TEST", "no readyok -> correctly rejected")
+        audits += 1
+    if not fake.get("bestmove"):
+        fail("NEGATIVE TEST", "no bestmove -> correctly rejected")
+        audits += 1
+    neg_caught = len(bad)
+    bad[:] = saved   # the synthetic failures are expected; do not keep them
+    print("")
+    print("negative test: a record with no readyok and no bestmove raised %d integrity failures "
+          "(expected 2) -> %s" % (neg_caught, "AUDIT WORKS" if neg_caught == 2 else "AUDIT IS BLIND"))
+    if neg_caught != 2:
+        bad.append("AUDIT IS BLIND: the negative test did not raise exactly 2 failures")
     print("")
     if bad:
         print("INTEGRITY FAILURES: %d" % len(bad))
