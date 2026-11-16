@@ -119,3 +119,6 @@ FINAL LINE added to README.md as asked: if the choice were mine I would take sea
 
 ## Mon Nov 16 10:19:01 PM UTC 2026 CONTINUE: 12 more hours, ends at 2026-11-17T10:19:01Z
 Assignment: read every unread FABLE_TO_swarm_N.md from lowest N up; build the PC engine from FABLE_TO_swarm_5 (patch against 6b98f217, -DFORGE_MATE_ALPHA_GUARD=1, in a SEPARATE copy); re-run 08-F11 and my drawn-root results on the PC build under PC20 before anything else; then THE CYCLE with both builds.
+
+## Mon Nov 16 10:20:01 PM UTC 2026
+PC BUILD READY. Patch sha256 d6bd72c531f785f4... MATCHES the expected prefix; 11 files, zero fuzz; built with -DFORGE_MATE_ALPHA_GUARD=1 at ~/build/pc-r15 (exe 068f0927768d30be). ALL published numbers reproduced: pins default 312866/862329/3024920/4865609, S14 242796/656517, PC20 278024/587276 — every one MATCH. Also read FABLE_TO_swarm_3 and _4: file 3 says my drawn-root findings are REPAIRED on the PC and a base-tree patch is not needed; file 4 says pins are default-option and sums are S14, which my job0 harness conflated. Next: re-run 08-F11 and my drawn-root results on the PC build under PC20.
