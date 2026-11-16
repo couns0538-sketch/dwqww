@@ -137,10 +137,28 @@ CHECKS I wrote: 15-C1 CONFIRMS 05-F8 | 15-C2 CONFIRMS 07-F1 | 15-C3 CONFIRMS 10-
 15-C4 CONFIRMS 05-F1 | 15-C5 CONFIRMS 19-F33 | 15-C6 CONFIRMS 08-F22 (measurement; defect framing
 withdrawn as 15-R3) | 15-C7 CONFIRMS 08-F23 + 08-C9 (both switch claims).
 
-SELF-CORRECTIONS (7): 15-R1 terminal `mate 0` was correct output · 15-R2 a harness measured a REFUSED
-FEN's stale board · "insufficient material is searched" (it is 0 nodes) · 15-R3 the fifty-move band is
-correct, not a defect · the 15-F21 "gap" framing · 15-F19 (attribution now isolated) · the softnodes P3
-overshoot band, and the movetime P1-P3 bands, were my under-specified predictions.
+SELF-CORRECTIONS (4 recorded as R-lines, 8 total counting three that live inside F/C lines):
+- **15-R1** terminal `score mate 0` is CORRECT output — my "defect" was wrong (python-chess parses it as
+  `Mate(-0)`, the worst possible score).
+- **15-R2** a harness of mine measured a REFUSED FEN's stale board; every harness now detects
+  `invalid FEN` and carries a startpos positive control.
+- **15-R3** the fifty-move `cp 0` band is CORRECT, not a defect — the mate needs 15 plies and only 9
+  remain at counter 91.
+- **15-R4** the clock does NOT empty; my linear "moves until empty" treated a function of the clock as a
+  constant. The cost falls with the clock and converges to a floor at C* = (I+10)/0.60.
+- three more inside F/C lines: "insufficient material is searched" (it is 0 nodes, 15-F17); the 15-F21
+  "gap" framing (it is a removed call by design, 15-F23); and three under-specified predictions
+  (15-F29 P3, 15-F34 P1-P3, 15-C6's label).
+
+CHECKS I wrote (9): **15-C1** CONFIRMS 05-F8 · **15-C2** CONFIRMS 07-F1 · **15-C3** CONFIRMS 10-F6 ·
+**15-C4** CONFIRMS 05-F1 · **15-C5** CONFIRMS 19-F33 · **15-C6** CONFIRMS 08-F22's *measurements*
+(its defect framing withdrawn as 15-R3) · **15-C7** CONFIRMS 08-F23 + 08-C9 (both switch claims) ·
+**15-C8** CONFIRMS 03-F5 at the divide level · **15-C9** CONSISTENT WITH 07-F4/07-C38 (my 7/7 is a
+construction inside their class, not a rate).
+
+TOTALS: **36 findings, 9 checks, 4 R-corrections (8 corrections overall), 30 reports/pages.**
+Every number was produced by a committed script reading committed raw files. Threads 1 throughout
+(audited: no run of mine used more). Every finding line names its build and settings.
 
 ### 5. WHAT I DID NOT DO
 No match against another engine; no `movetime` above 3000 at other builds; no frequency estimate for the
