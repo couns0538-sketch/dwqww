@@ -56,7 +56,15 @@ is a strength knob worth tuning on the owner's clock; if B sits inside 45-55 % w
 conservatism is correct and the current setting should stay. In strength terms, a 55 % score is **+35 Elo** and
 52 % is +14 Elo (the brief's own conversion, `-400*log10(1/m-1)`), so the band 45.1-54.9 % at 400 games
 corresponds to roughly **-35 to +34 Elo** — i.e. this test detects an effect of about 35 Elo and would NOT detect
-a real 15-Elo gain. If the owner suspects the effect is small, use 1,000 games, where the band tightens to
-46.9-53.1 % (+/-3.1 %, about +/-22 Elo). The arithmetic for both is in the file's own numbers: 1.96*sqrt(0.25/n). Either answer is useful, which is why this is worth
+a real 15-Elo gain.
+
+**If 400 games comes out flat but the owner expected a small effect, do NOT conclude "no effect" — escalate to
+1,000 games.** The reason is arithmetic, not caution: at 400 games a genuine 15-Elo gain is only a 52 % score,
+which sits INSIDE the 45.1-54.9 % flat band, so a flat 400-game result cannot distinguish "no effect" from "a
+15-Elo effect"; the test is simply not powered for it. At 1,000 games the band tightens to **46.9-53.1 %
+(+/-3.1 %, which is +/-21.6 Elo exactly)**, so a 52 % / +14-Elo gain is still marginal but a 53 % / +21-Elo gain
+becomes visible, and resolving 15 Elo properly needs about 1,750 games (**47.7-52.3 %, +/-2.34 %, +/-16.0 Elo**). The formula is `1.96*sqrt(0.25/n)` throughout and I recomputed each of these
+rather than estimating them. So the rule is: **400 games answers "is it worth 35 Elo or more"; if the answer is no
+and a small effect is plausible, 1,000 games; below that, do not believe a small number without 1,750.** Either answer is useful, which is why this is worth
 400 games — and it is the only way to answer it, since both settings produce legal, deterministic, reproducible
 search and only a score can separate them.
