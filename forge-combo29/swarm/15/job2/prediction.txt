@@ -1,0 +1,22 @@
+PREDICTION — seat 15, area 5, job 2 (draw scores), committed BEFORE the first measuring command.
+
+What will be measured, depth 10, S14, Threads 1, Hash 16, one fresh search per position:
+  20 positions K v K, 20 KN v K, 20 KB v K, 20 KNN v K,
+  20 threefold-repetition positions reached by a move list,
+  20 positions with the fifty-move counter at 99.
+Score of the ROOT after `go depth 10` (last info line).
+
+P1  K v K      : all 20 score exactly cp 0.            KILLS P1: any non-zero.
+P2  KN v K     : all 20 score exactly cp 0.            KILLS P2: any non-zero.
+P3  KB v K     : all 20 score exactly cp 0.            KILLS P3: any non-zero.
+P4  KNN v K    : all 20 score exactly cp 0.            KILLS P4: any non-zero (KNN vs K is a dead draw
+                                                        that python-chess calls insufficient material).
+P5  threefold  : all 20 score exactly cp 0.            KILLS P5: any non-zero.
+P6  fifty-move : all 20 score in [-30, +30] (a draw-ish score, NOT forced 0: at 99 the engine may
+                 still think it can make progress before the counter trips). KILLS P6: any |score| > 200,
+                 or any score reported as mate.
+P7  no crash, no illegal bestmove in any of the 120 positions.  KILLS P7: any crash or illegal move.
+
+Reasoning: a correct engine returns 0 exactly for positions it recognises as dead draws and for a
+repetition it can see on the board; the fifty-move case is a heuristic, so it gets a band rather
+than an exact 0.
