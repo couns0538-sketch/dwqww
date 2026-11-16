@@ -219,7 +219,10 @@ clock, same binary, came out four-fold apart: 238 ms over 20 varied G positions 
 endgames) and 147 ms over one middlegame repeated. Both were right. Sampling noise moved the median 2 %
 across a twelve-fold change in n; the *position mix* moved it 100 %+. So state the position set with
 every timing figure and never compare clock medians across studies that used different sets — the
-slower-looking engine may just be playing harder positions. (S-F96b)
+slower-looking engine may just be playing harder positions. **Four independent measurements of the same
+6s+0.06 clock on the same build, by two seats, gave medians of 100, 110, 147 and 238 ms — a 2.4x spread
+with only the position mix differing** (S-F98). Anyone comparing two such rows would think one engine was
+different; neither was. (S-F96b, S-F98)
 
 **Never quote a clock-stop node count as a deterministic result.**
 
