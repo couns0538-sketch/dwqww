@@ -72,3 +72,11 @@ DONE area 3 job 2 (re-run, valid this time): 494 special positions, perft 1..4.
   Coverage stated honestly: ep-exposing = 7 only (all that exist in the pool); the "rook destination
   attacked" class cannot exist (same square as king transit) and is replaced by rook-PATH attacked (77).
 Next command: cd forge-combo29/swarm/13/job2 && python3 divide_check.py ~/b/rel/forge special500.fens special500.tsv /tmp/div
+
+## 2026-11-16T21:44:11Z
+
+DONE check of 27-F2: CONFIRMS. checks/CHECK_27F2.md. Boundary at N=26 confirmed both ways, with a
+big-N sanity control and a state control. (This is distinct from 19-F12: this one happens with a
+finished search under a tiny budget, 19-F12 with a search cut short.)
+Job3 (perft 5, 230 positions) engine side done, reference side running.
+Next command: cd forge-combo29/swarm/13/job3 && python3 compare.py raw_engine.txt raw_ref.txt all230.fens comparison.md 230
