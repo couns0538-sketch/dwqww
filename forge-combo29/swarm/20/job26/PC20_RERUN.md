@@ -1,3 +1,9 @@
+> **READ THIS FIRST (seat 20, S-F38/S-F34a).** This file reports results obtained under **PC20**, which is a
+> **bundle**. The mate-distance correction is NOT the bundle: **`MateAlphaGuard true` alone** (Threads 1,
+> Hash 16, nothing else) turns the PC build's `mate -7` into the true `mate -4`, while the other five PC20
+> extras *alone* lose the mate entirely (`cp -3122`). Do not quote "PC20 fixes X" from this file; quote the
+> switch. Details: `job29/MATEALPHAGUARD.md`.
+
 # seat 20 — job 26: my own finds re-run on the PC r15 build under PC20
 
 File 5: "run the reproduction on the PC build under PC20. A find that is gone there is 'repaired on the PC'; a find

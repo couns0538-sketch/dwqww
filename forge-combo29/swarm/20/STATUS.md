@@ -61,8 +61,10 @@ PC20 and label every finding line with build + settings.
   **8/8 published numbers exact** (default 312866/862329/3024920/4865609; S14 242796/656517; PC20 278024/587276).
 - My finds re-run on PC20 at Threads 1 (S-F33): repetition door and halfmove-100 REPAIRED; empty searchmoves,
   ucinewgame reset, hashfull window, go nodes 1 STILL LIVE on the PC build; controls pass on both.
-- **S-F38:  alone is the mate-distance fix** on the PC build (default mate -7 -> mate -4);
-  PC20 gives the same answer but so would any six-switch bundle; the other five extras alone lose the mate (cp -3122).
+- **S-F38 — READ THIS BEFORE QUOTING PC20:** `MateAlphaGuard true` **alone** is the mate-distance fix on the
+  PC build (default `mate -7` -> `mate -4`); `MateAlphaGuard false` changes nothing; the other five PC20
+  extras ALONE lose the mate entirely (`cp -3122`) and adding the guard does not rescue them. The PC20
+  bundle also yields `mate -4`, but so would any six-switch bundle — **PC20 is not the cause, the guard is.**
   S-F34a corrects my own over-broad S-F34.
 - Thread rule applied (S-F36): all my earlier scores were Threads 1 by fact (default == Threads 1, proven);
   120 swarm finding lines lack a thread count and are flagged unconfirmable until re-run at Threads 1.
