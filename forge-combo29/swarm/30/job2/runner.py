@@ -43,6 +43,16 @@ import chess
 READY_TIMEOUT = 20.0
 BESTMOVE_WAIT = 15.0
 EXIT_WAIT = 20.0
+PC20 = [("Threads", 1), ("Hash", 16),
+        ("LmrQuietBase", 93), ("LmrQuietDivisor", 205), ("LmrNoisyBase", 13),
+        ("LmrNoisyDivisor", 333), ("LmrHistoryDivisor", 5643), ("NullMoveBase", 5),
+        ("LmpBase", 8), ("HistoryPruneMultiplier", 2220), ("HistoryBonusQuadratic", 24),
+        ("HistoryBonusLinear", 54), ("HistoryBonusMax", 2212), ("SingularDepth", 6),
+        ("IirDepth", 2), ("NonPawnCorrection", "true"),
+        ("CuckooRep", "true"), ("HistRework", 2), ("TtPruneV2", "true"),
+        ("CorrHistV2", "true"), ("MateAlphaGuard", "true"), ("OwnBook", "false")]
+USE_PC20 = os.environ.get("USE_PC20") == "1"
+
 SAN_PAT = re.compile(r"AddressSanitizer|LeakSanitizer|ThreadSanitizer|runtime error|SUMMARY:")
 
 
@@ -149,7 +159,27 @@ def run_one(idx, lines, exe):
 
     board = chess.Board()
     go_boards = []
-    pending_go = 0          # gos written whose bestmove has not been consumed yet
+    pending_go = 0
+    if USE_PC20:
+        # applied once per process, before the sequence: the sequence's own setoptions come after
+        for name, value in PC20:
+            with olock:
+                m0 = len(out_lines)
+            send("setoption name %s value %s" % (name, value))
+            send("isready")
+            t0 = time.monotonic()
+            while time.monotonic() - t0 < 60:
+                with olock:
+                    blk = out_lines[m0:]
+                if any(x.strip() == "readyok" for x in blk):
+                    break
+                time.sleep(0.003)
+            with olock:
+                badp = [x for x in out_lines[m0:]
+                        if "unknown option" in x or "invalid value" in x]
+            if badp:
+                rec["runner_error"] = "PC20 refused: " + badp[0][:80]
+                break          # gos written whose bestmove has not been consumed yet
     try:
         for line in lines:
             s = line.strip()
@@ -227,16 +257,24 @@ def run_one(idx, lines, exe):
     rec["san"], rec["san_count"] = san[:5], len(san)
     bests = best_list()
     rec["bestmoves"] = len(bests)
-    if rec.get("ended_live"):
-        rec["unpaired"] = max(rec["unpaired"], 1)   # never checked; reported as not measured
-    if len(bests) == len(go_boards) and not rec.get("ended_live"):
+    # 19-F12: only the searches still LIVE when quit was written are tainted. The bestmoves that
+    # arrived BEFORE the last `go` are real search results and stay checkable.
+    live_at_end = rec.get("ended_live", 0)
+    n_checkable = len(go_boards) - live_at_end
+    if len(bests) < len(go_boards):
+        rec["unpaired"] = len(go_boards) - len(bests)
+    if n_checkable > 0 and not rec["unpaired"]:
+        for bm, bd in zip(bests[:n_checkable], go_boards[:n_checkable]):
+            rec["checked"] += 1
+            bad = judge(bm, bd)
+            if bad:
+                rec["illegal"].append(bad)
+    elif len(bests) == len(go_boards) and not live_at_end:
         for bm, bd in zip(bests, go_boards):
             rec["checked"] += 1
             bad = judge(bm, bd)
             if bad:
                 rec["illegal"].append(bad)
-    else:
-        rec["unpaired"] = abs(len(bests) - len(go_boards))
     return rec
 
 
