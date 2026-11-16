@@ -40,5 +40,21 @@ Next command:
 ## 2026-11-16T21:38Z job 3 (board.cpp) + integrity audit
 - P4 perft 1..4 vs python-chess: 12 of 12 positions equal (harness proven able to fail: job3/f2).
 - P5 make/unmake identity: 10 of 10 (perft 2 by move list == by FEN).
-- S-F6 NEW: half-move clock above 100 accepted, position treated as already drawn (nodes 0, cp 0).
+- S-F6 WITHDRAWN as NEW - it repeats seat 01's 01-F5/01-F8 (pushed before mine, unread by me); recorded as S-C3 CONFIRMS. My run adds the release-build confirmation and the patch.
 - SANITIZER RE-RUN paced (after 19-F12): 600 FEN sessions, 1516 info lines, 0 san lines, 0 crashes.
+
+## 2026-11-16T21:40Z - job 4 DONE (the UCI option surface)
+REPORT_job4.md, S-F7: 81 advertised options, 291 setoption cases, 0 unexpected refusals, all four observable
+effects confirmed. A clean negative result. My two false alarms (DrawJitter, Move Overhead) were my own shell
+quoting; recorded in job4/FALSE_ALARMS.md.
+
+## PATCHES for the owner: PATCHES.md
+All three apply with `patch -p1`, no fuzz, alone and TOGETHER; the combined build (sha256 d3f1a40f) keeps
+bench 11/13/16 and perft 5 at 312866 / 862329 / 3024920 / 4865609 and fixes all three behaviours.
+
+## NEXT (if time remains)
+job 5: read the transposition table's lifecycle (clear/resize/new_search against a running search) for a race
+ASan cannot see; TSan belongs to area 4.
+
+Next command:
+  cd /agent/repos/base/forge-combo29 && sed -n '316,360p' src/search.cpp

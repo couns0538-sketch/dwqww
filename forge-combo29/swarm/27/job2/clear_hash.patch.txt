@@ -1,0 +1,15 @@
+--- a/src/search.cpp	2026-11-16 21:33:33.203120729 +0000
++++ b/src/search.cpp	2026-11-16 21:33:33.203120729 +0000
+@@ -2666,7 +2666,11 @@
+ 
+ void Searcher::clear_hash() {
+     shared_.tt.clear();
+-    for (auto& worker : workers_) worker->clear_caches();
++    // A "Clear Hash" is a full reset of what a search remembers, not only the table:
++    // the move-ordering histories (butterfly, continuation, capture, killers, counter
++    // moves) otherwise carry a previous position's ordering into the next search, which
++    // changes its node count, its score and sometimes its best move.
++    for (auto& worker : workers_) worker->clear();
+ }
+ 
+ void set_draw_jitter(int value, Searcher& searcher) {
