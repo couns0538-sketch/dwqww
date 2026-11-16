@@ -1,0 +1,23 @@
+PREDICTION — seat 03, area 3, job 1 (committed and pushed ALONE before any measuring command)
+
+Job: perft 1, 2, 3, 4 on 5,000 positions R (random legal games by python-chess, SEED 301, one position every
+7 plies), engine /home/ubuntu/build-rel/forge vs python-chess 1.11.2, every (position, depth) compared.
+Kill ranges are what would prove this prediction wrong.
+
+1. Positions where at least one of depths 1..4 differs from python-chess: predicted 0.
+   KILL: any value >= 1.
+2. Differing (position, depth) pairs: predicted 0.   KILL: any value >= 1.
+3. Positions python-chess refuses to load from my R file: predicted 0.   KILL: any value >= 1.
+4. Engine bestmove/perft crash or non-zero exit over the whole run: predicted 0.   KILL: any value >= 1.
+5. Sum of engine perft(4) nodes over the 5,000 positions: predicted between 0.4e9 and 4e9.
+   KILL: outside that band (would mean my position set is not what I described).
+6. Sum of engine perft(1) nodes / 5000 (= mean branching factor): predicted between 20 and 45.
+   KILL: outside 15..60.
+7. Wall time of the full python-chess side on 4 worker processes: predicted under 60 minutes.
+   KILL: > 120 minutes (then the depth-4 comparison is reported as not done, not as passed).
+8. Engine perft(4) sum equals python-chess perft(4) sum when #1 and #2 are 0: predicted yes by construction.
+   KILL: sums differ while per-depth per-position lists are equal (would mean a harness bug).
+
+Note: a perft(1) sum for a position without legal moves (checkmate/stalemate) is 0 in both programs; R positions
+include such quiet positions only if a random game reached mate — the generator forbids moving on from such a
+position but may record it; if one is recorded it stays in the set, both sides must agree on 0.
