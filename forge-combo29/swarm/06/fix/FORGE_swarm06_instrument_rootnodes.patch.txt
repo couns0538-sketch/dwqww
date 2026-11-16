@@ -1,0 +1,31 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -5,6 +5,7 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++#include <string>
+ #include <cmath>
+ #include <cstring>
+ #include <iostream>
+@@ -2548,6 +2549,20 @@
+         previous_best = result.best_move;
+         const int iteration_previous_score = previous_score;
+         previous_score = score;
++        // INSTRUMENT (swarm seat 06, variant F): the per-root-move node vector for this depth.
++        // Nothing else changes; the pins are re-measured anyway.
++        if (emit_info) {
++            std::uint64_t total_root = 0;
++            std::string line = "info string rootnodes " + std::to_string(depth);
++            for (std::size_t slot = 0; slot < root_effort_count_; ++slot) {
++                total_root += root_move_nodes_[slot];
++                line += " " + Board::move_to_uci(root_effort_moves_[slot]) + ":" +
++                        std::to_string(root_move_nodes_[slot]);
++            }
++            line += " total:" + std::to_string(total_root);
++            const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++            std::cout << line << std::endl;
++        }
+ 
+         if (mate_moves > 0 && score >= mate_in(mate_moves * 2 - 1)) break;
+         // The iteration above is finished. Passing the soft budget stops here,

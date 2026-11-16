@@ -1,0 +1,13 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1979,6 +1979,10 @@
+         shared_.tt.prefetch(board.key());
+ #endif
+         const std::uint64_t nodes_before = local_nodes_;
++        // INSTRUMENTED TEST (swarm seat 06, variant G): clear the TT so this root move cannot read
++        // anything written by an earlier root move. This ISOLATES root moves exactly like
++        // `searchmoves <one move>` does, but keeps the root loop and its ordering intact.
++        if (root_node && depth >= 1) shared_.tt.clear();
+         std::size_t root_effort_index = 0;
+         if (root_node) {
+             const auto root_effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);

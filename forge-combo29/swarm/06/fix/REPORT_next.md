@@ -370,3 +370,82 @@ removed and the asymmetry persists, including at depth 1 where neither exists.
   `root_move_nodes_`) for a position and its mirror, and compare those vectors. That would show directly whether
   the divergence is at the first move or accumulates; `root_move_nodes_` exists (`search.hpp:486`) and is what
   the NodeShare timing uses.
+
+---
+
+# ADDENDUM 3 — the per-root-move node vector, and a CORRECTION of my own S-F12
+
+## The probe (the one addendum 2 named as its next step)
+
+The engine already accumulates `root_move_nodes_[slot]` for every root move (`search.cpp:2041`,
+`search.hpp:486`) but never prints it. `make_variant_f.py` adds **one info line per finished depth**
+(`info string rootnodes <depth> <uci>:<nodes> ...`) and changes nothing else. Its honesty pins are
+**identical to base** (312866 / 862329 / 3024920 / 4865609) — as they must be for a print-only change, which is
+also the check that the instrumentation is sound.
+
+## What it shows — and my S-F12 was wrong
+
+I reported in S-F12, and repeated in the addendum, that "0 of 18 root subtrees differ when searched alone, so the
+difference is created by the root loop's accumulation". **That was an over-generalisation and it is refuted by
+this probe.** Two separate errors:
+
+1. **The `searchmoves` call is not an isolated subtree.** `searchmoves` sets `root_restricted_ = true`, and the
+   code branches on it in four places (`search.cpp:1818`, `1992`, `2071`, `2093`). It measures a *different search
+   mode*, not the same subtree.
+2. **The result was depth-1-only.** Re-running the same probe at deeper depths with the same method:
+   `searchmoves`-isolated root moves differing from their mirror: **0 of 8 at depth 1, 6 of 8 at depth 2, 8 of 8
+   at depth 3** (`rootnode_vector.txt` and the depth sweep in this addendum's run). So root subtrees *do* differ;
+   my "0 of 18" was true only where the search is too shallow for ordering to matter.
+
+**Inside the full search** (`rootnode_summary.txt`, 20 G positions, depth 3):
+
+- **19 of 20 positions have at least one root move whose own node count differs** from its mirror.
+- **2 of the 20 have IDENTICAL totals (95/95 and 162/162) while individual root moves still differ.** That is
+  the cleanest possible statement of what is happening: the same work is done, in a different distribution over
+  root moves. It is an **ordering** difference, not a tree-size difference.
+
+## One more mechanism tested and ruled out: TT reuse across root moves
+
+The `searchmoves` probe has an empty TT at the point each move is searched, so TT reuse across root moves was the
+obvious candidate for why the vectors differ. `make_variant_g.py` clears the transposition table **before every
+root move** (so no root move can read anything an earlier one wrote), keeps the root loop and its ordering
+untouched:
+
+| build | depth | nodes self | nodes mirror | equal |
+|---|---|---|---|---|
+| base | 1 | 25 | 30 | no |
+| base | 2 | 66 | 60 | no |
+| base | 3 | 129 | 111 | no |
+| TT cleared per root move | 1 | **25** | **30** | **no (identical to base)** |
+| TT cleared per root move | 2 | 73 | 65 | no |
+| TT cleared per root move | 3 | 183 | 147 | no |
+
+Depth 1 is **unchanged to the node** (25 vs 30), so the TT is not what creates the root-move difference either.
+(Pins for G: 155287 / 391097 / 1744897, perft 5 unchanged — it fails, as it must.)
+
+## Complete list of what has now been tested and refuted
+
+| # | hypothesis | patch | verdict |
+|---|---|---|---|
+| 1 | `std::sort`/`pick_best` tie-break | A/B/C | **REFUTED** 101 → 114 / 104 / 117 |
+| 2 | aspiration window | option only | **REFUTED** 34/40 → 28/40 |
+| 3 | accumulated root alpha | D | **REFUTED** 101 → 149, 31× nodes |
+| 4 | colour-absolute continuation-history index | E | **REFUTED** 101 → 108, depth-1 unchanged |
+| 5 | TT reuse across root moves | G | **REFUTED** depth-1 unchanged at 25 vs 30 |
+| 6 | S14 parameters | option comparison | **REFUTED** identical vectors with and without S14 |
+| 7 | cross-search / cross-process state | state probe | **REFUTED** all three modes identical (S-F19) |
+
+**What is left, stated as evidence and not as a guess:** the per-root-move node counts differ, the totals are
+sometimes equal, and no accumulated table, no root window, no TT and no history index is responsible. The one
+thing that certainly differs between a position and its mirror is the **order in which the root walks its moves**
+(the generator's a1-first traversal mirrors to a different sequence), and the vectors say the work is
+redistributed across root moves. That is a statement about *where* the difference is, not yet about *which line
+of code* creates it, and I am not going to dress it up as a cause.
+
+## What I did NOT do (addendum 3)
+
+- I did not find the line of code. Seven mechanisms have been refuted with measured evidence; the next step needs
+  a per-node trace (e.g. dumping each root move's cut-node count and first-cutoff move), which is a bigger
+  instrumentation job than the deadline allowed.
+- The instrumented build F is **not** a candidate either, though it preserves the pins exactly — it only adds an
+  info line, and shipping it would change UCI output.
