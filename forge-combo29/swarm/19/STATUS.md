@@ -248,3 +248,14 @@ PC20 profile + twin + emit line all done. Build PC r15, Threads 1.
 19-F31 pins are a Threads-1 AND none-regime statement, both measured.
 
 next command: check another seat's open finding on the PC build under PC20, then next PC speed question.
+
+## 2026-11-16T22:33:37Z
+
+19-F33 CorrHistV2 changes 22 %% of bestmoves (200 of G, depth 12) and its node saving falls to -1.46 %%;
+  mean score delta +0.4 cp but spread -358..+435 -> owner needs games, not a node count.
+19-F34 corrected_eval is FLAT with depth: 5.75 %% (d13) vs 5.77 %% (d16).
+19-F35 the TT IS the depth cost: probe_body not-in-top-10 at d13 -> 8.47 %% and 4th hottest at d16,
+  on the same cold positions, both at their pins. Caveat: Hash 16 (bench's), may differ at the owner's size.
+
+next command: TT counter run at depth 16 cold to split probe frequency from miss cost
+  (job4/instrument_tt.py at depth 16), which decides whether 8.47 %% is capacity or call rate.
