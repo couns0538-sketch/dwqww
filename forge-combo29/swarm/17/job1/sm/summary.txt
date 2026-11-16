@@ -1,0 +1,40 @@
+startpos_illegal_only
+  position: position startpos
+  go: go depth 5 searchmoves e7e5
+  bestmove: bestmove 0000
+  info: ['info string searchmoves restriction has no legal root moves']
+  depth lines: 5
+  expected: a legal move (e2e4 etc.) - e7e5 is Black's move, so no legal root move matches
+
+startpos_garbage_name
+  position: position startpos
+  go: go depth 5 searchmoves zzzz
+  bestmove: bestmove 0000
+  info: ['info string searchmoves restriction has no legal root moves']
+  depth lines: 5
+  expected: a legal move or an error line, not an illegal 0000
+
+startpos_legal_control
+  position: position startpos
+  go: go depth 5 searchmoves e2e4
+  bestmove: bestmove e2e4
+  info: []
+  depth lines: 5
+  expected: e2e4 (control: the restriction is honoured and legal)
+
+mate_position_any
+  position: position fen r1bqkb1r/pppp1Qpp/2n2n2/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4
+  go: go depth 5 searchmoves a7a6
+  bestmove: bestmove 0000
+  info: []
+  depth lines: 5
+  expected: 0000 is correct here: the position is mate
+
+black_to_move_illegal_only
+  position: position fen rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1
+  go: go depth 5 searchmoves e2e4
+  bestmove: bestmove 0000
+  info: ['info string searchmoves restriction has no legal root moves']
+  depth lines: 5
+  expected: a legal Black move, not 0000
+
