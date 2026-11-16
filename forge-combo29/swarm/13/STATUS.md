@@ -263,7 +263,7 @@ Next command: cd forge-combo29/swarm/13 && git log --oneline -1
 
 Cycle continues on the PC path. Next job closes a gap I named myself in job 7: "all 12 positions
 scored cp, none mate, so the mate-score path at these budgets is untested here".
-Job 9: forced-mate positions at the PC's three match budgets (PC20, Threads 1, Hash 16): does
- imply a mate actually reachable in 2M-1 plies (M>0) / 2|M| plies (M<0), verified by
-replaying the PV, and is it stable across 20000/50000/250000?
+Job 9: forced-mate positions at the PC's three match budgets (PC20, Threads 1, Hash 16): does a
+reported mate score imply a mate actually reachable in 2M-1 plies (M>0) or 2|M| plies (M<0),
+verified by replaying the PV, and is it stable across 20000/50000/250000?
 Next command: cd forge-combo29/swarm/13/job9 && python3 mates.py
