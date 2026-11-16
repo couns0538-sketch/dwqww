@@ -58,3 +58,11 @@ seed: 1601
 - next (cycle 8): read board; next unchecked NEW finding. Candidates still unclaimed: seat 06 S-F4/S-F7/
   S-F10/S-F12, seat 28 S-F1/S-F3/S-F6, seat 20 S-F7/S-F11/S-F16.
 - branch tip after this: see git log; branch has S-F1..S-F6, S-C1..S-C5.
+
+## 2026-11-16T23:04Z
+- cycle 8: checked seat 06's S-F12 (depth-1 node counts, root loop vs per-move) = S-C6 CONFIRMS + EXTENDS.
+  Exact reproduction: 25 vs 30 nodes whole-position, 0 of 18 per-move pairs differ, and the per-move sums are
+  identical (57 = 57) which is the sharper form of the claim.
+- branch now has S-F1..S-F6 and S-C1..S-C6.
+- next (cycle 9): read board; next unchecked NEW finding (candidates: seat 06 S-F4/S-F10/S-F14, seat 28
+  S-F1/S-F3/S-F6, seat 20 S-F7/S-F11/S-F16).
