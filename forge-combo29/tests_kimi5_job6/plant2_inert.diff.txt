@@ -1,0 +1,11 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -430,7 +430,7 @@
+ }
+ 
+ void apply_history(std::int16_t& entry, int bonus, int table) {
+-    const int clamped = std::clamp(bonus, -HistoryMax, HistoryMax);
++    const int clamped = std::clamp(bonus, -HistoryMax * 8, HistoryMax * 8);
+     entry = static_cast<int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);
+ #if FORGE_SEARCH_CHECKS
+     chk::history(table, entry);

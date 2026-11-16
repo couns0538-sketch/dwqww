@@ -1,0 +1,951 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -208,6 +208,192 @@
+     return stored_clock == static_cast<std::uint8_t>(clock);
+ }
+ 
++#if FORGE_SEARCH_CHECKS
++// ---------------------------------------------------------------------------
++// Search-invariant counters (job 6). Read-only: no value, control flow or
++// table entry is changed. Process-global atomics, so helper threads sum in.
++// Searcher::search resets them per UCI search and prints them at its end.
++namespace chk {
++
++enum Site : int {
++    V1_SEARCH, V1_QSEARCH,
++    V2_CHILD, V3_CHILD,
++    V4_RAZOR, V4_RFP, V4_NULL, V4_NULLVER, V4_PROBCUT, V4_MULTICUT, V4_TT_SEARCH, V4_TT_QSEARCH, V4_STANDPAT,
++    V5_QPAT, V5_QFINAL, V5_PROBCUT, V5_SFINAL,
++    V15_QPAT, V15_QFINAL, V15_PROBCUT, V15_SFINAL,
++    V6_STORE, V6_TTCUT, V6_PICKER, V6_MAKE, V6_SSEVAL,
++    V7_PSEUDO, V7_LEGAL_Q, V7_LEGAL_PC, V7_LEGAL_S, V7_MAKE_Q, V7_MAKE_PC, V7_MAKE_S,
++    V8_NULLGUARD, V8_PROBCUT_SEE, V8_FUTILITY, V8_CAPFUTILITY, V8_TIGHT, V8_IMPROV2, V8_IMPROV4,
++    V8_HINDSIGHT, V8_SIGNEDCORR, V8_CORRUPD,
++    V9_DEPTH, V9_DBLCAP, V9_DEEPERSHAL,
++    V10_PLY_S, V10_PLY_Q, V10_PVW_S, V10_PVW_Q, V10_PVREPLAY,
++    V11_MAIN, V11_THREAT, V11_CAPTURE, V11_CONT,
++    V11_CORR_PAWN, V11_CORR_MAT, V11_CORR_NPW, V11_CORR_NPB,
++    V12_SEARCH,
++    V13_QSEARCH, V13_NULL, V13_PROBCUT, V13_SEARCH,
++    V14_BESTLEGAL, V14_PVFIRST, V14_EXACT,
++    V16_EFFORT, V17_EFFORTSIZE, V18_EARLYKEY,
++    SITE_COUNT
++};
++
++struct SiteRow {
++    const char* name;
++    std::atomic<unsigned long long> made{0};
++    std::atomic<unsigned long long> breaches{0};
++};
++
++SiteRow rows[SITE_COUNT] = {
++    {"V1.search"}, {"V1.qsearch"},
++    {"V2.child-score"}, {"V3.child-mate-ply"},
++    {"V4.razor"}, {"V4.rfp"}, {"V4.null"}, {"V4.null-verify"}, {"V4.probcut"}, {"V4.multicut"},
++    {"V4.tt-cutoff-search"}, {"V4.tt-cutoff-qsearch"}, {"V4.standpat-cutoff"},
++    {"V5.store-qstandpat"}, {"V5.store-qfinal"}, {"V5.store-probcut"}, {"V5.store-searchfinal"},
++    {"V15.ttscore-qstandpat"}, {"V15.ttscore-qfinal"}, {"V15.ttscore-probcut"}, {"V15.ttscore-searchfinal"},
++    {"V6.store-under-excluded"}, {"V6.ttcut-under-excluded"}, {"V6.picker-hands-excluded"},
++    {"V6.make-excluded"}, {"V6.static-eval-survives"},
++    {"V7.ttmove-fails-pseudolegal"}, {"V7.ttmove-tested-qsearch"}, {"V7.ttmove-tested-probcut"},
++    {"V7.ttmove-tested-search"}, {"V7.make-qsearch"}, {"V7.make-probcut"}, {"V7.make-search"},
++    {"V8.null-guard"}, {"V8.probcut-see"}, {"V8.futility"}, {"V8.capture-futility"}, {"V8.extinction-tight"},
++    {"V8.improving-2ply"}, {"V8.improving-4ply"}, {"V8.hindsight-parent"}, {"V8.signed-correction"},
++    {"V8.correction-update"},
++    {"V9.child-depth"}, {"V9.double-ext-cap"}, {"V9.deeper-shallower"},
++    {"V10.ply-search"}, {"V10.ply-qsearch"}, {"V10.pvwrite-search"}, {"V10.pvwrite-qsearch"}, {"V10.root-pv-replay"},
++    {"V11.hist-main"}, {"V11.hist-threat"}, {"V11.hist-capture"}, {"V11.hist-continuation"},
++    {"V11.corr-pawn"}, {"V11.corr-material"}, {"V11.corr-nonpawn-w"}, {"V11.corr-nonpawn-b"},
++    {"V12.node-kind"},
++    {"V13.key-qsearch"}, {"V13.key-null"}, {"V13.key-probcut"}, {"V13.key-search"},
++    {"V14.bestmove-legal"}, {"V14.pv-first-is-best"}, {"V14.exact-score-printed"},
++    {"V16.root-effort-found"}, {"V17.root-effort-size"}, {"V18.early-key"},
++};
++
++struct FirstBreach {
++    std::atomic<bool> taken{false};
++    std::string text;
++};
++FirstBreach first_breach[SITE_COUNT];
++std::mutex first_mutex;
++std::atomic<int> max_ply{0};
++std::atomic<int> max_double_ext{0};
++std::atomic<int> max_hist[4] = {};
++std::atomic<int> max_corr{0};
++thread_local std::string t_root_fen;
++thread_local int t_root_depth = 0;
++
++void amax(std::atomic<int>& slot, int value) {
++    int old = slot.load(std::memory_order_relaxed);
++    while (value > old && !slot.compare_exchange_weak(old, value, std::memory_order_relaxed)) {
++    }
++}
++
++void hit(int site) { rows[site].made.fetch_add(1, std::memory_order_relaxed); }
++
++void fail(int site, int ply, const std::string& values) {
++    rows[site].breaches.fetch_add(1, std::memory_order_relaxed);
++    if (!first_breach[site].taken.exchange(true, std::memory_order_acq_rel)) {
++        std::lock_guard<std::mutex> lock(first_mutex);
++        first_breach[site].text = "fen " + t_root_fen + " rootdepth " + std::to_string(t_root_depth) + " ply " +
++                                  std::to_string(ply) + " " + values;
++    }
++}
++
++// V8: count one arithmetic read of a stack static_eval; the value passes through.
++int se(int site, int value, int ply) {
++    hit(site);
++    if (value == ValueNone) fail(site, ply, "marker-read");
++    return value;
++}
++
++// V2/V3: a score received from a child search. expected_ply is the ply the
++// score answers for (ply+1 for a made child, ply for same-node re-searches).
++void child(int score, int expected_ply) {
++    hit(V2_CHILD);
++    if (score < -MateValue || score > MateValue) fail(V2_CHILD, expected_ply, "score " + std::to_string(score));
++    hit(V3_CHILD);
++    if (is_mate_score(score) && MateValue - std::abs(score) < expected_ply)
++        fail(V3_CHILD, expected_ply, "score " + std::to_string(score));
++}
++
++// V4: an early return and the value it hands back. breaches = mate returns.
++int early(int site, int value, int ply) {
++    hit(site);
++    if (is_mate_score(value)) fail(site, ply, "mate " + std::to_string(value));
++    return value;
++}
++
++// V5 (+V15): one hash store as the search hands it over. alpha0 is the node's
++// post-mate-distance-pruning alpha, beta the entry beta, depth_stored the depth
++// argument, score the pre-score_to_tt score.
++void store(int site, Bound bound, int score, int alpha0, int beta, int depth_stored, bool pv_node, Move best_move,
++           int ply) {
++    hit(site);
++    std::string why;
++    if (bound == BoundLower && !(score >= beta)) why += " lower-score<beta";
++    if (bound == BoundUpper && !(score <= alpha0)) why += " upper-score>alpha0";
++    if (bound == BoundExact && !(pv_node && !best_move.is_none() && score > alpha0 && score < beta))
++        why += " exact-not-meant";
++    if (depth_stored < 0 || depth_stored > 255) why += " depth-range";
++    if (!why.empty())
++        fail(site, ply, "bound " + std::to_string(static_cast<int>(bound)) + " score " + std::to_string(score) +
++                            " alpha0 " + std::to_string(alpha0) + " beta " + std::to_string(beta) + why);
++    const int v15 = V15_QPAT + (site - V5_QPAT);
++    hit(v15);
++    const int shifted = score_to_tt(score, ply);
++    if (shifted != std::clamp(shifted, -32767, 32767)) fail(v15, ply, "shifted " + std::to_string(shifted));
++}
++
++// V11: one history update after its formula ran. table: 0 main 1 threat 2 capture 3 continuation.
++void history(int table, int value) {
++    const int site = V11_MAIN + table;
++    hit(site);
++    if (std::abs(value) > 16384) fail(site, 0, "value " + std::to_string(value));
++    amax(max_hist[table], std::abs(value));
++}
++
++// V11: one correction-table update after its clamp. table: 0 pawn 1 material 2 npw 3 npb.
++void correction(int table, int value) {
++    const int site = V11_CORR_PAWN + table;
++    hit(site);
++    if (std::abs(value) > 8192) fail(site, 0, "value " + std::to_string(value));
++    amax(max_corr, std::abs(value));
++}
++
++void reset() {
++    for (int i = 0; i < SITE_COUNT; ++i) {
++        rows[i].made.store(0, std::memory_order_relaxed);
++        rows[i].breaches.store(0, std::memory_order_relaxed);
++        first_breach[i].taken.store(false, std::memory_order_relaxed);
++        first_breach[i].text.clear();
++    }
++    max_ply.store(0, std::memory_order_relaxed);
++    max_double_ext.store(0, std::memory_order_relaxed);
++    for (auto& m : max_hist) m.store(0, std::memory_order_relaxed);
++    max_corr.store(0, std::memory_order_relaxed);
++}
++
++void print() {
++    std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++    for (int i = 0; i < SITE_COUNT; ++i)
++        std::cout << "info string CHECK " << rows[i].name << ' ' << rows[i].made.load(std::memory_order_relaxed)
++                  << ' ' << rows[i].breaches.load(std::memory_order_relaxed) << "\n";
++    std::cout << "info string CHECKX maxply " << max_ply.load() << " maxdoubleext " << max_double_ext.load()
++              << " histmax-main " << max_hist[0].load() << " histmax-threat " << max_hist[1].load()
++              << " histmax-capture " << max_hist[2].load() << " histmax-cont " << max_hist[3].load()
++              << " corrmax " << max_corr.load() << "\n";
++    for (int i = 0; i < SITE_COUNT; ++i)
++        if (first_breach[i].taken.load(std::memory_order_relaxed))
++            std::cout << "info string CHECKFIRST " << rows[i].name << ' ' << first_breach[i].text << "\n";
++    std::cout << std::endl;
++}
++
++} // namespace chk
++
++#define CHK_SE(site, value, ply) chk::se(site, value, ply)
++#define CHK_EARLY(site, value, ply) chk::early(site, value, ply)
++#else
++#define CHK_SE(site, value, ply) (value)
++#define CHK_EARLY(site, value, ply) (value)
++#endif
++
+ [[nodiscard]] int mated_in(int ply) { return -MateValue + ply; }
+ [[nodiscard]] int mate_in(int ply) { return MateValue - ply; }
+ 
+@@ -243,9 +429,12 @@
+     return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear * depth - 32);
+ }
+ 
+-void apply_history(std::int16_t& entry, int bonus) {
++void apply_history(std::int16_t& entry, int bonus, int table) {
+     const int clamped = std::clamp(bonus, -HistoryMax, HistoryMax);
+-    entry = static_cast<std::int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);
++    entry = static_cast<int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);
++#if FORGE_SEARCH_CHECKS
++    chk::history(table, entry);
++#endif
+ }
+ 
+ [[nodiscard]] int capture_value(const Board& board, Move move) {
+@@ -581,6 +770,13 @@
+     MovePicker(const Board& board, const Worker& searcher, const SearchStack* ss, Move tt_move, Mode mode)
+         : board_(board), searcher_(searcher), ss_(ss), tt_move_(tt_move) {
+         const bool in_check = board.in_check();
++#if FORGE_SEARCH_CHECKS
++        if (!tt_move_.is_none()) {
++            chk::hit(chk::V7_PSEUDO);
++            if (!board_.is_pseudo_legal(tt_move_))
++                chk::fail(chk::V7_PSEUDO, ss_ != nullptr ? ss_->ply : 0, "ttmove-rejected");
++        }
++#endif
+         if (!tt_move_.is_none() && !board_.is_pseudo_legal(tt_move_)) tt_move_ = Move::none();
+         if (mode == Mode::Quiescence && !in_check && !tt_move_.is_none() && !tt_move_.is_capture() &&
+             !tt_move_.is_promotion()) {
+@@ -1230,14 +1426,17 @@
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
+     const int weight = std::min(depth + 1, 16);
+-    auto apply = [&](std::int32_t& entry) {
++    auto apply = [&](std::int32_t& entry, int table) {
+         entry = std::clamp(entry + diff * weight / 256, -CorrectionLimit, CorrectionLimit);
++#if FORGE_SEARCH_CHECKS
++        chk::correction(table, entry);
++#endif
+     };
+-    apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+-    if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
++    apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)], 0);
++    if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)], 1);
+     if (tune::NonPawnCorrection) {
+-        apply((*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)]);
+-        apply((*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)]);
++        apply((*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)], 2);
++        apply((*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)], 3);
+     }
+ }
+ 
+@@ -1351,7 +1550,7 @@
+ void Worker::update_threat_quiet(const Board& board, Move move, int bonus) {
+     if (!tune::ThreatHistory) return;
+     const int index = quiet_threat_index(board, move);
+-    apply_history((*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to], bonus);
++    apply_history((*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to], bonus, 1);
+ }
+ 
+ int Worker::capture_history_value(const Board& board, Move move) const {
+@@ -1365,7 +1564,7 @@
+         const SearchStack* previous = ss - back;
+         if (previous->continuation == nullptr || previous->current_move.is_none()) continue;
+         apply_history((*previous->continuation)[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)],
+-                      back == 4 ? bonus / 2 : bonus);
++                      back == 4 ? bonus / 2 : bonus, 3);
+     }
+ }
+ 
+@@ -1382,13 +1581,13 @@
+         (*counter_moves_)[static_cast<std::size_t>(previous->moved_piece)][previous->current_move.to] = move;
+     }
+     const Piece piece = board.moved_piece(move);
+-    apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
++    apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus, 0);
+     update_threat_quiet(board, move, bonus);
+     update_continuation(ss, piece, move.to, bonus);
+     for (int i = 0; i < quiet_count; ++i) {
+         const Move quiet = quiets[i];
+         if (quiet == move) continue;
+-        apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
++        apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus, 0);
+         update_threat_quiet(board, quiet, -bonus);
+         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
+     }
+@@ -1399,14 +1598,14 @@
+     if (best.is_capture()) {
+         const Piece piece = board.moved_piece(best);
+         const int captured = piece_type(board.captured_piece(best));
+-        apply_history((*capture_history_)[static_cast<std::size_t>(piece)][best.to][static_cast<std::size_t>(captured)], bonus);
++        apply_history((*capture_history_)[static_cast<std::size_t>(piece)][best.to][static_cast<std::size_t>(captured)], bonus, 2);
+     }
+     for (int i = 0; i < capture_count; ++i) {
+         const Move capture = captures[i];
+         if (capture == best) continue;
+         const Piece piece = board.moved_piece(capture);
+         const int captured = piece_type(board.captured_piece(capture));
+-        apply_history((*capture_history_)[static_cast<std::size_t>(piece)][capture.to][static_cast<std::size_t>(captured)], -bonus);
++        apply_history((*capture_history_)[static_cast<std::size_t>(piece)][capture.to][static_cast<std::size_t>(captured)], -bonus, 2);
+     }
+ }
+ 
+@@ -1416,6 +1615,11 @@
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
++#if FORGE_SEARCH_CHECKS
++    chk::hit(chk::V1_QSEARCH);
++    if (!(alpha < beta) || alpha < -Infinite || beta > Infinite)
++        chk::fail(chk::V1_QSEARCH, ply, "alpha " + std::to_string(alpha) + " beta " + std::to_string(beta));
++#endif
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+     if (aborted_) return 0;
+     ++local_nodes_;
+@@ -1433,6 +1637,9 @@
+         beta = std::min(beta, mate_in(ply + 1));
+         if (alpha >= beta) return alpha;
+     }
++#if FORGE_SEARCH_CHECKS
++    const int chk_alpha0 = alpha;
++#endif
+ 
+ #if FORGE_SPD_TT_NOTLS
+     const TTProbe tt_probe = probe_tt(board.key());
+@@ -1452,7 +1659,7 @@
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
+-        return tt_score;
++        return CHK_EARLY(chk::V4_TT_QSEARCH, tt_score, ply);
+     }
+ 
+     int best_score;
+@@ -1472,12 +1679,15 @@
+         }
+         best_score = eval;
+         if (best_score >= beta) {
++#if FORGE_SEARCH_CHECKS
++            chk::store(chk::V5_QPAT, BoundLower, best_score, chk_alpha0, beta, 0, pv_node, Move::none(), ply);
++#endif
+ #if FORGE_SPD_TT_NOTLS
+             if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+ #else
+             if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+ #endif
+-            return best_score;
++            return CHK_EARLY(chk::V4_STANDPAT, best_score, ply);
+         }
+         if (best_score > alpha) alpha = best_score;
+         futility_base = ss->static_eval + tune::QsFutilityMargin;
+@@ -1488,6 +1698,12 @@
+     int move_count = 0;
+     Move move;
+     while (!(move = picker.next(false)).is_none()) {
++#if FORGE_SEARCH_CHECKS
++        if (move == tt_move) {
++            chk::hit(chk::V7_LEGAL_Q);
++            if (!board.is_legal(move)) chk::fail(chk::V7_LEGAL_Q, ply, "ttmove-illegal");
++        }
++#endif
+         if (!board.is_legal(move)) continue;
+         ++move_count;
+         if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+@@ -1508,23 +1724,50 @@
+         ss->moved_piece = board.moved_piece(move);
+         ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
+         (ss + 1)->ply = ply + 1;
++#if FORGE_SEARCH_CHECKS
++        chk::hit(chk::V10_PLY_Q);
++        if (ply + 1 > MaxPly) chk::fail(chk::V10_PLY_Q, ply, "ply-overflow");
++        chk::amax(chk::max_ply, ply + 1);
++#endif
+         record_move(ss, board, move);
+         Undo undo;
++#if FORGE_SEARCH_CHECKS
++        chk::hit(chk::V7_MAKE_Q);
++        if (!board.is_legal(move)) chk::fail(chk::V7_MAKE_Q, ply, "illegal-reached-make");
++        const std::uint64_t chk_key_q = board.key();
++#endif
+         (void)board.make_move(move, undo);
+ #if FORGE_SPD_PREFETCH_EARLY
+         assert(!early_key || child_key == board.key());
++#if FORGE_SEARCH_CHECKS
++        if (early_key) {
++            chk::hit(chk::V18_EARLYKEY);
++            if (child_key != board.key()) chk::fail(chk::V18_EARLYKEY, ply, "keyafter-mismatch");
++        }
++#endif
+         if (!early_key) shared_.tt.prefetch(board.key());
+ #else
+         shared_.tt.prefetch(board.key());
+ #endif
+         const int score = -qsearch(board, ss + 1, -beta, -alpha);
++#if FORGE_SEARCH_CHECKS
++        chk::child(score, ply + 1);
++#endif
+         board.unmake_move(move, undo);
++#if FORGE_SEARCH_CHECKS
++        chk::hit(chk::V13_QSEARCH);
++        if (board.key() != chk_key_q) chk::fail(chk::V13_QSEARCH, ply, "key-mismatch");
++#endif
+         if (aborted_) return 0;
+         if (score > best_score) {
+             best_score = score;
+             if (score > alpha) {
+                 best_move = move;
+                 if (pv_node) {
++#if FORGE_SEARCH_CHECKS
++                    chk::hit(chk::V10_PVW_Q);
++                    if ((ss + 1)->pv_length + 1 > MaxPly + 1) chk::fail(chk::V10_PVW_Q, ply, "pv-overflow");
++#endif
+                     ss->pv[0] = move;
+                     std::copy_n((ss + 1)->pv.begin(), (ss + 1)->pv_length, ss->pv.begin() + 1);
+                     ss->pv_length = (ss + 1)->pv_length + 1;
+@@ -1537,6 +1780,9 @@
+     if (in_check && move_count == 0) return mated_in(ply);
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
++#if FORGE_SEARCH_CHECKS
++    chk::store(chk::V5_QFINAL, bound, best_score, chk_alpha0, beta, 0, pv_node, best_move, ply);
++#endif
+ #if FORGE_SPD_TT_NOTLS
+     store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+ #else
+@@ -1550,8 +1796,15 @@
+ 
+ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+     const bool pv_node = beta - alpha > 1;
+-    const bool root_node = ss->ply == 0;
++    const int root_node = ss->ply == 0;
+     const int ply = ss->ply;
++#if FORGE_SEARCH_CHECKS
++    chk::hit(chk::V1_SEARCH);
++    if (!(alpha < beta) || alpha < -Infinite || beta > Infinite)
++        chk::fail(chk::V1_SEARCH, ply, "alpha " + std::to_string(alpha) + " beta " + std::to_string(beta));
++    chk::hit(chk::V12_SEARCH);
++    if (pv_node && cut_node) chk::fail(chk::V12_SEARCH, ply, "pv-cutnode");
++#endif
+ 
+     if (depth <= 0) return qsearch(board, ss, alpha, beta);
+     // The frame is reused across siblings and same-ply verification searches.
+@@ -1573,6 +1826,9 @@
+         beta = std::min(beta, mate_in(ply + 1));
+         if (alpha >= beta) return alpha;
+     }
++#if FORGE_SEARCH_CHECKS
++    const int chk_alpha0 = alpha;
++#endif
+ 
+     const bool in_check = board.in_check();
+     ss->in_check = in_check;
+@@ -1620,7 +1876,7 @@
+                     reused_raw = raw;
+                     reuse_raw = true;
+                 }
+-                const int mover_loss = parent_eval + corrected_eval(board, raw);
++                const int mover_loss = CHK_SE(chk::V8_HINDSIGHT, parent_eval, ply) + corrected_eval(board, raw);
+                 int proposed = depth;
+                 if (mover_loss >= SeePieceValue[Pawn]) proposed = depth - 1;
+                 else if (mover_loss <= 0 && withheld >= 3) proposed = depth + 1;
+@@ -1635,12 +1891,22 @@
+         }
+     }
+ 
++#if FORGE_SEARCH_CHECKS
++    chk::hit(chk::V6_TTCUT);
++    if (!pv_node && !excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
++        (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
++        board.halfmove_clock() < 90 &&
++        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
++         (tt_bound == BoundUpper && tt_score <= alpha))) {
++        chk::fail(chk::V6_TTCUT, ply, "tt-cutoff-under-excluded");
++    }
++#endif
+     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         board.halfmove_clock() < 90 &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
+-        return tt_score;
++        return CHK_EARLY(chk::V4_TT_SEARCH, tt_score, ply);
+     }
+ 
+     // Static evaluation. reuse_raw is the hindsight eval of this position.
+@@ -1663,8 +1929,8 @@
+ 
+     bool improving = false;
+     if (!in_check) {
+-        if ((ss - 2)->static_eval != ValueNone) improving = ss->static_eval > (ss - 2)->static_eval;
+-        else if ((ss - 4)->static_eval != ValueNone) improving = ss->static_eval > (ss - 4)->static_eval;
++        if ((ss - 2)->static_eval != ValueNone) improving = ss->static_eval > CHK_SE(chk::V8_IMPROV2, (ss - 2)->static_eval, ply);
++        else if ((ss - 4)->static_eval != ValueNone) improving = ss->static_eval > CHK_SE(chk::V8_IMPROV4, (ss - 4)->static_eval, ply);
+         else improving = true;
+     }
+ 
+@@ -1682,16 +1948,19 @@
+         // Razoring: hopeless positions fall back to quiescence.
+         if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+             const int razor = qsearch(board, ss, alpha - 1, alpha);
++#if FORGE_SEARCH_CHECKS
++            chk::child(razor, ply);
++#endif
+             if (aborted_) return 0;
+-            if (razor < alpha) return razor;
++            if (razor < alpha) return CHK_EARLY(chk::V4_RAZOR, razor, ply);
+         }
+         // Reverse futility pruning.
+         if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+             eval < MateInMaxPly) {
+-            return eval;
++            return CHK_EARLY(chk::V4_RFP, eval, ply);
+         }
+         // Null move pruning.
+-        if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
++        if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && CHK_SE(chk::V8_NULLGUARD, ss->static_eval, ply) >= beta - 24 * depth + 180 &&
+             ss->null_move_allowed && (!tune::NullThreatVerify || !null_blocked_) &&
+             !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+@@ -1707,12 +1976,22 @@
+             (ss + 1)->arrival_index = 0;
+             record_null_move(ss);
+             NullUndo undo;
++#if FORGE_SEARCH_CHECKS
++            const std::uint64_t chk_key_n = board.key();
++#endif
+             board.make_null_move(undo);
+ #if FORGE_SEARCH_SPEED2
+             shared_.tt.prefetch(board.key());
+ #endif
+             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
++#if FORGE_SEARCH_CHECKS
++            chk::child(null_score, ply + 1);
++#endif
+             board.unmake_null_move(undo);
++#if FORGE_SEARCH_CHECKS
++            chk::hit(chk::V13_NULL);
++            if (board.key() != chk_key_n) chk::fail(chk::V13_NULL, ply, "key-mismatch");
++#endif
+             if (aborted_) return 0;
+             if (null_score >= beta) {
+                 if (is_mate_score(null_score)) null_score = beta;
+@@ -1724,7 +2003,7 @@
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+                 if (depth < 14 && !threat_gate) {
+                     ++null_cutoffs_;
+-                    return null_score;
++                    return CHK_EARLY(chk::V4_NULL, null_score, ply);
+                 }
+                 // Same reduced depth as the high-depth verification. A threat
+                 // confirmation also refuses null moves in that whole search.
+@@ -1732,13 +2011,16 @@
+                 if (threat_gate) null_blocked_ = true;
+                 ss->null_move_allowed = false;
+                 const int verification = search(board, ss, depth - reduction, beta - 1, beta, false);
++#if FORGE_SEARCH_CHECKS
++                chk::child(verification, ply);
++#endif
+                 null_blocked_ = saved_block;
+                 ss->double_extensions = inherited_double_extensions;
+                 ss->null_move_allowed = true;
+                 if (aborted_) return 0;
+                 if (verification >= beta) {
+                     ++null_cutoffs_;
+-                    return null_score;
++                    return CHK_EARLY(chk::V4_NULLVER, null_score, ply);
+                 }
+             }
+         }
+@@ -1749,8 +2031,14 @@
+             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+             Move move;
+             while (!(move = picker.next(false)).is_none()) {
++#if FORGE_SEARCH_CHECKS
++                if (move != excluded && move == tt_move) {
++                    chk::hit(chk::V7_LEGAL_PC);
++                    if (!board.is_legal(move)) chk::fail(chk::V7_LEGAL_PC, ply, "ttmove-illegal");
++                }
++#endif
+                 if (move == excluded || !board.is_legal(move)) continue;
+-                if (!board.see_ge(move, probcut_beta - ss->static_eval)) continue;
++                if (!board.see_ge(move, probcut_beta - CHK_SE(chk::V8_PROBCUT_SEE, ss->static_eval, ply))) continue;
+                 ss->current_move = move;
+                 ss->moved_piece = board.moved_piece(move);
+                 ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
+@@ -1758,23 +2046,41 @@
+                 (ss + 1)->arrival_index = 0;
+                 record_move(ss, board, move);
+                 Undo undo;
++#if FORGE_SEARCH_CHECKS
++                chk::hit(chk::V7_MAKE_PC);
++                if (!board.is_legal(move)) chk::fail(chk::V7_MAKE_PC, ply, "illegal-reached-make");
++                const std::uint64_t chk_key_p = board.key();
++#endif
+                 (void)board.make_move(move, undo);
+ #if FORGE_SEARCH_SPEED2
+                 shared_.tt.prefetch(board.key());
+ #endif
+                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
++#if FORGE_SEARCH_CHECKS
++                chk::child(value, ply + 1);
++#endif
+                 if (value >= probcut_beta && !aborted_) {
+                     value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
++#if FORGE_SEARCH_CHECKS
++                    chk::child(value, ply + 1);
++#endif
+                 }
+                 board.unmake_move(move, undo);
++#if FORGE_SEARCH_CHECKS
++                chk::hit(chk::V13_PROBCUT);
++                if (board.key() != chk_key_p) chk::fail(chk::V13_PROBCUT, ply, "key-mismatch");
++#endif
+                 if (aborted_) return 0;
+                 if (value >= probcut_beta) {
++#if FORGE_SEARCH_CHECKS
++                    chk::store(chk::V5_PROBCUT, BoundLower, value, chk_alpha0, beta, depth - 3, pv_node, move, ply);
++#endif
+ #if FORGE_SPD_TT_NOTLS
+                     store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #else
+                     shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #endif
+-                    return value;
++                    return CHK_EARLY(chk::V4_PROBCUT, value, ply);
+                 }
+             }
+         }
+@@ -1814,7 +2120,18 @@
+ 
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
+-        if (move == excluded) continue;
++        if (move == excluded) {
++#if FORGE_SEARCH_CHECKS
++            chk::hit(chk::V6_PICKER);
++#endif
++            continue;
++        }
++#if FORGE_SEARCH_CHECKS
++        if (move == tt_move) {
++            chk::hit(chk::V7_LEGAL_S);
++            if (!board.is_legal(move)) chk::fail(chk::V7_LEGAL_S, ply, "ttmove-illegal");
++        }
++#endif
+         if (root_node && root_restricted_ &&
+             std::none_of(root_moves_.begin(), root_moves_.end(), [&](const Move& m) { return m == move; })) {
+             continue;
+@@ -1870,7 +2187,7 @@
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+                     (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+ #endif
+-                    ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
++                    CHK_SE(chk::V8_FUTILITY, ss->static_eval, ply) + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
+                     trace_case();
+                     quiet_fail = true;
+                     skip_quiets = true;
+@@ -1895,7 +2212,7 @@
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+                     (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+ #endif
+-                    ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
++                    CHK_SE(chk::V8_CAPFUTILITY, ss->static_eval, ply) + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+                             capture_value(board, move) + history / 8 <= alpha) {
+                     trace_case();
+                     continue;
+@@ -1920,7 +2237,7 @@
+             const int tight_depth = std::max(0, depth - reduction(true, depth, move_count));
+             if (tight_depth <= tune::FutilityDepth) {
+                 const int tight_margin = (tune::FutilityBase + tune::FutilityMultiplier * tight_depth) / 2;
+-                if (ss->static_eval + tight_margin <= alpha) continue;
++                if (CHK_SE(chk::V8_TIGHT, ss->static_eval, ply) + tight_margin <= alpha) continue;
+             }
+         }
+ 
+@@ -1935,10 +2252,22 @@
+             const int singular_depth = std::max(1, (depth - 1) / 2);
+             const bool saved_tt_pv = ss->tt_pv;
+             ss->excluded_move = move;
++#if FORGE_SEARCH_CHECKS
++            const int chk_saved_se = ss->static_eval;
++#endif
+             const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
++#if FORGE_SEARCH_CHECKS
++            chk::child(singular_score, ply);
++#endif
+             ss->tt_pv = saved_tt_pv;
+             ss->double_extensions = inherited_double_extensions;
+             ss->excluded_move = Move::none();
++#if FORGE_SEARCH_CHECKS
++            if (!in_check) {
++                chk::hit(chk::V6_SSEVAL);
++                if (ss->static_eval != chk_saved_se) chk::fail(chk::V6_SSEVAL, ply, "static-eval-changed");
++            }
++#endif
+             if (aborted_) return 0;
+             if (singular_score < singular_beta) {
+                 extension = 1;
+@@ -1946,7 +2275,7 @@
+                     extension = 2;
+                 }
+             } else if (singular_beta >= beta) {
+-                return singular_beta;
++                return CHK_EARLY(chk::V4_MULTICUT, singular_beta, ply);
+             } else if (tt_score >= beta) {
+                 extension = -2;
+             } else if (cut_node) {
+@@ -1958,6 +2287,13 @@
+         }
+         ss->double_extensions = inherited_double_extensions + (extension == 2);
+         int new_depth = depth - 1 + extension;
++#if FORGE_SEARCH_CHECKS
++        chk::hit(chk::V9_DEPTH);
++        if (new_depth > depth + 1) chk::fail(chk::V9_DEPTH, ply, "depth " + std::to_string(depth) + " new " + std::to_string(new_depth));
++        chk::hit(chk::V9_DBLCAP);
++        if (ss->double_extensions > 7) chk::fail(chk::V9_DBLCAP, ply, "dbl " + std::to_string(ss->double_extensions));
++        chk::amax(chk::max_double_ext, ss->double_extensions);
++#endif
+ 
+ #if FORGE_SPD_PREFETCH_EARLY
+         std::uint64_t child_key = 0;
+@@ -1968,12 +2304,30 @@
+         ss->moved_piece = moved;
+         ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(moved)][move.to];
+         (ss + 1)->ply = ply + 1;
++#if FORGE_SEARCH_CHECKS
++        chk::hit(chk::V10_PLY_S);
++        if (ply + 1 > MaxPly) chk::fail(chk::V10_PLY_S, ply, "ply-overflow");
++        chk::amax(chk::max_ply, ply + 1);
++#endif
+         (ss + 1)->arrival_index = move_count;
+         record_move(ss, board, move);
+         Undo undo;
++#if FORGE_SEARCH_CHECKS
++        chk::hit(chk::V7_MAKE_S);
++        if (!board.is_legal(move)) chk::fail(chk::V7_MAKE_S, ply, "illegal-reached-make");
++        chk::hit(chk::V6_MAKE);
++        if (move == excluded) chk::fail(chk::V6_MAKE, ply, "excluded-reached-make");
++        const std::uint64_t chk_key_s = board.key();
++#endif
+         (void)board.make_move(move, undo);
+ #if FORGE_SPD_PREFETCH_EARLY
+         assert(!early_key || child_key == board.key());
++#if FORGE_SEARCH_CHECKS
++        if (early_key) {
++            chk::hit(chk::V18_EARLYKEY);
++            if (child_key != board.key()) chk::fail(chk::V18_EARLYKEY, ply, "keyafter-mismatch");
++        }
++#endif
+         if (!early_key) shared_.tt.prefetch(board.key());
+ #else
+         shared_.tt.prefetch(board.key());
+@@ -1984,6 +2338,10 @@
+             const auto root_effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
+             root_effort_index = static_cast<std::size_t>(std::find(root_effort_moves_.begin(), root_effort_end, move) - root_effort_moves_.begin());
+             assert(root_effort_index < root_effort_count_);
++#if FORGE_SEARCH_CHECKS
++            chk::hit(chk::V16_EFFORT);
++            if (!(root_effort_index < root_effort_count_)) chk::fail(chk::V16_EFFORT, ply, "root-move-missing");
++#endif
+         }
+ 
+         int score = -Infinite;
+@@ -2002,7 +2360,7 @@
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+-                const int correction_cp = ss->static_eval - ss->raw_eval;
++                const int correction_cp = CHK_SE(chk::V8_SIGNEDCORR, ss->static_eval, ply) - ss->raw_eval;
+                 if (correction_cp != 0) r = apply_lmr_signed_correction(r, correction_cp);
+             }
+             // A parent tried after at least six earlier moves is speculative. Its first
+@@ -2011,6 +2369,9 @@
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
++#if FORGE_SEARCH_CHECKS
++            chk::child(score, ply + 1);
++#endif
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+             if (full_depth_needed) {
+@@ -2018,9 +2379,16 @@
+                     const bool do_deeper = score > best_score + 40 + 2 * new_depth;
+                     const bool do_shallower = score < best_score + new_depth;
+                     new_depth += static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
++#if FORGE_SEARCH_CHECKS
++                    chk::hit(chk::V9_DEEPERSHAL);
++                    if (new_depth > depth + 1) chk::fail(chk::V9_DEEPERSHAL, ply, "new " + std::to_string(new_depth));
++#endif
+                 }
+                 if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
+                     score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
++#if FORGE_SEARCH_CHECKS
++                    chk::child(score, ply + 1);
++#endif
+                 }
+                 full_depth_needed = false;
+             }
+@@ -2031,11 +2399,21 @@
+         }
+         if (full_depth_needed && !aborted_) {
+             score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
++#if FORGE_SEARCH_CHECKS
++            chk::child(score, ply + 1);
++#endif
+         }
+         if (pv_node && !aborted_ && (move_count == 1 || score > alpha)) {
+             score = -search(board, ss + 1, new_depth, -beta, -alpha, false);
++#if FORGE_SEARCH_CHECKS
++            chk::child(score, ply + 1);
++#endif
+         }
+         board.unmake_move(move, undo);
++#if FORGE_SEARCH_CHECKS
++        chk::hit(chk::V13_SEARCH);
++        if (board.key() != chk_key_s) chk::fail(chk::V13_SEARCH, ply, "key-mismatch");
++#endif
+         if (aborted_) return 0;
+         if (root_node && root_effort_index < root_effort_count_)
+             root_move_nodes_[root_effort_index] += local_nodes_ - nodes_before;
+@@ -2045,6 +2423,10 @@
+             if (score > alpha) {
+                 best_move = move;
+                 if (pv_node) {
++#if FORGE_SEARCH_CHECKS
++                    chk::hit(chk::V10_PVW_S);
++                    if ((ss + 1)->pv_length + 1 > MaxPly + 1) chk::fail(chk::V10_PVW_S, ply, "pv-overflow");
++#endif
+                     ss->pv[0] = move;
+                     std::copy_n((ss + 1)->pv.begin(), (ss + 1)->pv_length, ss->pv.begin() + 1);
+                     ss->pv_length = (ss + 1)->pv_length + 1;
+@@ -2080,7 +2462,7 @@
+     } else if (!best_move.is_none() && (!best_move.is_capture() && !best_move.is_promotion())) {
+         // Even without a cutoff, a new PV move earned its place.
+         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+-                      history_bonus(depth) / 4);
++                      history_bonus(depth) / 4, 0);
+         update_threat_quiet(board, best_move, history_bonus(depth) / 4);
+     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+@@ -2090,7 +2472,14 @@
+     }
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
++#if FORGE_SEARCH_CHECKS
++    chk::hit(chk::V6_STORE);
++    if (!excluded.is_none() && !(root_node && root_restricted_)) chk::fail(chk::V6_STORE, ply, "store-under-excluded");
++#endif
+     if (excluded.is_none() && !(root_node && root_restricted_)) {
++#if FORGE_SEARCH_CHECKS
++        chk::store(chk::V5_SFINAL, bound, best_score, chk_alpha0, beta, depth, pv_node, best_move, ply);
++#endif
+ #if FORGE_SPD_TT_NOTLS
+         store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+ #else
+@@ -2103,7 +2492,7 @@
+         (best_move.is_none() || !best_move.is_capture()) &&
+         !(bound == BoundLower && best_score <= ss->static_eval) &&
+         !(bound == BoundUpper && best_score >= ss->static_eval)) {
+-        update_correction(board, depth, best_score, ss->static_eval);
++        update_correction(board, depth, best_score, CHK_SE(chk::V8_CORRUPD, ss->static_eval, ply));
+     }
+     return best_score;
+ }
+@@ -2159,6 +2548,9 @@
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+     root_history_index_ = board.history_size() - 1;
++#if FORGE_SEARCH_CHECKS
++    chk::t_root_fen = board.fen();
++#endif
+     node_limit_ = limits.nodes;
+     // Helpers must observe the budget. Leaving the flag false on them made
+     // should_stop return before the count was consulted. An alternate MultiPV
+@@ -2374,6 +2766,11 @@
+     std::int64_t finish_last_ms = 0;
+     root_effort_count_ = root_candidates.size();
+     assert(root_effort_count_ <= root_effort_moves_.size());
++#if FORGE_SEARCH_CHECKS
++    chk::hit(chk::V17_EFFORTSIZE);
++    if (root_effort_count_ > root_effort_moves_.size())
++        chk::fail(chk::V17_EFFORTSIZE, 0, "count " + std::to_string(root_effort_count_));
++#endif
+     std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
+     root_move_nodes_.fill(0);
+     // Secondary lines use their own table and histories, so the primary
+@@ -2391,6 +2788,9 @@
+     }
+     for (int depth = 1; depth <= max_depth; ++depth) {
+         root_depth_ = depth;
++#if FORGE_SEARCH_CHECKS
++        chk::t_root_depth = depth;
++#endif
+         // Sample only while a game clock is running and the option is on.
+         // Fixed-depth, fixed-node, movetime and ponder-wait searches stay put.
+         const bool finish_sampling =
+@@ -2412,6 +2812,9 @@
+         while (true) {
+             ss->ply = 0;
+             iteration_score = search(board, ss, depth, alpha, beta, false);
++#if FORGE_SEARCH_CHECKS
++            if (!aborted_) chk::child(iteration_score, 0);
++#endif
+             if (aborted_) break;
+             if (iteration_score <= alpha) {
+                 failed_window = true;
+@@ -2459,6 +2862,28 @@
+         if (!result.pv.empty()) result.best_move = result.pv.front();
+         result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+         result.nodes = total_nodes();
++#if FORGE_SEARCH_CHECKS
++        {
++            chk::hit(chk::V14_BESTLEGAL);
++            if (std::find(root_candidates.begin(), root_candidates.end(), result.best_move) == root_candidates.end())
++                chk::fail(chk::V14_BESTLEGAL, 0, "bestmove-not-legal-root");
++            chk::hit(chk::V14_PVFIRST);
++            if (result.pv.empty() || !(result.pv.front() == result.best_move)) chk::fail(chk::V14_PVFIRST, 0, "pv-head-mismatch");
++            chk::hit(chk::V14_EXACT);
++            if (!(iteration_score > alpha && iteration_score < beta))
++                chk::fail(chk::V14_EXACT, 0, "score " + std::to_string(iteration_score) + " a " + std::to_string(alpha) + " b " + std::to_string(beta));
++            chk::hit(chk::V10_PVREPLAY);
++            Board replay = board;
++            for (const Move pv_move : result.pv) {
++                if (!replay.is_legal(pv_move)) {
++                    chk::fail(chk::V10_PVREPLAY, 0, "illegal-in-pv");
++                    break;
++                }
++                Undo replay_undo;
++                (void)replay.make_move(pv_move, replay_undo);
++            }
++        }
++#endif
+         if (alt_worker && !result.pv.empty()) {
+             struct PvLine {
+                 int score = 0;
+@@ -2705,6 +3130,9 @@
+     }
+     // Age the table once per search, before any worker can probe it.
+     shared_.tt.new_search();
++#if FORGE_SEARCH_CHECKS
++    chk::reset();
++#endif
+     std::optional<TranspositionTable::ExclusiveLease> exclusive;
+     // MultiPV above 1 does not start helpers, so the main thread may own the
+     // table the way a one-thread search does.
+@@ -2747,6 +3175,9 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#if FORGE_SEARCH_CHECKS
++    chk::print();
++#endif
+     return result;
+ }
+ 

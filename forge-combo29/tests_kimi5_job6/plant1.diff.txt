@@ -1,0 +1,11 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -2471,7 +2471,7 @@
+                             history_bonus(depth) * tune::FailLowContinuationBonus / 100);
+     }
+ 
+-    const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
++    const Bound bound = best_score >= beta ? BoundUpper : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+ #if FORGE_SEARCH_CHECKS
+     chk::hit(chk::V6_STORE);
+     if (!excluded.is_none() && !(root_node && root_restricted_)) chk::fail(chk::V6_STORE, ply, "store-under-excluded");

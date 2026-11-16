@@ -1,0 +1,11 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -1957,7 +1957,7 @@
+         // Reverse futility pruning.
+         if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+             eval < MateInMaxPly) {
+-            return CHK_EARLY(chk::V4_RFP, eval, ply);
++            return CHK_EARLY(chk::V4_RFP, mate_in(ply), ply);
+         }
+         // Null move pruning.
+         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && CHK_SE(chk::V8_NULLGUARD, ss->static_eval, ply) >= beta - 24 * depth + 180 &&
