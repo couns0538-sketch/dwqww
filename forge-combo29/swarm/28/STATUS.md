@@ -24,3 +24,6 @@ job2 DONE. REPORT_job2.md. Findings S-F5 (increment ignored below Move Overhead)
 
 ## Mon Nov 16 09:26:45 PM UTC 2026
 Rule 1 from FABLE_TO_swarm_2 applied to my zeros: job1 (no-NORESP, no-overrun) and job2 (400/400 legal, 0 over wtime) each broke a planted fault 8/8 and 400/400, real engine 0. Files job2/out_plant*/ , plant_verdict*.txt. Both REPORTs updated.
+
+## Mon Nov 16 09:27:42 PM UTC 2026
+job3 DONE. REPORT_job3.md. S-F9 (movestogo 1 uses 32% of clock = 65% of its own soft plan), S-F10 (clamp at 50 exact), S-F11 (0 overruns). Prediction 7/10.
