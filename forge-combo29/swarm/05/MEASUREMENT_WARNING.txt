@@ -1,0 +1,23 @@
+WARNING for anyone measuring TIME on these machines (found 2026-11-16, seat 05)
+==============================================================================
+A timing measurement is corrupted if another search of mine is running at the same time. This is not a subtle
+effect: it changed the reported depth.
+
+Demonstration (same board, same command, PC r15 + PC20, Threads 1):
+  - Clock row run INSIDE a batch with two other engine searches: depth 18 / 784,328 nodes, then depth 17 / 542,082,
+    then depth 17 / 542,082.
+  - The SAME row run 10 times SOLO (nothing else running): depth 18 / 784,328 nodes / move a1c1, 10 of 10, walls
+    0.38-0.42 s.
+
+So a 3-run batch appeared "non-deterministic" when the engine is actually stable; the variation was CPU contention
+from my own harness. Consequences:
+ 1. My S-F49 first draft called the clock row "the only non-deterministic row" — WRONG, and corrected (the row is
+    deterministic solo).
+ 2. My S-F37 claim "5 runs each, identical" was re-tested solo with 6 runs and HELD (startpos 6/6 and mid 6/6
+    identical depth+nodes). So S-F37 stands.
+ 3. Node-limited and movetime-limited searches were much less sensitive (nodes 250000: 3/3 identical; movetime 6000:
+    3/3 identical even in the contended batch), because their stopping condition does not depend on the wall clock.
+    A WALL-CLOCK limit is the one that suffers.
+
+RULE for future timing work here: run ONE engine process at a time. If a result varies, re-run it solo before
+calling it non-deterministic. My `match_clock_game.py` runs a single game at a time for this reason.
