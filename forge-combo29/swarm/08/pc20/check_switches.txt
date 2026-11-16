@@ -1,0 +1,45 @@
+## TASK A — MateAlphaGuard alone, on top of S14, `go depth 12`, Threads 1, PC r15 build
+
+| board | arm | score | plies | nodes | pv length | bestmove | verdict |
+|---|---|---|---|---|---|---|---|
+| B1 seat20 S-F19 board | S14 only (no guard) | **mate -9** | 18 | 37,664 | 14 | c2b1 |  |
+| B1 seat20 S-F19 board | S14 + MateAlphaGuard true | **mate -4** | 8 | 31,996 | 8 | c2b1 | distance changed |
+| B1 seat20 S-F19 board | S14 + MateAlphaGuard false | **mate -9** | 18 | 37,664 | 14 | c2b1 | no change |
+| | | | | | | | |
+| B2 seat01 S-F19 board | S14 only (no guard) | **cp 0** | - | 324 | 1 | h4e1 |  |
+| B2 seat01 S-F19 board | S14 + MateAlphaGuard true | **cp 0** | - | 324 | 1 | h4e1 | no change |
+| B2 seat01 S-F19 board | S14 + MateAlphaGuard false | **cp 0** | - | 324 | 1 | h4e1 | no change |
+| | | | | | | | |
+
+## TASK B — each PC20 SEARCH switch alone on top of S14, `go depth 12`, Threads 1, PC r15 build
+
+| board | arm | score | plies | nodes | pv length | bestmove | verdict |
+|---|---|---|---|---|---|---|---|
+| B1 seat20 S-F19 board | S14 only (baseline) | **mate -9** | 18 | 37,664 | 14 | c2b1 |  |
+| B1 seat20 S-F19 board | S14 + CuckooRep true | **mate -13** | 26 | 26,914 | 17 | c2b2 | distance changed |
+| B1 seat20 S-F19 board | S14 + HistRework 2 | **mate -7** | 14 | 22,910 | 13 | c2b2 | distance changed |
+| B1 seat20 S-F19 board | S14 + TtPruneV2 true | **mate -7** | 14 | 22,457 | 14 | c2b1 | distance changed |
+| B1 seat20 S-F19 board | S14 + CorrHistV2 true | **mate -8** | 16 | 22,693 | 12 | c2c3 | distance changed |
+| B1 seat20 S-F19 board | S14 + all four | **mate -7** | 14 | 21,898 | 14 | c2b1 | distance changed |
+| | | | | | | | |
+| B2 seat01 S-F19 board | S14 only (baseline) | **cp 0** | - | 324 | 1 | h4e1 |  |
+| B2 seat01 S-F19 board | S14 + CuckooRep true | **cp 0** | - | 324 | 1 | h4e1 | no change |
+| B2 seat01 S-F19 board | S14 + HistRework 2 | **cp 0** | - | 324 | 1 | h4e1 | no change |
+| B2 seat01 S-F19 board | S14 + TtPruneV2 true | **cp 0** | - | 324 | 1 | h4e1 | no change |
+| B2 seat01 S-F19 board | S14 + CorrHistV2 true | **cp 0** | - | 324 | 1 | h4e1 | no change |
+| B2 seat01 S-F19 board | S14 + all four | **cp 0** | - | 324 | 1 | h4e1 | no change |
+| | | | | | | | |
+
+
+## Summary
+
+| question | B1 | B2 |
+|---|---|---|
+| S14 baseline | mate -9 | cp 0 |
+| + MateAlphaGuard true | **mate -4** | **cp 0** |
+| + MateAlphaGuard false | mate -9 | cp 0 |
+| S14 + CuckooRep true | mate -13 | cp 0 |
+| S14 + HistRework 2 | mate -7 | cp 0 |
+| S14 + TtPruneV2 true | mate -7 | cp 0 |
+| S14 + CorrHistV2 true | mate -8 | cp 0 |
+| S14 + all four | mate -7 | cp 0 |
