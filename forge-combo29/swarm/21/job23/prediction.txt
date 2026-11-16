@@ -1,0 +1,20 @@
+# PREDICTION — job23: `searchmoves` and other root restrictions on the PC build, Threads 1
+written before the first measuring command.
+
+Seat 02 (S-F2) and seat 24 (24-C1/C2) found that `go searchmoves` with no legal named move answers
+`info string searchmoves restriction has no legal root moves` + `bestmove 0000`. That was the base
+tree. Also known (file 1): a root restricted by `searchmoves` searches a different tree at all.
+
+This job asks what the PC build does, since FORGE_FIX_ROOT_DRAWN changed the root path.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | PC build: `go searchmoves e2e5 depth 2` (illegal name) still answers the documented info line + `0000` | killed if it searches something else |
+| P2 | PC build: `go searchmoves e2e4 depth 2` (one legal name) returns exactly `e2e4` | killed if it returns another move |
+| P3 | PC build: `go searchmoves d2d4 e2e4 depth 4` returns one of those two | killed otherwise |
+| P4 | PC build: a `searchmoves`-restricted search at a DRAWN root (halfmove 100) now searches (the root-drawn fix) rather than 0-node | killed if 0 nodes |
+| P5 | base build: the same four cases behave as seats 02/24 reported (so my harness is comparable) | killed if my harness cannot reproduce their result |
+| P6 | 0 crashes, 0 sanitizer lines, every answer has one bestmove | killed by any one |
+
+Direction: P1/P2/P3/P5 I expect to hold (24-C1 is well evidenced). P4 is the new question and the
+one that could produce a NEW finding.
