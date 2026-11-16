@@ -222,3 +222,11 @@ seed: 1601
   "necessary, not sufficient" holds on the PC build too, and S-F20's lever is a separate layer on top.
 - next: the PC path again — `go nodes` at the match budgets (20000/50000/250000) determinism is done; next is
   whether the TtPruneV2 lever also changes the SCORE asymmetry at depth 10, not just the move mismatch.
+
+## 2026-11-16T23:02Z
+- S-F22 REFINES S-F20 and I flagged the refinement to the coordinator: TtPruneV2 is a lever for the
+  MOVE-MIRRORING COUNT only (102 -> 113 -> 120), NOT for the score disagreement (score-equal 20/19/22, median
+  |mirror score gap| 18/19/16 cp). So it is not a strength lever; the ~18 cp gap is untouched by any option I
+  tested. REPORT_lever_scope.md.
+- next: PC path — does the ~18 cp mirror score gap shrink with depth (file 6 says a multi-thread spread should
+  shrink with depth; the colour gap may behave differently)? Depths 6/8/10/12 on the same positions.
