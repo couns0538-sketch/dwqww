@@ -94,6 +94,29 @@ the six), option names validated against the exe's `uci` list, `isready`/`readyo
   `cd forge-combo29/swarm/13/job10 && python3 underreport.py ~/b/pc/forge boards27.json out 5 20000`
   then `python3 control_underreport.py ~/b/pc/forge boards27.json out 5 20000`.
 
+
+## Follow-up: a harder scan on 120 G boards (ad hoc, after the main run)
+The main result's weakness is that my 27 boards solve almost immediately at 20,000 nodes, so they may
+be the wrong material for the defect. To get closer to "hard" mates I scanned 120 G positions at
+`go nodes 20000` and looked for any mate claim at all — G boards are real games, so a mate there is
+not constructed to be easy.
+
+**Result: 2 of 120 boards produced a mate claim, and both are correct — but both sit exactly at the
+edge of what their claim allows:**
+
+| FEN | claim | plies allowed | PV mates at ply | verdict |
+|---|---|---|---|---|
+| `4Q3/8/r2K4/8/2B5/5R2/1k6/8 w - - 0 1` | mate 3 | 5 | **5** | correct (exactly at the limit) |
+| `k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1` | mate -3 | 6 | **6** | correct (exactly at the limit) |
+
+0 under-reported on this set too. This is the closest material I have to the other seat's case: a
+non-trivial mate found under a node budget rather than a mate-in-1. It still comes back clean, which
+strengthens the bound, but 2 boards is very few and they are at the boundary rather than past it — so
+if their defect is a claim that overshoots by one ply, my sample would need to contain such a board to
+see it, and I cannot show that it does.
+
+Raw: `out/g_scan.json` (120 rows).
+
 ## Suspicions, not proven
 - If the under-report needs a *hard* mate at 20,000 nodes, my boards are the wrong material: they are
   solved almost immediately. A better test would use endgame boards where the correct mate distance is
