@@ -164,6 +164,25 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:57Z - S-C34: movestogo disagreement RESOLVED into a diagnosis (three code facts, read)
+
+1. include/forge/search.hpp:42   int moves_to_go = 0;                      <- ABSENT sentinel IS 0
+2. src/uci.cpp:172 and :241      = std::max(1, value);                      <- supplied value clamped to >= 1
+3. include/forge/clock_plan.hpp:37  if (moves_to_go > 0) { ... } else { ... } <- two formulas
+
+absent -> 0 -> else -> soft = 5990/22 + 45 = 317 ms
+movestogo 0 -> clamped 1 -> if -> soft = 5990/2 + 45 = 3040 ms
+Predicted ratio 9.6x sits inside the measured 4.2-11.2x, so the arithmetic closes it.
+
+**It is NOT a bug**: movestogo 0 legitimately means "one move to go", and last-move budgeting correctly spends about
+half the clock. The error is a caller sending 0 meaning "unknown". My earlier flag was right about the layer and the
+sentinel's existence, wrong only about the sentinel's value (it is 0, and the clamp on the write side breaks the
+symmetry). ADVICE: omit movestogo or send a large value, never 0.
+
+The 4-11x table with depth figures stays beside it in check_30F55/results.txt.
+State: 78 findings, guards green, working tree clean, local = remote. Continuing at cadence.
+
 ## 2026-11-16T23:57Z - S-C33: CONFIRMS 30-F55 (movestogo 0 costs 4-11x the time) and flags where the cause is NOT
 
 Match clock 6s+0.06, PC20, Threads 1, Hash 16, 3 runs x 3 positions:
