@@ -1,0 +1,44 @@
+# deepseek6 long 43 — prediction scorecard (PREDICTION.md committed before the first run, never edited)
+
+P1 S14 cell exact on both sets. MEASURED: O (margin 2, depth 6) = **9,500,069 exactly**; G = **18,466,239
+   exactly**. -> **HELD.** (Both known sums met on the first run, so the build and harness are right.)
+
+P2 at margin 2, O ratios strictly ordered depth5 > depth6 > depth7 > depth8.
+   MEASURED at margin 2: 1.0245, 1.0000, **0.9646**, **0.9762** — depth 8 is ABOVE depth 7.
+   At margins 0 and 1 the ordering is strict; at margins 2, 3 and 4 it is not.
+   -> **KILLED** (held for the two largest margins, failed for the three smallest).
+
+P3 at depth 6, O ratios strictly ordered margin0 > 1 > 2 > 3 > 4.
+   MEASURED: 2.4340, 1.3891, 1.0000, 0.8617, 0.7863 — strictly decreasing. -> **HELD.**
+
+P4 the margin axis is steeper than the depth axis inside the grid.
+   MEASURED margin span at depth 6: 2.4340 / 0.7863 = **3.0955**.
+   Measured depth span at margin 2: 1.0245 / 0.9762 = **1.0495**.
+   -> **HELD, and by far more than predicted**: the margin axis is 3.1x while the depth axis is 1.05x, a factor
+   of 2.95 between the two spans against my "just larger" call.
+
+P5 the product of the two singles predicts every cell within 5 %.
+   MEASURED worst |measured/product - 1| = **0.1336** (cell margin 0, depth 8: 2.0585 measured against 2.3761
+   predicted). Five cells exceed 5 %: (0,8) 0.8664, (1,8) 0.8951, (0,7) 0.9198, (1,5) 1.0610, (4,8) 1.0579.
+   -> **KILLED.** The two axes do NOT multiply: at the large-margin/low-depth corner the depth axis is nearly
+   flat, and at small margins it bites.
+
+P6 cheapest cell (4,8), dearest (0,5). MEASURED cheapest **(4,5) = 0.7689**, dearest **(0,5) = 2.5863**.
+   -> **HALF KILLED**: the dearest cell is right, the cheapest is depth 5, not depth 8.
+
+P7 G corner order equals O corner order. MEASURED
+   O cheapest-first: m4_d5, m4_d8, m0_d8, m0_d5
+   G cheapest-first: m4_d8, m4_d5, m0_d8, m0_d5
+   The two swap the first pair (on G the cheaper of the two margin-4 corners is depth 8; on O it is depth 5).
+   -> **KILLED** (one swap).
+
+P8 budget 10-20 minutes. ACTUAL: 20 O cells took about 8 minutes, the 5 G cells about 3: **~11 minutes**.
+   -> **HELD.**
+
+Score: 4 held (P1, P3, P4, P8), 1 half killed (P6), 3 killed (P2, P5, P7).
+
+The useful outcome is not the score but the two shapes the grid shows:
+  * SingularMargin is a 3.1x knob across 0..4 (2.43x at margin 0 down to 0.79x at margin 4): one tuner step from
+    the default 2 to 1 is +39 % on the O tree, and 2 to 3 is -14 %. It is not a fine knob.
+  * SingularDepth inside 5..8 is a 1.05x knob at margin 2 but a 1.26x knob at margin 0: its size depends on the
+    margin, which is why a product of singles fails (P5).
