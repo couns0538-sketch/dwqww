@@ -463,3 +463,7 @@ Settings: **none** (no setoption), **S14** (the 14 settings), **PC20** (S14 + th
 - S-F79 (rest of the clock matrix): movestogo 1 = 2,020 ms vs movestogo 40 = 98 ms; wtime 0 answers in
   1 ms; movetime 0/5 answer in 1 ms; wtime 999999999 searches >45 s which is CORRECT (eleven days of
   requested thinking time), not a hang — and I did not read it as one, per trap 2b.
+- S-F80: uci_guard.py — a guard harness implementing both documented defences, SELF-TESTED against
+  the real engine: refusal raises + resyncs to startpos (next search gives d2d4, no leak), and a
+  one-sided clock is refused before it can cost 12 s. Real queue deadline, sanitizer check, and the
+  trap-2b warning in its timeout message.
