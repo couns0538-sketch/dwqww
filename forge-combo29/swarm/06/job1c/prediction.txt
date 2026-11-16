@@ -1,0 +1,32 @@
+PREDICTION — seat 06, area 6 job 1 THIRD RUN (SEED 621), on BOTH builds
+written before the first measuring command. Never edited afterwards.
+
+What differs from runs 1 and 2: new seed 621 (12 games / 500 positions at one per 7 plies, and 59 games /
+3,000 at one per 5 plies), and — new for this run — the same measurement on TWO builds:
+  base  6b98f217, settings S14,  Threads 1, Hash 16
+  PC    r15 (FABLE 5), settings PC20, Threads 1, Hash 16
+Each with a planted control per Rule 1 (FEN i paired with FEN i+1: every pair must be flagged).
+
+Measurement: `eval` of each position and of python-chess `board.mirror()`; hce / nnue / total compared.
+
+Predictions (each with the range that kills it):
+
+T1  base build, 0 differences in all of G + 500 R621 + 3,000 Rbig621 (3,853 pairs).
+    KILLED by any single difference.
+T2  PC build under PC20, 0 differences in all 3,853 pairs. KILLED by any single difference.
+    (The PC patch does not touch the evaluation; S-F24 already showed 0/353 on G alone. A difference
+    here would mean one of the four new switches affects the static eval, which the FABLE 5 text says
+    it does not while the options are off — and PC20 turns them on for the search, not the evaluator.)
+T3  the two builds agree POSITION BY POSITION for every one of the 3,853 pairs: identical hce, nnue
+    and total. KILLED by any position where the two builds differ.
+    (I predict this because the patch's evaluation-affecting change is FORGE_PAWN_HISTORY 0, which is
+    pawn-structure HISTORY inside the search, not the `eval` command. If T3 fails, that is the most
+    interesting result of the run and I will hunt it.)
+T4  planted control on both builds: every pair flagged. KILLED if any pair is missed.
+T5  the SEED-621 R set differs materially from the 611 set (mean piece count differs by at least 0.3,
+    or the under-8-pieces count differs by at least 15).
+    KILLED if the two sets are that similar.
+
+What this run is FOR: runs 1 and 2 showed the eval is symmetric across two independent random sets. This
+run asks the different question the PC build makes possible — does the engine the owner plays evaluate a
+position the same way as the tree the swarm builds? That is the comparison nobody has made yet.
