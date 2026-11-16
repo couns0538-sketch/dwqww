@@ -1,0 +1,29 @@
+# PREDICTION — where does the asymmetry BEGIN, per quantity, on the full G set?
+
+Another seat reports (on its 30 positions) depth 1 = 30/30 equal and depth 2 = 22/30, reproducibly, and says the
+asymmetry begins a ply earlier than "my summary implies". My own 20-position data already separates the
+quantities, and shows the two statements are about different things:
+
+```
+at depth 1: scores equal 20/20, bestmoves 20/20, NODE COUNTS only 9/20
+at depth 2: scores 14/20, bestmoves 18/20, node counts 2/20
+```
+
+So "equal at depth 1" is true of SCORES and BESTMOVES but false of NODE COUNTS. This job measures all three
+quantities at depths 1 and 2 on the FULL 353-position G set, so the depth at which each asymmetry begins is
+established with a large sample rather than argued.
+
+Method: 353 G positions, colour mirror each, `go depth 1` and `go depth 2`, PC build under PC20, Threads 1,
+Hash 16, fresh process + ucinewgame per search (cold). Report per depth: score-equal, bestmove-equal,
+node-equal counts.
+
+P1. At depth 1, SCORES are equal on at least 340 of 353 (the other seat says 30/30) and BESTMOVES equal on at
+    least 340. Kills it: fewer than 300 equal, which would make the other seat's figure position-specific.
+P2. At depth 1, NODE COUNTS are equal on FEWER THAN HALF the positions — predicted 100 to 175 of 353 (my
+    20-position sample gave 9/20 = 45 %). Kills it: more than 200 equal, which would mean my 9/20 was unlucky
+    and the node asymmetry really does begin at depth 2.
+P3. At depth 2, scores become unequal on a substantial minority: predicted 40 to 120 of 353 unequal (the other
+    seat measured 8 of 30 unequal = 27 %; my 20-position sample was 6 of 20 = 30 %). Kills it: under 20 unequal
+    (the other seat's 27 % would then be position-specific) or over 200.
+P4. The ORDERING of the three quantities is the same at both depths: scores equal most often, bestmoves second,
+    node counts least. Kills it: any depth where node counts are equal more often than scores.
