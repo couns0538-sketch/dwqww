@@ -180,3 +180,5 @@ NEXT: continue area-1 work; push again by 22:30.
 - S-F26: 05-F8/24-C3 NOT repaired on the PC — `go infinite` at a terminal root never volunteers a
   bestmove (6 s window, NO stop sent, ordinary-board control also NEVER). My first probe looked like a
   fix only because my pipeline sent stop; caught and corrected.
+- S-F27: the full 20k mutation sweep on PC r15/PC20 gives IDENTICAL numbers to base
+  (17130/2870/24/0/0, 99.164 %), all 20 setoptions confirmed in .meta. FEN layer transfers to the PC.
