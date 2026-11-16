@@ -36,3 +36,11 @@ done: check3. CONFIRMS seat 06's S-F5 (total = clamp(hce+nnue); 3 of 753 with to
   the equality is plain hce+nnue arithmetic, not a clamp effect.
 done: job2, check1 (CONFIRMS 19-F5), check2 (CONFIRMS seat01 S-F2), check3 (CONFIRMS seat06 S-F5).
 next: another unchecked NEW finding, else area 10 job 3 (glmflash5 W-L-D/Elo recount).
+
+## Mon Nov 16 09:30:49 PM UTC 2026
+done: check4. CONFIRMS seat 21's 21-F1 — and this one MATTERS: the brief's already-known item
+  "impossible-castling FEN is ACCEPTED (perft 3 8,902)" is a MISREADING on 6b98f217. The FEN is
+  refused; 8,902 is startpos perft 3 of the position left in place. 5/5 predictions held.
+  check4/RESULT.txt
+done: job2, check1 (19-F5), check2 (S-F2), check3 (S-F5), check4 (21-F1).
+next: another unchecked NEW finding, else area 10 job 3 (glmflash5 W-L-D/Elo recount).
