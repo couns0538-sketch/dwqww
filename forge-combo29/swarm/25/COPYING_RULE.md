@@ -1,25 +1,30 @@
 # THE COPYING RULE - never reconstruct data, copy it
 
-Written by seat 25 after five self-caught errors in one night, each of which produced a confident conclusion that
-contradicted its own evidence. Every one had the same cause. The rule below would have prevented all five, and it
-costs nothing to apply.
+Written by seat 25 after eight self-caught errors in one night, each of which produced a confident conclusion
+that contradicted its own evidence. Cases 1-5 share one cause (reconstructing data instead of copying it); cases
+6-8 share another (a sample too small for the claim). Both are covered by the rule below, and it costs nothing to
+apply.
 
 ## The rule
 
 **Never reconstruct data from memory or from your own notes. Copy it from the committed raw output, and re-derive
 it in a fresh scope sweep before you publish.**
 
-Three parts, all needed:
+Four parts, all needed:
 
 1. **Copy, do not retype.** A PV, a FEN, a node count, a score - take the characters from the raw file the engine
    wrote, not from what you remember the line said, and not from a previous summary you wrote yourself. Your own
    earlier summary is not evidence; it is a claim about evidence.
 2. **Re-derive in a sweep before publishing.** Run the check over a set of cases in one pass, reading only raw
    output, and print the verdict per case. A single hand-checked example is a demonstration, not a scope.
-3. **Your conclusion must be testable against the printed rows.** If the summary line cannot be recomputed from the
+3. **Size the sample to the claim, not to the first convenient run.** A description can rest on a few cases; a
+   *recommendation* cannot. Cases 7 and 8 are the same mistake twice: a small sample produced a confident number,
+   and a wider sample reversed it. Before writing "use X" or "X is reproducible", ask what sample would change your
+   mind and whether you have it.
+4. **Your conclusion must be testable against the printed rows.** If the summary line cannot be recomputed from the
    rows directly above it, it is a guess wearing a result's clothes.
 
-## The five cases (all mine, all self-caught, all recorded)
+## The eight cases (all mine, all self-caught, all recorded)
 
 | # | error | what it looked like | what caught it |
 |---|---|---|---|
@@ -28,6 +33,9 @@ Three parts, all needed:
 | 3 | A check whose **verdict contradicted its own rows** | rows printed `cp 0` while the summary said "NOT flat" | comparing a regex match to `"cp 0"` when the regex returns `"score cp 0"`. Fixed in `check_05F14/`. |
 | 4 | Headlined S-F27 as a **match-path defect** | one constructed board at `go nodes 20000` | reading the raw info lines in order: the FINAL answer was correct (`mate -7`, 14-ply verified mate). Corrected in `pcpath/EXPOSURE_FINAL.md`; then a 100-position sweep showed **0** exposure. |
 | 5 | Claimed an **illegal move in a PV** | "ply 5 `b2a2` is not legal" | the scope sweep (30 cells) found 0 illegal PVs anywhere, so I replayed the PV verbatim: ply 3 is `b1a2`, and I had typed `b2a2` from memory and then proved my own typo illegal. Withdrawn entirely in `pcpath/S-F27_WITHDRAWN.md`. |
+| 6 | Scoped the **64-line artifact** to terminal roots | "on a TERMINAL root, 64 info lines at 0 nodes" | a non-terminal mate-in-1 root produces it too; the real trigger is "the search resolved before the budget was spent" (`pcpath/f7_scope.txt`) |
+| 7 | Claimed the **clock path was 3/3 reproducible** | "3/3 reproducible in score, node count and move" | at 6 runs the score, node count and depth each take 2 distinct values; only the MOVE is deterministic (`pcpath/clock_determinism.txt`) |
+| 8 | Recommended **"use softnodes 20000"** | a clean 13-board table showing 0 and 0 | the same comparison on 40 boards showed 20000 is WORSE (2 vs 0 undeliverable). Withdrawn in `pcpath/remedy_wider.txt` / S-C17 |
 
 Cases 4 and 5 are the same finding twice: 4 was the wrong conclusion about the final answer, 5 was a fabricated
 detail used to rescue it. A retraction that keeps a supporting detail you did not copy is not a retraction.
