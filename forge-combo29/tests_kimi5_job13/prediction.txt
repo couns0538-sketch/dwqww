@@ -1,0 +1,43 @@
+kimi5 job 13 prediction (committed before Part 2's first run, never edited)
+Basis: source of 6b98f217 only (search.cpp, board.cpp), no run of this job yet.
+
+Settings I expect to be DEAD at value +/- one step c (a SPSA step cannot change the search):
+1. QsSeeMargin (value 40, c 6). search.cpp:1500 `see_ge(move, -QsSeeMargin)`; every SEE result
+   is a multiple of 100 (board.cpp:24 SeeValue{0,100,300,300,500,900,0}), so see_ge(m, -v) is
+   constant for v in [0, 99]. Dead on [0, 99]; contains 34..46.
+2. CaptureFutilityMultiplier (value 250, c 25). search.cpp:1893 the only read is behind
+   `tune::CaptureFutilityBase > 0`; CaptureFutilityBase = 0 by default and S14 does not set it.
+   Dead on the whole option range [0, 1000]; contains 225..275.
+3. CaptureFutilityDepth (value 6, c 1). Same guard, same line. Dead on the whole range
+   [0, 15]; contains 5..7.
+
+NUMBER OF DEAD SETTINGS: 3.
+
+Everything else is LIVE at value +/- c, in one line each (details in the report's Part 1 table):
+- LmrQuietBase/LmrQuietDivisor/LmrNoisyBase/LmrNoisyDivisor: the ReductionTable stores
+  uint8_t (search.cpp:222-225), a floor; over the 63x63 cells of log-products some cell crosses
+  an integer for the step given. refresh() (search.cpp:311, called from uci.cpp:294) makes the
+  change arrive.
+- LmpBase: integer threshold move_count >= LmpBase + depth^2 (search.cpp:239, 1866).
+- HistoryBonusQuadratic/Linear/Max: history_bonus (search.cpp:243) feeds ordering and pruning.
+- MaterialCorrectionWeight: correction * W / 100 (search.cpp:1219) with nonzero table entries.
+- QsFutilityMargin: static_eval + margin + capture_value <= alpha (search.cpp:1483-1497),
+  static_eval and alpha are arbitrary centipawns.
+- RazorBase/RazorMultiplier/RfpDepth/RfpMargin/RfpImproving/NullMoveBase/NullMoveDepthDivisor/
+  NullMoveEvalDivisor/ProbcutDepth/ProbcutMargin/IirDepth/SingularDepth/SingularMargin/
+  FutilityDepth/FutilityBase/FutilityMultiplier: plain integer arithmetic on arbitrary evals,
+  depths and reductions (search.cpp:1683-1931).
+- HistoryPruneMultiplier: history < -HPM * depth (search.cpp:1880), history reaches -2220*depth.
+- SeeQuietMultiplier: see_ge(move, -m * lmr_depth^2) (search.cpp:1885); at lmr_depth 2 the step
+  24->25 crosses 100 (96 vs 108). LIVE at c = 3.
+- SeeNoisyMultiplier: see_ge(move, -m * depth) (search.cpp:1903); at depth 2, 138 vs 150 crosses
+  300 (276 vs 300). LIVE at c = 12.
+- LmrCutoffThreshold: cutoff_count > threshold flips at count 3 and 4 (search.cpp:2001).
+- LmrHistoryDivisor: clamp(history / 5643, -2, 2) vs /5143, /6143 flips for |history| in
+  [5144, 6143] (search.cpp:2002); history reaches that.
+- AspirationDelta: the root window width from depth 4 (search.cpp:2400-2408); fail-high/low
+  events change.
+
+Expected checks against deepseek6 job 1 (branch for-fable-and-opus/deepseek6-work): its 70 runs
+must show exactly these 3 settings with no change on O; every LIVE setting must differ from S14
+on at least one O position in its rows.
