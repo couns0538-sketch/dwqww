@@ -1,0 +1,21 @@
+CHECK of swarm seat 06's S-F2 — my own harness, base build
+=========================================================
+Claim checked: "a FEN whose ep square is unreachable is REFUSED with
+`info string invalid FEN: inconsistent en-passant square`"
+
+Method (mine, from the finding's statement; I did not run their script, and I did not read engine source):
+ each case sends startpos FIRST, then the test FEN, then `go perft 1`. A refusal is counted only when the
+ engine both prints the invalid-FEN line AND the board it then holds is still startpos (perft 1 = 20);
+ that distinguishes "refused" from "printed a line and used the FEN anyway".
+ Control that the harness can see acceptance: a LEGAL ep FEN must be accepted and give a different count.
+
+Results (base build sha e06310ec, Threads 1, no setoption):
+  ep_wrong_rank       `... w KQkq e6 0 1`   invalid FEN line 1, perft 1 = 20  -> REFUSED, startpos kept
+  ep_origin_occupied  `... w KQkq e3 0 1`   invalid FEN line 1, perft 1 = 20  -> REFUSED, startpos kept
+  ep_no_pawn          `4k3/8/8/8/8/8/8/4K3 w - d6 0 1`  line 1, perft 1 = 20 -> REFUSED, startpos kept
+  control_ep_legal    `... w KQkq d6 0 3`   no refusal, perft 1 = 31          -> ACCEPTED (control works)
+  control_no_ep       startpos FEN, `-`     no refusal, perft 1 = 20          -> accepted, and 20 is startpos's
+All three refusal lines are exactly: `info string invalid FEN: inconsistent en-passant square`
+python-chess agrees these three are invalid (is_valid False) and the legal-ep FEN valid.
+
+VERDICT: CONFIRMS S-F2 on the base build.

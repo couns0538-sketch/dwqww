@@ -1,0 +1,21 @@
+== meta
+exe=/home/ubuntu/build/forge
+e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83  /home/ubuntu/build/forge
+id name Chess Engine Forge 6.4.24 candidate
+date=2026-11-16T22:38:10Z
+
+== the finding's three refusal cases (unreachable / inconsistent ep square)
+ep_wrong_rank                      invalid_FEN_lines=1 perft1_nodes=20   KEPT startpos
+ep_origin_occupied                 invalid_FEN_lines=1 perft1_nodes=20   KEPT startpos
+ep_no_pawn                         invalid_FEN_lines=1 perft1_nodes=20   KEPT startpos
+
+== CONTROLS: a legal ep FEN must be ACCEPTED (and give a count != 20)
+control_ep_legal                   invalid_FEN_lines=0 perft1_nodes=31   accepted (own board)
+control_no_ep                      invalid_FEN_lines=0 perft1_nodes=20   KEPT startpos
+
+== what python-chess says about each of these FENs (independent opinion, not the referee)
+   control_ep_legal                   python_valid=True  ep_square=d6
+   control_no_ep                      python_valid=True  ep_square=None
+   ep_no_pawn                         python_valid=False ep_square=d6
+   ep_origin_occupied                 python_valid=False ep_square=e3
+   ep_wrong_rank                      python_valid=False ep_square=e6
