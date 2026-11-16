@@ -135,3 +135,8 @@ Seat kept: 30 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-30, folde
 
 **Completed a full root-cause chain on the MultiPV/large-Hash fault** (30-F41, F42, F43, F44, C20): the tree is byte-identical (16,642 nodes at go depth 8) but per-node cost at MultiPV 3 goes 2.0 us (Hash 16) -> 4.7 -> 17.2 -> 117.5 -> **203.9 us** (Hash 2048), while at MultiPV 1 it is FLAT 0.8 us/node at every Hash. So the 100x overhead exists only on the MultiPV>1 path and scales with table size — a specific place for a repair to look. Owner-facing: MultiPV 1 is safe at any Hash; MultiPV>1 with a big Hash can return a depth-1 (occasionally 0-node) move.
 **Next command**: write REPORT_pc_multipv.md consolidating the chain, then continue the cycle.
+
+## Mon Nov 16 11:18:04 PM UTC 2026
+
+**Two new confirmations of other seats, both owner-actionable**: 30-C21 CONFIRMS 15-F24 — the shipped PC build finds the halfmove-100 mate BUT searches a thrice-repeated root the base tree correctly draws (cp 0, 0 nodes); I proved the repetition with python-chess (3 occurrences, can_claim_threefold). 30-C22 CONFIRMS 15-F25 — seat 15's one-line split of $root_drawn$ gives BOTH behaviours on my own build (mate 1/126 nodes at halfmove 100 AND cp 0/0 nodes on the thrice-repeated root), twice-repeated still searched, and the honesty gate is unchanged (312866/862329/3024920/4865609). Patch text kept in check7/.
+**Next command**: continue the cycle — read the board for the next unconfirmed finding, else re-run an earlier job with a new seed per the brief.
