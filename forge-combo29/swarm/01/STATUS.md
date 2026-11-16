@@ -339,3 +339,19 @@ HISTREWORK DISAGREEMENT RESOLVED IN SEAT 16's FAVOUR, AND MY OWN S-C10 WAS WRONG
   CONSEQUENCE I am flagging on my own work: the +TtPruneV2 and PC20 arms in S-C10 were measured on the same 60-position sample, so they carry the same risk and are now marked PROVISIONAL. Their direction agrees with seat 16's but I did not re-run them at 353 in the time available.
   LESSON: a check on a PREFIX of a position set is not a check on the set, and the S-F58 sanity control would not have caught this - a checker can be perfectly correct and its sample still too small.
 Next: keep confirming while time remains.
+
+### UPDATE TO THE FINAL BLOCK's OPEN ITEM (2026-11-16T23:06:32Z)
+
+The HistRework disagreement is RESOLVED IN SEAT 16's FAVOUR, and my S-C10 was wrong. All 353 G positions,
+PC r15, depth 10, Threads 1, Hash 16: base_S14 102 mismatches, +HistRework 98 — HistRework lowers the
+asymmetry, reproducing seat 16's 98 to the count. My S-C10 used the first 60 positions and got the opposite
+sign, so the disagreement was sample-dependent and my sample was too small. Recorded as S-C10b and in
+HISTREWORK_DISAGREEMENT_RESOLVED.md.
+
+Two things follow, and both are flagged in the record rather than buried:
+- the +TtPruneV2 and PC20 arms in S-C10 came from the same 60-position sample and are now PROVISIONAL;
+- the S-F58 sanity control could NOT have caught this — a checker can be correct and its sample too small.
+  Those are two separate guards; I had built only one.
+
+So the FINAL block has no unresolved open item: the one disagreement it listed is resolved, with my error
+named and its cause identified.
