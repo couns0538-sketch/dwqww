@@ -259,3 +259,10 @@ Next: continue on PC20 with provably-applied options; STATUS every 25 min.
   `go softnodes 2000` (self-play), `go nodes 20000` (matches) AND `go movetime 100` (clock) after a
   truncated game-2 FEN. Refusal line IS emitted; a harness must treat it as fatal. This is a live
   wrong-move hazard for the owner's own harness, not a UCI edge case.
+- HAZARD_stale_board.md WRITTEN as a standalone doc for the owner (hazard, exact output incl. the
+  refusal line, three real search modes, and the one-line rule).
+- S-F43: `ucinewgame` DOES clear the stale board but resets to STARTPOS (perft 1 = 20), not to game 2.
+  So: invalid FEN is fatal; if continuing in-process, ucinewgame AND re-send a well-formed position;
+  safest is a fresh process per game.
+- PC_SWITCHES.md updated: explicit "still unmeasured" list = ISREADY_PENDING, HARD_LIMIT_EMERGENCY,
+  ABORT_PUBLISH (no probe distinguishes ON from OFF; not evidence of no effect).

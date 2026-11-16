@@ -33,6 +33,20 @@ Built three ways, all with `-DCMAKE_BUILD_TYPE=Release -DFORGE_MATE_ALPHA_GUARD=
   node count at Threads 1 — so its absence is a real difference between the PC's binary and the
   patch's full intent.
 
+### Which of the six are STILL UNMEASURED (stated, not inferred)
+Measured and reported above: `ROOT_DRAWN`, `GO_PARSE`, `BARE_KING_LMR_CAP`, and
+`BARE_KING_ONE_THREAD` (the last from its OFF→ON build).
+
+**Still unmeasured — I have no probe that distinguishes the switch ON from OFF, so I make no claim
+either way about its effect:**
+- `FORGE_FIX_ISREADY_PENDING` — ON in the binary.
+- `FORGE_FIX_HARD_LIMIT_EMERGENCY` — ON in the binary.
+- `FORGE_FIX_ABORT_PUBLISH` — OFF in the binary.
+
+For each of those three I ran a plausible probe, saw no difference, and could not construct a case
+that reaches the code path. "Not measured" here means exactly that; it is **not** evidence that the
+switch does nothing.
+
 ## Could another seat's PC20 results have my option-wrapping defect?
 
 Yes, and here is the one-command check. My bug was that my driver wrapped an
