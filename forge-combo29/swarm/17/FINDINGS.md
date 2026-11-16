@@ -94,3 +94,31 @@ comparison is labelled warm.
 | S-F8 | 7 | NOT a new fault, bounded and recorded: `searchmoves` with no legal match combined with other limits. `go nodes 1000 searchmoves e7e5` and `go movetime 100 searchmoves e7e5` both emit 64 `info depth` lines (depth 1..64) ALL with `nodes 0`, i.e. the depth limiter is not reached by a node or movetime budget because no search happens - the terminal-root loop runs to max_depth. `go depth 5 searchmoves e2e4 e2e4 e2e4` de-duplicates correctly and answers `e2e4`. `searchmoves e7e8q` (a promotion that cannot exist here) answers 0000. 0 sanitizer lines in all of them | `forge-combo29/swarm/17/job1/job2/sm_nodes.log`, `sm_movetime.log`, `sm_dup.log`, `sm_promo.log` | NEGATIVE / detail for 07-F1 |
 | S-F9 | 7 | NOT a fault, TT resize verified: `Hash` 1/8/32/512/2048 MB changes only the pressure, not the answer - hashfull 440 / 58 / 10 / 0 / 0 and nodes 53652 then 52591 four times, bestmove identical; 18 ASan+UBSan searches with Hash set to min, max and toggled between searches all clean (0 sanitizer lines). The epoch/slot guards in `store_body` do their job | `forge-combo29/swarm/17/job1/job3/hash_sizes.json`, `job3/hash_resize.json` | NEGATIVE |
 | S-F10 | 7 | My own method lapse, recorded per the honesty rule: I first measured Hash sizes by PIPELINING `quit` into the search and got `None` for all five sizes - the 19-F12 fabricated-answer trap. Re-run with the read-to-bestmove driver the same five sizes measured properly. Any harness I report from now on is the driver one | `forge-combo29/swarm/17/job1/job3/hashsize_*.log` | NOTE |
+
+## S-F8 follow-up: is the no-legal-match searchmoves root unbounded on the clock? NO. (2026-11-16T22:00Z)
+
+Asked to confirm the unbounded part on the clock. I could not confirm it, and the honest answer is that my
+own first attempt said the opposite of the truth, so both are recorded.
+
+1. My FIRST harness (`job2/unbounded_check.py`, select()-based polling on a buffered text pipe) reported that
+   `go movetime 100 searchmoves e7e5` ran 20.0 s with no bestmove, and that TWO CONTROLS did the same
+   (`go wtime 1000 btime 1000 searchmoves e2e4`, and `go wtime 1000 btime 1000` with no searchmoves at all).
+   Controls failing is the tell: a correct control cannot take 20 s at a 1 s clock, so the measurement was
+   faulty, not the engine.
+2. Re-measured with the blocking read-to-bestmove driver (`uci_driver.run_one`), and then a THIRD time with a
+   plain shell pipe and no Python at all:
+   | go line | bestmove | wall |
+   |---|---|---|
+   | `go movetime 100 searchmoves e7e5` | `bestmove 0000` | 19 ms |
+   | `go wtime 1000 btime 1000 searchmoves e7e5` | `bestmove 0000` | 18 ms |
+   | `go movetime 100 searchmoves e2e4` (control) | `bestmove e2e4` | 91 ms |
+   | `go wtime 1000 btime 1000 searchmoves e2e4` (control) | `bestmove e2e4` | 36 ms |
+   | `go wtime 1000 btime 1000` (control) | `bestmove e2e4` | 67 ms |
+
+Conclusion, stated plainly: with no legal match for `searchmoves`, the engine returns `bestmove 0000` on its
+own in about 18-19 ms, well inside any time limit. It does NOT hang and it is NOT unbounded, and it does not
+need `stop`. What IS true from S-F8 is narrower: the 64 `info depth` lines are emitted with `nodes 0` and
+`time 0`, i.e. it reports a completed search of 64 depths that was never searched - a false report, not a
+long one. The `time 0` / `nodes 0` in every line is the misleading part, not the wall time.
+Evidence: `forge-combo29/swarm/17/job1/job2/unbounded/recheck.json` and `recheck_*.log`;
+the faulty first attempt is kept beside it as `unbounded/unbounded.json` so the error is visible.
