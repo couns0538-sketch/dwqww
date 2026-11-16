@@ -1,0 +1,21 @@
+PREDICTION — seat 15, area 5, job 1 REPEAT with the next seed (brief cycle step 2c).
+Committed BEFORE the first measuring command of this repeat.
+
+New seed: SEED + 10 = 1511. New position set R: random legal games played by python-chess with
+seed 1511, one position every 7 plies, 200 positions, written to job1b/R_seed1511.fens first.
+Same protocol as job 1: depth 12, S14, Threads 1, Hash 16, ucinewgame + isready before every go,
+one process, read stdout until bestmove.
+
+What DIFFERS from the first run (to be confirmed or refuted in the report):
+  - the position set is R (random-play), not O+G (curated openings and real game positions);
+  - R should be materially more varied: more imbalanced material, more endgames, more mates.
+
+P1  illegal PV moves: 0 of 200.                        KILLS P1: any.
+P2  bestmove != PV first move: 0 of 200.               KILLS P2: any.
+P3  positions carrying a mate score: between 40 and 110 of 200 (R has more decided positions
+    than O+G's 10 of 553).                             KILLS P3: outside 10..160.
+P4  mate scores BREAKING the PV-length rule: MORE than the 1-in-553 rate of job 1, i.e. at least 2
+    of 200. This is the actual claim under test: 15-F1 should be more common where more mates exist.
+                                                       KILLS P4: 0 or 1 violations (then 15-F1 is rarer
+                                                       than job 1 suggested and the report must say so).
+P5  positions with no info pv line at all: 0.          KILLS P5: any.
