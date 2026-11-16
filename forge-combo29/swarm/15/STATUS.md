@@ -4,6 +4,35 @@
 - area: 5 (PRINCIPAL VARIATIONS AND SCORES)
 - seed: 1501
 
+## 2026-11-16T22:29:47Z
+
+Both items the coordinator asked for are DONE and pushed. **Threads 1 and the build are named in
+every finding line.**
+
+1. REPETITION, TWO READINGS SEPARATED (15-F21) — **the ROOT check is the gap; the machinery is intact.**
+   On `8/8/1K6/q7/7r/1k6/3Q4/1r6 w` (white a rook down) BOTH builds return `cp 0` at depth 10 and 12,
+   and the base tree's PV visibly loops back to an already-seen position at ply 15 — in-search
+   repetition works. Yet a thrice-repeated ROOT is still searched on the PC build (15-F16). Same
+   build, same regime, same session: repetition recognised in the tree, not at the root.
+   Two of my three solver candidates did NOT behave as predicted and are recorded as failures.
+
+2. MATE DISTANCE ON PC20 (15-F18, 15-F20) — **both of my faults are GONE on the PC build**, and
+   **`MateAlphaGuard true` ALONE is the fix.** Isolated one option at a time on top of S14:
+   MateAlphaGuard fixes both positions; CuckooRep fixes the second but worsens the first (-13);
+   HistRework / TtPruneV2 / CorrHistV2 / OwnBook fix neither. G set at depth 12 under PC20:
+   12 mate scores, **0** PV-length violations (base tree: 1 at d12, 2 at d14), control 5/5.
+
+STATE: 21 findings + 4 checks + 3 retractions/corrections. Two of my own claims withdrawn today
+(15-F13 terminal scores, and 15-R2 a harness bug that measured a REFUSED FEN's stale board) — both
+found by testing instead of reasoning, both recorded as their own lines.
+
+Running now: nothing.
+
+Next exact command:
+  cd /agent/repos/dwqww/forge-combo29/swarm/15/pcbuild/matecheck && python3 pc_regimes.py ~/builds/pc/forge '8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1' 20 --regime PC20
+  -> whether MateAlphaGuard keeps the mate right at greater depth, and then 15-F6's 8 R-set mates on
+     the PC build to check the repair holds on positions that were already correct.
+
 ## 2026-11-16T22:23:47Z
 
 PC BUILD PHASE. Build verified: patch from FABLE_TO_swarm_5.md, sha256 d6bd72c531f785f4…,
