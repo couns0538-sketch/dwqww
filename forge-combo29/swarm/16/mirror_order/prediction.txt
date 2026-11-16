@@ -1,0 +1,25 @@
+# PREDICTION — does a MIRROR-ORDER permutation (not a reverse) make the pair equal?
+
+S-F12 tested reversing the generated move list: it changed the counts but widened the gap, and I concluded that a
+reverse was the wrong transform because the mirror's generator order is neither equal to nor the exact reverse of
+the original's. The correct transform is to force one side's list into the OTHER side's mirrored sequence.
+
+Method: a compile-time switch `FORGE_EXPERIMENT_MIRROR_ORDER` that, when on, sorts the generated move list into a
+canonical order derived ONLY from each move's squares in a mirror-invariant way — specifically ascending by
+(from_square, to_square) after mapping every square through the colour-relative transform. Two mirror positions
+then emit exactly corresponding lists, and the picker sees order-corresponding input by construction.
+
+Test on the S-F12 probe pair (position and its colour mirror), depths 1 and 2, cold, PC20, Threads 1:
+  base build, mirror-order build -> node counts for A and its mirror.
+
+P1. With the switch on, the depth-1 node counts become EQUAL (the base build gives 25 vs 30). Kills it: still
+    unequal, which would mean the order is not what the picker sees first.
+P2. At depth 2 the counts become equal TOO (the base gives 66 vs 60, full-window 336 vs 334). This is the decisive
+    test of whether order alone suffices. Kills it: still unequal, which CONFIRMS S-F12's "necessary but not
+    sufficient" with the correct transform and closes the thread properly.
+P3. Scores remain equal at both depths (they are equal at depth 1 and equal at depth 2 on the base build for this
+    probe). Kills it: a score difference appearing, which would mean the canonicalisation changed the search in a
+    way that is not order-only.
+P4. Control: with the switch ON, the SAME position searched twice gives the same result (the sort is total and
+    deterministic, because move squares are distinct). Kills it: any variation, which would mean my sort is not a
+    total order and the experiment is void.
