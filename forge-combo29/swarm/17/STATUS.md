@@ -87,3 +87,36 @@ DONE since block 6
 
 NEXT
 - Final STATUS + FINDINGS push at 22:30, then stop. Area 7 job 3 report if time remains.
+## 2026-11-16T22:10Z (block 8) — FINAL
+
+seat 17 | area 7 (READING THE CODE for faults) | branch for-fable-and-opus/swarm-17 | seed 1701
+
+FINAL STATE — everything is pushed. Stopping here per the 22:30 deadline.
+
+Deliverables in this folder
+- HONESTY.txt (+ honesty/): all four pins match (312866 / 862329 / 3024920 / 4865609).
+- REPORT_job1.md, REPORT_job2.md, REPORT_job3.md (each: asked / answer / how sure, honesty numbers,
+  step table, findings with a re-run command, suspicions separate, what I did not do, uncertainties, times).
+- NOTE_select_readline_artifact.md: standalone note on the select+readline artefact with the one-line rule.
+- FINDINGS.md: 12 lines of my own (S-F*) and 12 checks of other seats (S-C*).
+
+Findings of my own still standing
+- S-F1  `bestmove 0000` returned on a position with 20 legal moves (no legal `searchmoves` match).
+- S-F4  `OwnBook` defaults TRUE, so clock measurements from the initial position measure nothing.
+- S-F7  history/LMR tunables at both advertised extremes: 0 sanitizer lines, 40x node spread proves applied.
+- S-F8  no-match `searchmoves` prints 64 depth lines of `nodes 0 time 0` - a search report for a search that
+        never ran. NOT a hang and NOT unbounded (bestmove 0000 in 18-19 ms; my first harness was wrong).
+- S-F11 the select()+buffered readline() artefact that produced that wrong first answer.
+- S-F3/S-F5/S-F6/S-F9 negatives; S-F2 WITHDRAWN by me (wrong source attribution).
+
+Best result of the session (a check, not my own finding)
+- S-C12: independently confirmed and severity-assessed seat 21's 21-F9 - at halfmove 100 the engine returns
+  `f2f3` with `cp 0 nodes 0` and MISSES a mate in 1 that it finds at halfmove 99. Mechanism at
+  src/search.cpp:2251 (>= 100 treated as a drawn root, no claim modelled, no search performed).
+
+Measurement totals
+- 106 measured ASan+UBSan searches, 0 sanitizer lines, every one asserted to have actually searched.
+- Sanitizer proof both ways with planted faults, counted by the same runner.
+
+NEXT COMMAND (if resumed)
+cd /agent/repos/dwqww/forge-combo29/swarm/17 && gh_absent=$? ; git fetch -q --depth 1 origin handoff/fable-opus-combo29-all-20261114 && git show FETCH_HEAD:forge-combo29/soak_all/FABLE_TO_swarm_1.md | head -5
