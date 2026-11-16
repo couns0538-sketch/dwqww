@@ -17,21 +17,46 @@ A rejected `position` command leaves the engine on the PREVIOUS board and it sti
 `readyok`, so a harness that syncs on `readyok` receives a legal, confident move for the wrong
 position. Measured on PC r15 / PC20 / Threads 1; see HAZARD_stale_board.md for the evidence.
 
-Usage
------
-    g = UciGuard("/path/to/forge", options=["Threads 1", "Hash 16"])
-    g.start()
-    try:
-        g.set_position(fen="rnbq...")           # raises PositionRejected if refused
-        move = g.bestmove(nodes=20000)          # or depth=..., or clock(wtime=6000,btime=6000)
-        g.set_position(startpos_moves=["e2e4"]) # either form
-        move2 = g.bestmove(depth=12)
-    finally:
-        g.stop()
+Usage — the three calls, in order
+--------------------------------
+Copy this and change the exe path. Nothing else is needed to drive the engine safely.
 
-If `set_position` raises PositionRejected, the guard has ALREADY recovered (ucinewgame plus a
-known-good position) and the caller should skip that game. That is the documented defence: the
-cost is one game, never a session.
+    from uci_guard import UciGuard, PositionRejected
+
+    guard = UciGuard("/path/to/forge", options=["Threads 1", "Hash 16"])
+    guard.start()
+    try:
+        # 1. position   (either form; raises if the engine refuses it)
+        guard.set_position(fen="r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 3 3")
+        # 2. bestmove   (exactly one of depth=, nodes=, movetime=, or a wtime+btime pair)
+        move = guard.bestmove(nodes=20000)
+
+        guard.set_position(startpos_moves=["e2e4", "e7e5"])     # the other position form
+        move = guard.bestmove(depth=12)
+
+        move = guard.bestmove(wtime=6000, btime=6000, winc=60, binc=60)   # BOTH clocks, always
+
+    # 3. the exception handler: the ONLY thing you must not skip
+    except PositionRejected:
+        # The engine refused the position (bad FEN, or an illegal move in the list).
+        # The guard has ALREADY resynced with ucinewgame + startpos, so the next search is safe.
+        # Do not use any move from this game: skip it and continue with the next.
+        continue_with_next_game = True
+    finally:
+        guard.stop()
+
+The same thing as a context manager, if you prefer:
+
+    with UciGuard("/path/to/forge", options=["Threads 1", "Hash 16"]) as guard:
+        try:
+            guard.set_position(fen=some_fen)
+            move = guard.bestmove(nodes=20000)
+        except PositionRejected:
+            ...  # skip this game; the guard has already recovered
+
+Why the handler is not optional: a rejected `position` leaves the engine on the PREVIOUS board and
+it still answers `readyok`, so without this handler you receive a legal, confident move for the
+wrong position. Measured, with evidence, in HAZARD_stale_board.md.
 
 Deliberately small: no threads above one, no pondering, no book. Every option string must be
 either "Name value" or a full "setoption name ... value ..." line.
