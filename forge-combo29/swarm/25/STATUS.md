@@ -1,3 +1,35 @@
+## 2026-11-16T22:27Z - MECHANISM FOUND (instrumented build), and a correction of my own reasoning
+
+Instrumented build done as the coordinator asked: scratch copy, stderr-only prints behind FORGE_CLOCK99_DEBUG,
+EXPERIMENT patch committed as text only (debug/FORGE_EXPERIMENT_clock99_debug.patch.txt), never applied to the
+repository source. Ran the three cases: breaking@99, non-breaking@99, control@98.
+
+WHAT THE INSTRUMENTATION SHOWED
+- NO root shortcut fires: `root_drawn=0`, all 27 candidates present, and `[DBG ROOT ITER SEARCHED] depth=1..6
+  score=0 pv_len=1`. So S-F14's "root shortcut" mechanism was wrong (the observation was right). Corrected.
+- 109 `is_draw TRUE` lines, every one `clock=100 fifty=1`: the draw test fires on the CHILDREN, not the root.
+- Every root move searched alone: 18 quiet moves -> exactly `cp 0` with a 1-ply PV; 9 reset moves -> -212..-488.
+  So the root's 0 IS the max of its children - the arithmetic is consistent.
+
+THE RULE, CHECKED (this is where I had been wrong too)
+The fifty-move draw is CLAIMABLE, not automatic. python-chess: at clock 100 `is_game_over(claim_draw=False)` is
+False, 25 legal moves, and black simply plays h7h6 -> clock 0, game continues. A winning side never claims.
+So white's quiet move does NOT secure a draw and `cp 0` at clock 99 IS WRONG (my original S-F3 stands). I had
+briefly written the opposite in is_zero_right.py; that line is withdrawn in the same commit (debug/CORRECTION.md).
+
+MECHANISM, ONE SENTENCE
+`Worker::is_draw` scores a CLAIMABLE fifty-move draw as if it were FORCED: the clock-100 child returns 0, the root
+takes 0 as its maximum, so at clock 99 a position worth -155 cp is reported as a draw and the engine plays a quiet
+shuffle the opponent can simply decline by resetting the clock.
+
+THREE FALSIFIABLE PREDICTIONS, ALL CONFIRMED (S-F17)
+- clock 100 with resets available -> also cp 0 (251 nodes) - the fault is not specific to 99.
+- clock 100 with NO reset possible anywhere (K+R vs K+R): cp 0 in 32 nodes - CORRECT there. This is the
+  discriminating control: the clock-100 test is wrong exactly when a reset exists, which is the
+  claimable-vs-forced distinction.
+- board whose best moves are resets stays non-zero at clock 99 (cp 549 in 3,918 nodes).
+
+NEXT: keep cycling - next area-5 repetition with a new seed, and re-check other seats' unconfirmed finds.
 ## 2026-11-16T22:23Z — PC build integrated; coordinator's three tasks done
 
 Built PC r15 from FABLE_TO_swarm_5 (patch sha256 matches, no rejects, -DFORGE_MATE_ALPHA_GUARD=1).
