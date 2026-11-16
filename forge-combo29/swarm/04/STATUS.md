@@ -216,6 +216,5 @@ Scope: extreme lost position, bestmove f3f8 never varied, owner's PC is Threads 
 PC r15/PC20/T1: go nodes 20000 read normally -> d2d4 after 11 depth lines. Same command with quit written
 immediately -> bestmove a2a3 with 0 INFO LINES. Both write patterns fabricate 5/5 (one write with go+quit;
 two separate writes, no sleep). Window: quit at 0 ms fabricates; at 1 ms already a real search (g7g6, 5 info
-lines); at 200 ms a full 18-line search. => unsafe only if stdin closes in the same breath as go, which is what
- does.
+lines); at 200 ms a full 18-line search. => unsafe only if stdin closes in the same breath as go, which is what a naive pipe of the whole script into the engine does.
 NEXT: REPORT_quit_path.md, then keep working; FINAL when the window closes at 10:18:50Z.
