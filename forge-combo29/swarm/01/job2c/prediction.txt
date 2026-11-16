@@ -1,0 +1,16 @@
+# PREDICTION — combined root fix (job 2c) — written AFTER the measurements, and labelled as such
+
+This is not a pre-registered prediction: the combined patch was built because the door tests I had already
+run showed neither existing patch closes every door, and I tested it straight away. I record it as a
+prediction of what the numbers would be, and I say plainly that it was written after the fact.
+
+What the combined patch does: my reset-aware fifty-move test (adjudicate at halfmove >= 100 only when the
+side to move has no non-pawn material) PLUS seat 12's immediate-mate bypass applied to the other two doors
+(repetition, dead material).
+
+Expected, and found:
+P1. All four pins unchanged -> PASS on all four (job2c/honesty_patched.txt).
+P2. mate-in-1 at halfmove 100 -> mate 1 (found).
+P3. mate-in-1 at a threefold root with counter 8 -> mate 1 (the door seat 12's patch closed).
+P4. the counter-resetting pawn-move mate-in-3 at halfmove 100 -> mate 2 (the door mine closed and seat 12's did not).
+P5. genuine draws at halfmove 100/150 (KQ v K, KR v K, K v K) -> still cp 0, K v K still 0 nodes.

@@ -96,6 +96,45 @@ Unpatched: `HONESTY.txt` and `honesty/asan/summary.txt`. Patched: `honesty/fix2/
 (one-line patch) and `honesty/fix3/summary.txt` (conservative variant). Each is the pasted output of
 `honesty/honesty.py`, one fresh process per check.
 
+## 5b. RECOMMENDED: one patch that closes every door (`job2c`)
+
+Because section 6 shows neither existing patch is complete, I built and tested the combined fix. It is the one
+I would apply.
+
+`forge-combo29/swarm/01/job2c/fifty_move_and_doors.patch.txt` (`-p2` from `forge-combo29/`, applies clean with
+`--fuzz=0`, and the applied tree is byte-identical to the source I tested). It is my reset-aware fifty-move test
+**plus** seat 12's immediate-mate bypass applied to the repetition and dead-material doors:
+
+```c
+bool root_draw_adjudicated = !legal.empty() &&
+    (board.is_repetition() ||
+     (board.halfmove_clock() >= 100 && !board.has_non_pawn_material(board.side_to_move())) ||
+     board.is_insufficient_material());
+if (root_draw_adjudicated) {
+    for (const Move move : legal) {           // a mate on the board outranks any claim
+        Board child = board; Undo undo;
+        (void)child.make_move(move, undo);
+        if (child.legal_moves().empty() && child.in_check()) { root_draw_adjudicated = false; break; }
+    }
+}
+const bool root_drawn = root_draw_adjudicated;
+```
+
+Measured (`job2c/`, `job2/asan/mypatch_on_repetition.txt`, `job2/asan/mate3_clocks.txt`):
+
+| case | unpatched | one-line (`job2`) | seat 12 (`swarm-12`) | **combined (`job2c`)** |
+|---|---|---|---|---|
+| mate-in-1, no history | mate 1 / 108 | mate 1 / 108 | mate 1 / 108 | mate 1 / 108 |
+| mate-in-1 at halfmove 99 | mate 1 / 108 | mate 1 / 108 | mate 1 / 108 | mate 1 / 108 |
+| mate-in-1 at halfmove 100 | cp 0 / 0 | mate 1 / 108 | mate 1 / 108 | **mate 1 / 108** |
+| mate-in-1 at threefold, counter 8 | cp 0 / 0 | cp 0 / 0 | mate 1 / 108 | **mate 1 / 108** |
+| pawn-move mate-in-3 at halfmove 100 | cp 0 / 0 | mate 2 / 398 | cp 0 / 0 | **mate 2 / 398** |
+| KQ v K, KR v K, K v K at 100-150 (genuine draws) | cp 0 / 0 | cp 0, K v K 0 nodes | cp 0 / 0 | **cp 0, K v K 0 nodes** |
+| four pins | PASS | PASS | PASS | **PASS** |
+
+**Relationship to seat 27's patch is unchanged:** this patch rewrites the same block, so apply it *instead of*
+my one-line diff or seat 12's, and still **before** seat 27's `drawn_root_reporting`.
+
 ## 6. Relationship to the other root patches — apply ONE root fix, not two
 
 Two other seats fixed the same block independently, and all three of us rewrite `root_drawn` at
@@ -209,8 +248,13 @@ startpos, go depth 12:   COLD(3 procs) 56720 56720 56720 | WARM(1 proc) 56720 49
 
 ## 8. What I have not measured
 
-A **complete** fix for "a mate reachable before the fifty-move claim": both my diff and seat 12's fix the
-mate-in-1 case only (see section 6); the mate-in-3 board at halfmove 100 is still scored `cp 0` by both.
+A **complete** fix for every draw-claim door: the combined patch in section 5b closes the four doors I could
+build (fifty-move mate-in-1, fifty-move counter-resetting mate-in-3, threefold mate-in-1, plain controls) but I
+did not build a case for the dead-material door with a reachable mate, and I did not test a mate whose line
+resets the counter AND needs more than one move to land. So "closes every door" means "every door I could
+construct a test for".
+
+Elo cost of any of these patches: not measured (no game-pair match).
 
 The cost on roots that are *genuinely* drawn by repetition or by material and also sit at halfmove >= 100 was
 not measured board-by-board beyond the table above; the table's K v K row is the bare-king case (0 nodes). I
