@@ -1,0 +1,23 @@
+# PREDICTION — job28: CHECK of seat 15's 15-F3 (KNN v K scored as a win), both builds, S14
+written before the first measuring command.
+
+15-F3 claims: with S14 (DeadMaterial off) the engine scores KNN v K as a win — 19 of 20 such
+positions at depth 10 report cp 147...309 — although KNN v K cannot be won by force; and setting
+`DeadMaterial true` makes all 20 report cp 0.
+
+I generate my own 20 KNN v K positions (never seat 15's), score them at depth 10 under S14 on the
+base build, then with DeadMaterial true, then on the PC build under PC20 (which does not set
+DeadMaterial, so it is off there too).
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | base + S14: at least 15 of 20 score above +100 cp | REFUTES if fewer than 10 |
+| P2 | base + S14 + DeadMaterial true: all 20 score exactly cp 0 | REFUTES if any is non-zero |
+| P3 | PC + PC20: the same as P1 (DeadMaterial is off in PC20 too) | REFUTES if the PC build scores them 0 |
+| P4 | no position is checkmate or stalemate (KNN v K cannot be either on my boards) | if one is, my generator is wrong |
+| P5 | the bestmove is always a legal move | killed by any illegal |
+| P6 | 0 crashes, 0 sanitizer lines | killed by any one |
+
+Direction: CONFIRMS if P1 and P2 hold. P3 is my addition: it tells the owner whether the PC build
+still over-scores KNN v K, which matters because an engine that thinks KNN v K is +250 will play
+for a win it cannot force and can burn a drawn endgame.
