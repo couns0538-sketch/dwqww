@@ -45,13 +45,14 @@ Measured and reported above: `ROOT_DRAWN`, `GO_PARSE`, `BARE_KING_LMR_CAP`, and
   is unreachable, which is exactly why my probe found no ON/OFF difference. (S-F90)
 
 **MEASURED (revised from unmeasured):**
-- `FORGE_FIX_HARD_LIMIT_EMERGENCY` — ON in the binary, and it MATTERS at tight clocks. Built a
-  variant with only this switch off; sweeping `go wtime t btime t` for t = 11..60 ms, 5 of 50
-  values differ (t = 16, 17, 27, 28, 31). At t=17 the MOVE differs (`g8f6` ON vs `a7a6` OFF —
-  `a7a6` being the unsearched first legal move the switch exists to avoid), and at t=17 the ON
-  build was stable at 601 nodes 5/5 while OFF was unstable (4x601, 1x1257). So its real value is
-  REPRODUCIBILITY at a near-expired clock. My earlier "no difference" probe had stepped over the
-  5-in-50 window. (S-F91)
+- `FORGE_FIX_HARD_LIMIT_EMERGENCY` — ON in the binary, and it MATTERS at tight clocks, but as MOVE
+  stability rather than node stability. Sweeping `go wtime t btime t` for t = 11..60 ms, 5 of 50 values
+  differ between shipped and a this-switch-off build, and the shipped build answered `g8f6` on **8 of 8
+  repeats at every value tested** while the switch-off build gave `a7a6` OR `g8f6` at t=27 — an unstable
+  move, `a7a6` being the unsearched first legal move the switch exists to avoid. **CORRECTION (seat 07):**
+  the NODE COUNT at these clocks is unstable on BOTH builds (601 or 1257 across repeats), so my original
+  "ON stable 5/5" was luck; the determinism claim holds for the MOVE only. Never quote a clock-stop node
+  count as deterministic. (S-F91, corrected)
 
 **MEASURED (revised from unmeasured):**
 - `FORGE_FIX_ABORT_PUBLISH` — OFF in the binary, and shipping it off costs nothing measurable. The

@@ -144,7 +144,7 @@ pattern, so it is recorded as a pattern.
 
 ---
 
-## Five more, shorter, from the same folder (traps 3-7, after 1, 2 and 2b above)
+## Six more, shorter, from the same folder (traps 3-8, after 1, 2 and 2b above)
 
 **Trap 3 — reading a verdict off a tuple.** A defect-hunt loop reported 14 "defects" on a board where
 every score was `('mate', 1)`. The score WAS found; my unpacking was `score, bm = s` where `s` was already
@@ -190,6 +190,18 @@ Compute how many hits your sample should have produced at the effect size you ar
 number is below about 5, your null is uninformative and you should say so rather than claim absence.
 (S-F92)
 
+**Trap 8 — a node count under a CLOCK stop is not a deterministic quantity.** I reported that
+`FORGE_FIX_HARD_LIMIT_EMERGENCY` made a near-expired clock deterministic, because one sweep showed the
+shipped build stable at 601 nodes 5 of 5 while the switch-off build was not. A second seat repeated the
+grid and then repeated each *differing value* eight times per build, and the correction is decisive: at
+t = 17 and t = 27 the **shipped** build itself returns 601 OR 1257 nodes across repeats. My 5 of 5 was
+luck. What is stable is the **move**, and that is the honest claim: the shipped build answered `g8f6` on
+8 of 8 repeats at every value, while the switch-off build gave `a7a6` or `g8f6` at t = 27.
+**The general rule: any table comparing node counts across builds under a clock stop needs a
+repeat-against-itself check before it is believed** — and if a metric moves between identical runs of the
+same binary, no comparison built on that metric means anything. Report stability of the thing that is
+stable (here the move), not of the number that merely looks stable in one pass. (S-F91, corrected by seat 07)
+
 ## The pattern behind all of them
 Each trap produced a *plausible* engine defect from a *provably wrong* probe, and each was killed by a
 control rather than by re-reading the code:
@@ -202,6 +214,7 @@ control rather than by re-reading the code:
 | harness deadline treated as a hang | watching `info depth ... nodes ...` showed the count climbing to 18.9 M — the search was working |
 | four sampled points missed a narrow band | sweeping every value 11..60 found the effect at 5 of 50 points, incl. a move change |
 | a null without its expected count | 0 hits in 80 stops, where a 0.37 % rate predicts ~0.3 — uninformative, not absent |
+| a "deterministic" metric that moves between identical runs | repeating each value 8x showed the node count varying on the same binary; only the move was stable |
 | optional-field parser | `bestmove` came back legal, so a search had plainly run despite the zero line count |
 | mislabelled FEN | re-deriving counts from the generated FEN instead of the intended label |
 
