@@ -14,10 +14,7 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 git fetch -q origin "$BRANCH" || { echo "exit 2: fetch failed"; exit 2; }
 if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/$BRANCH)" ]; then
-  if ! git merge-base --is-ancestor "origin/$BRANCH" HEAD 2>/dev/null; then
-    echo "exit 2: HEAD has diverged from origin's branch -- push your work first"; exit 2
-  fi
-  echo "a: HEAD is ahead of origin by $(git rev-list --count origin/$BRANCH..HEAD) commit(s) -- proceeding (its push happens in step d)"
+  echo "exit 2: HEAD differs from origin's branch (ahead or behind) -- push your work first"; exit 2
 fi
 REPORT="forge-combo29/REPORT_deepseek6_${ITEM#tests_deepseek6_}.md"
 if git cat-file -e "origin/$BRANCH:$REPORT" 2>/dev/null; then

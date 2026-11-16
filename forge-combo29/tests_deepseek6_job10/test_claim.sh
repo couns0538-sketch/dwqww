@@ -72,6 +72,17 @@ git add -A
 GIT_COMMITTER_DATE="$(date -u -d '91 minutes ago' --rfc-2822)" GIT_AUTHOR_DATE="$(date -u -d '91 minutes ago' --rfc-2822)" git commit -q -m "old claim, 91 minutes ago"
 git push -q origin "$BR" 2>/dev/null
 bash "$R/claim.sh" tests_deepseek6_olditem "test claim T5"; echo "T5 rc=$?"
+echo "== T7: an unpushed commit plus a lost race -- the commit must survive (the script refuses at step a)"
+cd "$R/A"
+git fetch -q origin "$BR"; git reset -q --hard "origin/$BR"
+bash "$R/claim.sh" tests_deepseek6_survivor "A claims the survivor item"; echo "T7 setup A rc=$?"
+cd "$R/B"
+git fetch -q origin "$BR"; git reset -q --hard "origin/$BR"
+echo "B's own unpushed work" > forge-combo29/b_work.txt
+git add -A && git commit -q -m "B's unpushed commit"
+AHEAD=$(git rev-list --count origin/$BR..HEAD)
+bash "$R/claim.sh" tests_deepseek6_survivor "B tries to claim over A"; echo "T7 rc=$?"
+echo "T7 check: B's unpushed commit survives? $([ "$(git log -1 --format=%s HEAD)" = "B's unpushed commit" ] && echo yes || echo no) (was ahead by $AHEAD)"
 echo "== T6: an item with a report"
 cd "$R/A"
 git fetch -q origin "$BR"; git reset -q --hard "origin/$BR"

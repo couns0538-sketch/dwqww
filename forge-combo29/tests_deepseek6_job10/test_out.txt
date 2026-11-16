@@ -11,12 +11,9 @@ T2 rc=3
 T2 check: A's CLAIM.txt unchanged: model: glm-5p3-flash
 == T3: race -- B fetches clean, A pushes while B is inside claim.sh (shim fires at B's push)
 a: checking clean tree and up-to-date HEAD
-a: HEAD is ahead of origin by 1 commit(s) -- proceeding (its push happens in step d)
-d: writing the claim and pushing
-e: push refused -- fetching to see who won
-exit 4: lost the race: take the next
-T3 rc=4
-T3 check: B HEAD = A's commit? yes; B's claim file: model: glm-5p3-flash RACER-A 
+exit 2: HEAD differs from origin's branch (ahead or behind) -- push your work first
+T3 rc=2
+T3 check: B HEAD = A's commit? no; B's claim file: model: glm-5p3-flash 
 == T4: B with an uncommitted file
 a: checking clean tree and up-to-date HEAD
 exit 2: uncommitted changes -- push your work first
@@ -28,6 +25,16 @@ d: writing the claim and pushing
 f: verifying the claim on the branch
 exit 0: tests_deepseek6_olditem is mine (glm-5p3-flash)
 T5 rc=0
+== T7: an unpushed commit plus a lost race -- the commit must survive (the script refuses at step a)
+a: checking clean tree and up-to-date HEAD
+d: writing the claim and pushing
+f: verifying the claim on the branch
+exit 0: tests_deepseek6_survivor is mine (glm-5p3-flash)
+T7 setup A rc=0
+a: checking clean tree and up-to-date HEAD
+exit 2: HEAD differs from origin's branch (ahead or behind) -- push your work first
+T7 rc=2
+T7 check: B's unpushed commit survives? yes (was ahead by 1)
 == T6: an item with a report
 a: checking clean tree and up-to-date HEAD
 exit 3: already reported (forge-combo29/REPORT_deepseek6_reported.md exists on the branch)
