@@ -156,6 +156,21 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:55Z - S-C32: tried to demonstrate the PV-length filter's blind spot, could not (null result)
+
+Five boards, softnodes 1000 vs 100000: the two failures (mate 4/SHORT, mate 5/SHORT) are correctly REJECTED; the two
+passes (mate 3, mate 2) had the SAME distance at the large budget, so those passes were right; one board gave no mate
+at 1000. So the accept condition coincided with correctness every time on this sample - which does NOT show the filter
+is sound, only that no counter-example was found here.
+
+The caveat therefore stands as a caveat: a PASS means "not rejected", NOT "verified". The claim is now bounded from
+both sides. A demonstration would need a short-budget search reporting a right-length checkmate-ending PV whose
+distance exceeds the truth - plausible (the rejected cases were only one move long) but not found in five boards.
+
+State: 76 findings, guards green, working tree clean, local = remote. Continuing at cadence; three guards re-run
+near the close as promised.
+
 ## 2026-11-16T23:54Z - the PV-length filter now states its LIMIT (catches every observed failure; does not validate a pass)
 
 Both FINDINGS and the FINAL now say: the filter **catches every observed failure - which is all it is shown to do; it
