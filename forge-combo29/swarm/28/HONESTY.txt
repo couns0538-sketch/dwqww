@@ -1,0 +1,15 @@
+# HONESTY CHECK — swarm seat 28 (area 8), commit 6b98f217, Release GCC 13.3.0
+
+exe: e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83  /home/ubuntu/build/base-release/forge
+id name
+id name Chess Engine Forge 6.4.24 candidate
+
+| check | expected | got | verdict |
+|---|---|---|---|
+| bench 11 | 312866 | 312866 | MATCH |
+| bench 13 | 862329 | 862329 | MATCH |
+| bench 16 | 3024920 | 3024920 | MATCH |
+| go perft 5 | 4865609 | 4865609 | MATCH |
+
+Build: cmake /agent/repos/base/forge-combo29 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/g++-13 ; make -j4
+Each line = fresh process (printf 'ucinewgame\n<cmd>\nquit' | forge). Raw files in job0/.
