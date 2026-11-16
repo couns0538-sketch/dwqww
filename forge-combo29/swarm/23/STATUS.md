@@ -304,3 +304,18 @@ Caveat written into the finding line: my 10 positions appear to come from the sa
 an independent RUN, not an independent position set — it confirms the observation but not a 1-in-10 rate.
 Why it matters: the 20000 budget is a different player on that board, so a match result measured only at 20000
 is not the same engine as one measured at 250000.
+
+## 2026-11-17T01:20Z  job 10: the three-budget effect is common on quiet positions, and goes BOTH ways
+23-F23. Seat 17 and I both saw 1 of 10 set-G positions change move between budgets 20000/50000/250000. I tested
+whether that is a rate, on 20 FRESH quiet positions from my SEED-2401 games (never searched, no check or capture
+available, >= 20 legal moves), PC r15 + PC20, Threads 1, Hash 16, 5 fresh runs per cell = 300 searches:
+  6 of 20 change  (3x the rate two of us saw on set-G boards, so 1-in-10 was a property of those boards)
+  but only 4 of the 6 fit "20000 is the weak one". Two break it:
+    `rnbqkb1r/1p2nppp/3p4/p1p1p3/P1P4N/...` h4g2 -> f1g2 -> d2d3, changing at ALL THREE budgets
+    `3n3r/4kn2/6P1/2P2P2/p3K3/...` f7g5 at 20000 and 50000, then d8c6 at 250000 — MORE budget changes the move
+  Determinism: 60 of 60 cells identical in bestmove and node count across 5 processes. Legality: 300 of 300, with
+  a planted control that the checker can fire (e2e5 rejected on startpos).
+So the safe statement for the owner is: the three match budgets are NOT the same player on quiet positions, and
+the difference is not one-directional — raising the budget can change the move either way. A match measured at
+20000 is not comparable move-for-move with one at 250000.
+Prediction scored honestly: P1 (1-4 of 20) KILLED at 6; P2 (50000==250000) KILLED at 4 of 6; P3/P4/P5 held.
