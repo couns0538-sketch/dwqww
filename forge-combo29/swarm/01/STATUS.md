@@ -136,3 +136,9 @@ JOB 1 RE-RUN ON PC r15 UNDER PC20 (Threads 1, Hash 16), all 22 options logged in
   SEARCH answers differ on 109 of the 1,330 accepted FENs at go depth 2 - and every differing pair I could judge has BOTH moves legal (105 both-legal, 0 one-illegal, 0 both-illegal, 4 unjudgeable because python-chess rejects the FEN). Different valid choices at shallow depth under different settings, not a defect; I checked rather than assumed because 'bestmoves differ' would otherwise read as one.
   Also fixed the analyse.py header, which had hard-coded 'ASan+UBSan build' and would have mislabelled this PC20 release-build run; it now reads build and settings out of each run's meta.txt.
 Next: job 2 (extreme FEN field values) on PC r15 under PC20, then job 3 (move lists) likewise, then a sanitizer pass of r15 over the FEN corpus with the two proofs.
+
+## 2026-11-16T22:36:16Z
+SANITIZER PASS ON THE PC r15 SOURCE DONE AND PROVEN (S-F43). ASan+UBSan build of r15 (sha256 ae1a49b6..., nm shows 35 __asan_ / 15 __ubsan_) over the same 20,000 mutated FENs under PC20, Threads 1, Hash 16: 0 sanitizer lines, 0 crashes, and the analysis is identical to the release build (18,670 refused / 1,330 accepted / 1,288 valid / 42 accepted-but-python-invalid / 0 illegal bestmoves).
+The zero COUNTS because of the planted case the rules demand: I planted ONE heap over-read in a scratch copy of the SAME r15 source behind input I control (a FEN starting PLANTED), built it the same way, and ran it through THE SAME runner - which counted it: 'AddressSanitizer: heap-buffer-overflow ... in apply_position' at src/uci.cpp:58. Artefacts: job1d/sanitizer_proof/ (crash log, the planted diff as text, the planted .meta with the nm counts, counts.txt).
+So the PC r15 FEN path is clean under both sanitizers on 20,000 malformed inputs, with the instrument shown able to fire.
+Next: job 2 (extreme FEN field values) on PC r15 under PC20, then job 3 (move lists).

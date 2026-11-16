@@ -1,0 +1,15 @@
+--- /agent/repos/pc/forge-combo29/src/uci.cpp	2026-11-16 22:19:26.307165491 +0000
++++ /home/ubuntu/scratch/pcplant/src/uci.cpp	2026-11-16 22:35:44.107165491 +0000
+@@ -52,6 +52,12 @@
+             if (!fen.empty()) fen += ' ';
+             fen += token;
+         }
++        // PLANTED FAULT (scratch copy only, never committed): heap over-read behind input control.
++        if (fen.rfind("PLANTED", 0) == 0) {
++            const char* raw = fen.c_str();
++            volatile char probe = raw[fen.size() + 4096];
++            std::cout << "planted probe " << static_cast<int>(probe) << std::endl;
++        }
+         std::string error;
+         if (!candidate.set_fen(fen, &error)) {
+             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string invalid FEN: " << error << std::endl; }
