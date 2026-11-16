@@ -1,0 +1,401 @@
+==================
+WARNING: ThreadSanitizer: data race (pid=3127358)
+  Read of size 4 at 0x5638f09c6764 by thread T1:
+    #0 apply_history /tmp/ds5_j9_P/src/search.cpp:249 (forge+0x46348) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #1 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2086 (forge+0x46348)
+    #2 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/ds5_j9_P/src/search.cpp:2418 (forge+0x4b8f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess) /tmp/ds5_j9_P/src/search.cpp:2748 (forge+0x5191c) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 operator() /tmp/ds5_j9_P/src/uci.cpp:555 (forge+0x5962d) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #5 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x5a3d1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #6 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x5a3d1)
+    #7 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x5a3d1)
+    #8 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x5a3d1)
+    #9 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x5a3d1)
+    #10 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Previous write of size 4 at 0x5638f09c6764 by thread T3:
+    #0 apply_history /tmp/ds5_j9_P/src/search.cpp:249 (forge+0x46363) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #1 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2086 (forge+0x46363)
+    #2 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/ds5_j9_P/src/search.cpp:2418 (forge+0x4b8f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 operator() /tmp/ds5_j9_P/src/search.cpp:2744 (forge+0x532ac) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 __invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x53421) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #5 __invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x53421)
+    #6 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x53421)
+    #7 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x53421)
+    #8 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x53421)
+    #9 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Location is global 'forge::pl_hist_upd' of size 4 at 0x5638f09c6764 (forge+0x1c2764)
+
+  Thread T1 (tid=3127361, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 main /tmp/ds5_j9_P/src/uci.cpp:652 (forge+0x74e1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+
+  Thread T3 (tid=3127363, running) created by thread T1 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 operator() /tmp/ds5_j9_P/src/uci.cpp:555 (forge+0x5962d) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x5a3d1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x5a3d1)
+    #5 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x5a3d1)
+    #6 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x5a3d1)
+    #7 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x5a3d1)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+SUMMARY: ThreadSanitizer: data race /tmp/ds5_j9_P/src/search.cpp:249 in apply_history
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=3127358)
+  Write of size 4 at 0x5638f09c6764 by thread T4:
+    #0 apply_history /tmp/ds5_j9_P/src/search.cpp:249 (forge+0x46363) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #1 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2086 (forge+0x46363)
+    #2 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/ds5_j9_P/src/search.cpp:2418 (forge+0x4b8f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 operator() /tmp/ds5_j9_P/src/search.cpp:2744 (forge+0x532ac) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 __invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x53421) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #5 __invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x53421)
+    #6 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x53421)
+    #7 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x53421)
+    #8 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x53421)
+    #9 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Previous write of size 4 at 0x5638f09c6764 by thread T2:
+    #0 apply_history /tmp/ds5_j9_P/src/search.cpp:249 (forge+0x46363) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #1 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2086 (forge+0x46363)
+    #2 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/ds5_j9_P/src/search.cpp:2418 (forge+0x4b8f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 operator() /tmp/ds5_j9_P/src/search.cpp:2744 (forge+0x532ac) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 __invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x53421) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #5 __invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x53421)
+    #6 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x53421)
+    #7 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x53421)
+    #8 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x53421)
+    #9 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Location is global 'forge::pl_hist_upd' of size 4 at 0x5638f09c6764 (forge+0x1c2764)
+
+  Thread T4 (tid=3127364, running) created by thread T1 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 operator() /tmp/ds5_j9_P/src/uci.cpp:555 (forge+0x5962d) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x5a3d1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x5a3d1)
+    #5 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x5a3d1)
+    #6 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x5a3d1)
+    #7 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x5a3d1)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Thread T2 (tid=3127362, running) created by thread T1 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 operator() /tmp/ds5_j9_P/src/uci.cpp:555 (forge+0x5962d) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x5a3d1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x5a3d1)
+    #5 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x5a3d1)
+    #6 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x5a3d1)
+    #7 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x5a3d1)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+SUMMARY: ThreadSanitizer: data race /tmp/ds5_j9_P/src/search.cpp:249 in apply_history
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=3127358)
+  Write of size 4 at 0x5638f09c6760 by thread T4:
+    #0 forge::Worker::update_correction(forge::Board const&, int, int, int) /tmp/ds5_j9_P/src/search.cpp:1233 (forge+0x3c85e) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #1 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2110 (forge+0x45a41) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #2 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/ds5_j9_P/src/search.cpp:2418 (forge+0x4b8f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 operator() /tmp/ds5_j9_P/src/search.cpp:2744 (forge+0x532ac) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 __invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x53421) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #5 __invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x53421)
+    #6 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x53421)
+    #7 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x53421)
+    #8 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x53421)
+    #9 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Previous write of size 4 at 0x5638f09c6760 by thread T3:
+    #0 forge::Worker::update_correction(forge::Board const&, int, int, int) /tmp/ds5_j9_P/src/search.cpp:1233 (forge+0x3c85e) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #1 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2110 (forge+0x45a41) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #2 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2040 (forge+0x441f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/ds5_j9_P/src/search.cpp:2418 (forge+0x4b8f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 operator() /tmp/ds5_j9_P/src/search.cpp:2744 (forge+0x532ac) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #5 __invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x53421) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #6 __invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x53421)
+    #7 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x53421)
+    #8 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x53421)
+    #9 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x53421)
+    #10 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Location is global 'forge::pl_corr_upd' of size 4 at 0x5638f09c6760 (forge+0x1c2760)
+
+  Thread T4 (tid=3127364, running) created by thread T1 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 operator() /tmp/ds5_j9_P/src/uci.cpp:555 (forge+0x5962d) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x5a3d1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x5a3d1)
+    #5 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x5a3d1)
+    #6 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x5a3d1)
+    #7 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x5a3d1)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Thread T3 (tid=3127363, running) created by thread T1 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 operator() /tmp/ds5_j9_P/src/uci.cpp:555 (forge+0x5962d) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x5a3d1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x5a3d1)
+    #5 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x5a3d1)
+    #6 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x5a3d1)
+    #7 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x5a3d1)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+SUMMARY: ThreadSanitizer: data race /tmp/ds5_j9_P/src/search.cpp:1233 in forge::Worker::update_correction(forge::Board const&, int, int, int)
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=3127358)
+  Write of size 4 at 0x5638f09c6764 by thread T2:
+    #0 apply_history /tmp/ds5_j9_P/src/search.cpp:249 (forge+0x46363) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #1 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2086 (forge+0x46363)
+    #2 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2040 (forge+0x441f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/ds5_j9_P/src/search.cpp:2418 (forge+0x4b8f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 operator() /tmp/ds5_j9_P/src/search.cpp:2744 (forge+0x532ac) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #5 __invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x53421) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #6 __invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x53421)
+    #7 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x53421)
+    #8 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x53421)
+    #9 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x53421)
+    #10 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Previous write of size 4 at 0x5638f09c6764 by thread T1:
+    #0 apply_history /tmp/ds5_j9_P/src/search.cpp:249 (forge+0x46363) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #1 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2086 (forge+0x46363)
+    #2 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2040 (forge+0x441f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/ds5_j9_P/src/search.cpp:2418 (forge+0x4b8f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess) /tmp/ds5_j9_P/src/search.cpp:2748 (forge+0x5191c) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #5 operator() /tmp/ds5_j9_P/src/uci.cpp:555 (forge+0x5962d) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #6 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x5a3d1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #7 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x5a3d1)
+    #8 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x5a3d1)
+    #9 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x5a3d1)
+    #10 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x5a3d1)
+    #11 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Location is global 'forge::pl_hist_upd' of size 4 at 0x5638f09c6764 (forge+0x1c2764)
+
+  Thread T2 (tid=3127362, running) created by thread T1 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 operator() /tmp/ds5_j9_P/src/uci.cpp:555 (forge+0x5962d) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x5a3d1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x5a3d1)
+    #5 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x5a3d1)
+    #6 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x5a3d1)
+    #7 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x5a3d1)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Thread T1 (tid=3127361, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 main /tmp/ds5_j9_P/src/uci.cpp:652 (forge+0x74e1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+
+SUMMARY: ThreadSanitizer: data race /tmp/ds5_j9_P/src/search.cpp:249 in apply_history
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=3127358)
+  Write of size 4 at 0x5638f09c6764 by thread T3:
+    #0 apply_history /tmp/ds5_j9_P/src/search.cpp:249 (forge+0x3e885) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #1 forge::Worker::update_quiet_stats(forge::Board const&, forge::SearchStack*, forge::Move, int, forge::Move const*, int) /tmp/ds5_j9_P/src/search.cpp:1389 (forge+0x3e885)
+    #2 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2081 (forge+0x4627f) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2017 (forge+0x44a80) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/ds5_j9_P/src/search.cpp:2418 (forge+0x4b8f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #5 operator() /tmp/ds5_j9_P/src/search.cpp:2744 (forge+0x532ac) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #6 __invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x53421) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #7 __invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x53421)
+    #8 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x53421)
+    #9 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x53421)
+    #10 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x53421)
+    #11 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Previous write of size 4 at 0x5638f09c6764 by thread T4:
+    #0 apply_history /tmp/ds5_j9_P/src/search.cpp:249 (forge+0x46363) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #1 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2086 (forge+0x46363)
+    #2 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2040 (forge+0x441f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/ds5_j9_P/src/search.cpp:2418 (forge+0x4b8f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 operator() /tmp/ds5_j9_P/src/search.cpp:2744 (forge+0x532ac) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #5 __invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x53421) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #6 __invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x53421)
+    #7 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x53421)
+    #8 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x53421)
+    #9 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x53421)
+    #10 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Location is global 'forge::pl_hist_upd' of size 4 at 0x5638f09c6764 (forge+0x1c2764)
+
+  Thread T3 (tid=3127363, running) created by thread T1 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 operator() /tmp/ds5_j9_P/src/uci.cpp:555 (forge+0x5962d) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x5a3d1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x5a3d1)
+    #5 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x5a3d1)
+    #6 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x5a3d1)
+    #7 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x5a3d1)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Thread T4 (tid=3127364, running) created by thread T1 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 operator() /tmp/ds5_j9_P/src/uci.cpp:555 (forge+0x5962d) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x5a3d1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x5a3d1)
+    #5 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x5a3d1)
+    #6 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x5a3d1)
+    #7 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x5a3d1)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+SUMMARY: ThreadSanitizer: data race /tmp/ds5_j9_P/src/search.cpp:249 in apply_history
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=3127358)
+  Write of size 4 at 0x5638f09c6764 by thread T1:
+    #0 apply_history /tmp/ds5_j9_P/src/search.cpp:249 (forge+0x3e885) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #1 forge::Worker::update_quiet_stats(forge::Board const&, forge::SearchStack*, forge::Move, int, forge::Move const*, int) /tmp/ds5_j9_P/src/search.cpp:1389 (forge+0x3e885)
+    #2 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2081 (forge+0x4627f) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2017 (forge+0x44a80) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/ds5_j9_P/src/search.cpp:2418 (forge+0x4b8f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #5 forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess) /tmp/ds5_j9_P/src/search.cpp:2748 (forge+0x5191c) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #6 operator() /tmp/ds5_j9_P/src/uci.cpp:555 (forge+0x5962d) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #7 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x5a3d1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #8 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x5a3d1)
+    #9 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x5a3d1)
+    #10 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x5a3d1)
+    #11 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x5a3d1)
+    #12 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Previous write of size 4 at 0x5638f09c6764 by thread T2:
+    #0 apply_history /tmp/ds5_j9_P/src/search.cpp:249 (forge+0x3e885) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #1 forge::Worker::update_quiet_stats(forge::Board const&, forge::SearchStack*, forge::Move, int, forge::Move const*, int) /tmp/ds5_j9_P/src/search.cpp:1389 (forge+0x3e885)
+    #2 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2081 (forge+0x4627f) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2017 (forge+0x44a80) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/ds5_j9_P/src/search.cpp:2418 (forge+0x4b8f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #5 operator() /tmp/ds5_j9_P/src/search.cpp:2744 (forge+0x532ac) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #6 __invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x53421) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #7 __invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x53421)
+    #8 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x53421)
+    #9 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x53421)
+    #10 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x53421)
+    #11 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Location is global 'forge::pl_hist_upd' of size 4 at 0x5638f09c6764 (forge+0x1c2764)
+
+  Thread T1 (tid=3127361, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 main /tmp/ds5_j9_P/src/uci.cpp:652 (forge+0x74e1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+
+  Thread T2 (tid=3127362, running) created by thread T1 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 operator() /tmp/ds5_j9_P/src/uci.cpp:555 (forge+0x5962d) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x5a3d1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x5a3d1)
+... [truncated; see .counts.txt] ...
+    #2 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2083 (forge+0x4588c) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2017 (forge+0x44a80) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2037 (forge+0x44726) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #5 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/ds5_j9_P/src/search.cpp:2418 (forge+0x4b8f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #6 operator() /tmp/ds5_j9_P/src/search.cpp:2744 (forge+0x532ac) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #7 __invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x53421) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #8 __invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x53421)
+    #9 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x53421)
+    #10 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x53421)
+    #11 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x53421)
+    #12 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Location is global 'forge::pl_hist_upd' of size 4 at 0x5638f09c6764 (forge+0x1c2764)
+
+  Thread T799 (tid=3128162, running) created by thread T797 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 operator() /tmp/ds5_j9_P/src/uci.cpp:555 (forge+0x5962d) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x5a3d1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x5a3d1)
+    #5 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x5a3d1)
+    #6 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x5a3d1)
+    #7 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x5a3d1)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Thread T800 (tid=3128163, running) created by thread T797 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 operator() /tmp/ds5_j9_P/src/uci.cpp:555 (forge+0x5962d) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x5a3d1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x5a3d1)
+    #5 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x5a3d1)
+    #6 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x5a3d1)
+    #7 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x5a3d1)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+SUMMARY: ThreadSanitizer: data race /tmp/ds5_j9_P/src/search.cpp:249 in forge::Worker::update_continuation(forge::SearchStack*, forge::Piece, int, int)
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=3127358)
+  Write of size 4 at 0x5638f09c6764 by thread T799:
+    #0 forge::Worker::update_continuation(forge::SearchStack*, forge::Piece, int, int) /tmp/ds5_j9_P/src/search.cpp:249 (forge+0x3e5eb) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #1 forge::Worker::update_quiet_stats(forge::Board const&, forge::SearchStack*, forge::Move, int, forge::Move const*, int) /tmp/ds5_j9_P/src/search.cpp:1391 (forge+0x3e938) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #2 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2081 (forge+0x4627f) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2017 (forge+0x44a80) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2037 (forge+0x44726) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #5 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2017 (forge+0x44a80) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #6 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2040 (forge+0x441f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #7 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/ds5_j9_P/src/search.cpp:2418 (forge+0x4b8f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #8 operator() /tmp/ds5_j9_P/src/search.cpp:2744 (forge+0x532ac) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #9 __invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x53421) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #10 __invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x53421)
+    #11 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x53421)
+    #12 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x53421)
+    #13 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x53421)
+    #14 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Previous write of size 4 at 0x5638f09c6764 by thread T800:
+    #0 apply_history /tmp/ds5_j9_P/src/search.cpp:249 (forge+0x3e885) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #1 forge::Worker::update_quiet_stats(forge::Board const&, forge::SearchStack*, forge::Move, int, forge::Move const*, int) /tmp/ds5_j9_P/src/search.cpp:1389 (forge+0x3e885)
+    #2 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2081 (forge+0x4627f) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2017 (forge+0x44a80) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2040 (forge+0x441f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #5 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /tmp/ds5_j9_P/src/search.cpp:2040 (forge+0x441f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #6 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/ds5_j9_P/src/search.cpp:2418 (forge+0x4b8f0) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #7 operator() /tmp/ds5_j9_P/src/search.cpp:2744 (forge+0x532ac) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #8 __invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x53421) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #9 __invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x53421)
+    #10 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x53421)
+    #11 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x53421)
+    #12 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x53421)
+    #13 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Location is global 'forge::pl_hist_upd' of size 4 at 0x5638f09c6764 (forge+0x1c2764)
+
+  Thread T799 (tid=3128162, running) created by thread T797 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 operator() /tmp/ds5_j9_P/src/uci.cpp:555 (forge+0x5962d) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x5a3d1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x5a3d1)
+    #5 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x5a3d1)
+    #6 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x5a3d1)
+    #7 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x5a3d1)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Thread T800 (tid=3128163, running) created by thread T797 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 operator() /tmp/ds5_j9_P/src/uci.cpp:555 (forge+0x5962d) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #3 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x5a3d1) (BuildId: a776ae307584ff7ae36b08340bffe68079b82b7f)
+    #4 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x5a3d1)
+    #5 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x5a3d1)
+    #6 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x5a3d1)
+    #7 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x5a3d1)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+SUMMARY: ThreadSanitizer: data race /tmp/ds5_j9_P/src/search.cpp:249 in forge::Worker::update_continuation(forge::SearchStack*, forge::Piece, int, int)
+==================
+ThreadSanitizer: reported 14393 warnings
