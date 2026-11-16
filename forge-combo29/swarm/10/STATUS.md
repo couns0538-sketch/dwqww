@@ -399,3 +399,11 @@ it does not fit reports cp 0 (correct per file 6). 10-F59 records my P5 predicti
 mate claimed too far away and found none. 10-N3 states the scope: 3 boards, 9 counters, constructed
 positions -- a real-game boundary test is still open.
 Mon Nov 16 10:45:22 PM UTC 2026
+
+## Caught my own bad-FEN error before publishing (10-R7, 10-F60)
+My first hidden-mate run was measuring STARTPOS: the K+Q FENs I built are illegal
+(`invalid FEN: side that moved left its king in check`), so the engine kept the previous position and every
+row showed a startpos move (e2e4 on a board with no pawns -- the tell). Fixed with legal FENs plus a mandatory
+assertion that BOTH python-chess accepts the FEN and the engine does not print `invalid FEN`; the harness now
+aborts instead of recording. check11's three boards were separately verified legal, so 10-F58 stands.
+Mon Nov 16 11:02:55 PM UTC 2026
