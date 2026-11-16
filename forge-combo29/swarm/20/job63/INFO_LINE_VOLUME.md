@@ -42,3 +42,23 @@ terminal-root path generally, not of checkmate specifically.
 ## Limits
 - One build, one checkmated position, Threads 1; the stalemate check is a second position.
 - The 64 comes from the engine's depth clamp, so the exact ceiling is a build constant, not a protocol rule.
+
+## The same volume pattern on the OTHER zero-node path, and on the PC build
+
+S-F52 is not specific to terminal roots. The empty-`searchmoves` path (my S-C11) shows it identically, on **both**
+builds — measured with the machine certified clean (exit 0):
+
+| build | command | answer | nodes | info-depth lines |
+|---|---|---|---|---|
+| base | `go depth 2 searchmoves` | `0000` / `cp 0` | 0 | 2 |
+| PC r15 | `go depth 2 searchmoves` | `0000` / `cp 0` | 0 | 2 |
+| base | **`go searchmoves`** | `0000` / `cp 0` | 0 | **64** |
+| PC r15 | **`go searchmoves`** | `0000` / `cp 0` | 0 | **64** |
+| base | **`go nodes 100 searchmoves`** | `0000` / `cp 0` | 0 | **64** |
+| PC r15 | **`go nodes 100 searchmoves`** | `0000` / `cp 0` | 0 | **64** |
+
+So the pattern is: **any path that reports without searching emits one info line per depth (capped at 64 when no depth
+is given)** — terminal root, empty restriction, and (my S-C11) a bare `go searchmoves`. It is one reporting habit, not
+two bugs, and the PC r15 patch does not change it.
+
+That also means the fix direction is the same in all three cases: those branches should emit **one** line.
