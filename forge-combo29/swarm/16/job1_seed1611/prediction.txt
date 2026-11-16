@@ -1,0 +1,20 @@
+# PREDICTION — area 6, job 1 repeated (cycle rule 2c): colour mirror, SEED+10 = 1611
+
+Same job as my first job 1, with a different random set and a larger one so it is not a re-run:
+  G = 353 (unchanged) + R = 800 fresh positions from python-chess games seeded 1611 (one position every
+  7 plies), compared with the colour mirror exactly as before.
+New harness discipline (after the audit): read until `readyok`/`bestmove`, never close stdin, and the
+comparison RAISES if any eval line is missing, so a silent skip cannot pass as symmetry.
+I also run the positive control (a non-mirror second position must be caught) in the same run.
+
+P1. Colour-mirror differences in hce/nnue/total: predicted 0 of 1,153 pairs. Kills it: any single difference
+    (that would be a real fault on a new set, and a far more interesting result than 0).
+P2. Rows actually measured: predicted exactly 1,153. Kills it: fewer rows — that would mean rows were being
+    skipped (the vacuity mode seat 19 warned about) and P1 would be void.
+P3. The compared numbers vary: predicted at least 300 distinct `total` values across the set. Kills it:
+    fewer than 50 distinct values (then the comparison is near-constant and "0 differences" is weak).
+P4. Positive control: the harness, fed a deliberately wrong "mirror", reports a difference on 100 % of the
+    control pairs. Kills it: any control pair reported equal.
+P5. What differs from my first job-1 run (required by the cycle rule): the R set is new (seed 1611, 800
+    positions instead of 500 from seed 1601), the harness now refuses to skip a row, and the positive control
+    is inside the same script rather than a separate one. Predicted: same conclusion, 0 differences.
