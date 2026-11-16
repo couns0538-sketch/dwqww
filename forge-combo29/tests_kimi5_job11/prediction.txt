@@ -1,0 +1,31 @@
+kimi5 job 11 prediction - committed before Step 1, never edited.
+
+Read from the code (6b98f217 src/search.cpp + LmrFine.patch.txt):
+- Coarse path (LmrFine 0, today's code, lines 1994-2002): r = k - clamp(history / Div, -2, 2),
+  k = reduction(quiet, depth, move_count) + the whole-ply terms. The division truncates toward
+  zero, so every history with |history| < Divisor changes nothing.
+- Fine path (LmrFine 1, LmrFineHistory 1): f = 1024*k' - clamp(history * 1024 / Div, -2048, 2048)
+  with k' = reduction + the F-terms; r = (f + LmrRoundF) >> 10. With LmrRoundF 0 that shift is
+  floor(f / 1024); with 512 it rounds to nearest.
+- Under S14 (Div = 5643): h_frac = history * 1024 / 5643 is 0 for |history| <= 5, >= 1 for
+  history >= 6, passes 512 at history ~2821, and equals 1024 at history 5643, where the coarse
+  path's own -1 begins. So:
+
+T2 / I2 on O (S14 + LmrFine 1 + LmrFineHistory 1 + LmrRoundF 0): every quiet with
+6 <= history < 5643 has f at least one unit BELOW a multiple of 1024, and floor drops r one
+whole ply under the coarse value: less reduction, a bigger tree. Negative history does not
+move (f lands above the multiple, floor = the same k the coarse path gives for |h| < 5643).
+Prediction: T2 / I2 = 1.20. The range that kills it: below 1.05 or above 1.40.
+
+T1 / I2 on O (the same with LmrRoundF 512): only |h_frac| > 512 tips the rounding, i.e.
+history >= ~2822 loses one ply of reduction (bigger tree there) and history <= ~-2822 gains
+one (smaller tree there); everything between rounds back to the coarse ply. Partial
+cancellation expected. Prediction: T1 / I2 = 1.02. The range that kills it: below 0.95 or
+above 1.10.
+
+Which is larger: T2's tree, always. floor(f / 1024) <= (f + 512) >> 10 for every f, with
+strict inequality whenever f mod 1024 is in [1, 511] - on quiets with positive history from 6
+to ~2821 T2 reduces one ply less than T1 - so T2 searches the equal or deeper tree at every
+node and the strict cases are common.
+
+On G: same directions expected; magnitudes not predicted separately.
