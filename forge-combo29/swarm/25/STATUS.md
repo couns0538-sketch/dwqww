@@ -100,6 +100,27 @@ One cause every time: reconstructing data instead of copying it from raw output.
 
 Running now: nothing. Next: continue the cycle on the PC path and confirm other seats where my PC20 harness helps.
 
+
+## 2026-11-16T23:31Z - FINAL now opens with the reassurance (S-F30), then the depth headline, then the audit
+
+STATUS.md structure (top to bottom): (1) REASSURANCE FIRST - the 90-ply self-play game at the owner's exact match
+setting is clean (0 illegal, 0 missing lines, 90/90 completed iterations, nodes 0.75x N), and none of the defects
+in the report fires there; (2) THE HEADLINE - file 6's half-move test needs depth 18 (not 20), with the two boards
+that never resolve within 24 being no-mate-in-horizon rather than breakage; (3) FINDINGS THAT STAND (10, each with
+build+settings); (4) CONFIRMATIONS OF OTHERS (9, incl. the four-way softnodes agreement); (5) WITHDRAWN / NOT A
+DEFECT (4 groups, with reasons); (6) ERRORS OF MINE; (7) FILES THAT MATTER MOST.
+
+SIX SELF-CORRECTIONS tonight, all with reasons and evidence, none edited away:
+1. clock-99 zero wrongly called correct (withdrawn)
+2. h6h5 typed as a pawn push when it is a capture (corrected)
+3. a check comparing regex output to the wrong string (fixed)
+4. S-F27 headlined as a match-path defect when the final answer is correct (corrected, exposure 0)
+5. S-F27's illegal-PV claim, which was my own typo replayed back at me (withdrawn entirely)
+6. S-F7's "64 phantom lines" scoped to terminal roots when it is really "the search resolved before the budget
+   was spent" - a non-terminal mate-in-1 root produces it too (scope corrected)
+Plus one flagged-not-fixed: the `mate 0` impact control I built was an illegal FEN, so the documented contrast
+comes from the mate-in-1 board instead; the file says so.
+
 ## 2026-11-16T23:30Z - FINAL carries the four-way agreement; PC path end-to-end is clean (S-F30)
 
 FINAL (top of this file) now states the FOUR-WAY AGREEMENT on softnodes: my S-F25 reproduced by seats 08, 19 and
