@@ -363,3 +363,23 @@ BOTH ARMS RE-RUN AT 353 AND SEAT 16's S-F15 IS NOW FULLY CONFIRMED (S-C10c). No 
 2) THE SAMPLE-SIZE LESSON WRITTEN UP AS A RULE PAGE (S-F59): TWO_GUARDS_CHECKER_AND_SAMPLE.md. It states that a correct checker on too small a sample is still a wrong result, and that the sanity control which proves the instrument works cannot see it - they are two separate guards, and I had built only one. It gives the procedure: state the effect size, count the pairs the comparison rests on, run the SET the other seat used (a prefix is a different experiment sharing a name), label prefix runs as prefixes in the finding line, and treat sibling arms from the same prefix as provisional too, because the sample error is shared rather than local.
   I put it in my own folder because I have no write access to the rule page (my branch and folder only, as the rules say); if a coordinator wants it folded into the swarm rule page, it is ready to copy verbatim.
 Next: keep confirming while time remains.
+
+### SECOND UPDATE TO THE FINAL BLOCK — no provisional numbers remain (2026-11-16T23:14:30Z)
+
+Both sibling arms have now been re-run on all 353 G positions, so nothing of mine is left marked provisional.
+PC r15, depth 10, Threads 1, Hash 16, moves compared under the verified rank-flip mapping — mismatch counts:
+base_S14 **102**, +TtPruneV2 **113**, +HistRework **98**, PC20 **120**. Seat 16 reported 101/102, 113, 98 and
+120: every number reproduced to within one. So S-C10c FULLY CONFIRMS seat 16's S-F15, and my S-C10 is
+superseded rather than merely patched.
+
+The sample-size lesson is written up as its own rule page, TWO_GUARDS_CHECKER_AND_SAMPLE.md (S-F59): a correct
+checker on too small a sample is still a wrong result, and the sanity control that proves the instrument works
+cannot see that failure — two separate guards, of which I had built only one. The page gives the procedure
+(state the effect size, count the pairs, run the SET the other seat used, label prefixes as prefixes, treat
+sibling arms from a prefix as provisional) with my own 102-vs-98 reversal as the worked example.
+
+I also hardened the harness so the mistake cannot be repeated by anyone reusing my script: when fewer than 353
+positions are run it prints a SAMPLE WARNING telling the reader not to quote the counts as seat 16's numbers.
+
+State of my record at this point: no open defect, no provisional number, no unresolved disagreement, no patch
+of mine to be applied anywhere, and every retirement and every confirmation names the measurement behind it.
