@@ -1,0 +1,41 @@
+PREDICTION — seat 03, job 12: does the wrong choice survive at `go nodes 20000` (the owner's match budget)?
+
+The coordinator's question: S-F20 was established at `go depth`. The owner's matches search `go nodes 20000`,
+`50000`, `250000`. If the same wrong choice appears at `go nodes 20000`, S-F20 is something his matches can hit.
+
+The four positions are the ones where the engine's choice was worse by play-out (cost > 0), from job 11's
+`plycost.txt` / `plycost_d16.txt`, taking the cost from the DEEPER play-out where I have it. The negative-cost rows
+(36, 30, 16) are kept as controls — there the engine's choice was BETTER, so a correct engine rejects the
+"alternative" and the node budget should not swing those either.
+
+| idx | FEN | chosen (scan) | alternative (scan) | play-out cost (deeper / d8) |
+|---|---|---|---|---|
+| 6 | `8/8/8/8/8/4Kp2/8/5k2 w - - 0 14` | e3f3 | e3d3 | +21 (d8 only) |
+| 22 | `5K2/8/5P2/6k1/8/8/8/8 b - - 0 13` | g5f6 | g5g6 | **+23 (d16 and d8)** |
+| 37 | `8/5p2/5K2/8/5k2/8/8/8 w - - 0 7` | f6f7 | f6g7 | +23 (d8 only) |
+| 44 | `8/2K5/3r4/8/8/8/2k5/8 w - - 0 10` | c7d6 | c7b8 | +38 (d8 only) |
+| 36 | control | c4d5 | c4b3 | −26 |
+| 30 | control | c7d7 | c7b8 | −32 |
+| 16 | control | h7g6 | h7g8 | +2 |
+
+Primary set: **the four positive-cost positions 6, 22, 37, 44**. Controls: **36, 30, 16** (non-positive cost).
+
+Protocol per position, PC build, **PC20**, Threads 1, Hash 16, `go nodes 20000`, fresh process, read to `bestmove`:
+  1. free choice at `go nodes 20000` -> bestmove;
+  2. each candidate move scored with `go nodes 20000 searchmoves <mv>`;
+  3. compare with the depth-16 answer from job 11 (does the node-limited search pick the same move?).
+
+Predicted values, with kill ranges:
+1. Of the four positive-cost positions, the number where `go nodes 20000` plays the SAME (worse) move as the
+   depth-limited search: predicted **2 or 3 of 4**. Reasoning: 20,000 nodes is a shallow budget on these sparse
+   endgames, so the answer may differ; but position 22 also reproduced at depth 16, so at least that one should hold.
+   KILL: 0 of 4 — the wrong choice would be a deep-search-only artefact and S-F20 stays a curiosity.
+   KILL (other direction): 4 of 4 would be a stronger result than I predict but is not a kill; I would report it.
+2. Of the three negative-cost controls, the number where the node-limited search ALSO picks the same move as the
+   depth-limited search: predicted 2 or 3 of 3 — i.e. the node budget does not systematically change the answer.
+   KILL: 0 of 3, which would mean `go nodes` and `go depth` disagree everywhere and the comparison is not meaningful.
+3. Positions where `go nodes 20000` returns no bestmove or an illegal move: predicted 0. KILL: >= 1.
+4. Determinism: each free-choice search repeated once must give the same bestmove: predicted 7 of 7.
+   KILL: any differing repeat.
+5. Nodes actually searched: predicted every run reports >= 20,000 and under 200,000 (soft stop at the end of the
+   iteration). KILL: a run reporting fewer than 20,000.
