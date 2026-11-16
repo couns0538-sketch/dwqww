@@ -68,9 +68,24 @@ def position_state(lines_so_far):
     return state
 
 
+def is_unbounded(go_line):
+    """Searches that only a later stop/ponderhit/quit ends.
+
+    Measured on this engine: `go infinite`, `go ponder ...` and a bare `go` (with no limit at
+    all) all keep searching — after a bare `go` the bestmove arrives only when a later command
+    stops it. Every other `go` (depth, nodes, movetime, clocks, mate, searchmoves) answers on
+    its own within the 20 s the job allows.
+    """
+    words = go_line.split()
+    if "infinite" in words or "ponder" in words:
+        return True
+    limits = {"depth", "nodes", "softnodes", "movetime", "movestogo", "wtime", "btime",
+              "winc", "binc", "mate", "searchmoves"}
+    return not any(w in limits for w in words[1:])
+
+
 def expects_bestmove(go_line):
-    """Every `go` answers with a bestmove except `go perft` (measured: bare `go`, `go bananas`
-    and `go depth 0` all answer within milliseconds; a `go infinite`/`ponder` answers at stop)."""
+    """Every `go` answers with a bestmove except `go perft`."""
     return "perft" not in go_line.split()
 
 
@@ -111,49 +126,131 @@ def run_one(exe, seq_path, timeout_s):
             if stop_on(ln):
                 return ln
 
-    launched = []            # FIFO of fens: one entry per `go` the engine owes a bestmove for
     bestmoves = []
     unattributed = []
     sent = []
     t0 = time.monotonic()
     hang = False
+    open_search = None       # fen of a search the engine still owes a bestmove for
+    last_output_at = [time.monotonic()]
 
-    def drain(wait_s=0.0):
-        """Collect buffered lines for at most wait_s; each bestmove settles the oldest go."""
-        deadline = time.monotonic() + wait_s
+    def settle(quiet_s=0.08):
+        """Read until the engine has been silent for quiet_s, attributing every bestmove.
+
+        Called before sending a new `go`, so a bestmove the engine still owed from an earlier
+        (interrupted or unbounded) search is consumed first and can never be mistaken for the
+        answer of the search about to start. Attribution is by the search that was open.
+        """
+        nonlocal open_search
         while True:
             try:
-                ln = out.get(timeout=max(0.0, min(0.05, deadline - time.monotonic())))
+                ln = out.get(timeout=quiet_s)
             except queue.Empty:
-                if time.monotonic() >= deadline:
+                if time.monotonic() - last_output_at[0] >= quiet_s:
                     return
                 continue
             if ln is None:
                 return
+            last_output_at[0] = time.monotonic()
             collected.append(ln)
             if ln.startswith("bestmove"):
-                if launched:
-                    bestmoves.append((launched.pop(0), ln.strip()))
+                if open_search is not None:
+                    bestmoves.append((open_search, ln.strip()))
+                    open_search = None
                 else:
                     unattributed.append(ln.strip())
 
+    def read_until_bestmove(bound_s):
+        """Block until a bestmove arrives (or the process ends); return (line, fen_or_None)."""
+        nonlocal open_search
+        deadline = time.monotonic() + bound_s
+        while time.monotonic() < deadline:
+            try:
+                ln = out.get(timeout=0.2)
+            except queue.Empty:
+                if proc.poll() is not None:
+                    return None, None
+                continue
+            if ln is None:
+                return None, None
+            last_output_at[0] = time.monotonic()
+            collected.append(ln)
+            if ln.startswith("bestmove"):
+                fen = open_search
+                open_search = None
+                return ln, fen
+        return "TIMEOUT", None
+
     try:
         for line in body:
-            proc.stdin.write(line + "\n")
-            proc.stdin.flush()
-            sent.append(line)
             s = line.strip()
+            words = s.split()
             if s.startswith("go") and expects_bestmove(s):
-                launched.append(position_state(sent[:-1]))
-            drain(0.02)            # pick up answers already produced, never block
-        proc.stdin.write(tail[0] + "\n")       # the sequence's own isready
-        proc.stdin.flush()
-        sent.append(tail[0])
-        if pump(time.monotonic() + timeout_s, lambda l: l.strip() == "readyok") is None:
-            hang = True
-        drain(0.2)
-        proc.stdin.write(tail[1] + "\n")       # the sequence's own quit
-        proc.stdin.flush()
+                settle()                       # nothing stale may survive into this search
+                proc.stdin.write(line + "\n")
+                proc.stdin.flush()
+                sent.append(line)
+                fen = position_state(sent[:-1])
+                open_search = fen
+                if is_unbounded(s):
+                    continue                   # answered later; settle() picks it up
+                ln, got = read_until_bestmove(timeout_s)
+                if ln is None:
+                    hang = True
+                    break
+                if ln == "TIMEOUT":
+                    hang = True                # a bounded search that never answers
+                    break
+                bestmoves.append((got or fen, ln.strip()))
+            else:
+                proc.stdin.write(line + "\n")
+                proc.stdin.flush()
+                sent.append(line)
+                if open_search is not None and (s in ("stop", "ponderhit", "ucinewgame")
+                                                or s.startswith("position")
+                                                or s.startswith("setoption")):
+                    # the engine's stop_search() joins its worker, so the owed bestmove is
+                    # already written; take it now rather than after the next command
+                    ln, got = read_until_bestmove(5.0)
+                    if ln not in (None, "TIMEOUT"):
+                        bestmoves.append((got or open_search, ln.strip()))
+                        open_search = None
+                    elif ln is None:
+                        open_search = None
+                # collect whatever else arrived without blocking
+                while True:
+                    try:
+                        ln = out.get_nowait()
+                    except queue.Empty:
+                        break
+                    if ln is None:
+                        break
+                    collected.append(ln)
+                    if ln.startswith("bestmove"):
+                        unattributed.append(ln.strip())   # no search was open for it
+
+        if not hang:
+            proc.stdin.write(tail[0] + "\n")       # the sequence's own isready
+            proc.stdin.flush()
+            sent.append(tail[0])
+            if pump(time.monotonic() + timeout_s, lambda l: l.strip() == "readyok") is None:
+                hang = True
+            while True:
+                try:
+                    ln = out.get_nowait()
+                except queue.Empty:
+                    break
+                if ln is None:
+                    break
+                collected.append(ln)
+                if ln.startswith("bestmove") and open_search is not None:
+                    bestmoves.append((open_search, ln.strip()))
+                    open_search = None
+                elif ln.startswith("bestmove"):
+                    unattributed.append(ln.strip())
+        if not hang:
+            proc.stdin.write(tail[1] + "\n")       # the sequence's own quit
+            proc.stdin.flush()
         proc.stdin.close()
     except (BrokenPipeError, OSError):
         pass
@@ -174,11 +271,9 @@ def run_one(exe, seq_path, timeout_s):
         if ln is None:
             break
         collected.append(ln)
-
-    # leftovers after quit: the bestmove of a search that was still open arrives here
-    for c in collected:
-        if c.startswith("bestmove") and launched:
-            bestmoves.append((launched.pop(0), c.strip()))
+        if ln.startswith("bestmove") and open_search is not None:
+            bestmoves.append((open_search, ln.strip()))
+            open_search = None
 
     wall = time.monotonic() - t0
     san = [c for c in collected if SAN_RE.search(c)]
