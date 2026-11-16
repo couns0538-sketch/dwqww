@@ -238,3 +238,6 @@ Next: continue on PC20 with provably-applied options; STATUS every 25 min.
 - S-F38 (systematic S-F28): on PC20 every SHORT FEN (5/4/3/1 fields, and bare `position fen`) is
   refused yet the engine keeps the PREVIOUS board (perft 1 = 26 = old board), while a 7-field FEN is
   silently accepted. Too few = refused-but-stale; too many = accepted-silently.
+- S-F40 (most practical FEN finding): a realistic GUI game switch with a TRUNCATED FEN gets
+  readyok and then a move from the PREVIOUS game (a7a6, legal in game 1, not in game 2). A silent
+  wrong-answer, invisible to anything keying on readyok. Evidence checks/gui_sequence_pc20.txt.
