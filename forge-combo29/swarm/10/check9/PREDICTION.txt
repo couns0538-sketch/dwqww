@@ -1,0 +1,18 @@
+seat 10 check9 — THIRD independent confirmation of the MultiPV x Hash collapse (seat 02's S-F7c; my 10-C17
+was the second). Threads 1 throughout, PC r15 build under PC20, fresh process per search, read to bestmove.
+Prediction, committed and pushed ALONE before the first measuring command:
+
+P1. Reproducing the collapse with an INDEPENDENT measure: instead of "depth reached in a 5 s clock", I use
+    NODES SEARCHED in a fixed 3 s clock at depth 30. I predict nodes fall sharply as Hash grows at MultiPV 8:
+    H16 gives at least 10x the nodes of H2048. (kill: ratio < 10)
+P2. MultiPV 1 is unaffected by Hash size (the collapse needs BOTH factors): I predict the H16/H2048 node
+    ratio at MultiPV 1 is below 2. (kill: ratio >= 2)
+P3. The defect scales with the PRODUCT of (extra PV lines) and (table size), not either alone: I predict a
+    monotone decrease in nodes across MultiPV 1 -> 2 -> 5 -> 8 at fixed H2048, and across H 16 -> 64 -> 256
+    -> 2048 at fixed MultiPV 8. (kill: either sweep non-monotone)
+P4. The mechanism is the per-line table CLEAR, so I predict `setoption name Clear Hash` sent ONCE before a
+    MultiPV 8 search on a large Hash costs the same order of magnitude as the per-search penalty itself --
+    i.e. a single clear of H2048 is measurable in seconds, not milliseconds. (kill: a single clear is under
+    0.1 s, which would mean the cost is elsewhere)
+P5. Therefore the practical rule holds on a THIRD measure (nodes, not depth): never pair MultiPV > 1 with a
+    large Hash on the PC build. (kill: P1 or P3 fails)
