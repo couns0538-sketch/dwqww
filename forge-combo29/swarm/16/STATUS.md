@@ -156,3 +156,15 @@ seed: 1601
 - next command: fetch handoff/fable-opus-combo29-all-20261114 and read FABLE_TO_swarm_4.md and _5.md
   (I have read 1, 2, 3), then build the PC engine from file 5's patch with -DFORGE_MATE_ALPHA_GUARD=1 in a
   separate copy and check its known bench numbers.
+
+## 2026-11-16T22:24Z
+- PC ENGINE BUILT AND VERIFIED (FABLE_TO_swarm_5): patch sha256 d6bd72c531f785f4 matches; 11 files apply clean
+  with `patch -p1` on a pristine 6b98f217 export; built with -DFORGE_MATE_ALPHA_GUARD=1.
+  ALL SIX known numbers match: none 312866/862329/3024920/4865609, S14 242796/656517, PC20 278024/587276.
+  All 20 option names present in the uci list. Files: pcbuild/PC_BUILD.txt, pcbuild/pc_honesty.sh, pcbuild/raw/.
+- THREAD RULE (seat 04): audited every harness. All sweeps that produce scores are Threads 1 — job3,
+  check_fullwindow, check_warmcold, check_28F1, check_06F12 and ownbook_check set it explicitly; the four newer
+  ones (cold_depth1, below_root_test, order_test, reverse_pair) relied on the DEFAULT, which is verified to be
+  Threads 1 both from the uci line and behaviourally (omitting the option gives identical nodes, 66 = 66).
+  They now set it explicitly. My 353-pair job-3 sweep WAS Threads 1 (search_mirror.py sends the option).
+- next: re-run my own finds on the PC build under PC20 (symmetry of all four new options), Threads 1.
