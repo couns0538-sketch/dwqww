@@ -1,5 +1,21 @@
 # REPORT — re-running seat 06's own findings on the PC r15 build under PC20
 
+## HEADLINE
+
+**The search asymmetry is present in the engine the owner actually plays, at a rate indistinguishable
+from the base tree.** On the same 353 G positions at depth 10, Threads 1: the PC r15 build gives **120 of 353
+(34.0%)** mismatched bestmoves and **331 of 353 (93.8%)** differing scores; the base tree gives **101 of 353
+(28.6%)** and **334 of 353 (94.6%)**. The Wilson intervals overlap (PC 29.2–39.1%, base 24.1–33.5%), so **the
+effect is not a base-tree artefact** — it survives every search repair and every new switch the PC build carries.
+That joint statement, not either single number, is the finding: the owner's engine has this property too.
+
+**And it predates the PC's new search code.** With the four new switches OFF (S14 only) the PC build already
+gives **102 of 353 (28.9%)**, i.e. the base tree's rate within a point; switching them all ON (PC20) gives 34.0%.
+A paired McNemar test on the same 353 positions gives p = 0.098 for bestmoves and p = 0.815 for scores — not
+significant. So the cause is **not** in CuckooRep / HistRework / TtPruneV2 / CorrHistV2 / MateAlphaGuard; it is
+older than them, and an owner deciding where to spend time should look at the shared search core, not the new
+switches.
+
 Build: FABLE_TO_swarm_5's r15 patch on a fresh export of 6b98f217, `patch -p1` (11 files, no fuzz),
 g++-13.3.0 Release `-DFORGE_MARCH=x86-64-v4 -DFORGE_MATE_ALPHA_GUARD=1`.
 Pin check: all seven numbers FABLE 5 pins reproduced exactly (see `HONESTY_pc.txt`).
@@ -55,3 +71,34 @@ BASE build, S14, Threads 1, depth 10, same 353 positions (from job 3):
 - Did not measure the PC build at Threads > 1 for any of this: the owner's rule forbids reporting such a score.
 - Did not test the four new search switches individually (CuckooRep / HistRework / TtPruneV2 / CorrHistV2) to see
   which, if any, changes the asymmetry. That is a clean follow-up and the harness already takes an option list.
+
+## The switch test: does the new search code cause it? No.
+
+Same 353 G pairs, depth 10, Threads 1, on the PC r15 build. The only difference between the two rows is the six
+PC20 options. Pasted output of `table_switches.txt`:
+
+```
+| settings | bestmoves mismatched | rate | Wilson 95% CI | scores differed | rate |
+|---|---|---|---|---|---|
+| PC r15, S14 only (four switches OFF) | 102/353 | 28.9% | 24.4 - 33.8% | 333/353 | 94.3% |
+| PC r15, PC20 (four switches ON + MateAlphaGuard) | 120/353 | 34.0% | 29.2 - 39.1% | 331/353 | 93.8% |
+```
+
+Paired comparison on the identical positions (`table_switches_stats.txt`):
+
+```
+bestmove mismatch: discordant pairs 106 (only-S14 44, only-PC20 62); concordant 247; McNemar exact p = 0.098
+score difference:  discordant pairs 18 (only-S14 10, only-PC20 8);   concordant 335; McNemar exact p = 0.815
+```
+
+Reading, stated carefully because the bestmove p is 0.098 and not 0.5:
+
+- **The switches do not create the asymmetry.** With them all off the rate is 28.9%, statistically the base
+  tree's 28.6%. There is nothing to attribute to the new code.
+- **The +5.1 pp move when they are on is not significant** (p = 0.098, one test, and the two intervals overlap
+  heavily). I do not claim the switches make it worse; I claim only that they do not make it better and are not
+  the origin.
+- **The score measure is flat** across the two regimes (94.3% vs 93.8%, p = 0.815), so the score asymmetry is
+  entirely independent of the new code.
+- **Consequence for the owner**: the asymmetry predates the r15 switches. Time spent on CuckooRep, HistRework,
+  TtPruneV2, CorrHistV2 or MateAlphaGuard will not remove it; the shared search core is where it lives.

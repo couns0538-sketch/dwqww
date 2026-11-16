@@ -10,7 +10,10 @@ Modes:
              bestmove (mirrored), score (EQUAL rule: the colour mirror flips the side to move, so the
              side-to-move-relative score must be equal) and node counts.
 
-usage: pc20_rerun.py eval|search EXE FENFILE OUTFILE META DEPTH
+usage: pc20_rerun.py eval|search EXE FENFILE OUTFILE META DEPTH [S14|PC20]
+  S14  = Threads 1, Hash 16 + the 14 S14 settings, and NO new search switch
+  PC20 = S14 + CuckooRep true, HistRework 2, TtPruneV2 true, CorrHistV2 true, MateAlphaGuard true,
+         OwnBook false   (the default when the 6th argument is omitted)
 """
 import hashlib
 import json
@@ -30,7 +33,7 @@ BAD = ("unknown option", "invalid value", "ERROR")
 
 
 class E:
-    def __init__(self, exe):
+    def __init__(self, exe, options):
         self.p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                   stderr=subprocess.STDOUT, text=True, bufsize=1)
         self.name = None
@@ -42,7 +45,7 @@ class E:
             if line.strip() == "uciok":
                 break
         self.sent = []
-        for n, v in [("Threads", "1"), ("Hash", "16")] + PC20:
+        for n, v in [("Threads", "1"), ("Hash", "16")] + options:
             self.w("setoption name %s value %s" % (n, v))
             self.w("isready")
             self.ready()
@@ -135,12 +138,13 @@ def sha256(p):
 
 def main():
     mode, exe, fenfile, outfile, metafile, depth = sys.argv[1:7]
+    regime = sys.argv[7] if len(sys.argv) > 7 else "PC20"
     depth = int(depth)
+    options = PC20 if regime == "PC20" else S14
     fens = [l.strip() for l in open(fenfile) if l.strip()]
-    e = E(exe)
+    e = E(exe, options)
     meta = ["exe_started: " + exe, "exe_sha256: " + sha256(exe), "id_name: " + str(e.name),
-            "settings: PC20 (Threads 1, Hash 16, 14 S14 settings, CuckooRep true, HistRework 2,",
-            "          TtPruneV2 true, CorrHistV2 true, MateAlphaGuard true, OwnBook false)",
+            "settings regime: " + regime,
             "threads: 1 (owner's rule of 2026-11-16 - no score above Threads 1)",
             "mode: " + mode, "depth: %d" % depth,
             "fenfile: " + fenfile, "fenfile_sha256: " + sha256(fenfile),
@@ -164,7 +168,7 @@ def main():
                 b = e.search(mfen, depth)
         except RuntimeError as exc:
             fails.append((i, fen, str(exc)))
-            e = E(exe)
+            e = E(exe, options)
             continue
         rows.append({"index": i, "fen": fen, "mfen": mfen, "self": a, "mirror": b})
     e.quit()
