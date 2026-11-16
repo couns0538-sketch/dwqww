@@ -1,25 +1,30 @@
-## 2026-11-16T22:42:20Z (from `date -u`)
-seat 21, area 1 → new area: **`go softnodes` / the PC's self-play path**. Threads 1 in every run.
+## 2026-11-16T22:46:58Z (from `date -u`)
+seat 21. Area 1 finished; now on **the PC's match path** (handoff file 6 item 3/4). **Threads 1 in
+every run**, Hash 16, PC20 on the PC build unless stated.
 
-**Withdrawn this session under handoff file 6** (three claims of mine, each caught by a rule I had
-not applied before): **21-F9** (counter-100 `cp 0` is CORRECT — the mate lands at half-move 101;
-and in the window where the rule bites, counters 98/99, the base build already finds the mate),
-**21-F13** (a node-count shape, not a defect), **21-F11** (`mate 0` is correct UCI).
-`job29/out/summary.md` prints the inequality per case.
+**The find that matters now: 21-F16 — `go nodes N` never reaches N.**
+10 real-game positions, Threads 1, PC20: mean undershoot **27.1 %** at N=20000, **28.0 %** at
+50000, **20.4 %** at 250000; worst **−51.9 %** (−25,959 nodes); **not one of 30 pairs exceeded the
+budget**. Fully deterministic (30/30 identical over 5 fresh processes each). Mechanism is in the raw
+output: it stops at the last COMPLETED depth — position 1 at N=20000 finished depth 10 at 10,973
+nodes and stopped. So a "250,000-node" match game is often a ~127,000-node game.
+`job31/out/summary.md`, `job31/out/p1_n20000_r0_raw.txt`.
 
-**NEW: 21-F15 — `go softnodes N` on the PC build under PC20, Threads 1** (file 6's new area):
-- **deterministic**: 40/40 (position × N) combinations bit-identical across 5 fresh processes each;
-- **stops at a depth boundary**: the reported node count is the last `info depth` line's cumulative
-  count and no separate total follows (verified in the raw file);
-- **overshoots N by a whole iteration**: +671 at N=2000 (+33.6 %), +11,779 at N=20000 (**+58.9 %**),
-  +2,904 at N=50000 (+5.8 %), +38,912 at N=250000 (+15.6 %);
-- base and PC builds agree on every (position, N) pair.
-This matters for the owner's self-play: a "2000-node" search is really ~2,700 nodes.
+**21-C12 CONFIRMS the clock path is healthy**: 30 searches at `wtime 6000 btime 6000 winc 60 binc 60`,
+slowest **599.5 ms**, every move legal.
 
-**Still standing, low priority per file 6** (UCI edge cases come after the PC path): 21-F8
-(`fullmove 0` refused) and 21-F2 (refused FEN → `readyok` → old board). Both on the PC build.
+**21-F15 (newer area)**: `go softnodes N` is fully deterministic (40/40) and stops at a depth
+boundary, but OVERSHOOTS by up to +58.9 % — the opposite direction from `go nodes`. Both are "stop
+at a finished depth" limits; one over-, one undershoots.
 
-**Next**: the rest of the self-play path — `go nodes` 20000/50000/250000 and the clock 6s + 0.06
-on real-game positions, checking for a wrong move or a wrong score, which is what file 6 says
-counts most. `job28` (seat 15's 15-F3, KNN v K) is UNFINISHED — it produced no output.
-Next command: `cd forge-combo29/swarm/21 && python3 job31/nodes_clock.py job31/out`
+**Withdrawn under file 6** (3 claims of mine): 21-F9, 21-F13, 21-F11 — each caught by a rule I had
+not applied before. Details in `job29/REPORT_job29.md` and FINDINGS.md.
+
+**Still standing, ranked below the PC path**: 21-F8 (`fullmove 0` refused), 21-F2 (refused FEN →
+`readyok` → old board).
+
+**Unfinished**: job28 (seat 15's 15-F3, KNN v K) — killed mid-run, NO output, reported as not done.
+
+**Next**: check whether 21-F16's undershoot costs strength — same positions at matched *effective*
+node counts (e.g. N tuned so the completed depth matches a fixed depth), then a fixed-depth
+comparison. That decides whether the owner should care.
