@@ -8,6 +8,10 @@ Every line names **build** and **settings**. Threads 1 for anything score-shaped
 **No result above one thread is reproducible on either build, at 2 or 4 threads — so any A/B comparison must be
 single-threaded, or repeated enough to average the spread.**
 
+And for anyone re-testing that claim: **use at least 6 runs per position.** Nearly half of my unstable cases were a
+single stray run out of six (24-F29), so a 2- or 3-run sample will usually report "deterministic" on a position
+that is not. This finding is two-seat confirmed (24-C10); the mechanism is still open (24-F27, 24-F28).
+
 The matrix behind it (depth 12, Hash 16, OwnBook false, 6 fresh processes per position, the same first 20 positions
 of G, moves compared, no score read):
 
@@ -46,11 +50,10 @@ build, so this does not depend on one set of positions.
 | 24-F13 | PC r15 TSan, PC20, Threads 1–8, 250 steps | option churn including all four PC switches is race-free (planted 10 blocks) |
 | 24-F18 | PC r15 TSan, PC20, Threads 16, 150 rounds | stop path clean at 16 threads on 4 cores |
 | 24-F20 | PC r15 TSan, PC20, Threads 8/16/32, 60 steps | clean at 8x oversubscription (Threads 32 on 4 cores) |
-| 24-F21 / 21b | PC r15 PC20 / base S14, Threads 4, 6–8 fresh runs per position | **the chosen MOVE differs between runs on ordinary positions** (both builds) |
-| 24-F22 | PC r15, PC20, Threads 4, 20 positions | 8 of 20 (40 %) change move |
-| 24-F23 | PC r15, PC20, Threads 2, 20 positions | 10 of 20 (50 %) — Threads 2 is **not** a safe middle ground |
-| 24-F24 | both builds, Threads 1/2/4, 20 positions each | the full matrix above: architectural, not PC-specific |
-| 24-F26 | PC r15, PC20, Threads 4, independent R set | 4 of 20 — the effect is not specific to set G |
+| ~~24-F21 / 21b / 22 / 23 / 24 / 26~~ | both builds, Threads 1/2/4, 6+ fresh runs per position | **CLOSED — CONFIRMED BY A SECOND SEAT (24-C10).** The chosen MOVE differs between runs on ordinary positions, on both builds; Threads 2 is not a safe middle ground; the effect is architectural, not PC-specific. Their counts 9/20 at T2 and 8/20 at T4 against my 10 and 8, base slightly lower, and my Threads-1 exactness confirmed 20 of 20. |
+| 24-F29 | both builds, Threads 2/4 | **REPLICATION RULE:** 18 of 39 unstable cases were exactly "one stray run out of six", so **a 2- or 3-run sample will usually miss the instability — use 6+ runs per position.** |
+| 24-F27 | both builds | node spread does NOT predict which positions disagree (ranges overlap; a 7.10x swing kept its move, a 1.49x swing changed it) |
+| 24-F28 | PC r15, Threads 4 | **Hash size does not drive it:** 4 of 12 unstable at Hash 1 MB, 16 MB and 1024 MB — identically. TT evictions ruled out. |
 | 24-F15 / F17 | base + PC r15, PC20 | one text patch fixing **both** silent GUI hangs (terminal root, and the opponent-only clock), honesty numbers unchanged |
 | 24-F25 | both builds, defaults | an ABORTED search publishes the generator-order first move with 0 nodes — but **not** at a terminal root, where it correctly answers `0000` |
 | 24-F6 | PC r15, none/S14/PC20, Threads 1 | every published number reproduced (none 312866/862329/3024920/perft5 4865609; S14 242796/656517; PC20 278024/587276) |
@@ -87,8 +90,10 @@ build, so this does not depend on one set of positions.
 
 ## Limits I want on the record
 
-- The mechanism behind the threaded move instability is **not identified**. Two candidate families remain (shared
-  TT entries written at different times, and helper-cutoff ordering), untested.
+- The mechanism behind the threaded move instability is **still open**, but two candidates are now RULED OUT:
+  the transposition table's size (24-F28: identical 4 of 12 at 1 MB, 16 MB and 1024 MB) and "a different amount of
+  tree was searched" (24-F27: node spread does not predict which positions disagree). What remains is helper-cutoff
+  ordering or per-worker history/accumulator state.
 - Whether the differing moves are equally good is **not measured**; the honest claim is "not reproducible", not
   "worse".
 - The 40 %/50 % rates are for samples of 20 positions each, not global probabilities.
