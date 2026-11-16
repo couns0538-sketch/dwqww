@@ -36,3 +36,35 @@ positions would have measured the clamp, not the clock.
 ## scope
 Two middlegame boards and one trivial endgame, 2 runs each. Enough to confirm the mechanism and the direction;
 their 5 boards x 2 slices x 5 runs remains the larger sample for the rate.
+
+
+---
+
+# the clamp trap is NOT a risk on the owner's real clock path — measured
+
+The S-C18 warning ("a movetime far below its slice may be the depth clamp, not the clock") is only a practical
+worry if real game positions can hit the clamp. I tested eight of them on the owner's exact clock,
+`go wtime 6000 btime 6000 winc 60 binc 60`, PC r15 + PC20, Threads 1:
+
+| board | wall ms | depth reached | nodes | clamp hit |
+|---|---|---|---|---|
+| g1 middlegame | 381 | 19 | 683,500 | no |
+| g2 middlegame | 163 | 18 | 314,239 | no |
+| g3 endgame | 205 | 21 | 479,853 | no |
+| g4 middlegame | 302 | 17 | 501,519 | no |
+| g5 tactical | 201 | 17 | 347,819 | no |
+| g6 kiwipete | 275 | 16 | 428,663 | no |
+| g7 sparse endgame | **1585** | 16 | 1,784,852 | no |
+| g8 middlegame | 595 | 18 | 998,994 | no |
+
+**0 of 8 hit the depth-64 clamp.** Depths reached were 16-21, nowhere near 64. So:
+
+- **On the owner's clock, the clamp trap does not bite on real positions.** The early-stop phenomenon I confirmed in
+  S-C18 is real but confined to boards that are trivially finished (a lone-king or K+R-v-K ending), which a real
+  game reaches rarely and never at depth 64 in the time available.
+- **It still matters for a HARNESS**, which is where the warning belongs: a latency study that mixes in solved
+  positions will average in ~0 % cells and misreport the clock. That is the case to guard against, not the owner's
+  play.
+- g7 is the same sparse endgame that hits the **hard limit** at 1585 ms (my S-F13), which is a different mechanism
+  again — the clock cut, not the depth clamp. Both are in this file now, clearly separated: one is "finished, so
+  stopped early", the other is "unfinished, so cut at the hard limit".
