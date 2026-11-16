@@ -534,3 +534,13 @@ CONFIRMED / CROSS-CHECKED:
 WITHDRAWN by me under file 6 or by my own checks: S-F3, S-F4, S-F16 (not defects), S-F11/13/14/15/20 (descriptions),
 S-F34/S-F35 framing (S-W4), my false softnodes nondeterminism (S-W3), my OwnBook-tainted first clock table (S-W5).
 - next command: continue the cycle; try the wtime formula on a 2nd PC-build property (does Hash size change the ratio?).
+
+## $(date -u)
+- S-F44: the wtime budget is driven mainly by the INCREMENT, not the clock. Clock fixed 6s, sweep winc: 0->0.35s/d19
+  (5.9%), 60->0.35s/d19 (5.8%), 200->0.51s/d20, 500->1.28s/d21 (21.3%), 1000/2000->1.29s/d21 (plateau),
+  4000->1.93s/d23 (32.1%). Sweep clock with winc 60: 2s->4.4%, 6s->6.1%, 20s->6.4%, 60s->3.3%.
+  Raising the increment 66x buys 4 plies; raising the clock 30x buys 6 plies at a shrinking fraction.
+  At winc 60 (the owner's value) the engine sits in the flat low-allocation region.
+- S-F45: depth is insensitive to Hash size (Hash 1/16/256 all depth 19) and wtime-only behaves identically to the full
+  clock, so neither the TT nor btime explains it.
+- next command: continue the cycle.
