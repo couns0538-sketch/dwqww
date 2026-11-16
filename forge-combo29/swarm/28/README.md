@@ -51,6 +51,19 @@ visible.** The reading guide inside FINDINGS.md says the same thing.
 4. **S-F1-REVISED (small, but worth knowing): `go movetime M` is not "M ms of search".** With the default
    `Move Overhead 10` it is M−10, which at `movetime 10` means a 1 ms search.
 
+## Before applying my patch: it is one of THREE competing fixes
+
+`job5/search.cpp.patch.txt` carries this warning in its own header. Seat 01's one-line diff, seat 01's
+`job2c` combined patch (with seat 12's immediate-mate bypass), and mine all rewrite the same statement in
+`src/search.cpp`, so **apply exactly one**, and apply it **before seat 27's drawn-root reporting patch**.
+
+The case that separates them is seat 01's counter-resetting mate
+`8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1`. **My patch fixes it too**: `mate 2` at 398 nodes, exactly seat 01's
+measured figure (`job5/counter_reset_out.txt`). The genuine difference is that seat 01's combined patch is
+reset-aware and so keeps the instant 0-node answer on more hopeless roots, while mine removes the term
+outright and therefore searches them (KQ v K at halfmove 150: mine 336 nodes, seat 01's combined 280 nodes,
+both still `cp 0`; K v K stays 0 nodes under mine).
+
 ## Where the raw evidence is
 
 | directory | what |
