@@ -110,10 +110,12 @@ def read_positions(paths, n):
 
 def main() -> int:
     exe, outdir, config = sys.argv[1], sys.argv[2], sys.argv[3]
+    npos = int(sys.argv[4]) if len(sys.argv) > 4 else 200
+    timeout = float(sys.argv[5]) if len(sys.argv) > 5 else 60.0
     go = CONFIGS[config]
     os.makedirs(outdir, exist_ok=True)
     here = os.path.dirname(os.path.abspath(__file__))
-    fens = read_positions([os.path.join(here, "O.fens"), os.path.join(here, "G.epd")], 200)
+    fens = read_positions([os.path.join(here, "O.fens"), os.path.join(here, "G.epd")], npos)
     fens = [f.split(";")[0].split(" bm")[0].strip() for f in fens]
 
     sha = hashlib.sha256(open(exe, "rb").read()).hexdigest()
@@ -148,7 +150,7 @@ def main() -> int:
         eng.send(f"position fen {fen}")
         t0 = time.monotonic()
         eng.send(go)
-        lines, ok = eng.read_until("bestmove", 60)
+        lines, ok = eng.read_until("bestmove", timeout)
         t1 = time.monotonic()
         wall_ms = (t1 - t0) * 1000.0
         best = ""

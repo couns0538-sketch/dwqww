@@ -20,7 +20,18 @@ that is 4.6 % of the total clock in one move, but no search went over the engine
 ## How sure
 High on the measurements (raw per-search files, one engine process per config, 200 searches each,
 two independent movetime-50 runs agreeing to 0.05 ms), and the Move Overhead mechanism was confirmed
-by direct experiment at three overhead values. Medium on the interpretation of the clock outliers:
+by direct experiment at three overhead values. The two zeros in this job were checked with Opus's
+Rule 1 (FABLE_TO_swarm_2): the SAME harness, unchanged, caught both planted faults —
+
+| plant | harness column | plant count | real count | the zero it must break | caught |
+|---|---|---|---|---|---|
+| no answer (fake never prints bestmove) | status == NORESP | 8/8 | 0/200 | 0 NORESP | YES |
+| overrun (fake sleeps 300 ms) | wall_ms > 50 | 8/8 | 0/200 | 0 over movetime 50 | YES |
+
+(pasted output of `python3 ../job2/plant_verdict_job1.py .`; plant raw files in
+`job2/out_plant_job1/{noanswer,overrun}/`.)
+
+Medium on the interpretation of the clock outliers:
 201 ms and 1,270 ms are within the engine's own hard limit, so they are legal use of the budget, not
 a fault — unless Fable/Opus consider `wtime/30+winc` a promise, which the engine does not make.
 
@@ -75,6 +86,8 @@ the movetime cases are "over" only by 0.5-1.6 ms of process/pipe latency.
 | 200 searches per config = first 100 O + first 100 G | done | every `.txt` has 200 data rows | yes |
 | say how many cores | done | this report, "Machine" | 4 |
 | Move Overhead causality experiment | done (extra) | `outA/mo_{0,10,40}.tsv` | shortfall = overhead exactly |
+| Opus Rule 1: planted fault counted by the SAME harness | done (extra) | `plant_verdict_job1_out.txt` | 8/8 caught, real run 0/200 |
+| `timing.py` now takes npos + watchdog as argv 4/5 (added for the plant; the 200-position results above used the 200/60 s defaults) | done | `timing.py` | no effect on the reported numbers |
 
 ## Findings
 

@@ -17,11 +17,24 @@ search times (0.15x at a 2600 ms total).
 
 ## How sure
 Very high on the low-time results — 40 searches per cell, 400 in total, every bestmove judged legal by
-python-chess, every cell's `.meta` stamped with exe sha256 and the exact `go` line. High on both
-increment faults: each was measured twice, once as a sweep and once as a paired comparison, and both
-follow exactly the line of code that causes them (`include/forge/clock_plan.hpp:32` and `:41`). Medium
-on the *practical* severity — I did not run games, so I cannot say how many games a 15 % vs 100 % use
-of a 2600 ms clock costs in Elo.
+python-chess, every cell's `.meta` stamped with exe sha256 and the exact `go` line. The two zeros in
+this job were checked with Opus's Rule 1 (FABLE_TO_swarm_2): the SAME harness, unchanged, was run
+against a planted fake engine, and it counted the fault —
+
+| plant | what the harness measured | count | the zero it must break | caught |
+|---|---|---|---|---|
+| illegal bestmove (fake answers a1a8) | bestmove_legal == False | 400/400 | 400/400 legal | YES |
+| time overrun (fake sleeps 300 ms) | wall_ms > wtime | 400/400 | 0 over wtime | YES |
+| REAL engine, same harness | bestmove_legal False | 0/400 | - | - |
+| REAL engine, same harness | wall_ms > wtime | 0/400 | - | - |
+
+(pasted output of `python3 plant_verdict.py .`; plants under `out_plant/illegal/`, `out_plant/overrun/`,
+fake engine `fake_engine.py`, driver `plant_test.py`.)
+
+High on both increment faults: each was measured twice, once as a sweep and once as a paired
+comparison, and both follow exactly the line of code that causes them
+(`include/forge/clock_plan.hpp:32` and `:41`). Medium on the *practical* severity — I did not run games,
+so I cannot say how many games a 15 % vs 100 % use of a 2600 ms clock costs in Elo.
 
 ## Honesty numbers
 Same exe as job 1, `~/build/base-release/forge`, sha256 `e06310ec…16a83`, `id name Chess Engine Forge
@@ -53,6 +66,7 @@ the w0 rows as "answered at once", not as 40 time losses.
 | prediction alone, before measuring | done | `prediction.txt` (commit "swarm 28 job2: prediction committed alone") | 10/13 survived |
 | wtime 100/30/10/1/0 x winc 0/10, 40 searches each | done | `out/w*_i*.tsv` (10 files) | table above |
 | overruns and losses on time | done | `lowtime_table_out.txt` | 0 overruns, 0 losses |
+| Opus Rule 1: planted fault counted by the SAME harness | done | `plant_verdict_out.txt`, `out_plant/` | 400/400 caught, real run 0/400 |
 | legal bestmove per search | done | `bestmove_legal` column, python-chess judged | 400/400 |
 | increment behaviour at the overhead boundary | done (extra) | `increment_edge_out.txt` | cliff at wtime 11 |
 | increment vs clock, paired | done (extra) | `increment_compare_out.txt` | 0.15x at 2600 ms |
