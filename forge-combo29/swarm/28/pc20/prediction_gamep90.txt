@@ -1,0 +1,38 @@
+# PREDICTION — S28: per-move search-time p90 at 6 s + 0.06 on real game positions
+
+Committed and pushed ALONE before the first measuring command. Never edited afterwards.
+Written 2026-11-16 ~23:17 UTC.
+
+## The question, from the coordinator
+"the per-move 90th percentile of search time at 6s+0.06, since a median of 105 ms against a 60 ms
+increment means the tail decides when the clock runs out."
+
+## What I will measure, and what I will NOT repeat
+Real engine-vs-engine games, PC20, Threads 1, Hash 16, with a **real countdown**: each side starts at
+6000 ms, and after each move its clock loses the search wall time and gains 60 ms. The engine is sent the
+ACTUAL remaining clocks, which is what a GUI does. A side whose clock reaches zero is flagged and loses.
+
+**I am explicitly avoiding the constant-clock design** I used in S-F30, because I then proved in S-F32/S-F34
+that a constant 6000 ms clock inflates the tail (constant gave a 1585 ms worst case; the same positions under
+a countdown gave max 828 ms). Using a constant clock here would manufacture the answer.
+
+## My own measurements to compare against
+- median 105 ms is the coordinator's figure (another seat, self-play). My `realclock` median at constant
+  clock was 246/226 ms; under a countdown (S-F30 follow-up) 155 ms.
+- So I expect the game median to land 60-160 ms, closer to the countdown figure than the constant one.
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| G1 | median search time per move | 100 ms | outside 50..200 ms |
+| G2 | p90 search time per move | 300 ms | outside 120..600 ms |
+| G3 | p90 / median ratio | 3.0 | outside 1.5..6.0 |
+| G4 | max single search | 1200 ms | outside 500..1700 ms |
+| G5 | fraction of moves whose search exceeds the 60 ms increment | 85 % | outside 60..100 % |
+| G6 | games where a side is flagged on time within 250 plies | 0 of 4 | 2 or more |
+| G7 | the clock declines over the game (not flat) | yes | flat or rising |
+
+Reasoning for G5: the median is above the increment, so most moves lose clock even though 60 ms is added —
+that is the mechanism the coordinator named. For G6: at 6 s with ~35 moves per side and ~150 ms average, a
+side spends ~5.2 s and gains ~2.1 s, so it should survive a 100-move game but the margin is thin at the
+p90 — a p90 of 300 ms over 35 moves would be 10.5 s and would flag. So G6 = 0 depends on how many moves
+actually reach the p90, and I may be wrong; if games flag, that is the most useful possible answer.
