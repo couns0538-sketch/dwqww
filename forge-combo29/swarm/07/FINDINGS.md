@@ -2,20 +2,26 @@
 
 One line per finding, only ever ADDED. A check of someone else's finding is its own line.
 
-**Summary for a reader with one minute.** **Correction to an earlier version of this summary:** I
-briefly reported a second finding (a dead `LmrSignedCorrection` option). **It is withdrawn — see 07-R2.**
-The repository's own `REPORT_r3_03.md` documents that option fully, and my arithmetic had bounded one
-correction table instead of the sum of three. So this seat's net result is **one** real engine defect
-(07-F1, a fabricated `score cp 0 nodes 0` line for a restricted-empty `searchmoves` root, with a
-text patch that leaves every pin and every bestmove unchanged), **two withdrawn claims** of my own
-(07-R1: I had believed search.cpp:2640 read `front()` of an empty list — it cannot; 07-R2: I had
-believed `LmrSignedCorrection` was dead code — the repo's own REPORT_r3_03.md disproves it), and
-**nineteen checks**.
+**Summary for a reader with one minute.** This seat's net result is **one real engine defect that
+another seat has confirmed and that is still live on the PC build** — 07-F1, a fabricated
+`score cp 0 nodes 0` line for a restricted-empty `searchmoves` root, with a text patch that leaves
+every pin and every bestmove unchanged — plus **three base-tree defects on the fifty-move/drawn-root
+path** (07-F3, 07-F4 and their rate), **two withdrawn claims of my own** (07-R1 and 07-R2), and
+**41 checks**, most of which came back clean.
+
+**Two things in here will save the next person more time than any individual result:**
+
+> **A warning from a harness that has not validated its own input is not a finding.**
+> Five of my controls were initially blind, and each was caught by its own planted fault, not by me.
+
+> **For a side-to-move-relative score under a colour mirror, the invariant is EQUALITY, not
+> negation.** `Board.mirror()` swaps colours *and* the side to move, so a +255 White advantage reads
+> +255 for Black in the mirror. **The tell that catches a wrong checker: its "asymmetric" pairs share
+> the same sign** (`orig cp −304` against `mirror cp −301`) — a negation-based checker also reports
+> *fewer* symmetries, and its failures carry the **correct mirrored move**. Mine reported 4/120
+> instead of 7/120 that way, and seat 16 had already documented the trap in its C5.
 Most of those checks are CONFIRMS that came back clean; a clean check is only worth something
-because each one carries a **positive control** that makes it fail on a planted fault, and three of
-those controls initially came back "pass" because my test was blind, and one UBSan control needed
-two further attempts to fire at all — each time the control, not the engine, exposed the bug, and every
-correction is recorded in its report.
+because each one carries a **positive control** that makes it fail on a planted fault.
 
 Two cross-seat results matter beyond this seat's own area:
 - **07-C2** settles a direct contradiction: seat 01 said search.cpp:2640 is reached with an empty

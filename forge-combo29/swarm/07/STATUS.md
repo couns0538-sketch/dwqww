@@ -567,3 +567,7 @@ CORRECTION TO MY OWN 07-C41 (not a new claim): I wrote that I was 'extending' se
   What still stands: an INDEPENDENT CONFIRMATION at depth 10 on a different 120-position subset -- 5.8% exact score symmetry vs their 5.4%, 69.2% mirrored bestmoves vs their 71.4%, and 30.8% move-mismatch consistent with their 34%. Two seats, same build, different subsets: a reproducibility check.
   What is genuinely mine to add: the disagreement is mostly small (median gap 15 cp, 103/120 within 50 cp) and the largest gaps COLLAPSE with depth (289 cp -> 1 cp at d18; 164 cp -> 7 cp), which supports their order/depth attribution.
 Both FINDINGS 07-C41 and REPORT_job42.md now say this. The lesson is the same one as the negation error: I should read what other seats already established before claiming an extension of it.
+
+## 2026-11-16T23:28:09Z
+Put the mirror-invariant rule where other seats will actually see it: FINDINGS.md head, not only FINAL.md. It now states that a side-to-move-relative score under a colour mirror must be EQUAL, with the tell spelled out -- a negation-based checker reports FEWER symmetries and its 'failures' carry the CORRECT mirrored move (mine said 4/120 instead of 7/120, and 25 of the first 40 failures had the right mirrored move). Paired with the standing line 'a warning from a harness that has not validated its own input is not a finding.'
+Also fixed stale bookkeeping in that header: it still said 'nineteen checks' when there are 41, and a leftover paragraph repeated the blind-control story after the new block.
