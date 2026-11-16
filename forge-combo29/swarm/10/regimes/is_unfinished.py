@@ -83,6 +83,16 @@ def analyse(lines, requested=None, file_max=None):
             "verdict": verdict, "reason": reason}
 
 
+def file_has_depth_target(text):
+    """True when the file's own command echoes show a `go depth`; False when they show only
+    node/clock limits; None when no `go` line was recorded at all."""
+    import re as _re
+    kinds = set(_re.findall(r"^\s*go (\w+)", text, _re.M))
+    if not kinds:
+        return None
+    return "depth" in kinds
+
+
 def main():
     path = sys.argv[1]
     requested = None
@@ -90,13 +100,19 @@ def main():
         requested = int(sys.argv[sys.argv.index("--requested-depth") + 1])
     quiet = "--quiet" in sys.argv
     text = open(path, errors="replace").read()
+    depth_target = file_has_depth_target(text)
     recs = records(text)
     all_depths = [d for r in recs for d in
                   (int(m.group(1)) for m in (re.match(r"info depth (\d+)", l) for l in r) if m)]
     file_max = max(all_depths) if all_depths else None
     bad = 0
     for i, r in enumerate(recs):
-        a = analyse(r, requested=requested, file_max=file_max)
+        # R2 is only sound on files whose searches had a DEPTH TARGET; refuse to guess otherwise.
+        use_file_max = file_max if (requested is not None or depth_target is not False) else None
+        a = analyse(r, requested=requested, file_max=use_file_max)
+        if a["verdict"] == "UNKNOWN" and depth_target is False:
+            a["reason"] = ("file uses node/clock limits, not a depth target: R2 is INVALID here; "
+                           "record the budget and test against that instead")
         if a["verdict"] == "UNFINISHED":
             bad += 1
         if not quiet:

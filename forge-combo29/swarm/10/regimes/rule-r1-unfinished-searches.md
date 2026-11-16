@@ -3,6 +3,22 @@
 One page. Apply it to recorded engine output to find searches that were CUT OFF before they finished, which
 is the silently-wrong-data case: the engine answers a real move with a wrong score and nothing says so.
 
+## Scope of each rule — read this before using either (learned the hard way)
+
+**R1 has no conditions.** It works on any file where the requested depth is recorded, whatever the search
+was limited by, because it compares a record against *its own* request.
+
+**R2 requires that every search in the file had a DEPTH TARGET.** It works by comparing a record against the
+largest depth in the same file, which is only a valid reference if depth was what the searches were aiming
+at. **Node-budget files (`go nodes`), clock files (`go wtime/btime`, `go movetime`) and soft-node files do NOT
+satisfy this**, because such a search legitimately stops at whatever depth the budget happens to reach. On
+the repository's own `go nodes 2000` frame file R2 flags **8,235 of 8,292 records — a 99 % false-alarm rate**,
+which is the signature of an invalid reference rather than of a defect. For those files, **record the budget
+(nodes, soft nodes, or the clock) with each search and test completeness against THAT**, not against depth.
+
+So: R1 unconditionally; R2 only on depth-target files; budget-limited logs need the budget kept. If none of
+that is recorded, the data is genuinely unjudgeable and saying so is the correct answer.
+
 ## The rule
 
 > **R1: a record is UNFINISHED if and only if its LAST `info depth <N>` has N less than the depth that was
@@ -29,7 +45,8 @@ the checker falls back to it automatically:
 > **R2: a record is UNFINISHED iff its last depth is LESS than the largest depth appearing anywhere in the
 > same file at the same settings.**
 >
-> Requires the file to contain at least one completed search. If every search in the file was truncated the
+> **Two conditions, both required:** the file must contain at least one completed search, **and every search
+> in it must have had a DEPTH TARGET** (see "Scope of each rule" above). If every search in the file was truncated the
 > same way, R2 cannot fire and the data cannot be salvaged by this method.
 
 ## Evidence (why you can trust it)

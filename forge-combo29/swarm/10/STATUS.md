@@ -301,3 +301,10 @@ while python-chess confirms startpos has 20 legal moves. Control (searchmoves e2
 GUARD FOUND (10-F42): the engine prints 'info string searchmoves restriction has no legal root
 moves' on both builds, so a consumer can detect the false-0000 without parsing scores.
 next: continue confirming other seats' findings.
+
+## Mon Nov 16 10:36:11 PM UTC 2026
+SCOPE GUARD (10-F43): rule-r1-unfinished-searches.md now opens with a "Scope of each rule" paragraph --
+R1 unconditional; R2 requires a DEPTH TARGET in every search of the file; node/clock/softnode files need the
+budget recorded instead -- and is_unfinished.py now ENFORCES it: on the repo's go-nodes file the old behaviour
+flagged 8,235/8,292 records, the guarded version reports 0 unfinished and 8,292 UNKNOWN with the reason.
+next: confirm the two live PC defects (fifty-move score band; MultiPV with large Hash collapse).
