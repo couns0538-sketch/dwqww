@@ -1,0 +1,33 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -36,6 +36,10 @@
+ 
+ namespace forge {
+ 
++#ifndef FORGE_EXPERIMENT_REVERSE_LIST
++#define FORGE_EXPERIMENT_REVERSE_LIST 0
++#endif
++
+ int DrawJitter = 0;
+ 
+ namespace tune {
+@@ -889,6 +893,9 @@
+     void generate_captures() {
+         buffer_.clear();
+         board_.generate_pseudo_legal(buffer_, true);
++#if FORGE_EXPERIMENT_REVERSE_LIST
++        std::reverse(buffer_.begin(), buffer_.end());
++#endif
+         index_ = 0;
+         count_ = 0;
+         seeded_ = false;
+@@ -918,6 +925,9 @@
+         init_check_squares();
+         buffer_.clear();
+         board_.generate_pseudo_legal(buffer_, Board::GenMode::Quiets);
++#if FORGE_EXPERIMENT_REVERSE_LIST
++        std::reverse(buffer_.begin(), buffer_.end());
++#endif
+         index_ = quiet_start();
+         count_ = quiet_start();
+         seeded_ = false;
