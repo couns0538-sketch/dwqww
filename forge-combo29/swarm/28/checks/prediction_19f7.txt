@@ -1,0 +1,29 @@
+# PREDICTION — S28 check of 19-F7 (build-to-build spread of one source)
+
+Committed and pushed ALONE before the first measuring command of this check. Never edited afterwards.
+
+19-F7 (seat 19, area 9) claims: "On this 4-core VM the build-to-build spread of ONE source is 4.2 %
+(baseA median 443 ms vs baseB 425 ms, same source, same flags), not the 1.5 % the brief names; a
+control pair of two identical builds gave a 95 % CI of [0.9488, 1.0543]."
+
+What I will do: build commit 6b98f217 TWICE from the same source with identical flags into two
+directories, verify both hit the four honesty node counts, then run `bench 13` alternately A, B, A, B…
+10 times each, taking the engine's own `time` field and nodes/second. Compute the ratio of medians and
+a 95 % interval for the paired ratio.
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| P1 | baseA median bench-13 time (ms) | 430 | outside 380..500 |
+| P2 | baseB median bench-13 time (ms) | 430 | outside 380..500 |
+| P3 | median ratio A/B | 1.00 | outside 0.96..1.04 |
+| P4 | 95 % CI of the ratio contains 1.0 | true | false |
+| P5 | spread |A−B|/mean × 100 (%) | 1.5 | outside 0.0..8.0 |
+| P6 | both builds report all four honesty numbers | true | either build differs |
+| P7 | 19-F7's specific 4.2 % reproduces on my machine | no (I expect < 2 %) | yes, i.e. my spread > 4 % |
+
+Reasoning: my box is the same 4-vCPU Xeon class as seat 19's, and I already saw bench-13 `time` of 435
+and 428 ms in job 0/1 runs on one binary, i.e. ~1.6 % run-to-run on ONE binary. Two builds of the same
+source with -O3 and no LTO should be bit-identical or nearly so, so I expect the build difference to be
+smaller than the run-to-run difference. If the spread really is 4.2 %, my own job 1 statement that "a
+>1 % timing change is measurable without repetition" (S-F3) is wrong for bench-based measurements and I
+must correct it. That is the reason I am checking this rather than a fresh job.
