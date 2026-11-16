@@ -1,5 +1,39 @@
---- /home/ubuntu/pcsrc/src/search.cpp	2026-11-16 22:19:18.376169113 +0000
-+++ /home/ubuntu/noaltclear_src/src/search.cpp	2026-11-16 23:24:23.356169113 +0000
+# PATCH — drop the redundant per-line TranspositionTable::clear() in the MultiPV loop
+#
+# WHAT IT FIXES: with MultiPV > 1 the engine zeroed the WHOLE transposition table once per extra PV
+# line per depth (src/search.cpp:2879, inside the loop opened at :2851). clear() walks every cluster,
+# so the cost was (multipv-1) x depth full-table writes: measured 95-141 ms PER CLEAR, constant across
+# depths and line counts. At Hash 1024 MB that made go depth 12 take 2274 ms at MultiPV 3 against
+# 18.5 ms at MultiPV 1, for a byte-identical search tree.
+#
+# WHY IT IS SAFE: the alternative lines already own a SEPARATE table
+# (alt_shared = std::make_unique<SharedSearchState>(hash_mb) at src/search.cpp:2730) and every search
+# calls tt.new_search(), which bumps the generation itself. The cleared table was fresh on every line
+# anyway, so the explicit clear was redundant work, not a correctness requirement. The lines stay
+# distinct because the search_moves narrowing at :2871 excludes the earlier lines' moves.
+#
+# MEASURED PAYOFF (PC r15 tree + this patch, PC20, Threads 1, Hash 1024 MB, same eight cells):
+#   MultiPV 2, depth 6/8/10/12: 847.7/997.9/1190.9/1332.8 ms  ->  423.5/402.4/412.4/436.8 ms  (2.0x-3.1x)
+#   MultiPV 3, depth 6/8/10/12: 1310.1/1597.9/1939.3/2274.4 ms ->  470.3/519.3/458.9/542.6 ms  (2.8x-4.2x)
+# The per-depth growth is gone (flat ~400-540 ms).
+#
+# REVIEWER CHECK (do these four things before accepting):
+#   1. bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, go perft 5 = 4865609 - ALL UNCHANGED.
+#      (This is the gate the tempting generation-bump variant FAILED: it moved bench 16 to 3030186.)
+#   2. MultiPV 3 still emits THREE DISTINCT first moves in the final iteration, and all are legal.
+#      Verified on r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPP1PPP/R1BQKQ2R-adjacent positions,
+#      startpos and a K+P ending: e.g. d2d3 / a2a3 / e1g1 on both the shipped and the patched build.
+#   3. Tie-order may differ between builds at equal scores (std::sort is not stable across builds);
+#      that is pre-existing behaviour, not caused by this patch.
+#   4. No other call site of tt.clear() is touched.
+#
+# APPLY: cd forge-combo29 && patch -p1 --fuzz=0 < tclear_no_alt_clear.patch.txt
+# (verified rc=0 on a clean PC r15 tree)
+#
+# Seat 30, area 10. Findings 30-F47, 30-C28, 30-C31, 30-C32. Raw: check6/out_ttclear/
+#
+--- a/src/search.cpp
++++ b/src/search.cpp
 @@ -2876,7 +2876,10 @@
                  narrowed.request_start = {};
                  alt_shared->stop.store(false, std::memory_order_relaxed);
