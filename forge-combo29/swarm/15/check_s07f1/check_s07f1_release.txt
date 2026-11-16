@@ -1,0 +1,42 @@
+exe: /home/ubuntu/builds/rel/forge
+
+=== 1. the finding's own case: terminal root + searchmoves naming an illegal move ===
+--- terminal stalemate, go depth 3 searchmoves a1a2
+    bestmove: bestmove 0000
+    info depth lines: 3
+    last: info depth 3 seldepth 3 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    !! UNEXPECTED info depth lines
+--- terminal stalemate, go depth 3 (no restriction)
+    bestmove: bestmove 0000
+    info depth lines: 3
+    last: info depth 3 seldepth 3 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    !! UNEXPECTED info depth lines
+--- checkmated root, go depth 3 searchmoves a1a2
+    bestmove: bestmove 0000
+    info depth lines: 3
+    last: info depth 3 seldepth 3 score mate 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    !! UNEXPECTED info depth lines
+
+=== 2. empty searchmoves list on a LIVE board (no legal root move in the restriction) ===
+--- startpos, go depth 4 searchmoves (empty list)
+    bestmove: bestmove 0000
+    info depth lines: 4
+    last: info depth 4 seldepth 4 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    string: info string searchmoves restriction has no legal root moves
+    !! UNEXPECTED info depth lines
+--- startpos, go depth 4 searchmoves e2e5 (illegal name only)
+    bestmove: bestmove 0000
+    info depth lines: 4
+    last: info depth 4 seldepth 4 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    string: info string searchmoves restriction has no legal root moves
+    !! UNEXPECTED info depth lines
+
+=== 3. CONTROLS: the harness must be able to see a real search ===
+--- startpos, go depth 4 (plain)
+    bestmove: bestmove c2c3
+    info depth lines: 4
+    last: info depth 4 seldepth 6 score cp 12 nodes 701 nps 0 hashfull 0 time 0 pv c2c3 c7c5 g1f3 g8f6
+--- startpos, go depth 4 searchmoves e2e4 (one legal name)
+    bestmove: bestmove e2e4
+    info depth lines: 4
+    last: info depth 4 seldepth 4 score cp -2 nodes 52 nps 0 hashfull 0 time 0 pv e2e4 c7c5 c2c3
