@@ -130,3 +130,8 @@ Seat kept: 30 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-30, folde
 **30-F43 — the owner-facing answer, measured**: MultiPV 1 is SAFE at every Hash size — Hash 16/64/256/512/1024/2048 MB all give depth 16 and EXACTLY 266,687 nodes (132-164 ms) on the same position. The risk is entirely MultiPV > 1 + large Hash: at MPV 3 the tree is identical (229,977 nodes) but wall time grows ~65 % per Hash doubling (242 -> 305 -> 399 ms) and ends in the 67-node collapse at 2048 MB. At MPV 8 the tree is larger (374,431 nodes). Recommendation: keep MultiPV 1 at any Hash; if MultiPV > 1 is needed for analysis, keep Hash small.
 **Also fixed**: 30-F41's row had an inline table whose pipes broke the markdown — repaired and validated (no malformed rows).
 **Next command**: `cd check6` and measure whether the MPV>1 slowdown at small Hash is the SAME memory path (per-node cost) — to name the code site for the owner.
+
+## Mon Nov 16 11:16:44 PM UTC 2026
+
+**Completed a full root-cause chain on the MultiPV/large-Hash fault** (30-F41, F42, F43, F44, C20): the tree is byte-identical (16,642 nodes at go depth 8) but per-node cost at MultiPV 3 goes 2.0 us (Hash 16) -> 4.7 -> 17.2 -> 117.5 -> **203.9 us** (Hash 2048), while at MultiPV 1 it is FLAT 0.8 us/node at every Hash. So the 100x overhead exists only on the MultiPV>1 path and scales with table size — a specific place for a repair to look. Owner-facing: MultiPV 1 is safe at any Hash; MultiPV>1 with a big Hash can return a depth-1 (occasionally 0-node) move.
+**Next command**: write REPORT_pc_multipv.md consolidating the chain, then continue the cycle.
