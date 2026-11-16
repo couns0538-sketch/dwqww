@@ -1,0 +1,24 @@
+# PREDICTION — job4 (area 1, job 3: long `position startpos moves` lists), seat 21, seed 2101
+written before the first measuring command; not edited afterwards.
+
+Setup: random legal games from python-chess with SEED 2101 (seed +1, +2 ... per game),
+truncated at the last position that still had a legal move, giving 1,000-ply move lists.
+Engine = ASan+UBSan build. Each case is one fresh process:
+  `position startpos moves <list>` + `isready` (answer lines kept) + `go perft 1`.
+Then the same list with ONE illegal move inserted at ply 1, at ply 10 and at ply 500,
+and the position the engine keeps is read back with `go perft 1` and compared with the
+python-chess position after the legal prefix.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | a 1,000-ply legal list is applied completely: perft 1 equals python-chess's count after 1,000 plies | killed by any difference |
+| P2 | with an illegal move at ply 1 the engine keeps startpos: perft 1 = 20 | killed if 20 is not the answer |
+| P3 | with an illegal move at ply 10 the engine keeps the 9-ply legal prefix: perft 1 equals python-chess after 9 plies | killed by any difference |
+| P4 | with an illegal move at ply 500 the engine keeps the 499-ply prefix | killed by any difference |
+| P5 | each case answers `info string illegal move <token>` exactly once and still answers `readyok` | killed if a case is silent or answers twice |
+| P6 | 0 crashes, 0 sanitizer lines over all cases | killed by any one |
+| P7 | the engine's perft 1 on a 1,000-ply position equals python-chess (i.e. no board-state drift) | killed by any difference |
+
+Why: the brief's known value ("an illegal move keeps the legal prefix, perft 1 = 29 after
+e2e4 e7e5 e1e3") says the prefix is kept, so P2-P4 should hold; the interesting part is
+whether a 1,000-ply history stays exact (P1/P7) and whether the reply is emitted once (P5).
