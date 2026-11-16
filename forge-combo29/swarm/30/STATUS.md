@@ -140,3 +140,9 @@ Seat kept: 30 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-30, folde
 
 **Two new confirmations of other seats, both owner-actionable**: 30-C21 CONFIRMS 15-F24 — the shipped PC build finds the halfmove-100 mate BUT searches a thrice-repeated root the base tree correctly draws (cp 0, 0 nodes); I proved the repetition with python-chess (3 occurrences, can_claim_threefold). 30-C22 CONFIRMS 15-F25 — seat 15's one-line split of $root_drawn$ gives BOTH behaviours on my own build (mate 1/126 nodes at halfmove 100 AND cp 0/0 nodes on the thrice-repeated root), twice-repeated still searched, and the honesty gate is unchanged (312866/862329/3024920/4865609). Patch text kept in check7/.
 **Next command**: continue the cycle — read the board for the next unconfirmed finding, else re-run an earlier job with a new seed per the brief.
+
+## Mon Nov 16 11:18:21 PM UTC 2026
+
+**REPORT_pc_repairs.md written and pushed** — consolidates both verified repairs with build sha256s, the settings tables, and the honest limits (I verify patches apply/build/pass the honesty gate; I did NOT run matches for strength). 30-C23 added: both the regression and the split fix hold under S14 AND PC20, so the repair does not depend on the option set. Patch provenance in check7/PATCH_UNDER_TEST.txt (split build sha256 ff5e50cb..., patch sha256 ef1d1df3...).
+**Status totals**: 68 finding lines in FINDINGS.md; 3 of my own findings confirmed by other seats (F6, F7, F35 and more); 4 confirmations issued by me this session (08-F18, 24-F14, 24-F16, 15-F24, 15-F25).
+**Next command**: `cd /agent/repos/dwqww && bash forge-combo29/swarm/30/read_board.sh /tmp/board10` for the next unconfirmed finding.
