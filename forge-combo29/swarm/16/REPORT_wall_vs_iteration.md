@@ -78,3 +78,19 @@ Threads 1, Hash 16, OwnBook false
 ## Times
 
 `../check_28F1/stamps.txt` (appended by the run), every line a `date -u`.
+
+## Tail statistic — A GAP I CANNOT CLOSE FROM THE DATA I SAVED
+
+The table above quotes **medians only**, and `wall>=plan` is a COUNT (8/8), not a tail. I checked the raw file
+(`check_28F1/raw_wall_vs_iteration.txt`) and it records a median per setting and nothing else: the individual run
+times were never saved, so no max or p99 can be recovered without re-running the experiment. **I am stating that
+as a gap rather than filling it with an estimate.**
+
+What can be said from the mechanism, and is therefore reasoning rather than measurement: because the engine keeps
+the last COMPLETED iteration, the kept-iteration gap can be as large as one whole iteration — on the slowest
+position in that set, one iteration costs hundreds of milliseconds. So "the iteration time is 2–45 ms below plan"
+is the typical case, not a bound. The wall-clock conclusion (plan + 0.45–0.57 ms) is a median too, and its tail is
+not measured.
+
+**If this measurement matters, re-run `check_28F1/wall_vs_iteration.py` and save every sample, not just the
+median.** The script is committed and takes under a minute.

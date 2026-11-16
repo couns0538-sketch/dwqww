@@ -432,3 +432,21 @@ seed: 1601
   my own numbers, 4 harness/audit bugs, 2 wrong pre-registered predictions, 1 inverted sign, 1 single-case-as-
   property). A count I repeated without rechecking is the same failure the caution warns about.
 - check_folder.py: ALL CHECKS PASS (398 files, 38 findings rows). Continuing to the close at 10:19Z.
+
+## 2026-11-17T01:05Z
+- Built check_claims.py: an attempt to MECHANISE the six habits so another seat can run them rather than read them.
+  Tested it against a deliberately well-formed report and a deliberately bad one: silent on the first, all six
+  habits firing on the second. So it discriminates, at least on clear cases.
+- BUT I MEASURED ITS LIMITS ON MY OWN WORK AND RECORDED THEM IN ITS HEADER rather than shipping it as a gate: over
+  my 36 reports it produced 216 candidate lines and on inspection the large majority were FALSE POSITIVES. Habit 3
+  fired 29 times mostly on the word "identical" in prose that DOES report its sample size; habit 5 fired 23 times
+  on the word "cost" in sentences making no comparison. Prose ABOUT rigour reads exactly like prose LACKING it.
+  What mechanises reliably: habit 2 (median with no tail in the report), habit 1 (bare "N worse, M better"), habit 6
+  (zero-result claim with no planted case). What does NOT: habits 3, 4, 5 — those need a reader's question.
+- AND IT FOUND THREE REAL GAPS IN MY OWN REPORTS, which I fixed: REPORT_job3.md, REPORT_fullwindow.md and
+  REPORT_wall_vs_iteration.md all quoted MEDIANS with no tail statistic. job3 now carries median/p90/max per set
+  (G: 18/60/541 cp; R: 28/83/236 cp — so the worst mirror gap is 30x the median, which the median alone hid).
+  fullwindow now records that its 11.1x cost ratio is a ratio of MEDIANS. wall_vs_iteration: I checked the raw
+  file and the individual run times were never saved, so I recorded that as a GAP I cannot close rather than
+  estimating a number, with the command to re-run if it matters. Habit 2 is now clean on all 36 reports.
+- check_folder.py: ALL CHECKS PASS. Continuing to the close at 10:19Z.

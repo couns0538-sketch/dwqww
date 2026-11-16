@@ -172,3 +172,11 @@ raw_fullwindow.txt
 run.log
 stamps.txt
 ```
+
+## Tail statistic (added after a self-check for the "a median hides a tail" habit)
+
+The table above quotes MEDIAN node counts only. The tail is much wider, and it matters because the full-window
+root's cost is what made it unusable: median 1,489 nodes at depth 6 on the base root against 16,563 on the
+full-window root, but the per-position maximum is larger still — the single most expensive position in that sweep
+cost an order of magnitude more than the median, so the 11.1x ratio quoted above is a ratio of MEDIANS and
+understates the worst-case cost.

@@ -154,3 +154,16 @@ prediction.txt
 raw_depth_series.txt
 stamps.txt
 ```
+
+## Tail statistics (added after a self-check for the "a median hides a tail" habit)
+
+The medians reported above conceal very different tails, which is why the same table gave a median of 18 cp and a
+maximum of 541 cp:
+
+```
+score gap on G: median 18 cp, p90 60, max 541 cp  (n 343)
+score gap on R: median 28 cp, p90 83, max 236 cp  (n 188)
+```
+
+So the typical mirror disagreement is small and the worst is 30x the median. Any summary of this job that quotes
+only the median understates the asymmetry by roughly an order of magnitude in the tail.
