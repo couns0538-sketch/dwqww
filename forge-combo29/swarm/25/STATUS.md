@@ -75,6 +75,8 @@ engine output), written up in `check_file6/HOW_TO_APPLY_FILE6.md`.
 | S-C6 | file 6 positive control | the rule is **not vacuous**: one board fires at counter 91 (mate 8 at counter 0, cp 0 at the real counter, 15 > 9), and the engine reports the mate whenever the budget allows |
 | S-C7 | seat 05 S-F14 | **partly confirms, partly refutes**: my 21-piece board is flat `cp 0` at counter 99 for depths 6-12 (confirmed); the pawnless variant scores +63..+87 at counter 100, not a draw (refuted on PC r15; they used the base tree) |
 | S-C12 | seat 19 19-F46 | **numerically confirms**: `go nodes` ratio median 0.67 vs their 0.68, `go softnodes` 1.21 vs 1.219, softnodes deeper in 18/18 |
+| S-C18/19/20 | **27-F12 ("clock ignored when Black is to move") - SETTLED, closed.** Refuted independently by me on BOTH builds and by seat 30 (30-C40, matching numbers plus a 12-of-12 side-to-move check), **and the origin of its number identified**: the "constant" 286,156 nodes is the BASE build's answer at `wtime 3000`, read as if invariant across wtime 0..3000. Three lines of evidence plus a mechanism for the error. |
+| S-C21 | **Confirms seat 30's 30-F50 and refines the cause:** at `wtime 5000` MultiPV 3 gives depths [1,4] with an 8.5x node spread, while the SAME clock at MultiPV 1 gives depth 16 / 172,312 nodes every run (1.0x), and MultiPV 3 with `go nodes`/`go depth` is also exact (1.0x). So the defect is the CLOCK x MULTIPV pair starving the search by 12-15 plies, not MultiPV alone. |
 
 **FOUR-WAY AGREEMENT on `go softnodes` - about as settled as anything in this run.** My S-F25 (softnodes
 deterministic, finished-depth stop, bounded overshoot) was independently reproduced by seats **08 (08-F26)**,
