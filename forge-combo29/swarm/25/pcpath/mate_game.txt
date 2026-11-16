@@ -1,0 +1,27 @@
+### self-play to mate at the match setting — PC r15/PC20, Threads 1, Hash 16, 20000 nodes/move
+start: 4k3/8/8/8/8/8/8/K1QR4 w - - 0 1
+plies: 3   result: Outcome(termination=<Termination.CHECKMATE: 1>, winner=True)
+illegal: 0 | missing info: 0 | completed-iteration moves: 3/3
+mate scores claimed during the game: 3 | of those whose PV was NOT a mate: 0
+nodes/N: median 0.13, min 0.01, max 0.23
+
+  ply   0   c1c7 score mate 2 nodes   4665 pv  3 
+  ply   1   e8f8 score mate -1 nodes    195 pv  2 
+  ply   2   d1d8 score mate 1 nodes   2572 pv  1 
+
+READING:
+A forced-mate self-play game at the owner's match setting is CLEAN end to end:
+  plies 3, result CHECKMATE (white wins)
+  illegal moves 0 | missing info lines 0 | moves from a completed iteration 3/3
+  mate scores claimed during the game: 3 | of those whose PV was NOT a mate: 0
+  every PV sliced from the engine's own info line and played out immediately, so no reconstruction was possible
+  nodes spent / 20000: median 0.13 (min 0.01, max 0.23)
+So with S-F30 (a 90-ply game ending by repetition) this covers BOTH game endings at the match setting: repetition
+and checkmate. Neither shows an illegal move, a missing info line, a truncated iteration, or a mate PV that fails
+to play out.
+
+The node ratio is the one thing worth flagging as expected rather than defective: in a decided mate position the
+search finds the mate in a few thousand nodes and stops, spending 1-23% of the 20000-node budget. That is the
+same "search resolved before the budget was spent" behaviour that explains the 64-line artifact in S-F7 - the
+engine has nothing left to search, not a broken budget. A cost model that assumes every move spends ~N nodes will
+over-estimate endgame cost on decided positions.
