@@ -1,0 +1,19 @@
+deepseek6 long 25 — prediction scorecard (prediction committed as facc8c2cd, never edited)
+P1 S14 d14 = 21,812,100 exact ............ HELD (measured 21,812,100)
+P2 CED8 d14 in [16.0M, 17.8M] ............ KILLED (measured 19,944,501, +12 % over the top of the band)
+P3 V d14 in [15.1M, 16.9M] ............... KILLED on level (19,759,587); its ordering V<CED8 HELD (19.76M < 19.94M)
+P4 d14 ratios closer to 1 than d12:
+   V 0.9059 > 0.9016 ..................... HELD, by 0.0043 (a hair)
+   CED8 0.9144 > 0.9490 .................. KILLED (0.9144 is BELOW 0.9490, the opposite direction)
+P5 T2 in [23.0M, 30.0M] = 27,469,140 ..... HELD
+   T1 in [21.0M, 25.5M] = 22,329,867 ..... HELD
+   T1 < T2 ............................... HELD
+P6 T1/S14 at d14 in [0.96, 1.22] = 1.0237  HELD
+P7 churn <= 130 of 200 for all four ....... HELD, strongly (CED8 44, V 51, T1 41, T2 44)
+P8 one d14 run takes 150-900 s ........... WIDE OF THE MARK but harmless: 30-45 s each on this VM
+
+The two kills are the finding: I predicted the extension's relative saving would SHRINK with depth
+(the check rate per node falling). CED8 went the other way - its saving GREW, 0.9490 -> 0.9144.
+The absolute d14 sums also exceeded my band by ~12 % for both check configurations, so the band,
+not the direction, was the main error: I extrapolated a depth-12 ratio to depth 14 as if trees
+scaled alike, and they do not (growth factors: S14 2.2960, CED8 2.2123, V 2.3070).
