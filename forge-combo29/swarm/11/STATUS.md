@@ -177,3 +177,6 @@ NEXT: continue area-1 work; push again by 22:30.
   the engine values are right; S-F16 has the correctly generated version.)
 - S-F25: closed my own S-F24 mislabel. 8P+2R is LEGAL (2 rooks are original, no promotion needed) and
   8P+2Q is illegal — board.cpp's `promoted > 8-pawns` rule is consistent, engine correct, my labels wrong.
+- S-F26: 05-F8/24-C3 NOT repaired on the PC — `go infinite` at a terminal root never volunteers a
+  bestmove (6 s window, NO stop sent, ordinary-board control also NEVER). My first probe looked like a
+  fix only because my pipeline sent stop; caught and corrected.
