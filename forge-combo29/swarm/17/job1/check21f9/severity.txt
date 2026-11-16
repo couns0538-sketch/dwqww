@@ -1,0 +1,15 @@
+=== S-C11 severity check (seat 17, 2026-11-16T22:06:05Z)
+1) Does python-chess VALIDATE the hm=100 mate-in-1 FEN? (syntactic reachability)
+   fen: 6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 100 1
+   is_valid: True  status: 0  legal moves: 20
+   mate in 1 available: a1a8
+
+2) Can a REAL GAME reach counter>=100 with a mate available?
+   FIDE: at 100 halfmoves either side may CLAIM a draw; the game is not over
+   automatically, and a mate delivered on the 100th ply still wins. So a position
+   with counter>=100 and a mate in 1 is reachable in a game where nobody claimed.
+   This engine does not model claims: it treats >=100 as drawn outright.
+
+3) What the engine does (measured, see f9.json):
+   hm=99  -> a1a8, 'mate 1'   (correct)
+   hm=100 -> f2f3, 'cp 0 nodes 0' (mate missed, no search performed)
