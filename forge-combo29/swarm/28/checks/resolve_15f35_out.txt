@@ -1,0 +1,47 @@
+## 1. ARITHMETIC: iterate the clock rule with a WORST-CASE search (always spends its full hard plan)
+
+`clock' = clock - hard(clock) + 60`, which is the most a move can cost.
+
+| move | clock ms | hard plan ms | spend | clock after |
+|---|---|---|---|---|
+| 1 | 6000 | 1585.0 | 1585.0 | 4475 |
+| 2 | 4475 | 1235.0 | 1235.0 | 3300 |
+| 3 | 3300 | 970.0 | 970.0 | 2390 |
+| 4 | 2390 | 765.0 | 765.0 | 1685 |
+| 5 | 1685 | 605.0 | 605.0 | 1140 |
+| 6 | 1140 | 480.0 | 480.0 | 720 |
+| 7 | 720 | 385.0 | 385.0 | 395 |
+| 8 | 395 | 231.0 | 231.0 | 224 |
+| 9 | 224 | 128.0 | 128.0 | 156 |
+| 10 | 156 | 87.0 | 87.0 | 129 |
+| ... | **the clock stops falling at 111 ms after move 15** | | | |
+
+lowest clock reachable under a worst-case spend: **111 ms** (never below MoveOverhead + increment = 70 ms)
+
+Seat 15's 6000/73 = 82 moves assumes a CONSTANT 73 ms drain. The drain is not constant: it is
+`hard(clock) - 60`, which SHRINKS as the clock shrinks, reaching zero at the floor. That is why the
+clock approaches a floor instead of crossing zero.
+
+## 2. EMPIRICAL: one long game at 6 s + 0.06, ply cap 400
+
+| metric | value |
+|---|---|
+| plies played | 113 |
+| lowest clock reached | **117 ms** |
+| clock at the end (last side) | 1418 ms |
+| plies with clock below 200 ms | 9 |
+| plies with clock below 70 ms | 0 |
+| forfeits (clock <= 0) | 0 |
+
+last 8 moves:
+
+| ply | side | clock before | wall ms | clock after |
+|---|---|---|---|---|
+| 105 | False | 128 | 31.0 | 157 |
+| 106 | True | 1381 | 50.3 | 1391 |
+| 107 | False | 157 | 39.3 | 177 |
+| 108 | True | 1391 | 51.3 | 1399 |
+| 109 | False | 177 | 26.8 | 210 |
+| 110 | True | 1399 | 50.2 | 1409 |
+| 111 | False | 210 | 39.1 | 231 |
+| 112 | True | 1409 | 51.0 | 1418 |
