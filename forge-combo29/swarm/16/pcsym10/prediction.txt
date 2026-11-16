@@ -1,0 +1,20 @@
+# PREDICTION — area 6: the 353-pair colour sweep on the PC build under PC20 (depth 10)
+
+This is the direct comparison to my base-tree job 3. Base tree under S14, Threads 1, depth 10:
+bestmove mismatch 101/353, score equal 19/353, both equal 17/353.
+
+Build: PC r15 (/home/ubuntu/builds/bld-pc/forge), verified against all six known numbers.
+Settings: PC20 exactly as file 5 defines it, Threads 1 (swarm rule), Hash 16. Fresh process per search,
+`ucinewgame` before it. Every G position (353) and its colour mirror.
+
+P1. bestmove mismatch on the PC build under PC20: predicted 80 to 120 of 353 (a band around the base tree's
+    101). Kills it: under 60 or over 140 (a materially different engine behaviour worth its own finding).
+P2. score-equal pairs: predicted 10 to 40 of 353 (base tree was 19). Kills it: above 80 — that would mean the
+    PC build is far MORE symmetric than the base tree, which is the opposite of what the added pruning options
+    would suggest.
+P3. The two lists will NOT agree position-for-position: predicted at least 20 positions where the base tree and
+    the PC20 run disagree about whether the pair matches. Kills it: identical match/mismatch vectors, which
+    would mean the four options changed nothing at depth 10 (unlikely — they change node counts at depth 6).
+P4. Every score in the run is from Threads 1, so a re-run of any single position in a fresh process gives the
+    identical score. Predicted 100 % on a 10-position re-run sample. Kills it: any differing score, which would
+    mean scores are not reproducible even at Threads 1 (a much bigger finding than this job).
