@@ -1,0 +1,8 @@
+# FINDINGS — seat 08, area 8 (THE CLOCK)
+
+| id | area | finding | evidence file with the command that shows it again | status |
+|---|---|---|---|---|
+| 08-F1 | 8 | The clocked-play tail is ~5x the median (10 s clock: median 345 ms, p99 1306 ms, max 2411 ms) and 45 of 200 searches run past the engine's own soft limit of 529 ms — though none pass its hard limit of 2645 ms. | job1/raw/limits_table.txt, produced by `cd forge-combo29/swarm/08/job1 && python3 limits_vs_wall.py raw`; raw searches in job1/raw/tc10000.jsonl | NEW |
+| 08-F2 | 8 | `go movetime T` searches for T - Move Overhead, not T: movetime 50 gave a median wall of 40.4 ms (200 searches), movetime 500 gave 490.5 ms, because search.cpp:2191-2193 sets hard = movetime - overhead with Move Overhead defaulting to 10. A cross-engine "movetime 50" comparison gives Forge 20 % less time. | job1/raw/analysis_table.txt, produced by `cd forge-combo29/swarm/08/job1 && python3 analyse_job1.py raw` | NEW |
+| 08-F3 | 8 | One of the 200 timing positions (index 3, the O set) is answered from the built-in opening book in 0.04 ms (`info string book move e1g1`) with OwnBook at its default true, so a latency harness that leaves the book on mixes 0.04 ms "searches" into its table. | job1/raw/book_count.txt, produced by `cd forge-combo29/swarm/08/job1 && python3 count_book.py ~/builds/release/forge OG200.fens raw/book_count.txt` | NEW |
+| 08-F4 | 8 | Two identical 200-search runs at movetime 50 differ by 8.80 ms of 8000 ms total (0.11 %); medians 40.4 vs 40.5 ms. Anything under ~1 % of total time on this 4-core box is noise. | job1/raw/analysis_table.txt, `python3 analyse_job1.py raw` (baseline repeatability block) | NEW |
