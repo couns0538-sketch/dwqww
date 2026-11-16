@@ -1,0 +1,9 @@
+# BROKEN RUN — kept as evidence of the quit-during-search trap (NOT a result)
+# Script version 1 sent `quit` in the same pipe as `go movetime M`. The engine abandoned the search
+# and answered at once, so "whole process wall" was ~18-28 ms for every cell regardless of the plan.
+| movetime | overhead | plan ms | WHOLE-PROCESS wall (5 runs) | bestmove present | last info `time` field | last depth |
+|---|---|---|---|---|---|---|
+| 50 | 0 | 50 | 28.2 22.9 18.4 24.0 19.1 | yes | 22.0 | 12 |
+| 50 | 10 | 40 | 20.0 17.9 20.9 18.8 17.6 | yes | 22.0 | 12 |
+| 200 | 0 | 200 | 19.9 18.9 18.7 18.5 17.5 | yes | 134.0 | 16 |
+| 200 | 10 | 190 | 17.3 19.7 16.7 19.9 16.5 | yes | 133.0 | 16 |

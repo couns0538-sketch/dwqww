@@ -1,0 +1,11 @@
+| movetime | overhead | plan ms | WALL go->bestmove (5 runs) | bestmove seen | last info `time` | last depth |
+|---|---|---|---|---|---|---|
+| 50 | 0 | 50 | 50.2 50.2 50.7 50.4 50.6 | yes | 24.0 | 12 |
+| 50 | 10 | 40 | 40.5 40.4 40.5 40.9 40.4 | yes | 22.0 | 12 |
+| 200 | 0 | 200 | 200.7 200.6 200.4 200.4 200.7 | yes | 133.0 | 16 |
+| 200 | 10 | 190 | 190.4 190.6 190.8 190.5 190.8 | yes | 133.0 | 16 |
+
+The wall column waits for `bestmove` before `quit`, so it cannot be shortened by the quit.
+The last-info-`time` column is where the last COMPLETED iteration ended: for movetime 200
+it is ~134 ms, well under the 200 ms stop, which is exactly seat 16's observation. Both
+numbers are real; they answer different questions.
