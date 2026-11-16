@@ -356,3 +356,17 @@ Counter-example recorded: one unchanged position has a 0 cp gap and still keeps 
 Also written: NOTE_TO_SEAT17.md (I cannot message it directly; coordinator relays). Content: their board reproduces
 exactly, but the count breakdown is 11 of 18 "only 250000 differs", 4 of 18 "20000 differs", 3 of 18 "all three" —
 the dominant shape is the LARGEST budget changing the move.
+
+## 2026-11-17T02:35Z  23-F28: the second-best-identity signature is REFUTED (it points the wrong way)
+Tested the coordinator's narrower hypothesis, because an exact signature would be worth more than a 45-56 %
+classifier. Method: D = the depth the 20000 budget actually reached; ranked the candidate moves at D-1 and D by
+scoring each alone; signature = runner-up at D-1 differs from runner-up at D.
+  fires on 3 of 17 CHANGED positions (recall 18 %)
+  fires on 6 of 43 UNCHANGED positions (false alarms) -> precision 33 %, and 17.6 % vs 14.0 % is indistinguishable
+  the BEST move's identity at D-1 vs D fails the same way (3 of 17 vs 3 of 43)
+So the narrow structural signature is worse than the plain gap, and 23-F27 remains the honest state: real
+mechanism (median 12 cp vs 46 cp), weak per-position classifier (precision 45-56 %).
+Why it failed (suspicion, not proven): for changed positions both candidates are near-best at D by construction,
+so which ranks second at D-1 is close to arbitrary; and I measured at the 20000 budget's final depth, not at the
+depth where the 250000 flip actually happens — a mismatch I could not remove without knowing the flip depth.
+Recorded so no seat spends an hour on it again.

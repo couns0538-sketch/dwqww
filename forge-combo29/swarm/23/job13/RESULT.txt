@@ -1,0 +1,34 @@
+IS "THE SECOND-BEST MOVE CHANGES IDENTITY BETWEEN THE LAST TWO DEPTHS" A PRECISE SIGNATURE?
+==========================================================================================
+Hypothesis (coordinator's): the instability may not be about the size of the gap but about whether the runner-up
+move's identity is stable between adjacent depths. If changed positions are exactly those where the second-best
+identity changes, the signature is exact.
+
+Method: for each of the 60 positions, D = the depth the 20000 budget actually reached. Ranked the same candidate
+set at depth D-1 and at depth D by scoring each move ALONE (`go depth X searchmoves <move>`). Signature =
+"the second-best move at D-1 is a different move from the second-best at D".
+PC r15, PC20, Threads 1, Hash 16, fresh process per search.
+
+| group | n | second-best identity STABLE | second-best identity CHANGED |
+|---|---|---|---|
+| move CHANGED between budgets | 17 | 14 | **3** |
+| move UNCHANGED | 43 | 37 | **6** |
+
+ANSWER: the signature is REFUTED as a detector, and it points the wrong way if anything:
+  fires in 3 of 17 changed positions (recall 18 %)
+  fires in 6 of 43 unchanged positions (false alarms)
+  of the 9 positions where it fires, only 3 are real changes -> precision 33 %
+  base rate 15 %; changed set 17.6 %, unchanged set 14.0 % — statistically indistinguishable
+
+A RELATED OBSERVATION, same data: the BEST move's identity between D-1 and D also fails as a signature —
+3 of 17 changed positions show a best-move change at those depths, but so do 3 of 43 unchanged ones.
+
+WHY (suspicion, not proven): for a changed position the two candidates were the moves the budgets chose, so by
+construction BOTH are near-best at D; which of them ranks second at D-1 is then close to arbitrary, and the
+budget flip at 250000 happens several plies deeper still. The signature was measured at the 20000 budget's final
+depth, not at the depth where the flip actually occurs, which is a mismatch I could not remove without knowing the
+flip depth per position.
+
+SO: 23-F27's margin result remains the honest state of the art — a real mechanism (median 12 cp vs 46 cp) and a
+weak per-position classifier (precision 45-56 %). This job's narrower signature is worse than the gap, not better,
+and is recorded so nobody spends an hour on it again.
