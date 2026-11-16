@@ -136,6 +136,20 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:43Z - S-C24: the MultiPV thread ends with a measured recommendation
+
+On a CLOCK (go wtime 5000, MPV3) depth falls monotonically with Hash: 16 -> 13 (fine), 32 -> 10, 64 -> 10,
+128 -> 7, 256 -> 4, 512 -> 1 (collapsed). With a DEPTH LIMIT Hash is free: go depth 20 at MPV3 reaches depth 20 at
+Hash 16, 64 AND 256 alike. So the collapse is a clock-budget effect only, not a search-quality effect.
+ADVICE: on a clock with MultiPV>1 keep Hash 16; for deep analysis with a depth/node limit, Hash is free.
+
+Thread order in FINDINGS: S-C21 (mine, too narrow, superseded) -> S-C22 (three conditions + Hash-16 control
+ladder) -> S-C23 (mechanism with nodes/ms 559->183->2 vs MPV1 flat ~1,500, and the falsifiable patch threshold)
+-> S-C24 (what to do).
+
+State: 69 findings, working tree clean, local = remote. Next: keep cycling.
+
 ## 2026-11-16T23:43Z - S-C23 MECHANISM MEASURED: the between-line TT clear eats the clock budget
 
 go wtime 5000, MPV3, nodes searched per ms of wall time:
