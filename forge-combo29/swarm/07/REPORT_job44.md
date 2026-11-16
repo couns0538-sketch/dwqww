@@ -73,6 +73,25 @@ come from something else (time cost, or a strength match), not from these rates.
   shared. That would be the natural next question.
 - Did not examine the 21 discordant positions individually.
 
+### The rule any automated damage table must apply: exclude incomparable pairs
+
+A damage table compares "the score of the move the small budget chose" against "the score of the move
+the large budget chose", and ranks positions by the difference. That subtraction is **only valid when
+both scores are in the same unit.** Two cases where it is not:
+
+1. **mate against centipawn.** Position #15 of job45: the 100000 budget's move scores `mate −12` and the
+   250000 budget's move scores `cp −2196`. Subtracting these gives a "damage" of about 9,796 cp, which is
+   meaningless — both moves lose, and `mate −12` is arguably *better* because the loss is definite rather
+   than a horizon guess. **Comparing a mate score against a centipawn loss is not a preference.**
+2. **mate against mate at different distances in a lost position.** `mate −8` and `mate −16` are both
+   forced losses; the difference is six plies of delay, which is not the same kind of quantity as a
+   centipawn loss in a playable position.
+
+**A damage table must therefore exclude any pair where either score is a mate score**, or report such
+pairs in a separate section labelled "both sides lost". Without that filter, mate scores dominate the
+top of the ranking — my own run's largest gap of 95,212 cp was exactly this artefact, and it would have
+been the headline if I had reported a damage figure.
+
 ## Why I am not reporting a damage figure at all
 
 This deserves its own heading rather than a footnote, because a "damage" number is the single most

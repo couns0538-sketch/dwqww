@@ -20,6 +20,12 @@ path** (07-F3, 07-F4 and their rate), **two withdrawn claims of my own** (07-R1 
 > the same sign** (`orig cp −304` against `mirror cp −301`) — a negation-based checker also reports
 > *fewer* symmetries, and its failures carry the **correct mirrored move**. Mine reported 4/120
 > instead of 7/120 that way, and seat 16 had already documented the trap in its C5.
+
+> **A damage table must exclude incomparable pairs.** Ranking positions by "score of the small budget's
+> move minus score of the large budget's move" is only valid when both are centipawns. **Comparing a
+> mate score against a centipawn loss is not a preference** — `mate −12` against `cp −2196` is two
+> different losses, and subtracting them invents ~9,800 cp of damage. My run's largest gap, 95,212 cp,
+> was exactly that artefact; it would have been the headline of any damage table I published (07-C44).
 Most of those checks are CONFIRMS that came back clean; a clean check is only worth something
 because each one carries a **positive control** that makes it fail on a planted fault.
 
