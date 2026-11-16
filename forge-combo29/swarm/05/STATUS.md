@@ -502,3 +502,12 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   On the owner's match path that is roughly one position in six decided at ~depth 18 instead of ~depth 27.
 - Both need a confirming seat; repro at clockpath/REPRO_for_seats.md.
 - next command: continue the cycle.
+
+## $(date -u) — S-F42 CORRECTED by my own check
+- S-F42 said the wtime shortfall "costs real moves" (2 of 12 differ from a full 6s search). Checking the SCORES at both
+  depths shows both differing positions are LOSING for the side to move and the deeper search is MORE pessimistic
+  (cp -294 -> -341; cp -1915 -> -2121). So the shallower wtime move is not demonstrably worse; my "strength lost"
+  implication is withdrawn. Move differences remain a fact, the strength interpretation does not follow.
+- S-F43 records the scores that forced the correction.
+- S-F41 (wtime result is bit-identical to `go depth <its depth>` in 12/12) is UNAFFECTED and still stands.
+- next command: continue the cycle.
