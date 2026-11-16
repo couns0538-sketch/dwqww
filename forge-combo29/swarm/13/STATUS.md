@@ -437,3 +437,19 @@ on a 0.01 s position. Replaced with a reader thread; results became monotonic. T
 contradicting themselves (a deeper request answering faster), which means the instrument is broken.
 The pre-fix run is kept at job11/out/ so the bad table can be inspected.
 Next command: cd forge-combo29/swarm/13/job11 && python3 depthcap.py ~/b/pc/forge /tmp/dc 15
+
+## Mon Nov 16 11:36:33 PM UTC 2026
+
+JOB 12: are the PC's six options wired? Yes for all six, but OwnBook is only CONDITIONALLY active:
+  5 of 6 change behaviour on my probes (bench 11 and depth-12 searches); OwnBook changed nothing.
+  Root cause in source: src/uci.cpp:679-681 gates the book on `game_search` = clock or movetime only,
+  so `go depth` (analysis) never consults it. My probes used go depth, which is why it looked inert.
+  On the GAME path the effect is large and I measured it:
+    startpos go movetime 200: OwnBook true -> e2e4, 0 info lines, ZERO search; false -> 16 depth lines.
+    startpos go wtime 6000...: true -> e2e4; false -> d2d4 (DIFFERENT MOVE).
+    walking a game with movetime 100: the first 16 plies were ALL book moves, zero search.
+  Consequences for the owner's matches: a book-on match and a book-off match measure different things;
+  go-depth probes can never detect a book problem; and a book answer emits NO info lines, so a harness
+  that waits for `info depth` mis-classifies it (third trap of the same family as S-F14 and 19-F12).
+  Finding S-F15. Report job12/REPORT_job12.md. Not a defect, and I say so.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
