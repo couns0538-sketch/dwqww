@@ -79,3 +79,6 @@ position sets. That is S-F1 + S-F9.
 - I could not establish whether the mate *scores* are the correct distance, only whether the PV matches the score.
 - S-F3's cause (which constant produces the 91 boundary) is not established, and Stockfish also returns 0 early
   there, so I do not claim engine-specific guilt.
+
+## State of the S-F9 200-position run (cold or warm)
+**COLD.** `job1/run_rows.py:run_one()` spawns a **fresh engine process for every position** (a new `Popen` per FEN, `ucinewgame` + `isready` before each `go`), so no search in that run ever inherited a warm hash from the previous one — seat 10's rule landed after the run and does not touch it. The data agrees: of the 200 positions, **0 had 0 nodes**, and the median node count of the first 100 (43,664) is essentially the same as the last 100 (49,605), with no collapse toward the end that a shared warm process would produce. Evidence: `job1b/outR/cold_state_proof.txt`.

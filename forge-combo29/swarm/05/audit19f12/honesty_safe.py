@@ -92,6 +92,7 @@ with open(f"{OUT}/meta.txt", "w") as m:
 print("| name | command | expected | got | verdict |")
 print("|---|---|---|---|---|")
 allok = True
+noparse = 0
 for name, cmd, tok, want in CASES:
     lines, got = run_one(cmd, tok)
     with open(f"{OUT}/{name}.raw.txt", "w") as f:
@@ -102,8 +103,18 @@ for name, cmd, tok, want in CASES:
         mm = re.search(r"nodes (\d+)", l)
         if mm:
             got_nodes = mm.group(1)
-    ok = (got_nodes is not None and int(got_nodes) == want)
+    if got_nodes is None:
+        # FAIL CLOSED and LABEL HONESTLY: no number was parsed, so this is not a mismatch against the expected
+        # value — it is an absence of measurement. Added after the owner flagged this class of fault.
+        noparse += 1
+        allok = False
+        print(f"| {name} | `{cmd}` | {want} | (none) | **NO_PARSE — not measured** |")
+        continue
+    ok = int(got_nodes) == want
     allok = allok and ok
     print(f"| {name} | `{cmd}` | {want} | {got_nodes} | {'OK' if ok else 'MISMATCH'} |")
 print()
-print("HONESTY RECHECK", "PASS 4/4" if allok else "FAIL")
+if noparse:
+    print(f"HONESTY RECHECK INCONCLUSIVE — {noparse} of {len(CASES)} lines produced no parseable node count")
+else:
+    print("HONESTY RECHECK", "PASS 4/4" if allok else "FAIL")

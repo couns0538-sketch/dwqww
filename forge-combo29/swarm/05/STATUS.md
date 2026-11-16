@@ -179,3 +179,15 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   their output has always separated and labelled `cold N:` / `warm N:`. Nothing needed re-labelling, nothing was
   silently re-run.
 - next command: none needed before the deadline; everything pushed.
+
+## $(date -u) — fail-closed audit complete
+- Applied the mate_check.py lesson to EVERY verdict-producing script with a committed no-score stub engine
+  (audit_failclosed/stub_no_score.sh + failclosed_probe.py + probe_selftests.py).
+- RESULT: 9 of 9 engine-driving scripts now fail closed, but 5 were BROKEN and are repaired. Four manufactured a
+  REFUTES (audit_10_clearhash, check_15f4, dtm_selftest, mate_check); one manufactured a PASS (dtm2_selftest).
+  The invented PASS was the worst of the five.
+- All five re-run on real input afterwards: every published number reproduced exactly (honesty 4/4, check_15f4
+  CONFIRMS, dtm2_selftest PASS, mate_check ok=4 mismatch=6, audit_10 CONFIRMS).
+- S-F9 state line added to FINAL_SUMMARY.md: the 200-position run was COLD (fresh process per position; 0/200
+  zero-node; first-100 median 43,664 vs last-100 49,605) — seat 10's rule landed after and does not affect it.
+- next command: none; everything pushed.

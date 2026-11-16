@@ -70,12 +70,20 @@ CASES = [
 MAXP = 5
 print(f"{'ok':10s} {'fen':44s} {'brute':16s} dtm2 verdict")
 allok = True
+n_noparse = 0
 for fen in CASES:
     kind, d = brute_distance(fen, MAXP)
     exp = f"{kind} in {d}" if d is not None else f"none<={MAXP}"
     out = subprocess.run([sys.executable, "dtm2.py", fen, str(MAXP + 1), "120"],
                          capture_output=True, text=True, timeout=900)
-    verdict = next((l for l in out.stdout.splitlines() if l.startswith("verdict")), "(no verdict)")
+    verdict = next((l for l in out.stdout.splitlines() if l.startswith("verdict")), None)
+    if verdict is None:
+        # FAIL CLOSED: dtm2 printed no verdict line, so nothing was measured for this case. Counting that as
+        # MISMATCH would invent a refutation of dtm2. Added after the owner flagged this class of fault.
+        n_noparse += 1
+        allok = False
+        print(f"NO_VERDICT {fen:44s} {exp:16s} (dtm2 printed no verdict line; {len(out.stdout)} chars of stdout)")
+        continue
     if kind == "win":
         ok = f"MATES in {d} plies" in verdict
     elif kind == "loss":
@@ -85,4 +93,7 @@ for fen in CASES:
     if not ok:
         allok = False
     print(f"{'OK' if ok else 'MISMATCH':10s} {fen:44s} {exp:16s} {verdict}")
-print("SELFTEST", "PASS" if allok else "FAIL")
+if n_noparse:
+    print(f"SELFTEST INCONCLUSIVE — {n_noparse} of {len(CASES)} cases produced no parse, so this run measures nothing")
+else:
+    print("SELFTEST", "PASS" if allok else "FAIL")

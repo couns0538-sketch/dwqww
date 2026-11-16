@@ -109,6 +109,14 @@ print()
 draw_sets = [a for n, a in rows if n != "KNNvK"]
 all_empty = all(a["empty"] == a["n"] for a in draw_sets)
 knn = dict(rows)["KNNvK"]
+# FAIL CLOSED: if the searches produced NO info lines at all, nothing was measured and neither a confirmation nor
+# a refutation may be printed. Added after the owner flagged this class of fault.
+total_observed = sum(a["empty"] + a["moves"] for _n, a in rows)
+if total_observed == 0:
+    print(f"FAIL-LOUD: no info/pv line was observed in any of the {sum(a['n'] for _n, a in rows)} searches "
+          f"(the engine answered but printed no score). Nothing was measured.")
+    print("RESULT: INCONCLUSIVE (no measurement) — neither a confirmation nor a refutation.")
+    sys.exit(1)
 print(f"their claim, for the dead-draw sets: every position cp 0 / 0 nodes / EMPTY pv -> {all_empty}")
 print(f"control: KNN v K is NOT a dead draw, and there the pv is NOT empty "
       f"({knn['moves']}/{knn['n']} had moves) -> {knn['moves'] > 0}")

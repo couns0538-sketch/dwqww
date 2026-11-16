@@ -1,0 +1,25 @@
+====================================================================================================
+NEGATIVE CONTROL: every verdict-producing script, run against an engine that NEVER prints a score
+stub engine: /agent/repos/dwqww/forge-combo29/swarm/05/audit_failclosed/stub_no_score.sh  (answers uci/id/readyok/bestmove, never `info ... pv ... score`)
+====================================================================================================
+
+| script | drives an engine? | exit | produced a verdict on no-parse? | which way | refused loudly? |
+|---|---|---|---|---|---|
+| audit19f12/honesty_safe.py | yes | 0 | safe | no verdict printed | no |
+| audit19f12/parser_audit.py | yes | 1 | safe | refused (fails closed) | yes |
+| audit_seat10/audit_10_clearhash.py | yes | 1 | safe | refused (fails closed) | yes |
+| check_15f3/check_15f3.py | yes | 1 | safe | refused (fails closed) | yes |
+| check_15f3/deadmaterial_scope.py | yes | 1 | safe | refused (fails closed) | yes |
+| check_15f3/knn_same_material.py | yes | 1 | safe | refused (fails closed) | yes |
+| check_15f4/check_15f4.py | yes | 1 | safe | refused (fails closed) | yes |
+| job1/build_mate_table.py | no | 0 | n/a | n/a — see probe_selftests.py for the right instrument | no |
+| job1/control_illegal_pv.py | no | 0 | n/a | n/a — see probe_selftests.py for the right instrument | no |
+| job1/crosscheck_mates.py | yes | 1 | safe | refused (fails closed) | yes |
+| job1/dtm2_selftest.py | no | 0 | n/a | n/a — see probe_selftests.py for the right instrument | no |
+| job1/dtm_selftest.py | no | 0 | n/a | n/a — see probe_selftests.py for the right instrument | yes |
+| job1/mate_check.py | yes | 1 | safe | refused (fails closed) | yes |
+
+====================================================================================================
+No script produced a passing verdict from a no-parse run.
+
+Full outputs saved per script under raw/.

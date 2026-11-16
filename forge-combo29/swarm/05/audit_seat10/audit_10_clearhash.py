@@ -125,6 +125,14 @@ print(f"my first-process value: {a[0] if a else '?'}   my separate-process value
 print()
 same_across_processes = len(set(b)) == 1 and b[0] is not None
 falls_inside_process = (a[0] is not None and a[-1] is not None and a[-1] < a[0])
+# FAIL CLOSED: a missing node count (None) means nothing was measured. It must never be read as "the shape did
+# not reproduce", which would be an invented REFUTES. Added after the owner flagged this class of fault.
+missing = [x for x in (list(a) + list(b)) if x is None]
+if missing:
+    print(f"FAIL-LOUD: {len(missing)} of {len(a) + len(b)} searches produced NO parseable node count "
+          f"(values: a={a}, b={b}). Nothing was measured, so NO verdict is recorded.")
+    print("RESULT: INCONCLUSIVE (no measurement) — not a refutation and not a confirmation.")
+    sys.exit(1)
 print(f"cold is stable across processes: {same_across_processes}")
 print(f"warm repeats inside one process fall: {falls_inside_process}")
 print()

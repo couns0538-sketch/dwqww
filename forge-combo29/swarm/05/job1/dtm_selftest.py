@@ -18,7 +18,13 @@ for fen, maxply, exp, who in CASES:
     out = subprocess.run([sys.executable, "dtm.py", fen, str(maxply)],
                          capture_output=True, text=True, timeout=600)
     tail = [l for l in out.stdout.splitlines() if l.startswith("verdict")]
-    verdict = tail[0] if tail else "(no verdict)"
+    # FAIL CLOSED: no verdict line means nothing was measured. Calling that MISMATCH would invent a refutation
+    # of dtm.py. Added after the owner flagged this class of fault.
+    if not tail:
+        print(f"NO_VERDICT {fen}  maxply={maxply}  expected={exp} plies {who}  ::  "
+              f"(dtm.py printed no verdict line; {len(out.stdout)} chars of stdout)")
+        continue
+    verdict = tail[0]
     b = chess.Board(fen)
     legal = b.is_valid()
     ok = "?"
