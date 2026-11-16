@@ -1,0 +1,37 @@
+# PREDICTION — S28: the clock tail and stop fraction at the owner's REAL control (6 s + 0.06/move)
+
+Committed and pushed ALONE before the first measuring command. Never edited afterwards.
+Written 2026-11-16 ~22:44 UTC, immediately after reading FABLE_TO_swarm_6.
+
+## Why this job exists
+File 6 item 2: "The owner's real clock is 6 seconds plus 0.06 per move, with the PC build under PC20 at
+Threads 1 and Hash 16. Every clock measurement in the swarm so far was at a different control. Your tail
+and stop-fraction work should be re-run at exactly 6+0.06, since that is the only control that matters for
+strength."
+
+Every clock number I have published (jobs 1-4, S-F20, S-F25, S-F26, S-F27) used `go wtime W btime W` with
+no increment, or a movetime. The owner's control adds `winc 60`, which enters the plan through
+`soft = available / TmSoftDivisor + increment * TmIncrementPercent / 100` — so at wtime 6000 winc 60:
+available = 5990, soft = 5990/22 + 60*75/100 = 272 + 45 = 317 ms, hard = min(5990*60/100, 317*5) =
+min(3594, 1585) = 1585 ms.
+
+## What I will measure, PC20 + Threads 1 + Hash 16, on the PC r15 build
+- the tail: median/p99/max achieved, and the count over its own soft and hard plan;
+- the stop fraction achieved/soft, with the last completed depth;
+- the same on the base build, so the comparison exists at the control that matters.
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| Y1 | PC20 median stop fraction at 6+0.06 | 0.55-0.75 | outside 0.45-0.85 |
+| Y2 | PC20 median last depth at 6+0.06 | 13-16 | below 11 or above 18 |
+| Y3 | base median stop fraction at 6+0.06 | higher than PC20's | base lower than PC20 |
+| Y4 | any search over 6000 ms of wall time | 0 | any |
+| Y5 | searches over the engine's own soft plan (317 ms) | 10-45 % | 0 % or above 60 % |
+| Y6 | p99 / median at this control | 2-5x | outside 1.5-7x |
+| Y7 | the increment raises the plan by 45 ms over the no-increment case (soft 272 -> 317) | yes | plan differs from 317 |
+
+Reasoning: at a 6 s clock the soft plan is 317 ms, roughly the same order as my wtime-1000 and wtime-3000
+cells, so I expect the same character: median well below soft, p99 a few times the median, no time loss.
+The stop fraction is the number to watch because S-F27 established PC20 stops earlier relative to soft
+than base; at the owner's control that could mean anything from "fine" to "leaves 40 % of the budget",
+and this is the first measurement where the answer matters for strength.
