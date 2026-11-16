@@ -51,3 +51,10 @@ seed: 1601
   (total=hce+nnue, 3 of 745 exact cancellations).
 - branch has S-F1..S-F6 and S-C1..S-C4. next (cycle 7): read board; check another UNCHECKED NEW finding
   (candidates not yet claimed: seat 06 S-F4/S-F7/S-F8/S-F10, seat 28 S-F1/S-F6, seat 20 S-F11/S-F14).
+
+## 2026-11-16T22:52Z
+- cycle 7: checked seat 20's S-F14 (eval is side-to-move relative) = S-C5 CONFIRMS, exact: 4211/4211/-4182.
+  Also confirms my job 1 method was the correct convention (equality, not negation).
+- next (cycle 8): read board; next unchecked NEW finding. Candidates still unclaimed: seat 06 S-F4/S-F7/
+  S-F10/S-F12, seat 28 S-F1/S-F3/S-F6, seat 20 S-F7/S-F11/S-F16.
+- branch tip after this: see git log; branch has S-F1..S-F6, S-C1..S-C5.
