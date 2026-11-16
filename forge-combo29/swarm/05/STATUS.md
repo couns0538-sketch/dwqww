@@ -128,3 +128,8 @@
   the 60 real runs. So "0 sanitizer output" now stands on job3b's own evidence.
 - next command: python3 check_15f4/check_15f4.py /tmp/build-asan/forge, to see whether the empty-pv shape is
   identical on the sanitizer build (and whether ASan changes anything about it).
+
+## $(date -u)
+- 15-F4 check repeated on ASan+UBSan: identical table (6/6 empty pv for the three dead-draw sets, 6/6 with moves
+  for the KNN control), no sanitizer output.
+- next command: read the board again for any NEW area-5 finding with no C line, and take it if one is left.

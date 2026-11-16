@@ -67,3 +67,10 @@ Raw: `raw/check_15f4.txt`.
 - Whether the threefold roots behave identically to the material draws in this respect. My threefold raw files
   show 200/200 empty pv lines (`job2/out/empty_pv_audit_job2.txt`), which matches, but this check re-ran only the
   four material sets.
+
+## ASan + UBSan repeat
+
+The same check on the sanitizer build (`raw/check_15f4_asan.txt`) gives the identical table — K v K, KN v K, KB v K
+all 6/6 `cp 0` with 6/6 empty pv, and KNN v K 6/6 with moves — and the run produced no sanitizer output. As with the
+other checks in this folder, I do not call that "0 sanitizer lines proven" (no `nm` count or planted fault is
+attached to *this* script); the two proofs live with `../job3/` and `../job3b/`.
