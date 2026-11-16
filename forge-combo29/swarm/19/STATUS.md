@@ -285,3 +285,19 @@ next command: continue PC-relevant family profiling at depth 16 on PC r15 under 
 
 next command: continue PC-relevant families — move ordering 17-18 %% is the largest remaining,
   and 19-F26 showed its tie order moves the owner's own pins, so any change there needs care.
+
+## 2026-11-16T22:44:47Z
+
+file 6 read. Two verdicts change one priority. My findings unaffected (all Threads 1, node-count based).
+19-F43: applied file 6's inequality to my own 19-F30 case -> base tree's missed mate IS a defect
+  (counter 8, counter-0 control gives mate 1, so 2N-1=1 <= 92), PC r15 repaired.
+
+NEW AREA (file 6 suggestion) + the match path:
+19-F44 softnodes: deterministic 24/24, always finished-depth, overshoots median +27 %% max +106 %%.
+19-F45 bestmove identical across N 2000..250000 on 6 positions (not generalised).
+19-F46 go nodes UNDERSHOOTS median -32 %% while softnodes overshoots +22 %% - opposite sides of N;
+  softnodes reaches exactly one ply deeper in ALL 18 cells. Match path spends ~half to two-thirds of N.
+19-F47 the boundary is a ONE-NODE cliff: 31779 -> depth 12 (+0.00 %%), 31778 -> depth 11 (-37.59 %%).
+  Same deterministically. One mechanism explains both findings.
+
+next command: the 6s+0.06 clock (last item on the owner's real path), Threads 1, PC20, cold.
