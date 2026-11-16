@@ -1,0 +1,15 @@
+delay   1 ms | info  0 | bestmove a2a3   | score None
+delay   2 ms | info  0 | bestmove a2a3   | score None
+delay   5 ms | info  0 | bestmove a2a3   | score None
+delay  10 ms | info  0 | bestmove a2a3   | score None
+delay  20 ms | info  0 | bestmove a2a3   | score None
+delay  30 ms | info 11 | bestmove d2d4   | score cp 18
+delay  40 ms | info 12 | bestmove d2d4   | score cp 24
+delay  60 ms | info 12 | bestmove d2d4   | score cp 24
+delay 200 ms | info 12 | bestmove d2d4   | score cp 24
+
+CLEAN baseline (no interruption, read to bestmove): bestmove d2d4, score cp 24, 22459 nodes, 12 iterations.
+So the interrupted answers are:
+  <= 20 ms : bestmove a2a3, NO score, 0 info lines   -- different move AND worse, undetectable
+  30 ms    : bestmove d2d4, cp 18                     -- right shape, score 6 cp OFF the finished 24
+  >= 40 ms : bestmove d2d4, cp 24                     -- identical to the finished search

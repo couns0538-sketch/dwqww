@@ -238,3 +238,12 @@ CHECK of seat 30's 30-F22 -> CONFIRMS (10-C12), 6 of 6 predictions held, both bu
 A legality checker cannot catch this (f2f3 is legal) and a score check cannot either (there is no score).
 10-F28: sending quit as a word does the same as EOF, so only "read to bestmove, send nothing" is safe.
 next: continue the cycle.
+
+## Mon Nov 16 10:30:55 PM UTC 2026
+CHECK of seat 30's 30-F23 -> phenomenon CONFIRMED, numbers differ (10-C13). Three regimes (10-F29):
+  <=20 ms : 0 info lines, bestmove a2a3, NO score    (finished search is d2d4 cp 24) -- loudly wrong
+  30 ms   : d2d4, cp 18                               -- SILENTLY wrong, 6 cp off, looks finished
+  >=40 ms : d2d4, cp 24                               -- identical to finished
+Seat 30 measured 6-11 info lines at 1-20 ms; I measure 0, and the intermediate band at 30 ms. Machine
+specific, so I record both rather than overwriting theirs.
+next: continue the cycle.
