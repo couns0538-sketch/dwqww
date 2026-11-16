@@ -1,0 +1,48 @@
+parsed symbols: 53, sum of overheads: 99.99%
+
+| shared object | samples % |
+|---|---|
+| forge | 98.10 |
+| libc.so.6 | 1.77 |
+| ld-linux-x86-64.so.2 | 0.12 |
+
+top ten symbols (exclusive):
+
+| rank | symbol | % |
+|---|---|---|
+| 1 | int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .constprop.0] | 15.84 |
+| 2 | forge::nnue::apply_and_evaluate(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&, forge::Board const&) | 13.04 |
+| 3 | forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) | 11.49 |
+| 4 | forge::MovePicker::next(bool) | 6.58 |
+| 5 | forge::MovePicker::pick_best() | 6.06 |
+| 6 | forge::Board::see_ge(forge::Move const&, int) const | 5.32 |
+| 7 | forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int) | 3.72 |
+| 8 | forge::Worker::corrected_eval(forge::Board const&, int) const | 3.54 |
+| 9 | void forge::fill_pseudo_legal<(forge::Board::GenMode)1>(forge::Board const&, forge::MoveList&) | 2.80 |
+| 10 | forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&) | 2.52 |
+
+top ten sum: 70.91% of 99.99% parsed
+
+NNUE/eval family total: 39.24%
+    15.84%  int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .constprop.0]
+    13.04%  forge::nnue::apply_and_evaluate(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&, forge::Board const&)
+     3.54%  forge::Worker::corrected_eval(forge::Board const&, int) const
+     2.52%  forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)
+     1.72%  forge::Evaluator::update_runtime_psqt(forge::Evaluator::RuntimePsqt const&, forge::Evaluator::RuntimePsqt&, forge::nnue::DirtyPieces const&)
+     1.49%  forge::Worker::static_evaluate(forge::Board const&, forge::SearchStack*)
+     0.23%  forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)
+     0.23%  forge::Evaluator::clear()
+     0.17%  forge::nnue::dirty_from_move(forge::Move, forge::Piece, forge::Piece, forge::Color)
+     0.17%  forge::nnue::available()
+     0.11%  forge::nnue::(anonymous namespace)::live_weights()
+     0.06%  forge::nnue::(anonymous namespace)::quantize(forge::nnue::(anonymous namespace)::Weights&, short const*, short const*, short const*, short)
+     0.06%  forge::Evaluator::evaluate_runtime(forge::Board const&, forge::Evaluator::RuntimePsqt const&)
+     0.06%  forge::Evaluator::Evaluator()
+
+C/C++ runtime + kernel total: 1.89%
+     1.66%  __memset_avx512_unaligned_erms
+     0.11%  __memmove_avx512_unaligned_erms
+     0.06%  strcmp
+     0.06%  _dl_check_map_versions
+
+largest non-forge, non-runtime symbol: 15.84%
