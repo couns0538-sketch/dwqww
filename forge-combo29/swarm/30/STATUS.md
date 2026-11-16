@@ -113,3 +113,9 @@ Seat kept: 30 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-30, folde
 
 **30-C16: seat 24's terminal-root patch INDEPENDENTLY VERIFIED on my own build.** Applied to a clean PC r15 copy (patch -p1 --fuzz=0, rc=0, same 154-line offset seat 24 reports), built with -DFORGE_MATE_ALPHA_GUARD=1: checkmate and stalemate roots now answer bestmove 0000 in 0.00s for go infinite AND go ponder (nothing in 8s before), all six bounded forms still answer, and a NORMAL board's go infinite still waits for stop (control). Honesty gate unchanged: 312866 / 862329 / 3024920 / 4865609.
 **Next command**: `cd /agent/repos/dwqww && bash forge-combo29/swarm/30/read_board.sh /tmp/board8` to find the next unchecked finding.
+
+## Mon Nov 16 11:12:32 PM UTC 2026
+
+**Root-caused a major owner-facing issue (S-F50 family)**: the MultiPV+large-Hash collapse is NOT the search — 30-F41 proves at FIXED depth the MultiPV-3/Hash-2048 cell searches MORE (143,794 vs 52,591 nodes) and at fixed nodes it is normal; only the CLOCK path collapses (67-220 nodes). 30-F42 adds the mechanism: 67 nodes in 1,210 ms = ~18 ms PER NODE, warm or cold, so the TT is being touched across its full extent per search. A user setting MultiPV 3 + 2 GB hash gets a depth-1 move plus a second-long hitch every move.
+**Honest gaps**: I could NOT reproduce seat 20's literal 0-node answer (0 in 70 runs, idle); I record the collapse instead of the 0.
+**Next command**: `cd check6 && python3 check_s20f50.py out_under_load 5` with three CPU hogs running, to test whether load converts the collapse into a true 0-node answer.
