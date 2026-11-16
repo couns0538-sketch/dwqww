@@ -309,3 +309,81 @@ JOB 10 (reproduction attempt for another seat's under-reported mate at go nodes 
   indistinguishable, and it reported failures. Fixed by using a mate-in-2 board.
   Finding S-F13. Report job10/REPORT_job10.md.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1   # then FINAL at the 12-hour close
+
+## Mon Nov 16 11:18:59 PM UTC 2026 PROVISIONAL FINAL — NOT THE CLOSE
+
+**The 12-hour window ends 2026-11-17T10:19Z, so about 11 hours of work remain after this block.** I am
+writing this now because the coordinator asked for it, but it is a snapshot, not the close: I continue
+working and will write the real FINAL at 10:19Z. Nothing here is retracted later without a note.
+
+### Move generation: CLOSED
+See MOVE_GENERATION_CLOSED.md (aggregates produced by closure_verify.py, not typed). The chapter needs
+no further perft work on commit 6b98f217 or PC r15.
+
+### Every finding of mine, with state, build and settings
+
+| id | what | state | build | settings |
+|---|---|---|---|---|
+| S-F1 | perft 1-4 agree with python-chess on 5,000 R positions (seed 1301), 20,000 pairs, 0 differences | open (not independently confirmed) | base 6b98f217 | default, Threads 1 |
+| S-F2 | 494 edge-case positions agree at perft 1-4 (1,976 pairs) and perft-2 divide (494), 0 differences | open | base | default, Threads 1 |
+| S-F3 | perft 4 and 5 agree on 230 positions (460 pairs), 0 differences, 4.38e9-node walk | open | base | default, Threads 1 |
+| S-F4 | job 1 reproduces on an independent seed 1311 (20,000 pairs, 0 differences) | open | base | default, Threads 1 |
+| S-F5 | perft 4 at DIVIDE level on 200 R: 5,182 root moves, 0 differences | open | base + PC r15 | Threads 1/Hash 16 (+PC20) |
+| S-F8 | perft 4 at DIVIDE level on 200 real-game G: 5,107 root moves, 0 differences | open | base + PC r15 | Threads 1/Hash 16 (+PC20) |
+| S-F6 | go softnodes is deterministic (63/63) and stops at a finished depth (63/63) | open | PC r15 | PC20, Threads 1, Hash 16 |
+| **S-F7** | **softnodes overshoots its budget up to 164 % (659,130 nodes on a 250,000 budget)** | **CONFIRMED by seat 01 (S-C8) and seat 02 (S-C9), both to the node** | PC r15 | PC20, Threads 1, Hash 16 |
+| S-F9 | go nodes is deterministic (48/48) and a HARD cap (48/48, never exceeded) | open | PC r15 | PC20, Threads 1, Hash 16 |
+| S-F10 | clock 6s+0.06s: 0 overruns, 0 illegal, but only 4.1 % clock utilisation (median 207 ms) | open; recorded as a QUESTION not a defect | PC r15 | PC20, Threads 1, Hash 16 |
+| S-F11 | 57/57 positive mate claims delivered by the engine's own PV in exactly the claimed plies | open | PC r15 | PC20, Threads 1, Hash 16 |
+| S-F12 | 4/4 negative mate claims correct (opponent forces mate within 2 abs(M)-1 plies) | open | PC r15 | PC20, Threads 1, Hash 16 |
+| S-F13 | NO under-reported mate at go nodes 20000 over 270 runs / 27 boards (bounds another seat's 2-of-14) | open (a bound, not a refutation) | PC r15 | PC20, Threads 1, Hash 16 |
+| S-F14 | DEPTH-64 CLAMP: a proven mate reports depth 64 at ~1,152 nodes on a 20,000 budget | open | base AND PC r15 | Threads 1/Hash 16, and with MateAlphaGuard on and off |
+| S-C1 | CONFIRMS 21-F1 (impossible-castling FEN is REFUSED; 8,902 is stale startpos; python perft 3 = 8,802) | my check, own harness | base | default |
+| S-C2 | CONFIRMS 27-F2 (go nodes N<26 gives a2a3 with 0 info lines; N=26 gives d2d4) | my check, own harness | base | default |
+| S-C3 | CONFIRMS 19-F23 (bench is warm-immune: 5x862329 in one process; mechanism verified in source) | my check, own harness | base | default |
+| S-C4 | beyond 06-F22: divide check CATCHES a compensating error (total unchanged at 1,265) | my control | base | default |
+
+### Method notes (the two traps, worth more than some of the results)
+
+1. **The depth-64 clamp (S-F14).** When a mate is proven the engine keeps emitting `info depth` up to
+   64, adding ~18 nodes per line, and stops there using 5.8 % of a 20,000-node budget. Identical on both
+   builds and with MateAlphaGuard on or off; absent on non-mate boards. Consequences: "depth reached"
+   is a sentinel rather than a depth on any board with a mate; a latency harness that gates on depth
+   records a falsely fast time exactly where it thinks it is measuring deep search; and a table that
+   averages depth over mixed positions compares a number with a constant. Rule: treat depth >= 64 as
+   "mate proven", never gate timing on depth, and time by nodes or clock.
+
+2. **A control that disagrees with itself is a signal, not a nuisance.** I hit this twice.
+   (a) In job 9b my first negative-mate check reported all four claims WRONG; the engine was right and
+   my predicate was wrong -- for `mate -M` the OPPONENT forces the mate, so the positive-mate predicate
+   cannot be reused. (b) In job 10 my first under-report control used a mate-in-1 board, where "claim
+   mate 1, PV mates at ply 1" is genuinely correct, so three plants were indistinguishable and showed
+   as failures. Both times the tell was the same: the control failed in a way that pointed at the
+   engine rather than at the test. Rule: when a control "fails", suspect the control first, and check
+   that the plant is actually distinguishable from the pass case before believing either.
+
+3. **A tool fault that fabricates differences** (internal/stale-shard-fabrication.md in the project
+   store): shards keyed by NAME rather than content hash invented 1,929 phantom engine differences
+   after I rebuilt a position set. Fixed by keying on the content hash, asserting record counts, and
+   refusing to report a pass when zero pairs were compared. Job 2's first result was voided and re-run.
+
+### What I did not do
+Sanitizer runs (not my area); depth-5 divide (justified by cost, agreed); matching against the owner's
+own match games (I do not have them -- my real-game material is 12 and 200 positions from set G);
+strength measurement of the clock-utilisation question in S-F10, which needs a match another seat has
+specced; and any third perft oracle beyond python-chess.
+
+## Mon Nov 16 11:19:14 PM UTC 2026
+
+CORRECTION TO MY OWN TIMING: I first wrote the FINAL block at 22:19Z believing the 12-hour window was
+closing. It is not — the window ends 2026-11-17T10:19Z, so ~11 hours remain. I relabelled that block
+PROVISIONAL FINAL and continue working. Recording the mistake rather than quietly deleting it: an early
+FINAL would have stopped the work eleven hours short, which is exactly the failure the owner's
+"do not stop early" instruction is about.
+
+S-F7 is now CONFIRMED BY TWO OTHER SEATS with their own harnesses, to the node:
+  seat 01 S-C8: reproduced 163.7 % / 659,130 nodes / depth 17 / g5h5 on my worst-case position.
+  seat 02 S-C9: reproduced my three worst cells exactly (659,130; 514,093; 612,735) and corrected its
+  own wider range using my data. So S-F7 counts under the swarm rule (a find counts when another seat
+  confirmed it with a harness of its own) — it does not need to stay "open" in my table.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
