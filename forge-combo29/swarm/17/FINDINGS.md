@@ -718,3 +718,23 @@ seat 30's text:
   where a mate exists - reproduced in 6 of 6.
 GUI-reachable: **YES, normal endgame play.** Threads 1. Evidence: `pc/check30b/check30b.json`,
 `pc/check30b/*.log`, plus `pc/check30/` for the first two.
+
+## S-C15 | CONFIRMS 30-F35 — the fifty-move draw is invisible at every match budget
+
+Seat 30 says the fifty-move draw only appears from depth 9 and cannot be seen at match effort. I reproduced it
+independently on `1K6/8/8/3R4/8/8/8/k7 w - - <h> 1`, PC r15, PC20, Threads 1, fresh process each, strict
+harness (every setoption confirmed by readyok):
+
+| h | `go nodes 2000` | `go nodes 20000` | `go nodes 250000` | `go depth 9` | `go depth 12` |
+|---|---|---|---|---|---|
+| 90 | cp 431 (1,015 n) | cp 322 (11,573) | cp 286 (240,646) | cp 286 | **cp 0** (27,446,549) |
+| 91 | cp 431 (1,015 n) | cp 424 (2,383) | cp 273 (225,660) | **cp 0** (4,848,748) | **cp 0** (12,114,945) |
+
+So at h=91 — the counter at which the draw becomes claimable — the engine is **blind to the draw at all three
+match budgets** and needs 4.8 million nodes (depth 9) before it sees it. A `go nodes 250000` game would go on
+playing a drawn ending as if it were winning by cp 273. Seat 30's numbers match mine to the centipawn on the
+2000-node line (431/431).
+
+This is the sharpest match-path finding I have confirmed: it is not a reporting quirk, it can change the result
+of a drawn game, and the owner's matches run well below the 4.8M nodes needed.
+GUI-reachable: **YES — match budgets.** Evidence: `pc/check30c/fifty_at_effort.json`, `pc/check30c/*.log`.
