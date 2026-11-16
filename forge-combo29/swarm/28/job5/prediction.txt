@@ -1,0 +1,34 @@
+# PREDICTION — S28 job 5: does a one-line patch close BOTH drawn-root doors, with honesty unchanged?
+
+Committed and pushed ALONE before the first measuring command. Never edited afterwards.
+
+Both S-C1/S-F4 and seat 01's S-F5/S-F7 concern `src/search.cpp:2249-2252`:
+    const bool root_drawn = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
+                                               board.is_insufficient_material());
+    if (root_candidates.empty() || root_drawn) { ... report without searching ... }
+I showed (S-F4) that seat 01's patch — which removes only the `halfmove_clock() >= 100` term — leaves the
+repetition door open. Seat 20 independently reported the same thing as its S-F13.
+
+My patch hypothesis: the root-draw shortcut must not fire when the side to move can **force mate** or is
+**in check**, and the cheapest safe form of that is to require that the position is not a mate-in-one and
+not in check before taking the shortcut... but a one-node check is not "cheapest safe". The honest
+question for this job is narrower and testable: **does removing the two counter terms entirely (keeping
+only insufficient material) change any of the four honesty numbers?** If not, the shortcut's value is
+purely speed on drawn positions and Fable/Opus can decide the policy.
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| T1 | patch applies with `patch -p1 --fuzz=0` and builds | yes | no |
+| T2 | bench 11 = 312,866 with the patch | yes | differs |
+| T3 | bench 13 = 862,329 with the patch | yes | differs |
+| T4 | bench 16 = 3,024,920 with the patch | yes | differs |
+| T5 | perft 5 = 4,865,609 with the patch | yes | differs |
+| T6 | patched engine finds the mate at halfmove 100 (was `f2f3`/`cp 0`/0 nodes) | yes | still f2f3 |
+| T7 | patched engine finds the mate on the third repetition (was `f2f3`/`cp 0`/0 nodes) | yes | still f2f3 |
+| T8 | patched engine still reports K v K as drawn (insufficient material kept) | yes | searches |
+| T9 | the patch costs measurable search time on ordinary positions | no more than 2 % on bench 13 | more than 5 % |
+
+Reasoning: the shortcut only fires on drawn/adjudicated roots, so it cannot affect bench, which starts
+from ordinary positions — T2-T5 should be exactly unchanged. If they are not, the shortcut is reached in
+bench and the patch changes more than I think. T8 keeps me honest about not over-removing: insufficient
+material is a genuine draw and should stay.
