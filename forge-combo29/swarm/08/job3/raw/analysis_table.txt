@@ -1,0 +1,16 @@
+## job 3 — movestogo with wtime 1000 btime 1000, no increment. 200 searches per control.
+
+| movestogo | engine soft ms | engine hard ms | median ms | p99 ms | max ms | median / 1000 ms clock | over its hard | over 1000 ms clock | illegal bestmoves |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | 495 | 792 | 329.09 | 792.80 | 792.88 | 32.9 % | 14 | 0 | 0 |
+| 2 | 330 | 792 | 217.09 | 792.50 | 792.58 | 21.7 % | 8 | 0 | 0 |
+| 40 | 24 | 96 | 18.84 | 69.09 | 82.78 | 1.9 % | 0 | 0 | 0 |
+| none (control) | 45 | 225 | 34.56 | 123.99 | 156.41 | 3.5 % | 0 | 0 | 0 |
+
+## control: is the moves_to_go branch read at all? movestogo 1 vs 2 vs 40 vs none
+| comparison | median A ms | median B ms | ratio |
+|---|---|---|---|
+| movestogo 1 / 2 | 329.09 | 217.09 | 1.52 |
+| movestogo 1 / 40 | 329.09 | 18.84 | 17.47 |
+| movestogo 1 / 0 | 329.09 | 34.56 | 9.52 |
+| movestogo 40 / 0 | 18.84 | 34.56 | 0.55 |
