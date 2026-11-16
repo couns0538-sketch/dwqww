@@ -1,0 +1,81 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1425,6 +1425,26 @@
+ 
+ bool Worker::is_draw(const Board& board, int ply) const {
+     (void)ply;
++#ifdef FORGE_CLOCK99_DEBUG
++    {
++        // EXPERIMENT (swarm seat 25): report which sub-test decides "draw" at this node.
++        static std::atomic<int> dbg_n{0};
++        const int n = dbg_n.fetch_add(1, std::memory_order_relaxed);
++        if (n < 300) {
++            const bool fifty = board.halfmove_clock() >= 100;
++            const bool rep = board.is_repetition(root_history_index_);
++            const bool insuf = board.is_insufficient_material();
++            const bool nomove = !board.in_check() && !board.has_legal_move();
++            const bool verdict = fifty ? (!board.in_check() || board.has_legal_move())
++                                       : (rep || insuf || nomove);
++            if (verdict) {
++                std::cerr << "[DBG is_draw TRUE #" << n << "] clock=" << board.halfmove_clock()
++                          << " fifty=" << fifty << " rep=" << rep << " insuf=" << insuf
++                          << " nomove=" << nomove << " fen=" << board.fen() << std::endl;
++            }
++        }
++    }
++#endif
+     if (board.halfmove_clock() >= 100) {
+         // Checkmate on the hundredth half-move still wins; everything else is a draw.
+         return !board.in_check() || board.has_legal_move();
+@@ -2573,12 +2593,28 @@
+     // is answered here, and both keep a literal 0 (or the mate score). A third occurrence or an expired
+     // fifty-move counter is searched like any other root.
+     const bool root_drawn = !legal.empty() && board.is_insufficient_material();
++#ifdef FORGE_CLOCK99_DEBUG
++    // EXPERIMENT (swarm seat 25): state of every root shortcut condition.
++    std::cerr << "[DBG root] clock=" << board.halfmove_clock()
++              << " legal=" << legal.size() << " cands=" << root_candidates.size()
++              << " root_drawn=" << root_drawn
++              << " insuf=" << board.is_insufficient_material()
++              << " rep=" << board.is_repetition()
++              << " cands_empty=" << root_candidates.empty()
++              << " fen=" << board.fen() << std::endl;
++#endif
+ #else
+     // Terminal or adjudicated roots: report without searching.
+     const bool root_drawn = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
+                                                board.is_insufficient_material());
+ #endif
+     if (root_candidates.empty() || root_drawn) {
++#ifdef FORGE_CLOCK99_DEBUG
++        std::cerr << "[DBG ROOT-SHORTCUT PATH TAKEN] clock=" << board.halfmove_clock()
++                  << " legal=" << legal.size() << " cands=" << root_candidates.size()
++                  << " root_drawn=" << root_drawn
++                  << " -> search is SKIPPED, score hardcoded 0" << std::endl;
++#endif
+         int score = 0;
+         if (legal.empty() && board.in_check()) score = -MateValue;
+ #if !FORGE_FIX_ROOT_DRAWN
+@@ -2621,6 +2657,11 @@
+     const bool hard_limit_passed = false;
+ #endif
+     if (!waiting_to_ponder && (clock_reserve_empty_ || hard_limit_passed) && !root_candidates.empty()) {
++#ifdef FORGE_CLOCK99_DEBUG
++        std::cerr << "[DBG EMERGENCY/HARDLIMIT PATH] clock=" << board.halfmove_clock()
++                  << " reserve_empty=" << clock_reserve_empty_
++                  << " hard_limit_passed=" << hard_limit_passed << std::endl;
++#endif
+         Move hashed = Move::none();
+ #if FORGE_SPD_TT_NOTLS
+         const TTProbe tt_probe = probe_tt(board.key());
+@@ -2829,6 +2870,10 @@
+             break;
+         }
+         score = iteration_score;
++#ifdef FORGE_CLOCK99_DEBUG
++        std::cerr << "[DBG ROOT ITER SEARCHED] depth=" << depth << " score=" << score
++                  << " pv_len=" << ss->pv_length << " clock=" << board.halfmove_clock() << std::endl;
++#endif
+         result.score = score;
+         result.depth = depth;
+         result.seldepth = std::max(seldepth_, depth);
