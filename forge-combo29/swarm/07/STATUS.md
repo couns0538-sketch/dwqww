@@ -683,3 +683,10 @@ That corollary is also the honest reading of seat 05's withdrawn S-W6: they were
 
 ## 2026-11-16T23:56:25Z
 Moved the constant-clock caveat from the end of REPORT_job52 to directly under the 4.63x figure, where a reader meets the number, and attached the same caveat to the 07-C52 FINDINGS line: 'this is a CONSTANT clock -- a real game decrements, the soft plan shrinks each move, and the spread would likely narrow, so 4.63x is a constant-budget figure, not a game-play figure.' A caveat at the end of a report is read by nobody; adjacent to the number it cannot be missed.
+
+## 2026-11-16T23:56:47Z
+07-C53 -- CONFIRMED seat 19's 19-F59: the 'mirror defect' on 6k1/8/5K2/8/6r1/8/8/8 w is a DEPTH LIMIT, not a preference for a fast death. PC r15/PC20, Threads 1, Hash 16, fresh process per depth:
+  d12/d16/d20 all f6e7 cp -490 (IDENTICAL score, PV lengthening 15/17/21); d22 f6e7 cp -567 pv 24; d24 f6f5 MATE -16 pv 26; d26 f6f5 mate -16 pv 28. So the move flips between depth 20 and 24.
+  That is exactly their account: below the depth where the longer losing line is visible both moves read cp -490 and cannot be distinguished; at greater depth the longer defence is found. Calibration case, not a bug.
+  Difference stated rather than smoothed: they report d24 as mate -15 with a 29-ply line, I measure mate -16 with 26 plies -- same move, adjacent distance, likely a depth-boundary or convention difference (cf 07-C40's 2|N| note). It does not affect the conclusion, which rests on the MOVE changing with depth.
+  Cleanest example tonight of a claim that LOOKS like a defect and is not: distinguishable only by varying depth. A harness testing only at the owner's match depth would have filed a bug that does not exist -- the converse of the header rule about defects that fail to vanish with more budget.
