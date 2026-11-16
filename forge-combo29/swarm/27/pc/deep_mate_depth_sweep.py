@@ -34,11 +34,13 @@ PC20X = ["CuckooRep true", "HistRework 2", "TtPruneV2 true", "CorrHistV2 true",
 
 # Lone-king mate boards in the style seat 23 used: the lone king is mated in 1 by the side to move.
 # Written by hand and checked with python-chess before use (the script asserts legality).
+# Every board below was VERIFIED with python-chess before use (legality + exact mate distance), because
+# my first hand-written set had two illegal FENs and a wrong mate count -- a wrong board makes the whole
+# test meaningless. Verification is re-run by verify_boards() at the top of main().
 MATE_BOARDS = [
-    ("KR vs lone K, mate in 1", "7k/8/6K1/8/8/8/8/7R w - - 0 1"),      # Rh8#? see check below
-    ("KQ vs lone K, mate in 1", "7k/8/6K1/8/8/8/8/6Q1 w - - 0 1"),
-    ("KR vs lone K, mate in 2", "6k1/8/5K2/8/8/8/8/7R w - - 0 1"),
-    ("KQ vs lone K, mate in 3", "6k1/8/5K2/8/8/8/8/6Q1 w - - 0 1"),
+    ("KR vs lone K, mate in 1", "k7/8/1K6/8/7R/8/8/8 w - - 0 1", 1),
+    ("KQ vs lone K, mate in 1", "k7/2Q5/2K5/8/8/8/8/8 w - - 0 1", 1),
+    ("KQ vs lone K, mate in 2 moves (3 plies)", "k7/8/2K5/8/5Q2/8/8/8 w - - 0 1", 3),
 ]
 CONTROLS = [
     ("quiet middlegame (must NOT be mate)", "r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8"),
@@ -123,14 +125,47 @@ def main():
                 "S14": ["Hash 16", "Threads 1", "OwnBook false"] + S14,
                 "PC20": ["Hash 16", "Threads 1", "OwnBook false"] + S14 + PC20X}[a.settings]
 
+    # verify every mate board before measuring anything
+    import chess
+    def _mate_in(bb, depth):
+        if bb.is_checkmate(): return 0
+        if depth == 0: return None
+        best = None
+        for m in bb.legal_moves:
+            bb.push(m)
+            if bb.is_checkmate():
+                bb.pop(); return 1
+            sub = _mate_in(bb, depth - 1); bb.pop()
+            if sub is not None:
+                v = sub + 1
+                if best is None or v < best: best = v
+        return best
+    # NOTE ON UNITS, learned the hard way: plies_to_mate() returns PLIES, and UCI `mate N` counts MOVES,
+    # so `mate 2` == 3 plies. My first label said "mate in 3" for a 3-ply board and made the engine look
+    # wrong when it was right. The third field of MATE_BOARDS is PLIES; the printed label states moves.
+    ver = []
+    for nm, fen, want in MATE_BOARDS:
+        b = chess.Board(fen)
+        got = _mate_in(b, 5) if b.is_valid() else None
+        ver.append({"board": nm, "fen": fen, "valid": b.is_valid(), "mate_in": got, "claimed": want})
+        print("VERIFY %-28s valid=%-5s mate_in=%-4s claimed=%s %s"
+              % (nm, b.is_valid(), got, want, "OK" if (b.is_valid() and got == want) else "MISMATCH"))
+    for nm, fen in CONTROLS:
+        b = chess.Board(fen)
+        if not b.is_valid():
+            print("VERIFY control %-22s INVALID" % nm)
+    if any(not v["valid"] or v["mate_in"] != v["claimed"] for v in ver):
+        print("ABORT: a mate board failed verification")
+        raise SystemExit(3)
     out = {"exe": exe, "settings": a.settings, "label": a.label, "threads": 1, "depths": depths,
+           "board_verification": ver,
            "ownbook": "false (hard-coded)",
            "sha256": subprocess.run(["sha256sum", exe], capture_output=True, text=True).stdout.split()[0],
            "date_utc": subprocess.run(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"],
                                       capture_output=True, text=True).stdout.strip(),
            "rows": []}
 
-    for group, boards in (("mate", MATE_BOARDS), ("control", CONTROLS)):
+    for group, boards in (("mate", [(n, f) for n, f, _ in MATE_BOARDS]), ("control", CONTROLS)):
         for name, fen in boards:
             for d in depths:
                 try:
@@ -153,7 +188,7 @@ def main():
     # the comparison that matters: first depth at which each mate board reports `mate`
     print("\n-- first depth at which a MATE score appears (per board, this build) --")
     first = {}
-    for name, _ in MATE_BOARDS:
+    for name, _, _ in MATE_BOARDS:
         ds = [r for r in out["rows"] if r["board"] == name and "error" not in r
               and r["kind"] == "mate"]
         first[name] = min((r["requested_depth"] for r in ds), default=None)
