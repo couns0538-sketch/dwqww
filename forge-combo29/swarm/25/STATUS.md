@@ -120,6 +120,26 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:35Z - both reasons to raise the self-play budget, now MEASURED (S-F34)
+
+13 mate-scored endgame boards, PC20/Threads 1/Hash 16:
+ (1) LABEL VALIDITY: at `go softnodes 2000`, 1 of 13 mate scores has a PV that does not play out (6 plies claimed
+     as mate 4, needs 7). At `go nodes 20000`: 0 of 13.
+ (2) LABEL MAGNITUDE: 3 of 13 boards report a mate number ONE MOVE LONGER at self-play than at match
+     (mate 4 where the match setting says mate 3), the other 10 agree exactly.
+So self-play mate labels at 2000 nodes can be both pessimistic by a move and undeliverable by their own line; the
+match budget is clean on the same boards. Caveat in the finding line: these are purpose-built Q/Q+R/RR/Q+B vs K
+endgames where mates appear at shallow depth; middlegame 2000-node searches rarely emit mate scores (1 in 100), so
+real-corpus rates are lower - worst case, not average.
+
+Note on my own process: the coordinator asked me to place this "next to your magnitude finding" - I had no
+measured magnitude finding, so I measured one rather than implying it existed. Eighth time tonight that writing
+the claim made me check it.
+
+FINAL standing table now has S-F34 immediately before S-F33 so the self-play label argument reads in one place.
+Working tree clean; local = remote. Next: keep cycling.
+
 ## 2026-11-16T23:34Z - LABEL-QUALITY FINDING on the self-play setting (S-F33)
 
 At `go softnodes 2000` (the owner's self-play budget, depth 6) board 4Q3/8/r2K4/8/2B5/5R2/1k6/8 w reports
