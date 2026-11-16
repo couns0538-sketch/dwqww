@@ -384,3 +384,17 @@ All four pins reproduced on base, on both patched builds, and on PC r15 in all t
 VIOLATION.md stands: 5.8 MB of build artifacts at 03d92c4c1 remain in branch HISTORY; force-push forbidden.
 
 next command: none — the record is complete.
+
+## 2026-11-16T23:26:07Z — window continues
+
+19-F54 lone-king results: 0 of 40 positions worse-than-alternative at BOTH go depth 16 and go nodes 20000.
+  Sample 40 from 103,150 candidates (legal play from set G + R_1911, seed 19101).
+  CONTROL: exactly 1 of 40 had an immediate mate and the engine played it (b6b8 mate 1) at both budgets,
+  so the zero is a measurement, not a vacuous pass.
+  SCOPE: no tablebases (none here; lichess mirror 403/SSL-fail) -> only terminal results adjudicable, so
+  this tests missed immediate mates, NOT 'loses N plies sooner'.
+19-C8 my own ordering bug: first runs said 2 of 40; both were CORRECT queen promotions that I flagged
+  because I ranked UNKNOWN below DRAW. Fixed; out/ and out2/ kept beside out3/.
+
+next command: continue in-area work — the king-only-side-to-move sample (the mirror of this one) is the
+  obvious untested case, or another open finding's check.
