@@ -1,0 +1,23 @@
+PREDICTION -- seat 13, area 3, job 2 (500 special positions, perft 1..4), committed BEFORE measuring.
+
+The 500 positions are filtered from 3,000 random games at every ply, in seven classes:
+castling_transit_attacked 83, castling_rook_attacked 82, capture_promo_check 82, double_check 82,
+pinned_captures_pinner 82, ep_legal 82, ep_pseudo_but_illegal 7.
+
+What I expect:
+1. Differences at perft 1: 0 [killed if >= 1].
+2. Differences at perft 2: 0 [killed if >= 1].
+3. Differences at perft 3: 0 [killed if >= 1].
+4. Differences at perft 4: 0 [killed if >= 1].
+5. If any difference exists, my best guess is that it is in the castling_transit_attacked class
+   [killed if a difference appears in a class other than that one and none appears there].
+   The engine refuses illegal castling rights at FEN parse time (seen in the 21-F1 check), so the
+   risk is a right that survives parsing but must not produce a move because a transit square is
+   attacked -- the case that a "rights were validated at parse time" design can get wrong.
+6. Runtime: engine side under 300 s, reference side under 900 s [killed if outside].
+
+Reason for predicting 0: job 1 produced 0 differences in 20,000 pairs, but job 1 used ordinary
+random positions. These 500 are selected precisely for the cases that a normal sample almost never
+contains, so this is the first test with real power against castling and en-passant bugs.
+
+NOT edited after this commit.
