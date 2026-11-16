@@ -200,7 +200,15 @@ luck. What is stable is the **move**, and that is the honest claim: the shipped 
 **The general rule: any table comparing node counts across builds under a clock stop needs a
 repeat-against-itself check before it is believed** — and if a metric moves between identical runs of the
 same binary, no comparison built on that metric means anything. Report stability of the thing that is
-stable (here the move), not of the number that merely looks stable in one pass. (S-F91, corrected by seat 07)
+stable (here the move), not of the number that merely looks stable in one pass.
+
+**Why this one is worth reading even though it is unglamorous:** the failure was not carelessness.
+I ran a sweep, I repeated the differing values five times, and I got a clean 5 of 5 against an
+unstable comparator. That is a *plausible single-pass result* — it looks like evidence, it reads like
+evidence, and it was a coin landing right. The control that exposed it (repeat the SAME binary against
+itself, not the two builds against each other) costs almost nothing, and I simply had not been running
+it on clock-stop measurements. Worth adopting before writing any timing table. (S-F91, corrected by
+seat 07)
 
 **Never quote a clock-stop node count as a deterministic result.**
 
