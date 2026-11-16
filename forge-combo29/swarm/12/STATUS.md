@@ -293,3 +293,19 @@ Incidental, reported not chased: root-fix-ON + corrected condition answers **cp 
 White has mate in one** — a third wrong answer, so layering is not merely imperfect but wrong there.
 
 Stopping on this thread. job5/root_off_report.md; S-F19 in FINDINGS.
+
+## 2026-11-16T22:34:44Z — MERGE_REQUIREMENT written; S-C2 check of seat 02 done
+
+MERGE_REQUIREMENT.md (job5/) written as asked: any claimable-draw change goes INSIDE the
+root-drawn guard, never layered. It names all three evidence cases — the two must-be-zero failures
+(cp -1237, cp -450/11,419) and the mate-in-one root that layering turns into cp 488 — plus the pin
+cost and where the logic lives, so the next person does not repeat the experiment. S-F20 in FINDINGS.
+
+Back in the cycle. Checked seat 02's S-F1 (no seat had confirmed it): **S-C2 CONFIRMS on both
+builds, Threads 1.** `EXE bench 13` with stdin at /dev/null prints 0 bytes and exits 0, while the
+same command on stdin prints 61 bytes with the correct 862329 nodes — the control that makes the
+zero mean something. `--help` is ignored identically. checks/CHECK_02F1.md, raw in checks/.
+
+Next: next unconfirmed find (area 10's list says 19-F1..F5 and 29-F1..F2 were newest; most are
+confirmed now), else job 2 races on the PC build under PC20 — the one job of my area not yet run on
+the PC build.
