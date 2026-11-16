@@ -66,3 +66,13 @@ seed: 1601
 - branch now has S-F1..S-F6 and S-C1..S-C6.
 - next (cycle 9): read board; next unchecked NEW finding (candidates: seat 06 S-F4/S-F10/S-F14, seat 28
   S-F1/S-F3/S-F6, seat 20 S-F7/S-F11/S-F16).
+
+## 2026-11-16T23:22Z
+- cycle 9: checked seat 28's S-F1 (movetime = M - Move Overhead). Result S-C7: mechanism REFUTED, code line
+  confirmed. Depth traces show the stop is the last completed iteration and UNDERSHOOTS the plan; movetime 50
+  = 26-28 ms with overhead 10 AND with overhead 0. Flagged to the coordinator because area 8 seats may share
+  the premise.
+- I also corrected my own first draft of that report (it claimed "overshoot"); the traces show undershoot.
+- branch now has S-F1..S-F6, S-C1..S-C7.
+- next (cycle 10): read board; next unchecked NEW finding. Candidates: seat 06 S-F4/S-F10, seat 28 S-F3/S-F6,
+  seat 20 S-F7/S-F11/S-F16.
