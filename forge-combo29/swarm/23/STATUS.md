@@ -540,3 +540,28 @@ Pattern worth naming: three times today I have told a directional story from a s
   (23-C7 wrong board, 23-F25 wrong cause, 23-F29 over-fit) and each time measurement withdrew it. The
   measured claims (perft zeros, the 30 % rate, the quiet-near-tied concentration, the clock tail) are the
   ones that have survived re-testing.
+## 2026-11-16T23:07:37Z  METHOD LIMITATION, to be carried into the FINAL block at the close
+2026-11-16T23:07:37Z
+
+A reader weighing my numbers should know this about how I worked, so it is stated here and will be repeated
+in the FINAL block:
+
+  THREE OF MY CLAIMS TODAY WERE WRONG, AND ALL THREE HAD THE SAME SHAPE: a directional story drawn from a
+  small sub-population.
+    - 23-C7: challenged seat 01's depth table after measuring the WRONG BOARD (S-F48's board for S-F49's).
+      Withdrawn in 23-C8 when I measured the right one; their numbers reproduce exactly.
+    - 23-F25/23-F24: proposed that the larger budget changes the move because it searches deeper. Tested and
+      rejected by me in 23-F25; the real cause is the margin (23-F26).
+    - 23-F29: reported that the larger budget mostly CORRECTS the move, from 11 cases. Out of sample it is 1
+      of 3 (23-F31). Scope-limited rather than withdrawn, because in sample it was true.
+
+  WHAT SURVIVED RE-TESTING: every claim I phrased as a DISTRIBUTION over the whole sample — the perft zeros
+  (10,000 positions, two seeds, plus depth 5 and the special sets), the 27-30 % budget-change rate, the
+  median gap contrast (11-12 cp vs 46-60 cp), and the quiet-near-tied concentration (62-71 % vs 23-28 %).
+  All of those replicate on a sample they were not derived from (23-F32).
+
+So: weight my distribution claims normally, and treat any directional sentence I write from a handful of
+positions as a hypothesis until it has been re-tested on a fresh sample. That is the honest reading.
+
+Nothing else is owed on the budget thread. Continuing on the PC path until the window closes at
+2026-11-17T10:18:40Z; the FINAL block will repeat this limitation and will be stamped with `date -u`.
