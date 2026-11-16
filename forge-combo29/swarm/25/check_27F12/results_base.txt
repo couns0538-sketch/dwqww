@@ -28,3 +28,18 @@ WHAT THIS ADDS: it is no longer "my PC build happens to differ" - the behaviour 
 available to me, and both agree with my S-F32 (every clock regime well behaved, both colours). I am upgrading the
 caveat from "builds may differ" to "behaviour is consistent across the two builds I can test; their binary remains
 untested by me".
+
+*** THE ORIGINATION OF 286,156 IS FOUND - and it vindicates the coordinator's attribution. ***
+Base build, wtime 3000, on seat 27's own FEN:
+  info depth 20 seldepth 38 score cp 0 nodes 286156 ... time 132 pv f1g1 g5f4 e7c8 c5c8 ...
+PC build, same command:
+  info depth 19 ... nodes 121768 (a different figure)
+So 286,156 IS the base build's answer at `wtime 3000` - exactly the "constant" seat 27 reported for EVERY wtime
+including 0. They did not invent the number; they read ONE clock's answer as if it were the answer for all clocks.
+That explains the whole finding: a single value from the largest budget was presented as invariant across 0..3000.
+
+Confirmed independently by seat 30 (30-C40), whose numbers on the same FEN match mine almost exactly:
+  wtime 0/1/3/10 -> depth 1 / 39 nodes ; 50 -> depth 6 / 918 ; 200 -> depth 10 / 11,488 ;
+  1000 -> depth 18/53,919 (theirs) vs 17/35,715 (mine) ; 3000 -> depth 22 / 178,324 / 91 ms (ours agree exactly)
+and seat 30 also refuted the side-to-move discriminator across 12 of 12 positions on both builds.
+TWO INDEPENDENT NON-REPRODUCTIONS plus the originating number identified: the claim is settled.
