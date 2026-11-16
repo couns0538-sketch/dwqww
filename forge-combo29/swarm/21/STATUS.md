@@ -1,28 +1,41 @@
-## 2026-11-16T23:01:56Z (from `date -u`)
-seat 21. Working **the PC's match path** (handoff file 6 items 3 and 4). **Threads 1 in every run**,
-Hash 16, PC20 on the PC build.
+## 2026-11-16T23:16:56Z (from `date -u`)
+seat 21. **Threads 1 in every run.** Builds: base 6b98f217 and PC r15 (PC20 unless stated).
 
-**The node budget, fully characterised**
-- **21-F16**: `go nodes N` never reaches N — mean −27.1 % / −28.0 % / −20.4 % at N=20k / 50k / 250k;
-  worst **−51.9 %**; 0 of 30 pairs over budget; deterministic 30/30.
-- **21-F17**: stops at the last COMPLETED depth; mean depth 10.1 / 11.9 / 12.8 / 15.4 / 17.2 at
-  20k / 50k / 80k / 200k / 400k; effective budget a steady 72–80 % of N.
-- **21-F18**: the undershoot does NOT change the move — same bestmove on 8/8 tactical positions and
-  9/10 middlegame ones, over a ~7-ply depth gap. **Real, not urgent.**
+# 21-F19 — THE PC BUILD REPORTS A DRAWN ROOT AS A WIN
 
-**21-F15**: `go softnodes N` is deterministic (40/40) and stops at a depth boundary but OVERSHOOTS by
-up to **+58.9 %** — the opposite direction from `go nodes`.
+A drawn root with **no mate available** is scored as won on the PC build, where the base build scores 0:
 
-**21-C13**: the clock is safe at the end of a game — 60 simulated moves at 6s+0.06 give **0 forfeits**,
-peak 42 % of remaining time, think time shrinking as the clock falls; 12 forced low clocks down to
-`wtime 0` all answer legally within 37 ms.
+| build | case | nodes | score |
+|---|---|---|---|
+| base | K+P vs K, halfmove 100 | 0 | **`cp 0`** |
+| **pc** | K+P vs K, halfmove 100 | 6,221 | **`cp 199`** |
+| base | quiet threefold root | 0 | **`cp 0`** |
+| **pc** | quiet threefold root | 7,734 | **`cp 238`** (and `cp 298` at 100k nodes) |
+| both | K v K, KN v K, KB v K | 0 | `cp 0` (correct) |
 
-**Withdrawn under file 6** (3 of my claims): 21-F9, 21-F13, 21-F11.
+Cause (code read, `src/search.cpp:2571-2582`): with `FORGE_FIX_ROOT_DRAWN` the root-draw test
+shrinks to `is_insufficient_material()` only, and the search does not re-apply the fifty-move or
+repetition rule at the ROOT. So the fix that correctly finds a mate at a drawn root (my 21-C16) also
+loses the draw score when there is no mate.
 
-**Still standing, ranked below the PC path**: 21-F8 (`fullmove 0` refused), 21-F2 (refused FEN →
-`readyok` → old board). **Unfinished**: job28 (15-F3 KNN v K), killed mid-run.
+**Why it may not matter for matches**: file 6 says the match program ends the game itself at the
+third occurrence and the 100th half-move, so a wrong score does not change the result. **Where it
+does matter**: self-play and analysis that record the score see a drawn position as +2 pawns.
 
-**Next**: `go softnodes 2000` under a full self-play game clock — the owner's self-play uses
-softnodes alone, and I have only measured it cold. Then a determinism check of softnodes across
-DIFFERENT move orders reaching the same position (transposition), which would show whether the TT
-makes self-play results order-dependent.
+The right fix is search-the-root-then-fall-back-to-the-draw-score; that is an owner decision, so I
+have not patched it.
+
+# Other results this stretch
+- **21-F16/F17/F18** (node budget, complete): `go nodes N` never reaches N (mean −20 to −28 %, worst
+  −51.9 %, deterministic), it costs 6–11 plies of depth, but it changed the move on only **1 of 18**
+  positions. Real, not urgent.
+- **21-F15**: `go softnodes N` deterministic (40/40), depth-boundary stop, OVERSHOOTS by up to +58.9 %.
+- **21-C13**: 0 forfeits over a simulated 60-move game at 6s+0.06; low clocks all legal and fast.
+- **21-C14/C15**: softnodes and depth-12 answers are order-independent — 16/16 transposition pairs.
+- **21-C16**: a mate outranks a drawn root (the PC build finds it; my prediction said otherwise and
+  was wrong).
+- **Withdrawn under file 6**: 21-F9, 21-F13, 21-F11.
+
+**Next**: confirm 21-F19's size across more drawn positions (is +199 typical?) and check whether a
+root at halfmove 100 with a mate in 2–3 is still found — that is the boundary the owner's fix needs
+to get right in both directions.
