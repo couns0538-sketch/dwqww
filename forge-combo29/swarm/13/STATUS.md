@@ -543,3 +543,15 @@ move in a KRK ending and was my fault. SIXTH member of the absence-of-output fam
 was present but the board silently stayed the old one. Guard added: verify the FEN with python-chess
 (is_valid and no OPPOSITE_CHECK) before comparing builds, or you compare two searches of startpos.
 Next command: cd forge-combo29/swarm/13/job15 && python3 pcfixes.py ~/b/rel/forge ~/b/pc/forge /tmp/pf
+
+## Mon Nov 16 11:41:05 PM UTC 2026
+
+ADDED CASE 5 to the traps note: an illegal FEN refused while the OLD board keeps answering (S-F18,
+job 15). Distinct from cases 1-4 because the engine DOES tell you and the wrong answer is still
+plausible: my K+R vs K FEN was STATUS_OPPOSITE_CHECK, the engine refused it, kept startpos, and
+answered e2e4 — which reads as an illegal move from a KRK ending. Guard: verify each FEN is accepted
+(python-chess is_valid() and not STATUS_OPPOSITE_CHECK) before comparing anything about its answer.
+Both copies updated and reordered/renumbered consistently: internal/absence-of-output-traps.md
+("five traps"), and forge-combo29/swarm/13/HARNESS_TRAPS.md (five rows + the extended
+construction-assertion rule, which now includes the FEN-acceptance check).
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
