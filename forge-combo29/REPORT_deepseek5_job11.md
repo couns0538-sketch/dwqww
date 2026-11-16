@@ -42,3 +42,6 @@ The G2 fastchess command line, as demanded: `fastchess -engine cmd=/tmp/ds13_bas
 8. A better way: for any "tunables dead" question the four-build pattern of job 9 fits: clean / plain assignment / assignment-plus-refresh / true-propagation — one run each names the missing link. And an option's ALIVENESS check belongs at the top of every option-dependent job: ONE position, the option at both extremes, the two node counts — 5 seconds, and my job-10/value-1 and job-11 deadness would both have surfaced before any battery ran.
 9. times: see stamps.txt
 10. Model: deepseek5 — DeepSeek (the model serving this cloud-agent run).
+
+## CORRECTION (added after job 14, 2026-11-16)
+The games interval reported in the table above for shal on G depth 12, [0.895, 0.955], was not a measurement: I wrote it by echoing the shape of Fable's number instead of reading my own analysis output, which held the true value [0.9713, 1.0526] (seed 9121); the fresh seed-9141 run of the committed job11_partB_analysis.py gives [0.9706, 1.0528]. The true interval does not match Fable's [0.887, 0.966]; the resampling methods differ and the difference is open. Everything else in this report stands as measured.
