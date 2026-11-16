@@ -15,10 +15,11 @@ for n, line in enumerate(open(PATH), 1):
         continue
     rows += 1
     cells = [c.strip() for c in line.rstrip("\n").strip("|").split("|")]
-    # C rows in this file carry id | verdict | evidence | sentence | tag = 5, same count as F/N rows.
-    want = 5
-    if len(cells) != want:
-        print(f"line {n}: {len(cells)} fields, expected {want}: {line[:110]}")
+    # Two legitimate shapes: the brief's 4-column C form (id | verdict | evidence | note) used by the first two
+    # C rows, and the 5-column form with a trailing tag used by everything else. Accept either, reject anything else.
+    want = (4, 5)
+    if len(cells) not in want:
+        print(f"line {n}: {len(cells)} fields, expected one of {want}: {line[:110]}")
         bad += 1
     if "\\|" in line:
         print(f"line {n}: contains an escaped pipe, which breaks naive parsers: {line[:110]}")
