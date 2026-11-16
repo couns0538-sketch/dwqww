@@ -1,0 +1,23 @@
+# PREDICTION — seat 20, area 10, job 8 (check of seat 02's S-F1)
+
+Committed alone BEFORE the first measuring command. Never edited afterwards.
+
+Subject (seat 02, S-F1): "The engine takes no command-line arguments at all: `main()` is
+`return forge::uci_loop(std::cin);` (src/uci.cpp:651-653), so `./forge bench 13` prints nothing and exits 0;
+`bench 13` must be sent on stdin. This silently invalidates any harness that drives the exe by argv."
+
+Predictions:
+1. CONFIRMS: `./forge bench 13` produces **0 bytes** on stdout and exit code 0, while
+   `printf 'bench 13\nquit\n' | ./forge` produces the `info string bench depth 13 nodes 862329` line.
+   KILLED IF: the argv form prints any bytes, or returns a non-zero exit.
+
+2. `./forge` with an argument does not HANG (it reads stdin, gets EOF, and exits). KILLED IF: it blocks.
+
+3. Any argument behaves the same: `bench`, `bench 13`, `--help`, `uci` as argv all produce 0 bytes.
+   KILLED IF: any of them produces output.
+
+4. The argv form with stdin attached still works: `./forge bench 13` with a stdin feed of `uci\nquit\n` behaves
+   exactly like `./forge`. KILLED IF: the argument changes anything about the stdin-driven session.
+
+5. `main()` is `return forge::uci_loop(std::cin);` — I will read the file and quote the lines rather than take
+   the claim's word for it. KILLED IF: main() parses argv.
