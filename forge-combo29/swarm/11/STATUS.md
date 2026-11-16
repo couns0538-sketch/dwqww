@@ -497,6 +497,9 @@ on the base build), S-F86 (no gross blunders at the match budget: re-searching t
 move's reply at the same 20,000-node budget, the largest score swing one ply later is 48 cp over
 10 positions, a gross blunder being several hundred — its evaluation is self-consistent), and
 S-F87 (the guard's timeout proven against a PLANTED hung engine: GuardError after exactly 3.0 s).
+S-F88 (40 games in one process, no slowdown) and S-F89, which CLOSES the memory gap S-F88 admitted:
+reading VmRSS from /proc directly, memory is flat at 26.4 MB from game 1 to game 120 with 0 illegal
+moves, so a long-lived process is stable in memory as well as in speed.
 
 Withdrawn or corrected, retained rather than deleted: S-F3, S-F10, S-F11, S-F12, S-F18, S-F19, S-C9
 (not defects under file 6), S-P1 (patch withdrawn, marked DO NOT APPLY), S-A5 (my PC20 labels
