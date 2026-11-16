@@ -1,0 +1,70 @@
+=== A. the base twice ===
+  BASE1 sum 12377717, BASE2 sum 12377717, rows 100/100
+  PASS  base sums to 12,377,717  — got 12377717
+  PASS  base is reproducible (both runs equal)  — row-for-row identical
+
+=== C. every run has 100 rows ===
+  PASS  all runs have exactly 100 rows  — []
+
+=== B. 32 settings, two ends each ===
+  plan.tsv lists 64 rows, 32 distinct settings
+  PASS  every setting has both a -c and +c run  — []
+  PASS  32 distinct settings  — got 32
+
+=== D. ratios and ranking ===
+  setting                        -c ratio   +c ratio   largest |dev|
+  SingularMargin                    1.1914    0.8220       0.1914
+  LmrQuietDivisor                   0.8914    1.0316       0.1086
+  AspirationDelta                   0.8977    1.0472       0.1023
+  SingularDepth                     1.1015    0.9428       0.1015
+  LmrCutoffThreshold                0.9203    1.0122       0.0797
+  FutilityMultiplier                0.9980    1.0660       0.0660
+  IirDepth                          1.0347    1.0654       0.0654
+  HistoryPruneMultiplier            0.9492    0.9364       0.0636
+  FutilityBase                      0.9711    1.0635       0.0635
+  HistoryBonusMax                   0.9394    1.0093       0.0606
+  ProbcutMargin                     0.9701    0.9449       0.0551
+  RazorMultiplier                   0.9489    0.9596       0.0511
+  NullMoveDepthDivisor              0.9927    1.0502       0.0502
+  ProbcutDepth                      0.9555    0.9681       0.0445
+  NullMoveBase                      1.0401    0.9648       0.0401
+  HistoryBonusLinear                0.9690    1.0400       0.0400
+  QsFutilityMargin                  0.9647    1.0010       0.0353
+  HistoryBonusQuadratic             0.9660    0.9733       0.0340
+  LmpBase                           0.9671    0.9747       0.0329
+  LmrNoisyBase                      0.9681    0.9939       0.0319
+  LmrNoisyDivisor                   0.9716    0.9925       0.0284
+  NullMoveEvalDivisor               0.9726    0.9864       0.0274
+  RfpMargin                         0.9828    1.0271       0.0271
+  LmrQuietBase                      1.0257    0.9756       0.0257
+  RfpImproving                      1.0254    0.9826       0.0254
+  SeeNoisyMultiplier                0.9748    0.9819       0.0252
+  LmrHistoryDivisor                 0.9945    0.9752       0.0248
+  RfpDepth                          1.0079    0.9821       0.0179
+  FutilityDepth                     0.9831    1.0164       0.0169
+  SeeQuietMultiplier                0.9833    1.0105       0.0167
+  MaterialCorrectionWeight          1.0103    0.9910       0.0103
+  RazorBase                         0.9900    1.0002       0.0100
+
+  reported top-10: ['SingularMargin', 'LmrQuietDivisor', 'AspirationDelta', 'SingularDepth', 'LmrCutoffThreshold', 'FutilityMultiplier', 'IirDepth', 'HistoryPruneMultiplier', 'FutilityBase', 'HistoryBonusMax']
+  my       top-10: ['SingularMargin', 'LmrQuietDivisor', 'AspirationDelta', 'SingularDepth', 'LmrCutoffThreshold', 'FutilityMultiplier', 'IirDepth', 'HistoryPruneMultiplier', 'FutilityBase', 'HistoryBonusMax']
+  PASS  the top-10 ranking matches the report
+
+  largest |dev| range: 0.0100 .. 0.1914   (report says 0.0100 .. 0.1914)
+  PASS  max |dev| is 0.1914  — got 0.1914
+  PASS  min |dev| is 0.0100  — got 0.0100
+
+=== E. are all 32 alive at the report's 0.1 % threshold? ===
+  PASS  all 32 alive (|ratio-1| > 0.001)  — []
+
+=== F. best moves changed ===
+  changed per run: min 2, max 33   (report says 6..33)
+  FAIL  changed within 6..33  — min 2 max 33
+
+=== G. SingularMargin ===
+  -c 1.1914071068194563, +c 0.8219687039217329   (report says 1.1914 and 0.8220)
+  PASS  SingularMargin -c is 1.1914
+  PASS  SingularMargin +c is 0.8220
+
+=== verdict: 1 failed check(s) ===
+NOT matching the report on: changed within 6..33
