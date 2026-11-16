@@ -159,15 +159,37 @@ See `stamps.txt` — every line there is a pasted `date -u`.
 ## Last command's output
 
 ```
-$ git status --short
+$ git status --short   (paths inside my folder)
 (clean)
 $ ls
-G_set.epd  OG_combined.fens  O_first200.fens  REPORT_job1.md  analyze.py  analyze_d12.txt
-bisect_s14.py  evidence  matebf.py  matedbf.py  matecheck.py  mates_d12.txt  mates_parsed.txt
-mates_truth.txt  prediction.txt  probe.sh  probe2.py  pvrun.py  raw_d12  run_d12.log
-solvemate.py  solvemate2.py  stamps.txt  verify_mates.sh
+analyze_d12.txt
+analyze.py
+bisect_s14.py
+evidence
+G_set.epd
+matebf.py
+matecheck.py
+matedbf.py
+mates_d12.txt
+mates_parsed.txt
+mates_truth.txt
+O_first200.fens
+OG_combined.fens
+prediction.txt
+probe2.py
+probe.sh
+pvrun.py
+raw
+raw_d12
+REPORT_job1.md
+run_d12.log
+solvemate2.py
+solvemate.py
+stamps.txt
+verify_mates.sh
 ```
 
 `evidence/mate392/` holds `s14_depth12.txt`, `truncation_test.txt`, `bisect_s14.txt`,
 `verify_safe.txt`, `pvlen_rule.txt`; `evidence/harness_audit/audit.txt`;
-`evidence/nodesum_check.txt`.
+`evidence/nodesum_check.txt`. `raw/` is a scratch dir from an early smoke test, `raw_d12/`
+holds the 553 real transcripts plus `pv.jsonl` and `meta.txt`.
