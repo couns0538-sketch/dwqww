@@ -314,3 +314,10 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - FINAL_NOTES updated for the deadline: the sweep rule now lists FOUR worked self-corrections from one hour (scan rate F38->F39, tree size F40->F41, the flip being set-specific F41->F42, move quality 4-of-6 -> 7-7-3 F43->F44), and the headline list gains the PC20 arc as one sentence backed by F42/F44/F45, carrying the exact caveat asked for: 'the flatness is the claim, not the individual percentages' (40 positions/depth ~ +-5 points).
 - Also added 29-F45 to the headline list - agreement flat across depth (87.5/87.5/85.0/92.5 % at d8/10/12/14), which is what rules out horizon noise.
 - next: continuing at cadence; FINAL block at 10:18Z.
+
+## Mon Nov 16 11:55:05 PM UTC 2026
+- 29-N28 records the STATE of every find for the FINAL's required state column (checked against the other seats' FINDINGS, not assumed):
+  CONFIRMED by another seat: 29-F3 (seat 19 with a least-squares intercept of 11.91 ms vs my 14 ms, AND seat 27 on the PC build under PC20) and 29-F9 (seat 19, 13,289 tracked files / 0 .nnue or .bin / 0 over 1 MB).
+  WITHDRAWN OR REFUTED BY ME: 29-C2 + the ordering half of F7 (N4), F40's generalisation (N22), F41's generalisation (N25), F43's 4-of-6 (F44), and N16's mechanism (F31/N17).
+  OPEN: all PC20 move-quality work (F42/F44/F45) - no second seat has checked it.
+- This makes the FINAL block a fill-in job: findings already carry build + settings in each row, and state now has a source.
