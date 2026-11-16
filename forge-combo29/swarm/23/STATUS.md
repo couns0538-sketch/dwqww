@@ -624,3 +624,13 @@ Threads 1. Their own framing (a hazard for threaded use, not PC games) is the re
 
 23-C12: movetime stops at M - MoveOverhead, 16 of 16 cells within 0.8 ms.
 Standing: 51 findings, 13 confirmations.
+## 2026-11-16T23:36:37Z  C14 confirms seat 11's junk-token FEN finding; 14 confirmations now
+2026-11-16T23:36:37Z
+
+23-C14: junk after the sixth FEN field is silently ignored — a mid-game FEN with JUNK appended answers perft 1
+= 27, identical to its clean twin, with no invalid-FEN line; control (too many squares) is refused properly.
+Consequence recorded: "the engine accepted my FEN" does not imply "my FEN was valid".
+
+Running tally: 52 findings, 14 confirmations of other seats (30-F6, 03 S-F5, 13 S-F2, 06 S-F2, 05 S-F1/S-F17,
+17 three-budget row, 08 S-F29, 04 F20 Threads-1 baseline, 28 S-F1-REVISED, 11 S-F1, plus replications).
+Four harness faults of my own, all named in 23-F37's family and all caught by a control.
