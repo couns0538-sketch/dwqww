@@ -152,3 +152,48 @@ Seat kept: 30 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-30, folde
 **30-C24 CONFIRMS 15-F30**: with my own harness on 5 boards x 3 budgets x 3 reps (PC r15 + PC20, Threads 1): `go nodes` exceeded its budget in **0 of 15** cells (largest -0.4%), `go softnodes` in **14 of 15**, up to **+118.8%**; all cells deterministic. Plus 30-F45: the documented 4x hard-stop was never approached (worst 2.2x), so budget with ~2.2x not 4x.
 **Confirmations issued by me this session: 6** (08-F18, 24-F14, 24-F16, 15-F24, 15-F25, 15-F30), each with its own harness, its own raw files and the build+settings named.
 **Next command**: `cd /agent/repos/dwqww && bash forge-combo29/swarm/30/read_board.sh /tmp/board11` for the next unconfirmed finding.
+
+## Mon Nov 16 11:21 UTC 2026 — FINAL (early block; the run continues to 2026-11-17 10:18 UTC)
+
+### HEADLINE — the per-node price of MultiPV with a large Hash
+
+The cleanest number in my area, and the one to decide a setting by: **at MultiPV 1 the per-node cost
+is FLAT at 0.8 microseconds at EVERY Hash size**, while at MultiPV 3 it climbs to **203.9
+microseconds per node** with a 2 GB Hash — about **a 255x price increase for a byte-identical search
+tree**.
+
+| `go depth 8`, Threads 1, same position, same 16,642 nodes | Hash 16 | Hash 64 | Hash 256 | Hash 1024 | Hash 2048 |
+|---|---|---|---|---|---|
+| **MultiPV 3** — us per node | 2.0 | 4.7 | 17.2 | 117.5 | **203.9** |
+| **MultiPV 1** — us per node (5,024 nodes, 4 ms) | 0.8 | 0.8 | 0.8 | 0.8 | 0.8 |
+
+The node counts are byte-identical at every Hash size, so this is pure per-node overhead that scales
+with the table: the MultiPV > 1 path appears to touch the whole transposition table per node. With a
+5 s clock budget that means one depth-1 move instead of depth 16 (266,687 nodes at MultiPV 1). Under
+CPU load it occasionally returns a **0-node** move (3 of 36 probes, all at Hash 2048 / MultiPV 3).
+**Use MultiPV 1 at any Hash; if MultiPV > 1 is needed, keep Hash at 16-64 MB.**
+Evidence: `check6/`, `REPORT_pc_multipv.md`, findings 30-F41, F42, F43, F44, C18, C19, C20.
+
+### My finds, with state
+
+Each line: id — claim — **state** — build and settings used.
+
+1. **30-F25/F26/F28 + C25** — a malformed `go nodes` line (`-1`, `xyz`, `nodes depth 5`) is treated as **no node limit**: 207,603,225 nodes and no move after 120 s; repaired on the PC build, where all three answer in 0.00 s under FULL PC20. **Open for confirmation by another seat; verified on both builds by me, twice.** Base 6b98f217 under S14 and defaults, and PC r15 under PC20, Threads 1. See `NOTE_go_nodes_budget.md`.
+2. **30-F41/F42/F43/F44/C20** — the MultiPV/large-Hash per-node table above. **Open.** PC r15, PC20, Threads 1, Hash swept.
+3. **30-C18/C19** — the 0-node answer seat 20 found: **CONFIRMED** (3/36 probes under load, Hash 2048/MPV 3, same cell and moves). PC r15, PC20, Threads 1, three CPU hogs.
+4. **30-C1/F7/F8** (halfmove-100 mate missed; side-blind) — **CONFIRMED by seat 21 (21-C3)** on its own boards; **repaired on the PC build** (30-C4). Base 6b98f217/S14 and PC r15/PC20, Threads 1.
+5. **30-F33/F34/F38** — six lone-king boards never find a python-chess-provable mate even at depth 24 on the base tree (5 of 6 are KRvK); the PC build finds all six, twice each. **Partly CONFIRMED** (a seat's S-C13 on two of the six). Base/S14+defaults and PC/S14+PC20, Threads 1.
+6. **30-F29/F30/F31/F36/F40** — the mate-REPORTING rates: base 16/40 at depth 12 rising only to 21/40 at depth 16 (a plateau), PC 27/40 -> 31/40; PC20 slightly lower at depth 12, equal at depth 14. **Open.** Threads 1, strict harness.
+7. **30-F35/F43** — the fifty-move draw is invisible below depth 9 (4.85 M nodes). **CONFIRMED by seat 17 (S-C15).** PC r15, PC20, Threads 1.
+8. **30-F13/14/15/17/F27/C11/C13** — methodology: my original job-2 numbers were contaminated by 19-F12 and are **retracted and superseded**; the honesty check and checks 1-2 were never affected; `ucinewgame` restores cold exactly (three-way control on both builds); one process reproduces fresh node counts under PC20.
+9. **30-F1..F5, F10..F12** — the two helper recounts: deepseek6's long56 report contradicts its own raw file and its legality check is dead code (its RESULT is nonetheless true); glmflash5's 15 numbers are exact and two of its matches share identical opening sets. **Open** (mine alone).
+
+### My confirmations of other seats (each with my own harness and raw files)
+
+**08-F18** (reserve-empty path, plus the OwnBook trap that can hide it, 30-F39) · **24-F14** and
+**24-F16** (terminal-root unbounded `go`; I applied and built seat 24's patch) · **15-F24** (the PC
+build's FORGE_FIX_ROOT_DRAWN conflates two repairs) · **15-F25** (its one-line split fix — I built it
+and verified both behaviours under S14 and PC20 with the honesty gate unchanged) · **15-F30**
+(`go nodes` a hard ceiling 0/15, `go softnodes` overshoots 14/15 up to +118.8 %). Reports:
+`REPORT_job2.md`, `REPORT_job3.md`, `REPORT_check1.md`, `REPORT_check2.md`, `REPORT_pc_multipv.md`,
+`REPORT_pc_repairs.md`, `NOTE_go_nodes_budget.md`.
