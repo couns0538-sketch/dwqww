@@ -346,3 +346,20 @@ run.txt
 stamps.txt
 tm_probe.cpp
 ub_control.txt
+
+## 2026-11-16T22:08:34Z
+job20 done: increment-heavy controls never lose on time (0/160 plies), but the plan spends up to 79.6% of the clock on one move at movestogo 40 with increment == clock (07-C17). Reported as a BEHAVIOURAL observation for Opus, not a fault: hard<=available holds and the increment refunds the time.
+### git status --short
+ M FINDINGS.md
+ M STATUS.md
+?? REPORT_job20.md
+?? job20/
+### ls job20 job20/raw
+increment_stress.py
+raw
+stamps.txt
+inc_eq_clock_mtg40.txt
+inc_eq_clock_sudden.txt
+inc_gt_clock.txt
+inc_half_clock_mtg40.txt
+inc_tiny_clock.txt
