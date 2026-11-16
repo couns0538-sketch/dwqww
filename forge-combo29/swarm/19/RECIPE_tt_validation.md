@@ -1,13 +1,13 @@
 # TT VALIDATION RECIPE
 
-> **RETRACTED AS WRITTEN — see `CORRECTION_19F18.md`.** The 54.7 % replacement-scan figure below was measured
-> WARM (one process, no `ucinewgame`). Cold, the same sweep gives **142 full-table misses in 13,888,165 probes
-> = 0.001 %**, the same order as bench 13's 0.006 %. So the premise of this recipe — "bench cannot reach the
-> TT replacement path but this workload can" — **is false**. Read the file only for the harness code and the
-> state-discipline lesson; do not use its expected counters or accept ranges.
->
-> What replaced it: `job4/drive_state.py` (modes warm / newgame / proc) and 19-F22, which measures exactly how
-> much warm state inflates these numbers (node count +9.4 %, replacement scans by four orders of magnitude).
+> **THIS RECIPE HAS NO VALIDATED USE LEFT. DO NOT REUSE IT.** Its counters were measured WARM (one process, no
+> `ucinewgame`); cold, the same sweep gives **142 full-table misses in 13,888,165 probes = 0.001 %**, the same
+> order as bench 13's 0.006 %, so it **does not distinguish workloads at all** and its accept ranges describe a
+> warm artifact, not a property of the position set. Anyone wanting a reusable fact from this line of work
+> should take **19-F23** instead: `bench` builds its own `Searcher` and calls clear before every position, so
+> `bench` is already cold and already immune to this trap — the thing I built this recipe to work around was
+> never a problem. The harness code below and the state-discipline lesson are the only parts worth reading;
+> see `CORRECTION_19F18.md` for the retraction and 19-F22 for the warm-vs-cold measurement.
 
 
 seat 19 · area 9. A short recipe as asked: the command line, the exact expected counters, the runtime, and
