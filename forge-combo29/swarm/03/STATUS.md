@@ -118,3 +118,26 @@ positions — that turns the endgame suspicion into a cause or refutes it.
 
 Next command:
 `cd /agent/repos/dwqww/forge-combo29/swarm/03/job5 && python3 - <<'PY' ... PY` (see job6/repro_endgame.txt once written)
+
+## 2026-11-16T22:55Z
+
+**job6 DONE — causal attribution of the endgame divergence.** 7 builds x 26 endgame positions, depth 8, Threads 1,
+fresh process per search, run twice byte-identically:
+| build | 153 | 155 | 156 | 160 | =base | =PC |
+| base | a4b4 | c6d6 | g5h3 | f1e2 | 4 | 0 |
+| r15 PC | a4b5 | c6c7 | f2e3 | f1f2 | 0 | 4 |
+| V1 both off | base | base | base | base | 4 | 0 |
+| V2 LMR=0 OT=1 | a4b5 | c6d6 | f2e3 | f1f2 | 1 | 3 |
+| V3 LMR=1 OT=0 | a4b5 | c6c7 | f2e3 | f1f2 | 0 | 4 |
+| V4 both on | a4b5 | c6d6 | f2e3 | f1f2 | 1 | 3 |
+| BASE+both | a4b5 | c6d6 | f2e3 | f1f2 | 1 | 3 |
+LMR_CAP is the operative rule; the reverse test on base gives 3 of 4 PC answers with no other r15 change; idx 155
+resists attribution (S-F12). Divergence set = exactly a subset of the 9 lone-king-root positions (S-F13).
+Findings S-F11, S-F12, S-F13. Report REPORT_job6.md. Reverse-test patch: job6/base_bare_king_on.patch.txt.
+Lapse recorded: no prediction file before job 6's measuring commands.
+
+Next: isolate idx 155's partner change (build r15 variants with the other FORGE_FIX_* switches off), then return to
+the cycle's area-10 duty (check someone else's unconfirmed finding on both builds).
+
+Next command:
+`cd /agent/repos/pccopy/forge-combo29 && grep -n "FORGE_FIX_" src/search.cpp include/forge/search.hpp | head -20`
