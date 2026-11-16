@@ -293,3 +293,19 @@ DONE job 9b: closes the NEGATIVE mate gap I declared open in job 9.
   a checker that cannot tell "engine wrong" from "my check wrong", here inventing a false engine defect.
   Finding S-F12.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## Mon Nov 16 11:17:48 PM UTC 2026
+
+JOB 10 (reproduction attempt for another seat's under-reported mate at go nodes 20000): NO HIT.
+  27 boards (21 job-9 mate + 6 job-9b lost) x 5 reps x 2 disciplines = 270 runs, all at go nodes 20000.
+  200 mate claims, 0 under-reported, 0 boards affected. Detector control: 6/6 correct (real claim
+  passes; too-short claim, truncated PV, empty PV, illegal PV all flagged; cp is not a claim).
+  Full determinism: 0 of 54 board x discipline groups varied across reps; 0 node-count variation;
+  fresh vs shared process agreed on all 27 boards.
+  This does NOT refute their 2-of-14: my boards are not theirs, and mine are elementary mates that
+  solve trivially at 20k. Most likely reason for the clean sweep, stated as a suspicion: the defect
+  needs a HARD mate at that budget, which my reference set cannot verify cheaply.
+  My own control mistake, recorded: first version picked a mate-in-1 board where 3 plants were
+  indistinguishable, and it reported failures. Fixed by using a mate-in-2 board.
+  Finding S-F13. Report job10/REPORT_job10.md.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1   # then FINAL at the 12-hour close
