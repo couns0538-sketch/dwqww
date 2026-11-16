@@ -88,3 +88,16 @@ error at a plan of 500 ms passed. In absolute milliseconds, all 16 cells are wit
 **How it was caught:** not by the checker — by looking at the table when the verdict disagreed with every row.
 **The extra rule:** check that the tolerance's **units** match the claim's units. A tolerance relative to a small
 quantity is not a stricter test, it is a wrong one. "Within 1-2 ms" must be tested in milliseconds.
+
+## Instance 5 — the mirror helper, caught BEFORE the measurement (23-F39)
+
+The first of the five caught in time, and the one that sharpens the rule. My colour-mirror helper mapped `e2e4`
+to `e5e3` instead of `e7e5`: I wrote `7 - rank` where python-chess mirrors a square by `square ^ 56`. Every
+mirrored-bestmove figure in the forthcoming confirmation would have been noise dressed as a result.
+
+**How it was caught:** I asserted four knowable cases inside the script, before it measures anything —
+`e2e4 -> e7e5`, `a1h8 -> a8h1`, `e1g1 -> e8g8`, and a mirrored startpos having 20 legal moves. The script prints
+PASS or refuses to run.
+
+**The sharpening:** build the control **at the same time as the helper**, not after the numbers look odd. A control
+written after the fact is written by someone who already believes the answer.
