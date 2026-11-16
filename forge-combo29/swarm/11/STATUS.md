@@ -442,3 +442,8 @@ Settings: **none** (no setoption), **S14** (the 14 settings), **PC20** (S14 + th
   pawn on the king's square (looked like missing promotions; python-chess agreeing 5=5 was the tell),
   the go-infinite probe whose own shell sent the stop (looked like a fix), plus the tuple-unpacking
   false-defect and the mislabelled-FEN cases. Each with the tell, the control, and the corrected result.
+- S-F70: full 49-ply game on the 6s+0.06 clock, clocks tracked honestly: NO flag fall (white 2,021 ms
+  / black 1,669 ms left), 0 illegal, slowest move 841 ms. Clock path is safe for real play.
+- S-F69: self-play at softnodes 2000 is deterministic and terminating — two games each exactly 212
+  plies ending by insufficient material, 424 moves 0 illegal; each passed 9 threefold positions
+  without the engine ending it (correct: that is the match program's job, per file 6).
