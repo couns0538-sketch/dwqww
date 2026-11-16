@@ -264,3 +264,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-N21 percentage audit done as asked: grep for 11.1/26.5/19.5/54.7/44.8 across all 13 REPORT_*.md returns ZERO hits. FINDINGS keeps the four-cell table, explicitly SUPERSEDED rows, and the counter-instruction; FINAL_NOTES leads with the correction. Every instance mapped file:line in slots/AUDIT_percentages.md.
 - Deliberate exception stated rather than silently fixed: STATUS.md is append-only, so its earlier blocks still contain my then-belief (11.1% as the figure). Rewriting them would destroy the record of what I concluded when; the later blocks correct them. I say so in the audit rather than quietly tidying history.
 - next: continuing on the PC path.
+
+## Mon Nov 16 11:39:08 PM UTC 2026
+- 29-F40: PC20 is not cosmetic - measured on the PC r15 build, 30 real-game positions at depth 12, Threads 1, Hash 16: S14 = 3,078,383 nodes (102,612/position) vs PC20 = 2,478,658 (82,621/position), i.e. PC20 searches 19.5% FEWER nodes at the same depth on the same positions. Matches the bench pins (656,517 -> 587,276) and explains why base-vs-PC20 comparisons are comparisons of different tree sizes, not just different ordering.
+- Audit amended as asked: the append-only exception now sits at the TOP of slots/AUDIT_percentages.md, not only in the table.
+- next: continuing on the PC path.
