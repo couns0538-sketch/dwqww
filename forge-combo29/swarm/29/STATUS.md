@@ -103,3 +103,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-N10: method limit found while trying to extend the TT result to deep search. bench-13 instruction counts are EXACTLY reproducible (4,513,768,543 twice, to the digit). A single go-depth-12 count is NOT: same build, same position gave 84,270,074 and 84,194,377 (0.09% spread). My deep-search comparison showed both signs across 5 positions and was DISCARDED.
 - So the -18,708,563 figure for 29-F14 stands on the deterministic bench measurement only, and I make no deep-search claim for it.
 - next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: record N10 callgrind determinism limit' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 10:04:51 PM UTC 2026
+- FINAL PATCH HARDENED for a reader who might apply it. The patch file now opens with a READ-THIS-FIRST block: (1) NO wall-clock claim, (2) NO claim about a search with a loaded NNUE network - the owner's PC uses its own king-bucket net, no network file exists on any branch, so the effect on the PC build is UNMEASURED.
+- RISK is machine-enforced, not prose: the four-lane gather reads entries[i].key32 by NAME, so it assumes nothing about sizeof(TTEntry)/padding/byte order (endian-independent); its only dependency (exactly 4 slots) is a static_assert which I PROVED fires on a 5-slot cluster AND on the 8-slot-8-byte case that the existing sizeof==64 assert cannot catch.
+- Re-verified after the change: 312866/862329/3024920/4865609 all identical, 40/40 searches bit-identical, 4/4 hash-pressure identical, legal at 1/4/8 threads, patch applies to clean base patch -p1.
+- next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && cat job8/tt_slot0_and_vector_probe.patch.txt | head -25

@@ -1,15 +1,49 @@
 diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
-index b803a7e8e..f8f18aba3 100644
+index b803a7e8e..442222d82 100644
 --- a/forge-combo29/src/search.cpp
 +++ b/forge-combo29/src/search.cpp
-@@ -400,6 +400,26 @@ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
+@@ -376,6 +376,28 @@ void TranspositionTable::clear() {
+ }
+ 
+ #if FORGE_SPD_TT_NOTLS
++// ============================== SWARM SEAT 29 PATCH - READ THIS BEFORE APPLYING ==============================
++// WHAT THIS PATCH DOES: it removes a comparison in the transposition-table replacement scan that can never be
++// true (slot 0 tested against a score derived from slot 0), and it compares the cluster's four slot keys as four
++// 32-bit lanes instead of a scalar loop. Measured: -18,708,563 instructions (-0.414 %) per `bench 13`.
++//
++// WHAT THIS PATCH DOES **NOT** CLAIM - both halves matter:
++//   1. NO WALL-CLOCK CLAIM. On a shared 4-core machine an apparent win of this size is not resolvable; my only
++//      speed evidence is the exact instruction count, and I explicitly withdrew a timing figure I first saw
++//      (see 29-N6 in forge-combo29/swarm/29/FINDINGS.md).
++//   2. NO CLAIM ABOUT A SEARCH WITH A LOADED NNUE NETWORK. The owner's PC plays with its own king-bucket net
++//      (NNUEArch true), where the search path differs. NO nnue/.bin network file exists on ANY branch of this
++//      repository (only `src/nnue_weights.inc`, the built-in net), so this patch was measured ONLY on the
++//      built-in net and its effect on the PC's build is UNMEASURED. A reader must not assume a TT change
++//      transfers to the owner's engine.
++//
++// RISK / MAINTENANCE: the four-lane key compare reads the keys by NAMED member access (`entries[i].key32`), so it
++// makes no assumption about sizeof(TTEntry), its padding, or byte order - it is endian-independent and layout-
++// tolerant. Its ONE dependency is that a cluster has exactly four slots, because a fifth slot would be invisible
++// to the compare. That is machine-enforced by the static_assert immediately below, which catches the case the
++// pre-existing `sizeof(TTCluster) == 64` assert does not (eight 8-byte slots are still 64 bytes). If TTCluster
++// ever grows, the build stops here instead of silently missing slots.
++// =============================================================================================================
+ template <bool TakeLock>
+ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
+     TTCluster& cluster = cluster_for(key);
+@@ -400,6 +422,31 @@ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
      // Four slots. Keep this a short loop: fully unrolling the replacement
      // choice spilled registers and made the probe slower.
      TTEntry* found = nullptr;
 +#if defined(__SSE2__)
-+    // sizeof(TTEntry) == 16, so key32 lives at byte offsets 0, 16, 32, 48: gather the four keys explicitly and
-+    // compare them as four 32-bit lanes in one step. The scan order is unchanged (first matching slot wins, which
-+    // is what the scalar loop's `break` produced), and occupancy is confirmed only for a lane whose key matched.
++    // Gather the four slot keys by NAMED member access (`entries[i].key32`), not by hard-coded byte offsets, so
++    // this needs no assumption about sizeof(TTEntry) or its internal padding, and it is endian-independent
++    // (_mm_setr_epi32 takes the values, not the bytes). The one thing it DOES depend on is the cluster having
++    // exactly four slots: a fifth slot would be invisible to the 4-lane compare, so that is enforced below.
++    static_assert(std::tuple_size_v<decltype(cluster.entries)> == 4,
++                  "the 4-lane key compare covers exactly this many slots; extend it if TTCluster grows");
++    // The scan order is unchanged (first matching slot wins, which is what the scalar loop's `break` produced),
++    // and occupancy is confirmed only for a lane whose key matched.
 +    const __m128i keys = _mm_setr_epi32(static_cast<int>(cluster.entries[0].key32),
 +                                        static_cast<int>(cluster.entries[1].key32),
 +                                        static_cast<int>(cluster.entries[2].key32),
@@ -29,7 +63,7 @@ index b803a7e8e..f8f18aba3 100644
  #pragma GCC unroll 1
      for (TTEntry& entry : cluster.entries) {
          if (entry.key32 == key32 && entry.occupied()) {
-@@ -407,6 +427,7 @@ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
+@@ -407,6 +454,7 @@ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
              break;
          }
      }
@@ -37,7 +71,7 @@ index b803a7e8e..f8f18aba3 100644
      if (found != nullptr) {
          // Reused entries remain recent even when search returns a TT cutoff.
          if (found->generation() != generation) {
-@@ -416,11 +437,14 @@ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
+@@ -416,11 +464,14 @@ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
          return snapshot(*found, true);
      }
      TTEntry* replace = &cluster.entries[0];
