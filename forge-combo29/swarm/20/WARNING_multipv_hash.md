@@ -126,9 +126,13 @@ depth**. Seat 30 wrote a patch that deletes it; I applied it to my own build and
 
 The repaired build keeps **all four honesty pins** (312,866 / 862,329 / 3,024,920 / 4,865,609) and the **MultiPV 1
 path is byte-identical** to the shipped build, so it changes only what it claims to. Whether to adopt it is the
-owner's decision; this page only records that its evidence reproduces on an independent build. **What is NOT
-measured: whether the patch makes the engine stronger in play.** It removes the collapse and the instability; a
-strength claim would need interleaved matches, which I did not run.
+owner's decision; this page only records that its evidence reproduces on an independent build. **What is measured on the analysis side: the patch costs NOTHING at the safe Hash sizes and gains depth
+there** — Hash 16 median 13.5 -> 14.0, Hash 64 11.5 -> 14.0, Hash 128 11.0 -> 14.0 (10 positions, MultiPV 3, 5 s
+clock, Threads 1; `job64/REPAIR_AT_SAFE_HASHES.md`). The repaired build is flat at ~14 plies from Hash 16 to 128, so
+the multi-PV gradient is mostly the `clear()`, not the table size.
+
+**What is NOT measured: whether the patch makes the engine stronger in PLAY.** Depth at a fixed clock is not a match
+result; a strength claim would need interleaved matches, which I did not run.
 Details: `job57/CONFIRM_30C36.md`.
 
 ## How sure this is
