@@ -449,3 +449,13 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
 - This is the owner's actual strength-match path (file 6: 6 s + 0.06), so matches are effectively played at ~depth 19.
 - NOT claimed: which constant does it. I did not read the time manager. No defect claim yet — needs seat confirmation.
 - next command: check whether the BASE build shows the same clock-vs-movetime gap.
+
+## $(date -u)
+- S-F38: the wtime-vs-movetime gap reproduces on BOTH builds, 5 runs each, OwnBook false:
+  PC PC20 startpos 0.35s/d19/650,246 vs movetime 5.99s/d27/7,061,631; PC middlegame 0.72s/d19 vs 5.99s/d27.
+  BASE S14 startpos 0.23s/d19/466,541 vs 5.99s/d27/11,003,901; base middlegame 0.46s/d20 vs 5.99s/d29.
+  Every cell identical across its 5 runs. Same 6s budget buys ~10x the nodes as movetime, and is ~90% unspent as wtime.
+- S-W5: withdrew my first clock table — the base rows were `?`/0.00s because the base build defaults OwnBook true and
+  answered with `info string book move c2c4` and no pv. Fixed with OwnBook false (file 3 required it; I had not
+  applied it here) and a no-bestmove cell now reports REFUSED, never a number.
+- next command: continue; S-F37/S-F38 are the strongest PC-path findings and need a confirming seat.

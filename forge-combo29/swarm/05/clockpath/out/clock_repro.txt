@@ -1,0 +1,14 @@
+5 runs each. OwnBook false in BOTH regimes (file 3: every harness must send it; the base build
+otherwise plays a book move and reports no pv at all, which my first version of this test silently
+recorded as '?'). A cell returning None is a refusal and is reported as such, never as a number.
+
+| build/settings | position | go | walls (s) | depths | nodes | book lines |
+|---|---|---|---|---|---|---|
+| PC r15 + PC20 | startpos | `go wtime 6000 btime 6000 winc 60 binc 60` | 0.35-0.36 | 19 | 650246 | 0 |
+| PC r15 + PC20 | startpos | `go movetime 6000` | 5.99-5.99 | 27 | 7061631 | 0 |
+| PC r15 + PC20 | mid | `go wtime 6000 btime 6000 winc 60 binc 60` | 0.72-0.72 | 19 | 1200065 | 0 |
+| PC r15 + PC20 | mid | `go movetime 6000` | 5.99-5.99 | 27 | 9302198 | 0 |
+| base + S14 | startpos | `go wtime 6000 btime 6000 winc 60 binc 60` | 0.23-0.23 | 19 | 466541 | 0 |
+| base + S14 | startpos | `go movetime 6000` | 5.99-5.99 | 27 | 11003901 | 0 |
+| base + S14 | mid | `go wtime 6000 btime 6000 winc 60 binc 60` | 0.46-0.47 | 20 | 858704 | 0 |
+| base + S14 | mid | `go movetime 6000` | 5.99-5.99 | 29 | 5458701 | 0 |
