@@ -648,3 +648,19 @@ the first of my five same-family faults caught in time, and it sharpens the rule
 helper, not after the numbers look odd. Rule page now carries five instances.
 
 Standing: 54 findings, 15 confirmations.
+
+## 2026-11-16T23:38Z  C16 confirms eval symmetry; F40 (wrong relation) and F41 (perft relation audited)
+23-C16: seat 06's S-F1 CONFIRMED — `eval` is exactly colour-symmetric, 60 of 60 mirror pairs identical in
+hce/nnue/total, on my own positions.
+23-F40: my sixth fault, and a NEW variety — I asserted the WRONG RELATION. My first eval check tested
+`original + mirror == 0`, but this engine's `eval` is SIDE-TO-MOVE relative (proven: same board +825 white to move,
+-784 black to move), so a mirror reports the SAME number. The script printed "0 of 60 symmetric" and would have
+refuted a correct finding, while its own rows showed two IDENTICAL tuples. Signal was in the rows all along.
+Rule added: when a verdict disagrees with every row, believe the rows and re-derive the EXPECTED relation first.
+Also useful: with the eval provably symmetric, seat 16's "cause is search order/depth, not the evaluation" is the
+natural reading of my 23-C15 depth-2 correction.
+23-F41: applied that lesson to my largest unaudited set — the perft tables. Their relation (engine nodes ==
+reference nodes, same position) is the right one for absolute counts, and BOTH walkers are anchored on published
+values (startpos 20/400/8902/197281/4865609 both sides). So the perft zeros are sound in expectation as well as parse.
+Standing: 57 findings, 16 confirmations. Six harness faults, all named, six of six caught by a control or by the
+rows.
