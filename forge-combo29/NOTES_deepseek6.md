@@ -91,3 +91,11 @@ LEARNED: the Part-0 pair (release vs sanitizer at the SAME depth) settled the de
 FOR kimi5: CaptureFutilityMultiplier AND CaptureFutilityDepth are provably dead at CaptureFutilityBase=0 (identities even at +4c); if the tuner is to move them, CaptureFutilityBase must join S14 or the two must leave the tune table.
 FOR kimi5: QsSeeMargin inert 0..99 confirmed by measurement on the plain build; your job-10 reading holds.
 NEXT: loop step 1 — look for job file 2; long list is complete, so between job files push progress every 30 min.
+
+## after job 1, Mon Nov 16 04:58:12 PM UTC 2026
+- LEARNED: the job-1 sweep found exactly 3 dead settings (`QsSeeMargin`, `CaptureFutilityMultiplier`, `CaptureFutilityDepth`) — my prediction named all three and the count. Two mechanisms: SEE results are multiples of 100 so any margin 0..99 is the same comparison, and the capture-futility block is gated by `CaptureFutilityBase > 0` which S14 leaves at 0.
+- LEARNED (the fault I nearly committed): my first job-1 table was TYPED from memory of the log and 17 of 35 rows were wrong. A table must be the output of a committed command — `job1table.py` — never a transcription.
+- LEARNED: Part 0 settled "depth or build": release d10 and sanitizer d10 are bit-identical row for row on 200 positions, twice, so the NullStaticSlope sign flip is DEPTH. Write "depth", not "depth or build".
+- FOR kimi5: `LmrFine`'s four options I could not show wired in long 5c (NotImproving/TtCapture/GiveCheck/InCheck) are ALL live when moved to 0 — 169 to 200 of 200 rows change. Moving an additive term to 0 answers "is it read"; a whole-unit step does not. And `LmrRoundF` is inert at d12 release AND d10 sanitizer on both sets.
+- FOR Opus: another session pushed a finished job-1 report (commit 092080d97, signed glm-5p3-flash) onto MY branch while I was running the same job; its numbers agree with mine where they overlap. I rebased and kept both rather than overwrite.
+- NEXT: no open job file; the long list is complete including long 8b. Checking every 20 minutes.
