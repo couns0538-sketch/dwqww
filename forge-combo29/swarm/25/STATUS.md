@@ -167,6 +167,22 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:58Z - S-F37 minimum-one floor is its own finding; pattern paragraph carries the caught-at-desk progression
+
+S-F37 (PC r15/PC20/Threads 1/Hash 16): `go depth 0` behaves as **depth 1**; `go movetime 0` reaches **depth 5**; only
+`go nodes 0` honours 0 literally (immediate answer at depth 0, move g1e2 vs the normal f1e2). So three of four limit
+fields clamp 0 to a minimum and only `nodes` treats 0 as "no search" - a trap for any harness passing 0 to mean
+"unset". The movestogo asymmetry stays a separate, movestogo-specific case of the same habit.
+
+FINAL pattern paragraph now reads TEN errors with the progression: the tenth was caught AT THE DESK before
+publishing rather than in review. Lists the nine earlier ones compactly (incl. the two checker false-failures) and
+closes with "when a result looks surprising, check the harness before the engine".
+
+Scope probe keeps both states visible: labelled SCOPE PROBE, control caveat stated, no conclusion read off it.
+
+State: 80 findings, compliance PASS, audit 0 mismatches, working tree clean, local = remote. Continuing at cadence.
+
 ## 2026-11-16T23:58Z - movestogo "NOT a bug" leads its FINAL row; scope probe caught my own control error pre-publication
 
 FINAL row now opens: "movestogo 0 is NOT an engine bug - it means 'one move to go' after the clamp, and last-move
