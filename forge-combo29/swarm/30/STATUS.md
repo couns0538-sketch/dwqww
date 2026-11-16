@@ -270,3 +270,8 @@ repair (`30-C29`, `30-C30`).
 
 Reports: `REPORT_job2.md`, `REPORT_job3.md`, `REPORT_check1.md`, `REPORT_check2.md`,
 `REPORT_pc_multipv.md`, `REPORT_pc_repairs.md`, `NOTE_go_nodes_budget.md`.
+
+## Mon Nov 16 11:25:54 PM UTC 2026
+
+**30-C33: patch packaged for review.** `ttclear_no_alt_clear.patch.txt` (sha256 50cc86d3...) now carries a header stating the reviewer check — all four honesty pins unchanged, MultiPV 3 emitting three distinct legal first moves, tie-order being pre-existing std::sort behaviour, and no other tt.clear() call site touched — plus the measured payoff. Re-verified after the rewrite: `patch -p1 --fuzz=0` rc=0 on a clean PC r15 copy, and the remaining call sites at :3048/:3060 are untouched.
+**Next command**: build the patched tree and check ONE thing my measurements do not cover — that MultiPV 3 at a real match budget (go nodes 2000) now reaches a sensible depth instead of depth 1, and that MultiPV 1 results are unchanged.
