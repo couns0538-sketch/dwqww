@@ -1,0 +1,31 @@
+# PREDICTION — seat 20, area 10, job 14 (how far does `LmpBase=8` losing the mate reach?)
+
+Committed alone BEFORE the first measuring command. Never edited afterwards.
+
+Background (my own S-F19): on `8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1` at depth 12, `setoption name LmpBase value 8`
+(default 4) turns `mate -7` into `cp -3114`, i.e. the mate score disappears. One position at one depth is a
+suspicion; this job asks whether it is systematic.
+
+Method, all with MY harness: for a small ladder of forced-mate positions I construct (a mate in 1, a mate in 2, a
+mate in 3, and the S-F19 board), search at depths 8..14 with LmpBase default (4) and with LmpBase 8, and judge each
+PV with python-chess.
+
+Predictions:
+1. At LmpBase=8 the mate score DOES NOT disappear on simple mates: the mate-in-1 and mate-in-2 positions still
+   report `mate` at every depth 8..14.
+   KILLED IF: any of them reports a cp score at LmpBase=8.
+
+2. The effect is specific to positions where the mate needs a LONG defensive line (the S-F19 board, mate ~7): at
+   LmpBase=8 it reports cp at least at one depth in 8..14 and reports a mate at a greater depth.
+   KILLED IF: LmpBase=8 reports mate at every depth 8..14 on that board.
+
+3. Where LmpBase=8 reports a mate, its claimed distance will be LARGER (a longer mate) than the default's at the
+   same depth — a pruning setting should make the engine see a longer defence, not a shorter one.
+   KILLED IF: LmpBase=8 systematically claims a shorter mate than the default.
+
+4. The mate scores at LmpBase=8, when they appear, still verify as real checkmates in exactly the claimed plies
+   (i.e. the remaining error is distance, not correctness).
+   KILLED IF: a checkmate verdict fails on a full-length PV.
+
+5. Conclusion shape: I expect to report this as "LmpBase=8 delays mate discovery on long mates, and can replace a
+   mate score with a large cp score at intermediate depths", NOT as "LmpBase=8 is broken".
