@@ -1,0 +1,34 @@
+# job 2 prediction — ONE speed change that keeps every node count identical and is faster
+
+seat 19, area 9, seed 1901. Committed ALONE before the formal measurement of job 2.
+
+## The change I am measuring
+
+`job2/edit_material_cache.py` / `job2/optimize_material_key.patch.txt`: `Board` keeps the material-key hash
+in a member (`material_key_`), computed in `set_fen`, carried through `make_move`/`unmake_move` in the same
+way `pawn_key_` already is, and recomputed only when a capture or a promotion can change a piece count.
+`Worker::corrected_eval` and `Worker::update_correction` then read `board.material_key()` instead of calling
+a free function that re-derives the hash from ten popcounts on every call.
+
+Why this one: the profile says `material_key()` is 1.33 % + 0.77 % + 0.61 % = 2.71 % of total self time as
+the top three entries of `job2/annot/global_by_line.txt`, and `bench 13` calls it 750,427 times (counted in
+`job2/counts.txt`). The value is a pure function of the ten piece counts, so caching it cannot change any
+number the search sees, and by construction it cannot change a node count.
+
+## Predictions, each with the range that kills it
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | node counts are IDENTICAL: bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609 with the patch applied | any one differs — then the patch is rejected outright and this job has no result |
+| P2 | mean `bench 13` nps with the patch is 1.0 % to 4.0 % higher than base | below +0.3 % or above +7 % — killed |
+| P3 | the 95 % interval of the ratio excludes 1.0 | interval contains 1.0 — killed (the change would be "not shown to be faster") |
+| P4 | the two builds of the SAME side differ by less than 1.0 % in mean nps (the brief's 1.5 % figure) | the base-vs-base2 or patch-vs-patch2 spread exceeds 3 % — then the measurement is too noisy to decide P2 and I say so |
+| P5 | median `bench 13` time falls from ~431 ms to between 415 and 427 ms | outside 400–440 ms — killed |
+
+## Honest note
+
+Before this file was committed I had already run exploratory timings while hunting for a target: they are
+in `job2/exploratory_before_prediction.md`, including two candidate fixes that did NOT work (a
+`thread_local` memo and a de-serialised Horner chain, both within noise, one visibly slower). The formal
+measurement below — alternating base/patch, both sides built twice, 10 pairs — had not been run when this
+file was committed.

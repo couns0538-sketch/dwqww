@@ -1,0 +1,1383 @@
+# hot instruction time summed per source line, from perf annotate (only lines >= 0.30 %)
+
+## int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .constprop.0]
+| summed % | source line | text |
+|---|---|---|
+| 1.04 % | 139 | `if (!Trace && cache != nullptr && cache->valid && cache->key == board.pawn_key()) {` |
+| 0.91 % | 3847 | `return distance - static_cast<int>((targets & masks[static_cast<std::size_t>(distance - 1)]) != 0);` |
+| 0.90 % | 1832 | `twice \|= attacked & attacks_bb;` |
+| 0.86 % | 3630 | `if (attackers >= 2 \|\| (attackers >= 1 && board.pieces(Them, Queen) != 0)) {` |
+| 0.86 % | 3806 | `return distance - static_cast<int>((targets & masks[static_cast<std::size_t>(distance - 1)]) != 0);` |
+| 0.82 % | 3843 | `if ((targets & masks[static_cast<std::size_t>(distance - 2)]) != 0) distance -= 2;` |
+| 0.68 % | 1862 | `[[nodiscard]] constexpr int file_of(int square) { return square & 7; }` |
+| 0.68 % | 2509 | `for (int file = std::max(0, king_file - 1); file <= std::min(7, king_file + 1); ++file) {` |
+| 0.68 % | 1541 | `return m.table[m.index(occupancy)];` |
+| 0.64 % | 3068 | `const Bitboard hanging = weak & (~info.attacked_by[Them][0] \| (enemy_non_pawns & info.attacked_twice[Us]));` |
+| 0.59 % | 2633 | `acc.template add<Us>(KingDanger + units, -1);` |
+| 0.59 % | 2791 | `if (targets == 0) return;` |
+| 0.59 % | 3023 | `if (count != 0) acc.template add<Us>(base + piece, count);` |
+| 0.55 % | 2019 | `return popcount(attacks_bb & mobility_area);` |
+| 0.54 % | 3521 | `const int scale = scale_factor(board, eg);` |
+| 0.50 % | 1990 | `const Bitboard queen_rook = rook_magic.table[rook_index];` |
+| 0.50 % | 2642 | `const int piece_count = popcount(board.occupied(Us) & ~own_pawns) - 1;` |
+| 0.50 % | 2713 | `score += Us == White ? value : -value;` |
+| 0.46 % | 2122 | `own_distance = std::min(3, relative_rank(Us, nearest) - king_rank);` |
+| 0.45 % | 1311 | `score += Us == White ? value : -value;` |
+| 0.45 % | 2133 | `score += Us == White ? value : -value;` |
+| 0.45 % | 2292 | `units -= shelter / king_safety.shelter_divisor;` |
+| 0.41 % | 16 | `int evaluate_position(const Board& board, Evaluator::PawnEntry* cache, EvalTrace* trace,` |
+| 0.41 % | 1860 | `score += Us == White ? value : -value;` |
+| 0.41 % | 2161 | `if (((own_pawns \| enemy_pawns) & file_bb(file)) == 0) shelter_term(KingFileOpen);` |
+| 0.36 % | 723 | `board.pieces(color, Queen) \| (own_pawns & (blocked_pawns \| low_ranks)));` |
+| 0.36 % | 2026 | `[[nodiscard]] constexpr int rank_of(int square) { return square >> 3; }` |
+| 0.36 % | 2357 | `score += Us == White ? value : -value;` |
+| 0.36 % | 2467 | `score += Us == White ? value : -value;` |
+| 0.36 % | 2625 | `units -= shelter / king_safety.shelter_divisor;` |
+| 0.36 % | 3595 | `const int scale = scale_factor(board, eg);` |
+| 0.36 % | 3676 | `twice \|= attacked & attacks_bb;` |
+| 0.36 % | 3802 | `if ((targets & masks[static_cast<std::size_t>(distance - 2)]) != 0) distance -= 2;` |
+| 0.32 % | 1316 | `const Bitboard enemy_sliders = (queen_bishop & (enemy_bishops \| enemy_queens)) \| (queen_rook & (enemy_rooks \| ` |
+| 0.32 % | 1826 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 0.32 % | 1883 | `if (own_gate \|\| enemy_gate) {` |
+| 0.32 % | 1992 | `const int mobility = note(Queen, queen_bishop \| queen_rook, queen_attacks);` |
+| 0.32 % | 2115 | `if (own != 0) {` |
+| 0.32 % | 2138 | `if (enemy != 0) {` |
+| 0.32 % | 2456 | `own_distance = std::min(3, relative_rank(Us, nearest) - king_rank);` |
+| 0.32 % | 2462 | `shelter_term(ShelterDistance + own_distance);` |
+| 0.32 % | 3502 | `if (popcount(board.pieces(Black, Bishop)) >= 2) acc.template add<Black>(BishopPair);` |
+
+## forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)
+| summed % | source line | text |
+|---|---|---|
+| 16.05 % | 843 | `ss->current_move = move;` |
+| 7.07 % | 915 | `child->dirty = nnue::dirty_from_move(move, child->entered_piece, child->entered_capture,` |
+| 2.10 % | 11 | `int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {` |
+| 1.56 % | 87 | `}` |
+| 1.44 % | 509 | `while (!(move = picker.next(skip_quiets)).is_none()) {` |
+| 1.27 % | 610 | `if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {` |
+| 1.27 % | 1406 | `return (*capture_history_)[static_cast<std::size_t>(piece)][move.to][static_cast<std::size_t>(captured)];` |
+| 1.02 % | 2871 | `if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * impro` |
+| 0.90 % | 3957 | `if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth` |
+| 0.84 % | 957 | `const std::uint64_t nodes_before = local_nodes_;` |
+| 0.78 % | 1120 | `if (may_extinguish && quiet && best_score > -MateInMaxPly && score <= alpha - QuietWideGap) {` |
+| 0.72 % | 1489 | `best_score = score;` |
+| 0.66 % | 697 | `if ((king_lines_.check_squares[static_cast<std::size_t>(type)] & square_bb(move.to)) != 0) return true;` |
+| 0.60 % | 1270 | `const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));` |
+| 0.54 % | 435 | `counter_ = (*searcher_.counter_moves_)[static_cast<std::size_t>(previous->moved_piece)][previous->current_move` |
+| 0.54 % | 691 | `const int type = piece_type(squares_[move.from]);` |
+| 0.54 % | 907 | `child->dirty = nnue::dirty_from_move(move, child->entered_piece, child->entered_capture,` |
+| 0.48 % | 930 | `(void)board.make_move(move, undo);` |
+| 0.48 % | 1140 | `if (quiet && quiet_count < static_cast<int>(quiets_tried.size())) quiets_tried[static_cast<std::size_t>(quiet_` |
+| 0.48 % | 1170 | `return is_legal_complete(move);` |
+| 0.48 % | 4129 | `return eval;` |
+| 0.42 % | 37 | `int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {` |
+| 0.42 % | 63 | `ss->double_extensions = inherited_double_extensions;` |
+| 0.42 % | 942 | `(void)board.make_move(move, undo);` |
+| 0.36 % | 47 | `const bool pv_node = beta - alpha > 1;` |
+| 0.36 % | 196 | `const Move tt_move = tt_hit && (!near50 \|\| tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none` |
+| 0.36 % | 657 | `[[nodiscard]] bool is_capture() const { return (flags & (Capture \| EnPassant)) != 0U; }` |
+| 0.36 % | 722 | `const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);` |
+| 0.36 % | 769 | `if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() &&` |
+| 0.36 % | 861 | `ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(moved)][move.to];` |
+| 0.36 % | 1165 | `return probe_body<false>(key);` |
+| 0.36 % | 1252 | `if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;` |
+| 0.36 % | 1305 | `if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {` |
+| 0.36 % | 1509 | `const int singular_depth = std::max(1, (depth - 1) / 2);` |
+| 0.36 % | 1521 | `score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);` |
+| 0.36 % | 2399 | `update_correction(board, depth, best_score, ss->static_eval);` |
+| 0.36 % | 2431 | `if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&` |
+| 0.36 % | 3020 | `__builtin_prefetch(&cluster_for(key));` |
+| 0.30 % | 620 | `if (!king_lines_.valid) refresh_king_lines();` |
+| 0.30 % | 822 | `const bool early_key = board.key_after(move, child_key);` |
+| 0.30 % | 829 | `return clusters_[static_cast<std::size_t>((static_cast<u128>(key) * cluster_count_) >> 64U)];` |
+| 0.30 % | 837 | `return get()[__i];` |
+| 0.30 % | 893 | `[[nodiscard]] Piece piece_at(int square) const { return squares_[static_cast<std::size_t>(square)]; }` |
+| 0.30 % | 1199 | `(tune::sound_arm_enabled(tune::SoundArmInCheck) && in_check) \|\|` |
+| 0.30 % | 1276 | `if (quiet && !gives_check) {` |
+| 0.30 % | 1548 | `move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&` |
+| 0.30 % | 1610 | `if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);` |
+| 0.30 % | 2154 | `const Move tt_move = tt_hit && (!near50 \|\| tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none` |
+| 0.30 % | 3115 | `if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&` |
+| 0.30 % | 3140 | `const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();` |
+
+## forge::nnue::apply_and_evaluate(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&, forge::Board const&)
+| summed % | source line | text |
+|---|---|---|
+| 13.00 % | 275 | `for (int j = 0; j < 16; ++j) out += lanes[j];` |
+| 9.38 % | 537 | `return (__m512) ((__v16sf)__A * (__v16sf)__B);` |
+| 8.77 % | 264 | `return (__m512) ((__v16sf)__A + (__v16sf)__B);` |
+| 7.27 % | 257 | `return (__m512) ((__v16sf)__A * (__v16sf)__B);` |
+| 6.60 % | 544 | `return (__m512) ((__v16sf)__A + (__v16sf)__B);` |
+| 6.47 % | 516 | `return (__m512) ((__v16sf)__A - (__v16sf)__B);` |
+| 5.68 % | 238 | `return (__m512) ((__v16sf)__A + (__v16sf)__B);` |
+| 5.15 % | 312 | `const float centipawns = out * 400.0F / SigmoidK;` |
+| 4.36 % | 254 | `return (__m512) __builtin_ia32_minps512_mask ((__v16sf) __A,` |
+| 3.63 % | 233 | `return (__m512) ((__v16sf)__A - (__v16sf)__B);` |
+| 2.44 % | 262 | `for (int h = 0; h < HiddenSize; h += 16) {` |
+| 2.38 % | 523 | `return (__m512) ((__v16sf)__A + (__v16sf)__B);` |
+| 2.05 % | 241 | `*(__m512 *) __P = __A;` |
+| 1.98 % | 534 | `return (__m512) __builtin_ia32_minps512_mask ((__v16sf) __A,` |
+| 1.98 % | 542 | `for (int h = 0; h < HiddenSize; h += 16) {` |
+| 1.72 % | 526 | `*(__m512 *) __P = __A;` |
+| 1.65 % | 528 | `return (__m512) __builtin_ia32_maxps512_mask ((__v16sf) __A,` |
+| 1.31 % | 214 | `return (relative_color * 6 + type) * 64 + relative_square;` |
+| 1.12 % | 309 | `if (__a < __b)` |
+| 1.06 % | 247 | `return (__m512) __builtin_ia32_maxps512_mask ((__v16sf) __A,` |
+| 0.73 % | 11 | `int apply_and_evaluate(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty, const Board& b` |
+| 0.66 % | 245 | `*(__m512 *) __P = __A;` |
+| 0.66 % | 551 | `return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));` |
+| 0.53 % | 530 | `*(__m512 *) __P = __A;` |
+| 0.46 % | 487 | `return (relative_color * 6 + type) * 64 + relative_square;` |
+| 0.40 % | 150 | `return (relative_color * 6 + type) * 64 + relative_square;` |
+| 0.33 % | 130 | `const int relative_color = color_of(piece) == perspective ? 0 : 1;` |
+| 0.33 % | 172 | `return (relative_color * 6 + type) * 64 + relative_square;` |
+| 0.33 % | 382 | `const int relative_square = perspective == White ? square : square ^ 56;` |
+| 0.33 % | 532 | `return (__m512) __builtin_ia32_maxps512_mask ((__v16sf) __A,` |
+
+## forge::MovePicker::next(bool)
+| summed % | source line | text |
+|---|---|---|
+| 7.67 % | 486 | `int score = main[move.from][move.to];` |
+| 7.31 % | 495 | `if (cont1 != nullptr) score += (*cont1)[p][move.to];` |
+| 6.64 % | 24 | `switch (stage_) {` |
+| 5.44 % | 11 | `[[nodiscard]] Move next(bool skip_quiets) {` |
+| 5.09 % | 59 | `}` |
+| 4.10 % | 482 | `if (cont1 != nullptr) score += (*cont1)[p][move.to];` |
+| 3.43 % | 558 | `[[nodiscard]] constexpr Bitboard square_bb(int square) { return 1ULL << square; }` |
+| 3.33 % | 565 | `if (!seeded_ \|\| score > seeded_score_) {` |
+| 3.00 % | 576 | `moves_[count_++] = Scored{move, score};` |
+| 2.55 % | 501 | `if (cont2 != nullptr) score += (*cont2)[p][move.to];` |
+| 1.78 % | 572 | `seeded_score_ = score;` |
+| 1.55 % | 596 | `if (move == tt_move_ \|\| move == killers_[0] \|\| move == killers_[1] \|\| move == counter_) continue;` |
+| 1.55 % | 836 | `if (move.is_promotion()) value += SeePieceValue[move.promotion] - SeePieceValue[Pawn];` |
+| 1.22 % | 162 | `moves_[count_++] = Scored{move, score};` |
+| 1.22 % | 808 | `[[nodiscard]] Piece piece_at(int square) const { return squares_[static_cast<std::size_t>(square)]; }` |
+| 1.11 % | 203 | `if (move.is_promotion()) value += SeePieceValue[move.promotion] - SeePieceValue[Pawn];` |
+| 1.11 % | 271 | `stage_ = BadCaptures;` |
+| 1.00 % | 506 | `if (cont4 != nullptr) score += (*cont4)[p][move.to] / 2;` |
+| 1.00 % | 570 | `seeded_ = true;` |
+| 1.00 % | 853 | `return Move::none();` |
+| 0.99 % | 276 | `if (bad_index_ < bad_count_) return bad_captures_[bad_index_++];` |
+| 0.99 % | 664 | `while (index_ < count_) {` |
+| 0.89 % | 273 | `bad_index_ = 0;` |
+| 0.89 % | 678 | `if (!skip_quiets) generate_quiets();` |
+| 0.89 % | 797 | `operator[](size_type __n) noexcept` |
+| 0.89 % | 817 | `[[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[static_cast<unsigned>(piec` |
+| 0.78 % | 189 | `int value = SeePieceValue[victim];` |
+| 0.78 % | 822 | `int value = SeePieceValue[victim];` |
+| 0.78 % | 824 | `int score = 10 * value + capture_history[moved][move.to][victim];` |
+| 0.77 % | 908 | `return !move.is_none() && move != tt_move_ && !move.is_capture() && !move.is_promotion() &&` |
+| 0.67 % | 177 | `const std::size_t moved = static_cast<std::size_t>(board_.piece_at(move.from));` |
+| 0.67 % | 236 | `const Move move = pick_best();` |
+| 0.67 % | 786 | `seeded_score_ = score;` |
+| 0.67 % | 790 | `moves_[count_++] = Scored{move, score};` |
+| 0.67 % | 841 | `if (move.is_promotion()) score += move.promotion == Queen ? 20000 : -5000;` |
+| 0.66 % | 304 | `return !move.is_none() && move != tt_move_ && !move.is_capture() && !move.is_promotion() &&` |
+| 0.66 % | 1053 | `return Move::none();` |
+| 0.55 % | 191 | `int score = 10 * value + capture_history[moved][move.to][victim];` |
+| 0.55 % | 232 | `while (index_ < count_) {` |
+| 0.55 % | 284 | `stage_ = CounterMove;` |
+| 0.55 % | 520 | `if (!tune::ThreatHistory) return 0;` |
+| 0.55 % | 589 | `stage_ = QuietMoves;` |
+| 0.55 % | 697 | `if (!board_.see_ge(move, -move_score_threshold(move))) {` |
+| 0.55 % | 711 | `while (index_ < count_) {` |
+| 0.55 % | 784 | `seeded_ = true;` |
+| 0.55 % | 867 | `while (index_ < count_) {` |
+| 0.44 % | 151 | `if (!seeded_ \|\| score > seeded_score_) {` |
+| 0.44 % | 160 | `seeded_at_ = count_;` |
+| 0.44 % | 248 | `const Move move = pick_best();` |
+| 0.44 % | 286 | `if (!skip_quiets && is_valid_quiet(killers_[1]) && killers_[1] != killers_[0]) return killers_[1];` |
+| 0.44 % | 478 | `[[nodiscard]] Piece piece_at(int square) const { return squares_[static_cast<std::size_t>(square)]; }` |
+| 0.44 % | 670 | `stage_ = GenerateQuiets;` |
+| 0.44 % | 688 | `if (!board_.see_ge(move, -move_score_threshold(move))) {` |
+| 0.44 % | 704 | `return move;` |
+| 0.44 % | 814 | `if ((move.flags & EnPassant) != 0U) return side_ == White ? BP : WP;` |
+| 0.44 % | 834 | `int score = 10 * value + capture_history[moved][move.to][victim];` |
+| 0.33 % | 156 | `seeded_ = true;` |
+| 0.33 % | 158 | `seeded_score_ = score;` |
+| 0.33 % | 201 | `int score = 10 * value + capture_history[moved][move.to][victim];` |
+| 0.33 % | 244 | `while (index_ < count_) {` |
+| 0.33 % | 251 | `if (move == tt_move_) continue;` |
+| 0.33 % | 268 | `if (!skip_quiets && is_valid_quiet(killers_[0])) return killers_[0];` |
+| 0.33 % | 292 | `return !move.is_none() && move != tt_move_ && !move.is_capture() && !move.is_promotion() &&` |
+| 0.33 % | 592 | `const Move move = pick_best();` |
+| 0.33 % | 820 | `const std::size_t victim = static_cast<std::size_t>(piece_type(board_.captured_piece(move)));` |
+| 0.33 % | 917 | `if (!skip_quiets && is_valid_quiet(killers_[1]) && killers_[1] != killers_[0]) return killers_[1];` |
+
+## forge::MovePicker::pick_best()
+| summed % | source line | text |
+|---|---|---|
+| 6.29 % | 441 | `*__last = _GLIBCXX_MOVE(*__next);` |
+| 5.82 % | 11 | `[[nodiscard]] Move pick_best() {` |
+| 5.61 % | 210 | `return (__m128i)__builtin_ia32_pshufd ((__v4si)__A, __mask);` |
+| 5.28 % | 416 | `*__last = _GLIBCXX_MOVE(__val);` |
+| 3.92 % | 165 | `}` |
+| 3.82 % | 452 | `for (_RandomAccessIterator __i = __first; __i != __last; ++__i)` |
+| 3.81 % | 406 | `*__last = _GLIBCXX_MOVE(*__next);` |
+| 3.70 % | 228 | `best_score = chunk_max;` |
+| 3.37 % | 161 | `return moves_[index_++].move;` |
+| 2.70 % | 29 | `if (index_ - list_start_ < 4) {` |
+| 2.47 % | 217 | `return (__m128i) __builtin_ia32_pmaxsd128 ((__v4si)__X, (__v4si)__Y);` |
+| 2.36 % | 251 | `const int score = moves_[i].score;` |
+| 2.13 % | 437 | `while (__comp(__val, __next))` |
+| 2.02 % | 221 | `return __builtin_ia32_vec_ext_v4si ((__v4si)__A, 0);` |
+| 1.80 % | 450 | `*__last = _GLIBCXX_MOVE(__val);` |
+| 1.69 % | 456 | `for (_RandomAccessIterator __i = __first; __i != __last; ++__i)` |
+| 1.68 % | 293 | `__a = _GLIBCXX_MOVE(__b);` |
+| 1.57 % | 242 | `while (i + 4 <= n) {` |
+| 1.57 % | 390 | `[](const Scored& a, const Scored& b) { return a.score > b.score; });` |
+| 1.46 % | 395 | `__val = _GLIBCXX_MOVE(*__i);` |
+| 1.45 % | 402 | `while (__comp(__val, __next))` |
+| 1.24 % | 425 | `*__last = _GLIBCXX_MOVE(__val);` |
+| 1.24 % | 432 | `__val = _GLIBCXX_MOVE(*__last);` |
+| 1.23 % | 428 | `for (_RandomAccessIterator __i = __first; __i != __last; ++__i)` |
+| 1.12 % | 288 | `if (best != index_) std::swap(moves_[index_], moves_[best]);` |
+| 1.12 % | 368 | `const ptrdiff_t _Num = __last - __first;` |
+| 0.90 % | 98 | `*__last = _GLIBCXX_MOVE(__val);` |
+| 0.90 % | 58 | `_Tp __tmp = _GLIBCXX_MOVE(__a);` |
+| 0.90 % | 157 | `return moves_[index_++].move;` |
+| 0.90 % | 159 | `sorted_ = true;` |
+| 0.90 % | 179 | `while (i + 4 <= n) {` |
+| 0.90 % | 304 | `std::sort(moves_.begin() + static_cast<std::ptrdiff_t>(index_),` |
+| 0.89 % | 184 | `while (i + 4 <= n) {` |
+| 0.79 % | 86 | `*__last = _GLIBCXX_MOVE(*__next);` |
+| 0.79 % | 188 | `std::size_t i = index_ + 1;` |
+| 0.79 % | 226 | `return __extension__ (__m128i)(__v4si){ __q0, __q1, __q2, __q3 };` |
+| 0.79 % | 302 | `moves_.begin() + static_cast<std::ptrdiff_t>(count_),` |
+| 0.79 % | 374 | `__builtin_memmove(__result - _Num, __first, sizeof(_Tp) * _Num);` |
+| 0.79 % | 413 | `while (__comp(__val, __next))` |
+| 0.79 % | 423 | `for (_RandomAccessIterator __i = __first; __i != __last; ++__i)` |
+| 0.79 % | 447 | `while (__comp(__val, __next))` |
+| 0.68 % | 247 | `for (; i < n; ++i) {` |
+| 0.67 % | 39 | `return moves_[index_++].move;` |
+| 0.67 % | 67 | `seeded_ = false;` |
+| 0.56 % | 25 | `if (index_ - list_start_ < 4) {` |
+| 0.56 % | 237 | `return __builtin_ia32_movmskps ((__v4sf)__A);` |
+| 0.56 % | 387 | `for (_RandomAccessIterator __i = __first + 1; __i != __last; ++__i)` |
+| 0.56 % | 421 | `while (__comp(__val, __next))` |
+| 0.56 % | 462 | `best = i;` |
+| 0.45 % | 41 | `if (seeded_ && index_ == list_start_) {` |
+| 0.45 % | 203 | `return (__m256i) __builtin_ia32_permvarsi256 ((__v8si)__X, (__v8si)__Y);` |
+| 0.45 % | 239 | `best = i + static_cast<std::size_t>(__builtin_ctz(mask));` |
+| 0.45 % | 262 | `const int score = moves_[i].score;` |
+| 0.45 % | 264 | `if (score > best_score) {` |
+| 0.45 % | 276 | `if (score > best_score) {` |
+| 0.45 % | 291 | `_Tp __tmp = _GLIBCXX_MOVE(__a);` |
+| 0.45 % | 296 | `__b = _GLIBCXX_MOVE(__tmp);` |
+| 0.45 % | 335 | `for (_RandomAccessIterator __i = __first + 1; __i != __last; ++__i)` |
+| 0.45 % | 397 | `if (__comp(__i, __first))` |
+| 0.45 % | 400 | `--__next;` |
+| 0.45 % | 411 | `*__last = _GLIBCXX_MOVE(*__next);` |
+| 0.44 % | 134 | `const ptrdiff_t _Num = __last - __first;` |
+| 0.34 % | 45 | `if (seeded_at_ != index_) std::swap(moves_[index_], moves_[seeded_at_]);` |
+| 0.34 % | 56 | `__a = _GLIBCXX_MOVE(__b);` |
+| 0.34 % | 196 | `while (i + 4 <= n) {` |
+| 0.34 % | 254 | `if (score > best_score) {` |
+| 0.34 % | 269 | `for (; i < n; ++i) {` |
+
+## forge::Board::see_ge(forge::Move const&, int) const
+| summed % | source line | text |
+|---|---|---|
+| 8.44 % | 584 | `(attacks::rook(square, occupancy) & (board.pieces(Rook) \| queens));` |
+| 6.37 % | 747 | `}` |
+| 5.92 % | 576 | `(attacks::bishop(square, occupancy) & (board.pieces(Bishop) \| queens)) \|` |
+| 3.71 % | 11 | `bool Board::see_ge(const Move& move, int threshold) const {` |
+| 3.25 % | 638 | `[[nodiscard]] int king_square(Color color) const { return king_squares_[static_cast<std::size_t>(color)]; }` |
+| 2.96 % | 392 | `int swap = SeeValue[static_cast<std::size_t>(piece_type(squares_[static_cast<std::size_t>(captured_square)]))]` |
+| 2.81 % | 397 | `int attacker_value = SeeValue[static_cast<std::size_t>(piece_type(squares_[static_cast<std::size_t>(from)]))];` |
+| 2.38 % | 775 | `return PawnTable[static_cast<std::size_t>(color)][static_cast<std::size_t>(square)];` |
+| 2.36 % | 400 | `int swap = SeeValue[static_cast<std::size_t>(piece_type(squares_[static_cast<std::size_t>(captured_square)]))]` |
+| 2.23 % | 612 | `[[nodiscard]] Bitboard occupied(Color color) const { return occupied_[static_cast<std::size_t>(color)]; }` |
+| 2.06 % | 81 | `if ((target_rank == 0 \|\| target_rank == 7) &&` |
+| 1.78 % | 696 | `attackers \|= attacks::bishop(to, occupancy) & diagonals;` |
+| 1.63 % | 77 | `piece_type(squares_[static_cast<std::size_t>(from)]) != King) {` |
+| 1.63 % | 736 | `if (stm_attackers == 0) break;` |
+| 1.62 % | 70 | `[[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[static_cast<unsigned>(piec` |
+| 1.48 % | 706 | `Bitboard stm_attackers = attackers & occupied(stm);` |
+| 1.33 % | 404 | `if (move.is_promotion()) {` |
+| 1.33 % | 734 | `Bitboard stm_attackers = attackers & occupied(stm);` |
+| 1.33 % | 760 | `} else if ((bb = stm_attackers & pieces(stm, Knight)) != 0) {` |
+| 1.33 % | 851 | `} else if ((bb = stm_attackers & pieces(stm, Bishop)) != 0) {` |
+| 1.18 % | 428 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 1.18 % | 946 | `attackers \|= (attacks::bishop(to, occupancy) & diagonals) \| (attacks::rook(to, occupancy) & lines);` |
+| 1.04 % | 580 | `(attacks::rook(square, occupancy) & (board.pieces(Rook) \| queens));` |
+| 1.04 % | 731 | `if ((stm_attackers & ~king_attackers) != 0) {` |
+| 1.03 % | 680 | `if ((swap = SeeValue[Pawn] - swap) < result) break;` |
+| 0.89 % | 440 | `[[nodiscard]] constexpr Bitboard square_bb(int square) { return 1ULL << square; }` |
+| 0.89 % | 497 | `return m.table[m.index(occupancy)];` |
+| 0.89 % | 702 | `attackers &= occupancy;` |
+| 0.88 % | 555 | `[[nodiscard]] Bitboard pieces(PieceType type) const { return pieces(White, type) \| pieces(Black, type); }` |
+| 0.88 % | 861 | `result ^= 1;` |
+| 0.88 % | 880 | `if ((swap = SeeValue[Rook] - swap) < result) break;` |
+| 0.74 % | 35 | `const Color us = side_;` |
+| 0.74 % | 89 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 0.74 % | 426 | `[[nodiscard]] Bitboard occupied() const { return occupied_[0] \| occupied_[1]; }` |
+| 0.74 % | 457 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 0.74 % | 564 | `return (attacks::pawn(Black, square) & board.pieces(WP)) \| (attacks::pawn(White, square) & board.pieces(BP)) \|` |
+| 0.74 % | 901 | `return BetweenTable[static_cast<std::size_t>(a)][static_cast<std::size_t>(b)];` |
+| 0.60 % | 483 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 0.60 % | 764 | `if ((swap = SeeValue[Knight] - swap) < result) break;` |
+| 0.60 % | 957 | `if (move.is_castle()) return 0 >= threshold;` |
+| 0.59 % | 387 | `[[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[static_cast<unsigned>(piec` |
+| 0.59 % | 419 | `if (swap <= 0) return true;` |
+| 0.59 % | 470 | `return PawnTable[static_cast<std::size_t>(color)][static_cast<std::size_t>(square)];` |
+| 0.59 % | 545 | `return (attacks::pawn(Black, square) & board.pieces(WP)) \| (attacks::pawn(White, square) & board.pieces(BP)) \|` |
+| 0.59 % | 590 | `(attacks::rook(square, occupancy) & (board.pieces(Rook) \| queens));` |
+| 0.59 % | 811 | `contact[side] = (attacks::pawn(stm, king) & pieces(enemy, Pawn)) \|` |
+| 0.59 % | 816 | `snipers[side] = (attacks::bishop_ray(king) & (pieces(enemy, Bishop) \| queens)) \|` |
+| 0.59 % | 819 | `(attacks::knight(king) & pieces(enemy, Knight)) \|` |
+| 0.59 % | 898 | `return PawnTable[static_cast<std::size_t>(color)][static_cast<std::size_t>(square)];` |
+| 0.59 % | 910 | `return BetweenTable[static_cast<std::size_t>(a)][static_cast<std::size_t>(b)];` |
+| 0.44 % | 60 | `[[nodiscard]] constexpr int rank_of(int square) { return square >> 3; }` |
+| 0.44 % | 532 | `[[nodiscard]] Bitboard pieces(PieceType type) const { return pieces(White, type) \| pieces(Black, type); }` |
+| 0.44 % | 572 | `(attacks::knight(square) & board.pieces(Knight)) \| (attacks::king(square) & board.pieces(King)) \|` |
+| 0.44 % | 605 | `Bitboard stm_attackers = attackers & occupied(stm);` |
+| 0.44 % | 677 | `if ((bb = stm_attackers & pieces(stm, Pawn)) != 0) {` |
+| 0.44 % | 717 | `[[nodiscard]] Bitboard occupied(Color color) const { return occupied_[static_cast<std::size_t>(color)]; }` |
+| 0.44 % | 834 | `(attacks::rook_ray(king) & (pieces(enemy, Rook) \| queens));` |
+| 0.44 % | 846 | `snipers[side] = (attacks::bishop_ray(king) & (pieces(enemy, Bishop) \| queens)) \|` |
+| 0.44 % | 876 | `} else if ((bb = stm_attackers & pieces(stm, Rook)) != 0) {` |
+| 0.44 % | 1264 | `return (attackers & ~occupied(stm)) != 0 ? result ^ 1 : result;` |
+| 0.30 % | 45 | `const int captured_square = (move.flags & EnPassant) != 0U ? to - pawn_push_delta(us) : to;` |
+| 0.30 % | 450 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 0.30 % | 515 | `(attacks::bishop(square, occupancy) & (board.pieces(Bishop) \| queens)) \|` |
+| 0.30 % | 596 | `[[nodiscard]] inline Bitboard rook_ray(int square) { return RookRay[static_cast<std::size_t>(square)]; }` |
+| 0.30 % | 627 | `const Bitboard king_attackers = stm_attackers & pieces(stm, King);` |
+| 0.30 % | 653 | `bool checked = (contact[side] & live) != 0;` |
+| 0.30 % | 666 | `Bitboard stm_attackers = attackers & occupied(stm);` |
+| 0.30 % | 785 | `[[nodiscard]] constexpr Color opposite(Color color) { return color == White ? Black : White; }` |
+| 0.30 % | 809 | `(attacks::king(king) & pieces(enemy, King));` |
+| 0.30 % | 821 | `snipers[side] = (attacks::bishop_ray(king) & (pieces(enemy, Bishop) \| queens)) \|` |
+| 0.30 % | 825 | `snipers[side] = (attacks::bishop_ray(king) & (pieces(enemy, Bishop) \| queens)) \|` |
+| 0.30 % | 829 | `(attacks::rook_ray(king) & (pieces(enemy, Rook) \| queens));` |
+| 0.30 % | 855 | `if ((swap = SeeValue[Bishop] - swap) < result) break;` |
+| 0.30 % | 891 | `attackers \|= attacks::rook(to, occupancy) & lines;` |
+| 0.30 % | 933 | `if ((swap = SeeValue[Queen] - swap) < result) break;` |
+| 0.30 % | 943 | `occupancy ^= square_bb(lsb(bb));` |
+
+## forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)
+| summed % | source line | text |
+|---|---|---|
+| 18.81 % | 933 | `ss->current_move = move;` |
+| 8.11 % | 994 | `child->dirty = nnue::dirty_from_move(move, child->entered_piece, child->entered_capture,` |
+| 3.58 % | 86 | `}` |
+| 3.37 % | 11 | `int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {` |
+| 2.60 % | 1134 | `const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpp` |
+| 2.58 % | 1558 | `int value = SeePieceValue[static_cast<std::size_t>(piece_type(board.captured_piece(move)))];` |
+| 2.57 % | 1636 | `if (candidate.key32 == key32 && candidate.occupied()) {` |
+| 2.38 % | 851 | `while (!(move = picker.next(false)).is_none()) {` |
+| 2.18 % | 925 | `return clusters_[static_cast<std::size_t>((static_cast<u128>(key) * cluster_count_) >> 64U)];` |
+| 1.79 % | 866 | `if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {` |
+| 1.79 % | 1564 | `if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {` |
+| 1.78 % | 32 | `int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {` |
+| 1.59 % | 1294 | `if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, Boun` |
+| 1.59 % | 1625 | `probe.cluster_ >= cluster_count_ \|\| probe.slot_ >= 4) return;` |
+| 1.58 % | 455 | `if (best_score > alpha) alpha = best_score;` |
+| 1.58 % | 1421 | `if (!board.see_ge(move, -tune::QsSeeMargin)) continue;` |
+| 1.58 % | 855 | `[[nodiscard]] bool is_none() const { return from == to; }` |
+| 1.39 % | 1486 | `? score_from_tt(tte.score, ply) : ValueNone;` |
+| 1.39 % | 1583 | `(!board.in_check() && !board.has_legal_move());` |
+| 1.19 % | 152 | `if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmo` |
+| 1.19 % | 381 | `const bool tt_pv = pv_node \|\| (tt_hit && !near50 && tte.pv());` |
+| 1.00 % | 395 | `else ss->raw_eval = static_evaluate(board, ss);` |
+| 1.00 % | 1399 | `if ((king_lines_.check_squares[static_cast<std::size_t>(type)] & square_bb(move.to)) != 0) return true;` |
+| 0.99 % | 161 | `if (mate_moves_ > 0) {` |
+| 0.99 % | 529 | `counter_ = (*searcher_.counter_moves_)[static_cast<std::size_t>(previous->moved_piece)][previous->current_move` |
+| 0.99 % | 1186 | `return best_score;` |
+| 0.99 % | 1495 | `if (score <= -MateInMaxPly) {` |
+| 0.80 % | 902 | `++move_count;` |
+| 0.80 % | 1092 | `if (tt_hit && tt_score != ValueNone &&` |
+| 0.79 % | 443 | `eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());` |
+| 0.79 % | 1084 | `const bool tt_pv = pv_node \|\| (tt_hit && !near50 && tte.pv());` |
+| 0.79 % | 1393 | `[[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[static_cast<unsigned>(piec` |
+| 0.60 % | 225 | `const int capped = current_clock < 100 ? static_cast<int>(current_clock) : 100;` |
+| 0.60 % | 315 | `if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmo` |
+| 0.60 % | 409 | `eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());` |
+| 0.60 % | 459 | `futility_base = ss->static_eval + tune::QsFutilityMargin;` |
+| 0.60 % | 516 | `if (!previous->current_move.is_none() && previous->moved_piece != Empty) {` |
+| 0.60 % | 1156 | `[[nodiscard]] int halfmove_clock() const { return halfmove_; }` |
+| 0.60 % | 1309 | `if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, Boun` |
+| 0.60 % | 1614 | `if (probe.owner_ != this \|\| probe.epoch_ != epoch_ \|\| probe.key_ != key \|\|` |
+| 0.60 % | 1662 | `entry->key32 = key32;` |
+| 0.59 % | 46 | `if (aborted_) return 0;` |
+| 0.59 % | 203 | `[[nodiscard]] std::uint64_t key() const { return key_; }` |
+| 0.59 % | 272 | `if (!tune::EvalRule50Damp) return true;` |
+| 0.59 % | 860 | `const Piece moving = squares_[move.from];` |
+| 0.59 % | 872 | `if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {` |
+| 0.59 % | 879 | `const int king = king_squares_[static_cast<std::size_t>(side_)];` |
+| 0.59 % | 1406 | `return (king_lines_.discoverers & square_bb(move.from)) != 0 && !attacks::aligned(king, move.from, move.to);` |
+| 0.40 % | 65 | `seldepth_ = std::max(seldepth_, ply);` |
+| 0.40 % | 213 | `const bool pv_node = beta - alpha > 1;` |
+| 0.40 % | 469 | `if (!tt_move_.is_none() && !board_.is_pseudo_legal(tt_move_)) tt_move_ = Move::none();` |
+| 0.40 % | 473 | `[[nodiscard]] bool in_check() const { return checkers_ != 0; }` |
+| 0.40 % | 848 | `if (!board.is_legal(move)) continue;` |
+| 0.40 % | 912 | `const bool early_key = board.key_after(move, child_key);` |
+| 0.40 % | 953 | `(ss + 1)->ply = ply + 1;` |
+| 0.40 % | 973 | `[[nodiscard]] Piece piece_at(int square) const { return squares_[static_cast<std::size_t>(square)]; }` |
+| 0.40 % | 1036 | `const int score = -qsearch(board, ss + 1, -beta, -alpha);` |
+| 0.40 % | 1065 | `best_move = move;` |
+| 0.40 % | 1128 | `if (in_check && move_count == 0) return mated_in(ply);` |
+| 0.40 % | 1289 | `if (best_score >= beta) {` |
+| 0.40 % | 1302 | `if (score <= -MateInMaxPly) return score - ply;` |
+| 0.40 % | 1355 | `(tt_bound == BoundUpper && tt_score <= alpha))) {` |
+| 0.40 % | 1397 | `[[nodiscard]] constexpr Bitboard square_bb(int square) { return 1ULL << square; }` |
+| 0.40 % | 1650 | `if ((!stale_slot \|\| admit) && (!move.is_none() \|\| !same_position)) entry->move = move;` |
+
+## forge::Worker::corrected_eval(forge::Board const&, int) const
+| summed % | source line | text |
+|---|---|---|
+| 33.42 % | 101 | `correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorre` |
+| 21.34 % | 58 | `key = key * 1099511628211ULL + static_cast<std::uint64_t>(popcount(board.pieces(color, static_cast<PieceType>(` |
+| 17.03 % | 46 | `if (tune::MaterialCorrectionWeight > 0) {` |
+| 6.24 % | 128 | `if (__b < __a)` |
+| 5.60 % | 40 | `std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];` |
+| 3.46 % | 137 | `}` |
+| 3.45 % | 95 | `correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorre` |
+| 2.81 % | 11 | `int Worker::corrected_eval(const Board& board, int raw_eval) const {` |
+| 2.37 % | 112 | `if (tune::NonPawnCorrection) {` |
+| 2.16 % | 119 | `return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);` |
+| 1.94 % | 27 | `if (dead_material_enabled) {` |
+
+## void forge::fill_pseudo_legal<(forge::Board::GenMode)1>(forge::Board const&, forge::MoveList&)
+| summed % | source line | text |
+|---|---|---|
+| 6.39 % | 316 | `while (targets != 0) {` |
+| 5.28 % | 170 | `return PawnTable[static_cast<std::size_t>(color)][static_cast<std::size_t>(square)];` |
+| 5.00 % | 460 | `while (rooks != 0) {` |
+| 3.91 % | 511 | `while (targets != 0) {` |
+| 3.90 % | 382 | `while (targets != 0) {` |
+| 3.62 % | 208 | `moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), Queen,` |
+| 3.61 % | 369 | `return m.table[m.index(occupancy)];` |
+| 3.33 % | 201 | `while (targets != 0) {` |
+| 3.33 % | 430 | `return m.table[m.index(occupancy)];` |
+| 2.50 % | 296 | `while (knights != 0) {` |
+| 2.50 % | 303 | `bb &= bb - 1;` |
+| 2.50 % | 336 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 2.22 % | 609 | `[[nodiscard]] constexpr Bitboard shift_south(Bitboard bb) { return bb >> 8; }` |
+| 2.22 % | 345 | `while (bishops != 0) {` |
+| 2.22 % | 532 | `[[nodiscard]] int king_square(Color color) const { return king_squares_[static_cast<std::size_t>(color)]; }` |
+| 1.95 % | 355 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 1.95 % | 443 | `while (targets != 0) {` |
+| 1.95 % | 538 | `while (targets != 0) {` |
+| 1.94 % | 228 | `while (capturers != 0) {` |
+| 1.67 % | 233 | `[[nodiscard]] int ep_square() const { return ep_square_; }` |
+| 1.67 % | 422 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 1.67 % | 482 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 1.67 % | 574 | `}` |
+| 1.66 % | 463 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 1.39 % | 44 | `operator[](size_type __n) const noexcept` |
+| 1.39 % | 196 | `[[nodiscard]] constexpr Bitboard square_bb(int square) { return 1ULL << square; }` |
+| 1.39 % | 308 | `moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flags});` |
+| 1.39 % | 285 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 1.39 % | 435 | `moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flags});` |
+| 1.39 % | 509 | `void push_back(Move move) { assert(size_ < Capacity); data_[size_++] = move; }` |
+| 1.12 % | 157 | `Bitboard capturers = pawns;` |
+| 1.12 % | 374 | `moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flags});` |
+| 1.12 % | 402 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 1.12 % | 503 | `moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flags});` |
+| 1.11 % | 192 | `bb &= bb - 1;` |
+| 1.11 % | 194 | `return PawnTable[static_cast<std::size_t>(color)][static_cast<std::size_t>(square)];` |
+| 1.11 % | 199 | `const bool promotes = (square_bb(from) & seventh) != 0;` |
+| 1.11 % | 417 | `while (targets != 0) {` |
+| 1.11 % | 473 | `while (queens != 0) {` |
+| 1.11 % | 495 | `return bishop(square, occupancy) \| rook(square, occupancy);` |
+| 0.84 % | 11 | `void fill_pseudo_legal(const Board& board, MoveList& moves) {` |
+| 0.84 % | 498 | `while (targets != 0) {` |
+| 0.83 % | 189 | `while (targets != 0) {` |
+| 0.83 % | 630 | `const Bitboard seventh = us == White ? Rank7BB : Rank2BB;` |
+| 0.56 % | 27 | `[[nodiscard]] Color side_to_move() const { return side_; }` |
+| 0.56 % | 73 | `const Bitboard empty = ~occ;` |
+| 0.56 % | 220 | `while (targets != 0) {` |
+| 0.56 % | 399 | `while (bishops != 0) {` |
+| 0.56 % | 412 | `while (rooks != 0) {` |
+| 0.56 % | 420 | `bb &= bb - 1;` |
+| 0.56 % | 536 | `[[nodiscard]] inline Bitboard king(int square) { return KingTable[static_cast<std::size_t>(square)]; }` |
+| 0.56 % | 545 | `moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flags});` |
+| 0.56 % | 611 | `[[nodiscard]] Bitboard occupied(Color color) const { return occupied_[static_cast<std::size_t>(color)]; }` |
+
+## forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)
+| summed % | source line | text |
+|---|---|---|
+| 37.81 % | 476 | `destination[index] = (source[index] - removed_column[index]) + added_column[index];` |
+| 37.81 % | 748 | `destination[index] = ((source[index] - removed0_column[index]) - removed1_column[index]) + added_column[index]` |
+| 5.27 % | 697 | `for (int h = 0; h < HiddenSize; ++h) {` |
+| 3.10 % | 192 | `for (int h = 0; h < HiddenSize; ++h) acc[static_cast<std::size_t>(h)] += column[h];` |
+| 3.10 % | 443 | `for (int h = 0; h < HiddenSize; ++h) {` |
+| 2.17 % | 11 | `void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty) {` |
+| 2.17 % | 274 | `for (int h = 0; h < HiddenSize; ++h) acc[static_cast<std::size_t>(h)] -= column[h];` |
+| 0.93 % | 417 | `return (relative_color * 6 + type) * 64 + relative_square;` |
+| 0.62 % | 28 | `const Weights& weights() { return live_weights(); }` |
+| 0.62 % | 56 | `for (const Color perspective : {White, Black}) {` |
+| 0.62 % | 258 | `}` |
+| 0.62 % | 541 | `for (const Color perspective : {White, Black}) {` |
+| 0.62 % | 897 | `static_cast<std::size_t>(feature_index(perspective, removed0.piece, removed0.square)) * HiddenSize;` |
+| 0.31 % | 34 | `if (dirty.count == 2 && !dirty.changes[0].add && dirty.changes[1].add) {` |
+| 0.31 % | 150 | `[[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[static_cast<unsigned>(piec` |
+| 0.31 % | 159 | `return (relative_color * 6 + type) * 64 + relative_square;` |
+| 0.31 % | 374 | `[[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[static_cast<unsigned>(piec` |
+| 0.31 % | 394 | `[[nodiscard]] constexpr Color color_of(Piece piece) { return piece >= BP ? Black : White; }` |
+| 0.31 % | 397 | `return (relative_color * 6 + type) * 64 + relative_square;` |
+| 0.31 % | 402 | `const int type = piece_type(piece) - 1;` |
+| 0.31 % | 424 | `const int relative_square = perspective == White ? square : square ^ 56;` |
+| 0.31 % | 436 | `const int relative_color = color_of(piece) == perspective ? 0 : 1;` |
+| 0.31 % | 552 | `for (const Color perspective : {White, Black}) {` |
+| 0.31 % | 648 | `const int relative_color = color_of(piece) == perspective ? 0 : 1;` |
+| 0.31 % | 675 | `static_cast<std::size_t>(feature_index(perspective, removed0.piece, removed0.square)) * HiddenSize;` |
+| 0.31 % | 689 | `static_cast<std::size_t>(feature_index(perspective, removed1.piece, removed1.square)) * HiddenSize;` |
+| 0.31 % | 842 | `return (relative_color * 6 + type) * 64 + relative_square;` |
+| 0.31 % | 906 | `const int relative_square = perspective == White ? square : square ^ 56;` |
+
+## forge::MovePicker::generate_evasions()
+| summed % | source line | text |
+|---|---|---|
+| 18.55 % | 299 | `if (cont1 != nullptr) score += (*cont1)[p][move.to];` |
+| 13.21 % | 309 | `if (cont2 != nullptr) score += (*cont2)[p][move.to];` |
+| 11.63 % | 368 | `if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;` |
+| 11.01 % | 294 | `int score = main[move.from][move.to];` |
+| 5.66 % | 231 | `SeePieceValue[static_cast<std::size_t>(piece_type(board_.moved_piece(move)))] / 10;` |
+| 4.39 % | 253 | `moves_[count_++] = Scored{move, score};` |
+| 3.78 % | 202 | `} else if (move.is_capture() \|\| move.is_promotion()) {` |
+| 3.78 % | 288 | `[[nodiscard]] Piece piece_at(int square) const { return squares_[static_cast<std::size_t>(square)]; }` |
+| 3.14 % | 196 | `[[nodiscard]] Piece piece_at(int square) const { return squares_[static_cast<std::size_t>(square)]; }` |
+| 3.14 % | 249 | `seeded_score_ = score;` |
+| 2.83 % | 319 | `if (cont4 != nullptr) score += (*cont4)[p][move.to] / 2;` |
+| 2.20 % | 193 | `for (const Move move : buffer_) {` |
+| 1.57 % | 199 | `if (history_evasions && move.is_capture()) {` |
+| 1.57 % | 247 | `seeded_ = true;` |
+| 1.26 % | 95 | `return m.table[m.index(occupancy)];` |
+| 0.94 % | 211 | `if ((move.flags & EnPassant) != 0U) return side_ == White ? BP : WP;` |
+| 0.94 % | 227 | `if (move.is_promotion()) value += SeePieceValue[move.promotion] - SeePieceValue[Pawn];` |
+| 0.94 % | 291 | `const std::size_t p = static_cast<std::size_t>(piece);` |
+| 0.94 % | 335 | `if (!tune::ThreatHistory) return 0;` |
+| 0.63 % | 84 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 0.63 % | 239 | `score = 1'000'000 + 10 * capture_value(board_, move) -` |
+| 0.63 % | 286 | `int score = main[move.from][move.to];` |
+| 0.62 % | 242 | `if (!seeded_ \|\| score > seeded_score_) {` |
+| 0.31 % | 11 | `void generate_evasions() {` |
+| 0.31 % | 43 | `[[nodiscard]] constexpr Color opposite(Color color) { return color == White ? Black : White; }` |
+| 0.31 % | 51 | `[[nodiscard]] Bitboard occupied() const { return occupied_[0] \| occupied_[1]; }` |
+| 0.31 % | 60 | `check_squares_[Pawn] = attacks::pawn(them, enemy_king);` |
+| 0.31 % | 65 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 0.31 % | 81 | `return m.table[m.index(occupancy)];` |
+| 0.31 % | 101 | `check_squares_[Rook] = attacks::rook(enemy_king, occupancy);` |
+| 0.31 % | 105 | `check_squares_[King] = 0;` |
+| 0.31 % | 115 | `const QuietScorer scorer(board_, searcher_, ss_);` |
+| 0.31 % | 144 | `cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),` |
+| 0.31 % | 169 | `if (!tune::ThreatHistory) return 0;` |
+| 0.31 % | 176 | `int score = main[move.from][move.to];` |
+| 0.31 % | 191 | `moves_[count_++] = Scored{move, score};` |
+| 0.31 % | 220 | `[[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[static_cast<unsigned>(piec` |
+| 0.31 % | 225 | `SeePieceValue[static_cast<std::size_t>(piece_type(board_.captured_piece(move)))];` |
+| 0.31 % | 259 | `for (const Move move : buffer_) {` |
+| 0.31 % | 262 | `list_start_ = index_;` |
+| 0.31 % | 364 | `[[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[static_cast<unsigned>(piec` |
+| 0.31 % | 366 | `[[nodiscard]] constexpr Bitboard square_bb(int square) { return 1ULL << square; }` |
+
+## void std::__introsort_loop<forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}> >(forge::MovePicker::Scored*, forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}>) [clone .isra.0]
+| summed % | source line | text |
+|---|---|---|
+| 13.17 % | 97 | `++__first;` |
+| 11.75 % | 104 | `while (__comp(__pivot, __last))` |
+| 7.83 % | 93 | `while (__comp(__first, __pivot))` |
+| 5.69 % | 108 | `--__last;` |
+| 5.34 % | 113 | `if (!(__first < __last))` |
+| 4.98 % | 110 | `while (__comp(__pivot, __last))` |
+| 4.63 % | 118 | `__a = _GLIBCXX_MOVE(__b);` |
+| 4.63 % | 124 | `__b = _GLIBCXX_MOVE(__tmp);` |
+| 3.92 % | 88 | `}` |
+| 3.91 % | 102 | `--__last;` |
+| 3.91 % | 116 | `_Tp __tmp = _GLIBCXX_MOVE(__a);` |
+| 3.56 % | 11 | `__introsort_loop(_RandomAccessIterator __first,` |
+| 3.56 % | 148 | `std::__introsort_loop(__cut, __last, __depth_limit, __comp);` |
+| 3.20 % | 309 | `}` |
+| 2.85 % | 46 | `[](const Scored& a, const Scored& b) { return a.score > b.score; });` |
+| 2.49 % | 163 | `__a = _GLIBCXX_MOVE(__b);` |
+| 2.13 % | 120 | `++__first;` |
+| 1.78 % | 136 | `__a = _GLIBCXX_MOVE(__b);` |
+| 1.43 % | 153 | `while (__last - __first > int(_S_threshold))` |
+| 1.42 % | 28 | `while (__last - __first > int(_S_threshold))` |
+| 1.07 % | 77 | `__b = _GLIBCXX_MOVE(__tmp);` |
+| 1.07 % | 130 | `else if (__comp(__a, __c))` |
+| 1.07 % | 133 | `else if (__comp(__b, __c))` |
+| 0.71 % | 16 | `while (__last - __first > int(_S_threshold))` |
+| 0.71 % | 69 | `if (__comp(__b, __c))` |
+| 0.71 % | 128 | `while (__comp(__first, __pivot))` |
+| 0.36 % | 19 | `__introsort_loop(_RandomAccessIterator __first,` |
+| 0.36 % | 39 | `_RandomAccessIterator __mid = __first + (__last - __first) / 2;` |
+| 0.36 % | 55 | `_RandomAccessIterator __mid = __first + (__last - __first) / 2;` |
+| 0.36 % | 62 | `_Tp __tmp = _GLIBCXX_MOVE(__a);` |
+| 0.36 % | 72 | `else if (__comp(__a, __c))` |
+| 0.36 % | 75 | `__a = _GLIBCXX_MOVE(__b);` |
+| 0.36 % | 140 | `__b = _GLIBCXX_MOVE(__tmp);` |
+
+## forge::Board::is_legal_complete(forge::Move const&) const
+| summed % | source line | text |
+|---|---|---|
+| 10.63 % | 182 | `return !square_attacked_with_occupancy(king, opposite(us), occupancy, removed);` |
+| 9.06 % | 169 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 6.31 % | 224 | `return PawnTable[static_cast<std::size_t>(color)][static_cast<std::size_t>(square)];` |
+| 5.51 % | 184 | `}` |
+| 5.11 % | 163 | `if ((attacks::bishop(square, occupancy) & ((pieces(by, Bishop) & available) \| queens)) != 0) return true;` |
+| 4.72 % | 124 | `if ((attacks::pawn(opposite(by), square) & pieces(by, Pawn) & available) != 0) return true;` |
+| 4.32 % | 115 | `return PawnTable[static_cast<std::size_t>(color)][static_cast<std::size_t>(square)];` |
+| 3.94 % | 11 | `bool Board::is_legal_complete(const Move& move) const {` |
+| 3.94 % | 19 | `[[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[static_cast<unsigned>(piec` |
+| 3.94 % | 30 | `const Color us = side_;` |
+| 3.93 % | 148 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 3.93 % | 35 | `if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {` |
+| 3.54 % | 139 | `if ((attacks::king(square) & pieces(by, King) & available) != 0) return true;` |
+| 3.15 % | 198 | `Bitboard occupancy = occupied() & ~square_bb(move.from);` |
+| 2.76 % | 101 | `const int king = piece_type(moving) == King ? static_cast<int>(move.to) : king_square(us);` |
+| 2.75 % | 48 | `[[nodiscard]] constexpr Bitboard square_bb(int square) { return 1ULL << square; }` |
+| 2.36 % | 93 | `if (move.is_castle()) {` |
+| 2.36 % | 161 | `return __builtin_ia32_pext_di (__X, __Y);` |
+| 2.36 % | 171 | `return (attacks::rook(square, occupancy) & ((pieces(by, Rook) & available) \| queens)) != 0;` |
+| 1.97 % | 104 | `[[nodiscard]] int king_square(Color color) const { return king_squares_[static_cast<std::size_t>(color)]; }` |
+| 1.97 % | 154 | `return m.table[m.index(occupancy)];` |
+| 1.57 % | 131 | `if ((attacks::knight(square) & pieces(by, Knight) & available) != 0) return true;` |
+| 1.57 % | 84 | `[[nodiscard]] constexpr Bitboard square_bb(int square) { return 1ULL << square; }` |
+| 1.57 % | 145 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 1.57 % | 178 | `return m.table[m.index(occupancy)];` |
+| 1.18 % | 87 | `occupancy &= ~removed;` |
+| 0.79 % | 107 | `[[nodiscard]] constexpr Color opposite(Color color) { return color == White ? Black : White; }` |
+| 0.79 % | 129 | `[[nodiscard]] inline Bitboard knight(int square) { return KnightTable[static_cast<std::size_t>(square)]; }` |
+| 0.79 % | 193 | `[[nodiscard]] Bitboard occupied() const { return occupied_[0] \| occupied_[1]; }` |
+| 0.39 % | 137 | `[[nodiscard]] inline Bitboard king(int square) { return KingTable[static_cast<std::size_t>(square)]; }` |
+| 0.39 % | 200 | `if ((move.flags & EnPassant) != 0U) captured_square = move.to - pawn_push_delta(us);` |
+| 0.39 % | 204 | `if (move.is_capture()) {` |
+| 0.39 % | 283 | `occupancy &= ~square_bb(rook_from);` |
+
+## forge::Board::make_move(forge::Move const&, forge::Undo&)
+| summed % | source line | text |
+|---|---|---|
+| 8.37 % | 11 | `bool Board::make_move(const Move& move, Undo& undo) {` |
+| 5.44 % | 78 | `undo.halfmove = halfmove_;` |
+| 3.78 % | 423 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 3.77 % | 139 | `if ((move.flags & EnPassant) != 0U) {` |
+| 3.77 % | 520 | `plies_from_null_ = static_cast<std::uint16_t>(std::min<int>(plies_from_null_ + 1, 1024));` |
+| 3.77 % | 503 | `(attacks::bishop(their_king, occ_now) & (pieces(us, Bishop) \| our_queens)) \|` |
+| 3.35 % | 33 | `const Piece moving = squares_[move.from];` |
+| 2.94 % | 470 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 2.52 % | 243 | `[[nodiscard]] constexpr Color color_of(Piece piece) { return piece >= BP ? Black : White; }` |
+| 2.52 % | 567 | `}` |
+| 2.52 % | 748 | `if (piece_type(undo.captured) == Pawn) pawn_key_ ^= piece_key(move.to, undo.captured);` |
+| 2.51 % | 89 | `undo.plies_from_null = plies_from_null_;` |
+| 2.09 % | 58 | `undo.ep_square = ep_square_;` |
+| 2.09 % | 486 | `(attacks::king(their_king) & pieces(us, King)) \|` |
+| 1.68 % | 476 | `(attacks::knight(their_king) & pieces(us, Knight)) \|` |
+| 1.68 % | 660 | `if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.from, moving);` |
+| 1.67 % | 49 | `[[nodiscard]] constexpr Color opposite(Color color) { return color == White ? Black : White; }` |
+| 1.67 % | 218 | `return Z.piece[static_cast<std::size_t>(piece)][static_cast<std::size_t>(square)];` |
+| 1.67 % | 509 | `(attacks::king(their_king) & pieces(us, King)) \|` |
+| 1.67 % | 702 | `[[nodiscard]] constexpr Color color_of(Piece piece) { return piece >= BP ? Black : White; }` |
+| 1.26 % | 123 | `halfmove_ = static_cast<std::uint16_t>(std::min<int>(halfmove_ + 1, 65535));` |
+| 1.26 % | 135 | `const int captured_square = move.to - pawn_push_delta(us);` |
+| 1.26 % | 207 | `if (undo.captured != Empty \|\| piece_type(moving) == Pawn) halfmove_ = 0;` |
+| 1.26 % | 224 | `key_ ^= piece_key(move.from, moving);` |
+| 1.26 % | 232 | `const Bitboard bits = square_bb(from) \| square_bb(to);` |
+| 1.26 % | 254 | `squares_[static_cast<std::size_t>(to)] = piece;` |
+| 1.26 % | 365 | `castling_ &= static_cast<std::uint8_t>(CastlingMasks[move.from] & CastlingMasks[move.to]);` |
+| 1.26 % | 371 | `key_ ^= Z.castling[castling_];` |
+| 1.26 % | 453 | `return PawnTable[static_cast<std::size_t>(color)][static_cast<std::size_t>(square)];` |
+| 1.26 % | 507 | `(attacks::rook(their_king, occ_now) & (pieces(us, Rook) \| our_queens));` |
+| 1.26 % | 530 | `if (__b < __a)` |
+| 1.26 % | 735 | `[[nodiscard]] Bitboard occupied() const { return occupied_[0] \| occupied_[1]; }` |
+| 0.84 % | 230 | `const Piece piece = squares_[static_cast<std::size_t>(from)];` |
+| 0.84 % | 236 | `const Piece piece = squares_[static_cast<std::size_t>(from)];` |
+| 0.84 % | 240 | `bitboards_[static_cast<std::size_t>(piece)] ^= bits;` |
+| 0.84 % | 386 | `if (ep_square_ >= 0 && has_legal_en_passant_capture()) {` |
+| 0.84 % | 388 | `key_ ^= Z.side;` |
+| 0.84 % | 397 | `key_ ^= Z.side;` |
+| 0.84 % | 467 | `checkers_ = (attacks::pawn(them, their_king) & pieces(us, Pawn)) \|` |
+| 0.84 % | 490 | `(attacks::king(their_king) & pieces(us, King)) \|` |
+| 0.84 % | 541 | `plies_from_null_ = static_cast<std::uint16_t>(std::min<int>(plies_from_null_ + 1, 1024));` |
+| 0.84 % | 550 | `{ return ::new((void*)__location) _Tp(std::forward<_Args>(__args)...); }` |
+| 0.84 % | 618 | `if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.to, moving);` |
+| 0.84 % | 645 | `return Z.piece[static_cast<std::size_t>(piece)][static_cast<std::size_t>(square)];` |
+| 0.84 % | 698 | `bitboards_[static_cast<std::size_t>(piece)] &= ~bit;` |
+| 0.84 % | 726 | `if (us == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));` |
+| 0.42 % | 96 | `if (ep_square_ >= 0 && has_legal_en_passant_capture()) {` |
+| 0.42 % | 214 | `return Z.piece[static_cast<std::size_t>(piece)][static_cast<std::size_t>(square)];` |
+| 0.42 % | 216 | `if (undo.captured != Empty \|\| piece_type(moving) == Pawn) halfmove_ = 0;` |
+| 0.42 % | 238 | `const Bitboard bits = square_bb(from) \| square_bb(to);` |
+| 0.42 % | 249 | `occupied_[static_cast<std::size_t>(color_of(piece))] ^= bits;` |
+| 0.42 % | 251 | `squares_[static_cast<std::size_t>(from)] = Empty;` |
+| 0.42 % | 302 | `if (piece_type(moving) == King) king_squares_[static_cast<std::size_t>(us)] = move.to;` |
+| 0.42 % | 306 | `if (move.is_castle()) {` |
+| 0.42 % | 358 | `key_ ^= Z.castling[castling_];` |
+| 0.42 % | 362 | `key_ ^= Z.castling[castling_];` |
+| 0.42 % | 377 | `if ((move.flags & DoublePush) != 0U) ep_square_ = static_cast<std::int8_t>((move.from + move.to) / 2);` |
+| 0.42 % | 392 | `if (us == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));` |
+| 0.42 % | 412 | `[[nodiscard]] Bitboard occupied() const { return occupied_[0] \| occupied_[1]; }` |
+| 0.42 % | 418 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 0.42 % | 456 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 0.42 % | 484 | `return __builtin_ia32_pext_di (__X, __Y);` |
+| 0.42 % | 488 | `(attacks::knight(their_king) & pieces(us, Knight)) \|` |
+| 0.42 % | 494 | `checkers_ = (attacks::pawn(them, their_king) & pieces(us, Pawn)) \|` |
+| 0.42 % | 499 | `return m.table[m.index(occupancy)];` |
+| 0.42 % | 514 | `return m.table[m.index(occupancy)];` |
+| 0.42 % | 516 | `plies_from_null_ = static_cast<std::uint16_t>(std::min<int>(plies_from_null_ + 1, 1024));` |
+| 0.42 % | 522 | `(attacks::bishop(their_king, occ_now) & (pieces(us, Bishop) \| our_queens)) \|` |
+| 0.42 % | 539 | `if (this->_M_impl._M_finish != this->_M_impl._M_end_of_storage)` |
+| 0.42 % | 556 | `++this->_M_impl._M_finish;` |
+| 0.42 % | 589 | `return Z.piece[static_cast<std::size_t>(piece)][static_cast<std::size_t>(square)];` |
+| 0.42 % | 612 | `return Z.piece[static_cast<std::size_t>(piece)][static_cast<std::size_t>(square)];` |
+| 0.42 % | 615 | `key_ ^= piece_key(move.to, moving);` |
+| 0.42 % | 681 | `return Z.piece[static_cast<std::size_t>(piece)][static_cast<std::size_t>(square)];` |
+| 0.42 % | 705 | `squares_[static_cast<std::size_t>(square)] = Empty;` |
+| 0.42 % | 716 | `key_ ^= Z.side;` |
+| 0.42 % | 720 | `if (us == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));` |
+| 0.42 % | 724 | `side_ = them;` |
+| 0.42 % | 741 | `[[nodiscard]] Bitboard occupied() const { return occupied_[0] \| occupied_[1]; }` |
+
+## forge::TTProbe forge::TranspositionTable::probe_body<false>(unsigned long) const
+| summed % | source line | text |
+|---|---|---|
+| 33.78 % | 60 | `for (TTEntry& entry : cluster.entries) {` |
+| 12.61 % | 47 | `for (TTEntry& entry : cluster.entries) {` |
+| 10.36 % | 134 | `return result;` |
+| 5.86 % | 138 | `if (entry.key32 == key32 && entry.occupied()) {` |
+| 5.40 % | 192 | `}` |
+| 4.95 % | 19 | `return clusters_[static_cast<std::size_t>((static_cast<u128>(key) * cluster_count_) >> 64U)];` |
+| 4.50 % | 220 | `return result;` |
+| 4.05 % | 111 | `if (!entry.occupied()) return snapshot(entry, false);` |
+| 2.25 % | 11 | `TTProbe TranspositionTable::probe_body(std::uint64_t key) const {` |
+| 2.25 % | 73 | `? replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U)` |
+| 1.80 % | 128 | `result.owner_ = this;` |
+| 1.35 % | 66 | `const std::uint8_t generation = generation_;` |
+| 1.35 % | 120 | `result.epoch_ = epoch_;` |
+| 0.90 % | 57 | `if (entry.key32 == key32 && entry.occupied()) {` |
+| 0.90 % | 87 | `const int score = entry.depth - 4 * age;` |
+| 0.90 % | 116 | `result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());` |
+| 0.90 % | 141 | `[[nodiscard]] std::uint8_t generation() const { return static_cast<std::uint8_t>(gen_bound >> 3U); }` |
+| 0.90 % | 176 | `result.epoch_ = epoch_;` |
+| 0.90 % | 223 | `? replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U)` |
+| 0.45 % | 90 | `const int age = static_cast<int>((32U + generation - entry.generation()) & 31U);` |
+| 0.45 % | 114 | `result.entry = entry;` |
+| 0.45 % | 118 | `TTProbe result;` |
+| 0.45 % | 122 | `result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());` |
+| 0.45 % | 143 | `const std::uint8_t generation = generation_;` |
+| 0.45 % | 156 | `result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());` |
+| 0.45 % | 162 | `result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());` |
+| 0.45 % | 166 | `result.hit = hit;` |
+| 0.45 % | 181 | `}` |
+
+## void forge::fill_pseudo_legal<(forge::Board::GenMode)2>(forge::Board const&, forge::MoveList&)
+| summed % | source line | text |
+|---|---|---|
+| 11.64 % | 319 | `while (targets != 0) {` |
+| 9.63 % | 387 | `while (targets != 0) {` |
+| 8.61 % | 187 | `while (targets != 0) {` |
+| 6.58 % | 429 | `while (targets != 0) {` |
+| 6.08 % | 259 | `while (targets != 0) {` |
+| 6.08 % | 109 | `while (single != 0) {` |
+| 5.05 % | 100 | `while (single != 0) {` |
+| 4.55 % | 306 | `return m.table[m.index(occupancy)];` |
+| 3.04 % | 340 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 2.53 % | 179 | `moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flags});` |
+| 2.03 % | 144 | `while (twice != 0) {` |
+| 2.02 % | 296 | `bb &= bb - 1;` |
+| 1.53 % | 130 | `Bitboard twice = pawn_push(us, single & third) & empty;` |
+| 1.52 % | 52 | `Bitboard single = pawn_push(us, regular) & empty;` |
+| 1.52 % | 257 | `void push_back(Move move) { assert(size_ < Capacity); data_[size_++] = move; }` |
+| 1.52 % | 298 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 1.52 % | 380 | `moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flags});` |
+| 1.52 % | 426 | `void push_back(Move move) { assert(size_ < Capacity); data_[size_++] = move; }` |
+| 1.02 % | 11 | `void fill_pseudo_legal(const Board& board, MoveList& moves) {` |
+| 1.02 % | 139 | `push(to - 2 * up, to, DoublePush);` |
+| 1.02 % | 174 | `bb &= bb - 1;` |
+| 1.02 % | 221 | `while (targets != 0) {` |
+| 1.02 % | 246 | `return m.table[m.index(occupancy)];` |
+| 1.02 % | 311 | `moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flags});` |
+| 1.01 % | 96 | `return __builtin_ctzl(__x);` |
+| 1.01 % | 98 | `void push_back(Move move) { assert(size_ < Capacity); data_[size_++] = move; }` |
+| 1.01 % | 158 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 1.01 % | 230 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 1.01 % | 385 | `void push_back(Move move) { assert(size_ < Capacity); data_[size_++] = move; }` |
+| 1.01 % | 416 | `while (targets != 0) {` |
+| 1.01 % | 505 | `} else if (us == Black && king == 60) {` |
+| 0.51 % | 104 | `push(to - up, to, Quiet);` |
+| 0.51 % | 135 | `while (twice != 0) {` |
+| 0.51 % | 171 | `while (targets != 0) {` |
+| 0.51 % | 185 | `void push_back(Move move) { assert(size_ < Capacity); data_[size_++] = move; }` |
+| 0.51 % | 216 | `while (bishops != 0) {` |
+| 0.51 % | 251 | `moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flags});` |
+| 0.51 % | 280 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 0.51 % | 288 | `while (rooks != 0) {` |
+| 0.51 % | 317 | `void push_back(Move move) { assert(size_ < Capacity); data_[size_++] = move; }` |
+| 0.51 % | 357 | `bb &= bb - 1;` |
+| 0.51 % | 359 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 0.51 % | 365 | `return m.table[m.index(occupancy)];` |
+| 0.51 % | 413 | `[[nodiscard]] inline Bitboard king(int square) { return KingTable[static_cast<std::size_t>(square)]; }` |
+| 0.51 % | 461 | `[[nodiscard]] std::uint8_t castling_rights() const { return castling_; }` |
+| 0.51 % | 496 | `}` |
+| 0.51 % | 541 | `void push_back(Move move) { assert(size_ < Capacity); data_[size_++] = move; }` |
+| 0.51 % | 586 | `[[nodiscard]] Bitboard occupied(Color color) const { return occupied_[static_cast<std::size_t>(color)]; }` |
+| 0.51 % | 588 | `[[nodiscard]] constexpr Bitboard shift_south(Bitboard bb) { return bb >> 8; }` |
+| 0.51 % | 594 | `Bitboard single = pawn_push(us, regular) & empty;` |
+| 0.51 % | 631 | `return square_attacked_with_occupancy(square, by, occupied());` |
+
+## forge::Board::refresh_king_lines() const
+| summed % | source line | text |
+|---|---|---|
+| 8.11 % | 11 | `void Board::refresh_king_lines() const {` |
+| 7.57 % | 97 | `return BetweenTable[static_cast<std::size_t>(a)][static_cast<std::size_t>(b)];` |
+| 7.56 % | 132 | `while (snipers != 0) {` |
+| 7.02 % | 145 | `return BetweenTable[static_cast<std::size_t>(a)][static_cast<std::size_t>(b)];` |
+| 6.49 % | 121 | `lines.discoverers = single_blockers(their_king, pieces(us, Rook) \| pieces(us, Queen),` |
+| 6.48 % | 211 | `}` |
+| 5.95 % | 109 | `pieces(them, Bishop) \| pieces(them, Queen), occupancy) & occupied(us);` |
+| 4.86 % | 201 | `lines.valid = true;` |
+| 3.24 % | 42 | `[[nodiscard]] int king_square(Color color) const { return king_squares_[static_cast<std::size_t>(color)]; }` |
+| 3.24 % | 186 | `return m.table[m.index(occupancy)];` |
+| 3.24 % | 189 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 2.70 % | 114 | `lines.pinned = single_blockers(our_king, pieces(them, Rook) \| pieces(them, Queen),` |
+| 2.70 % | 170 | `[[nodiscard]] inline Bitboard knight(int square) { return KnightTable[static_cast<std::size_t>(square)]; }` |
+| 2.70 % | 223 | `[[nodiscard]] Bitboard occupied(Color color) const { return occupied_[static_cast<std::size_t>(color)]; }` |
+| 2.16 % | 74 | `while (snipers != 0) {` |
+| 2.16 % | 159 | `pieces(us, Bishop) \| pieces(us, Queen), occupancy) & occupied(us);` |
+| 1.62 % | 25 | `[[nodiscard]] Bitboard occupied() const { return occupied_[0] \| occupied_[1]; }` |
+| 1.62 % | 64 | `[[nodiscard]] inline Bitboard rook_ray(int square) { return RookRay[static_cast<std::size_t>(square)]; }` |
+| 1.62 % | 77 | `Bitboard blockers = 0;` |
+| 1.62 % | 95 | `bb &= bb - 1;` |
+| 1.62 % | 124 | `Bitboard snipers = (attacks::rook_ray(king) & rook_like) \| (attacks::bishop_ray(king) & bishop_like);` |
+| 1.62 % | 129 | `Bitboard snipers = (attacks::rook_ray(king) & rook_like) \| (attacks::bishop_ray(king) & bishop_like);` |
+| 1.62 % | 192 | `lines.check_squares[Bishop] = attacks::bishop(their_king, occupancy);` |
+| 1.62 % | 205 | `lines.check_squares[Queen] = lines.check_squares[Bishop] \| lines.check_squares[Rook];` |
+| 1.08 % | 80 | `return BetweenTable[static_cast<std::size_t>(a)][static_cast<std::size_t>(b)];` |
+| 1.08 % | 168 | `lines.check_squares[Pawn] = attacks::pawn(them, their_king);` |
+| 1.08 % | 173 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 0.54 % | 57 | `lines.pinned = single_blockers(our_king, pieces(them, Rook) \| pieces(them, Queen),` |
+| 0.54 % | 71 | `Bitboard snipers = (attacks::rook_ray(king) & rook_like) \| (attacks::bishop_ray(king) & bishop_like);` |
+| 0.54 % | 90 | `return __builtin_ctzl(__x);` |
+| 0.54 % | 106 | `while (snipers != 0) {` |
+| 0.54 % | 117 | `Bitboard blockers = 0;` |
+| 0.54 % | 126 | `lines.discoverers = single_blockers(their_king, pieces(us, Rook) \| pieces(us, Queen),` |
+| 0.54 % | 154 | `while (snipers != 0) {` |
+| 0.54 % | 157 | `return PawnTable[static_cast<std::size_t>(color)][static_cast<std::size_t>(square)];` |
+| 0.54 % | 162 | `lines.check_squares[NoPieceType] = 0;` |
+| 0.54 % | 165 | `lines.discoverers = single_blockers(their_king, pieces(us, Rook) \| pieces(us, Queen),` |
+| 0.54 % | 195 | `return m.table[m.index(occupancy)];` |
+| 0.54 % | 203 | `lines.check_squares[King] = 0;` |
+| 0.54 % | 207 | `lines.check_squares[Rook] = attacks::rook(their_king, occupancy);` |
+| 0.54 % | 220 | `[[nodiscard]] int king_square(Color color) const { return king_squares_[static_cast<std::size_t>(color)]; }` |
+
+## forge::Evaluator::update_runtime_psqt(forge::Evaluator::RuntimePsqt const&, forge::Evaluator::RuntimePsqt&, forge::nnue::DirtyPieces const&)
+| summed % | source line | text |
+|---|---|---|
+| 13.41 % | 81 | `const std::int64_t signed_term = color_of(change.piece) == White ? term : -term;` |
+| 12.29 % | 131 | `const std::int64_t signed_term = color_of(change.piece) == White ? term : -term;` |
+| 10.06 % | 127 | `const std::int64_t term = params::table[static_cast<std::size_t>(params::Psqt + (type - 1) * 64 + relative)];` |
+| 8.38 % | 67 | `[[nodiscard]] constexpr Color color_of(Piece piece) { return piece >= BP ? Black : White; }` |
+| 6.70 % | 24 | `std::int64_t score = parent.score;` |
+| 5.58 % | 61 | `const std::int64_t term = params::table[static_cast<std::size_t>(params::Psqt + (type - 1) * 64 + relative)];` |
+| 5.03 % | 11 | `void Evaluator::update_runtime_psqt(const RuntimePsqt& parent, RuntimePsqt& child, const nnue::DirtyPieces& di` |
+| 5.03 % | 75 | `[[nodiscard]] constexpr int flip_square(int square) { return square ^ 56; }` |
+| 5.03 % | 83 | `score += change.add ? signed_term : -signed_term;` |
+| 4.48 % | 99 | `child.valid = score >= std::numeric_limits<Score>::min() && score <= std::numeric_limits<Score>::max();` |
+| 3.91 % | 58 | `const int relative = color_of(change.piece) == White ? change.square : flip_square(change.square);` |
+| 2.79 % | 122 | `for (int i = 0; i < dirty.count; ++i) {` |
+| 2.24 % | 39 | `void Evaluator::update_runtime_psqt(const RuntimePsqt& parent, RuntimePsqt& child, const nnue::DirtyPieces& di` |
+| 2.24 % | 87 | `score += change.add ? signed_term : -signed_term;` |
+| 1.68 % | 13 | `child = parent;` |
+| 1.68 % | 120 | `child.phase += change.add ? PhaseValue[static_cast<std::size_t>(type)] : -PhaseValue[static_cast<std::size_t>(` |
+| 1.12 % | 18 | `if (!parent.valid) return;` |
+| 1.12 % | 36 | `child.phase += change.add ? PhaseValue[static_cast<std::size_t>(type)] : -PhaseValue[static_cast<std::size_t>(` |
+| 1.12 % | 47 | `const int type = piece_type(change.piece);` |
+| 1.12 % | 54 | `[[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[static_cast<unsigned>(piec` |
+| 1.12 % | 93 | `child.phase += change.add ? PhaseValue[static_cast<std::size_t>(type)] : -PhaseValue[static_cast<std::size_t>(` |
+| 1.12 % | 105 | `if (child.valid) child.score = static_cast<Score>(score);` |
+| 1.12 % | 114 | `child.phase += change.add ? PhaseValue[static_cast<std::size_t>(type)] : -PhaseValue[static_cast<std::size_t>(` |
+| 0.56 % | 95 | `for (int i = 0; i < dirty.count; ++i) {` |
+| 0.56 % | 136 | `}` |
+| 0.56 % | 141 | `}` |
+
+## void forge::fill_pseudo_legal<(forge::Board::GenMode)0>(forge::Board const&, forge::MoveList&)
+| summed % | source line | text |
+|---|---|---|
+| 9.76 % | 573 | `while (targets != 0) {` |
+| 5.73 % | 425 | `while (targets != 0) {` |
+| 5.17 % | 563 | `void push_back(Move move) { assert(size_ < Capacity); data_[size_++] = move; }` |
+| 5.16 % | 700 | `while (targets != 0) {` |
+| 4.59 % | 552 | `return m.table[m.index(occupancy)];` |
+| 4.58 % | 502 | `while (targets != 0) {` |
+| 4.02 % | 132 | `while (single != 0) {` |
+| 4.02 % | 415 | `void push_back(Move move) { assert(size_ < Capacity); data_[size_++] = move; }` |
+| 4.00 % | 168 | `while (twice != 0) {` |
+| 3.43 % | 652 | `while (targets != 0) {` |
+| 2.87 % | 481 | `return m.table[m.index(occupancy)];` |
+| 2.87 % | 544 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 2.30 % | 444 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 2.29 % | 301 | `moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), Queen,` |
+| 2.29 % | 492 | `void push_back(Move move) { assert(size_ < Capacity); data_[size_++] = move; }` |
+| 1.72 % | 569 | `else if constexpr (!quiets_only) flags = (square_bb(to) & enemy) != 0 ? Capture : Quiet;` |
+| 1.72 % | 648 | `else if constexpr (!quiets_only) flags = (square_bb(to) & enemy) != 0 ? Capture : Quiet;` |
+| 1.72 % | 123 | `while (single != 0) {` |
+| 1.72 % | 294 | `while (targets != 0) {` |
+| 1.72 % | 679 | `while (targets != 0) {` |
+| 1.15 % | 400 | `while (targets != 0) {` |
+| 1.15 % | 421 | `else if constexpr (!quiets_only) flags = (square_bb(to) & enemy) != 0 ? Capture : Quiet;` |
+| 1.15 % | 498 | `else if constexpr (!quiets_only) flags = (square_bb(to) & enemy) != 0 ? Capture : Quiet;` |
+| 1.15 % | 542 | `bb &= bb - 1;` |
+| 1.15 % | 642 | `void push_back(Move move) { assert(size_ < Capacity); data_[size_++] = move; }` |
+| 1.15 % | 691 | `void push_back(Move move) { assert(size_ < Capacity); data_[size_++] = move; }` |
+| 1.14 % | 11 | `void fill_pseudo_legal(const Board& board, MoveList& moves) {` |
+| 1.14 % | 261 | `return PawnTable[static_cast<std::size_t>(color)][static_cast<std::size_t>(square)];` |
+| 1.14 % | 632 | `while (targets != 0) {` |
+| 0.57 % | 28 | `[[nodiscard]] Color side_to_move() const { return side_; }` |
+| 0.57 % | 121 | `void push_back(Move move) { assert(size_ < Capacity); data_[size_++] = move; }` |
+| 0.57 % | 127 | `push(to - up, to, Quiet);` |
+| 0.57 % | 153 | `Bitboard twice = pawn_push(us, single & third) & empty;` |
+| 0.57 % | 159 | `while (twice != 0) {` |
+| 0.57 % | 192 | `while (promo_push != 0) {` |
+| 0.57 % | 212 | `push_promotions(to - up, to, Quiet);` |
+| 0.57 % | 225 | `while (promo_push != 0) {` |
+| 0.57 % | 277 | `[[nodiscard]] constexpr Bitboard square_bb(int square) { return 1ULL << square; }` |
+| 0.57 % | 281 | `const bool promotes = (square_bb(from) & seventh) != 0;` |
+| 0.57 % | 284 | `while (targets != 0) {` |
+| 0.57 % | 325 | `[[nodiscard]] int ep_square() const { return ep_square_; }` |
+| 0.57 % | 395 | `while (knights != 0) {` |
+| 0.57 % | 409 | `moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flags});` |
+| 0.57 % | 453 | `while (bishops != 0) {` |
+| 0.57 % | 462 | `while (targets != 0) {` |
+| 0.57 % | 465 | `bb &= bb - 1;` |
+| 0.57 % | 467 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 0.57 % | 521 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 0.57 % | 567 | `[[nodiscard]] constexpr Bitboard square_bb(int square) { return 1ULL << square; }` |
+| 0.57 % | 592 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 0.57 % | 610 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 0.57 % | 615 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 0.57 % | 621 | `return m.table[m.index(occupancy)];` |
+| 0.57 % | 629 | `return bishop(square, occupancy) \| rook(square, occupancy);` |
+| 0.57 % | 669 | `while (queens != 0) {` |
+| 0.57 % | 672 | `[[nodiscard]] int king_square(Color color) const { return king_squares_[static_cast<std::size_t>(color)]; }` |
+| 0.57 % | 696 | `else if constexpr (!quiets_only) flags = (square_bb(to) & enemy) != 0 ? Capture : Quiet;` |
+| 0.57 % | 729 | `[[nodiscard]] std::uint8_t castling_rights() const { return castling_; }` |
+| 0.57 % | 763 | `}` |
+| 0.57 % | 783 | `while (targets != 0) {` |
+
+## forge::Board::key_after(forge::Move const&, unsigned long&) const
+| summed % | source line | text |
+|---|---|---|
+| 38.69 % | 83 | `std::uint64_t next = key_ ^ piece_key(move.to, squares_[move.to]) ^ piece_key(move.from, moving);` |
+| 7.76 % | 75 | `return Z.piece[static_cast<std::size_t>(piece)][static_cast<std::size_t>(square)];` |
+| 7.14 % | 22 | `bool Board::key_after(const Move& move, std::uint64_t& key) const {` |
+| 6.55 % | 11 | `bool Board::key_after(const Move& move, std::uint64_t& key) const {` |
+| 5.36 % | 30 | `(attacks::pawn(us, (move.from + move.to) / 2) & pieces(opposite(us), Pawn)) != 0) {` |
+| 5.36 % | 167 | `next ^= Z.castling[castling_] ^ Z.castling[castling] ^ Z.side;` |
+| 4.76 % | 155 | `const auto castling = static_cast<std::uint8_t>(castling_ & CastlingMasks[move.from] & CastlingMasks[move.to])` |
+| 3.57 % | 153 | `}` |
+| 2.98 % | 36 | `(attacks::pawn(us, (move.from + move.to) / 2) & pieces(opposite(us), Pawn)) != 0) {` |
+| 2.39 % | 15 | `if (ep_square_ >= 0 \|\| (move.flags & EnPassant) != 0U) return false;` |
+| 2.38 % | 160 | `}` |
+| 2.38 % | 164 | `}` |
+| 1.79 % | 44 | `return PawnTable[static_cast<std::size_t>(color)][static_cast<std::size_t>(square)];` |
+| 1.79 % | 124 | `if (move.is_castle()) {` |
+| 1.20 % | 150 | `const auto castling = static_cast<std::uint8_t>(castling_ & CastlingMasks[move.from] & CastlingMasks[move.to])` |
+| 1.19 % | 56 | `[[nodiscard]] constexpr Color opposite(Color color) { return color == White ? Black : White; }` |
+| 1.19 % | 87 | `next ^= piece_key(move.to, move.is_promotion() ? make_piece(us, move.promotion) : moving);` |
+| 1.19 % | 173 | `}` |
+| 0.60 % | 67 | `}` |
+| 0.60 % | 122 | `next ^= piece_key(move.to, move.is_promotion() ? make_piece(us, move.promotion) : moving);` |
+| 0.60 % | 141 | `return Z.piece[static_cast<std::size_t>(piece)][static_cast<std::size_t>(square)];` |
+| 0.60 % | 171 | `return true;` |
+
+## forge::Board::unmake_move(forge::Move const&, forge::Undo const&)
+| summed % | source line | text |
+|---|---|---|
+| 7.93 % | 100 | `if (piece_type(squares_[move.from]) == King) king_squares_[static_cast<std::size_t>(us)] = move.from;` |
+| 7.32 % | 215 | `}` |
+| 6.10 % | 84 | `[[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[static_cast<unsigned>(piec` |
+| 6.10 % | 44 | `remove_piece(move.to);` |
+| 6.10 % | 73 | `[[nodiscard]] constexpr Color color_of(Piece piece) { return piece >= BP ? Black : White; }` |
+| 6.10 % | 109 | `if ((move.flags & EnPassant) != 0U) {` |
+| 5.49 % | 17 | `void Board::unmake_move(const Move& move, const Undo& undo) {` |
+| 5.49 % | 227 | `squares_[static_cast<std::size_t>(square)] = piece;` |
+| 4.88 % | 94 | `occupied_[static_cast<std::size_t>(color_of(piece))] ^= bits;` |
+| 4.88 % | 96 | `squares_[static_cast<std::size_t>(from)] = Empty;` |
+| 4.27 % | 180 | `castling_ = undo.castling;` |
+| 4.27 % | 200 | `king_lines_ = undo.king_lines;` |
+| 3.05 % | 92 | `bitboards_[static_cast<std::size_t>(piece)] ^= bits;` |
+| 2.44 % | 65 | `const Piece piece = squares_[static_cast<std::size_t>(square)];` |
+| 2.44 % | 107 | `put_piece(undo.captured, move.to - pawn_push_delta(us));` |
+| 2.44 % | 143 | `if (move.is_castle()) {` |
+| 1.83 % | 11 | `void Board::unmake_move(const Move& move, const Undo& undo) {` |
+| 1.83 % | 186 | `halfmove_ = undo.halfmove;` |
+| 1.83 % | 203 | `checkers_ = undo.checkers;` |
+| 1.22 % | 15 | `side_ = opposite(side_);` |
+| 1.22 % | 36 | `[[nodiscard]] constexpr Color opposite(Color color) { return color == White ? Black : White; }` |
+| 1.22 % | 82 | `move_piece(move.to, move.from);` |
+| 1.22 % | 89 | `const Bitboard bits = square_bb(from) \| square_bb(to);` |
+| 1.22 % | 134 | `[[nodiscard]] constexpr Color color_of(Piece piece) { return piece >= BP ? Black : White; }` |
+| 1.22 % | 193 | `key_ = undo.key;` |
+| 1.22 % | 209 | `plies_from_null_ = undo.plies_from_null;` |
+| 0.61 % | 53 | `const Piece piece = squares_[static_cast<std::size_t>(square)];` |
+| 0.61 % | 131 | `bitboards_[static_cast<std::size_t>(piece)] \|= bit;` |
+| 0.61 % | 146 | `const bool king_side = (move.flags & KingCastle) != 0U;` |
+| 0.61 % | 183 | `ep_square_ = undo.ep_square;` |
+| 0.61 % | 196 | `checkers_ = undo.checkers;` |
+| 0.61 % | 205 | `plies_from_null_ = undo.plies_from_null;` |
+| 0.61 % | 211 | `king_lines_ = undo.king_lines;` |
+| 0.61 % | 224 | `} else if (undo.captured != Empty) {` |
+| 0.61 % | 238 | `return static_cast<Piece>((color == White ? 0 : 6) + type);` |
+| 0.61 % | 257 | `squares_[static_cast<std::size_t>(from)] = Empty;` |
+| 0.61 % | 271 | `const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);` |
+
+## forge::Worker::static_evaluate(forge::Board const&, forge::SearchStack*)
+| summed % | source line | text |
+|---|---|---|
+| 16.06 % | 138 | `while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;` |
+| 9.49 % | 108 | `}` |
+| 8.76 % | 11 | `int Worker::static_evaluate(const Board& board, SearchStack* ss) {` |
+| 7.30 % | 329 | `if (residual) Evaluator::update_runtime_psqt(*source_psqt, frame->runtime_psqt, frame->dirty);` |
+| 5.84 % | 101 | `if (__b < __a)` |
+| 5.84 % | 149 | `if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {` |
+| 5.84 % | 377 | `network = nnue::apply_and_evaluate(*source_features, frame->accumulator, frame->dirty, board);` |
+| 5.11 % | 58 | `if (!nnue::enabled \|\| !nnue::available()) return evaluator_.evaluate(board);` |
+| 5.11 % | 67 | `if (!ss->accumulator.valid) {` |
+| 5.11 % | 302 | `if (frame->entered_null) continue;` |
+| 2.92 % | 87 | `if (!psqt->valid) {` |
+| 2.92 % | 152 | `const nnue::Accumulator* source_features = &(ss - back - 1)->accumulator;` |
+| 2.19 % | 29 | `if (dead_material_enabled) {` |
+| 2.19 % | 74 | `const Evaluator::RuntimePsqt* psqt = &ss->runtime_psqt;` |
+| 2.19 % | 133 | `while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;` |
+| 2.19 % | 295 | `frame->dirty = nnue::dirty_from_move(frame->entered_move, frame->entered_piece, frame->entered_capture,` |
+| 2.19 % | 306 | `if (frame->diff_known) return;` |
+| 1.46 % | 155 | `for (int i = back; i >= 0; --i) {` |
+| 1.46 % | 292 | `const Evaluator::RuntimePsqt* source_psqt = &(ss - back - 1)->runtime_psqt;` |
+| 0.73 % | 35 | `if (!nnue::enabled \|\| !nnue::available()) return evaluator_.evaluate(board);` |
+| 0.73 % | 79 | `if (!have_network) network = nnue::evaluate(board, *features);` |
+| 0.73 % | 90 | `return std::clamp(evaluator_.evaluate_runtime(board, *psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);` |
+| 0.73 % | 285 | `psqt = &ss->runtime_psqt;` |
+| 0.73 % | 289 | `frame->dirty = nnue::dirty_from_move(frame->entered_move, frame->entered_piece, frame->entered_capture,` |
+| 0.73 % | 336 | `if (i == 0) {` |
+| 0.73 % | 340 | `nnue::update(*source_features, frame->accumulator, frame->dirty);` |
+| 0.73 % | 357 | `for (int i = back; i >= 0; --i) {` |
+
+## forge::Board::has_legal_move() const
+| summed % | source line | text |
+|---|---|---|
+| 16.81 % | 11 | `bool Board::has_legal_move() const {` |
+| 15.04 % | 93 | `if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {` |
+| 9.73 % | 80 | `if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {` |
+| 8.85 % | 90 | `[[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[static_cast<unsigned>(piec` |
+| 7.06 % | 133 | `}` |
+| 6.19 % | 44 | `[[nodiscard]] constexpr Bitboard shift_north(Bitboard bb) { return bb << 8; }` |
+| 6.19 % | 73 | `const Move witness{static_cast<std::uint8_t>(to - pawn_push_delta(side_)),` |
+| 4.42 % | 55 | `if (pushes != 0) {` |
+| 4.42 % | 355 | `if (pushes != 0) {` |
+| 2.65 % | 85 | `static_cast<std::uint8_t>(to), 0, Quiet};` |
+| 2.65 % | 99 | `const int king = king_squares_[static_cast<std::size_t>(side_)];` |
+| 2.65 % | 102 | `[[nodiscard]] constexpr Bitboard square_bb(int square) { return 1ULL << square; }` |
+| 2.65 % | 350 | `[[nodiscard]] constexpr Bitboard shift_south(Bitboard bb) { return bb >> 8; }` |
+| 1.77 % | 66 | `const Move witness{static_cast<std::uint8_t>(to - pawn_push_delta(side_)),` |
+| 1.77 % | 105 | `return (king_lines_.pinned & square_bb(move.from)) == 0 \|\| attacks::aligned(king, move.from, move.to);` |
+| 1.77 % | 352 | `const Bitboard pushes = pawn_push(side_, pieces(side_, Pawn)) & ~occupied() & ~(Rank1BB \| Rank8BB);` |
+| 0.88 % | 49 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 0.88 % | 88 | `if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {` |
+| 0.88 % | 126 | `if (is_legal(witness)) return true;` |
+| 0.88 % | 359 | `const Move witness{static_cast<std::uint8_t>(to - pawn_push_delta(side_)),` |
+| 0.88 % | 489 | `const int king = piece_type(moving) == King ? static_cast<int>(move.to) : king_square(us);` |
+| 0.88 % | 616 | `const int king = piece_type(moving) == King ? static_cast<int>(move.to) : king_square(us);` |
+
+## forge::Worker::store_tt(forge::TTProbe const&, unsigned long, int, int, forge::Move, int, forge::Bound, bool, unsigned short)
+| summed % | source line | text |
+|---|---|---|
+| 26.17 % | 84 | `if (candidate.key32 == key32 && candidate.occupied()) {` |
+| 14.94 % | 181 | `if (candidate.key32 == key32 && candidate.occupied()) {` |
+| 14.00 % | 40 | `}` |
+| 8.41 % | 74 | `return _M_elems[__n];` |
+| 4.67 % | 11 | `void store_tt(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,` |
+| 4.67 % | 21 | `if (tt_owned_) shared_.tt.store_owned(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);` |
+| 2.80 % | 124 | `entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));` |
+| 2.80 % | 67 | `return get()[__i];` |
+| 1.87 % | 120 | `entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));` |
+| 1.87 % | 144 | `entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));` |
+| 1.87 % | 148 | `entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) \| (pv ? 4U : 0U) \| sta` |
+| 1.87 % | 190 | `const bool same_position = entry->key32 == key32 && entry->occupied();` |
+| 1.87 % | 200 | `if ((!stale_slot \|\| admit) && (!move.is_none() \|\| !same_position)) entry->move = move;` |
+| 1.86 % | 153 | `entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) \| (pv ? 4U : 0U) \| sta` |
+| 1.86 % | 215 | `if (candidate.key32 == key32 && candidate.occupied()) {` |
+| 0.93 % | 23 | `void store_tt(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,` |
+| 0.93 % | 53 | `probe.cluster_ >= cluster_count_ \|\| probe.slot_ >= 4) return;` |
+| 0.93 % | 93 | `for (TTEntry& candidate : cluster.entries) {` |
+| 0.93 % | 99 | `const bool same_position = entry->key32 == key32 && entry->occupied();` |
+| 0.93 % | 107 | `if ((!stale_slot \|\| admit) && (!move.is_none() \|\| !same_position)) entry->move = move;` |
+| 0.93 % | 117 | `if (__b < __a)` |
+| 0.93 % | 137 | `entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));` |
+| 0.93 % | 193 | `const bool admit = bound == BoundExact \|\| !same_position \|\| depth + 4 > entry->depth \|\|` |
+| 0.93 % | 205 | `const bool same_position = entry->key32 == key32 && entry->occupied();` |
+
+## forge::Worker::quiet_history(forge::Board const&, forge::SearchStack const*, forge::Move) const
+| summed % | source line | text |
+|---|---|---|
+| 35.79 % | 73 | `if (cont1 != nullptr) score += (*cont1)[p][move.to];` |
+| 18.94 % | 81 | `if (cont2 != nullptr) score += (*cont2)[p][move.to];` |
+| 10.53 % | 51 | `return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],` |
+| 9.47 % | 49 | `int score = main[move.from][move.to];` |
+| 8.43 % | 123 | `}` |
+| 4.21 % | 16 | `int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {` |
+| 3.16 % | 39 | `int score = main[move.from][move.to];` |
+| 3.16 % | 71 | `const std::size_t p = static_cast<std::size_t>(piece);` |
+| 2.11 % | 11 | `int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {` |
+| 2.11 % | 62 | `return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],` |
+| 1.05 % | 89 | `if (cont4 != nullptr) score += (*cont4)[p][move.to] / 2;` |
+| 1.05 % | 106 | `if (!tune::ThreatHistory) return 0;` |
+
+## forge::Board::is_pseudo_legal(forge::Move const&) const
+| summed % | source line | text |
+|---|---|---|
+| 13.20 % | 172 | `}` |
+| 11.00 % | 11 | `bool Board::is_pseudo_legal(const Move& move) const {` |
+| 7.70 % | 189 | `if (special != 0 \|\| move.promotion != 0) return false;` |
+| 7.70 % | 290 | `const bool promotes = relative_rank(us, move.from) == 6;` |
+| 4.40 % | 22 | `if (move.from >= 64 \|\| move.to >= 64 \|\| move.from == move.to) return false;` |
+| 4.40 % | 57 | `if (target != Empty && (color_of(target) == us \|\| piece_type(target) == King)) return false;` |
+| 4.40 % | 66 | `[[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[static_cast<unsigned>(piec` |
+| 4.40 % | 102 | `if (move.is_castle()) {` |
+| 4.40 % | 252 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 4.40 % | 262 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 4.40 % | 272 | `[[nodiscard]] inline Bitboard knight(int square) { return KnightTable[static_cast<std::size_t>(square)]; }` |
+| 3.30 % | 88 | `[[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[static_cast<unsigned>(piec` |
+| 3.30 % | 186 | `if (type == Pawn) {` |
+| 3.30 % | 491 | `return move.to == move.from + up;` |
+| 2.20 % | 47 | `const Color us = side_;` |
+| 2.20 % | 260 | `case Rook: reach = attacks::rook(move.from, occ); break;` |
+| 2.20 % | 407 | `if (relative_rank(us, move.from) != 1 \|\| move.to != move.from + 2 * up) return false;` |
+| 2.20 % | 413 | `return squares_[static_cast<std::size_t>(move.from + up)] == Empty;` |
+| 1.10 % | 34 | `const Piece moving = squares_[move.from];` |
+| 1.10 % | 73 | `[[nodiscard]] Bitboard occupied() const { return occupied_[0] \| occupied_[1]; }` |
+| 1.10 % | 194 | `if (((move.flags & Capture) != 0U) != (target != Empty)) return false;` |
+| 1.10 % | 200 | `switch (type) {` |
+| 1.10 % | 212 | `[[nodiscard]] inline Bitboard king(int square) { return KingTable[static_cast<std::size_t>(square)]; }` |
+| 1.10 % | 250 | `case Queen: reach = attacks::queen(move.from, occ); break;` |
+| 1.10 % | 267 | `return m.table[m.index(occupancy)];` |
+| 1.10 % | 278 | `[[nodiscard]] constexpr int rank_of(int square) { return square >> 3; }` |
+| 1.10 % | 301 | `if ((move.flags & Capture) != 0U \|\| move.promotion != 0) return false;` |
+| 1.10 % | 363 | `if (us == White) {` |
+
+## forge::(anonymous namespace)::scale_factor(forge::Board const&, int)
+| summed % | source line | text |
+|---|---|---|
+| 28.75 % | 154 | `if (only_bishops) return 32 + 4 * popcount(strong_pawns);` |
+| 21.25 % | 11 | `int scale_factor(const Board& board, int eg) {` |
+| 11.25 % | 128 | `}` |
+| 8.75 % | 106 | `}` |
+| 7.50 % | 28 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 7.50 % | 43 | `if (strong_pawns == 0 && strong_non_pawn - weak_non_pawn <= PieceValueMg[Bishop]) {` |
+| 6.25 % | 124 | `if (__b < __a)` |
+| 2.50 % | 117 | `return std::min(64, 44 + 5 * popcount(strong_pawns));` |
+| 2.50 % | 148 | `const bool only_bishops = (board.pieces(Knight) \| board.pieces(Rook) \| board.pieces(Queen)) == 0;` |
+| 1.25 % | 114 | `if (popcount(white_bishops) == 1 && popcount(black_bishops) == 1 &&` |
+| 1.25 % | 136 | `if (popcount(white_bishops) == 1 && popcount(black_bishops) == 1 &&` |
+| 1.25 % | 139 | `((white_bishops & DarkSquares) != 0) != ((black_bishops & DarkSquares) != 0)) {` |
+
+## forge::Worker::update_correction(forge::Board const&, int, int, int)
+| summed % | source line | text |
+|---|---|---|
+| 22.50 % | 55 | `entry = std::clamp(entry + diff * weight / 256, -CorrectionLimit, CorrectionLimit);` |
+| 22.50 % | 84 | `key = key * 1099511628211ULL + static_cast<std::uint64_t>(popcount(board.pieces(color, static_cast<PieceType>(` |
+| 22.50 % | 128 | `entry = std::clamp(entry + diff * weight / 256, -CorrectionLimit, CorrectionLimit);` |
+| 7.50 % | 22 | `if (__b < __a)` |
+| 7.50 % | 50 | `const int weight = std::min(depth + 1, 16);` |
+| 5.00 % | 39 | `pointer    _M_ptr() const noexcept { return std::get<0>(_M_t); }` |
+| 5.00 % | 80 | `return __builtin_popcountl(__x);` |
+| 2.50 % | 30 | `apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);` |
+| 2.50 % | 124 | `return key * 0x9E3779B97F4A7C15ULL;` |
+| 2.50 % | 126 | `if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionS` |
+
+## forge::Worker::is_draw(forge::Board const&, int) const
+| summed % | source line | text |
+|---|---|---|
+| 41.17 % | 32 | `}` |
+| 38.23 % | 45 | `return board.is_repetition(root_history_index_) \|\| board.is_insufficient_material() \|\|` |
+| 8.82 % | 11 | `bool Worker::is_draw(const Board& board, int ply) const {` |
+| 5.88 % | 19 | `if (board.halfmove_clock() >= 100) {` |
+| 5.88 % | 57 | `(!board.in_check() && !board.has_legal_move());` |
+
+## forge::nnue::dirty_from_move(forge::Move, forge::Piece, forge::Piece, forge::Color)
+| summed % | source line | text |
+|---|---|---|
+| 42.42 % | 108 | `}` |
+| 15.15 % | 22 | `DirtyPieces dirty;` |
+| 12.12 % | 11 | `DirtyPieces dirty_from_move(Move move, Piece moved, Piece captured, Color side) {` |
+| 12.12 % | 38 | `const int captured_square = (move.flags & EnPassant) != 0U ? move.to - pawn_push_delta(side) : move.to;` |
+| 9.09 % | 75 | `if (move.is_castle()) {` |
+| 6.06 % | 70 | `void add(Piece piece, int square) { changes[static_cast<std::size_t>(count++)] = {piece, static_cast<std::uint` |
+| 3.03 % | 68 | `return _M_elems[__n];` |
+
+## forge::Board::is_repetition(unsigned long) const
+| summed % | source line | text |
+|---|---|---|
+| 37.93 % | 33 | `if (__b < __a)` |
+| 27.59 % | 11 | `bool Board::is_repetition(std::size_t root_index) const {` |
+| 20.69 % | 75 | `}` |
+| 6.90 % | 46 | `for (std::ptrdiff_t i = size - 5; i >= limit; i -= 2) {` |
+| 3.45 % | 43 | `const std::ptrdiff_t limit = size - 1 - span;` |
+| 3.45 % | 60 | `if (key_history_[static_cast<std::size_t>(i)] == key_) {` |
+
+## forge::Worker::update_capture_stats(forge::Board const&, forge::Move, int, forge::Move const*, int)
+| summed % | source line | text |
+|---|---|---|
+| 30.45 % | 93 | `entry = static_cast<std::int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);` |
+| 17.40 % | 190 | `entry = static_cast<std::int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);` |
+| 13.05 % | 11 | `void Worker::update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_` |
+| 8.70 % | 76 | `apply_history((*capture_history_)[static_cast<std::size_t>(piece)][best.to][static_cast<std::size_t>(captured)` |
+| 8.70 % | 140 | `entry = static_cast<std::int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);` |
+| 8.70 % | 214 | `}` |
+| 4.35 % | 28 | `return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear ` |
+| 4.35 % | 38 | `if (__b < __a)` |
+| 4.35 % | 182 | `if ((move.flags & EnPassant) != 0U) return side_ == White ? BP : WP;` |
+
+## forge::Worker::update_quiet_stats(forge::Board const&, forge::SearchStack*, forge::Move, int, forge::Move const*, int)
+| summed % | source line | text |
+|---|---|---|
+| 18.19 % | 104 | `__glibcxx_assert(!(__hi < __lo));` |
+| 18.19 % | 320 | `(*counter_moves_)[static_cast<std::size_t>(previous->moved_piece)][previous->current_move.to] = move;` |
+| 13.64 % | 60 | `ss->killers[1] = ss->killers[0];` |
+| 9.10 % | 295 | `}` |
+| 9.10 % | 338 | `apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);` |
+| 9.09 % | 357 | `const Move quiet = quiets[i];` |
+| 4.55 % | 27 | `return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear ` |
+| 4.55 % | 37 | `if (__b < __a)` |
+| 4.55 % | 67 | `[[nodiscard]] bool is_none() const { return from == to; }` |
+| 4.55 % | 132 | `entry = static_cast<std::int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);` |
+| 4.55 % | 390 | `for (int i = 0; i < quiet_count; ++i) {` |
+
+## forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)
+| summed % | source line | text |
+|---|---|---|
+| 42.09 % | 374 | `for (int j = 0; j < 16; ++j) out += lanes[j];` |
+| 10.53 % | 436 | `return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));` |
+| 10.52 % | 369 | `return (__m512) ((__v16sf)__A + (__v16sf)__B);` |
+| 5.26 % | 110 | `return (__m512) __builtin_ia32_maxps512_mask ((__v16sf) __A,` |
+| 5.26 % | 136 | `return (__m512) __builtin_ia32_minps512_mask ((__v16sf) __A,` |
+| 5.26 % | 149 | `return (__m512) __builtin_ia32_minps512_mask ((__v16sf) __A,` |
+| 5.26 % | 189 | `return (__m512) __builtin_ia32_minps512_mask ((__v16sf) __A,` |
+| 5.26 % | 209 | `return (__m512) ((__v16sf)__A * (__v16sf)__B);` |
+| 5.26 % | 266 | `return (__m512) ((__v16sf)__A * (__v16sf)__B);` |
+| 5.26 % | 325 | `return (__m512) ((__v16sf)__A * (__v16sf)__B);` |
+
+## forge::Board::is_insufficient_material() const
+| summed % | source line | text |
+|---|---|---|
+| 50.00 % | 22 | `if (pawns_rooks_queens != 0) return false;` |
+| 27.78 % | 11 | `bool Board::is_insufficient_material() const {` |
+| 16.67 % | 17 | `const Bitboard pawns_rooks_queens = pieces(Pawn) \| pieces(Rook) \| pieces(Queen);` |
+| 5.56 % | 64 | `}` |
+
+## forge::Evaluator::clear()
+| summed % | source line | text |
+|---|---|---|
+| 72.22 % | 50 | `for (; __first != __last; ++__first)` |
+| 16.67 % | 46 | `for (; __first != __last; ++__first)` |
+| 11.11 % | 48 | `*__first = __value;` |
+
+## forge::Worker::update_continuation(forge::SearchStack*, forge::Piece, int, int)
+| summed % | source line | text |
+|---|---|---|
+| 27.79 % | 107 | `entry = static_cast<std::int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);` |
+| 22.22 % | 32 | `apply_history((*previous->continuation)[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)],` |
+| 16.68 % | 72 | `entry = static_cast<std::int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);` |
+| 16.67 % | 42 | `entry = static_cast<std::int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);` |
+| 11.12 % | 68 | `apply_history((*previousError:` |
+| 5.56 % | 11 | `void Worker::update_continuation(SearchStack* ss, Piece piece, int to, int bonus) {` |
+
+## forge::nnue::available()
+| summed % | source line | text |
+|---|---|---|
+| 100.00 % | 11 | `bool available() { return FORGE_HAS_NNUE != 0; }` |
+
+## forge::nnue::(anonymous namespace)::live_weights()
+| summed % | source line | text |
+|---|---|---|
+| 56.25 % | 22 | `}` |
+| 37.50 % | 11 | `Weights& live_weights() {` |
+| 6.25 % | 16 | `static Weights instance = make_builtin();` |
+
+## forge::Board::gives_check_complete(forge::Move const&) const
+| summed % | source line | text |
+|---|---|---|
+| 18.18 % | 36 | `if ((move.flags & (EnPassant \| KingCastle \| QueenCastle \| Promotion)) == 0U) {` |
+| 18.18 % | 222 | `return bitboards_[static_cast<std::size_t>((color == White ? 0 : 6) + type)];` |
+| 18.18 % | 301 | `return lines != 0 && (attacks::rook(ksq, occ) & lines) != 0;` |
+| 9.09 % | 11 | `bool Board::gives_check_complete(const Move& move) const {` |
+| 9.09 % | 19 | `[[nodiscard]] constexpr Color opposite(Color color) { return color == White ? Black : White; }` |
+| 9.09 % | 139 | `const int type = move.is_promotion() ? move.promotion : piece_type(squares_[move.from]);` |
+| 9.09 % | 204 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 9.09 % | 329 | `return m.table[m.index(occupancy)];` |
+
+## forge::Evaluator::evaluate_runtime(forge::Board const&, forge::Evaluator::RuntimePsqt const&)
+| summed % | source line | text |
+|---|---|---|
+| 50.00 % | 11 | `int Evaluator::evaluate_runtime(const Board& board, const RuntimePsqt& psqt) {` |
+| 50.00 % | 29 | `return evaluate_position<false>(board, &entry, nullptr, &psqt);` |
+
+## forge::Board::has_legal_en_passant_capture() const
+| summed % | source line | text |
+|---|---|---|
+| 16.67 % | 41 | `if (candidates == 0) return false;` |
+| 16.67 % | 163 | `}` |
+| 16.67 % | 178 | `[[nodiscard]] constexpr Bitboard square_bb(int square) { return 1ULL << square; }` |
+| 16.67 % | 233 | `if ((attacks::bishop(square, occupancy) & ((pieces(by, Bishop) & available) \| queens)) != 0) return true;` |
+| 16.67 % | 236 | `const Bitboard occupancy = ((occupied() & ~square_bb(from)) & ~captured_bit) \| square_bb(ep_square_);` |
+| 16.67 % | 248 | `return m.table[m.index(occupancy)];` |
+
+## forge::nnue::residual()
+| summed % | source line | text |
+|---|---|---|
+| 100.00 % | 11 | `bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }` |
+
+## forge::Board::has_non_pawn_material(forge::Color) const
+| summed % | source line | text |
+|---|---|---|
+| 80.00 % | 11 | `bool Board::has_non_pawn_material(Color color) const {` |
+| 20.00 % | 22 | `return (pieces(color, Knight) \| pieces(color, Bishop) \| pieces(color, Rook) \| pieces(color, Queen)) != 0;` |
+
+## forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)::{lambda()#1}::operator()() const
+| summed % | source line | text |
+|---|---|---|
+| 100.00 % | 11 | `if (!tune::SoundPruneTrace) return;` |
+
+## forge::Board::square_attacked_with_occupancy(int, forge::Color, unsigned long, unsigned long) const
+| summed % | source line | text |
+|---|---|---|
+| 50.00 % | 107 | `return m.table[m.index(occupancy)];` |
+| 25.00 % | 97 | `return static_cast<std::size_t>(_pext_u64(occupancy, mask));` |
+| 25.00 % | 111 | `}` |
+
+## forge::Evaluator::Evaluator()
+| summed % | source line | text |
+|---|---|---|
+| 99.99 % | 65 | `::new((void*)__p) _Tp(std::forward<_Args>(__args)...);` |
+
+## forge::Worker::clear()
+| summed % | source line | text |
+|---|---|---|
+| 100.00 % | 89 | `for (SearchStack& ss : stack_) ss = SearchStack{};` |
+
+## forge::Board::generate_pseudo_legal(forge::MoveList&, forge::Board::GenMode) const
+| summed % | source line | text |
+|---|---|---|
+| 100.00 % | 11 | `void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {` |
+
+## forge::attacks::(anonymous namespace)::init_magics(bool, unsigned long*, std::array<forge::attacks::Magic, 64ul>&)
+| summed % | source line | text |
+|---|---|---|
+| 50.00 % | 171 | `int file = file_of(square);` |
+| 50.00 % | 187 | `if (file < 0 \|\| file > 7 \|\| rank < 0 \|\| rank > 7) break;` |
+
+## forge::Board::make_null_move(forge::NullUndo&)
+| summed % | source line | text |
+|---|---|---|
+| 100.00 % | 11 | `void Board::make_null_move(NullUndo& undo) {` |
+
+## forge::Board::set_fen(std::basic_string_view<char, std::char_traits<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*)
+| summed % | source line | text |
+|---|---|---|
+| 100.00 % | 818 | `if (rank != 0 \|\| file != 8 \|\| kings[White] != 1 \|\| kings[Black] != 1 \|\|` |
+
+## forge::Board::unmake_null_move(forge::NullUndo const&)
+| summed % | source line | text |
+|---|---|---|
+| 100.00 % | 33 | `ep_square_ = undo.ep_square;` |
