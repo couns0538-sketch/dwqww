@@ -120,6 +120,21 @@ relation** before touching the data. "0 of 60" alongside 60 identical tuples is 
 test. Two of the six faults here are of this kind — the expectation was wrong, not the measurement (23-F29, 23-F40) —
 and they are the hardest to see, because they produce a confident, well-formatted, entirely wrong table.
 
+## Instance 7 — a known engine DEFAULT, already documented, still forgotten (23-F42)
+
+My first clock sweep showed `0` nodes in every cell and CONTROL FAILED. The cause was `OwnBook`, which defaults to
+TRUE on this build: it answered `info string book move d2d4` with **no search at all**, so there were no node counts
+to compare and the boundary table was empty of meaning.
+
+`FABLE_TO_swarm_3` records exactly this default. **I had read that file and still forgot it** when writing a fresh
+harness.
+
+**How it was caught:** the control, not my reading. **Fix:** `setoption name OwnBook value false` unconditionally, in every search harness, never case by case.
+
+**Why this instance matters more than the others:** it is the best argument for controls over care. Attention had
+already been warned and it did not help. A control catches what attention misses, including the things attention has
+already been told.
+
 ## Instance 8 — the input was wrong (23-F49), and the column rule
 
 Four of my five HAND-BUILT "in-check" positions were not checks: I put the checking piece where it did not attack

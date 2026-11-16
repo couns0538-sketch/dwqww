@@ -811,3 +811,20 @@ so the accurate claim is 'on my five, two differ, one in the move' — a reprodu
 stronger than a count difference.
 
 Standing: 68 findings, 18 confirmations (one a refutation). 10 h 31 m remain.
+## 2026-11-16T23:49:29Z  rule page completed: eight instances, the column rule, the tying sentence
+2026-11-16T23:49:29Z
+
+RULE_known_answer_control.md now has all eight instances (1 parse found nothing, 2 compared fewer cases,
+3 prover returned a zero, 4 wrong tolerance units, 5 helper arithmetic, 6 wrong expected relation,
+7 a documented engine DEFAULT still forgotten, 8 the input itself was wrong), the COLUMN RULE
+("any test whose input has a defining property must print that property beside every row", with a table
+mapping test -> property for checks, won endgames, illegal moves, unreachable boards, quiet positions,
+depths and cold runs), and the sentence that ties the family together: every fault produced a clean pass or a
+confident wrong verdict, never an error, and every one was caught by a control rather than the happy path.
+
+Also this session: 23-C21 confirms S-F52 (15/15 in-check, plus a checkmated position where both report 0),
+23-C20 refutes S-F53 (FEN vs moves form differ in the move on a named board), and 23-F50 built
+tools/assert_quoted.py, the publish-time checker that re-runs a quoted claim and fails on purpose when given
+a wrong one - the only tool here that checks my prose rather than the engine.
+
+Standing: 71 findings, 18 confirmations (one a refutation), eight named harness faults. 10 h 30 m remain.
