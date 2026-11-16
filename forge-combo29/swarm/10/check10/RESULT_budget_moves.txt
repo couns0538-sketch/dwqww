@@ -1,0 +1,42 @@
+HOW OFTEN DOES THE BESTMOVE CHANGE BETWEEN THE OWNER'S THREE BUDGETS?
+PC r15, PC20, Threads 1, Hash 16. 100 positions = first 100 of set_G.epd.
+Budgets: go softnodes 20000, go softnodes 50000, go nodes 250000. Fresh process per cell.
+
+VERDICT: 19 of 100 positions change at least one bestmove. 5 of 6 predictions held; P1 failed (see below).
+
+                          count / 100
+  agree on all three          81
+  a move differs somewhere    19
+    20000 vs 250000          17
+    20000 vs 50000           15
+    50000 vs 250000           8
+
+SCORE GAPS
+  median |score gap| where 20000 and 250000 differ (cross-budget) : 52 cp
+  largest such gap                                                : 218 cp
+  median gap when BOTH moves are scored AT the large budget        : 34 cp
+  largest such gap                                                 : 279 cp
+  positions where the small budget's choice is >=200 cp worse, by
+  the engine's OWN evaluation at the large budget                  : 2
+
+  illegal bestmoves across all 300 searches: 0
+
+WHAT THIS MEANS FOR TRAINING DATA (the number the owner asked for)
+  19% of positions get a different move at 20000 nodes than at 250000 nodes, and 8% are
+  still different at 50000 vs 250000. The median disagreement is 52 cp and the worst is 218 cp.
+  On 2 of the 100 positions the small budget's move is at least 200 cp worse as judged by the
+  engine itself at the larger budget -- i.e. those are not ties, they are small-budget blunders.
+
+  So a self-play or tuning set that mixes these budgets mixes players who disagree on roughly a
+  fifth of the positions, and on ~2 % of them one of the two is making a serious error.
+  RECOMMENDATION: record the budget WITH the data, and never mix budgets in one training set --
+  or filter to positions where the two budgets agree, which keeps 81% of G.
+
+PREDICTION SCOREBOARD
+  P1  >5 positions differ ............ HELD (19)
+  P2  20000-vs-250000 >= 2x the 50000-vs-250000 rate ...... HELD (17 vs 8, 2.1x)
+  P3  median gap >= 40 cp ............ HELD (52 cp)
+  P4  >=1 position 200cp worse ....... HELD (2 positions)
+  P5  50000-vs-250000 agree on >=85 .. HELD (92)
+P1 was the weakest of my predictions and the measurement exceeded it by 4x -- my 4-position
+sample suggested ~2 in 6; the real rate is 19 in 100.

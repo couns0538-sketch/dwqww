@@ -371,3 +371,12 @@ H16 = 1,109,211 nodes vs H2048 = 133 -> 8,339.9x collapse; at MultiPV 1 only 1.3
 in Hash (H=256 = 882,366 > H=64 = 336,805), so it is a cliff between 256 and 2048 MB.
 10-F52: mechanism MEASURED -- one Clear Hash costs 0.0085/0.0297/0.1104/**0.8621** s at Hash 16/64/256/2048,
 paid once per extra PV line: ~6 s of clearing inside a 3 s budget at MultiPV 8. That is the whole effect.
+
+## Budget-change number (the owner's training-data question)
+10-F53: 100 G positions x 3 owner budgets, PC20 Threads 1: **19/100 change bestmove**, 17/100 between
+20000 and 250000, 8/100 between 50000 and 250000, all three agree on 81/100. Median cross-budget score gap
+52 cp (max 218); same-budget median gap 34 cp (max 279); **2 positions where the small budget's choice is
+>=200 cp worse by the engine's own evaluation**. 0 illegal moves in 300 searches.
+10-F54: record the budget with the data and never mix budgets; or filter to the 81% that agree; 50000 is the
+cheapest single safe budget (92/100 agreement with 250000).
+Mon Nov 16 10:42:12 PM UTC 2026
