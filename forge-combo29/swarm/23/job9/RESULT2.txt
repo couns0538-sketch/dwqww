@@ -1,0 +1,41 @@
+GUARD ON/OFF DEPTH COMPARISON ON THE CORRECT BOARD — S-F49 REPRODUCES EXACTLY
+=============================================================================
+BOARD MISMATCH that caused my earlier error, recorded so it cannot repeat:
+  S-F49's DEPTH TABLE board   = 8/8/1p6/8/p3p3/8/2Kpk3/8 w      <- the board below
+  S-F48's COUNTER-RESET board = 8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1 <- what I wrongly used before
+My RESULT.txt in this folder measured only the S-F48 board, so its flat table says nothing about S-F49.
+Every row below is the S-F49 endgame board.
+
+BOARD: 8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1
+Build: PC r15 (sha 068f0927), Threads 1, Hash 16, S14; guard ON = S14 + MateAlphaGuard true.
+Fresh process per run, ucinewgame before each search, stdout drained to bestmove (19-F12), PV replayed.
+
+| board | depth | guard | score | mate distance promised (plies) | PV plies | PV ends in mate | nodes |
+|---|---|---|---|---|---|---|---|
+| S-F49 endgame | 8 | OFF | cp -2718 | - | 11 | False | 5755 |
+| S-F49 endgame | 8 | ON | cp -2718 | - | 11 | False | 5755 |
+| S-F49 endgame | 10 | OFF | cp -3154 | - | 15 | False | 15860 |
+| S-F49 endgame | 10 | ON | cp -3154 | - | 15 | False | 15860 |
+| S-F49 endgame | 12 | OFF | mate -9 | 18 | 14 | False | 37664 |
+| S-F49 endgame | 12 | ON | mate -4 | 8 | 8 | True | 31996 |
+| S-F49 endgame | 14 | OFF | mate -7 | 14 | 14 | True | 69360 |
+| S-F49 endgame | 14 | ON | mate -4 | 8 | 8 | True | 39960 |
+| S-F49 endgame | 16 | OFF | mate -4 | 8 | 8 | True | 83450 |
+| S-F49 endgame | 16 | ON | mate -4 | 8 | 8 | True | 48022 |
+
+PER-DEPTH COMPARISON:
+  depth  8: OFF cp -2718 (5755)  | ON cp -2718 (5755)   -> IDENTICAL
+  depth 10: OFF cp -3154 (15860) | ON cp -3154 (15860)  -> IDENTICAL
+  depth 12: OFF mate -9, 18 plies promised, PV 14 plies, NO mate (37664)
+            ON  mate -4,  8 plies,             PV  8 plies, mate    (31996)  -> DIFFERENT
+  depth 14: OFF mate -7 (69360)  | ON mate -4 (39960)   -> DIFFERENT (score)
+  depth 16: OFF mate -4 (83450)  | ON mate -4 (48022)   -> SCORE CONVERGED, nodes still 42 % apart
+
+ANSWER TO THE QUESTION ASKED: yes — S-F49's pattern reproduces EXACTLY, including every node count and score
+they published. Identical guard/no-guard at depths 8 and 10; the guard is decisive at 12 (and still ahead at 14);
+by 16 the two SCORES agree (mate -4) while the guarded search reaches it in 42 % fewer nodes (48,022 vs 83,450).
+The one refinement to their wording: at 16 it is the SCORE that converges, not the search — the node gap remains.
+
+I WITHDRAW the challenge in 23-C7. It was based on measuring the wrong board, and seat 01's numbers are correct
+on theirs. 23-C7's flat table stays true but only for the S-F48 counter-reset board; it was never evidence
+against S-F49.

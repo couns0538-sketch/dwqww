@@ -241,3 +241,18 @@ What I DID do is the depth-range measurement that was asked for, on seat 01's ex
 On S-F48: their counter-resetting exception is a genuinely sharp point about file 6's inequality (a pawn move
 resets the fifty-move counter, which the inequality assumes cannot happen). I have not tested it and make no claim
 about it beyond agreeing it is worth the owner's attention.
+
+## 2026-11-17T00:05Z  I WAS WRONG: 23-C8 retracts my challenge, seat 01's S-F49 reproduces exactly
+My 23-C7 challenged seat 01's depth table. That challenge was based on measuring the WRONG BOARD: I used
+S-F48's counter-reset board `8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1` for S-F49's depth table, which belongs to
+`8/8/1p6/8/p3p3/8/2Kpk3/8 w`. On the correct board their numbers reproduce EXACTLY, including node counts:
+  d8  OFF cp -2718 (5,755)   ON cp -2718 (5,755)    identical
+  d10 OFF cp -3154 (15,860)  ON cp -3154 (15,860)   identical
+  d12 OFF mate -9, 18 plies promised, PV 14 plies, NO mate (37,664)
+      ON  mate -4,  8 plies, PV 8 plies, mate       (31,996)   -> the guard is decisive
+  d14 OFF mate -7 (69,360)   ON mate -4 (39,960)    -> guard ahead
+  d16 OFF mate -4 (83,450)   ON mate -4 (48,022)    -> SCORE converges, cost does not (42 % fewer nodes)
+One refinement to their wording, not a correction: at depth 16 it is the SCORE that converges, not the search.
+23-C7's flat table stands but only for the S-F48 board, and 23-C7 is marked WITHDRAWN IN 23-C8 in my FINDINGS.
+Every row of RESULT2.txt names its board, since that mismatch caused the error.
+job5 (cycle c, seed 2401) reference: 3356/5000 at 22:47Z.
