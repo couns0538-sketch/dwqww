@@ -94,3 +94,35 @@ pick_best attribution DONE (text only, no patch): REPORT_pick_best.md
 
 next command:
   cd forge-combo29/swarm/19/pickbest && python3 summarize_pickbest.py
+
+## 2026-11-16T21:49:11Z — 22:05 CHECKPOINT, complete deliverable set
+
+seat 19 / area 9 (SPEED) / seed 1901 / branch for-fable-and-opus/swarm-19
+tip at this block: b6f156a7d
+
+HONESTY: all four numbers reproduced on base and on both patched builds — 312866 / 862329 / 3024920 / 4865609.
+
+REPORTS (9):
+  REPORT_job1.md            profile of bench 13 — evaluation 38.24 %, move ordering 17.34 %
+  REPORT_job2.md            material-key cache patch: nodes identical, NOT shown faster (CI 0.9680-1.0454)
+  REPORT_job3.md            NNUE column prefetch: 8.10 % SLOWER, rejected (CI 0.8841-0.9552)
+  REPORT_job1b.md           PC-relevant profile, seed 1911: move ordering 18.37 %, pick_best 7.93 %
+  REPORT_job4.md            my prediction that the TT miss path was redundant — it was already implemented
+  REPORT_job4_tt.md         bench 13 reaches the TT replacement scan on 0.006 % of probes, R_1911 on 54.7 %
+  REPORT_pick_best.md       where pick_best's cost goes: the 5 % sort branch, not the loop, the scoring or the root
+  REPORT_pickbest_tie.md    stable_sort moves 3 of 4 pins — tie order is load-bearing
+  REPORT_toolchain_pins.md  g++ 11/12/13 give identical pins — 19-F16 risk theoretical (clang UNVERIFIED)
+  REPORT_vacuity_audit.md   33 parsed numbers, every source line found, 0 wrong values
+
+DELIVERABLE PAGES:
+  RECIPE_tt_validation.md   how to measure a TT patch where the table actually fills (counters + ranges)
+  METHOD_timing_tt.md       how to TIME a TT patch; measured noise floor +/-2.29 % at 10 rounds
+  PIN_SENSITIVITY.md        which of the four pins can detect an ordering change (19-F20)
+
+CHECKS: 21-F1 CONFIRMS; 28's S-C2 CONFIRMS against my own 19-F7; 29-F3 CONFIRMS (11.91 ms bench overhead);
+        08-F9 CONFIRMS (medians 62-69 % of soft limit); 29-F9 CONFIRMS (no net file in the repo).
+
+VIOLATION.md: 5.8 MB of build artifacts remain in history at 03d92c4c1; force-push forbidden, owner informed.
+
+next command (nothing new started):
+  cd /agent/repos/dwqww && S=$(cat ~/swarm_seat.txt) && cat forge-combo29/swarm/$S/FINDINGS.md
