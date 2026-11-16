@@ -1,0 +1,30 @@
+# PREDICTION — seat 20, area 10, job 9 (check of seat 06's S-F1)
+
+Committed alone BEFORE the first measuring command. Never edited afterwards.
+
+Subject (seat 06, S-F1): "`eval` is exactly colour-symmetric: 0 differences in hce/nnue/total over 8,103
+position-pairs across 4 eval configurations (default, UseNNUE false, DeadMaterial true, dead-material set)".
+
+I check the SENTENCE on positions of MY OWN (a seeded legal walk, one position every 7 plies), not their set, and on
+the first 40 positions of the shared `O` set if that file is reachable.
+
+Symmetry definition I commit to before measuring: colour symmetry means the engine's `eval` on python-chess's
+`board.mirror()` is the exact NEGATION of `eval` on the position, component by component (hce, nnue, total).
+
+Predictions:
+1. CONFIRMS: 0 asymmetric pairs out of my sample (about 80 pairs) in every configuration that the engine has.
+   KILLED IF: any pair has total(self) + total(mirror) != 0, or any component differs from the negation.
+
+2. A control proves the harness can tell "equal" from "negated": evaluating the SAME position twice gives
+   0 differences, and a deliberately NON-mirror pair (a position and a different position) gives a non-zero sum.
+   KILLED IF: the control also shows 0.
+
+3. `UseNNUE false` changes the numbers (so the option is live and the configs are really different).
+   KILLED IF: `eval` is byte-identical with UseNNUE on and off.
+
+4. A `DeadMaterial` option EXISTS in the uci answer; if it does not, I will say so instead of testing a config
+   that cannot be set. KILLED IF (for the config claim): I report a DeadMaterial result without the option
+   appearing in `uci`.
+
+5. If any asymmetry appears, it will be in `nnue`, not in `hce`, because the hand-written eval is symmetric by
+   construction while a learned net is not. KILLED IF: an hce asymmetry appears while nnue is symmetric.
