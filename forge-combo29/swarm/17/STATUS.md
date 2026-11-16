@@ -243,3 +243,18 @@ DONE — the forfeit question is answered
 
 NEXT
 - Keep the table current; continue the cycle on anything on the PC path that could lose a game.
+## 2026-11-16T23:06Z (block 15)
+
+seat 17 | PC path measurements | Threads 1 | branch for-fable-and-opus/swarm-17
+
+DONE
+- S-C9 confirmed end-to-end in ONE GUI-like session: load a real middlegame, search (b6b5); load an INVALID
+  FEN (side to move left its own king in check); engine refuses with an info string, answers readyok, and
+  then returns b6b5 again - the FIRST position's move, legal there and illegal in startpos. So in a GUI
+  session the engine hands out the previous board's move with no error state. Highest-exposure item found.
+  And it is a typo-class trigger: 2 of my 30 hand-written FENs hit it.
+- Table row strengthened with that confirmation.
+
+NEXT
+- Keep cycling: look for the same silent-continuation hazard on the `position startpos moves` path, which a
+  GUI uses for every game, and push STATUS at the 25-minute mark.
