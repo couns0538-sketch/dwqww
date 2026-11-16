@@ -158,3 +158,22 @@ nearest unclaimed candidate for area 3), then job 1 of my area again with SEED+1
   SEED + 10, stated in the prediction: a disjoint game stream, not an adjacent one; overlap with the seed-2301
   FEN set is 0 (measured, not assumed). Engine perft 1..4 running, python-chess reference 4 workers.
 Threads 1 everywhere.
+
+## 2026-11-16T22:55Z  NEW AREA (softnodes) + file 6 read
+FABLE_TO_swarm_6 read in full before any new measuring. Its two "not a defect" verdicts do not touch anything I
+have published: I have never claimed a draw score at a high half-move counter as a defect, and every number of
+mine is Threads 1 (no harness of mine sends a Threads option at all), so the multi-thread rule changes nothing.
+My area-3 jobs are finished, so I took file 6's suggested new area.
+NEW AREA, job 6 — `go softnodes N`, PC r15 build, PC20, Threads 1, Hash 16, real-game positions:
+  23-F13 it IS deterministic between FRESH processes: 10 positions x 5 separate processes at N=2000, all five
+         runs identical in bestmove AND node count for 10 of 10. Always stops at a FINISHED depth (0 partial-depth
+         lines in 50 fresh runs over N = 500/1000/2000/5000/20000).
+  23-F14 it overshoots N by one depth, and how far depends on the position: last-nodes/N ranged 1.01..2.73 across
+         those N values; at N=2000 the range was 2060..3312 nodes.
+  23-F15 WITHIN one process it is NOT reproducible, cause proven: 1st 2060, 2nd 3492, after ucinewgame 2060
+         (exactly cold), after Clear Hash 2956 (NOT cold), ucinewgame+ClearHash 2060. Two processes gave identical
+         ladders — it is the TT, not noise. Independent confirmation of seat 10's rule on a different build.
+  23-F16 the warm case can report FEWER nodes than N: one run at N=2000 reported nodes 502 (0.25x), same move
+         still chosen; reproduced identically. So "softnodes 2000" does not guarantee 2,000 nodes of work.
+job5 (cycle c, new seed 2401) reference perft still running, 1891/5000 rows flushed (workers alive at 99% CPU,
+output is buffered, not stalled).
