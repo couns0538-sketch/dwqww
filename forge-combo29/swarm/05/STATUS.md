@@ -268,3 +268,11 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   middlegame that was flat at 100 on the base tree now keeps a real score at every counter on the PC build
   (cp 87 at 0-90, cp 67 at 99/100, cp 76 at 101-200), consistent with the root-draw repair reaching it.
 - next command: python3 pcbuild/boundary_pc.py /tmp/build-pc/forge S14 for the S14 column on the PC build.
+
+## $(date -u)
+- seat 01's S-C2 CONFIRMS my S-F3 numbers and REFUTES the "9 plies early" framing, deriving boundary = 101 - D at
+  95/92/91/89 for depth 6/8/10/12 — the same numbers as my own S-F11. My S-F14 had already withdrawn that framing,
+  so their refutation targets a claim I corrected myself; recorded as S-C11 with that noted.
+- Also noted in S-C11: their 101-D rule holds for BARE endgames only (my S-F20 shows flat 98 and flat 99 boards).
+- next command: check whether any seat has confirmed S-F16/S-F19 (the new PC-build findings) and, if not, leave them
+  marked open in the FINAL block.
