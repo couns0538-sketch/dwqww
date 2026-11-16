@@ -1,0 +1,200 @@
+# RegretTop.patch.txt - applies from the REPOSITORY ROOT (patch -p1) on base 6b98f2170a3210e71beed04bbd2553972c253ed7 + kimi5's tests_kimi5_job5/{SoundArms,SoundRegret,SoundSteps}.patch.txt in that order.
+# RegretTop (check, false): the probe mode - a dropped move (steps 2,3,4,6 by the job's numbering; 5 counted
+#   and expected 0) is made and searched at the reduced depth and null window the loop would use; if that
+#   beats alpha (r1) it is searched again at the full new depth with the loop's full-re-search window (!cut_node)
+#   - r2 = that too beats alpha. ONE flag keeps probes from nesting: inside a probe nothing is counted or probed.
+# RegretTopCount (check, false): count only, zero side effects (O sum stays 12,573,318 - verified).
+# The probe writes the hash table and the histories; NEITHER is rolled back - the count-only run beside
+#   the probe run measures the disturbance. The probes' nodes are counted in their own counter (pn).
+# Proof on O depth 12: RegretTop false = 12,573,318; RegretTopCount true = 12,573,318; pins exact;
+#   exe sha256 59106ede723e9581...; both names in the uci list (rt_pins.txt).
+#
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -358,6 +358,20 @@
+ // (bit 0 = s1 .. bit 5 = s6). 63 = today's arm behavior, 0 = the case prunes like an
+ // ordinary node. Outside an arm's case the mask has no effect.
+ inline int SoundStepMask = 63;
++// job19 RegretTop (deepseek5): a clean count of what the pruning steps drop.
++// RegretTopCount true: count only, zero side effects (the tree must stay the engine's own).
++// RegretTop true: count AND probe - a dropped move is made and searched at the reduced depth
++// and null window the loop would have used for it; if that beats alpha, again at the full new
++// depth with the loop's full-re-search window. ONE flag keeps probes from nesting: inside a
++// probe nothing is counted and nothing is probed. The probe writes the hash table and the
++// histories; neither is rolled back (the count-only run beside it measures the disturbance).
++inline bool RegretTop = false;
++inline bool RegretTopCount = false;
++inline bool regret_top_inside = false;
++inline long long rt_n[5][4][4] = {{{0}}};   // [step 2..6 -> 0..4][depth 1-3,4-6,7-9,10+][pv*2+in_check]
++inline long long rt_r1[5][4][4] = {{{0}}};  // beat alpha at the reduced depth
++inline long long rt_r2[5][4][4] = {{{0}}};  // ALSO beat alpha at the full depth
++inline long long rt_probe_nodes = 0;
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -238,7 +238,9 @@
+                          "option name SoundMateAlphaArm type spin default 0 min -1 max 1\n"
+                          "option name SoundRegretCount type check default false\n"
+                          "option name SoundRegretProbe type check default false\n"
+-                         "option name SoundStepMask type spin default 63 min 0 max 63\n";
++                         "option name SoundStepMask type spin default 63 min 0 max 63\n"
++                         "option name RegretTop type check default false\n"
++                         "option name RegretTopCount type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -471,6 +473,13 @@
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "RegretTop" || name == "RegretTopCount") {
++                if (value_text == "true" || value_text == "false") {
++                    if (name == "RegretTop") forge::tune::RegretTop = value_text == "true";
++                    else forge::tune::RegretTopCount = value_text == "true";
++                } else {
++                    note_invalid();
++                }
+             } else if (name == "SoundStepMask") {
+                 apply_spin(0, 63, [&](int clamped) { forge::tune::SoundStepMask = clamped; });
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1891,6 +1891,80 @@
+         }
+     };
+ 
++    // job19 RegretTop: my own count of what the steps drop, with a probe that asks whether the
++    // dropped move would have beaten alpha (r1) and then also at the full depth (r2). The depth
++    // classes are the node's depth (1-3, 4-6, 7-9, 10+); the kinds are pv x in_check. Steps are
++    // numbered as the job names them: 2 quiet futility, 3 history, 4 quiet SEE, 5 capture
++    // futility, 6 noisy SEE. Step 1 (late-move pruning) is not probed: its dropped moves never
++    // come out of the picker.
++    auto regret_top = [&](int step, const Move& dropped, bool dropped_quiet, int dropped_history,
++                          int dropped_move_count) {
++        if (!tune::RegretTop && !tune::RegretTopCount) return;
++        if (tune::regret_top_inside) return;
++        const int sidx = step - 2;
++        if (sidx < 0 || sidx > 4) return;
++        const int rt_dcls = depth <= 3 ? 0 : depth <= 6 ? 1 : depth <= 9 ? 2 : 3;
++        const int rt_kcls = (pv_node ? 2 : 0) + (in_check ? 1 : 0);
++        ++tune::rt_n[sidx][rt_dcls][rt_kcls];
++        if (!tune::RegretTop) return;
++        const bool rt_gives_check = board.gives_check(dropped);
++        int rt_extension = 0;
++        if (rt_gives_check && depth >= tune::CheckExtensionDepth && board.see_ge(dropped, 0)) {
++            rt_extension = 1;
++        }
++        const int rt_new_depth = depth - 1 + rt_extension;
++        int rt_r = reduction(dropped_quiet, depth, dropped_move_count);
++        if (ss->tt_pv) rt_r -= 1;
++        if (!improving) rt_r += 1;
++        if (cut_node) rt_r += 2;
++        if (tt_capture && dropped_quiet) rt_r += 1;
++        if (rt_gives_check) rt_r -= 1;
++        if (in_check) rt_r -= 1;
++        if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) rt_r += 1;
++        if (dropped_quiet) rt_r -= std::clamp(dropped_history / tune::LmrHistoryDivisor, -2, 2);
++        if (tune::LmrSignedCorrection && dropped_quiet && ss->static_eval != ValueNone &&
++            ss->raw_eval != ValueNone) {
++            const int correction_cp = ss->static_eval - ss->raw_eval;
++            if (correction_cp != 0) rt_r = apply_lmr_signed_correction(rt_r, correction_cp);
++        }
++        if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && dropped_move_count <= 4) --rt_r;
++        const int rt_reduced = std::clamp(rt_new_depth - rt_r, 1, rt_new_depth);
++        const Piece rt_moved = board.moved_piece(dropped);
++        tune::regret_top_inside = true;
++        Undo rt_undo;
++        (void)board.make_move(dropped, rt_undo);
++        ss->current_move = dropped;
++        ss->moved_piece = rt_moved;
++        ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(rt_moved)][dropped.to];
++        (ss + 1)->ply = ply + 1;
++        (ss + 1)->arrival_index = dropped_move_count;
++        const std::uint64_t rt_before = local_nodes_;
++        const int rt_s1 = -search(board, ss + 1, rt_reduced, -alpha - 1, -alpha, true);
++        tune::rt_probe_nodes += static_cast<long long>(local_nodes_ - rt_before);
++        board.unmake_move(dropped, rt_undo);
++        tune::regret_top_inside = false;
++        if (aborted_) return;
++        if (rt_s1 > alpha) {
++            ++tune::rt_r1[sidx][rt_dcls][rt_kcls];
++            if (rt_reduced < rt_new_depth) {
++                tune::regret_top_inside = true;
++                const std::uint64_t rt_before2 = local_nodes_;
++                (void)board.make_move(dropped, rt_undo);
++                ss->current_move = dropped;
++                ss->moved_piece = rt_moved;
++                ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(rt_moved)][dropped.to];
++                (ss + 1)->ply = ply + 1;
++                (ss + 1)->arrival_index = dropped_move_count;
++                const int rt_s2 = -search(board, ss + 1, rt_new_depth, -alpha - 1, -alpha, !cut_node);
++                tune::rt_probe_nodes += static_cast<long long>(local_nodes_ - rt_before2);
++                board.unmake_move(dropped, rt_undo);
++                tune::regret_top_inside = false;
++                if (aborted_) return;
++                if (rt_s2 > alpha) ++tune::rt_r2[sidx][rt_dcls][rt_kcls];
++            }
++        }
++    };
++
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
+         if (move == excluded) continue;
+@@ -1960,6 +2034,7 @@
+ #endif
+                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
+                     trace_case();
++                    regret_top(2, move, true, history, move_count);
+                     sound_regret_drop(1, move, true, history, move_count);
+                     if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+                     if (sr_skip_origin == 0) {
+@@ -1973,6 +2048,7 @@
+                 }
+                 if (!(sound_step_gate & 4) && lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
+                     trace_case();
++                    regret_top(3, move, true, history, move_count);
+                     sound_regret_drop(2, move, true, history, move_count);
+                     if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+                     quiet_fail = true;
+@@ -1980,6 +2056,7 @@
+                 }
+                 if (!(sound_step_gate & 8) && !board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+                     trace_case();
++                    regret_top(4, move, true, history, move_count);
+                     sound_regret_drop(3, move, true, history, move_count);
+                     if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+                     quiet_fail = true;
+@@ -1996,6 +2073,7 @@
+                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+                             capture_value(board, move) + history / 8 <= alpha) {
+                     trace_case();
++                    regret_top(5, move, false, history, move_count);
+                     sound_regret_drop(4, move, false, history, move_count);
+                     if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+                     continue;
+@@ -2004,6 +2082,7 @@
+                 if (!(sound_step_gate & 32) && !(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                     !board.see_ge(move, see_threshold)) {
+                     trace_case();
++                    regret_top(6, move, quiet, history, move_count);
+                     sound_regret_drop(5, move, quiet, history, move_count);
+                     if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+                     if (tune::SoundPruneTrace && quiet && gives_check && quiet_fail) {
+@@ -2866,6 +2945,15 @@
+     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
++    { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++      auto rt_dump = [](const char* k, long long a[5][4][4]) {
++          std::cout << "\"" << k << "\": [";
++          for (int s = 0; s < 5; ++s) { std::cout << "["; for (int d = 0; d < 4; ++d) { std::cout << "["; for (int kk = 0; kk < 4; ++kk) std::cout << a[s][d][kk] << (kk == 3 ? "" : ","); std::cout << "]" << (d == 3 ? "" : ","); } std::cout << "]" << (s == 4 ? "" : ","); }
++          std::cout << "]"; };
++      std::cout << "info string RT {";
++      rt_dump("n", tune::rt_n); std::cout << ",";
++      rt_dump("r1", tune::rt_r1); std::cout << ",";
++      rt_dump("r2", tune::rt_r2); std::cout << ",\"pn\":" << tune::rt_probe_nodes << "}" << std::endl; }
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
+     return result;
+ }
