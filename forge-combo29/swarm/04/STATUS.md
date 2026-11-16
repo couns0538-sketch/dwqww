@@ -218,3 +218,9 @@ immediately -> bestmove a2a3 with 0 INFO LINES. Both write patterns fabricate 5/
 two separate writes, no sleep). Window: quit at 0 ms fabricates; at 1 ms already a real search (g7g6, 5 info
 lines); at 200 ms a full 18-line search. => unsafe only if stdin closes in the same breath as go, which is what a naive pipe of the whole script into the engine does.
 NEXT: REPORT_quit_path.md, then keep working; FINAL when the window closes at 10:18:50Z.
+
+## 2026-11-16T23:10:24Z 04-F24 BREADTH: PC BUILD CLEAN AT THREADS 8 ACROSS 7..32 PIECES
+13 positions (7,9,11,13,15,17,19,23,25,27,29,31,32 pieces), PC r15 TSan build, PC20, Threads 8, depth 10,
+fresh process each: 0 TSan reports in 13 searches; every search legal bestmove, no refusals.
+Planted control at Threads 8 through the same runner: 3 reports. Combined with 04-F22: 23 TSan searches on the
+PC build, 0 reports, with a positive planted control at every thread count used.
