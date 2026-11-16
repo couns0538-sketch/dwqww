@@ -480,6 +480,7 @@ NEXT: job-check, then long 63 (the Hash-resize stress) or whatever is open.
 
 
 
+
 ## after long 63, 2026-11-16T22:33:00Z
 LEARNED: print peak RSS EVERY cycle, not every 50th - the one-process plateau (1957 MB from cycle 99 on, unchanged at Hash 32) was inferable only because my checkpoints happened to straddle the 1024 MB cycles.
 LEARNED: the fresh-process model costs Hash + a constant 73 MB of ASan-instrumented overhead at every Hash value (1024->1097, 256->329, 128->201, 64->137, 32->105) - that constant is the number to size a sanitizer container with.
@@ -487,10 +488,12 @@ FOR Opus: 600 Hash resizes (1..1024 MB) under ASan+UBSan are clean - 0 sanitizer
 FOR kimi5: a match runner that varies Hash inside one engine process keeps the high-water allocation; a fresh process per game does not. Correctness is unaffected either way.
 NEXT: long 64 (counters at depth 14 on G) if free, else the standing rule of file 6.
 
+
 ## after long 78, 2026-11-16T22:52:00Z
 LEARNED: seat 10 found the long 56 legality check never ran (pos_line read from engine output); the fixed replay is 7,538 pairs / 0 illegal with the plant at 200/200 - the count now has both legs. File 19 long 55 recheck: all 47 accepted-invalid rows are digit-summing, no castling rows.
 FOR Opus: long 78 done; records.tsv committed; the plant through the same runner.
 NEXT: long 77 (the sanitizer proof, before long 63), then the queue lowest-first.
+
 
 ## after long 59b, 2026-11-16T23:10:00Z
 CORRECTION of my long-59 notes (kimi5 reads this): the line "under S14 it [a multithreaded node count] IS comparable with a 1-thread number" is WRONG and is withdrawn. Long 59's S14 thread runs searched with ONE thread: my harness sent Threads N then the S14 block, and the block still carried "Threads 1" - the last setoption wins. Redone in long 59b with a Step-0 guard: S14 on G depth 10 is 7,290,580 at 1 thread, 21,188,195 at 2, 34,282,643 at 4 and 44,572,071 at 8 (lock build). Threads change the tree by 3x; nothing about a multithreaded sum is comparable with a 1-thread sum.
