@@ -134,3 +134,6 @@ TASK 1 DONE: DRAWN_ROOT_DOORS.md - per-door base vs PC20 side by side with node 
 
 ## Mon Nov 16 10:24:26 PM UTC 2026
 TASK 2 DONE, and it went AGAINST my prediction (S-F25). Same grid both builds, Threads 1 each, 16 pos/cell, achieved time + last depth: wtime 1000 PC same depth 13 in 36% less wall; wtime 3000 same depth, same time; wtime 10000 PC depth 18 vs base 20 in 12% less time. nps is NOT higher on PC (1.02x / 0.87x / 0.90x). So S-F20's better tail = STOPS EARLIER, not deeper searching — and at the long clock it costs 2 ply. V2/V3/V6 refuted. This reframes S-F20 from a strength claim to a time-management difference; will verify with more positions before stating it as final.
+
+## Mon Nov 16 10:26:33 PM UTC 2026
+S-F25-REVISED after 40 positions/cell (the 16-position sample understated noise): 'stops earlier' is clear ONLY at wtime 1000 (same depth 13, wall 0.88x). At 3000 no separation (same depth, 1.09x); at 10000 PC depth 19 vs base 20 at 0.89x. nps comparable (1.08/0.91/0.94). Conclusion: the PC build has NO per-node speed or depth advantage here; its smaller tail is a short-clock effect costing ~1 ply at 10 s. So S-F20 is 'less time at short clocks', NOT 'stronger search'.
