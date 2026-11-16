@@ -20,4 +20,4 @@ runs: nothing in background.
 done: area 10 job 1 (first check). CONFIRMS 19-F5 (bench is a stdin command; main ignores argv) — check1/RESULT.txt.
   5 of 5 predictions held, including both source line numbers (uci.cpp:590, :651).
 next: another check of an unchecked NEW finding, or area 10 job 3 (glmflash5 recount) if none is left.
-note: no  on this machine, so 19-F1..F4 and 29-F1/F2 (profiler shares) cannot be reproduced here.
+note: there is no perf on this machine, so 19-F1..F4 and 29-F1/F2 (profiler shares) cannot be reproduced here.
