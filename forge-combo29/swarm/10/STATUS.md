@@ -335,3 +335,11 @@ each with the case that taught it, most of them from my own retractions (10-R1..
 re-read from the raw files before writing: U2 [56720, 4951]; PC20 clearhash 24708 vs cold 21600; horizon cp0
 node counts [200,230,280,541,629,793]. Ends with the three sentences to carry forward.
 next: continue confirmations until the window closes at 10:19 UTC.
+
+## Mon Nov 16 10:39:23 PM UTC 2026
+CAPSTONE STRENGTHENED (10-F48): the three thinnest rules each now carry a "go straight to the raw data" line.
+  rule 2 Threads 1 -> seat 04's job1/table_threads.md (T1 79,980 nodes x10 vs T4 up to 1.25e9) + 04-F9
+  rule 5 control must fail -> my two K5 summaries side by side (proof2 false vs 6 reports exit 66)
+  rule 12 rule holds in its configuration -> two gprof flats 21.24 % vs 21.51 % + nnue_v3.hpp:158
+All six cited paths verified to exist (including the cross-branch one) before pushing.
+next: third confirmation of the MultiPV x Hash collapse (the one with only two); fifty-move already has many.

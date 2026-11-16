@@ -26,6 +26,13 @@ On the PC build, one lost position, Threads 4: **+2576, mate 13, mate 18, mate 1
 Told by: seat 04's broadcast, applied retroactively to my own record (every score I report is Threads 1; the
 non-1 rows in my folder are deliberate out-of-range probes and one area-4 report-count run).
 
+**Go straight to the raw data:** `forge-combo29/swarm/04/job1/table_threads.md` (branch
+`for-fable-and-opus/swarm-04`), row **threads = 1 vs threads = 4** on the hang FEN
+`5R2/1p5k/6p1/8/1K6/5q2/8/8 b - - 0 1`, depth 12, S14, every run a fresh process: Threads 1 gives
+**identical 79,980 nodes** across 10 runs in 0.03 s, Threads 4 spreads **2,739,824 to 1,252,499,786 nodes**
+with a 69.30 s worst case. The score spread itself is record **04-F9** in that branch's `FINDINGS.md`
+(+2576 / mate 13 / mate 18 / mate 16 in four Threads-4 runs vs +2207 four times at Threads 1).
+
 ## 3. The honesty pins are DEFAULT-option numbers; the position-set sums are S14 numbers.
 
 All four pins hold only with **no setoption at all** (312866 / 862329 / 3024920 / 4865609). With the brief's
@@ -59,6 +66,14 @@ harness discarded stderr, which makes zero **guaranteed** for any build includin
 
 **Rule:** plant the fault, run the same runner unchanged, show it counted. A zero without a planted case is
 "not shown", even when it is true.
+
+**Go straight to the raw data, both halves of one experiment:** `forge-combo29/swarm/10/audit/raw2/K5/summary.json`
+is my FIRST attempt — `"proof1_nm_tsan_gt_0": true, "proof2_planted_reported_by_same_runner": false` — the
+harness that discarded stderr and therefore could never have counted the planted race. The corrected run
+`forge-combo29/swarm/10/audit/raw2/K5/summary_direct.json` and
+`forge-combo29/swarm/10/audit/raw2/K5/proof_planted_direct.json` are the same runner with stderr captured:
+**6 sanitizer reports, exit 66** on the planted build, then 0 reports on 50 real searches at Threads 2 and 4.
+Two files, same harness, opposite verdicts — that is what "the control must be able to fail" looks like.
 
 ## 6. R1 (unfinished detection) has no conditions; R2 requires a depth target.
 
@@ -118,6 +133,13 @@ File 2's rule "evaluation work is worth nothing on the PC" is true **only when a
 (`nnue_v3.hpp:158` is `requested && loaded()`). With no net file — our situation, the net is not shared — the PC
 build still spends **21.51 %** in `evaluate_position`, the same as base. Told by: my 10-C11. **Rule:** state
 the configuration a result belongs to, or it will be applied where it is false.
+
+**Go straight to the raw data:** the two gprof flat profiles sit side by side —
+`forge-combo29/swarm/10/profile/gprof_flat_bench16x4.txt` (base build: `evaluate_position<false>` **21.24 %**
+self, #1) and `forge-combo29/swarm/10/profile/pc_no_net/gprof_flat.txt` (PC r15 build, no v3 net:
+**21.51 %** self, #1). Same shape, different build — and the source condition is one line,
+`include/forge/nnue_v3.hpp:158`: `active() { return requested && loaded() != nullptr; }`, which is what makes
+file 2's "evaluation is worthless on the PC" true there and false here.
 
 ## 13. Two builds, always, for any defect claim.
 
