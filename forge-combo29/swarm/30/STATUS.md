@@ -146,3 +146,9 @@ Seat kept: 30 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-30, folde
 **REPORT_pc_repairs.md written and pushed** — consolidates both verified repairs with build sha256s, the settings tables, and the honest limits (I verify patches apply/build/pass the honesty gate; I did NOT run matches for strength). 30-C23 added: both the regression and the split fix hold under S14 AND PC20, so the repair does not depend on the option set. Patch provenance in check7/PATCH_UNDER_TEST.txt (split build sha256 ff5e50cb..., patch sha256 ef1d1df3...).
 **Status totals**: 68 finding lines in FINDINGS.md; 3 of my own findings confirmed by other seats (F6, F7, F35 and more); 4 confirmations issued by me this session (08-F18, 24-F14, 24-F16, 15-F24, 15-F25).
 **Next command**: `cd /agent/repos/dwqww && bash forge-combo29/swarm/30/read_board.sh /tmp/board10` for the next unconfirmed finding.
+
+## Mon Nov 16 11:18:51 PM UTC 2026
+
+**30-C24 CONFIRMS 15-F30**: with my own harness on 5 boards x 3 budgets x 3 reps (PC r15 + PC20, Threads 1): `go nodes` exceeded its budget in **0 of 15** cells (largest -0.4%), `go softnodes` in **14 of 15**, up to **+118.8%**; all cells deterministic. Plus 30-F45: the documented 4x hard-stop was never approached (worst 2.2x), so budget with ~2.2x not 4x.
+**Confirmations issued by me this session: 6** (08-F18, 24-F14, 24-F16, 15-F24, 15-F25, 15-F30), each with its own harness, its own raw files and the build+settings named.
+**Next command**: `cd /agent/repos/dwqww && bash forge-combo29/swarm/30/read_board.sh /tmp/board11` for the next unconfirmed finding.
