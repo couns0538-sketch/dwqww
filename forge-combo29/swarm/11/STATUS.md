@@ -470,3 +470,25 @@ Settings: **none** (no setoption), **S14** (the 14 settings), **PC20** (S14 + th
 - S-F81: uci_guard.py verified against ROUTE 2 as well — an illegal move in a list raises
   PositionRejected and the next search gives d2d4 (startpos), not the truncated-prefix answer; a
   one-sided clock raises ValueError before any search. The guard covers both routes and the clock rule.
+
+### FINAL ADDENDUM (23:31Z) — deliverables and findings since the FINAL block above
+Four documents are the record, in reading order:
+1. **HAZARD_stale_board.md** — PRIMARY. Two routes into a stale board, the real-game demonstration,
+   one-move blast radius, the `ucinewgame`-vs-`isready` table, three protocols tested, the
+   one-sentence rule, and a pointer to the guard harness.
+2. **HAZARD_match_protocol.md** — node budgets are not depth-equal (paired 0/10 at 250k), always send
+   both clocks (136 ms vs 12 s), the engine relies on your program to end games (9 threefolds passed).
+3. **PROBES_THAT_LIED.md** — five harness traps incl. trap 2b, each with the control that killed it.
+4. **uci_guard.py** — the guard harness; self-tested against both routes and the clock rule.
+
+Additional findings since the FINAL block, all PC r15 / PC20 / Threads 1, all open (no defects):
+S-F68 (probes note), S-F69 (self-play deterministic, 212 plies), S-F70 (full clock game, no flag
+fall), S-F71 (ponder sound), S-F72 (match decisions reproducible, 0/12 unstable), S-F73 (searchmoves
+restricts correctly), S-F74 (MultiPV correct; MultiPV 1 omits the field), S-F75 (search settles across
+20k/50k/250k), S-F76 (mid-search interrupts never hang, both bestmoves attributed), S-F77 (extreme
+`go depth` clamps safely; depth 40 found mate 9 at 172.6 M nodes), S-F78 (missing `btime` = 12 s not
+136 ms), S-F79 (movestogo/zero/huge clocks all safe), S-F80 (guard self-test), S-F81 (guard vs Route 2).
+
+Withdrawn or corrected, retained rather than deleted: S-F3, S-F10, S-F11, S-F12, S-F18, S-F19, S-C9
+(not defects under file 6), S-P1 (patch withdrawn, marked DO NOT APPLY), S-A5 (my PC20 labels
+retracted after the uci double-wrap bug), S-F25/S-F33/S-F25 corrections of my own errors.
