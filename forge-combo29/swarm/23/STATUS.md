@@ -329,3 +329,16 @@ THE SHAPE IS THE FINDING: of the 18 changes, 11 are "20000 == 50000, only 250000
 opposite of the natural assumption that the small budget is the weak one. 0 of 180 cells non-deterministic.
 For the owner: the three match budgets are different players on ~30 % of quiet positions, and a match played at
 20000 is not move-for-move comparable with one at 250000 in either direction.
+
+## 2026-11-17T01:55Z  23-F26: the cause of the budget-dependent move is the MARGIN, measured
+Closes the question 23-F25 left open. Scored each candidate move ALONE at the SAME fixed depth 18
+(`go depth 18 searchmoves <move>`), so the comparison does not itself depend on the budget:
+  changed positions (17 measurable): the two candidates are median 14 cp apart, 16 of 17 within 30 cp
+  unchanged positions (8 sampled)   : best move beats a random alternative by median 103 cp
+So the budget changes the move exactly where the position is a close call: 3-9 extra plies flips a 14-cp
+preference, never a 100-cp one. That is consistent with 23-F25's rejection of "deeper = different move" — depth
+grows everywhere, but only close positions are decided by it. Prediction scored: P1 held (median 14 <= 30), P2 held
+(median 103 > 60), P3 held (59 % of changes are improvements at the fixed depth), P4 not observed as a score
+reversal within the fixed-depth comparison, so that clause is unanswered rather than confirmed.
+For the owner: the three match budgets differ on close positions, which is where match results are decided, so a
+match at 20000 and a match at 250000 are not interchangeable and neither is "the right one".

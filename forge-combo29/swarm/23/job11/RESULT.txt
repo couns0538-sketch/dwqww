@@ -1,0 +1,39 @@
+WHY THE BUDGET CHANGES THE MOVE — the margin, measured
+=====================================================
+Question left open by 23-F25 (which rejected "it searches deeper"). Protocol: PC r15, PC20, Threads 1, Hash 16,
+fresh process per search, drained to bestmove. Each candidate move is scored ALONE at the SAME fixed depth 18 with
+`go depth 18 searchmoves <move>`, so the comparison does not itself depend on the budget.
+
+CHANGED positions (the 18 of 60 from 23-F24 that switch move between budgets; 17 measured, 1 had no score):
+
+| fen | move@20000 | score | move@250000 | score | gap (cp) |
+|---|---|---|---|---|---|
+| rnbqkbr1/ppppnppp/4p3/2P5/1P4P1/8/P2PPP1P/RNBQKBNR b KQq - 0 4 | e7d5 | 48 | e7g6 | 65 | 17 |
+| rnbqkb1r/pp2pppp/2p2n2/3p4/5P2/P7/1PPPP1PP/RNBQKBNR b KQkq - 1 4 | g7g6 | 57 | d8c7 | 77 | 20 |
+| r1bqkbnr/pppnpp1p/3p4/6p1/P7/3P4/1PP1PPPP/RNBQKBNR b KQkq - 2 4 | f8g7 | -56 | h7h6 | -62 | 6 |
+| rnbqkb1r/1pppppp1/p4n2/7p/7N/6P1/PPPPPP1P/RNBQKBR1 b Qkq - 0 4 | e7e5 | 55 | d7d5 | 64 | 9 |
+| rnbk1bnr/4qppp/ppppp3/8/5P1P/1PP2N2/PB1PP1P1/RN1QKB1R w KQ - 2 8 | c3c4 | 29 | d2d4 | 21 | 8 |
+| rnbqkbr1/ppppppp1/5n2/7p/8/NQP2N2/PP1PPPPP/R1B1KB1R b KQq - 1 4 | d7d5 | -76 | g8h8 | -46 | 30 |
+| r1bqkbnr/ppp1p1pp/n2p1p2/8/4PP2/P1P5/1P1P2PP/RNBQKBNR b KQkq - 0 4 | f6f5 | -60 | d6d5 | -83 | 23 |
+| 2bqk1nr/rpppb2p/n4pp1/p3p3/7P/N1P1PP2/PP1PK1P1/R1B1QBNR w k - 2 8 | h4h5 | -10 | d2d4 | -13 | 3 |
+| r1bqkbnr/ppppp1p1/2n5/1B3Q1p/8/4P3/PPPP1PPP/RNB1K1NR b KQkq - 1 4 | h8h6 | -193 | g8h6 | -174 | 19 |
+| 4nbkr/4p2p/1Qp5/1pP3PB/1n3pP1/5N2/6K1/1r6 b - - 0 46 | b1b2 | 171 | e8g7 | 237 | 66 |
+| rnbqkbnr/pp1ppp2/6p1/2p4p/2P4P/P7/1PQPPPP1/RNB1KBNR b KQkq - 0 4 | f8g7 | 8 | b8c6 | 23 | 15 |
+| r1bqkbnr/ppppp1p1/2n5/5p1p/P4P2/2N5/RPPPP1PP/2BQKBNR b Kkq - 1 4 | d7d5 | 20 | e7e5 | 6 | 14 |
+| 1nbqkbnr/rp1ppppp/8/p1p1P3/8/5P2/PPPPN1PP/RNBQKB1R b KQk - 1 4 | b8c6 | -20 | d7d5 | -24 | 4 |
+| rnb1kbnr/p1p2p2/4pqp1/1p1p3p/8/PPPP4/1B2PPPP/RN1QKBNR w KQkq - 0 8 | d3d4 | 41 | g1f3 | 53 | 12 |
+| rnbqkbnr/pp1pp2p/2p2p2/6p1/4P3/N1P5/PP1PNPPP/R1BQKB1R b KQkq - 0 4 | d7d5 | -158 | h7h5 | -149 | 9 |
+| rnbqkbnr/2p1pppp/pp1p4/8/8/2PP4/PPQBPPPP/RN2KBNR b KQkq - 1 4 | c8b7 | 28 | e7e6 | 38 | 10 |
+| rnbqkbnr/p1ppp1pp/1p6/8/1P3p1P/5P2/P1PPP1PR/RNBQKBN1 b Qkq - 0 4 | e7e5 | 150 | e7e6 | 128 | 22 |
+
+  gap between the two candidates, both at depth 18: min 3 cp, **median 14 cp**, max 66 cp
+  within 30 cp: **16 of 17**   250000's move scores higher: 10 of 17 (59 %)
+
+UNCHANGED positions (8 of the 42, best move vs a RANDOM legal alternative, same fixed depth 18):
+  gap: min 11, **median 103 cp**, max 331 cp
+
+SO THE CAUSE IS THE MARGIN, and it is measured, not asserted: positions that switch move between budgets are close
+calls (median 14 cp apart at a fixed depth, 16 of 17 inside 30 cp), while positions that do not switch have much
+wider separation (median 103 cp). A budget that changes the depth by 3-9 plies is enough to flip a 14-cp
+preference and nowhere near enough to flip a 100-cp one. 23-F25's rejection of "deeper = different move" and this
+result are consistent: depth grows everywhere, but only close positions are decided by it.
