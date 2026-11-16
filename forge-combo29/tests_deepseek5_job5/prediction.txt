@@ -1,0 +1,92 @@
+# deepseek5 job 5 prediction.txt — written BEFORE any measurement (commit alone, subject "deepseek5 job 5 prediction").
+# Basis: reading of src/uci.cpp parse_limits (line 80) + the uci_loop path to the search (lines ~341 perft branch,
+# ~517 parse_limits call, the terminal-root branch in Worker::search) — no exe run in this step.
+# Classes: AT_ONCE | CLOCK | LIMIT | RUNS | REFUSED | OTHER (definitions in FABLE_TO_deepseek5_5.md).
+# All A/B rows: position startpos moves e2e4 (Black to move) unless the row says otherwise.
+# Parser facts used (file:line):
+#   uci.cpp:92-100  read_int: on missing/failed parse CONSUMES the next token and yields 0; depth then clamped to [1,64] (line ~116: clamp(read_int(),1,64)) — so depth 0/-3/abc/missing all become depth 1; depth 2147483648 (int overflow) also becomes 1.
+#   uci.cpp:103-114 nodes/softnodes: on parse failure NOTHING is set (no nodes limit, no nodes_specified); the value token is consumed either way.
+#   uci.cpp:117 movetime=read_clock; wtime/btime/winc/binc (lines ~122-127): wtime/winc set only for White, btime/binc only for Black (side = Black in all A/B rows!) — a wrong-side clock is IGNORED, not an error.
+#   uci.cpp:119 movestogo = max(1, read_int()) — 0 and -1 both become 1.
+#   uci.cpp:120 mate = clamp(read_int(),0,32) — a failed parse consumes the next token and gives mate 0 (no mate limit).
+#   uci.cpp:128-135 searchmoves: collects board-legal UCI tokens until a go-keyword; bad tokens skipped; the list may end up empty with search_moves_specified=true.
+#   uci.cpp:341+ the perft branch handles `go perft N` BEFORE parse_limits: prints per-line counts and `nodes <total>`, NO bestmove; depth outside 0..10 → info string refusal.
+#   search.cpp (terminal/adjudicated roots): root with no legal moves or a root already drawn (repetition/50-move/insufficient) is REPORTED WITHOUT SEARCHING; no legal moves → no/none bestmove is correct, not a fault.
+#   search.cpp: the root position having occurred 3 times already → the engine plays its first legal move without searching (the known trap Fable described).
+id | what the parser makes of the line | predicted class | deciding file:line
+A01 go wtime 2000 btime 2000 | Black gets time_ms=2000, inc 0; normal clock search ~120-200 ms | CLOCK | uci.cpp:124-125 + clock_plan
+A02 go depth btime 2000 wtime 2000 | depth eats "btime" -> 0 -> clamp to 1; "2000" skipped; wtime ignored (Black) | AT_ONCE (real depth-1 search) | uci.cpp:92-100,116,124
+A03 go nodes 0 | nodes=0 specified -> the zero-budget immediate answer, no real search | AT_ONCE | search.cpp zero-node branch
+A04 go wtime btime 50 | wtime eats "btime" -> 0 (ignored for Black); "50" skipped; nothing set -> infinite | RUNS | uci.cpp:92-100,124,127
+A05 go infinite | infinite=true, no other limit -> searches until stop | RUNS | uci.cpp:121
+A06 go btime abc | btime eats "abc" -> parse_clock_ms fails -> 0 -> time_ms=0 -> immediate stop | AT_ONCE | uci.cpp:103(read_clock at 117-118)
+A07 go winc btime 2000 wtime 2000 | winc eats "btime" -> 0 (ignored, White-only); "2000" skipped; wtime ignored (Black) -> nothing set | RUNS | uci.cpp:126-127
+A08 go depth 5 | depth 5 | LIMIT | uci.cpp:116
+A09 go movetime -1 | movetime=-1 -> hard limit < 0 -> immediate | AT_ONCE | uci.cpp:117 + clock_plan clamp
+A10 go nodes btime 2000 wtime 2000 | nodes eats "btime" (fail -> nothing set); "2000" skipped; wtime ignored (Black) -> NO limit -> infinite. FAULT-class risk: the mover's btime 2000 was eaten | RUNS | uci.cpp:103-114,124,127
+A11 go | no tokens at all -> infinite | RUNS | uci.cpp:84-90
+A12 go wtime 0 btime 0 | Black time_ms=0 -> plan 0 -> immediate | AT_ONCE | uci.cpp:124-125
+A13 go movestogo btime 2000 wtime 2000 | movestogo eats "btime" -> 0 -> max(1,0)=1; "2000" skipped; wtime ignored -> nothing set | RUNS | uci.cpp:119,124
+A14 go depth 0 | clamp(0,1,64)=1 -> real depth-1 search | AT_ONCE | uci.cpp:116
+A15 go btime | btime with no value -> read_clock 0 -> time 0 -> immediate | AT_ONCE | uci.cpp:118
+A16 go searchmoves e7e5 wtime 2000 btime 2000 | searchmoves collects e7e5 (legal for Black), stops at wtime; wtime ignored; btime 2000 -> clock search restricted to e7e5; bestmove must BE e7e5 | CLOCK | uci.cpp:128-135,125
+A17 go depth -3 | from_chars parses -3 -> clamp(−3,1,64)=1 | AT_ONCE | uci.cpp:116
+A18 go wtime btime 2000 wtime 2000 | wtime eats "btime" -> 0 ignored; "2000" skipped; second "wtime 2000" ignored (Black) -> nothing set | RUNS | uci.cpp:124
+A19 go movetime abc | read_clock("abc") -> 0 -> immediate | AT_ONCE | uci.cpp:117-118
+A20 go binc btime 2000 wtime 2000 | binc eats "btime" -> 0 (Black gets inc 0); "2000" skipped; wtime ignored -> nothing set | RUNS | uci.cpp:127
+A21 go softnodes 2000 | softnodes parses 2000 -> soft node limit 2000 | LIMIT | uci.cpp:103-114
+A22 go wtime -50 btime -50 | Black time_ms=-50 -> plan < 0 -> immediate | AT_ONCE | uci.cpp:125
+A23 go mate btime 2000 wtime 2000 | mate eats "btime" -> 0 -> clamp(0,0,32)=0 = no mate limit; "2000" skipped; wtime ignored -> nothing set | RUNS | uci.cpp:120
+A24 go depth abc | read_int fails -> 0 -> clamp to 1 | AT_ONCE | uci.cpp:92-100,116
+A25 go movestogo 0 wtime 2000 btime 2000 | movestogo=max(1,0)=1; Black time 2000 -> the plan gives ~the whole budget to one move (~1.9 s): the harness's 1.5 s cap stops it -> recorded RUNS (a real clock search the harness cut) | RUNS | uci.cpp:119,125 + clock_plan
+A26 go wtime abc | wtime eats "abc" -> 0 ignored; nothing set | RUNS | uci.cpp:124
+A27 go movetime btime 2000 wtime 2000 | movetime eats "btime" -> 0 -> immediate; "2000" skipped; wtime ignored | AT_ONCE | uci.cpp:117
+A28 go nodes 5000 | node limit 5000 (~5-10 ms) | LIMIT | uci.cpp:103-114
+A29 go wtime abc btime 2000 | wtime eats "abc" -> 0 ignored; btime 2000 -> Black's clock | CLOCK | uci.cpp:124-125
+A30 go nodes -1 | from_chars into uint64 fails on "-1" -> nothing set; "-1" consumed -> infinite | RUNS | uci.cpp:103-114
+A31 go movetime 99999999999999999999 wtime 2000 btime 2000 | movetime's read_clock overflows int64 -> parse_clock_ms failure value (I did not read it: 0 or clamped-max; predict 0 -> immediate AT_ONCE; if it saturates to int64-max instead, the movetime wins and the row is LIMIT) | AT_ONCE (uncertain between AT_ONCE and LIMIT) | uci.cpp:117 + parse_clock_ms
+B01 go ponder wtime 2000 btime 2000 + ponderhit at 300 ms | ponder search; ponderhit continues it; bestmove at the clock plan (~166-400 ms) | CLOCK | uci.cpp:122 + ponder path
+B02 mate 1 (the C1 position) | mate limit 1: search for a mate-in-1; position has none obvious -> bounded by mate logic; may run long | RUNS (uncertain: could LIMIT) | uci.cpp:120
+B03 go mate 3 | mate limit 3 -> potentially long search | RUNS (uncertain) | uci.cpp:120
+B04 go depth 5 nodes 100 | both set; nodes 100 ends first | LIMIT | uci.cpp:103-116
+B05 go movetime 50 depth 30 | movetime 50 ends first (depth 30 unreachable in 50 ms) | LIMIT | uci.cpp:116-117
+B06 go wtime 2000 btime 2000 movestogo 1 | movestogo 1 -> ~whole budget one move (~1.9 s) -> harness cap -> RUNS | RUNS | uci.cpp:119 + clock_plan
+B07 go wtime 1 btime 1 winc 0 binc 0 | Black time 1 ms -> immediate | AT_ONCE | uci.cpp:124-125
+B08 GO DEPTH 5 | "GO" != "go": the line is not a go command at all; ignored silently -> no bestmove even after stop | OTHER | uci.cpp command dispatch
+B09 go with blanks: depth 5 | istringstream >> skips blanks -> depth 5 | LIMIT | uci.cpp:85-90
+B10 go with TABs: depth 5 | same | LIMIT | uci.cpp:85-90
+B11 go depth 5 depth 2 | the LAST depth token wins -> depth 2 | LIMIT | uci.cpp:116 (overwrite)
+B12 go searchmoves zzzz | "zzzz" skipped by parse_uci; specified=true with an EMPTY list -> restriction to nothing: I did not read the use site; predict the search runs unrestricted (LIMIT) — flagged uncertain | LIMIT (uncertain) | uci.cpp:128-135
+B13 go searchmoves | specified, empty -> same as B12 | LIMIT (uncertain) | uci.cpp:128-135
+B14 go nodes 1 | 1-node search | LIMIT | uci.cpp:103-114
+B15 go nodes 18446744073709551616 | uint64 overflow -> parse fails -> nothing set -> infinite | RUNS | uci.cpp:103-114
+B16 go depth 2147483648 | int overflow -> read_int 0 -> clamp 1 | AT_ONCE | uci.cpp:92-100
+B17 go wtime 2000 btime 2000 winc -100 binc -100 | Black: time 2000, inc -100 -> plan slightly smaller | CLOCK | uci.cpp:125,127
+B18 go movestogo -1 wtime 2000 btime 2000 | max(1,-1)=1 -> ~whole budget -> RUNS | RUNS | uci.cpp:119
+B19 go movetime 1 | 1 ms movetime -> stops at the limit | LIMIT (could read as AT_ONCE; the limit is the named one) | uci.cpp:117
+B20 go wtime 2000 btime 2000 searchmoves e7e5 d7d5 | both moves legal for Black; clock search restricted to them | CLOCK | uci.cpp:128-135
+B21 go depth 5 infinite | both set; predict the depth limit still bounds the search (infinite only removes TIME stops) | LIMIT (uncertain) | uci.cpp:116,121
+B22 go wtime 2000 (Black to move) | wtime is the WRONG side -> ignored -> nothing set -> infinite. NOT a fault by the job's definition: the mover's clock was not sent | RUNS | uci.cpp:124
+B23 go btime 2000 (Black to move) | Black's clock -> CLOCK | CLOCK | uci.cpp:125
+B24 go binc 1000 | increment without a base clock -> no time_ms -> infinite | RUNS | uci.cpp:127
+B25 go movetime 0 | 0 -> immediate | AT_ONCE | uci.cpp:117
+B26 go searchmoves e7e5 e7e5 depth 4 | duplicate token collected twice (harmless); depth 4 | LIMIT | uci.cpp:128-135,116
+B27 go infinite depth 3 | depth bounds it (same reasoning as B21) | LIMIT (uncertain) | uci.cpp:116,121
+B28 (startpos) go perft 5 | the perft branch prints counts + `nodes 4865609`, NO bestmove -> the harness sees OTHER (no bestmove even after stop); the perft total must read 4865609 | OTHER | uci.cpp:341-360
+B29 go perft 99 | "depth must be an integer from 0 to 10" info string, no search | REFUSED | uci.cpp:349
+B30 go perft -1 | same refusal | REFUSED | uci.cpp:349
+B31 go perft abc | same refusal | REFUSED | uci.cpp:349
+C1 (root repeated 3x in its own history) go depth 6 | the root position has occurred 3 times -> the engine plays its FIRST legal move without searching (the known trap); "best move on the board": I cannot name one honestly without a reference (balanced Q+R vs Q+R; the queen on d1 is attacked but defended by the a1 rook) — the MEANINGFUL fact is that NO search runs | AT_ONCE (no search) | search.cpp repetition rule + root handling
+C2 (same, halfmove 100) go depth 6 | a fifty-move draw is claimable; the search runs (the 50-move damped eval does not stop the search) | LIMIT (depth 6) | search.cpp root handling
+C3 7k/5Q2/6K1 b, go depth 6 | STALEMATE (Kh8 has no move, not in check) -> terminal root reported WITHOUT search; no legal move -> bestmove none/0000 is CORRECT | AT_ONCE | search.cpp terminal-root branch
+C4 7k/6Q1/6K1 b, go depth 6 | CHECKMATE (Qg7 adjacent to Kh8) -> terminal; bestmove none/0000 correct | AT_ONCE | search.cpp terminal-root branch
+C5 8/8/8/4k3/8/8/8/4K3 w, go depth 6 | K vs K insufficient material -> terminal root, reported without search; a legal move EXISTS -> the first legal move is answered with no search | AT_ONCE | search.cpp terminal-root branch
+P1 startpos moves e2e4 e7e5 e2e4 | the third move is illegal: the engine applies moves until the first illegal token and KEEPS the position reached (after e4 e5); expect an `info string illegal move e2e4`; perft 1 of that position = 29; depth 3 normal | LIMIT (the go; the info string reported) | uci.cpp position handler
+P2 fen with NO kings | invalid FEN -> refused; the board keeps its previous content -> perft 1 reports the PREVIOUS position (the initial board here) | REFUSED (the position line; the go then measures whatever board is held) | uci.cpp position handler
+P3 fen with missing fields | invalid -> refused, as P2 | REFUSED | uci.cpp position handler
+P4 fen + `moves` with an empty list | valid; the move list is empty -> the FEN itself | LIMIT (depth 3) | uci.cpp position handler
+P5 side NOT to move in check (black rook h1 checks white Ke1, black to move) | python-chess calls it invalid; the engine may accept it silently and search (its own legality rules) — predict: accepted, no info string, the search runs | LIMIT (uncertain) | uci.cpp position handler
+P6 position foo | invalid -> refused | REFUSED | uci.cpp position handler
+P7 nine pawns on a rank | invalid FEN -> refused | REFUSED | uci.cpp position handler
+P8 startpos moves x300 knight shuffle (1200 plies) + go depth 4 | long history accepted; repetition indexing over 1200 plies; the search runs | LIMIT | uci.cpp position handler + search repetition indexing
+P9 the same with 3000 reps (12000 plies) | as P8; watch for any cap/crash | LIMIT | uci.cpp position handler
