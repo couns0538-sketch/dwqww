@@ -1,21 +1,69 @@
 #!/usr/bin/env python3
-"""check_folder.py NN [REPO] : the two integrity checks for a swarm folder, as one runnable script.
+"""check_folder.py — integrity check for ONE swarm seat's folder. Adopt it for your own seat number.
 
-usage:  python3 check_folder.py 16
-        python3 check_folder.py 16 /agent/repos/dwqww
+USAGE
+-----
+    python3 check_folder.py NN [REPO]
 
-Checks, in order of importance:
-  1. FINDINGS.md table well-formedness. Every line starting `| S-` must split into exactly 4 fields if it is a
-     C-row (`| S-C...`) or 5 fields if it is an F-row (`| S-F...`). This catches BOTH of the silent failures
-     this folder has actually suffered:
-       * a row that landed in the wrong file (so an id is missing from your own table), and
-       * a pipe character inside a cell (which splits the row into 6 or 7 fields and shifts every later cell).
-     It also reports duplicate ids and ids that skip a number.
-  2. Nothing outside your folder was ever staged on your branch. Uses `git log --diff-filter=A` from your seat
-     commit, which is stronger than looking at the working tree: a stray file that was staged once shows up even
-     if it is gone now.
-  3. Text-only: no file in the folder contains a NUL byte or fails UTF-8.
-Exit code 0 = all checks pass, 1 = something needs attention.
+    python3 check_folder.py 16                        # run from the repository root
+    python3 check_folder.py 16 /agent/repos/dwqww     # run from anywhere
+
+    NN     your seat number; `7` and `07` both work (zero-padded internally).
+    REPO   repository root; defaults to the current directory.
+
+OUTPUT
+------
+    One line per check, then either `ALL CHECKS PASS.` or `NEEDS ATTENTION:` followed by each fault.
+    Exit code 0 = clean, 1 = something to fix. Suitable for a pre-FINAL gate:
+        python3 forge-combo29/swarm/NN/check_folder.py NN . || echo "FIX BEFORE FINAL"
+
+WHAT EACH OF THE THREE CHECKS CATCHES
+-------------------------------------
+1. FINDINGS.md TABLE WELL-FORMEDNESS
+   Every line starting `| S-` must split into exactly 4 fields for a C-row (`| S-C...`) or 5 for an F-row
+   (`| S-F...`). This one rule catches two silent failures that both happened to seat 16:
+     * a PIPE INSIDE A CELL (`median |gap| is 14 cp`) — the row splits into 6 or 7 fields and every later cell
+       shifts, so the table renders wrong while looking almost right;
+     * a row written to the WRONG FILE, which shows up here as a gap in the id sequence of your own table —
+       reported as `id gaps`, e.g. `F: no row for [16, 17, ...]`. That is the fingerprint of a stray append.
+   It also reports DUPLICATE ids (the same row appended twice).
+   Note: an id gap is not always a fault — a seat may deliberately skip an id — so the line is a prompt to look,
+   not an automatic failure. Malformed rows and duplicates are always failures.
+
+2. NOTHING STAGED OUTSIDE YOUR FOLDER
+   `git log --diff-filter=A` from your seat commit (found by the message `swarm NN seat`) lists every file ever
+   ADDED on your branch, and anything not under `forge-combo29/swarm/NN/` is reported by full path.
+   This is deliberately stronger than inspecting the working tree: a stray file that was staged once still
+   appears after you delete it, which is exactly the case you need to know about.
+   If the seat commit cannot be found, the check says so and skips rather than passing silently.
+
+3. TEXT-ONLY
+   No file in the folder may contain a NUL byte or fail UTF-8 decoding. Catches an accidentally committed
+   binary, a build artefact, a `__pycache__` (the walk skips that directory), or a file with stray control bytes.
+
+WHY IT IS TRUSTWORTHY
+---------------------
+A check that has never been seen to fail proves nothing. This script was validated against PLANTED FAULTS: in a
+scratch repository, a row containing `median |gap|` and a `FINDINGS.md` written outside the seat folder were both
+reported — the malformed row as `7 fields, expected 5`, the stray as `OUTSIDE your folder:
+['forge-combo29/swarm/FINDINGS.md']`. If you modify the script, re-plant a fault and confirm it still fires.
+
+ONE THING THAT LOOKS LIKE A FAULT AND IS NOT
+---------------------------------------------
+`FINDINGS.md: MISSING` for a seat other than yours is expected: every seat works in its own checkout, which holds
+only its own folder. Run the tool with YOUR seat number. If it reports your own FINDINGS.md missing, that is real.
+
+WHAT IT DOES NOT CHECK
+----------------------
+It does not validate the CONTENT of a finding (whether the number is right), it does not know which findings were
+confirmed by another seat, and it does not check your STATUS.md or FINAL.md. It checks the record's integrity, not
+its truth — those are different problems and this script only claims the first.
+
+AUTHOR / PROVENANCE
+-------------------
+Written by swarm seat 16 (area 6) on 2026-11-16 after a wrong relative path (`cat >> ../../FINDINGS.md` from a job
+subdirectory) silently scattered 20 findings rows across four files while its own FINDINGS.md stopped at S-F15.
+Nothing errored at any step. Companion notes: WARNING_stray_paths.md in this folder.
 """
 import os
 import re

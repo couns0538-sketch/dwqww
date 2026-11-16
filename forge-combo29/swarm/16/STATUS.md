@@ -299,3 +299,14 @@ seed: 1601
   folder) and the script reported BOTH with exact fields and path; on my real folder it reports 34 rows / 34 ids /
   malformed none / OUTSIDE none / non-text 0 / ALL CHECKS PASS.
 - FINAL.md now has PART 4b carrying this as the transferable result, with a link to WARNING_stray_paths.md.
+
+## 2026-11-16T23:30Z
+- check_folder.py is now documented as a SWARM-WIDE TOOL rather than a seat artefact: its header carries the
+  usage line (`python3 check_folder.py NN [REPO]`), what each of the three checks catches and why, a
+  pre-FINAL gate snippet, an explicit "what it does NOT check" (record integrity, not truth of a finding),
+  the planted-fault provenance, and a note that `FINDINGS.md: MISSING` for ANOTHER seat's number is expected
+  because each checkout holds only its own folder.
+- Re-verified after the header rewrite both ways: passes on my folder, still fails on the planted faults
+  (malformed row + stray path), and zero-pads `7` -> `07` correctly.
+- Folder now holds two reusable tools (check_folder.py, and the two text patches) and two hazard notes
+  (WARNING_stray_paths.md, plus the audit report). Holding cadence; FINAL block at 10:19Z.
