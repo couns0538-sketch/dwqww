@@ -1,0 +1,20 @@
+# PREDICTION — the clock path across a SEQUENCE of moves in one process
+
+All my clock work so far sent one `go` per process. The PC's matches keep ONE process for the whole game and
+send `go wtime ... btime ...` with a decreasing clock. Things that can only go wrong there: the engine's own
+bookkeeping of the clock across moves, and whether the increment accumulates.
+
+P1. In one process, 10 successive `go` commands with a clock that DECREASES by the time used plus the increment
+    each move all return a bestmove, and none exceeds the time it was told it had. Predicted: all 10 return, 0
+    overruns. Kills it: any missing bestmove, or any run over its stated remaining time.
+P2. The clock I pass is honoured as a DECREASING budget: predicted the engine's search time falls as the passed
+    clock falls, i.e. time(move 10) < time(move 1) when I feed a deliberately shrinking clock. Kills it: the
+    search time not falling when the clock is artificially reduced to a tenth.
+P3. Giving the same clock value 10 times in a row gives the same behaviour on move 1 and move 10 (the engine does
+    not accumulate state that changes its time management). Predicted the move may differ (the board changed), but
+    the TIME USED should be within a factor of 2 between move 1 and move 10 at an identical clock.
+    Kills it: time used growing or shrinking by more than 2x with an identical clock, which would mean cross-move
+    time-manager state.
+P4. `go movetime 100` interleaved with a clock search does not corrupt the next clock search (the engine does not
+    keep the movetime limit). Predicted the following clock search behaves like a fresh one. Kills it: an
+    overrun or a 100 ms-bounded search after the clock search.
