@@ -295,3 +295,12 @@ Next: continue FEN layer on the real path.
   Also records why (nodes lands at an iteration boundary, so N buys a depth) and the alternatives.
 - S-F52: in-check positions correct on PC20 — 5 hand-built + 15 random all match python-chess's
   evasion counts and every bestmove is legal (0 problems). Check layer is sound on the real path.
+- S-F53: `position fen X` and `position startpos moves <path>` are search-identical on PC20 (8/8,
+  same bestmove AND same nodes) — a harness rebuilding positions as FENs is not handicapping it.
+
+## 2026-11-16T23:05Z CHECKPOINT
+Deliverables for the owner now: HAZARD_stale_board.md (with blast radius) and
+HAZARD_match_protocol.md (both depth tables + the rule). PC_SWITCHES.md complete with explicit
+unmeasured list. FEN layer on PC20 now covered end to end: acceptance (553/553), in-check (20/20),
+pathological input, both position forms, softnodes/nodes/clock behaviour.
+Next: continue FEN layer and real-path work.
