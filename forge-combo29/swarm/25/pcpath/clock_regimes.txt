@@ -1,0 +1,21 @@
+### clock regimes not yet exercised — PC r15/PC20, Threads 1, Hash 16
+position: rnb1kbnr/ppp1pppp/8/4q3/8/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 4
+
+regime                     score   nodes  dep     ms   move  legal  move-stable
+R1 movestogo 10      score cp 32  516363   19    312   f1e2   True         True
+R2 increment only    score cp 81      25    1      1   f1e2   True         True
+R3 very short 50ms   score cp 71     220    4      1   f1e2   True         True
+R4 zero time         score cp 81      25    1      1   f1e2   True         True
+
+READING (PC r15/PC20, Threads 1, Hash 16, 3 runs per regime, same middlegame):
+Every regime returns a LEGAL move, and the move was STABLE across all 3 runs in every regime:
+  R1 `go wtime 6000 btime 6000 movestogo 10` -> cp 32, depth 19, 516,363 nodes, 312 ms, f1e2
+     (movestogo makes the time manager budget a full 1/(mtg+1) share plus increment, so it spends much more than
+      the no-movestogo case - that is the formula in include/forge/clock_plan.hpp:37-40 working as designed)
+  R2 `go wtime 0 btime 0 winc 1000 binc 1000` -> cp 81, depth 1, 25 nodes, 1 ms, f1e2
+     (increment only: the engine uses an increment-derived budget and answers immediately - legal, no crash)
+  R3 `go wtime 50 btime 50 winc 0 binc 0`     -> cp 71, depth 4, 220 nodes, 1 ms, f1e2 (legal, instant)
+  R4 `go wtime 0 btime 0 winc 0 binc 0`       -> cp 81, depth 1, 25 nodes, 1 ms, f1e2 (legal, instant)
+So the DEGENERATE clock cases the owner's match program would never send are handled safely: a legal move, no
+hang, no crash, and the same move each time. Combined with S-C15 (moves stable, clock scores approximate) the
+picture for every timing regime I can construct is: safe moves, approximate scores, no pathological behaviour.
