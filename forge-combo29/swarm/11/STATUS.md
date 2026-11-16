@@ -127,3 +127,6 @@ NEXT: continue area-1 work; push again by 22:30.
 - S-F15 NEW: side-to-move (33 vs 31) and both counters (fullmove, halfmove) leave move generation
   untouched, all matching python-chess, 11/11 probes parsed. My first script had a false "all equal"
   over Nones — fixed to abort with MEASUREMENT FAILED; recorded in the finding.
+- S-F16: piece-inventory rule matches board.cpp on 10 generated-FEN boundary cases (no defect).
+  Recorded that my first hand-labelled FENs were wrong twice + pawns on rank 8 once — my errors,
+  caught by generating FENs from intended counts.

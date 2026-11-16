@@ -1,0 +1,27 @@
+case                                                     rule says  pawns  total  promo  engine
+8P only (legal)                                              LEGAL      8      9      0  accepted, 18 moves
+9P (illegal)                                               illegal      9     10      0  info string invalid FEN: impossible piece inventory
+8P+N+B+R+Q (full original set, legal)                        LEGAL      8     13      0  accepted, 18 moves
+8P+2R (2 rooks are original: legal)                          LEGAL      8     11      0  accepted, 20 moves
+8P+3R (3rd rook needs a promo, 0 available: illegal)       illegal      8     12      1  info string invalid FEN: impossible piece inventory
+7P+2Q (1 promo available, 1 needed: LEGAL)                   LEGAL      7     10      1  accepted, 18 moves
+8P+2Q (0 promos available, 1 needed: illegal)              illegal      8     11      1  info string invalid FEN: impossible piece inventory
+0P+9Q (needs 8 promos, 8 available: legal by the rule)       LEGAL      0     10      8  info string invalid FEN: side that moved left its king in check   <-- rule and engine DISAGREE
+0P+10Q (needs 9 promos: illegal)                           illegal      0     11      9  info string invalid FEN: impossible piece inventory
+15 pieces + K = 16 total (legal)                             LEGAL      8     16      0  accepted, 19 moves
+
+disagreements between board.cpp's rule and the engine: 1
+EXIT=0
+
+FOLLOW-UP on the one "disagreement" (0P+9Q): it is NOT an inventory error. The engine refused it
+with `side that moved left its king in check`, a DIFFERENT rule firing first (my generator piled
+the queens on rank 8 next to the black king). Re-probing with the black king moved out of check:
+  position fen QQQQQQQK/8/8/8/8/8/8/k7 b - - 0 1   -> readyok (ACCEPTED, no invalid line)
+So the inventory rule agrees with board.cpp on all 10 cases, and the 9-queen refusal was the
+check-legality rule doing its job.
+
+PROCESS NOTE: I mislabelled FENs twice while building this test (called a legal 8P+2R+K board
+"3 rooks", and a board with 8 pawns "7P"), and once generated pawns on rank 8 so a different
+correct refusal (`pawn on promotion rank`) masked the rule under test. Each was caught by
+re-deriving the counts from the generated FEN rather than trusting the label. The first two
+"findings" I nearly recorded were my own errors, not the engine's.
