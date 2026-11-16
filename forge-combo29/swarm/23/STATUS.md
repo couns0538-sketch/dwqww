@@ -870,3 +870,18 @@ refused-vs-accepted-board guard, the tying sentence, why the family matters, doc
 Standing: 72 findings, 18 confirmations (one a refutation), eight named harness faults, five reference
 pages (RULE_known_answer_control, PERFT_NULL_RESULT, PC_BUILD_SUMMARY, PCBUILD, plus the per-job reports).
 10 h 28 m remain; cadence continuing.
+## 2026-11-16T23:51:59Z  C23 confirms 21-F2b on the PC build (GUI hazard is live); F51 = instance 9 on the page
+2026-11-16T23:51:59Z
+
+23-C23, the OPEN half of seat 21's F2: on BOTH builds an impossible-castling FEN prints 'invalid FEN',
+isready STILL answers readyok, and go depth 6 returns the OLD game's move (base d2d4->d2d4, PC f1c4->f1c4).
+Control proves the equality is meaningful: the same board accepted gives b1c3. GUI consequence: a GUI syncing on
+readyok cannot tell its position was rejected and will draw the old-game move onto the new game; the invalid-FEN
+line is the only signal.
+
+23-F51 = instance 9 on the rule page, the sharpest entry there: my control board shared the tested board's best
+move (both f1c4), so the control COULD NOT FAIL and silently passed — minutes after I wrote 'a control that
+cannot fail is not a control' on the same page. The page now makes that point explicitly and ties it to
+instance 7: these rules are habits to install, not facts to know.
+
+Nine faults, nine instances, heading count verified against the subtitle. 74 findings, 18 confirmations.
