@@ -107,3 +107,14 @@ Also added the trap-is-invisible-to-legality-test observation, which is why othe
 bestmoves" results from piped harnesses cannot be trusted either.
 AUDIT_KNOWN.md complete: 12 claims, 9 PASS, 2 refuted/half-refuted, 1 PASS-with-scope, 1 UNTESTABLE.
 Branch tip after this commit is the final state.
+
+## Mon Nov 16 09:46:56 PM UTC 2026  [K5 SETTLED + K14 DEEP-DIVE]
+K5 is no longer UNTESTABLE: PASS with both proofs on my own builds. nm __tsan_ = 21, planted race counted
+(6 reports, exit 66), then 50 positions x Threads 2 and x Threads 4 = 0 reports, 0 null nodes.
+RETRACTION RECORDED (10-F16): my first K5 attempt reported proof2=false because my own drv.py sent stderr
+to DEVNULL -- "0 reports" was guaranteed, not measured. Same class of error as seat 19's warning, my code.
+K14 is a GENUINE DEFECT, not "a smaller tree" (10-F14, 10-F15): restricting to ALL 20/20 legal moves gives
+cp 23/d2d4 vs cp 30/e2e4, gap does not close with depth (d16 23 vs 35) or equal work, and a restricted
+search corrupts a LATER unrestricted one (36,745 nodes cp 29 vs control 4,951 nodes cp 30), deterministically.
+ucinewgame restores cold behaviour, so the pollution lives in the shared table.
+next: final push before 22:30, then no new work.

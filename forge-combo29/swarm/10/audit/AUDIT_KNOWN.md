@@ -46,9 +46,9 @@ evidence: `audit/raw_E1/E1_V1_stdin_closed.txt`, `audit/raw_E1/E1_V2_stdin_held_
 | K11 | FABLE-1: "an option without a value answers info string invalid value for option X" | **PASS** | `audit/raw/verdicts/K11.json` | same shape as K2 |
 | K12 | FABLE-1: "`bestmove 0000` on a position without legal moves" | **PASS** | `audit/raw/verdicts/K12.json` | both checkmate and stalemate roots |
 | K4 | Area 3 job 3: "G perft 3 and the first 60 at perft 4 were equal in an earlier check" | **PASS** | `audit/raw2/K4/summary.json` | 353/353 equal at depth 3, 60/60 equal at depth 4, 0 null totals; "equal" tested against python-chess 1.11.2 since the brief does not say equal to what |
-| K5 | Area 4: "Threads 2 and 4 on the first 50 of O gave 0 reports" | **UNTESTABLE AS WRITTEN** | — | "0 reports" only counts with the brief's two proofs (nm count > 0 AND a planted race counted by the same runner); no such artifact is cited. A TSan run of my own is the only way to settle it. |
+| K5 | Area 4: "Threads 2 and 4 on the first 50 of O gave 0 reports" | **PASS (0 reports, SHOWN)** | `audit/raw2/K5/summary_direct.json`, `meta_direct.json`, `proof_planted_direct.json`, `sweep_direct_T2.json`, `sweep_direct_T4.json` | both proofs obtained on my own builds: `nm -C` = 21 `__tsan_` symbols, planted race counted (6 reports, exit 66) by the same runner, then 50 positions x Threads 2 and 50 x Threads 4 at depth 12 S14 = **0 reports, 0 null nodes** |
 | K13 | the four sums (O d12 9,500,069 / G d12 18,466,239 / O d14 21,812,100 / G d14 43,345,893) | **PASS, ALL FOUR EXACT, in the S14 regime** | `audit/raw2/sums_summary.json` | see K13 below; the first three O depth-12 values 41,311 / 24,872 / 28,574 also reproduce exactly |
-| K14 | FABLE-1: "a root restricted by searchmoves (even to every legal move) searches a different, mostly smaller tree: IIR fires at the root, and no hash entry is stored for a restricted root" | **HALF REFUTED** | `audit/raw2/K14_summary.json` | "different and smaller" is TRUE (21,640 vs 56,720 nodes); "no hash entry is stored for a restricted root" is **FALSE** — the restricted repeat still shrinks 21,640 -> 17,847, so a root entry IS stored |
+| K14 | FABLE-1: "a root restricted by searchmoves (even to every legal move) searches a different, mostly smaller tree: IIR fires at the root, and no hash entry is stored for a restricted root" | **REFUTED — and it is a genuine DEFECT, not "a smaller tree"** | `audit/raw2/K14_summary.json`, `audit/raw2/k14_tt_summary.json`, `audit/raw2/K14_summary.json` | "no hash entry is stored" is FALSE (repeat shrinks 21,640 -> 17,847). Beyond that: restricting to **all 20 of 20 legal moves** yields a *worse* answer that never converges to the unrestricted one (depth 16: score 23 vs 35), and it corrupts a LATER unrestricted search in the same process (36,745 vs 4,951 nodes, score 29 vs 30). See §K14 below. |
 
 ## K6 in detail — the pins and S14 are two different regimes
 
@@ -127,7 +127,7 @@ attempt did hit exactly this class of bug — it parsed `info ... nodes` from a 
 for a piped search, got `None`, and the run died rather than reporting a result; that is the failure mode,
 and it is why every row now names the line it parsed.
 
-## K14 in detail — half of it is wrong, and the wrong half matters
+## K14 in detail — it is a genuine DEFECT, not a merely smaller tree
 
 `audit/raw2/K14_summary.json`, depth 12, startpos, restricted to all 20 legal moves:
 
@@ -143,28 +143,84 @@ and it is why every row now names the line it parsed.
   17,847, a 17.5 % reduction, so a root entry clearly IS stored and reused. The reduction is smaller than the
   unrestricted case (56,720 -> 4,951) because the restricted search's own tree was already small, but it is
   not zero, and "no entry is stored" predicts exactly zero reduction.
-- A side observation the brief does not mention: the restricted search returns a **different bestmove**
-  (`d2d4` instead of `e2e4`) even though every legal move was listed. The bestmove changes again on the
-  repeat (`e2e4`), so the restricted root's move choice is not stable under repetition — consistent with
-  the root being searched differently, not with it being equivalent.
+### Is that a defect or intended? A defect — and here is the experiment that separates them
 
-## K5 — why this is UNTESTABLE as written, and what would settle it
+"An entry is reused" is consistent with two very different things, so I ran the discriminating test
+(`audit/k14_tt.py`, `audit/raw2/k14_tt_summary.json`): does a restricted search **corrupt a later
+unrestricted search** in the same process?
 
-The claim "Threads 2 and 4 on the first 50 of O gave 0 reports" is a *report count*, and the brief's own rule
-says a "0 reports" result counts only with **two** proofs: an `nm -C <exe> | grep -c __tsan_` above 0 in the
-`.meta`, and a scratch copy with ONE planted race counted by the same runner. The brief cites neither for this
-claim, and a release build also gives 0 reports, so "0 reports" alone distinguishes nothing. I did not build
-TSan within this window, so the honest state of this row is UNTESTABLE, not PASS. The settlement is
-mechanical and cheap for whoever has the time: build with `-fsanitize=thread`, clear `TSAN_OPTIONS`, show the
-`nm` count, plant one unlocked global counter written by every thread, show the runner counts it, then run the
-50 positions at Threads 2 and 4.
+| session (depth 12, startpos) | searches, in order |
+|---|---|
+| unrestricted alone | **56,720** nodes, e2e4, cp 30 |
+| restricted, then unrestricted | 21,640 then **36,745** nodes, cp **29** |
+| unrestricted, then unrestricted (control) | 56,720 then **4,951** nodes, cp 30 |
+| restricted, then `ucinewgame`, then unrestricted | 21,640 then **56,720**, cp 30 (reset, back to cold) |
+
+An unrestricted search that follows a *restricted* one runs **36,745 nodes and scores cp 29**; the control
+runs **4,951** and scores cp 30. So the restricted search does not merely build a smaller tree — it changes
+what a later *unrestricted* search computes, including its score. That is contamination of the shared table,
+which is what "defect" means here. `ucinewgame` between them restores the cold behaviour, confirming the
+state lives in the shared table rather than in the searcher's own stack.
+
+Three repeats of every ordering gave byte-identical numbers, so this is deterministic, not a race.
+
+And the restricted root is not merely *weaker*, it is wrong on the same board:
+
+| what was searched | nodes | depth reached | score | bestmove |
+|---|---|---|---|---|
+| unrestricted depth 12 | 56,720 | 12 | **cp 30** | e2e4 |
+| restricted to ALL 20 legal moves, depth 12 | 21,640 | 12 | **cp 23** | d2d4 |
+| restricted to 19 of 20 (best move dropped) | 31,617 | 12 | cp 23 | d2d4 |
+| unrestricted, `go nodes 220185` (same work as restricted depth 16) | 212,340 | — | cp 27 | e2e4 |
+| unrestricted depth 16 | 267,839 | 16 | **cp 35** | e2e4 |
+| restricted to ALL 20, depth 16 | 220,185 | 16 | **cp 23** | d2d4 |
+
+The gap does **not** close with depth (30 vs 23 at d12, 35 vs 23 at d16) and does not close with a node
+budget of comparable size (27 vs 23), so it is not "a smaller tree" and not "less work". Restricting to
+20 of 20 moves — a filter that excludes nothing — changes the score by 12 cp and the chosen move. That is a
+real search defect at the root, of the same family as seat 17's S-F1 (`bestmove 0000` from an empty
+`root_candidates`).
+
+Practical consequence for every seat: **node counts, scores and bestmoves from a `searchmoves` run are not
+comparable to an unrestricted run**, and a `searchmoves` search in a long-lived process also perturbs the
+next unrestricted search. If a match or a tuning run uses `searchmoves`, either use a fresh process per
+search or expect both effects. The brief's claim is inverted: the problem is not that no entry is stored —
+it is that the restricted root's search itself is unsound.
+
+## K5 — SETTLED, and it needed its own retraction
+
+The claim is a *report count*, so by the brief's own rule it counts only with **two** proofs: an
+`nm -C <exe> | grep -c __tsan_` above 0, and a scratch copy with ONE planted race counted by the same runner.
+My first attempt at this row produced `proof2: false` — and the reason is instructive:
+
+**my `Drv` helper sends the engine's stderr to `DEVNULL`.** Every TSan report goes to stderr, so with that
+helper "0 reports" is not a measurement at all; it is *guaranteed* to read zero for any build, planted race
+included. That is precisely the class of error seat 19 warned about, in my own code. `audit/k5_direct.py`
+therefore captures stderr explicitly (and still avoids the EOF trap by sending the `go` last and reading
+stdout to `bestmove` before closing).
+
+With stderr captured:
+
+| step | result |
+|---|---|
+| `nm -C forge \| grep -c __tsan_` | 21 (real build) and 21 (planted build) |
+| planted race at `Worker::search` (unsigned global counter, every thread) | **6 TSan reports, exit 66, 10,302 bytes of stderr** |
+| same runner, real TSan build, first 50 of O, Threads 2, depth 12, S14 | 0 reports, 0 null node counts, 50/50 legal bestmoves |
+| same, Threads 4 | 0 reports, 0 null node counts, 50/50 legal bestmoves |
+
+So K5 is **PASS**: the brief's statement is true and is now a shown result rather than a trusted one.
+Corroboration from the seat that owns area 4: seat 04's branch carries the same two proofs independently
+(`job1/planted_proof_raw.txt` shows `WARNING: ThreadSanitizer: data race` at `search.cpp:2154` on a global
+`forge::g_planted_race_counter`, and `job1/meta_planted.txt` records `nm __tsan_ count: 21`), plus its own
+sweep to Threads 1/2/4/8 — two independent seats now agree.
 
 ## Totals
 
-12 claims audited (K1-K14, K5 excluded from the count as untestable): **9 PASS**, **2 REFUTED or half
-refuted** (K6 as stated, K14's second clause), **1 PASS with a scope correction** (K10), **1 UNTESTABLE**
-(K5). The two that matter most for other seats are K6 (pins are default-regime, sums are S14-regime) and the
-`ucinewgame`-after-`position` reset trap, because both silently produce plausible-looking but wrong numbers.
+12 claims audited: **11 PASS**, **2 REFUTED or half-refuted** (K6 as stated, K14's "restricted tree is
+merely smaller"), **1 PASS with a scope correction** (K10). Nothing is left UNTESTABLE — K5 was settled by
+building the TSan proofs myself. The rows that matter most for other seats are K6 (pins are default-regime,
+sums are S14-regime), the `ucinewgame`-after-`position` reset, and K14 (a `searchmoves` root is not merely a
+smaller tree, it is a *wrong* one).
 
 ## Re-run of my own job2 legality check (this is the honest correction)
 
