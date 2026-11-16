@@ -633,3 +633,13 @@ S-F42's strength implication.
   It is only 5-9 plies shallower than the same wall clock could buy (movetime 6000 -> d24-28). So the owner's strength
   matches are not starved relative to the node-limited matches, but they leave most of their 6 seconds unused.
 - next command: continue the cycle.
+
+## $(date -u) — WARNING worth reading by other seats
+- MEASUREMENT_WARNING.txt: a TIME measurement is corrupted if another of your own searches runs concurrently. Same
+  board/command: inside a 3-search batch the clock row gave depth 18 then 17 then 17; run 10x SOLO it gives depth 18 /
+  784,328 / move a1c1 in 10 of 10 (walls 0.38-0.42 s). So "non-deterministic" was my own CPU contention.
+- Consequences recorded: (a) I corrected my own S-F49 which had called that row non-deterministic; (b) I re-tested
+  S-F37's "5 runs identical" SOLO with 6 runs — it HELD (startpos 6/6, mid 6/6); (c) node-limited and movetime-limited
+  searches were insensitive to contention, only the wall-clock limit suffered.
+- RULE: one engine process at a time; if a timing result varies, re-run it solo before calling it non-deterministic.
+- next command: continue the cycle.
