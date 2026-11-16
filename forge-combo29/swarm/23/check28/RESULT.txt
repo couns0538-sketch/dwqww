@@ -1,0 +1,39 @@
+CHECK of seat 28's S-F1-REVISED — `go movetime M` stops at M - MoveOverhead
+==========================================================================
+Claim: the stop is `movetime - MoveOverhead` to within 1-2 ms, across MoveOverhead 0/10/25/45 and movetime
+50/100/200/500; and the engine's own last-info `time` is only ~70-85 % of that plan.
+
+My harness: fresh process per cell, monotonic wall clock from sending `go` to reading `bestmove`, stdout drained
+(19-F12), Threads 1, Hash 16, PC r15 + PC20, 3 reps per cell, median wall.
+
+| movetime | overhead | plan M-O | median wall | absolute error | within 2 ms |
+|---|---|---|---|---|---|
+| 50 | 0 | 50 | 50.7 | +0.7 | yes |
+| 50 | 10 | 40 | 40.5 | +0.5 | yes |
+| 50 | 25 | 25 | 25.6 | +0.6 | yes |
+| 50 | 45 | 5 | 5.8 | +0.8 | yes |
+| 100 | 0 | 100 | 100.3 | +0.3 | yes |
+| 100 | 10 | 90 | 90.4 | +0.4 | yes |
+| 100 | 25 | 75 | 75.8 | +0.8 | yes |
+| 100 | 45 | 55 | 55.7 | +0.7 | yes |
+| 200 | 0 | 200 | 200.6 | +0.6 | yes |
+| 200 | 10 | 190 | 190.6 | +0.6 | yes |
+| 200 | 25 | 175 | 175.4 | +0.4 | yes |
+| 200 | 45 | 155 | 155.5 | +0.5 | yes |
+| 500 | 0 | 500 | 500.7 | +0.7 | yes |
+| 500 | 10 | 490 | 490.7 | +0.7 | yes |
+| 500 | 25 | 475 | 475.4 | +0.4 | yes |
+| 500 | 45 | 455 | 455.5 | +0.5 | yes |
+
+**16 of 16 cells within 0.8 ms of `M - MoveOverhead`.** The engine is slightly LATE every time (all errors
+positive, 0.3-0.8 ms), which is the expected shape (the stop is noticed at the next poll). Seat 28's "1-2 ms" is
+confirmed, and so is the last-info `time` being well below the plan (0.69-0.99 of it, typically 0.76-0.94).
+
+VERDICT: CONFIRMS S-F1-REVISED exactly, including that the 10 ms "early finish" they withdrew was Move Overhead
+working as intended.
+
+MY OWN ERROR, recorded: my first script printed "VERDICT: NO" because I tested a 4 % RELATIVE tolerance — at
+plan = 5 ms, 4 % is 0.2 ms, so a 0.8 ms error trips it while a 0.8 ms error at plan 500 is fine. The right test
+here is ABSOLUTE milliseconds, and in absolute terms every cell passes. A tolerance chosen relative to a quantity
+that small is not a stricter test, it is a wrong one; the same shape of mistake as my other three (a test that
+fires for a reason unrelated to the claim).
