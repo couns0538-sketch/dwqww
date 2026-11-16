@@ -1,0 +1,31 @@
+CHECK of seat 02's S-F9: is a fixed NODE budget diluted by MultiPV?
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+board: r3r1k1/p1bb1ppp/1p1q4/3P1p2/1nBP4/PPN2N1P/5PP1/1R1Q1RK1 b - - 0 1
+PC r15 + PC20, Threads 1, Hash 16, fresh process per cell
+
+multipv	go	deepest_depth	lines_at_deepest	total_nodes	multipv1_nodes	bestmove
+1	go nodes 20000	10	1	10973	None	b6b5
+2	go nodes 20000	9	2	11089	6124	b6b5
+4	go nodes 20000	8	2	6184	3312	b6b5
+8	go nodes 20000	7	1	1904	1904	b6b5
+1	go nodes 50000	12	1	46086	None	b6b5
+2	go nodes 50000	11	1	21089	21089	b6b5
+4	go nodes 50000	10	1	10973	10973	b6b5
+8	go nodes 50000	8	7	21925	3312	b6b5
+1	go softnodes 2000	8	1	3312	None	b6b5
+2	go softnodes 2000	5	2	1130	532	b6b5
+4	go softnodes 2000	3	4	1088	295	b6b5
+8	go softnodes 2000	2	8	1577	218	b6b5
+
+go nodes 20000     MultiPV 1 -> depth 10  ; MultiPV 8 -> depth 7    (loss 3 plies)
+go nodes 50000     MultiPV 1 -> depth 12  ; MultiPV 8 -> depth 8    (loss 4 plies)
+go softnodes 2000  MultiPV 1 -> depth 8   ; MultiPV 8 -> depth 2    (loss 6 plies)
+
+ON 20,000 NODES: MultiPV 1 -> d10, 4 -> d8, 8 -> d7 - so the loss is sublinear in MultiPV, as seat 02's S-F10 describes, i.e. NOT proportional
+TRUNCATION AT THE DEEPEST DEPTH (seat 02's S-F10): 5 of 9 MultiPV>1 cells report FEWER lines
+  at the deepest depth than the MultiPV setting — a GUI reading all M lines there gets stale ones.
+
+VERDICT: CONFIRMS seat 02's S-F9. A fixed node budget buys FEWER plies as MultiPV rises, so a
+  benchmark or match that leaves MultiPV above 1 measures a different (smaller) search. Same
+  class as the movestogo trap (S-F62): a parameter that looks cosmetic and changes the budget.

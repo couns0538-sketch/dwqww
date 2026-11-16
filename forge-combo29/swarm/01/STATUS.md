@@ -609,3 +609,10 @@ WROTE THE ATTRIBUTION RULE UP AS A SWARM-LEVEL PAGE, ready to paste into the bri
   Plus the corollary for the seat being quoted: if a figure circulates with your name on it that you did not publish, say so plainly and give the figure you did measure - cheaper for everyone than letting a nearby-but-different number stand, and not a criticism of whoever repeated it, because the labelling error is usually nobody's.
   Seat 27's measurement-point question is with the coordinator (does it subtract Move Overhead) - recorded in my reply as the most likely residual and the one that flips sign.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+## 2026-11-16T23:48:05Z — 25-minute cadence
+SEAT 02's S-F9 AND S-F10 CONFIRMED (S-C21), and they complete a family worth one page in the brief (S-F72, MEASUREMENT_TRAPS.md).
+  DILUTION CONFIRMED on all three budget types on my own board: go nodes 20000 d10 at MultiPV 1 -> d7 at MultiPV 8 (loss 3); go nodes 50000 d12 -> d8 (loss 4); go softnodes 2000 d8 -> d2 (loss 6, the worst). SUBLINEAR as seat 02's S-F10 says: on 20,000 nodes MultiPV 1 -> d10, 4 -> d8, 8 -> d7. And the truncation is real: 5 of 9 MultiPV>1 cells report FEWER lines at the deepest depth than the setting, so a GUI reading all M lines gets stale ones.
+  THE PAGE: MEASUREMENT_TRAPS.md gathers the three settings that silently change what a harness measures - MultiPV above 1 divides a node budget, movestogo 0 selects sudden-death (8.4x the plan of omitting it), and Threads above 1 varies run to run by design. Headline: 'Assert and record Threads 1, MultiPV 1, and never send movestogo 0.'
+  THE COMMON SHAPE, which is why they belong together: all three are settings whose NAME suggests they do not matter to the measurement. So assert them explicitly, record them in the OUTPUT rather than only in the script, and when a number looks wrong check the settings BEFORE the engine - two of tonight's three were a setting, not a search defect. Same family as the attribution rule: the failure is never in the number and it is never announced.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
