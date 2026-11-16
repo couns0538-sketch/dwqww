@@ -296,3 +296,20 @@ next: `go softnodes N` on PC20/Threads 1 — determinism, finished depth, oversh
   08-C6W (withdrew the fifty-move defect wording — cp 0 is correct chess there).
 
 next: extend the shape-class sample to a size that can support a FREQUENCY claim (seat 28's 5-of-120), per class.
+
+## 2026-11-16T22:47Z
+- **CLOCK HEADLINE written** (pc20/CLOCK_HEADLINE.md) and it REPLACES the three-position figures. Five shape
+  classes at 6 s + 0.06 / PC20 / Threads 1: medians **161.2 / 386.2 / 388.9 / 853.1 ms**, worst **1585.4 ms**
+  (= the hard plan exactly), driven by the last completed iteration's cost (57.1 ms busy middlegame vs 415.4 ms
+  sparse endgame). Stated: **soft plan overshot 5.0x in the sparse class; the hard plan is the only real bound.**
+- **08-F29 frequency**: 60 boards per class — real-game 2 of 60 (3.3 %) and sparse 3 of 60 (5.0 %) over 1.2 s,
+  bracketing seat 28's 5 of 120 (4.2 %). The tail is a ~4 % event, not 0 % and not rare.
+- **08-F30 link**: the sparse class is ALSO the volatile-score class — **a mate appeared on 2 of 5 boards** at
+  depth D+4 that the clocked search missed, 318 cp vs 3 cp on the rest, 0 of 5 mates in full-material. One
+  explanation covers the time tail and the training-target concern. No combined ratio quoted (mate-to-30000cp
+  mapping would give a meaningless 106x).
+- Also this block: 08-F25 (H=91 absorbs at the real clock), 08-F26 (softnodes deterministic, +1.3-2.1x N),
+  08-C6W (fifty-move defect withdrawn), 08-F27 (reconciled with seat 28), 08-F28 (shape dependence).
+
+next: extend the sparse/volatile link to a RATE (20 boards per class) rather than a direction, since 5 boards
+cannot give one — and keep confirming.
