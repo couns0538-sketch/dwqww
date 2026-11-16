@@ -1,0 +1,131 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 98959af8c..996ed9eff 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -231,6 +231,12 @@ private:
+ 
+ // Search constants exposed for tuning. The UCI layer accepts them as unlisted
+ // options (setoption name <Name> value <int>); defaults are the tested values.
++// deepseek6 job 5: check-extension counters, defined in search.cpp.
++struct CexCounters;
++extern CexCounters cex;
++void cex_reset();
++void cex_print();
++
+ namespace tune {
+ struct Parameter {
+     const char* name;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..8293b62b6 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -36,6 +36,34 @@
+ 
+ namespace forge {
+ 
++// deepseek6 job 5: check-extension counters. Counts only; nothing in the search reads
++// them. D = depth 1..15, with 16 meaning "beyond" (clamped into 15..16 -> index 15).
++struct CexCounters {
++    static constexpr int kD = 16;
++    std::uint64_t reached[kD] = {};
++    std::uint64_t see_neg[kD] = {};
++    std::uint64_t ext[kD] = {};
++    std::uint64_t would8[kD] = {};
++    std::uint64_t would2[kD] = {};
++    std::uint64_t beat_alpha[kD] = {};
++    std::uint64_t sub_nodes[kD] = {};
++    std::uint64_t mismatch = 0;
++    int nesting = 0;   // >0 while inside the child search of a move extended HERE
++};
++CexCounters cex{};
++
++void cex_reset() { cex = CexCounters{}; }
++
++void cex_print() {
++    std::cout << "info string cex";
++    for (int d = 1; d < CexCounters::kD; ++d)
++        std::cout << " d" << d << " r " << cex.reached[d] << " s " << cex.see_neg[d]
++                  << " e " << cex.ext[d] << " w2 " << cex.would2[d] << " w8 " << cex.would8[d]
++                  << " b " << cex.beat_alpha[d] << " n " << cex.sub_nodes[d];
++    std::cout << " mismatch " << cex.mismatch << std::endl;
++}
++inline int cex_d(int depth) { return depth < 1 ? 0 : (depth > 15 ? 15 : depth); }
++
+ int DrawJitter = 0;
+ 
+ namespace tune {
+@@ -1956,6 +1984,32 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                    (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
+             extension = 1;
+         }
++        // deepseek6 job 5: count the check-extension gate. `else_branch` is true when
++        // this else-if is the branch that was evaluated (the singular test did not run).
++        bool cex_extended_here = false;
++        bool cex_seen = false;
++        int cex_di = 0;
++        {
++            const bool else_branch =
++                !(mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move &&
++                  excluded.is_none() && tt_bound != BoundUpper && tt_score != ValueNone &&
++                  !is_mate_score(tt_score) && tt_depth >= depth - 3);
++            if (else_branch && gives_check && !root_node && mate_moves_ == 0) {
++                cex_seen = true;
++                cex_di = cex_d(depth);
++                ++cex.reached[cex_di];
++                const bool see_ok = picker.last_move_see_nonnegative() || board.see_ge(move, 0);
++                if (!see_ok) ++cex.see_neg[cex_di];
++                const bool w2 = depth >= 2 && see_ok;
++                const bool w8 = depth >= 8 && see_ok;
++                if (w2) ++cex.would2[cex_di];
++                if (w8) ++cex.would8[cex_di];
++                const bool here = extension == 1;
++                if (here) ++cex.ext[cex_di];
++                cex_extended_here = here;
++                if (here != (depth >= tune::CheckExtensionDepth && see_ok)) ++cex.mismatch;
++            }
++        }
+         ss->double_extensions = inherited_double_extensions + (extension == 2);
+         int new_depth = depth - 1 + extension;
+ 
+@@ -1979,6 +2033,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         shared_.tt.prefetch(board.key());
+ #endif
+         const std::uint64_t nodes_before = local_nodes_;
++        // deepseek6 job 5: only the OUTERMOST extension counts the nodes below it.
++        const bool cex_outer = cex_extended_here && cex.nesting == 0;
++        if (cex_extended_here) ++cex.nesting;
+         std::size_t root_effort_index = 0;
+         if (root_node) {
+             const auto root_effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
+@@ -2035,6 +2092,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         if (pv_node && !aborted_ && (move_count == 1 || score > alpha)) {
+             score = -search(board, ss + 1, new_depth, -beta, -alpha, false);
+         }
++        if (cex_extended_here) {
++            if (cex_outer) cex.sub_nodes[cex_di] += local_nodes_ - nodes_before;
++            if (!aborted_ && score > alpha) ++cex.beat_alpha[cex_di];
++            --cex.nesting;
++        }
+         board.unmake_move(move, undo);
+         if (aborted_) return 0;
+         if (root_node && root_effort_index < root_effort_count_)
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee00..89dab554a 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -253,6 +253,7 @@ int uci_loop(std::istream& in) {
+             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "readyok" << std::endl; }
+         } else if (command == "ucinewgame") {
+             stop_search();
++            forge::cex_reset();
+             searcher.clear();
+             (void)board.set_fen(forge::Board::StandardStartFen);
+         } else if (command == "setoption") {
+@@ -569,6 +570,7 @@ int uci_loop(std::istream& in) {
+                         prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
+                     }
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    forge::cex_print();   // deepseek6 job 5: one counter line per go
+                     std::cout << "bestmove " << best << prediction << std::endl;
+                 });
+             }
