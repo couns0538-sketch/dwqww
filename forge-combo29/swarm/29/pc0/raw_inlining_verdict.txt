@@ -1,0 +1,28 @@
+=== DISASSEMBLY: is the probe inlined more expensively? MEASURED ===
+
+1) probe_body itself compiles IDENTICALLY on base and PC trees (same source, same code):
+   probe_body<true>  153 insns / 561 bytes (unpatched)  ->  185 insns / 750 bytes (patched)  +32
+   probe_body<false> 119 insns / 420 bytes (unpatched)  ->  140 insns / 513 bytes (patched)  +21
+   cmps 5 -> 3 and pcmpeqd 0 -> 1: the four scalar key compares become one vector compare plus a
+   lane scan, but the total instruction count goes UP because the vector path adds setup and the
+   lane-extraction loop.
+
+2) probe_owned: 116 insns / 420 bytes  ->  18 insns / 63 bytes  (IDENTICAL on both trees).
+   A 63-byte body is a thin wrapper: the callers absorbed the work.
+
+3) Worker::search(forge::Board&, SearchStack*, int,int,int,bool) -- the hot caller:
+   base tree:  15,693 bytes unpatched -> 15,693 bytes patched  (UNCHANGED, size 0x3d4b both)
+   PC tree  :  17,157 bytes unpatched -> 17,026 bytes patched  (-131)
+
+   base tree:  17,083 -> 17,347 (+264) for search(Board, limits, ...)
+   PC tree  :  3,014 -> 3,653 (+639) in the stable_sort instantiation inside that function
+
+4) VERDICT on my earlier inference:
+   The claim 'the inlined copy is more expensive per call' is NOT what the object code shows.
+   probe_body<false> is LARGER (+21 insns) after my patch, yet on the base tree the total run got
+   SHORTER (-0.414%) while on the PC tree it got LONGER. So the per-call body size does not
+   explain the sign flip. What the code shows is that the patch perturbs WHICH functions the
+   compiler outlines and how it lays them out: on the base tree Worker::search keeps its exact
+   size and the win appears elsewhere; on the PC tree the same instantiation grows and the loss
+   appears. The measured, defensible statement is: the sign is decided by whole-program layout and
+   outlining decisions that differ between the two trees, NOT by a more expensive inlined probe.
