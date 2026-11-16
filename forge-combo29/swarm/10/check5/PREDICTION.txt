@@ -1,0 +1,19 @@
+seat 10 check5 — reproduce seat 30's finding 30-F22 from its own text, with MY OWN harness, on BOTH builds.
+Claim: on `6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1` a `go depth 12` interrupted by stdin CLOSING answers
+`bestmove f2f3` (a pawn push) while the FINISHED search answers `a1a8` (mate). So a GUI that closes the
+pipe before reading bestmove gets a LOSING move where mate was available.
+Prediction, committed and pushed ALONE before the first measuring command:
+
+P1. The FINISHED search on that FEN gives exactly `bestmove a1a8` and a score of `mate 1` on BOTH builds
+    (base S14 and PC r15 PC20), Threads 1, fresh process. (kill: any other bestmove or score)
+P2. With stdin CLOSED immediately after `go depth 12` the engine answers `bestmove f2f3` on the PC build,
+    as seat 30 says. (kill: a different move)
+P3. The fabricated move is LEGAL (f2f3 is legal), so NO legality checker can catch it -- which is the same
+    shape as my 10-C6 and is the real danger. (kill: illegal move)
+P4. The base build shows the same interruption behaviour (my 10-C5 established the mechanism there), so this
+    is not a PC-only defect; I predict base also answers f2f3. (kill: base answers something else)
+P5. `a1a8` really is mate in 1 in the position (I will verify with python-chess, not by eye), so the
+    interrupted answer is strictly worse. (kill: a1a8 is not mate)
+P6. A harness that reads stdout to `bestmove` before closing (my drv.py) gets a1a8 on both builds -- i.e. the
+    fabrication is entirely an artefact of closing stdin mid-search, not of `quit` as a word.
+    (kill: the safe harness also gets f2f3)
