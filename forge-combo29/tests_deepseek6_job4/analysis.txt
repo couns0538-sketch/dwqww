@@ -1,0 +1,74 @@
+header: run | rows | q_sites by d(-3..3,other) | n_sites by d | mm
+D0_O rows=200 q=[0, 0, 0, 3265389, 0, 0, 0, 0] n=[0, 0, 0, 390605, 0, 0, 0, 0] mm=0
+D0_G rows=353 q=[0, 0, 0, 7067854, 0, 0, 0, 0] n=[0, 0, 0, 706955, 0, 0, 0, 0] mm=0
+D1_O rows=200 q=[0, 0, 0, 3265389, 0, 0, 0, 0] n=[0, 0, 0, 390605, 0, 0, 0, 0] mm=0
+D1_G rows=353 q=[0, 0, 0, 7067854, 0, 0, 0, 0] n=[0, 0, 0, 706955, 0, 0, 0, 0] mm=0
+D2_O rows=200 q=[0, 0, 370272, 2869152, 236548, 0, 0, 0] n=[0, 0, 0, 417888, 0, 0, 0, 0] mm=0
+D2_G rows=353 q=[0, 0, 724042, 5953821, 666063, 0, 0, 0] n=[0, 0, 0, 739870, 0, 0, 0, 0] mm=0
+D3_O rows=200 q=[0, 0, 1441206, 2524660, 0, 0, 0, 0] n=[0, 0, 0, 505337, 0, 0, 0, 0] mm=0
+D3_G rows=353 q=[0, 0, 2994578, 5631092, 0, 0, 0, 0] n=[0, 0, 0, 882794, 0, 0, 0, 0] mm=0
+
+header: K1 (D1: every site d=0) -- q and n must have only slot d=0
+D1 O q-nonzero: {0: 3265389}  n-nonzero: {0: 390605}
+D1 G q-nonzero: {0: 7067854}  n-nonzero: {0: 706955}
+
+header: K2 (every run: noisy sites d=0 only)
+D0_O: n-nonzero {0: 390605} -> OK
+D0_G: n-nonzero {0: 706955} -> OK
+D1_O: n-nonzero {0: 390605} -> OK
+D1_G: n-nonzero {0: 706955} -> OK
+D2_O: n-nonzero {0: 417888} -> OK
+D2_G: n-nonzero {0: 739870} -> OK
+D3_O: n-nonzero {0: 505337} -> OK
+D3_G: n-nonzero {0: 882794} -> OK
+
+header: K5 (mismatch_used = 0 in every run)
+D0_O: mm=0 -> OK
+D0_G: mm=0 -> OK
+D1_O: mm=0 -> OK
+D1_G: mm=0 -> OK
+D2_O: mm=0 -> OK
+D2_G: mm=0 -> OK
+D3_O: mm=0 -> OK
+D3_G: mm=0 -> OK
+
+header: K3 (D2 = T1: observed d values per history bin, b = -6..5 plus two outer)
+O b<=-7: total 30657 d-values {0: 25188, 1: 5469}
+O b=-6: total 29843 d-values {0: 8436, 1: 21407}
+O b=-5: total 59800 d-values {1: 59800}
+O b=-4: total 120728 d-values {1: 120728}
+O b=-3: total 225793 d-values {0: 196649, 1: 29144}
+O b=-2: total 385503 d-values {0: 385503}
+O b=-1: total 588444 d-values {0: 588444}
+O b=0: total 1006746 d-values {0: 1006746}
+O b=1: total 194834 d-values {0: 194834}
+O b=2: total 138247 d-values {-1: 21271, 0: 116976}
+O b=3: total 105638 d-values {-1: 105638}
+O b=4: total 87208 d-values {-1: 87208}
+O b=5: total 73882 d-values {-1: 48725, 0: 25157}
+O b>=6: total 428649 d-values {-1: 107430, 0: 321219}
+
+header: K4 (D3 = T2: observed d values per history bin)
+O b<=-7: total 41296 d-values {0: 41296}
+O b=-6: total 35116 d-values {0: 35116}
+O b=-5: total 70339 d-values {0: 70339}
+O b=-4: total 135530 d-values {0: 135530}
+O b=-3: total 238089 d-values {0: 238089}
+O b=-2: total 433335 d-values {0: 433335}
+O b=-1: total 658732 d-values {0: 658732}
+O b=0: total 1098882 d-values {-1: 418239, 0: 680643}
+O b=1: total 230414 d-values {-1: 230414}
+O b=2: total 167114 d-values {-1: 167114}
+O b=3: total 129907 d-values {-1: 129907}
+O b=4: total 107725 d-values {-1: 107725}
+O b=5: total 89330 d-values {-1: 88822, 0: 508}
+O b>=6: total 530057 d-values {-1: 298985, 0: 231072}
+
+header: predictions
+(a) D2 O quiet sites 3475972, d!=0 606820, share 0.1746
+(b) D2 O d=-1 370272, d=+1 236548, ratio 1.57
+(c) D0 O would-be d=-1: 24029/356382 = 0.0674; d=0: 99035/2704377 = 0.0366; ratio 1.84
+
+header: the |history| >= 5643 recompute (D2 pairs; d_pred = floor((512-hterm)/1024) + trunc-clamp(history/5643))
+D2 O pairs 12800, mismatches 0
+D3 O pairs 12800, mismatches 0

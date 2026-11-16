@@ -23,6 +23,7 @@ def main():
     ap.add_argument("--set", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--cfp", required=True)
+    ap.add_argument("--prefix", default="cfp")
     ap.add_argument("--depth", type=int, default=12)
     ap.add_argument("--opts", default="")
     ap.add_argument("--meta", default=None)
@@ -98,7 +99,7 @@ def main():
                 continue
             for l in fresh:
                 l = l.strip()
-                if l.startswith("info string cfp "):
+                if l.startswith(f"info string {a.prefix} "):
                     cfp = l[len("info string "):]
                 elif l.startswith("info") and " nodes " in l:
                     t = l.split()

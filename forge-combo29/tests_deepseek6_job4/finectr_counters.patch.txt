@@ -3,9 +3,10 @@
 # 6b98f2170 tree, then this file with patch -p1 without fuzz. Made with diff -u (diff -ruN of the two src trees).
 # Counters are observation only. Two d sets: d_run (run-configured fine minus integer; K1/K2/K4, mismatch_used)
 # and d_t1 (the T1 reference: FineHistory 1, RoundF 512 forced) for D0's would-be analysis.
+# beat_alpha counts a reduced search only when its score is strictly above alpha.
 diff -ruN j4_tree/forge-combo29/src/search.cpp j4_ctr/forge-combo29/src/search.cpp
 --- j4_tree/forge-combo29/src/search.cpp	2026-11-16 18:08:48.765213603 +0000
-+++ j4_ctr/forge-combo29/src/search.cpp	2026-11-16 18:09:37.969213603 +0000
++++ j4_ctr/forge-combo29/src/search.cpp	2026-11-16 18:11:59.869213603 +0000
 @@ -34,6 +34,46 @@
  #define FORGE_BARE_KING_MATE_FIX 1
  #endif
@@ -123,18 +124,20 @@ diff -ruN j4_tree/forge-combo29/src/search.cpp j4_ctr/forge-combo29/src/search.c
              if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
                  ss->raw_eval != ValueNone) {
                  const int correction_cp = ss->static_eval - ss->raw_eval;
-@@ -2045,6 +2141,8 @@
+@@ -2045,6 +2141,10 @@
              const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
              if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
              score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
-+            ++lmr_ctr::beat_alpha[lmr_ctr_d_slot];
-+            ++lmr_ctr::beat_t1[lmr_ctr_dt1_slot];
++            if (score > alpha) {
++                ++lmr_ctr::beat_alpha[lmr_ctr_d_slot];
++                ++lmr_ctr::beat_t1[lmr_ctr_dt1_slot];
++            }
              if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
              full_depth_needed = score > alpha && reduced_depth < new_depth;
              if (full_depth_needed) {
 diff -ruN j4_tree/forge-combo29/src/uci.cpp j4_ctr/forge-combo29/src/uci.cpp
 --- j4_tree/forge-combo29/src/uci.cpp	2026-11-15 05:25:59.000000000 +0000
-+++ j4_ctr/forge-combo29/src/uci.cpp	2026-11-16 18:09:37.969213603 +0000
++++ j4_ctr/forge-combo29/src/uci.cpp	2026-11-16 18:11:59.869213603 +0000
 @@ -10,6 +10,21 @@
  #include "forge/uci_output.hpp"
  

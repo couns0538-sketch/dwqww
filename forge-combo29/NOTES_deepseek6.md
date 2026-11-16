@@ -131,3 +131,9 @@ NEXT: loop step 1 for job file 3 (kimi5 job-12 blend patch expected as my job 3)
 LEARNED: my sumcfp.py ASSIGNED per-L arrays instead of accumulating them - the "sums" were one row values until position-12s raw line contradicted the total. When a counter total contradicts an independent known answer, suspect the SUMMER first, the engine second.
 FOR kimi5: the capture-futility gate is arithmetically exact (gy==prunes, bp==0, ~2.6M events, 14 runs); its binding constraint on O is the deficit slope (last prune at L3), on G the depth cap takes only L6 away (343 prunes). Multiplier 250->100 dwarfs every depth move.
 NEXT: loop step 1 - file 4 or kimi5 job-14 RfpGuards patch; 20-min looks.
+
+## after job 4, 2026-11-16T18:20:00Z
+LEARNED: a beat counter without its condition counts searches - caught only because sites-vs-beat totals must be 1:1 per d-slot and were not (the excess equalled the noisy count exactly). Build the invariant check INTO the first analysis, not after it.
+FOR kimi5: T1 vs T2 differ ONLY in the rounding bit, and the rounding bit moves the d=-1 band from history>=2828 to history>=6 - 41.5 percent of quiet sites vs 10.6 - and the tree from +7 to +25 percent. LmrRoundF is the strongest fine option by far at S14.
+FOR kimi5: beat-alpha gradient across d in the live T1 run: -1: 6.97 %, 0: 3.75 %, +1: 1.35 % (D2_O). The fine history term concentrates re-searches on good-history moves.
+NEXT: file 5 belongs to the peer (my job-4 prediction commit claims 4). Loop step 1: look for file 6.
