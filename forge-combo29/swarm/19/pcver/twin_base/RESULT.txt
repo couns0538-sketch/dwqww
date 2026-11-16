@@ -1,0 +1,16 @@
+# base 6b98f217, Threads 1, no setoption
+
+## TEST 1 — K+N vs K (insufficient material; a GUI reaches this by playing the ending out)
+FEN: 8/8/8/4k3/8/8/8/4K1N1 w - - 0 1
+python-chess: is_insufficient_material=True, legal moves=8
+engine: bestmove g1e2 (legal=True)  score ('cp', 0)  nodes 0
+raw last info: info depth 6 seldepth 6 score cp 0 nodes 0 nps 0 hashfull 0 time 2 pv
+TEST 1 verdict: REACHABLE and CORRECT (legal move, score 0 — every move draws here)
+
+## TEST 2 — threefold repetition with a mate in one on the board
+position: 6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1 moves a1a2 g8h8 a2a1 h8g8 a1a2 g8h8 a2a1 h8g8
+python-chess: is_repetition(3)=True, halfmove_clock=8, mate-in-1 move=a1a8
+engine: bestmove f2f3  score ('cp', 0)  nodes 0
+raw last info: info depth 8 seldepth 8 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+TEST 2 verdict: the engine did NOT search this repetition root -> the 2595 fallback FIRED
+
