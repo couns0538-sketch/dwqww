@@ -1,0 +1,18 @@
+# HARNESS AUDIT after seat 19's 19-F12 broadcast
+Mon Nov 16 09:34:48 PM UTC 2026
+
+## The fault, reproduced on MY build (release, sha256 e06310ec...6a83)
+$ printf "uci\nisready\nposition startpos\ngo depth 12\nquit\n" | forge
+-> 1 line only: "bestmove a2a3" (no info line, 0 nodes)
+$ same search, quit sent 2 s later
+-> "info depth 12 seldepth 23 score cp 30 nodes 56720 ... pv e2e4" then "bestmove e2e4"
+
+## Which of MY harnesses could have produced it
+| harness | sends quit mid-search? | affected results | action |
+|---|---|---|---|
+| job2/runner.py | YES for bounded gos it does not wait for (go open/infinite/ponder) and for unbounded gos: 772 of 2,000 sequences ended with a search live | out_full + out_full_repeat (7,538 bestmoves; 3,346 in those 772 sequences) | RE-RUN with stop-and-await before quit |
+| check1/check_s01f5.py | NO - waits for each bestmove before quit | safe | none |
+| check2/check_s05f3.py | NO - waits for each bestmove before quit | safe | none |
+| check3/check_s11f8.py | NO - waits; abandoned mid-run | no results recorded | re-run |
+| job3 recount | no engine run at all | safe | none |
+| honesty.sh (bench/perft) | bench and perft are bounded and piped, but the pipe closes stdin after them | checked below | re-verified |

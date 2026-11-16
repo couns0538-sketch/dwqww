@@ -149,6 +149,7 @@ def run_one(idx, lines, exe):
 
     board = chess.Board()
     go_boards = []
+    pending_go = 0          # gos written whose bestmove has not been consumed yet
     try:
         for line in lines:
             s = line.strip()
@@ -164,10 +165,16 @@ def run_one(idx, lines, exe):
             if s.startswith("go"):
                 rec["go"] += 1
                 go_boards.append(board.copy(stack=False))
+                pending_go += 1
                 if is_bounded_go(s):
                     rec["bounded"] += 1
-                    if not wait_best(k_before, BESTMOVE_WAIT):
+                    if wait_best(k_before, BESTMOVE_WAIT):
+                        pending_go -= 1
+                    else:
                         rec["no_bestmove"] += 1
+            elif s == "stop":
+                if pending_go and wait_best(n_best(), BESTMOVE_WAIT):
+                    pending_go -= 1
             elif s == "isready":
                 rec["ready_sent"] += 1
                 ok = False
@@ -185,7 +192,14 @@ def run_one(idx, lines, exe):
                     rec["hang_reason"] = "ready_timeout"
                     break
                 rec["readyok"] += 1
+        # 19-F12: never close stdin while a search is live -- the engine then answers a
+        # FABRICATED bestmove (a2a3, 0 nodes). So stop the search, wait for the real
+        # bestmove, and only then quit.
         if p.poll() is None:
+            if pending_go:
+                k0 = n_best()
+                send("stop")
+                wait_best(k0, BESTMOVE_WAIT)
             send("quit")
         try:
             p.wait(timeout=EXIT_WAIT)
