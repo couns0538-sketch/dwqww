@@ -1,0 +1,52 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 9b9b631..5329532 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -358,6 +358,8 @@ inline SoundRegretCounts sound_regret{};
+ // (bit 0 = s1 .. bit 5 = s6). 63 = today's arm behavior, 0 = the case prunes like an
+ // ordinary node. Outside an arm's case the mask has no effect.
+ inline int SoundStepMask = 63;
++inline int DoubleExtLimit = 6;    // max inherited double extensions on one path (base literal 6)
++inline int DoubleExtMargin = 24;  // singular_score must trail singular_beta by more than this (base literal 24)
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index de49c9a..d3baafa 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -2044,7 +2044,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (aborted_) return 0;
+             if (singular_score < singular_beta) {
+                 extension = 1;
+-                if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
++                if (!pv_node && singular_score < singular_beta - tune::DoubleExtMargin && inherited_double_extensions <= tune::DoubleExtLimit) {
+                     extension = 2;
+                 }
+             } else if (singular_beta >= beta) {
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index b139858..02a56bd 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -238,7 +238,9 @@ int uci_loop(std::istream& in) {
+                          "option name SoundMateAlphaArm type spin default 0 min -1 max 1\n"
+                          "option name SoundRegretCount type check default false\n"
+                          "option name SoundRegretProbe type check default false\n"
+-                         "option name SoundStepMask type spin default 63 min 0 max 63\n";
++                         "option name SoundStepMask type spin default 63 min 0 max 63\n"
++                         "option name DoubleExtLimit type spin default 6 min -1 max 64\n"
++                         "option name DoubleExtMargin type spin default 24 min 0 max 400\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -473,6 +475,10 @@ int uci_loop(std::istream& in) {
+                 }
+             } else if (name == "SoundStepMask") {
+                 apply_spin(0, 63, [&](int clamped) { forge::tune::SoundStepMask = clamped; });
++            } else if (name == "DoubleExtLimit") {
++                apply_spin(-1, 64, [&](int clamped) { forge::tune::DoubleExtLimit = clamped; });
++            } else if (name == "DoubleExtMargin") {
++                apply_spin(0, 400, [&](int clamped) { forge::tune::DoubleExtMargin = clamped; });
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             } else if (name == "MateAlphaGuard") {
+                 if (value_text == "true" || value_text == "false") {
