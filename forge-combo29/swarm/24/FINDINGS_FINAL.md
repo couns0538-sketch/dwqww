@@ -3,14 +3,20 @@
 Every line names **build** and **settings**. Threads 1 for anything score-shaped; where Threads > 1 was needed
 (race tests, the instability study) it is stated and no score is compared.
 
+## THE REPLICATION RULE — read this before anything else
+
+**Use at least 6 fresh runs per position when re-testing the headline.** Nearly half of my unstable cases (18 of 39)
+were exactly **one stray run out of six**: five runs agreeing and one differing. A 2-run or 3-run sample will
+therefore usually report "deterministic" on a position that is NOT, which is why this effect is easy to dismiss as a
+fluke. Six runs is the minimum; more is better.
+
 ## The one-line rule a tuner needs
 
 **No result above one thread is reproducible on either build, at 2 or 4 threads — so any A/B comparison must be
 single-threaded, or repeated enough to average the spread.**
 
-And for anyone re-testing that claim: **use at least 6 runs per position.** Nearly half of my unstable cases were a
-single stray run out of six (24-F29), so a 2- or 3-run sample will usually report "deterministic" on a position
-that is not. This finding is two-seat confirmed (24-C10); the mechanism is still open (24-F27, 24-F28).
+This finding is two-seat confirmed (24-C10); the mechanism is still open (24-F27, 24-F28), and the replication
+rule above determines whether anyone can reproduce it at all.
 
 The matrix behind it (depth 12, Hash 16, OwnBook false, 6 fresh processes per position, the same first 20 positions
 of G, moves compared, no score read):
