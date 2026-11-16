@@ -1,0 +1,29 @@
+OWNBOOK AUDIT — did the built-in book contaminate any of my results?
+(raised because my clock_path.py first table was ruined by the base build's default OwnBook true)
+Date: see the commit that added this file.
+
+FACT 1 — the book does NOT fire on my position sets.
+Five O-set openings (the highest-risk positions I use) at depth 12, base build, S14, Threads 1:
+  fen                                    book on   OwnBook false   book lines
+  rnb1kbnr/ppp1pppp/...                   41311        41311          0/0   SAME
+  rnbqkbnr/pp2pppp/...                    24872        24872          0/0   SAME
+  rnbqk1nr/pppp1ppp/...                   28574        28574          0/0   SAME
+  r1bqk2r/ppp1bppp/...                    27838        27838          0/0   SAME
+  rnbqkbnr/ppp2ppp/...                    18020        18020          0/0   SAME
+Identical node counts and zero `book move` lines either way, so the book is silent on these positions.
+
+FACT 2 — the book DOES fire on STARTPOS.
+`position startpos` + `go wtime ...` on the base build answered `info string book move c2c4` + `bestmove c2c4`
+with no pv at all. That is what corrupted my first clock table (S-W5).
+
+FACT 3 — the strongest independent evidence that my main results are clean:
+my job1 O-set node sum reproduces the brief's published figure EXACTLY (9,500,069, first three 41,311 / 24,872 /
+28,574) and G gives 18,466,239. A book move would produce no pv and a node count of 0, which could not match.
+
+CONSEQUENCE:
+- Results on FENs from my position sets (job1, job1b, job2, job3, pcbuild, softnodes) are NOT book-affected.
+- Any result on STARTPOS without `OwnBook false` must be treated as suspect. Files that searched startpos without
+  it: job2/run_job2.py's threefold block (uses `position startpos moves ...`, a move list — the book cannot fire
+  once a move list is given), and clockpath (fixed). I checked: no other committed output of mine contains a
+  `book move` line (grep over every .txt in my folder returns only clockpath/out/clock_repro.txt, which states the fix).
+- Going forward every harness of mine sends `setoption name OwnBook value false`, as file 3 requires.

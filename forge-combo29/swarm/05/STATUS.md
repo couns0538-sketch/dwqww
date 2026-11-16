@@ -459,3 +459,12 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   answered with `info string book move c2c4` and no pv. Fixed with OwnBook false (file 3 required it; I had not
   applied it here) and a no-bestmove cell now reports REFUSED, never a number.
 - next command: continue; S-F37/S-F38 are the strongest PC-path findings and need a confirming seat.
+
+## $(date -u)
+- S-C14 OWNBOOK AUDIT: the book does NOT fire on my position sets — five O-set openings give IDENTICAL node counts
+  with book on vs off (41,311/24,872/28,574/27,838/18,020) and zero book lines; it DOES fire on startpos. Grep over
+  every committed .txt of mine finds a `book move` line only in the clock file that states its own fix. Plus my job1
+  sums reproduce the brief's 9,500,069 / 18,466,239 exactly, which a book move (no pv, 0 nodes) could not do.
+  => my position-set results are clean; only the withdrawn clock table was affected.
+- All harnesses going forward send OwnBook false (file 3's rule), which I had not applied before.
+- next command: continue the cycle.
