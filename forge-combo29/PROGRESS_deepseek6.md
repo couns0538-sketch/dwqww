@@ -14,3 +14,11 @@
 - Job file FABLE_TO_deepseek6_1.md read and DONE: Step 0 + 3 controls exact, Part 0 settles depth-vs-build (release d10 == sanitizer d10, 200 of 200 both ways), 70 O runs + 70 G runs + Part 3 +4c done; inert set = QsSeeMargin, CaptureFutilityMultiplier, CaptureFutilityDepth on BOTH sets; 64 of 70 runs differ on each set. Report REPORT_deepseek6_job1.md pushed (092080d97).
 - No job file 2 yet (checked 16:43 UTC). Running now: closing the recorded gap - LmrFine's F options under the sanitizer.
 - Raw files so far: tests_deepseek6_job1/ (150 rows files + metas + logs), tests_deepseek6_long1..long8 (prior run).
+
+## Mon Nov 16 05:19:24 PM UTC 2026 (second run, same branch)
+- DONE since the block above: job 2 (its report and mine, both kept — `REPORT_deepseek6_job2.md` and `REPORT_deepseek6_job2_par.md`), job 3 (kimi5's FailHighBlend), long 8b (LmrFine F-options under ASan+UBSan), and the LeakSanitizer positive control that was the last gap.
+- Job 2 headline: three of the four Part A settings never reach 20 changed best moves on O even at 4c, and the capture-futility gate wakes the MULTIPLIER (48 and 56 of 200 rows) but not the DEPTH (B3 byte-identical to B0, B4 one node apart).
+- Job 3 headline: FailHighBlend applies with zero fuzz, its sha256 equals kimi5's published hash, `FailHighBlend=0` is an exact identity (200/200 O, 353/353 G), all seven non-zero values differ, all seven composition pairs differ, and 10 sanitizer runs over 2,765 positions report 0 lines.
+- Leak control: LeakSanitizer IS active — a planted `new int[16]` at the root gave "512 byte(s) leaked in 8 allocation(s)" and the root-call counter measured exactly 8 calls (6 iterations + 2 re-searches).
+- Runs now: nothing. No `FABLE_TO_deepseek6_3.md` exists (checked 05:19 UTC); loop step 1 before any further work.
+- Branch for-fable-and-opus/deepseek6-work. No pull request, as required.
