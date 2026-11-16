@@ -1,0 +1,33 @@
+check of seat 06's finding S-F5 (total = clamp(hce+nnue); a left-right flip can leave total identical while both components move)
+
+VERDICT: CONFIRMS S-F5
+
+-- P1 source, read from 6b98f217 --
+nnue_weights.inc:3 -> #define FORGE_NNUE_RESIDUAL 1
+eval.cpp:611 ->    parts.total = std::clamp(handcrafted + parts.nnue, -MateInMaxPly + 1, MateInMaxPly - 1);
+search.hpp:71-74 -> MaxPly 128, MateValue 32000, MateInMaxPly = 31872, so the clamp bound is 31871
+
+-- P2/P5 summary (my own harness, raw/summary.json) --
+{
+  "positions_in_G": 353,
+  "positions_random": 400,
+  "measured": 753,
+  "unparsed_or_unmeasured": 0,
+  "total_moved_under_flip": 750,
+  "total_unchanged_under_flip": 3,
+  "both_components_moved_total_did_not": 3,
+  "formula_violations_T_neq_clamp_H_plus_N": 0,
+  "cancellations_rechecked_in_fresh_processes": 3,
+  "cancellations_that_reproduced": 3
+}
+-- the three cancellations, re-measured in fresh processes (raw recheck.txt) --
+{"i": 107, "first": [-149, -27, -176, -96, -80, -176], "second": [-149, -27, -176, -96, -80, -176], "same": true}
+{"i": 324, "first": [-139, -11, -150, -144, -6, -150], "second": [-139, -11, -150, -144, -6, -150], "same": true}
+{"i": 660, "first": [-137, 53, -84, -149, 65, -84], "second": [-137, 53, -84, -149, 65, -84], "same": true}
+
+-- P4: positions where printed total != clamp(hce+nnue): 0 of 753 --
+
+seat 06's 3-of-764 and my 3-of-753 agree in COUNT and mechanism; the position sets are different
+(mine: all 353 of G + 400 of my own seed-1001 random-game positions), so this is a reproduction of the mechanism, not of their exact list.
+
+runner: check_s06f5.py (mine); exe: exe ~/builds/release/forge sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83 id name Chess Engine Forge 6.4.24 candidate 

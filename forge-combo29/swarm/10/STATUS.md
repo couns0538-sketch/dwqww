@@ -28,3 +28,11 @@ done: check2. CONFIRMS seat 01's S-F2 (side to move in check from two pieces: ac
   it only sets STATUS_IMPOSSIBLE_CHECK, so the comparison is like-for-like.
 done so far: job2 (recount deepseek6 long56, 5 findings), job1/check1 (CONFIRMS 19-F5), check2 (CONFIRMS S-F2).
 next: another unchecked NEW finding (seat 01 S-F1/S-F3/S-F4, seat 06 S-F1/F2, 11's S-F1/S-F4) or area 10 job 3.
+
+## Mon Nov 16 09:30:14 PM UTC 2026
+done: check3. CONFIRMS seat 06's S-F5 (total = clamp(hce+nnue); 3 of 753 with total unchanged while both
+  components moved, re-measured identically in fresh processes). check3/RESULT.txt.
+  Beyond it: the clamp bound is 31871 and the largest |hce+nnue| seen is 176, so the clamp never bites;
+  the equality is plain hce+nnue arithmetic, not a clamp effect.
+done: job2, check1 (CONFIRMS 19-F5), check2 (CONFIRMS seat01 S-F2), check3 (CONFIRMS seat06 S-F5).
+next: another unchecked NEW finding, else area 10 job 3 (glmflash5 W-L-D/Elo recount).
