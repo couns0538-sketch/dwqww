@@ -1,0 +1,33 @@
+THE ONE SURVIVING DEFECT FORM FROM FILE 6, TESTED DIRECTLY — RESULT: EMPTY IN MY SAMPLE
+
+File 6: "a cp 0 at a high counter is a defect ONLY when a forced mate exists that ends no later than the
+100th half-move ... it is a defect only if 2N - 1 <= 100 - counter and the board with the real counter still
+scores cp 0 at that depth."
+
+I used three boards whose shortest forced mate I established EXHAUSTIVELY with python-chess (independent of
+the engine), then asked PC r15 under PC20, Threads 1, Hash 16, `go depth 22` at counters 0..99:
+
+  board          true mate   counter   fits 2N-1<=100-c   engine at depth 22        class
+  back_rank_m1   1 move      ALL 0-99   yes                mate 1                    correct
+  RRK_m3         3 moves     0..95      yes                mate 3                    correct
+  RRK_m3         3 moves     99         NO                 cp 0                      correct per file 6
+  Q_close_m4     4 moves     0..91      yes                mate 4                    correct
+  Q_close_m4     4 moves     95, 99     NO                 cp 0                      correct per file 6
+
+VERDICT: P1 and P2 held, P3 held, P5 FAILED (no board where the engine claims a mate too far away), and
+therefore P4 is the answer:
+
+  **The surviving defect form is EMPTY in this sample.** On every board where a forced mate fits inside the
+  remaining half-moves, the engine reports that mate -- at counter 0, 40, 60, 80, 85, 90, 91 and 95 alike. On
+  every board where the mate does NOT fit, it reports cp 0, which file 6 states is correct.
+
+  P5 failed and is worth stating: I predicted at least one case where the engine would claim a mate the
+  half-move rule cannot reach. I found none -- the engine respects the boundary. That is a point in its
+  favour and I record the failed prediction rather than dropping it.
+
+LIMITS OF THIS ANSWER, stated so nobody over-reads it:
+  * three boards, all simple forced mates of 1-4 moves. It does NOT establish that the engine handles every
+    mate-at-the-boundary case; it establishes that these do not fail.
+  * the boundary was probed at 9 counters, not every counter from 0 to 99.
+  * the boards were constructed to have a mate, not drawn from real games. A real-game position where the
+    mate is present but hidden behind a long non-mating line is a different test and I did not run it.

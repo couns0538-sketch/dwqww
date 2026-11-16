@@ -391,3 +391,11 @@ Different in position type, depth, node count and second-move closeness.
 10-F57: the bad move is undetectable from the record (legal move, normal-looking score) -> DISCIPLINE not a
 filter. Rule 14 added to the capstone page with the one-line operational rule.
 Mon Nov 16 10:42:49 PM UTC 2026
+
+## Surviving defect form tested
+10-F58: EMPTY in my sample. Three boards with exhaustively-verified forced mates (1/3/4 moves), PC20 Threads 1,
+depth 22, counters 0..99: every case where 2N-1 <= 100-counter the engine reports the MATE; every case where
+it does not fit reports cp 0 (correct per file 6). 10-F59 records my P5 prediction FAILING -- I expected a
+mate claimed too far away and found none. 10-N3 states the scope: 3 boards, 9 counters, constructed
+positions -- a real-game boundary test is still open.
+Mon Nov 16 10:45:22 PM UTC 2026
