@@ -188,3 +188,14 @@ DONE job 4 (the coordinator's first new job): perft 4 at the DIVIDE level, 200 R
 READ FABLE 6: perft treated as done/transferable. Priority moves to the PC path. Next: suggested new
 area -- go softnodes N on PC build under PC20, Threads 1: determinism, finished depth, overshoot.
 Next command: cd forge-combo29/swarm/13/job5 && python3 softnodes.py
+
+## 2026-11-16T22:49:33Z
+
+DONE suggested area (FABLE 6): go softnodes on PC r15 + PC20 + Threads 1 + Hash 16.
+  DETERMINISTIC 63/63 (each case run twice in separate fresh processes; also identical across two
+  separate script invocations). STOPS AT A FINISHED DEPTH 63/63 (proven by re-searching with
+   and requiring the same node count). Rule-1 control: 5 plants flagged,
+  2 identities not flagged.
+  OVERSHOOT: median 22-29 % past N; worst 409,130 past a 250,000 budget = 164 % = 659,130 nodes on
+  one move of a real game position. Findings S-F6, S-F7. Report job5/REPORT_job5.md.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1   # cycle: look for unconfirmed finds on the PC path
