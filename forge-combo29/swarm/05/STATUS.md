@@ -171,3 +171,11 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
 - FINAL_SUMMARY.md lists everything including every mistake I made and corrected.
 - next command (if the session resumes): python3 job2/what_makes_flat.py with a SECOND pawn placement, to test
   whether S-F15's flat-98 depends on where the pawn is or only on there being one.
+
+## $(date -u)
+- S-C9 CONFIRMS seat 10's warm/cold rule exactly: one process x3 = 56,720/4,951/4,516; three processes = 56,720 each.
+- MY OWN AUDIT (the part the warning asked for): no Clear Hash anywhere; every node-count claim of mine comes from
+  one fresh process per position with ucinewgame, so all are COLD. The only warm tables are mate_repeat.py's, and
+  their output has always separated and labelled `cold N:` / `warm N:`. Nothing needed re-labelling, nothing was
+  silently re-run.
+- next command: none needed before the deadline; everything pushed.

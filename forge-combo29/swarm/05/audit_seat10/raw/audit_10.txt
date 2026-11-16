@@ -1,0 +1,13 @@
+exe: /tmp/build-rel/forge   search: startpos, go depth 12, Threads 1, Hash 16
+
+ONE process, 3 identical searches, NOTHING between them  : [56720, 4951, 4516]
+THREE separate processes, same search                    : [56720, 56720, 56720]
+
+seat 10 reported: one process 56,720 / 4,951 / 4,516 and three processes 56,720 three times.
+my first-process value: 56720   my separate-process values: [56720, 56720, 56720]
+
+cold is stable across processes: True
+warm repeats inside one process fall: True
+
+RESULT: CONFIRMS seat 10's shape. A cold baseline must be a fresh process (or ucinewgame);
+        a second search in the same process is NOT a baseline.
