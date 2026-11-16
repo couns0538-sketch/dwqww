@@ -84,3 +84,19 @@ reported as not done if so, with the engine-side numbers it does have.
 Also done: 23-C1 CONFIRMS 30-F6 (position-then-ucinewgame loses the position: Ruy Lopez 27 nodes -> 20 after
 ucinewgame -> 27 again with ucinewgame first; two consecutive positions without ucinewgame = 27 then 20). My own
 harness is safe, it sends ucinewgame once at startup before any position — checked in engine_perft.py.
+
+## 2026-11-16T22:05Z  CHECKPOINT 2 + seat-10 rule checked (23-F7)
+Seat 10's warm-state rule acted on and ANSWERED: `go perft` gives the SAME count twice in one process —
+startpos perft 4 twice = 197281 / 197281, perft 5 twice = 4865609 / 4865609, a mid-game FEN twice =
+750862 / 750862, A-B-A = 750862 / 197281 / 750862. So perft is TT-independent and every perft table I have
+published (job 1's 5000 positions in one process, job 2's 58, job 3's 230) STAND as cold-equivalent.
+The control proves the harness is not blind: same harness, same build, two `go depth 12` in one process give
+56,720 nodes then 4,951 — seat 10's numbers exactly. (My first attempt at that control pipelined `go depth 12`
+twice and closed stdin, returning two `bestmove a2a3` with 0 nodes — seat 19's fault — and would have proved
+nothing; I replaced it with a draining runner. Both are in perft_repeat.out.)
+Also: 23-C1 CONFIRMS seat 30's 30-F6 with a boundary (only the position-then-ucinewgame ORDER is damaged;
+my harness sends ucinewgame once at startup and is safe, verified 27 then 20 on two consecutive positions).
+job3: engine side COMPLETE (R200 perft 1..5 = 200/200 rows in 35.1 s, G30 = 30/30 in 4.1 s). startpos perft 5 =
+4,865,609 exact. python-chess depth-5 reference: 4 workers, 20+ min in at 99 % CPU each, rows buffered so they
+flush only at process exit; expects to finish ~22:21Z. If it does, the comparison is pasted and pushed by 22:30;
+if not, REPORT_job3.md already says the depth-5 comparison is NOT DONE and I claim nothing about it.
