@@ -99,9 +99,15 @@ def run(fen, k, board_legal_count):
         if len(per[d]) == want:
             best_d = d
     if best_d is None:
+<<<<<<< HEAD
         return None, bm, "no complete iteration with %d lines" % k, k
     rows = [per[best_d][i] for i in range(1, k + 1) if i in per[best_d]]
     return rows, bm, None, min(k, board_legal_count)
+=======
+        return None, bm, "no complete iteration with %d lines" % k
+    rows = [per[best_d][i] for i in range(1, k + 1) if i in per[best_d]]
+    return rows, bm, None, k
+>>>>>>> 8d1be97a5 (deepseek6 long 61 notes)
 
 
 def score_of(kind, val):
@@ -111,8 +117,11 @@ def score_of(kind, val):
 
 bad = []
 first1 = {}
+<<<<<<< HEAD
 ROWS = open(os.path.join(OUT, "multipv_rows.tsv"), "w")
 ROWS.write("pos\tk\tlines\tmoves\tscores\tbestmove\tfirst_line\tviolations\n")
+=======
+>>>>>>> 8d1be97a5 (deepseek6 long 61 notes)
 firstk = {3: {}, 5: {}}
 for idx, fen in enumerate(fens, 1):
     board = chess.Board(fen)
@@ -136,6 +145,7 @@ for idx, fen in enumerate(fens, 1):
             first1[idx] = bm
         else:
             firstk[k][idx] = moves[0]
+<<<<<<< HEAD
         viol = [x[2] for x in bad if x[0] == idx and x[1] == k]
         ROWS.write("%d\t%d\t%d\t%s\t%s\t%s\t%s\t%s\n" % (
             idx, k, len(rows), " ".join(moves), " ".join(str(x) for x in scores),
@@ -144,6 +154,11 @@ for idx, fen in enumerate(fens, 1):
         print("...%d/200" % idx, flush=True)
 
 ROWS.close()
+=======
+    if idx % 25 == 0:
+        print("...%d/200" % idx, flush=True)
+
+>>>>>>> 8d1be97a5 (deepseek6 long 61 notes)
 print()
 print("== MultiPV CHECK ON ALL %d POSITIONS OF O, DEPTH %d" % (len(fens), DEPTH))
 print("violations: %d" % len(bad))
