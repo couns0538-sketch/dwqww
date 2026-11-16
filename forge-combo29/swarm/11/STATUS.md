@@ -251,3 +251,7 @@ Next: continue on PC20 with provably-applied options; STATUS every 25 min.
 - Re-tested properly: mate-in-1 at every counter on PC r15/PC20 AND base -> 0 defects.
 - New standing: file 6 says my finds are worth most on the PC path (PC20, Threads 1, softnodes 2000,
   nodes 20000/50000/250000, 6s+0.06 clock). My FEN work (S-F38/F39/F40) applies there directly.
+- S-F41 (file 6's suggested area): `go softnodes N` on PC20/Threads 1/Hash16 is FULLY DETERMINISTIC
+  (0/25 differ) and always stops at a finished depth, but overruns N by median 33.6% at N=2000
+  (max 220%) and 30.5% at N=20000 (max 135%) across 25 real G positions. One position is not enough
+  to characterise it (my single probe had shown 13.4% and 1.5%).
