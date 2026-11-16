@@ -294,3 +294,13 @@ Score for area 3 now: perft agrees with python-chess on 10,000 random-legal-play
 independent seeds), 230 positions at depth 5 (8.4e9 nodes walked), 494 special positions, and 230 of another
 seat's positions — with 0 differences anywhere, plus hand-built ep-pin and mate-distance cases.
 Next: keep working the PC's real path (PC build, PC20, Threads 1, Hash 16).
+
+## 2026-11-17T01:05Z  23-C9 CONFIRMS seat 17's three-budget row (1 of 10 positions changes move)
+File 6's match path gives three node budgets (20000/50000/250000). Seat 17 measured whether the bestmove changes
+between them and found 1 of 10. I had exactly that data already (job 7's out_nodes.json, 5 fresh processes per
+cell), so I checked it: SAME answer, SAME position — `2r4r/pp4k1/3q2p1/3ppn2/1P4QP/P2P1N2/R4P2/4RK2 b - - 0 1`
+gives `c8c3` at 20000 and `d6e6` at 50000 and 250000; the other nine give one move at all three budgets.
+Caveat written into the finding line: my 10 positions appear to come from the same set G rows they used, so this is
+an independent RUN, not an independent position set — it confirms the observation but not a 1-in-10 rate.
+Why it matters: the 20000 budget is a different player on that board, so a match result measured only at 20000
+is not the same engine as one measured at 250000.
