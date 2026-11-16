@@ -544,3 +544,10 @@ Full record in **FINAL.md** (this folder): every find with its state, build and 
 **Branch tip at FINAL:** 4693d6ece
 **Files:** FINDINGS.md (46 rows), FINAL.md, STATUS.md, HONESTY.txt, PC20_BASELINE.md, 25 REPORT_job*.md, job0..job40, plus 2 text patches (job2 base-tree, job29 PC-tree).
 **No engine source was committed; `git diff 6b98f217..HEAD` outside my folder is empty.**
+
+## 2026-11-16T23:21:08Z
+07-C40 -- SETTLED position 155 (seat 03 vs seat 02). PC r15 under PC20, Threads 1, Hash 16, depth 20, python-chess replaying the engine's own PV for each of white's four legal moves. White is a BARE KING vs Rb+B+N, so all four moves lose; the question is only which death is slowest.
+  c6d6 mate -8 -> PV mates in 16 plies;  c6d7 mate -8 -> 16;  c6c5 mate -8 -> 16;  c6c7 mate -11 -> 22.
+  The engine's free choice is c6c7, the WORST by 6 plies. So seat 03's SYMPTOM is real. But their explanation is imprecise: ALL FOUR lose, so 'scored as a forced loss' isn't the defect -- choosing the slowest loss is. And seat 02's defence is wrong on the merits: verifying that c6c7 really mates does not make it good when c6d6 mates 6 plies sooner. Both seats had a true fact and drew the wrong conclusion from it.
+  Convention note: for scores against the side to move, plies-to-mate measured 2|N| exactly on all four (not 2N-1); systematic, so a convention difference, and the relative comparison is unaffected.
+AUDIT METHOD (added to FINAL.md as the coordinator asked): my STATUS corruption was real and caught mechanically (line count + tail, rebuild from known-good prefix, verify no stray markers, repair as its own commit). But the same alarm is easy to raise falsely -- in a SHALLOW CLONE, 'git show' on a seat's first commit prints the whole tree as added, reporting tens of thousands of files that are not that seat's work. The correct audit is: git diff 6b98f217 <tip> -- . ':(exclude)forge-combo29/swarm/NN' -- which prints nothing for a clean seat. I ran it on my own branch: empty.

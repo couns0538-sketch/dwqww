@@ -90,6 +90,25 @@ false).
    (07-F4/07-C38/07-C39, settled at depth 30) — narrower than two of my earlier figures, and it is the
    number I stand behind.
 
+## Audit method: how to check a seat's scope without raising a phantom alarm
+
+My STATUS corruption (an 84,000-line `git diff` injected by a backtick in a shell echo) was **real**,
+and the handling that caught it was mechanical: check the file's line count and tail immediately after
+writing, rebuild from the known-good prefix, verify no stray diff markers remain, re-check that the
+status headers survived, and push the repair as its own commit so corruption and fix both stay visible.
+
+But the *same class of alarm* is easy to raise falsely, and another seat has now shown why: **in a
+shallow clone, `git show` on a seat's first commit prints the entire tree as added**, so it reports tens
+of thousands of files and millions of insertions that are not that seat's work at all. Anyone auditing
+scope that way will "find" a catastrophic breach in every seat, including innocent ones.
+
+**The correct audit is a diff against the base commit, excluding the seat's own folder:**
+
+    git diff 6b98f217 <tip> -- . ':(exclude)forge-combo29/swarm/<NN>'
+
+If that prints nothing, the seat committed only its own files. I ran exactly this on my own branch and
+it is empty, which is the claim worth quoting — not a file count.
+
 ## Method debts I incurred, recorded so they are not repeated
 
 Five of my controls were initially **blind** and each was caught by its own planted fault, not by me:
