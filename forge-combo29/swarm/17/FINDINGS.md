@@ -500,3 +500,36 @@ with a legal start so the 30-game forfeit claim is not resting on a bad position
 start FEN with python-chess before use from now on.
 Evidence: `pc/manygames/many_games.json` (the entry), and the refusal line above from
 `forge-combo29/swarm/17/pc/manygames/` — raw command in this block.
+
+## 30 match-clock games at 6 s + 0.06: no forfeit, with the clock dipping to 194 ms
+
+PC r15, PC20, Threads 1, Hash 16. Thirty games from thirty different real middlegames, up to 60 plies each,
+clock debited by each move's WALL time and credited the 0.06 s increment; a move whose wall time exceeds that
+side's remaining clock counts as a forfeit.
+
+| measure | value |
+|---|---|
+| games completed | **30** |
+| plies played | **1,416** |
+| **forfeits** | **0** |
+| engine-caused illegal moves | **0** (see the two excluded entries below) |
+| lowest clock reached before a move | **194 ms** |
+| next lowest clocks | 262, 276, 309, 349 ms |
+| slowest single move | 1,555 ms |
+| games that dipped under 600 ms | 5 of 30 |
+
+Answer to "is a forfeit possible at all": **not observed in 30 games / 1,416 plies**, including five games
+that ran the clock down to 194-349 ms. So a forfeit is not merely unobserved at comfortable clocks - the
+engine still does not forfeit when it has less than a quarter-second left. I cannot say it is impossible, only
+that the closest approach in this sample (194 ms remaining) produced a normal move.
+
+Two entries excluded from the illegal count, both MY error, both verified:
+- game 13 start `6k1/5ppp/8/8/8/8/5PPP/1q4K1 b - - 0 1` and game 29 start `7k/8/8/8/8/8/8/K6R w - - 0 1`
+  are INVALID FENs (the side that just moved left its own king in check). The engine refused both correctly
+  (`invalid FEN: side that moved left its king in check`) and answered from the retained startpos board,
+  which is legal startpos behaviour and is exactly S-C9. I validated all 30 start FENs with python-chess
+  afterwards: exactly these 2 were bad, 28 were good. Both games were re-run from valid positions and gave
+  0 forfeits, 0 illegal moves.
+
+GUI-reachable: **YES, this is the owner's match clock.** Evidence: `pc/manygames/many_games.json`,
+`pc/manygames/game_*.log`, `pc/manygames/redo/redo.json`, `pc/manygames/bad_fens.json`.
