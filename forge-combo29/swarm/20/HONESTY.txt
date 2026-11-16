@@ -1,0 +1,23 @@
+HONESTY — seat 20 — area 10 — base commit 6b98f2170a3210e71beed04bbd2553972c253ed7
+
+Build: /agent/repos/base (git worktree of 6b98f217), out-of-tree build dir /agent/repos/build-base
+  cmake -S . -B /agent/repos/build-base -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++   (from forge-combo29/)
+  cmake --build . -j4
+  compiler g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0; CMAKE_CXX_STANDARD 20
+  FORGE_MARCH default x86-64-v4, FORGE_PORTABLE OFF: this CPU has avx512f+avx512bw+avx512dq+avx512vl+bmi2,
+  so no -DFORGE_PORTABLE=ON was needed.
+  exe /agent/repos/build-base/forge sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+  id name "Chess Engine Forge 6.4.24 candidate"
+  nm -C exe | grep -c __asan_ = 0 / __ubsan_ = 0 / __tsan_ = 0   (plain release build, as expected)
+  machine: nproc = 4, 4 cores.
+
+Command: bash forge-combo29/swarm/20/honesty/run.sh /agent/repos/build-base/forge forge-combo29/swarm/20/honesty/out
+(each line a fresh engine process, raw output kept under honesty/out/)
+
+  bench 11    -> info string bench depth 11 nodes 312866 time 163 nps 1919423      expected 312866       MATCH
+  bench 13    -> info string bench depth 13 nodes 862329 time 432 nps 1996131      expected 862329       MATCH
+  bench 16    -> info string bench depth 16 nodes 3024920 time 1430 nps 2115328    expected 3024920      MATCH
+  go perft 5  -> nodes 4865609                                                     expected 4865609     MATCH
+
+All four honesty numbers match. This build is used for every job of seat 20.
+Raw files: honesty/out/{meta.txt,bench11.out.txt,bench13.out.txt,bench16.out.txt,perft5.out.txt,stamps.txt,summary.txt}
