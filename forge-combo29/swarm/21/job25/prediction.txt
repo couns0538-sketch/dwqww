@@ -1,0 +1,15 @@
+# PREDICTION — job25: extreme FEN fields on the PC build under PC20, Threads 1
+written before the first measuring command.
+
+The same case list as job3/job8/job15 (which ran on the base tree), now on the PC build with PC20.
+The point is not to re-find 21-F9 (known repaired) but to see whether the PC patch changed any
+OTHER field's handling: clocks, ep squares, king counts, pawn ranks, and the fullmove floor.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | `fullmove 0` STILL refused (21-F8 survives) | killed if accepted |
+| P2 | negative clocks still refused, 2^31 halfmove accepted | killed by any deviation |
+| P3 | every halfmove >= 100 now SEARCHES (repaired) — nodes > 0 and a non-zero score | killed if any answers 0 nodes with cp 0 |
+| P4 | ep on a wrong rank, ep with a bad square, two kings, no kings, pawn on rank 1: all still refused | killed if any is accepted |
+| P5 | every accepted FEN's perft 2 equals python-chess | killed by any difference |
+| P6 | 0 crashes, 0 sanitizer lines | killed by any one |
