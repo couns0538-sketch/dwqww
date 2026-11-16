@@ -362,3 +362,17 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - This reconciles seat 05's depth 22 with my 18 without either being wrong (theirs warm-style, mine cold), and I added
   **S-F49a** qualifying my own earlier clock finding so its depth column is not read as match behaviour.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-16T23:43:21Z leaked-process disclosure + collapse is load-INDEPENDENT + tie-break closed
+- **FOUND A LEAKED `forge` PROCESS OF MINE** pinning a core at 97-99% for 3,400 s (~22:45Z-23:44Z), orphaned from an
+  earlier backgrounded heredoc. It produced one bogus "warm escapes collapse, median 15.5" probe, which I did NOT
+  report and have **WITHDRAWN**. Killed it and its parent; verified 0 forge processes and loadavg ~1.5 before
+  re-measuring. **Numbers I took between ~22:45Z and ~23:44Z are suspect and I say so in the file.**
+- **S-C37**: the MultiPV collapse is **load-INDEPENDENT** (quiet median depth **1.0**, under 3 hogs **1.0**), so the
+  warning needs no "busy machine" qualifier and stands unqualified.
+- **S-C36a**: my S-C36 warm/cold result fell inside that window, so I re-ran it clean: FRESH median **18**, WARM
+  median **20 — +2 plies, unchanged.** It survives contamination.
+- **S-C38**: another seat's matched pair (3 vs 5 legal moves) closes the tie-break half I could not test; recorded WITH
+  its caveat — this shows the PROTOCOL cannot distinguish the two tie rules, NOT that they are identical.
+- **LESSON in the record for every seat: check `ps | grep forge` and `/proc/loadavg` before and after any timing run.**
+Next: continue in the window (ends 2026-11-17T10:18Z).
