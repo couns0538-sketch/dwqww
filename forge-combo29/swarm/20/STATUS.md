@@ -150,3 +150,17 @@ Remaining work: nothing on the queue; continuing with new finds and checks on bo
 - **S-F44 regime ground truth** (`job43/GROUND_TRUTH.md`): defaults = `e2e4/cp 30/56720` on BOTH builds; S14 =
   `d2d4/cp 24/22459` on both; PC20 = `d2d4/cp 25/21600` (PC only). TRAP documented: the base build answers
   `unknown option` for all five PC20 names, so "PC20 on the base tree" silently = S14.
+
+## 2026-11-16T22:48:10Z file 6 verdicts applied; PC's mate 8 proved real; softnodes area done
+- **S-F45** fifty-move band RETIRED as a defect (Opus's inequality: measured mate = 15 plies, so `15 <= 100-c`
+  holds only at counter 85; every `cp 0` from 86 to 100 was correct chess).
+- **S-F46** thread variance is DESIGN, not a defect; S-C24 now documents shared-hash behaviour, and the defect test
+  recorded is Opus's (hang / crash / illegal move / sanitizer line / score outside the one-thread spread).
+- **S-F47** the PC's `mate 8` at halfmove 85 is **REAL**: exhaustive test gives False at 1,3,5,7,9,11,13 plies and
+  **True at 15** = mate 8, so the PC build is right and the base tree misses it at every depth up to 14 (cp 330-372).
+  The PC's PV is truncated at 10 plies — truncation, not a wrong score.
+- **S-F48** `go softnodes N` on the PC path: **deterministic 12/12 cells 5/5 (incl. node count)**, only finished
+  depths published, but the budget **overruns N by +5.4% to +106%** (startpos N=2000 -> 4,121 nodes). The hard
+  `go nodes` limit does not overrun. So self-play is exactly replayable but "2000 nodes" under-counts up to 2x.
+Next: the PC's real path — clock 6s+0.06, `go nodes` 20000/50000/250000, real-game positions; keep the
+MultiPV/Hash collapse live.
