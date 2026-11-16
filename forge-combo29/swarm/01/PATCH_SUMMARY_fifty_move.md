@@ -113,12 +113,32 @@ output `patch_compose.txt`, each run a fresh copy of `6b98f217` in /tmp, applies
 | **seat 12 then seat 27** | CLEAN, and the final file is byte-identical to seat 27 then seat 12 |
 | mine then seat 12 (or the reverse) | **FAILED — the hunk is already applied** |
 
-**Which to choose.** Seat 12's version is a superset in intent: it keeps every root adjudication and only
-bypasses it when the side to move has an **immediate** mate, and it also covers the repetition and dead-material
-doors, so a mate is found even when `halfmove < 100` and the root is drawn by repetition. Mine removes the
-halfmove test from the root entirely, so the root is searched whenever the counter is at or past 100.
+**Which to choose — what I measured, and what I did not.** Seat 12's patch keeps every root adjudication and
+bypasses it only when the side to move has an **immediate** mate; that bypass is inside the shared condition, so
+in principle it also covers the repetition and dead-material doors. Mine removes the halfmove test from the root
+entirely. Measured consequences are in the table below: **mine is the more complete of the two on the
+counter-resetting class, and they are equal on mate-in-1.** I did **not** verify seat 12's repetition claim: my
+attempt to build a threefold root on a board with a mate in 1 failed (the FEN root I chose had no knights, so
+the shuffle moves were refused and `python-chess` reports `is_threefold=False`), so that test measured nothing
+(`repetition_door.py`, `job2/asan/repetition_door.txt`). Treat the repetition advantage as **unverified**.
 
-**A limit that applies to BOTH, measured** (`compare_two_fixes.py`, output `compare_two_fixes.txt`): on a
+**Plainly: neither patch is complete, and the measured boundary is a mate whose line does not reset the
+fifty-move counter.** My patch fixes mate-in-1 *and* any mate whose first move is a capture or a pawn move (that
+resets the counter, so no claim is available); seat 12's fixes mate-in-1 only. Neither fixes a mate that needs
+quiet moves to deliver, because there the opponent simply claims the draw at 100 — and on those boards `cp 0`
+is the **correct** answer, not a bug. Board-by-board:
+
+| board at halfmove 100 | forced mate | counter reset by the mating line? | unpatched | my patch | seat 12 |
+|---|---|---|---|---|---|
+| `6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 100 1` | 1 ply | yes (mate ends it) | cp 0, 0 nodes | **mate 1** | **mate 1** |
+| `8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1` | 3 plies, first move `h6h7` is a pawn move | yes (pawn move resets) | cp 0, 0 nodes | **mate 2**, 398 nodes | cp 0, 0 nodes |
+| `8/8/8/8/2K4Q/8/8/1k6 w - - 100 1` | 3 plies, all quiet | **no — Black claims** | cp 0, 0 nodes | cp 0, 324 nodes | cp 0, 0 nodes |
+
+So: **my patch is strictly more complete than seat 12's** on the counter-resetting class (row 2), and on the
+third row `cp 0` is correct chess for all three builds — I had earlier read that row as a missed mate and was
+wrong (S-F19 corrected by S-F22/S-F23). The clock path behaves identically to the depth path in every case.
+
+**An earlier limit I claimed, now withdrawn** (`compare_two_fixes.py`, output `compare_two_fixes.txt`): on a
 halfmove-100 board where the mate is **3 plies** away (`8/8/8/8/2K4Q/8/8/1k6 w - - 100 1`), **neither patch
 finds it** — mine searches 216 nodes and still says `cp 0`, seat 12's answers `cp 0` in 0 nodes. The same board
 at halfmove 0 scores `cp 1331` on the unpatched engine, so the mate is real and the loss is the root

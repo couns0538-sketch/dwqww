@@ -1,0 +1,23 @@
+mate-in-3 under the clock path: base vs my patch vs seat 12's patch, plus the halfmove-0 control
+board: 8/3K4/7P/8/8/7k/8/6Q1 w - - %d 1  (forced mate in 3 plies whose FIRST move h6h7 is a PAWN move, so the
+fifty-move counter resets and no draw claim is available; verified by exhaustive search)
+NOTE the earlier board 8/8/8/8/2K4Q/8/8/1k6 is NOT discriminating: its mating moves are all
+quiet, the counter reaches 100 after White's move, and Black claims - cp 0 is correct there.
+base(unpatched) /home/ubuntu/builds/release/forge sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+mine            /home/ubuntu/builds/mine/forge sha256 81c52608ee74ddea5b23a37402add8543c29b13af51c316adc6247f6e3da37c9
+seat12          /home/ubuntu/builds/s12/forge sha256 6e0e95225a985d6fd3bfbc96b61f067c90a045be4ca5c26b1dadedeae5cc9d2f
+option lines sent: NONE (every case is a fresh process)
+
+halfmove	go	base score/nodes/bm	mine score/nodes/bm	seat12 score/nodes/bm	signature
+0	go depth 12	cp 2325 / 42729 / g1g5	cp 2325 / 42729 / g1g5	cp 2325 / 42729 / g1g5	all three agree
+0	go wtime 1000 btime 1000	mate 2 / 70404 / h6h7	mate 2 / 70404 / h6h7	mate 2 / 70404 / h6h7	all three agree
+0	go movetime 500	mate 2 / 70404 / h6h7	mate 2 / 70404 / h6h7	mate 2 / 70404 / h6h7	all three agree
+0	go nodes 200000	mate 2 / 70404 / h6h7	mate 2 / 70404 / h6h7	mate 2 / 70404 / h6h7	all three agree
+99	go depth 12	mate 2 / 398 / h6h7	mate 2 / 398 / h6h7	mate 2 / 398 / h6h7	all three agree
+99	go wtime 1000 btime 1000	mate 2 / 2114 / h6h7	mate 2 / 2114 / h6h7	mate 2 / 2114 / h6h7	all three agree
+99	go movetime 500	mate 2 / 2114 / h6h7	mate 2 / 2114 / h6h7	mate 2 / 2114 / h6h7	all three agree
+99	go nodes 200000	mate 2 / 2114 / h6h7	mate 2 / 2114 / h6h7	mate 2 / 2114 / h6h7	all three agree
+100	go depth 12	cp 0 / 0 / h6h7	mate 2 / 398 / h6h7	cp 0 / 0 / h6h7	DIFFERS between builds
+100	go wtime 1000 btime 1000	cp 0 / 0 / h6h7	mate 2 / 2114 / h6h7	cp 0 / 0 / h6h7	DIFFERS between builds
+100	go movetime 500	cp 0 / 0 / h6h7	mate 2 / 2114 / h6h7	cp 0 / 0 / h6h7	DIFFERS between builds
+100	go nodes 200000	cp 0 / 0 / h6h7	mate 2 / 2114 / h6h7	cp 0 / 0 / h6h7	DIFFERS between builds

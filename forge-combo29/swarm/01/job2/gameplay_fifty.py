@@ -139,7 +139,9 @@ def main():
     out = Path(sys.argv[2])
     out.mkdir(parents=True, exist_ok=True)
     boards = [("mate1", "6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - %d 1"),
-              ("win_no_mate1", "8/5K2/7Q/4k3/8/8/8/8 w - - %d 1")]
+              ("win_no_mate1", "8/5K2/7Q/4k3/8/8/8/8 w - - %d 1"),
+              # mate 3 plies away: the case BOTH patches miss (S-F19). Verified by forced-mate search.
+              ("mate3", "8/8/8/8/2K4Q/8/8/1k6 w - - %d 1")]
     hms = [99, 100, 150]
     gos = ["go wtime 1000 btime 1000", "go wtime 10000 btime 10000", "go movetime 500"]
     lines = ["does the fifty-move root shortcut fire in GAME PLAY (clock searches)? S14 settings applied",
