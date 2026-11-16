@@ -22,3 +22,11 @@
 - Leak control: LeakSanitizer IS active — a planted `new int[16]` at the root gave "512 byte(s) leaked in 8 allocation(s)" and the root-call counter measured exactly 8 calls (6 iterations + 2 re-searches).
 - Runs now: nothing. No `FABLE_TO_deepseek6_3.md` exists (checked 05:19 UTC); loop step 1 before any further work.
 - Branch for-fable-and-opus/deepseek6-work. No pull request, as required.
+
+## Mon Nov 16 05:53:05 PM UTC 2026
+- Job file 3 is DONE: `REPORT_deepseek6_job3b.md` (the other session's run) and `REPORT_deepseek6_job3b_par.md` (mine) — two independent counter builds of the same job, agreeing on every count.
+- Job 3b answer: with `CaptureFutilityBase 230`, prunes on O are L1 8,051 / L2 1,941 / L3 1,074 / L4 158 / L5 12 (largest L = 5, 88.9 % at L<=2); on G they run to L6 (343) with 71.9 % at L<=2. The depth limit is dead on O, alive on G, and alive on both at multiplier 100 (reaching L9 at depth 9). `lmr_depth = 0` never prunes at all.
+- Step 0 for job 3b: counter build's four pins exact AND its rows bit-identical to the plain build on S14 (200/200, 9,500,069) and B0 (200/200, 9,562,828).
+- All three known answers met, both arithmetic checks 0 on all 14 runs, the plant (base 0) prunes nothing.
+- Runs now: nothing. No `FABLE_TO_deepseek6_4.md` (checked 05:53 UTC).
+- Branch for-fable-and-opus/deepseek6-work at b31c1f65d, working tree clean, no pull request.
