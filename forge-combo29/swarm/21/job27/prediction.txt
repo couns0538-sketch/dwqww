@@ -1,0 +1,23 @@
+# PREDICTION — job27: CHECK of seat 15's 15-F5 (terminal root walks the depth ladder), both builds
+written before the first measuring command.
+
+15-F5 claims a terminal root (checkmate or stalemate) is reported `score mate 0` / `cp 0` with
+nodes 0 AND that the engine "walks the whole depth ladder to 64 with `go nodes`/`go movetime`
+instead of answering at once", while `bestmove 0000` is right.
+
+I already measured (job20) that mate 0 / cp 0 / 0000 are CORRECT, and withdrew my own claim that
+mate 0 was a fault. The NEW part of 15-F5 is the LADDER claim: how many `info depth` lines does a
+terminal root emit before its bestmove, and does that differ between `go depth N`, `go nodes N` and
+`go movetime N`?
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | `go depth 4` on a checkmated root emits 4 `info depth` lines (1..4) | killed if fewer or more |
+| P2 | `go nodes 100` on the same root emits MORE than 4 depth lines (the ladder walked beyond the depth a real search would reach) | killed if <= 4 |
+| P3 | `go movetime 50` behaves like `go nodes` in this respect | killed if it does not |
+| P4 | every emitted line has nodes 0 | killed otherwise |
+| P5 | the base build and the PC build behave the SAME on the ladder (the PC patch changed the root path, so this is the question that matters for the owner) | killed by a difference |
+| P6 | 0 crashes, 0 sanitizer lines | killed by any one |
+
+Direction: P2 is what 15-F5 asserts. P5 is my addition and the one with a decision attached: if
+the PC build stopped walking the ladder, that part of 15-F5 is repaired on the PC.
