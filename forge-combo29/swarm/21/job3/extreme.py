@@ -47,6 +47,22 @@ CASES = [
 ]
 
 
+def parse_go_blocks(out):
+    """Split stdout into one entry per `go`: its info lines and its bestmove. Needed
+    because a `go depth 4` that ends in one iteration prints `info depth 1`, not
+    `info depth 4`, so searching for the literal depth-4 line loses the score."""
+    blocks = []
+    cur = {"info": [], "bestmove": ""}
+    for ln in out.splitlines():
+        if ln.startswith("info "):
+            cur["info"].append(ln)
+        elif ln.startswith("bestmove"):
+            cur["bestmove"] = ln
+            blocks.append(cur)
+            cur = {"info": [], "bestmove": ""}
+    return blocks
+
+
 def run(exe, outdir, name, fen, extra=(), timeout=180):
     lines = ["position fen " + fen, "isready", "go depth 4"]
     lines += list(extra)
@@ -93,10 +109,9 @@ def main():
         refused = "invalid FEN" in out
         answer = [ln for ln in out.splitlines() if ln.startswith("info string")]
         sani = any(m in out or m in p.stderr for m in SAN)
-        score = [ln for ln in out.splitlines() if ln.startswith("info depth 4")]
-        score_line = score[-1] if score else ""
-        bm = [ln for ln in out.splitlines() if ln.startswith("bestmove")]
-        best = bm[0].split()[1] if bm else ""
+        blocks = parse_go_blocks(out)
+        score_line = blocks[0]["info"][-1] if blocks and blocks[0]["info"] else ""
+        best = blocks[0]["bestmove"].split()[1] if blocks and blocks[0]["bestmove"] else ""
         nodes = [ln.split()[1] for ln in out.splitlines() if ln.startswith("nodes ")]
         perft_engine = nodes[0] if nodes else "-"
         try:
@@ -128,7 +143,15 @@ def main():
     mism = [r["name"] for r in results
             if r["py_accepts"] and r["engine_perft"] != "-" and str(r["py_perft"]) != r["engine_perft"]]
     rows.append("")
-    rows.append("perft 2 mismatches where python-chess accepts: %s" % (mism or "none"))
+    rows.append("perft 2 mismatches where python-chess ACCEPTS the FEN (the engine refused "
+                "it, so its 400 is startpos perft 2, not a wrong perft): %s" % (mism or "none"))
+    rows.append("  of those, engine REFUSED the FEN: %s"
+                % ([r["name"] for r in results
+                    if r["name"] in mism and r["refused"]] or "none"))
+    rows.append("  engine ACCEPTED but perft differs from python-chess: %s"
+                % ([r["name"] for r in results
+                    if r["name"] in mism and not r["refused"]] or "none"))
+    rows.append("startpos perft 2 = 400 (so 400 after a refusal is the stale startpos)")
     rows.append("sanitizer lines: %s" % ("YES" if any(r["san"] for r in results) else "none"))
     text = "\n".join(rows)
     with open(os.path.join(outdir, "summary.md"), "w") as fh:
