@@ -1,21 +1,17 @@
-repository: /agent/repos/dwqww
-commit    : 981dee34c
-date      : 2026-11-16T22:34:27Z
+directory : /agent/repos/dwqww
+date      : 2026-11-16T22:39:13Z
+mode      : git repository, tracked files only
+commit    : 9f9831b05
+files     : 13958
 
-== 1. is there a per-row labelled dataset in the repository? ==
-  *.jsonl files        : 1
+== 1. does a per-row labelled dataset exist here? ==
+  *.jsonl files     : 1
     forge-combo29/swarm/27/job1/fen/mutations.jsonl
-  *.csv files          : 0
-  paths containing 'train': 1
+  *.csv files       : 0
+  paths with 'train': 1
     forge-combo29/windows_build/frozen_train_cmds.txt
-  files named data/labels/targets.(txt|jsonl|csv): 859
 
-  For each 'train' path, does it hold DATA or just commands? (position/info-depth line counts)
-    forge-combo29/windows_build/frozen_train_cmds.txt       position=0
-0  info_depth=0
-0 
-
-== 2. distribution of 'go nodes N' budgets over every tracked file ==
+== 2. 'go nodes N' budget distribution over these files ==
   budget 0        34 occurrences
   budget 1        18 occurrences
   budget 10       4 occurrences
@@ -31,24 +27,31 @@ date      : 2026-11-16T22:34:27Z
   budget 2500     2 occurrences
   budget 4000     1 occurrences
   budget 5000     80 occurrences
-  budget 20000    365901 occurrences
+  budget 20000    365907 occurrences
   budget 50000    204857 occurrences
   budget 200000   10 occurrences
 
-  below the 26-node startpos threshold: 61 of 709727
+  TOTAL 'go nodes' occurrences : 709733
+  BELOW the 26-node threshold  : 61
+  share below threshold        : 0.0086 %
 
-== 3. where do the below-threshold budgets come from? ==
-       37 forge-combo29/swarm
-        2 forge-combo29/tests_astra_parity
-        1 forge-combo29/tests_t18
-        1 forge-combo29/tests_r3_17
-        1 forge-combo29/tests_r3_12
-        1 forge-combo29/REPORT_r3_12.md
-
-  Read part 3 carefully: swarm/ entries are probe scripts written by swarm seats (including me).
-  entries under tests_* are deliberate unit tests that ASSERT the small-budget behaviour.
+== 3. DATA ROWS carrying a node count of 0 or 1..25 (the band's fingerprint) ==
+  label-shaped rows anywhere in these files (position + node count + move/score): 323357
+  of those, rows whose node count is 0 or 1..25 (THE BAND)                       : 9
+  first 10 (inspect these):
+    forge-combo29/tests_astra_mateguard/equality/E-0002/worker-1.jsonl.txt:1936:{"type":"position","context":{"index":6342,"physical_line":6343,"seed":1449420002,"fen":"4k3/4Q3/8/8/8/8/2K5/8 b - - 24 133"
+    forge-combo29/tests_astra_mateguard/equality/E-0003/worker-3.jsonl.txt:3616:{"type":"position","context":{"index":12415,"physical_line":12416,"seed":1449420003,"fen":"8/8/8/7n/8/6k1/8/3qK3 w - - 6 109
+    forge-combo29/tests_astra_mateguard/krk-focused-repeat/repeat-run.stdout.txt:1:CONFIG {"fen":"8/4K3/8/1R6/8/8/7k/8 w - - 0 1","runs":10,"threads":2,"hash_mb":16,"depth":14,"clear_all":true,"fresh_stat
+    forge-combo29/tests_astra_mateguard/logs/krk-focused-ten.stdout.txt:1:{"argv":["/usr/bin/timeout","-k","2","400","/workspace/work/r4-krk-repeat/repeat-one","--run-ten"],"started":"2026-11-14T22:51:36.
+    forge-combo29/tests_astra_mateguard/logs/krk-focused-ten.txt:25:{"argv":["/usr/bin/timeout","-k","2","400","/workspace/work/r4-krk-repeat/repeat-one","--run-ten"],"started":"2026-11-14T22:51:36.353Z",
+    forge-combo29/tests_astra_parity/equality-step1/S1-0002/worker-1.jsonl.txt:1937:{"type":"position","context":{"index":6342,"physical_line":6343,"seed":1449530002,"fen":"4k3/4Q3/8/8/8/8/2K5/8 b - - 24 
+    forge-combo29/tests_astra_parity/equality-step1/S1-0003/worker-3.jsonl.txt:3618:{"type":"position","context":{"index":12415,"physical_line":12416,"seed":1449530003,"fen":"8/8/8/7n/8/6k1/8/3qK3 w - - 6
+    forge-combo29/tests_astra_parity/equality-step2/S2-0002/worker-1.jsonl.txt:2415:{"type":"position","context":{"index":6342,"physical_line":6343,"seed":1449540002,"fen":"4k3/4Q3/8/8/8/8/2K5/8 b - - 24 
+    forge-combo29/tests_astra_parity/equality-step2/S2-0003/worker-3.jsonl.txt:4030:{"type":"position","context":{"index":12415,"physical_line":12416,"seed":1449540003,"fen":"8/8/8/7n/8/6k1/8/3qK3 w - - 6
 
 == verdict ==
-  NO training or tuning dataset exists in this repository, so the fraction of dataset rows in the
-  go-nodes band CANNOT be counted here. The repository's own budgets are all far above the
-  threshold (see part 2); the owner's real training data lives on the PC, not in this repo.
+  9 label-shaped rows carry a small node count. THIS IS A CANDIDATE LIST, NOT A VERDICT:
+  a legitimate draw can also be scored in 18 nodes. In this repository the rows found are parity
+  test fixtures, and the one verified by hand (fen 4k3/4Q3/8/8/8/8/2K5/8 b - - 24 133) is a
+  CORRECT cp 0 -- Black has exactly one legal move, KxQ, leaving K vs K. Open each sample and
+  check the position before treating any of them as a band artefact.

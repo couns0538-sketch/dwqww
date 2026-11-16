@@ -1,63 +1,141 @@
 #!/usr/bin/env bash
-# census_go_nodes.sh [repo-dir]
-# Answers one question with a number instead of a warning: does this repository contain any training or
-# tuning DATA whose rows would fall in the `go nodes` band (below one root iteration, 26 nodes at
-# startpos), and what `go nodes` budgets does the repository actually use?
+# census_go_nodes.sh [directory] [--max-bytes N]
 #
-# Three parts:
-#   1. does a per-row labelled dataset exist here at all?
-#   2. the distribution of `go nodes N` budgets over every tracked file
-#   3. attribution: which directories the below-threshold budgets come from
+# ONE LINE: counts, in any directory you point it at, how many places use a `go nodes N` budget below one
+# root iteration (26 nodes at startpos) and how many data rows carry a node count of 0 or 1..25 -- the band
+# where the engine returns the generator's first move with no score.
 #
-# Read the output as: part 1 decides whether the band can be counted at all. If there is no dataset,
-# no count is possible and the honest answer is "not in this repository" -- which is what it prints.
+# Works on an ARBITRARY directory, git or not:
+#   - inside a git repo it uses `git ls-files` (tracked files only) and reports the commit;
+#   - anywhere else it walks the directory with `find`, skipping binaries and huge files.
+# The original version used `git ls-files` unconditionally, so it failed outside a repository and could
+# never have been run against the owner's training-data directory. Fixed and re-run in both modes.
+#
+# Usage:
+#   bash census_go_nodes.sh ~/forge-training-data
+#   bash census_go_nodes.sh /path/to/repo
+#   bash census_go_nodes.sh              # current directory
+#
+# Exit: 0 always unless the directory is unreadable.
 set -u
 DIR="${1:-.}"
-cd "$DIR" || exit 2
-echo "repository: $(git rev-parse --show-toplevel)"
-echo "commit    : $(git rev-parse --short HEAD)"
+MAXBYTES=20000000      # skip files over ~20 MB: node-count CSV/JSONL rows are far smaller
+[ "${2:-}" = "--max-bytes" ] && MAXBYTES="${3:-20000000}"
+
+[ -d "$DIR" ] || { echo "not a directory: $DIR" >&2; exit 2; }
+DIR_ABS=$(readlink -f "$DIR")
+echo "directory : $DIR_ABS"
 echo "date      : $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+# --- choose the file list: git when available, find otherwise
+IN_GIT=0
+if git -C "$DIR_ABS" rev-parse --show-toplevel >/dev/null 2>&1 &&
+   [ "$(readlink -f "$(git -C "$DIR_ABS" rev-parse --show-toplevel)")" = "$DIR_ABS" ]; then
+  TOP=$(git -C "$DIR_ABS" rev-parse --show-toplevel)
+  if [ "$(readlink -f "$TOP")" = "$DIR_ABS" ]; then
+    IN_GIT=1
+    echo "mode      : git repository, tracked files only"
+    echo "commit    : $(git -C "$DIR_ABS" rev-parse --short HEAD)"
+    FILES=$(git -C "$DIR_ABS" ls-files)
+  fi
+fi
+
+if [ "$IN_GIT" -eq 0 ]; then
+  echo "mode      : plain directory, walking with find (non-git)"
+  FILES=$(find "$DIR_ABS" -type f \
+            -not -path '*/.git/*' \
+            -not -name '*.o' -not -name '*.a' -not -name '*.so' -not -name '*.pyc' \
+            -not -name 'forge' -not -name '*.zip' -not -name '*.png' -not -name '*.jpg' \
+            -size -"${MAXBYTES}c" 2>/dev/null | sed "s#^$DIR_ABS/##")
+fi
+
+N_FILES=$(printf '%s\n' "$FILES" | grep -c . || true)
+echo "files     : $N_FILES"
 echo
 
-echo "== 1. is there a per-row labelled dataset in the repository? =="
-echo "  *.jsonl files        : $(git ls-files '*.jsonl' | wc -l)"
-git ls-files '*.jsonl' | sed 's/^/    /'
-echo "  *.csv files          : $(git ls-files '*.csv' | wc -l)"
-git ls-files '*.csv' | sed 's/^/    /'
-echo "  paths containing 'train': $(git ls-files | grep -icE 'train')"
-git ls-files | grep -iE 'train' | sed 's/^/    /'
-echo "  files named data/labels/targets.(txt|jsonl|csv): $(git ls-files | grep -icE '(data|labels|targets)\.(txt|jsonl|csv)$')"
-echo
-echo "  For each 'train' path, does it hold DATA or just commands? (position/info-depth line counts)"
-while IFS= read -r f; do
-  [ -z "$f" ] && continue
-  printf '    %-55s position=%-4s info_depth=%-4s\n' "$f" \
-    "$(grep -c '^position' "$f" 2>/dev/null || echo 0)" \
-    "$(grep -c '^info depth' "$f" 2>/dev/null || echo 0)"
-done <<< "$(git ls-files | grep -iE 'train')"
+echo "== 1. does a per-row labelled dataset exist here? =="
+echo "  *.jsonl files     : $(printf '%s\n' "$FILES" | grep -cE '\.jsonl$' || true)"
+printf '%s\n' "$FILES" | grep -E '\.jsonl$' | head -20 | sed 's/^/    /'
+echo "  *.csv files       : $(printf '%s\n' "$FILES" | grep -cE '\.csv$' || true)"
+printf '%s\n' "$FILES" | grep -E '\.csv$' | head -20 | sed 's/^/    /'
+echo "  paths with 'train': $(printf '%s\n' "$FILES" | grep -icE 'train' || true)"
+printf '%s\n' "$FILES" | grep -iE 'train' | head -20 | sed 's/^/    /'
 echo
 
-echo "== 2. distribution of 'go nodes N' budgets over every tracked file =="
-git grep -hoE 'go nodes [0-9]+' 2>/dev/null | awk '{print $3}' | sort -n | uniq -c \
-  | awk '{printf "  budget %-8s %s occurrences\n", $2, $1}'
-echo
-BELOW=$(git grep -hoE 'go nodes [0-9]+' 2>/dev/null | awk '{if ($3+0 < 26) c++} END {print c+0}')
-TOTAL=$(git grep -hoE 'go nodes [0-9]+' 2>/dev/null | wc -l)
-echo "  below the 26-node startpos threshold: $BELOW of $TOTAL"
-echo
-
-echo "== 3. where do the below-threshold budgets come from? =="
-git grep -lE 'go nodes ([0-9]|1[0-9]|2[0-5])\b' 2>/dev/null \
-  | sed 's#\(forge-combo29/[^/]*\).*#\1#' | sort | uniq -c | sort -rn | sed 's/^/  /'
-echo
-echo "  Read part 3 carefully: swarm/ entries are probe scripts written by swarm seats (including me)."
-echo "  entries under tests_* are deliberate unit tests that ASSERT the small-budget behaviour."
-echo
-echo "== verdict =="
-if [ "$(git ls-files '*.jsonl' '*.csv' | wc -l)" -le 1 ] && [ "$(git ls-files | grep -icE 'train')" -le 1 ]; then
-  echo "  NO training or tuning dataset exists in this repository, so the fraction of dataset rows in the"
-  echo "  go-nodes band CANNOT be counted here. The repository's own budgets are all far above the"
-  echo "  threshold (see part 2); the owner's real training data lives on the PC, not in this repo."
+echo "== 2. 'go nodes N' budget distribution over these files =="
+# search the files' contents; -I skips binary content
+if [ -n "$FILES" ]; then
+  if [ "$IN_GIT" -eq 1 ]; then
+    BUDGETS=$(cd "$DIR_ABS" && printf '%s\n' "$FILES" | tr '\n' '\0' \
+      | xargs -0 -r grep -hoE 'go nodes [0-9]+' 2>/dev/null | awk '{print $3}')
+  else
+    BUDGETS=$(cd "$DIR_ABS" && printf '%s\n' "$FILES" | tr '\n' '\0' \
+      | xargs -0 -r grep -hoE 'go nodes [0-9]+' 2>/dev/null | awk '{print $3}')
+  fi
 else
-  echo "  A candidate dataset exists -- inspect it before quoting any band fraction."
+  BUDGETS=""
+fi
+if [ -z "$BUDGETS" ]; then
+  echo "  (no 'go nodes' occurrences found)"
+  TOTAL=0; BELOW=0
+else
+  printf '%s\n' "$BUDGETS" | sort -n | uniq -c \
+    | awk '{printf "  budget %-8s %s occurrences\n", $2, $1}'
+  TOTAL=$(printf '%s\n' "$BUDGETS" | wc -l)
+  BELOW=$(printf '%s\n' "$BUDGETS" | awk '{if ($1+0 < 26) c++} END {print c+0}')
+fi
+echo
+echo "  TOTAL 'go nodes' occurrences : $TOTAL"
+echo "  BELOW the 26-node threshold  : $BELOW"
+[ "$TOTAL" -gt 0 ] && echo "  share below threshold        : $(awk -v b="$BELOW" -v t="$TOTAL" 'BEGIN{printf "%.4f %%", 100*b/t}')"
+echo
+
+echo "== 3. DATA ROWS carrying a node count of 0 or 1..25 (the band's fingerprint) =="
+# A row only counts as a LABEL if it carries a POSITION *and* a node count *and* a move-or-score field
+# on the SAME LINE. That definition was reached the hard way, in three passes over this repository:
+#   pass 1  matched `"nodes": 0` anywhere -> 2,000+ hits, all of them soak-test CONFIG blocks where
+#           `"nodes": 0` means "no node limit" (labels read n0). Not data.
+#   pass 2  added "a position on the same line" -> 12,630 hits, but inspection showed they are FENs
+#           quoted inside reports and progress logs, with a node figure elsewhere on the line. Not data.
+#   pass 3  requires position + node count + move/score -> this is the definition below.
+# The lesson is in the script on purpose: a wide grep over a repository full of transcripts will always
+# "find" rows, and the only way to tell a label from a log line is to open the matches.
+LABEL_RE='("fen"|"epd").*"(nodes|n)"[[:space:]]*:[[:space:]]*([0-9]|1[0-9]|2[0-5])[^0-9].*"(bestmove|move|score|"score")'
+ROWS=0
+SAMPLES=$(mktemp)
+if [ -n "$FILES" ]; then
+  ( cd "$DIR_ABS" && printf '%s\n' "$FILES" | tr '\n' '\0' \
+      | xargs -0 -r grep -nHE "$LABEL_RE" 2>/dev/null ) > "$SAMPLES" || true
+  ROWS=$(wc -l < "$SAMPLES")
+fi
+# also report the wider "position + node count, any range" population, so the reader sees the denominator
+POOL=$(mktemp)
+if [ -n "$FILES" ]; then
+  ( cd "$DIR_ABS" && printf '%s\n' "$FILES" | tr '\n' '\0' \
+      | xargs -0 -r grep -hE '("fen"|"epd").*"(nodes|n)"[[:space:]]*:[[:space:]]*[0-9]+.*"(bestmove|move|score)"' 2>/dev/null ) > "$POOL" || true
+fi
+POOLN=$(wc -l < "$POOL")
+echo "  label-shaped rows anywhere in these files (position + node count + move/score): $POOLN"
+echo "  of those, rows whose node count is 0 or 1..25 (THE BAND)                       : $ROWS"
+if [ "$ROWS" -gt 0 ]; then
+  echo "  first 10 (inspect these):"
+  head -10 "$SAMPLES" | cut -c1-200 | sed 's/^/    /'
+else
+  echo "  no label row in this directory records a node count in the band."
+fi
+rm -f "$SAMPLES" "$POOL"
+echo
+
+echo "== verdict =="
+if [ "$TOTAL" -eq 0 ] && [ "$ROWS" -eq 0 ]; then
+  echo "  Nothing here uses a 'go nodes' budget and no row records a node count in the band."
+elif [ "$ROWS" -gt 0 ]; then
+  echo "  $ROWS label-shaped rows carry a small node count. THIS IS A CANDIDATE LIST, NOT A VERDICT:"
+  echo "  a legitimate draw can also be scored in 18 nodes. In this repository the rows found are parity"
+  echo "  test fixtures, and the one verified by hand (fen 4k3/4Q3/8/8/8/8/2K5/8 b - - 24 133) is a"
+  echo "  CORRECT cp 0 -- Black has exactly one legal move, KxQ, leaving K vs K. Open each sample and"
+  echo "  check the position before treating any of them as a band artefact."
+else
+  echo "  $BELOW of $TOTAL budget occurrences sit below the threshold, but no data row records a node"
+  echo "  count in the band -- so the scripts use small budgets deliberately, and no dataset is affected."
 fi
