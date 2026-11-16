@@ -3,13 +3,14 @@
 **What was asked.** perft 5 on 200 R positions and on the first 30 of G, engine vs python-chess, plus the known
 startpos perft 5 = 4,865,609 as a control.
 
-**The answer.** The engine side is complete and clean: 230 positions at perft 5, sums 5,644 / 137,090 / 4,013,465 /
-119,698,590 / **3,925,995,728** at depths 1..5, 0 restarts, 0 error lines; and the perft-1 root move sets are
-identical to python-chess on all 230 (0 missing, 0 extra). The python-chess side at depth 5 is **still running** at
-the time of this report; the depth-5 comparison is therefore **not done**, and I say so rather than implying it.
+**The answer.** Complete and clean: 230 positions at perft 5, sums 5,644 / 137,090 / 4,013,465 / 119,698,590 /
+**3,925,995,728** at depths 1..5, and python-chess reproduces every one of the 1,150 values exactly (0 differing
+pairs), with 0 restarts, 0 error lines, 0 refused FENs. The perft-1 root move sets are identical on all 230
+positions too (0 missing, 0 extra).
 
-**How sure.** Sure of every engine number here (asserted integer, non-zero, 230/230 positions). Not yet able to say
-anything about depth-5 agreement — that is the missing half.
+**How sure.** Sure: both sides were asserted to hold integers at every depth for all 230 positions before they
+were compared, so neither side could contribute a silent zero or a missing key, and the comparison reports its own
+`missing measurements: 0`.
 
 ## Honesty numbers (build used)
 
@@ -39,8 +40,8 @@ write-up `WARM_STATE_AUDIT.md`.
 | engine perft 1..5 on all 230 | done | job3/engine_perft.py is job1's; job3/eng.json (+ .raw/) | 42.2 s, 0 restarts, 0 error lines |
 | assertion that the numbers are real | done | ../assert_measured.py | `OK ... sums [5644, 137090, 4013465, 119698590, 3925995728]` |
 | perft-1 root move SET comparison on the 230 | done | job2/divide_sets.py, job3/div230_summary.txt | 0 missing, 0 extra |
-| python-chess perft 5 on the 230 | **not done** | job3/py_R200.log, job3/py_G30.log | running at report time |
-| depth-5 comparison | **not done** | — | blocked on the line above |
+| python-chess perft 5 on the 230 | done | job3/py_all230.json, job3/py_all230.log | 1130.6 s, 0 refused |
+| depth-5 comparison | done | job3/job3_table.txt, job3/job3_diffs.txt | 0 differing pairs of 1,150 |
 
 ## Numbers (pasted from job3/eng.json via assert_measured.py)
 
@@ -57,25 +58,42 @@ OK job3/eng60.json: 60 positions x depths 1..5 all integer; sums [1569, 44559, 1
 
 Startpos control (HONESTY.txt, re-proved by honesty2.py): `go perft 5` -> `nodes 4865609`.
 
-**The python-chess depth-5 side is not finished.** At the deadline the run was still going, so the depth-5
-comparison is incomplete; the engine half above stands on its own (asserted integers, non-zero, 230/230 and 60/60
-positions). Exact next command to finish it:
+**The python-chess depth-5 side finished at 22:08Z** (1130.6 s, 0 refused FENs) and the comparison is complete:
+**0 differing (position, depth) pairs out of 1,150** (230 positions x 5 depths). The engine half above was already
+final; the depth-5 figures now agree exactly:
 
 ```
-cd forge-combo29/swarm/03/job3 && tail -2 py_all230.log \
-  && python3 ../assert_measured.py perft py_all230.json 5 230 \
-  && python3 ../job1/compare.py eng.json py_all230.json job3_diffs.txt | tee job3_table.txt
+OK job3/py_all230.json: 230 positions x depths 1..5 all integer; sums [5644, 137090, 4013465, 119698590, 3925995728]
+
+positions: 230
+python-chess refused FENs: 0
+positions with >=1 differing depth: 0
+differing (position, depth) pairs: 0
+missing measurements: 0
+engine crashes/restarts: 0
+engine error lines: 0
+
+| depth | engine sum | python-chess sum | equal |
+| 1 | 5644 | 5644 | yes |
+| 2 | 137090 | 137090 | yes |
+| 3 | 4013465 | 4013465 | yes |
+| 4 | 119698590 | 119698590 | yes |
+| 5 | 3925995728 | 3925995728 | yes |
+
+mean engine perft(1) branching factor: 24.539
 ```
+
+Files: `job3/job3_table.txt`, `job3/job3_diffs.txt` (empty: 0 lines), `job3/py_all230.json`, `job3/py_all230.log`.
 
 ## Prediction against result (so far)
 
 | # | predicted | killed? | measured |
 |---|---|---|---|
-| 1 | 0 differing depth-5 pairs | unknown | python side running |
+| 1 | 0 differing depth-5 pairs | no | 0 of 1,150 |
 | 2 | 0 refused FENs | no | 0 |
 | 3 | 0 crashes/restarts/error lines | no | 0 / 0 / 0 |
 | 4 | sum of 200 R perft-5 in 4e8..6e10 | no | see REPORT_job3 final numbers |
-| 5 | python perft 5 under 45 min | unknown | running |
+| 5 | python perft 5 under 45 min | no | 18.8 min (1130.6 s) |
 | 6 | engine perft 5 under 30 s | **killed** | 42.2 s |
 | 7 | nps 5e6..6e7 | no | 3.93e9 nodes / 42.2 s = 9.3e7 nps — just above the predicted band's top; noted as killed |
 
@@ -86,7 +104,7 @@ the wall-clock claim is not meaningful; the node sum is.
 
 | id | one sentence | reproduce |
 |---|---|---|
-| (pending) | Depth-5 agreement is not yet established — the comparison is not done. | after the run: `cd forge-combo29/swarm/03/job3 && python3 ../job1/compare.py eng.json py_R200.json d.txt` |
+| S-F5 | perft 5 agrees exactly with python-chess on 230 positions (200 random R + the 30 opening G positions): 1,150 of 1,150 (position, depth) values equal, perft-5 sum 3,925,995,728 on both sides, 0 refused FENs, 0 crashes. | `cd forge-combo29/swarm/03/job3 && python3 ../job1/compare.py eng.json py_all230.json /tmp/d.txt` |
 
 No finding is claimed from this job until the python side finishes; the move-set result at perft 1 on the same 230
 positions is already covered by S-F2/S-F3's method and adds nothing new.
