@@ -1,0 +1,25 @@
+== meta
+exe=/home/ubuntu/build/forge
+e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83  /home/ubuntu/build/forge
+id name Chess Engine Forge 6.4.24 candidate
+
+== A. SEARCH: go depth 12 + immediate quit  (broadcast: expect fabricated bestmove, no info lines)
+bestmove a2a3
+-- exit=0
+
+== B. SEARCH: go depth 12 + quit after 2 s   (broadcast: expect a real bestmove)
+info depth 11 seldepth 19 score cp 24 nodes 23975 nps 1042391 hashfull 5 time 23 pv d2d4 e7e6 c2c4 g8f6 e2e3 f8e7 g1f3 b7b6 f1e2 c8b7 e1g1 c7c5
+info depth 12 seldepth 23 score cp 30 nodes 56720 nps 995087 hashfull 15 time 57 pv e2e4 c7c5 g1f3 b8c6 b1c3 e7e6 d2d4 c5d4 f3d4 g8f6 f1e2 f8e7
+bestmove e2e4
+
+== C. PERFT: go perft 4 + immediate quit  (my harness's shape; expect complete nodes line)
+nodes 197281
+
+== D. PERFT: go perft 5 + immediate quit
+nodes 4865609
+
+== E. PERFT: stdin closed (EOF) right after go perft 4
+nodes 197281
+
+== F. how many bestmove lines does a perft run emit at all? (expect 0)
+0
