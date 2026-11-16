@@ -1,0 +1,28 @@
+--- forge-combo29/src/uci.cpp
++++ forge-combo29/src/uci.cpp
+@@ -236,7 +236,10 @@
+                          "option name LmrDeeperBase type spin default 40 min 0 max 100000\n"
+                          "option name LmrDeeperDepthMul type spin default 2 min 0 max 16\n"
+                          "option name LmrShallowerBase type spin default 0 min -100000 max 400\n"
+-                         "option name LmrShallowerDepthMul type spin default 1 min 0 max 16\n";
++                         "option name LmrShallowerDepthMul type spin default 1 min 0 max 16\n"
++                         "option name SoundPvArm type spin default 0 min -1 max 1\n"
++                         "option name SoundInCheckArm type spin default 0 min -1 max 1\n"
++                         "option name SoundMateAlphaArm type spin default 0 min -1 max 1\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -300,6 +303,13 @@
+             }
+             if (handled_tunable) {
+                 // Unlisted development options; nothing else to do.
++            } else if (name == "SoundPvArm" || name == "SoundInCheckArm" || name == "SoundMateAlphaArm") {
++                apply_spin(-1, 1, [&](int clamped) {
++                    forge::tune::SoundPruneArm& target = name == "SoundPvArm" ? forge::tune::SoundArmPv
++                        : name == "SoundInCheckArm" ? forge::tune::SoundArmInCheck
++                        : forge::tune::SoundArmMateAlpha;
++                    target = static_cast<forge::tune::SoundPruneArm>(clamped);
++                });
+             } else if (name == "LmrDeeperBase" || name == "LmrDeeperDepthMul" ||
+                        name == "LmrShallowerBase" || name == "LmrShallowerDepthMul") {
+                 int* target = name == "LmrDeeperBase" ? &forge::tune::LmrDeeperBase
