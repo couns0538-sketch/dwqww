@@ -1,0 +1,24 @@
+PREDICTION — SW-23 job 17 (does the 30 % budget instability reach the CLOCK path?)
+Written before the first measuring command of this job. Never edited afterwards. Stamped above by `date -u`.
+
+Why: my 23-F24 measured that the bestmove changes on ~30 % of quiet positions across the PC's three NODE budgets
+(20000/50000/250000), and 23-F26/F27/F30 explained where that concentration sits. But matches are not played on node
+budgets — file 6 says the strength matches use a CLOCK (6 s + 0.06). If the same 30 % of positions are clock-sensitive,
+then a match result has a per-move lottery in it; if the clock path is stable, the node-budget finding is confined to
+the self-play path and the match numbers are cleaner than the budget numbers.
+
+Method: 20 fresh quiet positions (seed-2401 stream, excluding every FEN used in job10), PC r15 + PC20, Threads 1,
+Hash 16, OwnBook false, fresh process per search, drained. For each position, `go wtime 6000 btime 6000 winc 60 binc 60`
+run TWICE (two different processes) and compare bestmove. Also compare each clock answer against the node-budget
+answers at 20000 and 250000 for the same position.
+
+Prediction (each number with the range that kills it):
+  P1  clock-vs-clock bestmove disagreement across two fresh processes: 0 of 20. KILLED if >= 1.
+      (23-F18 already showed clock moves identical across two phases; this re-tests it on 20 fresh positions.)
+  P2  clock answer vs the 250000-budget answer: agreement on >= 16 of 20. KILLED if < 12.
+  P3  clock answer vs the 20000-budget answer: agreement on <= 18 of 20, i.e. the clock is closer to the BIG budget
+      than to the small one. KILLED if the 20000 agreement is HIGHER than the 250000 agreement.
+  P4  the number of positions where the clock answer differs from BOTH node budgets: between 0 and 6. KILLED outside.
+
+If P1 is killed, the clock path has a per-move lottery too and that is a much more important finding than the node
+one, because matches are played on the clock.
