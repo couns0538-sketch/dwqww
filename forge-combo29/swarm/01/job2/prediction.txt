@@ -1,0 +1,41 @@
+# PREDICTION — area 1, job 2 (extreme numbers in the FEN fields)
+
+Committed and pushed ALONE before the first measuring command of job 2.
+
+## What the job will do
+Feed the engine FENs whose *non-board* fields are extreme or illegal, and record the exact answer lines,
+`go depth 4`, sanitizer lines, and `perft 2` against python-chess wherever python-chess accepts the FEN.
+
+Fields exercised (each on a legal start-derived board AND on a legal mid-game board, so the board itself is
+never the reason for a refusal):
+  halfmove clock: 0, 99, 100, 150, 9999, -1, 65535, 65536, 100000
+  fullmove number: 0, 1, 10^9, -1, 65536
+  ep square on a wrong rank: e3 for White to move, e6 for Black to move (both impossible)
+  ep square with no moved pawn behind it
+  two kings of one colour (two white kings / two black kings)
+  zero kings of a colour
+  pawns on rank 1 and on rank 8
+Build: ASan+UBSan (`~/builds/asan/forge`), plus the release build as a cross-check that the answer lines match.
+
+## Numbers I predict (each with the range that kills it)
+
+P1. FENs refused outright: 13 to 18 of the 24 cases (my reading: every illegal-boards case is refused, every
+    counter-only case is accepted). Below 10 or above 20 kills my reading of `set_fen`.
+P2. `halfmove -1` and `fullmove -1` are REFUSED with `invalid FEN fields`. Any acceptance kills it.
+P3. `fullmove 10^9` is ACCEPTED. That single acceptance is the case I most expect to be interesting:
+    the field is validated as `>= 1` and then stored into a 16-bit member, so I predict the engine silently
+    keeps 65535. Any crash here kills P4 as well.
+P4. Crashes: 0. Sanitizer lines: 0. Any one line kills this.
+P5. `perft 2` equals python-chess's perft 2 for EVERY case where both accept the FEN: 0 differences.
+    One difference kills it.
+P6. The engine's accept/refuse answer is the SAME on the release build and on the ASan+UBSan build for all
+    24 cases (the parser has no build-dependent path). One disagreement kills it.
+P7. No case produces `unknown option`, `invalid value`, or `illegal move` — I send no `setoption` at all.
+
+## Why
+`Board::set_fen` (src/board.cpp 211-…) reads `halfmove` and `fullmove` into `long long`, refuses
+`halfmove < 0`, refuses `fullmove < 1`, then stores
+`static_cast<std::uint16_t>(std::min<long long>(halfmove, 65535))` and the same for fullmove. That is a clamp,
+not a refusal, so a huge fullmove should be accepted with a silently different number. The board legality
+checks (one king per colour, no pawn on rank 1/8, castling right needs a real rook, ep square must sit on rank 3
+or 6 with the right pawn behind it) are all hard refusals, so I expect those cases refused.
