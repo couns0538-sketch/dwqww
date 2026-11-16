@@ -1,0 +1,13 @@
+--- forge-combo29/src/search.cpp
++++ forge-combo29/src/search.cpp
+@@ -2140,7 +2140,10 @@
+ 
+ } // namespace
+ 
++int planted_race = 0;  // job4 P3: planted unsynchronized counter
++
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
++    ++planted_race;  // P3 planted race (job 4)
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+         ? limits.start_time : limits.request_start;
+     start_ = origin == std::chrono::steady_clock::time_point{}
