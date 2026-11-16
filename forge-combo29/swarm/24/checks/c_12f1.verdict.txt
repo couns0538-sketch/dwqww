@@ -1,0 +1,28 @@
+SEAT 12 S-F1 — independent check by seat 24
+
+test FEN X = 4k3/8/8/8/8/8/4P3/4K3 w - - 0 1  (python-chess: 6 legal moves ['e1d1', 'e1d2', 'e1f1', 'e1f2', 'e2e3', 'e2e4'])
+startpos has 20 legal moves; the two sets overlap in ['e2e3', 'e2e4']
+
+| case | commands | what the engine did | startpos or X? |
+|---|---|---|---|
+| 1 | position X / ucinewgame / go perft 1 | 20 moves ['a2a3', 'a2a4', 'b1a3', 'b1c3', 'b2b3', 'b2b4', 'c2c3', 'c2c4', 'd2d3', 'd2d4', 'e2e3', 'e2e4', 'f2f3', 'f2f4', 'g1f3', 'g1h3', 'g2g3', 'g2g4', 'h2h3', 'h2h4'] | STARTPOS |
+| 2 | position X / ucinewgame / go depth 4 | bestmove e2e4 | STARTPOS |
+| 3 | position X / go perft 1 (control) | 6 moves ['e1d1', 'e1d2', 'e1f1', 'e1f2', 'e2e3', 'e2e4'] | X |
+| 4 | position X / go depth 4 (control) | bestmove e1f2 | X |
+| 5 | position X / ucinewgame / position X / go perft 1 | 6 moves ['e1d1', 'e1d2', 'e1f1', 'e1f2', 'e2e3', 'e2e4'] | X |
+
+Assertions passed: all five cases produced their lines, and X has the expected 6 legal moves.
+
+VERDICT: CONFIRMS seat 12 S-F1
+
+The reset is real and total: after `ucinewgame` the engine's board is startpos, so `go perft 1`
+enumerates startpos's 20 moves on a board that only has a king, a pawn and no rook, and a depth-4
+search returns a startpos move. `position fen X` alone is correct (cases 3 and 4), and re-sending
+`position fen X` after the ucinewgame puts the board back (case 5) — so the trigger is the
+`ucinewgame` command itself, exactly as seat 12 says.
+
+Beyond their claim (my addition): the consequence is worse than a checker annoyance — ANY
+`ucinewgame` sent BETWEEN `position` and `go` silently searches the wrong board. All four of my
+own runners send `ucinewgame` BEFORE `position` (driver.py once at handshake, churn.py and
+infinite_stop.py before the position line), so my recorded job1/job2/job3 numbers are not
+affected — but any harness that sends it after `position` measures startpos.
