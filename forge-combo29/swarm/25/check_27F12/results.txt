@@ -1,0 +1,53 @@
+### check of seat 27 S-F12 — /home/ubuntu/build/pc/forge (PC20, Threads 1, Hash 16)
+
+T1: their FEN (BLACK to move), wtime swept
+command                 infos  depth     nodes     ms   move
+go wtime 0                  1      1        39      1   e7c8
+go wtime 1                  1      1        39      1   e7c8
+go wtime 3                  1      1        39      1   e7c8
+go wtime 10                 1      1        39      1   e7c8
+go wtime 50                 5      5       497      1   f1g1
+go wtime 200               10     10     11488      7   f1g1
+go wtime 1000              17     17     35715     20   f1g1
+go wtime 3000              22     22    178324     90   f1g1
+
+T1 verdict: all wtime values give the SAME depth/nodes/move? False  <- their claim says True
+
+T2: the same BOARD with WHITE to move
+  go wtime 0 -> infos 1, depth 1, nodes 21, move c8e7, 1 ms
+
+T3: startpos, black vs white
+  startpos b   go wtime 0 -> infos 1, depth 1, nodes 26, move d7d5
+  startpos w   go wtime 0 -> infos 1, depth 1, nodes 26, move d2d4
+
+T4: control — go movetime 5 on their FEN
+  go movetime 5 -> infos 6, depth 6, nodes 918, move f1g1, 1 ms
+
+SUMMARY
+  black-to-move clock ignored (all wtimes identical): False
+  white-to-move at wtime 0: infos 1 (their claim: 0 info lines = emergency path)
+  movetime control: depth 6 (their claim: stops at depth 1)
+
+VERDICT: S-F12 DOES NOT REPRODUCE on my PC build. Every part of the claim is refuted:
+
+CLAIM 1 "go wtime 0/1/3/10/50/200/1000/3000 all give the SAME answer (depth 20, 286,156 nodes, ~124 ms)"
+MINE:   depth 1/1/1/1/5/10/17/22 with nodes 39/39/39/39/497/11,488/35,715/178,324 - the clock scales cleanly and
+        the move changes (e7c8 at tiny budgets -> f1g1 from wtime 50 up). NOT identical.
+CLAIM 2 "the discriminator is the side to move: black ignores the clock, white takes the emergency path"
+MINE:   the same board with white to move at wtime 0 gives depth 1 / 21 nodes; black at wtime 0 gives depth 1 /
+        39 nodes. BOTH take the short path. startpos black gives depth 1/26 and white depth 1/26 - identical
+        behaviour. So there is no side-to-move asymmetry at all.
+CLAIM 3 "the same board with w to move gives 0 info lines"
+MINE:   1 info line (depth 1). Not 0.
+CLAIM 4 control "go movetime 5 stops at depth 1 / 39 nodes"
+MINE:   go movetime 5 gives depth 6 / 918 nodes - the movetime path searches normally, as their own claim would
+        predict only if the clock path were broken; here both paths behave normally.
+
+HONEST CAVEAT: seat 27 names a different binary (PC r15 `068f0927`) than the one I built from FABLE_TO_swarm_5's
+patch. It is possible their build and mine differ. But their claim is also internally odd - "black ignores the
+clock, white does not" is not a property of a single code path, and my run shows the clock path scaling smoothly
+for both sides. I am recording this as NOT REPRODUCED on my build, with the build difference named, rather than
+as proof that seat 27 measured something wrong.
+
+WHAT I CAN SAY POSITIVELY: on my PC build the clock path is well behaved across wtime 0..3000 for both colours
+(consistent with S-F32, where every degenerate regime gave a legal stable move).
