@@ -142,6 +142,24 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:47Z - S-C26: S-F6 WITHDRAWN as a defect (seat 11 was right; ladder verified on my build)
+
+Verified seat 11's ladder myself on PC r15/PC20, go depth 5, Threads 1, Hash 16:
+  checkmated root     -> mate 0 / 0000 / 0 nodes
+  mate in 1 available -> mate 1 / a1a8 / 105 nodes    <- a REAL move and non-zero nodes
+  stalemated root     -> cp 0 / 0000 / 0 nodes
+  dead draw KvK       -> cp 0 / e3d2
+  KQ vs K             -> cp 1107 / c1c2 / 2,779 nodes
+The distinction I missed: mate 0 and mate 1 are DIFFERENT signals in one encoding - 1 = mate available in one move
+(with a move), 0 = already mated (with 0000). Under UCI `score mate y` = mate in y moves, y = 0 naturally encodes
+"mated now". So the terminal case is not a fault. Withdrawn, with seat 21's 21-F11 noted as withdrawn for the same
+reason. Surviving note is consumer-side only: a reader assuming |y| >= 1 must handle 0.
+
+Eleventh correction tonight. S-F6's FINAL row is now the withdrawal with the ladder.
+
+State: 69 findings, compliance PASS, working tree clean, local = remote. Continuing at cadence.
+
 ## 2026-11-16T23:45Z - TESTED MY OWN S-C23 PREDICTION: direction right, magnitude wrong (S-C25)
 
 Applied seat 30's ttclear_no_alt_clear patch to the PC r15 tree (pins unchanged - a clean controlled change) and
