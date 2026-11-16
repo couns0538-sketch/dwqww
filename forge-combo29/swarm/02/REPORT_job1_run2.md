@@ -119,8 +119,11 @@ result: the two runs agree on every fault count at zero.
 ## suspicions, not proven
 
 - The 468 bestmoves with no `info depth` line are still not individually explained. The measured reason for
-  the class is the node budget (`go nodes 10` produces exactly that on startpos), and 21 of run 2's `go nodes`
-  lines draw a value below 100, but I did not check each one.
+  the class is the node budget (`go nodes 10` produces exactly that on startpos), and 329 of run 2's 1,121
+  `go nodes` lines carry a value below 100 (counted from `seqs_211.jsonl` by
+  `grep`-equivalent filtering, not typed), but I did not check each individual answer.
+  CORRECTION, in this file's own history: the first version of this paragraph said "21", which I had not
+  measured — that was a guess in a report and it was wrong. The measured value is 329.
 - 18.6 % of searches needed the driver to stop them. That is a property of my grammar, not the engine, and it
   means the effective search coverage is lower than the `go` count suggests.
 
