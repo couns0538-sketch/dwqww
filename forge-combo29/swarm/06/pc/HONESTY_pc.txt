@@ -1,0 +1,22 @@
+HONESTY — the PC r15 build (FABLE_TO_swarm_5), seat 06
+patch: /tmp/pc_r15.patch, sha256 d6bd72c531f785f40421be1cc542743922a944fb0973d05831788440309c1a1a
+       (first 16 hex match the d6bd72c531f785f4 stated in FABLE_TO_swarm_5)
+applied: to a fresh export of 6b98f217, 11 files, `patch -p1`, no fuzz, no .rej/.orig
+build:   cmake Release, CXX=g++-13 13.3.0, -DFORGE_MARCH=x86-64-v4,
+         -DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1 (as FABLE 5 instructs)
+exe:     /tmp/bld/pc/forge  (see pc20_pins.meta for the sha256)
+id name: Chess Engine Forge 6.4.24 candidate
+Threads: 1 for every line here (rule of 2026-11-16: no score above Threads 1)
+
+| settings | bench 11 | bench 13 | bench 16 | perft 5 | FABLE 5 expects | match |
+|---|---|---|---|---|---|---|
+| none (no setoption at all) | 312866 | 862329 | 3024920 | 4865609 | 312866 / 862329 / 3024920 / 4865609 | YES |
+| S14 | 242796 | 656517 | 2155620 | 4865609 | 242796 / 656517 / - / - | YES |
+| PC20 | 278024 | 587276 | 2343893 | 4865609 | 278024 / 587276 / - / - | YES |
+
+All seven numbers FABLE 5 pins are reproduced exactly, and the two it leaves open (bench 16 under S14 and
+under PC20) are recorded here for the first time: 2,155,620 and 2,343,893. Both regimes keep perft 5 at
+4,865,609, as a move-generator-untouched change must.
+
+Every option name was accepted (no `unknown option`), which also proves the -DFORGE_MATE_ALPHA_GUARD=1 flag
+was applied: without it MateAlphaGuard is answered `unknown option` per FABLE 5.
