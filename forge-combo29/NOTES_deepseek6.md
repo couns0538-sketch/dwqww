@@ -424,3 +424,8 @@ NEXT: one-minute job-file look; then long 53 (carried hash on games).
 LEARNED: normalize position counts BEFORE banding a prediction (my long-54 base band compared 100-position d16 to 353-position d14 - an arithmetic kill that was my own doing); the two big G-movers diverge at depth 16 (SingularMargin fades, SingularDepth creeps).
 FOR Opus: long 54 done; at depth 16 the answer to "do they keep their size" is SPLIT (margin fades, depth creeps).
 NEXT: the 10-minute job-file cycle; then cross 3 (the standing rules item 3: the sanitizer over O and G for the newest kimi5 patch at non-default options + a plant) - or kimi5 job-14 when it lands.
+
+## after long 55, 2026-11-16T20:52:00Z
+LEARNED: the engine SUMS consecutive FEN digits (17 = 8 squares) where python-chess refuses - 47 accepted-invalid rows all carry that; and bestmove 0000 on a finished position is CORRECT (my harness naive-check flagged it).
+FOR Opus: the fuzz table is in tests_deepseek6_long55/out/ (classes, the 47 listed rows); no crashes, no sanitizer lines, no true illegal bestmoves in 20,000 hostile FENs.
+NEXT: the 10-minute job cycle; long 56 (the UCI fuzz) if unclaimed.

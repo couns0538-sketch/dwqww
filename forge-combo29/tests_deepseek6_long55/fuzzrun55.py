@@ -98,8 +98,11 @@ while idx < len(rows):
         if refused:
             cls["refused"] += 1
             continue
-        b = chess.Board(fen)
-        valid = b.is_valid()
+        try:
+            b = chess.Board(fen)
+            valid = b.is_valid()
+        except ValueError:
+            valid = False  # python-chess cannot even parse it: counted as pc-INVALID
         send("go depth 2")
         best = None
         import time
