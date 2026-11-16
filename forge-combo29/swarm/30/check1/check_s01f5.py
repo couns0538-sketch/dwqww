@@ -20,6 +20,15 @@ import time
 import chess
 
 GO = "go depth 6"
+PC20 = [("Threads", 1), ("Hash", 16),
+        ("LmrQuietBase", 93), ("LmrQuietDivisor", 205), ("LmrNoisyBase", 13),
+        ("LmrNoisyDivisor", 333), ("LmrHistoryDivisor", 5643), ("NullMoveBase", 5),
+        ("LmpBase", 8), ("HistoryPruneMultiplier", 2220), ("HistoryBonusQuadratic", 24),
+        ("HistoryBonusLinear", 54), ("HistoryBonusMax", 2212), ("SingularDepth", 6),
+        ("IirDepth", 2), ("NonPawnCorrection", "true"),
+        ("CuckooRep", "true"), ("HistRework", 2), ("TtPruneV2", "true"),
+        ("CorrHistV2", "true"), ("MateAlphaGuard", "true"), ("OwnBook", "false")]
+USE_PC20 = os.environ.get("USE_PC20") == "1"
 TIMEOUT = float(os.environ.get("CHECK_TIMEOUT", "60"))
 MATE1 = "6k1/5ppp/8/8/8/8/5PPP/R5K1"
 QUIET = "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R"
@@ -73,6 +82,17 @@ def run_case(exe, fen, go=GO):
 
     send("uci")
     wait_for(lambda: any(x.strip() == "uciok" for x in out))
+    if USE_PC20:
+        for name, value in PC20:
+            with lock:
+                m0 = len(out)
+            send("setoption name %s value %s" % (name, value))
+            send("isready")
+            wait_for(lambda: any(x.strip() == "readyok" for x in out[m0:]))
+            with lock:
+                badp = [x for x in out[m0:] if "unknown option" in x or "invalid value" in x]
+            if badp:
+                raise SystemExit("PC20 setting refused: %s" % badp[0])
     send("isready")
     wait_for(lambda: any(x.strip() == "readyok" for x in out))
     n_before = None
@@ -121,7 +141,9 @@ def main():
         "date_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "exe": os.path.realpath(exe),
         "id_name": None, "asan_syms": 0, "ubsan_syms": 0,
-        "options_sent": ["uci", "isready", "position fen <FEN>", "isready", GO, "quit"],
+        "options_sent": (["uci"] + (["setoption name %s value %s" % (n, v) for n, v in PC20]
+                                    if USE_PC20 else [])
+                         + ["isready", "position fen <FEN>", "isready", GO, "quit"]),
         "env_sanitizer_vars": [k for k in os.environ
                                if k in ("ASAN_OPTIONS", "UBSAN_OPTIONS", "TSAN_OPTIONS",
                                         "LSAN_OPTIONS")],
