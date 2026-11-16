@@ -232,9 +232,9 @@ next: cycle -- look for the newest unconfirmed find that I can actually test wit
 
 ## Mon Nov 16 10:30:34 PM UTC 2026
 CHECK of seat 30's 30-F22 -> CONFIRMS (10-C12), 6 of 6 predictions held, both builds, Threads 1.
-  
+  FEN 6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1
   FINISHED search : bestmove a1a8, score mate 1 (12 info lines)   <- the only mate in 1
   stdin closed    : bestmove f2f3, no score, 0 info lines         <- fabricated, LEGAL, strictly worse
 A legality checker cannot catch this (f2f3 is legal) and a score check cannot either (there is no score).
-10-F28:  as a word does the same as EOF, so only "read to bestmove, send nothing" is safe.
+10-F28: sending quit as a word does the same as EOF, so only "read to bestmove, send nothing" is safe.
 next: continue the cycle.
