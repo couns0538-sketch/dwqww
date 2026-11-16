@@ -213,3 +213,16 @@ theirs 853.1 vs 161.2 = 5.3x), so I WITHDRAW my S-F12 median-ordering claim and 
 clock_6s/CLASS_SAMPLE.md, tail_rows.json, correlation.json.
 
 Next: re-check the hard-limit tail on more sparse boards (is it a rate or a one-off?), then a seat's NEW finding.
+
+## 2026-11-17T01:10Z — predictor tested: the proposed one does NOT hold, and neither does my fix idea
+Computed the plan exactly from include/forge/clock_plan.hpp with PC20's values: soft 317 ms, hard 1585 ms; the
+measured cut lands on 1585.6 ms, so the plan is confirmed to 0.5 ms.
+TESTED the requested predictor (last-iteration / soft > 1): **8 false positives of 20 boards, 0 false negatives**.
+The decisive counter-example is `8/8/8/2k5/8/2K5/8/3R1B2` at 2.20x soft that was NOT cut. Reason, from
+src/search.cpp:2980: the test is CUMULATIVE elapsed >= soft x factor, with factor 0.45-3.0 by stability class, so
+the last iteration's own duration is the wrong numerator.
+TESTED my own suggested fix, `TmFinishIteration true`: no effect at all (1585.5 vs 1585.7 ms medians) and ZERO hold
+lines in 10 runs. Withdrawn.
+What survives: wall = last completed iteration (rho 0.998), the hard plan is 1585 ms, and the cut is the only
+route to an expensive move. The reliable diagnostic is retrospective: wall 2.4x the last reported iteration time.
+clock_6s/PREDICTOR.md.
