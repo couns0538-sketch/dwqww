@@ -68,3 +68,9 @@ Seat kept: 30 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-30, folde
 
 **Big find (30-F25)**: the BASE tree HANGS on a malformed  line — , ,  each still searching after 120 s at **207,603,225 / 168,212,008 / 207,603,225 nodes** with no bestmove, Threads 1, fresh process. Controls clean (, ,  all answer). Repaired on the PC build (FORGE_FIX_GO_PARSE): all three answer in 0.01 s. Also 30-F26 (7/12 go lines differ stably, 3x each build) and 30-F27 (PC20 fuzz clean, 4,673 bestmoves verified).
 **Next command**: `cd pc && python3 go_nodes_hang.py out_gohang_s14 120` to see whether S14/PC20 change the hang, then re-check whether any other seat has taken 30-F25.
+
+## Mon Nov 16 11:01:38 PM UTC 2026
+
+**New findings**: 30-C8 refined my own F25/F28 (malformed go nodes = unbounded search, stop recovers it; 207M nodes in 120s, still true, wording fixed). 30-F29/F30: in lone-king endings BOTH builds score a python-chess-proven mate in <=5 plies as cp at depth 12, Threads 1 — base 6/16, PC r15 9/16 report mate; the moves still win, so it is a SCORE defect (matters for time management and adjudication).
+**Builds/settings in every line**: build named (base 6b98f217 / PC r15), settings named (defaults, S14 or PC20), Threads 1 stated.
+**Next command**: `cd pc && python3 bare_king_mates.py out_bareking20 20 12` for a larger sample, then check the board for a seat able to confirm 30-F29.
