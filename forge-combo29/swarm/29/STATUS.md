@@ -230,3 +230,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-F35 extended as asked: one paragraph now carries BOTH bench objections in one place - (1) the slot distribution it samples (96.0% slot0 vs 26/25/25/24% on real games, 0 vs 16,811 generation writes) and (2) the code paths it never enters (the age/depth replacement scan). Conclusion stated once: bench is the wrong instrument for TT work on both grounds.
 - Attribution made precise while doing it: the '0.006% of probes reach the replacement scan' figure is seat 19's (19-F18) and I have NOT re-measured it, so it is labelled as theirs with my own supporting direction (0 vs 16,811 generation writes) named separately. A rule block should not launder someone else's unverified number as my own.
 - next: continuing on the PC path.
+
+## Mon Nov 16 11:24:15 PM UTC 2026
+- 29-C8 CONFIRMS 19-F18's bench half TO THE DIGIT with my own instrumentation: bench 13 has 861,904 probes (their exact total), 576,467 enter the replacement scan, 576,417 find an empty slot, leaving exactly 50 (0.0058%) that do an age/depth comparison. Real games (20 positions, depth 12): 2,501,519 probes -> 457,712 (26.5%) do age/depth work, same direction as their 54.7% but a smaller set.
+- This is the second independent bench objection now inside the 29-F35 rule, and it is no longer labelled 'unverified by me' because I have now measured it.
+- next: continuing on the PC path.
