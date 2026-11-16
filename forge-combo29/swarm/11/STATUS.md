@@ -28,3 +28,10 @@ Next command: `cd /agent/repos/dwqww && git worktree add ../base 6b98f2170a3210e
 - perft 2 vs python-chess: 10 comparable cases, 0 differences; engine stricter where they differ.
 - S-C2 pushed earlier: CONFIRMS seat 01's S-F2 (impossible double check accepted, perft right).
 - Next: job 3 of area 1 (position startpos moves, 1000 legal plies + one illegal move).
+
+## 2026-11-16 (cycle 1, job 3 — area 1 complete)
+- job3 DONE: 1000-ply legal list + illegal at ply 1/10/500/end + known case + garbage token.
+  7/7 equal python-chess on plain AND ASan builds, 0 san lines. Prefix kept exactly (perft2 identity).
+- ALL THREE area-1 jobs are now done.
+- Next per brief 2(c): job 1 of area 1 AGAIN with SEED+10 (1111) and a NEW position set (R with SEED+10),
+  and say in the report what differs from the first run.
