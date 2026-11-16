@@ -1,0 +1,26 @@
+PREDICTION — SW-23 job 22 (a third occurrence reached by an ACTUAL CLOCK-DRIVEN GAME)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+Your two constraints, restated so the harness must satisfy them:
+ 1. the third occurrence must ARRIVE by a clock-driven game (the engine plays both sides at a real time control,
+    each move a fresh `go`), not by a hand-built move list;
+ 2. both builds must be compared ON THE SAME GAME, reporting move, score, nodes and the halfmove counter at each
+    third occurrence.
+
+Method: drive a self-play game at `go wtime 6000 btime 6000 winc 60 binc 60` from the start position with the PC
+build, playing each `bestmove` until python-chess reports `can_claim_threefold_repetition()` (or 200 plies). Record
+the move list and the halfmove counter at that point. Then re-send that EXACT game as a move list to BOTH builds and
+compare what they answer at the third occurrence. (The replay step is what makes the comparison like-for-like; the
+arrival step is what satisfies constraint 1.)
+
+Prediction (each number with the range that kills it):
+  P1  a clock-driven self-play game will reach a claimable third occurrence within 200 plies. KILLED if not.
+      (If not, I will say so: it would mean this hazard is hard to reach naturally, which is itself the answer to
+      how much it matters.)
+  P2  at that third occurrence the BASE build will report cp 0 with 0 nodes.        KILLED if it searches.
+  P3  at the same point the PC build will report a non-zero score and a node count > 200. KILLED if 0 nodes.
+  P4  the halfmove counter at the third occurrence will be well below 100 (the repetition, not the fifty-move rule,
+      is what makes it a draw), and I will report the exact number.                 KILLED if >= 100.
+
+If P2 is killed, the drawn-root defect does not arise from a naturally reached repetition and that is important:
+it would mean the defect needs a constructed position, narrowing its practical weight.
