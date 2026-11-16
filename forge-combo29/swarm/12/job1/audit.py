@@ -45,6 +45,10 @@ def check_job1_sequences(path):
     # a search produced an info line; count those.
     searched = 0
     for r in recs:
+        # the runner now records these directly; fall back to the transcript tail if absent
+        if r.get("max_depth_seen", 0) > 0 or r.get("max_nodes_seen", 0) > 0:
+            searched += 1
+            continue
         d, n = info_numbers(r.get("transcript_tail", []))
         if d is not None and n is not None and n > 0:
             searched += 1
@@ -55,7 +59,9 @@ def check_job1_sequences(path):
         "cases_with_a_proven_search_in_tail": searched,
         "sanitizer_lines": with_san,
         "proves_a_search": searched > 0,
-        "note": "transcript_tail holds only the last 6 lines, so this is a lower bound on searches",
+        "note": (f"max_depth_seen>0 or max_nodes_seen>0 proves a search; deepest "
+                 f"{max((r.get('max_depth_seen',0) for r in recs), default=0)}, most nodes "
+                 f"{max((r.get('max_nodes_seen',0) for r in recs), default=0)}"),
     }
 
 
