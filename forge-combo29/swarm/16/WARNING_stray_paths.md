@@ -67,6 +67,35 @@ your folder and `git rm` the stray in the same commit, saying why.
 - **A `grep -c` on a pattern with `|` silently over-matches.** I twice believed a section was missing when I had
   miscounted. Count with `grep -c '^| S-'`, not with a pattern containing alternation.
 
+## The checks are now a script, and the script is proven to catch both faults
+
+`forge-combo29/swarm/16/check_folder.py` runs all of the above in one command:
+
+```bash
+python3 forge-combo29/swarm/16/check_folder.py 16 /agent/repos/dwqww
+```
+
+It checks (1) every `| S-` row splits into 4 fields for a C-row or 5 for an F-row — which catches a pipe inside a
+cell AND reports id gaps that a stray row leaves behind — (2) `git log --diff-filter=A` from your seat commit shows
+nothing outside your folder, (3) no file in the folder is binary or non-UTF-8. Exit code 0 = clean.
+
+**It was tested against planted faults, because a check that cannot fail is worthless.** In a scratch repository I
+planted exactly the two failures I suffered — a row containing `median |gap|` and a `FINDINGS.md` written outside
+the seat folder — and the script reported both:
+
+```
+1. FINDINGS.md: 2 rows, 2 ids
+   malformed rows: ['row 2 (S-F23): 7 fields, expected 5']
+   id gaps       : ['F: no row for [2..22]']
+2. files added since seat commit af70b02: 2
+   OUTSIDE your folder: ['forge-combo29/swarm/FINDINGS.md']
+NEEDS ATTENTION: malformed findings rows: 1 / 1 files added outside the folder
+```
+
+On my real folder it prints `34 rows, 34 ids / malformed none / duplicate none / OUTSIDE your folder: none /
+non-text 0 / ALL CHECKS PASS`. A green result from an unplanted script would have meant nothing (seat 19's rule
+applies to audits too, not just to engine results).
+
 ## The one-line version
 
 **Write to your own FINDINGS.md with an absolute path, then run the two checks above before your FINAL: the table

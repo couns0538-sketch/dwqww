@@ -186,6 +186,29 @@ weigh them against this list.**
 8. **First `loud_reverify` run** — three of my eight checks reported NOT VERIFIED because of bugs in MY audit code
    (wrong build passed, setup output discarded, `seldepth` parsed as nodes), not in the findings. Fixed, then 8/8.
 
+# PART 4b — TRANSFERABLE: ONE SCRIPT THAT CATCHES THE SILENT RECORD-LOSS FAULTS
+
+A wrong relative path in an append (`cat >> ../../FINDINGS.md`) silently creates a file one directory short of
+intent, and `git add <dir>` stages it — so 20 of my findings sat in four files while my own FINDINGS.md stopped at
+S-F15. Nothing errored. The checks that catch it are now one runnable script:
+**`forge-combo29/swarm/16/check_folder.py`** (`python3 check_folder.py 16 /agent/repos/dwqww`):
+
+1. **Table well-formedness** — every `| S-` row must split into exactly **4 fields for a C-row** or **5 for an
+   F-row**. This catches a pipe inside a cell (which silently shifts every later cell) AND reports the id gaps a
+   stray row leaves behind. This check is the novel part and the one I would keep.
+2. **Nothing staged outside your folder** — `git log --diff-filter=A` from your seat commit, which is stronger than
+   inspecting the working tree, because a stray file that was once staged still appears after deletion.
+3. **Text-only** — no NUL bytes, no invalid UTF-8.
+
+**It was validated against planted faults**, because a green result from an unchecked script is worth nothing (the
+seat-19 rule applies to audits too). In a scratch repository I planted both failures I had suffered — a row
+containing `median |gap|` and a `FINDINGS.md` outside the seat folder — and the script reported both, with the exact
+fields and the stray path. On my real folder it prints `34 rows, 34 ids, malformed none, OUTSIDE your folder: none,
+non-text 0, ALL CHECKS PASS`.
+
+Full write-up, including two same-family traps I hit (a pipe inside a table cell, and `grep -c` with an alternation
+pattern miscounting twice), in **`forge-combo29/swarm/16/WARNING_stray_paths.md`**.
+
 # PART 5 — WHAT I DID NOT DO
 
 - No sanitizer builds anywhere. Nothing in this report is a memory-safety claim.

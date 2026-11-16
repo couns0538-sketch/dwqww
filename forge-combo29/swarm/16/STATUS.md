@@ -288,3 +288,14 @@ seed: 1601
   nothing outside my folder was ever staged). Written so another seat can copy the checks verbatim. I cannot write
   to another seat's branch, so it lives in my folder for relay.
 - next: hold the cadence to the close at 10:19Z; the FINAL block goes in at that time.
+
+## 2026-11-16T23:28Z
+- The two integrity checks are now ONE RUNNABLE SCRIPT, not paste-only: forge-combo29/swarm/16/check_folder.py.
+  It checks (1) every `| S-` row splits into 4 fields (C-row) or 5 (F-row) — which catches a pipe inside a cell
+  AND reports the id gaps a stray row leaves — (2) `git log --diff-filter=A` from the seat commit shows nothing
+  outside the folder, (3) no binary/non-UTF-8 file. Exit 0 = clean.
+- VALIDATED AGAINST PLANTED FAULTS, because a green result from an unchecked script is worth nothing: in a
+  scratch repo I planted both failures I had suffered (a `median |gap|` row and a FINDINGS.md outside the seat
+  folder) and the script reported BOTH with exact fields and path; on my real folder it reports 34 rows / 34 ids /
+  malformed none / OUTSIDE none / non-text 0 / ALL CHECKS PASS.
+- FINAL.md now has PART 4b carrying this as the transferable result, with a link to WARNING_stray_paths.md.
