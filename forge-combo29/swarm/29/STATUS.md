@@ -298,3 +298,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-F44 SUPERSEDES 29-F43's '4 of 6': at 100 positions the comparison is a DEAD HEAT. 83 of 100 same bestmove (83.0%); of the 17 disagreements judged under the neutral S14 regime at depth 13: PC20 better 7, S14 better 7, tie 3. So the regimes are indistinguishable in move quality on this sample and my earlier 4-of-6 was small-sample noise. Stable claim stays 'no detected loss of move quality', and the 4-of-6 must NOT be quoted as PC20 choosing better moves.
 - 29-N27: the bug was MINE - my first tally regex matched only cp scores and silently dropped 4 of 17 rows, all mate judgements. The rewritten tally requires every row to parse and aborts otherwise. That flipped the conclusion. Lesson: a tally whose denominator is smaller than the rows visible in the raw file is a parse bug, not a result.
 - next: continuing toward the close.
+
+## Mon Nov 16 11:50:02 PM UTC 2026
+- As asked: the sentence 'when a tally's denominator is smaller than the number of rows visible in the raw file, it is a parse bug, not a result' is now in FINDINGS immediately beside the FIRST RULE, as a sub-section 'The same rule one level up (29-N27)', with my own 13-of-17 mate-row drop and the 5-7 -> 7-7-3 flip as the worked case.
+- FINDINGS document order is now: FIRST RULE + the denominator corollary -> THE PC20 TABLE -> three named rules -> the rows. A reader hits the method before any result.
+- next: continuing at cadence on the PC path.
