@@ -1,0 +1,22 @@
+# PREDICTION — NEW AREA: `go softnodes N` on the PC build under PC20, Threads 1
+
+Why it matters: FABLE_TO_swarm_6 says the owner's PC self-play uses `go softnodes 2000` — the search stops at the
+end of the first depth after 2,000 nodes. If that is not deterministic, the PC's self-play games are not
+reproducible. This is the owner's real path, so a find here counts most.
+
+Build: PC r15 (/home/ubuntu/builds/bld-pc/forge), verified against all six known numbers.
+Settings: PC20 exactly (S14 + CuckooRep true, HistRework 2, TtPruneV2 true, CorrHistV2 true, MateAlphaGuard true,
+OwnBook false) + Threads 1 + Hash 16. Fresh process + `ucinewgame` before every search.
+
+P1. DETERMINISM: 20 runs of `go softnodes 2000` on the same position give one distinct (bestmove, score, nodes)
+    triple. Kills it: two or more distinct triples at Threads 1.
+P2. STOPS AT A FINISHED DEPTH: the last `info depth` line before `bestmove` is a COMPLETE depth — i.e. the move it
+    reports is the PV of the last depth line, and the same position without a node budget at that exact depth
+    gives the same bestmove. Kills it: a bestmove that comes from a deeper, unfinished depth.
+P3. HOW FAR PAST N: the reported node count exceeds N, because the depth that crosses the budget is finished.
+    Predicted overshoot of 10 % to 60 % of N at N=2000 (the engine reports `info string softnodes nodes X`).
+    Kills it: an overshoot above 100 % (then the budget is barely respected) or below 1 % (then it cuts mid-depth).
+P4. The overshoot GREW with N: predicted overshoot fraction at N=20000 and N=50000 is no larger than at 2000.
+    Kills it: a larger fraction at bigger N.
+P5. SCORE REPRODUCIBILITY at the PC's other budgets: `go nodes 20000/50000/250000` also give one triple each over
+    5 runs, Threads 1. Kills it: any variation.
