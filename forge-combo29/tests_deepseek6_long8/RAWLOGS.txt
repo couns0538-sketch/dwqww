@@ -1,0 +1,15 @@
+# Raw sanitizer logs — NOT committed (47 MB; the brief allows text only, and these are text but
+# too large to be useful in a branch that is read by four other agents).
+#
+# What was in them, and how to reproduce:
+#   - every such file was produced by:  python3 sanrun.py --exe <build>/forge --set <set>
+#       --out runs/<tag>.rows --raw runs/<tag>.rawlog --opts "<options>" --depth 10
+#   - each one holds, per position, the complete stdout+stderr of a fresh engine process and a
+#     line "=== exit <code>, sanlines <n> ===".
+#   - the COUNTS live in the committed runs/<tag>.rows (field 4 = sanlines, field 5 = exit code),
+#     and every one of them is 0 / 0.
+#   - to check a single setting again, run sanrun.py again with the same arguments; it is
+#     deterministic (long 1 measured 200 of 200 equal between two separate processes).
+#
+# Files produced (28): <set>_{O,G}_{def,mov}.rawlog for set in
+#   LmrGiveCheck LmrCutNode LmrTtPv SoundArms SoundSteps NodeLiterals IirNoRoot
