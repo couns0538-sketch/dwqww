@@ -35,9 +35,13 @@ def position_state(lines_so_far):
     so an unparseable `position` keeps the last good board instead of clearing it; illegal
     moves truncate to the legal prefix, which is also what the engine keeps.
     """
-    state = None
+    state = chess.Board().fen()      # the engine starts on startpos, so this is the default
     for raw in lines_so_far:
         line = raw.strip()
+        if line == "ucinewgame":
+            # measured: ucinewgame sets the board back to startpos (src/uci.cpp:254-257)
+            state = chess.Board().fen()
+            continue
         if not line.startswith("position"):
             continue
         try:
@@ -65,11 +69,9 @@ def position_state(lines_so_far):
 
 
 def expects_bestmove(go_line):
-    """A `go` that ends by itself answers with a bestmove; perft and bare `go` do not."""
-    words = go_line.split()
-    if "perft" in words:
-        return False
-    return len(words) > 1
+    """Every `go` answers with a bestmove except `go perft` (measured: bare `go`, `go bananas`
+    and `go depth 0` all answer within milliseconds; a `go infinite`/`ponder` answers at stop)."""
+    return "perft" not in go_line.split()
 
 
 def run_one(exe, seq_path, timeout_s):
@@ -109,45 +111,47 @@ def run_one(exe, seq_path, timeout_s):
             if stop_on(ln):
                 return ln
 
-    pending_go = []          # FIFO of (fen, go_line) still awaiting a bestmove
+    launched = []            # FIFO of fens: one entry per `go` the engine owes a bestmove for
     bestmoves = []
+    unattributed = []
     sent = []
     t0 = time.monotonic()
     hang = False
-    searching = False        # a `go` that answers with bestmove is in flight
+
+    def drain(wait_s=0.0):
+        """Collect buffered lines for at most wait_s; each bestmove settles the oldest go."""
+        deadline = time.monotonic() + wait_s
+        while True:
+            try:
+                ln = out.get(timeout=max(0.0, min(0.05, deadline - time.monotonic())))
+            except queue.Empty:
+                if time.monotonic() >= deadline:
+                    return
+                continue
+            if ln is None:
+                return
+            collected.append(ln)
+            if ln.startswith("bestmove"):
+                if launched:
+                    bestmoves.append((launched.pop(0), ln.strip()))
+                else:
+                    unattributed.append(ln.strip())
+
     try:
         for line in body:
             proc.stdin.write(line + "\n")
             proc.stdin.flush()
             sent.append(line)
             s = line.strip()
-            if s.startswith("go"):
-                searching = expects_bestmove(s)
-                if searching:
-                    pending_go.append([position_state(sent[:-1]), s])
-            # drain whatever arrived without blocking
-            while True:
-                try:
-                    ln = out.get_nowait()
-                except queue.Empty:
-                    break
-                if ln is None:
-                    break
-                collected.append(ln)
-            # a bestmove closes the search that was in flight
-            while any(c.startswith("bestmove") for c in collected) and pending_go:
-                idx = next(i for i, c in enumerate(collected) if c.startswith("bestmove"))
-                bm = collected.pop(idx)
-                fen, _go = pending_go.pop(0)
-                bestmoves.append((fen, bm.strip()))
-                searching = False
-
+            if s.startswith("go") and expects_bestmove(s):
+                launched.append(position_state(sent[:-1]))
+            drain(0.02)            # pick up answers already produced, never block
         proc.stdin.write(tail[0] + "\n")       # the sequence's own isready
         proc.stdin.flush()
         sent.append(tail[0])
-        ready = pump(time.monotonic() + timeout_s, lambda l: l.strip() == "readyok")
-        if ready is None:
+        if pump(time.monotonic() + timeout_s, lambda l: l.strip() == "readyok") is None:
             hang = True
+        drain(0.2)
         proc.stdin.write(tail[1] + "\n")       # the sequence's own quit
         proc.stdin.flush()
         proc.stdin.close()
@@ -171,11 +175,10 @@ def run_one(exe, seq_path, timeout_s):
             break
         collected.append(ln)
 
-    # any bestmove that arrived after the last pump belongs to the oldest pending go
+    # leftovers after quit: the bestmove of a search that was still open arrives here
     for c in collected:
-        if c.startswith("bestmove") and pending_go:
-            fen, _ = pending_go.pop(0)
-            bestmoves.append((fen, c.strip()))
+        if c.startswith("bestmove") and launched:
+            bestmoves.append((launched.pop(0), c.strip()))
 
     wall = time.monotonic() - t0
     san = [c for c in collected if SAN_RE.search(c)]
@@ -208,6 +211,7 @@ def run_one(exe, seq_path, timeout_s):
         "sanitizer_lines": len(san),
         "sanitizer_excerpt": san[:8],
         "bestmoves": len(bestmoves),
+        "unattributed_bestmoves": unattributed,
         "illegal_bestmoves": illegal,
         "unchecked_bestmoves": unchecked,
         "lines": len(lines),
