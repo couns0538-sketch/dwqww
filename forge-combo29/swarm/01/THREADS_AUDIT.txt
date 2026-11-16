@@ -1,0 +1,19 @@
+THREADS AUDIT (swarm rule, 2026-11-16 22:18Z): every score I report must be Threads 1.
+
+How I checked, rather than asserting:
+  grep -rn "Threads" --include=*.py forge-combo29/swarm/01/
+  -> NO MATCH. Not one harness in my folder ever sends `setoption name Threads`, so every search I have
+     run used the engine's default.
+
+The engine's own default, from its `uci` answer (PC r15 build and base build both):
+  option name Threads type spin default 1 min 1 max 256
+
+So: every score and every node count in my FINDINGS.md (S-F1..S-F33), REPORT_job*.md, PATCH_SUMMARY_fifty_move.md
+and the job folders was produced at Threads 1. Nothing of mine used Threads above 1, so nothing of mine needs the
+"provisional" label.
+
+One qualification, stated because it is true: my harnesses never SENT `Threads 1` either. They relied on the
+default. Since the default is 1 that is the same thing for the base build and for the PC build; if a future build
+changed that default, my older logs would not show it. From now on every new harness in this folder sends
+`setoption name Threads value 1` explicitly and records it in its .meta, so the setting is visible in the log
+rather than implied by the default.
