@@ -1,0 +1,29 @@
+### is 30-F50's instability MultiPV, or the CLOCK? (6 fresh runs each)
+PC r15/file-5 build: /home/ubuntu/build/pc/forge
+
+their cell: wtime 5000, MPV3, Hash 256     depths [1, 4] nodes 73-622 spread 8.5x
+CONTROL same but go nodes 50000            depths [10] nodes 6386-6386 spread 1.0x
+CONTROL same but go depth 12               depths [12] nodes 94994-94994 spread 1.0x
+their cell: wtime 5000, MPV1, Hash 256     depths [16] nodes 172312-172312 spread 1.0x
+CONTROL MPV1 go depth 12                   depths [12] nodes 21812-21812 spread 1.0x
+
+WHAT THIS MEANS - the instability is CLOCK x MULTIPV, and neither alone causes it:
+  wtime 5000 + MultiPV 3  -> depths [1, 4], nodes 73-622, spread 8.5x   <- unstable, very shallow
+  wtime 5000 + MultiPV 1  -> depth 16, nodes 172,312 every run, 1.0x     <- STABLE at full depth
+  nodes 50000 + MultiPV 3 -> depth 10, nodes 6,386 every run, 1.0x       <- STABLE (deterministic limit)
+  depth 12   + MultiPV 3  -> depth 12, nodes 94,994 every run, 1.0x      <- STABLE
+So:
+  * the CLOCK ALONE is not the cause (MultiPV 1 is perfectly stable on the same clock - consistent with S-C15's
+    finding that a clock search varies a little in score/nodes but this shows it can be exact in nodes at MPV1);
+  * MULTIPV ALONE is not the cause (deterministic limits with MPV3 are exact);
+  * the PAIR collapses: at MultiPV 3 the clock path produces depth 1 or 4 instead of 16, i.e. the time manager
+    starves the search when MultiPV is on, and how much it starves it varies run to run.
+That is a more specific and more useful statement than "the shipped build is not reproducible at MultiPV 3": the
+MultiPV-3 clock path loses ~12-15 plies of depth against the same clock at MultiPV 1, and is unstable while doing it.
+
+CONFIRMS seat 30's OBSERVATION (8.5x spread on their cell) and refines its CAUSE (the clock x MultiPV interaction,
+not MultiPV as such, and not the clock as such). Seat 30's "patched build is exact" half is consistent with this:
+if their patch makes the MultiPV-3 clock path behave like MultiPV 1, exactness follows.
+CAVEAT: seat 30 measured at Hash 256 with `go wtime 5000` on their own position; I used a middlegame from my set.
+The depths differ (their {7,11} vs my {1,4}) so the exact numbers are position-dependent - the STRUCTURE
+(instability only at MPV3+clock, stability at MPV1+clock and at deterministic limits) is what reproduces.
