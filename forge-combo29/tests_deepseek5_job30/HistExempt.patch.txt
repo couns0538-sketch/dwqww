@@ -1,0 +1,68 @@
+# HistExempt.patch.txt - applies from the REPOSITORY ROOT (patch -p1) on the PLAIN base 6b98f2170a3210e71beed04bbd2553972c253ed7 (no other patch). The option HistPruneExempt (spin 0-4, default 0): 1 = no history pruning of Killer1; 2 = of both killers; 3 = of both killers and the counter move; 4 = of the TT move. The MovePicker gets four public getters (killer1_move, killer2_move, countermove_move, ttmove_move). Counter-only when 0: the tree is the base's.
+#
+--- ds5_base_src/include/forge/search.hpp	2026-11-16 08:48:42.475794560 +0000
++++ ds5_he/include/forge/search.hpp	2026-11-16 13:56:42.813213603 +0000
+@@ -273,6 +273,7 @@
+ extern int HistoryBonusMax;
+ extern int LmrHistoryDivisor;
+ extern int CheckExtensionDepth;
++extern int HistPruneExempt;
+ extern int LmrCutoffThreshold;    // child cutoff count above which late moves are reduced more (0 = off)
+ extern int MaterialCorrectionWeight; // 0 = off, 100 = same weight as the pawn correction
+ // Time management (sudden-death / increment controls).
+--- ds5_base_src/src/search.cpp	2026-11-16 08:48:42.515794560 +0000
++++ ds5_he/src/search.cpp	2026-11-16 13:56:42.813213603 +0000
+@@ -74,6 +74,7 @@
+ int HistoryBonusMax = 2048;
+ int LmrHistoryDivisor = 6000;
+ int CheckExtensionDepth = 2;
++int HistPruneExempt = 0;
+ int LmrCutoffThreshold = 3;
+ int MaterialCorrectionWeight = 100;
+ int TmSoftDivisor = 22;
+@@ -719,6 +720,12 @@
+     std::array<Move, 2> killers_{};
+     Move counter_{};
+     Stage stage_;
++public:
++    [[nodiscard]] Move killer1_move() const { return killers_[0]; }
++    [[nodiscard]] Move killer2_move() const { return killers_[1]; }
++    [[nodiscard]] Move countermove_move() const { return counter_; }
++    [[nodiscard]] Move ttmove_move() const { return tt_move_; }
++private:
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+     // Every slot read is written first (moves_[index_ < count_], bad_captures_
+     // [bad_index_ < bad_count_], check_squares_[1..6] after init_check_squares):
+@@ -1877,7 +1884,12 @@
+                     note_deferred_quiet_checks();
+                     continue;
+                 }
+-                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
++                const bool hist_exempt =
++                    (tune::HistPruneExempt == 1 && move == picker.killer1_move()) ||
++                    (tune::HistPruneExempt == 2 && (move == picker.killer1_move() || move == picker.killer2_move())) ||
++                    (tune::HistPruneExempt == 3 && (move == picker.killer1_move() || move == picker.killer2_move() || move == picker.countermove_move())) ||
++                    (tune::HistPruneExempt == 4 && move == picker.ttmove_move());
++                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth && !hist_exempt) {
+                     trace_case();
+                     quiet_fail = true;
+                     continue;
+--- ds5_base_src/src/uci.cpp	2026-11-16 08:48:42.515794560 +0000
++++ ds5_he/src/uci.cpp	2026-11-16 13:56:42.813213603 +0000
+@@ -198,6 +198,7 @@
+             std::cout << "id name Chess Engine Forge 6.4.24 candidate\n"
+                          "id author OpenAI\n"
+                          "option name Hash type spin default 32 min 1 max 2048\n"
++                         "option name HistPruneExempt type spin default 0 min 0 max 4\n"
+                          "option name Threads type spin default 1 min 1 max 256\n"
+                          "option name MultiPV type spin default 1 min 1 max 8\n"
+                          "option name Move Overhead type spin default 10 min 0 max 1000\n"
+@@ -323,6 +324,8 @@
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "info string cannot load book " << path << std::endl;
+                 }
++            } else if (name == "HistPruneExempt") {
++                apply_spin(0, 4, [&](int clamped) { forge::tune::HistPruneExempt = clamped; });
+             } else if (name == "Book Depth" || name == "Book Variety") {
+                 apply_spin(0, 100, [&](int clamped) {
+                     if (name == "Book Depth") book_depth = clamped;
