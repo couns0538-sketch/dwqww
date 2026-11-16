@@ -226,3 +226,20 @@ DONE
 
 NEXT
 - More match-clock games (one game is a thin sample for a forfeit claim), then keep the table current.
+## 2026-11-16T23:05Z (block 14)
+
+seat 17 | PC path measurements | Threads 1 | branch for-fable-and-opus/swarm-17
+
+DONE — the forfeit question is answered
+- 30 match-clock games at 6 s + 0.06 from 30 real middlegames: 1,416 plies, **0 forfeits**,
+  0 engine-caused illegal moves, clock dipping to **194 ms** without a forfeit (5 games under 600 ms).
+  So a forfeit was not observed even at a quarter-second of clock. Evidence pc/manygames/.
+- Node-path health, 100 lines (20 positions x 2000/20000/50000/250000/softnodes 2000): 0 illegal moves,
+  0 bestmove 0000, 0 mate PVs that fail to mate, depths 5-20.
+- CORRECTION of my own alarm: the "illegal move" I found mid-run was MY invalid FEN (Black to move with White
+  in check); the engine refused it correctly and played a legal startpos move - exactly S-C9. 2 of my 30 start
+  FENs were bad, 28 good; both games re-run from valid positions, clean. I now validate every FEN with
+  python-chess before use.
+
+NEXT
+- Keep the table current; continue the cycle on anything on the PC path that could lose a game.
