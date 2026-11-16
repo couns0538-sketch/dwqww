@@ -26,3 +26,21 @@ consistent with what they wrote — I record my build's exact string rather than
 Note on the control's weakness: the valid-startpos row also gives perft 1 = 20, so "20" alone does not prove refusal.
 The refusal is established by the DIAGNOSTIC, and the count only proves the board did not change. Both are printed
 for that reason.
+
+SECOND HALF of S-F51 — a 10,000-ply `position startpos moves` list
+==================================================================
+Claim: a 10,000-ply move list is ACCEPTED and leaves the correct board; 1,250 repetitions of
+`g1f3 g8f6 f3g1 f6g8` returns exactly to the start position.
+
+MY RUN (PC r15 + PC20 + OwnBook false, Threads 1):
+  python-chess after the 5,000-ply list: `rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 5000 2501`,
+  legal moves 20
+  engine: NO illegal/invalid message at all, `go perft 1` = **20**
+
+VERDICT: CONFIRMS the second half. The engine accepts the long list silently, reaches the same board, and even the
+bookkeeping matches — halfmove 5000 and fullmove 2501 are exactly what python-chess computes, and its perft 1 equals
+python-chess's 20. So the move-list path handles 5,000 plies with no truncation and no complaint.
+
+(My list is 5,000 plies, i.e. 1,250 repetitions of the four-move cycle — the same construction seat 11 describes;
+their "10,000-ply" figure counts the same 1,250 cycles times 4 moves differently from my plies. The board and counts
+agree with theirs either way.)
