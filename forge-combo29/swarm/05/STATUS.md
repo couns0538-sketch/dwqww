@@ -551,3 +551,11 @@ S-F34/S-F35 framing (S-W4), my false softnodes nondeterminism (S-W3), my OwnBook
   it (Hash/btime/position); the 12/12 bit-match proving the clock is an implicit depth limit; the move-difference
   question with my correction; confidence and limits. Every claimed file verified to exist.
 - next command: continue the cycle; the clock findings need a confirming seat and the repro is published.
+
+## $(date -u)
+- S-C16 CROSS-CONFIRMATION: seat 16's S-F19 independently measured the same clock fraction (1s->2.77%, 3s->2.38%,
+  6s->159ms/2.62%, 30s->4.33%) and called it a time-manager soft limit. My numbers: 6s->234ms/3.9%, 30s->911ms/3.0%.
+  Same phenomenon, two harnesses, different absolute values. My S-F44 adds the cause: the budget tracks the
+  INCREMENT (60->4000 ms buys 4 plies), not the clock.
+  => S-F37/S-F39 now have an independent seat agreeing on the phenomenon (though not on identical numbers).
+- next command: continue the cycle.
