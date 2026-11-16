@@ -168,6 +168,23 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:59Z - S-C36: CONFIRMS 30-F56 game reproducibility, with the sample-size consequence flagged
+
+A self-play game from a given start is byte-identical across fresh processes at go nodes 20000, PC20, Threads 1,
+Hash 16 (one process per move): startpos 14 plies sha 84b500ad4e619e7c twice; a 1.e4 e5 2.Nf3 Nc6 start sha
+232077db884d8ec6 twice.
+
+CONSEQUENCE (seat 30's, supported in principle): if a game is deterministic, repeating a match from one opening
+reproduces it - so N games from N openings with both colours are NOT 2N independent samples. Effective sample size is
+the number of OPENINGS; a CI computed over "games" from repeated openings would be too narrow by ~sqrt(2) or more.
+I did NOT measure the both-colours case, so I claim the principle, not the factor.
+
+Consistent with S-F30/S-F31, S-C15 and seat 28's fixed-point floor - four seats reaching the same property from
+different sides.
+
+State: 81 findings, guards green, working tree clean, local = remote. Continuing at cadence.
+
 ## 2026-11-16T23:58Z - S-F37 minimum-one floor is its own finding; pattern paragraph carries the caught-at-desk progression
 
 S-F37 (PC r15/PC20/Threads 1/Hash 16): `go depth 0` behaves as **depth 1**; `go movetime 0` reaches **depth 5**; only
