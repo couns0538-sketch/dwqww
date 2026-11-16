@@ -259,3 +259,16 @@ next command: check another seat's open finding on the PC build under PC20, then
 
 next command: TT counter run at depth 16 cold to split probe frequency from miss cost
   (job4/instrument_tt.py at depth 16), which decides whether 8.47 %% is capacity or call rate.
+
+## 2026-11-16T22:34:39Z
+
+19-F36 TT cost is CALL RATE not capacity: probes/node = 1.0000 at depths 11/13/16, full-table scans
+  0.000/0.006/0.204 %% of probes. A larger hash cannot fix the 8.47 %%.
+19-F38 proof: 16x hash (16->256 MB) on a real cold depth-14 search removes ALL replacement scans (97->0)
+  and moves nodes by 2 in 1,645,108. Capacity is relievable and worth ~nothing here.
+19-F37 bench HARDCODES 16 MB (uci.cpp:773 Searcher bench_searcher(16)); Hash option hits the UCI searcher
+  only (line 777). Hash 16/64/256/1024 gave byte-identical bench counters - second reason bench cannot test TT.
+CorrHistV2 measurement STOPPED as instructed (games question).
+
+next command: continue PC-relevant family profiling at depth 16 on PC r15 under PC20 (move ordering 17.12 %%,
+  see_ge 4.88 %%), looking for the next attackable PC-relevant cost.
