@@ -252,3 +252,16 @@ is_legal_probe.cpp
 is_legal_run_control_header.txt
 is_legal_run.txt
 stamps.txt
+
+## 2026-11-16T21:57:56Z
+job14 done: gives_check() correct on 260,053 legal moves vs make+in_check brute force (07-C11); header-planted control gives 3,999 missed checks, so the zero is real.
+### git status --short
+ M FINDINGS.md
+ M STATUS.md
+?? REPORT_job14.md
+?? job14/
+### ls job14
+gives_check_probe.cpp
+gives_check_run_control.txt
+gives_check_run.txt
+stamps.txt
