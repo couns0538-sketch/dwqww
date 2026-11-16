@@ -75,7 +75,8 @@ noise. `out/fourth_point.txt`, `out/ceiling_runs.txt`.
 
 - `0.06 → 0.6 s`: **2.5x** the time, **+2 median plies**.
 - `0.06 → 6 s`: **~9.7x** the time, **+7 median plies** (one board reached depth 64).
-- `6 → 24 s`: **nothing at all** — the engine stops asking for more than roughly 3.6 s per move on this path.
+- `6 → 24 s`: **nothing at all at a six-second clock** — with the clock held at 6 s the engine stops asking for more
+  than roughly 3.6 s per move. **But this ceiling is clock-proportional, not absolute — see the next section.**
 
 **Where exactly does it stop?** A bracketing run (4 positions, 3 runs each, clock 6 s) pins it:
 
@@ -88,7 +89,32 @@ noise. `out/fourth_point.txt`, `out/ceiling_runs.txt`.
 | 24,000 ms | 1,928 ms | 27 | **1.00x** |
 
 So the flat region begins at an increment of about **6 seconds** and holds across a 4x range beyond it. **The useful
-increment range on this path is roughly 0.06 s to 6 s; past 6 s the increment is dead weight.**
+increment range **at a six-second clock** is roughly 0.06 s to 6 s; past 6 s it is dead weight *at that clock*.
+It is **not** dead weight at a larger clock — see below.**
+
+## The ceiling scales with the clock, not with a fixed maximum
+
+I tested whether the ~6 s flat region is a hard per-move cap by crossing the clock with the increment
+(3 G positions x 2 runs per cell, sequential, same settings):
+
+| clock | increment 60 ms | increment 6,000 ms | increment 24,000 ms |
+|---|---|---|---|
+| 6,000 ms | 177 ms / d18 | 1,712 ms / d27 | 1,720 ms / d27 — **flat vs 6,000** |
+| 20,000 ms | 796 ms / d23 | 2,755 ms / d27 | **8,838 ms / d30** |
+| 60,000 ms | 1,712 ms / d26 | 3,424 ms / d27 | **11,934 ms / d31** (one run reached 35,995 ms) |
+
+Read the table ACROSS, not down: at a 6,000 ms clock the last two columns are identical (the flat region), but at a
+60,000 ms clock they differ by 3.5x — so the same 6,000 ms increment that is "dead weight" at a small clock is
+**actively used** at a large one.
+
+So the flat region at a 6-second clock is **not** a hard ceiling: at clock 20,000 the same 24,000 ms increment buys
+5.1x the time of the 6,000 ms increment, and at clock 60,000 the engine reached 11.9 s per move. `out/ceiling_grid.txt`.
+
+**This changes the advice.** The lever is the **clock and the increment together**, not the increment alone:
+
+- At the owner's 6-second clock, raising the increment past ~6 s buys nothing.
+- Raising the **clock** raises the ceiling, and then a larger increment starts to matter again.
+- So "raise the increment" is only useful if the clock is raised with it (or if the clock is already large).
 
 ## What this means for the owner
 
