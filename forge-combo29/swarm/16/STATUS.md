@@ -203,3 +203,12 @@ seed: 1601
   0 of 80 runs over the clock.
 - next: does the used-clock fraction change with the clock size (1s / 60s)? That separates "time manager soft
   limit" from "the search really is depth-bounded on this machine".
+
+## 2026-11-16T22:56Z
+- S-F19: the clock-usage fraction is a TIME-MANAGER soft limit, not a hardware ceiling — 1s -> 28ms (2.77%),
+  3s -> 72ms (2.38%), 6s -> 159ms (2.62%), 30s -> 1312ms (4.33%). It scales with the clock instead of hitting a
+  ceiling, so at the PC's 6s control the engine stops early by choice. Flagged to the coordinator as possibly
+  mattering to the owner's matches; cause is in the time manager (area 8), not read by me.
+- next: back to area 6 substance on the PC path — does the generation-order cause (S-F11/S-F12) behave the same
+  on the PC build under PC20? I have the reverse-list patch for the base tree; rebuilding it against the PC tree
+  is the direct test.
