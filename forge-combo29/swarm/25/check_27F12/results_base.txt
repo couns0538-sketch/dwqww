@@ -1,0 +1,30 @@
+go wtime 3000              20     20    122327     63   f1g1
+
+T1 verdict: all wtime values give the SAME depth/nodes/move? False  <- their claim says True
+
+T2: the same BOARD with WHITE to move
+  go wtime 0 -> infos 1, depth 1, nodes 21, move c8e7, 1 ms
+
+T3: startpos, black vs white
+  startpos b   go wtime 0 -> infos 1, depth 1, nodes 26, move d7d5
+  startpos w   go wtime 0 -> infos 1, depth 1, nodes 26, move d2d4
+
+T4: control — go movetime 5 on their FEN
+  go movetime 5 -> infos 5, depth 5, nodes 588, move f1g1, 1 ms
+
+SUMMARY
+  black-to-move clock ignored (all wtimes identical): False
+  white-to-move at wtime 0: infos 1 (their claim: 0 info lines = emergency path)
+  movetime control: depth 5 (their claim: stops at depth 1)
+
+BASE BUILD ALSO REFUTES IT. The same check on the base tree (6b98f217, S14) gives the same shape:
+  go wtime 3000 -> depth 20 / 122,327 nodes / f1g1 (the clock scales here too)
+  white-to-move at wtime 0 -> depth 1 / 21 nodes ; black -> depth 1 / 39 ; startpos 26 vs 26 (no asymmetry)
+  go movetime 5 -> depth 5 / 588 nodes (not depth 1)
+So the claim does not reproduce on EITHER build I have (base S14 and PC r15 PC20). That makes "a different build
+explains it" less likely, though seat 27's named binary `068f0927` is still not a build I possess.
+
+WHAT THIS ADDS: it is no longer "my PC build happens to differ" - the behaviour is consistent across both builds
+available to me, and both agree with my S-F32 (every clock regime well behaved, both colours). I am upgrading the
+caveat from "builds may differ" to "behaviour is consistent across the two builds I can test; their binary remains
+untested by me".
