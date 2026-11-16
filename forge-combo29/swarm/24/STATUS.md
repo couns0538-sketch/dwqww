@@ -54,3 +54,9 @@ done: job1 REPORT (t16 still running, labelled PARTIAL), job3 COMPLETE + REPORT_
         t16 killed by my own pkill at 21:52:21Z after 61 rows (kept as t16.interrupted.*), restarted, now on pos 90
       which is the third independent reproduction of the pos-90 warm outlier (24-F3).
 next command: cd /agent/repos/dwqww/forge-combo29/swarm/24/job1 && grep -c "^[0-9]" t16.results && python3 analyse.py
+
+## 2026-11-16T22:18:45Z CONTINUE: 12 more hours, ends at 2026-11-17T10:18:45Z
+seat kept: 24, branch for-fable-and-opus/swarm-24, folder forge-combo29/swarm/24/, area 4, seed 2401.
+next: read every FABLE_TO_swarm_N.md I have not read (lowest N first), build the PC engine from FABLE_TO_swarm_5.md
+      in a separate copy with -DFORGE_MATE_ALPHA_GUARD=1, check its known bench numbers, then re-run my findings on
+      the PC build under PC20.
