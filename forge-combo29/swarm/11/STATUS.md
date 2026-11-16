@@ -429,3 +429,12 @@ Settings: **none** (no setoption), **S14** (the 14 settings), **PC20** (S14 + th
 - S-F63: a refused FEN does NOT contaminate the transposition table — `go depth 12` on a later target
   gives identical results (e4d5, 60,955 nodes, cp 83) with or without a preceding refused FEN. So the
   blast radius is one command / one answer / no residue. Blast-radius picture now complete.
+
+## 2026-11-16T23:10Z progress (window still open to 10:18Z)
+- Move generation on PC20 now VERIFIED: perft 1-4 x 12 G positions = 48/48 match (incl. a 6,040,815
+  node perft 4), perft 5 x 4 sparse positions = 4/4 match. Feature divides all correct: ep capture
+  generated (S-F61), castling transit in all four edge cases (S-F64), all four promotion kinds incl.
+  push+capture eight-way (S-F65).
+- Hazard note: rule line now "Fatal on invalid FEN or illegal move: resync only with ucinewgame plus
+  a well-formed position, never isready." S-F62 proved isready/eval/stop do NOT clear it. S-F63 proved
+  no hash residue (identical 60,955-node search), so blast radius = one command, one answer, no residue.
