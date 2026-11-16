@@ -1,0 +1,19 @@
+# PREDICTION - seat 29, area 9, job 5 = brief cycle 2(c): area 9 job 1 again with SEED+10 = 2911 and a NEW R set.
+# Committed and pushed ALONE before the first measuring command.
+#
+# What differs from my first job-1 run (by design, as the brief requires me to state):
+#   - new position set R built with seed 2911 (not 2901), so the "deep" profile is on positions never used before
+#   - this time the profile is taken on a DEPTH-12 position set as well as bench 13, because job4 proved those two
+#     disagree (TT probe 1.95 % on bench vs 4.86 % deep), which makes bench-only profiling unsafe
+#
+Q1  The ten hottest symbols on the new R set at depth 12, ranked, will be led by the same three as on bench 13
+    (evaluate_position, apply_and_evaluate, Worker::search) but with evaluate_position's share LOWER than the
+    16.05 % I measured on O+G deep search, because R positions from random games are less open than openings.
+    KILLED if evaluate_position is above 20 % or below 8 %.
+Q2  TT probe_body will again be clearly above its bench-13 value (my 1.95 %): predicted 3 % to 6 %.
+    KILLED if it comes out below 2 %.
+Q3  see_ge will be between 4 % and 7 %, i.e. stable across bench, O+G deep, and R deep.
+    KILLED if outside 3 % to 9 %.
+Q4  The ranking of MovePicker::pick_best vs MovePicker::next will again be a TIE (each within 1 point of the
+    other), consistent with my 29-C2 and NOT with 19-F13's ordering claim.
+    KILLED if one exceeds the other by more than 1.5 points.
