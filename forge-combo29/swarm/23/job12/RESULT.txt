@@ -1,0 +1,44 @@
+IS THE MARGIN A MEASURED PREDICTOR? — top-two gap at the depth the 20000 budget actually reached
+==============================================================================================
+For every one of the 60 positions in job10/out_60.json I read the depth the 20000 budget actually reached, then
+scored the two relevant moves ALONE at that same depth with `go depth D searchmoves <move>`, and took the gap.
+For a changed position the two moves are the ones the budgets disagreed about; for an unchanged position the
+bestmove plus up to 3 random legal alternatives, keeping the two best. PC r15, PC20, Threads 1, Hash 16.
+
+DISTRIBUTION (the question asked):
+
+| group | count | min | median | max |
+|---|---|---|---|---|
+| move CHANGED between budgets | 17 | 1 cp | **12 cp** | 59 cp |
+| move did NOT change | 43 | 0 cp | **46 cp** | 690 cp |
+
+changed positions with gap <= 30 cp: **14 of 17**   unchanged: 17 of 43
+
+ANSWER: YES, the gaps are systematically smaller in the changed set — median 12 cp against 46 cp, and 82 % of
+changed positions sit inside 30 cp against 40 % of unchanged ones. The instability IS margin-driven, and 23-F25's
+rejection of "it searches deeper" plus 23-F26's median contrast now have a predictor behind them.
+
+BUT — and this must travel with the result — a SMALL GAP IS A WEAK PER-POSITION CLASSIFIER, not a detector:
+
+| gap threshold | changed caught | unchanged wrongly flagged | precision | recall |
+|---|---|---|---|---|
+| 5 cp | 5 of 17 | 4 of 43 | 56 % | 29 % |
+| 10 cp | 7 of 17 | 7 of 43 | 50 % | 41 % |
+| 15 cp | 9 of 17 | 10 of 43 | 47 % | 53 % |
+| 20 cp | 12 of 17 | 13 of 43 | 48 % | 71 % |
+| 25 cp | 14 of 17 | 15 of 43 | 48 % | 82 % |
+| 30 cp | 14 of 17 | 17 of 43 | 45 % | 82 % |
+
+Precision never exceeds 56 % at any threshold, i.e. of the positions a small gap would flag as "may switch", fewer
+than half actually switch. So the honest statement is:
+
+  "Budget-sensitive positions have systematically smaller top-two margins (median 12 vs 46 cp). A small margin is
+   therefore the mechanism, but it is not a reliable per-position predictor: most small-margin positions still do
+   not change move, because the depth gain has to fall in a narrow band for the flip to happen."
+
+WHY PRECISION IS LIMITED (suspicion, not proven): a flipped preference needs the margin to be smaller than what the
+extra 3-9 plies can be worth ON THAT POSITION, which varies. I have not measured that per-position depth sensitivity,
+so this stays a suspicion.
+
+The unchanged group's min gap is 0 cp: at least one position has two equally scored moves and still keeps the same
+move across budgets — a useful counter-example for anyone who assumes "equal score means it will flip".
