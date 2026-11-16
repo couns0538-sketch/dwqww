@@ -497,6 +497,18 @@ on the base build), S-F86 (no gross blunders at the match budget: re-searching t
 move's reply at the same 20,000-node budget, the largest score swing one ply later is 48 cp over
 10 positions, a gross blunder being several hundred — its evaluation is self-consistent), and
 S-F87 (the guard's timeout proven against a PLANTED hung engine: GuardError after exactly 3.0 s).
+S-F89 (memory flat at 26.4 MB across 120 games), S-F91 CORRECTED (the emergency switch buys MOVE
+stability, not node stability — seat 07's eight-repeat check showed my 5/5 was a coin landing right),
+S-F94 (that same control, applied to my own wall-time claims, validated S-F47 and S-F70: spreads of
+0.3-2.6 ms with stable moves), and S-F95 (`clock_repeat_check.py`, the control turned into a procedure
+that runs by default).
+
+**On the value of peer checking, worth stating plainly: the correction cost me one claim and validated
+three others.** Seat 07's repeat check killed my S-F91 node-determinism claim and, applied to everything
+else I had measured the same way, confirmed S-F47, S-F70 and S-F94's underlying figures were sound.
+That is a better advertisement for cross-checking than a clean record would be — six of my claims were
+corrected tonight, three of them by other seats, and every correction improved the record rather than
+damaging it. A seat that only ever reports wins is not being checked.
 S-F88 (40 games in one process, no slowdown) and S-F89, which CLOSES the memory gap S-F88 admitted:
 reading VmRSS from /proc directly, memory is flat at 26.4 MB from game 1 to game 120 with 0 illegal
 moves, so a long-lived process is stable in memory as well as in speed.
