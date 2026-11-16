@@ -223,3 +223,14 @@ Next: continue confirmations on the PC path.
   120 s isready timeout (printed in the output) because the engine was starved, not hung. The 19-F12 discipline is
   unchanged — we never continue without a readyok and never invent an answer.
 Next: continue confirmations on the PC path.
+
+## 2026-11-16T22:59:24Z warning page written, and the last number NARROWED it
+- **`WARNING_multipv_hash.md`** (one screen, owner-facing): failing configuration, idle vs loaded failure rate,
+  healthy control, the fix, and that the matches are unaffected.
+- **S-C30 narrowed S-F50**: **MultiPV 3 + Hash 256 — the plausible GUI setting — gave 0/5 zero-node answers idle AND
+  0/5 under load, on TWO positions.** So the no-search answer is demonstrated at **Hash 2048 + MultiPV 8** only
+  (1/10 idle -> 6/10 loaded, one position). 256 MB + MultiPV 3 gets "slower and shallower" (nodes 5,395-47,818 vs
+  288,912 healthy on P1; 1,132 vs 237,233 on P2), never a no-search move.
+- The warning page now says exactly that, and I removed an unverified "second position reproduced it" sentence before
+  measuring P2 — P2 did not reproduce a zero-node answer at 256/3.
+Next: continue confirmations on the PC path.
