@@ -42,8 +42,15 @@ class Engine:
             if l.startswith("id name"):
                 self.id_name = l[7:].strip()
         for opt in self.options:
-            name, _, val = opt.partition(" ")
-            self.send(f"setoption name {name} value {val}")
+            # Accept BOTH shapes: the short form "Threads 1" and a complete
+            # "setoption name Threads value 1" line. Re-wrapping a complete line would send
+            # "setoption name setoption value name Threads value 1" and silently apply nothing.
+            if opt.startswith("setoption"):
+                line = opt
+            else:
+                name, _, val = opt.partition(" ")
+                line = f"setoption name {name} value {val}"
+            self.send(line)
         if self.options:
             self.send("isready")
             self.read_until("readyok")

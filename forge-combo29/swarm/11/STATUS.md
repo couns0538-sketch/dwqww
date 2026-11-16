@@ -200,3 +200,7 @@ All numbers Threads 1. Next: continue re-running/expanding finds on PC20, STATUS
 - S-F31: two of the six switches are OFF in the PC patch (BARE_KING_ONE_THREAD 0, ABORT_PUBLISH 0).
 - S-F32: FORGE_FIX_ROOT_DRAWN proven to fire — threefold root: base 0 nodes/a2a3, PC r15 26 nodes/d2d4.
   A 2nd occurrence is also searched, matching file 3's "third occurrence" rule.
+- S-A5 CRITICAL SELF-AUDIT: my ucio.Engine double-wrapped PC20_LINES, so since the PC build was
+  made, every "under PC20" search result actually ran with DEFAULT options (bench proved it: 312866
+  vs 278024). Fixed + verified. RETRACTING the PC20 label on S-F21/F26/F28/F29/F30/F32/F33 and
+  re-running them all now. S-F20/F24/F25/F27/F34 unaffected.
