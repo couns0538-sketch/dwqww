@@ -175,3 +175,5 @@ NEXT: continue area-1 work; push again by 22:30.
 - S-F24: FEN layer on PC r15/PC20 is IDENTICAL to base on every probe (S-F2, S-F13, S-F14, S-F15, S-F16).
   So my FEN findings transfer unchanged to the PC. (Two FEN labels in this run were mislabelled by me again —
   the engine values are right; S-F16 has the correctly generated version.)
+- S-F25: closed my own S-F24 mislabel. 8P+2R is LEGAL (2 rooks are original, no promotion needed) and
+  8P+2Q is illegal — board.cpp's `promoted > 8-pawns` rule is consistent, engine correct, my labels wrong.
