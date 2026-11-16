@@ -173,7 +173,8 @@ def run_one(idx, lines, exe):
                     else:
                         rec["no_bestmove"] += 1
             elif s == "stop":
-                if pending_go and wait_best(n_best(), BESTMOVE_WAIT):
+                # a ponder search does not answer stop; wait briefly, never 15 s
+                if pending_go and wait_best(n_best(), 1.0):
                     pending_go -= 1
             elif s == "isready":
                 rec["ready_sent"] += 1

@@ -41,3 +41,8 @@ My job-2 runner closed stdin while a search was live in 772 of 2,000 sequences, 
 **Complete FINDINGS.md pushed** (30-F1..F18, 30-C1..C2) with every raw job folder, patch file and this STATUS.
 Corrections recorded honestly: job-2's original totals are INVALID (19-F12 contamination, 772/2,000 sequences) and are marked superseded in REPORT_job2.md; the corrected run is running now as out_full_fixed. Cold-start audit passed (no Clear Hash, fresh process per measurement, warm-vs-cold separated). Measurement-integrity audit passed (3 checkers raise on missing fields; proven against 3 stub engines; my own validator's false PASS found and fixed).
 **Next command**: `cat forge-combo29/swarm/30/job2/out_full_fixed/summary.json` and push the corrected table before 22:30.
+
+## Mon Nov 16 10:15:22 PM UTC 2026
+
+**CORRECTED JOB-2 NUMBERS IN**: 2,000 sequences, 0 crashes / 0 hangs / 0 sanitizer lines / 0 illegal bestmoves out of 1,032 honestly-attributable bestmoves (2,902 excluded as ended-live under 19-F12). REPORT_job2.md now leads with this and keeps the invalidated numbers only as a record. Everything pushed.
+**Next command**: `git log --oneline -1` and stop; all three area-10 jobs and three checks are complete and pushed.

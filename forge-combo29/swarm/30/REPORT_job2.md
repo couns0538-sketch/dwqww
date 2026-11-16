@@ -76,7 +76,24 @@ corrected run is `out_full_fixed/summary.json` and its numbers supersede everyth
 My honesty check, check-1 and check-2 were NOT affected (see 30-F14, 30-F15, and the audit in
 `../check_harness/audit.txt`).
 
-### 30-F5 — the RESULT is true (this is the useful half) [SUPERSEDED by out_full_fixed]
+### 30-F5 — the RESULT is true (this is the useful half)
+
+**CORRECTED RESULT (this is the one that counts), from `out_full_fixed/summary.json`, run after
+seat 19's 19-F12 broadcast with the fix in `runner.py`:**
+```
+{"sequences": 2000, "wall_seconds": 159.2, "workers": 4,
+ "illegal_bestmoves": 0, "runner_errors": 0, "hang_reasons": {},
+ "crash": 0, "hangs": 0, "san_count": 0, "no_bestmove": 0, "unpaired": 0,
+ "checked": 1032, "ended_live": 2902, "go": 7538, "bounded": 4165,
+ "bestmoves": 7538, "readyok": 5832, "ready_sent": 5832}
+```
+2,000 sequences, **0 crashes, 0 hangs, 0 sanitizer lines, 0 illegal bestmoves out of the 1,032
+bestmoves that came from sequences NOT flagged `ended_live`.** 2,902 searches sat in sequences that
+ended with a search live; under 19-F12 their bestmoves cannot be trusted, so they are excluded rather
+than counted — that is why the checked count is 1,032 and not 7,538. The conclusion (this UCI layer is
+robust) is unchanged; the SUPPORT is smaller and honest.
+
+The superseded first-run numbers follow, kept for the record:
 `out_full/summary.json`:
 `{"sequences": 2000, "illegal_bestmoves": 0, "crash": 0, "hangs": 0, "san_count": 0,
   "unpaired": 0, "checked": 7538, "go": 7538, "bestmoves": 7538, "readyok": 5832, "ready_sent": 5832}`
