@@ -1,0 +1,27 @@
+# PREDICTION — area 6, job 3 (search at depth 10, position vs colour mirror)
+
+Build: the release build of 6b98f217 (sha256 e06310ec...). S14 options. Threads 1, Hash 16.
+For every G position (353): `go depth 10` on the position and on `board.mirror()`. Compare
+  (a) score equal, (b) bestmove equal after mirroring the move back (mirror the squares vertically and swap
+      the colour: a white move e2e4 must correspond to the black move e7e5).
+Also the same for 200 R positions.
+
+Note what is NOT expected to be equal: alpha-beta with a shared hash table and a fixed node budget is
+order-dependent, so some bestmove differences are expected at finite depth. This job is a MEASUREMENT of how
+big that is, not a bug hunt.
+
+P1. Scores equal on the mirror pair: predicted 60 % to 100 % of G positions. Kills it: under 40 % (then the
+    search has a real colour-symmetry defect beyond search order).
+
+P2. bestmove (mirrored) equal: predicted 50 % to 95 % of G positions. Kills it: under 30 %.
+
+P3. Every score whose magnitude is >= 31000 (mate scores) is predicted to correspond to a genuine mate
+    distance that matches on both sides.  Kills it: a mate score on one side and a non-mate score on the
+    other for the same pair (that would be a real fault, not order dependence).
+
+P4. R positions behave the same as G within 15 percentage points.  Kills it: a gap above 25 points.
+
+P5. PLANTED ZERO (Opus's Rule 1): my comparison script, when given a deliberately WRONG "mirror" (the
+    position's colour flip replaced by a different legal position), must report a difference on 100 % of
+    pairs.  Kills it: fewer than 100 % (then my comparator cannot see a difference and every "0" it reports
+    elsewhere would mean nothing).
