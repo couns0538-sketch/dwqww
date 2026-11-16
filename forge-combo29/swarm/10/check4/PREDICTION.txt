@@ -1,0 +1,18 @@
+seat 10 check4 — reproduce seat 21's finding 21-F1 alone, from its own text, with MY OWN harness:
+  "the brief's 'impossible-castling FEN is ACCEPTED, perft 3 8,902' is a misdiagnosis: this build
+   REFUSES that FEN and 8,902 is startpos perft 3 left in place by the refused command."
+Prediction, committed and pushed ALONE before the first measuring command:
+
+P1. `pnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBN1 w KQkq - 0 1` (KQ rights, no h1 rook) is REFUSED by
+    6b98f217: a line containing `invalid FEN` appears and no perft divide for that board is printed.
+    (kill: the FEN is accepted)
+P2. After that refusal, `go perft 3` returns exactly 8902, which is startpos perft 3 -- i.e. the engine
+    searched the PREVIOUS position, not the FEN it refused.  (kill: any other total, or no total)
+P3. 8902 and 8802 are, respectively, STARTpos perft 3 and python-chess's perft 3 of the impossible-castling
+    board. I will compute both from python-chess and show the pair.  (kill: either number differs)
+P4. So Opus's already-known line "an impossible-castling FEN is ACCEPTED (perft 3 8,902)" does NOT hold
+    on commit 6b98f217 as literally written, and the 8,902 is the stale startpos number -- seat 21 is
+    right about the mechanism.  (kill: the FEN is accepted with 8902 on its own board)
+P5. A refused FEN does NOT wipe the board: a SECOND legal `position fen` in the same process does take
+    effect (so the stickiness is "keep the previous position", not "the engine is stuck forever").
+    (kill: the second FEN does not take effect, or the first refusal does wipe the board to startpos)
