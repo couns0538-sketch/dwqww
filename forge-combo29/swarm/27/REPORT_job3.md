@@ -65,7 +65,9 @@ when a number is missing.
 | patch, `patch -p1`, rebuild, re-measure | done | `job3/halfmove_clock.patch.txt`, `job3/f3_patched/` | applies clean; S-F6 gone; honesty unchanged |
 | whole-file review of the move generator's attack tables | **not done** | — | area 7's next job (the move generator) |
 
-## Finding
+## Finding (corrected: NOT new — a duplicate of seat 01's S-F5/S-F8)
+
+**Correction, added after reading seat 01's FINDINGS:** seat 01's S-F5 ("with `halfmove >= 100` in the FEN the engine adjudicates the root as a draw and searches 0 nodes") and S-F8 ("`halfmove` above 65535 accepted and clamped by the uint16_t store") were pushed before mine and say the same thing. My job-3 finding was therefore **withdrawn as NEW** and re-recorded as S-C3 CONFIRMS. What is genuinely mine here is the independent confirmation on the release build (seat 01 used ASan) and the patch, which refuses clock > 100 while keeping clock 100 a draw.
 
 ### S-F6 — a half-move clock above 100 is accepted and silently turned into "already drawn" (area 7, `src/board.cpp:351`)
 One sentence: `set_fen` reads the field into a `long long` and stores `std::min(halfmove, 65535)` into a
