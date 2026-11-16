@@ -1,0 +1,11 @@
+adjudication depth 20, Threads 1, Hash 16, OwnBook false, `go depth 20 searchmoves <mv>`
+each candidate move scored by each build independently; both must agree to declare a winner
+
+| idx | base answer (score) | PC answer (score) | verdict by BASE build | verdict by PC build | combined |
+|---|---|---|---|---|---|
+| 153 | a4b4 (cp -1284) | a4b5 (cp -1074) | base better | PC better | undecided (builds disagree: base better / PC better) |
+| 155 | c6d6 (cp -1145) | c6c7 (mate -14) | base better | base better | **base better** |
+| 156 | g5h3 (mate 16) | f2e3 (mate 6) | PC better | PC better | **PC better** |
+| 160 | f1e2 (mate 6) | f1f2 (mate 5) | PC better | PC better | **PC better** |
+
+scores shown are for the SIDE TO MOVE in the root position (negamax convention); a mate score is the engine's own claim and is not verified here as a forced mate unless it is a mate-in-N with N small enough to replay (job 5 did that for idx 156 and 160).
