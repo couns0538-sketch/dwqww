@@ -1,0 +1,17 @@
+# PREDICTION — does the ~18 cp colour-mirror score gap shrink with depth?
+
+S-F22 measured a median mirror score gap of 16-19 cp at depth 10 on the PC build under PC20. File 6 gives a
+test for a multi-thread spread: "a score outside the spread of one-thread runs ... that does not shrink with
+depth" is a defect, implying a spread that DOES shrink is expected. The colour gap is a different thing, but the
+same question applies: is it a shallow-search artefact or persistent?
+
+P1. The median mirror score gap DECREASES from depth 6 to depth 12 — predicted median gap at depth 12 is
+    strictly smaller than at depth 6. Kills it: a flat or rising median gap (that would make the gap a persistent
+    property rather than a shallow artefact).
+P2. The gap does NOT reach zero: predicted median gap at depth 12 is still at least 4 cp. Kills it: a median of
+    0 at depth 12 (which would mean the asymmetry vanishes at depth and the depth-10 number was an artefact of
+    insufficient depth — a big and useful finding).
+P3. Score-EQUAL pairs do not increase toward 100 %: predicted score-equal at depth 12 stays under a third of
+    positions. Kills it: most pairs equal at depth 12.
+P4. The MOVE mismatch count is predicted to stay roughly flat (the generation-order cause is depth-independent).
+    Kills it: a large fall in move mismatches, which would mean the move asymmetry also washes out with depth.
