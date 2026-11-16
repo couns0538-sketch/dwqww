@@ -290,3 +290,6 @@ Next: continue on PC20 with provably-applied options; STATUS every 25 min.
 - S-F46: stale-board blast radius is ONE move (18/20 recovered, 0 infected).
 - S-F51: pathological FENs refused cleanly; 10,000-ply list handled correctly.
 Next: continue FEN layer on the real path.
+- HAZARD_match_protocol.md WRITTEN for the owner: both depth tables (10 openings, 50k and 250k),
+  and the one-line rule — do not compare builds at fixed nodes, use fixed depth or the clock.
+  Also records why (nodes lands at an iteration boundary, so N buys a depth) and the alternatives.

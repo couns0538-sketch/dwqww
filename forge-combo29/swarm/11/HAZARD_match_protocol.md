@@ -1,0 +1,73 @@
+# MATCH PROTOCOL: do not compare two builds at fixed node counts
+
+Seat 11. Read this before the next match run. Measured on the engine the PC plays (PC r15,
+PC20, Threads 1) against base 6b98f217 (Threads 1, Hash 16), on the same ten openings.
+
+## The one-line conclusion
+**A fixed `go nodes N` does NOT give two different builds the same search depth. Compare builds at
+a fixed DEPTH, or on the clock — not at fixed nodes.**
+
+## Why: the same budget buys different depths
+
+Ten different openings, each searched by both builds with exactly the same node budget.
+
+### `go nodes 50000`
+| opening | base depth | PC r15 depth | same depth? |
+|---|---|---|---|
+| Italian quiet | 10 | 11 | no |
+| Sicilian Najdorf | 12 | 12 | yes |
+| French Winawer | 11 | 12 | no |
+| Caro-Kann Classical | 11 | 12 | no |
+| Queen's Gambit | 11 | 12 | no |
+| King's Indian | 11 | 11 | yes |
+| English Opening | 11 | 14 | no |
+| Ruy Lopez closed | 11 | 11 | yes |
+| Scandinavian | 11 | 12 | no |
+| London System | 11 | 11 | yes |
+
+**Same depth on 4 of 10 openings.**
+
+### `go nodes 250000`
+| opening | base depth | PC r15 depth | same depth? |
+|---|---|---|---|
+| Italian quiet | 16 | 15 | no |
+| Sicilian Najdorf | 15 | 14 | no |
+| French Winawer | 14 | 17 | no |
+| Caro-Kann Classical | 14 | 16 | no |
+| Queen's Gambit | 14 | 16 | no |
+| King's Indian | 14 | 16 | no |
+| English Opening | 15 | 17 | no |
+| Ruy Lopez closed | 15 | 18 | no |
+| Scandinavian | 14 | 16 | no |
+| London System | 14 | 16 | no |
+
+**Same depth on 0 of 10 openings.** The PC build is consistently 1 to 4 plies deeper for the same
+node count.
+
+## Why this happens (not a bug)
+`go nodes N` stops at the end of the first completed iteration, so what you actually get is a
+DEPTH, and the depth a given N buys depends on how efficiently the engine searches. The PC build
+searches more efficiently, so the same 250,000 nodes carry it deeper. That is the point of the
+build — it just means the node budget is not a neutral yardstick between old and new.
+
+Two related facts from the same measurements:
+- `go nodes N` usually uses LESS than N (median 20–34 % short across positions), because it stops
+  at an iteration boundary. So "nodes 50000" already means "until depth d completes", not "50000".
+- `go softnodes N` does the opposite and overshoots N (median ~33 % over at N=2000).
+
+## What to use instead
+1. **Fixed depth** (`go depth D`) — both engines search to the same ply. Best for A/B of search
+   changes, and it is what the honesty pins already use.
+2. **The clock** (6 s + 0.06) — equal in the sense that matters for play, though note the engine
+   currently uses only a few hundred ms of it on typical positions (median 238 ms over 20 G
+   positions), so it is effectively "as deep as fits in ~0.2–0.8 s".
+3. **A node budget is still valid for comparing one build against ITSELF** across a change that
+   does not alter efficiency much; it is not valid across builds whose efficiency differs.
+
+## Where this is measured
+- `checks/paired_depth.txt` — the two tables above (both builds, same openings, same budgets).
+- `checks/depth_spread.txt` — depth spread within one build: 11–14 at 50k, 14–18 at 250k.
+- `checks/nodes_real.txt` — how far under N `go nodes` lands, and its determinism (it is fully
+  deterministic run to run, 0 of 15 positions differing).
+
+All runs: fresh process per line, Threads 1, every value parsed from `info depth ... nodes ...`.
