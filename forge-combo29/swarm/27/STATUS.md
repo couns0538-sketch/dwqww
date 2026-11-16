@@ -234,3 +234,17 @@ ms per M-node. A timer containing only search work fits through the origin; this
 is the fixed cost by construction. Seat 29 found ~14 ms by timing; I found ~16.7 ms by the shape of the curve -
 two methods, same conclusion. Consequence: the fixed part is 3-4 % of a bench 13 report, under 2 % of bench 16,
 so shallow-bench nps is understated. **Node totals are unaffected**, which is why the pins stay comparable.
+
+## 2026-11-16T22:44Z the go-nodes band counted against the repository (S-P7)
+Asked to measure rather than warn, so I searched the repository for the owner's training/tuning data.
+**There is none here**, and I say that plainly: `*.jsonl` = 1 file (my own mutation list), `*.csv` = 0, the only
+"train" path is `windows_build/frozen_train_cmds.txt` (bench commands, 0 position lines, 0 info-depth lines).
+So the fraction of DATASET rows in the band cannot be counted from this repository; the owner's data is on his PC.
+**What I could count, over all 12,058 tracked text files: 709,727 `go nodes N` occurrences, 61 below the 26-node
+threshold = 0.0086 %.** Distribution 0:32, 1:17, 10:4, 20:5, 26:16, then 2,000:138,776 / 20,000:365,901 /
+50,000:204,857. Of the 61, **37 are in `swarm/` probe scripts (mine included) and 5 are deliberate unit tests**
+that assert the small-budget behaviour; **not one is training data**. Every budget the repo commits is 77x-1,900x
+above the threshold, so nothing committed here is at risk.
+Re-runnable: `bash forge-combo29/swarm/27/census_go_nodes.sh`; raw output `pc/rerun/census_go_nodes.txt`.
+Store note updated with an addendum: `internal/swarm/seat-27-fifty-move-band-and-nodes.md`.
+Next: continue confirmations.
