@@ -152,3 +152,9 @@ NEXT: continue area-1 work; push again by 22:30.
   bestmove 0000 on a 20-move board; legal names do NOT trigger it (negative control asserted).
 - S-C12 CONFIRMS S-F1(12)/24-C2: ucinewgame alone resets to startpos (6/e1f2 -> 20/e2e4 -> 6/e1f2
   after re-sending the position), with python-chess agreeing on both ends.
+
+## 2026-11-16T22:18:45Z CONTINUE: 12 more hours, ends at 2026-11-17T10:18:45Z
+- Seat 11 kept (branch for-fable-and-opus/swarm-11, folder forge-combo29/swarm/11). No new seat taken.
+- Next: read FABLE_TO_swarm_3/4/5 (1 and 2 already read), then build the PC engine from file 5
+  in a separate copy with -DFORGE_MATE_ALPHA_GUARD=1, check its bench numbers, then re-run my
+  finds on the PC build under settings PC20 and label every finding with build + settings.
