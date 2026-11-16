@@ -1,0 +1,60 @@
+STDERR:
+==================
+WARNING: ThreadSanitizer: data race (pid=3946)
+  Read of size 4 at 0x55e6fd174740 by thread T3:
+    #0 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /home/ubuntu/planted/src/search.cpp:2154 (forge+0x49f35) (BuildId: ccc7c3d9ee1f788b12c9b47f6a2101a0060d1c75)
+    #1 operator() /home/ubuntu/planted/src/search.cpp:2745 (forge+0x52a1c) (BuildId: ccc7c3d9ee1f788b12c9b47f6a2101a0060d1c75)
+    #2 __invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x52b8a) (BuildId: ccc7c3d9ee1f788b12c9b47f6a2101a0060d1c75)
+    #3 __invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x52b8a)
+    #4 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x52b8a)
+    #5 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x52b8a)
+    #6 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x52b8a)
+    #7 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Previous write of size 4 at 0x55e6fd174740 by thread T2:
+    #0 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /home/ubuntu/planted/src/search.cpp:2154 (forge+0x49f4a) (BuildId: ccc7c3d9ee1f788b12c9b47f6a2101a0060d1c75)
+    #1 operator() /home/ubuntu/planted/src/search.cpp:2745 (forge+0x52a1c) (BuildId: ccc7c3d9ee1f788b12c9b47f6a2101a0060d1c75)
+    #2 __invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x52b8a) (BuildId: ccc7c3d9ee1f788b12c9b47f6a2101a0060d1c75)
+    #3 __invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x52b8a)
+    #4 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x52b8a)
+    #5 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x52b8a)
+    #6 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x52b8a)
+    #7 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Location is global 'forge::g_planted_race_counter' of size 4 at 0x55e6fd174740 (forge+0x1c2740)
+
+  Thread T3 (tid=3952, running) created by thread T1 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 operator() /home/ubuntu/planted/src/uci.cpp:555 (forge+0x58c7d) (BuildId: ccc7c3d9ee1f788b12c9b47f6a2101a0060d1c75)
+    #3 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x59a1a) (BuildId: ccc7c3d9ee1f788b12c9b47f6a2101a0060d1c75)
+    #4 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x59a1a)
+    #5 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x59a1a)
+    #6 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x59a1a)
+    #7 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x59a1a)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Thread T2 (tid=3951, running) created by thread T1 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 operator() /home/ubuntu/planted/src/uci.cpp:555 (forge+0x58c7d) (BuildId: ccc7c3d9ee1f788b12c9b47f6a2101a0060d1c75)
+    #3 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x59a1a) (BuildId: ccc7c3d9ee1f788b12c9b47f6a2101a0060d1c75)
+    #4 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x59a1a)
+    #5 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x59a1a)
+    #6 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x59a1a)
+    #7 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x59a1a)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+SUMMARY: ThreadSanitizer: data race /home/ubuntu/planted/src/search.cpp:2154 in forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&)
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=3946)
+  Write of size 4 at 0x55e6fd174740 by thread T1:
+    #0 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /home/ubuntu/planted/src/search.cpp:2154 (forge+0x49f4a) (BuildId: ccc7c3d9ee1f788b12c9b47f6a2101a0060d1c75)
+    #1 forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess) /home/ubuntu/planted/src/search.cpp:2749 (forge+0x5109c) (BuildId: ccc7c3d9ee1f788b12c9b47f6a2101a0060d1c75)
+    #2 operator() /home/ubuntu/planted/src/uci.cpp:555 (forge+0x58c7d) (BuildId: ccc7c3d9ee1f788b12c9b47f6a2101a0060d1c75)
+    #3 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x59a1a) (BuildId: ccc7c3d9ee1f788b12c9b47f6a2101a0060d1c75)
+    #4 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x59a1a)
+    #5 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x59a1a)
+    #6 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x59a1a)
+    #7 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x59a1a)
