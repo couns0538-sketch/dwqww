@@ -84,6 +84,26 @@ suggest. File 6 says the owner's program does end games at the third occurrence 
 half-move — this measurement confirms the engine is relying on it. Evidence:
 `checks/selfplay_long.txt`.
 
+## Send the MOVES form when history exists
+The two ways to set a position are **not** equivalent. `position fen X` carries **no history**;
+`position startpos moves ...` **does**, and the search depends on that difference.
+
+Measured on PC r15 / PC20 / Threads 1 / `go softnodes 2000`: the same board
+`r1bqkb1r/pp2pppp/2n2n2/2pp4/3P1B2/4PN2/PPP2PPP/RN1QKB1R w KQkq - 1 5` gives `f1b5` in **3,570 nodes**
+from the FEN form and `f1b5` in **3,556 nodes** as that board's third occurrence by move list — the
+move agrees, the search tree does not. Another seat (23-C20) reports the stronger case, a **different
+move** on its Ruy Lopez line (`b4f8` from FEN versus `f1b5` from the move list) and `c2c4` at 4,532
+versus 3,336 nodes on its London line, and isolated the cause as history by showing the en-passant
+field makes no difference.
+
+**So: when history exists, send the moves form.** A FEN is fine for a position with no history (a bare
+diagram, a FEN file, the honesty pins), but a GUI or match harness that holds a move list should send
+the move list — reconstructing it as a FEN discards information the search uses.
+
+Honest scope: my own samples of eight and six openings found no move change, so on most positions the
+difference is too small to alter the answer at this budget. That is why my first test missed it, and
+why the guidance is "prefer the moves form" rather than "the FEN form is broken".
+
 ## Two separate problems — only one needs a protocol change
 Worth separating, because they are easy to conflate:
 - **Within one build, Threads 1: the decisions are reproducible.** Over 12 real positions the
