@@ -1,0 +1,42 @@
+# deepseek6 long 32 — prediction scorecard (PREDICTION.md committed before the first run, never edited)
+
+P1 SoundSteps cannot apply alone or after SoundArms; it needs Arms+Regret first.
+   MEASURED: dry run alone FAILED (4 of 6 hunks in search.cpp, 1 of 2 in uci.cpp, 1 of 1 in search.hpp);
+   after SoundArms alone still FAILED (2 of 2 in uci.cpp, 4 of 6 in search.cpp, 1 of 1 in search.hpp);
+   after Arms+Regret it applies clean, zero fuzz. -> HELD, and sharper than predicted: the chain is
+   Arms -> Regret -> Steps, the same order my long 19 found for glmflash5's bundle.
+
+P2 defaults are an identity. MEASURED: the SoundArms build's default rows sum 12,573,318 on O and are
+   EQUAL to kimi5's `none` rows 200/200 (nodes and best moves). -> HELD.
+   NOTE the number: 12,573,318 is the DEFAULT base (kimi5's), not the S14 base 9,500,069. Both are
+   correct for their own option set; the item's standing sums are S14 sums and do not apply here.
+
+P3 smp (all arms on) shrinks the O tree by 0.5-6 %. MEASURED 0.9988 (-0.12 %). -> KILLED (too small;
+   `smp` is nearly inert, exactly as kimi5's own 0.99885 said — I predicted its number's range wrong).
+
+P4 pvchk and chk move the O tree most among single-arm settings. MEASURED: chk 0.9804 is the smallest
+   tree of all seven; pvchk 0.9988 equals smp exactly; pv 0.9862 is second-smallest. -> KILLED:
+   the largest movers are SoundInCheckArm (0.9804) and SoundPvArm (0.9862), not their pair;
+   pvchk == smp exactly is a finding of its own (see the report, F3).
+
+P5 off7 is the largest tree (>9,600,000). MEASURED 12,573,318 = exactly the default tree, 0 nodes
+   changed. -> KILLED in level (the 9.6M guess was on the S14 scale) but the ORDERING half is
+   confirmed differently: off7 ties the default exactly, which is the strongest possible statement
+   that the arms at -1 plus the switch on is a no-op.
+
+P6 every one of the seven settings changes at least one best move on O. MEASURED: smp 52, pv 56,
+   chk 37, pvchk 52, mat 0, off7 0, none 0. -> KILLED: `mat` (2 nodes changed, 0 moves) and `off7`
+   (0 nodes, 0 moves) change nothing.
+
+P7 mask0 is an exact identity with smp. MEASURED: mask0 = 12,573,318 with 0/200 changed, i.e. equal to
+   the PLAIN default tree, not to smp. -> KILLED. My prediction misread kimi5's own note
+   ("mask 0 -> K1", where K1 is the plain build); the measurement agrees with kimi5, my reading did not.
+
+P8 mask1 <= 0.97 x smp and mask62 >= 0.999 x smp. MEASURED mask1/smp = 0.9511 (HELD), mask62/smp =
+   0.9893 (KILLED, below the 0.999 bound).
+
+P9 budget 25-40 minutes. ACTUAL: about 33 minutes from the first build to the last mask run. HELD.
+
+Score: 3 held (P1, P2, P9), 6 killed (P3, P4, P5-level, P6, P7, P8-half). The kills are all of the same
+kind: I extrapolated kimi5's S14-scale intuitions onto its DEFAULTS base. Its numbers are right; my
+ranges were calibrated on the wrong base — the same mistake my own notes warn about after long 10.
