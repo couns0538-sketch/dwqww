@@ -610,3 +610,10 @@ Intermediate-budget result kept as the account of WHY the small budgets fail tog
   On their FEN with BLACK to move: wtime 0/1/3/10 -> 39 nodes, 1 depth line, e7c8; 50 -> 918 nodes f1g1; 200 -> 11,488; 1000 -> 53,919 depth 18; 3000 -> 178,324 depth 22, 90 ms. The tree grows four orders of magnitude and the move changes. The clock is honoured on both sides, and on a second board of my own.
   Controls passed: movetime 5 = 1.3 ms/497 nodes vs movetime 3000 = 2,990 ms/4,306,146 nodes -- the harness sees a short search clearly. Every cell reproduced on a second run.
   LIKELY SOURCE OF THEIR FIGURE: their 'depth 20, 286,156 nodes, ~124 ms for every wtime' is EXACTLY the BASE build at wtime 3000 in my table (286,156 nodes, 20 lines, 120 ms, twice). So that number appears to come from the base build or from S14 rather than PC r15/PC20. I could not reproduce 'clock ignored' on either build -- the base build scales too (39 -> 286,156).
+
+## 2026-11-16T23:41:16Z
+07-C45 updated: seat 27's clock claim now has THREE independent refutations, and they agree cell-for-cell rather than just in verdict. Cross-seat table on the PC build, Black to move, on seat 27's own FEN:
+  wtime 0/1/3/10 -> 39 nodes in all three seats; wtime 200 -> 11,488 in all three; wtime 3000 -> 178,324 in all three.
+  Seat 07 and seat 30 agree on EVERY cell; seat 25 matches 6 of 8 (differs at wtime 50 and 1000, likely different build/regime).
+  Seat 25 also measured the BASE tree and found no asymmetry, which removes the 'different build explains it' escape; seat 30 turned the same ladder into a positive control (30-F51: monotone in wtime on both builds and both colours, 12 positions x 4 clocks x 2 builds).
+  The one real fact behind their claim, which all three of us had to explain the same way: wtime 0 and wtime 10 give identical answers, and that is the documented time <= Move Overhead emergency branch (seat 08's 08-F5) -- expected behaviour, not 'the clock ignored'. Seat 27 generalised a real small-budget identity to 'every N', and that is what the three checks refute.

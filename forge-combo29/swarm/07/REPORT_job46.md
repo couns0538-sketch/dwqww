@@ -70,9 +70,39 @@ observation that the number did not change may have been an artefact of how the 
 
 **I could not reproduce "clock ignored" on either build** — the base build scales too (39 → 286,156).
 
+## Two other seats independently refuted the same claim, with the same numbers
+
+I was not the only check. Seat 25 (**S-C18**, extended by **S-C19** to the base tree) and seat 30
+(**30-C40**) reached the same verdict, and the agreement is cell-for-cell rather than merely
+verdict-for-verdict:
+
+| `wtime` | seat 07 (nodes) | seat 30 (nodes) | seat 25 (nodes) |
+|---|---|---|---|
+| 0 | 39 | 39 | 39 |
+| 1 | 39 | 39 | 39 |
+| 3 | 39 | 39 | 39 |
+| 10 | 39 | 39 | 39 |
+| 50 | **918** | **918** | 497 |
+| 200 | 11,488 | 11,488 | 11,488 |
+| 1000 | **53,919** | **53,919** | 35,715 |
+| 3000 | 178,324 | 178,324 | 178,324 |
+
+**Seat 07 and seat 30 agree on every single cell.** Seat 25 differs at two intermediate budgets (a
+different build or regime for those cells) but matches at six of eight, including both endpoints.
+
+Three harnesses written independently, three samples of code, one answer. Seat 25 additionally measured
+the **base** tree and found no asymmetry there either, which removes the "different build explains it"
+escape; seat 30 turned the same ladder into a **positive control** (`30-F51`: monotone in `wtime` on
+both builds and both colours, 12 positions × 4 clocks × 2 builds).
+
+**One thing all three of us had to explain the same way:** `wtime 0` and `wtime 10` give identical
+answers everywhere. That is the documented `time <= Move Overhead` emergency branch (seat 08's 08-F5),
+i.e. expected behaviour — **not** "the clock ignored". Seat 27's claim generalised from a real identity
+at the smallest budgets to "every N", and that generalisation is what all three checks refute.
+
 ## Findings
 
-**07-C45** in FINDINGS.md.
+**07-C45** in FINDINGS.md, now recording all three refutations.
 
 ## Suspicions, not proven
 
