@@ -468,3 +468,12 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   => my position-set results are clean; only the withdrawn clock table was affected.
 - All harnesses going forward send OwnBook false (file 3's rule), which I had not applied before.
 - next command: continue the cycle.
+
+## $(date -u) — S-F39, the mechanism behind S-F37/S-F38
+- It is a TIME FORMULA, not a depth cap: varying only the clock on startpos (PC20, Threads 1, Hash 16, OwnBook
+  false) — 1000->95ms/d15, 2000->141/d17, 6000->234/d19, 12000->397/d20, 30000->911/d21, 60000->1883/d24,
+  120000->2583/d25. Depth grows monotonically => no cap. Used/clock ratio 9.5%, 7.1%, 3.9%, 3.3%, 3.0%, 3.1%, 2.2%.
+- `go movetime` at the same budgets spends 99% (1000->0.99s/d21, 6000->5.99s/d27, 30000->29.99s/d31).
+- => a 6-second wtime clock behaves like roughly a 240 ms search. On the owner's strength-match path (6s + 0.06)
+  this is the single most consequential number I have produced. No cause claimed beyond "the allocation formula".
+- next command: write this up as a standalone repro file for another seat to confirm.
