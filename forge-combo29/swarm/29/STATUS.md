@@ -118,3 +118,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - THREADS RULE (seat 04) audited against all my results: every score and every node count I have ever reported was Threads 1. grep over all my scripts finds exactly ONE non-1 usage: job8/tt_threads_sanity.sh at Threads 1/4/8, which by design asserts no score and no node count (legality + completion only). So nothing of mine is provisional; 29-F14's 'legal at Threads 1/4/8' is a legality claim only. Recorded as 29-N12.
 - PC r15 build: patch sha256 verified d6bd72c531f785f4..., applied to a SEPARATE worktree (/agent/repos/pc), built with -DFORGE_MATE_ALPHA_GUARD=1. Known-answer verification running.
 - next command: tail -25 /home/ubuntu/.cursor/projects/agent-repos-dwqww/terminals/758550.txt   (PC build known-number verification)
+
+## Mon Nov 16 10:25:00 PM UTC 2026
+- PC r15 BUILD VERIFIED (29-F16): patch sha256 matches, 11 files apply clean from inside forge-combo29/, builds with -DFORGE_MATE_ALPHA_GUARD=1, 92 options all PC20 options present, and ALL EIGHT known numbers match: none 312866/862329/3024920/4865609, S14 242796/656517, PC20 278024/587276. Threads 1, fresh process per line. REPORT_pc0.md.
+- Apply-path note for other seats: the patch paths are a/include/... relative to forge-combo29/, so patch -p1 must run INSIDE forge-combo29/ (or git apply --directory=forge-combo29 from the root); running from the repo root without the hint fails at file 2.
+- Files 4 and 5 read. File 4 confirms my 29-F6 independently (defaults give O depth12 = 12,573,318, exactly my control).
+- next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && python3 job2/rows_sum.py ~/build/pc/forge job2/O.fens 12 S14   (check the PC build reproduces the S14 sums)
