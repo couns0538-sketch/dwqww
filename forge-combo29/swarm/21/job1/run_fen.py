@@ -15,16 +15,20 @@ Writes into OUTDIR:
 """
 import hashlib
 import os
+import queue
 import subprocess
 import sys
 import time
 import datetime
+import threading
 
 import chess
 
 BATCH = 500
 GO_TIMEOUT = 20.0
 BAD_MARKERS = ("unknown option", "invalid value", "invalid FEN", "illegal move")
+SAN_MARKERS = ("__asan_", "__ubsan_", "AddressSanitizer", "Sanitizer", "runtime error",
+               "SUMMARY: UndefinedBehavior", "SEGV", "heap-buffer-overflow")
 
 
 def sha256(path):
@@ -36,6 +40,13 @@ def sha256(path):
 
 
 class Engine:
+    """Engine process with a reader thread.
+
+    The reader thread is the ONLY reader of the pipe: it pushes lines into a queue and
+    records EOF when the child closes stdout (a crash, or a sanitizer abort). Timeouts are
+    taken from the queue, so a dead child is noticed immediately instead of blocking.
+    """
+
     def __init__(self, exe, raw_path):
         self.raw = open(raw_path, "w")
         env = dict(os.environ)
@@ -44,6 +55,9 @@ class Engine:
         env.pop("TSAN_OPTIONS", None)
         self.p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                   stderr=subprocess.STDOUT, text=True, bufsize=1, env=env)
+        self.q = queue.Queue()
+        self.reader = threading.Thread(target=self._pump, daemon=True)
+        self.reader.start()
         self.send("uci")
         self.until("uciok")
         self.opt_lines = []
@@ -56,33 +70,48 @@ class Engine:
         self.send("isready")
         self.until("readyok")
 
+    def _pump(self):
+        for line in self.p.stdout:
+            self.q.put(line.rstrip("\n"))
+        self.q.put(None)  # EOF marker
+
     def send(self, line):
         self.raw.write(">>> " + line + "\n")
         self.raw.flush()
-        self.p.stdin.write(line + "\n")
-        self.p.stdin.flush()
+        try:
+            self.p.stdin.write(line + "\n")
+            self.p.stdin.flush()
+        except BrokenPipeError:
+            pass
 
     def readline(self, timeout):
-        end = time.time() + timeout
-        while True:
-            if time.time() > end:
-                return None
-            line = self.p.stdout.readline()
-            if line == "":
-                return ""  # EOF: process died
-            self.raw.write(line)
-            self.raw.flush()
-            return line.rstrip("\n")
+        try:
+            line = self.q.get(timeout=timeout)
+        except queue.Empty:
+            return None
+        if line is None:
+            return ""
+        self.raw.write(line + "\n")
+        self.raw.flush()
+        return line
 
     def until(self, token, timeout=GO_TIMEOUT):
+        """Return (status, lines): status True = token seen, "EOF" = process died,
+        "TIMEOUT" = no token within timeout."""
         lines = []
         while True:
             line = self.readline(timeout)
-            if line is None or line == "":
-                return None, lines
+            if line is None:
+                return "TIMEOUT", lines
+            if line == "":
+                return "EOF", lines
             lines.append(line)
             if line.strip() == token or line.strip().startswith(token + " "):
                 return True, lines
+
+    def tail_text(self, lines):
+        """Last lines plus whatever the process still had buffered, for the record."""
+        return " | ".join(lines[-6:])
 
     def kill(self):
         try:
@@ -165,20 +194,23 @@ def main():
             engine.send("position fen " + fen)
             engine.send("isready")
             ok, lines = engine.until("readyok")
-            if ok is None:
-                if lines and lines[-1] == "":
+            if ok is not True:
+                tail = engine.tail_text(lines)
+                if ok == "EOF":
                     stats["crash"] += 1
                     verdict = "CRASH"
                 else:
                     stats["hang"] += 1
                     verdict = "HANG"
-                res.write("\t".join([idx, src, kind, desc, fen, pych, verdict, "", "?", "?"]) + "\n")
+                if any(m in tail for m in SAN_MARKERS):
+                    stats["san"] += 1
+                res.write("\t".join([idx, src, kind, desc, fen, pych, verdict, "", "?", tail[:300]]) + "\n")
                 res.flush()
                 engine.kill()
                 start_batch()
                 continue
             ans = " | ".join(lines)
-            if any(m in ans for m in ("__asan_", "__ubsan_", "Sanitizer", "runtime error")):
+            if any(m in ans for m in SAN_MARKERS):
                 stats["san"] += 1
 
             if "invalid FEN" in ans:
@@ -194,19 +226,22 @@ def main():
                 verdict = "ACCEPTED"
                 engine.send("go depth 2")
                 gok, glines = engine.until("bestmove")
-                if gok is None:
-                    if glines and glines[-1] == "":
+                if gok is not True:
+                    tail = engine.tail_text(glines)
+                    if gok == "EOF":
                         stats["crash"] += 1
                         verdict = "CRASH_IN_GO"
                     else:
                         stats["hang"] += 1
                         verdict = "HANG_IN_GO"
-                    res.write("\t".join([idx, src, kind, desc, fen, pych, verdict, "", "?", "?"]) + "\n")
+                    if any(m in tail for m in SAN_MARKERS):
+                        stats["san"] += 1
+                    res.write("\t".join([idx, src, kind, desc, fen, pych, verdict, "", "?", tail[:300]]) + "\n")
                     res.flush()
                     engine.kill()
                     start_batch()
                     continue
-                if any(m in ln for ln in glines for m in ("__asan_", "__ubsan_", "Sanitizer", "runtime error")):
+                if any(m in ln for ln in glines for m in SAN_MARKERS):
                     stats["san"] += 1
                 best = ""
                 for ln in glines:
