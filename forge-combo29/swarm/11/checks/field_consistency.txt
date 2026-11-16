@@ -1,0 +1,21 @@
+=== 1. side to move ===
+  r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4 engine=   33 py=   33 EQUAL
+  r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 4 4 engine=   31 py=   31 EQUAL
+  white-to-move 33, black-to-move 31: DIFFER as expected
+
+=== 2. fullmove number must not change the move count ===
+  r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1                       engine=   26 py=   26 EQUAL
+  r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 2                       engine=   26 py=   26 EQUAL
+  r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 50                      engine=   26 py=   26 EQUAL
+  r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1000000000              engine=   26 py=   26 EQUAL
+  counts [26, 26, 26, 26]: all equal as expected
+
+=== 3. halfmove clock must not change the move count ===
+  r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1                       engine=   26 py=   26 EQUAL
+  r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 99 1                      engine=   26 py=   26 EQUAL
+  r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 100 1                     engine=   26 py=   26 EQUAL
+  counts [26, 26, 26]: all equal as expected
+
+NOTE: check 3 is about MOVE GENERATION only. The 50-move rule is a scoring rule and is
+covered separately by S-F10/S-F11/S-F12 (where the score does change with the clock).
+EXIT=0
