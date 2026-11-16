@@ -27,6 +27,9 @@ S14 = [
     ("IirDepth", 2), ("NonPawnCorrection", "true"),
 ]
 BOARD = "1K6/8/8/3R4/8/8/8/k7 w - - %d 1"
+PC20_EXTRA = [("CuckooRep", "true"), ("HistRework", 2), ("TtPruneV2", "true"),
+              ("CorrHistV2", "true"), ("MateAlphaGuard", "true"), ("OwnBook", "false")]
+USE_PC20 = os.environ.get("USE_PC20") == "1"
 RAMP = [0, 60, 75, 80, 85, 88, 90, 91, 92, 93, 94, 95, 99, 100]
 DEPTHS = [7, 9, 10, 12]
 
@@ -73,7 +76,7 @@ def run(exe, fen, depth):
 
     send("uci")
     time.sleep(0.05)
-    for name, value in S14:
+    for name, value in [("Threads", 1), ("Hash", 16)] + S14 + (PC20_EXTRA if USE_PC20 else []):
         send("setoption name %s value %s" % (name, value))
     sync_ready()
     send("position fen " + fen)
