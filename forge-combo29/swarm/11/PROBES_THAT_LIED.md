@@ -109,7 +109,7 @@ the `(kind, N)` tuple, so `score` became the string `'mate'` and `score == ('mat
 The tell: the *scores printed on the same lines* were correct and positive. Corrected: 0 defects
 (`checks/defect_hunt_pc20.txt`).
 
-**Trap 5 — a parser that keys on a field the engine only prints sometimes.** My MultiPV probe
+**Trap 4 — a parser that keys on a field the engine only prints sometimes.** My MultiPV probe
 counted lines with `multipv (\d+)` and reported "MultiPV 1: lines 0" — which reads as "the engine
 emitted nothing". It emitted the lines; at MultiPV 1 the engine OMITS the `multipv` field (standard
 UCI), so the regex matched nothing. The tell: `bestmove` came back and was legal, so a search had
@@ -117,7 +117,7 @@ clearly happened. The general rule: **before trusting a zero count, confirm the 
 counting exists in the format at that setting** — and prefer parsing the invariant (`info depth ...
 score ... pv ...`) over an optional field. See S-F74.
 
-**Trap 4 — a mislabelled FEN is invisible if you trust the label.** I twice reported the engine wrong
+**Trap 5 — a mislabelled FEN is invisible if you trust the label.** I twice reported the engine wrong
 about the piece-inventory rule because I had labelled an `8P+2R` board "8P+3R", and a board with 8 pawns
 "7P". Both times the engine was right. The fix that generalises: **build the FEN from the intended counts
 and re-derive the counts from the generated FEN before printing the label** (`inventory_probe.py`). See
