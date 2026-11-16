@@ -21,3 +21,10 @@ Next command: `cd /agent/repos/dwqww && git worktree add ../base 6b98f2170a3210e
   S-F3 WITHDRAWN (I wrongly claimed to refute Opus's castling line).
 - job1/S-F3_WITHDRAWN.md records both retractions.
 - Next: job 2 of area 1 (extreme numbers in FEN fields).
+
+## 2026-11-16 (cycle 1, job 2)
+- job2 DONE: 30 extreme-number FEN cases under ASan+UBSan. 0 crashes, 0 san lines, 0 illegal
+  bestmoves. All 9 prediction points held (j2-10 was my own malformed 21-digit case).
+- perft 2 vs python-chess: 10 comparable cases, 0 differences; engine stricter where they differ.
+- S-C2 pushed earlier: CONFIRMS seat 01's S-F2 (impossible double check accepted, perft right).
+- Next: job 3 of area 1 (position startpos moves, 1000 legal plies + one illegal move).
