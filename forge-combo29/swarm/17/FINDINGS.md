@@ -340,3 +340,43 @@ good log. Fix: keep every line consumed while waiting and inspect it for `bestmo
 This is the same class as S-F11 (a harness artefact that fabricates a hang) and belongs with it.
 Evidence: `pc/midsetopt/` (15 cases), `pc/midsetopt3/midsetopt3.json` (12 cases after the fix);
 the false-hang run is kept as `pc/midsetopt2/` so the error stays visible.
+
+## Depth effect or selection effect? — DEPTH, established with an identical-nodes proof
+
+Question: on position 6 (`2r4r/pp4k1/3q2p1/3ppn2/1P4QP/P2P1N2/R4P2/4RK2 b - - 0 1`) the move changes from
+`c8c3` at `go nodes 20000` to `d6e6` at 50000/250000. Is the small budget's move genuinely worse, or is it
+just shallower? A selection effect (the budget changes which move the search picks at equal depth) would be
+the more interesting finding.
+
+Measured (PC r15, PC20, Threads 1, Hash 16, fresh process per line):
+
+| command | move | depth reached | nodes | score |
+|---|---|---|---|---|
+| `go depth 6` | `h8f8` | 6 | 2,305 | cp 34 |
+| `go depth 7` | `d6e6` | 7 | 4,562 | cp 68 |
+| **`go depth 8`** | **`c8c3`** | 8 | **13,628** | **cp 7** |
+| `go depth 9` | `f5h6` | 9 | 31,897 | cp -30 |
+| `go depth 10` | `d6e6` | 10 | 45,673 | cp 16 |
+| **`go nodes 20000`** | **`c8c3`** | 8 | **13,628** | **cp 7** |
+| `go nodes 50000` | `d6e6` | 10 | 45,673 | cp 16 |
+
+**It is purely a DEPTH effect, and I can prove it rather than argue it: `go nodes 20000` is identical to
+`go depth 8` in move, in nodes (13,628 both) and in score (cp 7 both), and `go nodes 50000` is identical to
+`go depth 10` (45,673 nodes, cp 16).** The node budget is simply a depth selector on this position: it stops
+after the last depth it can afford, which is exactly what `softnodes` was designed to do. There is no
+selection effect to report.
+
+Two further facts worth having, because they show why "the small budget's move is worse" is a bad reading:
+- The move is **not monotone in depth at all**: 6 -> `h8f8`, 7 -> `d6e6`, 8 -> `c8c3`, 9 -> `f5h6`,
+  10 -> `d6e6`. Every depth changes its mind. So "the 20000 answer is the worse one" is an accident of which
+  depth that budget lands on, not a property of small budgets.
+- An independent fixed-depth yardstick (`go depth 14` on the position after each move, negated) ranks
+  `d6e6` +33, `f5h6` 0, `c8c3` -103, `h8f8` -142. I state plainly that this yardstick is itself a shallow
+  search, so it ranks moves by one more search's opinion, not by truth; it is consistent with the engine's
+  own deeper preference for `d6e6` but it is not independent ground truth.
+
+GUI-reachable: **YES** — these are the match path's own budgets. The actionable statement for the owner is
+that a 20000-node move on this position is a depth-8 move, and a 250000-node move is a depth-15 move, so the
+two match tiers are playing at materially different depths here; they are the "same player" only in 9 of 10
+positions I sampled.
+Evidence: `pc/selection/depth_split.json`, `pc/selection/selection.json`, `pc/selection/*.log`.
