@@ -278,3 +278,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 ## Mon Nov 16 11:41:29 PM UTC 2026
 - 29-N24 keeps the lint lesson in the record: a checker wrong in EITHER direction is worse than none, and twice the bug was my expectation rather than the data (demanded 4 fields for C rows that carry a 5th tag; then demanded 5 when the two oldest C rows use the brief's 4-column form). A blocked-but-correct file trains people to ignore the checker, which is as bad as a checker that passes everything. It now accepts both legitimate shapes and rejects all others.
 - next: continuing on the PC path with the sweep discipline applied by default.
+
+## Mon Nov 16 11:41:43 PM UTC 2026
+- 29-F42 swept F41 onto a SECOND position set and it changed again: the depth-10 sign flip is R_2911-SPECIFIC. On G, PC20 saves 15.9% at depth 10 and 12.7% at depth 12; on R_2911 it costs +2.3% at 10 and saves 19.5% at 12. So the effect depends on BOTH depth AND position set; the only stable claim is that at match depths PC20 searches a smaller tree on both sets.
+- 29-N25 withdraws F41's generalisation. That is the THIRD single-cell correction of the hour (F38->F39, F40->F41, F41->F42), each caught by sweeping one more axis - which is precisely why 29-N23 makes sweeping the default rather than a response to being asked.
+- next: continuing on the PC path.
