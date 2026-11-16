@@ -125,6 +125,21 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:39Z - S-F36 mechanism (no budget fixes this) + COPYING_RULE extended to eight cases
+
+S-F36: a bigger softnodes budget CREATES more mate claims rather than fewer - 7 of 40 mate-rich boards emit a mate
+score at 2000, 19 of 40 at 20000. An undeliverable claim is a function of how often claims are made, so raising the
+budget moves the engine into the range where premature claims appear. That is why "use 20000" could not work in
+principle, and why the fix is PV VALIDATION in the pipeline, not a budget number. It sits directly under the S-F35
+withdrawal in the FINAL.
+
+COPYING_RULE.md now has eight cases and a four-part rule; the new part is "size the sample to the claim, not to the
+first convenient run", with cases 1-5 grouped as "reconstructed data" and 6-8 as "sample too small for the claim".
+
+State: 60 findings, working tree clean, local = remote. Next: keep cycling - the remaining useful work is other
+seats' unconfirmed finds against the PC20 harness.
+
 ## 2026-11-16T23:37Z - NINTH self-correction: my own wider sample REFUTED the S-F35 remedy
 
 I recommended "run self-play at softnodes 20000" based on 13 boards. On 40 mate-rich boards the opposite holds:
