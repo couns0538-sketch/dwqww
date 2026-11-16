@@ -18,5 +18,6 @@ bench16 nodes: 3024920
 perft5 nodes:  4865609
 
 Built-in net: NNUE weights compiled in from src/nnue_weights.inc (FORGE_NNUE_WEIGHTS default), no external net file.
-CAVEAT observed: this engine takes no command-line arguments (main() is ),
-so  on argv does nothing;  must be sent on stdin.
+CAVEAT observed: this engine takes no command-line arguments (src/uci.cpp main() is
+  return forge::uci_loop(std::cin);
+at line 652), so "./forge bench 13" on argv does nothing; "bench 13" must be sent on stdin.
