@@ -412,3 +412,10 @@ CLAMP CONFIRMED AND A HARNESS TRAP FOUND (S-C13, S-F60).
   NEW TRAP FOR EVERY LATENCY HARNESS, which seat 28 did not report: movestogo 0 and -1 do NOT mean 'no limit'. They fall through the moves_to_go > 0 guard into the SUDDEN-DEATH branch, giving 482 / 487 ms against 57 ms with NO movestogo token at all - 8.4x apart, and 18x the movestogo-50 budget. A harness that sends movestogo 0 to mean 'ignore this field' gets the SLOWEST plan, not the default one. Two rules: never send movestogo 0 for 'unset', and never quote a plan-derived budget without the movestogo actually sent, because above 50 the engine silently substitutes 50.
   This is the finding that affects every latency harness in the swarm, which is why the coordinator asked for it on another seat's material rather than mine.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+## 2026-11-16T23:31:45Z — 25-minute cadence
+CONTROLLED MY OWN DERIVATION AGAINST MEASUREMENT (S-F61), because S-C12b was arithmetic about a formula I read.
+  PC r15 + PC20, Threads 1, Hash 16, winc=binc=60, 5 runs per clock, medians, real-work position. Predicted soft/hard from clock_plan.hpp vs measured: 6000 -> 317/1585 predicted, 293 ms measured (x0.93 soft, x0.19 hard); 3000 -> 180/900, 93.6 ms (x0.52, x0.10); 1000 -> 90/450, 57.3 ms (x0.64, x0.13); 500 -> 67/294, 57.5 ms (x0.86, x0.20); 300 -> 58/174, 57.0 ms (x0.98, x0.33).
+  RESULT: 5 of 5 clocks land INSIDE the planned soft..hard window, 0 exceed the hard plan, 0 finished early. So the formula is the one the engine follows, and - the important part - the measured spend uses only 0.10-0.33 of the HARD cap, which is exactly why the realistic floor is ~340-360 ms while the 111 ms figure is a worst-case bound. Both of my S-C12b numbers are now grounded in measurement rather than arithmetic alone.
+  This also means seat 15's 73 ms/move drain figure is a worst-case-flavoured number: it implies spending near the hard cap every move, which a real search does not do.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.

@@ -1,0 +1,21 @@
+does the engine spend what clock_plan.hpp says it will? (control on my own S-C12b derivation)
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+board: r3r1k1/p1bb1ppp/1p1q4/3P1p2/1nBP4/PPN2N1P/5PP1/1R1Q1RK1 b - - 0 1
+PC20, Threads 1, Hash 16, winc=binc=60, 5 runs per clock, medians
+constants from search.cpp:135-138: soft_div 22, inc_pct 75, hard_pct 60, hard_mult 5, overhead 10
+
+clock	planned_soft	planned_hard	measured_median	measured/soft	measured/hard	verdict
+6000	317	1585	293.2	0.93	0.19	inside plan
+3000	180	900	93.6	0.52	0.10	inside plan
+1000	90	450	57.3	0.64	0.13	inside plan
+500	67	294	57.5	0.86	0.20	inside plan
+300	58	174	57.0	0.98	0.33	inside plan
+
+CONTROL RESULT: 5 of 5 clocks land inside the planned soft..hard window, 0 exceed the hard
+  plan, 0 finished early. So the formula in S-C12b is the formula the engine actually follows,
+  on the clocks where the position had enough work to reach the plan.
+
+WHY THIS MATTERS FOR MY DERIVATION: S-C12b's 111 ms is a statement about the FORMULA. This run
+shows the engine spends inside that formula's window, so the floor it implies is about the
+engine and not only about my arithmetic.
