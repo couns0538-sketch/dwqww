@@ -39,6 +39,10 @@ import chess
 ENGINE = None
 OUT = None
 DEPTH = 12
+OPTS = []
+
+S14 = ["setoption name LmrQuietBase value 93","setoption name LmrQuietDivisor value 205","setoption name LmrNoisyBase value 13","setoption name LmrNoisyDivisor value 333","setoption name LmrHistoryDivisor value 5643","setoption name NullMoveBase value 5","setoption name LmpBase value 8","setoption name HistoryPruneMultiplier value 2220","setoption name HistoryBonusQuadratic value 24","setoption name HistoryBonusLinear value 54","setoption name HistoryBonusMax value 2212","setoption name SingularDepth value 6","setoption name IirDepth value 2","setoption name NonPawnCorrection value true"]
+PC20 = S14 + ["setoption name CuckooRep value true","setoption name HistRework value 2","setoption name TtPruneV2 value true","setoption name CorrHistV2 value true","setoption name MateAlphaGuard value true","setoption name OwnBook value false"]
 
 
 def drain(p, q, until=None, limit=60.0):
@@ -179,12 +183,15 @@ def run_case(tag, fen, commands, mode="abort", sleep_before_quit=None,
 
 
 def main():
-    global ENGINE, OUT, DEPTH
+    global ENGINE, OUT, DEPTH, OPTS
     ENGINE = sys.argv[1]
     OUT = sys.argv[2]
     posfile = sys.argv[3]
     if len(sys.argv) > 4:
         DEPTH = int(sys.argv[4])
+    if len(sys.argv) > 5:
+        setname = sys.argv[5]
+        OPTS = {"s14": S14, "pc20": PC20, "none": [], "default": S14}[setname]
     os.makedirs(OUT, exist_ok=True)
     for f in os.listdir(OUT):
         if f.endswith(".jsonl"):

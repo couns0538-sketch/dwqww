@@ -165,3 +165,12 @@ STARTPOS depth 9-18: 7,131 / 8,569 / 13,604 / 21,600 / 28,565 / 46,854 / 78,579 
 Both reproducible 2/2 runs. CORRECTION: the six numbers I quoted earlier are the ORDINARY FEN's, not startpos's.
 Boundaries are position-specific — derive them per position from the nodes field of each `info depth k` line.
 Table: job3/table_boundaries.md. NEXT: quit/EOF re-check on PC20.
+
+## 2026-11-16T22:43:07Z BOUNDARY SPREAD — A FIXED ROUND BUDGET CANNOT WORK (measured)
+Ten openings of set O, PC r15/PC20/Threads 1, boundary at or above the target:
+  target 20,000 -> boundaries 20,283 .. 38,996 (median 22,612) = 1.92x spread
+  target 50,000 -> boundaries 53,570 .. 173,222 (median 62,455) = 3.23x spread  (spread WIDENS with target)
+Cost of guessing at target 20,000: B=20,000 -> 0 of 10 positions get full work (all lose an iteration,
+18%-65% of their work); B=22,000 -> 5 of 10; B=30,000 -> 9 of 10; B=39,000 -> 10 of 10 but up to 88% over-searched.
+So there is NO safe round number. Rule: compute per position, or accept up to 65% under-search / 88% over-search.
+This corrects the hope behind the question: the spread is not a few percent, it is 2x-3x.
