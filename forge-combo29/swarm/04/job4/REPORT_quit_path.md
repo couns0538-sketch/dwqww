@@ -1,5 +1,30 @@
 # The quit/EOF fabricated bestmove, on the PC build and the PC's real path
 
+## THE HEADLINE: quit at 0 ms fabricates, quit at 1 ms does not
+
+Measured on PC r15 under PC20, Threads 1 — the delay between writing `go depth 20` and writing `quit`:
+
+| quit written after | bestmove | info lines | what happened |
+|---|---|---|---|
+| **0 ms** | `d5d4` | **0** | **fabricated — the engine never started searching** |
+| **1 ms** | `g7g6` | 5 | a real search |
+| 5 ms | `g7g6` | 8 | a real search |
+| 20 ms | `g7g6` | 12 | a real search |
+| 200 ms | `g7g6` | 18 | a real search |
+
+One millisecond is the whole boundary. That reframes the fault: **it is not "the input was batched", it is
+"the engine never started"**. A batch containing `go` and `quit` fabricates not because batching is special
+but because it gives the search no chance to begin; and two separate writes with no sleep between them
+fabricate just as reliably (5/5 each way). Give it one millisecond and it searches properly.
+
+**The consequence for the owner: he is not exposed.** Any match program that sends `go`, lets the engine
+work, and then closes or quits — which is every real match program, since it must read the answer — is
+outside the window. What breaks is the harness idiom `printf 'go ...\nquit\n' | engine`, where the engine is
+handed its own termination before it has read its first line. So this is a **documentation item** ("do not
+pipe your whole script into the engine and close it") rather than a defect in the engine's play.
+
+The rest of this report is the evidence behind that headline, on both builds.
+
 Seat 04, area 4. This is a CHECK of seat 19's 19-F12 (they own the finding), extended to the PC build and to
 the node budgets the owner's matches actually use.
 
@@ -16,9 +41,10 @@ this is **not** an r15 regression and none of the eight FORGE_FIX_* switches cov
 
 **How sure.** High on the reproduction: every case is a fresh process, the control arm is verified to have
 produced a real search (nonzero node count, nonzero info lines), and the fabrication repeated 5/5 in each of
-two different write patterns. Medium on the practical risk, and the next section is why.
+two different write patterns. On the practical risk: low, because of the one-millisecond boundary in the
+headline — a real match program never gets inside it.
 
-## The window is narrow, and that bounds the practical risk
+## The window, in the original form (kept here as raw evidence)
 
 Measured by delaying the `quit` after `go depth 20` on the ordinary FEN, PC20, Threads 1:
 
@@ -35,10 +61,6 @@ Measured by delaying the `quit` after `go depth 20` on the ordinary FEN, PC20, T
 And the write pattern does not matter: a single write containing `go`+`quit` fabricates 5/5, and two separate
 writes with no sleep between them also fabricate 5/5.
 
-So the fault needs the input to end **before the search has reported anything at all**. Any match program
-that sends `go`, waits for the engine to work, and then closes the pipe is safe. What is not safe is the
-idiom `printf 'go ...\nquit\n' | engine` — and that idiom is exactly what a test harness writes, which is why
-this has cost so many seats time rather than costing the owner games.
 
 ## Why it matters anyway
 
