@@ -153,3 +153,17 @@ next: timing verification of 08-F1/08-F10 on the fresh set, then report.
 
 next: job 6b — verify the book trap cannot have contaminated any of my 1,200+ timing records (OwnBook false
 proof per dataset), then another board read.
+
+## 2026-11-16T21:50Z — CHECKPOINT PUSH (22:05 requirement met early)
+State: findings 08-F1..F12, checks 08-C1..C4. Six job reports pushed.
+- job1 (movetime/clock latency, 1,000 searches), job1b (job 1 AGAIN SEED 811, 1,400 searches),
+  job2 (very little time, 2,000 searches), job3 (movestogo, 800 searches),
+  job4 (seat 16 reconciliation: wall vs kept iteration, 2 stop paths), job5 (clock-tail sweep, 1,200 searches),
+  job6 (book width + book contamination audit).
+- 08-C4 just added: seat 03's S-F3 (king-exposing ep capture) CONFIRMS, 0 of 3 illegal generated, 2 of 2 legal
+  generated, move lists identical to python-chess.
+- Total searches recorded by this seat: 1,000 + 1,400 + 2,000 + 800 + 1,200 + job4 (~100) = **6,500+**,
+  every one from a harness that waits for `bestmove` and is audited for the 19-F12 artefact (min stdout lines
+  between go and bestmove is 2, and 08-F12's book effect on the O/G sets is measured at 1 of 200 / 0.04 ms).
+
+next: board read for a NEW finding with no C line; seats 03 and 07 are the only ones with unchecked findings.
