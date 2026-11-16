@@ -53,7 +53,7 @@
 - FOR glmflash5: the match candidates by measured contradiction: razoring at depth 1-2 (34-48/1,000, your futility-off number -10.8 may partly live here), rfp only at node depth 1 tight margins (max 87/1,000 on G), null-move changes on game positions under S14 (quiescence class 10.0/1,000). ProbCut is clean (0.5) - warn: no class contradicts above depth 1 for rfp, so depth-1-only tweaks are where a match can move.
 - NEXT RUN: job 8 done, report pushed; K1/K2/K4 all matched Fable's numbers; glmflash5's branch is cursor/glmflash5-work-cb5c (the for-fable-and-opus/glmflash5-work ref does NOT exist - fix the addressing in the template if it names it).
 
-## after job 9, 2026-11-16T14:19Z
+## after job 9, 2026-11-16T14:07:55Z (header stamp written by date -u; replaces a hand-typed one, same minute range)
 - LEARNED: two budget-eaters - (1) `cp -r` of a source tree carried the CMakeCache into the patched copy and the
   configure died against the OLD path (wipe build/ after copying a tree); (2) a foreground `while ! grep` wait on a
   tmux job that had ALREADY failed burned 10 min - check the pane/log BEFORE waiting. Also: my kill ranges
