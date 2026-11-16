@@ -56,7 +56,7 @@ tokens — which is why the class did not grow rather than why it vanished.
 
 | prediction | outcome |
 |---|---|
-| P1 accepted share under 3 % | **held** (7.24 % — no: **FAILED**, 1,448/20,000 = 7.2 %, above my 3 % band and even above the single-edit 6 %) |
+| P1 accepted share under 3 % | **FAILED** — 1,448/20,000 = 7.24 %, above my 3 % band and even above the single-edit sweep's 6.1 % |
 | P2 a new accepted-invalid class appears | **FAILED** — zero accepted-invalid |
 | P3 0 crash/hang/sanitizer on both builds | held |
 | P4 no illegal bestmove | held |
