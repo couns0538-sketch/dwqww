@@ -53,8 +53,15 @@ def check(name, ok, detail=""):
 
 print("=== A. the base twice ===")
 b1, b2 = load("BASE1"), load("BASE2")
-s1 = sum(r[1] for r in b1) if b1 else None
-s2 = sum(r[1] for r in b2) if b2 else None
+if b1 is None or b2 is None:
+    print("  MEASUREMENT FAILED: runs/BASE1.rows or BASE2.rows missing or unreadable.")
+    print("  No verdict is given: a missing raw file is never a result.")
+    sys.exit(2)
+if not b1:
+    print("  MEASUREMENT FAILED: BASE1.rows parsed to zero rows.")
+    sys.exit(2)
+s1 = sum(r[1] for r in b1)
+s2 = sum(r[1] for r in b2)
 print(f"  BASE1 sum {s1}, BASE2 sum {s2}, rows {len(b1) if b1 else 0}/{len(b2) if b2 else 0}")
 check("base sums to 12,377,717", s1 == 12377717, f"got {s1}")
 check("base is reproducible (both runs equal)",
@@ -149,5 +156,7 @@ check("SingularMargin +c is 0.8220", abs(sm.get("p", 0) - 0.8220) < 0.0001)
 print(f"\n=== verdict: {len(fail)} failed check(s) ===")
 if fail:
     print("NOT matching the report on: " + ", ".join(fail))
+    sys.exit(1)
 else:
     print("every checked number in REPORT_deepseek6_long58.md equals what its raw files give.")
+    sys.exit(0)

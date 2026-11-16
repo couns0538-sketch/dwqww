@@ -1,0 +1,42 @@
+check                   raises  None-cmp  all()  no-out=pass  parsed thing
+------------------------------------------------------------------------------------------------
+check_s01f2.py           False     False   True        False  perft node counts from `nodes N`
+check_s19f1.py           False      True  False        False  `info string eval hce/nnue/total`
+check_s19f4.py           False     False  False        False  nm symbols (no engine output)
+check_s19f5.py           False      True   True        False  bench line via stdin
+check_s29f1.py           False     False   True        False  bench line, several runs
+check_s05f3.py            True      True  False        False  `score cp|mate N` per sweep point
+recount_long58.py        False      True  False        False  rows files (no engine output)
+------------------------------------------------------------------------------------------------
+'None-cmp' true only means a None literal appears; what matters is whether a None can
+reach a PASS. Rows with 'no-out=pass' = True are the dangerous shape.
+
+No check maps absent output onto a verdict after the fixes.
+
+=== the two I FIXED, and what changed ===
+check_s05f3.py  BEFORE: drawish() returned True when status == "no-info", so a run that printed
+                no score counted as "the draw appeared" -> would have CONFIRMED S-F3 from
+                nothing. That is exactly seat 19's NaN failure.
+                AFTER: probe() raises MeasurementError if there are no info lines, or if info
+                lines exist but no `score cp|mate N` parses; main() catches it, prints
+                "MEASUREMENT FAILED" and returns exit 2 with NO verdict.
+
+check_s01f2.py  The perft comparison uses `eng_nodes == 64`; a None would be False, so a failed
+                parse produces FAIL, not CONFIRMS — safe by construction (verified by reading
+                line 67-69 and by the live run in checks/check_s01_f2.txt, where all five
+                sub-checks are PASS individually and the control detects a 1-node difference).
+
+=== live negative test for the fixed parser ===
+Run check_s05f3.py against an executable that prints nothing: it must exit 2, not CONFIRMS.
+
+
+=== LIVE NEGATIVE TESTS ===
+-- s19f1 vs a fake engine with no eval line:
+
+=== verdict on 19-F1 ===
+RESULT: does NOT confirm 19-F1 — see the FAIL lines above.
+-- recount vs an empty directory:
+  MEASUREMENT FAILED: runs/BASE1.rows or BASE2.rows missing or unreadable.
+  No verdict is given: a missing raw file is never a result.
+-- s29f1 vs a fake engine with no bench line:
+RESULT: inconsistent with 29-F1 on the FAIL lines above; see them before believing 29-F1.

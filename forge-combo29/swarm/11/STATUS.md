@@ -85,3 +85,7 @@ Next command: `cd /agent/repos/dwqww && git worktree add ../base 6b98f2170a3210e
 - S-C7: CONFIRMS seat 05 S-F3 (draw bites at H=91). Every score positively parsed; a missing
   parse raises MeasurementError and aborts with no verdict (seat 19's NaN warning applied).
   NOTE my cp values differ from theirs (381/271 vs 472/314) — same threshold, different options.
+- S-A2 PARSER RE-AUDIT: found one real hole (check_s05f3 treated "no score printed" as "draw
+  appeared" -> would have confirmed from nothing). Fixed to raise MeasurementError; live negative
+  tests for s19f1/recount/s29f1 all fail loudly. Evidence checks/parser_audit.txt.
+- S-C7 re-run AFTER the fix: CONFIRMS S-F3 at H=91, all 11 scores positively parsed.
