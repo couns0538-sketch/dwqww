@@ -52,3 +52,6 @@ Everything is pushed. Complete inventory:
 - FINDINGS.md: 20 lines + a reading guide mapping each superseded original to its REVISED line.
 - Rule 1 planted faults: job2/out_plant*/ (illegal 400/400, overrun 400/400, noanswer 8/8; real engine 0).
 Branch tip before this block: ce87c538c.
+
+## Mon Nov 16 09:45:12 PM UTC 2026
+CYCLE 4: S-C4 CONFIRMS 21-F2 with a perft control (55117 vs 8902). Two more of my own harness bugs found and fixed (perft prints 'nodes' not 'Nodes searched'; ucinewgame prints no readyok) - both recorded in the check.

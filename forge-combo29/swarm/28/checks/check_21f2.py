@@ -47,21 +47,34 @@ def py_perft(board, depth):
 
 
 def session(exe, steps):
-    """Run a list of (command, wait_token) and return all output lines."""
+    """Run a list of (command, wait_token). `isready` is appended after every step except a search.
+
+    The original version waited for the token each step names, but a step like ("ucinewgame",
+    "readyok") asks for a token ucinewgame never prints — the session blocked until the caller's
+    timeout. That is exactly seat 19's warning (a parser waiting for a line the engine never prints).
+    Now every non-search step is followed by `isready` and we wait for readyok, so the wait token is
+    always one the engine really sends.
+    """
     eng = Engine(exe)
     eng.send("uci")
     eng.read_until("uciok", 20)
     for opt, val in [("OwnBook", "false"), ("Threads", 1), ("Hash", 16)]:
         eng.send(f"setoption name {opt} value {val}")
         eng.send("isready")
-        eng.read_until("readyok", 20)
+        _l, ok = eng.read_until("readyok", 20)
+        if not ok:
+            raise SystemExit(f"no readyok after setoption {opt}")
     lines_all = []
     for cmd, token in steps:
         eng.send(cmd)
-        out, ok = eng.read_until(token, 60)
+        if token in ("nodes", "bestmove"):
+            out, ok = eng.read_until(token, 90)
+        else:
+            eng.send("isready")
+            out, ok = eng.read_until("readyok", 20)
         lines_all.extend(out)
         if not ok:
-            lines_all.append(f"<NO {token}>")
+            raise SystemExit(f"no `{token}` after `{cmd}` — refusing to continue silently")
     eng.close()
     return lines_all
 
@@ -122,9 +135,9 @@ def main() -> int:
           f"{'the control FEN (GOOD)' if nodes == str(control_perft) else 'WRONG'} | - | - |")
     rows.append(("CONTROL", [], nodes, "control" if nodes == str(control_perft) else "wrong", "", ""))
 
-    # Is there a display command?
+    # Is there a display command? `d` prints a board; a following `isready` is what produces readyok.
     lines = session(exe, [("ucinewgame", "readyok"), ("position startpos", "readyok"),
-                          ("d", "readyok")])
+                          ("d", "readyok"), ("isready", "readyok")])
     display = [l for l in lines if l.startswith("|") or " a b c d" in l or "+---+---+" in l]
     print()
     print(f"`d` command produces a board diagram: {bool(display)} "
