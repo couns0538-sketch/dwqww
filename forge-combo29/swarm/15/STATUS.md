@@ -6,6 +6,13 @@
 
 ## 2026-11-16T23:25:13Z FINAL
 
+> **THE ONE LINE: if `increment >= 0.60 x clock - 10 ms`, the clock never empties.**
+> (60 % is `TmHardPercent`'s default, 10 ms is `Move Overhead`'s default; the floor is
+> `C* = (increment + 10) / 0.60`, i.e. **116.7 ms at a 60 ms increment**.)
+> Below that increment the engine shrinks its search as the clock falls and the two converge, so the
+> clock settles at C* and plays on — it does not march to zero. Derivation and measurement: §1.
+
+
 ### 1. THE ANSWER: the clock settles at a floor, it does not empty
 
 > **floor C* = (increment + MoveOverhead) / (TmHardPercent/100)**
