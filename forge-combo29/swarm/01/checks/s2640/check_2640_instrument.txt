@@ -1,0 +1,18 @@
+settling search.cpp:2640 with my own -D_GLIBCXX_DEBUG instrument
+exe_started: /home/ubuntu/builds/dbg/forge
+sha256: 581159a4eb8710f09ef04c045b000ec61b4da0987fc0bbab550b3f265479ce69
+control (empty front() under the same flag): returncode -6 -> ABORTS (checking is really on)
+control output: about to call front() on an empty vector | /usr/include/c++/13/debug/vector:460: | In function: |     std::debug::vector<_Tp, _Allocator>::reference std::debug::vector<_Tp,  |     _Allocator>::front() [with _Tp = int; _Allocator = std::allocator<int>;  |     reference = int&] |  | Error: attempt to access an element in an empty container. |  | Objects involved in the operation: |     sequence "thi
+
+case	bestmove	exit	glibcxx_diagnostic	verdict
+no_names	0000	0	False	no abort -> 2640 never saw an empty list here
+bogus_name	0000	0	False	no abort -> 2640 never saw an empty list here
+illegal_pair	0000	0	False	no abort -> 2640 never saw an empty list here
+one_legal	e2e4	0	False	no abort -> 2640 never saw an empty list here
+two_legal	d2d4	0	False	no abort -> 2640 never saw an empty list here
+plain_control	d2d4	0	False	no abort -> 2640 never saw an empty list here
+
+VERDICT: the instrument works (control aborts) and NO searchmoves case aborts, so line
+2640 does NOT execute with an empty root_candidates on any of these six cases.
+This REFUTES my own earlier mechanism claim in S-C3. The bestmove 0000 must come from
+the empty-root path, not from an empty front() at 2640.
