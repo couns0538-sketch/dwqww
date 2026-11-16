@@ -30,3 +30,24 @@ A LIMIT OF MY CHECK, stated: I intended to test their source note about a 4+ vs 
 with a fourth legal square, but the position I chose (`8/8/8/8/8/8/8/K3k3 w`) also has exactly 3 legal moves, so
 that part of their finding is NOT tested here. Testing it needs a constructed position with 4 or 5 legal moves that
 all score identically, which I did not build.
+
+THE MATCHED 3-vs-5 PAIR (closing the half I said was untested)
+=============================================================
+Seat 20's source note: search.cpp:817-862 has two tie rules, scalar `score > best_score` below 4 remaining moves
+and an AVX2 chunk-max + ctz at 4 or more. S-F27 tested only 3-move positions. Built pair, all moves drawn
+(insufficient material), so every score ties at cp 0, base build, Threads 1, Hash 16, OwnBook off:
+
+| case | n moves | python-chess order | engine bestmove | depth | score | index of bestmove |
+|---|---|---|---|---|---|---|
+| 3 moves (K v K) `8/8/8/8/8/8/8/K6k w` | 3 | a1b2,a1a2,a1b1 | a1b1 | 1-3 | cp 0 | 2 |
+| 5 moves (K+N v K) `8/8/8/8/8/8/8/KN4k1 w` | 5 | b1c3,b1a3,b1d2,a1b2,a1a2 | b1d2 | 1-3 | cp 0 | 2 |
+
+Both widths return the move at index 2 of python-chess's order, and both are cp 0 at every depth 1-3. So the two
+WIDTHS behave the same way from the protocol's point of view: neither exposes the engine's internal order, and
+`bestmove` is not the first-listed move in either case. That does NOT show the two source tie rules are identical
+internally — it shows the protocol cannot distinguish them, which is exactly seat 20's point and now holds for both
+sides of their 4-move branch.
+
+Caveat: python-chess's order is a REFERENCE, not the engine's order; "index 2" means "third in python-chess's list",
+not "third in the engine's". The claim being tested is only that bestmove != first legal move and that the two widths
+behave alike, and both hold.
