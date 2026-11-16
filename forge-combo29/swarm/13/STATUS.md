@@ -103,3 +103,11 @@ DONE area 3 job 3: perft 4 AND 5 on 230 positions (200 R + first 30 of G).
   Reference finished in 1301 s (my prediction wrongly said it would not finish - recorded in the report).
   Report job3/REPORT_job3.md. Finding S-F3 added. Area 3 jobs 1, 2 and 3 are all complete.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1   # cycle: back to (a) look for unconfirmed findings
+
+## 2026-11-16T22:05:38Z
+
+DONE check of 19-F23: CONFIRMS. checks/CHECK_19F23.md. bench is warm-immune (5x862329 in one
+process = 5 separate), mechanism verified by opening uci.cpp:611/617 and search.cpp:2679; contrast
+measured: go depth 12 in one process = 56720 / 4951 / 4516, fresh = 56720.
+Area 3 jobs 1, 2, 3 complete. Checks: S-C1 (21-F1), S-C2 (27-F2), S-C3 (19-F23).
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
