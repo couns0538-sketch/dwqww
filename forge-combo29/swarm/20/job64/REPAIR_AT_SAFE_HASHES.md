@@ -35,3 +35,30 @@ to declare." **No Hash shows a cost.**
 - 10 positions, one run each per cell, one clock (5 s), MultiPV 3 only, built-in net, Threads 1.
 - One run per cell is thin for a +0.5 result (Hash 16); the +2.5/+3.0 differences are far larger than that noise and
   are consistent with the flat-median pattern.
+
+## PREDICTION TEST that PARTLY FAILED — the gradient is MOSTLY the clear, not entirely
+
+My S-C40 explanation was "the multi-ply gradient is mostly the per-line `clear()`, not the table size". I tested it
+with a falsifiable prediction: **if the gradient is the clear, the repaired build's depth should be FLAT in Hash.**
+
+Repaired build, MultiPV 3, `go wtime 5000`, Threads 1, 10 G-set positions, Hash 16 → 512:
+
+| Hash | repaired depths | median |
+|---|---|---|
+| 16 | 14,15,13,14,14,17,14,13,14,17 | **14.0** |
+| 64 | 14,15,12,14,13,16,14,13,14,17 | **14.0** |
+| 128 | 14,15,12,14,13,15,14,12,14,16 | **14.0** |
+| **256** | 13,12,12,12,11,14,14,10,9,16 | **12.0** |
+| **512** | 12,11,6,11,8,7,12,9,7,14 | **10.0** |
+
+**Flat to 128, then declining.** So the prediction is **partly refuted**:
+
+- **The clear explains most of it**: 13.5 → 11.5 → 11.0 (shipped, 16→128) becomes a flat **14.0** — a 3-ply recovery at
+  Hash 128, which is the bulk of the gradient.
+- **A residual table-size cost remains**: even repaired, Hash 256 loses 2 plies and Hash 512 loses 4 against Hash 16.
+  A 2 GB table has real costs that are not the `clear()` (allocation, cache/TLB pressure on a 4-core box), and the
+  repair does not remove them.
+
+**Corrected statement:** the multi-PV gradient is **mostly** the per-line `clear()` — about 3 of the 4–5 plies at
+Hash 128 — with a further ~2 plies per doubling at 256+ coming from table size itself. My S-C40 wording "mostly the
+clear, not the table size" was right in direction and too absolute; this table is the qualifier.
