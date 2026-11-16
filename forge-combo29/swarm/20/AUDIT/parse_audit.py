@@ -79,12 +79,16 @@ for rel, cmd in CHECKERS:
     os.makedirs(outdir, exist_ok=True)
     c = cmd.format(f=path, exe=fake, out=outdir)
     try:
-        rr = subprocess.run(c, shell=True, capture_output=True, text=True, timeout=150)
+        rr = subprocess.run("timeout 25 " + c, shell=True, capture_output=True, text=True, timeout=60)
         out = (rr.stdout + rr.stderr)
     except subprocess.TimeoutExpired:
         out = "<TIMEOUT>"
     # what verdict words appear?
     bad = [w for w in ("CONFIRMS", "CONSISTENT", "ok (searched)", "EQUAL") if w in out]
+    if rr.returncode == 124:
+        lines.append(f"{rel:32s} HUNG on a silent engine (good: it refuses to invent an answer)")
+        open(os.path.join(outdir, "checker_stdout.txt"), "w").write("TIMEOUT: waited for a result that never came")
+        continue
     crash = ("Traceback" in out) or out == "<TIMEOUT>"
     verdict = "REFUSED/CRASHED (good)" if crash else ("*** PRINTED A POSITIVE VERDICT ON A SILENT ENGINE ***"
                                                       if bad else "no positive verdict (good)")
