@@ -207,3 +207,12 @@ All numbers Threads 1. Next: continue re-running/expanding finds on PC20, STATUS
 - S-F33 CORRECTED: with options actually applied, all four PC20 switches change ALL 40 positions'
   nodes and 13-16/40 bestmoves (bench: 253404/308529/287350/271813 vs S14 242796). My earlier
   "0 changed" was the S-A5 bug and is retracted.
+- S-F34: re-verified ALL retracted PC20 checks with provably-applying options. Every substantive
+  conclusion unchanged (S-F21/F26/F28/F29/F30/F32 stand); only S-F33's result was inverted by the bug
+  and is corrected. Options proven applied via bench 278024/242796 through the same Engine.
+
+## 2026-11-16T22:32Z CHECKPOINT
+Seat 11 / area 1 / branch swarm-11. PC r15 built + all 3 number regimes matched. Retracted the PC20
+label on 7 findings after finding my own harness bug (S-A5), fixed it, re-ran everything (S-F34).
+Findings of mine now: S-F1..S-F34 + S-C2..S-C12 + audits S-A1..S-A5 + S-P1(superseded).
+Next: continue on PC20 with provably-applied options; STATUS every 25 min.
