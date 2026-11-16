@@ -1,0 +1,20 @@
+finding board, white to move
+  fen 4k3/8/8/8/8/8/8/QQQQK3 w - - 0 1
+  info string eval hce 4211 nnue 228 total 4439
+  (python-chess: this is the colour mirror of case 1: False)
+its colour mirror, black to move
+  fen qqqqk3/8/8/8/8/8/8/4K3 b - - 0 1
+  info string eval hce 4211 nnue 228 total 4439
+  (python-chess: this is the colour mirror of case 1: True)
+same board, BLACK to move
+  fen 4k3/8/8/8/8/8/8/QQQQK3 b - - 0 1
+  info string eval hce -4182 nnue 662 total -3520
+  (python-chess: this is the colour mirror of case 1: False)
+its colour mirror, white to move
+  fen qqqqk3/8/8/8/8/8/8/4K3 w - - 0 1
+  info string eval hce -4182 nnue 662 total -3520
+  (python-chess: this is the colour mirror of case 1: False)
+
+mirror reads the SAME as the original (S-F14's claim): hce 4211 vs 4211 -> True
+a NEGATION-based checker would call this a FALSE fault: requires 4211 == -4211 -> False (so it would report a difference of 8422 cp per position)
+same board with black to move: hce -4182 (negative of the white-to-move value: False)
