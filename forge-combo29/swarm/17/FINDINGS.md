@@ -478,3 +478,25 @@ a mate its own PV does not deliver. (Zero mate claims in this sample simply mean
 forced mate at these budgets — the check is armed but had nothing to fire on, which I state rather than
 present as "mates verified".)
 GUI-reachable: **YES, this is the node path.** Evidence: `pc/health/health.json`, `pc/health/p*_*.log`.
+
+## My "1 illegal move in 935 plies" was MY BAD INPUT, not an engine fault — and it demonstrates S-C9
+
+While running the 30-game clock sample, game 13 reported `illegal move returned: d2d4`. Investigated instead
+of reported:
+
+- The start FEN I had put in the game list was `6k1/5ppp/8/8/8/8/5PPP/1q4K1 b - - 0 1`.
+- **That FEN is invalid**: Black is to move and White's king is in check, i.e. the side that just moved left
+  its own king in check. python-chess: `is_valid()` False, `status()` 1024. I built the list by eye and did
+  not validate it.
+- The engine REFUSED it correctly: `info string invalid FEN: side that moved left its king in check`, then
+  kept the previous board (a fresh process = startpos) and answered `d2d4` / `a2a3` / `c2c4` — all legal
+  STARTPOS moves. So the "illegal move" is a legal startpos move in a position I mis-stated.
+- This is exactly S-C9 (a refused FEN still answers `readyok`, the old board stays), which I confirmed for
+  seat 21. My own sample just fell into it, which is a good argument that the defect is easy to trigger
+  accidentally — including by an engine author building a test list by hand.
+
+So the honest tally for the clock sample so far is **0 engine-caused illegal moves**. I am re-running game 13
+with a legal start so the 30-game forfeit claim is not resting on a bad position, and I am validating every
+start FEN with python-chess before use from now on.
+Evidence: `pc/manygames/many_games.json` (the entry), and the refusal line above from
+`forge-combo29/swarm/17/pc/manygames/` — raw command in this block.
