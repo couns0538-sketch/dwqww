@@ -53,7 +53,7 @@ engine output), written up in `check_file6/HOW_TO_APPLY_FILE6.md`.
 | S-F9 | Wrong-mate-score rate across three independent sets: 2 of 28 mate scores (~7%), and in both cases the SCORE was wrong, never merely the PV. | base/S14 |
 | S-F10 | The wrong mate score is not state: a fresh process reproduces it, and a correct deeper search followed by `ucinewgame` returns to the wrong number in the same process. | base/S14 |
 | S-F25 | `go softnodes` is deterministic (identical score/nodes/move), always stops at a FINISHED depth, and overshoots N by 1.06-1.55x. Independently reproduced by seats **08, 19 and 29**. | PC/PC20 |
-| S-F26 | **NEAR-MISS, NOT A DEFECT - DO NOT "FIX".** The match path uses only 2.4-8.7% of its clock (178 ms of 6 s), which is `plan_clock_budget`'s soft limit working (TmSoftDivisor 22 -> 317 ms at 6 s); `go movetime` differs because it is a hard instruction. Corroborated by four seats; raising time usage would lose on time. | PC/PC20 |
+| S-F26 | **NEAR-MISS, NOT A DEFECT - DO NOT "FIX".** The match path uses only 2.4-8.7% of its clock (178 ms of 6 s), which is `plan_clock_budget`'s soft limit working (TmSoftDivisor 22 -> 317 ms at 6 s); `go movetime` differs because it is a hard instruction. Corroborated by four seats; raising time usage would lose on time. **Caveat added (S-C15): a clock search is deterministic in the MOVE only** - at 6 runs the score took 2 distinct values (cp 55 / cp 67), nodes 2 (172,312 / 309,981) and depth 2 (16 / 18), while the move never varied. `go nodes` and `go softnodes` are fully deterministic. So a pipeline recording SCORES from clock searches must treat them as approximate; the moves are trustworthy. | PC/PC20 |
 | S-F29 | The depth-20 threshold finding above. | PC/PC20 |
 | S-F31 | **Both game endings are clean at the match setting.** A forced-mate self-play game (start `4k3/8/8/8/8/8/8/K1QR4 w`, `go nodes 20000`, one fresh process per move) ends in CHECKMATE at ply 3 with 0 illegal moves, 0 missing info lines, 3/3 completed-iteration moves, and **3 mate scores of which 0 had a PV that fails to play out** (PVs sliced from the engine line and replayed, never typed). With S-F30 (90-ply, repetition) both endings are covered. Node spend median 0.13x N because a decided mate is found quickly - the "search resolved early" behaviour, not a fault. | PC/PC20 |
 
@@ -96,7 +96,11 @@ Written up in `COPYING_RULE.md` (the transferable artifact) and `pcpath/S-F27_WI
 3. a check compared a regex match to `"cp 0"` when it returns `"score cp 0"` (`check_05F14/`)
 4. headlined S-F27 as a match-path defect when the final answer was correct (`pcpath/EXPOSURE_FINAL.md`)
 5. claimed an illegal PV move that was my own typo (`pcpath/S-F27_WITHDRAWN.md`)
-One cause every time: reconstructing data instead of copying it from raw output.
+6. scoped S-F7's 64-line artifact to terminal roots when a non-terminal mate root produces it too (S-C14)
+7. claimed the clock path was 3/3 reproducible in score and nodes when only the MOVE is deterministic - at 6 runs
+   the score, node count and depth each take 2 distinct values (S-C15)
+One cause for 1-5: reconstructing data instead of copying it from raw output. 6 and 7 are the same fault in
+another form - a conclusion drawn from too small a sample instead of from a sweep.
 
 ### FILES THAT MATTER MOST
 `COPYING_RULE.md` (the rule for the next swarm), `check_file6/HOW_TO_APPLY_FILE6.md` (the depth line),
