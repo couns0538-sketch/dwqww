@@ -169,3 +169,22 @@ Command that shows it again:
 ```bash
 python3 forge-combo29/swarm/25/job2/clock99_severity.py /path/to/forge
 ```
+
+
+## Reachability in real games: NOT established (a test that could not answer)
+`clock_in_games.py` plays a self-game with random legal moves for the opponent and samples the halfmove
+clock every 10 plies for 300 plies. Result: 30 samples, clock max **16**, zero positions at clock >= 99.
+That does not mean real games never reach clock 99 — random play captures and pushes pawns constantly, which
+resets the clock, so this test simply cannot reach the regime. Long real endgames (KRP vs KR, same-colour
+bishops with a fortress) do reach clock 99 routinely. So the reachability question is UNTESTED by me and
+S-F3 rests on the constructed positions only. I am recording the null result rather than dressing it up.
+
+### Second reachability attempt: also inconclusive
+`endgame_clock.py` played KRP vs K, KP vs K, KR vs K and KB vs K to the end with the engine moving both
+sides. All four ended early — threefold repetition at ply 35-38, or checkmate — so **0 positions reached
+clock >= 95**. The engine heads for repetition, which ends the game by another rule before the fifty-move
+clock becomes relevant.
+
+**So: I did not demonstrate reachability in self-play.** S-F5's practical cost (-40/-999/-160 cp) is real
+*in the constructed positions*, but whether a game ever hands the engine such a position is untested by me.
+I am leaving S-F5 as "the move is much worse" and NOT claiming it loses games.
