@@ -1,0 +1,29 @@
+# PREDICTION - seat 29, area 9, job 3 (the next hot spot, same way as job 2)
+# Committed and pushed ALONE before the first measuring command of this job.
+#
+# Constraint from FABLE_TO_swarm_2.md Rule 2: the owner's PC plays with its own king-bucket net, where
+# static_evaluate returns through static_evaluate_v3 BEFORE the residual path, so evaluate_position is never
+# called. Candidates for the PC must therefore come from OUTSIDE the evaluation: move ordering, see_ge, move
+# generation, quiescence bookkeeping, the hash table.
+#
+# Targets from my own callgrind (bench 13, portable build, exact instruction counts):
+#   MovePicker::next(bool)            226.8 M Ir   5.02 %   (2,063,133 calls)
+#   see_ge                            131.3 M Ir   2.91 %   (  958,874 calls)
+#   MovePicker::pick_best              82.2 M Ir   1.82 %   (1,986,464 calls)
+#   fill_pseudo_legal (all modes)      47.5 M Ir   1.05 %
+#   TTProbe::probe_body<false>         47.2 M Ir   1.05 %
+#   make_move                         147.5 M Ir   3.27 %   (1,652,416 calls)
+#
+P1  The largest REMOVABLE waste outside the evaluation is in MovePicker: for every capture/quiet list it scores
+    moves into moves_[] and then, on the common short path, only the first few are ever needed. Predicted: the
+    quiet/capture SCORING loop, not the selection loop, dominates MovePicker::next's self cost.
+    KILLED if the selection loop (pick_best) is more than twice the scoring loop's cost per call.
+P2  Any correct patch I can find outside the evaluation will be SMALL: under 1 % of total instructions.
+    KILLED if I find one worth more than 3 % (that would mean the base left a big win on the table).
+P3  A patch that changes no node count AND speeds up the PC-relevant path will not be found by me in this job,
+    because the engine is already built with PEXT sliders, a ZMM NNUE kernel and prefetch-early; the remaining
+    per-node work is load-bearing. Predicted outcome: another bit-exact, speed-neutral patch, reported honestly.
+    KILLED if I measure a CI wholly below 1.0 with no node-count change.
+P4  `make_move` at 3.27 % with 1,652,416 calls (2 per make) contains the checkers recomputation, which needs five
+    attack queries per node. Predicted: at least 40 % of make_move's self cost is the checkers block.
+    KILLED if the checkers block is under 20 % of make_move's self cost.
