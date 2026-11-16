@@ -1,0 +1,20 @@
+PREDICTION — seat 30, check 30-C1 (seat 01's S-F5: halfmove >= 100 hides a mate in 1).
+Committed BEFORE the first measuring command. seed 3001.
+
+The claim: with halfmove_clock >= 100 in the FEN, the engine's root_drawn shortcut treats the
+position as a draw and searches 0 nodes, so a mate-in-1 is missed (bestmove f2f3, score cp 0),
+while halfmove 99 finds the mate (score mate 1, bestmove a1a8).
+
+P1. I will see exactly that: at hm 0, 97, 98, 99 -> `score mate 1`, `bestmove a1a8`, nodes > 0;
+    at hm 100, 101, 150 -> `score cp 0`, bestmove != a1a8, nodes 0.
+    Killed if any of the first four misses the mate, or any of the last three finds it.
+P2. The control (same board minus the rook) will NOT show mate at hm 99 or 100 - it must be a
+    draw-ish cp score. Killed if the control reports mate 1.
+P3. The cause is visible in the source as a literal `board.halfmove_clock() >= 100` term inside
+    root_drawn in src/search.cpp. Killed if no such term exists there.
+P4. The behaviour is identical on the release build and the ASan+UBSan build (it is control flow,
+    not memory). Killed if the two builds disagree on any of the seven counters.
+P5. Beyond their finding (if it holds): I expect the cutoff to be applied to BOTH sides at the root,
+    i.e. the same collapse at hm 100 in a position where the SIDE TO MOVE is not the mating side,
+    because root_drawn does not look at whose move it is. I predict the engine answers cp 0 there too.
+    Killed if that position is searched normally.
