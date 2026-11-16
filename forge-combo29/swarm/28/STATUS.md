@@ -42,3 +42,13 @@ CORRECTION 1 PUSHED. S-F1 re-tested: seat 16 was right that the last-completed-i
 
 ## Mon Nov 16 09:39:54 PM UTC 2026
 CORRECTION 2 PUSHED. S-F2 restated narrower (my 43.3 ms threshold was invented; against the engine's own plan: 54 over soft, 0 over hard). S-F6 confirmed and now a claim about the PLAN (plan soft 822 vs 117 ms at equal total clock). S-F9 numbers stand but mechanism corrected (achieved==reported within 1 ms, so it is a target undershoot); NEW: 2/40 movestogo-1 searches exceeded the engine's own hard plan.
+
+## Mon Nov 16 09:40:05 PM UTC 2026 CHECKPOINT (owner: findings on GitHub by 22:30)
+Everything is pushed. Complete inventory:
+- HONESTY.txt: 4/4 match (312866 / 862329 / 3024920 / 4865609), exe sha256 e06310ec...
+- job0..job3: area-8 jobs 1,2,3 all DONE with REPORT_job1/2/3.md, raw per-search TSVs, predictions committed alone, prediction scores.
+- correction/: CORRECTION_1_movetime.md (16-cell grid, 480 searches) + CORRECTION_2_clock.md (S-F2/F6/F9 re-check) + audit_timestamps.py (19 files, 0 problems) + verify_wall_is_the_stop.py.
+- checks/: S-C1 (CONFIRMS 01-F5 + new S-F4 repetition door), S-C2 (REFUTES 19-F7 cause), S-C3 (CONFIRMS 27-F2 + S-F13).
+- FINDINGS.md: 20 lines + a reading guide mapping each superseded original to its REVISED line.
+- Rule 1 planted faults: job2/out_plant*/ (illegal 400/400, overrun 400/400, noanswer 8/8; real engine 0).
+Branch tip before this block: ce87c538c.
