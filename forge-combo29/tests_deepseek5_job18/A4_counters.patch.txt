@@ -1,0 +1,116 @@
+# A4_counters.patch.txt - applies from the REPOSITORY ROOT (patch -p1) on base 6b98f217 + kimi5's tests_kimi5_job5/{SoundArms,SoundRegret,SoundSteps}.patch.txt (in that order).
+# Counter-only: the set-O sum stays 12,573,318 (verified). The counters count, at in-check nodes:
+#   ic_s1_flag_set - the moment step 1 sets its skip flag; ic_flagged_yielded - quiets the picker
+#   still yields AFTER the flag; ic_flagged_searched / ic_flagged_skipped - their fate (a)/(b);
+#   ic_quiets_total / ic_quiets_dropped - all in-check quiets and the block's drops of them.
+# Output line per search: info string A4 ic_s1_flag_set N ... (the harness diffs it per position).
+#
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -354,6 +354,13 @@
+     std::uint64_t probe_nodes = 0;
+ };
+ inline SoundRegretCounts sound_regret{};
++// job18 A4 counters (counter-only; the tree must stay identical)
++inline long long ic_s1_flag_set = 0;
++inline long long ic_flagged_yielded = 0;
++inline long long ic_flagged_searched = 0;
++inline long long ic_flagged_skipped = 0;
++inline long long ic_quiets_total = 0;
++inline long long ic_quiets_dropped = 0;
+ // kimi5 job 5 Part 4: in an arm's case only the steps whose bit is set are skipped
+ // (bit 0 = s1 .. bit 5 = s6). 63 = today's arm behavior, 0 = the case prunes like an
+ // ordinary node. Outside an arm's case the mask has no effect.
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1893,6 +1893,12 @@
+ 
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
++        const bool ic_cnt_quiet = in_check && !move.is_capture() && !move.is_promotion();
++        if (ic_cnt_quiet) {
++            ++tune::ic_quiets_total;
++            if (skip_quiets) ++tune::ic_flagged_yielded;
++        }
++        bool ic_cnt_pending = ic_cnt_quiet && skip_quiets;
+         if (move == excluded) continue;
+         if (root_node && root_restricted_ &&
+             std::none_of(root_moves_.begin(), root_moves_.end(), [&](const Move& m) { return m == move; })) {
+@@ -1946,6 +1952,7 @@
+                 }
+             };
+             if (!(sound_step_gate & 1) && quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) {
++                if (in_check) ++tune::ic_s1_flag_set;
+                 skip_quiets = true;
+                 if (sr_skip_origin == 0) {
+                     sr_skip_origin = 1;
+@@ -1969,6 +1976,7 @@
+                     quiet_fail = true;
+                     skip_quiets = true;
+                     note_deferred_quiet_checks();
++                    if (ic_cnt_pending) { ++tune::ic_flagged_skipped; ++tune::ic_quiets_dropped; ic_cnt_pending = false; }
+                     continue;
+                 }
+                 if (!(sound_step_gate & 4) && lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
+@@ -1976,6 +1984,7 @@
+                     sound_regret_drop(2, move, true, history, move_count);
+                     if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+                     quiet_fail = true;
++                    if (ic_cnt_pending) { ++tune::ic_flagged_skipped; ++tune::ic_quiets_dropped; ic_cnt_pending = false; }
+                     continue;
+                 }
+                 if (!(sound_step_gate & 8) && !board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+@@ -1983,6 +1992,7 @@
+                     sound_regret_drop(3, move, true, history, move_count);
+                     if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+                     quiet_fail = true;
++                    if (ic_cnt_pending) { ++tune::ic_flagged_skipped; ++tune::ic_quiets_dropped; ic_cnt_pending = false; }
+                     continue;
+                 }
+             } else {
+@@ -1998,6 +2008,7 @@
+                     trace_case();
+                     sound_regret_drop(4, move, false, history, move_count);
+                     if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
++                    if (ic_cnt_pending) { ++tune::ic_flagged_skipped; ++tune::ic_quiets_dropped; ic_cnt_pending = false; }
+                     continue;
+                 }
+                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+@@ -2012,6 +2023,7 @@
+                         if (in_check) ++tune::sound_prune_trace.quiet_check_in_check;
+                         if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
+                     }
++                    if (ic_cnt_pending) { ++tune::ic_flagged_skipped; ++tune::ic_quiets_dropped; ic_cnt_pending = false; }
+                     continue;
+                 }
+             }
+@@ -2112,6 +2124,7 @@
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
++            if (ic_cnt_pending) { ++tune::ic_flagged_searched; ic_cnt_pending = false; }
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+@@ -2761,6 +2774,7 @@
+     if (emit_info && soft_node_limit_ != 0) {
+         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+         std::cout << "info string softnodes nodes " << result.nodes << std::endl;
++
+     }
+     return result;
+ }
+@@ -2866,6 +2880,13 @@
+     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
++    { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++      std::cout << "info string A4 ic_s1_flag_set " << tune::ic_s1_flag_set
++                << " ic_flagged_yielded " << tune::ic_flagged_yielded
++                << " ic_flagged_searched " << tune::ic_flagged_searched
++                << " ic_flagged_skipped " << tune::ic_flagged_skipped
++                << " ic_quiets_total " << tune::ic_quiets_total
++                << " ic_quiets_dropped " << tune::ic_quiets_dropped << std::endl; }
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
+     return result;
+ }
