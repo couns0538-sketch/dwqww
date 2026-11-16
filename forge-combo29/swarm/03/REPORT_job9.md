@@ -1,3 +1,14 @@
+> **WITHDRAWN IN PART (2026-11-16T23:05Z, see REPORT_job10.md / `job10/correction_check.txt`).**
+> The sentence *"the base build scores the same two moves cp -1145 / cp -1174 and plays the better one"*
+> is **wrong as a general claim**, and the framing of this as a PC-build regression is wrong too. It came from
+> a settings mismatch of mine: the PC build was measured under PC20 and the base build under DEFAULT options.
+> Under the PC's own S14 settings the **base tree makes the same wrong-move choice** (free choice c6c7,
+> mate -20; c6d6 alone cp -1192; c6c7 alone mate -22), reproducing the other seat's numbers exactly. This is a
+> **pre-existing defect in the shared search**, triggered by the S14/PC20 search settings.
+> What survives: S-F16's core observation, because it was measured inside ONE build at ONE settings regime —
+> the PC build plays a move it has itself scored as a forced loss. An independent python-chess play-out
+> (`job10/playout_base_d12.txt`) confirms c6d6 is the better move: survives 22 plies versus c6c7's 20, 3 of 3.
+
 # REPORT — seat 03, job 9: position 155 on the PC build itself — a LIVE finding, not an inference from ports
 
 **What was asked.** Give position 155 the full treatment: both moves, both builds' scores at depths 16/18/20, and
@@ -77,7 +88,8 @@ base c6c7: score cp -1174 nodes 173131
 So the base build ranks the two candidates within 29 cp of each other (and prefers c6d6 — the one it plays), while the
 PC build on the identical board rates one as cp -1142 and the other as mate -11. **A search that assigns mate -11 to
 a move and cp -1142 to another must not choose the first.** Either the root comparison is being made across
-inconsistent scores, or the mate score is not reaching the root comparison for that move. That is the defect.
+inconsistent scores, or the mate score is not reaching the root comparison for that move. That is the defect —
+and it reproduces on the base tree under S14, so the bare-king cap is not its cause.
 
 ## 4. Where the reduction plausibly bites
 
@@ -119,7 +131,7 @@ request following job 7 and I started measuring immediately.
 
 | id | one sentence | reproduce |
 |---|---|---|
-| S-F16 | **On the PC build itself under PC20, Threads 1, Hash 16**, position `1r6/5b2/2K5/8/8/5n2/5k2/8 w - - 18 183` is answered `c6c7`, whose own depth-20 score is `mate -11`, while the alternative `c6d6` scores `cp -1142` — the engine plays a move it has itself scored as a forced loss; the base build scores the same two moves cp -1145 / cp -1174 and plays the better one. The PC build also spends 165.8M nodes on depth 20 here against the base build's 169,686. | `cd forge-combo29/swarm/03/job9 && python3 deep155.py /tmp/d.txt` and the two `go depth 20 searchmoves` commands in section 3 |
+| S-F16 | **On the PC build itself under PC20, Threads 1, Hash 16**, position `1r6/5b2/2K5/8/8/5n2/5k2/8 w - - 18 183` is answered `c6c7`, whose own depth-20 score is `mate -11`, while the alternative `c6d6` scores `cp -1142` — the engine plays a move it has itself scored as a forced loss; the base build scores the same two moves cp -1145 / cp -1174 and plays the better one [WITHDRAWN — see the banner above: this was measured under DEFAULT options, not S14/PC20]. The PC build also spends 165.8M nodes on depth 20 here against the base build's 169,686. | `cd forge-combo29/swarm/03/job9 && python3 deep155.py /tmp/d.txt` and the two `go depth 20 searchmoves` commands in section 3 |
 | S-F17 | The same PC move choice at depths 8, 12, 16, 18 and 20 is c6c7 at every depth, and the build's own score turns into a mate against itself from depth 18 (mate -16) to depth 20 (mate -10) without the move changing — so this is not a shallow horizon artefact. | `cd forge-combo29/swarm/03/job9 && python3 deep155.py /tmp/d.txt` |
 
 ## Suspicions, not proven

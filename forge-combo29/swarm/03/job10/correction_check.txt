@@ -1,0 +1,27 @@
+CORRECTION CHECK — the settings difference that explains both results (mine and the other seat's)
+measured 2026-11-16 ~22:55Z, base build /home/ubuntu/build-rel/forge, hash 68825bd5, Threads 1, Hash 16, OwnBook false
+position: 1r6/5b2/2K5/8/8/5n2/5k2/8 w - - 18 183
+
+DEFAULT OPTIONS (no S14), depth 18:
+  free choice            -> bestmove c6d6, score cp -1112, nodes 106668      [5 of 5 identical runs]
+  searchmoves c6d6       -> score cp -1132, nodes 83144
+  searchmoves c6c7       -> score cp -1157, nodes 112203
+  => under DEFAULT options base plays c6d6 and ranks it better. This is what my job-9 report measured.
+
+UNDER S14 (the 14 PC search settings), depth 18:
+  free choice            -> bestmove c6c7, score mate -20, nodes 212662
+  searchmoves c6d6       -> score cp -1192, nodes 112066
+  searchmoves c6c7       -> score mate -22, nodes 219998
+  => under S14 base plays c6c7, scored mate -20, while c6d6 is only cp -1192. This reproduces the other seat's
+     numbers (cp -1192, mate -22, mate -20) EXACTLY.
+
+CONCLUSION: the other seat is right and my sentence "the base build ranks them sanely" is WRONG as a general claim —
+it was measured under default options. Under the PC's own S14/PC20 search settings the base tree makes the same
+wrong-move choice as the PC build. My job-9 comparison therefore compared the PC build under PC20 against the base
+build under DEFAULT options: a settings mismatch, and the error is mine.
+
+What survives unchanged: S-F16's core observation — the PC build under PC20 plays a move whose own score is a forced
+loss while an alternative scores better. That was measured inside a single build at a single settings regime, so the
+settings mismatch does not touch it.
+What must be withdrawn: "the base build scores the same two moves cp -1145 / cp -1174 and plays the better one" as
+evidence that base is healthy. Under S14 base is not healthy on this position.
