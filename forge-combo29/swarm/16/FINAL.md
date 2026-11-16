@@ -121,6 +121,24 @@ identical at all three budgets on 31 of 40 real-game positions; the 8 that chang
 (largest +125 cp from the 20k budget to the 250k one, one −70 cp self-assessment drop in a lost position). No
 blunder found at any real budget.
 
+**2.3a THE SELF-PLAY BUDGET DOES NOT PLAY BADLY — a removed worry, not a found fault.** `S-F30`: the owner's
+self-play budget (`go softnodes 2000`) against his largest match budget (`go nodes 250000`) over 40 real-game
+positions:
+
+```
+same move as the 250k budget : 25 of 40
+median cost                  : 0 cp
+worse by >30 cp              : 4 positions   (worst +109)
+BETTER by >30 cp             : 3 positions   (best -109)
+```
+
+The 2,000-node budget loses ground on four positions and **gains it on three**. So the natural worry — that
+self-play at 2,000 nodes is underpowered and its games are poor training data — **is not supported by this
+sample.** Combined with S-F29 (varied starts give varied games) and S-F16 (the budget is deterministic and stops
+at a finished depth), the self-play path is in reasonable shape; the two things to know about it are the ~1.7x
+node overshoot and the need for varied starts, not move quality. The single largest loss is idx 34
+(`8/5p2/1k6/p4r1p/1b1R1P2/6K1/8/8 w`, +109 cp), committed with its FEN if the owner wants to look.
+
 **2.3b Two measurement-discipline results that others can use directly.**
 `S-F6`: the built-in book **cannot affect an analysis search** — `src/uci.cpp:524-528` probes it only when
 `game_search` holds, i.e. only for a `go wtime/btime` or `go movetime` search, never for `go depth`, `go nodes` or
@@ -189,6 +207,12 @@ this list.**
    backwards. Caught only because the largest "cost" was `h8h1`, a move I already knew **wins a rook**; verified at
    depth 14, then corrected throughout. A result that contradicts something you already know is the cheapest
    available bug detector.
+
+   > **A result that contradicts something you already know is the cheapest available bug detector — and it only
+   > works if you keep your earlier findings in view.**
+
+   That is the single most useful rule I got from this run, and it cost nothing to apply: the earlier finding
+   (S-F24, that `h8h1` wins a rook) was already on the branch, so the contradiction was visible in one glance.
 9. **First `loud_reverify` run** — three of my eight checks reported NOT VERIFIED because of bugs in MY audit code
    (wrong build passed, setup output discarded, `seldepth` parsed as nodes), not in the findings. Fixed, then 8/8.
 

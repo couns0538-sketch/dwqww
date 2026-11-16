@@ -322,3 +322,16 @@ seed: 1601
   already know is the cheapest available bug detector.
 - check_folder.py: ALL CHECKS PASS on the folder (374 files, 0 non-text, 35 findings rows).
 - Holding cadence; FINAL block at 10:19Z.
+
+## 2026-11-16T23:38Z
+- FINAL.md updated per the coordinator's two points:
+  1. The rule is now in verbatim as its own quoted block inside self-correction 8: "A result that contradicts
+     something you already know is the cheapest available bug detector — and it only works if you keep your
+     earlier findings in view." with the note that the contradiction was visible in one glance because S-F24 was
+     already on the branch.
+  2. The softnodes-vs-nodes wash is now its own prominent block, 2.3a, headed "THE SELF-PLAY BUDGET DOES NOT
+     PLAY BADLY — a removed worry, not a found fault", with the four numbers, the framing that it removes a
+     concern rather than adding one, and its relation to S-F29 and S-F16 (so the self-play path is summarised
+     in one place: ~1.7x node overshoot and the need for varied starts are the two things to know, not move
+     quality).
+- check_folder.py: ALL CHECKS PASS. Holding cadence to the close.
