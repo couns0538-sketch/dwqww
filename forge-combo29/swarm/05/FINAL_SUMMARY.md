@@ -23,6 +23,9 @@ position sets. That is S-F1 + S-F9.
 | S-F8 | `go infinite` at a terminal root produced no bestmove within 25 s (one observation, needs repeating) |
 | S-F9 | the S-F1 truncation reproduces on the fresh R set (R/120: `mate -13`, 14-ply PV, self-corrects -10 at d16, -8 at d18) |
 | S-F10 | R-set baseline: 200/200 bestmove+PV, 0 illegal PV moves, 18 mate scores (17 exact), 12,230,484 nodes, median 46,976 |
+| S-F11 | the S-F3 cliff is not a fixed counter: the boundary tracks counter+depth at 100–101, which reconciles my "9 plies early" with seat 25's "1 ply early" — same rule, different mate distances |
+| S-F12 | `DeadMaterial true` is a pure material key for exactly two knights: 8/8 KNNk positions across eight placements go cp 216..326 -> cp 0, and 0/3 KNNNk are touched (three knights can mate) |
+| S-F13 | that boundary rule is material-independent: K+B+B vs K gives the same counter+depth = 100 at all four depths tested |
 
 ## Checks of other seats
 | id | verdict |
@@ -31,6 +34,8 @@ position sets. That is S-F1 + S-F9.
 | S-C2 | CONFIRMS seat 19's 19-F12 (piped quit ⇒ `bestmove a2a3`, 0 info lines) and shows my job1 numbers are unaffected — they reproduce the brief's node sums exactly |
 | S-C3 | honesty re-verified after that audit: 4/4, so HONESTY.txt stands |
 | S-C4 | after seat 19's parse warning I found and fixed a real false-verdict path in my own `job1/mate_check.py` (a missing parse fell through to MISMATCH, i.e. an invented REFUTES); proven by control, published numbers unchanged |
+| S-C5 | CONFIRMS seat 15's 15-F3 on my own 20 KNN v K positions (20/20 non-zero off, 20/20 cp 0 on) + the correctness control: DeadMaterial true leaves K+Q/K+R wins at cp 472..1162 |
+| S-C6 | CONFIRMS seat 15's 15-F4 (dead-draw roots emit an EMPTY pv with 0 nodes, one line per depth) and audits my own exposure: 600/600 empty pv lines in my job2 draw sets, but my cp 0 conclusions stand |
 
 ## Jobs
 - `job1/` — PV legality + mate distances on O(200)+G(353) at depth 12. REPORT_job1.md
@@ -49,6 +54,14 @@ position sets. That is S-F1 + S-F9.
 - My first hand-typed set of checkmated/stalemated roots was only 4/10 and 6/10 correct; I generated and asserted
   replacements.
 - `resolve_192.py` never finished and its output file is empty — it proves nothing and I say so in REPORT_job1.md.
+- In `check_15f3/deadmaterial_scope.py` I mislabelled several FENs (a "two knights" row that contained a black
+  knight, a "three knights" row that was KNNk) and drew two claims from them; `raw/material_check.txt` disproved
+  both and they are WITHDRAWN in `check_15f3/raw/scope_summary.txt` and RESULT.md. The controlled replacement
+  (`knn_same_material.py`) asserts each FEN's material and gives the clean result.
+- The first `cliff_vs_depth.py` scanned downward from 99 and therefore reported 99 at every depth; the corrected
+  upward scan is what produced S-F11/S-F13.
+- `honesty_safe.py` first waited for a `bestmove` that `bench` never prints and hung; it now waits for the
+  `readyok` queued behind the command.
 
 ## Not done / open
 - No cause is claimed for S-F1/S-F9: I did not read `search.cpp` (area 7's job).
