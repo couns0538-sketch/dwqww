@@ -81,3 +81,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-N8: I wrote a vectorised TT hit scan that was WRONG - sizeof(TTEntry)==16, so one __m128i load covers ONE slot, not four. Node counts jumped to 347,176 / 700,414 / 2,333,149 and the honesty check caught it immediately; patch reverted, base restored to 862329.
 - Lesson recorded: any vectorised cluster scan must use strided gathers for key32 at offsets 0/16/32/48, not a flat 128-bit load. This is the value of running all four honesty numbers on every build.
 - next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: record N8 wrong vector TT scan caught by node counts' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 09:58:13 PM UTC 2026
+- 29-F14: SECOND TT win, combined with F12: -18,708,563 instructions (-0.414%) per bench 13. All honesty counts identical, 40/40 searches bit-identical, 4/4 hash-pressure identical, legal moves at 1/4/8 threads. Patch saved as job8/tt_slot0_and_vector_probe.patch.txt.
+- 29-N9 HONEST LIMIT: my planted-fault control caught the replacement-rule error (4/4 DIFFERENT) but NOT the occupancy-check error (4/4 IDENTICAL, bench still 862329). So my equivalence evidence is strong for replacement logic, weak for occupancy handling. Stated plainly.
+- next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: combined TT patch F14 + honest limit N9' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
