@@ -1,0 +1,109 @@
+## table A: the ten hottest symbols by SELF time (perf report --no-children -g none)
+
+| # | symbol | self share |
+|---|---|---|
+| 1 | `int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .constprop.0]` | 16.51 % |
+| 2 | `forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)` | 11.97 % |
+| 3 | `forge::nnue::apply_and_evaluate(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&, forge::Board const&)` | 11.84 % |
+| 4 | `forge::MovePicker::next(bool)` | 6.69 % |
+| 5 | `forge::MovePicker::pick_best()` | 6.35 % |
+| 6 | `forge::Board::see_ge(forge::Move const&, int) const` | 5.56 % |
+| 7 | `forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)` | 3.98 % |
+| 8 | `forge::Worker::corrected_eval(forge::Board const&, int) const` | 3.60 % |
+| 9 | `void forge::fill_pseudo_legal<(forge::Board::GenMode)1>(forge::Board const&, forge::MoveList&)` | 2.95 % |
+| 10 | `forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)` | 2.53 % |
+
+## table B: family sums of self time
+
+| family | symbols | summed self share |
+|---|---|---|
+| main search recursion (Worker::search) | 3 | 12.00 % |
+| quiescence only (Worker::qsearch) | 1 | 3.98 % |
+| NNUE accumulator work (forge::nnue::*) | 8 | 15.15 % |
+| HCE term walk (evaluate_position) | 1 | 16.51 % |
+| evaluation glue (corrected_eval/static_evaluate/scale_factor/update_runtime_psqt) | 4 | 6.58 % |
+| move generation (fill_pseudo_legal*) | 3 | 5.69 % |
+| move ordering (MovePicker::*) | 4 | 17.34 % |
+| static exchange (see_ge) | 1 | 5.56 % |
+| make/unmake move | 2 | 3.28 % |
+| hash key (key_after/is_repetition) | 2 | 1.53 % |
+| memset/memcpy | 1 | 1.45 % |
+| std library helpers (std::*) | 6 | 2.09 % |
+| transposition table (probe/store) | 2 | 3.18 % |
+| legality checks (is_legal_complete/is_pseudo_legal/has_legal_move/refresh_king_lines) | 4 | 4.86 % |
+| **all evaluation** (NNUE + HCE walk + glue, the three rows above together) | - | **38.24 %** |
+| **all named rows together** (a symbol can only land in one row) | - | 99.20 % |
+
+## table C: counts behind the prediction verdicts
+
+- symbols listed at all: 90
+- symbols at or above 0.5 % self time: 28
+- symbols at or above 0.5 % below the top ten: 18
+- top ten summed self share: 71.98 %
+- # Samples: 17K of event 'task-clock:ppp'
+- bench 13 lines in the profiled run: 40; of them nodes 862329: 40
+- bench 13 internal ms: min 428 median 440 max 498 sum 17903
+- bench 13 nps: min 1731584 median 1959838 max 2014787
+
+## table D: first three and last three bench 13 lines of the profiled run
+```
+info string bench depth 13 nodes 862329 time 477 nps 1807817
+info string bench depth 13 nodes 862329 time 456 nps 1891072
+info string bench depth 13 nodes 862329 time 476 nps 1811615
+...
+info string bench depth 13 nodes 862329 time 454 nps 1899403
+info string bench depth 13 nodes 862329 time 456 nps 1891072
+info string bench depth 13 nodes 862329 time 453 nps 1903596
+```
+
+## table F: INCLUSIVE cost (perf report --children) from the callchain run
+
+A `children` share is the sample time of a symbol plus everything it called; a `self` share
+is the symbol's own instructions. Read the rows top-down: the first row under `Worker::search`
+that is *not* another Worker::search is a real leaf of the search.
+
+| children | self | symbol |
+|---|---|---|
+| 99.99 % | 0.00 % | `forge::uci_loop(std::istream&)` |
+| 97.72 % | 0.00 % | `forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess)` |
+| 97.72 % | 0.01 % | `forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&)` |
+| 97.69 % | 12.03 % | `forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)` |
+| 38.44 % | 3.69 % | `forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)` |
+| 33.43 % | 1.09 % | `forge::Worker::static_evaluate(forge::Board const&, forge::SearchStack*)` |
+| 25.24 % | 6.94 % | `forge::MovePicker::next(bool)` |
+| 16.84 % | 16.35 % | `int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .constprop.0]` |
+| 11.92 % | 11.72 % | `forge::nnue::apply_and_evaluate(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&, forge::Board const&)` |
+| 8.62 % | 6.63 % | `forge::MovePicker::pick_best()` |
+| 5.35 % | 5.34 % | `forge::Board::see_ge(forge::Move const&, int) const` |
+| 3.63 % | 3.63 % | `forge::Worker::corrected_eval(forge::Board const&, int) const` |
+| 3.48 % | 2.21 % | `forge::MovePicker::generate_evasions()` |
+| 2.87 % | 2.87 % | `void forge::fill_pseudo_legal<(forge::Board::GenMode)1>(forge::Board const&, forge::MoveList&)` |
+| 2.39 % | 0.87 % | `forge::Board::has_legal_move() const` |
+| 2.38 % | 2.38 % | `forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)` |
+| 2.22 % | 2.18 % | `forge::Board::make_move(forge::Move const&, forge::Undo&)` |
+| 2.09 % | 2.09 % | `forge::TTProbe forge::TranspositionTable::probe_body<false>(unsigned long) const` |
+| 2.00 % | 2.00 % | `void std::__introsort_loop<forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}> >(forge::MovePicker::Scored*, forge::MovePicker::Scored*, long, __gnu_cxx::__ops::_Iter_comp_iter<forge::MovePicker::pick_best()::{lambda(forge::MovePicker::Scored const&, forge::MovePicker::Scored const&)#1}>) [clone .isra.0]` |
+| 1.90 % | 1.90 % | `forge::Board::is_legal_complete(forge::Move const&) const` |
+| 1.85 % | 1.50 % | `__memset_avx512_unaligned_erms` |
+| 1.63 % | 1.59 % | `void forge::fill_pseudo_legal<(forge::Board::GenMode)2>(forge::Board const&, forge::MoveList&)` |
+| 1.63 % | 0.19 % | `forge::Worker::is_draw(forge::Board const&, int) const` |
+| 1.61 % | 1.61 % | `forge::Board::refresh_king_lines() const` |
+| 1.35 % | 1.35 % | `void forge::fill_pseudo_legal<(forge::Board::GenMode)0>(forge::Board const&, forge::MoveList&)` |
+| 1.26 % | 1.26 % | `forge::Evaluator::update_runtime_psqt(forge::Evaluator::RuntimePsqt const&, forge::Evaluator::RuntimePsqt&, forge::nnue::DirtyPieces const&)` |
+| 1.25 % | 1.25 % | `forge::Board::key_after(forge::Move const&, unsigned long&) const` |
+| 1.22 % | 1.22 % | `forge::Board::unmake_move(forge::Move const&, forge::Undo const&)` |
+
+## table E: the profile's .meta
+```
+exe /home/ubuntu/build_prof/forge
+e806dab4021e968a8ec436c0e6250b8a8e1fc218778dad20e09c03acedc19706  /home/ubuntu/build_prof/forge
+id name Chess Engine Forge 6.4.24 candidate
+perf: perf version 6.8.12
+perf_event_paranoid: -1
+command: perf record -o DATA -F 999 -g -- EXE < bench13.stdin.txt   (DATA deleted after reports)
+stdin: "bench 13" x 40, then quit  (one engine process; bench builds its own Searcher(16) per line)
+options sent: none (bench takes no setoption; S14 not used by bench)
+cores: 4
+date: 2026-11-16T21:10:46Z
+record exit 0
+```
