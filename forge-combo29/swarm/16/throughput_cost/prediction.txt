@@ -1,0 +1,22 @@
+# PREDICTION — pricing the throughput cost of the 20,000-node recommendation (S-F33)
+
+In S-F32 I recommended moving self-play from 2,000 to 20,000 nodes and stated plainly that I had NOT quantified
+what that costs in throughput. That is a gap in my own recommendation, so this closes it.
+
+Method: wall time per search at `go nodes 2000 / 8000 / 20000 / 50000 / 250000`, 10 repetitions per budget on the
+same position, PC build under PC20, Threads 1, Hash 16, fresh process per search, monotonic clock from `go` to
+`bestmove`. Reported: median and p99 wall time, and the implied searches per second for a self-play loop.
+
+P1. Wall time scales roughly linearly with the node budget: predicted median wall time at 20,000 is between 5x and
+    15x the median at 2,000. Kills it: under 3x (then the small budget has a fixed overhead dominating, and the
+    real cost is lower than the node ratio suggests) or above 20x.
+P2. The implied throughput at 20,000 is therefore about 10x worse per move: predicted searches per second fall
+    from roughly 30-60 at 2,000 nodes to 3-6 at 20,000. Kills it: outside that band.
+P3. Fixed process/UCI overhead is small compared to the searches themselves at these budgets, so the
+    time-per-node ratio at 2,000 is not dominated by startup: predicted the median wall time at 2,000 nodes
+    exceeds 10 ms (i.e. search time, not just setup). Kills it: under 2 ms, which would mean nearly all of the
+    2,000-node measurement is process startup and the comparison of budgets needs a one-process-per-game design
+    to be meaningful.
+P4. The p99 is within 50 % of the median at every budget (this machine is quiet and Threads 1 is deterministic).
+    Kills it: a p99 more than 2x the median, which would mean timing on this box is too noisy to price throughput
+    from 10 repetitions and I must say so.
