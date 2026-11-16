@@ -70,3 +70,18 @@ PC20 and label every finding line with build + settings.
   120 swarm finding lines lack a thread count and are flagged unconfirmable until re-run at Threads 1.
 Next command: re-run the highest-value OTHER seats' claims on the PC build at Threads 1 (seat 30's 30-F19 and
 seat 25's mate-distance lines first), stating build + settings in every line.
+
+## 2026-11-16T22:31:12Z three owner tasks done + two queue confirmations
+1. **RERUN_QUEUE.md** () — 122 flagged lines by seat, curated 8-entry short list with why + how to re-run.
+2. **S-F37 PLANTED** (): 10 reps/arm, fake-random engine flagged, fake-stable passed.
+   Result: at Threads 1 and default  10/10 on BOTH builds; at Threads 2/4/8  10/10 on BOTH — the
+   DISTANCE IS STABLE (not the score spread seat 04 saw) while nodes take 10 distinct values per arm and the move
+   sometimes varies. One position only; not a general claim that multithreading is more accurate.
+3. **Bundle contamination audited** (S-F40): STATUS.md was at risk (said "PC20 gives the same answer") and was
+   rewritten to "PC20 is not the cause, the guard is"; PC20_RERUN.md now opens with a READ-THIS-FIRST header.
+QUEUE CONFIRMATIONS: **S-C17** seat 30's 30-C4 reproduces exactly at Threads 1 on both builds (incl. their
+`cp 6 / 1091 nodes` quiet board); **S-C18** seat 25's ladder reproduces exactly and is bit-stable at Threads 1, and
+the PC build gives the true `mate -4` at EVERY depth 12-22 on that board.
+OWN CORRECTION: **S-F41** — my audit mis-flagged 30-C4 (it says "Threads 1/S14"; my regex missed that form), so the
+122 count includes false positives and must not be quoted as a number of defective lines.
+Next: queue entry 3 (seat 28's S-F4 repetition door at Threads 1), then seat 21's 21-F11.
