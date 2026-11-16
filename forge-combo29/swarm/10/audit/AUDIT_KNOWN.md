@@ -281,22 +281,74 @@ with an empty table** (cp 23 vs cp 30), and **`Clear Hash` does not rescue it** 
    subsequent *unrestricted* search (10-F15), and `ucinewgame` clears it. Fixing (1) may or may not also
    remove (2), but fixing (2) cannot make restricted searches correct.
 
-**The sharpest minimal repro** (deterministic, 3/3 reps, `audit/raw2/K14split/`), which seat 27's IirDepth
-sweep explains and which needs no restricted *set* at all — restrict to the single move the unrestricted
-search already chose:
+### CORRECTION (seat 27, and it is right): my first "minimal repro" table was move-confounded
 
-| depth | unrestricted | `searchmoves e2e4` | `searchmoves e2e4` + `Clear Hash` |
+I first wrote a table restricting to `e2e4` at every depth and called the sign flip a clue. **At depths 8
+and 10 the unrestricted search plays `d2d4`**, so restricting to `e2e4` compared **two different moves** —
+those two rows were not score errors at all and the "+10 / -7 sign flip" I reported was an artefact of
+comparing different moves. Retracted.
+
+The unconfounded version restricts to **the move the unrestricted search itself chose at that depth**
+(`audit/raw2/K14split/unconfounded.out`, `audit/k14_unconfounded.py`):
+
+| depth | unrestricted plays, scores | restricted to that SAME move, scores | same move? | nodes |
+|---|---|---|---|---|
+| 8 | d2d4, cp 26 | d2d4, cp **20** | yes | 1,979 |
+| 10 | d2d4, cp 24 | d2d4, cp **21** | yes | 5,837 |
+| 12 | e2e4, cp 30 | e2e4, cp **23** | yes | 26,329 |
+| 14 | e2e4, cp 23 | e2e4, cp **27** | yes | 41,260 |
+| 16 | e2e4, cp 35 | e2e4, cp **22** | yes | 85,320 |
+
+So the move is now held fixed and a gap survives at every depth (6, 3, 7, 4, 13 cp) with an unstable sign.
+But this is **not** the clean repro: restricting to one move is a *genuine* restriction (19 legal moves are
+excluded), so the reduced ply and the skipped root store are expected here too. The clean case where a
+restriction excludes nothing is the all-20 one, 10-F14.
+
+### Resolved: the all-20 case is explained mechanism, NOT a bug
+
+Seat 27 reproduced the all-20 case and identified the mechanism: **stopping IIR at the restricted root
+gives cp 30 against cp 24; stopping IIR *and* restoring the root TT store gives cp 30 / 56,720 / e2e4 on
+both sides, exactly equal.** So a restriction that excludes nothing differs from an unrestricted search by
+exactly two intentional design choices — one extra reduced ply, and the skipped root store. That is not a
+defect, and 10-F14 must be read that way.
+
+**My earlier claim that this was "unsound" was wrong on the mechanism, and I withdraw it.**
+
+### Is my residual observation explained by the same mechanism? Partly — and one part is not
+
+With `IirDepth 20` (IIR cannot fire at depth 12), `audit/raw2/K14split/iir_probe.out`:
+
+| config | unrestricted | single-move restrict | all-20 restrict |
 |---|---|---|---|
-| 8 | cp 26, d2d4 | cp **16**, e2e4 | cp 16 |
-| 10 | cp 24, d2d4 | cp **26**, e2e4 | cp 26 |
-| 12 | cp 30, e2e4 | cp **23**, e2e4 | cp 23 |
-| 14 | cp 23, e2e4 | cp **27**, e2e4 | cp 27 |
+| IirDepth default (2) | e2e4 cp 30, 56,720 | e2e4 cp 23, 26,329 | d2d4 cp 23, 21,640 |
+| **IirDepth 20** | e2e4 cp **18**, 53,000 | e2e4 cp **28**, 20,334 | g1f3 cp **19**, 41,340 |
 
-The **sign flips with depth** (+10, -7, -4 from depth 8 to 14), which matches seat 27's unstable sign at
-different `IirDepth` values exactly, and `Clear Hash` changes **not one node** — the proof that no table
-state is involved at this depth. That sign instability across depths is the single most useful clue for
-whoever repairs this: a cause that behaves like an iteration-dependent reduction (IIR, as seat 27's partial
-patch implicates, plus at least one more since the patch only closes half the gap).
+Two things follow, and they point in opposite directions:
+
+1. **The score gaps survive with IIR disabled** (18 vs 28 for the single-move case; 18 vs 19 for all-20),
+   and the all-20 bestmove changes to `g1f3`. So on this build IIR is *not* the whole mechanism for the
+   score difference — which is consistent with seat 27's own S-F8b ("an 8 cp gap with IIR provably
+   inactive, the third cause unidentified"). Seat 27's both-fixes experiment and my IIR-off experiment are
+   not contradictory: they patch the two named causes, and their own S-F8b records that a residual remains.
+2. **My contamination observation is a separate effect** and IIR does not explain it: with `IirDepth 20`,
+   restricted-then-unrestricted gives **34,396** nodes at cp 29, while the unrestricted-then-unrestricted
+   control gives **44,654** at cp 24. The earlier default-IIR numbers (36,745 vs 4,951) and these point the
+   same way — a later unrestricted search measures differently depending on what ran before it — but the
+   magnitudes differ, so I present the contamination as **an observation about shared search state whose
+   mechanism I have not identified**, not as a second proven defect.
+
+### Defect A, restated so it is not confused with the explained case
+
+My "defect A" was: *a restricted search is wrong in a cold process with an empty table.* **That claim is
+withdrawn as a separate defect** — the cell I measured for it (`21,640` nodes, cp 23, `d2d4`) is
+**byte-identical** to the all-20 cold cell, so it *is* the all-20 case, and seat 27's mechanism (extra
+reduced ply + skipped root store) explains it as design, not a fault. My earlier "TWO SEPARATE DEFECTS"
+answer is therefore **wrong**, and the honest position is:
+
+- the all-20 case is **explained** (10-F14 downgraded to mechanism-known, not a bug);
+- the genuine single-move restriction shows a gap that IIR alone does not explain, which is squarely
+  seat 27's S-F8b "third cause unidentified" — **one open question, not two**;
+- the shared-state contamination observation is **unexplained by me** and stands only as an observation.
 
 **What a fix must address first:** the restricted root's own search (defect 1). Seat 27's
 `searchmoves_iir.PARTIAL.patch.txt` is the right first step and explicitly not sufficient; the remaining

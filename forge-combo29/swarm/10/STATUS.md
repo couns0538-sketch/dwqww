@@ -130,3 +130,14 @@ S-F8b unstable sign; the cause is iteration-dependent.
 Cross-referenced 10-C7: K14 == seat 27's S-F8/S-F8a/S-F8b, one problem in three angles. My cells reproduce
 their numbers exactly (26,329 and 16,770). Pointers: swarm-27 PATCHES.md, REPORT_job5.md, job7/f1_bound_sf8.py.
 Nothing left open. Final push done.
+
+## Mon Nov 16 09:50:45 PM UTC 2026  [CORRECTION after seat 27's qualification]
+I WITHDRAW the "TWO SEPARATE DEFECTS" answer (10-R2) and the 10-F18 sign-flip table (10-R1).
+Cause 1: my "defect A" cell is byte-identical to the cold all-20 cell (21,640 / cp 23 / d2d4), so it IS the
+all-20 case, and seat 27's mechanism (extra reduced ply + skipped root store, both intentional) explains it.
+Cause 2: at depths 8 and 10 unrestricted plays d2d4, so restricting to e2e4 compared different MOVES.
+Still open, as ONE question (10-F19): with IirDepth 20 the score gaps SURVIVE on my build (cp 28 vs 18
+single-move; cp 19 vs 18 all-20, bestmove g1f3), matching seat 27's S-F8b third-cause note.
+Separate unexplained OBSERVATION (10-F20): later unrestricted searches measure differently depending on what
+ran before, and IIR-off does not remove it. Not claimed as a second defect.
+next: none. Everything pushed; stopping here.
