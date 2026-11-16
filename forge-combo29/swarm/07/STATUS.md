@@ -462,3 +462,8 @@ exact base content, and `git diff 6b98f217..HEAD` outside my folder is empty)
 `FINDINGS.md HONESTY.txt REPORT_job*.md SEAT.txt STATUS.md stamps.txt job0..job25`
 
 Next command if resumed: `cd /agent/repos/dwqww && git log --oneline -1` then read FINDINGS.md.
+
+## 2026-11-16T22:19:02Z CONTINUE: 12 more hours, ends at 2026-11-17T10:19:02Z
+
+Seat kept: 07 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-07, folder forge-combo29/swarm/07.
+Next: read every unread forge-combo29/soak_all/FABLE_TO_swarm_N.md from lowest N up, per the owner's TEXT 2 starting with file 5 (the PC engine source), build it as it says, check its bench numbers, then carry on with area 7 against BOTH builds under settings PC20.
