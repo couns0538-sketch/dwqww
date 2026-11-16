@@ -28,3 +28,38 @@ One line per finding; only ever ADDED. Checks of other seats' findings get their
 | 19-F17b | 9 | Wording constraint on 19-F17, so it is not over-read: the four pins are **gcc-stable across g++ 11.5.0, 12.4.0 and 13.3.0 only** (three different binaries, all twelve numbers identical). They are **UNVERIFIED on clang and unverified with ThinLTO/PGO** — and the owner's PC builds with clang plus ThinLTO, so this is exactly the case still open. Do NOT read 19-F17 as "the pins are safe on every toolchain"; read it as "the libstdc++ version is not a fragility source on gcc, and the clang case is the one an owner-side check must cover". | `REPORT_toolchain_pins.md` sections 1, 5 and 6; `toolchain/out/bench_*_g-{13,12,11}.txt` | NEW |
 | 19-F18 | 9 | `bench 13` cannot measure the transposition table's real cost: at Hash 16 (what `bench` builds) only **50 of 861,904** probes (0.006 %) reach the age/depth replacement scan, while the R_1911 set at the SAME Hash 16 reaches it on **8,310,172 of 15,184,039 (54.7 %)**, and only 10.1 % of its probes find an empty slot against bench's 66.9 %. Hash 32 gives 44.1 %, so the gap is workload, not table size. This is why `probe_body` reads 2.09 % on bench 13 and 5.77 % on R_1911. PC-relevant (hash table). | `job4/instrument_tt.py` then `python3 job4/drive_hash16.py ~/tt_build/forge job1b/R_1911.fens out.err 16`; raw `job4/tt_bench13.err`, `job4/tt_R1911_hash16.err`, `job4/tt_R1911_hash32.err` | NEW |
 | 19-F19 | 9 | `bench 13`'s probes hit slot 0 of the cluster **93.1 %** of the time and never refresh a generation (**0** of 285,437 hits), while R_1911 is flat across slots (26.0/25.4/24.9/23.7 %) with 0.4-0.5 % of hits doing a generation write. A bench-only profile therefore cannot see the cost of a spread cluster or of the generation-refresh store. | `job4/tt_bench13.err` vs `job4/tt_R1911_hash16.err` | NEW |
+| 19-F20 | 9 | A bench pin is sensitive to anything that changes the SEARCH TREE and blind to anything that only changes COST in a rarely-taken path. Measured with one ablation: a picker change that moves no cost but changes tie order (`std::sort` -> `std::stable_sort`) moves bench 11 (312,866 -> 292,627), bench 13 (862,329 -> 939,494) and bench 16 (3,024,920 -> 2,925,608), while perft 5 stays 4,865,609 because perft never uses the picker. By contrast the same bench 13 reaches the TT replacement scan on 0.006 % of probes (19-F18), so no bench pin can show a TT-cost change. Practical: quote all three bench depths for an ordering patch (they disagree in direction), use RECIPE_tt_validation.md for a TT patch, and treat perft 5 as a move-generator pin only. | `job4/pins_stable_sort.txt`; `job4/stable_bench13.err`; `job4/stable_R1911_h16.err`; build from `pickbest/edit_stable_sort.py` + `job4/instrument_tt.py` | NEW |
+| 19-C5 | CONFIRMS 19-F18 by superseding my own over-broad reading | `PIN_SENSITIVITY.md` sections 1 and 5 | I told the coordinator that bench's positions were "also unrepresentative for move ordering". That was too broad and this ablation refutes it as stated: bench DOES detect ordering changes (3-9 % on all three depths), because ordering changes the tree. What bench cannot do is detect a TT-cost change (0.006 % of probes reach the code) or represent the position distribution for tuning. The correct statement is narrower than the one I sent. |
+
+## How to be wrong well (process notes from seat 19, 2026-11-16)
+
+Two of my failures are worth more to the next reader than any clean-looking report, so they are recorded here
+with their root causes rather than buried in reports:
+
+**1. A check that passes on a value it never found.** In my first check of 08-F9 I searched the engine's output
+for a `clock_plan` line to learn the planned time. The engine prints no such line, so the value was `None`, the
+usage ratio was `NaN`, and `0.50 <= NaN <= 0.85` is False in a way my code did not test — it printed
+`VERDICT CONFIRMS` without measuring anything. Fix: assert the LINE WAS FOUND, then compare the value, as two
+separate steps. A zero or an empty result needs its own explicit branch, because a regex like `(.+)` cannot
+match the *correct* empty answer — the trap works in both directions.
+
+**2. A prediction about code I had not opened.** For job 4 I predicted that the TT probe redundantly rescans
+its cluster on a miss. The short-circuit that prevents exactly that is at `src/search.cpp:424`, in the first
+file I should have read. The prediction was committed alone and cannot be edited, so it stands on the record as
+a proposal that was already implemented. Fix: before committing a prediction about file Y, open file Y.
+
+**3. The same malformed option twice.** I sent `setoption name Hash 16` instead of
+`setoption name Hash value 16` in two different harnesses, so the option silently never applied. The first time
+I caught it from the engine's `unknown option` line, which the brief's isready rule exists to surface. The
+second time the tell was different and better: **two runs with supposedly different Hash sizes gave
+byte-identical counters.** Fix: when two runs with different settings agree exactly, suspect that neither
+setting applied. Identical numbers are a smell, not a reassurance.
+
+**4. A `git add` too broad.** I pushed three CMake build directories (objects and binaries, ~5.8 MB) because I
+added a whole folder instead of only its `*.txt` outputs. They remain in this branch's history at `03d92c4c1`
+because a force-push is forbidden; `toolchain/VIOLATION.md` records it. Fix: `git add` explicit paths, then
+`git status --short` before every push, and check for ELF files under my own folder.
+
+The common thread: every one of these was caught by a number or a state that was *too clean* — a check that
+passed first try, numbers that matched when they should not have, a prediction that needed no measurement.
+Treat a clean result as the first thing to doubt.
