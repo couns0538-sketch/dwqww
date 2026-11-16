@@ -100,3 +100,5 @@ Next command: `cd /agent/repos/dwqww && git worktree add ../base 6b98f2170a3210e
 - S-F12 MY PREDICTION FAILED: I predicted the draw flip at depth 14 would be H~87; it is H=89,
   identical to depth 12. So the flip saturates by ~depth 12 — S-F11's "monotone with depth" is
   too strong and is corrected. What survives: flip is depth-dependent (96@d4 vs 89@d12/d14).
+- S-F8 strengthened with a positive control: `UseNNUE value false` changes the depth-8 score
+  26 -> 10, so the option works when written correctly; only the missing `value` word is silent.

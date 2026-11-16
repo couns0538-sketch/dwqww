@@ -1,0 +1,13 @@
+S-F8 POSITIVE CONTROL — the `value` word matters, shown on a SEARCH (not just `eval`).
+Engine /home/ubuntu/builds/rel/forge, waiting driver (no piped quit, per 19-F12).
+
+  default        : bestmove d2d4, score cp 26, 8 info depth lines
+  UseNNUE false  : bestmove d2d4, score cp 10, 8 info depth lines   <- option took effect
+  (earlier, `eval` only: default hce 18 nnue 20 total 38 ; UseNNUE value false -> hce 18 nnue 0 total 18)
+
+And the broken form, for contrast:
+  `setoption name UseNNUE false` (no `value` word) -> eval still reports nnue 20, i.e. NO effect,
+  and no `invalid value` line either, so the caller cannot tell it was ignored.
+
+So S-F8 is not "the option does nothing": with the correct syntax it demonstrably changes the
+score, and only the missing `value` word makes it a silent no-op.
