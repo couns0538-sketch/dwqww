@@ -355,3 +355,11 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
 - Determinism re-check: base build re-run reproduces 2/28, same two boards, same scores.
 - next command: test S-F27's prediction — a board with |N| >= 10 should truncate and the SAME board at a shallower
   reported mate should not.
+
+## $(date -u)
+- S-F28 NEW: S-F27's prediction CONFIRMED across depth. G/192: d12 mate -12 18/24 SHORT 6; d14 mate -9 15/18 SHORT 3;
+  d16 mate -6 12/12 ok; d18/d20 -5 ok; d24/d28 mate -4 8/8 ok. R/120: d12 mate -13 14/26 SHORT 12; d14 mate -10
+  20/20 ok and complete above. So the PV is short exactly while the reported distance needs more plies than the depth
+  that reported it. Neither board reports a mate at all at depth 8 or 10.
+- This is now the best-supported account of S-F1/S-F9/S-F21: a depth-limited PV-rebuild effect at long mate distances.
+- next command: continue the cycle; next check the PC build shows the same depth behaviour (S-F17 showed PC20 differs).
