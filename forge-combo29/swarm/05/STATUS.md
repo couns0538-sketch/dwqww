@@ -283,3 +283,12 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   97/99/99/99). So 101-D is a bare-endgame rule, not a general fifty-move law — which is exactly the gap my S-F15/S-F20
   fill. PC r15 + PC20, Threads 1.
 - next command: write the FINAL block with every find, its state and its build/settings, then verify push.
+
+## $(date -u)
+- S-F19 CORRECTED by my own follow-up. It was measured on G/192 only. On 7 mate boards (depth 12, Threads 1):
+  the truncation appears on just 2 of 7 under S14 on BOTH builds (G/192 short 6 base / 4 PC; R/40 short 12 on both).
+  MateAlphaGuard alone is consistent on 6 of 7 (fails R/40 by 7). TtPruneV2 alone fixes G/192 but CREATES truncation on
+  G/196 (short 8) and G/217 (short 10) and replaces mate scores with cp on G/184 and R/40.
+- S-F21 NEW: the truncation is position-specific and NO single option is a general cure; my "attributable to specific
+  search options" sentence was an over-generalisation from one board and is withdrawn.
+- next command: leave S-F16/F19(now corrected)/F20/F21 marked OPEN (no confirming seat yet) in the FINAL block.
