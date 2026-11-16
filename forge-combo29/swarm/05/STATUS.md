@@ -147,3 +147,10 @@
   cp 0 so the scan returned 60 and measured nothing. Discarded and re-run with material asserted; both runs are in
   job2/out/cliff_vs_depth_KNN.txt with the assertion recorded.
 - next command: read the board for a NEW finding outside area 5 that nobody has checked, and check it.
+
+## $(date -u)
+- S-F15 NEW: ONE black pawn flips the boundary from depth-tracking (bare K+R: 95/93/91/89) to flat (98 at every
+  depth). Stated with its own limit: stripping all 12 pawns from seat 25's middlegame still left it flat at 100, so
+  "pawns" is not the whole story and I claim no mechanism. The castling variant was skipped: python-chess calls
+  "1K6/8/8/3R4/8/8/8/k7 w KQkq" invalid, and I did not force it.
+- next command: python3 job2/what_makes_flat.py /tmp/build-asan/forge for the sanitizer-build repeat.

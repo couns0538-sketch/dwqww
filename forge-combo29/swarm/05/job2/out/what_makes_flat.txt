@@ -1,0 +1,28 @@
+exe: /tmp/build-rel/forge
+
+| board | material sig | d6 | d8 | d10 | d12 | flat or tracking? |
+|---|---|---|---|---|---|---|
+| bare K+R (law holds) | KRk | 95 | 93 | 91 | 89 | tracks depth |
+| same + castling rights | INVALID | - | - | - | - | skipped |
+| same + a black pawn far away | KRkp | 98 | 98 | 98 | 98 | FLAT |
+
+Reading: whichever single change turns 'tracks depth' into 'FLAT' names the property that matters.
+If none of them does, the difference is something else and I will say I do not know.
+
+CONCLUSION (read off the table above, no mechanism claimed)
+  bare K+R vs K                        -> boundary TRACKS depth (95, 93, 91, 89 for d6..d12)
+  the same + ONE black pawn on h2       -> boundary FLAT at 98 for d6..d12
+So a single pawn is enough to change the boundary from depth-tracking to flat. The castling variant could not be
+tested: python-chess calls "1K6/8/8/3R4/8/8/8/k7 w KQkq - 0 1" invalid (castling rights with no rooks on the
+original squares), so that row was skipped rather than forced.
+
+This matches the earlier pawn-stripping test from the other direction: seat 25's middlegame (12 pawns) was flat at
+99, and removing all 12 pawns made it flat at 100 — so removing pawns did NOT restore depth-tracking there. Taken
+together the two experiments say: bare endgames track depth, positions with a pawn do not, but stripping pawns from a
+middlegame does not turn it back into a depth-tracking position. I therefore have TWO groups of observations and no
+single property that explains both, and I am not going to invent one.
+
+What I can state honestly for S-F14:
+ - with a pawn on the board: boundary flat (98 here, 99 on seat 25's middlegame, 100 on the pawnless middlegame)
+ - with no pawn: boundary tracks depth on all four bare endgames tested (d6..d12 -> 94/92/90/88 and similar)
+ - a middlegame with its pawns removed stays flat, so "pawns" alone is not the whole story.
