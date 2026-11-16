@@ -695,3 +695,26 @@ which is what seat 30's 30-F30 says, not a lost win.
 GUI-reachable: **YES** — endgame play is normal play; a GUI showing mate distance or a match adjudicating on
 score is affected. Threads 1 in every line. Builds as named per row.
 Evidence: `pc/check30/check30.json`, `pc/check30/*.log`.
+
+## S-C14 | CONFIRMS the remaining four of seat 30's six deep-mate boards — all six now verified
+
+I verified the other four of seat 30's six, same strict harness (every `setoption` confirmed by `readyok`,
+search awaited, fresh process, Threads 1, `go depth 24`, S14 on both builds):
+
+| board | base / S14 at depth 24 | PC r15 / S14 at depth 24 |
+|---|---|---|
+| `7K/5k2/8/4R3/8/8/8/8 w` | `cp 447` (`e5a5`) | **`mate 20`** (`h8h7`) |
+| `8/3K4/8/8/8/7k/3R4/8 w` | `cp 412` (`d7c7`) | **`mate 12`** (`d7e6`) |
+| `4k2K/8/8/1R6/8/8/8/8 w` | `cp 455` (`b5b7`) | **`mate 11`** (`b5b7`) |
+| `8/8/8/8/8/R7/7K/3k4 b` | `cp -457` (`d1e2`) | **`mate -12`** (`d1c2`) |
+
+Together with S-C13 that is **all six of seat 30's boards verified independently**: base tree reports
+centipawns at depth 24 in every case, PC r15 reports a mate in every case. Two details worth reporting beyond
+seat 30's text:
+- The last board is BLACK to move and the mate is against Black (`mate -12`): on the base tree it reads
+  `cp -457`, i.e. it knows it is losing badly but never reports the mate. So the failure is symmetric in colour.
+- Base scores at depth 24 differ slightly from the numbers seat 30 quoted (447 vs 437, 412 vs 400, 455 vs 451),
+  which is consistent with a different settings regime or a different repeat; the QUALITATIVE claim - centipawns
+  where a mate exists - reproduced in 6 of 6.
+GUI-reachable: **YES, normal endgame play.** Threads 1. Evidence: `pc/check30b/check30b.json`,
+`pc/check30b/*.log`, plus `pc/check30/` for the first two.
