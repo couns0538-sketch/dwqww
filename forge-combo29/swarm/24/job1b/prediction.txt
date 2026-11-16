@@ -1,0 +1,29 @@
+# PREDICTION — seat 24, area 4, job 1 REPEAT (cycle step 2c: job 1 again, next seed, new position set)
+
+Written and pushed BEFORE the first measuring command of this repeat. Never edited afterwards.
+
+What differs from my first job-1 run (as the brief asks me to state):
+- **Position set**: the first run used the first 100 of G. This repeat uses a fresh R set made with SEED + 10 =
+  **2411** (`job1b/r_positions_2411.fens`, 987 positions from random python-chess games, one every 7 plies,
+  generator `forge-combo29/swarm/24/rgen.py`). I take the first 100 of that set.
+- **Threads**: the repeat covers Threads 2 and 4 only (the two settings that answered all 100 positions first time)
+  so that a second seed of 100 positions each fits the window. Threads 8/16 are covered by the first run.
+- Everything else is identical: TSan build, depth 12, S14, Hash 16, one long-lived process per setting, `ucinewgame`
+  once at handshake, every `go` read to `bestmove`, bestmove judged with python-chess.
+
+## Predictions (and the range that kills each)
+
+1. TSan report blocks over both runs: **0**. KILL if any appear.
+2. Crashes: **0**. KILL if any process restarts.
+3. Illegal bestmoves: **0 of 200**. KILL if any.
+4. Timeouts: **0**. KILL if any — my first run's only timeout was the pathological pos-90 of G, which is not in
+   this set; random-game positions are shallower.
+5. Wall time per setting: **under 10 minutes**. KILL if either exceeds 25 minutes.
+6. A specific expectation from 24-F3: because this is a DIFFERENT position set, I predict the warm-outlier
+   phenomenon is **not** position-90-specific and may appear on some other position. KILL of that expectation if
+   every one of the 200 searches finishes under 60 s (i.e. the outlier is unique to that one G position).
+   I am NOT predicting an outlier appears; I am predicting I cannot assume it will not.
+
+## Proof requirement for "0 reports"
+nm __tsan_ > 0 in both .meta files (it is 21 for this binary), and the planted-fault control must be counted by the
+same runner — job1b/run_job1b.sh runs the planted executable through driver.py exactly as the real runs do.
