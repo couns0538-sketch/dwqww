@@ -1,0 +1,28 @@
+CHECK of seat 04's 04-F20 — the THREADS-1 half only (my remit; multi-thread is out of scope by the swarm rule)
+=============================================================================================================
+Claim's Threads-1 figure: on `5R2/1p5k/6p1/8/1K6/5q2/8/8 b - - 0 1` at `go depth 12`, PC r15 + PC20,
+Threads 1 gives **75,311 nodes, 0.030 s, identical 6/6**.
+
+My harness: fresh process per run, monotonic clock from `go` to `bestmove`, drained (19-F12), no Threads option
+sent at all, Hash 16, PC r15 + PC20.
+
+| run | bestmove | score | nodes | wall s |
+|---|---|---|---|---|
+| 1 | f3f8 | cp 2207 | 75311 | 0.026 |
+| 2 | f3f8 | cp 2207 | 75311 | 0.025 |
+| 3 | f3f8 | cp 2207 | 75311 | 0.025 |
+| 4 | f3f8 | cp 2207 | 75311 | 0.025 |
+| 5 | f3f8 | cp 2207 | 75311 | 0.025 |
+| 6 | f3f8 | cp 2207 | 75311 | 0.025 |
+
+1 distinct bestmove, 1 distinct node count, 1 distinct score, wall 0.025-0.026 s: IDENTICAL 6 of 6.
+
+VERDICT: CONFIRMS the Threads-1 half of 04-F20 to the node (75,311 exactly), the move (f3f8 exactly) and the
+score (cp 2207). Their baseline for the multi-thread comparison is sound.
+
+WHAT I DELIBERATELY DID NOT CHECK: the Threads 4 explosion. Two reasons, both stated so this is not mistaken for
+agreement or disagreement: (1) FABLE_TO_swarm_6 rule 2 says different results above Threads 1 are NOT a defect by
+design, and the owner's PC plays one thread, so a multi-thread number cannot change anything the PC does; (2) the
+new swarm rule requires any score I report to come from Threads 1 unless the job is about threading, and no job
+assigned to me is. Their own framing already labels it "a hazard for threaded use, not for PC games", which I
+consider the right framing and am not contesting either way.
