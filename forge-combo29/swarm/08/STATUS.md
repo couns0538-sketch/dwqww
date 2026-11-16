@@ -212,3 +212,19 @@ STATUS every 25 minutes or less; findings pushed with each block.
 next command:
 
     cd /agent/repos/dwqww && git fetch -q --depth 1 origin handoff/fable-opus-combo29-all-20261114 && git ls-tree -r --name-only FETCH_HEAD | grep -E 'FABLE_TO_swarm_[0-9]+\.md' | sort
+
+## 2026-11-16T22:26Z
+- Read FABLE_TO_swarm_2, 4, 5 (1 and 3 read earlier). Rules absorbed: a zero needs a planted case through the
+  same harness; pins are DEFAULT-option numbers and the sums are S14 numbers (my HONESTY.txt was already in the
+  pins regime — verified); area 9 evaluation work is worthless on the PC because it runs its own net.
+- **PC BUILD (r15) BUILT AND VERIFIED.** Patch sha256 d6bd72c531f785f4 (matches), applied to a SEPARATE worktree
+  with `patch -p1 --fuzz=0` (11 files, zero fuzz), built with -DFORGE_MATE_ALPHA_GUARD=1.
+  **All 8 known numbers exact**: none->312866/862329/3024920/4865609; S14->242796/656517; PC20->278024/587276.
+  All six new options exist in `uci`; zero `unknown option`/`invalid value` in any output. Details:
+  pcbuild/REPORT_pc_build.md.
+- Cross-check: the BASE build under S14 also gives 242796, as FABLE_TO_swarm_4 says.
+
+### next: re-run my findings on the PC build under PC20, starting with the repaired-defect candidates
+exact next command:
+
+    cd /agent/repos/dwqww/forge-combo29/swarm/08/pc20 && python3 ../job2/probe_no_clock.py ~/builds/pc/forge
