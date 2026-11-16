@@ -289,3 +289,26 @@ Answers:
   be reportable), not a fault - the engine reports the true count in `info string softnodes nodes <N>`.
 
 Evidence: `pc/softnodes/softnodes.json`, `pc/softnodes/*.log`.
+
+## NEW ROW for FINDINGS_TABLE: does the bestmove change across the match path's three budgets?
+
+Question (from the coordinator, implied by the softnodes overshoot): if the budget changes the move, the
+match path's 20000 / 50000 / 250000 are different players at the same position.
+Setup: 10 positions from set G, PC r15, PC20, Threads 1, Hash 16, fresh process per (position, budget),
+read to `bestmove`. Deliberately small: an independent check of another seat's 100-position run.
+
+Result: **9 of 10 positions give the SAME bestmove at all three budgets; 1 of 10 changes.**
+
+| position | fen | 20000 | 50000 | 250000 |
+|---|---|---|---|---|
+| 6 | `2r4r/pp4k1/3q2p1/3ppn2/1P4QP/P2P1N2/R4P2/4RK2 b - - 0 1` | `c8c3` | `d6e6` | `d6e6` |
+
+Scores on that position rose cp 7 -> cp 16 -> cp 37 with the budget, i.e. the 20000 answer was not a
+deeper-search correction of the same plan but a different move that a slightly longer search abandons.
+
+So: the budgets ARE mostly the same player (9/10 here), and the exception is a real one - a position where
+a 2.5x larger budget changes the move. That is ordinary search behaviour, not a fault, but it means a match
+run at 20000 and one at 250000 are not strictly the same opponent.
+
+GUI-reachable: **YES - these are exactly the budgets the owner's matches send.**
+Evidence: `pc/budget_move/budget_move.json`, `pc/budget_move/p*_*.log`.
