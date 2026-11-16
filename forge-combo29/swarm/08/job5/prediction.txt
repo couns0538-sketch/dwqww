@@ -1,0 +1,29 @@
+# PREDICTION — seat 08 job 5: is the clock tail (08-F1) fixed or does it scale? Pushed BEFORE measuring.
+
+08-F1 says: on a clock the tail is ~4x the median (10 s clock: median 345, p99 1335, max 2426 ms).
+08-F10 explains the mechanism as the iteration boundary. If that mechanism is right, the ABSOLUTE tail should
+grow with the clock size (a bigger budget allows a bigger last iteration), while the median/soft ratio stays
+roughly constant.
+
+Sweep: wtime/btime 200, 500, 1000, 3000, 10000, 30000 ms, winc 0, 200 searches each (first 100 O + first 100 G),
+OwnBook false, guarded runner.
+
+| clock | soft plan (avail/22) | predicted median | predicted p99 | predicted max |
+|---|---|---|---|---|
+| 200 | 9 | 3-9 ms | 15-40 ms | under 90 ms |
+| 500 | 22 | 8-22 ms | 40-90 ms | under 200 ms |
+| 1000 | 45 | 20-45 ms | 90-170 ms | under 300 ms |
+| 3000 | 136 | 60-140 ms | 250-600 ms | under 900 ms |
+| 10000 | 454 | 200-400 ms | 900-1600 ms | under 2600 ms |
+| 30000 | 1363 | 600-1200 ms | 2500-5000 ms | under 8000 ms |
+
+## Kill ranges
+- If the p99 does NOT grow between the 1000 and 30000 ms clocks (ratio under 2), the tail is not
+  iteration-scaled and 08-F10's mechanism is wrong for the tail.
+- Any search exceeding its own clock: a lost-on-time risk and a finding of its own.
+- If the median/soft ratio is not roughly constant (varying by more than 2x), then "the engine spends a fixed
+  fraction of soft" (08-F9) does not generalise across clock sizes.
+
+## Second prediction
+p99/median should stay roughly constant (3-6x) if the mechanism is one iteration's cost.
+Kill: p99/median outside 1.5x..12x at any clock.
