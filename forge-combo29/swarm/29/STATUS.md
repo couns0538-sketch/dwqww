@@ -253,3 +253,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-F38 states the FINAL figure plainly: 11.1% age/depth replacement rate under PC20 (200 positions, depth 12, Threads 1, Hash 16); 13.6% at 20 positions; 19.5% under defaults; bench 0.006%. Seat 19's 54.7% is a DIFFERENT POSITION DISTRIBUTION, not an error - their bench 50 reproduces to the digit on my counters.
 - FINAL_NOTES.md prepared so the required '## <time> FINAL' block at 10:18Z can be written quickly and completely.
 - next: continuing on the PC path.
+
+## Mon Nov 16 11:36:06 PM UTC 2026
+- 29-F39 IMPORTANT, and it partially OVERTURNS the figure I was about to put in the FINAL: the replacement-scan age/depth rate is NOT ~11% - it swings 0.1% to 44.8% with depth and Hash on the same binary. Sweep (PC20, Threads 1, 60 positions): Hash16/d10 6.3%, Hash16/d12 44.8%, Hash64/d10 0.1%, Hash64/d12 2.4%.
+- Probes are IDENTICAL per depth across Hash sizes (1,372,713 at d10; 4,087,859 at d12), so table size does not change the search at all - it only changes how many scans find an EMPTY slot, i.e. whether the table is saturated. That is the real mechanism.
+- 29-N20: FINAL must quote the four-cell table plus the one robust claim (bench 50 of 861,904 = 0.006%), NOT '11.1%'. Correcting before the deadline rather than shipping a number a two-line sweep contradicts.
+- next: rewriting FINAL_NOTES.md accordingly, then continuing.
