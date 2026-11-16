@@ -131,3 +131,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
   -> probe_body 5.61% is HIGHER than either base-tree figure I had (1.38 bench / 3.65 deep), so my TT patch targets a hotter path on the PC build than my base measurements suggested.
 - 29-F18: the PC build reproduces the S14 O depth-12 sum EXACTLY (9,500,069), so S14 numbers are comparable across both builds.
 - next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: PC20 profile F17 + S14 sum reproduced on PC build F18' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 10:31:47 PM UTC 2026
+- 29-F19 IMPORTANT REVERSAL: my TT patch (F12+F14) is a WIN on the base tree (-18.7M instructions) but a LOSS on the PC r15 build under PC20 (+11.3M; slot-0 half alone +19.7M). Node counts identical, all 8 known numbers still match. It must NOT be quoted as a PC-build speedup. Threads 1 throughout.
+- Swarm warning 29-N13: the PC patch must be applied with 'patch -p1' FROM INSIDE forge-combo29/ (its paths are relative to it). I silenced the output once and the patch was silently skipped, which briefly looked like a behaviour change. Confirm applied state by checking the option list, never by absence of an error.
+- General lesson for every seat: a base-tree instruction saving is NOT evidence about the PC build. Re-measure there.
+- next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: TT patch reverses on PC build (F19) + patch-apply warning (N13)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
