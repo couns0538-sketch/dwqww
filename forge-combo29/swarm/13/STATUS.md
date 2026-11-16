@@ -139,3 +139,12 @@ divide (+1 a4a3, -1 a5b4) so the TOTAL stayed 1265 -> my move-by-move check caug
 totals-only check would have passed. job2/DIVIDE_CONTROL.md, finding S-C4.
 IMPORTANT LIMIT STATED THERE: my perft 3/4/5 comparisons are totals only.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## 2026-11-16T22:19:12Z CONTINUE: 12 more hours, ends at 2026-11-17T10:19:12Z
+
+Seat 13 kept (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-13. No new seat taken.
+Plan: (1) read every unread FABLE_TO_swarm_N.md from lowest N up, including file 5 (PC build source);
+(2) build the PC build in a SEPARATE copy with -DFORGE_MATE_ALPHA_GUARD=1 and check its known bench numbers;
+(3) re-run my own finds on BOTH builds under settings PC20, labelling each finding with build + settings;
+(4) THE CYCLE as before.
+Next command: git fetch handoff branch and list FABLE_TO_swarm_*.md
