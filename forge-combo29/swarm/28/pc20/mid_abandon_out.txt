@@ -1,0 +1,77 @@
+## CASE A — abandon an iteration that would have COMPLETED (costs 1 ply)
+
+### B = 454 ms — the true 10 s plan
+
+14 iterations cross the soft plan inside themselves and complete.
+
+| ladder | position | depth | iteration started | finished | cost | saved by abandoning at B | fraction of the iteration wasted | plies lost |
+|---|---|---|---|---|---|---|---|---|
+| ladder_base_ | #21 | d30 | 48 | 1287 | 1239 | **833 ms** | 67 % | 1 |
+| ladder_base_ | #8 | d19 | 281 | 1013 | 732 | **559 ms** | 76 % | 1 |
+| ladder_PC20_ | #8 | d18 | 246 | 830 | 584 | **376 ms** | 64 % | 1 |
+| ladder_PC20_ | #16 | d17 | 399 | 801 | 402 | **347 ms** | 86 % | 1 |
+| ladder_PC20_ | #4 | d19 | 410 | 717 | 307 | **263 ms** | 86 % | 1 |
+| ladder_base_ | #4 | d22 | 170 | 703 | 533 | **249 ms** | 47 % | 1 |
+| ladder_base_ | #15 | d18 | 325 | 684 | 359 | **230 ms** | 64 % | 1 |
+| ladder_base_ | #16 | d17 | 292 | 557 | 265 | **103 ms** | 39 % | 1 |
+| ladder_base_ | #23 | d19 | 375 | 517 | 142 | **63 ms** | 44 % | 1 |
+| ladder_base_ | #11 | d20 | 193 | 516 | 323 | **62 ms** | 19 % | 1 |
+| ladder_base_ | #5 | d20 | 341 | 510 | 169 | **56 ms** | 33 % | 1 |
+| ladder_PC20_ | #15 | d19 | 345 | 467 | 122 | **13 ms** | 11 % | 1 |
+| ladder_base_ | #24 | d17 | 354 | 458 | 104 | **4 ms** | 4 % | 1 |
+| ladder_PC20_ | #1 | d21 | 412 | 457 | 45 | **3 ms** | 7 % | 1 |
+
+saving: median 166 ms, mean 226 ms, max 833 ms, total 3161 ms across 14 cases
+
+### B = 317 ms — the 6 s plan applied to 10 s iteration costs (approximation)
+
+24 iterations cross the soft plan inside themselves and complete.
+
+| ladder | position | depth | iteration started | finished | cost | saved by abandoning at B | fraction of the iteration wasted | plies lost |
+|---|---|---|---|---|---|---|---|---|
+| ladder_base_ | #21 | d30 | 48 | 1287 | 1239 | **970 ms** | 78 % | 1 |
+| ladder_base_ | #8 | d19 | 281 | 1013 | 732 | **696 ms** | 95 % | 1 |
+| ladder_PC20_ | #8 | d18 | 246 | 830 | 584 | **513 ms** | 88 % | 1 |
+| ladder_base_ | #4 | d22 | 170 | 703 | 533 | **386 ms** | 72 % | 1 |
+| ladder_base_ | #16 | d17 | 292 | 557 | 265 | **240 ms** | 91 % | 1 |
+| ladder_base_ | #11 | d20 | 193 | 516 | 323 | **199 ms** | 62 % | 1 |
+| ladder_base_ | #14 | d16 | 191 | 426 | 235 | **109 ms** | 46 % | 1 |
+| ladder_base_ | #20 | d20 | 149 | 416 | 267 | **99 ms** | 37 % | 1 |
+| ladder_PC20_ | #1 | d20 | 209 | 412 | 203 | **95 ms** | 47 % | 1 |
+| ladder_base_ | #13 | d16 | 283 | 401 | 118 | **84 ms** | 71 % | 1 |
+| ladder_PC20_ | #16 | d16 | 139 | 399 | 260 | **82 ms** | 32 % | 1 |
+| ladder_base_ | #23 | d18 | 229 | 375 | 146 | **58 ms** | 40 % | 1 |
+| ladder_PC20_ | #23 | d18 | 197 | 362 | 165 | **45 ms** | 27 % | 1 |
+| ladder_base_ | #24 | d16 | 219 | 354 | 135 | **37 ms** | 27 % | 1 |
+| ladder_base_ | #7 | d19 | 262 | 350 | 88 | **33 ms** | 38 % | 1 |
+| ladder_PC20_ | #15 | d18 | 305 | 345 | 40 | **28 ms** | 70 % | 1 |
+| ladder_PC20_ | #4 | d17 | 192 | 343 | 151 | **26 ms** | 17 % | 1 |
+| ladder_base_ | #5 | d19 | 177 | 341 | 164 | **24 ms** | 15 % | 1 |
+| ladder_base_ | #2 | d18 | 230 | 339 | 109 | **22 ms** | 20 % | 1 |
+| ladder_PC20_ | #7 | d19 | 236 | 339 | 103 | **22 ms** | 21 % | 1 |
+| ladder_PC20_ | #18 | d27 | 303 | 334 | 31 | **17 ms** | 55 % | 1 |
+| ladder_base_ | #1 | d22 | 303 | 332 | 29 | **15 ms** | 52 % | 1 |
+| ladder_base_ | #15 | d17 | 198 | 325 | 127 | **8 ms** | 6 % | 1 |
+| ladder_PC20_ | #11 | d19 | 297 | 324 | 27 | **7 ms** | 26 % | 1 |
+
+saving: median 52 ms, mean 159 ms, max 970 ms, total 3815 ms across 24 cases
+
+## CASE B — abandon an iteration that would have been DISCARDED (costs NOTHING)
+
+At the real 6+0.06 control, `wall_ms - engine_time_ms` is time spent on an iteration the search
+threw away. Abandoning at the soft plan recovers that span at ZERO ply cost.
+
+| build | n | median discarded span | max discarded span | searches where it is >50 ms |
+|---|---|---|---|---|
+| base | 60 | 1 ms | 578 ms | 1 |
+| PC20 | 60 | 1 ms | 936 ms | 1 |
+
+**base**: 60 searches discard a total of 619 ms; the 90th percentile span is 1 ms.
+**PC20**: 60 searches discard a total of 981 ms; the 90th percentile span is 1 ms.
+
+## The comparison the owner needs
+
+| change | ply cost | median gain per case | max gain | risk |
+|---|---|---|---|---|
+| mid-iteration abandon (B=317, completing iteration) | 1 ply | 52 ms | 970 ms | loses the depth it was working on |
+| mid-iteration abandon (discarded iteration) | **0 plies** | 1 ms | 936 ms | none — that depth was never kept |
