@@ -1,0 +1,25 @@
+PREDICTION — seat 30, check 30-C2 (seat 05's S-F3: the fifty-move draw is applied "about 9 plies early").
+Committed BEFORE the first measuring command. seed 3001.
+
+Their claim, on `1K6/8/8/3R4/8/8/8/k7 w - - <H> 1` at `go depth 10`: cp 472 for H=0..75, cp 314 at
+H=90, and exactly cp 0 from H=91. They read the drop from 90 to 91 as the threshold being applied
+about 9 plies early.
+
+My reading of the same numbers: at H=91 the search's horizon is ply 10 and halfmove 100 is 9 plies
+away, so a depth-10 search that treats the 100-halfmove rule as automatic MEETS the draw inside its
+own horizon. Under that reading the drop at H=91 is not "early" -- it is exactly where a depth-10
+search must first see it. This is testable by moving the horizon, not the counter.
+
+P1. H=91 with `go depth 9` (horizon ply 9 -> halfmove 100 is at exactly ply 9) will ALREADY show the
+    collapse: either cp 0, or a large node count with the score falling. Killed if it stays at 472.
+P2. H=91 with `go depth 7` (horizon ply 7 < 9) will NOT show cp 0: the score will be clearly non-zero
+    (I predict > 250 cp) because the draw is beyond the horizon.
+    Killed if it reports cp 0 at depth 7.
+P3. Therefore the sharp "threshold" they measured at H=91 is DEPTH-DEPENDENT: at depth 7 the first H
+    with cp 0 will be 93 or 94 (100 - 7 + 1), not 91. Killed if the collapse H is the same at depth 7
+    and depth 10.
+P4. This is the search treating the fifty-move rule as AUTOMATIC (a draw reached without a claim),
+    which is a policy question, not an off-by-nine: at H=99 depth 10 must show cp 0 in essentially 0
+    nodes (the root shortcut), whereas at H=91 depth 10 must spend real nodes (it has to search to
+    discover the draw). Killed if H=91 and H=99 both answer in 0 nodes.
+P5. A genuine early-threshold bug, if present, would show as cp 0 at depth 7 for H=91 (P2's kill).
