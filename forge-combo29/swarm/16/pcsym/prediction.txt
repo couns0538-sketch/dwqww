@@ -1,0 +1,23 @@
+# PREDICTION — area 6 on the PC build under PC20: does each new option change the colour asymmetry?
+
+Build: PC r15 (/home/ubuntu/builds/bld-pc/forge), verified against all six known numbers in pcbuild/PC_BUILD.txt.
+Settings: Threads 1, Hash 16 (swarm rule: scores are Threads 1).
+Depths: 1 and 2 (the instrument that gave 336/334 and 25/30 on the base tree), on 20 G positions plus the
+S-F8/S-F12 probe position, mirror pair each time, fresh process and `ucinewgame` before every search.
+
+Configurations: PC20 as file 5 defines it (S14 + the six), then PC20 with each of the four search options
+turned OFF one at a time, then all four off (= S14 + MateAlphaGuard + OwnBook false).
+
+P1. Under PC20 the colour asymmetry still exists at depth 2: predicted fewer than half of the 20 pairs have
+    equal node counts. Kills it: 10 or more equal (then the PC build is materially more symmetric and I say so).
+P2. No single one of CuckooRep / HistRework / TtPruneV2 / CorrHistV2 turns the asymmetry off. Kills it: any
+    configuration reaching 20/20 equal node counts (that would name the component).
+P3. The SCORE asymmetry (scores unequal across a mirror pair) is predicted LOWER on the PC build under PC20
+    than on the base tree under S14, because three of the four options are "make the search more consistent"
+    changes. Kills it: strictly more unequal scores on PC20 than on base+S14 at the same depth.
+P4. At depth 1 the base tree had all 20 scores equal but node counts unequal (9/20 in my earlier full-window
+    sweep). Predicted the same shape on PC20: scores mostly equal, nodes mostly unequal at depth 1.
+    Kills it: a depth-1 score mismatch (that would be an evaluation asymmetry, a real find).
+P5. The per-option node totals will differ from each other (each option changes the tree). Kills it: two
+    configurations giving byte-identical node totals on all 20 positions (which would suggest the option did
+    not take effect, and I would then check its option line).
