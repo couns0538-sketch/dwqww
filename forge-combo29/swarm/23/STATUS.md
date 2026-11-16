@@ -146,3 +146,15 @@ Done since last block:
 Threads 1 everywhere; no score of mine was ever taken above Threads 1.
 Next: finish G30 depth 5, then check another unconfirmed NEW finding (seat 13's S-F2 special positions is the
 nearest unclaimed candidate for area 3), then job 1 of my area again with SEED+10 per THE CYCLE (c).
+
+## 2026-11-16T22:50Z  G30 depth-5 done, two checks confirmed, job 5 (cycle c) running
+- 23-F12: first 30 of G at perft 5 = 0 mismatches, sum 1,022,355,864 per side. Depth 5 now covers 230 positions
+  and 8,421,563,604 nodes with no difference (23-F11 + 23-F12). REPORT_job3.md final.
+- 23-C3 CONFIRMS seat 13's S-F2 (their 494 special FENs, my engine + my own reference, depths 1..4,
+  0 differing pairs of 1,976). RESULT.txt in check13/.
+- G30's perft-5 sum independently matches the 1,022,355,864 I quoted in 23-C2 as the G contribution — the two
+  checks agree with each other, which is the point of doing both.
+- job5 started per THE CYCLE (c): area-3 job 1 again with a NEW seed. I used 2401 (SEED + 100) rather than
+  SEED + 10, stated in the prediction: a disjoint game stream, not an adjacent one; overlap with the seed-2301
+  FEN set is 0 (measured, not assumed). Engine perft 1..4 running, python-chess reference 4 workers.
+Threads 1 everywhere.
