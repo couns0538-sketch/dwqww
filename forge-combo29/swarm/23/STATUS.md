@@ -319,3 +319,13 @@ So the safe statement for the owner is: the three match budgets are NOT the same
 the difference is not one-directional — raising the budget can change the move either way. A match measured at
 20000 is not comparable move-for-move with one at 250000.
 Prediction scored honestly: P1 (1-4 of 20) KILLED at 6; P2 (50000==250000) KILLED at 4 of 6; P3/P4/P5 held.
+
+## 2026-11-17T01:35Z  the 30 % rate confirmed on 60 more positions, and the shape is inverted
+23-F24, larger sample because 6/20 against 1/10 needed it: 60 further fresh quiet positions, 900 searches, same
+protocol. **18 of 60 = 30 %** change move between the three budgets, exactly matching 6 of 20 = 30 %. So on quiet
+middlegames 30 % is the rate and seat 17's 1-in-10 was a property of set-G boards.
+THE SHAPE IS THE FINDING: of the 18 changes, 11 are "20000 == 50000, only 250000 differs", 4 are "20000 differs,
+50000 == 250000", 3 differ at all three. The commonest pattern is the LARGEST budget changing the move — the
+opposite of the natural assumption that the small budget is the weak one. 0 of 180 cells non-deterministic.
+For the owner: the three match budgets are different players on ~30 % of quiet positions, and a match played at
+20000 is not move-for-move comparable with one at 250000 in either direction.
