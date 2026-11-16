@@ -1,0 +1,22 @@
+THE COMPLETE PICTURE, verified at two levels:
+
+LEVEL 1 (root, first visit): 6 moves, ALL scores 0 -> order = input order -> mirror differs
+LEVEL 2 (qsearch child):    22 moves, 20 tied at 0 and 2 tied at 12000
+                             -> std::sort has only 2 distinct keys for 22 moves
+                             -> a 20-way tie and a 2-way tie, both resolved by input order
+
+Every picker score is IDENTICAL between the two sides at both levels (0 of 22 differ here,
+0 of 6 at the root). So the engine's OPINION of the moves is colour-symmetric.
+What is not symmetric is the tie ORDER, which falls through to the generator's emission order.
+
+WHY THIS PRODUCES NODE DIFFERENCES AT ALL (the key insight):
+  With 20 of 22 moves equally scored, alpha-beta tries them in different sequences on the two
+  sides. The FIRST move tried in qsearch sets alpha; every later move is then compared against
+  it. A different first move therefore changes how many of the remaining 19 tied moves fail high
+  or low, and qsearch expands a different number of them -> 34 vs 45 nodes.
+  This is the SAME mechanism at both levels: tied scores + unstable sort + mirror-varying
+  emission order = different order = different node count.
+
+SO: keys differ (expected for absolute-square Zobrist, not a defect).
+    The stored content is NOT colour-dependent - the scores are identical.
+    The asymmetry is entirely ORDER, and order is decided by an arbitrary tie-break.
