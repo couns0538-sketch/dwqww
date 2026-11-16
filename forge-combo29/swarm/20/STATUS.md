@@ -387,3 +387,14 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - S-C38 (tie-break) keeps its caveat as the lead: the PROTOCOL cannot distinguish the two tie rules, which is NOT the
   same as the rules being identical.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-16T23:47:21Z one-sided clock CONFIRMED with the qualifier that reconciles both seats
+- **S-C39**: a one-sided `go` clock DOES hang (20,003 ms, 0 nodes) — but **only when the omitted clock belongs to the
+  side TO MOVE**. White to move: `go wtime 2000` fine (86 ms/149,020) while **`go btime 2000` HANGS**. Black to move:
+  `go btime 2000` fine (54 ms/91,990) while **`go wtime 2000` HANGS**. `go wtime 0 btime 0` answers in 4 ms.
+  RULE: white needs `wtime`, black needs `btime`, both is always correct, only-the-opponent's always hangs.
+- This reconciles seat 30's finding with my earlier non-reproduction (I had tested the SAFE direction), and explains
+  why such a bug looks like a random hang: a per-side `go` builder forgets one clock and hangs on exactly one colour.
+- **machine_clean.sh fixed**: it was flagging a DEFUNCT (zombie) engine as busy; zombies hold no CPU and are now
+  excluded. Contract unchanged: **exit 0 = fit to measure**.
+Next: continue in the window (ends 2026-11-17T10:18Z).
