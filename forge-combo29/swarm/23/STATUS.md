@@ -382,3 +382,80 @@ The four-case study, then the denominator it needed:
   break 23-F27's ceiling. Final word on this thread: we know WHERE to expect budget-dependent moves, not WHICH.
 Files: job15/RESULT.txt, gap_all.out, unstable_four.out.
 Remaining before the FINAL block: keep working the PC path in the same per-row-labelled style.
+
+## 2026-11-17T03:10Z  FINAL BLOCK (prepared in advance; state as of this stamp — see the note at its end)
+Builds used, and their verification:
+  BASE 6b98f217  exe sha e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+        Release, -DFORGE_MARCH=x86-64-v4, GCC 13.3.0. Pins 4/4: bench 11 = 312866, bench 13 = 862329,
+        bench 16 = 3024920, perft 5 = 4865609 (HONESTY.txt, sent with NO setoption per file 4).
+  PC r15  exe sha 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+        Built from FABLE_TO_swarm_5's patch (sha256 d6bd72c531f785f4 VERIFIED before applying) in a separate
+        worktree, -DFORGE_MATE_ALPHA_GUARD=1. All 8 published numbers match: none 312866/862329/3024920/4865609,
+        S14 242796/656517, PC20 278024/587276 (PCBUILD.txt).
+Settings used, by finding: "none" = no setoption at all; "S14" = the 14 settings of file 1; "PC20" = S14 + the
+six of file 5. Threads 1 and Hash 16 everywhere (no harness of mine ever sends a Threads option).
+
+EVERY FINDING, WITH ITS STATE, BUILD AND SETTINGS:
+ 23-F1  perft is unaffected by the 19-F12 quit/EOF fault (synchronous).        BASE, none.  OPEN (not contested).
+ 23-F2  python-chess 1.11.2 has no Board.perft().                              tooling.       OPEN.
+ 23-F3  harness must assert its parse found the number; 7-case self-test.      tooling.       OPEN.
+ 23-F4  perft 1..4, 5000 positions (seed 2301): 0 differences.                  BASE, none.  CONFIRMED by seat 03
+        (their S-F1 on their own 5000) and consistent with seats 13, 17.
+ 23-F5  ep-pin class absent from 5353 random positions; must be constructed.   BASE, none.  OPEN.
+ 23-F6  pinned ep capture correctly refused (3 built positions + control).     BASE, none.  OPEN.
+ 23-F7  perft is TT-independent: same count twice in one process.              BASE, none.  OPEN.
+ 23-F8  19-F12 NOT repaired on the PC build (quit/EOF still fabricates a2a3); stop is fine. PC r15, PC20. OPEN.
+ 23-F9  PC build's move generation identical to base (5000 positions, 0 diffs). PC r15, PC20. CONFIRMED by seat 03
+        (their S-F6/S-F7, 62,406 values).
+ 23-F10 planted control for every perft zero I publish.                         tooling.       OPEN.
+ 23-F11 perft 5 on 200 R positions: 0 differences, 7,399,207,740 nodes.        BASE, none.  CONFIRMED by seat 03
+        (their S-F5/S-F3 on their own set, different seed).
+ 23-F12 perft 5 on first 30 of G: 0 differences, 1,022,355,864 nodes.          BASE, none.  CONFIRMED likewise.
+ 23-F13 go softnodes deterministic between fresh processes (10/10 x5 runs).     PC r15, PC20. CONFIRMED by seats
+        05 (S-F31) and 17 (their softnodes section).
+ 23-F14 softnodes overshoots N by one depth, 1.01-2.73x.                       PC r15, PC20. CONFIRMED by seat 05
+        (S-F31/S-F32, 1.00-2.18x, same reading).
+ 23-F15 in-process softnodes is TT-dependent; ucinewgame restores cold, Clear Hash does not.
+                                                                                PC r15, PC20. OPEN (agrees with
+        seat 10's rule on a different build; not formally checked by them).
+ 23-F16 a warm run can report FEWER than N nodes (502 at N=2000).              PC r15, PC20. OPEN.
+ 23-F17 go nodes stops short of N systematically (N=100..250000).              PC r15, PC20. SUPERSEDED IN FRAMING
+        by seat 05's S-F36/S-W4 (same depth ladder; boundary depth unreported) — see 23-C6. Numbers still stand.
+ 23-F18 6s+0.06 clock far under its limit on 10 boards.                        PC r15, PC20. SCOPE LIMITED by my
+        own 23-C10 and seat 08's S-F29: does not generalise to 60 boards.
+ 23-F19 node-limit control: shortfall at every N, real counts from N=100.      PC r15, PC20. OPEN.
+ 23-F20 file 6's rule 1 on the PC path: ZERO defects over 4 boards x 7 counters, reason measured (mates 11-13
+        plies vs slack 1-10).                                                   PC r15, PC20. OPEN.
+ 23-F21 planted control making 23-F20's zero countable (7 of 7).                PC r15, PC20. OPEN.
+ 23-F22 second independent draw (seed 2401, 0 overlap): 0 differences.          BASE, none.  OPEN.
+ 23-F23 three budgets: 6 of 20 fresh quiet positions change move.              PC r15, PC20. EXTENDS seat 17's row
+        (their 1 of 10 confirmed by me as 23-C9).
+ 23-F24 the rate is 30 % on 60 more positions; dominant shape is "only 250000 differs" (11 of 18).
+                                                                                PC r15, PC20. OPEN.
+ 23-F25 the depth-jump explanation for 23-F24 is REJECTED (measured).           PC r15, PC20. OPEN.
+ 23-F26 the margin is the cause: median 14 cp changed vs 103 cp unchanged.     PC r15, PC20. OPEN.
+ 23-F27 margin as a predictor: median 12 vs 46 cp, precision only 45-56 %.     PC r15, PC20. OPEN.
+ 23-F28 "second-best identity changes" signature REFUTED (3/17 vs 6/43).       PC r15, PC20. OPEN.
+ 23-F29 measuring at the LARGER budget's depth: 9 of 11 flips are CORRECTIONS. PC r15, PC20. OPEN.
+ 23-F30 sensitivity concentrates in quiet+near-tied positions (71 % vs 28 %), precision still 50 %.
+                                                                                PC r15, PC20. OPEN.
+ Checks of other seats (all with my own harness, all Threads 1, Hash 16):
+ 23-C1  CONFIRMS 30-F6  (ucinewgame discards a position sent before it).        BASE, none.
+ 23-C2  CONFIRMS 03 S-F5 (their 230 FENs, 1150/1150 pairs, my engine+harness).  BASE, none.
+ 23-C3  CONFIRMS 13 S-F2 (their 494 special FENs, 1976/1976 pairs).              BASE, none.
+ 23-C4  CONFIRMS 06 S-F2 (unreachable ep square refused, refusal proven).       BASE, none.
+ 23-C5  CONFIRMS 05 S-F1 + S-F17 (mate-PV truncation is S14-specific, 5-config matrix). BASE/S14, PC/none,
+        PC/S14, PC/PC20.
+ 23-C6  REPLICATION of 05 S-F34/S-F36/S-F37 (not new); framing of F17 corrected. PC r15, PC20.
+ 23-C7  the guard depth table on the S-F48 board (flat) — WITHDRAWN by 23-C8.
+ 23-C8  CORRECTION of my own C7: seat 01's S-F49 reproduces EXACTLY on its own board. PC r15, S14 vs PC20.
+ 23-C9  CONFIRMS 17's three-budget row (same position, 1 of 10).                PC r15, PC20.
+ 23-C10 CONFIRMS 08 S-F29 (clock tail is real, ~2 %); scopes my 23-F18.         PC r15, PC20.
+
+NOTE ON THIS BLOCK: it is prepared at 03:10Z, not at the window's close (10:18:41Z), so it reflects state as of
+that stamp. If the window ends later and I am still working, a further block will follow with additions; nothing
+above is provisional, and no earlier block is superseded.
+NEXT COMMAND IF A TURN ENDS HERE: continue the PC path (PC r15 + PC20 + Threads 1 + Hash 16) — the open thread
+worth most is whether 23-F29's "corrections, not instability" reading holds on a new position set, i.e.
+`cd forge-combo29/swarm/23/job14 && python3 gap_at_big_depth.py ~/pcbuild/forge ../job7/pc20_opts.txt <a fresh
+out_nodes.json from 20 new quiet positions> gap_at_big2.out`.
