@@ -107,6 +107,22 @@ emit("|---|---|---|---|")
 emit("| go nodes 700000 | %s | %d | %s |" % (big[0], big[1], big[2][:100].replace("|", "/")))
 emit("| go depth 1 | %s | %d | %s |" % (d1[0], d1[1], d1[2][:100].replace("|", "/")))
 
+# --- HARD ASSERTIONS (seat 19's measurement-integrity warning). Printed controls cannot stop an empty or
+# zero result from reading as a confirmation, so each control aborts the script instead.
+if r1[0] != r2[0] or r1[1] != r2[1]:
+    raise SystemExit("CONTROL 1 FAILED: N=1 gave %r then %r; the harness is not deterministic, "
+                     "refusing to report a result" % (r1, r2))
+if big[1] == 0:
+    raise SystemExit("CONTROL 2 FAILED: `go nodes 700000` printed no info line, so the harness cannot "
+                     "distinguish 'unsearched' from 'searched'; refusing to report a result")
+if big[0] == r1[0]:
+    raise SystemExit("CONTROL 2 FAILED: `go nodes 700000` gave the same move as `go nodes 1` (%s); "
+                     "the search is not affecting the answer" % big[0])
+if d1[1] == 0:
+    raise SystemExit("CONTROL 2 FAILED: `go depth 1` printed no info line")
+emit("")
+emit("**Controls 1 and 2 enforced by assertion: any failure above aborts before the sweep below.**")
+
 emit("")
 emit("## the sweep at startpos, one fresh process per N is NOT needed: same process, ucinewgame between")
 emit("(the table is cleared by ucinewgame, so each N starts from an empty table)")
@@ -131,6 +147,14 @@ emit("| largest N still answering a2a3 with no info | %s |" %
 emit("| smallest N whose answer is not a2a3 | %s |" % first_non_a2a3)
 emit("| smallest N printing any info line | %s |" % first_with_info)
 emit("| smallest N answering d2d4 | %s |" % first_d2d4)
+
+# --- the result itself must be non-empty on BOTH sides of the claim, or the "CONFIRMS" would be vacuous.
+if first_non_a2a3 is None or first_with_info is None:
+    raise SystemExit("RESULT FAILED: no N in 1..1000 ever left a2a3 or printed an info line; "
+                     "the boundary was never reached, so nothing is confirmed")
+if not any(bm == "a2a3" and ni == 0 for _, bm, ni in rows):
+    raise SystemExit("RESULT FAILED: no N produced an a2a3-with-no-info record, so the claimed "
+                     "lower side of the boundary does not exist here; refusing to confirm")
 
 emit("")
 emit("## the same sweep on a non-startpos position, to see if the threshold is startpos-specific")

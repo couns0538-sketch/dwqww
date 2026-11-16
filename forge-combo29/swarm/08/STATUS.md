@@ -98,3 +98,24 @@ raw is in this push. It will be analysed and pushed when it finishes, well befor
 next command:
 
     cd /agent/repos/dwqww/forge-combo29/swarm/08/job1b && cat run.log | grep -v '^{' | tail -3
+
+## 2026-11-16T21:38Z — CHECK AUDIT after seat 19's measurement-integrity warning
+
+Re-audited both CONFIRMS checks for the vacuous-pass failure seat 19 found in their own check (parser found no
+line -> NaN -> printed "CONFIRMS" without measuring anything).
+
+**check_s06f4.py (08-C1, seat 06 S-F4)** — already failed loudly on a missing `eval` line (`raise RuntimeError`),
+but its two CONTROLS were only PRINTED, not enforced: a stable-but-zero reader could still have passed. Now:
+control 1 (same position twice) and control 2 (a moved pawn must differ) RAISE SystemExit if they fail, and a
+third check aborts if every eval total is 0. Recorded result was never vacuous — the deltas are large real
+numbers (median 20 cp, max 738 cp on a 2705-vs-1967 pair).
+
+**check_s27f2.py (08-C2, seat 27 S-F2)** — had NO assertion at all. Now: control 1 (N=1 twice) must match,
+control 2 (`go nodes 700000`) must print an info line AND must not give the same move as N=1, and the RESULT
+block aborts if no N ever left a2a3 or never printed an info line on both sides of the boundary.
+
+**Negative control proves the hardening works:** `negative_control.sh` runs check_s06f4.py against a fake engine
+that answers readyok/uciok but prints no eval line -> exit code 1, "no eval line", no CONFIRMS.
+(negative_control.txt)
+
+Both CONFIRMS stand: neither depended on an absent line, and both now cannot pass without measuring.

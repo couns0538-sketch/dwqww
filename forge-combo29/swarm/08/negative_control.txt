@@ -1,0 +1,16 @@
+## negative control: /bin/cat as a fake engine that answers readyok/uciok but never prints a number
+
+```
+### check_s06f4.py against the fake engine (must abort, not confirm)
+Traceback (most recent call last):
+  File "/agent/repos/dwqww/forge-combo29/swarm/08/check_s06f4.py", line 92, in <module>
+    a, b = eval_fresh(cp), eval_fresh(cp)
+           ^^^^^^^^^^^^^^
+  File "/agent/repos/dwqww/forge-combo29/swarm/08/check_s06f4.py", line 78, in eval_fresh
+    raise RuntimeError("no eval line for %r" % fen)
+RuntimeError: no eval line for 'r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8'
+exit code: 1
+OK: non-zero exit, the check refused to report
+    raise RuntimeError("no eval line for %r" % fen)
+RuntimeError: no eval line for 'r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8'
+```

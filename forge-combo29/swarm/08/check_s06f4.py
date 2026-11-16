@@ -106,6 +106,20 @@ emit("| original total | changed total | differ |")
 emit("|---|---|---|")
 emit("| %d | %d | %s |" % (s1["total"], s2["total"], s1 != s2))
 
+# --- HARD ASSERTIONS (seat 19's measurement-integrity warning).
+# A control that merely prints cannot stop a NaN/zero/empty result from passing as a confirmation, so both
+# controls abort the script instead of being reported. Nothing below runs unless the reader is proven live.
+if a != b:
+    raise SystemExit("CONTROL 1 FAILED: the same position evaluated twice gave %r vs %r; "
+                     "the reader is not stable, refusing to report a result" % (a, b))
+if s1 == s2:
+    raise SystemExit("CONTROL 2 FAILED: a visibly different position gave the identical eval %r; "
+                     "the reader cannot see a change, refusing to report a result" % (s1,))
+if a["total"] == 0 and s1["total"] == 0 and s2["total"] == 0:
+    raise SystemExit("CONTROL 3 FAILED: every eval total is 0; the eval line is not carrying a number")
+emit("")
+emit("**Both controls enforced by assertion: any failure above aborts before the result block below.**")
+
 # --- the check itself
 rows = []
 skipped = 0
