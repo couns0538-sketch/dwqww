@@ -1,0 +1,33 @@
+# deepseek6 long 59 — prediction scorecard (PREDICTION.md committed before the first threaded run, never edited)
+
+P1 zero ThreadSanitizer reports in all six runs.
+   MEASURED: **0** in every run (`tsan=0` in all six `.meta` files; `grep -c 'WARNING: ThreadSanitizer'
+   runs/*.log` is 0 everywhere). -> **HELD.**
+
+P2 every bestmove legal, all 2,118 searches. MEASURED: 353 checked per run, **0 illegal, 0 missing** in all six.
+   -> **HELD.**
+
+P3 the planted race IS reported at 8 threads. MEASURED: the planted copy prints
+   `WARNING: ThreadSanitizer: data race`, exit code **66**, with the stack pointing into the planted thread body
+   (`plant_evidence.txt`). -> **HELD**, so P1's clean result means something.
+
+P4 the node totals are NOT identical across thread counts.
+   MEASURED: **S14 gives 7,290,580 at 2, 4 AND 8 threads — identical.** The plain defaults give
+   25,757,422 / 37,340,634 / 47,407,056 at 2 / 4 / 8 — strongly different.
+   -> **HALF KILLED, and the half that survived is the interesting one**: under S14 the multithreaded search is
+   bit-identical across thread counts, under the defaults it is not. My prediction assumed one behaviour for both.
+
+P5 the six runs take 20-50 minutes. ACTUAL: 314+332+342+589+526+584 = 2,687 s ≈ **45 minutes**. -> **HELD.**
+
+P6 bestmove legality does not degrade with thread count. MEASURED: 0 illegal at every thread count in both
+   option bases. -> **HELD.**
+
+Score: 5 held, 1 half killed.
+
+## The result that matters
+
+Under **S14**, `Threads 2`, `4` and `8` produce **exactly the same G sum (7,290,580)** and — worth checking —
+the same per-position rows. Under the **plain defaults** the sum grows steeply with threads
+(25.76 M → 37.34 M → 47.41 M, +45 % from 2 to 8 threads). So "this engine is deterministic across thread counts"
+is true only for the S14 configuration, and the default configuration is not thread-count invariant at all.
+Neither configuration produced a ThreadSanitizer report, and no bestmove was illegal in 2,118 searches.
