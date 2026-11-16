@@ -26,6 +26,7 @@ import chess
 
 BATCH = 500
 GO_TIMEOUT = 20.0
+STARTUP_TIMEOUT = 20.0
 BAD_MARKERS = ("unknown option", "invalid value", "invalid FEN", "illegal move")
 SAN_MARKERS = ("__asan_", "__ubsan_", "AddressSanitizer", "Sanitizer", "runtime error",
                "SUMMARY: UndefinedBehavior", "SEGV", "heap-buffer-overflow")
@@ -58,17 +59,26 @@ class Engine:
         self.q = queue.Queue()
         self.reader = threading.Thread(target=self._pump, daemon=True)
         self.reader.start()
+        self.startup = "ok"
         self.send("uci")
-        self.until("uciok")
+        st, _ = self.until("uciok", timeout=STARTUP_TIMEOUT)
+        if st is not True:
+            self.startup = "no uciok (%s)" % st
+            return
         self.opt_lines = []
         for name, val in (("Hash", "16"), ("Threads", "1")):
             self.send("setoption name %s value %s" % (name, val))
             self.opt_lines.append("setoption name %s value %s" % (name, val))
             self.send("isready")
-            self.until("readyok")
+            st, _ = self.until("readyok", timeout=STARTUP_TIMEOUT)
+            if st is not True:
+                self.startup = "no readyok after setoption (%s)" % st
+                return
         self.send("ucinewgame")
         self.send("isready")
-        self.until("readyok")
+        st, _ = self.until("readyok", timeout=STARTUP_TIMEOUT)
+        if st is not True:
+            self.startup = "no readyok after ucinewgame (%s)" % st
 
     def _pump(self):
         for line in self.p.stdout:
@@ -99,8 +109,12 @@ class Engine:
         """Return (status, lines): status True = token seen, "EOF" = process died,
         "TIMEOUT" = no token within timeout."""
         lines = []
+        deadline = time.time() + timeout
         while True:
-            line = self.readline(timeout)
+            remain = deadline - time.time()
+            if remain <= 0:
+                return "TIMEOUT", lines
+            line = self.readline(remain)
             if line is None:
                 return "TIMEOUT", lines
             if line == "":
@@ -165,6 +179,11 @@ def main():
             batch_idx += 1
             raw_path = os.path.join(outdir, "%s_raw_%03d.txt" % (label, batch_idx))
             engine = Engine(exe, raw_path)
+            if engine.startup != "ok":
+                sys.stderr.write("STARTUP FAILED (batch %d): %s\n" % (batch_idx, engine.startup))
+                stats["startup_fail"] = stats.get("startup_fail", 0) + 1
+                engine.kill()
+                return False
             if batch_idx == 0:
                 with open(meta_path, "w") as meta:
                     meta.write("exe: %s\n" % os.path.abspath(exe))
@@ -181,8 +200,15 @@ def main():
                     meta.write("nm_ubsan_syms: %s\n" % nm_ubsan)
                     meta.write("env: ASAN_OPTIONS/UBSAN_OPTIONS/TSAN_OPTIONS unset before spawn\n")
                     meta.write("batch_size: %d go_timeout_s: %.1f\n" % (BATCH, GO_TIMEOUT))
+            return True
 
-        start_batch()
+        if not start_batch():
+            with open(os.path.join(outdir, label + "_summary.txt"), "w") as fh:
+                for k in ("total", "refused", "accepted", "acc_pyvalid", "acc_pyinvalid",
+                          "crash", "hang", "san", "illegal_best", "startup_fail"):
+                    fh.write("%s %d\n" % (k, stats.get(k, 0)))
+            print(open(os.path.join(outdir, label + "_summary.txt")).read())
+            return
         for i, parts in enumerate(rows):
             idx, src, kind, desc, fen = parts[0], parts[1], parts[2], parts[3], parts[4]
             pych = parts[5] if len(parts) > 5 else "?"
