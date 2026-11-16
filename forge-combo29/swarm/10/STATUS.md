@@ -319,3 +319,12 @@ TWO CHECKS, both CONFIRMS:
     MONOTONICALLY in Hash: 16->12, 64->12/11, 256->2, 2048->1. Stricter edge: at H2048 MultiPV 2 is already
     broken. 10-F44: monotone in Hash = per-line cost proportional to table size (the tt.clear walk).
 next: continue the cycle.
+
+## Mon Nov 16 10:38:04 PM UTC 2026
+cp0 CLASSIFICATION, and I caught my own bad threshold before it spread (10-F46, 10-R6):
+  I first wrote "cp 0 with nodes > ~10,000 = horizon". MEASURED WRONG: across four bare endgames the horizon's
+  cp 0 records carry only 200/230/280/541/629/793 nodes with 1-2 move pvs; a 10,000-node cut misclassifies
+  6 of 6. The correct discriminator is the PV: EMPTY pv + 0 nodes = ROOT SHORTCUT; NON-EMPTY pv = HORIZON at
+  any node count. Rule file corrected with the wrong threshold kept as a worked counter-example.
+  Classifier committed: regimes/classify_cp0.py (6 horizon / 4 root on the evidence, 0 ambiguous).
+next: continue confirmations.

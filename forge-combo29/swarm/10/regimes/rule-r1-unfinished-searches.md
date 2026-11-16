@@ -63,6 +63,30 @@ The 19 records that reached depth 12 were **not truncations**: identical nodes, 
 had already finished before the `quit` arrived. **There is no undetectable middle band**: every genuinely
 short record ends below the requested depth.
 
+## Classifying a `cp 0` without reading the source (from 10-C16, 10-F45, 10-F46)
+
+Two completely different mechanisms both print `score cp 0`, and **the pv separates them, not the node count**:
+
+> **`cp 0` with an EMPTY pv (and 0 nodes) → the ROOT SHORTCUT.** No search happened at all.
+>
+> **`cp 0` with a NON-EMPTY pv → the FIFTY-MOVE HORIZON fired inside the tree**, at ANY node count. The
+> position is often *won*; the score is wrong for the position.
+
+**Do not use a node threshold.** I first proposed "nodes above ~10,000 = horizon" and it is wrong: measured
+across four bare endgames (K+R, K+Q, K+B+B, K+R+P) at halfmove 98–100, depth 10, the horizon's `cp 0` records
+carried only **200, 230, 280, 541, 629, 793** nodes — with 1–2 move pvs — while the root shortcut's records
+carried **0 nodes and an empty pv**. A 10,000-node threshold misclassified **6 of 6** horizon records. The
+14-million-node case I first reported (halfmove 91 on K+R) is the *expensive* horizon, not the only one.
+
+| observation | root shortcut | horizon |
+|---|---|---|
+| score | `cp 0` | `cp 0` |
+| pv | **empty** | **1-2 moves (or much longer when expensive)** |
+| nodes | **0** | 200 to 13.8M (board- and counter-dependent) |
+
+So the reliable rule is a **structural** one: *empty pv ⇒ root shortcut; non-empty pv ⇒ horizon*. Node count
+tells you only how expensive the horizon was, never whether it was the root.
+
 ## What does NOT work (measured, so nobody retries it)
 
 | candidate signal | why it fails |
