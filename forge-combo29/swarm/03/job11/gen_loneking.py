@@ -83,12 +83,29 @@ def bestmove(fen, tag):
 
 
 def lone_side(b):
+    """a colour owning nothing but its king. NOTE: b.pieces() returns a SquareSet, and comparing it to the int
+    occupied_co[col] is silently False — int(...) is required. (First version of this file omitted the int() and
+    found 0 candidates in 40 games; caught by a sanity check, not by luck.)"""
     for col in (chess.WHITE, chess.BLACK):
-        if b.occupied_co[col] == b.pieces(chess.KING, col):
+        if b.occupied_co[col] == int(b.pieces(chess.KING, col)):
             return col
     return None
 
 
+def self_test():
+    """known-answer test of the predicate: it must fire on a lone king, and NOT on K+N or a full board."""
+    lone = chess.Board("8/8/8/8/8/5n2/4K1k1/8 w - - 0 60")        # white K only vs black K+N
+    both = chess.Board("8/8/8/8/8/5n2/4K1k1/4N3 b - - 11 60")     # K+N vs K+N: neither side is lone
+    full = chess.Board()
+    got = (lone_side(lone), lone_side(both), lone_side(full))
+    ok = got[0] is not None and got[1] is None and got[2] is None
+    print(f"self_test: lone -> {got[0]}, K+N vs K+N -> {got[1]}, full board -> {got[2]}, pass={ok}")
+    if not ok:
+        raise SystemExit("FAIL: lone_side is broken; refusing to generate a meaningless position set")
+    return ok
+
+
+self_test()
 cands, game, seen = [], 0, set()
 while len(cands) < TARGET and game < TARGET * 40:
     game += 1

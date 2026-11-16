@@ -1,0 +1,31 @@
+PREDICTION AMENDMENT — job 11, the position set had to change, and why
+
+The first generator (`gen_loneking.py`, engine-vs-engine games at depth 6) produced **0 usable candidates from 40
+games**, and the reason is itself a finding about this build, not a bug in my set:
+
+every game collapsed into the SAME position, `8/8/8/8/8/5n2/4K1k1/4N3 b - - 11 60` (K+N vs K+N), where the engine
+answers `cp 0` after 492 nodes at depth 12 and python-chess says the position is NOT insufficient material. That is
+the known drawn-root behaviour (FABLE_TO_swarm_3: "a drawn root ... the engine searches 0 nodes and plays its first
+legal move"), reached here through bare-king play. Self-play at low depth therefore cannot produce a varied lone-king
+population at all.
+
+Amendment: instead of self-play games, generate lone-king endings by **material-imbalanced play**: start each game
+from a random opening position, let both sides play at depth 6, and record the first position where one side owns
+nothing but its king. To get variety the games must not all reach the same fortress, so the set is built from
+several distinct material preconditions (an extra rook, two rooks, a queen, a rook plus a minor, and a minor pair),
+which is how real games actually reach lone-king endings — one side has converted an advantage.
+
+This is a change to the SAMPLING, not to the definition of the signature. The signature (chosen move scores worse
+than an alternative by more than a queen, by the engine's own scores at depth 16) and the threshold are unchanged, so
+the prediction below still stands as stated for the rate.
+
+Predicted values (unchanged from `prediction.txt`, restated so the amendment is self-contained):
+1. Positions showing the signature: predicted 5 to 20 of 50. KILL: < 2 or > 30 — and if it comes in above 30 I will
+   report that plainly, per the coordinator's instruction, rather than widening the definition of a hit.
+2. Most signature cases also report a mate against the side to move: predicted >= 60% of hits. KILL: < 30%.
+3. Positions needing a partial scan (> 12 legal moves): predicted <= 20 of 50. KILL: > 40.
+4. Missing score lines: predicted 0. KILL: >= 1.
+5. Crashes / illegal bestmoves / 0000: predicted 0. KILL: >= 1.
+6. Whole scan under 60 minutes at depth 16 with up to 12 moves scored per position: predicted yes. KILL: > 150 min.
+7. I will also report the ply-cost distribution for MISSES, as the coordinator asked, so a low hit rate still says
+   something quantitative about how close the misses were.
