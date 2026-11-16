@@ -155,3 +155,6 @@ S-F29: the 11 equal-depth disagreements re-searched deeper (base build judging b
 
 ## Mon Nov 16 10:42:32 PM UTC 2026
 OWNER'S REAL CONTROL (6s + 0.06, PC20, Threads 1, Hash 16) DONE - S-F30/S-F31. Bimodal tail: 5 of 120 searches spend 1.2-1.59 s of a 6 s clock (20-26% of the game's initial time). p99/median 5.7x/6.6x vs my 2.2-4.4x without increment - Y6 killed. Worst case deterministic: 8/5p2/8/pp1pkpKp/7P/2P3P1/1P6/8 w gives exactly 1585 ms (hard plan) on 3 runs, identical nodes, but its last COMPLETED iteration ended at ~1020 ms - so it ran ~565 ms more and completed nothing. Stop fractions base 0.78 / PC20 0.71 reproduce S-F27 at the control that matters. NOTE: found my own data defect (rows written before FEN recorded, 60/60 empty), fixed and re-ran the whole job.
+
+## Mon Nov 16 10:44:35 PM UTC 2026
+S-F32: soft-scaled rule arithmetic (no new experiment). FREE on 15/24 base and 18/24 PC20 (zero plies lost), buys 300-1240 ms on the tail for 1-3 plies; biggest single win 1239 ms for 1 ply. Stated plainly: ladders are at wtime 10000 (soft 454) not the 6 s control, so ms do not transfer directly, ratios do. Also recorded that heavy searches are build-AND-position dependent: base#7 is 1585 on base vs 843 on PC20, pc#57 is 281 on base vs 1586 on PC20 - the tail board differs by build, consistent with S-F27.

@@ -1,0 +1,24 @@
+## Per-search arithmetic from the 10000 ms ladders (soft 454 ms, hard 2270 ms)
+
+These ladders were measured at wtime 10000, so the plan there is 2.5x the 6 s plan. They are the
+only place I recorded per-iteration cost, so the arithmetic is relative to THAT plan and I say
+so rather than pretending it is the 6 s control.
+
+**base**: 24 searches
+
+- median time the soft-stop rule would save: 0 ms (max 1239 ms)
+- median plies lost: 0 (mean 0.6, max 3)
+- searches losing 0 plies: 15, 1 ply: 5, 2+: 4
+
+**PC20**: 24 searches
+
+- median time the soft-stop rule would save: 0 ms (max 826 ms)
+- median plies lost: 0 (mean 0.4, max 3)
+- searches losing 0 plies: 18, 1 ply: 3, 2+: 3
+
+## Reading
+
+The 'saving' here is not the overspend — it is the whole time difference between stopping at
+the last completion inside soft and continuing to the depth actually reached. That is the
+honest bound for a soft-scaled rule: it buys the saving AT the ply cost shown, because the
+iterations it refuses are precisely the ones that produced the extra depth.
