@@ -1,0 +1,24 @@
+PREDICTION -- seat 13, area 3, job 3 (perft 5 on 200 R positions and the first 30 of G), committed
+BEFORE any measuring command.
+
+Sets: R200 = first 200 positions of R_1301.fens (job 1's seed-1301 random set);
+G30 = the first 30 positions of set_G.epd. 230 positions total.
+
+What I expect:
+1. Perft 5 differences between engine and python-chess over whatever subset the reference finishes:
+   0 [killed if >= 1].
+2. Engine perft 5 records produced for all 230 positions, none refused or erroring [killed if any
+   position fails to return a node count].
+3. Reference perft 5 will NOT finish for all 230 positions before the 22:30 UTC push [killed if it
+   does]. Reason: perft 5 is roughly 30x perft 4, job 2 measured the reference at about 1e6 nodes/s,
+   so the full set is on the order of 1.6e10 nodes = ~16000 s of CPU, ~67 min across 4 shards. I
+   therefore predict a completed subset and will report exactly which positions were covered.
+4. To keep the result checkable I will ALSO run reference perft 4 on all 230 and predict 0
+   differences there [killed if >= 1], so the full set gets a verified comparison at depth 4 even
+   where depth 5 does not finish.
+5. Engine wall time for perft 5 on all 230: under 600 s [killed if outside].
+
+If a difference appears at perft 5 but not at perft 4, my first suspicion will be a repetition or
+fifty-move interaction that only bites deeper, not a move-generation error.
+
+NOT edited after this commit.
