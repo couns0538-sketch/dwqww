@@ -503,3 +503,6 @@ retracted after the uci double-wrap bug), S-F25/S-F33/S-F25 corrections of my ow
 - S-F86: no gross blunders at match budget — playing the engine's own move and re-searching the reply
   at the same budget, the largest score swing one ply later is 48 cp (median ~13) over 10 positions.
   Its evaluation is self-consistent under its own best reply.
+- S-F87: the guard's deadline is PROVEN against a planted hang — a fake engine that never sends
+  bestmove produces a GuardError after exactly the 3.0 s timeout, with the trap-2b note attached.
+  This is the specific failure my own first runner.py had, so the guard is shown to fix it.
