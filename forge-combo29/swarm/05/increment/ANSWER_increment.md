@@ -88,9 +88,9 @@ noise. `out/fourth_point.txt`, `out/ceiling_runs.txt`.
 | 16,000 ms | 1,928 ms | 27 | **1.00x** |
 | 24,000 ms | 1,928 ms | 27 | **1.00x** |
 
-So the flat region begins at an increment of about **6 seconds** and holds across a 4x range beyond it. **The useful
-increment range **at a six-second clock** is roughly 0.06 s to 6 s; past 6 s it is dead weight *at that clock*.
-It is **not** dead weight at a larger clock — see below.**
+So the flat region begins at an increment of about **6 seconds** and holds across a 4x range beyond it. The useful
+increment range **at a six-second clock** is roughly 0.06 s to 6 s; past 6 s it is dead weight *at that clock*, and
+it is **not** dead weight at a larger clock — see below.
 
 ## The ceiling scales with the clock, not with a fixed maximum
 
@@ -118,7 +118,8 @@ So the flat region at a 6-second clock is **not** a hard ceiling: at clock 20,00
 
 ## What this means for the owner
 
-- Raising the increment **does** buy thinking time — no plateau, and the effect is large in practice:
+- Raising the increment **does** buy thinking time within the live range, and the effect is large in practice
+  (it plateaus above ~6 s *at a six-second clock*, and the plateau moves up when the clock is raised — see below):
   - `0.06 → 0.6 s`: **2.5x** the time, **+2 median plies** (median depth 22 → 24).
   - `0.06 → 6 s`: **9.7x** the time, **+7 median plies** (median depth 22 → 29, and one board reached **depth 64**).
 - **At a six-second clock** the return is diminishing but not vanishing: to double the thinking time you need about
