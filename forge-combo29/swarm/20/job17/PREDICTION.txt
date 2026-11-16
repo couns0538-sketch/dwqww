@@ -1,0 +1,28 @@
+# PREDICTION — seat 20, area 10, job 17 (check of seat 27's S-F3)
+
+Committed alone BEFORE the first measuring command. Never edited afterwards.
+
+Subject (seat 27, S-F3): "`hashfull` samples only the first 1000 clusters, so the same search reports hashfull 46 at
+Hash 16 and hashfull 1 at Hash 1024."
+
+I check the SENTENCE myself: same position, same depth, same everything except the `Hash` option, and read the
+`hashfull` field of the last `info depth` line. All on the hardened driver (fresh process per search, waits for
+`bestmove`), so 19-F12 and seat 10's warm/cold rule cannot affect it.
+
+Predictions:
+1. CONFIRMS: `hashfull` at Hash 1024 is much SMALLER than at Hash 16 for the same search, and with the same
+   fraction of the table actually used. I predict the ratio is roughly the ratio of table sizes (16/1024 = 1/64),
+   i.e. Hash 1024 shows about 1/64 of Hash 16's figure, not the same figure.
+   KILLED IF: hashfull is about equal across Hash 16 and Hash 1024 (or grows with Hash).
+
+2. The effect is a SAMPLING artefact, not a real difference in table occupancy: the node count and the bestmove are
+   IDENTICAL across Hash sizes for the same search (a fixed-depth search on a small position does not need the
+   table), so the only thing that changes is the reported number.
+   KILLED IF: nodes or bestmove differ across Hash sizes on this search.
+
+3. The reported value is capped by the 1000-cluster window: at a large Hash the integer cannot exceed what 1000
+   clusters hold, so I predict hashfull stays very small (0..2) at Hash 1024 even after a long search.
+   KILLED IF: Hash 1024 reports a large hashfull (say > 50) on a long search.
+
+4. The source will show a constant such as 1000 near the hashfull computation. I will read it and quote it.
+   KILLED IF: no such constant exists and hashfull is computed over the whole table.
