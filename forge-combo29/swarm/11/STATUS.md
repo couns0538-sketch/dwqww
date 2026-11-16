@@ -132,3 +132,6 @@ NEXT: continue area-1 work; push again by 22:30.
   caught by generating FENs from intended counts.
 - S-F17: job1's 20k headline replicates identically across 3 full runs incl. the final hardened
   runner (17130/2870/24/0/0), with .meta proving the setoption `value` syntax now takes effect.
+- S-C8: CONFIRMS seat 21's 21-F2 — a refused FEN still answers readyok and the next search moves
+  for the STALE side (g8f6 Black) vs d2d4 White when accepted. Two of my attempts failed first
+  because a 7-field FEN is silently accepted (S-F1), so it never reached the refusal path.
