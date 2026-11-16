@@ -241,3 +241,93 @@ SEAT 16's S-F15 PARTIALLY CONFIRMED (S-C10), and I caught a broken checker of my
   THE BROKEN CHECKER: my first colour-symmetry harness mapped moves with a file+rank flip, but chess.Board.mirror() is a VERTICAL mirror (flips RANKS, swaps colours and the turn). That mapping produced 0 matches out of 60 in EVERY arm - 100 % mismatch is the signature of a broken checker, not a result, so I did not publish it. Fixed to a rank flip, verified against python-chess (legal move SETS exactly equal under it), after which the checker gives 44/60, which is plausible. The harness now verifies that legal-move-set equality on five positions as a SANITY CONTROL and refuses to print a verdict if it fails.
   THE RESULT, on 60 G positions + colour mirrors, PC r15, depth 10, Threads 1, Hash 16, comparing MOVES only: mismatches base_S14 16, +TtPruneV2 17, +HistRework 24, PC20 21. So TtPruneV2's direction CONFIRMED (raises asymmetry) and PC20 worse than base_S14 CONFIRMED, but HistRework does NOT lower asymmetry (24 vs 16) - the opposite of their finding that HistRework is the one MORE symmetric cell. Their counts are on all 353 positions and mine on 60 so the numbers are not comparable; the direction of the HistRework cell is, and that is where we differ.
 Next: the FINAL block, with the counter-resetting class stated as a positive result for the PC build as instructed.
+
+## 2026-11-16T22:56:53Z FINAL
+
+Seat 01, area 1 (FEN input under ASan+UBSan, then the PC r15 build and the softnodes path).
+Branch for-fable-and-opus/swarm-01. Every result is Threads 1. PC20 = S14 + CuckooRep true, HistRework 2,
+TtPruneV2 true, CorrHistV2 true, MateAlphaGuard true, OwnBook false, Threads 1, Hash 16.
+
+### THE POSITIVE RESULT FOR THE PC BUILD — do not lose this among the retirements
+
+**The counter-resetting mate is CORRECT on PC r15 and WRONG on base 6b98f217.** Board
+`8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1`: the mating line begins `h6h7`, a PAWN move, which RESETS the fifty-move
+counter to 0, so the match program's 100th-half-move cut-off never fires and the mate is real. Base 6b98f217
+scores `cp 0` in 0 nodes; **PC r15 finds `mate 2`** — 398 nodes at `go depth 12`, and 2,114 nodes under
+`go wtime 1000 btime 1000`, `go movetime 500` and `go nodes 200000`. This is one of the few places where the
+r15 tree is demonstrably BETTER than base, and it is exactly the class where a fifty-move repair would have
+real value. (S-F48, S-F22, S-F34; FILE6_APPLIED_TO_MY_FINDINGS.md.)
+
+The shape of the win matters: it is NOT the mate-in-1 everyone reported. File 6's inequality correctly marks
+mate-in-1 at counter 100 as not a defect. What survives is the class whose mating line resets the counter —
+and the PC build handles it.
+
+### EVERY FIND OF MINE, WITH STATE, BUILD AND SETTINGS
+
+FEN behaviour (base 6b98f217 and PC r15, re-run under PC20):
+- S-F1 / S-F14 / S-F15 — adjacent digits accepted (38/20,000, and 42/42 at two seeds); CONFIRMED by seat 11
+  (S11-F2), reproduced on PC r15 under PC20. Open as behaviour, cosmetic.
+- S-F2 / S-F3 / S-F4 — impossible double check accepted; engine stricter than python-chess in three ways;
+  93.35 percent of mutations refused. Cosmetic, identical on PC r15 under PC20 (S-F41).
+- S-F8 / S-F39 / S-F40 — extreme counters accepted and clamped; all three need malformed input, boards still
+  legal; ranked by plausibility in S-F39.
+- S-F9 / S-F10 / S-F37 / S-F46 — 1,000-ply move lists and illegal-move prefixes behave exactly, both builds,
+  under PC20.
+- S-F43 — zero sanitizer lines over 20,000 FENs on r15's ASan+UBSan build, with the planted-fault proof that
+  makes the zero count.
+- S-F54b / S-F56 — `go nodes` is a hard cap that reports honest completed-iteration totals; the softnodes
+  overshoot is one final iteration, bounded absolutely by 4N.
+
+Fifty-move family — RETIRED BY ME under file 6's own prescribed test:
+- S-F5, S-F17 (mate-in-1 at counter 100 called a defect) — **RETIRED** (S-C6). 2N-1 = 1 against
+  100-counter = 0; the counter-99 control gives `mate 1` on both builds.
+- S-F19 — **WRONG**, its board was not discriminating (S-F23 corrects it).
+- S-F22 / S-F48 — true, but scoped to the counter-resetting class on base only; the PC build fixes it.
+- S-F32, S-F38 (checkmated root `mate 0` called an open door) — **RETIRED** (S-C5): correct UCI encoding,
+  no consumer anywhere in the repository; closed as documentation in CHECKMATE_ROOT_MATE0_CLOSED.md.
+- The patch itself (job2c, plus the one-line and conservative variants) — **NOT NEEDED ANYWHERE**. The
+  applicability box in PATCH_SUMMARY_fifty_move.md now opens DO NOT APPLY, quoting file 6.
+
+MateAlphaGuard (PC r15, PC20, Threads 1, Hash 16, depths 8 to 16):
+- S-C7 — CONFIRMS seat 20's S-F38: guard alone gives the true `mate -4` where defaults give `mate -7` and the
+  five other switches give `cp -3122`; the true distance of 8 plies proved by exhaustive minimax with no
+  engine involved.
+- S-F49 / S-F49b — decisive at depths 12 to 14; at 15 and 16 the verdict converges while the guarded search
+  is 42 to 44 percent cheaper in nodes. Not redundant at depth 16.
+
+Softnodes and budget measurement (PC r15, PC20, Threads 1, Hash 16):
+- S-F50 — deterministic 9 of 9 cases across separate processes; stops at a finished depth; overshoot to
+  106 percent.
+- S-F51 — the staircase mechanism read from the code; 9 bands on startpos; bound 4N.
+- S-F52 — bands move up to 3.0x across real G positions, so the per-position lookup table is the deliverable.
+- S-F53 — the decision: ignoring the table costs 2.45x in nodes per game with IDENTICAL move, depth and score
+  on 5 of 5 positions — a cost decision, not a correctness one.
+- S-C8 — CONFIRMS seat 13's S-F7 (163.7 percent overshoot reproduced to the node, inside the 4N cap);
+  S-F57 states the allowance a cost comparison must add on both sides.
+
+Checks of other seats:
+- S-C1 seat 11 junk-after-sixth-field; S-C2 seat 05's cliff (numbers confirmed, the "9 plies early" framing
+  refuted as the search horizon); S-C3 seat 17's searchmoves `0000` (observable only);
+- S-C4 my own 2640 mechanism, REFUTED by my own `-D_GLIBCXX_DEBUG` instrument and withdrawn;
+- S-C6, S-C7 above; S-C8 above;
+- S-C9 seat 25's repair SCOPED not refuted — its premise conflicts with file 6 for matches, and the class
+  that does matter is already correct on the PC;
+- S-C10 seat 16's S-F15 partially confirmed: TtPruneV2's direction yes, HistRework's no.
+
+### MY OWN CLAIMS I RETIRED, and the measurement that did it
+2640 mechanism (my own instrument); S-F19 (board not discriminating); S-F5/S-F17 (file 6's inequality);
+S-F32/S-F38 (no consumer in the repository); and a broken colour-symmetry checker caught by its own
+100-percent-mismatch output before publication (S-F58). Each retirement names the measurement, not a preference.
+
+### OPEN / NOT DONE
+- Seat 16's HistRework cell disagrees with mine (my 60 positions against their 353). Unresolved; both
+  directions stated in S-C10.
+- Nothing of mine is an open defect, and no patch of mine should be applied anywhere.
+- I did not have seat 25's patched build, so I scoped its premise, not its node counts.
+
+### FILES A PERSON SHOULD READ, in order
+1. FILE6_APPLIED_TO_MY_FINDINGS.md — why no patch is needed, and the one class that matters.
+2. REFUSED_FEN_TRAP_AND_GUARD.md — the harness guard for anyone building positions by hand.
+3. softnodes/softnodes_real_games.txt — the per-position budget table, with the cost-of-ignoring line first.
+4. checks/guarddepth/guard_depth_table.txt — the MateAlphaGuard table with the board on every row.
+5. CHECKMATE_ROOT_MATE0_CLOSED.md — the closed-as-documentation note.
