@@ -1,0 +1,30 @@
+DOES THE 30 % BUDGET INSTABILITY REACH THE CLOCK PATH? — No: the clock is stable, the node budgets are not
+========================================================================================================
+20 fresh quiet positions (seed-2401 stream, excluding every FEN used in job10), PC r15 + PC20, Threads 1, Hash 16,
+OwnBook false, fresh process per search, drained. `go wtime 6000 btime 6000 winc 60 binc 60` run TWICE per position,
+plus `go nodes 20000` and `go nodes 250000` on the same boards.
+
+| measure | result | prediction |
+|---|---|---|
+| clock A vs clock B (two fresh processes) | **0 of 20 disagree** | P1 held (killed if >= 1) |
+| clock vs `nodes 250000` | **18 of 20 agree** | P2 held (needed >= 16) |
+| clock vs `nodes 20000` | **16 of 20 agree** | P3 held (clock closer to the big budget) |
+| clock differs from BOTH node budgets | **1 of 20** | P4 held (0-6) |
+
+THE ANSWER: **the clock path is deterministic** — two independent processes chose the same move on all 20 positions —
+while the SAME positions under the three node budgets differ on ~30 % of them (23-F24). So the move instability I
+found is a property of the **node-budget path**, which is the self-play path, and NOT of the clock path, which is what
+the strength matches use.
+
+WHY THAT MATTERS, and it is the practical half: a match played on the clock has no per-move lottery of this kind, so
+the 30 % figure does NOT undermine match results. It DOES mean that a match or comparison run on node budgets
+(20000/50000/250000) is not reproducible move-for-move, and that results from the node path and the clock path are
+not interchangeable evidence.
+
+The four positions where the clock disagreed with a node budget are worth naming because they are the interface:
+#1 and #5 and #9 and #20 agree with `nodes 20000` but not with 250000 (or vice versa), and #19 agrees with neither
+(clock e7e5, nodes 20000 d7d5, nodes 250000 a7a5 — three different moves on one board). So the paths differ on the
+same boards, just not within the clock path itself.
+
+CAVEAT: 20 positions, one clock setting (6 s + 0.06). A faster control reaching shallower depths could behave
+differently; I did not sweep the clock.
