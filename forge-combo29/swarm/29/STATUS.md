@@ -242,3 +242,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
     PC20           : 13.6% at 20 -> 11.1% at 200, flat from 40 positions on
 - So: (a) my 29-C8's 26.5% was measured under DEFAULT options, which is why it disagreed with the 11.1% I now get under PC20 - SETTINGS were the difference, not set size; (b) the LARGER set is the more representative one, and the honest PC20 figure is ~11%; (c) seat 19's 54.7% is not reproduced in either regime on my positions (my maximum is 19.5%), so that gap is not a set-size effect and likely reflects a different position distribution (theirs R_1911).
 - next: continuing on the PC path.
+
+## Mon Nov 16 11:32:48 PM UTC 2026
+- Corrected the superseded figures in two places so no reader meets 26.5% as current: 29-C8's row is annotated 'SUPERSEDED IN PART by 29-F37' and the 29-F35 rule block now quotes 11.1% (PC20, 200 positions) with 19.5% (defaults) as the alternative, and states plainly that I do NOT reproduce 19-F18's 54.7% in either regime.
+- 29-N19 records the abort-on-zero habit as you asked: two failed instrumentation attempts in one night caught by guards rather than reporting '0.0% of probes reach the scan' - which would have been a spectacular false confirmation of the very claim under test.
+- next: continuing on the PC path.
