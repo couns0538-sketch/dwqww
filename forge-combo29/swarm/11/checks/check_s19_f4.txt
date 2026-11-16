@@ -1,0 +1,28 @@
+=== 1. do the named symbols exist? ===
+  see_ge symbols          : 1
+    0000000000009e70 T forge::Board::see_ge(forge::Move const&, int) const
+  fill_pseudo_legal symbols: 3
+    00000000000106a0 W void forge::fill_pseudo_legal<(forge::Board::GenMode)0>(forge::Board const&, forge::MoveList&)
+    000000000000f770 W void forge::fill_pseudo_legal<(forge::Board::GenMode)1>(forge::Board const&, forge::MoveList&)
+    000000000000fef0 W void forge::fill_pseudo_legal<(forge::Board::GenMode)2>(forge::Board const&, forge::MoveList&)
+  PASS  Board::see_ge exists as a symbol
+  PASS  a fill_pseudo_legal family exists
+
+=== 2. is the generator a template FAMILY (several instances)? ===
+  distinct generator template instances: 3
+    fill_pseudo_legal<(forge::Board::GenMode)0>
+    fill_pseudo_legal<(forge::Board::GenMode)1>
+    fill_pseudo_legal<(forge::Board::GenMode)2>
+  PASS  move generation is more than one function  — 3 instances — so 19-F4 compares 1 function against a family
+
+=== control: a symbol that cannot exist ===
+  PASS  the symbol search CAN report zero
+
+=== what this does and does not show ===
+  SHOWN   : the two things 19-F4 compares both exist, and the generator side is a
+            multi-instance template family while SEE is a single function.
+  NOT SHOWN: the 5.56 % / 5.69 % shares. Those need seat 19's profiler; a symbol table
+            says nothing about time.
+
+RESULT: 19-F4 is CONSISTENT with the binary's structure (one SEE function vs a
+        generator family) but its percentages are NOT reproduced here.
