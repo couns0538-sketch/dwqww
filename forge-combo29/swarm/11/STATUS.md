@@ -14,3 +14,10 @@ Next command: `cd /agent/repos/dwqww && git worktree add ../base 6b98f2170a3210e
 
 - [x] STEP 2 honesty check: 312866 / 862329 / 3024920 / 4865609 ALL MATCH (HONESTY.txt)
 - [x] ASan+UBSan build started
+
+## 2026-11-16 (cycle 1)
+- job1 DONE: 20k mutated FENs under ASan+UBSan, 0 crashes / 0 san lines (both proofs shown).
+- Read Opus FABLE_TO_swarm_1.md: F1 is new; F2 already known (kept only the harmlessness proof);
+  S-F3 WITHDRAWN (I wrongly claimed to refute Opus's castling line).
+- job1/S-F3_WITHDRAWN.md records both retractions.
+- Next: job 2 of area 1 (extreme numbers in FEN fields).

@@ -10,18 +10,17 @@ sanitizer lines / illegal bestmoves. Control: a 3,000-character first field refu
 ## 2. The answer
 All 20,000 cases ran. 0 crashes, 0 sanitizer lines, 0 illegal bestmoves, 17,130 refused,
 2,870 accepted (2,846 python-chess valid, **24 accepted that python-chess rejects**). All 24
-are the same low-severity syntax leniency (S-F2: consecutive digits in a rank), proven to
-build the identical board as the canonical spelling. The 3,000-character control was refused
-with no crash. Two input-validation defects were isolated (F1, F2); F2 is cosmetic, F1 is a
-real leniency that discards input silently. The brief's "impossible castling is ACCEPTED"
-line is stale for this commit (S-F3).
+are the same already-known leniency (consecutive digits in a rank), and I proved it is
+**harmless**: the accepted spelling builds the identical board as the canonical one. The
+3,000-character control was refused with no crash. One genuinely new defect: **S-F1**,
+extra tokens after the sixth FEN field are silently discarded.
 
 ## 3. How sure
 High on the counts (raw results file, re-runnable script in `analyze_job1.py`).
 High on F1 (minimal probes, 1-line FENs).
-High on F2's *scope* — I proved by perft that the accepted board equals the canonical one.
-My first F2 explanation (a rank summing short) was wrong and is retracted in section 5; the
-probes that refute it (`h6`, `h7`) are the same file.
+High on the harmlessness proof (identical perft 4 with the same divide).
+Two claims I wrote and then WITHDREW are recorded, not deleted, in section 5 and
+`job1/S-F3_WITHDRAWN.md`: an F2 cause that was wrong, and an S-F3 that claimed to refute Opus.
 
 ## Honesty numbers (my build, `HONESTY.txt`)
 bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609 — all four match.
@@ -107,12 +106,16 @@ exactly when they sum to <= 8 and the rank ends at 8.**
 Severity: low. It cannot corrupt the board (proven equal perft). It matters only as a
 parser-conformance difference against any external tool that rejects non-canonical FENs.
 
-**S-F3 (check of the brief's own claim, REFUTES the "known" line).** The brief says an
-impossible-castling FEN is ACCEPTED. On 6b98f217 it is **REFUSED**:
-`info string invalid FEN: castling right without king and rook` (board.cpp:313).
-Evidence `job1/castle_run/` cases d4, d7, f6 (all refused); d1, d2, d3, d5, d6, d8 (legal
-rights, accepted). So the known-number line in the brief is stale for this commit. Anyone
-planning perft 3 = 8,902 on an impossible-castling FEN will get a refused position instead.
+**S-F3 — WITHDRAWN.** I claimed the brief's castling line was stale. Opus's
+`FABLE_TO_swarm_1.md` states it as already known from the PC, and my evidence does not
+contradict it. Full retraction: `job1/S-F3_WITHDRAWN.md`. What I truly measured:
+(a) a right with no king/rook on the home squares is REFUSED (board.cpp:313) — a different
+input from Opus's claim; (b) 12 structurally-present-rights cases give **0 perft
+differences** vs python-chess (`job1/castle_battery.txt`, incl. kiwipete 97862 = 97862).
+I did not reproduce Opus's 8902-vs-8802 board and do not claim it is wrong.
+
+**S-F2 is also already known** (Opus: "17" and "44" read as 8 empty squares). My only
+addition is the harmlessness proof above. Only **S-F1** is genuinely new.
 
 ## 6. Suspicions, not proven
 - `apply_position()`'s loop is `for (int i = 0; i < 6 && input >> token; ++i)`, then a
