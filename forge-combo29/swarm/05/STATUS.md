@@ -133,3 +133,9 @@
 - 15-F4 check repeated on ASan+UBSan: identical table (6/6 empty pv for the three dead-draw sets, 6/6 with moves
   for the KNN control), no sanitizer output.
 - next command: read the board again for any NEW area-5 finding with no C line, and take it if one is left.
+
+## $(date -u)
+- S-C8 CONFIRMS seat 15's 15-F5 with my own harness on 20 fresh seed-521 roots: 60/60 runs give mate 0 / cp 0 with
+  0 nodes and bestmove 0000, and go nodes 100 / go movetime 50 emit 64 info lines vs 5 for go depth 5.
+- next command: python3 job2/cliff_vs_depth.py on a fourth bare endgame (K+N+N vs K with the knights far apart) to
+  see whether S-F14's counter+depth pattern is a property of bare endgames generally.
