@@ -1,0 +1,39 @@
+PREDICTION — seat 06, area 6: the state probe and the continuation-history colour index
+written before the first measuring command of this part. Never edited afterwards.
+
+PART 1 (already run): the three-outcome state probe. My prediction BEFORE seeing the numbers was
+outcome B (both fail), because the job-3 harness and the fresh-process control both gave 101/353 and
+252/353 mirroring respectively and I expected no cross-search state to matter, `ucinewgame` clearing
+everything. Recorded here for honesty: I predicted B, and B is what the measurement says.
+
+PART 2 (this prediction, written before the patch is built): the colour-dependent accumulating index.
+
+Evidence read from the code before predicting:
+  - `ButterflyHistory = array<array<array<int16_t,64>,64>,2>` indexed by `[side_to_move()]` - a
+    RELATIVE index (both colours get a slot of their own), so it maps under a colour mirror.
+  - `PieceToHistory = array<array<int16_t,64>,13>` and
+    `ContinuationHistory = array<array<PieceToHistory,64>,13>` (include/forge/search.hpp:384-385) are
+    indexed by `static_cast<std::size_t>(piece)` where `Piece` is COLOUR-ABSOLUTE
+    (include/forge/board.hpp:35-40: WP=1, WN=2, ... BP=7, ... BK=12). Reads at search.cpp:1335-1338
+    and 1366-1367, writes at 1509 (`continuation_history_[ss->moved_piece][move.to]`).
+    So white's knight fills slot 2 and black's knight fills slot 8, and those are different tables.
+  - These tables ACCUMULATE inside a single search (update_continuation) and are read by the move
+    scorer (QuietScorer's cont1/cont2/cont4), so they feed move ORDER. Order changes the tree.
+
+Prediction:
+P1  Relativising that index (map the piece to the mover's frame: `piece_type(piece) - 1` +
+    relative colour) will reduce - not necessarily eliminate - the asymmetry: depth-10 bestmove
+    mismatches will FALL below 101 of 353.
+    KILLED if the count stays at or above 101, or rises.
+P2  It will NOT reach 0, because ButterflyHistory is already relative and the remaining order comes
+    from generator traversal plus alpha-beta cutoffs (both proven load-bearing by the root probe and
+    by seat 19's 19-F15). KILLED if it reaches exactly 0 mismatches (which would be a pleasant
+    surprise requiring a different explanation for the rest).
+P3  The honesty pins WILL move, for exactly the reason seat 19's 19-F15 gives (any change to tie/order
+    changes the benches). KILLED if all four pins stay identical - that would mean the continuation
+    table's colour slots are never hit distinctly, which the code above contradicts.
+P4  Score equality will improve by less than the bestmove count, because a score difference needs a
+    larger tree change than a bestmove tie flip. KILLED if scores equal exceed bestmoves mirroring.
+
+I will report all four outcomes plainly whichever way they land, and I will NOT present the patch as a
+candidate: per 19-F15 no ordering change can keep the pins, so it is evidence about the mechanism only.
