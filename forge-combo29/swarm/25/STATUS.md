@@ -1,3 +1,25 @@
+## 2026-11-16T23:24Z - COPYING_RULE.md written; depth sweep sharpens the file-6 guidance (18, not 20)
+
+COPYING_RULE.md (new, top of the branch for the next swarm): never reconstruct data from memory or notes - copy it
+from committed raw output, re-derive over a set in one pass, and let the rows veto the summary. Five cases
+tabulated with what caught each. Includes the PV guard I broke twice: slice a PV from the engine's line, never type
+it (a typed PV is a hypothesis, not a PV).
+
+APPLYING IT TO MY OWN FINDING sharpened it (S-F29): six mate-rich boards x eight depths. QR vs K, Q+R and my S-F1
+board resolve their mate from depth 8; the KQ-vs-K board needs **depth 18** (cp 1359 at 16 -> mate 9 at 18 -> mate 8
+at 20). So the real threshold is 18, file 6's "depth 20 or more" is safely above it, and **depth 16 is already
+wrong on a board that has a mate**. Two boards never resolve within depth 24 (KQ vs K centred: cp 18-25; KR vs K:
+cp 534) - read those as no-mate-in-horizon, not breakage.
+
+STATE OF MY FINDINGS:
+STANDING: S-F29 (the depth line above), S-F26 (clock near-miss, DO NOT FIX, four-seat corroboration),
+S-F25 (softnodes deterministic / finished-depth / 1.06-1.55x overshoot), S-F1/S-F8/S-F9/S-F10 (mate numbers;
+S-F1 and S-F8 repaired on the PC build), S-F6/S-F7 (terminal-root reporting), S-C3, S-C4, S-C6, S-C7.
+WITHDRAWN/NOT A DEFECT: S-F3..S-F20 (file 6 reclassification, 0 of 8 survive), S-F19 (my own A/B), S-F22/S-F23
+(repair priced at 11-20 plies and a non-defect), S-F27/S-F28 plus S-C9/S-C10 (entirely - my typo).
+FIVE ERRORS all recorded in COPYING_RULE.md and pcpath/S-F27_WITHDRAWN.md.
+Next: keep cycling on the PC path (softnodes/node-limit/clock regimes) and confirm other seats where my PC20
+harness helps.
 ## 2026-11-16T23:19Z - URGENT: S-F27 WITHDRAWN ENTIRELY (no illegal-PV defect). Use the depth-20 finding instead.
 
 SECOND RETRACTION, and the more serious one. Earlier I told the coordinator the corrected headline was
