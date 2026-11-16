@@ -3,14 +3,17 @@
 Written so a reader can use each one without tonight's context. Order is what I would hand to the next swarm.
 
 
-## 0. `check_s23f27/COMBINED_RULE.md` — which comparisons are SAFE (read this first)
-**A position is budget-safe only if its answer is FORCED or its top-two margin is LARGE.** Quantified: of the
-positions that changed move between budgets, **94 % (16 of 17) had a margin within 30 cp** (seat 23's rows, median
-14 cp); and at an identical ZERO margin, forcedness decides completely — **found mates changed 0 % (0 of 6) while
-quiet ties changed 67 % (2 of 3)**. That second half is the mechanism: a mate in 1 is found at every budget, so no
-extra search can flip it, whereas a quiet tie is re-broken at every depth. Use it before comparing results across
-budgets, modes or depths; the file also states the one denominator I could not compute, so nobody inherits a
-number I did not measure.
+## 0. `check_s23f27/TWO_BY_TWO_COMPLETE.md` — why you cannot predict, so you must re-run (read this first)
+**Do not use the score margin to predict whether a budget change will flip the move.** Measured on ONE instrument
+over seat 23's 60 game positions, both halves alike (top-two gap at the depth the budget reached): CHANGED median
+**12 cp**, UNCHANGED median **19 cp** — directionally right but a **weak classifier, precision only 32-38 %** at
+every threshold from 10 to 50 cp, and at 30 cp it wrongly flags 21 of 42 unchanged positions. The one reliable
+statement is that a **FORCED** answer (a found mate) never changes, which my constructed ties confirmed 6 of 6.
+This entry supersedes an earlier stronger claim of mine: the "margin predicts sensitivity" rule looked much better
+when the unchanged half had been measured against a RANDOM alternative (giving a 103 cp median), and on one
+instrument that gap collapses to 19 cp. Practical instruction for a harness: **re-run at the other budget rather
+than predict**, and never compare results at different depths.
+`COMBINED_RULE.md` in the same folder keeps the earlier reasoning and the completion recipe, for the record.
 
 ## 1. `check_s17f1/TRIGGER_TABLE.md` — the portable one
 **Four ways to make this engine answer `bestmove 0000` on a position with legal moves**, the one-line guard that
