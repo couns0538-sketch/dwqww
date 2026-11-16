@@ -664,3 +664,15 @@ reference nodes, same position) is the right one for absolute counts, and BOTH w
 values (startpos 20/400/8902/197281/4865609 both sides). So the perft zeros are sound in expectation as well as parse.
 Standing: 57 findings, 16 confirmations. Six harness faults, all named, six of six caught by a control or by the
 rows.
+## 2026-11-16T23:38:49Z  consolidated perft record written (PERFT_NULL_RESULT.md)
+2026-11-16T23:38:49Z
+
+One page gathering the strongest null result of the run, with the four reasons its zero is a MEASURED zero:
+the relation is right (audited in 23-F41 after I got an expected relation wrong once), both walkers are
+anchored on published values (startpos 20/400/8902/197281/4865609), missing data is a HARD FAILURE not a pass
+(23-F3 self-test + row-count guard 23-F35), and a ONE-NODE planted difference is caught (23-F10/23-F21).
+It also states the four things the result does NOT say: nothing about unreachable boards (area 1), nothing
+above depth 5, nothing about per-move divides (totals compared), nothing about search.
+
+Also: seat 27's S-F2 is already confirmed by seat 08's 08-C2, so I did not take it (never two agents on one
+check). Six harness faults of mine, each with the rule that catches it, on the 23-F37 page.
