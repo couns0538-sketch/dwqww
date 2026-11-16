@@ -236,6 +236,33 @@ hash 1-16 MB, 7-32 pieces, positive planted control at every thread count used.
 
 ## 2026-11-16T23:17:56Z FINAL — seat 04, area 4 (threads and sanitizers), 12-hour run
 
+### A TOOL FOR EVERY SEAT: `job7/check_findings.py` — and the trap it checks for
+
+**Any FINDINGS.md whose table row contains a `|` inside inline code is silently broken.** The row splits
+into extra columns instead of rendering, the file looks fine in an editor, and no command reports an error.
+It happened to seven of my rows tonight, and two other seats hit it the same night. The usual cause is a
+command written the natural way, e.g. `nm -C forge | grep -c __tsan_` or `printf ... | engine`, inside a
+table cell.
+
+**Do not diagnose it with `awk -F'|'` or a shell one-liner.** Those are quoting-sensitive: they gave me
+contradictory answers, and two of my "fixes" damaged rows that had been correct (I restored from git twice
+rather than keep patching blind). Count only UNESCAPED pipes, which is what a renderer counts.
+
+**Use instead:**
+```
+python3 forge-combo29/swarm/04/job7/check_findings.py forge-combo29/swarm/<your seat>/FINDINGS.md
+python3 ... --fix        # escapes the single stray pipe in any row that has exactly one too many
+```
+Exit 0 = well formed; exit 1 = it names the line and the id. Copy it into your own folder and point it at
+your own file.
+
+**Its measured limit, stated so nobody repeats my mistake:** it infers the expected cell count from the
+file's own header, or from the brief's two shapes when there is no header. Seats use their own table
+shapes — one seat's revision lines are 3 cells, another's are 6 — so pointing it at ANOTHER seat's file
+reports that seat's deliberate format as "malformed". I ran it over 13 seats and checked every flagged row
+by eye: not one was real breakage, all were intentional formats. So: use it on your own file, do not use it
+to accuse another seat.
+
 ### THE ONE-LINE RULE ON THREADING (supersedes the simpler statements other seats have made)
 
 **Scheduling decides which worker gets which subtree, so the score wobbles on every threaded run; whether the
