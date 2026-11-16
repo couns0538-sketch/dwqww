@@ -1,0 +1,34 @@
+Three independent comparisons on the 14 SHARED positions.
+Each position probed in a FRESH process with an empty TT (function of the position alone).
+
+| # | picker vectors | search score | search nodes |
+|---|---|---|---|
+| 1 | True | True (('cp', -1886) vs ('cp', -1886)) | False (509 vs 460) |
+| 2 | True | False (('cp', -1580) vs ('cp', -1576)) | False (443 vs 275) |
+| 3 | True | False (('cp', -1486) vs ('cp', -1484)) | False (261 vs 343) |
+| 4 | True | True (('cp', -2076) vs ('cp', -2076)) | False (329 vs 404) |
+| 5 | True | True (('cp', -1735) vs ('cp', -1735)) | False (352 vs 411) |
+| 6 | True | False (('cp', -1907) vs ('cp', -1906)) | False (383 vs 411) |
+| 7 | True | False (('cp', -1490) vs ('cp', -1272)) | False (209 vs 317) |
+| 8 | True | False (('cp', -1512) vs ('cp', -1315)) | False (215 vs 216) |
+| 9 | None | False (('cp', -1673) vs ('cp', -1625)) | False (310 vs 112) |
+| 10 | True | False (('cp', -1864) vs ('cp', -1558)) | False (448 vs 285) |
+| 11 | None | False (('cp', -1558) vs ('cp', -1738)) | False (143 vs 262) |
+| 12 | True | False (('cp', -2004) vs ('cp', -1902)) | False (350 vs 331) |
+| 13 | True | False (('cp', -1920) vs ('cp', -1917)) | False (514 vs 305) |
+| 14 | None | False (('cp', -1861) vs ('cp', -1805)) | False (162 vs 175) |
+
+SUMMARY
+  NEGATIVE 1 - static evaluation (S-F47, bisect_depth4.txt): 0 of 14 differ
+  NEGATIVE 2 - picker score vectors (history/threat/continuation tables): 0 of 14 differ
+  OBSERVED  - depth-4 SEARCH score on the same positions: 11 of 14 differ
+  OBSERVED  - node counts: 14 of 14 differ
+
+  The third line is NOT a third defect and must not be read as one: a search score is the
+  OUTPUT of the ordering, not a stored quantity. With the static eval and the picker vectors
+  both identical, order is the only remaining variable, so a differing search score on
+  corresponding positions is itself a DIRECT confirmation of the ordering mechanism.
+
+VERDICT: nothing STORED or COMPUTED per position is colour-dependent - not the static
+         evaluation, not the picker's tables. What differs is what the SEARCH produces from
+         those identical inputs, which is the ordering effect this thread identified.

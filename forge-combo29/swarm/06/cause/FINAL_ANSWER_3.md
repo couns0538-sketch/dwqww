@@ -87,3 +87,54 @@ merely swapped which side paid (S-F44), which is consistent with this report —
 - The canonical-id scheme folds `fen <= mirror(fen)`. If two genuinely different positions in one search
   happened to collapse to one id the comparison would be *conservative* (it would more easily report "equal"),
   so it cannot manufacture outcome B.
+
+---
+
+# CLOSING MEASUREMENT — the two independent negatives (and why the search score is not a third)
+
+`three_negatives.txt`. On the **14 positions visited by both sides** at depth 4, each probed in a **fresh
+process with an empty TT** so the result is a function of the position alone:
+
+| # | comparison | result |
+|---|---|---|
+| NEGATIVE 1 | **static evaluation** | **0 of 14 differ** (S-F47, `bisect_depth4.txt`) |
+| NEGATIVE 2 | **picker score vectors** (history / threat / continuation tables) | **0 of 14 differ** |
+| OBSERVED | depth-4 *search* score | 11 of 14 differ |
+| OBSERVED | node counts | 14 of 14 differ |
+
+**Both negatives hold.** Every `info string rootpicker` vector is identical between a position and its
+mirror on every one of the 14 shared positions — typically all-zero vectors, and where non-zero, identical
+term by term.
+
+### Why the third line is NOT a third defect
+
+The depth-4 search score on a shared position differs, and it would be wrong to report that as a third
+colour-dependent quantity. **A search score is the OUTPUT of the ordering, not a stored or computed
+per-position quantity.** With the static evaluation and the picker vectors both provably identical, order is
+the only variable left, so a differing search score on corresponding positions is a *direct confirmation* of
+the ordering mechanism rather than evidence against it. (It also explains why a single position can score
+differently at depth 4 in two separate fresh processes: the ordering difference is inside each search, not
+between them.)
+
+### What this closes
+
+**Nothing stored or computed per position is colour-dependent.** Three independent negatives now stand on
+the same board:
+
+1. static evaluation — symmetry-exact (S-F1/S-F24/S-F30/S-F47: 0 differences in 11,000+ pairs, and 0 of 14 and
+   0 of 10 on the nodes the searches actually share);
+2. picker score vectors — identical on all 14 shared positions;
+3. hash keys — differ only because a mirrored position genuinely is a different position (S-F45).
+
+The asymmetry is **ordering, everywhere**: tied scores collapse to a mirror-varying emission order, alpha-beta
+follows different paths, and every observable difference grows from that single seed.
+
+### Honest limits of this closing measurement
+
+- The 14 shared positions are the ones the two searches both reached at depth 4 on THIS board. They are a
+  sample of one pair, not a population.
+- The picker vectors compare the values the picker would sort on; they do not enumerate the raw table contents
+  cell by cell. A table could in principle differ in a cell that neither search reads here, and this
+  measurement would not see it.
+- Positions reachable on one side only (143 of 171) cannot be compared this way at all; for those the claim
+  rests on the chain argument, not on a direct comparison.
