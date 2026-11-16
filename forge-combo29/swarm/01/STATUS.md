@@ -142,3 +142,8 @@ SANITIZER PASS ON THE PC r15 SOURCE DONE AND PROVEN (S-F43). ASan+UBSan build of
 The zero COUNTS because of the planted case the rules demand: I planted ONE heap over-read in a scratch copy of the SAME r15 source behind input I control (a FEN starting PLANTED), built it the same way, and ran it through THE SAME runner - which counted it: 'AddressSanitizer: heap-buffer-overflow ... in apply_position' at src/uci.cpp:58. Artefacts: job1d/sanitizer_proof/ (crash log, the planted diff as text, the planted .meta with the nm counts, counts.txt).
 So the PC r15 FEN path is clean under both sanitizers on 20,000 malformed inputs, with the instrument shown able to fire.
 Next: job 2 (extreme FEN field values) on PC r15 under PC20, then job 3 (move lists).
+
+## 2026-11-16T22:36:36Z
+JOB 2 ON PC r15 UNDER PC20 DONE (S-F44, S-F45). All 34 extreme-FEN cases reproduce exactly: 17 refused / 17 accepted, 0 crashes, 0 sanitizer lines, perft 2 equal to python-chess in all 17 judged, and ZERO refusal-flag differences against my base-tree run. Accepted halfmove values identical: 0, 99, 100, 150, 9999, 65535, 65536, 100000.
+INDEPENDENT CONFIRMATION OF THE PC REPAIR (S-F45): at go depth 4 on startpos, halfmove 0 and 99 search on both builds (412 / 393 nodes), but halfmove 100 / 150 / 100000 give 0 nodes on BASE and 393 / 132 / 132 nodes on PC r15 with normal scores. FORGE_FIX_ROOT_DRAWN does what file 5 says, and my job-2 table confirms it changed nothing else in the FEN path.
+Next: job 3 (move lists, illegal-move prefix rule, 1,000-ply list) on PC r15 under PC20, then the sanitizer equivalent where it adds anything.

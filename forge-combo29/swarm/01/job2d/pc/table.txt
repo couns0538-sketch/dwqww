@@ -1,0 +1,47 @@
+job 2 table: extreme numbers in the FEN fields (ASan+UBSan build)
+
+case	group	refused	engine_answer	bestmove	perft2_engine	py_perft2	match
+halfmove_0	halfmove	False	(accepted)	d2d4	400	400	True
+halfmove_99	halfmove	False	(accepted)	d2d4	400	400	True
+halfmove_100	halfmove	False	(accepted)	d2d4	400	400	True
+halfmove_150	halfmove	False	(accepted)	b2b3	400	400	True
+halfmove_9999	halfmove	False	(accepted)	b2b3	400	400	True
+halfmove_-1	halfmove	True	info string invalid FEN: invalid FEN fields	d2d4	None	None	False
+halfmove_65535	halfmove	False	(accepted)	b2b3	400	400	True
+halfmove_65536	halfmove	False	(accepted)	b2b3	400	400	True
+halfmove_100000	halfmove	False	(accepted)	b2b3	400	400	True
+fullmove_0	fullmove	True	info string invalid FEN: invalid FEN fields	d2d4	None	400	False
+fullmove_1	fullmove	False	(accepted)	d2d4	400	400	True
+fullmove_1000000000	fullmove	False	(accepted)	d2d4	400	400	True
+fullmove_-1	fullmove	True	info string invalid FEN: invalid FEN fields	d2d4	None	None	False
+fullmove_65536	fullmove	False	(accepted)	d2d4	400	400	True
+ep_wrong_rank_w	ep_rank	True	info string invalid FEN: inconsistent en-passant square	d2d4	None	None	False
+ep_wrong_rank_b	ep_rank	True	info string invalid FEN: inconsistent en-passant square	d2d4	None	None	False
+ep_no_pawn_w	ep_nopawn	True	info string invalid FEN: inconsistent en-passant square	d2d4	None	None	False
+ep_no_pawn_b	ep_nopawn	True	info string invalid FEN: inconsistent en-passant square	d2d4	None	None	False
+two_white_kings	kings	True	info string invalid FEN: invalid FEN fields	d2d4	None	None	False
+two_black_kings	kings	True	info string invalid FEN: invalid FEN fields	d2d4	None	None	False
+no_white_king	kings	True	info string invalid FEN: invalid FEN fields	d2d4	None	None	False
+no_black_king	kings	True	info string invalid FEN: invalid FEN fields	d2d4	None	None	False
+white_pawn_rank8	pawn_rank	False	(accepted)	e1d1	15	15	True
+black_pawn_rank1	pawn_rank	True	info string invalid FEN: pawn on promotion rank	d2d4	None	None	False
+white_pawn_rank1	pawn_rank	True	info string invalid FEN: pawn on promotion rank	d2d4	None	None	False
+reference_midgame	reference	False	(accepted)	e1g1	1256	1256	True
+reference_start	reference	False	(accepted)	d2d4	400	400	True
+halfmove_100_fullmove_1e9	combined	False	(accepted)	d2d4	400	400	True
+halfmove_65536_fullmove_65536	combined	False	(accepted)	b2b3	400	400	True
+pawn_white_on_rank8	corrected	True	info string invalid FEN: pawn on promotion rank	-	None	None	False
+pawn_black_on_rank1	corrected	True	info string invalid FEN: pawn on promotion rank	-	None	None	False
+pawn_white_on_rank1	corrected	True	info string invalid FEN: pawn on promotion rank	-	None	None	False
+pawn_black_on_rank8	corrected	True	info string invalid FEN: pawn on promotion rank	-	None	None	False
+mislabel_checked	corrected	False	(accepted)	-	15	15	True
+
+cases: 34
+refused: 17
+accepted: 17
+crashes: 0
+sanitizer lines: 0
+perft 2 equal to python-chess: 17 of 17 judged
+
+by group: combined=2, ep_nopawn=2, ep_rank=2, fullmove=5, halfmove=9, kings=4, pawn_rank=3, reference=2
+halfmove values ACCEPTED: 0, 99, 100, 150, 9999, 65535, 65536, 100000
