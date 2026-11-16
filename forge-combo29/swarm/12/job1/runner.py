@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 """runner.py EXE SEQDIR RESULTFILE [TIMEOUT_S] — replay UCI sequences, one fresh process each.
 
-For every seq_NNNN.txt: spawn EXE, write the file's lines on stdin, read stdout until EOF
-(the sequence itself ends with `quit`) or until TIMEOUT_S passes with no new output.
+The sequence file already ends with `isready` + `quit`, so the run is:
+  spawn EXE, write every line except the final two, then send `isready` and wait for a
+  `readyok` within TIMEOUT_S  -> no readyok in time is a HANG (process killed, counted);
+  then send `quit` and wait TIMEOUT_S for the process to exit -> no exit is also a HANG.
 
-Recorded per sequence (one JSON line in RESULTFILE):
-  seq, exit, wall_s, hang (no complete answer within TIMEOUT_S of the last write),
-  crash (negative return code / killed by signal), sanitizer_lines (count + the lines),
-  bestmoves (list of (position_key, bestmove)), illegal_bestmoves.
-
-A "bestmove" is checked against the position in force when `go` was sent: the last
-`position` command before that `go`, with its legal move prefix applied; an unparseable
-position means the check is skipped and the bestmove is marked checked=false.
+Per sequence the record holds: exit code, crash (signal), hang, sanitizer lines, every
+`bestmove` with the position that was in force at its `go`, and the illegal bestmoves.
+A bestmove is associated with the oldest `go` that is expected to answer with one
+(perft and `go` without a search limit do not); `0000` is legal only with no legal moves.
 """
 import json
 import queue
@@ -25,12 +23,18 @@ from pathlib import Path
 import chess
 
 SAN_RE = re.compile(
-    r"(ERROR: AddressSanitizer|ERROR: LeakSanitizer|runtime error:|SUMMARY: (Address|Undefined|Leak)")
+    r"ERROR: (AddressSanitizer|LeakSanitizer)|SUMMARY: (Address|Undefined|Leak)Sanitizer|"
+    r"runtime error: "
 )
 
 
 def position_state(lines_so_far):
-    """Return the board implied by the last `position` command, or None."""
+    """Board implied by the last `position` command the engine could accept.
+
+    A refused FEN leaves the previous position in force (FABLE_TO_swarm_1 documents this),
+    so an unparseable `position` keeps the last good board instead of clearing it; illegal
+    moves truncate to the legal prefix, which is also what the engine keeps.
+    """
     state = None
     for raw in lines_so_far:
         line = raw.strip()
@@ -47,112 +51,153 @@ def position_state(lines_so_far):
                 board = chess.Board(fen)
                 rest = ("moves " + m.group(1)) if m else ""
             else:
-                state = None
                 continue
             if rest.startswith("moves"):
                 for mv in rest[len("moves"):].split():
                     try:
                         board.push_uci(mv)
                     except ValueError:
-                        break          # engine keeps the legal prefix
+                        break
             state = board.fen()
         except Exception:
-            state = None
+            continue          # refused FEN: previous position stays
     return state
+
+
+def expects_bestmove(go_line):
+    """A `go` that ends by itself answers with a bestmove; perft and bare `go` do not."""
+    words = go_line.split()
+    if "perft" in words:
+        return False
+    return len(words) > 1
 
 
 def run_one(exe, seq_path, timeout_s):
     lines = seq_path.read_text().splitlines()
+    if len(lines) < 2:
+        lines += ["isready", "quit"]
+    body, tail = lines[:-2], lines[-2:]
+
     proc = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True, bufsize=1,
                             env={"PATH": "/usr/bin:/bin", "ASAN_OPTIONS": "detect_leaks=0",
                                  "UBSAN_OPTIONS": "print_stacktrace=1"})
-    q = queue.Queue()
+    out = queue.Queue()
     collected = []
 
     def reader():
         for ln in proc.stdout:
-            q.put(ln)
-        q.put(None)
+            out.put(ln.rstrip("\n"))
+        out.put(None)
     threading.Thread(target=reader, daemon=True).start()
 
-    t0 = time.monotonic()
-    sent_prefix = []
+    def pump(deadline, stop_on):
+        """Collect lines until `stop_on(line)` or deadline; returns matched line or None."""
+        while True:
+            remain = deadline - time.monotonic()
+            if remain <= 0:
+                return None
+            try:
+                ln = out.get(timeout=min(remain, 0.2))
+            except queue.Empty:
+                if proc.poll() is not None:
+                    return None
+                continue
+            if ln is None:
+                return None
+            collected.append(ln)
+            if stop_on(ln):
+                return ln
+
+    pending_go = []          # FIFO of (fen, go_line) still awaiting a bestmove
     bestmoves = []
+    sent = []
+    t0 = time.monotonic()
     hang = False
+    searching = False        # a `go` that answers with bestmove is in flight
     try:
-        for line in lines:
-            prefix_now = list(sent_prefix)
+        for line in body:
             proc.stdin.write(line + "\n")
             proc.stdin.flush()
-            sent_prefix.append(line)
-            deadline = time.monotonic() + timeout_s
-            if line.strip().startswith("go"):
-                # consume output until bestmove or timeout
-                while True:
-                    remain = deadline - time.monotonic()
-                    if remain <= 0:
-                        hang = True
-                        break
-                    try:
-                        ln = q.get(timeout=min(remain, 0.5))
-                    except queue.Empty:
-                        if proc.poll() is not None:
-                            break
-                        continue
-                    if ln is None:
-                        break
-                    collected.append(ln.rstrip("\n"))
-                    if ln.startswith("bestmove"):
-                        bestmoves.append((position_state(prefix_now), ln.strip()))
-                        break
-                if hang:
+            sent.append(line)
+            s = line.strip()
+            if s.startswith("go"):
+                searching = expects_bestmove(s)
+                if searching:
+                    pending_go.append([position_state(sent[:-1]), s])
+            # drain whatever arrived without blocking
+            while True:
+                try:
+                    ln = out.get_nowait()
+                except queue.Empty:
                     break
-        proc.stdin.write("quit\n")
+                if ln is None:
+                    break
+                collected.append(ln)
+            # a bestmove closes the search that was in flight
+            while any(c.startswith("bestmove") for c in collected) and pending_go:
+                idx = next(i for i, c in enumerate(collected) if c.startswith("bestmove"))
+                bm = collected.pop(idx)
+                fen, _go = pending_go.pop(0)
+                bestmoves.append((fen, bm.strip()))
+                searching = False
+
+        proc.stdin.write(tail[0] + "\n")       # the sequence's own isready
+        proc.stdin.flush()
+        sent.append(tail[0])
+        ready = pump(time.monotonic() + timeout_s, lambda l: l.strip() == "readyok")
+        if ready is None:
+            hang = True
+        proc.stdin.write(tail[1] + "\n")       # the sequence's own quit
         proc.stdin.flush()
         proc.stdin.close()
     except (BrokenPipeError, OSError):
         pass
 
     try:
-        rc = proc.wait(timeout=max(1.0, timeout_s - (time.monotonic() - t0)))
+        rc = proc.wait(timeout=timeout_s)
     except subprocess.TimeoutExpired:
         hang = True
         proc.kill()
         rc = proc.wait()
 
-    # drain whatever is left
     end = time.monotonic() + 2.0
     while time.monotonic() < end:
         try:
-            ln = q.get(timeout=0.2)
+            ln = out.get(timeout=0.2)
         except queue.Empty:
             break
         if ln is None:
             break
-        collected.append(ln.rstrip("\n"))
+        collected.append(ln)
+
+    # any bestmove that arrived after the last pump belongs to the oldest pending go
+    for c in collected:
+        if c.startswith("bestmove") and pending_go:
+            fen, _ = pending_go.pop(0)
+            bestmoves.append((fen, c.strip()))
 
     wall = time.monotonic() - t0
     san = [c for c in collected if SAN_RE.search(c)]
-    illegal = []
+    illegal, unchecked = [], []
     for fen, bm in bestmoves:
-        word = bm.split()[1] if len(bm.split()) > 1 else "?"
+        parts = bm.split()
+        word = parts[1] if len(parts) > 1 else "?"
         if fen is None:
-            illegal.append({"fen": None, "bestmove": word, "checked": False})
+            unchecked.append({"bestmove": word, "why": "position unparseable"})
             continue
+        board = chess.Board(fen)
         if word in ("0000", "(none)"):
-            board = chess.Board(fen)
-            if board.legal_moves:              # 0000 with moves available is a fault
-                illegal.append({"fen": fen, "bestmove": word, "checked": True,
-                                "why": "0000 with legal moves"})
+            if board.legal_moves:
+                illegal.append({"fen": fen, "bestmove": word, "why": "0000 with legal moves"})
             continue
         try:
             mv = chess.Move.from_uci(word)
-            if mv not in chess.Board(fen).legal_moves:
-                illegal.append({"fen": fen, "bestmove": word, "checked": True,
-                                "why": "not legal in position"})
         except ValueError:
-            illegal.append({"fen": fen, "bestmove": word, "checked": True, "why": "unparseable"})
+            illegal.append({"fen": fen, "bestmove": word, "why": "unparseable"})
+            continue
+        if mv not in board.legal_moves:
+            illegal.append({"fen": fen, "bestmove": word, "why": "not legal in position"})
 
     return {
         "seq": seq_path.name,
@@ -161,11 +206,35 @@ def run_one(exe, seq_path, timeout_s):
         "hang": hang,
         "crash": rc is not None and rc < 0,
         "sanitizer_lines": len(san),
-        "sanitizer_excerpt": san[:6],
-        "bestmoves": [{"fen": f, "bm": b} for f, b in bestmoves],
-        "illegal_bestmoves": [i for i in illegal if i.get("checked")],
-        "unchecked_bestmoves": [i for i in illegal if not i.get("checked")],
+        "sanitizer_excerpt": san[:8],
+        "bestmoves": len(bestmoves),
+        "illegal_bestmoves": illegal,
+        "unchecked_bestmoves": unchecked,
+        "lines": len(lines),
+        "transcript_tail": collected[-6:],
     }
+
+
+def verify_illegal(exe, fen):
+    """Ask a fresh process for a bestmove in FEN and report whether it is legal there."""
+    script = f"position fen {fen}\nisready\ngo depth 1\nisready\nquit\n"
+    p = subprocess.run([exe], input=script, capture_output=True, text=True, timeout=60,
+                       env={"PATH": "/usr/bin:/bin", "ASAN_OPTIONS": "detect_leaks=0",
+                            "UBSAN_OPTIONS": "print_stacktrace=1"})
+    bms = [l.split()[1] for l in p.stdout.splitlines() if l.startswith("bestmove")]
+    if not bms:
+        return {"fen": fen, "bestmove": None, "verdict": "no bestmove"}
+    word = bms[-1]
+    board = chess.Board(fen)
+    if word in ("0000", "(none)"):
+        ok = not any(board.legal_moves)
+    else:
+        try:
+            ok = chess.Move.from_uci(word) in board.legal_moves
+        except ValueError:
+            ok = False
+    return {"fen": fen, "bestmove": word, "verdict": "legal in fresh process" if ok
+            else "ILLEGAL in fresh process"}
 
 
 def main():
@@ -177,11 +246,18 @@ def main():
     with result.open("w") as out:
         for i, sp in enumerate(seqs):
             rec = run_one(exe, sp, timeout_s)
+            if rec["illegal_bestmoves"]:
+                rec["recheck"] = [verify_illegal(exe, x["fen"]) for x in rec["illegal_bestmoves"]]
+                rec["illegal_confirmed"] = sum(
+                    1 for r in rec["recheck"] if r["verdict"] == "ILLEGAL in fresh process")
+            else:
+                rec["recheck"] = []
+                rec["illegal_confirmed"] = 0
             out.write(json.dumps(rec) + "\n")
             out.flush()
-            if rec["crash"] or rec["sanitizer_lines"] or rec["hang"]:
-                print(f"[{i+1}/{len(seqs)}] {rec['seq']}: crash={rec['crash']} "
-                      f"hang={rec['hang']} san={rec['sanitizer_lines']}", flush=True)
+            if rec["crash"] or rec["sanitizer_lines"] or rec["hang"] or rec["illegal_confirmed"]:
+                print(f"[{i+1}/{len(seqs)}] {rec['seq']}: crash={rec['crash']} hang={rec['hang']} "
+                      f"san={rec['sanitizer_lines']} illegal={rec['illegal_confirmed']}", flush=True)
     print(f"done {len(seqs)} sequences -> {result}")
 
 
