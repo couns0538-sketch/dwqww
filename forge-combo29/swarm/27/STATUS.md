@@ -276,3 +276,8 @@ all three runs), **finished depth 8 of 8** (every reply carried a pv), and **ove
 So the self-play contract holds exactly and its labels are reproducible.
 **S-P8.** The census script is now generic (git mode inside a repo, `find` outside) and self-tested on a synthetic
 300-row directory where it correctly found 153 band rows — which also caught a field-order bug in my own regex.
+
+## 2026-11-16T23:16Z still working — next: the negative-sum clock and the softnodes boundary
+Not idle: the last push was the File-6 verdict pass at 22:56Z. Taking the coordinator's first suggestion next,
+the 6s+0.06 clock with a median search near 105 ms against a 60 ms increment, on the PC build under PC20 at
+Threads 1, then the `go nodes` boundary on real-game positions. STATUS cadence stays at 25 minutes.
