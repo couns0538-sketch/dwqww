@@ -1,0 +1,37 @@
+cases 550 over 82 options (spin 58, check 21, string 2, button 1)
+
+| quantity | value |
+|---|---|
+| cases run | 550 |
+| cases between searches | 478 |
+| cases during a search | 72 |
+| crashes | 0 |
+| sanitizer lines | 0 |
+| cases where the next search printed no bestmove | 0 |
+| cases where the next search's bestmove was illegal | 0 |
+| spin out-of-range (min-1 / max+1) cases | 116 |
+| ... of those WITHOUT the `invalid value` line | 0 |
+| spin given the word `banana` | 58 |
+| ... of those silently accepted | 0 |
+| check given the word `banana` | 21 |
+| ... of those silently accepted | 0 |
+| option sent with NO value | 82 |
+| ... of those WITHOUT an `invalid value` line | 3 |
+
+### the no-value cases that printed nothing at all (by type)
+- Book File (string) answered []
+- NnueFile (string) answered []
+- Clear Hash (button) answered []
+
+### the button option, every value sent
+- value 'banana' during=False answered=True invalid_line='Clear Hash' answer=['info string invalid value for option Clear Hash']
+- value 'true'   during=False answered=True invalid_line='Clear Hash' answer=['info string invalid value for option Clear Hash']
+- value None     during=False answered=True invalid_line=None answer=[]
+
+### string options, every value sent
+- Book File    word   value 'banana'   -> ['info string cannot load book banana'] answered=True
+- Book File    word   value 'true'     -> ['info string cannot load book true'] answered=True
+- Book File    none   value None       -> [] answered=True
+- NnueFile     word   value 'banana'   -> ['info string nnue: cannot open file'] answered=True
+- NnueFile     word   value 'true'     -> ['info string nnue: cannot open file'] answered=True
+- NnueFile     none   value None       -> [] answered=True

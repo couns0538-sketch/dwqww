@@ -1,0 +1,20 @@
+check-option cases by value (idle):
+  value 'banana' cases 21  accepted-without-invalid-line 0 
+  value 'true'   cases 21  accepted-without-invalid-line 21 ['AspArmLate', 'AspCappedReopen', 'ContHist4PlyRead', 'DeadMaterial', 'EvalRule50Damp']
+  value ''       cases 21  accepted-without-invalid-line 0 
+
+spin options accepting 'true'? 
+  cases 58, accepted 0
+
+button option sent as 'setoption name Clear Hash value <v>':
+  value 'banana' answered=True invalid=Clear Hash crash=False
+  value 'true'   answered=True invalid=Clear Hash crash=False
+  value None     answered=True invalid=None crash=False
+
+string options at every value:
+  Book File    word   'banana' -> ['info string cannot load book banana']                 answered=True
+  Book File    word   'true'   -> ['info string cannot load book true']                   answered=True
+  Book File    none   None     -> []                                                      answered=True
+  NnueFile     word   'banana' -> ['info string nnue: cannot open file']                  answered=True
+  NnueFile     word   'true'   -> ['info string nnue: cannot open file']                  answered=True
+  NnueFile     none   None     -> []                                                      answered=True

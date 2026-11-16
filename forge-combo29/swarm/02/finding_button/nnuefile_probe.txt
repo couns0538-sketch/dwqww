@@ -1,0 +1,20 @@
+# S02: does a bogus 'NnueFile' silently change what the engine evaluates with?
+# eval output before and after, same position
+
+$ eval with the built-in net (default)
+readyok
+info string eval hce 59 nnue -26 total 33
+readyok
+
+$ NnueFile set to a bogus path, then eval
+readyok
+info string nnue: cannot open file
+readyok
+info string eval hce 59 nnue -26 total 33
+readyok
+
+$ NnueFile back to empty (<empty> means the built-in), then eval
+readyok
+readyok
+info string eval hce 59 nnue -26 total 33
+readyok
