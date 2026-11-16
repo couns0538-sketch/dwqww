@@ -273,3 +273,22 @@ NEXT
 - Continue the cycle: the remaining question on the owner's path is whether the engine ever disagrees with
   python-chess about legality at the match budgets on a larger position sample (a wrong move is the other way
   to lose a game outright). Then keep the table current and push STATUS every 25 minutes.
+## 2026-11-16T23:22Z (block 17)
+
+seat 17 | PC path | Threads 1 | branch for-fable-and-opus/swarm-17
+
+DONE
+- NOTE_moves_path_hazard.md: standalone GUI-author note on `info string illegal move` — command, exact output
+  for four cases, what the engine plays, and the rule that a harness must treat that line as FATAL for the
+  game. Linked from the table row.
+- Legality at the match budgets: 60 real game positions x 20000/50000/250000 = 180 lines, 0 illegal moves,
+  0 unmeasured. Also 0 of the 60 real game FENs were rejected by the guard — my 2 bad FENs came from a
+  hand-written list, so the FEN hazard is a hand-written-input hazard, not a real-data one.
+
+DELIVERABLES (the three to hand the owner first)
+- FINDINGS_TABLE.md   — every finding with build, settings, Threads 1 and GUI-reachability.
+- NOTE_moves_path_hazard.md — the per-move hazard and the fatal-on-illegal-move rule.
+- NOTE_select_readline_artifact.md — the harness artefact that fabricates a hang.
+
+NEXT
+- Keep the table current to the close at 2026-11-17T10:19Z; continue the cycle on the PC path.
