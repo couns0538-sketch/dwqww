@@ -43,10 +43,16 @@
 #     Hash 1024: still 0 nodes/ms
 #   The MultiPV 1 control stayed flat throughout, so the change remains correctly scoped.
 #   It does NOT reach MultiPV 1's ~1,500 nodes/ms: 583 -> 29 -> 0 across those Hash sizes.
-#   RESIDUAL HYPOTHESIS (NOT measured by me): the remaining per-line cost has the same shape as the
-#   clear's -- it points at the per-line `alt_worker->clear()` (:2880, left in place by this patch) or
-#   at the alternative table being touched per line. Apply this patch for the depth it restores, not
-#   as a complete fix.
+#   THE RESIDUAL IS NOT `alt_worker->clear()` -- I tested that and it failed. Removing the per-line
+#   Worker::clear() as well (all four pins still unchanged) gained only ~7% at Hash 16 and was
+#   slightly WORSE at 64 and 256 (nodes/ms: C31 615/393/149/40 vs C44 658/358/128/23 across Hash
+#   16/64/256/1024). So the obvious next suspect is ruled out, not merely unmeasured.
+#   WHAT THE RESIDUAL IS: at `go nodes 20000` the tree is byte-identical (10,877 nodes at every Hash)
+#   while wall time runs 21.7 / 40.7 / 108.9 / 577.8 / 967.8 ms for Hash 16/64/256/1024/2048 --
+#   2.0 to 89.0 us per node. So there is at least ONE MORE whole-table pass per search, proportional
+#   to the table, that I did not locate. It is not page faults (a warm-up search in the same process
+#   does not remove it) and not hashfull() (which samples only 1,000 clusters).
+#   Apply this patch for the depth it restores, not as a complete fix; the residual needs a profiler.
 #
 # REVIEWER CHECK (do these four things before accepting):
 #   1. bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, go perft 5 = 4865609 - ALL UNCHANGED.
