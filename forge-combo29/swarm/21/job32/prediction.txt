@@ -1,0 +1,20 @@
+# PREDICTION — job32: does 21-F16's node undershoot cost DEPTH (and therefore strength)?
+written before the first measuring command.
+
+21-F16: `go nodes N` stops at the last completed depth, using up to 52 % fewer nodes than asked.
+The question that decides whether the owner should care: how many plies of depth does that cost
+compared to a search that actually used N nodes?
+
+Method: for each of 10 real-game positions, run `go nodes N` and record the depth reached and the
+nodes used; then raise N until the SAME depth is reached with far more nodes, and record what node
+budget would have been needed. That gives "nodes actually needed to reach depth D" versus "N asked
+for".
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | the depth reached at N is at least 8 for N=20000 on most positions | if depths are much lower, the undershoot is more serious than it looked |
+| P2 | to reach ONE ply deeper than the N=20000 answer needs at least 2.5x the nodes | killed if 1 more ply costs < 2x (then the undershoot wastes little) |
+| P3 | a budget of 4x N reaches at least 2 plies more than N does | killed if 4x N gives <= 1 extra ply |
+| P4 | the bestmove at N and at 4N differ on at least a few positions | a large differ-count is the practical case for raising the budget |
+| P5 | all runs deterministic | killed by any difference |
+| P6 | 0 crashes, 0 sanitizer lines | killed by any one |
