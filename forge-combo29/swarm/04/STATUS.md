@@ -159,9 +159,9 @@ Rule, verified exactly: go nodes N finishes the iteration it is IN. Budget == a 
 budget == boundary-1 drops a whole iteration. Measured: 19,831 -> 9,155 work (0.46x); 19,832 -> 19,832 (1.00x);
 31,778 -> 19,832 (0.62x); 31,779 -> 31,779 (1.00x).
 ADVICE: send the boundary value itself, not a round number above it.
-ORDINARY FEN (5R2... no — 1r6/2k2pp1/...) depth 10-17: 9,155 / 19,832 / 31,779 / 52,904 / 97,289 / 121,306 /
+ORDINARY FEN 1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b depth 10-17: 9,155 / 19,832 / 31,779 / 52,904 / 97,289 / 121,306 /
   170,070 / 288,912
 STARTPOS depth 9-18: 7,131 / 8,569 / 13,604 / 21,600 / 28,565 / 46,854 / 78,579 / 104,892 / 166,281 / 377,485
 Both reproducible 2/2 runs. CORRECTION: the six numbers I quoted earlier are the ORDINARY FEN's, not startpos's.
-Boundaries are position-specific — derive them per position from  nodes.
+Boundaries are position-specific — derive them per position from the nodes field of each `info depth k` line.
 Table: job3/table_boundaries.md. NEXT: quit/EOF re-check on PC20.
