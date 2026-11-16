@@ -1,0 +1,60 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -36,6 +36,20 @@
+ 
+ namespace forge {
+ 
++namespace {
++
++// Symmetry experiment (swarm seat 06): the piece-to-history and continuation tables are indexed by
++// Piece, which is COLOUR-ABSOLUTE (WP=1..BK=12), so the same piece of the other colour lands in a
++// different slot and a colour-mirrored search reads different history. Map the piece into the
++// mover's own frame first: our pieces 1..6, their pieces 7..12, 0 unused. Slot count is unchanged.
++[[nodiscard]] inline std::size_t rel_piece(const Piece piece, const Color us) {
++    const int type = piece_type(piece);
++    return static_cast<std::size_t>(color_of(piece) == us ? type : 6 + type);
++}
++
++} // namespace
++
++
+ int DrawJitter = 0;
+ 
+ namespace tune {
+@@ -1332,10 +1346,11 @@
+     const Piece piece = board.moved_piece(move);
+     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+     if (ss != nullptr) {
+-        if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
+-        if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
++        const std::size_t rel = rel_piece(piece, board.side_to_move());
++        if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[rel][move.to];
++        if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[rel][move.to];
+         if (tune::ContHist4PlyRead && (ss - 4)->continuation != nullptr && !(ss - 4)->current_move.is_none()) {
+-            score += (*(ss - 4)->continuation)[static_cast<std::size_t>(piece)][move.to] / 2;
++            score += (*(ss - 4)->continuation)[rel][move.to] / 2;
+         }
+     }
+     return score + threat_quiet_bonus(board, move);
+@@ -1361,10 +1376,11 @@
+ }
+ 
+ void Worker::update_continuation(SearchStack* ss, Piece piece, int to, int bonus) {
++    const Color us = color_of(piece);
+     for (const int back : {1, 2, 4}) {
+         const SearchStack* previous = ss - back;
+         if (previous->continuation == nullptr || previous->current_move.is_none()) continue;
+-        apply_history((*previous->continuation)[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)],
++        apply_history((*previous->continuation)[rel_piece(piece, us)][static_cast<std::size_t>(to)],
+                       back == 4 ? bonus / 2 : bonus);
+     }
+ }
+@@ -1506,7 +1522,7 @@
+ #endif
+         ss->current_move = move;
+         ss->moved_piece = board.moved_piece(move);
+-        ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
++        ss->continuation = &(*continuation_history_)[rel_piece(ss->moved_piece, board.side_to_move())][move.to];
+         (ss + 1)->ply = ply + 1;
+         record_move(ss, board, move);
+         Undo undo;

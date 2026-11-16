@@ -276,3 +276,97 @@ Shows again: seat 19's evidence command above, plus `honesty_variants.txt` in th
 - I did not test whether a *different* sort implementation in the pins' own build (e.g. a GCC 14 build) reproduces
   the pins. That is a concrete way to test the reproducibility risk in F5, and it belongs to whoever owns the
   build matrix.
+
+---
+
+# ADDENDUM 2 — the state probe (outcome B) and the continuation-history colour index
+
+## Part 1 — the state probe: outcome B, decisively
+
+Same 353 G pairs, depth 10, S14, Threads 1, Hash 16, **`OwnBook false`**, `ucinewgame` + `isready` before every
+`go`. Three modes, full raw output committed (`out_state_fresh.jsonl`, `out_state_same.jsonl`,
+`out_state_reverse.jsonl`, metas beside them):
+
+| mode | pairs | bestmoves mirroring | scores equal | node counts equal |
+|---|---|---|---|---|
+| fresh process per search (nothing searched before it) | 353 | **252** | **19** | 0 |
+| same process, original searched first | 353 | **252** | **19** | 0 |
+| same process, mirror searched first | 353 | **252** | **19** | 0 |
+
+**All three modes are numerically identical, and per-pair identical 353/353 in both bestmove and score.** So:
+
+- **Outcome B: the asymmetry is state carried WITHIN a single search.** No cross-search state matters.
+- **Outcome A is excluded**: a fresh process with nothing before it is exactly as asymmetric as a warm one.
+- **Outcome C is excluded**: my original job-3 pairing harness did **not** carry state between the two searches
+  in any way that changed a single result. The headline number 101/353 is **not** an artefact. (The fresh mode
+  gives 252/353 mirroring, which equals the 252 I reported in job 3 for the same set — the two harnesses agree
+  exactly.)
+
+I predicted outcome B in `prediction_state.txt`, written before the run.
+
+## Part 2 — the colour-dependent accumulating index: found, patched, measured, and NOT the cause
+
+The probe in part 1 says the state is carried inside one search, so the next question is which accumulating table
+has a colour-dependent index. Read from the code:
+
+| table | declaration | index | colour-relative? |
+|---|---|---|---|
+| `ButterflyHistory` | `search.hpp:379` `array<array<array<int16_t,64>,64>,2>` | `[side_to_move()]` | **yes** — a relative 2-slot index, both colours get their own slot |
+| `PieceToHistory` | `search.hpp:384` `array<array<int16_t,64>,13>` | `[piece]` | **NO** — `Piece` is colour-absolute (`board.hpp:35-40`: WP=1, WN=2 … BP=7 … BK=12) |
+| `ContinuationHistory` | `search.hpp:385` `array<array<PieceToHistory,64>,13>` | `[piece]` | **NO** — same reason |
+
+So white's knight fills slot 2 and black's knight fills slot 8: two different history tables. Reads at
+`search.cpp:1335-1338`, writes at `1366-1367` and the pointer selection at `1509`. This is exactly the
+colour-dependent accumulating index the probe was meant to look for, and it accumulates *within* one search
+(`update_continuation`), which matches outcome B.
+
+**I patched it** (`make_variant_e.py` → `FORGE_swarm06_continuation_colourindex.patch.txt`, applies with
+`patch -p1`, no fuzz): every touch of those tables maps the piece into the mover's frame first
+(`rel_piece(piece, us)`: our pieces 1..6, theirs 7..12, 0 unused — slot count unchanged).
+
+**Result:**
+
+| build | depth-10 G bestmove mismatches | score differences | depth-1 node equality | bench 11 / 13 / 16 | perft 5 |
+|---|---|---|---|---|---|
+| base | **101** | **334** | 15/40 | 312866 / 862329 / 3024920 | 4865609 |
+| variant E (relative piece index) | **108** | **337** | **15/40 (identical to base)** | 294990 / 981062 / 2914498 | 4865609 |
+
+**So the colour-absolute continuation index is also NOT the cause.** It is worse, not better (101 → 108), and the
+decisive tell is that **depth-1 node equality is unchanged at exactly 15/40**: at depth 1 no history has
+accumulated yet, so if that index were the cause, depth 1 would have improved — it did not. Whatever breaks the
+depth-1 node counts is not history at all, colour-indexed or otherwise.
+
+Prediction outcomes for this part: **P1 KILLED** (mismatches did not fall below 101). **P2 CONFIRMED** (not 0).
+**P3 CONFIRMED** (pins moved, exactly as 19-F15 predicts for any ordering change). **P4 KILLED** (scores did not
+improve less than bestmoves — both got worse by a similar amount).
+
+## What this leaves
+
+Four mechanisms have now been tested and refuted by direct experiment:
+
+| hypothesis | verdict |
+|---|---|
+| `std::sort` / `pick_best` tie-break (my S-F8) | REFUTED — 101 → 114/104/117 |
+| aspiration window | REFUTED — 34/40 → 28/40 |
+| accumulated root alpha (root-window purity) | REFUTED — 101 → 149 at 31× nodes |
+| colour-absolute continuation-history index | REFUTED — 101 → 108, depth-1 unchanged at 15/40 |
+
+What the evidence now says, without a fifth guess: the difference is created **inside one search, below the root
+and not through accumulated history or the root window**, and it is already fully present at **depth 1** where
+the only things that vary are the move list order and the quiescence search below each root move. The
+`searchmoves` probe shows each root move's own subtree is mirror-identical *in isolation*, so the remaining
+difference must come from the qsearch/SEE interaction across the root's move loop — the one place I have not
+isolated. I am recording that as the open question rather than claiming it.
+
+**One honest correction to the brief's premise**: "each root move searched alone gives mirror-identical node
+counts" is true, but it does **not** imply that the cross-move state is history or alpha. Both have now been
+removed and the asymmetry persists, including at depth 1 where neither exists.
+
+## What I did NOT do (addendum 2)
+
+- No fifth mechanism. Four refutations is enough to stop guessing without a new kind of probe.
+- The one probe I would try next, and did not have time for before the deadline: instrument the root move loop
+  to dump, per root move, the node count *inside* the full-position search (the engine already tracks
+  `root_move_nodes_`) for a position and its mirror, and compare those vectors. That would show directly whether
+  the divergence is at the first move or accumulates; `root_move_nodes_` exists (`search.hpp:486`) and is what
+  the NodeShare timing uses.
