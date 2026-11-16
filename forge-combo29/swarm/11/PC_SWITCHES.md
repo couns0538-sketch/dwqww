@@ -44,9 +44,17 @@ Measured and reported above: `ROOT_DRAWN`, `GO_PARSE`, `BARE_KING_LMR_CAP`, and
   the shipped exe lists **no `NNUEArch`/`NNUEArchFile` option at all**. So the state it protects
   is unreachable, which is exactly why my probe found no ON/OFF difference. (S-F90)
 
+**MEASURED (revised from unmeasured):**
+- `FORGE_FIX_HARD_LIMIT_EMERGENCY` — ON in the binary, and it MATTERS at tight clocks. Built a
+  variant with only this switch off; sweeping `go wtime t btime t` for t = 11..60 ms, 5 of 50
+  values differ (t = 16, 17, 27, 28, 31). At t=17 the MOVE differs (`g8f6` ON vs `a7a6` OFF —
+  `a7a6` being the unsearched first legal move the switch exists to avoid), and at t=17 the ON
+  build was stable at 601 nodes 5/5 while OFF was unstable (4x601, 1x1257). So its real value is
+  REPRODUCIBILITY at a near-expired clock. My earlier "no difference" probe had stepped over the
+  5-in-50 window. (S-F91)
+
 **Still unmeasured — I have no probe that distinguishes the switch ON from OFF, so I make no claim
 either way about its effect:**
-- `FORGE_FIX_HARD_LIMIT_EMERGENCY` — ON in the binary.
 - `FORGE_FIX_ABORT_PUBLISH` — OFF in the binary.
 
 For each of those three I ran a plausible probe, saw no difference, and could not construct a case
