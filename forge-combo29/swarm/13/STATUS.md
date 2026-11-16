@@ -174,3 +174,17 @@ both regimes (none, PC20). Threads 1, Hash 16 sent explicitly everywhere.
   python reference comparing (the slow part).
 STALE-SHARD WRITE-UP DONE as its own document (see internal/ report path in my message).
 Next command: cd forge-combo29/swarm/13/job4 && cat status.txt
+
+## 2026-11-16T22:47:15Z
+
+DONE job 4 (the coordinator's first new job): perft 4 at the DIVIDE level, 200 R positions.
+  base Threads1/Hash16 : 5,182 root moves, 0 differing
+  PC r15 Threads1/Hash16: 5,182 root moves, 0 differing
+  PC r15 PC20          : 5,182 root moves, 0 differing
+  base + PC20          : CORRECTLY REFUSED (base exe does not advertise CuckooRep etc.)
+  Rule-1 control passed first: identity not flagged; compensating +1/-1 with total unchanged
+  (197281) CAUGHT; missing CAUGHT; extra CAUGHT.
+  Report job4/REPORT_job4.md; finding S-F5. My stated totals-only limit is now closed for depth 4.
+READ FABLE 6: perft treated as done/transferable. Priority moves to the PC path. Next: suggested new
+area -- go softnodes N on PC build under PC20, Threads 1: determinism, finished depth, overshoot.
+Next command: cd forge-combo29/swarm/13/job5 && python3 softnodes.py

@@ -75,6 +75,10 @@ def py_divide(fen, depth):
     return div
 
 
+def ref_job(fen):
+    return py_divide(fen, DEPTH)
+
+
 def main():
     fens = [l.strip() for l in open(FENS) if l.strip()]
     if not fens:
@@ -123,7 +127,23 @@ def main():
         read_until(lambda s: s == "readyok", "readyok after %s" % n)
 
     raw = []
+    cache_path0 = OUT + ".engine_raw.json"
+    reused = False
+    if os.path.exists(cache_path0):
+        try:
+            cached = json.load(open(cache_path0))
+            if ([c["fen"] for c in cached["raw"]] == fens
+                    and cached.get("regime") == REGIME):
+                raw = [(c["divide"], c["total"]) for c in cached["raw"]]
+                idname = cached.get("id_name", idname)
+                reused = True
+                print("REUSED cached engine output for", len(raw), "positions", flush=True)
+        except Exception as e:
+            print("cache not reused:", e, flush=True)
+
     for i, fen in enumerate(fens):
+        if reused:
+            break
         send("position fen " + fen)
         send("isready")
         read_until(lambda s: s == "readyok", "readyok after position %d" % i)
@@ -157,11 +177,24 @@ def main():
     if len(raw) != len(fens):
         raise SystemExit("FAIL: %d divide blocks for %d positions" % (len(raw), len(fens)))
 
+    cache_path = OUT + ".engine_raw.json"
+    with open(cache_path, "w") as cf:
+        json.dump({"id_name": idname, "options": OPTS, "regime": REGIME,
+                   "raw": [{"fen": fens[i], "divide": raw[i][0], "total": raw[i][1]}
+                           for i in range(len(fens))]}, cf)
+    print("engine raw cached to", cache_path, flush=True)
+
+    import multiprocessing as mp
+
+    with mp.Pool(4) as pool:
+        ref_divs = pool.map(ref_job, fens)
+    print("python reference done (4 workers)", flush=True)
+
     results = []
     differing = []
     for i, fen in enumerate(fens):
         eng_div, eng_total = raw[i]
-        ref_div = py_divide(fen, DEPTH)
+        ref_div = ref_divs[i]
         ref_total = sum(ref_div.values())
         missing = sorted(set(ref_div) - set(eng_div))
         extra = sorted(set(eng_div) - set(ref_div))
@@ -194,7 +227,7 @@ def main():
         "depth": DEPTH,
         "positions": len(fens),
         "positions_compared": len(results),
-        "root_moves_compared": sum(len(r["root_moves_python"]) for r in results),
+        "root_moves_compared": sum(r["root_moves_python"] for r in results),
         "positions_differing": len(differing),
         "wrong_root_move_counts": sum(len(r["wrong_counts"]) for r in results),
         "missing_root_moves": sum(len(r["missing"]) for r in results),
