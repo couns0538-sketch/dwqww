@@ -23,3 +23,7 @@ Next: cycle -> area 1 job 3 (position startpos moves, 1000 plies, illegal move a
 job 3 done: 1,000-ply list accepted (perft 1 = 16 = python-chess), illegal move at ply 1/10/500 keeps the legal prefix (20/32/6, all equal to python-chess), 0 sanitizer lines, 0 crashes, setup 0.03 s. Extra edge cases: list through a threefold repetition accepted, list past checkmate refused at that move. Brief's known case (perft 1 = 29) reproduced. Findings S-F9..S-F13. All three area-1 jobs are now done.
 Next: cycle -> area 1 job 1 again with SEED+10 and a fresh R set, per cycle rule 2(c); before that, re-read the board for any NEW finding to check.
 
+
+## 2026-11-16T21:34:59Z
+CHECKPOINT PUSH (owner asked for a push every 30 min). All three area-1 jobs done and pushed earlier. Now: check of seat 05's S-F3 written as checks/CHECK_s05f3.md -> CONFIRMS its numbers (flip at H=91, depth 10) but REFUTES its framing: the cliff moves with depth (first zero at H=96/95/92/91/89 for depth 4/6/8/10/12 = 101-D, minus one when quiescence reaches deeper), so it is the search horizon, not an early fifty-move rule. Files: checks/check_s05f3.py, checks/check_s05f3_depth.py, checks/s05f3/*, checks/s05f3_depth.log.
+Next: area 1 job 1 again with SEED+10 and a fresh R set (cycle rule 2c).
