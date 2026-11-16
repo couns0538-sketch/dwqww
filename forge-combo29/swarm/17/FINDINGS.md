@@ -410,3 +410,32 @@ d10 `d6e6`), so a position can look stable or wildly erratic purely as a functio
 lands — **any A/B comparison at fixed nodes on a tactical position must record the depth reached as well as
 the move, or the result is uninterpretable.**
 Applies to every harness in the swarm, mine included. Recorded as a row in FINDINGS_TABLE.md.
+
+## Node-tier sweep on 10 real positions, with the depth reached logged (my own new rule)
+
+PC r15, PC20, Threads 1, Hash 16, fresh process per line. Four tiers: the self-play tier `go nodes 2000` and
+the three match tiers 20000 / 50000 / 250000.
+
+| position | 2000 | 20000 | 50000 | 250000 | depth 2000 -> 250000 | distinct moves |
+|---|---|---|---|---|---|---|
+| 0 | g7g6 | g7g6 | g7g6 | g7g6 | 6 -> 16 | 1 |
+| 1 | b6b5 | b6b5 | b6b5 | b6b5 | 7 -> 17 | 1 |
+| 2 | g1g6 | g1g6 | g1g6 | g1g6 | 6 -> 16 | 1 |
+| 3 | **h7h5** | f6e7 | f6e7 | f6e7 | 5 -> 14 | 2 |
+| 4 | f6g5 | f6g5 | f6g5 | f6g5 | 6 -> 17 | 1 |
+| 5 | **e4f5** | f4f5 | f4f5 | f4f5 | 7 -> 16 | 2 |
+| 6 | **d6f6** | **c8c3** | d6e6 | d6e6 | 5 -> 15 | **3** |
+| 7 | g5h5 | g5h5 | g5h5 | g5h5 | 7 -> 16 | 1 |
+| 8 | **d7d6** | d7d5 | d7d5 | d7d5 | 5 -> 17 | 2 |
+| 9 | c3c2 | c3c2 | c3c2 | c3c2 | 6 -> 15 | 1 |
+
+- **6 of 10 positions give the same move at all four tiers; 4 of 10 differ somewhere.**
+- Every difference is at the 2000 self-play tier except position 6, which is the only one that also differs
+  between two MATCH tiers (20000 vs 50000) — consistent with my earlier 9-of-10 result over the three match
+  tiers alone.
+- Depth spans 5-17 across one position depending on the tier, i.e. the tiers are separated by 8-12 plies of
+  search on the same board. That is the real content of "the tiers are not the same player".
+- Position 6 produces THREE different moves across four budgets: `d6f6` (d5), `c8c3` (d8), `d6e6` (d10/d15).
+
+GUI-reachable: **YES** — the self-play tier and the match tiers are both what the owner runs.
+Evidence: `pc/nodesweep/nodesweep.json`, `pc/nodesweep/p*_go_nodes_*.log`.
