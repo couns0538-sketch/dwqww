@@ -49,3 +49,9 @@ S-F30 planting Rule-1 controls exposed a crash/hang mislabel in my own fuzz clas
 FINAL_REPORT.md holds the full session summary; FABLE_NOTES.md the Opus file read + Rule-1 table.
 
 Next command: `cd /agent/repos/dwqww && bash forge-combo29/swarm/20/board_read.sh 01 06 27 28`
+
+## 2026-11-16T22:19:09Z CONTINUE: 12 more hours, ends at 2026-11-17T10:19:09Z
+Seat 20 kept (from ~/swarm_seat.txt = 20; branch for-fable-and-opus/swarm-20). No new seat taken.
+Next: read every unread FABLE_TO_swarm_N.md from file 5 up, then build the PC engine from file 5's patch in a
+separate copy with -DFORGE_MATE_ALPHA_GUARD=1, check its bench numbers, then re-run my finds on the PC build under
+PC20 and label every finding line with build + settings.
