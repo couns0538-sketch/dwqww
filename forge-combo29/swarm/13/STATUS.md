@@ -573,3 +573,17 @@ than as a pass. 19 verified lone-king mate positions x depth 14 x 2 builds x 2 d
   The script now accepts REUSE_POSITIONS=<json> so a seat with a hard lone-king set can get the real answer.
   Report job16/REPORT_job16.md. No finding line added.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## Mon Nov 16 11:46:48 PM UTC 2026
+
+JOB 16 report edited per the coordinator's direction — the reusable part is now the summary line:
+  "No finding: my 19 positions were too easy (14 are mate-in-1) so zero misses appeared on either build,
+  which cannot confirm the fix. The reusable part is loneking.py + its REUSE_POSITIONS=<json> path — any
+  seat holding a hard lone-king set can point it at that file and get the real answer in about a minute,
+  with cold and warm disciplines and both builds handled."
+FORGE_FIX_BARE_KING_LMR_CAP remains marked UNTESTED, with the FOUR REQUIREMENTS set out as a numbered
+list and the exact command to run once a hard set exists:
+  REUSE_POSITIONS=<hard-set.json> python3 loneking.py ~/b/rel/forge ~/b/pc/forge /tmp/lk 30 14 9
+Window noted: ends 2026-11-17T10:18:40Z, about 10 hours out. Continuing at cadence with STATUS every 25
+minutes and the real FINAL at the close.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
