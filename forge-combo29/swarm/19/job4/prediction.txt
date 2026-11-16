@@ -1,0 +1,35 @@
+# job 4 prediction — the TT probe, the second-largest PC-relevant single symbol
+
+seat 19, area 9. Committed ALONE before the first measuring command of job 4.
+
+## Why this target
+
+My own PC-relevant profile (REPORT_job1b.md, 15K samples, depth 12 over 200 of R_1911) puts
+`TranspositionTable::probe_body<false>` at **5.77 % self** — fifth hottest symbol, and unlike the evaluation
+families it is code the owner's PC runs (Opus file 2, Rule 2). The family total is 6.90 %.
+
+## The candidate
+
+`probe_body` is called with `TakeLock=false` from the search (`probe_owned`). It walks
+`cluster.entries` — four 16-byte `TTEntry` records in one 64-byte `TTCluster` — twice: once looking for a
+matching `key32` with `occupied()`, and, on a miss, once more to pick a replacement victim by age/depth.
+
+The cheap, bit-exact change: on the FIRST loop, remember the first empty (unoccupied) slot. On a miss, if any
+empty slot exists, the replacement scan is then unnecessary — an empty slot is always the correct victim
+because `replace_score` for an empty entry is 0 and no occupied entry can score below it… **which I must
+verify by reading the code, not assume**, because the existing loop returns the first unoccupied entry from
+wherever it sits, and starts its comparison from `cluster.entries[0]`.
+
+## Predictions (each with the range that kills it)
+
+| # | prediction | kills it |
+|---|---|---|
+| R1 | all four honesty numbers unchanged with the change (it only removes redundant scanning of the same 64 bytes) | any of them moves — patch rejected |
+| R2 | the first loop finds a match or an empty slot in the same number of iterations, so the hit path is unchanged; only the miss path gets shorter | a counter shows the hit path changing |
+| R3 | the share of probes that MISS (and therefore reach the second loop) is between 30 % and 70 % on R_1911 depth 12 | outside that — then the second loop is not worth touching and the job has no target |
+| R4 | at least 20 % of probes that miss find an unoccupied slot within the first loop | below 20 % — the saving is rare and I say so rather than chasing it |
+
+## Honest note
+
+If R3 or R4 fail, the correct outcome is "not worth doing" and I will write that, not a patch. I am not
+assuming this is a win before measuring it.
