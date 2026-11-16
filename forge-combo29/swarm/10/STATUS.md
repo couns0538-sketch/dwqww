@@ -165,3 +165,7 @@ Also cleaned the trail so no reader meets a withdrawn claim first: the primary K
 "genuine DEFECT" section heading and the "Settled — TWO" subsection heading are all marked superseded and
 point at CURRENT STATE; Totals rewritten to the post-correction verdicts (nothing UNTESTABLE).
 STOPPING. Nothing running, everything pushed.
+
+## 2026-11-16T22:19:16Z CONTINUE: 12 more hours, ends at 2026-11-17T10:19:16Z
+Seat 10 kept, branch for-fable-and-opus/swarm-10, folder forge-combo29/swarm/10.
+next command: git fetch -q --depth 1 origin handoff/fable-opus-combo29-all-20261114 && git ls-tree -r --name-only FETCH_HEAD forge-combo29/soak_all/ | grep FABLE_TO_swarm
