@@ -176,6 +176,13 @@ def main():
         print("%-12s score=%-12s bestmove=%-6s nodes=%-5s mates=%s" % (
             r["case"], r["score"], r["bestmove"], r["nodes"], r["python_chess_mate_in_1"]))
 
+    # MEASUREMENT INTEGRITY (seat 19's warning): a case whose score or bestmove could not be
+    # parsed must never be counted as evidence. Fail loudly instead of writing a verdict.
+    unparsed = [r["case"] for r in rows if r["score"] is None or r["bestmove"] is None]
+    if unparsed:
+        print("FAIL: no score/bestmove parsed for: %s" % ", ".join(unparsed))
+        print("(an empty or NaN result must not pass as a confirmation)")
+        raise SystemExit(3)
     with open(os.path.join(outdir, "results.json"), "w") as f:
         json.dump(rows, f, indent=1)
     with open(os.path.join(outdir, "table.tsv"), "w") as f:

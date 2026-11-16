@@ -168,6 +168,12 @@ def main():
     for r in rows:
         if r["probe"] == "bench 11" and r["case"] != "baseline_bench11":
             r["nodes_equal_baseline"] = (r.get("nodes") == bb.get("nodes"))
+    unparsed = [r["case"] for r in rows
+                if r["probe"] == "eval" and (r.get("nnue") is None or r.get("hce") is None)]
+    if unparsed:
+        print("FAIL: the eval line was not parsed for: %s" % ", ".join(unparsed))
+        print("(a missing value must not be compared -- None != None would look like a change)")
+        raise SystemExit(3)
     with open(os.path.join(outdir, "results.json"), "w") as f:
         json.dump({"exe": os.path.realpath(exe), "rows": rows}, f, indent=1)
     print()

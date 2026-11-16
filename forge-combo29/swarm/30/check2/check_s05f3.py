@@ -146,6 +146,11 @@ def main():
                 break
         collapse[d] = first
         print("depth %-3d first halfmove with cp 0: %s" % (d, first))
+    unparsed = ["H=%s d=%s" % (r.get("halfmove"), r["depth"]) for r in rows
+                if r["score"] is None or r["bestmove"] is None]
+    if unparsed:
+        print("FAIL: no score/bestmove parsed for: %s" % ", ".join(unparsed[:10]))
+        raise SystemExit(3)
     with open(os.path.join(outdir, "results.json"), "w") as f:
         json.dump({"exe": os.path.realpath(exe), "board": BOARD, "s14": S14,
                    "rows": rows, "first_cp0_by_depth": collapse}, f, indent=1)
