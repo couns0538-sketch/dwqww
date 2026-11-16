@@ -1,0 +1,193 @@
+### depth0
+position startpos
+go depth 0
+
+### depth_huge
+position startpos
+go depth 999999 nodes 100000
+
+### nodes0
+position startpos
+go nodes 0
+
+### nodes_max
+position startpos
+go nodes 18446744073709551615
+
+### nodes_overflow
+position startpos
+go nodes 99999999999999999999999999
+
+### nodes_plus_depth
+position startpos
+go depth 6 nodes 12345
+
+### softnodes100
+position startpos
+go softnodes 100
+
+### softnodes0
+position startpos
+go softnodes 0
+
+### movetime0
+position startpos
+go movetime 0
+
+### movetime_neg
+position startpos
+go movetime -5
+
+### movetime_huge
+position startpos
+go movetime 1500
+
+### mate0
+position startpos
+go mate 0
+
+### mate3
+position fen r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5Q2/PPPP1PPP/RNB1K1NR w KQkq - 4 4
+go mate 3
+
+### wtime0
+position startpos
+go wtime 0 btime 0
+
+### wtime1
+position startpos
+go wtime 1 btime 1
+
+### wtime_noval
+position startpos
+go wtime
+
+### movestogo0
+position startpos
+go wtime 1000 btime 1000 movestogo 0
+
+### movestogo_huge
+position startpos
+go wtime 1000 btime 1000 movestogo 2147483647
+
+### movestogo_neg
+position startpos
+go wtime 1000 btime 1000 movestogo -3
+
+### winc_only
+position startpos
+go wtime 500 btime 500 winc 100 binc 100
+
+### searchmoves_none
+position startpos
+go depth 4 searchmoves
+
+### searchmoves_one
+position startpos
+go depth 4 searchmoves e2e4
+
+### searchmoves_all
+position startpos
+go depth 3 searchmoves a2a3 a2a4 b1a3 b1c3 b2b3 b2b4 c2c3 c2c4 d2d3 d2d4 e2e3 e2e4 f2f3 f2f4 g1f3 g1h3 g2g3 g2g4 h2h3 h2h4
+
+### searchmoves_illegal
+position startpos
+go depth 4 searchmoves e2e5
+
+### infinite_then_stop
+position startpos
+go infinite
+stop
+
+### ponder_infinite
+position startpos
+go ponder depth 5
+ponderhit
+stop
+
+### depth_and_mate
+position startpos
+go depth 6 mate 1
+
+### multipv8
+setoption name MultiPV value 8
+position startpos moves e2e4 e7e5
+go depth 6
+
+### multipv8_mate
+setoption name MultiPV value 8
+position fen 7k/5KQ1/8/8/8/8/8/8 w - - 0 1
+go depth 4
+
+### multipv8_onelegal
+setoption name MultiPV value 8
+position fen 7k/6Q1/6K1/8/8/8/8/8 b - - 0 1
+go depth 4
+
+### multipv8_searchmoves
+setoption name MultiPV value 8
+position startpos
+go depth 4 searchmoves e2e4 d2d4
+
+### stalemate_root
+position fen 7k/5Q2/6K1/8/8/8/8/8 b - - 0 1
+go depth 5
+
+### mate_root
+position fen 7k/6Q1/6K1/8/8/8/8/8 b - - 0 1
+go depth 5
+
+### mate_root_nodes
+position fen 7k/6Q1/6K1/8/8/8/8/8 b - - 0 1
+go nodes 100
+
+### mate_root_movetime
+position fen 7k/6Q1/6K1/8/8/8/8/8 b - - 0 1
+go movetime 50
+
+### stalemate_nodes
+position fen 7k/5Q2/6K1/8/8/8/8/8 b - - 0 1
+go nodes 100
+
+### restricted_empty
+position fen 7k/5Q2/6K1/8/8/8/8/8 b - - 0 1
+go depth 3 searchmoves a1a2
+
+### halfmove99
+position fen 8/8/8/4k3/8/8/4K3/R7 w - - 99 80
+go depth 10
+
+### halfmove100
+position fen 8/8/8/4k3/8/8/4K3/R7 w - - 100 80
+go depth 6
+
+### threefold
+position startpos moves e2e4 e7e5 e1e2 e8e7 e2e1 e7e8 e1e2 e8e7 e2e1 e7e8
+go depth 8
+
+### fiftyclock_wrap  # about-input
+position fen 8/8/8/4k3/8/8/4K3/R7 w - - 65535 1
+go depth 6
+
+### two_kings_white  # about-input
+position fen 8/8/8/4k3/8/8/4K1K1/R7 w - - 0 1
+go depth 4
+
+### depth64_short
+position startpos
+go depth 64 nodes 60000
+
+### threads4_depth8
+setoption name Threads value 4
+position startpos moves d2d4 g8f6
+go depth 8
+
+### threads4_nodes
+setoption name Threads value 4
+position startpos moves d2d4 g8f6
+go nodes 20000
+
+### hash_min_then_search
+setoption name Hash value 1
+position startpos
+go depth 6
