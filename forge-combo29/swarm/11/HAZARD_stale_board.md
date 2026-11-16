@@ -116,7 +116,15 @@ Swept over 20 different game-3 positions: **18 recovered correctly, 0 infected**
 answer was legal only in game 1), 2 rows ambiguous only because the move was legal in both boards.
 
 **So the blast radius is one move.** A harness that discards a game on a refusal loses that one game
-and nothing else.
+and nothing else. Two further measurements bound it completely:
+- **No residue in the search state.** `go depth 12` on the same later position gives identical results
+  (`e4d5`, 60,955 nodes, cp 83) whether or not a refused FEN was sent first
+  (`checks/hash_state_after_bad.txt`) — the transposition table is not contaminated.
+- **A fresh process cannot inherit a real board.** If the very first `position` command in a new
+  process is malformed, the engine refuses it and searches **startpos** (`checks/first_command_bad.txt`,
+  perft 1 = 20, `d2d4`, in all four ways I tried), never an earlier game.
+
+So: one command, one answer, no residue.
 
 ## Does `ucinewgame` clear it? Yes — but it does not restore your position
 This decides the defence (`checks/ucinewgame_clears.txt`). **Only `ucinewgame` clears it** — the
@@ -138,9 +146,8 @@ and removes the wrong-game danger, but it resets to the **start position**, a di
 you must then re-send your position. It is a safe reset, not a recovery.
 
 ## The rule for a harness — one line
-**Treat any `info string invalid FEN` or `info string illegal move` as fatal for that game: do not
-send `go`, discard the game, and re-send a well-formed `position` (or start a fresh process) before
-searching again.**
+**Fatal on `invalid FEN` or `illegal move`: resync only with `ucinewgame` plus a well-formed
+`position`, never `isready`.**
 
 ### The three protocols, tested against the worst case
 The worst case is when the BAD COMMAND *is* the new game's position — so there is no good position
