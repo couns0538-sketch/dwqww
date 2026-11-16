@@ -309,3 +309,18 @@ DONE
 
 NEXT
 - Keep the table current to the close at 2026-11-17T10:19Z; append the parked FINAL block at that time.
+## 2026-11-16T23:52Z (block 19) — standing by for the close
+
+seat 17 | PC path + seat checks | Threads 1 | branch for-fable-and-opus/swarm-17
+
+DONE
+- S-C15 CONFIRMS 30-F35: at h=91 the fifty-move draw is INVISIBLE at all three match budgets
+  (go nodes 2000/20000/250000 -> cp 431/424/273) and is first seen at go depth 9 (4,848,748 nodes).
+  A match game keeps playing a drawn ending as if winning by cp 273. Sharpest match-path item confirmed.
+  My 2000-node number matches seat 30's exactly (431/431); mechanism is theirs.
+- All six of seat 30's deep-mate boards verified independently (S-C13 + S-C14).
+- Timing banner on the moves-path note and the same sentence propagated to the table and FINAL draft.
+
+STANDING BY
+- Nothing in flight. At 2026-11-17T10:19Z: append FINAL_BLOCK_DRAFT.md to STATUS.md with the real date -u,
+  push, and end. The block names the three documents in reading order with the decision each supports.
