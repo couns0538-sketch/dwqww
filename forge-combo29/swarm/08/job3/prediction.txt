@@ -1,0 +1,31 @@
+# PREDICTION — seat 08, AREA 8 job 3 — `movestogo`. Committed and pushed BEFORE the first measuring command.
+
+Job 3: `movestogo 1, 2, 40` with `wtime 1000` (and `btime 1000`): how much of the time is used.
+
+From `include/forge/clock_plan.hpp:37-41`, when `moves_to_go > 0`:
+    mtg    = min(moves_to_go, 50)
+    soft   = available/(mtg+1) + increment*3/4
+    hard   = min(available*4/5, soft*4)
+with `available = 1000 - 10 = 990`.
+
+| movestogo | predicted soft ms | predicted hard ms | predicted median wall | predicted wall / 1000 ms |
+|---|---|---|---|---|
+| 1 | 495 | 1980 -> capped at 792 | 400 to 700 ms | 40-70 % of the clock |
+| 2 | 330 | 792 (both capped) | 250 to 500 ms | 25-50 % |
+| 40 | 24 | 96 | 15 to 45 ms | 1.5-4.5 % |
+| none (job 1 measured) | 52 | 260 | 39.6 ms measured | 4.0 % |
+
+Arithmetic from the formula: mtg=1 -> soft = 990/2 = 495, hard = min(792, 1980) = 792.
+mtg=2 -> soft = 990/3 = 330, hard = min(792, 1320) = 792.
+mtg=40 -> soft = 990/41 = 24, hard = min(792, 96) = 96.
+
+## Kill ranges
+- `movestogo 1` median below 300 ms: the engine is not using the last move's time. Above 800 ms: it risks its
+  own clock.
+- `movestogo 40` median above 100 ms (its own hard limit): a real overrun.
+- ANY control where more than 5 of 200 searches exceed 1000 ms: a lost-on-time risk, and a finding.
+- If `movestogo 1` and `movestogo 2` use the SAME time, the moves_to_go branch is not being read at all.
+
+## Second prediction
+`movestogo 40` should use LESS time than the no-movestogo row of job 1 (median 39.6 ms), because 24 ms soft is
+less than 52 ms soft. Kill: movestogo-40 median above the no-movestogo median by more than 5 ms.
