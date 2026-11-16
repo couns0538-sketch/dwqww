@@ -1,0 +1,20 @@
+build PC r15 / PC20, Threads 1, Hash 16, depth 10
+
+The losing side (white) at clock 0 vs clock 99:
+  clock   0: ('cp', -155)  nodes   15261  best d1c1
+  clock  98: ('cp', -102)  nodes   18859  best a1c1
+  clock  99:    ('cp', 0)  nodes     341  best a1a2
+  clock 100:    ('cp', 0)  nodes     341  best a1a2
+
+Now the decisive sequence: white (losing) plays its clock-99 move, then BLACK (winning) resets the clock
+by playing a capture or pawn push - exactly what a winning side does to refuse the draw.
+  white's clock-99 choice: a1a2   (clock-0 choice: d1c1, score ('cp', -155))
+  after a1a2: r4rk1/pp1b1ppp/4p3/3pP3/8/P3P3/RP2N1PP/3R2K1 b - - 100 1   clock 100
+  black to move, engine says ('cp', 180) for black, plays h7h6
+  black played h7h6 (clock-resetting: True) -> clock now 0
+  white to move again, engine says ('cp', -189) (white's side) - still lost, clock reset
+
+Cost of the shortcut, stated plainly:
+  white at clock 0 is scored ('cp', -155); at clock 99 the engine reports ('cp', 0) (a draw) and plays a1a2.
+  After white's a1a2 and black's clock-resetting reply, white is still lost with the clock back near 0.
+  So the 'draw' the engine played for was never available: it needed BLACK's consent, and black refused.
