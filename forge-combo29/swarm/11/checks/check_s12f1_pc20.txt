@@ -1,0 +1,14 @@
+python-chess: the FEN board has 6 legal moves; startpos has 20
+
+plain position                 perft1=  6  depth4 bestmove=e1f2
+position+ucinewgame            perft1= 20  depth4 bestmove=e2e4
+position+ucinewgame+resend     perft1=  6  depth4 bestmove=e1f2
+
+=== verdict on S-F1 (seat 12) ===
+  PASS  without ucinewgame the FEN board gives its own move count  — engine 6 vs python-chess 6
+  PASS  ucinewgame makes perft 1 equal STARTPOS's count  — engine 20 vs startpos 20
+  PASS  after ucinewgame the depth-4 move is a startpos move  — got e2e4
+  PASS  re-sending the position restores the FEN board  — engine 6 vs python-chess 6
+  PASS  the plain case's move is NOT a startpos move or differs  — plain bestmove e1f2
+
+RESULT: CONFIRMS seat 12's S-F1 — `ucinewgame` alone resets the board to startpos.

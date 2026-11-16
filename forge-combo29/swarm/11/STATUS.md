@@ -184,3 +184,14 @@ NEXT: continue area-1 work; push again by 22:30.
   (17130/2870/24/0/0, 99.164 %), all 20 setoptions confirmed in .meta. FEN layer transfers to the PC.
 - S-F28: 21-F2 stale-board defect STILL PRESENT on PC r15/PC20 (refused FEN -> readyok -> g8f6, a
   Black move from the old game; accepted form -> h2h3 White). Survives into the owner's engine.
+- S-F29: ucinewgame-reset and searchmoves-0000 both UNCHANGED on PC r15/PC20 (same as base).
+
+## 2026-11-16T22:26Z CHECKPOINT (12 h window, ends 10:18Z 17 Nov)
+Done since CONTINUE: read files 3/4/5; built PC r15 (sha256 verified) and matched ALL THREE number
+regimes (default 4/4 pins, S14 242796/656517, PC20 278024/587276); re-ran my finds on PC20:
+- REPAIRED on PC: halfmove-100 mate loss (S-F21) — my S-P1 patch superseded.
+- HALF-repaired: S-F8 setoption now reports `unknown option` instead of silence (S-F22).
+- STILL PRESENT on PC: S-F1 extra token (S-F23), 05-F8 go-infinite no-volunteer (S-F26),
+  21-F2 stale board after refused FEN (S-F28), ucinewgame reset + searchmoves 0000 (S-F29).
+- IDENTICAL on PC: whole FEN layer (S-F24/S-F25) and the full 20k sweep (S-F27).
+All numbers Threads 1. Next: continue re-running/expanding finds on PC20, STATUS every 25 min.

@@ -1,0 +1,23 @@
+startpos legal moves by python-chess: 20
+plain `go depth 2` bestmove        : d2d4
+
+no names at all    go searchmoves depth 2           bestmove=0000     quoted-line=True
+    info: info string searchmoves restriction has no legal root moves
+an illegal name    go searchmoves e2e5 depth 2      bestmove=0000     quoted-line=True
+    info: info string searchmoves restriction has no legal root moves
+a garbage name     go searchmoves a9a9 depth 2      bestmove=0000     quoted-line=True
+    info: info string searchmoves restriction has no legal root moves
+one legal name     go searchmoves e2e4 depth 2      bestmove=e2e4     quoted-line=False
+two legal names    go searchmoves e2e4 d2d4 depth 2 bestmove=d2d4     quoted-line=False
+
+=== verdict on S-F2 ===
+  PASS  with no legal named move the QUOTED line is present  — looked for 'searchmoves restriction has no legal root moves'
+  PASS  with no legal named move bestmove is 0000  — got 0000
+  PASS  the plain search returns a real move (not 0000)  — got d2d4
+  PASS  an illegal name triggers the same path
+  PASS  a legal name does NOT trigger it  — quoted line present: False
+  PASS  two legal names give a real move  — got d2d4
+
+RESULT: CONFIRMS S-F2 — a searchmoves restriction with no legal root move answers
+        the quoted info line and `bestmove 0000` on a board with legal moves; the
+        trigger is 'no NAMED move is legal', not 'no move named'.
