@@ -45,6 +45,23 @@ value" when given a value | S-C1..S-C5 as above.
 All three area-2 jobs are DONE, cycle item 2(c) is DONE, five other-seat findings are checked, and every
 broadcast warning has been acted on and audited. Reports: REPORT_job1.md, REPORT_job1_run2.md,
 REPORT_job2.md, REPORT_job3.md, plus REPORT_job1_v1_WITHDRAWN.md which is kept on purpose.
+## 22:12Z — GUI guidance pass (coordinator request)
+GUI_GUIDANCE.md gives the one sentence a GUI author needs for S-F3, S-F4 and S-F5, each with the measurement
+that decides it:
+- S-F3: the engine is RIGHT to ignore `ponderhit` on a non-ponder search. Proven: `go ponder wtime 400 btime 400`
+  + `ponderhit` ends by itself at 455 ms against a ~390 ms budget (job2/probe_ponderhit.py, out_ponderhit/),
+  while `go infinite` + `ponderhit` runs on. So a GUI must send `stop` to cancel and only `ponderhit` to end a
+  ponder. Rejected "honour the real clock" (no clock exists on a depth search) and "treat it as an error"
+  (harmless command, some GUIs send it speculatively).
+- S-F4: should keep never reading the opponent's clock (a huge `btime` DOES bound a White-to-move search — so it
+  is not "ignoring a missing clock"), but when NEITHER clock belongs to the side to move it should print an
+  `info string` and search a BOUNDED default instead of silently searching forever. Rejected "use the named
+  clock" (spends the wrong player's time and hides the GUI bug) and "refuse" (leaves the GUI with no move).
+  Evidence: finding_clock/partial_clock_options.txt, 8 rows.
+- S-F5: ONE bug in ONE hand-written branch, not a class. This build has exactly one `type button` option and the
+  word `button` appears in the whole source only where it is advertised (src/uci.cpp:247); there is no option-type
+  dispatch, so nothing else can share the defect. finding_button/button_class.txt.
+
 Holding here and keeping the branch current until 22:30.
 
 Exact next command:
