@@ -55,3 +55,16 @@ Seat 20 kept (from ~/swarm_seat.txt = 20; branch for-fable-and-opus/swarm-20). N
 Next: read every unread FABLE_TO_swarm_N.md from file 5 up, then build the PC engine from file 5's patch in a
 separate copy with -DFORGE_MATE_ALPHA_GUARD=1, check its bench numbers, then re-run my finds on the PC build under
 PC20 and label every finding line with build + settings.
+
+## 2026-11-16T22:23:34Z PC r15 build ready; continuing
+- PC build verified (job25/S-F32): patch sha256 d6bd72c531f785f4…, separate worktree, -DFORGE_MATE_ALPHA_GUARD=1,
+  **8/8 published numbers exact** (default 312866/862329/3024920/4865609; S14 242796/656517; PC20 278024/587276).
+- My finds re-run on PC20 at Threads 1 (S-F33): repetition door and halfmove-100 REPAIRED; empty searchmoves,
+  ucinewgame reset, hashfull window, go nodes 1 STILL LIVE on the PC build; controls pass on both.
+- **S-F38:  alone is the mate-distance fix** on the PC build (default mate -7 -> mate -4);
+  PC20 gives the same answer but so would any six-switch bundle; the other five extras alone lose the mate (cp -3122).
+  S-F34a corrects my own over-broad S-F34.
+- Thread rule applied (S-F36): all my earlier scores were Threads 1 by fact (default == Threads 1, proven);
+  120 swarm finding lines lack a thread count and are flagged unconfirmable until re-run at Threads 1.
+Next command: re-run the highest-value OTHER seats' claims on the PC build at Threads 1 (seat 30's 30-F19 and
+seat 25's mate-distance lines first), stating build + settings in every line.
