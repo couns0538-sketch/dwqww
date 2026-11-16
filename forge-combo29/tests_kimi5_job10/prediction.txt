@@ -1,0 +1,45 @@
+kimi5 job 10, Part 1: predictions from the code of 6b98f217 only, before any measurement.
+Source read: src/search.cpp qsearch 1416-1546, call sites 1556 / 1631 / 1684 / 1765, tune defaults
+search.cpp:47 NullMoveBase 3, :69 QsFutilityMargin 160, :70 QsSeeMargin 40.
+
+(a) Share of all nodes that are qsearch nodes, set O, go depth 12:
+    defaults: ~44.9 % (Fable's K2 says 5,643,723 of 12,573,318; my prediction is that I reproduce his
+    split). Kill range: outside [40 %, 50 %].
+    under S14: HIGHER, ~46-50 %. NullMoveBase 5 > default 3 makes depth-reduction <= 0 more often, and a
+    null search at depth <= 0 enters qsearch directly (1556); the job file says the same. Kill: outside
+    [42 %, 55 %] or not above the defaults share.
+
+(b) Regret rates (probe, Part 3):
+    futility skips (1496-1498): MISSED ~8-25 per 1,000. Kill: >100 per 1,000 or exactly 0.
+    SEE skips (1500): MISSED ~15-40 per 1,000 - higher than futility because 1500 also skips checking
+    captures and promotions, the tactical moves. Kill: >150 per 1,000 or exactly 0.
+    stand-pat returns at non-PV nodes contradicted by a depth-1 search: ~10-30 per 1,000. Kill: >100.
+    By margin class: the (best_score - beta) < 25 class holds both the highest rate and the highest count
+    (it is also the largest class, K2: 538,493); the 400+ class is under 2 per 1,000.
+
+(c) Which margin first: QsSeeMargin, DOWN (40 -> 20-25, i.e. skip less). Futility (1496) already exempts
+    checking captures and ALL promotions and it writes a proven bound into best_score (1497); the SEE skip
+    at 1500 exempts nothing, so the moves most able to be mate-carrying (checking sacrifices, promotion
+    captures) die there untested. Raising QsFutilityMargin to ~200 is the second lever, not the first.
+
+(d) search.cpp:1500 (`if (!board.see_ge(move, -tune::QsSeeMargin)) continue;`): the losing class is an
+    exposed enemy king where the side to move has exactly ONE checking capture and it is a sacrifice
+    (SEE negative) - e.g. bishop or rook takes a defended pawn next to the king with check. Not in check,
+    qsearch generates only captures and promotions, so that one checking sacrifice is the ONLY move that
+    keeps a mating attack (or a perpetual) inside the tree; skipping it ends the line at the stand-pat /
+    X_end score and the mate one ply later is never seen. The same shape defensively: the only checking
+    capture that wins back a piece or forces the perpetual is skipped, and qsearch reports a quiet loss.
+
+(e) `best_score > -MateInMaxPly` (1493) false at a node not in check: the hash score replaced the eval at
+    1468-1472 with a MATED score stored by an earlier (deeper or other-branch) search - the side to move is
+    not in check this ply but is already known to be mated with best defence.
+
+(f) The 5.31.0 audit's gap is PRESENT in 6b98f217: line 1473 sets best_score = eval and 1474-1481 return it
+    at 1480 with no test whether a legal quiet move exists; and X_end (1545) returns the same pure stand-pat
+    value whenever no capture/promotion raised it. Audit position 1 (8/P7/8/8/8/8/6q1/K1k5 w, only
+    promotions, static -720, depth 1 -29998): at any beta > -720 the 1480 return does not fire, but the
+    promotion loop finds nothing above alpha, so X_end still returns the stand-pat -720 as an upper bound -
+    the gap at 1545. Audit position 2 (8/8/8/8/8/1k6/1p6/BK6 w, only a1b2, static +1, depth 1 0): with
+    beta <= +1 the 1480 return itself fires, claiming +1 with the only legal move a capture to 0 - the gap
+    at 1474-1481 directly. Expected frequency on O (openings): 1-5 no-quiet-move nodes per 1,000 stand-pat
+    returns; on G (whole-game positions, more endgames) 5-30. Kill: >30 per 1,000 on O.
