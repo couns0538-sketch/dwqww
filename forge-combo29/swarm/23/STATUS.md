@@ -704,3 +704,13 @@ legal move and that the widths agree.
 Seven harness faults of mine, all named with their rule on the 23-F37 page; the seventh (OwnBook) is the best
 argument for controls over care: FABLE_TO_swarm_3 had already warned me and I still forgot.
 Standing: 60 findings, 18 confirmations.
+## 2026-11-16T23:40:45Z  23-F43: file 3's drawn-root repair confirmed on both builds
+2026-11-16T23:40:45Z
+
+Won K+R v K at halfmove 150: base searches 0 nodes (the documented defect), PC r15 searches 160 nodes;
+K+Q v K gives 0 on base and 224 on the PC. And on the K+Q board the PC picked a DIFFERENT move (h6h2 vs h6c1),
+so the repair can change the move played, not just the bookkeeping.
+Limit stated: halfmove 150 is already past the 100th half-move so neither move matters here; the case that could
+matter (third repetition before halfmove 100) was not constructed.
+
+Standing: 61 findings, 18 confirmations, three reference pages, seven named harness faults.
