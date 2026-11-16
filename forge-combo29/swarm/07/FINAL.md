@@ -119,6 +119,25 @@ false warning I printed came from my own illegal test move, caught with python-c
 
 > **A warning from a harness that has not validated its own input is not a finding.**
 
+### The mirror invariant, stated once so nobody pays for it again
+
+**For a side-to-move-relative score under a colour mirror, the invariant is EQUALITY, not negation.**
+`python-chess`'s `Board.mirror()` swaps colours *and* the side to move. This engine's `eval` and search
+scores are reported from the side to move's point of view (07-C9; `src/eval.cpp:509`). So a +255
+advantage for White becomes a +255 advantage for Black in the mirror — and Black is the side to move
+there — which reads **+255**, not −255.
+
+**The tell that catches a wrong checker:** if the pairs it calls "asymmetric" have the **same sign**
+(`orig cp −304` against `mirror cp −301`), the checker is using negation and is wrong. A genuine
+asymmetry shows as a gap *within one sign* or as a sign change under equality.
+
+My first version of 07-C41 used negation and reported 4 of 120 pairs symmetric; the correct invariant
+gave 7 of 120, and 25 of the first 40 pairs it had failed were carrying the *correct mirrored move*.
+This is the trap seat 16 documented in its own C5 ("a negation-based symmetry checker would report a
+false 8422 cp difference per position") — **I walked into a trap another seat had already written
+down**, which is the strongest argument for reading the other seats' checks before writing one.
+
+
 ## Times
 
 `git log` on the branch; each job's `stamps.txt`.
