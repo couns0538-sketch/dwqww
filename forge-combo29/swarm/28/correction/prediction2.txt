@@ -1,0 +1,43 @@
+# PREDICTION — S28 correction 2 (S-F2, S-F6, S-F9 re-checked for the iteration-granularity confound)
+
+Committed and pushed ALONE before the first measuring command of this correction. Never edited afterwards.
+
+Seat 16's confound, restated: any conclusion of the form "the engine used X ms of a Y ms plan" is
+dominated by iteration granularity, not by the plan. Correction 1 established the sharper rule:
+**the STOP equals the plan to within 1-2 ms, while the engine's own reported `time` (last completed
+iteration) sits 15-30 % below it.** So a claim is sound only if I name WHICH quantity I measured.
+
+Three findings to re-check:
+
+**S-F2** — "82 of 200 searches (41 %) at `wtime 1000 winc 10` run past `wtime/30 + winc` (43.3 ms);
+largest 201 ms."
+The confound would be: 43.3 ms is MY invented reference, not the engine's plan. The engine's actual plan
+is soft = 990/22 + 7 = 52 ms, hard = 260 ms. So "past 43.3" was never a claim about the engine's plan.
+
+**S-F6** — "`wtime 1600 winc 1000` (2600 ms for the move) searches median 604 ms while `wtime 2600
+winc 0` searches median 92 ms; ratio 0.15x."
+Here both sides are ACHIEVED times, so the ratio is like-for-like and the confound cannot create it —
+but the magnitude can be inflated by iteration granularity on the FAST side (92 ms may be one iteration
+short). The plan numbers (822/954 vs 1584/2640) must be given beside the achieved ones.
+
+**S-F9** — "at `wtime 1000 movestogo 1` the engine uses only 32 % of the clock, stopping at 65 % of its
+own soft plan (323 of 495 ms)."
+This is exactly the shape seat 16 warns about: 323 vs 495 could be one iteration short of the plan and
+nothing more.
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| Q1 | S-F2: at wtime 1000 winc 10, median wall is BELOW the engine's own soft plan of 52 ms | yes | median above 52 |
+| Q2 | S-F2: the count over 52 ms (engine soft) is much smaller than the 82 count over 43.3 | below 40 of 200 | 40 or more |
+| Q3 | S-F2: largest 201 ms is still under the engine hard plan of 260 ms | yes | above 260 |
+| Q4 | S-F6: median achieved 604 vs 92 ms reproduces within ~15 % | yes (both) | either off by more than 25 % |
+| Q5 | S-F6: the fast side (92 ms) is one iteration short of its own soft plan of 1584 ms | yes — 92 is far under 1584 | 92 is within 25 % of 1584 |
+| Q6 | S-F9: at movestogo 1 median 323 ms is BELOW soft 495 and ABOVE the last completed iteration's depth-mate | yes | 323 above 495 |
+| Q7 | S-F9: the ratio achieved/plan is roughly the same as the last-info/plan ratio in correction 1 (0.70-0.85) | yes, 0.6..0.9 | outside 0.4..1.0 |
+| Q8 | S-F9: naming both numbers changes the CLAIM but not the ORDERING (mtg1 > mtg2 > mtg40) | yes | ordering reverses |
+
+Reasoning: Correction 1 showed achieved/plan ≈ 1.00 for movetime, i.e. there the stop IS the plan; the
+iteration confound lives in the reported `time`. For CLOCK searches the same must hold — the stop is the
+plan and the reported time is lower — so Q1/Q6/Q7 predict achieved well under soft, which is what I
+originally measured. The thing I got wrong in all three findings is the DENOMINATOR: 43.3 was invented
+by me, and "65 % of its own soft plan" treats a plan the search is allowed to undershoot as a promise.
