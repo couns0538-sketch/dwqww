@@ -5,7 +5,7 @@ area 10 (CHECKING THE OTHERS)
 branch for-fable-and-opus/swarm-20
 seed 2001
 
-## 2026-11-16T22:00Z — pre-22:05 checkpoint
+## 2026-11-16T21:53Z — checkpoint (header corrected: I first wrote 22:00Z, the clock read 21:53Z; every time in my files is `date -u` output, see stamps.txt)
 
 STEP 1 + STEP 2 done (HONESTY.txt 4/4 pins). Sanitizer runner proof built (planted fault 3 lines / real 0).
 
