@@ -1,0 +1,32 @@
+# PREDICTION — seat 20, area 10, job 19 (check of seat 06's S-F6)
+
+Committed alone BEFORE the first measuring command. Never edited afterwards.
+
+Subject (seat 06, S-F6): "the depth-10 search is NOT colour-symmetric: 101 of 353 G positions (28.6 %) return a
+bestmove that is not the mirror of the other side's bestmove, and 334 of 353 scores differ."
+
+I check the SENTENCE on my OWN positions. The test: for position P and its python-chess mirror M, search both at
+depth 10 (S14 applied, since that is the project's setting), and compare:
+  * bestmove(M) against the MIRROR of bestmove(P)  (a move's mirror swaps colour and flips rank: e2e4 -> e7e5)
+  * score(M) against -score(P)   — no wait: `eval` is side-to-move relative (my S-F14), and a SEARCH score is
+    documented in UCI as from the side to move's view, so the correct comparison is score(M) == score(P).
+
+Predictions:
+1. CONFIRMS the qualitative claim: on my sample, a substantial fraction of pairs (I predict 20–40 %) return
+   bestmoves that are NOT mirrors of each other. KILLED IF: fewer than 10 % or more than 60 % of my pairs are
+   asymmetric.
+
+2. The scores differ in most pairs (I predict > 50 %), consistent with their 334/353.
+   KILLED IF: fewer than 20 % of pairs have different scores.
+
+3. The ASYMMETRY IS NOT A SCORE-SIGN ERROR: I predict the median absolute score difference is small (a few cp),
+   not a sign flip — i.e. the engine is not systematically evaluating the mirror as the opposite colour.
+   KILLED IF: score(M) is consistently about -score(P) (a sign error) or the median |difference| is large (> 100 cp).
+
+4. A control must show my comparator can see a real difference: the same position against ITSELF must give an
+   identical bestmove and an identical score (0 differences).
+   KILLED IF: the control shows a difference (my harness would be non-deterministic).
+
+5. This is an expected property of alpha-beta with a shared TT and history between the two searches IF I use one
+   process; to avoid that confound I use a FRESH PROCESS for every search, so any asymmetry is a genuine property
+   of the position pair, not of shared state (seat 10's rule).
