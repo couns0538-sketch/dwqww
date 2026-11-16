@@ -45,10 +45,10 @@ evidence: `audit/raw_E1/E1_V1_stdin_closed.txt`, `audit/raw_E1/E1_V2_stdin_held_
 | K10 | FABLE-1: "an unknown command is ignored without a line" | **PASS for a plain garbage line / REFUTED as a general claim** | `audit/raw/verdicts/K10.json`, `audit/raw/K10/` | `go banana` **SEARCHES and answers `bestmove a2a3`**; `setoption name` answers `info string unknown option` |
 | K11 | FABLE-1: "an option without a value answers info string invalid value for option X" | **PASS** | `audit/raw/verdicts/K11.json` | same shape as K2 |
 | K12 | FABLE-1: "`bestmove 0000` on a position without legal moves" | **PASS** | `audit/raw/verdicts/K12.json` | both checkmate and stalemate roots |
-| K4 | Area 3 job 3: "G perft 3 and the first 60 at perft 4 were equal in an earlier check" | **PENDING** | `audit/raw/K4/` | "equal" is undefined in the brief; tested against python-chess |
+| K4 | Area 3 job 3: "G perft 3 and the first 60 at perft 4 were equal in an earlier check" | **PASS** | `audit/raw2/K4/summary.json` | 353/353 equal at depth 3, 60/60 equal at depth 4, 0 null totals; "equal" tested against python-chess 1.11.2 since the brief does not say equal to what |
 | K5 | Area 4: "Threads 2 and 4 on the first 50 of O gave 0 reports" | **UNTESTABLE AS WRITTEN** | — | "0 reports" only counts with the brief's two proofs (nm count > 0 AND a planted race counted by the same runner); no such artifact is cited. A TSan run of my own is the only way to settle it. |
-| K13 | the four sums (O d12 9,500,069 / G d12 18,466,239 / O d14 21,812,100 / G d14 43,345,893) | **PASS for O d12 9,500,069 and O d14 21,812,100, EXACTLY, in the S14 regime**; G pending | `audit/raw2/sums_summary.json` | see K13 below — the sums are S14-regime numbers, and the FIRST THREE O values 41,311 / 24,872 / 28,574 reproduce exactly too |
-| K14 | FABLE-1: "a root restricted by searchmoves searches a different, mostly smaller tree" | **PENDING** | re-run with the corrected driver | first attempt was invalid (see above) |
+| K13 | the four sums (O d12 9,500,069 / G d12 18,466,239 / O d14 21,812,100 / G d14 43,345,893) | **PASS, ALL FOUR EXACT, in the S14 regime** | `audit/raw2/sums_summary.json` | see K13 below; the first three O depth-12 values 41,311 / 24,872 / 28,574 also reproduce exactly |
+| K14 | FABLE-1: "a root restricted by searchmoves (even to every legal move) searches a different, mostly smaller tree: IIR fires at the root, and no hash entry is stored for a restricted root" | **HALF REFUTED** | `audit/raw2/K14_summary.json` | "different and smaller" is TRUE (21,640 vs 56,720 nodes); "no hash entry is stored for a restricted root" is **FALSE** — the restricted repeat still shrinks 21,640 -> 17,847, so a root entry IS stored |
 
 ## K6 in detail — the pins and S14 are two different regimes
 
@@ -84,12 +84,13 @@ Threads 1, Hash 16, OwnBook false:
 |---|---|---|---|
 | O depth 12 | **9,500,069** | 12,573,318 | 9,500,069 |
 | O depth 14 | **21,812,100** | 29,799,803 | 21,812,100 |
-| G depth 12 | running | running | 18,466,239 |
-| G depth 14 | running | running | 43,345,893 |
+| G depth 12 | **18,466,239** | 22,128,265 | 18,466,239 |
+| G depth 14 | **43,345,893** | 56,971,881 | 43,345,893 |
 
 O's first three positions at depth 12 are **41,311 / 24,872 / 28,574**, exactly the three values the brief
 quotes, so the regime and the protocol are pinned beyond the total.
 
+All four sums match to the digit, so the brief's sums are correct — **provided S14 is applied**.
 This settles the K6 ambiguity in the other direction: the **pins** are default-regime and the **sums** are
 S14-regime. A seat that uses one regime for both will see a mismatch on three of the four pins and on every
 sum. Both statements in the brief are individually true; they are true of *different option sets*.
@@ -125,3 +126,42 @@ the field `null` and prints as `null`, which no equality test accepts. My own ea
 attempt did hit exactly this class of bug — it parsed `info ... nodes` from a build that prints no such line
 for a piped search, got `None`, and the run died rather than reporting a result; that is the failure mode,
 and it is why every row now names the line it parsed.
+
+## K14 in detail — half of it is wrong, and the wrong half matters
+
+`audit/raw2/K14_summary.json`, depth 12, startpos, restricted to all 20 legal moves:
+
+| run | nodes | bestmove |
+|---|---|---|
+| unrestricted, once | 56,720 | e2e4 |
+| restricted to all 20, once | **21,640** | d2d4 |
+| unrestricted twice in one process | 56,720 then **4,951** | e2e4, e2e4 |
+| restricted twice in one process | 21,640 then **17,847** | d2d4, e2e4 |
+
+- "a different, mostly smaller tree" — **TRUE**, 21,640 vs 56,720 (2.6x smaller).
+- "no hash entry is stored for a restricted root" — **FALSE**. The restricted repeat drops from 21,640 to
+  17,847, a 17.5 % reduction, so a root entry clearly IS stored and reused. The reduction is smaller than the
+  unrestricted case (56,720 -> 4,951) because the restricted search's own tree was already small, but it is
+  not zero, and "no entry is stored" predicts exactly zero reduction.
+- A side observation the brief does not mention: the restricted search returns a **different bestmove**
+  (`d2d4` instead of `e2e4`) even though every legal move was listed. The bestmove changes again on the
+  repeat (`e2e4`), so the restricted root's move choice is not stable under repetition — consistent with
+  the root being searched differently, not with it being equivalent.
+
+## K5 — why this is UNTESTABLE as written, and what would settle it
+
+The claim "Threads 2 and 4 on the first 50 of O gave 0 reports" is a *report count*, and the brief's own rule
+says a "0 reports" result counts only with **two** proofs: an `nm -C <exe> | grep -c __tsan_` above 0 in the
+`.meta`, and a scratch copy with ONE planted race counted by the same runner. The brief cites neither for this
+claim, and a release build also gives 0 reports, so "0 reports" alone distinguishes nothing. I did not build
+TSan within this window, so the honest state of this row is UNTESTABLE, not PASS. The settlement is
+mechanical and cheap for whoever has the time: build with `-fsanitize=thread`, clear `TSAN_OPTIONS`, show the
+`nm` count, plant one unlocked global counter written by every thread, show the runner counts it, then run the
+50 positions at Threads 2 and 4.
+
+## Totals
+
+12 claims audited (K1-K14, K5 excluded from the count as untestable): **9 PASS**, **2 REFUTED or half
+refuted** (K6 as stated, K14's second clause), **1 PASS with a scope correction** (K10), **1 UNTESTABLE**
+(K5). The two that matter most for other seats are K6 (pins are default-regime, sums are S14-regime) and the
+`ucinewgame`-after-`position` reset trap, because both silently produce plausible-looking but wrong numbers.

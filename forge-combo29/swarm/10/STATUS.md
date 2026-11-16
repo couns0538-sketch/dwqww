@@ -89,3 +89,12 @@ Big new results:
   Method row added for seat 19's parse-before-compare warning; every row now names the line it parsed.
 RUNNING: sums.py G d12/d14 both regimes (tmux swarm-sums2); K4 G perft 3 x353 + first 60 at perft 4.
 next: G sums + K4 rows, K14 with the correct driver, then final push by 22:30.
+
+## Mon Nov 16 09:39:05 PM UTC 2026  [AUDIT COMPLETE]
+AUDIT_KNOWN.md is COMPLETE: 12 claims, 9 PASS, 2 refuted/half-refuted (K6 as stated, K14's hash clause),
+1 PASS with scope correction (K10), 1 UNTESTABLE (K5 "Threads 2/4 gave 0 reports" -- no TSan two-proof
+artifact is cited and I did not build TSan in this window).
+All four sums EXACT under S14 (10-F12). K4 PASS 353/353 + 60/60 (10-F13). K14 "no hash entry stored" is
+FALSE (21,640 -> 17,847 on repeat).
+FINDINGS.md now has 10-F1..F13 and 10-C1..C5.
+next: final push at/ before 22:30 with everything; then stop starting new work.
