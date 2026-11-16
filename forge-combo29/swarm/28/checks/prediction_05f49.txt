@@ -1,0 +1,40 @@
+# PREDICTION — S28 check of seat 05's S-F49 (the control ranking)
+
+Committed and pushed ALONE before the first measuring command. Never edited afterwards.
+Written 2026-11-16 ~23:25 UTC.
+
+## The claim
+Seat 05, S-F49: "On the same boards the owner's real controls rank: softnodes 2000 (d7-8) < nodes 20000
+(d10-11) < nodes 50000 (d12-14) < nodes 250000 (d15-17) < clock 6s+0.06 (d18) < movetime 6000 (d24-28).
+PC r15 + PC20, Threads 1, Hash 16, OwnBook false, three boards (startpos, G0, deep middlegame). The clock
+path is NOT the weakest control — it beats even the 250,000-node match budget by 2-3 plies because it
+reaches 300k-780k nodes while spending only 0.35-0.78 s; the shortfall is only against `go movetime`, which
+reaches d24-28 for the same wall clock." Plus a caveat it found by re-testing: the clock row varies under
+CPU contention (d18/784,328 in a batch, d17/542,082 twice, but 10 SOLO runs give d18/784,328 and move a1c1).
+
+## What I will test
+The RANKING on my own harness, PC r15 + PC20, Threads 1, Hash 16, OwnBook false, on boards I choose myself.
+I will use a deep middlegame of my own and, separately, test the contention caveat by running the clock row
+alone and then deliberately under load (a parallel busy loop), because that caveat is the fragile part: if
+the clock row is contention-sensitive, the ranking is not stable and the finding needs that stated as a
+first-order fact rather than a footnote.
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| H1 | the ORDER softnodes 2k < 20k < 50k < 250k holds | yes, monotone depth | any inversion |
+| H2 | clock 6+0.06 depth exceeds nodes 250000 depth | yes | clock below the 250k row |
+| H3 | movetime 6000 depth exceeds clock 6+0.06 depth | yes | movetime at or below the clock |
+| H4 | clock row reached depth 18 (±1) on a deep middlegame | 17-19 | below 16 or above 22 |
+| H5 | clock row node count 300k-780k | yes | outside 150k-1.5M |
+| H6 | the clock row is REPRODUCIBLE solo (same depth AND nodes over 4 runs) | yes | varies |
+| H7 | under a busy parallel load the clock row changes | yes (seat 05 saw it) | identical under load |
+
+Reasoning: the ordering softnodes < nodes < clock < movetime follows from what each control permits — a node
+cap bounds work directly, a clock budget converts to however many nodes fit, and movetime with no clock
+means the search keeps one thread busy for the full 6 s. I expect H1-H3 to reproduce easily. H6/H7 are the
+interesting ones: seat 05's own caveat suggests the clock row is not stable under contention, and if my load
+test shows a drop, then the ranking's clock row is a best case rather than a property.
+
+Note on honesty: if my numbers differ from seat 05's absolute depths, that is not a refutation — different
+boards reach different depths. The claim is about the ORDER on the same boards, so H1-H3 are the test and
+H4/H5 are corroboration only.
