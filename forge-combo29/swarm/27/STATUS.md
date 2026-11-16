@@ -296,3 +296,17 @@ move, forfeit at zero, 3 games to a 200-ply cap (600 moves).
   inferred. The control also shows the engine really does spend more when the clock is healthy (419 vs 79 ms).
 Raw: pc/rerun/check_15f35.json. Next: 19-F46's `go nodes` undershoot table lacks a second confirmation and is on
 the owner's path -- checking it next.
+
+## 2026-11-16T23:26Z S-C12: 19-F46/F47 confirmed in structure, two figures corrected
+Independent harness (my own), PC r15, PC20, Threads 1, Hash 16, 6 real-game FENs x N in {20000, 50000}, 3 fresh
+processes per cell, all deterministic.
+  **Structure holds exactly**: hard `go nodes` undershoots, `go softnodes` overshoots, and softnodes is exactly
+  one ply deeper in **12 of 12** cells.
+  hard nodes/N median **0.728** (0.467-0.993); soft nodes/N median **1.151** (1.037-3.464) - both close to their
+  -32 % and +21.9 %.
+  **Cliff reproduces in shape**: pos 0 `go depth 12` = 21,812 nodes; `go nodes 21812` -> depth 12 / 21,812;
+  `go nodes 21811` -> depth 11 / **9,330** nodes, a 57 % drop for ONE node of budget.
+  **Two corrections**: their "bestmove identical in all 18 cells" is not universal - 2 of my 12 differ (pos 3
+  N=20000 and pos 5 N=50000); and my cliff uses my own position's count, not their 31,779.
+Owner consequence, now measured twice: a match labelled "node 50000" typically spends median 73 % of it and is
+one ply shallower than softnodes at the same budget. Next: the deep-mate score boards (base centipawns vs PC mate).
