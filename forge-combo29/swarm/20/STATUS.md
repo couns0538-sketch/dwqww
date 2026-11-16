@@ -72,11 +72,11 @@ Next command: re-run the highest-value OTHER seats' claims on the PC build at Th
 seat 25's mate-distance lines first), stating build + settings in every line.
 
 ## 2026-11-16T22:31:12Z three owner tasks done + two queue confirmations
-1. **RERUN_QUEUE.md** () — 122 flagged lines by seat, curated 8-entry short list with why + how to re-run.
-2. **S-F37 PLANTED** (): 10 reps/arm, fake-random engine flagged, fake-stable passed.
-   Result: at Threads 1 and default  10/10 on BOTH builds; at Threads 2/4/8  10/10 on BOTH — the
-   DISTANCE IS STABLE (not the score spread seat 04 saw) while nodes take 10 distinct values per arm and the move
-   sometimes varies. One position only; not a general claim that multithreading is more accurate.
+1. **RERUN_QUEUE.md** (`job31/`) — 122 flagged lines by seat, curated 8-entry short list with why + how to re-run.
+2. **S-F37 PLANTED** (`job30/THREADS_MORE_CORRECT.md`): 10 reps/arm, fake-random engine flagged, fake-stable passed.
+   Result: at Threads 1 and at the default the answer is `mate -7` 10/10 on BOTH builds; at Threads 2/4/8 it is
+   `mate -4` 10/10 on BOTH — so the DISTANCE IS STABLE (not the score spread seat 04 saw) while nodes take 10
+   distinct values per arm and the move sometimes varies. One position only; not a general claim.
 3. **Bundle contamination audited** (S-F40): STATUS.md was at risk (said "PC20 gives the same answer") and was
    rewritten to "PC20 is not the cause, the guard is"; PC20_RERUN.md now opens with a READ-THIS-FIRST header.
 QUEUE CONFIRMATIONS: **S-C17** seat 30's 30-C4 reproduces exactly at Threads 1 on both builds (incl. their
