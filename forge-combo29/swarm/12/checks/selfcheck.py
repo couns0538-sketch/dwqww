@@ -119,8 +119,23 @@ def one_run(exe, hash_mb, multipv, threads, go="go depth 6", bound=120.0):
 
 
 
-CLOUD_MS_PER_M_NODES = 594.0      # measured on this 4-core box: go nodes 1000000 -> 920,173
-                                  # reported nodes in 547 ms, median of 7 runs (checks/node_bench.py)
+# ---------------------------------------------------------------------------------------------
+# THE ANCHOR'S REFERENCE MEASUREMENT, and what it does and does not tell you.
+#
+# Measured on the reference box (4 cores, go nodes 1000000 -> 920,173 reported nodes):
+#     median 604 ms per million reported nodes over 10 runs, range 591..633 (stdev 13, spread 7%)
+#
+# CORE COUNT WAS MEASURED AND DOES NOT MATTER for this anchor, because a Threads 1 search uses one
+# core: pinning the process to ONE core gave 601 ms/M against 594 unpinned (within run-to-run noise),
+# and running four engines at once on the four cores gave 553 ms/M against 543 idle (1.0x).
+# So a 2-core, 4-core or 8-core machine of the SAME generation should land in the same band.
+#
+# What DOES move it: CPU generation, clock and cache. I have no second machine to measure, so I do
+# NOT claim a number for a different generation. The band below is the honest envelope:
+# run-to-run noise plus a modest allowance for a slower same-class CPU.
+CLOUD_MS_PER_M_NODES = 600.0      # the reference value the ratio is taken against
+REFERENCE_RANGE = (560, 700)      # "same class of machine" band, ms per million reported nodes
+# ---------------------------------------------------------------------------------------------
 ANCHOR_NODES = 1000000
 
 
@@ -223,10 +238,25 @@ def main():
     else:
         abs_verdict = ("PASS" if speed["ratio"] <= PASS_RATIO else
                        "WATCH" if speed["ratio"] <= WATCH_RATIO else "FAIL")
+        lo, hi = REFERENCE_RANGE
+        in_band = lo <= speed["ms_per_m"] <= hi
         print(f"  `go nodes {ANCHOR_NODES:,}` -> {speed['reported']:,} reported nodes in "
               f"{speed['median_ms']:.0f} ms  =  {speed['ms_per_m']:,.0f} ms per million nodes")
-        print(f"  this cloud box: {CLOUD_MS_PER_M_NODES:,.0f} ms per million  ->  "
-              f"your machine is {speed['ratio']:.2f}x its speed   [{abs_verdict}]")
+        print(f"  reference box (4 cores, measured): {CLOUD_MS_PER_M_NODES:,.0f} ms per million")
+        print(f"  same-class band                  : {lo}-{hi} ms per million"
+              f"   -> your machine is {speed['ratio']:.2f}x the reference"
+              f"   [{'in band' if in_band else 'OUTSIDE the band'}]")
+        print(f"  core count does NOT move this anchor (a Threads 1 search uses one core: measured")
+        print(f"  601 ms/M pinned to 1 core vs 594 unpinned). CPU generation and clock do.")
+        if speed["ms_per_m"] < lo:
+            print(f"  Your CPU is FASTER than the reference box. The band is not a limit above --")
+            print(f"  faster is good, and the grid's PASS lines still apply unchanged.")
+        elif speed["ms_per_m"] > hi:
+            print(f"  Your CPU is SLOWER than the reference class. The band cannot tell you whether")
+            print(f"  that is normal for your CPU or something is wrong: I have no second machine to")
+            print(f"  measure, so I do not claim a number for your generation. Treat the ANCHOR as")
+            print(f"  comparable only to this reference measurement, scale the grid's thresholds by")
+            print(f"  {speed['ratio']:.1f}x, and prefer smaller Hash / fewer PV lines.")
 
     print()
     print("How to read this")

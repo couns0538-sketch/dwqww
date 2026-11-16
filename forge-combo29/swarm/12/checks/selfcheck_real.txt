@@ -1,18 +1,21 @@
-=== real PC r15 build, 5 runs
+=== real PC r15, 5 runs (anchor with band)
 engine : /home/ubuntu/build/pc_r15/forge
 runs   : 5 fresh processes per setting, Threads 1, position startpos
 search : go depth 6
 
 setting                  cloud   median     min     max   ratio  runs  verdict
 ----------------------------------------------------------------------------------
-MultiPV 2, Hash  16       17ms     16ms    13ms    20ms    0.9x     5  PASS (within 4x)
-MultiPV 2, Hash  64       52ms     49ms    46ms    53ms    0.9x     5  PASS (within 4x)
-MultiPV 4, Hash  64       82ms     76ms    73ms    90ms    0.9x     5  PASS (within 4x)
-MultiPV 2, Hash 256      250ms    247ms   226ms   287ms    1.0x     5  PASS (within 4x)
+MultiPV 2, Hash  16       17ms     16ms    14ms    16ms    0.9x     5  PASS (within 4x)
+MultiPV 2, Hash  64       52ms     47ms    38ms    48ms    0.9x     5  PASS (within 4x)
+MultiPV 4, Hash  64       82ms     72ms    69ms    80ms    0.9x     5  PASS (within 4x)
+MultiPV 2, Hash 256      250ms    216ms   214ms   284ms    0.9x     5  PASS (within 4x)
 
 === absolute machine-speed anchor (fixed node count, not a ratio of a depth search)
-  `go nodes 1,000,000` -> 920,173 reported nodes in 543 ms  =  590 ms per million nodes
-  this cloud box: 594 ms per million  ->  your machine is 0.99x its speed   [PASS]
+  `go nodes 1,000,000` -> 920,173 reported nodes in 538 ms  =  585 ms per million nodes
+  reference box (4 cores, measured): 600 ms per million
+  same-class band                  : 560-700 ms per million   -> your machine is 0.98x the reference   [in band]
+  core count does NOT move this anchor (a Threads 1 search uses one core: measured
+  601 ms/M pinned to 1 core vs 594 unpinned). CPU generation and clock do.
 
 How to read this
   cloud = median on the 4-core machine these tables came from; ratio = yours / cloud.
