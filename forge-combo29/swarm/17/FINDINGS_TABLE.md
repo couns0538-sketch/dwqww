@@ -1,5 +1,17 @@
 # Seat 17 — every finding with its status and GUI reachability
 
+## Read these three, in this order
+
+1. **`FINDINGS_TABLE.md`** (this file) — the whole picture: every finding with build, settings, Threads 1 and
+   whether a GUI can reach it. **Supports the decision** of what to fix next, ranked by what the owner can
+   actually hit.
+2. **`NOTE_moves_path_hazard.md`** — the per-move hazard: `info string illegal move` followed by `readyok` and
+   then a bestmove for a board the caller did not ask for. **Supports the decision** of whether the engine
+   should emit a harder signal, and tells any GUI author the one rule that makes it safe today.
+3. **`NOTE_select_readline_artifact.md`** — the Python harness artefact that fabricates an unbounded run.
+   **Supports the decision** of how to read engine output in any harness the owner or a helper writes, so a
+   future measurement is not a false hang.
+
 Every row states: my id, what it is, its current state after FABLE_TO_swarm_6, the build and settings it used,
 and — the column the coordinator asked for — **whether a GUI can reach it in a normal flow**. A fault only
 reachable by setting an option to a value no GUI sends is documentation; one reachable from normal play is a
