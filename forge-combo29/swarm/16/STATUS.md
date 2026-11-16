@@ -363,3 +363,19 @@ seed: 1601
   The redundancy is deliberate: the opening sentence serves a skimming reader and the derivation serves a
   sceptical one, and this is the one line in my folder that must not be misread.
 - check_folder.py: ALL CHECKS PASS. Holding cadence; FINAL block at 10:19Z.
+
+## 2026-11-17T00:06Z
+- S-F32 answers the follow-up my own S-F31 created: I told the owner to move up from 2,000 nodes but not TO WHAT.
+  Measured four budgets against a 250,000-node reference on 39 real-game positions, each move judged by a fixed
+  depth-16 search:
+      budget | same move as ref | median cost | >30 worse | >100 worse | TOTAL DAMAGE
+        2000 |  21 of 39 | +0 cp | 3 | 0 | +213 cp
+        8000 |  28 of 39 | +0 cp | 2 | 0 | +180 cp
+       20000 |  31 of 39 | +0 cp | 1 | 0 |  +96 cp
+       50000 |  34 of 39 | +0 cp | 1 | 0 |  +69 cp
+  Monotone improvement, no reversal; the knee is 20,000 (2.5x more nodes beyond it buys only 27 cp).
+  RECOMMENDATION now concrete and in FINAL 2.3a: move self-play from 2,000 to 20,000 nodes.
+- The methodological point S-F31 started is now clean: the MEDIAN cost is 0 cp at every budget, which is why
+  median was the wrong statistic in S-F30 and the SUM of positive costs is the right one for a budget used over
+  many moves.
+- check_folder.py: ALL CHECKS PASS (387 files, 37 findings rows). Holding cadence to the close at 10:19Z.

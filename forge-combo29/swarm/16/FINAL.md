@@ -132,11 +132,15 @@ worse by >30 cp              : 4 positions   (worst +109)
 BETTER by >30 cp             : 3 positions   (best -109)
 ```
 
-> **The verdict (S-F30 with S-F31's correction): the 2,000-node budget errs about as often in each direction, but
-> its errors cost more than its lucky wins. If the budget is being chosen for STRENGTH, move up from 2,000.**
+> **The verdict (S-F30 with S-F31's and S-F32's corrections): the 2,000-node budget errs about as often in each
+> direction, but its errors cost more than its lucky wins. If the budget is being chosen for STRENGTH, move it to
+> 20,000 — that is the knee of the curve.**
 >
 > It does not play badly uniformly — the count is genuinely even at 4 against 3 — but a count is the wrong measure
-> for a strength decision, and the deeper re-judgement below shows why.
+> for a strength decision. So is the median: the median cost is 0 cp at every budget, while the ACCUMULATED damage
+> falls monotonically with the budget. `S-F32` measured it: total damage 213 cp at 2,000 nodes → 180 at 8,000 →
+> **96 at 20,000** → 69 at 50,000, so 2.5x more nodes beyond 20,000 buys only 27 cp. **The concrete recommendation
+> is 20,000 nodes for self-play.**
 
 The 2,000-node budget loses ground on four positions and **gains it on three** — so the concern that it is
 uniformly underpowered is not supported. **But the count is the wrong measure, and `S-F31` corrects it:** I
