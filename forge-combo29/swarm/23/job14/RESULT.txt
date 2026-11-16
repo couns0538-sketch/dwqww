@@ -1,0 +1,30 @@
+GAP AT THE LARGER BUDGET'S DEPTH — the 23-F28 mismatch fixed
+============================================================
+23-F28's identity test failed partly because I measured at the 20000 budget's final depth while the flip happens
+at 250000's. This run scores the two candidate moves ALONE at D_big = the depth the 250000 budget actually
+reached. PC r15, PC20, Threads 1, Hash 16, fresh process per search.
+
+| shape of the change | n | gap min | gap median | gap max | 250000's move is the better one at D_big |
+|---|---|---|---|---|---|
+| only 250000 differs (20000 == 50000) | 11 | 3 | **14** | 33 | **9 of 11** |
+| only 20000 differs | 4 | 20 | 37 | 42 | 1 of 4 |
+| all three differ | 3 | 0 | 4 | 15 | 2 of 3 |
+| all changed positions | 18 | 0 | 15 | 42 | 12 of 18 |
+
+THE ANSWER TO THE QUESTION, and it is a better result than 23-F28:
+
+For the 11 positions where ONLY the 250000 budget changed the move — the sub-population the coordinator pointed
+at — the two candidates are a median of 14 cp apart AT THE DEPTH THE FLIP HAPPENS (range 3-33), and in 9 of those
+11 the 250000 move scores HIGHER than the 20000 move at that same depth. So:
+
+  **the extra budget is not introducing instability on those positions, it is CORRECTING them.** The larger budget
+  reaches a depth where the move it prefers is measurably the better move, by a small margin. That is what a
+  search getting better looks like, and it is a different reading from 23-F27's "instability".
+
+Where the reading is weaker, said plainly: for the 4 positions where only 20000 differs, the 250000 move is
+better in only 1 of 4 — there the deeper budget did NOT improve the choice, and the gap is larger (median 37 cp).
+Those 4 are the cases I would call genuinely unstable, and they are the minority of changes.
+
+WHAT THIS IS NOT: a per-position classifier. I did not measure a D_big gap for the 43 unchanged positions in this
+run, so I cannot compute precision here and will not claim it. 23-F27's precision figures (45-56 %) remain the only
+classifier numbers I have, and 23-F28's signature stays refuted.

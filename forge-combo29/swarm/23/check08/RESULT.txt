@@ -1,0 +1,28 @@
+CHECK of swarm seat 08's 08-F29 — the 6 s+0.06 clock on real-game boards, my own harness
+========================================================================================
+Claim checked: "Real-game positions (set G): median 243.1 ms, p99 1546.0, max 1585.3, 2 of 60 (3.3 %) over 1.2 s"
+(PC r15, PC20, Threads 1, Hash 16, 6 s + 0.06).
+
+Method (mine): first 60 positions of set G, TWO phases (120 searches), fresh process per search, wall time from
+`go` to `bestmove` on a monotonic clock, stdout drained to bestmove (19-F12).
+
+| measure | seat 08 | mine | agree |
+|---|---|---|---|
+| median wall | 243.1 ms | **266.1 ms** | yes, same order, 9 % apart |
+| p99 | 1546.0 ms | 1347.3 ms | same order |
+| max | 1585.3 ms | 1368.6 ms | same order |
+| searches over 1.2 s | 2 of 60 (3.3 %) | **2 of 120 (1.7 %)** | same event count, different denominator |
+
+VERDICT: CONFIRMS the substance of 08-F29 — on real-game boards at 6 s+0.06 this engine occasionally spends
+1.2-1.6 s on a single move, a few percent of the time, and never approaches its 6 s clock. The exact rate depends
+on the denominator and the board sample (they counted 60 searches, I counted 120), so 1.7 % and 3.3 % are the same
+phenomenon at different sample sizes, not a disagreement.
+
+A NOTE ON MY OWN EARLIER NUMBER, because it looked like a contradiction: my 23-F18 reported median 207.6 ms and
+max 876.5 ms on 20 searches over 10 set-G boards, and I described the clock as "barely used". That was true for
+those 10 boards but it UNDER-STATED the tail: on 60 boards the max is 1368.6 ms and 2 searches exceed 1.2 s. The
+correction is 08-F29's, and my 23-F18's "0 over 1200 ms" should be read as "0 in 20 searches on 10 boards", not as
+a property of the engine. I am not editing 23-F18's numbers — they are what those 20 searches gave — but this line
+records that they do not generalise, and 08-F29 does.
+
+Threads 1, Hash 16, PC20.
