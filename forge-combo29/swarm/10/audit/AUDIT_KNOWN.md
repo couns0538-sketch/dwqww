@@ -238,6 +238,25 @@ For the record, the trap is visible in the moves themselves: on `1r6/2k2pp1/...`
 `go depth 3` answers `d5d4`, while the same search driven correctly answers `e5e4` at 1,232 nodes. Both are
 legal, which is exactly why a legality test cannot detect this defect — only the node count can.
 
+## K14 — CURRENT STATE (read this before any older commit)
+
+Four statements, in the order a future reader needs them. The two withdrawn claims are named here so
+nobody cites them from the trail of corrections.
+
+1. **The all-20 case is EXPLAINED, not a bug.** Restricting to every legal move (a filter that excludes
+   nothing) differs from an unrestricted search by exactly two intentional design choices: an extra reduced
+   ply at the root, and the skipped root TT store. Seat 27's mechanism, both fixes together: cp 30 / 56,720 /
+   e2e4 on both sides, exactly equal. **10-F14's "unsound" wording is WITHDRAWN** (10-R2).
+2. **A single-move restriction has gaps that SURVIVE with IIR off.** Restricting to the move the
+   unrestricted search itself played still moves the score (6/3/7/4/13 cp at depths 8/10/12/14/16), and with
+   `IirDepth 20` the gap is still there (cp 28 vs cp 18). A single-move restriction IS a genuine restriction,
+   so part of this is expected; how much is **one open question, not two** (10-F19).
+3. **Cross-search pollution is real and UNEXPLAINED** (10-F20) — and the control below shows it is **not a
+   searchmoves effect at all**.
+4. **WITHDRAWN, do not cite:** 10-F14's "genuine defect / unsound" (see 10-R2) and 10-F17's "TWO SEPARATE
+   DEFECTS" (see 10-R2), and 10-F18's depth table whose depths 8 and 10 compared **different moves** (see
+   10-R1). The bytes are still in the branch history; this block is the corrected reading of them.
+
 ## K14 is ONE problem, seen from three angles — cross-reference
 
 This is the same underlying defect as **seat 27's S-F8 / S-F8a / S-F8b** (branch
@@ -353,3 +372,48 @@ answer is therefore **wrong**, and the honest position is:
 **What a fix must address first:** the restricted root's own search (defect 1). Seat 27's
 `searchmoves_iir.PARTIAL.patch.txt` is the right first step and explicitly not sufficient; the remaining
 cause is unidentified by both of us, and I state that rather than guess.
+
+## The 10-F20 control — the observation is about PROCESS STATE, not searchmoves
+
+The control asked for: two identical unrestricted searches in one process, nothing between them.
+`audit/raw2/K14control/summary.json`, `audit/k14_control.py`:
+
+| session (depth 12, startpos, Threads 1, Hash 16, OwnBook false) | first search | second search |
+|---|---|---|
+| **unrestricted, unrestricted** | 56,720, cp 30, e2e4 | **4,951, cp 30, e2e4** |
+| unrestricted x3 | 56,720 | 4,951 then **4,516** |
+| unrestricted, `ucinewgame`, unrestricted | 56,720 | **56,720** (identical again) |
+| unrestricted, `Clear Hash`, unrestricted | 56,720 | **40,569, cp 28** (a THIRD, different number) |
+| unrestricted, re-send `position startpos`, unrestricted | 56,720 | 4,951 |
+| restricted(all 20), restricted(all 20) | 21,640, cp 23, d2d4 | 17,847, cp 27, e2e4 |
+| unrestricted alone, three separate PROCESSES | 56,720 | 56,720, 56,720 (identical) |
+
+**Two identical unrestricted searches in one process differ by 51,769 nodes (56,720 -> 4,951).** So 10-F20
+is **not about `searchmoves` at all** — searchmoves was incidental, and the real subject is that a repeated
+search in a warm process is a *different measurement* from a cold one. Three consequences for every seat:
+
+- **Only a cold, fresh-process search is reproducible.** Three separate processes gave 56,720 three times;
+  repeated searches in one process gave 56,720, 4,951, 4,516. Any harness that runs many searches per
+  process is measuring warm-state numbers, and node totals from such a harness are not comparable to the
+  brief's sums (which are cold, one position per `ucinewgame`).
+- **`ucinewgame` IS the cold-start control; `Clear Hash` is NOT.** `ucinewgame` restores 56,720 exactly;
+  `Clear Hash` produces a *third* distinct value (40,569, cp 28) that is neither cold nor warm, and repeating
+  it changes nothing (deterministic, 3/3 reps). So "clear the hash and search again" is not a valid way to
+  get a cold baseline.
+
+### This also corrects my own earlier experiment, and I have to say so
+
+My `k14_split.py` "Clear Hash does not rescue it" step used `Clear Hash` as the cold-start control — which
+the table above shows it is not. So the sentence "the restricted root computes wrongly with an empty table"
+was built on a control that does not produce an empty table. The all-20 cell being byte-identical to the
+cold all-20 cell is what actually settles that case (an accident of the numbers, not the Clear Hash step),
+and it settles it in seat 27's favour: it is the explained case. The correct cold-start control for any
+such experiment is a **fresh process**, or `ucinewgame`, not `Clear Hash`.
+
+## Named next step (if anyone continues this)
+
+Not worth further work from my seat tonight, but named precisely: re-run the single-move restriction sweep
+(10-F19) with `ucinewgame` before each search in the same process, and with one fresh process per search, to
+separate "the restricted root is a genuine restriction" from "the measurement was warm". Given the numbers
+above, I expect a substantial part of the residual gap to be warm-state, and that is the next thing to
+measure rather than the next thing to patch.

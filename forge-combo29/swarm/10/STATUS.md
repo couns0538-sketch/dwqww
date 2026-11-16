@@ -141,3 +141,15 @@ single-move; cp 19 vs 18 all-20, bestmove g1f3), matching seat 27's S-F8b third-
 Separate unexplained OBSERVATION (10-F20): later unrestricted searches measure differently depending on what
 ran before, and IIR-off does not remove it. Not claimed as a second defect.
 next: none. Everything pushed; stopping here.
+
+## Mon Nov 16 09:51:22 PM UTC 2026  [FINAL — 10-F20 control done]
+CURRENT STATE block now at the top of the K14 section; the withdrawn claims (10-F14 unsound, 10-F17 two
+defects, 10-F18's move-confounded table) are named there so nobody cites them from an earlier commit.
+THE CONTROL RESULT (10-F21): two IDENTICAL unrestricted searches in one process differ 56,720 -> 4,951, and
+three separate processes give 56,720 three times. So 10-F20 is about PROCESS STATE, not searchmoves.
+10-F22: ucinewgame restores cold exactly; Clear Hash gives a THIRD value (40,569, cp 28), deterministically.
+10-R3: my own "Clear Hash does not rescue it" step used a control that does not empty the table -- retracted;
+the all-20 case is settled by byte-identity to the cold all-20 cell instead.
+Named next step recorded: re-run the single-move sweep with ucinewgame before each search, one fresh process
+per search, to separate "genuine restriction" from "warm measurement".
+STOPPING. Nothing running, everything pushed.
