@@ -113,3 +113,6 @@ claim), 1 test expectation wrong (KNN v K is not insufficient material), and 2 a
 
 ## Mon Nov 16 10:01:57 PM UTC 2026
 COMPETING-FIX NOTICE in the patch header (one of three; only one may apply; before seat 27's reporting patch). COUNTER-RESET CASE TESTED: seat 01's board 8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1 -> mate 2 / 398 nodes on my patched build = exactly seat 01's figure, so my patch DOES fix it, not untested. Stated plainly: on a genuine KQ v K draw at hm150 mine searches 336 nodes (still cp 0) and seat 01's combined does the same (280 nodes); K v K stays 0 nodes under mine. Patch verified to still apply with -p1 --fuzz=0 with the header present.
+
+## Mon Nov 16 10:02:48 PM UTC 2026
+FINAL LINE added to README.md as asked: if the choice were mine I would take seat 01's job2c combined patch, with the reason (closes both doors with the smallest loss of the instant answer via the reset-aware test, widest tested matrix) and the counter-reason for my own (a single removed term, easier to read). Added one verified sentence explaining why the reset-aware test still catches the pawn-move mate at halfmove 100: White holds a queen there, so the halfmove door is skipped and the root is searched -> mate 2 / 398 nodes, the same figure my patch gives. Checked with python-chess (White pieces Q, P, K).

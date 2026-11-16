@@ -64,6 +64,17 @@ reset-aware and so keeps the instant 0-node answer on more hopeless roots, while
 outright and therefore searches them (KQ v K at halfmove 150: mine 336 nodes, seat 01's combined 280 nodes,
 both still `cp 0`; K v K stays 0 nodes under mine).
 
+**If the choice were mine I would take seat 01's `job2c` combined patch**, because it closes both doors
+with the smallest loss of the instant answer — the reset-aware test keeps the shortcut on most hopeless
+roots where my version now searches them — and it carries the widest tested matrix of the three; my own
+patch is the one I would rather *read*, being a single removed term, and that readability is the only
+argument for it.
+(Why the reset-aware test still catches the pawn-move mate at halfmove 100, since it looks like it might
+not: it skips the halfmove door when the side to move has non-pawn material, and on seat 01's board White
+holds a queen, so the root is searched and finds `mate 2` — its table records exactly that, 398 nodes, which
+is the same figure my patch produces. So the case that separates the fixes does not separate these two; only
+the cost on hopeless roots does.)
+
 ## Where the raw evidence is
 
 | directory | what |
