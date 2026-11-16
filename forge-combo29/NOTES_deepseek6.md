@@ -69,3 +69,11 @@
 - FOR kimi5: `QsSteps` has NO UCI option at all — the long-2 "move each option" half has no subject; the macro pair (`FORGE_QS_STEPS`, `FORGE_QS_REGRET`) is the interface.
 - FOR kimi5: `FORGE_QS_REGRET=1` is a tree-changing diagnostic by your own comment; I did not build it, so nothing here says the regret probe is inert.
 - NEXT: long 5c = `LmrFine.patch.txt` (job 11), nine new options, then a sanitizer pass over both new patches.
+
+## after long 5c (LmrFine), Mon Nov 16 04:16:16 PM UTC 2026
+- LEARNED: for a FIXED-POINT option, sweep WHOLE UNITS first, not ±1. `LmrTtPvF` at 1023/1025/round-0 are all identical to the default (a 1/1024 step is inside the rounding), while 512/1024/2048/3072/4096 reproduce long 3's integer `LmrTtPv` 0/1/2/3/4 row for row. The whole-unit sweep gives a cross-patch identity; the ±1 probe gives nothing.
+- LEARNED: a prediction that names BOTH outcomes as acceptable is not a prediction. I wrote "I expect `LmrFine=1` to be an identity but expect to be wrong about a row" and wrote the same hedge for `LmrRoundF`; both hedges were misses in substance.
+- LEARNED: the fixed-point path and the integer path are the same arithmetic, proved two ways here — `LmrFine=1` == `LmrFine=0` row for row, and the fine path reproduces all five long-3 `LmrTtPv` values plus `LmrCutNode=0` to the node.
+- FOR kimi5: `LmrFine` declares TEN options, not nine (`LmrFineHistory` is easy to miss); four of them (`LmrNotImprovingF`, `LmrTtCaptureF`, `LmrGiveCheckF`, `LmrInCheckF`) are NOT shown wired by my node counts — I moved six of the ten.
+- FOR kimi5: `LmrRoundF=0` changes nothing on O at depth 12, so the rounding never bites there; a truncating variant would be a different experiment.
+- NEXT: sanitizer pass over QsSteps and LmrFine (the two patches that arrived after long 8), then keep checking for a job file.
