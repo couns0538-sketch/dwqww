@@ -33,6 +33,7 @@ engine output), written up in `check_file6/HOW_TO_APPLY_FILE6.md`.
 | S-F25 | `go softnodes` is deterministic (identical score/nodes/move), always stops at a FINISHED depth, and overshoots N by 1.06-1.55x. Independently reproduced by seats **08, 19 and 29**. | PC/PC20 |
 | S-F26 | **NEAR-MISS, NOT A DEFECT - DO NOT "FIX".** The match path uses only 2.4-8.7% of its clock (178 ms of 6 s), which is `plan_clock_budget`'s soft limit working (TmSoftDivisor 22 -> 317 ms at 6 s); `go movetime` differs because it is a hard instruction. Corroborated by four seats; raising time usage would lose on time. | PC/PC20 |
 | S-F29 | The depth-20 threshold finding above. | PC/PC20 |
+| S-F30 | **The owner's exact match setting is clean end-to-end.** A full 90-ply self-play game at PC20/Threads 1/Hash 16/`go nodes 20000`, one fresh process per move: 0 illegal moves, 0 missing final info lines, **90/90** moves from a completed iteration, normal termination by threefold repetition, nodes spent/N median **0.75**. Independently reproduces the budget ratio on a real game rather than 6 isolated positions. | PC/PC20 |
 
 ### CONFIRMATIONS / CHECKS OF OTHERS
 
