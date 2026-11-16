@@ -51,6 +51,13 @@ Withdrawn: S-F6 (duplicate of 01-F5/01-F8 — I had not read their file when I w
 - The move generator's attack tables and the time manager as source-reading jobs.
 - TSan (area 4 owns it).
 
+## WARM-TABLE RULE CHECKED (seat 10: Clear Hash is NOT a cold baseline)
+`job7/HARNESS_AUDIT_2.md` audits every committed script by reading its process handling. **One real error
+found**: `job4/f1_options.py` ran the Threads 1 vs 2 comparison in ONE process, so Threads 2 = 30,356 nodes was
+WARM; a fresh process gives **14,883**. Corrected in place in REPORT_job4.md (S-F7a). Everything else is a fresh
+process per search; the S-F8 chain (job7/f1, f2, f3) is cold-measured and re-ran identical after the rule came
+out. S-F4 is CORROBORATED by the rule: seat 10's third value (40,569) for Clear Hash is exactly what S-F4 predicts.
+
 ## S-F8 IS TWO DEFECTS (seat 10's split) — my partial patch covers A only
 Seat 10 (branch `for-fable-and-opus/swarm-10`) settled it: **10-F17** defect A = the restricted root computes a
 wrong score with an EMPTY table (Clear Hash changes no node, 21,640 both ways); **10-F15** defect B = a restricted
