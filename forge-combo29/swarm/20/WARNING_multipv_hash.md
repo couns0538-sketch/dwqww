@@ -64,19 +64,33 @@ So at this setting you get a **materially shallower analysis** (and a move that 
 e.g. `e5e4`/`g7g6` instead of the healthy move) without any no-search failure. It is a quality-of-analysis problem,
 not a reliability one — but at 5,395 nodes against 288,912 it is not a small difference either.
 
-## The fix — either is sufficient
-- **`MultiPV 1` at any Hash size.** Safe in every cell measured (depth 16–17 at Hash 16, 256 and 2048).
-- **`Hash` at 16 MB with MultiPV above 1.** Safe up to MultiPV 8 (depth 12).
+## The fix — measured boundary at MultiPV 3 (10 positions per Hash)
 
-The unsafe region is only the combination of a large Hash **and** MultiPV > 1. Do not use one without checking the
-other.
+| Hash | median depth (MultiPV 3) | vs healthy (17) | verdict |
+|---|---|---|---|
+| 16 MB | **13.5** | −3.5 | usable |
+| 64 MB | **11.5** | −5.5 | usable |
+| **128 MB** | **11.0** | −6.0 | **largest SAFE size measured** |
+| **256 MB** | **4.0** | −13 | **UNUSABLE** (scatter 3–12) |
+| **512 MB** | **1.0** | −16 | **UNUSABLE** (all 10 positions depth 1) |
+
+The collapse is a **cliff between 128 and 256 MB** — not a gradual decay. Below the cliff there is still a gentle
+gradient, so MultiPV 3 costs you about a third of the depth even at 16 MB.
+
+**So, in order of preference:**
+1. **MultiPV 1 at any Hash** — unaffected at every size (depth 14–19).
+2. **MultiPV > 1 only with Hash ≤ 128 MB.** That is the largest safe size I measured; accept roughly a third less
+   depth than MultiPV 1 gives.
+3. **Never Hash ≥ 256 MB with MultiPV > 1.** That is where analysis becomes depth 1–5 and, on a busy machine, can
+   return a move with no search at all.
 
 ## Your matches are NOT affected
 The matches run **MultiPV 1**, so none of this applies to game play. It is an **analysis-path** problem only.
 
 ## How sure this is
-- Counts are exact: 5 processes per cell across **10 positions** for the collapse table (50 runs per cell), 10
-  processes per arm on one position for the load table; fresh process each, `Threads 1`, one clock.
+- Counts are exact: 5 processes per cell across **10 positions** for the collapse table (50 runs per cell); 10
+  positions per Hash for the boundary table; 10 processes per arm on one position for the load table. Fresh process
+  each, `Threads 1`, one clock.
 - The healthy control never failed (0/10 in both conditions), so the failure belongs to the configuration and not to
   the machine or the harness.
 - Full per-run data and raw output: `job53/ZERO_NODE_UNDER_LOAD.md`, `job53/zero_node.json`, `job53/run.log`.
