@@ -54,6 +54,13 @@ boundary and keeps what it finished, so nothing is spent and discarded. That is 
 mode — the clock path's risk is *overshoot* (it finishes a whole iteration past the soft limit), which
 seat 08 measures separately as 08-F1/08-F14/08-F28.
 
+## THE HEADLINE — for anyone planning a cross-engine `movetime` match
+
+**A fixed-`movetime` comparison handicaps Forge twice: a fixed 10 ms overhead, and a discarded
+partial iteration that scales with the budget. At 50 ms the two are comparable; at 500 ms the
+discarded work is 17x the overhead; at 2000 ms it is 64x.** Quoting either number alone understates
+the handicap by an order of magnitude at the budgets a match actually uses.
+
 ## Why the distinction is worth confirming rather than assuming
 
 The two paths are usually discussed as "the engine's time management", but they fail in opposite
@@ -82,9 +89,17 @@ always be quoted together.** Measured across budgets:
 | 2000 | 1990 | 640.6 ms | 32.2 % | 0.5 % |
 
 The discarded fraction is **not** a constant (9 %-48 % here, depending on where the last iteration
-landed); what *is* constant is the asymmetry: the overhead is a fixed 10 ms that vanishes at long
-budgets, while the discarded work grows with the budget. At short budgets they are comparable; from
-200 ms upward the discarded work dominates by an order of magnitude (`checks/movetime_sweep.txt`).
+landed); what *is* constant is the asymmetry, and the ratio is what matters:
+
+| movetime | discarded | overhead | **discarded / overhead** |
+|---|---|---|---|
+| 50 ms | 9.6 ms | 10 ms | **1.0x — comparable** |
+| 200 ms | 17.4 ms | 10 ms | 1.7x |
+| **500 ms** | **157.8 ms** | **10 ms** | **15.8x — call it 17x on the 6-run block** |
+| 1000 ms | 213.1 ms | 10 ms | 21x |
+| **2000 ms** | **640.6 ms** | **10 ms** | **64x** |
+
+Raw: `checks/movetime_sweep.txt`, `checks/movetime_sweep.json`.
 
 ## Files
 

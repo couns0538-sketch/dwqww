@@ -350,3 +350,22 @@ Honest caveat added: the discarded fraction is **not** a constant (9-48%, it dep
 last completed iteration lands) — what IS constant is the asymmetry, a fixed 10 ms overhead that
 vanishes at long budgets against discarded work that scales with the budget. At movetime 500 the
 discarded part is ~17x the overhead. Raw: checks/movetime_sweep.txt + .json.
+
+## 2026-11-16T23:30:09Z — the match-design sentence
+
+**A fixed-`movetime` comparison handicaps Forge twice: a fixed 10 ms overhead AND a discarded partial
+iteration that scales with the budget. At 50 ms the two are comparable; at 500 ms the discarded work
+is 17x the overhead; at 2000 ms it is 64x.** Quoting either number alone understates the handicap by
+an order of magnitude at the budgets a match actually uses.
+
+| movetime | discarded | overhead | discarded/overhead |
+|---|---|---|---|
+| 50 ms | 9.6 ms | 10 ms | **1.0x (comparable)** |
+| 200 ms | 17.4 ms | 10 ms | 1.7x |
+| 500 ms | 157.8 ms (171.5 on the 6-run block) | 10 ms | **15.8x (17x)** |
+| 1000 ms | 213.1 ms | 10 ms | 21x |
+| 2000 ms | 640.6 ms | 10 ms | **64x** |
+
+Now the headline in CHECK_08F10.md and the FINDINGS line, with the non-constant caveat kept: the
+discarded fraction itself varies 9-48% depending on where the last iteration lands, so the RATIO is
+quoted with the budget it was measured at, never as a property of the engine alone.
