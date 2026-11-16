@@ -1,0 +1,56 @@
+=== P1: clock wall time between 0.5s and 6.0s? ===
+  startpos  wall median    358 ms  (min 353, max 359)  6.0% of 6000ms budget
+  G-mid-1   wall median    158 ms  (min 158, max 160)  2.6% of 6000ms budget
+  G-mid-2   wall median    290 ms  (min 288, max 296)  4.8% of 6000ms budget
+  G-end-1   wall median    148 ms  (min 145, max 149)  2.5% of 6000ms budget
+  G-end-2   wall median     22 ms  (min 22, max 22)  0.4% of 6000ms budget
+
+  ALL clock runs are under 500 ms, so P1 (0.5-6.0 s) is REFUTED.
+  The engine uses ~0.4%% to 6%% of the 6 s budget. That is time management, not a defect.
+
+=== P2: spread across 5 runs under 15% of median? ===
+  startpos  movetime 100     spread   0.0%  ok
+  startpos  wtime 6000+60    spread   1.7%  ok
+  G-mid-1   movetime 100     spread   1.1%  ok
+  G-mid-1   wtime 6000+60    spread   1.3%  ok
+  G-mid-2   movetime 100     spread   0.0%  ok
+  G-mid-2   wtime 6000+60    spread   2.8%  ok
+  G-end-1   movetime 100     spread   0.0%  ok
+  G-end-1   wtime 6000+60    spread   2.7%  ok
+  G-end-2   movetime 100     spread   4.5%  ok
+  G-end-2   wtime 6000+60    spread   0.0%  ok
+
+=== P5: do NODE counts vary across runs on a clock search? ===
+  startpos  movetime 100     nodes [166281, 166281, 166281, 166281, 166281]  variation 0.0%  IDENTICAL
+  startpos  wtime 6000+60    nodes [650246, 650246, 650246, 650246, 650246]  variation 0.0%  IDENTICAL
+  G-mid-1   movetime 100     nodes [170070, 170070, 170070, 170070, 170070]  variation 0.0%  IDENTICAL
+  G-mid-1   wtime 6000+60    nodes [314239, 314239, 314239, 314239, 314239]  variation 0.0%  IDENTICAL
+  G-mid-2   movetime 100     nodes [105070, 142785, 142785, 142785, 142785]  variation 35.9%  VARIES
+  G-mid-2   wtime 6000+60    nodes [514093, 514093, 514093, 514093, 514093]  variation 0.0%  IDENTICAL
+  G-end-1   movetime 100     nodes [391675, 391675, 391675, 391675, 391675]  variation 0.0%  IDENTICAL
+  G-end-1   wtime 6000+60    nodes [716627, 716627, 716627, 716627, 716627]  variation 0.0%  IDENTICAL
+  G-end-2   movetime 100     nodes [94406, 94406, 94406, 94406, 94406]  variation 0.0%  IDENTICAL
+  G-end-2   wtime 6000+60    nodes [94406, 94406, 94406, 94406, 94406]  variation 0.0%  IDENTICAL
+
+=== the four modes side by side (median run) ===
+board     mode             depth  nodes      wall_ms   move
+startpos  nodes 2000       6      1740-1740  1         c2c4
+startpos  softnodes 2000   7      4121-4121  2         d2d4
+startpos  movetime 100     17     166281-166281 90        d2d4
+startpos  wtime 6000+60    19     650246-650246 358       e2e4
+G-mid-1   nodes 2000       6      1574-1574  1         g7g6
+G-mid-1   softnodes 2000   7      2671-2671  2         g7g6
+G-mid-1   movetime 100     16     170070-170070 90        g7g6
+G-mid-1   wtime 6000+60    18     314239-314239 158       g7g6
+G-mid-2   nodes 2000       7      1904-1904  1         b6b5
+G-mid-2   softnodes 2000   8      3312-3312  2         b6b5
+G-mid-2   movetime 100     14/15  105070-142785 90        b6b5
+G-mid-2   wtime 6000+60    18     514093-514093 290       b6b5
+G-end-1   nodes 2000       4      1667-1667  1         g6g7
+G-end-1   softnodes 2000   5      3496-3496  2         g6f6
+G-end-1   movetime 100     20     391675-391675 90        g6f7
+G-end-1   wtime 6000+60    28     716627-716627 148       g6f7
+G-end-2   nodes 2000       6      442-442    1         a8b8
+G-end-2   softnodes 2000   7      2025-2025  1         a8b8
+G-end-2   movetime 100     64     94406-94406 22        a8b8
+G-end-2   wtime 6000+60    64     94406-94406 22        a8b8

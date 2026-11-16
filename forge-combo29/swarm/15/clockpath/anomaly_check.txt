@@ -1,0 +1,33 @@
+=== G-mid-2 movetime 100: 1 of 5 runs gave 105,070 nodes / depth 14; 4 gave 142,785 / depth 15 ===
+=== and G-end-2: BOTH clock modes stop at depth 64 with the SAME node count (94,406) ===
+
+G-mid-2 / movetime 100
+   depth=15  nodes=142785   wall=90    score=cp -251   bm=b6b5
+   depth=14  nodes=105070   wall=90    score=cp -262   bm=b6b5
+   depth=15  nodes=142785   wall=90    score=cp -251   bm=b6b5
+   depth=15  nodes=142785   wall=90    score=cp -251   bm=b6b5
+   depth=15  nodes=142785   wall=90    score=cp -251   bm=b6b5
+
+G-end-2 / movetime 100
+   depth=64  nodes=94406    wall=22    score=mate -3   bm=a8b8
+   depth=64  nodes=94406    wall=22    score=mate -3   bm=a8b8
+   depth=64  nodes=94406    wall=22    score=mate -3   bm=a8b8
+   depth=64  nodes=94406    wall=23    score=mate -3   bm=a8b8
+   depth=64  nodes=94406    wall=22    score=mate -3   bm=a8b8
+
+G-end-2 / wtime 6000+60
+   depth=64  nodes=94406    wall=22    score=mate -3   bm=a8b8
+   depth=64  nodes=94406    wall=22    score=mate -3   bm=a8b8
+   depth=64  nodes=94406    wall=22    score=mate -3   bm=a8b8
+   depth=64  nodes=94406    wall=22    score=mate -3   bm=a8b8
+   depth=64  nodes=94406    wall=22    score=mate -3   bm=a8b8
+
+INTERPRETATION, carefully separated into measured and inferred:
+ MEASURED: on G-end-2 (black has ONE legal move) both clock modes stop at depth 64 with
+   94,406 nodes and 22 ms, though the budgets are 100 ms and 6000 ms. Depth 64 is the
+   engine's clamp maximum (uci.cpp clamps depth to 1..64), so the ladder ENDED, not the clock.
+ MEASURED: on G-mid-2 movetime 100, one run of five stopped a depth earlier (14 vs 15).
+ INFERRED, not proven: a 100 ms time slice is short enough that the engine's own
+   time-management decision can land on either side of one iteration boundary.
+ NOT CLAIMED: any defect. Depth 64 on a 1-legal-move position is the search exhausting the
+   ladder, which is correct behaviour for the position.
