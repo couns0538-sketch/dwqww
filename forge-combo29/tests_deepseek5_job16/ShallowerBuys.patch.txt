@@ -1,0 +1,118 @@
+# Applies from folder forge-combo29 (paths relative to the repository root; full build, also contains every DeeperBuys counter plus the SB shallower counters)
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -35,6 +35,22 @@
+ #endif
+ 
+ namespace forge {
++// job16 DeeperBuys counters. Only set when the deeper rule FIRES and shallower does not.
++long long db_n[4] = {0,0,0,0};
++long long db_cand[4] = {0,0,0,0};
++long long sb_n[4] = {0,0,0,0};
++long long sb_both_above[4] = {0,0,0,0};
++long long sb_refuted[4] = {0,0,0,0};
++long long sb_rescued[4] = {0,0,0,0};
++long long sb_both_below[4] = {0,0,0,0};
++long long sb_nodes0 = 0;
++long long sb_nodes1 = 0;
++long long db_both_above[4] = {0,0,0,0};
++long long db_refuted[4] = {0,0,0,0};
++long long db_rescued[4] = {0,0,0,0};
++long long db_both_below[4] = {0,0,0,0};
++long long db_nodes0 = 0;
++long long db_nodes1 = 0;
+ 
+ int DrawJitter = 0;
+ 
+@@ -2019,11 +2035,58 @@
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+             if (full_depth_needed) {
+                 if (tune::LmrDeeperShallower) {
++                    { const int exc_c = score - alpha;
++                      const int ec_c = exc_c <= 40 ? 0 : exc_c <= 100 ? 1 : exc_c <= 400 ? 2 : 3;
++                      ++db_cand[ec_c]; }
+                     const bool do_deeper =
+                         score > best_score + tune::LmrDeeperBase + tune::LmrDeeperDepthMul * new_depth;
+                     const bool do_shallower =
+                         score < best_score + tune::LmrShallowerBase + tune::LmrShallowerDepthMul * new_depth;
+-                    new_depth += static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
++                    if (do_deeper && !do_shallower) {
++#ifndef DB_COUNT_ONLY
++                        const int excess = score - alpha;
++                        const int ecls = excess <= 40 ? 0 : excess <= 100 ? 1 : excess <= 400 ? 2 : 3;
++                        const std::uint64_t n_a = total_nodes();
++                        const int s0 = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
++                        const std::uint64_t n_b = total_nodes();
++                        const int s1 = -search(board, ss + 1, new_depth + 1, -alpha - 1, -alpha, !cut_node);
++                        db_nodes0 += static_cast<long long>(n_b - n_a);
++                        db_nodes1 += static_cast<long long>(total_nodes() - n_b);
++                        const int vcls = ecls;
++                        ++db_n[vcls];
++                        if (s0 > alpha && s1 > alpha) ++db_both_above[vcls];
++                        else if (s0 > alpha && s1 <= alpha) ++db_refuted[vcls];
++                        else if (s0 <= alpha && s1 > alpha) ++db_rescued[vcls];
++                        else ++db_both_below[vcls];
++                        score = s1;
++                        ++new_depth;
++#else
++                        const int excess = score - alpha;
++                        const int ecls = excess <= 40 ? 0 : excess <= 100 ? 1 : excess <= 400 ? 2 : 3;
++                        ++db_n[ecls];
++                        ++new_depth;
++#endif
++                    } else {
++                        if (do_shallower && !do_deeper && reduced_depth < new_depth - 1) {
++                            const int excess_s = score - alpha;
++                            const int ecls_s = excess_s <= 40 ? 0 : excess_s <= 100 ? 1 : excess_s <= 400 ? 2 : 3;
++                            ++sb_n[ecls_s];
++                            const std::uint64_t m_a = total_nodes();
++                            const int t0 = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
++                            const std::uint64_t m_b = total_nodes();
++                            const int t1 = -search(board, ss + 1, new_depth - 1, -alpha - 1, -alpha, !cut_node);
++                            sb_nodes0 += static_cast<long long>(m_b - m_a);
++                            sb_nodes1 += static_cast<long long>(total_nodes() - m_b);
++                            if (t0 > alpha && t1 > alpha) ++sb_both_above[ecls_s];
++                            else if (t0 > alpha && t1 <= alpha) ++sb_refuted[ecls_s];
++                            else if (t0 <= alpha && t1 > alpha) ++sb_rescued[ecls_s];
++                            else ++sb_both_below[ecls_s];
++                            score = t1;
++                            --new_depth;
++                        } else {
++                            new_depth += static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
++                        }
++                    }
+                 }
+                 if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
+                     score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+@@ -2752,6 +2815,31 @@
+     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
++    { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++      std::cout << "info string DB n";
++      for (int k = 0; k < 4; ++k) std::cout << " " << db_n[k];
++      std::cout << " cand";
++      for (int k = 0; k < 4; ++k) std::cout << " " << db_cand[k];
++      std::cout << " SB n";
++      for (int k = 0; k < 4; ++k) std::cout << " " << sb_n[k];
++      std::cout << " sboth_above";
++      for (int k = 0; k < 4; ++k) std::cout << " " << sb_both_above[k];
++      std::cout << " srefuted";
++      for (int k = 0; k < 4; ++k) std::cout << " " << sb_refuted[k];
++      std::cout << " srescued";
++      for (int k = 0; k < 4; ++k) std::cout << " " << sb_rescued[k];
++      std::cout << " sboth_below";
++      for (int k = 0; k < 4; ++k) std::cout << " " << sb_both_below[k];
++      std::cout << " snodes0 " << sb_nodes0 << " snodes1 " << sb_nodes1;
++      std::cout << " both_above";
++      for (int k = 0; k < 4; ++k) std::cout << " " << db_both_above[k];
++      std::cout << " refuted";
++      for (int k = 0; k < 4; ++k) std::cout << " " << db_refuted[k];
++      std::cout << " rescued";
++      for (int k = 0; k < 4; ++k) std::cout << " " << db_rescued[k];
++      std::cout << " both_below";
++      for (int k = 0; k < 4; ++k) std::cout << " " << db_both_below[k];
++      std::cout << " nodes0 " << db_nodes0 << " nodes1 " << db_nodes1 << std::endl; }
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
+     return result;
+ }

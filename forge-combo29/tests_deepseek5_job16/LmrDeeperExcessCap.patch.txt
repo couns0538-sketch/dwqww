@@ -1,0 +1,51 @@
+--- forge-combo29/src/search.cpp
++++ forge-combo29/src/search.cpp
+@@ -108,6 +108,7 @@
+ bool TmNodeShare = false;
+ bool SoundMatePruning = false;
+ int LmrDeeperBase = 40;
++int LmrDeeperExcessCap = 100000;
+ int LmrDeeperDepthMul = 2;
+ int LmrShallowerBase = 0;
+ int LmrShallowerDepthMul = 1;
+@@ -2020,6 +2021,7 @@
+             if (full_depth_needed) {
+                 if (tune::LmrDeeperShallower) {
+                     const bool do_deeper =
++                        score - alpha <= tune::LmrDeeperExcessCap &&
+                         score > best_score + tune::LmrDeeperBase + tune::LmrDeeperDepthMul * new_depth;
+                     const bool do_shallower =
+                         score < best_score + tune::LmrShallowerBase + tune::LmrShallowerDepthMul * new_depth;
+--- forge-combo29/include/forge/search.hpp
++++ forge-combo29/include/forge/search.hpp
+@@ -293,7 +293,8 @@
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+-extern int LmrDeeperBase;            // do_deeper margin base (default 40)
++extern int LmrDeeperBase;
++extern int LmrDeeperExcessCap;      // deeper fires only while the excess stays at or under this            // do_deeper margin base (default 40)
+ extern int LmrDeeperDepthMul;        // do_deeper margin per ply of new_depth (default 2)
+ extern int LmrShallowerBase;         // do_shallower margin base (default 0)
+ extern int LmrShallowerDepthMul;     // do_shallower margin per ply of new_depth (default 1)
+--- forge-combo29/src/uci.cpp
++++ forge-combo29/src/uci.cpp
+@@ -236,7 +236,8 @@
+                          "option name LmrDeeperBase type spin default 40 min 0 max 100000\n"
+                          "option name LmrDeeperDepthMul type spin default 2 min 0 max 16\n"
+                          "option name LmrShallowerBase type spin default 0 min -100000 max 400\n"
+-                         "option name LmrShallowerDepthMul type spin default 1 min 0 max 16\n";
++                         "option name LmrShallowerDepthMul type spin default 1 min 0 max 16\n"
++                         "option name LmrDeeperExcessCap type spin default 100000 min 0 max 100000\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -300,6 +301,8 @@
+             }
+             if (handled_tunable) {
+                 // Unlisted development options; nothing else to do.
++            } else if (name == "LmrDeeperExcessCap") {
++                apply_spin(0, 100000, [&](int clamped) { forge::tune::LmrDeeperExcessCap = clamped; });
+             } else if (name == "LmrDeeperBase" || name == "LmrDeeperDepthMul" ||
+                        name == "LmrShallowerBase" || name == "LmrShallowerDepthMul") {
+                 int* target = name == "LmrDeeperBase" ? &forge::tune::LmrDeeperBase
