@@ -1,0 +1,93 @@
+--- forge-combo29/src/search.cpp
++++ forge-combo29/src/search.cpp
+@@ -35,17 +35,6 @@
+ #endif
+ 
+ namespace forge {
+-// job8 Part 2: planted unsynchronized counters, one per shared-state place.
+-int pl_hashprobe = 0;
+-int pl_hashstore = 0;
+-int pl_lease_take = 0;
+-int pl_lease_give = 0;
+-int pl_helper_start = 0;
+-int pl_root_handover = 0;
+-int pl_gather = 0;
+-int pl_hist_upd = 0;
+-int pl_corr_upd = 0;
+-int pl_stop_read = 0;
+ 
+ int DrawJitter = 0;
+ 
+@@ -255,7 +244,6 @@
+ }
+ 
+ void apply_history(std::int16_t& entry, int bonus) {
+-    ++pl_hist_upd;
+     const int clamped = std::clamp(bonus, -HistoryMax, HistoryMax);
+     entry = static_cast<std::int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);
+ }
+@@ -344,13 +332,11 @@
+         }
+     }
+     active_lease_ = this;
+-    ++pl_lease_take;
+ }
+ 
+ TranspositionTable::ExclusiveLease::~ExclusiveLease() {
+     // Publish completed writes before member destruction releases the gate.
+     active_lease_ = previous_;
+-    ++pl_lease_give;
+     if (gate_.owns_lock()) table_.exclusive_requested_.store(false, std::memory_order_release);
+ }
+ 
+@@ -1241,7 +1227,6 @@
+ }
+ 
+ void Worker::update_correction(const Board& board, int depth, int best_score, int static_eval) {
+-    ++pl_corr_upd;
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
+     const int weight = std::min(depth + 1, 16);
+@@ -1279,7 +1264,6 @@
+ 
+ bool Worker::should_stop_with(std::uint64_t pending_nodes) {
+     if (shared_.stop.load(std::memory_order_relaxed)) return true;
+-    ++pl_stop_read;
+     // The budget counts every worker. A helper that ignores it keeps searching
+     // until the main thread has already unwound. MultiPV still adds the
+     // alternate line's unpublished nodes (pending_nodes) and the lines that
+@@ -1454,7 +1438,6 @@
+     const TTProbe tt_probe = probe_tt(board.key());
+ #else
+     const TTProbe tt_probe = shared_.tt.probe(board.key());
+-    ++pl_hashprobe;
+ #endif
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+@@ -1558,7 +1541,6 @@
+     store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+ #else
+     shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+-    ++pl_hashstore;
+ #endif
+     return best_score;
+ }
+@@ -2755,17 +2737,15 @@
+     if (worker_limits.multipv <= 1 && !no_clock_left) {
+         for (std::size_t i = 1; i < workers_.size(); ++i) {
+             helpers.emplace_back([this, i, board, &worker_limits, &all]() {
+-                ++pl_helper_start; (void)workers_[i]->search(board, worker_limits, false, all);
++                (void)workers_[i]->search(board, worker_limits, false, all);
+             });
+         }
+     }
+-    ++pl_root_handover;
+     SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
+     // Wind down the helpers without clobbering an externally requested stop.
+     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+-    ++pl_gather;
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
+     return result;
+ }
