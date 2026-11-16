@@ -1,0 +1,20 @@
+[PASS] S-F29 depth-18 threshold: depth16 score cp 1359, depth20 score mate 8
+[PASS] S-C26 terminal ladder (mate 0/0000 vs mate 1/move): mated: score mate 0/0000/0n ; mate-in-1: score mate 1/a1a8/105n
+[PASS] S-C27 burst bounded and answer correct: 64 lines, score mate 1/a1a8 vs depth10 score mate 1/a1a8
+[PASS] S-C22 Hash-16 ladder above Hash-256 depth: MPV3 clock: Hash16 depth 13, Hash256 depth 4
+
+4/4 live headline claims re-checked PASS
+NOT RE-CHECKED here: S-F30/S-F31 (full games), S-F25/S-F32 (regime sweeps), S-C12/S-C25 (needs the
+variant build), S-C18..20 (needs seat 27's binary). Those have their own committed evidence files.
+
+EIGHTH INSTANCE OF THE CONTROL PATTERN, inside this very tool: the first run reported
+  [FAIL] S-F29 depth-18 threshold: depth16 score cp 1359, depth20 score mate 8
+which is EXACTLY what S-F29 claims - my assertion tested `s16.startswith("cp")` when the score string is
+"score cp 1359", so the prefix was never "cp". The engine was right and my assertion was wrong, again. Fixed to
+match "cp"/"mate" anywhere in the string; 4/4 now PASS.
+
+WHAT THIS TOOL CHECKS (and what it does not): the four live headline claims that are cheap to re-run -
+S-F29 (depth-18 threshold), S-C26 (terminal ladder), S-C27 (burst bounded + answer correct), S-C22 (Hash-16 ladder
+above Hash-256). It deliberately does NOT re-check S-F30/S-F31 (full self-play games), S-F25/S-F32 (regime sweeps),
+S-C12/S-C25 (need the variant build) or S-C18..20 (need seat 27's binary) - those carry their own committed evidence
+files, and the output says so, so a 4/4 cannot be read as "the whole FINAL is verified".
