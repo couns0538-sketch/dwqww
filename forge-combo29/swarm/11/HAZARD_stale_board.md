@@ -119,16 +119,23 @@ answer was legal only in game 1), 2 rows ambiguous only because the move was leg
 and nothing else.
 
 ## Does `ucinewgame` clear it? Yes — but it does not restore your position
-This decides the defence (`checks/ucinewgame_clears.txt`):
+This decides the defence (`checks/ucinewgame_clears.txt`). **Only `ucinewgame` clears it** — the
+commands a GUI would naturally use to "resync" do NOT (`checks/refused_then_various.txt`):
 
 | what you send after the refused command | bestmove | board in effect |
 |---|---|---|
 | nothing | `g8f6` | **previous game — stale** |
-| `ucinewgame` | `d2d4` | **startpos** (perft 1 = 20), *not* your position |
-| `ucinewgame` then re-send the FEN | `d2d4` | startpos again — the FEN was still malformed |
+| `isready` then `go` | `g8f6` | **previous game — stale** |
+| `eval` then `go` | `g8f6` | **previous game — stale** |
+| `stop` then `go` | `g8f6` | **previous game — stale** |
+| `go perft 1` | 31 (the old board's count) | **previous game — stale** |
+| `ucinewgame` then `go` | `d2d4` | **startpos** (perft 1 = 20), *not* your position |
+| `ucinewgame` then re-send a well-formed FEN | `f3e5` | **the new position — correct** |
 
-So `ucinewgame` clears the stale board and removes the wrong-game danger, but it resets to the
-**start position**, a different board again. It is a safe reset, not a recovery.
+So **"send something to resync" does not defend** — in particular `isready`, the one command a GUI is
+most likely to use, leaves the stale board completely untouched. `ucinewgame` clears the stale board
+and removes the wrong-game danger, but it resets to the **start position**, a different board again;
+you must then re-send your position. It is a safe reset, not a recovery.
 
 ## The rule for a harness — one line
 **Treat any `info string invalid FEN` or `info string illegal move` as fatal for that game: do not
@@ -152,7 +159,7 @@ In order of strength:
 1. **Best:** after a refusal, discard the game outright and start a fresh process for the next one.
 2. **Acceptable:** send `ucinewgame` *and* re-send the intended position, well-formed, before `go`.
 3. **Never:** trust `readyok`, or accept a `bestmove` from a process whose last `position` was
-   refused. A harness that only waits for `bestmove` cannot tell "move for the new game" from
+   refused, or try to "resync" with `isready`/`eval`/`stop` — none of those clears the stale board. A harness that only waits for `bestmove` cannot tell "move for the new game" from
    "move for the old one" — both are legal moves.
 
 ## Where this is measured
@@ -163,6 +170,7 @@ In order of strength:
 - `checks/fen_moves_form.txt` — the combined `fen ... moves ...` form, which carries both traps.
 - `checks/fen_truncation_pc20.txt` — every truncation length, and the stale perft 1.
 - `checks/ucinewgame_clears.txt` — the `ucinewgame` test.
+- `checks/refused_then_various.txt` — which follow-up commands clear the stale board (only `ucinewgame`).
 - `checks/defence_protocol2.txt`, `checks/fixup_sweep.txt` — the three protocols.
 - `checks/recovery_test.txt`, `checks/recovery_sweep.txt` — the one-move blast radius.
 
