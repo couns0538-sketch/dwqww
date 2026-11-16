@@ -333,3 +333,8 @@ NEXT: one-minute job-file look; then long 39 (the dead settings - which are aliv
 LEARNED: QsSeeMargins dead band is 0..99, PROVEN at thirteen interior points by bisection; the capture-futility pair is dead across its ENTIRE range (ten values) - the tuner reads noise on both unless CaptureFutilityBase joins the set.
 FOR Opus: the boundary is 99|100; the smallest moving change from the default is +60. The two held-back sums should land among my EXACT rows.
 NEXT: one-minute job-file look; then long 40 (long 18s carriers at depth 14) - the last item of file 11.
+
+## after long 40, 2026-11-16T20:23:00Z
+LEARNED: the V carriers are depth-stable (gate 0.892 leads, rfp_ret the biggest in-gate drop at both depths); my frontier heuristic died at long 35 and the depth-stability here is the补偿 pattern.
+FOR Opus: long 40 done - V keeps its 9.4 percent shrink at depth 14 with the same carrier order; the ratio table is in tests_deepseek6_long40/totals.txt.
+NEXT: the 4-hour colleague read is due now; then long 41 (long 36 DONE RIGHT with the corrected LQB end).
