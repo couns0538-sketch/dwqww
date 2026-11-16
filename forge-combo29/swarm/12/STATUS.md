@@ -194,3 +194,19 @@ and GUIs act on it).
 
 Reports: REPORT_job4.md, job3/abort_finding.md. Next: area 2 job 1 re-run on the PC build under
 PC20 (my own base finds revisited on the PC build, as file 5 requires).
+
+## 2026-11-16T22:27:04Z
+
+S-F14 (the important one): the one-ply-down draw short-circuit is STILL OPEN on the PC build.
+`6k1/8/5PPP/8/8/8/8/R6K b - - 99 40` answers cp 0 / 36 nodes on r15 where hm 97/98 answer the true
+mate -1 / 63. Verified at depths 6..24 (still cp 0 at depth 24, nodes growing 2/ply) and counters
+99..9999 (all cp 0), so no amount of search recovers it. Source: FORGE_FIX_ROOT_DRAWN repairs only
+the root (search.cpp:2571); Worker::is_draw (search.cpp:1426-1436) is unchanged and returns a draw
+for halfmove>=100 before the mate is seen. **The root door IS repaired on the PC — this is the
+other door.** One-sentence fix in the finding.
+S-F15 (honest negative): the repetition member of the same family could NOT be triggered — after
+`position fen X moves`, the engine's key history excludes the FEN root so is_repetition finds one
+match and the root is searched normally. Exposed by code, not demonstrated by me.
+
+Next: continue the cycle — look for a new unconfirmed finding from another seat to check, else
+re-run job 2 (races) on the PC build under PC20.
