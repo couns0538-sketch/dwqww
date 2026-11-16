@@ -1,0 +1,21 @@
+my base-tree FEN finds re-run on the PC r15 build under PC20, Threads 1, Hash 16
+pc   /home/ubuntu/builds/pc/forge sha256 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+base /home/ubuntu/builds/release/forge sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+PC20: LmrQuietBase=93, LmrQuietDivisor=205, LmrNoisyBase=13, LmrNoisyDivisor=333, LmrHistoryDivisor=5643, NullMoveBase=5, LmpBase=8, HistoryPruneMultiplier=2220, HistoryBonusQuadratic=24, HistoryBonusLinear=54, HistoryBonusMax=2212, SingularDepth=6, IirDepth=2, NonPawnCorrection=true, CuckooRep=true, HistRework=2, TtPruneV2=true, CorrHistV2=true, MateAlphaGuard=true, OwnBook=false, Threads=1, Hash=16
+base runs: no setoption (the base build has no CuckooRep etc.)
+GUARD: every case's board is checked with `go perft 1` against python-chess before the answer
+
+case	question	PC20 answer	base answer	board guard	reading
+adjacent_digits	is a rank with two adjacent digits still accepted?	/23/None	/23/None	ok (builds agree; python-chess refuses this FEN too)	base: ACCEPTED (digit-sum rule). Does the PC build refuse it now?
+double_check	is an impossible double-check position still accepted?	/64/None	/64/None	ok (expected board)	base: ACCEPTED, perft 2 = 64. PC: same?
+junk_after_six	are tokens after the sixth FEN field still ignored?	/20/None	/20/None	ok (expected board)	base: ACCEPTED with the clean board. PC: same?
+halfmove_65536	is a halfmove counter above 65535 still accepted?	/20/None	/20/None	ok (expected board)	base: ACCEPTED
+fullmove_1e9	is a fullmove of 10^9 still accepted?	/20/None	/20/None	ok (expected board)	base: ACCEPTED
+ep_wrong_rank	is an impossible ep square still refused?	REFUSED: info string invalid FEN: inconsistent en-passant square	REFUSED: info string invalid FEN: inconsistent en-passant square	ok (expected board)	base: REFUSED
+two_white_kings	two white kings still refused?	REFUSED: info string invalid FEN: invalid FEN fields	REFUSED: info string invalid FEN: invalid FEN fields	ok (expected board)	base: REFUSED
+pawn_on_rank8	a white pawn on rank 8 still refused?	REFUSED: info string invalid FEN: pawn on promotion rank	REFUSED: info string invalid FEN: pawn on promotion rank	ok (expected board)	base: REFUSED
+three_thousand_chars	a 3,000-character field still refused without a crash?	REFUSED: info string invalid FEN: too many squares in FEN rank	REFUSED: info string invalid FEN: too many squares in FEN rank	ok (builds agree; python-chess refuses this FEN too)	base: REFUSED
+checkmated_root	does a checkmated root still report mate 0 (seat 21's door)?	mate 0/0/0000	mate 0/0/0000	ok (expected board)	base: mate 0, bestmove 0000
+long_move_list	is a 1,000-ply move list still applied correctly?	/16/None	/16/None	ok (expected board)	base: accepted, perft 1 = 16
+
+GUARD: clean on every case (both builds on the intended board, or both refused).

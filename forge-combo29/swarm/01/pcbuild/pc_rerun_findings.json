@@ -1,0 +1,305 @@
+[
+ {
+  "case": "adjacent_digits",
+  "question": "is a rank with two adjacent digits still accepted?",
+  "expectation": "base: ACCEPTED (digit-sum rule). Does the PC build refuse it now?",
+  "pc": {
+   "score": "",
+   "nodes": "23",
+   "bestmove": null,
+   "refused": [],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "base": {
+   "score": "",
+   "nodes": "23",
+   "bestmove": null,
+   "refused": [],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "guard_pc": true,
+  "guard_base": true
+ },
+ {
+  "case": "double_check",
+  "question": "is an impossible double-check position still accepted?",
+  "expectation": "base: ACCEPTED, perft 2 = 64. PC: same?",
+  "pc": {
+   "score": "",
+   "nodes": "64",
+   "bestmove": null,
+   "refused": [],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "base": {
+   "score": "",
+   "nodes": "64",
+   "bestmove": null,
+   "refused": [],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "guard_pc": true,
+  "guard_base": true
+ },
+ {
+  "case": "junk_after_six",
+  "question": "are tokens after the sixth FEN field still ignored?",
+  "expectation": "base: ACCEPTED with the clean board. PC: same?",
+  "pc": {
+   "score": "",
+   "nodes": "20",
+   "bestmove": null,
+   "refused": [],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "base": {
+   "score": "",
+   "nodes": "20",
+   "bestmove": null,
+   "refused": [],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "guard_pc": true,
+  "guard_base": true
+ },
+ {
+  "case": "halfmove_65536",
+  "question": "is a halfmove counter above 65535 still accepted?",
+  "expectation": "base: ACCEPTED",
+  "pc": {
+   "score": "",
+   "nodes": "20",
+   "bestmove": null,
+   "refused": [],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "base": {
+   "score": "",
+   "nodes": "20",
+   "bestmove": null,
+   "refused": [],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "guard_pc": true,
+  "guard_base": true
+ },
+ {
+  "case": "fullmove_1e9",
+  "question": "is a fullmove of 10^9 still accepted?",
+  "expectation": "base: ACCEPTED",
+  "pc": {
+   "score": "",
+   "nodes": "20",
+   "bestmove": null,
+   "refused": [],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "base": {
+   "score": "",
+   "nodes": "20",
+   "bestmove": null,
+   "refused": [],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "guard_pc": true,
+  "guard_base": true
+ },
+ {
+  "case": "ep_wrong_rank",
+  "question": "is an impossible ep square still refused?",
+  "expectation": "base: REFUSED",
+  "pc": {
+   "score": "",
+   "nodes": "20",
+   "bestmove": null,
+   "refused": [
+    "info string invalid FEN: inconsistent en-passant square"
+   ],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "base": {
+   "score": "",
+   "nodes": "20",
+   "bestmove": null,
+   "refused": [
+    "info string invalid FEN: inconsistent en-passant square"
+   ],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "guard_pc": [
+   "info string invalid FEN: inconsistent en-passant square"
+  ],
+  "guard_base": [
+   "info string invalid FEN: inconsistent en-passant square"
+  ]
+ },
+ {
+  "case": "two_white_kings",
+  "question": "two white kings still refused?",
+  "expectation": "base: REFUSED",
+  "pc": {
+   "score": "",
+   "nodes": "20",
+   "bestmove": null,
+   "refused": [
+    "info string invalid FEN: invalid FEN fields"
+   ],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "base": {
+   "score": "",
+   "nodes": "20",
+   "bestmove": null,
+   "refused": [
+    "info string invalid FEN: invalid FEN fields"
+   ],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "guard_pc": [
+   "info string invalid FEN: invalid FEN fields"
+  ],
+  "guard_base": [
+   "info string invalid FEN: invalid FEN fields"
+  ]
+ },
+ {
+  "case": "pawn_on_rank8",
+  "question": "a white pawn on rank 8 still refused?",
+  "expectation": "base: REFUSED",
+  "pc": {
+   "score": "",
+   "nodes": "20",
+   "bestmove": null,
+   "refused": [
+    "info string invalid FEN: pawn on promotion rank"
+   ],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "base": {
+   "score": "",
+   "nodes": "20",
+   "bestmove": null,
+   "refused": [
+    "info string invalid FEN: pawn on promotion rank"
+   ],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "guard_pc": [
+   "info string invalid FEN: pawn on promotion rank"
+  ],
+  "guard_base": [
+   "info string invalid FEN: pawn on promotion rank"
+  ]
+ },
+ {
+  "case": "three_thousand_chars",
+  "question": "a 3,000-character field still refused without a crash?",
+  "expectation": "base: REFUSED",
+  "pc": {
+   "score": "",
+   "nodes": "20",
+   "bestmove": null,
+   "refused": [
+    "info string invalid FEN: too many squares in FEN rank"
+   ],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "base": {
+   "score": "",
+   "nodes": "20",
+   "bestmove": null,
+   "refused": [
+    "info string invalid FEN: too many squares in FEN rank"
+   ],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "guard_pc": true,
+  "guard_base": true
+ },
+ {
+  "case": "checkmated_root",
+  "question": "does a checkmated root still report mate 0 (seat 21's door)?",
+  "expectation": "base: mate 0, bestmove 0000",
+  "pc": {
+   "score": "mate 0",
+   "nodes": "0",
+   "bestmove": "0000",
+   "refused": [],
+   "illegal": [],
+   "problems": [],
+   "depths": 8
+  },
+  "base": {
+   "score": "mate 0",
+   "nodes": "0",
+   "bestmove": "0000",
+   "refused": [],
+   "illegal": [],
+   "problems": [],
+   "depths": 8
+  },
+  "guard_pc": true,
+  "guard_base": true
+ },
+ {
+  "case": "long_move_list",
+  "question": "is a 1,000-ply move list still applied correctly?",
+  "expectation": "base: accepted, perft 1 = 16",
+  "pc": {
+   "score": "",
+   "nodes": "16",
+   "bestmove": null,
+   "refused": [],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "base": {
+   "score": "",
+   "nodes": "16",
+   "bestmove": null,
+   "refused": [],
+   "illegal": [],
+   "problems": [],
+   "depths": 0
+  },
+  "guard_pc": true,
+  "guard_base": true
+ }
+]
