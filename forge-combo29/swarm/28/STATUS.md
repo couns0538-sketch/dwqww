@@ -33,3 +33,6 @@ CYCLE 2: checked 19-F7 -> S-C2 REFUTES its cause (build-to-build) but CONFIRMS i
 
 ## Mon Nov 16 09:30:57 PM UTC 2026
 CYCLE 3: checked 27-F2 -> S-C3 CONFIRMS exactly (threshold 26 at startpos). Beyond it S-F13: the book does not answer startpos at all on this build (Book File empty), and the node threshold is one root iteration, not the constant 26 (a 51-move position switches between 40 and 60).
+
+## Mon Nov 16 09:34:48 PM UTC 2026
+CHECKPOINT PUSH requested by owner. Jobs 1-3 of area 8 done; checks S-C1 (confirms 01-F5), S-C2 (refutes 19-F7 cause), S-C3 (confirms 27-F2) pushed. 21-F2 check RUNNING now (pid 13306) - it stalls on a wrong perft wait token; will be killed and fixed next. Branch tip dc466c682 before this block.
