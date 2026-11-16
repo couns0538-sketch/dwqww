@@ -52,6 +52,14 @@ visible.** The reading guide inside FINDINGS.md says the same thing.
 | S-F16 | 8 | stands | `Clear Hash` is not a cold restore. |
 | S-F17 | 8 | stands — **my best deliverable** | a 5-line patch closes BOTH drawn-root doors with all four honesty numbers identical. |
 | S-F18 | 8 | stands | the defect's shape: claimable draws (fifty-move, repetition) treated like the automatic one. |
+| S-F19 | 8 | stands | three competing fixes for the two doors; my patch is one, and the counter-reset case does not separate `job2c` from mine. |
+| S-F20 | 8 | narrowed by S-F25-REVISED | 08-F11 re-tested on PC20: tail shape reproduces, absolute p99 1.5-1.8x lower, 0/120 searches over the clock. |
+| S-F21 | 8 | stands | seat 04's score non-reproducibility reproduced at Threads 4, and the MOVE varies too; Threads 1 is identical 5/5. |
+| S-F22 | 8 | stands | Threads audit: 10 of my 11 search harnesses send Threads 1 explicitly; `pins.py` must not. 08-F11's base numbers were Threads 1. |
+| S-F23 | 8 | stands | all my drawn-root findings are repaired on PC r15/PC20 — base-tree only, no action on the PC. |
+| S-F24 | 8 | stands | `DRAWN_ROOT_DOORS.md`: the decision file, base vs PC20 per door with node counts. |
+| S-F25 | 8 | SUPERSEDED by S-F25-REVISED | first, 16-position sample of the tail cause. |
+| S-F25-REVISED | 8 | stands | the PC build has NO per-node speed or depth advantage here; its smaller tail is a short-clock effect costing ~1 ply at 10 s. S-F20 is "less time at short clocks", not "stronger search". |
 
 ## The four things I would most like Fable/Opus to look at
 

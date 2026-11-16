@@ -137,3 +137,6 @@ TASK 2 DONE, and it went AGAINST my prediction (S-F25). Same grid both builds, T
 
 ## Mon Nov 16 10:26:33 PM UTC 2026
 S-F25-REVISED after 40 positions/cell (the 16-position sample understated noise): 'stops earlier' is clear ONLY at wtime 1000 (same depth 13, wall 0.88x). At 3000 no separation (same depth, 1.09x); at 10000 PC depth 19 vs base 20 at 0.89x. nps comparable (1.08/0.91/0.94). Conclusion: the PC build has NO per-node speed or depth advantage here; its smaller tail is a short-clock effect costing ~1 ply at 10 s. So S-F20 is 'less time at short clocks', NOT 'stronger search'.
+
+## Mon Nov 16 10:26:43 PM UTC 2026
+README status table extended: it had stopped at S-F19 (S-F19 itself was missing). Now covers S-F19 through S-F25-REVISED, marking S-F20 as narrowed and S-F25 as superseded. 26 rows.
