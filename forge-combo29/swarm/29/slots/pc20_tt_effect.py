@@ -10,6 +10,8 @@ Fresh process per regime, drained to bestmove. Aborts if a regime reports no nod
 """
 import subprocess, sys
 EXE, FENS, N = sys.argv[1], sys.argv[2], int(sys.argv[3])
+DEPTH = int(sys.argv[4]) if len(sys.argv)>4 else 12
+HASH = int(sys.argv[5]) if len(sys.argv)>5 else 16
 S14=[("LmrQuietBase",93),("LmrQuietDivisor",205),("LmrNoisyBase",13),("LmrNoisyDivisor",333),
      ("LmrHistoryDivisor",5643),("NullMoveBase",5),("LmpBase",8),("HistoryPruneMultiplier",2220),
      ("HistoryBonusQuadratic",24),("HistoryBonusLinear",54),("HistoryBonusMax",2212),
@@ -23,14 +25,14 @@ def run(settings):
     s("uci")
     for l in p.stdout:
         if l.startswith("uciok"): break
-    s("setoption name Hash value 16"); s("setoption name Threads value 1")
+    s(f"setoption name Hash value {HASH}"); s("setoption name Threads value 1")
     for k,v in settings: s(f"setoption name {k} value {v}")
     s("isready")
     for l in p.stdout:
         if l.startswith("readyok"): break
     nodes=0; npos=0
     for f in fens:
-        s(f"position fen {f}"); s("go depth 12")
+        s(f"position fen {f}"); s(f"go depth {DEPTH}")
         last=None
         for l in p.stdout:
             if l.startswith("info depth"): last=l
@@ -39,6 +41,8 @@ def run(settings):
         f2=last.split(); nodes+=int(f2[f2.index("nodes")+1]); npos+=1
     s("quit"); p.wait(timeout=1800)
     return nodes, npos
+print(f"depth {DEPTH}, Hash {HASH}, Threads 1, PC r15 build")
+print()
 print("| regime | positions | total nodes | nodes/position |")
 print("|---|---|---|---|")
 for lbl,st in (("S14",S14),("PC20",PC20)):

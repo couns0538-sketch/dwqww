@@ -269,3 +269,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-F40: PC20 is not cosmetic - measured on the PC r15 build, 30 real-game positions at depth 12, Threads 1, Hash 16: S14 = 3,078,383 nodes (102,612/position) vs PC20 = 2,478,658 (82,621/position), i.e. PC20 searches 19.5% FEWER nodes at the same depth on the same positions. Matches the bench pins (656,517 -> 587,276) and explains why base-vs-PC20 comparisons are comparisons of different tree sizes, not just different ordering.
 - Audit amended as asked: the append-only exception now sits at the TOP of slots/AUDIT_percentages.md, not only in the table.
 - next: continuing on the PC path.
+
+## Mon Nov 16 11:40:08 PM UTC 2026
+- 29-F41 CORRECTS MY OWN 29-F40, caught before it reached a summary: the PC20 tree-size advantage is DEPTH-DEPENDENT and changes sign. depth 10: S14 861,000 vs PC20 880,419 = +2.3% MORE nodes; depth 12: -19.5%; depth 14: 5,888,909 vs 5,061,004 = -14.1%. So the switches only pay from about depth 12 up; at shallow depth they cost slightly more.
+- 29-N22 withdraws '19.5% fewer nodes' as a general statement (it is the d12 row). The qualitative half stands at match depths: base/S14 and PC20 are trees of different SIZE, not merely different ordering. Same error class as 29-F39 - one cell presented as a constant - caught this time BEFORE it reached a summary.
+- next: continuing on the PC path.
