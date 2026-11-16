@@ -390,3 +390,13 @@
   variable (my rt_win_marker leftover) - the three follow-on errors pointed at innocent lines. Fix the
   FIRST error in a build's error list, never the last; and the stage getter (one line in the picker)
   was worth more than three margin curves.
+
+## after stand3, 2026-11-16T11:5xZ (exact line in stamps.txt)
+- STANDING JOB S3 done: `ucinewgame` returns the engine to the fresh-process state EXACTLY (0 of 200
+  positions differ in bestmove, score and nodes against two fresh-process runs at 20,000 nodes); the
+  no-ucinewgame control differs in 199 of 200 (the comparison can see a difference). The standing
+  question "does a search leave anything behind" is answered NO across ucinewgame, and the harness
+  rule (ucinewgame + isready before every go) is proven sufficient, not just customary.
+- FOR glmflash5/kimi5: the S3 result closes the "does the helper harness's ucinewgame discipline
+  matter" question - it does, and the discipline is enough. The bare-process control (199/200) is the
+  sensitivity proof for any future "nothing found" claim of this kind.
