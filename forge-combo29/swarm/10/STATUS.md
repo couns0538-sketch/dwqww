@@ -221,3 +221,11 @@ CONFIRMS the ORDER (not the percentages) of 19-F1/29-F2 (10-C8), 19-F4 (10-C9) a
 gprof inflates small functions, so absolute shares are not comparable to perf; only rank is.
 next: file 2's rule 2 says only NON-evaluation work can help the owner's PC -- record that in the audit and
 then continue the cycle.
+
+## Mon Nov 16 10:29:53 PM UTC 2026
+FILE 2 RULE 2 PINNED with its exact scope (10-C11). The rule "evaluation cost is worth nothing on the PC"
+holds ONLY when the PC has loaded its own v3 net: nnue_v3.hpp:158 active() = requested && loaded(), and
+search.cpp:1184 branches to static_evaluate_v3 only then. With NO net (our situation -- the net is not
+shared) the PC build still spends 21.51 % self in evaluate_position, i.e. identical to the base tree's 21.24 %.
+So: evaluation is worthless on the OWNER'S PC, first-class on OUR builds. Neither statement generalises.
+next: cycle -- look for the newest unconfirmed find that I can actually test with both builds.
