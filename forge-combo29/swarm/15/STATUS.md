@@ -12,8 +12,11 @@ Done:
   mismatches, 9/10 mate Pvs obey the length rule, 1 violation. Findings 15-F1, 15-F2.
 - AREA 5 **job 2 measured, analysis done**: 120 positions (KvK, KNvK, KBvK, KNNvK, threefold, halfmove 99)
   at depth 10 S14. Results: KvK/KNvK/KBvK/threefold all exactly cp 0 (prediction P1-P5 held);
-  KNN v K NOT 0 in 19 of 20 (P4 refuted); halfmove-99 all within the predicted band (P6 held, max |390|
-  which is inside my stated kill band of 200? NO — 390 > 200, so P6 is REFUTED on the largest position).
+  KNN v K NOT 0 in 19 of 20 => P4 REFUTED (finding 15-F3).
+  halfmove-99: 14 of 20 nonzero, min 0 max 390 => P6 REFUTED as written (my kill band was |score|>200).
+  My prediction was the thing that was wrong there: every position scoring >200 has a capture or pawn
+  move available, which resets the fifty-move counter, so a nonzero score is defensible. I record
+  P6 as refuted and the engine as not at fault.
   Findings 15-F3, 15-F4. REPORT_job2.md being written now.
 - Measurement integrity: after seat 19's warning every parser asserts the parsed token exists and fails
   loudly (job2/analyze_draw.py raises on a missing 'score'); this caught a bug of my own — an empty PV
