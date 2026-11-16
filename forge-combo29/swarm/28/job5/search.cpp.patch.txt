@@ -1,3 +1,69 @@
+# =====================================================================================================
+# THIS IS ONE OF THREE COMPETING FIXES FOR THE SAME TWO DRAWN-ROOT DOORS. APPLY EXACTLY ONE OF THEM.
+# =====================================================================================================
+#
+# The two doors, both in `src/search.cpp`, in the `root_drawn` shortcut (~line 2250 at 6b98f217):
+#   (a) `board.halfmove_clock() >= 100`  -> a mate in one at halfmove 100 is answered with 0 nodes.
+#   (b) `board.is_repetition()`          -> a mate in one on a thrice-repeated root is answered with
+#                                           0 nodes.
+#
+# The three competing fixes, all written against commit 6b98f217:
+#
+#   1. SEAT 28 (this file)          closes (a) and (b) by removing both terms from `root_drawn` and
+#                                   keeping only `is_insufficient_material()`.
+#   2. SEAT 01 job2 (one-line)      removes only the halfmove term  -> leaves door (b) open.
+#   3. SEAT 01 job2c + SEAT 12      seat 01's "combined" patch (`job2c/fifty_move_and_doors.patch.txt`),
+#                                   which is a reset-aware halfmove test PLUS seat 12's immediate-mate
+#                                   bypass for the repetition and dead-material doors.
+#
+# ONLY ONE MAY BE APPLIED. They all rewrite the same statement, so they CANNOT be stacked; applying two
+# produces a conflict or, worse, a silent double guard.
+#
+# ORDER MATTERS: whichever of the three you choose, apply it BEFORE seat 27's drawn-root *reporting*
+# patch. That patch changes how the shortcut reports (it makes the "0 nodes, every depth" output
+# explicit); it is layered on top of a root fix, not a substitute for one.
+#
+# -------------------------------------------------------------------------------------------------
+# WHAT A CHOOSER NEEDS TO KNOW — the one case where these fixes differ, measured on my build
+# -------------------------------------------------------------------------------------------------
+#
+# Seat 01 reports that its combined patch additionally fixes a "counter-resetting" mate: at halfmove 100
+# a PAWN MOVE resets the counter, so the position is not an automatic draw. Its board is
+#     8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1
+# and a fixed engine answers `mate 2` with 398 nodes at depth 12.
+#
+# **My patch FIXES that case too — it is not merely untested.** Measured, with the waiting reader, on
+# both binaries (`job5/counter_reset_out.txt`, `job5/out_counter/counter_reset.tsv`):
+#
+#   | board                        | base (unpatched)      | seat 28 patch (this file) |
+#   |------------------------------|-----------------------|---------------------------|
+#   | counter-reset mate, hm 100   | h6h7, cp 0, 0 nodes   | h6h7, mate 2, 398 nodes   |
+#   | mate in 1, hm 100            | f2f3, cp 0, 0 nodes   | a1a8, mate 1, 252 nodes   |
+#   | genuine draw, hm 150 (KQ v K)| h6c1, cp 0, 0 nodes   | h6h2, cp 0, 336 nodes     |
+#
+# 398 nodes is exactly seat 01's figure for the same board, and `mate 2` is its expected score. It works
+# for the same reason the combined patch's does: the search itself handles a counter-resetting pawn move
+# correctly once the root shortcut stops pre-empting it.
+#
+# THE DIFFERENCE THAT MATTERS: on a GENUINE fifty-move draw (KQ v K at halfmove 150) my patch now SEARCHES
+# it (336 nodes, still `cp 0`) where the base answered from the shortcut in 0 nodes. Seat 01's combined
+# patch does the same thing (its table: 280 nodes, still `cp 0`), so this is a shared cost, not a
+# difference — but a chooser should know it. K v K still answers with 0 nodes in my patch, because
+# `is_insufficient_material()` is kept.
+#
+# Where we DO differ:
+#   * Seat 01's combined patch is *reset-aware* for the halfmove door (it keeps the shortcut when the side
+#     to move has no non-pawn material), so it preserves the instant answer on more drawn roots.
+#   * Mine has no such refinement: it removes the term outright, so every halfmove-100 root is searched.
+#     That is simpler and has fewer moving parts, at the cost of a few hundred nodes on hopeless roots.
+#     In a clock search that cost is bounded by time management; in analysis it is a few tenths of a ms.
+#
+# VERIFIED FOR THIS FILE (see REPORT_job5.md):
+#   honesty 312866 / 862329 / 3024920 / 4865609 all unchanged; applies with `patch -p1 --fuzz=0`;
+#   0 of 120 ordinary positions differ from base in bestmove, nodes or score; ASan+UBSan clean with both
+#   required proofs (35 __asan__ symbols, and a planted fault counted by the same runner).
+# =====================================================================================================
+
 --- a/forge-combo29/src/search.cpp	2026-11-16 21:56:58.328663528 +0000
 +++ b/forge-combo29/src/search.cpp	2026-11-16 21:56:58.344663528 +0000
 @@ -2248,8 +2248,11 @@

@@ -141,6 +141,49 @@ I first marked KNN v K as "insufficient material, 0 nodes expected". python-ches
 the base and patched engines search it to 681 nodes and answer `b1d2`. My test's expectation was wrong; the
 engine is right. Corrected in `asan_patch.py`.
 
+## Three competing fixes for the same two doors — and the case that separates them
+
+My patch is the THIRD fix for these doors, beside seat 01's one-line diff, seat 01's `job2c` combined
+patch, and seat 12's immediate-mate bypass. They all rewrite the same statement in `src/search.cpp`, so
+**only one may be applied and they cannot be stacked**. The patch file now says this in its own header,
+including that whichever is chosen must be applied **before seat 27's drawn-root reporting patch**. I have
+not deleted my patch: three independent fixes converging is useful if the chooser is told they are
+alternatives.
+
+### The one difference a chooser needs
+Seat 01 reports that its combined patch additionally fixes a **counter-resetting mate**: at halfmove 100 a
+pawns move resets the counter, so the position is not an automatic draw. Its board is
+`8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1`; a fixed engine answers `mate 2` with 398 nodes at depth 12.
+
+**My patch fixes that case too — it is not merely untested.** `counter_reset_case.py`
+(`counter_reset_out.txt`, `out_counter/counter_reset.tsv`), both binaries, waiting reader:
+
+| case | engine | bestmove | score | nodes | depth | required |
+|---|---|---|---|---|---|---|
+| counter_reset_hm100 | base (unpatched) | h6h7 | cp 0 | 0 | 12 | SEARCH: mate 2 (~398 nodes) |
+| counter_reset_hm100 | **seat-28 patch** | h6h7 | **mate 2** | **398** | 12 | SEARCH: mate 2 (~398 nodes) |
+| mate1_hm100 | base (unpatched) | f2f3 | cp 0 | 0 | 12 | SEARCH: mate 1 |
+| mate1_hm100 | **seat-28 patch** | a1a8 | **mate 1** | 252 | 12 | SEARCH: mate 1 |
+| genuine_draw_hm150 | base (unpatched) | h6c1 | cp 0 | 0 | 12 | still cp 0 |
+| genuine_draw_hm150 | **seat-28 patch** | h6h2 | cp 0 | 336 | 12 | still cp 0 |
+
+**398 nodes is exactly seat 01's figure** for the same board and the score is the `mate 2` it expects. The
+reason is the same in both patches: once the root shortcut stops pre-empting the position, the ordinary
+search handles a counter-resetting pawn move correctly. python-chess confirms the board has a pawn move
+(so the counter does reset) and that `is_game_over(claim_draw=True)` is True — i.e. it is claimable, not
+automatic, which is the whole point.
+
+### The real difference, stated plainly
+On a **genuine** fifty-move draw (KQ v K at halfmove 150) my patch now **searches** it (336 nodes, still
+`cp 0`) where the base answered in 0 nodes. **Seat 01's combined patch does the same** (its own table: 280
+nodes, still `cp 0`), so this is a shared cost, not a difference between us. K v K still answers with **0
+nodes** under my patch because `is_insufficient_material()` is kept.
+
+Where we genuinely differ: seat 01's combined patch is **reset-aware** for the halfmove door — it keeps the
+shortcut when the side to move has no non-pawn material — so it preserves the instant answer on more
+hopeless roots. Mine removes the term outright: simpler, fewer moving parts, at the cost of a few hundred
+nodes on hopeless positions in analysis. In a clock search that cost is bounded by time management.
+
 ## The step table
 
 | step | done-partly-not done | evidence file | result |
