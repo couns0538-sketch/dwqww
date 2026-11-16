@@ -1,0 +1,28 @@
+| build | case | go | nodes | score | bestmove | legal |
+|---|---|---|---|---|---|---|
+| base | rep3_nomate | `go depth 10` | 0 | ('cp', 0) | e2e3 | True |
+| base | rep3_nomate | `go nodes 100000` | 0 | ('cp', 0) | e2e3 | True |
+| base | hm100_nomate | `go depth 10` | 0 | ('cp', 0) | e2e3 | True |
+| base | hm100_nomate | `go nodes 100000` | 0 | ('cp', 0) | e2e3 | True |
+| base | kvk | `go depth 10` | 0 | ('cp', 0) | e1d1 | True |
+| base | kvk | `go nodes 100000` | 0 | ('cp', 0) | e1d1 | True |
+| base | knvk | `go depth 10` | 0 | ('cp', 0) | f1d2 | True |
+| base | knvk | `go nodes 100000` | 0 | ('cp', 0) | f1d2 | True |
+| base | kbvk | `go depth 10` | 0 | ('cp', 0) | f1e2 | True |
+| base | kbvk | `go nodes 100000` | 0 | ('cp', 0) | f1e2 | True |
+| pc | rep3_nomate | `go depth 10` | 7734 | ('cp', 238) | e1f2 | True |
+| pc | rep3_nomate | `go nodes 100000` | 93148 | ('cp', 298) | e2e3 | True |
+| pc | hm100_nomate | `go depth 10` | 5602 | ('cp', 207) | e2e3 | True |
+| pc | hm100_nomate | `go nodes 100000` | 99293 | ('cp', 258) | e2e3 | True |
+| pc | kvk | `go depth 10` | 0 | ('cp', 0) | e1d1 | True |
+| pc | kvk | `go nodes 100000` | 0 | ('cp', 0) | e1d1 | True |
+| pc | knvk | `go depth 10` | 0 | ('cp', 0) | f1d2 | True |
+| pc | knvk | `go nodes 100000` | 0 | ('cp', 0) | f1d2 | True |
+| pc | kbvk | `go depth 10` | 0 | ('cp', 0) | f1e2 | True |
+| pc | kbvk | `go nodes 100000` | 0 | ('cp', 0) | f1e2 | True |
+python: the rep3 chain gives a real threefold: True
+rep3_nomate   base cp0: True   pc cp0: False
+hm100_nomate  base cp0: True   pc cp0: False
+kvk           base cp0: True   pc cp0: True
+knvk          base cp0: True   pc cp0: True
+kbvk          base cp0: True   pc cp0: True

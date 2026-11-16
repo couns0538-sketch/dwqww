@@ -1,0 +1,19 @@
+# PREDICTION — job37: drawn roots with NO mate available (file 6's complement)
+written before the first measuring command.
+
+file 6: a draw by repetition or by the fifty-move rule scored 0 is NOT a defect, because the match
+program ends the game at the third occurrence and at the 100th half-move. The defect is only a
+missed forced mate that ends by half-move 100. job36 tested the mate case at a threefold root (the
+mate is found). This job tests the OTHER side: at a drawn root with NO mate available, does the
+engine score it 0 quickly and correctly — and, importantly, does it score 0 on the PC build too
+(the FORGE_FIX_ROOT_DRAWN change makes it SEARCH such roots, which is allowed but must not lose the
+draw evaluation).
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | base build: a threefold root with no mate answers `cp 0` with 0 nodes | killed if it searches and reports non-zero |
+| P2 | PC build: the same root answers `cp 0` (it may search; the score must be 0) | killed if a non-zero score appears |
+| P3 | base build: a halfmove-100 root with no mate answers `cp 0` with 0 nodes | killed if it searches and reports non-zero |
+| P4 | PC build: the same halfmove-100 root answers `cp 0` (it searches now) | killed by a non-zero score |
+| P5 | insufficient-material roots (K v K, KN v K, KB v K) answer `cp 0` on BOTH builds | killed by a non-zero score |
+| P6 | bestmoves are legal everywhere; 0 crashes, 0 sanitizer lines | killed by any one |
