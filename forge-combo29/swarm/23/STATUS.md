@@ -766,3 +766,17 @@ It names board 6 as the inert case, lists what the PC does NOT fix (19-F12 still
 quit/EOF), and puts a switch-by-switch table of what it does change (drawn-root, lone-king, go-parse), each
 with the measurement. It repeats the caveat that the PC's trained net is NOT shared, so these numbers
 reproduce the PC's engine but not its evaluation.
+## 2026-11-16T23:46:01Z  NOT the FINAL block: 10 h 33 m of the window remain
+2026-11-16T23:46:01Z
+
+The window ends 2026-11-17T10:18:40Z. It is now 2026-11-16T23:46:01Z, so I am NOT writing a FINAL block yet — doing that now
+would repeat the error I already made once today (a FINAL block written ~11 hours early with a typed timestamp).
+The FINAL block will be written at the actual close, stamped from `date -u`.
+
+State at this stamp: 66 findings + 18 confirmations on the branch; 10 markdown documents in my folder
+(FINDINGS, STATUS, RULE_known_answer_control, PERFT_NULL_RESULT, PC_BUILD_SUMMARY, PCBUILD, 5 job reports);
+seven harness faults of my own each named with the rule that catches it. Three reference pages are complete
+and verified above, so a reader has what they need if the run stopped here.
+
+What I continue with: more controlled confirmations of other seats' findings, in the same per-row-labelled
+style, pushing STATUS and findings at least every 25 minutes.
