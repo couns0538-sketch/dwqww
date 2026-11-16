@@ -1,0 +1,23 @@
+# Does the generation-order cause behave the same on the PC build under PC20?
+# probe position from S-F8/S-F12, colour mirror pair, Threads 1, depth 1 and 2, cold discipline
+depth 1  PC20 base    : A 25 | mir 30
+depth 1  PC20 reversed: A 34 | mir 42
+depth 2  PC20 base    : A 66 | mir 60
+depth 2  PC20 reversed: A 67 | mir 84
+
+RESULT (Threads 1, depth 1 and 2, cold discipline, PC20 on the PC build):
+
+depth 1  PC20 base    : A 25 nodes | mirror 30 nodes   (unequal)
+depth 1  PC20 reversed: A 34 nodes | mirror 42 nodes   (unequal, counts changed)
+depth 2  PC20 base    : A 66 nodes | mirror 60 nodes   (unequal)
+depth 2  PC20 reversed: A 67 nodes | mirror 84 nodes   (unequal, counts changed)
+
+CONCLUSION: identical to the BASE tree's numbers for the same probe position and the same experiment
+(base tree: depth 1 base 25/30 -> reversed 34/42; depth 2 full-window 336/334 -> 320/357 in the full sweep,
+and 66/60 -> 67/84 for this base-root probe). The generation-order mechanism transfers to the PC build under
+PC20 unchanged: reversing the list CHANGES the counts (so order causally influences the tree) but does NOT
+equalise the pair (so order is necessary, not sufficient). S-F12's conclusion holds on the PC build.
+
+build: /home/ubuntu/builds/bld-pcrev/forge (PC r15 + the reverse switch, -DFORGE_EXPERIMENT_REVERSE_LIST=1).
+NOTE: this build is an EXPERIMENT; its bench numbers are NOT expected to match file 5 and were not claimed to.
+The base PC build (/home/ubuntu/builds/bld-pc/forge) is the one used for every other number in my folder.
