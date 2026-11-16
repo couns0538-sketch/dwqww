@@ -101,8 +101,6 @@ board where the behaviour must NOT happen (here: an ordinary position, which als
 
 ---
 
----
-
 ## Trap 2b: the harness window decided the outcome, not the engine (the same lesson, second occurrence)
 
 ### What I saw
@@ -143,6 +141,8 @@ Trap 2 was "the harness sent the stop it was testing for". This is the same root
 **the harness, not the engine, produced the observation.** Both were about a command the probe sent
 during the measurement window (a `stop`, or a deadline that behaved like one). Twice makes it a
 pattern, so it is recorded as a pattern.
+
+---
 
 ## Three more, shorter, from the same folder
 
