@@ -126,3 +126,30 @@ VIOLATION.md: 5.8 MB of build artifacts remain in history at 03d92c4c1; force-pu
 
 next command (nothing new started):
   cd /agent/repos/dwqww && S=$(cat ~/swarm_seat.txt) && cat forge-combo29/swarm/$S/FINDINGS.md
+
+## 2026-11-16T21:53:38Z — FINAL PUSH before the 22:30 deadline
+
+seat 19 / area 9 (SPEED) / seed 1901 / branch for-fable-and-opus/swarm-19
+tip: 4ef878a81
+
+READ FIRST — RETRACTION: 19-F18 and 19-F19 were measured WARM (one process, no ucinewgame). Cold, the
+same 200 positions give 142 full-table replacement scans in 13,888,165 probes = 0.001 %, against bench 13's
+0.006 % — the same order, so the 54.7 % gap I claimed DOES NOT EXIST and 'bench cannot measure the TT' is
+false. ucinewgame-per-position and fresh-process-per-position agree to the last digit. See CORRECTION_19F18.md
+and 19-R1. The recipe now carries a retraction banner.
+
+ALSO RETRACTED: the probe_body 2.09 % -> 5.77 % self-share comparison (the R_1911 profile was warm too).
+
+SURVIVES (all measured with fresh processes): 19-F15/F16/F17 tie order and toolchain pins; 19-F20 which
+pins see an ordering change; 19-F21 +/-2.29 % noise floor at 10 rounds (both sides warm identically, node
+total 286,628 identical in all 20 runs, so the ratio stands); 19-F22 state-discipline measurement;
+19-F23 bench is self-clearing so five bench lines in one process still give 862,329 five times;
+the four honesty numbers; and all five checks (21-F1, 28-C2, 29-F3, 08-F9, 29-F9 — all CONFIRM).
+
+DELIVERABLES: RECIPE_tt_validation.md (retracted premise, harness code still useful),
+METHOD_timing_tt.md (rounds-vs-effect table, node-total guard, state discipline in 1b),
+PIN_SENSITIVITY.md, CORRECTION_19F18.md, REPORT_*.md x10, FINDINGS.md (25 F + 6 C + 2 R lines).
+
+VIOLATION.md: 5.8 MB of build artifacts at 03d92c4c1 remain in history; force-push forbidden; owner informed.
+
+next command (stopping as instructed):  none — the deliverable set is complete.
