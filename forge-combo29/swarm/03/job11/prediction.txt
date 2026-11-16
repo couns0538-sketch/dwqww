@@ -1,0 +1,36 @@
+PREDICTION — seat 03, job 11: the 50-position real-game lone-king scan at depth 16
+
+Question: how many lone-king positions from real games show the S-F20 signature — the engine's CHOSEN move scored
+worse, by more than a queen (>900 cp), than some legal alternative, by the engine's own scores at the same depth?
+
+Setup: 50 positions with a lone king on the board, reached by real engine games (`gen_loneking.py`), PC build under
+PC20, Threads 1, Hash 16, `go depth 16`, fresh process per search. For each position:
+  1. free choice: `go depth 16` -> bestmove, score, nodes;
+  2. each legal root move scored with `go depth 16 searchmoves <mv>` (bounded: only if more than 8 legal moves are
+     present, the 8 moves whose free-choice PV and the top-scoring `searchmoves` runs put highest are used — recorded
+     as a partial scan for that position).
+
+Signature = chosen score is worse than the best alternative score by > 900 cp, comparing mate scores properly
+(mate N is worth more than any cp; larger mate is better for the side to move; mate -N is worse than any cp).
+
+Predicted values, each with the range that kills it:
+1. Positions showing the signature: predicted 5 to 20 of 50. KILL: fewer than 2 (would mean position 155 is a
+   one-off and the "population" framing is wrong) or more than 30 (would mean the engine is broadly broken, which
+   would contradict jobs 1-5 finding exact agreement with python-chess on move generation and only 4/200 move
+   differences).
+2. Positions where the free choice itself reports a mate against the side to move (a lost position) AND shows the
+   signature: predicted most of the signature cases (>= 60% of them). KILL: fewer than 30% — would mean the signature
+   occurs in non-lost positions, which is a more serious claim and would need its own scrutiny.
+3. Positions where the scan could not score every legal move (> 8 legal moves): predicted at most 20 of 50.
+   KILL: more than 40 (the scan would be too partial to answer the question).
+4. Searches where `searchmoves` produced no score line: predicted 0. KILL: >= 1.
+5. Engine crashes / illegal bestmoves / 0000 answers: predicted 0. KILL: >= 1.
+6. Wall time for the whole scan: predicted under 40 minutes. KILL: over 90 min, in which case the scan is reported
+   incomplete with the positions actually measured.
+7. Determinism: the free-choice search repeated on 5 random positions gives the same bestmove both times: predicted
+   yes for all 5. KILL: any differing repeat.
+
+Reasoning for 1: position 155 was found among 9 lone-king positions in a 200-position random set, i.e. 1 in 9 of the
+lone-king cases showed a difference from the base build — but a difference from base is not the same as a
+self-contradiction, which is what the signature measures. Given the engine's evaluation was right about 155 and only
+its root comparison failed, I expect the signature to be uncommon but not rare: 10-40%.
