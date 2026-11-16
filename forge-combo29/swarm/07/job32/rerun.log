@@ -1,0 +1,48 @@
+=== 1. key_after vs make_move (PC tree) ===
+games 200 seed 701
+key_after checked 1520927  refused 40778
+mismatches 0
+OK every predicted key equalled make_move's key
+=== 2. board probes: castling / ep / king across null (PC tree) ===
+probe1 rights after Rxa1 = 5 (fen 4k2r/8/8/8/8/8/8/r3K2R w Kk - 0 2)
+probe2a after e2e4 fen=[4k3/8/8/8/4P3/8/8/4K3 b - e3 0 1] key=14344340005152966589
+probe2a control fen=[4k3/8/8/8/4P3/8/8/4K3 b - - 0 1] key=14344340005152966589
+probe2b pin construction REFUSED by the engine: not a result
+probe3 before null: king_square=4 bitboard=4
+probe3 during/after null: 4 / 4 (expected 4)
+probe3 after e1e2 + null + unmake: king_square=4 (expected 4)
+
+ALL PROBES PASSED (0 failure(s))
+=== 3. fast legality path vs brute force (PC tree) ===
+games 40 seed 701
+moves compared 289809  mismatches 0 (fast-says-legal-but-illegal 0, fast-says-illegal-but-legal 0)
+OK the fast legality path agreed with make/unmake brute force on every move
+=== 4. gives_check vs make+in_check (PC tree) ===
+games 40 seed 701
+moves compared 260053  mismatches 0 (false check 0, missed check 0)
+OK gives_check() agreed with make+in_check on every legal move
+=== 5. has_legal_move vs python-chess (PC tree) ===
+positions checked: 9118
+  engine REFUSED a FEN the test wanted: REFUSED 8/8/8/8/8/8/6p1/6Kk b - - 0 1
+RESULT: has_legal_move() agreed with python-chess and with legal_moves().size() on every position
+=== 6. repetition vs python-chess (PC tree) ===
+plies compared: 62
+RESULT: engine is_repetition() agrees with python-chess threefold at every ply
+=== 7. perft vs python-chess on the 14 special positions (PC exe) ===
+kiwipete_d3            depth 3  engine      97862  python-chess      97862  EQUAL
+kiwipete_d4            depth 4  engine    4085603  python-chess    4085603  EQUAL
+pos3_d4                depth 4  engine      43238  python-chess      43238  EQUAL
+pos3_d5                depth 5  engine     674624  python-chess     674624  EQUAL
+pos4_d3                depth 3  engine       9467  python-chess       9467  EQUAL
+pos4_d4                depth 4  engine     422333  python-chess     422333  EQUAL
+pos5_d3                depth 3  engine      62379  python-chess      62379  EQUAL
+pos6_d3                depth 3  engine      89890  python-chess      89890  EQUAL
+ep_pin_d4              depth 4  engine       4225  python-chess       4225  EQUAL
+ep_discovered_d3       depth 3  engine        379  python-chess        379  EQUAL
+promo_d4               depth 4  engine     676340  python-chess     676340  EQUAL
+promo_check_d3         depth 4  engine      81806  python-chess      81806  EQUAL
+castle_rights_d4       depth 4  engine     314346  python-chess     314346  EQUAL
+castle_blocked_d3      depth 4  engine     334247  python-chess     334247  EQUAL
+
+OK: 14 positions, every perft total equal to python-chess, every divide line equal, no stderr output.
+EXIT=0
