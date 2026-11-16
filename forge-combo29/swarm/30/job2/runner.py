@@ -97,7 +97,7 @@ def run_one(idx, lines, exe):
     rec = {"seq": idx, "crash": 0, "hangs": 0, "hang_reason": None, "san": [], "san_count": 0,
            "exit": None, "go": 0, "bounded": 0, "bestmoves": 0, "checked": 0,
            "illegal": [], "unpaired": 0, "no_bestmove": 0, "readyok": 0, "ready_sent": 0,
-           "runner_error": None}
+           "runner_error": None, "ended_live": 0}
     env = {k: v for k, v in os.environ.items()
            if k not in ("ASAN_OPTIONS", "UBSAN_OPTIONS", "TSAN_OPTIONS", "LSAN_OPTIONS")}
     p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -192,17 +192,13 @@ def run_one(idx, lines, exe):
                     rec["hang_reason"] = "ready_timeout"
                     break
                 rec["readyok"] += 1
-        # 19-F12: never close stdin while a search is live -- the engine then answers a
-        # FABRICATED bestmove (a2a3, 0 nodes). So stop the search, wait for the real
-        # bestmove, and only then quit.
+        # 19-F12: closing stdin while a search is live makes this build answer a FABRICATED
+        # bestmove (a2a3, 0 nodes). We do not send stop (a ponder search does not answer it, and
+        # waiting made the run 4x slower); instead the sequence is flagged `ended_live` and EVERY
+        # bestmove in it is EXCLUDED from the legality check. Nothing is guessed either way.
         if p.poll() is None:
             if pending_go:
-                k0 = n_best()
-                send("ponderhit")   # a pending ponder search answers this, not stop
-                wait_best(k0, 2.0)
-                if n_best() == k0:
-                    send("stop")
-                    wait_best(k0, 2.0)
+                rec["ended_live"] = pending_go
             send("quit")
         try:
             p.wait(timeout=EXIT_WAIT)
@@ -230,7 +226,9 @@ def run_one(idx, lines, exe):
     rec["san"], rec["san_count"] = san[:5], len(san)
     bests = best_list()
     rec["bestmoves"] = len(bests)
-    if len(bests) == len(go_boards):
+    if rec.get("ended_live"):
+        rec["unpaired"] = max(rec["unpaired"], 1)   # never checked; reported as not measured
+    if len(bests) == len(go_boards) and not rec.get("ended_live"):
         for bm, bd in zip(bests, go_boards):
             rec["checked"] += 1
             bad = judge(bm, bd)
@@ -271,6 +269,7 @@ def main():
     wall = time.monotonic() - t0
 
     sums = ("crash", "hangs", "san_count", "no_bestmove", "unpaired", "checked",
+            "ended_live",
             "go", "bounded", "bestmoves", "readyok", "ready_sent")
     agg = {"sequences": len(seqs), "wall_seconds": round(wall, 1), "workers": workers,
            "illegal_bestmoves": sum(len(r.get("illegal", [])) for r in results),

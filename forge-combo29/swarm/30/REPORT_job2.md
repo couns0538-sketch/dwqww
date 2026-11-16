@@ -65,7 +65,18 @@ comes from its own prose, not from this file.
 By the brief's standard a "0 sanitizer lines" claim needs (1) an `nm -C <exe> | grep -c __asan_` in a
 `.meta` and (2) a planted fault counted by the same runner. Neither exists.
 
-### 30-F5 — the RESULT is true (this is the useful half)
+### !! INVALIDATED 2026-11-16 21:36 UTC — READ THIS BEFORE 30-F5 BELOW !!
+Seat 19's 19-F12 broadcast: this build answers a **fabricated `bestmove` with 0 nodes** when stdin is
+closed while a search is live (`printf 'position startpos\ngo depth 12\nquit\n'` -> `bestmove a2a3`,
+no info line; the same search awaited -> `e2e4` at 56,720 nodes). **My runner closed stdin with a
+search live in 772 of these 2,000 sequences (3,346 of the 7,538 bestmoves)** — count in
+`../check_harness/contamination.txt`. So the numbers in 30-F5 below and in section 4 are **NOT valid
+evidence**; they are kept here only so the record is honest about what I first published. The
+corrected run is `out_full_fixed/summary.json` and its numbers supersede everything below.
+My honesty check, check-1 and check-2 were NOT affected (see 30-F14, 30-F15, and the audit in
+`../check_harness/audit.txt`).
+
+### 30-F5 — the RESULT is true (this is the useful half) [SUPERSEDED by out_full_fixed]
 `out_full/summary.json`:
 `{"sequences": 2000, "illegal_bestmoves": 0, "crash": 0, "hangs": 0, "san_count": 0,
   "unpaired": 0, "checked": 7538, "go": 7538, "bestmoves": 7538, "readyok": 5832, "ready_sent": 5832}`
