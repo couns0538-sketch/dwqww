@@ -90,8 +90,17 @@ def classify(tag, fen, commands, got, wall, rc, err, stdin_closed, mode):
     except Exception as e:
         legal = None
         note = "python-chess rejects the FEN: %s" % e
+    # INTEGRITY GATE (seat 19's measurement-integrity warning). A missing number must never
+    # pass as a measurement. These are recorded as explicit booleans, and check_quit.py
+    # refuses to print any verdict built on a field whose flag is false.
+    have_bestmove = bool(best)
+    have_nodes = last_nodes is not None
+    have_move = bool(mv)
     rec = {"case": tag, "mode": mode, "fen": fen, "commands": commands, "bestmove": best,
            "move": mv, "last_nodes": last_nodes, "info_lines": infos,
+           "measured": {"bestmove_line_found": have_bestmove,
+                        "node_count_found": have_nodes,
+                        "move_field_found": have_move},
            "wall": round(wall, 3), "exit": rc, "legal": legal, "note": note,
            "stdin_closed_before_bestmove": stdin_closed,
            "fabricated": bool(best) and infos == 0,
