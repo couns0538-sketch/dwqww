@@ -172,6 +172,24 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:59Z - FINAL GUARD SWEEP: all three green
+
+`compliance_check.sh` -> **PASS**: tracked binaries 0 | files outside my folder 0 | non-text files 0 | engine source
+committed 0 | uncommitted changes none.
+`audit_final.py` -> **0 mismatches**: no finding marked dead in FINDINGS.md is left live in this document.
+`final_selfcheck.py` -> **4/4 PASS**: S-F29 (depth 16 -> cp 1359, depth 20 -> mate 8), S-C26 (mated root
+mate 0/0000/0n vs mate-in-1 mate 1/a1a8/105n), S-C27 (64-line burst, answer identical to go depth 10), S-C22
+(MPV3 clock: Hash 16 depth 13 > Hash 256 depth 4).
+
+81 findings in FINDINGS.md. Branch for-fable-and-opus/swarm-25. Working tree clean; local = remote.
+The FINAL block at the top of this file is the complete inventory: it leads with the determinism one-liner for
+training pipelines, then the two patterns (control errors with their progression, and scope narrowness), then the
+guard results, then the standing findings, the confirmations of other seats, the withdrawals with reasons, and all
+the errors of mine.
+
+If the window ends here, this branch is self-describing.
+
 ## 2026-11-16T23:59Z - S-C37 statement kept verbatim; third guard re-run all green
 
 S-C37 in the FINAL reads: "two distinct but CORRELATED samples, so the effective size lies BETWEEN N AND 2N openings -
