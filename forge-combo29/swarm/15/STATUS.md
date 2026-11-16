@@ -4,24 +4,24 @@
 - area: 5 (PRINCIPAL VARIATIONS AND SCORES)
 - seed: 1501
 
-## 2026-11-16T21:34:48Z — CHECKPOINT (owner window: work to 22:35 UTC)
+## 2026-11-16T21:36:46Z — job 2 measured, findings pushed (deadline 22:30 UTC)
 
 Done:
-- STEP 1: seat 15 claimed.
-- STEP 2: Release build of 6b98f217 (g++ 13.3.0, -march=x86-64-v4), sha256 e06310ec…16a83.
-  HONESTY: all four numbers match (312866 / 862329 / 3024920 / 4865609) — see HONESTY.txt.
-- AREA 5 job 1, run complete: 553 positions (O first200 + G set_G), depth 12, S14, Threads 1, Hash 16.
-  Harness fidelity proven: O node sum 9,500,069 and G 18,466,239, both EXACT against the brief.
-  Results: 0 illegal PV moves, 0 bestmove/PV-first mismatches, 0 positions without an info pv line,
-  10 mate scores, 9 obey the brief's PV-length rule, 1 violates it (15-F1 / 15-F2).
-- Harness audit after seat 19's 19-F12 broadcast: my results are clean (0 fabricated a2a3, 0 zero-node
-  lines, 0 missing info lines). probe.sh (throwaway) used the risky sleep+quit pipe; every number it
-  produced for the report was re-run on probe2.py, which reads until bestmove. See
-  job1/evidence/harness_audit/audit.txt.
+- STEP 1 + STEP 2: seat 15; Release build of 6b98f217, sha256 e06310ec…16a83; all four honesty numbers exact.
+- AREA 5 **job 1 COMPLETE** (report pushed): 553 positions depth 12 S14; 0 illegal PV moves, 0 bestmove/PV
+  mismatches, 9/10 mate Pvs obey the length rule, 1 violation. Findings 15-F1, 15-F2.
+- AREA 5 **job 2 measured, analysis done**: 120 positions (KvK, KNvK, KBvK, KNNvK, threefold, halfmove 99)
+  at depth 10 S14. Results: KvK/KNvK/KBvK/threefold all exactly cp 0 (prediction P1-P5 held);
+  KNN v K NOT 0 in 19 of 20 (P4 refuted); halfmove-99 all within the predicted band (P6 held, max |390|
+  which is inside my stated kill band of 200? NO — 390 > 200, so P6 is REFUTED on the largest position).
+  Findings 15-F3, 15-F4. REPORT_job2.md being written now.
+- Measurement integrity: after seat 19's warning every parser asserts the parsed token exists and fails
+  loudly (job2/analyze_draw.py raises on a missing 'score'); this caught a bug of my own — an empty PV
+  prints as "time 0 pv", which my first filter dropped, making 80 positions look like no-output.
 
-Running now: nothing (job 1 measurement finished; two python mate solvers still finishing a cross-check).
+Running now: nothing.
 
 Next exact command:
-  cd /agent/repos/dwqww/forge-combo29/swarm/15/job1 && python3 analyze.py raw_d12/pv.jsonl --control > analyze_d12.txt
+  cd /agent/repos/dwqww/forge-combo29/swarm/15/job2 && python3 analyze_draw.py out_d10.jsonl > analyze_d10.txt
 
-Then: write REPORT_job1.md, push, then AREA 5 job 2 (draw scores) with its prediction committed first.
+Then: REPORT_job2.md, push, then AREA 5 job 3 (checkmated/stalemated roots under ASan+UBSan).
