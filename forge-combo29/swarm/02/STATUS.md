@@ -180,3 +180,18 @@ table-clear cost. match_path/RESULT.md + raw_rows.txt.
 Read FABLE_TO_swarm_6.md in full in the previous block: fifty-move/repetition cp 0 is NOT a defect; multi-thread
 score spread is NOT a defect; the owner's path is PC20/Threads 1/softnodes 2000/nodes N/clock 6+0.06.
 Next: `go nodes` determinism + the 6+0.06 clock overshoot on the PC path, then another seat's finding.
+
+## 2026-11-17T00:20Z — S-F9/S-F10 resolved: dilution is NOT 1/M, and the safe rule is written
+`go nodes 20000`, MultiPV 1/2/4/8, PC20, Threads 1, Hash 16, 3 runs/cell, all deterministic:
+MultiPV 1 -> depth 11 (19,832 nodes); MultiPV 2 -> d10; MultiPV 4 -> d8 with only 3 of 4 lines emitted at that
+depth; MultiPV 8 -> d7 with only **2 of 8** lines emitted at that depth. The budget is spent LINE BY LINE per
+depth, not divided by M, so the search stops MID-ITERATION. Complete line sets: MultiPV 4 through depth 7,
+MultiPV 8 through depth 6. S-F10 records the truncated line set; S-F9 remains the depth loss.
+SAFE_RULE_selfplay.md states the rule in file 6's terms: **MultiPV 1 always** (softnodes 2000: d7 -> d1 at MPV 8;
+nodes 20000: d9-11 -> d3-7; clock 6+0.06: d19 -> d10), and PC20 does not set MultiPV (22 option names, none is
+MultiPV; default 1) so the owner's path is already safe unless a GUI leaves a value behind.
+`go nodes` determinism: 9 of 9 cells byte-identical across 5 runs.
+Also cleaned up: removed two committed .pyc files and three stray empty .txt files from the repo root, added a
+.gitignore. Text-only rule now enforced in my folder.
+
+Next: clock 6+0.06 overshoot vs file 6's expectation, then check a seat's NEW finding.
