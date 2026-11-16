@@ -1,5 +1,16 @@
 # `bestmove 0000` on a live position — every trigger, as separate rows
 
+> **PORTABLE ARTIFACT — usable without any of tonight's context.** If you write a harness or a GUI that sends
+> `searchmoves`, this table is self-contained: it names four ways to produce `bestmove 0000` on a position that has
+> legal moves, the one-line guard that covers all four, and the detector if you want to flag the condition after
+> the fact. Engine: any build of this family (verified on both the base tree and the PC r15 patch), UCI only.
+>
+> **The guard, in one line:** never send a `searchmoves` clause that contains no legal root move — if your move
+> list is empty, omit `searchmoves` entirely rather than sending it with nothing after it.
+>
+> **Why it matters:** UCI defines `0000` as "no legal move exists", so a GUI reads it as a lost position and may
+> resign a playable game.
+
 The condition is broader than "a bad `searchmoves` value": it is **any restriction that admits no legal root
 move**, however it arose. A GUI guard needs that distinction, so each trigger is its own row here rather than an
 addition to another seat's finding.
