@@ -48,7 +48,24 @@ write-up `WARM_STATE_AUDIT.md`.
 OK job3/eng.json: 230 positions x depths 1..5 all integer; sums [5644, 137090, 4013465, 119698590, 3925995728]
 ```
 
+A 60-position subset (first 30 R + the 30 G positions) was measured separately as a check that the 230-position
+figure is not an artefact of one long file:
+
+```
+OK job3/eng60.json: 60 positions x depths 1..5 all integer; sums [1569, 44559, 1370754, 44931726, 1552941785]
+```
+
 Startpos control (HONESTY.txt, re-proved by honesty2.py): `go perft 5` -> `nodes 4865609`.
+
+**The python-chess depth-5 side is not finished.** At the deadline the run was still going, so the depth-5
+comparison is incomplete; the engine half above stands on its own (asserted integers, non-zero, 230/230 and 60/60
+positions). Exact next command to finish it:
+
+```
+cd forge-combo29/swarm/03/job3 && tail -2 py_all230.log \
+  && python3 ../assert_measured.py perft py_all230.json 5 230 \
+  && python3 ../job1/compare.py eng.json py_all230.json job3_diffs.txt | tee job3_table.txt
+```
 
 ## Prediction against result (so far)
 
