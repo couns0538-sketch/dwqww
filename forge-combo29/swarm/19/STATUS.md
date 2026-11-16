@@ -66,3 +66,16 @@ running right now: check08F9_multi.py — 08-F9 across 100 positions x 4 clock s
 
 next command:
   python3 forge-combo29/swarm/19/check08F9/check_08F9_multi.py ~/build_rel/forge forge-combo29/swarm/19/job1b/R_1911.fens forge-combo29/swarm/19/check08F9/raw3
+
+## 2026-11-16T21:36:13Z — FULL PUSH (owner deadline 22:30Z)
+
+Everything below is on GitHub as of this block: FINDINGS.md (13 F lines, 4 C lines),
+REPORT_job1/2/3/1b.md, both patch files, every raw job file under job1/ job2/ job3/ job1b/, and the
+three check folders (check21F1, check28C2, check29F3, check08F9).
+
+state: jobs 1, 2, 3, 1b complete. checks: 21-F1 CONFIRMS, 28's S-C2 CONFIRMS (against my own 19-F7),
+29-F3 CONFIRMS, 08-F9 CONFIRMS.
+
+continuing with: verification of 19-F12's impact on other seats' harnesses, then one more PC-relevant
+speed job. next command:
+  for s in $(git ls-remote origin "refs/heads/for-fable-and-opus/swarm-*" | sed "s#.*swarm-##"); do ...; done
