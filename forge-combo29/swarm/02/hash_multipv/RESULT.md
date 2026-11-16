@@ -358,3 +358,55 @@ And it is a large speed win, which is why it is worth doing carefully rather tha
 - Did not build or test a cluster-local clear. That is the next experiment and it is the fixer's call.
 - Did not test positions other than the one above; a single position decides the PRINCIPLE (the clear is
   load-bearing) but not the magnitude across the 353-position G set.
+
+---
+
+# WHY the clear matters — occupancy and work, measured before building anything
+
+The question: is the score change explained by REUSE of surviving entries (in which case a cluster-local clear
+removes exactly that reuse and is not equivalent), or by something subtler?
+
+`why_clear_matters.py`, depth 8, MultiPV 4, Threads 1, Hash 16, 3 runs per build. Both builds were stable across
+their runs (multipv, hashfull, nodes and score all equal run to run), so single numbers are comparable.
+
+| line | with clear: score | nodes | hashfull | without clear: score | nodes | hashfull | hashfull delta |
+|---|---|---|---|---|---|---|---|
+| multipv 1 | cp 156 | 5771 | 3 | cp 156 | 5771 | 3 | +0 |
+| multipv 2 | cp 73 | 9864 | 1 | cp 68 | 8048 | 5 | **+4** |
+| multipv 3 | cp 68 | 14016 | 3 | cp 52 | 9916 | 3 | +0 |
+| multipv 4 | cp -18 | 20848 | 4 | cp -18 | 11977 | 6 | **+2** |
+| **total nodes** | | **50,499** | | | **35,712** | | |
+| hashfull series | [3, 1, 3, 4] | | | [3, 5, 3, 6] | | | +6 |
+
+## the reading: reuse, and the numbers say so on two independent axes
+1. **OCCUPANCY is higher without the clear** on the lines whose scores changed: multipv 2 goes 1 -> 5, multipv 4
+   goes 4 -> 6. The no-clear build is finding more of the table occupied when it finishes each line, which is
+   what "the previous line's entries survived" looks like.
+2. **WORK is LOWER without the clear** — 35,712 nodes against 50,499, a 29 % reduction — for output that differs.
+   Fewer nodes for a different answer is the signature of a search that was handed useful entries instead of
+   rediscovering them.
+
+Both together are what a reuse story predicts, and they predict it in opposite directions from a "something
+subtler" story: if the change came from, say, a timing artefact or an evaluation-order quirk, node counts would
+not systematically DROP. The no-clear search reaches its (different) answer more cheaply because the surviving
+entries are doing work for it.
+
+**So a cluster-local clear will NOT be equivalent.** A cluster-local clear removes precisely the surviving
+entries that are being reused here, so it should land on the no-clear numbers (cp 68 / cp 52) rather than
+reproducing the with-clear numbers (cp 73 / cp 68). That makes the "cheap version" a BEHAVIOUR change like the
+outright removal, not a free speed patch — the opposite of what I guessed earlier, and now contradicted twice.
+
+## honest limit on this measurement
+`hashfull` is the engine's own 1000-cluster SAMPLE occupancy (src/search.cpp:562-573), not a probe or hit counter,
+and the engine exposes no hit counter, so I cannot say "N probes hit". What I measured is occupancy plus node
+count. Those two agreeing on the direction is strong evidence for reuse, but it is an inference from two
+observables rather than a direct hit count, and I say so rather than overclaim.
+
+## what this means for the fixer, in one paragraph
+The per-line clear is load-bearing because it PREVENTS REUSE that measurably changes both the work done (-29 %
+nodes) and the scores of lines 2-4. Any replacement therefore has to reproduce the with-clear numbers, and a
+cluster-local clear almost certainly will not, because it preserves exactly the reuse that is doing this. On this
+evidence I would not spend the effort building the cluster-local clear; the realistic options are (a) keep the
+clear and accept the cost at large Hash, or (b) remove it and take the ~12.6x speed win as a DELIBERATE strength
+change to be validated by matches, not as a speed patch. I did not build the cluster-local clear, since the
+measurement says it will not reproduce the current output.
