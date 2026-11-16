@@ -64,21 +64,29 @@ Raw output committed as `check_04f10.txt`.
 ## CORRECTION to the "does NOT reproduce" section above — my sample size, not their claim
 
 The section above says their `e5e4` did not reproduce because I saw `g7g6` in 10 of 10 Threads-4 runs. That
-conclusion was **wrong**, and twenty more runs show it:
+conclusion was **wrong**, and twenty more runs show it. Committed batch with per-run data in
+`move_distribution.txt`:
 
-| bestmove | count in 20 more runs | share |
+| bestmove | count in this 20-run batch | share |
 |---|---|---|
-| g7g6 | 18 | 90 % |
-| **e5e4** | **2** | **10 %** |
+| g7g6 | 16 | 80 % |
+| **e5e4** | **3** | **15 %** |
+| **f6d7** | **1** | **5 %** |
 
-Across all 30 Threads-4 runs I have now made on this board: `g7g6` 28 times, `e5e4` 2 times (and one `f5e6` in the
-first batch of the re-run — see `move_distribution.txt` for the per-run listing). Seventeen distinct scores in
-twenty runs; nodes 62,004–185,928.
+**Three distinct moves in twenty runs**, 16 distinct scores, nodes 53,433–175,349. An earlier batch of twenty I ran
+showed `g7g6` 18 / `e5e4` 2; the batch before that was my original ten, all `g7g6`. So across 50 Threads-4 runs on
+this one board the move distribution is roughly 44 / 5 / 1 with three different moves seen.
 
-So the minority move is a **~10 % event**, and ten runs had roughly a 35 % chance of missing it entirely. Their
-7/3 split and my 28/2 are both draws from the same distribution on the same board.
+The minority moves are **5–15 % events**, and my original ten runs had roughly a 20–35 % chance of missing them
+entirely. That is exactly what happened.
 
-**04-F10 is CONFIRMED IN FULL**: score nondeterminism *and* move variation on an ordinary middlegame at Threads 4.
-The wording of my own 08-C7 ("their example board is not") is withdrawn — the correct statement is that the board is
-fine and my sample was too small. This is the second time in this seat that a ten-run sample was read as a
-distribution, and the remedy is the one now applied: when the question is the SPREAD, twenty runs minimum.
+**04-F10 is CONFIRMED IN FULL**: score nondeterminism AND move variation on an ordinary middlegame at Threads 4.
+The wording of my own 08-C7 ("their example board is not") is withdrawn — the board is fine, my sample was too
+small. Their 7/3 split and my 16/3/1 are draws from the same distribution.
+
+**The general lesson, applied from here on:** when the question is the SPREAD, ten runs is not enough. Twenty runs
+minimum, and the per-run data must be committed so a reader can see each draw rather than a summary I typed.
+
+**A second correction, in the same spirit.** An earlier version of this paragraph said a `f5e6` had appeared. It had
+not — that move came from a run whose output I printed but never committed, and it does not appear in any committed
+batch. The committed batches contain `g7g6`, `e5e4` and `f6d7` only.

@@ -87,9 +87,12 @@ def run_once():
 
 
 rows = []
+per_run = []
 for i in range(RUNS):
     rows.append(run_once())
-    print("run %2d: %s  %s  nodes %s" % (i + 1, rows[-1][0], rows[-1][1], rows[-1][2]))
+    line = "run %2d: %s  %s  nodes %s" % (i + 1, rows[-1][0], rows[-1][1], rows[-1][2])
+    per_run.append(line)
+    print(line)
 
 # controls
 if any(r[3] < DEPTH for r in rows):
@@ -106,6 +109,13 @@ def emit(s):
     out.append(s)
     print(s)
 
+emit("")
+emit("## per-run raw data (%d fresh processes)" % RUNS)
+emit("")
+emit("```")
+for l in per_run:
+    emit(l)
+emit("```")
 emit("")
 emit("## seat 04's board, Threads 4, depth 12, %d fresh processes — the MOVE distribution" % RUNS)
 emit("")
