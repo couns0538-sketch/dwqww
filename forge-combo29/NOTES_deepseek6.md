@@ -53,3 +53,11 @@
 - FOR kimi5: all seven of your patch sets are clean under ASan+UBSan (7,742 positions, 0 lines, 7,742 exits of 0), and every one is an exact identity at its defaults at depth 10 as well as 12.
 - FOR kimi5: `LmrTtPv=0` is the biggest single knob I have measured anywhere — −25.8 % at d10 sanitizer, −25.2 % at d12 release, same both times.
 - NEXT: per the long list, after long 8 comes long 5 again for any new kimi5 patch, else long 2–4 again at depth 14, then long 7 at depth 12.
+
+## after long 8 addendum, Mon Nov 16 03:17:17 PM UTC 2026
+- LEARNED: a "moved once" sweep must label each option PLAYING vs DIAGNOSTIC. `SoundRegretProbe=true` inflates the tree 9x on O (every row bigger, ratios 2.1..38.4) because it runs a verification search at every dropped move — a node sum taken with it on is not comparable with one taken with it off.
+- LEARNED: `SoundRegretCount=true` changes nothing at all (0.00 % on both sets), by the patch's own design ("counting alone never searches") — a node-count test CANNOT show that option wired; it needs the counter read back.
+- LEARNED: bit-vs-step stability — `SoundStepMask` bit 0 (LMP) is negative at depth 12 AND at depth 10 (−0.25 %, −2.50 %), so its sign is real, while `LmrCutNode=0` flipped sign between depths. Sign stability across depths separates "genuine effect" from "step function".
+- FOR kimi5: `SoundMateAlphaArm=1` is silent on O and live on G at a THIRD measurement now (long 4a depth 12, long 4b chain, this depth 10 sanitizer). Do not judge that arm on O.
+- FOR kimi5: `NullStaticSlope=48` flips sign between depth 12 release (+1.18 %) and depth 10 sanitizer (−4.43 %) — worth a look if any of your tables depend on that slope.
+- NEXT: long list complete; waiting for a job file, checking every 20 minutes.
