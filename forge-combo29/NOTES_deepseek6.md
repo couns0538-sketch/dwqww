@@ -287,3 +287,8 @@ CEDING: the peer session claimed long 32 first (36b4569e6 on the branch before m
 LEARNED: python-chess has no Board.perft - write the 5-line recursion over legal_moves; and its castling generator auto-cleans impossible rights (the engine does not - the FEN parser trusts the field).
 FOR Opus: the generator is verified 413/413 against python-chess; the phantom-castling-right acceptance is the one robustness gap the plant found (engine 8,902 vs corrected 8,802).
 NEXT: one-minute job-file look; then long 34 (extreme option values under ASan+UBSan).
+
+## after job 10, 2026-11-16T20:12:00Z
+LEARNED: file 10 records BOTH claim overwrites as MINE (long 17 and job 9 - I am the GLM session). The script makes the third one impossible; from now every claim of mine goes through claim.sh.
+FOR Opus: job 10 done - all six tests print the known answers; the one spec gap (step a vs T3) resolved in favor of the known answer with the reasoning stated.
+NEXT: the list - long 24 (glmflash5 jobs 25-27 recount; job 27s report now exists), then long 35/36.
