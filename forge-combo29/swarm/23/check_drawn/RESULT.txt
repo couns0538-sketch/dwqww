@@ -1,0 +1,26 @@
+CHECK of FABLE_TO_swarm_3's drawn-root item — base vs PC r15, my own harness
+==========================================================================
+File 3 says: on the base tree a drawn root is searched with 0 nodes and the first legal move is played, even with a
+mate on the board; on the owner's PC this is REPAIRED (seated at 15 November), only insufficient material still
+being answered at once.
+
+Method: `go depth 8`, base build vs PC r15, Threads 1, Hash 16, OwnBook off, drained, fresh process per line.
+
+| case | build | info lines | last score | last nodes | bestmove |
+|---|---|---|---|---|---|
+| won K+R v K, halfmove 0 (not drawn) | base | 8 | cp 400 | 3,614 | d5b5 |
+| won K+R v K, halfmove 0 (not drawn) | PC r15 | 8 | cp 399 | 7,155 | d5b5 |
+| won K+R v K, halfmove **150** (drawn) | base | 8 | cp 0 | **0** | d5d1 |
+| won K+R v K, halfmove **150** (drawn) | PC r15 | 8 | cp 0 | **160** | d5d1 |
+| K+Q v K, halfmove **150** (drawn) | base | 8 | cp 0 | **0** | h6c1 |
+| K+Q v K, halfmove **150** (drawn) | PC r15 | 8 | cp 0 | **224** | h6h2 |
+
+VERDICT: CONFIRMS file 3 on both halves. On a drawn root (halfmove 150) the BASE reports **0 nodes**, exactly the
+documented defect; the PC r15 build reports **160 and 224 nodes**, i.e. it searches the position. Note the PC also
+chose a DIFFERENT move on the K+Q board (h6h2 vs the base's h6c1) — so on drawn roots the repair is not merely a
+bookkeeping change, it can change the move played.
+
+CAVEAT, stated because it limits what this shows: halfmove 150 is past the 100th half-move, so by the rules the game
+is already drawn and neither engine's move MATTERS. What the rows establish is only that the PC's search is no
+longer short-circuited, which is what file 3 claims. A drawn root BEFORE the 100th half-move (third repetition) is
+the case where the move could matter, and I did not construct one.
