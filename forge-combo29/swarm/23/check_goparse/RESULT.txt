@@ -1,0 +1,27 @@
+CHECK of file 5's FORGE_FIX_GO_PARSE — a `go` keyword must never be taken as the VALUE of the previous keyword
+==========================================================================================================
+Probes: deliberately malformed `go` lines where `go` appears where a number belongs. Each drained, bounded by a
+5 s timeout so a hang is measured rather than waited on. OwnBook false. Position `8/8/8/8/8/8/8/K6k w - - 0 1`.
+
+| probe | base | PC r15 |
+|---|---|---|
+| `go depth go` | 0.00 s, **1** info line, a1b1 | 0.00 s, **64** info lines, a1b1 |
+| `go nodes go` | 0.00 s, 64 info, a1b1 | 0.00 s, 64 info, a1b1 |
+| `go movetime go` | 0.00 s, 64 info, a1b1 | 0.00 s, 64 info, a1b1 |
+| `go depth go nodes 1000` | 0.00 s, **1** info, a1b1 | 0.00 s, **64** info, a1b1 |
+| `go wtime go btime go` | 0.00 s, **1** info, a1b1 | 0.00 s, **64** info, a1b1 |
+| control `go depth 3` | 0.00 s, 3 info, a1b1 | 0.00 s, 3 info, a1b1 |
+| control `go nodes 5000` | 0.00 s, 64 info, a1b1 | 0.00 s, 64 info, a1b1 |
+
+WHAT THE TABLE SHOWS, and its limit:
+- On the base, the three probes whose malformed value is immediately followed by another keyword (`go depth go
+  nodes 1000`, `go wtime go btime go`, `go depth go`) produce only **1** info line, i.e. the search stopped almost
+  immediately — consistent with `go` being consumed as the value and the remaining keywords being mis-parsed.
+- On the PC r15 build all three produce **64** info lines and a bestmove, i.e. the malformed value is rejected and
+  the search proceeds normally. So the PC's FORGE_FIX_GO_PARSE behaviour is visible in exactly the cases it names.
+- NEITHER BUILD HANGS and NEITHER errors on these inputs; the difference is how much they search, not whether they
+  answer.
+
+CAVEAT, and it matters: match programs never send `go` as a value, so this is a robustness difference that cannot
+affect the PC's games. Also, "1 info line" is my proxy for a truncated search; I did not read the engine's parse
+path, so I cannot say WHICH token was eaten — only that the base searches far less and the PC does not.
