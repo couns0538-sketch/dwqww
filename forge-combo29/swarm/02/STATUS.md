@@ -124,3 +124,18 @@ go_family_results.json + go_family_regression_check.txt.
 PC ASan+UBSan build also done (build-pc-asan, -DFORGE_MATE_ALPHA_GUARD=1 + sanity).
 Next: re-run area-2 job 1 and job 3 against the PC build under PC20 (job 1 on the PC ASan build), and check
 another seat's unchecked finding.
+
+## 2026-11-16T23:20Z — NEW FINDING S-F7 (both builds, PC20 too): Hash x MultiPV 167x slowdown
+Found while chasing two "missing bestmove" lines in the PC job-1 run; they were not hangs but this.
+`Hash 2048` + `MultiPV 8`, `go depth 6` from startpos, Threads 1: **7180 ms base / 7108 ms PC**, against 2 ms at
+MultiPV 1 — with the SAME 48 info lines, so the engine is not searching more. Cause read in the source:
+the extra-PV loop calls `alt_shared->tt.clear()` once per extra line, and `tt.clear()` walks every cluster
+(src/search.cpp:372). Measured: one clear costs 172 ms at 2048 MB, and the MultiPV overhead is ~42-47 clears'
+worth at 512 MB and above. Confirmed under the full PC20 set on the PC build (16 MB: 51 ms, 2048 MB: 6966 ms).
+NOT touched by the PC r15 patch. hash_multipv/RESULT.md + scaling.txt + clear_vs_multipv.json.
+
+## 2026-11-16T23:20Z — PC build job 1 done (2,000 sequences, PC20, ASan)
+5,827 `go`, 5,825 `bestmove`, 0 crashes, 0 hangs, 0 sanitizer lines, 0 illegal bestmoves, 0 refused options.
+Two sequences flagged "no bestmove": both were the S-F7 slowdown under the 20 s driver timeout, not hangs —
+`go depth 6` replayed at 11.5 s in a sequence that had set Hash 1000000000 (clamped to 2048) and MultiPV 8.
+Base build had 0 such flags only because its random draw differed. job1_pc/.

@@ -86,3 +86,14 @@ My PC job-1 run flagged two `go depth 6` lines with no bestmove. They were NOT h
 under the 4-way concurrent ASan load, well inside a 20 s timeout in isolation, and the cause was this Hash 2048 x
 MultiPV 8 interaction inside those particular random sequences. Recording it because "2 missing bestmoves on the
 PC build, 0 on the base build" would otherwise read as a PC regression; it is not.
+
+## confirmed under the owner's real PC20 settings
+The table above used default options plus the two that matter. Re-measured on the PC build with the full PC20
+set applied (Threads 1, Hash <size>, S14's 14, the four switches, MateAlphaGuard, OwnBook false):
+
+| Hash | MultiPV 1 | MultiPV 8 |
+|---|---|---|
+| 16 | 2 ms | 51 ms |
+| 2048 | 2 ms | **6966 ms** |
+
+Same behaviour, so S-F7 is not an artefact of leaving the other options at default.
