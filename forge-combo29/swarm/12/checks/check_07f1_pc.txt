@@ -1,0 +1,22 @@
+exe /home/ubuntu/build/pc_r15/forge   Threads 1, Hash 16, MultiPV 1, OwnBook false
+
+=== the claim: a searchmoves restriction matching nothing
+  startpos  go depth 4 searchmoves e2e5                  -> 0000   4 depth lines, nodes [0, 0, 0]..., scores ['cp 0'], FABRICATED
+      note: info string searchmoves restriction has no legal root moves
+  startpos  go depth 6 searchmoves e2e5                  -> 0000   6 depth lines, nodes [0, 0, 0]..., scores ['cp 0'], FABRICATED
+      note: info string searchmoves restriction has no legal root moves
+  kiwipete  go depth 4 searchmoves e2e5                  -> 0000   4 depth lines, nodes [0, 0, 0]..., scores ['cp 0'], FABRICATED
+      note: info string searchmoves restriction has no legal root moves
+  kiwipete  go depth 6 searchmoves e2e5                  -> 0000   6 depth lines, nodes [0, 0, 0]..., scores ['cp 0'], FABRICATED
+      note: info string searchmoves restriction has no legal root moves
+
+=== CONTROLS
+  C1 legal searchmoves e2e4     -> e2e4, 6 depth lines, max nodes 438  [searched]
+  C2 unrestricted go depth 6    -> d2d4, 6 depth lines, max nodes 1703, last score cp 34  [searched]
+
+=== verdict: 4/4 restricted-empty cases are FABRICATED
+  controls working: C1 yes, C2 yes
+  07-F1 CONFIRMED: the engine reports a drawn score at every depth for a position it
+  never searched, while its own harness can see a real search when one happens.
+
+raw -> /tmp/c07f1_pc.json
