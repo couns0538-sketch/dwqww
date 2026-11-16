@@ -1,3 +1,31 @@
+## 2026-11-16T23:18Z - RETRACTION: the nodes-20000 defect does NOT reach the match path (exposure 0)
+
+I sent "LIVE DEFECT on the owner's match setting" earlier. The measurements say the exposure on the match path is
+ZERO, and I am retracting that headline rather than letting it stand.
+
+WHAT IS TRUE (S-C9): reading the raw lines instead of trusting my parser -- the FINAL answer at `go nodes 20000`
+on 8/8/1p6/8/p3p3/8/2Kpk3/8 w is CORRECT (mate -7, 14-ply legal PV, verified checkmate). The real defect is
+narrower: an INTERMEDIATE depth-8 line carries an ILLEGAL move (b2a2) in its PV plus a mate number the finished
+depth-8 search never had.
+
+EXPOSURE (S-C10): 100 real game positions, `go nodes 20000`, PC20, Threads 1, Hash 16 -> 0 of 1 final mate scores
+wrong, 0 of 48 intermediate mate-scored lines with an illegal PV. Middlegames at 20k nodes rarely emit mate lines
+at all. So: a real but narrow STREAMING display defect on endgames at small node budgets, NOT a match-path defect.
+
+THE GUARD (task 1): `FORGE_FIX_ABORT_PUBLISH` exists (src/search.cpp:65-78), is compiled OUT by default
+(`#define ... 0`, line 77) because it was measured on 19,800 exact-node stops and found not to be a repair, and
+its publish block is gated on `!stopped_by_nodes_` so a node stop never takes it even when enabled.
+
+FOUR ERRORS RECORDED TONIGHT, none edited away (pcpath/EXPOSURE_FINAL.md lists them):
+1. clock-99 zero wrongly called correct (withdrawn, debug/CORRECTION.md)
+2. h6h5 hand-written as a pawn push, it is a capture (debug/COST_FINAL.md)
+3. a check compared a regex match to "cp 0" when it returns "score cp 0" (check_05F14/)
+4. S-F27 headlined as a match-path defect when the final answer is correct and exposure is 0 (this block)
+The pattern is always the same: a conclusion that does not match my own raw evidence. Reading the raw lines and
+playing them out has caught it every time.
+
+Findings that STAND: S-F1/S-F8/S-F9/S-F10 (mate numbers, S-F1/S-F8 repaired on PC), S-F6/S-F7 (terminal-root
+reporting), S-F25 (softnodes deterministic), S-F26 (clock near-miss, do not fix), S-C3, S-C4, S-C6, S-C7.
 ## 2026-11-16T23:16Z - NEW LIVE DEFECT on the owner's match setting (S-F27/S-F28)
 
 `go nodes 20000` is one of the three node limits the owner's matches use, and it produces a WRONG MATE SCORE:
