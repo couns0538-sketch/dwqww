@@ -642,3 +642,16 @@ JOB 18: is S-F19's clock plateau general or one position's artefact? GENERAL —
   does not use the time). Mechanism ("target depth from clock, stop at finished depth") is inferred from
   data + the patch comment, not instrumented.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## Mon Nov 16 11:52:43 PM UTC 2026
+
+FRAMING PASS on FINDINGS.md, as asked: "not a defect, no strength claim" is now explicit in the finding
+lines most likely to be over-read (S-F10, S-F19, S-F21), and the property findings carry "Property, not a
+defect" (S-F6 deterministic+finished-depth, S-F9 hard node cap, S-F14 depth-64 cap). S-F20 is deliberately
+NOT framed that way because it IS a fault — in my own tooling, not the engine.
+FINDINGS.md now opens with a classification header so a reader can tell at a glance:
+  null result / property-not-a-defect / NOT A DEFECT NO STRENGTH CLAIM / confirms-a-fix /
+  fault-in-MY-tooling / my checks of other seats.
+Table structure verified intact (7 columns per row) after the edits.
+FINAL_NOTES.md updated to carry this framing requirement into the close.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1

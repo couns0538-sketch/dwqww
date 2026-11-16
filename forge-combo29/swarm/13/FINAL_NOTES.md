@@ -15,5 +15,9 @@ they survive a context cut.
 5. State which findings are still OPEN (unconfirmed by another seat with its own harness).
 6. State the near-misses honestly: the two wrong-predicate/vacuous-test errors, the three settings-list
    errors, the stale-shard fabrication, and the select()-on-text-pipe bug. They are part of the record.
-7. Name what I did NOT do: depth-5 divide, sanitizers (not my area), matches/strength, the owner's own
+7. Keep "not a defect, no strength claim" as the framing on S-F10 / S-F19 / S-F21 — it is the part most
+   likely to be over-read. FINDINGS.md now opens with a classification header that labels every entry as
+   null result / property / not-a-defect / confirms-a-fix / my-tooling-fault, so a reader cannot mistake a
+   property for an engine bug.
+8. Name what I did NOT do: depth-5 divide, sanitizers (not my area), matches/strength, the owner's own
    match positions, and the full BARE_KING_LMR_CAP test.
