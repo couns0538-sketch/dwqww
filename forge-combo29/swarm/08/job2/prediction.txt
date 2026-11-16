@@ -1,0 +1,35 @@
+# PREDICTION — seat 08, AREA 8 job 2 — very little time. Committed and pushed BEFORE the first measuring command.
+
+Job 2: `wtime 100, 30, 10, 1, 0` (and the same with `winc 0` / `winc 10`): overruns and losses on time.
+
+"Loss on time" here means: the search's wall time exceeds the clock it was given (that is what a GUI would
+flag). I test both sides to move from the same position set (my OG200), 200 searches per control.
+
+| control | predicted median wall | predicted n over the clock | range that kills the prediction |
+|---|---|---|---|
+| wtime/btime 100 inc 0 | 4 to 12 ms | 0 to 20 of 200 | median > 40 ms, or 60+ over |
+| wtime/btime 100 inc 10 | 8 to 20 ms | 0 to 20 of 200 | median > 50 ms, or 60+ over |
+| wtime/btime 30 inc 0 | 1 to 5 ms | 0 to 40 of 200 | median > 30 ms, or 100+ over |
+| wtime/btime 30 inc 10 | 3 to 12 ms | 0 to 40 of 200 | median > 40 ms, or 100+ over |
+| wtime/btime 10 inc 0 | 0 to 3 ms | 0 to 80 of 200 | median > 10 ms, or 150+ over |
+| wtime/btime 10 inc 10 | 1 to 6 ms | 0 to 80 of 200 | median > 20 ms, or 150+ over |
+| wtime/btime 1 inc 0 | 0 ms (immediate bestmove, no search) | 0 to 200 of 200 | (this one may legitimately be 200/200 — see below) |
+| wtime/btime 1 inc 10 | 0 ms | 0 to 200 of 200 | same |
+| wtime/btime 0 inc 0 | 0 ms (reserve empty: must not search) | 0 | any overrun at all |
+
+## Why I predict this, from the source I have read
+`plan_clock_budget` (`include/forge/clock_plan.hpp:27-50`) returns `reserve_empty = true` when
+`time <= overhead`, and `Move Overhead` defaults to 10. So:
+- `wtime 10` gives `available = 0` -> **reserve empty, no search at all**;
+- `wtime 1` and `wtime 0` likewise;
+- `wtime 30` gives available 20, soft = 20/22 = 0 -> clamped to 1 ms, hard = min(12, 5) = 5 ms;
+- `wtime 100` gives available 90, soft = 4 + inc*0.75, hard = min(54, soft*5).
+
+KILL RANGE for the whole job: if `wtime 10` or smaller produces a search that runs longer than the clock,
+the engine loses on time in every such game, and that is the finding. If the engine answers instantly without
+a bestmove or without any legal move, that is a worse finding.
+
+## Second prediction
+With `winc 10` at `wtime 30` I expect MORE time used than with `winc 0` (the increment is added to soft at
+75 %), so the inc-10 row should show a larger median and possibly more overruns than inc-0.
+Kill: inc-10 median below the inc-0 median by more than 2 ms.
