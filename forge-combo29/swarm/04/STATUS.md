@@ -127,3 +127,17 @@ So at an identical node budget the threads still disagree => threading fault in 
 artefact. Also note Threads 4 stops at a SHALLOWER depth (18-21) than Threads 1 (24) for the same budget.
 RUNNING NOW: go nodes 200000000 at T1 and T4, 10 runs each (slow, ~2 min/run; first T1 run e5e4 -388 d39).
 THEN: the base build at Threads 4 (same test), to tell the owner whether this predates r15.
+
+## 2026-11-16T22:40:46Z RE-TESTED F9/F10/F11 AGAINST FILE 6 — SURVIVES D5 ONLY
+Ran file 6's own five-test defect check rather than defending my framing.
+ONE-THREAD REFERENCE: 20 runs at each of depths 12-16 under PC20 gave ONE identical score at every depth
+(-293, -272, -292, -283, -273) — the band is WIDTH 0. Threads 4: outside that band at ALL FIVE depths,
+max deviation 26 / 44 / 22 / 22 / 48 cp. The deviation does NOT shrink with depth (26 at d12, 48 at d16),
+which is file 6's D5 condition. D1 hang: no. D2 crash: no. D3 illegal: no (40 Threads-4 runs). D4 sanitizer:
+not shown (release). => survives D5 ONLY.
+WITHDRAWN: my framing that the varied MOVE in 04-F10 was a defect. File 6 says a varied move above Threads 1 is
+design; every move it chose was legal. Kept as an observation, not a defect.
+CAVEAT I must state: the owner's PC plays Threads 1, where this engine is exactly reproducible. So this is a
+hazard for threaded tuning/testing, not for PC games. Priority accordingly low.
+NOW PIVOTING to the PC's real path per file 6: PC build, PC20, Threads 1, Hash 16, go softnodes 2000,
+go nodes 20000/50000/250000, clock 6s+0.06.
