@@ -61,3 +61,49 @@ repo root, not -p2 (-p2 fails). Composed build honesty 4/4 unchanged; on seat 27
 6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 100 60 the base plays f2f3 / cp 0 / 0 nodes and the composed
 tree plays a1a8 / mate 1 / 252 nodes. Details: job1/integration/MERGE_INSTRUCTION.md,
 job1/integration/compose_hashes.txt, job1/integration/compose_table.txt.
+
+## 2026-11-16T21:51Z — checkpoint (22:05 window)
+
+Job 1 re-run (2,000 UCI sequences, ASan+UBSan, now recording max_depth_seen/max_nodes_seen so a
+zero sanitizer count is backed by a proven search): 1026/2000 done, 0 crashes / 0 hangs / 0 sanitizer lines / 0 illegal bestmoves so far.
+Partial raw committed under job1/ if the run has not finished.
+
+Job 2 (races) started in parallel against the same ASan+UBSan build: stop / ponderhit / ucinewgame /
+setoption Hash / quit at a random 0-50 ms delay during go infinite and go depth 30.
+64 cases so far, 0 crashes / 0 sanitizer lines / 0 illegal bestmoves / 0 hangs.
+Partial raw: job2/partial/races_partial.jsonl.
+
+Patch status: COMPLETE and pushed (commit f2f227ffc), plus the seat 27 merge instruction
+(325b8b112) and the node-level known limit (361922ca4).
+Next commands: wait for both runs, then files: /home/ubuntu/build/job1out3/asan_2000.jsonl
+sequences                 1026
+UCI lines total           18044
+bestmoves produced        2920
+bestmoves not checkable   0
+wall seconds total        834.6
+
+| quantity | count | sequences |
+|---|---|---|
+| sequences run | 1026 | - |
+| crashes (signal) | 0 | - |
+| hangs (no readyok in 20 s) | 0 | - |
+| sanitizer lines | 0 | - |
+| illegal bestmoves (re-checked in a fresh process) | 0 | - |
+| nonzero exit status | 0 | - |
+
+no sequence fired anything; nothing further to list
+and table                                                 cases  searched  san  proves?
+job1/reproduction/doors_patched_release.json              4         4    0     True
+job1/reproduction/doors_unpatched_asan.json               4         2    0     True
+job1/reproduction/regression_patched_asan.json           12         6    0     True
+job1/reproduction/regression_patched_release.json        12         6    0     True
+job1/reproduction/regression_unpatched_release.json      12         4    0     True
+job1/qms/quit_mid_search.json                             5         0    0    False
+~build/job1out/asan_2000.jsonl                         2000         0    0     True
+~build/job1out2/asan_2000.jsonl                        2000         0    0     True
+~build/job1out3/asan_2000.jsonl                        1026         0    0     True
+
+WEAK ZERO: job1/qms/quit_mid_search.json
+  BY DESIGN: the search is interrupted before it produces an info line, so this table can never prove a search ran. A zero here is evidence about the stop/print path only, and is reported as such.
+
+raw -> /agent/repos/dwqww/forge-combo29/swarm/12/job1/audit.json, then write REPORT_job2.md.
