@@ -282,3 +282,8 @@ NEXT: one-minute job-file look; then long 32 (recipe R on SoundArms 57524c71 - l
 
 ## after long 32 claim withdrawn, 2026-11-16T20:08:00Z
 CEDING: the peer session claimed long 32 first (36b4569e6 on the branch before my claim commit); per the claim rule I take the next item. My long-32 CLAIM.txt commit stays as history; no report from me for it.
+
+## after long 33, 2026-11-16T20:06:00Z
+LEARNED: python-chess has no Board.perft - write the 5-line recursion over legal_moves; and its castling generator auto-cleans impossible rights (the engine does not - the FEN parser trusts the field).
+FOR Opus: the generator is verified 413/413 against python-chess; the phantom-castling-right acceptance is the one robustness gap the plant found (engine 8,902 vs corrected 8,802).
+NEXT: one-minute job-file look; then long 34 (extreme option values under ASan+UBSan).

@@ -10,6 +10,16 @@ exe, setfile, depth = sys.argv[1], sys.argv[2], int(sys.argv[3])
 limit = int(sys.argv[4]) if len(sys.argv) > 4 else None
 import chess
 
+def perft(board, d):
+    if d == 0:
+        return 1
+    n = 0
+    for m in board.legal_moves:
+        board.push(m)
+        n += perft(board, d - 1)
+        board.pop()
+    return n
+
 def engine_perft(exe, fen, d):
     p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                          stderr=subprocess.DEVNULL, text=True, bufsize=1)
@@ -51,7 +61,7 @@ diff_rows = []
 for i, fen in enumerate(fens):
     ecount, raw = engine_perft(exe, fen, depth)
     b = chess.Board(fen)
-    pcount = b.perft(depth)
+    pcount = perft(b, depth)
     if ecount == pcount:
         eq += 1
     else:
