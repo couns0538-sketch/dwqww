@@ -216,3 +216,10 @@ Seat 11 / area 1 / branch swarm-11. PC r15 built + all 3 number regimes matched.
 label on 7 findings after finding my own harness bug (S-A5), fixed it, re-ran everything (S-F34).
 Findings of mine now: S-F1..S-F34 + S-C2..S-C12 + audits S-A1..S-A5 + S-P1(superseded).
 Next: continue on PC20 with provably-applied options; STATUS every 25 min.
+- PC_SWITCHES.md WRITTEN: all six FORGE_FIX_* with compiled state + measured effect, one line each.
+  In his binary: ROOT_DRAWN, GO_PARSE, ISREADY_PENDING, HARD_LIMIT_EMERGENCY, BARE_KING_LMR_CAP.
+  NOT in his binary: BARE_KING_ONE_THREAD, ABORT_PUBLISH. Notable: turning BARE_KING_ONE_THREAD on
+  changes a lone-king search 106,270 -> 1,431,555 nodes at Threads 1 (13.5x), so its absence matters.
+  UNMEASURED (stated as such): ISREADY_PENDING, HARD_LIMIT_EMERGENCY, BARE_KING_LMR_CAP, ABORT_PUBLISH.
+  Includes the one-command cross-seat check: bench 11 must read 278024 for PC20, 242796 for S14,
+  312866 means NO options were applied.
