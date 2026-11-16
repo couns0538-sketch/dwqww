@@ -1,0 +1,19 @@
+kimi5 job 14 prediction (before Step 1; never edited). Ratios are tree ratios vs I2 (S14) on O
+(I2 nodes 9,500,069; I3 = S14+FailHighBlend 1 = 9,272,824, ratio 0.9760). Killed = outside the range.
+
+Step 3 on O (ratio to I2, predicted [kill range]):
+- T_n   (RfpNoTtPv 1):        1.015  [0.995, 1.040]
+- T_t   (RfpTtGuard 1):       1.045  [1.010, 1.080]
+- T_c16 (RfpCorrMul 16):      1.003  [0.990, 1.015]
+- T_c32 (RfpCorrMul 32):      1.006  [0.990, 1.025]
+- T_all (three, corr 16):     1.055  [1.020, 1.095]
+- T_allF(three + FHB 1):      1.025  [0.995, 1.060]
+
+Step 2 (blocked returns over the 200 searches of O under S14):
+RfpTtGuard blocks the most returns (T largest), then RfpNoTtPv (N), RfpCorrMul smallest (C).
+Reason: after iterative deepening most frontier non-PV nodes carry a TT entry whose move is
+quiet, so the tt-move guard bites often; PV-flagged entries are a minority; correction
+differences are a few cp, so the added margin rarely flips the test.
+
+T_allF lands nearer to I2 than to I3: the guards' growth (~5 %) outweighs the FHB-1
+shrink (~2.4 %), leaving the sum above I3 and closer to I2.
