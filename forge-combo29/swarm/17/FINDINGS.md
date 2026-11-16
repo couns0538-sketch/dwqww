@@ -452,8 +452,10 @@ Three more games from three different real middlegames, same method, plus the ea
 | D | `2r4r/pp4k1/...` | 60 | 0 | 0 | 2674 / 2027 | 146 ms | 1197 ms |
 
 **180 plies, 0 forfeits, 0 illegal moves, minimum clock observed 1,059 ms.** The single slowest move was
-1,197 ms against 2,027 ms still on the clock (59 % of the remaining time) — the closest call in the sample,
-and still not close to a forfeit.
+1,197 ms and it was made with 4,953 ms still on the clock; the closest call in the sample is a different
+move — the one taken at the minimum clock of 1,059 ms. Both are far from a forfeit. (I first wrote that
+1,197 ms was against 2,027 ms; that number belongs to the END-of-game clock of game D, not to that move.
+Corrected from the raw rows.)
 
 GUI-reachable: **YES, this is the owner's match clock.** Evidence: `pc/matchclock3/matchclock3.json`,
 `pc/matchclock3/game*.log`, `pc/matchclock/matchclock.json`.
