@@ -107,3 +107,33 @@ property of three lines:
 So: a single bug, in a single branch, not a shared type-level defect. The risk it represents is that
 `type button` is advertised to GUIs but never actually drives any behaviour, so a second button added later
 would start from nothing and could easily get this wrong again.
+
+---
+
+# TODAY vs SHOULD — for a GUI author who cannot change the engine
+
+Everything above says what the engine SHOULD do. This section says what it DOES today, so a GUI can defend
+itself. Measured, not remembered: `today_state/today_state.txt`, an interactive driver (a piped one would
+report the 19-F12 fabrication instead of the real answers); the S-F5 rows are collected from before the
+`setoption` under test, because a first version of that probe collected after it and wrongly showed silence.
+
+| case | WHAT IT DOES TODAY | warning line today? | what the GUI must do instead |
+|---|---|---|---|
+| S-F3 `ponderhit` on a non-ponder search | **silently ignored; the search runs on and no `bestmove` follows** | **NO — 0 `info string` lines** | send `stop`, never `ponderhit`, to cancel. There is no reply to detect: the only signal is the `bestmove` that never arrives, so a GUI that waits on it hangs. |
+| S-F4 `go` with only the opponent's clock | **silently unbounded: searches until something else stops it** | **NO — 0 `info string` lines** | **never send `go` without the side-to-move's clock.** No warning exists, so the only defence is on the GUI side. |
+| S-F5 button `Clear Hash` given a value | refuses the value, so the clear may not happen | **YES — `info string invalid value for option Clear Hash`** | send `setoption name Clear Hash` with NO value. This is the one of the three that tells you it went wrong, so check for that line. |
+
+The asymmetry is the point, and it is why the first two are the dangerous ones: for S-F5 the engine tells you it
+refused (so a GUI that reads `info string` lines can log or retry), but for S-F3 and S-F4 the engine says
+**nothing at all**. Silence there is indistinguishable from a slow search, which is exactly how a GUI ends up
+waiting forever with no diagnostic to show a user.
+
+## the two rules a GUI must enforce itself, in one line each
+1. **Never send `go` without the clock of the side to move** (`wtime` when White is to move, `btime` when Black
+   is): today the search then has no time limit and no warning is printed.
+2. **Never use `ponderhit` to cancel**: it only ends a `go ponder` search. For any other search the engine keeps
+   searching and prints nothing, so use `stop`.
+
+Both are GUI-side only. Neither is detectable from the engine's output today, which is why the recommendation in
+the SHOULD section is for the engine to emit an `info string` — until it does, there is nothing on the engine
+side to wait for.

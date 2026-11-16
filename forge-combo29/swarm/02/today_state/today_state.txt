@@ -1,0 +1,12 @@
+# S02: what the engine does TODAY, per case — is there ANY warning line?
+
+S-F3  `go infinite` + `ponderhit`            ended_by_itself=False info_string_lines=0 []
+S-F3  `go depth 20` + `ponderhit`            ended_by_itself=True  info_string_lines=0 []
+S-F4  White to move, `go btime 100` only     ended_by_itself=False info_string_lines=0 []
+S-F4  Black to move, `go wtime 100` only     ended_by_itself=False info_string_lines=0 []
+S-F5  `setoption name Clear Hash value 0`    info_string_lines=0 []
+S-F5  `setoption name Clear Hash` (no value) info_string_lines=0 []
+
+# corrected: info strings collected from BEFORE the setoption under test
+S-F5  `setoption name Clear Hash value 0`    info_string_lines=1 ['info string invalid value for option Clear Hash']
+S-F5  `setoption name Clear Hash` (no value) info_string_lines=0 []
