@@ -1,0 +1,38 @@
+### character of the S-F34 failure on the boards that exhibit it
+board                                    budget                mate   pv  need  class
+4Q3/8/r2K4/8/2B5/5R2/1k6/8 w - - 0 1     softnodes 500            -    8     -  (no mate score)
+4Q3/8/r2K4/8/2B5/5R2/1k6/8 w - - 0 1     softnodes 1000           4    6     7  SHORT
+4Q3/8/r2K4/8/2B5/5R2/1k6/8 w - - 0 1     softnodes 2000           4    6     7  SHORT
+4Q3/8/r2K4/8/2B5/5R2/1k6/8 w - - 0 1     softnodes 5000           3    5     5  ok
+4Q3/8/r2K4/8/2B5/5R2/1k6/8 w - - 0 1     softnodes 20000          3    5     5  ok
+7Q/8/8/4K3/8/8/5k2/4R3 w - - 0 1         softnodes 500            5    8     9  SHORT
+7Q/8/8/4K3/8/8/5k2/4R3 w - - 0 1         softnodes 1000           5    8     9  SHORT
+7Q/8/8/4K3/8/8/5k2/4R3 w - - 0 1         softnodes 2000           4    7     7  ok
+7Q/8/8/4K3/8/8/5k2/4R3 w - - 0 1         softnodes 5000           3    5     5  ok
+7Q/8/8/4K3/8/8/5k2/4R3 w - - 0 1         softnodes 20000          3    5     5  ok
+8/8/4R3/8/7Q/8/1k4K1/8 w - - 0 1         softnodes 500            -    4     -  (no mate score)
+8/8/4R3/8/7Q/8/1k4K1/8 w - - 0 1         softnodes 1000           -    6     -  (no mate score)
+8/8/4R3/8/7Q/8/1k4K1/8 w - - 0 1         softnodes 2000           4    7     7  ok
+8/8/4R3/8/7Q/8/1k4K1/8 w - - 0 1         softnodes 5000           3    5     5  ok
+8/8/4R3/8/7Q/8/1k4K1/8 w - - 0 1         softnodes 20000          3    5     5  ok
+
+classes: {'SHORT': 4, 'ok': 8}
+VERDICT: every failure observed here is a SHORT PV - the score is not broken, the REPORT is premature,
+so a pipeline may reject any mate score whose PV length != 2|N|-1 and lose nothing.
+
+THIS RUN IS NON-VACUOUS (4 failures present) AND IT ANSWERS THE QUESTION:
+classes: SHORT 4, ok 8, RIGHT-LENGTH-NOT-MATE 0.
+So every observed failure is a SHORT PV - the engine reports a mate it has not yet PROVEN to the end of its own
+claimed distance, and the PV stops short. The SCORE is not broken; the REPORT is premature. Therefore:
+
+  **LABEL RULE (measured, actionable): reject any mate score whose PV length != 2|N|-1 (or 2|N| for negative N).
+  That filter catches every failure observed here and costs nothing, because a correct mate score always passes.**
+
+Detail worth noting: the failure is budget-dependent on the SAME board - 4Q3/8/r2K4/... gives mate 4/SHORT at
+softnodes 1000 and 2000, then mate 3/ok from 5000 up. 7Q/8/8/4K3/... gives mate 5/SHORT at 500 and 1000, mate 4/ok
+at 2000. So a SHORT PV is what a still-converging mate looks like, and the number it reports at that moment is one
+move longer than the truth - which is exactly the "pessimistic by a move" observation in S-F34, now explained
+rather than merely described.
+
+This also explains why a random 40-board sample missed it (S-C30): the failure needs a board whose mate is
+CONVERGING at the chosen budget, which is a narrow window per board.
