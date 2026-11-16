@@ -661,3 +661,9 @@ Added the harness-settings rule to the FINDINGS header, since the coordinator is
   go movetime 6000                         -> 5990.8/5990.8 ms, depth 27
   So the 6 s clock uses 6.0% of its budget while movetime uses 99.8% and reaches 8 plies deeper. Seat 02 measured 362 ms; mine reproduces to 0.5 ms. Control passed: movetime really did run 5990.8 ms, so the harness sees a long search.
   Read carefully: this means the budget is UNDER-USED, not that the clock is broken -- 07-C7 had zero overruns across nine controls. That is a strength question (time available and not taken), not a safety one. Scope is startpos; seat 02's own S-F14 withdrew the cross-class median ordering, so I am not claiming it transfers to every position.
+
+## 2026-11-16T23:55:01Z
+07-C51 -- CONFIRMED seat 05's S-F57 (mate-PV truncation confined to the smallest budget), on a pool I built from their sentence. PC r15/PC20, Threads 1, Hash 16, OwnBook false, fresh process per cell.
+  KEY NUMBER THAT EXPLAINS THEIR VOID RETEST: scanning 353 G positions + 8 constructed mates at go nodes 20000, only 8 of 361 (2.2%) report a mate at all. Mate scores at the smallest match budget are RARE, so a 120-position long-mate filter legitimately finds almost nothing -- and a sample with no mate scores cannot measure mate-score truncation.
+  On those 8: n20000 1 truncated (12.5%), n50000 0, n250000 0. The single truncated case is THE SAME BOARD they named (8/8/1p6/8/p3p3/8/2Kpk3/8, mate -7, 10-ply PV needing 14).
+  MY CHECKER BUG caught before reporting: I required 2|N| plies for positive mates too, which flagged a CORRECT 9-ply PV for mate 5 as truncated at ALL THREE budgets. The tell was that it failed to vanish at 250k -- a defect that does not improve with more budget is a checker bug, not an engine bug. Positive mates need 2N-1.
