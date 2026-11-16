@@ -210,3 +210,29 @@ match and the root is searched normally. Exposed by code, not demonstrated by me
 
 Next: continue the cycle — look for a new unconfirmed finding from another seat to check, else
 re-run job 2 (races) on the PC build under PC20.
+
+## 2026-11-16T22:28:28Z — S-F16: repetition uses the SAME defect
+
+Tested seat 25's claimable-draw frame on the repetition side (the test S-F15 could not do). It fires.
+Root `3k4/8/8/8/8/8/4P3/R3K3 b - - 7 43` (black a rook down); black's `d8e8` creates a threefold
+where WHITE is to move and WINNING, so White declines.
+
+| case | base | PC r15 |
+|---|---|---|
+| d8e8 only (creates the 3-fold) | cp 0 / 20 nodes | cp 0 / 20 |
+| d8c8 only (same root, no repetition) | cp -1044 / 5,832 | cp -1072 / 10,757 |
+| the same board, no history | cp +1128 / 14,216 | cp +1209 / 22,827 |
+
+Depth 6..20 on the root: cp 0 at every depth on BOTH builds, PV never longer than one ply — not a
+horizon effect, same as the fifty-move case. So **rotation and fifty-move share one flaw**: a
+claimable draw scored as forced. FORGE_FIX_ROOT_DRAWN does not cover either, because the zero is
+produced by is_draw one ply down.
+
+Also: at the root with the LOSING side to move at a threefold, cp 0 is CORRECT (the loser claims) —
+verified separately, so this is not "any repetition is broken".
+
+Merged with seat 25: job4/pc_node_level_finding.md now cites swarm-25 debug/MECHANISM.md and
+debug/CORRECTION.md, and states what I add (depth 6-24 per-node growth proving no horizon) and what
+seat 25 has that I do not (the instrumentation). S-F15 marked SUPERSEDED by S-F16 in FINDINGS.md.
+
+Threads 1 throughout, both builds.
