@@ -279,3 +279,14 @@ Next: continue on PC20 with provably-applied options; STATUS every 25 min.
   so uses LESS than N: median -34% at 20000, -20% at 50000, -22% at 250000 (worst -62%). Example:
   nodes 50000 -> depth 12, 31,779 nodes. Consequence: "nodes 50000" matches are a depth ceiling in
   disguise, not an equal node budget. (Contrast: softnodes OVERSHOOTS by ~33%.)
+- S-F51: pathological FENs all refused cleanly on PC20 (3000-char field, 1500 '8/' segments, 70
+  ranks, 64-digit rank), each with a specific diagnostic; a 10,000-ply move list is ACCEPTED and
+  returns exactly to startpos. Caveat: the 3,000-char control is refused incidentally (pawn-on-
+  promotion-rank fires first), not by a length guard.
+
+## 2026-11-16T22:57Z CHECKPOINT
+- S-F49/S-F50: node-limited matches are UNEQUAL both across openings and, decisively, between the
+  base and PC builds (0/10 same depth at 250k; PC 1-4 plies deeper) -> use fixed depth or the clock.
+- S-F46: stale-board blast radius is ONE move (18/20 recovered, 0 infected).
+- S-F51: pathological FENs refused cleanly; 10,000-ply list handled correctly.
+Next: continue FEN layer on the real path.
