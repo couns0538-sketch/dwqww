@@ -1,0 +1,68 @@
+==================
+WARNING: ThreadSanitizer: data race (pid=3103179)
+  Read of size 1 at 0x55b0e106e760 by thread T2:
+    #0 forge::attacks::init() src/bitboard.cpp:142 (ds5_p4_driver+0x9076) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #1 forge::Board::Board() src/board.cpp:182 (ds5_p4_driver+0xb8e8) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #2 operator() /tmp/glmflash/ds5_p4_driver.cpp:7 (ds5_p4_driver+0x5ce6) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #3 __invoke_impl<void, main()::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (ds5_p4_driver+0x69b4) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #4 __invoke<main()::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (ds5_p4_driver+0x692b) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #5 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (ds5_p4_driver+0x688c) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #6 operator() /usr/include/c++/13/bits/std_thread.h:299 (ds5_p4_driver+0x6832) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #7 _M_run /usr/include/c++/13/bits/std_thread.h:244 (ds5_p4_driver+0x67e8) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Previous write of size 1 at 0x55b0e106e760 by thread T1:
+    #0 forge::attacks::init() src/bitboard.cpp:143 (ds5_p4_driver+0x9094) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #1 forge::Board::Board() src/board.cpp:182 (ds5_p4_driver+0xb8e8) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #2 operator() /tmp/glmflash/ds5_p4_driver.cpp:7 (ds5_p4_driver+0x5ce6) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #3 __invoke_impl<void, main()::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (ds5_p4_driver+0x69b4) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #4 __invoke<main()::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (ds5_p4_driver+0x692b) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #5 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (ds5_p4_driver+0x688c) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #6 operator() /usr/include/c++/13/bits/std_thread.h:299 (ds5_p4_driver+0x6832) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #7 _M_run /usr/include/c++/13/bits/std_thread.h:244 (ds5_p4_driver+0x67e8) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #8 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Location is global 'forge::attacks::init()::p4_done' of size 1 at 0x55b0e106e760 (ds5_p4_driver+0x1fa760)
+
+  Thread T2 (tid=3103182, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 construct_at<std::thread, main()::<lambda()> > /usr/include/c++/13/bits/stl_construct.h:97 (ds5_p4_driver+0x6434) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #3 construct<std::thread, main()::<lambda()> > /usr/include/c++/13/bits/alloc_traits.h:540 (ds5_p4_driver+0x617b) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #4 _M_realloc_insert<main()::<lambda()> > /usr/include/c++/13/bits/vector.tcc:468 (ds5_p4_driver+0x617b)
+    #5 emplace_back<main()::<lambda()> > /usr/include/c++/13/bits/vector.tcc:123 (ds5_p4_driver+0x5feb) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #6 main /tmp/glmflash/ds5_p4_driver.cpp:7 (ds5_p4_driver+0x5df7) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+
+  Thread T1 (tid=3103181, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 construct_at<std::thread, main()::<lambda()> > /usr/include/c++/13/bits/stl_construct.h:97 (ds5_p4_driver+0x6434) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #3 construct<std::thread, main()::<lambda()> > /usr/include/c++/13/bits/alloc_traits.h:540 (ds5_p4_driver+0x617b) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #4 _M_realloc_insert<main()::<lambda()> > /usr/include/c++/13/bits/vector.tcc:468 (ds5_p4_driver+0x617b)
+    #5 emplace_back<main()::<lambda()> > /usr/include/c++/13/bits/vector.tcc:123 (ds5_p4_driver+0x5feb) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #6 main /tmp/glmflash/ds5_p4_driver.cpp:7 (ds5_p4_driver+0x5df7) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+
+SUMMARY: ThreadSanitizer: data race src/bitboard.cpp:142 in forge::attacks::init()
+==================
+==3103179==ERROR: ThreadSanitizer: SEGV on unknown address 0x000000000000 (pc 0x55b0e0e7e409 bp 0x7f80171fbbc0 sp 0x7f80171fbb90 T3103182)
+==3103179==The signal is caused by a READ memory access.
+==3103179==Hint: address points to the zero page.
+    #0 forge::attacks::bishop(int, unsigned long) include/forge/bitboard.hpp:192 (ds5_p4_driver+0xa409) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #1 forge::Board::square_attacked_with_occupancy(int, forge::Color, unsigned long, unsigned long) const src/board.cpp:424 (ds5_p4_driver+0xdb92) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #2 forge::Board::square_attacked(int, forge::Color) const src/board.cpp:429 (ds5_p4_driver+0xdc59) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #3 forge::Board::set_fen(std::basic_string_view<char, std::char_traits<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*) src/board.cpp:353 (ds5_p4_driver+0xd165) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #4 forge::Board::Board() src/board.cpp:184 (ds5_p4_driver+0xb91e) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #5 operator() /tmp/glmflash/ds5_p4_driver.cpp:7 (ds5_p4_driver+0x5ce6) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #6 __invoke_impl<void, main()::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (ds5_p4_driver+0x69b4) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #7 __invoke<main()::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (ds5_p4_driver+0x692b) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #8 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (ds5_p4_driver+0x688c) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #9 operator() /usr/include/c++/13/bits/std_thread.h:299 (ds5_p4_driver+0x6832) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #10 _M_run /usr/include/c++/13/bits/std_thread.h:244 (ds5_p4_driver+0x67e8) (BuildId: 14da899fb04747aba380b4f06c59d47585138b6f)
+    #11 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #12 __tsan_thread_start_func ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1012 (libtsan.so.2+0x4edee) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #13 <null> <null> (libc.so.6+0x9cb83) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #14 <null> <null> (libc.so.6+0x129ecb) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+
+ThreadSanitizer can not provide additional info.
+SUMMARY: ThreadSanitizer: SEGV include/forge/bitboard.hpp:192 in forge::attacks::bishop(int, unsigned long)
+==3103179==ABORTING
