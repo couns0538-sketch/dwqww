@@ -695,3 +695,39 @@ A FORFEIT IS IMPOSSIBLE FROM ANY STARTING CLOCK AT THIS INCREMENT (S-F77) - the 
   So a forfeit needs a sustained run of hard-limit cuts that a game from these clocks does not produce - which is exactly why seat 15's and seat 27's forfeits are machine- and position-specific rather than a property of the control. That closes the forfeit question with evidence instead of attribution.
   AND THE METHOD LINE YOU ASKED FOR (S-F78): 'a zero on a claim's window is not a refutation if the run ended early - say ENDED TOO EARLY TO TEST.' My first attempt ended at 97 plies by a threefold claim, before the 144-178 window, and printed 'does not reproduce' - a would-be FALSE REFUTATION of a correct claim. The harness now has three verdicts, not two: confirmed, refuted, and INCONCLUSIVE-because-the-run-ended-before-the-window, with the ending reason recorded. Same family as the two-guards and sample-size rules: the number was real, the SCOPE of the test was too narrow to touch the claim, and only the harness's own bookkeeping can tell the difference.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+### FIFTH UPDATE — the forfeit question closed with evidence, and the fixed point as a live prediction
+
+**A forfeit is impossible from any starting clock at the 60 ms increment (S-F77).** Four starting clocks,
+PC r15 + PC20 / Threads 1 / Hash 16 / winc=binc=60 / cold, startpos:
+
+| start | plies | final white / black | lowest | forfeit |
+|---|---|---|---|---|
+| 600 | 56 | 1,556 / 1,471 | 562 | none |
+| 300 | 56 | 1,481 / 1,302 | 264 | none |
+| 150 | 56 | 1,456 / 1,213 | 149 | none |
+| **100** | 56 | **1,463 / 1,200** | 100 | **none** |
+
+**4 of 4 clocks ended ABOVE their start; 0 forfeits.** Starting at **100 ms — below the 110 ms worst-case
+floor — both clocks climbed anyway**, because at a low clock the hard limit falls under the increment and each
+move gains time. Median depth 15 throughout, so the engine was searching, not defaulting.
+
+**Consequence:** a forfeit needs a sustained run of hard-limit cuts that a game from these clocks does not
+produce. That is why seat 15's and seat 27's forfeits are **machine- and position-specific**, not a property of
+the 6 s + 0.06 control — and the thread therefore closes on a measurement rather than on one seat's word
+against another's.
+
+### THE FIFTH SELF-CORRECTION, and the method line it produced (S-F78)
+
+My first attempt to test seat 27's 144–178-ply forfeit **ended at 97 plies by a threefold claim** — before the
+window — and my harness printed "does not reproduce". That would have been a **false refutation of a correct
+claim**. The harness now distinguishes **three** verdicts: confirmed, refuted, and **"ended too early to test"**,
+with the ending reason recorded.
+
+The family this belongs to, all from tonight, all the same shape — the number was real and the *reading* was
+wrong:
+1. S-F19 — a board that was not discriminating (correct scores, wrong conclusion).
+2. S-C10 → S-C10b — a 60-position sample that gave the wrong sign; the full 353 reversed it.
+3. S-F63 — a single out-of-band reading I called a boundary; six repeats showed it was a one-off.
+4. S-F74 → S-F74b — a comparison that changed the sample as well as the variable, so the effect was confounded.
+5. S-F78 — a test that ended before the window it was testing, read as a refutation.
