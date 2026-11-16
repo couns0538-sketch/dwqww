@@ -36,3 +36,9 @@ info line, same run — a fabricating harness cannot produce that split.
 Re-running the 600-FEN sanitizer stress with the paced driver (job1/san/real_paced).
 Next command:
   python3 forge-combo29/swarm/27/job1/paced_runner.py --exe /agent/repos/base/build-asan/forge --sessions /agent/repos/dwqww/forge-combo29/swarm/27/job1/fen/real --outdir /agent/repos/dwqww/forge-combo29/swarm/27/job1/san/real_paced --tag real_paced --pause 0.12 --timeout 300
+
+## 2026-11-16T21:38Z job 3 (board.cpp) + integrity audit
+- P4 perft 1..4 vs python-chess: 12 of 12 positions equal (harness proven able to fail: job3/f2).
+- P5 make/unmake identity: 10 of 10 (perft 2 by move list == by FEN).
+- S-F6 NEW: half-move clock above 100 accepted, position treated as already drawn (nodes 0, cp 0).
+- SANITIZER RE-RUN paced (after 19-F12): 600 FEN sessions, 1516 info lines, 0 san lines, 0 crashes.
