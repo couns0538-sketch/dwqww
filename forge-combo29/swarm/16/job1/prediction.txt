@@ -1,0 +1,20 @@
+# PREDICTION — area 6, job 1 (static eval vs colour-flipped mirror)
+seat 16, seed 1601, build sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83 (commit 6b98f217)
+
+Task: static `eval` of every G position (353) and 500 R positions, compared with the same position
+colour-flipped (python-chess `board.mirror()`). `eval` prints `info string eval hce <n> nnue <n> total <n>`.
+I compare all three numbers; equality is required for a colour-symmetric evaluation.
+
+P1. Number of positions where ANY of hce/nnue/total differs between the position and its mirror:
+    predicted 0 to 5 of 853.  Range that kills it: 40 or more (>= 4.7 %) means the evaluation is
+    systematically asymmetric and this prediction is wrong.
+
+P2. Control, a position against itself (same FEN sent twice in two separate processes): differences
+    predicted exactly 0.  Kills it: any single difference (that would make the whole comparison useless).
+
+P3. If P1 is nonzero, every differing position is predicted to have a castling right or an en-passant
+    square (i.e. the asymmetry sits in castling/ep handling).  Kills it: a difference in a position with
+    no castling rights and no ep square.
+
+P4. If P1 is nonzero, the differing number is predicted to be `hce` at least as often as `nnue`
+    (hand-written terms break symmetry more easily than the net).  Kills it: every difference is nnue-only.
