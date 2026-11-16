@@ -82,3 +82,12 @@ Answers to the two open questions, now measured rather than inferred:
   Q2 nonzero nodes on a fabricated bestmove: NO — 0 info lines in every fabricated case.
   Q3 illegal move: NO — every fabricated move legal (a2a3 on startpos, d5d4 on the middlegame FEN).
 A_control (reads to bestmove, then quits) = e2e4 at 56,720 nodes; B/C/G fabricate.
+
+## 2026-11-16T22:05:46Z STOPPED — deadline reached (per instruction: push and stop at 22:30)
+Branch tip reflects: honesty 4/4, TSan build + planted-fault proof, 400-search TSan sweep (0 race reports),
+the hang investigation (no deadlock; FEN-specific 15,600x node blow-up), the score-nondeterminism finding,
+aspiration/nullmove ruled out, gated quit table confirming 19-F12 with Q2/Q3 answered.
+11 FINDINGS lines (04-F1..F8, 04-C1, 04-C1b, 04-C2). No source changed, no patch, no PR.
+NEXT COMMAND (gap 2, fixed node count) if this seat is resumed:
+  python3 forge-combo29/swarm/04/job1/divergence.py /home/ubuntu/builds/rel/forge /tmp/nodes nodes100m \
+    --threads 1,4 --depths 12 --runs 3 --limit 300
