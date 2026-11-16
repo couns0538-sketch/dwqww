@@ -1,0 +1,24 @@
+## the FEN list used (line 2 is deliberately invalid)
+    r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8
+    rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBN w KQkq - 0 1
+
+## running the committed timing harness on it
+```
+Traceback (most recent call last):
+  File "/agent/repos/dwqww/forge-combo29/swarm/08/job1/clock_latency.py", line 126, in <module>
+    main()
+  File "/agent/repos/dwqww/forge-combo29/swarm/08/job1/clock_latency.py", line 111, in main
+    eng.sync()
+  File "/agent/repos/dwqww/forge-combo29/swarm/08/job1/clock_latency.py", line 60, in sync
+    return self.read_until("readyok")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/agent/repos/dwqww/forge-combo29/swarm/08/job1/clock_latency.py", line 48, in read_until
+    raise RuntimeError("engine refused: %r" % line)
+RuntimeError: engine refused: 'info string invalid FEN: invalid FEN fields'
+```
+
+exit code: 1
+records written before the abort: 1
+
+**OK**: the harness aborted on the refused FEN and wrote nothing further. A refused position can never
+be recorded as a latency of the position before it.

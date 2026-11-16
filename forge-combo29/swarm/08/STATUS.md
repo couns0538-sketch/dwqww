@@ -130,3 +130,14 @@ Both CONFIRMS stand: neither depended on an absent line, and both now cannot pas
 - job1b FINISHED: 1,400 searches, moves 40.48 / 490.50 ms reproducing run 1 to 0.02 ms; baselines 0.03 %.
 
 next: job1b report + board read for an unconfirmed NEW finding.
+
+## 2026-11-16T21:41Z
+- 08-C3: checked seat 21's 21-F2 -> **CONFIRMS** (3 links: readyok after refusal, previous board kept via
+  synchronous perft, and a real depth-1 move legal in the old board / ILLEGAL in the board the GUI asked for).
+  My own v1 harness had the 19-F12 bug in it; caught, kept as check_s21f2.py.v1_INVALID, rewrote properly.
+- job4/harness_refusal_control.sh proves my timing harness ABORTS on a refused FEN (exit 1, 1 record), so no
+  latency of mine can be attributed to a stale position.
+- Opus file 3 confirms `go movetime T` = T - Move Overhead "by design (seats 08, 28, 02)" — 08-F2 is the
+  accepted statement; seat 16's REFUTES was about the kept iteration, reconciled in 08-F10.
+
+next: timing verification of 08-F1/08-F10 on the fresh set, then report.
