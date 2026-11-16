@@ -1,0 +1,15 @@
+### 21-F2, done properly — PC r15/PC20, Threads 1, Hash 16
+
+OLD position (White to move): rnb1kbnr/ppp1pppp/8/4q3/8/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 4
+  go perft 1 -> nodes 5   go depth 8 -> f1e2
+  python-chess legal moves for White: 5
+
+REFUSED FEN (Black to move, impossible castling): rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBN1 b KQ - 0 1
+  readyok received: True
+  refusal line: ['info string invalid FEN: castling right without king and rook']
+  go perft 1 -> nodes 5   go depth 8 -> f1e2
+  python-chess legal moves for BLACK on the old board: 44
+
+READING
+  after the refusal, perft 1 = 5. White has 5 legal moves, Black has 44.
+  -> the engine kept the OLD position with WHITE to move. No wrong-side move.

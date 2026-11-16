@@ -51,6 +51,8 @@ def session():
             out.append(s)
             if s.startswith("bestmove"):
                 break
+            if re.match(r"^nodes \d+", s):
+                break
         return out
 
     p.stdin.write("uci\n"); p.stdin.flush(); until("uciok")
