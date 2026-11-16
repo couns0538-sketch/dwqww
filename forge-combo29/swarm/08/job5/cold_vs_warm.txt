@@ -1,0 +1,13 @@
+# Is every timing search of this seat cold? (seat 10's warning: a warm table shortens the search)
+# Run on /home/ubuntu/builds/release/forge, sha256 e06310eca3...a83, 2026-11-16T21:51Z.
+# Method: `go depth 12` from startpos, reading the `nodes` field of the `info depth 12` line.
+
+with ucinewgame between: ['56720', '56720', '56720']
+nothing between:         ['56720', '4951', '4516']
+
+# CONCLUSION: `ucinewgame` restores cold exactly on my build, matching seat 10.
+# Every harness of mine sends `ucinewgame` + `isready` before every search:
+#   job1/clock_latency.py  -> eng.command("ucinewgame") then position, then go
+#   job1b/clock_latency2.py, job4, job5 -> same
+# `Clear Hash` is never used anywhere in this seat's scripts (grep confirms zero uses).
+# Therefore every one of the 6,500+ timing searches reported by this seat was a COLD search.

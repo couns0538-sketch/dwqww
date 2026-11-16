@@ -91,7 +91,7 @@ def py_perft(board, depth):
     return total
 
 
-fens = [l.strip() for l in open("../job1/R_seed801.fens") if l.strip()][:40]
+fens = [l.strip() for l in open("job1/R_seed801.fens") if l.strip()][:40]
 e = Eng()
 rows = []
 for fen in fens:
