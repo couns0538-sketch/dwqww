@@ -17,6 +17,13 @@
 #   MultiPV 3, depth 6/8/10/12: 1310.1/1597.9/1939.3/2274.4 ms ->  470.3/519.3/458.9/542.6 ms  (2.8x-4.2x)
 # The per-depth growth is gone (flat ~400-540 ms).
 #
+# REPRODUCIBILITY GAIN (the strongest argument, independent of the speed): at MultiPV 3 with a clock,
+# near the collapse boundary the UNPATCHED engine is not reproducible -- 8 identical runs at Hash 256 MB
+# gave depths {7, 11} with node counts from 5,395 to 47,818 (an 8.9x spread), while this patched build
+# gave depth 13 with exactly 106,863 nodes on 8 of 8 runs (and at Hash 512 MB, depth 12 / 71,070 nodes,
+# 8 of 8, where the unpatched build gave depth 1 on 5 of 5). Two identical searches that differ by 9x
+# in work cannot be used as a measurement.
+#
 # REVIEWER CHECK (do these four things before accepting):
 #   1. bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, go perft 5 = 4865609 - ALL UNCHANGED.
 #      (This is the gate the tempting generation-bump variant FAILED: it moved bench 16 to 3030186.)
