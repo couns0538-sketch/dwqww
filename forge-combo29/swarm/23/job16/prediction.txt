@@ -1,0 +1,22 @@
+PREDICTION — SW-23 job 16 (perft 5 on a THIRD, independent seed)
+Written before the first measuring command. Never edited afterwards. Stamped by the shell above.
+
+Why: my perft claims are the ones I have leaned on most (23-F4, F11, F12, F22), and the two seeds I used were 2301
+and 2401 from the same generator. A third seed at DEPTH 5 tests the claim that most needs it — depth 5 was only ever
+run on one seed's positions (200 of seed 2301) plus the first 30 of G. This job runs depth 5 on 100 positions from a
+third seed (SEED 2501, SEED + 100 again for a disjoint draw), engine vs python-chess.
+
+Protocol identical to job 3: base build, no setoption, Threads 1, Hash 16, one process, depths 1..5, each position
+compared at every depth.
+
+Prediction (each number with the range that kills it):
+  P1  mismatches at any depth 1..5 over the 100 positions = 0.            KILLED if >= 1.
+  P2  perft-5 total between 2.0e9 and 5.0e9 (job 3's 200 positions gave 7.40e9, i.e. ~3.7e7 per position).
+                                                                          KILLED outside.
+  P3  mean perft-1 branching between 29 and 33 (seeds 2301/2401 gave 30.86 / 30.92). KILLED outside.
+  P4  0 FENs in common with either earlier set.                           KILLED if >= 1.
+  P5  reference wall clock under 25 minutes (job 3 needed ~36 min for 200 positions on 4 workers).
+                                                                          KILLED if >= 25 min.
+
+If P1 is killed, that is a major result on the PC-independent path and goes in FINDINGS at once with the FEN,
+depth and both counts.
