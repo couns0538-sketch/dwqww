@@ -199,3 +199,17 @@ DONE suggested area (FABLE 6): go softnodes on PC r15 + PC20 + Threads 1 + Hash 
   OVERSHOOT: median 22-29 % past N; worst 409,130 past a 250,000 budget = 164 % = 659,130 nodes on
   one move of a real game position. Findings S-F6, S-F7. Report job5/REPORT_job5.md.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1   # cycle: look for unconfirmed finds on the PC path
+
+## 2026-11-16T22:58:23Z
+
+DONE job 6 (coordinator job 1): perft 4 at the DIVIDE level on 200 REAL-GAME G positions.
+  base Threads1/Hash16 : 5,107 root moves, 0 differing
+  PC r15 Threads1/Hash16: 5,107 root moves, 0 differing
+  PC r15 PC20          : 5,107 root moves, 0 differing
+  Rule-1 control re-run on G material: compensating +1/-1 with total unchanged at 743,255 CAUGHT;
+  missing CAUGHT; extra CAUGHT; identity not flagged.
+  Sample = fixed stride over all 353 G positions (not the first 200), proportions checked.
+  Finding S-F8. MOVE-GENERATION CHAPTER CLOSED at depths 1-4, divide granularity, both material
+  types, all three build/settings combos; stated limits: depth 5 totals-only, python-chess is the
+  only oracle, refused-FEN positions untestable this way. Report job6/REPORT_job6.md.
+Next: PC path per file 6 (job 7), own limit stated (12 G positions, not the owner's match games).
