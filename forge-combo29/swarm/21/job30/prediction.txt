@@ -1,0 +1,17 @@
+# PREDICTION — job30: `go softnodes N` on the PC build under PC20, Threads 1 (file 6 item 4)
+written before the first measuring command.
+
+The owner's self-play sends `go softnodes 2000`: the search stops at the END OF THE FIRST DEPTH
+after 2000 nodes. Questions: is it deterministic run to run, does it stop at a finished depth, and
+how far past N does it go?
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | the answer is BIT-IDENTICAL across 5 fresh processes for each N (same bestmove, same score, same node count) | killed by any difference in any field |
+| P2 | the reported node count overshoots N, and by less than one depth's worth of nodes | killed if the overshoot is 0 (then it is a hard limit) or larger than the deepest depth's node count |
+| P3 | the search stops on a DEPTH BOUNDARY: the last `info depth` line's node count equals the reported total | killed if the totals differ |
+| P4 | a larger N always gives a node count >= a smaller N's (monotone) | killed by any inversion |
+| P5 | the PC build and the base build give the SAME answer for the same N (softnodes is not touched by the patch) | killed by any difference |
+| P6 | 0 crashes, 0 sanitizer lines | killed by any one |
+
+Positions: 5 from real games (set G), N in {2000, 20000, 50000, 250000}.

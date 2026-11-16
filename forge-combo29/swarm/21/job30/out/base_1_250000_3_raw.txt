@@ -1,0 +1,120 @@
+>>> uci
+id name Chess Engine Forge 6.4.24 candidate
+id author OpenAI
+option name Hash type spin default 32 min 1 max 2048
+option name Threads type spin default 1 min 1 max 256
+option name MultiPV type spin default 1 min 1 max 8
+option name Move Overhead type spin default 10 min 0 max 1000
+option name Ponder type check default false
+option name OwnBook type check default true
+option name Book File type string default <empty>
+option name Book Depth type spin default 30 min 0 max 100
+option name Book Variety type spin default 30 min 0 max 100
+option name UseNNUE type check default true
+option name NnueFile type string default <empty>
+option name ContHist4PlyRead type check default false
+option name NonPawnCorrection type check default false
+option name LmrDeeperShallower type check default false
+option name EvalRule50Damp type check default false
+option name ThreatHistory type check default false
+option name LmrSignedCorrection type check default false
+option name LmrLateParentRelief type check default false
+option name HindsightDepth type check default false
+option name NullThreatVerify type check default false
+option name NullSeeVeto type check default false
+option name AspCappedReopen type check default false
+option name AspArmLate type check default false
+option name EvasionOrdering type check default false
+option name DeadMaterial type check default false
+option name QuietExtinction type check default false
+option name DrawJitter type spin default 0 min 0 max 8
+option name TmFinishIteration type check default false
+option name TmNodeShare type check default false
+option name SoundMatePruning type check default false
+option name LmrQuietBase type spin default 85 min 0 max 300
+option name LmrQuietDivisor type spin default 220 min 100 max 500
+option name LmrNoisyBase type spin default 10 min 0 max 300
+option name LmrNoisyDivisor type spin default 340 min 100 max 800
+option name NullMoveMinDepth type spin default 3 min 1 max 10
+option name NullMoveBase type spin default 3 min 1 max 6
+option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+option name RfpDepth type spin default 8 min 0 max 15
+option name RfpMargin type spin default 72 min 10 max 300
+option name RfpImproving type spin default 40 min 0 max 200
+option name RazorDepth type spin default 2 min 0 max 6
+option name RazorBase type spin default 150 min 0 max 1000
+option name RazorMultiplier type spin default 350 min 0 max 1000
+option name FutilityDepth type spin default 7 min 0 max 15
+option name FutilityBase type spin default 100 min 0 max 500
+option name FutilityMultiplier type spin default 110 min 0 max 500
+option name LmpBase type spin default 4 min 0 max 20
+option name HistoryPruneDepth type spin default 3 min 0 max 10
+option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+option name SeeQuietMultiplier type spin default 24 min 0 max 200
+option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+option name SingularDepth type spin default 7 min 2 max 20
+option name SingularMargin type spin default 2 min 0 max 10
+option name IirDepth type spin default 4 min 1 max 20
+option name ProbcutDepth type spin default 5 min 1 max 20
+option name ProbcutMargin type spin default 180 min 0 max 1000
+option name QsFutilityMargin type spin default 160 min 0 max 1000
+option name QsSeeMargin type spin default 40 min 0 max 500
+option name AspirationDelta type spin default 18 min 4 max 200
+option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+option name HistoryBonusLinear type spin default 48 min 0 max 500
+option name HistoryBonusMax type spin default 2048 min 100 max 10000
+option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+option name CheckExtensionDepth type spin default 2 min 1 max 30
+option name LmrCutoffThreshold type spin default 3 min 0 max 20
+option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+option name TmSoftDivisor type spin default 22 min 5 max 80
+option name TmIncrementPercent type spin default 75 min 0 max 150
+option name TmHardPercent type spin default 60 min 10 max 95
+option name TmHardSoftMultiple type spin default 5 min 1 max 20
+option name TmStableFactor type spin default 60 min 20 max 150
+option name TmSemiStableFactor type spin default 80 min 20 max 150
+option name TmUnstableFactor type spin default 140 min 50 max 300
+option name TmEffortBase type spin default 155 min 100 max 250
+option name TmFallingEvalPercent type spin default 100 min 0 max 400
+option name TmMinFactorPercent type spin default 45 min 10 max 100
+option name CaptureFutilityBase type spin default 0 min 0 max 1000
+option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+option name CaptureFutilityDepth type spin default 6 min 0 max 15
+option name FailLowContinuationBonus type spin default 0 min 0 max 300
+option name Clear Hash type button
+uciok
+>>> setoption name Hash value 16
+>>> isready
+readyok
+>>> setoption name Threads value 1
+>>> isready
+readyok
+>>> setoption name OwnBook value false
+>>> isready
+readyok
+>>> ucinewgame
+>>> isready
+readyok
+>>> position fen r3r1k1/p1bb1ppp/1p1q4/3P1p2/1nBP4/PPN2N1P/5PP1/1R1Q1RK1 b - - 0 1
+>>> isready
+readyok
+>>> go softnodes 250000
+info depth 1 seldepth 7 score cp -261 nodes 155 nps 51666 hashfull 0 time 3 pv b6b5 a3b4 b5c4 b3c4
+info depth 2 seldepth 7 score cp -261 nodes 217 nps 72333 hashfull 0 time 3 pv b6b5 a3b4
+info depth 3 seldepth 7 score cp -261 nodes 289 nps 96333 hashfull 0 time 3 pv b6b5 a3b4 b5c4
+info depth 4 seldepth 7 score cp -261 nodes 375 nps 93750 hashfull 0 time 4 pv b6b5 a3b4 b5c4 b3c4
+info depth 5 seldepth 9 score cp -273 nodes 512 nps 102400 hashfull 0 time 5 pv b6b5 a3b4 b5c4 b3c4 a7a6
+info depth 6 seldepth 9 score cp -252 nodes 845 nps 140833 hashfull 0 time 6 pv b6b5 a3b4 d6b4 d1d3 b5c4 b3c4
+info depth 7 seldepth 10 score cp -216 nodes 1308 nps 163500 hashfull 0 time 8 pv b6b5 a3b4 d6b4 d1d3 b5c4 b3c4 b4a3
+info depth 8 seldepth 12 score cp -318 nodes 2986 nps 213285 hashfull 0 time 14 pv b6b5 a3b4 d6b4 d1d3 b5c4 b3c4 b4a5 c4c5 e8b8
+info depth 9 seldepth 15 score cp -214 nodes 5636 nps 256181 hashfull 1 time 22 pv b6b5 a3b4 d6b4 d1d3 e8b8 f1d1 b5c4 b3c4 b4a3
+info depth 10 seldepth 17 score cp -267 nodes 11342 nps 290820 hashfull 4 time 39 pv b6b5 a3b4 d6b4 d1d3 a8b8 f1d1 c7a5 f3e5 b5c4 b3c4 b4c3 d3c3 a5c3 b1b8 e8b8 e5d7
+info depth 11 seldepth 23 score cp -255 nodes 29244 nps 301484 hashfull 14 time 97 pv b6b5 a3b4 d6b4 d1d3 a8b8 f1c1 a7a6 f3e5 c7e5 d4e5 b5c4 b3c4 b4a3
+info depth 12 seldepth 25 score cp -242 nodes 50704 nps 305445 hashfull 24 time 166 pv b6b5 a3b4 d6b4 d1d3 a8b8 f3e5 c7e5 d4e5 b5c4 b3c4 b4c5 b1b8 e8b8 f1e1 a7a5
+info depth 13 seldepth 28 score cp -264 nodes 172943 nps 306093 hashfull 84 time 565 pv b6b5 a3b4 d6b4 d1d3 a8b8 f1e1 e8e1 b1e1 a7a6 f3e5 c7e5 d4e5 b5c4 b3c4 b4c5
+info depth 14 seldepth 31 score cp -264 nodes 207014 nps 308976 hashfull 100 time 670 pv b6b5 a3b4 d6b4 d1d3 a8b8 f1e1 e8e1 b1e1 g7g6 f3e5 b5c4 b3c4 c7e5 d4e5 b4c5 e5e6 f7e6 d5e6 d7c6 c3d5
+info depth 15 seldepth 31 score cp -266 nodes 307370 nps 305840 hashfull 154 time 1005 pv b6b5 a3b4 d6b4 d1d3 a8b8 f1e1 e8e1 b1e1 b5c4 b3c4 b4a3 f3e5 c7e5 d4e5 a7a5 e5e6 f7e6 d5e6 d7e8 d3d4 a5a4 c4c5
+info string softnodes nodes 307370
+bestmove b6b5
+>>> quit
