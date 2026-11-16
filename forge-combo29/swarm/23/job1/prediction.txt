@@ -1,0 +1,23 @@
+PREDICTION — SW-23 job 1 (AREA 3, MOVE GENERATION against python-chess)
+Written before the first measuring command of job 1. Never edited afterwards.
+
+What I will measure: perft 1..4 on 5,000 positions from R (random legal games by python-chess, SEED 2301,
+one position every 7 plies), engine vs python-chess node counts and divide, every difference listed.
+
+Prediction (each number with the range that kills it):
+  P1  total positions with ANY perft-1..4 mismatch = 0.         KILLED if >= 1.
+  P2  positions where perft 1 differs = 0.                      KILLED if >= 1.
+  P3  sum of nodes over all 5,000 positions at perft 4 will be  between 1.0e9 and 3.0e9.  KILLED outside.
+  P4  wall clock for the whole run (engine side) < 40 minutes.  KILLED if >= 40 min.
+  P5  number of positions where the engine's perft 1 != python-chess legal-move count = 0. KILLED if >= 1.
+
+Reasoning for P1: positions come from legal random games, so castling rights and ep squares are consistent with
+the board; the known FEN laxness (impossible castling accepted, unreachable positions accepted) cannot fire on
+positions produced by an actual game. Perft counts also do not depend on repetition or the fifty-move clock.
+I expect mismatches only if the generator has a bug in a rare move type (ep with pin, promotion with capture).
+
+Prediction for the FIRST likely failure if one appears: an en-passant position where the ep capture exposes the
+king (rank-relative pin along the 4th/5th rank), or a castling right whose rook has been captured and the engine
+trusts the right anyway. I will list which.
+
+SEED use: 2301 for the game RNG. python-chess version is recorded in the .meta of the run.
