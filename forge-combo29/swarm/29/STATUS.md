@@ -76,3 +76,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-N7: caught a SECOND 19-F12-class harness fault in my own work. A thread-legality table showed bestmove a2a3 for both positions at all thread counts - the tell was that every entry was identical. Rewrote the driver to drain to bestmove: now d2d4 / e2a6 / e2e4 / e2a6 / g1f3 / e2a6, all legal at Threads 1, 4, 8.
 - TT patch (29-F12) is now verified: 4 honesty counts, 40/40 depth-10 bit-identical, 4/4 hash-pressure stress bit-identical with a planted-fault control, and legal moves at 1/4/8 threads.
 - next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: thread sanity + N7 second harness-fault catch' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 09:56:33 PM UTC 2026
+- 29-N8: I wrote a vectorised TT hit scan that was WRONG - sizeof(TTEntry)==16, so one __m128i load covers ONE slot, not four. Node counts jumped to 347,176 / 700,414 / 2,333,149 and the honesty check caught it immediately; patch reverted, base restored to 862329.
+- Lesson recorded: any vectorised cluster scan must use strided gathers for key32 at offsets 0/16/32/48, not a flat 128-bit load. This is the value of running all four honesty numbers on every build.
+- next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: record N8 wrong vector TT scan caught by node counts' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
