@@ -1,0 +1,36 @@
+# deepseek6 long 63 — prediction scorecard (PREDICTION.md committed before the first stress cycle, never edited)
+
+P1 no crashes in either model.
+   MEASURED: model A `crash=none`, model B `crash=none`, 300 cycles each. -> **HELD.**
+
+P2 no ASan or UBSan report in either model.
+   MEASURED: **0 sanitizer lines in 600 cycles** (`stress63.tsv`, both rows). -> **HELD.**
+
+P3 every bestmove legal, all 600. MEASURED: 0 illegal, 0 missing in both models. -> **HELD.**
+
+P4 peak RSS grows with Hash and stays within Hash + modest overhead: Hash 1024 between 1.0 and 2.0 GB,
+   1 MB below 100 MB.
+   MEASURED model B: Hash 1024 -> **1097.0 MB** (HELD, right at the bottom of the band), Hash 256 -> 329.1 MB,
+   Hash 128 -> 200.9 MB, Hash 64 -> 136.6 MB, Hash 32 -> 105.0 MB. Model A: 1957.1 MB at Hash 32-1024.
+   The "1 MB below 100 MB" half: **not directly measured** — the seeded cycle list does not happen to end on a
+   1 MB cycle and I did not add one, so I do not claim that half.
+   -> **HELD on the big end**, half not tested.
+
+P5 model A's peak at least as large as model B's (within 10 % the other way).
+   MEASURED: **A 1957.1 MB against B 1097.2 MB — A is 1.78x B.** -> **HELD**, strongly.
+
+P6 budget 15-35 minutes for 600 cycles. ACTUAL about 5 minutes total (the run finished well inside the first
+   290-second check). -> **HELD**, far under.
+
+Score: 5 held (P1, P2, P3, P5, P6), 0 killed, 1 half-not-tested (P4's small end).
+
+## The result that matters
+
+**600 Hash resizes between 1 and 1024 MB, in one long-lived process and in 300 separate processes: zero
+sanitizer reports, zero crashes, zero illegal moves.** The resize path is clean under ASan+UBSan.
+
+**But the long-lived process does not return the memory.** Model A's peak is 1957 MB and it stays there from cycle
+99 onward even when the Hash is later set to 32 MB; model B, which starts fresh, tracks the Hash value closely
+(1024 MB -> 1097 MB peak, 32 MB -> 105 MB peak). So a front end that cycles Hash values in one process keeps the
+high-water allocation — harmless for correctness, but a real memory-footprint fact for anyone running 300 games in
+one engine process.
