@@ -1,3 +1,29 @@
 wait window: 6.0s
 
 === A. go infinite at terminal roots (does it VOLUNTEER a bestmove?) ===
+  checkmated root                    go=go infinite    bestmove=None   at=NEVER   info_lines=64
+  stalemated root                    go=go infinite    bestmove=None   at=NEVER   info_lines=64
+
+=== B. go depth 5 on the same roots (must answer at once) ===
+  checkmated root                    go=go depth 5     bestmove=0000   at=0.00s   info_lines=5
+  stalemated root                    go=go depth 5     bestmove=0000   at=0.00s   info_lines=5
+
+=== C. go infinite + explicit stop after 0.3 s ===
+  checkmated root                    go=go infinite    bestmove=0000   at=0.50s   info_lines=64
+  stalemated root                    go=go infinite    bestmove=0000   at=0.50s   info_lines=64
+
+=== D. control: go infinite on an ORDINARY board answers only on stop ===
+  ordinary board                     go=go infinite    bestmove=None   at=NEVER   info_lines=26
+  ordinary board                     go=go infinite    bestmove=e2e4   at=0.34s   info_lines=17
+
+=== verdict on S-F8 ===
+  PASS  checkmate root: go infinite NEVER volunteers a bestmove in the window
+  PASS  stalemate root: go infinite NEVER volunteers a bestmove in the window
+  PASS  checkmate root: go depth 5 answers at once  — got 0000
+  PASS  stalemate root: go depth 5 answers at once  — got 0000
+  PASS  checkmate root: stop DOES produce 0000  — got 0000
+  PASS  stalemate root: stop DOES produce 0000  — got 0000
+  PASS  control: the ordinary board also only answers on stop
+
+RESULT: CONFIRMS S-F8 — `go infinite` at a terminal root never volunteers a bestmove,
+        while `go depth 5` answers 0000 immediately and `stop` releases it.

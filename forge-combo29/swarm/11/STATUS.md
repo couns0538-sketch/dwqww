@@ -158,3 +158,12 @@ NEXT: continue area-1 work; push again by 22:30.
 - Next: read FABLE_TO_swarm_3/4/5 (1 and 2 already read), then build the PC engine from file 5
   in a separate copy with -DFORGE_MATE_ALPHA_GUARD=1, check its bench numbers, then re-run my
   finds on the PC build under settings PC20 and label every finding with build + settings.
+
+## 2026-11-16T22:21Z PC BUILD READY
+- Read FABLE_TO_swarm_3, _4, _5 (1 and 2 read earlier). File 3 confirms my S-F3 withdrawal was RIGHT
+  and says a patch for the base tree is NOT needed (so my S-P1 is superseded — see the note I will add).
+  File 4: pins are DEFAULT-option numbers, sums are S14 — my honesty check was already correct.
+- PC r15 built in /tmp/pcbuild from /tmp/pcbase (separate copy), sha256 of patch matches d6bd72c531f785f4.
+  VERIFIED: default 4/4 pins; S14 242796/656517; PC20 278024/587276. All Threads 1.
+- THREAD RULE: audited — every result I have recorded used Threads 1 (default or explicit). Nothing to retract.
+- NEXT: re-run my finds on the PC build under PC20, labelling each with build + settings.
