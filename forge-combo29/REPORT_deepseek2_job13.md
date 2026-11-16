@@ -5,10 +5,10 @@
 **`EvalRule50Damp` LOSES heavily: pooled over both seeds −38.82 ± 7.50 Elo** (X1 −42.60 ± 10.73 on
 seed 7971; X2 −35.21 ± 10.49 on seed 7972; 2,000 games each). The control read +224.97 ± 32.45, so the harness is sound. **The
 existing switch is not a neutral term that was never measured — on this engine it costs about 43 Elo
-per node**, which is the answer to "it was built once and never measured". **X3 (my `Rule50Scale` at D=300 against `EvalRule50Damp`) and X4 (both against
-neither) are in §4 too, marked with exactly how far they got.** What was cut is stated there, not
-buried: the chain ran C, X1, X2, X3, X4 in that order on a 4-core machine at about 13 minutes per
-2,000-game match, so the later matches are the ones at risk.
+per node**, which is the answer to "it was built once and never measured". **X3, head to head, came out for my design: `Rule50Scale` at D=300 beats `EvalRule50Damp` by
++14.25 ± 10.42 Elo over 2,000 games (LOS 99.6 %, pairs [45, 221, 414, 247, 73]).** X4 (both against
+neither) reached 229 of its 2,000 games and is not quoted. The chain ran C, X1, X2, X3, X4 in that
+order at about 13 minutes per match, so X4 is the one that was cut.
 
 **The part of this job I could finish without the matches is the most informative, and it is in Step
 0:** the two designs differ in **two** places, not one. `EvalRule50Damp` scales with a fixed divisor of
@@ -80,8 +80,8 @@ match.
 | **X1** `EvalRule50Damp` | on | off | 2000 | **−42.60** | ±10.73 | [97, 302, 389, 172, 40] | 0 | W447 L691 D862 |
 | **X2** `EvalRule50Damp` | on | off | 2000 | **−35.21** | ±10.49 | [85, 294, 396, 188, 37] | 0 | W450 L652 D898 |
 | **pooled X1+X2** | on | off | 4000 | **−38.82** | ±7.50 | — | 0 | 50.4 % draws |
-| X3 `Rule50Scale=300` | mine | `EvalRule50Damp` | (199 of 2000 at the stop) | *(not quoted)* | | | 0 | |
-| X4 both | both on | both off | — | *(see below)* | | | | |
+| **X3** `Rule50Scale=300` | mine | `EvalRule50Damp` | 2000 | **+14.25** | ±10.42 | [45, 221, 414, 247, 73] | 0 | W609 L527 D864 |
+| X4 both | both on | both off | (229 of 2000 at the stop) | *(not quoted)* | | | 0 | |
 
 **How the games ended**, for the matches that finished (fastchess prints the termination of every
 game; these are its own counts):
@@ -91,6 +91,7 @@ game; these are its own counts):
 | C | 193 wins / 22 losses | 85 draws | 0 (node games cannot lose on time) | **0** |
 | X1 | 447 wins / 691 losses | 862 draws (43.1 %) | 0 | **0** |
 | X2 | 450 wins / 652 losses | 898 draws (44.9 %) | 0 | **0** |
+| X3 | 609 wins / 527 losses | 864 draws (43.2 %) | 0 | **0** |
 
 The fault column is 0 for every match that ran: no crash, no illegal move, no disconnect.
 
@@ -115,13 +116,13 @@ Budget: 80 minutes from 23:07:09, i.e. 00:27, stop at 00:17.
 
 ## 7. What I did not do
 
-- **X3 reached 199 of its 2,000 games and X4 never started.** I do not quote a partial result: 199
-  games is about ±33 Elo of noise on a difference that the step-0 counters suggest is small. **The
-  head-to-head the job asks for is therefore NOT delivered**, and that is the main gap in this report.
-  The job says the last match is cut first, and X4 was; X3 was cut too because the chain ran C, X1,
-  X2, X3, X4 and each 2,000-game match takes about 13 minutes on 4 cores.
-- The pooled `EvalRule50Damp` result is two seeds and is solid; what it does *not* tell us is whether
-  my design would do better, because the only match that could answer that is the missing X3.
+- **X4 is the one match that was cut**: 229 of its 2,000 games, no number quoted. Everything else
+  (C, X1, X2, X3) finished.
+- **X4 is also the match that would separate "one gain" from "two independent gains"**, and 229 games
+  cannot do that. The answer to the job's last question — do the two designs add? — is **not
+  delivered**. Given X1/X2 (existing design alone: −38.8) and X3 (mine beats it by +14.3), the
+  natural prediction is that "both on" is *worse* than mine alone, because the existing design's TT
+  guard would still apply on top of my divisor; but that is a prediction, not a measurement.
 - I did not vary the weight of `Rule50Scale` in X3: D=300 is job 12's better setting, as the job says.
 - I did not run X3 with `EvalRule50Damp` *also* disabling my scaling (both on) beyond X4.
 
