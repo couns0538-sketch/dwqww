@@ -1,0 +1,6451 @@
+>>> uci
+id name Chess Engine Forge 6.4.24 candidate
+id author OpenAI
+option name Hash type spin default 32 min 1 max 2048
+option name Threads type spin default 1 min 1 max 256
+option name MultiPV type spin default 1 min 1 max 8
+option name Move Overhead type spin default 10 min 0 max 1000
+option name Ponder type check default false
+option name OwnBook type check default true
+option name Book File type string default <empty>
+option name Book Depth type spin default 30 min 0 max 100
+option name Book Variety type spin default 30 min 0 max 100
+option name UseNNUE type check default true
+option name NnueFile type string default <empty>
+option name ContHist4PlyRead type check default false
+option name NonPawnCorrection type check default false
+option name LmrDeeperShallower type check default false
+option name EvalRule50Damp type check default false
+option name ThreatHistory type check default false
+option name LmrSignedCorrection type check default false
+option name LmrLateParentRelief type check default false
+option name HindsightDepth type check default false
+option name NullThreatVerify type check default false
+option name NullSeeVeto type check default false
+option name AspCappedReopen type check default false
+option name AspArmLate type check default false
+option name EvasionOrdering type check default false
+option name DeadMaterial type check default false
+option name QuietExtinction type check default false
+option name DrawJitter type spin default 0 min 0 max 8
+option name TmFinishIteration type check default false
+option name TmNodeShare type check default false
+option name SoundMatePruning type check default false
+option name LmrQuietBase type spin default 85 min 0 max 300
+option name LmrQuietDivisor type spin default 220 min 100 max 500
+option name LmrNoisyBase type spin default 10 min 0 max 300
+option name LmrNoisyDivisor type spin default 340 min 100 max 800
+option name NullMoveMinDepth type spin default 3 min 1 max 10
+option name NullMoveBase type spin default 3 min 1 max 6
+option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+option name RfpDepth type spin default 8 min 0 max 15
+option name RfpMargin type spin default 72 min 10 max 300
+option name RfpImproving type spin default 40 min 0 max 200
+option name RazorDepth type spin default 2 min 0 max 6
+option name RazorBase type spin default 150 min 0 max 1000
+option name RazorMultiplier type spin default 350 min 0 max 1000
+option name FutilityDepth type spin default 7 min 0 max 15
+option name FutilityBase type spin default 100 min 0 max 500
+option name FutilityMultiplier type spin default 110 min 0 max 500
+option name LmpBase type spin default 4 min 0 max 20
+option name HistoryPruneDepth type spin default 3 min 0 max 10
+option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+option name SeeQuietMultiplier type spin default 24 min 0 max 200
+option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+option name SingularDepth type spin default 7 min 2 max 20
+option name SingularMargin type spin default 2 min 0 max 10
+option name IirDepth type spin default 4 min 1 max 20
+option name ProbcutDepth type spin default 5 min 1 max 20
+option name ProbcutMargin type spin default 180 min 0 max 1000
+option name QsFutilityMargin type spin default 160 min 0 max 1000
+option name QsSeeMargin type spin default 40 min 0 max 500
+option name AspirationDelta type spin default 18 min 4 max 200
+option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+option name HistoryBonusLinear type spin default 48 min 0 max 500
+option name HistoryBonusMax type spin default 2048 min 100 max 10000
+option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+option name CheckExtensionDepth type spin default 2 min 1 max 30
+option name LmrCutoffThreshold type spin default 3 min 0 max 20
+option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+option name TmSoftDivisor type spin default 22 min 5 max 80
+option name TmIncrementPercent type spin default 75 min 0 max 150
+option name TmHardPercent type spin default 60 min 10 max 95
+option name TmHardSoftMultiple type spin default 5 min 1 max 20
+option name TmStableFactor type spin default 60 min 20 max 150
+option name TmSemiStableFactor type spin default 80 min 20 max 150
+option name TmUnstableFactor type spin default 140 min 50 max 300
+option name TmEffortBase type spin default 155 min 100 max 250
+option name TmFallingEvalPercent type spin default 100 min 0 max 400
+option name TmMinFactorPercent type spin default 45 min 10 max 100
+option name CaptureFutilityBase type spin default 0 min 0 max 1000
+option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+option name CaptureFutilityDepth type spin default 6 min 0 max 15
+option name FailLowContinuationBonus type spin default 0 min 0 max 300
+option name Clear Hash type button
+uciok
+>>> isready
+readyok
+>>> ucinewgame
+>>> isready
+readyok
+>>> position fen 1r1k2nr/pppb4/n2P1ppp/8/P1N2B1P/5PP1/1Pq1PR2/R3QKN1 b - - 2 18
+>>> isready
+readyok
+>>> go perft 1
+f6f5: 1
+g6g5: 1
+h6h5: 1
+b7b6: 1
+c7c6: 1
+b7b5: 1
+c7c5: 1
+c7d6: 1
+a6b4: 1
+a6c5: 1
+g8e7: 1
+d7h3: 1
+d7a4: 1
+d7g4: 1
+d7b5: 1
+d7f5: 1
+d7c6: 1
+d7e6: 1
+d7c8: 1
+d7e8: 1
+b8a8: 1
+b8c8: 1
+h8h7: 1
+c2b1: 1
+c2c1: 1
+c2d1: 1
+c2b2: 1
+c2d2: 1
+c2e2: 1
+c2b3: 1
+c2c3: 1
+c2d3: 1
+c2a4: 1
+c2c4: 1
+c2e4: 1
+c2f5: 1
+d8c8: 1
+d8e8: 1
+nodes 38
+>>> position fen r2k2nr/pppb4/3P1ppp/8/PP1n1B1P/2Q1NPP1/2q1PR2/R4KN1 w - - 5 22
+>>> isready
+readyok
+>>> go perft 1
+g3g4: 1
+a4a5: 1
+b4b5: 1
+h4h5: 1
+d6c7: 1
+g1h3: 1
+e3d1: 1
+e3c2: 1
+e3g2: 1
+e3c4: 1
+e3g4: 1
+e3d5: 1
+e3f5: 1
+f4e5: 1
+f4g5: 1
+f4h6: 1
+a1b1: 1
+a1c1: 1
+a1d1: 1
+a1e1: 1
+a1a2: 1
+a1a3: 1
+f2g2: 1
+f2h2: 1
+c3e1: 1
+c3b2: 1
+c3c2: 1
+c3d2: 1
+c3a3: 1
+c3b3: 1
+c3d3: 1
+c3c4: 1
+c3d4: 1
+c3c5: 1
+c3c6: 1
+c3c7: 1
+f1e1: 1
+f1g2: 1
+nodes 38
+>>> position fen r1k3nr/1pPb4/p1Q2ppp/8/PP1n1B1P/R4PP1/q3PRN1/5KN1 b - - 2 25
+>>> isready
+readyok
+>>> go perft 1
+a6a5: 1
+f6f5: 1
+g6g5: 1
+h6h5: 1
+b7b6: 1
+b7b5: 1
+b7c6: 1
+d4c2: 1
+d4e2: 1
+d4b3: 1
+d4f3: 1
+d4b5: 1
+d4f5: 1
+d4c6: 1
+d4e6: 1
+g8e7: 1
+d7h3: 1
+d7g4: 1
+d7f5: 1
+d7c6: 1
+d7e6: 1
+d7e8: 1
+a8a7: 1
+a8b8: 1
+h8h7: 1
+a2a1: 1
+a2b1: 1
+a2b2: 1
+a2c2: 1
+a2d2: 1
+a2e2: 1
+a2a3: 1
+a2b3: 1
+a2c4: 1
+a2d5: 1
+a2e6: 1
+a2f7: 1
+nodes 37
+>>> position fen r1k3nr/1pPb4/p1Q2ppp/3Rn3/PP4qP/6P1/3BPRN1/5KN1 w - - 4 29
+>>> isready
+readyok
+>>> go perft 1
+e2e3: 1
+a4a5: 1
+b4b5: 1
+h4h5: 1
+e2e4: 1
+g1f3: 1
+g1h3: 1
+g2e1: 1
+g2e3: 1
+g2f4: 1
+d2c1: 1
+d2e1: 1
+d2c3: 1
+d2e3: 1
+d2f4: 1
+d2g5: 1
+d2h6: 1
+f2f3: 1
+f2f4: 1
+f2f5: 1
+f2f6: 1
+d5d3: 1
+d5d4: 1
+d5a5: 1
+d5b5: 1
+d5c5: 1
+d5e5: 1
+d5d6: 1
+d5d7: 1
+c6c1: 1
+c6c2: 1
+c6c3: 1
+c6c4: 1
+c6b5: 1
+c6c5: 1
+c6a6: 1
+c6b6: 1
+c6d6: 1
+c6e6: 1
+c6f6: 1
+c6b7: 1
+c6d7: 1
+f1e1: 1
+nodes 43
+>>> position fen 1rk3nr/1pPb4/p1Q2p1p/3RnqpP/PP3B2/6P1/4PRK1/4N1N1 b - - 1 32
+>>> isready
+readyok
+>>> go perft 1
+g5g4: 1
+a6a5: 1
+b7b6: 1
+b7b5: 1
+g5f4: 1
+b7c6: 1
+e5d3: 1
+e5f3: 1
+e5c4: 1
+e5g4: 1
+e5c6: 1
+e5g6: 1
+e5f7: 1
+g8e7: 1
+d7c6: 1
+d7e6: 1
+d7e8: 1
+b8a8: 1
+h8h7: 1
+f5b1: 1
+f5c2: 1
+f5d3: 1
+f5h3: 1
+f5e4: 1
+f5f4: 1
+f5g4: 1
+f5e6: 1
+f5g6: 1
+f5h7: 1
+nodes 29
+>>> position fen r1k4r/1pP1n3/p4p1p/Rb2nqpP/PP2PB2/6P1/4NRK1/4N3 w - - 3 36
+>>> isready
+readyok
+>>> go perft 1
+g3g4: 1
+a4b5: 1
+e4f5: 1
+e1c2: 1
+e1d3: 1
+e1f3: 1
+e2c1: 1
+e2g1: 1
+e2c3: 1
+e2d4: 1
+f4c1: 1
+f4d2: 1
+f4e3: 1
+f4e5: 1
+f4g5: 1
+f2f1: 1
+f2f3: 1
+a5b5: 1
+a5a6: 1
+g2f1: 1
+g2g1: 1
+g2h1: 1
+g2h2: 1
+nodes 23
+>>> position fen 2r4r/1pk1n3/p4p1p/Rb2nq1P/PP2PBp1/5RP1/4N3/4NK2 b - - 3 39
+>>> isready
+readyok
+>>> go perft 1
+b7b6: 1
+g4f3: 1
+e7d5: 1
+e7c6: 1
+e7g6: 1
+e7g8: 1
+b5e2: 1
+b5d3: 1
+b5a4: 1
+b5c4: 1
+b5c6: 1
+b5d7: 1
+b5e8: 1
+c8a8: 1
+c8b8: 1
+c8d8: 1
+c8e8: 1
+c8f8: 1
+c8g8: 1
+h8h7: 1
+h8d8: 1
+h8e8: 1
+h8f8: 1
+h8g8: 1
+f5e4: 1
+f5f4: 1
+f5g5: 1
+f5h5: 1
+f5e6: 1
+f5g6: 1
+f5d7: 1
+f5h7: 1
+c7b6: 1
+c7c6: 1
+c7d6: 1
+c7d7: 1
+c7b8: 1
+c7d8: 1
+nodes 38
+>>> position fen 2r4r/1pk5/p4p1B/Rb1n3P/PP4p1/5NP1/2q1NK2/8 w - - 1 43
+>>> isready
+readyok
+>>> go perft 1
+a4b5: 1
+f3e1: 1
+f3g1: 1
+f3d2: 1
+f3h2: 1
+f3d4: 1
+f3h4: 1
+f3e5: 1
+f3g5: 1
+h6c1: 1
+h6d2: 1
+h6e3: 1
+h6f4: 1
+h6g5: 1
+h6g7: 1
+h6f8: 1
+a5b5: 1
+a5a6: 1
+f2e1: 1
+f2f1: 1
+f2g1: 1
+f2g2: 1
+nodes 22
+>>> position fen 5r1r/1p6/pk3p1B/Rb1n3P/qP1N2N1/6P1/6K1/8 b - - 1 46
+>>> isready
+readyok
+>>> go perft 1
+f6f5: 1
+d5c3: 1
+d5e3: 1
+d5b4: 1
+d5f4: 1
+d5c7: 1
+d5e7: 1
+b5f1: 1
+b5e2: 1
+b5d3: 1
+b5c4: 1
+b5c6: 1
+b5d7: 1
+b5e8: 1
+f8f7: 1
+f8a8: 1
+f8b8: 1
+f8c8: 1
+f8d8: 1
+f8e8: 1
+f8g8: 1
+h8h6: 1
+h8h7: 1
+h8g8: 1
+a4a1: 1
+a4d1: 1
+a4a2: 1
+a4c2: 1
+a4a3: 1
+a4b3: 1
+a4b4: 1
+a4a5: 1
+b6a7: 1
+b6c7: 1
+nodes 34
+>>> position fen 7r/kp6/q2r1p1B/1b1n3P/1P1N2N1/6P1/6K1/8 w - - 0 50
+>>> isready
+readyok
+>>> go perft 1
+d4c2: 1
+d4e2: 1
+d4b3: 1
+d4f3: 1
+d4b5: 1
+d4f5: 1
+d4c6: 1
+d4e6: 1
+g4f2: 1
+g4h2: 1
+g4e3: 1
+g4e5: 1
+g4f6: 1
+h6c1: 1
+h6d2: 1
+h6e3: 1
+h6f4: 1
+h6g5: 1
+h6g7: 1
+h6f8: 1
+g2g1: 1
+g2h1: 1
+g2f2: 1
+g2h2: 1
+g2f3: 1
+g2h3: 1
+nodes 26
+>>> position fen 1k2b2r/1p6/3r1p1B/1N1n3P/1P4P1/4N2K/8/q7 b - - 0 53
+>>> isready
+readyok
+>>> go perft 1
+f6f5: 1
+b7b6: 1
+d5c3: 1
+d5e3: 1
+d5b4: 1
+d5f4: 1
+d5b6: 1
+d5c7: 1
+d5e7: 1
+e8b5: 1
+e8h5: 1
+e8c6: 1
+e8g6: 1
+e8d7: 1
+e8f7: 1
+d6a6: 1
+d6b6: 1
+d6c6: 1
+d6e6: 1
+d6d7: 1
+d6d8: 1
+h8h6: 1
+h8h7: 1
+h8f8: 1
+h8g8: 1
+a1b1: 1
+a1c1: 1
+a1d1: 1
+a1e1: 1
+a1f1: 1
+a1g1: 1
+a1h1: 1
+a1a2: 1
+a1b2: 1
+a1a3: 1
+a1c3: 1
+a1a4: 1
+a1d4: 1
+a1a5: 1
+a1e5: 1
+a1a6: 1
+a1a7: 1
+a1a8: 1
+b8a8: 1
+b8c8: 1
+nodes 45
+>>> position fen 1k5r/5b2/3rNp1B/1p1N3P/1P4P1/7K/8/3q4 w - - 3 57
+>>> isready
+readyok
+>>> go perft 1
+g4g5: 1
+d5c3: 1
+d5e3: 1
+d5f4: 1
+d5b6: 1
+d5f6: 1
+d5c7: 1
+d5e7: 1
+e6d4: 1
+e6f4: 1
+e6c5: 1
+e6g5: 1
+e6c7: 1
+e6g7: 1
+e6d8: 1
+e6f8: 1
+h6c1: 1
+h6d2: 1
+h6e3: 1
+h6f4: 1
+h6g5: 1
+h6g7: 1
+h6f8: 1
+h3g2: 1
+h3h2: 1
+h3g3: 1
+h3h4: 1
+nodes 27
+>>> position fen 8/1k3b1r/3r1p2/1p1N3P/1P3NPK/4B3/8/5q2 b - - 10 60
+>>> isready
+readyok
+>>> go perft 1
+f6f5: 1
+f7d5: 1
+f7h5: 1
+f7e6: 1
+f7g6: 1
+f7e8: 1
+f7g8: 1
+d6d5: 1
+d6a6: 1
+d6b6: 1
+d6c6: 1
+d6e6: 1
+d6d7: 1
+d6d8: 1
+h7h5: 1
+h7h6: 1
+h7g7: 1
+h7h8: 1
+f1a1: 1
+f1b1: 1
+f1c1: 1
+f1d1: 1
+f1e1: 1
+f1g1: 1
+f1h1: 1
+f1e2: 1
+f1f2: 1
+f1g2: 1
+f1d3: 1
+f1f3: 1
+f1h3: 1
+f1c4: 1
+f1f4: 1
+b7a6: 1
+b7c6: 1
+b7a8: 1
+b7b8: 1
+b7c8: 1
+nodes 38
+>>> position fen 5rN1/1k3b1r/7P/1p6/1P3NPK/4B3/8/3q4 w - - 3 64
+>>> isready
+readyok
+>>> go perft 1
+g4g5: 1
+f4e2: 1
+f4g2: 1
+f4d3: 1
+f4h3: 1
+f4d5: 1
+f4h5: 1
+f4e6: 1
+f4g6: 1
+g8f6: 1
+g8e7: 1
+e3c1: 1
+e3g1: 1
+e3d2: 1
+e3f2: 1
+e3d4: 1
+e3c5: 1
+e3b6: 1
+e3a7: 1
+h4g3: 1
+h4h3: 1
+h4g5: 1
+nodes 22
+>>> position fen 5BN1/1k5r/7P/1p5N/1P4PK/8/8/1b4q1 b - - 2 67
+>>> isready
+readyok
+>>> go perft 1
+b1a2: 1
+b1c2: 1
+b1d3: 1
+b1e4: 1
+b1f5: 1
+b1g6: 1
+h7h6: 1
+h7c7: 1
+h7d7: 1
+h7e7: 1
+h7f7: 1
+h7g7: 1
+h7h8: 1
+g1c1: 1
+g1d1: 1
+g1e1: 1
+g1f1: 1
+g1h1: 1
+g1f2: 1
+g1g2: 1
+g1h2: 1
+g1e3: 1
+g1g3: 1
+g1d4: 1
+g1g4: 1
+g1c5: 1
+g1b6: 1
+g1a7: 1
+b7a6: 1
+b7b6: 1
+b7c6: 1
+b7a7: 1
+b7c7: 1
+b7a8: 1
+b7b8: 1
+b7c8: 1
+nodes 36
+>>> position fen k5N1/1r4B1/7P/1p6/1P4PK/8/4N3/1b3q2 w - - 9 71
+>>> isready
+readyok
+>>> go perft 1
+g4g5: 1
+h6h7: 1
+e2c1: 1
+e2g1: 1
+e2c3: 1
+e2g3: 1
+e2d4: 1
+e2f4: 1
+g8f6: 1
+g8e7: 1
+g7a1: 1
+g7b2: 1
+g7c3: 1
+g7d4: 1
+g7e5: 1
+g7f6: 1
+g7f8: 1
+g7h8: 1
+h4g3: 1
+h4g5: 1
+h4h5: 1
+nodes 21
+>>> position fen k5N1/1r2B1q1/7P/1p5K/1P4P1/8/4N3/1b6 b - - 16 74
+>>> isready
+readyok
+>>> go perft 1
+b1a2: 1
+b1c2: 1
+b1d3: 1
+b1e4: 1
+b1f5: 1
+b1g6: 1
+b1h7: 1
+b7b6: 1
+b7a7: 1
+b7c7: 1
+b7d7: 1
+b7e7: 1
+b7b8: 1
+g7a1: 1
+g7b2: 1
+g7c3: 1
+g7d4: 1
+g7g4: 1
+g7e5: 1
+g7g5: 1
+g7f6: 1
+g7g6: 1
+g7h6: 1
+g7e7: 1
+g7f7: 1
+g7h7: 1
+g7f8: 1
+g7g8: 1
+g7h8: 1
+a8a7: 1
+a8b8: 1
+nodes 31
+>>> position fen 6N1/k5r1/5q1P/1p5K/1P4P1/8/4N3/1b6 w - - 2 78
+>>> isready
+readyok
+>>> go perft 1
+g4g5: 1
+h6h7: 1
+h6g7: 1
+e2c1: 1
+e2g1: 1
+e2c3: 1
+e2g3: 1
+e2d4: 1
+e2f4: 1
+g8f6: 1
+g8e7: 1
+nodes 11
+>>> position fen 1k6/4N3/6qP/1p4P1/1P4K1/8/8/1b4N1 b - - 0 81
+>>> isready
+readyok
+>>> go perft 1
+b1a2: 1
+b1c2: 1
+b1d3: 1
+b1e4: 1
+b1f5: 1
+g6c2: 1
+g6d3: 1
+g6e4: 1
+g6f5: 1
+g6g5: 1
+g6h5: 1
+g6a6: 1
+g6b6: 1
+g6c6: 1
+g6d6: 1
+g6e6: 1
+g6f6: 1
+g6h6: 1
+g6f7: 1
+g6g7: 1
+g6h7: 1
+g6e8: 1
+g6g8: 1
+b8a7: 1
+b8b7: 1
+b8c7: 1
+b8a8: 1
+nodes 27
+>>> position fen 8/1k2N2q/7P/1p4P1/1P6/7K/b3N3/8 w - - 7 85
+>>> isready
+readyok
+>>> go perft 1
+g5g6: 1
+e2c1: 1
+e2g1: 1
+e2c3: 1
+e2g3: 1
+e2d4: 1
+e2f4: 1
+e7d5: 1
+e7f5: 1
+e7c6: 1
+e7g6: 1
+e7c8: 1
+e7g8: 1
+h3g2: 1
+h3h2: 1
+h3g3: 1
+h3g4: 1
+h3h4: 1
+nodes 18
+>>> position fen 8/1k5q/4N2P/1p4P1/1P6/8/4N1bK/8 b - - 14 88
+>>> isready
+readyok
+>>> go perft 1
+g2f1: 1
+g2h1: 1
+g2f3: 1
+g2h3: 1
+g2e4: 1
+g2d5: 1
+g2c6: 1
+h7b1: 1
+h7c2: 1
+h7d3: 1
+h7e4: 1
+h7f5: 1
+h7g6: 1
+h7h6: 1
+h7c7: 1
+h7d7: 1
+h7e7: 1
+h7f7: 1
+h7g7: 1
+h7g8: 1
+h7h8: 1
+b7a6: 1
+b7b6: 1
+b7c6: 1
+b7a7: 1
+b7a8: 1
+b7b8: 1
+b7c8: 1
+nodes 28
+>>> position fen 5N2/1k6/7P/1p5q/1P3N2/8/8/5bK1 w - - 4 92
+>>> isready
+readyok
+>>> go perft 1
+h6h7: 1
+f4e2: 1
+f4g2: 1
+f4d3: 1
+f4h3: 1
+f4d5: 1
+f4h5: 1
+f4e6: 1
+f4g6: 1
+f8e6: 1
+f8g6: 1
+f8d7: 1
+f8h7: 1
+g1f1: 1
+g1f2: 1
+nodes 15
+>>> position fen 3k1N2/8/7P/1p6/1P6/6N1/5K2/8 b - - 4 95
+>>> isready
+readyok
+>>> go perft 1
+d8c7: 1
+d8e7: 1
+d8c8: 1
+d8e8: 1
+nodes 4
+>>> position fen 5N2/5k2/7P/1p6/1P2N3/8/7K/8 w - - 11 99
+>>> isready
+readyok
+>>> go perft 1
+h6h7: 1
+e4d2: 1
+e4f2: 1
+e4c3: 1
+e4g3: 1
+e4c5: 1
+e4g5: 1
+e4d6: 1
+e4f6: 1
+f8e6: 1
+f8g6: 1
+f8d7: 1
+f8h7: 1
+h2g1: 1
+h2h1: 1
+h2g2: 1
+h2g3: 1
+h2h3: 1
+nodes 18
+>>> position fen 8/2k5/7P/1p6/1P2N3/8/6K1/8 b - - 3 102
+>>> isready
+readyok
+>>> go perft 1
+c7b6: 1
+c7c6: 1
+c7b7: 1
+c7d7: 1
+c7b8: 1
+c7c8: 1
+c7d8: 1
+nodes 7
+>>> position fen k7/8/7P/1p6/1P6/8/6K1/2N5 w - - 10 106
+>>> isready
+readyok
+>>> go perft 1
+h6h7: 1
+c1a2: 1
+c1e2: 1
+c1b3: 1
+c1d3: 1
+g2f1: 1
+g2g1: 1
+g2h1: 1
+g2f2: 1
+g2h2: 1
+g2f3: 1
+g2g3: 1
+g2h3: 1
+nodes 13
+>>> position fen 7Q/1k6/8/1p6/1P6/8/8/2N3K1 b - - 2 109
+>>> isready
+readyok
+>>> go perft 1
+b7a6: 1
+b7b6: 1
+b7c6: 1
+b7a7: 1
+b7c7: 1
+nodes 5
+>>> position fen 8/1k6/8/1p6/1P1Q4/8/8/2N3K1 w - - 9 113
+>>> isready
+readyok
+>>> go perft 1
+c1a2: 1
+c1e2: 1
+c1b3: 1
+c1d3: 1
+d4a1: 1
+d4d1: 1
+d4b2: 1
+d4d2: 1
+d4f2: 1
+d4c3: 1
+d4d3: 1
+d4e3: 1
+d4c4: 1
+d4e4: 1
+d4f4: 1
+d4g4: 1
+d4h4: 1
+d4c5: 1
+d4d5: 1
+d4e5: 1
+d4b6: 1
+d4d6: 1
+d4f6: 1
+d4a7: 1
+d4d7: 1
+d4g7: 1
+d4d8: 1
+d4h8: 1
+g1f1: 1
+g1h1: 1
+g1f2: 1
+g1g2: 1
+g1h2: 1
+nodes 33
+>>> position fen 8/4k3/8/1p6/1P6/8/N1Q5/5K2 b - - 16 116
+>>> isready
+readyok
+>>> go perft 1
+e7d6: 1
+e7e6: 1
+e7f6: 1
+e7d7: 1
+e7f7: 1
+e7d8: 1
+e7e8: 1
+e7f8: 1
+nodes 8
+>>> position fen 8/8/5k2/1p6/1P6/8/7Q/2N2K2 w - - 23 120
+>>> isready
+readyok
+>>> go perft 1
+c1a2: 1
+c1e2: 1
+c1b3: 1
+c1d3: 1
+h2g1: 1
+h2h1: 1
+h2a2: 1
+h2b2: 1
+h2c2: 1
+h2d2: 1
+h2e2: 1
+h2f2: 1
+h2g2: 1
+h2g3: 1
+h2h3: 1
+h2f4: 1
+h2h4: 1
+h2e5: 1
+h2h5: 1
+h2d6: 1
+h2h6: 1
+h2c7: 1
+h2h7: 1
+h2b8: 1
+h2h8: 1
+f1e1: 1
+f1g1: 1
+f1e2: 1
+f1f2: 1
+f1g2: 1
+nodes 30
+>>> position fen 8/8/5k2/1p6/1P6/8/4K3/2NQ4 b - - 30 123
+>>> isready
+readyok
+>>> go perft 1
+f6e5: 1
+f6f5: 1
+f6g5: 1
+f6e6: 1
+f6g6: 1
+f6e7: 1
+f6f7: 1
+f6g7: 1
+nodes 8
+>>> position fen 8/8/5k2/1p6/1P6/3N4/3K4/1Q6 w - - 37 127
+>>> isready
+readyok
+>>> go perft 1
+d3c1: 1
+d3e1: 1
+d3b2: 1
+d3f2: 1
+d3f4: 1
+d3c5: 1
+d3e5: 1
+b1a1: 1
+b1c1: 1
+b1d1: 1
+b1e1: 1
+b1f1: 1
+b1g1: 1
+b1h1: 1
+b1a2: 1
+b1b2: 1
+b1c2: 1
+b1b3: 1
+d2c1: 1
+d2d1: 1
+d2e1: 1
+d2c2: 1
+d2e2: 1
+d2c3: 1
+d2e3: 1
+nodes 25
+>>> position fen 8/4k3/8/1p6/1P6/8/3KN3/2Q5 b - - 44 130
+>>> isready
+readyok
+>>> go perft 1
+e7d6: 1
+e7e6: 1
+e7f6: 1
+e7d7: 1
+e7f7: 1
+e7d8: 1
+e7e8: 1
+e7f8: 1
+nodes 8
+>>> position fen 5k2/8/8/1p6/1P6/8/3K4/2N1Q3 w - - 51 134
+>>> isready
+readyok
+>>> go perft 1
+c1a2: 1
+c1e2: 1
+c1b3: 1
+c1d3: 1
+e1d1: 1
+e1f1: 1
+e1g1: 1
+e1h1: 1
+e1e2: 1
+e1f2: 1
+e1e3: 1
+e1g3: 1
+e1e4: 1
+e1h4: 1
+e1e5: 1
+e1e6: 1
+e1e7: 1
+e1e8: 1
+d2d1: 1
+d2c2: 1
+d2e2: 1
+d2c3: 1
+d2d3: 1
+d2e3: 1
+nodes 24
+>>> position fen 6k1/8/8/1p6/1P6/3NQ3/3K4/8 b - - 58 137
+>>> isready
+readyok
+>>> go perft 1
+g8f7: 1
+g8g7: 1
+g8h7: 1
+g8f8: 1
+g8h8: 1
+nodes 5
+>>> position fen 7Q/2k5/8/1p6/1P6/3N4/3K4/8 w - - 65 141
+>>> isready
+readyok
+>>> go perft 1
+d3c1: 1
+d3e1: 1
+d3b2: 1
+d3f2: 1
+d3f4: 1
+d3c5: 1
+d3e5: 1
+h8a1: 1
+h8h1: 1
+h8b2: 1
+h8h2: 1
+h8c3: 1
+h8h3: 1
+h8d4: 1
+h8h4: 1
+h8e5: 1
+h8h5: 1
+h8f6: 1
+h8h6: 1
+h8g7: 1
+h8h7: 1
+h8a8: 1
+h8b8: 1
+h8c8: 1
+h8d8: 1
+h8e8: 1
+h8f8: 1
+h8g8: 1
+d2c1: 1
+d2d1: 1
+d2e1: 1
+d2c2: 1
+d2e2: 1
+d2c3: 1
+d2e3: 1
+nodes 35
+>>> position fen 8/4k3/8/1p6/1P6/1N6/8/3K4 b - - 5 144
+>>> isready
+readyok
+>>> go perft 1
+e7d6: 1
+e7e6: 1
+e7f6: 1
+e7d7: 1
+e7f7: 1
+e7d8: 1
+e7e8: 1
+e7f8: 1
+nodes 8
+>>> position fen 8/5k2/8/1p6/1P6/1N6/3K4/8 w - - 12 148
+>>> isready
+readyok
+>>> go perft 1
+b3a1: 1
+b3c1: 1
+b3d4: 1
+b3a5: 1
+b3c5: 1
+d2c1: 1
+d2d1: 1
+d2e1: 1
+d2c2: 1
+d2e2: 1
+d2c3: 1
+d2d3: 1
+d2e3: 1
+nodes 13
+>>> position fen 8/8/5k2/1p6/1P6/4N3/8/4K3 b - - 19 151
+>>> isready
+readyok
+>>> go perft 1
+f6e5: 1
+f6g5: 1
+f6e6: 1
+f6g6: 1
+f6e7: 1
+f6f7: 1
+f6g7: 1
+nodes 7
+>>> position fen 7k/8/8/1p6/1P1N4/8/8/3K4 w - - 26 155
+>>> isready
+readyok
+>>> go perft 1
+d4c2: 1
+d4e2: 1
+d4b3: 1
+d4f3: 1
+d4b5: 1
+d4f5: 1
+d4c6: 1
+d4e6: 1
+d1c1: 1
+d1e1: 1
+d1c2: 1
+d1d2: 1
+d1e2: 1
+nodes 13
+>>> position fen 8/6k1/4N3/1p6/1P6/8/8/4K3 b - - 33 158
+>>> isready
+readyok
+>>> go perft 1
+g7f6: 1
+g7g6: 1
+g7h6: 1
+g7f7: 1
+g7h7: 1
+g7g8: 1
+g7h8: 1
+nodes 7
+>>> position fen 8/5k1N/8/1p6/1P6/8/5K2/8 w - - 40 162
+>>> isready
+readyok
+>>> go perft 1
+h7g5: 1
+h7f6: 1
+h7f8: 1
+f2e1: 1
+f2f1: 1
+f2g1: 1
+f2e2: 1
+f2g2: 1
+f2e3: 1
+f2f3: 1
+f2g3: 1
+nodes 11
+>>> position fen 8/7N/4k3/1p6/1P2K3/8/8/8 b - - 47 165
+>>> isready
+readyok
+>>> go perft 1
+e6d6: 1
+e6d7: 1
+e6e7: 1
+e6f7: 1
+nodes 4
+>>> position fen 8/3k3N/8/1p3K2/1P6/8/8/8 w - - 54 169
+>>> isready
+readyok
+>>> go perft 1
+h7g5: 1
+h7f6: 1
+h7f8: 1
+f5e4: 1
+f5f4: 1
+f5g4: 1
+f5e5: 1
+f5g5: 1
+f5f6: 1
+f5g6: 1
+nodes 10
+>>> position fen 2k1N3/8/8/1p3K2/1P6/8/8/8 b - - 61 172
+>>> isready
+readyok
+>>> go perft 1
+c8b7: 1
+c8d7: 1
+c8b8: 1
+c8d8: 1
+nodes 4
+>>> position fen 8/k7/4K3/1p6/1P6/8/8/8 w - - 4 176
+>>> isready
+readyok
+>>> go perft 1
+e6d5: 1
+e6e5: 1
+e6f5: 1
+e6d6: 1
+e6f6: 1
+e6d7: 1
+e6e7: 1
+e6f7: 1
+nodes 8
+>>> position fen k7/4K3/8/1p6/1P6/8/8/8 b - - 11 179
+>>> isready
+readyok
+>>> go perft 1
+a8a7: 1
+a8b7: 1
+a8b8: 1
+nodes 3
+>>> position fen 1k6/6K1/8/1p6/1P6/8/8/8 w - - 18 183
+>>> isready
+readyok
+>>> go perft 1
+g7f6: 1
+g7g6: 1
+g7h6: 1
+g7f7: 1
+g7h7: 1
+g7f8: 1
+g7g8: 1
+g7h8: 1
+nodes 8
+>>> position fen 8/8/k7/1p4K1/1P6/8/8/8 b - - 25 186
+>>> isready
+readyok
+>>> go perft 1
+a6b6: 1
+a6a7: 1
+a6b7: 1
+nodes 3
+>>> position fen 8/3k4/8/1p6/1P6/8/7K/8 w - - 32 190
+>>> isready
+readyok
+>>> go perft 1
+h2g1: 1
+h2h1: 1
+h2g2: 1
+h2g3: 1
+h2h3: 1
+nodes 5
+>>> position fen 8/3k4/8/1p6/1P6/7K/8/8 b - - 39 193
+>>> isready
+readyok
+>>> go perft 1
+d7c6: 1
+d7d6: 1
+d7e6: 1
+d7c7: 1
+d7e7: 1
+d7c8: 1
+d7d8: 1
+d7e8: 1
+nodes 8
+>>> position fen 8/8/8/1p6/1P1k4/7K/8/8 w - - 46 197
+>>> isready
+readyok
+>>> go perft 1
+h3g2: 1
+h3h2: 1
+h3g3: 1
+h3g4: 1
+h3h4: 1
+nodes 5
+>>> position fen 8/8/8/1p6/1P6/2k1K3/8/8 b - - 53 200
+>>> isready
+readyok
+>>> go perft 1
+c3b2: 1
+c3c2: 1
+c3b3: 1
+c3b4: 1
+c3c4: 1
+nodes 5
+>>> position fen rnbqkbnr/1p1ppp1p/8/p1p3p1/8/4PQ2/PPPP1PPP/RNB1KBNR b KQkq - 1 4
+>>> isready
+readyok
+>>> go perft 1
+a5a4: 1
+c5c4: 1
+g5g4: 1
+b7b6: 1
+d7d6: 1
+e7e6: 1
+f7f6: 1
+h7h6: 1
+b7b5: 1
+d7d5: 1
+e7e5: 1
+f7f5: 1
+h7h5: 1
+b8a6: 1
+b8c6: 1
+g8f6: 1
+g8h6: 1
+f8h6: 1
+f8g7: 1
+a8a6: 1
+a8a7: 1
+d8b6: 1
+d8c7: 1
+nodes 23
+>>> position fen rnb1k2r/1p1pppbp/q4n2/p1p3p1/8/4PQPN/PPPP1P1P/RNB1K2R w KQkq - 1 8
+>>> isready
+readyok
+>>> go perft 1
+a2a3: 1
+b2b3: 1
+c2c3: 1
+d2d3: 1
+e3e4: 1
+g3g4: 1
+a2a4: 1
+b2b4: 1
+c2c4: 1
+d2d4: 1
+b1a3: 1
+b1c3: 1
+h3g1: 1
+h3f4: 1
+h3g5: 1
+h1f1: 1
+h1g1: 1
+f3d1: 1
+f3e2: 1
+f3g2: 1
+f3e4: 1
+f3f4: 1
+f3g4: 1
+f3d5: 1
+f3f5: 1
+f3h5: 1
+f3c6: 1
+f3f6: 1
+f3b7: 1
+e1d1: 1
+nodes 30
+>>> position fen rnb1k1r1/3pppbp/q7/ppp3pn/1Q6/N3P1PN/PPPP1P1P/R1B1K2R b KQq - 5 11
+>>> isready
+readyok
+>>> go perft 1
+a5a4: 1
+c5c4: 1
+g5g4: 1
+d7d6: 1
+e7e6: 1
+f7f6: 1
+h7h6: 1
+d7d5: 1
+e7e5: 1
+f7f5: 1
+a5b4: 1
+c5b4: 1
+h5g3: 1
+h5f4: 1
+h5f6: 1
+b8c6: 1
+g7b2: 1
+g7c3: 1
+g7d4: 1
+g7e5: 1
+g7f6: 1
+g7h6: 1
+g7f8: 1
+g7h8: 1
+c8b7: 1
+a8a7: 1
+g8f8: 1
+g8h8: 1
+a6b6: 1
+a6c6: 1
+a6d6: 1
+a6e6: 1
+a6f6: 1
+a6g6: 1
+a6h6: 1
+a6a7: 1
+a6b7: 1
+e8d8: 1
+e8f8: 1
+nodes 39
+>>> position fen rnb1k1r1/3pp2p/4qp1b/pQp3pn/8/N3P1PN/PPPP1P1P/R1B1K2R w KQq - 0 15
+>>> isready
+readyok
+>>> go perft 1
+b2b3: 1
+c2c3: 1
+d2d3: 1
+f2f3: 1
+e3e4: 1
+g3g4: 1
+b2b4: 1
+c2c4: 1
+d2d4: 1
+f2f4: 1
+a3b1: 1
+a3c4: 1
+h3g1: 1
+h3f4: 1
+h3g5: 1
+a1b1: 1
+h1f1: 1
+h1g1: 1
+b5f1: 1
+b5e2: 1
+b5b3: 1
+b5d3: 1
+b5a4: 1
+b5b4: 1
+b5c4: 1
+b5a5: 1
+b5c5: 1
+b5a6: 1
+b5b6: 1
+b5c6: 1
+b5b7: 1
+b5d7: 1
+b5b8: 1
+e1d1: 1
+e1f1: 1
+e1e2: 1
+e1g1: 1
+nodes 37
+>>> position fen rnb1k1r1/3pp2p/5p1b/pQpq2pn/5N1P/N3P1P1/PPPP1P2/R1B1K2R b KQ - 0 18
+>>> isready
+readyok
+>>> go perft 1
+a5a4: 1
+c5c4: 1
+g5g4: 1
+f6f5: 1
+e7e6: 1
+e7e5: 1
+g5f4: 1
+g5h4: 1
+h5g3: 1
+h5f4: 1
+h5g7: 1
+b8a6: 1
+b8c6: 1
+h6g7: 1
+h6f8: 1
+c8a6: 1
+c8b7: 1
+a8a6: 1
+a8a7: 1
+g8g6: 1
+g8g7: 1
+g8f8: 1
+g8h8: 1
+d5h1: 1
+d5a2: 1
+d5d2: 1
+d5g2: 1
+d5b3: 1
+d5d3: 1
+d5f3: 1
+d5c4: 1
+d5d4: 1
+d5e4: 1
+d5e5: 1
+d5f5: 1
+d5c6: 1
+d5d6: 1
+d5e6: 1
+d5b7: 1
+d5f7: 1
+e8f7: 1
+e8d8: 1
+e8f8: 1
+nodes 43
+>>> position fen rn2k1r1/1b1pp1bp/3Q1p2/p1p3pn/7P/N3P1P1/qPPPNP2/R1B1K2R w KQ - 2 22
+>>> isready
+readyok
+>>> go perft 1
+b2b3: 1
+c2c3: 1
+d2d3: 1
+f2f3: 1
+e3e4: 1
+g3g4: 1
+b2b4: 1
+c2c4: 1
+d2d4: 1
+f2f4: 1
+h4g5: 1
+e2g1: 1
+e2c3: 1
+e2d4: 1
+e2f4: 1
+a3b1: 1
+a3c4: 1
+a3b5: 1
+a1b1: 1
+a1a2: 1
+h1f1: 1
+h1g1: 1
+h1h2: 1
+h1h3: 1
+d6d3: 1
+d6d4: 1
+d6f4: 1
+d6c5: 1
+d6d5: 1
+d6e5: 1
+d6a6: 1
+d6b6: 1
+d6c6: 1
+d6e6: 1
+d6f6: 1
+d6c7: 1
+d6d7: 1
+d6e7: 1
+d6b8: 1
+e1d1: 1
+e1f1: 1
+e1g1: 1
+nodes 42
+>>> position fen rn2k1r1/3pp2p/2b4b/p1p2ppn/7P/N3PPPR/qPPPN3/1RB1K3 b - - 1 25
+>>> isready
+readyok
+>>> go perft 1
+a5a4: 1
+c5c4: 1
+f5f4: 1
+g5g4: 1
+d7d6: 1
+e7e6: 1
+d7d5: 1
+e7e5: 1
+g5h4: 1
+h5g3: 1
+h5f4: 1
+h5f6: 1
+h5g7: 1
+b8a6: 1
+c6f3: 1
+c6a4: 1
+c6e4: 1
+c6b5: 1
+c6d5: 1
+c6b7: 1
+h6g7: 1
+h6f8: 1
+a8a6: 1
+a8a7: 1
+g8g6: 1
+g8g7: 1
+g8f8: 1
+g8h8: 1
+a2a1: 1
+a2b1: 1
+a2b2: 1
+a2a3: 1
+a2b3: 1
+a2c4: 1
+a2d5: 1
+a2e6: 1
+a2f7: 1
+e8f7: 1
+e8d8: 1
+e8f8: 1
+nodes 40
+>>> position fen r7/4pk1p/n1b3rb/p1pp1ppn/3NP2P/NP3PPR/q1PP4/1RB1K3 w - - 0 29
+>>> isready
+readyok
+>>> go perft 1
+c2c3: 1
+d2d3: 1
+b3b4: 1
+f3f4: 1
+g3g4: 1
+e4e5: 1
+c2c4: 1
+e4d5: 1
+e4f5: 1
+h4g5: 1
+a3c4: 1
+a3b5: 1
+d4e2: 1
+d4b5: 1
+d4f5: 1
+d4c6: 1
+d4e6: 1
+c1b2: 1
+b1a1: 1
+b1b2: 1
+h3h1: 1
+h3h2: 1
+e1d1: 1
+e1f1: 1
+e1e2: 1
+e1f2: 1
+nodes 26
+>>> position fen 1r6/5k1p/n1b1p1rb/p1pp1ppn/1PPNP2P/N4PPR/3P4/qRB1K3 b - - 2 32
+>>> isready
+readyok
+>>> go perft 1
+a5a4: 1
+f5f4: 1
+g5g4: 1
+e6e5: 1
+a5b4: 1
+c5b4: 1
+c5d4: 1
+d5c4: 1
+d5e4: 1
+f5e4: 1
+g5h4: 1
+h5g3: 1
+h5f4: 1
+h5f6: 1
+h5g7: 1
+a6b4: 1
+a6c7: 1
+c6a4: 1
+c6b5: 1
+c6b7: 1
+c6d7: 1
+c6a8: 1
+c6e8: 1
+h6g7: 1
+h6f8: 1
+g6f6: 1
+g6g7: 1
+g6g8: 1
+b8b4: 1
+b8b5: 1
+b8b6: 1
+b8b7: 1
+b8a8: 1
+b8c8: 1
+b8d8: 1
+b8e8: 1
+b8f8: 1
+b8g8: 1
+b8h8: 1
+a1b1: 1
+a1a2: 1
+a1b2: 1
+a1a3: 1
+a1c3: 1
+a1d4: 1
+f7f6: 1
+f7e7: 1
+f7g7: 1
+f7e8: 1
+f7f8: 1
+f7g8: 1
+nodes 51
+>>> position fen 2r4q/2nb1k1p/2N1p1rb/pPpp1ppn/1RP1P2P/N4PPR/3P4/2B1K3 w - - 5 36
+>>> isready
+readyok
+>>> go perft 1
+d2d3: 1
+f3f4: 1
+g3g4: 1
+e4e5: 1
+b5b6: 1
+d2d4: 1
+c4d5: 1
+e4d5: 1
+e4f5: 1
+h4g5: 1
+a3b1: 1
+a3c2: 1
+c6d4: 1
+c6a5: 1
+c6e5: 1
+c6a7: 1
+c6e7: 1
+c6b8: 1
+c6d8: 1
+c1b2: 1
+h3h1: 1
+h3h2: 1
+b4b1: 1
+b4b2: 1
+b4b3: 1
+b4a4: 1
+e1d1: 1
+e1f1: 1
+e1e2: 1
+e1f2: 1
+nodes 30
+>>> position fen 2rq4/2nb2kp/2N3rb/pPpppppn/2P1P2P/N4PP1/1R1P1R2/2B1K3 b - - 1 39
+>>> isready
+readyok
+>>> go perft 1
+a5a4: 1
+d5d4: 1
+f5f4: 1
+g5g4: 1
+d5c4: 1
+d5e4: 1
+f5e4: 1
+g5h4: 1
+h5g3: 1
+h5f4: 1
+h5f6: 1
+c7b5: 1
+c7a6: 1
+c7e6: 1
+c7a8: 1
+c7e8: 1
+d7c6: 1
+d7e6: 1
+d7e8: 1
+g6c6: 1
+g6d6: 1
+g6e6: 1
+g6f6: 1
+c8a8: 1
+c8b8: 1
+d8f6: 1
+d8e7: 1
+d8e8: 1
+d8f8: 1
+d8g8: 1
+d8h8: 1
+g7f6: 1
+g7f7: 1
+g7f8: 1
+g7g8: 1
+g7h8: 1
+nodes 36
+>>> position fen 2r5/6kp/2b1nnrb/pPppp1p1/2P1Pp1P/N4PP1/1R1P2R1/2B1K3 w - - 0 43
+>>> isready
+readyok
+>>> go perft 1
+d2d3: 1
+g3g4: 1
+h4h5: 1
+b5b6: 1
+d2d4: 1
+g3f4: 1
+c4d5: 1
+e4d5: 1
+h4g5: 1
+b5c6: 1
+a3b1: 1
+a3c2: 1
+b2b1: 1
+b2a2: 1
+b2c2: 1
+b2b3: 1
+b2b4: 1
+g2g1: 1
+g2e2: 1
+g2f2: 1
+g2h2: 1
+e1d1: 1
+e1f1: 1
+e1e2: 1
+e1f2: 1
+nodes 25
+>>> position fen 2r5/6kp/2b1nnrb/pPp1p1P1/2P1pp2/N4PP1/2RP2R1/2B1K3 b - - 0 46
+>>> isready
+readyok
+>>> go perft 1
+e4e3: 1
+a5a4: 1
+e4f3: 1
+f4g3: 1
+e6d4: 1
+e6g5: 1
+e6c7: 1
+e6d8: 1
+e6f8: 1
+f6g4: 1
+f6d5: 1
+f6h5: 1
+f6d7: 1
+f6e8: 1
+f6g8: 1
+c6b5: 1
+c6d5: 1
+c6b7: 1
+c6d7: 1
+c6a8: 1
+c6e8: 1
+h6g5: 1
+g6g5: 1
+c8c7: 1
+c8a8: 1
+c8b8: 1
+c8d8: 1
+c8e8: 1
+c8f8: 1
+c8g8: 1
+c8h8: 1
+g7f7: 1
+g7f8: 1
+g7g8: 1
+g7h8: 1
+nodes 35
+>>> position fen 2r4k/1b5p/4nnr1/1Pp1p1b1/p1P1ppP1/N4P2/2RPK1R1/2B5 w - - 2 50
+>>> isready
+readyok
+>>> go perft 1
+d2d3: 1
+b5b6: 1
+d2d4: 1
+f3e4: 1
+a3b1: 1
+c1b2: 1
+c2a2: 1
+c2b2: 1
+c2c3: 1
+g2g1: 1
+g2f2: 1
+g2h2: 1
+g2g3: 1
+e2d1: 1
+e2e1: 1
+e2f1: 1
+e2f2: 1
+nodes 17
+>>> position fen 7k/1b5p/2P1nn2/2p1p3/p1PPpprb/N1R2P2/1B2K1R1/8 b - - 0 53
+>>> isready
+readyok
+>>> go perft 1
+e4e3: 1
+h7h6: 1
+h7h5: 1
+e4f3: 1
+c5d4: 1
+e5d4: 1
+e6d4: 1
+e6g5: 1
+e6c7: 1
+e6g7: 1
+e6d8: 1
+e6f8: 1
+f6d5: 1
+f6h5: 1
+f6d7: 1
+f6e8: 1
+f6g8: 1
+h4e1: 1
+h4f2: 1
+h4g3: 1
+h4g5: 1
+b7a6: 1
+b7c6: 1
+b7a8: 1
+b7c8: 1
+g4g2: 1
+g4g3: 1
+g4g5: 1
+g4g6: 1
+g4g7: 1
+g4g8: 1
+h8g7: 1
+h8g8: 1
+nodes 33
+>>> position fen 5r1k/1bn4p/2P5/2P1p2n/p1P1pp1b/4RP2/1BN1K1R1/8 w - - 1 57
+>>> isready
+readyok
+>>> go perft 1
+f3e4: 1
+c6b7: 1
+c2a1: 1
+c2e1: 1
+c2a3: 1
+c2b4: 1
+c2d4: 1
+b2a1: 1
+b2c1: 1
+b2a3: 1
+b2c3: 1
+b2d4: 1
+b2e5: 1
+g2g1: 1
+g2f2: 1
+g2h2: 1
+g2g3: 1
+g2g4: 1
+g2g5: 1
+g2g6: 1
+g2g7: 1
+g2g8: 1
+e3a3: 1
+e3b3: 1
+e3c3: 1
+e3d3: 1
+e3e4: 1
+e2d1: 1
+e2f1: 1
+e2d2: 1
+nodes 30
+>>> position fen 2r4k/1bn4p/2P5/2P1p2n/p1P1pp1b/3R1P2/1BN3R1/5K2 b - - 8 60
+>>> isready
+readyok
+>>> go perft 1
+a4a3: 1
+e4e3: 1
+h7h6: 1
+e4d3: 1
+e4f3: 1
+h5g3: 1
+h5f6: 1
+h5g7: 1
+c7b5: 1
+c7d5: 1
+c7a6: 1
+c7e6: 1
+c7a8: 1
+c7e8: 1
+h4e1: 1
+h4f2: 1
+h4g3: 1
+h4g5: 1
+h4f6: 1
+h4e7: 1
+h4d8: 1
+b7a6: 1
+b7c6: 1
+b7a8: 1
+c8a8: 1
+c8b8: 1
+c8d8: 1
+c8e8: 1
+c8f8: 1
+c8g8: 1
+nodes 30
+>>> position fen 6rk/1b5p/n1P5/2P1p2n/p1P1pp1b/B2R1P2/2N1R3/5K2 w - - 15 64
+>>> isready
+readyok
+>>> go perft 1
+c6c7: 1
+f3e4: 1
+c6b7: 1
+c2a1: 1
+c2e1: 1
+c2e3: 1
+c2b4: 1
+c2d4: 1
+a3c1: 1
+a3b2: 1
+a3b4: 1
+e2e1: 1
+e2d2: 1
+e2f2: 1
+e2g2: 1
+e2h2: 1
+e2e3: 1
+e2e4: 1
+d3d1: 1
+d3d2: 1
+d3b3: 1
+d3c3: 1
+d3e3: 1
+d3d4: 1
+d3d5: 1
+d3d6: 1
+d3d7: 1
+d3d8: 1
+nodes 28
+>>> position fen 6rk/1bn5/2P4p/2P1p3/p1P1pp1b/B1R2Pn1/2N1R3/4K3 b - - 1 67
+>>> isready
+readyok
+>>> go perft 1
+e4e3: 1
+h6h5: 1
+e4f3: 1
+g3f1: 1
+g3h1: 1
+g3e2: 1
+g3f5: 1
+g3h5: 1
+c7b5: 1
+c7d5: 1
+c7a6: 1
+c7e6: 1
+c7a8: 1
+c7e8: 1
+h4g5: 1
+h4f6: 1
+h4e7: 1
+h4d8: 1
+b7a6: 1
+b7c6: 1
+b7a8: 1
+b7c8: 1
+g8g4: 1
+g8g5: 1
+g8g6: 1
+g8g7: 1
+g8a8: 1
+g8b8: 1
+g8c8: 1
+g8d8: 1
+g8e8: 1
+g8f8: 1
+h8g7: 1
+h8h7: 1
+nodes 34
+>>> position fen r6k/1Pn5/8/2P1p2p/p1P1pp1b/B1R2P2/2N1R3/3K3n w - - 3 71
+>>> isready
+readyok
+>>> go perft 1
+c5c6: 1
+b7b8q: 1
+b7b8r: 1
+b7b8b: 1
+b7b8n: 1
+f3e4: 1
+b7a8q: 1
+b7a8r: 1
+b7a8b: 1
+b7a8n: 1
+c2a1: 1
+c2e1: 1
+c2e3: 1
+c2b4: 1
+c2d4: 1
+a3c1: 1
+a3b2: 1
+a3b4: 1
+e2e1: 1
+e2d2: 1
+e2f2: 1
+e2g2: 1
+e2h2: 1
+e2e3: 1
+e2e4: 1
+c3b3: 1
+c3d3: 1
+c3e3: 1
+d1c1: 1
+d1d2: 1
+nodes 30
+>>> position fen 6rk/1P6/8/2Pnp2p/p1PNpp1b/1R3P2/1B2R3/2K4n b - - 10 74
+>>> isready
+readyok
+>>> go perft 1
+a4a3: 1
+e4e3: 1
+a4b3: 1
+e4f3: 1
+e5d4: 1
+h1f2: 1
+h1g3: 1
+d5c3: 1
+d5e3: 1
+d5b4: 1
+d5b6: 1
+d5f6: 1
+d5c7: 1
+d5e7: 1
+h4e1: 1
+h4f2: 1
+h4g3: 1
+h4g5: 1
+h4f6: 1
+h4e7: 1
+h4d8: 1
+g8g1: 1
+g8g2: 1
+g8g3: 1
+g8g4: 1
+g8g5: 1
+g8g6: 1
+g8g7: 1
+g8a8: 1
+g8b8: 1
+g8c8: 1
+g8d8: 1
+g8e8: 1
+g8f8: 1
+h8g7: 1
+h8h7: 1
+nodes 36
+>>> position fen 2Q1r3/1P6/6k1/3np2p/p1PNpp1b/1R3P2/1B2R3/2K4n w - - 1 78
+>>> isready
+readyok
+>>> go perft 1
+c4c5: 1
+b7b8q: 1
+b7b8r: 1
+b7b8b: 1
+b7b8n: 1
+f3e4: 1
+c4d5: 1
+d4c2: 1
+d4b5: 1
+d4f5: 1
+d4c6: 1
+d4e6: 1
+b2a1: 1
+b2a3: 1
+b2c3: 1
+e2e1: 1
+e2c2: 1
+e2d2: 1
+e2f2: 1
+e2g2: 1
+e2h2: 1
+e2e3: 1
+e2e4: 1
+b3a3: 1
+b3c3: 1
+b3d3: 1
+b3e3: 1
+b3b4: 1
+b3b5: 1
+b3b6: 1
+c8h3: 1
+c8g4: 1
+c8c5: 1
+c8f5: 1
+c8c6: 1
+c8e6: 1
+c8c7: 1
+c8d7: 1
+c8a8: 1
+c8b8: 1
+c8d8: 1
+c8e8: 1
+c1b1: 1
+c1d1: 1
+c1c2: 1
+c1d2: 1
+nodes 46
+>>> position fen 2R5/1R2n3/4N1k1/4p2p/p1P1pp1b/5Pn1/1B2R3/2K5 b - - 4 81
+>>> isready
+readyok
+>>> go perft 1
+a4a3: 1
+e4e3: 1
+e4f3: 1
+g3f1: 1
+g3h1: 1
+g3e2: 1
+g3f5: 1
+e7d5: 1
+e7f5: 1
+e7c6: 1
+e7c8: 1
+e7g8: 1
+h4g5: 1
+h4f6: 1
+g6f5: 1
+g6f6: 1
+g6h6: 1
+g6f7: 1
+g6h7: 1
+nodes 19
+>>> position fen 2n5/2R5/4N3/4pk1p/p1P1pp1b/5Pn1/1B2R3/3K4 w - - 6 85
+>>> isready
+readyok
+>>> go perft 1
+c4c5: 1
+f3e4: 1
+e6d4: 1
+e6f4: 1
+e6c5: 1
+e6g5: 1
+e6g7: 1
+e6d8: 1
+e6f8: 1
+b2a1: 1
+b2c1: 1
+b2a3: 1
+b2c3: 1
+b2d4: 1
+b2e5: 1
+e2e1: 1
+e2c2: 1
+e2d2: 1
+e2f2: 1
+e2g2: 1
+e2h2: 1
+e2e3: 1
+e2e4: 1
+c7c5: 1
+c7c6: 1
+c7a7: 1
+c7b7: 1
+c7d7: 1
+c7e7: 1
+c7f7: 1
+c7g7: 1
+c7h7: 1
+c7c8: 1
+d1c1: 1
+d1e1: 1
+d1c2: 1
+d1d2: 1
+nodes 37
+>>> position fen 3R1N2/4b3/8/4pk1p/p1P2p2/2B2p2/4n3/3K4 b - - 3 88
+>>> isready
+readyok
+>>> go perft 1
+f3f2: 1
+a4a3: 1
+e5e4: 1
+h5h4: 1
+e2c1: 1
+e2g1: 1
+e2c3: 1
+e2g3: 1
+e2d4: 1
+e7a3: 1
+e7b4: 1
+e7h4: 1
+e7c5: 1
+e7g5: 1
+e7d6: 1
+e7f6: 1
+e7d8: 1
+e7f8: 1
+f5e4: 1
+f5g4: 1
+f5g5: 1
+f5f6: 1
+nodes 22
+>>> position fen 8/7N/8/4pk1p/pbP2p2/2B2p2/6R1/2nK4 w - - 10 92
+>>> isready
+readyok
+>>> go perft 1
+c4c5: 1
+h7g5: 1
+h7f6: 1
+h7f8: 1
+c3a1: 1
+c3e1: 1
+c3b2: 1
+c3d2: 1
+c3b4: 1
+c3d4: 1
+c3e5: 1
+g2g1: 1
+g2a2: 1
+g2b2: 1
+g2c2: 1
+g2d2: 1
+g2e2: 1
+g2f2: 1
+g2h2: 1
+g2g3: 1
+g2g4: 1
+g2g5: 1
+g2g6: 1
+g2g7: 1
+g2g8: 1
+d1c1: 1
+d1e1: 1
+d1c2: 1
+d1d2: 1
+nodes 29
+>>> position fen 8/8/4kN2/4p2p/pBP2pR1/5p2/8/2nK4 b - - 0 95
+>>> isready
+readyok
+>>> go perft 1
+f3f2: 1
+a4a3: 1
+e5e4: 1
+h5h4: 1
+h5g4: 1
+c1a2: 1
+c1e2: 1
+c1b3: 1
+c1d3: 1
+e6f5: 1
+e6f6: 1
+e6f7: 1
+nodes 12
+>>> position fen 8/8/4kN2/B3p2p/p1P2pR1/2nK1p2/8/8 w - - 7 99
+>>> isready
+readyok
+>>> go perft 1
+c4c5: 1
+f6e4: 1
+f6d5: 1
+f6h5: 1
+f6d7: 1
+f6h7: 1
+f6e8: 1
+f6g8: 1
+a5c3: 1
+a5b4: 1
+a5b6: 1
+a5c7: 1
+a5d8: 1
+g4g1: 1
+g4g2: 1
+g4g3: 1
+g4f4: 1
+g4h4: 1
+g4g5: 1
+g4g6: 1
+g4g7: 1
+g4g8: 1
+d3c2: 1
+d3d2: 1
+d3c3: 1
+nodes 25
+>>> position fen 3B4/7N/4k3/2P1p3/p4pp1/8/3K1p2/3n4 b - - 1 102
+>>> isready
+readyok
+>>> go perft 1
+a4a3: 1
+f4f3: 1
+g4g3: 1
+e5e4: 1
+f2f1q: 1
+f2f1r: 1
+f2f1b: 1
+f2f1n: 1
+d1b2: 1
+d1c3: 1
+d1e3: 1
+e6d5: 1
+e6f5: 1
+e6d7: 1
+e6f7: 1
+nodes 15
+>>> position fen 8/7N/4k3/2P3B1/p3p3/5pp1/1n3p2/2K5 w - - 0 106
+>>> isready
+readyok
+>>> go perft 1
+c5c6: 1
+h7f6: 1
+h7f8: 1
+g5d2: 1
+g5e3: 1
+g5f4: 1
+g5h4: 1
+g5f6: 1
+g5h6: 1
+g5e7: 1
+g5d8: 1
+c1b1: 1
+c1b2: 1
+c1c2: 1
+c1d2: 1
+nodes 15
+>>> position fen 8/4Bk1N/8/2P5/p3p3/5p2/5pp1/2Kn4 b - - 1 109
+>>> isready
+readyok
+>>> go perft 1
+a4a3: 1
+e4e3: 1
+f2f1q: 1
+f2f1r: 1
+f2f1b: 1
+f2f1n: 1
+g2g1q: 1
+g2g1r: 1
+g2g1b: 1
+g2g1n: 1
+d1b2: 1
+d1c3: 1
+d1e3: 1
+f7e6: 1
+f7g6: 1
+f7e7: 1
+f7g7: 1
+f7e8: 1
+f7g8: 1
+nodes 19
+>>> position fen 3B1N2/5k2/8/2P5/4p3/p4p2/7q/2Kn1q2 w - - 2 113
+>>> isready
+readyok
+>>> go perft 1
+c5c6: 1
+f8e6: 1
+f8g6: 1
+f8d7: 1
+f8h7: 1
+d8h4: 1
+d8a5: 1
+d8g5: 1
+d8b6: 1
+d8f6: 1
+d8c7: 1
+d8e7: 1
+c1b1: 1
+nodes 13
+>>> position fen 5N2/8/qBPq1k2/8/4p3/p4p2/8/1K1n4 b - - 2 116
+>>> isready
+readyok
+>>> go perft 1
+a3a2: 1
+f3f2: 1
+e4e3: 1
+d1b2: 1
+d1f2: 1
+d1c3: 1
+d1e3: 1
+a6f1: 1
+a6e2: 1
+a6d3: 1
+a6a4: 1
+a6c4: 1
+a6a5: 1
+a6b5: 1
+a6b6: 1
+a6a7: 1
+a6b7: 1
+a6a8: 1
+a6c8: 1
+d6d2: 1
+d6h2: 1
+d6d3: 1
+d6g3: 1
+d6b4: 1
+d6d4: 1
+d6f4: 1
+d6c5: 1
+d6d5: 1
+d6e5: 1
+d6c6: 1
+d6e6: 1
+d6c7: 1
+d6d7: 1
+d6e7: 1
+d6b8: 1
+d6d8: 1
+d6f8: 1
+f6e5: 1
+f6f5: 1
+f6g5: 1
+f6e7: 1
+f6f7: 1
+f6g7: 1
+nodes 43
+>>> position fen 5N2/8/q1P5/6k1/4p3/p1nq1p2/8/2K5 w - - 0 120
+>>> isready
+readyok
+>>> go perft 1
+c6c7: 1
+f8e6: 1
+f8g6: 1
+f8d7: 1
+f8h7: 1
+nodes 5
+>>> position fen 3B4/8/q7/7k/4p2N/2n2p2/p7/2K5 b - - 0 123
+>>> isready
+readyok
+>>> go perft 1
+f3f2: 1
+e4e3: 1
+a2a1q: 1
+a2a1r: 1
+a2a1b: 1
+a2a1n: 1
+c3b1: 1
+c3d1: 1
+c3e2: 1
+c3a4: 1
+c3b5: 1
+c3d5: 1
+a6f1: 1
+a6e2: 1
+a6a3: 1
+a6d3: 1
+a6a4: 1
+a6c4: 1
+a6a5: 1
+a6b5: 1
+a6b6: 1
+a6c6: 1
+a6d6: 1
+a6e6: 1
+a6f6: 1
+a6g6: 1
+a6h6: 1
+a6a7: 1
+a6b7: 1
+a6a8: 1
+a6c8: 1
+h5g4: 1
+h5h6: 1
+nodes 33
+>>> position fen 8/8/4q3/B6k/4p2N/2n2p2/2K5/1r6 w - - 2 127
+>>> isready
+readyok
+>>> go perft 1
+h4g2: 1
+h4f3: 1
+h4f5: 1
+h4g6: 1
+a5c3: 1
+a5b4: 1
+a5b6: 1
+a5c7: 1
+a5d8: 1
+c2d2: 1
+c2c3: 1
+nodes 11
+>>> position fen 8/8/7q/7k/4p2N/B3rp2/1K6/8 b - - 2 130
+>>> isready
+readyok
+>>> go perft 1
+f3f2: 1
+e3e1: 1
+e3e2: 1
+e3a3: 1
+e3b3: 1
+e3c3: 1
+e3d3: 1
+h6f4: 1
+h6g5: 1
+h6a6: 1
+h6b6: 1
+h6c6: 1
+h6d6: 1
+h6e6: 1
+h6f6: 1
+h6g6: 1
+h6g7: 1
+h6h7: 1
+h6f8: 1
+h6h8: 1
+h5g4: 1
+h5h4: 1
+h5g5: 1
+nodes 23
+>>> position fen 8/8/q7/7k/4p3/5p2/K5N1/8 w - - 3 134
+>>> isready
+readyok
+>>> go perft 1
+a2b1: 1
+a2b2: 1
+a2b3: 1
+nodes 3
+>>> position fen 8/8/8/q6k/4p3/4Np2/8/1K6 b - - 10 137
+>>> isready
+readyok
+>>> go perft 1
+f3f2: 1
+a5a1: 1
+a5e1: 1
+a5a2: 1
+a5d2: 1
+a5a3: 1
+a5c3: 1
+a5a4: 1
+a5b4: 1
+a5b5: 1
+a5c5: 1
+a5d5: 1
+a5e5: 1
+a5f5: 1
+a5g5: 1
+a5a6: 1
+a5b6: 1
+a5a7: 1
+a5c7: 1
+a5a8: 1
+a5d8: 1
+h5h4: 1
+h5g5: 1
+h5g6: 1
+h5h6: 1
+nodes 25
+>>> position fen 8/1q6/8/7k/1N2p3/5p2/1K6/8 w - - 17 141
+>>> isready
+readyok
+>>> go perft 1
+b2a1: 1
+b2b1: 1
+b2c1: 1
+b2a2: 1
+b2c2: 1
+b2a3: 1
+b2b3: 1
+b2c3: 1
+nodes 8
+>>> position fen 8/8/8/7k/1N3q2/K3pp2/8/8 b - - 1 144
+>>> isready
+readyok
+>>> go perft 1
+e3e2: 1
+f3f2: 1
+f4h2: 1
+f4g3: 1
+f4b4: 1
+f4c4: 1
+f4d4: 1
+f4e4: 1
+f4g4: 1
+f4h4: 1
+f4e5: 1
+f4f5: 1
+f4g5: 1
+f4d6: 1
+f4f6: 1
+f4h6: 1
+f4c7: 1
+f4f7: 1
+f4b8: 1
+f4f8: 1
+h5g4: 1
+h5h4: 1
+h5g5: 1
+h5g6: 1
+h5h6: 1
+nodes 25
+>>> position fen 8/8/7k/8/2K5/3Npp2/7q/8 w - - 8 148
+>>> isready
+readyok
+>>> go perft 1
+d3c1: 1
+d3e1: 1
+d3b2: 1
+d3f2: 1
+d3b4: 1
+d3f4: 1
+d3c5: 1
+d3e5: 1
+c4b3: 1
+c4c3: 1
+c4b4: 1
+c4d4: 1
+c4b5: 1
+c4c5: 1
+c4d5: 1
+nodes 15
+>>> position fen 8/8/7k/8/KN6/4pp2/4q3/8 b - - 15 151
+>>> isready
+readyok
+>>> go perft 1
+f3f2: 1
+e2d1: 1
+e2e1: 1
+e2f1: 1
+e2a2: 1
+e2b2: 1
+e2c2: 1
+e2d2: 1
+e2f2: 1
+e2g2: 1
+e2h2: 1
+e2d3: 1
+e2c4: 1
+e2b5: 1
+e2a6: 1
+h6g5: 1
+h6h5: 1
+h6g6: 1
+h6g7: 1
+h6h7: 1
+nodes 20
+>>> position fen 7k/8/8/8/K7/4pp2/q7/3N4 w - - 22 155
+>>> isready
+readyok
+>>> go perft 1
+a4b4: 1
+a4b5: 1
+nodes 2
+>>> position fen 7k/8/8/3q4/K7/4p3/5p2/1N6 b - - 1 158
+>>> isready
+readyok
+>>> go perft 1
+e3e2: 1
+f2f1q: 1
+f2f1r: 1
+f2f1b: 1
+f2f1n: 1
+d5d1: 1
+d5h1: 1
+d5a2: 1
+d5d2: 1
+d5g2: 1
+d5b3: 1
+d5d3: 1
+d5f3: 1
+d5c4: 1
+d5d4: 1
+d5e4: 1
+d5a5: 1
+d5b5: 1
+d5c5: 1
+d5e5: 1
+d5f5: 1
+d5g5: 1
+d5h5: 1
+d5c6: 1
+d5d6: 1
+d5e6: 1
+d5b7: 1
+d5d7: 1
+d5f7: 1
+d5a8: 1
+d5d8: 1
+d5g8: 1
+h8g7: 1
+h8h7: 1
+h8g8: 1
+nodes 35
+>>> position fen 7k/8/8/2K5/8/4p3/8/1Nq5 w - - 2 162
+>>> isready
+readyok
+>>> go perft 1
+b1c3: 1
+c5b4: 1
+c5d4: 1
+c5b5: 1
+c5d5: 1
+c5b6: 1
+c5d6: 1
+nodes 7
+>>> position fen 7k/8/8/1N2K3/1q6/4p3/8/8 b - - 9 165
+>>> isready
+readyok
+>>> go perft 1
+e3e2: 1
+b4b1: 1
+b4e1: 1
+b4b2: 1
+b4d2: 1
+b4a3: 1
+b4b3: 1
+b4c3: 1
+b4a4: 1
+b4c4: 1
+b4d4: 1
+b4e4: 1
+b4f4: 1
+b4g4: 1
+b4h4: 1
+b4a5: 1
+b4b5: 1
+b4c5: 1
+b4d6: 1
+b4e7: 1
+b4f8: 1
+h8g7: 1
+h8h7: 1
+h8g8: 1
+nodes 24
+>>> position fen 7k/8/3N1q2/4K3/8/4p3/8/8 w - - 16 169
+>>> isready
+readyok
+>>> go perft 1
+e5e4: 1
+e5d5: 1
+e5f6: 1
+nodes 3
+>>> position fen 7k/2q5/8/5N2/8/4K3/8/8 b - - 0 172
+>>> isready
+readyok
+>>> go perft 1
+c7c1: 1
+c7c2: 1
+c7h2: 1
+c7c3: 1
+c7g3: 1
+c7c4: 1
+c7f4: 1
+c7a5: 1
+c7c5: 1
+c7e5: 1
+c7b6: 1
+c7c6: 1
+c7d6: 1
+c7a7: 1
+c7b7: 1
+c7d7: 1
+c7e7: 1
+c7f7: 1
+c7g7: 1
+c7h7: 1
+c7b8: 1
+c7c8: 1
+c7d8: 1
+h8h7: 1
+h8g8: 1
+nodes 25
+>>> position fen 8/8/7k/1N6/8/5K2/3q4/8 w - - 7 176
+>>> isready
+readyok
+>>> go perft 1
+b5a3: 1
+b5c3: 1
+b5d4: 1
+b5d6: 1
+b5a7: 1
+b5c7: 1
+f3g3: 1
+f3e4: 1
+f3g4: 1
+nodes 9
+>>> position fen 6q1/8/7k/8/8/8/5K2/1N6 b - - 14 179
+>>> isready
+readyok
+>>> go perft 1
+g8g1: 1
+g8a2: 1
+g8g2: 1
+g8b3: 1
+g8g3: 1
+g8c4: 1
+g8g4: 1
+g8d5: 1
+g8g5: 1
+g8e6: 1
+g8g6: 1
+g8f7: 1
+g8g7: 1
+g8h7: 1
+g8a8: 1
+g8b8: 1
+g8c8: 1
+g8d8: 1
+g8e8: 1
+g8f8: 1
+g8h8: 1
+h6g5: 1
+h6h5: 1
+h6g6: 1
+h6g7: 1
+h6h7: 1
+nodes 26
+>>> position fen 8/8/7k/6q1/8/8/3N4/5K2 w - - 21 183
+>>> isready
+readyok
+>>> go perft 1
+d2b1: 1
+d2b3: 1
+d2f3: 1
+d2c4: 1
+d2e4: 1
+f1e1: 1
+f1e2: 1
+f1f2: 1
+nodes 8
+>>> position fen 8/8/4q2k/8/8/8/3N4/3K4 b - - 28 186
+>>> isready
+readyok
+>>> go perft 1
+e6e1: 1
+e6a2: 1
+e6e2: 1
+e6b3: 1
+e6e3: 1
+e6h3: 1
+e6c4: 1
+e6e4: 1
+e6g4: 1
+e6d5: 1
+e6e5: 1
+e6f5: 1
+e6a6: 1
+e6b6: 1
+e6c6: 1
+e6d6: 1
+e6f6: 1
+e6g6: 1
+e6d7: 1
+e6e7: 1
+e6f7: 1
+e6c8: 1
+e6e8: 1
+e6g8: 1
+h6g5: 1
+h6h5: 1
+h6g6: 1
+h6g7: 1
+h6h7: 1
+nodes 29
+>>> position fen 1nbqkbnr/rppp1ppp/p2p4/8/8/5N2/PPPPPPPP/R1BQKB1R b KQk - 1 4
+>>> isready
+readyok
+>>> go perft 1
+a6a5: 1
+d6d5: 1
+b7b6: 1
+c7c6: 1
+f7f6: 1
+g7g6: 1
+h7h6: 1
+b7b5: 1
+c7c5: 1
+f7f5: 1
+g7g5: 1
+h7h5: 1
+b8c6: 1
+g8f6: 1
+g8h6: 1
+g8e7: 1
+f8e7: 1
+a7a8: 1
+d8h4: 1
+d8g5: 1
+d8f6: 1
+d8e7: 1
+e8e7: 1
+nodes 23
+>>> position fen rnbqkb1r/1p1pn1Bp/p1pp1p2/8/3P4/5N2/PPP1PPPP/R2QKB1R w KQk - 1 8
+>>> isready
+readyok
+>>> go perft 1
+a2a3: 1
+b2b3: 1
+c2c3: 1
+e2e3: 1
+g2g3: 1
+h2h3: 1
+d4d5: 1
+a2a4: 1
+b2b4: 1
+c2c4: 1
+e2e4: 1
+g2g4: 1
+h2h4: 1
+f3g1: 1
+f3d2: 1
+f3h4: 1
+f3e5: 1
+f3g5: 1
+g7f6: 1
+g7h6: 1
+g7f8: 1
+g7h8: 1
+a1b1: 1
+a1c1: 1
+h1g1: 1
+d1b1: 1
+d1c1: 1
+d1d2: 1
+d1d3: 1
+e1d2: 1
+nodes 30
+>>> position fen rnbqk2r/1p1pb1Bp/p1pp1p1n/8/1PPP4/2Q2N2/P3PPPP/R3KB1R b KQk - 4 11
+>>> isready
+readyok
+>>> go perft 1
+a6a5: 1
+c6c5: 1
+d6d5: 1
+f6f5: 1
+b7b6: 1
+b7b5: 1
+h6g4: 1
+h6f5: 1
+h6f7: 1
+h6g8: 1
+e7f8: 1
+a8a7: 1
+h8f8: 1
+h8g8: 1
+d8a5: 1
+d8b6: 1
+d8c7: 1
+e8f7: 1
+nodes 18
+>>> position fen rnb1kb1r/1pqp2Bp/p2p3n/2p2p2/1PPP4/5Q2/P3PPPP/R3KBNR w KQk - 0 15
+>>> isready
+readyok
+>>> go perft 1
+a2a3: 1
+e2e3: 1
+g2g3: 1
+h2h3: 1
+b4b5: 1
+d4d5: 1
+a2a4: 1
+e2e4: 1
+g2g4: 1
+h2h4: 1
+b4c5: 1
+d4c5: 1
+g1h3: 1
+g7e5: 1
+g7f6: 1
+g7h6: 1
+g7f8: 1
+g7h8: 1
+a1b1: 1
+a1c1: 1
+a1d1: 1
+f3a3: 1
+f3b3: 1
+f3c3: 1
+f3d3: 1
+f3e3: 1
+f3g3: 1
+f3h3: 1
+f3e4: 1
+f3f4: 1
+f3g4: 1
+f3d5: 1
+f3f5: 1
+f3h5: 1
+f3c6: 1
+f3b7: 1
+e1d1: 1
+e1d2: 1
+e1c1: 1
+nodes 39
+>>> position fen rnb2bkr/2qp2Bp/pp1p3n/2p2p2/PPPPQ2P/8/4PPP1/3RKBNR b K - 0 18
+>>> isready
+readyok
+>>> go perft 1
+f5f4: 1
+a6a5: 1
+b6b5: 1
+d6d5: 1
+c5b4: 1
+c5d4: 1
+f5e4: 1
+h6g4: 1
+h6f7: 1
+b8c6: 1
+c8b7: 1
+f8e7: 1
+f8g7: 1
+a8a7: 1
+c7c6: 1
+c7a7: 1
+c7b7: 1
+c7d8: 1
+g8f7: 1
+g8g7: 1
+nodes 20
+>>> position fen rnbq1Bkr/3p3p/pp1p3n/2p5/PPPPpP1P/7R/4P1P1/3RKBN1 w - - 1 22
+>>> isready
+readyok
+>>> go perft 1
+e2e3: 1
+g2g3: 1
+a4a5: 1
+b4b5: 1
+d4d5: 1
+f4f5: 1
+h4h5: 1
+g2g4: 1
+b4c5: 1
+d4c5: 1
+g1f3: 1
+f8d6: 1
+f8h6: 1
+f8e7: 1
+f8g7: 1
+d1a1: 1
+d1b1: 1
+d1c1: 1
+d1d2: 1
+d1d3: 1
+h3h1: 1
+h3h2: 1
+h3a3: 1
+h3b3: 1
+h3c3: 1
+h3d3: 1
+h3e3: 1
+h3f3: 1
+h3g3: 1
+e1d2: 1
+e1f2: 1
+nodes 31
+>>> position fen rnbq1Bkr/3p3p/pp6/2pp1n2/PPPP1P1P/3R1p2/4P1P1/3RKB2 b - - 1 25
+>>> isready
+readyok
+>>> go perft 1
+f3f2: 1
+a6a5: 1
+b6b5: 1
+d7d6: 1
+h7h6: 1
+h7h5: 1
+f3e2: 1
+f3g2: 1
+c5b4: 1
+c5d4: 1
+d5c4: 1
+f5e3: 1
+f5g3: 1
+f5d4: 1
+f5h4: 1
+f5d6: 1
+f5h6: 1
+f5e7: 1
+f5g7: 1
+b8c6: 1
+c8b7: 1
+a8a7: 1
+d8h4: 1
+d8g5: 1
+d8f6: 1
+d8c7: 1
+d8e7: 1
+d8e8: 1
+d8f8: 1
+g8f7: 1
+g8f8: 1
+nodes 31
+>>> position fen rnbq1k1r/3p3p/pp6/3p3n/PPPp1PPP/5p2/4P3/R2RKB2 w - - 0 29
+>>> isready
+readyok
+>>> go perft 1
+e2e3: 1
+a4a5: 1
+b4b5: 1
+c4c5: 1
+f4f5: 1
+g4g5: 1
+e2e4: 1
+e2f3: 1
+c4d5: 1
+g4h5: 1
+f1g2: 1
+f1h3: 1
+a1b1: 1
+a1c1: 1
+a1a2: 1
+a1a3: 1
+d1b1: 1
+d1c1: 1
+d1d2: 1
+d1d3: 1
+d1d4: 1
+e1d2: 1
+e1f2: 1
+nodes 23
+>>> position fen 1nbq3r/r2p2kp/1p6/1p1p3P/P1Pp1P1P/R4P2/8/3RKB2 b - - 0 32
+>>> isready
+readyok
+>>> go perft 1
+d4d3: 1
+b5b4: 1
+d7d6: 1
+h7h6: 1
+b5a4: 1
+b5c4: 1
+d5c4: 1
+b8a6: 1
+b8c6: 1
+c8a6: 1
+c8b7: 1
+a7a4: 1
+a7a5: 1
+a7a6: 1
+a7b7: 1
+a7c7: 1
+a7a8: 1
+h8e8: 1
+h8f8: 1
+h8g8: 1
+d8h4: 1
+d8g5: 1
+d8f6: 1
+d8c7: 1
+d8e7: 1
+d8e8: 1
+d8f8: 1
+d8g8: 1
+g7f6: 1
+g7h6: 1
+g7f7: 1
+g7f8: 1
+g7g8: 1
+nodes 33
+>>> position fen 2b4r/r1qp2kp/1pn5/1p1p3P/P1Pp1P1P/R4P2/2B5/3RK3 w - - 7 36
+>>> isready
+readyok
+>>> go perft 1
+a4a5: 1
+c4c5: 1
+f4f5: 1
+h5h6: 1
+a4b5: 1
+c4b5: 1
+c4d5: 1
+c2b1: 1
+c2b3: 1
+c2d3: 1
+c2e4: 1
+c2f5: 1
+c2g6: 1
+c2h7: 1
+d1a1: 1
+d1b1: 1
+d1c1: 1
+d1d2: 1
+d1d3: 1
+d1d4: 1
+a3a1: 1
+a3a2: 1
+a3b3: 1
+a3c3: 1
+a3d3: 1
+a3e3: 1
+e1f1: 1
+e1d2: 1
+e1e2: 1
+e1f2: 1
+nodes 30
+>>> position fen 1nbqr3/r2p2kp/1p6/1P1p3P/P2p1P1P/R4P2/2B3R1/5K2 b - - 6 39
+>>> isready
+readyok
+>>> go perft 1
+d8g5: 1
+g7f6: 1
+g7h6: 1
+g7f7: 1
+g7f8: 1
+g7h8: 1
+nodes 6
+>>> position fen 1nbq1k2/r2p3p/1p6/1P1p3P/P3rP1P/1Bp2P2/6R1/6K1 w - - 2 43
+>>> isready
+readyok
+>>> go perft 1
+a4a5: 1
+f4f5: 1
+h5h6: 1
+f3e4: 1
+b3d1: 1
+b3a2: 1
+b3c2: 1
+b3c4: 1
+b3d5: 1
+g2a2: 1
+g2b2: 1
+g2c2: 1
+g2d2: 1
+g2e2: 1
+g2f2: 1
+g2h2: 1
+g2g3: 1
+g2g4: 1
+g2g5: 1
+g2g6: 1
+g2g7: 1
+g2g8: 1
+g1f1: 1
+g1h1: 1
+g1f2: 1
+g1h2: 1
+nodes 26
+>>> position fen 1nb2k2/3p3p/1p6/1P1p3P/B3rP1R/5P2/2p5/6K1 b - - 0 46
+>>> isready
+readyok
+>>> go perft 1
+d5d4: 1
+d7d6: 1
+h7h6: 1
+c2c1q: 1
+c2c1r: 1
+c2c1b: 1
+c2c1n: 1
+b8a6: 1
+b8c6: 1
+c8a6: 1
+c8b7: 1
+e4e1: 1
+e4e2: 1
+e4e3: 1
+e4a4: 1
+e4b4: 1
+e4c4: 1
+e4d4: 1
+e4f4: 1
+e4e5: 1
+e4e6: 1
+e4e7: 1
+e4e8: 1
+f8e7: 1
+f8f7: 1
+f8g7: 1
+f8e8: 1
+f8g8: 1
+nodes 28
+>>> position fen 1nb5/3pk2p/1pq5/1P1pr2P/5P2/5P2/7R/3B3K w - - 4 50
+>>> isready
+readyok
+>>> go perft 1
+f4f5: 1
+h5h6: 1
+f4e5: 1
+b5c6: 1
+d1c2: 1
+d1e2: 1
+d1b3: 1
+d1a4: 1
+h2a2: 1
+h2b2: 1
+h2c2: 1
+h2d2: 1
+h2e2: 1
+h2f2: 1
+h2g2: 1
+h2h3: 1
+h2h4: 1
+h1g1: 1
+h1g2: 1
+nodes 19
+>>> position fen 1nb5/3pk3/1pq4p/1P1B3P/5P2/5P2/6KR/5r2 b - - 0 53
+>>> isready
+readyok
+>>> go perft 1
+d7d6: 1
+b8a6: 1
+c8a6: 1
+c8b7: 1
+f1a1: 1
+f1b1: 1
+f1c1: 1
+f1d1: 1
+f1e1: 1
+f1g1: 1
+f1h1: 1
+f1f2: 1
+f1f3: 1
+c6c1: 1
+c6c2: 1
+c6c3: 1
+c6c4: 1
+c6b5: 1
+c6c5: 1
+c6d5: 1
+c6d6: 1
+c6e6: 1
+c6f6: 1
+c6g6: 1
+c6b7: 1
+c6c7: 1
+c6a8: 1
+e7d6: 1
+e7f6: 1
+e7d8: 1
+e7e8: 1
+e7f8: 1
+nodes 32
+>>> position fen 1n4B1/3p4/bp1k3p/1P5P/5P2/5P1K/7R/5r2 w - - 3 57
+>>> isready
+readyok
+>>> go perft 1
+f4f5: 1
+b5a6: 1
+g8a2: 1
+g8b3: 1
+g8c4: 1
+g8d5: 1
+g8e6: 1
+g8f7: 1
+g8h7: 1
+h2h1: 1
+h2a2: 1
+h2b2: 1
+h2c2: 1
+h2d2: 1
+h2e2: 1
+h2f2: 1
+h2g2: 1
+h3g2: 1
+h3g3: 1
+h3g4: 1
+h3h4: 1
+nodes 21
+>>> position fen 1n6/3p4/bpBk3p/1P5P/5P2/5P1K/R7/1r6 b - - 10 60
+>>> isready
+readyok
+>>> go perft 1
+d7c6: 1
+b8c6: 1
+a6b5: 1
+a6b7: 1
+a6c8: 1
+b1a1: 1
+b1c1: 1
+b1d1: 1
+b1e1: 1
+b1f1: 1
+b1g1: 1
+b1h1: 1
+b1b2: 1
+b1b3: 1
+b1b4: 1
+b1b5: 1
+d6c5: 1
+d6e6: 1
+d6c7: 1
+d6e7: 1
+nodes 20
+>>> position fen 1n6/3p4/1pBk3p/1b5P/R4P2/5P1K/8/4r3 w - - 0 64
+>>> isready
+readyok
+>>> go perft 1
+f4f5: 1
+c6e4: 1
+c6b5: 1
+c6d5: 1
+c6b7: 1
+c6d7: 1
+c6a8: 1
+a4a1: 1
+a4a2: 1
+a4a3: 1
+a4b4: 1
+a4c4: 1
+a4d4: 1
+a4e4: 1
+a4a5: 1
+a4a6: 1
+a4a7: 1
+a4a8: 1
+h3g2: 1
+h3h2: 1
+h3g3: 1
+h3g4: 1
+h3h4: 1
+nodes 23
+>>> position fen 8/8/np1pk2p/1b5P/R3BP2/5P2/6K1/4r3 b - - 3 67
+>>> isready
+readyok
+>>> go perft 1
+d6d5: 1
+a6b4: 1
+a6c5: 1
+a6c7: 1
+a6b8: 1
+b5f1: 1
+b5e2: 1
+b5d3: 1
+b5a4: 1
+b5c4: 1
+b5c6: 1
+b5d7: 1
+b5e8: 1
+e1a1: 1
+e1b1: 1
+e1c1: 1
+e1d1: 1
+e1f1: 1
+e1g1: 1
+e1h1: 1
+e1e2: 1
+e1e3: 1
+e1e4: 1
+e6f6: 1
+e6d7: 1
+e6e7: 1
+e6f7: 1
+nodes 27
+>>> position fen 8/4k3/1pBp3p/7P/1nR1PP2/8/6K1/8 w - - 3 71
+>>> isready
+readyok
+>>> go perft 1
+e4e5: 1
+f4f5: 1
+c6a4: 1
+c6b5: 1
+c6d5: 1
+c6b7: 1
+c6d7: 1
+c6a8: 1
+c6e8: 1
+c4c1: 1
+c4c2: 1
+c4c3: 1
+c4b4: 1
+c4d4: 1
+c4c5: 1
+g2f1: 1
+g2g1: 1
+g2h1: 1
+g2f2: 1
+g2h2: 1
+g2f3: 1
+g2g3: 1
+g2h3: 1
+nodes 23
+>>> position fen 3k4/8/2Bp3p/1p2P2P/5P2/5R2/2n3K1/8 b - - 1 74
+>>> isready
+readyok
+>>> go perft 1
+b5b4: 1
+d6d5: 1
+d6e5: 1
+c2a1: 1
+c2e1: 1
+c2a3: 1
+c2e3: 1
+c2b4: 1
+c2d4: 1
+d8c7: 1
+d8e7: 1
+d8c8: 1
+nodes 12
+>>> position fen 3k4/8/2B4p/1p2p2P/5P2/8/1R6/4n1K1 w - - 0 78
+>>> isready
+readyok
+>>> go perft 1
+f4f5: 1
+f4e5: 1
+c6h1: 1
+c6g2: 1
+c6f3: 1
+c6e4: 1
+c6b5: 1
+c6d5: 1
+c6b7: 1
+c6d7: 1
+c6a8: 1
+c6e8: 1
+b2b1: 1
+b2a2: 1
+b2c2: 1
+b2d2: 1
+b2e2: 1
+b2f2: 1
+b2g2: 1
+b2h2: 1
+b2b3: 1
+b2b4: 1
+b2b5: 1
+g1f1: 1
+g1h1: 1
+g1f2: 1
+g1h2: 1
+nodes 27
+>>> position fen 3k4/1B6/7p/1p5P/R3pn2/8/8/6K1 b - - 1 81
+>>> isready
+readyok
+>>> go perft 1
+e4e3: 1
+b5b4: 1
+b5a4: 1
+f4e2: 1
+f4g2: 1
+f4d3: 1
+f4h3: 1
+f4d5: 1
+f4h5: 1
+f4e6: 1
+f4g6: 1
+d8c7: 1
+d8d7: 1
+d8e7: 1
+d8e8: 1
+nodes 15
+>>> position fen 4k3/RB6/6np/7P/1p2p3/8/8/6K1 w - - 6 85
+>>> isready
+readyok
+>>> go perft 1
+h5g6: 1
+b7e4: 1
+b7d5: 1
+b7a6: 1
+b7c6: 1
+b7a8: 1
+b7c8: 1
+a7a1: 1
+a7a2: 1
+a7a3: 1
+a7a4: 1
+a7a5: 1
+a7a6: 1
+a7a8: 1
+g1f1: 1
+g1h1: 1
+g1f2: 1
+g1g2: 1
+g1h2: 1
+nodes 19
+>>> position fen 8/1B3k2/R5np/7P/1p2p3/8/8/6K1 b - - 13 88
+>>> isready
+readyok
+>>> go perft 1
+b4b3: 1
+e4e3: 1
+g6f4: 1
+g6h4: 1
+g6e5: 1
+g6e7: 1
+g6f8: 1
+g6h8: 1
+f7e7: 1
+f7g7: 1
+f7e8: 1
+f7f8: 1
+f7g8: 1
+nodes 13
+>>> position fen 5k2/R7/2n4p/5B1P/1p6/4p3/8/6K1 w - - 4 92
+>>> isready
+readyok
+>>> go perft 1
+f5b1: 1
+f5c2: 1
+f5d3: 1
+f5h3: 1
+f5e4: 1
+f5g4: 1
+f5e6: 1
+f5g6: 1
+f5d7: 1
+f5h7: 1
+f5c8: 1
+a7a1: 1
+a7a2: 1
+a7a3: 1
+a7a4: 1
+a7a5: 1
+a7a6: 1
+a7b7: 1
+a7c7: 1
+a7d7: 1
+a7e7: 1
+a7f7: 1
+a7g7: 1
+a7h7: 1
+a7a8: 1
+g1f1: 1
+g1h1: 1
+g1g2: 1
+g1h2: 1
+nodes 29
+>>> position fen 3n4/3Bk3/7p/7P/1p6/8/4p3/7K b - - 1 95
+>>> isready
+readyok
+>>> go perft 1
+b4b3: 1
+e2e1q: 1
+e2e1r: 1
+e2e1b: 1
+e2e1n: 1
+d8c6: 1
+d8e6: 1
+d8b7: 1
+d8f7: 1
+e7d6: 1
+e7f6: 1
+e7d7: 1
+e7f7: 1
+e7f8: 1
+nodes 14
+>>> position fen 3n4/3B4/5k1p/7P/1p6/8/6K1/7q w - - 6 99
+>>> isready
+readyok
+>>> go perft 1
+g2h1: 1
+g2f2: 1
+g2g3: 1
+nodes 3
+>>> position fen 8/8/2n2k1p/7P/1p4B1/5K2/8/2q5 b - - 13 102
+>>> isready
+readyok
+>>> go perft 1
+b4b3: 1
+c6d4: 1
+c6a5: 1
+c6e5: 1
+c6a7: 1
+c6e7: 1
+c6b8: 1
+c6d8: 1
+c1a1: 1
+c1b1: 1
+c1d1: 1
+c1e1: 1
+c1f1: 1
+c1g1: 1
+c1h1: 1
+c1b2: 1
+c1c2: 1
+c1d2: 1
+c1a3: 1
+c1c3: 1
+c1e3: 1
+c1c4: 1
+c1f4: 1
+c1c5: 1
+c1g5: 1
+f6e5: 1
+f6g5: 1
+f6e7: 1
+f6f7: 1
+f6g7: 1
+nodes 30
+>>> position fen 8/8/2n1Bk1p/7P/1p6/8/8/6K1 w - - 1 106
+>>> isready
+readyok
+>>> go perft 1
+e6a2: 1
+e6b3: 1
+e6h3: 1
+e6c4: 1
+e6g4: 1
+e6d5: 1
+e6f5: 1
+e6d7: 1
+e6f7: 1
+e6c8: 1
+e6g8: 1
+g1f1: 1
+g1h1: 1
+g1f2: 1
+g1g2: 1
+g1h2: 1
+nodes 16
+>>> position fen 8/5k2/6np/7P/1p6/4K3/8/8 b - - 3 109
+>>> isready
+readyok
+>>> go perft 1
+b4b3: 1
+g6f4: 1
+g6h4: 1
+g6e5: 1
+g6e7: 1
+g6f8: 1
+g6h8: 1
+f7e6: 1
+f7f6: 1
+f7e7: 1
+f7g7: 1
+f7e8: 1
+f7f8: 1
+f7g8: 1
+nodes 14
+>>> position fen 6kn/8/7p/7P/1p6/8/2K5/8 w - - 10 113
+>>> isready
+readyok
+>>> go perft 1
+c2b1: 1
+c2c1: 1
+c2d1: 1
+c2b2: 1
+c2d2: 1
+c2b3: 1
+c2d3: 1
+nodes 7
+>>> position fen 6k1/5n2/7p/7P/1p6/4K3/8/8 b - - 17 116
+>>> isready
+readyok
+>>> go perft 1
+b4b3: 1
+f7e5: 1
+f7g5: 1
+f7d6: 1
+f7d8: 1
+f7h8: 1
+g8g7: 1
+g8h7: 1
+g8f8: 1
+g8h8: 1
+nodes 10
+>>> position fen 8/7k/7p/7P/4K3/1p3n2/8/8 w - - 0 120
+>>> isready
+readyok
+>>> go perft 1
+e4d3: 1
+e4e3: 1
+e4f3: 1
+e4f4: 1
+e4d5: 1
+e4f5: 1
+nodes 6
+>>> position fen 7k/8/7p/7P/3n4/8/1p3K2/8 b - - 1 123
+>>> isready
+readyok
+>>> go perft 1
+b2b1q: 1
+b2b1r: 1
+b2b1b: 1
+b2b1n: 1
+d4c2: 1
+d4e2: 1
+d4b3: 1
+d4f3: 1
+d4b5: 1
+d4f5: 1
+d4c6: 1
+d4e6: 1
+h8g7: 1
+h8h7: 1
+h8g8: 1
+nodes 15
+>>> position fen 5k2/8/7p/5n1P/8/8/6K1/1r6 w - - 2 127
+>>> isready
+readyok
+>>> go perft 1
+g2f2: 1
+g2h2: 1
+g2f3: 1
+g2h3: 1
+nodes 4
+>>> position fen 5k2/8/7p/5n1P/8/8/6K1/8 b - - 2 130
+>>> isready
+readyok
+>>> go perft 1
+f5e3: 1
+f5g3: 1
+f5d4: 1
+f5h4: 1
+f5d6: 1
+f5e7: 1
+f5g7: 1
+f8e7: 1
+f8f7: 1
+f8g7: 1
+f8e8: 1
+f8g8: 1
+nodes 12
+>>> position fen 8/5k2/2n4p/7P/8/8/7K/8 w - - 9 134
+>>> isready
+readyok
+>>> go perft 1
+h2g1: 1
+h2h1: 1
+h2g2: 1
+h2g3: 1
+h2h3: 1
+nodes 5
+>>> position fen 8/5k2/7p/n6P/8/8/6K1/8 b - - 16 137
+>>> isready
+readyok
+>>> go perft 1
+a5b3: 1
+a5c4: 1
+a5c6: 1
+a5b7: 1
+f7e6: 1
+f7f6: 1
+f7e7: 1
+f7g7: 1
+f7e8: 1
+f7f8: 1
+f7g8: 1
+nodes 11
+>>> position fen 4k3/8/7p/7P/2n5/8/5K2/8 w - - 23 141
+>>> isready
+readyok
+>>> go perft 1
+f2e1: 1
+f2f1: 1
+f2g1: 1
+f2e2: 1
+f2g2: 1
+f2f3: 1
+f2g3: 1
+nodes 7
+>>> position fen 5k2/8/7p/7P/2n5/8/8/2K5 b - - 30 144
+>>> isready
+readyok
+>>> go perft 1
+c4b2: 1
+c4d2: 1
+c4a3: 1
+c4e3: 1
+c4a5: 1
+c4e5: 1
+c4b6: 1
+c4d6: 1
+f8e7: 1
+f8f7: 1
+f8g7: 1
+f8e8: 1
+f8g8: 1
+nodes 13
+>>> position fen 8/5k2/7p/7P/n7/4K3/8/8 w - - 37 148
+>>> isready
+readyok
+>>> go perft 1
+e3d2: 1
+e3e2: 1
+e3f2: 1
+e3d3: 1
+e3f3: 1
+e3d4: 1
+e3e4: 1
+e3f4: 1
+nodes 8
+>>> position fen 8/3nk3/7p/7P/5K2/8/8/8 b - - 44 151
+>>> isready
+readyok
+>>> go perft 1
+d7c5: 1
+d7e5: 1
+d7b6: 1
+d7f6: 1
+d7b8: 1
+d7f8: 1
+e7d6: 1
+e7e6: 1
+e7f6: 1
+e7f7: 1
+e7d8: 1
+e7e8: 1
+e7f8: 1
+nodes 13
+>>> position fen 6k1/8/5n1p/5K1P/8/8/8/8 w - - 51 155
+>>> isready
+readyok
+>>> go perft 1
+f5f4: 1
+f5e5: 1
+f5e6: 1
+f5f6: 1
+f5g6: 1
+nodes 5
+>>> position fen 6k1/8/7p/3K3P/8/1n6/8/8 b - - 58 158
+>>> isready
+readyok
+>>> go perft 1
+b3a1: 1
+b3c1: 1
+b3d2: 1
+b3d4: 1
+b3a5: 1
+b3c5: 1
+g8f7: 1
+g8g7: 1
+g8h7: 1
+g8f8: 1
+g8h8: 1
+nodes 11
+>>> position fen 4k3/8/7p/n4K1P/8/8/8/8 w - - 65 162
+>>> isready
+readyok
+>>> go perft 1
+f5e4: 1
+f5f4: 1
+f5g4: 1
+f5e5: 1
+f5e6: 1
+f5f6: 1
+f5g6: 1
+nodes 7
+>>> position fen 6k1/1n6/7p/7P/8/5K2/8/8 b - - 72 165
+>>> isready
+readyok
+>>> go perft 1
+b7a5: 1
+b7c5: 1
+b7d6: 1
+b7d8: 1
+g8f7: 1
+g8g7: 1
+g8h7: 1
+g8f8: 1
+g8h8: 1
+nodes 9
+>>> position fen 5k2/8/7p/7P/5K2/1n6/8/8 w - - 79 169
+>>> isready
+readyok
+>>> go perft 1
+f4e3: 1
+f4f3: 1
+f4g3: 1
+f4e4: 1
+f4g4: 1
+f4e5: 1
+f4f5: 1
+nodes 7
+>>> position fen 6k1/8/7p/7P/8/1n6/5K2/8 b - - 86 172
+>>> isready
+readyok
+>>> go perft 1
+b3a1: 1
+b3c1: 1
+b3d2: 1
+b3d4: 1
+b3a5: 1
+b3c5: 1
+g8f7: 1
+g8g7: 1
+g8h7: 1
+g8f8: 1
+g8h8: 1
+nodes 11
+>>> position fen 2n3k1/8/7p/7P/8/8/8/4K3 w - - 93 176
+>>> isready
+readyok
+>>> go perft 1
+e1d1: 1
+e1f1: 1
+e1d2: 1
+e1e2: 1
+e1f2: 1
+nodes 5
+>>> position fen 8/5k2/1n5p/7P/8/8/8/3K4 b - - 100 179
+>>> isready
+readyok
+>>> go perft 1
+b6a4: 1
+b6c4: 1
+b6d5: 1
+b6d7: 1
+b6a8: 1
+b6c8: 1
+f7e6: 1
+f7f6: 1
+f7e7: 1
+f7g7: 1
+f7e8: 1
+f7f8: 1
+f7g8: 1
+nodes 13
+>>> position fen 8/8/3k3p/3n3P/8/8/5K2/8 w - - 107 183
+>>> isready
+readyok
+>>> go perft 1
+f2e1: 1
+f2f1: 1
+f2g1: 1
+f2e2: 1
+f2g2: 1
+f2f3: 1
+f2g3: 1
+nodes 7
+>>> position fen 3k4/2n5/7p/7P/8/8/5K2/8 b - - 114 186
+>>> isready
+readyok
+>>> go perft 1
+c7b5: 1
+c7d5: 1
+c7a6: 1
+c7e6: 1
+c7a8: 1
+c7e8: 1
+d8d7: 1
+d8e7: 1
+d8c8: 1
+d8e8: 1
+nodes 10
+>>> position fen 2k5/8/7p/1n5P/8/8/8/4K3 w - - 121 190
+>>> isready
+readyok
+>>> go perft 1
+e1d1: 1
+e1f1: 1
+e1d2: 1
+e1e2: 1
+e1f2: 1
+nodes 5
+>>> position fen 2k5/8/7p/7P/8/n7/4K3/8 b - - 128 193
+>>> isready
+readyok
+>>> go perft 1
+a3b1: 1
+a3c2: 1
+a3c4: 1
+a3b5: 1
+c8b7: 1
+c8c7: 1
+c8d7: 1
+c8b8: 1
+c8d8: 1
+nodes 9
+>>> position fen 8/1kn5/7p/7P/8/3K4/8/8 w - - 135 197
+>>> isready
+readyok
+>>> go perft 1
+d3c2: 1
+d3d2: 1
+d3e2: 1
+d3c3: 1
+d3e3: 1
+d3c4: 1
+d3d4: 1
+d3e4: 1
+nodes 8
+>>> position fen 8/8/n6p/2k4P/8/5K2/8/8 b - - 142 200
+>>> isready
+readyok
+>>> go perft 1
+a6b4: 1
+a6c7: 1
+a6b8: 1
+c5b4: 1
+c5c4: 1
+c5d4: 1
+c5b5: 1
+c5d5: 1
+c5b6: 1
+c5c6: 1
+c5d6: 1
+nodes 11
+>>> position fen r1bqkbnr/1ppppppp/p7/4n3/P1P5/7N/1PQPPPPP/RNB1KB1R b KQkq - 2 4
+>>> isready
+readyok
+>>> go perft 1
+a6a5: 1
+b7b6: 1
+c7c6: 1
+d7d6: 1
+e7e6: 1
+f7f6: 1
+g7g6: 1
+h7h6: 1
+b7b5: 1
+c7c5: 1
+d7d5: 1
+f7f5: 1
+g7g5: 1
+h7h5: 1
+e5d3: 1
+e5f3: 1
+e5c4: 1
+e5g4: 1
+e5c6: 1
+e5g6: 1
+g8f6: 1
+g8h6: 1
+a8a7: 1
+a8b8: 1
+nodes 24
+>>> position fen r1bqkb1r/2pppppp/p6n/8/PpP3n1/R6N/1PQPPPPP/1NB1KB1R w Kkq - 2 8
+>>> isready
+readyok
+>>> go perft 1
+b2b3: 1
+d2d3: 1
+e2e3: 1
+f2f3: 1
+g2g3: 1
+a4a5: 1
+c4c5: 1
+d2d4: 1
+e2e4: 1
+f2f4: 1
+b1c3: 1
+h3g1: 1
+h3f4: 1
+h3g5: 1
+h1g1: 1
+a3a1: 1
+a3a2: 1
+a3b3: 1
+a3c3: 1
+a3d3: 1
+a3e3: 1
+a3f3: 1
+a3g3: 1
+c2d1: 1
+c2b3: 1
+c2c3: 1
+c2d3: 1
+c2e4: 1
+c2f5: 1
+c2g6: 1
+c2h7: 1
+e1d1: 1
+nodes 32
+>>> position fen r1bqkbr1/2pppp1p/p6n/P5p1/1pP5/R1Q4N/1P1PPPPn/1NB1KBR1 b q - 1 11
+>>> isready
+readyok
+>>> go perft 1
+b4b3: 1
+g5g4: 1
+c7c6: 1
+d7d6: 1
+e7e6: 1
+f7f6: 1
+c7c5: 1
+d7d5: 1
+e7e5: 1
+f7f5: 1
+b4a3: 1
+b4c3: 1
+h2f1: 1
+h2f3: 1
+h2g4: 1
+h6g4: 1
+h6f5: 1
+c8b7: 1
+f8g7: 1
+a8a7: 1
+a8b8: 1
+g8g6: 1
+g8g7: 1
+g8h8: 1
+nodes 24
+>>> position fen r1bqkbr1/6Qp/p2p3n/P1p1ppp1/1pP5/R1N3PN/1P1PPP1n/2B1KBR1 w q - 0 15
+>>> isready
+readyok
+>>> go perft 1
+b2b3: 1
+d2d3: 1
+e2e3: 1
+f2f3: 1
+g3g4: 1
+d2d4: 1
+e2e4: 1
+f2f4: 1
+c3b1: 1
+c3d1: 1
+c3a2: 1
+c3a4: 1
+c3e4: 1
+c3b5: 1
+c3d5: 1
+h3f4: 1
+h3g5: 1
+f1g2: 1
+g1h1: 1
+g1g2: 1
+a3a1: 1
+a3a2: 1
+a3b3: 1
+a3a4: 1
+g7e5: 1
+g7g5: 1
+g7f6: 1
+g7g6: 1
+g7h6: 1
+g7a7: 1
+g7b7: 1
+g7c7: 1
+g7d7: 1
+g7e7: 1
+g7f7: 1
+g7h7: 1
+g7f8: 1
+g7g8: 1
+g7h8: 1
+e1d1: 1
+nodes 40
+>>> position fen r1bqk1r1/4bn1p/p4Q2/P1ppppp1/1pP5/R1NP2PN/1P1KPP1n/2B2BR1 b q - 5 18
+>>> isready
+readyok
+>>> go perft 1
+b4b3: 1
+d5d4: 1
+e5e4: 1
+f5f4: 1
+g5g4: 1
+h7h6: 1
+h7h5: 1
+b4a3: 1
+b4c3: 1
+d5c4: 1
+h2f1: 1
+h2f3: 1
+h2g4: 1
+f7d6: 1
+f7h6: 1
+f7h8: 1
+e7d6: 1
+e7f6: 1
+e7f8: 1
+c8e6: 1
+c8b7: 1
+c8d7: 1
+a8a7: 1
+a8b8: 1
+g8g6: 1
+g8g7: 1
+g8f8: 1
+g8h8: 1
+d8a5: 1
+d8b6: 1
+d8d6: 1
+d8c7: 1
+d8d7: 1
+e8d7: 1
+e8f8: 1
+nodes 35
+>>> position fen 2bqkb2/2Qr1nrp/p7/P1ppppp1/1pP5/R2P2PN/1P1KPP1n/2BN1BR1 w - - 12 22
+>>> isready
+readyok
+>>> go perft 1
+b2b3: 1
+e2e3: 1
+f2f3: 1
+d3d4: 1
+g3g4: 1
+e2e4: 1
+f2f4: 1
+c4d5: 1
+d1c3: 1
+d1e3: 1
+h3f4: 1
+h3g5: 1
+f1g2: 1
+g1h1: 1
+g1g2: 1
+a3a1: 1
+a3a2: 1
+a3b3: 1
+a3c3: 1
+a3a4: 1
+c7c5: 1
+c7e5: 1
+c7b6: 1
+c7c6: 1
+c7d6: 1
+c7a7: 1
+c7b7: 1
+c7d7: 1
+c7b8: 1
+c7c8: 1
+c7d8: 1
+d2e1: 1
+d2c2: 1
+d2e3: 1
+nodes 34
+>>> position fen 2bqkb2/3r1nrp/p7/P1pp1p2/1pP3p1/R2PN1PN/1P2PPRn/2B1KB2 b - - 1 25
+>>> isready
+readyok
+>>> go perft 1
+b4b3: 1
+d5d4: 1
+f5f4: 1
+h7h6: 1
+h7h5: 1
+b4a3: 1
+g4h3: 1
+d5c4: 1
+h2f1: 1
+h2f3: 1
+f7e5: 1
+f7g5: 1
+f7d6: 1
+f7h6: 1
+f7h8: 1
+c8b7: 1
+f8d6: 1
+f8e7: 1
+d7d6: 1
+d7a7: 1
+d7b7: 1
+d7c7: 1
+d7e7: 1
+g7g5: 1
+g7g6: 1
+g7g8: 1
+d8h4: 1
+d8a5: 1
+d8g5: 1
+d8b6: 1
+d8f6: 1
+d8c7: 1
+d8e7: 1
+e8e7: 1
+nodes 34
+>>> position fen 2b1kb2/3r1n1p/p5r1/P1p2N2/1pp3p1/3P2PN/Rq2PP1n/2B1KBR1 w - - 0 29
+>>> isready
+readyok
+>>> go perft 1
+e2e3: 1
+f2f3: 1
+d3d4: 1
+e2e4: 1
+f2f4: 1
+d3c4: 1
+h3f4: 1
+h3g5: 1
+f5e3: 1
+f5d4: 1
+f5h4: 1
+f5d6: 1
+f5h6: 1
+f5e7: 1
+f5g7: 1
+c1b2: 1
+c1d2: 1
+c1e3: 1
+c1f4: 1
+c1g5: 1
+c1h6: 1
+f1g2: 1
+g1h1: 1
+g1g2: 1
+a2a1: 1
+a2b2: 1
+a2a3: 1
+a2a4: 1
+e1d1: 1
+nodes 29
+>>> position fen 2b2b2/3rknNp/p7/P1p1q3/1pp3p1/3P1NP1/RB2PP1n/4KBR1 b - - 2 32
+>>> isready
+readyok
+>>> go perft 1
+b4b3: 1
+c4c3: 1
+h7h6: 1
+h7h5: 1
+c4d3: 1
+g4f3: 1
+h2f1: 1
+h2f3: 1
+f7g5: 1
+f7d6: 1
+f7h6: 1
+f7d8: 1
+f7h8: 1
+c8b7: 1
+f8g7: 1
+d7d3: 1
+d7d4: 1
+d7d5: 1
+d7d6: 1
+d7a7: 1
+d7b7: 1
+d7c7: 1
+d7d8: 1
+e5b2: 1
+e5e2: 1
+e5c3: 1
+e5e3: 1
+e5g3: 1
+e5d4: 1
+e5e4: 1
+e5f4: 1
+e5d5: 1
+e5f5: 1
+e5g5: 1
+e5h5: 1
+e5d6: 1
+e5e6: 1
+e5f6: 1
+e5c7: 1
+e5g7: 1
+e5b8: 1
+e7d6: 1
+e7f6: 1
+e7d8: 1
+nodes 44
+>>> position fen 5b2/3rknNp/p4q2/P1p5/1pp1b1p1/1N1P2P1/R3PP1n/2B1KBR1 w - - 9 36
+>>> isready
+readyok
+>>> go perft 1
+e2e3: 1
+f2f3: 1
+d3d4: 1
+f2f4: 1
+d3c4: 1
+d3e4: 1
+b3a1: 1
+b3d2: 1
+b3d4: 1
+b3c5: 1
+g7f5: 1
+g7h5: 1
+g7e6: 1
+g7e8: 1
+c1b2: 1
+c1d2: 1
+c1a3: 1
+c1e3: 1
+c1f4: 1
+c1g5: 1
+c1h6: 1
+f1g2: 1
+f1h3: 1
+g1h1: 1
+g1g2: 1
+a2a1: 1
+a2b2: 1
+a2c2: 1
+a2d2: 1
+a2a3: 1
+a2a4: 1
+e1d1: 1
+e1d2: 1
+nodes 33
+>>> position fen 8/3rknbp/p7/P1p5/1pP3p1/6P1/R3P1Kn/N1B2BR1 b - - 1 39
+>>> isready
+readyok
+>>> go perft 1
+b4b3: 1
+h7h6: 1
+h7h5: 1
+h2f1: 1
+h2f3: 1
+f7e5: 1
+f7g5: 1
+f7d6: 1
+f7h6: 1
+f7d8: 1
+f7h8: 1
+g7a1: 1
+g7b2: 1
+g7c3: 1
+g7d4: 1
+g7e5: 1
+g7f6: 1
+g7h6: 1
+g7f8: 1
+g7h8: 1
+d7d1: 1
+d7d2: 1
+d7d3: 1
+d7d4: 1
+d7d5: 1
+d7d6: 1
+d7a7: 1
+d7b7: 1
+d7c7: 1
+d7d8: 1
+e7d6: 1
+e7e6: 1
+e7f6: 1
+e7d8: 1
+e7e8: 1
+e7f8: 1
+nodes 36
+>>> position fen 8/1r2knbp/p7/P1p5/1pP3p1/6P1/R2NP2K/2B2BR1 w - - 5 43
+>>> isready
+readyok
+>>> go perft 1
+e2e3: 1
+e2e4: 1
+d2b1: 1
+d2b3: 1
+d2f3: 1
+d2e4: 1
+c1b2: 1
+c1a3: 1
+f1g2: 1
+f1h3: 1
+g1h1: 1
+g1g2: 1
+a2a1: 1
+a2b2: 1
+a2c2: 1
+a2a3: 1
+a2a4: 1
+h2h1: 1
+h2g2: 1
+nodes 19
+>>> position fen 3k4/1r3nbp/p7/P1p5/1pP3p1/4P1P1/R2N2K1/2B2BR1 b - - 4 46
+>>> isready
+readyok
+>>> go perft 1
+b4b3: 1
+h7h6: 1
+h7h5: 1
+f7e5: 1
+f7g5: 1
+f7d6: 1
+f7h6: 1
+f7h8: 1
+g7a1: 1
+g7b2: 1
+g7c3: 1
+g7d4: 1
+g7e5: 1
+g7f6: 1
+g7h6: 1
+g7f8: 1
+g7h8: 1
+b7b5: 1
+b7b6: 1
+b7a7: 1
+b7c7: 1
+b7d7: 1
+b7e7: 1
+b7b8: 1
+d8c7: 1
+d8d7: 1
+d8e7: 1
+d8c8: 1
+d8e8: 1
+nodes 29
+>>> position fen 8/1r1k1nbp/p7/P1p5/1pP3p1/4PNP1/4R1K1/2B2B1R w - - 11 50
+>>> isready
+readyok
+>>> go perft 1
+e3e4: 1
+f3e1: 1
+f3g1: 1
+f3d2: 1
+f3h2: 1
+f3d4: 1
+f3h4: 1
+f3e5: 1
+f3g5: 1
+c1b2: 1
+c1d2: 1
+c1a3: 1
+h1g1: 1
+h1h2: 1
+h1h3: 1
+h1h4: 1
+h1h5: 1
+h1h6: 1
+h1h7: 1
+e2e1: 1
+e2a2: 1
+e2b2: 1
+e2c2: 1
+e2d2: 1
+e2f2: 1
+g2g1: 1
+g2f2: 1
+g2h2: 1
+nodes 28
+>>> position fen 5b2/3k1n2/p1r4R/P1p5/1pP1N1p1/4P1P1/4R1K1/2B2B2 b - - 4 53
+>>> isready
+readyok
+>>> go perft 1
+b4b3: 1
+f7e5: 1
+f7g5: 1
+f7d6: 1
+f7h6: 1
+f7d8: 1
+f7h8: 1
+f8d6: 1
+f8h6: 1
+f8e7: 1
+f8g7: 1
+c6b6: 1
+c6d6: 1
+c6e6: 1
+c6f6: 1
+c6g6: 1
+c6h6: 1
+c6c7: 1
+c6c8: 1
+d7c7: 1
+d7e7: 1
+d7c8: 1
+d7d8: 1
+d7e8: 1
+nodes 24
+>>> position fen 8/3k4/p1rN3n/P1p3b1/2P3p1/1p2P1P1/R7/2B2B1K w - - 0 57
+>>> isready
+readyok
+>>> go perft 1
+e3e4: 1
+d6e4: 1
+d6b5: 1
+d6f5: 1
+d6b7: 1
+d6f7: 1
+d6c8: 1
+d6e8: 1
+c1b2: 1
+c1d2: 1
+c1a3: 1
+f1e2: 1
+f1g2: 1
+f1d3: 1
+f1h3: 1
+a2a1: 1
+a2b2: 1
+a2c2: 1
+a2d2: 1
+a2e2: 1
+a2f2: 1
+a2g2: 1
+a2h2: 1
+a2a3: 1
+a2a4: 1
+h1g1: 1
+h1g2: 1
+h1h2: 1
+nodes 28
+>>> position fen 8/1N1kb3/p3r2n/P1p5/2P3p1/4P1P1/1p2R2K/2B2B2 b - - 3 60
+>>> isready
+readyok
+>>> go perft 1
+b2b1q: 1
+b2b1r: 1
+b2b1b: 1
+b2b1n: 1
+b2c1q: 1
+b2c1r: 1
+b2c1b: 1
+b2c1n: 1
+h6f5: 1
+h6f7: 1
+h6g8: 1
+e7h4: 1
+e7g5: 1
+e7d6: 1
+e7f6: 1
+e7d8: 1
+e7f8: 1
+e6e3: 1
+e6e4: 1
+e6e5: 1
+e6b6: 1
+e6c6: 1
+e6d6: 1
+e6f6: 1
+e6g6: 1
+d7c6: 1
+d7c7: 1
+d7c8: 1
+d7e8: 1
+nodes 29
+>>> position fen 3b4/1Nk5/p3r2n/P1p2q2/2P3p1/4P1P1/3B2R1/5B1K w - - 6 64
+>>> isready
+readyok
+>>> go perft 1
+e3e4: 1
+b7c5: 1
+b7d6: 1
+b7d8: 1
+f1e2: 1
+f1d3: 1
+d2c1: 1
+d2e1: 1
+d2c3: 1
+d2b4: 1
+g2g1: 1
+g2e2: 1
+g2f2: 1
+g2h2: 1
+h1g1: 1
+h1h2: 1
+nodes 16
+>>> position fen 8/2k5/p6N/P1pr4/2P3p1/3BP1P1/3B1qR1/7K b - - 0 67
+>>> isready
+readyok
+>>> go perft 1
+d5d3: 1
+d5d4: 1
+d5e5: 1
+d5f5: 1
+d5g5: 1
+d5h5: 1
+d5d6: 1
+d5d7: 1
+d5d8: 1
+f2e1: 1
+f2f1: 1
+f2g1: 1
+f2d2: 1
+f2e2: 1
+f2g2: 1
+f2e3: 1
+f2f3: 1
+f2g3: 1
+f2f4: 1
+f2f5: 1
+f2f6: 1
+f2f7: 1
+f2f8: 1
+c7c6: 1
+c7d6: 1
+c7b7: 1
+c7d7: 1
+c7b8: 1
+c7c8: 1
+c7d8: 1
+nodes 30
+>>> position fen 3k2Nq/3r4/p6B/P1p5/2P1P1p1/3B2P1/6R1/7K w - - 5 71
+>>> isready
+readyok
+>>> go perft 1
+e4e5: 1
+g8f6: 1
+g8e7: 1
+d3b1: 1
+d3f1: 1
+d3c2: 1
+d3e2: 1
+g2g1: 1
+g2a2: 1
+g2b2: 1
+g2c2: 1
+g2d2: 1
+g2e2: 1
+g2f2: 1
+g2h2: 1
+h1g1: 1
+h1h2: 1
+nodes 17
+>>> position fen 3k2N1/3r4/p7/P1p5/2P1Pqp1/3B2P1/3R4/7K b - - 5 74
+>>> isready
+readyok
+>>> go perft 1
+d7d3: 1
+d7d4: 1
+d7d5: 1
+d7d6: 1
+d7a7: 1
+d7b7: 1
+d7c7: 1
+d7e7: 1
+d7f7: 1
+d7g7: 1
+d7h7: 1
+f4f1: 1
+f4d2: 1
+f4f2: 1
+f4e3: 1
+f4f3: 1
+f4g3: 1
+f4e4: 1
+f4e5: 1
+f4f5: 1
+f4g5: 1
+f4d6: 1
+f4f6: 1
+f4h6: 1
+f4c7: 1
+f4f7: 1
+f4b8: 1
+f4f8: 1
+d8c7: 1
+d8c8: 1
+d8e8: 1
+nodes 31
+>>> position fen 2k3N1/8/p2r4/P1pq4/2P1P1p1/6P1/3R2K1/3B4 w - - 12 78
+>>> isready
+readyok
+>>> go perft 1
+c4d5: 1
+e4d5: 1
+g8f6: 1
+g8h6: 1
+g8e7: 1
+d1c2: 1
+d1e2: 1
+d1b3: 1
+d1f3: 1
+d1a4: 1
+d1g4: 1
+d2a2: 1
+d2b2: 1
+d2c2: 1
+d2e2: 1
+d2f2: 1
+d2d3: 1
+d2d4: 1
+d2d5: 1
+g2f1: 1
+g2g1: 1
+g2h1: 1
+g2f2: 1
+g2h2: 1
+nodes 24
+>>> position fen 2k2rN1/8/p7/P1p5/2P1P1p1/6P1/3q1R1K/3B4 b - - 19 81
+>>> isready
+readyok
+>>> go perft 1
+f8f2: 1
+f8f3: 1
+f8f4: 1
+f8f5: 1
+f8f6: 1
+f8f7: 1
+f8d8: 1
+f8e8: 1
+f8g8: 1
+d2c1: 1
+d2d1: 1
+d2e1: 1
+d2a2: 1
+d2b2: 1
+d2c2: 1
+d2e2: 1
+d2f2: 1
+d2c3: 1
+d2d3: 1
+d2e3: 1
+d2b4: 1
+d2d4: 1
+d2f4: 1
+d2a5: 1
+d2d5: 1
+d2g5: 1
+d2d6: 1
+d2h6: 1
+d2d7: 1
+d2d8: 1
+c8b7: 1
+c8c7: 1
+c8d7: 1
+c8b8: 1
+c8d8: 1
+nodes 35
+>>> position fen 2k1r1N1/8/p7/PBp1P3/2P3p1/1q4P1/5R1K/8 w - - 3 85
+>>> isready
+readyok
+>>> go perft 1
+e5e6: 1
+g8f6: 1
+g8h6: 1
+g8e7: 1
+b5a4: 1
+b5a6: 1
+b5c6: 1
+b5d7: 1
+b5e8: 1
+f2f1: 1
+f2a2: 1
+f2b2: 1
+f2c2: 1
+f2d2: 1
+f2e2: 1
+f2g2: 1
+f2f3: 1
+f2f4: 1
+f2f5: 1
+f2f6: 1
+f2f7: 1
+f2f8: 1
+h2g1: 1
+h2h1: 1
+h2g2: 1
+nodes 25
+>>> position fen 3r4/1k2N3/p7/PBp1P3/2P2Rp1/2q3P1/7K/8 b - - 10 88
+>>> isready
+readyok
+>>> go perft 1
+a6b5: 1
+d8d1: 1
+d8d2: 1
+d8d3: 1
+d8d4: 1
+d8d5: 1
+d8d6: 1
+d8d7: 1
+d8a8: 1
+d8b8: 1
+d8c8: 1
+d8e8: 1
+d8f8: 1
+d8g8: 1
+d8h8: 1
+c3a1: 1
+c3c1: 1
+c3e1: 1
+c3b2: 1
+c3c2: 1
+c3d2: 1
+c3a3: 1
+c3b3: 1
+c3d3: 1
+c3e3: 1
+c3f3: 1
+c3g3: 1
+c3b4: 1
+c3c4: 1
+c3d4: 1
+c3a5: 1
+c3e5: 1
+b7a7: 1
+b7c7: 1
+b7a8: 1
+b7b8: 1
+nodes 36
+>>> position fen 1r6/1k1B4/p7/P1pNP3/2P3p1/6P1/5R1K/4q3 w - - 17 92
+>>> isready
+readyok
+>>> go perft 1
+e5e6: 1
+d5c3: 1
+d5e3: 1
+d5b4: 1
+d5f4: 1
+d5b6: 1
+d5f6: 1
+d5c7: 1
+d5e7: 1
+d7a4: 1
+d7g4: 1
+d7b5: 1
+d7f5: 1
+d7c6: 1
+d7e6: 1
+d7c8: 1
+d7e8: 1
+f2f1: 1
+f2a2: 1
+f2b2: 1
+f2c2: 1
+f2d2: 1
+f2e2: 1
+f2g2: 1
+f2f3: 1
+f2f4: 1
+f2f5: 1
+f2f6: 1
+f2f7: 1
+f2f8: 1
+h2g2: 1
+nodes 31
+>>> position fen 5r2/1k1B4/p7/PNp1P3/2P3p1/6P1/6K1/3q4 b - - 5 95
+>>> isready
+readyok
+>>> go perft 1
+a6b5: 1
+f8f1: 1
+f8f2: 1
+f8f3: 1
+f8f4: 1
+f8f5: 1
+f8f6: 1
+f8f7: 1
+f8a8: 1
+f8b8: 1
+f8c8: 1
+f8d8: 1
+f8e8: 1
+f8g8: 1
+f8h8: 1
+d1a1: 1
+d1b1: 1
+d1c1: 1
+d1e1: 1
+d1f1: 1
+d1g1: 1
+d1h1: 1
+d1c2: 1
+d1d2: 1
+d1e2: 1
+d1b3: 1
+d1d3: 1
+d1f3: 1
+d1a4: 1
+d1d4: 1
+d1d5: 1
+d1d6: 1
+d1d7: 1
+b7a8: 1
+b7b8: 1
+nodes 35
+>>> position fen 4r3/1k1B4/p7/PNp1P3/2P3p1/q5P1/5K2/8 w - - 12 99
+>>> isready
+readyok
+>>> go perft 1
+e5e6: 1
+b5a3: 1
+b5c3: 1
+b5d4: 1
+b5d6: 1
+b5a7: 1
+b5c7: 1
+d7g4: 1
+d7f5: 1
+d7c6: 1
+d7e6: 1
+d7c8: 1
+d7e8: 1
+f2e1: 1
+f2f1: 1
+f2g1: 1
+f2e2: 1
+f2g2: 1
+nodes 18
+>>> position fen 5r2/1k6/p3B3/PNp1P3/2P3p1/6P1/6K1/8 b - - 2 102
+>>> isready
+readyok
+>>> go perft 1
+a6b5: 1
+f8f1: 1
+f8f2: 1
+f8f3: 1
+f8f4: 1
+f8f5: 1
+f8f6: 1
+f8f7: 1
+f8a8: 1
+f8b8: 1
+f8c8: 1
+f8d8: 1
+f8e8: 1
+f8g8: 1
+f8h8: 1
+b7c6: 1
+b7a8: 1
+b7b8: 1
+nodes 18
+>>> position fen 2k5/4r3/p7/P1p1P3/2P3p1/N5P1/2B3K1/8 w - - 9 106
+>>> isready
+readyok
+>>> go perft 1
+e5e6: 1
+a3b1: 1
+a3b5: 1
+c2b1: 1
+c2d1: 1
+c2b3: 1
+c2d3: 1
+c2a4: 1
+c2e4: 1
+c2f5: 1
+c2g6: 1
+c2h7: 1
+g2f1: 1
+g2g1: 1
+g2h1: 1
+g2f2: 1
+g2h2: 1
+nodes 17
+>>> position fen 3k4/3r4/p7/P1p1P3/2P3p1/N2B2P1/7K/8 b - - 16 109
+>>> isready
+readyok
+>>> go perft 1
+d7d3: 1
+d7d4: 1
+d7d5: 1
+d7d6: 1
+d7a7: 1
+d7b7: 1
+d7c7: 1
+d7e7: 1
+d7f7: 1
+d7g7: 1
+d7h7: 1
+d8c7: 1
+d8e7: 1
+d8c8: 1
+d8e8: 1
+nodes 15
+>>> position fen 3k4/r7/p7/P1p1P3/2P3p1/NB4P1/8/6K1 w - - 23 113
+>>> isready
+readyok
+>>> go perft 1
+e5e6: 1
+a3b1: 1
+a3c2: 1
+a3b5: 1
+b3d1: 1
+b3a2: 1
+b3c2: 1
+b3a4: 1
+g1f1: 1
+g1h1: 1
+g1f2: 1
+g1g2: 1
+g1h2: 1
+nodes 13
+>>> position fen 8/7r/p1k5/P1p1P3/2P3p1/1B2N1P1/6K1/8 b - - 30 116
+>>> isready
+readyok
+>>> go perft 1
+h7h1: 1
+h7h2: 1
+h7h3: 1
+h7h4: 1
+h7h5: 1
+h7h6: 1
+h7a7: 1
+h7b7: 1
+h7c7: 1
+h7d7: 1
+h7e7: 1
+h7f7: 1
+h7g7: 1
+h7h8: 1
+c6b7: 1
+c6c7: 1
+c6d7: 1
+nodes 17
+>>> position fen 8/3k4/p5r1/P1p1P3/2P3p1/1B4P1/2N3K1/8 w - - 37 120
+>>> isready
+readyok
+>>> go perft 1
+e5e6: 1
+c2a1: 1
+c2e1: 1
+c2a3: 1
+c2e3: 1
+c2b4: 1
+c2d4: 1
+b3a2: 1
+b3a4: 1
+g2f1: 1
+g2g1: 1
+g2h1: 1
+g2f2: 1
+g2h2: 1
+nodes 14
+>>> position fen 3k4/6r1/p7/P1p1P3/2P3p1/4N1P1/B7/5K2 b - - 44 123
+>>> isready
+readyok
+>>> go perft 1
+g7g5: 1
+g7g6: 1
+g7a7: 1
+g7b7: 1
+g7c7: 1
+g7d7: 1
+g7e7: 1
+g7f7: 1
+g7h7: 1
+g7g8: 1
+d8c7: 1
+d8d7: 1
+d8e7: 1
+d8c8: 1
+d8e8: 1
+nodes 15
+>>> position fen 3k4/8/p7/P1p1P3/2Pr2p1/4N1P1/B3K3/8 w - - 51 127
+>>> isready
+readyok
+>>> go perft 1
+e5e6: 1
+e3d1: 1
+e3f1: 1
+e3c2: 1
+e3g2: 1
+e3g4: 1
+e3d5: 1
+e3f5: 1
+a2b1: 1
+a2b3: 1
+e2e1: 1
+e2f1: 1
+e2f2: 1
+nodes 13
+>>> position fen 4k3/8/p7/P1p1P3/2P3p1/6P1/B4K2/5N2 b - - 2 130
+>>> isready
+readyok
+>>> go perft 1
+e8d7: 1
+e8e7: 1
+e8f7: 1
+e8d8: 1
+e8f8: 1
+nodes 5
+>>> position fen 6k1/8/p7/P1p1P3/2P3p1/6P1/2B2K2/5N2 w - - 9 134
+>>> isready
+readyok
+>>> go perft 1
+e5e6: 1
+f1d2: 1
+f1h2: 1
+f1e3: 1
+c2b1: 1
+c2d1: 1
+c2b3: 1
+c2d3: 1
+c2a4: 1
+c2e4: 1
+c2f5: 1
+c2g6: 1
+c2h7: 1
+f2e1: 1
+f2g1: 1
+f2e2: 1
+f2g2: 1
+f2e3: 1
+nodes 18
+>>> position fen 6k1/7B/p3P3/P1p5/2P3p1/6P1/3N4/6K1 b - - 4 137
+>>> isready
+readyok
+>>> go perft 1
+g8g7: 1
+g8h7: 1
+g8f8: 1
+g8h8: 1
+nodes 4
+>>> position fen 5k2/8/p3P3/P1p3N1/2P3p1/6P1/6K1/8 w - - 4 141
+>>> isready
+readyok
+>>> go perft 1
+e6e7: 1
+g5f3: 1
+g5h3: 1
+g5e4: 1
+g5f7: 1
+g5h7: 1
+g2f1: 1
+g2g1: 1
+g2h1: 1
+g2f2: 1
+g2h2: 1
+nodes 11
+>>> position fen 8/5k2/p7/P1p3N1/2P3p1/6P1/6K1/8 b - - 3 144
+>>> isready
+readyok
+>>> go perft 1
+f7f6: 1
+f7g6: 1
+f7e7: 1
+f7g7: 1
+f7e8: 1
+f7f8: 1
+f7g8: 1
+nodes 7
+>>> position fen 8/8/p5k1/P1p3N1/2P3p1/6P1/4K3/8 w - - 10 148
+>>> isready
+readyok
+>>> go perft 1
+g5f3: 1
+g5h3: 1
+g5e4: 1
+g5e6: 1
+g5f7: 1
+g5h7: 1
+e2d1: 1
+e2e1: 1
+e2f1: 1
+e2d2: 1
+e2f2: 1
+e2d3: 1
+e2e3: 1
+nodes 13
+>>> position fen 8/8/p5k1/P1p5/2P3p1/4K1P1/8/8 b - - 5 151
+>>> isready
+readyok
+>>> go perft 1
+g6f5: 1
+g6g5: 1
+g6h5: 1
+g6f6: 1
+g6h6: 1
+g6f7: 1
+g6g7: 1
+g6h7: 1
+nodes 8
+>>> position fen 8/8/p2K2k1/P1p5/2P3p1/6P1/8/8 w - - 12 155
+>>> isready
+readyok
+>>> go perft 1
+d6c5: 1
+d6d5: 1
+d6e5: 1
+d6c6: 1
+d6e6: 1
+d6c7: 1
+d6d7: 1
+d6e7: 1
+nodes 8
+>>> position fen 8/3K4/p7/P1p3k1/2P3p1/6P1/8/8 b - - 19 158
+>>> isready
+readyok
+>>> go perft 1
+g5f5: 1
+g5h5: 1
+g5f6: 1
+g5g6: 1
+g5h6: 1
+nodes 5
+>>> position fen 4k3/8/p1K5/P1p5/2P3p1/6P1/8/8 w - - 26 162
+>>> isready
+readyok
+>>> go perft 1
+c6c5: 1
+c6d5: 1
+c6b6: 1
+c6d6: 1
+c6b7: 1
+c6c7: 1
+nodes 6
+>>> position fen 6k1/8/p7/P7/2PK2p1/6P1/8/8 b - - 2 165
+>>> isready
+readyok
+>>> go perft 1
+g8f7: 1
+g8g7: 1
+g8h7: 1
+g8f8: 1
+g8h8: 1
+nodes 5
+>>> position fen 4k3/8/p7/P2K4/2P3p1/6P1/8/8 w - - 9 169
+>>> isready
+readyok
+>>> go perft 1
+c4c5: 1
+d5d4: 1
+d5e4: 1
+d5c5: 1
+d5e5: 1
+d5c6: 1
+d5d6: 1
+d5e6: 1
+nodes 8
+>>> position fen 8/8/p3k1K1/P1P5/6p1/6P1/8/8 b - - 0 172
+>>> isready
+readyok
+>>> go perft 1
+e6d5: 1
+e6e5: 1
+e6d7: 1
+e6e7: 1
+nodes 4
+>>> position fen 6K1/8/p1Pk4/P7/6p1/6P1/8/8 w - - 1 176
+>>> isready
+readyok
+>>> go perft 1
+c6c7: 1
+g8f7: 1
+g8g7: 1
+g8h7: 1
+g8f8: 1
+g8h8: 1
+nodes 6
+>>> position fen 2Q3K1/4k3/p7/P7/6p1/6P1/8/8 b - - 4 179
+>>> isready
+readyok
+>>> go perft 1
+e7d6: 1
+e7f6: 1
+nodes 2
+>>> position fen 6K1/8/p1Q5/P3k3/6p1/6P1/8/8 w - - 11 183
+>>> isready
+readyok
+>>> go perft 1
+c6c1: 1
+c6h1: 1
+c6c2: 1
+c6g2: 1
+c6c3: 1
+c6f3: 1
+c6a4: 1
+c6c4: 1
+c6e4: 1
+c6b5: 1
+c6c5: 1
+c6d5: 1
+c6a6: 1
+c6b6: 1
+c6d6: 1
+c6e6: 1
+c6f6: 1
+c6g6: 1
+c6h6: 1
+c6b7: 1
+c6c7: 1
+c6d7: 1
+c6a8: 1
+c6c8: 1
+c6e8: 1
+g8f7: 1
+g8g7: 1
+g8h7: 1
+g8f8: 1
+g8h8: 1
+nodes 30
+>>> position fen 8/5K2/p7/P7/6p1/6P1/3k4/5Q2 b - - 18 186
+>>> isready
+readyok
+>>> go perft 1
+d2c2: 1
+d2c3: 1
+d2e3: 1
+nodes 3
+>>> position fen 8/5K2/p7/P7/6p1/6P1/5Q2/2k5 w - - 25 190
+>>> isready
+readyok
+>>> go perft 1
+f2e1: 1
+f2f1: 1
+f2g1: 1
+f2a2: 1
+f2b2: 1
+f2c2: 1
+f2d2: 1
+f2e2: 1
+f2g2: 1
+f2h2: 1
+f2e3: 1
+f2f3: 1
+f2d4: 1
+f2f4: 1
+f2c5: 1
+f2f5: 1
+f2b6: 1
+f2f6: 1
+f2a7: 1
+f7e6: 1
+f7f6: 1
+f7g6: 1
+f7e7: 1
+f7g7: 1
+f7e8: 1
+f7f8: 1
+f7g8: 1
+nodes 27
+>>> position fen 7K/8/p7/P7/6p1/6P1/8/1k6 b - - 5 193
+>>> isready
+readyok
+>>> go perft 1
+b1a1: 1
+b1c1: 1
+b1a2: 1
+b1b2: 1
+b1c2: 1
+nodes 5
+>>> position fen 8/7K/p7/P7/6p1/6P1/8/2k5 w - - 12 197
+>>> isready
+readyok
+>>> go perft 1
+h7g6: 1
+h7h6: 1
+h7g7: 1
+h7g8: 1
+h7h8: 1
+nodes 5
+>>> position fen 8/8/p6K/P7/6p1/6P1/8/4k3 b - - 19 200
+>>> isready
+readyok
+>>> go perft 1
+e1d1: 1
+e1f1: 1
+e1d2: 1
+e1e2: 1
+e1f2: 1
+nodes 5
+>>> position fen rnbqk2r/pppppp1p/5n1b/6p1/1P6/P2P4/2P1PPPP/RNBQKBNR b KQkq - 0 4
+>>> isready
+readyok
+>>> go perft 1
+g5g4: 1
+a7a6: 1
+b7b6: 1
+c7c6: 1
+d7d6: 1
+e7e6: 1
+a7a5: 1
+b7b5: 1
+c7c5: 1
+d7d5: 1
+e7e5: 1
+f6e4: 1
+f6g4: 1
+f6d5: 1
+f6h5: 1
+f6g8: 1
+b8a6: 1
+b8c6: 1
+h6g7: 1
+h6f8: 1
+h8f8: 1
+h8g8: 1
+e8f8: 1
+e8g8: 1
+nodes 24
+>>> position fen rnbqk1r1/p2p1p1p/1p2pn1b/2p3N1/1P6/P2P2P1/2P1PP1P/RNBQKB1R w KQq - 0 8
+>>> isready
+readyok
+>>> go perft 1
+c2c3: 1
+e2e3: 1
+f2f3: 1
+h2h3: 1
+a3a4: 1
+d3d4: 1
+g3g4: 1
+b4b5: 1
+c2c4: 1
+e2e4: 1
+f2f4: 1
+h2h4: 1
+b4c5: 1
+b1d2: 1
+b1c3: 1
+g5f3: 1
+g5h3: 1
+g5e4: 1
+g5e6: 1
+g5f7: 1
+g5h7: 1
+c1b2: 1
+c1d2: 1
+c1e3: 1
+c1f4: 1
+f1g2: 1
+f1h3: 1
+a1a2: 1
+h1g1: 1
+d1d2: 1
+e1d2: 1
+nodes 31
+>>> position fen r1bqk1r1/p2n3p/1pnNp2b/2pp4/1P1P4/P5P1/2PBPP1P/RN1QKB1R b KQq - 2 11
+>>> isready
+readyok
+>>> go perft 1
+e8e7: 1
+e8f8: 1
+nodes 2
+>>> position fen r1bqr3/p2n3p/2nkp2b/1ppp4/PP1P4/6PP/2PBPP1R/RN1QKB2 w Q - 0 15
+>>> isready
+readyok
+>>> go perft 1
+c2c3: 1
+e2e3: 1
+f2f3: 1
+g3g4: 1
+h3h4: 1
+a4a5: 1
+c2c4: 1
+e2e4: 1
+f2f4: 1
+a4b5: 1
+b4c5: 1
+d4c5: 1
+b1a3: 1
+b1c3: 1
+f1g2: 1
+d2c1: 1
+d2c3: 1
+d2e3: 1
+d2f4: 1
+d2g5: 1
+d2h6: 1
+a1a2: 1
+a1a3: 1
+h2h1: 1
+h2g2: 1
+d1c1: 1
+nodes 26
+>>> position fen r1b2r2/p6p/2nkp2b/qpppn3/PP1P3P/R1P3P1/3BPP2/1N1QKB1R b - - 0 18
+>>> isready
+readyok
+>>> go perft 1
+c5c4: 1
+a7a6: 1
+b5a4: 1
+c5b4: 1
+c5d4: 1
+e5d3: 1
+e5f3: 1
+e5c4: 1
+e5g4: 1
+e5g6: 1
+e5d7: 1
+e5f7: 1
+c6b4: 1
+c6d4: 1
+c6e7: 1
+c6b8: 1
+c6d8: 1
+h6d2: 1
+h6e3: 1
+h6f4: 1
+h6g5: 1
+h6g7: 1
+c8a6: 1
+c8b7: 1
+c8d7: 1
+a8b8: 1
+f8f2: 1
+f8f3: 1
+f8f4: 1
+f8f5: 1
+f8f6: 1
+f8f7: 1
+f8d8: 1
+f8e8: 1
+f8g8: 1
+f8h8: 1
+a5a4: 1
+a5b4: 1
+a5a6: 1
+a5b6: 1
+a5c7: 1
+a5d8: 1
+d6c7: 1
+d6d7: 1
+d6e7: 1
+nodes 45
+>>> position fen r7/pbk4p/2n1p2b/1pPpP3/Pq3r1P/R1P3P1/4PP2/1NBQKB1R w - - 1 22
+>>> isready
+readyok
+>>> go perft 1
+e2e3: 1
+f2f3: 1
+g3g4: 1
+a4a5: 1
+h4h5: 1
+e2e4: 1
+c3b4: 1
+g3f4: 1
+a4b5: 1
+b1d2: 1
+c1b2: 1
+c1d2: 1
+c1e3: 1
+c1f4: 1
+f1g2: 1
+f1h3: 1
+h1g1: 1
+h1h2: 1
+h1h3: 1
+a3a1: 1
+a3a2: 1
+a3b3: 1
+d1c2: 1
+d1d2: 1
+d1b3: 1
+d1d3: 1
+d1d4: 1
+d1d5: 1
+e1d2: 1
+nodes 29
+>>> position fen 3r4/pbk4p/2n1p2b/1pPpP3/PP3P1P/R3PQ2/5P2/1NB1KB1R b - - 0 25
+>>> isready
+readyok
+>>> go perft 1
+d5d4: 1
+a7a6: 1
+a7a5: 1
+b5a4: 1
+c6b4: 1
+c6d4: 1
+c6a5: 1
+c6e5: 1
+c6e7: 1
+c6b8: 1
+h6f4: 1
+h6g5: 1
+h6g7: 1
+h6f8: 1
+b7a6: 1
+b7a8: 1
+b7c8: 1
+d8d6: 1
+d8d7: 1
+d8a8: 1
+d8b8: 1
+d8c8: 1
+d8e8: 1
+d8f8: 1
+d8g8: 1
+d8h8: 1
+c7d7: 1
+c7b8: 1
+c7c8: 1
+nodes 29
+>>> position fen 1k1r4/pb5p/4p1Bb/1pPpP3/P2n1P1P/R3P2Q/5P2/1NB1K2R w - - 6 29
+>>> isready
+readyok
+>>> go perft 1
+f2f3: 1
+e3e4: 1
+a4a5: 1
+f4f5: 1
+h4h5: 1
+c5c6: 1
+e3d4: 1
+a4b5: 1
+b1d2: 1
+b1c3: 1
+c1b2: 1
+c1d2: 1
+g6c2: 1
+g6d3: 1
+g6e4: 1
+g6f5: 1
+g6h5: 1
+g6f7: 1
+g6h7: 1
+g6e8: 1
+h1f1: 1
+h1g1: 1
+h1h2: 1
+a3a1: 1
+a3a2: 1
+a3b3: 1
+a3c3: 1
+a3d3: 1
+h3f1: 1
+h3g2: 1
+h3h2: 1
+h3f3: 1
+h3g3: 1
+h3g4: 1
+h3f5: 1
+h3e6: 1
+e1d1: 1
+e1f1: 1
+e1d2: 1
+nodes 39
+>>> position fen 1k1r4/pb5B/4p3/1pPpP3/P4P1P/Rn4Q1/5P2/1NB1K2R b - - 0 32
+>>> isready
+readyok
+>>> go perft 1
+b5b4: 1
+d5d4: 1
+a7a6: 1
+a7a5: 1
+b5a4: 1
+b3a1: 1
+b3c1: 1
+b3d2: 1
+b3d4: 1
+b3a5: 1
+b3c5: 1
+b7a6: 1
+b7c6: 1
+b7a8: 1
+b7c8: 1
+d8d6: 1
+d8d7: 1
+d8c8: 1
+d8e8: 1
+d8f8: 1
+d8g8: 1
+d8h8: 1
+b8c7: 1
+b8a8: 1
+b8c8: 1
+nodes 25
+>>> position fen 6r1/1bk5/4p3/p1PpP3/p4P1P/Rn4Q1/2B2P2/1NB1K2R w - - 0 36
+>>> isready
+readyok
+>>> go perft 1
+f2f3: 1
+f4f5: 1
+h4h5: 1
+c5c6: 1
+b1d2: 1
+b1c3: 1
+c1b2: 1
+c1d2: 1
+c1e3: 1
+c2d1: 1
+c2b3: 1
+c2d3: 1
+c2e4: 1
+c2f5: 1
+c2g6: 1
+c2h7: 1
+h1f1: 1
+h1g1: 1
+h1h2: 1
+h1h3: 1
+a3a1: 1
+a3a2: 1
+a3b3: 1
+a3a4: 1
+g3g1: 1
+g3g2: 1
+g3h2: 1
+g3b3: 1
+g3c3: 1
+g3d3: 1
+g3e3: 1
+g3f3: 1
+g3h3: 1
+g3g4: 1
+g3g5: 1
+g3g6: 1
+g3g7: 1
+g3g8: 1
+e1d1: 1
+e1f1: 1
+e1e2: 1
+nodes 41
+>>> position fen 1k4r1/8/b3p3/p1npP3/p4P1P/R2B4/5P2/1NB2KQR b - - 1 39
+>>> isready
+readyok
+>>> go perft 1
+d5d4: 1
+c5b3: 1
+c5d3: 1
+c5e4: 1
+c5b7: 1
+c5d7: 1
+a6d3: 1
+a6c4: 1
+a6b5: 1
+a6b7: 1
+a6c8: 1
+g8g1: 1
+g8g2: 1
+g8g3: 1
+g8g4: 1
+g8g5: 1
+g8g6: 1
+g8g7: 1
+g8c8: 1
+g8d8: 1
+g8e8: 1
+g8f8: 1
+g8h8: 1
+b8a7: 1
+b8b7: 1
+b8c7: 1
+b8a8: 1
+b8c8: 1
+nodes 28
+>>> position fen 2k5/1n4r1/b3p3/p2pP3/p4P1P/3B4/R3NP2/2B2KQR w - - 8 43
+>>> isready
+readyok
+>>> go perft 1
+f2f3: 1
+f4f5: 1
+h4h5: 1
+e2c3: 1
+e2g3: 1
+e2d4: 1
+c1b2: 1
+c1d2: 1
+c1a3: 1
+c1e3: 1
+d3b1: 1
+d3c2: 1
+d3c4: 1
+d3e4: 1
+d3b5: 1
+d3f5: 1
+d3a6: 1
+d3g6: 1
+d3h7: 1
+h1h2: 1
+h1h3: 1
+a2a1: 1
+a2b2: 1
+a2c2: 1
+a2d2: 1
+a2a3: 1
+a2a4: 1
+g1g2: 1
+g1h2: 1
+g1g3: 1
+g1g4: 1
+g1g5: 1
+g1g6: 1
+g1g7: 1
+f1e1: 1
+nodes 35
+>>> position fen 2k5/1n6/4p1Q1/p2pPr2/p4P1P/B2b4/R3NP2/3K3R b - - 3 46
+>>> isready
+readyok
+>>> go perft 1
+d5d4: 1
+b7c5: 1
+b7d6: 1
+b7d8: 1
+d3b1: 1
+d3c2: 1
+d3e2: 1
+d3c4: 1
+d3e4: 1
+d3b5: 1
+d3a6: 1
+f5f4: 1
+f5e5: 1
+f5g5: 1
+f5h5: 1
+f5f6: 1
+f5f7: 1
+f5f8: 1
+c8c7: 1
+c8d7: 1
+c8b8: 1
+c8d8: 1
+nodes 22
+>>> position fen 2k5/1n6/4pBQ1/p2pP3/p4r1P/8/b4P2/2NK3R w - - 0 50
+>>> isready
+readyok
+>>> go perft 1
+f2f3: 1
+h4h5: 1
+c1a2: 1
+c1e2: 1
+c1b3: 1
+c1d3: 1
+f6g5: 1
+f6e7: 1
+f6g7: 1
+f6d8: 1
+f6h8: 1
+h1e1: 1
+h1f1: 1
+h1g1: 1
+h1h2: 1
+h1h3: 1
+g6b1: 1
+g6g1: 1
+g6c2: 1
+g6g2: 1
+g6d3: 1
+g6g3: 1
+g6e4: 1
+g6g4: 1
+g6f5: 1
+g6g5: 1
+g6h5: 1
+g6h6: 1
+g6f7: 1
+g6g7: 1
+g6h7: 1
+g6e8: 1
+g6g8: 1
+d1e1: 1
+d1c2: 1
+d1d2: 1
+d1e2: 1
+nodes 37
+>>> position fen 2k5/1n4Q1/4p3/p2pP3/4r2P/p7/b1KB1P2/2N4R b - - 1 53
+>>> isready
+readyok
+>>> go perft 1
+a5a4: 1
+d5d4: 1
+b7c5: 1
+b7d6: 1
+b7d8: 1
+a2b1: 1
+a2b3: 1
+a2c4: 1
+e4e1: 1
+e4e2: 1
+e4e3: 1
+e4a4: 1
+e4b4: 1
+e4c4: 1
+e4d4: 1
+e4f4: 1
+e4g4: 1
+e4h4: 1
+e4e5: 1
+c8b8: 1
+c8d8: 1
+nodes 21
+>>> position fen 2k5/1n4Q1/4p3/B2pP2P/8/p7/b4P1r/2NK3R w - - 3 57
+>>> isready
+readyok
+>>> go perft 1
+f2f3: 1
+h5h6: 1
+f2f4: 1
+c1a2: 1
+c1e2: 1
+c1b3: 1
+c1d3: 1
+a5e1: 1
+a5d2: 1
+a5c3: 1
+a5b4: 1
+a5b6: 1
+a5c7: 1
+a5d8: 1
+h1e1: 1
+h1f1: 1
+h1g1: 1
+h1h2: 1
+g7g1: 1
+g7g2: 1
+g7g3: 1
+g7g4: 1
+g7g5: 1
+g7f6: 1
+g7g6: 1
+g7h6: 1
+g7b7: 1
+g7c7: 1
+g7d7: 1
+g7e7: 1
+g7f7: 1
+g7h7: 1
+g7f8: 1
+g7g8: 1
+g7h8: 1
+d1e1: 1
+d1c2: 1
+d1d2: 1
+d1e2: 1
+nodes 39
+>>> position fen 8/1k6/1B2p3/1n1pP2P/8/p7/b4P1r/2NK3R b - - 1 60
+>>> isready
+readyok
+>>> go perft 1
+d5d4: 1
+b5c3: 1
+b5d4: 1
+b5d6: 1
+b5a7: 1
+b5c7: 1
+a2b1: 1
+a2b3: 1
+a2c4: 1
+h2h1: 1
+h2f2: 1
+h2g2: 1
+h2h3: 1
+h2h4: 1
+h2h5: 1
+b7a6: 1
+b7b6: 1
+b7c6: 1
+b7a8: 1
+b7b8: 1
+b7c8: 1
+nodes 21
+>>> position fen 8/8/1k2p3/1n1pP2P/5P2/p6r/N2K4/7R w - - 3 64
+>>> isready
+readyok
+>>> go perft 1
+f4f5: 1
+h5h6: 1
+a2c1: 1
+a2c3: 1
+a2b4: 1
+h1a1: 1
+h1b1: 1
+h1c1: 1
+h1d1: 1
+h1e1: 1
+h1f1: 1
+h1g1: 1
+h1h2: 1
+h1h3: 1
+d2c1: 1
+d2d1: 1
+d2e1: 1
+d2c2: 1
+d2e2: 1
+nodes 19
+>>> position fen 8/8/4p2P/1nk1P3/1N1p1P1R/p7/4K3/8 b - - 2 67
+>>> isready
+readyok
+>>> go perft 1
+a3a2: 1
+d4d3: 1
+b5c3: 1
+b5d6: 1
+b5a7: 1
+b5c7: 1
+c5b4: 1
+c5c4: 1
+c5b6: 1
+nodes 9
+>>> position fen 8/2n5/4p2P/4P2R/1Nkp1P2/p7/8/6K1 w - - 9 71
+>>> isready
+readyok
+>>> go perft 1
+f4f5: 1
+h6h7: 1
+b4a2: 1
+b4c2: 1
+b4d3: 1
+b4d5: 1
+b4a6: 1
+b4c6: 1
+h5h1: 1
+h5h2: 1
+h5h3: 1
+h5h4: 1
+h5f5: 1
+h5g5: 1
+g1f1: 1
+g1h1: 1
+g1f2: 1
+g1g2: 1
+g1h2: 1
+nodes 19
+>>> position fen 8/2n5/4p2P/4PP2/1N1p3R/pk4K1/8/8 b - - 4 74
+>>> isready
+readyok
+>>> go perft 1
+a3a2: 1
+d4d3: 1
+e6f5: 1
+c7b5: 1
+c7d5: 1
+c7a6: 1
+c7a8: 1
+c7e8: 1
+b3b2: 1
+b3c3: 1
+b3a4: 1
+b3b4: 1
+b3c4: 1
+nodes 13
+>>> position fen 8/7P/n7/1k2Pp2/3p3R/p7/6K1/8 w - - 1 78
+>>> isready
+readyok
+>>> go perft 1
+e5e6: 1
+h7h8q: 1
+h7h8r: 1
+h7h8b: 1
+h7h8n: 1
+h4h1: 1
+h4h2: 1
+h4h3: 1
+h4d4: 1
+h4e4: 1
+h4f4: 1
+h4g4: 1
+h4h5: 1
+h4h6: 1
+g2f1: 1
+g2g1: 1
+g2h1: 1
+g2f2: 1
+g2h2: 1
+g2f3: 1
+g2g3: 1
+g2h3: 1
+nodes 22
+>>> position fen 8/7P/n3P3/5p2/k2p4/p7/8/5KR1 b - - 6 81
+>>> isready
+readyok
+>>> go perft 1
+a3a2: 1
+d4d3: 1
+f5f4: 1
+a6b4: 1
+a6c5: 1
+a6c7: 1
+a6b8: 1
+a4b3: 1
+a4b4: 1
+a4a5: 1
+a4b5: 1
+nodes 11
+>>> position fen 8/1n5R/4P3/5p2/k2p4/p7/8/5K1R w - - 3 85
+>>> isready
+readyok
+>>> go perft 1
+e6e7: 1
+h1g1: 1
+h1h2: 1
+h1h3: 1
+h1h4: 1
+h1h5: 1
+h1h6: 1
+h7h2: 1
+h7h3: 1
+h7h4: 1
+h7h5: 1
+h7h6: 1
+h7b7: 1
+h7c7: 1
+h7d7: 1
+h7e7: 1
+h7f7: 1
+h7g7: 1
+h7h8: 1
+f1e1: 1
+f1g1: 1
+f1e2: 1
+f1f2: 1
+f1g2: 1
+nodes 24
+>>> position fen 8/1nR5/4P3/1k3p2/7R/p2p4/5K2/8 b - - 5 88
+>>> isready
+readyok
+>>> go perft 1
+a3a2: 1
+d3d2: 1
+f5f4: 1
+b7a5: 1
+b7c5: 1
+b7d6: 1
+b7d8: 1
+b5a5: 1
+b5a6: 1
+b5b6: 1
+nodes 10
+>>> position fen 7R/8/4n3/1k3p2/8/p7/2R5/3n1K2 w - - 0 92
+>>> isready
+readyok
+>>> go perft 1
+c2c1: 1
+c2a2: 1
+c2b2: 1
+c2d2: 1
+c2e2: 1
+c2f2: 1
+c2g2: 1
+c2h2: 1
+c2c3: 1
+c2c4: 1
+c2c5: 1
+c2c6: 1
+c2c7: 1
+c2c8: 1
+h8h1: 1
+h8h2: 1
+h8h3: 1
+h8h4: 1
+h8h5: 1
+h8h6: 1
+h8h7: 1
+h8a8: 1
+h8b8: 1
+h8c8: 1
+h8d8: 1
+h8e8: 1
+h8f8: 1
+h8g8: 1
+f1e1: 1
+f1g1: 1
+f1e2: 1
+f1g2: 1
+nodes 32
+>>> position fen 8/8/8/1k3p2/5R2/8/7R/r2n1K2 b - - 0 95
+>>> isready
+readyok
+>>> go perft 1
+d1b2: 1
+d1f2: 1
+d1c3: 1
+d1e3: 1
+a1b1: 1
+a1c1: 1
+a1a2: 1
+a1a3: 1
+a1a4: 1
+a1a5: 1
+a1a6: 1
+a1a7: 1
+a1a8: 1
+b5a5: 1
+b5c5: 1
+b5a6: 1
+b5b6: 1
+b5c6: 1
+nodes 18
+>>> position fen 8/8/r7/1k3p2/5R2/7R/1n6/5K2 w - - 7 99
+>>> isready
+readyok
+>>> go perft 1
+h3h1: 1
+h3h2: 1
+h3a3: 1
+h3b3: 1
+h3c3: 1
+h3d3: 1
+h3e3: 1
+h3f3: 1
+h3g3: 1
+h3h4: 1
+h3h5: 1
+h3h6: 1
+h3h7: 1
+h3h8: 1
+f4f2: 1
+f4f3: 1
+f4a4: 1
+f4b4: 1
+f4c4: 1
+f4d4: 1
+f4e4: 1
+f4g4: 1
+f4h4: 1
+f4f5: 1
+f1e1: 1
+f1g1: 1
+f1e2: 1
+f1f2: 1
+f1g2: 1
+nodes 29
+>>> position fen 8/8/8/k4p1r/4R3/8/1R4K1/8 b - - 4 102
+>>> isready
+readyok
+>>> go perft 1
+f5f4: 1
+f5e4: 1
+h5h1: 1
+h5h2: 1
+h5h3: 1
+h5h4: 1
+h5g5: 1
+h5h6: 1
+h5h7: 1
+h5h8: 1
+a5a6: 1
+nodes 11
+>>> position fen 8/8/k7/5R2/4R3/6r1/8/7K w - - 1 106
+>>> isready
+readyok
+>>> go perft 1
+e4e1: 1
+e4e2: 1
+e4e3: 1
+e4a4: 1
+e4b4: 1
+e4c4: 1
+e4d4: 1
+e4f4: 1
+e4g4: 1
+e4h4: 1
+e4e5: 1
+e4e6: 1
+e4e7: 1
+e4e8: 1
+f5f1: 1
+f5f2: 1
+f5f3: 1
+f5f4: 1
+f5a5: 1
+f5b5: 1
+f5c5: 1
+f5d5: 1
+f5e5: 1
+f5g5: 1
+f5h5: 1
+f5f6: 1
+f5f7: 1
+f5f8: 1
+h1h2: 1
+nodes 29
+>>> quit

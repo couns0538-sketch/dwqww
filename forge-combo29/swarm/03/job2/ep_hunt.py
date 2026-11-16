@@ -5,35 +5,10 @@ in filter_special.py; record hits with the game and ply. Not a filter of R/G —
 as such, because filtering R and G gave 0 of this class."""
 import random, sys
 import chess
+from ep_common import raw_ep_exposes
 
 TARGET_GAMES = int(sys.argv[1]); SEED = int(sys.argv[2]); OUT = sys.argv[3]
 rng = random.Random(SEED)
-
-
-def ep_exposes_king(board):
-    if board.ep_square is None:
-        return False, None
-    us, them, ep = board.turn, not board.turn, board.ep_square
-    rank_from = ep + (-8 if us == chess.WHITE else 8)
-    cap_sq = ep + (8 if us == chess.WHITE else -8)
-    for df in (-1, 1):
-        f, r = chess.square_file(ep) + df, chess.square_rank(rank_from)
-        if not (0 <= f <= 7 and 0 <= r <= 7):
-            continue
-        frm = chess.square(f, r)
-        p = board.piece_at(frm)
-        if p is None or p.piece_type != chess.PAWN or p.color != us:
-            continue
-        cap = board.piece_at(cap_sq)
-        if cap is None or cap.piece_type != chess.PAWN or cap.color != them:
-            continue
-        b2 = board.copy(stack=False)
-        b2.remove_piece_at(frm); b2.remove_piece_at(cap_sq)
-        b2.set_piece_at(ep, chess.Piece(chess.PAWN, us))
-        ksq = b2.king(us)
-        if ksq is not None and b2.is_attacked_by(them, ksq):
-            return True, f"{chess.square_name(frm)}{chess.square_name(ep)}"
-    return False, None
 
 
 hits = []
@@ -51,9 +26,9 @@ while g < TARGET_GAMES:
             abs(chess.square_rank(mv.to_square) - chess.square_rank(mv.from_square)) == 2
         b.push(mv); ply += 1
         if was_double:
-            ok, cap = ep_exposes_king(b)
+            ok, cap = raw_ep_exposes(b)
             if ok:
-                hits.append((g, ply, b.fen(), cap))
+                hits.append((g, ply, b.fen(en_passant="fen"), cap))
 with open(OUT, "w") as f:
     for g, ply, fen, cap in hits:
         f.write(f"B\t{fen}\tgame {g} ply {ply} ep {cap}\n")

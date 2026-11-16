@@ -19,6 +19,7 @@ Class E: a legal move of a piece that is pinned to its own king (absolute pin) a
 """
 import sys
 import chess
+from ep_common import raw_ep_exposes
 
 
 def load(path):
@@ -60,34 +61,6 @@ def is_class_a(board):
         if board.is_attacked_by(side, transit) and not board.is_attacked_by(side, dest):
             res = True
     return res
-
-
-def ep_exposes_king(board):
-    """there is an ep capture available in the RAW sense and pushing it leaves our king attacked."""
-    if board.ep_square is None:
-        return False, None
-    us = board.turn
-    them = not us
-    ep = board.ep_square
-    # the capture is pawn from ep-8/+8 moving diagonally to ep; the captured pawn sits behind ep
-    rank_from = ep + (-8 if us == chess.WHITE else 8)
-    cap_sq = ep + (8 if us == chess.WHITE else -8)
-    for df in (-1, 1):
-        frm = chess.square(chess.square_file(ep) + df, chess.square_rank(rank_from))
-        p = board.piece_at(frm)
-        if p is None or p.piece_type != chess.PAWN or p.color != us:
-            continue
-        cap = board.piece_at(cap_sq)
-        if cap is None or cap.piece_type != chess.PAWN or cap.color != them:
-            continue
-        b2 = board.copy(stack=False)
-        b2.remove_piece_at(frm)
-        b2.remove_piece_at(cap_sq)
-        b2.set_piece_at(ep, chess.Piece(chess.PAWN, us))
-        ksq = b2.king(us)
-        if ksq is not None and b2.is_attacked_by(them, ksq):
-            return True, f"{chess.square_name(frm)}{chess.square_name(ep)}"
-    return False, None
 
 
 def is_class_c(board):
@@ -153,7 +126,7 @@ def main():
         hits = []
         if is_class_a(b):
             hits.append("A")
-        okep, _ = ep_exposes_king(b)
+        okep, _ = raw_ep_exposes(b)
         if okep:
             hits.append("B")
         if is_class_c(b):

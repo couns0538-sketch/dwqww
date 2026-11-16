@@ -1,0 +1,457 @@
+>>> uci
+id name Chess Engine Forge 6.4.24 candidate
+id author OpenAI
+option name Hash type spin default 32 min 1 max 2048
+option name Threads type spin default 1 min 1 max 256
+option name MultiPV type spin default 1 min 1 max 8
+option name Move Overhead type spin default 10 min 0 max 1000
+option name Ponder type check default false
+option name OwnBook type check default true
+option name Book File type string default <empty>
+option name Book Depth type spin default 30 min 0 max 100
+option name Book Variety type spin default 30 min 0 max 100
+option name UseNNUE type check default true
+option name NnueFile type string default <empty>
+option name ContHist4PlyRead type check default false
+option name NonPawnCorrection type check default false
+option name LmrDeeperShallower type check default false
+option name EvalRule50Damp type check default false
+option name ThreatHistory type check default false
+option name LmrSignedCorrection type check default false
+option name LmrLateParentRelief type check default false
+option name HindsightDepth type check default false
+option name NullThreatVerify type check default false
+option name NullSeeVeto type check default false
+option name AspCappedReopen type check default false
+option name AspArmLate type check default false
+option name EvasionOrdering type check default false
+option name DeadMaterial type check default false
+option name QuietExtinction type check default false
+option name DrawJitter type spin default 0 min 0 max 8
+option name TmFinishIteration type check default false
+option name TmNodeShare type check default false
+option name SoundMatePruning type check default false
+option name LmrQuietBase type spin default 85 min 0 max 300
+option name LmrQuietDivisor type spin default 220 min 100 max 500
+option name LmrNoisyBase type spin default 10 min 0 max 300
+option name LmrNoisyDivisor type spin default 340 min 100 max 800
+option name NullMoveMinDepth type spin default 3 min 1 max 10
+option name NullMoveBase type spin default 3 min 1 max 6
+option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+option name RfpDepth type spin default 8 min 0 max 15
+option name RfpMargin type spin default 72 min 10 max 300
+option name RfpImproving type spin default 40 min 0 max 200
+option name RazorDepth type spin default 2 min 0 max 6
+option name RazorBase type spin default 150 min 0 max 1000
+option name RazorMultiplier type spin default 350 min 0 max 1000
+option name FutilityDepth type spin default 7 min 0 max 15
+option name FutilityBase type spin default 100 min 0 max 500
+option name FutilityMultiplier type spin default 110 min 0 max 500
+option name LmpBase type spin default 4 min 0 max 20
+option name HistoryPruneDepth type spin default 3 min 0 max 10
+option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+option name SeeQuietMultiplier type spin default 24 min 0 max 200
+option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+option name SingularDepth type spin default 7 min 2 max 20
+option name SingularMargin type spin default 2 min 0 max 10
+option name IirDepth type spin default 4 min 1 max 20
+option name ProbcutDepth type spin default 5 min 1 max 20
+option name ProbcutMargin type spin default 180 min 0 max 1000
+option name QsFutilityMargin type spin default 160 min 0 max 1000
+option name QsSeeMargin type spin default 40 min 0 max 500
+option name AspirationDelta type spin default 18 min 4 max 200
+option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+option name HistoryBonusLinear type spin default 48 min 0 max 500
+option name HistoryBonusMax type spin default 2048 min 100 max 10000
+option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+option name CheckExtensionDepth type spin default 2 min 1 max 30
+option name LmrCutoffThreshold type spin default 3 min 0 max 20
+option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+option name TmSoftDivisor type spin default 22 min 5 max 80
+option name TmIncrementPercent type spin default 75 min 0 max 150
+option name TmHardPercent type spin default 60 min 10 max 95
+option name TmHardSoftMultiple type spin default 5 min 1 max 20
+option name TmStableFactor type spin default 60 min 20 max 150
+option name TmSemiStableFactor type spin default 80 min 20 max 150
+option name TmUnstableFactor type spin default 140 min 50 max 300
+option name TmEffortBase type spin default 155 min 100 max 250
+option name TmFallingEvalPercent type spin default 100 min 0 max 400
+option name TmMinFactorPercent type spin default 45 min 10 max 100
+option name CaptureFutilityBase type spin default 0 min 0 max 1000
+option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+option name CaptureFutilityDepth type spin default 6 min 0 max 15
+option name FailLowContinuationBonus type spin default 0 min 0 max 300
+option name Clear Hash type button
+uciok
+>>> isready
+readyok
+>>> ucinewgame
+>>> isready
+readyok
+>>> position fen rnbqkbnr/pp1pp2p/2p2pp1/7Q/P3P3/R7/1PPP1PPP/1NB1KBNR b Kkq - 1 4
+>>> isready
+readyok
+>>> go perft 1
+c6c5: 1
+f6f5: 1
+a7a6: 1
+b7b6: 1
+d7d6: 1
+e7e6: 1
+h7h6: 1
+a7a5: 1
+b7b5: 1
+d7d5: 1
+e7e5: 1
+g6h5: 1
+b8a6: 1
+g8h6: 1
+f8h6: 1
+f8g7: 1
+d8a5: 1
+d8b6: 1
+d8c7: 1
+e8f7: 1
+nodes 20
+>>> position fen r4Rnr/p3k3/bp5p/1P4P1/3Pp3/4P3/2P3QP/2B2KNR w - - 1 29
+>>> isready
+readyok
+>>> go perft 1
+c2c3: 1
+h2h3: 1
+d4d5: 1
+g5g6: 1
+c2c4: 1
+h2h4: 1
+b5a6: 1
+g5h6: 1
+g1e2: 1
+g1f3: 1
+g1h3: 1
+c1b2: 1
+c1d2: 1
+c1a3: 1
+f8f2: 1
+f8f3: 1
+f8f4: 1
+f8f5: 1
+f8f6: 1
+f8f7: 1
+f8a8: 1
+f8b8: 1
+f8c8: 1
+f8d8: 1
+f8e8: 1
+f8g8: 1
+g2d2: 1
+g2e2: 1
+g2f2: 1
+g2f3: 1
+g2g3: 1
+g2h3: 1
+g2e4: 1
+g2g4: 1
+f1e1: 1
+f1e2: 1
+f1f2: 1
+nodes 37
+>>> position fen 7r/p2k3n/bp6/1P4N1/3Pp3/4P3/2P1Kr1P/2B2Q1R w - - 1 36
+>>> isready
+readyok
+>>> go perft 1
+f1f2: 1
+e2d1: 1
+e2e1: 1
+e2f2: 1
+nodes 4
+>>> position fen 3k1nb1/8/Qp6/B6P/3Ppr2/2P1PN1R/1r6/3K4 b - - 0 46
+>>> isready
+readyok
+>>> go perft 1
+e4f3: 1
+b6a5: 1
+f8e6: 1
+f8g6: 1
+f8d7: 1
+f8h7: 1
+g8a2: 1
+g8b3: 1
+g8c4: 1
+g8d5: 1
+g8e6: 1
+g8f7: 1
+g8h7: 1
+b2b1: 1
+b2a2: 1
+b2c2: 1
+b2d2: 1
+b2e2: 1
+b2f2: 1
+b2g2: 1
+b2h2: 1
+b2b3: 1
+b2b4: 1
+b2b5: 1
+f4f3: 1
+f4g4: 1
+f4h4: 1
+f4f5: 1
+f4f6: 1
+f4f7: 1
+d8c7: 1
+d8d7: 1
+d8e7: 1
+d8e8: 1
+nodes 34
+>>> position fen 3k4/7Q/1p2b1n1/B5NP/3Ppr2/2P1P3/1r2R3/4K3 b - - 14 53
+>>> isready
+readyok
+>>> go perft 1
+b6a5: 1
+g6h4: 1
+g6e5: 1
+g6e7: 1
+g6f8: 1
+g6h8: 1
+e6a2: 1
+e6b3: 1
+e6h3: 1
+e6c4: 1
+e6g4: 1
+e6d5: 1
+e6f5: 1
+e6d7: 1
+e6f7: 1
+e6c8: 1
+e6g8: 1
+b2b1: 1
+b2a2: 1
+b2c2: 1
+b2d2: 1
+b2e2: 1
+b2b3: 1
+b2b4: 1
+b2b5: 1
+f4f1: 1
+f4f2: 1
+f4f3: 1
+f4g4: 1
+f4h4: 1
+f4f5: 1
+f4f6: 1
+f4f7: 1
+f4f8: 1
+d8c8: 1
+d8e8: 1
+nodes 36
+>>> position fen 1n6/2p1k3/brB2n2/3Ppb1p/pp1r3p/2P5/3R3R/3K4 w - - 2 57
+>>> isready
+readyok
+>>> go perft 1
+c3c4: 1
+d5d6: 1
+c3b4: 1
+c3d4: 1
+c6a4: 1
+c6b5: 1
+c6b7: 1
+c6d7: 1
+c6a8: 1
+c6e8: 1
+d2d3: 1
+d2d4: 1
+h2h1: 1
+h2e2: 1
+h2f2: 1
+h2g2: 1
+h2h3: 1
+h2h4: 1
+d1c1: 1
+d1e1: 1
+nodes 20
+>>> position fen 1n6/8/b6r/1kp1p2p/pP6/8/2K2Rr1/3R1b2 w - - 5 71
+>>> isready
+readyok
+>>> go perft 1
+b4c5: 1
+d1a1: 1
+d1b1: 1
+d1c1: 1
+d1e1: 1
+d1f1: 1
+d1d2: 1
+d1d3: 1
+d1d4: 1
+d1d5: 1
+d1d6: 1
+d1d7: 1
+d1d8: 1
+f2d2: 1
+f2e2: 1
+f2g2: 1
+c2b1: 1
+c2c1: 1
+c2b2: 1
+c2d2: 1
+c2c3: 1
+nodes 21
+>>> position fen 2b1k1n1/1r6/1P4nP/pP2ppb1/P1P1QP1p/R4N1P/3KP3/2B4q w - - 2 36
+>>> isready
+readyok
+>>> go perft 1
+e2e3: 1
+c4c5: 1
+h6h7: 1
+f4g5: 1
+f3e1: 1
+f3g1: 1
+f3h2: 1
+f3d4: 1
+f3h4: 1
+f3e5: 1
+f3g5: 1
+c1b2: 1
+a3a1: 1
+a3a2: 1
+a3b3: 1
+a3c3: 1
+a3d3: 1
+a3e3: 1
+e4b1: 1
+e4c2: 1
+e4d3: 1
+e4e3: 1
+e4d4: 1
+e4d5: 1
+e4e5: 1
+e4f5: 1
+e4c6: 1
+e4b7: 1
+d2c2: 1
+d2c3: 1
+d2d3: 1
+d2e3: 1
+nodes 32
+>>> position fen 7k/4Pb2/2N5/r7/8/K6p/8/6R1 w - - 0 78
+>>> isready
+readyok
+>>> go perft 1
+c6a5: 1
+a3b2: 1
+a3b4: 1
+nodes 3
+>>> position fen 1N3bnr/7k/P1p1p2p/2p2bp1/2P1B2n/3P2K1/8/1R6 b - - 1 53
+>>> isready
+readyok
+>>> go perft 1
+g5g4: 1
+e6e5: 1
+h6h5: 1
+h4g2: 1
+h4f3: 1
+h4g6: 1
+g8f6: 1
+g8e7: 1
+f5e4: 1
+f5g6: 1
+f8d6: 1
+f8e7: 1
+f8g7: 1
+h7g6: 1
+h7g7: 1
+nodes 15
+>>> position fen 1rb1k3/4q3/1B1P3p/1p5P/Q4p2/P3RP2/R5B1/1K6 b - - 7 53
+>>> isready
+readyok
+>>> go perft 1
+f4e3: 1
+b5a4: 1
+c8h3: 1
+c8g4: 1
+c8f5: 1
+c8a6: 1
+c8e6: 1
+c8b7: 1
+c8d7: 1
+b8b6: 1
+b8b7: 1
+b8a8: 1
+e7e3: 1
+e7e4: 1
+e7e5: 1
+e7e6: 1
+e8d7: 1
+e8f7: 1
+e8f8: 1
+nodes 19
+>>> position fen 4q3/4p3/1pr1k3/p2p3p/PRBP1B1P/5Pp1/2P1K1P1/1NQ3R1 b - - 15 39
+>>> isready
+readyok
+>>> go perft 1
+b6b5: 1
+a5b4: 1
+d5c4: 1
+c6c4: 1
+c6c5: 1
+c6d6: 1
+c6c7: 1
+c6c8: 1
+e8g6: 1
+e8d7: 1
+e8f7: 1
+e8a8: 1
+e8b8: 1
+e8c8: 1
+e8d8: 1
+e8f8: 1
+e8g8: 1
+e8h8: 1
+e6f5: 1
+e6f6: 1
+e6d7: 1
+e6f7: 1
+nodes 22
+>>> position fen 8/8/1r5B/pRq2k1p/P1pP3P/2P1p1p1/3Q2P1/3N1KR1 b - - 3 53
+>>> isready
+readyok
+>>> go perft 1
+e3e2: 1
+e3d2: 1
+b6b5: 1
+b6a6: 1
+b6c6: 1
+b6d6: 1
+b6e6: 1
+b6f6: 1
+b6g6: 1
+b6h6: 1
+b6b7: 1
+b6b8: 1
+c5b5: 1
+c5d5: 1
+c5e5: 1
+f5e4: 1
+f5g4: 1
+f5e6: 1
+f5f6: 1
+f5g6: 1
+nodes 20
+>>> position fen 7R/2N5/7r/4n2k/8/6K1/8/8 b - - 0 144
+>>> isready
+readyok
+>>> go perft 1
+e5d3: 1
+e5f3: 1
+e5c4: 1
+e5g4: 1
+e5c6: 1
+e5g6: 1
+e5d7: 1
+e5f7: 1
+h6h7: 1
+h6h8: 1
+h5g5: 1
+h5g6: 1
+nodes 12
+>>> quit
