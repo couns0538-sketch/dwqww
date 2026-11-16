@@ -481,3 +481,16 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - PROCESS: the missing-directory heredoc mistake recurred and duplicated the S-F55 row; **findings_lint.py caught it
   immediately** — the defect class the rule and tool exist for.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-16T23:58:32Z the lever WORKS — mechanism confirmed by intervention (S-C42); not proposed for adoption
+- One change to the repaired tree: cap the alternate table at 64 MB instead of matching the main one.
+  MultiPV 3, `go wtime 5000`, Threads 1, 10 positions — medians **repaired vs capped**:
+  Hash 128 13.5 -> **14.0**; 256 12.0 -> **14.0**; 512 **6.5 -> 14.0**; **2048 1.0 -> 14.0**.
+  Depth is **FLAT at 14.0 across a 16x Hash range**, including 2048 MB where repaired-uncapped collapses to depth 1.
+- So S-F55 is confirmed BY INTERVENTION, not correlation: seat 30's patch is **necessary but not sufficient** (per-line
+  `clear()`, ~3 plies at 128), and the alternate table's **SIZE** is a second independent cost. The lever is sizing that
+  table, not another `clear()`.
+- **CAVEAT relayed and recorded: this is a diagnostic experiment, NOT a patch I propose adopting.** Capping could
+  degrade the ALTERNATE PV lines (smaller table for them), and I measured only the MAIN line's depth — not line
+  quality. For a MultiPV analysis feature that is the wrong thing to ship untested.
+Next: continue in the window (ends 2026-11-17T10:18Z).
