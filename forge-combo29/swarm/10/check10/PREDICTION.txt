@@ -1,0 +1,19 @@
+seat 10 check10 — the new suggested area: `go softnodes N` on the PC build under PC20, Threads 1, Hash 16.
+This is the owner's SELF-PLAY command, so a defect here counts most (file 6).
+
+File 6 states the intent: "the search stops at the end of the first depth after 2,000 nodes".
+Prediction, committed and pushed ALONE before the first measuring command:
+
+P1. DETERMINISM (must hold): the same `go softnodes N` on the same position in fresh processes gives the
+    same bestmove, the same score and the same node count every time, >= 5 runs. (kill: any difference)
+P2. It stops at a FINISHED depth: the reported depth D is complete, i.e. the node count for depth D exceeds
+    the count for depth D-1 and the pv is non-empty. (kill: a truncated/incomplete last iteration)
+P3. OVERSHOOT is bounded: it exceeds N by less than one depth's worth of nodes. I predict the reported node
+    count is between N and 3N (the search finishes the depth it is in), and I will report the exact ratio
+    nodes/N for each N tried. (kill: nodes < N, or nodes > 3N)
+P4. `softnodes` differs from `nodes` in the intended way: `go nodes N` stops MID-depth (its last iteration
+    is partial), while `go softnodes N` finishes the depth. (kill: no structural difference)
+P5. It is monotone: larger N gives a >= depth and >= nodes. (kill: a larger N gives a smaller depth)
+P6. The score and bestmove at a given N are STABLE ACROSS N in the sense that a much larger N (100x) does
+    not change the bestmove on a quiet position -- if it does, that is worth reporting as instability.
+    (kill: bestmove changes between N=2000 and N=200000 on startpos)
