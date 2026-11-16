@@ -453,3 +453,16 @@ JOB 12: are the PC's six options wired? Yes for all six, but OwnBook is only CON
   that waits for `info depth` mis-classifies it (third trap of the same family as S-F14 and 19-F12).
   Finding S-F15. Report job12/REPORT_job12.md. Not a defect, and I say so.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## Mon Nov 16 11:37:10 PM UTC 2026
+
+WROTE THE THREE-CASE NOTE as asked: internal/absence-of-output-traps.md in the project store, covering
+depth-64 (S-F14), quit-mid-search (19-F12) and book-move-no-info-lines (S-F15), with the shared tell
+("the output reports what it did, not what you asked for; the disagreement is the signal") and a
+four-question checklist. All three cases RE-VERIFIED on the PC build before writing: case 1 -> bestmove
+a2a3; case 2 -> 64 info lines; case 3 -> book move e2e4 with no info depth lines.
+Also added a short pointer at forge-combo29/swarm/13/HARNESS_TRAPS.md so a reader in the repo finds the
+note, with the three verified commands.
+Note (a) from the last job stands as the answer to a question several seats were circling: all six PC20
+options change bench 11 and/or the depth-12 searches, so none of them is inert.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
