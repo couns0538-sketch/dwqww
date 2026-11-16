@@ -108,3 +108,8 @@ Seat kept: 30 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-30, folde
 **Second confirmation of another seat's finding**: 30-C15 CONFIRMS seat 24's 24-F14 on BOTH builds — at checkmate and stalemate roots all six bounded go forms answer bestmove 0000 in 0.00s, while go infinite / go ponder give nothing in 8s; my control shows a normal board's go infinite DOES answer after stop, so the wait is specific to terminal roots. Earlier this session 30-C14 confirmed seat 08's 08-F18.
 **Also this stretch**: 30-F40 — the base tree's mate blindness plateaus (21/40 at depth 16) while PC holds 31/40, so it is not a depth shortage.
 **Next command**: verify seat 24's 24-F16 claim that its patch applies to the PC tree and keeps the three bench numbers, with my own build.
+
+## Mon Nov 16 11:10:13 PM UTC 2026
+
+**30-C16: seat 24's terminal-root patch INDEPENDENTLY VERIFIED on my own build.** Applied to a clean PC r15 copy (patch -p1 --fuzz=0, rc=0, same 154-line offset seat 24 reports), built with -DFORGE_MATE_ALPHA_GUARD=1: checkmate and stalemate roots now answer bestmove 0000 in 0.00s for go infinite AND go ponder (nothing in 8s before), all six bounded forms still answer, and a NORMAL board's go infinite still waits for stop (control). Honesty gate unchanged: 312866 / 862329 / 3024920 / 4865609.
+**Next command**: `cd /agent/repos/dwqww && bash forge-combo29/swarm/30/read_board.sh /tmp/board8` to find the next unchecked finding.
