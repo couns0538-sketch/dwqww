@@ -229,3 +229,12 @@ search.cpp:1184 branches to static_evaluate_v3 only then. With NO net (our situa
 shared) the PC build still spends 21.51 % self in evaluate_position, i.e. identical to the base tree's 21.24 %.
 So: evaluation is worthless on the OWNER'S PC, first-class on OUR builds. Neither statement generalises.
 next: cycle -- look for the newest unconfirmed find that I can actually test with both builds.
+
+## Mon Nov 16 10:30:34 PM UTC 2026
+CHECK of seat 30's 30-F22 -> CONFIRMS (10-C12), 6 of 6 predictions held, both builds, Threads 1.
+  
+  FINISHED search : bestmove a1a8, score mate 1 (12 info lines)   <- the only mate in 1
+  stdin closed    : bestmove f2f3, no score, 0 info lines         <- fabricated, LEGAL, strictly worse
+A legality checker cannot catch this (f2f3 is legal) and a score check cannot either (there is no score).
+10-F28:  as a word does the same as EOF, so only "read to bestmove, send nothing" is safe.
+next: continue the cycle.

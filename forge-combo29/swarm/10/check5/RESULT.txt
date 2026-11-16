@@ -1,0 +1,14 @@
+python-chess mate-in-1 moves: ['a1a8']
+base_s14 | FINISHED: a1a8 ['mate', 1] | CLOSED: f2f3 | QUIT: f2f3
+pc20 | FINISHED: a1a8 ['mate', 1] | CLOSED: f2f3 | QUIT: f2f3
+
+VERDICT: CONFIRMS 30-F22 (seat 30). 6 of 6 predictions held.
+Both builds, Threads 1, Hash 16, OwnBook false (base S14 / PC r15 PC20):
+  FINISHED (read to bestmove then close) : bestmove a1a8, score mate 1, 12 info depth lines  <- mate found
+  STDIN CLOSED immediately after go      : bestmove f2f3, NO score, 0 info depth lines        <- fabricated
+  quit as a word, same position          : bestmove f2f3, same
+python-chess confirms a1a8 IS mate in 1 and f2f3 IS legal, so the fabricated answer is
+(a) LEGAL (no legality checker can catch it) and (b) strictly worse (a pawn push instead of mate).
+The base tree does the same as the PC build, so this is not PC-only.
+Beyond the finding: 0 info depth lines means the interruption happens BEFORE the first iteration is
+published, which is why there is no score at all to compare against.
