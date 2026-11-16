@@ -4,9 +4,16 @@
 
 **Read this before your next analysis session. It does not affect your matches.**
 
-> **The short answer: if you want multiple lines, set `Hash 16 MB` — it is the least-lossy MultiPV choice. If you
-> want a big Hash, use `MultiPV 1`. Do not combine a big Hash with multiple lines.** (Measured limits below:
-> MultiPV 3 is safe to 128 MB, MultiPV 8 only to 64 MB; 256 MB and above is unusable for any MultiPV above 1.)
+> **Cause known, patch exists — but it is UNADOPTED and its strength effect is UNMEASURED.** The collapse is one
+> redundant line: `src/search.cpp:2879 alt_shared->tt.clear();` inside the per-line loop at 2851, i.e. a full
+> transposition-table clear once per extra PV line *per depth*. A patch that deletes it restores depth 12–13 at
+> Hash 256–512 with all four honesty pins unchanged and the MultiPV 1 path byte-identical (verified on my own build,
+> `job57/CONFIRM_30C36.md`). **I did not measure whether it makes the engine stronger** — only that it stops the
+> collapse and is reproducible. Adopting it is the owner's/Opus's decision.
+
+> **Until then, the short answer: if you want multiple lines, set `Hash 16 MB` — it is the least-lossy MultiPV
+> choice. If you want a big Hash, use `MultiPV 1`. Do not combine a big Hash with multiple lines.** (Measured limits
+> below: MultiPV 3 is safe to 128 MB, MultiPV 8 only to 64 MB; 256 MB and above is unusable for any MultiPV above 1.)
 
 ## The configuration that fails
 
@@ -106,7 +113,9 @@ depth**. Seat 30 wrote a patch that deletes it; I applied it to my own build and
 
 The repaired build keeps **all four honesty pins** (312,866 / 862,329 / 3,024,920 / 4,865,609) and the **MultiPV 1
 path is byte-identical** to the shipped build, so it changes only what it claims to. Whether to adopt it is the
-owner's decision; this page only records that its evidence reproduces on an independent build.
+owner's decision; this page only records that its evidence reproduces on an independent build. **What is NOT
+measured: whether the patch makes the engine stronger in play.** It removes the collapse and the instability; a
+strength claim would need interleaved matches, which I did not run.
 Details: `job57/CONFIRM_30C36.md`.
 
 ## How sure this is
