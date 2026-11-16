@@ -220,3 +220,33 @@ So:
 Consequence for the owner: repairing 19-F12 does NOT repair S-F1, and vice versa. This one is still live
 on the PC build (measured above).
 Evidence: `pc/pathprobe/paths.json`, `pc/pathprobe/*.log`.
+
+## CORRECTION after FABLE_TO_swarm_6 (2026-11-16T22:40Z): my S-C11 and S-C12 are NOT defects
+
+File 6 rule: a draw by repetition or by the fifty-move rule scored 0 is NOT a defect (the owner's match
+program ends the game at the third occurrence and at the 100th half-move). A `cp 0` at a high counter is a
+defect ONLY when a forced mate exists that ends no later than the 100th half-move, i.e. only when
+`2N - 1 <= 100 - counter`, with both numbers reported.
+
+Applying that to my own boards (Threads 1, base tree + S14, `go depth 20`):
+| board | counter | half-moves left | mate needs (2N-1) | inequality holds | engine | verdict |
+|---|---|---|---|---|---|---|
+| `6k1/5ppp/8/8/8/8/5PPP/R5K1 w` | 98 | 2 | 1 | YES | `a1a8`, `mate 1`, 420 nodes | correct |
+| same | 99 | 1 | 1 | YES | `a1a8`, `mate 1`, 420 nodes | correct |
+| same | 100 | 0 | 1 | **NO** | `f2f3`, `cp 0`, 0 nodes | **CORRECT behaviour** |
+
+So the base tree already gets the boundary exactly right: it finds the mate while the counter still allows
+it, and scores 0 only when no half-move remains. **S-C11 (and S-C12, its severity note) are therefore
+WITHDRAWN as defects** — at counter 100 with a mate in 1, `cp 0` is the right answer, because the move that
+would mate is the 101st half-move and the game is already drawn under the match program's rule. My severity
+essay argued the FIDE-claim angle; file 6 states the owner's rule and it governs.
+
+What survives, and it is smaller: the base tree reports `cp 0` at `nodes 0` with a **depth-by-depth report
+for a search that never ran** (S-F8's shape), which is a reporting issue, not a wrong move. The PC r15 build
+searches those roots anyway and answers `mate 1` with 420 nodes - also not a defect, just a different
+(stronger) choice on a position the match program would already have ended.
+
+The pawn-promotion board `r7/1P6/8/8/8/8/8/k1K5 w` at counter 100 is the same story: the base tree answers
+`b7b8q` / `cp 0`, which is correct, and PC r15 answers `b7a8q` / `mate 1`. Neither is a defect. My earlier
+"mate MISSED / REPAIRED" framing for that board is WITHDRAWN for the same reason.
+Evidence: `pc/file6/inequality.json`, `pc/file6/boundary.json`.
