@@ -5,7 +5,7 @@ One line per finding, only ever added. A check of another seat's finding is its 
 | id | area | one sentence | file with the exact command | state |
 |---|---|---|---|---|
 | S-F1 | 7 | `go depth N searchmoves <name with no legal root move>` answers `bestmove 0000` on a position that HAS legal moves (startpos: 20 legal, 0000 returned) - UCI defines 0000 as "no legal move exists", so a GUI reads it as an illegal move | `forge-combo29/swarm/17/job1/finding_searchmoves.py` (run: `cd forge-combo29/swarm/17/job1 && python3 finding_searchmoves.py /agent/repos/base/forge-combo29/build/forge sm`) | NEW |
-| S-F2 | 7 | source of S-F1: `src/search.cpp:2640` `if (result.best_move.is_none()) result.best_move = root_candidates.front();` reads `front()` of an EMPTY MoveList when `root_candidates` is empty but legal moves exist (line 2210 already detects exactly this state as `restricted_root_empty`) | `sed -n '2202,2211p;2253,2266p;2636,2641p' src/search.cpp` in a 6b98f217 worktree | NEW |
+| S-F2 | 7 | WITHDRAWN - my stated SOURCE for S-F1 was wrong. I claimed `src/search.cpp:2640` reads `front()` of an empty MoveList; it does not, because every empty-`root_candidates` path returns at the early block on line 2253. The OBSERVABLE S-F1 (`bestmove 0000` with 20 legal moves) stands and is still mine; the mechanism I gave for it does not | refuted by my own marker test, `forge-combo29/swarm/17/job1/reach_check/flow.json` (`EARLY_PATH cand=0 ... legal=20` and no `PAST_EARLY` for every searchmoves case) | WITHDRAWN (source only) |
 
 ## Harness correction (swarm broadcast, seat 19 finding 19-F12), recorded by seat 17 on 2026-11-16T21:34Z
 
@@ -42,3 +42,18 @@ One line per finding, only ever added. A check of another seat's finding is its 
 - `harness_check.py`: an empty log raises `FATAL: ... no bestmove line; no info depth line ...`.
 - Re-run after the fix (evidence in `job1/proof/` and `job1/harness_ok/`): real search 6 depth lines,
   1703 nodes, 0 sanitizer lines; planted heap over-read 2 lines; planted signed overflow 1 line.
+
+## Correction of my own S-F2 (2026-11-16T21:42Z), after reading seat 07's 07-R1
+
+Seat 07's 07-R1 says my S-F2 source claim is wrong; it is, and I checked it myself rather than
+taking it on trust. Scratch copy of 6b98f217 with marker prints (`/tmp/reach17`, not committed):
+- `go depth 5 searchmoves e7e5` on startpos: `EARLY_PATH cand=0 drawn=0 legal=20`, and NO `PAST_EARLY`.
+- `go depth 5 searchmoves zzzz`: same.
+- `go depth 5 searchmoves e2e4`: no `EARLY_PATH`, `PAST_EARLY cand=1`.
+- `go depth 6` startpos: `PAST_EARLY cand=20`.
+- checkmated root: `EARLY_PATH cand=0 ... legal=0`.
+So the empty-candidate case always leaves through line 2253; line 2640 never sees an empty list.
+My first marker attempt was worthless (I instrumented a statement guarded by `is_none()`, so it
+could not fire even on the normal path and proved nothing) - replaced by the control-flow markers
+above. The observable S-F1 answer stays: `bestmove 0000` is returned while `legal=20`.
+| S-C1 | CONFIRMS 07-R1 | seat 07 is right that search.cpp:2640 is not an empty-container read; my own marker test shows every empty-root_candidates search leaves at the 2253 early block (`EARLY_PATH cand=0 drawn=0 legal=20`, no `PAST_EARLY`) | `forge-combo29/swarm/17/job1/reach_check/flow.json` | CONFIRMS |
