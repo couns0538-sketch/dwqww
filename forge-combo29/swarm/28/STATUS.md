@@ -170,3 +170,6 @@ Hourly check received. Clock thread (S-F26..S-F38) is closed. Now starting the p
 
 ## Mon Nov 16 11:18:30 PM UTC 2026
 S-F39 per-move p90 at the owner's control measured ON REAL GAMES: 4 games, 281 moves, real countdown. median 132 ms, p90 359 ms, p99 550, max 608 ms; 275/281 moves (98%) exceed the 60 ms increment so the clock falls almost every move; 0 of 4 flagged, all repetition draws at 58-101 plies. p90/max far below my constant-clock 1585 ms figure - another confirmation that a constant clock inflates the tail. Limits: self-play draws end early so these games never probe the long-game regime; extrapolation says the clock lasts ~83 moves/side at the median, ~20 at the p90.
+
+## Mon Nov 16 11:21:17 PM UTC 2026
+S-F40 longer games (6, different openings): median 99 ms, p90 262 ms, max 792 ms; longest game 224 plies with a side holding ~115 ms for 37 consecutive moves and its depth falling to 10-12 - the time manager self-limiting correctly. 0 of 6 flagged, but 2 games ended with a side under 300 ms and from 111 ms one more p90 search would flag. Combined with S-F39: 1,090 moves, median 99-132, p90 262-359, max 792. THE ANSWER: the clock survives at 6s+0.06, the margin at long games is about one p90 move.
