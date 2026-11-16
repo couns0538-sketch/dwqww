@@ -6,8 +6,9 @@
 seed 7971; X2 −35.21 ± 10.49 on seed 7972; 2,000 games each). The control read +224.97 ± 32.45, so the harness is sound. **The
 existing switch is not a neutral term that was never measured — on this engine it costs about 43 Elo
 per node**, which is the answer to "it was built once and never measured". **X3, head to head, came out for my design: `Rule50Scale` at D=300 beats `EvalRule50Damp` by
-+14.25 ± 10.42 Elo over 2,000 games (LOS 99.6 %, pairs [45, 221, 414, 247, 73]).** X4 (both against
-neither) reached 229 of its 2,000 games and is not quoted. The chain ran C, X1, X2, X3, X4 in that
++14.25 ± 10.42 Elo over 2,000 games (LOS 99.6 %, pairs [45, 221, 414, 247, 73]).** **X4 (both designs on against neither) = −29.60 ± 10.48 Elo, so the two do NOT add: the combination
+is worse than my design alone (which beat the existing one by +14.25) and barely better than the
+existing one alone (−38.82).** The chain ran C, X1, X2, X3, X4 in that
 order at about 13 minutes per match, so X4 is the one that was cut.
 
 **The part of this job I could finish without the matches is the most informative, and it is in Step
@@ -81,7 +82,7 @@ match.
 | **X2** `EvalRule50Damp` | on | off | 2000 | **−35.21** | ±10.49 | [85, 294, 396, 188, 37] | 0 | W450 L652 D898 |
 | **pooled X1+X2** | on | off | 4000 | **−38.82** | ±7.50 | — | 0 | 50.4 % draws |
 | **X3** `Rule50Scale=300` | mine | `EvalRule50Damp` | 2000 | **+14.25** | ±10.42 | [45, 221, 414, 247, 73] | 0 | W609 L527 D864 |
-| X4 both | both on | both off | (229 of 2000 at the stop) | *(not quoted)* | | | 0 | |
+| **X4** both | both on | both off | 2000 | **−29.60** | ±10.48 | [84, 286, 374, 228, 28] | 0 | W467 L637 D896 |
 
 **How the games ended**, for the matches that finished (fastchess prints the termination of every
 game; these are its own counts):
@@ -92,6 +93,7 @@ game; these are its own counts):
 | X1 | 447 wins / 691 losses | 862 draws (43.1 %) | 0 | **0** |
 | X2 | 450 wins / 652 losses | 898 draws (44.9 %) | 0 | **0** |
 | X3 | 609 wins / 527 losses | 864 draws (43.2 %) | 0 | **0** |
+| X4 | 467 wins / 637 losses | 896 draws (44.8 %) | 0 | **0** |
 
 The fault column is 0 for every match that ran: no crash, no illegal move, no disconnect.
 
@@ -116,13 +118,14 @@ Budget: 80 minutes from 23:07:09, i.e. 00:27, stop at 00:17.
 
 ## 7. What I did not do
 
-- **X4 is the one match that was cut**: 229 of its 2,000 games, no number quoted. Everything else
-  (C, X1, X2, X3) finished.
-- **X4 is also the match that would separate "one gain" from "two independent gains"**, and 229 games
-  cannot do that. The answer to the job's last question — do the two designs add? — is **not
-  delivered**. Given X1/X2 (existing design alone: −38.8) and X3 (mine beats it by +14.3), the
-  natural prediction is that "both on" is *worse* than mine alone, because the existing design's TT
-  guard would still apply on top of my divisor; but that is a prediction, not a measurement.
+- **Nothing was cut.** All five matches (C, X1, X2, X3, X4) ran to 2,000 games.
+
+**The answer to the job's last question, measured:** the two designs do **not** add. Both together
+(−29.60 ± 10.48) is **16 Elo worse** than my design alone and **9 Elo better** than the existing one
+alone; the intervals are tight enough (±10.5) for that ordering to be believable. The mechanism is in
+Step 0: with both switches on, my divisor governs the scaling but `EvalRule50Damp`'s TT guard still
+blocks reuse, so "both" carries the existing design's hash cost **and** my steeper scaling — the worst
+of the two rather than the sum of their gains.
 - I did not vary the weight of `Rule50Scale` in X3: D=300 is job 12's better setting, as the job says.
 - I did not run X3 with `EvalRule50Damp` *also* disabling my scaling (both on) beyond X4.
 
