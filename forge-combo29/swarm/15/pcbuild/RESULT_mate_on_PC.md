@@ -64,3 +64,27 @@ difference as a failure).
   the stale previous board. It now detects `invalid FEN` / `invalid value` / `illegal move` / `unknown
   option` and reports `REFUSED_FEN`, and carries a startpos positive control that must search. The
   numbers from the broken version were discarded; the table above does not use them.
+
+## 5. The repair holds at depth 14, where the base tree was worst
+
+`g14pc/analyze_pc20_d14.txt`, 353 G positions, depth 14, PC20, Threads 1:
+
+```
+records        353
+accepted       353
+refused        0
+A illegal_pv_moves      0
+B bestmove_not_pv_first 0
+C mate_len_mismatch     0          <-- the base tree at depth 14 had 2 (15-F9)
+   positions_with_mate_score 16
+D no_info_pv_line       0
+E cp_on_terminal_root   0
+```
+
+**16 mate scores, 0 violations at the exact depth where the base tree produced 2.** Together with
+depth 12 (12 mate scores, 0 violations) this is two depths and 28 mate scores without a violation on
+the PC build, against the base tree's 1-in-10 at d12 and 2-in-14 at d14. The repair is not a
+small-depth coincidence.
+
+The two specific positions from 15-F1 and 15-F9 also stay correct here: both are in G, and both are
+among the 16 that the analyser accepted.
