@@ -1,0 +1,30 @@
+# S02 — PREDICTION for AREA 2 job 3 (every option at min, max, min-1, max+1, a word, and nothing)
+
+Committed and pushed BEFORE the first measuring command, never edited afterwards.
+Build: /agent/repos/base/forge-combo29/build-asan/forge sha256 b109a0a5acce5b0ddad5707c04f8263fe51f48a890df4a7a2ea6ffcef8a43f99
+Seed: 203. Every option is taken from the engine's own `uci` answer, not from a list I type.
+
+Values tried per option: min, max, min-1, max+1, the word `banana`, the word `true`, and no value at all.
+Between searches (idle) for every option; during a search for a seeded sample of 20 options.
+
+| # | what I predict | number | range that KILLS the prediction |
+|---|---|---|---|
+| 1 | crashes (signal / non-zero exit) across all option x value runs | 0 | >= 1 |
+| 2 | sanitizer lines (ASan/UBSan) across all runs | 0 | >= 1 |
+| 3 | runs where the follow-up `go depth 4` produced no `bestmove` within 20 s | 0 | >= 1 |
+| 4 | runs where the follow-up search's `bestmove` is illegal in the position | 0 | >= 1 |
+| 5 | spin options where min-1 or max+1 produce NO `invalid value` line | 0 | >= 1 |
+| 6 | spin options where the word `banana` is silently accepted with no `invalid value` line | 0 | >= 1 |
+| 7 | check options where the word `banana` is accepted (on/off must take only true/false) | 0 | >= 3 |
+| 8 | options where NO VALUE AT ALL produces an `invalid value` line | **fewer than half** | >= half the options |
+| 9 | string options (Book File, NnueFile, NNUEArchFile) where a bogus path causes a crash or a later failure | 0 | >= 1 |
+| 10 | button option (Clear Hash) sent with a value: no crash | 0 crashes | >= 1 |
+
+Why: the parsing path is one `apply_spin` lambda (`src/uci.cpp`) that uses `std::from_chars` and requires the
+whole token to be consumed, and out-of-range integers are reported AND clamped. So 5 and 6 should be clean
+almost by construction. What I expect to be wrong is 8: an option sent with no `value` token leaves
+`value_text` empty, and `from_chars` on an empty range fails — which should print `invalid value` — but the
+known list says "an option without a value answers `info string invalid value for option X`", so the question
+is whether that holds for the CHECK type too, not just spin. 7 is my real doubt: a check option that accepts
+the word `banana` would mean the on/off rule of the brief is not enforced. 9 is a genuine risk because
+loading a second net or book file can free and reallocate state.
