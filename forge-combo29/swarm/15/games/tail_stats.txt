@@ -1,0 +1,37 @@
+=== PER-MOVE SEARCH TIME, 30 games / 3834 searches ===
+PC r15, PC20, Threads 1, Hash 16, clock 6000 ms + 60 ms, self-play. games30.jsonl
+
+  min         0 ms
+  p10        50 ms
+  p25        67 ms
+  median    104 ms
+  p75       170 ms
+  P90       269 ms
+  p95       368 ms
+  p99       564 ms
+  max      1293 ms
+  mean    139.3 ms
+
+=== ARITHMETIC (recomputable for any control) ===
+  negative-sum when search time > increment;  moves until 6000 ms is gone = 6000/(time-60)
+  median   104.0 ms -> net drain   44.0 ms/move -> 6000/44.0 = 136.4 moves of one side
+  P90      269.0 ms -> net drain  209.0 ms/move -> 6000/209.0 =  28.7 moves of one side
+  mean     139.3 ms -> net drain   79.3 ms/move -> 6000/79.3 =  75.7 moves of one side
+
+=== AN INCREMENT THAT SURVIVES A BAD STRETCH ===
+  >= 269 ms covers the p90 move
+  >= 368 ms covers the p95 move
+  >= 1293 ms covers every observed move
+
+=== HOW MANY MOVES EXCEED THE 60 ms INCREMENT ===
+  over   60 ms: 3079 of 3834 ( 80.3%)
+  over  100 ms: 1987 of 3834 ( 51.8%)
+  over  258 ms:  425 of 3834 ( 11.1%)
+  over  500 ms:   64 of 3834 (  1.7%)
+  over 1000 ms:    5 of 3834 (  0.1%)
+
+=== THE NARROWEST MARGINS IN THIS SET ===
+  game 13  min clock  115 ms at 160 plies  ply cap
+  game 18  min clock  173 ms at 148 plies  draw by rule
+  game  5  min clock  232 ms at 160 plies  ply cap
+  game 15  min clock  260 ms at 160 plies  ply cap
