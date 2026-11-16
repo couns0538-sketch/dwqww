@@ -1,0 +1,23 @@
+CHECK of swarm seat 03's S-F5 — my own engine, my own harness, THEIR positions
+=============================================================================
+Claim checked: "perft 5 agrees exactly with python-chess on 230 positions (200 random R + the first 30 of G):
+1,150 of 1,150 (position, depth) values equal, perft-5 sum 3,925,995,728 on both sides".
+
+Method (written by me from the finding's statement; I did not run their scripts):
+ 1. took their FEN list forge-combo29/swarm/03/job3/set_all230.fens (230 lines)
+ 2. ran MY engine_perft.py against MY base build (sha e06310ec...) over depths 1..5, one process
+ 3. compared every (position, depth) value with the values recorded in THEIR eng.json
+ 4. separately recomputed their totals from their own py_all230.json
+
+Result: 0 mismatching (position, depth) pairs out of 1,150.
+  depth 1 sum 5644 / 137090 / 4013465 / 119698590 / 3925995728  (my run, all five depths)
+  exactly equal to their eng.json and to their py_all230.json.
+
+A DIFFERENCE IN PERFT-5 TOTALS BETWEEN SEATS IS NOT A CONTRADICTION: my own job 3 reports 7,399,207,740 over
+"200 R positions", which looks 1.9x their 3,925,995,728 over "200 R + 30 G". The sets are different: mine are
+the first 200 of my SEED-2301 games (mean perft-1 branching 31.59), theirs come from their SEED-1301 set
+(mean perft-1 branching 24.539) and include 30 G positions whose own perft-5 sum is 1,022,355,864. Both numbers
+are correct for their own sets; the sets must be compared by identity, never by the words "R positions".
+
+VERDICT: CONFIRMS S-F5 on the numbers. Every count in the finding reproduces exactly on my build and harness.
+
