@@ -1,0 +1,34 @@
+# deepseek6 long 53 — prediction scorecard (PREDICTION.md committed before the first run, never edited)
+
+P1 the fresh depth-12 baseline for the first 100 of G is between 5.0 M and 5.8 M.
+   MEASURED **5,247,038**. -> **HELD.**
+
+P2 carried entries make the G tree bigger at depth 12, by +0.5 % to +4 %.
+   MEASURED 5,401,723 / 5,247,038 = **+2.95 %**. -> **HELD.**
+
+P3 the carried effect is LARGER at depth 14 than at depth 12.
+   MEASURED depth 14: 11,959,927 / 12,377,717 = **-3.38 %**, i.e. carried entries make the tree SMALLER
+   at depth 14 while making it bigger at depth 12. -> **KILLED**, and by a sign flip, not by a small margin.
+
+P4 the carried run changes at least 60 of 100 best moves at depth 12.
+   MEASURED **34 of 100**. -> **KILLED** (long 48's O run changed 14 of 50 = 28 %, so my "similar or higher"
+   was roughly right on the fraction and wrong on the absolute count).
+
+P5 at depth 14 the carried run changes at least as many best moves as at depth 12.
+   MEASURED depth 14: **23 of 100**, against 34 at depth 12. -> **KILLED** (fewer, not more).
+
+P6 budget 15-30 minutes. ACTUAL about 11 minutes for all four runs. -> **HELD.**
+
+Score: 3 held (P1, P2, P6), 3 killed (P3, P4, P5).
+
+## The result that matters
+
+The carried-table effect on game positions is **depth-dependent in sign**, exactly as long 51's interaction was:
+
+| depth | fresh (100 positions) | carried (one process, no ucinewgame) | ratio | nodes changed | best moves changed |
+|---|---|---|---|---|---|
+| 12 | 5,247,038 | 5,401,723 | **1.0295 (+2.95 %)** | 99/100 | 34/100 |
+| 14 | 12,377,717 | 11,959,927 | **0.9662 (−3.38 %)** | 99/100 | 23/100 |
+
+Long 48 measured +1.50 % on O at depth 12; on the first 100 of G at depth 12 the same effect is about twice as
+large, and at depth 14 it reverses. So "a carried table costs nodes" is a depth-12 statement, not a general one.
