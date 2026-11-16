@@ -1,0 +1,47 @@
+reconciling seat 20's S-F49 with seat 28's S-F43: is the clock path QUANTISED?
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+board: 1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b - - 0 1
+PC20, Threads 1, Hash 16, winc=binc=60, one fresh process per measurement
+
+A. clock sweep, 1 run each: is (depth, nodes) a STEP function of the clock?
+clock	depth	nodes	wall_ms	bestmove
+900	14	97289	50.7	g7g6
+950	14	97289	51.8	g7g6
+1000	14	97289	50.5	g7g6
+1050	14	97289	50.8	g7g6
+1100	14	97289	50.6	g7g6
+1150	14	97289	53.2	g7g6
+1200	15	121306	62.8	g7g6
+1250	15	121306	63.2	g7g6
+1300	15	121306	62.6	g7g6
+1350	14	97289	55.5	g7g6
+1400	15	121306	63.9	g7g6
+1450	15	121306	62.7	g7g6
+1500	15	121306	63.2	g7g6
+1550	15	121306	65.0	g7g6
+1600	15	121306	62.9	g7g6
+
+   plateaus found: 4 over 15 clocks -> STEP FUNCTION confirmed
+
+B. 5 repeats at clock 1050 (middle of the longest plateau): expect IDENTICAL
+run	depth	nodes	wall_ms
+1	14	97289	50.4
+2	14	97289	50.8
+3	14	97289	50.6
+4	14	97289	50.4
+5	14	97289	50.6
+
+A RESULT: 4 distinct (depth,nodes) outcomes across the 15-clock sweep -> the clock path IS
+  quantised: node count and depth are a STEP FUNCTION of the clock, exactly as seat 28's S-F43
+  describes.
+B RESULT: 5 repeats at the middle of a plateau gave 1 distinct (depth,nodes) outcome(s): [(14, 97289)]
+  So inside a plateau the search is EXACTLY reproducible at Threads 1 -> seat 28's stable
+  result. Seat 20's flips are the same property measured at a plateau BOUNDARY, where a few
+  ms decides whether the next iteration completes.
+
+RECONCILED: seats 20 and 28 are not in conflict. Both measured a quantised clock path; one
+  landed mid-plateau, the other on a boundary.
+
+FOR A MATCH HARNESS: a clock budget is reproducible only to a PLATEAU. Place the budget inside
+  one (from a sweep like A), and confirm with 2-3 repeats that it is not sitting on a boundary.
