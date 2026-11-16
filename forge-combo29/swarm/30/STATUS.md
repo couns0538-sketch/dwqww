@@ -63,3 +63,8 @@ Seat kept: 30 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-30, folde
 **PC r15 built and verified** (patch sha256 d6bd72c5..., 8/8 known answers: none 312866/862329/3024920/4865609, S14 242796/656517, PC20 278024/587276). BOTH builds now used; Threads 1 everywhere.
 **Findings this stretch**: 30-C4 my halfmove-mate find is REPAIRED on the PC (all counters find the mate, draw still handled); 30-C5/30-F20 the fifty-move horizon + 7.25M-node spike PERSIST on the PC; 30-F21/22 stdin-close fabrication is on the PC too; 30-C6 CORRECTS my own F21/F22 — the window is only 0 ms, not all searches; 30-F23 intermediate answers differ (1-20 ms); 30-C7/30-F24 REFUTE my own clock worry — clock stop is faithful to its node budget 20/20.
 **Next command**: `cd pc && python3 clock_vs_nodes.py out_clocknodes_pc 20` on the PC build, then re-run my area-10 job-2 UCI sequences on PC r15 under PC20.
+
+## Mon Nov 16 10:39:25 PM UTC 2026
+
+**Big find (30-F25)**: the BASE tree HANGS on a malformed  line — , ,  each still searching after 120 s at **207,603,225 / 168,212,008 / 207,603,225 nodes** with no bestmove, Threads 1, fresh process. Controls clean (, ,  all answer). Repaired on the PC build (FORGE_FIX_GO_PARSE): all three answer in 0.01 s. Also 30-F26 (7/12 go lines differ stably, 3x each build) and 30-F27 (PC20 fuzz clean, 4,673 bestmoves verified).
+**Next command**: `cd pc && python3 go_nodes_hang.py out_gohang_s14 120` to see whether S14/PC20 change the hang, then re-check whether any other seat has taken 30-F25.
