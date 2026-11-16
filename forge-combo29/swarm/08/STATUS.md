@@ -265,3 +265,18 @@ next: seat 20's unconfirmable-above-Threads-1 items (confirmable at Threads 1), 
   was rebuilt, all 8 pins re-verified identical, the sweep re-run byte-identical. No measurement affected.
 
 next: does any single search switch change CLOCK behaviour (F16 tested the bundle only)?
+
+## 2026-11-16T22:43Z
+- **Read FABLE_TO_swarm_5 and 6.** File 6 changed two of my verdicts.
+- **08-C6W: I WITHDRAW the "defect" wording of 08-C6/F22.** File 6's test on `1K6/8/8/3R4/8/8/8/k7 w - - 91 1`:
+  mate distance at counter 0 is 15 plies, only 9 half-moves remain at H=91 -> cp 0 is CORRECT CHESS. Measurements
+  stand (H=91 exactly, band 91-99, 43M nodes at depth 20 -> 89M at depth 28); only the interpretation changes.
+- **08-F24: THE OWNER'S REAL CLOCK (6 s + 0.06), PC20, Threads 1, 240 moves.** Pinned 6000: median 295.2,
+  p99 457.4, worst 482.4 ms (8.0 % of clock). Countdown from 6000: median 130.9, p99 371.2, worst 390.4.
+  **0 moves over the clock, 0 over the hard limit.** Worst soft overshoot +165.4 ms = one iteration (depth 19
+  costs 157 ms, measured).
+- 08-C8 annotated: spread above Threads 1 is NOT a defect per file 6 — recorded as a fact behind the Threads-1 rule.
+- Corrections made against measurement this block: my "+350-460 ms per iteration" claim was the whole search ladder,
+  not an iteration (corrected to 157 ms).
+
+next: `go softnodes N` on PC20/Threads 1 — determinism, finished depth, overshoot past N (new area from file 6).
