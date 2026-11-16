@@ -101,7 +101,7 @@ board where the behaviour must NOT happen (here: an ordinary position, which als
 
 ---
 
-## Two more, shorter, from the same folder
+## Three more, shorter, from the same folder
 
 **Trap 3 — reading a verdict off a tuple.** A defect-hunt loop reported 14 "defects" on a board where
 every score was `('mate', 1)`. The score WAS found; my unpacking was `score, bm = s` where `s` was already
@@ -134,6 +134,7 @@ control rather than by re-reading the code:
 | pawn on the king's square | engine and python-chess agreed (5 = 5) — no defect can exist where two independent implementations agree |
 | shell sent `stop` | an ordinary-board control that must also stay silent, and it did |
 | tuple unpacking | the printed score was `('mate', 1)` on the very line the verdict called a failure |
+| optional-field parser | `bestmove` came back legal, so a search had plainly run despite the zero line count |
 | mislabelled FEN | re-deriving counts from the generated FEN instead of the intended label |
 
 Both traps are recorded in my findings as process notes (S-F65, S-F26) so they are not mistaken for
