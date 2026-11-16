@@ -297,3 +297,45 @@ hm 99 → cp 0 / 227 nodes (correct — Black really escapes), hm 100+ → cp 0 
 So the first table's cp 0 at hm 99 is the fault precisely because that board has no such escape.
 
 Raw: `job1/node_draw_hm_sweep.txt`, `job1/node_draw_hm_sweep.json`.
+
+---
+
+## Job 1 body: 2,000 random UCI command sequences under ASan+UBSan
+
+Run with the corrected harness (records `max_depth_seen` / `max_nodes_seen` per sequence, so a
+zero sanitizer count is backed by a proven search — seat 19's measurement-integrity warning).
+
+| quantity | count |
+|---|---|
+| sequences run | 2,000 |
+| UCI lines replayed | 34,704 |
+| sequences where a search demonstrably ran | **1,579** |
+| deepest depth reached | 64 |
+| most nodes in one sequence | 7,882,595 |
+| crashes (signal) | **0** |
+| hangs (no readyok in 20 s) | **0** |
+| sanitizer lines | **0** |
+| illegal bestmoves (each re-checked in a fresh process) | **0** |
+| nonzero exit status | **0** |
+
+1,579 of 2,000 sequences reached at least depth 1, so the zero is a measured zero on real
+searches. The remaining 421 are sequences that only set options / positions, or whose `go` was
+`go perft` or interrupted by a later command — they are not evidence either way, and the audit
+script (`job1/audit.py`) says so per table. Raw: `job1/job1_table_proven.txt`,
+`job1/job1_proven_summary.txt`, data at `~/build/job1out3/asan_2000.jsonl`.
+
+### Two harness faults found and fixed in the course of this job
+
+Both were mine, both found by checking a result instead of trusting it, and both are why the
+numbers above are from the third run:
+
+1. **Pipelined `quit`** (the fault seat 19 warned about). My first door harness sent
+   `go` and `quit` in the same write; the engine then answers its fabricated `bestmove` (first
+   legal move, 0 nodes). It showed up as `door1_hm99 -> g1e2, no nodes`, which is impossible for a
+   real search. Fixed by reading to `bestmove` before anything else; see `job1/quit_mid_search.md`.
+2. **Wrong position attribution.** My sequence runner first attributed bestmoves to positions by a
+   queue that desynced on interrupted and unbounded searches, producing 6 "illegal bestmoves" that
+   were really legal moves of startpos. The cause was `ucinewgame` resetting the board
+   (`src/uci.cpp:254-257`, finding S-F1). Fixed by modelling `ucinewgame` and by settling each
+   search before starting the next. The `control.py` script proves the checker catches a planted
+   wrong pairing (3/3 checks, 1/1 planted fault).

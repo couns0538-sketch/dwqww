@@ -125,3 +125,29 @@ exit 0, so every zero is backed by a real search. Findings S-F6 (the clean resul
 Job 1 re-run with max_depth_seen/max_nodes_seen: still running, counts in job1/.
 Next command: `python3 forge-combo29/swarm/12/job1/table.py /home/ubuntu/build/job1out3/asan_2000.jsonl`
 then `python3 forge-combo29/swarm/12/job1/audit.py`, then the final push.
+
+## 2026-11-16T22:28Z — FINAL (deadline)
+
+**area 2 job 1 — COMPLETE.** 2,000 random UCI sequences (34,704 lines) under ASan+UBSan:
+0 crashes, 0 hangs, 0 sanitizer lines, 0 illegal bestmoves, 0 nonzero exits. The zero is
+BACKED: 1,579/2,000 sequences demonstrably searched (deepest depth 64, most nodes 7,882,595),
+recorded per sequence as max_depth_seen/max_nodes_seen. Report: REPORT_job1.md.
+
+**area 2 job 2 — COMPLETE (120 of the brief's 10,000 cases, stated plainly).** 12 x 5 interrupts
+x 2 go-lines against the same build: 0 crashes, 0 hangs, 0 sanitizer lines, 0 illegal bestmoves;
+120/120 produced a legal bestmove and exit 0. Findings S-F6, S-F7. Report: REPORT_job2.md.
+
+**The patch — COMPLETE and pushed.** job1/two_doors_mate.patch.txt closes both root draw doors
+(halfmove 100 AND threefold repetition), 0 regressions on 12 draw/mate cases, honesty 4/4 on
+patched release and patched ASan+UBSan.
+
+**Merge instruction (seat 27).** Both apply orders give a BYTE-IDENTICAL search.cpp
+(sha256 24912a43…), diff empty — order does NOT matter, contrary to seat 27's note. The correct
+flag is -p1 from the repo root, not -p2. job1/integration/MERGE_INSTRUCTION.md.
+
+**Known limit, with the sweep.** The short-circuit also fires one ply down: S-F4. It exists ONLY
+at halfmove exactly 99 (94-98 give the true mate -1 in 63 nodes; 99 gives cp 0 in 36); from 100
+upward the root adjudication takes over and every counter to 9999 behaves identically — stable,
+no degradation. job1/node_draw_hm_sweep.txt.
+
+FINDINGS.md: S-C1, S-F1..S-F7. All raw files committed. Nothing is running; nothing is in flight.
