@@ -501,3 +501,23 @@ TWO MISTAKES of mine in this job, both caught by asserting the construction rath
   Lesson recorded: a test that PASSES FOR THE WRONG REASON is harder to spot than one that fails, because
   expected and observed agree. Assert the input construction, not just the outcome.
 Next command: cd forge-combo29/swarm/13/job14 && python3 drawroot.py ~/b/rel/forge ~/b/pc/forge /tmp/dr
+
+## Mon Nov 16 11:39:27 PM UTC 2026
+
+ADDED CASE 4 TO THE TRAPS NOTE (coordinator's request): "a test that PASSES FOR THE WRONG REASON",
+from job 14's drawn-root verification.
+- internal/absence-of-output-traps.md is now "four traps with one shared tell", with case 4 in full: the
+  bare-FEN attempt (no occurrence history, so the case could never fail) and the full-FEN-string count
+  (counters advance each shuffle, so a real 3-fold counted as 1).
+- The generalising fix is stated as a rule: ASSERT THE INPUT CONSTRUCTION, not just the outcome — the
+  position really occurs three times (counted as pieces+side+castling+ep, the way the engine counts), the
+  halfmove clock really is >=100 and did not reset, the search really ran (nodes>0), a `book move` line was
+  really present.
+- Extended the shared tell accordingly: when expected and observed AGREE on a test that could not have
+  failed, that agreement is not evidence either.
+- Made the note internally consistent for four cases (title, intro, "three of the four bit me directly",
+  checklist item 1b, and the cross-reference, which now calls stale-shard-fabrication a FIFTH shape —
+  a fabricated presence rather than an absence).
+- Updated the repo-side pointer forge-combo29/swarm/13/HARNESS_TRAPS.md to the same four cases + the
+  construction-assertion rule.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
