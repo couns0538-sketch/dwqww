@@ -235,3 +235,10 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-C8 CONFIRMS 19-F18's bench half TO THE DIGIT with my own instrumentation: bench 13 has 861,904 probes (their exact total), 576,467 enter the replacement scan, 576,417 find an empty slot, leaving exactly 50 (0.0058%) that do an age/depth comparison. Real games (20 positions, depth 12): 2,501,519 probes -> 457,712 (26.5%) do age/depth work, same direction as their 54.7% but a smaller set.
 - This is the second independent bench objection now inside the 29-F35 rule, and it is no longer labelled 'unverified by me' because I have now measured it.
 - next: continuing on the PC path.
+
+## Mon Nov 16 11:32:37 PM UTC 2026
+- 29-F37 answers the 26.5% vs 54.7% question WITH DATA, and corrects my own 29-C8 caveat. Measured the rate as a function of set size (20 -> 200 positions, running rate every 20):
+    default options: 26.5% at 20 positions -> 19.5% at 200 (small set OVERSAMPLES by 7 points)
+    PC20           : 13.6% at 20 -> 11.1% at 200, flat from 40 positions on
+- So: (a) my 29-C8's 26.5% was measured under DEFAULT options, which is why it disagreed with the 11.1% I now get under PC20 - SETTINGS were the difference, not set size; (b) the LARGER set is the more representative one, and the honest PC20 figure is ~11%; (c) seat 19's 54.7% is not reproduced in either regime on my positions (my maximum is 19.5%), so that gap is not a set-size effect and likely reflects a different position distribution (theirs R_1911).
+- next: continuing on the PC path.
