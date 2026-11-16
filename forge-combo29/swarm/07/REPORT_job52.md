@@ -39,6 +39,11 @@ A single `go movetime 6000` was interleaved at move 3 to test the leakage claim.
     overruns (wall > 6000 ms): 0
     utilisation of the 6000 ms budget: median 3.5 %, max 11.0 %
 
+**Read the 4.63x with this caveat, which is part of the number and not a footnote to it: this is a
+CONSTANT clock.** In a real game the clock decrements and the soft plan shrinks every move, so the spread
+would very likely narrow. **4.63x is a constant-budget figure, not a game-play figure**, and anyone quoting
+it as the latter would be over-reading a laboratory condition.
+
 **Both of seat 16's claims hold:**
 
 1. **Inconsistent effort at an identical budget** — 4.63× spread. Mine is wider than theirs, which is
@@ -73,9 +78,8 @@ clock (unlike node counts).
 
 ## What I am NOT sure about
 
-- Whether the 4.63× spread is representative of game play or an artefact of holding the clock constant. A
-  real game decrements, so the soft plan shrinks and the spread would likely narrow — worth knowing before
-  anyone quotes 4.63× as a game-play figure.
+- Whether the 4.63× spread is representative of game play (see the caveat beside the number above: this is
+  a constant-clock experiment, and a decrementing clock would likely narrow the spread).
 
 ## Times
 

@@ -680,3 +680,6 @@ That corollary is also the honest reading of seat 05's withdrawn S-W6: they were
   Their second claim also confirmed: an interleaved go movetime 6000 ran 5,991.1 ms and the NEXT clock move took 177.1 ms -- no leakage from movetime into the following clock search.
   Why the wider ratio does not contradict them: the spread depends on where each search lands relative to an iteration boundary, so a different position or move count samples a different range. The finding is the phenomenon; a ratio must be quoted with its position and move count.
   The utilisation figure pairs with 07-C50's 6.0% on startpos: two different positions, same conclusion, so the under-use is the time manager's soft plan rather than one board's quirk. And it is a WALL-TIME comparison -- exactly the quantity 07-C47 says IS reliable under a clock.
+
+## 2026-11-16T23:56:25Z
+Moved the constant-clock caveat from the end of REPORT_job52 to directly under the 4.63x figure, where a reader meets the number, and attached the same caveat to the 07-C52 FINDINGS line: 'this is a CONSTANT clock -- a real game decrements, the soft plan shrinks each move, and the spread would likely narrow, so 4.63x is a constant-budget figure, not a game-play figure.' A caveat at the end of a report is read by nobody; adjacent to the number it cannot be missed.
