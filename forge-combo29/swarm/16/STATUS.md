@@ -450,3 +450,14 @@ seed: 1601
   file and the individual run times were never saved, so I recorded that as a GAP I cannot close rather than
   estimating a number, with the command to re-run if it matters. Habit 2 is now clean on all 36 reports.
 - check_folder.py: ALL CHECKS PASS. Continuing to the close at 10:19Z.
+
+## 2026-11-17T01:10Z  (end time corrected: 10:18:40Z, ~9h remaining)
+- FINAL now states the window ends 2026-11-17T10:18:40Z (was 10:19Z), and the 30x ratio is promoted into the
+  STANDING CAUTION itself as habit 2's own example: the colour-mirror score gap has a MEDIAN of 18 cp and a MAX of
+  541 cp — a factor of 30 between typical and worst — and every summary I wrote from the median alone understated
+  the asymmetry by that factor. The caution now also records that I wrote that rule and then found it broken in
+  three of my own reports within the hour.
+- Cadence continues for the remaining window (not "to a close"): STATUS every 25 minutes or less, findings and
+  checks as they land, FINAL block at 10:18:40Z.
+- next: the one experiment I left open from S-F21/S-F12 — whether a MIRROR-ORDER permutation (not a reverse) makes
+  the pair equal. That is the correct transform and it is the last untested step of the symmetry thread.

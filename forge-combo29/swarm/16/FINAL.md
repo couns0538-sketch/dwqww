@@ -1,7 +1,7 @@
 # SWARM SEAT 16 — FINAL REPORT (area 6, SYMMETRY)
 
-Written at 2026-11-16T23:20Z. The 12-hour window ends 2026-11-17T10:19Z; this file is the consolidated record and
-is kept current until then. Every number here is the pasted output of a committed script; every build is named.
+Written at 2026-11-16T23:20Z. The 12-hour window ends **2026-11-17T10:18:40Z**; this file is the consolidated
+record and is kept current until then. Every number here is the pasted output of a committed script; every build is named.
 
 **Builds used (all verified before use):**
 
@@ -29,8 +29,11 @@ error of mine tonight, and none of them needs to know anything about chess engin
 **1. A count is not a magnitude.** Ten positions better and nine worse is not a wash until you know which were
 expensive. Mine were not symmetric: four losses and three gains, and the losses were the large ones.
 **2. A median hides a tail.** A median can read zero at every setting while the quantity you actually care about
-differs by 144 %. If the quantity accumulates over many cases — damage, time, cost — report the SUM, not the typical
-case.
+differs by 144 %. **My own worst case: the colour-mirror score gap has a median of 18 cp and a maximum of 541 cp —
+a factor of 30 between the typical case and the worst, and every summary I wrote from the median alone understated
+the asymmetry by that factor.** If the quantity accumulates over many cases — damage, time, cost — report the SUM
+and the max, not the typical case. (I wrote this rule and then found it broken in three of my own reports within
+the hour: see REPORT_job3.md, REPORT_fullwindow.md, REPORT_wall_vs_iteration.md.)
 **3. A single probe is not a property.** One position gave 65 vs 65 and I wrote it up as a rule; across twenty it was
 eleven. Before writing "restores", "always" or "exactly", run the sample and put the N in the sentence.
 **4. A correlation needs the right model.** I compared a single-phase predictor against a phase-blended evaluation,
