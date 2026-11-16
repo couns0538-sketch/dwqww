@@ -109,3 +109,11 @@ On PC r15 under PC20, Threads 4, depth 12, hang FEN, fresh process each run:
 Threads 1 under the SAME settings: +2207 cp in 4/4 runs, 75,311 nodes identical each time.
 bestmove f3f8 in every run. So the PC's eight fixes do NOT repair the nondeterministic score, and this is the
 engine the owner actually plays. This is the strongest form of 04-F7.
+
+## 2026-11-16T22:20:39Z 04-F10 — IT IS GENERAL AND IT CHANGES THE MOVE
+Ordinary middlegame from G, 1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b - - 0 1, PC r15 under PC20,
+go depth 12, Threads 4, ten fresh processes: 9 DISTINCT SCORES in 10 runs AND TWO DIFFERENT MOVES
+(g7g6 in 7 runs, e5e4 in 3). Threads 1: -293 in 5/5, 31,779 nodes every time.
+04-F11: already at Threads 2 — hang FEN, six runs, six distinct scores.
+So the "shape condition" question is answered in the negative: it is not a special class of position. The defect
+is ordinary middlegame depth-12 search at Threads >= 2, and it reaches move choice.
