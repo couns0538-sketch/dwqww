@@ -118,3 +118,15 @@ seed: 1601
     (5,853 pairs in ONE process gave 0 differences; warm == fresh byte for byte).
 - reports: REPORT_fullwindow.md (agreement section + depth-1/2/3 table), REPORT_warmcold.md (S-F10 note).
 - FINDINGS: S-F1..S-F10, S-C1..S-C7. Next command: none — area 6 complete; do a final push at 22:30.
+
+## 2026-11-16T22:28Z  (FINAL PUSH)
+- below-root sweep DONE. None of the search-state candidates equalises the depth-2 pair: Hash 1/16/2048 all
+  give 351 vs 363 (size irrelevant), history zeroed narrows 12 -> 3 but stops at 382 vs 379, counter/continuity/
+  threat options change nothing.
+- CAUSE NAMED (S-F11): the move GENERATION ORDER is not mirror-corresponding in 40 of 41 positions, and
+  `pick_best` breaks ties by the first maximum with no randomness in search.cpp. Deterministic, below the root,
+  invisible at depth 1 (no ties below the root at one ply). NOT proven sufficient - that needs a re-ordering
+  patch, named as not done in the report.
+- AREA 6 COMPLETE. FINDINGS: S-F1..S-F11, S-C1..S-C7. All raw files, both text patches
+  (fullwindow_root.patch.txt, psqt_symmetry.patch.txt), all reports and STATUS.md are on the branch.
+- next command: none. Stopping per instruction; branch is final at this commit.
