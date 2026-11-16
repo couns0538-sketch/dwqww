@@ -117,3 +117,13 @@ go depth 12, Threads 4, ten fresh processes: 9 DISTINCT SCORES in 10 runs AND TW
 04-F11: already at Threads 2 — hang FEN, six runs, six distinct scores.
 So the "shape condition" question is answered in the negative: it is not a special class of position. The defect
 is ordinary middlegame depth-12 search at Threads >= 2, and it reaches move choice.
+
+## 2026-11-16T22:25:24Z FIXED-NODE TEST: IT IS A THREADING FAULT, NOT A DEPTH ARTEFACT
+Ordinary FEN 1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b, PC r15, PC20, go nodes 2000000:
+  Threads 1: e5e4 / -302 / depth 24 / 1,651,453 nodes — IDENTICAL in 6/6 runs
+  Threads 4: e5e4, g7g6, e5e4, e5e4, g7g6, e5e4 with scores -308, -297, -313, -299, -291, -306
+             at depths 19, 19, 18, 18, 21, 18 — SIX runs, SIX distinct scores, TWO distinct moves
+So at an identical node budget the threads still disagree => threading fault in the search, NOT a depth-limit
+artefact. Also note Threads 4 stops at a SHALLOWER depth (18-21) than Threads 1 (24) for the same budget.
+RUNNING NOW: go nodes 200000000 at T1 and T4, 10 runs each (slow, ~2 min/run; first T1 run e5e4 -388 d39).
+THEN: the base build at Threads 4 (same test), to tell the owner whether this predates r15.
