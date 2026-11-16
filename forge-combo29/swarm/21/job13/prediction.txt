@@ -1,0 +1,23 @@
+# PREDICTION — job13: CHECK of seat 24's 24-F1 (TSan on option churn), seat 21
+written before the first measuring command; not edited afterwards.
+
+24-F1 claims: 300 random `setoption Threads`/`Hash` changes between searches (some followed
+by `ucinewgame`, Threads 1/2/4/8/16 × Hash 1/4/16/64/256) produce no ThreadSanitizer report,
+no crash and no illegal bestmove; and its planted-fault copy is counted at 9 report blocks
+through the same runner.
+
+I check it with MY OWN TSan build and MY OWN planted race (an unlocked global counter written
+by every worker thread), and MY OWN churn sequence from SEED 2101.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | my TSan build has `__tsan_` symbols > 0 | if 0, the build is not instrumented and no "0 reports" counts |
+| P2 | my planted race is REPORTED by my TSan build (≥ 1 report block) | if not, my runner cannot see races and the check is INCONCLUSIVE, not a confirmation |
+| P3 | 300 random option changes on the REAL build produce 0 TSan reports | REFUTES if any report |
+| P4 | 0 crashes and 0 illegal bestmoves over those 300 | REFUTES if any |
+| P5 | at least 100 of the 300 are followed by `ucinewgame` (matching the claim's mix) | if far fewer, say so; it does not by itself refute |
+| P6 | TSan is actually on during the run (TSAN_OPTIONS cleared, `__tsan_` > 0, and a report from the plant in the same session shape) | if not, INCONCLUSIVE |
+
+Direction: I have no strong expectation. Threads and Hash changes between searches are not
+concurrent with a search if each change waits for the previous `bestmove`, so 0 reports is
+plausible; the interesting question is whether the churn is really exercised, which P5 covers.
