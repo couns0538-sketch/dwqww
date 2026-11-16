@@ -363,3 +363,10 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   that reported it. Neither board reports a mate at all at depth 8 or 10.
 - This is now the best-supported account of S-F1/S-F9/S-F21: a depth-limited PV-rebuild effect at long mate distances.
 - next command: continue the cycle; next check the PC build shows the same depth behaviour (S-F17 showed PC20 differs).
+
+## $(date -u)
+- S-F30 NEW — a limitation I had to state: S-F27's |N| >= 10 rule rests on only 3 qualifying positions (2 truncated,
+  1 not). My independent 8-mate sample has |N| only 1,1,2,2,3,4,4,4 — ALL below the threshold — so it cannot test the
+  rule and its 0-truncated result is not evidence against S-F27. A repeat must SELECT for long mates, not sample at
+  random.
+- next command: build a long-mate set (|N| >= 8) deliberately, then measure the truncation rate on it.
