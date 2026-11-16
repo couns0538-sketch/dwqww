@@ -127,3 +127,22 @@ the faulty first attempt is kept beside it as `unbounded/unbounded.json` so the 
 | S-C10 | CONFIRMS 21-F8 | `position fen 4k3/8/8/8/8/8/8/4K3 w - - 0 0` (fullmove 0) is REFUSED by Forge (`invalid FEN fields`) while python-chess accepts it and says the position has 5 legal moves; because the refusal keeps the old board, `go perft 1` then answers 20 (startpos) instead of 5 | `forge-combo29/swarm/17/job1/check21/c10_fullmove0.txt` | CONFIRMS |
 | S-C11 | CONFIRMS 21-F9 (sharply) | reproduced with a clean boundary: one board with a mate in 1 for White (`6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - <hm> 1`). At halfmove 0 and 99 all three limits (`go depth 5`, `go nodes 1000`, `go movetime 50`) answer `a1a8` scored `mate 1`. At halfmove 100 and 150 all three answer `f2f3` scored `cp 0 nodes 0` - the mate in 1 is MISSED. The boundary is exactly at 100, and it is search-limit-blind (all three `go` forms) as 21-F9 says. python-chess confirms a1a8 is mate | `forge-combo29/swarm/17/job1/check21f9/f9.json` | CONFIRMS |
 | S-C12 | CONFIRMS + severity of 21-F9 | severity, checked rather than assumed: (a) python-chess VALIDATES the halfmove-100 mate-in-1 FEN (is_valid True, status 0, 20 legal moves, mate a1a8 available), so the engine can be handed it by any GUI, book tool or file; (b) in a real game the fifty-move rule is a CLAIM, not automatic, so a counter >= 100 with a mate available is reachable whenever neither side claimed; (c) this engine models no claim at all - search.cpp:2251 treats `halfmove_clock() >= 100` as a drawn root and search.cpp:1302 does the same inside the tree - so it adjudicates a draw the rules do not require and never searches; (d) the raw log at halfmove 100 shows depth 1..5 all `nodes 0` with an EMPTY pv, i.e. no search was performed | `forge-combo29/swarm/17/job1/check21f9/f9.json`, `check21f9/hm100_5.log`, `check21f9/severity.txt` | CONFIRMS (severity assessed) |
+
+## Threads audit (swarm rule, after seat 04's measurement), seat 17, 2026-11-16T22:22Z
+
+Rule now in force: any score reported must be from Threads 1 unless the job is about threading.
+Seat 04 measured the PC build at Threads 4, depth 12, PC20: four fresh runs on ONE position gave
++2576 / mate 13 / mate 18 / mate 16, nodes 5.0M-31.4M; Threads 1 gave +2207 four times with identical
+nodes 75,311. Move stable, scores not.
+
+My audit:
+- I set Threads above 1 in EXACTLY ONE place: the `threads4` set of the job1 MultiPV sweep,
+  `job1/mpv/mpv.json` (6 records). Those records contain NO score, and I never cited any of them in
+  FINDINGS or a report, so no recorded claim of mine rests on a multi-threaded score.
+  Their NODE COUNTS are provisional (not reproducible above Threads 1) - flagged here.
+- Every other measurement I have reported used the default, which the exe's own `uci` list states as
+  `option name Threads type spin default 1`. My ASan runner (`run_asan.py`) never sends a Threads
+  option at all (`grep -c Threads` = 0), so every ASan sweep, every honesty line, the PC20 PC-build
+  check, and the S-F1/S-F8/S-C9..S-C12 checks are Threads 1.
+- Finding lines from here state "Threads 1" explicitly, plus build (base or PC r15) and settings
+  (none / S14 / PC20).
