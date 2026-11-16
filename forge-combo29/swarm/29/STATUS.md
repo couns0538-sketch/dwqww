@@ -71,3 +71,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-F12 now has a sensitivity control (Rule 1 satisfied): the stress test at Hash 1 (constant eviction) gives 4/4 IDENTICAL for the real patch, and 4/4 DIFFERENT for a PLANTED wrong replacement rule (<= instead of <). So the equivalence result is a real measurement, not a blind comparison.
 - TT patch status: correctness PROVEN by three routes (4 honesty counts, 40/40 depth-10 searches, 4/4 hash-pressure stress + plant). Speed: exact instruction count -0.201%; NO wall-clock claim (29-N6).
 - next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: TT stress equivalence + planted control (29-F13)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 09:56:05 PM UTC 2026
+- 29-N7: caught a SECOND 19-F12-class harness fault in my own work. A thread-legality table showed bestmove a2a3 for both positions at all thread counts - the tell was that every entry was identical. Rewrote the driver to drain to bestmove: now d2d4 / e2a6 / e2e4 / e2a6 / g1f3 / e2a6, all legal at Threads 1, 4, 8.
+- TT patch (29-F12) is now verified: 4 honesty counts, 40/40 depth-10 bit-identical, 4/4 hash-pressure stress bit-identical with a planted-fault control, and legal moves at 1/4/8 threads.
+- next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: thread sanity + N7 second harness-fault catch' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
