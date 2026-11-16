@@ -1,0 +1,16 @@
+# PREDICTION - seat 27 - area 7 job 5 (the transposition table's lifecycle)
+pushed BEFORE the first measuring command; never edited afterwards.
+
+P1. `setoption name Hash value N` while a search runs resizes the table while the workers probe it:
+    TranspositionTable::resize() replaces clusters_ and cluster_count_ with no lease and no lock
+    (search.cpp:362-370), unlike probe/store which take the stripe locks. I predict that a resize during
+    a `go depth 20` search either crashes or produces an ASan report. Kill if 20 tries all survive cleanly
+    under ASan with no report (that would mean something upstream serialises it).
+P2. `searchmoves` restriction: no TT entry is stored for a restricted root (search.cpp:2093
+    `!(root_node && root_restricted_)`). I predict searching the SAME position without the restriction
+    immediately afterwards gets no benefit from the restricted search, and the node counts differ.
+    Kill if the unrestricted search reports the identical node count.
+P3. `ucinewgame` during a search: stop_search() joins the worker first, so I predict no sanitizer report and
+    a legal bestmove for the abandoned search. Kill if a report appears.
+P4. Of the lifecycle faults I list, at most 2 will be provable. Kill if 0 or more than 2.
+P5. Whole job under 30 minutes.
