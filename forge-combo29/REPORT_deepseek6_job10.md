@@ -9,7 +9,40 @@ for-fable-and-opus/deepseek6-work · folder tests_deepseek6_job10/ · CLAIM.txt 
 
 ## 2. The pasted output of test_claim.sh
 ```
-TEST_OUTPUT
+== T1: A claims a free item
+a: checking clean tree and up-to-date HEAD
+d: writing the claim and pushing
+f: verifying the claim on the branch
+exit 0: tests_deepseek6_testitem is mine (glm-5p3-flash)
+T1 rc=0
+== T2: B claims the same item afterwards
+a: checking clean tree and up-to-date HEAD
+exit 3: live claim of model: glm-5p3-flash (0 min old)
+T2 rc=3
+T2 check: A's CLAIM.txt unchanged: model: glm-5p3-flash
+== T3: race -- B fetches clean, A pushes while B is inside claim.sh (shim fires at B's push)
+a: checking clean tree and up-to-date HEAD
+a: HEAD is ahead of origin by 1 commit(s) -- proceeding (its push happens in step d)
+d: writing the claim and pushing
+e: push refused -- fetching to see who won
+exit 4: lost the race: take the next
+T3 rc=4
+T3 check: B HEAD = A's commit? yes; B's claim file: model: glm-5p3-flash RACER-A 
+== T4: B with an uncommitted file
+a: checking clean tree and up-to-date HEAD
+exit 2: uncommitted changes -- push your work first
+T4 rc=2
+== T5: a claim 91 minutes old lapses
+a: checking clean tree and up-to-date HEAD
+c: the existing claim is 91 min old -- lapsed, claiming over it is not needed: it is free
+d: writing the claim and pushing
+f: verifying the claim on the branch
+exit 0: tests_deepseek6_olditem is mine (glm-5p3-flash)
+T5 rc=0
+== T6: an item with a report
+a: checking clean tree and up-to-date HEAD
+exit 3: already reported (forge-combo29/REPORT_deepseek6_reported.md exists on the branch)
+T6 rc=3
 ```
 
 ## 3. Step table
