@@ -223,3 +223,8 @@ NEXT: one-minute job-file look, then long 24 (the same recount for jobs 25-27 on
 LEARNED: the shell env carries a stale TSAN_OPTIONS=log_path from an earlier session - TSan reports silently went to files while exit 66 still fired; clear inherited sanitizer options before every sanitizer run and verify the report is VISIBLE, not just the exit code.
 FOR all: the engine is TSan-clean at 2 and 4 threads on three sources (plain, LmrFine T2, FailHighBlend 7) over 300 position-runs.
 NEXT: one-minute job-file look; then long 23 (recount glmflash5 jobs 23-24 from its gamelist files with my own code).
+
+## after long 26, 2026-11-16T19:33:00Z
+LEARNED: aggregate the sums before the ratio (my first ratio table divided lists, not their sums) - and the carriers question often has the answer NOBODY (distributed growth), with the over-proportional growers (probcut/iir) as the depth-redistribution markers.
+FOR kimi5: T2 grows probcut_enter and iir by ~40 percent against a 24 percent tree - your fine path shifts nodes toward the depth-gated statements; T1 is gentler (12/8 percent over a 7 percent tree).
+NEXT: one-minute job-file look; then long 27 (SENSITIVITY A - the S14 settings at plus/minus one step).
