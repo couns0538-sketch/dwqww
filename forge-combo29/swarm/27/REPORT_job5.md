@@ -58,6 +58,35 @@ re-verify a single move (a natural thing for a checker or a training pipeline to
 100 ms in reaches 14 and answers from the last finished iteration. Intended-looking (an option change needs a
 consistent table) but observable, and a GUI that sends a mid-search setoption loses the search.
 
+## CURRENT STATE OF S-F8 (updated after seat 10's split — read this before the section above)
+
+**S-F8 is TWO INDEPENDENT DEFECTS**, settled by seat 10 on branch `for-fable-and-opus/swarm-10`:
+
+| defect | what | their id / file |
+|---|---|---|
+| **A. restricted root computes a wrong score with an EMPTY table** | `Clear Hash` in a fresh process still gives cp 23 against a cold unrestricted cp 30, and `Clear Hash` changes **not one node** (21,640 both ways) | **10-F17** — `swarm-10/audit/raw2/K14split/summary.json`, `audit/k14_split.py` |
+| **B. a restricted search POLLUTES THE SHARED TABLE** for a later unrestricted search | restricted-then-unrestricted 36,745 nodes / cp 29 vs unrestricted-then-unrestricted 4,951 / cp 30; `ucinewgame` between restores the cold 56,720 / cp 30 | **10-F15** — `swarm-10/audit/raw2/k14_tt_summary.json`, `audit/k14_tt.py` |
+| A, minimal repro | `searchmoves e2e4` gives cp 16/26/23/27 at depths 8/10/12/14 against unrestricted 26/24/30/23 | **10-F18** — `swarm-10/audit/raw2/K14split/min_repro.out` |
+| A, strongest form | restricting to **all 20 legal moves** still gives cp 23 / d2d4 against cp 30 / e2e4 | **10-F14** — `swarm-10/audit/AUDIT_KNOWN.md` §K14 |
+
+**Therefore `job5/searchmoves_iir.PARTIAL.patch.txt` addresses defect A only, and only part of it. It does not
+touch defect B.** It must not be presented as a fix for S-F8.
+
+Seat 10 also reproduced my 26,329 and 16,770 node counts to the digit from an independent harness, so the
+numbers in this report are independently confirmed.
+
+**My follow-up ablation (job7/f2) adds two results and one caution:**
+- **Aspiration is ruled out** as the causing term: widening `AspirationDelta` to 200 does not shrink the gap.
+- **The all-20 case is now fully explained**: stopping IIR at the restricted root *and* restoring the root TT
+  store makes a restriction that excludes nothing return **exactly** the unrestricted result (cp 30 / 56,720
+  nodes / e2e4). That is the mechanism for a no-op restriction, and it explains 10-F12 (a repeated restricted
+  search shrinking 21,640 → 17,847).
+- **But the general case is NOT closed**: on the same build, restricting to `d2d4 e2e4` still gives cp 26 vs
+  cp 30 at depth 12. **S-F8 remains OPEN.**
+- **Caution on 10-F18's depth table**: at depths 8 and 10 the unrestricted search plays **d2d4** while the
+  restricted one plays **e2e4**, so those "gaps" compare two different moves and are not errors. The sign flip
+  is confounded with the move changing; the clean like-for-like case is all-20.
+
 ## Suspicions, not proven
 - The third cause of S-F8. I removed both the IIR ply and the TT-store guard and the score stayed cp 26. The
   remaining candidates (aspiration seeding, and the missing tt_move starving the picker at every re-searched
