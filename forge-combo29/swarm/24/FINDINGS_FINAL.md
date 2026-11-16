@@ -3,6 +3,11 @@
 Every line names **build** and **settings**. Threads 1 for anything score-shaped; where Threads > 1 was needed
 (race tests, the instability study) it is stated and no score is compared.
 
+## THE FOUNDATION, IN ONE LINE
+
+**Threads 1 is bit-exact — 60 position-runs with zero disagreement in move or node count (40 of 40 on a 40-position
+sample, plus 20 of 20 earlier) — and everything above one thread varies.**
+
 ## THE REPLICATION RULE — read this before anything else
 
 **Use at least 6 fresh runs per position when re-testing the headline.** Nearly half of my unstable cases (18 of 39)

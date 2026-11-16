@@ -1,0 +1,1502 @@
+id name Chess Engine Forge 6.4.24 candidate
+id author OpenAI
+option name Hash type spin default 32 min 1 max 2048
+option name Threads type spin default 1 min 1 max 256
+option name MultiPV type spin default 1 min 1 max 8
+option name Move Overhead type spin default 10 min 0 max 1000
+option name Ponder type check default false
+option name OwnBook type check default true
+option name Book File type string default <empty>
+option name Book Depth type spin default 30 min 0 max 100
+option name Book Variety type spin default 30 min 0 max 100
+option name UseNNUE type check default true
+option name NnueFile type string default <empty>
+option name ContHist4PlyRead type check default false
+option name NonPawnCorrection type check default false
+option name LmrDeeperShallower type check default false
+option name EvalRule50Damp type check default false
+option name ThreatHistory type check default false
+option name LmrSignedCorrection type check default false
+option name LmrLateParentRelief type check default false
+option name HindsightDepth type check default false
+option name NullThreatVerify type check default false
+option name NullSeeVeto type check default false
+option name AspCappedReopen type check default false
+option name AspArmLate type check default false
+option name EvasionOrdering type check default false
+option name DeadMaterial type check default false
+option name QuietExtinction type check default false
+option name DrawJitter type spin default 0 min 0 max 8
+option name TmFinishIteration type check default false
+option name TmNodeShare type check default false
+option name SoundMatePruning type check default false
+option name LmrQuietBase type spin default 85 min 0 max 300
+option name LmrQuietDivisor type spin default 220 min 100 max 500
+option name LmrNoisyBase type spin default 10 min 0 max 300
+option name LmrNoisyDivisor type spin default 340 min 100 max 800
+option name NullMoveMinDepth type spin default 3 min 1 max 10
+option name NullMoveBase type spin default 3 min 1 max 6
+option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+option name RfpDepth type spin default 8 min 0 max 15
+option name RfpMargin type spin default 72 min 10 max 300
+option name RfpImproving type spin default 40 min 0 max 200
+option name RazorDepth type spin default 2 min 0 max 6
+option name RazorBase type spin default 150 min 0 max 1000
+option name RazorMultiplier type spin default 350 min 0 max 1000
+option name FutilityDepth type spin default 7 min 0 max 15
+option name FutilityBase type spin default 100 min 0 max 500
+option name FutilityMultiplier type spin default 110 min 0 max 500
+option name LmpBase type spin default 4 min 0 max 20
+option name HistoryPruneDepth type spin default 3 min 0 max 10
+option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+option name SeeQuietMultiplier type spin default 24 min 0 max 200
+option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+option name SingularDepth type spin default 7 min 2 max 20
+option name SingularMargin type spin default 2 min 0 max 10
+option name IirDepth type spin default 4 min 1 max 20
+option name ProbcutDepth type spin default 5 min 1 max 20
+option name ProbcutMargin type spin default 180 min 0 max 1000
+option name QsFutilityMargin type spin default 160 min 0 max 1000
+option name QsSeeMargin type spin default 40 min 0 max 500
+option name AspirationDelta type spin default 18 min 4 max 200
+option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+option name HistoryBonusLinear type spin default 48 min 0 max 500
+option name HistoryBonusMax type spin default 2048 min 100 max 10000
+option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+option name CheckExtensionDepth type spin default 2 min 1 max 30
+option name LmrCutoffThreshold type spin default 3 min 0 max 20
+option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+option name TmSoftDivisor type spin default 22 min 5 max 80
+option name TmIncrementPercent type spin default 75 min 0 max 150
+option name TmHardPercent type spin default 60 min 10 max 95
+option name TmHardSoftMultiple type spin default 5 min 1 max 20
+option name TmStableFactor type spin default 60 min 20 max 150
+option name TmSemiStableFactor type spin default 80 min 20 max 150
+option name TmUnstableFactor type spin default 140 min 50 max 300
+option name TmEffortBase type spin default 155 min 100 max 250
+option name TmFallingEvalPercent type spin default 100 min 0 max 400
+option name TmMinFactorPercent type spin default 45 min 10 max 100
+option name CaptureFutilityBase type spin default 0 min 0 max 1000
+option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+option name CaptureFutilityDepth type spin default 6 min 0 max 15
+option name FailLowContinuationBonus type spin default 0 min 0 max 300
+option name Clear Hash type button
+uciok
+readyok
+readyok
+readyok
+readyok
+readyok
+readyok
+readyok
+readyok
+readyok
+readyok
+readyok
+readyok
+readyok
+readyok
+readyok
+readyok
+readyok
+readyok
+info depth 1 seldepth 4 score cp -336 nodes 134 nps 19142 hashfull 0 time 7 pv b8a8
+info depth 2 seldepth 4 score cp -334 nodes 340 nps 34000 hashfull 0 time 10 pv e5e4 f3f4
+info depth 3 seldepth 5 score cp -314 nodes 559 nps 43000 hashfull 0 time 13 pv e5e4 f3f4 b8a8
+info depth 4 seldepth 6 score cp -329 nodes 838 nps 49294 hashfull 0 time 17 pv e5e4 f3f4 f6g4 e2g4 f5g4
+info depth 5 seldepth 6 score cp -312 nodes 1492 nps 51448 hashfull 0 time 29 pv e5e4 c1d1 e4f3 e2f3 g7g6
+info depth 6 seldepth 13 score cp -278 nodes 3662 nps 53072 hashfull 1 time 69 pv e5e4 f2e1 e4f3 e2f3 g7g6 e1f2
+info depth 7 seldepth 13 score cp -283 nodes 6201 nps 52109 hashfull 2 time 119 pv e5e4 e2d1 e4f3 d1f3 g7g6 c1d1
+info depth 8 seldepth 14 score cp -276 nodes 10397 nps 54151 hashfull 5 time 192 pv e5e4 f2e1 e4f3 e2f3 g7g6 e1d2 f6d7 f3g2
+info depth 9 seldepth 16 score cp -305 nodes 19232 nps 54174 hashfull 9 time 355 pv e5e4 f3f4 g7g6 f2e1 f6d7 e1d2 f5h3 c1c2 h3e6
+info depth 10 seldepth 17 score cp -306 nodes 34201 nps 51741 hashfull 15 time 661 pv f6d7 f2e1 g7g6 e1d2 f5e6 g3g4 h5g4 f3g4 b8a8 a2a4
+info depth 11 seldepth 22 score cp -291 nodes 68261 nps 52307 hashfull 26 time 1305 pv g7g6 c1d1 b8a8 b3b4 a8a3 b4b5 c6b5 e2b5 e5e4 d1d4
+info depth 12 seldepth 22 score cp -309 nodes 101765 nps 45128 hashfull 42 time 2255 pv g7g6 f2e1 f6d7 e1d2 f5e6 e2d3 b8b4 d3f1 b4b8 e3e4 b8a8 b3b4 d5e4 f3e4
+bestmove g7g6
+readyok
+info depth 1 seldepth 5 score cp -261 nodes 138 nps 27600 hashfull 0 time 5 pv b6b5
+info depth 2 seldepth 5 score cp -261 nodes 400 nps 66666 hashfull 0 time 6 pv b6b5 a3b4 b5c4
+info depth 3 seldepth 5 score cp -261 nodes 541 nps 77285 hashfull 0 time 7 pv b6b5 a3b4 b5c4
+info depth 4 seldepth 5 score cp -261 nodes 722 nps 80222 hashfull 0 time 9 pv b6b5 a3b4 b5c4 b3c4
+info depth 5 seldepth 9 score cp -261 nodes 1002 nps 77076 hashfull 0 time 13 pv b6b5 a3b4 b5c4 b3c4 a8b8
+info depth 6 seldepth 9 score cp -266 nodes 1220 nps 58095 hashfull 0 time 21 pv b6b5 c3b5 d7b5 c4b5 b4d5
+info depth 7 seldepth 11 score cp -282 nodes 2184 nps 57473 hashfull 0 time 38 pv b6b5 a3b4 b5c4 b3c4 e8b8 b4b5 a7a6
+info depth 8 seldepth 12 score cp -228 nodes 4981 nps 49316 hashfull 1 time 101 pv b6b5 a3b4 d6b4 d1d3 a8b8 b1a1 b5c4 b3c4 b8a8
+info depth 9 seldepth 20 score cp -270 nodes 12966 nps 54478 hashfull 4 time 238 pv b6b5 a3b4 d6b4 d1d3 a8b8 f3e5 c7e5 d4e5 b5c4 b3c4 b4c5 b1b8 e8b8
+info depth 10 seldepth 21 score cp -260 nodes 31045 nps 55536 hashfull 11 time 559 pv b6b5 a3b4 d6b4 d5d6 b5c4 d6c7 b4c3 b3c4 c3c4 b1b7 c4a6 d1b1
+info depth 11 seldepth 22 score cp -235 nodes 39724 nps 56266 hashfull 13 time 706 pv b6b5 a3b4 d6b4 d1d3 a8b8 f3e5 c7e5 d4e5 e8e5 d5d6 b8e8 f1c1 b5c4 b3c4
+info depth 12 seldepth 23 score cp -239 nodes 59081 nps 48948 hashfull 20 time 1207 pv b6b5 a3b4 d6b4 d1d3 a7a6 f3e5 b4d6 g2g3 a8c8 e5d7 d6d7 f1e1 b5c4 e1e8 c8e8 b3c4
+bestmove b6b5
+readyok
+info depth 1 seldepth 6 score cp 201 nodes 81 nps 27000 hashfull 0 time 3 pv g1g6
+info depth 2 seldepth 6 score cp 200 nodes 219 nps 54750 hashfull 0 time 4 pv g1g6 e6e8 f7f8
+info depth 3 seldepth 6 score cp 347 nodes 445 nps 63571 hashfull 0 time 7 pv g1g6 e6e8 f7f8 e8g6 h7g6
+info depth 4 seldepth 9 score cp 411 nodes 618 nps 44142 hashfull 0 time 14 pv g1g6 e6e8 f7f8 e8d7 g6g7 d7g7 g8g7
+info depth 5 seldepth 9 score cp 226 nodes 1746 nps 64666 hashfull 0 time 27 pv g1g6 e6d5 g6g2 b2a3 g2f3
+info depth 6 seldepth 10 score cp 272 nodes 2372 nps 52711 hashfull 0 time 45 pv g1g6 e6d5 h7h5 b2a3 g8h7
+info depth 7 seldepth 15 score cp 231 nodes 8219 nps 54072 hashfull 1 time 152 pv g1g6 e6d5 g6g7 b2a3 g8h8 e4d6 f7f8 d6f5
+info depth 8 seldepth 17 score cp 253 nodes 14504 nps 51432 hashfull 4 time 282 pv g1g7 b2a3 g8h8 a3a4 f7f3 a4b5 f3f8 e4d6
+info depth 9 seldepth 22 score cp 246 nodes 25432 nps 50161 hashfull 9 time 507 pv g1g6 e6d5 g8h8 e4g5 f7e7 b2a3 h8g7 g5e4 h7h5
+info depth 10 seldepth 22 score cp 305 nodes 54335 nps 51698 hashfull 18 time 1051 pv g1g6 e6d5 g8h8 d5d8 g6g8 d8d6 f7f3 b2a3 g8g7 d6d8 g7f8 d8d5 f8g7
+info depth 11 seldepth 29 score cp 309 nodes 76648 nps 52176 hashfull 25 time 1469 pv g1g6 e6d5 g8h8 d5d8 g6g8 d8d6 g8g7 b2a3 f7f3 d6d8 f3f8 d8d5 f8e8 e4d6 e8f8 a3a4 g7c3
+info depth 12 seldepth 29 score cp 285 nodes 99800 nps 52637 hashfull 35 time 1896 pv g1g6 e6d5 g8h8 b2a3 f7f3 d5d8 g6g8 d8d6 g8g7 d6d5 f3f8 d5e6 h7h5 e6d5
+bestmove g1g6
+readyok
+info depth 1 seldepth 1 score cp -528 nodes 23 nps 0 hashfull 0 time 0 pv h7h5
+info depth 2 seldepth 4 score cp -540 nodes 96 nps 96000 hashfull 0 time 1 pv h7h5 f8e8
+info depth 3 seldepth 4 score cp -530 nodes 189 nps 63000 hashfull 0 time 3 pv h7h5 f8e8 f7e5
+info depth 4 seldepth 5 score cp -524 nodes 538 nps 59777 hashfull 0 time 9 pv h7h5 d2c3 g7g5 f8e8
+info depth 5 seldepth 7 score cp -542 nodes 1615 nps 59814 hashfull 0 time 27 pv g7g5 d2c3 f6e7 f8g8 h7h5
+info depth 6 seldepth 11 score cp -569 nodes 3006 nps 56716 hashfull 1 time 53 pv f6e7 f8a8 e7f6 a8a6 f6e5 d2c3 f7h6
+info depth 7 seldepth 11 score cp -583 nodes 4489 nps 61493 hashfull 1 time 73 pv f6e7 f8g8 e7f6 d2c3 f7h6 g8f8 f6e5 f8e8 e5f5
+info depth 8 seldepth 15 score cp -597 nodes 10546 nps 58916 hashfull 4 time 179 pv f6e7 f8b8 h7h5 d2c3 g7g5 c3d4 f7d6 d4e5
+info depth 9 seldepth 15 score cp -595 nodes 12867 nps 58486 hashfull 5 time 220 pv f6e7 f8b8 e7f6 d2c3 f7e5 b8f8 f6g6 c3d4 e5g4 h2h3
+info depth 10 seldepth 19 score cp -638 nodes 28850 nps 62581 hashfull 11 time 461 pv f6e7 f8g8 e7f6 d2c3 f7h6 g8f8 f6g5 c3d4 h6g4 h2h3 g4f6 f8f7 g5g6 f7e7
+info depth 11 seldepth 20 score cp -636 nodes 35130 nps 62397 hashfull 12 time 563 pv f6e7 f8g8 e7f6 d2c3 f7h6 g8f8 f6g5 c3d4 h6g4 h2h3 g4f6 f8f7 g5g6 f7a7 h7h5 d4e5 h5h4
+info depth 12 seldepth 27 score cp -617 nodes 69346 nps 59017 hashfull 25 time 1175 pv f6e7 f8g8 e7f6 d2c3 f7e5 g8f8 f6e6 c3d4 e5g4 h2h3 g4f6 f8b8 h7h5 b8b5 h5h4
+bestmove f6e7
+readyok
+info depth 1 seldepth 3 score cp -241 nodes 40 nps 0 hashfull 0 time 0 pv f6g5
+info depth 2 seldepth 4 score cp -241 nodes 111 nps 111000 hashfull 0 time 1 pv f6g5 h3h2
+info depth 3 seldepth 4 score cp -216 nodes 160 nps 53333 hashfull 0 time 3 pv f6g5 h3h2 h5h6
+info depth 4 seldepth 7 score cp -179 nodes 578 nps 64222 hashfull 0 time 9 pv f6g5 c2b3 h5h6 h3h2
+info depth 5 seldepth 7 score cp -227 nodes 1286 nps 61238 hashfull 0 time 21 pv f6g5 h3g3 f7f6 g3h3
+info depth 6 seldepth 10 score cp -491 nodes 3539 nps 57080 hashfull 1 time 62 pv f6g5 h3f3 f7g8 f3f2 g7e6 d7e6 h5h6 e6e5
+info depth 7 seldepth 14 score cp -457 nodes 6447 nps 56552 hashfull 2 time 114 pv f6g5 h3f3 f7g8 f3f2 g5e3 f2h2 e3f4 h2g2 h5h6 d3d2
+info depth 8 seldepth 15 score cp -457 nodes 8505 nps 59062 hashfull 3 time 144 pv f6g5 h3f3 f7g8 f3f2 g5e3 f2e2 e3f4 d3d2 f4d2 e2d2 g8f7
+info depth 9 seldepth 19 score cp -400 nodes 16926 nps 60884 hashfull 5 time 278 pv f6g5 h3f3 f7g8 f3f2 h5h6 d3d2 g5d2 f2d2 g7h5 d2h2 h5f6 d7e7 h6h7 h2g2 g8h8
+info depth 10 seldepth 24 score cp -478 nodes 23352 nps 61130 hashfull 6 time 382 pv f6g5 h3f3 f7g8 f3f2 h5h6 d3d2 g5e3 f2e2 e3d2 e2d2 g7h5 d2h2 h5f6 d7e7
+info depth 11 seldepth 24 score cp -501 nodes 31770 nps 62416 hashfull 8 time 509 pv f6g5 h3f3 f7g8 f3f2 g5e3 f2e2 e3f4 d3d2 f4d2 e2d2 g8f8 d2e2 f8g8 e2e5 h5h6 d7e7
+info depth 12 seldepth 29 score cp -507 nodes 41833 nps 62437 hashfull 11 time 670 pv f6g5 h3f3 f7g8 f3f2 h5h6 d3d2 g5d2 f2d2 h6h7 c2h7 g8h7 d2e2 h7g6 e2e5 g6f6 e5e4 a3a4
+bestmove f6g5
+readyok
+info depth 1 seldepth 4 score cp 1900 nodes 36 nps 36000 hashfull 0 time 1 pv e4f5
+info depth 2 seldepth 4 score cp 1970 nodes 119 nps 119000 hashfull 0 time 1 pv e4f5 g7h8
+info depth 3 seldepth 5 score cp 1882 nodes 161 nps 53666 hashfull 0 time 3 pv e4f5 g7h8 g5g6
+info depth 4 seldepth 6 score cp 1979 nodes 368 nps 52571 hashfull 0 time 7 pv e4f5 g7f7 h5h6 f7g8
+info depth 5 seldepth 7 score cp 2033 nodes 1094 nps 72933 hashfull 0 time 15 pv e4f5 g7f7 g5g6 f7f8 f5e6 f8g7
+info depth 6 seldepth 8 score cp 1990 nodes 1512 nps 56000 hashfull 0 time 27 pv e4f5 g7f7 h5h6 f7g8 f5e6 g8h8
+info depth 7 seldepth 10 score cp 2062 nodes 2529 nps 60214 hashfull 1 time 42 pv e4f5 g7f7 g5g6 f7g7 f5e6 g7h6 f4f5 h6h5 e6d6
+info depth 8 seldepth 16 score cp 2145 nodes 6442 nps 67104 hashfull 2 time 96 pv e4f5 g7f7 h5h6 f7f8 f5g6 f8g8 f4f5 g8h8 f5f6
+info depth 9 seldepth 17 score cp 2170 nodes 9145 nps 65791 hashfull 3 time 139 pv e4f5 g7f7 h5h6 f7f8 f5g6 f8g8 f4f5 g8h8 f5f6 h8g8
+info depth 10 seldepth 20 score cp 2440 nodes 51039 nps 80376 hashfull 12 time 635 pv e3f5 g7g8 f5d6 g8h8 e4e5 h8h7 d6f5 h7g8 d5d6
+info depth 11 seldepth 26 score cp 2993 nodes 210625 nps 81291 hashfull 67 time 2591 pv e3f5 g7g8 f5d6 g8f8 d6f5 f8f7 e4e5 f7e8 d5d6 e8d7 h5h6 d7e8 g5g6
+info depth 12 seldepth 28 score cp 3550 nodes 385868 nps 84067 hashfull 124 time 4590 pv e3f5 g7g8 f5d6 g8f8 e4e5 f8g7 d6f5 g7f7 g5g6 f7e8 h5h6 e8d7 g6g7 d7c7 d5d6 c7c6 h6h7
+bestmove e3f5
+readyok
+info depth 1 seldepth 7 score cp 99 nodes 264 nps 66000 hashfull 0 time 4 pv h8e8
+info depth 2 seldepth 7 score cp 983 nodes 463 nps 66142 hashfull 0 time 7 pv f5h6 f3e5 h6g4 e5g4
+info depth 3 seldepth 8 score cp 43 nodes 996 nps 62250 hashfull 0 time 16 pv d6f6 e1e5 f5h4
+info depth 4 seldepth 8 score cp 11 nodes 2196 nps 73200 hashfull 0 time 30 pv c8c3 e1e5 f5h4 e5e6
+info depth 5 seldepth 12 score cp 24 nodes 3873 nps 62467 hashfull 1 time 62 pv c8c3 e1e5 f5h4 e5e6 c3c1 f1e2
+info depth 6 seldepth 14 score cp -3 nodes 10777 nps 48986 hashfull 4 time 220 pv c8c3 e1e5 c3c1 f1e2 d6d7 e2d2
+info depth 7 seldepth 14 score cp 59 nodes 14507 nps 49852 hashfull 5 time 291 pv c8c3 e1e5 c3c1 e5e1 c1e1 f1e1 d6f6 e1d2 f5h4
+info depth 8 seldepth 20 score cp 6 nodes 31281 nps 47976 hashfull 13 time 652 pv d6f6 a2e2 c8f8 h4h5 h8h5 e2e5 h5h1 f1g2 h1e1 e5e1 f8f7
+info depth 9 seldepth 20 score cp -2 nodes 43693 nps 47544 hashfull 20 time 919 pv c8c3 a2e2 f5h6 g4g2 e5e4 d3e4 d5e4 e2e4 d6d3 e4e2
+info depth 10 seldepth 20 score cp -13 nodes 69945 nps 47614 hashfull 31 time 1469 pv d6f6 a2e2 f5h4 f3h4 f6h4 g4d7 g7h6 d7d5 h4h3 d5g2 h3g2 f1g2 h8d8 e2e5 d8d3
+info depth 11 seldepth 28 score cp 27 nodes 110913 nps 47418 hashfull 44 time 2339 pv c8e8 a2e2 d6e6 g4g5 f5h4 g5e5 e6e5 f3e5 h4f5 f1g2 e8e7 e2c2
+info depth 12 seldepth 28 score cp 0 nodes 127992 nps 47510 hashfull 51 time 2694 pv c8e8 a2e2 f5h6 g4g3 h6f5 g3g4
+bestmove c8e8
+readyok
+info depth 1 seldepth 1 score cp -234 nodes 7 nps 0 hashfull 0 time 0 pv g5h5
+info depth 2 seldepth 4 score cp -215 nodes 63 nps 63000 hashfull 0 time 1 pv g5h5 f5f4
+info depth 3 seldepth 4 score cp -242 nodes 126 nps 63000 hashfull 0 time 2 pv g5h5 f5f4 g3f4 e5f4
+info depth 4 seldepth 6 score cp -279 nodes 297 nps 74250 hashfull 0 time 4 pv g5h5 f5f4 h5g4 f4g3
+info depth 5 seldepth 6 score cp -279 nodes 467 nps 77833 hashfull 0 time 6 pv g5h5 f5f4 h5g4 f4g3 g4g3
+info depth 6 seldepth 7 score cp -271 nodes 621 nps 62100 hashfull 0 time 10 pv g5h5 f5f4 h5g4 f7f5 g4f3 f4g3 f3g3
+info depth 7 seldepth 12 score cp -245 nodes 1460 nps 54074 hashfull 0 time 27 pv g5h5 f5f4 h5g4 f7f5 g4f3 f4g3 h4h5 b5b4
+info depth 8 seldepth 14 score cp -244 nodes 4129 nps 73732 hashfull 1 time 56 pv g5h5 f5f4 h5g4 f4g3 g4g3 e5f5 g3f3 b5b4 c3b4 a5b4
+info depth 9 seldepth 16 score cp -245 nodes 7543 nps 72528 hashfull 2 time 104 pv g5h5 f5f4 h5g4 f4g3 g4g3 e5f5 g3f3 b5b4 c3b4 a5b4 f3e3 f5g4 e3d4 f7f5
+info depth 10 seldepth 21 score cp -263 nodes 15011 nps 68543 hashfull 3 time 219 pv g5h5 f5f4 h5g4 f4g3 g4g3 e5f5 g3f3 b5b4 c3b4 a5b4 b2b3 f7f6 f3e3 f5g4 e3d4 f6f5
+info depth 11 seldepth 23 score cp -594 nodes 39005 nps 68429 hashfull 10 time 570 pv g5h5 e5f6 h5h6 b5b4 c3b4 a5b4 h6h7 d5d4 h7h6 d4d3 h6h5 b4b3
+info depth 12 seldepth 30 score cp -1079 nodes 81072 nps 66780 hashfull 20 time 1214 pv g5h5 e5f6 g3g4 f5f4 g4g5 f6f5 h5h6 f4f3 h6g7 f3f2 g7f7 f2f1q g5g6 b5b4
+bestmove g5h5
+readyok
+info depth 1 seldepth 1 score cp -111 nodes 30 nps 30000 hashfull 0 time 1 pv g7g6
+info depth 2 seldepth 7 score cp -138 nodes 414 nps 51750 hashfull 0 time 8 pv d7d5 f1e1 c8e6
+info depth 3 seldepth 7 score cp -129 nodes 511 nps 46454 hashfull 0 time 11 pv d7d5 c1g5 c8e6
+info depth 4 seldepth 7 score cp -130 nodes 871 nps 48388 hashfull 0 time 18 pv d7d5 f1e1 c8e6 c1g5 g7g6
+info depth 5 seldepth 16 score cp -17 nodes 3231 nps 51285 hashfull 0 time 63 pv d7d5 c3c4 g7g6 c4d5 f6d5
+info depth 6 seldepth 17 score cp -113 nodes 4486 nps 47221 hashfull 1 time 95 pv d7d5 f1e1 c8e6 d1b3 a8b8 c1g5 g7g6
+info depth 7 seldepth 17 score cp -112 nodes 6090 nps 52051 hashfull 1 time 117 pv d7d5 f1e1 c8e6 d1b3 a8b8 c1g5 g7g6
+info depth 8 seldepth 17 score cp -122 nodes 10387 nps 48995 hashfull 3 time 212 pv d7d5 f1e1 c8e6 d1b3 a8b8 c1g5 g7g6 f5h6 f8g7
+info depth 9 seldepth 19 score cp -113 nodes 24390 nps 47359 hashfull 8 time 515 pv d7d5 f1e1 c8e6 d1b3 c6a5 b3a4 c7c6 c1g5 g7g6 f5h6 f8g7
+info depth 10 seldepth 19 score cp -130 nodes 28416 nps 48081 hashfull 9 time 591 pv d7d5 f1e1 c8e6 d1b3 a8b8 c1g5 g7g6 f5e3 f8g7 g5f6 g7f6 e3d5
+info depth 11 seldepth 23 score cp -137 nodes 34479 nps 48837 hashfull 11 time 706 pv d7d5 f1e1 c8e6 d1b3 c6a5 b3a4 c7c6 c1g5 d8c7 b1d2 e8c8 g5f6 g7f6 f5e3 d8e8
+info depth 12 seldepth 27 score cp -127 nodes 56030 nps 38298 hashfull 18 time 1463 pv d7d5 f1e1 c8e6 d1b3 a8b8 c1g5 e8d7 f5e3 d7c8 b3a4 f8e7 e3f5 e7f8
+bestmove d7d5
+readyok
+info depth 1 seldepth 2 score cp 1161 nodes 62 nps 62000 hashfull 0 time 1 pv c3c2
+info depth 2 seldepth 4 score cp 1190 nodes 138 nps 69000 hashfull 0 time 2 pv c3c2 a8b8 b3c3
+info depth 3 seldepth 6 score cp 1098 nodes 390 nps 78000 hashfull 0 time 5 pv c3c2 a8c8 b3b2
+info depth 4 seldepth 6 score cp 1126 nodes 702 nps 70200 hashfull 0 time 10 pv c3c2 a8c8 b3b2 f4g5
+info depth 5 seldepth 10 score cp 1140 nodes 1528 nps 58769 hashfull 0 time 26 pv c3c2 a8b8 b3c3 b8c8 c3b2 c8b8 d3b3 b8c8
+info depth 6 seldepth 10 score cp 1156 nodes 2063 nps 60676 hashfull 0 time 34 pv c3c2 a8b8 b3c3 b8c8 c3d2 c8c4 c2c1q
+info depth 7 seldepth 14 score cp 1395 nodes 3822 nps 59718 hashfull 0 time 64 pv c3c2 a8b8 b3c3 b8c8 c3d2 f4g5 c2c1q c8c1 d2c1 g5h6
+info depth 8 seldepth 14 score cp 1446 nodes 5431 nps 61022 hashfull 1 time 89 pv c3c2 a8b8 b3c3 b8c8 c3d2 c8c4 c2c1q c4c1 d2c1 f4g5 c1d2
+info depth 9 seldepth 16 score cp 1447 nodes 7051 nps 60784 hashfull 1 time 116 pv c3c2 a8b8 b3c3 b8c8 c3d2 c8c7 c2c1q c7c1 d2c1 f4g5 c1d2
+info depth 10 seldepth 18 score cp 1562 nodes 12574 nps 60743 hashfull 2 time 207 pv c3c2 a8b8 b3c3 b8c8 c3d2 c8c7 c2c1q c7c1 d2c1 f4g5 c1d2 g5f4 d2c3 f4g5
+info depth 11 seldepth 21 score cp 1761 nodes 24413 nps 65450 hashfull 3 time 373 pv c3c2 a8b8 b3c3 b8c8 c3d2 c8c7 c2c1q c7c1 d2c1 f4g5 c1d2 g5f4 d2e2 f4g5 e2e3 g5h6 f5f4
+info depth 12 seldepth 21 score cp 1761 nodes 28510 nps 66148 hashfull 3 time 431 pv c3c2 a8b8 b3c3 b8c8 c3d2 c8c7 c2c1q c7c1 d2c1 f4g5 c1d2 g5f4 d2e2 f4g5 e2e3 g5h6 f5f4
+bestmove c3c2
+readyok
+info depth 1 seldepth 3 score cp -42 nodes 89 nps 89000 hashfull 0 time 1 pv e8a8
+info depth 2 seldepth 4 score cp -55 nodes 338 nps 48285 hashfull 0 time 7 pv d7f6 b4a5
+info depth 3 seldepth 5 score cp -61 nodes 550 nps 61111 hashfull 0 time 9 pv d7f6 g1g2 g8f8 b4a5
+info depth 4 seldepth 6 score cp -60 nodes 808 nps 47529 hashfull 0 time 17 pv g8f8 d3b5 f8e7 g1g2
+info depth 5 seldepth 9 score cp -72 nodes 2629 nps 53653 hashfull 0 time 49 pv d7f6 f2f3 g8f8 b4a5 b6a5
+info depth 6 seldepth 10 score cp -41 nodes 5497 nps 50898 hashfull 2 time 108 pv c7c6 a1d1 g7g6 b4a5 b6a5 d3a6
+info depth 7 seldepth 10 score cp -63 nodes 8534 nps 55777 hashfull 3 time 153 pv c7c6 d3a6 d7f6 a6b7 c6c5 b7c6 e8b8
+info depth 8 seldepth 12 score cp -55 nodes 13463 nps 53003 hashfull 5 time 254 pv c7c6 d3a6 d7f6 b4a5 b6a5 f2f3 g7g6 g1f2
+info depth 9 seldepth 13 score cp -8 nodes 31895 nps 55566 hashfull 12 time 574 pv e8d8 d3b5 d7f6 b4a5 b6a5 f2f3 d8d2 a1b1
+info depth 10 seldepth 16 score cp -12 nodes 43845 nps 56428 hashfull 14 time 777 pv e8d8 f2f3 d7f6 a1d1 a5b4 c3b4 d8d4 a4a5 d4b4
+info depth 11 seldepth 18 score cp -18 nodes 68316 nps 56788 hashfull 22 time 1203 pv e8d8 f2f3 a5b4 c3b4 c7c5 a1b1 c5b4 b1b4 d7c5 d3c4 d8d1 g1g2
+info depth 12 seldepth 23 score cp -13 nodes 103237 nps 56630 hashfull 35 time 1823 pv e8d8 f2f3 g8f8 d3e2 d7f6 a1d1 d8d1 e2d1 f8e7 d1b3 c7c5 b4a5 b6a5 g1f2
+bestmove e8d8
+readyok
+info depth 1 seldepth 5 score cp -64 nodes 112 nps 56000 hashfull 0 time 2 pv e3e6 g8h8 e6c4
+info depth 2 seldepth 5 score cp -64 nodes 211 nps 70333 hashfull 0 time 3 pv e3e6 g8h8 e6c4
+info depth 3 seldepth 5 score cp -64 nodes 322 nps 80500 hashfull 0 time 4 pv e3e6 g8h8 e6c4
+info depth 4 seldepth 6 score cp -91 nodes 571 nps 95166 hashfull 0 time 6 pv e3e6 g8h8 e6c4 f6e5
+info depth 5 seldepth 9 score cp -84 nodes 856 nps 85600 hashfull 0 time 10 pv e3e6 g8h8 e6c4 f8e8 b1c2
+info depth 6 seldepth 9 score cp -86 nodes 973 nps 69500 hashfull 0 time 14 pv e3e6 g8h8 e6c4 f8e8 b1c2 f6e5
+info depth 7 seldepth 12 score cp -132 nodes 3144 nps 59320 hashfull 1 time 53 pv e3e6 g8h8 e6c4 a8c8 c4e6 c8c7 f4c7
+info depth 8 seldepth 16 score cp -146 nodes 6523 nps 53032 hashfull 2 time 123 pv e3e6 g8h8 e6c4 c6b5 c4d5 b5f1 c7b7 b2a1 g1f1
+info depth 9 seldepth 17 score cp -261 nodes 12729 nps 54165 hashfull 4 time 235 pv e3e6 g8h8 e6c4 c6b5 c4c1 b5f1 c1b2 f6b2 g1f1 a8b8 b1c2
+info depth 10 seldepth 18 score cp -254 nodes 23798 nps 50312 hashfull 8 time 473 pv e3e6 g8h8 c7c6 b7c6 e6c4 b2b5 c4c1 f8e8 f4e3 e8d8 f1e1 b5b4 e3f4
+info depth 11 seldepth 20 score cp -279 nodes 38635 nps 50110 hashfull 15 time 771 pv e3e6 g8h8 c7c6 b7c6 e6c4 b2b5 c4c1 f8e8 f4e3 a8d8 g2g4 f5g4 h3g4
+info depth 12 seldepth 23 score cp -270 nodes 54752 nps 49956 hashfull 21 time 1096 pv e3e6 g8h8 c7c6 b7c6 e6c4 b2b5 c4c1 f8e8 a2a3 e8e2 f4g5 f6g5 c1g5 a8e8
+bestmove e3e6
+readyok
+info depth 1 seldepth 10 score cp 213 nodes 86 nps 28666 hashfull 0 time 3 pv e5e4
+info depth 2 seldepth 10 score cp 225 nodes 321 nps 64200 hashfull 0 time 5 pv b8d7 b3a4
+info depth 3 seldepth 13 score cp 343 nodes 746 nps 41444 hashfull 0 time 18 pv e5e4 h4g4 f6g4
+info depth 4 seldepth 13 score cp 357 nodes 1247 nps 56681 hashfull 0 time 22 pv e5e4 h4g4 f6g4 b3d5 c5f2 e1d1
+info depth 5 seldepth 13 score cp 281 nodes 1860 nps 58125 hashfull 1 time 32 pv e5e4 d3e4 d5e4 h4g4 e4f3
+info depth 6 seldepth 13 score cp 262 nodes 2392 nps 48816 hashfull 1 time 49 pv e5e4 d3e4 d5e4 b3f7 g8f7 f3g5 f7g8
+info depth 7 seldepth 17 score cp 262 nodes 4101 nps 52576 hashfull 1 time 78 pv e5e4 d3e4 d5e4 b3f7 g8f7 f3g5 f7g8 h4g4 f6g4 e2g4 c5f2 e1d1
+info depth 8 seldepth 22 score cp 239 nodes 6973 nps 46486 hashfull 3 time 150 pv e5e4 d3e4 d5e4 b3f7 g8f7 f3g5 f7g8 h4g4 c5f2 e1d1 f6g4
+info depth 9 seldepth 22 score cp 214 nodes 18316 nps 49771 hashfull 7 time 368 pv e5e4 d3e4 d5e4 b3f7 g8f7 f3g5 f7g8 h4g4 c5f2 e1d1 f6g4 e2g4
+info depth 10 seldepth 23 score cp 265 nodes 25320 nps 48598 hashfull 7 time 521 pv e5e4 d3e4 d5e4 b3f7 g8f7 f3g5 f7g8 h4g4 f6g4 e2g4 b6g6 d2e4 b8c6 e1d1
+info depth 11 seldepth 29 score cp 287 nodes 45580 nps 48644 hashfull 16 time 937 pv e5e4 d3e4 d5e4 b3f7 g8f7 f3g5 f7g8 h4g4 c5f2 e1f1 f6g4 e2g4 f2e3 d2e4 e3g5 c1g5 b6b5 f1e1 b5b2
+info depth 12 seldepth 29 score cp 299 nodes 67793 nps 48666 hashfull 26 time 1393 pv e5e4 d3e4 d5e4 b3f7 g8f7 f3g5 f7g8 h4g4 c5f2 e1d1 f6g4 e2g4 b6g6 d2e4 f2b6 c1d2 b8c6 d1c2
+bestmove e5e4
+readyok
+info depth 1 seldepth 3 score cp -759 nodes 50 nps 50000 hashfull 0 time 1 pv e8e5
+info depth 2 seldepth 3 score cp -839 nodes 120 nps 120000 hashfull 0 time 1 pv e8e5 d5d6
+info depth 3 seldepth 4 score cp -913 nodes 218 nps 72666 hashfull 0 time 3 pv e8e5 d5d6 e5e1 c1d2
+info depth 4 seldepth 6 score cp -895 nodes 320 nps 64000 hashfull 0 time 5 pv e8e5 d5d6 e5e2 d6d7
+info depth 5 seldepth 8 score cp -757 nodes 735 nps 49000 hashfull 0 time 15 pv e8e5 d5d6 e5d5 c6c7
+info depth 6 seldepth 9 score cp -831 nodes 1930 nps 66551 hashfull 1 time 29 pv e8e5 c6c2 h7g8 d5d6 e5g5 c2a4 g5g2
+info depth 7 seldepth 13 score cp -776 nodes 4181 nps 62402 hashfull 2 time 67 pv e8e5 c6c2 h7g8 d5d6 e5d5 c2c7 g8h7 c7c6 h7g6
+info depth 8 seldepth 18 score cp -830 nodes 8683 nps 54955 hashfull 3 time 158 pv e8e5 c6c2 h7g8 d5d6 e5d5 c2a4 d5d6 a4b3 g8h7 b3c2 h7h8 a2a4
+info depth 9 seldepth 21 score cp -892 nodes 26782 nps 55795 hashfull 10 time 480 pv e8e5 d5d6 e5d5 c6a4 d5d6 a4c2 h7g8 a2a4 d6d8 a4a5 g8h8 b2b4
+info depth 10 seldepth 25 score cp -865 nodes 49119 nps 56264 hashfull 19 time 873 pv e8e5 d5d6 e5e1 c1d2 e1g1 c6a4 g1g2 d2c3 f6d5 c3d3 d5f6 a4b5 g2h2 a2a4
+info depth 11 seldepth 26 score cp -950 nodes 102421 nps 56900 hashfull 38 time 1800 pv e8e5 d5d6 e5d5 c6a4 d5d6 a4c2 g7g6 c2c5 d6e6 a2a4 e6e8 a4a5 e8e2 c5c7 h7h8
+info depth 12 seldepth 26 score cp -953 nodes 119657 nps 57527 hashfull 44 time 2080 pv e8e5 d5d6 e5d5 c6a4 d5d6 a4c2 g7g6 c2c5 d6d7 a2a4 f6d5 c5d4 d7c7 c1d2 c7d7 a4a5 d7d8
+bestmove e8e5
+readyok
+info depth 1 seldepth 2 score cp -554 nodes 112 nps 56000 hashfull 0 time 2 pv e6g4
+info depth 2 seldepth 4 score cp -316 nodes 233 nps 77666 hashfull 0 time 3 pv e6g4 c5c6 g4d1
+info depth 3 seldepth 5 score cp -565 nodes 338 nps 56333 hashfull 0 time 6 pv e6d7 c5d4
+info depth 4 seldepth 5 score cp -578 nodes 832 nps 64000 hashfull 0 time 13 pv b8b6 c5e5 e6d7 e5e7
+info depth 5 seldepth 6 score cp -571 nodes 1027 nps 54052 hashfull 0 time 19 pv e6d7 d1d3 h7g8 c5d4
+info depth 6 seldepth 11 score cp -577 nodes 2287 nps 60184 hashfull 0 time 38 pv e6d7 h2h3 b8d8 b2b4 h7g8
+info depth 7 seldepth 11 score cp -592 nodes 4917 nps 47737 hashfull 2 time 103 pv e6d7 f2f3 h7g8 b2b4 b8f8 a2a3
+info depth 8 seldepth 13 score cp -597 nodes 17145 nps 51026 hashfull 5 time 336 pv e6d7 d1e1 a7a5 e1e7 a5a4 f2f3 h7g8 d6f5 d7f5
+info depth 9 seldepth 17 score cp -636 nodes 23558 nps 50991 hashfull 9 time 462 pv e6d7 d1e1 h7g8 e1e7 a7a5 d6f5 d7f5 c5f5 g8h8 f5e6
+info depth 10 seldepth 20 score cp -650 nodes 32605 nps 49931 hashfull 14 time 653 pv e6d7 d1e1 a7a5 e1e7 b8f8 d6f5 d7f5 c5f5 h7h8 a2a4 h6h5 f5g6
+info depth 11 seldepth 22 score cp -685 nodes 93677 nps 51273 hashfull 36 time 1827 pv e6g8 c5c6 a7a5 c6c5 a5a4 d1e1 b8d8 e1e7 h7h8 c5d4 a4a3
+info depth 12 seldepth 23 score cp -694 nodes 121839 nps 51365 hashfull 48 time 2372 pv e6g8 c5c6 a7a5 c6c5 b8d8 d6b5 d8d1 c1d1 h7h8 b5c3 a8e8 d1d2
+bestmove e6g8
+readyok
+info depth 1 seldepth 5 score cp -1890 nodes 73 nps 73000 hashfull 0 time 1 pv h6h5
+info depth 2 seldepth 6 score cp -1780 nodes 218 nps 72666 hashfull 0 time 3 pv c6b5 b2b3
+info depth 3 seldepth 6 score cp -1968 nodes 547 nps 54700 hashfull 0 time 10 pv h6h5 g7c3 c6b5 b2b3
+info depth 4 seldepth 8 score cp -1984 nodes 665 nps 47500 hashfull 0 time 14 pv h6h5 g7c3 c6b7 b2b3
+info depth 5 seldepth 9 score cp -1958 nodes 1344 nps 49777 hashfull 1 time 27 pv d7f6 g7h6 c6b5 b2b3
+info depth 6 seldepth 10 score cp -1976 nodes 2396 nps 52086 hashfull 1 time 46 pv c6b5 g7c3 b5a4 c3d2 d7e5
+info depth 7 seldepth 17 score cp -2015 nodes 25229 nps 66567 hashfull 10 time 379 pv h6h5 g7c3 c6d5 b2b3 d5e6 c3e3 e6d6 e3d3 d6c6 b4b5 c6b7
+info depth 8 seldepth 21 score cp -2068 nodes 52800 nps 66582 hashfull 21 time 793 pv c6b5 g7c3 h6h5 b2b3 h5h4 c3c4 b5b6 c4h4 d7c5 b3c4
+info depth 9 seldepth 21 score cp -2100 nodes 85974 nps 67377 hashfull 33 time 1276 pv c6b5 g7c3 b5a4 f3f4 d7f6 f4f5 f6d5 c3b3 a4b5 b3d5 b5b4
+info depth 10 seldepth 21 score cp -2122 nodes 131245 nps 67897 hashfull 50 time 1933 pv c6b5 g7c3 b5a4 f3f4 h6h5 h3h4 a4b5 b2b3 b5b6 f4f5 b6b7 c3f3 b7c7
+info depth 11 seldepth 29 score cp -2208 nodes 454959 nps 72584 hashfull 175 time 6268 pv h6h5 g7h6 c6d5 h6h5 d5e6 h5h6 e6e7 h6e3 e7d6 e3d4 d6e6 b4b5 d7f6 h3h4 e6f7 d4c4 f6d5
+info depth 12 seldepth 29 score cp -2214 nodes 511849 nps 73425 hashfull 190 time 6971 pv h6h5 g7h6 c6d5 h6h5 d5e6 h5h6 e6e7 h6e3 e7d6 e3d4 d6e6 b4b5 d7e5 f3f4 e5d7 b2a3
+bestmove h6h5
+readyok
+info depth 1 seldepth 4 score cp 33 nodes 29 nps 29000 hashfull 0 time 1 pv a4b3
+info depth 2 seldepth 4 score cp 8 nodes 97 nps 48500 hashfull 0 time 2 pv h5h6 e6d7
+info depth 3 seldepth 4 score cp 62 nodes 271 nps 67750 hashfull 0 time 4 pv h5h6 e6d7 g5g7 d7c8
+info depth 4 seldepth 6 score cp -25 nodes 879 nps 58600 hashfull 0 time 15 pv h5h6 e6f7 a4b3 d3d2
+info depth 5 seldepth 8 score cp -32 nodes 1356 nps 56500 hashfull 0 time 24 pv h5h6 e6f7 a4b3 d3d2 g5f5 f7e7
+info depth 6 seldepth 11 score cp -97 nodes 2934 nps 45843 hashfull 1 time 64 pv h5h6 e6f7 h6h7 f7f6 g5g4 d3d2
+info depth 7 seldepth 15 score cp -99 nodes 6902 nps 49654 hashfull 1 time 139 pv h5h6 e6f7 g5f5 f7e7 h6h7 e7e6 g2g4 d3d2 h7h6 e6d7 f5f7 d7e8
+info depth 8 seldepth 23 score cp -150 nodes 23432 nps 55526 hashfull 5 time 422 pv h5h6 e6f7 g5f5 f7e7 h6h7 e7e6 h7f7 d5d4 a4b3 d3d2 f5f6 e6d5 f7d7 d5e4 d7d4 e4d4 f6d6 d4e3
+info depth 9 seldepth 23 score cp -150 nodes 25865 nps 55984 hashfull 5 time 462 pv h5h6 e6f7 g5f5 f7e7 h6h7 e7e6 h7f7 d5d4 a4b3 d3d2 f5f6 e6d5 f7d7 d5e4
+info depth 10 seldepth 31 score cp -209 nodes 75251 nps 59393 hashfull 17 time 1267 pv h5h6 e6f7 g5f5 f7e7 h6h7 e7e6 h7f7 d5d4 f5f6 e6d5 f6f2 d5e4 f7f3 d3d2 f2e2 e4d5
+info depth 11 seldepth 31 score cp -189 nodes 127041 nps 58897 hashfull 33 time 2157 pv h5h6 e6f7 g5f5 f7e7 f5f3 e5e4 f3e3 d5e5 a4b3 d3d2 h6h7 e7e6 h7h6 e6d5
+info depth 12 seldepth 33 score cp -223 nodes 177569 nps 60603 hashfull 45 time 2930 pv h5h6 e6f7 g5f5 f7e7 h6h7 e7e6 h7f7 d5d4 f5f6 e6d5 f7d7 d5e4 d7d4 e4d4 f6d6 d4e3 b4b5 d3d2 b5b6 d2d1q d6d1 c1d1 a4b5 e5e4 b6b7
+bestmove h5h6
+readyok
+info depth 1 seldepth 2 score cp -144 nodes 52 nps 0 hashfull 0 time 0 pv g7g6
+info depth 2 seldepth 2 score cp -134 nodes 107 nps 107000 hashfull 0 time 1 pv g7g6 a3b3
+info depth 3 seldepth 4 score cp -142 nodes 262 nps 52400 hashfull 0 time 5 pv g7g6 g3g4 g6g7
+info depth 4 seldepth 6 score cp -142 nodes 424 nps 42400 hashfull 0 time 10 pv g7g6 a3a7 g6g7 a7a4
+info depth 5 seldepth 8 score cp -131 nodes 2046 nps 62000 hashfull 0 time 33 pv g7h6 g3g4 h6g6 a3a6 g6g7
+info depth 6 seldepth 8 score cp -127 nodes 2500 nps 54347 hashfull 0 time 46 pv g7h6 g3g4 h6g7 a3a6 d5f4
+info depth 7 seldepth 10 score cp -125 nodes 4501 nps 54228 hashfull 2 time 83 pv g7h6 a3a7 h6g6 a7a1 g6h5 a1a4 d5c3
+info depth 8 seldepth 11 score cp -124 nodes 7268 nps 60566 hashfull 2 time 120 pv g7h6 a3a7 h6g6 f2f3 g6g7 a7a1 g7g6 a1h1
+info depth 9 seldepth 12 score cp -119 nodes 12203 nps 62902 hashfull 3 time 194 pv g7h6 a3a7 h6g7 a7a1 g7h6 a1h1 h6g6 f2f3 g6g7 h1a1
+info depth 10 seldepth 17 score cp -119 nodes 24950 nps 61002 hashfull 6 time 409 pv g7g6 a3a4 d5f6 a4c4 f6d5 c4d4 g6g7 d4a4 g7g6 a4a7 g6g7
+info depth 11 seldepth 17 score cp -90 nodes 58613 nps 62553 hashfull 15 time 937 pv d5f6 a3a2 f6g4 e5d4 g7g6 d4e4 g4f6 e4e5 f6g4 e5d6 g4f6 a2b2 f6d5
+info depth 12 seldepth 18 score cp -97 nodes 91623 nps 61574 hashfull 30 time 1488 pv d5f6 a3a4 f6d7 e5d6 d7b6 a4d4 b6d5 d6e5 g7g6 d4g4 d5f6 g4b4 f6d5 b4d4
+bestmove d5f6
+readyok
+info depth 1 seldepth 4 score cp 162 nodes 49 nps 49000 hashfull 0 time 1 pv d8d6
+info depth 2 seldepth 5 score cp 145 nodes 263 nps 65750 hashfull 0 time 4 pv d8d6 b2b3
+info depth 3 seldepth 5 score cp 142 nodes 373 nps 46625 hashfull 0 time 8 pv d8d7 g5e3 d7d6
+info depth 4 seldepth 6 score cp 136 nodes 715 nps 47666 hashfull 0 time 15 pv d8d6 g5e3 d6d7
+info depth 5 seldepth 7 score cp 136 nodes 1764 nps 51882 hashfull 0 time 34 pv d8d6 b2b3 a4a3 g5e3 d6d7
+info depth 6 seldepth 7 score cp 119 nodes 3038 nps 51491 hashfull 1 time 59 pv d8d6 f1c1 f7f6 g5e3 f6f5 b2b3
+info depth 7 seldepth 13 score cp 143 nodes 4371 nps 53304 hashfull 1 time 82 pv d8d6 f1c1 f7f6 g5d2 f6f5 b2b3 a4a3
+info depth 8 seldepth 16 score cp 193 nodes 11281 nps 50361 hashfull 5 time 224 pv d8d7 b2b3 a4a3 g5f6 g7f6 d5f6 d7d6 f6h7
+info depth 9 seldepth 16 score cp 196 nodes 21789 nps 50205 hashfull 8 time 434 pv d8d7 b2b3 a4a3 f1c1 c6d4 g5f6 g7f6 d5f6 d7d6 f6h7
+info depth 10 seldepth 17 score cp 201 nodes 29903 nps 50005 hashfull 10 time 598 pv d8d7 f1c1 c6d4 g5f6 g7f6 d5f6 d7d6 f6h7 d4e6 h7f6
+info depth 11 seldepth 19 score cp 224 nodes 67374 nps 49394 hashfull 24 time 1364 pv d8d7 h2h4 c6d4 h4h5 c7c6 h5g6 h7g6 f1c1 a4a6 c1c3
+info depth 12 seldepth 26 score cp 200 nodes 129910 nps 43216 hashfull 53 time 3006 pv d8d7 h2h4 c6d4 d5f6 g7f6 g5f6 a4a5 f1h1 d4e6 f6g5 f7f5 g5e3 a5a6 h4h5
+bestmove d8d7
+readyok
+info depth 1 seldepth 4 score cp -148 nodes 42 nps 21000 hashfull 0 time 2 pv g2h2 h5g5
+info depth 2 seldepth 4 score cp -148 nodes 185 nps 61666 hashfull 0 time 3 pv g2h2 h5g5
+info depth 3 seldepth 4 score cp -111 nodes 244 nps 48800 hashfull 0 time 5 pv g2h2 h5g5 h2g2 g5f4
+info depth 4 seldepth 6 score cp -157 nodes 426 nps 53250 hashfull 0 time 8 pv g2h2 h5g5 h2g2 g5f4 g2f2 f4e5
+info depth 5 seldepth 9 score cp -275 nodes 1148 nps 39586 hashfull 0 time 29 pv g2e2 e7e8q e2e8 c8e8 b4b3
+info depth 6 seldepth 9 score cp -321 nodes 2274 nps 55463 hashfull 0 time 41 pv g2e2 e7e8q e2e8 c8e8 c3c2 e8c8
+info depth 7 seldepth 15 score cp -331 nodes 4148 nps 54578 hashfull 2 time 76 pv g2e2 a1b1 b4a4 c8c4 a4a5 c4c3 e2h2 h5g4 h2g2 g4f4 a3a2
+info depth 8 seldepth 20 score cp -331 nodes 9304 nps 50841 hashfull 4 time 183 pv g2h2 h5g5 h2g2 g5f4 g2e2 c8b8 b4c4 e7e8q e2e8 b8e8
+info depth 9 seldepth 22 score cp -399 nodes 16772 nps 51447 hashfull 5 time 326 pv g2h2 h5g5 h2g2 g5f4 g2e2 a1b1 b4a4 c8c4 a4a5 c4c3 a5a4 c3a3 a4a3 b1a1 a3b4 a1a6
+info depth 10 seldepth 23 score cp -452 nodes 23309 nps 51913 hashfull 6 time 449 pv g2h2 h5g5 h2g2 g5f4 g2e2 a1b1 b4a4 c8c4 a4a5 c4c3 a5a4 c3c4 a4a5 c4c5 a5a4 c5e5 e2f2 f4e3
+info depth 11 seldepth 28 score cp -486 nodes 37061 nps 53248 hashfull 10 time 696 pv g2e2 a1b1 b4a4 c8c4 a4a5 c4c3 a5a4 c3a3 a4a3 b1a1 a3b4 a1a6 e2e7 h5g6 e7d7 a6a1 b4c5
+info depth 12 seldepth 28 score cp -495 nodes 54122 nps 50914 hashfull 15 time 1063 pv g2e2 a1b1 b4a4 c8c4 a4a5 c4c3 a5a4 b1b3 e2e7 b3a3 a4b5 c3b3 b5c4 a3a6 c4b3 f5f6 e7e2 h5g6
+bestmove g2e2
+readyok
+info depth 1 seldepth 1 score cp 44 nodes 17 nps 0 hashfull 0 time 0 pv e4g3
+info depth 2 seldepth 2 score cp 45 nodes 96 nps 48000 hashfull 0 time 2 pv e4g3 b2c1
+info depth 3 seldepth 4 score cp 33 nodes 412 nps 58857 hashfull 0 time 7 pv e6d5 b2c1 d5e6
+info depth 4 seldepth 7 score cp 25 nodes 842 nps 36608 hashfull 1 time 23 pv e6d6 g6g7 d6d5 g7g6
+info depth 5 seldepth 7 score cp 18 nodes 1583 nps 47969 hashfull 1 time 33 pv e6d6 g6g7 d6e7 g7g6 e7f8
+info depth 6 seldepth 10 score cp 30 nodes 3461 nps 53246 hashfull 1 time 65 pv e6d6 g6f7 d6d5 f7g7 e4c5 g7h6
+info depth 7 seldepth 10 score cp 14 nodes 6609 nps 53731 hashfull 2 time 123 pv e6d6 g6f7 d6d5 f7e7 d5c6 e7e6 e4c5 e6f6
+info depth 8 seldepth 11 score cp 22 nodes 9752 nps 56369 hashfull 2 time 173 pv e6e7 g6g7 e4d2 g7g6 d2f3 b2a3 e7e6 a3b2 f3e1
+info depth 9 seldepth 14 score cp 27 nodes 14666 nps 56407 hashfull 4 time 260 pv e6e7 g6g7 e7d6 g7f7 d6d7 f7g6 d7e6 b2a1 e6d6
+info depth 10 seldepth 14 score cp 27 nodes 16962 nps 57890 hashfull 5 time 293 pv e6e7 g6g7 e7d6 g7f7 d6d7 f7g6 d7e6 b2a3 e6e5 a3b2 e5f4
+info depth 11 seldepth 16 score cp 22 nodes 41383 nps 63470 hashfull 12 time 652 pv e6d5 g6g7 d5c5 g7g6 c5c6 g6g7 c6d7 g7h6 d7d6 h6h7 e4d2 h7g6
+info depth 12 seldepth 16 score cp 22 nodes 44453 nps 64705 hashfull 13 time 687 pv e6d5 g6g7 d5c5 g7g6 c5c6 g6g7 c6d7 g7h6 d7d6 h6g6 d6e6 b2a3 e6d5
+bestmove e6d5
+readyok
+info depth 1 seldepth 2 score cp 49 nodes 32 nps 32000 hashfull 0 time 1 pv b6f6
+info depth 2 seldepth 3 score cp 14 nodes 195 nps 65000 hashfull 0 time 3 pv f4g3 d7e7
+info depth 3 seldepth 5 score cp 7 nodes 271 nps 45166 hashfull 0 time 6 pv f4g3 d7e7 b6b5
+info depth 4 seldepth 9 score cp 6 nodes 642 nps 45857 hashfull 0 time 14 pv b6f6 a1a4 f4g3 d7e7 g3f2
+info depth 5 seldepth 11 score cp -5 nodes 2117 nps 55710 hashfull 0 time 38 pv b6b7 d7e8 b7b8 e8e7 b8b7 e7f8 f4e4
+info depth 6 seldepth 11 score cp -1 nodes 2441 nps 48820 hashfull 0 time 50 pv b6b7 d7e8 b7b8 e8e7 b8b7 e7f8 f4e4 a1a4 e4d5
+info depth 7 seldepth 13 score cp 13 nodes 5810 nps 54299 hashfull 2 time 107 pv e5e6 f7e6 f4e5 h6h5 e5f6 h5g4 f3g4
+info depth 8 seldepth 15 score cp 0 nodes 10665 nps 53592 hashfull 4 time 199 pv b6b7 d7e6 b7b6 e6d7
+info depth 9 seldepth 16 score cp 9 nodes 24031 nps 52355 hashfull 9 time 459 pv e5e6 d7e7 e6f7 e7f7 b6b5 f7g7 f4g3 g7f7 b5b6 f7g7
+info depth 10 seldepth 18 score cp 5 nodes 38994 nps 53710 hashfull 13 time 726 pv e5e6 d7e7 e6f7 a1a4 f4g3 e7f7 b6b7 f7g8 b7e7 a4a6 e7d7 g8f8 d7d3 f8f7
+info depth 11 seldepth 18 score cp 8 nodes 43653 nps 54566 hashfull 15 time 800 pv e5e6 d7e7 e6f7 a1a4 f4g3 e7f7 b6d6 a4a3 d6c6 a3b3 g3f4 f7g7
+info depth 12 seldepth 20 score cp 7 nodes 55215 nps 55159 hashfull 20 time 1001 pv e5e6 d7e7 e6f7 a1a4 f4g3 e7f7 b6d6 a4b4 d6a6 b4b3 g3g2 f7g7 a6a7 g7f6
+bestmove e5e6
+readyok
+info depth 1 seldepth 2 score cp -458 nodes 21 nps 21000 hashfull 0 time 1 pv d3e2
+info depth 2 seldepth 5 score cp -448 nodes 153 nps 38250 hashfull 0 time 4 pv g3h4 b4d6
+info depth 3 seldepth 5 score cp -458 nodes 336 nps 48000 hashfull 0 time 7 pv h3h4 b4d6 d3e2
+info depth 4 seldepth 7 score cp -478 nodes 842 nps 49529 hashfull 0 time 17 pv h3h4 b4c5 e3d2 c5b6 d2c3
+info depth 5 seldepth 9 score cp -465 nodes 1319 nps 52760 hashfull 0 time 25 pv h3h4 b4c5 e3d2 c5b6 d2e2 b6d8
+info depth 6 seldepth 12 score cp -465 nodes 2047 nps 53868 hashfull 0 time 38 pv h3h4 b4c5 e3d2 c5b6 d2c2 b6d8
+info depth 7 seldepth 12 score cp -461 nodes 4170 nps 52125 hashfull 1 time 80 pv h3h4 b4d6 d3e2 d6c5 e3f3 c5b6 g3e1
+info depth 8 seldepth 14 score cp -488 nodes 11425 nps 48206 hashfull 4 time 237 pv e3e2 b4d6 e2e3 d6e7 h3h4 e7d6 d3e2 d6c5 e3f3
+info depth 9 seldepth 14 score cp -490 nodes 18961 nps 52816 hashfull 7 time 359 pv e3e2 b4d6 e2e3 d6e7 e3e2 e7f6 e2e3 b5b4 d3c2
+info depth 10 seldepth 18 score cp -518 nodes 43067 nps 53968 hashfull 15 time 798 pv e3e2 b4d6 e2e3 d6a3 e3d2 b5b4 d2c2 d5c5 c2d1 c5c3 d1e2 a3c1
+info depth 11 seldepth 19 score cp -525 nodes 66022 nps 53720 hashfull 27 time 1229 pv e3e2 b4d6 e2e3 d6a3 e3d2 b5b4 g3e1 a3c1 d2c1 d5d3 e1b4 d3h3 b4d6
+info depth 12 seldepth 22 score cp -552 nodes 107856 nps 54527 hashfull 40 time 1978 pv e3e2 b4d6 e2e3 d6a3 e3d2 b5b4 d2e2 b4b3 a2b3 a4b3 d3b1 a3c1
+bestmove e3e2
+readyok
+info depth 1 seldepth 5 score cp 104 nodes 144 nps 36000 hashfull 0 time 4 pv g7e6 c5e6
+info depth 2 seldepth 5 score cp 104 nodes 211 nps 35166 hashfull 0 time 6 pv g7e6 c5e6 c4e6
+info depth 3 seldepth 5 score cp 104 nodes 413 nps 51625 hashfull 0 time 8 pv g7e6 c5e6 c4e6
+info depth 4 seldepth 5 score cp 96 nodes 592 nps 53818 hashfull 0 time 11 pv g7e6 c5e6 c4e6 f8g7
+info depth 5 seldepth 10 score cp 121 nodes 900 nps 45000 hashfull 0 time 20 pv g7e6 c5e6 c4e6 f8g7 c3d5
+info depth 6 seldepth 10 score cp 151 nodes 1250 nps 33783 hashfull 1 time 37 pv g7e6 c5e6 c4e6 e7h4 e6d5 b7d5 c3d5
+info depth 7 seldepth 17 score cp 133 nodes 4564 nps 41117 hashfull 1 time 111 pv g7e6 c5e6 c4e6 f8g7 d1f3 g8f6 c3d5
+info depth 8 seldepth 17 score cp 163 nodes 8624 nps 37659 hashfull 2 time 229 pv g7e6 c5e6 c4e6 f8g7 f2f4 e7f6 c3d5 e5f4 f1f4
+info depth 9 seldepth 20 score cp 165 nodes 13000 nps 38575 hashfull 4 time 337 pv g7e6 c5e6 c4e6 f8g7 f2f4 e5f4 f1f4 e7f6 c3d5 b7d5 e6d5
+info depth 10 seldepth 20 score cp 144 nodes 19230 nps 41895 hashfull 7 time 459 pv g7e6 c5e6 c4e6 f8g7 f2f4 e5f4 c1f4 g8f6 c3d5 f6d5 e4d5 e7f6
+info depth 11 seldepth 25 score cp 127 nodes 35569 nps 41072 hashfull 15 time 866 pv g7e6 c5e6 c4e6 f8g7 f2f4 g8f6 f4f5 b6b5 d1d3 b5b4 c3d5 b7d5 e6d5 f6d5
+info depth 12 seldepth 28 score cp 132 nodes 71002 nps 38234 hashfull 39 time 1857 pv g7e6 c5e6 c4e6 f8g7 f2f4 g8f6 f4f5 h8f8 d1e2 b6b5 f5g6 h7g6 c1g5 b5b4
+bestmove g7e6
+readyok
+info depth 1 seldepth 3 score cp -117 nodes 31 nps 31000 hashfull 0 time 1 pv d2b2
+info depth 2 seldepth 3 score cp -131 nodes 217 nps 36166 hashfull 0 time 6 pv d2b2 f3g4
+info depth 3 seldepth 4 score cp -132 nodes 256 nps 32000 hashfull 0 time 8 pv d2b2 f3g4 b2b5 f7a7
+info depth 4 seldepth 7 score cp -121 nodes 436 nps 29066 hashfull 0 time 15 pv d2b2 f3g4 e5e6 f7a7
+info depth 5 seldepth 8 score cp -106 nodes 723 nps 21264 hashfull 0 time 34 pv d2b2 f7b7 e5f5 f3g3 b2b3 f2f3
+info depth 6 seldepth 9 score cp -97 nodes 1356 nps 24214 hashfull 0 time 56 pv d2b2 f7b7 e5f5 f3g3 b2b1 b7f7 f5e6 f7a7
+info depth 7 seldepth 12 score cp -119 nodes 4341 nps 26962 hashfull 3 time 161 pv d2b2 f3g4 b2b5 g4g5 a7a5 g5g6 b5b6 g6g7
+info depth 8 seldepth 14 score cp -96 nodes 10376 nps 31730 hashfull 3 time 327 pv d2d5 f3g4 e5e6 f7b7 e6f6 g4g3 f6f5 b7f7 f5e6 f7a7 d5b5
+info depth 9 seldepth 15 score cp -85 nodes 18378 nps 35685 hashfull 7 time 515 pv d2d5 f3g4 e5e6 f7b7 e6f6 g4g3 d5c5 g3g4 c5c4 f2f4 c4b4 g4f3
+info depth 10 seldepth 19 score cp -79 nodes 23247 nps 38488 hashfull 8 time 604 pv d2d5 f3g4 e5e6 f7b7 e6f6 g4g3 d5f5 g3g2 f5c5 b5b6 a7b6 b7b6 f6g7
+info depth 11 seldepth 19 score cp -71 nodes 34883 nps 40846 hashfull 12 time 854 pv d2d5 f3g4 e5e6 f7b7 e6f6 g4g3 d5f5 g3h3 f5d5 h3g4 d5d4 f2f4 d4b4 g4f3
+info depth 12 seldepth 19 score cp -66 nodes 43036 nps 43339 hashfull 13 time 993 pv d2d5 f3g4 e5e6 f7b7 e6f6 g4g3 d5h5 f2f3 h5d5 g3g4 d5f5 g4h3 f5f3 h3g4
+bestmove d2d5
+readyok
+info depth 1 seldepth 3 score cp 79 nodes 141 nps 35250 hashfull 0 time 4 pv c3e1 g1h2
+info depth 2 seldepth 4 score cp 79 nodes 178 nps 35600 hashfull 0 time 5 pv c3e1 g1h2 e1f2
+info depth 3 seldepth 7 score cp 79 nodes 230 nps 38333 hashfull 0 time 6 pv c3e1 g1h2 e1f2
+info depth 4 seldepth 10 score cp -8 nodes 780 nps 25161 hashfull 0 time 31 pv c3c1 g1h2 c1f4 g2g3 f4d4
+info depth 5 seldepth 10 score cp 437 nodes 1533 nps 24725 hashfull 1 time 62 pv d8d7 a7b8 c3e1 g1h2 e1f2
+info depth 6 seldepth 10 score cp 342 nodes 2679 nps 28200 hashfull 1 time 95 pv d8d7 a7b8 h6g7 b8c8 c3c1 g1h2 c1f4 g2g3
+info depth 7 seldepth 15 score cp 459 nodes 4171 nps 32842 hashfull 1 time 127 pv d8d7 a7b8 h6g7 g2f3 c3d4 b8c8
+info depth 8 seldepth 21 score cp 517 nodes 7538 nps 31020 hashfull 2 time 243 pv d8d7 a7b8 c3e1 g1h2 e1f2 b8f8 h6g6 f8g8 d7g7 g8e8 g7f7 e8g8 g6h6
+info depth 9 seldepth 21 score cp 517 nodes 8743 nps 31908 hashfull 2 time 274 pv d8d7 a7b8 c3e1 g1h2 e1f2 b8f8 h6g6 f8g8 d7g7 g8e8 g7f7 e8g8 g6h6 g8h8 h6g5 h8g8 g5h4
+info depth 10 seldepth 33 score cp 686 nodes 30668 nps 41165 hashfull 8 time 745 pv d8d7 a7a8 c3e1 g1h2 e1f2 a8f3 f2f3 g2f3 h6g5 h2g3 a5e1 g3h2 g5f4
+info depth 11 seldepth 34 score cp 806 nodes 41712 nps 44093 hashfull 11 time 946 pv d8d7 a7a8 c3e1 g1h2 e1f2 a8f3 f2f3 g2f3 h6g5 h2g3 a5e1 g3h2 g5f4 d4d5 e1a5 h2g2
+info depth 12 seldepth 34 score cp 810 nodes 52731 nps 42940 hashfull 13 time 1228 pv d8d7 a7a8 c3e1 g1h2 e1f2 a8f8 h6g6 f8g8 d7g7 g8e8 g7f7 e8g8 g6h6 g8g3 f2g3 h2g3 f3g2 g3g2 h6g5
+bestmove d8d7
+readyok
+info depth 1 seldepth 1 score cp -416 nodes 4 nps 0 hashfull 0 time 0 pv e5d5
+info depth 2 seldepth 9 score cp -458 nodes 102 nps 17000 hashfull 0 time 6 pv e5d5 a8d8 e8d7
+info depth 3 seldepth 9 score cp -471 nodes 126 nps 18000 hashfull 0 time 7 pv e5d5 a8d8 e8d7 f2e2
+info depth 4 seldepth 9 score cp -471 nodes 291 nps 20785 hashfull 0 time 14 pv e5d5 a8d8 e8d7 f2e2 f6f5
+info depth 5 seldepth 15 score cp -446 nodes 1398 nps 21507 hashfull 1 time 65 pv e5d5 a8d8 e8d7 f4f5 g7g6 f5g6 h7g6
+info depth 6 seldepth 15 score cp -446 nodes 2225 nps 23177 hashfull 1 time 96 pv e5d5 a8d8 e8d7 f4f5 g7g6 f5g6 h7g6
+info depth 7 seldepth 18 score cp -503 nodes 5492 nps 31745 hashfull 3 time 173 pv e5d5 a8d8 e8d7 e4f6 d5c5 f6d7 c5b5 d7e5 c4c3 f2e2
+info depth 8 seldepth 18 score cp -527 nodes 8533 nps 35406 hashfull 4 time 241 pv e5d5 a8d8 e8d7 e4f6 d5c5 f6d7 c5b4 d7e5 e7c7 d8b8 b4c3 f2e2
+info depth 9 seldepth 19 score cp -556 nodes 11645 nps 36504 hashfull 6 time 319 pv e5d5 a8d8 e8d7 e4f6 d5c5 f6d7 c5b4 d7e5 b4a3 e5c4 a3a2 d8d6 c6c5
+info depth 10 seldepth 20 score cp -561 nodes 20965 nps 42014 hashfull 8 time 499 pv e5d5 a8d8 e8d7 e4f6 d5c5 f6d7 c5b5 d7e5 e7b7 d8c8 c6c5 f2e2
+info depth 11 seldepth 25 score cp -600 nodes 34699 nps 41957 hashfull 13 time 827 pv e5d5 a8d8 e8d7 e4f6 g7f6 c5d7 d5e6 d7c5 e6f5 d8d6 c4c3 c5b3 c6c5 f2e2 e7g7 g2g3
+info depth 12 seldepth 25 score cp -619 nodes 75354 nps 49444 hashfull 27 time 1524 pv e5d5 a8d8 e8d7 e4f6 d5c5 f6d7 c5b5 d7e5 g7g5 d8b8 b5c5 b8c8 e7e6 c8c7 g5f4 e3f4 c4c3 c7a7
+bestmove e5d5
+readyok
+info depth 1 seldepth 4 score cp -225 nodes 60 nps 60000 hashfull 0 time 1 pv c5a6
+info depth 2 seldepth 6 score cp -174 nodes 120 nps 40000 hashfull 0 time 3 pv c5a6 f7g6 a6b4
+info depth 3 seldepth 6 score cp -174 nodes 391 nps 48875 hashfull 0 time 8 pv c5a6 f7g6 a6b4
+info depth 4 seldepth 6 score cp -174 nodes 474 nps 47400 hashfull 0 time 10 pv c5a6 f7g6 a6b4 g6d3
+info depth 5 seldepth 6 score cp -174 nodes 711 nps 47400 hashfull 0 time 15 pv c5a6 f7g6 a6b4 g6d3 b4d3
+info depth 6 seldepth 6 score cp -174 nodes 1106 nps 55300 hashfull 0 time 20 pv c5a6 f7g6 a6b4 g6d3 b4d3 f4d2
+info depth 7 seldepth 11 score cp -158 nodes 2173 nps 53000 hashfull 0 time 41 pv c5a6 f7g6 a6b4 g6d3 b4d3 f4d2 c1a1
+info depth 8 seldepth 14 score cp -200 nodes 8440 nps 50238 hashfull 3 time 168 pv c5a6 f4d2 d3d2 b4b1 d2d1 b1c1 d1c1 b8a8
+info depth 9 seldepth 16 score cp -292 nodes 24308 nps 53424 hashfull 9 time 455 pv c1d1 b8a8 d2b1 f7c4 d3c3 f4e5 c3a3 e5b2
+info depth 10 seldepth 16 score cp -283 nodes 32248 nps 53302 hashfull 12 time 605 pv c1d1 b8a8 d2b1 f4e5 b1a3 e5b2 g2g3 f7b3 d3d8 a8d8 d1d8 g8h7
+info depth 11 seldepth 21 score cp -272 nodes 87793 nps 52445 hashfull 37 time 1674 pv c5a6 f4d2 d3d2 b4b1 d2d1 b1c1 d1c1 b8b6 a6c5 a4a3 c5d7 b6b2 c1c8 g8h7
+info depth 12 seldepth 23 score cp -270 nodes 91983 nps 51879 hashfull 38 time 1773 pv c5a6 f4d2 d3d2 b4b1 d2d1 b1c1 d1c1 b8a8 a6b4 a4a3 c1a1 a3a2 g1f2 a8a4 b4a2 a4a2 a1a2 f7a2 f2e3
+bestmove c5a6
+readyok
+info depth 1 seldepth 2 score cp -924 nodes 48 nps 0 hashfull 0 time 0 pv a4a3
+info depth 2 seldepth 4 score cp -910 nodes 122 nps 61000 hashfull 0 time 2 pv a4a3 d4b5
+info depth 3 seldepth 4 score cp -889 nodes 215 nps 43000 hashfull 0 time 5 pv a4a3 d4b5 a3a4 e4d3
+info depth 4 seldepth 7 score cp -877 nodes 914 nps 53764 hashfull 0 time 17 pv a4a5 e4d3 a5a4 f4f5 g6g5
+info depth 5 seldepth 8 score cp -907 nodes 2596 nps 49923 hashfull 1 time 52 pv a4a6 b2e2 f6f5 e4e5 a6a5 e5e6
+info depth 6 seldepth 10 score cp -900 nodes 4362 nps 55215 hashfull 1 time 79 pv a4a6 b2e2 a6a4 e2d2 a4a3 d4b3
+info depth 7 seldepth 15 score cp -900 nodes 6541 nps 54966 hashfull 2 time 119 pv a4a6 b2e2 a6a4 e2d2 a4a3 d2c2 a3a5 c2e2
+info depth 8 seldepth 15 score cp -884 nodes 14799 nps 57583 hashfull 5 time 257 pv a4a5 b2c2 a5a3 c2d2 a3a4 d2e2 a4a3 e2c2
+info depth 9 seldepth 15 score cp -882 nodes 17324 nps 54649 hashfull 5 time 317 pv a4a5 b2c2 a5a3 c2d2 a3a4 d2e2 a4a3 e2c2 a3a5
+info depth 10 seldepth 17 score cp -882 nodes 23145 nps 55370 hashfull 7 time 418 pv a4a5 b2c2 a5a3 c2d2 a3a4 d2e2 a4a3 e2c2 a3a5 h2h3
+info depth 11 seldepth 17 score cp -898 nodes 36751 nps 57423 hashfull 11 time 640 pv a4a5 h2h3 a5a3 b2e2 a3a5 g3g4 a5a3 e2c2 a3a5 f4f5 g6g5 d4f3 g5h6
+info depth 12 seldepth 26 score cp -909 nodes 82354 nps 58908 hashfull 28 time 1398 pv a4a5 b2c2 a5a3 f4f5 g6g7 h2h3 a3a4 e4f3 a4a5 c2c7 g7g8 c7c6 g8g7 c6c2
+bestmove a4a5
+readyok
+info depth 1 seldepth 2 score cp 2103 nodes 92 nps 92000 hashfull 0 time 1 pv e4h1
+info depth 2 seldepth 2 score cp 2242 nodes 195 nps 65000 hashfull 0 time 3 pv e4h1 e5d4
+info depth 3 seldepth 4 score cp 2141 nodes 1521 nps 84500 hashfull 0 time 18 pv c3c4 e5d6 c4c3
+info depth 4 seldepth 7 score cp 2012 nodes 5402 nps 78289 hashfull 1 time 69 pv e4h1 e5d4 c3c1 d4e5
+info depth 5 seldepth 8 score cp 2127 nodes 19564 nps 79853 hashfull 9 time 245 pv e4h1 e5d4 c3c1 d4e5 c1e1 e5d6
+info depth 6 seldepth 10 score cp 2221 nodes 51892 nps 77105 hashfull 23 time 673 pv e4c6 e5d4 c3c1 d4e3 f5f6 e3f2
+info depth 7 seldepth 14 score cp 2304 nodes 263056 nps 88244 hashfull 103 time 2981 pv c3e3 e5d4 e3e1 d4c3 f5f6 c3d2 e1g1
+info depth 8 seldepth 21 score cp 2413 nodes 545374 nps 90473 hashfull 209 time 6028 pv e4b1 e5d4 c3d3 d4c5 f5f6 c5b4 h4h5 b4c4 f6f7
+info depth 9 seldepth 26 score mate 5 nodes 807383 nps 92941 hashfull 288 time 8687 pv c3c4 e5d6 g5f6 d6d7 c4c6 d7e8 c6d6 e8f8 d6d8
+info depth 10 seldepth 26 score mate 5 nodes 894093 nps 97544 hashfull 293 time 9166 pv c3c4 e5d6 g5f6 d6d7 c4c6 d7e8 c6d6 e8f8 d6d8
+info depth 11 seldepth 26 score mate 5 nodes 1004638 nps 103528 hashfull 294 time 9704 pv c3c4 e5d6 g5f6 d6d7 c4c6 d7e8 c6d6 e8f8 d6d8
+info depth 12 seldepth 26 score mate 5 nodes 1158395 nps 110989 hashfull 297 time 10437 pv c3c4 e5d6 g5f6 d6d7 c4c6 d7e8 c6d6 e8f8 d6d8
+bestmove c3c4
+readyok
+info depth 1 seldepth 2 score cp -164 nodes 30 nps 30000 hashfull 0 time 1 pv e2d4
+info depth 2 seldepth 4 score cp -137 nodes 186 nps 93000 hashfull 0 time 2 pv a1c1 d7c6
+info depth 3 seldepth 6 score cp -157 nodes 706 nps 58833 hashfull 0 time 12 pv e2d4 f8d8 d1d2
+info depth 4 seldepth 7 score cp -154 nodes 1400 nps 51851 hashfull 0 time 27 pv a3a4 f8d8 a4a5
+info depth 5 seldepth 7 score cp -160 nodes 2296 nps 58871 hashfull 1 time 39 pv d1c1 f8c8 c1c8 a8c8 g1f2 c8c7
+info depth 6 seldepth 8 score cp -170 nodes 2969 nps 56018 hashfull 1 time 53 pv d1c1 f8c8 c1c8 a8c8 g1f2 d7e8 e2d4
+info depth 7 seldepth 10 score cp -161 nodes 4894 nps 50453 hashfull 2 time 97 pv d1c1 f8c8 c1c8 a8c8 e2d4 g8f8 g1f2 f8e7
+info depth 8 seldepth 12 score cp -162 nodes 12628 nps 56627 hashfull 5 time 223 pv e2d4 f8c8 d1c1 h7h6 c1c8 a8c8 g1f2 a7a5 a1d1
+info depth 9 seldepth 12 score cp -161 nodes 16630 nps 55066 hashfull 7 time 302 pv a1c1 f8c8 c1c8 a8c8 e2d4 h7h6 g1f2 a7a5 f2g3
+info depth 10 seldepth 18 score cp -153 nodes 39448 nps 54788 hashfull 16 time 720 pv a1c1 f8c8 g1f2 h7h6 e2d4 g8h7 c1c8 a8c8 d1f1 h7g8 f2e2
+info depth 11 seldepth 18 score cp -150 nodes 44900 nps 54822 hashfull 18 time 819 pv a1c1 f8c8 g1f2 h7h6 c1c8 a8c8 d1c1 c8c1 e2c1 b7b6 c1b3 g8f8 b3d4
+info depth 12 seldepth 18 score cp -156 nodes 56249 nps 54452 hashfull 24 time 1033 pv a1c1 f8c8 g1f2 h7h6 c1c8 a8c8 d1c1 c8c1 e2c1 g8f8 c1e2 f8e7 f2f3 b7b6 h2h4 f7f6
+bestmove a1c1
+readyok
+info depth 1 seldepth 3 score cp 13 nodes 87 nps 87000 hashfull 0 time 1 pv d8b6
+info depth 2 seldepth 10 score cp 31 nodes 182 nps 36400 hashfull 0 time 5 pv d8b6 e2c3
+info depth 3 seldepth 12 score cp -32 nodes 917 nps 53941 hashfull 0 time 17 pv c6d7 e2c3 d6d5
+info depth 4 seldepth 12 score cp -13 nodes 1304 nps 52160 hashfull 0 time 25 pv c6d7 c2d3 e6e5 d4d5
+info depth 5 seldepth 12 score cp -28 nodes 2056 nps 46727 hashfull 0 time 44 pv c6d7 c2d3 a5a4 e1c1
+info depth 6 seldepth 16 score cp -36 nodes 6884 nps 41469 hashfull 2 time 166 pv a5a4 e2c3 d8c7 e1c1 c7d7 d4d5 e6d5
+info depth 7 seldepth 18 score cp -18 nodes 13543 nps 46064 hashfull 7 time 294 pv c6d7 e1c1 e6e5 f2f3 e5d4 e2d4
+info depth 8 seldepth 23 score cp -39 nodes 51661 nps 47701 hashfull 28 time 1083 pv c6d7 f2f3 b5b4 a3b4 a5b4 c2d3 d8a5 e1c1 a5b6
+info depth 9 seldepth 23 score cp -42 nodes 58094 nps 47735 hashfull 30 time 1217 pv c6d7 f2f3 b5b4 a3b4 a5b4 e1c1 d6d5 e4e5 d7b5 c2d3 b5d3
+info depth 10 seldepth 23 score cp -42 nodes 81733 nps 48563 hashfull 43 time 1683 pv c6d7 f2f3 b5b4 a3b4 a5b4 e1c1 d6d5 e4e5 d7b5 c2d3 b5d3 d2d3
+info depth 11 seldepth 27 score cp -48 nodes 107096 nps 48176 hashfull 58 time 2223 pv c6d7 f2f3 c8b8 b2b4 b8a8 e1c1 a5b4 a3b4 e8f8 c2b3
+info depth 12 seldepth 27 score cp -55 nodes 155911 nps 48209 hashfull 82 time 3234 pv b5b4 a3b4 a5b4 c2d3 d8d7 d2b4 c8b8 b4a3 c6b5 d3b5 d7b5 a3d6
+bestmove b5b4
+readyok
+info depth 1 seldepth 3 score cp 366 nodes 112 nps 56000 hashfull 6 time 2 pv e7e5
+info depth 2 seldepth 3 score cp 353 nodes 197 nps 65666 hashfull 6 time 3 pv e7e5 d8b6
+info depth 3 seldepth 4 score cp 342 nodes 359 nps 59833 hashfull 6 time 6 pv e7e5 d8b6 e5e4
+info depth 4 seldepth 5 score cp 381 nodes 559 nps 62111 hashfull 6 time 9 pv e7e5 d8b6 e5e4 h3h2
+info depth 5 seldepth 5 score cp 365 nodes 828 nps 55200 hashfull 6 time 15 pv e7e5 d8b6 b5c6 h3h2 c6b5
+info depth 6 seldepth 7 score cp 403 nodes 1441 nps 55423 hashfull 6 time 26 pv e7e5 d8b6 e5e4 h3h2 h5h4 h2h1
+info depth 7 seldepth 7 score cp 413 nodes 1951 nps 51342 hashfull 6 time 38 pv e7e5 d8b6 e5e4 h3h2 h5h4 h2h1 g4g3
+info depth 8 seldepth 12 score cp 381 nodes 5806 nps 43654 hashfull 8 time 133 pv e7e6 d8b6 g4b4 b6c7 b4a4 c7b6 b5c6 h3g3
+info depth 9 seldepth 20 score cp 442 nodes 20555 nps 51387 hashfull 13 time 400 pv e7e5 d8c7 e5e4 c7b6 g4f4 h3g2 f4f3 b6d8 f3a3 g2f2 b5c4 f2e2
+info depth 10 seldepth 20 score cp 472 nodes 26903 nps 54459 hashfull 15 time 494 pv e7e5 d8c7 e5e4 c7b6 g4f4 h3g2 f4f3 b6d8 f3a3 g2f2 b5c4 f2e2 c4d4
+info depth 11 seldepth 22 score cp 489 nodes 44787 nps 60197 hashfull 21 time 744 pv e7e5 d8c7 e5e4 c7b6 g4f4 h3g2 f4f3 b6d8 f3a3 g2f2 b5c4 f2e2 c4d5 e2d2 d5d4 d8b6 d4e5 b6c7 e5f5
+info depth 12 seldepth 27 score cp 479 nodes 108667 nps 79318 hashfull 33 time 1370 pv e7e5 d8c7 e5e4 c7b6 g4f4 h3g3 f4f3 g3h4 e4e3 b6e3 f3e3 a5a6 b5a6 h4h5 e3a3 h5g6 a3a4 g6g7 a6b7 g7g6 b7b8
+bestmove e7e5
+readyok
+info depth 1 seldepth 4 score cp 80 nodes 108 nps 108000 hashfull 2 time 1 pv a1a8 e4a8
+info depth 2 seldepth 10 score cp 80 nodes 294 nps 58800 hashfull 2 time 5 pv a1a8 e4a8
+info depth 3 seldepth 10 score cp 65 nodes 386 nps 55142 hashfull 2 time 7 pv a1a8 e4a8 c1g5
+info depth 4 seldepth 10 score cp 63 nodes 597 nps 59700 hashfull 2 time 10 pv a1a8 e4a8 c4d3 h7h6
+info depth 5 seldepth 10 score cp 67 nodes 916 nps 57250 hashfull 2 time 16 pv a1a8 e4a8 c4a6 a8f3
+info depth 6 seldepth 10 score cp 64 nodes 1198 nps 47920 hashfull 2 time 25 pv a1a8 e4a8 c4d3 h7h6 d1e2 c8b6
+info depth 7 seldepth 14 score cp 39 nodes 4762 nps 47620 hashfull 5 time 100 pv c1a3 c8b6 c4b3 e4d5 b3d5 b6d5 d1b3
+info depth 8 seldepth 17 score cp 96 nodes 22059 nps 51180 hashfull 15 time 431 pv a1a8 e4a8 c4d3 a8f3 d1f3 d8d6 c1b2 c8b6
+info depth 9 seldepth 22 score cp 71 nodes 46228 nps 50688 hashfull 26 time 912 pv a1a8 e4a8 c1a3 c8d6 c4d3 e7d5 d1c1 d5f6 f3e5
+info depth 10 seldepth 22 score cp 68 nodes 56867 nps 50280 hashfull 29 time 1131 pv a1a8 e4a8 c1a3 c8d6 c4d3 e7g6 g2g3 f8e8 f3e5 g6e5 d4e5 d6f5
+info depth 11 seldepth 22 score cp 88 nodes 61593 nps 50321 hashfull 31 time 1224 pv a1a8 e4a8 c1a3 c8d6 c4d3 e7g6 g2g3 f8e8 d1e2 d8f6 f3e5 g6e5
+info depth 12 seldepth 22 score cp 82 nodes 78935 nps 49707 hashfull 40 time 1588 pv a1a8 e4a8 c1a3 c8d6 c4d3 e7g6 g2g3 f8e8 d1e2 d8f6 f3e5 e8d8 a3c5 f6g5 f2f3 g6e5
+bestmove a1a8
+readyok
+info depth 1 seldepth 2 score cp -915 nodes 52 nps 52000 hashfull 6 time 1 pv g3h4
+info depth 2 seldepth 5 score cp -879 nodes 287 nps 71750 hashfull 6 time 4 pv d4d8 f5f6
+info depth 3 seldepth 5 score cp -888 nodes 432 nps 48000 hashfull 6 time 9 pv d4c4 b4c5 g3h4
+info depth 4 seldepth 7 score cp -916 nodes 963 nps 45857 hashfull 7 time 21 pv g3h4 b6c6 d4e4 c6d5
+info depth 5 seldepth 8 score cp -932 nodes 2562 nps 55695 hashfull 8 time 46 pv d4e4 b6c5 e4e8 c5c4 g3h4
+info depth 6 seldepth 9 score cp -932 nodes 2933 nps 48081 hashfull 8 time 61 pv d4e4 b6c5 e4e8 c5c4 g3h4 f5f4 h4h5
+info depth 7 seldepth 12 score cp -967 nodes 6803 nps 53148 hashfull 10 time 128 pv g3f3 b6c5 d4d8 f5f6 d8a8 f6e6 a8h8
+info depth 8 seldepth 14 score cp -976 nodes 12692 nps 55423 hashfull 11 time 229 pv g3f3 b6c7 f3g3 c7c6 d4d8 a5a4 d8c8 c6d5
+info depth 9 seldepth 17 score cp -993 nodes 24682 nps 54246 hashfull 17 time 455 pv g3f3 b6c7 f3e4 f5c5 f4f5 c7c6 f5f6 h5h4 d4d8
+info depth 10 seldepth 22 score cp -1046 nodes 69166 nps 57542 hashfull 32 time 1202 pv g3f3 b6c6 d4c4 c6b5 c4d4 b4c5 d4d7 b5c6 d7d8 a5a4 f3e4
+info depth 11 seldepth 22 score cp -1028 nodes 96758 nps 57904 hashfull 41 time 1671 pv g3f3 b6c6 f3e4 f5b5 d4c4 c6d6 c4c2 a5a4 f4f5 b4a5 e4f4 a4a3 f4g5
+info depth 12 seldepth 27 score cp -1059 nodes 153861 nps 57820 hashfull 63 time 2661 pv g3f3 b6c6 f3e4 f5b5 d4c4 c6d6 c4c8 a5a4 c8a8 a4a3 f4f5 h5h4 e4f4 d6d5 f4g5 d5c4 g5h4
+bestmove g3f3
+readyok
+info depth 1 seldepth 2 score cp -454 nodes 19 nps 0 hashfull 3 time 0 pv e3d3
+info depth 2 seldepth 4 score cp -458 nodes 43 nps 43000 hashfull 3 time 1 pv e3d3 h6g5
+info depth 3 seldepth 5 score cp -459 nodes 260 nps 65000 hashfull 3 time 4 pv e3d3 a2a4 d3e2
+info depth 4 seldepth 6 score cp -455 nodes 687 nps 45800 hashfull 3 time 15 pv e3f3 a2a3 f3e2 a3a4 e2d1
+info depth 5 seldepth 9 score cp -450 nodes 2047 nps 70586 hashfull 3 time 29 pv e3f3 a2a3 f3e2 a3a4 e2d1 h6h5
+info depth 6 seldepth 10 score cp -447 nodes 6965 nps 69650 hashfull 5 time 100 pv e3f3 a2a5 f3e3 a5e5 e3f3 h6g7 f3g2
+info depth 7 seldepth 11 score cp -443 nodes 13280 nps 78117 hashfull 7 time 170 pv e3f3 h6g5 f3e3 g5h5 e3e4 a2a3 e4f5
+info depth 8 seldepth 11 score cp -444 nodes 23639 nps 80955 hashfull 10 time 292 pv e3f3 h6h5 f3g3 h5g6 g3f3 g6g5 f3g3 g5h5
+info depth 9 seldepth 13 score cp -455 nodes 45970 nps 92494 hashfull 14 time 497 pv e3f3 h6h5 f3e3 h5h6 e3d3 h6g7 d3c3 g7h8 c3d3
+info depth 10 seldepth 15 score cp -453 nodes 130693 nps 105995 hashfull 27 time 1233 pv e3f3 h6h5 f3e4 h5h6 e4d5 a2a4 d5d6 a4e4 d6d7 e4a4
+info depth 11 seldepth 15 score cp -451 nodes 248305 nps 107398 hashfull 41 time 2312 pv e3f3 h6h5 f3e4 h5h6 e4e3 h6g7 e3e4 a2a4 e4e3 g7h8 e3e2 a4a2 e2f1
+info depth 12 seldepth 15 score cp -456 nodes 292066 nps 110967 hashfull 43 time 2632 pv e3f3 h6h5 f3e4 h5h6 e4e3 h6g7 e3e4 a2a4 e4d5 g7h6 d5e5 h6h7 e5e6
+bestmove e3f3
+readyok
+info depth 1 seldepth 2 score cp 483 nodes 28 nps 0 hashfull 0 time 0 pv e6e1
+info depth 2 seldepth 2 score cp 468 nodes 153 nps 30600 hashfull 0 time 5 pv d4d3 h5g5
+info depth 3 seldepth 4 score cp 451 nodes 600 nps 33333 hashfull 0 time 18 pv d4d5 h5g4 d5c4
+info depth 4 seldepth 6 score cp 459 nodes 2650 nps 49074 hashfull 1 time 54 pv e6a6 h5g5 a6a4 g5g6
+info depth 5 seldepth 8 score cp 458 nodes 11516 nps 78340 hashfull 3 time 147 pv e6a6 h5g5 d4e4 g5g4 a6e6
+info depth 6 seldepth 9 score cp 461 nodes 27982 nps 91146 hashfull 6 time 307 pv e6a6 h5g5 d4d5 g5g4 a6a4 g4g3 d5c4
+info depth 7 seldepth 10 score cp 468 nodes 39873 nps 96544 hashfull 9 time 413 pv e6a6 h5g5 d4e5 g5h4 a6a4 h4g3 e5d4 g3h2
+info depth 8 seldepth 12 score cp 472 nodes 69851 nps 89209 hashfull 15 time 783 pv e6a6 h5g4 a6a5 g4g3 d4c4 g3h2 a5h5 h2g3 c4b3
+info depth 9 seldepth 14 score cp 506 nodes 141287 nps 102159 hashfull 24 time 1383 pv e6a6 h5g4 a6a5 g4f3 d4d3 f3g2 d3c2 g2h2 c2b1 h2h1
+info depth 10 seldepth 20 score cp 560 nodes 966665 nps 117756 hashfull 116 time 8209 pv e6e3 h5g6 e3f3 g6g7 d4d5 g7g6 d5e5 g6g7 f3f4 g7g6 e5e6 g6g5
+info depth 11 seldepth 24 score mate 12 nodes 1279310 nps 123366 hashfull 138 time 10370 pv d4e4 h5g5 e6a6 g5g4 a6g6 g4h5 g6g1 h5h4 e4f5 h4h3 f5f4 h3h2
+info depth 12 seldepth 24 score mate 9 nodes 2245387 nps 135648 hashfull 178 time 16553 pv d4e4 h5g5 e6c6 g5g4 c6g6 g4h5 e4f5 h5h4 f5f4 h4h3 g6g8 h3h2 f4f3
+bestmove d4e4
+readyok
+info depth 1 seldepth 9 score cp -323 nodes 252 nps 25200 hashfull 10 time 10 pv h8f8
+info depth 2 seldepth 9 score cp -392 nodes 705 nps 54230 hashfull 10 time 13 pv h8h1 a1h1
+info depth 3 seldepth 9 score cp -402 nodes 773 nps 55214 hashfull 10 time 14 pv h8h1 a1h1 f7g6
+info depth 4 seldepth 9 score cp -402 nodes 1008 nps 59294 hashfull 10 time 17 pv h8h1 a1h1 f7g6 e2g4 e5g4 f2e2
+info depth 5 seldepth 9 score cp -402 nodes 1233 nps 61650 hashfull 10 time 20 pv h8h1 a1h1 f7g6 e2g4 e5g4 f2e2
+info depth 6 seldepth 10 score cp -407 nodes 1669 nps 57551 hashfull 11 time 29 pv h8h1 a1h1 f7g6 h1h7 g4d7 h7g7 e5d3 e2d3
+info depth 7 seldepth 13 score cp -427 nodes 4451 nps 55637 hashfull 11 time 80 pv h8h1 a1h1 f7g6 h1h7 c7b8 e2g4 e5g4 f2e2 g4e5 h7g7
+info depth 8 seldepth 21 score cp -435 nodes 8311 nps 57715 hashfull 12 time 144 pv h8h1 a1h1 f7g6 h1h7 c7b8 e2g4 e5g4 f2e2 g4e5 b4b5 e5d3 h7h8 b8b7
+info depth 9 seldepth 21 score cp -428 nodes 15170 nps 56394 hashfull 14 time 269 pv h8h1 a1h1 f7g6 e2g4 e5g4 f2e2 g4e5 h1h7 c7c8 b4b5 e5d3 b5c6 d3c5 a4a5
+info depth 10 seldepth 23 score cp -479 nodes 22628 nps 60341 hashfull 15 time 375 pv h8h1 a1h1 f7g6 e2g4 e5g4 f2e2 g4e5 h1h7 c7c8 b4b5 e5d3 b5c6 d3c5 a4a5 c5a6 h7g7
+info depth 11 seldepth 23 score cp -474 nodes 31000 nps 59500 hashfull 19 time 521 pv h8h1 a1h1 f7g6 e2g4 e5g4 f2e2 c7b7 b4b5 g4f6 h1g1 f6d7 g1g6 d7c5 b5c6 b7b6 a4a5 b6a5
+info depth 12 seldepth 27 score cp -506 nodes 52973 nps 61382 hashfull 23 time 863 pv h8h1 a1h1 f7g6 e2g4 e5g4 f2e2 g4e5 h1h7 c7b8 b4b5 g6g5 h7g7 g5g4 e2f1 e5d3 b5c6 d3c5
+bestmove h8h1
+readyok
+info depth 1 seldepth 4 score cp -202 nodes 102 nps 102000 hashfull 7 time 1 pv b5c4 b3c4
+info depth 2 seldepth 4 score cp -202 nodes 193 nps 96500 hashfull 7 time 2 pv b5c4 b3c4
+info depth 3 seldepth 4 score cp -187 nodes 305 nps 101666 hashfull 7 time 3 pv b5c4 b3c4 d6a3
+info depth 4 seldepth 7 score cp 62 nodes 507 nps 56333 hashfull 7 time 9 pv b5c4 b3c4 d6a3 c4c5 a5c3
+info depth 5 seldepth 9 score cp 63 nodes 846 nps 70500 hashfull 7 time 12 pv b5c4 b3c4 d6a3 c4c5 a5c3
+info depth 6 seldepth 9 score cp -179 nodes 1625 nps 73863 hashfull 7 time 22 pv b5c4 b3c4 d6a3 b1b7 a3c1 c3d1
+info depth 7 seldepth 9 score cp -13 nodes 2277 nps 71156 hashfull 7 time 32 pv b5c4 b3c4 d6a3 b1b7 a3c3 d3c3 a5c3 b7d7
+info depth 8 seldepth 16 score cp -48 nodes 3536 nps 60965 hashfull 7 time 58 pv b5c4 b3c4 d6a3 b1b7 a3c3 d3c3 a5c3 b7d7 c8c4 d5d6
+info depth 9 seldepth 17 score cp -135 nodes 16633 nps 58566 hashfull 12 time 284 pv a5c3 d3c3 b5c4 b3c4 d6d5 b1c1 d5e6 d4d5 e6e4 c3a5
+info depth 10 seldepth 18 score cp -159 nodes 29382 nps 58182 hashfull 16 time 505 pv b5c4 b3c4 d6a3 c4c5 a3c3 d3a6 f5f4 d5d6 g8f8 b1b7 d7h3 g1h2 h3g4
+info depth 11 seldepth 21 score cp -128 nodes 43613 nps 53710 hashfull 23 time 812 pv b5c4 b3c4 d6a3 c4c5 a3c3 d3a6 c8d8 d5d6 d7c8 a6a7 c8e6 b1b8 d8b8 a7b8 g8f7
+info depth 12 seldepth 28 score cp -80 nodes 73187 nps 51868 hashfull 36 time 1411 pv b5c4 b3c4 d6a3 c4c5 a3c3 d3a6 c8d8 a6a7 d7a4 b1b7 c3c1 g1h2 c1f4 g2g3 f4f3 b7g7 g8h8 g7h7 h8g8
+bestmove b5c4
+readyok
+info depth 1 seldepth 4 score cp 1509 nodes 73 nps 73000 hashfull 2 time 1 pv b3e3
+info depth 2 seldepth 4 score cp 1555 nodes 155 nps 155000 hashfull 2 time 1 pv b3e3 f6g6
+info depth 3 seldepth 5 score cp 1602 nodes 292 nps 97333 hashfull 2 time 3 pv b3e3 f6g6 g3f4
+info depth 4 seldepth 5 score cp 1641 nodes 446 nps 63714 hashfull 2 time 7 pv b3e3 f6g7 g3f4 g7g6
+info depth 5 seldepth 7 score cp 1629 nodes 1371 nps 76166 hashfull 2 time 18 pv g3f4 f6g7 b3c3 g7h6
+info depth 6 seldepth 8 score cp 1705 nodes 2977 nps 55129 hashfull 3 time 54 pv g3f4 f6f7 b3c3 f7g7 g4f5 g7f6
+info depth 7 seldepth 10 score cp 1723 nodes 8893 nps 68937 hashfull 5 time 129 pv g3f4 f6g7 b3e3 g7g6 f4e5 g6h6 e5f4
+info depth 8 seldepth 14 score cp 1728 nodes 58363 nps 78129 hashfull 33 time 747 pv g3f4 f6g6 b3e3 g6h6 f4e5 h6g6 e5e6 g6h6
+info depth 9 seldepth 14 score cp 1750 nodes 162357 nps 85631 hashfull 68 time 1896 pv g3f4 f6f7 b3e3 f7g6 f4e4 g6f6 e4d5 f6g7 d5e4
+info depth 10 seldepth 18 score cp 1855 nodes 330602 nps 91478 hashfull 115 time 3614 pv g3f4 f6f7 f4g5 f7g7 b3e3 g7h7 g4f5 h7g7 f5e4 g7f7 e4c6 f7g7
+info depth 11 seldepth 22 score cp 2040 nodes 502672 nps 89491 hashfull 172 time 5617 pv g3f4 f6f7 f4g5 e4e3 f2e3 f7g7 b3c3 g7f7 g4f5 f7g7 e3e4 g7f7
+info depth 12 seldepth 27 score mate 8 nodes 3435915 nps 108477 hashfull 775 time 31674 pv g3f4 f6f7 f4e4 f7g7 e4e5 g7f7 g4f5 f7e7 b3c3 e7f7 c3c7 f7e8 e5f6
+bestmove g3f4
+readyok
+info depth 1 seldepth 2 score cp -269 nodes 32 nps 10666 hashfull 0 time 3 pv a8a7 h7g8
+info depth 2 seldepth 2 score cp -270 nodes 146 nps 36500 hashfull 0 time 4 pv a8a7 h7g8
+info depth 3 seldepth 4 score cp -277 nodes 237 nps 47400 hashfull 0 time 5 pv a8a7 h7g8 a7a8 g8g7
+info depth 4 seldepth 8 score cp -347 nodes 359 nps 39888 hashfull 0 time 9 pv a8a7 h7g8 a7a8 g8g7 a8a7 g7f6
+info depth 5 seldepth 12 score cp -310 nodes 1068 nps 56210 hashfull 0 time 19 pv a8a7 h7g8 a7a8 g8g7 a8a7 g7f6 e5g4 f6g6
+info depth 6 seldepth 13 score cp -342 nodes 1844 nps 48526 hashfull 0 time 38 pv a8a7 h7g8 a7a8 g8g7 a8a7 g7f8 a7a8 f8e7 a8a7 e7d6
+info depth 7 seldepth 16 score cp -356 nodes 3668 nps 48263 hashfull 1 time 76 pv a8a7 h7g8 e5g4 a2a1q g4h6 g8f8 a7a1 c1a1
+info depth 8 seldepth 21 score cp -380 nodes 10166 nps 48180 hashfull 3 time 211 pv a8a7 h7g8 e5g4 a2a1q g4h6 g8f8 a7a1 c1a1 h6g4 e6g4 h3g4
+info depth 9 seldepth 21 score cp -383 nodes 14407 nps 48837 hashfull 3 time 295 pv a8a7 h7h8 e5g6 h8g8 g6e7 g8f8 e7f5 a2a1q a7a1 c1a1 f5h6 f8e7
+info depth 10 seldepth 21 score cp -392 nodes 17377 nps 46838 hashfull 5 time 371 pv a8a7 h7h8 e5g4 a2a1q a7a1 c1a1 g4h6 h8g7 h6g4 e6g4 h3g4
+info depth 11 seldepth 28 score cp -399 nodes 51529 nps 48566 hashfull 16 time 1061 pv a8a7 h7h8 a7a8 h8g7 a8a7 g7f8 a7a8 f8e7 a8a7 e7d6 e5g4 a2a1q a7a1 c1a1 g4h6
+info depth 12 seldepth 28 score cp -418 nodes 75382 nps 48981 hashfull 22 time 1539 pv h3h4 g5h4 a8a7 h7g8 a7a8 g8g7 a8a7 g7f8 e5g6 f8e8 g6h4 a2a1q a7a1 c1a1 g2g4 a1a5 h2g3 e6d7 f3f4
+bestmove h3h4
+readyok
+info depth 1 seldepth 4 score cp -580 nodes 142 nps 47333 hashfull 0 time 3 pv d3d2
+info depth 2 seldepth 4 score cp -580 nodes 228 nps 57000 hashfull 0 time 4 pv d3d2 e1e6
+info depth 3 seldepth 4 score cp -596 nodes 423 nps 52875 hashfull 0 time 8 pv d3c2 d7e6 c8d8
+info depth 4 seldepth 4 score cp -621 nodes 547 nps 49727 hashfull 0 time 11 pv d3c2 d7e6 b7b6 e1e2
+info depth 5 seldepth 6 score cp -630 nodes 814 nps 54266 hashfull 0 time 15 pv d3c2 d7e6 a5a4 e6f6 b8a7
+info depth 6 seldepth 9 score cp -681 nodes 1296 nps 49846 hashfull 0 time 26 pv d3c2 d7e6 b7b6 e1e2 c2b1 e6f6
+info depth 7 seldepth 11 score cp -683 nodes 3125 nps 39062 hashfull 1 time 80 pv d3d2 e1e6 d2d1 e6e8 c8e8 d7e8 b8a7
+info depth 8 seldepth 11 score cp -698 nodes 5153 nps 39335 hashfull 1 time 131 pv d3c2 e1e6 a5a4 g3g4 c8g8 e6e8 g8e8 d7e8 b8a7 e8h8
+info depth 9 seldepth 16 score cp -805 nodes 26568 nps 46366 hashfull 8 time 573 pv d3d2 e1e6 d2g5 e6e5 g5g8 e5a5 b7b6 a5a6
+info depth 10 seldepth 16 score cp -729 nodes 30315 nps 46353 hashfull 9 time 654 pv d3d2 e1e6 d2g5 e6e5 g5g8 f3c3 h8f7 e5a5 f7d6 h5h6 g8h8
+info depth 11 seldepth 20 score cp -778 nodes 41105 nps 46816 hashfull 15 time 878 pv d3d2 e1e6 d2g5 e6e5 g5g8 f3c3 g8f7 d7f7 h8f7 e5a5 b7b6 a5d5 f7h6 d5b5 c8d8
+info depth 12 seldepth 29 score cp -745 nodes 63161 nps 47453 hashfull 24 time 1331 pv d3d2 e1e6 d2g5 e6e5 g5g8 f3c3 g8d8 d7d8 c8d8 g3g4 a5a4 h2h3 b7b6 g4g5
+bestmove d3d2
+readyok
+info depth 1 seldepth 6 score cp -66 nodes 133 nps 66500 hashfull 0 time 2 pv b8d7
+info depth 2 seldepth 6 score cp -62 nodes 337 nps 56166 hashfull 0 time 6 pv b8d7 f1e1
+info depth 3 seldepth 6 score cp -64 nodes 530 nps 58888 hashfull 0 time 9 pv b8d7 d1c2 e5d4
+info depth 4 seldepth 13 score cp -57 nodes 920 nps 38333 hashfull 0 time 24 pv b8d7 a5a6 b7a6 a1a6
+info depth 5 seldepth 13 score cp -73 nodes 2151 nps 52463 hashfull 0 time 41 pv b8d7 a5a6 f8e8 a6b7 c7b7
+info depth 6 seldepth 19 score cp -54 nodes 4897 nps 43336 hashfull 3 time 113 pv b8d7 a5a6 b7b6 f1e1 d6d5 e4d5
+info depth 7 seldepth 19 score cp -47 nodes 13247 nps 46644 hashfull 7 time 284 pv b8d7 f1e1 c6c5 c1a3 f8e8 d1e2 e5d4 c3d4
+info depth 8 seldepth 23 score cp -49 nodes 27127 nps 47424 hashfull 16 time 572 pv b8d7 d3b1 b7b5 f1e1 a8e8 d1c2 c7b7
+info depth 9 seldepth 23 score cp -56 nodes 51846 nps 46792 hashfull 31 time 1108 pv b8d7 c1b2 d6d5 d4e5 f6e4 f1e1 c6c5 d2e4 d5e4 e1e4
+info depth 10 seldepth 26 score cp -47 nodes 79526 nps 46021 hashfull 45 time 1728 pv b8d7 d1e2 a8e8 c3c4 d6d5 e4d5 c6d5 d4e5 d5c4 d3c4 e6c4
+info depth 11 seldepth 26 score cp -54 nodes 146387 nps 46325 hashfull 86 time 3160 pv b8d7 d1c2 b7b5 c3c4 b5c4 d2c4 d6d5 c4e5 d7e5 f3e5 d5e4 d3c4
+info depth 12 seldepth 27 score cp -61 nodes 173703 nps 42160 hashfull 101 time 4120 pv b8d7 d1c2 b7b5 c3c4 b5c4 d2c4 a8b8 c1d2 d6d5 c4e5 d7e5 f3e5 d5e4 d3e4 f6e4
+bestmove b8d7
+readyok
+info depth 1 seldepth 2 score cp 41 nodes 38 nps 38000 hashfull 0 time 1 pv d1d8
+info depth 2 seldepth 2 score cp 44 nodes 138 nps 69000 hashfull 0 time 2 pv d1e1 d8c7
+info depth 3 seldepth 3 score cp 29 nodes 322 nps 64400 hashfull 0 time 5 pv d1d8 f8d8 c1d2
+info depth 4 seldepth 4 score cp 75 nodes 522 nps 74571 hashfull 0 time 7 pv d1d8 a8d8 b1c3 f8e8
+info depth 5 seldepth 5 score cp 56 nodes 803 nps 80300 hashfull 0 time 10 pv d1d8 a8d8 b1c3 f8e8 f1e1
+info depth 6 seldepth 7 score cp 71 nodes 1458 nps 69428 hashfull 0 time 21 pv d1d8 a8d8 b1c3 c5b4 f1e1
+info depth 7 seldepth 11 score cp 14 nodes 4699 nps 49989 hashfull 1 time 94 pv d1d8 f8d8 c1d2 c5a7 f1e1 e6f5 d2e3 a7e3 e1e3
+info depth 8 seldepth 14 score cp 22 nodes 10421 nps 52898 hashfull 3 time 197 pv d1d8 a8d8 b2b3 f8e8 c1b2 f6h5 b1c3 h5f4
+info depth 9 seldepth 14 score cp 23 nodes 24958 nps 51038 hashfull 8 time 489 pv d1d8 a8d8 f1e1 e6f5 b1c3 f8e8 e1e8 d8e8 h2h3 f5c2
+info depth 10 seldepth 20 score cp 18 nodes 64667 nps 49974 hashfull 28 time 1294 pv d1d8 f8d8 b1d2 f6g4 d2e4 g4e3 c1e3 c5e3 b2b3 a8c8 c2c3 e3f4
+info depth 11 seldepth 20 score cp 39 nodes 72269 nps 48535 hashfull 32 time 1489 pv d1d8 f8d8 b1d2 c5a7 f1e1 a7f2 e1e2 f2a7 c2c3 f6g4 h2h3 g4f2 h1h2
+info depth 12 seldepth 23 score cp -5 nodes 102541 nps 39484 hashfull 44 time 2597 pv d1d8 a8d8 b1d2 c5a7 f1e1 f6g4 d2e4 f7f5 e4g5 g4f2 h1g1 f2d3 c1e3 d3e1 a1e1 a7e3 e1e3 e6a2
+bestmove d1d8
+readyok
+info depth 1 seldepth 1 score cp 59 nodes 50 nps 0 hashfull 0 time 0 pv d8d7
+info depth 2 seldepth 3 score cp 54 nodes 85 nps 85000 hashfull 0 time 1 pv d8d7 c5b5
+info depth 3 seldepth 4 score cp 50 nodes 179 nps 59666 hashfull 0 time 3 pv d8d7 c5b5 d7e7
+info depth 4 seldepth 9 score cp 45 nodes 482 nps 68857 hashfull 0 time 7 pv d8d7 h4h5 d7e7 c5c8 a8c8
+info depth 5 seldepth 9 score cp 50 nodes 934 nps 62266 hashfull 0 time 15 pv d8d7 h4h5 b4c6 c5b5
+info depth 6 seldepth 9 score cp 54 nodes 2951 nps 57862 hashfull 1 time 51 pv d8d7 c5c8 a8c8 c3c8 g8h7 h4h5 b4c6
+info depth 7 seldepth 15 score cp 64 nodes 4667 nps 47141 hashfull 3 time 99 pv d8d7 c5c8 a8c8 c3c8 g8h7 h4h5 b4c6 f3h4 d7e7 g3f4
+info depth 8 seldepth 16 score cp 58 nodes 6554 nps 50415 hashfull 3 time 130 pv d8d7 c5c8 a8c8 c3c8 g8h7 h4h5 b4c6 g4g5 h6g5 f3g5 h7h6 g3g4
+info depth 9 seldepth 16 score cp 58 nodes 8266 nps 54381 hashfull 4 time 152 pv d8d7 c5c8 a8c8 c3c8 g8h7 h4h5 b4c6 g4g5 h6g5 f3g5 h7h6 g3g4 d7e7
+info depth 10 seldepth 21 score cp 68 nodes 26728 nps 51698 hashfull 13 time 517 pv d8d7 c5c8 a8c8 c3c8 g8h7 c8a8 b4c6 h4h5 d7e7 a8c8 f7f6 g3f4 e7f7 e5f6
+info depth 11 seldepth 23 score cp 0 nodes 88474 nps 50355 hashfull 49 time 1757 pv d8d7 c5b5 f7f6 c3c5 b4a6 c5c3 a6b4
+info depth 12 seldepth 23 score cp 0 nodes 93822 nps 50659 hashfull 51 time 1852 pv d8d7 c5b5 f7f6 c3c5 b4a6 c5c3 a6b4
+bestmove d8d7
+readyok
+info depth 1 seldepth 3 score cp -543 nodes 23 nps 0 hashfull 0 time 0 pv g2g4
+info depth 2 seldepth 3 score cp -584 nodes 119 nps 59500 hashfull 0 time 2 pv h2h3 f5f4
+info depth 3 seldepth 5 score cp -581 nodes 307 nps 76750 hashfull 0 time 4 pv g2g4 f5f4 h2h3
+info depth 4 seldepth 7 score cp -585 nodes 431 nps 53875 hashfull 0 time 8 pv g2g4 f5f3 h2g2
+info depth 5 seldepth 9 score cp -590 nodes 937 nps 55117 hashfull 1 time 17 pv g2g4 f5f3 h2g2 f3f4
+info depth 6 seldepth 9 score cp -458 nodes 6170 nps 86901 hashfull 2 time 71 pv g2g3 f8e7 g3h4 e7d7 h2g2
+info depth 7 seldepth 13 score cp -475 nodes 24749 nps 85341 hashfull 8 time 290 pv g2g3 h4g3 h2g3 f8e7 g3g4 e7e6 g4h3 f5h5 h3g2
+info depth 8 seldepth 13 score cp -476 nodes 33751 nps 88818 hashfull 10 time 380 pv h2h3 f5h5 g2g3 h4g3 h3g3 f8g7 g3f3 g7h8 f3g4
+info depth 9 seldepth 17 score cp -496 nodes 88631 nps 102582 hashfull 20 time 864 pv h2h3 f5h5 g2g3 h4g3 h3g3 f8g8 g3f3 g8h8 f3e4 h5b5 e4d3
+info depth 10 seldepth 21 score cp -508 nodes 243459 nps 122897 hashfull 37 time 1981 pv h2h3 f5h5 g2g3 h4g3 h3g3 f8e8 g3f3 e8d7 f3f4 h5a5 f4g4 a5a4 g4g3 d7c7
+info depth 11 seldepth 21 score cp -523 nodes 257593 nps 123191 hashfull 38 time 2091 pv h2h3 f5h5 g2g3 h4g3 h3g3 f8e8 g3g4 h5a5 g4f3 e8d7 f3e2 a5f5 e2e1 d7d6 e1e2
+info depth 12 seldepth 21 score cp -526 nodes 340664 nps 128844 hashfull 45 time 2644 pv h2h3 f5g5 h3h4 g5g2 h4h3 g2a2 h3g4 f8e7 g4f5 a2a5 f5f4 e7d7 f4g3 a5h5 g3g2
+bestmove h2h3
+readyok
+info depth 1 seldepth 4 score cp -386 nodes 60 nps 20000 hashfull 0 time 3 pv d6c6
+info depth 2 seldepth 5 score cp -501 nodes 176 nps 29333 hashfull 0 time 6 pv d6d8 a8d8
+info depth 3 seldepth 5 score cp -502 nodes 326 nps 46571 hashfull 0 time 7 pv d6d8 a8d8 f1e2
+info depth 4 seldepth 5 score cp -492 nodes 404 nps 44888 hashfull 1 time 9 pv d6d8 a8d8 f1e2 d8e8 f4e3
+info depth 5 seldepth 6 score cp -487 nodes 707 nps 50500 hashfull 1 time 14 pv d6d8 a8d8 f1e2 g7c3 g2g3
+info depth 6 seldepth 7 score cp -473 nodes 1088 nps 54400 hashfull 1 time 20 pv d6d8 a8d8 f1e2 g7a1 g2g3
+info depth 7 seldepth 13 score cp -478 nodes 4765 nps 49123 hashfull 2 time 97 pv f1e2 d8d6 f4d6 a8e8 e2f3 e8c8 f3f4
+info depth 8 seldepth 13 score cp -472 nodes 7752 nps 47268 hashfull 3 time 164 pv d6d8 a8d8 b1c2 a6a5 g2g3 d8c8 c2d3 b5b4 f1e2
+info depth 9 seldepth 16 score cp -467 nodes 17830 nps 51383 hashfull 10 time 347 pv b1c2 d8d6 f4d6 a8d8 d6e7 d8e8 e7d6 g7d4 c2b3
+info depth 10 seldepth 16 score cp -477 nodes 23697 nps 53251 hashfull 11 time 445 pv b1c2 d8d6 f4d6 a8d8 d6f4 a6a5 g2g3 a5a4 h3h4 d8c8 c2d1 h8g8
+info depth 11 seldepth 19 score cp -481 nodes 61709 nps 52969 hashfull 26 time 1165 pv d6d8 a8d8 b1c2 d8c8 c2d3 h8g8 f1e2 g8f7 e2d2 f7e6 d3e2
+info depth 12 seldepth 21 score cp -501 nodes 100766 nps 49034 hashfull 43 time 2055 pv d6d8 a8d8 b1c2 d8c8 c2d1 a6a5 h3h4 a5a4 h4h5 g6h5 g2g3 c8c3 d1h5 g7d4 h5f7 c3c2 f7e6
+bestmove d6d8
+readyok
+info depth 1 seldepth 2 score cp -175 nodes 27 nps 27000 hashfull 1 time 1 pv f3f6
+info depth 2 seldepth 3 score cp -163 nodes 132 nps 66000 hashfull 1 time 2 pv f3f6 c4g4 h3h2
+info depth 3 seldepth 7 score cp -218 nodes 221 nps 44200 hashfull 1 time 5 pv h3h2 a5a4
+info depth 4 seldepth 8 score cp -214 nodes 800 nps 53333 hashfull 2 time 15 pv h3g2 b5b4 c3b4 a5b4
+info depth 5 seldepth 8 score cp -230 nodes 1111 nps 52904 hashfull 2 time 21 pv h3g2 b5b4 c3b4 a5b4 f3e3
+info depth 6 seldepth 12 score cp -213 nodes 2433 nps 52891 hashfull 3 time 46 pv f3f6 c4g4 h3h2 g4e2 h2g1 b5b4 c3b4
+info depth 7 seldepth 18 score cp -182 nodes 8900 nps 50282 hashfull 4 time 177 pv f3f6 c4g4 h3h2 g4e2 h2g1 e2d1 g1g2 d1c2 g2h3 c2f5 f6f5 g6f5 h3g2 g8f8
+info depth 8 seldepth 18 score cp -183 nodes 12668 nps 53451 hashfull 5 time 237 pv f3f6 c4e4 h3h2 e4c2 h2h3 c2f5 f6f5 g6f5 h3g2 g8f8
+info depth 9 seldepth 29 score cp -178 nodes 42170 nps 54064 hashfull 16 time 780 pv f3f6 b5b4 f6d8 g8h7 d8f6 c4g4 h3h2 g4d7 c3b4 a5b4 h2g2 d5d4
+info depth 10 seldepth 29 score cp -206 nodes 81988 nps 54914 hashfull 31 time 1493 pv e5e6 f7e6 f3f6 c4g4 h3h2 g4e4 f6d8 g8f7 d8d7 f7f6 d7d8 f6e5 d8b8 e5f5 b8b5 a5a4 b5b8 e4e2 h2g1
+info depth 11 seldepth 37 score cp -191 nodes 119205 nps 54756 hashfull 45 time 2177 pv e5e6 f7e6 f3f6 c4g4 h3h2 b5b4 c3b4 a5b4 f6d8 g8f7 d8d7 f7f6 d7d8 f6e5 d8b8 e5f5 b8f8 f5e4 f8b4 e4f3
+info depth 12 seldepth 37 score cp -193 nodes 157993 nps 54687 hashfull 61 time 2889 pv e5e6 f7e6 f3f6 c4g4 h3h2 b5b4 f6d8 g8f7 d8a5 b4c3 a5c7 f7f6 b2c3 g4e4 c7d8 f6e5 d8g5 e4f5 g5e3 e5f6 h2g2 f5e5 e3f2 e5f5
+bestmove e5e6
+readyok
+info depth 1 seldepth 8 score cp 130 nodes 210 nps 52500 hashfull 0 time 4 pv f1e1
+info depth 2 seldepth 8 score cp 122 nodes 356 nps 39555 hashfull 0 time 9 pv d2e3 e7d6 d5c6
+info depth 3 seldepth 8 score cp 122 nodes 711 nps 59250 hashfull 0 time 12 pv d2e3 e7d6 d5c6
+info depth 4 seldepth 9 score cp 119 nodes 1531 nps 43742 hashfull 1 time 35 pv f1e1 h7h6 d2e3 b8d7
+info depth 5 seldepth 10 score cp 119 nodes 2777 nps 46283 hashfull 1 time 60 pv d2e3 e7d6 a1c1 d6e5
+info depth 6 seldepth 13 score cp 106 nodes 9816 nps 46742 hashfull 4 time 210 pv a1e1 h7h6 d2e3 e7d6 d5c6 b8c6
+info depth 7 seldepth 13 score cp 105 nodes 11895 nps 46284 hashfull 6 time 257 pv a1e1 h7h6 d2e3 e7d6 e1e2 d6h2 g1h1
+info depth 8 seldepth 15 score cp 101 nodes 20730 nps 44773 hashfull 12 time 463 pv d5c6 b8c6 d2e3 e7d6 c3d5 f6d5 f3d5 d6e5
+info depth 9 seldepth 17 score cp 107 nodes 28511 nps 45690 hashfull 16 time 624 pv d5c6 b8c6 d2e3 d8d3 b3c4 a8d8 e3a7 d3f3 g2f3 d8d2
+info depth 10 seldepth 19 score cp 162 nodes 57484 nps 46097 hashfull 30 time 1247 pv d5c6 b8c6 d2e3 d8d3 f1d1 a8d8 d1d3 d8d3 b3c4 c7d7
+info depth 11 seldepth 23 score cp 129 nodes 100920 nps 45562 hashfull 53 time 2215 pv a1c1 a7a6 d2e3 b8d7 d5c6 b7c6 c3a4 d7e5 f3e2 a6a5 f1d1
+info depth 12 seldepth 27 score cp 114 nodes 179536 nps 39562 hashfull 96 time 4538 pv a1c1 b8a6 d5c6 a6c5 b3c2 b7c6 d2e3 a8b8 f1d1 c5d7 g2g3 d7e5 d1d8 c7d8 f3e2 d8c7 e3f4
+bestmove a1c1
+readyok
+info depth 1 seldepth 3 score cp 226 nodes 25 nps 25000 hashfull 0 time 1 pv h7g6 g5e6 f8f3
+info depth 2 seldepth 3 score cp 226 nodes 78 nps 78000 hashfull 0 time 1 pv h7g6 g5e6 f8f3
+info depth 3 seldepth 3 score cp 226 nodes 100 nps 50000 hashfull 0 time 2 pv h7g6 g5e6 f8f3
+info depth 4 seldepth 5 score cp 216 nodes 241 nps 60250 hashfull 0 time 4 pv h7g6 g5e6 f8f3 e6c7
+info depth 5 seldepth 5 score cp 224 nodes 372 nps 53142 hashfull 0 time 7 pv h7g6 g5e6 f8f3 e6c7 g6f5
+info depth 6 seldepth 6 score cp 249 nodes 689 nps 62636 hashfull 0 time 11 pv h7g6 g5e6 f8f3 e6d8 g6f5 d8c6
+info depth 7 seldepth 11 score cp 212 nodes 3525 nps 60775 hashfull 1 time 58 pv h7g6 g5e6 f8f3 e6c7 f3f7 c7b5 f7d7 a3a4
+info depth 8 seldepth 14 score cp 232 nodes 8564 nps 59888 hashfull 3 time 143 pv h7g6 g5e6 f8f3 a3a4 g6f5 e6d8 f3f2 a2a3
+info depth 9 seldepth 17 score cp 216 nodes 14723 nps 62651 hashfull 6 time 235 pv h7g6 g5e6 f8f3 e6c7 f3d3 c7b5 d3d7 a3a4 g6f5 b5c3 d7d2
+info depth 10 seldepth 20 score cp 185 nodes 32519 nps 62899 hashfull 13 time 517 pv h7h6 g5e6 f8f3 e6c7 h6g5 a3a4 f3f2 a2a3 f2b2 c7b5 a7a5
+info depth 11 seldepth 22 score cp 189 nodes 52102 nps 62697 hashfull 20 time 831 pv h7g6 g5e6 f8f3 e6c7 f3d3 a3a4 d3d2 a2a3 g6f5 b3b4 d2c2 a4b5 c5b4 a3b4 f5e5 c4c5 b6c5 b4c5 e5e4
+info depth 12 seldepth 26 score cp 198 nodes 58310 nps 57222 hashfull 22 time 1019 pv h7g6 g5e6 f8f3 e6c7 f3d3 a3a4 d3d2 a2a3 g6f5 b3b4 d2d7 c7a6 c5b4 a3b4 f5e4 a4b5 e4d4
+bestmove h7g6
+readyok
+info depth 1 seldepth 3 score cp -20 nodes 79 nps 79000 hashfull 0 time 1 pv c8b7
+info depth 2 seldepth 4 score cp -3 nodes 126 nps 63000 hashfull 0 time 2 pv c8b7 b1d3
+info depth 3 seldepth 8 score cp -16 nodes 319 nps 45571 hashfull 0 time 7 pv c8b7 b1d3 f8e8
+info depth 4 seldepth 14 score cp -5 nodes 745 nps 41388 hashfull 0 time 18 pv c8b7 a3a4 b5b4 d1b3 b4c3 b3b7
+info depth 5 seldepth 14 score cp -8 nodes 1696 nps 53000 hashfull 1 time 32 pv c8b7 b1d3 e7c8 a1c1
+info depth 6 seldepth 16 score cp -16 nodes 4101 nps 51911 hashfull 2 time 79 pv c8b7 f1e1 f8e8 b1d3 a8c8
+info depth 7 seldepth 17 score cp -12 nodes 8490 nps 49941 hashfull 5 time 170 pv c8b7 b1d3 f8e8 a1c1 a8c8 f1e1
+info depth 8 seldepth 23 score cp -22 nodes 15028 nps 48634 hashfull 9 time 309 pv c8b7 b1d3 d8b6 a1c1 a8e8 f4e3 e8c8 d1b3
+info depth 9 seldepth 28 score cp -23 nodes 31213 nps 48694 hashfull 20 time 641 pv c8b7 b1d3 a8c8 a1c1 g6g5 f4e3 e7g6 g2g3 f8e8
+info depth 10 seldepth 28 score cp -23 nodes 54713 nps 48205 hashfull 33 time 1135 pv c8b7 b1d3 g6g5 f4e3 e7g6 a1c1 f8e8 d1b3 g5g4 h3g4
+info depth 11 seldepth 28 score cp -24 nodes 71220 nps 48481 hashfull 40 time 1469 pv c8b7 b1d3 g6g5 f4h2 a8c8 a1c1 d8b6 d1d2 f8d8 f1d1 e7g6
+info depth 12 seldepth 28 score cp -23 nodes 82106 nps 49342 hashfull 46 time 1664 pv c8b7 b1d3 g6g5 f4h2 a8c8 d1b3 g5g4 h3g4 f6g4 h2g3 d8b6 a1c1 g7d4
+bestmove c8b7
+readyok
+info depth 1 seldepth 2 score cp 42 nodes 64 nps 64000 hashfull 0 time 1 pv f1e1
+info depth 2 seldepth 4 score cp 318 nodes 213 nps 53250 hashfull 0 time 4 pv c1f4 e7a3 f4b8 c8b8
+info depth 3 seldepth 6 score cp 318 nodes 296 nps 59200 hashfull 0 time 5 pv c1f4 e7a3 f4b8 c8b8
+info depth 4 seldepth 6 score cp 94 nodes 501 nps 55666 hashfull 0 time 9 pv c1f4 b8b7 a1c1 c8c3
+info depth 5 seldepth 9 score cp 27 nodes 864 nps 32000 hashfull 1 time 27 pv f1e1 e7d6 c1b2 h7h6
+info depth 6 seldepth 9 score cp 12 nodes 3724 nps 50324 hashfull 1 time 74 pv c1b2 a6a5 f1e1 e7d6 a1c1 a5a4
+info depth 7 seldepth 11 score cp 9 nodes 6008 nps 46573 hashfull 2 time 129 pv f1e1 e7d6 c1e3 b8b7 e1e2 d6a3 e3f4
+info depth 8 seldepth 15 score cp -5 nodes 14113 nps 45821 hashfull 6 time 308 pv f1e1 e7d6 h3h4 c2e4 c1d2 e4f3 g2f3 c8c2 d2e3
+info depth 9 seldepth 16 score cp -14 nodes 34066 nps 47511 hashfull 12 time 717 pv c1b2 a6a5 b2c1 e7d6 f1e1 a5a4 b3a4 c2a4 c1d2
+info depth 10 seldepth 16 score cp 5 nodes 39625 nps 48980 hashfull 15 time 809 pv c1b2 a6a5 b2c1 e7d6 f1e1 a5a4 b3a4 c2a4 c1d2 d6a3
+info depth 11 seldepth 16 score cp -5 nodes 54991 nps 49099 hashfull 23 time 1120 pv c1b2 e7d6 f1e1 a6a5 b2c1 a5a4 b3a4 c2a4 c1d2 h7h6 e1c1 d6a3 c1c8 b8c8 d2f4
+info depth 12 seldepth 21 score cp -6 nodes 83597 nps 48462 hashfull 36 time 1725 pv c1b2 e7d6 f1e1 a6a5 b2c1 a5a4 b3a4 c2a4 c1d2 h7h6 e1c1 d6a3 c1c8 b8c8 a1b1 c8c2 b1b8 g8h7 b8a8
+bestmove c1b2
+readyok
+info depth 1 seldepth 2 score cp 63 nodes 84 nps 84000 hashfull 0 time 1 pv e3f5
+info depth 2 seldepth 5 score cp 68 nodes 197 nps 39400 hashfull 0 time 5 pv b1a1 g5f4
+info depth 3 seldepth 5 score cp 62 nodes 482 nps 48200 hashfull 0 time 10 pv d1e2 g5f4
+info depth 4 seldepth 10 score cp 74 nodes 1244 nps 56545 hashfull 0 time 22 pv e3f5 d7f6 f5e3 g5f4
+info depth 5 seldepth 10 score cp 75 nodes 1909 nps 56147 hashfull 0 time 34 pv g3h5 d7f6 h5f6 g5f6 e3f1 c8d7
+info depth 6 seldepth 10 score cp 64 nodes 2453 nps 44600 hashfull 0 time 55 pv g3h5 d7f6 h5f6 g5f6 f2f3 c8d7
+info depth 7 seldepth 12 score cp 38 nodes 8318 nps 50412 hashfull 3 time 165 pv g3f1 g5f6 f1d2 a5a4 d2f3 g7g6 b1c1
+info depth 8 seldepth 14 score cp 30 nodes 17199 nps 51494 hashfull 7 time 334 pv g3f1 c5b7 f1d2 d7c5 d2f3 g5f4 b1a1 c8d7
+info depth 9 seldepth 14 score cp 27 nodes 29444 nps 50504 hashfull 13 time 583 pv g3f1 d8e8 f1d2 g5f4 g2g3 f4g5 d1e2 e8d8
+info depth 10 seldepth 17 score cp 26 nodes 42983 nps 51662 hashfull 19 time 832 pv g3f1 d8e8 f1d2 g5f4 g2g3 f4g5 d2f3 g5d8 b1a1 d7f6 a3c5 b6c5
+info depth 11 seldepth 18 score cp 49 nodes 97742 nps 49741 hashfull 47 time 1965 pv g3h1 g7g6 f2f3 h6h5 d1e2 b8a8 g2g3 f8g7 g1g2 g5h6
+info depth 12 seldepth 18 score cp 43 nodes 106837 nps 50017 hashfull 52 time 2136 pv g3h1 g7g6 f2f3 h6h5 d1e2 b8a8 e3f1 f8g7 e1d1 d8f8 e2f2 h5h4 f2e1
+bestmove g3h1
+readyok
+info depth 1 seldepth 1 score cp -936 nodes 10 nps 0 hashfull 0 time 0 pv a6a5
+info depth 2 seldepth 3 score cp -985 nodes 42 nps 42000 hashfull 0 time 1 pv a6a5 e1d2
+info depth 3 seldepth 4 score cp -988 nodes 84 nps 84000 hashfull 0 time 1 pv a6a5 e1d2 a5a4 d2d3
+info depth 4 seldepth 6 score cp -988 nodes 153 nps 38250 hashfull 0 time 4 pv a6a5 e1d2 a5a4 d2d3
+info depth 5 seldepth 8 score cp -1024 nodes 771 nps 59307 hashfull 0 time 13 pv a6a5 e3e4 a5a6 e1d2
+info depth 6 seldepth 10 score cp -1032 nodes 1018 nps 46272 hashfull 0 time 22 pv a6a5 e3e4 a5a6 e4e5 a6a7
+info depth 7 seldepth 13 score cp -1124 nodes 4366 nps 57447 hashfull 2 time 76 pv a6a5 e1d2 a5a6 d2d3 a6a7 b8b1 a7a8 e3e4
+info depth 8 seldepth 15 score cp -1185 nodes 10776 nps 65707 hashfull 6 time 164 pv a6a5 e1d2 a5a6 d2d3 a6a7 b8b1 a7a8 e3e4 a8a7
+info depth 9 seldepth 17 score cp -1333 nodes 38095 nps 79364 hashfull 13 time 480 pv a6a5 e1d2 a5a6 d2d3 a6a7 b8b1 a7a8 e3e4 a8a7 e4e5 a7a8 d3e4
+info depth 10 seldepth 19 score cp -1521 nodes 74863 nps 87559 hashfull 24 time 855 pv a6a5 e3e4 a5a6 e4e5 a6a7 b8b4 a7a6 e1d2 a6a5 b4b8 a5a6 d2d3
+info depth 11 seldepth 21 score cp -1557 nodes 82871 nps 88348 hashfull 24 time 938 pv a6a5 e3e4 a5a6 e4e5 a6a7 b8b4 a7a6 e1d2 a6a5 b4b8 a5a6 d2d3 a6a7 b8b1 a7a8 d3d4
+info depth 12 seldepth 21 score cp -1582 nodes 103947 nps 88767 hashfull 30 time 1171 pv a6a5 e3e4 a5a6 e4e5 a6a7 b8b4 a7a6 e1d2 a6a5 b4b8 a5a6 d2d3 a6a7 b8b4 a7a6 d3c3 a6a7 c3d4
+bestmove a6a5
+readyok
+info depth 1 seldepth 5 score cp 8 nodes 112 nps 56000 hashfull 0 time 2 pv c5d4 c3d4
+info depth 2 seldepth 5 score cp 6 nodes 218 nps 72666 hashfull 0 time 3 pv c5d4 c3d4
+info depth 3 seldepth 6 score cp -8 nodes 511 nps 63875 hashfull 0 time 8 pv f8d8 d4c5 d7c5
+info depth 4 seldepth 9 score cp -4 nodes 1128 nps 59368 hashfull 0 time 19 pv c5d4 c3d4 b6b4 c1c2
+info depth 5 seldepth 11 score cp -17 nodes 1631 nps 56241 hashfull 0 time 29 pv c5d4 c3d4 b6d8 e2d3
+info depth 6 seldepth 11 score cp -27 nodes 3735 nps 52605 hashfull 0 time 71 pv c5d4 c3d4 b6d8 c1c2 d8b6
+info depth 7 seldepth 12 score cp -22 nodes 6582 nps 47695 hashfull 2 time 138 pv c5d4 c3d4 b6b4 c1b1 d7b6 e2b5 c8d7
+info depth 8 seldepth 13 score cp 8 nodes 12499 nps 49796 hashfull 4 time 251 pv c5d4 c3d4 d7b8 e2b5 c8d7 d2b3 c6b4 e3h6
+info depth 9 seldepth 15 score cp 13 nodes 16904 nps 49139 hashfull 5 time 344 pv c5d4 c3d4 d7b8 c1d1 b6b2 d2b3 c6b4 e3d2 c8d7
+info depth 10 seldepth 15 score cp 11 nodes 20786 nps 50451 hashfull 7 time 412 pv c5d4 c3d4 d7b8 c1d1 b6b2 d2b3 c8d7 a1b1 b2c3 e2b5 c6b4
+info depth 11 seldepth 19 score cp 4 nodes 31256 nps 50576 hashfull 10 time 618 pv c5d4 c3d4 d7b8 c1d1 c8d7 d2b3 c6b4 b3c5 d7e8 c5d3 b4c6 a1c1
+info depth 12 seldepth 20 score cp 10 nodes 39593 nps 50501 hashfull 12 time 784 pv c5d4 c3d4 d7b8 c1d1 c8d7 d2b3 c6b4 b3c5 e7c5 d4c5 b6d8 e2b5 b8c6 d1e2
+bestmove c5d4
+readyok
+info depth 1 seldepth 2 score cp 42 nodes 84 nps 84000 hashfull 0 time 1 pv f8g7
+info depth 2 seldepth 7 score cp 44 nodes 390 nps 65000 hashfull 0 time 6 pv d8b6 h4h5
+info depth 3 seldepth 7 score cp 44 nodes 475 nps 59375 hashfull 0 time 8 pv d8b6 h4h5 c6d4
+info depth 4 seldepth 11 score cp 44 nodes 1077 nps 56684 hashfull 0 time 19 pv d8b6 h4h5 c6d4 e3d4 b6d4
+info depth 5 seldepth 11 score cp 44 nodes 1404 nps 43875 hashfull 1 time 32 pv d8b6 h4h5 c6d4 e3d4 b6d4
+info depth 6 seldepth 13 score cp 56 nodes 5749 nps 47512 hashfull 2 time 121 pv h7h5 a1b1 f8g7 f1c1 a7a6 f3h3
+info depth 7 seldepth 13 score cp 64 nodes 10432 nps 48296 hashfull 5 time 216 pv h7h5 a1b1 a8c8 f1d1 d8b6 f3f4
+info depth 8 seldepth 15 score cp 76 nodes 15017 nps 46492 hashfull 7 time 323 pv h7h5 a1b1 a7a6 c3e2 f8d6 f1e1 a8c8
+info depth 9 seldepth 15 score cp 86 nodes 23301 nps 44809 hashfull 11 time 520 pv h7h5 f1c1 a7a6 a1b1 f8d6 g2g3 a8c8 g1g2 c6b4
+info depth 10 seldepth 17 score cp 90 nodes 43186 nps 43710 hashfull 21 time 988 pv h7h5 f1c1 d8b6 a2a3 f8d6 a1b1 c6d4 e3d4 b6d4 c3b5
+info depth 11 seldepth 20 score cp 89 nodes 62181 nps 42300 hashfull 31 time 1470 pv h7h5 f1c1 d8b6 a2a3 a8c8 c3e2 b6b3 e2c3 f8d6 a1b1
+info depth 12 seldepth 20 score cp 96 nodes 113731 nps 43392 hashfull 56 time 2621 pv h7h5 f1c1 f8d6 c3b5 d6e7 b5c3 d8b6 a1b1 e7d6 c3e2 c6e7
+bestmove h7h5
+readyok
+info depth 1 seldepth 8 score cp -74 nodes 182 nps 36400 hashfull 0 time 5 pv f3d4
+info depth 2 seldepth 9 score cp -39 nodes 686 nps 62363 hashfull 0 time 11 pv b3c4 e7e1
+info depth 3 seldepth 9 score cp -59 nodes 1000 nps 62500 hashfull 0 time 16 pv b3c4 a6a5 h2h3
+info depth 4 seldepth 11 score cp -99 nodes 2475 nps 61875 hashfull 1 time 40 pv h2h3 a6a5 a2a3 a5a4
+info depth 5 seldepth 12 score cp -82 nodes 3138 nps 48276 hashfull 2 time 65 pv a2a3 b6b5 h2h3 e7e1 f1e1
+info depth 6 seldepth 14 score cp -107 nodes 6865 nps 50477 hashfull 3 time 136 pv c3a4 c5b3 c2b3 e7e1 f1e1 b6b5
+info depth 7 seldepth 14 score cp -73 nodes 14598 nps 52510 hashfull 11 time 278 pv h2h3 e7d7 a2a3 c5b3 c2b3
+info depth 8 seldepth 16 score cp -56 nodes 26642 nps 52035 hashfull 17 time 512 pv h2h3 e7e1 f1e1 b6b5 a2a3 d8d7 b3a2 a6a5
+info depth 9 seldepth 17 score cp -50 nodes 30707 nps 52134 hashfull 19 time 589 pv h2h3 e7e1 f1e1 b6b5 a2a3 c5b3 c2b3 d8d7 e1d1 c7c6 d5c6 d7c6
+info depth 10 seldepth 18 score cp -56 nodes 37357 nps 51173 hashfull 22 time 730 pv h2h3 e7e1 f1e1 b6b5 a2a3 c5b3 c2b3 c7c5 d5c6 b7c6 f3d4 c6b7 b3b4
+info depth 11 seldepth 22 score cp -66 nodes 60356 nps 50338 hashfull 33 time 1199 pv h2h3 e7e1 f1e1 b6b5 c3e4 g7b2 c2c3 b2a3 d2d4 c5e4 d4e4 a3b2
+info depth 12 seldepth 27 score cp -69 nodes 91904 nps 44142 hashfull 49 time 2082 pv h2h3 b6b5 a2a3 e7e1 f1e1 c5b3 c2b3 c7c5 d5c6 b7c6 f3d4 c6b7 b3b4 d8f6 d4e2 a8e8
+bestmove h2h3
+readyok
+info depth 1 seldepth 1 score cp -2347 nodes 12 nps 0 hashfull 0 time 0 pv g6f7
+info depth 2 seldepth 3 score cp -2377 nodes 82 nps 41000 hashfull 0 time 2 pv g6f7 a5a4
+info depth 3 seldepth 5 score cp -2460 nodes 1114 nps 79571 hashfull 0 time 14 pv g6f7 b3a3 f7f8
+info depth 4 seldepth 7 score cp -2551 nodes 5630 nps 84029 hashfull 2 time 67 pv g6f7 a5a6 f7f8 b3a3
+info depth 5 seldepth 9 score cp -2728 nodes 23310 nps 84763 hashfull 9 time 275 pv g6f7 a5a2 f7e6 a2g2 e6f7
+info depth 6 seldepth 11 score cp -2725 nodes 85799 nps 93057 hashfull 25 time 922 pv g6f7 a5d5 f7g7 d5d7 g7g8 d7d2 g8f7 d2b2
+info depth 7 seldepth 15 score cp -2779 nodes 264664 nps 103062 hashfull 77 time 2568 pv g6f7 a5a2 f7e6 b3a3 e6f6 a2g2 f6e5 h4h5 e5f4
+info depth 8 seldepth 17 score mate -5 nodes 716133 nps 116615 hashfull 154 time 6141 pv g6f7 a5c7 f7e6 b3c4 e6f6 c4d5 f6g6 g4g5 g6f5
+info depth 9 seldepth 17 score mate -5 nodes 865625 nps 121371 hashfull 164 time 7132 pv g6f7 a5c7 f7e6 b3c4 e6f6 g4g5 f6e6 c4d4 e6f5 c7f7
+info depth 10 seldepth 17 score mate -5 nodes 1058112 nps 132645 hashfull 165 time 7977 pv g6f7 a5c7 f7e6 b3c4 e6f6 g4g5 f6e6 c4d4 e6f5 c7f7
+info depth 11 seldepth 17 score mate -5 nodes 1348520 nps 145345 hashfull 167 time 9278 pv g6f7 a5c7 f7e6 b3c4 e6f6 g4g5 f6e6 c4d4 e6f5 c7f7
+info depth 12 seldepth 17 score mate -5 nodes 1663266 nps 156028 hashfull 168 time 10660 pv g6f7 a5c7 f7e6 b3c4 e6f6 g4g5 f6e6 c4d4 e6f5 c7f7
+bestmove g6f7
+readyok
+info depth 1 seldepth 3 score cp -492 nodes 34 nps 17000 hashfull 0 time 2 pv e3b6
+info depth 2 seldepth 4 score cp -491 nodes 214 nps 53500 hashfull 0 time 4 pv f3f4 g7f6
+info depth 3 seldepth 4 score cp -516 nodes 382 nps 42444 hashfull 0 time 9 pv e3g5 g7g6 g5e3
+info depth 4 seldepth 5 score cp -510 nodes 1035 nps 54473 hashfull 0 time 19 pv e3f4 g7f6 a2a3 c3b2
+info depth 5 seldepth 6 score cp -498 nodes 1381 nps 44548 hashfull 1 time 31 pv e3f4 g7f6 f4e3 f6e5
+info depth 6 seldepth 11 score cp -507 nodes 4544 nps 52837 hashfull 3 time 86 pv e3f2 b5b4 f2g3 b4b3 a2b3 a4b3
+info depth 7 seldepth 11 score cp -505 nodes 8567 nps 54916 hashfull 4 time 156 pv e3f4 c3e5 f4e3 e5b2 e3f2 b5b4 d3c2
+info depth 8 seldepth 13 score cp -495 nodes 24373 nps 55901 hashfull 11 time 436 pv e3g5 g7g6 h3h4 c3b4 e2e3 b4c5 e3e2 b5b4 d3c2
+info depth 9 seldepth 14 score cp -501 nodes 34737 nps 54446 hashfull 15 time 638 pv e3g5 d5e5 e2f2 c3d4 f2f1 e5d5 f1e2 d4c3 g5f4 c3e5
+info depth 10 seldepth 15 score cp -494 nodes 56832 nps 55445 hashfull 25 time 1025 pv e3f4 c3e5 f4e3 g7g6 e3b6 e5f4 b6a5 g6f6
+info depth 11 seldepth 17 score cp -511 nodes 119012 nps 56058 hashfull 51 time 2123 pv e3f4 g7g6 e2e3 c3f6 f4b8 f6d4 e3e2 b5b4 b8f4 d4b6 f4d2 b4b3 a2b3
+info depth 12 seldepth 19 score cp -513 nodes 160727 nps 56975 hashfull 65 time 2821 pv e3g5 d5e5 e2f2 c3d4 f2f1 d4e3 g5h4 e5d5 f1e2 e3f4 h4e1 g7f6 e1b4
+bestmove e3g5
+readyok
+info depth 1 seldepth 1 score cp 1661 nodes 22 nps 0 hashfull 0 time 0 pv d6c5
+info depth 2 seldepth 5 score cp 1591 nodes 85 nps 42500 hashfull 0 time 2 pv c4a6 b2c2
+info depth 3 seldepth 5 score cp 1716 nodes 355 nps 59166 hashfull 0 time 6 pv c4a6 b2c1 e8a8
+info depth 4 seldepth 6 score cp 1784 nodes 2194 nps 81259 hashfull 1 time 27 pv c4a6 b2c1 e8e3 c1d1 e3b3 d1c1
+info depth 5 seldepth 8 score mate 3 nodes 10234 nps 79333 hashfull 4 time 129 pv c4a6 b2c1 e8e2 c1b1 f3f1
+info depth 6 seldepth 8 score mate 3 nodes 10702 nps 81075 hashfull 4 time 132 pv c4a6 b2c1 e8e2 c1b1 f3f1
+info depth 7 seldepth 8 score mate 3 nodes 10969 nps 81858 hashfull 4 time 134 pv c4a6 b2c1 e8e2 c1b1 f3f1
+info depth 8 seldepth 8 score mate 3 nodes 11073 nps 82022 hashfull 4 time 135 pv c4a6 b2c1 e8e2 c1b1 f3f1
+info depth 9 seldepth 9 score mate 3 nodes 11499 nps 83326 hashfull 4 time 138 pv c4a6 b2c1 e8e2 c1b1 f3f1
+info depth 10 seldepth 10 score mate 3 nodes 11769 nps 84064 hashfull 4 time 140 pv c4a6 b2c1 e8e2 c1b1 f3f1
+info depth 11 seldepth 11 score mate 3 nodes 12048 nps 84845 hashfull 4 time 142 pv c4a6 b2c1 e8e2 c1b1 f3f1
+info depth 12 seldepth 12 score mate 3 nodes 12321 nps 85562 hashfull 4 time 144 pv c4a6 b2c1 e8e2 c1b1 f3f1
+bestmove c4a6
+readyok
+info depth 1 seldepth 11 score cp -89 nodes 105 nps 26250 hashfull 0 time 4 pv a7c8
+info depth 2 seldepth 11 score cp -98 nodes 377 nps 62833 hashfull 0 time 6 pv a7c8 d1e2
+info depth 3 seldepth 11 score cp -96 nodes 616 nps 44000 hashfull 0 time 14 pv a7c8 g5f4 b7d5 c3d5
+info depth 4 seldepth 13 score cp -96 nodes 1359 nps 56625 hashfull 1 time 24 pv a7c8 g5f4 b7d5 c3d5 f6d5
+info depth 5 seldepth 13 score cp -85 nodes 2520 nps 45818 hashfull 2 time 55 pv a7c8 h2h3 f6d5 c3d5 b7d5
+info depth 6 seldepth 14 score cp -73 nodes 6102 nps 51277 hashfull 4 time 119 pv a7c8 d1c2 c8b6 h2h3 f8e8 c2d3
+info depth 7 seldepth 14 score cp -74 nodes 11194 nps 51348 hashfull 7 time 218 pv a7c8 h2h4 b5b4 c3a4 b7d5 b3d5 d8d5
+info depth 8 seldepth 19 score cp -83 nodes 17110 nps 47660 hashfull 10 time 359 pv a7c8 h2h4 b5b4 c3a4 a6a5 d1c2 b7d5 b3d5 f6d5
+info depth 9 seldepth 22 score cp -85 nodes 35350 nps 48825 hashfull 18 time 724 pv a7c8 h2h4 b5b4 c3a4 b7d5 f3e5 a6a5 a4c5 d5b3 a2b3 c8d6
+info depth 10 seldepth 22 score cp -71 nodes 41300 nps 49461 hashfull 21 time 835 pv a7c8 h2h4 b5b4 c3a4 b7d5 f3e5 a6a5 c1c5 d5b3 a2b3 h7h6 g5f4
+info depth 11 seldepth 24 score cp -85 nodes 97237 nps 48304 hashfull 51 time 2013 pv a7c8 f3e5 f6d5 d1f3 c8b6 c3d5 b7d5 b3d5 d8d5 g5e7 d5f3 e5f3 f8c8 e7c5 b6c4 b2b4
+info depth 12 seldepth 28 score cp -77 nodes 161724 nps 43276 hashfull 81 time 3737 pv b5b4 c3a4 b7d5 f3e5 d5b3 a2b3 a8c8 c1c4 a6a5 c4c8 d8c8 d1f3
+bestmove b5b4
+readyok
+info depth 1 seldepth 5 score cp 23 nodes 66 nps 33000 hashfull 0 time 2 pv b1c1
+info depth 2 seldepth 6 score cp 35 nodes 229 nps 38166 hashfull 0 time 6 pv b1c1 c6d6
+info depth 3 seldepth 6 score cp 47 nodes 362 nps 51714 hashfull 0 time 7 pv b1c1 c6d6 g1g2
+info depth 4 seldepth 6 score cp 60 nodes 503 nps 45727 hashfull 0 time 11 pv b1c1 f4f3 a7a8
+info depth 5 seldepth 9 score cp 48 nodes 1091 nps 49590 hashfull 1 time 22 pv b1c1 f4f3 a7f7 c6d6 f7f8
+info depth 6 seldepth 10 score cp 55 nodes 2234 nps 50772 hashfull 1 time 44 pv b1b3 c6e6 g1g2 e6d6 a7a8 d6e6
+info depth 7 seldepth 10 score cp 46 nodes 2857 nps 42641 hashfull 2 time 67 pv b1b3 c6e6 g1g2 e6d6 a7e7 d6c6 e7a7
+info depth 8 seldepth 12 score cp 55 nodes 5261 nps 43479 hashfull 3 time 121 pv b1b3 c6e6 g1g2 e6d6 a7e7 d6c6 e7e8 c6d6 g2h2
+info depth 9 seldepth 13 score cp 57 nodes 9241 nps 48382 hashfull 4 time 191 pv b1b3 c6e6 g1g2 e6d6 a7e7 d6c6 e7e5 c6d6 g2h2 d6d7
+info depth 10 seldepth 15 score cp 85 nodes 17487 nps 52513 hashfull 7 time 333 pv b1b3 c6e6 g1g2 e6d6 a7c7 d6e6 c7c5 e6d6 c5e5 d6c6 g2h2 c6c7
+info depth 11 seldepth 22 score cp 171 nodes 67982 nps 52576 hashfull 29 time 1293 pv a3a4 d3d5 g1g2 c6e6 a4b5 a6b5 a7c7 e6e2 c7c6 h6h7 g2f3 e2e5 b1b4 d5d3 f3g2 h7g7
+info depth 12 seldepth 22 score cp 163 nodes 90706 nps 53262 hashfull 36 time 1703 pv a3a4 d3d5 g1g2 d5c5 a4b5 a6b5 b1b3 c5d5 a7e7 c6c5 e7e6 h6h7 e6b6 d5e5 g2f3
+bestmove a3a4
+readyok
+info depth 1 seldepth 7 score cp 73 nodes 93 nps 31000 hashfull 0 time 3 pv e7c5 c3c5 b4b2
+info depth 2 seldepth 11 score cp 210 nodes 400 nps 57142 hashfull 0 time 7 pv b4b2 c3d3
+info depth 3 seldepth 11 score cp 229 nodes 478 nps 59750 hashfull 0 time 8 pv b4b2 c3d3 c6e5 f3e5
+info depth 4 seldepth 11 score cp 167 nodes 869 nps 54312 hashfull 0 time 16 pv b4b2 e3d2 e7c5
+info depth 5 seldepth 13 score cp 118 nodes 2442 nps 53086 hashfull 1 time 46 pv c6e5 f3e5 g6e5 d4e5 e7c5
+info depth 6 seldepth 13 score cp 166 nodes 5093 nps 58540 hashfull 3 time 87 pv c6e5 f3e5 g6e5 d4e5 e7c5 c3c5 c8c5
+info depth 7 seldepth 13 score cp 135 nodes 6643 nps 56296 hashfull 3 time 118 pv c6e5 f3e5 g6e5 d4e5 e7c5 c3c5 c8c5
+info depth 8 seldepth 16 score cp 139 nodes 16662 nps 53233 hashfull 8 time 313 pv e7c5 c3c5 b4b2 c5c2 b2a3 e2b5 c6e7 c2c8
+info depth 9 seldepth 18 score cp 124 nodes 22845 nps 53127 hashfull 10 time 430 pv e7c5 c3c5 b4b2 e2b5 b2a3 e3d2 c6b4 c5c8 a8c8 b5e8 c8e8
+info depth 10 seldepth 18 score cp 123 nodes 38233 nps 52808 hashfull 16 time 724 pv e7c5 c3c5 c6e5 f3e5 c8c5 d4c5 g6e5 b2b3 e5c6 e2b5 a8c8 g1h2
+info depth 11 seldepth 19 score cp 158 nodes 57907 nps 52074 hashfull 22 time 1112 pv e7c5 d4c5 c6e5 f3e5 g6e5 c3a3 e5c4 e2c4 b4c4 f1e1 c4b4 a3b3 b4a4
+info depth 12 seldepth 26 score cp 84 nodes 114072 nps 50698 hashfull 47 time 2250 pv e7c5 c3c5 b4b2 e2b5 b2a3 e3d2 g6e7 f1e1 e7f5 d1c2 c8c7 c5c3 c6d4 f3d4 f5d4 c3a3
+bestmove e7c5
+readyok
+info depth 1 seldepth 1 score cp -188 nodes 6 nps 0 hashfull 0 time 0 pv f8g8
+info depth 2 seldepth 3 score cp -269 nodes 38 nps 38000 hashfull 0 time 1 pv f8g8 e1e7
+info depth 3 seldepth 8 score cp -336 nodes 103 nps 25750 hashfull 0 time 4 pv f8g8 e1e7 g8h7 c4f7
+info depth 4 seldepth 13 score cp -336 nodes 319 nps 39875 hashfull 0 time 8 pv f8g8 e1e7 g8h7 c4f7
+info depth 5 seldepth 14 score cp -483 nodes 577 nps 36062 hashfull 0 time 16 pv f8g8 e1e7 b7b6 c5e5 h8h7 e7f7
+info depth 6 seldepth 14 score cp -371 nodes 1180 nps 43703 hashfull 1 time 27 pv f8g8 e1e7 b7b6 c5e5 g8h7 e7f7
+info depth 7 seldepth 15 score cp -397 nodes 2731 nps 40761 hashfull 1 time 67 pv f8g8 e1e7 b7b6 c4f7 g8h7 c5e5 a7a6 f7b3
+info depth 8 seldepth 18 score cp -482 nodes 12506 nps 48661 hashfull 3 time 257 pv f8g8 e1e7 d8f8 c4f7 f8f7 e7f7 g8f7 d1e1 h8c8 c5c4 f7g6 c4d3 g6f7 d3e3
+info depth 9 seldepth 20 score cp -484 nodes 18688 nps 49049 hashfull 4 time 381 pv f8g8 e1e7 d8f8 c4f7 f8f7 e7f7 g8f7 d1e1 d7e6 c5b4 h8b8 c3e4 f6e4 b4e4 e6a2 c2c4
+info depth 10 seldepth 28 score cp -516 nodes 30399 nps 49752 hashfull 9 time 611 pv f8g8 e1e7 d8b6 c5b6 a7b6 e7d7 f6d7 d1d7 b6b5 c4f7 g8h7 d7b7 h8f8 b7c7 b5b4 c3e4
+info depth 11 seldepth 28 score cp -476 nodes 45564 nps 50682 hashfull 14 time 899 pv f8g8 e1e7 b7b6 c5e5 d8b8 c4f7 g8f8 e5b8 a8b8 d1d7 f6d7 e7d7
+info depth 12 seldepth 28 score cp -554 nodes 77717 nps 51230 hashfull 25 time 1517 pv f8g8 e1e7 d8b6 c5b6 a7b6 d1d7 f6d7 e7d7 g8h7 d7b7 b6b5 c4f7 h8f8 b7c7 h7h8
+bestmove f8g8
+readyok
+info depth 1 seldepth 2 score cp 254 nodes 92 nps 92000 hashfull 0 time 1 pv e8e4
+info depth 2 seldepth 2 score cp 283 nodes 181 nps 90500 hashfull 0 time 2 pv e8e4 d3c3
+info depth 3 seldepth 6 score cp 311 nodes 253 nps 63250 hashfull 0 time 4 pv e8e4 a2a4 h8g8
+info depth 4 seldepth 6 score cp 168 nodes 762 nps 42333 hashfull 1 time 18 pv h7h6 d5d6 h8g8
+info depth 5 seldepth 7 score cp 160 nodes 1684 nps 52625 hashfull 1 time 32 pv a7a5 d3d2 h8g8 d5d6 g8f8
+info depth 6 seldepth 9 score cp 159 nodes 2320 nps 48333 hashfull 2 time 48 pv h7h6 d3d2 h8h7 d5d6 e8d8
+info depth 7 seldepth 12 score cp 241 nodes 4659 nps 46128 hashfull 3 time 101 pv h7h6 a2a3 h8h7 b3b4 a7a5 b4a5
+info depth 8 seldepth 12 score cp 272 nodes 12458 nps 50032 hashfull 5 time 249 pv h7h6 a2a3 h8h7 b3b4 g6f6 d3d1 e8e4 b4c5
+info depth 9 seldepth 16 score cp 258 nodes 19439 nps 47879 hashfull 6 time 406 pv h7h6 d3d1 h8h7 d1d3 e8e4 d3d1 g6f6 h2h5
+info depth 10 seldepth 16 score cp 228 nodes 27086 nps 49517 hashfull 8 time 547 pv h7h6 d3d1 h8h7 d1d3 e8e4 a2a3 g6f6 d3d1 e4f4 h2h3 f4g4
+info depth 11 seldepth 23 score cp 247 nodes 59513 nps 48463 hashfull 20 time 1228 pv h7h6 d3d1 h8h7 d1d3 e8e4 a2a3 g6f6 d3d1 e4f4 h2h3 f4g4 d1c1 g4e4 h3h2
+info depth 12 seldepth 27 score cp 251 nodes 101491 nps 47161 hashfull 43 time 2152 pv h7h6 d3d1 h8h7 d1d3 e8e4 a2a3 g6f6 d3d1 e4f4 h2h3 f4g4 d1c1 g4e4 h3h2 g7g4 h2h3 h7g7
+bestmove h7h6
+readyok
+info depth 1 seldepth 2 score cp 1052 nodes 124 nps 62000 hashfull 0 time 2 pv f2f5
+info depth 2 seldepth 3 score cp 1075 nodes 176 nps 58666 hashfull 0 time 3 pv f2f5 d5d8 g8g7
+info depth 3 seldepth 9 score cp 988 nodes 631 nps 48538 hashfull 1 time 13 pv e5f3 d5d7 f3d2
+info depth 4 seldepth 10 score cp 1073 nodes 1235 nps 51458 hashfull 1 time 24 pv f2f5 d2e3 f5e4 d1d2
+info depth 5 seldepth 10 score cp 1061 nodes 1893 nps 51162 hashfull 1 time 37 pv f2f5 d5d8 g8g7 d8d4 e5c6 d4a4
+info depth 6 seldepth 12 score cp 1060 nodes 2825 nps 41544 hashfull 1 time 68 pv f2f3 d1c2 f3e4 c2d1 e4g4 d1c2 g4f5 c2d1 f5f1 d1c2
+info depth 7 seldepth 15 score cp 1108 nodes 11916 nps 50706 hashfull 4 time 235 pv f2f1 d1c2 f1f5 c2c3 f5e4 d2g5 g8g7 g5d2
+info depth 8 seldepth 19 score cp 1095 nodes 20368 nps 50167 hashfull 7 time 406 pv f2f3 d1c2 f3e4 c2d1 g8g7 d2e1 e4f3 d1c2 f3f5 c2d1 f5e4
+info depth 9 seldepth 22 score cp 1084 nodes 24965 nps 50030 hashfull 9 time 499 pv f2f3 d1c2 f3e4 c2d1 g8g7 d2e1 f7f6 e1c3 a3b4 c3b4 e4b4 d1c2 b4e4 c2b2
+info depth 10 seldepth 30 score cp 1083 nodes 37022 nps 50645 hashfull 13 time 731 pv f2f3 d1c2 f3e4 c2d1 g8g7 d2a5 e4f3 d1d2 f3f4 d2e2 f4g4 e2e1 a3b4 a5b4 g4b4 e1d1 b4g4 d1c2 g4e2 c2b1
+info depth 11 seldepth 38 score cp 1114 nodes 60686 nps 50783 hashfull 21 time 1195 pv f2f3 d1c2 f3e4 c2d1 g8g7 d2e1 e4f3 d1c2 f3f5 c2d1 g7f6 e1a5 f5b1 d1d2 b1e4 d2c3
+info depth 12 seldepth 38 score cp 1098 nodes 71230 nps 50914 hashfull 24 time 1399 pv f2f3 d1c2 f3e4 c2d1 g8g7 d2e1 e4f3 d1c2 f3f5 c2d1 g7f6 e1d2 f5f3 d1c2 f3e4 c2d1 a3b4 d2b4 e4b4
+bestmove f2f3
+readyok
+info depth 1 seldepth 2 score cp -293 nodes 38 nps 0 hashfull 0 time 0 pv f5g5
+info depth 2 seldepth 3 score cp -289 nodes 70 nps 70000 hashfull 0 time 1 pv f5g5 e4f4
+info depth 3 seldepth 6 score cp -486 nodes 284 nps 56800 hashfull 0 time 5 pv f5c5 e4f4
+info depth 4 seldepth 7 score cp -520 nodes 384 nps 48000 hashfull 0 time 8 pv f5c5 e4f4 h5h4
+info depth 5 seldepth 8 score cp -273 nodes 1026 nps 51300 hashfull 0 time 20 pv f5g5 d6b6 g7f7 b6b7 f7f6 b7h7
+info depth 6 seldepth 9 score cp -405 nodes 2406 nps 57285 hashfull 1 time 42 pv f5g5 d6b6 g5c5 e4d4 c5c4 d4d5 h5h4 b6b5
+info depth 7 seldepth 13 score cp -293 nodes 4572 nps 57150 hashfull 2 time 80 pv f5g5 d6b6 g5c5 e4f4 c5d5 f4g3 d5f5
+info depth 8 seldepth 15 score cp -266 nodes 13153 nps 55264 hashfull 7 time 238 pv f5g5 d6b6 g5c5 b6a6 g7f7 a6a8 c5c4 e4e5 c4c5 e5d6 c5g5
+info depth 9 seldepth 18 score cp -329 nodes 24015 nps 58860 hashfull 11 time 408 pv f5g5 f3f4 g5c5 d6e6 c5c4 e4f5 h5h4 e6e7 g7h6 f5g4 h4h3 g4g3 h6g6 e7e6 g6h7
+info depth 10 seldepth 23 score cp -323 nodes 35389 nps 59677 hashfull 13 time 593 pv f5g5 f3f4 g5c5 d6e6 h5h4 e6e5 c5e5 f4e5 g7f7 e4f3 f7e6 f3g4 e6e5 g4h4 e5f4 h4h5 f4f3
+info depth 11 seldepth 26 score cp -305 nodes 58378 nps 59874 hashfull 20 time 975 pv f5g5 f3f4 g5c5 f4f5 c5c4 d6d4 c4d4 c3d4 h5h4 e4f4 h4h3 f4g3 g7f6 g3h3 f6f5
+info depth 12 seldepth 26 score cp -259 nodes 132422 nps 57275 hashfull 40 time 2312 pv f5g5 f3f4 g5g1 d6d5 h5h4 d5h5 g7g6 h5h4 g1b1 f4f5 g6f7 h4h7 f7g8 h7c7 b1b2 f2f4
+bestmove f5g5
+readyok
+info depth 1 seldepth 2 score cp 1614 nodes 51 nps 0 hashfull 0 time 0 pv d1e3
+info depth 2 seldepth 2 score cp 1650 nodes 87 nps 87000 hashfull 0 time 1 pv d1e3 e5f6
+info depth 3 seldepth 3 score cp 1631 nodes 148 nps 74000 hashfull 0 time 2 pv d1e3 e5f6 g2f3
+info depth 4 seldepth 4 score cp 1670 nodes 213 nps 53250 hashfull 0 time 4 pv d1e3 e5f6 g2f3 f6g6
+info depth 5 seldepth 7 score cp 1648 nodes 560 nps 80000 hashfull 0 time 7 pv d1e3 e5f6 g2f3 f6g6 f3f4
+info depth 6 seldepth 8 score cp 1707 nodes 960 nps 73846 hashfull 0 time 13 pv d1e3 e5f6 g2f3 f6g7 f3f4 g7g6
+info depth 7 seldepth 10 score cp 1734 nodes 1399 nps 55960 hashfull 0 time 25 pv d1e3 e5f6 g2f3 f6g7 f3f4 g7g6 f4g4
+info depth 8 seldepth 12 score cp 1794 nodes 2820 nps 57551 hashfull 1 time 49 pv d1e3 e5f6 g2f3 f6g7 f3f4 g7g6 g3g4 g6h6
+info depth 9 seldepth 15 score cp 1883 nodes 10516 nps 74581 hashfull 2 time 141 pv d1e3 e5f6 g2f3 f6g6 f3g4 g6h7 g4g5 h7h8 g3g4 h8g7
+info depth 10 seldepth 16 score cp 1899 nodes 15326 nps 74038 hashfull 2 time 207 pv d1e3 e5f6 g2f3 f6g6 f3f4 g6f6 g3g4 f6g6 h4h5 g6g7 f4f5 g7h6
+info depth 11 seldepth 18 score cp 1945 nodes 23205 nps 76081 hashfull 3 time 305 pv d1e3 e5f6 g2f3 f6g6 f3f4 g6f6 g3g4 f6g7 f4f5 g7g8 f2f4 g8g7 f5e6
+info depth 12 seldepth 23 score cp 1996 nodes 38211 nps 82174 hashfull 4 time 465 pv d1e3 e5f6 g2f3 f6g6 f3f4 g6f6 g3g4 f6g7 f4f5 g7h6 h4h5 h6h7 f2f4 h7h8
+bestmove d1e3
+readyok
+info depth 1 seldepth 4 score cp 35 nodes 53 nps 53000 hashfull 0 time 1 pv e5d6
+info depth 2 seldepth 4 score cp 9 nodes 83 nps 41500 hashfull 0 time 2 pv e5d6 e2d4
+info depth 3 seldepth 7 score cp -172 nodes 420 nps 46666 hashfull 1 time 9 pv c2c3 b2c3 d7h3
+info depth 4 seldepth 7 score cp -6 nodes 746 nps 53285 hashfull 1 time 14 pv e5d6 e2f4 d6c5 c3d4 c5c4
+info depth 5 seldepth 9 score cp -18 nodes 1114 nps 41259 hashfull 1 time 27 pv e5d6 e2g3 d6c5 g3h5
+info depth 6 seldepth 9 score cp 0 nodes 2280 nps 53023 hashfull 2 time 43 pv e5d6 c3b4 d6c7 b4a5 c7d6 a5b4
+info depth 7 seldepth 13 score cp 0 nodes 3252 nps 53311 hashfull 2 time 61 pv e5d6 c3b4 d6c7 b4a5 c7d6 a5b4
+info depth 8 seldepth 13 score cp 0 nodes 4203 nps 53884 hashfull 2 time 78 pv e5d6 c3b4 d6c7 b4a5 c7d6 a5b4
+info depth 9 seldepth 13 score cp 0 nodes 6004 nps 54090 hashfull 3 time 111 pv e5d6 c3b4 d6c7 b4a5 c7d6 a5b4
+info depth 10 seldepth 13 score cp 0 nodes 7641 nps 55369 hashfull 3 time 138 pv e5d6 c3b4 d6c7 b4a5 c7d6 a5b4
+info depth 11 seldepth 15 score cp 0 nodes 12982 nps 51312 hashfull 6 time 253 pv e5d6 c3b4 d6e5 b4c3
+info depth 12 seldepth 15 score cp 0 nodes 15561 nps 55180 hashfull 7 time 282 pv e5d6 c3b4 d6e5 b4c3
+bestmove e5d6
+readyok
+info depth 1 seldepth 1 score cp -2185 nodes 4 nps 0 hashfull 0 time 0 pv a8b8
+info depth 2 seldepth 2 score cp -2160 nodes 27 nps 0 hashfull 0 time 0 pv a8b8 h5h6
+info depth 3 seldepth 5 score cp -2274 nodes 76 nps 76000 hashfull 0 time 1 pv a8b8 h5h6 b8a8
+info depth 4 seldepth 7 score cp -2217 nodes 151 nps 37750 hashfull 0 time 4 pv a8b8 h5h6 b8a8 g7g3
+info depth 5 seldepth 8 score cp -2306 nodes 382 nps 42444 hashfull 0 time 9 pv a8b8 h5h6 b8a8 g7f7 a8b8
+info depth 6 seldepth 8 score cp -2235 nodes 906 nps 45300 hashfull 0 time 20 pv a8b8 h5h6 b8a8 g7f7 a8b8 f7f8 b8a7
+info depth 7 seldepth 14 score cp -2206 nodes 4461 nps 57935 hashfull 1 time 77 pv a8b8 h5h6 b8a8 f6h5 a8b8 f5g6
+info depth 8 seldepth 17 score cp -2256 nodes 8734 nps 60652 hashfull 2 time 144 pv a8b8 h5h6 b8c8 g7f7 c8b8 f7e7 b8a8 f5e6 a8b8
+info depth 9 seldepth 17 score cp -2226 nodes 13184 nps 61320 hashfull 2 time 215 pv a8b8 h5h6 b8c8 f5e6 c8d8 g7e7 d8c8 e7d7 c8b8
+info depth 10 seldepth 20 score mate -3 nodes 22390 nps 64710 hashfull 6 time 346 pv a8b8 h5h6 b8c8 h6h7 c8b8 h7h8q
+info depth 11 seldepth 20 score mate -3 nodes 22620 nps 65187 hashfull 6 time 347 pv a8b8 h5h6 b8c8 h6h7 c8b8 h7h8q
+info depth 12 seldepth 20 score mate -3 nodes 22875 nps 65170 hashfull 6 time 351 pv a8b8 h5h6 b8c8 h6h7 c8b8 h7h8q
+bestmove a8b8
+readyok
+info depth 1 seldepth 4 score cp 21 nodes 98 nps 98000 hashfull 0 time 1 pv a4c4 c3d2
+info depth 2 seldepth 4 score cp 21 nodes 133 nps 66500 hashfull 1 time 2 pv a4c4 c3d2
+info depth 3 seldepth 4 score cp 10 nodes 231 nps 57750 hashfull 1 time 4 pv a4c4 c3d2 c6d6
+info depth 4 seldepth 7 score cp 20 nodes 411 nps 51375 hashfull 1 time 8 pv a4c4 c3d2 c6d6 d2e3
+info depth 5 seldepth 8 score cp 25 nodes 810 nps 47647 hashfull 1 time 17 pv a4c4 c3d2 c4c2 d2e3 c6d6 f6c3
+info depth 6 seldepth 10 score cp 38 nodes 2392 nps 49833 hashfull 2 time 48 pv a4c4 c3d2 b5b4 a3a4 c4c2 d2e3 c6c5
+info depth 7 seldepth 11 score cp 43 nodes 4148 nps 53870 hashfull 2 time 77 pv a4c4 c3d2 b5b4 a3a4 c4c2 d2e3 c6d6 e2f4
+info depth 8 seldepth 15 score cp 19 nodes 11556 nps 51820 hashfull 6 time 223 pv a4c4 c3d2 b5b4 e2d4 c6c5 a3b4 c5b4 f6e7 b4a5 e7d8 a5a6 d8f6 a6b6
+info depth 9 seldepth 16 score cp 17 nodes 17039 nps 51322 hashfull 9 time 332 pv a4c4 c3d2 c4c2 d2e3 c6d6 f6c3 d6c5 h2h3 c5c4
+info depth 10 seldepth 17 score cp 0 nodes 23412 nps 51682 hashfull 13 time 453 pv a4c4 c3d2 c4c2 d2e3 c6d6 f6c3 g6h7 c3b4 d6e5 b4c3 e5d6
+info depth 11 seldepth 21 score cp 0 nodes 48869 nps 52378 hashfull 23 time 933 pv a4c4 c3d2 b5b4 e2d4 c6c5 a3b4 c5b4 f6e7 b4a5 e7d8 a5b4 d8e7
+info depth 12 seldepth 21 score cp 0 nodes 64309 nps 52842 hashfull 30 time 1217 pv a4c4 c3d2 c4c2 d2e3 c6c5 f6e7 c5b6 e7f6 b6c5
+bestmove a4c4
+readyok
+info depth 1 seldepth 2 score cp 341 nodes 45 nps 0 hashfull 69 time 0 pv f4b4
+info depth 2 seldepth 5 score cp 335 nodes 211 nps 70333 hashfull 69 time 3 pv f4b4 a1f1 b4f4
+info depth 3 seldepth 5 score cp 334 nodes 531 nps 66375 hashfull 69 time 8 pv f5f6 a1a6 f6f5 a6a5 f5f6
+info depth 4 seldepth 7 score cp 341 nodes 1010 nps 59411 hashfull 69 time 17 pv f5g4 h7g6 f4f6 g6h7 g4f5
+info depth 5 seldepth 9 score cp 345 nodes 2658 nps 48327 hashfull 69 time 55 pv f4e4 a1f1 e4f4 f1c1 f5f6 c1c6 f6f7
+info depth 6 seldepth 11 score cp 304 nodes 6178 nps 59980 hashfull 70 time 103 pv f4e4 a1f1 f5g4 f1g1 g4h5 g1h1 e4h4 h1g1 h4b4
+info depth 7 seldepth 16 score cp 310 nodes 8474 nps 58041 hashfull 70 time 146 pv f5g4 a1g1 g4h5 g1h1 f4h4 h1g1 h4h2 g1g3 h2a2 g3g1
+info depth 8 seldepth 17 score cp 392 nodes 14465 nps 59282 hashfull 71 time 244 pv f5g4 a1g1 g4h5 g1h1 f4h4 h1g1 h4h2 g1g3 h2a2 g3h3 h5g4 h3b3 a2a7 h7g6
+info depth 9 seldepth 17 score cp 393 nodes 18812 nps 60294 hashfull 72 time 312 pv f5g4 a1g1 g4h5 g1h1 f4h4 h1g1 h4h2 g1f1 g5g6 h7h8 h2h4 f1c1 h4g4 c1h1 h5g5
+info depth 10 seldepth 22 score cp 379 nodes 25167 nps 60352 hashfull 74 time 417 pv f5g4 a1g1 g4h5 g1h1 f4h4 h1g1 h4h2 g1e1 g5g6 h7h8 h2h4 e1e5 h5g4 e5e1 g6g7 h8h7 g4g5
+info depth 11 seldepth 23 score cp 396 nodes 29500 nps 61203 hashfull 75 time 482 pv f5g4 a1g1 g4h5 g1h1 f4h4 h1g1 h4h2 g1f1 g5g6 h7h8 h2h4 f1f5 h5g4 f5f1 h4h3 f1g1 g4f5
+info depth 12 seldepth 37 score cp 414 nodes 97013 nps 62508 hashfull 92 time 1552 pv f5g4 a1g1 g4h5 g1h1 f4h4 h1g1 h4h2 g1a1 g5g6 h7g8 h2g2 a1h1 h5g5 g8h8 g2g4 h1b1 g4h4 b1g1 g5f5 g1g3 g6g7 h8h7
+bestmove f5g4
+readyok
+info depth 1 seldepth 3 score cp 7 nodes 139 nps 69500 hashfull 3 time 2 pv g8e6
+info depth 2 seldepth 3 score cp 32 nodes 270 nps 90000 hashfull 3 time 3 pv g8e6 h4h5
+info depth 3 seldepth 4 score cp 74 nodes 539 nps 77000 hashfull 3 time 7 pv g8c4 h4h5
+info depth 4 seldepth 8 score cp 142 nodes 899 nps 42809 hashfull 3 time 21 pv g8c4 g2h3 c4f1 b7g2 f1b5
+info depth 5 seldepth 10 score cp 120 nodes 2104 nps 58444 hashfull 3 time 36 pv g8c4 b7f3 c4f1 g2h2 f6g7
+info depth 6 seldepth 11 score cp 125 nodes 2923 nps 57313 hashfull 4 time 51 pv g8c4 b7a8 h8g7 a8b7 g7g6 h4h5 g6h5 b7h7
+info depth 7 seldepth 13 score cp 216 nodes 4435 nps 50977 hashfull 4 time 87 pv g8d5 b7d5 d1d5 e3c3 f6e7 g3g4 e7c5
+info depth 8 seldepth 18 score cp 103 nodes 12536 nps 53572 hashfull 6 time 234 pv g8c4 b7f3 c4f1 g2h2 h8g7 c5c6 f1g1 h2h3 g1h1 f3h1 d1h1 h3g4 h1c1
+info depth 9 seldepth 23 score cp 53 nodes 24441 nps 49676 hashfull 13 time 492 pv g8c4 b7f3 c4f1 g2h2 h8g7 e3b3 f1g1 h2h3 g1h1 f3h1 d1h1 h3g2 h1a1 b3b7 g7g6 c5c6 a1a5
+info depth 10 seldepth 23 score cp 46 nodes 32628 nps 51790 hashfull 16 time 630 pv g8c4 b7f3 c4f1 g2h2 f1g1 h2h3 g1h1 h3g4 h1f3 e3f3 h8g7 g4f5 f6d8 c5c6 d8a5
+info depth 11 seldepth 30 score cp 36 nodes 48400 nps 53245 hashfull 24 time 909 pv g8d5 b7d5 d1d5 e3b3 d5c5 b3b6 h8g7 b6a6 f6d8 a6a7 g7g6 a5a6 c5a5 a7a8 d8e7
+info depth 12 seldepth 30 score cp 87 nodes 65230 nps 53075 hashfull 31 time 1229 pv g8d5 b7d5 d1d5 e3b3 d5c5 b3b6 h8g7 b6a6 e5e4 a6a7 g7g6 a7a8 g6f5 a5a6 c5a5 a6a7
+bestmove g8d5
+readyok
+info depth 1 seldepth 3 score cp -84 nodes 95 nps 95000 hashfull 3 time 1 pv e7e6
+info depth 2 seldepth 5 score cp -142 nodes 211 nps 70333 hashfull 3 time 3 pv e7e6 e5d3
+info depth 3 seldepth 5 score cp -128 nodes 267 nps 53400 hashfull 3 time 5 pv e7e6 e5d3 e6d5
+info depth 4 seldepth 5 score cp -153 nodes 503 nps 55888 hashfull 3 time 9 pv e7e6 e5f3 d4f3 g2f3
+info depth 5 seldepth 7 score cp -165 nodes 854 nps 40666 hashfull 3 time 21 pv d4b5 e5c4 b6e6 c4e3 e6c6
+info depth 6 seldepth 9 score cp -160 nodes 2439 nps 53021 hashfull 4 time 46 pv d4b5 e5c4 b6e6 c4a5 e7d7
+info depth 7 seldepth 11 score cp -166 nodes 6510 nps 52926 hashfull 6 time 123 pv d4b5 g2f3 e7e6 e5c4 b6b7 f3e3
+info depth 8 seldepth 13 score cp -83 nodes 19158 nps 53663 hashfull 12 time 357 pv b6b5 e5d3 e7d6 d3c5 d6e5 f2f3 e5d5 c5e4
+info depth 9 seldepth 13 score cp -82 nodes 23126 nps 54671 hashfull 14 time 423 pv b6b5 e5d3 e7d6 d3f4 d6c7 g2h2 c7d6 h2g1 d4c6
+info depth 10 seldepth 16 score cp -70 nodes 35376 nps 53844 hashfull 21 time 657 pv b6b5 e5d3 e7d6 g2f1 d6d5 f1e1 d5c4 e1d2 d4c6
+info depth 11 seldepth 22 score cp -128 nodes 94942 nps 53428 hashfull 46 time 1777 pv e7e6 e5f3 e6d5 b2b1 d4f5 b1d1 d5e6 f3d4 e6e5 d4f5 g6f5 d1d7 b6b4 d7f7 e5e6
+info depth 12 seldepth 22 score cp -109 nodes 113501 nps 54620 hashfull 52 time 2078 pv e7e6 e5f3 e6d5 b2b1 b6b5 f3d4 d5d4 b1b3 d4d5 b3d3 d5e4 d3e3 e4d5 e3f3 b5b4 f3f7
+bestmove e7e6
+readyok
+info depth 1 seldepth 5 score cp 58 nodes 77 nps 38500 hashfull 18 time 2 pv d7d4 e3d4
+info depth 2 seldepth 5 score cp 64 nodes 320 nps 80000 hashfull 18 time 4 pv a8d8 a1c1
+info depth 3 seldepth 7 score cp 74 nodes 422 nps 60285 hashfull 18 time 7 pv a8d8 f1g1 d7d4 e3d4
+info depth 4 seldepth 9 score cp 74 nodes 669 nps 41812 hashfull 18 time 16 pv a8d8 f1g1 d7d4 e3d4 d8d4
+info depth 5 seldepth 9 score cp 58 nodes 1397 nps 60739 hashfull 18 time 23 pv d7d4 e3d4 f5f4 d4e5 f4e5
+info depth 6 seldepth 9 score cp 51 nodes 1708 nps 63259 hashfull 18 time 27 pv d7d4 e3d4 f5f4 d4e5 f4e5 a1c1
+info depth 7 seldepth 14 score cp 46 nodes 8614 nps 46562 hashfull 23 time 185 pv f6g4 c2c3 h7h6 e2g4 e5g4 d4g7 g8h7
+info depth 8 seldepth 16 score cp 90 nodes 22486 nps 47944 hashfull 30 time 469 pv f6g4 a1d1 a8d8 c2b2 e5c6 g2g3 c6d4 d1d4 d7d4 e3d4
+info depth 9 seldepth 16 score cp 77 nodes 35875 nps 47897 hashfull 36 time 749 pv f6g4 a1d1 a8d8 g2g3 e5c6 c2c3 c6d4 d1d4 d7d4
+info depth 10 seldepth 18 score cp 96 nodes 45093 nps 47971 hashfull 40 time 940 pv a8d8 a1d1 e5c6 d4c3 d7d1 e2d1 c6e5 d1e2 e5d3 c2d1 b7a6 c3f6 g7f6
+info depth 11 seldepth 24 score cp 132 nodes 77137 nps 47970 hashfull 52 time 1608 pv a8d8 c2c3 f6g4 e2g4 e5g4 a1d1 g4e5 f1g1 e5c6 f4e2 f5g6
+info depth 12 seldepth 24 score cp 137 nodes 107129 nps 47953 hashfull 62 time 2234 pv d7d4 e3d4 f5f4 g2g3 f4f5 d4e5 f5e5 a1c1 e4e3 f2f4 e5c7 h1g1
+bestmove d7d4
+readyok
+info depth 1 seldepth 1 score cp -551 nodes 10 nps 0 hashfull 6 time 0 pv d5e4
+info depth 2 seldepth 3 score cp 0 nodes 107 nps 107000 hashfull 6 time 1 pv d5e4 e7d7
+info depth 3 seldepth 4 score cp 0 nodes 158 nps 52666 hashfull 6 time 3 pv d5e4 e7d7 e4f4
+info depth 4 seldepth 5 score cp 0 nodes 453 nps 75500 hashfull 6 time 6 pv d5e4 e7d7 e4f4
+info depth 5 seldepth 7 score cp 0 nodes 799 nps 66583 hashfull 6 time 12 pv d5e4 e7d7 e4f4
+info depth 6 seldepth 8 score cp 0 nodes 1170 nps 53181 hashfull 6 time 22 pv d5e4 e7d7 e4f4
+info depth 7 seldepth 8 score cp 0 nodes 1889 nps 69962 hashfull 6 time 27 pv d5e4 e7d7 e4f4
+info depth 8 seldepth 9 score cp 0 nodes 2601 nps 70297 hashfull 6 time 37 pv d5e4 e7d7 e4f4
+info depth 9 seldepth 9 score cp 0 nodes 3594 nps 71880 hashfull 7 time 50 pv d5e4 e7d7 e4f4
+info depth 10 seldepth 10 score cp 0 nodes 4934 nps 72558 hashfull 7 time 68 pv d5e4 e7d7 e4f4
+info depth 11 seldepth 11 score cp 0 nodes 6096 nps 79168 hashfull 7 time 77 pv d5e4 e7d7 e4f4
+info depth 12 seldepth 12 score cp 0 nodes 8400 nps 76363 hashfull 7 time 110 pv d5e4 e7d7 e4f4
+bestmove d5e4
+readyok
+info depth 1 seldepth 3 score cp 178 nodes 45 nps 45000 hashfull 12 time 1 pv f1a1
+info depth 2 seldepth 3 score cp 171 nodes 208 nps 104000 hashfull 12 time 2 pv f1a1 c7c6
+info depth 3 seldepth 4 score cp 159 nodes 270 nps 67500 hashfull 13 time 4 pv f1a1 c7c6 d5f6 g8f6
+info depth 4 seldepth 6 score cp 166 nodes 613 nps 76625 hashfull 13 time 8 pv f1a1 f6d8 h2h3 g8f6
+info depth 5 seldepth 6 score cp 149 nodes 1150 nps 71875 hashfull 13 time 16 pv f1a1 b7d5 b3d5 c7c6 a1a7 g8e7
+info depth 6 seldepth 8 score cp 189 nodes 1700 nps 60714 hashfull 13 time 28 pv f1a1 b7d5 b3d5 f6d8 a1a7 g8f6
+info depth 7 seldepth 9 score cp 190 nodes 2155 nps 61571 hashfull 13 time 35 pv f1a1 b7d5 b3d5 f6d8 a1a7 g8f6 h2h3 f6d5
+info depth 8 seldepth 12 score cp 177 nodes 3668 nps 60131 hashfull 13 time 61 pv f1a1 b7d5 b3d5 f6d8 a1a7 g8f6 d5b7 d8e7
+info depth 9 seldepth 16 score cp 153 nodes 10474 nps 52898 hashfull 15 time 198 pv f1a1 b7d5 b3d5 f6d8 d5b7 g8f6 a1a7 h8f8 h2h3 b5b4 a7a8
+info depth 10 seldepth 18 score cp 130 nodes 20814 nps 52165 hashfull 19 time 399 pv f1a1 b7d5 b3d5 f6d8 d5b7 g8e7 f3g3 h8f8 a1a7 c7c6 g3g5 d8c7
+info depth 11 seldepth 25 score cp 153 nodes 36158 nps 50429 hashfull 26 time 717 pv f1a1 b7d5 b3d5 f6d8 a1a7 g8f6 f3e2 f6d5 e4d5 h8f8 c2c4 b5c4 e2c4
+info depth 12 seldepth 25 score cp 152 nodes 38207 nps 50874 hashfull 26 time 751 pv f1a1 b7d5 b3d5 f6d8 a1a7 g8f6 f3e2 f6d5 e4d5 h8f8 c2c4 b5c4 e2c4
+bestmove f1a1
+readyok
+info depth 1 seldepth 1 score cp 498 nodes 13 nps 0 hashfull 10 time 0 pv d8e7
+info depth 2 seldepth 3 score cp 512 nodes 29 nps 29000 hashfull 10 time 1 pv d8e7 d3e3 e7f6
+info depth 3 seldepth 8 score cp 496 nodes 109 nps 36333 hashfull 10 time 3 pv d8e7 d3e3 e7f6 e3f3 f6e7
+info depth 4 seldepth 8 score cp 509 nodes 429 nps 53625 hashfull 10 time 8 pv d8e7 d3e3 e7f6 e3f3 f6e6 f3f7 g6f7 g8f8
+info depth 5 seldepth 10 score cp 500 nodes 794 nps 39700 hashfull 10 time 20 pv d8e7 d3e3 e7d7 e3d3 d7e8 d3e3 f7e7 e3f3
+info depth 6 seldepth 13 score cp 479 nodes 2420 nps 59024 hashfull 11 time 41 pv d8e7 d3e3 e7f6 e3f3 f6e6 f3e3 e6d7 e3d3 d7e8 d3e3 f7e7
+info depth 7 seldepth 17 score cp 538 nodes 6602 nps 58946 hashfull 11 time 112 pv d8e7 d3e3 e7d6 e3d3 d6e5 d3e3 e5f4 e3e8 f4g4 g8h8 g4g5
+info depth 8 seldepth 22 score cp 570 nodes 10321 nps 60356 hashfull 12 time 171 pv d8e7 d3e3 e7d6 e3d3 d6e5 d3e3 e5f4 e3e8 f4f5 e8c8 f7g7 g8h8 g7e7 c8d8 f5f6
+info depth 9 seldepth 28 score cp 557 nodes 26049 nps 64002 hashfull 18 time 407 pv d8e7 d3e3 e7d6 e3d3 d6e5 d3d8 f7g7 g8h8 g7h7 h8g8 h7e7 d8a8 e5f6 a8f8 f6g5 f8a8 e7g7 g8h8
+info depth 10 seldepth 30 score cp 578 nodes 31094 nps 64243 hashfull 19 time 484 pv d8e7 d3e3 e7d6 e3d3 d6e5 d3d8 f7g7 g8h8 g7h7 h8g8 h7e7 d8a8 e5f6 a8f8 f6g5 f8b8 g5f5 b8f8 f5g4 f8b8 g4g5 b8b5 g5f6
+info depth 11 seldepth 36 score cp 553 nodes 77966 nps 70493 hashfull 32 time 1106 pv d8e7 d3e3 e7d6 e3d3 d6e5 d3d8 e5f5 d8c8 f7e7 c8c5 e7e5 c5c8 f5g5 g8h8 e5f5 c8c2
+info depth 12 seldepth 36 score cp 555 nodes 81973 nps 68253 hashfull 32 time 1201 pv d8e7 d3e3 e7d6 e3d3 d6e5 d3d8 f7g7 g8h8 g7c7 h8g8 e5f5 d8d5 f5e6 d5d8 c7g7 g8h8 g7h7 h8g8
+bestmove d8e7
+readyok
+info depth 1 seldepth 2 score cp -7 nodes 21 nps 0 hashfull 11 time 0 pv f4g6 e5f6
+info depth 2 seldepth 5 score cp -7 nodes 88 nps 44000 hashfull 11 time 2 pv f4g6 e5f6
+info depth 3 seldepth 5 score cp -13 nodes 279 nps 55800 hashfull 11 time 5 pv f4g6 e5f6 g6f4
+info depth 4 seldepth 6 score cp -10 nodes 386 nps 48250 hashfull 11 time 8 pv f4g6 e5f6 g6h4 f6g5
+info depth 5 seldepth 7 score cp 1 nodes 1149 nps 63833 hashfull 11 time 18 pv f4g6 e5f6 g6f8 c7d6 f8d7 f6g5
+info depth 6 seldepth 9 score cp 10 nodes 2144 nps 61257 hashfull 12 time 35 pv f4g6 e5f6 g6f4 f6g5 f4h3 g5h4 h3f2
+info depth 7 seldepth 11 score cp 6 nodes 4854 nps 59195 hashfull 13 time 82 pv f4g6 e5f6 g6e7 f6e7 f3f2 e7e6
+info depth 8 seldepth 13 score cp 0 nodes 11609 nps 58928 hashfull 15 time 197 pv f4g6 e5f6 g6e7 f6g5 e7c6 g5h6 c6e7 h6g5
+info depth 9 seldepth 13 score cp 0 nodes 14921 nps 61912 hashfull 16 time 241 pv f4g6 e5f6 g6f4 c7b8 f4h3 f6g7 f3e4 g7g6 e4f3 g6g7
+info depth 10 seldepth 13 score cp 0 nodes 15456 nps 60375 hashfull 16 time 256 pv f4g6 e5f6 g6f4 c7b8 f4h3 f6g7 f3e4 g7g6 e4f3 g6g7
+info depth 11 seldepth 13 score cp 0 nodes 17027 nps 63297 hashfull 16 time 269 pv f4g6 e5f6 g6f4 c7b8 f4h3 f6g7 f3e4 g7g6 e4f3 g6g7
+info depth 12 seldepth 15 score cp 0 nodes 20063 nps 63692 hashfull 17 time 315 pv f4g6 e5f6 g6f4 c7b8 f4h3 f6g6 f3e4 g6f6 e4f3
+bestmove f4g6
+readyok
+info depth 1 seldepth 8 score cp -508 nodes 93 nps 31000 hashfull 16 time 3 pv g1f1 b2f2 f1f2
+info depth 2 seldepth 8 score cp -508 nodes 112 nps 37333 hashfull 16 time 3 pv g1f1 b2f2 f1f2
+info depth 3 seldepth 8 score cp -667 nodes 135 nps 33750 hashfull 16 time 4 pv g1f1 b2f2 f1f2 g6g3 f2e2
+info depth 4 seldepth 11 score cp -969 nodes 290 nps 29000 hashfull 16 time 10 pv g1f1 b2f2 f1f2 g6g3 f2e2 g3g2 e2e1
+info depth 5 seldepth 11 score cp -1022 nodes 557 nps 34812 hashfull 16 time 16 pv g1f1 b2f2 f1f2 g6g3 f2f1 g3f3 f1g1 f3e3 g1h2
+info depth 6 seldepth 13 score cp -1025 nodes 959 nps 45666 hashfull 16 time 21 pv g1f1 b2f2 f1f2 g6g3 f2f1 g3f3 f1g1 f3e3 g1h1 e3e4 h1h2
+info depth 7 seldepth 18 score cp -1298 nodes 2422 nps 47490 hashfull 16 time 51 pv g1f1 b2f2 f1f2 g6g3 f2f1 e6h3 f1e2 g3g2 e2d1 g2f1 d1d2 f1a1
+info depth 8 seldepth 18 score cp -1496 nodes 4485 nps 45765 hashfull 17 time 98 pv g1f1 b2f2 f1f2 g6g3 f2f1 e6h3 f1e2 g3g2 e2d1 g2f1 d1d2 f1a1 d2c2
+info depth 9 seldepth 21 score cp -1603 nodes 8477 nps 51066 hashfull 18 time 166 pv g1f1 b2f2 f1f2 g6g3 f2f1 e6h3 f1e2 g3g2 e2d1 g2f1 d1d2 f1a1 h4h5 a1b2 d2d1 b2c3
+info depth 10 seldepth 25 score cp -1699 nodes 18674 nps 53815 hashfull 20 time 347 pv g1h1 b2f2 a1g1 g6f6 g1g5 f2f3 g5h5 h7g8 c7a7 f3h3 h1g1 h3c3 a7a8 g8f7 h5g5
+info depth 11 seldepth 27 score cp -1804 nodes 47475 nps 54631 hashfull 30 time 869 pv g1h1 b2f2 a1g1 g6f6 g1g5 f2f3 c7a7 f3h3 h1g1 h3h4 g5g2 e6g4 g2f2 h4h3 g1f1 h3c3
+info depth 12 seldepth 28 score cp -1889 nodes 80690 nps 55040 hashfull 37 time 1466 pv g1h1 b2f2 a1g1 g6f6 g1g5 f2f3 h1g2 f3c3 g2f2 c3a3 g5h5 h7g8 h5g5 e6f7 c7c8 g8h7
+bestmove g1h1
+readyok
+info depth 1 seldepth 5 score cp 93 nodes 132 nps 66000 hashfull 28 time 2 pv c1g5
+info depth 2 seldepth 7 score cp 110 nodes 245 nps 40833 hashfull 28 time 6 pv c1g5 b8d7
+info depth 3 seldepth 10 score cp 98 nodes 1318 nps 52720 hashfull 28 time 25 pv c1d2 f6h5 d1c2
+info depth 4 seldepth 10 score cp 78 nodes 2960 nps 49333 hashfull 29 time 60 pv d1c2 f6h5 c3b5 c7c6
+info depth 5 seldepth 12 score cp 91 nodes 6721 nps 48007 hashfull 33 time 140 pv a1b1 e7f8 d1c2 f6h5 c1d2
+info depth 6 seldepth 12 score cp 90 nodes 8498 nps 50284 hashfull 34 time 169 pv a1b1 c7c6 b4a5 b6a5 d1e2 c6d5
+info depth 7 seldepth 16 score cp 91 nodes 10694 nps 49739 hashfull 34 time 215 pv a1b1 e7f8 d1c2 f6h5 c1d2 h5f4 a4b5
+info depth 8 seldepth 16 score cp 91 nodes 14433 nps 50642 hashfull 38 time 285 pv a1b1 e7f8 d1c2 f6h5 c1d2 g7h6 d2h6 f8h6 a4b5
+info depth 9 seldepth 19 score cp 92 nodes 22514 nps 49809 hashfull 45 time 452 pv a1b1 e7f8 d1c2 f6h5 c1d2 g7h6 d2h6 f8h6 a4b5
+info depth 10 seldepth 19 score cp 96 nodes 32513 nps 49943 hashfull 49 time 651 pv a1b1 f6h5 c1d2 e7f8 d1c2 h5f4 a4b5 c8d8 g1h1 d8c8
+info depth 11 seldepth 19 score cp 93 nodes 45460 nps 49846 hashfull 55 time 912 pv a1b1 f6h5 c1e3 h5f4 d1c2 e7f8 a4b3 b8d7 e1d1 a5b4 a3b4
+info depth 12 seldepth 22 score cp 95 nodes 105109 nps 48910 hashfull 90 time 2149 pv a1b1 a5b4 a3b4 c7c6 d5c6 b8c6 c3d5 f6d5 e4d5 c6b8 d1c2 e7f8
+bestmove a1b1
+readyok
+info depth 1 seldepth 2 score cp -104 nodes 82 nps 82000 hashfull 5 time 1 pv h6c1 a1c1
+info depth 2 seldepth 3 score cp -104 nodes 180 nps 90000 hashfull 5 time 2 pv h6c1 a1c1
+info depth 3 seldepth 4 score cp -106 nodes 319 nps 79750 hashfull 5 time 4 pv h6c1 a1c1 d7b6
+info depth 4 seldepth 5 score cp -92 nodes 522 nps 74571 hashfull 5 time 7 pv h6c1 a1c1 e8g8 f1e1
+info depth 5 seldepth 7 score cp -92 nodes 692 nps 53230 hashfull 5 time 13 pv h6c1 a1c1 e8g8 f1e1 d7b6
+info depth 6 seldepth 8 score cp -99 nodes 1425 nps 64772 hashfull 6 time 22 pv h6c1 a1c1 e8g8 f1e1 g8g7 h2h3
+info depth 7 seldepth 17 score cp -99 nodes 4322 nps 49113 hashfull 8 time 88 pv h6c1 a1c1 e8g8 f1e1 e7e6 c4e5 d8c7 c2g6 f7g6 e5g6
+info depth 8 seldepth 19 score cp -101 nodes 8418 nps 49810 hashfull 10 time 169 pv h6c1 a1c1 e8g8 h2h3 e7e6 c4e5 d8c7 f1e1 g8g7
+info depth 9 seldepth 19 score cp -121 nodes 18731 nps 49034 hashfull 15 time 382 pv h6c1 a1c1 e8f8 c1e1 f8g7 f3f4 a8c8 c4e5 e7e6
+info depth 10 seldepth 19 score cp -112 nodes 25131 nps 48798 hashfull 18 time 515 pv h6c1 a1c1 e8f8 c1e1 f8g7 h2h3 a7a5 f3f4 a5a4 c4e5 d7e5 d4e5
+info depth 11 seldepth 19 score cp -114 nodes 33341 nps 49540 hashfull 21 time 673 pv h6c1 a1c1 e8f8 f1e1 f8g7 c1d1 f6d5 c4e5 d7e5 d4e5 d8b6
+info depth 12 seldepth 19 score cp -107 nodes 50046 nps 48635 hashfull 29 time 1029 pv h6c1 a1c1 e8f8 f1e1 f8g7 h2h3 f6d5 c1d1 d8c7 c4d2 e7e6
+bestmove h6c1
+readyok
+info depth 1 seldepth 1 score cp 105 nodes 68 nps 68000 hashfull 11 time 1 pv d5e4
+info depth 2 seldepth 2 score cp 103 nodes 151 nps 75500 hashfull 11 time 2 pv d5e4 f1e1
+info depth 3 seldepth 8 score cp 79 nodes 282 nps 94000 hashfull 11 time 3 pv d5e4 f1e1 e7d6 e1e4
+info depth 4 seldepth 8 score cp 88 nodes 827 nps 59071 hashfull 11 time 14 pv d5e4 f1e1 f7f6 e5c4
+info depth 5 seldepth 8 score cp 89 nodes 954 nps 56117 hashfull 11 time 17 pv d5e4 f1e1 f7f6 e5c4 c8e6
+info depth 6 seldepth 11 score cp 138 nodes 2307 nps 59153 hashfull 11 time 39 pv d5e4 d1d2 f7f6 e5c4 c8e6 d2c3
+info depth 7 seldepth 13 score cp 118 nodes 5182 nps 52877 hashfull 13 time 98 pv d5e4 c2c3 f7f6 d1b3 d8d5 e5c4 f8f7 c1f4
+info depth 8 seldepth 18 score cp 144 nodes 10917 nps 48520 hashfull 14 time 225 pv d5e4 f1e1 f7f6 e5c4 d8d5 d1e2 d5d4 c1e3
+info depth 9 seldepth 18 score cp 141 nodes 15615 nps 47318 hashfull 16 time 330 pv d5e4 f1e1 f7f6 e5c4 d8d5 d1e2 f6f5 c1f4 d5d4 f4e5 d4c5
+info depth 10 seldepth 20 score cp 147 nodes 33638 nps 49834 hashfull 22 time 675 pv d5e4 c1f4 d8a5 e5c4 a5a2 c4d6 b7b6 f1e1 a2d5 c2c4
+info depth 11 seldepth 20 score cp 145 nodes 49615 nps 47478 hashfull 31 time 1045 pv d5e4 c1f4 d8a5 e5c4 a5a2 c4d6 b7b6 f1e1 c8e6 h2h3 a2a4 d6e4 a8d8
+info depth 12 seldepth 21 score cp 151 nodes 60108 nps 47629 hashfull 37 time 1262 pv d5e4 c1f4 f7f6 e5c4 b7b5 c4e3 c8e6 c2c4 b5c4 b1c1 d8d7 c1c3 f8f7 e3c4 a8d8
+bestmove d5e4
+readyok
+info depth 1 seldepth 5 score cp -12 nodes 118 nps 59000 hashfull 11 time 2 pv h6d2
+info depth 2 seldepth 5 score cp 20 nodes 241 nps 40166 hashfull 11 time 6 pv a3c2 b8d7 e4d5
+info depth 3 seldepth 8 score cp 0 nodes 568 nps 47333 hashfull 11 time 12 pv a3c2 c7c6 h6e3
+info depth 4 seldepth 8 score cp -32 nodes 1187 nps 53954 hashfull 11 time 22 pv a3c2 e8d6 h6e3
+info depth 5 seldepth 8 score cp -31 nodes 1601 nps 50031 hashfull 11 time 32 pv a3c2 e8d6 h6e3 d5e4 e3b6
+info depth 6 seldepth 12 score cp -64 nodes 5023 nps 50230 hashfull 13 time 100 pv c1b1 e8d6 h6e3 d5e4 e3b6 c7b6
+info depth 7 seldepth 13 score cp -42 nodes 10686 nps 48352 hashfull 16 time 221 pv h6e3 b6e3 g3e3 e8d6 a3c2 b8d7 h3f2 d7b6
+info depth 8 seldepth 16 score cp -57 nodes 15227 nps 46852 hashfull 17 time 325 pv h6e3 b6e3 g3e3 e8d6 a3c2 b8d7 h3f2 d7b6 e3f3 d5e4
+info depth 9 seldepth 19 score cp -73 nodes 43208 nps 48277 hashfull 31 time 895 pv h6e3 b8d7 e3b6 d7b6 c3c4 d5d4 a3c2 c7c5 c1b1 c8d7
+info depth 10 seldepth 21 score cp -35 nodes 57403 nps 48978 hashfull 37 time 1172 pv h6e3 d5d4 c3d4 e5d4 e3d2 e8d6 h3f4 c8d7 c1b1 b8a6 a3c2
+info depth 11 seldepth 21 score cp -50 nodes 74219 nps 48796 hashfull 45 time 1521 pv h6e3 d5d4 c3d4 e5d4 e3f2 c8f5 e4f5 e7e2 h3f4 e2e7 f4e6 f8f7 f2d4 b6d4
+info depth 12 seldepth 31 score cp -21 nodes 95025 nps 45751 hashfull 53 time 2077 pv h6e3 d5d4 c3d4 e5d4 e3f2 c8f5 e4f5 e7e2 h3f4 e2e7 h1e1 e7c5 a3c4 c5f5 c4b6 c7b6 f4e6 f8f7 e6d4
+bestmove h6e3
+readyok
+info depth 1 seldepth 2 score cp 1283 nodes 99 nps 99000 hashfull 13 time 1 pv d3e4
+info depth 2 seldepth 5 score cp 1233 nodes 168 nps 56000 hashfull 13 time 3 pv c6c7 g2h1
+info depth 3 seldepth 6 score cp 1218 nodes 354 nps 59000 hashfull 13 time 6 pv c6c7 g2h1 f4f6
+info depth 4 seldepth 6 score cp 1273 nodes 922 nps 70923 hashfull 13 time 13 pv d3e3 g2h1 c6c7 h1g1
+info depth 5 seldepth 10 score cp 1321 nodes 2342 nps 55761 hashfull 14 time 42 pv d3e3 h3c8 f4f3 g2g1 c6c7 c8e6
+info depth 6 seldepth 12 score cp 1360 nodes 2825 nps 49561 hashfull 14 time 57 pv d3e3 h3c8 c6c7 c8b7 f4f5 g2g1
+info depth 7 seldepth 18 score cp 1362 nodes 12240 nps 66521 hashfull 16 time 184 pv d3e3 g2h1 c6c7 h3c8 f4f2 c8h3 f2f3 h1h2
+info depth 8 seldepth 18 score cp 1307 nodes 16418 nps 67563 hashfull 18 time 243 pv d3e3 g2h1 c6c7 h3c8 f4f2 c8h3 f2f3 h1h2 e3f4 h3c8
+info depth 9 seldepth 27 score cp 1351 nodes 22988 nps 68213 hashfull 19 time 337 pv d3e3 g2h1 c6c7 h1g2 f4f3 g2h2 e3f4 h3d7 f4e3 h2g1 f3f2 g1h1
+info depth 10 seldepth 27 score cp 1663 nodes 44499 nps 71426 hashfull 23 time 623 pv d3e3 g2h1 c6c7 h3c8 f4f6 h1g1 f6g7 g1h2 g7h8 c8h3 c7c8q h2g1 c8g8 g1h2 g8b8 h2g1
+info depth 11 seldepth 27 score cp 1749 nodes 61060 nps 73833 hashfull 25 time 827 pv d3e3 g2h1 c6c7 h3c8 f4f6 h1g1 f6a1 g1h2 a1h8 c8h3 c7c8q h2g1 c8g8 g1h2 g8b8 h2g2 b8b1
+info depth 12 seldepth 32 score cp 2336 nodes 204624 nps 80783 hashfull 78 time 2533 pv d3e3 g2h1 c6c7 h3c8 f4f1 h1h2 f1f2 h2h1 f2f6 h1g1 f6g7 g1f1 g7f8 f1g2 f8c8 g2g3 c8d7
+bestmove d3e3
+readyok
+info depth 1 seldepth 2 score cp 289 nodes 61 nps 61000 hashfull 9 time 1 pv c1c8
+info depth 2 seldepth 5 score cp 251 nodes 281 nps 93666 hashfull 9 time 3 pv c1c8 f7e7
+info depth 3 seldepth 8 score cp 226 nodes 447 nps 74500 hashfull 9 time 6 pv c1c8 f7e7 f3g4
+info depth 4 seldepth 9 score cp 272 nodes 807 nps 44833 hashfull 9 time 18 pv c1c8 f7e6 f3g4 e6e7 g4f5
+info depth 5 seldepth 11 score cp 252 nodes 2202 nps 59513 hashfull 10 time 37 pv c1c8 f7f6 d1d6 f6e7 d6d5 e7e6
+info depth 6 seldepth 12 score cp 216 nodes 6354 nps 55252 hashfull 12 time 115 pv f3g4 f7e7 c1c8 g7g6 d1d2
+info depth 7 seldepth 13 score cp 261 nodes 8802 nps 53670 hashfull 14 time 164 pv f3g4 f7f6 c1c8 e5e4 d1d6 f6f7 g4f5 f7e7
+info depth 8 seldepth 17 score cp 248 nodes 15175 nps 51969 hashfull 16 time 292 pv f3g4 b6d4 c1c8 f7f6 g2f1 f6e7 g4f5
+info depth 9 seldepth 18 score cp 267 nodes 26156 nps 53379 hashfull 21 time 490 pv f3g4 b6d4 c1c8 f7f6 h4h5 b7b6 b4b5 f6g5 g4e6 g5h5 e6f5
+info depth 10 seldepth 20 score cp 268 nodes 39599 nps 53010 hashfull 29 time 747 pv f3g4 b6d4 c1c8 f7f6 b4b5 g7g6 h4h5 g6h5 g4h5 b8c8
+info depth 11 seldepth 24 score cp 312 nodes 136188 nps 51469 hashfull 71 time 2646 pv f3g4 g7g6 c1c8 e5e4 d1d6 h6h5 g4h3 f7g7 h3e6 g7f6 e6a2 f6e7
+info depth 12 seldepth 24 score cp 341 nodes 166316 nps 52055 hashfull 82 time 3195 pv f3g4 g7g6 c1c8 e5e4 d1d6 h6h5 g4h3 f7g7 g2f1 g7f7 f1e2 f7g7 d6d5
+bestmove f3g4
+readyok
+info depth 1 seldepth 2 score cp -60 nodes 69 nps 69000 hashfull 2 time 1 pv d8c8 c2b3
+info depth 2 seldepth 4 score cp -57 nodes 155 nps 51666 hashfull 2 time 3 pv d8h8 f4e4
+info depth 3 seldepth 4 score cp -78 nodes 219 nps 43800 hashfull 2 time 5 pv d8h8 f4e4 f5d6
+info depth 4 seldepth 7 score cp -80 nodes 544 nps 38857 hashfull 3 time 14 pv d8d5 c2c3 f6g7
+info depth 5 seldepth 9 score cp -98 nodes 4385 nps 53475 hashfull 4 time 82 pv d8d6 f4e4 d6c6 c2b3 f5d6 e4f4 f6g7
+info depth 6 seldepth 10 score cp -89 nodes 6201 nps 54876 hashfull 5 time 113 pv d8d6 f4e4 d6e6 e4e6 f6e6 c2c3 e6d5
+info depth 7 seldepth 13 score cp -82 nodes 16283 nps 54096 hashfull 10 time 301 pv d8d5 c2c3 f6g7 f4e4 g7h6 e4e6 d5d1
+info depth 8 seldepth 14 score cp -84 nodes 18784 nps 53515 hashfull 12 time 351 pv d8d5 c2c3 f6g7 f4e4 g7f6 e4g4 f5d6 g4g5 d5g5 h4g5 f6f5
+info depth 9 seldepth 20 score cp -89 nodes 32064 nps 55282 hashfull 19 time 580 pv d8c8 c2d2 c8d8 d2c3 d8c8 c3d3 c8d8 d3e2 a7a6 f4e4 d8c8
+info depth 10 seldepth 20 score cp -90 nodes 35240 nps 54298 hashfull 21 time 649 pv d8c8 c2d2 c8d8 d2c3 d8c8 c3b3 c8c1 a3a4 b5a4 b3a4 c1c2 f3g5 f6e5
+info depth 11 seldepth 20 score cp -79 nodes 49388 nps 54153 hashfull 27 time 912 pv d8c8 c2d2 c8d8 d2c3 d8c8 c3b2 a7a6 f4g4 f5d6 g4d4 d6c4 b2b3 f6f5
+info depth 12 seldepth 21 score cp -77 nodes 78183 nps 54218 hashfull 41 time 1442 pv d8c8 c2b2 a7a6 f3g5 c8h8 b2b3 h8h4 g5e4 f6e5 f4h4 f5h4 e4c5 h4f5 c5a6
+bestmove d8c8
+readyok
+info depth 1 seldepth 4 score cp -701 nodes 66 nps 66000 hashfull 10 time 1 pv f4f3
+info depth 2 seldepth 4 score cp -781 nodes 146 nps 73000 hashfull 10 time 2 pv f4f3 h2g3
+info depth 3 seldepth 4 score cp -740 nodes 180 nps 60000 hashfull 10 time 3 pv f4f3 h2g3 f7g6
+info depth 4 seldepth 6 score cp -878 nodes 591 nps 65666 hashfull 10 time 9 pv f4f3 h2g3 a7a6 h5f4
+info depth 5 seldepth 8 score cp -894 nodes 941 nps 62733 hashfull 10 time 15 pv f4f3 g5g6 f7f8 h2g3 d5c6
+info depth 6 seldepth 8 score cp -871 nodes 1321 nps 62904 hashfull 10 time 21 pv f4f3 g5g6 f7f8 h2g3 d5c6 h5f4
+info depth 7 seldepth 12 score cp -935 nodes 5568 nps 53028 hashfull 13 time 105 pv f4f3 h2g3 d5a2 h5f4 f3f2 g3f2 a2b3 f2g3
+info depth 8 seldepth 18 score cp -950 nodes 8880 nps 51034 hashfull 13 time 174 pv f4f3 h2g3 d5a2 h5f4 a7a5 e1e5 a5a4 g3f3 a2b3 f3g3
+info depth 9 seldepth 18 score cp -956 nodes 17013 nps 52347 hashfull 17 time 325 pv f4f3 h2g3 d5b3 h5f4 a7a5 g3f3 a5a4 f3g4 b3c4 g4f5 c4b3 e1e5
+info depth 10 seldepth 21 score cp -1022 nodes 45098 nps 54074 hashfull 24 time 834 pv f4f3 h2g3 d5b3 h5f4 a7a5 g3f3 a5a4 f3g4 b3a2 e1e5 a2b3 g5g6 f7f6 e5f5 f6e7 g4g5
+info depth 11 seldepth 21 score cp -1030 nodes 59720 nps 53464 hashfull 26 time 1117 pv f4f3 h2g3 d5b3 h5f4 a7a5 g3f3 b3a2 e1e5 a5a4 e5a5 a2b3 a5a7 f7g8 g5g6 b3d1 f3e4
+info depth 12 seldepth 22 score cp -1054 nodes 101396 nps 56868 hashfull 37 time 1783 pv f4f3 h2g3 d5b3 h5f4 a7a5 g3f3 a5a4 f3g4 f7g8 g5g6 g8h8 e1e8 b3g8 e8e2 g8b3 e2e5 b3d1 g4g3
+bestmove f4f3
+readyok
+info depth 1 seldepth 3 score cp -305 nodes 105 nps 105000 hashfull 9 time 1 pv h8a8
+info depth 2 seldepth 3 score cp -252 nodes 206 nps 103000 hashfull 9 time 2 pv h8a8 g2g4
+info depth 3 seldepth 5 score cp -206 nodes 347 nps 86750 hashfull 9 time 4 pv h8a8 g2g4 f5g4
+info depth 4 seldepth 5 score cp -325 nodes 872 nps 79272 hashfull 9 time 11 pv h8a8 a7b6 h7h6 g2g4
+info depth 5 seldepth 7 score cp -337 nodes 1457 nps 63347 hashfull 9 time 23 pv h8a8 a7c5 e7c5 d4c5 e6e5
+info depth 6 seldepth 7 score cp -353 nodes 1651 nps 56931 hashfull 9 time 29 pv h8a8 a7c5 e7c5 d4c5 h7h6 g2g4
+info depth 7 seldepth 13 score cp -383 nodes 4365 nps 53888 hashfull 10 time 81 pv h7h5 a2a4 h8a8 a7c5 e7c5 d4c5
+info depth 8 seldepth 13 score cp -396 nodes 8324 nps 54405 hashfull 11 time 153 pv h7h5 a2a4 h8a8 a7c5 e7c5 d4c5 d7c7 a4a5 c7b7
+info depth 9 seldepth 15 score cp -344 nodes 12249 nps 55931 hashfull 11 time 219 pv h7h5 a7c5 e7c5 d4c5 h8b8 b2b3 e6e5 f1e2 d7c7 h1d1
+info depth 10 seldepth 18 score cp -334 nodes 24515 nps 53997 hashfull 18 time 454 pv h7h5 f1e2 h8a8 a7c5 e7c5 d4c5 a8b8 b2b3 d7c7 f2g3 b8a8 a2a4
+info depth 11 seldepth 21 score cp -348 nodes 47015 nps 53304 hashfull 27 time 882 pv h8a8 a7c5 e7c5 d4c5 a8b8 b2b3 h7h5 f2e1 b8a8 e1d2 a8a3 f1d3
+info depth 12 seldepth 22 score cp -315 nodes 73640 nps 53054 hashfull 39 time 1388 pv h8a8 a7c5 e7c5 d4c5 a8b8 b2b3 h7h5 f1e2 e6e5 h1d1 d7e6 a2a4 f6d7 a4a5 d7c5
+bestmove h8a8
+readyok
+info depth 1 seldepth 4 score cp -357 nodes 26 nps 0 hashfull 43 time 0 pv c8b8 c7c6
+info depth 2 seldepth 4 score cp -421 nodes 47 nps 47000 hashfull 43 time 1 pv c8b8 a4a5
+info depth 3 seldepth 6 score cp -478 nodes 95 nps 47500 hashfull 43 time 2 pv c8b8 a4a5 c5b7
+info depth 4 seldepth 6 score cp -523 nodes 225 nps 75000 hashfull 43 time 3 pv c8b8 a4a5 c5b3 a5a6
+info depth 5 seldepth 8 score cp -493 nodes 548 nps 68500 hashfull 43 time 8 pv c8b8 a4a5 c5b7 a5a6 b7a5
+info depth 6 seldepth 8 score cp -477 nodes 795 nps 66250 hashfull 43 time 12 pv c8b8 a4a5 c5b7 a5a6 b7a5 e2d2
+info depth 7 seldepth 15 score cp -539 nodes 2179 nps 62257 hashfull 44 time 35 pv c8b8 a4a5 d5d4 c7c6 d4d3 e2d1 c5b3 a5a6
+info depth 8 seldepth 16 score cp -552 nodes 4254 nps 58273 hashfull 44 time 73 pv c8b8 a4a5 d5d4 c7c6 d4d3 e2d1 c5b3 a5a6 g6g5 c6g6
+info depth 9 seldepth 20 score cp -552 nodes 9210 nps 52931 hashfull 46 time 174 pv c8b8 a4a5 d5d4 c7c6 d4d3 e2d1 c5a6 c6g6 b8b7 g6h6 a6b8 h6h7 b7a6 h7a7 a6b5 d1d2 b8c6
+info depth 10 seldepth 21 score cp -614 nodes 17429 nps 57903 hashfull 48 time 301 pv c8b8 a4a5 d5d4 c7c6 d4d3 e2d1 c5a6 c6g6 b8b7 g6g4 a6c5 g4g7 b7c6 g7h7 c5a6 d1d2 c6b5
+info depth 11 seldepth 22 score cp -620 nodes 22862 nps 62294 hashfull 48 time 367 pv c8b8 a4a5 d5d4 c7c6 d4d3 e2d1 c5a6 c6g6 b8b7 g6g4 a6c5 g4g7 b7c6 g7c7 c6b5 b6b7 c5a6 c7c8 b5a5
+info depth 12 seldepth 31 score cp -688 nodes 68369 nps 62153 hashfull 61 time 1100 pv c8b8 a4a5 c5a6 c7c6 g6g5 c6g6 b8b7 g6g7 b7c6 g7g5 a6b4 e2d1 c6b5 b6b7 b4a6 g5d5 b5c6
+bestmove c8b8
+readyok
+info depth 1 seldepth 2 score cp 1604 nodes 40 nps 40000 hashfull 20 time 1 pv f3f8 b4b3
+info depth 2 seldepth 2 score cp 1604 nodes 155 nps 77500 hashfull 20 time 2 pv f3f8 b4b3
+info depth 3 seldepth 4 score cp 1747 nodes 809 nps 115571 hashfull 20 time 7 pv f3f8 b4b5 f8g7
+info depth 4 seldepth 6 score cp 1818 nodes 1261 nps 74176 hashfull 20 time 17 pv f3f8 b4c3 f8g7 c3d3 g6g5
+info depth 5 seldepth 8 score cp 1871 nodes 7048 nps 92736 hashfull 23 time 76 pv f3f8 b4c4 g6g5 c4d4 f8g7 d4e4
+info depth 6 seldepth 10 score cp 1823 nodes 24894 nps 92542 hashfull 27 time 269 pv f3f8 b4b5 g6g5 b5b6 g5g4 b6b7
+info depth 7 seldepth 10 score cp 1887 nodes 43420 nps 96061 hashfull 32 time 452 pv f3f8 b4c3 f8g7 c3d3 g6g5 d3e3 b7b5 e3f3
+info depth 8 seldepth 14 score cp 1912 nodes 190980 nps 103400 hashfull 68 time 1847 pv f3f8 b4c3 f8g7 c3d3 g6g5 d3e2 b7b5 e2e3 h7h6
+info depth 9 seldepth 22 score cp 2239 nodes 734512 nps 117540 hashfull 159 time 6249 pv f3f8 b4c3 f8d8 c3c4 g6g5 c4c3 g5g4 c3b2 g4g3 b2c1 g3g2
+info depth 10 seldepth 24 score cp 2311 nodes 1159025 nps 120180 hashfull 239 time 9644 pv f3f8 b4c3 f8d8 c3c4 g6g5 c4c3 g5g4 c3c2 g4g3 c2c1 g3g2 c1c2 h7g7
+info depth 11 seldepth 24 score cp 2319 nodes 1922608 nps 127849 hashfull 326 time 15038 pv f3f8 b4c3 f8d8 c3c4 g6g5 c4c3 g5g4 c3c2 g4g3 c2b3 d8c7 b3a2
+info depth 12 seldepth 40 score mate 15 nodes 49408310 nps 141865 hashfull 922 time 348275 pv f3f8 b4c3 f8f3 c3d4 g6g5 d4c4 f3e4 c4c5 g5g4 c5d6 g4g3 d6d7 e4d5 d7e7 d5c6
+bestmove f3f8
+readyok
+info depth 1 seldepth 1 score cp -167 nodes 18 nps 9000 hashfull 0 time 2 pv g2g4
+info depth 2 seldepth 5 score cp -115 nodes 85 nps 42500 hashfull 0 time 2 pv g2g4 g7g6
+info depth 3 seldepth 5 score cp -166 nodes 316 nps 45142 hashfull 0 time 7 pv g2g4 b5c6 c1b3
+info depth 4 seldepth 7 score cp -153 nodes 575 nps 33823 hashfull 0 time 17 pv g2g4 b5c4 f4f3
+info depth 5 seldepth 8 score cp -147 nodes 2021 nps 51820 hashfull 0 time 39 pv g2g4 b5f1 f4f3 f1b5
+info depth 6 seldepth 11 score cp -140 nodes 4334 nps 52216 hashfull 1 time 83 pv g2g4 a7a5 g4g5 a5a4 g5h6 g7h6
+info depth 7 seldepth 11 score cp -155 nodes 7765 nps 55464 hashfull 2 time 140 pv g2g4 a7a5 c1a2 b5c4 a2c3 c4b3 f4f3
+info depth 8 seldepth 15 score cp -156 nodes 12598 nps 51631 hashfull 7 time 244 pv g2g4 f7f6 g4g5 f6g5 h4g5 b5a6 g5h6 g7h6 f4g4
+info depth 9 seldepth 15 score cp -155 nodes 18198 nps 54000 hashfull 8 time 337 pv g2g4 f7f6 e5f6 g7f6 f4g3 e6e5 g3f3 e7d6 c1e2 b5e2 f3e2
+info depth 10 seldepth 18 score cp -138 nodes 41171 nps 52987 hashfull 18 time 777 pv c1b3 f7f6 b3d4 b5e8 d4e2 e8d7 g2g3 g7g5 h4g5 h6g5 f4g4 f6e5 g4g5
+info depth 11 seldepth 22 score cp -161 nodes 74713 nps 52763 hashfull 30 time 1416 pv c1b3 f7f6 b3d4 b5e8 d4f3 e8a4 b2b4 a4d1 f3d4 g7g5 h4g5 h6g5 f4g3 f6e5
+info depth 12 seldepth 26 score cp -157 nodes 103201 nps 53862 hashfull 39 time 1916 pv c1b3 f7f6 b3d4 b5e8 d4f3 e8a4 b2b4 g7g5 h4g5 h6g5 f4g4 a4d1 b4b5 e7f7 g4h5 d1e2 e5f6 f7f6
+bestmove c1b3
+readyok
+info depth 1 seldepth 4 score cp -53 nodes 73 nps 73000 hashfull 0 time 1 pv b1b4
+info depth 2 seldepth 4 score cp -63 nodes 146 nps 73000 hashfull 0 time 2 pv b1b4 g2h3
+info depth 3 seldepth 6 score cp -68 nodes 354 nps 59000 hashfull 0 time 6 pv f6e6 g2g3
+info depth 4 seldepth 7 score cp -63 nodes 699 nps 63545 hashfull 0 time 11 pv b1b4 g2g3 b4a4 b7c7
+info depth 5 seldepth 9 score cp -63 nodes 2125 nps 62500 hashfull 2 time 34 pv f6f5 g2g3 b1b3 b7f7 f5e6 f7a7 b3b5
+info depth 6 seldepth 9 score cp -63 nodes 2715 nps 48482 hashfull 2 time 56 pv f6f5 g2g3 b1b3 b7f7 f5e6 f7a7 b3b5
+info depth 7 seldepth 11 score cp -68 nodes 4825 nps 54213 hashfull 3 time 89 pv f6f5 g2f2 b1b4 f2g2 f5f6 g2h3 b4a4
+info depth 8 seldepth 11 score cp -65 nodes 8447 nps 59485 hashfull 4 time 142 pv f6f5 g2h3 b1b3 h3g3 b3b1 g3g2 b1b3 g2f2
+info depth 9 seldepth 17 score cp -61 nodes 18635 nps 61098 hashfull 6 time 305 pv f6f5 g2h3 f5f4 b7a7 b1b5 a7f7 f4e5 f7f8 e5e6 h3g4
+info depth 10 seldepth 17 score cp -59 nodes 26668 nps 62896 hashfull 8 time 424 pv f6f5 g2h3 b1h1 h3g3 h1g1 g3f2 g1b1 f2e3 b1b4 b7f7 f5e6 f7a7 b4b3 e3f2 b3b5
+info depth 11 seldepth 18 score cp -61 nodes 37542 nps 62674 hashfull 11 time 599 pv f6f5 g2h3 b1h1 h3g3 h1g1 g3f2 g1b1 f2g2 f5e5 g2g3 b1g1 g3f2 g1b1 f2e3 e5f5
+info depth 12 seldepth 18 score cp -61 nodes 40213 nps 62442 hashfull 12 time 644 pv f6f5 g2h3 b1h1 h3g3 h1g1 g3f2 g1b1 f2g2 f5e5 g2g3 b1g1 g3f2 g1b1 f2e3 e5f5
+bestmove f6f5
+readyok
+info depth 1 seldepth 1 score cp 999 nodes 16 nps 0 hashfull 0 time 0 pv f5e5
+info depth 2 seldepth 2 score cp 1027 nodes 40 nps 0 hashfull 0 time 0 pv f5e5 f3e3
+info depth 3 seldepth 4 score cp 1034 nodes 137 nps 68500 hashfull 0 time 2 pv f5g5 f3g3 f7b3
+info depth 4 seldepth 4 score cp 1098 nodes 257 nps 64250 hashfull 0 time 4 pv f5g5 f3g3 c5c4 g3f3
+info depth 5 seldepth 7 score cp 1194 nodes 726 nps 72600 hashfull 0 time 10 pv f5g5 f3g3 f7b3 g3h3 g5f4
+info depth 6 seldepth 8 score cp 1212 nodes 1195 nps 70294 hashfull 0 time 17 pv f5g5 f3g3 f7b3 g3h3 g5f4 h3h4
+info depth 7 seldepth 11 score cp 1326 nodes 4123 nps 73625 hashfull 0 time 56 pv f5g5 f3g3 f7b3 g3h3 g5f4 h3h4 c5c4
+info depth 8 seldepth 11 score cp 1334 nodes 6381 nps 67882 hashfull 1 time 94 pv f5g5 f3g3 c5c4 g3f3 c4c3 f3g3 c3c2
+info depth 9 seldepth 18 score cp 1512 nodes 33972 nps 81272 hashfull 9 time 418 pv f5g5 f3g3 f7b3 g3h3 c5c4 h3g3 c4c3 g3f2 g5g4 f2e3 h6h5
+info depth 10 seldepth 22 score cp 1617 nodes 175283 nps 98750 hashfull 40 time 1775 pv f5g5 f3e3 g5g4 e3e2 f7c4 e2e3 c4e6 e3d2 g4f3 d2c2 h6h5
+info depth 11 seldepth 23 score cp 1713 nodes 274406 nps 101594 hashfull 63 time 2701 pv f5g5 f3e4 g5g4 e4e3 h6h5 e3f2 f7c4 f2g1 c4b3 g1f1 c5c4 f1g2 c4c3
+info depth 12 seldepth 26 score cp 1752 nodes 553528 nps 105193 hashfull 115 time 5262 pv f5g5 f3e4 g5g4 e4e3 f7c4 e3e4 h6h5 e4e3 c4b3 e3e2 g4g3 e2e3 h5h4 e3e2 b3e6
+bestmove f5g5
+readyok
+info depth 1 seldepth 2 score cp 267 nodes 89 nps 89000 hashfull 0 time 1 pv g6f4
+info depth 2 seldepth 6 score cp 725 nodes 280 nps 70000 hashfull 0 time 4 pv f5f4 f1g1 f4e3 f2e3
+info depth 3 seldepth 6 score cp 724 nodes 394 nps 65666 hashfull 0 time 6 pv f5f4 f1g1 f4e3
+info depth 4 seldepth 7 score cp 405 nodes 640 nps 58181 hashfull 0 time 11 pv f5f4 g2h3 f4e3
+info depth 5 seldepth 7 score cp 405 nodes 1127 nps 75133 hashfull 0 time 15 pv f5f4 g2h3 f4e3 h3d7 f8f2 f1e1 f2a2
+info depth 6 seldepth 7 score cp 405 nodes 1539 nps 59192 hashfull 0 time 26 pv f5f4 g2h3 f4e3 h3d7 f8f2 f1e1 f2a2
+info depth 7 seldepth 14 score cp 432 nodes 2336 nps 58400 hashfull 0 time 40 pv f5f4 g2h3 f4e3 h3d7 f8f2 f1e1 f2a2 d7e6 g8g7
+info depth 8 seldepth 17 score cp 488 nodes 6576 nps 49074 hashfull 2 time 134 pv g6e5 d3b1 f5f4 g2h3 f4e3 h3d7 f8f2 f1e1 e5f3 e1d1
+info depth 9 seldepth 19 score cp 365 nodes 15610 nps 50192 hashfull 5 time 311 pv f5f4 g2h3 f4e3 h3d7 f8f2 f1e1 f2a2 d7e6 g8g7 d3c3 g6e5 e1d1 a2d2 d1c1 h7h5 c1b1
+info depth 10 seldepth 22 score cp 313 nodes 42575 nps 45583 hashfull 15 time 934 pv f5f4 e3d1 f4f3 g2h3 d7g7 h3e6 g8h8 d1e3 g6f4 d3e4 f4h5
+info depth 11 seldepth 25 score cp 318 nodes 66111 nps 46854 hashfull 27 time 1411 pv f5f4 e3d1 f4f3 g2h3 d7g7 h3e6 g8h8 d1e3 g6f4 d3b1 h7h5 f1e1 f4g2 e1d2 g2e3 f2e3
+info depth 12 seldepth 26 score cp 329 nodes 103353 nps 48071 hashfull 41 time 2150 pv f5f4 e3d1 f4f3 g2h3 d7g7 h3e6 g8h8 d1e3 g6f4 d3b1 h7h5 e6g4 f8g8 d5d6 g8d8 d6d7
+bestmove f5f4
+readyok
+info depth 1 seldepth 5 score cp 196 nodes 99 nps 99000 hashfull 0 time 1 pv d8h8 h7h8 e3c5
+info depth 2 seldepth 5 score cp 196 nodes 192 nps 96000 hashfull 0 time 2 pv d8h8 h7h8 e3c5
+info depth 3 seldepth 5 score cp 196 nodes 294 nps 98000 hashfull 0 time 3 pv d8h8 h7h8 e3c5
+info depth 4 seldepth 6 score cp 205 nodes 499 nps 83166 hashfull 0 time 6 pv d8h8 h7h8 e3c5 h8h7
+info depth 5 seldepth 6 score cp 182 nodes 692 nps 69200 hashfull 0 time 10 pv d8h8 h7h8 e3c5 h8h7 h2h3
+info depth 6 seldepth 10 score cp 156 nodes 1263 nps 78937 hashfull 0 time 16 pv d8h8 h7h8 e3c5 c8f5 h2h3 f6d7
+info depth 7 seldepth 12 score cp 181 nodes 3696 nps 63724 hashfull 1 time 58 pv d8h8 h7h8 e3c5 f6d7 c5b4 d7f6 c1b1
+info depth 8 seldepth 12 score cp 201 nodes 7111 nps 57813 hashfull 2 time 123 pv d8h8 h7h8 e3c5 c8f5 h1e1 f6d7 c5b4 f5e6 b4a3
+info depth 9 seldepth 14 score cp 244 nodes 16275 nps 57306 hashfull 4 time 284 pv d8h8 h7h8 e3c5 h8h7 a2a3 c8f5 h1d1 f6e4 d1d5 f5e6
+info depth 10 seldepth 19 score cp 230 nodes 27118 nps 55117 hashfull 9 time 492 pv d8h8 h7h8 e3c5 c8d7 h1d1 d7c6 f2f3 f6d7 c5b4 d7b6 a2a3
+info depth 11 seldepth 19 score cp 204 nodes 51036 nps 54936 hashfull 21 time 929 pv d8h8 h7h8 e3c5 b7b6 c5b4 c8b7 f2f3 f6d5 c3d5 b7d5 a2a3 h8h7 h1d1 d5c6 b4c3
+info depth 12 seldepth 20 score cp 215 nodes 72422 nps 51254 hashfull 29 time 1413 pv d8h8 h7h8 e3c5 h8h7 a2a3 c8d7 h1d1 d7c6 f2f3 a8e8 b2b3 h7g6 c1b1
+bestmove d8h8
+readyok
+info depth 1 seldepth 4 score cp -31 nodes 60 nps 60000 hashfull 0 time 1 pv f5f4
+info depth 2 seldepth 4 score cp -18 nodes 122 nps 61000 hashfull 0 time 2 pv f5f4 h7h5 f4g3 f3g3
+info depth 3 seldepth 4 score cp -18 nodes 171 nps 57000 hashfull 0 time 3 pv f5f4 h7h5 f4g3 f3g3
+info depth 4 seldepth 6 score cp -2 nodes 584 nps 64888 hashfull 0 time 9 pv b4b3 f3f2 f5f4 g3f4
+info depth 5 seldepth 7 score cp 0 nodes 975 nps 60937 hashfull 0 time 16 pv b4b3 f3f4 b3b4 f4f3
+info depth 6 seldepth 8 score cp 0 nodes 1226 nps 49040 hashfull 0 time 25 pv b4b3 f3f4 b3b4 f4f3
+info depth 7 seldepth 11 score cp 0 nodes 2357 nps 56119 hashfull 0 time 42 pv b4b3 f3f4 b3b4 f4f3
+info depth 8 seldepth 13 score cp 0 nodes 4156 nps 55413 hashfull 1 time 75 pv b4b3 f3f4 b3b4 f4f3
+info depth 9 seldepth 13 score cp 0 nodes 4524 nps 52604 hashfull 1 time 86 pv b4b3 f3f4 b3b4 f4f3
+info depth 10 seldepth 17 score cp 0 nodes 6778 nps 53370 hashfull 2 time 127 pv b4b3 f3f4 b3b4 f4f3
+info depth 11 seldepth 17 score cp 0 nodes 8941 nps 53861 hashfull 3 time 166 pv b4b3 f3f4 b3b4 f4f3
+info depth 12 seldepth 24 score cp 0 nodes 18822 nps 57384 hashfull 6 time 328 pv b4b3 f3f4 b3b4 f4f3
+bestmove b4b3
+readyok
+info depth 1 seldepth 3 score cp 69 nodes 94 nps 94000 hashfull 0 time 1 pv e2f3
+info depth 2 seldepth 3 score cp 75 nodes 181 nps 90500 hashfull 0 time 2 pv e2f3 g8h8
+info depth 3 seldepth 7 score cp 35 nodes 644 nps 40250 hashfull 0 time 16 pv e2g4 e6g4 h3g4
+info depth 4 seldepth 7 score cp 47 nodes 1151 nps 54809 hashfull 0 time 21 pv e2g4 e6g4 h3g4 e5e6
+info depth 5 seldepth 12 score cp -31 nodes 4270 nps 51445 hashfull 1 time 83 pv e2g4 e6g4 h3g4 e5e6 h1g1 e6g4
+info depth 6 seldepth 12 score cp -21 nodes 5285 nps 47612 hashfull 2 time 111 pv a5a6 c6c5 c2d2 c5b4 c3b4
+info depth 7 seldepth 13 score cp -30 nodes 9100 nps 46666 hashfull 4 time 195 pv e2f3 c8d8 h1h2 c6c5 h2g1 a8c8
+info depth 8 seldepth 18 score cp 36 nodes 22962 nps 49380 hashfull 13 time 465 pv c2d2 c6c5 e2g4 e6g4 h3g4 c5b4 c3b4 c8c3
+info depth 9 seldepth 18 score cp -12 nodes 37361 nps 50216 hashfull 18 time 744 pv e2g4 e6g4 h3g4 c8d8 c3c4 c6c5 c4b5 c5b4 b5b6 d8d1
+info depth 10 seldepth 21 score cp -19 nodes 66808 nps 50383 hashfull 32 time 1326 pv c2d3 c6c5 h1g1 e6b3 e2g4 c5c4 d3d5 e5c3 g4c8 b3d1 e1d1
+info depth 11 seldepth 26 score cp -9 nodes 145624 nps 49803 hashfull 63 time 2924 pv d1d3 c8d8 e1d1 d8d3 c2d3 e6b3 d1e1 a8e8 e2g4 b3c4 d3d2 c6c5 b4c5
+info depth 12 seldepth 26 score cp 0 nodes 166731 nps 45086 hashfull 71 time 3698 pv d1d3 c6c5 c2d2 e6c4 d3d6 c5b4 c3b4 c4b3 e2d1 b3c4 d1e2
+bestmove d1d3
+readyok
+info depth 1 seldepth 2 score cp -349 nodes 82 nps 82000 hashfull 0 time 1 pv f3h5
+info depth 2 seldepth 2 score cp -328 nodes 167 nps 83500 hashfull 0 time 2 pv f3h5 h7g8
+info depth 3 seldepth 11 score cp -341 nodes 275 nps 45833 hashfull 0 time 6 pv b2b3 h6f7
+info depth 4 seldepth 11 score cp -239 nodes 569 nps 51727 hashfull 0 time 11 pv c3a4 h6f7 a4c5 d6c5
+info depth 5 seldepth 11 score cp -383 nodes 2905 nps 53796 hashfull 0 time 54 pv c3a4 c5b6 a4b6 a7b6
+info depth 6 seldepth 11 score cp -321 nodes 3186 nps 51387 hashfull 0 time 62 pv c3a4 c5b6 c4c5 d6c5 b2b3 a6a5
+info depth 7 seldepth 11 score cp -348 nodes 5533 nps 56459 hashfull 1 time 98 pv c3a4 c5b6 c4c5 d6c5 b2b3 d8f6 c1b2 c8b7
+info depth 8 seldepth 16 score cp -332 nodes 11103 nps 49789 hashfull 3 time 223 pv c3a4 c5d4 c2c3 d4b6 c4c5 b6c7 c5d6 d8d6 b2b3
+info depth 9 seldepth 21 score cp -335 nodes 21236 nps 50203 hashfull 8 time 423 pv c3a4 c5d4 c2c3 d4b6 b2b4 d8h4 c4c5 d6c5 a4c5 h6f7 c3c4
+info depth 10 seldepth 21 score cp -351 nodes 38539 nps 51385 hashfull 12 time 750 pv c3a4 c5d4 c4c5 c8e6 f3h5 g7g6 h5e2 d6c5 e2a6
+info depth 11 seldepth 21 score cp -350 nodes 61117 nps 49810 hashfull 20 time 1227 pv c3a4 c5b6 c4c5 d6c5 b2b3 d8h4 c1b2 h6f7 b2a3 h4h6 a3c5
+info depth 12 seldepth 21 score cp -362 nodes 84796 nps 49472 hashfull 31 time 1714 pv c3a4 c5b6 b2b4 d8f6 c4c5 d6c5 a4c5 a6a5 c1a3 b6c5 b4c5 a8b8 f1d1 c8e6
+bestmove c3a4
+readyok
+info depth 1 seldepth 3 score cp -1535 nodes 34 nps 0 hashfull 0 time 0 pv g4g5
+info depth 2 seldepth 4 score cp -1549 nodes 141 nps 70500 hashfull 0 time 2 pv g4g5 g7d7 b5c5
+info depth 3 seldepth 6 score cp -1508 nodes 904 nps 69538 hashfull 0 time 13 pv b5c6 b1b2
+info depth 4 seldepth 8 score cp -1620 nodes 2068 nps 68933 hashfull 0 time 30 pv b5b6 h4f2 b6a5 b1a1
+info depth 5 seldepth 8 score cp -1607 nodes 2660 nps 56595 hashfull 1 time 47 pv b5c5 h4f2 c5b5 b1a1 g4g5 g7b7 b5a5
+info depth 6 seldepth 10 score cp -1614 nodes 4834 nps 69057 hashfull 2 time 70 pv b5c5 b1a1 c5b4 h4f2 b4b5 g7b7 b5c4
+info depth 7 seldepth 13 score cp -1603 nodes 8990 nps 62867 hashfull 3 time 143 pv b5c5 h4f2 c5b5 b1a1 b5a4 a1b2 a4a5
+info depth 8 seldepth 21 score cp -1736 nodes 34611 nps 67599 hashfull 11 time 512 pv b5c5 b1c2 c5c6 c2d3 c6b6 h4d8 b6c6 d3e4 c6b5
+info depth 9 seldepth 21 score cp -1768 nodes 53609 nps 67432 hashfull 18 time 795 pv b5c5 b1c2 c5c6 c2d3 c6d5 d3e3 d5c5 e3e4 c5c6 h4f2
+info depth 10 seldepth 21 score cp -1798 nodes 89941 nps 68396 hashfull 29 time 1315 pv b5c5 b1c2 c5c6 c2d3 c6b6 h4d8 b6c6 d8f6 c6b6 f6h4 b6c5 d3e4
+info depth 11 seldepth 24 score cp -1815 nodes 116198 nps 68960 hashfull 38 time 1685 pv b5c5 b1c2 c5c6 c2d3 c6b6 h4f2 b6c6 d3e4 c6d6 f2d4 g4g5 d4f2 d6e6 e4f4 g5g6
+info depth 12 seldepth 24 score cp -1812 nodes 125497 nps 68390 hashfull 42 time 1835 pv b5c5 b1c2 c5c6 c2d3 c6b6 h4f2 b6c6 d3e4 c6d6 f2h4 d6c5 h4e1 c5c4 g7d7 c4c5
+bestmove b5c5
