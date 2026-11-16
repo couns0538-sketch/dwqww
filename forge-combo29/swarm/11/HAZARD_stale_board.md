@@ -84,6 +84,11 @@ position the GUI thinks it is playing:
 | illegal token at ply 11 | 10 | 25 | `a4c6` | **no** |
 | illegal token at ply 15 | 14 | 27 | `a2a4` | yes (by luck — one ply short) |
 
+**The combined form is the worst case** (`checks/fen_moves_form.txt`): `position fen F moves ...`
+can fail on EITHER the FEN or the move list, and in both cases the engine silently searches something
+other than what was sent — an illegal move keeps the legal prefix, and a refused FEN inside this
+form keeps the entire PREVIOUS board (measured: perft 1 = 26, the old 26-move board, `h1h8`).
+
 Every prefix's perft 1 matched python-chess exactly, so the truncation is clean and silent and
 never crashes. This is why Route 2 is the more dangerous of the two in practice: a GUI sends a move
 list every move, so one bad token is a likely event, and the result is a legal move for a position
@@ -154,6 +159,8 @@ In order of strength:
 - `checks/full_game_hazard.txt` — the self-play demonstration at the top.
 - `checks/fen_on_real_path.txt` — Route 1 under all three search modes.
 - `checks/illegal_move_route.txt` — Route 2 (illegal move in a list).
+- `checks/prefix_divergence.txt` — how far a corrupted list diverges (up to 13 plies).
+- `checks/fen_moves_form.txt` — the combined `fen ... moves ...` form, which carries both traps.
 - `checks/fen_truncation_pc20.txt` — every truncation length, and the stale perft 1.
 - `checks/ucinewgame_clears.txt` — the `ucinewgame` test.
 - `checks/defence_protocol2.txt`, `checks/fixup_sweep.txt` — the three protocols.
