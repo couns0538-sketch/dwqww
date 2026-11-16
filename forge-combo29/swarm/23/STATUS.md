@@ -976,3 +976,16 @@ So a fast self-play loop is reproducible (no lottery) but is NOT evidence about 
 
 Limit stated and enforced: 20 positions, two clock settings, and the 20 % is explicitly NOT claimed as a
 general rate - the over-generalisation 23-F31 caught earlier. 78 findings, 18 confirmations. 10 h 23 m remain.
+## 2026-11-16T23:57:32Z  23-F56: the clock-disagreement rate replicates (13 % vs 20 %) and sits entirely at depth gaps >= 4
+2026-11-16T23:57:32Z
+
+Second sample, 30 fresh quiet positions (no overlap): 1s vs 6s disagreement 4 of 30 = 13 % against the first
+sample's 4 of 20 = 20 % (predicted band 10-33 %); 1s lower depth 30 of 30; both settings deterministic.
+MECHANISM, the stronger half: ALL FOUR disagreements had a depth gap of >= 4 plies between the clocks
+(6, 6, 5, 4) and small-gap positions had none - consistent with 23-F26's margin account, where a 4-6 ply
+difference overturns a close call and 1-2 plies does not.
+Limits: two samples from one seed stream, quiet middlegames only, and the depth-gap pattern was OBSERVED
+rather than tested by design (no selection for gaps), so it is an observation across 34 positions.
+
+Clock thread now closed cleanly: two endpoints (1 s, 6 s), a replication, and a mechanism.
+79 findings, 18 confirmations. 10 h 23 m remain.
