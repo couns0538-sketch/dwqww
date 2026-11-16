@@ -1,0 +1,28 @@
+## Reconciling with seat 28: THEIR outlier positions, MY harness, same control
+
+`go wtime 6000 btime 6000 winc 60 binc 60`, PC r15, PC20, Threads 1, Hash 16, 3 fresh processes per board.
+Plan: soft 317 ms / hard 1585 ms.
+
+| board | seat 28 measured | my run 1 | my run 2 | my run 3 | my median | reproduces 1.2-1.59 s? |
+|---|---|---|---|---|---|---|
+| 28 outlier #1 (1585.3 ms) | 1585.3 ms | 1585.2 | 1585.4 | 1585.8 | **1585.4 ms** | **YES** |
+| 28 outlier #2 (1439.5 ms) | 1439.5 ms | 799.4 | 813.8 | 1585.9 | **813.8 ms** | partly |
+| 28 outlier #3 (834.7 ms) | 834.7 ms | 977.9 | 985.0 | 990.1 | **985.0 ms** | no |
+| 28 outlier #4 (804.9 ms) | 804.9 ms | 824.7 | 834.9 | 876.1 | **834.9 ms** | no |
+| 28 ordinary (160.7 ms) | 160.7 ms | 161.0 | 178.8 | 214.9 | **178.8 ms** | no |
+| 28 fastest-ish (204.2 ms) | 204.2 ms | 198.9 | 220.1 | 220.6 | **220.1 ms** | no |
+
+| board | my median | seat 28's value | ratio | my depth | bestmove |
+|---|---|---|---|---|---|
+| 28 outlier #1 (1585.3 ms) | 1585.4 ms | 1585.3 ms | 1.00x | 16 | g6f6 |
+| 28 outlier #2 (1439.5 ms) | 813.8 ms | 1439.5 ms | 0.57x | 20 | h8h1 |
+| 28 outlier #3 (834.7 ms) | 985.0 ms | 834.7 ms | 1.18x | 18 | g5h5 |
+| 28 outlier #4 (804.9 ms) | 834.9 ms | 804.9 ms | 1.04x | 17 | c6c7 |
+| 28 ordinary (160.7 ms) | 178.8 ms | 160.7 ms | 1.11x | 17 | g7g6 |
+| 28 fastest-ish (204.2 ms) | 220.1 ms | 204.2 ms | 1.08x | 27 | e5e6 |
+
+| question | answer |
+|---|---|
+| my median across their 4 outliers | 1054.8 ms |
+| how many of their 4 outliers I reproduce above 1200 ms | **1 of 4** |
+| my worst on their boards | **1585.9 ms** |
