@@ -34,11 +34,34 @@ bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609, on build `e06310ec…`
 
 | option | probe | result |
 |---|---|---|
-| `Threads 1` vs `2` — **CORRECTED, measured in ONE process (warm)** | `go depth 10` from startpos | 13102 nodes `d2d4` vs 30356 nodes `c2c4`. **This row compared two searches that shared a process, so the Threads 2 figure is WARM** (seat 10's rule: one process gives 56,720 then 4,951 then 4,516 for identical searches). Re-measured with a fresh process each: Threads 1 = 13102 `d2d4`, Threads 2 = **14883** `c2c4`. The conclusion (both search; the move differs) holds, but the 30356 number was not a cold one and must not be quoted. |
+| `Threads 1` vs `2` — **CORRECTED TWICE; see the note under this table** | `go depth 10` from startpos | Threads 1: 13,102 nodes / `d2d4`, **identical in 5 of 5 fresh processes**. Threads 2: **no single value** — 5 fresh processes gave 18,993 / 25,249 / 27,138 / 27,508 / 34,983 nodes with `e2e4` three times and `d2d4` twice, so the original 30,356 and my first "cold" correction of 14,883 are both just samples of a non-deterministic distribution. |
 | `Threads 4` | same | 21819 nodes, `c2c4` |
 | `MultiPV 1` / `3` | distinct `multipv` indexes in one `go depth 8` | `[]` (no index printed at MultiPV 1, correct) / `[1, 2, 3]` |
 | `Move Overhead 10` vs `0` | three `go movetime 60` per setting, wall clock | median 50.3 ms vs 60.2 ms — the overhead really is subtracted, which is 08-F2's finding reproduced here as an effect, not a new claim |
 | `Hash 16` | `hashfull` on a depth-12 search | non-zero (10–15), so the table is really in use |
+
+
+**Note on the Threads row (third and final revision).** The row above is now correct and the history matters:
+1. Job 4 measured `Threads 1` then `Threads 2` in ONE process → 30,356 nodes. That was a **warm** reading (the
+   Threads 2 search reused the table the Threads 1 search had filled).
+2. My first correction re-measured with a fresh process and got 14,883, and I described that as "the cold
+   value". That was also wrong, for a different reason: **a parallel search is not deterministic**, so there is
+   no single cold value to report.
+3. Measured properly — 5 fresh processes per setting — `Threads 1` gives **13,102 / `d2d4` five times out of
+   five**, and `Threads 2` gives **18,993 / 25,249 / 27,138 / 27,508 / 34,983** nodes with the move varying.
+   Threads 2 is *non-reproducible*, and no single node count for it is quotable.
+
+**Were these numbers ever used to argue anything about scaling?** No. This row existed to show that `Threads`
+is accepted and takes effect (the S-F7 question: is the option surface honest), and the stated conclusion was
+"both configurations search; the move differs, which is normal for a parallel search". No speed, scaling or
+node-efficiency claim was made from it, in this report or anywhere else — and it could not have been, since a
+warm 30,356 against a cold 13,102 would have looked like threads *increasing* work, which is the opposite of a
+scaling claim.
+
+**What the corrected data is worth instead:** with Threads 1 the search is exactly reproducible (13,102 five of
+five); with Threads 2 it is not (a 1.8x node spread and two different bestmoves over five runs). That is a real
+and useful observation for anyone building a harness — a node-count pin or a "same search twice" test is only
+meaningful at Threads 1, and any Threads > 1 row needs repetition and a range, not a single number.
 
 ## Suspicions, not proven
 
