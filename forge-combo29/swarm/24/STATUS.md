@@ -159,3 +159,72 @@ done: FINDINGS_FINAL.md pushed — every find with its state, the seat that conf
       F24/F26).
 runs now: nothing long. Continuing the cycle; the "## <time> FINAL" block goes in at the 12-hour close 10:18:45Z.
 next command: cd /agent/repos/dwqww && date -u
+
+## 2026-11-16T23:27:11Z FINAL
+
+Seat 24, branch for-fable-and-opus/swarm-24, folder forge-combo29/swarm/24/, area 4 (THREADS under
+ThreadSanitizer), seed 2401. Builds used throughout: base tree 6b98f217 (release sha256 e06310ec..., TSan
+038ee548...) and the PC r15 build from FABLE_TO_swarm_5.md (release 068f0927..., TSan 698d2d9b...), all four
+honesty pins matched on both (312866 / 862329 / 3024920 / perft5 4865609) and the three PC regimes too
+(none / S14 242796+656517 / PC20 278024+587276).
+
+THE FOUNDATION, IN ONE LINE: Threads 1 is bit-exact — 60 position-runs with zero disagreement in move or node
+count (40 of 40 on a 40-position sample plus 20 of 20 earlier) — and everything above one thread varies.
+THE TUNER RULE: no result above one thread is reproducible on either build, at 2 or 4 threads, so any A/B must be
+single-threaded or repeated enough to average the spread.
+THE REPLICATION RULE: use at least 6 fresh runs per position — 18 of 39 unstable cases were one stray run of six.
+
+EVERY FIND, WITH STATE
+
+Confirmed by another seat:
+- 24-F1 (base, TSan, Threads 1-16): 300 Threads/Hash changes between searches, 0 TSan reports, 0 crashes,
+  0 illegal bestmoves — CONFIRMED by seat 21 (21-C5, own harness + own planted race 12/12).
+- 24-C1 (base, S14): `go searchmoves` with no legal named move -> quoted info line + bestmove 0000 on a board
+  with 20 legal moves — CONFIRMED by seat 21 (21-C8) and seat 11 (S-C11).
+- 24-C2 (base, defaults): ucinewgame resets the board to startpos — CONFIRMED by seat 11 (S-C12).
+- 24-F14 (PC r15 + base, PC20/S14, Threads 1): at a terminal root all six BOUNDED forms answer 0000 in 0.00 s and
+  only `go infinite` / `go ponder` hang — CONFIRMED by seat 30 (30-C15, who added the control my row lacked).
+- 24-F16 (PC r15, PC20): terminal_root_infinite.patch.txt applies to the PC tree and removes every MISSING entry —
+  CONFIRMED by seat 30 (30-C16) with their own build and matrix, same 154-line offset.
+- 24-F21/F21b/F22/F23/F24/F26 (both builds, Threads 1/2/4, 6+ fresh runs/position): the chosen MOVE is not
+  reproducible above one thread; Threads 2 is not a safe middle ground; architectural, not PC-specific —
+  CLOSED, CONFIRMED by a second seat (24-C10): their 9/20 at T2 and 8/20 at T4 against my 10 and 8, base slightly
+  lower, and my Threads-1 exactness confirmed 20 of 20.
+
+Open (no second seat yet):
+- 24-F2 / F5 / F8 (base, TSan): Threads sweep, 1000 infinite/stop cycles, and the R-set repeat — all 0 reports,
+  each with a planted control counted (102 / 22 / 91 blocks).
+- 24-F7 / F19 (PC r15, PC20, Threads 1 AND 4): the terminal-root `go infinite` hang is STILL PRESENT on the PC
+  build; an explicit `stop` rescues it in 0.20 s; thread-count independent.
+- 24-F9 / F11 / F13 / F18 / F20 (PC r15 TSan, PC20): 400 rounds infinite/stop at Threads 4, the 2/4/8/16 sweep
+  (400/400, 0 timeouts), 250-step option churn incl. all four PC switches, 150 rounds at Threads 16, and 60 steps
+  at Threads 8/16/32 (8x oversubscription) — all 0 TSan reports, planted controls 29 / 29 / 10 blocks.
+- 24-F15 / F17 (base + PC r15): one text patch fixing BOTH silent GUI hangs (terminal root; opponent-only clock),
+  honesty numbers unchanged, ponder and abort paths regression-tested unchanged.
+- 24-F25 (both builds): an aborted search publishes the generator-order first move with 0 nodes, but NOT at a
+  terminal root (there both correctly answer 0000).
+- 24-F27 / F28 / F30 (both builds, Threads 4): three mechanism candidates RULED OUT — node spread does not predict
+  disagreement; Hash size shows no trend (4/6/3 of 12 at 1/16/1024 MB, corrected by 24-C11); clearing all search
+  state before every repetition made it worse (7/20 vs 2/20). Cutoff/scheduling ordering is the remaining lead.
+- 24-F29 (both builds): 18 of 39 unstable cases were one stray run of six -> 6-run minimum for replication.
+- 24-F31 (base, Threads 1): bit-exact 40 of 40.
+- 24-F6 (PC r15): every published PC number reproduced; also records my first honesty script's setoption bug.
+
+Checks of other seats: 24-C1 CONFIRMS 02 S-F2 (re-audited under the integrity rule with a negative control);
+24-C2 CONFIRMS 12 S-F1; 24-C3 CONFIRMS 05 S-F8; 24-C6 CONFIRMS 04 04-F1 (165.5x over 8 fresh processes);
+24-C8 CONFIRMS 02 S-F4's MAIN claim and REFUTES its control sentence (an opponent's clock is parsed and discarded
+at src/uci.cpp:184-191, so no opponent clock can bound a search) — CONFIRMED again by seat 11 (S-C10 scope on my
+own 24-F3, which I accept); 24-C9 CONFIRMS 19 19-F25.
+
+MY OWN CORRECTIONS ON RECORD (all in FINDINGS.md and FINDINGS_FINAL.md): 24-C4 (invalid planted control gave a
+false zero), 24-C5 and 24-C7 (my pos-90 "warm state" mechanism withdrawn — it needs Threads > 1 only), 24-C11
+(24-F28's "identically 4 of 12" corrected to 4/6/3 with no trend), and the setoption-`value` bug in my first PC
+honesty script.
+
+DELIVERABLES: FINDINGS_FINAL.md (every find with state, build and settings); FINDINGS.md (the full chronological
+record); REPORT_job1.md, REPORT_job2.md, REPORT_job3.md, REPORT_pc.md, REPORT_threads.md;
+patches/two_gui_hang_fixes.patch.txt with patches/APPLY_SHEET.md (including "NOT MEASURED — no match was run, the
+strength effect is unmeasured"), patches/terminal_root_infinite.patch.txt, patches/regress_ponder.py.
+
+HYGIENE: 258 files, all under forge-combo29/swarm/24/; no binaries; every number traceable to a committed raw file;
+no commit of mine ever modified a path outside my folder; no pull request opened; no force push; text only.
