@@ -356,3 +356,20 @@ every row per that caution.
 **Two of my own errors caught in this job, both before any result was recorded:** my first hand-written mate set
 had two ILLEGAL FENs, and one board I labelled "mate in 3" was 3 PLIES = mate in 2 MOVES, so the engine's
 `mate 2` looked wrong when it was right. The script now verifies every board and refuses to run if one fails.
+
+## 2026-11-17T00:00Z method notes written down; S-C13 names what would overturn it
+**`METHOD_NOTES.md`** now collects the traps that each cost a near-miss, with the predictable symptom for each:
+  - **plies vs moves**: UCI `mate N` counts MOVES, so a board labelled by its PLY count returns `mate (plies+1)/2`
+    and looks off by one -- a mate score consistently about half the expectation, always rounded up, is that
+    signature and NOT a search defect. Boards store plies; the label is derived, never typed.
+  - **verify every position before measuring**: two illegal FENs and one wrong distance in my first mate set; the
+    harness now asserts legality and exact distance and REFUSES TO RUN if either fails.
+  - **Move Overhead is part of the wall convention**: every clock table prints wall raw AND wall-10 ms.
+  - **OwnBook false unconditionally**: leaving it on produced a false "0 info lines" reading AND the withdrawn
+    clock-swap claim.
+  - **a pipeline hides the exit code**; write a test that makes the check fail.
+  - **a repository grep always "finds" data rows**; three passes before the go-nodes census was right.
+**S-C13 now names its overturning condition**: a FEN where base reports `cp` and PC reports `mate` at the SAME
+depth with Threads 1 / Hash 16 / OwnBook false. I did not have that FEN, so the request stays OPEN rather than
+the question being closed -- a refutation on verified boards is the result, and the counter-example is the next
+thing to look for.
