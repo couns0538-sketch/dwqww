@@ -154,7 +154,7 @@ def main():
             print("scanned %d/%d winnable %d hits %d" % (
                 i + 1, len(positions), sum(1 for r in R.values() if r["mover_draws"]), len(hits)))
     e.close()
-    rows = ["| pos | strong | window | winnable | chosen d16 | chosen 20k | hit |",
+    rows = ["| pos | strong side | window (half-moves to the draw) | mover can save the draw | chosen d16 | chosen 20k | hit |",
             "|---|---|---|---|---|---|---|"]
     for i, (fen, kind) in enumerate(positions):
         r = R["%d" % i]

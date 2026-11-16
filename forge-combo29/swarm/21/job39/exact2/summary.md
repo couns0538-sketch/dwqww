@@ -1,4 +1,4 @@
-| pos | strong | window | winnable | chosen d16 | chosen 20k | hit |
+| pos | strong side | window (half-moves to the draw) | mover can save the draw | chosen d16 | chosen 20k | hit |
 |---|---|---|---|---|---|---|
 | 0 | black_strong | 1 | True | g6f5 | g6f5 | no |
 | 1 | white_strong | 1 | True | h3g2 | h3g2 | no |
