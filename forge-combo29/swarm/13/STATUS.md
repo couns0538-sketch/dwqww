@@ -80,3 +80,18 @@ big-N sanity control and a state control. (This is distinct from 19-F12: this on
 finished search under a tiny budget, 19-F12 with a search cut short.)
 Job3 (perft 5, 230 positions) engine side done, reference side running.
 Next command: cd forge-combo29/swarm/13/job3 && python3 compare.py raw_engine.txt raw_ref.txt all230.fens comparison.md 230
+
+## 2026-11-16T22:04:32Z
+
+WARM/COLD AUDIT after seat 10's rule:
+- I never used `Clear Hash` anywhere (`grep -rn "Clear Hash" --include=*.py` in my folder: no hits).
+- My perft measurements do run many commands in one process, so I tested whether perft varies with
+  state: 3 consecutive `go perft 4` on startpos in ONE process all answered `nodes 197281`
+  (count of correct answers = 3/3), identical to a fresh process. Perft is a pure tree walk and does
+  not use the TT, so my perft tables are valid warm or cold.
+- My searches (check_21f1 case nodes, 27-F2) each start with `uci`/`isready` and the 27-F2 table is
+  explicitly labelled and includes a warm-vs-fresh control row set - it is labelled there, not hidden.
+- NO node-count table of mine is a cross-search warm comparison: the only search node numbers I
+  report are single-search values (56,720-style) or per-position cold values.
+Job3: engine perft 4+5 on 230 positions done (all OK); reference running, 1 shard left.
+Next command: cd forge-combo29/swarm/13/job3 && python3 compare.py raw_engine.txt raw_ref.txt all230.fens comparison.md 230
