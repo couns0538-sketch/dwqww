@@ -192,7 +192,9 @@ def main():
     fens = [l.strip().split(";")[0].strip() for l in open(posfile) if l.strip()]
 
     for fen in fens:
-        setup = ["uci", "isready", "position fen " + fen]
+        setup = ["uci", "isready"]
+        setup += OPTS
+        setup += ["ucinewgame", "isready", "position fen " + fen]
         d = DEPTH
         run_case("A_control", fen, {"setup": setup, "go": "go depth %d" % d}, mode="control")
         run_case("B_quit_now", fen, {"setup": setup, "go": "go depth %d" % d})
