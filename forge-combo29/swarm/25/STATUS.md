@@ -1,3 +1,21 @@
+## 2026-11-16T23:16Z - NEW LIVE DEFECT on the owner's match setting (S-F27/S-F28)
+
+`go nodes 20000` is one of the three node limits the owner's matches use, and it produces a WRONG MATE SCORE:
+- 8/8/1p6/8/p3p3/8/2Kpk3/8 w -> `mate -7` with a 10-ply PV that is NOT checkmate (needs 14). 5/5 fresh processes.
+- Correct at nodes 50000/100000/250000, at go depth 12 (5/5), and at go softnodes 20000 -> specific to the hard
+  `go nodes` abort path at that budget.
+- RATE (S-F28): 2 of 14 mate scores wrong (14.3%) at nodes 20000 on 41 bare-material endgame boards, versus
+  0 of 17 at go depth 12 (clean control). Second board 8/8/7Q/8/8/6k1/K7/R7 w: mate 7 (10-ply, non-mate) at 20000,
+  mate 6 (real) at 50000, true mate 4 at 250000 and depth 12.
+- Hypothesis with a location: the node limit stops mid-iteration; the source has a guard whose comment says a node
+  limit must not publish a partial iteration for exactly this reason. Not proven.
+- Caveat: 14.3% is the ENDGAME rate; middlegames rarely produce mate scores at 20k nodes (S-C8 null, 1 in 100).
+
+ALSO DONE: depth-20 requirement with the depth-14 counter-example now explicit in S-C6; clock near-miss marked
+DO NOT FIX and corroborated by four seats; HOW_TO_APPLY_FILE6.md written.
+
+Open thread next: instrumented build on the `go nodes` abort path to confirm the partial-publish hypothesis,
+same method that worked for the clock thread.
 ## 2026-11-16T23:15Z - file 6 closed; PC path measured; two confirmations
 
 FILE 6 POSITIVE CONTROL (S-C6): the inequality DOES fire. Board 8/8/8/8/3k4/8/8/K1Q5 w: counter 0 depth 20 =
