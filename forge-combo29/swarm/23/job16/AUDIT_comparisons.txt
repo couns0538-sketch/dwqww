@@ -1,0 +1,21 @@
+AUDIT OF EVERY COMPARISON I PUBLISHED, after the job16 fault
+2026-11-16T23:23:56Z
+
+Two checks per comparison: the number of depth rows printed, and the positions-compared line.
+
+| file | depth rows | claimed depths | positions compared | consistent |
+|---|---|---|---|---|
+| job1/compare_R.out | 4 | 1-4 (23-F4) | 5000 of 5000 | yes |
+| job3/compare_R200_full.out | 5 | 1-5 (23-F11) | 200 of 200 | yes |
+| job3/compare_G30.out | 5 | 1-5 (23-F12) | 30 of 30 | yes |
+| job4/compare_pc20.out | 4 | 1-4 (23-F9) | 5000 of 5000 | yes |
+| job5/compare.out | 4 | 1-4 (23-F22) | 5000 of 5000 | yes |
+| check13/compare.out | 4 | 1-4 (23-C3) | 494 of 494 | yes |
+| job16/compare_d5.out | 5 | 1-5 (23-F33) | 100 of 100 | yes (after the fix) |
+| job16/compare.out | 4 | should have been 5 | 100 of 100 | NO — the fault 23-F34 records |
+
+So the fault was confined to job16's FIRST comparison, which I replaced rather than published as a depth-5
+result. Every other comparison matches the depths and the position count it claims.
+
+The check that catches this class: compare the printed row count against the number of depths the job asks for,
+and the positions-compared line against the expected count, before believing the summary sentence.

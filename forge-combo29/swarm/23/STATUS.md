@@ -565,3 +565,15 @@ positions as a hypothesis until it has been re-tested on a fresh sample. That is
 
 Nothing else is owed on the budget thread. Continuing on the PC path until the window closes at
 2026-11-17T10:18:40Z; the FINAL block will repeat this limitation and will be stamped with `date -u`.
+## 2026-11-16T23:23:58Z  every published comparison audited for the job16 fault: only job16 was affected
+2026-11-16T23:23:58Z
+
+After finding that my compare_perft.py copy hardcoded depths 1-4 (23-F34), I audited every comparison I
+have published, checking the printed depth-row count against the depths the job claimed AND the
+positions-compared line against the expected count. All consistent except job16's first run, which I replaced.
+Table: job16/AUDIT_comparisons.txt
+
+New result this session: 23-F33, third independent seed (2501) at depth 5 — 100 positions, 0 mismatches,
+2,603,588,130 nodes per side. Depth 5 now covers 330 positions across two seeds and set G.
+
+Standing state: 44 findings, 10 confirmations. Real time pasted above. Window ends 2026-11-17T10:18:40Z.
