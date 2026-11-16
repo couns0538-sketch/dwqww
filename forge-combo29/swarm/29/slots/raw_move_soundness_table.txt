@@ -1,0 +1,26 @@
+=== Is PC20's smaller tree SOUND, or does it miss moves? ===
+PC r15 build, 40 real-game positions, depth 12, Threads 1, Hash 16. Disagreements judged by playing each side's
+move under the NEUTRAL regime (S14) at depth 15 and comparing the mover's resulting score.
+
+| result | count | share |
+|---|---|---|
+| SAME bestmove | 34 | 85.0 % |
+| DIFFERENT bestmove | 6 | 15.0 % |
+
+The six disagreements, with each move's line scored under S14 at depth 15 (mover's score = negated engine score):
+
+| pos | S14 move (depth-12 score) | PC20 move (depth-12 score) | S14 move's line | PC20 move's line | better |
+|---|---|---|---|---|---|
+| 1 | f8g7 cp 45 | a5b4 cp 49 | +9 | +25 | PC20 |
+| 9 | g4e5 cp 3033 | c2a3 cp 3009 | +3370 | +3300 | S14 |
+| 16 | e7d8q cp -635 | b3g3 cp -589 | -747 | -725 | PC20 |
+| 27 | h2e2 cp 1123 | e7e4 cp 1186 | +1797 | +1845 | PC20 |
+| 34 | h6g4 cp 1510 | d8b6 cp 1516 | +1550 | +1629 | PC20 |
+| 35 | h5h6 cp -1041 | a3b4 cp -1023 | -1081 | -1163 | S14 |
+
+Tally: PC20's move scores better in 4 of 6, S14's in 2 of 6, no ties.
+
+CAVEAT, stated because it bounds the claim: a 4-of-6 split is far too small a sample to prove PC20 plays BETTER; it
+is enough to show the reduced tree is NOT LOSING MOVES on these positions (it would be 0- or 1-of-6 if the pruning
+were unsound). The defensible statement is "smaller tree, no detected loss of move quality on 40 positions", not
+"PC20 plays better".

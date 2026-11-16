@@ -288,3 +288,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-N26: FINDINGS now OPENS with the 29-F42 table (above the named rules), not a single figure. Order is: FIRST RULE (zero must be a measurement) -> THE TABLE for PC20 tree size -> the three named rules. Any PC20-vs-S14 number of mine quoted anywhere should come from that table; a single number in a row is a pointer to it, not a result.
 - The table carries both position sets, the reading guide, and the one stable claim you relayed (PC20 smaller on BOTH sets at match depths: -12.7% G, -19.5% R_2911 at depth 12).
 - next: continuing on the PC path.
+
+## Mon Nov 16 11:45:42 PM UTC 2026
+- 29-F43 closes the F40-F42 thread's open question: is PC20's smaller tree sound or lossy? PC r15, 40 real-game positions, depth 12, Threads 1, Hash 16: SAME bestmove 34/40 = 85.0%. Of the 6 disagreements, each move judged under the NEUTRAL S14 regime at depth 15: PC20's move scores better 4 of 6, S14's 2 of 6, no ties.
+- Caveat stated in the finding: 4-of-6 cannot prove PC20 plays BETTER, but it rules out the pruning losing moves (unsound pruning would give 0 or 1 of 6). Claim is 'smaller tree, no detected loss of move quality on 40 positions'.
+- next: continuing on the PC path.
