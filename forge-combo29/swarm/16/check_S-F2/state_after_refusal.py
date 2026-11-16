@@ -30,10 +30,45 @@ CASES = [
 
 records = []
 for label, first_cmd, first_expect, second_fen in CASES:
-    script = (f"uci\nisready\n{first_cmd}\nisready\ngo perft 1\nisready\n"
-              f"position fen {second_fen}\nisready\ngo perft 1\nisready\nquit\n")
-    proc = subprocess.run([EXE], input=script, capture_output=True, text=True, timeout=120)
-    lines = proc.stdout.splitlines()
+    # HARDENED (seat 19's broadcast): every command is acknowledged before the next is sent,
+    # stdin is never closed and quit is only sent at the very end.
+    import time as _time
+    p = subprocess.Popen([EXE], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT, text=True, bufsize=1)
+
+    def _send(c):
+        p.stdin.write(c + "\n")
+        p.stdin.flush()
+
+    def _drain_to(tok, limit=60):
+        got = []
+        dl = _time.monotonic() + limit
+        while _time.monotonic() < dl:
+            l = p.stdout.readline()
+            if not l:
+                break
+            got.append(l.rstrip("\n"))
+            if l.strip() == tok:
+                return got, True
+        return got, False
+
+    lines = []
+    _send("uci"); a, _ = _drain_to("uciok"); lines += a
+    _send("isready"); a, _ = _drain_to("readyok"); lines += a
+    # perft answers with a `nodes N` line and NOT with readyok, so each command gets the right token:
+    #   position/isready -> readyok ;  go perft -> "nodes" ; then isready -> readyok
+    for cmd in (first_cmd, "isready", "go perft 1", "isready",
+                f"position fen {second_fen}", "isready", "go perft 1", "isready"):
+        _send(cmd)
+        tok = "nodes" if cmd.startswith("go perft") else "readyok"
+        a, _ = _drain_to(tok)
+        lines += a
+    _send("quit")
+    try:
+        p.wait(timeout=10)
+    except Exception:
+        p.kill()
+    proc = type("R", (), {"returncode": p.returncode})()
     nodes = [int(l.split()[-1]) for l in lines if l.startswith("nodes ")]
     refused = [l for l in lines if "invalid FEN" in l]
     rec = {"label": label, "first_expected": first_expect, "nodes_sequence": nodes,

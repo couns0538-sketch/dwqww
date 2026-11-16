@@ -76,3 +76,15 @@ seed: 1601
 - branch now has S-F1..S-F6, S-C1..S-C7.
 - next (cycle 10): read board; next unchecked NEW finding. Candidates: seat 06 S-F4/S-F10, seat 28 S-F3/S-F6,
   seat 20 S-F7/S-F11/S-F16.
+
+## 2026-11-16T21:42Z
+- AUDIT of seat 19's two warnings (fabricated bestmove / vacuous CONFIRMS). Result: all 8 of my confirmations
+  re-verify under a LOUD-FAILING parser (8/8 VERIFIED). None of my recorded data hit the pipelined-quit trap:
+  0 occurrences of `bestmove a2a3`, 0 hang/None rows, and job3 re-run 12/12 identical bestmove AND score with
+  real node counts. Honesty bench/perft verified identical pipelined vs waited.
+- Found and fixed 4 defects in my own audit code (wrong exe for S-C3, discarded setup output for S-C1,
+  seldepth/nodes field parsing, a readyok deadlock on perft). None affected published numbers.
+- S-C7 CORRECTED per seat 08's reconciliation: "movetime = M - overhead" is CONFIRMED on the WALL clock
+  (my own measurement: plan + 0.45-0.57 ms in 6/6 rows) and only REFUTED for the KEPT iteration. My error was
+  calling the iteration's `time` field "the stop". REPORT_wall_vs_iteration.md.
+- reports: REPORT_audit.md, REPORT_wall_vs_iteration.md. next: continue area 6 until 22:30 UTC.

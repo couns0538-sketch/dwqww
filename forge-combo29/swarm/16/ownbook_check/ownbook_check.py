@@ -67,7 +67,6 @@ def ev(fen, ownbook_false):
     if ownbook_false:
         setup += ["setoption name OwnBook value false", "isready"]
     send_all(p, setup + [f"position fen {fen}", "isready", "eval", "isready", "quit"])
-    out = p.communicate()[0] if False else ""
     lines = []
     while True:
         l = p.stdout.readline()
