@@ -158,3 +158,19 @@ it stop at a finished depth, how far past N does it go.
 
 Next command:
 `cd /agent/repos/dwqww/forge-combo29/swarm/03/job8 && python3 softnodes.py ~/build-pc/forge /tmp/sn.txt`
+
+## 2026-11-16T23:10Z
+
+**job9 DONE — S-F16/S-F17: position 155 is a LIVE defect on the PC build's real path.** PC build, PC20, Threads 1,
+Hash 16, `1r6/5b2/2K5/8/8/5n2/5k2/8 w - - 18 183`: it plays c6c7 whose **own depth-20 score is mate -11**, while
+c6d6 scores **cp -1142**; base scores the two moves cp -1145 / cp -1174 and plays the better one. PC spends 165.8M
+nodes at depth 20 vs base's 169,686 (~1000x). Same move at depths 8/12/16/18/20; its own score becomes a mate
+against itself at d18 and the move never changes. Control: `lmr0_ot0` is bit-identical to base (scores AND nodes).
+Report REPORT_job9.md. Not done: instrumenting the reduction (mechanism is a labelled hypothesis), python-chess mate
+proof.
+
+Next: job8 — `go softnodes N` on the PC build under PC20, Threads 1 (prediction already written: determinism,
+finished-depth stop, overshoot). Then scan more lone-king endgames from real games for the S-F16 signature.
+
+Next command:
+`cd /agent/repos/dwqww/forge-combo29/swarm/03/job8 && python3 softnodes.py ~/build-pc/forge soft.txt`
