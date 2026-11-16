@@ -21,16 +21,20 @@ candidates checked by name.
    nodes / 103.9 s** at Threads 8. The bestmove is `f3f8` in every completed run at every thread
    count. It is not a wrong move; it is up to a **24,000x** search-cost blow-up caused by
    threading, on a position the engine already scores as lost.
-2. **There is no deadlock and no hang.** 20 fresh processes at Threads 4 all answered within
+2. **The score is NOT reproducible at Threads >= 2, even though the move is.** Same position,
+   same depth, same settings, fresh process each time: Threads 4 returned `mate 17` and `mate 15`
+   at depth 12, and with null move off, `+2402 cp`, `mate 14` and `mate 21` on three runs. `f3f8`
+   came back every time. This is a correctness problem, not only a time one (04-F7).
+3. **There is no deadlock and no hang.** 20 fresh processes at Threads 4 all answered within
    90 s. The stacks show every worker thread *working* (in `qsearch`, `pick_best`,
    `fill_pseudo_legal`, `make_move`), not parked and not waiting for each other. The earlier
    "hang" was one run of this heavy tail exceeding a 300 s limit. From a GUI or a clock it is
    still fatal, because the tail is unbounded, but it is not a lock bug.
-3. **Zero ThreadSanitizer race reports in 400 searches at Threads 1/2/4/8**, and that zero is
+4. **Zero ThreadSanitizer race reports in 400 searches at Threads 1/2/4/8**, and that zero is
    proven to be a live measurement by a planted unlocked-global counter reported by the same
    runner. The transposition table is lock-protected on every access. My prediction P2/P3 (that
    the table was unguarded) is **refuted**.
-4. **19-F12 confirmed** with an independent harness, plus the two things it left open: the
+5. **19-F12 confirmed** with an independent harness, plus the two things it left open: the
    fabricated bestmove never has a nonzero node count, and it is never illegal — it is a
    plausible move with no search behind it.
 
@@ -88,6 +92,23 @@ Depth axis at Threads 4: depth 10 median 0.10 s / max 0.19 s / 2,739,439 nodes; 
 0.17 s / max 1.40 s / 25,173,385; depth 12 median 0.77 s / max 69.30 s / 1,252,499,786;
 depth 13 median 2.15 s / max 46.40 s / 812,344,815.
 
+## The sentence that matters to the owner
+
+At identical settings, **Threads 4 gives a different mate distance on successive runs** (17 and 15
+at depth 12; 13 and 12 at depth 14), and with null move effectively disabled, three runs of the
+same position at the same depth gave **+2402 cp, `mate 14` and `mate 21`**. A multi-threaded
+score is therefore **not reproducible even when the move is**: `f3f8` came back every single time.
+
+That, not the node count, is the finding. The node count (up to 1.95 billion) is the *symptom*
+that made it visible, and the 2.2x / 11x / 15,600x spread across three similar positions is the
+*shape question* that is still open. But a search whose reported score changes between runs of
+the same position at the same depth cannot be trusted for anything that consumes the score --
+time management, tuning comparisons, or any A/B that measures centipawns.
+
+What this is NOT: the move never differed, so I have no evidence of a lost game from a wrong
+move. And on two of three positions tested the thread scaling was ordinary, so this is **not** a
+general "multi-threaded search is broken" defect and must not be ranked as one.
+
 ## Findings, each with a command that shows it again
 
 - **04-F1** thread-scaled node explosion — `python3 job1/hang_repro.py <exe> /tmp/hang t1_d12_10
@@ -121,17 +142,50 @@ depth 13 median 2.15 s / max 46.40 s / 812,344,815.
    had. **Not proven**: I would need per-iteration node counts at Threads 8, which the tail
    makes very slow to collect.
 
-## What I did NOT do
+## What I did NOT do, and the exact commands that would close each gap
 
-- **No fix.** Per the coordinator's instruction, a proven reproduction with stacks was worth
-  more than a patch in the time left. No source file was modified and no patch is offered.
-- **Threads 16 is incomplete** (18 of 100 searches). I stopped the sweep deliberately so the
-  hang measurements would not be timed against a machine running four competing TSan threads.
-  The Threads 8 tail (103.9 s at only 8 threads on 4 cores) already exceeds it in severity.
-- **No `perf`/gprof profile of the blow-up.** That is area 9's tool; the stacks answer the
-  deadlock question that was actually asked.
-- **No second rep of the hang axis.** The 20-run Threads-4 sample is the reproduction; I did not
-  repeat the whole matrix a second time.
+These are the three open questions, each with the command that would answer it. **I started
+none of the first two** (the coordinator's instruction); step 3 I did run, and it came back
+negative.
+
+**Gap 1 — the shape condition.** What property of the hang FEN triggers the explosion, when two
+same-shape positions scale normally (2.2x, 11x)? Concretely I would bisect the position: remove
+one piece at a time and re-measure the Threads-4/Threads-1 node ratio, to find which piece or
+which combination is responsible. Exact next command:
+
+```
+python3 forge-combo29/swarm/04/job1/divergence.py /home/ubuntu/builds/rel/forge /tmp/shape \
+  bisect --threads 1,4 --depths 12 --runs 2 --fen '5R2/1p5k/6p1/8/1K6/5q2/8/8 b - - 0 1'
+```
+with a loop over piece removals (a `--fen` per variant) comparing the T4/T1 node ratio.
+What would settle it: a variant that keeps the ratio above ~100x and one that drops it near 2x,
+differing in a single piece.
+
+**Gap 2 — is the divergence a depth artefact?** Everything above is at a fixed *depth*, and
+threads reach a given depth by different paths, so the divergence might vanish at a fixed *node
+count* (which forces the same amount of work regardless of speed of convergence). Not started.
+Exact next command:
+
+```
+python3 forge-combo29/swarm/04/job1/divergence.py /home/ubuntu/builds/rel/forge /tmp/nodes \
+ nodes100m --threads 1,4 --depths 12 --runs 3 --limit 300
+```
+plus a `--go` variant of `divergence.py` sending `go nodes 100000000` instead of `go depth 12`
+(the script currently only supports `go depth`; that is the one change needed). What would
+settle it: if the scores agree at a fixed node count, the nondeterminism is depth-path-dependent
+and therefore a tuning/measurement hazard; if they still disagree, the search state itself is
+shared unsafely and it is a correctness bug.
+
+**Gap 3 — cause (step 3): DONE, negative.** Widened aspiration (`AspirationDelta=200`: +2637 then
+`mate 14`) and null move effectively off (`NullMoveMinDepth=10`: +2402, `mate 14`, `mate 21`) both
+still show the disagreement and the node spread, so neither the aspiration window nor null move is
+the cause. Recorded as finding 04-F8.
+
+**Also not done:** no fix (per instruction, and no time). Threads 16 stopped at 18/100 to free
+the machine, so no Threads-16 table exists. No `perf` profile of the blow-up (area 9's tool).
+The 19-F12 quit re-run with the integrity fields completed only 2 of 8 cases before I stopped it
+to free the CPU for timing-sensitive runs; the earlier complete run is in
+`job1/table_quit.md`, and its control arm was the discarded pipelined one described in 04-C1.
 
 ## What I am NOT sure about
 
