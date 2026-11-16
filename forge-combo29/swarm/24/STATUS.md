@@ -90,3 +90,12 @@ done: C5 CORRECTS my own F3 — the pos-90 slowdown needs Threads>1 AND warm sta
 runs now: PC-build Threads sweep under PC20 (PC TSan build) — Threads 2, 4, 8 each 100/100 with 0 TSan blocks and
       NO pos-90 timeout at Threads 8 (the base tree capped out there), Threads 16 at 19/100. No scores recorded.
 next command: cd /agent/repos/dwqww/forge-combo29/swarm/24/pc_build && python3 analyse_pc_sweep.py
+
+## 2026-11-16T23:03Z
+done: C6 CONFIRMS seat 04's 04-F1 with my own harness (Threads 1 = 49,731 nodes 6/6 identical; Threads 4 = 3.06M
+      to 505.8M nodes over 8 fresh processes, 165.5x, bestmove f3f8 constant). C7 WITHDRAWS my own F3/C5 mechanism:
+      the explosion needs Threads>1 only, no warm state — my 348 s/377 s rows were unlucky draws, not state effects.
+      F12: on the PC r15 build under PC20 the same test gives 13.9x spread (4.15M-57.6M), much milder than base's
+      165x but NOT deterministic. All of it fresh processes, Threads 1 used for anything score-shaped.
+runs now: nothing long; next is the area-4 job list on the PC build (option churn under TSan at Threads>1).
+next command: cd /agent/repos/dwqww/forge-combo29/swarm/24 && git ls-remote origin "refs/heads/for-fable-and-opus/swarm-*" | sed 's#.*/swarm-##' | sort | tr '\n' ' '
