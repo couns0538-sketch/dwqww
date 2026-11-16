@@ -1,9 +1,8 @@
-glmflash5 progress (the continuation run)
-- long 1: the control 20000 vs 10000: +187.77 ± 41.47 — the infrastructure validated
-- long 2: CheckExtDepth 30: -3.82 ± 15.61 — level
-- long 3: FailLowContBonus 50: -9.38 ± 14.07 — level
-- long 4: CaptureFutBase 230: +4.52 ± 13.81 — level
-- long 5: FailLowContBonus 100: +11.12 ± 14.24 — leans positive
-- long 6: the bundle (all three): -1.04 ± 13.74 — the three cancel out
-- running now: long 7 (the first of the second batch, seed 30107)
-- each long = 1000 games, 500 pairs, ~6 min with 4x concurrency at 20k nodes
+glmflash5 progress
+- longs 1-6 (the first batch): done and pushed
+- longs 7-12 (the second batch): done and pushed
+- longs 13-18 (the third batch): done and pushed
+- NOTE: the setting-to-long-number mapping was shifted in longs 10-18 (my batching script's error);
+  the (setting, seed) pairs are still valid data — the pooling in long 24 uses the settings, not the numbers
+- running now: the pooling report (long 24) + the 2000-node batch (longs 25-30)
+- the session has been running ~2 hours of the 36-hour budget
