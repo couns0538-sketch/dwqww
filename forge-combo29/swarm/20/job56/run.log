@@ -1,0 +1,15 @@
+pc exe /agent/repos/build-pc/forge   MultiPV 3   10 positions   Threads 1   go wtime 5000 btime 5000
+decision rule (stated before measuring): UNSAFE if median depth < half the healthy median
+
+healthy (Hash 16, MultiPV 1): depths [17, 17, 16, 18, 19, 18, 16, 16, 15, 18]  median 17.0
+
+  Hash   16 MB: depths [14, 12, 12, 14, 13, 15, 14, 12, 12, 15]       median  13.5  SAFE
+  Hash   64 MB: depths [13, 11, 11, 12, 11, 14, 14, 11, 10, 15]       median  11.5  SAFE
+  Hash  128 MB: depths [12, 9, 6, 11, 11, 12, 14, 10, 8, 14]          median  11.0  SAFE
+  Hash  256 MB: depths [3, 4, 4, 10, 5, 4, 12, 8, 4, 4]               median   4.0  UNSAFE
+  Hash  512 MB: depths [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]                 median   1.0  UNSAFE
+
+== largest SAFE Hash at MultiPV 3: 128 MB
+   recommendation: Hash <= 128 MB with MultiPV 3
+
+wrote collapse_boundary.json
