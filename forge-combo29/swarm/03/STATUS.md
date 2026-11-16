@@ -210,3 +210,81 @@ then assemble the FINAL block with S-F20/S-F21 at the top.
 
 Next command:
 `cd /agent/repos/dwqww/forge-combo29/swarm/03/job11 && PC_TOPN=4 PC_DEPTH=16 python3 plycost.py eg50.tsv scan50.txt plycost_d16.txt`
+
+## 2026-11-16T23:17Z FINAL
+
+Every find of mine, with its state, build and settings. Builds: **base** = 6b98f217 (sha256 68825bd5…);
+**PC r15** = patch from FABLE_TO_swarm_5 lines 56..2374 (sha256 d6bd72c531f785f4…), built with
+-DFORGE_MATE_ALPHA_GUARD=1 (sha256 8a…/pcbuild). Settings are named per line: **none** = no setoption;
+**S14** = the 14 search settings; **PC20** = S14 + CuckooRep/HistRework 2/TtPruneV2/CorrHistV2/MateAlphaGuard/
+OwnBook false. Threads 1 and Hash 16 everywhere except the pinned-bench lines (which are default-option by rule).
+
+### HEADLINE
+
+**S-F20 — losing-move misevaluation in the shared search, proven by play-out.** Build: base and PC r15; settings:
+S14/PC20, Threads 1, Hash 16, `go depth 12/20`. On `1r6/5b2/2K5/8/8/5n2/5k2/8 w - - 18 183` the engine plays
+`c6c7`, which loses in **20 plies**, while `c6d6` — which it rejects and rates `mate -11` in its own root scores —
+holds out **22 plies** (python-chess adjudication, 3 of 3 paired repeats). The engine mis-scores the alternative and
+therefore chooses the faster loss. **State: open, not confirmed by another seat.** It predates the PC build
+(reproduces on base under S14) and is not fixable by removing the cap.
+File: REPORT_job10_item2.md, job10/playout_base_d12.txt.
+
+**S-F21 — the mechanism boundary.** Build: PC r15 with a guarded fprintf at the cap site (scratch copy, bench 11 =
+312866); settings: PC20, Threads 1, Hash 16, `go depth 18`. The bare-king LMR cap fires **4,680,728 times**
+(1,395,047 clamping a 3-ply reduction to 1; 11 clamping an 11-ply reduction to 1) but only **6 times at the root
+ply, always on `c6d7`, never on `c6d6` or `c6c7`**. So the cap is the ~1000x node COST, and the root comparison is
+the CAUSE. **State: open, not confirmed.** File: REPORT_job10_item2.md, job10/cap_depth18_summary.txt.
+
+**Population rate, stated plainly: mostly benign.** Build: PC r15; settings PC20, Threads 1, Hash 16, depth 16,
+50 real-game lone-king positions. Strict S-F20 signature (chosen worse than an alternative by > a queen):
+**0 of 50** — my prediction of 5-20 was killed by its own <2 kill range. Any-margin mismatch: **11 of 45** scorable,
+median 36 cp, max 161 cp. Play-out on the largest gaps: only **one** position shows a large, depth-stable ply cost
+(S-F23, weakened by its own depth-16 re-test). S-F22/S-F23/S-F24. **The population does not show the defect at
+anything like 155's severity.**
+
+### Area 3 — move generation (all CONFIRMED elsewhere where marked)
+
+| id | claim | state | build / settings |
+|---|---|---|---|
+| S-F1 | perft 1-4 on 5,000 random positions: 20,000/20,000 equal to python-chess, root move SETS identical | **CONFIRMED by seat 08 (08-C5)** | base / none |
+| S-F2 | 314 special positions (castling-transit, ep-pin, capture-promotion-check, double check, pinner-capture): perft 1-4 all equal | open | base / none |
+| S-F3 | a raw ep capture exposing the owner's own king is never generated (14 real + 320 constructed + controls) | **CONFIRMED by seat 08 (08-C4)** | base / none |
+| S-F4 | 320 constructed ep-pin positions: move sets equal 320/320, slider-removal control 320/320 | open | base / none |
+| S-F5 | perft 5 equal on 230 positions, 1,150/1,150, sum 3,925,995,728 both sides | open | base / none |
+| S-F6 | PC build's move generation node-for-node identical to base: 62,406/62,406 over five sets | open (file 6 cites it as settling the patch) | base vs PC r15 / none |
+| S-F7 | PC20 options do not change perft (20,000/20,000 identical) | open | PC r15 / PC20 |
+| S-F8 | the patch reproduces the PC's engine off-PC: all eight published numbers match | **CONFIRMED by seat 07 (07-C21)** | PC r15 / none, S14, PC20 |
+| S-F9 | depth-8 move choice differs PC vs base in 4 of 200, all endgames (4/26 vs 0/174, p=0.0002) | open | base vs PC r15 / none |
+| S-F10 | where the builds disagree, the PC's mate evidence is stronger | open | base vs PC r15 / none |
+| S-F11 | the two bare-king rules cause 3 of the 4 endgame differences, both directions | open | base + 4 variants, base+patch / none |
+| S-F12 | (155 needs a third r15 change) — **SUPERSEDED by S-F14** | withdrawn | — |
+| S-F13 | the divergence set is exactly a subset of the 9 lone-king-root positions | open | base vs PC r15 / none |
+| S-F14 | 155's difference is `LMR_CAP=1` **together with** `ONE_THREAD=0`, the shipped combination | open | base+patch 2x2 / none |
+| S-F15 | at depth 20 the rules give 2 better, 1 worse, 1 undecided | open | base + r15 adjudicators / S14, PC20 |
+| S-F16 | PC build plays a move it scores `mate -11` vs an alternative at `cp -1142` — with the corrected attribution (pre-existing, not a PC regression) | open | PC r15 / PC20 |
+| S-F17 | that choice holds at depths 8-20; score becomes a mate against itself | open | PC r15 / PC20 |
+| S-F18 | play-out verdict: `c6d6` is better (22 vs 20 plies, 3/3) | open | base / S14 |
+| S-F19 | hash 16..1024 and depth 18..22 do not change the wrong choice | open | base / S14 |
+| S-F22 | strict signature 0/50, any-margin 11/45 in 50 real-game lone-king positions | open | PC r15 / PC20, depth 16 |
+| S-F23 | play-out ply cost — **WEAKENED by its own depth-16 re-test** (only 1 of 4 instant losses survives) | weakened, open | PC r15 / PC20, d8 then d16 |
+| S-F24 | low-depth self-play cannot produce a varied lone-king population: 40 games all collapse to the same K+N vs K+N drawn position (cp 0, 492 nodes, python-chess says NOT insufficient material) — **a hand-rolled self-play endgame sample is not a sample at all** | open | PC r15 / S14, depth 6 |
+
+### Checks I made of other seats
+
+| id | verdict | of |
+|---|---|---|
+| 03-C1 | CONFIRMS, both halves, 20,000/20,000 twice | seat 13's S-F1 |
+
+### Method and integrity notes (my own defects, all disclosed)
+
+- HARNESS_AUDIT.md — 19-F12 (pipelined `quit`) audited across my harnesses; perft/bench proven immune and re-proved.
+- PARSE_AUDIT.md — `assert_measured.py` fails loudly on a missing/NaN/zero result, with negative controls that fail;
+  two real defects of mine recorded (honesty.sh's dead grep; an unsaved summary).
+- WARM_STATE_AUDIT.md — perft is cold-equivalent (1,110,595 ten times in one process, after ucinewgame, after
+  Clear Hash, and across ten processes) while the same harness shows the depth-search warm effect as a control.
+- job10/METHOD_NOTE_quit_at_prompt.md — the quit trap in commands typed at a prompt (a gap my file-level audit left);
+  no published number was affected, and why.
+- Corrections I issued against myself: S-F12 superseded; S-F16's "base ranks them sanely" withdrawn (settings
+  mismatch); S-F23 weakened; no prediction file before jobs 6/7/9/10 (four lapses, all recorded).
+
+Branch tip at FINAL: see `git log` on for-fable-and-opus/swarm-03.
