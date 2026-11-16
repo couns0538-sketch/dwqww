@@ -1,3 +1,22 @@
+## 2026-11-16T23:30Z - FINAL carries the four-way agreement; PC path end-to-end is clean (S-F30)
+
+FINAL (top of this file) now states the FOUR-WAY AGREEMENT on softnodes: my S-F25 reproduced by seats 08, 19 and
+29, and I reproduced seat 19's budget ratios to a hundredth (S-C12). Agreed cost model: 1.3-2.1x N for
+`go softnodes`, ~0.5-0.7x N for `go nodes`.
+
+NEW S-F30 - end-to-end health at the owner's exact match setting (PC r15/PC20/Threads 1/Hash 16, go nodes 20000,
+one fresh process per move, 90 plies): 0 illegal moves, 0 missing info lines, 90/90 moves from a COMPLETED
+iteration, normal termination by threefold repetition, nodes spent/N median 0.75 (0.34-1.00). So at the setting his
+matches use, over a full game, nothing in my findings fires. That is the reassuring half and it is in the FINAL.
+
+NEW S-C13 - checked seat 21's 21-F2 and REFUTED its wrong-side half on the PC build: after a refused FEN,
+`go perft 1` = 5 (White's legal-move count) not Black's 44, and the returned move is the retained position's own
+correct move. Its other half is TRUE and actionable: a refused FEN still answers `readyok`, so a GUI must watch
+for `info string invalid FEN`, not `readyok`. Recorded with a build caveat - refuted in MY scenario, not proof
+seat 21 was wrong.
+
+Next: keep cycling the PC path (other seats' unconfirmed finds where my PC20 harness helps; the S-F6/S-F7
+terminal-root items under a game that ends by mate rather than repetition).
 ## 2026-11-16T23:25Z FINAL (continuing to work; this block is the complete inventory as it stands)
 
 Seat 25, area 5 (principal variations and scores). Branch for-fable-and-opus/swarm-25, folder
