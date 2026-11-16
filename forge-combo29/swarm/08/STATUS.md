@@ -313,3 +313,17 @@ next: extend the shape-class sample to a size that can support a FREQUENCY claim
 
 next: extend the sparse/volatile link to a RATE (20 boards per class) rather than a direction, since 5 boards
 cannot give one — and keep confirming.
+
+## 2026-11-16T23:14Z
+- Clock work is consolidated in **pc20/CLOCK_HEADLINE.md** (five shape classes, medians 161.2-853.1 ms, worst
+  1585.4 ms = the hard plan; soft plan overshot 5.0x in the sparse class, hard plan the only real bound).
+- 08-F29 frequency: 3.3 % (real-game) and 5.0 % (sparse) over 1.2 s on 60 boards per class, bracketing seat 28's
+  4.2 %. 08-F30 link: sparse class also has the volatile score (mate appeared on 2 of 5).
+- Running now: the **volatility RATE on 30 boards per class** you asked for (mate count, gap >= queen, gap >=
+  200 cp), so the owner gets a rate he can act on rather than a direction. It is slow because a single
+  `go depth D+4` reference on a sparse board can exceed 90 s — each search is capped at 90 s and the counts of
+  capped searches are reported separately (a clocked search that fails to answer in 90 s is a hang, not a tail).
+
+next command:
+
+    cd /agent/repos/dwqww/forge-combo29/swarm/08/pc20 && cat volatility_rate.txt
