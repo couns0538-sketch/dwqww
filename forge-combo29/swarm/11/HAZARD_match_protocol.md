@@ -126,6 +126,11 @@ cannot deliver.
 
 **Never quote a clock-stop node count as a deterministic result.**
 
+Run `clock_repeat_check.py <exe> <name> 5` before quoting any timing figure: it repeats the SAME binary
+against itself and reports, per command, whether the move and the metric are stable. It is a procedure,
+not advice — and on its first run it caught a `movetime 50` node count varying 47,601 vs 69,531 across
+five repeats, and an 11.8 ms wall-time spread at the 6 s clock.
+
 *(A clock search stopped at an 11-60 ms budget returns varying node counts across identical runs of the
 same binary; only the chosen move is stable. Measured and corrected by seat 07; see S-F91 and trap 8 in
 `PROBES_THAT_LIED.md`.)*

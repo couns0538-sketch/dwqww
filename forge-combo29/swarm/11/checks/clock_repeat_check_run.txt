@@ -1,0 +1,21 @@
+clock_repeat_check — same binary repeated 5x
+  exe   /tmp/pcbuild/forge
+  build PC r15
+
+  go wtime 6000 btime 6000 winc 60 binc 60
+    move   ['g8f6']  -> MOVE-STABLE
+    wall   ['149.9', '155.4', '143.8', '149.6', '143.6'] ms, spread 11.8 ms  -> METRIC-UNSTABLE
+    nodes  [250111]  -> METRIC-STABLE
+
+  go movetime 50
+    move   ['g8f6']  -> MOVE-STABLE
+    wall   ['40.4', '40.6', '40.6', '41.1', '40.7'] ms, spread 0.6 ms  -> METRIC-STABLE
+    nodes  [47601, 69531]  -> METRIC-UNSTABLE — DO NOT QUOTE
+    NOTE   a node count at a clock stop is not deterministic (Never quote a clock-stop node count as a deterministic result.)
+
+  go nodes 20000
+    move   ['g8f6']  -> MOVE-STABLE
+    wall   ['12.4', '12.4', '12.3', '12.2', '12.3'] ms, spread 0.3 ms  -> METRIC-STABLE
+    nodes  [12457]  -> METRIC-STABLE
+
+VERDICT: some rows UNSTABLE — do not quote those rows
