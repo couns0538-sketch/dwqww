@@ -270,3 +270,16 @@ THE MIDDLE BAND IS DETECTABLE (10-F33, 10-F34, 10-F35) — this is the actionabl
   Without a recorded requested depth: R2 "depth < file max" works if the file has >=1 completed search.
   Measured dead ends: a bestmove line (109/112 truncated records have one), pv length, nodes==0.
 next: continue the cycle.
+
+## Mon Nov 16 10:33:45 PM UTC 2026
+WHEN-IT-MATTERS JOB DONE (10-F36..F39):
+  checker run over the WHOLE REPOSITORY: 3,192 files, 8,672 records, **0 unfinished in the repo's own data**
+  (2,932 non-mine files / 8,410 records / 0 flagged). The 257 flags are all in ONE place: my own DISCARDED
+  first sums run, which the checker re-detected independently -- a good sign for the rule.
+  585 of 2,932 non-mine files have no recorded requested depth, so R1 is inapplicable there (R2 covers them
+  when the file holds at least one completed search).
+  Corrected sums run re-verified clean: 0 null nodes, four totals still exact (10-F37).
+  ONE-PAGE RULE for a person: regimes/rule-r1-unfinished-searches.md (10-F38).
+  "64 info lines" CORRECTION kept prominent (10-F39): the count is the requested depth capped at 64
+  (depth 5 -> 5 lines, depth 64 and 70 -> 64), never a constant. Seat 25's mechanism stands, its number was the cap.
+next: cycle.
