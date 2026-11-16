@@ -1,0 +1,42 @@
+# PREDICTION — S28: does the lost 10 s ply cost anything in move choice?
+
+Committed and pushed ALONE before the first measuring command. Never edited afterwards.
+Written 2026-11-16 ~22:36 UTC.
+
+## What is being measured
+S-F27 established that at `wtime 10000` the PC20 switch set reaches depth 19 where the base tree reaches
+depth 20, while visiting 26 % fewer nodes in 17 % less time. The open question: does that one ply change
+the MOVE?
+
+Design: on the 40-position set, for each position where the PC20 clock run finished a ply shallower than
+the base clock run, compare **PC20's clock-stopped move** against **base's move at fixed `go depth 20`**.
+Agreement means the lost ply did not change the move — the shortfall is cosmetic. Disagreement means it is
+a strength question.
+
+**The control that makes the number interpretable:** the same comparison on the BASE build — base's own
+clock-stopped move against base's depth-20 move. If base's clock answer disagrees with its depth-20 answer
+as often as PC20's does, then a ply at this clock does not decide moves for EITHER build, and PC20's
+shortfall cannot be singled out. Without this control the rate means nothing.
+
+I also record the same-depth comparison (both builds at fixed depth 19 and at fixed depth 20), so a
+difference caused by the switch set at EQUAL depth is visible separately from a difference caused by depth.
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| A1 | PC20 clock move == base depth-20 move, agreement rate over the shallower positions | 85 % | below 65 % (strength question) |
+| A2 | CONTROL: base clock move == base depth-20 move, same positions | 85 % | below 65 % |
+| A3 | PC20 clock vs base clock agreement (both at their own stop) | 90 % | below 70 % |
+| A4 | A1 is not materially worse than A2 (within 10 points) | yes | A1 more than 10 points below A2 |
+| A5 | both builds at fixed depth 20 agree | 90 % | below 70 % |
+| A6 | every move in every cell is legal | 100 % | any illegal |
+
+Reasoning: a move is usually stable across one ply in quiet positions, and this set is ordinary game
+positions rather than tactics. So I expect high agreement everywhere and, critically, I expect A1 and A2
+to be about the same — because the mechanism in S-F27 is that PC20 reaches a SHALLOWER depth, not a worse
+one, and a clock stop at depth 19-20 truncates both builds' search in the same way. If A1 comes out far
+below A2, that is the decisive evidence that the switch set's cheaper tree is buying the wrong move, and
+the owner should run a match. If A1 and A2 are both high, the ply is cosmetic and this thread can be
+closed as a note.
+
+Where moves disagree I will NOT claim which is better: I have no oracle. I will report that a match is
+required, and say so plainly.
