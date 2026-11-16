@@ -1,0 +1,25 @@
+# PREDICTION — seat 08 job 6: how wide is the book that 08-F3 hit? BEFORE measuring.
+
+08-F3 found one of 200 O/G positions answered from the built-in book. Opus file 3 says "a few start positions
+are answered from the built-in book" and that the PC always sends OwnBook false.
+
+Question for anyone writing a harness: is the book visible from the START position — the most likely thing a
+careless harness searches — and how far into an opening does it still answer?
+
+Prediction, from the fact that the engine ships a small book (`src/book_data.inc`):
+- `position startpos; go movetime 50` with OwnBook **true** -> book answer, wall under 1 ms, `info string
+  book move ...`.
+- after `1.e4 e5` -> also a book answer.
+- after a non-opening first move like `1.a3` -> no book answer, a real search.
+- after ~20 plies of random play -> no book answer.
+
+## Kill ranges
+- If startpos is NOT answered from the book, my prediction about the most likely careless-harness input is wrong
+  and I will say so plainly.
+- If ANY position deep in the opening (say 12+ plies of mainline theory) still answers from the book, the book
+  is much wider than a small data file suggests, and that is a finding of its own.
+
+## Second prediction
+`go depth 12` at startpos with OwnBook true is NOT a book answer: the book is probed only for game searches
+(clock or movetime), not for depth/nodes/infinite (seat 06 S-F6 and Opus file 3).
+Kill: a book line on `go depth 12`.
