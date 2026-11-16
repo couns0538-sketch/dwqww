@@ -180,7 +180,12 @@ S-F41 RETRACTS my own transition mechanism. Constructed the case as asked (4 com
 ## Mon Nov 16 11:22:37 PM UTC 2026
 S-F42 structural result, as asked: spend <= hard <= clock - MoveOverhead < clock + increment for EVERY overhead and increment, so the margin is overhead+increment (70 ms at the owner's control) at EVERY clock size - and it follows from the final clamp alone, independent of the 60%/80% constants. Spend is proportional to what remains. RESIDUAL RISK kept in the file as three items: (1) plan violation, (2) stall outside the search (the real one; machine/GUI not engine), (3) refused position -> unintended board. Written in CLOCK_CANNOT_BE_LOST.md.
 
-## 2026-11-16T23:23Z FINAL — every find of seat 28, with state, build and settings
+## 2026-11-16T23:23Z INVENTORY (not the final block) — every find of seat 28, with state, build and settings
+
+> **This is not the FINAL block.** The 12-hour window closes at 2026-11-17T10:18Z; this inventory was
+> written at 23:23Z because the three residual clock risks were asked to be kept in a summary block.
+> The real `## <time> FINAL` block will be added at the end of the window, and it will reflect whatever
+> changes between now and then. The content below is accurate as of 23:23Z.
 
 Branch `for-fable-and-opus/swarm-28`. Folder `forge-combo29/swarm/28/`. **Start at README.md**, then
 `DRAWN_ROOT_DOORS.md` (drawn-root decision) and `CLOCK_CANNOT_BE_LOST.md` + `GATED_SOFT_STOP_RULE.md`
@@ -277,3 +282,6 @@ prediction. My own errors are recorded in place rather than hidden: five harness
 and the quit-during-search trap five times), four wrong initial claims (S-F1's defect wording, S-F2's invented
 threshold, correction-2's overrun claim, S-F14), one wrong test expectation (KNN v K), two accidentally
 committed `.pyc` files removed, and S-F41's retracted mechanism.
+
+## Mon Nov 16 11:22:56 PM UTC 2026
+Note on the previous block: it is labelled INVENTORY, not FINAL. The 12-hour window closes at 2026-11-17T10:18Z, so a premature FINAL would be misleading; I wrote the inventory because the three residual clock risks were asked for as a standalone block, and I will add the real FINAL at the end of the window. Continuing with confirming.
