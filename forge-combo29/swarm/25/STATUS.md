@@ -166,6 +166,22 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:58Z - movestogo "NOT a bug" leads its FINAL row; scope probe caught my own control error pre-publication
+
+FINAL row now opens: "movestogo 0 is NOT an engine bug - it means 'one move to go' after the clamp, and last-move
+budgeting correctly spends about half the clock. The error is a CALLER that sends 0 meaning 'unknown'." Then the
+4-11x table with depth, the three code citations, the 9.6x-predicted-inside-4.2-11.2x-measured arithmetic, and the
+advice.
+
+S-C35 scope probe: std::max(1,...) appears ONLY on movestogo (uci.cpp:172/241), so the time-formula asymmetry is
+movestogo-specific. My probe compared "supplied" vs "zero" - the WRONG control for a 0-vs-absent question - so I
+labelled it a scope probe only and read no conclusion off it. Tenth control error, first caught before publishing.
+What it legitimately shows: the "minimum one" shape recurs (depth 0 -> depth 1; movetime 0 -> depth 5) while
+nodes 0 answers immediately at depth 0 (documented zero-budget path).
+
+State: 79 findings, guards green, working tree clean, local = remote. Continuing at cadence.
+
 ## 2026-11-16T23:57Z - S-C34: movestogo disagreement RESOLVED into a diagnosis (three code facts, read)
 
 1. include/forge/search.hpp:42   int moves_to_go = 0;                      <- ABSENT sentinel IS 0
