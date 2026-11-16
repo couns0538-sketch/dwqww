@@ -1,0 +1,24 @@
+# PREDICTION — check S-F1 (seat 06), area 6, seat 16
+
+Finding under check: "`eval` is exactly colour-symmetric: 0 differences in hce/nnue/total over 8,103
+position-pairs across 4 eval configurations (default, UseNNUE false, DeadMaterial true, dead-material set)".
+
+My check uses a DIFFERENT position set from my job 1 (its R is seed 1601; this one uses SEED+10 = 1611 per the
+cycle rule) plus seat 06's own committed position files (`G_353.fens`, `R_500.fens`, `Rbig_5000.fens`) as
+data only — my harness and my comparison code, never seat 06's scripts.
+
+P1. Reproducing seat 06's headline on ITS OWN position files: differences in hce/nnue/total predicted
+    0 for G_353, 0 for R_500 and 0 for Rbig_5000.  Kills it: any difference at all (then S-F1 as stated is
+    wrong, at least on its own files).
+
+P2. Over these files the total pairs are 353 + 500 + 5000 = 5,853, which is FEWER than the finding's 8,103,
+    so the finding's number must include sets I am not re-running.  Prediction: my pair count will be
+    strictly below 8,103 and I will report the gap rather than claim the finding's total.
+    Kills it: my count reaching or exceeding 8,103 with these three files only.
+
+P3. `UseNNUE false` and `DeadMaterial true` are real option names the engine lists, and setting them
+    changes the eval of at least one position (otherwise the "4 configurations" claim would be vacuous).
+    Kills it: an option name that does not exist (then the finding's 4-configuration claim is unsupported)
+    or an eval identical to default on every position under both settings.
+
+P4. With `UseNNUE false`, colour symmetry still holds (0 differences). Kills it: any difference.
