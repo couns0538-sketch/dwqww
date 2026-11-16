@@ -1,0 +1,158 @@
+# ns17_counters.patch.txt -- long 17's eleven node-step counters on the PLAIN 6b98f217 tree.
+# Made with diff -u; applies with patch -p1 without fuzz from the checkout root.
+# Placements: gate = the static-pruning block's entry test; razor_try = the razor qsearch call;
+# razor_ret = the razor return; rfp_ret = the reverse-futility return; null_try = the null search
+# initiated; null_ge_beta = its value reaches beta; null_cut = a null cutoff return (both the direct
+# and the post-verification return); null_verify = the verification search runs; probcut_enter = the
+# ProbCut loop entered; probcut_cut = the ProbCut return; iir = the depth-- for a missing hash move.
+# All bucketed by the node's depth (buckets 1..8, 9+). Observation only.
+diff -ruN l17_pristine/forge-combo29/src/search.cpp l17_ctr/forge-combo29/src/search.cpp
+--- l17_pristine/forge-combo29/src/search.cpp	2026-11-15 05:25:59.000000000 +0000
++++ l17_ctr/forge-combo29/src/search.cpp	2026-11-16 19:08:52.073213603 +0000
+@@ -34,6 +34,27 @@
+ #define FORGE_BARE_KING_MATE_FIX 1
+ #endif
+ 
++// long 17 node-step counters (observation only; never read by the search)
++namespace ns17 {
++    long long c[11][9] = {{0}};
++    // rows: 0 gate, 1 razor_try, 2 razor_ret, 3 rfp_ret, 4 null_try, 5 null_ge_beta,
++    //       6 null_cut, 7 null_verify, 8 probcut_enter, 9 probcut_cut, 10 iir
++    const char* names[11] = {"gate", "razor_try", "razor_ret", "rfp_ret", "null_try", "null_ge_beta",
++                             "null_cut", "null_verify", "probcut_enter", "probcut_cut", "iir"};
++    inline void note(int row, int depth) { ++c[row][depth < 9 ? depth - 1 : 8]; }
++    void reset() {
++        for (int r = 0; r < 11; ++r)
++            for (int b = 0; b < 9; ++b) c[r][b] = 0;
++    }
++    std::string line() {
++        std::ostringstream os;
++        for (int r = 0; r < 11; ++r) {
++            os << (r ? " " : "") << names[r] << "=";
++            for (int b = 0; b < 9; ++b) os << (b ? "," : "") << c[r][b];
++        }
++        return os.str();
++    }
++}
+ namespace forge {
+ 
+ int DrawJitter = 0;
+@@ -1679,16 +1700,18 @@
+ 
+     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0 &&
+         board.halfmove_clock() + depth < 100) {
++        ns17::note(0, depth);
+         // Razoring: hopeless positions fall back to quiescence.
+         if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
++            ns17::note(1, depth);
+             const int razor = qsearch(board, ss, alpha - 1, alpha);
+             if (aborted_) return 0;
+-            if (razor < alpha) return razor;
++            if (razor < alpha) { ns17::note(2, depth); return razor; }
+         }
+         // Reverse futility pruning.
+         if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+             eval < MateInMaxPly) {
+-            return eval;
++            ns17::note(3, depth); return eval;
+         }
+         // Null move pruning.
+         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+@@ -1697,6 +1720,7 @@
+             board.has_non_pawn_material(board.side_to_move()) &&
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
+             !(tune::NullSeeVeto && null_see_veto_threat(board))) {
++            ns17::note(4, depth);
+             ++null_tries_;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+@@ -1714,7 +1738,7 @@
+             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+-            if (null_score >= beta) {
++            if (null_score >= beta) { ns17::note(5, depth);
+                 if (is_mate_score(null_score)) null_score = beta;
+                 // Depth >= 14 always verifies, as before. Below that, a cutoff
+                 // stands unless NullThreatVerify is on and a cheaper enemy piece
+@@ -1724,6 +1748,7 @@
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+                 if (depth < 14 && !threat_gate) {
+                     ++null_cutoffs_;
++                    ns17::note(6, depth);
+                     return null_score;
+                 }
+                 // Same reduced depth as the high-depth verification. A threat
+@@ -1731,6 +1756,7 @@
+                 const bool saved_block = null_blocked_;
+                 if (threat_gate) null_blocked_ = true;
+                 ss->null_move_allowed = false;
++                ns17::note(7, depth);
+                 const int verification = search(board, ss, depth - reduction, beta - 1, beta, false);
+                 null_blocked_ = saved_block;
+                 ss->double_extensions = inherited_double_extensions;
+@@ -1738,6 +1764,7 @@
+                 if (aborted_) return 0;
+                 if (verification >= beta) {
+                     ++null_cutoffs_;
++                    ns17::note(6, depth);
+                     return null_score;
+                 }
+             }
+@@ -1746,6 +1773,7 @@
+         const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
+         if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
+             !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
++            ns17::note(8, depth);
+             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+             Move move;
+             while (!(move = picker.next(false)).is_none()) {
+@@ -1769,6 +1797,7 @@
+                 board.unmake_move(move, undo);
+                 if (aborted_) return 0;
+                 if (value >= probcut_beta) {
++                    ns17::note(9, depth);
+ #if FORGE_SPD_TT_NOTLS
+                     store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #else
+@@ -1781,7 +1810,7 @@
+     }
+ 
+     // Internal iterative reduction: no hash move suggests a less important node.
+-    if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
++    if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) { ns17::note(10, depth); --depth; }
+ 
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+diff -ruN l17_pristine/forge-combo29/src/uci.cpp l17_ctr/forge-combo29/src/uci.cpp
+--- l17_pristine/forge-combo29/src/uci.cpp	2026-11-15 05:25:59.000000000 +0000
++++ l17_ctr/forge-combo29/src/uci.cpp	2026-11-16 19:08:52.073213603 +0000
+@@ -10,6 +10,12 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++
++namespace ns17 {
++extern long long c[11][9];
++void reset();
++std::string line();
++}
+ #include <array>
+ #include <charconv>
+ #include <chrono>
+@@ -551,6 +557,7 @@
+                 searcher.reset_stop();
+                 worker = std::thread([&searcher, &stop_mutex, &stop_cv, &stop_requested,
+                                       &ponder_hit_received, search_board, limits, ponder_enabled]() mutable {
++                    ns17::reset();
+                     const forge::SearchInfo result = searcher.search(
+                         search_board, limits, true, forge::Searcher::TTAccess::Exclusive);
+                     if (limits.infinite || limits.ponder) {
+@@ -569,6 +576,7 @@
+                         prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
+                     }
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string NS17 " << ns17::line() << std::endl;
+                     std::cout << "bestmove " << best << prediction << std::endl;
+                 });
+             }
