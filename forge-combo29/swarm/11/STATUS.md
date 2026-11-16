@@ -460,3 +460,6 @@ Settings: **none** (no setoption), **S14** (the 14 settings), **PC20** (S14 + th
   manager needs BOTH clocks; the side to move's budget is effectively unbounded if omitted. My first
   probe read the 30 s cutoff as a hang; the full output showed depth 31 at 18.9 M nodes. Protocol
   requirement, not a defect: always send both wtime and btime.
+- S-F79 (rest of the clock matrix): movestogo 1 = 2,020 ms vs movestogo 40 = 98 ms; wtime 0 answers in
+  1 ms; movetime 0/5 answer in 1 ms; wtime 999999999 searches >45 s which is CORRECT (eleven days of
+  requested thinking time), not a hang — and I did not read it as one, per trap 2b.
