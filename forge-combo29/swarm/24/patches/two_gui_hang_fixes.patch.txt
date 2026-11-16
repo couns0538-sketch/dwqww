@@ -1,0 +1,43 @@
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -102,6 +102,10 @@
+ #if FORGE_FIX_GO_PARSE
+     bool limit_given = false;      // a usable limit of any kind is on the line
+     bool limit_unusable = false;   // a limit was named, and its value was missing or not a number
++    // A clock was named and it belongs to the side NOT to move, so it cannot bound this search. Naming only that
++    // clock used to mean "search forever, silently", which reads as a hang to a GUI (seat 02's S-F4, confirmed
++    // by seat 24's 24-C8). Treated like an unusable limit: answer at once instead of searching without a bound.
++    bool opponent_clock_only = false;
+     // An optional single sign and then digits only.
+     const auto is_integer = [](const std::string& text) {
+         std::size_t k = (!text.empty() && (text[0] == '+' || text[0] == '-')) ? 1 : 0;
+@@ -186,6 +190,7 @@
+             std::int64_t value = 0;
+             if (read_clock(value)) {
+                 if (mine) { limits.time_ms = value; limit_given = true; }
++                else opponent_clock_only = true;
+             } else if (mine) {
+                 limit_unusable = true;
+             }
+@@ -205,7 +210,7 @@
+     }
+     // A limit was named but could not be read, and nothing else on the line limits the search: answer at once
+     // (r9 did, through a value of 0) instead of searching without a limit.
+-    if (limit_unusable && !limit_given) limits.movetime_ms = 0;
++    if ((limit_unusable || opponent_clock_only) && !limit_given) limits.movetime_ms = 0;
+ #else
+     for (std::size_t i = 0; i < tokens.size();) {
+         token = tokens[i++];
+@@ -707,7 +712,11 @@
+                                       &ponder_hit_received, search_board, limits, ponder_enabled]() mutable {
+                     const forge::SearchInfo result = searcher.search(
+                         search_board, limits, true, forge::Searcher::TTAccess::Exclusive);
+-                    if (limits.infinite || limits.ponder) {
++                    // A root with no legal move is answered at once (bestmove 0000), so an
++                    // unbounded search must not wait for `stop` in that case: the search is
++                    // already finished and no further input will change its answer.
++                    const bool terminal_root = !search_board.has_legal_move();
++                    if ((limits.infinite || limits.ponder) && !terminal_root) {
+                         std::unique_lock<std::mutex> lock(stop_mutex);
+                         stop_cv.wait(lock, [&stop_requested, &ponder_hit_received, &limits] {
+                             return stop_requested || (limits.ponder && ponder_hit_received);

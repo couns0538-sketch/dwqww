@@ -1,0 +1,25 @@
+exe /home/ubuntu/work/pcverify/forge-combo29/build/forge
+sha256 8b163905d8ee324622c3afd6cb64b9b3cd5a8f45257103501ce578bdf938c034
+regime PC20, Threads 1, Hash 16, OwnBook false, window 5 s
+
+| # | side to move | command | verdict | wall | bestmove | stopped ok | info string diagnostics |
+|---|---|---|---|---|---|---|---|
+| 1 | white | `go wtime 1000` | BOUNDED | 0.03 s | d2d4 | yes | 0 |
+| 2 | black | `go wtime 1000` | UNBOUNDED | 5.00 s | e7e5 | yes | 0 |
+| 3 | white | `go btime 1000` | UNBOUNDED | 5.00 s | e2e4 | yes | 0 |
+| 4 | black | `go btime 1000` | BOUNDED | 0.02 s | e7e5 | yes | 0 |
+| 5 | white | `go btime 600000` | UNBOUNDED | 5.00 s | e2e4 | yes | 0 |
+| 6 | white | `go wtime 1000 btime 1000` | BOUNDED | 0.03 s | d2d4 | yes | 0 |
+
+VERDICT: CONFIRMS the MAIN claim of seat 02 S-F4, but REFUTES its control sentence:
+  the partial-clock case is unbounded and silent exactly as they say, but their control
+  ('a huge btime DOES bound a White-to-move search') did NOT hold on this build.
+
+case 2 (Black to move, `go wtime 1000`): UNBOUNDED as claimed
+case 3 (White to move, `go btime 1000`): UNBOUNDED as claimed
+case 1 (White to move, `go wtime 1000`): BOUNDED as claimed
+their control, case 5 (White, `go btime 600000`): UNBOUNDED - their control does NOT hold here
+diagnostic printed on the two unbounded cases: NONE - silent, as they say
+
+Both unbounded cases were still searching when `stop` arrived and answered at once after it, so they are
+genuinely unbounded searches, not hangs.
