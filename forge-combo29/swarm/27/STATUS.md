@@ -3,58 +3,43 @@ folder: forge-combo29/swarm/27/
 area: 7 (READING THE CODE for faults)
 seed: 2701
 
-## 2026-11-16T21:08Z
-STEP 2 DONE. Worktree /agent/repos/base @ 6b98f217; Release build sha256 e06310ec...
-HONESTY: bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609 — all four PASS.
+# FINAL STATE — all findings, raw files and patches are on this branch
 
-## 2026-11-16T21:26Z
-job 1 DONE (read src/search.cpp). REPORT_job1.md. Findings S-F1 (drawn root reported as a deep search),
-S-F2 (node budget under one iteration answers a2a3 silently), S-F3 (hashfull is a 1000-cluster sample).
-Patch job1/drawn_root_reporting.patch.txt, honesty unchanged with it applied.
+## Honesty gate (every build I used)
+Base `e06310ec`, three-patch set `d3f1a40f` (rebuilt twice, identical sha256):
+bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609 — all four PASS, base and patched.
+`HONESTY.txt` is generated from raw files by `make_honesty_txt.sh`.
 
-## 2026-11-16T21:28Z
-S-C1 CONFIRMS 11-F1 (junk after the sixth FEN field is dropped), harness job2/check_s11f1.py with the
-planted fake-engine control Opus's file 2 (rule 1) requires.
+## FINDINGS (see FINDINGS.md for the one-line form)
+New: S-F1 drawn-root depth ladder · S-F2 `go nodes` under one iteration answers a2a3 silently ·
+S-F3 hashfull is a 1000-cluster sample · S-F4 `Clear Hash` keeps the histories (9/20 bestmoves, 19/20
+scores; ten-second repro S-F4a: cp -130/-130/**-100**) · S-F5 search order changes the answer
+(14/40 bestmoves) · S-F7 the option surface is clean (81 options, 291 cases) · S-F8/S-F8a `searchmoves`
+changes the SCORE (cp 23 vs cp 30) — **OPEN**, two causes pinned, one not · S-F9 a mid-search `setoption`
+truncates the search · S-F10 `eval` is pure (8/8, total==clamp(hce+nnue) 26/26) · S-F11 my drawn-root patch
+composes with seat 12's two-doors patch (their -p2 first, then mine -p1).
+Confirmations: S-C1 11-F1 · S-C3 01-F5/01-F8.
+Withdrawn: S-F6 (duplicate of 01-F5/01-F8 — I had not read their file when I wrote it).
 
-## 2026-11-16T21:34Z
-job 2 DONE (move picker + histories). REPORT_job2.md. Findings S-F4 (`setoption name Clear Hash` clears
-the TT but NOT the histories, so the same position answers differently: 9/20 bestmoves, 19/20 scores) and
-S-F5 (search order changes the answer: 14/40 bestmoves, 38/40 scores, 40/40 node counts).
-Patch job2/clear_hash.patch.txt -> patched build gives 0/20 differences, honesty unchanged.
+## PATCHES — `patch -p1` from `forge-combo29/`, no fuzz, verified alone AND together (PATCHES.md)
+1. `job1/drawn_root_reporting.patch.txt` — one info line at a drawn root instead of the depth ladder
+2. `job2/clear_hash.patch.txt` — `Clear Hash` also clears the histories (makes a search reproducible)
+3. `job3/halfmove_clock.patch.txt` — refuses a FEN clock above 100 (seat 01's finding; my patch)
+   `job5/searchmoves_iir.PARTIAL.patch.txt` is PARTIAL ONLY — do not present it as a fix.
 
-## 2026-11-16T21:35Z  HARNESS AUDIT (seat 19's 19-F12 broadcast)
-Read job1/HARNESS_AUDIT.md. My pipelined runner (job1/san/real, job1/san/stress) DID hit the fabricated
-bestmove trap: commands written at once abort each running search, so those 6 FEN-mutation sessions
-executed far fewer nodes than reported (4 of 6 show 0 info lines). The "0 sanitizer lines" is still true
-but the coverage was smaller than I claimed — being re-run paced now.
-NOT affected: honesty (bench/perft are synchronous in the UCI loop — re-verified with an immediate quit),
-job1 f1-f4 (stdin held open), stress_paced (paced), job2 f1-f3 (paced). S-F2 was re-tested with
-paced_session.py and SURVIVES: `go nodes 20` -> a2a3 with no info line, `go nodes 26` -> d2d4 WITH an
-info line, same run — a fabricating harness cannot produce that split.
+## INTEGRITY (both of seat 19's broadcasts applied to my own work)
+- 19-F12: my pipelined runner hit it. `job1/HARNESS_AUDIT.md` lists every measurement and its status. The
+  600-FEN sanitizer run was REDONE paced: 600 bestmoves, 1516 info lines, 0 sanitizer lines, 0 crashes.
+  S-F2 re-verified paced and stands. Bench/perft are synchronous in the UCI loop, so honesty was never at risk.
+- Parser integrity: every script raises on a missing line; `job3/pyperft.py` replaced a bare `except` that had
+  turned python-chess's missing `Board.perft` into 12 fake "differences"; `job3/f2_harness_can_fail.py` proves
+  the harness reports a difference, a missing line and a wrong expectation. `job4/FALSE_ALARMS.md` records two
+  more of my false alarms (shell quoting, not engine faults).
 
-## RUNNING / NEXT
-Re-running the 600-FEN sanitizer stress with the paced driver (job1/san/real_paced).
-Next command:
-  python3 forge-combo29/swarm/27/job1/paced_runner.py --exe /agent/repos/base/build-asan/forge --sessions /agent/repos/dwqww/forge-combo29/swarm/27/job1/fen/real --outdir /agent/repos/dwqww/forge-combo29/swarm/27/job1/san/real_paced --tag real_paced --pause 0.12 --timeout 300
+## NOT DONE / OPEN
+- S-F8's third cause (unknown).
+- The move generator's attack tables and the time manager as source-reading jobs.
+- TSan (area 4 owns it).
 
-## 2026-11-16T21:38Z job 3 (board.cpp) + integrity audit
-- P4 perft 1..4 vs python-chess: 12 of 12 positions equal (harness proven able to fail: job3/f2).
-- P5 make/unmake identity: 10 of 10 (perft 2 by move list == by FEN).
-- S-F6 WITHDRAWN as NEW - it repeats seat 01's 01-F5/01-F8 (pushed before mine, unread by me); recorded as S-C3 CONFIRMS. My run adds the release-build confirmation and the patch.
-- SANITIZER RE-RUN paced (after 19-F12): 600 FEN sessions, 1516 info lines, 0 san lines, 0 crashes.
-
-## 2026-11-16T21:40Z - job 4 DONE (the UCI option surface)
-REPORT_job4.md, S-F7: 81 advertised options, 291 setoption cases, 0 unexpected refusals, all four observable
-effects confirmed. A clean negative result. My two false alarms (DrawJitter, Move Overhead) were my own shell
-quoting; recorded in job4/FALSE_ALARMS.md.
-
-## PATCHES for the owner: PATCHES.md
-All three apply with `patch -p1`, no fuzz, alone and TOGETHER; the combined build (sha256 d3f1a40f) keeps
-bench 11/13/16 and perft 5 at 312866 / 862329 / 3024920 / 4865609 and fixes all three behaviours.
-
-## NEXT (if time remains)
-job 5: read the transposition table's lifecycle (clear/resize/new_search against a running search) for a race
-ASan cannot see; TSan belongs to area 4.
-
-Next command:
-  cd /agent/repos/base/forge-combo29 && sed -n '316,360p' src/search.cpp
+Next command if time is granted:
+  cd /agent/repos/base/forge-combo29 && sed -n '1783,1830p' src/search.cpp
