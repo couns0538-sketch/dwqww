@@ -51,3 +51,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - My job4/job5 share tables are WARM and now LABELLED as warm (29-N5); they published no node counts.
 - Also finished a 19-F10 check before this: interleaved 48 pairs, 2 builds/side, nodes identical on every run, patch/base time ratio 1.0943 CI [1.0734,1.1155] => CONFIRMS 19-F10's ~8% prefetch slowdown.
 - next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: warm/cold audit + 19-F10 check' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 09:52:50 PM UTC 2026
+- 19-F6 checked: its 2.71% magnitude is NOT reproducible on my build (the material-key line is 0.153%, ~18x less); the call count cannot be checked because material_key is inlined. Its practical conclusion (caching the key is neutral, 19-F9) is not disputed.
+- My attempt to time it by toggling MaterialCorrectionWeight was REFUSED by my own guard: weight 0 changes the node count (792,487 vs 862,329), so no timing comparison is valid there. Recorded rather than fudged.
+- next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29 job7: 19-F6 magnitude not reproduced' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
