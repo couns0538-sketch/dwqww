@@ -121,3 +121,10 @@
   0 hangs, 0 sanitizer output; 7/7 predictions HELD. S-F7 (depth-64 iteration at terminal roots) REPRODUCES on
   fresh positions, now recorded in that finding's evidence.
 - next command: python3 job3b/run_job3b.py with the planted-fault exe to attach the sanitizer proof to job3b itself.
+
+## $(date -u)
+- job3b sanitizer proof attached to its OWN files: out_planted_b/meta.txt shows nm 35 __asan_ / 15 __ubsan_ and the
+  same runner counting 9 sanitizer lines + 3 crashes across the 3 planted probes, against 0 lines / 0 crashes over
+  the 60 real runs. So "0 sanitizer output" now stands on job3b's own evidence.
+- next command: python3 check_15f4/check_15f4.py /tmp/build-asan/forge, to see whether the empty-pv shape is
+  identical on the sanitizer build (and whether ASan changes anything about it).

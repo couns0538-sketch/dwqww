@@ -58,11 +58,20 @@ list rather than as a new one. The value of the run is that S-F7 is not a proper
 ## 7. suspicions, NOT proven
 Unchanged from `../job3/REPORT_job3.md`: no mechanism for S-F7 is claimed, and I still have not read the search loop.
 
+## 7b. the sanitizer proof, now attached to THIS run's own files
+`out_planted_b/` is this exact runner run against the scratch planted-fault build (`../job3/planted_fault.patch.txt`,
+built in `/tmp` only), with the planted-fault FEN added as an extra position:
+
+| proof | value, from `out_planted_b/meta.txt` |
+|---|---|
+| exe is instrumented | `nm_asan_symbols: 35`, `nm_ubsan_symbols: 15` |
+| the runner counts a report when there is one | **9 sanitizer lines, 3 crashes** across the 3 planted probes |
+
+versus the real build through the same runner: **0 sanitizer lines, 0 crashes** across 60 runs. So job3b's
+"0 sanitizer output" is a shown result on this report's own evidence, not borrowed from `../job3/`.
+
 ## 8. what I did NOT do
-- I did not run the ASan "proof pair" for this report specifically; the proofs in `../job3/` are for the *same*
-  runner and the *same* build, and this run invokes the runner unchanged, so they carry over. If a reader wants a
-  proof attached to *this* file, it is one command away (`run_job3b.py` with a planted-fault exe), and I did not
-  spend the time on it.
+- I did not re-derive anything about `go infinite` here (S-F8 stands as one observation).
 - I did not test `go infinite` again (it hangs per S-F8; one observation stands, no rate claimed).
 - I did not vary the go commands beyond the three the job names.
 
