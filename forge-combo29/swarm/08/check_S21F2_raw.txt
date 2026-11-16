@@ -1,0 +1,24 @@
+## control — the good positions are accepted and give real, distinct perft numbers
+| position | engine perft 2 | python-chess legal moves |
+|---|---|---|
+| GOOD (KQkq) | 400 | 51 |
+| GOOD2 (other) | 1574 | 51 |
+
+## link 1 — a REFUSED `position fen` still answers readyok
+| command | refusal line | readyok lines |
+|---|---|---|
+| position fen BAD | info string invalid FEN: invalid FEN fields | 1 |
+| position fen GOOD (control) | none | 1 |
+
+## link 2 — after a refused FEN, which board is on the engine? (synchronous perft 1)
+| sequence | perft 1 nodes | equals which board? |
+|---|---|---|
+| position GOOD2 -> position BAD(refused) -> perft 1 | 51 | GOOD2 (51) |
+| position GOOD2 -> perft 1 (reference) | 51 | GOOD2 |
+| position GOOD (first board) -> perft 1 | 400 | GOOD |
+
+## link 3 — the move a GUI receives after a refusal (real search, waited out)
+| refused FEN | its refusal line | bestmove | info lines | legal in the OLD board | legal in the board the GUI asked for |
+|---|---|---|---|---|---|
+| BAD (7 squares, python-chess cannot parse it) | info string invalid FEN: invalid FEN fields | b6b5 | 1 | True | (not testable) |
+| BAD2 (castling right without rook, both parsers read it) | info string invalid FEN: castling right without king and rook | b6b5 | 1 | True | False |
