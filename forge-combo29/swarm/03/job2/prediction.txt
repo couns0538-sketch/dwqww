@@ -1,0 +1,24 @@
+PREDICTION — seat 03, area 3, job 2 (committed and pushed ALONE before any measuring command)
+
+Job: filter R (SEED 301, 5,000 FENs) and G (353 EPD) with python-chess into five special classes
+(A castling with an attacked transit square, B en passant that would expose the king, C capture-promotion with
+check, D double check, E pinned piece that can capture its pinner), take 100 per class (500 total; if a class has
+fewer than 100 available in R+G, all of them, and the class size is reported), then perft 1..4 engine vs
+python-chess on every selected position.
+
+Predicted values, with the range that would kill the prediction:
+1. Class sizes in R+G (before the 100 cap): A >= 20, B >= 5, C >= 20, D >= 5, E >= 50.
+   KILL: any class with FEWER than listed (means my filter or position sets are weaker than I think).
+   A class with more than 100 available is capped at 100 and the true count reported.
+2. Positions finally tested: predicted exactly 500 IF all five classes have >= 100; otherwise the sum of the
+   class sizes. KILL: any mismatch with the reported class sizes.
+3. Differing (position, depth) pairs engine vs python-chess: predicted 0.   KILL: >= 1.
+4. Positions where python-chess refuses the FEN: predicted 0.   KILL: >= 1.
+5. Engine crashes / restarts / error lines: predicted 0 each.   KILL: >= 1.
+6. Sanitizer: this job runs on the plain Release build (job 2 is not specified as under ASan), so no
+   sanitizer claim is made. Predicted: I make no sanitizer claim. KILL: n/a (a claim I must not make).
+7. Classes with ZERO differing positions perft(1): predicted all five (root move lists equal).
+   KILL: any class with a perft(1) difference, which would point at the move generator for that special case.
+
+Reason for 3: job 1 (same position sets, random positions) is predicted 0 too, and these are rarer, more
+edge-case-heavy positions — so this is the test that could actually break the tie.
