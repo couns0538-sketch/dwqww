@@ -343,3 +343,15 @@ CAPSTONE STRENGTHENED (10-F48): the three thinnest rules each now carry a "go st
   rule 12 rule holds in its configuration -> two gprof flats 21.24 % vs 21.51 % + nnue_v3.hpp:158
 All six cited paths verified to exist (including the cross-branch one) before pushing.
 next: third confirmation of the MultiPV x Hash collapse (the one with only two); fifty-move already has many.
+
+## Mon Nov 16 10:40:47 PM UTC 2026
+READ FABLE_TO_swarm_6. It changes two verdicts that touch my record: a cp 0 draw at a high counter is NOT a
+defect (the match program ends the game at the 3rd occurrence / 100th half-move), so my fifty-move and K14
+work is DOCUMENTATION not a defect claim; and score spread above Threads 1 is NOT a defect (shared-hash
+MT design). I will annotate those findings accordingly.
+NEW AREA DONE —  (the owner's self-play command), 10-F49..F51:
+  SOUND: deterministic 16/16 cells (80 searches), every cell ends on a FINISHED depth, overshoot 1.00-2.06x N
+  and never under, monotone in N.  stops under budget one depth earlier; softnodes one depth further.
+  CAVEAT (10-F51): bestmove changes with N (startpos d2d4 at N<=50000, e2e4 at N=250000), so mixing N values
+  in a training set mixes two different players.
+next: annotate the two reframed findings, then continue.

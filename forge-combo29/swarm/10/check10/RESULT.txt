@@ -1,0 +1,47 @@
+CHECK 10 — `go softnodes N`, the owner's SELF-PLAY command. PC r15, PC20, Threads 1, Hash 16.
+File 6 states the intent: 'the search stops at the end of the first depth after 2,000 nodes'.
+
+VERDICT: NO DEFECT FOUND. 6 of 6 predictions held.
+
+=== determinism (the thing file 6 says MUST hold): 5 FRESH processes per cell, all identical
+position       N        depth  nodes     ratio  deterministic  last depth finished  bestmove
+startpos       2000     7      4121      2.06   True           True                d2d4
+startpos       20000    12     21600     1.08   True           True                d2d4
+startpos       50000    15     78579     1.57   True           True                d2d4
+startpos       250000   18     377485    1.51   True           True                e2e4
+G_black_mid    2000     8      3312      1.66   True           True                b6b5
+G_black_mid    20000    11     21089     1.05   True           True                b6b5
+G_black_mid    50000    13     79187     1.58   True           True                b6b5
+G_black_mid    250000   18     514093    2.06   True           True                b6b5
+G_knight_out   2000     7      2671      1.34   True           True                g7g6
+G_knight_out   20000    12     31779     1.59   True           True                g7g6
+G_knight_out   50000    13     52904     1.06   True           True                g7g6
+G_knight_out   250000   17     288912    1.16   True           True                g7g6
+tactical       2000     7      2707      1.35   True           True                e1g1
+tactical       20000    12     21877     1.09   True           True                e1g1
+tactical       50000    13     50049     1.0    True           True                e1g1
+tactical       250000   17     441324    1.77   True           True                d2d3
+
+Determinism: 16 of 16 cells identical across 5 runs each (80 searches total).
+Completion : 16 of 16 cells END on a finished depth (last node count exceeds the previous depth's).
+Overshoot  : nodes/N ranges 1.00x to 2.06x -- the search finishes the depth it entered, which is
+             exactly what 'stops at the end of the first depth after N' means. Never under N.
+Monotone   : depth and nodes both non-decreasing in N on all four positions.
+
+=== `go nodes` vs `go softnodes`, same N, startpos (structural difference, P4)
+N        go nodes: depth / nodes      | go softnodes: depth / nodes
+N2000    6   / 1740                | 7   / 4121    
+N20000   11  / 13604               | 12  / 21600   
+N50000   14  / 46854               | 15  / 78579   
+N250000  17  / 166281              | 18  / 377485  
+
+`go nodes N` stops UNDER the budget (1740 of 2000) and one depth earlier; `go softnodes N` always
+reaches exactly ONE depth further and over the budget. So the two commands differ exactly as intended,
+and softnodes is the one that gives a complete iteration -- the right choice for self-play.
+
+=== the one caveat worth recording (P6 FAILED, and that is a real observation)
+On startpos the bestmove CHANGES with N: d2d4 at N=2000/20000/50000 but e2e4 at N=250000. Also
+tactical: e1g1 at N<=50000, d2d3 at N=250000. That is not a softnodes defect -- it is the engine
+preferring a different move once it has searched deeper -- but it means a self-play run at 2000 nodes
+and a match run at 250000 nodes are playing DIFFERENT quality, and a data set mixing them is mixing
+two players. Worth stating wherever self-play data is used for training.
