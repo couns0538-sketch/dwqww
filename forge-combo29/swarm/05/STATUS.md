@@ -18,3 +18,11 @@
 - done: S-C1 CONFIRMS seat 06's S-F9 (both mirror pairs exact), plus beyond it: both mate-side PVs truncated.
 - next command: python3 job2/split_draw_positions.py  (job 2: draw scores K v K / KN v K / KB v K / KNN v K,
   threefold, fifty-move 99; score at depth 10)
+
+## Mon Nov 16 09:27:01 PM UTC 2026
+- done: job2 complete. K v K / KN v K / KB v K = cp 0 (0 nodes) 20/20; KNN v K non-zero 20/20; threefold cp 0
+  (0 nodes) 20/20 and correct (control: same FEN with no history = mate -11); fifty99 AND fifty98 all cp 0 while
+  the same boards at counter 0 are +470..+1259.
+- NEW S-F3: fifty-move draw fires ~9 plies early — cliff between halfmove 90 (cp 314) and 91 (cp 0), same for K+Q.
+- next command: python3 job3/run_job3.py /tmp/build-only-asan/forge out3  (job 3: checkmated and stalemated root
+  positions, 10 each,  /  / , under ASan + UBSan)
