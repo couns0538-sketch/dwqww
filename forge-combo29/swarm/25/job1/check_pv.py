@@ -67,6 +67,13 @@ def check(board, moves):
 def main():
     files = [a for a in sys.argv[1:] if not a.startswith("--")]
     control = "--control" in sys.argv
+    expect_records = None
+    expect_mates = None
+    for a in sys.argv[1:]:
+        if a.startswith("--expect-records="):
+            expect_records = int(a.split("=", 1)[1])
+        if a.startswith("--expect-mates="):
+            expect_mates = int(a.split("=", 1)[1])
 
     total = 0
     no_pv = 0
@@ -74,19 +81,27 @@ def main():
     mates = []
     mate_checked = 0
     mate_wrong = []
+    bad_fens = []
+    unparsed = []
 
     for path in files:
         for line in open(path):
             rec = json.loads(line)
             total += 1
+            if not rec.get("lines"):
+                print(f"NO ENGINE OUTPUT for record #{rec.get('i')} {rec.get('fen')}")
+                unparsed.append(rec.get("i"))
+                continue
             try:
                 board = chess.Board(rec["fen"])
             except ValueError:
                 print(f"BAD FEN {rec['fen']}")
+                bad_fens.append(rec["fen"])
                 continue
             pv = final_pv(rec["lines"])
             if pv is None:
                 no_pv += 1
+                unparsed.append(rec.get("i"))
                 continue
             depth, kind, val, moves = pv
             ok, badi, badm = check(board, moves)
@@ -120,6 +135,29 @@ def main():
     print(f"mate PVs wrong     : {len(mate_wrong)}")
     for m in mate_wrong:
         print(f"  WRONG {m}")
+    print(f"bad FENs           : {len(bad_fens)}")
+    print(f"records with no output or no pv: {len(unparsed)}")
+
+    # A zero must never pass silently. Fail loudly when the evidence is absent or contradictory.
+    failures = []
+    if total == 0:
+        failures.append("NO RECORDS READ: the input was empty, so this check measured nothing")
+    if expect_records is not None and total != expect_records:
+        failures.append(f"EXPECTED {expect_records} records, read {total}")
+    if expect_mates is not None and len(mates) != expect_mates:
+        failures.append(f"EXPECTED {expect_mates} mate scores, saw {len(mates)}")
+    if bad_fens:
+        failures.append(f"{len(bad_fens)} FEN(s) did not parse: a comparison against nothing is not a result")
+    if unparsed and len(unparsed) == total:
+        failures.append("NO record produced a readable pv: nothing was compared")
+
+    if failures:
+        print()
+        print("CHECK FAILED — this run is NOT a result:")
+        for f in failures:
+            print("  -", f)
+        return 3
+    return 0
 
     if control:
         # Plant an illegal last move in the first good PV found and require the checker to catch it.

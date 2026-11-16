@@ -62,56 +62,128 @@ def make_simple(rng, white_pieces):
     raise RuntimeError("could not build a legal position")
 
 
-def find_cycle(b):
-    """Find a pair of legal moves (m1, m2) that returns to the same position. None if no pair."""
-    before = (b.board_fen(), b.turn, b.castling_rights, b.ep_square)
-    for m1 in list(b.legal_moves):
-        b.push(m1)
-        for m2 in list(b.legal_moves):
-            b.push(m2)
-            now = (b.board_fen(), b.turn, b.castling_rights, b.ep_square)
-            b.pop()
-            if now == before:
+def find_quick_cycle(b):
+    """Find w1, b1, w2, b2 returning to the same position, cheaply and reliably.
+
+    Direct construction instead of a 4-deep search: take a white piece that can move out and back
+    (w1, w2), and a black piece that can move out and back (b1, b2), and verify the pair commute
+    (neither move interferes with the other). Only a handful of move pairs are examined.
+    """
+    start = (b.board_fen(), b.turn, b.castling_rights, b.ep_square)
+
+    def same(bb):
+        return (bb.board_fen(), bb.turn, bb.castling_rights, bb.ep_square) == start
+
+    white_moves = list(b.legal_moves)
+    for w1 in white_moves:
+        if b.is_capture(w1) or b.gives_check(w1) or w1.promotion:
+            continue
+        b.push(w1)
+        # a white move that takes the same piece back to where it came from is the cheap candidate
+        back = [m for m in b.legal_moves
+                if m.from_square == w1.to_square and m.to_square == w1.from_square
+                and not b.is_capture(m) and not m.promotion]
+        if back:
+            w2 = back[0]
+            b.push(w2)
+            # now the black side must have a quick out-and-back of its own
+            for b1 in list(b.legal_moves):
+                if b.is_capture(b1) or b.gives_check(b1) or b1.promotion:
+                    continue
+                b.push(b1)
+                back_b = [m for m in b.legal_moves
+                          if m.from_square == b1.to_square and m.to_square == b1.from_square
+                          and not b.is_capture(m) and not m.promotion]
+                if back_b:
+                    b2 = back_b[0]
+                    b.push(b2)
+                    ok = same(b)
+                    b.pop()
+                    if ok:
+                        b.pop()
+                        b.pop()
+                        b.pop()
+                        return w1, b1, w2, b2
                 b.pop()
-                return m1, m2
+            b.pop()
+        b.pop()
+    return None
+
+
+def four_ply_cycle(b):
+    """A genuine 4-ply cycle [wo, bo, wr, br] that returns to the SAME position.
+
+    Structure, with the side to move alternating correctly at each ply:
+        wo  white moves a piece out      (now black to move)
+        bo  black moves a piece out      (now white to move)
+        wr  white moves that piece back  (now black to move)
+        br  black moves that piece back  -> position must equal the start
+    Verified by comparing the full position key after the 4th ply, so castling and ep changes are
+    caught. Bounded: only the first 24 moves of each ply are examined.
+    """
+    start = (b.board_fen(), b.turn, b.castling_rights, b.ep_square)
+    for wo in list(b.legal_moves)[:24]:
+        if b.is_capture(wo) or wo.promotion:
+            continue
+        b.push(wo)
+        for bo in list(b.legal_moves)[:24]:
+            if b.is_capture(bo) or bo.promotion:
+                continue
+            b.push(bo)
+            wr = [m for m in b.legal_moves
+                  if m.from_square == wo.to_square and m.to_square == wo.from_square
+                  and not m.promotion]
+            if wr:
+                b.push(wr[0])
+                br = [m for m in b.legal_moves
+                      if m.from_square == bo.to_square and m.to_square == bo.from_square
+                      and not m.promotion]
+                if br:
+                    b.push(br[0])
+                    ok = (b.board_fen(), b.turn, b.castling_rights, b.ep_square) == start
+                    b.pop()
+                    if ok:
+                        b.pop(); b.pop(); b.pop()
+                        return [wo, bo, wr[0], br[0]]
+                b.pop()
+            b.pop()
         b.pop()
     return None
 
 
 def random_threefolds(rng, count):
-    """Distinct games that reach a position repeated three times, reached by a real move list.
+    """Distinct games reaching a position repeated three times, by a real move list.
 
-    Method: play a short random opening, find a pair of moves that returns to the same position, then
-    play that pair three times. The third occurrence is a genuine threefold in the engine's history.
-    Distinctness is by MOVE LIST (a threefold repeats a position by definition, so FENs coincide).
+    Play a short random opening (this is what makes the games distinct), find a real 4-ply cycle,
+    then play that cycle TWICE more: the position at the top of the cycle has then occurred three
+    times. Every candidate is confirmed with python-chess's own `is_repetition(3)` before it is kept.
+
+    Distinctness is by MOVE LIST: a threefold repeats a position by definition, so two different
+    games legitimately share a final FEN, but the engine sees a different history each time.
     """
     good = []
     seen = set()
-    tries = 0
-    while len(good) < count and tries < 5000:
-        tries += 1
+    for _ in range(count * 60):
+        if len(good) >= count:
+            break
         b = chess.Board()
         moves = []
         try:
-            for _ in range(rng.choice([2, 4, 6, 8])):
+            for _ in range(rng.choice([0, 2, 4, 6, 8])):
                 legal = list(b.legal_moves)
                 if not legal:
                     break
                 mv = rng.choice(legal)
                 b.push(mv)
                 moves.append(mv.uci())
-            if len(moves) < 2:
+            cycle = four_ply_cycle(b)
+            if cycle is None:
                 continue
-            cyc = find_cycle(b)
-            if cyc is None:
-                continue
-            m1, m2 = cyc
             for _ in range(3):
-                b.push(m1)
-                moves.append(m1.uci())
-                b.push(m2)
-                moves.append(m2.uci())
-            if not b.is_repetition(2):
+                for mv in cycle:
+                    b.push(mv)
+                    moves.append(mv.uci())
+            if not b.is_repetition(3):
                 continue
             key = tuple(moves)
             if key in seen:
