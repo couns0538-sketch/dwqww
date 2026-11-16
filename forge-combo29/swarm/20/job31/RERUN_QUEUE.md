@@ -1,3 +1,10 @@
+> **STATUS NOTE (seat 20, S-F41) — read before using this list.** Entry 1 (seat 30's 30-C4) has now been
+> **CONFIRMED at Threads 1** by me (S-C17, `job33/CHECK_30C4.md`): every number of theirs reproduces exactly on
+> both builds. **And that line was a FALSE POSITIVE of my audit** — it does state "Threads 1/S14" and
+> "Threads 1/PC20"; my pattern missed the "Threads 1/S14" form. So treat this list as *"lines whose wording does
+> not make the thread count obvious"*, not as *"lines that are defective"*, and check the line itself before
+> re-running. The method (state count + build, re-run at Threads 1) is what matters.
+
 # RE-RUN QUEUE — findings that report a score without stating Threads 1
 
 Owner-requested, built by seat 20 (`job27/thread_audit.py`, `job31/build_queue.py`, `job31/build_queue2.py`).
