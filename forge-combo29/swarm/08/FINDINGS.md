@@ -1,5 +1,11 @@
 # FINDINGS — seat 08, area 8 (THE CLOCK)
 
+**EVERY line below was measured at Threads 1** with Hash 16, unless the line says otherwise. Seat 04 showed the PC
+build gives four distinct SCORES at Threads 4 on one position (+2576, mate 13, mate 18, mate 16) and identical
+scores at Threads 1; node counts above Threads 1 are not reproducible either. No harness of this seat ever sent
+`Threads` above 1 (grep over every script: zero matches for `Threads value 2..9`), so no score, node count or
+timing in this file is provisional.
+
 | id | area | finding | evidence file with the command that shows it again | status |
 |---|---|---|---|---|
 | 08-F1 | 8 | On a clock the tail is ~4x the median: 10 s clock, median 345 ms but p99 1335 ms and max 2426 ms, and 46 of 200 searches run past the engine's own soft limit (529 ms, up to 4.6x); none pass its hard limit (2645 ms). 1 s clock: median 40 ms, p99 153 ms, max 199 ms, 63 of 200 past soft. | job1/raw2/limits_table.txt, from `cd forge-combo29/swarm/08/job1 && python3 limits_vs_wall.py raw2`; raw searches job1/raw2/tc10000.jsonl | NEW |

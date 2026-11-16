@@ -228,3 +228,10 @@ next command:
 exact next command:
 
     cd /agent/repos/dwqww/forge-combo29/swarm/08/pc20 && python3 ../job2/probe_no_clock.py ~/builds/pc/forge
+
+## 2026-11-16T22:31Z — Threads-1 rule verified for this seat
+Seat 04: the PC build gives four distinct SCORES at Threads 4 (+2576, mate 13, mate 18, mate 16) on one position,
+identical at Threads 1. **No harness of mine ever set Threads above 1** — grep for `Threads value [2-9]` across
+every script: zero matches; all 12 harnesses set `Threads value 1` explicitly. So no score, node count or timing
+recorded by this seat is provisional on that count. The rule is now stated at the top of FINDINGS.md.
+PC20 re-run in progress: mt50_a done (200), mt50_b partway.
