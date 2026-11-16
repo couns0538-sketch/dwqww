@@ -700,3 +700,11 @@ every sentence.
   go nodes 250000 -> 27 mate scores, 0 truncated
   => the truncation is confined to the smallest budget the owner uses; 50k and 250k are clean on this set.
 - next command: continue the cycle.
+
+## $(date -u)
+- REPORT_mate_truncation.md written (mate_truncation/REPORT_mate_truncation.md): consolidates the whole mate-PV
+  truncation thread — what it is, the depth-sweep mechanism, when it appears (long mates only, |N| >= 10), and
+  crucially WHEN IT MATTERS: at the match budgets it is 1/20 at 20,000 nodes and 0/25 and 0/27 at 50,000 and 250,000,
+  and where it does occur the move does not change. Also records the four things I got wrong and corrected in this
+  thread (S-F19, S-F23, S-F42, S-F30). All 19 cited evidence files verified to exist.
+- next command: continue the cycle.
