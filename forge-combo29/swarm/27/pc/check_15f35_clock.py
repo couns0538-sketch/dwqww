@@ -69,8 +69,10 @@ class Engine:
                 return out, True
         return out, False
 
-    def move(self, moves_uci, wtime, btime, winc, binc, timeout=60):
-        pos = "position startpos"
+    def move(self, moves_uci, wtime, btime, winc, binc, timeout=60, start_fen=None):
+        # start_fen lets this harness replay seat 15's OWN opening positions instead of startpos,
+        # which is the whole point of a reconciliation: their set is set O, mine was startpos.
+        pos = ("position fen " + start_fen) if start_fen else "position startpos"
         if moves_uci:
             pos += " moves " + " ".join(moves_uci)
         self.s(pos); self.s("isready")
@@ -100,7 +102,7 @@ class Engine:
             self.p.kill()
 
 
-def play_game(exe, settings, start_fen_moves, wtime0, btime0, winc, binc, maxplies, hard_cap_ms=30000):
+def play_game(exe, settings, start_fen_moves, wtime0, btime0, winc, binc, maxplies, hard_cap_ms=30000, start_fen=None):
     """Self-play with a real decremented clock. Returns the move log and how the game ended."""
     e = Engine(exe, settings)
     moves = []
@@ -110,7 +112,7 @@ def play_game(exe, settings, start_fen_moves, wtime0, btime0, winc, binc, maxpli
         for ply in range(maxplies):
             white = (ply % 2 == 0)
             t_w, t_b = (w, b) if white else (w, b)
-            r = e.move(moves, max(1, int(w)), max(1, int(b)), winc, binc, timeout=hard_cap_ms / 1000)
+            r = e.move(moves, max(1, int(w)), max(1, int(b)), winc, binc, timeout=hard_cap_ms / 1000, start_fen=start_fen)
             if r["timeout"]:
                 return {"ended": "HANG", "ply": ply, "log": log, "moves": moves,
                         "white_left": w, "black_left": b}
@@ -170,6 +172,7 @@ def main():
     ap.add_argument("--settings", default="PC20", choices=["PC20", "S14", "none"])
     ap.add_argument("--games", type=int, default=4)
     ap.add_argument("--maxplies", type=int, default=200)
+    ap.add_argument("--fens", default="", help="file of starting FENs, one per game (default: startpos)")
     a = ap.parse_args()
     exe = os.path.realpath(a.exe)
     os.makedirs(a.outdir, exist_ok=True)
@@ -179,6 +182,10 @@ def main():
 
     tests = [("owner 6s+0.06", 6000, 6000, 60, 60),
              ("control 6s+0.5 (positive sum)", 6000, 6000, 500, 500)]
+    starts = []
+    if a.fens:
+        starts = [l.strip() for l in open(a.fens) if l.strip()]
+        print("starting positions: %d from %s (one per game, cycling)" % (len(starts), a.fens))
     out = {"exe": exe, "settings": a.settings, "threads": 1, "maxplies": a.maxplies,
            "sha256": subprocess.run(["sha256sum", exe], capture_output=True, text=True).stdout.split()[0],
            "date_utc": subprocess.run(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"],
@@ -188,8 +195,10 @@ def main():
     for label, wt, bt, wi, bi in tests:
         runs = []
         for g in range(a.games):
-            r = play_game(exe, settings, [], wt, bt, wi, bi, a.maxplies)
+            sf = starts[g % len(starts)] if starts else None
+            r = play_game(exe, settings, [], wt, bt, wi, bi, a.maxplies, start_fen=sf)
             r["game"] = g
+            r["start_fen"] = sf
             runs.append(r)
             print("%-30s game %d: ended %-14s at ply %-4d clocks w=%.0f b=%.0f"
                   % (label, g, r["ended"], r["ply"], r["white_left"], r["black_left"]))
