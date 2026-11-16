@@ -989,3 +989,15 @@ rather than tested by design (no selection for gaps), so it is an observation ac
 
 Clock thread now closed cleanly: two endpoints (1 s, 6 s), a replication, and a mechanism.
 79 findings, 18 confirmations. 10 h 23 m remain.
+## 2026-11-16T23:57:50Z  clock thread CLOSED on direction; job 20 stopped and marked abandoned
+2026-11-16T23:57:50Z
+
+Per your direction the clock thread is complete (two endpoints, a replication, a mechanism) and I stopped
+there. I had already committed job 20's prediction alone and started a screening run; I killed it and recorded
+job20/ABANDONED.txt so a reader finding the folder knows it is deliberately incomplete rather than a failed or
+hidden measurement. No result is claimed from it, and the file states what would still settle the depth-gap
+question for whoever has the hours.
+
+Moving to measurements elsewhere. Standing: 79 findings, 18 confirmations (one a refutation), ten harness
+faults all named with their rules, six reference pages, and the clock thread now closed with its own limits
+recorded. 10 h 21 m remain.
