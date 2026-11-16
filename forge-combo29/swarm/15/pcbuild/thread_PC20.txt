@@ -1,0 +1,27 @@
+exe: /home/ubuntu/builds/pc/forge  regime: PC20  (20 setoptions)
+
+CASE 1  mate in one, halfmove 99 (control: must find it)
+  6k1/5ppp/8/8/8/8/8/R5K1 w - - 99 1     score=mate 1       nodes=144      info_lines=8   bestmove a1a8
+      expected: score mate 1, bestmove a1a8, nodes > 0
+
+CASE 2  mate in one, halfmove 100 (the base-tree fault)
+  6k1/5ppp/8/8/8/8/8/R5K1 w - - 100 1    score=mate 1       nodes=144      info_lines=8   bestmove a1a8
+      expected: score mate 1, bestmove a1a8  (base tree gives cp 0 / 0 nodes)
+
+CASE 3  threefold repetition root (must be a draw: cp 0)
+  startpos moves g1f3 g8f6 f3g1 f6g8 g1f3 g8f6 f3g1 f6g8 score=cp 25        nodes=7799     info_lines=8   bestmove d2d4
+      expected: score cp 0
+  SAME final position given as a plain FEN (no history) score=cp 22        nodes=6170     info_lines=8   bestmove d2d4
+      expected: control: without history the engine should search normally (NOT cp 0)
+
+CASE 4  counter-resetting PAWN-move mate at halfmove 100
+  8/P7/k7/P7/2K5/8/7Q/8 w - - 100 1      score=mate 1       nodes=265      info_lines=8   bestmove a7a8q
+      expected: a7a8=Q# is the only mate and it is a PAWN move -> expect mate 1
+  same board at halfmove 99 (control)    score=mate 1       nodes=265      info_lines=8   bestmove a7a8q
+      expected: mate 1
+
+CASE 5  already-checkmated root: does it still print 'score mate 0'?
+  7k/5Q2/6K1/8/8/8/8/8 b - - 0 1 (STALEMATE) score=cp 0         nodes=0        info_lines=8   bestmove 0000
+      expected: bestmove 0000; note whether the score says 'mate 0' or 'cp 0'
+  8/8/8/8/8/6K1/8/Q5k1 b - - 0 1 (CHECKMATE) score=mate 0       nodes=0        info_lines=8   bestmove 0000
+      expected: bestmove 0000; checkmate must NOT be reported as 'cp 0'
