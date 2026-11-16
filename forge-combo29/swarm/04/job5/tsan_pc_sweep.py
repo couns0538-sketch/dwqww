@@ -27,8 +27,8 @@ PC20_EXTRA = [("CuckooRep", "true"), ("HistRework", 2), ("TtPruneV2", "true"),
               ("CorrHistV2", "true"), ("MateAlphaGuard", "true"), ("OwnBook", "false")]
 
 
-def opts_for(name, threads):
-    base = [("Hash", 16), ("Threads", threads)]
+def opts_for(name, threads, hash_mb=16):
+    base = [("Hash", hash_mb), ("Threads", threads)]
     if name == "none":
         return base
     if name == "s14":
@@ -133,6 +133,8 @@ def main():
     ap.add_argument("--depth", type=int, default=12)
     ap.add_argument("--limit", type=int, default=20)
     ap.add_argument("--stop-after", type=int, default=15)
+    ap.add_argument("--hash", type=int, default=16,
+                    help="Hash in MB; small values force heavy TT eviction, which is the point of a table test")
     a = ap.parse_args()
     os.makedirs(a.outdir, exist_ok=True)
     os.makedirs(os.path.join(a.outdir, "stderr"), exist_ok=True)
@@ -149,7 +151,7 @@ def main():
     print("proof 2: planted fault per thread count")
     planted_counts = {}
     for th in threads:
-        r = run(a.planted_exe, fens[0], opts_for(a.settings, th), min(a.depth, 10), a.limit)
+        r = run(a.planted_exe, fens[0], opts_for(a.settings, th, a.hash), min(a.depth, 10), a.limit)
         planted_counts[th] = r["tsan_reports"]
         print("  planted T%-3d reports=%d move=%s %s"
               % (th, r["tsan_reports"], r["move"], "; ".join(r["problems"])))
@@ -163,9 +165,9 @@ def main():
     print("%5s %-5s %-8s %10s %s" % ("pos", "thr", "move", "reports", "wall"))
     for i, fen in enumerate(fens):
         for th in threads:
-            r = run(a.real_exe, fen, opts_for(a.settings, th), a.depth, a.limit)
+            r = run(a.real_exe, fen, opts_for(a.settings, th, a.hash), a.depth, a.limit)
             r.update({"pos": i, "threads": th, "fen": fen, "exe": a.real_exe,
-                      "settings": a.settings, "depth": a.depth})
+                      "settings": a.settings, "depth": a.depth, "hash_mb": a.hash})
             rows.append(r)
             total += r["tsan_reports"]
             print("%5d %-5d %-8s %10d %5.2fs %s"

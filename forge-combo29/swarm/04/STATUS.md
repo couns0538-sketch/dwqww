@@ -224,3 +224,12 @@ NEXT: REPORT_quit_path.md, then keep working; FINAL when the window closes at 10
 fresh process each: 0 TSan reports in 13 searches; every search legal bestmove, no refusals.
 Planted control at Threads 8 through the same runner: 3 reports. Combined with 04-F22: 23 TSan searches on the
 PC build, 0 reports, with a positive planted control at every thread count used.
+
+## 2026-11-16T23:15:10Z 04-F26 SHARED TT CLEAN AT MAX EVICTION PRESSURE (Hash 1 MB, 16 threads, depth 18)
+The TT is what every worker touches, so I hammered exactly that: Hash **1 MB**, Threads 8 and 16, go depth 18,
+4 positions (startpos / opening / middlegame / endgame), fresh process each, PC r15 TSan build, PC20:
+  0 TSan reports in 8 searches; walls 5.8-40.2 s (genuinely deep); all bestmoves legal; no refusals.
+  Planted control at T8 and T16: 3 reports each.
+Also a second pass at Hash 16 MB / depth 16 / T8,T16: 0/8.
+TOTAL across my TSan work on the PC build: 31 searches, 0 reports — threads 1/2/4/8/16, depths 10-18,
+hash 1-16 MB, 7-32 pieces, positive planted control at every thread count used.
