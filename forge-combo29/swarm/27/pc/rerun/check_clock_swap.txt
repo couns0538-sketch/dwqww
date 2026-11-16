@@ -1,0 +1,22 @@
+!!! THIS FILE'S CONCLUSION IS WRONG -- SEE clock_own_clock_control.txt !!!
+
+I claimed here that the engine swaps the clocks. It does not. These rows were measured with
+the built-in opening book left ON on a 2-move opening position, and a book reply is instant
+and clock-independent, so paired small/large rows appeared inverted.
+The corrected, book-off control is in clock_own_clock_control.txt and it shows each side is
+timed by its OWN clock.
+
+--- original (wrong) table kept for the record ---
+# THE CLOCK SWAP - decisive table
+# exe /agent/repos/base/build-pc/forge (PC r15) sha256 068f0927..., PC20, Threads 1, Hash 16, OwnBook false
+# one position, only the side-to-move field and the two clock values change
+# 2026-11-16T23:43:24Z
+
+| side to move | go line | nodes | which clock was used |
+|---|---|---|---|
+| w | go wtime 100 btime 100000 | 6,662 | the SMALL one (btime=100) |
+| w | go wtime 100000 btime 100 | 6,952,775 | the BIG one (btime=100000) |
+| b | go wtime 100 btime 100000 | 3,546,937 | the BIG one (wtime=100000) |
+| b | go wtime 100000 btime 100 | 3,180 | the SMALL one (wtime=100) |
+
+Conclusion: WHITE to move is timed by btime, BLACK to move by wtime -- the sides are SWAPPED.
