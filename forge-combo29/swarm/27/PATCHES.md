@@ -1,5 +1,7 @@
 # Patches from seat 27 — how to combine them with seat 12's patch
 
+**CHECK FIRST: `bash forge-combo29/swarm/27/verify_patch_order.sh 6b98f217 <seat12>/job1/two_doors_mate.patch.txt forge-combo29/swarm/27/job1/drawn_root_reporting.patch.txt` — it runs both orders, prints every exit code, and shows the `-p`-level trap below. Verdict PASS = order does not matter and both patches landed.**
+
 ## THE CORRECTION (found by seat 12; my earlier "one order only" was wrong)
 
 **Order does not matter. The `-p` level does.** Seat 12 tested this on a clean `6b98f217` worktree in both

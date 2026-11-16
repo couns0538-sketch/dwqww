@@ -6,11 +6,15 @@ adjudication at ~2248-2270). Opus has to know they are not independent before me
 
 ## What I ran
 
-Base `6b98f217`, clean copy, from the repository root's parent:
+Base `6b98f217`, clean copy. **CORRECTION: the two commands below are the ORIGINAL ones I ran; the comment on
+the first line was wrong and is annotated rather than silently rewritten, because this file is the record of a
+mistake.** The verified correct levels are in "Warning for Opus" at the bottom and in PATCHES.md.
 
 ```
-patch -p2 < seat12/two_doors_mate.patch.txt     # their patch is -p2 against the repo root
-patch -p1 < seat27/job1/drawn_root_reporting.patch.txt   # mine is -p1 against forge-combo29/
+patch -p2 < seat12/two_doors_mate.patch.txt     # WRONG AS WRITTEN: -p2 works from INSIDE forge-combo29/,
+                                                # not from the repo root. From the root it must be -p1.
+                                                # (I ran it as -p2 from inside, which is why it applied.)
+patch -p1 < seat27/job1/drawn_root_reporting.patch.txt   # correct: -p1 from inside forge-combo29/
 ```
 
 `patch` reported `Hunk #1 succeeded at 2275 (offset 19 lines)` — an offset, no fuzz, no failed hunk.
@@ -51,9 +55,12 @@ bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609 — 
 
 ## Warning for Opus
 
-- **Apply seat 12's patch with `-p2` from the repository root**, mine with `-p1` from `forge-combo29/`.
-  With `-p1` seat 12's patch fails cleanly (`Skipping patch. 1 out of 1 hunk ignored`) — it does not
-  half-apply, which is good, but a script that assumes one prefix will silently skip it.
+- **CORRECTED (seat 12 found this; the line that used to sit here was wrong twice over): order does not
+  matter, and the `-p` level is `-p1` from the repo root for seat 12's patch** (not `-p2` from the root, which
+  fails) **or `-p2` from inside `forge-combo29/`**. Mine takes `-p1` from inside `forge-combo29/`.
+  Measured on a clean `6b98f217` archive: `-p2` from the root → `Skipping patch. 1 out of 1 hunk ignored`;
+  `-p1` from the root → `checking file forge-combo29/src/search.cpp` and it applies. A script that assumes one
+  prefix for both patches will silently skip one, so check every exit code.
 - **CORRECTION (seat 12 found this; my original text here was wrong): order does not matter.** Both orders
   succeed and give a byte-identical `src/search.cpp`, sha256 `24912a43d315243f2f9dcb0ea032e7160633b99483c0a5e26541e870b2a26671`.
   My claim that "mine first then seat 12's fails" came from running seat 12's patch at the wrong `-p` level

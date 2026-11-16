@@ -1,27 +1,23 @@
 == base 6b98f2170a3210e71beed04bbd2553972c253ed7
-== seat 12 patch: forge-combo29/swarm/27/job6/order_verify/seat12_two_doors_mate.patch.txt
+== seat 12 patch: /agent/repos/dwqww/forge-combo29/swarm/27/job6/order_verify/seat12_two_doors_mate.patch.txt
 == seat 27 patch: /agent/repos/dwqww/forge-combo29/swarm/27/job1/drawn_root_reporting.patch.txt
 
 -- hunk headers (this is why the -p levels differ) --
    seat 12: --- a/forge-combo29/src/search.cpp	2026-11-16 21:32:57.925527857 +0000
    seat 27: --- a/src/search.cpp	2026-11-16 21:24:39.771120729 +0000
 
-forge-combo29/swarm/27/verify_patch_order.sh: line 40: forge-combo29/swarm/27/job6/order_verify/seat12_two_doors_mate.patch.txt: No such file or directory
-ORDER A  seat12 -p1 from root      rc=1
+ORDER A  seat12 -p1 from root      rc=0
 ORDER A  seat27 -p1 from inside    rc=0
-ORDER A  src/search.cpp caaab7327c66801e97d1ce298ab49bd4b79833aa0df2682c30dd802f18bc3470
+ORDER A  src/search.cpp 24912a43d315243f2f9dcb0ea032e7160633b99483c0a5e26541e870b2a26671
 
 ORDER B  seat27 -p1 from inside    rc=0
-forge-combo29/swarm/27/verify_patch_order.sh: line 49: forge-combo29/swarm/27/job6/order_verify/seat12_two_doors_mate.patch.txt: No such file or directory
-ORDER B  seat12 -p1 from root      rc=1
-ORDER B  src/search.cpp caaab7327c66801e97d1ce298ab49bd4b79833aa0df2682c30dd802f18bc3470
+ORDER B  seat12 -p1 from root      rc=0
+ORDER B  src/search.cpp 24912a43d315243f2f9dcb0ea032e7160633b99483c0a5e26541e870b2a26671
 
-forge-combo29/swarm/27/verify_patch_order.sh: line 57: forge-combo29/swarm/27/job6/order_verify/seat12_two_doors_mate.patch.txt: No such file or directory
 TRAP     seat12 -p1 from INSIDE forge-combo29 rc=1   (nonzero = this is what misled me)
-forge-combo29/swarm/27/verify_patch_order.sh: line 59: forge-combo29/swarm/27/job6/order_verify/seat12_two_doors_mate.patch.txt: No such file or directory
-TRAP     seat12 -p2 from INSIDE forge-combo29 rc=1   (zero = the correct level here)
+TRAP     seat12 -p2 from INSIDE forge-combo29 rc=0   (zero = the correct level here)
 
 == verdict
-PASS: both orders give a byte-identical src/search.cpp (caaab7327c66801e97d1ce298ab49bd4b79833aa0df2682c30dd802f18bc3470). Order does not matter.
+PASS: both orders give a byte-identical src/search.cpp (24912a43d315243f2f9dcb0ea032e7160633b99483c0a5e26541e870b2a26671). Order does not matter.
       The -p level differs per patch: seat 12 = -p1 from the repo root or -p2 from inside
       forge-combo29; seat 27 = -p1 from inside forge-combo29.

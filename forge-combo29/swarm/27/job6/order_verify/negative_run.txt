@@ -1,0 +1,22 @@
+== base 6b98f217
+== seat 12 patch: /agent/repos/dwqww/forge-combo29/swarm/27/job6/order_verify/negative_bogus.patch.txt
+== seat 27 patch: /agent/repos/dwqww/forge-combo29/swarm/27/job1/drawn_root_reporting.patch.txt
+
+-- hunk headers (this is why the -p levels differ) --
+   seat 12: --- a/src/nosuchfile.cpp
+   seat 27: --- a/src/search.cpp	2026-11-16 21:24:39.771120729 +0000
+
+ORDER A  seat12 -p1 from root      rc=1
+ORDER A  seat27 -p1 from inside    rc=0
+ORDER A  src/search.cpp caaab7327c66801e97d1ce298ab49bd4b79833aa0df2682c30dd802f18bc3470
+
+ORDER B  seat27 -p1 from inside    rc=0
+ORDER B  seat12 -p1 from root      rc=1
+ORDER B  src/search.cpp caaab7327c66801e97d1ce298ab49bd4b79833aa0df2682c30dd802f18bc3470
+
+TRAP     seat12 -p1 from INSIDE forge-combo29 rc=1   (nonzero = this is what misled me)
+TRAP     seat12 -p2 from INSIDE forge-combo29 rc=1   (zero = the correct level here)
+
+== verdict
+FAIL: at least one patch did not apply (rc: 12A=1 27A=0 27B=0 12B=1).
+      A byte-identical pair is meaningless if a patch silently skipped -- check the -p levels.

@@ -108,3 +108,22 @@ flip the first time.
 
 Next command:
   git -C /agent/repos/dwqww show for-fable-and-opus/swarm-27:forge-combo29/swarm/27/PATCHES.md | head -60
+
+## STALE-CLAIM SWEEP: DONE OVER THE WHOLE FOLDER (2026-11-16T22:11Z)
+I grepped every file in `forge-combo29/swarm/27/` for the wrong patch instruction rather than trusting memory:
+`git grep -n -B2 -A2 "1 out of 1 hunk ignored"` and `git grep` for "one order only", "Reverse order fails",
+"seat 12 first, always". **Result: the sweep found one file the earlier pass missed** — `job6/INTEGRATION_s12.md`
+still said seat 12's patch takes "`-p2` from the repository root", which is wrong (it is `-p1` from the root, or
+`-p2` from inside `forge-combo29/`; measured again on a clean archive: `-p2` from the root gives "1 out of 1 hunk
+ignored"). Both of its blocks are fixed — the "What I ran" comment is annotated as the original mistake rather
+than silently rewritten, because that file is the record of a mistake.
+
+What remains in the folder mentioning the old claim are only the deliberate "my earlier statement was wrong"
+sentences: FINDINGS S-F11 (tagged CORRECTED-by-seat-12), PATCHES.md's correction section, this STATUS block, and
+the INTEGRATION note. `PATCHES.md` line 16 was checked and was already correct.
+
+`verify_patch_order.sh` is now named in the first three lines of PATCHES.md, and the script was hardened after
+the sweep: it resolves its arguments to absolute paths before any `cd`, and it fails (exit 1) if any patch did
+not apply. The first version silently printed PASS while seat 12's patch had skipped, because relative paths
+broke after the `cd` and its exit codes were never checked — the exact mistake the script exists to warn about.
+Four self-tests are recorded in its header and in `job6/order_verify/` (positive run, negative run).
