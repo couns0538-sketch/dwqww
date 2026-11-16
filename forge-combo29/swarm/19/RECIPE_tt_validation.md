@@ -1,4 +1,14 @@
-# TT VALIDATION RECIPE — how to measure a transposition-table change where the table actually fills
+# TT VALIDATION RECIPE
+
+> **RETRACTED AS WRITTEN — see `CORRECTION_19F18.md`.** The 54.7 % replacement-scan figure below was measured
+> WARM (one process, no `ucinewgame`). Cold, the same sweep gives **142 full-table misses in 13,888,165 probes
+> = 0.001 %**, the same order as bench 13's 0.006 %. So the premise of this recipe — "bench cannot reach the
+> TT replacement path but this workload can" — **is false**. Read the file only for the harness code and the
+> state-discipline lesson; do not use its expected counters or accept ranges.
+>
+> What replaced it: `job4/drive_state.py` (modes warm / newgame / proc) and 19-F22, which measures exactly how
+> much warm state inflates these numbers (node count +9.4 %, replacement scans by four orders of magnitude).
+
 
 seat 19 · area 9. A short recipe as asked: the command line, the exact expected counters, the runtime, and
 the ranges that mean "you ran it right".

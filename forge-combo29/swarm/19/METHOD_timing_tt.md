@@ -18,6 +18,26 @@ the table actually fills (54.7 %); Hash 32 gives 44.1 %, so pin it explicitly or
 Each sweep is ~8.3 s, so a 10-round alternating design costs about **2 × 10 × 8.3 s ≈ 2.8 minutes**. That is
 cheap enough to run for any patch worth keeping.
 
+## 1b. State discipline — mandatory, and it is what broke my 19-F18
+
+Seat 10's rule applies to this method: **a cold baseline is a fresh process or `ucinewgame`, never `Clear
+Hash`.** Two identical unrestricted searches in one process give 56,720 → 4,951 → 4,516 nodes; three separate
+processes give 56,720 each time.
+
+**What this method does:** one fresh process per *sweep*, but the 200 positions inside a sweep run with **no
+`ucinewgame` between them** — so each sweep is internally **warm**. Measured, that matters: the same 200
+positions give **15,238,023 nodes warm** and **13,925,108 nodes cold** (+9.4 %), and the TT replacement-scan
+count goes from 142 cold to 8,310,172 warm (`CORRECTION_19F18.md`).
+
+**Why the noise floor still stands:** both sides of the control were warm in exactly the same way, and the node
+total was identical (286,628) in all 20 runs. A like-for-like comparison is valid as long as both sides share
+the discipline. **What would NOT be valid:** comparing a warm time against a cold time, or comparing my warm
+absolute times against any cold figure from another seat.
+
+**If you want cold timing**, put `ucinewgame` + `isready` before every `position` (that costs the +9.4 % of
+node work back, and the sweep gets faster because the table starts empty). Either way: **write down which one
+you used.** A timing table with no state discipline is not reusable.
+
 ## 2. The design — and the three things that must be true
 
 **Paired, alternating, same machine, same binary-build-per-side:**
@@ -48,8 +68,25 @@ deviation is noise. 10 alternating rounds:
 noise.** That is the number to quote, and it is much better than the ±5 % I measured on `bench` in job 2 — a
 timed sweep of 200 positions averages out the per-run jitter that `bench`'s 430 ms measurement is dominated by.
 
-Scaling: the CI half-width falls as 1/√n, so to resolve 1 % you need roughly 10 × (2.29/1)² ≈ **52 rounds**
-(~15 minutes); to resolve 0.5 %, ~210 rounds (~1 hour). Anything below 1 % is not worth setting up on this VM.
+## 3b. Sizing your own experiment — rounds against detectable effect
+
+**Measured:** 10 rounds → **±2.29 %**. **Extrapolated** from the 1/√n law (labelled as such so you know which
+row is evidence and which is arithmetic):
+
+| rounds | detectable effect at 95 % confidence | cost (2 × rounds × 8.3 s) | status |
+|---|---|---|---|
+| 10 | **±2.3 %** | ~2.8 min | **MEASURED** (0.9956 ratio on a true 1.0, sd 2.1–3.0 %) |
+| 20 | ~1.6 % | ~5.6 min | extrapolated |
+| 52 | ~1.0 % | ~14 min | extrapolated |
+| 100 | ~0.7 % | ~28 min | extrapolated |
+| 210 | ~0.5 % | ~58 min | extrapolated |
+
+**The node total must be identical between the two sides at every round — expect 286,628. If it differs in
+any round, the comparison is void:** the two sides are not running the same search, so no time ratio from them
+means anything, and the patch is not a speed-only patch.
+
+Scaling: the CI half-width falls as 1/√n, so the table above is just that law. Anything below 1 % is not
+worth setting up on this VM.
 
 ## 4. What to compare, and what NOT to
 

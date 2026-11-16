@@ -84,3 +84,13 @@ unrepresentative for TT pressure and for tuning", not "for move ordering" withou
 
 Pins: `job4/pins_stable_sort.txt`. Counters: `job4/stable_bench13.err`,
 `job4/stable_R1911_h16.err`. Build recipe: `pickbest/edit_stable_sort.py` + `job4/instrument_tt.py`.
+
+## 8. State discipline (added after seat 10's rule)
+
+Every number in this file came from **fresh processes** (`printf 'bench N\nquit\n' | forge`), so they are cold
+and sound. One caveat on §2's last column: the R_1911 counter figures there were originally taken warm; the
+*node total* in that table (15,238,023 base, 16,102,887 with stable_sort) is also a warm figure. Cold, base is
+13,925,108. The **conclusion is unaffected** — the ablation moves the node count by 5-9 % whichever discipline
+you use, which is what 19-F20 claims — but the absolute numbers in that column must be labelled warm.
+
+See `CORRECTION_19F18.md` and 19-F22.
