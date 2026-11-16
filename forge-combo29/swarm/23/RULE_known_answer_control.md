@@ -119,3 +119,39 @@ I tested `eval` symmetry as `original + mirror == 0`, assuming a colour flip neg
 relation** before touching the data. "0 of 60" alongside 60 identical tuples is not a finding, it is a mis-specified
 test. Two of the six faults here are of this kind — the expectation was wrong, not the measurement (23-F29, 23-F40) —
 and they are the hardest to see, because they produce a confident, well-formatted, entirely wrong table.
+
+## Instance 8 — the input was wrong (23-F49), and the column rule
+
+Four of my five HAND-BUILT "in-check" positions were not checks: I put the checking piece where it did not attack
+the king. python-chess reports `is_check() = False` for them. All five still compared EQUAL to their reference
+counts (5=5, 5=5, 3=3, 3=3, 3=3), so the comparison could not see the problem — I would have published "five
+hand-built checks correct" when four were not checks at all.
+
+**How it was caught:** the harness printed an `in check?` column beside every row. Nothing else would have caught it.
+
+### The column rule (generalises beyond chess)
+
+> Any test whose INPUT has a defining property must print that property beside every row.
+
+Not "assert it silently" — **print** it, so a reader can see that the case was the case it claims to be:
+
+| test | the defining property to print |
+|---|---|
+| an "in-check" position | `is_check()` |
+| a "won" endgame | the material count |
+| an "illegal" move | that the uci is syntactically legal but semantically rejected |
+| an "unreachable" board | python-chess `is_valid()` |
+| a "quiet" position | that no capture is available |
+| a "deep" search | the depth actually reached |
+| a "cold" run | that it was a fresh process |
+
+A silently-asserted property can also be wrong (an assertion written from the same mistaken belief as the input);
+a PRINTED one lets the reader check the premise independently. That is the difference between "my test passed" and
+"my test was about what I said it was about".
+
+## The sentence that ties the family together
+
+> Every one of these eight faults produced a **clean pass or a confident wrong verdict** — never an error message —
+> and every one was caught by a **control**, not by the happy path.
+
+That is why the controls are worth their cost. The happy path cannot distinguish a working checker from a blind one.
