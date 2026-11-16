@@ -160,7 +160,9 @@ def main():
         if len(fens) >= limit:
             break
 
-    arms = [("base_S14", BASE_S14), ("plus_TtPrune", TT), ("plus_Hist", HIST), ("PC20", PC20)]
+    all_arms = [("base_S14", BASE_S14), ("plus_TtPrune", TT), ("plus_Hist", HIST), ("PC20", PC20)]
+    only = os.environ.get("ARMS")
+    arms = [a for a in all_arms if not only or a[0] in only.split(",")]
     lines = ["CHECK of seat 16's S-F15: is the extra colour asymmetry caused by the PC20 SETTINGS?",
              "exe_started: %s" % exe,
              "sha256: %s" % hashlib.sha256(Path(exe).read_bytes()).hexdigest(),
@@ -222,23 +224,36 @@ def main():
 
     v = []
     v.append("")
-    b0 = results["base_S14"]["mismatches"]
-    tt = results["plus_TtPrune"]["mismatches"]
-    hi = results["plus_Hist"]["mismatches"]
-    pc = results["PC20"]["mismatches"]
-    v.append("MISMATCHES out of %d pairs: base_S14 %d, plus_TtPrune %d, plus_Hist %d, PC20 %d"
-             % (results["base_S14"]["pairs"], b0, tt, hi, pc))
+    # tolerate a partial run (ARMS=...): report only the arms that were actually run
+    def mm(name):
+        return results[name]["mismatches"] if name in results else None
+    b0 = mm("base_S14")
+    tt = mm("plus_TtPrune")
+    hi = mm("plus_Hist")
+    pc = mm("PC20")
+    missing = [a for a in ("base_S14", "plus_TtPrune", "plus_Hist", "PC20") if a not in results]
+    if missing:
+        v.append("NOTE: these arms were not run in this invocation: %s (partial run)" % ", ".join(missing))
+        v.append("")
+    v.append("MISMATCHES out of %d pairs: base_S14 %s, plus_TtPrune %s, plus_Hist %s, PC20 %s"
+             % (results[list(results)[0]]["pairs"], b0, tt, hi, pc))
     v.append("")
     v.append("VERDICT on seat 16's S-F15:")
-    v.append("  TtPruneV2 alone %s the mismatch count (%d -> %d): %s"
-             % ("RAISES" if tt > b0 else "does not raise", b0, tt,
-                "confirmed" if tt > b0 else "NOT confirmed"))
-    v.append("  HistRework alone %s the count (%d -> %d): %s"
-             % ("LOWERS" if hi < b0 else "does not lower", b0, hi,
-                "confirmed" if hi < b0 else "NOT confirmed"))
-    v.append("  PC20 as a bundle gives %d, %s base_S14's %d." % (pc, "worse than" if pc > b0 else "no worse than", b0))
-    v.append("  So the DIRECTION of their attribution (settings, not code; TtPruneV2 the main offender;")
-    v.append("  HistRework the benign one) is %s on my run." % ("reproduced" if (tt > b0 and hi <= b0) else "NOT reproduced"))
+    if tt is not None:
+        v.append("  TtPruneV2 alone %s the mismatch count (%d -> %d): %s"
+                 % ("RAISES" if tt > b0 else "does not raise", b0, tt,
+                    "confirmed" if tt > b0 else "NOT confirmed"))
+    if hi is not None:
+        v.append("  HistRework alone %s the count (%d -> %d): %s"
+                 % ("LOWERS" if hi < b0 else "does not lower", b0, hi,
+                    "confirmed" if hi < b0 else "NOT confirmed"))
+    if pc is not None:
+        v.append("  PC20 as a bundle gives %d, %s base_S14's %d."
+                 % (pc, "worse than" if pc > b0 else "no worse than", b0))
+    if tt is not None and hi is not None:
+        v.append("  So the DIRECTION of their attribution (settings, not code; TtPruneV2 the main offender;")
+        v.append("  HistRework the benign one) is %s on my run."
+                 % ("reproduced" if (tt > b0 and hi <= b0) else "NOT reproduced"))
     v.append("  My absolute counts differ from theirs because I used the first %d of set_G, not all 353." % len(fens))
     (out / "check_s16f15.json").write_text(json.dumps({"arms": results, "verdict": v}, indent=1))
     (out / "check_s16f15.txt").write_text("\n".join(lines + v) + "\n")

@@ -331,3 +331,11 @@ S-F32/S-F38 (no consumer in the repository); and a broken colour-symmetry checke
 3. softnodes/softnodes_real_games.txt — the per-position budget table, with the cost-of-ignoring line first.
 4. checks/guarddepth/guard_depth_table.txt — the MateAlphaGuard table with the board on every row.
 5. CHECKMATE_ROOT_MATE0_CLOSED.md — the closed-as-documentation note.
+
+## 2026-11-16T23:06:25Z
+HISTREWORK DISAGREEMENT RESOLVED IN SEAT 16's FAVOUR, AND MY OWN S-C10 WAS WRONG (S-C10b, HISTREWORK_DISAGREEMENT_RESOLVED.md).
+  Same harness, same build, same settings, all 353 G positions: base_S14 251/353 matches (102 mismatches), plus_Hist 255/353 (98 mismatches). So HistRework LOWERS the asymmetry exactly as seat 16 reported, and their absolute 98 is reproduced to the count.
+  MY ERROR: S-C10 used the FIRST 60 positions of set_G and got the opposite sign (base 16 -> Hist 24). The disagreement was SAMPLE-DEPENDENT and my sample was too small - the sign flipped because the early positions are not representative. The sample size that settles it is the full 353, and since the effect is 4 pairs out of 353 any smaller sample can flatter either direction by chance, so I am recording it as 'their number reproduces, the effect is small' rather than as a confident confirmation.
+  CONSEQUENCE I am flagging on my own work: the +TtPruneV2 and PC20 arms in S-C10 were measured on the same 60-position sample, so they carry the same risk and are now marked PROVISIONAL. Their direction agrees with seat 16's but I did not re-run them at 353 in the time available.
+  LESSON: a check on a PREFIX of a position set is not a check on the set, and the S-F58 sanity control would not have caught this - a checker can be perfectly correct and its sample still too small.
+Next: keep confirming while time remains.
