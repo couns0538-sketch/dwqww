@@ -1,0 +1,493 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -235,6 +235,211 @@
+     return quiet ? Reductions.quiet[d][m] : Reductions.noisy[d][m];
+ }
+ 
++#if FORGE_NODE_REGRET && !FORGE_NODE_STEPS
++#error FORGE_NODE_REGRET needs FORGE_NODE_STEPS (the probe reuses the event classes)
++#endif
++
++#if FORGE_NODE_STEPS
++// ---------------------------------------------------------------------------
++// Node-level step counters (kimi5 job 8): razoring, reverse futility, null
++// move and ProbCut of lines 1680-1781. Observe-only: no value, control flow
++// or table entry of the search is changed. Plain counters (all runs of this
++// job use Threads 1). The search driver resets them per UCI search and prints
++// ONE NSTEPS line at its end; K4 fields carry mine / engine with viol flags.
++// The meaning of every index is written at the line that increments it.
++namespace nstc {
++
++// depth class of a node: 0:d1 1:d2 2:d3 3:d4 4:d5-6 5:d7-8 6:d9+
++inline int dc(int depth) { return depth <= 4 ? depth - 1 : depth <= 6 ? 4 : depth <= 8 ? 5 : 6; }
++// margin ratio class for reverse futility: (eval-beta) in units of the node's
++// margin; 0:<1.25 1:<1.5 2:<2 3:<3 4:>=3 5:margin<=0 (no division)
++inline int mc(int eval_minus_beta, int margin) {
++    if (margin <= 0) return 5;
++    const double r = static_cast<double>(eval_minus_beta) / static_cast<double>(margin);
++    return r < 1.25 ? 0 : r < 1.5 ? 1 : r < 2.0 ? 2 : r < 3.0 ? 3 : 4;
++}
++// eval-beta class for the null move: 0:<25 1:<50 2:<100 3:<200 4:<400 5:>=400
++inline int ebc(int eval_minus_beta) {
++    return eval_minus_beta < 25 ? 0 : eval_minus_beta < 50 ? 1 : eval_minus_beta < 100 ? 2
++           : eval_minus_beta < 200 ? 3 : eval_minus_beta < 400 ? 4 : 5;
++}
++// depth handed to the null search: 0:<=0 (quiescence) 1:1-2 2:3+
++inline int ndc(int null_search_depth) { return null_search_depth <= 0 ? 0 : null_search_depth <= 2 ? 1 : 2; }
++
++std::uint64_t gate[7] = {};        // nodes passing the test of lines 1680-1681
++std::uint64_t razor_try[7] = {};   // the quiescence search of 1684 is made
++std::uint64_t razor_ret[7] = {};   // razor < alpha: node returned below alpha
++std::uint64_t razor_nodes[7] = {}; // nodes inside the razor quiescence search
++std::uint64_t rfp_ret[7][6] = {};  // reverse-futility returns by depth class x margin class (mc)
++std::uint64_t null_try[7] = {};    // null tries (line 1700, beside ++null_tries_)
++std::uint64_t null_ret[7] = {};    // null returns (the two ++null_cutoffs_, 1726 and 1740)
++std::uint64_t null_verif[7] = {};  // verification searches made (1734)
++std::uint64_t null_ret_eb[7][6] = {};  // null returns by depth class x eval-beta class (ebc)
++std::uint64_t null_ret_nd[7][3] = {};  // null returns by depth class x null-search-depth class (ndc)
++std::uint64_t null_nodes_reach[7] = {}; // nodes inside null searches that reached beta
++std::uint64_t null_nodes_miss[7] = {};  // nodes inside null searches that did not reach beta
++std::uint64_t pc_entry[7] = {};    // the test of 1747-1748 true
++std::uint64_t pc_caps[7] = {};     // ProbCut captures searched (the qsearch of 1765 is made)
++std::uint64_t pc_ret[7] = {};      // ProbCut returns (value >= probcut_beta, 1771)
++std::uint64_t pc_nodes[7] = {};    // nodes inside ProbCut searches (qsearch + reduced search)
++std::uint64_t engine_ntries = 0;   // snapshot of the engine's own null_tries_ at search end (K4)
++std::uint64_t engine_ncutoffs = 0; // snapshot of the engine's own null_cutoffs_ at search end (K4)
++
++#if FORGE_NODE_REGRET
++// Probe (part 3): every Nth return of a step is re-searched at the node's own
++// depth and own window with the four steps switched off AT THIS NODE ONLY.
++// Probe every Nth return of a step (per-search counters; -D overrides for control runs).
++#ifndef NSTC_N_RAZOR
++#define NSTC_N_RAZOR 16
++#endif
++#ifndef NSTC_N_RFP
++#define NSTC_N_RFP 1000
++#endif
++#ifndef NSTC_N_NULL
++#define NSTC_N_NULL 50
++#endif
++#ifndef NSTC_N_PC
++#define NSTC_N_PC 8
++#endif
++constexpr std::uint64_t N_RAZOR = NSTC_N_RAZOR, N_RFP = NSTC_N_RFP, N_NULL = NSTC_N_NULL, N_PC = NSTC_N_PC;
++thread_local bool in_probe = false;      // inside a probe: no counter of this job moves
++thread_local bool inhibit_once = false;  // consumed at the next search() entry: block off there
++std::uint64_t seen_razor = 0, seen_rfp = 0, seen_null = 0, seen_pc = 0; // return events per step
++std::uint64_t probe_nodes_total = 0; // nodes inside probes (subtracted from local_nodes_)
++std::uint64_t probe_ended1 = 0;      // probes that cost 1 node (ended on the first hash read / no real search)
++std::uint64_t probe_wide = 0;        // probed events whose window was not a null window
++std::uint64_t pr_n[7] = {}, pr_miss[7] = {};              // razor probes by depth class
++std::uint64_t prfp_n[7][6] = {}, prfp_miss[7][6] = {};    // rfp probes by depth class x margin class
++std::uint64_t pn_n[7] = {}, pn_miss[7] = {};              // null probes by depth class
++std::uint64_t pneb_n[7][6] = {}, pneb_miss[7][6] = {};    // null probes by depth class x eval-beta class
++std::uint64_t pnnd_n[7][3] = {}, pnnd_miss[7][3] = {};    // null probes by depth class x null-search-depth
++std::uint64_t ppc_n[7] = {}, ppc_miss[7] = {};            // ProbCut probes by depth class
++#endif
++
++void reset() {
++    std::memset(gate, 0, sizeof(gate));
++    std::memset(razor_try, 0, sizeof(razor_try));
++    std::memset(razor_ret, 0, sizeof(razor_ret));
++    std::memset(razor_nodes, 0, sizeof(razor_nodes));
++    std::memset(rfp_ret, 0, sizeof(rfp_ret));
++    std::memset(null_try, 0, sizeof(null_try));
++    std::memset(null_ret, 0, sizeof(null_ret));
++    std::memset(null_verif, 0, sizeof(null_verif));
++    std::memset(null_ret_eb, 0, sizeof(null_ret_eb));
++    std::memset(null_ret_nd, 0, sizeof(null_ret_nd));
++    std::memset(null_nodes_reach, 0, sizeof(null_nodes_reach));
++    std::memset(null_nodes_miss, 0, sizeof(null_nodes_miss));
++    std::memset(pc_entry, 0, sizeof(pc_entry));
++    std::memset(pc_caps, 0, sizeof(pc_caps));
++    std::memset(pc_ret, 0, sizeof(pc_ret));
++    std::memset(pc_nodes, 0, sizeof(pc_nodes));
++    engine_ntries = 0;
++    engine_ncutoffs = 0;
++#if FORGE_NODE_REGRET
++    seen_razor = seen_rfp = seen_null = seen_pc = 0;
++    probe_nodes_total = 0;
++    probe_ended1 = 0;
++    probe_wide = 0;
++    std::memset(pr_n, 0, sizeof(pr_n));
++    std::memset(pr_miss, 0, sizeof(pr_miss));
++    std::memset(prfp_n, 0, sizeof(prfp_n));
++    std::memset(prfp_miss, 0, sizeof(prfp_miss));
++    std::memset(pn_n, 0, sizeof(pn_n));
++    std::memset(pn_miss, 0, sizeof(pn_miss));
++    std::memset(pneb_n, 0, sizeof(pneb_n));
++    std::memset(pneb_miss, 0, sizeof(pneb_miss));
++    std::memset(pnnd_n, 0, sizeof(pnnd_n));
++    std::memset(pnnd_miss, 0, sizeof(pnnd_miss));
++    std::memset(ppc_n, 0, sizeof(ppc_n));
++    std::memset(ppc_miss, 0, sizeof(ppc_miss));
++#endif
++}
++
++void print_arr7(const char* name, const std::uint64_t* a) {
++    std::cout << ' ' << name;
++    for (int i = 0; i < 7; ++i) std::cout << ' ' << a[i];
++}
++
++void print() {
++    std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++    std::uint64_t my_ntries = 0, my_ncutoffs = 0;
++    for (int i = 0; i < 7; ++i) {
++        my_ntries += null_try[i];
++        my_ncutoffs += null_ret[i];
++    }
++    std::uint64_t eb_sum = 0, nd_sum = 0;
++    for (int i = 0; i < 7; ++i) {
++        for (int j = 0; j < 6; ++j) eb_sum += null_ret_eb[i][j];
++        for (int j = 0; j < 3; ++j) nd_sum += null_ret_nd[i][j];
++    }
++    const int k4t_viol = my_ntries != engine_ntries ? 1 : 0;
++    const int k4c_viol = my_ncutoffs != engine_ncutoffs ? 1 : 0;
++    const int split_viol = (eb_sum != my_ncutoffs || nd_sum != my_ncutoffs) ? 1 : 0;
++    std::cout << "info string NSTEPS v1";
++    print_arr7("gate", gate);
++    print_arr7("rzt", razor_try);
++    print_arr7("rzr", razor_ret);
++    print_arr7("rzn", razor_nodes);
++    std::cout << " rfp";
++    for (int i = 0; i < 7; ++i)
++        for (int j = 0; j < 6; ++j) std::cout << ' ' << rfp_ret[i][j];
++    print_arr7("nlt", null_try);
++    print_arr7("nlr", null_ret);
++    print_arr7("nlv", null_verif);
++    std::cout << " nleb";
++    for (int i = 0; i < 7; ++i)
++        for (int j = 0; j < 6; ++j) std::cout << ' ' << null_ret_eb[i][j];
++    std::cout << " nlnd";
++    for (int i = 0; i < 7; ++i)
++        for (int j = 0; j < 3; ++j) std::cout << ' ' << null_ret_nd[i][j];
++    print_arr7("nlnr", null_nodes_reach);
++    print_arr7("nlnm", null_nodes_miss);
++    print_arr7("pce", pc_entry);
++    print_arr7("pcc", pc_caps);
++    print_arr7("pcr", pc_ret);
++    print_arr7("pcn", pc_nodes);
++    std::cout << " k4t " << my_ntries << ' ' << engine_ntries << ' ' << k4t_viol << " k4c " << my_ncutoffs << ' '
++              << engine_ncutoffs << ' ' << k4c_viol << " splitviol " << split_viol;
++#if FORGE_NODE_REGRET
++    std::uint64_t pn_sum = 0, prb_sum = 0;
++    for (int i = 0; i < 7; ++i) {
++        pn_sum += pn_n[i];
++        prb_sum += pr_n[i] + ppc_n[i];
++        for (int j = 0; j < 6; ++j) prb_sum += prfp_n[i][j] + pneb_n[i][j];
++        for (int j = 0; j < 3; ++j) prb_sum += pnnd_n[i][j];
++    }
++    std::cout << " reg seen " << seen_razor << ' ' << seen_rfp << ' ' << seen_null << ' ' << seen_pc << " ended1 "
++              << probe_ended1 << " wide " << probe_wide << " pnodes " << probe_nodes_total << " rz";
++    for (int i = 0; i < 7; ++i) std::cout << ' ' << pr_n[i];
++    for (int i = 0; i < 7; ++i) std::cout << ' ' << pr_miss[i];
++    std::cout << " rfp";
++    for (int i = 0; i < 7; ++i)
++        for (int j = 0; j < 6; ++j) std::cout << ' ' << prfp_n[i][j];
++    for (int i = 0; i < 7; ++i)
++        for (int j = 0; j < 6; ++j) std::cout << ' ' << prfp_miss[i][j];
++    std::cout << " nl";
++    for (int i = 0; i < 7; ++i) std::cout << ' ' << pn_n[i];
++    for (int i = 0; i < 7; ++i) std::cout << ' ' << pn_miss[i];
++    std::cout << " nleb";
++    for (int i = 0; i < 7; ++i)
++        for (int j = 0; j < 6; ++j) std::cout << ' ' << pneb_n[i][j];
++    for (int i = 0; i < 7; ++i)
++        for (int j = 0; j < 6; ++j) std::cout << ' ' << pneb_miss[i][j];
++    std::cout << " nlnd";
++    for (int i = 0; i < 7; ++i)
++        for (int j = 0; j < 3; ++j) std::cout << ' ' << pnnd_n[i][j];
++    for (int i = 0; i < 7; ++i)
++        for (int j = 0; j < 3; ++j) std::cout << ' ' << pnnd_miss[i][j];
++    std::cout << " pc";
++    for (int i = 0; i < 7; ++i) std::cout << ' ' << ppc_n[i];
++    for (int i = 0; i < 7; ++i) std::cout << ' ' << ppc_miss[i];
++#endif
++    std::cout << std::endl;
++}
++
++} // namespace nstc
++#endif
++
+ [[nodiscard]] int lmp_threshold(int depth, bool improving) {
+     return improving ? tune::LmpBase + depth * depth : (tune::LmpBase + depth * depth) / 2;
+ }
+@@ -1550,6 +1755,12 @@
+ 
+ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+     const bool pv_node = beta - alpha > 1;
++#if FORGE_NODE_REGRET
++    // A probe re-entry consumes the inhibit flag at the top, so it can never
++    // leak into a sibling search; the four-step block below tests it.
++    const bool nstc_inhibited = nstc::inhibit_once;
++    nstc::inhibit_once = false;
++#endif
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;
+ 
+@@ -1678,16 +1889,108 @@
+ #endif
+ 
+     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0 &&
+-        board.halfmove_clock() + depth < 100) {
++        board.halfmove_clock() + depth < 100
++#if FORGE_NODE_REGRET
++        && !nstc_inhibited
++#endif
++        ) {
++#if FORGE_NODE_STEPS
++#if FORGE_NODE_REGRET
++        const bool nstc_on = !nstc::in_probe;
++#else
++        constexpr bool nstc_on = true;
++#endif
++        if (nstc_on) ++nstc::gate[nstc::dc(depth)]; // GATE: node passed the test of lines 1680-1681
++#endif
++#if FORGE_NODE_REGRET
++        // Part 3 probe: re-search THIS node at its own depth and its own
++        // window with the four steps switched off at this node only (below it
++        // everything as usual). The result is counted and thrown away; the
++        // node returns exactly what the step returned. MISSED = the probe
++        // lands on the other side of the window than the value the step
++        // returned (the side is judged by the returned value, so a value below
++        // beta from a margin-0-or-less return is handled too). Restored around
++        // the probe: null_tries_/null_cutoffs_ (K4), ss->killers,
++        // (ss+1)->killers, ss->cutoff_count, (ss+1)->cutoff_count, seldepth_.
++        // NOT restored: the hash table and the history tables (cannot be),
++        // per-ply killers / cutoff_count below ss+1, and fields overwritten
++        // before any later read (pv, static_eval, raw_eval, tt_pv,
++        // arrival_index, current_move, moved_piece, continuation, in_check).
++        auto nstc_probe = [&](int step, int dcls, int mcls, int ebcls, int ndcls, int returned) {
++            const std::uint64_t saved_nt = null_tries_;
++            const std::uint64_t saved_nc = null_cutoffs_;
++            const std::array<Move, 2> saved_k0 = ss->killers;
++            const std::array<Move, 2> saved_k1 = (ss + 1)->killers;
++            const int saved_cc0 = ss->cutoff_count;
++            const int saved_cc1 = (ss + 1)->cutoff_count;
++            const int saved_sel = seldepth_;
++            nstc::inhibit_once = true;
++            nstc::in_probe = true;
++            const std::uint64_t pn0 = local_nodes_;
++            const int probe = search(board, ss, depth, alpha, beta, cut_node);
++            const std::uint64_t pnodes = local_nodes_ - pn0;
++            nstc::in_probe = false;
++            local_nodes_ -= pnodes; // probe nodes are not part of the search's node count
++            null_tries_ = saved_nt;
++            null_cutoffs_ = saved_nc;
++            ss->killers = saved_k0;
++            (ss + 1)->killers = saved_k1;
++            ss->cutoff_count = saved_cc0;
++            (ss + 1)->cutoff_count = saved_cc1;
++            seldepth_ = saved_sel;
++            nstc::probe_nodes_total += pnodes;
++            if (pnodes <= 1) ++nstc::probe_ended1; // ended on the node's first hash-table read: not a probe
++            if (beta - alpha > 1) ++nstc::probe_wide;
++            if (aborted_ || pnodes <= 1) return;
++            const bool claim_ge = returned >= beta; // the side of the window the returned value lies on
++            const bool missed = claim_ge ? probe <= alpha : probe >= beta;
++            if (step == 0) {
++                ++nstc::pr_n[dcls]; nstc::pr_miss[dcls] += missed ? 1 : 0;
++            } else if (step == 1) {
++                ++nstc::prfp_n[dcls][mcls]; nstc::prfp_miss[dcls][mcls] += missed ? 1 : 0;
++            } else if (step == 2) {
++                ++nstc::pn_n[dcls]; nstc::pn_miss[dcls] += missed ? 1 : 0;
++                ++nstc::pneb_n[dcls][ebcls]; nstc::pneb_miss[dcls][ebcls] += missed ? 1 : 0;
++                ++nstc::pnnd_n[dcls][ndcls]; nstc::pnnd_miss[dcls][ndcls] += missed ? 1 : 0;
++            } else {
++                ++nstc::ppc_n[dcls]; nstc::ppc_miss[dcls] += missed ? 1 : 0;
++            }
++        };
++#endif
+         // Razoring: hopeless positions fall back to quiescence.
+         if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
++#if FORGE_NODE_STEPS
++            if (nstc_on) ++nstc::razor_try[nstc::dc(depth)]; // RAZOR TRY: the quiescence search of 1684 is made
++            const std::uint64_t nstc_rn0 = local_nodes_;
++#endif
+             const int razor = qsearch(board, ss, alpha - 1, alpha);
+             if (aborted_) return 0;
+-            if (razor < alpha) return razor;
++#if FORGE_NODE_STEPS
++            if (nstc_on) nstc::razor_nodes[nstc::dc(depth)] += local_nodes_ - nstc_rn0; // nodes inside the razor qsearch
++#endif
++            if (razor < alpha) {
++#if FORGE_NODE_STEPS
++                if (nstc_on) ++nstc::razor_ret[nstc::dc(depth)]; // RAZOR RETURN: node claimed below alpha
++#endif
++#if FORGE_NODE_REGRET
++                if (nstc_on && ++nstc::seen_razor % nstc::N_RAZOR == 0)
++                    nstc_probe(0, nstc::dc(depth), 0, 0, 0, razor);
++#endif
++                return razor;
++            }
+         }
+         // Reverse futility pruning.
+         if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+             eval < MateInMaxPly) {
++#if FORGE_NODE_STEPS
++            const int nstc_margin = tune::RfpMargin * depth - tune::RfpImproving * improving;
++            const int nstc_mc = nstc::mc(eval - beta, nstc_margin); // margin class of this return
++            if (nstc_on) ++nstc::rfp_ret[nstc::dc(depth)][nstc_mc]; // RFP RETURN by depth class x margin class
++#endif
++#if FORGE_NODE_REGRET
++            if (nstc_on && ++nstc::seen_rfp % nstc::N_RFP == 0)
++                nstc_probe(1, nstc::dc(depth), nstc_mc, 0, 0, eval);
++#endif
+             return eval;
+         }
+         // Null move pruning.
+@@ -1698,8 +2001,16 @@
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
+             !(tune::NullSeeVeto && null_see_veto_threat(board))) {
+             ++null_tries_;
++#if FORGE_NODE_STEPS
++            const int nstc_d = nstc::dc(depth);
++            if (nstc_on) ++nstc::null_try[nstc_d]; // NULL TRY (1700): beside ++null_tries_, equal by K4
++#endif
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
++#if FORGE_NODE_STEPS
++            const int nstc_ebc = nstc::ebc(eval - beta);       // eval-beta class of this null event
++            const int nstc_ndc = nstc::ndc(depth - reduction); // class of the depth handed to the null search
++#endif
+             ss->current_move = Move::none();
+             ss->moved_piece = Empty;
+             ss->continuation = &(*continuation_history_)[Empty][0];
+@@ -1711,9 +2022,18 @@
+ #if FORGE_SEARCH_SPEED2
+             shared_.tt.prefetch(board.key());
+ #endif
++#if FORGE_NODE_STEPS
++            const std::uint64_t nstc_nn0 = local_nodes_;
++#endif
+             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
++#if FORGE_NODE_STEPS
++            if (nstc_on) { // nodes inside the null search, by whether it reached beta
++                if (null_score >= beta) nstc::null_nodes_reach[nstc_d] += local_nodes_ - nstc_nn0;
++                else nstc::null_nodes_miss[nstc_d] += local_nodes_ - nstc_nn0;
++            }
++#endif
+             if (null_score >= beta) {
+                 if (is_mate_score(null_score)) null_score = beta;
+                 // Depth >= 14 always verifies, as before. Below that, a cutoff
+@@ -1724,6 +2044,17 @@
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+                 if (depth < 14 && !threat_gate) {
+                     ++null_cutoffs_;
++#if FORGE_NODE_STEPS
++                    if (nstc_on) { // NULL RETURN unverified (1726): beside ++null_cutoffs_, equal by K4
++                        ++nstc::null_ret[nstc_d];
++                        ++nstc::null_ret_eb[nstc_d][nstc_ebc];
++                        ++nstc::null_ret_nd[nstc_d][nstc_ndc];
++                    }
++#endif
++#if FORGE_NODE_REGRET
++                    if (nstc_on && ++nstc::seen_null % nstc::N_NULL == 0)
++                        nstc_probe(2, nstc_d, 0, nstc_ebc, nstc_ndc, null_score);
++#endif
+                     return null_score;
+                 }
+                 // Same reduced depth as the high-depth verification. A threat
+@@ -1731,6 +2062,9 @@
+                 const bool saved_block = null_blocked_;
+                 if (threat_gate) null_blocked_ = true;
+                 ss->null_move_allowed = false;
++#if FORGE_NODE_STEPS
++                if (nstc_on) ++nstc::null_verif[nstc_d]; // NULL VERIFICATION made (1734)
++#endif
+                 const int verification = search(board, ss, depth - reduction, beta - 1, beta, false);
+                 null_blocked_ = saved_block;
+                 ss->double_extensions = inherited_double_extensions;
+@@ -1738,6 +2072,17 @@
+                 if (aborted_) return 0;
+                 if (verification >= beta) {
+                     ++null_cutoffs_;
++#if FORGE_NODE_STEPS
++                    if (nstc_on) { // NULL RETURN verified (1740): beside ++null_cutoffs_, equal by K4
++                        ++nstc::null_ret[nstc_d];
++                        ++nstc::null_ret_eb[nstc_d][nstc_ebc];
++                        ++nstc::null_ret_nd[nstc_d][nstc_ndc];
++                    }
++#endif
++#if FORGE_NODE_REGRET
++                    if (nstc_on && ++nstc::seen_null % nstc::N_NULL == 0)
++                        nstc_probe(2, nstc_d, 0, nstc_ebc, nstc_ndc, null_score);
++#endif
+                     return null_score;
+                 }
+             }
+@@ -1746,6 +2091,10 @@
+         const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
+         if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
+             !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
++#if FORGE_NODE_STEPS
++            const int nstc_pd = nstc::dc(depth);
++            if (nstc_on) ++nstc::pc_entry[nstc_pd]; // PROBCUT ENTRY: the test of 1747-1748 is true
++#endif
+             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+             Move move;
+             while (!(move = picker.next(false)).is_none()) {
+@@ -1762,13 +2111,28 @@
+ #if FORGE_SEARCH_SPEED2
+                 shared_.tt.prefetch(board.key());
+ #endif
++#if FORGE_NODE_STEPS
++                if (nstc_on) ++nstc::pc_caps[nstc_pd]; // PROBCUT CAPTURE searched: the qsearch of 1765 is made
++                const std::uint64_t nstc_pn0 = local_nodes_;
++#endif
+                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
+                     value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+                 }
+                 board.unmake_move(move, undo);
+                 if (aborted_) return 0;
++#if FORGE_NODE_STEPS
++                if (nstc_on) nstc::pc_nodes[nstc_pd] += local_nodes_ - nstc_pn0; // nodes inside this capture's searches
++#endif
+                 if (value >= probcut_beta) {
++#if FORGE_NODE_STEPS
++                    if (nstc_on) ++nstc::pc_ret[nstc_pd]; // PROBCUT RETURN: value >= probcut_beta, claimed at/above beta
++#endif
++#if FORGE_NODE_REGRET
++                    // The probe sits BEFORE the hash store of 1773/1775; the store itself is not undone.
++                    if (nstc_on && ++nstc::seen_pc % nstc::N_PC == 0)
++                        nstc_probe(3, nstc_pd, 0, 0, 0, value);
++#endif
+ #if FORGE_SPD_TT_NOTLS
+                     store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #else
+@@ -2156,6 +2520,9 @@
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
+     null_blocked_ = false;
++#if FORGE_NODE_STEPS
++    nstc::reset(); // one counter set per UCI search (Threads 1: only this worker runs)
++#endif
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+     root_history_index_ = board.history_size() - 1;
+@@ -2642,6 +3009,12 @@
+         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+         std::cout << "info string softnodes nodes " << result.nodes << std::endl;
+     }
++#if FORGE_NODE_STEPS
++    // K4 snapshot: the engine's own null counters at the end of this search.
++    // The early returns above leave both at zero, as are mine after reset().
++    nstc::engine_ntries = null_tries_;
++    nstc::engine_ncutoffs = null_cutoffs_;
++#endif
+     return result;
+ }
+ 
+@@ -2747,6 +3120,9 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#if FORGE_NODE_STEPS
++    nstc::print(); // one NSTEPS counter line per UCI search
++#endif
+     return result;
+ }
+ 
