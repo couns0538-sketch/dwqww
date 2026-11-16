@@ -165,9 +165,10 @@ def main():
         "B_thrice_repeated_root": ("position startpos moves " + CYCLE, "go depth 6"),
         "C_twice_repeated_root": ("position startpos moves g1f3 g8f6 f3g1 f6g8", "go depth 6"),
     }
-    for label, exe, settings, sname in (
-            ("base_S14", BASE, S14, "S14"),
-            ("pc_PC20", PCX, PC20, "PC20")):
+    extra = json.loads(os.environ.get("EXTRA_BUILDS", "{}"))
+    builds = [("base_S14", BASE, S14, "S14"), ("pc_PC20", PCX, PC20, "PC20")]
+    builds += [(k, v, PC20, "PC20") for k, v in extra.items()]
+    for label, exe, settings, sname in builds:
         for cname, (pos, go) in cases.items():
             r = search(exe, settings, pos, go)
             r.update({"build": label, "settings": sname, "position": pos, "go": go})
