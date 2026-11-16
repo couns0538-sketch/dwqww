@@ -202,6 +202,8 @@ repeat-against-itself check before it is believed** — and if a metric moves be
 same binary, no comparison built on that metric means anything. Report stability of the thing that is
 stable (here the move), not of the number that merely looks stable in one pass. (S-F91, corrected by seat 07)
 
+**Never quote a clock-stop node count as a deterministic result.**
+
 ## The pattern behind all of them
 Each trap produced a *plausible* engine defect from a *provably wrong* probe, and each was killed by a
 control rather than by re-reading the code:

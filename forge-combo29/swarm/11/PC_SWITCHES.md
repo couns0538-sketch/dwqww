@@ -54,6 +54,8 @@ Measured and reported above: `ROOT_DRAWN`, `GO_PARSE`, `BARE_KING_LMR_CAP`, and
   "ON stable 5/5" was luck; the determinism claim holds for the MOVE only. Never quote a clock-stop node
   count as deterministic. (S-F91, corrected)
 
+**Never quote a clock-stop node count as a deterministic result.**
+
 **MEASURED (revised from unmeasured):**
 - `FORGE_FIX_ABORT_PUBLISH` — OFF in the binary, and shipping it off costs nothing measurable. The
   source says the author measured 19,800 exact-node stops and found it "is not a repair" (finished

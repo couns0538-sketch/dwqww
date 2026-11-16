@@ -124,6 +124,12 @@ cannot deliver.
 3. **A node budget is still valid for comparing one build against ITSELF** across a change that
    does not alter efficiency much; it is not valid across builds whose efficiency differs.
 
+**Never quote a clock-stop node count as a deterministic result.**
+
+*(A clock search stopped at an 11-60 ms budget returns varying node counts across identical runs of the
+same binary; only the chosen move is stable. Measured and corrected by seat 07; see S-F91 and trap 8 in
+`PROBES_THAT_LIED.md`.)*
+
 ## Where this is measured
 - `checks/paired_depth.txt` — the two tables above (both builds, same openings, same budgets).
 - `checks/depth_spread.txt` — depth spread within one build: 11–14 at 50k, 14–18 at 250k.
