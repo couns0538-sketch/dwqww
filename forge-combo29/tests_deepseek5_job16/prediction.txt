@@ -1,0 +1,15 @@
+# deepseek5 job 16 prediction — committed BEFORE the DeeperBuys runs (never edited afterwards).
+# The quantity: per excess class of the reduced search (1-40 / 41-100 / 101-400 / >400), on set G,
+# depth 12: the share of deeper-fired candidates whose verdict CHANGES when the re-search runs one
+# ply deeper: (refuted + rescued) / n. Reasoning: a reduced search that beat alpha by a lot has found
+# something big; the extra ply should confirm it (both_above dominates). The refuted/rescued pairs are
+# the search's own sharp edges; both_below (s0 failed alpha, s1 also) cannot fire for a candidate
+# whose s0 already beat alpha — wait: candidates have score > alpha, and s0 IS that same search at the
+# same depth — s0 == score by definition?! No: the plant's s0 is a FRESH search (the hash table now
+# holds the reduced search's data, so the fresh s0 may differ from `score`). I predict s0 ≈ score
+# (mostly equal), so the classification is driven by s1 vs alpha: with a big excess, s1 > alpha holds.
+excess class 1-40   on G: verdict-changed share 8%  | range 3-20%
+excess class 41-100 on G: verdict-changed share 5%  | range 1-15%
+excess class 101-400 on G: verdict-changed share 3% | range 0-10%
+excess class >400   on G: verdict-changed share 2%  | range 0-8%
+(nodes1/nodes0 per candidate ≈ 1.8-2.5 everywhere: one extra ply costs about a doubling of the subtree.)
