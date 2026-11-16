@@ -1,0 +1,32 @@
+# PREDICTION — seat 08, AREA 8 job 1 AGAIN, seed 811 (cycle step 2c). Pushed BEFORE the first measuring command.
+
+## What differs from my first job-1 run, and why it matters to the numbers
+1. **New position set R**: generated with SEED 811 (the brief's SEED + 10) instead of 801, so 100 of the 200
+   searched positions are different. 500 new random positions, one per 7 plies, from random legal games.
+2. **The book answer is excluded by option, not by luck.** In run 1, position index 3 of O was answered from the
+   built-in book in 0.04 ms (08-F3). This run sends `setoption name OwnBook value false` for every search, so
+   all 200 searches in every control are real searches. I expect the `movetime 50` median to move UP by about
+   0.04 ms/200 = 0.0002 ms — far too small to see, but the SET is now clean of a known artefact.
+3. **Same seed-derived control order, new random draws**: the harness and the S14 settings are unchanged, so
+   differences against run 1 are attributable to the position set and to machine noise, in that order.
+
+## Predictions (with kill ranges)
+
+| control | run-1 measured median | predicted this run | kill range |
+|---|---|---|---|
+| movetime 50, baseline A | 40.5 ms | 40.3 to 40.8 ms | below 38 or above 44 |
+| movetime 500 | 490.5 ms | 490.3 to 490.8 ms | below 480 or above 495 |
+| wtime 1000 inc 10 | 39.6 ms | 38 to 42 ms | below 30 or above 55 |
+| wtime 10000 inc 100 | 344.7 ms | 320 to 380 ms | below 250 or above 480 |
+| wtime 1000 inc 10, p99 | 153.2 ms | 140 to 200 ms | below 90 or above 300 |
+
+The two `movetime` controls are machine-pinned (the engine stops on its own node clock), so they should repeat
+within 0.5 ms. The two clocked controls depend on how many iterations fit, so a new position set moves them.
+
+## Second prediction
+The difference between baseline A and baseline B total time will again be under 1 % (run 1: 0.20 %).
+Kill: above 3 %.
+
+## What would make me doubt my own run-1 numbers
+If this run's `movetime 50` median differs from run 1 by more than 1 ms, my claim in 08-F4 that a 1 % change is
+measurable without repetition is too weak a statement, and I will say so in the report.
