@@ -382,3 +382,11 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
 - Recorded as S-W1 and S-W2 so the withdrawal is explicit and dated, and every affected finding line is marked.
 - My mate-PV findings are UNAFFECTED: they are about PV length vs score, nothing to do with draws.
 - next command: take file 6's suggested area — `go softnodes N` on PC r15 + PC20, Threads 1.
+
+## $(date -u)
+- FILE 6's suggested area done: `go softnodes N` on PC r15 + PC20, Threads 1, Hash 16, 3 fresh processes/cell.
+  S-F31: deterministic on all 16 cells and stops at a finished depth, but OVERSHOOTS N by 1.02x..2.06x.
+  Largest overshoot (2.06x) is at N=2000 — the value the PC's own self-play uses.
+- S-W3: my first run of that probe reported FALSE nondeterminism on 5 cells because it compared nps/time (wall
+  clock) in the raw line. Fixed with strip_timing(); withdrawn and recorded rather than deleted.
+- next command: test how the overshoot behaves across a finer N ladder at N=2000 (the PC's self-play value).
