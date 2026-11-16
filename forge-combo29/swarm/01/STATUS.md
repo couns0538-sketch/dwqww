@@ -573,3 +573,9 @@ The one behavioural half of that finding which needed a second seat: `GO_PARSE` 
 control** — malformed `go wtime btime 50` gives PC 3 lines / depth 3 / 215 nodes against base 1 line / depth 1
 / 26 nodes (differs), while the well-formed `go wtime 50 btime 50` is identical on both builds (4 lines,
 depth 4, 404 nodes). So the difference is the parse fix, not build drift.
+
+## 2026-11-16T23:42:37Z — 25-minute cadence
+WROTE THE TERMINAL-ROOT MECHANISM UP AS ITS OWN PAGE (S-F67, TERMINAL_ROOT_MECHANISM.md), keeping the mechanism you asked to retain: the iterative-deepening loop leaves on the soft-node stop or on should_stop(); a terminal root does no work, so the node count never rises, neither test can fire, and the depth cap becomes the loop's ONLY exit - which is why it emits 64 empty lines rather than looping forever.
+  The page carries the command table (go depth 5 = 5 lines correct; go nodes 100, go movetime 50 and go depth 64 = 64 lines at 0 nodes on terminal roots; normal root go nodes 100 = 1 line), the mechanism, why the normal-root control is what makes it a finding rather than a loop defect, and a per-consumer cost table: a depth-keyed training label records 'depth 64' for a position where nothing was searched, a progress display shows a search that never ran, a latency harness times an empty loop, a PV checker sees 64 empty PVs, and strength is unaffected because bestmove 0000 is right.
+  Rule at the end: special-case a terminal root before measuring anything from it, because a well-formed 64-line answer to a finished game is entirely artefact.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
