@@ -1,0 +1,20 @@
+seat 10 check7 — reproduce seat 07's 07-F1 from its own text, MY OWN harness, BOTH builds, Threads 1.
+Claim: `position startpos` + `go depth N searchmoves <a move with no legal root move>` on a board that
+HAS 20 legal moves answers a FABRICATED report -- one `info depth D ... score cp 0 nodes 0` line for EVERY
+depth up to the limit, then `bestmove 0000` -- on base 6b98f217 AND on PC r15 under PC20.
+Prediction, committed and pushed ALONE before the first measuring command:
+
+P1. With `searchmoves a1a1` (a move that is not legal anywhere on startpos), the engine answers
+    `bestmove 0000` even though startpos has 20 legal moves. (kill: a real move)
+P2. It emits `info depth` lines with `nodes 0` for EVERY depth from 1 to the requested depth, one per depth,
+    and every one scores `cp 0`. With `go depth 8` I predict exactly 8 such lines. (kill: a different count)
+P3. The same holds on BOTH builds (base S14 and PC r15 PC20), so it is not repaired on the PC.
+    (kill: the PC build answers a real move or suppresses the lines)
+P4. The fabricated bestmove `0000` is ILLEGAL AS A UCI ANSWER here by the UCI convention that 0000 means
+    "no legal move exists" -- and my own python-chess check will confirm startpos HAS 20 legal moves,
+    so a consumer that trusts 0000 will treat a normal position as terminal. (kill: startpos has no moves)
+P5. The engine ALSO prints an `info string` naming the real cause (`restricted_root_empty` or similar),
+    which is the discriminator a consumer could use. I predict one such line exists and I will quote it.
+    (kill: no info string at all)
+P6. It is the SAME path as the "no legal root move" case, so `searchmoves` naming an illegal move and
+    `searchmoves` naming no move at all should behave identically. (kill: they differ)
