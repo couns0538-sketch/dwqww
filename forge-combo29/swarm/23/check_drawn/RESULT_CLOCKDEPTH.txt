@@ -1,0 +1,38 @@
+DOES THE REPAIR EVER FIRE IN A REAL GAME? At a 6 s+0.06 clock, the BASE finds the mates too — which corrects my
+own 23-F45 and complicates the "base fails" framing
+=================================================================================================================
+23-F45 showed the PC needs ~depth 20 to find the six lone-king mates, and that at depth 24 the base does not find
+them. The obvious next question: at the PC's actual time control, what depth is reached, and does the base find them
+too? Measured on both builds, `go wtime 6000 btime 6000 winc 60 binc 60`, Threads 1, Hash 16, OwnBook false:
+
+| # | build | depth reached | score | wall ms | reaches depth 20? |
+|---|---|---|---|---|---|
+| 1 | base | 32 | **mate 8** | 343 | yes |
+| 1 | PC r15 | 21 | mate 11 | 277 | yes |
+| 2 | base | 27 | **mate 19** | 239 | yes |
+| 2 | PC r15 | 23 | mate 23 | 235 | yes |
+| 3 | base | 31 | **cp 399** | 406 | yes |
+| 3 | PC r15 | 21 | **mate 13** | 294 | yes |
+| 4 | base | 30 | **mate 10** | 296 | yes |
+| 4 | PC r15 | 22 | mate 10 | 308 | yes |
+| 5 | base | 32 | **mate 9** | 402 | yes |
+| 5 | PC r15 | 23 | mate 12 | 302 | yes |
+| 6 | base | 25 | **cp 1256** | 295 | yes |
+| 6 | PC r15 | 17 | **mate 16** | 180 | no |
+
+WHAT THIS CHANGES, stated plainly against my own earlier finding:
+- **The base finds the mate on 4 of the 6 boards at a real clock** (rows 1, 2, 4, 5) — so "the base cannot mate with
+  a lone king" is NOT a general weakness. It is a DEPTH-SPECIFIC failure: at exactly depth 24 the base returns cp on
+  all six, yet at depth 27-32 it mates on four of them.
+- The base's two remaining cp rows (3 and 6) are the same two boards where it also fails at depth 24, and the PC
+  fixes both.
+- The PC reaches a LOWER depth than the base on every board at this clock (17-23 vs 25-32) and still mates on five
+  of six; on row 6 it does not reach depth 20 and does not mate.
+
+SO the honest summary, which supersedes the sharper claim I made in 23-F45: the lone-king failures are
+**depth-window artefacts**, not a persistent base-tree defect. At the PC's real clock the base mates on 4 of 6 and
+the PC on 5 of 6, and the two boards where they differ are rows 3 and 6.
+
+THIS IS THE THIRD TIME I HAVE HAD TO WITHDRAW A DIRECTIONAL READING FROM A SMALL SET (23-C7, 23-F29, now 23-F45's
+"the base never finds them"). The pattern I named is holding: the distribution facts survive (which depths mate,
+which boards fail) and the directional sentences do not.
