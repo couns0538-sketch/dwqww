@@ -218,3 +218,55 @@ and verified both behaviours under S14 and PC20 with the honesty gate unchanged)
 
 **30-C29/30-C30: the generation-bump variant built and measured at the coordinator's request.** Payoff **2.1x-4.9x** on the same 8 cells (MPV3 depth 12: 2,274.4 ms -> 461.1 ms) and the per-depth growth is GONE (flat ~400-460 ms). **BUT bench 16 moved: 3,030,186 vs the required 3,024,920 (+5,266 nodes)** — so per instruction I stopped and did not tune; it is reported as a measured experiment, not a repair. Reason it moved (30-C30): the generation field is 5 bits and $new_search()$ already bumps it; $clear()$'s extra job is making entries UNPROBEABLE, which a bump cannot express. Patch text at check6/ttclear_gen_bump.patch.txt.
 **Next command**: write the real FINAL block at the 10:18 UTC close.
+
+## Mon Nov 16 11:25 UTC 2026 — FINAL (see the note at the top: the run continues to 2026-11-17 10:18 UTC; this is the block for tonight's close, and a fresh FINAL will be written at the real deadline)
+
+### HEADLINE — the per-node price of MultiPV, and the one-line repair that removes it
+
+At **MultiPV 1** the per-node cost is **FLAT at 0.8 microseconds at every Hash size**. At **MultiPV 3**
+it climbs with the table and reaches **203.9 us/node** on a 2 GB hash (366 us on a second position) —
+**for a byte-identical search tree**. Cause: `src/search.cpp:2879` calls `alt_shared->tt.clear()`
+inside the per-PV-line loop opened at `:2851`, so the **whole table is zeroed once per extra line per
+depth**, and `TranspositionTable::clear()` walks every cluster. Proof: wall time per clear is
+**95–141 ms across eight cells** (MultiPV 2/3 x depths 6/8/10/12), independent of depth and line
+count — what a full-table zeroing predicts and a search-side slowdown cannot.
+
+| `go depth 8`, Threads 1, same 16,642 nodes | Hash 16 | 64 | 256 | 1024 | 2048 |
+|---|---|---|---|---|---|
+| MultiPV 3 — us/node | 2.0 | 4.7 | 17.2 | 117.5 | **203.9** |
+| MultiPV 1 — us/node | 0.8 | 0.8 | 0.8 | 0.8 | 0.8 |
+
+**THE DESIGN NOTE (the actionable repair, as measured — not the one-liner, which I ruled out).**
+Stop the MultiPV loop calling `clear()` at all, and let each alternative line keep its own table
+handle: the alternative lines **already own a separate table** (`alt_shared = make_unique<SharedSearchState>(hash_mb)` at `src/search.cpp:2730`), and every search already calls `tt.new_search()`,
+which bumps the generation. The per-line `clear()` is therefore redundant full-table work. I built
+exactly that — delete the single statement at `:2879` — and it **keeps all four honesty pins**
+(312866 / 862329 / 3024920 / 4865609) while making the same eight cells **2.0x–4.2x faster**
+(MultiPV 3, depth 12: 2,274.4 ms → 542.6 ms; the per-depth growth is gone, flat ~400–540 ms), and
+MultiPV still returns **three distinct, legal lines** (the `search_moves` narrowing at `:2871` is what
+keeps them distinct, not the clear). Patch: `check6/ttclear_no_alt_clear.patch.txt`.
+**The one-line alternative I rejected:** replacing `clear()`'s body with a generation bump is
+2.1x–4.9x faster but moves **bench 16 to 3,030,186** (+5,266 nodes) — a generation bump makes entries
+*old*, not *unprobeable*, which a 5-bit generation cannot express; recorded as an experiment, not a
+repair (`30-C29`, `30-C30`).
+
+### My finds, with state
+
+1. **30-C31/C32 + F47/C28** — the MultiPV fault and its adoptable repair, above. **Open** (needs a seat to confirm the patch).
+2. **30-F25/F26/F28 + C25** — a malformed `go nodes` line (`-1`, `xyz`, `nodes depth 5`) is treated as **no node limit**: 207,603,225 nodes, no move after 120 s; repaired on the PC build, all three answering in 0.00 s under FULL PC20. **Open for independent confirmation.** `NOTE_go_nodes_budget.md` states the rule: never send a node budget not validated as a positive integer.
+3. **30-C18/C19** — seat 20's 0-node answer: **CONFIRMED** (3/36 under load, Hash 2048/MPV 3, same moves).
+4. **30-C1/F7/F8** — halfmove-100 mate missed, side-blind: **CONFIRMED by seat 21 (21-C3)**; repaired on the PC build (30-C4).
+5. **30-F33/F34/F38** — six lone-king boards never find a provable mate at depth 24 on the base tree (5 of 6 KRvK); the PC build finds all six, twice each. **Partly confirmed** (a seat's S-C13, two of six).
+6. **30-F29/F31/F36/F40** — mate-reporting rates: base 16/40 (d12) → 21/40 (d16), a plateau; PC 27/40 → 31/40. **Open.**
+7. **30-F35/F43** — the fifty-move draw is invisible below depth 9 (4.85 M nodes). **CONFIRMED by seat 17 (S-C15).**
+8. **30-C26/F46** — seat 23's budget sensitivity: **phenomenon confirmed**, 11/60 = 18.3 % on my own quiet positions (theirs 27–30 %).
+9. **30-F13/14/15/17/F27/C11/C13** — methodology: my original job-2 numbers were contaminated by 19-F12 and are **retracted and superseded**; honesty and checks 1–2 unaffected; `ucinewgame` restores cold exactly (three-way control, both builds).
+10. **30-F1..F5, F10..F12** — helper recounts: deepseek6's long56 report contradicts its own raw file and its legality check is dead code (its result is nonetheless true); glmflash5's 15 numbers exact, two matches share identical opening sets.
+
+### My confirmations of other seats (each with my own harness, raw files, build and settings named)
+**08-F18** (+ the OwnBook trap, 30-F39) · **24-F14**, **24-F16** (I applied and built the patch) ·
+**15-F24**, **15-F25** (built the split fix; verified under S14 and PC20 with pins unchanged) ·
+**15-F30** (`nodes` a hard ceiling 0/15, `softnodes` overshoots 14/15 to +118.8 %).
+
+Reports: `REPORT_job2.md`, `REPORT_job3.md`, `REPORT_check1.md`, `REPORT_check2.md`,
+`REPORT_pc_multipv.md`, `REPORT_pc_repairs.md`, `NOTE_go_nodes_budget.md`.
