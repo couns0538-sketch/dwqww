@@ -65,3 +65,14 @@ HARNESS DEFECT FOUND IN MY OWN EARLIER WORK: my first drivers piped go..quit, wh
 (seat 19's 19-F12, confirmed by me independently). I am re-running every affected measurement; the
 job2/check1-4 results that used perft only are unaffected (perft completes before EOF).
 next: finish E1, then push the audit table + re-run log.
+
+## Mon Nov 16 09:36:26 PM UTC 2026  [PARTIAL PUSH: audit table first rows settled]
+PUSHED the audit table in partial state as instructed: audit/AUDIT_KNOWN.md (K1,K2,K3,K6,K7,K8,K9,K10,K11,K12
+settled; K4,K5,K13,K14 pending, K5 UNTESTABLE as written).
+Headline: 10-F6 the honesty pins hold ONLY on DEFAULT options -- with the brief's S14 applied first bench is
+242,796/656,517/2,155,620. 10-F7 two independent builds are bit-identical. 10-F8  really searches.
+10-C5 CONFIRMS seat 19's 19-F12 (EOF aborts a search and fabricates a bestmove); my V1/V2 evidence pair is in
+audit/raw_E1/. I retract nothing that used perft/bench/eval only; the two  measurements that did
+use a piped driver are marked INVALID in AUDIT_KNOWN.md and are being re-run with audit/drv.py.
+RUNNING NOW: sums.py (K13/K4) in tmux session swarm-sums2, EOF-safe driver.
+next: K13 + K4 + K14 rows, then final push by 22:30.
