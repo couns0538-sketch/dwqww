@@ -1,0 +1,22 @@
+# S02 — PREDICTION for AREA 2 job 1 (2,000 random UCI command sequences, ASan+UBSan build)
+
+Committed and pushed BEFORE the first measuring command, never edited afterwards.
+Build: /agent/repos/base/forge-combo29/build-asan/forge, sha256 b109a0a5acce5b0ddad5707c04f8263fe51f48a890df4a7a2ea6ffcef8a43f99
+Seed: 201 (SEED = S*100+1 = 201).
+
+| # | what I predict | number | range that KILLS the prediction |
+|---|---|---|---|
+| 1 | engine process crashes (signal / non-zero exit after a quit) | 0 | >= 1 |
+| 2 | hangs (no `readyok` within 20 s of an `isready`, or no `bestmove` within 20 s of the last `go`) | 0 | >= 1 |
+| 3 | sanitizer report lines (ASan/UBSan) across all 2,000 sequences | 0 | >= 1 |
+| 4 | illegal `bestmove` (a move not legal in the position I believe the engine holds, and not `0000`) | 0 | >= 1 |
+| 5 | sequences where a `go` produced NO `bestmove` at all but the process did not hang | 0 to 3 | >= 10 |
+| 6 | sequences where `quit` during an active search leaks a worker (process still alive 5 s after quit) | 0 | >= 1 |
+| 7 | UCI answer-line faults: a `readyok` missing after an `isready`, or `uciok` missing after `uci` | 0 | >= 1 |
+
+Why I predict this: 2,000 sequences of 5-30 lines with at most depth 6 is a shallow, short-lived
+session each time; the known behaviours of this build (a refused FEN keeps the previous position, an
+illegal move keeps the legal prefix, `bestmove 0000` without legal moves, an unknown command is
+silently ignored) mean most garbage input is absorbed rather than fatal. The faults that could still
+show up are in the option-setting and search-start paths (`setoption` racing a running search is
+job 2's subject, but this grammar can still emit `setoption` right after a `go depth 6`).
