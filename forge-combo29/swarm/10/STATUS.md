@@ -44,3 +44,24 @@ done: check4. CONFIRMS seat 21's 21-F1 — and this one MATTERS: the brief's alr
   check4/RESULT.txt
 done: job2, check1 (19-F5), check2 (S-F2), check3 (S-F5), check4 (21-F1).
 next: another unchecked NEW finding, else area 10 job 3 (glmflash5 W-L-D/Elo recount).
+
+## Mon Nov 16 09:34:53 PM UTC 2026  [CHECKPOINT]
+AUDITING every "Known:" claim in the brief (coordinator request). PREDICTIONS.md K1..K14 committed alone
+at a306832b6. Results so far (all on the release build, sha256 e06310ec...):
+  K1 illegal-move prefix perft1=29        PASS (engine 29 == python 29)
+  K2 setoption Hash 0 message            PASS (exact 'info string invalid value for option Hash')
+  K3 startpos perft 5 = 4865609           PASS
+  K6 honesty pins                        PARTLY REFUTED -- pins hold ONLY with DEFAULT options;
+        with the brief's S14 applied bench is 242796 / 656517 / 2155620 / perft5 4865609.
+        Two independent builds are bit-identical (same sha256).
+  K7 portable x86-64-v3 build            PASS (same four pins as the v4 build)
+  K8 consecutive digits added, '9' refused  PASS
+  K9 triple check accepted, moves right   PASS
+  K10 unknown command silent             PASS for plain garbage, but go banana SEARCHES (bestmove a2a3)
+  K11 valueless setoption                PASS
+  K12 bestmove 0000 on mate/stalemate     PASS
+IN PROGRESS: E1 (EOF-trap evidence), then K4/K13 sums with an INTERACTIVE driver, K5 (TSan), K14.
+HARNESS DEFECT FOUND IN MY OWN EARLIER WORK: my first drivers piped go..quit, which aborts the search
+(seat 19's 19-F12, confirmed by me independently). I am re-running every affected measurement; the
+job2/check1-4 results that used perft only are unaffected (perft completes before EOF).
+next: finish E1, then push the audit table + re-run log.

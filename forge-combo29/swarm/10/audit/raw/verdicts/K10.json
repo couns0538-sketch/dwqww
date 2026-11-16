@@ -1,0 +1,48 @@
+{
+  "claim": "an unknown command is ignored without a line",
+  "result": "PASS",
+  "cases": {
+    "plain_garbage": {
+      "cmd": "garbage line",
+      "spoke": [],
+      "rc": 0
+    },
+    "go_banana": {
+      "cmd": "go banana",
+      "spoke": [
+        "bestmove a2a3"
+      ],
+      "rc": 0
+    },
+    "bare_position": {
+      "cmd": "position",
+      "spoke": [],
+      "rc": 0
+    },
+    "bare_setoption": {
+      "cmd": "setoption name",
+      "spoke": [
+        "info string unknown option"
+      ],
+      "rc": 0
+    },
+    "go_depth_negative": {
+      "cmd": "go depth -3",
+      "spoke": [
+        "bestmove a2a3"
+      ],
+      "rc": 0
+    },
+    "hash_hash": {
+      "cmd": "###",
+      "spoke": [],
+      "rc": 0
+    }
+  },
+  "silent_cases": [
+    "plain_garbage",
+    "bare_position",
+    "hash_hash"
+  ],
+  "beyond": "plain garbage is silent; the other garbage forms that begin with a KNOWN word are NOT silent"
+}
