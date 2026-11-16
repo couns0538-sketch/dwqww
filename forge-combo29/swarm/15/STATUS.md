@@ -4,6 +4,19 @@
 - area: 5 (PRINCIPAL VARIATIONS AND SCORES)
 - seed: 1501
 
+## 2026-11-16T22:18:36Z CONTINUE: 12 more hours, ends at 2026-11-17T10:18:36Z
+
+Starting the 12-hour continuation on the same seat (15), branch for-fable-and-opus/swarm-15.
+Order of work from here:
+1. Read every unread forge-combo29/soak_all/FABLE_TO_swarm_N.md from the lowest N to the highest.
+2. Apply the FABLE_TO_swarm_5.md patch to a SEPARATE copy, build with -DFORGE_MATE_ALPHA_GUARD=1,
+   check the known bench numbers it states.
+3. Re-run my own findings on the PC build under settings PC20 and state build+settings per finding.
+4. THE CYCLE as before; STATUS every 25 minutes at most, even mid-job.
+
+State at the start of the continuation: 13 findings + 4 checks pushed; all three area-5 jobs and a
+job-1 repeat done with reports; harness fidelity proven at four (set,depth) points at diff 0.
+
 ## 2026-11-16T22:15:27Z — 22:30 checkpoint: 12 findings, 4 checks, 5 reports
 
 DONE — every one pushed with raw files:
