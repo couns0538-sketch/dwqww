@@ -1,0 +1,23 @@
+# HONESTY CHECK - seat 29
+
+Base commit 6b98f2170a3210e71beed04bbd2553972c253ed7, folder forge-combo29.
+Built OUTSIDE the work tree in worktree /agent/repos/base, build dir /home/ubuntu/build/base.
+CC: /usr/bin/g++-13 (GCC 13.3.0). Note: /usr/bin/c++ on this machine is clang-18 whose
+link step cannot find -lstdc++; CMake was therefore configured with
+-DCMAKE_CXX_COMPILER=/usr/bin/g++-13. Default FORGE_MARCH=x86-64-v4 (host has avx512f+bmi2).
+Command: cmake /agent/repos/base/forge-combo29 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/g++-13 && make -j4
+
+exe: /home/ubuntu/build/base/forge
+sha256: e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+id name: Chess Engine Forge 6.4.24 candidate
+
+Each line: fresh engine process, output saved raw in job0/.
+| check | expected | got | verdict | raw file |
+|---|---|---|---|---|
+| bench 11 | 312866 | 312866 | MATCH | job0/raw_bench_11.txt |
+| bench 13 | 862329 | 862329 | MATCH | job0/raw_bench_13.txt |
+| bench 16 | 3024920 | 3024920 | MATCH | job0/raw_bench_16.txt |
+| go perft 5 | 4865609 | 4865609 | MATCH | job0/raw_perft5.txt |
+
+ALL FOUR NUMBERS MATCH. This build is used for all jobs.
+Harness: job0/honesty.sh (run from that file).
