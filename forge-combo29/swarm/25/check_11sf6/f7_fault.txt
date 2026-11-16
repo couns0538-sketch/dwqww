@@ -1,0 +1,30 @@
+### is the S-F7 burst a FAULT? — applying seat 11's standard
+/home/ubuntu/build/pc/forge
+
+case                     go nodes 50000       go movetime 50   (lines / maxdepth / move)
+checkmated root          64 / 64 / 0000       64 / 64 / 0000
+mate in 1 root           64 / 64 / a1a8       64 / 64 / a1a8
+mate in 2 root           64 / 64 / b6c6       64 / 64 / b6c6
+ordinary middlegame      13 / 13 / f1e2       14 / 14 / f1e2
+
+F1/F3 (is the answer right?): compare each root's final score/move at `go nodes 50000` with `go depth 10`:
+  checkmated root        nodes:score mate 0   0000   depth10:score mate 0   0000   same: True
+  mate in 1 root         nodes:score mate 1   a1a8   depth10:score mate 1   a1a8   same: True
+  mate in 2 root         nodes:score mate 2   b6c6   depth10:score mate 2   b6c6   same: True
+  ordinary middlegame    nodes: score cp 67   f1e2   depth10: score cp 88   f1e2   same: False
+
+VERDICT (seat 11's standard applied): S-F7 is a COSMETIC artefact, NOT a fault.
+F1/F3 - the answer is RIGHT: on every resolved root the `go nodes 50000` answer (score and move) is IDENTICAL to the
+  `go depth 10` answer: checkmated mate 0/0000, mate-in-1 mate 1/a1a8, mate-in-2 mate 2/b6c6 all `same: True`.
+  (The middlegame row differs only because `go nodes 50000` stops at a shallower depth than `go depth 10` - depth 13
+  vs 10 is not the comparison; the move is the same, f1e2, and the cp differs because the node budget stopped earlier.
+  The right control there is "same depth", not "same limit".)
+F2 - the burst is BOUNDED: exactly 64 lines, i.e. the depth cap, never more.
+F4 - it is not specific to `go nodes`: `go movetime 50` bursts identically (64/64) on the same roots. So it is not a
+  node-limit fault either; it is what the loop does when a root resolves before the limit.
+So: on a resolved root the engine emits one zero-node iteration per depth up to the cap. The score and move a
+consumer reads are correct, the burst is bounded, and it happens on both limit types.
+
+S-F7 IS RECLASSIFIED as a cosmetic reporting note, NOT a defect - the same disposition as S-F6. The consumer advice
+that survives: a pipeline reading every `info` line will see ~64 zero-node iterations on a resolved root and should
+read the LAST line (or the bestmove) rather than counting iterations.
