@@ -1,0 +1,32 @@
+# PREDICTION — seat 20, area 10, job 10 (check of seat 28's S-F1)
+
+Committed alone BEFORE the first measuring command. Never edited afterwards.
+
+Subject (seat 28, S-F1): "`go movetime M` stops at M-10 ms: the default `Move Overhead 10` is subtracted from the
+movetime limit (src/search.cpp:2192, src/uci.cpp:152), so `go movetime 10` searches 1 ms and `go movetime 50` stops
+at 40.5 ms."
+
+My own timing harness: monotonic clock from writing `go movetime M` to reading `bestmove`, 15 runs per cell,
+median/p99/max, then the same with `setoption name Move Overhead value 0`.
+
+Predictions:
+1. CONFIRMS: with the default overhead, the median wall time for `go movetime M` is about **M − 10 ms** for
+   M = 50, 100, 200, 500 (within ±3 ms), and for M = 10 the median is about 1 ms (within 0–4 ms).
+   KILLED IF: the median is within ±3 ms of M itself for two or more of the larger M values.
+
+2. With `setoption name Move Overhead value 0`, the median becomes about M (within ±3 ms) for M >= 50.
+   KILLED IF: the median stays at M − 10.
+
+3. Doubling the overhead option increases the shortfall by about the same amount: on `go movetime 100`, medians
+   ≈ 100, 95, 90, 75, 50 ms for overhead 0, 5, 10, 25, 50.
+   KILLED IF: the medians do not fall monotonically with the overhead.
+
+4. The shortfall is NOT a fixed fraction: the absolute gap is the same at M = 50 and M = 500 (both ≈ 10 ms), which
+   is what distinguishes a subtraction from a scaling.
+   KILLED IF: the gap at M = 500 is materially larger than at M = 50 (e.g. 50 ms vs 5 ms).
+
+5. My medians will NOT equal seat 28's exactly: their machine and mine differ, and a 1 ms scheduler effect on a
+   shared cloud VM is normal. I predict agreement within 3 ms on every cell and will report the difference rather
+   than claiming an exact match.
+   KILLED IF: any cell differs from their published number by more than 10 ms (which would mean a different
+   cause, not noise).
