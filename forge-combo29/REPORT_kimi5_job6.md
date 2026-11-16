@@ -181,10 +181,129 @@ Extremes (CHECKX lines, last search per run): max ply vs root depth 18/12, 20/12
   by side; a difference localizes the bug to the counter or the node accounting instantly.
 
 ## UTC stamps (every step; start of the run first) — `cat stamps.txt` put here by a command
-STAMPS_BLOCK
+```
+2026-11-16T09:49:15Z claim
+2026-11-16T09:49:55Z base-build-start
+2026-11-16T09:50:06Z step0-start
+2026-11-16T09:50:08Z step0-done
+2026-11-16T09:52:30Z prediction-commit
+2026-11-16T09:55:39Z k0-flag-start
+2026-11-16T09:55:41Z k0-flag-done
+2026-11-16T09:55:43Z k1-k2-k3-start
+2026-11-16T09:56:11Z k1-k2-k3-done
+2026-11-16T09:56:13Z part3-extra-start
+2026-11-16T09:56:26Z part3-extra-done
+2026-11-16T09:56:59Z plants-start
+2026-11-16T09:57:30Z plants-done
+2026-11-16T09:57:48Z plants2b-done
+2026-11-16T09:58:25Z part4-confirm-start
+2026-11-16T09:58:25Z part4-confirm-done
+2026-11-16T09:59:10Z part5-san-run-start
+2026-11-16T09:59:16Z part5-san-run-done
+2026-11-16T09:59:28Z part5-san-rerun-done
+2026-11-16T10:00:38Z report+notes written
+2026-11-16T10:00:40Z first report commit
+```
 
 ## Model name
 Kimi K3 (one cloud run; no memory of earlier runs beyond what is on GitHub).
 
 ## Folder state — `git status --short` and `ls forge-combo29/tests_kimi5_job6` after the last commit (put here by a command)
-STATUS_BLOCK
+```
+$ git status --short
+(clean)
+
+$ ls forge-combo29/tests_kimi5_job6
+agg_g50d16.txt
+agg_k2.txt
+agg_k3.txt
+agg_o50t4.txt
+k0_bench11.txt
+k0_bench13.txt
+k0_bench16.txt
+k0f_bench11.txt
+k0f_bench13.txt
+k0f_perft5.txt
+k0n_bench11.txt
+k0n_bench13.txt
+k0n_perft5.txt
+k0_perft5.txt
+k1_noflag_O_d12_checks.txt
+k1_noflag_O_d12_checks.txt.meta
+k1_noflag_O_d12_input.log
+k1_noflag_O_d12_input.log.meta
+k1_noflag_O_d12.json
+k1_noflag_O_d12.json.meta
+k2_flag_O_d12_checks.txt
+k2_flag_O_d12_checks.txt.meta
+k2_flag_O_d12_input.log
+k2_flag_O_d12_input.log.meta
+k2_flag_O_d12.json
+k2_flag_O_d12.json.meta
+k3_flag_G_d12_checks.txt
+k3_flag_G_d12_checks.txt.meta
+k3_flag_G_d12_input.log
+k3_flag_G_d12_input.log.meta
+k3_flag_G_d12.json
+k3_flag_G_d12.json.meta
+k5_j6.py
+p3_flag_G50_d16_checks.txt
+p3_flag_G50_d16_checks.txt.meta
+p3_flag_G50_d16_input.log
+p3_flag_G50_d16_input.log.meta
+p3_flag_G50_d16.json
+p3_flag_G50_d16.json.meta
+p3_flag_O50_d12_t4_checks.txt
+p3_flag_O50_d12_t4_checks.txt.meta
+p3_flag_O50_d12_t4_input.log
+p3_flag_O50_d12_t4_input.log.meta
+p3_flag_O50_d12_t4.json
+p3_flag_O50_d12_t4.json.meta
+p4_one.fens
+p4_smallest_d1_checks.txt
+p4_smallest_d1_checks.txt.meta
+p4_smallest_d1_input.log
+p4_smallest_d1_input.log.meta
+p4_smallest_d1.json
+p4_smallest_d1.json.meta
+p4_smallest_V5qfinal.txt
+p5_sanitizer_plant.txt
+p5_san_O50_d10_checks.txt
+p5_san_O50_d10_checks.txt.meta
+p5_san_O50_d10_full.txt
+p5_san_O50_d10_input.log
+p5_san_O50_d10_input.log.meta
+p5_san_O50_d10.json
+p5_san_O50_d10.json.meta
+plant1.diff.txt
+plant1_O10_d8_checks.txt
+plant1_O10_d8_checks.txt.meta
+plant1_O10_d8_input.log
+plant1_O10_d8_input.log.meta
+plant1_O10_d8.json
+plant1_O10_d8.json.meta
+plant2b.diff.txt
+plant2b_O10_d8_checks.txt
+plant2b_O10_d8_checks.txt.meta
+plant2b_O10_d8_input.log
+plant2b_O10_d8_input.log.meta
+plant2b_O10_d8.json
+plant2b_O10_d8.json.meta
+plant2_inert.diff.txt
+plant2_O10_d8_checks.txt
+plant2_O10_d8_checks.txt.meta
+plant2_O10_d8_input.log
+plant2_O10_d8_input.log.meta
+plant2_O10_d8.json
+plant2_O10_d8.json.meta
+plant3.diff.txt
+plant3_O10_d8_checks.txt
+plant3_O10_d8_checks.txt.meta
+plant3_O10_d8_input.log
+plant3_O10_d8_input.log.meta
+plant3_O10_d8.json
+plant3_O10_d8.json.meta
+PREDICTION.md
+SearchChecks.patch.txt
+stamps.txt
+```
