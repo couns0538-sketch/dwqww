@@ -116,3 +116,16 @@ epkey_run.txt
 key_after_run.txt
 key_after_test.cpp
 stamps.txt
+
+## 2026-11-16T21:49:49Z
+job7 done: is_repetition() agrees with python-chess threefold on 62 plies (failable: planted twofold-as-draw gives 17 disagreements). SEE cross-check abandoned - my oracle was wrong twice, python-chess settled both cases the engine's way; see job7/SEE_NOTES.txt.
+### git status --short
+ M STATUS.md
+?? REPORT_job7.md
+?? job7/
+### ls job7
+check_repetition.py
+repetition_probe.cpp
+see_crosscheck.cpp
+SEE_NOTES.txt
+stamps.txt

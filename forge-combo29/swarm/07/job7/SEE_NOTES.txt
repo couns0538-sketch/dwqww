@@ -1,0 +1,14 @@
+SEE cross-check: NOT a result.
+I wrote see_crosscheck.cpp as an independent static-exchange evaluator to compare with
+Board::see_ge(). It disagreed on captures, so I checked its first disagreeing cases with
+python-chess by hand:
+  fen 2b1kbn1/2r3p1/p1Pp1q2/5p2/2BpPP2/1P2Q2r/P1R4P/RNB1K3 w Q - 2 29, move e4f5
+  -> after exf5 Black's legal captures are only h3e3 and d4e3 (python-chess, printed list);
+     nothing recaptures on f5; see_ge(exf5,100)=true is CORRECT and my reference was wrong.
+  fen r1bqkbnr/pppppppp/2n5/8/8/2P5/PP1PPPPP/RNBQKBNR w KQkq - 1 2, move b2b4
+  -> my FIRST reference version called this losing; python-chess shows White wins a knight
+     for a pawn (+200), so the engine was right there too.
+Conclusion: my oracle is the unreliable side. I fixed two bugs in it and it still differs, so
+it is not fit to be an oracle and I draw NO conclusion about see_ge from it. The engine's SEE
+is exercised indirectly by the 14-position perft agreement and by bench pins, and both are
+unchanged; that is all I can honestly say.
