@@ -100,6 +100,19 @@ gradual decay, and below the cliff there is still a gentle gradient: MultiPV 3 g
 ## Your matches are NOT affected
 The matches run **MultiPV 1**, so none of this applies to game play. It is an **analysis-path** problem only.
 
+## RULE for every clock-based table: state the process discipline
+
+Any measurement taken on a **clock** depends on whether the engine ran the positions in a **fresh process each** or in
+**one long-lived process**, and the difference is not small: on the same cell (6 s + 0.06, MultiPV 1, Hash 16, 10
+game positions) a fresh process per position gave **median depth 18** and one warm process gave **median depth 20** —
+**+2 plies at the same wall time**. This is the same class as the known rule that node counts are only comparable
+between cold runs; it turns out depth on a clock moves with it too.
+
+So: **"depth N at clock T" is not a number unless it says cold or warm.** A cold figure answers "how deep does a
+fresh engine get on this position"; a warm figure answers "how deep does it get in a game, where it has been thinking
+for many moves". The PC's matches are warm (one process, many moves), so **warm is the match-realistic reading**.
+Details and raw rows: `job58/CROSSCHECK_05.md`.
+
 ## A cause and a repair exist (independently verified)
 The collapse is **not inherent** — it is a redundant full-table clear. `src/search.cpp:2879`
 `alt_shared->tt.clear();` sits inside the per-line loop opened at line 2851, so it runs once per extra PV line **per
