@@ -126,3 +126,8 @@ NEXT: loop step 1 for job file 3 (kimi5 job-12 blend patch expected as my job 3)
 - LEARNED: my earlier depth-14 report said "the identity holds at every depth" on the strength of O only. True but narrower than it sounded; this pass makes it true on G too and adds the four newer patches.
 - FOR kimi5: NodeLiterals, LmrFine and FailHighBlend are all exact identities on G at depth 14 as well as at 12 and 10.
 - NEXT: loop step 1 for job file 3; the long list has nothing open.
+
+## after job 3b, 2026-11-16T17:56:00Z
+LEARNED: my sumcfp.py ASSIGNED per-L arrays instead of accumulating them - the "sums" were one row values until position-12s raw line contradicted the total. When a counter total contradicts an independent known answer, suspect the SUMMER first, the engine second.
+FOR kimi5: the capture-futility gate is arithmetically exact (gy==prunes, bp==0, ~2.6M events, 14 runs); its binding constraint on O is the deficit slope (last prune at L3), on G the depth cap takes only L6 away (343 prunes). Multiplier 250->100 dwarfs every depth move.
+NEXT: loop step 1 - file 4 or kimi5 job-14 RfpGuards patch; 20-min looks.

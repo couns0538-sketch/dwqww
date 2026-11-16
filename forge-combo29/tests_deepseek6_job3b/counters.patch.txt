@@ -1,10 +1,10 @@
 # counters.patch.txt -- unified diff of the job-3b counter copy against 6b98f2170a3210e71beed04bbd2553972c253ed7
 # made with diff -u; applies with patch -p1 without fuzz from the checkout root (paths a/forge-combo29/src/...)
-# counter copy: candidates/deficits/pruned of the capture-futility gate (search.cpp), printed once per go
-# as 'info string cfp ...' before bestmove (uci.cpp). Observation only: the search reads none of it.
+# counter copy: candidates/in-depth/pruned/deficit bins of the capture-futility gate (search.cpp), printed
+# once per go as 'info string cfp ...' before bestmove (uci.cpp). gy/gn/bp are the exact-arithmetic checks.
 diff -ruN j3b_pristine/forge-combo29/src/search.cpp j3b_edit/forge-combo29/src/search.cpp
 --- j3b_pristine/forge-combo29/src/search.cpp	2026-11-15 05:25:59.000000000 +0000
-+++ j3b_edit/forge-combo29/src/search.cpp	2026-11-16 17:44:22.613213603 +0000
++++ j3b_edit/forge-combo29/src/search.cpp	2026-11-16 17:45:03.869213603 +0000
 @@ -8,6 +8,8 @@
  #include <cmath>
  #include <cstring>
@@ -14,7 +14,7 @@ diff -ruN j3b_pristine/forge-combo29/src/search.cpp j3b_edit/forge-combo29/src/s
  #include <limits>
  #include <optional>
  #if FORGE_NNUE_V3
-@@ -34,6 +36,38 @@
+@@ -34,6 +36,45 @@
  #define FORGE_BARE_KING_MATE_FIX 1
  #endif
  
@@ -24,6 +24,9 @@ diff -ruN j3b_pristine/forge-combo29/src/search.cpp j3b_edit/forge-combo29/src/s
 +    long long in_depth[16] = {0};
 +    long long pruned[16] = {0};
 +    long long cand_over = 0;
++    long long gate_yes = 0;
++    long long gate_no = 0;
++    long long bad_prune = 0;
 +    long long deficit[16][32] = {{0}};
 +    void cfp_reset() {
 +        for (int i = 0; i < 16; ++i) {
@@ -33,6 +36,9 @@ diff -ruN j3b_pristine/forge-combo29/src/search.cpp j3b_edit/forge-combo29/src/s
 +            for (int b = 0; b < 32; ++b) deficit[i][b] = 0;
 +        }
 +        cand_over = 0;
++        gate_yes = 0;
++        gate_no = 0;
++        bad_prune = 0;
 +    }
 +    std::string cfp_line() {
 +        std::ostringstream os;
@@ -43,6 +49,7 @@ diff -ruN j3b_pristine/forge-combo29/src/search.cpp j3b_edit/forge-combo29/src/s
 +        os << " prn";
 +        for (int i = 0; i < 16; ++i) os << (i ? "," : "=") << pruned[i];
 +        os << " over=" << cand_over;
++        os << " gy=" << gate_yes << " gn=" << gate_no << " bp=" << bad_prune;
 +        for (int i = 0; i < 16; ++i) {
 +            os << " d" << i << "=";
 +            for (int b = 0; b < 32; ++b) os << (b ? "," : "") << deficit[i][b];
@@ -53,7 +60,7 @@ diff -ruN j3b_pristine/forge-combo29/src/search.cpp j3b_edit/forge-combo29/src/s
  namespace forge {
  
  int DrawJitter = 0;
-@@ -1890,6 +1924,18 @@
+@@ -1890,6 +1931,23 @@
              } else {
                  // Futility pruning for captures: even winning the piece cannot
                  // bring the position back to alpha.
@@ -65,6 +72,11 @@ diff -ruN j3b_pristine/forge-combo29/src/search.cpp j3b_edit/forge-combo29/src/s
 +                            alpha - (ss->static_eval + capture_value(board, move) + history / 8);
 +                        const int cfp_bin = cfp_e < 0 ? 0 : (cfp_e >= 3000 ? 31 : cfp_e / 100 + 1);
 +                        ++forge_cfp::deficit[lmr_depth][cfp_bin];
++                        if (tune::CaptureFutilityBase > 0 && lmr_depth <= tune::CaptureFutilityDepth) {
++                            const long long cfp_t = (long long)tune::CaptureFutilityBase +
++                                (long long)tune::CaptureFutilityMultiplier * lmr_depth;
++                            if (cfp_e >= cfp_t) ++forge_cfp::gate_yes; else ++forge_cfp::gate_no;
++                        }
 +                    } else {
 +                        ++forge_cfp::cand_over;
 +                    }
@@ -72,17 +84,24 @@ diff -ruN j3b_pristine/forge-combo29/src/search.cpp j3b_edit/forge-combo29/src/s
                  if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
                      lmr_depth <= tune::CaptureFutilityDepth &&
  #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
-@@ -1897,6 +1943,7 @@
+@@ -1897,6 +1955,14 @@
  #endif
                      ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
                              capture_value(board, move) + history / 8 <= alpha) {
 +                    ++forge_cfp::pruned[lmr_depth <= 15 ? lmr_depth : 15];
++                    {
++                        const int cfp_e2 =
++                            alpha - (ss->static_eval + capture_value(board, move) + history / 8);
++                        if ((long long)cfp_e2 < (long long)tune::CaptureFutilityBase +
++                                (long long)tune::CaptureFutilityMultiplier * lmr_depth)
++                            ++forge_cfp::bad_prune;
++                    }
                      trace_case();
                      continue;
                  }
 diff -ruN j3b_pristine/forge-combo29/src/uci.cpp j3b_edit/forge-combo29/src/uci.cpp
 --- j3b_pristine/forge-combo29/src/uci.cpp	2026-11-15 05:25:59.000000000 +0000
-+++ j3b_edit/forge-combo29/src/uci.cpp	2026-11-16 17:44:22.617213603 +0000
++++ j3b_edit/forge-combo29/src/uci.cpp	2026-11-16 17:45:03.869213603 +0000
 @@ -10,6 +10,16 @@
  #include "forge/uci_output.hpp"
  
