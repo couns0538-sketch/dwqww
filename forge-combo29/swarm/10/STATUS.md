@@ -328,3 +328,10 @@ cp0 CLASSIFICATION, and I caught my own bad threshold before it spread (10-F46, 
   any node count. Rule file corrected with the wrong threshold kept as a worked counter-example.
   Classifier committed: regimes/classify_cp0.py (6 horizon / 4 root on the evidence, 0 ambiguous).
 next: continue confirmations.
+
+## Mon Nov 16 10:38:35 PM UTC 2026
+CAPSTONE (10-F47): regimes/measurement-rules-a-future-swarm-must-apply.md — 13 measurement rules, one line
+each with the case that taught it, most of them from my own retractions (10-R1..R6). Every number in it was
+re-read from the raw files before writing: U2 [56720, 4951]; PC20 clearhash 24708 vs cold 21600; horizon cp0
+node counts [200,230,280,541,629,793]. Ends with the three sentences to carry forward.
+next: continue confirmations until the window closes at 10:19 UTC.
