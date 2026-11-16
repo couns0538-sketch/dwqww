@@ -73,3 +73,14 @@ no answer, the number is not yet evidence — including when the number is mine.
 Note on cost: the 9-ply KR-vs-K self-test in `mate_solve.py` is too slow to run casually (>100 s), which is itself
 worth knowing — the cheap controls (mate in 1, within 3, and a drawn position) are enough to prove the prover can
 both FIND a mate and REFUSE to invent one, and they run in under a second.
+
+## Instance 4 — the tolerance that fired for an unrelated reason (23-F38)
+
+Added after the rule was written, because the family is wider than the first three suggested. My movetime checker
+used a 4 % **relative** tolerance against a plan of 5 ms; 4 % of 5 ms is 0.2 ms, so a real 0.8 ms error tripped it
+and the script printed **"VERDICT: NO"** — a false refutation of a correct finding by another seat. The same 0.8 ms
+error at a plan of 500 ms passed. In absolute milliseconds, all 16 cells are within 0.8 ms and the finding is right.
+
+**How it was caught:** not by the checker — by looking at the table when the verdict disagreed with every row.
+**The extra rule:** check that the tolerance's **units** match the claim's units. A tolerance relative to a small
+quantity is not a stricter test, it is a wrong one. "Within 1-2 ms" must be tested in milliseconds.
