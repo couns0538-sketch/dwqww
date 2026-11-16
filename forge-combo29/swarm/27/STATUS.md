@@ -209,3 +209,20 @@ So the horizon spike is real on both builds, its peak sits at a different counte
 clock-100 row is a direct sighting of the PC's `FORGE_FIX_ROOT_DRAWN` repair in the cost curve.
 My first attempt used a position with mate-in-one available, so every clock returned mate 1 / 210 nodes and the
 sweep tested nothing — caught by reading the numbers instead of trusting that it ran; template replaced.
+
+## 2026-11-16T22:36Z the two paragraphs the coordinator asked for
+**Fifty-move band merged with seat 08's 08-F22** (S-C8 rewritten): three positions, three peaks - PC r15/PC20 at
+counter **90** (177,829 nodes, cp 35), base/S14 at **92** (227,597, cp 22), seat 08's won K+R vs K at **91**
+(7,251,835). Each peak sits at its own value-crossing, so it is a boundary effect, not a fixed cost; the cost is
+a SPIKE (then cheaper than normal at 94-98), not a band. **Verdict: the spike is the normal cost of not
+short-circuiting** - at my peak the engine scores cp 35 / cp 22, i.e. real analysis of a WINNING position, not
+draw-proving. **Two neighbours are genuine defects:** the base build's counter-100 row returns **0 nodes**
+(adjudicates on sight - S-F1, repaired on PC which searches 2,111 and gets cp 0 honestly), and seat 08's chronic
+SCORE band (exactly cp 0 from 91 to 99 on a won board) is correctness with game consequences, a different thing
+from the node spike.
+**`go nodes` below one iteration given the full treatment** (S-P2 rewritten): what such a budget should do
+(mark the reply unsearched, or wait for one iteration, or return the previous COMPLETED move - never a move with
+no score) and what a dataset recorded (a2a3 = the generator's first entry, with a null score that biases a
+trainer's filter, or a default 0 that teaches "equal, play a2a3"). The 26-node threshold is not guessable, so
+such rows cannot be repaired by inspection. I did NOT measure what fraction of any dataset falls in that band.
+Both paragraphs also in the store note `internal/swarm/seat-27-fifty-move-band-and-nodes.md`.
