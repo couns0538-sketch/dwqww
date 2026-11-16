@@ -1,0 +1,11 @@
+bench  1: reported time median    13.0 ms   process wall median    40.3 ms   (reported: [14, 14, 13, 13, 12])
+bench  2: reported time median    12.0 ms   process wall median    34.8 ms   (reported: [12, 12, 12, 12, 12])
+bench  4: reported time median    14.0 ms   process wall median    38.0 ms   (reported: [14, 14, 16, 14, 15])
+bench  8: reported time median    43.0 ms   process wall median    66.9 ms   (reported: [42, 42, 43, 43, 46])
+bench 13: reported time median   439.0 ms   process wall median   467.6 ms   (reported: [447, 434, 439, 433, 444])
+bench 16: reported time median  1460.0 ms   process wall median  1490.6 ms   (reported: [1459, 1468, 1486, 1460, 1457])
+
+reported_ms = -256.11 + 79.95 * depth     (least squares over the 6 depths above)
+=> fixed part of the measured window: -256.1 ms (~-57k nodes' worth at bench-13 nps)
+=> at bench 13 (439 ms) that fixed part is -58.3% of the reported time
+=> process wall minus reported window, per depth: [27, 23, 24, 24, 29, 31] ms (start-up + UCI parsing + exit, outside the timer)

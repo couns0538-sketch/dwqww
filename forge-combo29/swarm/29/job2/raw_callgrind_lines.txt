@@ -1,0 +1,41 @@
+info string bench depth 11 nodes 312866 time 172 nps 1818988
+valgrind exit=0
+===== evaluate_position =====
+2,288,666,265 (50.70%)  events annotated
+869,095,316 (19.25%)  => /agent/repos/base/forge-combo29/src/eval.cpp:int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .constprop.0] (533,258x)
+539,950,073 (11.96%)  /agent/repos/base/forge-combo29/src/eval.cpp:int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .constprop.0] [/home/ubuntu/build/portableg/forge]
+346,339,848 ( 7.67%)  /agent/repos/base/forge-combo29/src/search.cpp:forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)'2 [/home/ubuntu/build/portableg/forge]
+313,170,360 ( 6.94%)  /usr/lib/gcc/x86_64-linux-gnu/13/include/avxintrin.h:forge::nnue::apply_and_evaluate(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&, forge::Board const&)
+288,689,167 ( 6.40%)  /agent/repos/base/forge-combo29/src/bitboard.cpp:forge::attacks::(anonymous namespace)::init_magics(bool, unsigned long*, std::array<forge::attacks::Magic, 64ul>&) [/home/ubuntu/build/portableg/forge]
+227,022,192 ( 5.03%)  ./string/../sysdeps/x86_64/multiarch/memset-vec-unaligned-erms.S:__memset_avx2_unaligned_erms [/usr/lib/x86_64-linux-gnu/libc.so.6]
+226,770,604 ( 5.02%)  /agent/repos/base/forge-combo29/src/search.cpp:forge::MovePicker::next(bool) [/home/ubuntu/build/portableg/forge]
+134,217,880 ( 2.97%)  => ???:0x000000000010c630 (8x)
+80,125,440 ( 1.78%)    return (__m256) ((__v8sf)__A - (__v8sf)__B);
+68,257,024 ( 1.51%)    return (__m256) ((__v8sf)__A * (__v8sf)__B);
+67,241,792 ( 1.49%)    return (__m256) ((__v8sf)__A + (__v8sf)__B);
+===== Worker::search =====
+3,858,917,654 (85.49%)  => /agent/repos/base/forge-combo29/src/search.cpp:forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) (8x)
+3,857,788,414 (85.47%)  => /agent/repos/base/forge-combo29/src/search.cpp:forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) (184x)
+2,982,485,124 (66.08%)  => /agent/repos/base/forge-combo29/src/search.cpp:forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)'2 (256x)
+1,494,195,699 (33.10%)  => /agent/repos/base/forge-combo29/src/search.cpp:forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int) (186,573x)
+432,464,656 ( 9.58%)  => /agent/repos/base/forge-combo29/src/search.cpp:forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)'2 (4,075x)
+408,686,277 ( 9.05%)  => /agent/repos/base/forge-combo29/src/search.cpp:forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)'2 (14,426x)
+371,592,785 ( 8.23%)  => /agent/repos/base/forge-combo29/src/search.cpp:forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)'2 (449x)
+346,339,848 ( 7.67%)  /agent/repos/base/forge-combo29/src/search.cpp:forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)'2 [/home/ubuntu/build/portableg/forge]
+313,170,360 ( 6.94%)  /usr/lib/gcc/x86_64-linux-gnu/13/include/avxintrin.h:forge::nnue::apply_and_evaluate(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&, forge::Board const&)
+288,689,167 ( 6.40%)  /agent/repos/base/forge-combo29/src/bitboard.cpp:forge::attacks::(anonymous namespace)::init_magics(bool, unsigned long*, std::array<forge::attacks::Magic, 64ul>&) [/home/ubuntu/build/portableg/forge]
+232,209,314 ( 5.14%)  => /agent/repos/base/forge-combo29/src/search.cpp:forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)'2 (3,367x)
+227,022,192 ( 5.03%)  ./string/../sysdeps/x86_64/multiarch/memset-vec-unaligned-erms.S:__memset_avx2_unaligned_erms [/usr/lib/x86_64-linux-gnu/libc.so.6]
+===== apply_and_evaluate =====
+873,894,638 (19.36%)  => /agent/repos/base/forge-combo29/src/eval.cpp:forge::Evaluator::evaluate_runtime(forge::Board const&, forge::Evaluator::RuntimePsqt const&) (533,258x)
+454,654,254 (10.07%)  => /agent/repos/base/forge-combo29/src/nnue.cpp:forge::nnue::apply_and_evaluate(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&, forge::Board const&) (521,133x)
+396,871,084 ( 8.79%)  => /agent/repos/base/forge-combo29/src/search.cpp:forge::Worker::static_evaluate(forge::Board const&, forge::SearchStack*) (137,367x)
+313,170,360 ( 6.94%)  /usr/lib/gcc/x86_64-linux-gnu/13/include/avxintrin.h:forge::nnue::apply_and_evaluate(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&, forge::Board const&)
+288,689,167 ( 6.40%)  /agent/repos/base/forge-combo29/src/bitboard.cpp:forge::attacks::(anonymous namespace)::init_magics(bool, unsigned long*, std::array<forge::attacks::Magic, 64ul>&) [/home/ubuntu/build/portableg/forge]
+227,022,192 ( 5.03%)  ./string/../sysdeps/x86_64/multiarch/memset-vec-unaligned-erms.S:__memset_avx2_unaligned_erms [/usr/lib/x86_64-linux-gnu/libc.so.6]
+226,770,604 ( 5.02%)  /agent/repos/base/forge-combo29/src/search.cpp:forge::MovePicker::next(bool) [/home/ubuntu/build/portableg/forge]
+106,228,932 ( 2.35%)  => /agent/repos/base/forge-combo29/src/search.cpp:forge::MovePicker::next(bool) (404,228x)
+91,533,305 ( 2.03%)  => /agent/repos/base/forge-combo29/src/nnue.cpp:forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&) (124,391x)
+45,536,526 ( 1.01%)          score += Us == White ? value : -value;
+35,706,118 ( 0.79%)          const Score value = table[static_cast<std::size_t>(index)] * count;
+29,740,131 ( 0.66%)  => /agent/repos/base/forge-combo29/src/board.cpp:forge::Board::has_legal_move() const (181,125x)

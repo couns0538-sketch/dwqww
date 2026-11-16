@@ -1,0 +1,115 @@
+diff --git a/forge-combo29/include/forge/board.hpp b/forge-combo29/include/forge/board.hpp
+index 1c7a2b5ef..0f4c777d6 100644
+--- a/forge-combo29/include/forge/board.hpp
++++ b/forge-combo29/include/forge/board.hpp
+@@ -283,7 +283,14 @@ private:
+     // Lazily computed for the current position; invalidated by every make and
+     // restored by every unmake (each search thread owns its Board copy).
+     mutable KingLines king_lines_;
++    // has_legal_move() only ever reads king_lines_.pinned. It is called far more
++    // often than is_legal()/gives_check(), and a full refresh also computes the
++    // discoverer set and five check-square sets that it then throws away. This
++    // flag records that the pinned set alone is current for this position; a
++    // later full refresh still runs when the other fields are needed.
++    mutable bool king_pinned_valid_ = false;
+     void refresh_king_lines() const;
++    void refresh_king_pinned() const;
+ #endif
+     [[nodiscard]] bool is_legal_complete(const Move& move) const;
+     [[nodiscard]] bool gives_check_complete(const Move& move) const;
+@@ -322,7 +329,8 @@ inline bool Board::is_legal(const Move& move) const {
+ #if FORGE_SPD_KING_LINES
+     const Piece moving = squares_[move.from];
+     if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {
+-        if (!king_lines_.valid) refresh_king_lines();
++        // Only `pinned` is read here, so the cheaper refresh is enough.
++        if (!king_lines_.valid && !king_pinned_valid_) refresh_king_pinned();
+         const int king = king_squares_[static_cast<std::size_t>(side_)];
+         return (king_lines_.pinned & square_bb(move.from)) == 0 || attacks::aligned(king, move.from, move.to);
+     }
+diff --git a/forge-combo29/src/board.cpp b/forge-combo29/src/board.cpp
+index b3a80138f..8ae6e2efd 100644
+--- a/forge-combo29/src/board.cpp
++++ b/forge-combo29/src/board.cpp
+@@ -359,6 +359,7 @@ bool Board::set_fen(std::string_view fen_text, std::string* error) {
+     candidate.checkers_ = candidate.compute_checkers();
+ #if FORGE_SPD_KING_LINES
+     candidate.king_lines_.valid = false;
++    candidate.king_pinned_valid_ = false;
+ #endif
+     candidate.plies_from_null_ = 1024;
+     candidate.key_history_.clear();
+@@ -727,6 +728,7 @@ bool Board::has_legal_move() const {
+         const int to = lsb(pushes);
+         const Move witness{static_cast<std::uint8_t>(to - pawn_push_delta(side_)),
+                            static_cast<std::uint8_t>(to), 0, Quiet};
++        if (!king_lines_.valid && !king_pinned_valid_) refresh_king_pinned();
+         if (is_legal(witness)) return true;
+     }
+     MoveList moves;
+@@ -745,7 +747,8 @@ bool Board::is_legal_complete(const Move& move) const {
+     // become attacked when a pinned piece leaves the line to its pinner. A
+     // capture keeps its target square occupied, so it never opens a line.
+     if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {
+-        if (!king_lines_.valid) refresh_king_lines();
++        // Only `pinned` is read here, so the cheaper refresh is enough.
++        if (!king_lines_.valid && !king_pinned_valid_) refresh_king_pinned();
+         return (king_lines_.pinned & square_bb(move.from)) == 0 ||
+                attacks::aligned(king_square(us), move.from, move.to);
+     }
+@@ -922,6 +925,15 @@ namespace {
+ }
+ } // namespace
+ 
++void Board::refresh_king_pinned() const {
++    const Color us = side_;
++    const Color them = opposite(us);
++    const Bitboard occupancy = occupied();
++    king_lines_.pinned = single_blockers(king_square(us), pieces(them, Rook) | pieces(them, Queen),
++                                         pieces(them, Bishop) | pieces(them, Queen), occupancy) & occupied(us);
++    king_pinned_valid_ = true;
++}
++
+ void Board::refresh_king_lines() const {
+     const Color us = side_;
+     const Color them = opposite(us);
+@@ -941,6 +953,7 @@ void Board::refresh_king_lines() const {
+     lines.check_squares[Queen] = lines.check_squares[Bishop] | lines.check_squares[Rook];
+     lines.check_squares[King] = 0;
+     lines.valid = true;
++    king_pinned_valid_ = true;
+ }
+ #else
+ bool Board::gives_check_complete(const Move& move) const {
+@@ -1104,6 +1117,7 @@ bool Board::make_move(const Move& move, Undo& undo) {
+     key_history_.push_back(key_);
+ #if FORGE_SPD_KING_LINES
+     king_lines_.valid = false;
++    king_pinned_valid_ = false;
+ #endif
+     return true;
+ }
+@@ -1139,6 +1153,7 @@ void Board::unmake_move(const Move& move, const Undo& undo) {
+     plies_from_null_ = undo.plies_from_null;
+ #if FORGE_SPD_KING_LINES
+     king_lines_ = undo.king_lines;
++    king_pinned_valid_ = king_lines_.valid;
+ #endif
+ }
+ 
+@@ -1163,6 +1178,7 @@ void Board::make_null_move(NullUndo& undo) {
+     key_history_.push_back(key_);
+ #if FORGE_SPD_KING_LINES
+     king_lines_.valid = false;
++    king_pinned_valid_ = false;
+ #endif
+ }
+ 
+@@ -1176,6 +1192,7 @@ void Board::unmake_null_move(const NullUndo& undo) {
+     checkers_ = undo.checkers;
+ #if FORGE_SPD_KING_LINES
+     king_lines_ = undo.king_lines;
++    king_pinned_valid_ = king_lines_.valid;
+ #endif
+ }
+ 
