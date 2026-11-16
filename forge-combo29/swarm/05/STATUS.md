@@ -92,8 +92,9 @@
   0/3 there and that no sanitizer line appears in these eval paths.
 
 ## Mon Nov 16 09:41:18 PM UTC 2026
-- S-C6 CONFIRMS seat 15's 15-F4: dead-draw roots emit an EMPTY pv () with 0 nodes,
-  one empty line PER DEPTH; control = KNN v K on the same harness has a 10-move pv and real nodes.
+- S-C6 CONFIRMS seat 15's 15-F4: dead-draw roots emit an EMPTY pv (the line reads "info depth 1 seldepth 1
+  score cp 0 nodes 0 ... time 0 pv" with nothing after pv) and 0 nodes, one empty line PER DEPTH; control =
+  KNN v K on the same harness has a 10-move pv and real nodes.
 - SELF-AUDIT: this applies to my own job2 (600/600 empty pv lines in K v K / KN v K / KB v K / threefold). My
   cp 0 conclusions stand (regex matches the empty line, reads its score) and I made no pv-content claim there.
   My job1 count was unaffected: 0 empty pv lines out of 6,636.
