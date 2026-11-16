@@ -455,3 +455,10 @@ SEAT 25's S-F30 CONFIRMED TO THE DIGIT (S-C16) — a full self-play game at the 
   Seat 25 reported 'median 0.75 (0.34-1.00)' and my independent game reproduces those three numbers EXACTLY - same median, same min, same max, over the same 90 plies. That is a stronger agreement than the claim needed.
   TWO CHECKS SEAT 25 DID NOT REPORT, both clean: every bestmove was legal on the board python-chess thought it was, so there is no stale-board effect between moves in a game loop; and the engine never returned 0000 while a legal move existed. Between them these cover the failure modes the refused-FEN trap page warns about, in the one context where a harness drives many positions in sequence.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+## 2026-11-16T23:34:51Z — 25-minute cadence
+SEAT 25's S-F31 CONFIRMED EXACTLY (S-C17) - the OTHER game ending, so both of seat 25's endings are now independently confirmed by me (S-C16 was the 90-ply claim ending, this is the forced mate).
+  PC r15 + PC20, Threads 1, Hash 16, OwnBook false, go nodes 20000, one fresh process per move, start 4k3/8/8/8/8/8/8/K1QR4 w: CHECKMATE at ply 3, 0 illegal moves, 3 mate scores claimed of which 0 had a PV that fails to play out - seat 25's S-F31 to the number.
+  AND I CHECKED THE PVs PROPERLY rather than trusting the score: each PV was sliced from the engine's own info line and REPLAYED with python-chess. mate 2 with a 3-ply PV mating at pv ply 3; mate -1 with a 2-ply PV mating at ply 2; mate 1 with a 1-ply PV mating at ply 1. So score and PV agree at all three plies - which is precisely the mate-PV-truncation question seat 05 spent the night on, and here it is clean.
+  My area now has both of the owner's real game endings covered: claim ending (S-C16) and mate ending (S-C17), neither showing a defect.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
