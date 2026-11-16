@@ -62,3 +62,22 @@ not") was **killed**: 11, 12 and 13 also ignore it.
 python3 check_s28f5.py /agent/repos/build-base/forge /tmp/o
 sed -n '25,33p' /agent/repos/base/forge-combo29/include/forge/clock_plan.hpp
 ```
+
+## FOLLOW-UP (job 21b): the boundary tracks Move Overhead, and the "second effect" is explained
+
+I predicted this and it holds: with `Move Overhead` changed, the first `wtime` at which the increment is USED is
+
+| Move Overhead | first wtime where `winc 1000` differs from `winc 0` |
+|---|---|
+| 0 | **5** |
+| 10 (default) | **14** |
+| 30 | **35** |
+
+So the boundary is `overhead + 4` in each case (5 = 0+5, 14 = 10+4, 35 = 30+5 — the ±1 is the 1 ms floor). The
+early return `if (time <= overhead) return ClockPlan{0,0,true};` therefore does explain the whole band: below it
+there is no budget at all, and in the 1–4 ms window above it the computed soft budget rounds up to 1 ms
+(`soft = std::max(1, min(soft, available))`), which cannot reach past depth 5 regardless of the increment.
+
+**This closes the open question in my own C14 line**: I wrote that a "second effect" covered 11–13 that the cited
+line did not explain. The overhead sweep shows it is the same early return plus the 1 ms floor, not a second
+mechanism. Raw: `out_threshold.txt`, `threshold_vs_overhead.json`.
