@@ -143,3 +143,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - NOT a refutation of Rule 2: I could not test the owner's real configuration (the net file is not shared). With a net loaded, loaded()!=nullptr and Rule 2 may be exactly right. Stated as a qualification with that limit explicit.
 - Practical consequence for area 9: on the PC build I CAN build, eval optimisation is not worthless - but nobody should act on that for the owner's PC until a net is available to test.
 - next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: measured qualification of Rule 2 (F20/F21), TT reversal (F19), apply warning (N13)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 10:33:22 PM UTC 2026
+- 29-C6 CONFIRMS seat 05's S-F23, checked with my own harness on the PC r15 build at depth 12, Threads 1, using THEIR two truncated boards: under S14 both are truncated (O+G/192 mate -9, R/120 mate -13 with a 12-move PV against 26 needed); under PC20 neither is, and R/120 reports exactly cp -2713, the figure they published. Their 0-of-27 vs 2-of-28 rate reproduces.
+- This is the first finding of another seat I have confirmed on the PC build under PC20, which is the regime TEXT 2 asks for.
+- next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: 29-C6 confirms 05 S-F23 on PC build under PC20' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
