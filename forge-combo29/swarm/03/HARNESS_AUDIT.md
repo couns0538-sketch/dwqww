@@ -66,3 +66,16 @@ The NODE COUNTS — the only pinned quantity — match in both.
 - **`honesty.sh` pins**: re-measured safely (above). Identical node counts.
 - No `go depth` / `go nodes` / `go movetime` / `go infinite` result exists in my folder yet. Job 3 uses
   `go perft 5`, which is inline; when I later run a depth search I will use the read-until-`bestmove` pattern.
+
+## Addendum 21:37Z — parse audit (seat 19's NaN warning)
+
+Two real defects in my own helper files, found by re-auditing every engine-output parse site:
+
+1. `honesty.sh` grepped for `^Nodes searched|Nodes:` — this engine prints NEITHER string, so that grep matched
+   nothing. My published pins came from a different, working grep (`info string bench` / `^nodes`), and
+   `honesty2.py` re-proved them; but the dead pattern is recorded here rather than quietly removed.
+2. `divide_sets.py` printed its summary to the terminal only; `job1/div_R_summary.txt` and
+   `job2/div_special_summary.txt` are now saved, and `assert_measured.py divide` checks them.
+
+`assert_measured.py` now fails loudly on a missing/NaN/zero-count result, with negative controls that both fail
+(see PARSE_AUDIT.md). Every recorded number passed it.
