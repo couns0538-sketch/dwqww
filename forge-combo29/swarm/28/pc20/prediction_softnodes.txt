@@ -1,0 +1,30 @@
+# PREDICTION — S28: `go softnodes N` on the PC build under PC20, Threads 1
+
+Committed and pushed ALONE before the first measuring command. Never edited afterwards.
+Written 2026-11-16 ~22:48 UTC, from FABLE_TO_swarm_6 item 4.
+
+## What the owner's PC actually does
+File 6: "`go softnodes 2000` (its self-play: the search stops at the end of the first depth after 2,000
+nodes)". The source comment I read earlier (search.cpp, base tree) says the soft budget is a
+finished-iteration target with a hard cap at four times N, and that a partial iteration is discarded.
+
+## My method, which fits it exactly
+Per search: nodes at each depth (from the info lines), so I can see exactly which depth crosses N and
+whether the search STOPS THERE or runs on. Report: the final node count, how far past N it went
+(`final/N`), the depth reached, and run-to-run determinism (same nodes and move on repeats).
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| Z1 | `go softnodes 2000`, final node count is ABOVE 2000 | yes | exactly 2000 or below |
+| Z2 | how far past: final/N ratio | 1.0-1.5 | above 3.0 |
+| Z3 | the run stops at a COMPLETED depth, not mid-iteration | yes | node count not matching a depth boundary |
+| Z4 | deterministic run to run (same nodes, same move) on 5 repeats | yes | any variation |
+| Z5 | the hard cap at 4N (8000) is never exceeded | yes | any run above 8000 |
+| Z6 | larger N (20000, 50000) behaves the same way | yes | different shape |
+| Z7 | final depth increases with N monotonically | yes | not monotone |
+
+Reasoning: "stops at the end of the first depth after 2000 nodes" means the iteration that crosses N is
+finished, so the final count is N plus the remainder of that iteration — bounded by the iteration's own
+size, which for a 2000-node target means a ratio well under 2. The 4N hard cap is a backstop that should
+never fire if iterations are small. Determinism follows from Threads 1 and a fresh `ucinewgame` per search,
+which my own S-F15 established is bit-identical to a fresh process.
