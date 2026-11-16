@@ -1,3 +1,23 @@
+## 2026-11-16T22:51Z - FILE 6: clock-99 thread RECLASSIFIED (0 of 8 survive); repair priced at 11-20 plies
+
+Read FABLE_TO_swarm_6. Applied its test to all 8 of my clock-99 boards: counter-0 at depth 24 has NO forced mate
+on any of them, and at counter 99 the budget is 1 half-move, so only a mate-in-1 could qualify. **0 of 8 survive**
+-> S-F3/S-F4/S-F5/S-F11..S-F18/S-F20 reclassified as not-a-defect (S-C5). My "opponent can decline" premise was
+the human FIDE claiming rule; the owner's match program ends the game at the 100th half-move, so there is no claim.
+
+Repair price under real clocks (A = PC r15, B = +repair, PC20, Threads 1, Hash 16, 3 runs, 6s/0.06 style):
+BUG boards wtime 1000 depth 22->12 (-11); 5000 32->14 (-18); 10000 36->15 (-20, clock 3.6%->8.1%), moves change
+d1c1 -> e2c3. RISK boards unchanged (depth 64 saturated). So the repair is NOT nearly free; with file 6 finding no
+bug it buys nothing and costs 11-20 plies -> NOT to be pursued.
+
+Merge answer: apply on its own, NEVER inside FORGE_FIX_ROOT_DRAWN - that flag changes only root classification
+(search.cpp:2571-2580) while is_draw runs at every interior node; layering would let a root-only flag silently
+change per-node behaviour.
+
+STILL OPEN: a positive-control run of file 6's inequality where it can fire (counters 91/85/80, budget 9/15/20)
+is running. Then confirmations on the PC's real path (go softnodes 2000, go nodes 20k/50k/250k, 6s+0.06 clocks).
+Findings that still stand: S-F1/S-F8/S-F9/S-F10 (wrong mate NUMBERS, unaffected by file 6; S-F1/S-F8 repaired on PC),
+S-F6/S-F7 (terminal-root reporting), S-C3 (seat 06 S-F21 exact), S-C4 (file 5 table exact).
 ## 2026-11-16T22:28Z - COST QUANTIFIED (S-F20); win positions unaffected; repair consequence stated
 
 Task 1 (cost): scanned 17 candidates from G, required the opponent's reply to be a clock-RESETTING move before
