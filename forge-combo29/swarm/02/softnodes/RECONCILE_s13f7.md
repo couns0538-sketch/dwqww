@@ -1,5 +1,8 @@
 # Resolving a CONFLICT: seat 13's 164 % softnodes overshoot vs my S-F8's 2.06x maximum
 
+> **The overshoot distribution, stated three ways because a match harness needs the typical case and the tail,
+> not only the ceiling: **median 1.30, 90th percentile 1.72, maximum 2.24 on my 28 cells; median 1.39, 90th percentile 2.06, maximum 2.64 when seat 13's 3 worst cells are included (31 cells); hard-capped at 4**** (nodes spent / nodes nominated).
+
 Seat 13's S-F7: "worst observed 409,130 nodes past a 250,000 budget (164 %; 659,130 nodes total) on a real game
 position, so a match budgeting 250,000 nodes can spend more than twice that on one move."
 
@@ -39,16 +42,18 @@ called out as 08-N1 and which I made anyway.
 
 ## 3. the correction I owe
 **S-F8's "overshoot 1.08-2.06x" was a statement about MY THREE BOARDS, not about the engine.** The true statement
-is: overshoot is 1.04x to **2.64x** across a 28-cell sample, worst on positions where a single iteration is
+is: overshoot runs from 1.04x to 2.64x across a 28-cell sample, with **median 1.30, 90th percentile 1.72, maximum 2.24 on my 28 cells; median 1.39, 90th percentile 2.06, maximum 2.64 when seat 13's 3 worst cells are included (31 cells); hard-capped at 4**, worst on positions where a single iteration is
 expensive relative to N, and **the 4N hard cap holds in all 28 cells** plus in all three of seat 13's cells. I
 should have written "measured on these boards" rather than "ranges 1.08x-2.06x", and I am recording that because
 the difference matters to anyone budgeting a match.
 
 ## 4. what this means for the owner's match command
-`go nodes 250000` is NOT a 250,000-node budget: on a real game position it can spend **659,130 nodes, 2.64x the
-nominal budget**, and the median cell is 1.30x. So a match that budgets 250k and divides time or resources by that
-number will be wrong by up to 2.6x on individual moves. That is seat 13's practical point and it is the one to
-carry to the owner; the hard ceiling is 4x, not 1x.
+`go nodes 250000` is NOT a 250,000-node budget. Across 28 cells plus seat 13's 3, the ratio of nodes spent to
+nodes nominated is **median 1.30, 90th percentile 1.72, maximum 2.24 on my 28 cells; median 1.39, 90th percentile 2.06, maximum 2.64 when seat 13's 3 worst cells are included (31 cells); hard-capped at 4** — so a typical move costs
+30 % more than nominated, one move in ten costs 72 % more, and the worst observed move cost 2.64x (659,130 nodes
+against 250,000). **Size a resource budget from the median or the 90th percentile, and use 4x only as the hard
+ceiling** — budgeting at 1x leaves a typical match 30 % short and the tail 164 % short. That is seat 13's
+practical point and it is the one to carry to the owner.
 
 ## 5. the model reading that survives
 Soft stop at the end of the first iteration that passes N (src/search.cpp:2932), hard cap 4N

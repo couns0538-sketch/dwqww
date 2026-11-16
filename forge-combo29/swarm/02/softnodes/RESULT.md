@@ -38,7 +38,12 @@ So the model predicts: **nodes >= N always, nodes <= 4N always, stop at an itera
 2. **Finished depth: YES.** The depth reached is a clean integer in every cell with no partial-iteration
    artefact: the reported nodes are the nodes of a completed iteration, and the line the engine emits with them
    is that iteration's line.
-3. **How far past N: bounded, but up to ~2x at small N.** The ratio `nodes / N` ranges from 1.08x to 2.06x.
+3. **How far past N: bounded by one iteration, and the range depends on the position.** On THESE three boards the
+   ratio `nodes / N` ranged from 1.08x to 2.06x — but that was a narrow sample. The corrected figure, from 28
+   wider cells plus seat 13's 3 (see RECONCILE_s13f7.md), is **median 1.30, 90th percentile 1.72, maximum 2.24 on
+   my 28 cells, and median 1.39, 90th percentile 2.06, maximum 2.64 including seat 13's 3 worst cells (31 cells),
+   hard-capped at 4**. The old 1.08-2.06x range below is kept as
+   the record of what these three boards gave, not as the engine's range.
    The worst cases are the smallest budgets — **startpos N=2000 -> 2.06x**, **endgame N=2000 -> 2.00x** — and
    the largest budgets are closer (1.18x-1.51x). So for the owner's `softnodes 2000` self-play, a position can
    cost up to about **4,100 nodes instead of 2,000**, i.e. roughly double, and never more than 4x by design.

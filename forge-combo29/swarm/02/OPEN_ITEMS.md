@@ -68,3 +68,12 @@ rather than estimating them. So the rule is: **400 games answers "is it worth 35
 and a small effect is plausible, 1,000 games; below that, do not believe a small number without 1,750.** Either answer is useful, which is why this is worth
 400 games — and it is the only way to answer it, since both settings produce legal, deterministic, reproducible
 search and only a score can separate them.
+
+## O-4: how to size a resource budget for a node-budgeted match
+`go nodes N` and `go softnodes N` do not spend N: the search stops at the end of the first iteration that passes
+N, so it overshoots by that iteration's cost. Measured over 31 cells (my 28 plus seat 13's 3 worst):
+**median 1.30x, 90th percentile 1.72x, maximum 2.24x on my 28 cells; median 1.39x, 90th percentile 2.06x,
+maximum 2.64x including seat 13's three worst cells; hard-capped at 4x** (nodes spent / nodes nominated).
+**Size from the median or the 90th percentile; budget at 1x and a typical move is 30 % short while one move in ten
+is 72 % short, and the worst observed move cost 659,130 nodes against a 250,000 nomination (2.64x).** The 4x cap is
+a ceiling for a worst case, not a working figure.
