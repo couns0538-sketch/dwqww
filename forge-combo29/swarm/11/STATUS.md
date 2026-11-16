@@ -227,3 +227,11 @@ Next: continue on PC20 with provably-applied options; STATUS every 25 min.
   gives e1e7/106,270 nodes with it ON vs f1g1/26,973 with it OFF (bestmove changes); normal
   positions unaffected. PC_SWITCHES.md updated. Remaining UNMEASURED: ISREADY_PENDING,
   HARD_LIMIT_EMERGENCY, ABORT_PUBLISH (stated as such, not inferred).
+- S-F37: 553/553 real positions (G+O) accepted on PC20 with 0 perft-1 mismatches vs python-chess.
+  Confirms every FEN defect of mine is on synthetic/malformed input only, now on the PC build too.
+
+## 2026-11-16T22:38Z CHECKPOINT
+- PC_SWITCHES.md delivered (six switches, state + measured effect, unmeasured ones marked).
+- FEN layer on PC20: S-F36 castling field order-independent + duplicates refused; S-F37 553/553
+  real positions accepted with 0 perft-1 mismatches.
+- Next: continue FEN layer on PC20; STATUS every 25 min.
