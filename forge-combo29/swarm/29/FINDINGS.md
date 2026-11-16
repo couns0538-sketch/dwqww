@@ -7,8 +7,21 @@ Worked example, my own TT patch, same two source changes:
 - PC r15 build, PC20:            +11,318,305 instructions  (+0.320 %)
 - and on the PC build each half alone is worse: slot-0 +0.558 %, vector gather +0.634 %
 Node counts are identical in all four PC builds and the two `probe_body` bodies are byte-identical between the two
-trees, so the swing is compiler inlining/layout (`Worker::search` self cost 4.88 % -> 7.03 %), not logic.
+trees, so the swing is compiler outlining/layout, not logic. The effect is also NON-ADDITIVE on the PC build: each
+half alone is worse than base (+0.558 %, +0.634 %) while together they are +0.320 %, a -0.872 % interaction term.
+NOTE: my first explanation ("the inlined copy is more expensive per call") was REFUTED by disassembly — the patched
+probe body is LARGER (119 -> 140 instructions), and what actually collapsed was `probe_owned` (116 -> 18) as its
+callers absorbed it. See 29-F31 / 29-N17.
 CONSEQUENCE: re-measure on the build you intend to recommend, every time. Evidence: `pc0/raw_factorial.txt`.
+
+## NAMED RULE (29-F35): `bench` is not a representative workload for a slot-sensitive optimisation
+Same build, same instrumentation, two workloads:
+- `bench 13`            : 203,057 TT hits, slot0 **96.0 %** (3.8 / 0.2 / 0.0 %), generation writes **0**
+- real games, depth 12  : 6,084,620 TT hits, **26.3 / 25.3 / 24.7 / 23.7 %**, generation writes **16,811**
+A change whose benefit scales with slot-0 hits therefore looks ~**3.7x** better under `bench` purely from workload
+shape, and bench never exercises the age/depth replacement path at all.
+CONSEQUENCE: any transposition-table optimisation must be measured on real-game positions, never on `bench`.
+This one applies past my patch. Evidence: `slots/raw_slot_regimes.txt`.
 
 | id | area | one sentence | file with the exact command that shows it again | NEW |
 |---|---|---|---|---|

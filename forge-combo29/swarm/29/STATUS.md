@@ -220,3 +220,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-F35 generalised the slot finding into its own rule: bench 13 puts 96.0% of TT hits in slot 0 (203,057) while a real-game set at d12 spreads 26.3/25.3/24.7/23.7% (6,084,620 hits), so a slot-0-sensitive change looks ~3.7x better under bench purely from workload shape; and bench hits the age/depth replacement path 0 times against 16,811 generation writes on real games. RULE: any TT optimisation must be measured on real-game positions, never on bench.
 - 29-F36 the recommendation, stated and closed: scoring 2.91% vs selection 0.77% (3.8x), largest lines are the two continuation-history reads (21.5M, 20.6M) and the main history read (17.2M) => the lever is FEWER HISTORY READS PER MOVE, not a faster sort (19-F15 shows the sort is load-bearing). Picker family is ~4.3% of the run = second-order behind the evaluation.
 - next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: bench-is-not-representative rule (F35) and the move-ordering recommendation (F36)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 11:22:43 PM UTC 2026
+- Housekeeping: the NAMED RULE block at the top of FINDINGS still carried the inlining explanation that my own disassembly refuted (F31). Corrected it in place and added the -0.872% interaction + the 29-N17 lesson. Both named rules now sit together at the top: (1) instruction-count savings do not transfer between builds, (2) bench is not a representative workload for slot-sensitive optimisations.
+- Row-format audit of all 62 FINDINGS rows: clean.
+- next: continuing on the PC path.
