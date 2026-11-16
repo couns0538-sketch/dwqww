@@ -157,3 +157,10 @@ touch S-F20, which was measured at depth 12 with three repeats and is a single u
 Revised honest summary of the job-11 population result: the strict signature is absent (0/50); the any-margin
 mismatch is common (11/45) but small (median 36 cp); and of the cases examined by play-out, only one shows a large,
 depth-robust cost. **The population does not show the defect at anything like the severity of position 155.**
+
+## Note on committed data
+
+The raw per-search transcripts for the scan (~24 MB) and the failed first generator's games (~31 MB) were deleted
+from the branch to keep it small. What remains is everything needed to re-derive every number: the position set
+(`eg50.tsv`), the scan output (`scan50.txt`), the play-out tables (`plycost.txt`, `plycost_d16.txt`), and the scripts
+plus their exact commands. The scan's own transcripts are kept in `scan50.txt.raw` (3.3 MB).
