@@ -1,0 +1,19 @@
+# PREDICTION — self-play duplication: does varying the START fix it?
+
+S-F27 found 10 games from ONE fixed start gave only 3 distinct final positions (7 of 10 identical), because the
+engine is deterministic. The actionable question: if each game starts from a DIFFERENT real game position, do the
+games diverge?
+
+Method: ten self-play games, but game k starts from G position k (ten different real-game positions from set G,
+taken from actual games), each played for 40 plies from there. PC build, PC20, Threads 1, Hash 16, 6 s + 0.06 s
+with clock bookkeeping by measured wall time. Compare final positions and full move sequences.
+
+P1. Ten games from ten DIFFERENT starts give TEN distinct final positions. Kills it: fewer than 8 (then the
+    convergence is not merely "the same starting point" and the owner needs to know).
+P2. Even so, any two games whose starts differ by only a few plies will converge. Predicted the games do NOT all
+    diverge maximally — I expect some to transpose to similar ends because the positions in G are related.
+    Kills it: all ten endings mutually unrelated (which would mean the start dominates completely — also useful).
+P3. Distinctness is measured on the FINAL position AND on the move list: predicted the two criteria agree
+    (different final position implies different move list). Kills it: two games with the same final position but
+    different move orders (a transposition), which would be worth reporting separately.
+P4. No illegal move, no overrun, in any game. Kills it: any illegal move or overrun.
