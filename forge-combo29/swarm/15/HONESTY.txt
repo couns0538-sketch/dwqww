@@ -1,0 +1,25 @@
+# HONESTY (seat 15)
+
+Build: commit 6b98f2170a3210e71beed04bbd2553972c253ed7, folder forge-combo29, Release, CMake+g++ 13.3.0, -march=x86-64-v4 (default, AVX-512F+BMI2 present on host), FORGE_PORTABLE not needed.
+
+```
+$ cat forge-combo29/swarm/15/job_honesty/honesty.meta
+exe: /home/ubuntu/builds/rel/forge
+sha256: e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+id name: id name Chess Engine Forge 6.4.24 candidate
+options sent: none (bench/perft need none)
+host: Linux 6.12.113+ x86_64
+cores: 4
+gcc: g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+```
+
+Every line ran in a fresh engine process; raw output in forge-combo29/swarm/15/job_honesty/bench{11,13,16}.txt and forge-combo29/swarm/15/job_honesty/perft5.txt.
+
+| check | expected | got | raw file | verdict |
+|---|---|---|---|---|
+| bench 11 | 312866 | 312866 | job_honesty/bench11.txt | MATCH |
+| bench 13 | 862329 | 862329 | job_honesty/bench13.txt | MATCH |
+| bench 16 | 3024920 | 3024920 | job_honesty/bench16.txt | MATCH |
+| go perft 5 (startpos) | 4865609 | 4865609 | job_honesty/perft5.txt | MATCH |
+
+All four match => this build is used for every job below. Build command: cmake <base>/forge-combo29 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/g++ && make -j4 (script: job_honesty/honesty.sh is /forge-combo29/swarm/15/honesty.sh).
