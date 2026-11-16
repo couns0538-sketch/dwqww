@@ -198,3 +198,14 @@ the same 3/3.
      my "refutation" was my own harness being slow. Corrected in FINDINGS rather than left standing.
 Next: continue checking other seats' unconfirmed finds on the PC build; area 7 jobs still open are the move
 generator and the time manager as source-reading jobs.
+
+## 2026-11-16T22:33Z cycle 3: 30-F9 checked on both builds
+S-C8 CONFIRMS 30-F9 with a correction. One quiet middlegame, only the half-move counter changed, `go depth 10`,
+fresh process per row, Threads 1:
+  PC r15 / PC20 : peak 177,829 nodes at counter **90** (84x the counter-99 figure of 2,111)
+  base / S14    : peak 227,597 nodes at counter **92** (108x the counter-99 figure of 2,101), and counter 100
+                  short-circuits to **0 nodes** where the PC build searches 2,111
+So the horizon spike is real on both builds, its peak sits at a different counter value per build, and the
+clock-100 row is a direct sighting of the PC's `FORGE_FIX_ROOT_DRAWN` repair in the cost curve.
+My first attempt used a position with mate-in-one available, so every clock returned mate 1 / 210 nodes and the
+sweep tested nothing — caught by reading the numbers instead of trusting that it ran; template replaced.
