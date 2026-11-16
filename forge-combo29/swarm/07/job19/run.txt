@@ -1,0 +1,19 @@
+tm_finish: monotonicity checked 1000, extreme inputs 12
+node share: 560 grid cases checked for N2/N3
+node share scale: 0% -> 1500, 50% -> 1000, 100% -> 500 (want 1500/1000/500)
+clock plan: 420 cases satisfied 1 <= soft <= hard <= available
+clock plan at the parse ceiling 36028797018963967: soft 28823037615171173 hard 28823037615171173
+
+ALL TIME-MANAGER PROPERTIES HELD (0 failure(s))
+EXIT=0
+
+--- CONTROLS (see REPORT_job19.md for the full history) ---
+C1 property control: -D numer offset changed 500 -> 400 in tm_node_share.hpp (faulty include dir)
+   -> "FAIL N4 100% share must give 1/2 of soft, got 400"; 3 failures. So the property checks fire.
+C2 UBSan control: a signed overflow planted inside tm_finish.hpp, reached by this same grid:
+   /tmp/tm_ub/forge/tm_finish.hpp:33:32: runtime error: signed integer overflow:
+       1000000 * 100000000000000 cannot be represented in type 'long int'
+   -> the sanitizer in this build does catch overflow, so the clean run means something.
+   My FIRST TWO UBSan controls were void: one was `(void)(x*x)` which -O2 deleted, the other
+   multiplied by a constant that happened not to overflow, and a third was guarded by a threshold
+   (1e12) my own grid never reached.

@@ -333,3 +333,16 @@ stamps.txt
 
 job18/raw:
 differences.txt
+
+## 2026-11-16T22:06:41Z
+job19 done: all time-manager pure-function properties hold under UBSan (07-C16): 1000 monotonicity cases, 560 node-share cases with the documented 1500/1000/500 scale, 420 clock-plan cases 1<=soft<=hard<=available. THREE of my UBSan controls were void before one fired (-O2 deleted it; constant didn't overflow; guard unreachable) -- all recorded.
+### git status --short
+ M FINDINGS.md
+ M STATUS.md
+?? REPORT_job19.md
+?? job19/
+### ls job19
+run.txt
+stamps.txt
+tm_probe.cpp
+ub_control.txt
