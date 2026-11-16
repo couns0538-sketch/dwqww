@@ -419,3 +419,10 @@ CONTROLLED MY OWN DERIVATION AGAINST MEASUREMENT (S-F61), because S-C12b was ari
   RESULT: 5 of 5 clocks land INSIDE the planned soft..hard window, 0 exceed the hard plan, 0 finished early. So the formula is the one the engine follows, and - the important part - the measured spend uses only 0.10-0.33 of the HARD cap, which is exactly why the realistic floor is ~340-360 ms while the 111 ms figure is a worst-case bound. Both of my S-C12b numbers are now grounded in measurement rather than arithmetic alone.
   This also means seat 15's 73 ms/move drain figure is a worst-case-flavoured number: it implies spending near the hard cap every move, which a real search does not do.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+## 2026-11-16T23:31:52Z — 25-minute cadence
+MOVESTOGO RULE STATED AS THE TWO RULES FOR THE BRIEF (S-F62, MOVESTOGO_RULE.md, ready to paste verbatim):
+  1. Never send movestogo 0 to mean 'unset'. clock_plan.hpp:37 branches on moves_to_go > 0, so zero or negative selects the SUDDEN-DEATH branch - measured at a 2000 ms clock: movestogo 0 = 482 ms, -1 = 487 ms, no token at all = 57 ms, i.e. 8.4x the plan of omitting it and 18x the movestogo-50 budget. To get the no-movestogo behaviour, omit the token.
+  2. Never quote a plan-derived budget without the movestogo actually sent, since anything above 50 silently becomes 50. clock_plan.hpp:38 is mtg = moves_to_go < 50 ? moves_to_go : 50; medians at 50/51/100/1000 are 25.9/25.5/26.4/25.8 ms - a 0.9 ms spread, 3.5 % of the 50-median - so a harness requesting a large movestogo to spread the clock gets 50 and its per-move expectation is wrong by movestogo/50.
+  Consequence in one line: a budget computed from the plan is reproducible only if the movestogo sent is recorded with it, because the engine may have used a different number than the one sent, and zero is the one value that means the opposite of what it looks like.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
