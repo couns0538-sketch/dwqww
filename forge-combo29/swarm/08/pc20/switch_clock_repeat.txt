@@ -1,0 +1,47 @@
+## Does any single switch change the CLOCK? PC r15, Threads 1, 60 searches per cell
+
+Columns: achieved time = median wall ms; depth reached = median of the last completed depth; nodes = median.
+A switch changes the CLOCK only if the achieved time moves; it changes the SEARCH if depth/nodes move.
+
+### `go movetime 50`
+
+| switch (alone, on S14) | achieved time ms | depth reached | nodes | time vs baseline | depth vs baseline |
+|---|---|---|---|---|---|
+| S14 baseline | 40.51 | 13 | 60242 | +0.00 ms | +0 |
+| + CuckooRep | 40.48 | 13 | 52542 | -0.03 ms | +0 |
+| + HistRework 2 | 40.52 | 13 | 57864 | +0.01 ms | +0 |
+| + TtPruneV2 | 40.53 | 13 | 54186 | +0.02 ms | +0 |
+| + CorrHistV2 | 40.51 | 13 | 60374 | -0.00 ms | +0 |
+| + MateAlphaGuard | 40.49 | 13 | 56528 | -0.02 ms | +0 |
+
+### `go wtime 1000 btime 1000 winc 0 binc 0`
+
+| switch (alone, on S14) | achieved time ms | depth reached | nodes | time vs baseline | depth vs baseline |
+|---|---|---|---|---|---|
+| S14 baseline | 34.37 | 13 | 62198 | +0.00 ms | +0 |
+| + CuckooRep | 35.25 | 13 | 64021 | +0.88 ms | +0 |
+| + HistRework 2 | 35.18 | 13 | 61506 | +0.81 ms | +0 |
+| + TtPruneV2 | 31.99 | 13 | 55052 | -2.38 ms | +0 |
+| + CorrHistV2 | 33.40 | 13 | 62096 | -0.98 ms | +0 |
+| + MateAlphaGuard | 33.18 | 13 | 60156 | -1.19 ms | +0 |
+
+### `go wtime 10000 btime 10000 winc 0 binc 0`
+
+| switch (alone, on S14) | achieved time ms | depth reached | nodes | time vs baseline | depth vs baseline |
+|---|---|---|---|---|---|
+| S14 baseline | 286.35 | 19 | 510220 | +0.00 ms | +0 |
+| + CuckooRep | 262.83 | 19 | 467750 | -23.52 ms | +0 |
+| + HistRework 2 | 265.21 | 18 | 456998 | -21.14 ms | -1 |
+| + TtPruneV2 | 304.53 | 19 | 541863 | +18.18 ms | +0 |
+| + CorrHistV2 | 310.48 | 19 | 526368 | +24.13 ms | +0 |
+| + MateAlphaGuard | 289.15 | 19 | 508595 | +2.80 ms | +0 |
+
+## verdict
+
+| quantity | value |
+|---|---|
+| largest achieved-time shift from any single switch | **24.13 ms** |
+| largest depth shift from any single switch | **1 plies** |
+| repeatability of an identical run on this box (08-F4) | 0.20 %% of total time |
+
+**A switch DOES shift the achieved time** by up to 24.13 ms — see the table.
