@@ -653,3 +653,11 @@ RULE ADDED to the FINDINGS header, and applied to my own work: 'A node count und
 ## 2026-11-16T23:50:27Z
 Added the harness-settings rule to the FINDINGS header, since the coordinator is relaying 'assert MultiPV 1 exactly as Threads 1' as a match-harness rule:
   > ASSERT YOUR HARNESS SETTINGS EXPLICITLY, AND RECORD THEM: Threads 1, MultiPV 1, OwnBook false. Defaults are fine; a leftover non-default silently changes the measurement with no error and a plausible node count. MultiPV 2 costs 3 plies on startpos at go nodes 20000 (d11 -> d8) and 2 on a middlegame, monotone in MultiPV, reproduced exactly in all 16 cells (07-C49). Node STOPS are deterministic here; node counts under a CLOCK are not (07-C47), so quote a clock result by its move and wall time.
+
+## 2026-11-16T23:51:04Z
+07-C50 -- CONFIRMED 02-S-F13/S-C6, reproduced to within 0.5 ms. PC r15/PC20, Threads 1, Hash 16, fresh process per cell, wall clock, two runs per cell, on startpos:
+  go wtime 6000 btime 6000 winc 60 binc 60 -> 361.5/358.8 ms, depth 19, e2e4
+  go depth 19                              -> 360.6/353.7 ms, depth 19, e2e4  (INDISTINGUISHABLE in time, depth AND move)
+  go movetime 6000                         -> 5990.8/5990.8 ms, depth 27
+  So the 6 s clock uses 6.0% of its budget while movetime uses 99.8% and reaches 8 plies deeper. Seat 02 measured 362 ms; mine reproduces to 0.5 ms. Control passed: movetime really did run 5990.8 ms, so the harness sees a long search.
+  Read carefully: this means the budget is UNDER-USED, not that the clock is broken -- 07-C7 had zero overruns across nine controls. That is a strength question (time available and not taken), not a safety one. Scope is startpos; seat 02's own S-F14 withdrew the cross-class median ordering, so I am not claiming it transfers to every position.
