@@ -71,3 +71,11 @@
 - job1b report added; predicted-vs-actual table says plainly which two predictions failed.
 - next command (if resumed): python3 job2/threshold_probe.py on a THIRD material to test whether S-F3's 91
   boundary is material-dependent (K+B+B vs K), since that is the cheapest open question left.
+
+## Mon Nov 16 09:39:46 PM UTC 2026
+- S-F11 NEW: the fifty-move cliff tracks counter+depth (d6->95, d8->92, d10->91, d12->89, each summing to 100-101),
+  which reconciles my "9 plies early" with seat 25's "one ply early" — same rule, different mate distances.
+- S-C5 CONFIRMS seat 15's 15-F3 on my own 20 KNN v K positions (20/20 non-zero off, 20/20 cp 0 on) plus the
+  control it needs: DeadMaterial true leaves K+Q/K+R wins at cp 472..1162, so the switch is selective.
+- next command: python3 check_15f3/check_15f3.py on a KNN v K position whose knights are far apart, to test
+  whether DeadMaterial keys on material alone or on the concrete position.
