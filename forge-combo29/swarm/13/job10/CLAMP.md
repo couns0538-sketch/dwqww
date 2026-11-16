@@ -49,10 +49,13 @@ is identical for budgets a thousand times apart.
    board returns in ~0 ms after 216 nodes, so the harness records a falsely fast time precisely where it
    believes it is measuring a deep search. My own job-8 clock harness gated on `bestmove` rather than a
    depth, which is why it was not affected — but a depth-gated one would have been.
-3. **A `go depth D` request with D > 64 can never be satisfied** by a position that hits the cap, and on
-   a position that does not hit it the request simply runs long (29 lines in 25 s here). A harness that
-   waits for "depth reached the requested depth" must therefore never request more than 64, and must
-   time out otherwise.
+3. **A `go depth D` request with D > 64 IS answered** — the engine clamps its reported depth at 64 and
+   returns a bestmove (measured: `go depth 65` and `go depth 70` both return `bestmove a1a8` at 1,152
+   nodes). So such a request does not hang the engine. What it does do is make a harness that waits for
+   "depth reached the requested depth" wait forever, because the 65th line never comes — the harness must
+   therefore not gate on reaching D, and should treat 64 as the terminal depth. (Corrected: an earlier
+   version of this file wrongly said such a request "can never be satisfied". See
+   ../job11/DEPTH_CAP_ADDENDUM.md.)
 4. **`nodes` on the final line is the honest counter.** Depth is not.
 
 ## Identical on both builds

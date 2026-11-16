@@ -417,3 +417,23 @@ fabrication trap, not as evidence the cap is absent. The required discipline is 
 read to bestmove or sleep before quit.
 Verified after editing, on BOTH builds: correct form prints 64, wrong form prints 0.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## Mon Nov 16 11:35:17 PM UTC 2026
+
+CLAMP.md reproduction section reordered as asked (working form + clamp.py FIRST, the pipe-and-quit form
+quarantined under "DO NOT USE" with its real output 0 shown and labelled as the 19-F12 fabrication trap).
+Verified after editing on BOTH builds: correct form 64, wrong form 0.
+
+THEN I TESTED THE CAP'S CONSEQUENCE AND CORRECTED MYSELF AGAIN. I had written that `go depth D` with D>64
+"can never be satisfied". That is WRONG: measured on PC20/Threads 1/Hash 16, `go depth 65` and `go depth
+70` both return `bestmove a1a8` in 0.00 s, clamped at reported depth 64. So such a request does not hang
+the engine; it only hangs a HARNESS that waits for depth D to be reached. job11/DEPTH_CAP_ADDENDUM.md,
+and CLAMP.md now carries the correction with a pointer.
+
+A HARNESS BUG OF MINE found on the way, recorded in the addendum: my first depthcap.py used select() on a
+text-mode pipe, which loses lines already sitting in Python's buffer. It produced non-monotonic
+nonsense — `go depth 60` timing out while `go depth 63` answered in 0.00 s, and `go depth 10` timing out
+on a 0.01 s position. Replaced with a reader thread; results became monotonic. The tell was results
+contradicting themselves (a deeper request answering faster), which means the instrument is broken.
+The pre-fix run is kept at job11/out/ so the bad table can be inspected.
+Next command: cd forge-combo29/swarm/13/job11 && python3 depthcap.py ~/b/pc/forge /tmp/dc 15
