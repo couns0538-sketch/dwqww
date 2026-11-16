@@ -1,0 +1,35 @@
+# PREDICTION — area 1, job 3 (`position startpos moves` with long games and one illegal move)
+
+Committed and pushed ALONE before the first measuring command of job 3.
+
+## What the job will do
+1. Play a random legal game with python-chess (SEED 101) that is *stopped before any game end*: when the
+   next move would end the game (checkmate/stalemate/insufficient material/75-move/5-fold) I take back to
+   the last position that still had moves, so every ply sent is legal and the game never ended. Feed all
+   1,000+ plies to the engine as `position startpos moves <all plies>`, then `go perft 1`, and compare the
+   result with python-chess's legal move count for the same board.
+2. The same game with ONE illegal move injected at ply 1, at ply 10 and at ply 500 (three separate runs of a
+   fresh engine). Record the answer lines and which position the engine keeps (`go perft 1`).
+3. Known reference: an illegal move keeps the legal prefix (perft 1 = 29 after e2e4 e7e5 e1e3).
+
+## Numbers I predict (each with the range that kills it)
+
+P1. The 1,000-ply move list is ACCEPTED with no error line, and perft 1 equals python-chess's legal move
+    count for the final board. Any mismatch kills it (and would be a serious bug).
+P2. Illegal move at ply 1: answered `info string illegal move <m>` and the engine keeps the START position,
+    perft 1 = 20. Not 20 → kills it.
+P3. Illegal move at ply 10: engine keeps the first 10 plies, perft 1 equals python-chess's count for the
+    board after 10 plies. Any other count kills it.
+P4. Illegal move at ply 500: engine keeps the first 500 plies, perft 1 equals python-chess's count after
+    500 plies. Any other count kills it.
+P5. Sanitizer lines (ASan+UBSan): 0 for every case above. One line kills it.
+P6. No crash in any case.
+P7. The illegal-move answer is a single `info string illegal move <token>` line, with no other error text,
+    and it comes BEFORE `readyok`. Any extra error line kills it.
+
+## Why
+`apply_position` (src/uci.cpp 27-72) builds a *copy* of the board, applies the FEN or startpos, then applies
+each move in turn; on a parse failure it prints `info string illegal move <token>`, assigns the copy to the
+live board and returns. So the kept position should be exactly the legal prefix. The 1,000-ply case is the
+interesting one: `key_history_` grows with every move and the repetition detector walks it, so a long game is
+where an overflow or a quadratic blow-up would show.
