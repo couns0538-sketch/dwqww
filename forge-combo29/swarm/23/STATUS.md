@@ -742,3 +742,17 @@ Context that corrects my own earlier reading (23-F46): with defaults at the same
 Third withdrawal of a directional sentence from a small set (23-C7, 23-F29, 23-F45/46) — the named pattern holds.
 
 Standing: 65 findings, 18 confirmations. Continuing to the close at 2026-11-17T10:18:40Z.
+## 2026-11-16T23:45:44Z  23-F48: the go-parse switch is visible from the protocol (base truncates to 1 info line)
+2026-11-16T23:45:44Z
+
+Malformed `go` lines where `go` sits where a number belongs: the BASE truncates to 1 info line in the three
+cases whose bad value is followed by another keyword (`go depth go nodes 1000`, `go wtime go btime go`,
+`go depth go`), while the PC r15 returns 64 info lines and a normal bestmove. Neither hangs or errors.
+Robustness only — matches never send `go` as a value. Limit stated: '1 info line' is my proxy for a truncated
+search; I did not read the parse path, so I can say the base searches far less, not which token was eaten.
+
+ALSO: the clock-as-common-denominator idea is now the organising idea of my final summary, with 23-F46/F47 the
+pair that shows why a fixed-depth build comparison overstates the difference (base depth 25-32 mating 4 of 6 vs
+PC depth 17-23 mating 5 of 6 at the same clock). Board 6 is named there as the inert case.
+
+Standing: 66 findings, 18 confirmations. Continuing to the close.
