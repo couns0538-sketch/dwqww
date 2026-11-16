@@ -81,6 +81,24 @@ so the shallow choice was over-optimistic about a lost position rather than wors
 interpretation (S-F42 CORRECTED, and S-F43 records the scores that forced it). What remains established: moves *can*
 differ, and at these two they did.
 
+## 6b. What two full games say (the practical answer)
+
+I played two complete self-play games at the owner's clock (`match/match_clock_game.py`):
+
+| game | start | plies | result | illegal | lost on time | per-move wall (min/median/max) | depths |
+|---|---|---|---|---|---|---|---|
+| 1 | startpos | 151 | draw rule | **0** | **none** | 0.03 / 0.10 / 0.71 s | 16 / 19 / 24 |
+| 2 | real middlegame | 120 | move limit | **0** | **none** | 0.03 / 0.11 / 0.69 s | 16 / 22 / **36** |
+
+**Across 271 plies of match-clock play the engine never spent more than 0.71 s of a 6-second clock**, kept legal moves
+throughout, and never came close to a forfeit (final clocks 673/564 ms and 406/884 ms). In endgames it reaches depth
+32-36 because the trees are small.
+
+So the honest summary is: **the clock is almost entirely unused, and that is not currently harmful.** The engine plays
+these games at roughly depth 16-24 (deeper in endgames) and the games complete cleanly. Whether spending the remaining
+5.5 s would make it *stronger* is a separate question that my move-level evidence (§6) does not settle — the two move
+differences I found were both positions already lost, where the shallow search was merely over-optimistic.
+
 ## 7. Confidence and limits
 
 - **High** on §1–§5: deterministic, 5 runs per cell where it matters, and §5 is a 12/12 bit-match.
