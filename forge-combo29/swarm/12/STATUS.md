@@ -29,3 +29,24 @@ missed in each) and `two_doors_mate.patch.txt` closes both; honesty pins unchang
 patched builds.
 Running now: the door pair on the patched builds, then area 2 job 2 (races).
 Next: `python3 forge-combo29/swarm/12/job1/two_doors.py ~/build/release_patched/forge /tmp/doors_patched.json`
+
+## 2026-11-16T21:47Z — PATCH COMPLETE AND PUSHED
+
+**The fifty-move + repetition patch is finished and on GitHub**: `job1/two_doors_mate.patch.txt`
+(commit f2f227ffc, report `REPORT_job1.md`, findings S-F2/S-F3). Both root doors closed, 12
+draw/mate regression cases pass, honesty pins 4/4 on all four builds (unpatched release+ASan,
+patched release+ASan).
+
+Known limit, proven and documented in the same report (S-F4/S-F5): the short-circuit also fires
+one ply down where the patch does not reach — `6k1/8/5PPP/8/8/8/8/R6K b - - 99 40` answers
+`cp 0` in 36 nodes where hm 97/98 answer the true `mate -1` in 63. A second position
+(`6k1/5ppp/8/8/8/8/8/R5NK b - - 99 40`) gives the same `cp 0` but CORRECTLY, as the control.
+
+Also re-audited every table against seat 19's silent-zero warning (`job1/audit.py`,
+`job1/audit.json`): the quit-mid-search table cannot prove a search ran (by design) and now says
+so; the job-1 sequence runner was changed to record `max_depth_seen`/`max_nodes_seen` so a
+"0 sanitizer lines" claim is backed by a measured search, and the 2,000-sequence run is being
+repeated with those counters.
+
+Now running: that repeated job-1 run (2,000 sequences, ASan+UBSan), then area 2 job 2 (races).
+Next command: `bash forge-combo29/swarm/12/job1/run_job.sh /home/ubuntu/build/asan/forge /tmp/seqs /home/ubuntu/build/job1out3 asan_2000` (already running; after it, `python3 forge-combo29/swarm/12/job1/races.py /home/ubuntu/build/asan/forge /home/ubuntu/build/job2out 40`).
