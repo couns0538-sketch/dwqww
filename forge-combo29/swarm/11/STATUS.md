@@ -63,3 +63,17 @@ Next command: `cd /agent/repos/dwqww && git worktree add ../base 6b98f2170a3210e
   long56, so I took long58. All numbers reproduce EXCEPT "best moves changed 6-33", which is
   really 2-33 (FutilityDepth_p 2, FutilityDepth_m 4). S-F9.
 - Next: area 10 job 1 (check a NEW unconfirmed peer finding; 19-F2..F4 and 29-F2 remain).
+
+## 2026-11-16 (cycle 4 — HARNESS AUDIT after 19-F12 broadcast)
+- 19-F12 (piped `quit` mid-search -> fabricated `bestmove` with 0 nodes) REPRODUCED on my build:
+  piped `go depth 12` + quit on startpos -> `bestmove a2a3`, no info lines; with a 3 s wait ->
+  `e2e4`, 56,720 nodes, depth 12. Not reported as my finding (seat 19 owns it).
+- AUDIT: runner.py (job1, job2, job1r2, all S-F1..S-F9) sends one command at a time and reads to
+  `bestmove`/`readyok` before continuing, and sends `quit` only after the last case -> NOT affected.
+  Perft-based checks (castle_battery, perft2cmp, check_s01f2, job3) use `go perft`, which completes
+  synchronously, and every number equals python-chess's -> not fabricated.
+- AFFECTED and INVALID: check_s05f3.py (piped `go depth 10`) — scored nothing. Never recorded as a
+  result. Rebuilt on ucio.py (waits for bestmove).
+- New file: ucio.py — a waiting UCI driver for all future score-based work.
+- Next: verify perft is not fabricated, re-verify a runner.py result with the waiting driver,
+  then finish the S-F3 check.
