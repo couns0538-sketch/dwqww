@@ -1,0 +1,30 @@
+### S-F35 remedy on a wider set: 40 mate-rich boards, reference `go nodes 250000`
+PC r15/PC20, Threads 1, Hash 16
+
+reference computed for 40 boards
+
+softnodes 2000 (current)       mate scores   7 | undeliverable  0 | number differs  1 | MOVE differs  1
+softnodes 20000 (proposed)     mate scores  19 | undeliverable  2 | number differs  3 | MOVE differs  2
+
+Caveat that must travel with these numbers: 40 purpose-built Q/Q+R/RR/Q+B/R+B vs K endgames, chosen
+because mates appear at shallow depth. Worst-case boards, not average play.
+
+*** THIS CONTRADICTS S-F35. The recommendation does NOT replicate on a wider sample. ***
+
+13 boards (S-F35):   softnodes 2000 -> 1 undeliverable, 3 differing | softnodes 20000 -> 0 and 0   => "use 20000"
+40 boards (this run): softnodes 2000 -> **0 undeliverable, 1 differing** | softnodes 20000 -> **2 undeliverable, 3 differing**
+
+On the wider set, `softnodes 20000` is WORSE than 2000 on both measures. So S-F35's "20000 fixes both faults
+completely" is REFUTED as a general claim; it was a 13-board coincidence.
+
+WHY this is plausible rather than mysterious: at softnodes 2000 only 7 of 40 boards emit a mate score at all (the
+search rarely gets deep enough), while at 20000, 19 of 40 do. More mate claims means more opportunities for one to
+be mid-resolution and undeliverable. So raising the budget does not remove the fault; it moves the engine into the
+depth range where mate claims start appearing, and some of those claims are premature.
+
+WHAT SURVIVES: the fault is real (undeliverable mate PVs exist at both budgets), it is a horizon effect at shallow
+depth, and `go nodes 250000` is the reference that is clean in the earlier sample. What does NOT survive: the claim
+that 20000 is the fix, and any suggestion that a bigger softnodes budget monotonically improves label validity.
+
+The honest recommendation now: **validate mate PVs in any label pipeline rather than trusting the budget**, because
+both 2000 and 20000 emit undeliverable mate claims at these worst-case boards.
