@@ -625,3 +625,20 @@ SETTINGS-LIST GUARD now STRUCTURAL, as asked (this was the second occurrence, an
   job5/softnodes.py after the edit: reproduces the known overshoot exactly (671/2121).
   Finding S-F20.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## Mon Nov 16 11:52:14 PM UTC 2026
+
+JOB 18: is S-F19's clock plateau general or one position's artefact? GENERAL — S-F21.
+  5 positions x 11 clock values (1s..60s), canonical PC20 (lib/settings.py, asserted):
+    all 5 plateau; 11 clock values give only 6-8 DISTINCT node counts per position.
+    QUEEN ENDGAME: identical 1,159,670-node depth-16 search from 4 s ALL THE WAY TO 15 s.
+    startpos: 6 distinct counts, 5 plateaus; rook endgame 7 distinct, plateau 6-12 s; tactical 8 distinct.
+  Step points DIFFER per position (rook 6-12s, queen 4-15s, startpos 15-30s) — that is why this is an
+  allocator property rather than a coincidence of one position. Repeatable: startpos at 10s and 12s gives
+  depth 20 / 925,222 nodes six times over.
+  PRACTICAL: on such positions, giving the engine 15 s instead of 5 s may change NOTHING about its move,
+  so a match set at a generous time control may be measuring the same play as a much faster one.
+  NOT claimed: that this costs strength (a search stopping at a finished depth is not handicapped, it just
+  does not use the time). Mechanism ("target depth from clock, stop at finished depth") is inferred from
+  data + the patch comment, not instrumented.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
