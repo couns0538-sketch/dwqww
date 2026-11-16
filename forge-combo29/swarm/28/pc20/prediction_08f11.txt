@@ -1,0 +1,32 @@
+# PREDICTION — S28 re-run of 08-F11 on the PC build under PC20
+
+Committed and pushed ALONE before the first measuring command. Never edited afterwards.
+Written 2026-11-16 ~22:25 UTC, after reading FABLE_TO_swarm_3/4/5 and building the PC r15 engine.
+
+## What 08-F11 claims (seat 08, area 8, base tree, S14)
+"The clock tail scales linearly with the clock: p99/median is constant at 3.1-4.8x across wtime
+200/500/1000/3000/10000/30000 ms (p99 25.2 / 65.1 / 119.6 / 485.6 / 1422.7 / 3710.1 ms), and a 10x clock
+gives an 11.9x p99. The median is a slowly shrinking fraction of the planned soft limit: 100 %, 80 %,
+77 %, 75 %, 67 %, 61 %. No search at any clock size exceeded its own clock; the three rows over the
+recomputed hard limit were 0.4-0.6 ms over (stop-check latency)."
+
+## What changes on the PC build
+`FABLE_TO_swarm_5` lists `FORGE_FIX_HARD_LIMIT_EMERGENCY` and `FORGE_FIX_ROOT_DRAWN` among the PC's
+switches. The first touches the clock stop path this finding is about, so the re-run is not a formality.
+
+| # | measurement (PC r15, PC20) | predicted | range that KILLS it |
+|---|---|---|---|
+| U1 | p99/median ratio stays in 3.1-4.8x at every clock size | yes, 2.5-6.0 | outside 2.5-6.0 at any size |
+| U2 | a 10x clock (1000 -> 10000) multiplies p99 by 8-16 | yes | outside 8-16 |
+| U3 | median as a fraction of planned soft falls monotonically 200 -> 30000 | yes | not monotone |
+| U4 | no search exceeds its own wtime | yes | any row above wtime |
+| U5 | searches over the recomputed HARD plan: count and magnitude | <= 3 of ~120, and <= 2 ms over | more than 3, or more than 2 ms over |
+| U6 | the absolute medians differ from seat 08's base numbers by less than 25 % | yes | off by more than 35 % |
+| U7 | `FORGE_FIX_HARD_LIMIT_EMERGENCY` shows up as a measurably smaller hard-limit excess than the base build's 0.4-0.6 ms | yes (smaller) | larger |
+
+Reasoning: seat 08's own reconciliation (08-F10) says the two stop paths differ — `go movetime` checks the
+hard limit inside the search, `go wtime` breaks at an iteration boundary — so on a clock search the tail is
+governed by iteration length, not by the stop check. The PC's hard-limit fix should therefore change the
+OVER-hard excess (small, near zero already) but NOT the p99/median ratio, which is iteration statistics.
+So U1-U3 should reproduce closely, and U5/U7 are where the PC fix could show. 20 positions per clock size,
+which at wtime 30000 is the expensive part — hence the background run and the 25-minute push cadence.
