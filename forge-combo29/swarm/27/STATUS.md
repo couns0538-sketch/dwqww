@@ -326,3 +326,18 @@ published it, then checked: **it does not.** Correct control (book OFF, 3 reps):
 `check_clock_swap.txt` now opens with a warning that its conclusion is wrong; S-F12 is WITHDRAWN in FINDINGS.
 **One real thing did come out of it:** a game of mine FORFEITED at ply 106 (White spent 200.7 ms holding 3 ms),
 which means seat 15's forfeit prediction is right and my earlier "no forfeit at 200 plies" was too strong.
+
+## 2026-11-16T23:54Z S-C11b: the process-policy exchange is DONE
+Both policies on the same four start FENs (seat 15's own), 6 s + 0.06, PC20, Threads 1, Hash 16, OwnBook false
+hard-coded, PC r15. WARM = one process per game; COLD = a fresh process per move.
+  median nodes/move, warm vs cold: start0 190,877 / 245,809 (-22 %), start1 197,987 / 210,961 (-6 %),
+  start2 261,829 / 256,991 (+2 %), start3 192,465 / 212,022 (-9 %). median wall 120.8/137.2, 129.1/112.4,
+  157.0/132.9, 117.5/122.2 ms.
+  **Verdict: table warmth is real but small (median about -9 % nodes), and it does NOT explain my earlier 45 %
+  gap.** With both policies on the same positions BOTH of my arms land at 190-262k, i.e. at seat 15's 263,746.
+  My original 145,432 came from a different sampling: 4 games to a 200-ply cap (2 of 4 capped), per-game medians
+  101,572 / 145,890 / 150,497 / 205,472, where long endgame-heavy games drag the median down.
+  **Forfeits reproduced in BOTH policies on start2** (144-178 plies), so the forfeit belongs to that opening at
+  this control, not to either process policy - which is the "narrow margin, both true" framing.
+Also: Move Overhead is now reported BOTH ways in every clock table (raw and raw-10 ms), so no figure of mine can
+be mistaken about the convention again.
