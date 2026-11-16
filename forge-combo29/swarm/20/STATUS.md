@@ -307,3 +307,14 @@ find where the collapse begins, since 256 MB + MPV 3 showed only a partial colla
   at Hash 16 still gives up ~3.5 plies.
 Next: continue in the window; the warning page is now fully supported by 10-position data at both the catastrophic and
 the boundary end.
+
+## 2026-11-16T23:33:05Z safe limit is MultiPV-dependent — corrected again by measurement
+- **S-C34**: the "128 MB" limit I reported an hour ago was measured at **MultiPV 3 only**. At **MultiPV 8**, same
+  10-position method: Hash 16 -> median 11.0 SAFE, 64 -> 9.0 SAFE, **128 -> 6.0 UNSAFE**, 256 -> 2.0, 512 -> 1.0.
+  **So the safe limit is 128 MB at MPV 3 but only 64 MB at MPV 8** — the cliff moves left as MultiPV rises.
+- Owner page now: (a) opens with the actionable line — *multiple lines -> Hash 16 MB (least-lossy); big Hash ->
+  MultiPV 1; never both*; (b) carries BOTH MultiPV columns in one table so "128 MB" cannot be read as applying to
+  MPV 8.
+- General rule that survives: **big Hash + multiple lines is the incompatible pair**; 256 MB+ with any MultiPV > 1 is
+  unusable.
+Next: continue in the window (ends 2026-11-17T10:18Z).
