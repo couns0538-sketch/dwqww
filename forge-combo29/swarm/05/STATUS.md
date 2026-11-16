@@ -292,3 +292,9 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
 - S-F21 NEW: the truncation is position-specific and NO single option is a general cure; my "attributable to specific
   search options" sentence was an over-generalisation from one board and is withdrawn.
 - next command: leave S-F16/F19(now corrected)/F20/F21 marked OPEN (no confirming seat yet) in the FINAL block.
+
+## $(date -u)
+- S-F22 NEW: the truncation rate is 2 of 28 mate positions = 7.1% on the base build (O+G 1/10, R 1/18), depth 12,
+  S14, Threads 1, from my committed rows.jsonl. The two boards are exactly G/192 and R/120 — which is why my S-F19
+  "TtPruneV2 fixes it" was luck, and why a small mate-PV assertion usually passes.
+- next command: re-run those 2 exact boards + a fresh sample on the PC build to measure the PC rate, then write FINAL.
