@@ -119,6 +119,24 @@ false warning I printed came from my own illegal test move, caught with python-c
 
 > **A warning from a harness that has not validated its own input is not a finding.**
 
+### 100-position rates cannot order three budgets, or anything else that close
+
+**Two disjoint 100-position samples disagreed about which budget is safest.** Seat 10 measured
+`nodes 50000` agreeing with `nodes 250000` on 92/100 positions and recommended 50000 as the cheapest
+safe budget; on the **last** 100 positions of the same set I measured **78/100**, with the 20000 budget
+agreeing *better* (82/100) — the opposite ordering (07-C42).
+
+Neither measurement is wrong. 24 disagreements against 19, in 100 positions, is well inside binomial
+noise. **The lesson is that a rate of that size does not carry a ranking**: if two samples of 100 can
+flip the order of two budgets ten percentage points apart, then no 100-position comparison should be
+used to choose a default, and any such choice needs a sample large enough that the ordering is stable
+under resampling.
+
+This is the fourth number tonight that moved when I enlarged or changed the sample (the fifty-move rate
+went 95 % → 30 % → 25 %; the PC20 option table had three of six signs flip between 40 and 200
+positions). **The pattern is consistent: small samples produce confident orderings that do not survive
+a different sample.** Report a rate with its sample size and say whether it orders anything.
+
 ### The mirror invariant, stated once so nobody pays for it again
 
 **For a side-to-move-relative score under a colour mirror, the invariant is EQUALITY, not negation.**
