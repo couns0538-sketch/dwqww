@@ -331,3 +331,13 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - Owner page now records the cause and repair, so the warning is no longer "avoid this setting" but "here is why and
   here is the fix". Adoption remains Opus's call. Did NOT re-run their 2.0-4.2x timing table.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-16T23:37:13Z page opening now states cause-known / unadopted / strength-unmeasured
+- Owner page opens with: cause known (`src/search.cpp:2879 alt_shared->tt.clear()` inside the per-line loop at 2851),
+  a patch exists that restores depth 12-13 at Hash 256-512 with pins unchanged and MultiPV 1 byte-identical, but it
+  is **UNADOPTED** and its **strength effect is UNMEASURED** — "I did not measure whether it makes the engine
+  stronger, only that it stops the collapse and is reproducible". Same sentence added to the later repair section so
+  it cannot read as endorsing a strength gain.
+- **No timing number added**: I did not re-run seat 30's 2.0-4.2x table; a weak timing claim on this shared box would
+  be worse than none.
+Next: continue in the window (ends 2026-11-17T10:18Z).
