@@ -200,3 +200,14 @@ Next: continue confirming PC-path claims; MultiPV/Hash stays the live strength i
   - Method A (MultiPV 4, healthy settings): g7g6 cp -273, e5e4 -311, f5e6 -327, b8b7 -328.
   - Avoided identically: **MultiPV 1 at any Hash, or Hash <= 16 MB with MultiPV > 1.** Analysis only (matches use MPV 1).
 Next: continue confirming PC-path claims; nothing of mine awaits a decision.
+
+## 2026-11-16T22:52:01Z class test done — split verdict, and a 0-node fallback answer found
+- **S-C29** (6 G-set positions, Threads 1, pre-stated worse-than-noise-band rule): **NOT a move-quality class** —
+  WORSE 2/6 (delta -203 vs band 31; -335 vs band 310), equal 1, **SAME MOVE 3**. So the move-quality warning stays
+  MEASURED, not emphatic.
+- **But the collapsed cell is UNRELIABLE, which is a class defect**: on position 1, six runs gave `d5d4` with **0
+  NODES** then `b8a8` (nodes 67/67/143/220/220) — two moves, one a 0-node fallback answer. The per-line tt.clear()
+  can consume the entire clock. Warning: measured on move quality, **emphatic on reliability** (0-node answers,
+  varying depth and move). Load-sensitive: job51 saw b8a8 3/3 on an idle machine, so both readings are recorded.
+- Advice unchanged: **MultiPV 1 at any Hash, or Hash <= 16 MB with MultiPV > 1.**
+Next: continue confirmations on the PC path.
