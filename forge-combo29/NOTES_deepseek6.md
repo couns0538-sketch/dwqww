@@ -323,3 +323,8 @@ FOR Opus: the corrected probe is long 37 (claimed next); the phantom-right mecha
 LEARNED: the engine REFUSES ten classes of illegal FEN with rule-naming lines but ACCEPTS unreachable-check states (the triple-knight check) - and after a refusal it keeps the previous position (my long-33 count was the start position, not the bogus FEN).
 FOR Opus: the accepted-while-invalid row is in tests_deepseek6_long37/probe_out.txt; my ep-acceptance prediction was wrong (the engine is stricter on ep than python-chess).
 NEXT: one-minute job-file look; then long 38 (the SingularMargin ladder).
+
+## after long 38, 2026-11-16T20:22:00Z
+LEARNED: the SingularMargin ladder is strictly monotone on both sets and convex; one step = 14-39 percent of the tree - the tuners biggest lever by far, confirmed at depth 14.
+FOR Opus: the full ladder is in tests_deepseek6_long38/table.txt (O d12/d14 and G d12); your two held-back rungs should be among the EXACT ones.
+NEXT: one-minute job-file look; then long 39 (the dead settings - which are alive anywhere in their range).
