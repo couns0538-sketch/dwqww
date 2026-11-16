@@ -82,3 +82,11 @@ done: PC r15 build honesty (ALL MATCH), F7 terminal-root infinite hang OPEN ON T
 runs now: PC-build Threads sweep under PC20 on the PC TSan build — Threads 2 done 100/100 (0 TSan), Threads 4 at 12,
       Threads 8/16 queued. No scores recorded anywhere in this sweep (swarm rule).
 next command: cd /agent/repos/dwqww/forge-combo29/swarm/24/pc_build && python3 analyse_pc_sweep.py
+
+## 2026-11-16T22:44Z
+done: C5 CORRECTS my own F3 — the pos-90 slowdown needs Threads>1 AND warm state: at Threads 1 neither build shows
+      it (base 37.1 ms cold / 21.8 ms warm, PC r15 25.0 ms cold / 18.5 ms warm, both legal f3f8). F3's numbers stand,
+      its explanation is corrected.
+runs now: PC-build Threads sweep under PC20 (PC TSan build) — Threads 2, 4, 8 each 100/100 with 0 TSan blocks and
+      NO pos-90 timeout at Threads 8 (the base tree capped out there), Threads 16 at 19/100. No scores recorded.
+next command: cd /agent/repos/dwqww/forge-combo29/swarm/24/pc_build && python3 analyse_pc_sweep.py
