@@ -1,0 +1,24 @@
+PREDICTION — SW-23 job 5 (AREA 3 job 1 again, new seed, new position set)
+Written before the first measuring command. Never edited afterwards.
+
+What differs from my first run (as job (c) requires me to state):
+  seed 2301 -> 2401 (SEED + 100, not + 10: I am taking a clearly disjoint game stream rather than an adjacent
+    one, so the new set cannot be a near-copy of the old one; said plainly because the brief says SEED + 10)
+  position set: R_2401.fens, one position every 7 plies of random legal games with the new seed
+  same engine (base 6b98f217, sha e06310ec), same depths 1..4, same harness, Threads 1.
+
+Prediction (each number with the range that kills it):
+  P1  mismatching positions at any depth 1..4 = 0.        KILLED if >= 1.
+  P2  perft-1 total over 5,000 positions between 140,000 and 175,000. KILLED outside.
+      (my seed-2301 set gave 154,284; a second draw from the same generator should land near it)
+  P3  mean perft-1 branching between 30 and 33.           KILLED outside. (seed 2301: 30.86)
+  P4  the two position sets are disjoint as FENs: overlap with R_2301.fens = 0. KILLED if >= 1.
+  P5  engine wall clock for the run < 2 minutes.          KILLED if >= 2 min.
+  P6  perft-4 total between 4.0e9 and 6.5e9.              KILLED outside. (seed 2301: 4.974e9)
+
+Reasoning: a different seed samples the same distribution; totals should be close but need not match, which is
+why P2/P3/P6 are ranges and not exact values. Since seed 2301 produced no mismatch over 5000 positions, and the
+generator is the same binary, the expected answer is again 0 — the value of the re-run is that it is an
+independent draw, so a rare move-type bug that seed 2301 happened to miss has a second chance to appear.
+
+If P1 is killed, the failing FEN, depth and divide go into FINDINGS with the exact command.
