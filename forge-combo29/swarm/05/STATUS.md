@@ -115,3 +115,9 @@
   nodes), no sanitizer output. Not called "0 sanitizer lines proven" because this script carries neither proof.
 - next command: start job3 of area 5 again with the next seed (cycle step c for job 3): checkmated/stalemated roots
   generated afresh with random.Random(511+10) and the same three go commands.
+
+## $(date -u)
+- job3b (job 3 repeated, seed 521, 0 root overlap) DONE: 60/60 bestmove 0000, mate 0 / cp 0, 0 nodes, 0 crashes,
+  0 hangs, 0 sanitizer output; 7/7 predictions HELD. S-F7 (depth-64 iteration at terminal roots) REPRODUCES on
+  fresh positions, now recorded in that finding's evidence.
+- next command: python3 job3b/run_job3b.py with the planted-fault exe to attach the sanitizer proof to job3b itself.
