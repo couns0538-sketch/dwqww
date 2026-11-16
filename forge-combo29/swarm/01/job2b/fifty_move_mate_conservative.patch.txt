@@ -1,0 +1,18 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -2248,8 +2248,13 @@
+     };
+ 
+     // Terminal or adjudicated roots: report without searching.
+-    const bool root_drawn = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
+-                                               board.is_insufficient_material());
++    // A fifty-move claim at the root is only adjudicated when the side to move cannot mate at all
++    // (no non-pawn material: a lone king). Otherwise a mate may still be reachable before the claim
++    // is available, and the leaf test in is_draw() already keeps a mate on the hundredth half-move a win.
++    const bool root_drawn = !legal.empty() &&
++        (board.is_repetition() ||
++         (board.halfmove_clock() >= 100 && !board.has_non_pawn_material(board.side_to_move())) ||
++         board.is_insufficient_material());
+     if (root_candidates.empty() || root_drawn) {
+         int score = 0;
+         if (legal.empty() && board.in_check()) score = -MateValue;

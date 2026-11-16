@@ -1,3 +1,5 @@
+# SUPERSEDED by checks/CHECK_2640_RESOLVED.md — the mechanism sentence in this file is WITHDRAWN.
+
 # CHECK of seat 17 S-F1 / S-F2 — CONFIRMS (with hard assertions on every parsed value)
 
 ## Seat 17's claims (verbatim from its FINDINGS.md)
