@@ -1,0 +1,21 @@
+PREDICTION — seat 03, area 3, job 3 (committed and pushed ALONE before any measuring command)
+
+Job: perft 5 on 200 R positions (R set, SEED 301, first 200 lines) and on the first 30 lines of G
+(set_G.epd, branch for-fable-and-opus/kimi5-work), engine vs python-chess. Plus, as a control, startpos
+perft 5 by the engine (must be 4,865,609, already shown in HONESTY.txt).
+
+Predicted values, with the range that kills them:
+1. Differing (position, depth=5) pairs: predicted 0.   KILL: >= 1.
+2. Positions where python-chess refuses the FEN: predicted 0.   KILL: >= 1.
+3. Engine crashes / restarts / error lines on the 230 positions: predicted 0 each.   KILL: >= 1.
+4. Sum of the 200 R perft-5 nodes: predicted between 4e8 and 6e10.   KILL: outside (harness bug).
+   Sum of the 30 G perft-5 nodes: predicted between 1e8 and 3e10.   KILL: outside.
+5. Wall time of python-chess perft 5 on the 230 positions with 4 workers: predicted under 45 minutes.
+   KILL: over 90 minutes, in which case the python side is reported as not done (not as passed).
+6. Engine wall time for perft 5 on the 230 positions: predicted under 30 s.   KILL: over 300 s.
+7. Mean engine nps for perft 5 on these positions: predicted 5e6 to 6e7.   KILL: outside 1e6..2e8.
+   (This is the number that would flag a build with a broken bulk-counting path.)
+
+Why 1 is predicted 0: perft 1..4 over 5,000 random positions is predicted 0 in job 1; depth 5 exercises the same
+move generator one ply deeper, and the only new failure mode is an arithmetic overflow in the node counter, which
+230 positions at ~1e8 nodes cannot reach in a 64-bit counter.
