@@ -48,7 +48,7 @@ FENS = [
     "rnbqkbnr/ppp2ppp/4P3/8/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 3",
     "r1bqkbnr/ppp1pppp/3p4/3Pn3/4P3/8/PPP2PPP/RNBQKBNR w KQkq - 1 4",
 ]
-BUDGETS = [20000, 50000]
+BUDGETS = [20000, 50000, 250000]
 
 
 class Missing(Exception):
