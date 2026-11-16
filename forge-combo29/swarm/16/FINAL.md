@@ -132,12 +132,20 @@ worse by >30 cp              : 4 positions   (worst +109)
 BETTER by >30 cp             : 3 positions   (best -109)
 ```
 
-The 2,000-node budget loses ground on four positions and **gains it on three**. So the natural worry — that
-self-play at 2,000 nodes is underpowered and its games are poor training data — **is not supported by this
-sample.** Combined with S-F29 (varied starts give varied games) and S-F16 (the budget is deterministic and stops
-at a finished depth), the self-play path is in reasonable shape; the two things to know about it are the ~1.7x
-node overshoot and the need for varied starts, not move quality. The single largest loss is idx 34
-(`8/5p2/1k6/p4r1p/1b1R1P2/6K1/8/8 w`, +109 cp), committed with its FEN if the owner wants to look.
+The 2,000-node budget loses ground on four positions and **gains it on three** — so the concern that it is
+uniformly underpowered is not supported. **But the count is the wrong measure, and `S-F31` corrects it:** I
+re-judged all seven large cases at reference depths 12/14/16/18, and while every sign survived (7 of 7), the
+magnitudes of the four LOSSES grew (+92→+130, +79→+69, +39→**+209**, +109→+136) while the three GAINS stayed
+modest (−58, mate, −63). So the accurate statement is:
+
+> **The 2,000-node budget errs about as often in each direction, but its errors cost more than its lucky wins.**
+
+That is what a shallower search should look like, and it is a weaker claim than either "it plays badly" or "it is
+a wash". The self-play path is still usable — `S-F29` showed varied starts give varied games and `S-F16` showed
+the budget is deterministic and stops at a finished depth — so the two operational things to know remain the
+~1.7x node overshoot and the need for varied starts. But if the owner is choosing a self-play budget for
+strength, the evidence says move up from 2,000 rather than stay: the losses are the ones that grow with depth.
+The single largest loss is idx 34 (`8/5p2/1k6/p4r1p/1b1R1P2/6K1/8/8 w`, +136 cp at depth 18).
 
 **2.3b Two measurement-discipline results that others can use directly.**
 `S-F6`: the built-in book **cannot affect an analysis search** — `src/uci.cpp:524-528` probes it only when

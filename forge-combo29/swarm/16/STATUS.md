@@ -335,3 +335,18 @@ seed: 1601
      in one place: ~1.7x node overshoot and the need for varied starts are the two things to know, not move
      quality).
 - check_folder.py: ALL CHECKS PASS. Holding cadence to the close.
+
+## 2026-11-16T23:48Z
+- S-F31 CORRECTS my own S-F30 and changes the answer to the coordinator's "removed worry". I re-judged all seven
+  of S-F30's |cost|>30 cases with deeper reference searches (depths 12/14/16/18):
+    * every SIGN survived (7 of 7) — so S-F30's individual cases are real, not depth-12 proxy artefacts;
+    * but the MAGNITUDES of the four LOSSES GREW (+92->+130, +79->+69, +39->+209, +109->+136) while the three
+      GAINS stayed modest (-58, mate, -63).
+  So "the self-play budget is a wash" is true in COUNT (4 worse vs 3 better) but NOT in magnitude. The accurate
+  statement, now in FINAL 2.3a: the 2,000-node budget errs about as often in each direction, but its errors cost
+  more than its lucky wins — and if the owner is choosing a self-play budget for strength, the evidence says move
+  up from 2,000. My P2 (that the magnitude would shrink with depth) was REFUTED.
+- I also caught and fixed a nonsense word ("magistrates" for "magnitudes") in that same FINAL edit within a
+  minute of writing it; worth recording because a garbled word in a summary is exactly what makes a careful
+  reader distrust the numbers beside it.
+- check_folder.py: ALL CHECKS PASS (380 files, 36 findings rows). Holding cadence; FINAL block at 10:19Z.
