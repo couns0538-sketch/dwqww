@@ -1,0 +1,24 @@
+# PREDICTION — job33: does the node undershoot change the move on TACTICAL positions?
+written before the first measuring command.
+
+job32 found the bestmove stable from depth 10 on 10 middlegame positions. The remaining question
+that could make 21-F16 urgent: on positions that need depth to see a tactic, does the undershoot
+pick a worse move?
+
+Method: build a tactical set myself with python-chess — positions where a piece can be won by a
+combination of 3+ plies, verified by a shallow search for a large material swing (not by trusting
+a label). Then compare the move at a SMALL budget (what the undershoot actually delivers, e.g.
+N=20000 which really used ~14,600) against the move at a LARGE budget (N=400000), and score both
+with a FIXED reference search.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | at least 3 of 12 tactical positions give a DIFFERENT bestmove at 20k vs 400k | if 0-1 differ, the undershoot is not tactically costly either |
+| P2 | where the moves differ, the 400k move scores better at a fixed 200k reference search by >= 50 cp | killed if the 20k move is equal or better |
+| P3 | the depth gap between 20k and 400k is at least 5 plies on these positions | killed if smaller (then they are not deeper-solved) |
+| P4 | all runs deterministic | killed by any difference |
+| P5 | 0 crashes, 0 sanitizer lines | killed by any one |
+
+Building the set: random legal games are too noisy. I will take positions from set G where a
+capture wins material (a shallow SEE-like check with python-chess: after the best capture sequence
+the side to move is up a piece), and keep the first 12.
