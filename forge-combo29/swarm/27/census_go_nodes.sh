@@ -100,23 +100,29 @@ echo "== 3. DATA ROWS carrying a node count of 0 or 1..25 (the band's fingerprin
 #   pass 3  requires position + node count + move/score -> this is the definition below.
 # The lesson is in the script on purpose: a wide grep over a repository full of transcripts will always
 # "find" rows, and the only way to tell a label from a log line is to open the matches.
-LABEL_RE='("fen"|"epd").*"(nodes|n)"[[:space:]]*:[[:space:]]*([0-9]|1[0-9]|2[0-5])[^0-9].*"(bestmove|move|score|"score")'
+# ORDER-INDEPENDENT by design. My first version required "nodes" to appear BEFORE "bestmove" on the line,
+# which is true of one export and false of another (and false of the synthetic test file I checked it
+# against: 0 rows found in data I knew had them). A row qualifies when the line holds a POSITION, a
+# MOVE-OR-SCORE field, and a node count in the band -- in ANY order. Three separate greps, then the
+# intersection, which cannot depend on field order.
+HAS_POS='("fen"|"epd")'
+HAS_MOVE='("bestmove"|"move"|"score")'
+HAS_BAND='"(nodes|n)"[[:space:]]*:[[:space:]]*([0-9]|1[0-9]|2[0-5])([^0-9]|$)'
 ROWS=0
 SAMPLES=$(mktemp)
-if [ -n "$FILES" ]; then
-  ( cd "$DIR_ABS" && printf '%s\n' "$FILES" | tr '\n' '\0' \
-      | xargs -0 -r grep -nHE "$LABEL_RE" 2>/dev/null ) > "$SAMPLES" || true
-  ROWS=$(wc -l < "$SAMPLES")
-fi
-# also report the wider "position + node count, any range" population, so the reader sees the denominator
 POOL=$(mktemp)
 if [ -n "$FILES" ]; then
   ( cd "$DIR_ABS" && printf '%s\n' "$FILES" | tr '\n' '\0' \
-      | xargs -0 -r grep -hE '("fen"|"epd").*"(nodes|n)"[[:space:]]*:[[:space:]]*[0-9]+.*"(bestmove|move|score)"' 2>/dev/null ) > "$POOL" || true
+      | xargs -0 -r grep -nHE "$HAS_POS" 2>/dev/null \
+      | grep -E "$HAS_MOVE" | grep -E "$HAS_BAND" ) > "$SAMPLES" || true
+  ROWS=$(wc -l < "$SAMPLES")
+  ( cd "$DIR_ABS" && printf '%s\n' "$FILES" | tr '\n' '\0' \
+      | xargs -0 -r grep -hE "$HAS_POS" 2>/dev/null \
+      | grep -E "$HAS_MOVE" | grep -E '"(nodes|n)"[[:space:]]*:[[:space:]]*[0-9]+' ) > "$POOL" || true
 fi
 POOLN=$(wc -l < "$POOL")
-echo "  label-shaped rows anywhere in these files (position + node count + move/score): $POOLN"
-echo "  of those, rows whose node count is 0 or 1..25 (THE BAND)                       : $ROWS"
+echo "  label-shaped rows anywhere in these files (position + node count + move/score, any field order): $POOLN"
+echo "  of those, rows whose node count is 0 or 1..25 (THE BAND)                                       : $ROWS"
 if [ "$ROWS" -gt 0 ]; then
   echo "  first 10 (inspect these):"
   head -10 "$SAMPLES" | cut -c1-200 | sed 's/^/    /'

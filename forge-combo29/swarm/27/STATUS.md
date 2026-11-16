@@ -257,3 +257,22 @@ S-C10: PC r15, Threads 1, Book Depth 100 so the book can fire at all.
   line (e2e4) vs 0 (d2d4).
 That second half is the control seat 16's own check could not show: a book that never fires looks exactly like a
 book correctly excluded from analysis searches. With it, their claim holds on the PC build.
+
+## 2026-11-16T22:56Z File 6 read: TWO of my verdicts changed, new area started
+**S-V1 (verdict change).** File 6's rule: a cp 0 at a high counter is a defect ONLY if a forced mate exists with
+`2N-1 <= 100-counter` AND the real-counter search still scores cp 0. Measured on the PC build (PC20, Threads 1,
+`go depth 20`, fresh process per row): **seat 08's K+R vs K board `1K6/8/8/3R4/8/8/8/k7 w` is `mate 8` at counter
+0, so 2N-1 = 15**, while at counter 91 only `100-91 = 9` half-moves remain -> 15 <= 9 is FALSE, the mate cannot
+land before the match program ends the game, and cp 0 is CORRECT. My quiet middlegame does not even score cp 0 at
+high counters (90 -> cp 17, 91 -> cp 17, 99 -> cp 21). **So the "band" I recorded in S-C8 is NOT a defect on
+either board**, and the "genuine defect" sentence in S-C8 is superseded. The node spike stays a performance note.
+**S-V2 (verdict change).** My Threads-2 non-determinism observation is NOT a defect: File 6 confirms shared-table
+multi-thread variation is by design, and a real multi-thread defect is only a hang/crash/illegal move/sanitizer
+line/out-of-spread score that does not shrink with depth. I saw none of those. S-F7a stands only as a HARNESS rule
+(pin at Threads 1, use a range above it).
+**S-N1 (new area, softnodes).** PC r15/PC20/Threads 1, 4 real-game-family positions, N = 2,000 and 20,000, 3
+fresh processes per cell: **deterministic 8 of 8 cells** (bestmove, score and final node count identical across
+all three runs), **finished depth 8 of 8** (every reply carried a pv), and **overshoot 1.02x-1.95x N, median 1.20x**.
+So the self-play contract holds exactly and its labels are reproducible.
+**S-P8.** The census script is now generic (git mode inside a repo, `find` outside) and self-tested on a synthetic
+300-row directory where it correctly found 153 band rows — which also caught a field-order bug in my own regex.

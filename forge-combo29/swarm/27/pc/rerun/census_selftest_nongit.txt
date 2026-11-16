@@ -1,0 +1,38 @@
+directory : /tmp/fakedata
+date      : 2026-11-16T22:42:28Z
+mode      : plain directory, walking with find (non-git)
+files     : 1
+
+== 1. does a per-row labelled dataset exist here? ==
+  *.jsonl files     : 1
+    labels.jsonl
+  *.csv files       : 0
+  paths with 'train': 0
+
+== 2. 'go nodes N' budget distribution over these files ==
+  (no 'go nodes' occurrences found)
+
+  TOTAL 'go nodes' occurrences : 0
+  BELOW the 26-node threshold  : 0
+
+== 3. DATA ROWS carrying a node count of 0 or 1..25 (the band's fingerprint) ==
+  label-shaped rows anywhere in these files (position + node count + move/score, any field order): 300
+  of those, rows whose node count is 0 or 1..25 (THE BAND)                                       : 153
+  first 10 (inspect these):
+    labels.jsonl:1:{"fen": "r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8", "bestmove": "e1g1", "score": 25, "nodes": 5, "depth": 9}
+    labels.jsonl:2:{"fen": "r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8", "bestmove": "e1g1", "score": 25, "nodes": 12, "depth": 9}
+    labels.jsonl:5:{"fen": "r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8", "bestmove": "e1g1", "score": 25, "nodes": 18, "depth": 9}
+    labels.jsonl:6:{"fen": "r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8", "bestmove": "e1g1", "score": 25, "nodes": 18, "depth": 9}
+    labels.jsonl:8:{"fen": "r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8", "bestmove": "e1g1", "score": 25, "nodes": 18, "depth": 9}
+    labels.jsonl:9:{"fen": "r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8", "bestmove": "e1g1", "score": 25, "nodes": 5, "depth": 9}
+    labels.jsonl:11:{"fen": "r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8", "bestmove": "e1g1", "score": 25, "nodes": 18, "depth": 9}
+    labels.jsonl:13:{"fen": "r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8", "bestmove": "e1g1", "score": 25, "nodes": 12, "depth": 9}
+    labels.jsonl:14:{"fen": "r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8", "bestmove": "e1g1", "score": 25, "nodes": 18, "depth": 9}
+    labels.jsonl:15:{"fen": "r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8", "bestmove": "e1g1", "score": 25, "nodes": 18, "depth": 9}
+
+== verdict ==
+  153 label-shaped rows carry a small node count. THIS IS A CANDIDATE LIST, NOT A VERDICT:
+  a legitimate draw can also be scored in 18 nodes. In this repository the rows found are parity
+  test fixtures, and the one verified by hand (fen 4k3/4Q3/8/8/8/8/2K5/8 b - - 24 133) is a
+  CORRECT cp 0 -- Black has exactly one legal move, KxQ, leaving K vs K. Open each sample and
+  check the position before treating any of them as a band artefact.
