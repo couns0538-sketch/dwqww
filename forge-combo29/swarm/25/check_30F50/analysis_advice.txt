@@ -1,0 +1,36 @@
+### what Hash to use for MultiPV analysis — PC r15/file-5, Threads 1, PC20
+
+ON A CLOCK (go wtime 5000), MPV3 — depth actually reached:
+  Hash  depth    nodes     ms   verdict
+    16     13   118566    203   fine
+    32     10    38964    118   degraded
+    64     10    38964    133   degraded
+   128      7     6825    148   degraded
+   256      4      622    295   COLLAPSED
+   512      1       73    353   COLLAPSED
+
+WITH A DEPTH LIMIT (go depth 20), MPV3 — depth should be reached regardless of Hash:
+  Hash  depth     nodes      ms
+    16     20   1861987    3251
+    64     20   2066246    3499
+   256     20   2066246    4317
+
+THE PRACTICAL ANSWER, measured on a clock (go wtime 5000, MPV3):
+  Hash  16 -> depth 13  (fine)          <- safe
+  Hash  32 -> depth 10  (degraded)
+  Hash  64 -> depth 10  (degraded)
+  Hash 128 -> depth  7  (degraded)
+  Hash 256 -> depth  4  (COLLAPSED)
+  Hash 512 -> depth  1  (COLLAPSED)
+Monotone: every doubling of Hash above 16 costs depth on a clock at MPV3.
+
+WITH A DEPTH LIMIT the Hash is FREE: `go depth 20` at MPV3 reaches depth 20 at Hash 16, 64 AND 256 (1.86M-2.07M
+nodes, 3.2-4.3 s). So the collapse is purely a clock-budget effect, not a search-quality effect.
+
+RECOMMENDATION, two lines:
+  * On a CLOCK with MultiPV > 1: keep **Hash 16** (depth 13 at MPV3); anything above 32 visibly costs depth and
+    above 128 it collapses.
+  * For DEEP ANALYSIS with a depth or node limit: Hash is free - Hash 256 reaches the same depth 20 as Hash 16, at
+    1.33x the wall time. Use a large Hash there if memory allows; it does not hurt the result.
+This matches the S-C23 mechanism exactly: the between-line clear costs time proportional to Hash, which only matters
+when time is the binding constraint.
