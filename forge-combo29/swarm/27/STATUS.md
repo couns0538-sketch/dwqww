@@ -5,6 +5,16 @@ seed: 2701
 
 # FINAL STATE — all findings, raw files and patches are on this branch
 
+## THE TWO THINGS A MERGER NEEDS (both at the top of PATCHES.md)
+1. **Composition order and paths**: seat 12's `two_doors_mate.patch.txt` FIRST with `-p1` from the directory
+   that CONTAINS `forge-combo29/`; then my `job1/drawn_root_reporting.patch.txt` with `-p1` from INSIDE
+   `forge-combo29/`. The two patch files have different path roots — that is the trap. Reverse order fails.
+   Combined tree builds to sha256 `80b5e535fad4ea12305868198c4c4cc4994b9caec75113f617a59c95b5573507`.
+2. **The assertion**: `bash forge-combo29/swarm/27/assert_composition.sh <your-forge>` searches
+   `6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 100 60` (clock 100, White has Ra8#). PASS (exit 0) = bestmove `a1a8` and a
+   `score mate 1` line. Verified three ways: base FAIL (`f2f3`), seat 27 alone FAIL (`f2f3`, 1 info line),
+   seat 12 alone and seat 12+mine PASS (`a1a8`).
+
 ## Honesty gate (every build I used)
 Base `e06310ec`, three-patch set `d3f1a40f` (rebuilt twice, identical sha256):
 bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609 — all four PASS, base and patched.
@@ -41,5 +51,18 @@ Withdrawn: S-F6 (duplicate of 01-F5/01-F8 — I had not read their file when I w
 - The move generator's attack tables and the time manager as source-reading jobs.
 - TSan (area 4 owns it).
 
-Next command if time is granted:
-  cd /agent/repos/base/forge-combo29 && sed -n '1783,1830p' src/search.cpp
+## S-F8 BOUNDED (job 7) — still OPEN, but now measurable
+With `IirDepth 20` (IIR cannot fire at depth 12) the restricted search still reports cp 26 vs cp 34
+unrestricted: **8 cp gap with IIR provably inactive**, so IIR is not the whole cause. At `IirDepth 2` (S14) the
+restricted score is 4 cp HIGHER and the plain search plays d2d4 while both restricted variants play e2e4 — the
+sign is unstable, which is worse for move-quality reasoning than a consistent bias. Third cause unidentified;
+stated, not guessed. Raw: `job7/f1/`. Detail: store `internal/swarm/seat-27-sf8-bound.md`.
+
+## CORRECTION to my own job-5 report
+The S-F8 table in REPORT_job5.md was labelled "S14" and was measured with **default tuning**. Numbers stand
+(re-verified: cp 30 / cp 23), label fixed in both REPORT_job5.md and job5/f3/README.txt. The S14 numbers are the
+IirDepth-2 row in job7 (cp 24 vs cp 28 — smaller and opposite sign). This mislabel is exactly what hid the sign
+flip the first time.
+
+Next command:
+  git -C /agent/repos/dwqww show for-fable-and-opus/swarm-27:forge-combo29/swarm/27/PATCHES.md | head -60
