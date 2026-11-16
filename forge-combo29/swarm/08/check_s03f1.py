@@ -126,7 +126,7 @@ def emit(s):
     print(s)
 
 emit("## seat 03 S-F1 — perft 1..4 and root MOVE SETS against python-chess")
-emit()
+emit("")
 emit("| quantity | value |")
 emit("|---|---|")
 emit("| positions | %d (my R set, SEED 801) |" % len(fens))
@@ -135,7 +135,7 @@ emit("| count mismatches | **%d** |" % len(mismatch))
 emit("| depth-1 MOVE SET mismatches | **%d** |" % len(setbad))
 emit("| max branching factor in the sample | %d |" % max(r["branch"] for r in rows))
 emit("| comparator demonstrably able to fail | %s |" % can_fail)
-emit()
+emit("")
 if not mismatch and not setbad:
     emit("**CONFIRMS**: every perft count 1..4 and every depth-1 move set equals python-chess on %d positions." % len(fens))
 else:
