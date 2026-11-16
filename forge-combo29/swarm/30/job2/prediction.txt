@@ -1,0 +1,34 @@
+PREDICTION — seat 30, area 10, job 2 (recount deepseek6 long56), committed BEFORE any measuring command.
+seed 3001.
+
+Target: forge-combo29/REPORT_deepseek6_long56.md on branch for-fable-and-opus/deepseek6-work
+(newest REPORT_deepseek6_long* by number: long56; the branch has long1..long56 with gaps at 4,5).
+
+What I expect when I compare its report against its committed raw files and re-run its own pipeline
+with MY OWN runner on MY OWN ASan+UBSan build:
+
+P1. The report's headline "2,000 sequences / ok 2000" will NOT be matched by its raw summary file:
+    out/fuzz56_summary.txt holds {'seqs': 0, ...} - the seqs counter is never incremented.
+    Killed if fuzz56_summary.txt shows seqs == 2000.
+
+P2. The report's "the per-sequence records are in out/" is false: out/ holds exactly 2 files
+    (fuzz56_summary.txt, bad_sequences.txt) and no per-sequence record.
+    Killed if out/ holds a per-sequence record file.
+
+P3. Its "illegal bestmoves 0" is VACUOUS for most sequences: fuzzuci56.py re-parses a raw UCI
+    line through chess.Board(), so every "position startpos ..." line raises ValueError and is
+    skipped, and 'best'/'pos_line' are never used. I expect the number of sequences whose
+    bestmove was ACTUALLY checked to be far below 2000 - I predict under 300 (i.e. < 15 %).
+    Killed if my emulation of its own code checks >= 300 sequences.
+
+P4. Zero of its numbers will be proven under a sanitizer: there is no .meta with an nm __asan_
+    count and no planted-fault run anywhere in the folder. Killed if such a file exists in
+    tests_deepseek6_long56/.
+
+P5. Re-running the same generator + my own runner on my ASan build: 0 crashes, 0 sanitizer lines,
+    0 hangs. (So its clean result is probably TRUE even though its evidence is thin.)
+    Killed by any crash / sanitizer line / hang.
+
+P6. Its sequence file is NOT committed and cannot be regenerated from the branch alone: make_uci56.py
+    reads /tmp/ds6_work/... which exists only on its own machine. Killed if the branch carries
+    /tmp/uci56_seqs.txt or an equivalent committed sequence file.
