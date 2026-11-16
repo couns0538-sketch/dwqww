@@ -1,0 +1,30 @@
+seat 25's refusable-aware repair: premise, scope and cost, on PC r15 / PC20 / Threads 1 / Hash 16
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+NOTE: I do not have seat 25's patched build, so I verify their PREMISE and the SCOPE of the
+repair, not their node counts. What I could not check is listed at the end.
+
+A_quiet_mate3_clock99	8/8/8/8/2K4Q/8/8/1k6 w - - 99 1	depth20 cp 0 (d=20)	clock1000 cp 0 (d=64)	reset moves: none
+B_resetting_mate_clock100	8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1	depth20 mate 2 (d=20)	clock1000 mate 2 (d=64)	reset moves: ['h6h7']
+C_no_clock_baseline	rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1	depth20 cp 18 (d=20)	clock1000 cp 14 (d=14)	reset moves: ['h2h3', 'g2g3', 'f2f3', 'e2e3']
+
+A (quiet mate-in-3 at clock 99): engine says cp 0 at depth 20. By file 6's rule the MATCH is a
+  draw at the 100th half-move before that mate can land (it needs 3 plies, only 1 is left), so
+  the engine's answer cannot change a match result. Seat 25's own S-C5 reaches the same
+  conclusion for their 8 boards, so their S-F22/S-F23/S-F24 repair is priced against a
+  non-defect for the owner's matches. That is the tension: a correct mechanism description
+  (S-F15/S-F16/S-F17) does not make the repair worth its 11-20 plies of depth.
+
+B (counter-RESETTING mate at clock 100, my S-F48 class): engine says mate 2 at depth 20.
+  Here the mating line starts with a capture or pawn move (['h6h7']), the counter resets, and the
+  opponent never gets the 100th-half-move cut-off. So THIS is the class where a repair has real
+  value - and the PC build already gets it right (mate found), which is why no patch is needed.
+
+C (no clock involvement): cp 18 at depth 20 - the depth baseline the price should be compared
+  against, so a depth drop on A is attributable to the clock, not to the position type.
+
+BOTTOM LINE for the owner: seat 25's repair is technically sound and cheap where it fires, but
+for the owner's match program it addresses a position class the match program ends before it
+matters. The class that DOES matter (counter-resetting mates) is already correct on the PC
+build. So the repair is not needed; if it is taken for human-play reasons, price it at the
+11-20 plies seat 25 measured and scope it to human games, not to self-play.
