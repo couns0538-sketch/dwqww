@@ -1,0 +1,25 @@
+# PREDICTION — area 6, job 2 (left-right mirror, positions without castling)
+
+Task: static `eval` of every G position that has NO castling rights, plus positions from my R set that have no
+castling rights, compared with `chess.Board(fen).transform(chess.flip_horizontal)`. Same three numbers
+(hce, nnue, total).
+
+Why this differs from job 1: the colour flip (rank reflection + colour swap) preserves chirality; the
+left-right flip reverses it. A hand-written term that is not file-symmetric (e.g. a king-safety term with a
+file-dependent bonus, or piece-square tables that are not mirrored in file) will break here even though job 1
+passed.
+
+P1. Number of positions where any of hce/nnue/total differs: predicted MORE THAN ZERO, specifically 5 to 60
+    of the (G-without-castling + R-without-castling) set.  Kills it: 0 differences (then the evaluation is
+    left-right symmetric too, which would be a notable positive result and would refute my expectation), or
+    more than 150 (then the evaluation is grossly asymmetric).
+
+P2. Differences will be small in magnitude: |Δtotal| median predicted <= 40 centipawns.  Kills it: a median
+    above 100 (that would suggest a sign or index error, not a tuning asymmetry).
+
+P3. The positions that differ will be enriched in ones whose king is off the e-file or whose pawn structure
+    is one-sided.  Kills it: no correlation at all (I will report the correlation honestly either way).
+
+P4. Control: a position compared with its own left-right mirror TWICE (mirror of the mirror = original) must
+    give identical numbers on both steps; and a position compared with ITSELF must be identical.
+    Kills it: any difference in the control (then the harness is broken).
