@@ -1,0 +1,19 @@
+seat 10 check3 — reproduce seat 06's finding S-F5 alone: "total is clamp(hce + nnue) because
+nnue_weights.inc:3 defines FORGE_NNUE_RESIDUAL 1, so a left-right flip can leave `total` bit-identical
+while both hce and nnue move (3 of 764 positions)".
+Prediction, committed and pushed ALONE before the first measuring command:
+
+P1. FORGE_NNUE_RESIDUAL is 1 at nnue_weights.inc line 3, and eval.cpp:611 computes
+    total = clamp(handcrafted + nnue, -MateInMaxPly+1, MateInMaxPly-1).  (kill: either differs)
+P2. On a large sample (>= 3,000 positions from G and from my own random games) there are positions where
+    hce changes and nnue changes under a left-right flip but total does NOT change; I predict at least one
+    such position, matching seat 06's mechanism.  (kill: zero such positions in >= 3,000)
+P3. Every such position is a genuine cancellation, not a parse artefact: I will re-send both the original
+    and the flipped FEN in FRESH processes and get the same three numbers again.
+    (kill: any number moves between runs)
+P4. Where total DOES change under the flip, it always equals clamp(hce+nnue) recomputed from the printed
+    hce and nnue (i.e. the formula holds on 100% of sampled positions, not just where it matters).
+    (kill: any position where printed total != clamp(hce+nnue))
+P5. Seat 06's exact count (3 of 764) does NOT reproduce on my sample -- I use a different position set,
+    so I predict a different count and will say so plainly instead of calling the finding refuted.
+    (kill: I happen to draw exactly the same 764 positions, which I will check and report if so)
