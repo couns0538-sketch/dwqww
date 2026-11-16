@@ -655,3 +655,20 @@ FINDINGS.md now opens with a classification header so a reader can tell at a gla
 Table structure verified intact (7 columns per row) after the edits.
 FINAL_NOTES.md updated to carry this framing requirement into the close.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## Mon Nov 16 11:56:23 PM UTC 2026
+
+JOB 19: measured the match-relevant step of S-F21 — does the TIME CONTROL change the MOVE? S-F22.
+  40 real G positions x 4 clocks (2k/6k/20k/60k ms), PC20, Threads 1, Hash 16, winc 60, fresh process:
+    2000 vs 6000   : same move 34/40 (85.0 %)
+    2000 vs 60000  : same move 31/40 (77.5 %)  <- the LOW end moves differ most
+    20000 vs 60000 : same move 39/40 (97.5 %)  <- the TOP of the range barely moves
+  SHARP RESULT: across all 240 pairwise comparisons, IDENTICAL node counts ALWAYS gave an identical move
+  (6 of 6, zero exceptions) — so the quantisation plateau is literally the same search, not just the same
+  amount of work. (Converse not true: 195 of 234 differing-node cases still played the same move.)
+  IMPORTANT CORRECTION TO MY OWN FRAMING: "a generous time control may change nothing about the move" is
+  right, but the measured rate is ~1 position in 5 differing at the low end — so a time control is NOT
+  interchangeable with any other. Recorded explicitly in the report rather than leaving the stronger
+  impression standing.
+  Still NOT A DEFECT and NO STRENGTH CLAIM: not measured whether the changed moves are better.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
