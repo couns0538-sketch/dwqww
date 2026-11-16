@@ -96,3 +96,23 @@ job5 done: settled seat01-vs-07 on search.cpp:2640. Both-branch marker build: se
 cases_s01.txt
 raw
 stamps.txt
+
+## 2026-11-16T21:48:05Z
+job4+job6 done (board.cpp read): castling-after-capture, ep-without-capturer, king-across-null all clean, each probe failable via a planted fault; perft equal to python-chess on 14 special positions; key_after correct on 1,520,927 cases with a planted fault caught 608 times. No new FINDINGS: board.cpp is clean in the three areas asked about.
+### git status --short
+ M STATUS.md
+ M job4/stamps.txt
+?? REPORT_job6.md
+?? job6/
+### ls job4 job6
+perft_board.py
+raw
+stamps.txt
+---
+board_probes.cpp
+board_probes_run.txt
+epkey_probe.cpp
+epkey_run.txt
+key_after_run.txt
+key_after_test.cpp
+stamps.txt
