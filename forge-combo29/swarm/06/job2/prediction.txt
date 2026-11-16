@@ -1,0 +1,34 @@
+PREDICTION — seat 06, area 6, job 2 (static evaluation vs the LEFT-RIGHT mirror)
+written before the first measuring command. Never edited afterwards.
+
+What is measured: `eval` of every G position and 500 R positions that have NO castling rights, and of the same
+board under python-chess `board.transform(chess.flip_horizontal)` (files mirrored, colours untouched, side to
+move untouched). Positions with any castling right are EXCLUDED and the exclusion is counted, because the
+horizontal flip would move a rook away from the square its castling right names.
+
+Why a difference is expected rather than a fault: chess is not left-right symmetric, and this engine's
+hand-written parameters were texel-tuned on 61,536 self-play games (src/eval_params_table.inc line 1). I measured
+the table before writing this prediction: 48 of 64 Pawn PSQT entries and 64 of 64 for Knight, Bishop, Rook,
+Queen, King differ from their left-right mirror. So the hce MUST differ. The job is to measure how much, and to
+name which terms can respond to the flip.
+
+Prediction (each number with the range that kills it):
+P1  positions with a differing `total`: more than 90 % of the compared positions.
+    KILLED if fewer than 50 % differ (that would mean the flip is invisible, which the table says it cannot be).
+P2  the number of positions differing in `nnue` EQUALS the number differing in `total`, exactly.
+    KILLED by any single position where these two counts disagree (the built-in net is non-residual, so
+    total == nnue whenever the net is on; this is a sharp internal-consistency check of my own harness).
+P3  median |hce(self) - hce(h-flip)| is at most 120 centipawns and the maximum is at most 600.
+    KILLED if the median exceeds 120 or any position exceeds 600 — a structural mirror bug (a file index used
+    without mirroring) pushes deltas into the hundreds-to-thousands, while PSQT tuning differences are tens.
+P4  control: a position against itself gives 0 differences. KILLED by any difference.
+P5  the h-flip differences are NOT all in one direction: both positive and negative deltas occur.
+    KILLED if every nonzero delta has the same sign.
+P6  at least one position differs in hce while `total` differs too, and at least one position differs in hce
+    while `nnue` differs by a different amount (i.e. the two components are not locked together).
+    KILLED if hce and nnue deltas are equal on every position.
+P7  excluding castling positions removes fewer than 15 % of G. KILLED if more than 15 % are excluded.
+
+I will NOT call a left-right difference a fault. A left-right difference is what an asymmetric tuned parameter
+table must produce. What would be a fault is a term that mirrors the board in code but reads a file index
+unmirrored, and P3's magnitude bound is the test for that.
