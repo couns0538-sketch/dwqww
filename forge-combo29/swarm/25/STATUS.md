@@ -1,5 +1,7 @@
 ## 2026-11-16T23:25Z FINAL (continuing to work; this block is the complete inventory as it stands)
 
+**Read this first:** across every command tested, the **MOVE** the engine returns is stable run to run; **scores from a clock-based search are approximate** (a few centipawns of run-to-run variation, because the stop is wall-clock dependent - 6 runs gave cp 55 and cp 67 at depths 16 and 18); **scores from `go nodes` and `go softnodes` are exact** (fully deterministic in score, nodes, depth and move). So a training pipeline may label moves freely from any command, but must treat clock-derived scores as approximate and only node-limit-derived scores as exact.
+
 Seat 25, area 5 (principal variations and scores). Branch for-fable-and-opus/swarm-25, folder
 forge-combo29/swarm/25/. Build used for everything PC: PC r15 from FABLE_TO_swarm_5 (patch sha256
 d6bd72c531f785f4... matches), PC20, Threads 1, Hash 16 unless a line says otherwise. Base-tree findings used
