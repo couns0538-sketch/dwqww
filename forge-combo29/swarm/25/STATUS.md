@@ -132,6 +132,22 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:42Z - S-C22 CORRECTS my S-C21: the MultiPV collapse needs a LARGE HASH too
+
+Same position, go wtime 5000, 4 fresh runs per cell:
+  Hash  16: MPV1 16 | MPV2 15 | MPV3 13 | MPV4 11   - clean and STABLE ladder (1-2 plies per extra line)
+  Hash 256: MPV1 16 (exact) | MPV2 [4,5] 2.5x spread | MPV3 [4] | MPV4 [2,4] 5.4x spread   - COLLAPSE
+  go depth 12 at Hash 256: exact at every MPV -> deterministic limits unaffected
+So the defect needs ALL THREE: clock, MultiPV > 1, large Hash. My S-C21 said "clock x MultiPV" from a single Hash
+and generalised one factor too far. Plausible cause: MultiPV>1 clears the TT between lines (seat 12 measured it),
+a large Hash makes that clear expensive, so the time manager stops at a shallow depth.
+
+PRACTICAL: the owner's matches use MultiPV 1 - exact at both Hashes, so the MATCH PATH IS UNTOUCHED. The exposure is
+analysis at MPV3-4 with a large Hash, where the engine silently returns depth 2-5 instead of ~13-16.
+
+State: 66 findings, working tree clean, local = remote. Next: keep cycling.
+
 ## 2026-11-16T23:41Z - 27-F12 SETTLED/closed; S-C21 finds the clock x MultiPV pair
 
 27-F12 now reads SETTLED/closed in S-C18/S-C19/S-C20 and in the FINAL: two independent refutations (mine on both
