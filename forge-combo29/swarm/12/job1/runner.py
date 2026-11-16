@@ -277,6 +277,19 @@ def run_one(exe, seq_path, timeout_s):
 
     wall = time.monotonic() - t0
     san = [c for c in collected if SAN_RE.search(c)]
+    # A zero sanitizer count only counts if a search demonstrably ran: record the deepest
+    # depth and the largest node count any `info depth` line reported.
+    max_depth_seen, max_nodes_seen, info_depth_lines = 0, 0, 0
+    for c in collected:
+        if not c.startswith("info depth"):
+            continue
+        info_depth_lines += 1
+        md = re.search(r"^info depth (\d+)", c)
+        mn = re.search(r" nodes (\d+)", c)
+        if md:
+            max_depth_seen = max(max_depth_seen, int(md.group(1)))
+        if mn:
+            max_nodes_seen = max(max_nodes_seen, int(mn.group(1)))
     illegal, unchecked = [], []
     for fen, bm in bestmoves:
         parts = bm.split()
@@ -310,6 +323,9 @@ def run_one(exe, seq_path, timeout_s):
         "illegal_bestmoves": illegal,
         "unchecked_bestmoves": unchecked,
         "lines": len(lines),
+        "max_depth_seen": max_depth_seen,
+        "max_nodes_seen": max_nodes_seen,
+        "info_depth_lines": info_depth_lines,
         "transcript_tail": collected[-6:],
     }
 

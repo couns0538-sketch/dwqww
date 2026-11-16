@@ -151,3 +151,73 @@ See `job1/stamps.txt` (`date -u` after every part) and the commit times.
 ## Last command output
 
 `git status --short` and `ls` of the job folder are in `job1/final_state.txt`.
+
+---
+
+## Known limit of the root-only fix: the same short-circuit fires ONE PLY DOWN
+
+Asked by the coordinator. Answer: **yes, it can, and here is a position that shows it.**
+
+`Worker::is_draw` (`src/search.cpp:1300-1310`) is called from inside the tree as well as at the
+root (`search.cpp:1425` for the qsearch/leaf path and `search.cpp:1569` for the main recursion,
+guarded by `if (!root_node)`). At a non-root node it returns a draw for
+
+```cpp
+    if (board.halfmove_clock() >= 100) {
+        return !board.in_check() || board.has_legal_move();
+    }
+```
+
+which is exactly the term the root patch neutralises *at the root only*. So a child node with
+the counter at 100 is still scored 0 even when the side to move there has a mate.
+
+### The position (mine, constructed for this question)
+
+```
+6k1/8/5PPP/8/8/8/8/R6K b - - 99 40
+```
+
+Black to move, so the root is **not** drawn (counter 99, no repetition) — the root patch does not
+apply. Black has **exactly two** legal moves, `g8h8` and `g8f8`; both keep the counter at 100 (no
+pawn moves and no captures exist), and on both children White mates at once with `Ra8#`.
+python-chess confirms each child, e.g. after `g8h8`: `7k/8/5PPP/8/8/8/8/R6K w - - 100 41`, mate
+`a1a8`. The truth is therefore **mate -1** (Black is lost by force).
+
+### What the engine says — matched pair, only the counter differs
+
+| FEN | true result | release (unpatched) | patched release | patched ASan |
+|---|---|---|---|---|
+| `… b - - 97 40` | mate -1 | **mate -1 / g8h8 / 63 nodes** | mate -1 / g8h8 / 63 | mate -1 / g8h8 / 63 |
+| `… b - - 98 40` | mate -1 | **mate -1 / g8h8 / 63 nodes** | mate -1 / g8h8 / 63 | mate -1 / g8h8 / 63 |
+| **`… b - - 99 40`** | **mate -1** | **cp 0 / g8f8 / 36 nodes** | **cp 0 / g8f8 / 36** | **cp 0 / g8f8 / 36** |
+| `… b - - 100 40` | drawn root | cp 0 / 0 nodes | cp 0 / 0 nodes | cp 0 / 0 nodes |
+
+Both counters 97 and 98 give the true `mate -1` in 63 nodes; at 99 the child node hits 100 and the
+score collapses to `cp 0` in 36 nodes. **The patch does not fix this** and is not meant to: it is a
+root-only fix, and this is its known limit.
+
+### The control that keeps me honest
+
+```
+6k1/5ppp/8/8/8/8/8/R5NK b - - 99 40
+```
+
+At counter 99 this also answers `cp 0` (227 nodes) — but here it is **correct**: Black has six
+pawn moves that reset the counter to 0 and keep the game going, so Black really does escape the
+mate, and `cp 0` is the right evaluation. Including it stops the first position from being read as
+"any hm99 position is broken".
+
+### Why a fix belongs one level down, not at the root
+
+The correct repair is inside `is_draw`: return a draw for `halfmove_clock() >= 100` only when the
+side to move cannot mate this move — the same test as the root patch, applied where the node is
+created. **I have not written or tested that patch**; it is a change on a hot path called at every
+leaf, and area 2's job is to measure, not to retune the search. It is recorded here as the next
+step for whoever owns the search.
+
+### Files
+
+- `job1/node_draw.py` — the harness (per-reply python-chess enumeration + engine search, reads to
+  `bestmove` before `quit`).
+- `job1/node_draw_release.txt`, `job1/node_draw_patched.txt`, `job1/node_draw_patched_asan.txt` —
+  raw output on the three builds.
