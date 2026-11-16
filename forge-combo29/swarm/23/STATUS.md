@@ -1001,3 +1001,19 @@ question for whoever has the hours.
 Moving to measurements elsewhere. Standing: 79 findings, 18 confirmations (one a refutation), ten harness
 faults all named with their rules, six reference pages, and the clock thread now closed with its own limits
 recorded. 10 h 21 m remain.
+## 2026-11-16T23:59:24Z  23-F58: drawn-root defect DOES fire on a clock-driven game (ply 31, halfmove 11); 23-F59 the proxy near-miss
+2026-11-16T23:59:24Z
+
+Satisfied both constraints: the third occurrence ARRIVED by clock self-play (PC build, 6s+0.06, every move a fresh
+go) at ply 31, halfmove 11, position rn3rk1/pp2bpp1/1q2pnbp/3p4/N2P1B1P/4P1N1/PP1Q1PP1/2R1KB1R b K - 11 16:
+  base 6b98f217 : cp 0,       0 nodes, bestmove e6e5
+  PC r15 + PC20 : cp 0, 1,376,300 nodes, bestmove b6b4
+So the defect is real on a game-arrived repetition, and the two builds choose DIFFERENT MOVES.
+
+23-F59 (instance 11), the near-miss worth remembering: my first run stopped when python-chess's
+can_claim_threefold_repetition() turned true, but that is ALSO true when a third occurrence is merely reachable by a
+move - so it fired at two actual occurrences, both builds searched normally, and the honest-looking conclusion was
+the OPPOSITE of the truth. Caught by counting actual occurrences with my own key. Rule: a proxy for a condition is
+not the condition.
+
+82 findings, 18 confirmations, eleven named faults. 10 h 20 m remain.
