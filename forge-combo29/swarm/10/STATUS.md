@@ -211,3 +211,13 @@ DRAWN-ROOT PROBE (the one thing file 3 says really differs). CONFIRMED with a di
   K vs K insufficient material  : BOTH 0 nodes / h1g1        (file 3: still answered at once)
 "a2a3" on the base tree is the first legal move, not a search result. 10-F27. pc/raw4/drawn_root.json
 next: continue the cycle -- check other seats' newest unconfirmed finds (file 2 named 19-F1..F5, 29-F1..F2).
+
+## Mon Nov 16 10:29:27 PM UTC 2026
+INDEPENDENT PROFILE of the base build with gprof (perf is UNUSABLE here: no linux-tools for kernel
+6.12.113+, that is method note 10-N1). 4.5 s of samples, 4x bench 16, Threads 1, Hash 16:
+  evaluate_position<false> 21.24 % self  (#1)   nnue apply_and_evaluate 13.94 + update 3.32 = 17.26 %
+  see_ge 6.86 % vs all fill_pseudo_legal 5.53 %    MovePicker::next 6.42 + pick_best 5.75 + evasions 1.11
+CONFIRMS the ORDER (not the percentages) of 19-F1/29-F2 (10-C8), 19-F4 (10-C9) and 19-F3 (10-C10).
+gprof inflates small functions, so absolute shares are not comparable to perf; only rank is.
+next: file 2's rule 2 says only NON-evaluation work can help the owner's PC -- record that in the audit and
+then continue the cycle.
