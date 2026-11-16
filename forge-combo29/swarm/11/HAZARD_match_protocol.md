@@ -126,6 +126,10 @@ cannot deliver.
 
 **Never quote a clock-stop node count as a deterministic result.**
 
+And never quote a single clock TIME as though it were the clock's behaviour either: fifteen identical
+searches on one FEN, same binary and settings, ranged **143 to 661 ms — 4.6x** from nothing but when the
+timer fired. Quote a median with its position set, or a range.
+
 Run `clock_repeat_check.py <exe> <name> 5` before quoting any timing figure: it repeats the SAME binary
 against itself and reports, per command, whether the move and the metric are stable. It is a procedure,
 not advice — and on its first run it caught a `movetime 50` node count varying 47,601 vs 69,531 across

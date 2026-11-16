@@ -219,9 +219,14 @@ itself, not the two builds against each other) costs almost nothing, and I simpl
 it on clock-stop measurements. Worth adopting before writing any timing table. (S-F91, corrected by
 seat 07)
 
-**A companion rule to Trap 8 — the position set dominates any timing median.** Two medians for the same
-clock, same binary, came out four-fold apart: 238 ms over 20 varied G positions (several sparse
-endgames) and 147 ms over one middlegame repeated. Both were right. Sampling noise moved the median 2 %
+**A companion rule to Trap 8 — the position set dominates any timing median.** The cleanest single
+illustration: **fifteen identical clock searches on ONE FEN, same binary, same settings, ranged 143 to
+661 ms — a 4.6x spread from nothing but when the timer happened to fire** (S-F100). One position, one
+build, one thread, 4.6x. If you quote a single clock figure you are quoting one draw from that
+distribution.
+
+The rule itself: two medians for the same clock, same binary, came out four-fold apart — 238 ms over 20
+varied G positions (several sparse endgames) and 147 ms over one middlegame repeated. Both were right. Sampling noise moved the median 2 %
 across a twelve-fold change in n; the *position mix* moved it 100 %+. So state the position set with
 every timing figure and never compare clock medians across studies that used different sets — the
 slower-looking engine may just be playing harder positions. **Four independent measurements of the same
