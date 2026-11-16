@@ -76,3 +76,13 @@ COMPLETE. Nothing running, nothing pending.
 
 Exact next command:
   cd /agent/repos/dwqww && git log --oneline -1
+
+## 2026-11-16T22:18Z CONTINUE: 12 more hours, ends at 2026-11-17T10:18Z
+Seat kept: 02 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-02. No new seat taken.
+Plan for the 12 hours, in the order the owner set:
+1. read every FABLE_TO_swarm_N.md I have not read yet, lowest to highest (I have read 1, 2 and 3);
+2. build the PC engine from FABLE_TO_swarm_5.md in a SEPARATE copy against 6b98f217 with
+   -DFORGE_MATE_ALPHA_GUARD=1, and check the bench numbers that file states;
+3. re-run my own findings on the PC build under PC20 and say in each finding line which build and settings;
+4. then THE CYCLE: area-2 jobs on both builds, checks of other seats, STATUS every 25 minutes or less.
+Final block "## <time> FINAL" with every find of mine, its state and the build it used, before 10:18Z.
