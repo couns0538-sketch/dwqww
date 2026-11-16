@@ -1,3 +1,29 @@
+## 2026-11-16T23:19Z - URGENT: S-F27 WITHDRAWN ENTIRELY (no illegal-PV defect). Use the depth-20 finding instead.
+
+SECOND RETRACTION, and the more serious one. Earlier I told the coordinator the corrected headline was
+"intermediate mate PVs can carry an illegal move on constructed endgames at small node budgets". That is FALSE.
+
+Scope sweep (3 mate-rich boards x 10 command settings = 30 cells): 0 intermediate lines with an illegal PV, on
+every cell, including the board where I reported one. Replaying that depth-8 PV verbatim: all 12 plies legal.
+Ply 3 is `b1a2`; in my correction file I had written `b2a2` from memory and then "verified" my own typo. The
+engine was right throughout.
+
+Final truth at `go nodes 20000` on that board: depth 7 cp -2515; depths 8-10 mate lines with PVs shorter than
+their mate distance (ordinary horizon behaviour, same as seat 05's 27 boards which file 6 reclassified); the
+FINAL depth-11 line is mate -7 with a 14-ply legal verified checkmate at exactly 2*7 plies. CORRECT.
+
+WHAT SHOULD GO IN THE FINAL BLOCK FROM ME:
+1. The depth-20 requirement for file 6's inequality, with the depth-14 counter-example (`mate 8` at depth 20 vs
+   `cp 1334` at depth 14) - a seat applying the rule shallowly falsely dismisses REAL defects. This stands and is
+   the useful finding of the last stretch.
+2. The clock near-miss, marked DO NOT FIX: 3% usage is plan_clock_budget's soft limit working (TmSoftDivisor 22);
+   `movetime` differs because it is a hard instruction; corroborated by four seats.
+3. Still standing: S-F1/S-F8/S-F9/S-F10 (mate numbers; S-F1 and S-F8 repaired on PC), S-F6/S-F7 (terminal-root
+   reporting), S-F25 (softnodes deterministic, finished-depth stop, 1.06-1.55x overshoot), S-C3, S-C4, S-C6, S-C7.
+
+FIVE ERRORS OF MINE, all recorded: (1) clock-99 zero wrongly called correct; (2) h6h5 typed as a pawn push, it is
+a capture; (3) a check comparing regex output to the wrong string; (4) S-F27 headlined as a match-path defect;
+(5) the illegal-PV claim built on my own typo. One cause every time: reconstructing data instead of copying it.
 ## 2026-11-16T23:18Z - RETRACTION: the nodes-20000 defect does NOT reach the match path (exposure 0)
 
 I sent "LIVE DEFECT on the owner's match setting" earlier. The measurements say the exposure on the match path is
