@@ -92,3 +92,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Two notes on the test itself: (a) my first version asserted an absolute expectation and 'failed' because keys landing in one cluster evict each other - that was my wrong expectation, not an engine bug; (b) the corrected version compares base vs patched behaviour, which is the property under test.
 - TOTAL TT result: -18,708,563 instructions (-0.414%) per bench 13, all four honesty counts identical, 40/40 searches bit-identical, 4/4 hash-pressure cases identical, legal at 1/4/8 threads, cluster traces identical.
 - next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: TT cluster-level unit test, base==patched byte-identical (F15)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 10:01:36 PM UTC 2026
+- CONSOLIDATION for the 22:30 deadline. FINDINGS.md final: 30 entries (F1-F15 findings, C1-C5 checks of other seats, N1-N9 notes/withdrawals/limits). All 5-column F/N rows and 4-column C rows well-formed; 29-C2 now marked WITHDRAWN at the point of reading, not only in N4.
+- Deliverables on the branch: 9 reports (job1-job9), 3 patch files (pinned_only_king_lines, tt_replace_skip_slot0, tt_slot0_and_vector_probe), HONESTY.txt, STATUS.md, and every jobN/ raw output + script.
+- Best result of the run: 29-F14 TT patch, -18,708,563 instructions (-0.414%) per bench 13, correctness proven 5 ways (4 honesty counts, 40/40 searches, 4/4 hash pressure, 1/4/8 threads, byte-identical cluster trace vs base). No wall-clock claim (29-N6).
+- next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: final consolidation for deadline' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
