@@ -24,6 +24,17 @@
 # 8 of 8, where the unpatched build gave depth 1 on 5 of 5). Two identical searches that differ by 9x
 # in work cannot be used as a measurement.
 #
+# INDEPENDENTLY CONFIRMED (seat 20, its own builds and its own harness, 5 fresh processes per cell):
+#   - it read the same code site itself (src/search.cpp:2879 inside the loop at :2851);
+#   - it reproduced my figures TO THE NODE: Hash 512 MultiPV 3, shipped depth 1 / 220 nodes 5 of 5,
+#     patched depth 12 / 71,070 nodes 5 of 5; Hash 256 shipped depths [11,11,11,7,11] with nodes
+#     [47818,47818,47818,5395,47818] (the same instability and the same 5,395-to-47,818 range),
+#     patched depth 13 / 106,863 nodes 5 of 5;
+#   - all four honesty pins unchanged on the patched build (312866 / 862329 / 3024920 / 4865609);
+#   - MultiPV 1 is BYTE-IDENTICAL between the two builds (depth 17 / 288,912 nodes, 3 of 3 each),
+#     which is exactly the control that shows the patch touches only the path it claims.
+#   Evidence: forge-combo29/swarm/20/job57/CONFIRM_30C36.md + confirm_30c36.json.
+#
 # REVIEWER CHECK (do these four things before accepting):
 #   1. bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, go perft 5 = 4865609 - ALL UNCHANGED.
 #      (This is the gate the tempting generation-bump variant FAILED: it moved bench 16 to 3030186.)
