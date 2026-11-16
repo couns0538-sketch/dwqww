@@ -122,3 +122,12 @@ harnessed with the HARDENED compare.py/ref_par.py.
 Blocker for the 22:30 push: the reference pass has not finished yet; if it does not finish I will push
 the engine-side counts and label the comparison NOT DONE rather than guess.
 Next command: cd forge-combo29/swarm/13/job1b && python3 compare.py raw_engine.txt raw_ref.txt R_1311.fens comparison.md 5000
+
+## 2026-11-16T22:18:02Z
+
+DONE job 1 repeat (cycle step c), seed 1311: 20,000/20,000 pairs compared, 0 differing, 612 s ref.
+  Report job1b/REPORT_job1b.md, with the required "what differs from the first run" section.
+  Finding S-F4 added.
+AREA 3 STATUS: jobs 1, 1-repeat, 2, 3 all complete. Checks: S-C1 (21-F1), S-C2 (27-F2), S-C3 (19-F23).
+  Findings: S-F1, S-F2, S-F3, S-F4 (all move-generation agreement; no engine defect found in my area).
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
