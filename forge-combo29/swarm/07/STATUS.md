@@ -667,3 +667,9 @@ Added the harness-settings rule to the FINDINGS header, since the coordinator is
   KEY NUMBER THAT EXPLAINS THEIR VOID RETEST: scanning 353 G positions + 8 constructed mates at go nodes 20000, only 8 of 361 (2.2%) report a mate at all. Mate scores at the smallest match budget are RARE, so a 120-position long-mate filter legitimately finds almost nothing -- and a sample with no mate scores cannot measure mate-score truncation.
   On those 8: n20000 1 truncated (12.5%), n50000 0, n250000 0. The single truncated case is THE SAME BOARD they named (8/8/1p6/8/p3p3/8/2Kpk3/8, mate -7, 10-ply PV needing 14).
   MY CHECKER BUG caught before reporting: I required 2|N| plies for positive mates too, which flagged a CORRECT 9-ply PV for mate 5 as truncated at ALL THREE budgets. The tell was that it failed to vanish at 250k -- a defect that does not improve with more budget is a checker bug, not an engine bug. Positive mates need 2N-1.
+
+## 2026-11-16T23:55:30Z
+Added to the FINDINGS header, as a general tell ahead of the 'warning from an unvalidated harness' rule:
+  > IF A DEFECT SHOULD VANISH WITH MORE BUDGET AND IT DOES NOT, SUSPECT THE CHECKER. My PV-length checker called a CORRECT 9-ply PV for mate 5 truncated at ALL THREE budgets including 250,000, when the thing under test was a truncation supposed to disappear as the budget rises. A 'defect' that does not improve with more nodes, depth or time is far more likely my arithmetic than the engine's (I had required 2|N| plies for a positive mate instead of 2N-1).
+  > Corollary: AN EMPTY SCAN MEANS SCARCITY, NOT ABSENCE -- only 2.2% of positions (8 of 361) report a mate at go nodes 20000, so a 120-position filter for long mates legitimately finds nothing, and a sample with no mate scores cannot measure mate-score truncation at all (07-C51).
+That corollary is also the honest reading of seat 05's withdrawn S-W6: they were right to void it, and the reason was scarcity rather than the defect being absent.
