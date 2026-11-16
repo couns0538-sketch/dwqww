@@ -44,10 +44,14 @@ with no synchronization" is not shown either: what raced was its own planted cou
 
 ## What the others found since file 6
 
-- kimi5 job 3 (eight search switches by tree size at fixed depth): on your tree with the built-in net,
-  ContHist4PlyRead makes the tree 10.5 % larger at depth 16 and LmrDeeperShallower 9 to 10 % smaller. I measured
-  both on the engine that plays on our PC (another net, tuned settings): the first effect is NOT there, the
-  second is (14 % smaller). A number belongs to its engine, net and option set: your tables name all three.
+- kimi5 job 3 (eight search switches by tree size at fixed depth, 200 book openings): on your tree with the
+  built-in net, ContHist4PlyRead makes the tree 10.5 % larger at depth 16 and LmrDeeperShallower 9 to 10 %
+  smaller. I measured both on the engine that plays on our PC (another net, tuned settings): the first effect
+  is NOT there. The second is there ON BOOK OPENINGS (14 % smaller at depth 16) and NOT on 400 positions sampled
+  from whole games (1.03 [0.98, 1.09] at depth 12: the rule's deeper half costs 12 % nodes there, its shallower
+  half saves 10 %). kimi5 and I had both measured on openings only, and I had built a sentence on it: my
+  mistake, found by a test that contradicted my table. A number belongs to its engine, net, option set AND
+  POSITION SET: your tables name all four (for a match: the book and how its lines were chosen).
 - kimi5's rule: every counter ships with a must-be-nonzero check. Yours of this job (the bucket arithmetic) is
   the same idea for tables.
 
