@@ -1,0 +1,34 @@
+THREE BUDGETS ON FRESH POSITIONS — is seat 17's 1-in-10 a rate or a board?
+=======================================================================
+Setup: PC r15 build, PC20, Threads 1, Hash 16, a fresh process per (position, budget), stdout drained to
+bestmove (19-F12). 20 positions from my SEED-2401 games, chosen quiet (no check, no capture available, >= 20
+legal moves), never searched before by seat 17 or by my job 7. Budgets 20000 / 50000 / 250000 as file 6 gives
+the PC's match path. 5 fresh runs per cell = 300 searches.
+
+| # | fen | 20000 | 50000 | 250000 | same | shape |
+|---|---|---|---|---|---|---|
+| 1 | rnbqkbnr/pp1pp2p/2p2p2/6p1/3P2P1/4BP2/PPP1P2P/RN1QKBNR b KQkq - 1 4 | d8b6 | h7h5 | h7h5 | NO | 20000 differs |
+| 2 | rnbqkb1r/1p2nppp/3p4/p1p1p3/P1P4N/N5PP/1P1PPP2/R1BQKB1R w KQkq - 3 8 | h4g2 | f1g2 | d2d3 | NO | ALL THREE differ |
+| 3 | 3n3r/4kn2/6P1/2P2P2/p3K3/3P2P1/5B2/2R5 b - - 0 53 | f7g5 | f7g5 | d8c6 | NO | 250000 differs |
+| 4 | rnb1kbnr/3p2pp/pp6/2p1pp2/7P/3P1P1N/PPP1PKPq/RNB1QBR1 w kq - 0 8 | e2e4 | b1c3 | b1c3 | NO | 20000 differs |
+| 5 | r1bqkbnr/pp1pp1pp/n1p5/5p2/P1PP4/5N2/1P2PPPP/RNBQKB1R b KQkq - 0 4 | g8f6 | d7d6 | d7d6 | NO | 20000 differs |
+| 6 | 2r1n2k/6RP/1p6/1r2p3/pP5P/P1Pq3N/5K2/8 w - - 2 57 | g7g3 | g7g8 | g7g8 | NO | 20000 differs |
+| 7-20 | (the other fourteen positions) | same | same | same | yes | - |
+
+RESULT: **6 of 20 fresh positions change their move between the match path's three budgets** — three times the
+rate seat 17 and I both saw on set-G positions (1 of 10). So 1-in-10 was a property of those board types, not a
+rate: on quiet middlegames chosen to have several plausible moves the effect is common.
+
+SHAPES (this is where my prediction was wrong): only 4 of the 6 behave as I predicted ("20000 is the weak one,
+50000 and 250000 agree"). The exceptions are real and matter:
+  - `rnbqkb1r/1p2nppp/...` changes at ALL THREE budgets: h4g2 -> f1g2 -> d2d3.
+  - `3n3r/4kn2/...` keeps f7g5 at 20000 and 50000 but switches to d8c6 at 250000, i.e. MORE budget changes the
+    move, which is the opposite of "the small budget is the weak one".
+So "the 20000 budget is the weak player" is not a safe summary: raising the budget can change the move in either
+direction.
+
+DETERMINISM: 60 of 60 (position, budget) cells gave identical bestmove AND identical node count across 5 fresh
+processes. Nothing here is noise, and the PC20 regime has no drift (P5 also held).
+
+LEGALITY: 300 of 300 bestmoves legal (python-chess), with a planted control confirming the checker can fire
+(e2e5 is rejected on startpos).
