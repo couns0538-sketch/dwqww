@@ -66,11 +66,19 @@ A copy of the tree that **advertises an option it does not handle** — `Phantom
     ... (same for 10, 0, 11, word, no-value)
     RESULT: REFUTED - 0 valid value(s) refused, 6 advertised option(s) unknown
 
-So the `UNKNOWN` class is detected when it exists. The `REFUSED-VALID` class I could not make fire
-without a second, more intrusive fault (making `apply_spin` reject an in-range value); I note that as
-a gap rather than claim both halves are proven by the control. The `CLAMPED` count of 274 rising from
-a build where a value genuinely is in range would be the signal, and in the clean run every in-range
-value landed in ACCEPTED.
+So the `UNKNOWN` class is detected when it exists.
+
+**Second control, run later in the same job because I had flagged the first one's gap.** I made
+`apply_spin` refuse each spin option's advertised **maximum** — a value that is inside the advertised
+range, which is precisely the `REFUSED-VALID` class:
+
+    BUG REFUSED-VALID [NullMoveDepthDivisor] value [10] (inside advertised range 1..10 for spin) :: info string invalid value for option NullMoveDepthDivisor
+    BUG REFUSED-VALID [RfpDepth], [RfpMargin], [RazorDepth] ... (one line per spin option, 58 in total)
+    RESULT: REFUTED - 58 valid value(s) refused, 0 advertised option(s) unknown
+
+So **both** bug classes are now proven detectable: 6 UNKNOWN detections from the phantom-option
+build, and 58 REFUSED-VALID detections from the refuse-max build. With both controls in hand the
+437-case clean result is meaningful in both directions, not just one.
 
 ## Findings
 

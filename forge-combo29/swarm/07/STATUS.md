@@ -386,3 +386,6 @@ summary.txt
 
 job21/raw_control:
 summary.txt
+
+## 2026-11-16T22:12:49Z
+job21 follow-up: closed the REFUSED-VALID control gap I had flagged. A refuse-max build now gives 58 REFUSED-VALID detections (vs 6 UNKNOWN from the phantom build), so BOTH bug classes are proven detectable and the 437-case clean run is meaningful in both directions.
