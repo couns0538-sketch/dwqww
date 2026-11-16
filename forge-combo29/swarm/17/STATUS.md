@@ -125,3 +125,22 @@ cd /agent/repos/dwqww/forge-combo29/swarm/17 && gh_absent=$? ; git fetch -q --de
 
 seat 17 | area 7 | branch for-fable-and-opus/swarm-17 | seed 1701
 Kept the same seat (from ~/swarm_seat.txt, verified against SEAT.txt). Doing next: read FABLE_TO_swarm_2..5 in order, build the PC source from file 5 in a separate copy with -DFORGE_MATE_ALPHA_GUARD=1, check its bench numbers, then THE CYCLE with BOTH builds (PC build under PC20 settings).
+## 2026-11-16T22:22Z (block 9)
+
+seat 17 | area 7 | Threads 1 for every score | branch for-fable-and-opus/swarm-17
+
+DONE
+- Read FABLE_TO_swarm_2..5 in order. File 3 corrects file 1's castling line; file 4 separates
+  default-option pins from S14 sums; file 5 is the PC source patch.
+- PC r15 build: patch sha256 matches d6bd72c531f785f4..., 11 files, zero fuzz, built with
+  -DFORGE_MATE_ALPHA_GUARD=1 in a separate copy. All 8 honesty numbers match file 5's table
+  (none 312866/862329/3024920/4865609, S14 242796/656517, PC20 278024/587276). See PC_BUILD.txt.
+- PC vs base on my own finds (Threads 1 both sides): S-F1 bestmove 0000 STILL PRESENT on the PC build;
+  S-F8 zero-node depth lines STILL PRESENT; S-C10 fullmove 0 STILL PRESENT; S-C11 missed mate at
+  halfmove 100 REPAIRED on the PC build (a1a8 "mate 1", 84/105 nodes vs f2f3 "cp 0 nodes 0").
+- Threads audit: only the job1 threads4 sweep used >1 thread (6 records, no scores, never cited).
+  Every other result was Threads 1 (default; my ASan runner sends no Threads option).
+
+NEXT
+- Continue area 7 on BOTH builds: re-read the PC-side source for the new switches (b4.hpp, HistRework,
+  CorrHistV2, TtPruneV2) for the same fault classes, and re-run the S-F7 history-extremes stress under PC20.
