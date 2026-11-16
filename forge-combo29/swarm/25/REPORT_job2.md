@@ -149,3 +149,23 @@ F_clock99.fens  PREDICTION.md  analyse_draw.py  clock99_nature.py  clock99_natur
 clock99_probe.py  clock99_probe.txt  clock_control.py  clock_control.txt  clock_plant.py
 clock_plant.txt  draw_d10.jsonl  make_draw_sets.py  make_sets.txt  run_draw.py  table_draw.txt
 ```
+
+## Severity: the fault changes the MOVE, not just the number (`clock99_severity.py`)
+
+| board | move at clock 0 | score at clock 0 | move at clock 99 | cost of the clock-99 move |
+|---|---|---|---|---|
+| 1 | d1c1 | -158 cp | a1a2 | **-40 cp** |
+| 2 | e3e6 | -216 cp | c7g7 | **-999 cp** |
+| 3 | g6e7 | -271 cp | g6f4 | **-160 cp** |
+
+Method: take the engine's own bestmove at clock 99, play it from the clock-0 position, and search the
+reply with the same engine at depth 12. The "cost" is that line's score minus the engine's own clock-0
+score. On board 2 the clock-99 move loses about a queen (-999 cp) relative to the engine's own choice.
+
+So S-F3 is not cosmetic: in any game that reaches a halfmove clock of 99 (which long endgames do), the
+engine both reports a draw and plays a move it would never choose without the clock.
+
+Command that shows it again:
+```bash
+python3 forge-combo29/swarm/25/job2/clock99_severity.py /path/to/forge
+```

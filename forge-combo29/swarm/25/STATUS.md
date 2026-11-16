@@ -1,4 +1,4 @@
-## 2026-11-16T21:36:00Z — checkpoint push (owner window until 22:35 UTC)
+## 2026-11-16T21:52:00Z — checkpoint push (owner window; findings deadline 22:30 UTC)
 
 seat: 25
 area: 5 (principal variations and scores)
@@ -6,24 +6,31 @@ seed: 2501
 branch: for-fable-and-opus/swarm-25
 folder: forge-combo29/swarm/25/
 
-Done:
-- STEP 1 seat 25 claimed; STEP 2 build + HONESTY all four numbers match (HONESTY.txt).
-- AREA 5 job 1 DONE: 553 depth-12 S14 searches (O 200 + G 353). 0 illegal PVs; 10 mate scores;
-  9 correct, 1 WRONG (S-F1). Rule 1 plants both run through the same harness (plant_illegal.txt 5/5,
-  plant_mate.txt 5/5). Determinism: 0/200 differ ignoring nps/time/hashfull.
-- S-F1 proven: 8/8/1p6/8/p3p3/8/2Kpk3/8 w says `mate -12` at d12..16 but plain minimax proves white is
-  mated in EXACTLY 4 (and not 3); engine's own d22+ answer is correctly `mate -4`. Wrong by 8 moves.
-- S-C1 CONFIRMS seat 06 S-F10 (depth-10 result reproduces: 6 mate scores, 0 wrong) with the correction
-  that "mate machinery sound" does not generalise to depth 12.
-- 19-F12 HARNESS AUDIT (coordinator broadcast) DONE: my harness is SAFE. My pattern (stdin open, read
-  until bestmove) gives 12 info lines / 56720 nodes / e2e4; the pipelined go+quit pattern gives
-  bestmove a2a3 with 0 info lines. quit mid-running-search is also safe (1391723 nodes at d19).
-  No recorded result of mine used the fabricating pattern. Evidence: check_19F12/.
+DONE, all pushed:
+- STEP 1 seat 25; STEP 2 build + HONESTY (312866 / 862329 / 3024920 / 4865609 all match).
+- JOB 1 (PV legality + mate scores): 553 depth-12 S14 searches. 0 illegal PVs, 10 mate scores, 1 WRONG.
+  S-F1: 8/8/1p6/8/p3p3/8/2Kpk3/8 w reports `mate -12` at d12..16; plain minimax proves white is mated in
+  EXACTLY 4 (not 3), and the engine itself says `mate -4` from d22. Wrong by 8 moves. S-F2: that score
+  wanders -12 -> -9 -> -6 -> -5 -> -4. S-C1 CONFIRMS seat 06 S-F10 with a correction.
+  Rule-1 plants: plant_illegal.txt 5/5, plant_mate.txt 5/5.
+- JOB 2 (draw scores): 140 depth-10 searches. KvK/KNvK/KBvK 60/60 = 0 (correct); KNNvK 20/20 non-zero
+  (correct); threefold 20/20 = 0 (correct, all verified genuine threefolds).
+  S-F3: at halfmove clock 99 the engine reports cp 0 at EVERY depth and at `go nodes 50000`, on boards
+  with 6-11 legal clock-resetting moves. Exact boundary: clock 98 = -112 cp, clock 99 = 0. Clock 100/101
+  = 0 nodes. S-F4: `EvalRule50Damp` true/false, depths 1..30 and UseNNUE false all still give 0, so it is
+  a hard-coded draw test firing one ply early, not the damped eval.
+  S-F5 (severity): the clock-99 move is -40, -999 and -160 cp worse than the engine's own clock-0 move.
+  My P6 prediction was KILLED by this (I predicted at most 5 of 20 zeros; 16 of 20 were zero).
+- 19-F12 harness audit: my harness is SAFE (stdin open, read to bestmove -> 12 info lines, 56720 nodes).
+  The pipelined go+quit pattern does fabricate `bestmove a2a3` with 0 info lines; I do not report it as
+  mine. Evidence in check_19F12/.
+- Measurement-integrity (seat 19 NaN warning): check_pv.py now EXITS 3 on empty input (it used to print a
+  clean all-zero table); analyse_draw.py exits 3 on any unparsed score. Fixed one real bug of my own:
+  rule50_hypothesis.py v1 sent `position fen` before `ucinewgame`, so it searched startpos and looked like
+  "clock makes no difference"; corrected, and it now has a guard that exits 3 on a startpos-looking answer.
 
-Running now:
-- AREA 5 job 2 (draw scores): A/B/C/D/F position sets built (20 each). The E group (threefold by move
-  list) is still being generated; the first two generators found 3 then 0 distinct games — being fixed.
-
-Next exact command:
-  python3 forge-combo29/swarm/25/job2/make_draw_sets.py forge-combo29/swarm/25/job2 2501
-then run the depth-10 draw-score harness over A..F.
+RUNNING NOW: nothing (last command finished).
+NEXT exact command (job 3 of area 5: checkmated/stalemated roots under ASan+UBSan):
+  mkdir -p ~/build/asan && cd ~/build/asan && cmake /agent/repos/base/forge-combo29 \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
+    -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" && make -j4
