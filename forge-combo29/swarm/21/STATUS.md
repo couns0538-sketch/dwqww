@@ -1,41 +1,36 @@
-## 2026-11-16T23:16:56Z (from `date -u`)
-seat 21. **Threads 1 in every run.** Builds: base 6b98f217 and PC r15 (PC20 unless stated).
+## 2026-11-16T23:48:55Z (from `date -u`)
+seat 21. **Threads 1 in every run.** PC build r15 under PC20 unless stated.
 
-# 21-F19 — THE PC BUILD REPORTS A DRAWN ROOT AS A WIN
+# The measurement the coordinator asked for: the position-155 class
 
-A drawn root with **no mate available** is scored as won on the PC build, where the base build scores 0:
+**21-F21: 0 hit in 50 positions, on an EXACT metric.**
+50 bare-king endings (R or Q vs K) with the halfmove counter at **95–99**, so the fifty-move draw is
+only **1–5 half-moves** away. That window is what makes the metric exact rather than a play-out
+opinion: a minimax over exactly those plies decides each move's true result, because a move that
+fails to mate inside the window IS a draw and no deeper search can change that.
 
-| build | case | nodes | score |
-|---|---|---|---|
-| base | K+P vs K, halfmove 100 | 0 | **`cp 0`** |
-| **pc** | K+P vs K, halfmove 100 | 6,221 | **`cp 199`** |
-| base | quiet threefold root | 0 | **`cp 0`** |
-| **pc** | quiet threefold root | 7,734 | **`cp 238`** (and `cp 298` at 100k nodes) |
-| both | K v K, KN v K, KB v K | 0 | `cp 0` (correct) |
+- positions where the side to move had a move that **saves the draw**: **50 of 50**
+- **HITS (engine walked into a mate it could have avoided): 0**
+- engine answer identical at `go depth 16` and `go nodes 20000`: 50 of 50
 
-Cause (code read, `src/search.cpp:2571-2582`): with `FORGE_FIX_ROOT_DRAWN` the root-draw test
-shrinks to `is_insufficient_material()` only, and the search does not re-apply the fifty-move or
-repetition rule at the ROOT. So the fix that correctly finds a mate at a drawn root (my 21-C16) also
-loses the draw score when there is no mate.
+**21-C17: position 155 is not a member.** White (bare king vs R+B+N, counter 18) is mated in 16–24
+plies by every one of its four legal moves, where the draw needs 82. All lose, so no alternative is
+better. Seat 03's S-F16 self-contradiction is a SCORING artefact, not a lost draw.
 
-**Why it may not matter for matches**: file 6 says the match program ends the game itself at the
-third occurrence and the 100th half-move, so a wrong score does not change the result. **Where it
-does matter**: self-play and analysis that record the score see a drawn position as +2 pawns.
+**21-F20 (method, worth broadcasting):** a single engine-vs-engine play-out manufactures hits.
+`8/8/8/8/8/1r1k2K1/8/8 b - - 92 60` — `d3e3` read as a WIN 3/3 by play-out, yet exhaustive minimax
+shows **no move forces mate** in the 7 plies available, so every move draws. My own first scan
+reported an apparent hit on exactly this; and an earlier version of my hit test had its polarity
+INVERTED (it flagged the engine for choosing a drawing move). Both are recorded in the report.
 
-The right fix is search-the-root-then-fall-back-to-the-draw-score; that is an owner decision, so I
-have not patched it.
+**`DESIGN_drawn_root.md`**: the fix direction as a design note, not a patch — search the root, then
+take the draw score unless the search finds a win for the side to move. One paragraph of trade-off:
+it keeps the PC build's mate-at-a-drawn-root (21-C16) and removes its drawn-as-won score (21-F19),
+at the cost of searching a root the base tree answered in zero nodes.
 
-# Other results this stretch
-- **21-F16/F17/F18** (node budget, complete): `go nodes N` never reaches N (mean −20 to −28 %, worst
-  −51.9 %, deterministic), it costs 6–11 plies of depth, but it changed the move on only **1 of 18**
-  positions. Real, not urgent.
-- **21-F15**: `go softnodes N` deterministic (40/40), depth-boundary stop, OVERSHOOTS by up to +58.9 %.
-- **21-C13**: 0 forfeits over a simulated 60-move game at 6s+0.06; low clocks all legal and fast.
-- **21-C14/C15**: softnodes and depth-12 answers are order-independent — 16/16 transposition pairs.
-- **21-C16**: a mate outranks a drawn root (the PC build finds it; my prediction said otherwise and
-  was wrong).
-- **Withdrawn under file 6**: 21-F9, 21-F13, 21-F11.
+**Also live: 21-F19** — the PC build reports a drawn root with no mate as a win (`cp 199–298`) where
+the base build says `cp 0`. Combined with 21-F21 this is a **scoring** problem, not a lost-draw
+problem: nothing I measured shows the engine throwing a drawn game.
 
-**Next**: confirm 21-F19's size across more drawn positions (is +199 typical?) and check whether a
-root at halfmove 100 with a mate in 2–3 is still found — that is the boundary the owner's fix needs
-to get right in both directions.
+**Next**: extend the exact scan beyond the 1–5 half-move window (counter 85–94) with a bounded solver,
+and run the design note's acceptance test as a spec so the owner can apply it directly.
