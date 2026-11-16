@@ -146,6 +146,21 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:48Z - control-error pattern line in the FINAL + audit_final.py guard
+
+FINAL now opens with the pattern: "six times tonight the real finding was a CONTROL error in my own test, not the
+engine" - different-depth comparison (S-C27), regex-vs-wrong-string (check_05F14), PV retyped (S-F27), 13-board
+sample for a recommendation (S-C17), single Hash axis (S-C22), one-clock-answer-as-constant (27-F12 refutation).
+Lesson: when a result looks surprising, check the harness before the engine.
+
+NEW audit_final.py: cross-checks every finding marked WITHDRAWN/NOT A DEFECT/REFUTED/COSMETIC in FINDINGS.md
+against its FINAL row. Result 0 mismatches. The FIRST run flagged S-C5 and S-C6 falsely - my matcher scanned the
+whole row, so "NOT A DEFECT" inside S-C5's subject matter and "is NOT vacuous" in S-C6 read as statuses. Tightened
+to the status cell only. Seventh instance of the pattern, inside the audit itself.
+
+State: compliance PASS, 0 audit mismatches, working tree clean, local = remote. Continuing at cadence.
+
 ## 2026-11-16T23:48Z - terminal-root family CLOSED: S-F6 withdrawn, S-F7 reclassified cosmetic (S-C26/S-C27)
 
 S-F6 WITHDRAWN as a defect: verified seat 11's ladder myself (checkmated -> mate 0/0000/0 nodes; mate in 1 ->
