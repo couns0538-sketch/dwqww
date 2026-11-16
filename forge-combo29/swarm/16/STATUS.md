@@ -266,3 +266,16 @@ seed: 1601
   in 120 searches (S-F24).
 - next: keep testing the PC path — the clock path across a sequence of moves in one process (does the
   increment accumulate, does the engine's own clock bookkeeping drift).
+
+## 2026-11-16T23:24Z
+- S-F29: self-play duplication is FIXED by varying the start — ten games from ten DIFFERENT real-game positions
+  gave 10/10 distinct final positions and 10/10 distinct move sequences (vs 3/10 from one fixed start, S-F27).
+  So the advice to the owner is simply "vary the openings"; the earlier convergence was the fixed start, not a
+  deeper search property. Also corrects S-F26's band: across both studies the clock fraction spans 0.02 %-32.24 %
+  with a median around 4 %.
+- HOUSEKEEPING (self-caught): my S-F16..S-F29 rows had been appended to STRAY paths (forge-combo29/swarm/FINDINGS.md,
+  forge-combo29/FINDINGS.md, .../16/softnodes/FINDINGS.md) because of a wrong relative path in my shell commands.
+  All rows are now consolidated into forge-combo29/swarm/16/FINDINGS.md (34 rows: S-F3..S-F29 plus S-C1..S-C7) and
+  the strays are deleted. VERIFIED: nothing outside my own folder was ever committed — `git log --diff-filter=A`
+  since my seat commit shows no additions outside forge-combo29/swarm/16/.
+- FINAL.md updated with S-F29 and the corrected clock band.
