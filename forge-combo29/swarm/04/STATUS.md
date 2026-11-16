@@ -174,3 +174,12 @@ Cost of guessing at target 20,000: B=20,000 -> 0 of 10 positions get full work (
 18%-65% of their work); B=22,000 -> 5 of 10; B=30,000 -> 9 of 10; B=39,000 -> 10 of 10 but up to 88% over-searched.
 So there is NO safe round number. Rule: compute per position, or accept up to 65% under-search / 88% over-search.
 This corrects the hope behind the question: the spread is not a few percent, it is 2x-3x.
+
+## 2026-11-16T22:43:52Z FAMILY SPREAD: NO, GROUPING DOES NOT RESCUE A FIXED BUDGET + HOWTO WRITTEN
+Ten distinct positions from each of three families (1.e4 e5 / 1.d4 d5 / 1.c4 e5), boundary at/above 20,000:
+  A 20,572-36,210 (1.76x)   B 20,631-41,660 (2.02x)   C 20,466-36,767 (1.80x)   ALL 30: 2.04x
+Within-family spread == across-family spread, so one budget per family is no better than one global budget:
+family max gives full work but over-searches the fastest position by 76% / 102% / 80%.
+=> per-position computation is the only correct route. One-page procedure + exact commands:
+  job3/HOWTO_node_budgets.md  (scripts: boundaries.py, boundary_spread.py, family_spread.py)
+NEXT: quit/EOF re-check on PC20 (still running), then explosion numbers on PC20.
