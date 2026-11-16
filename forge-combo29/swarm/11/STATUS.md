@@ -182,3 +182,5 @@ NEXT: continue area-1 work; push again by 22:30.
   fix only because my pipeline sent stop; caught and corrected.
 - S-F27: the full 20k mutation sweep on PC r15/PC20 gives IDENTICAL numbers to base
   (17130/2870/24/0/0, 99.164 %), all 20 setoptions confirmed in .meta. FEN layer transfers to the PC.
+- S-F28: 21-F2 stale-board defect STILL PRESENT on PC r15/PC20 (refused FEN -> readyok -> g8f6, a
+  Black move from the old game; accepted form -> h2h3 White). Survives into the owner's engine.
