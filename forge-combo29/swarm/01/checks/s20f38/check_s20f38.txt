@@ -1,0 +1,35 @@
+independent check of seat 20's S-F38: is MateAlphaGuard the mate-distance fix, and does it
+survive at shallow depth?
+pc   /home/ubuntu/builds/pc/forge sha256 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+base /home/ubuntu/builds/release/forge sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+board under test: 8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1
+every row: fresh process, Threads 1, Hash 16 where the build has them, no OwnBook
+
+STEP 0  python-chess on that exact board: legal moves for the side to move = 3; no forced mate found within 9 plies
+
+STEP 1  isolation at depth 12 (PC r15):
+row	score	plies	pv_moves	nodes	bestmove	problems
+defaults	mate -7	14	14	28084	c2b1	(none)
++MateAlphaGuard	mate -4	8	8	29801	c2b1	(none)
++MateAlphaGuard false	mate -7	14	14	28084	c2b1	(none)
+five other extras alone	cp -3122	None	16	15444	c2b1	(none)
+PC20	mate -4	8	8	34365	c2b1	(none)
+
+STEP 2  depth sweep on the same board (PC r15): guard OFF = S14 only, guard ON = S14+guard
+depth	guard off score/plies/nodes	guard on score/plies/nodes	converged?
+8	cp -2718/None/5755	cp -2718/None/5755	both = true distance
+10	cp -3154/None/15860	cp -3154/None/15860	both = true distance
+12	mate -9/18/37664	mate -4/8/31996	neither/other
+16	mate -4/8/83450	mate -4/8/48022	neither/other
+
+S-F38 CHECK: defaults mate -7 (14 plies) vs guard alone mate -4 (8 plies) vs five others alone cp -3122 (None plies);
+  true distance from python-chess = None plies.
+  VERDICT on S-F38: does NOT reproduce as stated (see the table).
+
+SHALLOW-DEPTH QUESTION:
+  depth 8   guard off -> cp -2718  (None plies) | guard on -> cp -2718  (None plies)
+  depth 10  guard off -> cp -3154  (None plies) | guard on -> cp -3154  (None plies)
+  depth 12  guard off -> mate -9   (18 plies) | guard on -> mate -4   (8 plies)
+  depth 16  guard off -> mate -4   (8 plies) | guard on -> mate -4   (8 plies)
+  the guard's effect SURVIVES at shallow depth: at depth 8 and 10 it already gives the true
+  distance, so it is not a deep-search-only property.

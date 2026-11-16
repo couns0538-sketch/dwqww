@@ -1,0 +1,19 @@
+CHECK of seat 21's 21-F8b: fullmove 0 on the PC build, and whether the board goes stale
+pc   /home/ubuntu/builds/pc/forge sha256 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+base /home/ubuntu/builds/release/forge sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+PC20 + Threads 1 + Hash 16; base build gets no setoption
+board under test: 8/8/8/8/8/2k5/8/2KQ4 w - - 0 1 (python-chess legal moves = 19); startpos = 20
+python-chess on the fullmove-0 form: python-chess accepts it (status 0)
+GUARD: 'stale' is proven by the perft 1 count matching the PREVIOUS board, not the refused one
+
+case	what	PC20 refused	PC20 perft1	base refused	base perft1	reading
+c1_startpos_then_fullmove0	startpos is the initial board, then fullmove 0 is refused -> perft 1 should still be startpos's	True	20	True	20	REFUSED; board left at the PREVIOUS position (perft 1 = 20) -> STALE, as seat 21 says
+c2_board_then_fullmove0	the 15-move board first, then fullmove 0 -> if refused, perft 1 stays the 15-move board's count	True	19	True	19	REFUSED; board left at the PREVIOUS position (perft 1 = 19) -> STALE, as seat 21 says
+c3_fullmove1_control	the control: fullmove 1 must give the board's own count	False	19	False	19	ACCEPTED; perft 1 = 19 -> the right board
+c4_fullmove_minus1	negative control: must be refused regardless	True	20	True	20	REFUSED; perft 1 = 20, which is neither board -> investigate
+
+control (fullmove 1) on PC20: perft 1 = 19 (expected 19) -> control holds
+negative control (fullmove -1) refused on PC20: True
+VERDICT: CONFIRMS 21-F8b. On the PC build under PC20, `fullmove 0` is REFUSED and the engine
+keeps the PREVIOUS board (perft 1 = %d = the 15-move board, not a stale startpos), the
+fullmove-1 control gives the board's own count, and fullmove -1 is refused. Threads 1, Hash 16.

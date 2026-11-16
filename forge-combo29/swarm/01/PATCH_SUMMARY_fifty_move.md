@@ -1,41 +1,42 @@
 # Fifty-move root shortcut — patch summary for Opus
 
-> ## ⚠ BEFORE APPLYING — READ THIS FIRST
+> ## ⚠ DO NOT APPLY THIS PATCH — superseded by FABLE_TO_swarm_6
 >
-> **This is measured on base `6b98f217`. Opus reports the drawn-root defect repaired on the PC tree since
-> 15 Nov.** If your tree already adjudicates a halfmove-100 mate-in-1 correctly, **do not apply any patch from
-> this file**. Verify with the four commands below, and only then decide.
+> **`FABLE_TO_swarm_6` (Opus, 2026-11-16 21:40 PC time) states plainly that no patch for this is needed, and
+> the measurement agrees.** Two independent reasons, either one sufficient:
 >
-> Seat 20 reports, from reading `FABLE_TO_swarm_3`, that the drawn-root defect is **base-tree only** and
-> already fixed on the owner's PC. Everything in this file is therefore evidence **about the base tree**; it is
-> not a recommendation to patch a tree that already fixes it. **Run the four commands first — they take a
-> minute and they settle it.**
+> 1. **The defect is not a defect in real play.** The owner's match program ends the game itself at the third
+>    repetition and at the 100th half-move, so a search that scores such a node `cp 0` is right. A `cp 0` at a
+>    high counter is a defect only if a forced mate ends no later than the 100th half-move
+>    (`2N - 1 <= 100 - counter`). On the board this summary used, that inequality is **false**
+>    (`mate 1` at counter 0 gives `2N-1 = 1` against `100-counter = 0`), so my own headline claim is retired
+>    — see `FILE6_APPLIED_TO_MY_FINDINGS.md` and S-C6.
+> 2. **The tree the owner actually plays already repairs it.** `FORGE_FIX_ROOT_DRAWN` is in the PC r15 engine
+>    (file 5) and searches a drawn root like any other (S-F34, S-F45).
 >
+> **This file is kept as evidence about base `6b98f217`, not as something to apply.** Everything below was
+> measured on that base tree and remains correct as measurement.
+>
+> ### The one case that is still a real missed mate (and is already fixed on the PC)
+> `8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1`: the mating line starts with `h6h7`, a **pawn move**, which resets the
+> fifty-move counter to 0 — so the game never reaches the 100th half-move on that line and the cut-off never
+> applies. Base scores `cp 0`; the PC build finds `mate 2`. File 6's inequality assumes the counter advances
+> monotonically, which a pawn move breaks (S-F48).
+>
+> ### If you want to check a tree anyway, four commands (one minute)
 > ```
-> # 1. Does YOUR tree find the mate at halfmove 99?  (every tree should)
 > printf 'position fen 6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 99 1\nisready\ngo depth 6\nquit\n' | ./forge
-> #    expect: info depth 6 ... score mate 1 ... pv a1a8     bestmove a1a8
->
-> # 2. Does YOUR tree find the mate at halfmove 100?  (the defect)
+> #    every tree should say: score mate 1 ... bestmove a1a8
 > printf 'position fen 6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 100 1\nisready\ngo depth 6\nquit\n' | ./forge
-> #    if it answers "score mate 1 ... bestmove a1a8"  -> ALREADY FIXED, apply NOTHING from this file
-> #    if it answers "score cp 0 nodes 0 ... bestmove f2f3" -> the defect is present, read on
->
-> # 3. Does YOUR tree find a counter-resetting mate at halfmove 100?  (the case seat 12's patch misses)
+> #    a FIXED tree says "mate 1"; the base tree says "cp 0 nodes 0" (and that is NOT a real-play defect)
 > printf 'position fen 8/3K4/7P/8/8/7k/8/6Q1 w - - 100 1\nisready\ngo depth 12\nquit\n' | ./forge
-> #    expect a fixed tree to say "score mate 2"
->
-> # 4. Does YOUR tree still call a genuine fifty-move draw a draw?
+> #    a FIXED tree says "mate 2"  <- the counter-resetting case, the only one that matters in play
 > printf 'position fen 8/5K2/7Q/4k3/8/8/8/8 w - - 150 1\nisready\ngo depth 10\nquit\n' | ./forge
-> #    expect: score cp 0   (a fixed tree must not turn a real draw into a win)
+> #    any correct tree says "cp 0": a real draw must stay a draw
 > ```
->
-> If command 2 prints `mate 1`, stop here — your tree is ahead of this file.
->
-> *Caveat on these commands:* sent through a single pipe, `quit` can reach the search thread before it has
-> searched, and the engine then answers `bestmove` with **no** info line. If you see a bare `bestmove` with no
-> `score`, re-run with a pause instead, e.g.
-> `{ printf 'position fen ...\nisready\ngo depth 6\n'; sleep 1; printf 'quit\n'; } | ./forge`.
+> Caveat: through a single pipe `quit` can reach the search thread early and the engine then answers a bare
+> `bestmove` with no info line. If you see that, re-run with a pause:
+> `{ printf 'position fen ...\nisready\ngo depth 6\n'; sleep 1; printf 'quit\n'; } | ./forge`
 
 **Seat 01, area 1. Applies to commit `6b98f217`.** The combined patch in section 5b is the one I would apply
 to that base; sections 6–8 record why neither single-door patch is complete.
