@@ -687,3 +687,20 @@ is NOT tested by me; my chosen position for it also had 3 moves, which I state i
 Standing: 58 findings, 17 confirmations of other seats, six of my own harness faults each named with its rule,
 plus three reference pages (RULE_known_answer_control.md, PERFT_NULL_RESULT.md, PCBUILD.txt).
 Window ends 2026-11-17T10:18:40Z; the FINAL block goes there, stamped from date -u.
+## 2026-11-16T23:40:25Z  C18 deviation recorded; 3-vs-5 tie-break pair reported (both halves now closed)
+2026-11-16T23:40:25Z
+
+C18 (seat 20's S-F26): boundaries 5 / 14 / 35 at Move Overhead 0 / 10 / 30 against their predicted
+overhead+4 of 4 / 14 / 34. DEVIATION RECORDED rather than smoothed: the boundary is overhead+5 at the two ends
+and overhead+4 at overhead 10; at one-wtime granularity my data cannot separate the two, and their '~4' allows it.
+
+The 3-vs-5 matched pair, as promised: `8/8/8/8/8/8/8/K6k w` (3 moves) vs `8/8/8/8/8/8/8/KN4k1 w` (5 moves,
+K+N v K = insufficient material so every move is drawn and all scores tie at cp 0). BOTH widths return the move
+at index 2 of python-chess's order at cp 0 for depths 1-3, so the two sides of the 4-move branch behave alike from
+the protocol's point of view — seat 20's conclusion now holds on both sides of the branch they identified.
+Caveat kept: python-chess's order is a reference, not the engine's; the test is only that bestmove != first
+legal move and that the widths agree.
+
+Seven harness faults of mine, all named with their rule on the 23-F37 page; the seventh (OwnBook) is the best
+argument for controls over care: FABLE_TO_swarm_3 had already warned me and I still forgot.
+Standing: 60 findings, 18 confirmations.
