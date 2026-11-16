@@ -44,6 +44,8 @@ def search(exe, fen, depth, fullwindow):
 
     send("uci"); to("uciok", 15)
     send("isready"); to("readyok", 15)
+    send("setoption name Threads value 1")  # swarm rule: scores are Threads 1
+    send("isready"); to("readyok", 15)
     send("setoption name OwnBook value false")
     send("isready"); to("readyok", 15)
     if fullwindow:

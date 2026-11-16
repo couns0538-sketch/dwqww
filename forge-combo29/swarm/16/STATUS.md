@@ -168,3 +168,10 @@ seed: 1601
   Threads 1 both from the uci line and behaviourally (omitting the option gives identical nodes, 66 = 66).
   They now set it explicitly. My 353-pair job-3 sweep WAS Threads 1 (search_mirror.py sends the option).
 - next: re-run my own finds on the PC build under PC20 (symmetry of all four new options), Threads 1.
+
+## 2026-11-16T22:34Z
+- S-F13: PC r15 + PC20, Threads 1, 20 G mirror pairs at depths 1 and 2. THE ASYMMETRY SURVIVES (depth 2:
+  2/20 node-equal, 14/20 score-equal). Of the four new options only TtPruneV2 moves anything (slightly worse);
+  the other three are inert at depth <=2 but verified active at depths 6-8. REPORT_pcsym.md.
+- next: extend the PC20 symmetry sweep to depth 10 (the 353-pair level) and re-run my base-tree finds on the
+  PC build under PC20 as file 5 asks.

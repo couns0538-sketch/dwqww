@@ -46,6 +46,8 @@ def search(fen, depth, fw):
     # COLD: ucinewgame before the search, as seat 10's rule allows
     send("uci"); to("uciok", 15)
     send("isready"); to("readyok", 15)
+    send("setoption name Threads value 1")  # swarm rule: scores are Threads 1
+    send("isready"); to("readyok", 15)
     send("setoption name OwnBook value false")
     send("isready"); to("readyok", 15)
     if fw:
