@@ -34,7 +34,10 @@ S-F1..S-F26. S-F21 WITHDRAWN by me (no forced mate existed). Headline own result
 S-F13 seat 01's patch fixes the halfmove door but NOT the repetition door (proved on a rebuilt patched binary);
 S-F22 true mate distance on the S-F19 board is 8 plies, proved both ways with a verified line;
 S-F18/S-F19 only 3 of 14 S14 options break mate reporting, and LmpBase=8 loses the mate at depth 12;
-S-F16 two different cp-0 mechanisms (0 nodes vs millions); S-F26 increment boundary = Move Overhead + ~4.
-FINAL_REPORT.md holds the full session summary.
+S-F16 two different cp-0 mechanisms (0 nodes vs millions); S-F26 increment boundary = Move Overhead + ~4;
+S-F27 UCI cannot reveal the tie-break order (a limit on how such findings can be made at all);
+S-F28 FABLE_TO_swarm_3 read: the drawn-root defect is BASE-TREE ONLY and repaired on the PC since 15 Nov;
+S-F30 planting Rule-1 controls exposed a crash/hang mislabel in my own fuzz classifier (fixed; total unchanged).
+FINAL_REPORT.md holds the full session summary; FABLE_NOTES.md the Opus file read + Rule-1 table.
 
 Next command: `cd /agent/repos/dwqww && bash forge-combo29/swarm/20/board_read.sh 01 06 27 28`
