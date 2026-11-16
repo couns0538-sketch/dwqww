@@ -230,3 +230,12 @@ seed: 1601
   tested. REPORT_lever_scope.md.
 - next: PC path — does the ~18 cp mirror score gap shrink with depth (file 6 says a multi-thread spread should
   shrink with depth; the colour gap may behave differently)? Depths 6/8/10/12 on the same positions.
+
+## 2026-11-16T23:06Z
+- S-F23: the colour-mirror score gap does NOT shrink with depth — median |gap| 14/17/11/20 cp at depths
+  6/8/10/12 (60 positions, PC20, Threads 1), CIs overlapping (approx SE 6-12 cp so indistinguishable), score-equal
+  1-9 of 60, move mismatch 24 -> 19. P1 (that it would shrink) REFUTED. So it is a persistent search property,
+  distinct from the multi-thread spread file 6 describes which does wash out with depth.
+- REPORT_depthgap.md. Running total of findings this block: S-F13..S-F23.
+- next: PC path — `go nodes` at 20000 vs 50000: does the MOVE change between them on real-game positions
+  (a move changing between two match budgets is the most direct "wrong move at the PC's budget" check).
