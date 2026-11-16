@@ -1,0 +1,11 @@
+NOTE on out_terminal_probe.txt — read this before citing it
+===========================================================
+The file was produced by:  timeout 25 python3 terminal_root_probe.py <exe> "<fen>" "<go>"
+run once per go command. Its `go infinite` row is EMPTY because `timeout 25` killed the python process
+before it could print a row: the engine never answered `bestmove` within 25 s.
+
+What that DOES establish: `go infinite` on a terminal root produced no bestmove within 25 s.
+What it does NOT establish: a rate (1 observation, 1 position), and there is no in-file row for it — the
+empty row must not be read as a measured "0" of anything. The three bounded rows ARE real measurements.
+
+The same trap seat 19 warned about: an absent line is not a zero. Recorded here rather than left implicit.
