@@ -58,3 +58,27 @@ Threads 4 cannot be replayed. Threads 1 is the only reproducible arm, which is e
     cd forge-combo29/swarm/08/pc20 && python3 check_04f10.py /tmp/o04f10.txt
 
 Raw output committed as `check_04f10.txt`.
+
+---
+
+## CORRECTION to the "does NOT reproduce" section above — my sample size, not their claim
+
+The section above says their `e5e4` did not reproduce because I saw `g7g6` in 10 of 10 Threads-4 runs. That
+conclusion was **wrong**, and twenty more runs show it:
+
+| bestmove | count in 20 more runs | share |
+|---|---|---|
+| g7g6 | 18 | 90 % |
+| **e5e4** | **2** | **10 %** |
+
+Across all 30 Threads-4 runs I have now made on this board: `g7g6` 28 times, `e5e4` 2 times (and one `f5e6` in the
+first batch of the re-run — see `move_distribution.txt` for the per-run listing). Seventeen distinct scores in
+twenty runs; nodes 62,004–185,928.
+
+So the minority move is a **~10 % event**, and ten runs had roughly a 35 % chance of missing it entirely. Their
+7/3 split and my 28/2 are both draws from the same distribution on the same board.
+
+**04-F10 is CONFIRMED IN FULL**: score nondeterminism *and* move variation on an ordinary middlegame at Threads 4.
+The wording of my own 08-C7 ("their example board is not") is withdrawn — the correct statement is that the board is
+fine and my sample was too small. This is the second time in this seat that a ten-run sample was read as a
+distribution, and the remedy is the one now applied: when the question is the SPREAD, twenty runs minimum.
