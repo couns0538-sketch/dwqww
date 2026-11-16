@@ -1,0 +1,34 @@
+=== THE CLOCK DRAINS: median 105 ms used per move against a 60 ms increment ===
+So each move costs the clock about +105-60 = 45 ms on average. Starting from 6000 ms that
+would exhaust a clock after roughly 6000/45 = 133 moves of one side, IF the per-move cost
+stayed at the median.
+
+Measured drain per game (start 6000, so loss = 6000 - final clock):
+game   plies  drained  result                         min clock
+17     160    5826     ply cap                        174 ms
+16     160    5819     ply cap                        181 ms
+7      160    5796     ply cap                        204 ms
+9      127    5767     checkmate: white wins          233 ms
+28     125    5700     checkmate: white wins          300 ms
+26     160    5695     ply cap                        305 ms
+5      150    5647     checkmate: white wins          353 ms
+1      133    5643     checkmate: white wins          357 ms
+
+Average drain per move of the DRAINING side, computed from the worst games:
+  game 17: 160 plies, drained 5826 ms -> about 36.4 ms lost per ply
+  game 16: 160 plies, drained 5819 ms -> about 36.4 ms lost per ply
+  game  7: 160 plies, drained 5796 ms -> about 36.2 ms lost per ply
+
+=== DOES THE DRAIN ACCELERATE? (per-move cost in the first vs last 40 plies of each game) ===
+  game  1: first40 217 ms -> last40 83 ms  faster later
+  game  2: first40 210 ms -> last40 100 ms  faster later
+  game  3: first40 222 ms -> last40 67 ms  faster later
+  game  5: first40 222 ms -> last40 81 ms  faster later
+  game  6: first40 194 ms -> last40 55 ms  faster later
+
+=== SO: WOULD A LONGER GAME FORFEIT? ===
+The observed minimum clock was 174 ms after 160 plies (80 moves per side).
+Drain is roughly linear at ~22 ms lost per ply in the heaviest game, and the cost does
+NOT accelerate in these games, so a game long enough to forfeit would need roughly
+174 ms / (45 ms per move of the draining side) ~= 4 more moves of that side, i.e. about
+8 more plies. That is a NARROW margin, not a comfortable one.
