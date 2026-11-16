@@ -1,0 +1,26 @@
+TWO mate-distance violations at depth 14 on G (353 positions), from analyze_g14.txt.
+
+=== idx 69: k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1  (BLACK to move, black is lost) ===
+engine, depth 14, S14, Threads 1, Hash 16:
+  info depth 14 seldepth 24 score mate -9 nodes 42957 ... pv a8b8 h5h6 b8c8 f5e6 c8b8 e6d5 b8c8 d5c6 c8b8 g7d7 b8a8 d7d5 a8a7 d5a5 a7b8
+  (15 plies printed, does NOT end in checkmate; "mate -9" claims 18 plies)
+truth, two independent solvers:
+  $ python3 solvemate2.py 'k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1' 12
+  MATED_IN_PLIES 6 (depth 6)
+  $ python3 matedbf.py 'k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1' 12
+  MATED_IN_PLIES 6
+  => correct score mate -3. The engine says mate -9: wrong by 6 plies = 3 moves too pessimistic.
+
+=== idx 192: 8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1  (the SAME position as job 1 idx 392) ===
+engine, depth 14:
+  info depth 14 seldepth 27 score mate -9 nodes 33105 ... pv c2c3 d2d1q c3b2 d1d2 b2b1 e4e3 b1a1 d2d4 a1a2 d4d1 a2b2 e2d3 b2a2 e3e2 a2b2
+  (15 plies printed, does NOT end in checkmate)
+truth (job 1/evidence/mate392/): MATED_IN_PLIES 8 by both solvers => correct score mate -4.
+The engine says mate -9 at depth 14, was mate -12 at depth 12: still wrong, still pessimistic,
+and the error shrinks with depth rather than disappearing.
+
+SUMMARY
+- idx 69:  engine mate -9 (18 plies), truth mate -3 (6 plies)   -> 12 plies / 6 moves wrong
+- idx 192: engine mate -9 (18 plies), truth mate -4 (8 plies)   -> 10 plies / 5 moves wrong
+Both PVs are 15 plies and both stop short of mate, so in both cases the printed line contradicts
+the score it is printed next to.

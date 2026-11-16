@@ -121,3 +121,83 @@ REPORT_job4.md
 run_d14.log
 stamps.txt
 ```
+
+---
+
+# job 4 part B — G at depth 14 (added after part A)
+
+**What was asked.** My own follow-up: G carries the mate scores (part A showed O carries none), and
+the brief publishes a G depth-14 node sum, so this both proves fidelity a third time and puts real
+game positions in front of the mate rule at a deeper search.
+
+**The answer.** The G depth-14 sum matches the brief **exactly** (43,345,893, diff 0) — three
+distinct fidelity checks now pass to the node. On that faithful harness, 353 positions give **2
+mate-rule violations**, and one of them is a position I had never searched before with a mate
+distance wrong by **6 moves**.
+
+**How sure.** Very high. The node sum is exact against a number in the brief; both violations were
+solved by two independent python-chess solvers that agree with each other.
+
+## Prediction vs result (part B)
+
+| # | prediction | verdict |
+|---|---|---|
+| P1 | sum exactly 43,345,893 | **HELD** (diff 0) |
+| P2 | 0 illegal PV moves | **HELD** |
+| P3 | at least 10 mate scores | **HELD** — 14 |
+| P4 | 0 or 1 mate-rule violations | **REFUTED** — 2 |
+| P5 | under 15 minutes | **HELD** — 22.4 s |
+
+## Findings
+
+### 15-F9 — a second, independent mate-distance fault, wrong by 6 moves (NEW)
+
+```bash
+cd forge-combo29/swarm/15/job4
+grep -E "^MATE_LEN" analyze_g14.txt
+python3 solvemate2.py 'k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1' 12
+python3 matedbf.py  'k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1' 12
+```
+
+```
+MATE_LEN (69, 'k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1', 'mate', -9, 'plies=15 want=18 checkmate=False', ...)
+MATE_LEN (192, '8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1', 'mate', -9, 'plies=15 want=18 checkmate=False', ...)
+
+MATED_IN_PLIES 6 (depth 6)
+MATED_IN_PLIES 6
+```
+
+On **idx 69** (`k7/6R1/5N2/p4K1P/P7/8/8/8 b`, black to move, black lost) the engine reports
+`mate -9` — a promise of mate in 18 plies — while the true distance is **6 plies** (`mate -3`). That
+is 6 moves too pessimistic. Its printed PV is 15 plies and does not reach mate.
+
+This is a **second, independent instance** of the 15-F1 fault class, on a different position, with a
+larger error, found without looking for it. Combined with job 1b (0 violations in 200 R positions)
+and part A (0 in 200 O positions), the picture is now:
+
+| set | positions | mate scores | violations |
+|---|---|---|---|
+| O at depth 12 | 200 | 0 | 0 |
+| G at depth 12 (job 1) | 353 | 10 | 1 |
+| R at depth 12 (job 1b) | 200 | 8 | 0 |
+| O at depth 14 (part A) | 200 | 0 | 0 |
+| **G at depth 14 (part B)** | **353** | **14** | **2** |
+
+So the fault is confined to G-like deep game positions, and it gets **more** frequent with depth
+(1 in 10 mate scores at depth 12, 2 in 14 at depth 14) — the opposite of a rounding wobble.
+
+### 15-F10 — fidelity now proven at three (set, depth) points (NEW)
+
+```
+O depth 12  9,500,069   diff 0   (job 1)
+G depth 12 18,466,239   diff 0   (job 1)
+O depth 14 21,812,100   diff 0   (part A)
+G depth 14 43,345,893   diff 0   (part B)
+```
+
+Four exact matches against the brief's own published sums. No zero in these folders rests on a
+harness that cannot reproduce the engine's node counts.
+
+## Times
+
+Appended to `stamps.txt` (pasted `date -u`).
