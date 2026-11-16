@@ -275,3 +275,7 @@ Next: continue on PC20 with provably-applied options; STATUS every 25 min.
 - S-F47: on the owner's 6s+0.06 clock, PC20/Threads 1 uses only median 238 ms (max 826 ms) over 20
   G positions; 0/20 came near 6000 ms. Startpos 366 ms, 21-piece Italian 149 ms. Not a defect — but
   it means a 6s clock rarely binds, so clock-based match results are effectively "a few hundred ms".
+- S-F48: the owner's MATCH setting `go nodes N` is deterministic but stops at a COMPLETED depth and
+  so uses LESS than N: median -34% at 20000, -20% at 50000, -22% at 250000 (worst -62%). Example:
+  nodes 50000 -> depth 12, 31,779 nodes. Consequence: "nodes 50000" matches are a depth ceiling in
+  disguise, not an equal node budget. (Contrast: softnodes OVERSHOOTS by ~33%.)
