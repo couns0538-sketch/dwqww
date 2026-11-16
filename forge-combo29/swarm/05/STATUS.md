@@ -511,3 +511,26 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
 - S-F43 records the scores that forced the correction.
 - S-F41 (wtime result is bit-identical to `go depth <its depth>` in 12/12) is UNAFFECTED and still stands.
 - next command: continue the cycle.
+
+## $(date -u) — BLOCK SUMMARY (PC-build work)
+SEAT 05, area 5. Branch for-fable-and-opus/swarm-05. All results Threads 1, Hash 16, OwnBook false.
+PC r15 build verified 8/8 (none/S14/PC20) before any of it.
+
+STANDING (needs a confirming seat — repro published at clockpath/REPRO_for_seats.md):
+- S-F37/S-F38: `go wtime 6000 btime 6000 winc 60 binc 60` uses 0.23-0.36 s, reaching depth 19; `go movetime 6000`
+  uses 5.99 s and reaches depth 27. Reproduces on PC r15 and the base build, 5 runs each.
+- S-F39: it is a time FORMULA not a depth cap — depth grows monotonically as the clock grows; used/clock falls
+  9.5%->2.2% from a 1 s to a 120 s clock.
+- S-F40: holds on 5 diverse positions (3.0%-11.9% used); worst for strength in a K+Q endgame (d15 vs d64).
+- S-F41: the wtime MOVE is bit-identical to `go depth <depth reached>` in 12/12 positions.
+- S-F42 (corrected): moves can differ from a full search (2/12) but the deeper search was PESSIMISTIC in both, so no
+  strength loss is established.
+
+CONFIRMED / CROSS-CHECKED:
+- S-F16/S-F3 (fifty-move) — seat 08 08-C6 confirmed on PC20. NOTE: file 6 later withdrew S-F3/S-F16 as DEFECTS (S-W1).
+- softnodes staircase — seat 01 S-F51 independently, and supplies the mechanism (check-after-iteration, hard cap 4N).
+- S-F23 (mate-PV truncation 0/27 under PC20 vs 2/28 under S14) was cited by file 6 as the kind of answer needed.
+
+WITHDRAWN by me under file 6 or by my own checks: S-F3, S-F4, S-F16 (not defects), S-F11/13/14/15/20 (descriptions),
+S-F34/S-F35 framing (S-W4), my false softnodes nondeterminism (S-W3), my OwnBook-tainted first clock table (S-W5).
+- next command: continue the cycle; try the wtime formula on a 2nd PC-build property (does Hash size change the ratio?).
