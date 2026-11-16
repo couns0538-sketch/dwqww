@@ -1,0 +1,22 @@
+PREDICTION — SW-23 job 21 (does the drawn-root repair work under the CLOCK, not just at fixed depth?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F44 showed the PC build repairs the drawn-root defect at `go depth 8`: a claimable threefold repetition that the
+base answers with cp 0 / 0 nodes, the PC searches (cp 399 / 6,941 nodes). But matches do not use `go depth` - they use
+a CLOCK. This tests the repair on the path that matters.
+
+Method: the same threefold-repetition root as 23-F44 (reached by the real move list
+d5d6 a1b1 d6d5 b1a1 twice), PC r15 + PC20, Threads 1, Hash 16, OwnBook false, fresh process, drained, THREE ways:
+  (a) `go depth 8`                      - reproduces 23-F44 (control that the setup is right)
+  (b) `go wtime 6000 btime 6000 winc 60 binc 60`
+  (c) `go softnodes 2000`               - the self-play path
+And the same for the BASE build, to show which paths are repaired.
+
+Prediction (each number with the range that kills it):
+  P1  base reports cp 0 on all three paths (depth 8, clock, softnodes).   KILLED if any path searches it.
+  P2  PC reports a NON-zero score on all three paths.                     KILLED if any path gives cp 0.
+  P3  on the clock path the PC reports mate or a large cp (>= 200), i.e. it sees the win. KILLED if < 100.
+  P4  the PC's node count on the clock path exceeds 1,000 (it really searched). KILLED if <= 200.
+
+If P2 is killed - i.e. some path still short-circuits on the PC - that is a live defect in the owner's engine on a
+path matches use, and it would go straight into FINDINGS with the exact command.
