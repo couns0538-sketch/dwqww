@@ -1,0 +1,27 @@
+# PREDICTION — seat 24, area 4, job 1 (Threads 2/4/8/16 under ThreadSanitizer)
+
+Written and pushed BEFORE the first measuring command of job 1. Never edited afterwards.
+
+Machine: 4 cores (nproc = 4), 15 GB RAM, gcc 13.3.0, TSan build in
+/agent/repos/base/forge-combo29/build-tsan (RelWithDebInfo + -fsanitize=thread), `nm -C | grep -c __tsan_` = 21.
+
+Work: first 100 FENs of G (set_G.epd), depth 12, S14 tunables, Threads in {2, 4, 8, 16}, `ucinewgame` + `isready`
+before every `go`, Hash 16, one fresh engine process per Threads setting (100 positions per process).
+
+## Predictions (each with the range that kills it)
+
+1. TSan data-race reports, summed over all four Threads settings: **0**.
+   KILL if the string "WARNING: ThreadSanitizer" appears once or more in any of the four raw logs.
+   (Base rate for this call: the brief's known result — Threads 2 and 4 on the first 50 of O gave 0 reports.)
+2. Per-setting reports: 0 at 2, 0 at 4, 0 at 8, **0 or 1 at 16** (16 threads on 4 cores is where a real
+   race in the shared node/pv publication would first show). KILL of the per-setting prediction if any of
+   2/4/8 shows a report.
+3. Engine exits: all four runs exit 0. KILL if any exit code is nonzero or the process had to be killed.
+4. bestmove lines: 400 of 400 (4 x 100) present and legal on the engine's own final position.
+   KILL if any bestmove is missing, `0000` where a legal move exists, or illegal.
+5. Wall time of the slowest setting (Threads 16): **under 20 minutes**. KILL if it exceeds 40 minutes.
+6. Planted-fault control (scratch copy with one unlocked global counter incremented by every helper and by the
+   main worker): **at least 1 TSan report** from the same runner. KILL if 0 — then prediction 1 means nothing.
+
+## What "0 reports" needs to count (from the brief)
+The .meta files must hold `nm -C <exe> | grep -c __tsan_` above 0, and the planted-fault run must be counted.
