@@ -1,0 +1,16 @@
+# PREDICTION — check seat 28's S-F1 (go movetime subtracts Move Overhead)
+
+Claim: "`go movetime M` stops at M-10 ms: the default `Move Overhead 10` is subtracted from the movetime limit
+(src/search.cpp:2192, src/uci.cpp:152), so `go movetime 10` searches 1 ms and `go movetime 50` stops at 40.5 ms."
+
+P1. `go movetime 10` with the default Move Overhead 10: predicted engine-reported `time` in the LAST info line
+    is 1 ms (or the search stops so early that a very low `time` is reported, <= 3 ms). Kills it: a reported
+    time near 10 ms.
+P2. `go movetime 50`: predicted the engine's own reported time ≈ 40-41 ms (the finding says 40.5). Kills it:
+    a reported time near 50 ms.
+P3. `go movetime 200` with `Move Overhead` set to 0 vs 10: predicted the 0-overhead run reports near 200 ms and
+    the 10-overhead run near 190 ms — a ~10 ms gap. Kills it: no gap (then the subtraction is not taking effect).
+P4. Wall time (my monotonic clock) exceeds the reported time by a small constant (process start + UCI), predicted
+    under 25 ms. Kills it: a wall time far from the reported time (then the reported time is not the search time).
+P5. The setting is honoured in both directions: predicted a LARGER overhead (e.g. 45) makes `go movetime 50`
+    stop even earlier, near 5 ms. Kills it: no change.
