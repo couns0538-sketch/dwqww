@@ -141,3 +141,15 @@ next: job1b report + board read for an unconfirmed NEW finding.
   accepted statement; seat 16's REFUTES was about the kept iteration, reconciled in 08-F10.
 
 next: timing verification of 08-F1/08-F10 on the fresh set, then report.
+
+## 2026-11-16T21:48Z
+- job5 DONE: clock tail sweep 200/500/1000/3000/10000/30000 ms, 1,200 searches. 08-F11: the tail scales
+  linearly (p99/median 3.1-4.8x constant; 10x clock -> 11.9x p99) and median/soft shrinks 100 %->61 %.
+  No search exceeded its own clock at any size.
+- job6 DONE: 08-F12 — the book is wide: 9 of 14 opening positions answered from it, INCLUDING startpos itself
+  (the default first line of any harness), up to `1.e4 e5 2.Nf3 Nc6 3.Bb5`; and the book move VARIES between
+  runs (Book Variety 30).
+- Findings now 08-F1..F12, checks 08-C1..C3. All reports pushed (job1, job1b, job2, job3, job5, job6 + reconcile).
+
+next: job 6b — verify the book trap cannot have contaminated any of my 1,200+ timing records (OwnBook false
+proof per dataset), then another board read.
