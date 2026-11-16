@@ -1,0 +1,28 @@
+fen 8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1
+python-chess valid True; white to move, 3 legal moves
+(the engine's `mate -N` scores say WHITE is the side that gets mated)
+
+exact predicate: BLACK forces mate within 8 plies -> engine should print 'mate -4'
+
+proof line (8 plies), replayed with python-chess:
+   1. white c2c3   checkmate: False
+   2. black d2d1q   checkmate: False
+   3. white c3b2   checkmate: False
+   4. black e2d3   checkmate: False
+   5. white b2a2   checkmate: False
+   6. black d3c3   checkmate: False
+   7. white a2a3   checkmate: False
+   8. black d1b3   checkmate: True
+
+all moves legal: True; final position checkmate: True
+
+RESULT: mate distance is 8 plies (mate -4); the engine's depth-12 claim was mate -7 = 14 plies,
+so it OVERSTATES the distance by 6 plies on this board at depth 12.
+
+black forces mate within 2 plies: False
+black forces mate within 3 plies: False
+black forces mate within 4 plies: False
+black forces mate within 5 plies: False
+black forces mate within 6 plies: False
+black forces mate within 7 plies: False
+so 8 plies is the SHORTEST forced distance (nothing faster exists).
