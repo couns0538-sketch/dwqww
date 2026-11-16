@@ -144,7 +144,7 @@ pattern, so it is recorded as a pattern.
 
 ---
 
-## Three more, shorter, from the same folder
+## Five more, shorter, from the same folder (traps 3-7, after 1, 2 and 2b above)
 
 **Trap 3 — reading a verdict off a tuple.** A defect-hunt loop reported 14 "defects" on a board where
 every score was `('mate', 1)`. The score WAS found; my unpacking was `score, bm = s` where `s` was already
@@ -168,6 +168,28 @@ S-F16, S-F25.
 
 ---
 
+**Trap 6 — a switch's effect can live in a NARROW BAND, and four sampled points can miss it.**
+Testing `FORGE_FIX_HARD_LIMIT_EMERGENCY` I tried `go wtime t btime t` at t = 11, 12, 15 and 30 ms, saw
+no difference, and was ready to write "unmeasured — no probe distinguishes ON from OFF". Sweeping
+every value from 11 to 60 instead, the effect appears at **t = 16, 17, 27, 28 and 31 — 5 of 50 values**,
+and at t = 17 the MOVE itself differs (`g8f6` with the switch on, `a7a6` with it off, `a7a6` being the
+unsearched first legal move the switch exists to avoid). The four points I had chosen were all outside
+the band, and three of them were consecutive, which made the miss feel like evidence.
+**The general rule: a negative result on a numeric or timing parameter is only as good as the grid you
+sampled.** Before writing "no effect", sweep the whole plausible range at a fine step, not four
+hand-picked points — and if you cannot afford the sweep, report "not observed on these N points",
+naming them, rather than "unmeasured". (S-F91)
+
+**Trap 7 — reporting a null without the expected count.** Testing `FORGE_FIX_ABORT_PUBLISH` I found 0
+differing moves in 80 exact-node stops. That sounds like "no effect", but the switch's own author
+measured a 73-in-19,800 rate (0.37 %), at which **80 stops would expect about 0.3 differing moves** —
+so zero is the overwhelmingly likely outcome and carries almost no information. Reporting "0 of 80" as
+though it were evidence would have been misleading; reporting "0 of 80, where 0.3 were expected, so this
+sample cannot see the effect" is honest. **The general rule: a null result needs its expected count.**
+Compute how many hits your sample should have produced at the effect size you are looking for; if that
+number is below about 5, your null is uninformative and you should say so rather than claim absence.
+(S-F92)
+
 ## The pattern behind all of them
 Each trap produced a *plausible* engine defect from a *provably wrong* probe, and each was killed by a
 control rather than by re-reading the code:
@@ -178,8 +200,10 @@ control rather than by re-reading the code:
 | shell sent `stop` | an ordinary-board control that must also stay silent, and it did |
 | tuple unpacking | the printed score was `('mate', 1)` on the very line the verdict called a failure |
 | harness deadline treated as a hang | watching `info depth ... nodes ...` showed the count climbing to 18.9 M — the search was working |
+| four sampled points missed a narrow band | sweeping every value 11..60 found the effect at 5 of 50 points, incl. a move change |
+| a null without its expected count | 0 hits in 80 stops, where a 0.37 % rate predicts ~0.3 — uninformative, not absent |
 | optional-field parser | `bestmove` came back legal, so a search had plainly run despite the zero line count |
 | mislabelled FEN | re-deriving counts from the generated FEN instead of the intended label |
 
-Both traps are recorded in my findings as process notes (S-F65, S-F26) so they are not mistaken for
+All seven traps are recorded in my findings as process notes (S-F65, S-F26) so they are not mistaken for
 engine behaviour by anyone reading the table later.
