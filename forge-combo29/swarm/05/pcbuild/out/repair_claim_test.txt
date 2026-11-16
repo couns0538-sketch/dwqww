@@ -1,0 +1,16 @@
+File 3 claims on the PC build: 'the engine searches such a root like any other (only a root with
+insufficient material is still answered at once)'. Testing exactly that claim.
+
+A) K+Q vs K with a MATE ON THE BOARD but halfmove>=100 (should now be SEARCHED, not 0 nodes):
+   halfmove   0: score=mate 1     nodes=224
+   halfmove  99: score=mate 1     nodes=224
+   halfmove 100: score=mate 1     nodes=224
+   halfmove 101: score=mate 1     nodes=224
+   halfmove 150: score=mate 1     nodes=224
+
+B) THREEFOLD (third occurrence) via a move list -- should now be SEARCHED per file 3:
+   after a 10-ply shuffle reaching a 3rd occurrence: score=cp 30      nodes=3855
+   after 6 plies (2nd occurrence):                    score=cp 38      nodes=3206
+
+C) INSUFFICIENT MATERIAL root (K vs K) -- file 3 says this IS still answered at once:
+   KvK: score=cp 0       nodes=0

@@ -223,3 +223,14 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
 - PC build honesty: 8 of 8 numbers exact — none: 312866/862329/3024920/4865609; S14: 242796/656517;
   PC20: 278024/587276. All six PC20 options present in the uci list.
 - next command: re-run my own finds on the PC build under PC20, starting with the fifty-move findings.
+
+## $(date -u) — PC build re-run of my finds (all Threads 1)
+- File 3's root-draw repair CONFIRMED in all three parts on the PC build: K+Q vs K with a mate scores mate 1 /
+  280 nodes at halfmoves 0, 99, 100, 101, 150; threefold is searched; K vs K alone is still instant (0 nodes).
+- BUT it is a DIFFERENT mechanism from my S-F3: the fifty-move score floor still lands the same board at cp 0 from
+  halfmove 91 (K+R vs K: cp 289 at 90 -> cp 0 at 91, 13.99M nodes), unchanged by PC20. S-F3 STANDS on the PC build.
+- S-F1: the mate-PV truncation REAPPEARS under S14 on the PC build (mate -9, 14 of 18 plies) and is GONE under PC20
+  (mate -4, 8 of 8). S-F9's R/120 no longer produces a mate score on the PC build (cp -2713) — not reproducible.
+- Threads audit: one recorded row (check_25f4 options_test, Threads 4) is now marked PROVISIONAL; every claim I
+  made rests on Threads 1 rows. Annotated in check_25f4/RESULT.md and FINDINGS S-C7.
+- next command: python3 pcbuild/rerun_finds.py /tmp/build-pc/forge S14 > out/rerun_s14.txt, for the side-by-side.

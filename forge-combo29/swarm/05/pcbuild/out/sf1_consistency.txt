@@ -1,0 +1,17 @@
+S-F1 consistency under each setting (Threads 1 everywhere). Rule: `mate N` needs 2N-1 plies (N>0) or 2|N| (N<0).
+
+| setting | score | plies needed | pv plies | consistent? |
+|---|---|---|---|---|
+| PC build, no options | mate -7 | 14 | 14 | yes |
+| PC build, Threads1+Hash16 | mate -7 | 14 | 14 | yes |
+| PC build, S14 | mate -9 | 18 | 14 | NO (short by 4) |
+| PC20 (all six) | mate -4 | 8 | 8 | yes |
+| PC20 minus CuckooRep | mate -4 | 8 | 8 | yes |
+| PC20 minus HistRework | mate -4 | 8 | 8 | yes |
+| PC20 minus TtPruneV2 | mate -5 | 10 | 10 | yes |
+| PC20 minus CorrHistV2 | mate -4 | 8 | 8 | yes |
+| PC20 minus MateAlphaGuard | mate -7 | 14 | 14 | yes |
+| PC20 minus OwnBook | mate -4 | 8 | 8 | yes |
+
+Reading: the truncation I reported as S-F1 is present under S14 on the PC build
+and absent under PC20; it is not simply 'repaired by the new build'.

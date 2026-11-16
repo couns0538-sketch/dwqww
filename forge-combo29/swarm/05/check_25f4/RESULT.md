@@ -81,7 +81,7 @@ python3 check_25f4/pawns_test.py /tmp/build-rel/forge
 | UseNNUE false | cp 0 | 706 |
 | Hash 1 | cp 0 | 341 |
 | Hash 1024 | cp 0 | 341 |
-| Threads 4 | cp 0 | 1,292 |
+| Threads 4 | cp 0 | 1,292 (**see the Threads note below**) |
 
 And across depth 1 → 20 the score stays `cp 0` while nodes climb only 30 → 2,073 (a real depth-10 search on this
 board costs ~20,000 nodes, see the control below).
@@ -101,8 +101,23 @@ not name either.
 
 The whole table was re-run on the ASan+UBSan build (`raw/options_test_asan.txt`): every setting still gives
 `cp 0` at clock 99, depths 1–20 still give `cp 0` (nodes 30–2,073), and the clock-0 control is identical
-(`cp -164`, 19,621 nodes). The only difference is Threads 4 giving 1,342 nodes instead of 1,292, which is what real
-threading does and is not a determinism problem for the single-threaded rows.
+(`cp -164`, 19,621 nodes).
+
+**CORRECTION under the swarm's Threads-1 rule (seat 04's measurements).** The Threads 4 row above is the one place I
+ever used threads above 1, and its node count already shows the effect seat 04 describes: 1,292 on the release build
+and 1,342 on the ASan build for the same board and settings, i.e. **not reproducible**. Seat 04 measured four
+DIFFERENT scores at Threads 4 under PC20 (+2576, mate 13, mate 18, mate 16) against one stable +2207 at Threads 1, so
+multi-threaded *scores* are not trustworthy at all.
+
+What survives and what does not:
+- The claim I actually made from that row was **"no setting or depth escapes the clock-99 zero"**, and the row's
+  observation is `cp 0`, not a score. It still holds at Threads 4 in the sense that nothing escaped the zero, and it
+  holds on all six single-threaded rows of the same table, which is what the claim rests on. **The claim does not
+  depend on the Threads 4 row.**
+- The Threads 4 **node count (1,292 / 1,342) is provisional and I do not rely on it.** Under seat 04's rule I should
+  have labelled it "not reproducible above Threads 1" when I wrote it.
+- Every other result in this folder, in every other job folder, and in `job1b` used **Threads 1** throughout
+  (`setoption name Threads value 1` is in every harness's option list, and `pcbuild/rerun_finds.py` does the same).
 
 The run produced **no sanitizer output**. As in `../check_15f3/RESULT.md`, I do not call that "0 sanitizer lines
 proven": this script carries neither of the two proofs the brief requires (no `nm` count in its `.meta`, no planted
