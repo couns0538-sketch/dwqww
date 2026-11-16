@@ -4,6 +4,35 @@
 - area: 5 (PRINCIPAL VARIATIONS AND SCORES)
 - seed: 1501
 
+## 2026-11-16T22:32:55Z
+
+AREA 5 IS COMPLETE, on BOTH builds. The thrice-repeated root is instrumented and answered.
+
+- 15-F23 INSTRUMENTED: `is_repetition()` at the root returns TRUE at 3 and 4 occurrences on the PC
+  build, exactly as on the base tree and in agreement with python-chess — but `FORGE_FIX_ROOT_DRAWN`
+  does not consult it (`root_drawn = !legal.empty() && is_insufficient_material()`), with the source's own
+  comment saying a third occurrence "is searched like any other root". Text patch committed; honesty
+  pins unchanged on both instrumented builds.
+- 15-F24 that flag CONFLATES two repairs: ON finds the halfmove-100 mate but searches repetitions;
+  OFF declares the repetition but loses the mate again.
+- 15-F25 a ONE-LINE SPLIT does both at once, tested: `root_drawn = !legal.empty() &&
+  (is_repetition() || is_insufficient_material())` -> repetition drawn AND both halfmove-100 mates
+  found, twice-repeated still searched, checkmate/stalemate unchanged, pins unchanged,
+  patch applies with `patch -p1 --fuzz=0`.
+- 15-F18/F20/F22 both my mate faults are GONE on the PC build and `MateAlphaGuard true` ALONE is the
+  fix (isolated one option at a time); G at d12 and d14 gives 28 mate scores, 0 PV violations.
+
+TOTALS: 25 findings, 4 checks, 4 self-corrections (15-R1 terminal score, 15-R2 REFUSED-FEN harness,
+the insufficient-material claim, and the 15-F21 "gap" framing). Every claim names its build and
+settings; **Threads 1 throughout, audited.**
+
+Running now: nothing.
+
+Next exact command:
+  cd /agent/repos/dwqww && for s in 05 07 10 19 25; do git fetch -q --depth 1 origin for-fable-and-opus/swarm-$s && git show FETCH_HEAD:forge-combo29/swarm/$s/FINDINGS.md | grep -E "^\| .*-[CF][0-9]+" | tail -3; done
+  -> cycle step 2(a): find an unconfirmed NEW finding of another seat and check it with my own
+     harness on the PC build under PC20.
+
 ## 2026-11-16T22:29:47Z
 
 Both items the coordinator asked for are DONE and pushed. **Threads 1 and the build are named in
