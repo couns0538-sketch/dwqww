@@ -1,0 +1,18 @@
+checkmated root, PC r15/PC20: `score mate 0`
+   -> UNDEFINED: mate in 0 moves is not possible (mate either exists at least one move away, or not at all)
+
+stalemated root, PC r15/PC20: `score cp 0`
+   -> a centipawn score of 0
+
+a normal mate in 3 (contrast): `score mate -3`
+   -> the side to move is mated in 3 moves
+
+What the two terminal cases SHOULD report, so a GUI can tell them apart:
+  checkmated root : mate 0 is meaningless; the honest encodings are `mate 0` (non-standard) or
+                    a large negative centipawn value, and every standard GUI will either show
+                    nothing sensible or treat it as a win for nobody.
+  stalemated root : `cp 0` — a genuine draw, which IS correct and standard.
+
+Net: the two zero-move positions are reported in two different currencies, and the checkmate one in an
+undefined token. A GUI that reads `mate 0` shows no mate; a training pipeline that maps mate scores to
+labels by sign will label the checkmated root as neither win nor loss (0 is neither + nor -).
