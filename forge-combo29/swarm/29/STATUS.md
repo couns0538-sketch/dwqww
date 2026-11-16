@@ -44,3 +44,10 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - IMPORTANT: I WITHDREW my own 29-C2 and the ordering part of 29-F7. On random-game positions the same engine shows seat 19's ordering (pick_best 8.06% vs next 5.92%). Recorded as 29-N4.
 - 29-F10: move-ordering shares are POSITION-DEPENDENT - quote the position set or the claim is meaningless. 29-F11: TT probe 1.38% bench vs 3.65% deep (2.6x), reproducing 29-C1.
 - next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git fetch -q --depth 1 origin handoff/fable-opus-combo29-all-20261114 && git show FETCH_HEAD:forge-combo29/soak_all/FABLE_TO_swarm_4.md   (newest correction), then look for another unconfirmed NEW finding to check per THE CYCLE 2(a).
+
+## Mon Nov 16 09:52:00 PM UTC 2026
+- Warm/cold rule from seat 10 audited: REPRODUCED exactly (same process 56,720/4,951/4,516; fresh processes 56,720x3; ucinewgame restores cold). Written up as WARM_AUDIT.md + 29-C3.
+- My S14 known sums (O=9,500,069, G=18,466,239) used ucinewgame per position, so they are COLD and STAND.
+- My job4/job5 share tables are WARM and now LABELLED as warm (29-N5); they published no node counts.
+- Also finished a 19-F10 check before this: interleaved 48 pairs, 2 builds/side, nodes identical on every run, patch/base time ratio 1.0943 CI [1.0734,1.1155] => CONFIRMS 19-F10's ~8% prefetch slowdown.
+- next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: warm/cold audit + 19-F10 check' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
