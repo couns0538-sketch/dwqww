@@ -1,0 +1,18 @@
+PREDICTION — seat 15, movetime character cutoff. Committed BEFORE measuring.
+
+The question: `movetime 100` used ~90% of its slice (clockpath/RESULT.md). Does a LONGER movetime stay
+proportionally honoured, or does the engine's own time plan take over and stop early — i.e. does the
+mode change character at some cutoff?
+
+PC r15, PC20, Threads 1, Hash 16. 5 boards, movetime 1000 and 3000, 5 runs each = 50 searches.
+Report wall time (monotonic, from sending go to reading bestmove) and the fraction of the slice used.
+
+P1  movetime 1000: wall time between 850 and 1100 ms on every board and run (>= 85% of the slice).
+    KILLS P1: any run below 700 ms (would mean the engine stopped well short).
+P2  movetime 3000: wall time between 2550 and 3300 ms on every board and run (>= 85%).
+    KILLS P2: any run below 2100 ms.
+P3  the fraction used is NOT lower at 3000 than at 1000 by more than 10 percentage points
+    (i.e. no character change over this range).  KILLS P3: a drop > 10 points.
+P4  runs are deterministic: node counts identical across the 5 runs of one (board, movetime) cell at
+    least 60% of the time.  KILLS P4: fewer than 3 of 10 cells showing exact node equality.
+P5  bestmove legal in all 50 runs.  KILLS P5: any illegal.

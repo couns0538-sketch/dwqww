@@ -1,0 +1,37 @@
+=== P1: movetime 1000 within 850-1100 ms? ===
+  startpos  990-990  ok
+  G-mid-1   990-991  ok
+  G-mid-2   990-990  ok
+  G-end-1   417-453  OUTSIDE BAND
+  G-end-2   22-22    OUTSIDE BAND
+  => P1 HELD for the three midgame boards, REFUTED for the two endgames (417-453 ms and 22 ms)
+
+=== P2: movetime 3000 within 2550-3300 ms? ===
+  startpos  2990-2991 ok
+  G-mid-1   2990-2990 ok
+  G-mid-2   2990-2991 ok
+  G-end-1   416-423  OUTSIDE BAND
+  G-end-2   21-22    OUTSIDE BAND
+  => same: HELD for the three midgames, REFUTED for the two endgames
+
+=== P3: fraction used not lower at 3000 than 1000 by >10 points ===
+  startpos   99% -> 100%  delta +1 points  ok
+  G-mid-1    99% -> 100%  delta +1 points  ok
+  G-mid-2    99% -> 100%  delta +1 points  ok
+  G-end-1    42% ->  14%  delta -28 points  DROP >10 POINTS
+  G-end-2     2% ->   1%  delta -1 points  ok
+
+  BUT the two endgames dropped for a REASON, not a character change:
+  both hit DEPTH 64 (the clamp maximum) with the SAME node count at both slices
+  (G-end-1: 2,196,864 nodes at both 1000 and 3000; G-end-2: 94,406 at both).
+  The ladder ended; the clock was never the limiter. That is 15-F32's finding again.
+
+=== P4: determinism (identical node counts across 5 runs) ===
+  all 10 cells: nodes IDENTICAL across 5 runs (see the nodes column above).
+  => P4 HELD, and stronger than predicted (10 of 10, not merely >=3)
+
+=== THE ANSWER TO THE CUTOFF QUESTION ===
+  For a position with real search work, movetime is honoured at 99-100% of BOTH 1000 and 3000 ms.
+  There is NO cutoff in this range: the mode does not change character between short and long
+  slices. The only cells that stop early are ones where the DEPTH LADDER ends first (depth 64),
+  which is a property of the position, not of the clock.
