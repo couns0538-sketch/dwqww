@@ -18,3 +18,6 @@ job1 DONE. REPORT_job1.md written. Findings S-F1..S-F3. Prediction 9/15 survived
 
 ## Mon Nov 16 09:19:09 PM UTC 2026
 CYCLE 1: checked seat 01's S-F5 -> S-C1 CONFIRMS (exact numbers). Found S-F4 beside it (repetition term of the same expression).
+
+## Mon Nov 16 09:21:20 PM UTC 2026
+job2 DONE. REPORT_job2.md. Findings S-F5 (increment ignored below Move Overhead), S-F6 (hard limit excludes increment), S-F7 (wtime 0 answers legally), S-F8 (0 overruns in 400 low-time searches). Prediction 10/13.
