@@ -1,0 +1,17 @@
+--- a/src/search.cpp	2026-11-16 21:41:44.223120729 +0000
++++ b/src/search.cpp	2026-11-16 21:41:44.223120729 +0000
+@@ -1781,7 +1781,13 @@
+     }
+ 
+     // Internal iterative reduction: no hash move suggests a less important node.
+-    if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
++    // Not at a searchmoves-restricted root: a restricted root has no hash move by construction
++    // (no TT entry is stored for one, see the store guard below), so IIR would ALWAYS fire there
++    // and search the whole tree one ply shallower. That is why `go depth 12 searchmoves e2e4`
++    // returns cp 23 where `go depth 12` returns cp 30 on the same position.
++    const bool iir_allowed = !(root_node && root_restricted_);
++    if (iir_allowed && mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() &&
++        (pv_node || cut_node)) --depth;
+ 
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
