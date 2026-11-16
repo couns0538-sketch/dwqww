@@ -281,3 +281,16 @@ job 8 had 7 ranks (the guard refused them instead of silently scoring startpos),
 black king in check on white's move (python-chess status 1024, invalid). Every board is now validated before it is
 sent. That guard is the single most useful thing I added today.
 job5 (cycle c, seed 2401): 4,953/5,000 reference rows.
+
+## 2026-11-17T00:50Z  JOB 5 COMPLETE (cycle c, second independent draw): 0 mismatches again
+job 5, the cycle-(c) repeat of area-3 job 1 with a NEW seed: SEED 2401 (SEED+100, stated in the prediction as a
+deliberately disjoint draw rather than an adjacent one), 0 FENs in common with the seed-2301 set (measured).
+  23-F22 5,000 positions, perft 1..4, ZERO mismatches at every depth: 154,616 / 4,734,485 / 152,777,822 /
+         4,906,844,203 nodes per side. The two draws agree within 0.2 % on perft-1 total and mean branching, so
+         the generator is statistically stable and a future odd total would be a signal.
+All six predictions held (P2 154,616 in 140k-175k; P3 30.92 in 30-33; P4 overlap 0; P5 25.2 s; P6 4.907e9).
+REPORT_job5.md written; job5/final_status.txt holds the git status + ls.
+Score for area 3 now: perft agrees with python-chess on 10,000 random-legal-play positions at depths 1..4 (two
+independent seeds), 230 positions at depth 5 (8.4e9 nodes walked), 494 special positions, and 230 of another
+seat's positions — with 0 differences anywhere, plus hand-built ep-pin and mate-distance cases.
+Next: keep working the PC's real path (PC build, PC20, Threads 1, Hash 16).
