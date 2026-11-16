@@ -312,3 +312,31 @@ run at 20000 and one at 250000 are not strictly the same opponent.
 
 GUI-reachable: **YES - these are exactly the budgets the owner's matches send.**
 Evidence: `pc/budget_move/budget_move.json`, `pc/budget_move/p*_*.log`.
+
+## Mid-search `setoption` to an extreme — 26 cases, all clean, plus one real protocol observation
+
+Setup: PC r15 ASan+UBSan build, PC20, Threads 1, 13 switches set to their worst value *during* a running
+search (`go infinite` at 300 ms and `go nodes 2000000` at 200 ms), then `isready`, then `stop`.
+Covered: HistRework 3 / 9, Hash 1 / 2048, Threads 256, CuckooRep on, TtPruneV2 on, CorrHistV2 on and off,
+LmrQuietBase 300, HistoryBonusMax 10000, SingularDepth 20, MultiPV 8, DrawJitter 8.
+
+Result: **26 of 26 cases gave a legal `bestmove`, answered `readyok`, and produced 0 sanitizer lines.**
+`HistRework 9` correctly answers `info string invalid value for option HistRework` and is clamped (its node
+counts match HistRework 3 exactly). `Threads 256` set mid-search is the worst case asked for and it survived.
+
+**Real observation (not a defect): a mid-search `setoption` publishes `bestmove` BEFORE `readyok`.**
+In 12 of 12 measured cases the engine emitted `bestmove b6b5` and only then `readyok`. A GUI that sends
+`setoption` during a search and waits for `readyok` will therefore receive the truncated search's move
+first. That is harmless for a GUI that reads to bestmove, but it means `readyok` is not a marker for
+"the move has been emitted" in this flow. GUI-reachable: **only if a GUI changes an option mid-search**,
+which the owner's match program and self-play never do.
+
+### My own harness bug #4, recorded because it faked 12 hangs
+My first version of this test waited for `readyok` with a predicate that CONSUMED lines, so the earlier
+`bestmove` was swallowed; `stop` then found no bestmove and the script reported a HANG. All 12 cases were
+false hangs - the logs contained `bestmove b6b5` and 22 `readyok` lines each. The pattern that gave it away:
+12 of 12 failing, including cases that had passed an hour earlier, and a control comparison against a known
+good log. Fix: keep every line consumed while waiting and inspect it for `bestmove` before declaring a hang.
+This is the same class as S-F11 (a harness artefact that fabricates a hang) and belongs with it.
+Evidence: `pc/midsetopt/` (15 cases), `pc/midsetopt3/midsetopt3.json` (12 cases after the fix);
+the false-hang run is kept as `pc/midsetopt2/` so the error stays visible.

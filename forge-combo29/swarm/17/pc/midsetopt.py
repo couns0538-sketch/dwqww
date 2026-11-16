@@ -157,13 +157,32 @@ def run_case(exe, label, option, value, go_line, delay_ms, outdir, env):
         before = sum(1 for l in eng.all_text if l.startswith("info depth"))
         eng.send("setoption name %s value %s" % (option, value))
         eng.send("isready")
-        ready, ready_elapsed = eng.wait_for(lambda l: l.strip() == "readyok", 20)
+        # The setoption truncates the search, which may emit `bestmove` BEFORE the `readyok`.
+        # Consuming lines up to readyok with a bare predicate would swallow that bestmove and then
+        # report a HANG that never happened (12 of 12 false hangs in my first run of this script).
+        # So every line consumed while waiting is kept and inspected.
+        seen_while_waiting = []
+        deadline = time.monotonic() + 20
+        ready = None
+        while time.monotonic() < deadline:
+            try:
+                line = eng.lines.get(timeout=0.05)
+            except queue.Empty:
+                continue
+            seen_while_waiting.append(line)
+            if line.strip() == "readyok":
+                ready = line
+                break
+        bestmove_during_wait = [l for l in seen_while_waiting if l.startswith("bestmove")]
         rec["readyok_after_setoption"] = ready is not None
-        rec["readyok_wait_s"] = round(ready_elapsed, 3)
         rec["info_lines_before_setoption"] = before
+        rec["bestmove_before_readyok"] = bestmove_during_wait[0] if bestmove_during_wait else None
 
         eng.send("stop")
-        best, best_elapsed = eng.wait_for(lambda l: l.startswith("bestmove"), 25)
+        if bestmove_during_wait:
+            best, best_elapsed = bestmove_during_wait[0], 0.0
+        else:
+            best, best_elapsed = eng.wait_for(lambda l: l.startswith("bestmove"), 25)
         rec["bestmove"] = best
         rec["bestmove_wait_s"] = round(best_elapsed, 3)
         rec["hang"] = best is None
