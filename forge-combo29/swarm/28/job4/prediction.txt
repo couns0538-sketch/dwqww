@@ -1,0 +1,25 @@
+# PREDICTION — S28 job 4: do clock searches ever break the engine's own HARD limit?
+
+Committed and pushed ALONE before the first measuring command. Never edited afterwards.
+
+Correction 2 found that 2 of 40 `movestogo 1` searches at `wtime 1000` exceeded the engine's own hard
+plan of 792 ms. That is the only place in my clock work where the engine appears to break a bound it
+set itself, so it deserves a job of its own rather than a footnote.
+
+The claim to test: **for a clock search, the engine never lets the elapsed time exceed
+`hard_ms = min(available*hard_percent/100, soft*hard_soft_multiple)`, clamped to `available`.**
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| R1 | overrun rate at `movestogo 1` wtime 1000, over hard 792 ms | above 0 % and below 20 % | 0 % (my earlier 2/40 was noise) or above 20 % |
+| R2 | the largest overrun is a small multiple of hard, not unbounded | < 1.5 × hard = 1188 ms | above 2 × hard |
+| R3 | overruns do NOT happen at `wtime 10000 movestogo 1` (hard 7912 ms), because there is more slack | 0 of N | more than 0 |
+| R4 | overruns do NOT happen at `movetime 500` (hard = plan, and job 1/correction 1 saw 0) | 0 of N | more than 0 |
+| R5 | overruns are concentrated on positions where one iteration is long relative to the budget | yes: median nodes higher on overrun searches | no relation |
+| R6 | overrun searches still return a legal bestmove and never exceed the GUI's clock | yes | illegal move or above wtime |
+
+Reasoning: in a clock search the stop is checked at node boundaries inside an iteration, so a search
+should be able to stop at the hard limit. If it cannot, it means the check happens only at iteration
+boundaries for clock searches too, and an iteration that starts just under hard can run far past it.
+R2's kill at 2x keeps the test honest: an unbounded overrun would be a much worse bug than a 10 % one.
+60 positions per cell this time (three times job 3's sample), because 2/40 is too thin to characterise.
