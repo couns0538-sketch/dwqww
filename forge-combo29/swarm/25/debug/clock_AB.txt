@@ -1,0 +1,25 @@
+A = /home/ubuntu/build/pc/forge
+B = /home/ubuntu/build/var52/forge  (narrow repair)
+PC20, Threads 1, Hash 16, clocks (1000, 5000, 10000), 3 runs each
+
+group   clock  engine  depth  time_ms  clock%   move      score
+BUG      1000       A     22       46    4.6%   a1c1 score cp -113
+BUG      1000       B     12      115   11.5%   a1c1 score cp -149
+BUG      5000       A     32      214    4.3%   d1c1 score cp -124
+BUG      5000       B     14      389    7.8%   e2c3 score cp -153
+BUG     10000       A     36      358    3.6%   d1c1 score cp -124
+BUG     10000       B     15      807    8.1%   e2c3 score cp -151
+RISK     1000       A     64        5    0.5%   h2f3 score cp 0
+RISK     1000       B     64       17    1.7%   h2f3 score cp 0
+RISK     5000       A     64        5    0.1%   h2f3 score cp 0
+RISK     5000       B     64       17    0.3%   h2f3 score cp 0
+RISK    10000       A     64        5    0.1%   h2f3 score cp 0
+RISK    10000       B     64       17    0.2%   h2f3 score cp 0
+
+PRICE OF THE REPAIR (B vs A), median depth and clock fraction:
+  BUG wtime  1000: depth 22 -> 12 (-11), clock 4.6% -> 11.5% (+6.9 points)
+  BUG wtime  5000: depth 32 -> 14 (-18), clock 4.3% -> 7.8% (+3.5 points)
+  BUG wtime 10000: depth 36 -> 15 (-20), clock 3.6% -> 8.1% (+4.5 points)
+  RISK wtime  1000: depth 64 -> 64 (+0), clock 0.5% -> 1.7% (+1.2 points)
+  RISK wtime  5000: depth 64 -> 64 (+0), clock 0.1% -> 0.3% (+0.2 points)
+  RISK wtime 10000: depth 64 -> 64 (+0), clock 0.1% -> 0.2% (+0.1 points)
