@@ -89,3 +89,5 @@ Next command: `cd /agent/repos/dwqww && git worktree add ../base 6b98f2170a3210e
   appeared" -> would have confirmed from nothing). Fixed to raise MeasurementError; live negative
   tests for s19f1/recount/s29f1 all fail loudly. Evidence checks/parser_audit.txt.
 - S-C7 re-run AFTER the fix: CONFIRMS S-F3 at H=91, all 11 scores positively parsed.
+- S-F10 NEW: the 9-ply-early draw is NOT universal — KRvK and KQvK flip to cp 0 at H=91, but
+  KPvK flips only at H=99. Every score positively parsed; KRvKR was refused and gave no verdict.
