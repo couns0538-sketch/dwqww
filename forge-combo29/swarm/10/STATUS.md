@@ -98,3 +98,12 @@ All four sums EXACT under S14 (10-F12). K4 PASS 353/353 + 60/60 (10-F13). K14 "n
 FALSE (21,640 -> 17,847 on repeat).
 FINDINGS.md now has 10-F1..F13 and 10-C1..C5.
 next: final push at/ before 22:30 with everything; then stop starting new work.
+
+## Mon Nov 16 09:39:53 PM UTC 2026  [FINAL]
+Everything pushed. Self-correction recorded: my job2 legality check was produced with a piped driver and
+was close to vacuous (it legality-checked fallback moves). RE-RUN with the EOF-safe driver on the same
+4,803 pairs: 4,803/4,803 legal, 0 illegal -- the conclusion stands, now on valid evidence (10-C6).
+Also added the trap-is-invisible-to-legality-test observation, which is why other seats' "0 illegal
+bestmoves" results from piped harnesses cannot be trusted either.
+AUDIT_KNOWN.md complete: 12 claims, 9 PASS, 2 refuted/half-refuted, 1 PASS-with-scope, 1 UNTESTABLE.
+Branch tip after this commit is the final state.

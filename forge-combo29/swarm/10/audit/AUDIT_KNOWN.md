@@ -165,3 +165,19 @@ mechanical and cheap for whoever has the time: build with `-fsanitize=thread`, c
 refuted** (K6 as stated, K14's second clause), **1 PASS with a scope correction** (K10), **1 UNTESTABLE**
 (K5). The two that matter most for other seats are K6 (pins are default-regime, sums are S14-regime) and the
 `ucinewgame`-after-`position` reset trap, because both silently produce plausible-looking but wrong numbers.
+
+## Re-run of my own job2 legality check (this is the honest correction)
+
+My `job2` report claimed "4,803 (position, go) pairs replayed one per fresh process: 0 illegal bestmoves",
+and it concluded that deepseek6's four headline numbers hold. The *conclusion* is right, but the *evidence*
+for the legality half was produced with a piped driver, which triggers the EOF-abort trap: each pair's
+`go` was aborted and what I legality-checked was the engine's fallback move, not the search's choice.
+A legality check on fallback moves is close to vacuous.
+
+Re-run with the EOF-safe driver, same 4,803 pairs, OwnBook false, `ucinewgame` before `position`:
+`audit/raw2/clean56_fixed_summary.json` -> **4,803 pairs, 4,803 legal, 0 illegal, 0 `0000`, 0 missing
+bestmoves, 11 pairs with no `info` node line**. So the number stands and is now properly measured.
+
+For the record, the trap is visible in the moves themselves: on `1r6/2k2pp1/...` (black to move) the piped
+`go depth 3` answers `d5d4`, while the same search driven correctly answers `e5e4` at 1,232 nodes. Both are
+legal, which is exactly why a legality test cannot detect this defect — only the node count can.
