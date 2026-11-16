@@ -76,3 +76,37 @@ job5 clock independence: movetime 200 at overhead 0/10 agree to 0.1 ms between b
 
 ## Mon Nov 16 09:59:07 PM UTC 2026
 RULE COMPLIANCE CATCH: two binary .pyc files (job1/__pycache__/timing..., checks/__pycache__/check_21f2...) had been committed by my 'git add forge-combo29/swarm/28' steps. The rules say text files only. Removed from the index and from disk, and a .gitignore added. All 300 files in my folder are now text.
+
+## FINAL STATUS — everything on GitHub
+
+Branch: for-fable-and-opus/swarm-28. Folder: forge-combo29/swarm/28/ (315 text files, no binaries).
+
+**Start here: README.md** — one table saying which of my 30 FINDINGS lines to trust, which four items
+matter most, and where each piece of evidence lives.
+
+Jobs of area 8 (all three from the brief, plus two extras):
+- job1   clocks: 200 searches x 4 configurations, Move Overhead causality, harness bug write-up.
+- job2   low time + increments: 400 searches, planted-fault controls.
+- job3   movestogo 1/2/40/50/51.
+- job4   hard-limit overruns (NEGATIVE result) + the ucinewgame/fresh-process proof.
+- job5   a 5-line patch closing BOTH drawn-root doors, honesty identical, ASan+UBSan with both proofs.
+
+Corrections after seat 16's refutation:
+- CORRECTION_1_movetime.md  16-cell movetime x overhead grid, 480 searches: the STOP is M-10 (1.00-1.02
+  of plan), the last-info time is 70-85 % of it. My defect wording is withdrawn, the plan claim stands.
+- CORRECTION_2_clock.md     S-F2 restated (my 43.3 ms threshold was invented), S-F6 confirmed as a PLAN
+  claim, S-F9 mechanism corrected.
+
+Checks of other seats, each with its own harness and control:
+- S-C1 CONFIRMS seat 01's S-F5, and S-F4 finds the same door through repetition.
+- S-C2 REFUTES seat 19's 19-F7 *cause* (two rebuilds are byte-identical), confirms its advice.
+- S-C3 CONFIRMS seat 27's S-F2, and shows 26 is startpos-specific, not a constant.
+- S-C4 CONFIRMS seat 21's S-F2, with a perft control (55,117 vs 8,902).
+
+Honesty: 4/4 numbers match on the base build (`HONESTY.txt`), and again with the patch applied.
+Every prediction was committed alone before measuring; every report ends with its score, kills included.
+
+My own errors, all recorded in place rather than hidden: 4 harness bugs (buffered select, quit racing a
+search x3), 3 wrong initial claims (S-F1 defect wording, S-F2 invented threshold, correction-2 overrun
+claim), 1 test expectation wrong (KNN v K is not insufficient material), and 2 accidentally committed
+.pyc files that I removed.
