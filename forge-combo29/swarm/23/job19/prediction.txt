@@ -1,0 +1,19 @@
+PREDICTION — SW-23 job 19 (is the 20 % clock-disagreement rate stable on a second sample?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F55 found 4 of 20 positions (20 %) where a 1 s clock chooses a different move from a 6 s clock, and deliberately
+did NOT claim it as a general rate. This job tests whether it replicates, on 30 DIFFERENT fresh positions (seed-2401
+stream, excluding every FEN used in job10 and job17/18). Same protocol: PC r15 + PC20, Threads 1, Hash 16,
+OwnBook false, fresh process per search, drained.
+
+Prediction (each number with the range that kills it):
+  P1  the rate on the new sample will be between 10 % and 33 % (3 to 10 of 30). KILLED outside that band.
+      Reasoning: a 20 % rate on n=20 has a wide confidence interval (roughly 6-44 %), so replication within
+      10-33 % would support "about a fifth to a quarter"; outside it means my first figure was sample noise.
+  P2  the 1 s clock will reach a LOWER depth than the 6 s clock on at least 25 of 30 positions. KILLED if < 20.
+  P3  the two-clock disagreement will be MORE common on positions where the 6 s depth exceeds the 1 s depth by
+      4 or more plies, than on positions where the gap is <= 2 plies. KILLED if the ordering reverses.
+  P4  the 1 s clock will be deterministic again: 0 disagreements in two fresh processes across the 30. KILLED if >= 1.
+
+If P1 is killed I will say the 20 % was sample-specific and report only the qualitative claim (a fast control can
+choose different moves), which is what survives regardless.
