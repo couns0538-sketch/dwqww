@@ -137,3 +137,10 @@ LEARNED: a beat counter without its condition counts searches - caught only beca
 FOR kimi5: T1 vs T2 differ ONLY in the rounding bit, and the rounding bit moves the d=-1 band from history>=2828 to history>=6 - 41.5 percent of quiet sites vs 10.6 - and the tree from +7 to +25 percent. LmrRoundF is the strongest fine option by far at S14.
 FOR kimi5: beat-alpha gradient across d in the live T1 run: -1: 6.97 %, 0: 3.75 %, +1: 1.35 % (D2_O). The fine history term concentrates re-searches on good-history moves.
 NEXT: file 5 belongs to the peer (my job-4 prediction commit claims 4). Loop step 1: look for file 6.
+
+## after job 5, Mon Nov 16 06:22:54 PM UTC 2026
+- LEARNED: the check extension is a SHALLOW effect — 97.0 % of extensions on O and 96.0 % on G sit at depth 2..7, depth 2 alone 41.8 % / 37.5 %. `CheckExtensionDepth 8` is therefore "delete 97 % of the extensions", which is why it moves the tree 5.1 %.
+- LEARNED: report `sub_nodes` beside the tree delta, not alone. sub_nodes[2..7] is 13.2 % of the O tree while CED 8 saves only 5.1 % — ratio 2.59; on G 19.6 % vs 18.1 %, ratio 1.08. Either percentage alone misleads.
+- LEARNED (my prediction was backwards): beat-alpha is HIGHER shallow (22.0 % O) than deep (7.0 % O). And the decline is NOT monotone — d5 (28.3 %) is the most productive depth in the run. I asserted monotone, then checked, and it was false; corrected in the report.
+- FOR kimi5: `reached[1]` is nonzero (126,498) while `ext[1]` is 0 — the else-if is reached at depth 1 and rejected by `depth >= 2`. A counter that only counts `ext` would miss that the branch runs there at all.
+- NEXT: loop step 1 — file 5 is done; file 6 (kimi5 job 13) is open, or the long list in file 7.
