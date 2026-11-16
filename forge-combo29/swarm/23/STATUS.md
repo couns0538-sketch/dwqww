@@ -885,3 +885,17 @@ cannot fail is not a control' on the same page. The page now makes that point ex
 instance 7: these rules are habits to install, not facts to know.
 
 Nine faults, nine instances, heading count verified against the subtitle. 74 findings, 18 confirmations.
+## 2026-11-16T23:52:42Z  instance 10: assert_quoted.py caught me within the hour (a move quoted without its search limit)
+2026-11-16T23:52:42Z
+
+Writing instance 9's fix I quoted f1c4 for board A and b1c3 for the control — both real, but from DIFFERENT
+limits (depth 6 vs softnodes 2000). The same boards give f1b5/b1c3 at softnodes 2000 and f1c4/c2c4 at depth 6.
+assert_quoted.py caught it: 'FAIL claim 1: tested A -> f1c4 -> f1b5'. The mismatch was mine.
+NEW RULE on the page: A QUOTED MOVE IS INCOMPLETE WITHOUT ITS SEARCH LIMIT. The page now gives both limits per
+board and I verified all four cells against the engine: A f1b5/f1c4, B b1c3/c2c4 — 4 of 4 reproduce.
+
+Worth noting as a pair: instance 9 violated a rule I had written minutes earlier; instance 10 was caught by a
+TOOL I had written minutes earlier, and before publication — the first fault in the family caught by a tool
+rather than by a control row or a re-read. The page is now TEN instances.
+
+74 findings, 18 confirmations. 10 h 26 m remain; cadence continuing.
