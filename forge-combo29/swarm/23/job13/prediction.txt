@@ -1,0 +1,23 @@
+PREDICTION — SW-23 job 13 (does the margin predictor hold on NEW positions?)
+Written before the first measuring command. Never edited afterwards.
+
+23-F27 derived the margin predictor from the same 60 positions it was measured on, which is exactly the way a
+predictor gets over-fitted. This job tests it on 40 positions that played no part in deriving it: further quiet
+positions from my SEED-2401 stream, never used in job10/job11/job12 (checked by FEN identity against fresh20,
+fresh60 and job5's set).
+
+Protocol identical: PC r15, PC20, Threads 1, Hash 16, fresh process per (position, budget), drained to bestmove.
+Then the top-two gap at the depth the 20000 budget reached, and the same threshold table.
+
+Prediction (each number with the range that kills it):
+  P1  the RATE of move changes on these 40 new positions will be between 15 % and 45 % (my two earlier samples
+      gave 30 % each). KILLED outside that band.
+  P2  the median gap for changed positions will be SMALLER than for unchanged ones, by at least a factor of 2.
+      KILLED if the ratio is < 1.5 or the ordering reverses.
+  P3  the predictor's precision at the best threshold will be between 35 % and 70 % — i.e. it stays a weak
+      per-position classifier, as 23-F27 said. KILLED if precision exceeds 80 % (which would mean the 60-position
+      result was pessimistic) or falls below 25 % (which would mean the mechanism is not there at all).
+  P4  the recalled fraction of changed positions at a 30 cp threshold will be >= 60 %. KILLED if < 40 %.
+
+If P1-P4 hold, the margin story generalises and I will say the predictor is real but weak. If P2 or P3 is killed,
+23-F27 was over-fitted to those 60 positions and I will say so as plainly as I withdrew 23-C7 and 23-F25.
