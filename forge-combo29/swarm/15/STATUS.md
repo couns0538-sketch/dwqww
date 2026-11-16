@@ -4,29 +4,30 @@
 - area: 5 (PRINCIPAL VARIATIONS AND SCORES)
 - seed: 1501
 
-## 2026-11-16T22:01:57Z — checkpoint: all three area-5 jobs done, one check done
+## 2026-11-16T22:15:27Z — 22:30 checkpoint: 12 findings, 4 checks, 5 reports
 
-DONE (everything pushed, reports written):
-- STEP 1 seat 15. STEP 2 build of 6b98f217, sha256 e06310ec…16a83, honesty 4/4 exact (HONESTY.txt).
-- **job 1 COMPLETE** (REPORT_job1.md): 553 positions (O+G) depth 12 S14. 0 illegal PV moves,
-  0 bestmove/PV-first mismatches, 10 mate scores, 9 obey the PV-length rule, 1 violates it.
-  Harness fidelity: O 9,500,069 and G 18,466,239 node sums EXACT.
-- **job 2 COMPLETE** (REPORT_job2.md): 120 positions depth 10 S14. KvK/KNvK/KBvK/threefold all cp 0.
-  KNN v K nonzero in 19/20 (+309 max) => 15-F3; DeadMaterial true zeroes all 20.
-  Dead-draw roots print an EMPTY pv ("time 0 pv") => 15-F4, which silently defeated my first parser.
-- **job 3 COMPLETE** (REPORT_job3.md): 20 terminal roots x 3 go kinds under ASan+UBSan, both
-  sanitizer proofs present (nm 35/15 + a planted overflow counted by the same runner). 60/60
-  bestmove 0000, 0 sanitizer lines, exits 0. But 64 info lines with nodes 0 and score "mate 0" => 15-F5.
-- **CHECK 15-C1 CONFIRMS seat 05's S-F8**: go infinite at a terminal root never answers (12 s),
-  but sending stop answers 0000 at once. Bounded go answers in 0.001 s; live-board control answers.
+DONE — every one pushed with raw files:
+- STEP 1 seat 15. STEP 2 build 6b98f217, sha256 e06310ec…16a83, honesty 4/4 (HONESTY.txt, with the
+  default-regime caveat added after 15-C3).
+- **HARNESS FIDELITY, four exact matches** (15-F10): O d12 9,500,069 | G d12 18,466,239 |
+  O d14 21,812,100 | G d14 43,345,893 — every difference 0.
+- job 1  (REPORT_job1.md): 553 pos d12 — 0 illegal PV moves, 10 mate scores, 1 violation.
+- job 1b (REPORT_job1b.md): 200 R pos seed 1511 — 8 mate scores, 0 violations, 3 truth-checked exact.
+  My predictions P3/P4 were REFUTED there; recorded as such. Finding 15-F6.
+- job 2  (REPORT_job2.md): 120 pos d10 — KvK/KNvK/KBvK/threefold all cp 0; KNN v K nonzero 19/20
+  (15-F3); empty-pv dead draws (15-F4).
+- job 3  (REPORT_job3.md): 20 terminal roots x 3 go kinds under ASan+UBSan, BOTH sanitizer proofs
+  present; 60/60 bestmove 0000, 0 sanitizer lines; but 64 info lines with nodes 0 (15-F5).
+- job 4  (REPORT_job4.md): O and G at depth 14 — sums exact; G gives 2 mate-fault violations, one a
+  NEW position wrong by 6 moves (15-F9), and violations get more frequent with depth.
 
-FINDINGS: 15-F1, 15-F2, 15-F3, 15-F4, 15-F5, 15-C1. Two of them (15-F3, 15-F4) already CONFIRMED by
-seat 05 (S-C5, S-C6), and seat 05 found 15-F1 independently (their S-F1).
+CHECKS written and pushed: 15-C1 CONFIRMS 05-F8 | 15-C2 CONFIRMS 07-F1 | 15-C3 CONFIRMS 10-F6 |
+15-C4 CONFIRMS 05-F1. Two of my findings (15-F3, 15-F4) are confirmed by seat 05 (S-C5, S-C6).
 
 Running now: nothing.
 
 Next exact command:
-  cd /agent/repos/dwqww/forge-combo29/swarm/15 && git fetch -q --depth 1 origin for-fable-and-opus/swarm-05 && git show FETCH_HEAD:forge-combo29/swarm/05/FINDINGS.md | head -20
+  cd /agent/repos/dwqww/forge-combo29/swarm/15/job4 && python3 probe2.py 'k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1' 16 --opts s14 2>&1 | grep -E "^info depth 16 |^bestmove"
 
-Then: cycle step 2(a) again — pick an unconfirmed NEW finding of another seat and check it;
-otherwise re-run job 1 of area 5 with SEED 1511 and a fresh R set, and say what differs.
+(after copying probe2.py from job1) — to see whether idx 69 self-corrects with depth as idx 192 did,
+which would separate "deepening artefact" from "wrong at every depth".
