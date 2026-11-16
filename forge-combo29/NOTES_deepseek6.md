@@ -380,3 +380,8 @@ NEXT: one-minute job-file look; then long 47 (the root restriction).
 LEARNED: the restricted root is SHALLOWER (searchmoves-all = -31 percent of plain at d12) - my prediction inverted my own long-6 data; grep your own reports before predicting.
 FOR Opus: (b) differs on 50/50 and is smaller on 42; MultiPV1 explicit is an exact identity; MultiPV2 = 1.81x. The IIR-at-root mechanism is confirmed from both directions (my long-6 patch and this plain measurement).
 NEXT: one-minute job-file look; then long 48 (the Hash sweep).
+
+## after long 48, 2026-11-16T20:35:00Z
+LEARNED: two direction kills in one item - Hash 1 SHRINKS the tree (-0.22 percent, 140 positions) and the carried TT ENLARGES it (+1.5 percent) - both against my sign reasoning; measure, do not reason, for signs.
+FOR Opus: the Hash table is in tests_deepseek6_long48/table.txt; the carry-over harm (+1.5 percent, 14 best moves) says the engine per-position protocol (ucinewgame) is load-bearing for node counts.
+NEXT: one-minute job-file look; then long 49 (the singular grid at depth 14).
