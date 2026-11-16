@@ -1,0 +1,39 @@
+# PREDICTION — seat 20, area 10, job 1 (check of seat 01's S-F5)
+
+Committed alone BEFORE the first measuring command of the check. Never edited afterwards.
+
+Subject of the check (seat 01, S-F5, quoted from their FINDINGS.md):
+  "With `halfmove >= 100` in the FEN the engine adjudicates the root as a draw and searches 0 nodes, so a
+   mate-in-one is MISSED (`bestmove f2f3`, `score cp 0`) while the identical board at halfmove 99 gives
+   `score mate 1` / `bestmove a1a8` / 126 nodes."
+
+I check the SENTENCE, not their files: I build my own mate-in-one positions with python-chess, prove the mate
+with python-chess, and drive the engine with my own interactive runner.
+
+Predictions, each with the range that kills it:
+
+1. CONFIRMS. For a position where the side to move has a mate in 1, the engine at halfmove 0..99 finds the mate
+   (`score mate 1`, a mate-delivering bestmove, nodes > 0), and at halfmove 100..102 it answers with a NON-mating
+   move and `score cp 0` and nodes = 0.
+   KILLED IF: any halfmove in 0..99 misses the mate, or any halfmove >= 100 still reports mate 1, or the
+   halfmove>=100 answers have nodes > 0.
+
+2. The move it plays at halfmove >= 100 is the FIRST LEGAL MOVE (the a2a3-family fallback), not a searched move.
+   KILLED IF: the reported move at halfmove>=100 differs from the engine's own first legal move and is searched
+   (i.e. any `info depth` line is emitted).
+
+3. The threshold is exactly 100, not "large": halfmove 99 finds the mate and 100 does not, for at least two
+   different positions.
+   KILLED IF: 99 and 100 agree for both positions.
+
+4. This is not a terminal-position effect: on an already-checkmated board the engine still answers
+   `bestmove 0000` / `score mate 0` at every halfmove value, including >= 100.
+   KILLED IF: a checkmated board at halfmove >= 100 reports anything other than 0000 / mate 0.
+
+5. It is a ROOT shortcut, so it cannot be escaped by searching deeper or by a restricted search: `go depth 8`,
+   `go depth 12` and `go nodes 100000` at halfmove 100 all give the same non-mating answer.
+   KILLED IF: any of those three finds the mate at halfmove 100.
+
+6. The same behaviour appears on the ASan+UBSan build (not a release-only effect) and with zero sanitizer lines
+   on these inputs.
+   KILLED IF: the ASan build differs from the release build on any case, or prints a sanitizer line.
