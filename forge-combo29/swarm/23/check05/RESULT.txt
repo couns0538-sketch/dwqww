@@ -1,0 +1,29 @@
+CHECK of swarm seat 05's S-F1 (and of the S14/PC20 behaviour in its S-F17) — my own harness, both builds
+==========================================================================================================
+Claim: on `8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1` at depth 12 the engine reports `score mate -12` (a promise of
+mate in 24 plies) while its own PV is 18 plies and does not end in checkmate, and deeper searches abandon -12.
+
+My method (differs from theirs): my own runner, every command drained to `bestmove` before the next one
+(19-F12 cannot intrude), `ucinewgame` before every search, and the printed PV REPLAYED with python-chess to
+count its plies and test whether it actually ends in checkmate. A mate score `mate N` is consistent only when
+the PV ends in mate at exactly 2N-1 plies (N>0) or 2|N| plies (N<0).
+
+RESULTS — the defect is REAL and it is SETTING-DEPENDENT, exactly as S-F17 says:
+
+| build | options | depth 12 | consistent at d12 | first depth that is consistent |
+|---|---|---|---|---|
+| base 6b98f217 (e06310ec) | none | mate -7, PV 14 | yes | d12 |
+| base 6b98f217 | S14 | **mate -12, PV 18, no mate** | **NO (needs 24)** | d16 |
+| PC r15 (068f0927) | none | mate -7, PV 14 | yes | d12 |
+| PC r15 | S14 | **mate -9, PV 14, no mate** | **NO (needs 18)** | d14 |
+| PC r15 | PC20 | mate -4, PV 8 | yes | d12 |
+
+Under S14 the score is inconsistent on BOTH builds (base -12 with an 18-ply PV; PC -9 with a 14-ply PV), and
+the score walks toward the truth as depth grows (base: -12, -9, -6, then -4/-5; PC-S14: -9, -7, then -4).
+On the PC's real path (PC build + PC20) there is NO defect at any depth 12..20: mate -4 with an 8-ply PV that
+python-chess confirms is checkmate, at every depth.
+
+VERDICT: CONFIRMS S-F1 (on the base tree under S14, which is the regime the base tree's published sums use),
+and CONFIRMS the S14/PC20 distinction in S-F17 by an independent method. Threads 1 throughout: no Threads
+option is sent by any of these runs, Hash 16 default.
+Raw: base_sf1.raw.txt, base_sf1_s14.raw.txt, pc_sf1_none.raw.txt, pc_sf1_s14.raw.txt, pc_sf1_pc20.raw.txt
