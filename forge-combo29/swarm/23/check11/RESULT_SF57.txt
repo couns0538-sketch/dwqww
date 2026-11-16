@@ -1,0 +1,28 @@
+CHECK of seat 11's S-F57 / S-F58 — one illegal token in a move list silently truncates the game
+============================================================================================
+Claim: `position startpos moves <list with one illegal token>` keeps the legal PREFIX and searches that, so the
+board is a confident wrong board; the further back the corruption, the further the searched board is from the
+intended one.
+
+Method: an 8-ply Ruy Lopez line, corrupting one ply, on PC r15 + PC20 + OwnBook false, Threads 1, Hash 16.
+Intended position after the clean list: `r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 1 5`,
+perft 1 = **38**.
+
+| corruption | message | perft 1 | legal plies kept | matches the intended board? |
+|---|---|---|---|---|
+| illegal token at ply 3 | `info string illegal move e2e4` | **29** | 2 | NO |
+| illegal token at ply 5 | `info string illegal move e2e4` | **27** | 4 | NO |
+| illegal token at ply 7 | `info string illegal move e2e4` | **33** | 6 | NO |
+| CLEAN control, no corruption | (none) | **38** | 8 | yes |
+
+VERDICT: CONFIRMS both. The engine reports the illegal move ONCE, then answers `readyok` and searches the truncated
+prefix — 29, 27 and 33 are the perft-1 counts of the 2-, 4- and 6-ply prefixes, and none equals the intended 38.
+The clean control gives exactly 38, so the difference is the truncation and not the harness.
+
+WHY IT IS WORSE THAN THE FEN ROUTE (their point, which my numbers support): a GUI sends a move list EVERY move, so a
+single bad token silently plays a different game from that point on, with no error state to notice — whereas the FEN
+route needs a malformed FEN. The message is a single `info string` line that a GUI reading only `readyok` and
+`bestmove` never shows to anyone.
+
+One detail I add: the truncation is at the FIRST illegal token and everything after it is DISCARDED, not skipped —
+so a list whose corruption is at ply 3 loses five good plies, not one.
