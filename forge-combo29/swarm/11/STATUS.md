@@ -204,3 +204,6 @@ All numbers Threads 1. Next: continue re-running/expanding finds on PC20, STATUS
   made, every "under PC20" search result actually ran with DEFAULT options (bench proved it: 312866
   vs 278024). Fixed + verified. RETRACTING the PC20 label on S-F21/F26/F28/F29/F30/F32/F33 and
   re-running them all now. S-F20/F24/F25/F27/F34 unaffected.
+- S-F33 CORRECTED: with options actually applied, all four PC20 switches change ALL 40 positions'
+  nodes and 13-16/40 bestmoves (bench: 253404/308529/287350/271813 vs S14 242796). My earlier
+  "0 changed" was the S-A5 bug and is retracted.

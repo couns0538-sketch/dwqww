@@ -1,0 +1,20 @@
+build: PC r15   exe: /tmp/pcbuild/forge
+settings: PC20 (S14 + CuckooRep/HistRework 2/TtPruneV2/CorrHistV2/MateAlphaGuard/OwnBook false, Threads 1, Hash 16)
+====================================================================================================
+
+[S-F1] `position fen ... zzz` is silently accepted; board should equal the 6-field form
+  clean            -> {'nodes': 15}
+  junk appended    -> {'nodes': 15}
+
+[S-F8] `setoption name UseNNUE false` (no `value` word) was silently ignored
+  with value     eval=info string eval hce 18 nnue 0 total 18  complaint_lines=[]
+  without value  eval=info string eval hce 18 nnue 20 total 38  complaint_lines=['info string unknown option UseNNUE false']
+
+[S-F10/S-F18] halfmove clock: is the drawn/mate-losing root adjudication still there?
+  mate in 1 on board         H= 99 -> {'bestmove': 'd1d8', 'score': ('mate', 1), 'nodes': 140, 'n_info': 5}  mate_delivered=True
+  mate in 1 on board         H=100 -> {'bestmove': 'd1d8', 'score': ('mate', 1), 'nodes': 140, 'n_info': 5}  mate_delivered=True
+  KRvK (no mate available)   H= 99 -> {'bestmove': 'd5d1', 'score': ('cp', 0), 'nodes': 100, 'n_info': 5}  mate_delivered=False
+  KRvK (no mate available)   H=100 -> {'bestmove': 'd5d1', 'score': ('cp', 0), 'nodes': 100, 'n_info': 5}  mate_delivered=False
+
+====================================================================================================
+Nothing above is a verdict by itself; each line is raw behaviour on THIS build.
