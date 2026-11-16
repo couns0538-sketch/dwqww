@@ -7,16 +7,17 @@
 | setting | value |
 |---|---|
 | engine | PC build (r15), Threads 1 |
-| `Hash` | **2048 MB** (measured; the failure was NOT reproduced at 256 MB) |
-| `MultiPV` | **8** (not reproduced at 3) |
+| `Hash` | **2048 MB** — the failure is driven by Hash size, and appeared at BOTH MultiPV 3 and 8 there |
+| `MultiPV` | **3 or 8** at 2048 MB (at 256 MB, neither 3 nor 8 failed) |
 | clock | any — measured with `go wtime 5000 btime 5000` |
 
 ## Scope — which settings actually fail
 Measured in two independent runs: the **0-node failure needs a very large Hash with a high MultiPV.**
 **`MultiPV 3` with `Hash 256` did NOT produce a single 0-node answer** (0/5 idle, 0/5 with three CPU hogs, on two
 positions) — so that plausible GUI setting is affected by the *depth* collapse but not by the 0-node failure.
-The 0-node failure was measured at **Hash 2048 + MultiPV 8**; treat 256 MB + MultiPV 3 as "slower and shallower",
-and 2048 MB + MultiPV 8 as "can return a move with no search".
+The failure is governed by **Hash size, not monotone in MultiPV**: at **2048 MB** it appeared at **both** MultiPV 3
+(5 of 5 zero-node in one run) and MultiPV 8 (6 of 10 under load); at **256 MB** neither MultiPV 3 nor 8 gave a single
+zero-node answer. **Treat 2048 MB with any MultiPV above 1 as "can return a move with no search".**
 
 ## The failure rate (10 fresh processes per arm, one position, `1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b`)
 
@@ -34,6 +35,20 @@ With MultiPV above 1 the engine clears the transposition table for each addition
 costs more than the move's whole time budget, so on a contended machine the clock expires before any depth is
 published and the engine falls back to its first move. Measured depths in the failing cells: **1 to 7 instead of 17**
 (and sometimes 0 nodes).
+
+## A second, milder warning — 256 MB with MultiPV 3 is much SHALLOWER (no zero-node failure)
+
+At **Hash 256 + MultiPV 3** the engine never returned a move with no search (0/5 idle, 0/5 under load, two
+positions), but it searches a small fraction of what the healthy setting does:
+
+| setting | nodes used on P1 | nodes used on P2 | vs healthy |
+|---|---|---|---|
+| Hash 16 + MultiPV 1 (healthy) | 288,912 | 237,233 | — |
+| **Hash 256 + MultiPV 3** | **5,395 – 47,818** | **1,132** | **2–50 % of the search** |
+
+So at this setting you get a **materially shallower analysis** (and a move that can differ from the healthy one,
+e.g. `e5e4`/`g7g6` instead of the healthy move) without any no-search failure. It is a quality-of-analysis problem,
+not a reliability one — but at 5,395 nodes against 288,912 it is not a small difference either.
 
 ## The fix — either is sufficient
 - **`MultiPV 1` at any Hash size.** Safe in every cell measured (depth 16–17 at Hash 16, 256 and 2048).
