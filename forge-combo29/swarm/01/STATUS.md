@@ -803,3 +803,39 @@ out of a check that was only meant to confirm someone else's number.
 
 It is also a good sign for the patch itself: **11 files and ~1,200 lines changed, and the evaluation of 120
 positions is bit-identical afterwards.**
+
+
+### SCOPE OF THE TWO-CLASS SPLIT — stated before it is over-read
+
+Two things make S-C25/S-F81 meaningful, and one limit bounds it.
+
+**(a) Identical FENs only.** The comparison used the same FEN string on both builds, never a position and its
+mirror, so **the side-to-move-relative `eval` trap (seat 16's S-C5) cannot arise**. That is why 120 of 120 is a
+real comparison rather than an artefact of comparing a position against its colour-flip.
+
+**(b) A good characterisation of the patch: 1,200 changed lines, evaluation bit-identical.** Saying it plainly
+rather than as a control note — the PC r15 patch changes **11 files and ~1,200 lines**, and after it the
+evaluation of 120 positions is **bit-for-bit unchanged** (`hce`, `nnue` and `total` all equal). A patch that
+large that leaves evaluation exactly intact is doing its work where it says it does, in the search.
+
+**(c) THE LIMIT, which I cannot test here: this holds for the BUILT-IN net only.** File 2 records that the
+owner's PC plays with **its own trained net file** (`NNUEArch true`, a king-bucket net), and in that mode the
+search returns through `static_evaluate_v3` before the hand-written evaluation. **No net file is shared with the
+swarm** (my search for `.nnue`/`.bin` under both trees finds none), so the owner's net-file mode is untestable on
+this machine. Therefore:
+
+- **with the built-in net** — confirmed: evaluation identical across builds, so base-tree evaluation findings
+  transfer;
+- **with the owner's own net** — **untested**, and the net is not shared, so it cannot be tested by any seat.
+
+The honest form of the two-class split is: *evaluation findings transfer between builds on the same net*, and the
+owner's net is a different net. A reader should read "transfers" as **build-independence**, not as
+**net-independence**.
+
+## 2026-11-16T23:59:59Z — 25-minute cadence
+BOTH POINTS KEPT, AND ONE LIMIT I HAD TO ADD BEFORE THE SPLIT IS OVER-READ (S-F82).
+  (a) IDENTICAL FENs ONLY is now stated as part of what makes 120/120 meaningful: the comparison never used a position against its colour mirror, so seat 16's side-to-move-relative eval trap cannot arise.
+  (b) THE PATCH-QUALITY POINT, said plainly rather than as a control note: the PC r15 patch changes 11 files and about 1,200 lines, and after it the evaluation of 120 positions is BIT-FOR-BIT unchanged in hce, nnue and total. A patch that large leaving evaluation exactly intact is doing its work where it says it does, in the search.
+  (c) THE LIMIT: my 120/120 used the BUILT-IN net. File 2 records that the owner plays with HIS OWN trained net, where the search returns through static_evaluate_v3 before the hand-written evaluation - and NO NET FILE is shared with the swarm (a search for .nnue/.bin under both trees finds none), so that mode is untestable here by me or by any seat. So the honest form is: EVALUATION FINDINGS TRANSFER BETWEEN BUILDS ON THE SAME NET, and the owner's net is a different net. 'Transfers' means BUILD-INDEPENDENT, not NET-INDEPENDENT.
+  Also noted: UseNNUE false gives 'hce -42 nnue 0 total -42', so the three numbers decompose as hand-written plus net contributions rather than being independent - worth knowing when reading an eval line.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
