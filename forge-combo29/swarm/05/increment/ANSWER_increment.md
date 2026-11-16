@@ -1,4 +1,4 @@
-# ANSWER: does raising the increment buy thinking time? — YES, as the square root of the increment
+# ANSWER: does raising the increment buy thinking time? — YES, sub-linearly (exponent 0.494 at a 6 s clock, 0.758 at a 2 s clock)
 
 Seat 05, area 5. Branch `for-fable-and-opus/swarm-05`. All numbers Threads 1, Hash 16, OwnBook false, PC20, clock
 fixed at 6000 ms, **sequential** (one engine process at a time — see `../MEASUREMENT_WARNING.txt`).
@@ -28,16 +28,19 @@ Because two points can be fitted by anything, I added a 100x point (increment 60
 | 600 ms | 504 ms | 24 | 8.4 % | 2.50x |
 | 6,000 ms | 1,968 ms | 29 | 32.8 % | 3.90x |
 
-Fitting a power law over two decades: **t ∝ increment^0.494** — i.e. essentially **sqrt(increment)**.
-(Linear would be 10x per decade; a plateau would be 1.0x. The measured 2.5x then 3.9x brackets the sqrt prediction
-of 3.16x.)
+Fitting a power law over two decades: **t ∝ increment^0.494 at a six-second clock** — essentially sqrt(increment) *at that
+clock*. (Linear would be 10x per decade; a plateau would be 1.0x. The measured 2.5x then 3.9x brackets the sqrt
+prediction of 3.16x.) **The exponent is clock-dependent: it is 0.758 at a two-second clock, so the gain from raising
+the increment is LARGER on smaller clocks.**
 
 ## What this means for the owner
 
 - Raising the increment **does** buy thinking time — no plateau, and the effect is large in practice:
   - `0.06 → 0.6 s`: **2.5x** the time, **+2 median plies** (median depth 22 → 24).
   - `0.06 → 6 s`: **9.7x** the time, **+7 median plies** (median depth 22 → 29, and one board reached **depth 64**).
-- The return is **diminishing but not vanishing**: to double the thinking time you need about 4x the increment.
+- **At a six-second clock** the return is diminishing but not vanishing: to double the thinking time you need about
+  **4x the increment** (exponent 0.494). **At a two-second clock** the exponent is 0.758, so doubling needs only
+  about 2.5x the increment — the gain is larger on smaller clocks.
 - At the owner's `winc 60` the engine is using **3.4 %** of its 6-second clock, so there is a great deal of unspent
   time for an increment increase to unlock (32.8 % at `winc 6000`).
 
@@ -52,8 +55,10 @@ Prints the per-position table and the aggregate. Raw output: `out/scaling.txt` (
 
 ## Limits, stated plainly
 
-- **10 positions, one build, one clock size (6 s).** The exponent 0.494 is fitted through three points; a fourth
-  (e.g. 24 s increment) would test it further and I have not run it.
+- **10 positions, one build.** The exponent **0.494 is at a 6-second clock** (three points) and **0.758 at a 2-second
+  clock** (two points); a fourth increment (e.g. 24 s) would test the fit further and I have not run it. The two
+exponents are quoted together everywhere in this file and in FINDINGS.md, because the value without its clock is
+misleading.
 - **The clock is held at 6 s in the table above, and I then found the law is clock-DEPENDENT.** Repeating the two
   increments at a 2,000 ms clock gives a **5.7x** jump (64 -> 367 ms, depth 17 -> 23) instead of 2.50x, i.e. an exponent
   of 0.758 rather than 0.494. So S-F51's "sqrt law" is specific to a 6-second clock, and **an increment increase buys
