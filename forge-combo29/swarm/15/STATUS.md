@@ -6,29 +6,47 @@
 
 ## 2026-11-16T23:25:13Z FINAL
 
-### 1. THE FORMULA — recompute this for any control you choose
+### 1. THE ANSWER: the clock settles at a floor, it does not empty
 
-> **moves until the clock is empty = clock budget ÷ (per-move search time − increment)**
+> **floor C* = (increment + MoveOverhead) / (TmHardPercent/100)**
+> at the engine's defaults (10 ms, 60 %): **C* = (I + 10) / 0.60**. With the owner's I = 60 ms that is
+> **116.7 ms**.
 
-It applies to any base `B`, any increment `I`, and any per-move cost `T`: if `T > I` the control is
-**negative-sum** and the clock empties after `B / (T − I)` moves of that side. If `T ≤ I` the clock never
-empties and the control is safe.
+**Check any control with one line:** if `increment >= 0.60 x clock - 10`, the clock never empties.
 
-**Worked example, the owner's actual setting — 6,000 ms base, 60 ms increment:**
+The mechanism: the engine's hard per-move limit scales with the remaining clock, so as the clock falls the
+search shrinks with it. The clock therefore converges to the point where the search cost equals the
+increment, and stops there.
 
-| per-move cost `T` | `T − I` | moves until empty |
+**Measured confirmation** (real middlegame, increment 60 ms, starting clock swept 6,000 → 50 ms):
+
+| starting clock | per-move cost | net drain |
 |---|---|---|
-| 104 ms (median) | 44 ms | **136** |
-| **269 ms (p90)** | **209 ms** | **29** |
-| 368 ms (p95) | 308 ms | 19 |
-| 60 ms (the increment itself) | 0 | never empties |
+| 6,000 ms | **167 ms** | +107 |
+| 1,000 ms | 52 ms | −8 |
+| 120 ms | 31 ms | −29 |
+| **110 ms** | **29 ms** | **−31** |
+| 50 ms | 12 ms | −48 |
 
-So at the *median* cost the clock lasts 136 moves; at the *p90* cost only 29. **Which number you believe
-decides whether the control survives a game**, and the p90 is the one that governs a bad stretch.
+The cost tracks the clock down (167 → 12 ms) and **every clock at or below 110 ms has a negative net
+drain**: the increment exceeds the search cost, so the clock never empties. The boundary sits between
+120 ms and 110 ms, matching the predicted 116.7 ms.
 
-**Sizing the increment the other way** — to survive a run of moves at cost `T`, set `I = T`:
-`I ≥ 269 ms` covers the p90 move, `I ≥ 368 ms` covers p95, `I ≥ 1,293 ms` covers every move observed.
-The current `I = 60 ms` is below the median, hence negative-sum on most moves.
+**Why my earlier "moves until empty" arithmetic was wrong in kind:** it treated the per-move cost as a
+**constant**. It is a *function of the clock*. The recurrence converges; it does not march to zero. I
+claimed a game past ~165 plies would forfeit, and that claim is withdrawn (15-R4).
+
+**The constant-cost formula is still useful locally,** for a clock well above C*:
+
+> moves ≈ clock ÷ (per-move cost − increment)
+
+| cost basis | cost − I | moves from 6,000 ms |
+|---|---|---|
+| 104 ms (median) | 44 ms | 136 |
+| 269 ms (p90) | 209 ms | 29 |
+
+Those are fair estimates *while the clock is high*; they overstate the drain because they ignore that the
+cost falls as the clock does.
 
 ### 2. THE EVIDENCE BEHIND THOSE NUMBERS
 
@@ -47,12 +65,14 @@ Per-move search time: **median 104 ms, p90 269 ms, p95 368 ms, p99 564 ms, max 1
 **60 ms is below the median**, so the control is negative-sum on more than half of every game's moves.
 The tail is what decides when the clock runs out: 136 moves at the median but only **29 at p90**.
 
-- **0 forfeits in 36 games** — but the narrowest margin was **115 ms remaining at 160 plies** (game 13),
-  and the 160-ply cap was reached repeatedly. A game a few moves longer forfeits.
+- **0 forfeits in 36 games**, narrowest margin **115 ms remaining at 160 plies** — and that 115 ms is
+  exactly the floor at work, not a near miss: below ~117 ms the engine shrinks its search and the clock
+  stops falling.
 - Sizing an increment that survives a bad stretch: **≥ 269 ms** covers p90, **≥ 368 ms** covers p95,
   **≥ 1,293 ms** covers every move seen. That is roughly **4x the current 60 ms**.
-- Why it did not forfeit yet: search cost **falls** in the endgame (217 → 83 ms from the first to the
-  last 40 plies), which decelerates the drain. The middlegame phase carries the cost.
+- Search cost **falls** as the clock falls (217 → 83 ms from the first to the last 40 plies of a game;
+  167 → 12 ms as the starting clock is swept down) — that is the convergence, and it is why the margin
+  never closed.
 
 This is not the engine mis-managing time. It is the control being negative-sum for the engine's actual
 search cost, and it is sustained only because games end before the clock does.
