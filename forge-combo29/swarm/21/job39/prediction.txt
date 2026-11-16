@@ -1,0 +1,26 @@
+# PREDICTION — job39: RESULT-based scan for the position-155 class (lone-king misevaluation)
+written before the first measuring command.
+
+Seat 03's S-F16: position 155 `1r6/5b2/2K5/8/8/5n2/5k2/8 w - - 18 183` — the PC build plays `c6c7`
+(its own depth-20 score: mate -11) instead of `c6d6` (cp -1142), i.e. a move that walks into a forced
+mate in a position where a longer resistance exists. Another seat scanned 50 lone-king endings for
+more and found none, but its metric scored MORE PLIES as better, which is inverted in bare-king
+endings (the shortest game end is the draw).
+
+This job scores each candidate move by its RESULT, not its ply count:
+  - for each legal root move: play it, then let BOTH SIDES be played by the engine (`go nodes 20000`,
+    Threads 1, PC20) to a conclusion, classify with python-chess (checkmate -> win/loss for the side
+    to move, is_insufficient_material / 50-move / threefold -> draw), hard cap 300 plies;
+  - the engine's chosen move is the `go depth 16` answer (and separately the `go nodes 20000` answer);
+  - a position is a HIT when the chosen move's RESULT is worse than some alternative's result
+    (loss vs draw, or loss vs win, or draw vs win).
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | position 155 reproduces as a HIT under this metric (chosen move loses, an alternative draws) | if 155 does not reproduce, my play-out is wrong and the whole scan is void |
+| P2 | among 50 comparable lone-king endings, the hit rate is between 0 and 6 | if 0, the class is 155 alone (a clean negative, which is the useful answer); if more, the class exists |
+| P3 | every hit's worse move is also scored worse by the engine's OWN depth-20 search of that move (self-contradiction), not merely by the play-out | if hits are only visible to the play-out, they are subtler and must be reported as such |
+| P4 | 0 crashes, 0 sanitizer lines, every play-out terminates under the ply cap | killed by any one |
+
+Direction: I expect P1 to hold (3/3 play-outs by seat 03) and P2 to be small. The value is the
+count and the clean-negative/positive statement.
