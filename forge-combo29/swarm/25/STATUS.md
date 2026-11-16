@@ -123,6 +123,25 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:37Z - NINTH self-correction: my own wider sample REFUTED the S-F35 remedy
+
+I recommended "run self-play at softnodes 20000" based on 13 boards. On 40 mate-rich boards the opposite holds:
+   softnodes 2000  : 0 undeliverable, 1 differing
+   softnodes 20000 : 2 undeliverable, 3 differing
+So 20000 is WORSE on the wider set; the 13-board result was a coincidence. Reason: at 2000 only 7 of 40 boards emit
+a mate score at all, at 20000 19 do - a higher budget moves the engine INTO the depth range where premature mate
+claims appear. S-F35 is withdrawn in the FINAL (its row is now the withdrawal itself), S-C17 records the correction.
+
+REVISED, HONEST RECOMMENDATION: do not rely on a budget - **validate mate PVs in the label pipeline**, because both
+2000 and 20000 emit undeliverable mate claims on worst-case boards.
+WHAT SURVIVES: the fault is real at both budgets; shallow-depth horizon effect; `go nodes 250000` is the clean
+reference; S-F34's two-reasons framing stands as a description of the fault, with its sample caveat attached.
+
+This is the ninth self-correction and the second time tonight a 13-board sample misled me. The lesson is now
+explicit in COPYING_RULE.md's scope rule: a recommendation needs a sample sized for the claim, not for the
+convenience of the first run.
+
 ## 2026-11-16T23:35Z - the self-play label thread is COMPLETE: found, quantified, fixed with a number
 
 S-F33 (found): at `go softnodes 2000` a mate PV can be one ply short of its own claim.
