@@ -1,0 +1,32 @@
+# PREDICTION — seat 20, area 10, job 5 (check of seat 02's S-F2)
+
+Committed alone BEFORE the first measuring command. Never edited afterwards.
+
+Subject (seat 02, S-F2, quoted): "`go searchmoves` naming no legal root move answers `info string searchmoves
+restriction has no legal root moves` then `bestmove 0000` on a board with 20 legal moves; the same board answers
+`bestmove a2a3` for a plain `go depth 2`."
+
+I check the SENTENCE with my own harness. I test three ways to name no legal move, plus controls:
+  (a) `go searchmoves depth 2`      — the keyword with nothing after it
+  (b) `go searchmoves e7e5 depth 2` — a move that is illegal for the side to move (white)
+  (c) `go searchmoves a2a3 b2b3 depth 4` — legal moves, as the positive control
+
+Predictions, each with the range that kills it:
+
+1. CONFIRMS: on startpos (20 legal moves), (a) prints the `info string searchmoves restriction has no legal root
+   moves` line and then `bestmove 0000`, while `go depth 2` on the same board prints a real bestmove.
+   KILLED IF: (a) prints a real move, or the info-string line does not appear, or no bestmove is printed at all.
+
+2. (b) behaves the same as (a): an illegal searchmoves name also yields the info line and 0000.
+   KILLED IF: (b) answers a real move.
+
+3. The positive control (c) answers a real move drawn from {a2a3, b2b3} and does NOT print the info line.
+   KILLED IF: (c) answers 0000 or a move outside the restriction, or prints the info line.
+
+4. `bestmove 0000` here is NOT a searched answer: 0 nodes are searched (the reply comes back with no
+   `info depth` line carrying nodes > 0). KILLED IF: an `info depth` line with nodes > 0 precedes it.
+
+5. This is a UCI-visible risk for a GUI only if a GUI can produce it, which needs a restriction that matches
+   nothing; a GUI that sends only legal moves cannot. I predict (a) and (b) are the only ways to reach it, and
+   that `go` with a valid restriction is unaffected.
+   KILLED IF: any other plain `go depth N` / `go movetime N` form also yields 0000 on this board.
