@@ -1,5 +1,15 @@
 # FINDINGS - seat 29 (area 9 SPEED), only ever added
 
+
+## NAMED RULE (29-N16): an instruction-count saving on one build is NOT evidence about another build
+Worked example, my own TT patch, same two source changes:
+- base tree 6b98f217:            -18,708,563 instructions  (-0.414 %)
+- PC r15 build, PC20:            +11,318,305 instructions  (+0.320 %)
+- and on the PC build each half alone is worse: slot-0 +0.558 %, vector gather +0.634 %
+Node counts are identical in all four PC builds and the two `probe_body` bodies are byte-identical between the two
+trees, so the swing is compiler inlining/layout (`Worker::search` self cost 4.88 % -> 7.03 %), not logic.
+CONSEQUENCE: re-measure on the build you intend to recommend, every time. Evidence: `pc0/raw_factorial.txt`.
+
 | id | area | one sentence | file with the exact command that shows it again | NEW |
 |---|---|---|---|---|
 | 29-F1 | 9 | `bench 13` spends 38.72 % of its samples in the NNUE + evaluation family and only 2.14 % outside the binary, so the first speed lever is the evaluation path, not search bookkeeping. | `forge-combo29/swarm/29/job1/profile_bench13.sh` (then `summarize_perf.py`) | NEW |
@@ -50,3 +60,4 @@
 | 29-F25 | softnodes | On the PC r15 build (PC20, Threads 1, Hash 16) the search is EXACTLY deterministic at a fixed node budget — `go nodes 300000` gave depth 16 / 285,420 nodes / cp 1125 / b2d1 in **4 of 4** fresh-process runs — but on the PC's real match clock (`go wtime 6000 btime 6000 winc 60 binc 60`) the SAME position alternated between **depth 16 (285,420 nodes, cp 1125)** and **depth 17 (820,149 nodes, cp 1230)** across 6 runs, while the MOVE stayed `b2d1` in all 6. So the clock variation is the stop timer, not search nondeterminism, and the move is stable even when the score is not. | `soft/clock_det.py`, `raw_clock_det.txt` | NEW |
 | 29-F26 | softnodes | On the PC's real match clock (`6s + 0.06`) the PC r15 build under PC20 at Threads 1 uses only a small fraction of its budget: over 40 searches (20 positions x 2) wall time was min 143 ms, median **210 ms**, max 396 ms against a 6000 ms clock, i.e. a median of about **3.5 %** of the budget; **0 of 40** searches overran, 0 illegal or missing moves, and no position's move differed between the two reps. | `soft/clock_test.py`, `raw_clock.txt` | NEW |
 | 29-F27 | softnodes | The reason 29-F26's searches stop far under budget is disciplined DEPTH-BOUNDARY time management, not wasted time: on startpos-like middlegame positions the per-depth time grows about 1.4x per ply (0, 0, 0, 1, 1, 1, 2, 4, 5, 14, 18, 36, 54, 83, 127, 182 ms at depths 1..16), so with a **1204 ms** soft budget the engine finishes depth 16 at 182 ms and declines to start depth 17 because its predicted cost would exceed the limit. Observed consequence: a median of 210 ms used of a 6000 ms clock (29-F26). Build PC r15, PC20, Threads 1, Hash 16, clock 6s+0.06. | `soft/raw_clock.txt` plus the per-depth trace in this entry | NEW |
+| 29-F28 | 9 | Neither half of my TT patch is neutral on the PC build: slot-0 alone is **+0.558 %** and the vector gather alone **+0.634 %** against the PC r15 base under PC20 (Threads 1, bench 13), while together they are +0.320 % — a **-0.872 % interaction term** with identical node counts in all four builds, so the swing is compiler inlining/layout (`Worker::search` self cost rises 4.88 % -> 7.03 % while the probe's own symbol shrinks) and not a behavioural difference. | `pc0/raw_factorial.txt`, `REPORT_pc2.md` | NEW |

@@ -1,0 +1,16 @@
+pcg              3,535,346,320 (100.0%)  PROGRAM TOTALS
+pcslot0onlyg     3,555,075,296 (100.0%)  PROGRAM TOTALS
+pcveconlyg       3,557,747,780 (100.0%)  PROGRAM TOTALS
+pcpg             3,546,664,625 (100.0%)  PROGRAM TOTALS
+
+=== 2x2 factorial, PC r15 build, PC20, bench 13, Threads 1 (portable -g) ===
+base            3,535,346,320   (-)
+slot0 only      3,555,075,296   +19,728,976  (+0.558%)
+vector only     3,557,747,780   +22,401,460  (+0.634%)
+both            3,546,664,625   +11,318,305  (+0.320%)
+
+INTERACTION (both - slot0 - vector + base): -30,812,131 (-0.872% of the run)
+=> both halves are individually WORSE than base, yet TOGETHER are better than either alone:
+   a non-additive code-layout effect, not two independent logic changes.
+
+Same patch on the BASE tree (for contrast): 4,513,768,543 -> 4,495,059,980 = -18,708,563 (-0.414%)

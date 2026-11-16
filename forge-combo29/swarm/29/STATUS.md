@@ -175,3 +175,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-F27 explains 29-F26 so it cannot be misread as wasted time: the per-depth cost grows ~1.4x per ply (182 ms at depth 16), so against a 1204 ms soft budget the engine finishes depth 16 early and declines to START depth 17. That is disciplined depth-boundary time management; the consequence is that it uses ~210 ms median of a 6000 ms clock.
 - Clock plan for wtime 6000 winc 60 with default divisors (computed from include/forge/clock_plan.hpp): available 5990, soft 1204, hard 4792 ms.
 - next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29 soft: mechanism behind low clock usage (F27)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 10:43:18 PM UTC 2026
+- (1) NAMED RULE 29-N16 added at the TOP of FINDINGS.md with my own patch as the worked example: base tree -0.414%, PC r15 build under PC20 +0.320%, and each half worse alone (+0.558% slot-0, +0.634% vector). Consequence: re-measure on the build you intend to recommend.
+- (2) REVERSAL MECHANISM FOUND (29-F28): ran a proper 2x2 factorial (base / slot-0 only / vector only / both) on the PC build. BOTH halves reverse, the effect is NON-ADDITIVE (-0.872% interaction), node counts identical in all four builds, and the two probe bodies are byte-identical between base and PC trees. Where it lands: Worker::search self cost 4.88% -> 7.03% while probe_body's own symbol SHRINKS (31.5M -> 15.5M) => the compiler re-inlines part of the probe into search. So it is inlining/layout, not logic. REPORT_pc2.md.
+- (3) go nodes path next (the job I already have data for: 0 nondeterministic of 24, 0 illegal).
+- next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: named rule N16 + 2x2 factorial mechanism for the PC reversal (F28)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
