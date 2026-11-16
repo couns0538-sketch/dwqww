@@ -1,0 +1,33 @@
+# applies from the repository root: patch -p1 < SoundArms.patch.txt
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,10 @@
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name SoundPvArm type spin default 0 min -1 max 1\n"
++                         "option name SoundInCheckArm type spin default 0 min -1 max 1\n"
++                         "option name SoundMateAlphaArm type spin default 0 min -1 max 1\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -447,6 +450,17 @@
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "SoundPvArm" || name == "SoundInCheckArm" || name == "SoundMateAlphaArm") {
++                apply_spin(-1, 1, [&](int clamped) {
++                    // By name, not by value: the enum's order is FollowOption, ForceOff,
++                    // ForceOn, so a numeric cast would map 1 to ForceOff and -1 to garbage.
++                    forge::tune::SoundPruneArm& target = name == "SoundPvArm" ? forge::tune::SoundArmPv
++                        : name == "SoundInCheckArm"                      ? forge::tune::SoundArmInCheck
++                                                                         : forge::tune::SoundArmMateAlpha;
++                    target = clamped < 0   ? forge::tune::SoundPruneArm::ForceOff
++                             : clamped > 0 ? forge::tune::SoundPruneArm::ForceOn
++                                          : forge::tune::SoundPruneArm::FollowOption;
++                });
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             } else if (name == "MateAlphaGuard") {
+                 if (value_text == "true" || value_text == "false") {
