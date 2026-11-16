@@ -137,3 +137,6 @@ NEXT: continue area-1 work; push again by 22:30.
   because a 7-field FEN is silently accepted (S-F1), so it never reached the refusal path.
 - S-C9 CONFIRMS 21-F9: at halfmove 100 a MATE IN 1 is thrown away (f2f3, cp 0, 0 nodes) in both
   colours and all three go forms; at 99 all find d1d8/d8d1 mate 1. 6/6 vs 6/6. Serious defect.
+- S-F18 NEW: mate-throwing boundary is exactly H=100 (mate 140 nodes at 95..99, f2f3 cp 0 at
+  100..102). Hard 0-node adjudication — a SEPARATE mechanism from S-F10/S-F11's depth-dependent
+  draw threshold.
