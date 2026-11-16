@@ -270,3 +270,5 @@ Next: continue on PC20 with provably-applied options; STATUS every 25 min.
   -> game3 gives f3e5 (legal only in game 3) both via `position fen` and `position startpos moves`;
   swept 20 trials: 18 recovered correctly, 0 infected, 2 ambiguous-because-legal-in-both. So a bad FEN
   costs exactly one move, not the session — the rule stands but the radius is one move.
+- HAZARD_stale_board.md updated with the blast-radius section: damage is ONE move, not the session
+  (18/20 recovered correctly, 0 infected), so the simple defence costs one game.

@@ -40,6 +40,28 @@ the previous board's count (26 in that test). The full 6-field FEN gives the new
 The same table on base 6b98f217 is identical (`checks/...`), so this is original engine behaviour,
 not a regression of the PC patch.
 
+## How bad is it: ONE move, not the session
+The damage is strictly confined to the single rejected command; the next well-formed position
+recovers on its own (`checks/recovery_test.txt`, `checks/recovery_sweep.txt`).
+
+Sequence tested, PC r15 / PC20 / Threads 1, `go softnodes 2000`:
+```
+game 1:  position fen r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 3 3
+bad:     position fen 4k3/8/8/8/8/8/8/4K3 w - -            <- refused, stale board kept
+game 3:  position fen rnbqkbnr/ppp2ppp/8/3pp3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 3
+         go softnodes 2000  ->  bestmove f3e5
+```
+`f3e5` is legal in game 3 and **not** legal in game 1 or in the bad board, so game 3 played
+correctly. The same holds when game 3 is sent as
+`position startpos moves e2e4 e7e5 g1f3 d7d5` — same answer, same legality.
+
+Swept over 20 different game-3 positions: **18 recovered correctly, 0 infected** (no case where the
+answer was legal only in game 1), 2 rows ambiguous only because the move was legal in both boards.
+
+**So the blast radius is one move.** A harness that discards a game on `invalid FEN` loses that one
+game and nothing else. This does not make the hazard harmless — the wrong move comes back and looks
+completely legal — but it tells you the cost of the simple defence is one game, not the run.
+
 ## Does `ucinewgame` clear it? Yes — but it does not restore your position
 This is the part that decides the defence (`checks/ucinewgame_clears.txt`):
 
