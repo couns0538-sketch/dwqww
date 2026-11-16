@@ -159,3 +159,26 @@ stamps.txt
 
 job9/raw:
 sum_d12.json
+
+## 2026-11-16T21:55:06Z
+job9+job10 done: G depth-12 S14 sum = 18,466,239 EXACT (07-C4); O d12 = 9,500,069 exact (07-C3). go/stop GUI cycle clean over 40 plies (07-C5) -- but my first version of that test was blind and passed the planted-fault control; fixed, control now fails as it must, both runs kept.
+### git status --short
+ M FINDINGS.md
+ M STATUS.md
+ M job9/stamps.txt
+?? REPORT_job10.md
+?? job10/
+?? job9/raw_G/
+?? job9/run_G_d12.log
+### ls job9 job10
+raw
+raw_G
+run_d12.log
+run_G_d12.log
+s14_sums.py
+stamps.txt
+---
+go_stop_cycle.py
+raw
+raw_control
+stamps.txt
