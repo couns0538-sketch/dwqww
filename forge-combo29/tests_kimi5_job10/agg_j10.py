@@ -40,10 +40,17 @@ def parse(path):
                 name = t[j]
                 if name in ("nodes", "xab", "m0", "hdec"):
                     d[name] = int(t[j + 1]); j += 2
+                elif name == "reg":
+                    d["seen"] = [int(x) for x in t[j + 2:j + 5]]
+                    d["pnodes"] = int(t[j + 6]); j += 7
+                elif name == "nq":
+                    d["nq"] = [int(t[j + 1]), int(t[j + 2])]; j += 3
                 else:
                     n = {"q0": 20, "cs": 50, "xd": 10, "xm": 10, "xmb": 10, "xtt": 30,
                          "xsp": 10, "xmt": 10, "xe": 10, "spm": 60, "stta": 10, "stts": 10,
-                         "spq": 20, "ml": 20, "ms": 20, "pf": 300, "ps": 360, "cut": 30}[name]
+                         "spq": 20, "ml": 20, "ms": 20, "pf": 300, "ps": 360, "cut": 30,
+                         "pfpr": 30, "pfms": 30, "pfcm": 30, "pfbd": 30,
+                         "pspr": 30, "psms": 30, "pscm": 30, "sppr": 30, "spms": 30}[name]
                     d[name] = [int(x) for x in t[j + 1:j + 1 + n]]; j += 1 + n
             searches.append(d)
     return searches
@@ -169,6 +176,73 @@ def main():
     print("Q0 by in_check " + " ".join(
         f"{CHK[c]}={sum(q0[pv*10+qc*2+c] for pv in (0,1) for qc in range(5))}" for c in (0, 1)))
     print(f"identity: every split sums to Q0 {q0s}")
+
+    # ---- Part 3 (regret) tables, present only in probe runs
+    if any("pfpr" in d for d in S):
+        pfpr, pfms, pfcm, pfbd = tot("pfpr"), tot("pfms"), tot("pfcm"), tot("pfbd")
+        pspr, psms, pscm = tot("pspr"), tot("psms"), tot("pscm")
+        sppr, spms = tot("sppr"), tot("spms")
+        pnodes = sum(d["pnodes"] for d in S)
+        nq = [sum(x) for x in zip(*(d["nq"] for d in S))]
+        seen = [sum(x) for x in zip(*(d["seen"] for d in S))]
+        print(f"\nPART 3 PROBES: seen fut/see/sp {seen} ; probe nodes {pnodes} (left out of every total above)")
+        print(f"disturbance: this run's node sum (probes left out) {nodes}")
+
+        def rate(pr, ms):
+            return 1000.0 * ms / pr if pr else 0.0
+
+        print("\nFUTILITY-SKIP probes by margin class (q summed): class probes MISSED/1000 CUT/1000 boundbeat/1000 ; "
+              "est count = rate x skips of the class, N = probes")
+        for v in range(6):
+            pr = sum(pfpr[q * 6 + v] for q in range(5)); ms = sum(pfms[q * 6 + v] for q in range(5))
+            cm = sum(pfcm[q * 6 + v] for q in range(5)); bd = sum(pfbd[q * 6 + v] for q in range(5))
+            skips = sum(pf[pv * 150 + qc * 30 + v * 5 + p] for pv in (0, 1) for qc in range(5) for p in range(5))
+            mark = " (n<200!)" if pr < 200 else ""
+            print(f"  {VC[v]:6s} n={pr:6d} missed {rate(pr,ms):7.2f} cut {rate(pr,cm):7.2f} bound {rate(pr,bd):7.2f}"
+                  f" | est count {rate(pr,ms)*skips/1000.0:10.0f} = {rate(pr,ms):.2f}/1000 x {skips} skips, N={pr}{mark}")
+        print("  by q class (margins summed):")
+        for q in range(5):
+            pr = sum(pfpr[q * 6 + v] for v in range(6)); ms = sum(pfms[q * 6 + v] for v in range(6))
+            mark = " (n<200!)" if pr < 200 else ""
+            print(f"  {QCLASS[q]:5s} n={pr:6d} missed {rate(pr,ms):7.2f}{mark}")
+        print(f"identity: fut probes {sum(pfpr)} = sum of class cells")
+
+        print("\nSEE-SKIP probes by gives_check x kind (q summed): n MISSED/1000 CUT/1000 ; est count = rate x skips")
+        kinds = ["cap", "promo", "cap+promo"]
+        for g in (0, 1):
+            for k in range(3):
+                pr = sum(pspr[q * 6 + g * 3 + k] for q in range(5)); ms = sum(psms[q * 6 + g * 3 + k] for q in range(5))
+                cm = sum(pscm[q * 6 + g * 3 + k] for q in range(5))
+                skips = sum(ps[pv*180+qc*36+g*18+k*6+p] for pv in (0, 1) for qc in range(5) for p in range(6))
+                mark = " (n<200!)" if pr < 200 else ""
+                print(f"  chk={'y' if g else 'n'} {kinds[k]:9s} n={pr:6d} missed {rate(pr,ms):7.2f} cut {rate(pr,cm):7.2f}"
+                      f" | est count {rate(pr,ms)*skips/1000.0:10.0f} = {rate(pr,ms):.2f}/1000 x {skips} skips, N={pr}{mark}")
+        print("  by q class:")
+        for q in range(5):
+            pr = sum(pspr[q * 6 + g * 3 + k] for g in (0, 1) for k in range(3))
+            ms = sum(psms[q * 6 + g * 3 + k] for g in (0, 1) for k in range(3))
+            mark = " (n<200!)" if pr < 200 else ""
+            print(f"  {QCLASS[q]:5s} n={pr:6d} missed {rate(pr,ms):7.2f}{mark}")
+        print(f"identity: see probes {sum(pspr)} = sum of class cells")
+
+        print("\nSTAND-PAT probes (non-PV) by margin class (q summed): n MISSED/1000 ; est count = rate x stand pats")
+        for v in range(6):
+            pr = sum(sppr[q * 6 + v] for q in range(5)); ms = sum(spms[q * 6 + v] for q in range(5))
+            sps = sum(spm[pv * 30 + qc * 6 + v] for pv in (0, 1) for qc in range(5))
+            mark = " (n<200!)" if pr < 200 else ""
+            print(f"  {VC[v]:6s} n={pr:6d} missed {rate(pr,ms):7.2f}"
+                  f" | est count {rate(pr,ms)*sps/1000.0:10.0f} = {rate(pr,ms):.2f}/1000 x {sps} stand pats, N={pr}{mark}")
+        print("  by q class:")
+        for q in range(5):
+            pr = sum(sppr[q * 6 + v] for v in range(6)); ms = sum(spms[q * 6 + v] for v in range(6))
+            mark = " (n<200!)" if pr < 200 else ""
+            print(f"  {QCLASS[q]:5s} n={pr:6d} missed {rate(pr,ms):7.2f}{mark}")
+        print(f"identity: sp probes {sum(sppr)} = sum of class cells ; no-quiet probes {nq[0]}, MISSED {nq[1]}"
+              f" (per probe: {rate(nq[0], nq[1]):.2f}/1000)")
+        print(f"\nHEADLINE: fut MISSED {rate(sum(pfpr), sum(pfms)):.2f}/1000 (n={sum(pfpr)}) ; "
+              f"see MISSED {rate(sum(pspr), sum(psms)):.2f}/1000 (n={sum(pspr)}) ; "
+              f"stand-pat MISSED {rate(sum(sppr), sum(spms)):.2f}/1000 (n={sum(sppr)}) ; "
+              f"no-quiet {nq[1]}/{nq[0]}")
 
     if use_k2:
         print("\nK2 COMPARISON (set O, defaults):")

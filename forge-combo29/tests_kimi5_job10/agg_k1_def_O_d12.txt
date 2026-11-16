@@ -1,0 +1,50 @@
+IDENTITY VIOLATIONS: I1=0 I2=0 I3=0 I4=0 I5=0 XAB=0 (searches 200)
+
+TOTALS searches=200 nodes(engine)=12573318 q0=5643723 m0=6929595 hdec=0
+identity I5 total: q0+m0-hdec = 12573318 vs engine nodes 12573318
+QSEARCH SHARE of all nodes: 44.8865%
+
+CALL SITES total C_leaf=2964914 C_razor=41581 C_probcut=22111 C_self=2615117 C_hind=0
+identity I1: q0 5643723 = cs 5643723 -> OK
+  by site x qclass (pv summed):
+  C_leaf     q1=2964914 q2=0 q3=0 q4-5=0 q6+=0
+  C_razor    q1=41581 q2=0 q3=0 q4-5=0 q6+=0
+  C_probcut  q1=22111 q2=0 q3=0 q4-5=0 q6+=0
+  C_self     q1=0 q2=1219205 q3=615150 q4-5=549834 q6+=230928
+  C_hind     q1=0 q2=0 q3=0 q4-5=0 q6+=0
+
+EXITS X_draw=144 X_maxply=0 X_matebound=0 X_tt=504203 X_standpat=2133567 X_mated=2909 X_end=3002900
+identity I3: q0 5643723 = exits 5643723 -> OK ; X_abort total 0
+  X_tt by bound exact/lower/upper: 5741 308066 190396
+
+STAND PAT by (best_score-beta) class <25=538493 <50=429099 <100=523647 <200=332905 <400=196482 >=400=112941
+identity: sum 2133567 = X_standpat 2133567 -> OK
+  S_tt: eval replaced 42510, of them stand-pat 17947
+  stand pat by legal quiet move: has-quiet 2133567, no-quiet 0 (no-quiet per 1000 stand pat: 0.00)
+identity: spq sum 2133567 = X_standpat 2133567 -> OK
+
+MOVES not in check: legal 4566204 = searched 1967735 + fut 773269 + see 1825200 -> OK (I4)
+MOVES in check:     legal 647382 = searched 647382 -> OK (I4)
+
+P_fut by margin class <25=78175 <50=83300 <100=152330 <200=172080 <400=86840 >=400=200544
+P_fut by captured piece P=600329 N=65346 B=65340 R=8942 Q=33312
+identity: splits sum to P_fut 773269
+P_see by gives_check no/yes [1435067, 390133] ; by kind cap/promo/cap+promo [1821715, 3485, 0] ; by captured [1556768, 155495, 94920, 14532, 0, 3485]
+identity: splits sum to P_see 1825200
+
+CUT by searched-move index 1st/2nd/3rd+: [838022, 115766, 23074] (sum 976862)
+
+Q0 by q class q1=3028606 q2=1219205 q3=615150 q4-5=549834 q6+=230928
+Q0 by pv nonPV=5574931 PV=68792
+Q0 by in_check notchk=5291252 chk=352471
+identity: every split sums to Q0 5643723
+
+K2 COMPARISON (set O, defaults):
+  q0 5643723 vs 5643723 -> OK
+  cs [2964914, 41581, 22111, 2615117, 0] vs [2964914, 41581, 22111, 2615117, 0] -> OK
+  exits {'xd': 144, 'xm': 0, 'xmb': 0, 'xtt': 504203, 'xsp': 2133567, 'xmt': 2909, 'xe': 3002900} vs {'xd': 144, 'xm': 0, 'xmb': 0, 'xtt': 504203, 'xsp': 2133567, 'xmt': 2909, 'xe': 3002900} -> OK
+  moves notchk (4566204, 1967735, 773269, 1825200) vs (4566204, 1967735, 773269, 1825200) -> OK
+  moves chk legal 647382 vs 647382 -> OK
+  spm [538493, 429099, 523647, 332905, 196482, 112941] vs [538493, 429099, 523647, 332905, 196482, 112941] -> OK
+
+SUMMED 200 searches from ['rows/k1_def_O_d12_full.txt']; node sum 12573318
