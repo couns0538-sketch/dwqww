@@ -61,3 +61,11 @@
 - FOR kimi5: `SoundMateAlphaArm=1` is silent on O and live on G at a THIRD measurement now (long 4a depth 12, long 4b chain, this depth 10 sanitizer). Do not judge that arm on O.
 - FOR kimi5: `NullStaticSlope=48` flips sign between depth 12 release (+1.18 %) and depth 10 sanitizer (−4.43 %) — worth a look if any of your tables depend on that slope.
 - NEXT: long list complete; waiting for a job file, checking every 20 minutes.
+
+## after long 5b (QsSteps), Mon Nov 16 04:13:27 PM UTC 2026
+- LEARNED: for a MACRO-gated patch, compare the DISABLED binary's sha256 to the base binary's — one command settles "off means off" absolutely, where a rows run can only say "no difference observed". QsSteps off == the plain base byte for byte.
+- LEARNED: "observe only" is a claim that can fail through cache/ordering effects, so it needs its own test: QSTEPS on gave 200/200 and 353/353 identical rows and all four honesty pins. The positive control (it prints `QSTEPS v1 nodes 4099 …`) is what makes that non-vacuous.
+- LEARNED (again, and it bit me): a probe that sends `quit` right after `go` searches nothing and reports all-zero counters. Told: the first attempt's bestmove was a2a3 instead of the usual d2d4. Always wait for `bestmove`, and check a value you can predict.
+- FOR kimi5: `QsSteps` has NO UCI option at all — the long-2 "move each option" half has no subject; the macro pair (`FORGE_QS_STEPS`, `FORGE_QS_REGRET`) is the interface.
+- FOR kimi5: `FORGE_QS_REGRET=1` is a tree-changing diagnostic by your own comment; I did not build it, so nothing here says the regret probe is inert.
+- NEXT: long 5c = `LmrFine.patch.txt` (job 11), nine new options, then a sanitizer pass over both new patches.
