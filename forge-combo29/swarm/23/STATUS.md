@@ -591,3 +591,19 @@ The rule for the FINAL block, as ordered, with my own case as the example:
   against the expected count and the positions-compared line against the expected positions BEFORE believing
   the summary sentence. My case: compare_perft.py hardcoded depths 1-4, a depth-5 job printed 4 rows and said
   "no mismatches at any compared depth" (23-F34), caught only because I grepped for the missing row.
+## 2026-11-16T23:31:12Z  lone-king thread: engine side confirmed on all six, distance NOT established
+2026-11-16T23:31:12Z
+
+23-C11: seat 30's 30-F33/F34/F38 confirm on the engine side for ALL SIX boards (base at depth 24 reports no
+mate under both defaults and S14; PC r15 reports mate on all six). Four of the six were unconfirmed before.
+NOT confirmed: the claimed mate-in-5 distance. Three of my python-chess provers failed (two returned None even
+for textbook KRvK wins; the third failed its own control and refused to report), recorded as 23-F36.
+
+THREE HARNESS FAULTS OF THE SAME FAMILY FROM ME TODAY, all listed in FINDINGS:
+  23-F3   a parse that found no number and would print CONFIRMS
+  23-F34/35 a comparison that silently checked fewer depths and printed success (now guarded in every copy)
+  23-F36  a mate prover that returned a wrong zero and would have REFUTED a correct finding
+The common shape: a harness is only trustworthy where it has been shown to fire on a case whose answer is
+known. All three were caught by controls, none by the happy path.
+
+Standing: 47 findings, 11 confirmations. Window ends 2026-11-17T10:18:40Z; the FINAL block goes there.
