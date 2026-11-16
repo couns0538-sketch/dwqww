@@ -1,0 +1,23 @@
+# PREDICTION — job 3 follow-up: the mate-vs-cp pairs
+
+In the depth-10 G run, 5 of 353 pairs had a MATE score on one side and a plain cp score on the other:
+  idx 69  cp -2225 vs mate -10
+  idx 184 cp -2394 vs mate -8
+  idx 196 cp 4402  vs mate 14   (seat 06's S-F9/S-F11 also found this one and called it a depth artefact)
+  idx 217 cp 2557  vs mate 11
+and one in R: idx 120 cp 2417 vs mate 9.
+
+Question: is the side reporting cp actually blind to the mate (a real asymmetric evaluation/mate-detection
+fault), or is it a depth/order effect that any depth-limited search has?
+
+Method: for each such position and its mirror, search at depths 1, 2, 4, 6, 8, 10, 12 and record the score.
+If the cp side reports mate at some depth, the mate is there and the depth-10 cp was a depth artefact.
+Also: same position, same depth, run TWICE in two fresh processes — if the two runs agree, the search is
+deterministic and a mate/cp split is a property of the POSITION, not of run-to-run noise.
+
+P1. The cp side reaches a mate score by depth 12. Kills it: still cp at depth 12 and not increasing.
+P2. Same position at the same depth twice gives the identical score (deterministic, Threads 1). Kills it:
+    any difference between the two identical runs (then the engine is not deterministic at Threads 1 and
+    every comparison in this job needs repeated runs).
+P3. At depth 1 and depth 2 the pair scores are exactly equal (mirror symmetry holds when there is nothing
+    to reorder). Kills it: a difference at depth 1 (that would be a real evaluation/order bug).
