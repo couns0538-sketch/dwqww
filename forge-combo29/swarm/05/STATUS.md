@@ -708,3 +708,14 @@ every sentence.
   and where it does occur the move does not change. Also records the four things I got wrong and corrected in this
   thread (S-F19, S-F23, S-F42, S-F30). All 19 cited evidence files verified to exist.
 - next command: continue the cycle.
+
+## $(date -u)
+- S-C20 MACHINE HYGIENE: adopted seat 20's before/after check (exit 0 = clean). My box was clean at first check
+  (loadavg 0.44 / 4 cores, no forge above 1% CPU, nothing else above 50%). I could not certify earlier runs
+  retroactively, so I RE-MEASURED the tightest grid cell (clock 6000 / inc 6000) with the audit before AND after:
+  n=6, median 1777 ms, depths 25-31, vs the 1712 ms / d27 recorded — 3.8% apart. The grid reproduces clean; its
+  read-across conclusion holds either way.
+- S-W6: my long-mate retest of the match budgets is VOID, not a zero — only 2 of 120 pool positions qualified and at
+  all three budgets those 2 produced NO mate scores at all, so there was no mate to test. Recorded so it cannot be
+  read as corroborating S-F57.
+- next command: continue the cycle.
