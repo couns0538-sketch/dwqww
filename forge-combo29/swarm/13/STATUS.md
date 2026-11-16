@@ -685,3 +685,24 @@ and re-run: exit 0.
 S-F22 was reordered to LEAD with the 6-of-6 result as asked, with "NOT A DEFECT, NO STRENGTH CLAIM" and the
 not-measured note about whether the changed moves are better both retained.
 Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py
+
+## Mon Nov 16 11:58:01 PM UTC 2026
+
+ADDED THE TWO INSTRUMENT LESSONS to the traps note, both copies:
+  A. "A markdown table is not validated by looking at it" — seven malformed rows from literal pipes in
+     shell commands and arithmetic, invisible in a terminal; only a structural check sees it.
+  B. "A checker that disagrees with itself is the checker working" — when I mis-set FINDINGS_check.py's
+     own expected column count it flagged all four S-C rows, which was the instrument failing on my wrong
+     assumption, not four rows failing independently.
+  internal/absence-of-output-traps.md is retitled "five traps, two instrument lessons, one shared tell"
+  with both lessons in full; forge-combo29/swarm/13/HARNESS_TRAPS.md carries the condensed versions.
+  Recorded as S-F23 (method/report) so it is visible in FINDINGS.md too.
+Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py && git log --oneline -1
+
+## Mon Nov 16 11:58:05 PM UTC 2026
+
+The new S-F23 row was ITSELF malformed on first write (9 columns — my own text contained pipe characters),
+and FINDINGS_check.py caught it immediately. Rebuilt without literal pipes; check now exit 0: 23 finding
+rows all 7 columns, 4 check rows all 6 columns, no missing ids. That is the second time in ten minutes the
+check has paid for itself, on the very row describing the lesson it enforces.
+Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py

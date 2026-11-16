@@ -1,6 +1,6 @@
 # Harness traps: absence of output is not absence of function
 
-Five cases, one shared tell. Full note (with the cross-reference to the stale-shard fault) lives in the
+Five cases, two instrument lessons, one shared tell. Full note (with the cross-reference to the stale-shard fault) lives in the
 project store at `internal/absence-of-output-traps.md`; this file is the pointer so a reader here finds it.
 
 | # | command | looks like | actually is |
@@ -35,3 +35,18 @@ printf 'uci\nisready\nposition startpos\ngo depth 12\nquit\n' | ./forge | tail -
 { printf 'uci\nisready\nsetoption name OwnBook value true\nisready\nposition fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1\ngo movetime 200\n';
   sleep 2; printf 'quit\n'; } | ./forge | grep -E 'book|bestmove'                    # book move e2e4 / bestmove e2e4
 ```
+
+## Two lessons about the INSTRUMENTS
+
+**A. A markdown table is not validated by looking at it.** Seven rows of this project's FINDINGS.md became
+malformed because literal pipes inside shell commands (`grep 'a|b'`) and arithmetic (`2|M|-1`) split table
+cells — and a broken markdown table renders identically to a working one in a terminal. Caught only by
+`FINDINGS_check.py`, which asserts every S-F row has 7 columns, every S-C row 6, and no missing ids. If you
+edit a document programmatically and someone else will read it, assert its structure; renderability is not
+something you can eyeball.
+
+**B. A checker that disagrees with itself is the checker working.** When I mis-set that checker's own
+expectation to 5 columns, it flagged all four S-C rows — correctly, given the wrong assumption it had been
+handed. The output looked like "all my rows are broken". Same disposition as case 4: suspect the instrument
+before believing its verdict, and when a check flags *everything* uniformly, suspect its assumption rather
+than each row independently.
