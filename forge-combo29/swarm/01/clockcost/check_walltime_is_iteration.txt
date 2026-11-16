@@ -1,0 +1,31 @@
+CHECK of seat 02's S-F13: is a clock move's wall time the last completed iteration's cost?
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+PC r15 + PC20, Threads 1, Hash 16, go wtime 6000 btime 6000 winc 60 binc 60, one fresh process per board
+boards: first 16 of set_G
+
+board	wall_ms	last_iter_nodes	last_iter_time	wall-minus-iter	cut_mid_iter?	last_depth
+1	167.4	314239	167	0.4	False	18
+2	307.0	514093	306	1.0	False	18
+3	195.7	348815	195	0.7	False	17
+4	414.9	972050	414	0.9	False	18
+5	246.0	557797	245	1.0	False	20
+6	151.7	481049	151	0.7	False	19
+7	215.9	370662	215	0.9	False	18
+8	827.2	2199217	826	1.2	False	18
+9	142.5	234598	142	0.5	False	17
+10	283.3	612735	283	0.3	False	16
+11	322.9	668230	322	0.9	False	19
+12	156.1	265149	155	1.1	False	18
+13	232.0	343688	231	1.0	False	14
+14	285.5	545434	285	0.5	False	16
+15	361.1	613570	360	1.1	False	18
+16	799.9	1937240	799	0.9	False	17
+
+A. CORRELATION: Spearman rho(wall, last completed iteration's time) = 1.000 over 16 boards
+   boards whose wall time is within 10 % of the last iteration's own time: 16 of 16
+   -> CONSISTENT WITH seat 02's reading that the clock tail IS the iteration cost.
+
+B. HARD-LIMIT CUTS: 0 of 16 boards show wall >> last iteration (cut mid-iteration).
+   -> none on my boards: the hard-limit cut did not occur here, so its rarity is consistent
+      with seat 02 but its existence is not demonstrated by this sample.
