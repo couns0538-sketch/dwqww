@@ -272,3 +272,6 @@ Next: continue on PC20 with provably-applied options; STATUS every 25 min.
   costs exactly one move, not the session — the rule stands but the radius is one move.
 - HAZARD_stale_board.md updated with the blast-radius section: damage is ONE move, not the session
   (18/20 recovered correctly, 0 infected), so the simple defence costs one game.
+- S-F47: on the owner's 6s+0.06 clock, PC20/Threads 1 uses only median 238 ms (max 826 ms) over 20
+  G positions; 0/20 came near 6000 ms. Startpos 366 ms, 21-piece Italian 149 ms. Not a defect — but
+  it means a 6s clock rarely binds, so clock-based match results are effectively "a few hundred ms".
