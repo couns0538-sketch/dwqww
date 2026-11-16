@@ -1,0 +1,23 @@
+=== CONTROL C: uniformly-slow engine that also misreports nodes (anchor would be fooled; the coherence guard must catch it)
+
+WHICH VERDICT TO TRUST WHEN THEY DISAGREE
+  The anchor measures the machine and nothing else; the grid measures the settings on
+  that machine. If the anchor is PASS and a grid cell FAILs, the setting is the problem,
+  not the machine: use a smaller Hash or fewer PV lines.
+  If the anchor is WATCH/FAIL and the grid cells are PASS, trust the ANCHOR: the grid
+  numbers are relative to this cloud box, and a uniformly slower machine can still
+  finish a depth-6 search quickly while being slow at everything else.
+  If both agree, trust both.
+
+  ** INCOHERENT: the anchor calls this machine FASTER than the cloud box while
+     the grid finds a cell 23.6x slower. That combination is not
+     physically plausible for one binary. Most likely the engine misreports its
+     node count (the anchor divides by the REPORTED count), so trust the GRID
+     numbers here and treat the anchor as unmeasured.
+
+The SHAPE is what matters and it does not depend on your machine:
+  MultiPV 1 costs the same at every Hash size; the cost is (MultiPV-1) x Hash.
+  So if a cell here is slow, halving Hash or dropping one MultiPV line fixes it.
+
+The one setting that is never safe on any machine: Hash 2048 with MultiPV 8
+  (8-9 s for `go depth 6`, depth 0-1 on a 5 s clock, on the cloud box).

@@ -78,6 +78,44 @@ iteration at all. It is slow because the engine clears the whole transposition t
 PV line, so the cost is `(MultiPV - 1) x Hash`. That is a code property, not a machine property:
 **it will be slow on your PC too**, and the fix is the owner's call, not a setting.
 
+## Two verdicts, one relative and one absolute
+
+The script prints **two** verdicts, and they answer different questions:
+
+| verdict | how it is measured | what it depends on |
+|---|---|---|
+| **the grid** (4 cells) | `go depth 6` wall time vs the cloud-box number | the machine AND the settings |
+| **the anchor** (1 line) | `go nodes 1000000` wall time per **reported** million nodes | **the machine only** |
+
+The anchor exists because a ratio needs a baseline, and my baseline is a 4-core cloud box. A fixed
+node count is a fairer absolute measure: the engine does the same work on every machine, so
+ms-per-million-nodes is machine speed with no settings in it. On this box: **594 ms per million
+nodes** (median of 7 runs).
+
+**Which to trust if they disagree** — the script says so in its output, and the short version is:
+
+- **anchor PASS, a grid cell FAIL** → the **setting** is the problem, not your machine. Use less Hash
+  or fewer PV lines.
+- **anchor WATCH/FAIL, grid cells PASS** → **trust the anchor**: the grid is relative to this box, and
+  a uniformly slow machine can still finish a depth-6 search quickly.
+- **anchor "faster" than this box while a grid cell is many times slower** → the script prints an
+  **INCOHERENT** warning, because that is not physically possible for one binary. It means the engine
+  misreported its node count (the anchor divides by the *reported* count), and you should trust the
+  grid.
+
+### One thing this measured that matters if you ever compute nps
+
+**`go nodes N` stops short of N.** Measured on this box, median of 7 runs:
+
+| requested | actually searched | ratio |
+|---|---|---|
+| 100,000 | 72,062 | 72 % |
+| 300,000 | 267,839 | 89 % |
+| 1,000,000 | 920,173 | 92 % |
+
+So a nodes-per-second figure computed from the *requested* count is inflated by up to 39 % at
+100k nodes. The anchor divides by the reported count for exactly that reason.
+
 ## The script was tested against known-bad engines, not just the real one
 
 Because "all PASS" is worthless if the checker cannot fail:
@@ -87,6 +125,7 @@ Because "all PASS" is worthless if the checker cannot fail:
 | the real PC r15 build | all PASS | all **PASS**, ratios 0.9-1.0x |
 | a fake engine that sleeps 900 ms per search | must not pass | **FAIL 53.0x / 17.3x / 11.0x**, and **SLOW 901 ms** at the largest cell |
 | a fake engine that never answers | must report, not crash | **FATAL: the engine did not answer `go depth 1`**, exit 1 |
+| a fake engine that is uniformly slow **and lies about its node count** | the anchor alone would be fooled; the coherence guard must catch it | grid **FAIL 23.6x**, anchor says "0.67x faster", and the script prints **INCOHERENT** and tells you to trust the grid |
 
 The last row matters: an engine that ignores stdin produces empty output and exit code 0, which is
 exactly the silent-zero trap (seat 02's S-F1, confirmed by me as S-C2). The script refuses to report

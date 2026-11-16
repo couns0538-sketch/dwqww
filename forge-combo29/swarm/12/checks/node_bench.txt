@@ -1,0 +1,15 @@
+=== fixed-node benchmark, 7 runs (the anchor's calibration, and the go-nodes shortfall)
+exe /home/ubuntu/build/pc_r15/forge   Threads 1, Hash 16, MultiPV 1, startpos, 7 runs per count
+
+ requested   reported   ratio  median ms     min     max  nps (reported)
+    100000      72062    0.72         58      55      61       1,248,683
+    300000     267839    0.89        172     166     178       1,559,672
+   1000000     920173    0.92        555     548     570       1,658,751
+
+NOTE: `go nodes N` stopped short of N on:
+  requested 100,000 -> reported 72,062 (72%) — so any nodes/second figure must use the
+  requested 300,000 -> reported 267,839 (89%) — so any nodes/second figure must use the
+  requested 1,000,000 -> reported 920,173 (92%) — so any nodes/second figure must use the
+  REPORTED count, not the requested one, or it is inflated.
+
+ANCHOR: 603 ms per million reported nodes (from `go nodes 1,000,000` = 920,173 nodes in 555 ms)

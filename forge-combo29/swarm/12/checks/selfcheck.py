@@ -22,6 +22,7 @@ Output: median / min / max per setting, and a PASS / WATCH / FAIL verdict agains
 are 4x the cloud-box numbers, because a machine 4x slower than that box is still playing fine.
 """
 import queue
+import re
 import statistics
 import subprocess
 import sys
@@ -106,9 +107,45 @@ def one_run(exe, hash_mb, multipv, threads, go="go depth 6", bound=120.0):
 
     answered = isinstance(bm, str) and bm.startswith("bestmove")
     infos = sum(1 for l in lines if l.startswith("info depth"))
+    reported = None
+    for l in lines:
+        if l.startswith("info depth"):
+            m = re.search(r" nodes (\d+)", l)
+            if m:
+                reported = int(m.group(1))
     # A run with no info line is not a fast run, it is a run that never searched.
     return {"ms": wall * 1000, "answered": answered, "info_lines": infos,
-            "bestmove": bm.split()[1] if answered else None}
+            "reported": reported, "bestmove": bm.split()[1] if answered else None}
+
+
+
+CLOUD_MS_PER_M_NODES = 594.0      # measured on this 4-core box: go nodes 1000000 -> 920,173
+                                  # reported nodes in 547 ms, median of 7 runs (checks/node_bench.py)
+ANCHOR_NODES = 1000000
+
+
+def machine_speed(exe, threads, runs=3):
+    """Absolute machine-speed anchor: a fixed NODE count, so the work is identical everywhere.
+
+    This is independent of Hash and MultiPV, which is why it is a better absolute check than any
+    depth-6 wall time: a depth search's work varies with pruning, a node count does not.
+    """
+    ms = []
+    reported = None
+    for _ in range(runs):
+        r = one_run(exe, 16, 1, threads, go=f"go nodes {ANCHOR_NODES}", bound=300)
+        if not r["answered"] or r["info_lines"] == 0 or not r.get("reported"):
+            continue
+        ms.append(r["ms"])
+        reported = r["reported"]
+    if not ms:
+        return None
+    med = statistics.median(ms)
+    # use the REPORTED node count: `go nodes N` stops short of N (measured 92% at N=1e6),
+    # so dividing by the request would understate the machine by 8%.
+    per_m = med / (reported / 1e6)
+    return {"median_ms": med, "reported": reported, "ms_per_m": per_m,
+            "ratio": per_m / CLOUD_MS_PER_M_NODES, "runs": len(ms)}
 
 
 def main():
@@ -144,6 +181,7 @@ def main():
           f"{'ratio':>7} {'runs':>5}  {'verdict'}")
     print("-" * 82)
     worst = 0
+    grid_ratios = []
     for label, h, mpv in SETTINGS:
         ms, bad = [], 0
         for _ in range(runs):
@@ -159,6 +197,7 @@ def main():
             continue
         med = statistics.median(ms)
         ratio = med / CLOUD[label]
+        grid_ratios.append(ratio)
         if ratio <= PASS_RATIO:
             verdict = "PASS (within 4x)"
         elif ratio <= WATCH_RATIO:
@@ -173,6 +212,22 @@ def main():
         print(f"{label:22} {CLOUD[label]:>5}ms {med:>6.0f}ms {min(ms):>5.0f}ms "
               f"{max(ms):>5.0f}ms {ratio:>6.1f}x {runs - bad:>5}  {verdict}")
 
+    # ---- the ABSOLUTE anchor, independent of Hash and MultiPV
+    print()
+    print("=== absolute machine-speed anchor (fixed node count, not a ratio of a depth search)")
+    speed = machine_speed(exe, threads)
+    abs_verdict = None
+    if speed is None:
+        print("  could not measure: no completed search")
+        abs_verdict = "unknown"
+    else:
+        abs_verdict = ("PASS" if speed["ratio"] <= PASS_RATIO else
+                       "WATCH" if speed["ratio"] <= WATCH_RATIO else "FAIL")
+        print(f"  `go nodes {ANCHOR_NODES:,}` -> {speed['reported']:,} reported nodes in "
+              f"{speed['median_ms']:.0f} ms  =  {speed['ms_per_m']:,.0f} ms per million nodes")
+        print(f"  this cloud box: {CLOUD_MS_PER_M_NODES:,.0f} ms per million  ->  "
+              f"your machine is {speed['ratio']:.2f}x its speed   [{abs_verdict}]")
+
     print()
     print("How to read this")
     print("  cloud = median on the 4-core machine these tables came from; ratio = yours / cloud.")
@@ -183,12 +238,32 @@ def main():
     print("          machine is fine, this setting is just slow to watch. Drop a notch.")
     print("  Reference point: MultiPV 2 at Hash 64 over 200 ms means a machine about 4x this one.")
     print()
+    print("WHICH VERDICT TO TRUST WHEN THEY DISAGREE")
+    print("  The anchor measures the machine and nothing else; the grid measures the settings on")
+    print("  that machine. If the anchor is PASS and a grid cell FAILs, the setting is the problem,")
+    print("  not the machine: use a smaller Hash or fewer PV lines.")
+    print("  If the anchor is WATCH/FAIL and the grid cells are PASS, trust the ANCHOR: the grid")
+    print("  numbers are relative to this cloud box, and a uniformly slower machine can still")
+    print("  finish a depth-6 search quickly while being slow at everything else.")
+    print("  If both agree, trust both.")
+    if speed is not None:
+        grid_worst = max((c for c in grid_ratios), default=1.0)
+        if speed["ratio"] < 1.0 and grid_worst > PASS_RATIO:
+            print()
+            print("  ** INCOHERENT: the anchor calls this machine FASTER than the cloud box while")
+            print(f"     the grid finds a cell {grid_worst:.1f}x slower. That combination is not")
+            print("     physically plausible for one binary. Most likely the engine misreports its")
+            print("     node count (the anchor divides by the REPORTED count), so trust the GRID")
+            print("     numbers here and treat the anchor as unmeasured.")
+    print()
     print("The SHAPE is what matters and it does not depend on your machine:")
     print("  MultiPV 1 costs the same at every Hash size; the cost is (MultiPV-1) x Hash.")
     print("  So if a cell here is slow, halving Hash or dropping one MultiPV line fixes it.")
     print()
     print("The one setting that is never safe on any machine: Hash 2048 with MultiPV 8")
     print("  (8-9 s for `go depth 6`, depth 0-1 on a 5 s clock, on the cloud box).")
+    anchor_bad = 0 if abs_verdict in ("PASS", None) else (1 if abs_verdict == "WATCH" else 3)
+    worst = max(worst, anchor_bad)
     return 0 if worst == 0 else (1 if worst == 1 else 2)
 
 
