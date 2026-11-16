@@ -293,3 +293,5 @@ Next: continue FEN layer on the real path.
 - HAZARD_match_protocol.md WRITTEN for the owner: both depth tables (10 openings, 50k and 250k),
   and the one-line rule — do not compare builds at fixed nodes, use fixed depth or the clock.
   Also records why (nodes lands at an iteration boundary, so N buys a depth) and the alternatives.
+- S-F52: in-check positions correct on PC20 — 5 hand-built + 15 random all match python-chess's
+  evasion counts and every bestmove is legal (0 problems). Check layer is sound on the real path.
