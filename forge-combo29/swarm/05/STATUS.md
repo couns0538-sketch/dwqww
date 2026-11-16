@@ -234,3 +234,12 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
 - Threads audit: one recorded row (check_25f4 options_test, Threads 4) is now marked PROVISIONAL; every claim I
   made rests on Threads 1 rows. Annotated in check_25f4/RESULT.md and FINDINGS S-C7.
 - next command: python3 pcbuild/rerun_finds.py /tmp/build-pc/forge S14 > out/rerun_s14.txt, for the side-by-side.
+
+## $(date -u)
+- Added S-F16 (S-F3 stands on the PC build; root-draw repair is a different mechanism), S-F17 (S-F1 truncation is
+  SETTING-dependent: S14 on the PC build is inconsistent at 14/18 plies, PC20 consistent 8/8), S-F18 (S-F9's R/120
+  not reproducible on the PC build — cp -2713, no mate score).
+- Planted-case control for the "0 nodes" claim on the PC build: K v K / KN v K / KB v K = cp 0 / 0 nodes, while two
+  plants on the same harness give startpos cp 21 / 9,575 and KNN v K cp 231 / 65,604. Zero claim now shown.
+- Boundary-vs-depth identical under S14 and PC20 on the PC build (95/92or93/91/90 for d6/8/10/12).
+- next command: python3 pcbuild/rerun_finds.py on the BASE build under S14, to have a same-regime base column.

@@ -1,0 +1,12 @@
+exe: /tmp/build-pc/forge  Threads 1, S14, go depth 10
+
+| case | score | nodes | expectation | met? |
+|---|---|---|---|---|
+| K v K (my zero claim) | cp 0 | 0 | nodes == 0 | yes |
+| KN v K (my zero claim) | cp 0 | 0 | nodes == 0 | yes |
+| KB v K (my zero claim) | cp 0 | 0 | nodes == 0 | yes |
+| PLANTED: startpos (must be > 0) | cp 21 | 9575 | nodes > 0 | yes |
+| PLANTED: KNN v K (must be > 0) | cp 231 | 65604 | nodes > 0 | yes |
+
+RESULT: the harness sees nodes when there ARE nodes (both plants > 0) and 0 when the root is a dead
+        draw. So my '0 nodes' zero claim is SHOWN, not assumed (file 2 rule 1 satisfied).

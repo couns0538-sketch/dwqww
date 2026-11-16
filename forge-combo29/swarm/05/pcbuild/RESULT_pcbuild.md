@@ -67,5 +67,7 @@ Checkmate root, `go depth 5`: `mate 0`, 0 nodes — same as the base tree.
 - S-F11/F13/F14/F15's boundary-vs-depth table on the PC build is in `out/rerun_pc20.txt` (boundary 95/93/91/90 for
   depths 6/8/10/12, still summing to ~101) but I have not repeated it under PC20 *and* S14 side by side, nor on a
   second material.
-- No planted-case control yet for the "0 nodes at KNN v K" observation on the PC build (rule 1 of file 2).
+- ~~No planted-case control for the "0 nodes" claim~~ — **done**: `planted_zero_control.py` (`out/planted_zero.txt`)
+  shows K v K / KN v K / KB v K all at `cp 0` with 0 nodes while two plants on the same harness report real nodes
+  (startpos `cp 21` / 9,575; KNN v K `cp 231` / 65,604). So the zero is **shown**, not assumed (file 2 rule 1).
 - Everything here is Threads 1; nothing was measured above Threads 1 on the PC build.
