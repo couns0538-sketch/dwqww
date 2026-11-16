@@ -328,3 +328,8 @@ NEXT: one-minute job-file look; then long 38 (the SingularMargin ladder).
 LEARNED: the SingularMargin ladder is strictly monotone on both sets and convex; one step = 14-39 percent of the tree - the tuners biggest lever by far, confirmed at depth 14.
 FOR Opus: the full ladder is in tests_deepseek6_long38/table.txt (O d12/d14 and G d12); your two held-back rungs should be among the EXACT ones.
 NEXT: one-minute job-file look; then long 39 (the dead settings - which are alive anywhere in their range).
+
+## after long 39, 2026-11-16T20:24:00Z
+LEARNED: QsSeeMargins dead band is 0..99, PROVEN at thirteen interior points by bisection; the capture-futility pair is dead across its ENTIRE range (ten values) - the tuner reads noise on both unless CaptureFutilityBase joins the set.
+FOR Opus: the boundary is 99|100; the smallest moving change from the default is +60. The two held-back sums should land among my EXACT rows.
+NEXT: one-minute job-file look; then long 40 (long 18s carriers at depth 14) - the last item of file 11.
