@@ -32,6 +32,8 @@ import time
 import chess
 
 STOP_PAT = re.compile(r"unknown option|invalid value|invalid FEN|illegal move", re.I)
+# The exact sentence seat 02 quotes; a match on it is what makes a ZERO a confirmation rather than a coincidence.
+SM_LINE = "searchmoves restriction has no legal root moves"
 
 
 class Engine:
@@ -156,41 +158,77 @@ def main():
         else:
             mv = chess.Move.from_uci(bm)
             kind = "legal" if mv in board.legal_moves else "ILLEGAL"
-        verdicts[cid] = (nlegal, bm, kind, [l for l in infos if "searchmoves" in l])
+        verdicts[cid] = (nlegal, bm, kind, [l for l in infos if SM_LINE in l])
         res.flush()
 
     eng.close()
     res.close()
 
     # ---- the verdict against seat 02's claim ----
+    # Measurement-integrity rule (seat 19's warning): a CONFIRMS must not be able to come out of a missing line.
+    # Every case below must have (a) been run, (b) produced exactly one bestmove line, and (c) for the searchmoves
+    # cases, produced the `info string searchmoves restriction has no legal root moves` line that seat 02 quotes.
+    # A missing case, a missing line, or a NaN/none value makes the verdict INCONCLUSIVE and exits nonzero.
+    missing = []
+    required = ["A", "B", "C", "D", "E", "A2", "B2", "D2"]
+    for cid in required:
+        if cid not in verdicts:
+            missing.append(f"case {cid} did not run")
+            continue
+        n, bm, kind, sm = verdicts[cid]
+        if kind not in ("ZERO", "legal", "ILLEGAL"):
+            missing.append(f"case {cid}: no judgeable bestmove (kind={kind!r})")
+        if cid in ("A", "B", "C", "A2", "B2") and not sm:
+            missing.append(f"case {cid}: the 'searchmoves restriction has no legal root moves' line was NOT found")
+        if n is None or n <= 0:
+            missing.append(f"case {cid}: python-chess legal move count is {n}")
+
     out = []
     out.append("SEAT 02 S-F2 — independent check by seat 24")
     out.append("")
     out.append("| case | board legal moves (python-chess) | bestmove | verdict | searchmoves line? |")
     out.append("|---|---|---|---|---|")
-    for cid, (n, bm, kind, sm) in verdicts.items():
-        out.append(f"| {cid} | {n} | {bm} | {kind} | {'yes' if sm else 'no'} |")
+    for cid in required:
+        if cid in verdicts:
+            n, bm, kind, sm = verdicts[cid]
+            out.append(f"| {cid} | {n} | {bm} | {kind} | {'yes' if sm else 'no'} |")
+        else:
+            out.append(f"| {cid} | - | - | NOT RUN | - |")
     out.append("")
-    a_zero = verdicts.get("A", (0, "", "", []))[2] == "ZERO"
-    a_legal_moves = verdicts.get("A", (0, "", "", []))[0]
-    d_ok = verdicts.get("D", (0, "", "", []))[2] == "legal"
-    b_zero = verdicts.get("B", (0, "", "", []))[2] == "ZERO"
-    e_ok = verdicts.get("E", (0, "", "", []))[2] == "legal"
-    a2_zero = verdicts.get("A2", (0, "", "", []))[2] == "ZERO"
-    b2_zero = verdicts.get("B2", (0, "", "", []))[2] == "ZERO"
-    d2_ok = verdicts.get("D2", (0, "", "", []))[2] == "legal"
-    c_what = verdicts.get("C", (0, "", "", []))[2]
+    if missing:
+        out.append("ASSERTION FAILURES (the check did not measure what it claims):")
+        for m in missing:
+            out.append("  ! " + m)
+        out.append("")
+        out.append("VERDICT: INCONCLUSIVE — not a confirmation, not a refutation")
+        with open(a.out + ".verdict.txt", "w") as f:
+            f.write("\n".join(out) + "\n")
+        print("\n".join(out))
+        sys.exit(2)
+
+    a_zero = verdicts["A"][2] == "ZERO"
+    a_legal_moves = verdicts["A"][0]
+    d_ok = verdicts["D"][2] == "legal"
+    b_zero = verdicts["B"][2] == "ZERO"
+    e_ok = verdicts["E"][2] == "legal"
+    a2_zero = verdicts["A2"][2] == "ZERO"
+    b2_zero = verdicts["B2"][2] == "ZERO"
+    d2_ok = verdicts["D2"][2] == "legal"
+    c_what = verdicts["C"][2]
     conf = (a_zero and a_legal_moves == 20 and d_ok and b_zero and e_ok and a2_zero and b2_zero and d2_ok)
+    out.append("Assertions passed: all 8 cases ran, every searchmoves case showed the quoted info string, "
+               "every board had a positive legal-move count.")
+    out.append("")
     out.append("VERDICT: " + ("CONFIRMS seat 02 S-F2" if conf else "does NOT reproduce seat 02 S-F2 as stated"))
     out.append("")
     out.append(f"A (startpos, no move named): bestmove 0000 with {a_legal_moves} legal moves on the board -> "
                f"{'as claimed' if a_zero and a_legal_moves == 20 else 'NOT as claimed'}")
     out.append(f"D (startpos, plain go depth 2): {'a real move' if d_ok else 'not a real move'} -> "
                f"{'as claimed' if d_ok else 'NOT as claimed'}")
-    out.append(f"B (startpos, illegally named move e2e5): {verdicts.get('B', ('','','',''))[1]} ({verdicts.get('B', ('','','',''))[2]})")
-    out.append(f"E (startpos, two legal moves named): {verdicts.get('E', ('','','',''))[1]} ({verdicts.get('E', ('','','',''))[2]})")
-    out.append(f"C (startpos, garbage 'a9a9'): {verdicts.get('C', ('','','',''))[1]} ({c_what})")
-    out.append(f"A2/B2/D2 on the mid-game FEN: {verdicts.get('A2')} / {verdicts.get('B2')} / {verdicts.get('D2')}")
+    out.append(f"B (startpos, illegally named move e2e5): {verdicts['B'][1]} ({verdicts['B'][2]})")
+    out.append(f"E (startpos, two legal moves named): {verdicts['E'][1]} ({verdicts['E'][2]})")
+    out.append(f"C (startpos, garbage 'a9a9'): {verdicts['C'][1]} ({c_what})")
+    out.append(f"A2/B2/D2 on the mid-game FEN: {verdicts['A2']} / {verdicts['B2']} / {verdicts['D2']}")
     out.append("")
     out.append("Beyond their claim (my additions): case B shows the same 0000 when the named move is a LEGAL-LOOKING")
     out.append("but ILLEGAL move (e2e5 from startpos), and E shows two legal named moves give a real bestmove,")
