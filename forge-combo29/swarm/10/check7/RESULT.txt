@@ -1,0 +1,28 @@
+CHECK of seat 07's 07-F1 — seat 10's own harness, both builds, Threads 1, Hash 16, OwnBook false.
+
+VERDICT: CONFIRMS 07-F1. 6 of 6 predictions held.
+
+| build | command | info depth lines | all nodes 0 | lines scoring cp 0 | bestmove |
+|---|---|---|---|---|---|
+| base S14 | go depth 8 searchmoves a1a1   | 8 | YES | 8 | **0000** |
+| base S14 | go depth 8 searchmoves        | 8 | YES | 8 | **0000** |
+| base S14 | go depth 8 searchmoves e2e4  | 8 | no  | 1 | e2e4  (CONTROL: real search) |
+| PC r15 PC20 | go depth 8 searchmoves a1a1 | 8 | YES | 8 | **0000** |
+| PC r15 PC20 | go depth 8 searchmoves      | 8 | YES | 8 | **0000** |
+| PC r15 PC20 | go depth 8 searchmoves e2e4 | 8 | no  | 0 | e2e4  (CONTROL: real search) |
+
+python-chess: startpos HAS 20 legal moves. So `bestmove 0000` here is a FALSE terminal claim by the UCI
+convention that 0000 means "no legal move exists". A consumer that trusts it treats a normal opening
+position as over.
+
+The engine knows the real cause and says so, on BOTH builds:
+   info string searchmoves restriction has no legal root moves
+(the cause 07-F1 names is search.cpp:2531 `restricted_root_empty`; the empty-root branch still emits the
+per-depth cp 0 / nodes 0 lines and then 0000).
+
+Beyond the finding, and useful as a discriminator: the `info string` line IS the signal. A consumer can
+detect this case without parsing scores -- if a search ends in `bestmove 0000` on a position with legal
+moves, an `info string ... no legal root moves` line is present. That is the cheap guard.
+
+Two triggers behave identically (P6 held): naming an ILLEGAL move (`a1a1`) and naming NO move at all give
+the same 8 lines and the same 0000.
