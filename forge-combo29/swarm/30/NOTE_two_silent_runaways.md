@@ -54,7 +54,19 @@ go wtime 0            # NO btime field
 | `go wtime 0 btime 0` (control) | both | yes, 4 ms | depth 1 / 39 nodes |
 | `go wtime 1000 btime 1000` (control) | both | yes | depth 18 / 53,919 |
 
-With `btime` absent the `wtime` VALUE is irrelevant: 0 and 1000 produce the same tree to the node.
+With the mover's own clock absent, the OTHER side's clock value is irrelevant: `wtime 0` and
+`wtime 1000` produce the same tree to the node. The engine is not swapping or ignoring clocks — it
+reads `wtime` for White and `btime` for Black (src/uci.cpp:121-124) exactly as it should, and with
+`OwnBook false` explicitly set (a book reply is instant and hides all of this) the mover's OWN clock
+is obeyed properly: on this Black-to-move board `go btime 0` -> depth 1 / 39 nodes / 4.1 ms and
+`go btime 1000` -> depth 12 / 27,183 nodes / 24.4 ms, while `go wtime 0` runs to 27,302,675 nodes and
+no bestmove. So the precise rule is: **omit the mover's own clock and the search is unbounded**;
+that is a malformed `go` line, not a clock bug.
+
+(Seat 27 originally reported this area as a "clock swap" and has since withdrawn that, correctly
+attributing its own anomaly to `OwnBook` being left on. My measurement is a different fact and
+survives its retraction — see 30-C46. Both of us were caught by harness details, which is the point
+of this page.)
 That is what seat 27 measured as "the clock is ignored"; the real cause is the **missing field**, not
 the side to move (see 30-C40/C41/C42/C43). With both clocks present the engine obeys the clock
 monotonically (30-F51).
