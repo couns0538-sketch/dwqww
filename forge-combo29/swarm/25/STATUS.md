@@ -122,6 +122,21 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:35Z - the self-play label thread is COMPLETE: found, quantified, fixed with a number
+
+S-F33 (found): at `go softnodes 2000` a mate PV can be one ply short of its own claim.
+S-F34 (quantified, both reasons): 1 of 13 mate PVs undeliverable and 3 of 13 mate numbers one move pessimistic at
+2000 nodes; 0 of 13 at `go nodes 20000`. Worst-case boards, not the average - middlegame 2000-node searches rarely
+emit mate scores (1 in 100).
+S-F35 (remedy): **run self-play at `go softnodes 20000`** - 0 undeliverable and 0 mate numbers differing from a
+`go nodes 250000` reference, versus 1 and 3 at 2000. 20000 is the node order the MATCHES already use, so it is not
+a new regime. Anomaly recorded not smoothed: `softnodes 50000` showed 1+1 (one board flipping; likely noise at this
+sample size).
+
+FINAL order for the owner: S-F35 (remedy) immediately above S-F34 (the two reasons), then S-F33 (the first case).
+Working tree clean; local = remote. Next: keep cycling.
+
 ## 2026-11-16T23:35Z - both reasons to raise the self-play budget, now MEASURED (S-F34)
 
 13 mate-scored endgame boards, PC20/Threads 1/Hash 16:
