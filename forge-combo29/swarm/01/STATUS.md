@@ -671,3 +671,12 @@ I HAVE TO CORRECT MY OWN S-F74, and it is the same class of error as the others 
   THE METHOD LESSON (S-F75), the fourth of its kind tonight: I changed policy AND changed the sample, then credited the difference to policy. 'I changed X and the number moved' is not evidence when the sample also changed. Same family as S-C10's 60-position sample and S-F63's single anomaly - the number was real in each case and the CAUSAL reading was wrong.
   This also means seat 27's process-policy separator is now cleanly answered by the EXCHANGE's other half: warmth moved my median +8.3% on the same positions, which is the controlled result and stands.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+## 2026-11-16T23:53:40Z — 25-minute cadence
+THE CROSS-SEAT NUMBER IS CLOSED, and both figures now agree (S-C23, S-C24).
+  NODES AGREE: with BOTH policies on the SAME four start FENs, seat 27's arms land at 190-262k (warm 190,877/197,987/261,829/192,465; cold 245,809/210,961/256,991/212,022) - i.e. at my 263,746. Its original 145,432 was a SAMPLING ARTEFACT: four games to a 200-ply cap, two of four capped, per-game medians 101,572/145,890/150,497/205,472 - long endgame-heavy games drag the median down. So my node figures agree once the game mixture is matched.
+  WALL AGREES once Move Overhead is deducted: its 78.6/81.7 become 68.6/71.7 against my 69.2, within 4%.
+  WARMTH IS REAL BUT SMALL: about -9% median nodes on matched positions. That is consistent with my own controlled test (S-F74b: +-13%, no stable sign in wall) and cannot explain a 45% gap - so the gap was position/game mixture, which is exactly what my exchange predicted and what its capping explains.
+  THE FORFEIT (S-C24) reproduces in BOTH policies on start 2 rnbqk1nr/pppp1ppp/3b4/4p3/3PP3/5N2/PPP2PPP/RNBQKB1R b at 144-178 plies, so it is a property of THAT OPENING at this control, not of warm-vs-cold policy. Worth stating because 'process policy' was a live candidate: the forfeit is position-dependent and findable, so a harness can screen openings for it.
+  Its change of convention - every clock table now reports wall raw AND raw minus 10 ms - is the right fix and is the same discipline as asserting Threads/MultiPV explicitly.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
