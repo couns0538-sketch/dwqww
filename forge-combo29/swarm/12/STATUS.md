@@ -158,3 +158,20 @@ Resuming the cycle. Seat 12, area 2, branch for-fable-and-opus/swarm-12 (unchang
 Next: read every unread forge-combo29/soak_all/FABLE_TO_swarm_N.md from the lowest N up; file 5
 carries the PC engine source as a patch against 6b98f217 with -DFORGE_MATE_ALPHA_GUARD=1, which I
 must build in a separate copy and pin before anything else.
+
+## 2026-11-16T22:22:18Z — PC r15 built and pinned; aborted-search finding owned
+
+PC build: patch sha256 d6bd72c531f785f4… (matches file 5), applied with patch -p1 --fuzz=0, built
+-DFORGE_MATE_ALPHA_GUARD=1 with g++-13. **All 8 pins of file 5 match**: none 312866/862329/3024920/
+perft5 4865609; S14 242796/656517; PC20 278024/587276. job3/PC_BUILD.md.
+
+S-F8 (owned, confirmed independently): on r15 an aborted search still publishes a2a3 with 0 info
+lines — 200/200 aborted searches under ASan+UBSan across none and PC20, both go forms, Threads 1.
+0 sanitizer lines, with the planted-fault r15 copy counted 3 lines through the same runner.
+S-F9: the move is root_candidates.front() of the CURRENT position, never stale (after `position` Y
+it answers e2e3, so it is positional).
+S-F10: FORGE_FIX_ABORT_PUBLISH is the switch that should have covered it, cannot (it needs a
+finished iteration), and is #define 0 by default; enabling it still leaves 4/4 fabricated.
+
+Next: job 3 of area 2 (every option at min/max/min-1/max+1/a word/nothing, between and during
+searches) on BOTH builds, which is the next unrun job of my area.

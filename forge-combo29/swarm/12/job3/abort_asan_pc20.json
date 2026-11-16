@@ -1,0 +1,39 @@
+{
+ "exe": "/home/ubuntu/build/pc_r15_asan/forge",
+ "settings": "PC20",
+ "threads": 1,
+ "reps": 25,
+ "parts": [
+  {
+   "form": "bounded",
+   "go": "go depth 12",
+   "fabricated": 25,
+   "reps": 25,
+   "sanitizer_lines": 0,
+   "moves": {
+    "a2a3": 25
+   }
+  },
+  {
+   "form": "unbounded",
+   "go": "go infinite",
+   "fabricated": 25,
+   "reps": 25,
+   "sanitizer_lines": 0,
+   "moves": {
+    "a2a3": 25
+   }
+  }
+ ],
+ "total_sanitizer_lines": 0,
+ "planted": {
+  "exe": "/home/ubuntu/build/pc_planted/forge",
+  "sanitizer_lines": [
+   "/agent/repos/pcplanted/forge-combo29/src/uci.cpp:314:40: runtime error: load of address 0x502000001050 with insufficient space for an object of type 'volatile char'",
+   "==59259==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x502000001050 at pc 0x556c633b4298 bp 0x7ffd5d2cc630 sp 0x7ffd5d2cc620",
+   "SUMMARY: AddressSanitizer: heap-buffer-overflow /agent/repos/pcplanted/forge-combo29/src/uci.cpp:314 in forge::uci_loop(std::istream&)"
+  ],
+  "count": 3,
+  "rc": 1
+ }
+}
