@@ -1,0 +1,27 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2800,6 +2800,12 @@
+         }
+         if (!aborted_) reopen_full_window = tune::AspArmLate && failed_window;
+         if (aborted_) {
++#ifdef FORGE_NODES_DEBUG
++            std::cerr << "[NDB ABORTED] depth=" << depth << " stopped_by_nodes=" << stopped_by_nodes_
++                      << " pv_len=" << ss->pv_length << " iteration_score=" << iteration_score
++                      << " result.score(before)=" << result.score
++                      << " nodes=" << total_nodes() << std::endl;
++#endif
+             // A clock or external stop may keep a root move that already raised
+             // alpha in this unfinished iteration, and the score stays the last
+             // finished one. A node limit must not do that: training labels from
+@@ -2829,6 +2835,11 @@
+             break;
+         }
+         score = iteration_score;
++#ifdef FORGE_NODES_DEBUG
++        std::cerr << "[NDB finished-iter] depth=" << depth << " score=" << score
++                  << " pv_len=" << ss->pv_length << " nodes=" << total_nodes()
++                  << " aborted=" << aborted_ << std::endl;
++#endif
+         result.score = score;
+         result.depth = depth;
+         result.seldepth = std::max(seldepth_, depth);
