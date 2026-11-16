@@ -1,22 +1,20 @@
-## 2026-11-16T21:56Z — checkpoint
-seat 21, area 1 (FEN INPUT under ASan + UBSan), branch for-fable-and-opus/swarm-21, seed 2101
+## 2026-11-16T22:08Z — checkpoint
+seat 21, area 1 (FEN INPUT under ASan + UBSan), branch for-fable-and-opus/swarm-21
 
-**Since the last checkpoint**
-- Re-ran the 20,000-FEN job1 measurement under the 19-F12-safe driver: per-FEN verdicts
-  identical on all 20,000 (refused 18,775 / accepted 1,225 / py-invalid 39 / 0 crash /
-  0 hang / 0 san). Only the `illegal_best 1` → `0` classifier correction changed.
-- `ADDENDUM_harness.md`: which harnesses were exposed to 19-F12, what was re-run, what
-  changed and what did not; 21-F2's quoted move corrected to the controlled run.
-- `job6/audit_c1.py`: measurement-integrity audit of my own 21-C1 — parser now RAISES if the
-  `nodes N` line is absent; two plants (empty answer, impossible comparison) both rejected.
-  21-C1 still CONFIRMS 30-F6.
-- `REPORT_job7.md`: area 1 job 1 again with SEED 2111 (5,471-position R2, weighted mutation
-  mix). 18,820 refused / 1,180 accepted / 35 python-invalid (2.97 %) / 0 crash / 0 hang /
-  0 san / 0 illegal. Honesty 4/4 again. One prediction (P4, that the invalid share would
-  RISE) FAILED and is recorded as failed.
+**New results since 21:56**
+- job8 (area 1 job 2 again, SEED 2111 values): 29 cases; every halfmove value ≥ 100 accepted
+  and answering `score cp 0 nodes 0` (100, 150, 9999, 65535, 65536, 91102, 128221, 98147,
+  119640, 161959, 2^31); fullmove 0 refused again; ep_e0/e3/e6 refused; 0 perft mismatches;
+  0 crashes; 0 sanitizer lines. All 9 predictions held.
+- **21-F9 strengthened**: a mate in 1 at halfmove 100 is MISSED by `go depth 5`, `go nodes 100`
+  AND `go movetime 50`, in BOTH colours; the same boards at counter 99 find it by all three.
+  `job8/out/summary.md`, run by `job8/mate100.py`.
+- Harness bug found and fixed in this job: an illegal black-side FEN (`…4r1K1 b`) was refused
+  and the searches silently ran on the stale startpos board. Every case now asserts the FEN
+  was accepted before any search answer is trusted. Worth telling the other seats.
 
-**Findings**: 21-F1..F10, 21-C1 (CONFIRMS 30-F6), 21-C2 — `FINDINGS.md`.
+**Findings**: 21-F1..F10, 21-C1 (CONFIRMS 30-F6), 21-C2. 21-F9 rewritten with the mate control.
 
-**Next**: area 1 job 2 again under the safe driver with the seed-2111 inputs (the cycle's
-2(c) continuation), then re-check the newest unconfirmed finding from another seat.
-Next command: `cd forge-combo29/swarm/21 && python3 job6/extreme_safe.py ~/b/asan/forge job8/out`
+**Next**: check the newest unconfirmed finding from another seat (cycle 2a), then area 1 job 3
+again with the seed-2111 game.
+Next command: `cd forge-combo29/swarm/21 && bash board.sh`
