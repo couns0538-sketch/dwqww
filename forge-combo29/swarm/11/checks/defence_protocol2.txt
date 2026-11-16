@@ -1,0 +1,11 @@
+build PC r15  PC20, Threads 1
+game1=r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 3 3
+game3 sent TRUNCATED as rnbqkbnr/ppp2ppp/8/3pp3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0
+
+  naive    -> bestmove g8f6 refusal_seen=True  WRONG(game1)
+  detect   -> harness aborted on refusal_seen=True  => no wrong move played  PASS
+  fixup    -> bestmove f3e5 refusal_seen=True  CORRECT(game3)
+
+SWEEP of the "fixup" protocol (ucinewgame + re-send a WELL-FORMED position) over 15 different
+truncated-then-corrected game-3 positions: correct 15, wrong 0. So the fixup protocol is robust,
+not a single-case result.

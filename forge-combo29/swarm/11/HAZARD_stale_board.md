@@ -78,6 +78,19 @@ So `ucinewgame` does clear the stale board and removes the wrong-game danger, bu
 **Treat any `info string invalid FEN` as fatal for that game: do not send `go`, discard the game,
 and re-send a well-formed `position` (or start a fresh process) before searching again.**
 
+### The three protocols, tested against the worst case
+The worst case is when the MALFORMED FEN *is* the new game's position — so there is no good
+position afterwards to recover from (`checks/defence_protocol2.txt`, `checks/fixup_sweep.txt`):
+
+| protocol | what it does | bestmove returned | verdict |
+|---|---|---|---|
+| naive | asks for a move right after the bad FEN | **`g8f6`** | **WRONG — a game-1 move** |
+| detect | checks for `invalid FEN` and **aborts the game** | none played | **SAFE** |
+| fixup | `ucinewgame`, then re-sends a WELL-FORMED position | `f3e5` | **CORRECT — game 3's move** |
+
+The `fixup` protocol was then swept over 15 different truncated-then-corrected game-3 positions:
+**15 correct, 0 wrong**. So both `detect` and `fixup` work; `naive` fails.
+
 Concretely, in order of strength:
 1. **Best:** after a refused FEN, discard the game outright. Never accept a bestmove from a process
    whose last `position` was refused.

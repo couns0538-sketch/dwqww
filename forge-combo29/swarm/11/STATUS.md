@@ -304,3 +304,6 @@ HAZARD_match_protocol.md (both depth tables + the rule). PC_SWITCHES.md complete
 unmeasured list. FEN layer on PC20 now covered end to end: acceptance (553/553), in-check (20/20),
 pathological input, both position forms, softnodes/nodes/clock behaviour.
 Next: continue FEN layer and real-path work.
+- S-F55: the hazard DEFENCE is now validated, not asserted. Worst case (the bad FEN IS game 3):
+  naive -> g8f6 (game-1 move, WRONG); detect -> aborts, SAFE; fixup (ucinewgame + re-send a good
+  position) -> f3e5 (game 3, CORRECT), and 15/15 across different positions. Hazard doc updated.
