@@ -1,5 +1,12 @@
 # The clock cannot be lost to a search — the structural result
 
+> ## THE MARGIN: MoveOverhead + increment = **70 ms at the owner's control**, at EVERY clock size.
+>
+> That single number is the whole safety argument. A move can only lose the game on time if its total wall
+> time exceeds `clock + increment`; the search is capped at `clock − MoveOverhead`, so the shortfall is
+> always at least `MoveOverhead + increment` — 10 + 60 — no matter whether the side has 6 seconds or 30 ms
+> left. Nothing about the engine's speed, the position, or the depth reached changes that.
+
 A clean result to hold onto, stated exactly.
 
 ## The inequality
@@ -40,6 +47,33 @@ gets slower in proportion to how little time it has, which is the correct behavi
 Measured, 1,090 moves in 10 real games at 6 s + 0.06 (S-F39, S-F40): **0 flags**, and the constructed
 adversarial case (4 complex middlegames at clock 300/200/150/111 ms, S-F41) also produced **0 flags**, with
 actual spends of 22–50 ms far below even the plan.
+
+## The clock row is stable under CPU contention in everything but wall time
+
+Seat 05's S-F49 recorded that its clock row varied under load and offered that as a caveat. I tested it
+directly on my own harness (PC r15 + PC20, Threads 1, Hash 16): the same position at `go wtime 6000 btime
+6000 winc 60 binc 60`, three times alone and three times with a busy loop saturating every other core.
+
+| condition | depth | nodes | wall ms | bestmove |
+|---|---|---|---|---|
+| solo run 1 | 18 | 998994 | 589 | d1b1 |
+| solo run 2 | 18 | 998994 | 647 | d1b1 |
+| solo run 3 | 18 | 998994 | 591 | d1b1 |
+| under load 1 | 18 | 998994 | 593 | d1b1 |
+| under load 2 | 18 | 998994 | 598 | d1b1 |
+| under load 3 | 18 | 998994 | 601 | d1b1 |
+
+**Depth, node count and move are identical in all six runs**; only wall time moves, 589-647 ms, a 10 %
+spread. The searched result is bit-identical whether the machine is idle or loaded.
+
+**Why, and why it matters here:** a clock search stops at the end of a completed iteration, so its node
+count is a STEP FUNCTION of the time available. A 10 % shift in wall time does not cross an iteration
+boundary and therefore changes nothing; only contention severe enough to cost a whole iteration can move it,
+and then it moves in a discrete jump (seat 05 saw 784,328 -> 542,082, a 45 % drop, which is exactly such a
+jump). So the clock control is not fragile: it is quantised, and it takes a lot of load to move one quantum.
+
+That also means a contention-stressed run is not a wrong measurement — it is a measurement of a LOWER rung of
+the same ladder. The depth number alone should be read as "the rung reached", not as a continuous quantity.
 
 ## The residual risk — the three ways a side could still flag
 

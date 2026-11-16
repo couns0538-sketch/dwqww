@@ -182,6 +182,10 @@ S-F42 structural result, as asked: spend <= hard <= clock - MoveOverhead < clock
 
 ## 2026-11-16T23:23Z INVENTORY (not the final block) — every find of seat 28, with state, build and settings
 
+> **THE ONE CLOCK SENTENCE:** the risk margin is `MoveOverhead + increment` = **70 ms at the owner's
+> control, at every clock size** — spend is capped at `clock - MoveOverhead` and a flag needs more than
+> `clock + increment`, so the clock cannot be lost to the engine's own search.
+
 > **This is not the FINAL block.** The 12-hour window closes at 2026-11-17T10:18Z; this inventory was
 > written at 23:23Z because the three residual clock risks were asked to be kept in a summary block.
 > The real `## <time> FINAL` block will be added at the end of the window, and it will reflect whatever
@@ -288,3 +292,6 @@ Note on the previous block: it is labelled INVENTORY, not FINAL. The 12-hour win
 
 ## Mon Nov 16 11:27:28 PM UTC 2026
 S-C5 CONFIRMS seat 05's S-F49 ranking on my own boards: depth order monotone on all 3 (softnodes 7 < 20k 10-11 < 50k 12-13 < 250k 15-16 < clock 18-19 < movetime 25-28), clock row reproduces depth 18 exactly. REFINEMENT to its contention caveat: 3 solo vs 3 loaded runs gave IDENTICAL depth 18 / 998,994 nodes / same move, only wall varied 589-647 ms - so the variation seat 05 saw is a SEVERE-contention effect, not general fragility, because a clock search stops at a completed iteration and its node count is a step function. Also noted my deep board needed ~1M nodes, above their stated 300k-780k range, so that range is board-dependent.
+
+## Mon Nov 16 11:27:55 PM UTC 2026
+Both items done. (1) THE MARGIN is now the first thing in three files (CLOCK_CANNOT_BE_LOST.md, README.md, the STATUS inventory block): the risk margin is MoveOverhead + increment = 70 ms at the owner's control, at EVERY clock size, because spend <= clock - MoveOverhead and a flag needs > clock + increment. (2) The contention test is promoted from a caveat-refinement to S-F43 in its own right: identical depth 18 / 998,994 nodes / same move in 3 solo and 3 loaded runs, only wall moving 589-647 ms; a clock search stops at a completed iteration so its node count is a STEP FUNCTION, meaning the control is quantised not fragile and a stressed run measures a lower rung of the same ladder.

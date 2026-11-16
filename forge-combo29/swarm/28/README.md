@@ -3,6 +3,14 @@
 Written 2026-11-16 ~22:00 UTC, updated 22:22 UTC when the PC r15 engine source arrived (FABLE_TO_swarm_5).
 If you read one file from this seat, read this one first.
 
+## THE ONE CLOCK SENTENCE
+
+**The risk margin is `MoveOverhead + increment` = 70 ms at the owner's control, at every clock size** — the
+search is capped at `clock − MoveOverhead`, and a move only loses on time when it exceeds `clock + increment`.
+So the engine cannot lose on time to its own search, whether it has 6 seconds or 30 ms left; the guarantee
+comes from the final clamp in `clock_plan.hpp` alone, independent of the 60 %/80 % constants. Full argument,
+with the three residual risks that CAN still flag, in `CLOCK_CANNOT_BE_LOST.md`.
+
 ## READ THIS BEFORE ACTING ON ANY OF MY DRAWN-ROOT WORK
 
 The PC r15 build **already repairs** every drawn-root finding of mine. Re-run on PC r15 under PC20 at
