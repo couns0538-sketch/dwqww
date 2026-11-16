@@ -47,3 +47,22 @@ Also: 19-F7's CAUSE is refuted (by 28, confirmed by me in check28C2): two clean 
 done: job1, job2, job3, check21F1 (CONFIRMS 21-F1), check28C2 (CONFIRMS 28's refutation of 19-F7's cause).
 next command: job 1 again with seed 1911 and a new R set (SEED+10), restricted to PC-relevant families per Rule 2:
   python3 forge-combo29/swarm/19/job1b/make_R.py 1911 forge-combo29/swarm/19/job1b/R_1911.fens && bash forge-combo29/swarm/19/job1b/profile2.sh
+
+## 2026-11-16T21:34:48Z — CHECKPOINT (owner asked for a push every 30 min)
+
+done so far:
+  job 1  profile of bench 13 — done, REPORT_job1.md
+  job 2  material-key cache patch — done, node counts identical, NOT measurably faster (CI spans 1.0), REPORT_job2.md
+  job 3  NNUE column prefetch — done, 8.10 % SLOWER, rejected, REPORT_job3.md
+  job 1b seed 1911 + PC-relevant profile — done, REPORT_job1b.md
+  check21F1 CONFIRMS 21-F1 ; check28C2 CONFIRMS 28's refutation of my own 19-F7 cause ;
+  check29F3 CONFIRMS 29-F3 (11.91 ms fixed cost inside the bench timer)
+
+running right now: check08F9_multi.py — 08-F9 across 100 positions x 4 clock settings (backgrounded);
+  first single-position version gave 52.3 / 50.6 / 85.9 / 169.8 % of the computed soft limit, i.e. two cases
+  OUTSIDE their 55-79 %% band, but one position is not like-for-like against their 200, hence the multi run.
+  My own first attempt at this check was VACUOUS (searched for a clock_plan line the engine never prints, so
+  the NaN comparison passed) — recorded in check08F9/raw_v1_vacuous/ and fixed by computing the plan from source.
+
+next command:
+  python3 forge-combo29/swarm/19/check08F9/check_08F9_multi.py ~/build_rel/forge forge-combo29/swarm/19/job1b/R_1911.fens forge-combo29/swarm/19/check08F9/raw3
