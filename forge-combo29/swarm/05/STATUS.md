@@ -109,3 +109,9 @@
 - Gap closed: EvalRule50Damp true/false, UseNNUE false, Hash 1/1024, Threads 4 and depths 1..20 all still cp 0 at
   clock 99, while the same board at clock 0 searches normally (cp -164, 19,621 nodes).
 - next command: python3 check_25f4/options_test.py against the ASan+UBSan build for the same table.
+
+## $(date -u)
+- S-C7 also re-run on ASan+UBSan: identical clock-99 table (cp 0 everywhere, clock-0 control cp -164 / 19,621
+  nodes), no sanitizer output. Not called "0 sanitizer lines proven" because this script carries neither proof.
+- next command: start job3 of area 5 again with the next seed (cycle step c for job 3): checkmated/stalemated roots
+  generated afresh with random.Random(511+10) and the same three go commands.

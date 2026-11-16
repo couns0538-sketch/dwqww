@@ -96,3 +96,15 @@ Hash and Threads all leave the zero intact, and so does every depth from 1 to 20
 The node counts are not zero (341 at depth 10, rising with depth). So the clock-99 zero is **not** the same shortcut as
 the clock-100 one, which answers `0 nodes` and an empty pv (`../job3/`, `job1b`). Two different mechanisms, and I do
 not name either.
+
+## ASan + UBSan repeat
+
+The whole table was re-run on the ASan+UBSan build (`raw/options_test_asan.txt`): every setting still gives
+`cp 0` at clock 99, depths 1–20 still give `cp 0` (nodes 30–2,073), and the clock-0 control is identical
+(`cp -164`, 19,621 nodes). The only difference is Threads 4 giving 1,342 nodes instead of 1,292, which is what real
+threading does and is not a determinism problem for the single-threaded rows.
+
+The run produced **no sanitizer output**. As in `../check_15f3/RESULT.md`, I do not call that "0 sanitizer lines
+proven": this script carries neither of the two proofs the brief requires (no `nm` count in its `.meta`, no planted
+fault through this script). Those proofs exist for the job3 runner (`../job3/out_planted/`). The honest phrasing is
+"the ASan+UBSan build produced no sanitizer output in these 13 searches".
