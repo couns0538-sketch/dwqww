@@ -661,3 +661,37 @@ the very line under test. Twice. The tell both times: the raw log plainly contai
 the analysis said none. Lesson: when a check reports "the engine never emitted X", grep the raw log for X
 before believing the analysis. Evidence of the fix: `pc/guardsp/guard_selfplay.json` versus the false runs in
 `pc/selfplay/` and `pc/selfplay2/`.
+
+## S-C13 | CONFIRMS 30-F33/30-F34/30-F38 on two of the six deep-mate boards (independent verification)
+
+Seat 30 reports that the base tree fails to report a mate at depth 24 on 6 of 40 lone-king boards where
+python-chess proves mate in <= 5 plies, and that the PC build fixes all six. I verified TWO of the six with my
+own harness (strict: every `setoption` confirmed by `readyok`, every search awaited, fresh process each line,
+Threads 1), because a missed mate is the most serious class of defect:
+
+`6k1/8/7R/2K5/8/8/8/8 w - - 0 1` (python-chess: mate in 5 plies)
+| build / settings | depth | score | bestmove |
+|---|---|---|---|
+| base / S14 | 12 | `cp 451` | `h6h4` |
+| base / S14 | 24 | **`cp 554`** | `h6c6` |
+| PC r15 / defaults | 12 | `cp 514` | `c5b6` |
+| PC r15 / defaults | 24 | **`mate 8`** (3,303,674 nodes) | `c5d6` |
+| PC r15 / S14 | 12 | `cp 575` | `h6d6` |
+| PC r15 / S14 | 24 | **`mate 8`** (2,527,100 nodes) | `c5d6` |
+
+`8/8/8/6k1/8/8/5K2/1Q6 w - - 0 1` (K+Q vs K)
+| build / settings | depth | score | bestmove |
+|---|---|---|---|
+| base / S14 | 12 | `cp 1130` | `b1b8` |
+| base / S14 | 24 | **`cp 1252`** | `b1b8` |
+| PC r15 / defaults | 12 | `cp 1140` | `b1b8` |
+| PC r15 / defaults | 24 | **`mate 7`** (4,448,202 nodes) | `b1e4` |
+| PC r15 / S14 | 12 | `cp 1113` | `b1e4` |
+| PC r15 / S14 | 24 | **`mate 7`** (4,719,156 nodes) | `b1e4` |
+
+So seat 30 is right on both counts I tested: the base tree stays at centipawns at depth 24 on both boards, and
+the PC build reports mate on both. The failure is a SCORE-REPORTING failure (the base tree's move still wins),
+which is what seat 30's 30-F30 says, not a lost win.
+GUI-reachable: **YES** — endgame play is normal play; a GUI showing mate distance or a match adjudicating on
+score is affected. Threads 1 in every line. Builds as named per row.
+Evidence: `pc/check30/check30.json`, `pc/check30/*.log`.
