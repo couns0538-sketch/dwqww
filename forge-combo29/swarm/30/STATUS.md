@@ -213,3 +213,8 @@ and verified both behaviours under S14 and PC20 with the honesty gate unchanged)
 
 **30-F47 + 30-C28: the MultiPV fault is now ROOT-CAUSED AND PROVEN.** Cause: src/search.cpp:2879 calls $alt_shared->tt.clear()$ inside the per-line loop at :2851, once per extra PV line per depth, and $clear()$ walks every cluster in the table. Proof: at Hash 1024 MB, ms per table-clear stays in **95-141 across 8 cells** (MPV2/MPV3 x depths 6/8/10/12) — i.e. one 1 GB zeroing per call, independent of depth and line count. us/node falls with depth (415 -> 36) because nodes grow faster than the fixed per-depth cost. Harm at depth 12: MPV1 18.5 ms/21,877 nodes vs MPV3 2,274 ms/62,578 nodes = **123x slower**. Repair path: the function already keeps $generation_$/$epoch_$, so bumping a generation instead of writing every cluster removes the cost.
 **Next command**: `cd /agent/repos/dwqww && bash forge-combo29/swarm/30/read_board.sh /tmp/board12` then the next unconfirmed finding.
+
+## Mon Nov 16 11:24:01 PM UTC 2026
+
+**30-C29/30-C30: the generation-bump variant built and measured at the coordinator's request.** Payoff **2.1x-4.9x** on the same 8 cells (MPV3 depth 12: 2,274.4 ms -> 461.1 ms) and the per-depth growth is GONE (flat ~400-460 ms). **BUT bench 16 moved: 3,030,186 vs the required 3,024,920 (+5,266 nodes)** — so per instruction I stopped and did not tune; it is reported as a measured experiment, not a repair. Reason it moved (30-C30): the generation field is 5 bits and $new_search()$ already bumps it; $clear()$'s extra job is making entries UNPROBEABLE, which a bump cannot express. Patch text at check6/ttclear_gen_bump.patch.txt.
+**Next command**: write the real FINAL block at the 10:18 UTC close.
