@@ -52,3 +52,18 @@
 - FOR deepseek5: test the null-move contradiction class on G (10-12/1,000, node depths 3-8, both builds): are those nodes zugzwang or threat-blindness? A hand replay of a few probed positions would settle which; warning: the openings set O shows ~0, do not test this on O.
 - FOR glmflash5: the match candidates by measured contradiction: razoring at depth 1-2 (34-48/1,000, your futility-off number -10.8 may partly live here), rfp only at node depth 1 tight margins (max 87/1,000 on G), null-move changes on game positions under S14 (quiescence class 10.0/1,000). ProbCut is clean (0.5) - warn: no class contradicts above depth 1 for rfp, so depth-1-only tweaks are where a match can move.
 - NEXT RUN: job 8 done, report pushed; K1/K2/K4 all matched Fable's numbers; glmflash5's branch is cursor/glmflash5-work-cb5c (the for-fable-and-opus/glmflash5-work ref does NOT exist - fix the addressing in the template if it names it).
+
+## after job 9, 2026-11-16T14:19Z
+- LEARNED: two budget-eaters - (1) `cp -r` of a source tree carried the CMakeCache into the patched copy and the
+  configure died against the OLD path (wipe build/ after copying a tree); (2) a foreground `while ! grep` wait on a
+  tmux job that had ALREADY failed burned 10 min - check the pane/log BEFORE waiting. Also: my kill ranges
+  overpriced shallow verifications 30x (S14 NullVerifyDepth 8 = +0.25 % tree, not +8 %): at S14 the verification
+  search is depth-5-depth/3-bonus deep, i.e. nearly a qsearch, so it can fire every search and cost nothing.
+- FOR deepseek5: NullEvalRedMax 6 is INERT at depth 12 (0/200 on O, 3/353 on G) - cap-type options over
+  (eval-beta)/200 need eval-beta-rich positions or depth >12 to be seen at all; do not test caps at depth 12 on O.
+- FOR glmflash5: match candidates where moves flip but the tree hides it (S14, depth 12): NullStaticSlope 48 =
+  27.0 % of O best moves at +1.2 % tree; ProbcutImproving 0/100 = 12.2-15.6 % on BOTH sets at <=1.3 % tree;
+  ProbcutReduction 3/5 and ProbcutTtSlack 0 = ~12-13 % on G. All eight new options are in
+  tests_kimi5_job9/NodeLiterals.patch.txt (defaults identity proven per position on 553 positions x 2 profiles).
+- NEXT RUN: job 9 report pushed; the open job is job 10 (qsearch internals, FABLE_TO_kimi5_10.md - job 8's
+  judgment now comes in file 11 per that file). glmflash5 = cursor/glmflash5-work-cb5c. Reuse run_j9.py/agg_j9.py.
