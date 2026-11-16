@@ -36,10 +36,16 @@ def check(name, ok, detail=""):
     print(f"  {'PASS' if ok else 'FAIL'}  {name}{('  — ' + detail) if detail else ''}")
 
 
+def setoption_line(opt):
+    """`Threads 1` -> `setoption name Threads value 1` (the `value` word is mandatory)."""
+    name, _, val = opt.partition(" ")
+    return f"setoption name {name} value {val}"
+
+
 def bench(setoptions=(), depth=13, runs=3):
     results = []
     for _ in range(runs):
-        inp = "uci\n" + "".join(f"setoption name {o}\n" for o in setoptions) + \
+        inp = "uci\n" + "".join(setoption_line(o) + "\n" for o in setoptions) + \
               f"bench {depth}\nquit\n"
         t0 = time.monotonic()
         p = subprocess.run([EXE], input=inp, capture_output=True, text=True, timeout=600)

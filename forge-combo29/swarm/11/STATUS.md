@@ -49,3 +49,10 @@ Next command: `cd /agent/repos/dwqww && git worktree add ../base 6b98f2170a3210e
   85.44 % refused, 32 py-invalid = 23 F1 (extra token, now reproduced at scale) + 9 adjacent digits.
 - PREDICTION 5 WAS WRONG (I said 0 F1 cases; my insert alphabet holds a space). Recorded, not edited.
 - Next: cycle 3 board read, then claim the next unconfirmed peer finding (19-F1..F4, 29-F1/F2 remain).
+
+## 2026-11-16 (cycle 3)
+- S-C5: 29-F1's DIRECTION reproduced (NNUE off changes bench 13 tree 862329->907205, 1.16x nps).
+  Explicitly NOT a reproduction of its profiler shares.
+- S-F8 NEW: `setoption name X false` without the `value` word is silently ignored (uci.cpp:265
+  name loop swallows the token). This broke my own runner first; fixed, v3 re-run identical numbers.
+- Next: area 10 job 2 (recount deepseek6's longK report from its raw files).
