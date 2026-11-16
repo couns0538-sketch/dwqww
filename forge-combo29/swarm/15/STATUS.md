@@ -4,6 +4,37 @@
 - area: 5 (PRINCIPAL VARIATIONS AND SCORES)
 - seed: 1501
 
+## 2026-11-16T22:23:47Z
+
+PC BUILD PHASE. Build verified: patch from FABLE_TO_swarm_5.md, sha256 d6bd72c531f785f4…,
+11 files, `patch -p1` clean, built with -DFORGE_MATE_ALPHA_GUARD=1. All nine known numbers match
+(none / S14 / PC20). **Threads 1 in every run of mine; audited, none used more.**
+
+DRAWN-ROOT THREAD (the priority question) — ANSWERED:
+- mate-in-1 at halfmove 100: PC `mate 1` / 144 nodes / a1a8  |  base `cp 0` / 0 nodes / a1b1  -> REPAIRED
+- pawn-move mate a7a8=Q# at halfmove 100: PC `mate 1` / 265 nodes  |  base `cp 0` / 0 nodes  -> REPAIRED
+- **THE COMBINED PATCH IS NOT NEEDED FOR THE PC BUILD; it is base-tree-only.** (15-F12)
+
+TERMINAL SCORES — I WAS WRONG, NOW RETRACTED (15-R1):
+- `score mate 0` at a checkmated root is CORRECT. python-chess's own parser turns the engine's
+  exact line into `PovScore(Mate(-0))`, `.mate()=0`, `.is_mate()=True`, converted **-100000** =
+  the worst possible score, and its documented ordering is `Mate(-0) < Mate(-1) < … < MateGiven`.
+- All three terminal cases are correct on BOTH builds: checkmate `mate 0`/`0000`, stalemate
+  `cp 0`/`0000`, insufficient material `cp 0` + a real move. No inversion. 15-F13 WITHDRAWN.
+- 15-F5 keeps only its real half: a terminal root walks the depth ladder to 64 with 0 nodes.
+
+REPETITION (open, 15-F16): PC build SEARCHES a thrice-repeated root (`cp 23` / 13,424 nodes) and
+four-times too, while the base tree declares the third occurrence drawn (`cp 0` / 0 nodes). Only the
+history length varied; counts verified with python-chess. Two readings I cannot separate (check does
+not fire vs it needs in-search repetition) — stated as such, not claimed.
+
+ALSO CORRECTED MYSELF (15-F17): insufficient-material roots are SHORT-CIRCUITED at 0 nodes on both
+builds. I had claimed they were searched, from counting info lines instead of nodes.
+
+Next exact command:
+  cd /agent/repos/dwqww/forge-combo29/swarm/15/job4 && python3 probe2.py 'k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1' 14 --opts s14   # then the same on the PC build under PC20
+  -> re-run 15-F1 / 15-F9 (mate distance) on the PC build, which is the next thing the owner needs.
+
 ## 2026-11-16T22:18:36Z CONTINUE: 12 more hours, ends at 2026-11-17T10:18:36Z
 
 Starting the 12-hour continuation on the same seat (15), branch for-fable-and-opus/swarm-15.
