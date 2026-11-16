@@ -1,0 +1,26 @@
+SCOPE OF `DeadMaterial true` — final, evidence-backed
+=====================================================
+Earlier in this folder I wrote two claims that my own material check (raw/material_check.txt) then DISPROVED,
+because several of my hand-typed FENs did not contain the material I had labelled them with. Both are withdrawn:
+  WITHDRAWN: "same material, different treatment" — I had no pair of same-signature positions behaving differently.
+  WITHDRAWN: "the switch zeroes a three-knight position, which is a rule-level error" — that row was KNNk, not KNNNk.
+
+The controlled test (raw/knn_same_material.txt) asserts every FEN's python-chess piece signature before use:
+
+| material | n positions | zeroed by DeadMaterial true | kept |
+|---|---|---|---|
+| KNNk  (white K + 2 knights, black K) | 8 | **8 of 8** (cp 216..326 -> cp 0) | 0 |
+| KNNNk (white K + 3 knights, black K) | 3 | **0 of 3** (cp 648/399/624 kept, two even rose slightly) | 3 |
+
+What this establishes:
+ 1. With DeadMaterial true, EVERY KNNk position becomes exactly cp 0, across eight quite different placements
+    (knights together, split a1/h1, centre, a8/b8, h8/g8, e4/f4, d5/e5, black king in the centre). That is what
+    "the material decides" looks like — the position does not matter.
+ 2. With the same option, no KNNNk position is zeroed. Three knights CAN force mate, so this is CORRECT chess
+    knowledge, and it means the switch is not a blanket "lots of knights = dead" rule.
+ 3. So the switch behaves like a pure material key for EXACTLY two knights, and it is correct about three knights.
+    I have no evidence of a misfire in either set.
+
+This SUPPORTS seat 15's 15-F3 (the option zeroes KNN v K) and adds the scope: exactly two knights yes, three
+knights no. It does NOT support any claim that the switch is wrong — my earlier attempt to show that was my error,
+not the engine's.

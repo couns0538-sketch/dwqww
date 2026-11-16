@@ -1,0 +1,29 @@
+########## KNNk (two knights)  (every FEN asserted to have signature KNNk)
+| placement | fen | sig | DM false | DM true | zeroed by switch? |
+|---|---|---|---|---|---|
+| near corner, knights together | 7k/8/8/8/8/8/8/K1N1N3 w - - 0 1 | KNNk | cp 254 | cp 0 | True |
+| knights split a1/h1 | 7k/8/8/8/8/8/8/KN4N1 w - - 0 1 | KNNk | cp 276 | cp 0 | True |
+| knights centre | 7k/8/8/3N4/4N3/8/8/K7 w - - 0 1 | KNNk | cp 216 | cp 0 | True |
+| black king centre | 8/8/3k4/8/3N4/4N3/8/K7 w - - 0 1 | KNNk | cp 266 | cp 0 | True |
+| knights a8/b8 | NN5k/8/8/8/8/8/8/K7 w - - 0 1 | KNNk | cp 261 | cp 0 | True |
+| knights h8/g8 | k5NN/8/8/8/8/8/8/K7 w - - 0 1 | KNNk | cp 310 | cp 0 | True |
+| knights e4/f4 | 7k/8/8/8/4NN2/8/8/K7 w - - 0 1 | KNNk | cp 300 | cp 0 | True |
+| knights d5/e5 | 7k/8/8/3NN3/8/8/8/K7 w - - 0 1 | KNNk | cp 326 | cp 0 | True |
+  => 8 of 8 zeroed by the switch
+
+########## KNNNk (three knights)  (every FEN asserted to have signature KNNNk)
+| placement | fen | sig | DM false | DM true | zeroed by switch? |
+|---|---|---|---|---|---|
+| three together | 7k/8/8/8/8/8/8/K1NNN3 w - - 0 1 | KNNNk | cp 648 | cp 648 | False |
+| three split | 7k/8/8/8/8/N7/N7/K5N1 w - - 0 1 | KNNNk | cp 399 | cp 386 | False |
+| three centre | 7k/8/8/3N4/3NN3/8/8/K7 w - - 0 1 | KNNNk | cp 624 | cp 626 | False |
+  => 0 of 3 zeroed by the switch
+
+==========================================================================================
+KNNk : the switch zeroed 8 of 8 positions with IDENTICAL material.
+       => every KNNk position was zeroed: consistent with a pure material key for exactly two knights.
+KNNNk: the switch zeroed 0 of 3 positions. Three knights CAN force mate, so any zero here
+       would be a rule-level error, not a matter of evaluation taste.
+
+RESULT: every position asserted to the stated material before use; every score parsed from a real
+        info/pv line; a missing line or wrong material fails loudly above.

@@ -61,3 +61,32 @@ non-matching line raises `FAIL-LOUD` and exits 1. The run above has zero asserti
 - Any cause in source; I did not read `eval.cpp` for this check.
 - Whether the same switch changes KN v K or KB v K. I did not test those in this check (they were `cp 0` in job2
   even with DeadMaterial off, per S-F6, so there is nothing for the switch to change there).
+
+
+## Follow-up: the scope of `DeadMaterial true`, and two of my own claims that I withdrew
+
+I then asked whether the switch decides from material alone. Getting that right required asserting the material of
+every test position, and doing so **disproved two things I had just written**:
+
+- **Withdrawn:** "two positions with the same material get different treatment." My `deadmaterial_scope.py` run had
+  mislabelled rows — `8/8/8/8/8/8/1n6/K1N4k` and `8/8/8/8/8/8/6n1/K1N4k` are `KNkn` (they have a black knight), and
+  `KN1N3k` is `KNNk`, not three knights. `raw/material_check.txt` prints python-chess's own piece map for every FEN
+  and shows this.
+- **Withdrawn:** "the switch zeroes a three-knight position, which is a rule-level error." That supposed
+  three-knight row was `KNNk`.
+
+The controlled replacement (`knn_same_material.py`) asserts each FEN's signature before it is searched:
+
+| material | n | zeroed by the switch |
+|---|---|---|
+| KNNk (2 knights + kings), 8 placements | 8 | **8 of 8** — cp 216…326 all become cp 0 |
+| KNNNk (3 knights + kings), 3 placements | 3 | **0 of 3** — cp 648 / 399 / 624 all kept |
+
+So the switch behaves like a pure material key for **exactly two knights**, and it is **correct** about three
+knights (which can force mate). My first attempt to find a misfire was my error, not the engine's. Evidence:
+`raw/knn_same_material.txt`, `raw/scope_summary.txt`.
+
+Also worth recording: the assertions did their job twice here. They refused to score a FEN that python-chess called
+illegal (`8/8/8/3k4/3N4/4N3/8/K7` — two white knights, no black king issue but an illegal king placement), and they
+refused to score a FEN python-chess could not parse (`6NN1k1` had nine columns). Without them both bad rows would
+have gone into a table silently.

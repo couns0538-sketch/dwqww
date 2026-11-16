@@ -1,0 +1,18 @@
+exe: /tmp/build-rel/forge   go depth 10   S14
+
+| set | fen | DeadMaterial false | DeadMaterial true | python-chess insuff. material? |
+|---|---|---|---|---|
+| A two knights (dead) | 8/8/8/8/8/8/8/K1N1N2k w - - 0 1 | cp 214 | cp 0 | False |
+| A two knights (dead) | 8/8/8/8/8/8/1n6/K1N4k w - - 0 1 | cp 0 | cp 0 | False |
+| A two knights (dead) | 8/8/8/8/8/8/6n1/K1N4k w - - 0 1 | cp 12 | cp 12 | False |
+| A two knights (dead) | N7/8/8/8/8/8/8/K6k w - - 0 1 | cp 0 | cp 0 | True |
+| B three knights (NOT dead) | 8/8/8/8/8/8/8/K1NNN2k w - - 0 1 | cp 469 | cp 540 | False |
+| B three knights (NOT dead) | 8/8/8/8/8/8/8/KN1N3k w - - 0 1 | cp 179 | cp 0 | False |
+| B three knights (NOT dead) | N7/8/8/8/8/8/1N6/K1N4k w - - 0 1 | cp 283 | cp 341 | False |
+| C two knights + black pawn (NOT dead) | 8/8/8/8/8/7p/8/K1N1N2k w - - 0 1 | cp 0 | cp 0 | False |
+| C two knights + black pawn (NOT dead) | 8/8/8/8/8/8/5p2/K1N1N2k w - - 0 1 | cp -113 | cp -115 | False |
+
+RESULT: every position produced a parsed score for both settings.
+Reading it: if set B (three knights, which CAN mate) is also cp 0 with DeadMaterial true,
+the switch is a pure material test that is WRONG about three knights; if B stays non-zero,
+the switch inspects the position and A being 0 is well-founded.

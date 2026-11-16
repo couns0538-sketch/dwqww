@@ -79,3 +79,14 @@
   control it needs: DeadMaterial true leaves K+Q/K+R wins at cp 472..1162, so the switch is selective.
 - next command: python3 check_15f3/check_15f3.py on a KNN v K position whose knights are far apart, to test
   whether DeadMaterial keys on material alone or on the concrete position.
+
+## Mon Nov 16 09:40:29 PM UTC 2026
+- S-F12 NEW: controlled same-material test. DeadMaterial true zeroes 8/8 KNNk positions across eight placements
+  (cp 216..326 -> cp 0) and 0/3 KNNNk (three knights can force mate, correctly left alone). Pure material key for
+  exactly two knights; no misfire found.
+- HONESTY: two of my own claims from deadmaterial_scope.py were WRONG and are WITHDRAWN in
+  check_15f3/raw/scope_summary.txt and RESULT.md: my FENs were mislabelled ("two knights" rows that had a black
+  knight; "three knights" row that was KNNk). raw/material_check.txt shows the real signatures. The assertions
+  also refused an illegal FEN and an unparsable one.
+- next command: python3 check_15f3/knn_same_material.py against the ASan+UBSan build, to confirm the same 8/8 and
+  0/3 there and that no sanitizer line appears in these eval paths.
