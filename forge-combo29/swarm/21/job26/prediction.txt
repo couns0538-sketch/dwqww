@@ -1,0 +1,16 @@
+# PREDICTION — job26: WIDER mutation alphabet (multi-character corruptions), both builds
+written before the first measuring command.
+
+Every earlier sweep of mine used SINGLE-character edits, which is the limit my own reports named
+as untested. This job uses multi-character corruptions, which reach damage no single edit can:
+truncated rank fields, duplicated rank groups, transposed rank ORDER, dropped separators, and
+whole-field substitution with nonsense.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | the accepted share FALLS well below the 6 % of the single-edit sweep, to under 3 % | killed if >= 6 % |
+| P2 | at least one accepted FEN is python-INVALID in a class I have not seen before (not adjacent digits, not a 7th field) | this is the outcome that would be a NEW finding; killed if the two known classes cover every invalid row |
+| P3 | 0 crashes, 0 hangs, 0 sanitizer lines on BOTH builds | killed by any one |
+| P4 | no accepted FEN yields an illegal bestmove | killed by any one |
+| P5 | the base and PC builds agree on every per-FEN verdict (the parser is unchanged by the patch) | killed by any difference |
+| P6 | rank-order transposition (e.g. swapping rank 1 and rank 8) is REFUSED, because the piece inventory check counts pawns on rank 1/8 | killed if accepted |
