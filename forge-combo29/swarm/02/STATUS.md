@@ -168,3 +168,15 @@ were irrelevant, and the no-clear scores moving suggests otherwise.
 hash_multipv/RESULT.md, clear_dependency_probe.json.
 
 Next: area-2 job 3 on the PC build (92 options, vs 82 on base — new options to test), then another seat's finding.
+
+## 2026-11-17T00:05Z — owner's real match path measured; NEW S-F9 (distinct from S-F7)
+PC20's 22 option names contain NO MultiPV and the engine default is 1 => the owner's match path (softnodes 2000,
+nodes 20000/50000/250000, clock 6+0.06) runs at MultiPV 1 and the S-F7 collapse cannot reach it.
+BUT S-F9 (new, different mechanism): a fixed NODE budget is DILUTED by MultiPV. `go nodes 20000` d9 at MPV 1 vs
+**d3** at MPV 8; nodes 50000 d12->d5; nodes 250000 d15->d10; **softnodes 2000 d7->d1** (a one-ply training label
+for the owner's self-play); clock 6+0.06 d19->d10. Hash 16 throughout, so this is budget splitting, not the
+table-clear cost. match_path/RESULT.md + raw_rows.txt.
+
+Read FABLE_TO_swarm_6.md in full in the previous block: fifty-move/repetition cp 0 is NOT a defect; multi-thread
+score spread is NOT a defect; the owner's path is PC20/Threads 1/softnodes 2000/nodes N/clock 6+0.06.
+Next: `go nodes` determinism + the 6+0.06 clock overshoot on the PC path, then another seat's finding.
