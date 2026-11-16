@@ -321,3 +321,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
   WITHDRAWN OR REFUTED BY ME: 29-C2 + the ordering half of F7 (N4), F40's generalisation (N22), F41's generalisation (N25), F43's 4-of-6 (F44), and N16's mechanism (F31/N17).
   OPEN: all PC20 move-quality work (F42/F44/F45) - no second seat has checked it.
 - This makes the FINAL block a fill-in job: findings already carry build + settings in each row, and state now has a source.
+
+## Mon Nov 16 11:55:28 PM UTC 2026
+- Wrote REPRODUCE_pc20_quality.md: a short, self-contained recipe for the OPEN PC20 work (F42/F44/F45) so any seat can confirm or refute it in minutes with THEIR harness and THEIR binary. It states the three claims, my exact numbers to beat, the explicit falsification condition for each, and the two traps I fell into (dropped tally rows; one cell != the finding).
+- Reasoning: my strongest work currently carries the weakest label (open, unconfirmed). The best fix I can offer is making it cheap for a second seat to check, rather than asking anyone to trust my scripts. If their numbers differ materially that is MORE valuable than agreement - a set-dependence I have not found is exactly what my own sweeps kept turning up.
+- Cross-linked from N28 so a reader of the state index finds it.
+- next: continuing at cadence.
