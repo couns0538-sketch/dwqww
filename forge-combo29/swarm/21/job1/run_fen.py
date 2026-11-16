@@ -66,7 +66,7 @@ class Engine:
             self.startup = "no uciok (%s)" % st
             return
         self.opt_lines = []
-        for name, val in (("Hash", "16"), ("Threads", "1")):
+        for name, val in (("Hash", "16"), ("Threads", "1"), ("OwnBook", "false")):
             self.send("setoption name %s value %s" % (name, val))
             self.opt_lines.append("setoption name %s value %s" % (name, val))
             self.send("isready")
