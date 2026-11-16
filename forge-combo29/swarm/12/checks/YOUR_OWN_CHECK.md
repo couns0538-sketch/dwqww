@@ -61,6 +61,10 @@ beyond) **plus an absolute floor** (over 500 ms at depth 6 is reported SLOW what
 Both exist because each alone is wrong: a pure ratio lets a big budget excuse a slow search, and a
 pure absolute threshold hides a machine that is uniformly 8x slower.
 
+**The anchor is only meaningful for gross differences.** The same idle box wandered 601-693 ms per
+million across five blocks of runs twenty seconds apart (15 %), so a reading of 700 vs 600 tells you
+nothing; a reading of 1,400 tells you the machine really is about twice as slow.
+
 **MultiPV 2 at Hash 64 over 200 ms means your machine is about 4x this cloud box.** That is the
 single number to look at: at 4x, every table I published still holds in shape, and the practical rule
 (MultiPV 4 to 128 MB, 3 to 256 MB, 2 to 512 MB, 1 unlimited) should be cut roughly in half.
@@ -77,6 +81,19 @@ On the cloud box that takes **8-9 seconds** and on a 5 s clock reaches **depth 0
 iteration at all. It is slow because the engine clears the whole transposition table once per extra
 PV line, so the cost is `(MultiPV - 1) x Hash`. That is a code property, not a machine property:
 **it will be slow on your PC too**, and the fix is the owner's call, not a setting.
+
+## Two harness checks, so a bad MEASUREMENT is caught too
+
+The script also answers "can I trust a number from this engine at all?", because three seats in this
+swarm measured fabricated answers before anyone noticed:
+
+| check | what it does | what you see |
+|---|---|---|
+| **fabricated bestmove** | sends `go depth 12` and an immediate `quit` | **FABRICATED** with the move and `0 info depth line(s)`, if the engine answered without searching. It does on every build measured: your harness must read to `bestmove` before quitting. |
+| **searchmoves branches** | legal `searchmoves e2e4`, then no-match `searchmoves zzzz` | `e2e4` with real info lines and nodes, and `0000` with all-zero node lines plus an `info string` note. Both sides of the branch, so a harness test is meaningful. |
+
+Each has a planted control inside the tool's own test run, so "ok" means the check could also have
+failed.
 
 ## Two verdicts, one relative and one absolute
 

@@ -309,3 +309,26 @@ zero mean something. `--help` is ignored identically. checks/CHECK_02F1.md, raw 
 Next: next unconfirmed find (area 10's list says 19-F1..F5 and 29-F1..F2 were newest; most are
 confirmed now), else job 2 races on the PC build under PC20 — the one job of my area not yet run on
 the PC build.
+
+## 2026-11-16T23:25:30Z — selfcheck now covers the fabrication class; anchor drift found
+
+Added the two checks the coordinator asked for, each with a planted control (**S-F27**):
+1. **fabricated bestmove**: `go depth 12` + immediate `quit` in one write gives `a2a3` with **0 info
+   depth lines**, and a2a3 is confirmed to be the generator's first legal move using the engine's own
+   perft-1 order — printed as **FABRICATED**, not PASS. A fake engine that never prints info lines is
+   caught by the same function.
+2. **searchmoves branches**: legal `searchmoves e2e4` -> e2e4 / 6 info lines / 438 nodes; no-match
+   `searchmoves zzzz` -> `0000` with all-zero node lines plus the `info string` note. A fake that
+   ignores searchmoves is caught as WRONG BRANCH BEHAVIOUR.
+Both integrated into selfcheck.py; identical behaviour on base and PC r15.
+
+Building this surfaced **S-F28**, which limits what the absolute anchor can claim: on an **idle** box
+(load 0.51) five blocks of four runs ~20 s apart gave block medians of **653 / 625 / 636 / 608 / 623 ms
+per million** — a 15 % wander, while an earlier session on the same box measured 594. A narrow band
+around one session's number would have flagged the very machine it came from. Band widened to
+**540-820 ms/M**, the tool's output now says the anchor is meaningful only for 2x-or-more differences,
+and the coherence guard was tightened to require <0.85x before declaring an impossible disagreement.
+
+All controls verified: sleep-900ms -> FAIL/SLOW; silent -> FATAL; uniform-liar -> INCOHERENT;
+fabricating fake -> FABRICATED; bad-searchmoves fake -> WRONG BRANCH. Real PC r15: 4/4 grid PASS,
+anchor in band, both harness checks ok, exit 0.
