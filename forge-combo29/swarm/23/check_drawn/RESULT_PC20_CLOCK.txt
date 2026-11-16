@@ -1,0 +1,29 @@
+THE TABLE THAT DECIDES IT — depth reached at 6 s+0.06, PC r15 + PC20, against the depth-20 repair threshold
+========================================================================================================
+Requested measurement: `go wtime 6000 btime 6000 winc 60 binc 60` on the six lone-king boards, PC r15 build,
+**PC20** settings (the 20 options of file 5, plus `OwnBook false`), Threads 1, Hash 16, one fresh process per board.
+
+| # | board | depth reached | score | wall ms | reaches depth 20? |
+|---|---|---|---|---|---|
+| 1 | 6k1/8/7R/2K5/8/8/8/8 w | 22 | **mate 8** | 540 | yes |
+| 2 | 7K/5k2/8/4R3/8/8/8/8 w | 22 | cp 462 | 240 | yes |
+| 3 | 8/3K4/8/8/8/7k/3R4/8 w | 23 | cp 470 | 1,585 | yes |
+| 4 | 4k2K/8/8/1R6/8/8/8/8 w | 20 | **mate 9** | 196 | yes (exactly) |
+| 5 | 8/8/8/8/8/R7/7K/3k4 w | **19** | mate 9 | 233 | **NO** |
+| 6 | 8/8/8/6k1/8/8/5K2/1Q6 w | **17** | cp 1327 | 287 | **NO** |
+
+ANSWER: the six boards reach depths **22, 22, 23, 20, 19 and 17** — so **four of six reach the depth-20 threshold and
+two do not**. Board 5 lands at 19 (one short) yet still reports `mate 9`, so the threshold is not a hard cliff: it
+varies by position, and at 19 that board already finds its mate. Board 6 reaches only 17 and reports cp.
+
+WHAT THIS MEANS FOR MATCH PLAY, which is the point of the table:
+- The repair DOES fire in real play on the four boards that reach depth 20+ (and 5 already mates at 19), so it is
+  not academic.
+- On board 6 the clock reaches depth 17, below where the mate surfaces, so **the repair never fires there in a
+  6 s+0.06 game** — the PC behaves like the base on that board at this clock.
+- The depth-20 "threshold" is therefore a rough description, not a switch: what matters is whether the clock's
+  depth on THAT board passes the point where its mate becomes visible, and that point differs per board.
+
+CONTEXT FROM 23-F46 (defaults, same clock): the base reached depth 25-32 and mated on 4 of 6, so on these boards the
+base and the PC are closer in real play than the depth-24 comparison suggested. My earlier "no benefit below depth
+12-16" framing was too coarse; this table replaces it with per-board numbers.
