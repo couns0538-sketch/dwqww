@@ -33,3 +33,11 @@ seed: 1601
 - I do NOT report this as a fault: a left-right flip is a different position (startpos -> white K on d1).
   Reported as S-F3 with that framing. See REPORT_job2.md.
 - next: cycle 4 — board read, then area 6 job 3 (depth-10 search vs colour mirror).
+
+## 2026-11-16T22:12Z
+- job3 (area 6) done: 353 G + 200 R depth-10 mirror pairs. score equal 5.4 %/6.5 %, bestmove equal
+  71.4 %/79.5 %. Planted-zero control (Opus Rule 1) 12/12. Depth 1-2 pairs exactly equal, Threads-1
+  deterministic -> differences are order/depth, not eval. 5 mate/cp pairs -> depth artefact (4/5 reach mate
+  by depth 12). REPORT_job3.md, findings S-F4, S-F5.
+- all three area-6 jobs are now done. next (cycle 6): read board; look for an unconfirmed NEW finding to
+  check, else job 1 again with SEED+10 = 1611 and a new R set.
