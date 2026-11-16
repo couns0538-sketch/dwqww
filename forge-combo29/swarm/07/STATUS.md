@@ -239,3 +239,16 @@ All four published S14 sums reproduced exactly from cold starts:
 | G depth 14 | 43,345,893 | 43,345,893 | 07-C8 |
 First-three O d12: 41,311 / 24,872 / 28,574 — also exact.
 
+
+## 2026-11-16T21:57:37Z
+job13 done: inline legality shortcut (board.hpp:321) correct on 289,809 pseudo-legal moves vs make/unmake brute force (07-C10). Control trap: my first planted fault was in board.cpp and was BLIND because the shortcut is inline in board.hpp; planting in the header gives 494 mismatches. Third time tonight a planted-fault control caught a blind test of mine.
+### git status --short
+ M FINDINGS.md
+ M STATUS.md
+?? REPORT_job13.md
+?? job13/
+### ls job13
+is_legal_probe.cpp
+is_legal_run_control_header.txt
+is_legal_run.txt
+stamps.txt
