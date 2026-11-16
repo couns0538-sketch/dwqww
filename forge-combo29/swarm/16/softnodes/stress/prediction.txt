@@ -1,0 +1,15 @@
+# PREDICTION — is the softnodes overshoot bounded at 2x? (stress the bound)
+
+S-F16 measured 1.157x to 2.061x at N=2000 on four positions. A bound of "about 2x" would be useful to the owner;
+an unbounded overshoot would not be. The mechanism (finish the crossing depth) implies the bound is set by the
+cost of ONE depth step relative to the budget, and on a QUIET position one step can be a much larger share.
+
+P1. On quiet positions the overshoot at N=2000 EXCEEDS 2.061x. Predicted the worst of 8 quiet G positions is
+    above 2.061x. Kills it: every quiet position at or below 2.061x (then ~2.06x survives as an empirical bound
+    over 12 positions, which I report as a bound, not a law).
+P2. A position whose depth-k subtree costs more than the budget itself overshoots by more than 2x — indeed the
+    overshoot there is the cost of one step, not a fraction of the budget. Kills it: no such position found.
+P3. Whatever the overshoot, the result stays DETERMINISTIC and finished-depth. Kills it: any variation or an
+    unfinished depth (that would be a much bigger finding than the overshoot).
+P4. The overshoot at N=2000 is larger in RELATIVE terms than at N=200000 on the same position, because at a
+    large budget one depth step is a smaller share. Kills it: the reverse ordering.
