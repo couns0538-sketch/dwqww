@@ -1,0 +1,26 @@
+### can I DEMONSTRATE the filter's blind spot? (a passing score that is still a longer mate)
+board                                              small budget       large budget  blind spot?
+4Q3/8/r2K4/8/2B5/5R2/1k6/8 w - - 0 1                mate 4 fail             mate 3  no
+7Q/8/8/4K3/8/8/5k2/4R3 w - - 0 1                    mate 5 fail             mate 3  no
+8/8/4R3/8/7Q/8/1k4K1/8 w - - 0 1                        no mate                  3
+K7/7Q/8/8/4R3/8/5k2/8 w - - 0 1                     mate 3 PASS             mate 3  no
+6Q1/2K5/8/R7/8/8/8/3k4 w - - 0 1                    mate 2 PASS             mate 2  no
+
+Not demonstrated on these boards. The caveat stands as a caveat: the filter's accept condition was not
+shown to pass a wrong distance here, which is weaker than 'it cannot'.
+
+RESULT: blind spot NOT demonstrated on these five boards, and the output says so rather than implying absence.
+  the two failing cases (mate 4/SHORT, mate 5/SHORT at softnodes 1000) are correctly REJECTED by the filter;
+  the two passing cases (mate 3 PASS, mate 2 PASS) had the SAME distance at softnodes 100000, so the pass was right;
+  one board gave no mate at 1000 and mate 3 at 100000 - not a pass at all.
+So on this sample the filter's accept condition coincided with correctness every time. That is a NULL result and I am
+recording it as one: it does not show the filter is sound, only that I did not find a counter-example here.
+
+THE CAVEAT STANDS AS A CAVEAT, which is exactly what I claimed in the finding line: the filter "catches every
+observed failure" and I have NOT shown it "validates a passing score". A demonstration would need a board where a
+short-budget search reports a right-length, checkmate-ending PV whose distance is longer than the truth - plausible
+(the two rejected cases are one move long and nearly passed) but not found in five boards.
+
+WHAT THIS BUYS: the claim is now bounded from both sides - the accept condition was not shown to pass a wrong
+distance, and was not shown to be incapable of it. Anyone relying on the filter should treat a PASS as
+"not rejected", which is how the finding line already puts it.
