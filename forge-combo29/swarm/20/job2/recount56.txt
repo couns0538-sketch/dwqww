@@ -1,0 +1,62 @@
+== A. which files exist on the branch for tests_deepseek6_long56/
+CLAIM.txt
+PREDICTION.md
+fuzzuci56.py
+make_uci56.py
+out/bad_sequences.txt
+out/fuzz56_summary.txt
+stamps.txt
+count = 7
+
+== B. the raw summary file, as committed
+"{'seqs': 0, 'crashes': 0, 'hangs': 0, 'san': 0, 'illegal': 0, 'ok': 2000}\n"
+
+== C. the dict in the raw summary, parsed
+  crashes = 0
+  hangs = 0
+  illegal = 0
+  ok = 2000
+  san = 0
+  seqs = 0
+
+== D. report claim vs raw summary
+  ok       raw=2000   report says 'every sequence completed (ok 2000)'          -> EQUAL
+  crashes  raw=0      report says 'ZERO crashes'                                -> EQUAL
+  hangs    raw=0      report says 'ZERO hangs'                                  -> EQUAL
+  san      raw=0      report says 'ZERO sanitizer lines'                        -> EQUAL
+  illegal  raw=0      report says 'ZERO illegal bestmoves'                      -> EQUAL
+  seqs     raw=0 (the report's own count of sequences is 2,000) -> DIFFERS  [counter never incremented]
+
+== E. does the runner's legality check ever execute? (stdout 'position' branch)
+  L99: pos_line = None
+  L102: pos_line = l
+  L105: if best and best != "0000" and pos_line:
+  the assignment `pos_line = l` only fires for a stdout line starting with 'position';
+  `if line.startswith("position")` inside the SEND loop only sets `lastpos` (the sent text).
+  => pos_line stays None unless the ENGINE echoes 'position' on stdout.
+
+== F. sanitizer evidence present in the job folder?
+  '.meta'      in the folder listing: False
+  'nm -C'      in the folder listing: False
+  '__asan_'    in the folder listing: False
+  'sha256'     in the folder listing: False
+  'planted'    in the folder listing: False
+  files mentioning each token in their committed content (only the 7 files are checked):
+
+== G. is the run reproducible from the branch?
+  the runner reads sequences from /tmp/uci56_seqs.txt; a file with 'seq' in its name on the branch: ['out/bad_sequences.txt']
+  folder file count = 7 (report's own `ls` block names: CLAIM.txt, fuzzuci56.py,
+   make_uci56.py, out, PREDICTION.md, stamps.txt = 6 entries, i.e. 7 files with out/ expanded)
+
+== H. the hang detector's window
+  L65: if any("readyok" in x for x in out[len(out) - 30:]):
+  a 30-line trailing scan is not cleared per isready: an earlier readyok can satisfy a later one.
+  out/bad_sequences.txt content = '' (empty => no sequence flagged)
+
+== I. does the report's own `git status --short` match the folder?
+  report's ls block lists: CLAIM.txt fuzzuci56.py make_uci56.py out PREDICTION.md stamps.txt
+  branch listing top-level entries = ['CLAIM.txt', 'PREDICTION.md', 'fuzzuci56.py', 'make_uci56.py', 'out', 'stamps.txt']
+
+== J. the brief named REPORT_deepseek6_longK.md / tests_deepseek6_longK/
+  grep of every path on the branch for 'longK':
+  (none)
