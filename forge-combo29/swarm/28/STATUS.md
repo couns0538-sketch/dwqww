@@ -15,3 +15,6 @@ running: wt1000, wt10000 in tmux swarm28-timing.
 
 ## Mon Nov 16 09:18:05 PM UTC 2026
 job1 DONE. REPORT_job1.md written. Findings S-F1..S-F3. Prediction 9/15 survived, 6 killed (all in the same direction: the engine does not follow the budget it is given).
+
+## Mon Nov 16 09:19:09 PM UTC 2026
+CYCLE 1: checked seat 01's S-F5 -> S-C1 CONFIRMS (exact numbers). Found S-F4 beside it (repetition term of the same expression).
