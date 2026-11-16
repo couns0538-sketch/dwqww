@@ -21,6 +21,7 @@ defect. All scores Threads 1 unless stated.
 | **S-C9/S-C10** | a refused FEN still answers `readyok` and keeps the old board; `fullmove 0` refused while python-chess accepts it | confirmations | base | **YES — this is the one reachable from a plain GUI flow**: load a position, get `readyok`, engine plays the previous game's move. But it needs a GUI to send a FEN the engine refuses | potential defect, medium exposure |
 | **NEW: mid-search setoption** | 13 switches to their worst value during a search (`go infinite` + `go nodes`): 26 of 26 cases gave a legal bestmove, readyok and 0 sanitizer lines, including Threads 256 | negative | PC r15 / PC20 / ASan+UBSan / Threads 1 | **Only if a GUI changes an option mid-search**, which the owner's match program and self-play never do | no defect; also observed that setoption publishes `bestmove` BEFORE `readyok` |
 | **NEW: budget sensitivity** | across the match path's own budgets (20000 / 50000 / 250000), 9 of 10 positions keep the same bestmove and 1 changes it (`c8c3` at 20000 vs `d6e6` at 50000/250000) | new measurement | PC r15 / PC20 / Threads 1 / 10 G positions | **YES — these are exactly the budgets the owner's matches send** | not a fault; means 20000 and 250000 are not strictly the same opponent |
+| **GUARD for harness authors** | three lines to copy, before any FEN is sent to the engine (see below the table); **verified to reject 5 bad inputs including both FENs that fooled me, and accept 2 good ones** | verified | any harness | applies to every harness in the swarm | prevents the silent-continuation hazard |
 | **NEW: moves-path silent continuation** | an illegal move inside `position startpos moves` leaves the legal prefix loaded and answers for it: `... e2e4 e7e5 e1e3` -> `illegal move e1e3`, `readyok`, then `g1f3` (legal in the PREFIX, not in the requested position); `... e2e5` -> `d2d4` on startpos. Correct bookkeeping, but the only trace is one info string | known rule, exposure measured | PC r15 / PC20 / Threads 1 | **YES — this is the call a GUI makes on every move of every game**, so far more exposed than a hand-written FEN | not a new fault (file 1 lists the prefix rule); the finding is that `readyok` follows with no GUI-visible error |
 | **NEW: S-C9's realistic trigger** | a hand-written start FEN that is invalid in the SUBTLE way — the side to move left its own king in check (`6k1/5ppp/8/8/8/8/5PPP/1q4K1 b - - 0 1`) — is refused with `invalid FEN: side that moved left its king in check`, then the engine answers `readyok` and plays a legal move from the PREVIOUS board (startpos in a fresh process), so the caller gets a plausible move for a position that was never loaded | **now a measured trigger**, not a hypothetical | PC r15 / PC20 / Threads 1, and base tree | **YES — and it is easy to hit by accident: writing 30 start FENs by hand hit it twice (2 of 30)** | real hazard for any GUI or harness that builds positions by hand; the engine's refusal is correct, the silent continuation is the hazard. **Confirmed end-to-end in ONE session**: after the invalid FEN the engine returned the SAME move as the previous position (`b6b5`) — legal there, illegal in startpos — so it re-answered the old board |
 | **NEW: 30-game clock test** | 30 games / 1,416 plies at the owner's 6 s + 0.06: **0 forfeits, 0 engine-caused illegal moves**, clock dipping to **194 ms** without a forfeit (5 games under 600 ms) | new measurement | PC r15 / PC20 / Threads 1 | **YES — the match clock itself** | no defect found; closest approach 194 ms still produced a normal move |
@@ -40,3 +41,25 @@ Ranked by what the owner can actually hit:
 3. **S-F1 / S-F8** — real defects, but they need `searchmoves`, which the owner's match program and self-play
    never send. Documentation-grade for the PC, worth fixing for GUI users.
 4. Everything else: clean, or documentation.
+
+## The guard: validate every FEN before it reaches the engine
+
+The engine refuses a bad FEN with one `info string` and then answers `readyok` and plays from the previous
+board, so a harness cannot rely on the engine to tell it the input was rejected. Copy these three lines:
+
+```python
+import chess
+board = chess.Board(fen)                      # raises ValueError on a malformed FEN
+assert board.is_valid() and board.legal_moves.count() > 0, f"bad FEN: {fen}"
+```
+
+`is_valid()` catches the subtle class that hit me twice in thirty hand-written FENs (a side to move whose
+king is left in check, `status()` 1024); `legal_moves.count() > 0` also rejects checkmate and stalemate
+positions, which a clock or forfeit test must not start from. If `chess.Board()` raises, the FEN is
+unparseable and the engine would refuse it too.
+
+Verification of the guard (so it is not just advice): run against five inputs that must be refused — both FENs
+that fooled me (`6k1/5ppp/8/8/8/8/5PPP/1q4K1 b - - 0 1` and `7k/8/8/8/8/8/8/K6R w - - 0 1`, both
+`is_valid()` False / status 1024), an empty board (status 2307), an already-checkmated position and a stalemate
+(both 0 legal moves) — it refused all five and accepted both good positions. Evidence:
+`pc/guardcheck/guard.json`.
