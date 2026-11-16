@@ -1,0 +1,52 @@
+# IirAtRoot.patch.txt -- a UCI check option IirAtRoot (default true = today): when false,
+# internal iterative reduction (search.cpp:1784) is kept off at the root node only.
+# Made with diff -u against clean 6b98f2170a3210e71beed04bbd2553972c253ed7; applies with
+# patch -p1 without fuzz from the checkout root.
+diff -ruN /tmp/l52_pristine/forge-combo29/src/search.cpp /tmp/l52/forge-combo29/src/search.cpp
+--- /tmp/l52_pristine/forge-combo29/src/search.cpp	2026-11-15 05:25:59.000000000 +0000
++++ /tmp/l52/forge-combo29/src/search.cpp	2026-11-16 20:44:45.717213603 +0000
+@@ -90,6 +90,7 @@
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++bool IirAtRoot = true;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
+@@ -1781,7 +1782,8 @@
+     }
+ 
+     // Internal iterative reduction: no hash move suggests a less important node.
+-    if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
++    if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node) &&
++        !(root_node && !tune::IirAtRoot)) --depth;
+ 
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+diff -ruN /tmp/l52_pristine/forge-combo29/src/uci.cpp /tmp/l52/forge-combo29/src/uci.cpp
+--- /tmp/l52_pristine/forge-combo29/src/uci.cpp	2026-11-15 05:25:59.000000000 +0000
++++ /tmp/l52/forge-combo29/src/uci.cpp	2026-11-16 20:44:45.717213603 +0000
+@@ -223,6 +223,7 @@
+                          "option name LmrLateParentRelief type check default false\n"
+                          "option name HindsightDepth type check default false\n"
+                          "option name NullThreatVerify type check default false\n"
++                         "option name IirAtRoot type check default true\n"
+                          "option name NullSeeVeto type check default false\n"
+                          "option name AspCappedReopen type check default false\n"
+                          "option name AspArmLate type check default false\n"
+@@ -403,6 +404,7 @@
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
+                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
+                        name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering" ||
++                       name == "IirAtRoot" ||
+                        name == "QuietExtinction" || name == "TmFinishIteration") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+@@ -411,6 +413,7 @@
+                              : name == "LmrSignedCorrection" ? &forge::tune::LmrSignedCorrection
+                              : name == "LmrLateParentRelief" ? &forge::tune::LmrLateParentRelief
+                              : name == "NullSeeVeto" ? &forge::tune::NullSeeVeto
++                             : name == "IirAtRoot" ? &forge::tune::IirAtRoot
+                              : name == "AspArmLate" ? &forge::tune::AspArmLate
+                              : name == "EvasionOrdering" ? &forge::tune::EvasionOrdering
+                              : name == "QuietExtinction" ? &forge::tune::QuietExtinction
