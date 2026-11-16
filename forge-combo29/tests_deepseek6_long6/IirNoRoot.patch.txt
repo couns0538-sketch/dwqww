@@ -1,0 +1,30 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -75,6 +75,7 @@
+ int LmrHistoryDivisor = 6000;
+ int CheckExtensionDepth = 2;
+ int LmrCutoffThreshold = 3;
++int IirRootExclude = 0;
+ int MaterialCorrectionWeight = 100;
+ int TmSoftDivisor = 22;
+ int TmIncrementPercent = 75;
+@@ -137,6 +138,7 @@
+         {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
++        {"IirRootExclude", &IirRootExclude, 0, 1},
+         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
+         {"TmSoftDivisor", &TmSoftDivisor, 5, 80},            {"TmIncrementPercent", &TmIncrementPercent, 0, 150},
+         {"TmHardPercent", &TmHardPercent, 10, 95},           {"TmHardSoftMultiple", &TmHardSoftMultiple, 1, 20},
+@@ -1781,7 +1783,10 @@
+     }
+ 
+     // Internal iterative reduction: no hash move suggests a less important node.
+-    if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
++    // IirRootExclude 1 also spares the root, which has a hash move from the second
++    // iteration on.
++    if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() &&
++        (pv_node || cut_node) && !(tune::IirRootExclude && root_node)) --depth;
+ 
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
