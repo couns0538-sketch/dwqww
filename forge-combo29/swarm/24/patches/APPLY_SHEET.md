@@ -61,6 +61,18 @@ limits.movetime_ms = 0;`). No new behaviour is invented; the engine already had 
 Same script both times (`regress_ponder.py`, committed beside this sheet). The patch only skips the wait when the
 root has no legal move, and a normal board never takes that branch.
 
+## Regression: the aborted-search path is unchanged
+
+`go depth 12` then `quit` immediately (seat 19's 19-F25 artefact), fresh process, OwnBook false:
+
+| build | P1 (live position) abort | checkmate root abort |
+|---|---|---|
+| PC unpatched | a7a6, 0 info lines | 0000, 1 info line |
+| PC + this patch | a7a6, 0 info lines | 0000, 1 info line |
+
+Identical. The patch does not touch the abort/publish path; a terminal root still answers `0000` whether it is
+aborted or allowed to finish.
+
 ## Honesty numbers with both fixes — unchanged
 
 | probe | expected | patched |
