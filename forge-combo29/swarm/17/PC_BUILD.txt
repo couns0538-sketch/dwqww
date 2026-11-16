@@ -1,0 +1,34 @@
+PC R15 BUILD AND HONESTY CHECK - seat 17
+date: 2026-11-16T22:19Z (see honesty/honesty.json for exact stamps)
+
+Patch source: handoff/fable-opus-combo29-all-20261114, forge-combo29/soak_all/FABLE_TO_swarm_5.md
+Extracted from the fence (lines 56..2374 of that file) to /tmp/pc_r15.patch.
+sha256 of the patch text: d6bd72c531f785f40421be1cc542743922a944fb0973d05831788440309c1a1a
+  (file 5 says it must start with d6bd72c531f785f4 - MATCH)
+
+Applied: cp -r /agent/repos/base /agent/repos/pcbuild  (a SEPARATE copy, base untouched)
+         cd /agent/repos/pcbuild/forge-combo29 && patch -p1 --fuzz=0 < /tmp/pc_r15.patch
+         11 files patched, zero fuzz, no rejects:
+           include/forge/b4.hpp (new), board.hpp, nnue.hpp, nnue_v3.hpp, search.hpp,
+           src/board.cpp, eval_params.cpp, nnue.cpp, nnue_v3.cpp, search.cpp, uci.cpp
+Built: CXX=/usr/bin/g++-13 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+         -DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1   (the PC's one extra flag)
+       cmake --build build -j4 : OK
+exe: /agent/repos/pcbuild/forge-combo29/build/forge
+sha256 of exe: (see honesty/honesty.json)
+
+HONESTY - every line a FRESH process, compared with FABLE_TO_swarm_5.md's table
+settings              what        expected    got         verdict
+none (no setoption)   bench 11      312866    312866      MATCH
+none                  bench 13      862329    862329      MATCH
+none                  bench 16     3024920   3024920      MATCH
+none                  go perft 5   4865609   4865609      MATCH
+S14                   bench 11      242796    242796      MATCH
+S14                   bench 13      656517    656517      MATCH
+PC20                  bench 11      278024    278024      MATCH
+PC20                  bench 13      587276    587276      MATCH
+No `unknown option`, `invalid value` or `ERROR` line in any run.
+
+VERDICT: the PC r15 build is USED. All 8 numbers of file 5's table match on this machine.
+Note: per file 4 the pins are DEFAULT-option numbers; the S14 and PC20 rows are the
+option-dependent ones. I ran all three regimes and they agree with the table.
