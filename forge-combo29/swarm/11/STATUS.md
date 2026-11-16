@@ -487,7 +487,11 @@ fall), S-F71 (ponder sound), S-F72 (match decisions reproducible, 0/12 unstable)
 restricts correctly), S-F74 (MultiPV correct; MultiPV 1 omits the field), S-F75 (search settles across
 20k/50k/250k), S-F76 (mid-search interrupts never hang, both bestmoves attributed), S-F77 (extreme
 `go depth` clamps safely; depth 40 found mate 9 at 172.6 M nodes), S-F78 (missing `btime` = 12 s not
-136 ms), S-F79 (movestogo/zero/huge clocks all safe), S-F80 (guard self-test), S-F81 (guard vs Route 2).
+136 ms), S-F79 (movestogo/zero/huge clocks all safe), S-F80 (guard self-test), S-F81 (guard vs Route 2), S-F82 (a ~1,000 M-node search is stable: depth 64
+reached 978,487,626 nodes with the same `mate 9`/`f4f5` as depth 40, and depth 100 reproduced it
+exactly — no overflow at 10^9 nodes, no illegal move, which bounds the engine's top-end risk), and
+S-F83 (all seven classic endings score correctly: KQvK mate 7, KRvK +571, K/KN/KB v K all exactly
+cp 0, KNNvK +327 without a false mate, KQvKR +260).
 
 Withdrawn or corrected, retained rather than deleted: S-F3, S-F10, S-F11, S-F12, S-F18, S-F19, S-C9
 (not defects under file 6), S-P1 (patch withdrawn, marked DO NOT APPLY), S-A5 (my PC20 labels
