@@ -236,3 +236,22 @@ debug/CORRECTION.md, and states what I add (depth 6-24 per-node growth proving n
 seat 25 has that I do not (the instrumentation). S-F15 marked SUPERSEDED by S-F16 in FINDINGS.md.
 
 Threads 1 throughout, both builds.
+
+## 2026-11-16T22:30:50Z — the claimable-draw fix: pins MOVED, stopped, not tuned
+
+Implemented the one-sentence is_draw change as a text patch on BOTH builds
+(job5/claimable_draw.patch.txt, -p1 --fuzz=0, applies to base at offset 0 and PC r15 at offset 126).
+Two of the four named cases are genuinely FIXED: fifty-move claimable goes cp 0 -> **-153** (matching
+seat 25's independent -150s), repetition-with-winning-side-to-move goes cp 0 -> **about -1200**.
+The K v K control is KEPT (cp 0, 0 nodes) on both patched builds.
+
+BUT: **three of the four honesty pins move on both builds** — bench 11 312866 -> 353312,
+bench 13 862329 -> 979723, bench 16 3024920 -> 2893009; perft 5 unchanged. Per the instruction I did
+NOT tune the fix to bring them back.
+
+And two must-stay-zero cases regress **on the PC build only**: losing-side-at-a-threefold cp 0 ->
+-1237, and clock 100 with no reset possible cp 0 -> -501 in 1,026,656 nodes. The second is a polarity
+error in MY condition (it requires ALL moves to reset; that board has NONE), not in the engine.
+
+Verdict: diagnosis right, direction right, patch NOT ready. Full table in job5/fix_report.md.
+S-F17 records it in FINDINGS as NOT READY.
