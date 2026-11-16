@@ -13,3 +13,8 @@
 - next command: python3 job2/split_draw_positions.py   (job 2: draw scores, 20 positions each of K v K, KN v K,
   KB v K, KNN v K, 20 threefold, 20 with the fifty-move counter at 99, score at depth 10)
 - report: job1/REPORT_job1.md ; findings: FINDINGS.md
+
+## Mon Nov 16 09:25:00 PM UTC 2026
+- done: S-C1 CONFIRMS seat 06's S-F9 (both mirror pairs exact), plus beyond it: both mate-side PVs truncated.
+- next command: python3 job2/split_draw_positions.py  (job 2: draw scores K v K / KN v K / KB v K / KNN v K,
+  threefold, fifty-move 99; score at depth 10)
