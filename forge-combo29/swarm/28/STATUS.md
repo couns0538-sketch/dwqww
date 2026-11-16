@@ -39,3 +39,6 @@ CHECKPOINT PUSH requested by owner. Jobs 1-3 of area 8 done; checks S-C1 (confir
 
 ## Mon Nov 16 09:37:55 PM UTC 2026
 CORRECTION 1 PUSHED. S-F1 re-tested: seat 16 was right that the last-completed-iteration confound is real, but the STOP is the plan (50.5 ms at overhead 0, 40.5 at overhead 10, 25.4 at 25, 5.4 at 45). My defect wording withdrawn; the M-10 plan claim stands. 480 searches, 16 cells, 0 NORESP, integrity audit passes on all 19 raw files.
+
+## Mon Nov 16 09:39:54 PM UTC 2026
+CORRECTION 2 PUSHED. S-F2 restated narrower (my 43.3 ms threshold was invented; against the engine's own plan: 54 over soft, 0 over hard). S-F6 confirmed and now a claim about the PLAN (plan soft 822 vs 117 ms at equal total clock). S-F9 numbers stand but mechanism corrected (achieved==reported within 1 ms, so it is a target undershoot); NEW: 2/40 movestogo-1 searches exceeded the engine's own hard plan.

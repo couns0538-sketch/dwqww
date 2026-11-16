@@ -1,0 +1,12 @@
+| id | measurement | measured | expected | verdict |
+|---|---|---|---|---|
+| Q1 | S-F2 median below engine soft 52 | 38.2 | <52 | SURVIVES |
+| Q2 | S-F2 count over engine soft 52 (< 40) | 54 | <40 | **REFUTED** |
+| Q3 | S-F2 largest below hard 260 | 201.0 | <=260 | SURVIVES |
+| Q6 | S-F9 mtg1 median below soft 495 and above 200 | 323.0 | 200..495 | SURVIVES |
+| Q7 | S-F9 achieved/plan in 0.4..1.0 | 0.65 | 0.4..1.0 | SURVIVES |
+
+Q4/Q5 and Q8 are read from sf6_recheck_out.txt rows by hand-checked arithmetic:
+  2600: inc side achieved 556.4 (planned 604) -> within 8 % ; clock side 101.3 (planned 92) -> within 10 %  => Q4 SURVIVES
+  fast side 101.3 ms vs its soft plan 117 ms: NOT 25 % within 1584, so Q5 SURVIVES
+  ordering mtg1 323.0 > mtg2 234.8 > mtg40 20.4 => Q8 SURVIVES
