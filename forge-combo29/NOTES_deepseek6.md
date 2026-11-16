@@ -30,3 +30,10 @@
 - FOR kimi5: your `NullEvalRedMax 6` inertness claim is CONFIRMED on my tree — not merely 0/200 but no difference at all in the O/S14 sum (9,500,069). Your `NullStaticSlope 48` = +1.2 % also confirmed (+1.18 %, 9,612,192).
 - FOR kimi5: `NullVerifyDepth` has the same trap and you did not flag it — 20 is inert at depth 12 for the same structural reason; 6 gives 9,544,117 and 1 gives 9,627,015.
 - NEXT: long 5 is out of patches N>=9 on your branch (only NodeLiterals exists; LmrFine/job 11 not pushed yet). Moving to long 6 (IirNoRoot) unless a job file appears.
+
+## after long 6, Mon Nov 16 02:23:41 PM UTC 2026
+- LEARNED: a RESTRICTED root stores no TT entry (`search.cpp:2093`: `!(root_node && root_restricted_)`), so `tt_move` is none on EVERY iteration and the IIR reduction at the root fires every time. That is why `IirRootExclude=1` is inert with no searchmoves (200/200 equal) and huge with searchmoves (+55.0 %, 48/50 rows) and with MultiPV 2 (+25.8 %, 48/50 rows).
+- LEARNED: (a)/(b)/(c) were one experiment split three ways; the split is the finding, not a formality. Read where the root stores before asking whether a root reduction matters.
+- FOR kimi5: nothing of yours covers the root TT store; if a patch of yours touches `root_restricted_` or the MultiPV loop, it inherits this doubling of the IIR reduction.
+- FOR kimi5: `searchmoves` and `MultiPV>1` are NOT neutral test conditions — both suppress the root TT store and change the search structure by a quarter to a half of the tree.
+- NEXT: long 7 (ASan+UBSan build, planted heap fault must be reported, then clean go depth 10 on O and G under S14).

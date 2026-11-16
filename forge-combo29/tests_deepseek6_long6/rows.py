@@ -94,6 +94,8 @@ def main():
     ap.add_argument("--searchmoves", default="")
     ap.add_argument("--multipv", type=int, default=0)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--searchmoves-from", default="",
+                    help="file of 'index | fen | m1 m2' lines; per-row searchmoves")
     args = ap.parse_args()
 
     exe = os.path.abspath(args.exe)
@@ -101,6 +103,20 @@ def main():
     exe_sha = sha256_of(exe)
 
     positions = load_positions(args.set, args.limit)
+    per_row_moves = {}
+    if args.searchmoves_from:
+        with open(args.searchmoves_from, "r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                parts = [x.strip() for x in line.split("|")]
+                if len(parts) < 3:
+                    continue
+                mv = parts[2].strip()
+                if mv.startswith("("):
+                    mv = ""
+                per_row_moves[int(parts[0])] = mv
     opt_lines = []
     for chunk in args.opts.split(";"):
         chunk = chunk.strip()
@@ -128,6 +144,13 @@ def main():
             fh.write("positions: %d\n" % len(positions))
             fh.write("depth: %d\n" % args.depth)
             fh.write("searchmoves: %s\n" % (args.searchmoves or "(none)"))
+            if args.searchmoves_from:
+                fh.write("searchmoves_from: %s (sha256 %s)\n"
+                         % (os.path.abspath(args.searchmoves_from),
+                            sha256_of(args.searchmoves_from)))
+                fh.write("per_row_searchmoves:\n")
+                for k in sorted(per_row_moves):
+                    fh.write("  %d: %s\n" % (k, per_row_moves[k] or "(none)"))
             fh.write("rows_written: %d\n" % rows_written)
             if stopped:
                 fh.write("stopped_at_row: %d\nstopped_line: %s\n" % stopped)
@@ -172,8 +195,9 @@ def main():
             break
         eng.send("position fen " + fen)
         go = "go depth %d" % args.depth
-        if args.searchmoves:
-            go += " searchmoves " + args.searchmoves
+        row_moves = per_row_moves.get(i, "") if per_row_moves else args.searchmoves
+        if row_moves:
+            go += " searchmoves " + row_moves
         eng.send(go)
         body, stop = eng.read_until("bestmove")
         if stop:
