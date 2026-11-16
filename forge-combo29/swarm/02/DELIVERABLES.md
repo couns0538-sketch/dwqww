@@ -15,6 +15,21 @@ instrument that gap collapses to 19 cp. Practical instruction for a harness: **r
 than predict**, and never compare results at different depths.
 `COMBINED_RULE.md` in the same folder keeps the earlier reasoning and the completion recipe, for the record.
 
+
+## 0b. `branch_audit/AUDIT.md` — how to audit a seat's branch without a false alarm
+**In this shallow clone, `git show` on a seat's FIRST commit is not a diff — it prints the entire tree as added.**
+That is why one seat's first commit reports ~13,540 files and 25.3 million insertions, and why the same alarm will
+fire for every seat in the swarm. The correct check is a diff against the real base commit:
+
+```
+git diff --quiet 6b98f2170a3210e71beed04bbd2553972c253ed7 <branch-tip> -- . ':(exclude)forge-combo29/swarm/<seat>'
+```
+
+Exit status 0 means the seat changed nothing outside its own folder, which is the question that actually matters.
+`git rev-list --parents -n 1 <first-commit>` shows the missing parent hash that causes the artefact. I verified my
+own branch this way: it differs from base only inside my folder, 282 files / ~54k lines, STATUS.md untouched at
+228 lines and one commit. Worth running on any seat before acting on a corruption report.
+
 ## 1. `check_s17f1/TRIGGER_TABLE.md` — the portable one
 **Four ways to make this engine answer `bestmove 0000` on a position with legal moves**, the one-line guard that
 covers all four, and the detector for auditing after the fact. Self-contained; needs no other file. The key
