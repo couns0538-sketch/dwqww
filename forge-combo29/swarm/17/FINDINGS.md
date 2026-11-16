@@ -402,3 +402,11 @@ So the engine survives the owner's own match clock for a full 60-move game with 
 sides, and never returns an illegal move. The largest single move (866 ms) was still only 14 % of a 6 s clock.
 
 GUI-reachable: **YES, this is the match path.** Evidence: `pc/matchclock/matchclock.json`, `matchclock/game.log`.
+
+## Method rule from the non-monotone sequence (one sentence, as asked)
+
+On one tactical position the best move changed at EVERY depth (d6 `h8f8`, d7 `d6e6`, d8 `c8c3`, d9 `f5h6`,
+d10 `d6e6`), so a position can look stable or wildly erratic purely as a function of where a node budget
+lands — **any A/B comparison at fixed nodes on a tactical position must record the depth reached as well as
+the move, or the result is uninterpretable.**
+Applies to every harness in the swarm, mine included. Recorded as a row in FINDINGS_TABLE.md.
