@@ -1,0 +1,25 @@
+== per-depth Threads-4 scores against the one-thread reference ==
+file                         depth threads1   mt_min   mt_max   maxdev
+pc20_hi.jsonl                   15     -283     -305     -288       22
+pc20_hi.jsonl                   16     -273     -321     -281       48
+pc20_ord.jsonl                  12     -293     -298     -267       26
+pc20_ord.jsonl                  13     -272     -316     -269       44
+pc20_ord.jsonl                  14     -292     -314     -284       22
+pc20_ord_t4.jsonl               12     -293     -310     -287       17
+
+n runs=35  mean deviation=-11.2 cp  sd=17.5 cp  worst |deviation|=48 cp  range=74 cp
+
+== runs per arm needed to detect an effect E (80%% power, alpha=0.05 two-sided) ==
+   n = 2 * (2.80 * sd / E)^2, with sd = 17.5 cp measured above
+  effect E  n per arm
+      10 cp         48
+      20 cp         12
+      25 cp          8
+      30 cp          6
+      50 cp          2
+     100 cp          1
+
+== what one run per arm can and cannot tell you ==
+A single Threads-4 run can differ from the truth by up to 48 cp (worst measured).
+So an A/B of ONE run per arm cannot resolve an effect smaller than about 48 cp,
+and even then only by luck. Effects below ~48 cp need the repetitions above.

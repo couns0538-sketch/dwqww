@@ -141,3 +141,15 @@ CAVEAT I must state: the owner's PC plays Threads 1, where this engine is exactl
 hazard for threaded tuning/testing, not for PC games. Priority accordingly low.
 NOW PIVOTING to the PC's real path per file 6: PC build, PC20, Threads 1, Hash 16, go softnodes 2000,
 go nodes 20000/50000/250000, clock 6s+0.06.
+
+## 2026-11-16T22:41:43Z D5 TURNED INTO GUIDANCE + PC NODE PATH DONE
+04-F13 threaded-A/B rule, from measured noise on ordinary positions (hang FEN excluded so as not to overstate):
+  sd 17.5 cp, worst 48 cp. 10 cp effect needs 48 runs/arm; 20 -> 12; 25 -> 8; 30 -> 6; 50 -> 2.
+  One run per arm resolves nothing under ~48 cp. Practical rule: tune at Threads 1, where this engine is
+  bit-reproducible; the problem then does not exist.
+04-F14 go nodes on PC build: deterministic, stops at a FINISHED iteration, and always UNDERSHOOTS:
+  15k->9,155 (0.61x) 20k->19,832 (0.99x) 30k->19,832 (0.66x) 40k->31,779 50k->31,779 (0.64x)
+  70k->52,904 100k->97,289 (0.97x) 250k->170,070 (0.68x). 30k and 20k are the SAME result (both stop after d11).
+  So a PC match at fixed go nodes is NOT at a fixed node count; a budget just past a boundary is wasted.
+04-F15 go softnodes 2000: deterministic 10/10, g7g6 / -306 / depth 7 / 2,671 nodes (1.34x OVERSHOOT).
+NEXT: quit/EOF re-check on PC20, then the explosion numbers on PC20.
