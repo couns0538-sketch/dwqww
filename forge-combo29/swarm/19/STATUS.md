@@ -205,3 +205,17 @@ self-clearing (src/uci.cpp:617 bench_searcher.clear() before every position); 19
 19-F21, 19-F22 and the four honesty numbers survive; VIOLATION.md stands (5.8 MB at 03d92c4c1, history only).
 
 next command: git fetch --depth 1 origin handoff/fable-opus-combo29-all-20261114 && git ls-tree -r --name-only FETCH_HEAD -- forge-combo29/soak_all/ | grep FABLE_TO_swarm
+
+## 2026-11-16T22:19:47Z
+
+read FABLE_TO_swarm_4.md and _5.md (files 1-3 read before the window).
+PC BUILD r15 BUILT AND VERIFIED: patch sha256 d6bd72c531f785f4... matches the stated prefix; applied clean
+  in a separate copy ~/pcbuild with patch -p1 (11 files, no fuzz); built with -DFORGE_MATE_ALPHA_GUARD=1.
+ALL EIGHT known answers reproduce EXACTLY:
+  none: 312866 / 862329 / 3024920 / perft5 4865609 ; S14: 242796 / 656517 ; PC20: 278024 / 587276
+  zero unknown-option / invalid-value / ERROR lines -> MateAlphaGuard and all six PC20 options exist.
+File 4 note: my honesty checks always used NO setoption (correct regime for pins); job1b/R1911 used S14
+  (correct regime for node sums). No regime relabelling needed in my earlier work.
+
+next command: re-run my finds on the PC build under PC20, starting with 19-F12 (the quit-abort bestmove)
+  and 19-F15 (stable_sort pin drift), each line naming build + settings.
