@@ -175,3 +175,22 @@ finished iteration), and is #define 0 by default; enabling it still leaves 4/4 f
 
 Next: job 3 of area 2 (every option at min/max/min-1/max+1/a word/nothing, between and during
 searches) on BOTH builds, which is the next unrun job of my area.
+
+## 2026-11-16T22:26:35Z — job 4 (area 2 job 3) done on both builds
+
+Option extremes: 957 cases base / 1,077 PC none / 1,077 PC PC20, every option x 6 values x
+between-search and during-search. 0 crashes, 0 sanitizer lines, 0 illegal bestmoves, 0 lost
+readyok. Every out-of-range and non-numeric value refused with the engine's own line; nothing
+accepted silently. Control 3/3 plants detected on both builds (unknown option, invalid value,
+illegal bestmove). Threads 1 throughout except the Threads option itself, reset to 1 after.
+
+New finding S-F12: `setoption` during a running search silently STOPS the search (4/4 option
+types, both builds), while `isready` correctly does not — with controls that must and must not
+fire, both behaving.
+
+S-F11 added earlier today: the one-sentence fix for the abort fault (finish depth 1 and publish a
+real searched move; `bestmove 0000` rejected because UCI gives 0000 the meaning "no legal move"
+and GUIs act on it).
+
+Reports: REPORT_job4.md, job3/abort_finding.md. Next: area 2 job 1 re-run on the PC build under
+PC20 (my own base finds revisited on the PC build, as file 5 requires).
