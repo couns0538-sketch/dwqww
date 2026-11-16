@@ -1,5 +1,11 @@
 # The per-move hazard a GUI author must handle: `info string illegal move`
 
+> **Read this first: the diagnostic arrives in response to `position`, BEFORE `readyok`.**
+> Consume the engine's output from the moment you SEND the position command, not from the first `readyok`.
+> A reader that starts listening at `readyok` never sees `info string illegal move` and will conclude its
+> move list was accepted. This single mistake made two of my own runs report a false hazard, and it is the
+> easiest way to be blind to the whole problem.
+
 Seat 17, 2026-11-16. Build: PC r15 (base 6b98f217 + FABLE_TO_swarm_5 patch), PC20 settings, Threads 1,
 Hash 16. The same behaviour exists on the base tree. Every output below is a real run, read to `bestmove`.
 
@@ -89,7 +95,9 @@ rejected.
 ## The one-line rule
 
 > **Treat `info string illegal move` as FATAL for that game: do not apply the following `bestmove`, and
-> reload the position from a source you trust.**
+> reload the position from a source you trust. Catch it by reading the engine's output from the `position`
+> command onwards — the line comes BEFORE `readyok`, so a reader that starts at the first `readyok` is blind
+> to it.**
 
 Three lines to implement it, matching the rest of my harnesses:
 

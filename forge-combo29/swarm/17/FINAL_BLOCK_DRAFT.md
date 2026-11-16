@@ -12,9 +12,10 @@ THE DELIVERABLE IS THE DOCUMENT SET, not a list of rows. Read in this order:
    (none / S14 / PC20), Threads 1, and whether a GUI can reach it. Supports the decision of what to fix next,
    ranked by what the owner can actually hit rather than by what is technically wrong.
 2. forge-combo29/swarm/17/NOTE_moves_path_hazard.md
-   The per-move hazard: `info string illegal move` -> `readyok` -> a bestmove for a board the caller never
-   asked for. Supports the decision of whether the engine should refuse harder, and gives a GUI author the one
-   rule that makes it safe today (treat that line as fatal for the game).
+   The per-move hazard: `info string illegal move` arrives in response to `position`, BEFORE `readyok`, then a
+   bestmove for a board the caller never asked for; a reader that starts at `readyok` never sees the line.
+   Supports the decision of whether the engine should refuse harder, and gives a GUI author the one rule that
+   makes it safe today (treat that line as fatal for the game, and read from the position command onwards).
 3. forge-combo29/swarm/17/NOTE_select_readline_artifact.md
    The Python harness artefact that fabricates an unbounded run. Supports the decision of how to read engine
    output in any future harness, so a measurement is not a false hang.

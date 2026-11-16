@@ -5,8 +5,9 @@
 1. **`FINDINGS_TABLE.md`** (this file) — the whole picture: every finding with build, settings, Threads 1 and
    whether a GUI can reach it. **Supports the decision** of what to fix next, ranked by what the owner can
    actually hit.
-2. **`NOTE_moves_path_hazard.md`** — the per-move hazard: `info string illegal move` followed by `readyok` and
-   then a bestmove for a board the caller did not ask for. **Supports the decision** of whether the engine
+2. **`NOTE_moves_path_hazard.md`** — the per-move hazard: `info string illegal move` arrives in response to
+   `position` and BEFORE `readyok`, followed by a bestmove for a board the caller did not ask for, so a reader
+   that starts at `readyok` is blind to it. **Supports the decision** of whether the engine
    should emit a harder signal, and tells any GUI author the one rule that makes it safe today.
 3. **`NOTE_select_readline_artifact.md`** — the Python harness artefact that fabricates an unbounded run.
    **Supports the decision** of how to read engine output in any harness the owner or a helper writes, so a
