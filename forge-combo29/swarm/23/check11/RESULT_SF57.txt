@@ -26,3 +26,20 @@ route needs a malformed FEN. The message is a single `info string` line that a G
 
 One detail I add: the truncation is at the FIRST illegal token and everything after it is DISCARDED, not skipped —
 so a list whose corruption is at ply 3 loses five good plies, not one.
+
+THE DEFENCE, TESTED (not merely recommended)
+============================================
+Three GUI protocols against the same corrupted move list, PC r15 + PC20, Threads 1, intended perft 1 = 38:
+
+| protocol | diagnostics seen | perft 1 | correct? |
+|---|---|---|---|
+| **naive** — use whatever the engine searched | 1 | **29** | **NO** |
+| **detect** — abort the game on any `info string` diagnostic | 1 | (not used) | SAFE |
+| **fixup** — after a diagnostic, `ucinewgame` + re-send the WELL-FORMED list | 0 | **38** | yes |
+
+So the rule I proposed is verified: after every `position` command, count the `info string` lines; if any appeared,
+do not trust the position — rebuild it. The naive protocol silently plays a different game (29 against 38), the
+detect protocol refuses to play a wrong move, and the fixup protocol recovers the intended board exactly.
+
+Same applies to the FEN route (23-C23): a refused `position fen` also answers readyok, and the only signal is its
+`info string invalid FEN` line.
