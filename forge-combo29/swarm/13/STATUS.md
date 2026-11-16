@@ -225,3 +225,23 @@ DONE job 7 (coordinator job 2, PC path per file 6): go nodes at the three match 
   (PV verified legal move by move), not a bug.
   Finding S-F9. LIMIT STATED: 12 G positions, not the owner's match games.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## 2026-11-16T22:59:42Z
+
+DONE CLOSURE NOTE: MOVE_GENERATION_CLOSED.md (one page, as asked). What it says:
+  - 6 jobs, 6 material types, depths 1-5, divide granularity at depths 2 and 4 on THREE build/settings
+    combos (base Th1/Hash16, PC r15 Th1/Hash16, PC r15 PC20).
+  - 11,124 position-set entries = 10,482 distinct FENs; 42,436 totals-granularity pairs + 10,783
+    divide-granularity root moves compared; 0 differences anywhere.
+  - The four limits, stated: depth 5 totals-only; python-chess is the only oracle; refused-FEN
+    positions untestable this way; sampling (R synthetic, G = 200 of 353).
+  - Explicitly NOT concluded: move generation is not move choice.
+  - The line: MOVE GENERATION IS CLOSED as of 6b98f217 and PC r15.
+VERIFIED RATHER THAN TYPED, and it caught two things:
+  (a) my first aggregate "5,494 distinct positions" was a guess and WRONG; real value 10,482 distinct
+      (11,124 entries, sets overlap). Fixed.
+  (b) job 1's comparison.md came from the OLD silent-skip checker and had NO denominator, so it could
+      not prove its own 20,000. I re-ran the hardened checker over job 1's committed raw files:
+      20,000 of 20,000 compared, 0 differing -> job1/comparison_hardened.md now supersedes it.
+  Every aggregate in the note is now the pasted output of closure_verify.py (closure_verify.txt).
+Next command: cd forge-combo29/swarm/13 && python3 closure_verify.py   # then PC path with remaining time
