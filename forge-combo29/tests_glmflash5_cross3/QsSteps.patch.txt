@@ -1,0 +1,666 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -34,6 +34,21 @@
+ #define FORGE_BARE_KING_MATE_FIX 1
+ #endif
+ 
++// FORGE_QS_STEPS (kimi5 job 10; default 0 = the code before it): quiescence-search
++// counters, observe only. 1 = one QSTEPS counter line per UCI search.
++#ifndef FORGE_QS_STEPS
++#define FORGE_QS_STEPS 0
++#endif
++// FORGE_QS_REGRET (kimi5 job 10, Part 3; default 0): the every-Nth probe of
++// skipped moves and stand-pat returns. A probe changes the tree (hash and
++// histories are not restorable); it needs FORGE_QS_STEPS.
++#ifndef FORGE_QS_REGRET
++#define FORGE_QS_REGRET 0
++#endif
++#if FORGE_QS_REGRET && !FORGE_QS_STEPS
++#error FORGE_QS_REGRET needs FORGE_QS_STEPS (the probe reuses its frame classes)
++#endif
++
+ namespace forge {
+ 
+ int DrawJitter = 0;
+@@ -235,6 +250,172 @@
+     return quiet ? Reductions.quiet[d][m] : Reductions.noisy[d][m];
+ }
+ 
++#if FORGE_QS_STEPS
++// ---------------------------------------------------------------------------
++// Quiescence-search counters (kimi5 job 10). Observe only: no value, control
++// flow or table entry of the search changes. All runs of this job use
++// Threads 1, so plain counters. One counter set per UCI search: reset where
++// the search's own counters reset, one QSTEPS line printed where the search
++// result returns. The meaning of every index is written at the increment.
++namespace qstc {
++// q class of a qsearch frame: distance from its main-search node; 0:q1 1:q2 2:q3 3:q4-5 4:q6+
++inline int qc(int q) { return q <= 3 ? q - 1 : q <= 5 ? 3 : 4; }
++// value-margin class of a non-negative margin: 0:<25 1:<50 2:<100 3:<200 4:<400 5:>=400
++inline int vc(int v) { return v < 25 ? 0 : v < 50 ? 1 : v < 100 ? 2 : v < 200 ? 3 : v < 400 ? 4 : 5; }
++// captured-piece class: 0:P (en passant included, Board::captured_piece maps it) 1:N 2:B 3:R 4:Q 5:none
++inline int pc_of(const Board& board, Move move) {
++    if (!move.is_capture()) return 5;
++    const int t = piece_type(board.captured_piece(move));
++    return t == Pawn ? 0 : t == Knight ? 1 : t == Bishop ? 2 : t == Rook ? 3 : 4;
++}
++
++thread_local int next_q = 0;    // q distance the NEXT qsearch frame takes; set by its call site
++thread_local int next_site = 0; // call site of the NEXT qsearch frame: 0:1556 1:razor1684 2:probcut1765 3:self1520 4:hind1631
++std::uint64_t q0[2][5][2] = {};        // Q0: qsearch nodes (at ++local_nodes_) by pv x q class x in_check
++std::uint64_t csite[5][2][5] = {};     // call-site counts by site x pv x q class
++std::uint64_t x_draw[2][5] = {};       // exit: is_draw return
++std::uint64_t x_maxply[2][5] = {};     // exit: ply >= MaxPly return
++std::uint64_t x_matebound[2][5] = {};  // exit: mate Moves window alpha >= beta return
++std::uint64_t x_tt[2][5][3] = {};      // exit: hash return by bound 0:exact 1:lower 2:upper
++std::uint64_t x_standpat[2][5] = {};   // exit: stand-pat return
++std::uint64_t x_mated[2][5] = {};      // exit: in check with no legal move
++std::uint64_t x_end[2][5] = {};        // exit: return after the move loop
++std::uint64_t x_abort = 0;             // returns at the abort check on entry (a fixed-depth search never aborts)
++std::uint64_t sp_margin[2][5][6] = {}; // X_standpat by (best_score - beta) class (vc)
++std::uint64_t s_tt_all[2][5] = {};     // nodes where the hash score replaced the eval
++std::uint64_t s_tt_sp[2][5] = {};      // of s_tt_all: then returned by stand pat
++std::uint64_t sp_quiet[2][5][2] = {};  // X_standpat by "side to move has a legal quiet move" 0:yes 1:no
++std::uint64_t m_legal[2][5][2] = {};   // M_legal: legal moves the picker handed the loop, by in_check
++std::uint64_t m_searched[2][5][2] = {};// M_searched: moves made, by in_check
++std::uint64_t p_fut[2][5][6][5] = {};  // P_fut: futility skips by (alpha-futility_base-capval) class x captured piece
++std::uint64_t p_see[2][5][2][3][6] = {}; // P_see: SEE skips by gives_check x kind(0:cap 1:promo 2:cap+promo) x captured piece
++std::uint64_t cut[2][5][3] = {};       // CUT: the fail-high break by the cutting move's index among searched moves 0:1st 1:2nd 2:3rd+
++std::uint64_t m0 = 0;                  // main-search node increments (the ++local_nodes_ of search)
++std::uint64_t hind_dec = 0;            // node decrements (HindsightDepth block; off in every run of this job: 0)
++std::uint64_t search_nodes = 0;        // snapshot of local_nodes_ at the search's end (for identity I5)
++
++#if FORGE_QS_REGRET
++// Part 3 probe (kimi5 job 10): every Nth skipped move / stand-pat return is
++// re-searched; the result is counted and thrown away. Inside a probe NO
++// counter of this job moves (every increment is guarded by !in_probe).
++thread_local bool in_probe = false;   // inside a probe
++thread_local bool q10_inhibit = false; // consumed at the next search() entry: the four main-search steps off THERE
++#ifndef QREG_N_FUT
++#define QREG_N_FUT 48  // every 48th futility skip (O defaults: ~773k skips -> ~16k probes)
++#endif
++#ifndef QREG_N_SEE
++#define QREG_N_SEE 256 // every 256th SEE skip (~1.8M -> ~7k probes)
++#endif
++#ifndef QREG_N_SP
++#define QREG_N_SP 700  // every 700th non-PV stand pat (~2.1M -> ~3k probes)
++#endif
++constexpr std::uint64_t N_FUT = QREG_N_FUT, N_SEE = QREG_N_SEE, N_SP = QREG_N_SP;
++std::uint64_t seen_fut = 0, seen_see = 0, seen_sp = 0; // per-search event counters (reset per search)
++std::uint64_t probe_nodes = 0;      // nodes inside all probes (left out of the search's count; I5 holds without them)
++std::uint64_t pf_pr[5][6] = {};     // futility-skip probes by q class x (alpha-futility_base-capval) class
++std::uint64_t pf_ms[5][6] = {};     // MISSED: probe score > alpha (the skip would have raised alpha)
++std::uint64_t pf_cm[5][6] = {};     // CUT-MISSED: probe score >= beta (part of MISSED)
++std::uint64_t pf_bd[5][6] = {};     // probe score > futility_base + capture_value (the bound written into best_score)
++std::uint64_t ps_pr[5][2][3] = {};  // SEE-skip probes by q class x gives_check x kind (0:cap 1:promo 2:cap+promo)
++std::uint64_t ps_ms[5][2][3] = {};  // MISSED: probe score > alpha
++std::uint64_t ps_cm[5][2][3] = {};  // CUT-MISSED: probe score >= beta
++std::uint64_t sp_pr[5][6] = {};     // stand-pat probes (non-PV) by q class x (best_score-beta) class
++std::uint64_t sp_ms[5][6] = {};     // MISSED: the depth-1 probe value < beta (no move holds the claim)
++std::uint64_t nq_pr = 0, nq_ms = 0; // no-quiet stand-pat probes (EVERY one, non-PV), MISSED same rule
++#endif
++
++void reset() {
++    next_q = 0;
++    next_site = 0;
++    std::memset(q0, 0, sizeof(q0));
++    std::memset(csite, 0, sizeof(csite));
++    std::memset(x_draw, 0, sizeof(x_draw));
++    std::memset(x_maxply, 0, sizeof(x_maxply));
++    std::memset(x_matebound, 0, sizeof(x_matebound));
++    std::memset(x_tt, 0, sizeof(x_tt));
++    std::memset(x_standpat, 0, sizeof(x_standpat));
++    std::memset(x_mated, 0, sizeof(x_mated));
++    std::memset(x_end, 0, sizeof(x_end));
++    x_abort = 0;
++    std::memset(sp_margin, 0, sizeof(sp_margin));
++    std::memset(s_tt_all, 0, sizeof(s_tt_all));
++    std::memset(s_tt_sp, 0, sizeof(s_tt_sp));
++    std::memset(sp_quiet, 0, sizeof(sp_quiet));
++    std::memset(m_legal, 0, sizeof(m_legal));
++    std::memset(m_searched, 0, sizeof(m_searched));
++    std::memset(p_fut, 0, sizeof(p_fut));
++    std::memset(p_see, 0, sizeof(p_see));
++    std::memset(cut, 0, sizeof(cut));
++    m0 = 0;
++    hind_dec = 0;
++    search_nodes = 0;
++#if FORGE_QS_REGRET
++    in_probe = false;
++    q10_inhibit = false;
++    seen_fut = seen_see = seen_sp = 0;
++    probe_nodes = 0;
++    std::memset(pf_pr, 0, sizeof(pf_pr));
++    std::memset(pf_ms, 0, sizeof(pf_ms));
++    std::memset(pf_cm, 0, sizeof(pf_cm));
++    std::memset(pf_bd, 0, sizeof(pf_bd));
++    std::memset(ps_pr, 0, sizeof(ps_pr));
++    std::memset(ps_ms, 0, sizeof(ps_ms));
++    std::memset(ps_cm, 0, sizeof(ps_cm));
++    std::memset(sp_pr, 0, sizeof(sp_pr));
++    std::memset(sp_ms, 0, sizeof(sp_ms));
++    nq_pr = 0;
++    nq_ms = 0;
++#endif
++}
++
++template <std::size_t N>
++void parr(const char* name, const std::uint64_t* a) {
++    std::cout << ' ' << name;
++    for (std::size_t i = 0; i < N; ++i) std::cout << ' ' << a[i];
++}
++
++void print() {
++    std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++    std::cout << "info string QSTEPS v1 nodes " << search_nodes;
++    parr<20>("q0", &q0[0][0][0]);
++    parr<50>("cs", &csite[0][0][0]);
++    parr<10>("xd", &x_draw[0][0]);
++    parr<10>("xm", &x_maxply[0][0]);
++    parr<10>("xmb", &x_matebound[0][0]);
++    parr<30>("xtt", &x_tt[0][0][0]);
++    parr<10>("xsp", &x_standpat[0][0]);
++    parr<10>("xmt", &x_mated[0][0]);
++    parr<10>("xe", &x_end[0][0]);
++    std::cout << " xab " << x_abort;
++    parr<60>("spm", &sp_margin[0][0][0]);
++    parr<10>("stta", &s_tt_all[0][0]);
++    parr<10>("stts", &s_tt_sp[0][0]);
++    parr<20>("spq", &sp_quiet[0][0][0]);
++    parr<20>("ml", &m_legal[0][0][0]);
++    parr<20>("ms", &m_searched[0][0][0]);
++    parr<300>("pf", &p_fut[0][0][0][0]);
++    parr<360>("ps", &p_see[0][0][0][0][0]);
++    parr<30>("cut", &cut[0][0][0]);
++    std::cout << " m0 " << m0 << " hdec " << hind_dec;
++#if FORGE_QS_REGRET
++    std::cout << " reg seen " << seen_fut << ' ' << seen_see << ' ' << seen_sp << " pnodes " << probe_nodes;
++    parr<30>("pfpr", &pf_pr[0][0]);
++    parr<30>("pfms", &pf_ms[0][0]);
++    parr<30>("pfcm", &pf_cm[0][0]);
++    parr<30>("pfbd", &pf_bd[0][0]);
++    parr<30>("pspr", &ps_pr[0][0][0]);
++    parr<30>("psms", &ps_ms[0][0][0]);
++    parr<30>("pscm", &ps_cm[0][0][0]);
++    parr<30>("sppr", &sp_pr[0][0]);
++    parr<30>("spms", &sp_ms[0][0]);
++    std::cout << " nq " << nq_pr << ' ' << nq_ms;
++#endif
++    std::cout << std::endl;
++}
++
++} // namespace qstc
++#endif
++
+ [[nodiscard]] int lmp_threshold(int depth, bool improving) {
+     return improving ? tune::LmpBase + depth * depth : (tune::LmpBase + depth * depth) / 2;
+ }
+@@ -1417,13 +1598,139 @@
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+-    if (aborted_) return 0;
++    if (aborted_) {
++#if FORGE_QS_STEPS
++#if FORGE_QS_REGRET
++        if (!qstc::in_probe)
++#endif
++        ++qstc::x_abort; // X_abort: return at the entry abort check (counted apart, never in a fixed-depth search)
++#endif
++        return 0;
++    }
+     ++local_nodes_;
++#if FORGE_QS_STEPS
++    const int q10_pv = pv_node ? 1 : 0;      // this frame's node kind
++    const int q10_q = qstc::next_q;          // this frame's q distance, set by its call site
++    const int q10_site = qstc::next_site;    // this frame's call site
++    const int q10_qc = qstc::qc(q10_q);      // q class 0:q1 1:q2 2:q3 3:q4-5 4:q6+
++    const int q10_chk0 = board.in_check() ? 1 : 0; // counted here so the in_check split sums to Q0
++#if FORGE_QS_REGRET
++    if (!qstc::in_probe) {
++#endif
++    ++qstc::q0[q10_pv][q10_qc][q10_chk0];    // Q0: a qsearch node
++    ++qstc::csite[q10_site][q10_pv][q10_qc]; // the call site this frame came from
++#if FORGE_QS_REGRET
++    }
++#endif
++    int q10_searched_n = 0;                  // searched moves of this node so far (for the CUT index)
++    bool q10_tt_repl = false;                // the hash score replaced the eval at this node
++#endif
++#if FORGE_QS_REGRET
++    // Skip probe (Part 3): make m exactly as the loop would (the assignments
++    // and record_move of the searched-move path), score = -qsearch(child,
++    // -beta, -alpha), unmake, restore. Restored: ss->current_move /
++    // moved_piece / continuation, seldepth_, local_nodes_ (probe nodes go to
++    // qstc::probe_nodes). NOT restorable: the hash table and the histories.
++    auto q10_skip_probe = [&](Move m) -> int {
++        const Move saved_cm = ss->current_move;
++        const Piece saved_mp = ss->moved_piece;
++        auto* saved_cont = ss->continuation;
++        const int saved_sel = seldepth_;
++        qstc::in_probe = true;
++        const std::uint64_t pn0 = local_nodes_;
++        ss->current_move = m;
++        ss->moved_piece = board.moved_piece(m);
++        ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][m.to];
++        (ss + 1)->ply = ply + 1;
++        record_move(ss, board, m);
++        Undo undo;
++        (void)board.make_move(m, undo);
++        qstc::next_q = q10_q + 1;
++        qstc::next_site = 3;
++        const int s = -qsearch(board, ss + 1, -beta, -alpha);
++        board.unmake_move(m, undo);
++        const std::uint64_t pnodes = local_nodes_ - pn0;
++        qstc::in_probe = false;
++#ifdef FORGE_QS_REGRET_PLANT
++        (void)pnodes; // PLANTED FAULT (control 3): probe nodes not taken back; I5 must report it
++#else
++        local_nodes_ -= pnodes; // probe nodes are not part of the search's node count
++#endif
++        qstc::probe_nodes += pnodes;
++        ss->current_move = saved_cm;
++        ss->moved_piece = saved_mp;
++        ss->continuation = saved_cont;
++        seldepth_ = saved_sel;
++        return s;
++    };
++    // Stand-pat probe (Part 3): the node searched at depth 1 with its own
++    // window, the four main-search steps off AT THIS NODE ONLY (q10_inhibit,
++    // consumed at the next search entry; below it everything as usual).
++    // Restored: ss->killers, (ss+1)->killers, ss->cutoff_count,
++    // (ss+1)->cutoff_count, seldepth_, null_tries_/null_cutoffs_,
++    // ss->raw_eval, ss->static_eval, ss->current_move / moved_piece /
++    // continuation, local_nodes_. NOT restorable: the hash table and the
++    // histories. Written by the probe and not restored because this node
++    // never reads them after the probe point (the hash store below uses only
++    // the restored raw_eval): ss->double_extensions, tt_pv, in_check,
++    // move_count, pv / pv_length.
++    auto q10_sp_probe = [&]() -> int {
++        const auto saved_k0 = ss->killers;
++        const auto saved_k1 = (ss + 1)->killers;
++        const int saved_cc0 = ss->cutoff_count;
++        const int saved_cc1 = (ss + 1)->cutoff_count;
++        const int saved_sel = seldepth_;
++        const std::uint64_t saved_nt = null_tries_;
++        const std::uint64_t saved_nc = null_cutoffs_;
++        const int saved_raw = ss->raw_eval;
++        const int saved_static = ss->static_eval;
++        const Move saved_cm = ss->current_move;
++        const Piece saved_mp = ss->moved_piece;
++        auto* saved_cont = ss->continuation;
++        qstc::q10_inhibit = true;
++        qstc::in_probe = true;
++        const std::uint64_t pn0 = local_nodes_;
++        const int v = search(board, ss, 1, alpha, beta, false);
++        const std::uint64_t pnodes = local_nodes_ - pn0;
++        qstc::in_probe = false;
++        local_nodes_ -= pnodes; // probe nodes are not part of the search's node count
++        qstc::probe_nodes += pnodes;
++        ss->killers = saved_k0;
++        (ss + 1)->killers = saved_k1;
++        ss->cutoff_count = saved_cc0;
++        (ss + 1)->cutoff_count = saved_cc1;
++        seldepth_ = saved_sel;
++        null_tries_ = saved_nt;
++        null_cutoffs_ = saved_nc;
++        ss->raw_eval = saved_raw;
++        ss->static_eval = saved_static;
++        ss->current_move = saved_cm;
++        ss->moved_piece = saved_mp;
++        ss->continuation = saved_cont;
++        return v;
++    };
++#endif
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+ 
+-    if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
+-    if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
++    if (is_draw(board, ply)) {
++#if FORGE_QS_STEPS
++#if FORGE_QS_REGRET
++        if (!qstc::in_probe)
++#endif
++        ++qstc::x_draw[q10_pv][q10_qc]; // X_draw: exit at the is_draw return
++#endif
++        return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
++    }
++    if (ply >= MaxPly) {
++#if FORGE_QS_STEPS
++#if FORGE_QS_REGRET
++        if (!qstc::in_probe)
++#endif
++        ++qstc::x_maxply[q10_pv][q10_qc]; // X_maxply: exit at the ply limit
++#endif
++        return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
++    }
+ 
+     const bool in_check = board.in_check();
+     ss->in_check = in_check;
+@@ -1431,7 +1738,15 @@
+     if (mate_moves_ > 0) {
+         alpha = std::max(alpha, mated_in(ply));
+         beta = std::min(beta, mate_in(ply + 1));
+-        if (alpha >= beta) return alpha;
++        if (alpha >= beta) {
++#if FORGE_QS_STEPS
++#if FORGE_QS_REGRET
++            if (!qstc::in_probe)
++#endif
++            ++qstc::x_matebound[q10_pv][q10_qc]; // X_matebound: exit inside the mate Moves window
++#endif
++            return alpha;
++        }
+     }
+ 
+ #if FORGE_SPD_TT_NOTLS
+@@ -1452,6 +1767,13 @@
+         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
++#if FORGE_QS_STEPS
++        // X_tt: exit at the hash return, by bound 0:exact 1:lower 2:upper
++#if FORGE_QS_REGRET
++        if (!qstc::in_probe)
++#endif
++        ++qstc::x_tt[q10_pv][q10_qc][tt_bound == BoundExact ? 0 : tt_bound == BoundLower ? 1 : 2];
++#endif
+         return tt_score;
+     }
+ 
+@@ -1469,9 +1791,58 @@
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+             eval = tt_score;
++#if FORGE_QS_STEPS
++            q10_tt_repl = true;
++#if FORGE_QS_REGRET
++            if (!qstc::in_probe)
++#endif
++            ++qstc::s_tt_all[q10_pv][q10_qc]; // S_tt_all: the hash score replaced the eval here
++#endif
+         }
+         best_score = eval;
+         if (best_score >= beta) {
++#if FORGE_QS_STEPS
++            // Has the side to move a legal QUIET move? Full legal generation, this
++            // counting build only; quiet = neither capture nor promotion (is_quiet:
++            // castling and double pushes are quiet). 0:has quiet 1:no quiet
++            bool q10_has_quiet = false;
++#if FORGE_QS_REGRET
++            if (!qstc::in_probe) {
++#endif
++            ++qstc::x_standpat[q10_pv][q10_qc]; // X_standpat: exit at the stand-pat return
++            // by (best_score - beta) class; >= 0 because the return requires it
++            ++qstc::sp_margin[q10_pv][q10_qc][qstc::vc(best_score - beta)];
++            if (q10_tt_repl) ++qstc::s_tt_sp[q10_pv][q10_qc]; // S_tt_sp: stand pat on a hash-score eval
++            {
++                MovePicker q10_picker(board, *this, ss, Move::none(), MovePicker::Mode::Main);
++                Move q10_m;
++                while (!(q10_m = q10_picker.next(false)).is_none())
++                    if (q10_m.is_quiet() && board.is_legal(q10_m)) {
++                        q10_has_quiet = true;
++                        break;
++                    }
++            }
++            ++qstc::sp_quiet[q10_pv][q10_qc][q10_has_quiet ? 0 : 1];
++#if FORGE_QS_REGRET
++            }
++#endif
++#endif
++#if FORGE_QS_REGRET
++            if (!qstc::in_probe && !pv_node) {
++                if (!q10_has_quiet) {
++                    // A stand-pat return with NO legal quiet move: probe EVERY one
++                    // (not every Nth); its own table (nq).
++                    const int q10_v = q10_sp_probe();
++                    ++qstc::nq_pr;
++                    if (q10_v < beta) ++qstc::nq_ms; // MISSED: the depth-1 search is below beta
++                } else if (++qstc::seen_sp % qstc::N_SP == 0) {
++                    const int q10_v = q10_sp_probe();
++                    const int q10_mc = qstc::vc(best_score - beta);
++                    ++qstc::sp_pr[q10_qc][q10_mc];
++                    if (q10_v < beta) ++qstc::sp_ms[q10_qc][q10_mc]; // MISSED: the depth-1 search is below beta
++                }
++            }
++#endif
+ #if FORGE_SPD_TT_NOTLS
+             if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+ #else
+@@ -1490,14 +1861,63 @@
+     while (!(move = picker.next(false)).is_none()) {
+         if (!board.is_legal(move)) continue;
+         ++move_count;
++#if FORGE_QS_STEPS
++#if FORGE_QS_REGRET
++        if (!qstc::in_probe)
++#endif
++        ++qstc::m_legal[q10_pv][q10_qc][in_check ? 1 : 0]; // M_legal: a legal move from the picker
++#endif
+         if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
+             // Futility: even winning the captured piece cannot raise alpha.
+             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
++#if FORGE_QS_STEPS
++                // P_fut: a futility skip, by (alpha - futility_base - capture_value) class x captured
++                // piece (the margin is >= 0 by the skip condition; the skip always captures)
++#if FORGE_QS_REGRET
++                if (!qstc::in_probe)
++#endif
++                ++qstc::p_fut[q10_pv][q10_qc][qstc::vc(alpha - futility_base - capture_value(board, move))]
++                             [qstc::pc_of(board, move)];
++#endif
++#if FORGE_QS_REGRET
++                if (!qstc::in_probe && ++qstc::seen_fut % qstc::N_FUT == 0) {
++                    // Futility-skip probe: search the skipped capture as the loop would
++                    const int q10_v = q10_skip_probe(move);
++                    const int q10_mc = qstc::vc(alpha - futility_base - capture_value(board, move));
++                    ++qstc::pf_pr[q10_qc][q10_mc];
++                    if (q10_v > alpha) ++qstc::pf_ms[q10_qc][q10_mc]; // MISSED: would have raised alpha
++                    if (q10_v >= beta) ++qstc::pf_cm[q10_qc][q10_mc]; // CUT-MISSED (part of MISSED)
++                    if (q10_v > futility_base + capture_value(board, move))
++                        ++qstc::pf_bd[q10_qc][q10_mc]; // beats the bound the skip writes into best_score
++                }
++#endif
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+                 continue;
+             }
+-            if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
++            if (!board.see_ge(move, -tune::QsSeeMargin)) {
++#if FORGE_QS_STEPS
++                // P_see: a SEE skip, by gives_check x kind (0:capture 1:promotion 2:capture+promotion)
++                // x captured piece (5:none for a non-capturing promotion)
++#if FORGE_QS_REGRET
++                if (!qstc::in_probe)
++#endif
++                ++qstc::p_see[q10_pv][q10_qc][gives_check ? 1 : 0]
++                             [move.is_capture() ? (move.is_promotion() ? 2 : 0) : 1][qstc::pc_of(board, move)];
++#endif
++#if FORGE_QS_REGRET
++                if (!qstc::in_probe && ++qstc::seen_see % qstc::N_SEE == 0) {
++                    // SEE-skip probe: search the skipped move as the loop would
++                    const int q10_v = q10_skip_probe(move);
++                    const int q10_g = gives_check ? 1 : 0;
++                    const int q10_k = move.is_capture() ? (move.is_promotion() ? 2 : 0) : 1;
++                    ++qstc::ps_pr[q10_qc][q10_g][q10_k];
++                    if (q10_v > alpha) ++qstc::ps_ms[q10_qc][q10_g][q10_k]; // MISSED: would have raised alpha
++                    if (q10_v >= beta) ++qstc::ps_cm[q10_qc][q10_g][q10_k]; // CUT-MISSED (part of MISSED)
++                }
++#endif
++                continue;
++            }
+         }
+ #if FORGE_SPD_PREFETCH_EARLY
+         std::uint64_t child_key = 0;
+@@ -1511,6 +1931,15 @@
+         record_move(ss, board, move);
+         Undo undo;
+         (void)board.make_move(move, undo);
++#if FORGE_QS_STEPS
++#if FORGE_QS_REGRET
++        if (!qstc::in_probe)
++#endif
++        ++qstc::m_searched[q10_pv][q10_qc][in_check ? 1 : 0]; // M_searched: a move made
++        ++q10_searched_n;
++        qstc::next_q = q10_q + 1; // C_self: the child frame is one q deeper
++        qstc::next_site = 3;
++#endif
+ #if FORGE_SPD_PREFETCH_EARLY
+         assert(!early_key || child_key == board.key());
+         if (!early_key) shared_.tt.prefetch(board.key());
+@@ -1529,12 +1958,30 @@
+                     std::copy_n((ss + 1)->pv.begin(), (ss + 1)->pv_length, ss->pv.begin() + 1);
+                     ss->pv_length = (ss + 1)->pv_length + 1;
+                 }
+-                if (score >= beta) break;
++                if (score >= beta) {
++#if FORGE_QS_STEPS
++                    // CUT: the fail-high break, by the cutting move's index among the
++                    // SEARCHED moves of this node (0:1st 1:2nd 2:3rd or later)
++#if FORGE_QS_REGRET
++                    if (!qstc::in_probe)
++#endif
++                    ++qstc::cut[q10_pv][q10_qc][q10_searched_n <= 1 ? 0 : q10_searched_n == 2 ? 1 : 2];
++#endif
++                    break;
++                }
+                 alpha = score;
+             }
+         }
+     }
+-    if (in_check && move_count == 0) return mated_in(ply);
++    if (in_check && move_count == 0) {
++#if FORGE_QS_STEPS
++#if FORGE_QS_REGRET
++        if (!qstc::in_probe)
++#endif
++        ++qstc::x_mated[q10_pv][q10_qc]; // X_mated: in check with no legal move
++#endif
++        return mated_in(ply);
++    }
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+ #if FORGE_SPD_TT_NOTLS
+@@ -1542,6 +1989,12 @@
+ #else
+     shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+ #endif
++#if FORGE_QS_STEPS
++#if FORGE_QS_REGRET
++    if (!qstc::in_probe)
++#endif
++    ++qstc::x_end[q10_pv][q10_qc]; // X_end: exit after the move loop
++#endif
+     return best_score;
+ }
+ 
+@@ -1550,10 +2003,22 @@
+ 
+ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+     const bool pv_node = beta - alpha > 1;
++#if FORGE_QS_REGRET
++    // A stand-pat probe re-enters here; consume the inhibit flag at the top so
++    // it can never leak into a sibling search. The four-step block tests it.
++    const bool q10_inhibited = qstc::q10_inhibit;
++    qstc::q10_inhibit = false;
++#endif
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;
+ 
+-    if (depth <= 0) return qsearch(board, ss, alpha, beta);
++    if (depth <= 0) {
++#if FORGE_QS_STEPS
++        qstc::next_q = 1;   // C_leaf: qsearch called from search at a leaf
++        qstc::next_site = 0;
++#endif
++        return qsearch(board, ss, alpha, beta);
++    }
+     // The frame is reused across siblings and same-ply verification searches.
+     // Keep this call's inherited path budget independent of those mutations.
+     const int inherited_double_extensions = (ss - 1)->double_extensions;
+@@ -1561,6 +2026,12 @@
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+     if (aborted_) return 0;
+     ++local_nodes_;
++#if FORGE_QS_STEPS
++#if FORGE_QS_REGRET
++    if (!qstc::in_probe)
++#endif
++    ++qstc::m0; // M0: a main-search node increment (a call that went to qsearch above is not one)
++#endif
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+     ss->move_count = 0;
+@@ -1628,6 +2099,11 @@
+                     depth = proposed;
+                     if (depth <= 0) {
+                         --local_nodes_;
++#if FORGE_QS_STEPS
++                        ++qstc::hind_dec;   // the decrement above (HindsightDepth off: never)
++                        qstc::next_q = 1;   // C_hind: qsearch from the HindsightDepth block
++                        qstc::next_site = 4;
++#endif
+                         return qsearch(board, ss, alpha, beta);
+                     }
+                 }
+@@ -1678,9 +2154,17 @@
+ #endif
+ 
+     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0 &&
+-        board.halfmove_clock() + depth < 100) {
++        board.halfmove_clock() + depth < 100
++#if FORGE_QS_REGRET
++        && !q10_inhibited // a stand-pat probe: razoring, reverse futility, null move, ProbCut off AT THIS NODE
++#endif
++        ) {
+         // Razoring: hopeless positions fall back to quiescence.
+         if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
++#if FORGE_QS_STEPS
++            qstc::next_q = 1;   // C_razor: qsearch called by razoring
++            qstc::next_site = 1;
++#endif
+             const int razor = qsearch(board, ss, alpha - 1, alpha);
+             if (aborted_) return 0;
+             if (razor < alpha) return razor;
+@@ -1762,6 +2246,10 @@
+ #if FORGE_SEARCH_SPEED2
+                 shared_.tt.prefetch(board.key());
+ #endif
++#if FORGE_QS_STEPS
++                qstc::next_q = 1;   // C_probcut: qsearch called by ProbCut
++                qstc::next_site = 2;
++#endif
+                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
+                     value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+@@ -2156,6 +2644,9 @@
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
+     null_blocked_ = false;
++#if FORGE_QS_STEPS
++    qstc::reset(); // one counter set per UCI search (Threads 1: only this worker runs)
++#endif
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+     root_history_index_ = board.history_size() - 1;
+@@ -2642,6 +3133,9 @@
+         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+         std::cout << "info string softnodes nodes " << result.nodes << std::endl;
+     }
++#if FORGE_QS_STEPS
++    qstc::search_nodes = local_nodes_; // I5: the search's own node count, for the sum command
++#endif
+     return result;
+ }
+ 
+@@ -2747,6 +3241,9 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#if FORGE_QS_STEPS
++    qstc::print(); // one QSTEPS counter line per UCI search
++#endif
+     return result;
+ }
+ 
