@@ -1,0 +1,28 @@
+MECHANISM — what I actually established, and the hypothesis I had to withdraw
+=============================================================================
+I proposed (first version of this file) that the difference between my boards (boundary moves with depth) and
+seat 25's board (boundary fixed at 99) was "whether the search can reach clock 100". I then TESTED it by
+stripping all 12 pawns from their board (raw/pawns_test.txt). The hypothesis is WRONG:
+
+| board                            | d4  | d6  | d8  | d10 |
+|----------------------------------|-----|-----|-----|-----|
+| seat 25's board (12 pawns)       | 97  | 99  | 99  | 99  |
+| the same board with 0 pawns      | 100 | 100 | 100 | 100 |
+
+The pawnless board is CONSTANT at 100, not depth-tracking. So removing the pawns did not reproduce my boards'
+behaviour; it made the boundary sit exactly at 100 at every depth. My "reach the counter" story does not survive
+its own test and is WITHDRAWN.
+
+What the measurements actually show, with no mechanism attached:
+ 1. Boundary behaviour is POSITION-DEPENDENT, not material-dependent and not depth-dependent in general:
+      - K+R vs K, K+Q vs K, K+B+B vs K (bare endgames): boundary falls ~1 per depth unit, counter+depth ~100-101
+      - seat 25's 21-piece middlegame: boundary 97 at d4, then flat at 99 for d6..d12
+      - the same middlegame with every pawn removed: flat at 100 for d4..d10
+ 2. So my S-F11 sentence "the boundary tracks counter+depth" is TRUE FOR THE BARE ENDGAMES I TESTED and FALSE as a
+    general statement. It must be read as scoped to those positions. S-F13's "material-independent" claim is also
+    too strong: K+B+B agrees with K+R/K+Q, but a middlegame does not, and a pawnless middlegame sits at 100.
+ 3. I have NO mechanism for any of this and I am not going to offer one. I did not read search.cpp.
+
+Consequence for the disagreement with seat 25: both observations are correct about their own positions and my
+earlier claim that they were "the same rule seen on boards of different mate distance" (S-F11) was an
+over-generalisation from three bare endgames. It is corrected in FINDINGS.md and REPORT_job2.md.

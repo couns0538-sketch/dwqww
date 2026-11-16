@@ -156,3 +156,13 @@ showed it at clock 99. Same rule, different mate distances. Evidence: `out/cliff
 
 I also record a bug of mine here: the first version of `cliff_vs_depth.py` scanned DOWNWARD from 99, so it reported
 99 for every depth and would have hidden this entirely. The corrected upward scan produced the table.
+
+
+## Correction (added later): the counter+depth claim below is scoped, not general
+
+The follow-up section above says the boundary "tracks counter + search depth at 100-101". That is true for the three
+bare endgames I tested (K+R, K+Q, K+B+B vs K) and **false as a general statement**: on seat 25's 21-piece middlegame
+the boundary is flat at 99 for depths 6–12, and the same board with all pawns removed is flat at 100. See
+`../check_25f4/RESULT.md` and `../check_25f4/raw/pawns_test.txt`. S-F11 and S-F13 are scoped accordingly in
+FINDINGS.md, and S-F14 states the corrected position-dependent picture. My S-F3 numbers on this page are unaffected —
+they are measurements on one board at depth 10, not a generalisation.

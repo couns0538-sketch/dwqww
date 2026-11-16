@@ -1,0 +1,23 @@
+exe: /tmp/build-rel/forge
+board (seat 25's, from their job2/clock99_nature.py BOARDS[0]): r4rk1/pp1b1ppp/4p3/3pP3/8/P3P3/1P2N1PP/R2R2K1 w - - 0 1
+
+First: does their exact number reproduce at the depth they imply?
+  clock  97 depth 10 -> cp -111, nodes=39666
+  clock  98 depth 10 -> cp -118, nodes=21897
+  clock  99 depth 10 -> cp 0, nodes=341
+  clock 100 depth 10 -> cp 0, nodes=0
+  clock 101 depth 10 -> cp 0, nodes=0
+
+Then: does the break MOVE with depth (my S-F11) or sit at 99 (their S-F4)?
+
+| depth | lowest clock scoring cp 0 | clock+depth | value just below |
+|---|---|---|---|
+| 4 | 97 | 101 | clock 96: cp -73 |
+| 6 | 99 | 105 | clock 98: cp -95 |
+| 8 | 99 | 107 | clock 98: cp -112 |
+| 10 | 99 | 109 | clock 98: cp -118 |
+| 12 | 99 | 111 | clock 98: cp -117 |
+
+If the boundary column is constant at 99 and clock+depth varies, seat 25's 'exactly at 99' holds.
+If the boundary falls as depth rises and clock+depth stays ~100, my S-F11 holds and their 'one ply
+early' was measured at one depth only.
