@@ -550,3 +550,26 @@ SEAT 13's S-F18 CONFIRMED (S-C19) — and it changes what the owner should be to
   (B) The GO_PARSE behavioural signature reproduces with a working control: malformed 'go wtime btime 50' gives PC 3 lines / depth 3 / 215 nodes vs base 1 line / depth 1 / 26 nodes (DIFFERS), while the well-formed 'go wtime 50 btime 50' is IDENTICAL on both builds (4 lines, depth 4, 404 nodes). So the difference is attributable to the parse fix rather than to build drift.
   THE POINT FOR THE OWNER (S-F66): what he runs is FIVE of the patch's seven fixes, not seven. The two that are off are off for measured reasons recorded in the patch itself, and the gentler BARE_KING_LMR_CAP replaces the first - but a reader who credits the PC build with 'seven fixes' credits it with two it does not have.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+### THE PC TREE'S REAL FIX COUNT — five of seven, verified on the source I built
+
+S-C19 / S-F66. Read from the source that produced my own PC binary, not from the patch text:
+
+| switch | default | location |
+|---|---|---|
+| `FORGE_FIX_ROOT_DRAWN` | **1** | `search.cpp:36` |
+| `FORGE_FIX_ISREADY_PENDING` | **1** | `uci.cpp:38` |
+| `FORGE_FIX_HARD_LIMIT_EMERGENCY` | **1** | `search.cpp:43` |
+| `FORGE_FIX_BARE_KING_LMR_CAP` | **1** | `search.cpp:63` |
+| `FORGE_FIX_GO_PARSE` | **1** | `uci.cpp:31` |
+| `FORGE_FIX_BARE_KING_ONE_THREAD` | **0** | `search.cpp:55` |
+| `FORGE_FIX_ABORT_PUBLISH` | **0** | `search.cpp:77` |
+
+Each off for a measured reason recorded in the patch itself, and `BARE_KING_LMR_CAP` (on) replaces the first.
+But **"the PC patch's seven fixes" is five in the binary the owner plays**, and that is worth saying wherever
+the r15 tree is described.
+
+The one behavioural half of that finding which needed a second seat: `GO_PARSE` reproduces **with a working
+control** — malformed `go wtime btime 50` gives PC 3 lines / depth 3 / 215 nodes against base 1 line / depth 1
+/ 26 nodes (differs), while the well-formed `go wtime 50 btime 50` is identical on both builds (4 lines,
+depth 4, 404 nodes). So the difference is the parse fix, not build drift.
