@@ -250,3 +250,19 @@ seed: 1601
 - next: the one genuinely open question left in my area — does the PSQT symmetrisation (which took hce
   differences to 0/334 on the BASE tree in S-C3) also remove the colour gap on the PC build? That needs the
   symmetrised table applied to the PC tree.
+
+## 2026-11-16T23:14Z
+- S-F25 CLOSES the area-6 line: symmetrising the PSQT table does NOT remove the colour score gap (11 cp median
+  shipped vs 19 cp symmetrised, 60 positions, PC20, Threads 1) even though the SAME change fixes the left-right
+  hce asymmetry completely (S-C3: 328/334 -> 0/334). So the two asymmetries are different phenomena:
+  left-right = the PSQT table (fixed); colour-mirror scores = the SEARCH (order dependence, does not shrink with
+  depth per S-F23, and the full-window root makes it worse per S-F8).
+- AREA 6 on the PC build is now covered end to end: asymmetry survives PC20 (S-F13), full 353-pair count
+  (S-F14), code-vs-settings attribution (S-F15), TtPruneV2 named as the move-mirroring lever (S-F20) and its
+  scope bounded (S-F22), mechanism transfers from the base tree (S-F21), the gap is depth-persistent (S-F23),
+  and the evaluation is ruled out as its cause (S-F25).
+- PC path also covered: softnodes determinism + overshoot (S-F16, S-F17), the 6s clock path reproducibility and
+  its 2.4-4.3 % clock usage across a 30x range (S-F18, S-F19), and the match node budgets with 0 illegal moves
+  in 120 searches (S-F24).
+- next: keep testing the PC path — the clock path across a sequence of moves in one process (does the
+  increment accumulate, does the engine's own clock bookkeeping drift).
