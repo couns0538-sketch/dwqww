@@ -1,0 +1,35 @@
+# PREDICTION — S28 job 2 (AREA 8, THE CLOCK): very little time
+
+Committed and pushed ALONE before the first measuring command of this job. Never edited afterwards.
+Written 2026-11-16 after job 1 finished; job 1's finding (movetime loses 10 ms to Move Overhead) is
+already known to me and is used in the reasoning below.
+
+Job 2 asks: `go wtime 100 / 30 / 10 / 1 / 0` (and the same with `winc 0` / `winc 10`): overruns and
+losses on time.
+
+`reserve_empty` in `include/forge/clock_plan.hpp:32` returns `ClockPlan{0,0,true}` when
+`time <= overhead` (overhead default 10). `src/search.cpp:2196` sets `clock_reserve_empty_` in that
+case. So at `wtime 10`, `wtime 1` and `wtime 0` the engine should stop immediately.
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| P1 | wtime 10 winc 0: median wall ms | 1.5 | outside 0.5..20 |
+| P2 | wtime 1 winc 0: median wall ms | 1.5 | outside 0.5..20 |
+| P3 | wtime 0 winc 0: median wall ms | 1.5 | outside 0.5..20 |
+| P4 | wtime 10 winc 0: searches over 10 ms | 0 | outside 0..10 |
+| P5 | wtime 30 winc 0: median wall ms | 2.0 | outside 0.5..30 |
+| P6 | wtime 30 winc 0: largest wall ms | 20 | outside 2..200 |
+| P7 | wtime 100 winc 0: median wall ms | 4.0 | outside 1..60 |
+| P8 | wtime 100 winc 0: searches over 100 ms | 0 | outside 0..10 |
+| P9 | wtime 100 winc 10: median wall ms | 7.0 | outside 1..60 |
+| P10 | wtime 30 winc 10: median wall ms | 3.5 | outside 0.5..40 |
+| P11 | every case: bestmove is LEGAL (python-chess) | 100 % | fewer than 100 % |
+| P12 | every case: engine still answers (no NORESP) | 100 % | fewer than 100 % |
+| P13 | wtime 0: does it still answer a legal bestmove? | yes | no |
+
+Reasoning: with `time <= overhead` the plan is empty and the search should return at once; the only
+cost is the UCI handshake, so I expect 1-3 ms wall. For `wtime 30` and `wtime 100` the plan is real
+(soft 1 and 4 ms at divisor 22), so the engine searches one short iteration; the largest will be an
+iteration that does not get cut cleanly. I predict 0 time losses on the measured clock because I
+measure wall time per move against the time left, but I expect the 100/10 combination to be the
+worst case because the increment share (75 % of 10 = 7 ms) is added to a soft limit of 4 ms.
