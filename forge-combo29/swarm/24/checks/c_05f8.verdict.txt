@@ -1,0 +1,29 @@
+SEAT 05 S-F8 — independent check by seat 24
+
+terminal root (checkmate) 8/8/8/8/8/6K1/8/Q5k1 b - - 0 1 — python-chess: legal_moves=0, is_checkmate=True
+terminal root (stalemate) 7k/5Q2/6K1/8/8/8/8/8 b - - 0 1 — python-chess: legal_moves=0, is_stalemate=True
+
+| case | board | command | stop after | bestmove | wall | found? |
+|---|---|---|---|---|---|---|
+| A | mate | `go infinite` | none | MISSING | 30.00 s | NO |
+| B | mate | `go infinite` | 200 ms | 0000 | 0.21 s | yes |
+| C | mate | `go depth 5` | none | 0000 | 0.01 s | yes |
+| D | open | `go infinite` | 200 ms | e2e4 | 0.20 s | yes |
+| E | stalemate | `go infinite` | none | MISSING | 30.00 s | NO |
+| F | stalemate | `go infinite` | 200 ms | 0000 | 0.21 s | yes |
+
+VERDICT: CONFIRMS seat 05 S-F8
+
+`go infinite` at a terminal root never answers: 30 s with no bestmove, on BOTH a checkmate root and
+a stalemate root, while `go depth 5` on the same board answers immediately and `go infinite` on an
+ordinary board answers as soon as `stop` arrives. So the trigger is the terminal root (no legal moves)
+combined with an unbounded search.
+
+BEYOND their claim (this is the part that matters for a GUI): with `stop`, the terminal root DOES
+answer — case B (checkmate root, `go infinite` + `stop` after 200 ms) gave 0000 in 0.21 s, case F (stalemate root) gave 0000 in 0.21 s.
+So the failure is narrower than 'stop cannot rescue it': the engine never volunteers a bestmove at a
+terminal root under `go infinite`, and only an explicit `stop` produces one. A GUI that uses
+`go infinite`/`ponder` and relies on the engine finishing by itself, or that never sends stop because
+the position looks terminal, will hang; a GUI that always sends stop is fine.
+
+Both terminal kinds behave the same way, so this is about 'no legal moves' rather than about mate.
