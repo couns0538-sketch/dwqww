@@ -1,0 +1,21 @@
+--- a/forge-combo29/src/board.cpp
++++ b/forge-combo29/src/board.cpp
+@@ -264,7 +264,7 @@
+         }
+     }
+     if (rank != 0 || file != 8 || kings[White] != 1 || kings[Black] != 1 ||
+-        (side != "w" && side != "b") || halfmove < 0 || fullmove < 1) {
++        (side != "w" && side != "b") || halfmove < 0 || fullmove < 0) {
+         if (error != nullptr) *error = "invalid FEN fields";
+         return false;
+     }
+@@ -349,7 +349,8 @@
+     candidate.castling_ = rights;
+     candidate.ep_square_ = static_cast<std::int8_t>(ep_square);
+     candidate.halfmove_ = static_cast<std::uint16_t>(std::min<long long>(halfmove, 65535));
+-    candidate.fullmove_ = static_cast<std::uint16_t>(std::min<long long>(fullmove, 65535));
++    candidate.fullmove_ = static_cast<std::uint16_t>(
++        std::min<long long>(std::max<long long>(fullmove, 1), 65535));
+     if (candidate.square_attacked(king_squares[opposite(parsed_side)], parsed_side)) {
+         if (error != nullptr) *error = "side that moved left its king in check";
+         return false;
