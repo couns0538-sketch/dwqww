@@ -292,3 +292,24 @@ honesty.sh
 raw_notls
 stamps.txt
 tt_probe_owned.cpp
+
+## 2026-11-16T22:04:49Z
+job17 done: book moves legal over 60 plies (16 book answers), matching decode_move's legal_moves() scan (07-C14). FIRST CONTROL WAS INCONCLUSIVE (removing the scan still passed because decoded moves happened to be legal); the valid control reverses from/to and fails at ply 0. Labeled honestly in the report.
+### git status --short
+ M FINDINGS.md
+ M STATUS.md
+?? REPORT_job17.md
+?? job17/
+### ls job17
+job17:
+book_moves.py
+raw
+raw_control
+run.txt
+stamps.txt
+
+job17/raw:
+transcript.txt
+
+job17/raw_control:
+transcript.txt
