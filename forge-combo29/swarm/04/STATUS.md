@@ -203,3 +203,11 @@ case missing). Both are in the findings file rather than quietly fixed.
   arrives in the same read batch as readyok). Corrected result: isready during a search is HARMLESS on both
   builds (PC: bestmove True, 21,600 nodes, 0.23 s; base: True, 22,459 nodes, 0.22 s). 19-F14 stands.
 NEXT: explosion numbers on PC20 (the last item on the coordinator's list).
+
+## 2026-11-16T23:06:11Z EXPLOSION ON PC20 — CROSSES THE 10x THRESHOLD, AS A TIME OVERRUN
+Extreme FEN, go depth 12, PC r15/PC20, fresh process per run:
+  Threads 1: 75,311 nodes, 0.030 s, IDENTICAL 6/6
+  Threads 4: 3.05M .. 125.4M nodes (max 1,665x T1); wall 0.21 s .. 7.13 s (max 238x T1); 5 distinct scores in 6
+File 6's D1 asks for "no bestmove within 10x the 1-thread time". Here bestmove DOES arrive but the worst run
+takes 238x, so it fails the 10x TIME criterion without being a literal hang. I state both readings.
+Scope: extreme lost position, bestmove f3f8 never varied, owner's PC is Threads 1 => threaded-use hazard only.
