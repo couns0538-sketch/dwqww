@@ -1,0 +1,31 @@
+# HONESTY CHECK — swarm seat 12
+
+Base commit: 6b98f2170a3210e71beed04bbd2553972c253ed7
+Build: Release, CMake 3.28.3, g++-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1), GCC's own libstdc++,
+`-O3 -ffp-contract=off -fno-fast-math -march=x86-64-v4`, `FORGE_PORTABLE` OFF (host has avx512f
+and bmi2; checked with `grep -o -m1 -E 'avx512f|bmi2' /proc/cpuinfo | sort -u`).
+exe: /home/ubuntu/build/release/forge
+sha256: e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+id name: see job0/honesty_uci.txt
+Machine: 4 cores (`nproc`).
+
+One fresh process per line; harness /home/ubuntu/honesty.sh, run as
+`bash ~/honesty.sh ~/build/release/forge`.
+
+| check    | required  | got       | verdict |
+|----------|-----------|-----------|---------|
+| bench 11 | 312866    | 312866    | PASS |
+| bench 13 | 862329    | 862329    | PASS |
+| bench 16 | 3024920   | 3024920   | PASS |
+| perft 5  | 4865609   | 4865609   | PASS |
+
+Raw output of the four runs is in `job0/honesty_raw.txt`. Conclusion: this build is used.
+
+## 2026-11-16T21:07Z build log
+Commands run (all from /home/ubuntu/build, outside the work tree):
+```
+cmake -S /agent/repos/base/forge-combo29 -B release -DCMAKE_CXX_COMPILER=g++-13 -DCMAKE_BUILD_TYPE=Release
+cmake --build release -j4        # EXIT=0, [100%] Built target forge
+```
+Note: the first CMake attempt failed with `ld: cannot find -lstdc++` because /usr/bin/c++ resolves
+to clang 18; the lock asks for GCC 13+, so the compiler was pinned with -DCMAKE_CXX_COMPILER=g++-13.

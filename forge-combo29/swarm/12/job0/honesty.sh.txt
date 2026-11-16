@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# honesty check: bench 11/13/16, go perft 5, one fresh process per line
+set -u
+EXE="$1"
+[ -x "$EXE" ] || { echo "no exe"; exit 2; }
+run() {
+  local tag="$1"; shift
+  printf '%s\n' "$@" > /tmp/hc_in_$tag.txt
+  "$EXE" < /tmp/hc_in_$tag.txt > /tmp/hc_out_$tag.txt 2>&1
+  echo "=== $tag ==="
+  grep -E "^(bestmove|Nodes searched|Total)" /tmp/hc_out_$tag.txt
+  tail -n 2 /tmp/hc_out_$tag.txt
+}
+run bench11 "bench 11" "quit"
+run bench13 "bench 13" "quit"
+run bench16 "bench 16" "quit"
+run perft5 "position startpos" "go perft 5" "quit"
