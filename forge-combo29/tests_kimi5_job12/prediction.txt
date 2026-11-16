@@ -1,0 +1,28 @@
+kimi5 job 12 prediction (committed before Step 1, never edited)
+
+T1/T2/T4/T7 against I2 (S14), set O, go depth 12. Ratio = nodes_sum(Tx) / nodes_sum(I2),
+I2 on O = 9,500,069. "Kill range" = the ratio dies (the prediction is wrong) if the
+measured ratio falls outside the given interval.
+
+Predicted ratios on O:
+  T1 (bit 1, reverse futility):  1.005   kill if outside [0.995, 1.020]
+  T2 (bit 2, quiescence):        1.030   kill if outside [1.005, 1.060]
+  T4 (bit 4, main search end):   1.020   kill if outside [1.000, 1.050]
+  T7 (all bits):                 1.055   kill if outside [1.020, 1.090]
+
+Direction (all four above 1): every blended value lies in [beta, raw], so a blend
+returns and stores a value closer to beta than today's. A lower bound that is lower
+is weaker: fewer TT cutoffs on re-visits, and at the parent a smaller returned score
+raises alpha less, so less pruning. More nodes, never fewer.
+
+Which bit changes the most best moves: bit 2 (T2), from the code:
+- Event frequency: the quiescence stand pat fires in every qsearch with a static
+  eval >= beta (job 10 measured 246 of 2,941 q frames at S14) and the blend takes
+  HALF the excess over beta every time, at every depth of every subtree. The stored
+  TT lower bounds (depth 0) shrink too and are re-read by later main-search probes.
+- Bit 4 fires on every non-PV main-search fail-high (also frequent), but its blend
+  keeps depth/(depth+1) of the excess: at depth 11 that is 11/12, so the per-event
+  change is small except at depth 1-2, far from the root.
+- Bit 1 fires least: under S14 the reverse-futility guard is depth <= RfpDepth = 1,
+  and only at non-PV nodes not in check, so few events, all near the leaves.
+So: most best moves changed by T2, fewest by T1.
