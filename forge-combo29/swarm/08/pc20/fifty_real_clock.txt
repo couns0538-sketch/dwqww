@@ -1,0 +1,28 @@
+## The H=91 case at the owner's real clock (6 s + 0.06), PC r15, PC20, Threads 1
+
+| H | run | depth reached | wall ms | nodes | score | bestmove | deep (depth 20) bestmove | move degraded? |
+|---|---|---|---|---|---|---|---|---|
+| 0 | 1 | 22 | 307.8 | 1,511,379 | mate 8 | d5b5 | d5b5 | — |
+| 0 | 2 | 21 | 269.8 | 1,283,871 | mate 8 | d5b5 | d5b5 | — |
+| 0 | 3 | 21 | 271.5 | 1,283,871 | mate 8 | d5b5 | d5b5 | — |
+| 91 | 1 | 10 | 814.3 | 7,251,835 | cp 0 | d5a5 | d5a5 | NO |
+| 91 | 2 | 10 | 807.1 | 7,251,835 | cp 0 | d5a5 | d5a5 | NO |
+| 91 | 3 | 10 | 835.5 | 7,251,835 | cp 0 | d5a5 | d5a5 | NO |
+
+## Verdict
+
+| question | H=0 | H=91 |
+|---|---|---|
+| depth reached on the 6 s clock | 22, 21, 21 | 10, 10, 10 |
+| wall ms | 308, 270, 272 | 814, 807, 836 |
+| bestmove | d5b5, d5b5, d5b5 | d5a5, d5a5, d5a5 |
+| score | mate 8, mate 8, mate 8 | cp 0, cp 0, cp 0 |
+| deep (depth 20) reference bestmove | d5b5 | d5a5 |
+
+| quantity | value |
+|---|---|
+| worst wall at H=91 | 836 ms |
+| runs at H=91 exceeding the 6000 ms clock | **0 of 3** |
+| H=91 bestmove == depth-20 reference | **3 of 3** |
+
+**CLOSED AS A COST TIME MANAGEMENT ABSORBS.** On the owner's clock the H=91 board never approaches the 6 s limit and plays the same move as a depth-20 search, so the 43M-node case does not degrade the move — the time manager simply stops at a shallower depth.
