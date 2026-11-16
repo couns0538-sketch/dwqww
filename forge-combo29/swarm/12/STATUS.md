@@ -50,3 +50,14 @@ repeated with those counters.
 
 Now running: that repeated job-1 run (2,000 sequences, ASan+UBSan), then area 2 job 2 (races).
 Next command: `bash forge-combo29/swarm/12/job1/run_job.sh /home/ubuntu/build/asan/forge /tmp/seqs /home/ubuntu/build/job1out3 asan_2000` (already running; after it, `python3 forge-combo29/swarm/12/job1/races.py /home/ubuntu/build/asan/forge /home/ubuntu/build/job2out 40`).
+
+## 2026-11-16T21:52Z — MERGE INSTRUCTION (seat 27 composition)
+
+Seat 27's drawn_root_reporting.patch.txt touches the same root_drawn block as mine. Measured on
+clean 6b98f217 trees: seat 12 first then seat 27, or the reverse, BOTH apply clean with no fuzz
+and give a byte-identical search.cpp (sha256 24912a43…), so order cannot silently drop a fix.
+diff -u between the two trees is empty. Correction to seat 27's note: my patch is -p1 from the
+repo root, not -p2 (-p2 fails). Composed build honesty 4/4 unchanged; on seat 27's board
+6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 100 60 the base plays f2f3 / cp 0 / 0 nodes and the composed
+tree plays a1a8 / mate 1 / 252 nodes. Details: job1/integration/MERGE_INSTRUCTION.md,
+job1/integration/compose_hashes.txt, job1/integration/compose_table.txt.

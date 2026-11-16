@@ -126,10 +126,24 @@ def one_case(exe, go_line, interrupt, delay_ms):
             rec["exit"] = rc
             rec["bestmove"] = bm[-1].split()[1] if bm else None
         else:
-            bm_line = eng.wait_for(lambda l: l.startswith("bestmove"), 10.0)
+            # `ponderhit` on a search that was NOT started with `go ponder` must do nothing:
+            # the search has to keep running. Give it a short window, then ask for the stop.
+            window = 2.0 if interrupt == "ponderhit" else 10.0
+            bm_line = eng.wait_for(lambda l: l.startswith("bestmove"), window)
             rec["bestmove"] = (bm_line.split()[1]
                                if bm_line and bm_line != "TIMEOUT" else None)
             rec["no_bestmove"] = bm_line in (None, "TIMEOUT")
+            if rec["no_bestmove"] and interrupt == "ponderhit":
+                # expected, and it is the interesting half of the check: the search survived
+                # a ponderhit it had no business ending. Now stop it the normal way.
+                rec["ponderhit_did_not_stop_search"] = True
+                eng.send("stop")
+                bm2 = eng.wait_for(lambda l: l.startswith("bestmove"), 10.0)
+                rec["bestmove_after_stop"] = (bm2.split()[1]
+                                              if bm2 and bm2 != "TIMEOUT" else None)
+                if rec["bestmove_after_stop"]:
+                    rec["bestmove"] = rec["bestmove_after_stop"]
+                    rec["no_bestmove"] = False
             # the engine must still answer isready afterwards
             eng.send("isready")
             ready = eng.wait_for(lambda l: l == "readyok", 10.0)
