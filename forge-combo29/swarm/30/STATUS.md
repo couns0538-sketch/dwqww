@@ -280,3 +280,56 @@ Reports: `REPORT_job2.md`, `REPORT_job3.md`, `REPORT_check1.md`, `REPORT_check2.
 
 **Important qualification, found after the patch was packaged (30-F48/F49)**: the repair fixes the per-depth COST but NOT the clock symptom. At Hash 2048 / MPV 3, `go wtime 5000` is depth 1 on both builds. The real owner-facing number is a Hash THRESHOLD: under a clock at MPV 3, Hash 16 MB -> depth 14 / 280,100 nodes, 256 MB -> depth 7, **512 MB -> depth 1 / 220 nodes** while wall time RISES (276 -> 535 -> 1,310 ms) with 10.5 GB free — table work, not memory pressure. Rule: **at MultiPV > 1 keep Hash at 256 MB or below** (holds on shipped and patched). 30-C34/30-C35 also record that both MultiPV 1 controls are provably identical between builds (3 repeats).
 **Next command**: `cd /agent/repos/dwqww && bash forge-combo29/swarm/30/read_board.sh /tmp/board13` for the next unconfirmed finding.
+
+## Mon Nov 16 11:28 UTC 2026 — FINAL (tonight's close; the run continues to 2026-11-17 10:18 UTC and a fresh FINAL will be written then)
+
+### HEADLINE — the Hash setting that decides whether MultiPV analysis works at all
+
+**This is the table to look at before an analysis session.** PC r15, MultiPV 3, `go wtime 5000`,
+Threads 1, one middlegame, **5 fresh processes per cell** (every setoption confirmed by `readyok`):
+
+| Hash | SHIPPED build: depth | nodes (5 runs) | wall ms | PATCHED build: depth | nodes | wall ms |
+|---|---|---|---|---|---|---|
+| 16 MB | **14, 14, 14** | 280,100 flat | 268–273 | 14, 14, 14 | 157,966 flat | 169–170 |
+| 256 MB | **7, 5, 10** ← erratic | 5,395 / 1,773 / 24,856 | 239–346 | **13, 13, 13** | 106,863 flat | 215–226 |
+| 512 MB | **1, 1, 1, 1, 1** | 220 flat | 267–274 | **12, 12, 12, 12, 12** | 71,070 flat | 271–274 |
+| 2048 MB | **1, 1, 1, 1, 1** | 143–220 | 1310 | 1, 1, 1, 1, 1 | 202 flat | ~390 |
+
+Read it this way: on the **shipped** build, MultiPV 3 loses **13 plies** between 256 MB and 512 MB
+and never recovers, while the **wall time RISES** as the node count collapses (268 ms at depth 14,
+1,310 ms at depth 1) with 10.5 GB free — it is time burned zeroing the table, not memory pressure.
+**Practical rule for the shipped engine: at MultiPV > 1 keep Hash at 256 MB or below** (and expect
+instability right at 256: depth 7/5/10 on identical runs). **On the patched build the ceiling rises
+to 512 MB (depth 12, stable)** and above it MultiPV > 1 still collapses on a clock.
+
+### THE PATCH — worth shipping on its measured merits, with its scope stated
+
+One statement deleted at `src/search.cpp:2879`: the per-PV-line `alt_shared->tt.clear()`, which walked
+every cluster once per extra line per depth. It is redundant because the alternative lines already own
+a separate table (`alt_shared = make_unique<SharedSearchState>(hash_mb)` at `:2730`) and every search
+calls `tt.new_search()`.
+- **Passes the full honesty gate:** bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609 — all unchanged.
+- **Measured speed:** the same eight cells at Hash 1024 are **2.0x–4.2x** faster (MultiPV 3, depth 12: 2,274.4 ms → 542.6 ms), with the per-depth growth gone.
+- **Raises the usable Hash ceiling** from ~256 MB to 512 MB (30-C36).
+- **Leaves MultiPV 1 provably untouched:** identical score/nodes/bestmove, 3 repeats (30-C35).
+- **Correctness:** MultiPV still returns three distinct, legal first moves (30-C32).
+- **Not claimed:** it does not make MultiPV > 1 usable at 2 GB under a clock (still depth 1).
+- Patch text with a reviewer checklist in its header: `check6/ttclear_no_alt_clear.patch.txt` (`patch -p1 --fuzz=0`, rc=0 verified).
+- **Ruled out:** the tempting one-liner (replace `clear()`'s body with a generation bump) is 2.1x–4.9x faster but **moves bench 16 to 3,030,186** — a generation bump makes entries *old*, not *unprobeable*, which a 5-bit generation cannot express (30-C29/C30).
+
+### My finds, with state
+1. **30-F48/C36/C37 + F47/C28/C31/C32** — the MultiPV/Hash item above. **Open** (needs a seat to confirm the patch). PC r15, PC20, Threads 1.
+2. **30-F25/F26/F28 + C25** — malformed `go nodes` line = **no node limit** (207,603,225 nodes, no move); repaired on the PC build, all three answering in 0.00 s under full PC20. **Open.** `NOTE_go_nodes_budget.md`: a harness must never send a node budget not validated as a positive integer.
+3. **30-C18/C19** — seat 20's 0-node answer: **CONFIRMED** (3/36 under load, Hash 2048/MPV 3).
+4. **30-C1/F7/F8** — halfmove-100 mate missed, side-blind: **CONFIRMED by seat 21 (21-C3)**; repaired on the PC build.
+5. **30-F33/F34/F38** — six lone-king boards never find a provable mate at depth 24 (5 of 6 KRvK); the PC build finds all six. **Partly confirmed** (a seat's S-C13).
+6. **30-F29/F31/F36/F40** — mate-reporting rates: base plateaus 16/40 → 21/40; PC 27/40 → 31/40. **Open.**
+7. **30-F35/F43** — the fifty-move draw is invisible below depth 9. **CONFIRMED by seat 17 (S-C15).**
+8. **30-C26/F46** — seat 23's budget sensitivity: confirmed, 11/60 = 18.3 % on my own positions (theirs 27–30 %).
+9. **30-F13/14/15/17/F27/C11/C13** — methodology: my job-2 numbers were contaminated by 19-F12 and are **retracted and superseded**; `ucinewgame` restores cold exactly (three-way control).
+10. **30-F1..F5, F10..F12** — helper recounts: deepseek6's long56 report contradicts its own raw file and its legality check is dead code (result nonetheless true); glmflash5's 15 numbers exact.
+
+### My confirmations of other seats
+**08-F18** (+the OwnBook trap) · **24-F14**, **24-F16** (applied and built the patch) · **15-F24**, **15-F25** (built the split fix, both settings, pins unchanged) · **15-F30** (`nodes` hard ceiling 0/15, `softnodes` overshoots 14/15).
+Reports: `REPORT_job2.md`, `REPORT_job3.md`, `REPORT_check1.md`, `REPORT_check2.md`,
+`REPORT_pc_multipv.md`, `REPORT_pc_repairs.md`, `NOTE_go_nodes_budget.md`.
