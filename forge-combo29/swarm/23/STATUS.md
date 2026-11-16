@@ -945,3 +945,19 @@ good plies that followed, and the engine then searches a different game without 
 Every number on the page was re-checked against the raw files before pushing (refused_readyok.out, s57.out,
 gui_defence.out) — the assert-your-quotes habit applied to a page rather than to a harness.
 76 findings, 18 confirmations. 10 h 25 m remain.
+## 2026-11-16T23:55:00Z  23-F54: the clock path is deterministic - my 30 % instability is node-budget only
+2026-11-16T23:55:00Z
+
+20 fresh quiet positions, PC r15 + PC20, go wtime 6000 btime 6000 winc 60 binc 60 in TWO independent
+processes: SAME MOVE on all 20 (0 disagreements). Same positions under go nodes 20000 / 250000 differ from
+the clock on 4 and 2 respectively, and from each other at the ~30 % rate of 23-F24.
+
+So the instability is a property of the NODE-BUDGET path (self-play), not the CLOCK path (strength matches):
+  - a clock match has no per-move lottery of this kind, so 23-F24 does NOT undermine match results;
+  - a comparison run on node budgets is not reproducible move-for-move;
+  - results from the two paths are not interchangeable evidence.
+One board gave three different moves across the three paths (clock e7e5, nodes20000 d7d5, nodes250000 a7a5).
+All four predictions held. Limit: 20 positions, one clock setting; the clock was not swept.
+
+Also: GUI_HAZARDS.md now opens with 'the owner's match program is unaffected', as ordered.
+77 findings, 18 confirmations. 10 h 24 m remain.
