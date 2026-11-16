@@ -34,12 +34,12 @@ S14 = [("Threads", 1), ("LmrQuietBase", 93), ("LmrQuietDivisor", 205), ("LmrNois
 FEN = "1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b - - 0 1"
 
 
-def cell(opts, go, runs=10):
+def cell(opts, go, runs=10, ready_timeout=20.0):
     out = []
     for _ in range(runs):
         e = Engine(PC, opts=list(opts))
         try:
-            e.position(FEN)
+            e.position(FEN, ready_timeout=ready_timeout)
             r = e.search(go, 90)
         finally:
             e.close()
@@ -70,14 +70,14 @@ res["collapsed_idle"] = summarize("Hash2048+MPV8 collapsed", cell(COLLAPSED, GO)
 res["healthy_idle"] = summarize("Hash16+MPV1 healthy", cell(HEALTHY, GO))
 print()
 
-print(f"== UNDER LOAD: {HOGS} busy-loop processes")
+print(f"== UNDER LOAD: {HOGS} busy-loop processes (isready timeout raised to 120s: the engine is starved, not hung; the 19-F12 discipline is unchanged — we still refuse to continue without a readyok)")
 hogs = []
 try:
     for _ in range(HOGS):
         hogs.append(subprocess.Popen([sys.executable, "-c", "while True: pass"]))
     time.sleep(0.5)
-    res["collapsed_load"] = summarize("Hash2048+MPV8 collapsed", cell(COLLAPSED, GO))
-    res["healthy_load"] = summarize("Hash16+MPV1 healthy", cell(HEALTHY, GO))
+    res["collapsed_load"] = summarize("Hash2048+MPV8 collapsed", cell(COLLAPSED, GO, ready_timeout=120.0))
+    res["healthy_load"] = summarize("Hash16+MPV1 healthy", cell(HEALTHY, GO, ready_timeout=120.0))
 finally:
     for h in hogs:
         h.kill()

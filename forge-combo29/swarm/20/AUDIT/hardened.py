@@ -70,16 +70,16 @@ class Engine:
             time.sleep(0.002)
         return self.since(k), False
 
-    def isready(self):
+    def isready(self, timeout=20.0):
         self.send("isready")
-        _, ok = self.expect("readyok", 20.0)
+        _, ok = self.expect("readyok", timeout)
         if not ok:
             raise RuntimeError("no readyok — refusing to continue (19-F12 discipline)")
 
-    def position(self, fen):
-        self.isready()
+    def position(self, fen, ready_timeout=20.0):
+        self.isready(ready_timeout)
         self.send(f"position fen {fen}")
-        self.isready()          # position has no answer; this isready is the readback
+        self.isready(ready_timeout)   # position has no answer; this isready is the readback
 
     def move_list(self, start_fen, moves):
         self.isready()
