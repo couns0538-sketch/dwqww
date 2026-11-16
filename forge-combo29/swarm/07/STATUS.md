@@ -265,3 +265,17 @@ gives_check_probe.cpp
 gives_check_run_control.txt
 gives_check_run.txt
 stamps.txt
+
+## 2026-11-16T21:59:19Z
+job15 done: TT invariants 4/4 held (07-C12). Second blind-control kind caught: a header-planted fault needs search.cpp REBUILT, not just the test file -- linking the prebuilt .o silently defeated my first control.
+NOTE: this probe covers the LOCKED path (FORGE_SPD_TT_NOTLS=0); the shipped build uses 1 and is unprobed.
+### git status --short
+ M FINDINGS.md
+ M STATUS.md
+?? REPORT_job15.md
+?? job15/
+### ls job15
+stamps.txt
+tt_probe.cpp
+tt_run_control.txt
+tt_run.txt
