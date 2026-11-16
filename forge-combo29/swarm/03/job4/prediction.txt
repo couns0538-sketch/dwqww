@@ -1,0 +1,32 @@
+PREDICTION — seat 03, job 4: THE SAME PERFT SETS ON THE PC (r15) BUILD vs THE BASE BUILD
+
+The owner's first job for my area: perft does not depend on the evaluation, so the numbers should transfer to the PC
+build directly. This measures it.
+
+Sets (all already on my branch, each a position set I have used):
+  A. J1  5,000 R, SEED 301            (job1/set_R.fens)             base result: job1/eng_R.json
+  B. J1b 5,000 R, SEED 311            (job1b/set_R311.fens)         base result: job1b/eng.json
+  C. J2  314 special positions        (job2/set_special.tsv col 3)  base result: job2/eng_special.json
+  D. J3  230 positions (200 R + 30 G) (job3/set_all230.fens)        base result: job3/eng.json
+E = en-passant pin set, 320 constructed (job2/ep_constructed.tsv col 3) - base: 320/320 vs python-chess.
+Builds: base /home/ubuntu/build-rel/forge (sha256 68825bd5...) vs PC r15 /home/ubuntu/build-pc/forge.
+Settings: default options, `ucinewgame` + `isready` before every `go` (perft takes no search settings; S14/PC20 only
+change search options, and I still send them in a second pass for one set to test that they do not disturb perft).
+
+Predicted values, each with the range that kills it:
+1. Positions where the PC build's perft 1..4 differs from the base build's: predicted 0, on all 5,314 positions of
+   A-D.   KILL: >= 1 position differing at any depth.
+2. Differing (position, depth) pairs: predicted 0.   KILL: >= 1.
+3. Perft-4 sum on set A: predicted exactly 2,196,757,662 (identical to base).   KILL: any other value.
+4. Perft-5 sum on set D: predicted exactly 3,925,995,728 (identical to base).   KILL: any other value.
+5. Class-B ep pins on the PC build: predicted 320/320 agreement with python-chess, i.e. the pinned ep capture is
+   still never generated.   KILL: >= 1 disagreement. (This is the one perft-like area where a "fix" switch could
+   plausibly have changed move generation, since FORGE_FIX_BARE_KING_* touches lone-king endings.)
+6. With PC20 settings sent (S14 + CuckooRep/HistRework/TtPruneV2/CorrHistV2/MateAlphaGuard/OwnBook), perft 4 on
+   set A: predicted still exactly 2,196,757,662.   KILL: any other value — that would mean a search option leaks
+   into move generation.
+7. PC build bench numbers: predicted all eight published values match (already measured: 8/8 MATCH).
+   KILL: any mismatch.
+8. Crashes / refused FENs / error lines on the PC build across A-D: predicted 0 each.   KILL: >= 1.
+9. Wall time ratio PC/base for perft on set A: predicted 0.9 to 1.1 (the patch does not touch the move generator, so
+   only noise and any effect of the new b4.hpp code being linked in).   KILL: outside 0.5..2.0.
