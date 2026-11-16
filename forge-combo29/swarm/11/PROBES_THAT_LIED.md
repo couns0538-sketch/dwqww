@@ -190,7 +190,11 @@ Compute how many hits your sample should have produced at the effect size you ar
 number is below about 5, your null is uninformative and you should say so rather than claim absence.
 (S-F92)
 
-**Trap 8 — a node count under a CLOCK stop is not a deterministic quantity.** I reported that
+**Trap 8 — a node count under a CLOCK stop is not a deterministic quantity.** This is **not confined to
+the narrow clock band** where I first found it: the same instability appears in a completely different
+command form, `go movetime 50`, where five repeats of one binary gave node counts of **47,601 and
+69,531**. So the rule generalises — anywhere a node budget is expressed as a *time*, the resulting node
+count is not a quantity the engine controls and must not be quoted as a result. I reported that
 `FORGE_FIX_HARD_LIMIT_EMERGENCY` made a near-expired clock deterministic, because one sweep showed the
 shipped build stable at 601 nodes 5 of 5 while the switch-off build was not. A second seat repeated the
 grid and then repeated each *differing value* eight times per build, and the correction is decisive: at
