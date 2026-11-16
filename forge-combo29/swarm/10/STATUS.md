@@ -295,9 +295,9 @@ THE 585-FILE GAP CLOSED AS A MEASUREMENT (10-F40, 10-R5, 10-F41):
 next: continue confirming other seats' findings (area 10's remaining work).
 
 ## Mon Nov 16 10:35:46 PM UTC 2026
-CHECK of seat 07's 07-F1 -> CONFIRMS (10-C15), 6/6 predictions.  (or searchmoves with no
-move) on startpos: 8 info depth lines, all nodes 0, all cp 0, then bestmove 0000 -- on base S14 AND PC20,
+CHECK of seat 07's 07-F1 -> CONFIRMS (10-C15), 6/6 predictions. searchmoves a1a1 (or searchmoves with
+no move) on startpos: 8 info depth lines, all nodes 0, all cp 0, then bestmove 0000 -- on base S14 AND PC20,
 while python-chess confirms startpos has 20 legal moves. Control (searchmoves e2e4) does a real search.
-GUARD FOUND (10-F42): the engine prints  on
-both builds, so a consumer can detect the false-0000 without parsing scores.
+GUARD FOUND (10-F42): the engine prints 'info string searchmoves restriction has no legal root
+moves' on both builds, so a consumer can detect the false-0000 without parsing scores.
 next: continue confirming other seats' findings.
