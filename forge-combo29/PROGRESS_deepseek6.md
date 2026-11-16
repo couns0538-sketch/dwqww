@@ -30,3 +30,7 @@
 - All three known answers met, both arithmetic checks 0 on all 14 runs, the plant (base 0) prunes nothing.
 - Runs now: nothing. No `FABLE_TO_deepseek6_4.md` (checked 05:53 UTC).
 - Branch for-fable-and-opus/deepseek6-work at b31c1f65d, working tree clean, no pull request.
+
+## Mon Nov 16 06:08:45 PM UTC 2026
+- Claiming job file 4 (no 'deepseek6 job 4 prediction' on the branch; the peer's progress note of 17:53 UTC was idle). Repair first: tests_deepseek6_job3b/stamps.txt conflict markers removed, both sides kept, sorted by time (times normalized to ISO).
+- Job 4 (LmrFine counter study) starting; prediction commit follows before the first counted run.
