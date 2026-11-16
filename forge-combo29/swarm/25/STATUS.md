@@ -1,3 +1,21 @@
+## 2026-11-16T22:23Z — PC build integrated; coordinator's three tasks done
+
+Built PC r15 from FABLE_TO_swarm_5 (patch sha256 matches, no rejects, -DFORGE_MATE_ALPHA_GUARD=1).
+All three rows of file 5's honesty table reproduce exactly (312866/862329/3024920/4865609;
+242796/656517; 278024/587276). Read files 3, 4, 5.
+
+Coordinator's three tasks, all answered:
+1. REACHABILITY: PROVEN by a legal 99-ply list (reach.txt, verify_walk.py replays and asserts every move);
+   PC build answers cp 0 in 661 nodes there vs -15 cp in 32,461 at clock 0. (S-F11)
+2. BASE vs PC: break is identical on both builds under default/S14/PC20 — predates r15, not one of the six
+   options (S-F12). Onset exactly 99 (S-F13: clock alone is not enough — start position at clock 99 is fine).
+   Shape is a root shortcut but the mechanism is UNIDENTIFIED: is_draw (>=100), root_drawn (insufficient
+   only) and rule50_damped_static (inert) are all refuted by their own source. Recorded, not guessed (S-F14).
+3. Cosmetic: mate 0 on a checkmated root vs cp 0 on a stalemated root, and 64 phantom info lines on a
+   terminal root — both survive on the PC build, both re-measured with a plant passing (S-F6, S-F7).
+
+Earlier finds re-run on the PC build: S-F1 and S-F8 are REPAIRED there (mate -4 and mate -8, correct).
+Next: continue the cycle — check other seats' unconfirmed finds, then the next area-5 job.
 ## 2026-11-16T22:18:48Z CONTINUE: 12 more hours, ends at 2026-11-17T10:18:48Z
 
 Resuming under the owner's 12-hour continuation. Seat 25 unchanged (area 5, PVs and scores).
