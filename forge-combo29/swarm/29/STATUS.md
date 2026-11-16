@@ -124,3 +124,10 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Apply-path note for other seats: the patch paths are a/include/... relative to forge-combo29/, so patch -p1 must run INSIDE forge-combo29/ (or git apply --directory=forge-combo29 from the root); running from the repo root without the hint fails at file 2.
 - Files 4 and 5 read. File 4 confirms my 29-F6 independently (defaults give O depth12 = 12,573,318, exactly my control).
 - next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && python3 job2/rows_sum.py ~/build/pc/forge job2/O.fens 12 S14   (check the PC build reproduces the S14 sums)
+
+## Mon Nov 16 10:27:15 PM UTC 2026
+- 29-F17: FIRST profile of the PC build under PC20 (Threads 1, 200 random-game positions, depth 12): evaluate_position 14.19, Worker::search 12.54, apply_and_evaluate 9.46, pick_best 7.24, next 6.01, probe_body 5.61, corrected_eval 5.11, see_ge 4.05, qsearch 3.95, fill_pseudo_legal 2.09.
+  -> The pick_best > next ordering from my 29-F10 random-game result REPRODUCES on the PC build (7.24 vs 6.01).
+  -> probe_body 5.61% is HIGHER than either base-tree figure I had (1.38 bench / 3.65 deep), so my TT patch targets a hotter path on the PC build than my base measurements suggested.
+- 29-F18: the PC build reproduces the S14 O depth-12 sum EXACTLY (9,500,069), so S14 numbers are comparable across both builds.
+- next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: PC20 profile F17 + S14 sum reproduced on PC build F18' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
