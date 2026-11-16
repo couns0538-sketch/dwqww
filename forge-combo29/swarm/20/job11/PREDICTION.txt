@@ -1,0 +1,36 @@
+# PREDICTION — seat 20, area 10, job 11 (check of seat 05's S-F3)
+
+Committed alone BEFORE the first measuring command. Never edited afterwards.
+
+Subject (seat 05, S-F3): "The fifty-move draw is applied about 9 plies early: `1K6/8/8/3R4/8/8/8/k7 w - - H 1`
+at `go depth 10` scores `cp 472` for H=0..75, `cp 314` at H=90, then exactly `cp 0` from H=91."
+
+This is a claim about the halfmove counter value at which the ROOT score becomes 0. It sits beside my own S-C1
+(seat 01's S-F5), where the root shortcut fired at exactly 100 on a MATE-IN-ONE board. Both can be true: the root
+shortcut needs the counter at 100, while a search may score a drawn position 0 earlier because it can SEE the
+fifty-move horizon inside the tree.
+
+I test with my own positions and my own harness. Two classes:
+  (a) seat 05's kind of position: K+R v K, no mate possible within the horizon, no forcing line.
+  (b) a MATING position (mine), where the root shortcut is the binding rule.
+
+Predictions:
+1. On a K+R v K board like theirs, the score becomes exactly 0 at a counter value BELOW 100 — I predict somewhere
+   in 90..99 depending on the board — i.e. seat 05's qualitative claim (early zero) holds.
+   KILLED IF: the score is non-zero at every counter 0..99 and only becomes 0 at 100.
+
+2. The early zero is NOT the root shortcut: at the counter value where the score first becomes 0, the engine still
+   searches (nodes > 0 and a non-empty pv), unlike the root shortcut which reports 0 nodes and an empty pv.
+   KILLED IF: the first-zero case has 0 nodes and an empty pv (then it is the root shortcut and the threshold must
+   be 100 — which would mean my S-C1 and their S-F3 measure different things).
+
+3. The exact onset value depends on the position (how deep the fifty-move horizon is from the leaves), so two
+   different K+R v K boards need not switch at the same counter. I predict at least two distinct onset values
+   across my boards. KILLED IF: every board switches at the same counter.
+
+4. On a mate-in-one board the switch is at exactly 100, not earlier (my S-C1 reproduced): the mate is visible at
+   depth 1, so nothing can make it a draw before the counter reaches 100.
+   KILLED IF: my mate board goes to cp 0 at a counter below 100.
+
+5. Verdict shape: I expect to CONFIRM seat 05's S-F3 and to state plainly that it is a different mechanism from
+   S-C1, because prediction 2 (nodes > 0) will hold.
