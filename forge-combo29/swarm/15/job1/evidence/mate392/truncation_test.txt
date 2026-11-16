@@ -1,0 +1,21 @@
+QUESTION: is the depth-12 S14 PV (score mate -12, 18 plies, does NOT end in checkmate)
+just a TRUNCATED PV, or is the SCORE wrong?
+
+Convention check (from the other mate positions of the same run): score mate -N with
+N>0 means the side to move is mated in N moves = 2N plies; mate +N means 2N-1 plies.
+
+root FEN                     8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1   (WHITE to move)
+engine, S14, depth 12        score mate -12   => claims 24 plies = 12 moves
+PV plies printed             18
+position after those 18     8/8/1p6/8/p7/3kp3/1K6/3q4 w - - 14 10
+  -> brute force (matedbf, no pruning) says that position is MATED_IN_PLIES 4
+  -> so the printed PV line reaches mate after 18+4 = 22 plies, not the 24 it claims
+
+truth from the root          MATED_IN_PLIES 8   (brute force, no pruning)
+                             MATED_IN_PLIES 8   (alpha-beta solver)
+  => the correct score is mate -4 (8 plies = 4 moves), the engine says mate -12.
+
+CONCLUSION: not a truncation artefact. A truncation of the PV could at most make the
+printed line short; it cannot make the VALUE 8 moves more pessimistic than the value
+of the same line. The engine's mate distance for this position is wrong by 8 moves,
+and the mate score sits next to a PV that does not reach mate inside its own claim.

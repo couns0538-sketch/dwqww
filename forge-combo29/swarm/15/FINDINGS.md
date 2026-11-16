@@ -1,0 +1,2 @@
+| 15-F1 | 5 | Search reports `score mate -12` at depth 12 S14 on 8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1 where the true distance is mate in 8 plies (mate -4); its PV stops after 18 plies in a position still 4 plies from mate | job1/evidence/mate392/ | NEW |
+| 15-F2 | 5 | In 553 positions at depth 12 S14, 9 of 10 mate scores obey the brief's PV-length rule and 1 violates it (idx 392, mate -12 with an 18-ply PV); no illegal PV move and no bestmove/PV-first disagreement occurred | job1/evidence/mate392/pvlen_rule.txt | NEW |

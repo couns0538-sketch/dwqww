@@ -1,0 +1,32 @@
+# HARNESS AUDIT after seat 19's broadcast (19-F12), Mon Nov 16 09:34:17 PM UTC 2026
+
+Claim: piping quit / closing stdin during a search yields a fabricated bestmove (a2a3, 0 nodes).
+
+## 1. Reproduction, unsanitised pipe (confirming 19-F12, not claiming it as my own)
+```
+$ (echo uci; echo isready; echo "position startpos"; echo "go depth 12"; echo quit) | forge
+output: bestmove a2a3
+```
+
+## 2. Audit of MY OWN recorded results
+
+pvrun.py reads stdout until it sees bestmove before sending the next command (3 readline loops, no sleep/quit pipe), so job 1's 553-position run is unaffected.
+The audit of every recorded file:
+```
+$ grep -rl "bestmove a2a3" .   -> (no file)
+$ grep -rn "nodes 0 " --include=*.txt --include=*.log .  -> (no line)
+records in raw_d12/pv.jsonl with no info line: 0 of 553
+records whose last info line had nodes 0: 0 of 553
+$ python3 evidence/nodesum_check.txt comparison -> O 9500069 (exact), G 18466239 (exact)
+```
+
+## 3. The one helper that DID use the risky pattern
+probe.sh (my throwaway probe) used: ... echo "go depth $D"; sleep 8; echo quit; | forge
+It gave the search 8 s before quit, and its node counts match probe2.py's to the node
+(19197 at S14 depth 12), so no result resting on it was fabricated. Everything it
+produced for the report below was RE-RUN with probe2.py, which keeps stdin open and
+reads until bestmove. probe2.py output is what the report cites.
+
+## 4. Verdict
+No result of mine is withdrawn. job 1's table rests on pvrun.py + raw_d12/ + exact
+node sums. probe2.py replaces probe.sh from now on.
