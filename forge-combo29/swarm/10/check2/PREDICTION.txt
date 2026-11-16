@@ -1,0 +1,21 @@
+seat 10 check2 — reproduce seat 01's finding S-F2 (a position where the side to move is in check from
+two pieces is ACCEPTED, and its perft 2 matches python-chess) alone, from its command file.
+Prediction, committed and pushed ALONE before the first measuring command:
+
+P1. `position fen 3k4/3P1q2/5K2/8/8/5r2/7p/7R w - - 0 1` is ACCEPTED by the engine: no line containing
+    `invalid FEN` and the following `isready` gets its readyok.  (kill: a refusal line)
+P2. The engine's `go perft 2` on it is exactly 64.  (kill: any other total)
+P3. python-chess 1.11.2 refuses it: `chess.Board(fen)` raises, and its status is STATUS_IMPOSSIBLE_CHECK
+    (i.e. it is "invalid" only by that standard, not malformed).  (kill: board builds fine, or the
+    status is another flag)
+P4. So the engine and python-chess CANNOT be compared here: python-chess has no legal moves to enumerate.
+    Seat 01's phrasing "the engine's perft 2 = 64 equals python-chess's" is therefore not a like-for-like
+    comparison unless python-chess is forced to ignore its status; I predict seat 01 meant the count
+    agrees with a python-chess board constructed with `chess.Board(fen, chess.STATUS_... )` or perft
+    computed ignoring validity. I will report exactly which of these is true.
+    (kill: python-chess's own legality filter gives 64 without any forcing)
+P5. The double check is real on the board: white king f6 is attacked by the black queen f7 (along f) and
+    the black rook f3 (along f) -- i.e. both attackers are on the f-file with the king between them,
+    which is geometrically possible only if the king is between them; I predict the two attackers are
+    f7 queen and f3 rook, and I will state the exact squares my own attack enumeration finds.
+    (kill: the attackers I find differ)
