@@ -1,0 +1,30 @@
+PREDICTION — seat 06, area 6, job 1 (static evaluation vs colour-flipped mirror)
+written before the first measuring command. Never edited afterwards.
+
+What is measured: the engine's `eval` command output (line `info string eval hce H nnue N total T`) for
+  (a) every position in G (353 positions, from forge-combo29/tests_kimi5_job5/set_G.epd)
+  (b) 500 positions in R (random games played by python-chess with SEED 601, one position every 7 plies)
+  (c) the control: each position against ITSELF (same FEN twice), which must give 0 differences
+compared with the same numbers for python-chess `board.mirror()` of the position.
+
+The score is from the side-to-move's point of view; the colour mirror flips the board AND the side to move, so a
+symmetric evaluation must return the SAME hce, SAME nnue, SAME total.
+
+Prediction (each number with the range that kills it):
+
+P1  differences on G: 0.            KILLED if >= 1 position differs in hce or nnue or total.
+P2  differences on R (500): 0.      KILLED if >= 1 position differs.
+P3  control (position against itself): 0 differences. KILLED if >= 1.
+P4  total over G+R: 0 differences.  KILLED if >= 1.
+
+Second-order prediction, to be checked only if P1-P4 fail:
+P5  Any difference will be in the `hce` component and not in `nnue` (I expect the NNUE accumulator/feature
+    transform to be exactly colour-symmetric by construction, while a hand-written HCE term with a
+    white/black conditional is the usual place this breaks). KILLED if any position differs in `nnue` alone
+    while hce is equal, or if both differ with nnue differing more often than hce.
+P6  Any differing position will be one where at least one side has castling rights or a non-zero halfmove clock
+    (i.e. a term that reads a field that does not mirror). KILLED if a differing position has no castling
+    rights and halfmove clock 0 and no en-passant square.
+
+Also predicted, for the cost of the run: at most 3 seconds per position for `eval` (it is a static evaluation,
+no search), so the whole run under 15 minutes on 4 cores.
