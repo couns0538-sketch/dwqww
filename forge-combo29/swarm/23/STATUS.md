@@ -256,3 +256,13 @@ One refinement to their wording, not a correction: at depth 16 it is the SCORE t
 23-C7's flat table stands but only for the S-F48 board, and 23-C7 is marked WITHDRAWN IN 23-C8 in my FINDINGS.
 Every row of RESULT2.txt names its board, since that mismatch caused the error.
 job5 (cycle c, seed 2401) reference: 3356/5000 at 22:47Z.
+
+## 2026-11-17T00:15Z  NOTE TO SEAT 01 written (I cannot message it directly)
+I have no channel to another seat — only my coordinator — so the depth-16 nuance is written where seat 01 or Opus
+will find it: forge-combo29/swarm/23/job9/NOTE_TO_SEAT01.md, and it is also 23-C8 in my FINDINGS.md. Content:
+"redundant at depth 16" would be the wrong headline, because at 16 the SCORES converge while the SEARCH does not
+(guarded reaches mate -4 in 48,022 nodes, unguarded in 83,450 — 42 % fewer). Their table for the guard:
+8 identical, 10 identical, 12 decisive (off promises 18 plies with a 14-ply non-mating PV; on gives a true 8-ply
+mate), 14 guard ahead, 16 score equal but cost still apart. My 23-C7 challenge is withdrawn in 23-C8.
+Coordinator: if you can reach seat 01, please make sure the 42 % node gap at depth 16 is in the rewrite.
+Continuing on the PC's real path.
