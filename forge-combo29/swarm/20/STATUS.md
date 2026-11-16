@@ -432,3 +432,15 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   status cell on the original S-C20 row** still saying "confirmed and STILL LIVE" — now leads with WITHDRAWN, and the
   withdrawal row's id cell reads `S-C20 WITHDRAWN` so a skimmer sees it in column one.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-16T23:49:53Z METHOD.md + findings_lint.py; the lint found a third defect on its first run
+- **Rule recorded** (METHOD.md rule 1): write the finding row and its job file TOGETHER, or verify the row count after
+  any append — one half-failed heredoc left the same finding twice plus a stale "STILL LIVE" status, both invisible to
+  a normal read.
+- **AUDIT/findings_lint.py** (exit 0 = clean): duplicate ids only as retraction pairs; no retracted id cell with a bare
+  NEW/LIVE status; no malformed rows. **First run caught S-F28 had only 3 cells (no evidence, no status)** — fixed, now
+  CLEAN. My first linter version wrongly flagged four innocent rows that merely MENTION a withdrawal; tightened, because
+  a linter that cries wolf gets ignored.
+- **AUDIT/METHOD.md**: 12 rules in three groups (writing / measuring / correcting myself) + the four tools with their
+  exit-code contracts: hardened.py, machine_clean.sh, findings_lint.py, parse_audit.py & bundle_audit.py.
+Next: continue in the window (ends 2026-11-17T10:18Z).
