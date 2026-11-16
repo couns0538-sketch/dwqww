@@ -617,3 +617,10 @@ Intermediate-budget result kept as the account of WHY the small budgets fail tog
   Seat 07 and seat 30 agree on EVERY cell; seat 25 matches 6 of 8 (differs at wtime 50 and 1000, likely different build/regime).
   Seat 25 also measured the BASE tree and found no asymmetry, which removes the 'different build explains it' escape; seat 30 turned the same ladder into a positive control (30-F51: monotone in wtime on both builds and both colours, 12 positions x 4 clocks x 2 builds).
   The one real fact behind their claim, which all three of us had to explain the same way: wtime 0 and wtime 10 give identical answers, and that is the documented time <= Move Overhead emergency branch (seat 08's 08-F5) -- expected behaviour, not 'the clock ignored'. Seat 27 generalised a real small-budget identity to 'every N', and that is what the three checks refute.
+
+## 2026-11-16T23:42:38Z
+07-C46 -- CONFIRMED seat 21's 21-F12, and it SHARPENS my 07-F1 rather than conflicting with it. PC r15 PC20 vs base, Threads 1, Hash 16, halfmove 100, positions verified legal with python-chess first:
+  legal named move (searchmoves g8h8): base g8h8 with 0 nodes, PC g8h8 with 8 nodes -> REPAIRED on PC.
+  no legal named move (searchmoves a1a2): BOTH builds answer 0000 + the info line + 0 nodes -> UNCHANGED, which is 07-F1.
+  So searchmoves has two sub-cases at a drawn root: the PC repaired the legal-named one and left the empty-intersection one. 07-F1 is precisely the empty-intersection case and nothing wider -- anyone reading my earlier line as 'searchmoves is broken on the PC build' would be over-reading it.
+  TWO errors of mine on the way, both caught before reporting: (1) my first FEN was REFUSED ('side that moved left its king in check') so the engine kept STARTPOS and I measured the wrong board -- the tell was the plain case answering e2e4, impossible in a position with a lone black king on h8; (2) I then named g8f7, which is not legal there (only g8h8 is), caught with python-chess.
