@@ -616,3 +616,23 @@ game-derived position set will hit.
 
 GUI-reachable: **YES, the match budgets on real positions.** Evidence: `pc/legality/legality.json`,
 `pc/legality/rejected_fens.json`, `pc/legality/p*_*.log`.
+
+## A real self-play game at the owner's self-play budget: 80 plies, no anomaly
+
+File 6 says the PC's self-play sends `go softnodes 2000`. So I ran one game the way the owner runs it: one
+process, `position startpos moves <accumulated list>` before every move, `go softnodes 2000`, apply the move,
+repeat. Not a synthetic loop — the exact command sequence and budget of the self-play path.
+
+| measure | value |
+|---|---|
+| plies played | 80 (stopped at my own loop limit, not by a game end) |
+| `info string illegal move` lines | **0** |
+| anomalies (0000, or a move illegal in the accumulated list) | **0** |
+| moves | `d2d4 g8f6 c2c4 e7e6 g1f3 f8e7 ...` (all legal) |
+
+So the self-play path is clean at its own budget: the engine's moves were always legal in the position built
+from its own previous moves, so the moves-path hazard I documented for INVALID input does not arise when the
+move list is the engine's own output. That is the expected result, and it is worth having measured rather
+than assumed, because self-play is where a corrupted move list would poison a whole training run.
+GUI-reachable: **YES — this is the self-play path exactly.** Evidence: `pc/selfplay/selfplay.json`,
+`pc/selfplay/game.log`.
