@@ -854,3 +854,19 @@ That is the third time reading the artifact has caught something in three edits 
 count, now section order). The artifact needs its own check, not just the work it describes.
 
 Standing: 72 findings, 18 confirmations (one a refutation), eight named harness faults. 10 h 28 m remain.
+## 2026-11-16T23:50:57Z  rule page gains the documents-accumulate section (2,508 words, complete)
+2026-11-16T23:50:57Z
+
+The three-artifact-defects lesson is now ON the page, not just in my summary, so it travels with the artifact:
+a missing instance (off-by-one in numbering), a stale subtitle count (stale constant), and broken section order
+from inserting before instance 8 rather than in place (dead code in the wrong branch). Conclusion recorded:
+a document accumulates defects exactly as code does when appended to rather than edited in place, and since
+nobody diffs prose, reading the whole document is the only check. The reorder's no-content-lost proof is
+recorded there too: word count plus a heading presence check, 2,278 words both sides.
+
+Page order: lead case, rule, EIGHT instances, fix in one line each, live-verification table, the
+refused-vs-accepted-board guard, the tying sentence, why the family matters, documents-accumulate.
+
+Standing: 72 findings, 18 confirmations (one a refutation), eight named harness faults, five reference
+pages (RULE_known_answer_control, PERFT_NULL_RESULT, PC_BUILD_SUMMARY, PCBUILD, plus the per-job reports).
+10 h 28 m remain; cadence continuing.
