@@ -51,7 +51,30 @@ Withdrawn: S-F6 (duplicate of 01-F5/01-F8 — I had not read their file when I w
 - The move generator's attack tables and the time manager as source-reading jobs.
 - TSan (area 4 owns it).
 
-## S-F8 BOUNDED (job 7) — still OPEN, but now measurable
+## S-F8 IS TWO DEFECTS (seat 10's split) — my partial patch covers A only
+Seat 10 (branch `for-fable-and-opus/swarm-10`) settled it: **10-F17** defect A = the restricted root computes a
+wrong score with an EMPTY table (Clear Hash changes no node, 21,640 both ways); **10-F15** defect B = a restricted
+search pollutes the shared table for a later unrestricted search. **10-F14** = restricting to ALL 20 legal moves
+still differs (cp 23/d2d4 vs cp 30/e2e4). **10-F18** = minimal repro with `searchmoves e2e4`.
+So `job5/searchmoves_iir.PARTIAL.patch.txt` addresses A only and does NOT touch B. Full write-up:
+REPORT_job5.md §"CURRENT STATE OF S-F8" and job7/RESULT.md.
+
+### Mechanism of the NO-OP restriction, named (job7/f3, committed script)
+| build | unrestricted | all-20 restricted |
+|---|---|---|
+| base | cp 30 / 56720 / e2e4 | cp 23 / 21640 / d2d4 |
+| IIR stopped at a restricted root | cp 30 / 56720 / e2e4 | cp 24 / 70142 / d2d4 |
+| IIR stopped AND root TT store restored | cp 30 / 56720 / e2e4 | **cp 30 / 56720 / e2e4 — EQUALS** |
+So for a restriction excluding nothing, the error is fully the extra reduced ply (IIR, no hash move) plus the
+skipped root store; that also explains 10-F12's 21,640 -> 17,847 on a repeat. **Aspiration is RULED OUT**
+(AspirationDelta 200 does not shrink the gap). **But the general case stays open** (`d2d4 e2e4` gives cp 26 vs
+cp 30 on that same build), so S-F8 remains OPEN and I did not guess the remaining cause.
+
+### CAUTION on 10-F18's depth sign flip (S-F8c)
+At depths 8 and 10 the unrestricted search plays d2d4 and the restricted one plays e2e4, so those "gaps"
+compare two DIFFERENT MOVES and are not errors. The clean like-for-like case is all-20 (10-F14).
+
+## S-F8 earlier bound (IirDepth sweep) — superseded by the table above, kept for the record
 With `IirDepth 20` (IIR cannot fire at depth 12) the restricted search still reports cp 26 vs cp 34
 unrestricted: **8 cp gap with IIR provably inactive**, so IIR is not the whole cause. At `IirDepth 2` (S14) the
 restricted score is 4 cp HIGHER and the plain search plays d2d4 while both restricted variants play e2e4 — the
