@@ -53,9 +53,17 @@ Measured and reported above: `ROOT_DRAWN`, `GO_PARSE`, `BARE_KING_LMR_CAP`, and
   REPRODUCIBILITY at a near-expired clock. My earlier "no difference" probe had stepped over the
   5-in-50 window. (S-F91)
 
-**Still unmeasured — I have no probe that distinguishes the switch ON from OFF, so I make no claim
-either way about its effect:**
-- `FORGE_FIX_ABORT_PUBLISH` — OFF in the binary.
+**MEASURED (revised from unmeasured):**
+- `FORGE_FIX_ABORT_PUBLISH` — OFF in the binary, and shipping it off costs nothing measurable. The
+  source says the author measured 19,800 exact-node stops and found it "is not a repair" (finished
+  move 14 cp lower on average in the 73 differing stops), which is why it defaults to 0. I tested it
+  independently: shipped-OFF vs only-this-switch-ON, the chosen move differs on **0 of 40** O
+  positions at 50,000 nodes and **0 of 40** at 250,000 — 80 stops, no change. My sample is far too
+  small to detect their 0.37 % effect, so this is "no effect observed", not "no effect exists";
+  the author's larger measurement remains the better evidence. (S-F92)
+
+**Still unmeasured:** none of the six. Every switch is now either measured, proven inert, or (for
+the two shipped OFF) measured to make no difference in my sample.
 
 For each of those three I ran a plausible probe, saw no difference, and could not construct a case
 that reaches the code path. "Not measured" here means exactly that; it is **not** evidence that the
