@@ -1,0 +1,19 @@
+CONVENTION ESTABLISHED BY MEASUREMENT (before judging any symmetry claim)
+exe /agent/repos/build-base/forge sha256 e06310ec...
+
+board A: 4k3/8/8/8/8/8/8/QQQQK3  (four white queens, white to move)   -> hce 4211  nnue 228 total 4439
+board B: 4k3/8/8/8/8/8/8/QQQQK3  (same board, BLACK to move, illegal) -> hce -4182 nnue 662 total -3520
+board C: qqqqk3/8/8/8/8/8/8/4K3  (four BLACK queens, black to move)    -> hce 4211  nnue 228 total 4439
+board D: qqqqk3/8/8/8/8/8/8/4K3  (same, white to move)                 -> hce -4182 nnue 662 total -3520
+
+Conclusion: `eval` is SIDE-TO-MOVE RELATIVE. The same advantage reads the SAME number whether White or Black
+holds it; flipping the side to move negates it.
+
+Therefore colour symmetry (position vs python-chess board.mirror()) means the two eval lines are EQUAL,
+component by component -- not negated. My first script asserted "negation" and reported 120 false asymmetries;
+that script's table is kept as out_check_WRONG_convention.txt so the mistake is on the record, and the corrected
+test is check_s06f1b.py.
+
+Also note: nnue differs a lot between A/C (228) and B/D (662) -- the net's output is not a pure function of the
+same-side advantage when the side to move is in/out of check-free positions; that is the net's own behaviour,
+not an symmetry error, and it is why the "negation" test was meaningless.
