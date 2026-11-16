@@ -1,0 +1,83 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -5,6 +5,8 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++#include <climits>
++#include <cstdint>
+ #include <cmath>
+ #include <cstring>
+ #include <iostream>
+@@ -809,6 +811,16 @@
+                board_.is_pseudo_legal(move);
+     }
+ 
++    // Symmetry patch (swarm seat 06): a canonical order for EQUAL move scores, expressed in the
++    // mover's own frame (square ^ 56 flips the board without touching the side to move), so a
++    // position and its colour mirror break every tie the same way. Without this, equal-scored
++    // moves inherit the generator's a1-first traversal order, which a mirror changes.
++    [[nodiscard]] static std::uint16_t tie_key(const Move move) {
++        const unsigned rel_from = static_cast<unsigned>(move.from ^ 56U);
++        const unsigned rel_to = static_cast<unsigned>(move.to ^ 56U);
++        return static_cast<std::uint16_t>((rel_from << 8U) | rel_to);
++    }
++
+     // Most nodes need only the first few moves: select those on demand and
+     // sort the remainder once if the search gets that far.
+     // The selection keeps the lowest index on a tie (`>`), which is what the
+@@ -836,27 +848,47 @@
+                     __m128i folded = _mm_max_epi32(scores, swap_halves);
+                     folded = _mm_max_epi32(folded, _mm_shuffle_epi32(folded, _MM_SHUFFLE(2, 3, 0, 1)));
+                     const int chunk_max = _mm_cvtsi128_si32(folded);
+-                    if (chunk_max > best_score) {
++                    if (chunk_max >= best_score) {
++                        // Walk the chunk in index order so the tie_key rule sees every tie.
+                         const __m128i equal = _mm_cmpeq_epi32(scores, _mm_set1_epi32(chunk_max));
+                         const int mask = _mm_movemask_ps(_mm_castsi128_ps(equal));
+-                        best = i + static_cast<std::size_t>(__builtin_ctz(mask));
+-                        best_score = chunk_max;
++                        int bits = mask;
++                        std::uint16_t best_key_local = tie_key(moves_[best].move);
++                        while (bits != 0) {
++                            const int lane = __builtin_ctz(static_cast<unsigned>(bits));
++                            const std::size_t idx = i + static_cast<std::size_t>(lane);
++                            if (chunk_max > best_score) {
++                                best = idx;
++                                best_score = chunk_max;
++                                best_key_local = tie_key(moves_[idx].move);
++                            } else if (tie_key(moves_[idx].move) < best_key_local) {
++                                best = idx;
++                                best_key_local = tie_key(moves_[idx].move);
++                            }
++                            bits &= bits - 1;
++                        }
+                     }
+                     i += 4;
+                 }
+ #endif
++                std::uint16_t best_key = tie_key(moves_[best].move);
+                 for (; i < n; ++i) {
+                     const int score = moves_[i].score;
+-                    if (score > best_score) {
++                    const std::uint16_t key = tie_key(moves_[i].move);
++                    if (score > best_score || (score == best_score && key < best_key)) {
+                         best_score = score;
++                        best_key = key;
+                         best = i;
+                     }
+                 }
+                 if (best != index_) std::swap(moves_[index_], moves_[best]);
+             } else {
+-                std::sort(moves_.begin() + static_cast<std::ptrdiff_t>(index_),
+-                          moves_.begin() + static_cast<std::ptrdiff_t>(count_),
+-                          [](const Scored& a, const Scored& b) { return a.score > b.score; });
++                std::stable_sort(moves_.begin() + static_cast<std::ptrdiff_t>(index_),
++                                 moves_.begin() + static_cast<std::ptrdiff_t>(count_),
++                                 [](const Scored& a, const Scored& b) {
++                                     if (a.score != b.score) return a.score > b.score;
++                                     return tie_key(a.move) < tie_key(b.move);
++                                 });
+                 sorted_ = true;
+             }
+         }
