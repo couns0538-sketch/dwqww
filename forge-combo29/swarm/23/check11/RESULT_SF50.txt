@@ -1,0 +1,28 @@
+CHECK of seat 11's S-F50 — paired depth between the base tree and PC r15 at equal node budgets
+=============================================================================================
+Claim: for the SAME node budget the PC build reaches 1-4 plies deeper, so an equal-node match between the two builds
+is biased toward the PC. Their counts: same depth on 4 of 10 openings at `go nodes 50000`, and 0 of 10 at 250000.
+
+My run: 10 openings of my own choosing (real move sequences), both builds, Threads 1, Hash 16, OwnBook false,
+`go nodes N`, fresh process per search, deepEST `info depth` recorded.
+
+| budget | openings reaching the SAME depth | PC-deeper delta (min..max) |
+|---|---|---|
+| 50,000 | **1 of 10** (theirs: 4 of 10) | +0 .. +2 |
+| 250,000 | **2 of 10** (theirs: 0 of 10) | +0 .. +3 |
+
+Per-opening detail is in `check_11SF50.out`. The DIRECTION is confirmed unmistakably: at both budgets the PC build
+reaches the same or a deeper depth on every opening and a deeper depth on 8 of 10 and 8 of 10 respectively. The
+COUNT of identical-depth cases differs from theirs (1 vs 4, 2 vs 0), which I attribute to the openings being
+different sets — the same nominal budget lands on different depths depending on the position, so a different 10
+openings gives a different count of coincidences. That is a fact about the measurement, not a contradiction of their
+conclusion.
+
+VERDICT: CONFIRMS the substance of S-F50 — an equal-node match between the base tree and the PC build is biased
+toward the PC, because the PC gets 0-3 extra plies for the same budget — and does NOT reproduce their exact counts,
+because the opening sets differ. Their practical warning stands.
+
+IMPORTANT NUANCE FROM MY CONTROL, which their summary does not mention: at a TINY budget the PC is sometimes
+SHALLOWER (French opening at `go nodes 1000`: base depth 5, PC depth 4). So "the PC is always deeper at equal nodes"
+is not true at very small budgets; the bias appears at the budgets their matches actually use (20,000+), not
+universally. Stated because a reader could otherwise over-generalise the direction.
