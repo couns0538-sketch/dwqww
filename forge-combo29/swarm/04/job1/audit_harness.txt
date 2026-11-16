@@ -1,0 +1,18 @@
+== 0. the runner's pipelining question, read from the source ==
+run_searches.py lines that write `quit`: [91]
+run_searches.py closes stdin only in Engine.close(), called from one_search's
+`finally:` AFTER read_until('bestmove') returned (or its timeout expired).
+one_search() writes exactly one `go` per process; the next position gets a NEW process.
+
+== 1. every recorded search: does the 19-F12 signature appear? ==
+tag             n   no_nodes    nodes_0    a2a3_0n bestmove_legal
+rep1_t1       100          0          0          0        100
+rep1_t2       100          0          0          0        100
+rep1_t4       100          0          0          0        100
+rep1_t8        90          0          0          0         90
+
+total records with a 19-F12 signature (no node count, or 0 nodes): 0
+verdict: CLEAN — my records are not pipelined-quit records
+
+== 2. the records that ARE incomplete, named one by one ==
+rep1_t4 index 90: HANG (no bestmove within the timeout) 5R2/1p5k/6p1/8/1K6/5q2/8/8 b - - 0 1
