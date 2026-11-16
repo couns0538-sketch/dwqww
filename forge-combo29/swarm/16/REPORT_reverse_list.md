@@ -7,21 +7,28 @@ order difference is a fact but not the cause.
 **The answer: the order INFLUENCES the tree (proven) but is NOT sufficient to cause the asymmetry (proven).**
 Both halves are answered, so the thread closes with a narrower and fully honest statement.
 
+Reproduced by the committed script `check_belowroot/reverse_pair.py` (output in `raw_reverse_list.txt`), one
+fresh process and `ucinewgame` before every search:
+
 ```
-                              A nodes   mirror nodes   equal
-depth 2, full-window, BASE        66          60        no
-depth 2, full-window, REVERSED    67          84        no      <- counts CHANGED, still unequal
-depth 1, base root,   BASE        25          30        no
-depth 1, base root,   REVERSED    34          42        no      <- counts CHANGED, still unequal
+                            A nodes   mirror nodes   equal   gap
+depth 2, full-window, BASE     336         334        no      2
+depth 2, full-window, REVERSED 320         357        no     37      <- counts CHANGED, gap WIDENED 2 -> 37
+depth 1, base root,   BASE      25          30        no      5
+depth 1, base root,   REVERSED  34          42        no      8      <- counts CHANGED, gap widened 5 -> 8
 ```
+
+(The earlier hand-run numbers 66/60 -> 67/84 were a *different* build state — the reversed build alone, which
+has no FullWindowRoot option, so its "depth 2 full-window" rows were not full-window at all. The table above is
+the correct comparison on a build carrying BOTH patches; that is why the reproduction script is committed and
+reports "NOT MEASURED" instead of silently treating a missing option as ON.)
 
 **Reading it:**
 
-- Reversing the list **changes both sides' node counts**, at depth 1 (25→34, 30→42) and at depth 2 (66→67,
-  60→84). So the generation order is causally connected to the tree the search walks — it is not a cosmetic
-  difference. That upgrades S-F11 from a correlation to a demonstrated influence.
-- Reversing the list **does not make the pair equal** at either depth. Even with one side's list reversed — a
-  change large enough to move its count by 40 % — the two sides still disagree. So the order difference is
+- Reversing the list **changes both sides' node counts** at both depths, and it **widens the gap** (2 → 37 at
+  depth 2, 5 → 8 at depth 1). So the generation order is causally connected to the tree the search walks — not
+  a cosmetic difference. That upgrades S-F11 from a correlation to a demonstrated influence.
+- Reversing the list **does not make the pair equal**, and makes it worse. So the order difference is
   **not sufficient** to explain the asymmetry, and my earlier caveat was the right call.
 
 **What this leaves:** the asymmetry is produced by order-sensitive state that is *not* simply "which order the
@@ -64,7 +71,7 @@ the conclusion stands, but the S-F11 wording should be read as "the generator's 
 
 ## Findings
 
-`S-F12 | 6 | EXPERIMENT, closes the sufficiency question in the negative: reversing the generated move list (a 33-line compile-time switch, default 0) CHANGES the search's node counts — depth 1 25/30 -> 34/42 and depth 2 full-window 66/60 -> 67/84 — so the generation order causally influences the tree, but it does NOT make the mirror pair equal at either depth, so the order difference is NECESSARY but NOT SUFFICIENT to explain the colour-mirror asymmetry. Also: `go perft` has its own generation path (search.cpp:950,975) and does not reflect the order the search sees | check_belowroot/EXPERIMENT_reverse_list.patch.txt, check_belowroot/raw_reverse_list.txt (again: `python3 check_belowroot/reverse_pair.py ~/builds/bld-rev/forge /tmp/o.txt`) | NEW |`
+`S-F12 | 6 | EXPERIMENT, closes the sufficiency question in the NEGATIVE: reversing the generated move list (33-line compile-time switch, default 0, verified active) CHANGES the node counts and WIDENS the mirror gap — depth 2 full-window 336/334 (gap 2) -> 320/357 (gap 37), depth 1 base 25/30 (gap 5) -> 34/42 (gap 8) — so the generation order causally influences the tree but is NOT SUFFICIENT to explain the asymmetry, and a reverse is the wrong transform (the mirror's generator order is neither equal to nor the exact reverse of the original's). Also: `go perft` has its OWN generation path (search.cpp:950,975) and does not reflect the order the search sees | check_belowroot/EXPERIMENT_reverse_list.patch.txt check_belowroot/raw_reverse_list.txt check_belowroot/reverse_pair.py (again: `python3 check_belowroot/reverse_pair.py /tmp/x /tmp/o.txt ~/builds/bld-fw/forge ~/builds/bld-revfw/forge`) | NEW |`
 
 ## Suspicions, not proven
 

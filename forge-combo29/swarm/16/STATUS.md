@@ -130,3 +130,23 @@ seed: 1601
 - AREA 6 COMPLETE. FINDINGS: S-F1..S-F11, S-C1..S-C7. All raw files, both text patches
   (fullwindow_root.patch.txt, psqt_symmetry.patch.txt), all reports and STATUS.md are on the branch.
 - next command: none. Stopping per instruction; branch is final at this commit.
+
+## 2026-11-16T22:02Z  (FINAL — sufficiency experiment done)
+- SUFFICIENCY ANSWERED, in the negative, with numbers. EXPERIMENT patch (33 lines, switch defaults 0):
+  check_belowroot/EXPERIMENT_reverse_list.patch.txt. Built with the switch ON, together with the full-window
+  patch, and run through the committed script check_belowroot/reverse_pair.py:
+      depth 2 full-window: base 336/334 (gap 2) -> reversed 320/357 (gap 37)
+      depth 1 base root  : base  25/ 30 (gap 5) -> reversed  34/ 42 (gap  8)
+  So the generation order CAUSALLY influences the tree (counts move at both depths) but is NOT SUFFICIENT
+  (the pair stays unequal and the gap WIDENS). A reverse is the wrong transform: the mirror's generator order
+  is neither equal to nor the exact reverse of the original's. Finding S-F12.
+- CORRECTION to my own S-F11 wording: `go perft` uses its own generation path (search.cpp:950,975), so the
+  order I quoted there is the GENERATOR's order, not the order the search sees. The S-F12 conclusion does not
+  depend on it (it comes from real searches).
+- A first hand-run of this gave 66/60 -> 67/84 because the reversed-only build has no FullWindowRoot option and
+  those rows were therefore not full-window. The reproduction script now REFUSES (prints "NOT MEASURED") rather
+  than silently treating a missing option as ON, and the corrected table is on a build with BOTH patches.
+- FINAL BRANCH STATE: S-F1..S-F12, S-C1..S-C7. Reports: job1, job2, job3, ownbook_check, check_S-F1..S-F5,
+  check_20F14, check_06F12, check_28F1, audit, wall_vs_iteration, warmcold, fullwindow, belowroot, reverse_list.
+  Text patches: psqt_symmetry.patch.txt, fullwindow_root.patch.txt, EXPERIMENT_reverse_list.patch.txt.
+- next command: none. Area 6 complete; stopping per instruction.

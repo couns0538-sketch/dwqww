@@ -1,16 +1,9 @@
-EXPERIMENT: reversed generated move list, is the order the cause?
-every search: fresh process, ucinewgame before it, OwnBook false
-position  R7/8/8/5p1p/5K1P/1kpr2n1/8/8 b - - 0 1
-mirror    8/8/1KPR2N1/5k1p/5P1P/8/8/r7 w - - 0 1
+position R7/8/8/5p1p/5K1P/1kpr2n1/8/8 b - - 0 1
+mirror   8/8/1KPR2N1/5k1p/5P1P/8/8/r7 w - - 0 1
+cold discipline: fresh process, ucinewgame before every search, OwnBook false
 
-                              A nodes   mirror nodes   equal
-depth 2, full-window, BASE        66          60        no
-depth 2, full-window, REVERSED    67          84        no
-depth 1, base root,   BASE        25          30        no
-depth 1, base root,   REVERSED    34          42        no
+build1     depth 2 fullwindow=True  | A   336 nodes cp 1190    | mirror   334 nodes cp 1190    | equal False
+build1     depth 1 fullwindow=False | A    25 nodes cp 1161    | mirror    30 nodes cp 1161    | equal False
+build2     depth 2 fullwindow=True  | A   320 nodes cp 1190    | mirror   357 nodes cp 1190    | equal False
+build2     depth 1 fullwindow=False | A    34 nodes cp 1161    | mirror    42 nodes cp 1161    | equal False
 
-switch verified: FORGE_EXPERIMENT_REVERSE_LIST=1 in CMakeFiles/forge.dir/flags.make, 2 std::reverse sites
-conclusion: order INFLUENCES the tree (counts move on both sides, both depths) but is NOT SUFFICIENT
-(the pair stays unequal at both depths). The mirror's generator order is neither equal to nor the exact
-reverse of the original's, so a reverse cannot restore correspondence; a mirror-order permutation would be
-the correct next transform (not done).
