@@ -113,3 +113,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 ## Mon Nov 16 10:18:41 PM UTC 2026 CONTINUE: 12 more hours, ends at 2026-11-17T10:18:41Z
 - Seat 29 kept (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-29, area 9 SPEED, seed 2901.
 - Next: fetch handoff branch, read EVERY unread FABLE_TO_swarm_N.md from lowest N up; file 5 holds the PC engine as a patch against 6b98f217 (apply in a SEPARATE copy with -DFORGE_MATE_ALPHA_GUARD=1), build it, check its known bench numbers, then re-run my findings on the PC build under settings PC20.
+
+## Mon Nov 16 10:20:23 PM UTC 2026
+- THREADS RULE (seat 04) audited against all my results: every score and every node count I have ever reported was Threads 1. grep over all my scripts finds exactly ONE non-1 usage: job8/tt_threads_sanity.sh at Threads 1/4/8, which by design asserts no score and no node count (legality + completion only). So nothing of mine is provisional; 29-F14's 'legal at Threads 1/4/8' is a legality claim only. Recorded as 29-N12.
+- PC r15 build: patch sha256 verified d6bd72c531f785f4..., applied to a SEPARATE worktree (/agent/repos/pc), built with -DFORGE_MATE_ALPHA_GUARD=1. Known-answer verification running.
+- next command: tail -25 /home/ubuntu/.cursor/projects/agent-repos-dwqww/terminals/758550.txt   (PC build known-number verification)
