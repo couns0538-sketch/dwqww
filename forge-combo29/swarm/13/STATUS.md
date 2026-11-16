@@ -279,3 +279,17 @@ DONE job 9 (closes a gap I named myself in job 7: mate scores were untested on t
   move, empty PV) all rejected.
   Finding S-F11. NOT covered and stated: negative mate scores; mates deeper than 3; elementary endings only.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## 2026-11-16T23:16:49Z
+
+DONE job 9b: closes the NEGATIVE mate gap I declared open in job 9.
+  6 real lost G positions (side to move down >= 700cp) x 2 budgets = 12 runs.
+  4  claims, 4/4 CORRECT: opponent forces mate within 2|M|-1 plies (exhaustive python-chess)
+  AND the engine's own PV mates at exactly that ply (-3 -> ply 6, -4 -> ply 8).
+  8 large negative cp scores (-245..-3669); 0 non-negative scores in any lost position.
+  I DID THIS WRONG FIRST: my initial check reused the positive-mate predicate and reported all 4 as
+  WRONG. The engine was right and my test asked the wrong question (for mate -M the OPPONENT forces
+  the mate). Recorded in NEGATIVE_MATES.md because it is the same failure class as the stale shard:
+  a checker that cannot tell "engine wrong" from "my check wrong", here inventing a false engine defect.
+  Finding S-F12.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
