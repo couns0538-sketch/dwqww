@@ -55,6 +55,7 @@ play (S-F11). Whether it changes a game result, I did not show."
 ## Honesty note on one row
 In `scan_refusal.txt` the row `R3b3/p3r1pp/...` lists the opponent's reply as `a8e8`, which is a QUIET move, not a
 clock reset, so that row does NOT meet my strict "refused" condition and I have marked it as ambiguous rather than
-counting it. That leaves **8** rows where the refusal is by a capture or pawn push. I checked each of the 8 by
-hand in the table above; two of them (`8/p7/5pk1/...` reply `h2h3` and `8/8/7k/7P/...` reply `h6h5`) are pawn
-pushes, five are captures, and the 8th (`r4rk1/...` reply `h7h6`) is a pawn push.
+counting it. That leaves **8** rows where the refusal is by a capture or pawn push. I verified all 8 mechanically rather than by hand: every
+reply is legal after the shuffle, and every one is a capture or a pawn push, with the clock back to 0 in all 8.
+The split is 4 pawn pushes (`h2h3`, `a4a3`, `f2f3`, `h7h6`) and 4 captures (`a3c3`, `b8d8`, `b4d6`, `h6h5`).
+(My first hand-written note said `h6h5` was a pawn push; the mechanical check shows it is a capture. Corrected.)
