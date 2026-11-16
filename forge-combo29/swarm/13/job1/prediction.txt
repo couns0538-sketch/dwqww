@@ -1,0 +1,15 @@
+PREDICTION -- seat 13, area 3, job 1 (perft 1..4 on 5,000 R positions), committed BEFORE any measuring command.
+
+What I expect (each with the kill range):
+1. Differences perft 1 over 5000 R positions: 0 [killed if >= 1]. python-chess is the reference.
+2. Differences perft 2: 0 [killed if >= 1].
+3. Differences perft 3: 0 [killed if >= 1].
+4. Total differing positions over all four depths: 0 [killed if >= 1].
+5. Runtime wall clock for the whole run: 400 s <= t <= 3000 s [killed if outside].
+   (5000 positions x (1+~30+~900+~25000) nodes ~ 1.3e8 nodes at ~2e6 nps ~ 65 s of engine search,
+    plus 5000 python-chess reference computations at comparable speed; wide range on purpose.)
+Reason for predicting 0 differences: the earlier checks on this engine (startpos perft 5 = 4,865,609 and G
+perft 3) matched, and move generation is the part of the engine with the most existing coverage. If a
+difference appears it will most likely be in castling rights or en-passant pseudo-legality.
+
+These numbers are NOT edited after this commit. The result goes into REPORT_job1.md.
