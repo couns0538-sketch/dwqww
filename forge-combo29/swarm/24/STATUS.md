@@ -128,3 +128,12 @@ done: **REPORT_threads.md** — the chosen MOVE is not reproducible above Thread
 runs now: nothing long. Next: a Threads-1-vs-2-vs-4 sample on the BASE tree to give the same rate there, then the
       next unconfirmed find from another seat in my area.
 next command: cd /agent/repos/dwqww/forge-combo29/swarm/24/checks && python3 move_stability_t4.py /agent/repos/base/forge-combo29/build-rel/forge S14 ../job1/set_G.epd 20 6 4 /tmp/base_rate
+
+## 2026-11-16T23:18Z
+done: (1) APPLY_SHEET.md written for the two-hang patch, with an explicit "NOT MEASURED — no match was run, the
+      strength effect is unmeasured" section. (2) BASE-BUILD Threads 2 check done — the matrix is complete:
+      base tree S14 0 / 8 / 9 of 20 at Threads 1 / 2 / 4; PC r15 PC20 0 / 10 / 8 of 20. Same order of magnitude on
+      both builds at both thread counts, Threads 1 exact on both, so this is the search ARCHITECTURE and Threads 2
+      is not a safe middle ground. Finding 24-F24, REPORT_threads.md updated. Both relayed to the coordinator.
+runs now: nothing long. Continuing the cycle until the 12-hour close, then FINAL.
+next command: cd /agent/repos/dwqww && date -u
