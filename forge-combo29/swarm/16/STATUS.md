@@ -182,3 +182,13 @@ seed: 1601
   109/353 positions disagree about whether the pair matches -> different asymmetric paths, not the same ones.
   Threads-1 reproducibility 30/30 exact. REPORT_pcsym10.md.
 - next: split PC-code effects from PC20-settings effects (base tree under PC20, PC build under S14 only).
+
+## 2026-11-16T22:44Z
+- file 6 read. Both "not a defect" verdicts noted (claimable-draw, >Threads-1). New priority understood:
+  PC build + PC20 + Threads 1 + softnodes/nodes/6s-clock on real-game positions counts most.
+- S-F15: SPLIT result — the extra asymmetry on the PC build is from the PC20 SETTINGS, not the code
+  (code alone 101 -> 102 of 353; TtPruneV2 alone 102 -> 113; PC20 120). REPORT_pcsplit.md.
+- S-F16: `go softnodes N` on the PC's self-play path is DETERMINISTIC (20 runs, 1 result) and stops at a
+  FINISHED depth, but OVERSHOOTS up to 2.06x the budget (2314-4121 nodes at N=2000). REPORT_softnodes.md.
+- next: stress the overshoot bound on quiet positions; then the clock path (6s + 0.06), which is the PC's
+  match path and is untested by me.
