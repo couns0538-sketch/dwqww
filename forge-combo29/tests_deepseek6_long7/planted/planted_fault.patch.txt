@@ -1,0 +1,18 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -1553,6 +1553,15 @@
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;
+ 
++    // PLANTED FAULT (deepseek6 long 7 positive control, scratch copy only):
++    // a one-element heap read past the end of an 8-int array, at the top of the
++    // root search. Must be reported by AddressSanitizer.
++    if (root_node) {
++        static int* const planted = new int[8]();
++        volatile int sink = planted[8];
++        (void)sink;
++    }
++
+     if (depth <= 0) return qsearch(board, ss, alpha, beta);
+     // The frame is reused across siblings and same-ply verification searches.
+     // Keep this call's inherited path budget independent of those mutations.
