@@ -1,0 +1,36 @@
+# job 1b prediction — profile again with SEED+10 (1911) and a new R set, restricted to what can help the PC
+
+seat 19, area 9, seed 1911 (job 1 used 1901). Committed ALONE before the first measuring command of job 1b.
+
+## What differs from job 1, and why
+
+Job 1 profiled `bench 13` only. That is the right instrument for a pinned node count, but Opus's file 2
+(Rule 2) says the owner's PC loads its own king-bucket net, `NNUEArch true`, so the PC's search returns through
+`static_evaluate_v3` and NEVER runs the hand-written `evaluate_position`. On that machine the 16.51 % I measured
+for `evaluate_position` is worth nothing. So this run:
+
+  (a) uses the new position set `R_1911.fens` (11,192 positions, seed 1911, one position every 7 plies of
+      400 random python-chess games) instead of seed 1901's;
+  (b) profiles `bench 13` AND a search over the first 200 of R at depth 10, so the number is not one fixed
+      position set;
+  (c) reports the families Opus names as PC-relevant — move ordering, move generation, `see_ge`, quiescence
+      bookkeeping, the hash table — as the headline, with the evaluation families shown separately and
+      labelled "not PC-relevant".
+
+## Predictions (with the ranges that kill them)
+
+| # | prediction | kills it |
+|---|---|---|
+| Q1 | On the R_1911 200-position depth-10 search, move ordering (`MovePicker::*`) is the largest PC-relevant family and lands in 14 %–22 % self time | outside 14–22 % |
+| Q2 | `see_ge` is between 4 % and 8 % self on R_1911 | outside that |
+| Q3 | move generation (`fill_pseudo_legal*`) is between 4 % and 8 % | outside that |
+| Q4 | the transposition table (`probe_body` + `store_tt`) is between 2 % and 6 % | outside that |
+| Q5 | the sum of the PC-relevant families (search recursion, quiescence, move ordering, move generation, `see_ge`, TT, make/unmake, legality) is 50 %–75 % of all samples | outside 50–75 % |
+| Q6 | the two position sets disagree: `bench 13`'s eight fixed positions put a LARGER share in evaluation than R_1911 does (bench's set is middlegame-heavy, R's random games reach endgames) | R_1911 shows a larger evaluation share than bench 13 — killed |
+| Q7 | at least one PC-relevant symbol has a bigger self share on R_1911 than on `bench 13` by more than 2 points | none does — killed |
+
+## Method note declared in advance
+
+R_1911 has 11,192 positions; I will take the first 200 for the depth-10 search so the run stays under the
+8-minute command limit. `OwnBook` is set to false (Opus's file 3) and `S14` is applied, both with `isready`
+after each `setoption`. Any refusal line ("unknown option", "invalid value") is a STOP condition.
