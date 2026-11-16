@@ -152,6 +152,25 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:52Z - NINTH control error: an EMPTY failure set produced a claim (inside the checker itself)
+
+label_check.py asked whether the self-play mate-PV failure is always a SHORT PV. 40 mate-rich boards at
+softnodes 2000 gave 12 mate scores, 12 ok, ZERO failures - and the script then printed "Every failure is a SHORT
+PV - the SCORE is not broken": a characterisation of an EMPTY SET, asserting what the data cannot support. My own
+rule (a description needs a non-empty set, as a zero needs a plant) would have caught it.
+
+FIXED: the conclusion branch now requires >=1 failure, else prints an explicit UNMEASURED line. Re-run says
+"NO FAILURES IN SAMPLE - the character of failures and their rate are UNMEASURED here. Do not conclude 'every
+failure is short' from an empty set."
+
+SURVIVES as a positive result: 12/12 mate scores correct on these 40 boards - about those boards only. The S-F34
+failure is real but BOARD-SPECIFIC (4Q3/8/r2K4/...), which is why a random 40-board sample missed it: sampling, not
+contradiction.
+
+FINAL pattern line now says NINE instances and names this one as happening inside the checker itself.
+State: working tree clean, local = remote. Continuing at cadence; three guards re-run near the close.
+
 ## 2026-11-16T23:50Z - FINAL now names BOTH patterns; wider rule carried; all three guards green
 
 PATTERN 1 (control errors): six times the real finding was a fault in my own test - different-depth comparison,
