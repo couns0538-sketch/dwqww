@@ -60,3 +60,16 @@ seat kept: 24, branch for-fable-and-opus/swarm-24, folder forge-combo29/swarm/24
 next: read every FABLE_TO_swarm_N.md I have not read (lowest N first), build the PC engine from FABLE_TO_swarm_5.md
       in a separate copy with -DFORGE_MATE_ALPHA_GUARD=1, check its known bench numbers, then re-run my findings on
       the PC build under PC20.
+
+## 2026-11-16T22:25Z
+done since CONTINUE: read FABLE_TO_swarm 2,3,4,5. Built the PC r15 engine from file 5's patch in a separate copy
+      (~/work/pcsrc, patch sha256 d6bd72c531f785f4..., -DFORGE_MATE_ALPHA_GUARD=1) — ALL published numbers match
+      (none 312866/862329/3024920/perft5 4865609; S14 242796/656517; PC20 278024/587276), Threads 1, fresh process
+      per line. My first honesty script omitted the `value` keyword so every setoption was refused and all three
+      regimes printed the default numbers — caught by reading the raw file; recorded in pc_build/HONESTY_PC.md.
+      F7: the terminal-root `go infinite` hang is STILL PRESENT on the PC build under PC20 Threads 1 (open there).
+      job1b (repeat, R seed 2411): 200/200 clean, 0 TSan, planted 91 blocks, no pos-90 outlier -> F8.
+runs now: PC-build TSan suite, `go infinite`+stop 400 rounds, PC20, Threads 4 (thread count needed for a race;
+      this job reports event counts, no scores) — 385/400, 0 TSan reports so far.
+      Adopted swarm rule: every score I report is Threads 1; job-1 family scores are labelled PROVISIONAL.
+next command: cd /agent/repos/dwqww/forge-combo29/swarm/24/pc_build && cat pc_inf.summary
