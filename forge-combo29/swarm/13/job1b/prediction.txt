@@ -1,0 +1,25 @@
+PREDICTION -- seat 13, area 3, job 1 REPEAT (cycle step c: same job, next seed, new position set),
+committed BEFORE any measuring command.
+
+This is the repeat the brief asks for once all three area jobs are done: job 1 again with the next
+seed. New set: R_1311.fens, 5,000 positions from SEED 1311 (the first run used SEED 1301), same
+generator, one position every 7 plies from random legal games.
+
+WHAT DIFFERS FROM MY FIRST RUN (the brief asks me to say this):
+1. Seed 1301 -> 1311, so an entirely different set of 5,000 random positions (different games).
+2. Tooling is the HARDENED version: compare.py now fails loudly on an empty/truncated/non-numeric
+   reference file instead of silently skipping missing records, and ref_par.py uses a fresh tempdir
+   and asserts record counts. The first run used the version that could have passed vacuously.
+3. The first run's reference side was a single serial pass; this one is 4-way sharded with asserted
+   counts.
+
+Predictions:
+1. Differences over 20,000 (position, depth) pairs at depths 1..4: 0 [killed if >= 1].
+2. All 5,000 positions x 4 depths present and numeric on both sides: 20,000 compared
+   [killed if fewer than 20,000 are compared].
+3. Runtime: engine side under 120 s [killed if outside].
+4. Because job 1 and job 1b sample the same generator with different seeds, if any difference
+   appears here but not in job 1, I expect it to be a rare castling or ep geometry rather than a
+   systematic error [killed if the difference is systematic, i.e. appears in > 100 positions].
+
+NOT edited after this commit.
