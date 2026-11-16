@@ -1,0 +1,55 @@
+# DoubleExt.patch.txt - applies from the REPOSITORY ROOT (patch -p1) on the PLAIN base 6b98f2170a3210e71beed04bbd2553972c253ed7 (no other patch). Two options around the double-extension rule (src/search.cpp:1945): DoubleExtLimit (spin, default 6, min -1, max 64; a limit L lets one path hold L+1 double extensions; -1 = never given) and DoubleExtMargin (spin, default 24, min 0, max 400; the singular-verification margin). Nothing else changes.
+#
+--- /tmp/ds5_base_src/include/forge/search.hpp	2026-11-16 08:48:42.475794560 +0000
++++ /tmp/ds5_de/include/forge/search.hpp	2026-11-16 10:53:20.403794560 +0000
+@@ -81,6 +81,8 @@
+ // Half-width, in centipawns, of repetition and fifty-move leaf scores.
+ // 0 keeps those leaves at exactly 0. Mate scores are never adjusted.
+ constexpr int DrawJitterMax = 8;
++extern int DoubleExtLimit;
++extern int DoubleExtMargin;
+ extern int DrawJitter;
+ 
+ enum Bound : std::uint8_t { BoundNone = 0, BoundUpper = 1, BoundLower = 2, BoundExact = 3 };
+--- /tmp/ds5_base_src/src/search.cpp	2026-11-16 08:48:42.515794560 +0000
++++ /tmp/ds5_de/src/search.cpp	2026-11-16 10:53:35.859794560 +0000
+@@ -36,6 +36,8 @@
+ 
+ namespace forge {
+ 
++int DoubleExtLimit = 6;
++int DoubleExtMargin = 24;
+ int DrawJitter = 0;
+ 
+ namespace tune {
+@@ -1942,7 +1944,7 @@
+             if (aborted_) return 0;
+             if (singular_score < singular_beta) {
+                 extension = 1;
+-                if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
++                if (!pv_node && singular_score < singular_beta - forge::DoubleExtMargin && inherited_double_extensions <= forge::DoubleExtLimit) {
+                     extension = 2;
+                 }
+             } else if (singular_beta >= beta) {
+--- /tmp/ds5_base_src/src/uci.cpp	2026-11-16 08:48:42.515794560 +0000
++++ /tmp/ds5_de/src/uci.cpp	2026-11-16 10:53:48.023794560 +0000
+@@ -198,6 +198,8 @@
+             std::cout << "id name Chess Engine Forge 6.4.24 candidate\n"
+                          "id author OpenAI\n"
+                          "option name Hash type spin default 32 min 1 max 2048\n"
++                         "option name DoubleExtLimit type spin default 6 min -1 max 64\n"
++                         "option name DoubleExtMargin type spin default 24 min 0 max 400\n"
+                          "option name Threads type spin default 1 min 1 max 256\n"
+                          "option name MultiPV type spin default 1 min 1 max 8\n"
+                          "option name Move Overhead type spin default 10 min 0 max 1000\n"
+@@ -323,6 +325,10 @@
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "info string cannot load book " << path << std::endl;
+                 }
++            } else if (name == "DoubleExtLimit") {
++                apply_spin(-1, 64, [&](int clamped) { forge::DoubleExtLimit = clamped; });
++            } else if (name == "DoubleExtMargin") {
++                apply_spin(0, 400, [&](int clamped) { forge::DoubleExtMargin = clamped; });
+             } else if (name == "Book Depth" || name == "Book Variety") {
+                 apply_spin(0, 100, [&](int clamped) {
+                     if (name == "Book Depth") book_depth = clamped;
