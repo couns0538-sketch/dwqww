@@ -236,6 +236,32 @@ hash 1-16 MB, 7-32 pieces, positive planted control at every thread count used.
 
 ## 2026-11-16T23:17:56Z FINAL — seat 04, area 4 (threads and sanitizers), 12-hour run
 
+### THE ONE-LINE RULE ON THREADING (supersedes the simpler statements other seats have made)
+
+**Scheduling decides which worker gets which subtree, so the score wobbles on every threaded run; whether the
+BESTMOVE moves depends on whether the top moves are within that wobble.**
+
+Measured, not inferred (04-F28): with a diagnostic build that prints each worker's node count after every helper
+has joined (patch `job7/diag_workers.patch.txt`, byte-identical to my instrumented source and leaving bench
+11/13/16 = 312866/862329/3024920 unchanged), Threads 4, PC20, four positions:
+
+| position | runs | distinct moves | score range | node spread | distinct argmax | partition differs |
+|---|---|---|---|---|---|---|
+| startpos d12 | 8 | **2** (d2d4 x5, e2e4 x3) | 11 cp | 1.54x | 3 | yes |
+| ordinary G d12 | 6 | **2** (g7g6 x5, e5e4 x1) | 34 cp | 2.08x | 3 | yes |
+| Italian d13 | 8 | **1** (g8f6 8/8) | 14 cp | 1.89x | 3 | yes |
+| G pos2 d12 | 10 | **1** (f1c4 10/10) | 25 cp | 1.59x | 4 | yes |
+
+Every position varies in partition and node count by a similar amount, so **partition variance is necessary but
+NOT sufficient** — two positions flip and two do not while looking identical on those axes. The discriminator is
+score structure: where the move flips, the two rivals' score ranges interleave (startpos e2e4 +20/+25/+28 versus
+d2d4 +17/+21/+25). This is why the flip is a near-equal-top-moves phenomenon, and why Threads 1 — where the
+partition is fixed — is bit-reproducible (20/20 identical at each of five depths).
+
+Practical consequence, unchanged from 04-F13: **tune at Threads 1.** At Threads 4 the per-run score noise is
+sd 17.5 cp (worst 48 cp), so an A/B needs 48 runs per arm to resolve 10 cp, 12 for 20 cp, 6 for 30 cp — and a
+single run per arm resolves nothing below ~48 cp.
+
 Builds used, named in every finding line: **base 6b98f217** (`/home/ubuntu/builds/rel/forge`, sha256 in
 `honesty/meta.txt`) and **PC r15** (file 5's patch, sha256 verified d6bd72c531f785f4, applied with `patch -p1`
 in a separate copy, built with `-DFORGE_MATE_ALPHA_GUARD=1`). Settings named as none / S14 / PC20 throughout.
