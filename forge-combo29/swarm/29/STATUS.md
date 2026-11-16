@@ -309,3 +309,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - With F44's dead heat (7-7-3), the honest description of PC20 is: it reaches a DIFFERENT move of comparable value on about one position in eight, at every depth. Not 'same move', not 'better moves'.
 - Caveat stated: 40 positions/depth is ~+-5 points per share, so the flatness is the claim, not the percentages.
 - next: continuing at cadence.
+
+## Mon Nov 16 11:54:22 PM UTC 2026
+- FINAL_NOTES updated for the deadline: the sweep rule now lists FOUR worked self-corrections from one hour (scan rate F38->F39, tree size F40->F41, the flip being set-specific F41->F42, move quality 4-of-6 -> 7-7-3 F43->F44), and the headline list gains the PC20 arc as one sentence backed by F42/F44/F45, carrying the exact caveat asked for: 'the flatness is the claim, not the individual percentages' (40 positions/depth ~ +-5 points).
+- Also added 29-F45 to the headline list - agreement flat across depth (87.5/87.5/85.0/92.5 % at d8/10/12/14), which is what rules out horizon noise.
+- next: continuing at cadence; FINAL block at 10:18Z.

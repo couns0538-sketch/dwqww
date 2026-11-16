@@ -26,9 +26,12 @@ only changes how often a scan finds an EMPTY slot, i.e. whether the table is sat
 
 ## NAMED RULE FOR THE FINAL, to carry forward (29-N23)
 **Sweep the second variable before any number reaches a summary.** Twice in one hour a single-cell percentage of mine
-was wrong for the same reason: the replacement-scan rate (11.1 % was one cell of a 0.1-44.8 % range across depth and
-hash) and the PC20 tree-size effect (19.5 % fewer nodes at depth 12, but **+2.3 % MORE at depth 10** and -14.1 % at
-depth 14). Both were caught by varying one more axis before believing the first measurement. Before a figure goes
+was wrong for the same reason, **four times in one hour**:
+- replacement-scan rate: 11.1 % was one cell of a 0.1-44.8 % range across depth x hash (29-F38 -> F39);
+- PC20 tree size: -19.5 % at depth 12, but **+2.3 % MORE at depth 10** (29-F40 -> F41);
+- and that flip is itself **position-set-specific**: on the G set PC20 saves 15.9 % at the same depth 10 (29-F41 -> F42);
+- move quality: "4 of 6 favouring PC20" became a **7-7-3 dead heat** at 100 positions (29-F43 -> F44).
+Every one was caught by varying one more axis before believing the first measurement. Before a figure goes
 into a finding, a rule or a summary: measure it at another value of whatever it most plausibly depends on, and if the
 answer moves, report the TABLE rather than the number. A single figure may stand only when the sweep shows it is
 flat — and then the flatness is the finding. The depth-10 sign flip is the sharpest example: it says the PC20
@@ -42,6 +45,11 @@ switches are NOT free at low depth, which no single depth-12 number would ever h
 - 29-F16: PC r15 patch reproduces exactly; all eight known numbers match in all three regimes.
 - 29-F19/F28/N16: my own TT patch REVERSES on the PC build (+0.320 %) and is non-additive (−0.872 % interaction);
   it is code cleanliness, not a speed win. Bench also flatters it ~3.7x (29-N18).
+- 29-F42/F44/F45 — what the PC20 switches actually do, in one sentence: **they reach a different move of
+  comparable value on about one position in eight, at every depth.** Backed by: smaller tree at match depths on both
+  position sets (F42); a 7-7-3 dead heat on quality under a neutral judge (F44); and agreement flat across depth,
+  85-92.5 % (F45). **Caveat to keep with it: "the flatness is the claim, not the individual percentages"** — 40
+  positions per depth is about ±5 points, and that sentence is what stops the numbers being over-read.
 - 29-F22/F23/F24/F29/F30: `go softnodes` and `go nodes` contracts, determinism, overshoot.
 - 29-F32: 6s+0.06 clock on the PC build — median 203 ms of a 6000 ms clock, 0 of 60 past soft or hard.
 - 29-C6/C7/C8: confirmations of seat 05's S-F23 and of 19-F19 and 19-F18 (bench half to the digit).
