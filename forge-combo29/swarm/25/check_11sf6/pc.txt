@@ -1,0 +1,27 @@
+### seat 11's ladder, verified — PC r15 / PC20 (PC20, Threads 1, Hash 16, go depth 5)
+
+case                            score  bestmove   nodes  infos   reading
+checkmated root          score mate 0      0000       0      5
+mate in 1 available      score mate 1      a1a8     105      5
+stalemated root            score cp 0      0000       0      5
+dead draw KvK              score cp 0      e3d2       0      5
+KQ vs K (won)            score cp 1107      c1c2    2779      5
+
+Expected per seat 11 / UCI: checkmated -> mate 0 + 0000 + 0 nodes; mate-in-1 -> mate 1 + a real move;
+stalemate -> cp 0 + 0000; dead draw -> cp 0; KQvK -> large positive.
+
+VERDICT: seat 11's ladder reproduces EXACTLY on my PC build under PC20. And it settles the question against me:
+  checkmated root     : mate 0 / 0000 / 0 nodes
+  mate in 1 available : mate 1 / a1a8 / 105 nodes      <- a REAL move and a non-zero node count
+  stalemated root     : cp 0  / 0000 / 0 nodes
+  dead draw KvK       : cp 0  / e3d2 / 0 nodes
+  KQ vs K             : cp 1107 / c1c2 / 2,779 nodes
+The distinction I missed when I filed S-F6: `mate 0` and `mate 1` are DIFFERENT signals in the same encoding -
+mate 1 means "mate is available in one move" and comes with a real move, while mate 0 means "already mated" and
+comes with 0000. So `mate 0` is not an undefined token; under UCI's `score mate y` = "mate in y moves for the side
+to move", y = 0 is the natural encoding of "mated now", and 0000 is the only sensible reply. My "mate 0 cannot
+occur at a non-terminal node" observation is fair but it is a property of the terminal case, not a fault.
+
+S-F6 IS WITHDRAWN as a defect. What remains true and is recorded: `mate 0` is unusual in that most engines report a
+large centipawn value for a mated root, so a consumer that assumes "mate means a positive/negative integer >= 1"
+must handle 0 - but that is a consumer note, not an engine fault. Seat 21's 21-F11 was withdrawn for the same reason.
