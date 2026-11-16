@@ -129,3 +129,16 @@ repetition_probe.cpp
 see_crosscheck.cpp
 SEE_NOTES.txt
 stamps.txt
+
+## 2026-11-16T21:50:14Z
+job8 done: has_legal_move() correct on 9,118 positions (python-chess + engine self-consistency), with a planted-fault control producing 26 disagreements. No finding: clean.
+### git status --short
+ M STATUS.md
+?? REPORT_job8.md
+?? job8/
+### ls job8
+check_legal_move.py
+legal_move_probe.cpp
+legal_move_run_control.txt
+legal_move_run.txt
+stamps.txt
