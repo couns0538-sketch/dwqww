@@ -38,3 +38,11 @@
   pattern reproduces a2a3/0 nodes on my build; my job3/job2/rows harnesses all read to bestmove first.
   job0/honesty.sh did pipe quit — re-running honesty with a read-to-terminator harness now.
 - next command: python3 audit19f12/honesty_safe.py /tmp/build-rel/forge audit19f12/out
+
+## Mon Nov 16 09:36:30 PM UTC 2026 — owner checkpoint 2
+- 19-F12 AUDIT COMPLETE: reproduces on my build (piped quit -> bestmove a2a3, 0 info lines; read-to-bestmove ->
+  e2e4 / 56,720 nodes, identical to quitting 2 s later). My job1 rows run is UNAFFECTED: it reproduces the brief's
+  node sums exactly (O 9,500,069 first three 41,311/24,872/28,574; G 18,466,239), 0 zero-node positions of 553.
+- honesty.sh's piped pattern re-run with a safe harness: 312866 / 862329 / 3024920 / 4865609 all OK, HONESTY stands.
+- job3 complete under ASan+UBSan with both sanitizer proofs (nm 35 __asan_/15 __ubsan_; planted fault counted).
+- next command: write job3/REPORT_job3.md from the committed raw files, then job3 of area 5 is closed.

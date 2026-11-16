@@ -32,7 +32,11 @@ def sha256(p):
 
 
 def run_one(cmd, token, limit=300):
-    """live process: send one command, read until token, then quit. Never pipelines quit."""
+    """live process: send the command, then isready, and read until the readyok that FOLLOWS the command's
+    output. UCI is strictly ordered, so that readyok cannot arrive before the command has finished -- which
+    makes this safe for commands that do not end in `bestmove` (bench prints an `info string bench ...` line).
+    quit is only ever sent after that readyok.
+    """
     p = subprocess.Popen([EXE], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          text=True, bufsize=1)
     out = []
@@ -60,9 +64,8 @@ def run_one(cmd, token, limit=300):
     send("isready")
     until("readyok")
     send(cmd)
-    got = until(token)
-    send("isready")
-    until("readyok")
+    send("isready")            # queued behind the command: its readyok means the command is done
+    got = until("readyok")
     send("quit")
     try:
         p.wait(timeout=15)
