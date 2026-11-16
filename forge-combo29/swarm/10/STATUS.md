@@ -407,3 +407,12 @@ row showed a startpos move (e2e4 on a board with no pawns -- the tell). Fixed wi
 assertion that BOTH python-chess accepts the FEN and the engine does not print `invalid FEN`; the harness now
 aborts instead of recording. check11's three boards were separately verified legal, so 10-F58 stands.
 Mon Nov 16 11:02:55 PM UTC 2026
+
+## REPRODUCIBLE HANG found (10-F61, scope 10-N4)
+K+Q vs K (`5k2/8/8/8/8/8/8/1K1Q4 w - - C 1`), go depth 22, PC r15 PC20, Threads 1: counters 0/40/60 finish
+in ~1.1 s (mate 7), counter 99 finishes, but counters **70/75/78/79/80/81/82/84/86/87/88/90 ALL HANG** under a
+25 s cap (12 of 16 probed). Not MT variance (Threads 1), not the EOF trap (interactive reader).
+SCOPE (10-N4): at counter 70 the last line is depth 19 / 36.1M nodes, so it was still searching -- I did not
+let any case run to completion, so "hang" may mean "extremely slow". Band edges only bounded. Depth 22 /
+PC20 / PC build only. **Next measurement that decides severity: does a CLOCK limit make it return?**
+Mon Nov 16 11:31:14 PM UTC 2026

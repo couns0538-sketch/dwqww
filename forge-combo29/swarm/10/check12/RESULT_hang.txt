@@ -1,0 +1,46 @@
+A REPRODUCIBLE HANG ON THE OWNER'S BUILD — found while widening the surviving-defect test
+
+Board: 5k2/8/8/8/8/8/8/1K1Q4 w - - <COUNTER> 1   (K+Q vs K, white to move, mate in 7 moves)
+Command: `go depth 22`, PC r15 under PC20, Threads 1, Hash 16, fresh process each time, cap 25 s.
+
+  counter   result
+  0         DONE  mate 7, 4,198,984 nodes, 1.13 s
+  40        DONE  mate 7, 4,198,984 nodes, 1.12 s
+  60        DONE  mate 7, 4,451,528 nodes, 1.20 s
+  70        **HUNG**  (last line: depth 19, cp 1149, 36,106,433 nodes, 6.9 s -- then nothing)
+  75        **HUNG**
+  78        **HUNG**
+  79        **HUNG**
+  80        **HUNG**
+  81        **HUNG**
+  82        **HUNG**
+  84        **HUNG**
+  86        **HUNG**
+  87        **HUNG**
+  88        **HUNG**
+  90        **HUNG**
+  99        DONE  d1f1
+
+So the hang is confined to a BAND of halfmove counters (70..90 in the sample), while the same board at
+counter 0, 40, 60 or 99 completes normally in about a second.
+
+WHY THIS MATTERS
+ * file 6 says a HANG is one of the few things that still counts as a multi-thread defect, and more
+   importantly the owner's match program uses a clock -- a search that does not return will lose on time or
+   make the driver kill the process. A band of counters where `go depth 22` never returns is exactly the
+   kind of thing that corrupts a self-play or match run.
+ * it is NOT the multi-thread variance file 6 ruled out: Threads 1 throughout.
+ * it is not the EOF trap: each search is driven interactively and read to `bestmove`; the run is killed by
+   MY 25 s cap, not by a closed pipe.
+
+WHAT I HAVE NOT ESTABLISHED, and I will not overstate
+ * whether it is a true infinite loop or an extremely slow search: at counter 70 the last line is
+   depth 19 / 36.1 M nodes, so it IS still searching when the cap fires. I did NOT let it run to
+   completion, so I cannot say whether it finishes at 60 s, 600 s or never.
+ * the exact band edges: 60 DONE, 70 HUNG, 90 HUNG, 99 DONE. The edges are somewhere in (60,70) and (90,99).
+ * whether it depends on depth 22 specifically, on PC20 specifically, or on the base build too -- I tested
+   only depth 22, PC20, the PC build.
+ * whether a clock limit (`go wtime`) makes it return: an un-timed search may simply be very slow, and a
+   clock would cut it off. THAT IS THE NEXT MEASUREMENT AND IT DECIDES SEVERITY.
+
+Reproduce: python3 forge-combo29/swarm/10/check12/hang_scan.py   (raw: check12/raw/hang_scan.json)
