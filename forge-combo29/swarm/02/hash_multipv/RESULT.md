@@ -134,3 +134,69 @@ which means the search is not even using its time: it is stuck clearing tables a
 That is a much more useful statement for the owner than "it is 167x slower": the defect costs playing strength,
 not just patience. The GUI-side workaround is one option: **keep MultiPV at 1 when Hash is large**, or keep Hash
 small (16–64 MB) when MultiPV is above 1.
+
+---
+
+# THE THRESHOLD (the deliverable the owner asked for)
+
+PC r15 build, Threads 1, OwnBook false, `position startpos`, **3 runs per cell**, fresh process per cell.
+Raw: `grid_raw.log`, `grid.json`, `grid_meta.json`. Script: `s_f7_grid.py`.
+
+## TABLE 1 — depth actually reached on a 5-second clock (`go wtime 5000 btime 5000`)
+
+| Hash \ MultiPV | MultiPV 1 | MultiPV 2 | MultiPV 3 | MultiPV 5 | MultiPV 8 |
+|---|---|---|---|---|---|
+| **16 MB** | **d16** (148 ms) | **d15** (266 ms) | **d14** (233 ms) | **d13** (298 ms) | **d12** (344 ms) |
+| **64 MB** | **d16** (152 ms) | **d14** (200 ms) | **d14** (309 ms) | **d10** (171 ms) | **d9** (215 ms) |
+| **256 MB** | **d16** (160 ms) | **d8** (231 ms) | **d8** (297 ms) | **d4** (297 ms) | **d2** (358 ms) |
+| **2048 MB** | **d16** (181 ms) | **d1** (913 ms) | **d1** (1040 ms) | **d1** (1197 ms) | **d1** (1183 ms) |
+
+## TABLE 2 — wall time on the same clock (median of 3 runs)
+
+| Hash \ MultiPV | MultiPV 1 | MultiPV 2 | MultiPV 3 | MultiPV 5 | MultiPV 8 |
+|---|---|---|---|---|---|
+| **16 MB** | 148 ms | 266 ms | 233 ms | 298 ms | 344 ms |
+| **64 MB** | 152 ms | 200 ms | 309 ms | 171 ms | 215 ms |
+| **256 MB** | 160 ms | 231 ms | 297 ms | 297 ms | 358 ms |
+| **2048 MB** | 181 ms | 913 ms | 1040 ms | 1197 ms | 1183 ms |
+
+### the answer to "is MultiPV 3 at Hash 256 safe or already ruined?" — ALREADY RUINED
+MultiPV 3 at Hash 256 reaches **d8** against **d16** at MultiPV 1 in the same conditions: **half the depth, gone.**
+The wall time barely moves (297 ms vs 160 ms) — which is the trap, because a looking-good clock time hides that
+the search is spending it all clearing the table. Any cell that is not MultiPV 1 must be read against the
+MultiPV 1 reference in its own row, never against the clock length.
+
+### where the collapse begins, stated plainly
+- **MultiPV 1 is safe at every Hash size**: d16 at 16, 64, 256 and 2048 MB. Hash size alone costs nothing.
+- **Hash 16 MB is safe to MultiPV 8**: d12 at MultiPV 8, a 4-ply cost against d16 — a real but modest loss.
+- **Hash 64 MB starts to hurt at MultiPV 5**: d10 / d9.
+- **Hash 256 MB is already broken at MultiPV 2**: d8, and d2 by MultiPV 8.
+- **Hash 2048 MB is catastrophic from MultiPV 2 upward**: d1 in every cell, the search never gets past ply one.
+
+So the practical rule is: **the safe region is MultiPV 1 at any Hash, or Hash <= 16 MB at any MultiPV.** The two
+knobs multiply; neither is dangerous alone.
+
+## TABLE 3 — the same defect at a FIXED DEPTH, where no clock can be exhausted
+`go depth 12`, Threads 1, median of 3 runs:
+
+| Hash | MultiPV | median ms | depth reached | info lines |
+|---|---|---|---|---|
+| 16 MB | 1 | **31 ms** | 12 | 12 |
+| 16 MB | 8 | **349 ms** | 12 | 96 |
+| 256 MB | 8 | **1326 ms** | 12 | 96 |
+| 2048 MB | 1 | **40 ms** | 12 | 96→12 |
+| 2048 MB | 8 | **13709 ms** | 12 | 96 |
+
+**Answer to question 2: YES, it is also a latency problem.** `go depth 12` at Hash 2048 + MultiPV 8 takes
+**13.7 seconds** against **40 ms** at MultiPV 1 — the same depth, the same result, 343x the wall time. Nothing
+about the clock is involved: a fixed-depth search cannot run out of time, and it still takes 13.7 s.
+
+That makes the defect hit three separate uses:
+1. **Playing on a clock**: depth collapses to 1 → lost strength (S-F7b).
+2. **Batch/fixed-depth analysis**: every position is 343x slower, so a 1,000-position analysis run that should
+   take 40 s takes ~3.8 hours.
+3. **Its own `bench`/regression work**: any harness that sets MultiPV above 1 and a large Hash measures the table
+   clear, not the search.
+
+**I did not attempt a fix**, as instructed. The GUI-side workaround needs no engine change: keep MultiPV at 1
+when Hash is large, or keep Hash <= 16 MB when MultiPV is above 1.
