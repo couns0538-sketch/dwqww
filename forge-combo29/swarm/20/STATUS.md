@@ -283,3 +283,15 @@ NOT DONE: the three competing drawn-root patches were never built and compared (
 0000; no Windows build; class-test generality rests on 6 positions, the load measurement on 1 position at 2048/8.
 
 Branch for-fable-and-opus/swarm-20, tree clean, everything pushed. FINAL_REPORT.md holds the earlier detailed report.
+
+## 2026-11-16T23:29:08Z window continues — MultiPV warning widened to 10 positions
+- **S-C32** (10 G-set positions, 5 fresh processes/cell = 50 runs/cell, Threads 1, `go wtime 5000`):
+  - **healthy (Hash 16 + MPV 1): 0/50 zero-node, 0/10 collapsed, depth 14-17 — perfectly clean.**
+  - **Hash 2048 + MPV 2 / 3 / 8: the DEPTH COLLAPSE is UNIVERSAL — 10/10 positions at every MultiPV value, depth 1,
+    nodes 22-595 vs a healthy 176,257-613,767 (about a thousandth of the search).**
+  - **zero-node is RARER than I implied: 2/50 runs, 2/10 positions, only at MPV 2; 0/50 at MPV 3 and 8.**
+- So the warning was **broader** on collapse and **narrower** on the no-search failure. The owner page
+  (`WARNING_multipv_hash.md`) now leads with the collapse, demotes the 0-node answer to secondary with the load
+  result (1/10 -> 6/10) as why it still matters, and states the healthy control is clean in the wider sample.
+Next: continue within the window (to 2026-11-17T10:18Z) — next is the same ten-position method at Hash 256/512 to
+find where the collapse begins, since 256 MB + MPV 3 showed only a partial collapse earlier.
