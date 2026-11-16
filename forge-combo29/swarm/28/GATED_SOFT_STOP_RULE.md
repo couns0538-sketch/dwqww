@@ -40,6 +40,47 @@ fraction of searches affected — but the **milliseconds do not**. Read the ms f
 the quoted values at the 6 s control, not as the values themselves. The gate constant itself (1.5) is
 dimensionless and needs no rescaling.
 
+## When the just-completed iteration already overran soft (the 6 s regime)
+
+At the owner's control soft is 317 ms and sparse-class iterations reach 415 ms, so `c_last > soft` is not a
+corner case — it is where the heavy moves live. **The rule handles it by algebra, not by a special case:**
+
+```
+stop  <=>  t - B >= (G - C) * c_last        with G = 1.5, C = 1.3  ->  (G - C) = +0.2
+```
+
+Because **G > C**, a LARGER last iteration makes the rule stop **sooner**. As `c_last` grows the condition
+reduces to "stop whenever `t` is at all past B", which is the right behaviour. Verified on the ladders:
+
+| budget | iterations whose own cost exceeded soft | rule STOPS | rule CONTINUES | largest such iteration |
+|---|---|---|---|---|
+| 454 ms (10 s plan) | 4 of 661 | 4 | **0** | 1239 ms (2.73x soft) |
+| 317 ms (the owner's 6 s plan) | 10 of 661 | 10 | **0** | 1239 ms (3.91x soft) |
+
+**The one thing to add: an iteration floor.** Complete at least one iteration before any time rule may
+fire, or a search whose first iteration exceeds a very small soft plan returns with no bestmove. The
+engine's loop already does this (the stop check sits AFTER the iteration), and an implementation must not
+move it before.
+
+### The hard limit of what this rule can fix — state it before promising a fix
+
+The rule fires at an iteration BOUNDARY, so it **cannot** prevent the cost of the iteration that overran;
+that time is already spent. It only refuses to start the next one. Measured, per overrun case:
+
+| budget | overrun cases | preventable (time remained after) | already spent (nothing left to save) |
+|---|---|---|---|
+| 317 ms | 10 | **3** | 7 |
+
+So at the owner's control the rule can reclaim time in **3 of the 10** overran iterations. The single
+largest cost in the whole dataset — a 1239 ms iteration reached after only 48 ms — is **not preventable by
+this rule at all**: the search was 48 ms in and the iteration itself took 1239 ms. A rule that fires at
+iteration boundaries cannot see that coming. Preventing *that* class needs a check INSIDE the iteration
+(the existing hard limit already caps it; a node-based or time-based mid-iteration abandon is a different
+and larger change, and I have not measured it).
+
+That is the honest boundary of this recommendation: it is a cheap, low-risk improvement that recovers time
+in most-but-not-all heavy cases, and it is not a fix for the worst one.
+
 ## The estimate-error caveat, with the specific thing an implementation must get right
 
 The rule needs `c_last`, the cost of the iteration **just completed** — not of the next one. That is a
@@ -75,6 +116,9 @@ to the same clock and the same iteration boundary.
   this arithmetic does not model — those add iterations the ladder never saw.
 - **Not a strength claim.** A millisecond saved and a ply lost have an exchange rate only a match can price.
   This file supplies the arithmetic so that match can be specified.
+- **It does not fix the worst case.** At the 6 s plan it is preventable in only 3 of the 10 overran
+  iterations, and the largest single iteration cost in the dataset (1239 ms after 48 ms of search) is not
+  preventable at all from an iteration boundary. See the section above.
 - The heavy class is sparse endgames, and which board is heavy differs by BUILD as well as position
   (`base#7` is 1585 ms on base vs 843 ms on PC20; `pc#57` is 281 on base vs 1586 on PC20) — so a fix should
   be validated on both builds.
