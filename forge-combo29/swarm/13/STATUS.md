@@ -162,3 +162,15 @@ READ ALL FABLE FILES: 1 (earlier), 2, 3, 4, 5 in full. Applied what they say:
 - Threads 1 + Hash 16 now sent explicitly in every run per the swarm rule.
 Both builds live: base /home/ubuntu/b/rel/forge, PC r15 /home/ubuntu/b/pc/forge.
 Next command: build the per-divide perft 4 check (closes my own stated totals-only limit)
+
+## 2026-11-16T22:23:25Z
+
+JOB 4 (closing my stated totals-only limit) IN PROGRESS: perft 4 with a PER-DIVIDE comparison of
+every root move against python-chess, on 200 R positions, on BOTH builds (base + PC r15) and under
+both regimes (none, PC20). Threads 1, Hash 16 sent explicitly everywhere.
+  Rule-1 control DONE first (job4/CONTROL_DIVIDE.md): identity NOT flagged; compensating +1/-1 with
+  the total unchanged (197281) CAUGHT; missing move CAUGHT; extra move CAUGHT.
+  Run order: base_none -> base_pc20 -> pc_none -> pc_pc20. base_none engine side done (200/200),
+  python reference comparing (the slow part).
+STALE-SHARD WRITE-UP DONE as its own document (see internal/ report path in my message).
+Next command: cd forge-combo29/swarm/13/job4 && cat status.txt
