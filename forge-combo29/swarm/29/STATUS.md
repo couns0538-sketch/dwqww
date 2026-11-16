@@ -191,3 +191,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-F31 + 29-N17: I made the inlining explanation a MEASUREMENT and it REFUTED my own 29-F28 mechanism. probe_body<false> is 119 -> 140 instructions (LARGER) after the patch, identically on both trees; probe_owned collapses 116 -> 18 insns on both. So 'a more expensive inlined copy' is wrong. What the code shows: the sign is set by whole-program outlining/layout - on the base tree the hot Worker::search(Board&,SearchStack*,...) keeps its EXACT size (15,693 bytes) patched, while on the PC tree a stable_sort instantiation inside search(Board,limits,...) grows +639 bytes.
 - 29-N17 lesson: profiler self-cost shares are NOT object-code evidence. Work moving between symbols is not the same as work getting cheaper or dearer.
 - next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: disassembly refutes my own inlining mechanism (F31/N17)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 10:46:33 PM UTC 2026
+- 29-F32 THIRD CLOCK MEASUREMENT (the ask): 6s+0.06, PC r15 build, PC20, Threads 1, Hash 16, 60 real positions. min 1.4 / median 203 / p99 474 / max 945 ms. 0 of 60 past the computed SOFT limit (1204 ms), 0 of 60 past HARD (4792 ms). Median uses 3.4% of the clock.
+- This does NOT reproduce seat 08's 46-of-200 past soft, but the regimes differ (08: 10 s clock, base tree; mine: 6 s+inc, PC r15 under PC20), so I do NOT claim 08 is wrong - I state the conditions and leave the comparison to the reader.
+- 29-F33: 3 of the 60 reach depth 64 (finished/terminal boards, 1.4-78.5 ms) which inflates the depth tail; excluding them depths are 12-27. Same class as seat 05's S-F7 seen from the clock side.
+- next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29 soft: third clock measurement at 6s+0.06 (F32) and terminal-root depth tail (F33)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
