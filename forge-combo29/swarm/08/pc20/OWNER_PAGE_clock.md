@@ -1,5 +1,11 @@
 # THE PC BUILD'S CLOCK BEHAVIOUR — one page, from measurement only
 
+**How to weigh this page.** While writing it I re-read my own raw files rather than trusting my notes, and three
+numbers I had typed from memory were wrong (the median overshoot at 1 s and at 10 s, and four of the achieved/soft
+ratios in case 2). All were corrected against the committed raw data before this page was pushed. So every figure
+here was computed from a committed file at the moment of writing, not remembered — and the corrections are named
+so a reader knows the page was checked rather than assumed.
+
 Engine: PC r15 (`/home/ubuntu/builds/pc/forge`), built from `FABLE_TO_swarm_5.md`'s patch (sha256 d6bd72c531f785f4,
 11 files, `patch -p1 --fuzz=0`), with `-DFORGE_MATE_ALPHA_GUARD=1`. Settings **PC20** unless a row says otherwise:
 S14 + `CuckooRep true`, `HistRework 2`, `TtPruneV2 true`, `CorrHistV2 true`, `MateAlphaGuard true`, `OwnBook false`,
