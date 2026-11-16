@@ -82,3 +82,6 @@ Next command: `cd /agent/repos/dwqww && git worktree add ../base 6b98f2170a3210e
   shows the piped form fabricating `a2a3` with 0 info lines. Perft unaffected (4,865,609 both ways).
 - NOT affected: all job1/job2/job1r2 results, S-F1..S-F9, S-C2..S-C6, job3, castle_battery, perft2cmp.
 - DISCARDS: one draft of check_s05f3 (piped go depth) — no numbers from it were ever recorded.
+- S-C7: CONFIRMS seat 05 S-F3 (draw bites at H=91). Every score positively parsed; a missing
+  parse raises MeasurementError and aborts with no verdict (seat 19's NaN warning applied).
+  NOTE my cp values differ from theirs (381/271 vs 472/314) — same threshold, different options.

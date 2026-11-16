@@ -44,7 +44,9 @@ class Engine:
         for opt in self.options:
             name, _, val = opt.partition(" ")
             self.send(f"setoption name {name} value {val}")
-            self.read_until("readyok_check", optional=True)
+        if self.options:
+            self.send("isready")
+            self.read_until("readyok")
         return lines
 
     @staticmethod
