@@ -1,0 +1,29 @@
+CHECK of seat 20's S-F26 — the increment-ignored boundary tracks Move Overhead
+============================================================================
+Claim: the first wtime where `winc 1000` changes the answer is roughly Move Overhead + 4: 5 at overhead 0,
+14 at overhead 10 (the default), 35 at overhead 30.
+
+Method: same position, same wtime, search twice — winc 0 and winc 1000 — and compare REPORTED NODE COUNTS
+(a count difference is the cleanest evidence the increment was used). Base build, Threads 1, Hash 16, drained,
+fresh process per search, OwnBook off.
+
+| overhead | first wtime where the counts change | overhead + 4 |
+|---|---|---|
+| 0 | **5** | 4 |
+| 10 | **14** | 14 |
+| 30 | **35** | 34 |
+
+VERDICT: CONFIRMS S-F26 exactly — 5 / 14 / 35 against a predicted overhead + 4 of 4 / 14 / 34. Sample rows:
+overhead 30 goes 42 nodes for every wtime up to 30, then 889 vs 3190 at wtime 35, 889 vs 23472 at 60, and
+205,119 vs 2,022,167 at 2000.
+
+CONTROL: at wtime 2000 the two counts differ for every overhead, so the harness CAN see the increment when it is
+usable; without that the zero rows would prove nothing.
+
+MY HARNESS FAULT #7, caught by the control, and the FIRST that was not a logic error but a KNOWN ENGINE DEFAULT:
+my first run showed `0` nodes in every cell and "CONTROL FAILED". The cause was `info string book move d2d4` —
+OwnBook defaults to TRUE on this build and answered from the book with NO search at all, so there were no node
+counts to compare. FABLE_TO_swarm_3 already records this default; I had read it and still forgot it. Fixed by
+sending `setoption name OwnBook value false`, and the control then passed.
+Lesson: the control caught a fault that a careful reading had already warned me about. Controls work even when
+attention does not.

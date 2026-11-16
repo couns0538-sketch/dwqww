@@ -1,0 +1,58 @@
+increment-ignored boundary vs Move Overhead — base build, Threads 1, Hash 16
+node count with winc 0 vs winc 1000 at the same wtime; 'changes' means the counts differ
+
+| overhead | wtime | nodes (winc 0) | nodes (winc 1000) | changes |
+|---|---|---|---|---|
+| 0 | 1 | 889 | 889 | no |
+| 0 | 3 | 889 | 889 | no |
+| 0 | 5 | 889 | 3190 | yes |
+| 0 | 8 | 889 | 6049 | yes |
+| 0 | 12 | 889 | 6049 | yes |
+| 0 | 14 | 889 | 6049 | yes |
+| 0 | 16 | 889 | 6049 | yes |
+| 0 | 20 | 889 | 18055 | yes |
+| 0 | 30 | 889 | 23472 | yes |
+| 0 | 35 | 889 | 23472 | yes |
+| 0 | 40 | 889 | 23472 | yes |
+| 0 | 60 | 6049 | 58316 | yes |
+| 0 | 200 | 23472 | 205119 | yes |
+| 0 | 2000 | 205119 | 2022167 | yes |
+| 0 | -- | first wtime where it changes: 5 -- | | |
+| 10 | 1 | 42 | 42 | no |
+| 10 | 3 | 42 | 42 | no |
+| 10 | 5 | 42 | 42 | no |
+| 10 | 8 | 42 | 42 | no |
+| 10 | 12 | 889 | 889 | no |
+| 10 | 14 | 889 | 3072 | yes |
+| 10 | 16 | 889 | 3190 | yes |
+| 10 | 20 | 889 | 6049 | yes |
+| 10 | 30 | 889 | 18055 | yes |
+| 10 | 35 | 889 | 23472 | yes |
+| 10 | 40 | 889 | 23472 | yes |
+| 10 | 60 | 6049 | 55296 | yes |
+| 10 | 200 | 23472 | 205119 | yes |
+| 10 | 2000 | 205119 | 2022167 | yes |
+| 10 | -- | first wtime where it changes: 14 -- | | |
+| 30 | 1 | 42 | 42 | no |
+| 30 | 3 | 42 | 42 | no |
+| 30 | 5 | 42 | 42 | no |
+| 30 | 8 | 42 | 42 | no |
+| 30 | 12 | 42 | 42 | no |
+| 30 | 14 | 42 | 42 | no |
+| 30 | 16 | 42 | 42 | no |
+| 30 | 20 | 42 | 42 | no |
+| 30 | 30 | 42 | 42 | no |
+| 30 | 35 | 889 | 3190 | yes |
+| 30 | 40 | 889 | 6049 | yes |
+| 30 | 60 | 889 | 23472 | yes |
+| 30 | 200 | 23472 | 111587 | yes |
+| 30 | 2000 | 205119 | 2022167 | yes |
+| 30 | -- | first wtime where it changes: 35 -- | | |
+
+| overhead | first changing wtime | overhead + 4 |
+|---|---|---|
+| 0 | 5 | 4 |
+| 10 | 14 | 14 |
+| 30 | 35 | 34 |
+
+CONTROL: at wtime 2000 the counts must differ for every overhead — see the table rows at 2000
