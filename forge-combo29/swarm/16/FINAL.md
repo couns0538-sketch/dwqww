@@ -109,8 +109,10 @@ allowed. `S-F19`: that fraction is a **time-manager soft limit, not a hardware c
 range (1/3/6/30 s) it uses 28/72/159/1312 ms, i.e. 2.38 %–4.33 % every time, scaling with the clock instead of
 hitting a ceiling.
 `S-F26` (ten games, 600 moves): the fraction **drifts upward** across a game — median 3.64 % (first third) →
-4.32 % → **4.70 %** (last third) — and the per-move maximum reaches **21.90 %**, so the real band for a game is
-**2.4 %–21.9 %**, correcting my earlier 2.6–5.3 %. **0 overruns in 600 moves.**
+4.32 % → **4.70 %** (last third) — and the per-move maximum reaches **21.90 %**, correcting my earlier 2.6–5.3 %.
+`S-F29` (ten more games from varied starts) extends the extremes to **0.02 %** (a move that took essentially no
+time) and **32.24 %** (a tactical position), so the full observed band is **0.02 %–32.24 %** with a **median of
+about 4 %** — quote the median. **0 overruns in 1,000 moves across both studies.**
 `S-F28`: with an **identical** 6000 ms clock every move the engine's own use ranges **166–416 ms (2.51×)**, so
 "6 s per move" does not buy a consistent effort; `go movetime` does not leak into a following clock search.
 
@@ -119,11 +121,17 @@ identical at all three budgets on 31 of 40 real-game positions; the 8 that chang
 (largest +125 cp from the 20k budget to the 250k one, one −70 cp self-assessment drop in a lost position). No
 blunder found at any real budget.
 
-**2.4 Self-play diversity — worth the owner's attention.** `S-F27`: ten deterministic self-play games from the
+**2.4 Self-play diversity — and the fix, which is simple.** `S-F27`: ten deterministic self-play games from the
 same start produced only **THREE distinct final positions — seven of the ten identical** — because the engine is
-fully deterministic at Threads 1 with fixed limits. Not a defect; a consequence: **self-play from one fixed start
-re-collects the same game**, so a data set needs varied starts. The one diverging game diverged only because
-millisecond clock drift occasionally changed the depth reached.
+fully deterministic at Threads 1 with fixed limits. Not a defect; a consequence: self-play from one fixed start
+re-collects the same game. The one diverging game diverged only because millisecond clock drift occasionally
+changed the depth reached.
+**`S-F29` answers the actionable question: varying the start is SUFFICIENT.** Ten games from **ten different
+real-game positions** gave **TEN distinct final positions and TEN distinct move sequences** (0 illegal moves,
+0 overruns). So the advice to the owner is simply **vary the openings** — determinism does not prevent varied
+starts from producing varied games, and the earlier convergence was entirely the fixed starting point, not a
+deeper property of the search. If the training loop already varies openings there is nothing to do; if it plays
+one start many times, that is the one change worth making before the next data run.
 
 ---
 
