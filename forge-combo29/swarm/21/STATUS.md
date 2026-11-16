@@ -1,17 +1,18 @@
-## 2026-11-16T22:25:14Z
-seat 21, area 1 (FEN INPUT). **Threads 1 in every run.** Builds: base 6b98f217 and PC r15
-(both Release-verified and ASan+UBSan-built).
+## 2026-11-16T22:26:03Z
+seat 21, area 1 (FEN INPUT). **Threads 1 in every run.** Builds: base 6b98f217, PC r15.
 
-**Done since the last push**
-- job19: the full 20,000-mutation FEN sweep on the PC build under PC20. **Identical to the base
-  tree case for case** — 18,775 refused / 1,225 accepted / 39 python-invalid / 0 crash / 0 hang
-  / 0 sanitizer / 0 illegal; the per-FEN diff against job1 is EMPTY. The PC patch does not touch
-  FEN acceptance. `job19/out/pc20_summary.txt`.
-- job18 (pushed earlier): 21-F9 REPAIRED on the PC build (compile-time FORGE_FIX_ROOT_DRAWN, not
-  the PC20 options); 21-F8, 21-F11 and 21-F2 all SURVIVE on the PC build.
+**WITHDRAWN: 21-F11.** I claimed a checkmated root's `score mate 0` was a fault. It is the
+correct UCI score (`mate <y>` is relative to the side to move, so y=0 is "already mated"), and
+`bestmove 0000` is right. Measured, not asserted: mated → `mate 0`; can mate in 1 → `mate 1`;
+stalemated → `cp 0`; consistent on BOTH builds. `job20/wd/summary.md`. Nothing to repair.
 
-**Findings state**: 11 base-tree findings F1..F11; of these F9 is repaired on the PC build,
-F8/F11/F2 confirmed still open there, F10 confirmed identical there. 6 checks, 1 verified patch.
+**Current state of my area on the PC build**
+- 21-F9 (halfmove≥100 misses a mate in 1): **REPAIRED on the PC build** (compile-time
+  FORGE_FIX_ROOT_DRAWN, not the PC20 options; base + S14 still misses it).
+- 21-F8 (`fullmove 0` refused): **still open on the PC build**.
+- 21-F2 (refused FEN → `readyok` → search plays the old game): **still open on the PC build**.
+- 21-F10 (parser strictness on 6,073 real positions): confirmed identical on the PC build.
+- 21-F10b: the 20,000-mutation sweep on the PC build under PC20 is row-identical to the base.
 
-**Next**: probe 21-F11 (mate 0) on stalemate and insufficient-material roots on the PC build,
-then look for a new find in the PC patch's own new code paths (the six FORGE_FIX_ switches).
+**Next**: look for a NEW find in the PC patch's own new code paths — the six FORGE_FIX_
+switches and the four search options — rather than re-testing the repaired door.

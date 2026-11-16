@@ -1,0 +1,18 @@
+# PREDICTION — job20: 21-F11 (terminal-root score) across terminal kinds, PC build, Threads 1
+written before the first measuring command.
+
+21-F11 found a checkmated root scored `score mate 0`. This job asks how wide that is: does the
+same wrong score appear for stalemate, insufficient material, and a root with no legal moves of
+other kinds; and does it differ between the base tree and the PC build.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | checkmated root: `mate 0` on BOTH builds (already known, re-confirmed here) | killed if either build reports a correct loss score |
+| P2 | stalemated root: `cp 0` on both builds (a draw, so cp 0 is CORRECT) | killed if a mate score appears |
+| P3 | insufficient-material root (K v K) with legal moves: both builds answer `cp 0`, searched or not | killed by a non-zero score |
+| P4 | the PC build reports the checkmate score differently from the base tree (it has FORGE_FIX_ROOT_DRAWN, which only changes the ADJUDICATION path, not the `legal.empty()` path) | expectation: **no difference**; killed if there is one |
+| P5 | 0 sanitizer lines, 0 crashes | killed by any one |
+| P6 | every terminal answer has exactly one `bestmove` and one score line | killed if a case has 0 or 2 |
+
+Direction: P4 is the interesting prediction. `mate 0` looks like the `-MateValue` path being
+emitted with a distance of 0 rather than the value itself, which the patch does not touch.
