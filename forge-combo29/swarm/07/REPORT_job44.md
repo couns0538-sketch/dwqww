@@ -73,12 +73,31 @@ come from something else (time cost, or a strength match), not from these rates.
   shared. That would be the natural next question.
 - Did not examine the 21 discordant positions individually.
 
+## Why I am not reporting a damage figure at all
+
+This deserves its own heading rather than a footnote, because a "damage" number is the single most
+quotable output of a budget study and the easiest to get wrong.
+
+Seat 10 reported that on 2 of their 100 positions the small budget's move is **≥200 cp worse by the
+engine's own evaluation at the large budget** — a real, disciplined figure. **I am not reporting the
+equivalent, and the reason is not caution for its own sake:**
+
+1. My run re-scored the disagreeing positions **generically** (each distinct budget-chosen move
+   searched at `nodes 250000`), not with seat 10's per-move discipline of scoring *the specific move the
+   small budget chose* against *the large budget's own choice* under identical conditions.
+2. The largest score gap I saw was **95,212 cp**, which is not a centipawn quantity at all — it is a
+   mate score collapsed into my `cp` conversion, i.e. a distance artefact. Ranking by that number would
+   put artefacts at the top of a damage table.
+3. A damage figure derived that way would look authoritative and be wrong, which is worse than no figure.
+
+So the report gives the **disagreement rate** (22.7 %, with 59 of 70 shared between budgets) and stops
+there. Anyone wanting damage must re-score per move the way seat 10 did; their 2-of-100 figure stands as
+the only disciplined measurement of it I have seen, and nothing in my run contradicts it.
+
 ## What I am NOT sure about
 
-- Whether the 80 disagreements include large-damage cases. The max score gap at the large budget was
-  **95,212 cp**, which is almost certainly a mate-distance artefact rather than a real blunder, so I
-  did not report a damage figure — I would need seat 10's per-move re-scoring discipline to do that
-  honestly, and my run only re-scored the disagreements generically.
+- Whether the 80 disagreements include large-damage cases. My generic re-scoring cannot tell a blunder
+  from a mate-distance artefact, which is exactly why no damage figure is claimed above.
 
 ## Times
 
