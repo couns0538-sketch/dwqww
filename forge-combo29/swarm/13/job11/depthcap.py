@@ -28,7 +28,13 @@ OUTDIR = sys.argv[2]
 LIMIT = float(sys.argv[3]) if len(sys.argv) > 3 else 20.0
 os.makedirs(OUTDIR, exist_ok=True)
 
-PC20 = [("Threads", "1"), ("Hash", "16"), ("OwnBook", "false"), ("MateAlphaGuard", "true")]
+# PC20 = Threads 1, Hash 16, the 14 S14 settings, then the six PC settings. This list was SHORT
+# (four options) when this script first ran, while its docstring called the regime PC20. Kept the name
+# honest by importing the canonical definition instead of retyping it.
+import os as _os
+import sys as _sys
+_sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "lib"))
+from settings import PC20  # noqa: E402  (asserted at import: 22 entries, all required names present)
 BOARDS = [
     ("mate-in-1", "6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1"),
     ("middlegame", "1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b - - 0 1"),

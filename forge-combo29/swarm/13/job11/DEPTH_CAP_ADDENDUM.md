@@ -42,6 +42,19 @@ The tell was the same as always: results that contradict themselves (a *deeper* 
 *faster* than a shallower one) mean the measuring instrument is broken, not the engine. Had I trusted the
 first table I would have reported that `go depth 60` hangs, which is false.
 
+## SETTINGS LABEL CORRECTION (found by a settings audit, 2026-11-16)
+When this job first ran, `depthcap.py`'s list named PC20 but held only FOUR options
+(`Threads, Hash, OwnBook, MateAlphaGuard`) — the 14 S14 settings were missing. So the original numbers
+were measured under a **PC6-like** regime while the script called it PC20.
+
+Re-run with the canonical PC20 (22 options, imported from `../lib/settings.py`, which asserts its own
+length), the conclusions are **unchanged**: `go depth 65` and `go depth 70` still answer with a bestmove,
+the maximum reported depth is still 64, and 2 of the 4 above-64 requests answered while 2 timed out. The
+finding itself was structural (a cap on the reported depth counter, and whether a request above it
+terminates), so it is not surprising that tuning options do not move it — but that is now *measured*
+rather than assumed, and the label is honest. Both runs are committed: `out2/` and `out3/` (pre-fix) and
+`out_pc20/` (canonical PC20).
+
 ## Reproduce
 ```
 cd forge-combo29/swarm/13/job11

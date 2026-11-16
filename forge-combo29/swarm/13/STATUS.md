@@ -607,3 +607,21 @@ MY OWN MISTAKE, recorded again: my first timealloc.py PC20 list OMITTED ALL FOUR
   neighbours (fraction rising then falling across a monotonic sweep). The script now asserts
   len(PC20)==22. out/ and out2/ are deliberately kept as the mislabelled PC6 runs; out3/ is the corrected data.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## Mon Nov 16 11:50:59 PM UTC 2026
+
+SETTINGS-LIST GUARD now STRUCTURAL, as asked (this was the second occurrence, and auditing found a third):
+  NEW lib/settings.py: canonical BASE / S14 / PC6 / PC20 with assertions AT IMPORT — lengths 2/14/6/22,
+  no duplicate names, and MEMBERSHIP of all 20 named options (a length check alone would pass a list that
+  swapped one entry for another). Plus describe(opts) for report-ready labels and check(opts,...) for
+  scripts that build their own.
+  AUDIT of all 12 list-bearing scripts (lib/AUDIT_settings_lists.md): 10 were already complete. FOUND A
+  THIRD INSTANCE: job11/depthcap.py named its 4-option list PC20 (no S14 at all). Fixed to import the
+  canonical list and RE-RAN under real PC20: its conclusions HOLD unchanged (go depth 65 and 70 still
+  answer with a bestmove, max reported depth still 64, 2 of 4 above-64 requests answered) — the finding
+  was structural, so this is measured now rather than assumed. DEPTH_CAP_ADDENDUM.md records the label
+  correction and keeps both runs.
+  Every PC20 script in my folder now carries `assert len(PC20) == 22`. Verified by smoke-running
+  job5/softnodes.py after the edit: reproduces the known overshoot exactly (671/2121).
+  Finding S-F20.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1

@@ -32,6 +32,7 @@ S14 = [("LmrQuietBase", "93"), ("LmrQuietDivisor", "205"), ("LmrNoisyBase", "13"
 PC6 = [("CuckooRep", "true"), ("HistRework", "2"), ("TtPruneV2", "true"), ("CorrHistV2", "true"),
        ("MateAlphaGuard", "true"), ("OwnBook", "false")]
 PC20 = [("Threads", "1"), ("Hash", "16")] + S14 + PC6
+assert len(PC20) == 22, "PC20 must be 22 entries; a short list silently measures a different regime"
 VAL = {chess.PAWN: 100, chess.KNIGHT: 320, chess.BISHOP: 330, chess.ROOK: 500,
        chess.QUEEN: 900, chess.KING: 0}
 
