@@ -97,3 +97,48 @@ and I say plainly that it is untested rather than guessing its result.
 - My two candidate readings in 15-F16 ("check does not fire" vs "machinery changed") were both
   wrong; the third possibility — "it fires but is not consulted" — is the actual one, and only
   instrumenting could have found it.
+
+---
+
+## The follow-up I said was untested: `-DFORGE_FIX_ROOT_DRAWN=0` on the PC tree
+
+Built the PC tree with `-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_FIX_ROOT_DRAWN=0`. **All four honesty
+pins unchanged** (312866 / 862329 / 3024920 / 4865609, default option regime). Threads 1,
+regime PC20. Raw: `fix0_test.txt`.
+
+### What comes back
+
+```
+repetition:
+occurrences  score   nodes   verdict
+1            cp 20   8569    searched
+2            cp 20   8569    searched
+3            cp 0    0       DECLARED DRAWN
+4            cp 0    0       DECLARED DRAWN
+
+fifty-move thread:
+CASE 2  mate in one, halfmove 100   score=cp 0   nodes=0   bestmove a1b1   <-- the MATE BUG IS BACK
+CASE 4  pawn-move mate, halfmove 100 score=cp 0  nodes=0   bestmove a7a8q  <-- and here
+CASE 1  mate in one, halfmove 99    score=mate 1 nodes=144 a1a8            <-- control still fine
+CASE 5  checkmate / stalemate       mate 0 / cp 0, 0000                    <-- unchanged, correct
+```
+
+### So the two behaviours are the same switch, and they conflict
+
+`FORGE_FIX_ROOT_DRAWN` does both jobs at once:
+
+- **ON (PC default)**: a drawn root is searched, so a mate at halfmove 100 is FOUND (`mate 1`, 144
+  nodes) — and a thrice-repeated root is also searched (`cp 23`, 13,424 nodes).
+- **OFF**: a thrice-repeated root is correctly declared drawn (`cp 0`, 0 nodes) — and a mate at
+  halfmove 100 is LOST again (`cp 0`, 0 nodes, `a1b1`), exactly the base-tree defect.
+
+**The owner cannot have both with this switch alone.** This is the useful part of the answer: the
+"thrice-repeated root is searched" behaviour is not a separate bug to be patched away, it is the
+price of the mate repair in the same flag. A proper fix would separate the two conditions — keep
+`halfmove_clock >= 100` out of `root_drawn` (which is what repairs the missed mate) while keeping
+`is_repetition()` in it (which is what declares the repetition) — i.e. two flags or one flag with the
+conditions split. The instrumentation in this file is exactly what shows the conditions are
+separable, since `is_repetition()` returns the correct answer independently.
+
+I did **not** build or test that split. It is a one-line change to `root_drawn` and an obvious next
+experiment; I am naming it rather than claiming it works.
