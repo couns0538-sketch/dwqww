@@ -153,3 +153,18 @@ TABLE 3, fixed depth `go depth 12`: 31 ms (Hash 16, MPV 1), 40 ms (Hash 2048, MP
 MPV 8) — same depth 12, same result, 343x. So it is also a latency problem for batch analysis, not just a clock
 problem. No fix attempted, as instructed.
 Next: re-run area-2 job 3 (option sweep) on the PC build under PC20, then check another seat's NEW finding.
+
+## 2026-11-16T23:58Z — S-F7e: the per-line clear is LOAD-BEARING (measured with a control)
+Built a scratch variant (/agent/repos/pc-noclear) with exactly `alt_shared->tt.clear()` commented out; the change
+is committed as TEXT (hash_multipv/remove_per_line_clear.patch.txt). The variant passes all four honesty pins
+identically, so it is a valid build.
+Result at depth 8, MultiPV 4, Threads 1, Hash 16: the MultiPV lines DIFFER — with clear cp 73 / cp 68 / cp -18,
+without cp 68 / cp 52 / cp -18; bestmove unchanged (d4c5). Control: at MultiPV 1 (the clear never executes in
+EITHER build) the two builds are BIT-IDENTICAL, so the difference is the clear and not build variance.
+Speed win if removable: depth 12, Hash 2048, MultiPV 8 goes 13.9 s -> 1.1 s (12.6x), MultiPV 1 unchanged.
+=> Removing it is a behaviour change needing a match, not a free speed patch; a cheap cluster-local clear must be
+validated against the with-clear numbers. I also CORRECTED my earlier reading: I had guessed the surviving entries
+were irrelevant, and the no-clear scores moving suggests otherwise.
+hash_multipv/RESULT.md, clear_dependency_probe.json.
+
+Next: area-2 job 3 on the PC build (92 options, vs 82 on base — new options to test), then another seat's finding.
