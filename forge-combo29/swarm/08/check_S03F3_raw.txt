@@ -1,0 +1,20 @@
+## S03-F3 — is an en-passant capture that exposes its own king ever generated?
+
+| case | fen | python-chess legal | ep move in python-chess? | engine perft 1 moves | ep move in engine? | agree? |
+|---|---|---|---|---|---|---|
+| ILLEGAL | 8/8/8/r2pP1K1/8/8/8/7k w - d6 0 1 | 9 | (none) | 9 | (none) | True |
+| ILLEGAL | 7k/8/8/r4pPK/8/8/8/8 w - f6 0 1 | 4 | (none) | 4 | (none) | True |
+| ILLEGAL | 7k/8/8/K4pPr/8/8/8/8 w - f6 0 1 | 6 | (none) | 6 | (none) | True |
+| LEGAL | 8/8/8/3pP3/8/8/8/K6k w - d6 0 1 | 5 | ['e5d6'] | 5 | ['e5d6'] | True |
+| LEGAL | 7k/8/8/8/3pP3/8/8/K7 b - e3 0 1 | 5 | ['d4e3'] | 5 | ['d4e3'] | True |
+
+| quantity | value |
+|---|---|
+| ILLEGAL-ep positions | 3 |
+| ... where the engine generated the ep move | 0 |
+| LEGAL-ep controls | 2 |
+| ... where the engine generated the ep move | 2 |
+| positions where the engine's whole move list differs from python-chess | 0 of 5 |
+
+**CONFIRMS**: the engine never generated the king-exposing ep capture, and it DID generate the legal
+one, with the whole move list identical to python-chess in every case.
