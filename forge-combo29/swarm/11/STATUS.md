@@ -120,3 +120,5 @@ DONE (all pushed, raw evidence beside each):
   hole fixed in check_s05f3), S-A3 (warm/cold: 4/120 bestmoves differ, 0 illegal either way).
 - RULE1.md: planted controls for every zero I claim.
 NEXT: continue area-1 work; push again by 22:30.
+- S-F13 NEW: exhaustive ep-field matrix — 63 of 64 ep squares refused, only the legal `d6`
+  accepted (perft 1 = 31 = python-chess). Ep validation is airtight; job 2's sampling generalises.
