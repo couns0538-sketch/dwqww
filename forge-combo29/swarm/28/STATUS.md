@@ -179,3 +179,101 @@ S-F41 RETRACTS my own transition mechanism. Constructed the case as asked (4 com
 
 ## Mon Nov 16 11:22:37 PM UTC 2026
 S-F42 structural result, as asked: spend <= hard <= clock - MoveOverhead < clock + increment for EVERY overhead and increment, so the margin is overhead+increment (70 ms at the owner's control) at EVERY clock size - and it follows from the final clamp alone, independent of the 60%/80% constants. Spend is proportional to what remains. RESIDUAL RISK kept in the file as three items: (1) plan violation, (2) stall outside the search (the real one; machine/GUI not engine), (3) refused position -> unintended board. Written in CLOCK_CANNOT_BE_LOST.md.
+
+## 2026-11-16T23:23Z FINAL — every find of seat 28, with state, build and settings
+
+Branch `for-fable-and-opus/swarm-28`. Folder `forge-combo29/swarm/28/`. **Start at README.md**, then
+`DRAWN_ROOT_DOORS.md` (drawn-root decision) and `CLOCK_CANNOT_BE_LOST.md` + `GATED_SOFT_STOP_RULE.md`
+(the clock results). All 55 FINDINGS lines are listed below; where a line was superseded the REVISED line is
+the one to read and the original is kept so the trail is visible.
+
+Builds: **base** = commit 6b98f217, Release GCC 13.3.0, exe sha256 `e06310ec…16a83` (all four honesty pins
+matched). **PC r15** = FABLE_TO_swarm_5 patch, sha256 `d6bd72c531f785f4…` verified, 11 files zero fuzz, built
+with `-DFORGE_MATE_ALPHA_GUARD=1`, exe `068f0927768d30be…`; all published pins reproduced (default
+312866/862329/3024920/4865609, S14 242796/656517, PC20 278024/587276).
+Settings: **S14** = the 14 brief settings. **PC20** = S14 + CuckooRep true, HistRework 2, TtPruneV2 true,
+CorrHistV2 true, MateAlphaGuard true, OwnBook false. Threads 1 and Hash 16 everywhere unless stated.
+
+### Clock findings (area 8)
+
+| id | subject | state | build | settings |
+|---|---|---|---|---|
+| S-F1 | `go movetime M` plans M − MoveOverhead | **superseded by S-F1-REVISED** | base | S14 |
+| S-F1-REVISED | 16-cell grid: the STOP is M−O to 1-2 ms (wall/plan 1.00-1.02 in 15 of 16 cells); the reported time is 70-85 % of it | stands, my defect wording withdrawn | base | S14 |
+| S-F2 | 41 % of 1 s-clock searches past `wtime/30+winc` | **superseded by S-F2-REVISED** (that threshold was mine, not the engine's) | base | S14 |
+| S-F2-REVISED | against the engine's own plan: 54/200 over soft, 0/200 over hard | stands | base | S14 |
+| S-F3 | movetime-50 wall reproducible to 0.05 ms | stands, narrowed by S-F12 | base | S14 |
+| S-F5 | below Move Overhead the engine ignores a Fischer increment (`wtime 5 winc 1000` → 0.29 ms, depth 1) | stands | base | S14 |
+| S-F6 + S-F6-REVISED | the hard limit excludes the increment; stated as a PLAN claim (soft 822 vs 117 ms at equal 2600 ms) | stands (revised wording) | base | S14 |
+| S-F7 | `wtime 0` answered at once with a legal move | stands | base | S14 |
+| S-F8 | 0 overruns in 400 low-time searches, with planted-fault control | stands | base | S14 |
+| S-F9 + S-F9-REVISED | movestogo 1 uses 32 % of the clock; mechanism is a target undershoot, medians 323 vs 322 reported, 2/40 rows 379 ms apart | stands (revised mechanism) | base | S14 |
+| S-F10 | `movestogo` above 50 clamps to exactly 50 | stands | base | S14 |
+| S-F11 | no movestogo case overran the clock | stands | base | S14 |
+| S-F20 | 08-F11 re-tested on the PC build: tail shape reproduces, absolute p99 1.5-1.8x lower | stands, magnitude refined by S-F25-REVISED | PC r15 | PC20 |
+| S-F21 | Threads-4 score non-reproducibility reproduced AND extended (the MOVE varies too) | stands | PC r15 | PC20 |
+| S-F22 | Threads audit: 10 of my 11 search harnesses send Threads 1; `pins.py` must not | stands | base | S14 |
+| S-F25 + S-F25-REVISED | the PC tail is NOT deeper search — a short-clock effect costing ~1 ply at 10 s | stands (revised magnitude, 40-position sample) | PC r15 | PC20 |
+| S-F26 | the 10 s lost ply is NOT the plan (all 11 defaults identical); it is the stop | stands | PC r15 | PC20 |
+| S-F27 | the cause is the PC20 SWITCH SET — proven by turning all five off on the same binary (0.784 vs 0.769 of soft) | stands | PC r15 | PC20 |
+| S-F28 | the lost ply is cosmetic: equal-depth disagreement (72.5 %) EXCEEDS the ply effect | stands | PC r15 | PC20 |
+| S-F29 | of 11 equal-depth disagreements, deeper neutral re-search finds BASE better 6, PC20 better 2, equal 3 | mixed, no pattern; thread closed | PC r15 | PC20 |
+| S-F30 | at the owner's 6+0.06 control with a CONSTANT clock the tail is bimodal, 5/120 searches at 1.2-1.59 s | stands — but see S-F40: a constant clock inflates the tail and is not the realistic harness | PC r15 | PC20 |
+| S-F31 | the worst case is deterministic: 1585 ms at the hard plan while its last completed iteration ended at ~1020 ms | stands | base | S14 |
+| S-F32 | soft-scaled stop rule is FREE on two thirds of positions, 1-3 plies on the tail | stands (arithmetic, 10 s ladders) | PC r15 | PC20 |
+| S-F33 | `softnodes N` deterministic, always stops at a finished depth, overshoot 1.02x-1.99x growing with N | stands | PC r15 | PC20 |
+| S-F34 | **gated rule, G = 1.5**: removes every 2+ ply loss on PC20, keeps 35 ms mean / 424 ms max | **recommendation**, see `GATED_SOFT_STOP_RULE.md` | PC r15 | PC20 |
+| S-F35 | naive next-iteration predictor is poor (58 % median error) but the gate still agrees with the oracle 100 %, incl. out of sample | stands | PC r15 | PC20 |
+| S-F36 | `c_last > soft` handled by ALGEBRA (G > C); limit: only 3 of 10 overruns preventable from a boundary | stands | PC r15 | PC20 |
+| S-F37 | mid-iteration abandon: FREE for discarded iterations (578-936 ms), 1 ply for completing ones | stands | PC r15 | PC20 |
+| S-F38 | Case B implementable: the abort path already publishes partial results (search.cpp:2439-2451), so gate on "no depth completed since soft" | stands, read from source | base | S14 |
+| S-F39 | real games at 6+0.06: median 132 ms, **p90 359 ms**, max 608, 0 flags in 4 games | measurements stand; its flagging MECHANISM retracted by S-F41 | PC r15 | PC20 |
+| S-F40 | 6 longer real games: median 99 ms, **p90 262 ms**, max 792, 0 flags; combined 1,090 moves | measurements stand; mechanism retracted by S-F41 | PC r15 | PC20 |
+| S-F41 | **RETRACTS** the "one p90 move from flagging" mechanism: a clock search cannot flag, constructed case 0 of 16 | retraction, my error | PC r15 | PC20 |
+| S-F42 | **the clock cannot be lost to a search**: `spend <= hard <= clock − MoveOverhead < clock + increment`, margin = overhead + increment at every clock size | stands — the result to hold | both | any |
+
+### Drawn-root findings (base-tree only — repaired on the PC)
+
+| id | subject | state | build | settings |
+|---|---|---|---|---|
+| S-F4 | the 0-node root shortcut also fires on `board.is_repetition()` | base-tree only | base | S14 |
+| S-F17 | a 5-line patch closes both doors, honesty identical, ASan+UBSan clean | base-tree only, one of THREE competing fixes | base | S14 |
+| S-F18 | the defect's shape: claimable draws treated like the automatic one | explanation only | base | S14 |
+| S-F19 | three competing fixes; the counter-reset case does NOT separate them | stands | base | S14 |
+| S-F23 | **all drawn-root findings repaired on PC r15/PC20** — no patch needed on the PC | stands | PC r15 | PC20 |
+| S-F24 | `DRAWN_ROOT_DOORS.md`, the decision file | stands | PC r15 | PC20 |
+
+### Method findings
+
+| id | subject | state | build | settings |
+|---|---|---|---|---|
+| S-F12 | corrects my own S-F3: bench timing is NOT reproducible (8-17 % between single runs) | stands | base | S14 |
+| S-F13 | the book does not answer startpos on this build (`Book File` empty) | stands | base | S14 |
+| S-F14 | WITHDRAWS correction-2's claim that clock searches break the hard limit | withdrawn | base | S14 |
+| S-F15 | `ucinewgame` restores the fresh-process state exactly; omitting it lets depth climb 14→17 | stands | base | S14 |
+| S-F16 | `Clear Hash` is NOT a cold restore | stands | base | S14 |
+
+### Checks of other seats' findings (each with its own harness and a control)
+
+| id | subject | state | build | settings |
+|---|---|---|---|---|
+| S-C1 | CONFIRMS seat 01's S-F5 (halfmove-100 mate missed; exact 126→0 nodes), plus S-F4's repetition door | stands | base | S14 |
+| S-C2 | REFUTES seat 19's 19-F7 *cause* (two rebuilds are byte-identical); its advice stands | stands | base | S14 |
+| S-C3 | CONFIRMS seat 27's S-F2 (`go nodes` below one iteration); threshold 26 is startpos-specific | stands | base | S14 |
+| S-C4 | CONFIRMS seat 21's S-F2 (refused FEN leaves the stale board) with a perft control 55,117 vs 8,902 | stands | base | S14 |
+
+### Residual risk on the clock (kept here as asked)
+A side can still flag only if one move's TOTAL wall time exceeds `clock + increment`, which the search cannot
+do. The three ways: **(1) a plan violation** — the engine exceeding its own `hard` (a time-manager bug; not
+seen in 1,090 measured moves); **(2) a stall outside the search** — scheduling, GUI latency, an OS pause
+(the real risk at the owner's control, and a property of the machine and GUI, not the engine); **(3) a refused
+position** — a bad FEN or illegal move leaves the previous board (S-C4), so the engine may search a board the
+GUI did not intend.
+
+### Honesty statement
+Every table in every file is the pasted output of a committed script. Every prediction was committed and
+pushed ALONE before its first measurement, and every report ends with its score including every killed
+prediction. My own errors are recorded in place rather than hidden: five harness bugs (a buffered `select`,
+and the quit-during-search trap five times), four wrong initial claims (S-F1's defect wording, S-F2's invented
+threshold, correction-2's overrun claim, S-F14), one wrong test expectation (KNN v K), two accidentally
+committed `.pyc` files removed, and S-F41's retracted mechanism.
