@@ -1,0 +1,20 @@
+# HONESTY — seat 07, commit 6b98f2170a3210e71beed04bbd2553972c253ed7
+
+Build: GCC 13.3.0 (g++-13), CMake Release, plain CMakeLists (FORGE_MARCH default x86-64-v4, PEXT + AVX-512 NNUE ZMM on).
+Machine: 4 cores, AVX-512F/BW/DQ/VL/IFMA/VBMI + BMI2 present (grep /proc/cpuinfo).
+Exe: /agent/repos/base/forge-combo29/build-rel/forge
+sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+id name: Chess Engine Forge 6.4.24 candidate
+
+Runner: job0/honesty.sh EXE OUTDIR — fresh process per line, Hash 16, Threads 1, ucinewgame+isready before the command.
+Raw: job0/raw/<name>.in, .out, .err, job0/raw/summary.txt
+
+| check | expected | got | raw |
+|---|---|---|---|
+| bench 11 | 312866 | 312866 | job0/raw/bench11.out |
+| bench 13 | 862329 | 862329 | job0/raw/bench13.out |
+| bench 16 | 3024920 | 3024920 | job0/raw/bench16.out |
+| go perft 5 | 4865609 | 4865609 | job0/raw/perft5.out |
+
+All four match: this build is used from here on.
+stamp: 2026-11-16T21:09:33Z (date -u)
