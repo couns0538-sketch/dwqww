@@ -7,8 +7,12 @@ search is NOT colour-symmetric: 19 of 353 G pairs (5.4%) give an equal score, be
 252/353 (71.4%); cause is order/depth dependence, not the evaluation" — was unconfirmed by anyone, and
 it is in this seat's competence (07-C9 established the evaluation's symmetry convention).
 
-**Answer:** **CONFIRMS S-F4, and extends it to the PC build under PC20**, which is the path the owner
-actually plays. On 120 G positions at depth 10: exact score symmetry **7/120 = 5.8 %** (seat 16:
+**Answer:** **CONFIRMS 16-S-F4 independently at depth 10** — but I must withdraw the word "extends".
+I wrote that I was extending the finding to the PC build under PC20; **seat 16's own S-F14 had already
+done exactly that**, over all 353 G positions, and its S-F15 had already attributed the extra asymmetry
+to `TtPruneV2`. I did not check their later rows before writing mine, so my "extension" duplicated
+their work. What stands is the independent confirmation on a different 120-position subset, and the two
+measurements I added that their summary does not contain (median gap and depth collapse). On 120 G positions at depth 10: exact score symmetry **7/120 = 5.8 %** (seat 16:
 5.4 %), bestmove mirrors **83/120 = 69.2 %** (seat 16: 71.4 %). The rates agree closely.
 **New detail their summary does not state:** the disagreement is mostly *small* — median score gap
 **15 cp**, 103 of 120 pairs within 50 cp — so "not symmetric" means "rarely exactly equal and usually a
@@ -51,13 +55,16 @@ says "equal" to anything.
 | pairs within 50 cp | **103/120 = 85.8 %** | not reported |
 | largest score gap | **289 cp** | not reported |
 
-The two independent samples agree on both rates to within half a percentage point, on **different
-builds** (base vs PC r15) — which is stronger than either alone: the near-symmetry is a property of the
-search, not of one build.
+The two independent samples agree on both rates to within half a percentage point. **Correction:** I
+originally described this as base-vs-PC, which was wrong — seat 16's S-F14 is *also* PC r15/PC20
+(120/353 = 34 % move-mismatch against my 30.8 % on this 120-position subset). So the agreement is
+between two seats on the **same build**, on different position subsets, which is a reproducibility
+check rather than a build-generalisation.
 
 ## What this adds beyond S-F4
 
-1. **It holds on the PC build under PC20**, so it is not a base-tree artefact.
+1. **It reproduces on an independent 120-position subset** with rates matching to 0.4 % — a
+   reproducibility check, not an extension to a new build (their S-F14 already covered PC r15/PC20).
 2. **The magnitude is small**: 85.8 % of pairs are within 50 cp of symmetric, so the practical effect is
    tie-ordering noise, not a colour bias. Seat 16 attributed it to "order/depth dependence", and a
    median 15 cp gap with correct mirrored moves in 69 % of pairs is consistent with exactly that.
