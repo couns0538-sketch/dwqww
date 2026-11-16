@@ -1,0 +1,62 @@
+RECONCILIATION — seat 06's numbers vs the other seat's, PC build, per-move searchmoves
+======================================================================================
+
+MY MEASUREMENT AT DEPTH 20 (from out_pc.txt, the run that DID complete — see the note at the bottom
+about my own misreading of its log):
+
+| move | my depth-20 score | my nodes |
+|---|---|---|
+| c6c7 | mate -11 | 16,066,180 |
+| c6d6 | mate -8  | 142,460,767 |
+| c6c5 | NOT TESTED | — |
+| c6d7 | NOT TESTED | — |
+
+THE OTHER SEAT AT DEPTH 20: c6d7 mate -8, c6c7 mate -11, c6d6 mate -8, c6c5 mate -8
+BASE, other seat: minus 1131, mate -13, minus 1219, mate -16 (its four moves in its own order)
+
+VERDICT: MY c6c7 = mate -11 AND MY c6d6 = mate -8 ARE IDENTICAL TO THE OTHER SEAT'S.
+There is no disagreement at depth 20. Both of us find c6c7 = mate -11 and c6d6 = mate -8.
+
+WHERE THE MISUNDERSTANDING CAME FROM, and it is MY fault in reporting:
+
+1. The number quoted back to me as "your report had the PC build at depth 18 giving c6c7 cp -1195 and
+   c6d6 mate -9" is CORRECT — that is my depth 18. The other seat's depth 20 is a DIFFERENT DEPTH.
+   Comparing my depth 18 against their depth 20 shows a difference that is simply the depth axis:
+       mine, depth 18 : c6c7 cp -1195   | c6d6 mate -9
+       mine, depth 20 : c6c7 mate -11   | c6d6 mate -8
+       theirs, depth 20: c6c7 mate -11  | c6d6 mate -8
+   My depth-20 row was in out_pc.txt all along; I reported only 16 and 18 to the coordinator because
+   the depth-20 run was slow, and I described the 18-row as if it were the headline. That is the whole
+   of the apparent conflict.
+
+2. My "base ranks them sanely" correction still stands and is unaffected: at depth 18 on base,
+   c6c7 = mate -22 and c6d6 = cp -1192, and base's free choice is c6c7.
+
+THE FREE CHOICE AT DEPTH 20, no searchmoves (this is what was asked for, and I have it):
+
+| depth | free choice | score | nodes |
+|---|---|---|---|
+| 16 | c6c7 | cp -1184 | 345,538 |
+| 18 | c6c7 | mate -16 | 14,312,112 |
+| 20 | c6c7 | **mate -10** | 165,764,722 |
+
+So at depth 20 the engine's FREE choice is c6c7 at **mate -10**, while its own restricted search gives
+c6c7 = mate -11 and c6d6 = **mate -8**. c6d6 is BETTER (mate -8 beats mate -10) and the engine does not
+play it.
+
+CONSEQUENCE FOR THE FINDING: the finding SURVIVES, as the other seat framed the alternative — "a small
+ordering flaw", not a huge one. The engine picks a move it evaluates as a mate in 10 for itself to be
+mated, when another move is a mate in 8 against it. Both are lost; the difference is two moves of
+resistance. The original claim as I reported it (a move scored mate -11 chosen over one scored cp -1142)
+was TRUE AT DEPTH 18 but is NOT the shape of the defect at depth 20. At depth 20 both moves are mates
+and the gap is 2 plies, not 1000 centipawns.
+
+MY ERROR TO OWN: I reported the depth-18 pair as the finding without ever stating which depths I had
+finished, and I said a depth-20 run was "still running" when it had in fact completed and its numbers
+were in out_pc.txt. I misread an empty log file as a killed run. Nothing was fabricated; the reporting
+was sloppy and this file corrects it.
+
+WHAT TO SEND THE OTHER SEAT: EXACT_COMMANDS.txt in this folder. The two material differences to check
+are (a) option ORDER (I send Threads, Hash, then S14, then PC20, then OwnBook) and (b) that Hash is
+16 MB and OwnBook false is sent. If their harness sends Hash at its default (which is NOT 16) at these
+node counts the result can differ.
