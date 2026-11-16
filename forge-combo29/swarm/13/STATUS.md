@@ -284,7 +284,7 @@ Next command: cd forge-combo29/swarm/13 && git log --oneline -1
 
 DONE job 9b: closes the NEGATIVE mate gap I declared open in job 9.
   6 real lost G positions (side to move down >= 700cp) x 2 budgets = 12 runs.
-  4  claims, 4/4 CORRECT: opponent forces mate within 2|M|-1 plies (exhaustive python-chess)
+  4 negative mate claims, 4/4 CORRECT: opponent forces mate within 2|M|-1 plies (exhaustive python-chess)
   AND the engine's own PV mates at exactly that ply (-3 -> ply 6, -4 -> ply 8).
   8 large negative cp scores (-245..-3669); 0 non-negative scores in any lost position.
   I DID THIS WRONG FIRST: my initial check reused the positive-mate predicate and reported all 4 as
