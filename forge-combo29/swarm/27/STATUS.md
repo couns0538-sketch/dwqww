@@ -386,3 +386,15 @@ Re-ran the `go nodes` vs `go softnodes` comparison over **all three of the owner
   9,330 (57 % drop for one node).
 **Owner consequence, now at every budget he uses: a match labelled "nodes N" spends median 74 % of it and lands
 one ply shallower than `go softnodes N` on the same position.**
+
+## 2026-11-17T00:05Z S-N2: softnodes combined with a clock - safe, and now measured
+The PC's self-play uses `go softnodes 2000`; its strength matches use 6 s + 0.06. Nobody had crossed the two
+limits. PC r15/PC20/Threads 1/Hash 16/OwnBook false, 3 positions x 4 commands x 2 fresh processes,
+**12 of 12 deterministic**:
+  **the smaller limit wins** - `go softnodes 2000` alone gives 2,474/2,303/2,341 nodes; with a 6 s clock added it
+  gives the SAME numbers, so the clock never binds;
+  **an empty clock overrides a huge budget** - `go softnodes 400000 wtime 10 btime 10` gives 25/76/394 nodes at
+  depth 1 in 0.8-1.3 ms, so the 10 ms clock is honoured and the budget is not spent;
+  the `info string softnodes nodes K` line matches the last info line whenever a soft budget was given.
+**So a self-play loop that sends both is safe and reproducible.** Recorded because "safe" is only a claim once
+somebody has crossed the limits and checked - and no defect here.
