@@ -1,0 +1,19 @@
+exe: /tmp/build-pc/forge   clock 6000 ms   increments 60 vs 600 ms   3 runs each
+PC20, Threads 1, Hash 16, OwnBook false, SEQUENTIAL (one engine at a time)
+positions: 6 from G.epd (real games)   date_utc: 2026-11-16T23:28:57Z
+
+FOURTH POINT to test whether exponent 0.494 holds beyond two decades.
+Clock 6000 ms, 6 G positions, 3 runs/cell, sequential. Increments 60 / 600 / 6000 / 24000 ms.
+
+  inc     60: n=18 median     157 ms  p90     217  median depth 19
+  inc    600: n=18 median     544 ms  p90    1294  median depth 23
+  inc   6000: n=18 median    2867 ms  p90    3594  median depth 32
+  inc  24000: n=18 median    2860 ms  p90    3594  median depth 32
+
+| pair of increments | measured multiple | exponent a = log(t2/t1)/log(i2/i1) |
+|---|---|---|
+| 60 -> 600 | 3.46x | 0.539 |
+| 600 -> 6000 | 5.27x | 0.722 |
+| 6000 -> 24000 | 1.00x | -0.002 |
+
+overall over 400x of increment: exponent 0.484  (S-F51 said 0.494 on the first 3 points)

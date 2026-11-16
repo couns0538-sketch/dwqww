@@ -1,0 +1,14 @@
+What is the ceiling? inc 6000 and inc 24000 BOTH give median 2860 ms and p90 3594 ms.
+3594 ms appearing as both p90 and (in the 6000 row) max suggests a HARD per-move cap near 3.6 s.
+
+Check: is 3594 a repeated exact value across positions? (a cap would appear identically everywhere)
+From the run: inc 24000 p90 = 3594 and inc 6000 p90 = 3594 — the SAME number for different increments.
+
+Interpretation (NOT a mechanism claim): the time manager appears to stop requesting more than ~3.6 s on this
+path, so increments above some threshold buy nothing. That refines S-F51, which was fitted on 60/600/6000 and
+concluded 'no plateau'.
+
+Practical translation for the owner, sharpened:
+  - raising 0.06 -> 0.6 s : 2.5x time, +2 med plies   (measured, S-F50)
+  - raising 0.06 -> 6 s   : ~9.7x time, +7 med plies  (measured)
+  - raising 0.06 -> 24 s  : NO further gain at all (2860 ms, same as 6 s)

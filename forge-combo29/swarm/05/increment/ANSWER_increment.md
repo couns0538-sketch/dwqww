@@ -33,6 +33,27 @@ clock*. (Linear would be 10x per decade; a plateau would be 1.0x. The measured 2
 prediction of 3.16x.) **The exponent is clock-dependent: it is 0.758 at a two-second clock, so the gain from raising
 the increment is LARGER on smaller clocks.**
 
+## A fourth point overturns part of the above: there IS a ceiling
+
+Adding a fourth increment (24,000 ms) shows the growth **stops**:
+
+| increment | median wall | median depth | growth vs previous 10x |
+|---|---|---|---|
+| 60 ms | 157 ms | 19 | — |
+| 600 ms | 544 ms | 23 | 3.46x |
+| 6,000 ms | 2,867 ms | 32 | 5.27x |
+| **24,000 ms** | **2,860 ms** | **32** | **1.00x — no gain** |
+
+Verified per run (3 positions, 4 runs each): at increment 6000 position 0 spends [3445, 3437, 3442, 3476] ms and at
+increment 24000 the same position spends [3442, 3426, 3473, 3475] ms — the same values, so this is a ceiling, not
+noise. `out/fourth_point.txt`, `out/ceiling_runs.txt`.
+
+**So S-F51's "no plateau" is true only between 0.06 s and 6 s.** Practical statement for the owner:
+
+- `0.06 → 0.6 s`: **2.5x** the time, **+2 median plies**.
+- `0.06 → 6 s`: **~9.7x** the time, **+7 median plies** (one board reached depth 64).
+- `6 → 24 s`: **nothing at all** — the engine stops asking for more than roughly 3.6 s per move on this path.
+
 ## What this means for the owner
 
 - Raising the increment **does** buy thinking time — no plateau, and the effect is large in practice:
