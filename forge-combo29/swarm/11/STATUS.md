@@ -93,3 +93,7 @@ Next command: `cd /agent/repos/dwqww && git worktree add ../base 6b98f2170a3210e
   KPvK flips only at H=99. Every score positively parsed; KRvKR was refused and gave no verdict.
 - S-F11 NEW (goes beyond S-F3): the early draw is a HORIZON effect. Flip H = 96/95/92/91/89 at
   depth 4/6/8/10/12 — moves earlier as depth grows. So "9 plies early" is one point on a curve.
+- S-A3 WARM/COLD AUDIT: no Clear Hash used anywhere. My runner pools 500 cases/process so later
+  rows are warm: bestmove differs in 4/120 sampled cases warm-vs-cold, BUT illegal bestmoves are
+  0 cold AND 0 warm, so the job-1 conclusion holds. Per-position bestmoves/node counts are labelled
+  warm-dependent, not cold.
