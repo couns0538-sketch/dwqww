@@ -156,3 +156,11 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - One correction to the challenge: the two numbers it names are from TWO experiments - 4,513,768,536/-0.056% is the job-2 __restrict DUD (reported as no effect, rejected); -0.414%/18.7M is job 8/9 (4,513,768,543 -> 4,495,059,980/987). Both portable-build counts.
 - TT patch status unchanged: F12/F14 instruction claim STANDS; the bit-identical-search and legal-move evidence was never load-bearing on it.
 - next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: callgrind audit - portable vs lock build, exit statuses, Rule 1 planted control' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 10:40:30 PM UTC 2026
+- FILE 6 READ. Took its suggested new area, since my own area's 3 jobs are done. REPORT_soft.md + 29-F22/F23/F24:
+  - 29-F22 DETERMINISM: 24/24 fresh-process runs identical (depth, nodes, score, move) across N=2000/20000/50000/250000. Holds.
+  - 29-F23 FINISHED DEPTH: 9/9 cases reproduce exactly under a plain 'go depth D' at the reported depth, so no mid-iteration truncation.
+  - 29-F24 OVERSHOOT: median 1.20-1.42x N, worst 3.01x, and the documented 4x hard stop NEVER bound (0 of 48). Bounded by iteration granularity, not by the backstop.
+- File 6's two verdict changes noted: draw-scored-0 and >1-thread variation are NOT defects (I have no such findings to withdraw: my N12 audit showed every score I published is Threads 1, and my only >1-thread use asserted no score).
+- next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29 soft: softnodes determinism, finished-depth and overshoot (F22-F24)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
