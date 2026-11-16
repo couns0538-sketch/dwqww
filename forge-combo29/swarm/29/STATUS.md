@@ -61,3 +61,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - job8 DONE: a real, provably-safe speed patch (29-F12) in the TT replacement path: -9,081,823 instructions (-0.201%) per bench 13, all four honesty node counts unchanged, 40/40 searches bit-identical, no measurable wall-clock change. Patch: job8/tt_replace_skip_slot0.patch.txt (applies patch -p1, no fuzz).
 - This is the second patch I have proved correct; unlike job2's it also REDUCES work measurably in instruction count.
 - next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29 job8: TT slot-0 comparison removal (-0.201% instructions, node counts identical)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 09:55:31 PM UTC 2026
+- IMPORTANT negative result recorded (29-N6): my cold deep-search timing of the TT patch first showed an apparent 2.6% speedup (ratio 0.9739), but three repeats of the identical script gave 1.0004, 1.0408, 0.9987. That was NOISE. 29-F12 stands only on its exact instruction count (-0.201%), not on any wall-clock claim.
+- This is the third time on this machine that a single timing comparison has produced a fake multi-percent win; the interleaved/repeated design caught it each time.
+- next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29 job8: record negative result N6, no wall-clock claim for F12' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
