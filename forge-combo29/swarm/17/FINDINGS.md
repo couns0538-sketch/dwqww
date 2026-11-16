@@ -188,3 +188,35 @@ engine's first generated move, so the base tree plays the right move by luck wit
 because a luck-passing case would have been a false "repaired" verdict.
 Evidence: `pc/pawn_check/decisive.json`, `pc/pawn_search/decisive_pawn_mate.json`,
 `pc/pawn_search/engine_order_check.json` (the luck cases, listed so they are not reused as evidence).
+
+### Q1: are S-F1's five zero-node lines the same defect as 19-F12's aborted-search fabrication?
+
+NO — two separate defects, proven with markers in a scratch copy of the PC r15 tree (`/tmp/pathprobe`,
+never committed). PC r15 has only ONE textual `result.best_move.is_none()` catch-all (line 3017, the one
+19-F28 names); the other same-shaped fallback is the root-drawn early-return block. I marked both and ran
+six cases (Threads 1, no setoption):
+
+| case | marker that fired | bestmove |
+|---|---|---|
+| `go depth 5 searchmoves e7e5` (S-F1) | `PATH_EARLY_ROOTDRAWN count=0` | `0000` |
+| S-F1 Black to move | `PATH_EARLY_ROOTDRAWN count=0` | `0000` |
+| `go nodes 1000 searchmoves e7e5` (S-F8) | `PATH_EARLY_ROOTDRAWN count=0` | `0000` |
+| `go depth 5` normal | neither | `c2c4` |
+| halfmove 100 mate (S-C11) | neither | `a1a8` (repaired, searched) |
+| K+N vs K (insufficient) | `PATH_EARLY_ROOTDRAWN count=8` | `g1e2` (correct: all moves draw) |
+
+So:
+- 19-F28's catch-all at `src/search.cpp:3017` **never fires** in any of my six cases. Seat 19's finding is
+  about a search ABORTED before an iteration completes (quit/EOF mid-search); mine is a root that is
+  adjudicated terminal BEFORE any search starts.
+- S-F1 is the early block, and it explains the `0000`: with `searchmoves` matching nothing,
+  `root_candidates` is EMPTY, so `count=0`, the guarded `if (!root_candidates.empty())` skips the
+  assignment, `result.best_move` stays `Move::none()`, and UCI prints `0000`. It is not a fabricated
+  bestmove at all - it is an empty one, which is exactly why my earlier claim that this block could read
+  `front()` of an empty list was wrong.
+- Both are "no search ran, yet a complete depth-by-depth report was emitted"; that shared symptom is why
+  they looked like one defect. Different guards, different lines, different fixes.
+
+Consequence for the owner: repairing 19-F12 does NOT repair S-F1, and vice versa. This one is still live
+on the PC build (measured above).
+Evidence: `pc/pathprobe/paths.json`, `pc/pathprobe/*.log`.
