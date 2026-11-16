@@ -126,6 +126,19 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:40Z - S-C18: 27-F12 (clock ignored for black) does not reproduce on my build
+
+Seat 27's most striking claim was that `go wtime N` is ignored entirely when BLACK is to move. On my PC build
+(file-5 patch, PC20, Threads 1, Hash 16) it does not reproduce at any part:
+  their FEN, wtime 0/1/3/10/50/200/1000/3000 -> depth 1/1/1/1/5/10/17/22, nodes 39..178,324, move changes
+  side-to-move: white at wtime 0 -> depth 1/21 nodes; black -> depth 1/39; startpos 26 vs 26 (no asymmetry)
+  their "0 info lines with w" -> 1 line for me; their "movetime 5 stops at depth 1" -> depth 6/918 for me
+Recorded as NOT REPRODUCED, with the caveat that they name a different binary (PC r15 068f0927), so the builds may
+differ. This agrees with my S-F32 (every clock regime well behaved, both colours).
+
+State: 61 findings, working tree clean, local = remote. Next: keep cycling.
+
 ## 2026-11-16T23:39Z - S-F36 mechanism (no budget fixes this) + COPYING_RULE extended to eight cases
 
 S-F36: a bigger softnodes budget CREATES more mate claims rather than fewer - 7 of 40 mate-rich boards emit a mate
