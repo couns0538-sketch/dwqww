@@ -17,3 +17,11 @@ seed: 1601
   forced asymmetry 3 fields differ (harness can see a difference).
 - files: job1/, REPORT_job1.md, FINDINGS.md (empty, negative result).
 - next: cycle 2 — read board; then area 6 job 2 (left-right mirror on positions without castling).
+
+## 2026-11-16T21:24Z
+- cycle 2: no other seat had a C line, so I checked seat 06's NEW S-F2 (ep-square FEN refusal).
+- S-C1 = CONFIRMS S-F2. Own harness, 15 ep FENs, 9 refused / 6 accepted, accepted ones equal python-chess
+  perft 1; code read (board.cpp:317-333); beyond the finding: second message `invalid en-passant square`
+  and a refused FEN keeps the previous position.
+- files: check_S-F2/, REPORT_check_S-F2.md, FINDINGS.md.
+- next: cycle 3 — read board; area 6 job 2 (left-right mirror, positions without castling).
