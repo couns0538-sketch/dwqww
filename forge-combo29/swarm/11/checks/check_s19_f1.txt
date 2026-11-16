@@ -1,0 +1,26 @@
+=== 1. weights header ===
+  line 3: '#define FORGE_NNUE_RESIDUAL 1'
+  PASS  line 3 declares FORGE_NNUE_RESIDUAL 1
+
+=== 2. source: the residual early-return ===
+  'if (!residual) return network;' present: True
+  PASS  non-residual builds return right after the net
+  PASS  residual builds ADD the hand-crafted walk to the net
+
+=== 3. the engine reports both components (empirical part) ===
+  startpos: hce, nnue, total = (18, 20, 38)
+  PASS  hce is non-zero (hand-crafted walk ran)  — hce=18
+  PASS  nnue is non-zero (net ran)  — nnue=20
+  PASS  total == hce + nnue  — 18+20=38
+
+=== control: a different position must change at least one number ===
+  other position: (-22, 8, -14)
+  PASS  the pair changed (harness is reading the position, not a constant)
+  PASS  total == hce + nnue on the second position too
+
+=== verdict on 19-F1 ===
+RESULT: CONFIRMS 19-F1 — the net is residual and one static_evaluate call includes
+        both the network and the hand-crafted term walk (the engine's own `eval`
+        line shows both non-zero and additive).
+        NOT reproduced here: seat 19's percentage shares (16.51 % / 11.84 %), which
+        need their profiler; I did not measure percentages at all.
