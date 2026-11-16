@@ -1,0 +1,27 @@
+seat 10 honesty check — commit 6b98f2170a3210e71beed04bbd2553972c253ed7
+exe: /home/ubuntu/builds/release/forge (built OUTSIDE the work tree, ~/builds/release,
+     cmake /agent/repos/base/forge-combo29 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ && make -j4)
+sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+id name Chess Engine Forge 6.4.24 candidate
+
+check | got | expected | match | rc | bad-lines
+bench11 | 312866 | 312866 | MATCH | rc=0 | 0
+bench13 | 862329 | 862329 | MATCH | rc=0 | 0
+bench16 | 3024920 | 3024920 | MATCH | rc=0 | 0
+perft5 | 4865609 | 4865609 | MATCH | rc=0 | 0
+ALL MATCH: True
+
+RESULT: all four pins MATCH. Build is used.
+Machine: 4 cores, g++ 13.3.0, cmake 3.28.3, CPU has avx512f+bmi2 (default FORGE_MARCH=x86-64-v4 built and ran).
+
+IMPORTANT — how the pins are reached (measured, see findings):
+  the four pins hold on DEFAULT settings with NO setoption sent. Sending the S14 setoptions
+  changes bench node counts (bench11 242,796; bench13 656,517; bench16 2,155,620 on this machine).
+  So "S14" applies to the POSITION-SET sums (O/G depth 12/14), not to the bench pins.
+  Evidence: honesty/bench1{1,3,6}.txt are the pinned runs (no options); the S14 runs are in findings
+  F2 evidence job (raw below).
+  Raw S14 bench11 line: info string bench depth 11 nodes 242796 time ... (job1/s14_bench11.txt)
+
+perft 5 = 4,865,609 from startpos, default settings.
+
+Mon Nov 16 09:07:36 PM UTC 2026
