@@ -1,0 +1,25 @@
+--- a/forge-combo29/src/search.cpp	2026-11-16 21:06:31.039068183 +0000
++++ b/forge-combo29/src/search.cpp	2026-11-16 22:14:03.795068183 +0000
+@@ -2248,7 +2248,21 @@
+     };
+ 
+     // Terminal or adjudicated roots: report without searching.
+-    const bool root_drawn = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
++    // A fifty-move root is only adjudicated when the side to move is not delivering mate on
++    // this very move; is_draw() states the same rule ("Checkmate on the hundredth half-move
++    // still wins") and this shortcut must not contradict it.
++    bool mate_on_board = false;
++    if (board.halfmove_clock() >= 100) {
++        for (const Move move : legal) {
++            Board after = board;
++            Undo undo{};
++            if (after.make_move(move, undo) && after.in_check() && !after.has_legal_move()) {
++                mate_on_board = true;
++                break;
++            }
++        }
++    }
++    const bool root_drawn = !legal.empty() && (board.is_repetition() || (board.halfmove_clock() >= 100 && !mate_on_board) ||
+                                                board.is_insufficient_material());
+     if (root_candidates.empty() || root_drawn) {
+         int score = 0;

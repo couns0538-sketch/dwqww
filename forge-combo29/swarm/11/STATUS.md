@@ -143,3 +143,6 @@ NEXT: continue area-1 work; push again by 22:30.
 - S-F19: located the exact cause of 21-F9 — src/search.cpp:2251 root_drawn omits the mate
   exception that is_draw() at :1302 deliberately has ("Checkmate on the hundredth half-move
   still wins"). Root returns score 0 before any search, so the mate is never played.
+- S-P1 TEXT PATCH for 21-F9/S-F19: patches/fifty_mate_root.patch.txt applies with `patch -p1`
+  without fuzz; honesty 4/4 unchanged; fault gone (6/6 H=100 mate now found); genuine draws and
+  the checkmated root still adjudicate at 0 nodes (no regression).
