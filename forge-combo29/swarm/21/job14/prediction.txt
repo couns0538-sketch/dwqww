@@ -1,0 +1,21 @@
+# PREDICTION — job14 (area 1 job 1, THIRD run, SEED 2121), seat 21
+written before the first measuring command; not edited afterwards.
+
+What differs from job1 (2101) and job7 (2111): seed 2121, a third independent R set, and the
+uniform mutation mix of job1 (the job7 weighted mix produced the same qualitative picture, so
+this run returns to the uniform mix to keep the three runs comparable).
+Engine: ASan+UBSan build; driver: job6/fen_rerun.py (19-F12-safe, OwnBook false).
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | refused between 18,300 and 19,200 (job1: 18,775; job7: 18,820) | killed outside |
+| P2 | accepted between 800 and 1,700 | killed outside |
+| P3 | python-invalid share of accepted between 2 % and 5 % (job1 3.19 %, job7 2.97 %) | killed outside |
+| P4 | 0 crashes, 0 hangs, 0 sanitizer lines | killed by any one |
+| P5 | 0 illegal bestmoves | killed by any one |
+| P6 | all 39/35-style invalid cases remain the two known classes (adjacent digits, extra field) | killed if a third class appears with more than 3 cases |
+| P7 | the four honesty numbers unchanged | killed by any miss |
+
+Direction: the three runs should agree to within sampling noise, since the engine is unchanged
+and the only lever is the input seed. A difference larger than the bands would mean the parser's
+behaviour depends on specific position features, which would itself be worth reporting.
