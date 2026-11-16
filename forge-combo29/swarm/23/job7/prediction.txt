@@ -1,0 +1,27 @@
+PREDICTION — SW-23 job 7 (the PC's match path: `go nodes` and the 6s+0.06 clock)
+Written before the first measuring command. Never edited afterwards.
+
+From file 6, the owner's PC really does: PC build, PC20, Threads 1, Hash 16, `go nodes` 20000 / 50000 / 250000
+(its matches), and the clock 6 s + 0.06 s per move (its strength matches). This job measures on that path.
+
+Measurements, all on PC r15 (sha 068f0927), PC20, Threads 1, Hash 16, real-game positions (set G):
+ (a) `go nodes N` for N = 20000, 50000, 250000: is the reported node count exactly N, is the bestmove
+     reproducible across 5 fresh processes, and does the search ever stop mid-depth?
+ (b) the clock: `go wtime 6000 btime 6000 winc 60 binc 60`, wall time from `go` to `bestmove` (monotonic),
+     median / max / how many exceed 6000 ms, and whether the bestmove is reproducible at Threads 1.
+ (c) the same clock twice, to show the run-to-run spread before any comparison is drawn from it.
+
+Prediction (each number with the range that kills it):
+  P1  `go nodes N` reports EXACTLY N in every fresh run (all three N).      KILLED if any run differs.
+  P2  `go nodes` bestmoves identical across 5 fresh processes per position.  KILLED if any position varies.
+  P3  a `go nodes` run stops at a finished depth (no repeated depth number).  KILLED if any partial line.
+  P4  the clock NEVER exceeds 6000 ms (the engine plans a hard limit below the clock). KILLED if any overrun.
+  P5  clock median wall time between 300 and 3000 ms for a 6 s clock.       KILLED outside.
+  P6  clock bestmoves identical across two fresh runs (Threads 1).          KILLED if any varies.
+
+Reasoning: `go nodes` is a hard node limit, so it must stop at exactly N — unlike `softnodes`, which stops at a
+depth boundary. The clock at 6 s + 0.06 with 1 thread on these positions should use a fraction of 6 s per move
+(a fixed soft limit well under the clock), and file 3/6 say `movetime` subtracts Move Overhead, so an overrun
+would be a real defect. Nothing here is about draw scores or threading, so file 6's two verdicts do not apply.
+
+If P1 is killed, the exact reported count and the ladder go into FINDINGS.
