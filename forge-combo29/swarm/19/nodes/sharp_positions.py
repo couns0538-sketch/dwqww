@@ -33,7 +33,7 @@ S14 = [("LmrQuietBase", 93), ("LmrQuietDivisor", 205), ("LmrNoisyBase", 13), ("L
        ("MateAlphaGuard", "true"), ("OwnBook", "false"), ("Hash", "16"),
        ("MultiPV", "2")]
 
-positions = [l.split(";")[0].strip() for l in open(fens) if l.strip() and not l.startswith("#")][:60]
+positions = [l.split(";")[0].strip() for l in open(fens) if l.strip() and not l.startswith("#")]
 
 
 def run(fen, cmd, multipv2=False):

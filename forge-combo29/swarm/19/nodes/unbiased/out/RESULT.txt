@@ -1,0 +1,72 @@
+# sharp positions and the nodes/softnodes divergence test
+
+build PC r15, PC20, Threads 1, Hash 16, cold; sharp = top-two cp gap <= 15 at depth 12
+
+## stage 1: sharp positions found (19 of 60 scanned)
+
+| pos | best | score | second | score | gap cp |
+|---|---|---|---|---|---|
+| 10 | a4a3 | cp -896 | a4a5 | cp -910 | 14 |
+| 11 | d1c1 | cp -153 | g1f2 | cp -163 | 10 |
+| 12 | c6d7 | cp -44 | b5b4 | cp -45 | 1 |
+| 13 | e3f4 | cp -436 | e3f3 | cp -445 | 9 |
+| 14 | h8g8 | cp -527 | h8h1 | cp -535 | 8 |
+| 18 | f3f6 | cp -166 | e5e6 | cp -170 | 4 |
+| 19 | f1c1 | cp 132 | a1e1 | cp 120 | 12 |
+| 20 | f2f3 | cp 32 | g3h1 | cp 30 | 2 |
+| 30 | f4g6 | cp 0 | g4g5 | cp 0 | 0 |
+| 31 | h6c1 | cp -95 | e8f8 | cp -95 | 0 |
+| 38 | f5f4 | cp 0 | b4b3 | cp 0 | 0 |
+| 39 | f1d1 | cp -355 | c3a4 | cp -369 | 14 |
+| 41 | f1c1 | cp 20 | h1h2 | cp 20 | 0 |
+| 47 | h8g8 | cp 298 | h8g7 | cp 285 | 13 |
+| 49 | e4f3 | cp -675 | e4d3 | cp -679 | 4 |
+| 54 | f8g8 | cp -110 | d7e5 | cp -117 | 7 |
+| 56 | h4g3 | cp -109 | f6g6 | cp -123 | 14 |
+| 57 | g2g3 | cp -15 | a2a3 | cp -16 | 1 |
+| 58 | d4d3 | cp 323 | e7c5 | cp 316 | 7 |
+
+## stage 2: does the mode change the MOVE on a sharp position?
+
+| pos | gap cp | N | nodes move | softnodes move | same? |
+|---|---|---|---|---|---|
+| 10 | 14 | 20000 | a4a5 | a4a5 | **yes** |
+| 10 | 14 | 50000 | a4a5 | a4a5 | **yes** |
+| 11 | 10 | 20000 | d1c1 | d1c1 | **yes** |
+| 11 | 10 | 50000 | d1c1 | d1c1 | **yes** |
+| 12 | 1 | 20000 | c6d7 | c6d7 | **yes** |
+| 12 | 1 | 50000 | c6d7 | c6d7 | **yes** |
+| 13 | 9 | 20000 | e3f3 | e3f3 | **yes** |
+| 13 | 9 | 50000 | e3f3 | e3f3 | **yes** |
+| 14 | 8 | 20000 | h8h1 | h8h1 | **yes** |
+| 14 | 8 | 50000 | h8h1 | h8h1 | **yes** |
+| 18 | 4 | 20000 | f3f6 | e5e6 | **NO** |
+| 18 | 4 | 50000 | e5e6 | e5e6 | **yes** |
+| 19 | 12 | 20000 | a1e1 | a1e1 | **yes** |
+| 19 | 12 | 50000 | a1e1 | a1e1 | **yes** |
+| 20 | 2 | 20000 | f2f3 | f2f3 | **yes** |
+| 20 | 2 | 50000 | f2f3 | e3f1 | **NO** |
+| 30 | 0 | 20000 | f4g6 | f4g6 | **yes** |
+| 30 | 0 | 50000 | f4g6 | f4g6 | **yes** |
+| 31 | 0 | 20000 | h6c1 | h6c1 | **yes** |
+| 31 | 0 | 50000 | h6c1 | h6c1 | **yes** |
+| 38 | 0 | 20000 | f5f4 | f5f4 | **yes** |
+| 38 | 0 | 50000 | f5f4 | f5f4 | **yes** |
+| 39 | 14 | 20000 | c3a4 | c3a4 | **yes** |
+| 39 | 14 | 50000 | c3a4 | c3a4 | **yes** |
+| 41 | 0 | 20000 | f1c1 | f1c1 | **yes** |
+| 41 | 0 | 50000 | h1h2 | h1h2 | **yes** |
+| 47 | 13 | 20000 | h8g7 | h8g7 | **yes** |
+| 47 | 13 | 50000 | h8g7 | h8g7 | **yes** |
+| 49 | 4 | 20000 | e4f3 | e4d3 | **NO** |
+| 49 | 4 | 50000 | e4d3 | e4d3 | **yes** |
+| 54 | 7 | 20000 | d7e5 | d7e5 | **yes** |
+| 54 | 7 | 50000 | d7e5 | f8g8 | **NO** |
+| 56 | 14 | 20000 | h4g3 | h4g3 | **yes** |
+| 56 | 14 | 50000 | h4g3 | h4g3 | **yes** |
+| 57 | 1 | 20000 | g2g3 | g2g3 | **yes** |
+| 57 | 1 | 50000 | g2g3 | g2g3 | **yes** |
+| 58 | 7 | 20000 | d4d3 | d4d3 | **yes** |
+| 58 | 7 | 50000 | d4d3 | d4d3 | **yes** |
+
+cells: 38 ; divergent: 4
