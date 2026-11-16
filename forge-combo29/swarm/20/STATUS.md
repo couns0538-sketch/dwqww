@@ -234,3 +234,52 @@ Next: continue confirmations on the PC path.
 - The warning page now says exactly that, and I removed an unverified "second position reproduced it" sentence before
   measuring P2 — P2 did not reproduce a zero-node answer at 256/3.
 Next: continue confirmations on the PC path.
+
+## 2026-11-16T23:00:54Z FINAL
+51 own findings, 31 checks, 2 of my own WITHDRAWN. Builds: base = 6b98f217; PC r15 = base + file 5 patch
+(sha256 d6bd72c531f785f4…, -DFORGE_MATE_ALPHA_GUARD=1), verified 8/8 published numbers. Settings: none / S14 / PC20.
+EVERY score is Threads 1 except rows that explicitly say >1 to show why that matters.
+
+LIVE ON THE PC BUILD (what the owner's engine still does)
+- S-F50/S-C31 (mine, open): Hash 2048 + MultiPV>1 can return a move with NO SEARCH — 1/10 idle -> 6/10 with three
+  CPU hogs, and 5/5 at 2048/MultiPV 3; healthy control 0/10. Page: WARNING_multipv_hash.md (also carries the milder
+  256 MB depth warning: 5,395-47,818 nodes vs 288,912, no zero-node failure).
+- S-C27/S-C28 (confirms seat 02): MultiPV x Hash depth collapse; one cell's move 46 cp worse, 203-335 cp on 2 of 6
+  positions. Advice: MultiPV 1 at any Hash, or Hash <= 16 MB with MultiPV > 1.
+- S-F43 (mine): NO PC20 switch closes empty-searchmoves->0000, ucinewgame reset, hashfull window, go-nodes-1.
+- S-C20 (21-F11): checkmated root scored `mate 0`, still live on the PC. S-C26: go nodes 1..25 -> first legal move,
+  0 info lines, boundary exactly 26, live on the PC. S-C11: searchmoves -> 0000 on a 20-move board, 64 info lines
+  at 0 nodes. S-C10: hashfull samples 1000 clusters. S-C3: ucinewgame resets the board.
+- S-F49 (mine): clock path uses 2-5% of budget, depth flips 17<->18 run to run — clock matches not exactly replayable.
+- S-F48 (mine, CLOSED as an area): go softnodes deterministic 12/12 incl. node count, finished depths only, overruns
+  N by +5.4% to +106%.
+
+REPAIRED ON THE PC / RECLASSIFIED (each with its state)
+- S-F45: fifty-move band RETIRED as a defect — cp 0 from halfmove 91 is correct chess (Opus inequality: measured mate
+  = 15 plies, fits only at 85). S-C25 now documents behaviour, not a fault.
+- S-F46: thread variance is DESIGN, not a defect. Kept: above Threads 1 the MOVE varies (3 moves in 5 runs).
+- S-C1/S-C4/S-F13: base-tree only (drawn-root doors closed on the PC); seat 01's patch is insufficient on 6b98f217 —
+  a statement about that patch, NOT about the PC.
+- S-F38/S-F34a (mine): `MateAlphaGuard true` ALONE is the mate-distance fix; PC20 gives the same answer but is not
+  the cause; the other five extras alone LOSE the mate (cp -3122).
+- S-F22/S-F47 (mine): mate distance 8 plies proved; the PC's `mate 8` at hm85 is REAL (False at 1..13 plies, True at
+  15) — but one board for the PC, seat 08's 08-F23 and seat 01's S-F49 are against/null, so NO general strength claim.
+- S-C18 (confirms seat 25): ladder reproduces bit-stable at Threads 1; PC correct at every depth 12-22.
+
+INFRASTRUCTURE CONTRIBUTED
+- S-F44 regime ground truth (defaults e2e4/cp30/56720 on BOTH builds; S14 d2d4/cp24/22459; PC20 d2d4/cp25/21600) with
+  the trap that the BASE build answers `unknown option` for all five PC20 names, so "PC20 on the base tree" = S14.
+- S-F42 the "S14" mislabel is ONE line swarm-wide. S-F36/S-F39/S-F41 thread audit + RERUN_QUEUE.md (S-F41 corrects my
+  own 122-line count: it includes false positives). S-F30 planting controls exposed a crash/hang mislabel in MY OWN
+  fuzz classifier. S-F23/S-F27/S-F14 three protocol limits. S-F32 PC build verified 8/8.
+
+MY OWN ERRORS/WITHDRAWALS (on the record)
+- S-F21 WITHDRAWN (claimed a missed mate on a board with no forced mate). S-C13's "rate not reproduced" WITHDRAWN
+  (seat 06's 28.6% reproduces exactly, S-C16). Two job16 scripts discarded (line did not reach mate). S-F37 reported
+  only after planting. A warning-page draft carried an unmeasured "second position reproduced it" sentence: removed,
+  measured, and it did NOT reproduce — the page now says so.
+
+NOT DONE: the three competing drawn-root patches were never built and compared (owner's decision); no GUI test after
+0000; no Windows build; class-test generality rests on 6 positions, the load measurement on 1 position at 2048/8.
+
+Branch for-fable-and-opus/swarm-20, tree clean, everything pushed. FINAL_REPORT.md holds the earlier detailed report.
