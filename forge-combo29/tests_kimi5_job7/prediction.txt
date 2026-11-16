@@ -1,0 +1,46 @@
+kimi5 job 7, Part 1 prediction. Written from the source only (6b98f217, src/search.cpp),
+before any measuring run of this job. Never edited after its commit.
+
+(a) Which TWO of the eight LMR terms carry the least information, which ONE the most.
+
+LEAST 1: in_check -1 (line 2000). Node-level, not move-level: it fires for every move of
+the node alike, so it cannot rank the moves of one node against each other. It is also rare
+at LMR-eligible nodes (checks are usually answered earlier in the move loop) and overlaps
+the check-extension machinery (1955-1958), which already treats the tactical side.
+LEAST 2: tt_capture && quiet +1 (line 1998). A proxy of a proxy: "the TT move is a capture"
+says the node is tactical; that this particular quiet move then beats alpha less often is a
+weak inference, and cut_node / improving already encode the node's tactical state.
+MOST: history -2..+2 (line 2002). The only move-graded term: a different value for every
+quiet move, five distinct values, built from the search's own ordering feedback. It is the
+only term that can separate two quiet moves at the same node, and it has the widest range.
+
+(b) Of 1,000 reduced searches that fail low, how many would beat alpha at full depth
+(by applied reduction a):
+  a = 1: 35 per 1000
+  a = 2: 55 per 1000
+  a = 3: 75 per 1000
+  a >= 4: 100 per 1000
+Logic: monotone in a (deeper reduction = more distortion), but bounded low, because a large
+a is mostly applied to late, badly-ordered moves that fail low at any depth.
+
+(c) Share of passes through line 2013 with applied reduction 0: I predict about 15 %
+(within 10-20 %). r <= 0 needs the negative terms to cancel the table value; realistic
+mainly for noisy moves (small table values) and for quiet moves with strong history under
+a tt_pv node.
+What it means for an ALL node's child: an ALL node is searched with cut_node = false, so
+its fallback search (line 2033) and its re-search (line 2023) would both pass
+!cut_node = true: same depth (new_depth), same null window, same cut_node argument as the
+a = 0 "reduced" search of line 2013. With a = 0 the whole LMR block therefore degenerates
+to exactly the one plain full-depth search the move would have received anyway - no nodes
+saved, no nodes wasted, no information lost - and the child is correctly typed a cut node
+(children of ALL nodes are cut nodes in this alternating scheme), so the missing re-search
+is not a loss. (For a CUT node's child it is different: there !cut_node = false, so an a = 0
+event that beats alpha leaves a cut_node = true search standing where the plain path would
+have used an all-node search.)
+
+(d) Does the double-extension test of line 1945 refuse anything on set G (353 searches,
+depth 12): YES. Fable's recount of my job-6 raw files says the cap of 7 is reached in 47 of
+353 game positions at depth 12; a refusal needs one more singular double-extension candidate
+on an already-maxed path. I predict refusals in about 20-40 of the 353 searches,
+30-80 refusal events in total, and the highest refusal rate per search in the group with
+10 or fewer pieces (deepest effective searches, longest singular chains).
