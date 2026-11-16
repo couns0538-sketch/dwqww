@@ -130,3 +130,30 @@ systematically harmful.
 ## Times
 
 `job11/stamps.txt`, `gen.log`, `scan50.log`.
+
+## Addendum (23:18Z) — the same 4 worst cases re-played at depth 16: the instant losses were mostly a depth-8 artefact
+
+`plycost_d16.txt`, play-out at depth 16 on the four positions that lost instantly at depth 8:
+
+| idx | gap | chosen | alt | plies after chosen (d16) | plies after alt (d16) | cost (d16) | cost at d8 |
+|---|---|---|---|---|---|---|---|
+| 36 | -9490 | c4d5 | c4b3 | 38 | 12 | −26 | −16 |
+| 30 | -9457 | c7d7 | c7b8 | 36 | 4 | −32 | −24 |
+| 16 | -7787 | h7g6 | h7g8 | 14 | 16 | +2 | −16 |
+| 22 | -1039 | g5f6 | g5g6 | 1 | 24 | **+23** | **+49** |
+
+```
+costs (d16): n=4 min=-32 median=+2 max=+23 mean=-8.25; positive 2, zero 0, negative 2
+```
+
+At depth 16 only **one** of the four still loses immediately (idx 22, cost +23); the other three either reverse sign or
+shrink to +2. So **the "four lose at once" part of S-F23 was substantially a depth-8 quiescence artefact**, and S-F23's
+honest form is: of 8 large-gap positions, play-out cost was positive in 5 at depth 8, but with two drivers tested
+(d8 and d16) only **one position (idx 22)** shows a robust, large ply cost of the engine's choice.
+
+This weakens S-F23 and I am recording that rather than leaving the stronger d8-only claim standing. It does **not**
+touch S-F20, which was measured at depth 12 with three repeats and is a single unambiguous case.
+
+Revised honest summary of the job-11 population result: the strict signature is absent (0/50); the any-margin
+mismatch is common (11/45) but small (median 36 cp); and of the cases examined by play-out, only one shows a large,
+depth-robust cost. **The population does not show the defect at anything like the severity of position 155.**
