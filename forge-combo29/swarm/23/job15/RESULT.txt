@@ -1,0 +1,60 @@
+WHAT THE FOUR GENUINELY-UNSTABLE POSITIONS SHARE — a hypothesis on n = 4, not a predictor
+=======================================================================================
+The four are the positions where ONLY the 20000 budget differs from the other two (i.e. 20000 == 50000 fails,
+50000 == 250000 holds). Note this is a slightly different and simpler criterion than 23-F29's: 23-F29 required in
+addition that the 250000 move be no better at D_big, and under that stricter rule only ONE of the four qualifies.
+Both views are given below rather than quietly shrinking the set.
+
+| fen | move@20000 | move@250000 | D_small | D_big | gap at D_small | signed gap at D_big | @20000 quiet? | @250000 quiet? |
+|---|---|---|---|---|---|---|---|---|
+| r1bqkbnr/pppnpp1p/3p4/6p1/P7/3P4/1PP1PPPP/RNBQKBNR b KQkq - 2 4 | f8g7 | h7h6 | 10 | 14 | 16 | +42 | quiet | quiet |
+| 2bqk1nr/rpppb2p/n4pp1/p3p3/7P/N1P1PP2/PP1PK1P1/R1B1QBNR w k - 2 8 | h4h5 | d2d4 | 10 | 15 | 1 | **-35** | quiet | quiet |
+| 4nbkr/4p2p/1Qp5/1pP3PB/1n3pP1/5N2/6K1/1r6 b - - 0 46 | b1b2 | e8g7 | 9 | 14 | 59 | +20 | tactical | quiet |
+| rnbqkbnr/p1ppp1pp/1p6/8/1P3p1P/5P2/P1PPP1PR/RNBQKBN1 b Qkq - 0 4 | e7e5 | e7e6 | 9 | 15 | 12 | +37 | quiet | quiet |
+
+(signed gap at D_big = score(move@20000) - score(move@250000); NEGATIVE means the small budget's move is better
+at the large budget's own depth, i.e. a genuine regression rather than a correction.)
+
+WHAT THEY SHARE:
+  - 3 of 4 are QUIET-vs-QUIET: neither candidate is a capture, a check or a promotion. Only one involves a tactic
+    (`4nbkr/...` has a capture at 20000: b1b2).
+  - 3 of 4 have a SMALL gap at the small depth (1, 12, 16 cp); the fourth is 59 cp and is the tactical one.
+  - all four gain 4-6 plies between the two budgets, like every other position in the run.
+  - only ONE (`2bqk1nr/...`, gap -35 at D_big) is a genuine regression: the extra depth moved away from a move
+    that scores 35 cp BETTER at that depth. The other three are near-ties that resolved the other way.
+
+THE MECHANISM I WOULD PROPOSE, AND ITS STATUS: quiet moves with near-equal scores at the small depth are where
+the budget changes the choice, and they mostly change it to an arguably-better move (23-F29), with a small residue
+of genuine regressions that are also quiet and near-tied. That is a coherent story, BUT:
+
+  **n = 4. Three of the four share a property, and the fourth is the only regression. I cannot distinguish "quiet
+  and near-tied predicts instability" from "most quiet quiet-middlegame positions are near-tied", because I did not
+  measure how many of the 43 UNCHANGED positions are also quiet-and-near-tied. Without that denominator this is a
+  hypothesis, not a predictor, and I am not going to present it as one.**
+
+What would settle it, cheaply: score the top two moves at D_small for the unchanged positions too, and compare the
+proportion that are quiet-and-within-20-cp in each group. That is the measurement I would do next, and it is
+recorded here so the next person can do it in one run.
+
+THE DENOMINATOR, MEASURED (so the hypothesis above is no longer untestable)
+==========================================================================
+I said above that "quiet and near-tied predicts instability" could not be told apart from "most quiet middlegame
+positions are near-tied" without the unchanged positions' gaps. I measured them (same script as 23-F27, all 60
+positions, gap at the depth the 20000 budget reached, both top moves classified quiet/tactical from the board):
+
+| group | quiet AND gap <= 20 cp | proportion |
+|---|---|---|
+| move CHANGED between budgets | 12 of 17 | **71 %** |
+| move did NOT change | 12 of 43 | **28 %** |
+
+So the property really IS more common where the move changes — 71 % against 28 %, a factor of 2.5. The four-case
+story (quiet, near-tied) generalises as a DISTRIBUTION statement.
+
+BUT as a per-position predictor it is still only:
+  fires on 12 changed and 12 unchanged positions -> precision 50 %, recall 71 %
+i.e. of the positions it flags, half do not change move. That is the same ceiling 23-F27 hit from the gap alone,
+and adding quietness did not break it. The honest summary, unchanged by this job:
+
+  **Budget sensitivity is concentrated in quiet, near-tied positions (71 % vs 28 %), which is a real and useful
+  description of WHERE to expect it. It is still not a per-position detector (50 % precision), and nothing I have
+  measured makes it one.**
