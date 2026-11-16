@@ -1,0 +1,11 @@
+| block | n | times (ms, in order) | median | min | max |
+|---|---|---|---|---|---|
+| baseA | 15 | [444, 447, 448, 442, 443, 444, 453, 444, 442, 442, 444, 424, 426, 424, 426] | 443 | 424 | 453 |
+| baseB | 15 | [456, 429, 427, 424, 424, 425, 429, 430, 424, 424, 423, 426, 429, 425, 423] | 425 | 423 | 456 |
+
+19-F7's number: median(baseA) 443, median(baseB) 425, difference 4.1 %
+baseA: first half median 444, second half median 434.0, within-build drift 10.0 ms
+baseB: first half median 427, second half median 424.5, within-build drift 2.5 ms
+baseA last 4 runs [424, 426, 424, 426] vs baseB whole block median 425: SAME LEVEL
+after dropping each block's first third: baseA median 442.0 (10 runs), baseB median 425.0 (10 runs), difference 3.85 %
+ranges overlap on [424, 453] ms: baseA has 15/15 runs there, baseB 12/15

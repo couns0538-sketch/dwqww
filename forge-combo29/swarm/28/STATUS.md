@@ -27,3 +27,6 @@ Rule 1 from FABLE_TO_swarm_2 applied to my zeros: job1 (no-NORESP, no-overrun) a
 
 ## Mon Nov 16 09:27:42 PM UTC 2026
 job3 DONE. REPORT_job3.md. S-F9 (movestogo 1 uses 32% of clock = 65% of its own soft plan), S-F10 (clamp at 50 exact), S-F11 (0 overruns). Prediction 7/10.
+
+## Mon Nov 16 09:29:48 PM UTC 2026
+CYCLE 2: checked 19-F7 -> S-C2 REFUTES its cause (build-to-build) but CONFIRMS its advice. Two clean rebuilds are byte-identical (sha256 e06310ec...); alternating them 12x gives 0.45 % between builds vs 8-17 % within one build. Also corrected my own S-F3 with S-F12.
