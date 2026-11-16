@@ -466,3 +466,18 @@ note, with the three verified commands.
 Note (a) from the last job stands as the answer to a question several seats were circling: all six PC20
 options change bench 11 and/or the depth-12 searches, so none of them is inert.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## Mon Nov 16 11:37:53 PM UTC 2026
+
+JOB 13: is the built-in book's play good by the engine's own judgement? (follows S-F15)
+  Of the 16 book plies: book move = engine move on 4, differs on 12. But the score gap at EQUAL depth 12
+  is median 0 cp, range -26 to +18 cp, and NONE is >=50 cp worse. So the book plays different-but-
+  equivalent moves; no evidence it walks into trouble.
+  Method note: compared at equal depth by playing each candidate and searching the reply at go depth 12,
+  rather than comparing the two clock searches' own differing depths.
+  LIMITS stated: one book line only; depth 12 is shallow; this is NOT a strength claim and says nothing
+  about whether a book-on match scores better or worse.
+  Corrected my own first pass: "16 comparisons / 12 disagreements" had mixed in the 4 post-book plies;
+  the statistics are over the 16 book plies only.
+  Finding S-F16. Report job13/REPORT_job13.md.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
