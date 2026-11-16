@@ -387,3 +387,20 @@ seed: 1601
   throughput may matter as much as the 117 cp of accumulated damage it saves. A recommendation that quotes only
   its benefit is not a complete recommendation.
 - check_folder.py: ALL CHECKS PASS. Holding cadence to the close at 10:19Z.
+
+## 2026-11-17T00:34Z
+- ANOTHER SEAT'S CORRECTION CHECKED, and it is right on its own terms: on all 353 G positions under PC20 at
+  Threads 1,
+      depth 1: scores equal 353/353, bestmoves 352/353, but NODE COUNTS only 112/353 (68% already unequal)
+      depth 2: scores 242/353 (111 unequal = 31.4%), bestmoves 321/353, node counts 41/353
+  So "the asymmetry begins at depth 2" is CORRECT for scores and bestmoves (their 27% on 30 positions sits inside
+  my 31.4% on 353) and WRONG for node counts, which show it from the first ply. S-F33.
+- ELEVENTH SELF-CORRECTION, found by re-examining my own wording: S-F8 said the full-window root "restores exact
+  node symmetry at DEPTH 1 ONLY (65 vs 65)". That was ONE POSITION stated as if general. Across 20 positions the
+  same change improves depth-1 node equality only 9/20 -> 11/20, NOT to 20/20. The experiment and its depth-2/3
+  results stand; the generalisation does not. FINAL 1.3 now carries the caveat and a per-quantity onset table, and
+  PART 4 lists this as correction 9 of ten.
+- Also priced the S-F32 recommendation (throughput_cost): 20,000 nodes is 5.8x the wall time of 2,000 on this box
+  (12.8 ms vs 2.2 ms per move), so the 117 cp saving costs ~5.8x fewer self-play games per hour. That closes the
+  gap I had flagged in the verdict box.
+- check_folder.py: ALL CHECKS PASS (398 files, 38 findings rows). Holding cadence to the close at 10:19Z.

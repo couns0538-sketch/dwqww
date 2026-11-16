@@ -48,9 +48,24 @@ so eval comparisons need no process discipline (5,853 pairs in ONE process gave 
 **1.3 The search is not symmetric, and the asymmetry is created BELOW the root.**
 
 `S-F4`: depth 10 over 353 G pairs — 101/353 bestmoves fail to mirror, scores equal on only 19/353.
-`S-F8` (with `S-F12`): a full-window root (no accumulated alpha, no root fail-high) **restores exact node
-symmetry at depth 1 only** (65 vs 65, from 25 vs 30) and fails from depth 2, at 2.4×–11.1× the nodes.
-So root alpha accumulation is the whole story at one ply and none of it thereafter.
+
+**Where each asymmetry begins (`S-F33`, all 353 G positions, PC20, Threads 1):**
+
+```
+depth | score equal | bestmove equal | node equal
+    1 |      353    |       352      |    112      <- scores fully symmetric; node counts 68 % unequal
+    2 |      242    |       321      |     41
+```
+
+So the onset depends on which quantity you mean: **scores and bestmoves are symmetric at depth 1 and break at
+depth 2** (111 of 353 scores unequal there, matching another seat's 27 % on 30 positions), while **node counts are
+already unequal from the first ply.** Any statement that "the asymmetry begins at depth N" must say which.
+`S-F8` (with `S-F12`): a full-window root (no accumulated alpha, no root fail-high) makes depth-1 node counts
+EQUAL on the probe position (65 vs 65, from 25 vs 30) and fails from depth 2, at 2.4×–11.1× the nodes. So root
+alpha accumulation is dominant at one ply and absent thereafter.
+**Corrected caveat (`S-F33`): that "exact at depth 1" was ONE POSITION.** Across 20 positions the same change
+improves depth-1 node equality only from 9/20 to 11/20 — it does not restore it. The experiment and the depth-2/3
+finding stand; the generalisation does not.
 **AGREES with seat 06's S-F17** (same experiment, symmetry made worse, 101 → 149 mismatches at 31.4× nodes) and
 is explained by its **S-F18/S-F19** (fresh process, original-first and mirror-first all identical, so the state is
 carried WITHIN a single search). Two independent refutations settle the hypothesis.
@@ -210,7 +225,7 @@ setup output, field-position parsing) — all caught only because the parser was
 
 # PART 4 — WHAT I GOT WRONG, IN WRITING
 
-**Nine self-corrections are listed below — two of them were refutations of my own published numbers by my own
+**Ten self-corrections are listed below — two of them were refutations of my own published numbers by my own
 later work, three were bugs in my own harness code, and one was an inverted sign that made a rook-winning move
 score as the worst blunder of a run. A reader who sees only the successes in Part 1 should weigh them against
 this list.**
@@ -236,7 +251,10 @@ this list.**
 
    That is the single most useful rule I got from this run, and it cost nothing to apply: the earlier finding
    (S-F24, that `h8h1` wins a rook) was already on the branch, so the contradiction was visible in one glance.
-9. **First `loud_reverify` run** — three of my eight checks reported NOT VERIFIED because of bugs in MY audit code
+9. **S-F8's "exact node symmetry at depth 1" was one position stated as if general** (`S-F33`) — on the probe
+   position the full-window root gave 65 vs 65 nodes, and I wrote it up as a property; across 20 positions it
+   gives 11 of 20, not 20 of 20. Another seat's depth-onset report is what sent me back to check.
+10. **First `loud_reverify` run** — three of my eight checks reported NOT VERIFIED because of bugs in MY audit code
    (wrong build passed, setup output discarded, `seldepth` parsed as nodes), not in the findings. Fixed, then 8/8.
 
 # PART 4b — TRANSFERABLE: ONE SCRIPT THAT CATCHES THE SILENT RECORD-LOSS FAULTS
