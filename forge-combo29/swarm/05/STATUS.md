@@ -54,3 +54,13 @@
   table 9/10 consistent as published. audit19f12/parser_audit.py exits non-zero if any parse fails.
 - Everything pushed: FINDINGS.md (S-F1..F6, S-C1..C4), all job1/job2/job3 raw outputs, planted_fault.patch.txt.
 - next command: write job3/REPORT_job3.md from committed raw files.
+
+## Mon Nov 16 09:38:00 PM UTC 2026 — findings push 2 (owner deadline 22:30)
+- job1b (cycle step c, SEED+10=511, new R set of 200 random-play positions) MEASURED AND CHECKED.
+  200/200 bestmove+pv, 0 illegal PV moves. 18/200 mate scores, 17/18 exactly 2N-1 consistent.
+  Sum 12,230,484 nodes, median 46,976, 0 zero-node positions.
+- NEW S-F9: the S-F1 truncation REPRODUCES on a fresh set (R pos 120: mate -13 with a 14-ply PV, self-corrects
+  to -10 at d16 and -8 at d18) => it is general behaviour, not a G/192 curiosity.
+- My predictions #3 (expected 0-6 mate scores, got 18) and #6 (median 60k-130k, got 46,976) were WRONG and the
+  kill condition for #3 fired; report will say so. #9 (truncation reappears) HELD.
+- next command: write job1b/REPORT_job1b.md, then push final.
