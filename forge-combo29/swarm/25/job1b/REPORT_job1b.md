@@ -99,3 +99,14 @@ solver: still "mated in 1/2/3: False, mated in 4: True". So S-F1's conclusion st
 
 ## Times
 see `stamps.txt`.
+
+## A tool I wrote and could NOT make correct (recorded, not used)
+`dtm_fast.py` (a faster exact distance-to-mate) FAILS on S-F1: it reports "no mate proven" up to 6 moves on
+the very position where a directly verified PV checkmates in 8 plies. So its absolute-ply window truncation is
+wrong somewhere and **no result from `dtm_fast.py` is used anywhere in my findings.** I am keeping the file in
+the tree so the failure is auditable, and because deleting a broken tool would hide it.
+
+The evidence that S-F1's distance really is "mated in 4" does NOT depend on any solver of mine: it is
+`../job1/verify_pv_line.py` reading the engine's OWN 8-ply PV at depth 28 and reporting
+`RESULT: checkmate after 8 plies = mate in 4 moves` — python-chess replaying real moves, which is as direct
+as this gets. `mated.py` agrees (mated in 1/2/3 False, 4 True) after I fixed its double-pop bug.
