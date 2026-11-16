@@ -1,0 +1,29 @@
+PREDICTION — seat 03, job 8: `go softnodes N` on the PC build under PC20, Threads 1
+
+File 6's suggested area: is `go softnodes N` deterministic run to run (it must be), does it stop at a FINISHED depth,
+and how far past N does it go?
+
+Setup: PC build /home/ubuntu/build-pc/forge, PC20 settings (S14 then CuckooRep true, HistRework 2, TtPruneV2 true,
+CorrHistV2 true, MateAlphaGuard true, OwnBook false), Threads 1, Hash 16, fresh process per run.
+Positions: 20 of the first 200 R positions, plus startpos, so 21 positions.
+N values: 2000 (the PC's self-play value), 20000, 50000, 250000 (the PC's match values).
+Each (position, N) run TWICE in separate processes to test determinism.
+
+Predicted values, each with the range that kills it:
+1. Two runs of the same (position, N) differing in bestmove, score or node count: predicted 0 of 105 pairs.
+   KILL: >= 1 differing pair — the feature would not be deterministic and every softnodes-based test would be
+   unsound.
+2. A run that ends WITHOUT a completed depth (no `info depth D` line at all before bestmove): predicted 0.
+   KILL: >= 1.
+3. Overshoot, defined as (reported nodes - N) / N: predicted median between 0 and 3x for N = 2000 (the search
+   finishes the depth it is in, so the overshoot is up to one full depth's node cost — at ~2,000 nodes that is a
+   whole ply or two). KILL: median overshoot > 20x, or overshoot < 0 (stopping short of N, which would mean N is not
+   honoured at all).
+4. Monotone behaviour: for a fixed position, the reported node count must be non-decreasing in N.
+   KILL: any (position) where a larger N gives fewer nodes.
+5. Reported nodes must be >= N for every run: predicted always true. KILL: >= 1 run reporting fewer nodes than N
+   (the search would be stopping early).
+6. `bestmove` must be legal in every run: predicted always. KILL: >= 1 illegal.
+7. The depth reached grows with N: predicted the depth at N=250000 is strictly greater than at N=2000 for at least
+   15 of the 20 non-startpos positions. KILL: fewer than 10.
+8. Total run time per search: predicted under 5 s each at Threads 1 on this machine. KILL: any single run over 60 s.
