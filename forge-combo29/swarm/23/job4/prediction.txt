@@ -1,0 +1,26 @@
+PREDICTION — SW-23 job 4 (AREA 3 re-run on the PC r15 build under PC20)
+Written before the first measuring command of job 4. Never edited afterwards.
+
+What I will measure: my area-3 findings re-run on the PC r15 build (exe ~/pcbuild/forge, sha256 068f0927...)
+under PC20 (S14 + CuckooRep true, HistRework 2, TtPruneV2 true, CorrHistV2 true, MateAlphaGuard true,
+OwnBook false), Threads 1, Hash 16:
+  (a) perft 1..4 over the same 5,000 R positions (job 1's set), engine vs the SAME python-chess reference
+      already on disk — a move generator does not depend on search options, so PC20 should change nothing;
+  (b) the pinned-en-passant behaviour (23-F6) on the 3 hand-built positions + the negative control, PC20;
+  (c) perft repeatability in one process (23-F7), PC20.
+Also, to honour the "a zero needs a planted case" rule: the perft comparison's zero will be paired with a
+PLANTED mismatch (a deliberately wrong reference row) that the same comparison script must catch.
+
+Prediction (each number with the range that kills it):
+  P1  perft 1..4 over the 5000 R positions on the PC build: 0 mismatches vs the existing reference. KILLED if >= 1.
+  P2  the engine's perft totals on the PC build EQUAL the base build's totals exactly (154284 / 4744101 /
+      154034311 / 4974073896).  KILLED if any depth differs.
+      Reason: perft does not consult the TT, history, correction tables or the eval, and the patch's changes to
+      board.cpp are about king-line/lone-king handling; the move list for ordinary positions should be identical.
+      If P2 is killed, the patch changed MOVE GENERATION, which would be a major finding.
+  P3  ep-pin behaviour identical on the PC build: the 3 pinned captures omitted, the control's ep emitted. KILLED if not.
+  P4  perft repeatable twice in one process on the PC build. KILLED if the two counts differ.
+  P5  the planted mismatch IS caught by compare_perft.py (this is the control, not a result): KILLED if not caught.
+  P6  wall clock for (a) < 3 minutes (base build did 5000 positions in 26.3 s; PC build should be similar).
+
+If P1 or P2 is killed I report the exact FEN, depth, both counts and add a FINDINGS line naming build + settings.
