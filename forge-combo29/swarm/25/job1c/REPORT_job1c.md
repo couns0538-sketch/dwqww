@@ -66,3 +66,26 @@ R4 was killed by a lucky/unlucky sample: R3 simply had no bad PV. The rate acros
 
 ## Times
 see `stamps.txt`.
+
+## Is the wrong score a state artefact? No — decided in one run (`score_wrong_state.py`)
+
+| case | fresh process, d12 only | d12, ucinewgame, d12 | d24 FIRST, then ucinewgame, d12 |
+|---|---|---|---|
+| S-F1 | `mate -12`, 18-ply PV | `-12`, `-12` | d24 gives `-4`; then d12 gives **`-12`** |
+| S-F8 | `mate -9`, 15-ply PV | `-9`, `-9` | d24 gives `-7`; then d12 gives **`-9`** |
+
+Three things follow, and they matter:
+1. The wrong score appears in a FRESH process with no `ucinewgame` and nothing before the search, so it is not
+   caused by prior state or by a warm TT.
+2. `ucinewgame` restores it exactly (twice), so it is deterministic.
+3. **The most telling line:** run depth 24 FIRST — the engine finds the correct `mate -4`/`-7` — then
+   `ucinewgame`, then depth 12 — and it goes BACK to the wrong `mate -12`/`-9` in the same process that just
+   had the right answer. A correct, deeper result one search earlier does not survive into the shallower one.
+
+Point 3 is why I call this a search/reporting defect rather than a knowledge problem: the engine can find the
+truth at depth 24 and still reports the wrong number at depth 12, immediately afterwards, from the same binary.
+
+## Still NOT the cause
+I did not patch or bisect the search. The candidate site remains the mate-band arithmetic
+(`score_to_tt`/`score_from_tt` against `MateInMaxPly`, src/search.cpp:179-198, and `format_score`,
+:272-279). Naming it is a hypothesis; the evidence above is the finding.
