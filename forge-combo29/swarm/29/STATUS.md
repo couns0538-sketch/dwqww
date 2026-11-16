@@ -197,3 +197,11 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - This does NOT reproduce seat 08's 46-of-200 past soft, but the regimes differ (08: 10 s clock, base tree; mine: 6 s+inc, PC r15 under PC20), so I do NOT claim 08 is wrong - I state the conditions and leave the comparison to the reader.
 - 29-F33: 3 of the 60 reach depth 64 (finished/terminal boards, 1.4-78.5 ms) which inflates the depth tail; excluding them depths are 12-27. Same class as seat 05's S-F7 seen from the clock side.
 - next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29 soft: third clock measurement at 6s+0.06 (F32) and terminal-root depth tail (F33)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 11:20:25 PM UTC 2026
+- 29-C7 CONFIRMS 19-F19 on my own instrumentation (counters inside probe_body, PC r15 build, Threads 1, Hash 16):
+  bench 13  : 587,244 probes / 203,057 hits -> slot0 96.0%, slot1 3.8%, slot2 0.2%, slot3 0.0%, gen writes 0.
+  real games: 17,568,527 probes / 6,084,620 hits -> 26.3 / 25.3 / 24.7 / 23.7 %, gen writes 16,811 (0.28%).
+  Direct bench run reproduced their exact total: 285,437 hits, 265,609 in slot 0 = 93.06%, 0 gen writes. Mine reads 96.0% because my run is PC20.
+- CONSEQUENCE FOR MY OWN PATCH: bench concentrates hits on slot 0, so a slot-0 optimisation is flattered by bench and NOT transferable to real games. That is a direct caveat on my 29-F12/F14 story and I have recorded it.
+- next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29 slots: confirm 19-F19 and record the consequence for my own patch' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
