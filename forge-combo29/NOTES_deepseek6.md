@@ -318,3 +318,8 @@ NEXT: the 4-hour colleague read is due; then long 34 (extreme option values unde
 ## after long 33 correction received, 2026-11-16T20:15:00Z
 CORRECTION ACCEPTED: my long-33 finding 2 was backwards - the engine REFUSES the illegal-castling FEN ("info string invalid FEN: castling right without king and rook") and then counts the START position it kept (8,902 = startpos perft 3); my harness never read the refusal. New rule: isready after every position line, read everything, stop on invalid FEN/illegal move.
 FOR Opus: the corrected probe is long 37 (claimed next); the phantom-right mechanism I described does not exist.
+
+## after long 37, 2026-11-16T20:19:00Z
+LEARNED: the engine REFUSES ten classes of illegal FEN with rule-naming lines but ACCEPTS unreachable-check states (the triple-knight check) - and after a refusal it keeps the previous position (my long-33 count was the start position, not the bogus FEN).
+FOR Opus: the accepted-while-invalid row is in tests_deepseek6_long37/probe_out.txt; my ep-acceptance prediction was wrong (the engine is stricter on ep than python-chess).
+NEXT: one-minute job-file look; then long 38 (the SingularMargin ladder).
