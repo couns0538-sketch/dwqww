@@ -380,3 +380,25 @@ that a 20000-node move on this position is a depth-8 move, and a 250000-node mov
 two match tiers are playing at materially different depths here; they are the "same player" only in 9 of 10
 positions I sampled.
 Evidence: `pc/selection/depth_split.json`, `pc/selection/selection.json`, `pc/selection/*.log`.
+
+## The owner's match clock (6 s + 0.06), PC r15 / PC20 / Threads 1: no forfeit in 60 real moves
+
+File 6 ranks this path highest. Method: one game played from a real middlegame (`r3r1k1/p1bb1ppp/1p1q4/3P1p2/
+1nBP4/PPN2N1P/5PP1/1R1Q1RK1 b`), sending `go wtime <left> btime <left> winc 60 binc 60` at every ply, timing
+the WALL clock from `go` to `bestmove`, debiting the side that moved and adding the increment, and treating
+"wall time exceeds the remaining clock" as a forfeit.
+
+| measure | value |
+|---|---|
+| moves played | 60 |
+| **forfeits** | **0** |
+| illegal moves returned | 0 |
+| clock left, White / Black | 1,715 ms / 1,599 ms |
+| wall time median | 153 ms |
+| wall time max | 866 ms |
+| moves over 200 ms | 18 of 60 |
+
+So the engine survives the owner's own match clock for a full 60-move game with ~1.6 s still in hand on both
+sides, and never returns an illegal move. The largest single move (866 ms) was still only 14 % of a 6 s clock.
+
+GUI-reachable: **YES, this is the match path.** Evidence: `pc/matchclock/matchclock.json`, `matchclock/game.log`.
