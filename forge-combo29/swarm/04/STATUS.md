@@ -337,3 +337,16 @@ sufficient to flip the move: the Italian position varies just as much and never 
 competing moves to be near-equal, which the flipping positions show and the stable one does not.
 Stated as one line: thread scheduling decides which worker gets which subtree, so scores wobble; whether the
 BESTMOVE moves depends on whether the top moves are within that wobble of each other.
+
+## 2026-11-16T23:23:53Z 04-F28 REVISED — FOUR POSITIONS FALSIFY THE OBVIOUS MECHANISM
+Added a fourth position as its own control. All four now, Threads 4, PC20, fresh process each:
+  startpos d12  8 runs : 2 moves (d2d4 x5, e2e4 x3) | score range 11 cp | nodes 1.54x | 3 distinct argmax
+  ordinary G d12 6 runs: 2 moves (g7g6 x5, e5e4 x1) | 34 cp | 2.08x | 3 argmax
+  Italian d13   8 runs : 1 move (g8f6 8/8)          | 14 cp | 1.89x | 3 argmax
+  G pos2 d12   10 runs : 1 move (f1c4 10/10)        | 25 cp | 1.59x | 4 argmax
+Every position's partition varies by a similar amount, so partition variance CANNOT be the discriminator: two
+flip, two do not, looking identical on those axes. What separates them is score structure — where moves flip the
+two rivals' score ranges interleave. One line: the scheduler makes the score wobble every threaded run, and a run
+flips its bestmove only when a rival's score falls inside that wobble.
+I had written this finding with only the two flipping positions plus one control; the fourth control made the
+claim sharper and I revised the line rather than leaving the earlier, weaker version standing.
