@@ -1,0 +1,123 @@
+# REPORT job 4 — seat 15, area 5, depth-14 PV check on O
+
+**What was asked.** Nothing in the brief asks for this directly; it is my own follow-up. The reason
+it is worth a job: the brief gives a known O depth-14 node sum of 21,812,100, so a run at depth 14
+tests harness fidelity at a **second** depth (job 1 only proved depth 12), and it looks for mate
+scores that depth 14 reaches where depth 12 did not.
+
+**The answer.** The depth-14 node sum matches the brief **exactly** — 21,812,100, difference zero —
+which is the strongest single fidelity check in my whole set of jobs. On that faithful harness: 0
+illegal PV moves, 0 bestmove/PV-first mismatches, 0 positions without a PV line, and **0 mate
+scores**. The last part refutes my prediction, and it is informative: O's 200 curated openings never
+reach a mate at depth 14, so depth 14 gives no new mate evidence in either direction.
+
+**How sure.** Very high on the sum (exact to the node against a number given in the brief). High on
+the zeros (same analyser as job 1, control caught 5 of 5).
+
+## Honesty numbers
+
+Same release build, `e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83`, four pins
+exact **in the default option regime** — see the addendum in `HONESTY.txt` (after 15-C3, S14 must
+not be applied before measuring the pins). Run metadata: `raw_d14/meta.txt`.
+
+## Table
+
+| step | done / partly / not done | evidence file | result |
+|---|---|---|---|
+| 200 O positions at depth 14 | done | `raw_d14/pv.jsonl`, `raw_d14/raw/` | 200 accepted, 11.9 s |
+| **node-sum fidelity at depth 14** | done | `evidence_fidelity.txt` | 21,812,100 vs brief 21,812,100, **diff 0** |
+| every record reached depth 14 | done | `evidence_fidelity.txt` | last-info depths seen: `[14]` only |
+| PV legality | done | `analyze_d14.txt` | 0 of 200 |
+| bestmove == PV first | done | `analyze_d14.txt` | 0 mismatches |
+| mate scores | done | `mates_d14.txt` | **0 of 200** |
+| control, planted illegal move | done | `analyze_d14.txt` | 5 tried, 5 caught |
+
+## Prediction, as committed before measuring
+
+| # | prediction | verdict |
+|---|---|---|
+| P1 | sum exactly 21,812,100 | **HELD** (diff 0) |
+| P2 | 0 illegal PV moves | **HELD** |
+| P3 | at least 4 mate scores | **REFUTED** — 0 |
+| P4 | 0 or 1 mate-rule violations | **vacuous** — no mate scores to violate anything |
+| P5 | under 10 minutes | **HELD** — 11.9 s |
+
+P3 is refuted and P4 is vacuous, and I say so rather than dressing either up. My reasoning for P3
+("deeper search finds more mates") ignored what O is: 200 balanced opening positions, mostly a pawn
+or two from equality, where neither side is anywhere near mate. Job 1 found 10 mate scores in 553
+positions *because G (real game positions) supplied nearly all of them*, not because depth 12 is
+magically mate-rich. So the honest conclusion is that O is the wrong set for a mate question at any
+depth, and P3 was a bad prediction rather than a surprising result.
+
+## Findings
+
+### 15-F7 — the O depth-14 sum reproduces exactly; the harness is faithful at two depths (NEW)
+
+```bash
+cd forge-combo29/swarm/15/job4
+cat evidence_fidelity.txt
+```
+
+```
+records 200
+last-info depths seen: [14]
+O depth14 sum = 21812100   known 21812100   diff +0
+first three: [59210, 55147, 119620]
+```
+
+Job 1 proved the depth-12 sums (O 9,500,069 and G 18,466,239, both exact). This proves the
+depth-14 sum for O as well, on the same build, with the same analyser. Two independent depths
+matching the brief's published numbers to the node is much stronger evidence that a harness is
+measuring the intended engine than any single depth could be — and it is the check I would want
+before trusting any zero in this folder.
+
+### 15-F8 — O carries no mate scores at depth 14 (NEW, a scoping result)
+
+`mates_d14.txt` is an empty table: 0 of 200. Combined with job 1 (10 mate scores in 553, of which I
+should state the split) this says which set answers mate questions: **G, not O**. A future seat
+looking for mate-distance faults should search G (or R), and will waste its time on O.
+
+Honest caveat: I did not re-derive the O-versus-G split of job 1's 10 mate scores in this job, so I
+state "G supplied most of them" as my recollection of job 1's data rather than as a number measured
+here; the row indices in `job1/mates_table.txt` are what a reader should check (idx ≥ 200 is G).
+
+## Suspicions, not proven
+
+- Depth 14 being *faster per position* than depth 12 in job 1 (11.9 s for 200 vs 16.8 s for 553,
+  i.e. O at depth 14 ≈ 0.06 s/pos) suggests the O positions are shallow for this engine. Not
+  investigated; not a fault.
+
+## What I did NOT do
+
+- Did not run G at depth 14 (the brief gives a known G depth-14 sum of 43,345,893 — an obvious next
+  fidelity check I ran out of time for).
+- Did not extend this to G, whose depth-14 sum the brief also gives (43,345,893) — the obvious next
+  fidelity check, cut off by the deadline.
+- Did not test the mate rule at depth 14 at all, because O produced no mate scores.
+- No sanitizer run in this job.
+
+## What I am NOT sure about
+
+- Whether a deeper O run (16, 18) would eventually reach mates; P3's failure does not show O is
+  mate-free, only that depth 14 is not deep enough on these positions.
+
+## Times
+
+`stamps.txt` — every line is a pasted `date -u`.
+
+## Last command's output
+
+```
+$ ls
+analyze_d14.txt
+analyze.py
+evidence_fidelity.txt
+mates_d14.txt
+O_first200.fens
+prediction.txt
+pvrun.py
+raw_d14
+REPORT_job4.md
+run_d14.log
+stamps.txt
+```
