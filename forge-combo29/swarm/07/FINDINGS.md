@@ -9,7 +9,18 @@ every pin and every bestmove unchanged — plus **three base-tree defects on the
 path** (07-F3, 07-F4 and their rate), **two withdrawn claims of my own** (07-R1 and 07-R2), and
 **41 checks**, most of which came back clean.
 
-**Two things in here will save the next person more time than any individual result:**
+**Rules that will save the next person more time than any individual result here. The first one is the
+cheapest to apply and caught me three separate times tonight:**
+
+> **THE FIRST RULE: if the answer does not belong to the position, the position was not accepted.**
+> This engine **refuses** an invalid FEN and keeps the PREVIOUS board, so a harness that does not read
+> the setup output confidently measures the wrong position and reports it as a result. The tell is in the
+> answer itself: a move that could not occur on the board you sent means the board you sent was
+> rejected. Mine gave `e2e4` for a position with a lone black king on h8 — impossible, so the FEN had
+> been refused ("side that moved left its king in check") and STARTPOS was being searched. **Read every
+> line between `position` and `readyok`, and sanity-check that the bestmove is legal on YOUR board**
+> (07-C46). Validate every FEN with python-chess before using it; two of my three occurrences would have
+> been caught by that alone.
 
 > **A warning from a harness that has not validated its own input is not a finding.**
 > Five of my controls were initially blind, and each was caught by its own planted fault, not by me.
@@ -26,6 +37,10 @@ path** (07-F3, 07-F4 and their rate), **two withdrawn claims of my own** (07-R1 
 > mate score against a centipawn loss is not a preference** — `mate −12` against `cp −2196` is two
 > different losses, and subtracting them invents ~9,800 cp of damage. My run's largest gap, 95,212 cp,
 > was exactly that artefact; it would have been the headline of any damage table I published (07-C44).
+
+> **A small-sample rate does not order anything.** Two disjoint 100-position samples flipped the
+> ordering of two node budgets ten points apart; over all 353 positions they were indistinguishable
+> (07-C42/C43). Report a rate with its sample size, and say whether it ranks.
 Most of those checks are CONFIRMS that came back clean; a clean check is only worth something
 because each one carries a **positive control** that makes it fail on a planted fault.
 
