@@ -1,0 +1,203 @@
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -310,6 +310,27 @@
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
++// Observability counters. The search never reads them; increments only.
++struct K5Counters {
++    std::uint64_t lmrds_deeper = 0;
++    std::uint64_t lmrds_shallower = 0;
++    std::uint64_t thr_reads = 0;
++    std::uint64_t thr_nonzero = 0;
++    std::uint64_t ntv_gates = 0;
++    std::uint64_t ntv_ver_cut = 0;
++    std::uint64_t ntv_ver_fail = 0;
++    std::uint64_t nsv_calls = 0;
++    std::uint64_t nsv_vetoes = 0;
++    std::uint64_t ch4_adds = 0;
++    std::uint64_t acr_low = 0;
++    std::uint64_t acr_high = 0;
++    std::uint64_t hd_considered = 0;
++    std::uint64_t hd_minus = 0;
++    std::uint64_t hd_plus = 0;
++    std::uint64_t hd_ttblocked = 0;
++    std::uint64_t smp_arm_moves = 0;
++};
++extern K5Counters k5c;
+ // Per-case arms. FollowOption tracks SoundMatePruning. Tests force one arm
+ // without the other two. Defaults leave the option's on/off behavior unchanged.
+ enum class SoundPruneArm : std::uint8_t { FollowOption, ForceOff, ForceOn };
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -111,6 +111,8 @@
+ bool MateAlphaGuard = false;
+ #endif
+ 
++K5Counters k5c;
++
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+@@ -1195,6 +1197,13 @@
+     return threat;
+ }
+ 
++bool k5_counted_veto(Board& board) {
++    ++tune::k5c.nsv_calls;
++    const bool veto = null_see_veto_threat(board);
++    if (veto) ++tune::k5c.nsv_vetoes;
++    return veto;
++}
++
+ void Worker::record_null_move(SearchStack* ss) {
+     SearchStack* child = ss + 1;
+     child->entered_null = true;
+@@ -1321,11 +1330,12 @@
+ 
+ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
+ #if FORGE_SEARCH_SPEED2
++    const bool k5_ch4_read = tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none();
++    if (k5_ch4_read) ++tune::k5c.ch4_adds;
+     return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
+                              ss != nullptr ? (ss - 1)->continuation : nullptr,
+                              ss != nullptr ? (ss - 2)->continuation : nullptr,
+-                             tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+-                                 ? (ss - 4)->continuation : nullptr,
++                             k5_ch4_read ? (ss - 4)->continuation : nullptr,
+                              board.moved_piece(move), move) +
+            threat_quiet_bonus(board, move);
+ #else
+@@ -1345,7 +1355,10 @@
+ int Worker::threat_quiet_bonus(const Board& board, Move move) const {
+     if (!tune::ThreatHistory) return 0;
+     const int index = quiet_threat_index(board, move);
+-    return (*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to];
++    const int value = (*threat_history_)[static_cast<std::size_t>(board.side_to_move())][static_cast<std::size_t>(index)][move.from][move.to];
++    ++tune::k5c.thr_reads;
++    if (value != 0) ++tune::k5c.thr_nonzero;
++    return value;
+ }
+ 
+ void Worker::update_threat_quiet(const Board& board, Move move, int bonus) {
+@@ -1614,6 +1627,7 @@
+         if (withheld > 0 && !pv_node && !root_node && !in_check && excluded.is_none()) {
+             const int parent_eval = (ss - 1)->static_eval;
+             if (parent_eval != ValueNone) {
++                ++tune::k5c.hd_considered;
+                 const bool hashed_eval = tt_hit && tte.eval != ValueNone;
+                 const int raw = hashed_eval ? tte.eval : static_evaluate(board, ss);
+                 if (!hashed_eval) {
+@@ -1624,11 +1638,17 @@
+                 int proposed = depth;
+                 if (mover_loss >= SeePieceValue[Pawn]) proposed = depth - 1;
+                 else if (mover_loss <= 0 && withheld >= 3) proposed = depth + 1;
+-                if (proposed != depth && !(tt_hit && tt_depth >= proposed)) {
+-                    depth = proposed;
+-                    if (depth <= 0) {
+-                        --local_nodes_;
+-                        return qsearch(board, ss, alpha, beta);
++                if (proposed != depth) {
++                    if (tt_hit && tt_depth >= proposed) {
++                        ++tune::k5c.hd_ttblocked;
++                    } else {
++                        if (proposed < depth) ++tune::k5c.hd_minus;
++                        else ++tune::k5c.hd_plus;
++                        depth = proposed;
++                        if (depth <= 0) {
++                            --local_nodes_;
++                            return qsearch(board, ss, alpha, beta);
++                        }
+                     }
+                 }
+             }
+@@ -1696,7 +1716,7 @@
+             !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
+-            !(tune::NullSeeVeto && null_see_veto_threat(board))) {
++            !(tune::NullSeeVeto && k5_counted_veto(board))) {
+             ++null_tries_;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+@@ -1722,6 +1742,7 @@
+                 // first, so the attack scan does not run when it is off.
+                 const bool threat_gate =
+                     depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
++                if (threat_gate) ++tune::k5c.ntv_gates;
+                 if (depth < 14 && !threat_gate) {
+                     ++null_cutoffs_;
+                     return null_score;
+@@ -1736,6 +1757,10 @@
+                 ss->double_extensions = inherited_double_extensions;
+                 ss->null_move_allowed = true;
+                 if (aborted_) return 0;
++                if (threat_gate) {
++                    if (verification >= beta) ++tune::k5c.ntv_ver_cut;
++                    else ++tune::k5c.ntv_ver_fail;
++                }
+                 if (verification >= beta) {
+                     ++null_cutoffs_;
+                     return null_score;
+@@ -1838,6 +1863,8 @@
+             (tune::sound_arm_enabled(tune::SoundArmPv) && pv_node) ||
+             (tune::sound_arm_enabled(tune::SoundArmInCheck) && in_check) ||
+             (tune::sound_arm_enabled(tune::SoundArmMateAlpha) && is_mate_score(alpha));
++        if (sound_mate_case && mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
++            best_score > -MateInMaxPly && has_material && !bare_king_mode) ++tune::k5c.smp_arm_moves;
+         if (!sound_mate_case && mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
+             best_score > -MateInMaxPly && has_material && !bare_king_mode) {
+             // Trace stays off in normal play. It records which case skipped a
+@@ -2017,6 +2044,8 @@
+                 if (tune::LmrDeeperShallower) {
+                     const bool do_deeper = score > best_score + 40 + 2 * new_depth;
+                     const bool do_shallower = score < best_score + new_depth;
++                    tune::k5c.lmrds_deeper += static_cast<std::uint64_t>(do_deeper);
++                    tune::k5c.lmrds_shallower += static_cast<std::uint64_t>(do_shallower);
+                     new_depth += static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
+                 }
+                 if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
+@@ -2417,6 +2446,7 @@
+                 failed_window = true;
+                 beta = (alpha + beta) / 2;
+                 if (tune::AspCappedReopen) {
++                    ++tune::k5c.acr_low;
+                     alpha = capped_fail_low(iteration_score);
+                     if (iteration_score <= alpha) break;
+                 } else {
+@@ -2425,6 +2455,7 @@
+             } else if (iteration_score >= beta) {
+                 failed_window = true;
+                 if (tune::AspCappedReopen) {
++                    ++tune::k5c.acr_high;
+                     beta = capped_fail_high(iteration_score);
+                     if (iteration_score >= beta) break;
+                 } else {
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -569,6 +569,25 @@
+                         prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
+                     }
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string k5ctr nodes " << result.nodes
++                              << " lmrds_deeper " << forge::tune::k5c.lmrds_deeper
++                              << " lmrds_shallower " << forge::tune::k5c.lmrds_shallower
++                              << " thr_reads " << forge::tune::k5c.thr_reads
++                              << " thr_nonzero " << forge::tune::k5c.thr_nonzero
++                              << " ntv_gates " << forge::tune::k5c.ntv_gates
++                              << " ntv_ver_cut " << forge::tune::k5c.ntv_ver_cut
++                              << " ntv_ver_fail " << forge::tune::k5c.ntv_ver_fail
++                              << " nsv_calls " << forge::tune::k5c.nsv_calls
++                              << " nsv_vetoes " << forge::tune::k5c.nsv_vetoes
++                              << " ch4_adds " << forge::tune::k5c.ch4_adds
++                              << " acr_low " << forge::tune::k5c.acr_low
++                              << " acr_high " << forge::tune::k5c.acr_high
++                              << " hd_considered " << forge::tune::k5c.hd_considered
++                              << " hd_minus " << forge::tune::k5c.hd_minus
++                              << " hd_plus " << forge::tune::k5c.hd_plus
++                              << " hd_ttblocked " << forge::tune::k5c.hd_ttblocked
++                              << " smp_arm_moves " << forge::tune::k5c.smp_arm_moves
++                              << std::endl;
+                     std::cout << "bestmove " << best << prediction << std::endl;
+                 });
+             }

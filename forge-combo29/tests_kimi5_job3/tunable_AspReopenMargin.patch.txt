@@ -1,0 +1,61 @@
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -307,6 +307,7 @@
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
++extern int AspReopenMargin;          // capped reopen step past a failed root score (cp, default 13)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -69,6 +69,7 @@
+ int QsFutilityMargin = 160;
+ int QsSeeMargin = 40;
+ int AspirationDelta = 18;
++int AspReopenMargin = 13;
+ int HistoryBonusQuadratic = 20;
+ int HistoryBonusLinear = 48;
+ int HistoryBonusMax = 2048;
+@@ -2125,17 +2126,16 @@
+ 
+ // One capped step past the score that failed. A mate, or a score already past
+ // the decisive line, opens that side for the next root search.
+-constexpr int AspReopenMargin = 13;
+ constexpr int AspDecisiveScore = 640;
+ 
+ [[nodiscard]] int capped_fail_low(int returned) {
+     if (is_mate_score(returned) || returned <= -AspDecisiveScore) return -Infinite;
+-    return std::max(returned - AspReopenMargin, -Infinite);
++    return std::max(returned - tune::AspReopenMargin, -Infinite);
+ }
+ 
+ [[nodiscard]] int capped_fail_high(int returned) {
+     if (is_mate_score(returned) || returned >= AspDecisiveScore) return Infinite;
+-    return std::min(returned + AspReopenMargin, Infinite);
++    return std::min(returned + tune::AspReopenMargin, Infinite);
+ }
+ 
+ } // namespace
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -232,7 +232,8 @@
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
+-                         "option name SoundMatePruning type check default false\n";
++                         "option name SoundMatePruning type check default false\n"
++                         "option name AspReopenMargin type spin default 13 min 0 max 400\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -433,6 +434,8 @@
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "AspReopenMargin") {
++                apply_spin(0, 400, [&](int clamped) { forge::tune::AspReopenMargin = clamped; });
+             } else if (name == "TmNodeShare") {
+                 if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                 else note_invalid();
