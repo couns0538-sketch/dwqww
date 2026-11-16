@@ -274,3 +274,7 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-F41 CORRECTS MY OWN 29-F40, caught before it reached a summary: the PC20 tree-size advantage is DEPTH-DEPENDENT and changes sign. depth 10: S14 861,000 vs PC20 880,419 = +2.3% MORE nodes; depth 12: -19.5%; depth 14: 5,888,909 vs 5,061,004 = -14.1%. So the switches only pay from about depth 12 up; at shallow depth they cost slightly more.
 - 29-N22 withdraws '19.5% fewer nodes' as a general statement (it is the d12 row). The qualitative half stands at match depths: base/S14 and PC20 are trees of different SIZE, not merely different ordering. Same error class as 29-F39 - one cell presented as a constant - caught this time BEFORE it reached a summary.
 - next: continuing on the PC path.
+
+## Mon Nov 16 11:41:29 PM UTC 2026
+- 29-N24 keeps the lint lesson in the record: a checker wrong in EITHER direction is worse than none, and twice the bug was my expectation rather than the data (demanded 4 fields for C rows that carry a 5th tag; then demanded 5 when the two oldest C rows use the brief's 4-column form). A blocked-but-correct file trains people to ignore the checker, which is as bad as a checker that passes everything. It now accepts both legitimate shapes and rejects all others.
+- next: continuing on the PC path with the sweep discipline applied by default.
