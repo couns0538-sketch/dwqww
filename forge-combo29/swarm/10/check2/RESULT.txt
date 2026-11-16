@@ -1,0 +1,24 @@
+check of seat 01's finding S-F2 (side to move in check from two pieces: accepted, perft 2 = 64)
+
+VERDICT: CONFIRMS S-F2
+
+---- VERDICT INPUTS ----
+P1 engine accepted the FEN: True
+P2 engine perft 2 == 64: True
+P3 python-chess refuses (status has IMPOSSIBLE_CHECK): True
+P4 a like-for-like comparison needs python-chess validity ignored: False
+P5 number of attackers my scan finds: 2 -> [('f3', 'R'), ('f7', 'Q')]
+
+the divide, engine vs python-chess (identical):
+  engine:   f6e5: 32
+  engine:   f6g5: 32
+  python:   f6g5: 32
+  python:   f6e5: 32
+
+python-chess perft 2 computed by plain recursion in raw/py_perft2.py (this python-chess has no Board.perft):
+divide 2 (as-is): [('f6g5', 32), ('f6e5', 32)]
+perft 2 (as-is): 64
+with status forced VALID: legal 2, perft 2 64, divide 2 [('f6g5', 32), ('f6e5', 32)]
+
+runner: check_s01f2.py (raw check_s01f2.txt), engine I/O via raw/engine_perft2.in -> .out
+exe: exe ~/builds/release/forge sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83 id name Chess Engine Forge 6.4.24 candidate 

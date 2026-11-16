@@ -21,3 +21,10 @@ done: area 10 job 1 (first check). CONFIRMS 19-F5 (bench is a stdin command; mai
   5 of 5 predictions held, including both source line numbers (uci.cpp:590, :651).
 next: another check of an unchecked NEW finding, or area 10 job 3 (glmflash5 recount) if none is left.
 note: there is no perf on this machine, so 19-F1..F4 and 29-F1/F2 (profiler shares) cannot be reproduced here.
+
+## Mon Nov 16 09:16:41 PM UTC 2026
+done: check2. CONFIRMS seat 01's S-F2 (side to move in check from two pieces: accepted, perft 2 = 64,
+  divide identical to python-chess's). check2/RESULT.txt. Note: python-chess does not refuse the FEN,
+  it only sets STATUS_IMPOSSIBLE_CHECK, so the comparison is like-for-like.
+done so far: job2 (recount deepseek6 long56, 5 findings), job1/check1 (CONFIRMS 19-F5), check2 (CONFIRMS S-F2).
+next: another unchecked NEW finding (seat 01 S-F1/S-F3/S-F4, seat 06 S-F1/F2, 11's S-F1/S-F4) or area 10 job 3.
