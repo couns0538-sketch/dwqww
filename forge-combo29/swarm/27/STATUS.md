@@ -182,3 +182,19 @@ Next: continue the cycle — look for other seats' unconfirmed finds relevant to
 build; keep every score at Threads 1.
 Next command:
   bash forge-combo29/swarm/27/pc/check_07f1_pc.sh /agent/repos/base/build-pc/forge PC20
+
+## 2026-11-16T22:31Z cycle 2: two cross-seat checks on the PC build
+S-C6 CONFIRMS 07-F1 on the PC build (first seat to check it there): `searchmoves` naming no legal root move
+gives `score cp 0 nodes 0` with empty pv and `bestmove 0000`; control through the SAME harness and PC20 block
+gives 344 nodes and a real pv. Not repaired by the PC build.
+S-C7 CONFIRMS 20-F11 on the PC build: (a) `go nodes 0/1` answers the first legal move with 0 info lines 6/6,
+(b) `stop` at 0 ms the same 3/3 with the 1 ms control searching 971/497/930 nodes, (c) `quit` with no delay
+the same 3/3.
+**Two harness errors of mine, both found and fixed in this cycle:**
+  1. my S-F11 re-run script guessed the "first legal move" constants (e2e4/e1g1/b5b6) instead of measuring
+     them; `go perft 1` shows they are a2a3/a2a3/e2e3, so I fixed the harness, not the engine;
+  2. I first recorded 20-F11 (c) as "partially refuted" because my quit arrived 50 ms in and the search had
+     already published 12-14 info lines. Re-tested at 0 ms: the defect is there, their finding was right and
+     my "refutation" was my own harness being slow. Corrected in FINDINGS rather than left standing.
+Next: continue checking other seats' unconfirmed finds on the PC build; area 7 jobs still open are the move
+generator and the time manager as source-reading jobs.
