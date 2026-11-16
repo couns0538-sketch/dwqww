@@ -62,3 +62,57 @@ appears in these rows. Without that control I would have reported a repair that 
 - NEW (this file): the eaten-keyword `go` parse is repaired on the PC build by FORGE_FIX_GO_PARSE, while S-F4
   is not — a distinction the owner needs, because "the go-parse fix went in" does not mean partial clocks are
   safe.
+
+---
+
+# S-F6, mapped across the whole `go` keyword family (72 ordered pairs)
+
+`go_family.py` sends `go X Y 50` for every ordered pair of the nine `go` parameters, on both builds, with
+Threads 1 / OwnBook false and a fresh process per case (raw `go_family_results.json`).
+
+| outcome | count | what it means |
+|---|---|---|
+| base hangs, **PC ends** | **25** | repaired by FORGE_FIX_GO_PARSE |
+| hangs on BOTH | 23 | not repaired — see the caution below |
+| ends on both | 19 | no defect in this dimension |
+| appeared to regress on PC | 5 | **NOT a regression — investigated, explained below** |
+
+## the 25 repaired pairs (the PC build's go-parse fix, enumerated)
+`go btime wtime 50`, `go btime nodes 50`, `go btime movetime 50`, `go winc wtime 50`, `go winc nodes 50`,
+`go winc movetime 50`, `go binc wtime 50`, `go binc nodes 50`, `go binc movetime 50`, `go nodes wtime 50`,
+`go nodes btime 50`, `go nodes winc 50`, `go nodes binc 50`, `go nodes movetime 50`, `go nodes movestogo 50`,
+`go movestogo wtime 50`, `go movestogo nodes 50`, `go movestogo movetime 50`, `go mate wtime 50`,
+`go mate btime 50`, `go mate winc 50`, `go mate binc 50`, `go mate nodes 50`, `go mate movetime 50`,
+`go mate movestogo 50`.
+
+The pattern: on the base tree the SECOND pair member was eaten as the first one's value whenever the first
+keyword wanted a number that was not there, so the real parameter was lost. On the PC build the number reaches
+the keyword it belongs to.
+
+## the 5 "possible regressions" — investigated and dismissed, with evidence
+The automated pass flagged `go wtime depth 50`, `go movetime depth 50`, `go wtime mate 50`,
+`go movetime mate 50` and `go depth mate 50` as "base ended, PC did not". A 1-second grace window made that look
+like the PC build got worse. It did not. With the answers inspected
+(`go_family_regression_check.txt`):
+
+| go | base | PC |
+|---|---|---|
+| `go wtime depth 50` | ended 1.1 ms with **1** info line: `info depth 1 … cp 350 nodes 47 pv d4c5` | still searching at 3000 ms, **24** info lines, `info depth 24 … cp 137 nodes 2774379` |
+| `go movetime depth 50` | ended 2.2 ms, **3** info lines, `depth 3 cp 135 nodes 936` | searching, 24 info lines, depth 24 |
+| `go wtime mate 50` | ended 1.1 ms, **1** info line | searching, 8 info lines, 4.6 M nodes |
+| `go movetime mate 50` | ended 2.2 ms, **3** info lines | searching, 8 info lines, 4.6 M nodes |
+| `go depth mate 50` | ended 1.1 ms, **1** info line | searching, 8 info lines, 4.6 M nodes |
+
+So on the base build these lines produce an answer after ONE ply of a 50-ply request — the parameter was eaten,
+so the engine had no real limit and returned immediately with a shallow, wrong score. The PC build correctly
+reads `depth 50` and searches on. **That is a repair, not a regression**, and my 1-second window was simply too
+short for a depth-50 search. Recording it because the automated table said the opposite and a reader of that
+table alone would draw the wrong conclusion.
+
+## the 23 that still hang on BOTH builds — careful, most are NOT defects
+These are lines like `go btime movestogo 50`, `go winc binc 50`, `go depth wtime 50`. Both builds search on
+because, after the parse, no limit belongs to the side to move or no depth was named. Whether that is a defect
+depends on what a GUI means by such a line, which I cannot know. What I CAN say, and what matters for the
+owner: **the PC's go-parse fix does not end these**, so a GUI that sends a keyword with no value still gets an
+unbounded search on the PC build. That is the same defensive rule from GUI_GUIDANCE.md — send every clock for
+the side to move — and it is still needed on the PC build.

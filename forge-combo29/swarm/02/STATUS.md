@@ -109,3 +109,18 @@ builds plus an assertion that aborts on any `book move` line in those rows.
 
 Next: area-2 job work on BOTH builds, starting with the S-F6 family (which other `go` keyword orders hang?) and
 re-running job 1 and job 3 on the PC build under PC20.
+
+## 2026-11-16T22:58Z — S-F6 mapped across the whole go-keyword family (both builds)
+72 ordered pairs of `go X Y 50`, both builds, Threads 1, OwnBook false, fresh process per case.
+25 pairs: base HANGS, PC ends -> repaired by FORGE_FIX_GO_PARSE. 23 pairs hang on BOTH -> the fix does not
+cover them, so the GUI-side rule (send the side-to-move's clock) is still needed on the PC build.
+19 pairs fine on both.
+5 pairs LOOKED like PC regressions (base ended in 1 ms, PC kept searching). Investigated: NOT regressions —
+the base answer was ONE ply of a 50-ply request (`info depth 1 … cp 350`, 1 info line) because the parameter
+was eaten, while the PC build searched to depth 24 / 4.6 M nodes. My 1-second grace window was too short for a
+depth-50 search; the automated table alone would have said the opposite. pc_rerun/RESULT.md, raw
+go_family_results.json + go_family_regression_check.txt.
+
+PC ASan+UBSan build also done (build-pc-asan, -DFORGE_MATE_ALPHA_GUARD=1 + sanity).
+Next: re-run area-2 job 1 and job 3 against the PC build under PC20 (job 1 on the PC ASan build), and check
+another seat's unchecked finding.
