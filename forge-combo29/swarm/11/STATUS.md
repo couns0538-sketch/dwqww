@@ -426,3 +426,6 @@ Settings: **none** (no setoption), **S14** (the 14 settings), **PC20** (S14 + th
 - S-F62: after a refused FEN, ONLY `ucinewgame` clears the stale board. `isready`, `eval`, `stop` and
   `go perft` all leave it in place (the go still returns a game-1 move). So "resync with isready" —
   exactly what a GUI does — does NOT defend. The defence is to DISCARD the game, not to resync.
+- S-F63: a refused FEN does NOT contaminate the transposition table — `go depth 12` on a later target
+  gives identical results (e4d5, 60,955 nodes, cp 83) with or without a preceding refused FEN. So the
+  blast radius is one command / one answer / no residue. Blast-radius picture now complete.
