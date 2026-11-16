@@ -259,3 +259,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Probes are IDENTICAL per depth across Hash sizes (1,372,713 at d10; 4,087,859 at d12), so table size does not change the search at all - it only changes how many scans find an EMPTY slot, i.e. whether the table is saturated. That is the real mechanism.
 - 29-N20: FINAL must quote the four-cell table plus the one robust claim (bench 50 of 861,904 = 0.006%), NOT '11.1%'. Correcting before the deadline rather than shipping a number a two-line sweep contradicts.
 - next: rewriting FINAL_NOTES.md accordingly, then continuing.
+
+## Mon Nov 16 11:36:54 PM UTC 2026
+- 29-N21 percentage audit done as asked: grep for 11.1/26.5/19.5/54.7/44.8 across all 13 REPORT_*.md returns ZERO hits. FINDINGS keeps the four-cell table, explicitly SUPERSEDED rows, and the counter-instruction; FINAL_NOTES leads with the correction. Every instance mapped file:line in slots/AUDIT_percentages.md.
+- Deliberate exception stated rather than silently fixed: STATUS.md is append-only, so its earlier blocks still contain my then-belief (11.1% as the figure). Rewriting them would destroy the record of what I concluded when; the later blocks correct them. I say so in the audit rather than quietly tidying history.
+- next: continuing on the PC path.
