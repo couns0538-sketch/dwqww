@@ -376,3 +376,14 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   its caveat — this shows the PROTOCOL cannot distinguish the two tie rules, NOT that they are identical.
 - **LESSON in the record for every seat: check `ps | grep forge` and `/proc/loadavg` before and after any timing run.**
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-16T23:43:53Z this box is MINE ALONE — 'other seats affected' withdrawn (S-C37a)
+- Evidence: hostname `cursor` (per-agent cloud VM); `/agent/repos/dwqww/forge-combo29/swarm/` contains ONLY `20`;
+  box-wide `find` returns one swarm dir; one user, one agent session; no other seat's engines in the process list.
+- So my S-C37 clause "including other seats' runs at the same wall-clock moment" was **WRONG and is WITHDRAWN** —
+  the leak degraded only MY measurements. Original line annotated in place so the clause cannot be quoted.
+- The hygiene lesson stands but is about **each seat's own box**: run `AUDIT/machine_clean.sh` (exit 0 = fit to
+  measure; checks busy forge procs, any >50% CPU process, loadavg vs cores) before trusting a timing/depth number.
+- S-C38 (tie-break) keeps its caveat as the lead: the PROTOCOL cannot distinguish the two tie rules, which is NOT the
+  same as the rules being identical.
+Next: continue in the window (ends 2026-11-17T10:18Z).
