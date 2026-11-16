@@ -1,17 +1,15 @@
-## 2026-11-16T22:31:17Z
-seat 21, area 1 (FEN INPUT) + protocol edges. **Threads 1 in every run.** Builds: base 6b98f217,
-PC r15 (ASan+UBSan builds of both; PC Release verified against file 5).
+## 2026-11-16T22:31:38Z
+seat 21, area 1 (FEN input / protocol edges). **Threads 1 in every run.** Builds: base 6b98f217,
+PC r15 — both built Release and ASan+UBSan; PC Release verified against file 5's three rows.
 
-**New this cycle**
-- **21-C8 CONFIRMS 24-C1**: on my own harness the base build gives the "no legal named move" info
-  line + `0000` for an illegal name and for no name, one/two legal names search normally.
-- **21-F12 NEW**: the PC build's drawn-root repair REACHES `searchmoves` — at halfmove 100
-  `go searchmoves e1e8 depth 4` searches 8 nodes on the PC build vs 0 nodes on the base build.
-- **21-C7 CONFIRMS 30-F1** on both builds (seven `go` forms, one legal bestmove after `stop`).
-- **21-F11 WITHDRAWN by me**: `mate 0` on a checkmated root is correct UCI, not a fault.
+**This cycle**
+- 21-C9:  applies exactly (8/160 = python-chess) and the illegal-prefix
+  rule is exact (26/726) on BOTH builds; a refused FEN in that form still keeps the old board.
+- 21-C8 CONFIRMS 24-C1 (searchmoves with no legal name → info line + 0000).
+- 21-F12 NEW: the PC build's drawn-root repair reaches  (8 nodes at hm100 vs 0 on base).
+- 21-C7 CONFIRMS 30-F1 on both builds (go + stop). 21-F11 WITHDRAWN by me.
 
-**Area-1 state on the PC build**: F9 repaired; F8, F2 still open; F10 identical; F12 new.
+**Open on the PC build**: 21-F8 ( refused), 21-F2 (stale board after a refusal).
 
-**Next**: check whether `position fen ... moves` and the illegal-prefix rule behave the same on the
-PC build (job16 proved the form on base), then look at the PC patch's NNUE path for a
-sanitizer-only run.
+**Next**: area 1 job 2's extreme fields on the PC build under PC20, then a wider mutation alphabet
+(multi-character corruptions), the one untested direction my reports name.
