@@ -247,3 +247,13 @@ CHECK of seat 30's 30-F23 -> phenomenon CONFIRMED, numbers differ (10-C13). Thre
 Seat 30 measured 6-11 info lines at 1-20 ms; I measure 0, and the intermediate band at 30 ms. Machine
 specific, so I record both rather than overwriting theirs.
 next: continue the cycle.
+
+## Mon Nov 16 10:31:31 PM UTC 2026
+MIDDLE REGIME MAPPED (10-F30, 10-F31, 10-F32), 4 positions x 11 delays x 2 builds, Threads 1, depth 12:
+  worst score error is base **53 cp** (not the 6 cp I first reported) and PC 30 cp.
+  boundary (largest delay that still differs from finished) is POSITION DEPENDENT: 30-50 ms; 50 ms on G_black_mid.
+  <=25 ms: 0 info lines, fabricated move, no score. Middle band: real move, wrong score, looks normal.
+  ALL THREE REGIMES ARE ON THE BASE BUILD TOO -> the owner's training loop IS exposed if anything interrupts.
+10-N2: named the control-failure pattern (a control that passes for the wrong reason), covering
+  10-R3, 10-R4, 10-C5 and 10-F16.
+next: continue the cycle.
