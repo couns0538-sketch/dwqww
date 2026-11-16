@@ -467,3 +467,6 @@ Settings: **none** (no setoption), **S14** (the 14 settings), **PC20** (S14 + th
   the real engine: refusal raises + resyncs to startpos (next search gives d2d4, no leak), and a
   one-sided clock is refused before it can cost 12 s. Real queue deadline, sanitizer check, and the
   trap-2b warning in its timeout message.
+- S-F81: uci_guard.py verified against ROUTE 2 as well — an illegal move in a list raises
+  PositionRejected and the next search gives d2d4 (startpos), not the truncated-prefix answer; a
+  one-sided clock raises ValueError before any search. The guard covers both routes and the clock rule.
