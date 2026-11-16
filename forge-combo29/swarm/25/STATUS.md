@@ -22,6 +22,11 @@ So at the setting his matches actually use, over a whole game, **none of the def
 The 0.75 figure independently reproduces the budget ratio I confirmed against seat 19 (S-C12).
 Evidence: `pcpath/match_game.py`, `pcpath/match_game.txt`.
 
+**Both game endings are now covered.** A second self-play game forced to end in mate (S-F31) reached CHECKMATE
+at ply 3 with 0 illegal moves, 0 missing info lines, 3/3 completed-iteration moves and **3 mate scores of which
+none had a PV that fails to play out** (every PV sliced from the engine line and replayed). So repetition and
+checkmate - the two ways a match actually ends - are both clean at the owner's setting.
+
 ### THE HEADLINE FINDING FOR THE OWNER (file 6's half-move test needs depth)
 
 **File 6's test for whether a high-counter `cp 0` is a defect requires a deep search, and the real threshold is
@@ -50,6 +55,7 @@ engine output), written up in `check_file6/HOW_TO_APPLY_FILE6.md`.
 | S-F25 | `go softnodes` is deterministic (identical score/nodes/move), always stops at a FINISHED depth, and overshoots N by 1.06-1.55x. Independently reproduced by seats **08, 19 and 29**. | PC/PC20 |
 | S-F26 | **NEAR-MISS, NOT A DEFECT - DO NOT "FIX".** The match path uses only 2.4-8.7% of its clock (178 ms of 6 s), which is `plan_clock_budget`'s soft limit working (TmSoftDivisor 22 -> 317 ms at 6 s); `go movetime` differs because it is a hard instruction. Corroborated by four seats; raising time usage would lose on time. | PC/PC20 |
 | S-F29 | The depth-20 threshold finding above. | PC/PC20 |
+| S-F31 | **Both game endings are clean at the match setting.** A forced-mate self-play game (start `4k3/8/8/8/8/8/8/K1QR4 w`, `go nodes 20000`, one fresh process per move) ends in CHECKMATE at ply 3 with 0 illegal moves, 0 missing info lines, 3/3 completed-iteration moves, and **3 mate scores of which 0 had a PV that fails to play out** (PVs sliced from the engine line and replayed, never typed). With S-F30 (90-ply, repetition) both endings are covered. Node spend median 0.13x N because a decided mate is found quickly - the "search resolved early" behaviour, not a fault. | PC/PC20 |
 
 ### CONFIRMATIONS / CHECKS OF OTHERS
 
