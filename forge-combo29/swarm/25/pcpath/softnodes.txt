@@ -1,0 +1,43 @@
+### go softnodes on /home/ubuntu/build/pc/forge  (PC20, Threads 1, Hash 16)
+============================================================================
+position: rnb1kbnr/ppp1pppp/8/4q3/8/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 4
+  T1 three runs of softnodes 2000: [('score cp 97', 2474, 'f1e2'), ('score cp 97', 2474, 'f1e2'), ('score cp 97', 2474, 'f1e2')]
+     deterministic: True   
+  T2 reported nodes 2474 for N=2000  -> overshoot 1.24x
+  T3 stopped at depth 8 (a depth limit would be 64)
+     softnodes   2000 -> score cp 97 nodes     2474 depth   8 move f1e2  overshoot 1.24x
+     softnodes  20000 -> score cp 62 nodes    21812 depth  12 move f1e2  overshoot 1.09x
+     softnodes  50000 -> score cp 47 nodes    56616 depth  14 move f1e2  overshoot 1.13x
+     softnodes 250000 -> score cp 67 nodes   309981 depth  18 move f1e2  overshoot 1.24x
+============================================================================
+position: 1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b - - 0 1
+  T1 three runs of softnodes 2000: [('score cp -306', 2671, 'g7g6'), ('score cp -306', 2671, 'g7g6'), ('score cp -306', 2671, 'g7g6')]
+     deterministic: True   
+  T2 reported nodes 2671 for N=2000  -> overshoot 1.34x
+  T3 stopped at depth 7 (a depth limit would be 64)
+     softnodes   2000 -> score cp -306 nodes     2671 depth   7 move g7g6  overshoot 1.34x
+     softnodes  20000 -> score cp -293 nodes    31779 depth  12 move g7g6  overshoot 1.59x
+     softnodes  50000 -> score cp -272 nodes    52904 depth  13 move g7g6  overshoot 1.06x
+     softnodes 250000 -> score cp -292 nodes   288912 depth  17 move g7g6  overshoot 1.16x
+============================================================================
+position: r4rk1/pp1b1ppp/4p3/3pP3/8/P3P3/1P2N1PP/R2R2K1 w - - 0 1
+  T1 three runs of softnodes 2000: [('score cp -181', 3099, 'g1f2'), ('score cp -181', 3099, 'g1f2'), ('score cp -181', 3099, 'g1f2')]
+     deterministic: True   
+  T2 reported nodes 3099 for N=2000  -> overshoot 1.55x
+  T3 stopped at depth 7 (a depth limit would be 64)
+     softnodes   2000 -> score cp -181 nodes     3099 depth   7 move g1f2  overshoot 1.55x
+     softnodes  20000 -> score cp -150 nodes    23001 depth  11 move d1c1  overshoot 1.15x
+     softnodes  50000 -> score cp -152 nodes    55125 depth  13 move d1c1  overshoot 1.10x
+
+INTERPRETATION (my reading of the numbers above):
+T1 DETERMINISM: PASS on all three positions - three fresh processes give identical score, identical node count and
+   identical move (2474/f1e2 three times; 2671/g7g6 three times; 3099/g1f2 three times). The owner's self-play
+   labels are therefore reproducible at Threads 1, which is the property that matters for training data.
+T2 OVERSHOOT: 1.06x to 1.55x of N. The rule is "stop at the end of the first depth that passes N", so overshoot is
+   the cost of finishing a depth - expected, bounded, and never unbounded.
+T3 FINISHED DEPTH: always a real completed depth (7-18), never 64 and never a partial. So the soft-node stop lands
+   on an iteration boundary as intended.
+NOTE: the move can change with the budget on position 3 (g1f2 at 2000 nodes, d1c1 at 20000/50000) - so a very small
+   soft-node budget is a genuinely different search, not a truncated one, and self-play at 2000 is playing weaker
+   moves than the match settings. That is a property of the setting, not a fault, but worth knowing when reading
+   self-play games.
