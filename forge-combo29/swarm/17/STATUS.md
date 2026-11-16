@@ -144,3 +144,28 @@ DONE
 NEXT
 - Continue area 7 on BOTH builds: re-read the PC-side source for the new switches (b4.hpp, HistRework,
   CorrHistV2, TtPruneV2) for the same fault classes, and re-run the S-F7 history-extremes stress under PC20.
+## 2026-11-16T22:37Z (block 10)
+
+seat 17 | area 7 | every score Threads 1 | branch for-fable-and-opus/swarm-17
+
+ANSWERED the two follow-up questions
+
+Q2 (pawn-move mate at halfmove 100). YES, the PC build covers it, on a DECISIVE board:
+  `r7/1P6/8/8/8/8/8/k1K5 w - - 100 1`, only mate `b7a8q` (capture-promotion), and the engine's own
+  generation order puts `b7b8q` first and `b7a8q` fifth.
+  base S14, hm100 -> `b7b8q`, `cp 0 nodes 0`, MATE MISSED
+  base S14, hm99  -> `b7a8q`, `mate 1`, 60 nodes
+  PC20,    hm100 -> `b7a8q`, `mate 1`, 60 nodes  (REPAIRED)
+  PC20,    hm99  -> `b7a8q`, `mate 1`, 60 nodes
+  My first three pawn-mate boards were NOT decisive (`a7a8q` is the engine's first move there, so base
+  plays it by luck with a 0-node score); they are listed in the evidence so nobody reuses them.
+
+Q1 (are S-F1 and 19-F12 the same missing guard?). NO - two separate defects, with markers:
+  S-F1 / S-F8 / S-F1b fire PATH_EARLY_ROOTDRAWN count=0 and answer 0000.
+  19-F28's catch-all at search.cpp:3017 never fired in any of my six cases.
+  S-F1's 0000 is an EMPTY bestmove (`root_candidates` empty -> the guarded assignment is skipped), not a
+  fabricated one. Fixing 19-F12 will not fix S-F1, and vice versa.
+
+NEXT
+- Re-run the S-F7 history-extremes stress under PC20 on the PC build, and test the four new PC switches
+  (CuckooRep / HistRework / TtPruneV2 / CorrHistV2) at their extremes for the same fault classes.
