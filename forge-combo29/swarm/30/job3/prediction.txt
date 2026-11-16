@@ -1,0 +1,29 @@
+PREDICTION — seat 30, area 10 job 3 (recount glmflash5's matches), committed BEFORE measuring. seed 3001.
+
+Target: branch `cursor/glmflash5-work-cb5c`, the newest job folder with committed game lists:
+forge-combo29/tests_glmflash5_job24/ (gamelists M55..M60) and its REPORT_glmflash5_job24.md, whose
+headline pools are: variant@2000 (M49+M51+M52+M55+M56) +6.67, CED8alone@2000 (M53+M57+M58) +6.54,
+variant@20000 (M54+M59) +4.26.
+
+P1. All six M55..M60 W-L-D numbers will match my recount from the game lists EXACTLY (their stats
+    script and I read the same files), e.g. M55 744-649-607 and M59 559-517-924.
+    Killed if any of the six differs.
+P2. The Elo numbers will match to within rounding of 0.01 for all six, because both are a closed
+    formula on the same W-L-D.
+    Killed if any match differs by more than 0.02.
+P3. The 95 % intervals will NOT match exactly: the brief's formula (sd = 400/(ln10 m(1-m)) *
+    sqrt(var/pairs) over pair scores) uses the VARIANCE of the pair scores, and I predict their
+    script uses the variance of a different quantity (the per-game or per-pair binary outcome), so
+    some intervals will differ in width by more than 1 Elo point on at least one match.
+    Killed if all six intervals agree to within 1.0 Elo on both ends.
+P4. The openings will NOT be disjoint across the matches of one job: M55 says "first game's FEN ==
+    line 1", M56 "== line 1001", M57 "== line 2001", i.e. each match starts at a different slice of
+    ONE openings file, so consecutive slices are different but I predict at least one overlap
+    between some pair by chance (2,000 distinct openings from a pool of at most 6,000 draws).
+    Killed if the intersection is empty for every pair.
+P5. Pool arithmetic: their three pools' pair counts (5,000 / 3,000 / 2,000) will equal my counts of
+    the corresponding gamelist files, and the pooled Elo will equal a pooled mean of my per-match
+    normalised pair scores to within 0.05.
+    Killed if any pool count or pooled Elo differs.
+P6. Each pair of consecutive games will share its opening FEN (they play each opening twice, both
+    colours). Killed if any pair has mismatched FENs.
