@@ -398,3 +398,17 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - **machine_clean.sh fixed**: it was flagging a DEFUNCT (zombie) engine as busy; zombies hold no CPU and are now
   excluded. Contract unchanged: **exit 0 = fit to measure**.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-16T23:48:25Z S-C20 withdrawn; the surviving reporting defect is now its own LIVE finding (S-F52)
+- **S-C20 WITHDRAWN** (and its original line annotated in place with the wrong reasoning struck through, so it cannot
+  be quoted as current): `score mate 0` on a mated root is CORRECT UCI — `mate y` is for the side to move, so y=0 means
+  already mated. Seat 21's 21-F11 WITHDRAWN, seat 25's S-F6 superseded, seat 11's measurement credited. My own ladder
+  re-measured: checkmated -> `0000`/`mate 0`/0n; mate in 1 -> `d1d8`/`mate 1`/140n; **stalemate -> `0000`/`cp 0`/0n**;
+  KQvK -> `h6f8`/`cp 1131`/1836n. Checkmate and stalemate are reported DIFFERENTLY ON PURPOSE.
+- **S-F52 (LIVE, kept separate on purpose)** — the reporting VOLUME is still wrong: on a terminal root the engine
+  searches **0 nodes** but emits **one info-depth line per depth**, and with `nodes`/`movetime` there is no depth limit
+  so it emits **64 identical lines** (`go depth 1/5/20` -> 1/5/20 lines; `go nodes 100` and `go movetime 50` -> 64).
+  A GUI reads "depth 64"; the `nodes 0` is easy to miss. Stalemate behaves identically with `cp 0`, so it is the
+  terminal-root path generally. Fix direction: emit ONE line there — a reporting change that cannot move a node count.
+- **machine_clean.sh**: defunct (zombie) processes no longer fail the gate — a zombie holds no CPU. Exit 0 = fit.
+Next: continue in the window (ends 2026-11-17T10:18Z).
