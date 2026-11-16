@@ -1,0 +1,17 @@
+PREDICTION — seat 15, area 5, job 1 (PV legality + mate-score PV length), committed BEFORE the first measuring command.
+Sets: O = first200.fens (200), G = set_G.epd (353) => 553 positions. depth 12, S14, Threads 1, Hash 16, ucinewgame+isready before every go.
+
+P1  illegal moves in the LAST info pv line: 0 of 553.
+    KILLS P1: >= 1 illegal move found (each one listed with its FEN).
+P2  positions whose last info line carries "score mate": 30.
+    KILLS P2: outside 5..90.
+P3  mate PV length mismatches under the brief's rule (N>0: checkmate after 2N-1 plies; N<0: after 2|N| plies): 0.
+    KILLS P3: >= 1 mismatch.
+P4  positions with NO info pv line at all (search returned only bestmove): 0.
+    KILLS P4: >= 1.
+P5  wall time of the whole 553-position run: 15 min.
+    KILLS P5: > 60 min (or a single position > 120 s).
+
+Reasoning (short): the PV printed by a sound search is a legal line by construction; the mate score comes from the same
+tree, so a wrong reported distance is the likelier fault than an illegal PV move. Depth 12 on these sets is small, so
+few positions should resolve to mate; 30 is a guess with a wide killing band.
