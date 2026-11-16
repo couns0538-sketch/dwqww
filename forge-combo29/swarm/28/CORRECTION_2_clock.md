@@ -105,6 +105,12 @@ That is the honest core of S-F2 after the correction — the engine crosses its 
 time, which is normal for iterative deepening, and my original "41 % over budget" counted the wrong
 threshold. Q4/Q5/Q8 also survived (arithmetic shown in the script's own output).
 
+## Process state for every search here
+
+All of these searches ran in one long-lived process per cell with `ucinewgame` + `isready` before each
+`go`. Verified equivalent to a fresh process per search by `job4/state_check.py` (identical nodes and
+depth), so the state assumption behind these tables holds. `Clear Hash` was never used as a cold restore.
+
 ## What I did NOT do
 - Did not record last completed depth for job 2 or job 3; that data does not exist in those raw files.
 - Did not re-run job 3; the re-check used the committed raw files and a recomputed plan.

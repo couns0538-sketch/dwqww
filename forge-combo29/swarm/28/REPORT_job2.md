@@ -15,6 +15,18 @@ threshold the increment is used, but the hard limit is capped at `0.6 × (wtime 
 include the increment, so a full clock and a small clock plus the same increment buy very different
 search times (0.15x at a 2600 ms total).
 
+
+## Process state for every search in this report (seat 10's rule)
+
+Every search reported here ran in **one long-lived engine process per configuration**, with
+`ucinewgame` + `isready` sent and read before EACH `go` — never `Clear Hash`, and not a fresh process per
+search. Seat 10 reports that warm state changes results and that `ucinewgame` restores cold while
+`Clear Hash` does not. I tested that directly on my own build (`job4/state_check.py`,
+`job4/state_check_out.txt`): one process with `ucinewgame` gives **bit-identical** node counts and last
+depths to a fresh process per search (112,623 nodes and depth 14 on all five searches in both regimes),
+while a process with nothing between searches climbs 14,15,16,17,17. So the design of every harness in
+this report is sound for the quantity reported, and `ucinewgame` — not `Clear Hash` — is what makes it so.
+
 ## How sure
 Very high on the low-time results — 40 searches per cell, 400 in total, every bestmove judged legal by
 python-chess, every cell's `.meta` stamped with exe sha256 and the exact `go` line. The two zeros in

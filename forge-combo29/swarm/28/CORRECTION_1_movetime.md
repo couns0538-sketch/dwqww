@@ -112,6 +112,12 @@ is the unfinished iteration, not the pipe); the last depth does differ slightly 
 10 at movetime 50 (P6 REFUTED); and undershoot by iteration granularity is visible but small in the
 median (P7 survives only in the 5 ms cell).
 
+## Process state for every search here
+
+All of these searches ran in one long-lived process per cell with `ucinewgame` + `isready` before each
+`go`. Verified equivalent to a fresh process per search by `job4/state_check.py` (identical nodes and
+depth), so the state assumption behind these tables holds. `Clear Hash` was never used as a cold restore.
+
 ## What I did NOT do
 - Did not re-run jobs 2 and 3 at this depth of crossing; their re-checks are the next file
   (`CORRECTION_2.md`).

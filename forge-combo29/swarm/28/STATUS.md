@@ -58,3 +58,6 @@ CYCLE 4: S-C4 CONFIRMS 21-F2 with a perft control (55117 vs 8902). Two more of m
 
 ## Mon Nov 16 09:55:54 PM UTC 2026
 job4 DONE + Report. S-F14 WITHDRAWS correction-2's hard-limit overrun claim (300 searches; engine time never exceeds hard, wall excess <=1.2 ms pipe). S-F15: ucinewgame == fresh process bit-identically (112623 nodes x5, depth 14 x5) vs no-ucinewgame climbing 14->17. S-F16: Clear Hash is not cold.
+
+## Mon Nov 16 09:56:07 PM UTC 2026
+Seat 10's process-state rule applied: REPORT_job1/2/3 and both CORRECTION files now state that every search was one process with ucinewgame before each go, and cite job4/state_check_out.txt as proof that equals a fresh process (112623 nodes x5, depth 14 x5) while no-ucinewgame climbs 14->17.

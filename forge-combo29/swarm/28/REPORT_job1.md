@@ -17,6 +17,18 @@ and 27 % of the 10 s searches run past it, with a largest of 1,270 ms on a 10 s 
 that is 4.6 % of the total clock in one move, but no search went over the engine's own hard limit
 (260 ms at wtime 1000, 2,645 ms at wtime 10000) in this run.
 
+
+## Process state for every search in this report (seat 10's rule)
+
+Every search reported here ran in **one long-lived engine process per configuration**, with
+`ucinewgame` + `isready` sent and read before EACH `go` — never `Clear Hash`, and not a fresh process per
+search. Seat 10 reports that warm state changes results and that `ucinewgame` restores cold while
+`Clear Hash` does not. I tested that directly on my own build (`job4/state_check.py`,
+`job4/state_check_out.txt`): one process with `ucinewgame` gives **bit-identical** node counts and last
+depths to a fresh process per search (112,623 nodes and depth 14 on all five searches in both regimes),
+while a process with nothing between searches climbs 14,15,16,17,17. So the design of every harness in
+this report is sound for the quantity reported, and `ucinewgame` — not `Clear Hash` — is what makes it so.
+
 ## How sure
 High on the measurements (raw per-search files, one engine process per config, 200 searches each,
 two independent movetime-50 runs agreeing to 0.05 ms), and the Move Overhead mechanism was confirmed

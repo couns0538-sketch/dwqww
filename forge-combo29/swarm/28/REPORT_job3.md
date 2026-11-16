@@ -12,6 +12,18 @@ the 1000 ms clock in 200 searches. The ordering is right and the `movestogo > 50
 323 ms — the engine stops at about **65 % of its own soft limit** on the very move where using the whole
 clock matters most. The largest single search does reach the planned hard limit (792.7 ms).
 
+
+## Process state for every search in this report (seat 10's rule)
+
+Every search reported here ran in **one long-lived engine process per configuration**, with
+`ucinewgame` + `isready` sent and read before EACH `go` — never `Clear Hash`, and not a fresh process per
+search. Seat 10 reports that warm state changes results and that `ucinewgame` restores cold while
+`Clear Hash` does not. I tested that directly on my own build (`job4/state_check.py`,
+`job4/state_check_out.txt`): one process with `ucinewgame` gives **bit-identical** node counts and last
+depths to a fresh process per search (112,623 nodes and depth 14 on all five searches in both regimes),
+while a process with nothing between searches climbs 14,15,16,17,17. So the design of every harness in
+this report is sound for the quantity reported, and `ucinewgame` — not `Clear Hash` — is what makes it so.
+
 ## How sure
 High on the numbers: 40 searches per value, 200 in total, one process per value, every `.meta` written,
 and the `movestogo 0`/`51` clamp check behaves exactly as the code predicts (a strong sign the harness
