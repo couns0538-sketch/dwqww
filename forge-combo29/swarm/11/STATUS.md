@@ -148,3 +148,5 @@ NEXT: continue area-1 work; push again by 22:30.
   the checkmated root still adjudicate at 0 nodes (no regression).
 - S-C10 SCOPES 24-F3: G position 90 is 0.04s cold / 0.02s warm on the RELEASE build (no outlier).
   Their 348s figure does not transfer here; likely TSan-specific. I do not claim their numbers are wrong.
+- S-C11 CONFIRMS S-F2/24-C1: searchmoves naming no legal root move -> quoted info line +
+  bestmove 0000 on a 20-move board; legal names do NOT trigger it (negative control asserted).
