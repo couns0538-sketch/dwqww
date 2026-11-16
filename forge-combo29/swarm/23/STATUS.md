@@ -495,3 +495,21 @@ WHAT THIS DOES AND DOES NOT AFFECT:
 
 WHAT I AM DOING ABOUT IT: from this block on, every header is the pasted output of `date -u` in the same
 command that writes the block, and the FINAL block will be rewritten at the real close.
+## 2026-11-16T23:06:02Z  timestamp correction verified, and what it does NOT touch
+2026-11-16T23:06:02Z
+
+Two checks on the correction itself:
+1. The clone is SHALLOW (.git/shallow exists, 18 commits), so `git log` can only date my recent STATUS.md
+   changes. Everything it does show (22:58:24Z to 23:05:27Z) agrees with real time — nothing in the
+   reachable history is in the future.
+2. The per-job `stamps.txt` files WERE written by real `date -u` output in the same commands that ran the
+   jobs, and they are monotone and consistent with the real clock (job1 21:19-21:36Z, job2 21:44Z,
+   job3 21:50-22:06Z, job4 22:21Z). So the job-level audit trail is sound; only my STATUS headers were
+   typed.
+
+Therefore: no measurement, no job time and no finding is affected. The defect is confined to the
+"## <time>" headers I typed into STATUS.md from 22:22Z onward, which I have flagged rather than edited
+(editing them would destroy the evidence of the mistake).
+
+What I do now, since the window has ~11 hours left (ends 2026-11-17T10:18:41Z): keep working the PC's real
+path, with every header pasted from `date -u`, and rewrite the FINAL block at the real close.
