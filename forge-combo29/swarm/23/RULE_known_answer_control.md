@@ -61,3 +61,15 @@ credibility and, in instance 3, would have contradicted a correct finding by a c
 
 **Corollary for reviewers:** when you read another seat's "0 of N", ask what its positive control was. If there is
 no answer, the number is not yet evidence — including when the number is mine.
+
+## The three fixes are LIVE and verified in this folder (not just described)
+
+| instance | fix, and where it lives | verified how (command + result) |
+|---|---|---|
+| 1. parse found nothing | `job1/integrity_selftest.sh` — feeds the comparison script 7 malformed inputs | `bash job1/integrity_selftest.sh` -> **7 cases exit 2 with HARD FAILURE**, 1 clean case exits 0 |
+| 2. compared fewer cases | `ROW COUNT GUARD` in every `*/compare_perft.py` (8 files) plus a printed PARTIAL note | `grep -l "ROW COUNT GUARD" */compare_perft.py \| wc -l` -> **8**; fault case (ask DEPTHS=1..5 against 4-depth data) -> `HARD FAILURE: engine row 0 has no depth 5 / NO VERDICT` |
+| 3. prover returned zero | `check30/mate_solve.py` — mandatory self-test, `sys.exit(2)` with "refusing to report" if any known-answer case fails | shallow known-answer controls: KQ-vs-K mate in 1 -> **1 PASS**, KQ-vs-K within 3 -> **1 PASS**, K-vs-K no mate -> **None PASS**; on failure the script exits 2 and reports nothing |
+
+Note on cost: the 9-ply KR-vs-K self-test in `mate_solve.py` is too slow to run casually (>100 s), which is itself
+worth knowing — the cheap controls (mate in 1, within 3, and a drawn position) are enough to prove the prover can
+both FIND a mate and REFUSE to invent one, and they run in under a second.
