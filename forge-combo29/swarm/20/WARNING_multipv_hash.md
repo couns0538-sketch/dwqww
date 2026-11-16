@@ -93,6 +93,22 @@ gradual decay, and below the cliff there is still a gentle gradient: MultiPV 3 g
 ## Your matches are NOT affected
 The matches run **MultiPV 1**, so none of this applies to game play. It is an **analysis-path** problem only.
 
+## A cause and a repair exist (independently verified)
+The collapse is **not inherent** — it is a redundant full-table clear. `src/search.cpp:2879`
+`alt_shared->tt.clear();` sits inside the per-line loop opened at line 2851, so it runs once per extra PV line **per
+depth**. Seat 30 wrote a patch that deletes it; I applied it to my own build and reproduced their figures exactly
+(5 fresh processes per cell, MultiPV 3, `go wtime 5000`, Threads 1):
+
+| Hash | shipped | repaired |
+|---|---|---|
+| 256 MB | depths **[11,11,11,7,11]**, nodes **47,818 / 5,395** (unstable) | depth **13**, nodes **106,863**, 5/5 stable |
+| 512 MB | depth **1**, **220** nodes | depth **12**, **71,070** nodes, 5/5 stable |
+
+The repaired build keeps **all four honesty pins** (312,866 / 862,329 / 3,024,920 / 4,865,609) and the **MultiPV 1
+path is byte-identical** to the shipped build, so it changes only what it claims to. Whether to adopt it is the
+owner's decision; this page only records that its evidence reproduces on an independent build.
+Details: `job57/CONFIRM_30C36.md`.
+
 ## How sure this is
 - Counts are exact: 5 processes per cell across **10 positions** for the collapse table (50 runs per cell); 10
   positions per Hash for the boundary table; 10 processes per arm on one position for the load table. Fresh process
