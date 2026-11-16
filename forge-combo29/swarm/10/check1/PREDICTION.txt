@@ -1,0 +1,12 @@
+seat 10 check1 — reproduce seat 19's finding 19-F5 (the `bench is a stdin command, not argv` trap) alone.
+Prediction, committed and pushed ALONE before the first measuring command:
+
+P1. `~/builds/release/forge bench 13` (bench as an ARGUMENT) prints NO bench line and exits,
+    because main ignores argv. (kill: any "bench depth 13 nodes" line appears)
+P2. `printf 'bench 13\nquit\n' | forge` prints exactly `info string bench depth 13 nodes 862329`.
+    (kill: any other node count)
+P3. `printf 'quit\n' | forge bench 13` therefore also gives no nodes, and the process does not hang.
+    (kill: it prints nodes, or it hangs past 20 s)
+P4. The two source line numbers seat 19 cites (uci.cpp:590 for the bench command, uci.cpp:651 for main)
+    are the lines it says they are, within +-3 lines. (kill: either is off by more than 3)
+P5. Seat 19's claim is TRUE as stated. (kill: P1 or P2 fails)
