@@ -235,3 +235,16 @@ PC20 RE-RUN COMPLETE. Build PC r15, Threads 1 everywhere.
 
 next command: pick the next PC-relevant speed question on PC r15 under PC20, or a check of another
   seat's open finding on the PC build.
+
+## 2026-11-16T22:32:06Z
+
+PC20 profile + twin + emit line all done. Build PC r15, Threads 1.
+19-F32 first PC r15 profile under PC20: move ordering 18.33 %% (largest PC-relevant), corrected_eval 5.75 %%
+  (6th hottest, up from 2.95 %% base, signature gained SearchStack* = CorrHistV2), TT 2.68 %% cold.
+  CorrHistV2 ablation: 587,276 nodes on vs 613,774 off, deterministic over 3 reps -> saves 4.3 %% of nodes.
+  Time NOT claimed (ranges overlap, one rep faster with it off).
+19-F30 twin 2595: reachable-only-where-correct on PC r15 (K+N vs K -> g1e2 cp 0); base tree misses
+  mate-in-1 on a threefold repetition (f2f3, 0 nodes) while PC r15 finds a1a8 mate 1 at 168 nodes.
+19-F31 pins are a Threads-1 AND none-regime statement, both measured.
+
+next command: check another seat's open finding on the PC build under PC20, then next PC speed question.
