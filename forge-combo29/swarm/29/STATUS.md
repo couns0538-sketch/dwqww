@@ -170,3 +170,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
   - 29-F25: at a FIXED node budget the search is exactly deterministic (go nodes 300000 -> depth 16 / 285,420 / cp 1125 / b2d1 in 4 of 4 runs). On the 6000ms CLOCK the same position alternated depth 16 (285,420, cp 1125) and depth 17 (820,149, cp 1230) across 6 runs - but the MOVE was b2d1 in all 6. So the variation is the stop timer, not search nondeterminism.
   - 29-F26: on 6s+0.06 the engine uses a median of 210 ms of its 6000 ms budget (~3.5%), 0 of 40 overran, 0 illegal moves, no rep-to-rep move changes.
 - next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29 soft: clock determinism vs node-budget determinism (F25), clock budget use (F26)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 10:41:13 PM UTC 2026
+- 29-F27 explains 29-F26 so it cannot be misread as wasted time: the per-depth cost grows ~1.4x per ply (182 ms at depth 16), so against a 1204 ms soft budget the engine finishes depth 16 early and declines to START depth 17. That is disciplined depth-boundary time management; the consequence is that it uses ~210 ms median of a 6000 ms clock.
+- Clock plan for wtime 6000 winc 60 with default divisors (computed from include/forge/clock_plan.hpp): available 5990, soft 1204, hard 4792 ms.
+- next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29 soft: mechanism behind low clock usage (F27)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
