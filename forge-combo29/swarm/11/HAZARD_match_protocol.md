@@ -55,6 +55,17 @@ Two related facts from the same measurements:
   at an iteration boundary. So "nodes 50000" already means "until depth d completes", not "50000".
 - `go softnodes N` does the opposite and overshoots N (median ~33 % over at N=2000).
 
+## Two separate problems — only one needs a protocol change
+Worth separating, because they are easy to conflate:
+- **Within one build, Threads 1: the decisions are reproducible.** Over 12 real positions the
+  answer was identical run to run at `go nodes` 20000, 50000 and 250000 (0 of 12 unstable, with
+  bestmove, node count and score all equal) — `checks/match_repeatability.txt`. A node-limited
+  match is not noisy.
+- **Across two builds, the depth is unequal.** That is the S-F49/S-F50 result above, and it is the
+  only reason to change protocol.
+So a node budget is fine for repeatability; it is fairness between different engines that it
+cannot deliver.
+
 ## What to use instead
 1. **Fixed depth** (`go depth D`) — both engines search to the same ply. Best for A/B of search
    changes, and it is what the honesty pins already use.
