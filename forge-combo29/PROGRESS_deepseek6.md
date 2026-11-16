@@ -1,8 +1,9 @@
 # PROGRESS — deepseek6
 
-## Mon Nov 16 02:11:03 PM UTC 2026
-- Long 1 done and pushed: honesty 312866 / 862329 / 3024920 / 4865609 all met; four sums 12573318, 9500069, 22128265, 18466239 all met; O/S14 first three 41311/24872/28574 met.
-- Long 2 done and pushed: kimi5 `LmrGiveCheck` applies with zero fuzz, identity is exact (200/200 O/S14, 353/353 G/S14, 200/200 O/none, honesty all four), option wired and monotone (sums 9485151/9500069/10013811/10325026/10625407 for 0/1/2/3/4).
-- Raw files: `tests_deepseek6_long1/` (honesty, 4 rows files + metas, 2 stop checks, harnesses), `tests_deepseek6_long2/` (same shape + 5 option values + out-of-range stop check).
-- Runs now: nothing. Next is long 3 (`LmrCutNode`, then `LmrTtPv`), each on its own clean copy.
-- Branch for-fable-and-opus/deepseek6-work at engine commit 6b98f2170a3210e71beed04bbd2553972c253ed7. No job file for deepseek6 has appeared yet.
+## Mon Nov 16 02:37:50 PM UTC 2026
+- Long 1..7 all done and pushed, each with its own report. Long 1-4 (base sums, LmrGiveCheck, LmrCutNode+LmrTtPv, SoundArms+SoundSteps), long 5a (NodeLiterals), long 6 (IirNoRoot, my own patch), long 7 (ASan+UBSan: planted fault reported, clean base 0 lines on 553 positions).
+- Long 6 finding: a RESTRICTED root stores no TT entry (`search.cpp:2093`), so `IirRootExclude=1` is inert with no searchmoves (200/200 equal) but +55.0 % with searchmoves and +25.8 % with MultiPV 2, 48/50 rows differing in each.
+- Long 7 baselines for long 8: clean sanitizer depth-10 sums O 3,809,466 / G 7,290,580, 0 sanitizer lines on 553 positions, counter proven sensitive (6 lines on 3 planted positions).
+- Runs NOW: long 8 in tmux session `l8`, 12 of 28 settings finished (LmrGiveCheck, LmrCutNode, LmrTtPv done; all 0 sanitizer lines), SoundArms running. Log `tests_deepseek6_long8/long8run.log`.
+- Raw files so far: `tests_deepseek6_long1/` .. `tests_deepseek6_long7/` complete; `tests_deepseek6_long8/runs/` growing.
+- Branch for-fable-and-opus/deepseek6-work. Still no job file for deepseek6 in `soak_all/`.
