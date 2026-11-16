@@ -389,3 +389,19 @@ summary.txt
 
 ## 2026-11-16T22:12:49Z
 job21 follow-up: closed the REFUSED-VALID control gap I had flagged. A refuse-max build now gives 58 REFUSED-VALID detections (vs 6 UNKNOWN from the phantom build), so BOTH bug classes are proven detectable and the 437-case clean run is meaningful in both directions.
+
+## 2026-11-16T22:13:03Z
+job22 done: the boolean S14 option NonPawnCorrection does take effect (false 56,720 nodes cp30 -> true 33,066 cp29), which the four sums could not prove because booleans use a different setoption branch (07-C20). Bonus: 56,720 matches seat 10's independent cold figure exactly. Stated gap: the other 10 booleans in that same chain were not verified by effect.
+### git status --short
+ M FINDINGS.md
+ M STATUS.md
+?? REPORT_job22.md
+?? job22/
+### ls job22
+job22:
+compare_npc.py
+raw
+stamps.txt
+
+job22/raw:
+result.txt
