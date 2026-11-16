@@ -528,3 +528,15 @@ snapshot written ~11 h before the close, its own typed timestamp is wrong, the w
 
 ORDERING RULE I WILL USE FROM HERE: only git commit times and pasted `date -u` output, never a header I
 typed. This block's time is pasted above by the same command that wrote it.
+## 2026-11-16T23:07:16Z  out-of-sample test: the rate reproduces, my correction reading does not (23-F31)
+2026-11-16T23:07:16Z
+
+Tested 23-F29 on 30 fresh positions because it was derived from the 11 it was measured on.
+  rate of move changes: 8 of 30 = 27 % (in sample 18 of 60 = 30 %) -> REPLICATES
+  'only 250000 differs' positions favouring 250000: 1 of 3 (in sample 9 of 11) -> DOES NOT REPLICATE
+  'only 20000 differs' direction: reversed (1 of 4 -> 3 of 4)
+So the RATE is solid and the CORRECTION story was over-fitted. 23-F29 marked scope-limited in FINDINGS.
+Pattern worth naming: three times today I have told a directional story from a small sub-population
+  (23-C7 wrong board, 23-F25 wrong cause, 23-F29 over-fit) and each time measurement withdrew it. The
+  measured claims (perft zeros, the 30 % rate, the quiet-near-tied concentration, the clock tail) are the
+  ones that have survived re-testing.
