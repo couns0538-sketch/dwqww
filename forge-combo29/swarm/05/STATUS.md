@@ -390,3 +390,10 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
 - S-W3: my first run of that probe reported FALSE nondeterminism on 5 cells because it compared nps/time (wall
   clock) in the raw line. Fixed with strip_timing(); withdrawn and recorded rather than deleted.
 - next command: test how the overshoot behaves across a finer N ladder at N=2000 (the PC's self-play value).
+
+## $(date -u)
+- S-F32: the softnodes overshoot is QUANTISED by the depth ladder and fully deterministic on a fine ladder.
+  21 cells (3 positions x N in 500..10000), 3 fresh processes each: identical depth AND nodes in all 3 runs on all 21.
+  Overshoot 1.00x..2.18x; consecutive N can report the SAME nodes (1,740 at N=1000 and 1500; 4,121 at N=2000 and 3000)
+  because the engine finishes the depth in progress. At the PC's own N=2000: 2.06x startpos, 1.24x G0, 1.15x middlegame.
+- next command: the same ladder on the BASE build under S14, to see whether the quantisation is a PC-build property.
