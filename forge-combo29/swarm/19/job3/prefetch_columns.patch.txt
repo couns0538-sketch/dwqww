@@ -1,0 +1,64 @@
+--- a/forge-combo29/src/nnue.cpp
++++ b/forge-combo29/src/nnue.cpp
+@@ -222,6 +222,11 @@
+                 static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
+             for (int h = 0; h < HiddenSize; ++h) {
+                 const std::size_t index = static_cast<std::size_t>(h);
++                // Both columns are streamed once and are cold; fetch the line 16 floats ahead.
++                if (h + 16 < HiddenSize) {
++                    _mm_prefetch(reinterpret_cast<const char*>(removed_column + h + 16), _MM_HINT_T0);
++                    _mm_prefetch(reinterpret_cast<const char*>(added_column + h + 16), _MM_HINT_T0);
++                }
+                 destination[index] = (source[index] - removed_column[index]) + added_column[index];
+             }
+         }
+@@ -245,6 +250,11 @@
+                 static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
+             for (int h = 0; h < HiddenSize; ++h) {
+                 const std::size_t index = static_cast<std::size_t>(h);
++                if (h + 16 < HiddenSize) {
++                    _mm_prefetch(reinterpret_cast<const char*>(removed0_column + h + 16), _MM_HINT_T0);
++                    _mm_prefetch(reinterpret_cast<const char*>(removed1_column + h + 16), _MM_HINT_T0);
++                    _mm_prefetch(reinterpret_cast<const char*>(added_column + h + 16), _MM_HINT_T0);
++                }
+                 destination[index] = ((source[index] - removed0_column[index]) - removed1_column[index]) + added_column[index];
+             }
+         }
+@@ -304,6 +314,19 @@
+     __m512 sum = zero;
+     for (int h = 0; h < HiddenSize; h += 16) {
+         const std::size_t base = static_cast<std::size_t>(h);
++        // The weight columns are far larger than L2 and are walked one 64-byte
++        // block at a time; ask for the next block while this one is computed.
++        if (h + 16 < HiddenSize) {
++            const std::size_t next = base + 16;
++            _mm_prefetch(reinterpret_cast<const char*>(our_sub0 + next), _MM_HINT_T0);
++            _mm_prefetch(reinterpret_cast<const char*>(their_sub0 + next), _MM_HINT_T0);
++            _mm_prefetch(reinterpret_cast<const char*>(our_add + next), _MM_HINT_T0);
++            _mm_prefetch(reinterpret_cast<const char*>(their_add + next), _MM_HINT_T0);
++            if constexpr (NSub == 2) {
++                _mm_prefetch(reinterpret_cast<const char*>(our_sub1 + next), _MM_HINT_T0);
++                _mm_prefetch(reinterpret_cast<const char*>(their_sub1 + next), _MM_HINT_T0);
++            }
++        }
+         __m512 ours = _mm512_sub_ps(_mm512_loadu_ps(our_src + base), _mm512_loadu_ps(our_sub0 + base));
+         __m512 theirs = _mm512_sub_ps(_mm512_loadu_ps(their_src + base), _mm512_loadu_ps(their_sub0 + base));
+         if constexpr (NSub == 2) {
+@@ -357,6 +380,17 @@
+     for (int h = 0; h < HiddenSize; h += 16) {
+         for (int k = 0; k < 2; ++k) {
+             const std::size_t base = static_cast<std::size_t>(h + 8 * k);
++            if (h + 16 < HiddenSize) {
++                const std::size_t next = static_cast<std::size_t>(h + 16 + 8 * k);
++                _mm_prefetch(reinterpret_cast<const char*>(our_sub0 + next), _MM_HINT_T0);
++                _mm_prefetch(reinterpret_cast<const char*>(their_sub0 + next), _MM_HINT_T0);
++                _mm_prefetch(reinterpret_cast<const char*>(our_add + next), _MM_HINT_T0);
++                _mm_prefetch(reinterpret_cast<const char*>(their_add + next), _MM_HINT_T0);
++                if constexpr (NSub == 2) {
++                    _mm_prefetch(reinterpret_cast<const char*>(our_sub1 + next), _MM_HINT_T0);
++                    _mm_prefetch(reinterpret_cast<const char*>(their_sub1 + next), _MM_HINT_T0);
++                }
++            }
+             __m256 ours = _mm256_sub_ps(_mm256_load_ps(our_src + base), _mm256_load_ps(our_sub0 + base));
+             __m256 theirs = _mm256_sub_ps(_mm256_load_ps(their_src + base), _mm256_load_ps(their_sub0 + base));
+             if constexpr (NSub == 2) {
