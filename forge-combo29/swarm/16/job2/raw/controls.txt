@@ -1,0 +1,27 @@
+C1 identity: same FEN twice
+  1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b - - 0 1  {'hce': -325, 'nnue': -26, 'total': -351} vs {'hce': -325, 'nnue': -26, 'total': -351}  identical=True
+  8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w - - 0 1  {'hce': 903, 'nnue': 901, 'total': 1804} vs {'hce': 903, 'nnue': 901, 'total': 1804}  identical=True
+  4k3/8/8/8/8/8/4P3/4K3 w - - 0 1  {'hce': 81, 'nnue': 99, 'total': 180} vs {'hce': 81, 'nnue': 99, 'total': 180}  identical=True
+
+C2 involution: flip(flip(fen)) == fen
+  1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b - - 0 1 -> twice -> 1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b - - 0 1  identical=True
+  8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w - - 0 1 -> twice -> 8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w - - 0 1  identical=True
+  4k3/8/8/8/8/8/4P3/4K3 w - - 0 1 -> twice -> 4k3/8/8/8/8/8/4P3/4K3 w - - 0 1  identical=True
+
+C3 antisymmetry: delta(A, flipA) must be the exact negative of delta(flipA, A)
+  1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b - - 0 1
+    delta {'hce': -22, 'nnue': 39, 'total': 17}
+    reverse {'hce': 22, 'nnue': -39, 'total': -17}  exact negative=True
+  8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w - - 0 1
+    delta {'hce': -50, 'nnue': 49, 'total': -1}
+    reverse {'hce': 50, 'nnue': -49, 'total': 1}  exact negative=True
+  4k3/8/8/8/8/8/4P3/4K3 w - - 0 1
+    delta {'hce': -7, 'nnue': 4, 'total': -3}
+    reverse {'hce': 7, 'nnue': -4, 'total': 3}  exact negative=True
+
+C4 colour mirror still gives 0 (harness is not 'always different')
+  1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b - - 0 1  {'hce': -325, 'nnue': -26, 'total': -351} vs colour-mirror {'hce': -325, 'nnue': -26, 'total': -351}  diffs=none
+  8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w - - 0 1  {'hce': 903, 'nnue': 901, 'total': 1804} vs colour-mirror {'hce': 903, 'nnue': 901, 'total': 1804}  diffs=none
+  4k3/8/8/8/8/8/4P3/4K3 w - - 0 1  {'hce': 81, 'nnue': 99, 'total': 180} vs colour-mirror {'hce': 81, 'nnue': 99, 'total': 180}  diffs=none
+
+CONTROLS_FAILED: none
