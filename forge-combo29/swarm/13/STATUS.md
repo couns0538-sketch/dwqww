@@ -387,3 +387,23 @@ S-F7 is now CONFIRMED BY TWO OTHER SEATS with their own harnesses, to the node:
   own wider range using my data. So S-F7 counts under the swarm rule (a find counts when another seat
   confirmed it with a harness of its own) — it does not need to stay "open" in my table.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## Mon Nov 16 11:25:31 PM UTC 2026
+
+S-F7 STATE UPDATED to "CONFIRMED by seat 01 (S-C8) and seat 02 (S-C9)", both reproducing my numbers to
+the node, as the swarm rule requires.
+
+S-F14 CORRECTED AND STRENGTHENED (was too narrow). I had said "when a mate is proven the engine reports
+depth 64". Further testing shows 64 is a hard CAP ON THE DEPTH COUNTER, reachable by any search that
+climbs that far:
+  mate-in-1, go nodes 20000 -> 64 lines, depth 64, nodes 1152 (5.8 % of budget)
+  same board, N=200 -> depth 11 (198 nodes); N=500 -> depth 27 (486); N>=1152 -> depth 64 always
+  mate-in-3, go nodes 250000 -> ALSO depth 64 (106,199 nodes) and does NOT stop (no bestmove in 25 s)
+  non-mate board, go depth 70 -> climbs normally (29 lines in 25 s), never reaches 64
+  identical on base and PC r15, MateAlphaGuard true and false.
+Hazard: depth 64 is not a depth; a depth-gated latency harness returns falsely fast on any board that
+hits the cap; go depth D with D>64 can never be satisfied.
+AND: my first published reproduction one-liner was WRONG — it piped `quit` straight after `go`, which is
+19-F12, and printed 0 info lines. A clean-looking zero that measured nothing. Fixed in CLAMP.md with the
+working form (sleep before quit, or read to bestmove). Both traps now demonstrated in one file.
+Next command: cd forge-combo29/swarm/13/job10 && python3 clamp.py ~/b/rel/forge
