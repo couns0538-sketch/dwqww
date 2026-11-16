@@ -624,3 +624,12 @@ S-F42's strength implication.
   scores = 5.9% (most positions lose their mate score entirely at 2,000 nodes).
 - This ties my two threads: S-F1/S-F27 (truncation) meet S-F31/S-F46 (the PC's real budget).
 - next command: continue the cycle.
+
+## $(date -u)
+- S-F49 — a clean ranking of the owner's real controls on the same 3 boards (PC20, Threads 1, Hash 16, OwnBook false):
+  softnodes 2000 d7-8 < nodes 20000 d10-11 < nodes 50000 d12-14 < nodes 250000 d15-17 < clock 6s+0.06 d18-19 <
+  movetime 6000 d24-28.
+  IMPORTANT nuance: the clock path is NOT the weakest control — it beats even the 250k-node match budget by 2-3 plies.
+  It is only 5-9 plies shallower than the same wall clock could buy (movetime 6000 -> d24-28). So the owner's strength
+  matches are not starved relative to the node-limited matches, but they leave most of their 6 seconds unused.
+- next command: continue the cycle.
