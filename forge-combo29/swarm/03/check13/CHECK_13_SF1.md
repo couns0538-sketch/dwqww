@@ -56,3 +56,33 @@ NOT covered:
 ## Finding line
 
 `| 03-C1 | CONFIRMS 13's S-F1 | check13/cross.txt, check13/eng.json | 20,000 of 20,000 (position, depth) values on their R_1301 set equal to my independent engine run; their raw_ref identical to raw_engine is the expected consequence of 0 differences (their run1 ref side was killed, exit 143, and run2/ref_par.py regenerated it in 616.8 s) |`
+
+## FINAL (21:50Z): both halves now measured
+
+My own python-chess run on their set finished (889.1 s, 0 refused). Asserted, then compared:
+
+```
+$ python3 ../assert_measured.py perft py.json 4 5000
+OK check13/py.json: 5000 positions x depths 1..4 all integer; sums [113231, 2678512, 77182397, 2260227623]
+
+$ python3 ../job1/compare.py eng.json py.json diffs.txt
+positions: 5000
+python-chess refused FENs: 0
+positions with >=1 differing depth: 0
+differing (position, depth) pairs: 0
+missing measurements: 0
+engine crashes/restarts: 0
+engine error lines: 0
+| depth | engine sum | python-chess sum | equal |
+| 1 | 113231 | 113231 | yes |
+| 2 | 2678512 | 2678512 | yes |
+| 3 | 77182397 | 77182397 | yes |
+| 4 | 2260227623 | 2260227623 | yes |
+
+$ python3 cross_s13.py raw_ref_s13.txt eng.json cross_ref.txt
+values EQUAL: 20000   values DIFFERENT: 0   keys only in theirs: 0   keys only in mine: 0
+```
+
+So their claim is confirmed twice over: their engine file matches my engine run (20,000/20,000), and my python-chess
+run matches my engine run (20,000/20,000) — which also independently validates their reference file without
+trusting their harness. Files: `check13/table.txt`, `check13/cross.txt`, `check13/cross_ref.txt`, `check13/py.log`.
