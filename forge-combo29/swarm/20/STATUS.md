@@ -189,3 +189,14 @@ remaining: MultiPV/Hash strength collapse (live per the owner) and any new seat 
 - **S-F49** clock path: 6s+0.06 uses only 2-5% of the budget (129-301 ms), depth 17-18, but depth/node count flips
   17 vs 18 across runs at Threads 1 — clock matches are not exactly replayable, `go nodes` matches are.
 Next: continue confirming PC-path claims; MultiPV/Hash stays the live strength item.
+
+## 2026-11-16T22:50:36Z MultiPV/Hash verdicts SPLIT per cell (the decisive measurement)
+- **S-C28**: the two collapsed cells are NOT the same defect.
+  - **Hash 256 + MultiPV >= 3 -> `f6d7` is MERELY DIFFERENT**: `f6d7` cp -293 vs healthy `g7g6` cp -297, i.e. **+4 cp
+    (marginally better)**, well inside the ~24 cp restriction noise band. Wasted-budget defect only (searches ~5% of
+    the depth, equally good move).
+  - **Hash 2048 + MultiPV >= 3 -> `b8a8` is 46 cp WORSE**: cp -343 vs -297, ~2x the noise band, stable **5/5**. A real
+    **QUALITY defect** — a reproducibly wrong recommendation at the same depth. Describe it that way.
+  - Method A (MultiPV 4, healthy settings): g7g6 cp -273, e5e4 -311, f5e6 -327, b8b7 -328.
+  - Avoided identically: **MultiPV 1 at any Hash, or Hash <= 16 MB with MultiPV > 1.** Analysis only (matches use MPV 1).
+Next: continue confirming PC-path claims; nothing of mine awaits a decision.
