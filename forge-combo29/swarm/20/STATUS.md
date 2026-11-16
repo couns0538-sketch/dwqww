@@ -352,3 +352,13 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - For the owner: his matches run many moves in ONE process, so **warm depth (~20) is the match-realistic figure**; my
   earlier fresh-process S-F49 (17-18) answers "how deep does a cold engine get" instead. Both stated in the file.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-16T23:39:07Z RULE added to the page: every clock-based table states cold/warm
+- **S-F51**: the page now carries a titled rule — same cell (6 s + 0.06, MPV 1, Hash 16, 10 game positions): fresh
+  process per position -> median depth **18**; one warm process -> median depth **20 (+2 plies, same wall time)**.
+  Same class as the node-count warm/cold rule, now shown to affect **depth**. Therefore "depth N at clock T" is not a
+  number unless it says cold or warm; the PC's matches are warm (one process, many moves), so **warm is
+  match-realistic**.
+- This reconciles seat 05's depth 22 with my 18 without either being wrong (theirs warm-style, mine cold), and I added
+  **S-F49a** qualifying my own earlier clock finding so its depth column is not read as match behaviour.
+Next: continue in the window (ends 2026-11-17T10:18Z).
