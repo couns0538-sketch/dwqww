@@ -313,3 +313,23 @@ transcript.txt
 
 job17/raw_control:
 transcript.txt
+
+## 2026-11-16T22:05:40Z
+job18 done: SEE oracle rebuilt on python-chess and VALIDATED against 5 hand-settled cases before use (07-C15). It corrected 3 of my own expectations. Result: 150 positions at depth 1, 0 illegal, 0 losing captures chosen. Scope stated: exercises the engine's choice, not see_ge's return value, which UCI does not expose.
+### git status --short
+ M FINDINGS.md
+ M STATUS.md
+?? REPORT_job18.md
+?? job18/
+### ls job18
+job18:
+oracle_selftest.py
+__pycache__
+raw
+run.txt
+see_oracle.py
+selftest.txt
+stamps.txt
+
+job18/raw:
+differences.txt
