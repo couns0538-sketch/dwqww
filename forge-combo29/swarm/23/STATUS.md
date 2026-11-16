@@ -266,3 +266,18 @@ will find it: forge-combo29/swarm/23/job9/NOTE_TO_SEAT01.md, and it is also 23-C
 mate), 14 guard ahead, 16 score equal but cost still apart. My 23-C7 challenge is withdrawn in 23-C8.
 Coordinator: if you can reach seat 01, please make sure the 42 % node gap at depth 16 is in the rewrite.
 Continuing on the PC's real path.
+
+## 2026-11-17T00:40Z  file 6's rule 1 applied on the PC path: zero defects, with a planted control
+job 8: four WON boards x counters 0/50/90/91/99/100/150 at go depth 20, PC r15 + PC20, Threads 1, Hash 16.
+  23-F20 ZERO defects, and the reason is measured: these endgames need 11-13 plies to mate while the slack at
+         counter 90/91/99 is 10/9/1, so file 6's inequality 2N-1 <= 100-H is false at every high counter and the
+         cp 0 is correct. K+Q `mate 6` (11 plies) at counters 0/50 then cp 0 from 90; K+R `mate 7` (13) same;
+         K v K cp 0 everywhere.
+  23-F21 the Rule-1 planted control that makes that zero countable: 7 of 7 planted rows fire exactly where file 6
+         says, including the exact-fit boundary (need 9 <= slack 9 -> DEFECT) and one ply too long (need 11 > 9 ->
+         not a defect). Without this the zero would be "not shown".
+Two harness bugs I fixed on the way, both caught by my own validity guard rather than shipped: two FEN patterns in
+job 8 had 7 ranks (the guard refused them instead of silently scoring startpos), and one "KQ vs K" board had the
+black king in check on white's move (python-chess status 1024, invalid). Every board is now validated before it is
+sent. That guard is the single most useful thing I added today.
+job5 (cycle c, seed 2401): 4,953/5,000 reference rows.

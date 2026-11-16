@@ -1,0 +1,12 @@
+| case | verdict | expected | pass |
+|---|---|---|---|
+| A mate fits + cp 0 -> MUST say DEFECT | **DEFECT** (mate in 3 plies fits in 9) | DEFECT | PASS |
+| B mate too long + cp 0 -> must NOT | not a defect (needs 21 plies, only 9 left) | not a defect | PASS |
+| C mate fits + mate score -> must NOT | not a defect (mate fits but score is mate 2) | not a defect | PASS |
+| D no mate at all (drawn) -> must NOT | n/a (no mate at counter 0: cp 0) | n/a | PASS |
+| E counter already past 100 -> must NOT | game already drawn at this counter (no claim applies) | already drawn | PASS |
+| F mate exactly fits (need 9, slack 9) -> MUST say DEFECT | **DEFECT** (mate in 9 plies fits in 9) | DEFECT | PASS |
+| G mate one ply too long (need 11, slack 9) -> must NOT | not a defect (needs 11 plies, only 9 left) | not a defect | PASS |
+
+planted cases passing: 7 of 7
+VERDICT: the decision step DOES report a defect when one exists, so job 8's zero is a MEASURED zero.
