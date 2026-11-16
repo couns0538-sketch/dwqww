@@ -4,6 +4,20 @@ My `HARNESS_AUDIT.md` checked every *committed harness file* for the 19-F12 defe
 stdin, while a search is still running makes this build answer a fabricated `bestmove` with 0 nodes). It did not
 cover **commands typed directly into a shell**, and in job 10 two of mine hit exactly that trap.
 
+## THE ONE-LINER (copy this)
+
+```bash
+# after running any engine command that ends in `go ...`:
+if grep -q "^info depth " out.txt && grep -q "^bestmove" out.txt; then
+    grep '^bestmove' out.txt
+else
+    echo "FABRICATED ANSWER — no info depth line; the search did not finish. Rerun with a reader that stops at bestmove."
+fi
+```
+
+Put `out.txt` (stdout of the engine) and stderr separately; a `bestmove` with no preceding `info depth` line at the
+depth you asked for is this defect, not a search result.
+
 ## What I did wrong, twice
 
 While diagnosing the instrumented build I ran commands of this shape:
