@@ -439,3 +439,21 @@ the three match tiers 20000 / 50000 / 250000.
 
 GUI-reachable: **YES** — the self-play tier and the match tiers are both what the owner runs.
 Evidence: `pc/nodesweep/nodesweep.json`, `pc/nodesweep/p*_go_nodes_*.log`.
+
+## Match clock 6 s + 0.06 — four games, 180 real moves, no forfeit (strengthens the row above)
+
+Three more games from three different real middlegames, same method, plus the earlier one:
+
+| game | start | plies | forfeits | illegal | clock left W / B | median wall | max wall |
+|---|---|---|---|---|---|---|---|
+| A | `r3r1k1/p1bb1ppp/...` (earlier) | 60 | 0 | 0 | 1715 / 1599 | 153 ms | 866 ms |
+| B | `1r6/2k2pp1/...` | 60 | 0 | 0 | 2592 / 1211 | 162 ms | 582 ms |
+| C | `6k1/p4r1p/...` | 60 | 0 | 0 | 1059 / 2921 | 153 ms | 643 ms |
+| D | `2r4r/pp4k1/...` | 60 | 0 | 0 | 2674 / 2027 | 146 ms | 1197 ms |
+
+**180 plies, 0 forfeits, 0 illegal moves, minimum clock observed 1,059 ms.** The single slowest move was
+1,197 ms against 2,027 ms still on the clock (59 % of the remaining time) — the closest call in the sample,
+and still not close to a forfeit.
+
+GUI-reachable: **YES, this is the owner's match clock.** Evidence: `pc/matchclock3/matchclock3.json`,
+`pc/matchclock3/game*.log`, `pc/matchclock/matchclock.json`.
