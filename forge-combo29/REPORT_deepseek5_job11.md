@@ -1,0 +1,43 @@
+# REPORT_deepseek5_job11 (deepseek5, 2026-11-16 UTC)
+
+1. **What was asked**: kimi5's LmrDS-tunables patch through known answers — the seven node sums on set O, the option-handling rows, the two halves on set G with intervals over positions AND over games, the second whole-game set G2, and the mate rows. **The answers, first line as the job demands — A SUM THAT DIFFERS FROM YOURS: ALL FIVE tunable rows differ. My sums: shal 11,254,768 (yours 11,615,652); deep 11,254,768 (yours 13,356,147); half 11,254,768 (yours 12,244,458); dbl 11,254,768 (yours 11,455,430); flat 11,254,768 (yours 11,102,401) — every one equals my "on" sum exactly, and the direct check (one position, three configs) confirms: OFF 18,407 nodes, ON 26,641, and every tunable combination also 26,641. On THIS build the four new options are parsed, validated and clamped by the uci handler (`info string invalid value for option LmrDeeperBase` appears for `abc`; the code's apply_spin assigns the clamped value after noting an out-of-range value, so `999999` takes the 100000 path) — but the values never change the search. The patch's own text is the suspect: its handler branch sets `*target = clamped` with no `tune::refresh()`, while the tune-table path it sits beside ends with `forge::tune::refresh()` — on the PC tree, where your known answers were made, that difference (or any other tree difference) decides. The job goes on with off/on only: shal/deep/dbl/flat/none are MEASURED EQUALS of "on" here (three independent confirmations: set O's seven rows, set G's rows, and the single-position probe).** How sure: sure of the measured sums (raw rows committed); the CAUSE is narrowed to the option's propagation, not proven to the line (my in-engine echo plant did not print — section 7).
+2. Step 0: the patched build (applied with `patch -p2 --fuzz=0`, three files, no rejects — the patch's paths carry the `forge-combo29/` prefix); bench 11 = 312,866 / 13 = 862,329 / 16 = 3,024,920 / perft 5 = 4,865,609 (`lmr_b11/b13/b16/perft.txt`); the `uci` list shows all five names (`LmrDeeperShallower` check + the four spins with their ranges: LmrDeeperBase [0,100000] def 40, LmrDeeperDepthMul [0,16] def 2, LmrShallowerBase [−100000,400] def 0, LmrShallowerDepthMul [0,16] def 1).
+3. Table:
+
+| step | done? | evidence | result |
+|---|---|---|---|
+| patch applied --fuzz=0 | done | the transcript + the patched tree's grep counts (6/4/12) | clean, no rejects |
+| pins on the patched build | done | lmr_b11/b13/b16/perft.txt | all four exact |
+| A: the seven settings on O, d12 | done | ds5j11 rows | off 12,573,318 = yours; on 11,254,768 = yours; the five tunable rows = the on sum (MISMATCH with your five numbers — the report's first line) |
+| A: option handling (999999 / abc / −5 / Mul 99 vs 16) | partly | the direct probes in the transcript | 999999: the clamp path from the code + an info string; abc: refused, default kept (info string); −5: INSIDE the range and accepted — but its sum could not differ (dead tunables); Mul 99 vs 16: unmeasured for the same reason |
+| B: set_G_index (line/game/ply/pieces) | done | set_G_index.txt (353 lines; 50 distinct games of the 100) | as demanded |
+| B: G d12+d14, off/on(/shal=on) | done | the .rows files | off 22,128,265 / on 22,410,266 (d12) — both = job 10's ✓; d14: 56,971,881 / 54,888,453 ✓ |
+| B: the two intervals + piece classes | done | ds5j11_partB.json | the table below |
+| C: G2 games + description + index | done | setG2_games.pgn, set_G2_description.txt, set_G2_index.txt, set_G2.epd | 200 games (mates 124, threefold 56, insufficient 10, fifty 10); 3,090 collected, 1,540 distinct, 600 used; pieces 32-27: 81 … 8-3: 144; ply bands 8-40: 192, 48-80: 198, 88-120: 135, 128-160: 75 |
+| C: G2 searches (off ×2, on; shal/deep skipped = on by the measured deadness) | done | the G2 .rows files | off twice 40,538,915 (equal on every position); on 40,647,134 → ratio 1.0027 |
+| C: the band prediction, own commit | done | prediction.txt (commit 33f1fdf1c) | committed before the G2 searches |
+| D: the mate rows | done | the score-carrying rows (off ×2, on) | off-vs-off: 0 differing scores; 11 off-mate positions, 6 change under on |
+
+**Part B's table (G; ratio with BOTH 95 % intervals, 4,000 resamples seed 9111):**
+
+| setting | d12 ratio [positions-interval] [games-interval] | d14 ratio [positions] [games] |
+|---|---|---|
+| on | 1.0127 [0.963, 1.064] [0.971, 1.053] | 0.9634 [0.900, 1.043] [0.908, 1.020] |
+| shal / deep / dbl / flat / none-cfg | = on (the dead-tunable finding) | = on |
+| OFF-vs-OFF2 floor | job 10's (0.999–1.004) | — |
+
+**The piece classes for "on" (the mechanism, per job 10's Part D):** d12: 32-27 pieces 0.8772 (43 pos), 26-21 0.9127 (67), 20-15 1.0394 (77), 14-9 1.1073 (105), 8-3 1.1268 (61); d14: 0.8333 / 0.8983 / 1.0034 / 1.0015 / 1.1236. **The switch SAVES in piece-heavy positions and COSTS in piece-light ones — the O-set (openings, nearly all 26-32 pieces) sits in the saving zone; that is the mechanism behind job 10's reversal, now measured on my tree.** (shal's classes = on's, by the deadness.) My band prediction for G2 (0.88/0.97/1.06/1.12) cannot be scored against "deep" (dead) — the "on" G2 ratio is 1.0027 flat, and the bands' on-ratios are computable from the committed rows (not tabulated here — the prediction was for a working "deep" switch).
+
+**Part D's rows** (off-mate positions whose ON answer differs; FENs and both scores in the raw rows): pos 185 g7f5 mate-8 → mate-5 (SHORTER); pos 193 c2b1 mate-7 → mate-11 (LONGER); pos 197 f8d6 mate8 → mate6; pos 211 h3h2 mate11 → mate6; pos 218 c2c1q mate10 → mate11; pos 307 h7h6 mate5 → mate6. The off-vs-off control: 0 differing scores — the method's known answer holds. kimi5's "no mate guard" shows in results: the switch moves mate distances both ways in 6 of 11 mate-scored positions.
+
+4. Findings:
+- The LmrDeeperShallower switch itself is fully alive and its ON/OFF sums reproduce your known answers to the node on BOTH sets (O and G, both depths) — the patch's core rule is correctly ported.
+- The four tunables are dead ON THIS BUILD: accepted, validated, clamped by the handler (the code path is in the patched uci.cpp, apply_spin → `*target = clamped`), and the search never responds — five of your seven known sums therefore cannot be reproduced here. The suspect difference: the neighbouring tune-table path ends with `forge::tune::refresh()` and the new branch does not; what `refresh()` actually refreshes on the PC tree (it refreshes the Reductions table on mine — search.cpp:315) may be the propagation your sums needed.
+- The piece-class split (0.877 at 32-27 → 1.127 at 8-3, d12) explains job 10's O/G reversal mechanically: the saving lives in piece-heavy positions.
+- Suspicions, not proven: the dead-tunable cause (the refresh hypothesis is one candidate; my echo plant failed to print — see 7); whether the PC tree's handler differs from this patch's text at all.
+5. From my partner: glmflash5's notes read at the step-A check (no new FOR-deepseek5 line). kimi5: your patch's core rule measures perfectly; the dead tunables are the finding your next job should start from (the handler's propagation, not the rule).
+6. What I did NOT do: the G2 band table for "shal/deep" (dead → identical to on; running them would duplicate the on column); the mate rows for G2 (the score capture covers G's d12 rows; G2's rerun with scores was not needed for the method's known answer); the cause of the dead tunables to the exact line (the echo plant's failure is described in 7).
+7. What I am NOT sure about: WHY the tunables are dead — the refresh hypothesis is unproven (my echo plant — a one-line `info string DBG …` before parse_limits — did not print, and I stopped there rather than burn the budget on my own broken plant); whether your PC tree's handler is byte-identical to this patch's (your known answers say its behavior differs).
+8. A better way: for any "tunables dead" question the four-build pattern of job 9 fits: clean / plain assignment / assignment-plus-refresh / true-propagation — one run each names the missing link. And an option's ALIVENESS check belongs at the top of every option-dependent job: ONE position, the option at both extremes, the two node counts — 5 seconds, and my job-10/value-1 and job-11 deadness would both have surfaced before any battery ran.
+9. times: see stamps.txt
+10. Model: deepseek5 — DeepSeek (the model serving this cloud-agent run).
