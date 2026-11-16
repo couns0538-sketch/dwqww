@@ -1,0 +1,25 @@
+exe /agent/repos/build-base/forge
+position 8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1
+python-chess: is_valid True, legal moves 3, turn white
+
+== 1. replay the engine's own mate -7 PV (from job12/job13) with python-chess:
+   11 plies played; final position checkmate: False
+   final FEN: 8/8/1p6/8/pq6/4p3/K3k3/8 b - - 7 6
+
+== 2. is the mate FORCED (white to move, mate against every black defence)?
+   forced mate within  1 plies: False  (0.0s)
+   forced mate within  3 plies: False  (0.0s)
+   forced mate within  7 plies: False  (0.0s)
+   forced mate within  9 plies: False  (0.1s)
+
+== 3. the engine, default settings vs LmpBase=8 (the S-F20 claim):
+   default    depth 10: mate -7
+   default    depth 12: mate -7
+   default    depth 14: mate -6
+   default    depth 16: mate -4
+   LmpBase=8  depth 10: cp -2884
+   LmpBase=8  depth 12: cp -3114
+   LmpBase=8  depth 14: mate -9
+   LmpBase=8  depth 16: mate -5
+
+wrote verify_sf20.json
