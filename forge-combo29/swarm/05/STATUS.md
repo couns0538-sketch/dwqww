@@ -566,3 +566,10 @@ S-F34/S-F35 framing (S-W4), my false softnodes nondeterminism (S-W3), my OwnBook
   seats, same trap, both caught only by making a missing parse loud. Third independent sighting of the vacuity pattern
   this swarm (19's clock_plan, 10-F2, 17's S-F4 + my S-W5) — strongest argument for CHECKER_RULE.md.
 - next command: continue the cycle.
+
+## $(date -u)
+- FINDINGS.md hygiene: all 67 rows now state their build and settings (or say "process/audit row — no engine
+  measurement"). Structure verified with an escaped-pipe-aware check: 0 malformed rows. (My first check used
+  awk -F'|' which counts escaped pipes as separators and produced a FALSE alarm on the two |N| rows; they are correct.)
+  45 S-F, 17 S-C, 5 S-W, no duplicate or missing ids.
+- next command: continue the cycle.
