@@ -1,0 +1,28 @@
+PREDICTION — seat 30, check 30-C3 (seat 11's S-F8: `setoption` without the word `value` is accepted
+silently and changes nothing). Committed BEFORE the first measuring command. seed 3001.
+
+Their claim: `setoption name UseNNUE false` prints no line and leaves the net running (`eval` still
+shows `nnue 20`), while `setoption name UseNNUE value false` gives `nnue 0`; cause is the name loop
+`while (input >> token && token != "value")` (src/uci.cpp:265) absorbing `false` into the option NAME,
+which then matches nothing and is dropped without a message; an out-of-range option value DOES answer
+(`invalid value for option Hash`).
+
+P1. `setoption name UseNNUE false` followed by `eval` will show a non-zero `nnue` field, identical to
+    no setoption at all, and print no line in between. Killed if `nnue` becomes 0 or a line appears.
+P2. `setoption name UseNNUE value false` will show `nnue 0` and print no error line (a silent success).
+    Killed if nnue stays non-zero.
+P3. The swallowed name can be seen directly: `setoption name Hash 64` (no `value`) then `bench 11`
+    must give the SAME node count as a fresh process (312866), i.e. the Hash did not change; while
+    `setoption name Hash value 64` must give 312866 too (node counts are Hash-independent at this
+    depth) BUT `setoption name Hash value 0` must answer `invalid value`. This separates
+    "silently ignored" from "silently accepted".
+    Killed if `setoption name Hash 0` (no `value` word) answers an error line, i.e. if the name path
+    does report.
+P4. Beyond their finding, I predict an EXPLOITABLE consequence: a name that a REAL option is a PREFIX
+    of will be silently mis-set. `setoption name Hash value 0` (error) vs `setoption name Hash va`...
+    - rather than guess, I predict: any unknown name is silent, INCLUDING a typo of a real option
+    (`setoption name Thread value 4` -> silent, and Threads stays 1). Killed if an unknown name
+    answers.
+P5. `setoption name Ponder` (a check option, no value) must be SILENT and change nothing; there is no
+    legal valueless form for a check option in this engine.
+    Killed if it answers or if Ponder actually becomes true.
