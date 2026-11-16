@@ -1,0 +1,14 @@
+# PREDICTION — OwnBook re-check after FABLE_TO_swarm_3
+
+File 3 says every harness must send `setoption name OwnBook value false` (the PC always does). My job-1, job-2
+and job-3 runs did NOT send it. Before accepting my own numbers I re-verify.
+
+P1. My job-3 G table is unaffected: 353 of 353 rows already carry a real `info depth 10` score, so no search was
+    replaced by a book move. Predicted: re-running 30 positions with `OwnBook false` gives the SAME bestmove and
+    score as the recorded default-OwnBook run on ≥29 of 30.
+P2. Job 1's eval comparison is unaffected: `eval` is a static call and never consults the book. Predicted: 20
+    positions re-run with `OwnBook false` give identical eval lines on all 20.
+P3. The book CAN fire on the base tree with the default settings for at least one input (otherwise the file's
+    warning would be moot for the built-in book): predicted the `info string book move` line appears for some
+    position I try from startpos. Kills it: no book line ever appears, in which case the default is harmless
+    here and I say so.
