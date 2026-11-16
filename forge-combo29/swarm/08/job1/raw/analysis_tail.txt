@@ -1,0 +1,41 @@
+## instant searches (wall < 5 ms) — which ones and why
+| run | i | wall ms | bestmove | fen |
+|---|---|---|---|---|
+| base_mt50_a.jsonl | 3 | 0.04 | bestmove e1g1 | r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8 |
+| base_mt50_b.jsonl | 3 | 0.37 | bestmove e1g1 | r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8 |
+| mt500.jsonl | 3 | 0.04 | bestmove e1g1 | r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8 |
+| tc1000.jsonl | 3 | 0.36 | bestmove e1g1 | r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8 |
+| tc10000.jsonl | 3 | 0.20 | bestmove e1g1 | r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8 |
+
+## the 10 slowest searches of the 10000 ms clock run
+| i | wall ms | move-overhead-adjusted budget ms | bestmove | fen |
+|---|---|---|---|---|
+| 107 | 2410.7 | 413 | bestmove g5h5 | 8/5p2/8/pp1pkpKp/7P/2P3P1/1P6/8 w - - 0 1 |
+| 137 | 1445.2 | 413 | bestmove h8h1 | 7r/2k2p2/2p3P1/2Ppn3/PP2p1b1/4P3/4BK2/R6R b - - 0 1 |
+| 120 | 1304.7 | 413 | bestmove e6d6 | 8/8/4K1k1/8/4N1P1/8/1b6/8 w - - 0 1 |
+| 128 | 1226.4 | 413 | bestmove a4a5 | 8/p7/5pk1/7p/r2NKP2/4P1P1/PR5P/8 b - - 0 1 |
+| 158 | 1166.7 | 413 | bestmove e3f4 | 8/6kp/8/1p1r1p2/p7/2bBBP1P/P3K3/8 w - - 0 1 |
+| 186 | 1144.2 | 413 | bestmove d8d7 | 3r4/p7/5kp1/1p3n2/1P3R1P/P4N2/2K2P2/8 b - - 0 1 |
+| 141 | 1119.9 | 413 | bestmove d3d2 | 1kr4n/1ppQ4/4p3/p6P/3P4/3q1RP1/6PK/4R3 b - - 0 1 |
+| 57 | 1019.1 | 413 | bestmove c5b6 | r1bqk1nr/pppp1pp1/2n4p/2b1p3/2B1P3/2P2N2/PP1P1PPP/RNBQ1RK1 b kq - 0 5 |
+| 122 | 1015.1 | 413 | bestmove g3h4 | 8/7p/6k1/1p1r1p2/pb3P2/3BK1BP/P7/8 w - - 0 1 |
+| 68 | 978.3 | 413 | bestmove e7e5 | rnbqkb1r/ppp1pppp/5n2/8/8/5Q2/PPPP1PPP/RNB1KBNR b KQkq - 2 4 |
+
+## the 10 slowest searches of the 1000 ms clock run
+| i | wall ms | bestmove | fen |
+|---|---|---|---|
+| 99 | 194.4 | bestmove b1c3 | rnbqkbnr/ppp3pp/4p3/3p1p2/2PP4/5N2/PP2PPPP/RNBQKB1R w KQkq - 0 4 |
+| 191 | 158.3 | bestmove g2g4 | 8/p3kpp1/1p2p2p/1b1pP3/5K1P/P3P3/1P4P1/2N5 w - - 0 1 |
+| 187 | 129.9 | bestmove f4f3 | 8/p4kp1/8/3b2PN/5p2/P6P/7K/4R3 b - - 0 1 |
+| 55 | 124.8 | bestmove c2c4 | r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/3P1P2/PPP3PP/RNBQKBNR w KQkq - 1 4 |
+| 40 | 118.2 | bestmove b8d7 | rn1qk1nr/pbp2pbp/1p1pp1p1/8/2PPP3/2N2N2/PP2BPPP/R1BQ1RK1 b kq - 1 7 |
+| 199 | 110.9 | bestmove b5c5 | 8/6qp/8/1K6/6Pb/7P/8/1k6 w - - 0 1 |
+| 122 | 110.1 | bestmove h3h4 | 8/7p/6k1/1p1r1p2/pb3P2/3BK1BP/P7/8 w - - 0 1 |
+| 131 | 102.5 | bestmove c6d7 | 2rqr1k1/5pb1/2bpp1np/pp4p1/3PP1P1/P3B3/1PBQNPP1/4RRK1 b - - 0 1 |
+| 157 | 100.8 | bestmove g6f6 | 8/8/6k1/Q7/1P4PP/1K3P2/8/8 b - - 0 1 |
+| 116 | 98.9 | bestmove h5h6 | 8/8/4k3/3rp1RR/KP6/P2p4/6PP/2r5 w - - 0 1 |
+
+## is the slow tail the same positions in both clocked runs? (top 20 by wall time)
+| overlap of the two top-20 sets | 5 of 20 |
+| indices only in 1000 ms top-20 | [9, 34, 40, 42, 55, 70, 80, 99, 106, 115, 116, 127, 131, 157, 191] |
+| indices only in 10000 ms top-20 | [17, 18, 57, 68, 79, 110, 114, 120, 128, 135, 137, 141, 158, 186, 197] |
