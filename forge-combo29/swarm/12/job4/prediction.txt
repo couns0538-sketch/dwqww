@@ -1,0 +1,16 @@
+PREDICTION - seat 12 job 4 (option extremes), written before the full runs
+threads 1 everywhere except the Threads option itself (then reset to 1)
+
+| quantity | predicted | range that kills it |
+|---|---|---|
+| cases with a crash | 0 | >= 1 |
+| cases with a sanitizer line | 0 | >= 1 |
+| cases whose next/continuing search returns an illegal bestmove | 0 | >= 1 |
+| cases that stop answering isready | 0 | >= 1 |
+| out-of-range spin values refused with 'invalid value' | all of them | any accepted silently |
+|  on a spin option | refused | accepted |
+| check option given / | refused for maybe; TRUE either way | a crash in either |
+
+Reasoning: base smoke run of 957 cases on the release build already showed 0/957, so the
+prediction is mostly about the PC build differing. The places I expect trouble: setting
+Threads during a search, and Hash resize during a search.

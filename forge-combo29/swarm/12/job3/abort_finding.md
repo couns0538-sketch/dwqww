@@ -75,13 +75,36 @@ The boundary is "stop before the first iteration finishes", which on this hardwa
 protocol defect, present on the PC build, with no measurable effect on a game — and a live trap for
 any harness that pipelines `quit`, which is exactly how seat 19 and I both found it.
 
-## The repair I would suggest (NOT written — needs the owner's decision and a bench)
+## The fix, in one sentence (stated, not implemented)
 
-At `src/search.cpp:3017`, distinguish "no iteration ever finished" from "an iteration finished but
-left no best move". In the first case either keep searching until depth 1 completes despite the
-stop (microseconds here), or print `bestmove 0000` plus an `info string`. The first is what
-`FORGE_FIX_ISREADY_PENDING` already does in spirit for a different question. **I have not built or
-tested either variant.**
+**If the stop lands before depth 1 completes, finish depth 1 anyway before publishing — search the
+remaining root moves of the current iteration to completion (microseconds at these node counts)
+rather than answering `root_candidates.front()`, because a depth-1 answer is a real searched move
+and `root_candidates.front()` is not a searched move at all.**
+
+### Why that rather than the alternatives
+
+| option | what a GUI gets | verdict |
+|---|---|---|
+| keep `root_candidates.front()` (today) | a legal move with no `info` line — indistinguishable from a real answer to anything that only reads `bestmove`, which is how seat 19 and I both first mis-measured it | worst: silently wrong, and it is what makes the fault invisible |
+| `bestmove 0000` + `info string` | honest but **breaks GUIs**: `0000` means "no legal move" (checkmate/stalemate) in UCI, and a GUI that receives it in a live position may resign, adjudicate, or crash; some forbid null moves outright | rejected — trades a silent defect for a functional one |
+| refuse to answer at all | a GUI hangs waiting for `bestmove`; a search never answered is worse than a poor answer | rejected |
+| **finish depth 1, then publish** | a real searched move, an `info depth 1` line, and every downstream tool's assumptions still hold | **recommended** |
+
+The cost is bounded and small: depth 1 of any position is one static evaluation per root move, and
+the delay sweep shows depth 1 completes in the first few milliseconds even on a slow position. A
+`stop` from a GUI is still honoured for everything after depth 1, so a very short clock is
+unaffected in any way a player could notice.
+
+**Consequence for a GUI, in plain terms:** the interface does not change at all — the engine still
+always answers one legal `bestmove`, still never sends `0000` in a live position, and still stops
+promptly; the only difference is that the move it publishes has been searched at depth 1 instead of
+being whatever happened to come first in the move generator. That is why this shape is preferable to
+the two that would be *more* honest but would change the protocol contract a GUI relies on.
+
+**I have not built or tested this.** It changes published moves in a narrow case, so it needs a
+bench (expected: unchanged — no bench root is stopped this early) and a short match; that is the
+owner's call, not mine.
 
 ## How to see all of it again
 
