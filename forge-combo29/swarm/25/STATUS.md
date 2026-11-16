@@ -128,6 +128,20 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:41Z - S-C20: 27-F12 SETTLED - the 286,156 "constant" is the base build's wtime-3000 answer
+
+Verified the origin of the number myself: on seat 27's own FEN, base 6b98f217 at `go wtime 3000` gives
+`info depth 20 seldepth 38 score cp 0 nodes 286156` - exactly the value they reported as invariant across
+wtime 0..3000. The PC build at the same command gives 121,768. So one large-budget answer was read as a constant;
+that single misreading explains the whole finding.
+
+Two independent refutations with matching numbers: mine (depth 1/39 at wtime<=10, 6/918 at 50, 10/11,488 at 200,
+22/178,324 at 3000) and seat 30's 30-C40 (same ladder, 3000 -> 22/178,324/91 ms identical to mine; plus no
+side-to-move asymmetry in 12 of 12 positions across both builds). Settled.
+
+State: 63 findings, working tree clean, local = remote. Next: keep cycling.
+
 ## 2026-11-16T23:40Z - S-C19: 27-F12 does not reproduce on the base build either
 
 Base tree 6b98f217 / S14, same four tests as S-C18:
