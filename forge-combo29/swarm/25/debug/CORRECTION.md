@@ -55,3 +55,23 @@ lost position is valued at 0 and the engine plays to reach a draw the opponent c
   side within the horizon.
 - I still do not claim this loses games against a resisting opponent; I claim the score and the move are wrong,
   and that the position is reachable by a legal 99-ply sequence (S-F11).
+
+## The mechanism tested against its own predictions (all three confirmed)
+
+If the diagnosis is right (a CLAIMABLE fifty-move draw scored as forced), then three things must follow:
+
+| prediction | test | result |
+|---|---|---|
+| P-a: at clock 100 with reset moves available, a lost position must ALSO be cp 0 | board A at clock 100 (9 resets available) | `cp 0` in 251 nodes, plays a1a2 - confirmed |
+| P-b: at clock 100 with NO reset possible, cp 0 is CORRECT | K+R vs K+R, no captures/pawn moves: `4k3/8/8/8/8/8/8/R3K2r w - - 100 1` | `cp 0` in 32 nodes - confirmed correct |
+| P-c: the fault scales with quiet moves, so a board whose best moves are RESETS must stay non-zero | board V3 at clock 99 | `cp 549` in 3,918 nodes - confirmed |
+
+Evidence: `predict_test.py`, output `predict_test.txt`.
+
+P-b is the important one for the diagnosis: at clock 100 with no reset move anywhere, cp 0 is right, and the
+engine says 0. So the engine's clock-100 test is not universally wrong - it is wrong exactly when a reset move
+exists somewhere, which is precisely the "claimable, not forced" distinction. That is what makes this a
+diagnosis rather than a story.
+
+A note on my own honesty: I wrote, in `is_zero_right.py`, that "cp 0 at clock 99 is CORRECT for white". That was
+wrong, and I withdrew it in the commit that added this file. The rule check in this file is the one that stands.
