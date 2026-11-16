@@ -248,3 +248,12 @@ above the threshold, so nothing committed here is at risk.
 Re-runnable: `bash forge-combo29/swarm/27/census_go_nodes.sh`; raw output `pc/rerun/census_go_nodes.txt`.
 Store note updated with an addendum: `internal/swarm/seat-27-fifty-move-band-and-nodes.md`.
 Next: continue confirmations.
+
+## 2026-11-16T22:48Z cycle 5: 16-F6 confirmed on the PC build, with the control it needed
+S-C10: PC r15, Threads 1, Book Depth 100 so the book can fire at all.
+  analysis limits, OwnBook true vs false -> bit-identical and 0 book lines: `go depth 10` d2d4/13,102 both ways,
+  `go nodes 20000` d2d4/13,102 both ways, `go infinite`+3 s+stop d2d4/30,606,312 both ways.
+  clocked limits -> the book DOES fire: `go movetime 300` 1 book line (c2c4) vs 0 (e2e4); `go wtime 10000` 1 book
+  line (e2e4) vs 0 (d2d4).
+That second half is the control seat 16's own check could not show: a book that never fires looks exactly like a
+book correctly excluded from analysis searches. With it, their claim holds on the PC build.
