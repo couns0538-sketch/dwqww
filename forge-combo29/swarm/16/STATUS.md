@@ -310,3 +310,15 @@ seed: 1601
   (malformed row + stray path), and zero-pads `7` -> `07` correctly.
 - Folder now holds two reusable tools (check_folder.py, and the two text patches) and two hazard notes
   (WARNING_stray_paths.md, plus the audit report). Holding cadence; FINAL block at 10:19Z.
+
+## 2026-11-16T23:36Z
+- S-F30: the PC's 2,000-node self-play budget vs its 250,000-node match budget, 40 real-game positions:
+  25/40 SAME move, median cost 0 cp, 4 worse by >30 cp (worst +109, idx 34) and 3 BETTER by >30 cp (best -109).
+  So "self-play at 2,000 nodes plays badly" is NOT supported — useful negative for the owner.
+- FIFTH SELF-CORRECTION (my own): the first summary had the cost SIGN INVERTED, so a rook-winning move (h8h1,
+  idx 37) scored as the worst blunder of the run. Caught because I already knew that move wins a rook from S-F24;
+  verified at depth 14 (mover's score -568 after h8h1 vs -613 after h8g8) and corrected throughout. FINAL PART 4
+  now reads "nine self-corrections" and lists this one with the lesson: a result that contradicts something you
+  already know is the cheapest available bug detector.
+- check_folder.py: ALL CHECKS PASS on the folder (374 files, 0 non-text, 35 findings rows).
+- Holding cadence; FINAL block at 10:19Z.

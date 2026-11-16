@@ -169,9 +169,10 @@ setup output, field-position parsing) — all caught only because the parser was
 
 # PART 4 — WHAT I GOT WRONG, IN WRITING
 
-**Eight self-corrections are listed below — two of them were refutations of my own published numbers by my own
-later work, and two were bugs in my own audit harness. A reader who sees only the successes in Part 1 should
-weigh them against this list.**
+**Nine self-corrections are listed below — two of them were refutations of my own published numbers by my own
+later work, three were bugs in my own harness code, and one was an inverted sign that made a rook-winning move
+score as the worst blunder of a run. A reader who sees only the successes in Part 1 should weigh them against
+this list.**
 
 1. **S-C7** — I called the kept iteration's `time` field "the stop". Seat 08's reconciliation was correct.
 2. **S-F3 (mine)** — I claimed PSQT explained only r=0.35 of the left-right difference; my predictor was MG-only
@@ -183,7 +184,12 @@ weigh them against this list.**
 6. **P3 of `clockseq`** — I predicted identical-clock variation within 2×; measured 2.51×.
 7. **First `clockseq` run** — my harness never sent `position`, so move 2 answered from startpos and failed its
    own legality check. The harness caught it; I fixed the harness, not the conclusion.
-8. **First `loud_reverify` run** — three of my eight checks reported NOT VERIFIED because of bugs in MY audit code
+8. **`selfplay_cost`'s cost sign was inverted** (`S-F30`) — I computed `score(low) − score(ref)` from the mover's
+   view, so a POSITIVE value meant the low budget was BETTER, not worse. Every sign in my first summary was
+   backwards. Caught only because the largest "cost" was `h8h1`, a move I already knew **wins a rook**; verified at
+   depth 14, then corrected throughout. A result that contradicts something you already know is the cheapest
+   available bug detector.
+9. **First `loud_reverify` run** — three of my eight checks reported NOT VERIFIED because of bugs in MY audit code
    (wrong build passed, setup output discarded, `seldepth` parsed as nodes), not in the findings. Fixed, then 8/8.
 
 # PART 4b — TRANSFERABLE: ONE SCRIPT THAT CATCHES THE SILENT RECORD-LOSS FAULTS
