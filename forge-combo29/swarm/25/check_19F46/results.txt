@@ -1,0 +1,43 @@
+### check of 19-F46: `go nodes` vs `go softnodes` around N
+PC r15/PC20, Threads 1, Hash 16
+
+position                                           N    nodes   ratio  dep |     soft   ratio  dep
+1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1   20000    19832    0.99   11 |    31779    1.59   12
+1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1   50000    31779    0.64   12 |    52904    1.06   13
+1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1  250000   170070    0.68   16 |   288912    1.16   17
+r3r1k1/p1bb1ppp/1p1q4/3P1p2/1nBP4/PPN2N1P/5P   20000    10973    0.55   10 |    21089    1.05   11
+r3r1k1/p1bb1ppp/1p1q4/3P1p2/1nBP4/PPN2N1P/5P   50000    46086    0.92   12 |    79187    1.58   13
+r3r1k1/p1bb1ppp/1p1q4/3P1p2/1nBP4/PPN2N1P/5P  250000   237233    0.95   17 |   514093    2.06   18
+6k1/p4r1p/1p2Q3/2p5/2P1N3/1P3P2/PK6/6q1 b -    20000    14978    0.75    9 |    24052    1.20   10
+6k1/p4r1p/1p2Q3/2p5/2P1N3/1P3P2/PK6/6q1 b -    50000    24052    0.48   10 |    50818    1.02   11
+6k1/p4r1p/1p2Q3/2p5/2P1N3/1P3P2/PK6/6q1 b -   250000   195014    0.78   16 |   348815    1.40   17
+5R2/5npp/5k2/8/4p3/4P3/3K1PPP/8 b - - 0 1      20000    11606    0.58    9 |    20983    1.05   10
+5R2/5npp/5k2/8/4p3/4P3/3K1PPP/8 b - - 0 1      50000    39919    0.80   12 |    95288    1.91   13
+5R2/5npp/5k2/8/4p3/4P3/3K1PPP/8 b - - 0 1     250000   127007    0.51   14 |   275729    1.10   15
+8/1p1k1KN1/4pB2/4P2P/8/P2p3r/2b5/8 w - - 0 1   20000    16008    0.80   11 |    29038    1.45   12
+8/1p1k1KN1/4pB2/4P2P/8/P2p3r/2b5/8 w - - 0 1   50000    44062    0.88   13 |    60951    1.22   14
+8/1p1k1KN1/4pB2/4P2P/8/P2p3r/2b5/8 w - - 0 1  250000   164992    0.66   17 |   317966    1.27   18
+8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w - - 0 1         20000    11797    0.59   12 |    25628    1.28   13
+8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w - - 0 1         50000    25628    0.51   13 |    53533    1.07   14
+8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w - - 0 1        250000   137673    0.55   16 |   292128    1.17   17
+
+`go nodes`     ratio: median 0.67, min 0.48, max 0.99
+`go softnodes` ratio: median 1.21, min 1.02, max 2.06
+cells where softnodes reached a deeper ply: 18/18
+
+Seat 19 claims: hard median -32% (0.68), soft median +21.9% (1.219), soft deeper in 18/18.
+
+VERDICT: CONFIRMS seat 19's 19-F46, numerically. My independent harness (my own 6 positions from set G, my own
+code written from their claim, PC r15/PC20/Threads 1/Hash 16):
+   `go nodes`     ratio median 0.67  (min 0.48, max 0.99)   [seat 19: 0.68]
+   `go softnodes` ratio median 1.21  (min 1.02, max 2.06)   [seat 19: 1.219]
+   softnodes reached a deeper ply: 18/18 cells             [seat 19: 18/18]
+Both modes sit on opposite sides of N: `go nodes` spends 48-99% of the requested budget because the interrupted
+iteration is discarded, `go softnodes` spends 102-206% because it finishes the iteration. So a match labelled
+"nodes 250000" really searches ~127k-170k nodes, and the owner's self-play "softnodes 2000" really spends 1.0-2.1x
+its nominal budget. That is a budget-modelling fact for anyone reading match or self-play labels, not a fault.
+
+Also worth noting for the record: this is a mutual cross-check. My S-F25 (softnodes deterministic, finished-depth
+stop, 1.06-1.55x overshoot) was independently reproduced by THREE seats (08-F26, 19-F44, 29-F22/23/24), and their
+19-F46 is now reproduced by me. Four independent arrivals at the same numbers is about as settled as anything in
+this run.
