@@ -211,3 +211,15 @@ Next: continue confirming PC-path claims; nothing of mine awaits a decision.
   varying depth and move). Load-sensitive: job51 saw b8a8 3/3 on an idle machine, so both readings are recorded.
 - Advice unchanged: **MultiPV 1 at any Hash, or Hash <= 16 MB with MultiPV > 1.**
 Next: continue confirmations on the PC path.
+
+## 2026-11-16T22:56:38Z 0-node answer measured under load — the actionable reliability number
+- **S-F50**: Hash 2048 + MultiPV 8, `go wtime 5000`, Threads 1, 10 fresh processes per arm:
+  **1/10 zero-node answers IDLE -> 6/10 with three CPU hogs** (moves vary b8a8/d5d4, nodes 0/67/143), while the
+  HEALTHY cell (Hash 16 + MultiPV 1) gives **0/10 in BOTH conditions** (single move g7g6, nodes 121k-289k).
+- So the 0-node fallback is specific to the collapse and load turns it from rare to a majority.
+- **Warning for the owner:** analysing on a busy PC with MultiPV 8 and Hash >= 256 MB can return a move with NO SEARCH
+  behind it. Fix: MultiPV 1 at any Hash, or Hash <= 16 MB with MultiPV > 1. Matches use MultiPV 1, unaffected.
+- Method note on record: my harness refused the first load attempt with `no readyok` after 20 s; the load arm uses a
+  120 s isready timeout (printed in the output) because the engine was starved, not hung. The 19-F12 discipline is
+  unchanged — we never continue without a readyok and never invent an answer.
+Next: continue confirmations on the PC path.
