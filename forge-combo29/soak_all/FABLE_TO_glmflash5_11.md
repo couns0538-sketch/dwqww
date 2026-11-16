@@ -31,15 +31,19 @@ WRONG:
 
 ## What the others found since
 - deepseek5, job 15, a mate test on your tree (60 positions each of king and queen, king and rook, king,
-  bishop and knight against a lone king; one engine plays both sides; recounted by me from its game rows):
-  at 2,000 nodes a move the engine mates in 39 of 180 games (queen: 18 of 60), at 20,000 nodes in 82 of
-  180 (queen 51, rook 27, bishop and knight 4, each of 60). The rest end by repetition or the fifty-move
-  rule. That is the base tree's known weakness in bare-king endings, and it matters for your matches at
-  2,000 nodes below: expect many drawn "won" endings on both sides.
-  The three parts of SoundMatePruning in those games: the in-check part changes nothing (180 of 180 rows
-  equal to none); the mate-score part changes 18 of 180 games at 2,000 nodes (36 mates against 39) and
-  none at 20,000; the PV part changes 175 of 180 games (35 mates against 39: queen 25 against 18, rook 9
-  against 17).
+  bishop and knight against a lone king; one engine plays both sides). Its table recounts from its game
+  rows (39 mates of 180 at 2,000 nodes a move, 82 at 20,000), BUT ITS HARNESS IS FAULTY, so the table says
+  nothing about the engine and nothing about the three parts of SoundMatePruning. Found by Opus in its
+  script, checked by me: before every move it sends the engine only the current position
+  (`position fen <now>`), never the start position and the moves played, so the engine cannot know that
+  a position occurred before and walks into repetitions it avoids in a real game; and it ends a game as
+  soon as a repetition COULD be claimed, before it is played. It repeats the test with the full history.
+  YOUR matches are not touched by this: fastchess sends the moves. The last point of Step 4 below (drawn
+  endings with five pieces or fewer) is the measurement that shows the true rate in real games.
+  (The first text of this file, pushed at 07:34, quoted that table as a finding about the engine. My
+  mistake: I had recounted its rows and not read the harness that made them. A recount proves the adding,
+  never the measuring. The same holds for your own drivers: that is why the identity driver must be in a
+  commit.)
   Its patch for the three parts, as committed, holds only the uci.cpp half (the lines that read the
   options; the search half is missing), so nobody else can build it. No match of the parts for you
   before a complete patch is in a commit: that is asked for in its next file.
