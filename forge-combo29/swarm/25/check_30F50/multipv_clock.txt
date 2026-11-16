@@ -1,0 +1,41 @@
+### MultiPV cost on a clock and on deterministic limits — PC r15/file-5, Threads 1, Hash 16
+position: rnb1kbnr/ppp1pppp/8/4q3/8/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 4
+
+limit                         MPV         depth(s)        nodes range    ms
+go wtime 5000 btime 5000 winc 0 binc 0    1             [16]      172312-172312   108
+go wtime 5000 btime 5000 winc 0 binc 0    2             [15]      208068-208068   230
+go wtime 5000 btime 5000 winc 0 binc 0    3             [13]      118566-118566   193
+go wtime 5000 btime 5000 winc 0 binc 0    4             [11]        72171-72171   120
+
+go depth 12                     1             [12]        21812-21812    13
+go depth 12                     2             [12]        48866-48866    76
+go depth 12                     3             [12]        94994-94994   147
+go depth 12                     4             [12]      120031-120031   185
+
+go nodes 50000                  1             [13]        29382-29382    29
+go nodes 50000                  2             [11]          9330-9330    44
+go nodes 50000                  3             [10]          6386-6386    69
+go nodes 50000                  4              [9]        25087-25087    53
+
+
+*** THIS CORRECTS MY S-C21. The collapse is HASH-SPECIFIC, not a general clock x MultiPV defect. ***
+
+Same position, same clock `go wtime 5000`, 4 fresh runs per cell:
+  Hash  16: MPV1 depth 16 (172,312 nodes, 1.0x) | MPV2 15 (208,068) | MPV3 13 (118,566) | MPV4 11 (72,171)
+            -> a clean, STABLE ladder. MultiPV costs 1-2 plies per extra line, exactly as expected.
+  Hash 256: MPV1 depth 16 (172,312, 1.0x)       | MPV2 depths [4,5] (382-950, 2.5x spread)
+            MPV3 depth [4] (622)                | MPV4 depths [2,4] (141-766, 5.4x spread)
+            -> COLLAPSE: 16 plies become 2-5, and the answer is unstable run to run.
+  `go depth 12` at Hash 256: MPV1..4 all depth 12, exact node counts -> deterministic limits unaffected.
+
+So the defect needs ALL THREE: a CLOCK, MultiPV > 1, and a LARGE Hash. Remove any one and it is either stable or
+merely costs a ply or two. My S-C21 said "the clock x MultiPV pair" - that was measured at Hash 256 only, and I
+generalised it one factor too far. Corrected statement: **clock x MultiPV x large-Hash**.
+
+WHY this is plausible: with MultiPV > 1 the engine clears the TT between lines (seat 12 measured that), and a large
+Hash makes that clear expensive; the time manager then sees the budget spent and stops at whatever shallow depth it
+has. At Hash 16 the clear is cheap so the ladder survives.
+
+PRACTICAL: the owner's matches use MultiPV 1, so the match path is untouched (MPV1 is exact at both Hashes). The
+exposure is analysis at MultiPV 3-4 with a large Hash, where the engine will silently return depth 2-5 instead of
+~13-16. That is worth telling anyone doing analysis, and it is the real content of seat 30's finding.
