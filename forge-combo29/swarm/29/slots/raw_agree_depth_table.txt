@@ -1,0 +1,20 @@
+=== Does S14-vs-PC20 move agreement improve with depth? (are disagreements shallow noise?) ===
+PC r15 build, 40 real-game positions, Threads 1, Hash 16, fresh process per search.
+
+| depth | positions | same move | share |
+|---|---|---|---|
+| 8 | 40 | 35 | 87.5 % |
+| 10 | 40 | 35 | 87.5 % |
+| 12 | 40 | 34 | 85.0 % |
+| 14 | 40 | 37 | 92.5 % |
+
+Reading: agreement is FLAT (85-92.5 %, mean ~88 %) with no upward trend, so the regimes are not converging as depth
+grows. Two consequences:
+1. The ~12 % of positions where they differ are NOT shallow-horizon artefacts -- they are genuine differences in what
+   the two configurations prefer.
+2. Combined with 29-F44 (dead heat 7-7-3 on quality), the picture is that PC20 reaches a DIFFERENT move of comparable
+   value on about one position in eight, at every depth. That is what a different-but-equally-good search looks like,
+   and it is the honest description -- not "PC20 finds the same move" and not "PC20 finds better moves".
+
+Caveat: 40 positions per depth, so each share carries roughly a +-5 point binomial error band; the flatness is the
+claim, not the individual percentages.

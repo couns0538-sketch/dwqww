@@ -303,3 +303,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - As asked: the sentence 'when a tally's denominator is smaller than the number of rows visible in the raw file, it is a parse bug, not a result' is now in FINDINGS immediately beside the FIRST RULE, as a sub-section 'The same rule one level up (29-N27)', with my own 13-of-17 mate-row drop and the 5-7 -> 7-7-3 flip as the worked case.
 - FINDINGS document order is now: FIRST RULE + the denominator corollary -> THE PC20 TABLE -> three named rules -> the rows. A reader hits the method before any result.
 - next: continuing at cadence on the PC path.
+
+## Mon Nov 16 11:53:55 PM UTC 2026
+- 29-F45 answers the question F44 left open: agreement is FLAT across depth (87.5% d8, 87.5% d10, 85.0% d12, 92.5% d14; 40 positions each, Threads 1, Hash 16). No upward trend, so the ~12% disagreements are NOT shallow-horizon noise - they are genuine differences in preference.
+- With F44's dead heat (7-7-3), the honest description of PC20 is: it reaches a DIFFERENT move of comparable value on about one position in eight, at every depth. Not 'same move', not 'better moves'.
+- Caveat stated: 40 positions/depth is ~+-5 points per share, so the flatness is the claim, not the percentages.
+- next: continuing at cadence.
