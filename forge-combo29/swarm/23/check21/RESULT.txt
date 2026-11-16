@@ -1,0 +1,33 @@
+CHECK of seat 21's 21-F2b — a refused `position fen` answers readyok and the search continues on the OLD board,
+on the BASE AND the PC build
+==========================================================================================================
+21-F2 is already confirmed by seat 08's 08-C3. Its F2b half — "SURVIVES ON THE PC BUILD ... OPEN on PC build" — was
+not, and it is the half that matters for the owner's PC. My run:
+
+Protocol (19-F12-safe, everything drained):
+ 1. `position fen A` ; isready ; `go depth 6`        -> move_A
+ 2. `position fen B_REFUSED` (impossible castling right) ; isready
+ 3. `go depth 6`                                     -> move_C
+ 4. CONTROL: the same board in an ACCEPTED form must give a DIFFERENT move from move_A, or "move_C == move_A" could
+    just mean both boards share a best move.
+
+A = Ruy Lopez position; B_ACCEPTED = the start position with the black queen removed (a different best move).
+
+| build | move on A | invalid-FEN line | readyok still answered | move after the refusal | == A? | CONTROL: accepted B | differs from A? |
+|---|---|---|---|---|---|---|---|
+| base | d2d4 | `invalid FEN: castling right without king and rook` | **yes** | d2d4 | yes | b1c3 | **yes** |
+| PC r15 + PC20 | f1c4 | `invalid FEN: castling right without king and rook` | **yes** | f1c4 | yes | b1c3 | **yes** |
+
+VERDICT: CONFIRMS 21-F2b. The refusal is announced (`invalid FEN`), `isready` then answers `readyok` as if nothing
+had happened, and the following search returns the OLD game's move — on the PC build as well as the base. The control
+proves the equality is meaningful: the same board in an accepted form gives a different move (b1c3 vs d2d4/f1c4).
+
+WHY THIS IS A GUI HAZARD, in one sentence: a GUI that syncs on `readyok` cannot tell that its position was rejected,
+and will draw the engine's move for the previous game onto the new one. The `invalid FEN` line is the only signal, and
+a GUI reading only `readyok` + `bestmove` never sees it.
+
+MY OWN FAULT, caught by the control, instance 9 of the family: my FIRST control board was the Ruy position's
+neighbour, and it happened to share A's best move (f1c4), so "move_C == move_A" was uninformative and the control
+silently passed. Replacing it with a board whose move genuinely differs (black queen removed -> b1c3) is what makes
+the equality evidence. A control that cannot fail is not a control — the same sentence as the page's refused-versus-
+accepted section, which I had just written.
