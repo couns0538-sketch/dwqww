@@ -164,3 +164,17 @@ Remaining work: nothing on the queue; continuing with new finds and checks on bo
   `go nodes` limit does not overrun. So self-play is exactly replayable but "2000 nodes" under-counts up to 2x.
 Next: the PC's real path — clock 6s+0.06, `go nodes` 20000/50000/250000, real-game positions; keep the
 MultiPV/Hash collapse live.
+
+## 2026-11-16T22:49:17Z both-signs caveat added; PC match path measured
+- **S-F47 amended** per the owner: it now opens with SMALL SAMPLE, BOTH SIGNS and cites the counter-evidence by id —
+  seat 08's 08-F23 (`CuckooRep true` ALONE makes the mate distance WORSE on its board: mate -13 vs baseline mate -9),
+  and seat 01's S-F49/S-F49b (below the depth where a mate first becomes visible the guard changes NOTHING;
+  identical node counts at depths 12-16 on their S-F48b board). One board for, one against, one null = a per-position
+  effect, NOT a general strength claim.
+- **S-F48 softnodes: area CLOSED** per the owner (deterministic 12/12, finished depths only, overruns N by +5..+106%).
+- **S-F49 clock path** (the PC's match control, 6 s + 0.06, Threads 1): a move uses only **129-301 ms = 2-5% of the
+  budget**, reaching **depth 17-18**; the MOVE never varied across 3 runs but the **DEPTH/NODE COUNT flipped 17 vs 18**
+  (288,912 vs 314,239 nodes) because ~5 ms of wall-clock variation decides whether the 18th iteration finishes. So
+  clock matches cannot be replayed exactly (node-limited ones can), and raising the clock buys almost nothing.
+Next: keep confirming on the PC path — the `go nodes` 20000/50000/250000 ladder is done (all deterministic, 3/3);
+remaining: MultiPV/Hash strength collapse (live per the owner) and any new seat claims on the PC build.
