@@ -413,3 +413,18 @@ next command: continue in-area work — the king-only-side-to-move sample (the m
 19-C9 two failed solvers + the ply-convention trap, labelled and kept.
 
 next command: run the mirror test through the clamped verdict, or another open finding's check.
+
+## 2026-11-16T23:54:55Z
+
+19-F58 mirror (bare king to move), all through windowed_verdict(): 1 of 8 covered positions.
+  6k1/8/5K2/8/6r1/8/8/8 w plays f6e7 (mated in 17) where f6f5 survives 29 plies.
+  THE CLAMP WAS LIVE: pos 31 counter 87 / window 13 / no forced mate -> draw; engine found it.
+  Unclamped, that would have been scored as a defender failure. Seat 21's trap nearly hit my pipeline.
+19-F59 the defect is a DEPTH LIMIT, tested: depth16/20 -> f6e7 (cp -490), depth24 -> f6f5 (mate -15).
+  Not a preference for losing quickly. Position 11 is a calibration case, not a bug. Report rewritten.
+19-C10/19-F57 halfmove-window audit: 19-F55 unaffected (all mates fit windows 7/95, 23/77, 15/75).
+  Clamp implemented as windowed_verdict() in dtm_bfs.py.
+19-C9 two failed solvers + ply-convention trap, labelled and kept. NOTE_three_traps.md has the pattern.
+
+next command: continue at cadence - check an open finding of another seat, or extend the oracle to a
+  2-piece signature if a cheaper enumeration can be found.
