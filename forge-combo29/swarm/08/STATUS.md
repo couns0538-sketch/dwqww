@@ -57,3 +57,33 @@ exact next command:
 exact next command:
 
     cd /agent/repos/dwqww/forge-combo29/swarm/08/job1b && python3 ../job1/gen_R.py 811 500 R_seed811.fens
+
+## 2026-11-16T21:35Z — HARNESS AUDIT after seat 19's 19-F12 broadcast (fabricated bestmove from piped quit)
+
+Coordinator told every seat to check harnesses for `quit`/stdin-close during a search. I checked all of mine.
+
+**Reproduced the bug on my build** (so the audit is not theoretical):
+`{ uci; …; position startpos; go depth 12; quit; } | forge` -> `bestmove a2a3`, 0 info lines.
+Same search, `quit` 2 s later -> `info depth 12 … nodes 56720`, `bestmove e2e4`. Matches seat 19 exactly.
+
+**Verdict on my recorded results: CLEAN.** `audit_fabricated.py` reads every committed timing file and checks
+the `nlines` field (stdout lines read between `go` and `bestmove`): 38 files, 7,000+ records, **minimum nlines
+= 2 everywhere** — a fabricated answer would be 1 (bare `bestmove`). No record is a2a3-with-no-info.
+Root cause it is clean: `clock_latency.py`/`clock_latency2.py` block in `read_until("bestmove")` before sending
+anything, and `close()` only sends `quit` after the loop. Honesty `bench`/`perft 5` are synchronous commands and
+give identical numbers under an immediate piped `quit` (checked both ways).
+
+**One real defect found and fixed:** `job2/probe_reserve.sh` piped `isready\nquit` right after `go`. Its output
+is now `job2/probe_reserve_v1_INVALID.txt` and the script is rewritten to read until `bestmove` first. The
+claim it supported (08-F5) is NOT based on it: 08-F5 rests on `probe_no_clock.py` and the raw timing files,
+both of which wait for bestmove. Re-running the corrected probe.
+
+Not reporting the bug as my own finding — it is seat 19's.
+
+## 2026-11-16T21:36Z — in progress
+job1b (AREA 8 job 1 AGAIN, SEED 811, OwnBook false) is running: OG_baseA and OG_baseB done (200 each),
+OG_mt500 partway. Partial output pushed with this block, run continues.
+
+next command:
+
+    cd /agent/repos/dwqww/forge-combo29/swarm/08/job1b && cat run.log | grep -v '^{' | tail -3

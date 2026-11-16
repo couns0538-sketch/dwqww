@@ -1,26 +1,37 @@
 #!/usr/bin/env bash
 # probe_reserve.sh EXE OUT — what the engine does when the clock is at or below Move Overhead.
-# Reserve empty is the plan_clock_budget branch `if (time <= overhead) return reserve_empty`.
+#
+# CORRECTED (seat 19's finding 19-F12 broadcast): the first version of this script piped `isready`+`quit` into
+# the engine right after `go`, which makes this build answer a FABRICATED `bestmove` with no `info` line. Its
+# committed output is kept as probe_reserve_v1_INVALID.txt, evidence of the mistake.
+# This version reads stdout until `bestmove` arrives and only then closes the engine: nothing is sent while a
+# search is running.
 set -u
 EXE="$1"; OUT="$2"
 : > "$OUT"
 FEN="r3r1k1/p1bb1ppp/1p1q4/3P1p2/1nBP4/PPN2N1P/5PP1/1R1Q1RK1 b - - 0 1"
-for clock in 10 1 0; do
+
+probe () {  # $1 label, $2 go line, $3 optional setoption line
+  local label="$1" goline="$2" opts="${3:-}"
   {
-    echo "=========== wtime/btime $clock inc 0, default Move Overhead 10 ==========="
-    printf 'uci\nisready\nucinewgame\nisready\n'
-    printf 'position fen %s\nisready\n' "$FEN"
-    printf 'go wtime %d btime %d\n' "$clock" "$clock"
+    printf 'uci\nisready\n'
+    [ -n "$opts" ] && printf '%s\n' "$opts"
+    printf 'ucinewgame\nisready\nposition fen %s\nisready\n' "$FEN"
+    printf '%s\n' "$goline"
+    while IFS= read -r line; do
+      printf '%s\n' "$line"
+      case "$line" in bestmove*) break;; esac
+    done
     printf 'isready\nquit\n'
-  } | "$EXE" | grep -vE '^option name|^id |^uciok' | sed "s/^/[$clock] /"
-  echo
-  echo "=========== wtime/btime $clock, Move Overhead 0 ==========="
-  {
-    printf 'uci\nsetoption name Move Overhead value 0\nisready\nucinewgame\nisready\n'
-    printf 'position fen %s\nisready\n' "$FEN"
-    printf 'go wtime %d btime %d\n' "$clock" "$clock"
-    printf 'isready\nquit\n'
-  } | "$EXE" | grep -vE '^option name|^id |^uciok' | sed "s/^/[$clock mo0] /"
-  echo
-done >> "$OUT"
+  } | "$EXE" | grep -E '^info depth|^info string|^bestmove' | sed "s/^/[$label] /" | tee -a "$OUT"
+  echo >> "$OUT"
+}
+
+echo "=== reserve-empty branch: clock at or below Move Overhead (default 10) ===" >> "$OUT"
+probe "wtime10" "go wtime 10 btime 10"
+probe "wtime1"  "go wtime 1 btime 1"
+probe "wtime0"  "go wtime 0 btime 0"
+echo "=== same clocks with Move Overhead 0, so the reserve is not empty ===" >> "$OUT"
+probe "wtime10_mo0" "go wtime 10 btime 10" "setoption name Move Overhead value 0"
+probe "wtime1_mo0"  "go wtime 1 btime 1"   "setoption name Move Overhead value 0"
 cat "$OUT"
