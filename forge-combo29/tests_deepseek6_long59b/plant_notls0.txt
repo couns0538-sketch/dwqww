@@ -1,0 +1,132 @@
+id name Chess Engine Forge 6.4.24 candidate
+id author OpenAI
+option name Hash type spin default 32 min 1 max 2048
+option name Threads type spin default 1 min 1 max 256
+option name MultiPV type spin default 1 min 1 max 8
+option name Move Overhead type spin default 10 min 0 max 1000
+option name Ponder type check default false
+option name OwnBook type check default true
+option name Book File type string default <empty>
+option name Book Depth type spin default 30 min 0 max 100
+option name Book Variety type spin default 30 min 0 max 100
+option name UseNNUE type check default true
+option name NnueFile type string default <empty>
+option name ContHist4PlyRead type check default false
+option name NonPawnCorrection type check default false
+option name LmrDeeperShallower type check default false
+option name EvalRule50Damp type check default false
+option name ThreatHistory type check default false
+option name LmrSignedCorrection type check default false
+option name LmrLateParentRelief type check default false
+option name HindsightDepth type check default false
+option name NullThreatVerify type check default false
+option name NullSeeVeto type check default false
+option name AspCappedReopen type check default false
+option name AspArmLate type check default false
+option name EvasionOrdering type check default false
+option name DeadMaterial type check default false
+option name QuietExtinction type check default false
+option name DrawJitter type spin default 0 min 0 max 8
+option name TmFinishIteration type check default false
+option name TmNodeShare type check default false
+option name SoundMatePruning type check default false
+option name LmrQuietBase type spin default 85 min 0 max 300
+option name LmrQuietDivisor type spin default 220 min 100 max 500
+option name LmrNoisyBase type spin default 10 min 0 max 300
+option name LmrNoisyDivisor type spin default 340 min 100 max 800
+option name NullMoveMinDepth type spin default 3 min 1 max 10
+option name NullMoveBase type spin default 3 min 1 max 6
+option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+option name RfpDepth type spin default 8 min 0 max 15
+option name RfpMargin type spin default 72 min 10 max 300
+option name RfpImproving type spin default 40 min 0 max 200
+option name RazorDepth type spin default 2 min 0 max 6
+option name RazorBase type spin default 150 min 0 max 1000
+option name RazorMultiplier type spin default 350 min 0 max 1000
+option name FutilityDepth type spin default 7 min 0 max 15
+option name FutilityBase type spin default 100 min 0 max 500
+option name FutilityMultiplier type spin default 110 min 0 max 500
+option name LmpBase type spin default 4 min 0 max 20
+option name HistoryPruneDepth type spin default 3 min 0 max 10
+option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+option name SeeQuietMultiplier type spin default 24 min 0 max 200
+option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+option name SingularDepth type spin default 7 min 2 max 20
+option name SingularMargin type spin default 2 min 0 max 10
+option name IirDepth type spin default 4 min 1 max 20
+option name ProbcutDepth type spin default 5 min 1 max 20
+option name ProbcutMargin type spin default 180 min 0 max 1000
+option name QsFutilityMargin type spin default 160 min 0 max 1000
+option name QsSeeMargin type spin default 40 min 0 max 500
+option name AspirationDelta type spin default 18 min 4 max 200
+option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+option name HistoryBonusLinear type spin default 48 min 0 max 500
+option name HistoryBonusMax type spin default 2048 min 100 max 10000
+option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+option name CheckExtensionDepth type spin default 2 min 1 max 30
+option name LmrCutoffThreshold type spin default 3 min 0 max 20
+option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+option name TmSoftDivisor type spin default 22 min 5 max 80
+option name TmIncrementPercent type spin default 75 min 0 max 150
+option name TmHardPercent type spin default 60 min 10 max 95
+option name TmHardSoftMultiple type spin default 5 min 1 max 20
+option name TmStableFactor type spin default 60 min 20 max 150
+option name TmSemiStableFactor type spin default 80 min 20 max 150
+option name TmUnstableFactor type spin default 140 min 50 max 300
+option name TmEffortBase type spin default 155 min 100 max 250
+option name TmFallingEvalPercent type spin default 100 min 0 max 400
+option name TmMinFactorPercent type spin default 45 min 10 max 100
+option name CaptureFutilityBase type spin default 0 min 0 max 1000
+option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+option name CaptureFutilityDepth type spin default 6 min 0 max 15
+option name FailLowContinuationBonus type spin default 0 min 0 max 300
+option name Clear Hash type button
+uciok
+readyok
+==================
+WARNING: ThreadSanitizer: data race (pid=114102)
+  Read of size 4 at 0x55e8b17b5f04 by thread T6:
+    #0 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x34a12) (BuildId: 9fa6fdb86996924c11c283b72e8f282f0efeedad)
+    #1 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Previous write of size 4 at 0x55e8b17b5f04 by thread T4:
+    #0 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x34a26) (BuildId: 9fa6fdb86996924c11c283b72e8f282f0efeedad)
+    #1 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Location is global 'forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&)::planted_race_counter' of size 4 at 0x55e8b17b5f04 (forge+0x1d6f04)
+
+  Thread T6 (tid=114109, running) created by thread T2 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 pthread_once ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1587 (libtsan.so.2+0x57ff5) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #3 __gthread_once /usr/include/x86_64-linux-gnu/c++/13/bits/gthr-default.h:700 (forge+0x4bf0e) (BuildId: 9fa6fdb86996924c11c283b72e8f282f0efeedad)
+    #4 call_once<forge::Worker::search(forge::Board, const forge::SearchLimits&, bool, const std::vector<forge::Worker*>&)::<lambda()> > /usr/include/c++/13/mutex:907 (forge+0x4bf0e)
+    #5 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/ds6/p_notls0/forge-combo29/src/search.cpp:2147 (forge+0x4bf0e)
+    #6 operator() /tmp/ds6/p_notls0/forge-combo29/src/search.cpp:2749 (forge+0x54af9) (BuildId: 9fa6fdb86996924c11c283b72e8f282f0efeedad)
+    #7 __invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x54c71) (BuildId: 9fa6fdb86996924c11c283b72e8f282f0efeedad)
+    #8 __invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x54c71)
+    #9 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x54c71)
+    #10 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x54c71)
+    #11 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x54c71)
+    #12 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Thread T4 (tid=114107, finished) created by thread T2 at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 pthread_once ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1587 (libtsan.so.2+0x57ff5) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #3 __gthread_once /usr/include/x86_64-linux-gnu/c++/13/bits/gthr-default.h:700 (forge+0x4bf0e) (BuildId: 9fa6fdb86996924c11c283b72e8f282f0efeedad)
+    #4 call_once<forge::Worker::search(forge::Board, const forge::SearchLimits&, bool, const std::vector<forge::Worker*>&)::<lambda()> > /usr/include/c++/13/mutex:907 (forge+0x4bf0e)
+    #5 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /tmp/ds6/p_notls0/forge-combo29/src/search.cpp:2147 (forge+0x4bf0e)
+    #6 operator() /tmp/ds6/p_notls0/forge-combo29/src/search.cpp:2749 (forge+0x54af9) (BuildId: 9fa6fdb86996924c11c283b72e8f282f0efeedad)
+    #7 __invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (forge+0x54c71) (BuildId: 9fa6fdb86996924c11c283b72e8f282f0efeedad)
+    #8 __invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (forge+0x54c71)
+    #9 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (forge+0x54c71)
+    #10 operator() /usr/include/c++/13/bits/std_thread.h:299 (forge+0x54c71)
+    #11 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x54c71)
+    #12 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+SUMMARY: ThreadSanitizer: data race /usr/include/c++/13/bits/std_thread.h:244 in _M_run
+==================
+bestmove a2a3
+ThreadSanitizer: reported 1 warnings
