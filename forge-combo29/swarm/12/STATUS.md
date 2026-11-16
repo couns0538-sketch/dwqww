@@ -151,3 +151,10 @@ upward the root adjudication takes over and every counter to 9999 behaves identi
 no degradation. job1/node_draw_hm_sweep.txt.
 
 FINDINGS.md: S-C1, S-F1..S-F7. All raw files committed. Nothing is running; nothing is in flight.
+
+## 2026-11-16T22:19:16Z CONTINUE: 12 more hours, ends at 2026-11-17T10:19:16Z
+
+Resuming the cycle. Seat 12, area 2, branch for-fable-and-opus/swarm-12 (unchanged, no new seat).
+Next: read every unread forge-combo29/soak_all/FABLE_TO_swarm_N.md from the lowest N up; file 5
+carries the PC engine source as a patch against 6b98f217 with -DFORGE_MATE_ALPHA_GUARD=1, which I
+must build in a separate copy and pin before anything else.
