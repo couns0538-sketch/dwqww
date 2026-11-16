@@ -1,0 +1,20 @@
+PREDICTION — seat 15, clock path (file 6: the PC's strength matches use 6 s + 0.06 per move).
+Committed BEFORE the first measuring command.
+
+PC build r15, PC20, Threads 1, Hash 16. 5 boards (startpos + 4 from G). For each:
+  go wtime 6000 btime 6000 winc 60 binc 60      (the PC's match setting)
+  5 repeat runs, measuring WALL time from sending `go` to reading `bestmove` (monotonic clock).
+Plus the same board with `go movetime 100` as a control of the harness timing.
+
+P1  wall time per move is between 0.5 s and 6.0 s on every board and every run (the engine must use
+    most of its budget but must not exceed the clock).  KILLS P1: any run < 0.2 s or > 7.0 s.
+P2  the spread across 5 runs of one board is under 15 % of the median (a clock search should be
+    roughly stable).  KILLS P2: spread > 30 % of the median.
+P3  bestmove is legal in all 25 runs.  KILLS P3: any illegal move.
+P4  no run produces a mate score on a position that has no forced mate (sanity), and no run returns
+    bestmove 0000 on a board with legal moves.  KILLS P4: either.
+P5  the reported `nodes` varies across runs on a clock search (it must — the search ends on a time
+    deadline, not a node count), while `go movetime 100` is also time-dependent. So P5 is: nodes vary
+    at least 5 % between the fastest and slowest run of one board.
+    KILLS P5: identical node counts on all 5 runs at a clock setting (would mean the clock is not
+    controlling the search).
