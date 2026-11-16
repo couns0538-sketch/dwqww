@@ -163,3 +163,28 @@ MateAlphaGuard/OwnBook false). Threads 1, Hash 16. Comparison column is the base
 So of my own finds, S-F1 and S-F8 are live defects on the engine the owner actually plays, and the
 missed-mate I confirmed for seat 21 is fixed there. Evidence: `pc/recheck/S-F1_pc20.log`,
 `S-F8_pc20.log`, `S-C11_pc20.log`, `S-C11_base.log`, `S-C10_*`, summary `pc/recheck/recheck.json`.
+
+## Answer to the two follow-up questions (2026-11-16T22:36Z) — all Threads 1
+
+### Q2: does the PC's FORGE_FIX_ROOT_DRAWN also cover the counter-resetting PAWN-move mate?
+
+YES, on the decisive board. A pawn move resets the fifty-move counter, so a pawn-move mate is the strongest
+test: the position after it cannot be a fifty-move draw at all.
+
+Decisive board `r7/1P6/8/8/8/8/8/k1K5 w - - <hm> 1`, only mate `b7a8q` (capture-promotion, SAN `bxa8=Q#`).
+Measured: the engine's own generation order puts `b7b8q` FIRST and `b7a8q` fifth, so the base tree's
+"play the first legal move" fallback plays the WRONG move here:
+
+| build / settings | hm | bestmove | last score | max nodes | mate found |
+|---|---|---|---|---|---|
+| base 6b98f217 / S14 | 100 | `b7b8q` | `cp 0 nodes 0` | 0 | **NO** |
+| base 6b98f217 / S14 | 99 | `b7a8q` | `mate 1` | 60 | yes |
+| PC r15 / PC20 | 100 | `b7a8q` | `mate 1` | 60 | **YES** |
+| PC r15 / PC20 | 99 | `b7a8q` | `mate 1` | 60 | yes |
+
+So the PC's fix covers the pawn-move case too, on a board where the base tree demonstrably fails. Note the
+first three promotion-mate boards I built (`8/P7/...`) were NOT decisive: there `a7a8q` happens to be the
+engine's first generated move, so the base tree plays the right move by luck with a 0-node score. I say that
+because a luck-passing case would have been a false "repaired" verdict.
+Evidence: `pc/pawn_check/decisive.json`, `pc/pawn_search/decisive_pawn_mate.json`,
+`pc/pawn_search/engine_order_check.json` (the luck cases, listed so they are not reused as evidence).
