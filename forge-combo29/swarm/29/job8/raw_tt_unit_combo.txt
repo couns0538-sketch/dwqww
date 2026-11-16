@@ -1,0 +1,27 @@
+cluster-mate keys: 1 2 3 4
+after storing key 1 (depth 5):
+   probe key 1 -> hit=1 depth=5
+   probe key 2 -> hit=0 depth=0
+   probe key 3 -> hit=0 depth=0
+   probe key 4 -> hit=0 depth=0
+after storing key 2 (depth 6):
+   probe key 1 -> hit=1 depth=5
+   probe key 2 -> hit=1 depth=6
+   probe key 3 -> hit=0 depth=0
+   probe key 4 -> hit=0 depth=0
+after storing key 3 (depth 7):
+   probe key 1 -> hit=1 depth=5
+   probe key 2 -> hit=1 depth=6
+   probe key 3 -> hit=1 depth=7
+   probe key 4 -> hit=0 depth=0
+after storing key 4 (depth 8):
+   probe key 1 -> hit=1 depth=5
+   probe key 2 -> hit=1 depth=6
+   probe key 3 -> hit=1 depth=7
+   probe key 4 -> hit=1 depth=8
+stranger key 4000000 in the same cluster: hit=0
+after storing the stranger:
+   probe key 1 -> hit=0 depth=6
+   probe key 2 -> hit=1 depth=6
+   probe key 3 -> hit=1 depth=7
+   probe key 4 -> hit=1 depth=8

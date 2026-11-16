@@ -86,3 +86,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-F14: SECOND TT win, combined with F12: -18,708,563 instructions (-0.414%) per bench 13. All honesty counts identical, 40/40 searches bit-identical, 4/4 hash-pressure identical, legal moves at 1/4/8 threads. Patch saved as job8/tt_slot0_and_vector_probe.patch.txt.
 - 29-N9 HONEST LIMIT: my planted-fault control caught the replacement-rule error (4/4 DIFFERENT) but NOT the occupancy-check error (4/4 IDENTICAL, bench still 862329). So my equivalence evidence is strong for replacement logic, weak for occupancy handling. Stated plainly.
 - next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: combined TT patch F14 + honest limit N9' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 10:01:14 PM UTC 2026
+- 29-F15 CLOSES the 29-N9 gap: wrote a cluster-level unit test (public interface only) that walks a cluster through fill + eviction and prints every probe result. Base and patched traces are BYTE-IDENTICAL (empty diff). So the TT changes are behaviour-identical at cluster granularity, not merely in search output.
+- Two notes on the test itself: (a) my first version asserted an absolute expectation and 'failed' because keys landing in one cluster evict each other - that was my wrong expectation, not an engine bug; (b) the corrected version compares base vs patched behaviour, which is the property under test.
+- TOTAL TT result: -18,708,563 instructions (-0.414%) per bench 13, all four honesty counts identical, 40/40 searches bit-identical, 4/4 hash-pressure cases identical, legal at 1/4/8 threads, cluster traces identical.
+- next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: TT cluster-level unit test, base==patched byte-identical (F15)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29

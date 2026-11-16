@@ -1,0 +1,10 @@
+=== TT unit test: base vs 29-F12+29-F14 patched, PUBLIC interface, hand-built cluster ===
+The program walks a cluster through its fill sequence and an eviction, printing every probe result.
+Command that produces both traces:
+  g++-13 -std=c++20 -O2 -march=x86-64-v3 ... -I$SRC/include tt_probe_unit_test.cpp $SRC/src/*.cpp (minus uci.cpp) -o /tmp/ttt_X
+  /tmp/ttt_base > raw_tt_unit_base.txt ; /tmp/ttt_combo > raw_tt_unit_combo.txt ; diff raw_tt_unit_base.txt raw_tt_unit_combo.txt
+
+diff result: IDENTICAL (empty diff)
+
+This closes the gap flagged in 29-N9: the replacement AND hit-scan behaviour of the patched table match the
+base table exactly on a hand-constructed cluster, including the eviction of a full cluster.
