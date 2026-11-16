@@ -1,0 +1,66 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -106,6 +106,7 @@
+ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
++bool TmSmoothStability = false;
+ bool SoundMatePruning = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+@@ -2562,7 +2563,24 @@
+             }
+             // Stop early when the best move has been stable; spend longer when it keeps changing.
+             double factor = 1.0;
+-            if (stable_iterations >= 6) factor = tune::TmStableFactor / 100.0;
++            if (tune::TmSmoothStability) {
++                // Piecewise-linear in the stable-iteration count through the anchors the
++                // step function below uses: (0, TmUnstableFactor), (1, 1.00),
++                // (3, TmSemiStableFactor), (>=6, TmStableFactor). No new constants:
++                // the anchor positions are the step thresholds, 1.00 is today's else.
++                if (stable_iterations <= 0)
++                    factor = depth >= 6 ? tune::TmUnstableFactor / 100.0 : 1.0;
++                else if (stable_iterations == 1)
++                    factor = 1.0;
++                else if (stable_iterations == 2)
++                    factor = (100 + tune::TmSemiStableFactor) / 200.0;
++                else if (stable_iterations < 6)
++                    factor = (tune::TmSemiStableFactor +
++                              (tune::TmStableFactor - tune::TmSemiStableFactor) *
++                                  (stable_iterations - 3) / 3.0) / 100.0;
++                else
++                    factor = tune::TmStableFactor / 100.0;
++            } else if (stable_iterations >= 6) factor = tune::TmStableFactor / 100.0;
+             else if (stable_iterations >= 3) factor = tune::TmSemiStableFactor / 100.0;
+             else if (stable_iterations == 0 && depth >= 6) factor = tune::TmUnstableFactor / 100.0;
+             // A best move that absorbed most of the effort is clearly best;
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -232,6 +232,7 @@
+                          "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n"
+                          "option name TmFinishIteration type check default false\n"
+                          "option name TmNodeShare type check default false\n"
++                         "option name TmSmoothStability type check default false\n"
+                          "option name SoundMatePruning type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+@@ -436,6 +437,9 @@
+             } else if (name == "TmNodeShare") {
+                 if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                 else note_invalid();
++            } else if (name == "TmSmoothStability") {
++                if (value_text == "true" || value_text == "false") forge::tune::TmSmoothStability = value_text == "true";
++                else note_invalid();
+             } else if (name == "SoundMatePruning") {
+                 if (value_text == "true" || value_text == "false") {
+                     const bool enabled = value_text == "true";
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -306,6 +306,7 @@
+ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fail-lows (false = off)
+ extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
+ extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
++extern bool TmSmoothStability;       // linear-in-stable-count soft scale through the same anchors (false = off)
+ extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;

@@ -7,7 +7,11 @@ glmflash5 (HindsightDepth/SoundMatePruning only, unrelated). This prediction res
 source of 6b98f217 only: clock_plan.hpp:32-50, search.cpp:2110-2120, 2184-2198, 2555-2626,
 include/forge/tm_finish.hpp:26-37, include/forge/tm_node_share.hpp:33-67, uci.cpp:233-234.
 
-Stamps: run start 2026-11-16T04:48:19Z (trigger); this file written 2026-11-16T04:56Z (`date -u`).
+Stamps: run start 2026-11-16T04:48:19Z (trigger); notes read 04:49:33Z; this file written
+2026-11-16T04:50:1xZ, pushed in commit "kimi5 job 2 prediction" at 04:50:16Z (all `date -u`).
+CORRECTION (04:50:2xZ): the pushed version said "written 04:56Z" and "read 04:51Z" — two stamps
+written from my head instead of `date -u`, the exact fault Fable flagged in job 1. The true
+stamps are above; no other content changed.
 
 Planned defaults, Move Overhead 10, no movestogo (soft = (T-10)/22 + 0.75*I, hard = min(0.6*(T-10), 5*soft)):
 - 10+0.1 (T=10000, I=100): soft 529 ms, hard 2645 ms.
