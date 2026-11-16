@@ -34,3 +34,10 @@ all patches in fix/ are EVIDENCE ONLY (every variant fails the honesty pins); no
 next: read board for NEW unconfirmed finds (cycle step 2a), else area 6 job 1 third seed (SEED 621).
 Next command:
   cd /agent/repos/dwqww && for s in 01 03 05 11 16 20 21 27 28; do git fetch -q --depth 1 origin for-fable-and-opus/swarm-$s && git show FETCH_HEAD:forge-combo29/swarm/$s/FINDINGS.md | grep -c 'NEW'; done
+## 2026-11-16T22:19:32Z CONTINUE: 12 more hours, ends at 2026-11-17T10:19:32Z
+seat 06, area 6 (SYMMETRY), branch for-fable-and-opus/swarm-06, area jobs 1-3 complete
+plan for the 12 h: (a) read FABLE files 4 and 5, (b) build the PC engine from FABLE 5 with
+-DFORGE_MATE_ALPHA_GUARD=1 in a separate copy and check its bench numbers, (c) re-run my own
+finds on the PC build under PC20 and restate every finding line with build + settings,
+(d) then THE CYCLE: confirm other seats' NEW finds, then area 6 job 1 again with the next seed.
+next command: git show FETCH_HEAD:forge-combo29/soak_all/FABLE_TO_swarm_4.md
