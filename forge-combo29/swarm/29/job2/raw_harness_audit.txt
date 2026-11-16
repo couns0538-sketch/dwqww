@@ -1,0 +1,18 @@
+PART 1 - the fault and its controls (this file is the evidence)
+A pipelined go depth 12 + quit : info lines 0, bestmove bestmove a2a3
+B drained go depth 12         : info lines 12, nodes 56720, bestmove e2e4
+C pipelined bench 13          : info string bench depth 13 nodes 862329 time 433 nps 1991521
+D pipelined go perft 5        : nodes 4865609
+
+VERDICT on the fault: REPRODUCED; bench and perft are SYNCHRONOUS (their numbers are valid under a pipelined quit)
+
+PART 2 - the numbers I published, re-derived by a draining harness
+bench 13 via drain      : info string bench depth 13 nodes 862329 time 429 nps 2010090
+bench 11 via drain      : info string bench depth 11 nodes 312866 time 164 nps 1907719
+bench 16 via drain      : info string bench depth 16 nodes 3024920 time 1441 nps 2099181
+perft 5 via drain       : nodes 4865609
+depth 10 rnbqkbnr/pppppppp/8/8/8/8/PP : nodes   13102  bestmove d2d4
+depth 10 w                            : nodes   13102  bestmove d2d4
+depth 10 KQkq                         : nodes   13102  bestmove d2d4
+
+All PART 2 numbers are non-zero with real info lines, and none is the fabricated `a2a3`/0-node pattern.
