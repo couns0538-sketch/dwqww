@@ -102,3 +102,21 @@ Next command: `cd /agent/repos/dwqww && git worktree add ../base 6b98f2170a3210e
   too strong and is corrected. What survives: flip is depth-dependent (96@d4 vs 89@d12/d14).
 - S-F8 strengthened with a positive control: `UseNNUE value false` changes the depth-8 score
   26 -> 10, so the option works when written correctly; only the missing `value` word is silent.
+
+## 2026-11-16 21:58Z CHECKPOINT (deadline 22:30)
+Seat 11, area 1 (FEN input under ASan+UBSan). Branch for-fable-and-opus/swarm-11.
+DONE (all pushed, raw evidence beside each):
+- STEP 1 seat, STEP 2 build + honesty 4/4 (312866/862329/3024920/4865609).
+- job1 (20k mutated FENs, ASan+UBSan, 0 crashes / 0 san lines, both sanitizer proofs).
+- job2 (30 extreme-number FENs, perft2 vs python-chess 0 diffs), job3 (1000-ply moves list).
+- job1 round 2 (seed 1111, new R set).
+- Checks: S-C2 (seat 01), S-C3 (19-F5), S-C4 (19-F1 mech), S-C5 (29-F1 direction),
+  S-C6 (19-F4 structure), S-C7 (seat 05 S-F3 threshold).
+- Findings of mine: S-F1 extra token silently dropped (S-A4 narrows it to reporting only),
+  S-F2 adjacent digits (known; proved harmless), S-F8 setoption without `value` word is silent,
+  S-F9 deepseek6 long58 "6-33" is really 2-33, S-F10 early draw not universal,
+  S-F11/S-F12 early draw is depth-dependent but SATURATES (my d14 prediction failed).
+- Audits: S-A1 (19-F12 fabrication, my runner verified unaffected), S-A2 (parser NaN, one real
+  hole fixed in check_s05f3), S-A3 (warm/cold: 4/120 bestmoves differ, 0 illegal either way).
+- RULE1.md: planted controls for every zero I claim.
+NEXT: continue area-1 work; push again by 22:30.
