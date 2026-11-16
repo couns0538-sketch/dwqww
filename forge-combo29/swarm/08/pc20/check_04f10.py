@@ -25,7 +25,10 @@ import time
 
 OUT = sys.argv[1]
 EXE = "/home/ubuntu/builds/pc/forge"
-FEN = "1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b - - 0 1"
+FENS = [
+    ("04-F10 board (their ordinary middlegame)", "1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b - - 0 1"),
+    ("second ordinary middlegame (mine, set G idx 1)", "r1bqk2r/ppp1bppp/3p1n2/8/3QP3/2N5/PPP1BPPP/R1B1K2R w KQkq - 2 8"),
+]
 DEPTH = 12
 RUNS = 10
 BASE_OPTS = [("LmrQuietBase", "93"), ("LmrQuietDivisor", "205"), ("LmrNoisyBase", "13"),
@@ -36,7 +39,7 @@ BASE_OPTS = [("LmrQuietBase", "93"), ("LmrQuietDivisor", "205"), ("LmrNoisyBase"
              ("TtPruneV2", "true"), ("CorrHistV2", "true"), ("MateAlphaGuard", "true"), ("OwnBook", "false")]
 
 
-def run_once(threads):
+def run_once(threads, FEN):
     p = subprocess.Popen([EXE], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                          stderr=subprocess.DEVNULL, text=True, bufsize=1)
 
@@ -107,56 +110,57 @@ def emit(s):
 
 
 results = {}
-for threads in (1, 4):
-    runs = [run_once(threads) for _ in range(RUNS)]
-    results[threads] = runs
-    emit("## Threads %d — %d fresh processes, depth %d" % (threads, RUNS, DEPTH))
-    emit()
-    emit("| run | score | nodes | bestmove | reached depth |")
-    emit("|---|---|---|---|---|")
-    for i, r in enumerate(runs, 1):
-        emit("| %d | %s | %s | %s | %d |" % (i, r["score"], r["nodes"], r["bm"], r["maxd"]))
+for label, fen in FENS:
+    for threads in (1, 4):
+        runs = [run_once(threads, fen) for _ in range(RUNS)]
+        results[(label, threads)] = runs
+        emit("## %s — Threads %d, %d fresh processes, depth %d" % (label, threads, RUNS, DEPTH))
+        emit("")
+        emit("| run | score | nodes | bestmove | reached depth |")
+        emit("|---|---|---|---|---|")
+        for i, r in enumerate(runs, 1):
+            emit("| %d | %s | %s | %s | %d |" % (i, r["score"], r["nodes"], r["bm"], r["maxd"]))
+        emit("")
 
-# --- controls
-t1 = results[1]
-if any(r["maxd"] < DEPTH for r in t1):
-    raise SystemExit("CONTROL FAILED: a Threads-1 run did not reach depth %d" % DEPTH)
-if any(r["score"] is None for r in t1):
-    raise SystemExit("CONTROL FAILED: a Threads-1 run produced no parsable depth-%d score; the comparison would "
-                     "be vacuous" % DEPTH)
-if len({r["score"] for r in t1}) != 1 or len({r["bm"] for r in t1}) != 1:
-    raise SystemExit("CONTROL FAILED: Threads 1 is NOT reproducible on this machine (%r) — the Threads-4 spread "
-                     "cannot be attributed to threading" % ({r["score"] for r in t1},))
-
-t4 = results[4]
-if any(r["maxd"] < DEPTH for r in t4):
-    raise SystemExit("CONTROL FAILED: a Threads-4 run did not reach depth %d" % DEPTH)
-
-emit("")
-emit("| arm | distinct scores | distinct bestmoves | score range | nodes range |")
-emit("|---|---|---|---|---|")
-for threads, runs in results.items():
-    scores = {r["score"] for r in runs}
-    bms = {r["bm"] for r in runs}
-    emit("| Threads %d | **%d of %d** | **%d** (%s) | %s | %s |" %
-         (threads, len(scores), len(runs), len(bms), ", ".join(sorted(bms)),
-          ", ".join(sorted(scores)), "%s..%s" % (min(r["nodes"] for r in runs), max(r["nodes"] for r in runs))))
+# --- controls and verdict, per position
+for label, fen in FENS:
+    t1 = results[(label, 1)]
+    t4 = results[(label, 4)]
+    if any(r["maxd"] < DEPTH for r in t1 + t4):
+        raise SystemExit("CONTROL FAILED: a run on %r did not reach depth %d" % (label, DEPTH))
+    if any(r["score"] is None for r in t1 + t4):
+        raise SystemExit("CONTROL FAILED: an unparsable depth-%d score on %r; comparison would be vacuous"
+                         % (DEPTH, label))
+    if len({r["score"] for r in t1}) != 1 or len({r["bm"] for r in t1}) != 1:
+        raise SystemExit("CONTROL FAILED: Threads 1 is NOT reproducible on %r (%r) - a Threads-4 spread could "
+                         "not be attributed to threading" % (label, ({r["score"] for r in t1},
+                                                                    {r["bm"] for r in t1})))
 
 emit("")
-t1s = {r["score"] for r in t1}
-t4s = {r["score"] for r in t4}
-t1b = {r["bm"] for r in t1}
-t4b = {r["bm"] for r in t4}
-verdict = []
-verdict.append("Threads 1 reproducible: %s" % ("YES (1 score, 1 move in %d runs)" % RUNS
-                                              if len(t1s) == 1 and len(t1b) == 1 else "no"))
-verdict.append("Threads 4 score nondeterminism: %s" % ("YES — %d distinct scores in %d runs" % (len(t4s), RUNS)
-                                                       if len(t4s) > 1 else "NO — all %d runs equal" % RUNS))
-verdict.append("Threads 4 MOVE nondeterminism: %s" % ("YES — %s" % sorted(t4b) if len(t4b) > 1
-                                                      else "NO — move identical in all %d runs (%s)" % (RUNS, sorted(t4b)[0])))
-emit("### verdict")
-for v in verdict:
-    emit("- " + v)
+emit("## The spread — this is the question")
+emit("| position | arm | distinct scores | distinct bestmoves | score range | nodes range |")
+emit("|---|---|---|---|---|---|")
+for label, fen in FENS:
+    for threads in (1, 4):
+        runs = results[(label, threads)]
+        scores = {r["score"] for r in runs}
+        bms = {r["bm"] for r in runs}
+        ns = [r["nodes"] for r in runs]
+        emit("| %s | Threads %d | **%d of %d** | **%d** (%s) | %s | %s..%s |" %
+             (label[:34], threads, len(scores), len(runs), len(bms), ", ".join(sorted(bms)),
+              ", ".join(sorted(scores)), min(ns), max(ns)))
+
+emit("")
+emit("### verdict per position")
+for label, fen in FENS:
+    t1b = {r["bm"] for r in results[(label, 1)]}
+    t4b = {r["bm"] for r in results[(label, 4)]}
+    t1s = {r["score"] for r in results[(label, 1)]}
+    t4s = {r["score"] for r in results[(label, 4)]}
+    emit("- **%s**: Threads 1 -> %d score / %d move; Threads 4 -> %d scores / %d moves. Move varies: **%s**. "
+         "Score varies: **%s**." %
+         (label[:40], len(t1s), len(t1b), len(t4s), len(t4b),
+          "YES" if len(t4b) > 1 else "no", "YES" if len(t4s) > 1 else "no"))
 
 with open(OUT, "w") as fh:
     fh.write("\n".join(out) + "\n")
