@@ -1,0 +1,51 @@
+===== A1: bench 13 as ARGUMENT (no stdin)
+$ /home/ubuntu/builds/release/forge bench 13 </dev/null
+Mon Nov 16 09:15:47 PM UTC 2026
+rc=0 elapsed=0.022
+Mon Nov 16 09:15:47 PM UTC 2026
+
+===== A2: quit on stdin, bench 13 as ARGUMENT
+$ printf 'quit\n' | /home/ubuntu/builds/release/forge bench 13
+Mon Nov 16 09:15:47 PM UTC 2026
+rc=0 elapsed=0.021
+Mon Nov 16 09:15:47 PM UTC 2026
+
+===== B1: bench 13 on STDIN
+$ printf 'bench 13\nquit\n' | /home/ubuntu/builds/release/forge
+Mon Nov 16 09:15:47 PM UTC 2026
+info string bench depth 13 nodes 862329 time 443 nps 1946566
+rc=0 elapsed=0.466
+Mon Nov 16 09:15:48 PM UTC 2026
+
+===== B2: bench 11 and 16 on STDIN
+$ printf 'bench 11\nbench 16\nquit\n' | /home/ubuntu/builds/release/forge
+Mon Nov 16 09:15:48 PM UTC 2026
+info string bench depth 11 nodes 312866 time 166 nps 1884734
+info string bench depth 16 nodes 3024920 time 1538 nps 1966788
+rc=0
+Mon Nov 16 09:15:50 PM UTC 2026
+
+===== C1: the source lines seat 19 cites
+$ grep -n 'bench' src/uci.cpp
+Mon Nov 16 09:15:50 PM UTC 2026
+590:        } else if (command == "bench") {
+611:            forge::Searcher bench_searcher(16);
+613:                forge::Board bench_board;
+614:                if (!bench_board.set_fen(fen)) continue;
+617:                bench_searcher.clear();
+618:                total_nodes += bench_searcher.search(
+619:                    bench_board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+624:            std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+
+===== C2: main() in uci.cpp
+$ grep -n 'int main' src/uci.cpp
+Mon Nov 16 09:15:50 PM UTC 2026
+651:int main() {
+
+===== C3: main's body (does it touch argv at all?)
+$ sed -n '/int main/,$p' /agent/repos/base/forge-combo29/src/uci.cpp
+Mon Nov 16 09:15:50 PM UTC 2026
+int main() {
+    return forge::uci_loop(std::cin);
+}
+#endif

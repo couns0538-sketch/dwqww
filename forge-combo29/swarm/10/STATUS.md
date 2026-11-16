@@ -15,3 +15,9 @@ done: area 10 job 2 (recount deepseek6's newest report = long56). Report: REPORT
 next: commit+push this, then THE CYCLE step 1 (read board). No seat has written a FINDINGS.md yet, so
   area 10 job 1 (confirm another seat's NEW finding) has no candidate; next candidate is job 3 (glmflash5).
 runs: nothing in background.
+
+## Mon Nov 16 09:15:54 PM UTC 2026
+done: area 10 job 1 (first check). CONFIRMS 19-F5 (bench is a stdin command; main ignores argv) — check1/RESULT.txt.
+  5 of 5 predictions held, including both source line numbers (uci.cpp:590, :651).
+next: another check of an unchecked NEW finding, or area 10 job 3 (glmflash5 recount) if none is left.
+note: no  on this machine, so 19-F1..F4 and 29-F1/F2 (profiler shares) cannot be reproduced here.
