@@ -1,0 +1,11 @@
+diff -r /agent/repos/base/forge-combo29/src/uci.cpp plant/src/uci.cpp
+543a544,552
+>                 // ---- PLANTED FAULT FOR THE SANITIZER PROOF ONLY (scratch copy, never committed as source) ----
+>                 // A signed integer overflow behind `go depth 64` (the clamp maximum), i.e. behind input the runner controls.
+>                 // It must be reported by UBSan through the SAME runner that runs the real build.
+>                 if (limits.depth == 64) {
+>                     volatile int planted = 2147483647;
+>                     planted = planted + 1;
+>                     (void)planted;
+>                 }
+>                 // ---- end planted fault ----

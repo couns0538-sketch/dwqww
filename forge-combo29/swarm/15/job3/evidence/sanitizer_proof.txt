@@ -1,0 +1,25 @@
+exe_started: /home/ubuntu/builds/plant/forge
+sha256: 80777d3c5dd05494b2175841208c7c0f7930a5de3cb0839eec690bd1a48ab773
+nm_count __asan_: 35
+nm_count __ubsan_: 15
+nm_count __tsan_: 0
+id_name: Chess Engine Forge 6.4.24 candidate
+options_sent: Threads 1, Hash 16, S14
+go_kinds: ['depth 64']
+
+PROOF 1 (symbols present in the build that was run): see nm_count __asan_ 35, __ubsan_ 15 above.
+  The same two counts are recorded for the real build in evidence/asan/meta_asan.txt.
+PROOF 2 (a planted fault counted by the SAME runner):
+  scratch copy  forge-combo29/swarm/15/job3/plant/  (= base source + one planted block in src/uci.cpp,
+  a signed overflow behind `go depth 64`), built with the same cmake flags as the ASan build,
+  run through the same terminalrun.py:
+  $ python3 terminalrun.py ~/builds/plant/forge evidence/plant --positions /tmp/plantpos/p.fens --go "depth 64"
+  runs 1  runs_with_sanitizer_lines 1
+  evidence/plant/plant_000_depth64.txt line:
+  plant/src/uci.cpp:549:39: runtime error: signed integer overflow: 2147483647 + 1 cannot be represented in type 'int'
+  The diff between plant/src and base src is that one block (diff -r output is in job3/plant_diff.txt).
+  => the runner DOES count sanitizer lines; "0 sanitizer lines" on the real build is "shown", not assumed.
+
+NOTE on the first attempt: `go depth 99` did NOT fire the plant because uci.cpp clamps depth to 1..64
+(src/uci.cpp:103). The trigger was moved to 64, the clamp maximum. This is recorded because a proof
+that silently does not fire is exactly the failure mode seat 19 warned about.
