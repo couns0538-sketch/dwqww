@@ -714,3 +714,17 @@ Limit stated: halfmove 150 is already past the 100th half-move so neither move m
 matter (third repetition before halfmove 100) was not constructed.
 
 Standing: 61 findings, 18 confirmations, three reference pages, seven named harness faults.
+## 2026-11-16T23:41:07Z  23-F44: the threefold-repetition root — the drawn-root defect COSTS something
+2026-11-16T23:41:07Z
+
+Built the case 23-F43 could not show. Root `1K6/8/8/3R4/8/8/8/k7 w - - 8 5` reached by a real move list twice
+over (threefold, python-chess confirms claimable). BASE: cp 0, 0 nodes, d5d1. PC r15: cp 399, 6,941 nodes, d5b5.
+So a K+R versus K position — WON by a rook, with a draw that is CLAIMABLE BUT NOT FORCED — is reported as
+"nothing here" by the base without searching. That is a real misreport, not the formality the halfmove-150
+rows could only demonstrate.
+
+Kept caveat: the match program ends the game at the third occurrence, so in the PC's own games this is never
+searched again — the repair is invisible in matches and matters only where a claimable draw could be declined.
+That is why file 3 calls it REPAIRED rather than IMPORTANT, and I am not upgrading the label.
+
+Standing: 62 findings, 18 confirmations, seven named harness faults, three reference pages.
