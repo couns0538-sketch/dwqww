@@ -1,0 +1,32 @@
+# PREDICTION — seat 20, area 10, job 6 (check of seat 12's S-F1)
+
+Committed alone BEFORE the first measuring command. Never edited afterwards.
+
+Subject (seat 12, S-F1): "`ucinewgame` silently resets the board to startpos (`src/uci.cpp:254-257`,
+`board.set_fen(StandardStartFen)`), so `position fen X` / `ucinewgame` / `go` searches startpos, not X — a checker
+that does not model this reports false illegal bestmoves."
+
+I check the SENTENCE with my own harness on a position that is NOT startpos and whose best move is not startpos's.
+
+Predictions:
+1. CONFIRMS: `position fen <midgame>` then `ucinewgame` then `go depth 6` returns a bestmove legal in STARTPOS,
+   and the same command sequence WITHOUT `ucinewgame` returns a bestmove legal in the midgame position.
+   KILLED IF: the ucinewgame version returns a move only legal in the midgame, or the no-ucinewgame version
+   returns a move only legal in startpos.
+
+2. The reset also discards a position built with `position startpos moves ...`: after a 10-ply move list,
+   `ucinewgame`, the engine answers a startpos move.
+   KILLED IF: it answers a move legal in the 10-ply position but not in startpos.
+
+3. `ucinewgame` prints NOTHING about the reset (no `info string` line, no `readyok` difference other than the
+   normal one). KILLED IF: any line mentioning the position or the reset appears.
+
+4. The reset is silent in the OTHER order too: `ucinewgame` BEFORE `position fen X` leaves X in force, so the
+   danger is only the order position-then-ucinewgame.
+   KILLED IF: `ucinewgame` then `position fen X` then `go` searches startpos.
+
+5. UCI conformance: the UCI specification's `ucinewgame` is "this is sent to the engine when the next search (started
+   with 'position' and 'go') will be from a different game". It does not say the engine may forget the current
+   position; `position` is defined to (re)set it. So this is a real deviation, not a permitted convenience.
+   KILLED IF: the engine's own answer text or its source says the reset is deliberate AND documented — I will read
+   src/uci.cpp around those lines and quote it rather than judge from the spec alone.
