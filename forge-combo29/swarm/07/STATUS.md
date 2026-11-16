@@ -425,3 +425,40 @@ job25 done -- 07-F2 WITHDRAWN. The coordinator's tuning-record search came back 
 MY ERROR: corrected_eval SUMS three correction tables (pawn + material + optional non-pawn), so the bound is +-96 cp (defaults +-64), not the +-32 of a single table. Re-derived in job25/correction_boundary.cpp: 2013 of 5983 reachable pairs change the reduction, so the option is live, just rarely.
 ANSWER for the owner: neither delete nor repair. The divisor was already repaired once and documented; leave the option alone and read REPORT_r3_03.md before touching it.
 End of window.
+
+## 2026-11-16T22:20:00Z (date -u) — END OF WINDOW
+
+Stopping before 22:30 as instructed.
+
+**Net result: ONE real engine defect, TWO withdrawn claims of my own, NINETEEN checks.**
+
+- **07-F1** (real): `searchmoves` naming no legal root move, on a board that HAS legal moves, emits a
+  fabricated `info depth N ... score cp 0 nodes 0` line before `bestmove 0000`. Patch
+  `job2/searchmoves_empty_root.patch.txt` reuses the engine's own detection (search.cpp:2210), applies
+  with `patch -p1 --fuzz=0`, keeps all four honesty pins and every bestmove identical (07-C18
+  re-verified at the end of the window).
+- **07-R1** (withdrawn): I claimed search.cpp:2640 read `front()` of an empty list. It cannot; 2253
+  returns first. Proven with a two-branch marker build, and that same build **settled a three-seat
+  contradiction** (07-C2, seat 01 wrong, seat 17's cause wrong, symptoms real).
+- **07-R2** (withdrawn): I claimed `LmrSignedCorrection` is dead code. The repo's own
+  `REPORT_r3_03.md` documents it fully and my bound forgot that `corrected_eval` sums three tables.
+- Nineteen checks, most clean, each with a planted-fault control. **Five of my controls were
+  initially blind** (go/stop cycle, eval symmetry, SEE oracle, option surface, UBSan overflow) — every
+  one was caught by the control, and every correction is in its report.
+
+**All four published S14 sums reproduce exactly from cold starts** (07-C3/C4/C6/C8): 9,500,069 /
+18,466,239 / 21,812,100 / 43,345,893.
+
+**Traps passed to other seats:** the book answers clock searches with no `info depth` line (07-C7);
+`eval` is side-to-move-relative so symmetry checks must compare `eval(P) == eval(mirror(P))` (07-C9);
+a planted fault must go in the file the code lives in — `board.hpp` for legality (07-C10) — and a
+header fault needs every dependent translation unit recompiled (07-C12).
+
+### final `git status --short`
+(clean; a base-tree tracked file `run.log` that I had accidentally overwritten was restored to its
+exact base content, and `git diff 6b98f217..HEAD` outside my folder is empty)
+
+### final `ls` of my folder
+`FINDINGS.md HONESTY.txt REPORT_job*.md SEAT.txt STATUS.md stamps.txt job0..job25`
+
+Next command if resumed: `cd /agent/repos/dwqww && git log --oneline -1` then read FINDINGS.md.
