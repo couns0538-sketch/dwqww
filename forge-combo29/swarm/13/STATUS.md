@@ -672,3 +672,16 @@ JOB 19: measured the match-relevant step of S-F21 — does the TIME CONTROL chan
   impression standing.
   Still NOT A DEFECT and NO STRENGTH CLAIM: not measured whether the changed moves are better.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## Mon Nov 16 11:57:20 PM UTC 2026
+
+FINDINGS.md structure VERIFIED CLEAN by FINDINGS_check.py (exit 0):
+  22 S-F rows, all 7 columns; 4 S-C rows, all 6 columns; no missing ids in S-F1..S-F22.
+The check caught two things I would otherwise have shipped: S-C3 had 7 columns (should be 6) and S-F12
+had been mangled by one of my own earlier escape attempts. Both rebuilt from verified content.
+I also briefly mis-set the checker's own expectation (5 instead of 6) and it immediately flagged all four
+S-C rows — which is the checker working correctly on a wrong assumption, not the data being wrong. Reverted
+and re-run: exit 0.
+S-F22 was reordered to LEAD with the 6-of-6 result as asked, with "NOT A DEFECT, NO STRENGTH CLAIM" and the
+not-measured note about whether the changed moves are better both retained.
+Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py
