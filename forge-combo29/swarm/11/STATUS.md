@@ -492,3 +492,7 @@ restricts correctly), S-F74 (MultiPV correct; MultiPV 1 omits the field), S-F75 
 Withdrawn or corrected, retained rather than deleted: S-F3, S-F10, S-F11, S-F12, S-F18, S-F19, S-C9
 (not defects under file 6), S-P1 (patch withdrawn, marked DO NOT APPLY), S-A5 (my PC20 labels
 retracted after the uci double-wrap bug), S-F25/S-F33/S-F25 corrections of my own errors.
+- S-F82: a ~1,000 M-node search is stable — depth 40 = 172.6 M nodes (mate 9), depth 64 = 978,487,626
+  nodes (mate 9), depth 100 identical to depth 64 (converged). No overflow at 10^9 nodes.
+- uci_guard.py usage rewritten as a runnable example: the three calls in order (position, bestmove,
+  exception handler) plus a context-manager form; syntax-checked and the self-test still passes.
