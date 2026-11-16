@@ -314,3 +314,73 @@ next command: the 6s+0.06 clock (last item on the owner's real path), Threads 1,
   discarded. Best lead, NOT traced - handed over.
 
 next command: check another seat's open finding on the PC build (area-10 style), then continue.
+
+## 2026-11-16T23:00:29Z FINAL
+
+seat 19 / area 9 (SPEED) / seed 1901 / branch for-fable-and-opus/swarm-19 / tip 582c3f535
+62 finding lines (F/C/R), 28 reports. All measurements Threads 1 unless a line says otherwise.
+
+=== ON THE OWNER'S REAL PATH (file 6's priority: PC build r15, PC20, Threads 1, Hash 16) ===
+
+19-F44 softnodes: DETERMINISTIC 24/24 cells (3-4 runs each), ALWAYS stops at a finished depth,
+  overshoots N by median +27 %% (max +106 %%). 'softnodes 2000' really spends 2,060-3,312 nodes.
+  state: OPEN (unconfirmed by another seat). build PC r15 / PC20 / Threads 1 / Hash 16 / cold.
+19-F45 bestmove identical across N 2k..250k on 6 positions. state: OPEN, explicitly not generalised.
+19-F46 go nodes UNDERSHOOTS median -32 %% (range -51.9..-0.8) while softnodes overshoots +22 %%:
+  opposite sides of N; softnodes reached exactly ONE PLY DEEPER in all 18 cells. 18/18 deterministic.
+  => his match path spends half to two-thirds of the requested N. state: OPEN.
+19-F47 the budget boundary is a ONE-NODE CLIFF: go nodes 31779 -> depth 12 (+0.00 %%), 31778 -> depth 11
+  (-37.59 %%), both deterministic. Same mechanism as F44/F46. state: OPEN.
+19-F48 nodes vs softnodes diverge on 7 of 38 cells (18.4 %%) on a HOSTILE ambiguous sample. state: OPEN.
+19-F49 the POPULATION rate: 30.0 %% of 100 RANDOM G positions are ambiguous (top-two <=15 cp at depth 12),
+  and 10.0 %% of those diverge = ~3 %% of positions overall. My hostile filter inflated the DIVERGENCE rate,
+  not the ambiguity rate (31.7 vs 30.0 %%). state: OPEN.
+19-F50 clock: wall time IS the last iteration's cost, Spearman rho = 0.999 over 42 positions.
+  state: CONFIRMED IN SPIRIT by seat 02's S-F13 (their rho 0.998, different boards).
+19-F51 the sparse-vs-full class ORDERING does NOT reproduce (1.4x span vs 3.6x within-class spread; the
+  worst board is MID). 'full_few' holds only 2 of set G's 353 positions -> likely cause of the 08-vs-02
+  disagreement. state: OPEN (offers a resolution to two other seats).
+19-F52/19-F53 the 2.1x anomaly TRACED: HARD-LIMIT abort, 1585.8 ms vs planned hard 1585 ms, NO re-search
+  (no depth twice), 849.7 ms of work discarded. go depth 21 alone costs 1551 ms, more than the whole hard
+  limit, so it can never complete on this clock. The clock has TWO REGIMES: iteration-boundary normally,
+  hard-limit when one iteration is unaffordable. state: OPEN, mechanism fully observed.
+
+=== TT (the build's hottest depth-scaling cost) ===
+19-F35 probe_body 2.68 %% at depth 13 -> 8.47 %% (4th hottest) at depth 16, same cold positions. OPEN.
+19-F36 it is probe COUNT not capacity: 1.0000 probes/node at depths 11/13/16; full-table scans 0.204 %%.
+19-F37 bench HARDCODES 16 MB (uci.cpp:773) so setoption Hash never reaches it. OPEN, and it invalidates
+  any bench-based hash conclusion.
+19-F38 16x hash removes all replacement scans (97->0) and moves nodes by 2 in 1,645,108. OPEN.
+19-F39 inside probe_body: index 32.7 %% / SCAN 39.4 %% / after 27.9 %% at depth 16. OPEN.
+19-F40 vectorising the scan is a NO-OP (pins hold, ratio 1.0001) because GCC scalarises the intrinsics
+  back to the same four compares. OPEN. NOT recommended as a patch.
+19-F42 the scan order is already optimal: slot0 82.8 %% of hits and already first; 66.9 %% of compares are
+  non-reorderable empty-slot misses; 1.331 compares/probe. THE SCAN IS FINISHED. OPEN.
+19-F41 valgrind/callgrind CANNOT run this engine (SIGILL on AVX-512 at static init). OPEN.
+
+=== OTHER FINDINGS THAT SURVIVE ===
+19-F15/F16/F17 tie order in pick_best is LOAD-BEARING (stable_sort moves 3 of 4 pins); pins are gcc-stable
+  across 11/12/13 and UNVERIFIED on clang+ThinLTO (19-F17b, wording constraint). state: OPEN.
+19-F26 the tie-order effect holds on PC r15 under PC20 (pins move -8.6/+5.7/-14.7 %%). OPEN.
+19-F20 which pins detect an ordering change: all three bench depths yes, perft 5 no. OPEN.
+19-F12 the quit-abort fabricated bestmove - STILL PRESENT on PC r15 under both none and PC20. OPEN.
+19-F25 it publishes the position's FIRST GENERATED move (a7a6 on a black-to-move board), not stale,
+  not literal. 19-F28 traced the emit line to src/search.cpp:3017 and CAUSALLY PROVED it (front->last
+  changes a7a6 to g8h6). FORGE_FIX_ABORT_PUBLISH defaults to 0 and does not cover it. OPEN.
+19-F30/F43 the base tree MISSES a mate-in-1 on a repetition board; file 6's inequality checked:
+  mate 1 at counter 0, 1 <= 100-8 = 92 TRUE, so it is a REAL defect (not a claimable draw). PC r15 repaired.
+
+=== RETRACTED, kept in the record ===
+19-F18/F19 (TT workload claim) RETRACTED by 19-R1: measured WARM; cold gives 142/13.9M = 0.001 %%, the same
+  order as bench's 0.006 %%%, so the 54.7 %% gap does not exist.
+19-F7's CAUSE refuted by seat 28, confirmed by my own 19-C2: two rebuilds are byte-identical and my
+  4.2 %% was sequential-block drift. The advice (repeat, do not block) survives and is now 19-F21/F27.
+
+=== CHECKS OF OTHER SEATS (all CONFIRM) ===
+19-C1 21-F1 | 19-C2 28's S-C2 (against my own 19-F7) | 19-C3 29-F3 | 19-C4 08-F9 | 19-C6 29-F9 | 19-C7 seat 04's Threads finding (with a Threads-4 positive control)
+
+=== HONESTY ===
+All four pins reproduced on base, on both patched builds, and on PC r15 in all three regimes (19-F43 table).
+VIOLATION.md stands: 5.8 MB of build artifacts at 03d92c4c1 remain in branch HISTORY; force-push forbidden.
+
+next command: none — the record is complete.
