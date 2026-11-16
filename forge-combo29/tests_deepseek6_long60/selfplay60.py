@@ -74,19 +74,10 @@ def game(gi, fen):
         send("go nodes 20000")
         best = None
         t0 = time.monotonic()
-        while time.monotonic() - t0 < 120:
-            found = None
-            for l in reversed(out[-40:]):
-                if l.startswith("bestmove "):
-                    found = l.split()[1]
-                    break
-            if found is not None and found != getattr(game, "_last_best", None):
-                # wait: the reversed scan may find an OLD bestmove; instead track via index
-                pass
-            # simpler: wait for a NEW bestmove line count
+        seen0 = sum(1 for l in out if l.startswith("bestmove "))
+        while time.monotonic() - t0 < 180:
             cnt = sum(1 for l in out if l.startswith("bestmove "))
-            if cnt > getattr(game, "best_count", 0):
-                game.best_count = cnt
+            if cnt > seen0:
                 best = [l for l in out if l.startswith("bestmove ")][-1].split()[1]
                 break
             time.sleep(0.02)
