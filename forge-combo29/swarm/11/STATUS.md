@@ -307,3 +307,7 @@ Next: continue FEN layer and real-path work.
 - S-F55: the hazard DEFENCE is now validated, not asserted. Worst case (the bad FEN IS game 3):
   naive -> g8f6 (game-1 move, WRONG); detect -> aborts, SAFE; fixup (ucinewgame + re-send a good
   position) -> f3e5 (game 3, CORRECT), and 15/15 across different positions. Hazard doc updated.
+- S-F57: the SECOND route (illegal move in a move list keeps the legal prefix) verified on PC20 and
+  cross-referenced to seat 21's 21-C9/21-C2. HAZARD_stale_board.md REWRITTEN: the real-game
+  demonstration is now the opening section, and both routes sit together with the shared shape
+  spelled out. The one-line rule now names both `invalid FEN` and `illegal move`.

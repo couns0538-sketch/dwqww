@@ -1,0 +1,10 @@
+build PC r15  PC20, Threads 1
+  position startpos moves e2e4 e7e5 g1f3 b8c6 f1c4 f8c5 e2e4
+  answer lines : ['info string illegal move e2e4']
+  perft 1      : engine 33   legal prefix's count 33   (startpos = 20)
+  bestmove     : d2d3
+  board searched: LEGAL PREFIX (intended)
+
+  So an illegal move in the list does NOT reject the game; the engine silently searches
+  the legal prefix and answers for THAT board — the same 'confident wrong board' shape
+  as the malformed-FEN route, but triggered by one bad token in a move list.
