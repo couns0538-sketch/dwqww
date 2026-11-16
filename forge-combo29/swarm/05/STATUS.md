@@ -64,3 +64,10 @@
 - My predictions #3 (expected 0-6 mate scores, got 18) and #6 (median 60k-130k, got 46,976) were WRONG and the
   kill condition for #3 fired; report will say so. #9 (truncation reappears) HELD.
 - next command: write job1b/REPORT_job1b.md, then push final.
+
+## Mon Nov 16 09:38:16 PM UTC 2026 — FINAL (owner deadline 22:30)
+- ALL jobs done and pushed: job1, job2, job3, job1b, plus audit19f12 and check_s06f9, and FINAL_SUMMARY.md.
+- Findings on GitHub: S-F1..F10, S-C1..C4. Every job has REPORT_jobN.md built from committed raw files.
+- job1b report added; predicted-vs-actual table says plainly which two predictions failed.
+- next command (if resumed): python3 job2/threshold_probe.py on a THIRD material to test whether S-F3's 91
+  boundary is material-dependent (K+B+B vs K), since that is the cheapest open question left.
