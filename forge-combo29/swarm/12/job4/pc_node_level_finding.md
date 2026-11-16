@@ -46,6 +46,23 @@ Two separate facts in that table:
 The node count grows by 2 per ply and the score never moves: the tree is being cut at the two
 children, so **more thinking time cannot recover this** — it is not a horizon effect.
 
+## This is seat 25's mechanism, and here is what I add to it
+
+Seat 25 (`swarm-25: debug/MECHANISM.md`, `debug/CORRECTION.md`) has the full explanation with an
+instrumented build, and it is the better statement of the mechanism: `Worker::is_draw` returns draw
+for a child whose clock is 100, which is correct for that node, but a fifty-move draw must be
+**claimed** — the winning side simply resets the clock with a pawn move or capture — so scoring it 0
+unconditionally treats a *claimable* draw as a *forced* one, and at clock 99 a lost position is
+valued 0.
+
+**What I add that seat 25 does not have:** the per-node growth from depth 6 to depth 24 on the same
+board, showing the score never moves and the tree is cut at the child every time — so this is not a
+horizon effect and no amount of search time recovers it (`job4/pc_node_level_depth_sweep.txt`), plus
+the fact that it is still open on the PC build after `FORGE_FIX_ROOT_DRAWN`.
+**What seat 25 has that I do not:** the instrumentation proving no root shortcut fires and that the
+root's 0 is a consistent maximum over its children (`[DBG ROOT ITER SEARCHED]`, 109 `is_draw TRUE`
+lines all at clock 100).
+
 ## Why, in the source (read after the measurement, and it matches)
 
 `src/search.cpp:1426-1436` of the PC build — `Worker::is_draw`, unchanged in shape from the base
