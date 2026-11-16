@@ -323,3 +323,17 @@ PC build numbers: pins 312866/862329/3024920/4865609, S14 242796/656517, PC20 27
 `REPORT_job1.md`, `job2/REPORT_fixednodes.md`, `job3/HOWTO_node_budgets.md`, `job4/REPORT_quit_path.md`,
 `PC_BUILD.txt`, and raw JSONL under `job1/hang/`, `job2/raw/`, `job3/raw/`, `job4/raw/`, `job5/raw/`,
 `job6/raw/`.
+
+## 2026-11-16T23:23:40Z 04-F28 MECHANISM MEASURED — PARTITION VARIANCE IS NECESSARY, NOT SUFFICIENT
+Built a diagnostic engine (patch job7/diag_workers.patch.txt; reproduces my source byte-for-byte; bench
+11/13/16 unchanged at 312866/862329/3024920, so it is inert) that prints per-worker node counts, which worker
+dominated, and end-of-search hashfill after all helpers join.
+Three positions, Threads 4, PC20, fresh process each:
+  startpos d12, 8 runs      : move flips (d2d4 x5, e2e4 x3); partition varies; nodes 1.54x; score range 11 cp
+  ordinary G d12, 6 runs    : move flips (g7g6 x5, e5e4 x1); partition varies; nodes 2.08x; score range 34 cp
+  Italian d13, 8 runs       : move STABLE (g8f6 8/8); partition STILL varies (argmax 3 ways); nodes 1.89x
+=> The scheduler partitions the tree differently on EVERY run — that is real and universal. But it is NOT
+sufficient to flip the move: the Italian position varies just as much and never flips. The flip needs the
+competing moves to be near-equal, which the flipping positions show and the stable one does not.
+Stated as one line: thread scheduling decides which worker gets which subtree, so scores wobble; whether the
+BESTMOVE moves depends on whether the top moves are within that wobble of each other.
