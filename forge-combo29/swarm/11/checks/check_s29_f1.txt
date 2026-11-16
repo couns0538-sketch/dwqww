@@ -1,0 +1,28 @@
+=== A. bench 13 with the built-in net (default) ===
+  nodes=862329 time_ms=515 nps=1674425 wall=0.54s
+  nodes=862329 time_ms=441 nps=1955394 wall=0.46s
+  nodes=862329 time_ms=442 nps=1950970 wall=0.46s
+
+=== B. bench 13 with UseNNUE false (hand-crafted evaluation only) ===
+  nodes=862329 time_ms=443 nps=1946566 wall=0.46s
+  nodes=862329 time_ms=438 nps=1968787 wall=0.46s
+  nodes=862329 time_ms=479 nps=1800269 wall=0.50s
+  FAIL  P1: the net changes the bench 13 search tree  — with net 862329 vs without 862329
+
+  mean nps with net 1860263, without 1905207, ratio 1.02x
+  PASS  P2: nps without the net is within 40 % either way (0.71x .. 1.40x)  — ratio 1.02
+
+=== C. what is linked from outside the binary ===
+linux-vdso.so.1 (0x00007f3f87c20000)
+	libstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007f3f87600000)
+	libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007f3f87987000)
+	libgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007f3f87959000)
+	libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f3f87200000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f3f87c22000)
+  PASS  P3: only libc/libstdc++/libm/libgcc-ish objects  — libstdc++.so.6, libm.so.6, libgcc_s.so.1, libc.so.6
+
+=== verdict on 29-F1 ===
+I reproduce the CLAIM'S DIRECTION only if P1 holds: the evaluation is on the hot path
+so much that swapping it changes the tree. I do NOT measure 38.72 % / 2.14 % and make
+no statement about those numbers.
+RESULT: inconsistent with 29-F1 on the FAIL lines above; see them before believing 29-F1.

@@ -1,0 +1,19 @@
+exe: /home/ubuntu/builds/rel/forge
+
+=== 1. 'setoption name UseNNUE false' (value word omitted): accepted SILENTLY, then IGNORED
+  no setoption : info string eval hce 18 nnue 20 total 38
+  no value word: info string eval hce 18 nnue 20 total 38
+
+=== 2. the same intent WITH the value word takes effect
+  with value   : info string eval hce 18 nnue 0 total 18
+
+=== 3. an unknown option name is ignored with NO line at all (UCI says nothing is required,
+===    but combined with 1 this makes a typo indistinguishable from success)
+  bogus name   : readyok
+
+=== 4. control: a genuinely out-of-range value DOES answer, so the harness can see a line
+  Hash 0       : info string invalid value for option Hash
+  Hash 0       : readyok
+
+=== 5. cause: the name loop eats every token up to 'value', so 'false' becomes part of the NAME
+  src/uci.cpp:265:                while (input >> token && token != "value") {

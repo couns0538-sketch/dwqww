@@ -56,7 +56,7 @@ class Engine:
         lines = self.read_until("uciok")
         self.idname = next((l[7:].strip() for l in lines if l.startswith("id name")), "")
         for opt in self.start_options:
-            self.send("setoption name " + opt)
+            self.send("setoption name " + opt.replace(" ", " value ", 1))
             self.drain_readyok()
         self.send("ucinewgame")
         self.drain_readyok()
@@ -176,7 +176,7 @@ def write_meta(path, eng, exe, options, depth, extra):
         "exe_started": os.path.abspath(exe),
         "sha256": sha256(exe),
         "id_name": eng.idname,
-        "option_lines_sent": ["setoption name " + o for o in options],
+        "option_lines_sent": ["setoption name " + o.replace(" ", " value ", 1) for o in options],
         "go_line": "go depth %d" % depth,
         "env_sanitizer": {k: eng.env.get(k) for k in ("ASAN_OPTIONS", "UBSAN_OPTIONS", "TSAN_OPTIONS")},
         "nm_asan": extra.get("nm_asan"),
