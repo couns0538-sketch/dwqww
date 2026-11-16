@@ -301,3 +301,16 @@ NEW AREA (file 6 suggestion) + the match path:
   Same deterministically. One mechanism explains both findings.
 
 next command: the 6s+0.06 clock (last item on the owner's real path), Threads 1, PC20, cold.
+
+## 2026-11-16T22:59:42Z
+
+19-F48/F49 modes diverge on ambiguous positions: unbiased rate = 30.0 %% of random G positions are ambiguous
+  (top-two within 15 cp at depth 12), 10.0 %% of those diverge. My 'hostile' filter inflated the DIVERGENCE
+  rate (18.4 -> 10.0 %% ), not the ambiguity rate (31.7 vs 30.0 %%). Owner act-on: ~3 %% of positions.
+19-F50 clock rho = 0.999 over 42 positions -> wall time IS the last iteration's cost (3rd confirmation).
+19-F51 class ordering does NOT reproduce (1.4x span vs 3.6x within-class spread; worst board is MID).
+  full_few holds only 2 of set G's 353 positions -> likely root cause of the 08-vs-02 disagreement.
+19-F52 one board shows wall 2.1x its last iteration (1585.8 vs 749 ms) = an iteration paid for and
+  discarded. Best lead, NOT traced - handed over.
+
+next command: check another seat's open finding on the PC build (area-10 style), then continue.
