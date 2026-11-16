@@ -8,7 +8,7 @@ Usage: rows.py --exe PATH --set FENSFILE --out ROWSFILE [--depth N]
 Protocol per position: ucinewgame, isready, go depth N, wait for bestmove.
 Options are sent once, after uci/isready and before the first ucinewgame.
 Every answer line is read; the run STOPS at once on 'unknown option' or
-'invalid value' (that line is written to the rows file and the meta file).
+'invalid value' (that line is written to the rows file and the meta file, exit 2).
 """
 import argparse
 import hashlib
@@ -117,6 +117,31 @@ def main():
         "setoption name OwnBook value false",
     ] + opt_lines
 
+    def write_meta(id_name, rows_written, stopped):
+        with open(meta_path, "w") as fh:
+            fh.write("exe_started: %s\n" % exe)
+            fh.write("exe_sha256_at_start: %s\n" % exe_sha)
+            fh.write("exe_sha256_end: %s\n" % sha256_of(exe))
+            fh.write("id_name: %s\n" % id_name)
+            fh.write("set: %s\n" % os.path.abspath(args.set))
+            fh.write("set_sha256: %s\n" % sha256_of(args.set))
+            fh.write("positions: %d\n" % len(positions))
+            fh.write("depth: %d\n" % args.depth)
+            fh.write("searchmoves: %s\n" % (args.searchmoves or "(none)"))
+            fh.write("rows_written: %d\n" % rows_written)
+            if stopped:
+                fh.write("stopped_at_row: %d\nstopped_line: %s\n" % stopped)
+            fh.write("option_lines_sent:\n")
+            for line in opt_lines:
+                fh.write("  %s\n" % line)
+
+    def stop_early(stage, stop, id_name=""):
+        with open(args.out, "w") as fh:
+            fh.write("# STOPPED during %s: %s\n" % (stage, stop))
+        write_meta(id_name, 0, (-1, stop))
+        print("STOPPED during %s: %s" % (stage, stop), file=sys.stderr)
+        return 2
+
     eng = Engine(exe)
     eng.send("uci")
     uci_lines, stop = eng.read_until("uciok")
@@ -125,20 +150,16 @@ def main():
         if line.startswith("id name "):
             id_name = line[len("id name "):]
     if stop:
-        with open(args.out, "w") as fh:
-            fh.write("# STOPPED during uci: %s\n" % stop)
         eng.quit()
-        return 1
+        return stop_early("uci", stop)
 
     for line in opt_lines:
         eng.send(line)
     eng.send("isready")
     _, stop = eng.read_until("readyok")
     if stop:
-        with open(args.out, "w") as fh:
-            fh.write("# STOPPED during setoption: %s\n" % stop)
         eng.quit()
-        return 1
+        return stop_early("setoption", stop, id_name)
 
     rows = []
     stopped = None
@@ -179,20 +200,7 @@ def main():
         if stopped:
             fh.write("# STOPPED at %d: %s\n" % stopped)
 
-    with open(meta_path, "w") as fh:
-        fh.write("exe_started: %s\n" % exe)
-        fh.write("exe_sha256: %s\nexe_sha256_at_start: %s\n" % (sha256_of(exe), exe_sha))
-        fh.write("id_name: %s\n" % id_name)
-        fh.write("set: %s\n" % os.path.abspath(args.set))
-        fh.write("set_sha256: %s\n" % sha256_of(args.set))
-        fh.write("depth: %d\n" % args.depth)
-        fh.write("searchmoves: %s\n" % (args.searchmoves or "(none)"))
-        fh.write("rows_written: %d\n" % len(rows))
-        if stopped:
-            fh.write("stopped_at_row: %d\nstopped_line: %s\n" % stopped)
-        fh.write("option_lines_sent:\n")
-        for line in opt_lines:
-            fh.write("  %s\n" % line)
+    write_meta(id_name, len(rows), stopped)
     if stopped:
         print("STOPPED at row %d: %s" % stopped, file=sys.stderr)
         return 2
