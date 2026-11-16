@@ -1,0 +1,62 @@
+=== base 6b98f217, 3 runs
+engine : /home/ubuntu/build/release/forge
+runs   : 3 fresh processes per setting, Threads 1, position startpos
+search : go depth 6
+
+setting                  cloud   median     min     max   ratio  runs  verdict
+----------------------------------------------------------------------------------
+MultiPV 2, Hash  16       17ms     15ms    13ms    16ms    0.9x     3  PASS (within 4x)
+MultiPV 2, Hash  64       52ms     45ms    45ms    47ms    0.9x     3  PASS (within 4x)
+MultiPV 4, Hash  64       82ms     76ms    71ms    80ms    0.9x     3  PASS (within 4x)
+MultiPV 2, Hash 256      250ms    221ms   212ms   255ms    0.9x     3  PASS (within 4x)
+
+=== harness checks (is a MEASUREMENT from this engine trustworthy?)
+  fabricated-bestmove test: `go depth 12` + immediate `quit`, on TWO positions
+    (two, because the engine's move order and alphabetical order AGREE on startpos
+     and DISAGREE here, so a check on startpos alone cannot tell a correct checker
+     from one that uses the wrong order)
+    startpos  -> bestmove a2a3 with 0 info depth line(s)
+              FABRICATED: published a2a3 without searching (matches the engine's own per-ply move order: True)
+    kiwipete  -> bestmove a2a3 with 0 info depth line(s)
+              FABRICATED: published a2a3 without searching (matches the engine's own per-ply move order: True)
+    YOUR harness must read to `bestmove` before quitting and must never record a
+    reply with no info lines. This is an engine defect, not a setting: it is present
+    on every build measured, on both positions.
+    self-test of this check: an alphabetical-first fake is DISTINGUISHED on kiwipete (startpos agrees: True, kiwipete: False)
+  searchmoves branches:
+    legal   `searchmoves e2e4` -> e2e4, 6 info lines, nodes 438   [ok]
+    no-match `searchmoves zzzz` -> 0000, nodes [0, 0, 0, 0, 0, 0]   [ok]
+
+=== absolute machine-speed anchor (fixed node count, not a ratio of a depth search)
+  `go nodes 1,000,000` -> 920,173 reported nodes in 527 ms  =  573 ms per million nodes
+  reference box (4 cores, measured): 630 ms per million
+  same-class band                  : 540-820 ms per million   -> your machine is 0.91x the reference   [in band]
+  core count does NOT move this anchor (a Threads 1 search uses one core: measured
+  601 ms/M pinned to 1 core vs 594 unpinned). CPU generation and clock do.
+  the SAME box drifts ~15% between minutes (block medians 653/625/636/608/623), so
+  this anchor only means something for GROSS differences (2x or more), not small ones.
+
+How to read this
+  cloud = median on the 4-core machine these tables came from; ratio = yours / cloud.
+  PASS  = within 4x. A machine 4x slower is still fine to play with.
+  WATCH = 4x to 10x. Usable; prefer one notch smaller Hash if a search feels slow.
+  FAIL  = over 10x, or a run that never completed a search.
+  SLOW  = within 10x but over 500 ms absolute at depth 6: your
+          machine is fine, this setting is just slow to watch. Drop a notch.
+  Reference point: MultiPV 2 at Hash 64 over 200 ms means a machine about 4x this one.
+
+WHICH VERDICT TO TRUST WHEN THEY DISAGREE
+  The anchor measures the machine and nothing else; the grid measures the settings on
+  that machine. If the anchor is PASS and a grid cell FAILs, the setting is the problem,
+  not the machine: use a smaller Hash or fewer PV lines.
+  If the anchor is WATCH/FAIL and the grid cells are PASS, trust the ANCHOR: the grid
+  numbers are relative to this cloud box, and a uniformly slower machine can still
+  finish a depth-6 search quickly while being slow at everything else.
+  If both agree, trust both.
+
+The SHAPE is what matters and it does not depend on your machine:
+  MultiPV 1 costs the same at every Hash size; the cost is (MultiPV-1) x Hash.
+  So if a cell here is slow, halving Hash or dropping one MultiPV line fixes it.
+
+The one setting that is never safe on any machine: Hash 2048 with MultiPV 8
+  (8-9 s for `go depth 6`, depth 0-1 on a 5 s clock, on the cloud box).

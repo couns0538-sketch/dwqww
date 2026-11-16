@@ -30,6 +30,10 @@ import threading
 import time
 
 FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+# A SECOND position for the fabrication check, because the two orders agree on startpos and
+# disagree here (engine order[0] = a2a3, alphabetical = a1b1). A check that passes on startpos
+# alone would also pass on a checker that uses the wrong move order.
+FEN_KIWI = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
 
 # (label, Hash MB, MultiPV). The verdict is a RATIO against the cloud number, one rule for every
 # cell, so no cell can "pass" merely because its budget is large:
@@ -183,13 +187,16 @@ def machine_speed(exe, threads, runs=3):
 FIRST_LEGAL_CACHE = {}
 
 
-def first_legal_move(exe, threads):
+def first_legal_move(exe, threads, fen=None):
     """The generator's first legal move: perft 1's first listed move.
 
     perft prints `nodes N` as its last line, so the session must wait for THAT, not for a
-    `bestmove` (perft never sends one).
+    `bestmove` (perft never sends one). The order is the ENGINE's, never python-chess's sorted
+    order: those differ on kiwipete (a2a3 vs a1b1) and a checker using the sorted order would
+    clear a real fabrication there.
     """
-    key = exe if isinstance(exe, str) else tuple(exe)
+    fen = fen or FEN
+    key = (exe if isinstance(exe, str) else tuple(exe), fen)
     if key in FIRST_LEGAL_CACHE:
         return FIRST_LEGAL_CACHE[key]
     cmd = exe if isinstance(exe, list) else [exe]
@@ -217,7 +224,7 @@ def first_legal_move(exe, threads):
         return None
 
     try:
-        p.stdin.write(f"uci\nsetoption name OwnBook value false\nposition fen {FEN}\n"
+        p.stdin.write(f"uci\nsetoption name OwnBook value false\nposition fen {fen}\n"
                       f"isready\ngo perft 1\n")
         p.stdin.flush()
         wait(lambda l: l == "readyok", 30)
@@ -300,8 +307,15 @@ def _session(exe, threads, commands, read_to_bestmove=True, bound=180.0):
     return out
 
 
-def check_fabricated(exe, threads):
-    """`go depth 12` and an immediate quit, in ONE write, as a pipelining harness would do it."""
+def check_fabricated(exe, threads, fen=None):
+    """`go depth 12` and an immediate quit, in ONE write, as a pipelining harness would do it.
+
+    `fen` defaults to startpos. It is a parameter because the check is position-dependent in one
+    subtle way: the fabricated move is `root_candidates.front()`, and the comparison against the
+    generator order (not python-chess's alphabetical order) only DISTINGUISHES the two orders on
+    some positions. See the two-position run in the output.
+    """
+    fen = fen or FEN
     cmd = exe if isinstance(exe, list) else [exe]
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, text=True, bufsize=1)
@@ -310,7 +324,7 @@ def check_fabricated(exe, threads):
     threading.Thread(target=lambda: ([q.put(l.rstrip("\n")) for l in p.stdout], q.put(None)),
                      daemon=True).start()
     try:
-        p.stdin.write(f"uci\nsetoption name OwnBook value false\nposition fen {FEN}\n"
+        p.stdin.write(f"uci\nsetoption name OwnBook value false\nposition fen {fen}\n"
                       f"isready\ngo depth 12\nquit\n")
         p.stdin.flush()
     except (BrokenPipeError, OSError, ValueError):
@@ -337,9 +351,48 @@ def check_fabricated(exe, threads):
     infos = [l for l in out if l.startswith("info depth")]
     bms = [l for l in out if l.startswith("bestmove")]
     bm = bms[-1].split()[1] if bms else None
-    return {"bestmove": bm, "info_lines": len(infos),
+    return {"fen": fen, "bestmove": bm, "info_lines": len(infos),
             "fabricated": bool(bms) and not infos,
-            "is_first_legal": bm == first_legal_move(exe, threads) if bm else None}
+            "is_first_legal": bm == first_legal_move(exe, threads, fen=fen) if bm else None}
+
+
+def _write_order_probe():
+    """A throwaway engine that is right on startpos and alphabetical (wrong) on kiwipete."""
+    import tempfile
+    import os
+    import stat
+    src = '''#!/usr/bin/env python3
+import sys
+KIWI = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
+in_kiwi = False
+for line in sys.stdin:
+    w = line.split()
+    if not w: continue
+    if w[0] == "uci":
+        print("id name OrderProbe"); print("option name OwnBook type check default true")
+        print("uciok", flush=True)
+    elif w[0] == "position":
+        in_kiwi = KIWI.split()[0] in line
+    elif w[0] == "isready":
+        print("readyok", flush=True)
+    elif w[0] == "go":
+        if "perft" in w:
+            pairs = [("a2a3",1),("b2b3",1),("g2g3",1)] if in_kiwi else [("a2a3",1),("b2b3",1)]
+            for mv,c in pairs: print(f"{mv}: {c}")
+            print("nodes 20", flush=True)
+        else:
+            print(f"bestmove {'a1b1' if in_kiwi else 'a2a3'}", flush=True)
+    elif w[0] == "quit":
+        break
+'''
+    try:
+        fd, path = tempfile.mkstemp(suffix="_orderprobe.py")
+        with os.fdopen(fd, "w") as f:
+            f.write(src)
+        os.chmod(path, os.stat(path).st_mode | stat.S_IEXEC)
+        return path
+    except OSError:
+        return None
 
 
 def check_searchmoves(exe, threads):
@@ -427,17 +480,43 @@ def main():
     # ---- the two harness checks
     print()
     print("=== harness checks (is a MEASUREMENT from this engine trustworthy?)")
-    fab = check_fabricated(exe, threads)
-    print(f"  fabricated-bestmove test: `go depth 12` + immediate `quit`")
-    print(f"    -> bestmove {fab['bestmove']} with {fab['info_lines']} info depth line(s)")
-    if fab["fabricated"]:
-        print(f"    FABRICATED: the engine published {fab['bestmove']} without searching "
-              f"(first legal move: {fab['is_first_legal']}).")
-        print(f"    YOUR harness must read to `bestmove` before quitting and must never")
-        print(f"    record a reply with no info lines. This is an engine defect, not a")
-        print(f"    setting: it is present on every build measured.")
-    else:
-        print(f"    ok: the search produced lines before answering")
+    print(f"  fabricated-bestmove test: `go depth 12` + immediate `quit`, on TWO positions")
+    print(f"    (two, because the engine's move order and alphabetical order AGREE on startpos")
+    print(f"     and DISAGREE here, so a check on startpos alone cannot tell a correct checker")
+    print(f"     from one that uses the wrong order)")
+    fab_any = False
+    fab_start = check_fabricated(exe, threads, fen=FEN)
+    fab_kiwi = check_fabricated(exe, threads, fen=FEN_KIWI)
+    for label, fab in (("startpos", fab_start), ("kiwipete", fab_kiwi)):
+        print(f"    {label:9} -> bestmove {fab['bestmove']} with {fab['info_lines']} "
+              f"info depth line(s)")
+        if fab["fabricated"]:
+            fab_any = True
+            print(f"              FABRICATED: published {fab['bestmove']} without searching "
+                  f"(matches the engine's own per-ply move order: {fab['is_first_legal']})")
+        else:
+            print(f"              ok: the search produced lines before answering")
+    if fab_any:
+        print(f"    YOUR harness must read to `bestmove` before quitting and must never record a")
+        print(f"    reply with no info lines. This is an engine defect, not a setting: it is present")
+        print(f"    on every build measured, on both positions.")
+    fab = fab_start if fab_start["fabricated"] else fab_kiwi
+
+    # A self-test of the CHECK ITSELF, not of the engine: a fake whose fabricated move is the
+    # ALPHABETICAL first move is indistinguishable from a correct engine on startpos and
+    # distinguishable only on kiwipete. If this line ever says "not distinguishable", the
+    # two-position check has stopped doing its job.
+    fake = _write_order_probe()
+    if fake:
+        k = check_fabricated(fake, threads, fen=FEN_KIWI)
+        st = check_fabricated(fake, threads, fen=FEN)
+        distinguishable = (k["is_first_legal"] is False and st["is_first_legal"] is True)
+        print(f"    self-test of this check: an alphabetical-first fake is "
+              f"{'DISTINGUISHED on kiwipete' if distinguishable else 'NOT distinguished'}"
+              f" (startpos agrees: {st['is_first_legal']}, kiwipete: {k['is_first_legal']})")
+        if not distinguishable:
+            print(f"    WARNING: the second position is not doing its job; the check may be")
+            print(f"    position-blind. Do not trust a PASS from it alone.")
 
     sm = check_searchmoves(exe, threads)
     print(f"  searchmoves branches:")

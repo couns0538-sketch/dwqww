@@ -89,7 +89,7 @@ swarm measured fabricated answers before anyone noticed:
 
 | check | what it does | what you see |
 |---|---|---|
-| **fabricated bestmove** | sends `go depth 12` and an immediate `quit` | **FABRICATED** with the move and `0 info depth line(s)`, if the engine answered without searching. It does on every build measured: your harness must read to `bestmove` before quitting. |
+| **fabricated bestmove** | sends `go depth 12` and an immediate `quit`, on **two positions** (startpos and kiwipete) | **FABRICATED** with the move and `0 info depth line(s)`, if the engine answered without searching. It does on every build measured: your harness must read to `bestmove` before quitting. Two positions because the engine's move order and alphabetical order agree on startpos and disagree on kiwipete, so one position cannot tell a correct check from one using the wrong order — the tool also self-tests this each run. |
 | **searchmoves branches** | legal `searchmoves e2e4`, then no-match `searchmoves zzzz` | `e2e4` with real info lines and nodes, and `0000` with all-zero node lines plus an `info string` note. Both sides of the branch, so a harness test is meaningful. |
 
 Each has a planted control inside the tool's own test run, so "ok" means the check could also have
