@@ -1,0 +1,25 @@
+## 08-F5 on the PC build under PC20 (Threads 1) — is the reserve-empty emergency branch repaired?
+
+| fen | go | wall ms | bestmove | info depth lines | deepest | info string |
+|---|---|---|---|---|---|---|
+| r3r1k1/p1bb1ppp/1p1q4/3P1p2/1n | go wtime 10 btime 10 | 0.76 | b6b5 | 1 | 1 | - |
+| r3r1k1/p1bb1ppp/1p1q4/3P1p2/1n | go wtime 1 btime 1 | 1.01 | b6b5 | 1 | 1 | - |
+| r3r1k1/p1bb1ppp/1p1q4/3P1p2/1n | go wtime 0 btime 0 | 1.00 | b6b5 | 1 | 1 | - |
+| r3r1k1/p1bb1ppp/1p1q4/3P1p2/1n | go depth 1 | 1.17 | b6b5 | 1 | 1 | - |
+| r3r1k1/p1bb1ppp/1p1q4/3P1p2/1n | go movetime 50 | 40.73 | b6b5 | 12 | 12 | - |
+| r1bqk2r/ppp1bppp/3p1n2/8/3QP3/ | go wtime 10 btime 10 | 0.87 | d4c4 | 1 | 1 | - |
+| r1bqk2r/ppp1bppp/3p1n2/8/3QP3/ | go wtime 1 btime 1 | 1.13 | d4c4 | 1 | 1 | - |
+| r1bqk2r/ppp1bppp/3p1n2/8/3QP3/ | go wtime 0 btime 0 | 0.75 | d4c4 | 1 | 1 | - |
+| r1bqk2r/ppp1bppp/3p1n2/8/3QP3/ | go depth 1 | 0.78 | d4c4 | 1 | 1 | - |
+| r1bqk2r/ppp1bppp/3p1n2/8/3QP3/ | go movetime 50 | 40.24 | e1g1 | 13 | 13 | - |
+| 8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w | go wtime 10 btime 10 | 0.79 | e4f5 | 1 | 1 | - |
+| 8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w | go wtime 1 btime 1 | 0.75 | e4f5 | 1 | 1 | - |
+| 8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w | go wtime 0 btime 0 | 0.74 | e4f5 | 1 | 1 | - |
+| 8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w | go depth 1 | 0.61 | e4f5 | 1 | 1 | - |
+| 8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w | go movetime 50 | 40.27 | f4f5 | 15 | 15 | - |
+
+### reading
+- On the BASE tree, `wtime 10/1/0` gave an answer in ~0.15 ms equal to the `go depth 1` answer 8 of 8 times,
+  with 1 info depth line (the emergency ply) or none at all.
+- If the PC build now searches to a real depth on `wtime 10`, the emergency branch is repaired.
+- If it still answers in ~0.2 ms at depth 1, the fix did not change this path.
