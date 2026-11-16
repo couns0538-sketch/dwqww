@@ -423,3 +423,6 @@ Settings: **none** (no setoption), **S14** (the 14 settings), **PC20** (S14 + th
   `ABORT_PUBLISH` — no probe I built distinguishes ON from OFF, so I claim nothing about them.
 - The brief's `REPORT_deepseek6_longK.md` does not exist; I recounted long58 instead (S-F9).
 - I never ran anything above Threads 1 for a score claim; every number here is Threads 1.
+- S-F62: after a refused FEN, ONLY `ucinewgame` clears the stale board. `isready`, `eval`, `stop` and
+  `go perft` all leave it in place (the go still returns a game-1 move). So "resync with isready" —
+  exactly what a GUI does — does NOT defend. The defence is to DISCARD the game, not to resync.
