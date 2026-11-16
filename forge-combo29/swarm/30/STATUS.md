@@ -46,3 +46,9 @@ Corrections recorded honestly: job-2's original totals are INVALID (19-F12 conta
 
 **CORRECTED JOB-2 NUMBERS IN**: 2,000 sequences, 0 crashes / 0 hangs / 0 sanitizer lines / 0 illegal bestmoves out of 1,032 honestly-attributable bestmoves (2,902 excluded as ended-live under 19-F12). REPORT_job2.md now leads with this and keeps the invalidated numbers only as a record. Everything pushed.
 **Next command**: `git log --oneline -1` and stop; all three area-10 jobs and three checks are complete and pushed.
+
+## Mon Nov 16 10:18:46 PM UTC 2026 CONTINUE: 12 more hours, ends at Tue Nov 17 10:18:46 AM UTC 2026
+
+Seat kept: 30 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-30, folder forge-combo29/swarm/30/. No new seat taken.
+**Now**: reading FABLE_TO_swarm_5.md (the owner's PC engine) before the next step, per TEXT 2, then building it in a separate copy with -DFORGE_MATE_ALPHA_GUARD=1 and checking its known bench numbers. Then continuing with BOTH builds (base 6b98f217 + PC build) under PC20 where a job needs settings.
+**Next command**: `cd /agent/repos/dwqww && git fetch -q --depth 1 origin handoff/fable-opus-combo29-all-20261114 && git ls-tree -r --name-only FETCH_HEAD | grep FABLE_TO_swarm`
