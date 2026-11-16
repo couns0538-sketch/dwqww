@@ -8,13 +8,18 @@ seat 19 · area 9 · build **PC r15** · **PC20** · **Threads 1** · Hash 16 ·
 Report numbers **only through `windowed_verdict()`** (19-C10/19-F57), so a mate that does not fit inside
 `100 − counter` is treated as the draw the rules actually give.
 
-**The answer.** **1 of 8 covered positions is a defect**: `6k1/8/5K2/8/6r1/8/8/8 w - - 12 182` — the bare white
-king plays `f6e7`, which is mated in **17 plies**, when `f6f5` survives **29 plies**. It gives up **12 plies** of
-resistance it could have kept. Same move at both budgets.
+**The answer.** **1 of 8 covered positions is a defect at the budgets tested**: `6k1/8/5K2/8/6r1/8/8/8 w - - 12
+182` — the bare white king plays `f6e7`, mated in **17 plies**, when `f6f5` survives **29 plies**: 12 plies of
+resistance given away. **But it is a calibration case, not a bug** — at depth 24 the engine plays `f6f5` with
+`mate -15`, exactly as the oracle said (§4). What it demonstrates is *where the engine's horizon sits*, not a
+preference for losing quickly.
 
 **How sure.** The DTM values are exact (validated solver, KQvK reproduces 19 plies) and the window clamp is
-applied: the window here is **88** half-moves and every legal move's mate fits well inside it, so no verdict
-turns on the clamp. The comparison is two exact integers.
+applied to every verdict. On the *flagged* position the clamp happens not to be decisive (window 88, all mates
+fit), but **it was decisive elsewhere in this same run — position 31, counter 87, window 13 — and would have
+manufactured a false defect without it.** That pairing is exactly why I withheld these mirror numbers until
+`windowed_verdict()` existed: the clamp is not a formality, it is the difference between one real finding and
+two, one of them wrong.
 
 ## 2. The window clamp was live in this run, which is why it matters
 
