@@ -1,4 +1,4 @@
-## 2026-11-16T21:52Z (time from `date -u`, appended to job12/stamps.txt at the same moment)
+## 2026-11-16T21:45:44Z (from `date -u`, the same command that stamped job12/stamps.txt)
 seat 21, area 1 (FEN INPUT under ASan + UBSan), branch for-fable-and-opus/swarm-21
 
 **Findings**: 21-F1..F10 (engine), 21-C1..C4 (30-F6, 30-F7, 08-F5 all independently
