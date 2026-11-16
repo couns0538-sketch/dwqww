@@ -110,3 +110,11 @@ done: F13 PC option churn under TSan 250/250 clean (planted 10). F14 the termina
 runs now: nothing long. Next: area-4 job 2/3 variants on the PC build under TSan at higher thread counts, and the
       next unconfirmed find from another seat.
 next command: cd /agent/repos/dwqww && git ls-remote origin "refs/heads/for-fable-and-opus/swarm-*" | sed 's#.*/swarm-##' | sort | tr '\n' ' '
+
+## 2026-11-16T23:13Z
+done: F18 PC build TSan clean at Threads 16 (150 rounds). F19 the terminal-root wait is thread-count independent
+      (fails at Threads 1 AND 4 on the PC build) and the patch fixes it at both.
+      F17 is the deliverable for the owner: `patches/two_gui_hang_fixes.patch.txt` — one text patch against the PC
+      r15 source that fixes BOTH silent GUI hangs (terminal-root infinite/ponder, and the opponent-only clock),
+      verified clean with `patch -p1` and proven to keep every honesty number.
+next command: cd /agent/repos/dwqww/forge-combo29/swarm/24 && bash -c 'git log --oneline -5'
