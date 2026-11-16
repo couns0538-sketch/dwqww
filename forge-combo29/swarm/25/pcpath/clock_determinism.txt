@@ -1,0 +1,62 @@
+### determinism by field, 6 runs each — PC r15/PC20, Threads 1, Hash 16
+====================================================================================
+position: rnb1kbnr/ppp1pppp/8/4q3/8/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 4
+  go wtime 6000 btime 6000 winc 60 binc 60
+     score  2 DISTINCT VALUES      ['score cp 55', 'score cp 67']
+     nodes  2 DISTINCT VALUES      ['172312', '309981']
+     depth  2 DISTINCT VALUES      ['16', '18']
+     move   DETERMINISTIC          ['f1e2']
+     ms     6 DISTINCT VALUES      ['155', '182', '184', '185']
+  go nodes 20000
+     score  DETERMINISTIC          ['score cp 89']
+     nodes  DETERMINISTIC          ['9330']
+     depth  DETERMINISTIC          ['11']
+     move   DETERMINISTIC          ['f1e2']
+     ms     DETERMINISTIC          ['13']
+  go softnodes 2000
+     score  DETERMINISTIC          ['score cp 97']
+     nodes  DETERMINISTIC          ['2474']
+     depth  DETERMINISTIC          ['8']
+     move   DETERMINISTIC          ['f1e2']
+     ms     2 DISTINCT VALUES      ['2', '3']
+====================================================================================
+position: 1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P2PPP1/P3BK2/R1R5 b - - 0 1
+  go wtime 6000 btime 6000 winc 60 binc 60
+     score  2 DISTINCT VALUES      ['score cp -292', 'score cp -294']
+     nodes  2 DISTINCT VALUES      ['288912', '314239']
+     depth  2 DISTINCT VALUES      ['17', '18']
+     move   DETERMINISTIC          ['g7g6']
+     ms     6 DISTINCT VALUES      ['157', '161', '164', '165']
+  go nodes 20000
+     score  DETERMINISTIC          ['score cp -287']
+     nodes  DETERMINISTIC          ['19832']
+     depth  DETERMINISTIC          ['11']
+     move   DETERMINISTIC          ['g7g6']
+     ms     2 DISTINCT VALUES      ['11', '12']
+  go softnodes 2000
+     score  DETERMINISTIC          ['score cp -306']
+     nodes  DETERMINISTIC          ['2671']
+     depth  DETERMINISTIC          ['7']
+     move   DETERMINISTIC          ['g7g6']
+     ms     2 DISTINCT VALUES      ['2', '3']
+
+VERDICT — this CORRECTS my S-F26 claim, and it is the seventh self-correction.
+S-F26 said "`go nodes 20000/50000/250000` and `go wtime 6000 winc 60` are all 3/3 reproducible in score, node
+count and move". That is TRUE for the node limits and FALSE for the clock, as 6 runs per command show:
+
+  go wtime 6000 ... : score 2 distinct values, nodes 2, depth 2, MOVE deterministic, ms 6 distinct
+  go nodes 20000    : score/nodes/depth/move ALL deterministic (ms 2 distinct, i.e. only timing noise)
+  go softnodes 2000 : score/nodes/depth/move ALL deterministic (ms 2 distinct)
+
+So the accurate statement is:
+  * `go nodes N` and `go softnodes N` are FULLY deterministic in score, nodes, depth and move (only wall time varies).
+  * `go <clock>` is deterministic in the MOVE only. Score, node count and depth vary run to run, because the stop
+    depends on the wall clock: one run finishes depth 16, another reaches 18, so the reported score differs by a
+    few centipawns (55 vs 67; -292 vs -294) and nodes differ by ~80% (172,312 vs 309,981).
+My earlier 3/3 was a small sample that happened to land on the same depth each time; with 6 runs the variation
+shows. The move was stable in every run, which is the property a match actually depends on - so the match path is
+still sound, but a training or analysis pipeline that records SCORES from clock-based searches gets run-to-run
+variation, and should record them as approximate.
+
+This also explains why the FINAL's "match results at Threads 1 are trustworthy" carries a caveat I originally got
+wrong: the MOVES are trustworthy, the SCORES from a clock are not exactly reproducible.
