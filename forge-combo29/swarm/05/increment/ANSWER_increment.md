@@ -54,6 +54,19 @@ noise. `out/fourth_point.txt`, `out/ceiling_runs.txt`.
 - `0.06 → 6 s`: **~9.7x** the time, **+7 median plies** (one board reached depth 64).
 - `6 → 24 s`: **nothing at all** — the engine stops asking for more than roughly 3.6 s per move on this path.
 
+**Where exactly does it stop?** A bracketing run (4 positions, 3 runs each, clock 6 s) pins it:
+
+| increment | median wall | median depth | vs previous |
+|---|---|---|---|
+| 3,000 ms | 1,680 ms | 26 | — |
+| **6,000 ms** | **1,928 ms** | **27** | 1.15x |
+| 10,000 ms | 1,920 ms | 27 | **1.00x** |
+| 16,000 ms | 1,928 ms | 27 | **1.00x** |
+| 24,000 ms | 1,928 ms | 27 | **1.00x** |
+
+So the flat region begins at an increment of about **6 seconds** and holds across a 4x range beyond it. **The useful
+increment range on this path is roughly 0.06 s to 6 s; past 6 s the increment is dead weight.**
+
 ## What this means for the owner
 
 - Raising the increment **does** buy thinking time — no plateau, and the effect is large in practice:
