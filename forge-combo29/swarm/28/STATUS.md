@@ -173,3 +173,6 @@ S-F39 per-move p90 at the owner's control measured ON REAL GAMES: 4 games, 281 m
 
 ## Mon Nov 16 11:21:17 PM UTC 2026
 S-F40 longer games (6, different openings): median 99 ms, p90 262 ms, max 792 ms; longest game 224 plies with a side holding ~115 ms for 37 consecutive moves and its depth falling to 10-12 - the time manager self-limiting correctly. 0 of 6 flagged, but 2 games ended with a side under 300 ms and from 111 ms one more p90 search would flag. Combined with S-F39: 1,090 moves, median 99-132, p90 262-359, max 792. THE ANSWER: the clock survives at 6s+0.06, the margin at long games is about one p90 move.
+
+## Mon Nov 16 11:21:54 PM UTC 2026
+S-F41 RETRACTS my own transition mechanism. Constructed the case as asked (4 complex middlegames x clock 300/200/150/111, 16 searches): ZERO flagged, and the walls (22-50 ms) were far below even the hard plan (60-174) because the engine finishes its ladder early. And the arithmetic says it must be so: hard = min(available*60/100, soft*5) means a search can never spend more than 60% of the remaining clock, so hard < clock+60 at EVERY clock size. S-F39/S-F40's numbers stand; the 'one p90 move from flagging' interpretation does not. Correct statement is STRUCTURAL not adaptive: spending is proportional to what remains. Written in TRANSITION_REFUTED.md.
