@@ -1,0 +1,27 @@
+CHECK of seat 13's S-F18: PC patch switch defaults, and the GO_PARSE behavioural signature
+pc   /home/ubuntu/builds/pc/forge sha256 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+base /home/ubuntu/builds/release/forge sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+
+A. FORGE_FIX_* defaults in the source that produced my PC binary:
+switch	value	location
+FORGE_FIX_ABORT_PUBLISH	0	src/search.cpp:77
+FORGE_FIX_BARE_KING_LMR_CAP	1	src/search.cpp:63
+FORGE_FIX_BARE_KING_ONE_THREAD	0	src/search.cpp:55
+FORGE_FIX_GO_PARSE	1	src/uci.cpp:31
+FORGE_FIX_HARD_LIMIT_EMERGENCY	1	src/search.cpp:43
+FORGE_FIX_ISREADY_PENDING	1	src/uci.cpp:38
+FORGE_FIX_ROOT_DRAWN	1	src/search.cpp:36
+
+   switches defaulting to 0: ['FORGE_FIX_BARE_KING_ONE_THREAD', 'FORGE_FIX_ABORT_PUBLISH']
+
+B. GO_PARSE behavioural signature: a malformed `go` with a keyword where a value belongs
+command	pc lines	depth	nodes	base lines	depth	nodes	identical?
+go wtime btime 50	3	3	215	1	1	26	False
+go wtime 50 btime 50	4	4	404	4	4	404	True
+
+A RESULT: 2 of 7 FORGE_FIX_* switches default to 0 (FORGE_FIX_BARE_KING_ONE_THREAD, FORGE_FIX_ABORT_PUBLISH), which CONFIRMS seat 13's S-F18.
+B RESULT: the malformed `go` DIFFERS between builds (PC 3 lines/depth 3 vs base 1/depth 1);
+  the well-formed control is IDENTICAL, as seat 13 found.
+
+WHY THIS MATTERS FOR THE OWNER: what he runs is not 'the PC patch's seven fixes' but FIVE of
+  them, and the two that are off are off for measured reasons recorded in the patch itself.

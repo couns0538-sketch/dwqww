@@ -1,0 +1,87 @@
+{
+ "switches": {
+  "FORGE_FIX_GO_PARSE": {
+   "value": "1",
+   "location": "src/uci.cpp:31"
+  },
+  "FORGE_FIX_ISREADY_PENDING": {
+   "value": "1",
+   "location": "src/uci.cpp:38"
+  },
+  "FORGE_FIX_ROOT_DRAWN": {
+   "value": "1",
+   "location": "src/search.cpp:36"
+  },
+  "FORGE_FIX_HARD_LIMIT_EMERGENCY": {
+   "value": "1",
+   "location": "src/search.cpp:43"
+  },
+  "FORGE_FIX_BARE_KING_ONE_THREAD": {
+   "value": "0",
+   "location": "src/search.cpp:55"
+  },
+  "FORGE_FIX_BARE_KING_LMR_CAP": {
+   "value": "1",
+   "location": "src/search.cpp:63"
+  },
+  "FORGE_FIX_ABORT_PUBLISH": {
+   "value": "0",
+   "location": "src/search.cpp:77"
+  }
+ },
+ "off": [
+  "FORGE_FIX_BARE_KING_ONE_THREAD",
+  "FORGE_FIX_ABORT_PUBLISH"
+ ],
+ "rows": [
+  {
+   "go": "go wtime btime 50",
+   "pc": {
+    "go": "go wtime btime 50",
+    "n_info": 3,
+    "max_depth": 3,
+    "nodes": 215,
+    "got_bestmove": true,
+    "wall_ms": 1.2
+   },
+   "base": {
+    "go": "go wtime btime 50",
+    "n_info": 1,
+    "max_depth": 1,
+    "nodes": 26,
+    "got_bestmove": true,
+    "wall_ms": 1.1
+   },
+   "identical": false
+  },
+  {
+   "go": "go wtime 50 btime 50",
+   "pc": {
+    "go": "go wtime 50 btime 50",
+    "n_info": 4,
+    "max_depth": 4,
+    "nodes": 404,
+    "got_bestmove": true,
+    "wall_ms": 1.5
+   },
+   "base": {
+    "go": "go wtime 50 btime 50",
+    "n_info": 4,
+    "max_depth": 4,
+    "nodes": 404,
+    "got_bestmove": true,
+    "wall_ms": 1.3
+   },
+   "identical": true
+  }
+ ],
+ "verdict": [
+  "",
+  "A RESULT: 2 of 7 FORGE_FIX_* switches default to 0 (FORGE_FIX_BARE_KING_ONE_THREAD, FORGE_FIX_ABORT_PUBLISH), which CONFIRMS seat 13's S-F18.",
+  "B RESULT: the malformed `go` DIFFERS between builds (PC 3 lines/depth 3 vs base 1/depth 1);",
+  "  the well-formed control is IDENTICAL, as seat 13 found.",
+  "",
+  "WHY THIS MATTERS FOR THE OWNER: what he runs is not 'the PC patch's seven fixes' but FIVE of",
+  "  them, and the two that are off are off for measured reasons recorded in the patch itself."
+ ]
+}

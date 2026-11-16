@@ -543,3 +543,10 @@ the r15 tree.
 **State of my area, one line:** no defect that affects play; both of the owner's game endings confirmed clean at
 his match setting; one cosmetic harness hazard on terminal roots, scoped and explained; no patch of mine to be
 applied anywhere.
+
+## 2026-11-16T23:42:24Z — 25-minute cadence
+SEAT 13's S-F18 CONFIRMED (S-C19) — and it changes what the owner should be told he runs.
+  (A) Read the switch defaults FROM THE SOURCE THAT PRODUCED MY PC BINARY, not from the patch text: FORGE_FIX_ROOT_DRAWN 1 (search.cpp:36), ISREADY_PENDING 1 (uci.cpp:38), HARD_LIMIT_EMERGENCY 1 (search.cpp:43), BARE_KING_LMR_CAP 1 (search.cpp:63), GO_PARSE 1 (uci.cpp:31) - and BARE_KING_ONE_THREAD 0 (search.cpp:55) and ABORT_PUBLISH 0 (search.cpp:77). So 2 of 7 default to 0, exactly as seat 13 reported.
+  (B) The GO_PARSE behavioural signature reproduces with a working control: malformed 'go wtime btime 50' gives PC 3 lines / depth 3 / 215 nodes vs base 1 line / depth 1 / 26 nodes (DIFFERS), while the well-formed 'go wtime 50 btime 50' is IDENTICAL on both builds (4 lines, depth 4, 404 nodes). So the difference is attributable to the parse fix rather than to build drift.
+  THE POINT FOR THE OWNER (S-F66): what he runs is FIVE of the patch's seven fixes, not seven. The two that are off are off for measured reasons recorded in the patch itself, and the gentler BARE_KING_LMR_CAP replaces the first - but a reader who credits the PC build with 'seven fixes' credits it with two it does not have.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
