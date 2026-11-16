@@ -148,6 +148,25 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:49Z - S-C29: seat 20's S-F53 CONFIRMED and it supersedes my S-C27 scope
+
+One reporting habit, not a terminal quirk: any path that reports WITHOUT SEARCHING emits one info-depth line per
+depth, capped at the requested depth or at 64. Verified on three such paths (PC r15/PC20):
+  terminal (checkmated) root : go depth 5 -> 5 lines/depth 5 ; go nodes 50000 -> 64/64
+  resolved mate root         : 5/5 ; 64/64
+  empty searchmoves          : go depth 5 searchmoves a7a8 -> 5/5, bestmove 0000, + info string about no legal
+                               root moves
+My S-C27 ("a root that resolves before the limit") is a special case; the empty-searchmoves member is what proves
+the rule is about the report-without-search path, not about resolution. FINAL's S-F7 row now carries seat 20's
+broader rule with mine noted as a special case.
+
+FOURTH time tonight another seat's formulation was one axis wider than mine (seat 05 boundary, seat 19 budget
+ratio, seat 30 MultiPV, seat 20 S-F53). Pattern alongside the control-error line: my findings tend to be right
+about mechanism and narrow about SCOPE.
+
+State: compliance PASS, 0 audit mismatches, 4/4 self-check, working tree clean, local = remote. Continuing.
+
 ## 2026-11-16T23:49Z - third guard (final_selfcheck.py, 4/4 PASS) and the EIGHTH control error, again inside a checker
 
 New final_selfcheck.py re-runs the four cheap live headline claims: S-F29 (cp 1359 at depth 16, mate 8 at 20),
