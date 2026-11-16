@@ -74,3 +74,13 @@ control. Findings 23-F5, 23-F6 added; REPORT_job2.md written.
 Final answer for area 3 so far: the move generator agrees with python-chess on 5,058 positions at perft 1..4
 with 0 differences, and handles the pinned ep capture of hand-built positions correctly.
 Next if time remains: area 3 job 3 (perft 5 on 200 R positions + first 30 of G); prediction first, alone.
+
+## 2026-11-16T21:53Z  JOB 3 RUNNING + 23-C1
+job3 prediction committed alone. startpos perft 5 = 4,865,609 (P1 HELD). Engine side DONE: R200 perft 1..5 in
+35.1 s, G30 in 4.1 s (engine_R200.jsonl, engine_G30.jsonl).
+python-chess reference at depth 5 costs ~43 s PER POSITION here, so 200 R over 4 workers is ~36 min: RUNNING,
+writes each position as it finishes. Expected finish ~22:20Z. G30 reference may not fit before 22:30 — will be
+reported as not done if so, with the engine-side numbers it does have.
+Also done: 23-C1 CONFIRMS 30-F6 (position-then-ucinewgame loses the position: Ruy Lopez 27 nodes -> 20 after
+ucinewgame -> 27 again with ucinewgame first; two consecutive positions without ucinewgame = 27 then 20). My own
+harness is safe, it sends ucinewgame once at startup before any position — checked in engine_perft.py.
