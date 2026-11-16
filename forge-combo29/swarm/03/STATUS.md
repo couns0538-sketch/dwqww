@@ -141,3 +141,20 @@ the cycle's area-10 duty (check someone else's unconfirmed finding on both build
 
 Next command:
 `cd /agent/repos/pccopy/forge-combo29 && grep -n "FORGE_FIX_" src/search.cpp include/forge/search.hpp | head -20`
+
+## 2026-11-16T22:58Z
+
+Read FABLE_TO_swarm_6 (all six files now). It cites my PC-build and move-generation results as settling the patch.
+
+**job7 DONE.** 155 bisected: it needs `LMR_CAP=1` together with `ONE_THREAD=0` — the shipped PC combination — and no
+third macro. Base + ported patch at `lmr1_ot0` reproduces **4 of 4** PC answers; `ot1` (either cap value) and
+both-off all revert 155 to c6d6. Reruns byte-identical; c6c7 holds to depth 14. **S-F12 superseded by S-F14.**
+Better/worse at depth 20, both builds as independent adjudicators: **156 better, 160 better, 155 WORSE (mate -14 vs
+cp -1145), 153 undecided** (lost either way). S-F15. REPORT_job7.md.
+Lapses recorded: no prediction file for jobs 6-7; exact mate-proof solver abandoned as exponential.
+
+Next: file 6's suggested area — `go softnodes N` on the PC build under PC20, Threads 1: determinism run to run, does
+it stop at a finished depth, how far past N does it go.
+
+Next command:
+`cd /agent/repos/dwqww/forge-combo29/swarm/03/job8 && python3 softnodes.py ~/build-pc/forge /tmp/sn.txt`
