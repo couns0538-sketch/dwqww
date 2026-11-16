@@ -61,5 +61,105 @@ above. The observable S-F1 answer stays: `bestmove 0000` is returned while `lega
 | S-C3 | 07-F1 vs my S-F1 | note, not a refutation: S-F1 and 07-F1 describe the same engine behaviour from two seats. 07-F1 adds the `score cp 0 nodes 0` presentation and the `restricted_root_empty` plumbing detail; my S-F1 is the `bestmove 0000`-on-a-live-position statement. Neither supersedes the other | both command files | OVERLAP |
 | S-C4 | CONFIRMS 27-F2 | exact threshold reproduced on my build at startpos: `go nodes` 1/5/10/20/25 answer `bestmove a2a3` with ZERO info depth lines; 26 answers `d2d4` with `info depth 1 ... nodes 26 ... pv d2d4`; the boundary is 26 as seat 27 said (not a range) | `forge-combo29/swarm/17/job1/check27/nodes.json` + `job1/check27/nodes_*.log` | CONFIRMS |
 | S-C5 | CONFIRMS 27-F4, weaker rate | same effect, my numbers: on 8 G positions at depth 10 (S14 not applied), a fresh process vs the same process after `setoption name Clear Hash` gives the same bestmove for 7 and a DIFFERENT bestmove for 1 (index 7: `g5h5` fresh vs `g5h6` after Clear Hash). So the histories do survive Clear Hash as 27-F4 says; my changed-rate is 1/8, not their 9/20, because my sample, depth and position set differ | `forge-combo29/swarm/17/job1/check27clear/clear_hash.json` | CONFIRMS (rate differs) |
-| S-C6 | STRENGTHENS 27-F4 | on 20 G positions at depth 10, `setoption name Clear Hash` between two searches changes the depth-10 NODE COUNT in 20/20 cases (e.g. 23448 -> 40313, 46317 -> 31393) and the bestmove in 1/20. So the transposition table is cleared but the move-ordering histories are not, exactly as 27-F4 says; node-count drift is the sensitive detector, bestmove the insensitive one | `forge-combo29/swarm/17/job1/check27clear/D_A_*.log`, `D_B_*.log` | CONFIRMS + strengthens |
+| S-C6 | CONFIRMS 27-F4 (baseline corrected after seat 10's rule) | `setoption name Clear Hash` between two searches changes the depth-10 node count in 20/20 G positions and the bestmove in 1/20, while `hashfull` drops to 0, so the TT is emptied and the surviving difference is attributable to the histories. CORRECTION: my first version of this line called the fresh process the baseline, which conflates two effects - seat 10 is right that a repeated search in one process already drifts (10/10 positions: 23448 -> 5067). The claim that survives is narrower and I keep only that: after Clear Hash the residual drift is not the TT, because the TT was emptied | `forge-combo29/swarm/17/job1/seat10/cold_warm_clear.json` (cold / warm / clearhash columns), `job1/check27clear/` | CONFIRMS (re-labelled) |
 | S-F3 | 7 | NOT a fault, recorded because it protects the honesty numbers: `bench 13` returns nodes 862329 identically after 0, 1, 2 and 5 preceding depth-6 searches in the same process, so the history drift of 27-F4 / my S-C6 does NOT contaminate the pinned node counts - `bench` resets that state itself. Any harness that compares bench pins across runs is therefore safe from this particular drift | `forge-combo29/swarm/17/job1/bench_repeat/bench_after.json` | NEGATIVE |
+| S-F4 | 7 | Methodological trap, not an engine fault: `OwnBook` defaults to TRUE, so any clock or time-management measurement that starts from the initial position is answered by the book in ~0 ms with no `info depth` line. My own first clock run measured nothing this way (5 "results" with 0 depth lines). With `setoption name OwnBook value false` the same searches scale as expected: wtime 1000 -> 55 ms / depth 14, 10000 -> 374 ms / depth 18, 100000 -> 5234 ms / depth 25 | `forge-combo29/swarm/17/job1/clock/clock.json` (0 depth lines, book on) vs `clock/clock_nobook.json` (book off) | NEW (method) |
+| S-F5 | 7 | NOT a fault, checked and clean: the one unchecked multiply in the clock plan (`clock_plan.hpp`, `hard = min(available*4/5, soft*4)`) does not overflow under ASan+UBSan even at `wtime 9223372036854775807 movestogo 1`; the search simply runs its (huge) budget with 22 depth lines and no `runtime error` line | `forge-combo29/swarm/17/job1/clock/clock_extreme_nobook.json` | NEGATIVE |
+| S-F6 | 7 | NOT a fault, deep-search stack safety on record: under ASan+UBSan, `go nodes 2000000` reaching seldepth 64 in two positions and seldepth 48 on startpos produced 0 sanitizer lines; the two `bestmove 0000` answers in that batch are correct terminal roots (verified with python-chess: one is checkmate, one is STALEMATE with 0 legal moves), i.e. the known case, not a fault | `forge-combo29/swarm/17/job1/maxply/maxply2.json` | NEGATIVE |
+| S-F7 | 7 | NOT a fault, history arithmetic at its advertised extremes: every history/LMR/move-ordering tunable set to its advertised max and then its min, 5 G positions each at depth 12 under ASan+UBSan, gave 0 sanitizer lines. The tunables demonstrably took effect (same positions: max set 6,380-29,330 nodes; min set 91,404-567,342 nodes, a 40x spread), so this is a real stress of `apply_history`, `history_bonus` and the reduction tables, not a run with the options ignored | `forge-combo29/swarm/17/job1/job2/hist_extremes.json` | NEGATIVE |
+| S-C7 | CONFIRMS (known item, Opus FABLE_TO_swarm_1) | the known "a root restricted by searchmoves searches a different, mostly smaller tree" is quantified on my build: on one G position with ALL legal moves listed in searchmoves, nodes are 1451 vs 2986 (d8), 5763 vs 11342 (d10), 29306 vs 50704 (d12) - the restricted tree is about HALF the unrestricted tree at every depth, while the bestmove is identical. So it is a real effort distortion, not just a different tree | `forge-combo29/swarm/17/job1/job2/allmoves_parity.json` | CONFIRMS known |
+
+## Warm/cold correction after seat 10's rule (2026-11-16T21:52Z)
+
+Seat 10 states: two identical unrestricted searches in ONE process drift (56,720 -> 4,951 -> 4,516),
+three separate processes do not, `ucinewgame` restores cold, `Clear Hash` does NOT. I reproduced all four
+parts exactly (`seat10/one_proc.log`, `seat10/proc_*.log`, `seat10/newgame.log`, `seat10/clearhash.log`:
+56720 / 56720 / 56720 / 40569).
+
+Which of my results this affects:
+- S-C5 (Clear Hash bestmove change 1/8) and S-C6 above: both compared a fresh process with a post-Clear-Hash
+  search, i.e. a cold run against a warm run PLUS a TT clear. The comparison is confounded and is now
+  labelled as such. What is still solid: `hashfull` goes to 0 after Clear Hash, so the TT really is emptied,
+  and the drift that remains cannot be the TT.
+- S-F3 (bench 13 = 862329 after 0/1/2/5 prior searches) is NOT affected: it used one process deliberately
+  and found the pin unchanged, and `bench` is its own cold-ish path; the result stands as measured.
+- Every ASan sweep is single-search-per-process by construction (`run_asan.py` launches one engine per
+  position), so no ASan node count in this job was measured warm.
+- S-C7 (restricted vs unrestricted, 24 halves) compared two separate processes per depth, so it is cold on
+  both sides; it is a tree-size comparison anyway, not a repeated-search drift claim.
+
+Rule I now follow: a cold baseline is a fresh process or `ucinewgame`, never `Clear Hash`, and a warm
+comparison is labelled warm.
+| S-C8 | CONFIRMS 10 (warm/cold rule) | reproduced all four parts on my build: one process 3 identical searches = 56720 / 4951 / 4516; three processes = 56720 three times; `ucinewgame` between = 56720 / 56720; `Clear Hash` between = 56720 / 40569. Also separated the two effects on 10 G positions: warm repeat differs from cold in 10/10, and Clear Hash differs again from warm in 10/10 | `forge-combo29/swarm/17/job1/seat10/` | CONFIRMS |
+| S-F8 | 7 | NOT a new fault, bounded and recorded: `searchmoves` with no legal match combined with other limits. `go nodes 1000 searchmoves e7e5` and `go movetime 100 searchmoves e7e5` both emit 64 `info depth` lines (depth 1..64) ALL with `nodes 0`, i.e. the depth limiter is not reached by a node or movetime budget because no search happens - the terminal-root loop runs to max_depth. `go depth 5 searchmoves e2e4 e2e4 e2e4` de-duplicates correctly and answers `e2e4`. `searchmoves e7e8q` (a promotion that cannot exist here) answers 0000. 0 sanitizer lines in all of them | `forge-combo29/swarm/17/job1/job2/sm_nodes.log`, `sm_movetime.log`, `sm_dup.log`, `sm_promo.log` | NEGATIVE / detail for 07-F1 |
+| S-F9 | 7 | NOT a fault, TT resize verified: `Hash` 1/8/32/512/2048 MB changes only the pressure, not the answer - hashfull 440 / 58 / 10 / 0 / 0 and nodes 53652 then 52591 four times, bestmove identical; 18 ASan+UBSan searches with Hash set to min, max and toggled between searches all clean (0 sanitizer lines). The epoch/slot guards in `store_body` do their job | `forge-combo29/swarm/17/job1/job3/hash_sizes.json`, `job3/hash_resize.json` | NEGATIVE |
+| S-F10 | 7 | My own method lapse, recorded per the honesty rule: I first measured Hash sizes by PIPELINING `quit` into the search and got `None` for all five sizes - the 19-F12 fabricated-answer trap. Re-run with the read-to-bestmove driver the same five sizes measured properly. Any harness I report from now on is the driver one | `forge-combo29/swarm/17/job1/job3/hashsize_1.log .. hashsize_2048.log` | NOTE |
+
+## S-F8 follow-up: is the no-legal-match searchmoves root unbounded on the clock? NO. (2026-11-16T22:00Z)
+
+Asked to confirm the unbounded part on the clock. I could not confirm it, and the honest answer is that my
+own first attempt said the opposite of the truth, so both are recorded.
+
+1. My FIRST harness (`job2/unbounded_check.py`, select()-based polling on a buffered text pipe) reported that
+   `go movetime 100 searchmoves e7e5` ran 20.0 s with no bestmove, and that TWO CONTROLS did the same
+   (`go wtime 1000 btime 1000 searchmoves e2e4`, and `go wtime 1000 btime 1000` with no searchmoves at all).
+   Controls failing is the tell: a correct control cannot take 20 s at a 1 s clock, so the measurement was
+   faulty, not the engine.
+2. Re-measured with the blocking read-to-bestmove driver (`uci_driver.run_one`), and then a THIRD time with a
+   plain shell pipe and no Python at all:
+   | go line | bestmove | wall |
+   |---|---|---|
+   | `go movetime 100 searchmoves e7e5` | `bestmove 0000` | 19 ms |
+   | `go wtime 1000 btime 1000 searchmoves e7e5` | `bestmove 0000` | 18 ms |
+   | `go movetime 100 searchmoves e2e4` (control) | `bestmove e2e4` | 91 ms |
+   | `go wtime 1000 btime 1000 searchmoves e2e4` (control) | `bestmove e2e4` | 36 ms |
+   | `go wtime 1000 btime 1000` (control) | `bestmove e2e4` | 67 ms |
+
+Conclusion, stated plainly: with no legal match for `searchmoves`, the engine returns `bestmove 0000` on its
+own in about 18-19 ms, well inside any time limit. It does NOT hang and it is NOT unbounded, and it does not
+need `stop`. What IS true from S-F8 is narrower: the 64 `info depth` lines are emitted with `nodes 0` and
+`time 0`, i.e. it reports a completed search of 64 depths that was never searched - a false report, not a
+long one. The `time 0` / `nodes 0` in every line is the misleading part, not the wall time.
+Evidence: `forge-combo29/swarm/17/job1/job2/unbounded/recheck.json` and `recheck_*.log`;
+the faulty first attempt is kept beside it as `unbounded/unbounded.json` so the error is visible.
+| S-F11 | 7 | Root cause of my faulty S-F8 first attempt, recorded so no other seat repeats it: `select()` on a text-mode `subprocess` pipe fires when BYTES arrive, but the following `readline()` on that buffered text stream then blocks waiting for a complete line. A diagnostic read of `uciok` this way took 5.03 s and returned exactly 1 line instead of finishing in milliseconds. Any timing harness must either read with a blocking `readline()` per expected answer (what `uci_driver.py` does) or use non-buffered binary reads; mixing `select` with `readline` invents timeouts | `forge-combo29/swarm/17/job1/job2/unbounded/unbounded.json` (faulty) vs `unbounded/recheck.json` (correct) | NEW (method) |
+| S-C9 | CONFIRMS 21-F2 (the readyok part) | reproduced on my build: after a REFUSED `position fen` the engine prints `info string invalid FEN: invalid FEN fields` and then still answers the following `isready` with `readyok` (raw line order: readyok / readyok / "invalid FEN" / readyok / nodes 29). So a GUI that syncs on readyok cannot tell that the position was refused and that the OLD position is still loaded. I did NOT reproduce their "wrong side" wording as a separate claim - on my run the kept position is simply the previous one (29 = after e2e4 e7e5, and 20 from a bare startpos), which is the known item | `forge-combo29/swarm/17/job1/check21/c9_readyok_after_refusal.txt` | CONFIRMS |
+| S-C10 | CONFIRMS 21-F8 | `position fen 4k3/8/8/8/8/8/8/4K3 w - - 0 0` (fullmove 0) is REFUSED by Forge (`invalid FEN fields`) while python-chess accepts it and says the position has 5 legal moves; because the refusal keeps the old board, `go perft 1` then answers 20 (startpos) instead of 5 | `forge-combo29/swarm/17/job1/check21/c10_fullmove0.txt` | CONFIRMS |
+| S-C11 | CONFIRMS 21-F9 (sharply) | reproduced with a clean boundary: one board with a mate in 1 for White (`6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - <hm> 1`). At halfmove 0 and 99 all three limits (`go depth 5`, `go nodes 1000`, `go movetime 50`) answer `a1a8` scored `mate 1`. At halfmove 100 and 150 all three answer `f2f3` scored `cp 0 nodes 0` - the mate in 1 is MISSED. The boundary is exactly at 100, and it is search-limit-blind (all three `go` forms) as 21-F9 says. python-chess confirms a1a8 is mate | `forge-combo29/swarm/17/job1/check21f9/f9.json` | CONFIRMS |
+| S-C12 | CONFIRMS + severity of 21-F9 | severity, checked rather than assumed: (a) python-chess VALIDATES the halfmove-100 mate-in-1 FEN (is_valid True, status 0, 20 legal moves, mate a1a8 available), so the engine can be handed it by any GUI, book tool or file; (b) in a real game the fifty-move rule is a CLAIM, not automatic, so a counter >= 100 with a mate available is reachable whenever neither side claimed; (c) this engine models no claim at all - search.cpp:2251 treats `halfmove_clock() >= 100` as a drawn root and search.cpp:1302 does the same inside the tree - so it adjudicates a draw the rules do not require and never searches; (d) the raw log at halfmove 100 shows depth 1..5 all `nodes 0` with an EMPTY pv, i.e. no search was performed | `forge-combo29/swarm/17/job1/check21f9/f9.json`, `check21f9/hm100_5.log`, `check21f9/severity.txt` | CONFIRMS (severity assessed) |
+
+## Threads audit (swarm rule, after seat 04's measurement), seat 17, 2026-11-16T22:22Z
+
+Rule now in force: any score reported must be from Threads 1 unless the job is about threading.
+Seat 04 measured the PC build at Threads 4, depth 12, PC20: four fresh runs on ONE position gave
++2576 / mate 13 / mate 18 / mate 16, nodes 5.0M-31.4M; Threads 1 gave +2207 four times with identical
+nodes 75,311. Move stable, scores not.
+
+My audit:
+- I set Threads above 1 in EXACTLY ONE place: the `threads4` set of the job1 MultiPV sweep,
+  `job1/mpv/mpv.json` (6 records). Those records contain NO score, and I never cited any of them in
+  FINDINGS or a report, so no recorded claim of mine rests on a multi-threaded score.
+  Their NODE COUNTS are provisional (not reproducible above Threads 1) - flagged here.
+- Every other measurement I have reported used the default, which the exe's own `uci` list states as
+  `option name Threads type spin default 1`. My ASan runner (`run_asan.py`) never sends a Threads
+  option at all (`grep -c Threads` = 0), so every ASan sweep, every honesty line, the PC20 PC-build
+  check, and the S-F1/S-F8/S-C9..S-C12 checks are Threads 1.
+- Finding lines from here state "Threads 1" explicitly, plus build (base or PC r15) and settings
+  (none / S14 / PC20).
+
+## PC r15 re-run of my finds and checks (2026-11-16T22:22Z) — every line Threads 1
+
+Build: PC r15 (base 6b98f217 + FABLE_TO_swarm_5.patch, sha256 d6bd72c531f785f4..., built with
+-DFORGE_MATE_ALPHA_GUARD=1). Settings: PC20 (S14 + CuckooRep/HistRework 2/TtPruneV2/CorrHistV2/
+MateAlphaGuard/OwnBook false). Threads 1, Hash 16. Comparison column is the base tree under S14.
+
+| my id | base tree (S14, Threads 1) | PC r15 (PC20, Threads 1) | verdict |
+|---|---|---|---|
+| S-F1 (`bestmove 0000` on a live 20-move position) | 0000, 5 zero-node depth lines | **0000, 5 zero-node depth lines** | **STILL PRESENT on the PC build** |
+| S-F8 (no-match `searchmoves` prints depth lines of `nodes 0`) | 64 lines, nodes 0 | 64 lines, nodes 0 | STILL PRESENT |
+| S-C10 (`fullmove 0` refused, old board kept) | refused, plays old board | refused, plays old board | STILL PRESENT |
+| S-C11 (halfmove 100 misses a mate in 1) | `f2f3`, `cp 0 nodes 0` | **`a1a8`, `score mate 1`, nodes 84/105** | **REPAIRED on the PC build** (FORGE_FIX_ROOT_DRAWN) |
+
+So of my own finds, S-F1 and S-F8 are live defects on the engine the owner actually plays, and the
+missed-mate I confirmed for seat 21 is fixed there. Evidence: `pc/recheck/S-F1_pc20.log`,
+`S-F8_pc20.log`, `S-C11_pc20.log`, `S-C11_base.log`, `S-C10_*`, summary `pc/recheck/recheck.json`.

@@ -1,0 +1,35 @@
+PREDICTION — seat 03, job 5: does the engine play the SAME MOVE on both builds at depth 8?
+
+Move generation is proven identical (S-F6: 62,406/62,406 perft values). The open question is whether the move the
+engine actually PLAYS is equally unaffected — a search-side change could pick a different move from the same legal
+set without any perft count moving.
+
+Set: the first 200 positions of my SEED-301 R set (`job4/set_bm200.fens`, sha256
+7ccbe2b1b5cf940293ef0c6dfcbfe761fbeae973cc616d493af2d329769f9136). These are random mid-game positions, so they
+are not trivially decided and a move difference is plausible if the search really changed.
+
+Protocol, per position, both builds: fresh ENGINE PROCESS per position is not needed (perft showed state does not
+reach move generation), but the search DOES depend on hash state, so each position is measured in its own process:
+    uci / isready / setoption name Threads value 1 / setoption name Hash value 16 / setoption name OwnBook value false
+    position fen <fen> / isready / go depth 8  -> read until `bestmove` -> quit
+Builds: base /home/ubuntu/build-rel/forge, PC r15 /home/ubuntu/build-pc/forge.
+
+Predicted values, with the range that kills each:
+1. Positions where the played bestmove differs between builds: predicted 0.   KILL: >= 1.
+2. Positions where `go depth 8` returned no bestmove at all: predicted 0.   KILL: >= 1.
+3. Positions where the PC build's node count at depth 8 equals the base build's: predicted FEWER than half.
+   Reasoning: the patch adds four search options (all OFF by default) plus several behaviour fixes; with the
+   options off, node counts may still differ because of e.g. the bare-king LMR cap. So I predict the moves agree
+   while the node counts often do not — which is the interesting outcome here.   KILL: if ALL 200 node counts are
+   equal, my claim that the search changed is wrong and the patch's search changes are inert at depth 8.
+4. Positions where the PC build's score (cp or mate) equals the base build's: predicted fewer than half, for the
+   same reason.   KILL: n/a (informational; recorded in the table either way).
+5. Crashes / illegal bestmoves / refused FENs on either build: predicted 0 each.   KILL: >= 1.
+6. Sanitizer: none claimed in this job; the builds are Release.
+7. If a bestmove differs, the predicted explanation is that BOTH moves are legal and the scores are close
+   (|score difference| <= 30 cp) — i.e. a tie-break, not a broken move generator.   KILL: a differing bestmove that
+   is ILLEGAL in the position on either build (that would be a real fault and I would report it as such).
+
+Why 1 could be 0 even if the search differs: identical legal move lists plus a deterministic search and the same
+ordering inputs frequently give the same argmax. So this test is weak against "the search barely changed" — which is
+exactly what a 0 would then mean, and I will say so rather than overclaiming.
