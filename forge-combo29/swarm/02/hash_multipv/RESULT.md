@@ -200,3 +200,85 @@ That makes the defect hit three separate uses:
 
 **I did not attempt a fix**, as instructed. The GUI-side workaround needs no engine change: keep MultiPV at 1
 when Hash is large, or keep Hash <= 16 MB when MultiPV is above 1.
+
+---
+
+# WHY THE CLEARS ARE THERE — my reading (NOT measurement), and what it implies for a fix
+
+Marked plainly: this section is a READING of the source. The measurements above stand on their own; what follows
+is my inference about intent, and I say where it is inference.
+
+## what the code is doing, with lines
+`Worker::search` allocates a SECOND table for the extra PV lines before the depth loop starts
+(src/search.cpp:2380-2391):
+
+```
+    // Secondary lines use their own table and histories, so the primary
+    // iterative deepening stays the MultiPV 1 search.
+    std::unique_ptr<SharedSearchState> alt_shared;
+    ...
+    if (multipv > 1 && is_main()) {
+        const std::size_t hash_mb = std::max<std::size_t>(
+            1, shared_.tt.cluster_count() * sizeof(TTCluster) / (1024U * 1024U));
+        alt_shared = std::make_unique<SharedSearchState>(hash_mb);
+```
+
+So `alt_shared->tt` is a separate `TranspositionTable` **the same size as the main one** — at Hash 2048 that is a
+second 2 GB table. Then, inside the depth loop and inside the extra-line loop (src/search.cpp:2500-2504):
+
+```
+                alt_shared->stop.store(false, std::memory_order_relaxed);
+                alt_shared->ponder_hit_ns.store(0, std::memory_order_relaxed);
+                alt_shared->tt.clear();
+                alt_worker->clear();
+                const SearchInfo alt = alt_worker->search(board, narrowed, false, alt_list);
+```
+
+## my reading of the INTENT
+The clear is there to make each secondary line an INDEPENDENT search. Two reasons in the code point at it:
+1. each line is searched with `narrowed.search_moves` = the root moves not yet banned (line 2497), so if the
+   previous line's entries survived, line *k* would be biased toward line *k-1*'s tree and could return a
+   duplicate or a wrongly-ordered PV;
+2. `alt_worker->clear()` right beside it clears the WORKER's own histories for the same reason — the pair together
+   reads as "start this line from nothing", not as a bug.
+
+The counter-evidence that it is not deliberate about COST: the comment above the allocation says the point is
+that "the primary iterative deepening stays the MultiPV 1 search" — about ISOLATION, and nothing anywhere
+mentions the size of the table being cleared. At `hash_mb = 1` (which is what a small Hash produces, clamped by
+the `std::max(1, ...)`) the clear is free, so this never showed up in whoever wrote it.
+
+## and the count, which the measurements pin down
+The `tt.clear()` sits inside BOTH the `for (depth = 1; depth <= max_depth; ++depth)` loop and the
+`for (index = 2; index <= line_count; ++index)` loop, so the number of clears is
+**depths_completed x (multipv - 1)**. For `go depth 12` with MultiPV 8 that is 12 x 7 = **84 clears**. Checked
+against the measurement above rather than assumed:
+
+| Hash | one clear (measured) | 84 clears predicted | measured (MPV8 - MPV1) | ratio |
+|---|---|---|---|---|
+| 16 MB | 2 ms | 168 ms | 318 ms | 1.89 |
+| 256 MB | 20 ms | 1680 ms | 1295 ms | 0.77 |
+| 2048 MB | 172 ms | 14448 ms | 13669 ms | 0.95 |
+
+At 2048 MB the prediction accounts for **13.7 s of the measured 13.7 s** — the whole cost, with no unexplained
+remainder. (The 16 MB row overshoots because at that size other per-line work becomes visible; the 2048 row is
+the one that identifies the mechanism.)
+
+## what this means for a fixer — my reading, offered as a choice, not a recommendation
+- **REMOVING the clear would change search behaviour**, on my reading: secondary lines would inherit the previous
+  line's table entries, so PVs could change. That needs a match, not a patch-and-hope.
+- **MAKING IT CHEAP may be a pure speed change**, if my reading of the intent is right. The clear exists to stop
+  line *k-1* polluting line *k*; it does NOT need to touch entries line *k-1* never wrote. Clearing only the
+  clusters the previous line actually touched (tracked during that line's search) would leave every observable
+  identical while costing microseconds instead of 172 ms. Whether that holds is a claim to be TESTED by whoever
+  owns the search: the test is that bench 11/13/16, perft 5 and the MultiPV PVs at a fixed depth come out
+  bit-identical before and after.
+- A cheaper still option, if the isolation can be relaxed: give the secondary table a `new_search()` bump
+  (generation, include/forge/search.hpp:152) and let normal aging handle staleness, instead of a full clear. That
+  WOULD change behaviour, because entries from the previous line remain probeable, so it belongs with the
+  behaviour-changing option, not the speed-only one.
+
+## what I did NOT do
+- I did not trace whether the secondary search actually depends on the clear for its correctness, and I did not
+  test a modified build. That is the fixer's measurement, not mine.
+- I did not verify that `alt_shared` is always allocated at full size in every mode; the allocation is guarded by
+  `multipv > 1 && is_main()` (line 2386), which is the only path I exercised.
