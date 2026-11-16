@@ -1,0 +1,25 @@
+PREDICTION — SW-23 job 11 (WHY the budget changes the move)
+Written before the first measuring command. Never edited afterwards.
+
+23-F24 showed 18 of 60 quiet positions change bestmove between budgets 20000/50000/250000; 23-F25 rejected
+"it searches deeper" as the cause. This job measures the remaining candidate I named: the MARGIN between the top
+moves at each budget. For each changed position I will capture, at all three budgets, the full `info` line at the
+final depth and — where the engine prints multiple root scores for different moves at that depth — whether the
+best move is the same one ply earlier.
+
+Protocol: PC r15, PC20, Threads 1, Hash 16, fresh process per (position, budget), drained to bestmove. I will use
+`go searchmoves` on the two candidate moves to get their scores at the same depth, which is the only reliable way
+to measure a margin from the UCI output this engine gives.
+
+Prediction (each number with the range that kills it):
+  P1  on the changed positions the losing candidate will be within 30 cp of the winner at the budget where it
+      loses, i.e. these are CLOSE calls. KILLED if the median gap is > 60 cp.
+  P2  on the unchanged positions the runner-up will be further away: median gap > 60 cp. KILLED if <= 30 cp.
+  P3  the move chosen at 250000 will be the one with the better score at a FIXED deeper depth on a majority of
+      the changed positions (i.e. the change is an improvement, not instability): >= 60 % of them. KILLED if < 40 %.
+  P4  at least one changed position will show a score REVERSAL between the two candidates as the budget grows
+      (the ordering flips), which is the signature of an unstable margin rather than a monotone search.
+
+If P1/P2 hold, the practical statement is: the budget matters on close positions, and that is where a match
+played at one node budget is not reproducible at another. If they do not hold, the margin story is wrong too and
+I will say so rather than keep asserting a mechanism.
