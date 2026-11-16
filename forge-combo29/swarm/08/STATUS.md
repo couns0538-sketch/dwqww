@@ -87,3 +87,14 @@ OG_mt500 partway. Partial output pushed with this block, run continues.
 next command:
 
     cd /agent/repos/dwqww/forge-combo29/swarm/08/job1b && cat run.log | grep -v '^{' | tail -3
+
+## 2026-11-16T21:37Z — CHECKPOINT PUSH (owner deadline: findings on GitHub by 22:30)
+Everything complete is already pushed. FINDINGS.md holds 9 findings (08-F1..F9) and 2 checks
+(08-C1 CONFIRMS seat 06 S-F4, 08-C2 CONFIRMS seat 27 S-F2). All raw job files for job1/job2/job3 are pushed.
+No patch files exist in this seat: AREA 8 is measurement, and I wrote no engine patch (nothing to push).
+job1b (job 1 again, SEED 811, OwnBook false) is mid-run: 200+200+200+200 done, OG_tc10000 partway; its partial
+raw is in this push. It will be analysed and pushed when it finishes, well before 22:30.
+
+next command:
+
+    cd /agent/repos/dwqww/forge-combo29/swarm/08/job1b && cat run.log | grep -v '^{' | tail -3
