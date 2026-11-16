@@ -165,3 +165,20 @@ labelled non-deterministic in job4/f2_threads and the withdrawn REPORT_job4 row.
 provisional caveat. Seat 04's Threads 4 five-run spread (+2576 / mate 13 / mate 18 / mate 16) is the same
 phenomenon as my S-F7a, now with scores.
 From now on every finding line names build + settings + Threads 1.
+
+## 2026-11-16T22:27Z cycle 1 done on BOTH builds
+Re-ran my own findings on PC r15 under PC20 (Threads 1) against the base build under S14, same harness:
+  S-F1 drawn root        **REPAIRED on PC** (threefold root now searches: cp 23 / 13,424 nodes; clock-100 mate
+                         returns mate 1 / a1a8 / 210 nodes; base: 0 nodes, a2a3 / f2f3). My patch not needed there.
+  S-F2 `go nodes <26`    **SURVIVES on PC**: nodes 20 -> a2a3, 0 info lines; nodes 26 -> d2d4 with 26 nodes.
+  S-F3 hashfull sample   **SURVIVES on PC**: 15 at Hash 16 vs 0 at Hash 1024, same 28,565-node search.
+  S-F4 Clear Hash warm   **SURVIVES on PC**: cp -143 / -113 / -108 and 33,643 / 28,568 / 21,580 nodes.
+  S-F9 mid-search setopt **SURVIVES on PC**: 20 info lines alone, 16 with a setoption 100 ms in.
+  S-F8 all-20 restriction **SURVIVES on PC and reproduces exactly**: cp 29 / 21,410 vs cp 25 / 21,600,
+                         identical in 3 of 3 fresh processes each. S-F8 stays OPEN on both builds.
+New check: **S-C6 CONFIRMS 07-F1 on the PC build** (nothing else has checked it there) with a control through
+the same harness (legal restriction: 344 nodes, real pv).
+Next: continue the cycle — look for other seats' unconfirmed finds relevant to area 7 and check them on the PC
+build; keep every score at Threads 1.
+Next command:
+  bash forge-combo29/swarm/27/pc/check_07f1_pc.sh /agent/repos/base/build-pc/forge PC20
