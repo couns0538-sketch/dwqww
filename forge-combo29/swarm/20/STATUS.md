@@ -454,3 +454,15 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - Page updated: "what IS measured (no cost, +depth at safe sizes)" vs "what is NOT (stronger in PLAY — depth at a fixed
   clock is not a match result)". Advice unchanged: **MultiPV 1 at any Hash** is least-lossy.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-16T23:55:28Z my own flat-14 explanation PARTLY REFUTED by its own prediction (S-C41)
+- Prediction tested: "if the gradient is the per-line clear(), the REPAIRED build's depth should be FLAT in Hash."
+  Repaired, MultiPV 3, `go wtime 5000`, Threads 1, 10 positions: Hash 16/64/128 -> **14.0 / 14.0 / 14.0 (flat)**,
+  **256 -> 12.0, 512 -> 10.0 (declining)**.
+- So **mostly** the clear — about 3 of the 4-5 plies at Hash 128 (shipped 13.5/11.5/11.0 becomes flat 14.0) — with a
+  **residual table-size cost of ~2 plies per doubling above 256 MB** that the clear() removal does not touch
+  (allocation, cache/TLB pressure on 4 cores). My S-C40 wording was right in direction and too absolute; corrected in
+  both the finding and the owner page.
+- Refined takeaway: the patch is still worth having (no cost at safe sizes, +2.5-3 plies at 64/128) but **does not make
+  a 2 GB table as good as 16 MB**, so "huge Hash with MultiPV" stays a bad idea even repaired.
+Next: continue in the window (ends 2026-11-17T10:18Z).
