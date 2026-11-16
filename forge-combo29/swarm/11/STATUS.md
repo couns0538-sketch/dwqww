@@ -311,3 +311,7 @@ Next: continue FEN layer and real-path work.
   cross-referenced to seat 21's 21-C9/21-C2. HAZARD_stale_board.md REWRITTEN: the real-game
   demonstration is now the opening section, and both routes sit together with the shared shape
   spelled out. The one-line rule now names both `invalid FEN` and `illegal move`.
+- S-F58: Route 2 quantified. One illegal token in a 16-ply list silently truncates to the prefix:
+  corruption at ply 3 keeps 2 plies and returns a move ILLEGAL in the intended position (3 of 4
+  corruption points did). The engine is self-consistent but answering for a board up to 13 plies
+  in the past. Every prefix perft matched python-chess (clean, silent, no crash).
