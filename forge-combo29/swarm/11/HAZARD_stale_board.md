@@ -126,6 +126,11 @@ and nothing else. Two further measurements bound it completely:
 
 So: one command, one answer, no residue.
 
+**And the defence is nearly free:** `ucinewgame` plus re-sending a well-formed position costs
+**1.8 ms** and the following search is bit-identical — same move, same node count to the node
+(60,955), same score (`cp 83`) as a clean search (`checks/guard_cost.txt`). There is no reason
+to skip it.
+
 ## Does `ucinewgame` clear it? Yes — but it does not restore your position
 This decides the defence (`checks/ucinewgame_clears.txt`). **Only `ucinewgame` clears it** — the
 commands a GUI would naturally use to "resync" do NOT (`checks/refused_then_various.txt`):
