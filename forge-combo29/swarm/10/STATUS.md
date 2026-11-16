@@ -201,3 +201,13 @@ New on the PC build (PC r15, PC20, Threads 1): 10-F23 warm-state defect present 
 REVERSED (unrestricted cp25 vs restricted cp29); 10-F26 10-F11 and 10-F22 both still present.
 All three PC honesty rows match file 5 exactly. next: probe the PC's FORGE_FIX_ROOT_DRAWN directly
 (third-occurrence repetition root), which I flagged as the obvious next check.
+
+## Mon Nov 16 10:28:18 PM UTC 2026
+DRAWN-ROOT PROBE (the one thing file 3 says really differs). CONFIRMED with a direct test:
+  third occurrence by move list : base 0 nodes / bestmove a2a3  |  PC r15 13,424 nodes / d2d4
+  halfmove clock 100 via FEN    : base 0 nodes / bestmove a2a3  |  PC r15 11,542 nodes / d2d4
+  second occurrence  (control)  : base 9,575 | PC 8,569   (searched on both, as file 3 says)
+  halfmove 0         (control)  : base 9,575 | PC 8,569   (searched on both)
+  K vs K insufficient material  : BOTH 0 nodes / h1g1        (file 3: still answered at once)
+"a2a3" on the base tree is the first legal move, not a search result. 10-F27. pc/raw4/drawn_root.json
+next: continue the cycle -- check other seats' newest unconfirmed finds (file 2 named 19-F1..F5, 29-F1..F2).
