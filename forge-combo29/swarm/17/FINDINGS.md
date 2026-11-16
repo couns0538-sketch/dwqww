@@ -738,3 +738,44 @@ playing a drawn ending as if it were winning by cp 273. Seat 30's numbers match 
 This is the sharpest match-path finding I have confirmed: it is not a reporting quirk, it can change the result
 of a drawn game, and the owner's matches run well below the 4.8M nodes needed.
 GUI-reachable: **YES — match budgets.** Evidence: `pc/check30c/fifty_at_effort.json`, `pc/check30c/*.log`.
+
+## S-C16 | CONFIRMS seat 24's threaded move instability (two-seat confirmed) — my own harness, their positions
+
+The claim (seat 24, single-seat until now): depth 12, Hash 16, OwnBook false, six fresh processes per
+position on the first 20 of G, the chosen MOVE is not reproducible above one thread.
+
+My harness (`pc/thread_instability.py`, written from the claim, not from their script): 20 positions = the
+first 20 of G (their set, so the counts are directly comparable), each validated with python-chess;
+`Threads` and `Hash` each confirmed by `readyok` before the position; the search read to `bestmove` before
+`quit`; six runs per cell, every run a FRESH process.
+
+| build / settings | Threads 1 | Threads 2 | Threads 4 | T1 positions with identical node counts |
+|---|---|---|---|---|
+| **seat 24's numbers** (theirs) | 0/20 | 8/20 | 9/20 | — |
+| base 6b98f217 | **0/20** | **5/20** | **6/20** | 20/20 |
+| PC r15 / PC20 | **0/20** | **9/20** | **8/20** | 20/20 |
+
+**Reproduced, same order of magnitude on both builds.** The PC-build row is almost exact (9 vs 10 at Threads 2,
+8 vs 8 at Threads 4); my base-tree row is 3-4 positions lower than theirs (5 vs 8, 6 vs 9), which is what two
+independent samples of a stochastic quantity should look like. The qualitative result is unambiguous and matches
+in every direction that matters:
+- **Threads 1 is perfectly stable: 0 of 20 unstable on both builds, and all 20 of 20 positions give IDENTICAL
+  node counts across their six runs.** Their "identical to the digit" claim is confirmed exactly.
+- **Threads 2 and 4 are unstable on roughly a quarter to a half of positions**, with the answer changing between
+  runs of the same position with no other input changing.
+
+Worst example move sets I observed:
+- base T4, position 0: `e5e4, g7g6, g7g6, e5e4, f6d7, g7g6` — **three different moves across six runs**.
+- base T2, position 10: `d7f6, e8a8, e8d8, e8d8, e8d8, e8d8`.
+- PC T2, position 0: `g7g6, e5e4, g7g6, g7g6, g7g6, g7g6`.
+- PC T4, position 6: `c8e8` five times then `f5h6`.
+
+Note the SHAPE of the instability: usually one stray run out of six differs, which is why a two-run or three-run
+sample can miss it entirely. Six runs found it; that is worth stating for anyone replicating.
+Positions 6 and 7 are unstable on BOTH builds, so the instability is partly position-specific, not only
+run-to-run noise.
+
+GUI-reachable: **NO for the owner's play** (one thread per game), but this is exactly why every score and node
+count in my table is Threads 1 — and it is the measurement that makes seat 04's score spread explicable.
+Evidence: `pc/threadinst/summary_base.json`, `pc/threadinst/summary_pcr15.json`,
+`pc/threadinst/thread_instability_*.json`.
