@@ -1,7 +1,9 @@
 # How to set `go nodes` budgets for the owner's matches — one page
 
 **The short answer: compute the budget per position. There is no round number and no per-family number
-that works, and both of those were measured, not assumed.**
+that works, and both of those were measured, not assumed.** A per-family budget is **not** cheaper than a
+global one: positions sharing an opening prefix spread as widely as unrelated openings (1.76x–2.02x inside
+three families vs 2.04x across all thirty), so grouping by family buys nothing.
 
 ## Why
 
