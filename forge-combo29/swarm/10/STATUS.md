@@ -283,3 +283,13 @@ WHEN-IT-MATTERS JOB DONE (10-F36..F39):
   "64 info lines" CORRECTION kept prominent (10-F39): the count is the requested depth capped at 64
   (depth 5 -> 5 lines, depth 64 and 70 -> 64), never a constant. Seat 25's mechanism stands, its number was the cap.
 next: cycle.
+
+## Mon Nov 16 10:35:33 PM UTC 2026
+THE 585-FILE GAP CLOSED AS A MEASUREMENT (10-F40, 10-R5, 10-F41):
+  of 17,085 recorded searches in the repository: 8,672 judgeable -> 0 unfinished in the owner's data;
+  8,413 unjudgeable -> 3 files using go nodes/softnodes (8,292 records) + 585 files with no go echo (121).
+  R2 flags 8,235 of the 8,292 node-budget records -- a 99 % false-alarm rate, i.e. an INVALID reference.
+  QUALIFIES 10-F35: R2 is only sound when the file's searches share a DEPTH TARGET; I stated it too broadly.
+  The 41 inspectable gap flags are ALL legitimate (clock searches stopping at varying depths by design).
+  What a parser needs: log the go line, or record the node/time budget for non-depth searches.
+next: continue confirming other seats' findings (area 10's remaining work).

@@ -1,0 +1,38 @@
+THE 585-FILE GAP — measured, not a caveat
+
+GAP = files that contain engine output but record no requested depth (588 found; 585 with no `go` echo at
+all, 3 with a `go nodes` echo). Everything below is measured by regimes/scan_nodepth.py and
+regimes/gap_classify.py over the real files.
+
+| group | files | records | R2 flags | judged CORRECTLY by R2? |
+|---|---|---|---|---|
+| A. searches used `go nodes`/`softnodes` (depth is NOT the target) | 3 | 8,292 | 8,235 | **NO -- R2 is invalid here** |
+| B. `go depth` echo present but unparsable | 0 | 0 | 0 | n/a |
+| C. no `go` echo at all (command not logged) | 585 | 121 | 41 | **NO -- no depth reference exists** |
+
+WHAT THIS MEANS, plainly:
+
+1. **R2 cannot judge ANY of the gap.** Both groups fail for the same reason: R2's reference is "the largest
+   depth in this file", and that reference is only meaningful when the searches had a DEPTH TARGET.
+   - Group A: `go nodes 2000` searches legitimately stop at whatever depth the node budget reaches, so a
+     low depth is normal, not truncation. Measured proof: `full.frames.txt` has 8,291 records with depths
+     spanning 60-64 and R2 "flagged" 8,235 of them -- a 99 % false-alarm rate, which is the signature of an
+     invalid reference, not of a defect.
+   - Group C: the `go` line was never logged, so there is no depth reference of any kind. The 41 flags are
+     an artefact of comparing records against the max depth of OTHER searches in the same file that had
+     different limits.
+2. **Spot-check of the 41 group-C flags: all are legitimate.** The six `*-t3-clock-interactive*.txt` and two
+   `manual-clock-cases` files are CLOCK-based searches (`go wtime ... btime ...`) that stop at varying depths
+   by design (e.g. depth 15 then depth 12 in the same file). `sample_records.txt` is my own test fixture,
+   built deliberately to contain interrupted records. None is a defect.
+3. **What a parser would need to close the gap for real**, stated concretely: the record must carry either
+   (a) the `go` command itself (so R1 applies -- most soak logs echo commands, so simply logging `go ...`
+   before each search closes it), or (b) for clock/node searches, the node or time budget, so a completeness
+   test can be built on THAT budget instead of on depth. Without (a) or (b) the data is genuinely unjudgeable
+   by this method, and saying so is the correct answer rather than reporting 8,276 findings.
+
+CORRECTED HEADLINE FOR THE REPOSITORY SWEEP:
+  judgeable records: 8,672 (the files that carry a depth target) -> 0 unfinished in the repository's own data
+  unjudgeable records: 8,413 (this gap) -> not reported either way, classified above
+  so: of 17,085 recorded searches in the repository, 8,672 were judged and none of the owner's was short;
+  8,413 could not be judged and the reason is measured, not assumed.
