@@ -140,3 +140,6 @@ S-F25-REVISED after 40 positions/cell (the 16-position sample understated noise)
 
 ## Mon Nov 16 10:26:43 PM UTC 2026
 README status table extended: it had stopped at S-F19 (S-F19 itself was missing). Now covers S-F19 through S-F25-REVISED, marking S-F20 as narrowed and S-F25 as superseded. 26 rows.
+
+## Mon Nov 16 10:29:38 PM UTC 2026
+S-F26: the 10 s lost ply CAUSE FOUND and it is not the plan. All five plan inputs have identical defaults on both builds (read from each exe's uci answer), so soft=454/hard=2270 at wtime 10000 on BOTH. The difference is the STOP: PC20 stops at 0.68 of soft (311 ms, depth 19) vs base 0.77 (349.7 ms, depth 20). Ladder: median last-iteration finish 287 vs 376 ms at 1.25x growth per iteration, so 89 ms earlier stopping = exactly one ply. Since the arithmetic is identical, the cause is in the stop logic where FORGE_FIX_HARD_LIMIT_EMERGENCY lives: a fixable constant, not search quality. Stated in LADDER_README.md that my budget_left.py projection is a HEURISTIC (growth varies 0.30x-5.60x) and is an indication, not a count of wasted ms.
