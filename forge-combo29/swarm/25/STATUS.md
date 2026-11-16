@@ -118,6 +118,23 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:34Z - LABEL-QUALITY FINDING on the self-play setting (S-F33)
+
+At `go softnodes 2000` (the owner's self-play budget, depth 6) board 4Q3/8/r2K4/8/2B5/5R2/1k6/8 w reports
+**mate 4 with a 6-ply PV that is all-legal but NOT checkmate** (mate 4 needs 7 plies). The same position at
+`go nodes 20000` (depth 53) gives the correct **mate 3 with a verified 5-ply checkmate**. Horizon truncation at
+shallow depth, NOT a wrong mate number - same family as seat 05's 27 boards and file 6's reclassification.
+
+For training labels: a self-play record can carry (a) a PV that does not play out, so a PV validator flags it, and
+(b) a mate distance one move pessimistic (mate 4 where truth is mate 3). Over 100 positions: 0 illegal PVs at
+BOTH settings, and 0 wrong mate PVs at `go nodes 20000` - so the match path stays clean (consistent with
+S-F30/S-F31). Rare in middlegames, real when it happens, concentrated on endgames where mates appear shallow.
+
+SIXTEEN self-corrections/confirmations of others this window plus nine own findings, all pushed.
+Working tree clean; local = remote. FINAL remains the first block of this file.
+Next: keep cycling.
+
 ## 2026-11-16T23:33Z - FINAL opens with the determinism one-liner; clock regimes S-F32 all safe
 
 TOP OF FINAL now reads: moves stable run to run across every command; scores from a CLOCK search approximate
