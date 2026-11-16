@@ -355,3 +355,9 @@ Reports: `REPORT_job2.md`, `REPORT_job3.md`, `REPORT_check1.md`, `REPORT_check2.
 
 **30-F50/C38: reproducibility stated separately and prominently**, now its own section in the FINAL ahead of the patch section and in the patch header. 8 fresh processes per cell: at Hash 256 the SHIPPED build gives depths **{7,11}** with nodes **5,395..47,818 (8.9x spread)** across identical runs, while the PATCHED build gives **depth 13 / exactly 106,863 nodes on 8 of 8**; at Hash 512 shipped is depth 1 (5/5) vs patched depth 12 / 71,070 (8/8). Two identical searches differing by 9x in work cannot be a measurement — that is the strongest argument for the patch and it is independent of the speed. Patch re-verified `patch -p1 --fuzz=0` rc=0 after the header edit (sha256 updated).
 **Next command**: continue the cycle toward 10:18 UTC; next is the board read for an unconfirmed finding of another seat.
+
+## Mon Nov 16 11:30:23 PM UTC 2026 — CLOSE
+
+**30-C39: the narrowed reproducibility claim now reads identically everywhere** — FINDINGS 30-C37/30-F50, the FINAL table and its reproducibility section, and the patch header. Verified by grep that no "14x"/"fourteenfold" figure survives anywhere in my folder, so the vivid number cannot be quoted back as exact. The claim: on identical runs the shipped build's DEPTH VARIES and node count varies up to ~9x (Hash 256 MB, 8 runs: depths {7,11}, nodes 5,395-47,818; 3-run sample {7,5,10}; union {5,7,10,11}), while the patched build gives depth 13 / exactly 106,863 nodes on 8 of 8.
+
+**Where the thread landed**: defect found and proved (95-141 ms per table clear, constant across 8 cells), tempting one-liner ruled out on the honesty gate, real one-statement fix measured (2.0-4.2x, raises the Hash ceiling 256 MB -> 512 MB, MultiPV 1 provably untouched), scope corrected twice, and reproducibility — the number that decides whether any measurement at those settings is valid — stated ahead of speed.
