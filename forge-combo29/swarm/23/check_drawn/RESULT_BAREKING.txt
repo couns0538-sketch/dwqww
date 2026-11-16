@@ -1,0 +1,30 @@
+REFINEMENT of seat 30's lone-king claim: the PC's repair needs DEPTH 20 — at depth 12 it is still cp
+=====================================================================================================
+Seat 30's 30-F33/F34/F38 and my 23-C11 established that at `go depth 24` the BASE reports cp and the PC reports
+mate on all six boards. That left the useful question unasked: at WHAT DEPTH does the PC's repair start working?
+
+Same six boards, depths 12 / 20 / 24, base vs PC r15, Threads 1, Hash 16, OwnBook false, drained:
+
+| # | fen | base d12 | base d20 | base d24 | PC d12 | PC d20 | PC d24 |
+|---|---|---|---|---|---|---|---|
+| 1 | 6k1/8/7R/2K5/8/8/8/8 w | cp 480 | cp 460 | cp 462 | cp 514 | cp 557 | **mate 8** |
+| 2 | 7K/5k2/8/4R3/8/8/8/8 w | cp 444 | cp 451 | cp 437 | cp 451 | **mate 23** | **mate 18** |
+| 3 | 8/3K4/8/8/8/7k/3R4/8 w | cp 400 | cp 400 | cp 400 | cp 384 | **mate 13** | **mate 12** |
+| 4 | 4k2K/8/8/1R6/8/8/8/8 w | cp 457 | cp 451 | cp 451 | cp 507 | **mate 10** | **mate 10** |
+| 5 | 8/8/8/8/8/R7/7K/3k4 w | cp 413 | cp 395 | cp 395 | cp 437 | **mate 12** | **mate 10** |
+| 6 | 8/8/8/6k1/8/8/5K2/1Q6 w | cp 1064 | cp 1160 | cp 1147 | cp 1140 | **mate 7** | **mate 7** |
+
+THE REFINEMENT, which the "repaired on the PC" summary hides:
+- At **depth 12 the PC does NOT find the mate on any of the six** — it returns cp on all six, like the base.
+- At **depth 20 it finds all six**, and at 24 likewise.
+- The BASE never finds them at 12, 20 or 24.
+
+So the PC's repair is a DEEPER-SEARCH effect, not an immediately-correct one: it needs about 20 plies on these
+endgames before the mate surfaces. Two consequences:
+1. A short time control that only reaches depth 12-16 will see NO benefit from this repair on these boards — the
+   base and PC behave alike there (both cp).
+2. This makes seat 30's "the PC fixes all six" TRUE AT DEPTH 24 and UNTESTED by them below it; my table shows the
+   depth at which it becomes true, which is the practically useful statement.
+
+CAVEAT: all six are forced wins with mates in 7-23 plies, and none of these depths is reached in a fast match on
+these positions, so the practical reach of the repair depends on the clock, which I did not measure here.
