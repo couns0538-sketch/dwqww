@@ -64,3 +64,20 @@ Done so far: S-F1..S-F5, 03-C1, HARNESS_AUDIT, PARSE_AUDIT, WARM_STATE_AUDIT (se
 Next, per the owner's TEXT 2: read soak_all/FABLE_TO_swarm_5.md, build the PC build in a separate copy with
 -DFORGE_MATE_ALPHA_GUARD=1, check its known bench numbers, then re-run my perft sets on it and compare node counts
 to the base build.
+
+## 2026-11-16T22:21Z
+
+Read FABLE_TO_swarm_2, _3, _4, _5 (all five now). File 5's PC source built and verified:
+- patch extracted from lines 56..2374 of file 5, sha256 d6bd72c531f785f4… = the published prefix (an earlier
+  extraction at 57..2374 gave 83ce05d8… — recorded, because a wrong extraction yields a silently different engine)
+- applied with `patch -p1` in a SEPARATE worktree /agent/repos/pccopy (11 files, no fuzz), built with
+  -DFORGE_MATE_ALPHA_GUARD=1 -> /home/ubuntu/build-pc/forge
+- **all eight published numbers MATCH**: none-regime 312866 / 862329 / 3024920 / 4865609; S14 242796 / 656517;
+  PC20 278024 / 587276. MateAlphaGuard verified present in the exe's own uci list before sending it.
+- job1b (SEED 311) COMPLETE: 20,000/20,000 equal, move sets identical, 0 duplicate FENs vs SEED 301.
+- job4 (PC build perft) under way: sets A and B done — **40,000 of 40,000 values identical to the base build**
+  (perft-4 sums 2,196,757,662 and 2,159,914,969 exactly equal). Set D (perft 5) running.
+
+Swarm rule Threads 1 (22:20Z): perft does not use threads or the hash at all — `Board::perft`
+(src/board.cpp:1205-1222) is a plain recursive walk with no hash probe — but I now state `setoption name
+Threads value 1` (and Hash 16) explicitly in job4/engine_perft_t1.py so no table of mine can be misread.
