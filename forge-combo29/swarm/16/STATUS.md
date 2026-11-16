@@ -461,3 +461,21 @@ seed: 1601
   checks as they land, FINAL block at 10:18:40Z.
 - next: the one experiment I left open from S-F21/S-F12 — whether a MIRROR-ORDER permutation (not a reverse) makes
   the pair equal. That is the correct transform and it is the last untested step of the symmetry thread.
+
+## 2026-11-17T01:36Z
+- S-F34: THE LAST UNTESTED STEP OF THE SYMMETRY THREAD, DONE, and the answer is "major factor, not the whole cause".
+  I forced a canonical MIRROR-INVARIANT move order (sort each generated list by colour-relative from/to squares),
+  which is the transform S-F12 said was correct instead of a reverse:
+      probe pair:  depth 1  25/30 -> 37/37 EXACTLY EQUAL,  depth 2  66/60 -> 79/79 EXACTLY EQUAL (scores match too)
+      5 positions x 3 depths: 10 of 15 exactly equal  (the reverse in S-F12 made things WORSE)
+  So generation order is a major cause and my S-F12 mechanism was misidentified (the reverse was the wrong
+  transform). NOT sufficient: 5 of 15 still differ, and that residue is INDEPENDENT of hash size (identical at
+  Hash 1/16/256 MB), so it is not the transposition table.
+- CAUGHT A HARNESS ERROR while doing it: my first p3 test used a hand-typed mirror FEN that was WRONG in three rows
+  (I had the mirror in check with 2 legal moves vs the original's 25). The multi-position run computed mirrors with
+  chess.Board(f).mirror() so its numbers stand; I re-ran p3 with the correct mirror and the residue is the same.
+  From now on every mirror FEN in my harnesses is computed, never typed.
+- I deliberately tested beyond the probe position BEFORE writing it up: the probe alone would have made this look
+  like a complete explanation, which is exactly the trap my STANDING CAUTION habit 3 warns about.
+- files: mirror_order/ (REPORT, EXPERIMENT_mirror_order.patch.txt, search.cpp.experiment.txt, raw_*.txt).
+- Cadence continues for the remaining window; next FINAL block at 10:18:40Z.

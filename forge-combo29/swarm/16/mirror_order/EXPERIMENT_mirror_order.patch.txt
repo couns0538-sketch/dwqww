@@ -1,0 +1,50 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -92,6 +92,27 @@
+ 
+ namespace forge {
+ 
++#if FORGE_EXPERIMENT_MIRROR_ORDER
++// Canonical, mirror-invariant move order: ascending by the colour-relative (from, to) squares, so two colour
++// mirror positions emit exactly corresponding lists. Colour-relative square = sq ^ 56 for Black, sq for White.
++namespace {
++inline void canonicalise_moves(const Board& board, MoveList& list) {
++    const int flip = board.side_to_move() == Black ? 56 : 0;
++    std::sort(list.begin(), list.end(), [flip](Move a, Move b) {
++        const int af = (a.from ^ flip), at = (a.to ^ flip);
++        const int bf = (b.from ^ flip), bt = (b.to ^ flip);
++        if (af != bf) return af < bf;
++        if (at != bt) return at < bt;
++        return a.promotion < b.promotion;
++    });
++}
++}  // namespace
++#endif
++
++#ifndef FORGE_EXPERIMENT_MIRROR_ORDER
++#define FORGE_EXPERIMENT_MIRROR_ORDER 0
++#endif
++
+ int DrawJitter = 0;
+ 
+ namespace tune {
+@@ -978,6 +999,9 @@
+     void generate_captures() {
+         buffer_.clear();
+         board_.generate_pseudo_legal(buffer_, true);
++#if FORGE_EXPERIMENT_MIRROR_ORDER
++        canonicalise_moves(board_, buffer_);
++#endif
+         index_ = 0;
+         count_ = 0;
+         seeded_ = false;
+@@ -1007,6 +1031,9 @@
+         init_check_squares();
+         buffer_.clear();
+         board_.generate_pseudo_legal(buffer_, Board::GenMode::Quiets);
++#if FORGE_EXPERIMENT_MIRROR_ORDER
++        canonicalise_moves(board_, buffer_);
++#endif
+         index_ = quiet_start();
+         count_ = quiet_start();
+         seeded_ = false;
