@@ -719,3 +719,14 @@ every sentence.
   all three budgets those 2 produced NO mate scores at all, so there was no mate to test. Recorded so it cannot be
   read as corroborating S-F57.
 - next command: continue the cycle.
+
+## $(date -u) — S-F58 REFUTES part of S-F57
+- Found a genuine long-mate position (`r2r4/pB2kpp1/...` mate +8 at depth 14) by screening 400 random-play games (only
+  2 such positions in 400 — long mates are rare).
+- At `go nodes 50000`, PC20/Threads 1/Hash 16/OwnBook false, 4 of 4 runs identical: `score mate 11` with an 18-ply PV
+  needing 21 = SHORT by 3 (44,749 nodes, depth 11). So the truncation DOES occur at a match budget.
+- At `go nodes 250000` the same position: `mate 7` 13/13 CONSISTENT; `go depth 20` agrees.
+- => S-F57's "0 truncated at 50,000" was a SAMPLING ARTEFACT (only 3 of its 28 positions had |N| >= 10). Withdrawn as
+  S-W7. Correct statement: the rate falls as the budget rises, the defect is still present at 50,000 on long mates, and
+  I have NOT established a budget where it is absent.
+- next command: continue the cycle.
