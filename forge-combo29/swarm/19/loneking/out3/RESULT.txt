@@ -1,0 +1,55 @@
+# lone-king endings: does the engine's move produce a worse RESULT than an available alternative?
+
+PC r15, PC20, Threads 1, Hash 16, cold. 40 positions.
+depth 16 and `go nodes 20000`. Status by python-chess is_insufficient_material/is_checkmate/is_game_over.
+
+| pos | legal | best available | depth16 move | its result | worse? | nodes20k move | its result | worse? |
+|---|---|---|---|---|---|---|---|---|
+| 0 | 51 | unknown | e1b1 | unknown | **no** | e1b1 | unknown | **no** |
+| 1 | 21 | unknown | h6h7 | unknown | **no** | a2d5 | unknown | **no** |
+| 2 | 15 | unknown | a2a1q | unknown | **no** | a2a1q | unknown | **no** |
+| 3 | 23 | unknown | d7e5 | unknown | **no** | d7e5 | unknown | **no** |
+| 4 | 6 | unknown | a6a7 | unknown | **no** | a6a7 | unknown | **no** |
+| 5 | 20 | unknown | c3d4 | unknown | **no** | c3d4 | unknown | **no** |
+| 6 | 32 | unknown | f6e5 | unknown | **no** | a6a5 | unknown | **no** |
+| 7 | 27 | unknown | b8f4 | unknown | **no** | b3c3 | unknown | **no** |
+| 8 | 40 | unknown | h7h8q | unknown | **no** | h7h8q | unknown | **no** |
+| 9 | 15 | unknown | e6f5 | unknown | **no** | e6f5 | unknown | **no** |
+| 10 | 19 | unknown | e1b1 | unknown | **no** | e1d1 | unknown | **no** |
+| 11 | 19 | unknown | d2e4 | unknown | **no** | f2g2 | unknown | **no** |
+| 12 | 9 | unknown | h5g6 | unknown | **no** | h5g6 | unknown | **no** |
+| 13 | 20 | unknown | e3e2 | unknown | **no** | e3e2 | unknown | **no** |
+| 14 | 18 | unknown | a1e5 | unknown | **no** | a1e5 | unknown | **no** |
+| 15 | 4 | unknown | h4g5 | unknown | **no** | h4g5 | unknown | **no** |
+| 16 | 39 | unknown | c2e2 | unknown | **no** | c2e2 | unknown | **no** |
+| 17 | 35 | unknown | d1f1 | unknown | **no** | a5c6 | unknown | **no** |
+| 18 | 34 | unknown | f6e5 | unknown | **no** | h6g5 | unknown | **no** |
+| 19 | 20 | DRAW | d2d1q | unknown | **no** | d2d1q | unknown | **no** |
+| 20 | 11 | unknown | e2f2 | unknown | **no** | e2f2 | unknown | **no** |
+| 21 | 15 | unknown | h5h6 | unknown | **no** | h5h6 | unknown | **no** |
+| 22 | 6 | unknown | g4g3 | unknown | **no** | g4g3 | unknown | **no** |
+| 23 | 33 | unknown | d4e5 | unknown | **no** | b4e7 | unknown | **no** |
+| 24 | 31 | unknown | g5d2 | unknown | **no** | g5c5 | unknown | **no** |
+| 25 | 23 | unknown | b3d4 | unknown | **no** | b3d4 | unknown | **no** |
+| 26 | 22 | unknown | e2d3 | unknown | **no** | e2d3 | unknown | **no** |
+| 27 | 30 | unknown | b8e5 | unknown | **no** | b8e5 | unknown | **no** |
+| 28 | 18 | unknown | h2g2 | unknown | **no** | h2c2 | unknown | **no** |
+| 29 | 25 | unknown | b7b8q | unknown | **no** | e3f4 | unknown | **no** |
+| 30 | 18 | WIN | b6b8 | WIN | **no** | b6b8 | WIN | **no** |
+| 31 | 22 | unknown | c2d3 | unknown | **no** | c2d3 | unknown | **no** |
+| 32 | 9 | unknown | d2e3 | unknown | **no** | d2e3 | unknown | **no** |
+| 33 | 12 | DRAW | f7f8q | unknown | **no** | f7f8q | unknown | **no** |
+| 34 | 17 | unknown | b1d2 | unknown | **no** | b1d2 | unknown | **no** |
+| 35 | 23 | unknown | f4e4 | unknown | **no** | f4e4 | unknown | **no** |
+| 36 | 22 | unknown | a3a2 | unknown | **no** | a3a2 | unknown | **no** |
+| 37 | 22 | unknown | b5c4 | unknown | **no** | b5c4 | unknown | **no** |
+| 38 | 20 | unknown | d8e7 | unknown | **no** | d8e7 | unknown | **no** |
+| 39 | 29 | unknown | h1f2 | unknown | **no** | b1b3 | unknown | **no** |
+
+## the count this job asks for
+
+**positions where the engine's move produces a worse result than an available alternative: 0 of 40**
+
+(of which depth-16: 0 ; of which go-nodes-20000: 0)
+
+Note: 'best available' is WIN only when some legal move MATES AT ONCE — with no tablebases, a won-but-not-immediate position reads as 'unknown', so this counts missed immediate mates and drawn-instead-of-mating choices, not slow wins.
