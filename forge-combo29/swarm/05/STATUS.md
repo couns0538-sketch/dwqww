@@ -615,3 +615,12 @@ framing (S-F36 one rule); my false softnodes nondeterminism (S-W3); my OwnBook-t
 S-F42's strength implication.
 - next command: continue the cycle; the clock findings are complete, so next is the mate-PV truncation on the PC path
   under softnodes 2000 (the self-play budget), which ties my two threads together.
+
+## $(date -u)
+- S-F48: the mate-PV truncation DOES occur at the PC's self-play budget (`go softnodes 2000`). Case G/59
+  (`4Q3/8/r2K4/8/2B5/5R2/1k6/8 w`): depth 6 gives mate 4 with a 6-ply PV needing 7 (SHORT by 1), identical 3/3 runs;
+  at depth 12 it gives mate 3 with 5 plies (correct); at softnodes 5000/20000 also mate 3. So the low-depth score is
+  too pessimistic AND its PV cannot deliver it, and deepening fixes both. Rate at the self-play budget: 1 of 17 mate
+  scores = 5.9% (most positions lose their mate score entirely at 2,000 nodes).
+- This ties my two threads: S-F1/S-F27 (truncation) meet S-F31/S-F46 (the PC's real budget).
+- next command: continue the cycle.
