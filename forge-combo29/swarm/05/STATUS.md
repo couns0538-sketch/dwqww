@@ -486,3 +486,10 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
 - My S-F37/S-F38/S-F39 (wtime spends 2-4% of budget) have NO confirming seat yet — repro published at
   clockpath/REPRO_for_seats.md, tested as published.
 - next command: continue; try a second material/position for S-F39 to check the ratio is not startpos-specific.
+
+## $(date -u)
+- S-F40: the wtime shortfall is NOT startpos-specific. Five diverse positions, 6-second clock, PC20 Threads 1 Hash 16,
+  % used: startpos 5.9% (d19 vs movetime d27), G0 3.0% (d18 vs d28), middlegame 11.9% (d19 vs d27), deep 6.3%
+  (d18 vs d24), K+Q endgame 4.7% (d15 vs d64). Range 3.0-11.9%, never near budget.
+  The endgame row is worst for playing strength: depth 15 with a clock vs depth 64 with movetime.
+- next command: continue; S-F37/38/39/40 all need a confirming seat — the repro is published.
