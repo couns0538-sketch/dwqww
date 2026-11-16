@@ -16,6 +16,24 @@ the denominator is the program total, not the subset; print "NOT FOUND" and a ve
 is missing, never 0.
 
 
+## THE TABLE THAT SUPERSEDES EVERY SINGLE FIGURE ON PC20 TREE SIZE (29-F42)
+If any PC20-vs-S14 node figure from me is quoted anywhere, quote THIS, not a single number. PC r15 build,
+Threads 1, Hash 16. Both position sets, both depths where I have them:
+
+| set | depth | S14 nodes | PC20 nodes | PC20 vs S14 |
+|---|---|---|---|---|
+| R_2911 | 10 | 861,000 | 880,419 | **+2.3 %** |
+| R_2911 | 12 | 3,078,383 | 2,478,658 | -19.5 % |
+| R_2911 | 14 | 5,888,909 | 5,061,004 | -14.1 % |
+| G | 10 | 582,081 | 489,649 | **-15.9 %** |
+| G | 12 | 1,700,791 | 1,484,712 | -12.7 % |
+
+Reading it: the effect depends on **depth AND position set together**. At the SAME depth 10, PC20 costs 2.3 % more on
+R_2911 and saves 15.9 % on G, so neither "PC20 always prunes" nor "PC20 costs more at low depth" is true in general.
+The one stable claim: **at match depths PC20 searches a smaller tree on both sets** (-12.7 % G, -19.5 % R_2911 at
+depth 12). Three of my last three conclusions on this topic needed exactly this reframing (29-F38 -> 39, 29-F40 -> 41,
+29-F41 -> 42), which is why 29-N23 makes the sweep the default.
+
 ## NAMED RULE (29-N23): sweep the second variable before any number reaches a summary
 Twice in one hour a single-cell percentage of mine was wrong the same way, and both times the fix was to vary one
 more axis:
@@ -137,3 +155,4 @@ transposition-table work on BOTH grounds: the distribution it samples and the co
 | 29-N24 | 9 | **PROCESS: a checker wrong in either direction is worse than none, and twice the bug was my EXPECTATION, not the data.** `lint_findings.py` first demanded 4 fields for C rows when most legitimately carry a 5th tag column, then demanded 5 when the two oldest C rows use the brief's own 4-column C form. Both failures would have blocked a correct file, and a blocked-but-correct file trains a person to ignore the checker — the same failure mode as a checker that passes everything. It now accepts BOTH legitimate shapes and rejects everything else (71 rows, 0 problems). The pattern to keep: when a checker disagrees with the data, verify the checker before "fixing" the data, and state in the checker's own text which shapes are legitimate and why. | `lint_findings.py` | NEW |
 | 29-F42 | 9 | **CORRECTS 29-F41: the depth-10 sign flip is POSITION-SET-SPECIFIC, not a property of depth.** Sweeping the second set (PC r15 build, Threads 1, Hash 16): on **R_2911** PC20 costs **+2.3 %** at depth 10, but on **G** (game positions) the same depth gives **-15.9 %**, and depth 12 gives -12.7 % on G against -19.5 % on R_2911. So neither "PC20 always prunes" nor "PC20 costs more at low depth" is true in general: the effect depends on **both depth and position set**, and only the direction at match depths (PC20 smaller, -12.7 % to -19.5 %) is stable across my two sets. This is the sweep rule (29-N23) applied to its own previous conclusion, and it means 29-F41's "switches are not free at low depth" must be read as "not free at low depth ON R_2911". | `slots/raw_pc20_two_sets.txt`, `raw_pc20_d10.txt`, `raw_pc20_d14.txt` | NEW |
 | 29-N25 | 9 | WITHDRAWAL of 29-F41's generalisation: the depth-10 sign flip is measured on R_2911 only, and on the G set PC20 saves 15.9 % at that same depth. The stable claims are (a) at match depths PC20 searches a smaller tree on BOTH sets (-12.7 % G, -19.5 % R_2911 at depth 12), and (b) any specific magnitude must name depth AND position set. This is the third single-cell correction of the hour (F38->F39, F40->F41, F41->F42), every one caught by sweeping one more axis — which is exactly why 29-N23 makes the sweep the default rather than a response to being asked. | `raw_pc20_two_sets.txt` | NEW |
+| 29-N26 | 9 | FINDINGS itself now opens with the 29-F42 TABLE rather than a single figure, placed above the named rules: any PC20-vs-S14 node figure of mine that is quoted anywhere should be quoted from that table, because three of my last three conclusions on this topic were each one cell of it (29-F38 -> 39, 29-F40 -> 41, 29-F41 -> 42). The table carries both position sets and the reading guide, and the only stable claim — PC20 searches a smaller tree on both sets at match depths (-12.7 % G, -19.5 % R_2911 at depth 12) — is stated in it. A single number in a row is a pointer to this table, not a result. | `FINDINGS.md` header section, `slots/raw_pc20_two_sets.txt` | NEW |

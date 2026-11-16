@@ -283,3 +283,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-F42 swept F41 onto a SECOND position set and it changed again: the depth-10 sign flip is R_2911-SPECIFIC. On G, PC20 saves 15.9% at depth 10 and 12.7% at depth 12; on R_2911 it costs +2.3% at 10 and saves 19.5% at 12. So the effect depends on BOTH depth AND position set; the only stable claim is that at match depths PC20 searches a smaller tree on both sets.
 - 29-N25 withdraws F41's generalisation. That is the THIRD single-cell correction of the hour (F38->F39, F40->F41, F41->F42), each caught by sweeping one more axis - which is precisely why 29-N23 makes sweeping the default rather than a response to being asked.
 - next: continuing on the PC path.
+
+## Mon Nov 16 11:42:07 PM UTC 2026
+- 29-N26: FINDINGS now OPENS with the 29-F42 table (above the named rules), not a single figure. Order is: FIRST RULE (zero must be a measurement) -> THE TABLE for PC20 tree size -> the three named rules. Any PC20-vs-S14 number of mine quoted anywhere should come from that table; a single number in a row is a pointer to it, not a result.
+- The table carries both position sets, the reading guide, and the one stable claim you relayed (PC20 smaller on BOTH sets at match depths: -12.7% G, -19.5% R_2911 at depth 12).
+- next: continuing on the PC path.
