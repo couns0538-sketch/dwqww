@@ -1,0 +1,29 @@
+exe: /home/ubuntu/pcbuild/build/forge
+engine's Threads line: option name Threads type spin default 1 min 1 max 256
+
+## (b) no setoption at all, four fresh processes
+run 1: score cp 62  nodes 113145
+run 2: score cp 62  nodes 113145
+run 3: score cp 62  nodes 113145
+run 4: score cp 62  nodes 113145
+identical across four runs: True
+
+## explicit setoption name Threads value 1, four fresh processes
+run 1: score cp 62  nodes 113145
+run 2: score cp 62  nodes 113145
+run 3: score cp 62  nodes 113145
+run 4: score cp 62  nodes 113145
+identical across four runs: True
+same as the no-setoption runs: True
+
+## positive control: Threads 4 (seat 04 says this should vary)
+run 1: score cp 78  nodes 212192
+run 2: score cp 65  nodes 205519
+run 3: score cp 74  nodes 153929
+run 4: score cp 72  nodes 161967
+identical across four runs: False
+
+verdict rule: the Threads-1 claim is VACUOUS unless the same harness shows variation at Threads 4.
+control sees a difference at Threads 4: True
+
+VERDICT: CONFIRMED Threads 1 regime (reproducible scores, and the control proves the test can see variation)
