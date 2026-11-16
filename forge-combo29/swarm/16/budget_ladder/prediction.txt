@@ -1,0 +1,25 @@
+# PREDICTION — HOW FAR should the self-play budget move up? (the numbers behind S-F31's advice)
+
+S-F31 says a strength-minded self-play choice should move up from 2,000 nodes. It gives no target, which makes the
+advice hard to act on. This job measures cost against budget for four budgets: 2000 (current), 8000, 20000 and
+50000 — the last being the PC's smallest MATCH budget, so it is a budget the owner already uses elsewhere.
+
+Method: 40 real-game positions, PC build under PC20, Threads 1, Hash 16. For each budget B and each position:
+  move_B = bestmove at `go nodes B`
+  cost(B) = (score after move_ref) - (score after move_B), both from the mover's point of view, judged by ONE
+            fixed reference search (`go depth 16`, deeper than the depth-12 proxy S-F30 used, because S-F31 showed
+            the magnitude grows with reference depth).
+  move_ref = bestmove at `go nodes 250000` (the PC's largest match budget).
+Reported per budget: same-move count vs ref, median cost, count worse by >30 and >100, and the sum of costs
+(a single "total damage" figure, which is the number that matters if the budget is used for many moves).
+
+P1. Cost falls MONOTONICALLY as the budget rises: predicted median cost and total damage both decrease from 2000
+    through 8000, 20000 to 50000. Kills it: any budget whose total damage exceeds the previous one.
+P2. 8000 nodes captures most of the gain: predicted the total damage at 8000 is less than half of that at 2000.
+    Kills it: less than a quarter of the gain available at 8000 (then the useful step is larger).
+P3. 50000 is close to the reference: predicted at most 2 of 40 positions worse by >100 cp, and a median of 0.
+    Kills it: 5 or more >100 cp at 50000 (then the reference budget itself is not enough and I must say the
+    "cost" measure is relative to a budget that is also imperfect).
+P4. The number of positions where the move CHANGES from 2000 to 8000 is small — under a third — so most of the
+    gain comes from a few positions improving a lot, not from everything shifting. Kills it: most positions
+    changing, which would mean the budget affects nearly every decision.
