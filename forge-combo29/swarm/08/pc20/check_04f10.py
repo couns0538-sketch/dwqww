@@ -132,7 +132,7 @@ t4 = results[4]
 if any(r["maxd"] < DEPTH for r in t4):
     raise SystemExit("CONTROL FAILED: a Threads-4 run did not reach depth %d" % DEPTH)
 
-emit()
+emit("")
 emit("| arm | distinct scores | distinct bestmoves | score range | nodes range |")
 emit("|---|---|---|---|---|")
 for threads, runs in results.items():
@@ -142,7 +142,7 @@ for threads, runs in results.items():
          (threads, len(scores), len(runs), len(bms), ", ".join(sorted(bms)),
           ", ".join(sorted(scores)), "%s..%s" % (min(r["nodes"] for r in runs), max(r["nodes"] for r in runs))))
 
-emit()
+emit("")
 t1s = {r["score"] for r in t1}
 t4s = {r["score"] for r in t4}
 t1b = {r["bm"] for r in t1}
