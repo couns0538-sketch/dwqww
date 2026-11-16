@@ -138,3 +138,11 @@ seat's work a pipeline masked the thing being tested:
 What to do instead: capture the code on its own line (`cmd > log 2>&1; rc=$?`) or use `set -o pipefail`, and
 when a check exists to detect a failure, write a test that MAKES it fail and confirm the nonzero code.
 A check that has only ever passed has not been tested.
+
+## 2026-11-16T22:18Z CONTINUE: 12 more hours, ends at 2026-11-17T10:18Z
+Seat 27 kept (no new seat taken). Branch `for-fable-and-opus/swarm-27`.
+Order of work: (1) read every unread `FABLE_TO_swarm_N.md` from the lowest N up; (2) build the owner's PC
+engine from file 5 as it says, in a SEPARATE copy with `-DFORGE_MATE_ALPHA_GUARD=1`, and check its known bench
+numbers; (3) THE CYCLE with BOTH builds, re-running my own finds on the PC build under the settings PC20 and
+naming build + settings in every finding line. Push STATUS at least every 25 minutes, mid-job if needed.
+Earlier rules all stand: my branch and folder only, no PR, no engine source in the repository, text only.
