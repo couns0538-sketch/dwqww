@@ -97,6 +97,50 @@ two 20-position samples are two draws from the same noisy distribution, not a pa
 this as "not shown to differ" rather than "same", because 20 positions cannot separate a 22 ms shift from
 this cell's own variance.
 
+## The patched engine under ASan + UBSan, with both proofs
+
+Brief rules for a sanitizer run: proof 1 is `nm -C <exe> | grep -c __asan_ > 0`, proof 2 is ONE planted
+fault counted by the SAME runner. Both are present.
+
+**Proof 1** — `__asan_ symbols = 35, __ubsan_ symbols = 15` on the patched build
+(`~/build/patched5-asan/forge`, portable, `-fsanitize=address,undefined`, GCC 13.3.0).
+
+**Proof 2** — a scratch copy with a planted one-byte heap over-read compiled the same way; the same runner,
+unchanged, counted it:
+
+| plant case | sanitizer lines | the report it produced |
+|---|---|---|
+| `go depth 3 plantfault` | **3** | `runtime error: load of address 0x5020000000b4 ... forge::uci_loop ... uci.cpp:487` (`asan_plant_out/plantfault.txt`) |
+
+**The real patched build through that same runner** (`asan_patch_out.txt`, `asan_out/`):
+
+| case | bestmove | nodes | sanitizer lines | expectation |
+|---|---|---|---|---|
+| hm99 | a1a8 | 126 | 0 | search expected OK |
+| hm100 | a1a8 | 126 | 0 | search expected OK |
+| hm150 | a1a8 | 126 | 0 | search expected OK |
+| rep3 | a1a8 | 126 | 0 | search expected OK |
+| kvk | a1b1 | 0 | 0 | 0-node adjudication expected OK |
+| knnk | a1a2 | 681 | 0 | search expected OK |
+
+So "0 sanitizer lines on the new code paths" is *shown*, not assumed.
+
+### Two of my own errors found while doing this, both recorded
+1. My first ASan pass used `printf 'go depth 6\nquit\n' | forge` and reported `f2f3` for halfmove 100 —
+   the quit-during-search path again (fourth time: `job1/README_HARNESS_BUG.md`, `checks/CHECK_27f2.md`,
+   `correction/verify_wall_BROKEN_quit_race.txt`, here). The engine abandoned the search. Corrected by
+   reading with `timing.Engine`, which waits for `bestmove`. I then re-ran `verify_patch.py` and the patch
+   still gives `a1a8`/126 nodes, so S-F17 is unaffected.
+2. My plant was first put on a token (`plantfault` as a `go` argument the runner never sent), so it never
+   fired and the "0 lines" looked proven when nothing had been planted. Moved into the `go` handler behind
+   a token the runner does send, after which it fires.
+
+### One expectation of mine that was wrong, not the engine
+I first marked KNN v K as "insufficient material, 0 nodes expected". python-chess says
+`is_insufficient_material()` is **False** for KNN v K (mate is possible with the defender's help), and both
+the base and patched engines search it to 681 nodes and answer `b1d2`. My test's expectation was wrong; the
+engine is right. Corrected in `asan_patch.py`.
+
 ## The step table
 
 | step | done-partly-not done | evidence file | result |
