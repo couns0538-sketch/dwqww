@@ -1,0 +1,19 @@
+--- a/src/board.cpp	2026-11-16 21:37:44.619120729 +0000
++++ b/src/board.cpp	2026-11-16 21:37:44.623120729 +0000
+@@ -348,7 +348,15 @@
+     candidate.side_ = parsed_side;
+     candidate.castling_ = rights;
+     candidate.ep_square_ = static_cast<std::int8_t>(ep_square);
+-    candidate.halfmove_ = static_cast<std::uint16_t>(std::min<long long>(halfmove, 65535));
++    // A half-move clock above 100 is not a reachable game state: the fifty-move rule already
++    // ended the game. Refusing it is what the other impossible fields do (pawns on rank 1/8,
++    // two kings, an inconsistent ep square). Clamping it to 65535 instead made such a FEN look
++    // like a finished draw for every later `halfmove_clock() >= 100` test.
++    if (halfmove > 100) {
++        if (error != nullptr) *error = "invalid FEN fields: half-move clock above 100";
++        return false;
++    }
++    candidate.halfmove_ = static_cast<std::uint16_t>(halfmove);
+     candidate.fullmove_ = static_cast<std::uint16_t>(std::min<long long>(fullmove, 65535));
+     if (candidate.square_attacked(king_squares[opposite(parsed_side)], parsed_side)) {
+         if (error != nullptr) *error = "side that moved left its king in check";

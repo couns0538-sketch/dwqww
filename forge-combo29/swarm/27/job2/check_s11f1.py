@@ -42,6 +42,10 @@ def perft2(exe, pos_line):
     for line in out.splitlines():
         if line.startswith("nodes "):
             nodes = int(line.split()[1])
+    # Seat 19's integrity rule: assert the line was found. A missing count must never pass as
+    # "same board" (a None == None comparison would) nor as an acceptance.
+    if nodes is None and not refused:
+        raise AssertionError("no 'nodes N' line for %r; harness output was:\n%s" % (pos_line, out[-500:]))
     return {"pos": pos_line, "nodes": nodes, "refused": refused, "rc": rc,
             "raw": out}
 
