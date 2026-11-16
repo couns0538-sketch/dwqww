@@ -69,3 +69,21 @@ CORRECTION on record
 
 NEXT
 - Check remaining seat findings; finish area 7 job 3 (transposition table) as far as time allows.
+## 2026-11-16T22:05Z (block 7) — checkpoint
+
+seat 17 | area 7 | branch for-fable-and-opus/swarm-17 | seed 1701
+
+DONE since block 6
+- NOTE_select_readline_artifact.md: standalone note on the select+readline artefact (failure signature,
+  the rule for harness authors, both working patterns, evidence table).
+- S-F8 follow-up, corrected: the no-legal-match searchmoves root does NOT hang and is NOT unbounded -
+  bestmove 0000 in 18-19 ms on both `go movetime 100` and `go wtime 1000 btime 1000`, confirmed 3 ways
+  including a plain shell pipe. What survives is narrower: 64 info depth lines all reporting nodes 0 time 0,
+  i.e. a search report for a search that never ran. S-F11 records the harness root cause.
+- S-C9 CONFIRMS 21-F2 (refused FEN still answers readyok, old board stays), S-C10 CONFIRMS 21-F8
+  (fullmove 0 refused while python-chess accepts it: 5 legal moves -> engine plays the old board with 20).
+- ASan sweep G 61-90 depth 14: 30 measured, 0 sanitizer lines. Running total 106 measured ASan searches.
+- TT resize verified (S-F9): Hash 1/8/32/512/2048 -> hashfull 440/58/10/0/0, nodes converge, same bestmove.
+
+NEXT
+- Final STATUS + FINDINGS push at 22:30, then stop. Area 7 job 3 report if time remains.
