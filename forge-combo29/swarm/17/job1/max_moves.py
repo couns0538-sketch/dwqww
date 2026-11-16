@@ -27,7 +27,7 @@ def main():
          dict(os.environ, ASAN_OPTIONS="detect_leaks=0", UBSAN_OPTIONS="print_stacktrace=1")),
     ]
     for label, exe, env in builds:
-        for go, timeout in (("go perft 1", 240), ("go nodes 300000", 300)):
+        for go, timeout in (("go perft 1", 60), ("go nodes 300000", 90)):
             tag = go.replace(" ", "_")
             log = os.path.join(OUT, "%s_%s.log" % (label, tag))
             info = run_one(exe, ["uci", "isready", "position fen " + FEN, "isready", go], timeout, log, env=env)
