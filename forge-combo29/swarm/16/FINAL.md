@@ -121,6 +121,18 @@ identical at all three budgets on 31 of 40 real-game positions; the 8 that chang
 (largest +125 cp from the 20k budget to the 250k one, one −70 cp self-assessment drop in a lost position). No
 blunder found at any real budget.
 
+**2.3b Two measurement-discipline results that others can use directly.**
+`S-F6`: the built-in book **cannot affect an analysis search** — `src/uci.cpp:524-528` probes it only when
+`game_search` holds, i.e. only for a `go wtime/btime` or `go movetime` search, never for `go depth`, `go nodes` or
+`go infinite`. Verified twice over: 3 opening positions at depth 10 produced no book line, and 30 G positions gave
+identical depth-10 bestmove and score with `OwnBook` true vs false. So analysis harnesses do not need to disable
+the book (they should anyway, and mine now do).
+`S-F9`: my published symmetry numbers are **not a warm/cold artefact**. On 12 mirror pairs, COLD (fresh process per
+search) and WARM (one process with `ucinewgame` before each search) give IDENTICAL verdicts (bestmove mismatch
+2/12, score mismatch 12/12), while the WRONG discipline (nothing between searches) gives a different count (10/12)
+— so the confound is live and would have changed the number, and my runs escaped it. `eval` is additionally
+stateless (S-F10), so eval comparisons need no process discipline at all.
+
 **2.4 Self-play diversity — and the fix, which is simple.** `S-F27`: ten deterministic self-play games from the
 same start produced only **THREE distinct final positions — seven of the ten identical** — because the engine is
 fully deterministic at Threads 1 with fixed limits. Not a defect; a consequence: self-play from one fixed start
