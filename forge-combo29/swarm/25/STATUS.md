@@ -46,6 +46,15 @@ engine output), written up in `check_file6/HOW_TO_APPLY_FILE6.md`.
 | S-C7 | seat 05 S-F14 | **partly confirms, partly refutes**: my 21-piece board is flat `cp 0` at counter 99 for depths 6-12 (confirmed); the pawnless variant scores +63..+87 at counter 100, not a draw (refuted on PC r15; they used the base tree) |
 | S-C12 | seat 19 19-F46 | **numerically confirms**: `go nodes` ratio median 0.67 vs their 0.68, `go softnodes` 1.21 vs 1.219, softnodes deeper in 18/18 |
 
+**FOUR-WAY AGREEMENT on `go softnodes` - about as settled as anything in this run.** My S-F25 (softnodes
+deterministic, finished-depth stop, bounded overshoot) was independently reproduced by seats **08 (08-F26)**,
+**19 (19-F44)** and **29 (29-F22/23/24)** on their own harnesses; I then reproduced seat 19's budget-ratio
+numbers (19-F46) to within a hundredth on mine. Four independent arrivals at the same numbers mean the
+soft-node path can be treated as characterised. The practical consequence, agreed by all four:
+**a cost model keyed to N must assume 1.3x-2.1x N for `go softnodes`, and about 0.5x-0.7x N for `go nodes`** -
+a hard node limit discards the iteration it interrupts, a soft one finishes it. Neither is a fault; both are
+budget-modelling facts for anyone reading match or self-play labels.
+
 ### WITHDRAWN / NOT A DEFECT (with the reason)
 
 | id | status |
@@ -261,7 +270,7 @@ THREE FALSIFIABLE PREDICTIONS, ALL CONFIRMED (S-F17)
 - board whose best moves are resets stays non-zero at clock 99 (cp 549 in 3,918 nodes).
 
 NEXT: keep cycling - next area-5 repetition with a new seed, and re-check other seats' unconfirmed finds.
-## 2026-11-16T22:23Z — PC build integrated; coordinator's three tasks done
+## 2026-11-16T22:23Z - PC build integrated; coordinator's three tasks done
 
 Built PC r15 from FABLE_TO_swarm_5 (patch sha256 matches, no rejects, -DFORGE_MATE_ALPHA_GUARD=1).
 All three rows of file 5's honesty table reproduce exactly (312866/862329/3024920/4865609;
@@ -270,15 +279,15 @@ All three rows of file 5's honesty table reproduce exactly (312866/862329/302492
 Coordinator's three tasks, all answered:
 1. REACHABILITY: PROVEN by a legal 99-ply list (reach.txt, verify_walk.py replays and asserts every move);
    PC build answers cp 0 in 661 nodes there vs -15 cp in 32,461 at clock 0. (S-F11)
-2. BASE vs PC: break is identical on both builds under default/S14/PC20 — predates r15, not one of the six
-   options (S-F12). Onset exactly 99 (S-F13: clock alone is not enough — start position at clock 99 is fine).
+2. BASE vs PC: break is identical on both builds under default/S14/PC20 - predates r15, not one of the six
+   options (S-F12). Onset exactly 99 (S-F13: clock alone is not enough - start position at clock 99 is fine).
    Shape is a root shortcut but the mechanism is UNIDENTIFIED: is_draw (>=100), root_drawn (insufficient
    only) and rule50_damped_static (inert) are all refuted by their own source. Recorded, not guessed (S-F14).
 3. Cosmetic: mate 0 on a checkmated root vs cp 0 on a stalemated root, and 64 phantom info lines on a
-   terminal root — both survive on the PC build, both re-measured with a plant passing (S-F6, S-F7).
+   terminal root - both survive on the PC build, both re-measured with a plant passing (S-F6, S-F7).
 
 Earlier finds re-run on the PC build: S-F1 and S-F8 are REPAIRED there (mate -4 and mate -8, correct).
-Next: continue the cycle — check other seats' unconfirmed finds, then the next area-5 job.
+Next: continue the cycle - check other seats' unconfirmed finds, then the next area-5 job.
 ## 2026-11-16T22:18:48Z CONTINUE: 12 more hours, ends at 2026-11-17T10:18:48Z
 
 Resuming under the owner's 12-hour continuation. Seat 25 unchanged (area 5, PVs and scores).
@@ -297,7 +306,7 @@ Results just before this block (already committed):
 - NEW and important: S-F8's mate score at depth 20 is HASH-DEPENDENT (mate -7 at 64/256 MB, mate -8 at
   smaller sizes), while S-F1's is stable (mate -5 at every size). Evidence: job1c/hash_dependence.txt.
 - verify_all.py: 8/8 headline claims re-verified from scratch (verify_all.txt).
-## 2026-11-16T22:00:00Z — all area-5 jobs done; this is my complete state
+## 2026-11-16T22:00:00Z - all area-5 jobs done; this is my complete state
 
 seat: 25 | area: 5 (principal variations and scores) | seed: 2501 (run 2 used 2511)
 branch: for-fable-and-opus/swarm-25 | folder: forge-combo29/swarm/25/
