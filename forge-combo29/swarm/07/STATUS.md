@@ -209,3 +209,21 @@ tiny_100.txt
 tiny_10.txt
 tiny_30.txt
 zero_0.txt
+
+## 2026-11-16T21:56:50Z
+job12 done: eval() is exactly colour-symmetric (0/600). Convention verified from the engine: eval is side-to-move-relative (eval.cpp:509), so eval(P)==eval(mirror(P)). Two earlier versions of my test asserted the wrong relation and are documented as my errors.
+### git status --short
+ M STATUS.md
+?? REPORT_job12.md
+?? job12/
+?? job9/raw_G/sum_d14.json
+?? job9/run_G_d14.log
+### ls job12
+job12:
+eval_symmetry.py
+__pycache__
+raw
+stamps.txt
+
+job12/raw:
+differences.txt
