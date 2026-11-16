@@ -319,3 +319,11 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   K+R vs K scores cp 490 at H=0/50/75 then exactly cp 0 from H=91 — my flip point — and it adds that H=91 costs
   7,251,835 nodes vs 14,470 at H=0 (500x blow-up), a figure that matches my own PC20 run exactly. Recorded as S-C13.
 - next command: check the S14 mate-sample run, then continue with the remaining open findings.
+
+## $(date -u)
+- S-F25 NEW (negative result that CONSTRAINS S-F23): the independent 8-mate sample is 0-truncated under S14 as well as
+  under PC20, so it does not reproduce the truncation at all. S-F23 showed S14 truncates 2 of 28 on the ORIGINAL set, so
+  the 7.1% must not be quoted as a general rate: 2 truncated out of 36 mate positions examined in total, and the 8 new
+  ones contain none. S-F23's "PC20 gives 0 of 27" therefore means "no truncation observed on that set under PC20", not
+  "PC20 reduces a measurable rate to zero".
+- next command: amend S-F23's wording so the rate claim is bounded, then continue.
