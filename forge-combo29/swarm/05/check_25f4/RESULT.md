@@ -68,3 +68,31 @@ python3 check_25f4/pawns_test.py /tmp/build-rel/forge
 - Whether `EvalRule50Damp`, depth range or `UseNNUE false` change their board's flat-99 result — seat 25 reports
   they do not; I did not re-test those, so that part of 25-F4 is CONFIRMED only as "the break is at 99", not as
   "no option changes it".
+
+## The gap I flagged, now tested: no option or depth escapes the clock-99 zero
+
+`options_test.py`, seat 25's board at clock 99, depth 10, one setting changed at a time:
+
+| case | score | nodes |
+|---|---|---|
+| S14 baseline | cp 0 | 341 |
+| EvalRule50Damp **true** | cp 0 | 336 |
+| EvalRule50Damp **false** | cp 0 | 341 |
+| UseNNUE false | cp 0 | 706 |
+| Hash 1 | cp 0 | 341 |
+| Hash 1024 | cp 0 | 341 |
+| Threads 4 | cp 0 | 1,292 |
+
+And across depth 1 → 20 the score stays `cp 0` while nodes climb only 30 → 2,073 (a real depth-10 search on this
+board costs ~20,000 nodes, see the control below).
+
+**Control:** the same board at clock **0** searches normally — `cp -164`, **19,621 nodes**. So the zero is caused by
+the clock value and not by the board being unsearchable.
+
+That turns the part of 25-F4 I had listed as un-re-tested into a measured confirmation: `EvalRule50Damp`, `UseNNUE`,
+Hash and Threads all leave the zero intact, and so does every depth from 1 to 20.
+
+### One thing this does NOT show
+The node counts are not zero (341 at depth 10, rising with depth). So the clock-99 zero is **not** the same shortcut as
+the clock-100 one, which answers `0 nodes` and an empty pv (`../job3/`, `job1b`). Two different mechanisms, and I do
+not name either.

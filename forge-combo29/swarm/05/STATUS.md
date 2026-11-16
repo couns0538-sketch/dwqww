@@ -100,3 +100,12 @@
   My job1 count was unaffected: 0 empty pv lines out of 6,636.
 - next command: python3 job2/cliff_vs_depth.py on a second material (K+B+B vs K) to test whether S-F11's
   counter+depth rule is material-independent.
+
+## CHECKPOINT (owner: findings by 22:30)
+- S-C7 CONFIRMS seat 25's S-F4 on their board (97->-111, 98->-118, 99->cp 0 in 341 nodes, 100/101->0 nodes) and
+  I CORRECTED MY OWN S-F11/S-F13: the "counter+depth" law is true only for the bare endgames I tested; their
+  middlegame is flat at 99. S-F14 states the corrected position-dependent picture. My pawn hypothesis was tested
+  (strip all 12 pawns -> flat at 100) and WITHDRAWN.
+- Gap closed: EvalRule50Damp true/false, UseNNUE false, Hash 1/1024, Threads 4 and depths 1..20 all still cp 0 at
+  clock 99, while the same board at clock 0 searches normally (cp -164, 19,621 nodes).
+- next command: python3 check_25f4/options_test.py against the ASan+UBSan build for the same table.
