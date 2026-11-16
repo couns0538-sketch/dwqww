@@ -1,0 +1,64 @@
+## table A: the ten hottest symbols by SELF time (perf report --no-children -g none)
+
+| # | symbol | self share |
+|---|---|---|
+| 1 | `int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .constprop.0]` | 14.51 % |
+| 2 | `forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool)` | 13.52 % |
+| 3 | `forge::nnue::apply_and_evaluate(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&, forge::Board const&)` | 9.41 % |
+| 4 | `forge::MovePicker::pick_best()` | 7.93 % |
+| 5 | `forge::TTProbe forge::TranspositionTable::probe_body<false>(unsigned long) const` | 5.77 % |
+| 6 | `forge::MovePicker::next(bool)` | 5.71 % |
+| 7 | `forge::Board::see_ge(forge::Move const&, int) const` | 4.46 % |
+| 8 | `forge::Worker::qsearch(forge::Board&, forge::SearchStack*, int, int)` | 3.51 % |
+| 9 | `forge::Worker::corrected_eval(forge::Board const&, int) const` | 2.95 % |
+| 10 | `forge::Board::is_legal_complete(forge::Move const&) const` | 2.91 % |
+
+## table B: family sums of self time
+
+| family | symbols | summed self share |
+|---|---|---|
+| main search recursion (Worker::search) | 3 | 13.56 % |
+| quiescence only (Worker::qsearch) | 1 | 3.51 % |
+| NNUE accumulator work (forge::nnue::*) | 8 | 12.61 % |
+| HCE term walk (evaluate_position) | 1 | 14.51 % |
+| evaluation glue (corrected_eval/static_evaluate/scale_factor/update_runtime_psqt) | 4 | 5.96 % |
+| move generation (fill_pseudo_legal*) | 3 | 5.25 % |
+| move ordering (MovePicker::*) | 4 | 18.37 % |
+| static exchange (see_ge) | 1 | 4.46 % |
+| make/unmake move | 2 | 3.17 % |
+| hash key (key_after/is_repetition) | 2 | 1.36 % |
+| memset/memcpy | 1 | 0.01 % |
+| std library helpers (std::*) | 13 | 2.08 % |
+| transposition table (probe/store) | 4 | 6.90 % |
+| legality checks (is_legal_complete/is_pseudo_legal/has_legal_move/refresh_king_lines) | 4 | 5.84 % |
+| **all evaluation** (NNUE + HCE walk + glue, the three rows above together) | - | **33.08 %** |
+| **all named rows together** (a symbol can only land in one row) | - | 97.59 % |
+
+## table C: counts behind the prediction verdicts
+
+- symbols listed at all: 235
+- symbols at or above 0.5 % self time: 26
+- symbols at or above 0.5 % below the top ten: 16
+- top ten summed self share: 70.68 %
+- # Samples: 15K of event 'task-clock:ppp'
+- bench 13 lines in the profiled run: 0; of them nodes 862329: 0
+
+## table D: first three and last three bench 13 lines of the profiled run
+```
+...
+```
+
+## table E: the profile's .meta
+```
+exe /home/ubuntu/build_prof/forge
+e806dab4021e968a8ec436c0e6250b8a8e1fc218778dad20e09c03acedc19706  /home/ubuntu/build_prof/forge
+id name Chess Engine Forge 6.4.24 candidate
+perf: perf version 6.8.12
+perf_event_paranoid: -1
+driver: drive_search.py (waits for bestmove after every go — see 19-F12)
+positions: first 200 of /agent/repos/dwqww/forge-combo29/swarm/19/job1b/R_1911.fens ; depth 12 ; S14 + OwnBook false ; isready after every command
+command: perf record -o DATA -F 1999 -g -- python3 drive_search.py EXE FENS OUT 12 200
+cores: 4
+date: 2026-11-16T21:32:44Z
+record exit 0
+```
