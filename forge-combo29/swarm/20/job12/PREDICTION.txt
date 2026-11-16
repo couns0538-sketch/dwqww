@@ -1,0 +1,35 @@
+# PREDICTION — seat 20, area 10, job 12 (check of seat 05's S-F1 / seat 25's S-F1)
+
+Committed alone BEFORE the first measuring command. Never edited afterwards.
+
+Both seats report the same thing on the same board `8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1`:
+  seat 05 S-F1: "at depth 12 on G/192 the engine reports `score mate -12` (a promise of mate in 24 plies) but its
+  own PV is 18 plies and does not end in checkmate; searching deeper it abandons -12 for -9, -6, then -4."
+  seat 25 S-F1: "A depth-12 search reports `score mate -12` (24 plies) with an 18-ply PV that is not checkmate
+  (2 legal moves left); deterministic on 8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1".
+
+They name the same board and the same numbers, so one check serves both. (Neither has confirmed the other's line
+in the FINDINGS files I have seen, so the finding is still unconfirmed by a third seat.)
+
+The criterion I commit to BEFORE measuring:
+  a `mate N` score is consistent when the reported PV, played out on python-chess, ends in checkmate in exactly
+  2|N|−1 plies for N > 0, or 2|N| plies for N < 0. `mate -12` therefore needs a 23-ply PV ending in checkmate with
+  the losing side mated. A PV shorter than that is TRUNCATED (not necessarily wrong); a PV of the right length
+  that does not end in mate is WRONG.
+
+Predictions:
+1. The depth-12 search on that exact FEN reports `score mate -12`.
+   KILLED IF: it reports any other score at depth 12.
+
+2. The PV printed with it is shorter than 23 plies (I predict 18).
+   KILLED IF: the PV is 23 plies or longer.
+
+3. The position after the PV is NOT checkmate, and the side to move there still has legal moves (seat 25 says 2).
+   KILLED IF: the PV ends in checkmate.
+
+4. The mate distance moves with depth (not stable): deeper searches report a different `mate` value or a cp score.
+   KILLED IF: depth 12, 14 and 16 all report exactly `mate -12` with full-length PVs.
+
+5. Because the PV is truncated rather than false, I will classify this as "the reported mate distance is not
+   backed by the reported line at this depth" and NOT as "the engine's mate detection is broken" — unless a
+   deeper search produces a PV that ends in mate and still disagrees with its own N.
