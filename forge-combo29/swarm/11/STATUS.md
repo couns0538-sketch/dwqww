@@ -198,3 +198,5 @@ All numbers Threads 1. Next: continue re-running/expanding finds on PC20, STATUS
 - S-F30: FORGE_FIX_GO_PARSE proven to FIRE (base reaches depth 1 on `go depth nodes 100`, PC r15
   reaches depth 2; 3/3 runs each). First positive demonstration of a patch switch.
 - S-F31: two of the six switches are OFF in the PC patch (BARE_KING_ONE_THREAD 0, ABORT_PUBLISH 0).
+- S-F32: FORGE_FIX_ROOT_DRAWN proven to fire — threefold root: base 0 nodes/a2a3, PC r15 26 nodes/d2d4.
+  A 2nd occurrence is also searched, matching file 3's "third occurrence" rule.
