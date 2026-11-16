@@ -319,3 +319,107 @@ Next: continue FEN layer and real-path work.
   itself but carries BOTH traps: an illegal move keeps the legal prefix, and a refused FEN inside it
   keeps the PREVIOUS board entirely (perft 1 = 26 = the old 26-move board). Confirms seat 21's 21-C9
   on the PC build.
+
+## 2026-11-17T FINAL (written at 23:07Z; the 12-hour window ends 2026-11-17T10:18:45Z)
+
+**PRIMARY DELIVERABLE: `forge-combo29/swarm/11/HAZARD_stale_board.md`** — the document the owner
+should read before his next training or match run. A rejected `position` command leaves the engine
+on the WRONG BOARD and it answers `readyok` anyway; two routes (malformed FEN, illegal move in a
+list), the real-game demonstration, the one-move blast radius, the `ucinewgame` nuance, and the
+three harness protocols tested (naive fails, detect and fixup work, 15/15). Secondary:
+`HAZARD_match_protocol.md` (node budgets are not depth-equal) and `PC_SWITCHES.md` (the six
+FORGE_FIX_* switches with compiled state and measured effect).
+
+### Every find of mine, with state, build and settings
+
+Builds: **base** = 6b98f217, g++ Release, x86-64-v4 (Threads 1 unless stated); **PC r15** = base +
+the FABLE_TO_swarm_5 patch, `-DFORGE_MATE_ALPHA_GUARD=1`, verified against all three number regimes.
+Settings: **none** (no setoption), **S14** (the 14 settings), **PC20** (S14 + the six).
+
+| id | state | one-line | build / settings |
+|---|---|---|---|
+| S-F1 | open (harmless, S-F44) | extra token after the sixth FEN field silently dropped; board identical | base none; PC20 |
+| S-F2 | confirmed-known (Opus file 1) | adjacent digits accepted; proven cosmetic (S-F45) | base none; PC20 |
+| S-F3 | WITHDRAWN by me | I wrongly claimed to refute Opus's castling line | — |
+| S-F4 | open | 20k mutated FENs: 0 crashes, 0 san lines, both sanitizer proofs | base ASan+UBSan |
+| S-F5 | open | extreme FEN numbers: bounds correct, stricter than python-chess | base ASan |
+| S-F6 | open | 1,000-ply list + illegal move keeps legal prefix | base, ASan |
+| S-F7 | open | F1 reproduced at scale (23/20,000) | base ASan |
+| S-F8 | open, HALF-repaired on PC (S-F22) | `setoption` without the `value` word silently ignored on base; now reports `unknown option` on PC | base none; PC20 |
+| S-F9 | open | deepseek6 long58 says "6-33" changed moves, really 2-33 | n/a (raw files) |
+| S-F10 | WITHDRAWN as defect (S-A6) | "early draw" — file 6: correct behaviour | PC20, base |
+| S-F11 | WITHDRAWN as defect (S-A6) | same | PC20 |
+| S-F12 | WITHDRAWN as defect (S-A6) | my own prediction failed anyway | PC20 |
+| S-F13 | open | ep field: 63/64 refused, the legal one correct | base none; PC20 |
+| S-F14 | open | all 16 castling subsets, 0 perft differences | base; PC20 |
+| S-F15 | open | side/fullmove/halfmove independent of movegen | base; PC20 |
+| S-F16 | open (no defect) | inventory rule matches board.cpp on 10 generated cases | base |
+| S-F17 | open | job1 headline replicates across 3 full runs | base ASan |
+| S-F18 | WITHDRAWN as defect (S-A6) | mate at H=100 — correct per file 6 | PC20 |
+| S-F19 | WITHDRAWN as defect (S-A6) | root adjudication — no defect | source read |
+| S-P1 | **WITHDRAWN** | text patch for a non-existent defect; marked DO NOT APPLY | — |
+| S-F20 | open | PC r15 build verified: all 3 number regimes match | PC r15 |
+| S-F21 | open (repaired on PC) | halfmove-100 mate loss gone on PC | base vs PC20 |
+| S-F22 | open | setoption now reports `unknown option` on PC | PC20 |
+| S-F23 | open | extra token still accepted on PC (still harmless, S-F44) | PC20 |
+| S-F24 | open | whole FEN layer identical on PC20 vs base | both |
+| S-F25 | correction (mine) | 8P+2R legal, 8P+2Q illegal — engine right, my labels wrong | both |
+| S-F26 | open | `go infinite` at terminal root never volunteers a bestmove on EITHER build | both |
+| S-F27 | open | 20k sweep on PC20 = base exactly (17130/2870/24/0/0) | PC20 |
+| S-F28 | open — HAZARD | refused FEN leaves stale board (wrong side to move) on PC | PC20 |
+| S-F29 | open | ucinewgame resets to startpos; searchmoves-no-legal -> 0000 | both |
+| S-F30 | open | `FORGE_FIX_GO_PARSE` demonstrably fires (depth 1 vs 2) | base vs PC20 |
+| S-F31 | open | two of six switches compiled OFF (BARE_KING_ONE_THREAD, ABORT_PUBLISH) | source |
+| S-F32 | open | `FORGE_FIX_ROOT_DRAWN` demonstrably fires (threefold searched) | base vs PC20 |
+| S-F33 | corrected | all four PC20 switches materially change the search | PC20 |
+| S-F34 | open | all retracted PC20 labels re-verified; conclusions stand | both |
+| S-F35 | open | movetime = T - ~9.4 ms fixed, unchanged on PC | PC20 |
+| S-F36 | open | castling field is an unordered set; duplicates refused | PC20 |
+| S-F37 | open | 553/553 real positions accepted, 0 perft mismatches | PC20 |
+| S-F38 | open — HAZARD | every SHORT FEN refused but stale board kept | PC20 |
+| S-F39 | open | same on base — not a PC regression | both |
+| S-F40 | open — HAZARD | GUI game-switch with truncated FEN gets previous game's move | PC20 |
+| S-F41 | open | softnodes deterministic, stops at finished depth, overruns 30-34% median | PC20 |
+| S-F42 | open — HAZARD | hazard fires under softnodes/nodes/movetime | PC20 |
+| S-F43 | open | ucinewgame clears to STARTPOS, not your position | PC20 |
+| S-F44 | open | extra token harmless: 60/60 real-path searches identical | PC20 |
+| S-F45 | open | adjacent-digit cosmetic: 25/25 identical | PC20 |
+| S-F46 | open | blast radius ONE move: 18/20 recovered, 0 infected | PC20 |
+| S-F47 | open | 6s clock uses only median 238 ms; clock rarely binds | PC20 |
+| S-F48 | open | `go nodes N` undershoots N by 20-34% (depth-boundary) | PC20 |
+| S-F49 | open | depth spread across 10 openings is 3-4 plies (unequal) | PC20 |
+| S-F50 | open — MATCH PROTOCOL | paired depth: same on 4/10 at 50k, 0/10 at 250k | base vs PC20 |
+| S-F51 | open | pathological inputs refused cleanly; 10k-ply list correct | PC20 |
+| S-F52 | open | in-check positions correct, 20/20 | PC20 |
+| S-F53 | open | `position fen X` vs `position startpos moves` identical, 8/8 | PC20 |
+| S-F54 | open — HAZARD demo | hazard reproduced end-to-end in a real self-play game | PC20 |
+| S-F55 | open — DEFENCE VALIDATED | naive fails, detect and fixup work; fixup 15/15 | PC20 |
+| S-F56 | open | accepted-unreachable boards generate correct moves | PC20 |
+| S-F57 | open | Route 2 (illegal move in a list) verified + cross-ref 21-C9/21-C2 | PC20 |
+| S-F58 | open | corrupted list silently drops up to 13 plies | PC20 |
+| S-F59 | open | combined `fen ... moves` carries both traps | PC20 |
+| S-F60 | open | fresh process + bad first command leaves STARTPOS, not a stale game | PC20 |
+| S-F61 | open | en-passant capture actually generated and counted | PC20 |
+| S-C2 | CONFIRMS seat 01 S-F2 | impossible double check accepted, perft right | base |
+| S-C3 | CONFIRMS 19-F5 | bench is stdin-only, argv ignored | base |
+| S-C4 | CONFIRMS 19-F1 mechanism (not %) | residual net: eval reports hce+nnue | base |
+| S-C5 | consistent with 29-F1 (direction only) | NNUE off changes the bench tree | base |
+| S-C6 | consistent-with 19-F4 (structure only) | one see_ge symbol vs 3 generator instances | nm |
+| S-C7 | measurement only (defect withdrawn, S-A6) | fifty-move threshold at H=91 | base, PC20 |
+| S-C8 | CONFIRMS 21-F2 | refused FEN -> stale board, wrong side to move | base |
+| S-C9 | WITHDRAWN as defect (S-A6) | = 21-F9, correct per file 6 | PC20 |
+| S-C10 | SCOPES 24-F3 | G position 90 is 0.04 s cold on release (no outlier) | base release |
+| S-C11 | CONFIRMS 02 S-F2 / 24-C1 | searchmoves with no legal move -> 0000 | base; PC20 |
+| S-C12 | CONFIRMS 12 S-F1 / 24-C2 | ucinewgame resets the board | base; PC20 |
+| S-A1 | audit | 19-F12 fabrication; my runner verified unaffected | base |
+| S-A2 | audit | parser NaN: one real hole found and fixed | all |
+| S-A3 | audit | warm/cold: 4/120 bestmoves differ, 0 illegal either way | base |
+| S-A4 | audit | S-F1 narrowed to a reporting defect | base |
+| S-A5 | audit — RETRACTION | my ucio double-wrapped PC20 options; labels retracted | all |
+| S-A6 | reverdict | mate/draw "defects" are NOT defects per file 6 | both |
+
+### What is still UNMEASURED or open, stated plainly
+- Three of the six `FORGE_FIX_*` switches: `ISREADY_PENDING`, `HARD_LIMIT_EMERGENCY`,
+  `ABORT_PUBLISH` — no probe I built distinguishes ON from OFF, so I claim nothing about them.
+- The brief's `REPORT_deepseek6_longK.md` does not exist; I recounted long58 instead (S-F9).
+- I never ran anything above Threads 1 for a score claim; every number here is Threads 1.
