@@ -363,3 +363,6 @@ inc_eq_clock_sudden.txt
 inc_gt_clock.txt
 inc_half_clock_mtg40.txt
 inc_tiny_clock.txt
+
+## 2026-11-16T22:08:48Z
+re-verification: 07-F1 reproduces identically on a fresh build (info depth 4 ... score cp 0 nodes 0 -> bestmove 0000 for searchmoves naming no legal root; control e2e4 gives 438 nodes), and job2/searchmoves_empty_root.patch.txt still applies to clean 6b98f217 with --fuzz=0 (dry-run exit 0). 07-C18.
