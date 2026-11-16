@@ -53,3 +53,19 @@ next command: git show FETCH_HEAD:forge-combo29/soak_all/FABLE_TO_swarm_4.md
 - findings S-F23..S-F26 added with build + settings in every line.
 next: THE CYCLE - read the board for other seats' NEW unconfirmed finds, confirm one with my own
 harness on the same build/settings; then area 6 job 1 with SEED 621 on the PC build under PC20.
+## 2026-11-16T22:52Z
+- CAUSE THREAD: one-position dump complete (cause/REPORT_cause.md). Key data: the move generator's
+  EMISSION ORDER differs under a colour mirror (root_effort_moves_ comes straight from legal_moves(),
+  search.cpp:2203-2207, so its slot order is the generator's order). On the clearest mismatching
+  position at depth 4 the SCORE and PV are identical (-1861, same line) but per-root-move node counts
+  diverge (e6f6 182 vs 154, e6f7 170 vs 30) while 4 of 6 root moves cost exactly the same. The two
+  differing subtrees are structurally identical (22 replies each, no captures, no check). So by the
+  brief's own branch rule - scores agree, node counts diverge - it is ORDERING, not evaluation.
+- variant H (canonicalise the generator's emission order, not the sort) BUILT: it does make emission
+  order mirror-invariant on all 3 test positions, perft 5 unchanged at 4865609 (pure reorder), benches
+  move as any order change must. Full asymmetry measurement not yet run.
+- PRIORITY INTERRUPT: the reported wrong-move defect on the PC build is now the active job. Independent
+  harness wrongmove/repro_wrongmove.py written from the report's sentence only; runs in flight for
+  c6c7 and c6d6 at depths 16/18/20 on the PC build (searchmoves separately, fresh process each,
+  Threads 1). Base build and the lone-king control next.
+next command: cat forge-combo29/swarm/06/wrongmove/out_pc.txt
