@@ -1,0 +1,40 @@
+# job 3 prediction — the next hot spot (NNUE fuse_columns) with a prefetch that cannot change a value
+
+seat 19, area 9, seed 1901. Committed ALONE before the first measuring command of job 3.
+
+## Where job 2 left the profile
+
+`job2/annot/global_by_line.txt` puts the next hot spot squarely in the NNUE fused kernel:
+`nnue::apply_and_evaluate` is 11.84 % self, and inside it the top three source expressions are
+
+  2.77 %  the packed add of an accumulator lane
+  1.97 %  the packed multiply
+  1.54 %  the 16-way horizontal sum in `centipawns_from_lanes`
+
+plus 0.96 % + 0.96 % inside `nnue::update`, which does the same three-way column arithmetic.
+`fuse_columns` streams four cold weight columns of 256 floats each per call (feature columns from a
+768 x 256 table, ~5 MB, far outside L2), and it walks them in 16-float steps.
+
+## The change
+
+`job3/prefetch_columns.py` / `job3/prefetch_columns.patch.txt`: software-prefetch the NEXT 16-float block
+of each weight column while the current block is being computed, in both `fuse_columns` instantiations
+(AVX-512 and AVX2) and in the two fast paths of `update`. `_mm_prefetch` has no architectural effect
+whatsoever — it cannot change any value, any rounding, or any branch — so this is the strictest possible
+class of "changes no node count" change.
+
+## Predictions, each with the range that kills it
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | every node count identical with the patch: bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609 | any one differs — patch rejected |
+| P2 | mean `bench 13` nps with the patch is 1.0 % to 6.0 % higher than base | below +0.3 % or above +12 % — killed |
+| P3 | the 95 % interval of the ratio (40 alternating pairs, this time, not 10) has its lower bound above 1.0 | lower bound at or below 1.0 — killed: "not shown faster" |
+| P4 | the base-vs-base control pair over the same 40-pair protocol gives a ratio within ±1.5 % of 1.0 (a tighter control than job 2's ±5 %, because 40 pairs average more) | control outside ±3 % — the machine is too noisy and I say the measurement is inconclusive |
+| P5 | the gain is larger at `bench 16` than at `bench 11`, because deeper searches re-traverse fewer positions and so hit colder weight columns | `bench 16` gain minus `bench 11` gain is negative — killed |
+
+## Why 40 pairs this time
+
+Job 2 measured a ~1 % effect with 10 pairs and could not resolve it (CI ±4.4 %, control CI ±5 %). A
+prefetch win here should be several times bigger, and 40 pairs should bring the CI to roughly ±2 %, which
+is enough to decide P3. If P4 says the machine moved, the honest answer is "inconclusive", not a number.
