@@ -1,0 +1,25 @@
+CHECK of seat 17 S-F1 (and its S-F2 source claim): searchmoves with no legal root move
+exe_started: /home/ubuntu/builds/asan/forge
+sha256: 37c0d256accc64b90aaccaf14e421f26607b4982adf976546d769351a0b50770
+nm -C grep -c __asan_ : 35
+nm -C grep -c __ubsan_ : 15
+option lines sent: NONE
+
+case	bestmove	info_string	sanitizer_lines	exit
+c1_control_plain	d2d4	(none)	0	0
+c2_no_names	0000	info string searchmoves restriction has no legal root moves	0	0
+c3_one_legal_name	e2e4	(none)	0	0
+c4_bogus_name	0000	info string searchmoves restriction has no legal root moves	0	0
+c5_illegal_pair	0000	info string searchmoves restriction has no legal root moves	0	0
+c6_no_names_one_move_pos	0000	(none)	0	0
+c7_two_legal_names	d2d4	(none)	0	0
+
+c1 control (no searchmoves): bestmove=d2d4 -> OK, the position has real moves
+c2 `go searchmoves depth 2` with NO names: bestmove=0000 info=['info string searchmoves restriction has no legal root moves']
+c3 `searchmoves e2e4`: bestmove=e2e4 -> restriction honoured
+c7 two legal names: bestmove=d2d4 -> one of the named
+VERDICT on S-F1: CONFIRMS
+ASan+UBSan reported nothing (0 sanitizer lines on every case): True
+so the `front()` on an empty list claimed in S-F2, if executed, is not an out-of-range READ
+that ASan can see (an empty libstdc++ vector's begin() is a valid pointer); it returns a
+garbage Move, which then gets printed as 0000 by the bestmove printer.
