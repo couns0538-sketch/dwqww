@@ -23,11 +23,11 @@ shape, and bench never exercises the age/depth replacement path at all.
 CONSEQUENCE: any transposition-table optimisation must be measured on real-game positions, never on `bench`.
 This one applies past my patch. Evidence: `slots/raw_slot_regimes.txt`.
 SECOND BENCH OBJECTION, same conclusion by a different route: bench also cannot measure the table's COST or its
-replacement scan at all. On seat 19's build and instrumentation (19-F18, not yet re-measured by me): at Hash 16 only
-**50 of 861,904 probes (0.006 %)** reach the age/depth replacement scan, against **54.7 %** on a real-game set, and
-`probe_body` reads 2.09 % on bench 13 against 5.77 % there. What I HAVE measured myself is the direction: my bench 13
-records **0** generation writes against **16,811** on real games (above), and my 29-F11/29-C1 reproduce the
-probe-share rise on my own build and set. Together the two objections mean bench is the wrong instrument for
+replacement scan at all. Measured myself (29-C8, own instrumentation, PC r15 build, Threads 1, Hash 16): **bench 13
+makes 861,904 probes, 576,467 of which enter the replacement scan, but 576,417 of those find an empty slot — leaving
+exactly 50 (0.006 %) that perform an age/depth comparison.** On 20 real-game positions at depth 12 the same counters
+give 2,501,519 probes and **457,712 (26.5 %)** that do age/depth work. Seat 19's 19-F18 reports the same 50 and 54.7 %
+(their set is 200 positions, mine 20). Together the two objections mean bench is the wrong instrument for
 transposition-table work on BOTH grounds: the distribution it samples and the code paths it never enters.
 
 | id | area | one sentence | file with the exact command that shows it again | NEW |
