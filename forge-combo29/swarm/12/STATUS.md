@@ -114,3 +114,14 @@ The node-level fault (S-F4) exists ONLY at halfmove exactly 99, its last reachab
 answer the true `mate -1` in 63 nodes, 99 answers `cp 0` in 36, and 100/101/110/149/150/151/200/
 500/999/9999 all give identical `cp 0` / 0 nodes because the ROOT adjudication takes over — stable,
 no degradation at very high counters. Raw: job1/node_draw_hm_sweep.txt.
+
+## 2026-11-16T22:12Z — job 2 done, job 1 re-run in progress
+
+Job 2 (races) COMPLETE: 120 cases (12 x 5 interrupts x 2 go-lines) against the ASan+UBSan build.
+0 crashes, 0 hangs, 0 sanitizer lines, 0 illegal bestmoves; all 120 produced a legal bestmove and
+exit 0, so every zero is backed by a real search. Findings S-F6 (the clean result) and S-F7
+(ponderhit on a non-ponder search correctly does nothing — 24/24). NOT the brief's 10,000 cases;
+120 run, said plainly in REPORT_job2.md.
+Job 1 re-run with max_depth_seen/max_nodes_seen: still running, counts in job1/.
+Next command: `python3 forge-combo29/swarm/12/job1/table.py /home/ubuntu/build/job1out3/asan_2000.jsonl`
+then `python3 forge-combo29/swarm/12/job1/audit.py`, then the final push.
