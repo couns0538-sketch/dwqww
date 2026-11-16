@@ -1,0 +1,29 @@
+# PREDICTION — seat 08, PC20 re-run of my own findings. Pushed BEFORE the first measuring command.
+
+Build: PC r15 `/home/ubuntu/builds/pc/forge` (sha256 in pcbuild/out/sha256.txt), settings **PC20** everywhere
+(S14 + CuckooRep true, HistRework 2, TtPruneV2 true, CorrHistV2 true, MateAlphaGuard true, OwnBook false;
+Threads 1, Hash 16), `ucinewgame` before every search.
+
+FABLE_TO_swarm_5 says which base-tree defects the patch repairs. Each of my findings maps to a predicted fate:
+
+| my finding | what the patch does to it | prediction |
+|---|---|---|
+| 08-F5 (<=10 ms clock -> 1-ply 2000-node emergency search) | `FORGE_FIX_HARD_LIMIT_EMERGENCY` is added, so the emergency branch is CHANGED | **likely REPAIRED** — expect a real search, or a different fallback |
+| 08-F8/08-F10 (a clock stop lands ON the hard limit; stop paths differ) | `FORGE_FIX_ABORT_PUBLISH` and the hard-limit fix touch exactly this | **changed** — expect the hard-limit overshoot to disappear or shrink |
+| 08-F2 (`movetime T` spends T - MoveOverhead on the WALL clock) | nothing in the patch touches the movetime subtraction (`search.cpp:2192`) | **survives** — expect plan + 1-2 ms again |
+| 08-F12 (book answers startpos) | PC20 sets `OwnBook false`, and the patch does not change the book | **survives as a property of the engine**, but PC20 cannot show it by construction |
+| 08-F1/F9/F11/F14 (clock tail, fraction of soft, scaling) | the search moves (CuckooRep/HistRework/TtPruneV2/CorrHistV2 on) | **survives in shape, different numbers** — the tail should still scale with the clock |
+
+## Numeric predictions (kill ranges)
+- `movetime 50`, 200 searches, PC20: median **40.0 to 41.5 ms** (the plan is 40 ms). Kill: a median at 50 ms or a
+  median under 30 ms.
+- `wtime 1000 winc 0`, 200 searches, PC20: median **20 to 60 ms**, worst under 260 ms. Kill: any search over the
+  1000 ms clock (a lost-on-time risk that the base tree did not have).
+- Clock-tail shape: p99/median between **2x and 8x** at both 1000 and 10000 ms. Kill: under 1.5x (tail gone) or
+  over 12x (tail worse).
+- `wtime 10` (reserve empty) on the PC build: **either a real search or a documented different fallback**; what must
+  NOT happen is the base tree's silent 1-ply answer being presented as unaffected.
+
+## What would make me say the PC build is NOT the base tree plus switches
+If the no-setoption pins or the S14/PC20 numbers had differed I would have stopped here; all 8 already matched
+exactly (pcbuild/REPORT_pc_build.md), so this re-run compares like with like.
