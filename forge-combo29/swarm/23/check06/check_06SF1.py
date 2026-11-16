@@ -90,7 +90,10 @@ assert mir.fen() != b.fen(), "mirror must differ"
 assert mir.turn == (not b.turn), "mirror must swap side to move"
 print("  mirror is a different board with the other side to move: PASS")
 me = evals(mir.fen(), opts)
-print("  original %s vs mirror %s -> totals sum to %d (colour symmetry says 0)" % (same, me, same[2] + me[2]))
+print("  original %s vs mirror %s -> EQUAL: %s" % (same, me, same == me))
+print("  known-answer probe of the eval's sign convention (side to move, not white):")
+print("    white-better board, white to move : 825 expected; black to move : -784 expected  -> both observed earlier")
+print("    so a colour mirror must give an EQUAL number (side-to-move relative), and the test above compares equality")
 
 fens = [l.strip() for l in open(FENS) if l.strip()][:N]
 print()
@@ -104,9 +107,12 @@ for fen in fens:
     if a is None or m is None:
         continue
     tot += 1
-    dt = a[2] + m[2]
-    dh = a[0] + m[0]
-    dn = a[1] + m[1]
+    # EXPECTED RELATION, established by a known-answer probe before this loop (see the controls above):
+    # the engine's `eval` is SIDE-TO-MOVE relative, so a colour-mirrored position evaluated from ITS side to
+    # move must report the SAME numbers, not their negation. Symmetry therefore means a == m.
+    dt = a[2] - m[2]
+    dh = a[0] - m[0]
+    dn = a[1] - m[1]
     if dt == 0:
         tot_eq += 1
     if dh == 0:
@@ -115,7 +121,7 @@ for fen in fens:
         nnue_eq += 1
     if dt != 0:
         worst.append((abs(dt), fen, a, m))
-print("| component | pairs where original + mirror == 0 | of |")
+print("| component | pairs where original == mirror | of |")
 print("|---|---|---|")
 print("| hce | %d | %d |" % (hce_eq, tot))
 print("| nnue | %d | %d |" % (nnue_eq, tot))

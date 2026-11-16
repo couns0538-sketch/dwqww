@@ -1,0 +1,35 @@
+CHECK of seat 06's S-F1 — `eval` is exactly colour-symmetric
+============================================================
+Claim: `eval` gives 0 differences in hce/nnue/total over thousands of colour-mirrored position pairs.
+
+THE RELATION THAT MUST BE TESTED, established by a known-answer probe FIRST (see below): this engine's `eval`
+prints from the SIDE TO MOVE's point of view. Proven directly:
+  white-better board `4k3/8/8/8/8/8/8/3QK3 w - - 0 1` -> hce 859, nnue -34, total 825
+  the SAME board with black to move                    -> hce -839, nnue 55, total -784
+So the number tracks the side to move, and a COLOUR-MIRRORED position evaluated from its own side to move must
+report the SAME number — not its negation. Symmetry therefore means `original == mirror`, which is what I test.
+
+| component | pairs where original == mirror | of |
+|---|---|---|
+| hce | 60 | 60 |
+| nnue | 60 | 60 |
+| total | 60 | 60 |
+
+60 positions from my SEED-2401 stream, base build, Threads 1, Hash 16, one `eval` per fresh process.
+**0 differences on all three components, 60 of 60.** Controls: the same board twice gives identical numbers
+(so the reader works), and the mirror is asserted to be a different board with the other side to move.
+
+VERDICT: CONFIRMS S-F1 on my own position set.
+
+MY OWN FAULT (instance 6 of the 23-F37 family): my first version of this check asserted `original + mirror == 0`,
+i.e. that a colour flip NEGATES the eval. It reported 0 of 60 symmetric, with every pair showing
+`orig=(2933,847,3780) mirror=(2933,847,3780)` — arithmetically 0 pairs summing to zero because the two numbers were
+IDENTICAL. The evidence that my expectation was wrong was in my own output: two tuples printed the same, twice over.
+I looked at the rows instead of trusting the verdict, ran the side-to-move probe above, found eval is
+side-to-move relative, and the correct test is equality. Had I reported the first run it would have REFUTED a
+correct finding with a table of identical numbers.
+
+WHAT THIS DOES FOR 23-C15: it makes seat 16's "the cause is order/depth dependence, not the evaluation" the
+natural reading — the STATIC evaluation is perfectly symmetric (60/60 here), so the depth-2 and depth-10 search
+asymmetry I measured cannot come from the eval. That is consistent, and it means my C15 correction (asymmetry starts
+at depth 2) is a SEARCH effect, as they said, not evidence against their cause.
