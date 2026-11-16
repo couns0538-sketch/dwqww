@@ -28,3 +28,19 @@ done
 ```
 
 Note: the paced driver is required. A whole-session write gives the fabricated a2a3 of 19-F12.
+
+## CONTROL (added after the finding, same driver, same options)
+
+Five fresh runs of the PLAIN `go depth 12` under the same paced driver:
+
+```
+run 1: score cp 30 nodes 56720 
+run 2: score cp 30 nodes 56720 
+run 3: score cp 30 nodes 56720 
+run 4: score cp 30 nodes 56720 
+run 5: score cp 30 nodes 56720 
+```
+
+All five: cp 30, 56720 nodes. So the cp 23 under searchmoves is not run-to-run variance;
+the restriction is the cause. The same driver produced 5/5 identical results, which is also the
+proof that this harness is deterministic when nothing changes.
