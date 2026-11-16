@@ -291,7 +291,7 @@ Threads 1, one middlegame, **5 fresh processes per cell** (every setoption confi
 | Hash | SHIPPED build: depth | nodes (5 runs) | wall ms | PATCHED build: depth | nodes | wall ms |
 |---|---|---|---|---|---|---|
 | 16 MB | **14, 14, 14** | 280,100 flat | 268–273 | 14, 14, 14 | 157,966 flat | 169–170 |
-| 256 MB | **7, 5, 10** ← erratic | 5,395 / 1,773 / 24,856 | 239–346 | **13, 13, 13** | 106,863 flat | 215–226 |
+| 256 MB | **depth varies run to run** ({7, 11} over 8 runs; {7, 5, 10} over 3) | 5,395 – 47,818 (**8.9x spread**) | 239–346 | **13, 13, 13, 13, 13, 13, 13, 13** | 106,863 flat, 8 of 8 | 215–226 |
 | 512 MB | **1, 1, 1, 1, 1** | 220 flat | 267–274 | **12, 12, 12, 12, 12** | 71,070 flat | 271–274 |
 | 2048 MB | **1, 1, 1, 1, 1** | 143–220 | 1310 | 1, 1, 1, 1, 1 | 202 flat | ~390 |
 
@@ -299,7 +299,8 @@ Read it this way: on the **shipped** build, MultiPV 3 loses **13 plies** between
 and never recovers, while the **wall time RISES** as the node count collapses (268 ms at depth 14,
 1,310 ms at depth 1) with 10.5 GB free — it is time burned zeroing the table, not memory pressure.
 **Practical rule for the shipped engine: at MultiPV > 1 keep Hash at 256 MB or below** (and expect
-instability right at 256: depth 7/5/10 on identical runs). **On the patched build the ceiling rises
+instability right at 256: the depth varies run to run and the node count by up to ~9x on
+identical runs). **On the patched build the ceiling rises
 to 512 MB (depth 12, stable)** and above it MultiPV > 1 still collapses on a clock.
 
 ### REPRODUCIBILITY — the gain that matters more than the speed
