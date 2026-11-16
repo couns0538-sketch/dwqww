@@ -1,0 +1,31 @@
+# PREDICTION — area 1, job 1 SECOND run (SEED 111, fresh position set R2)
+
+Committed and pushed ALONE before the first measuring command of this run.
+Cycle rule 2(c): all three area-1 jobs are done, so job 1 runs again with the next seed and a new position set
+(R with SEED + 10 = 111), and the report must say what differs from the first run.
+
+## What differs from run 1 by construction
+- R2 is a NEW set of random-game positions made with SEED 111 (run 1 used SEED 101), so different games,
+  different positions, a different number of them.
+- The mutation RNG is also re-seeded to 111, so which base position each mutant comes from and which mutation
+  it gets are different.
+- Everything else is held fixed on purpose (same 20,000 mutants, same 5 mutation kinds, same ASan+UBSan exe,
+  same 500-FEN chunks, same `position fen` + `isready` + `go depth 2` protocol) so the comparison is a
+  seed-to-seed one and not a method change.
+
+## Numbers I predict (each with the range that kills it)
+
+P1. Refused: 90 %–96 %. My run-1 rate was 93.58 %; a different seed must not move it far, because most
+    single-character damage is fatal to a FEN regardless of which position it lands on. Outside 90–96 %
+    means the rate depends on the seed more than on the mutation, and I would say so.
+P2. Accepted and python-chess INVALID: 20–80. Run 1 had 39, of which 38 were the known adjacent-digit rule.
+    Fewer than 20 or more than 80 kills the "only the known rule plus a rare double-check case" reading.
+P3. The adjacent-digit mechanism is still the ONLY systematic cause among accepted-but-invalid FENs:
+    at most 3 cases with any other cause. More than 3 kills it.
+P4. Crashes: 0. Sanitizer lines: 0. Any one line kills this.
+P5. Illegal bestmoves: 0. Run 1 had 0 of 1,246 judged; a single one kills it and would be a serious finding.
+P6. Refusal-reason ordering stays the same at the top: `FEN must contain six fields` is the single most
+    common reason (it was 7,526 in run 1), because `drop` mutations are always refused. Any other reason at
+    the top kills it.
+P7. The per-mutation refusal rates keep the same ORDER: drop 100 % >= delete > insert > swap > replace.
+    Run 1: 100 / 97.74 / 97.29 / 91.61 / 80.96. A different order kills it.
