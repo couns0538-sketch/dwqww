@@ -245,3 +245,16 @@ VERIFIED RATHER THAN TYPED, and it caught two things:
       20,000 of 20,000 compared, 0 differing -> job1/comparison_hardened.md now supersedes it.
   Every aggregate in the note is now the pasted output of closure_verify.py (closure_verify.txt).
 Next command: cd forge-combo29/swarm/13 && python3 closure_verify.py   # then PC path with remaining time
+
+## 2026-11-16T23:00:36Z
+
+DONE job 8 (remaining PC path): the owner's clock mode, 6 s + 0.06 s, PC r15 + PC20 + Threads 1.
+  4 games x 20 plies = 80 clocked moves with real clock state carried move to move.
+  0 overruns, 0 illegal moves. BUT only 4.1 % clock utilisation (median 207 ms of 6,000), median
+  depth 19, ~1.84 M nodes/s. Allocation scales with the clock (6s->0.36s, 30s->1.28s, movestogo 40->88ms).
+  Deterministic in nodes/depth/move (650,246 / depth 19 / e2e4 five times); only wall time moves +-2ms.
+  Recorded as a QUESTION not a defect: using 4 % of the clock may be leaving strength on the table, but
+  it may be deliberate, and the owner's PC is slower than this idle 4-core VM so his utilisation differs.
+  Finding S-F10. Report job8/REPORT_job8.md.
+MOVE GENERATION DECLARED CLOSED in MOVE_GENERATION_CLOSED.md (aggregates verified by closure_verify.py).
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
