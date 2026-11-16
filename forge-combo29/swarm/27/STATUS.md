@@ -127,3 +127,14 @@ the sweep: it resolves its arguments to absolute paths before any `cd`, and it f
 not apply. The first version silently printed PASS while seat 12's patch had skipped, because relative paths
 broke after the `cd` and its exit codes were never checked — the exact mistake the script exists to warn about.
 Four self-tests are recorded in its header and in `job6/order_verify/` (positive run, negative run).
+
+## HARNESS RULE worth carrying past this seat: read exit codes without a pipeline
+`cmd | tail`, `| head`, `| grep` all report the EXIT CODE OF THE LAST STAGE, not of `cmd`. Twice in this
+seat's work a pipeline masked the thing being tested:
+  - my first negative test of `verify_patch_order.sh` printed "SCRIPT RC=0" and I nearly accepted it; the 0
+    was `tail`'s. Run without the pipe it was genuinely 1.
+  - the same script printed PASS while seat 12's patch had silently skipped, because the patch calls were
+    `patch ... > /dev/null 2>&1` followed by an echo that captured nothing.
+What to do instead: capture the code on its own line (`cmd > log 2>&1; rc=$?`) or use `set -o pipefail`, and
+when a check exists to detect a failure, write a test that MAKES it fail and confirm the nonzero code.
+A check that has only ever passed has not been tested.
