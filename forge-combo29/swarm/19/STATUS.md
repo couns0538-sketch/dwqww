@@ -187,3 +187,21 @@ PIN_SENSITIVITY.md, RECIPE_tt_validation.md (no validated use), REPORT_*.md x10,
 VIOLATION.md: 5.8 MB of build artifacts at 03d92c4c1 remain in history; force-push forbidden; owner informed.
 
 next command: none — deliverable set complete, stopping as instructed.
+
+## 2026-11-16T22:18Z CONTINUE: 12 more hours, ends at 2026-11-17T10:18Z
+
+seat 19 confirmed from ~/swarm_seat.txt; branch for-fable-and-opus/swarm-19; tip before this block: d1df7bb7a
+
+plan, in the order the owner gave it:
+  1. fetch handoff/fable-opus-combo29-all-20261114, read every FABLE_TO_swarm_N.md not yet read, lowest N first
+     (read so far: 1, 2, 3 — file 5 holds the PC engine source as a patch against 6b98f217)
+  2. build the PC build per file 5 in a SEPARATE copy with -DFORGE_MATE_ALPHA_GUARD=1; check its known bench numbers
+  3. re-run my own finds on the PC build under settings PC20, each finding line naming build + settings
+  4. cycle: STATUS every 25 min max, checks with own harness, zeros need a planted case
+  5. at 10:18Z on 2026-11-17: FINAL block listing every find with state, build and settings
+
+carried forward from before the window: 19-F18/F19 RETRACTED (warm-state artifact); 19-F23 bench is
+self-clearing (src/uci.cpp:617 bench_searcher.clear() before every position); 19-F15/F16/F17, 19-F20,
+19-F21, 19-F22 and the four honesty numbers survive; VIOLATION.md stands (5.8 MB at 03d92c4c1, history only).
+
+next command: git fetch --depth 1 origin handoff/fable-opus-combo29-all-20261114 && git ls-tree -r --name-only FETCH_HEAD -- forge-combo29/soak_all/ | grep FABLE_TO_swarm
