@@ -193,3 +193,11 @@ NEW RETRACTION 10-R4: 10-F8 (go banana -> bestmove a2a3) was an EOF-abort artefa
   starts an UNLIMITED search on BOTH builds (24/22 info depth lines) and never answers without a stop command.
   What survives: garbage go lines are NOT ignored, they hang a harness. pc/raw3/go_banana.json
 next: write pc/REPORT_pc_recheck.md with the full both-build table, then continue the cycle.
+
+## Mon Nov 16 10:28:05 PM UTC 2026
+REPORT_pc_recheck.md written: full both-build table for every find of mine.
+New on the PC build (PC r15, PC20, Threads 1): 10-F23 warm-state defect present (21600 -> 5161);
+10-F24 Clear Hash above cold on PC20 (24708 vs 21600, direction reversed from base); 10-F25 10-F14 SIGN
+REVERSED (unrestricted cp25 vs restricted cp29); 10-F26 10-F11 and 10-F22 both still present.
+All three PC honesty rows match file 5 exactly. next: probe the PC's FORGE_FIX_ROOT_DRAWN directly
+(third-occurrence repetition root), which I flagged as the obvious next check.
