@@ -15,7 +15,8 @@ for n, line in enumerate(open(PATH), 1):
         continue
     rows += 1
     cells = [c.strip() for c in line.rstrip("\n").strip("|").split("|")]
-    want = 4 if re.match(r"\| 29-C\d+", line) else 5
+    # C rows in this file carry id | verdict | evidence | sentence | tag = 5, same count as F/N rows.
+    want = 5
     if len(cells) != want:
         print(f"line {n}: {len(cells)} fields, expected {want}: {line[:110]}")
         bad += 1
