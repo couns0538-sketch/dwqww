@@ -73,3 +73,12 @@ runs now: PC-build TSan suite, `go infinite`+stop 400 rounds, PC20, Threads 4 (t
       this job reports event counts, no scores) — 385/400, 0 TSan reports so far.
       Adopted swarm rule: every score I report is Threads 1; job-1 family scores are labelled PROVISIONAL.
 next command: cd /agent/repos/dwqww/forge-combo29/swarm/24/pc_build && cat pc_inf.summary
+
+## 2026-11-16T22:35Z
+done: PC r15 build honesty (ALL MATCH), F7 terminal-root infinite hang OPEN ON THE PC BUILD (PC20 Threads 1),
+      F9 PC-build TSan infinite/stop 400/400 clean with a real planted control planted into the PC source (29 blocks),
+      C4 the false-zero trap recorded (base planted binary refused PC20 -> 0 blocks -> caught by my assertion).
+      job1b repeat complete: 200/200 clean, planted 91 blocks, no outlier (F8).
+runs now: PC-build Threads sweep under PC20 on the PC TSan build — Threads 2 done 100/100 (0 TSan), Threads 4 at 12,
+      Threads 8/16 queued. No scores recorded anywhere in this sweep (swarm rule).
+next command: cd /agent/repos/dwqww/forge-combo29/swarm/24/pc_build && python3 analyse_pc_sweep.py
