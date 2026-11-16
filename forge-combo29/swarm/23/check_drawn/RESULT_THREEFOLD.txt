@@ -1,0 +1,32 @@
+THE CASE THAT MATTERS — a THREEfold repetition before the 100th half-move, base vs PC r15
+========================================================================================
+This is the gap I flagged in 23-F43: at halfmove 150 the game is already drawn, so nothing matters. Here the draw
+is a CLAIMABLE third repetition at halfmove 8, on a position that is WON for white (K+R v K).
+
+Root: `1K6/8/8/3R4/8/8/8/k7 w - - 8 5`, reached by the real move list
+  d5d6 a1b1 d6d5 b1a1 d5d6 a1b1 d6d5 b1a1
+so the position has occurred three times. python-chess confirms `can_claim_threefold_repetition() = True`.
+Sent as `position fen <base> moves <list>` so the engine's own repetition history is populated.
+`go depth 8`, Threads 1, Hash 16, OwnBook false, drained, fresh process per line.
+
+| build | info lines | last score | last nodes | bestmove |
+|---|---|---|---|---|
+| base 6b98f217 | 8 | **cp 0** | **0** | d5d1 |
+| PC r15 | 8 | **cp 399** | **6,941** | d5b5 |
+
+WHAT THIS SHOWS, precisely:
+- The base tree answers a threefold-repetition root with **cp 0 and 0 nodes** — it does not search a position it is
+  winning by a rook. That is the defect, and here it is a REAL cost: by the rules the two sides may CLAIM the draw,
+  and if the opponent declines, play continues and white is simply a rook up. A score of cp 0 tells white's side
+  "nothing here", which is wrong in exactly the case where the opponent might not claim.
+- The PC r15 build searches it and reports **cp 399**, i.e. the won evaluation the material justifies, choosing a
+  different move (d5b5) from the base's d5d1.
+
+SO the repair matters OUTSIDE the already-drawn band, which 23-F43 could not show: a third repetition before the
+100th half-move is the case where the draw is claimable but not forced, and the base's cp 0 there is a genuine
+misreport rather than a formality.
+
+CAVEAT I will not drop: the owner's MATCH PROGRAM (file 6) ends the game at the third occurrence, so in the PC's own
+games this position never gets searched again — the repair is invisible in matches and matters only for any use
+(analysis, a different GUI, a human game) where a claimable draw may be declined. That is precisely why file 3 calls
+it repaired rather than important.
