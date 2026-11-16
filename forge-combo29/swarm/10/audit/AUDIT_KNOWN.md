@@ -237,3 +237,67 @@ bestmoves, 11 pairs with no `info` node line**. So the number stands and is now 
 For the record, the trap is visible in the moves themselves: on `1r6/2k2pp1/...` (black to move) the piped
 `go depth 3` answers `d5d4`, while the same search driven correctly answers `e5e4` at 1,232 nodes. Both are
 legal, which is exactly why a legality test cannot detect this defect — only the node count can.
+
+## K14 is ONE problem, seen from three angles — cross-reference
+
+This is the same underlying defect as **seat 27's S-F8 / S-F8a / S-F8b** (branch
+`for-fable-and-opus/swarm-27`, `PATCHES.md`, `REPORT_job5.md`, `FINDINGS.md`). A future reader should treat
+these as one entry, not three. The three views are complementary and interlock exactly:
+
+| who | what they established | their key numbers |
+|---|---|---|
+| seat 27 (S-F8) | the restriction changes the **SCORE**, not just the tree size | depth 12 S14: `go depth 12` cp 30 / 56,720; `searchmoves e2e4` cp **23** / 26,329; `searchmoves e2e4 d2d4` cp 23 / 16,770, all playing e2e4 |
+| seat 27 (S-F8a) | **IIR at the restricted root is one cause, and only one**: their patch recovers nodes 26,329 -> 36,117 and about half the score gap (cp 23 -> 26) | patch `job5/searchmoves_iir.PARTIAL.patch.txt` |
+| seat 27 (S-F8b) | the defect is **BOUNDED, not explained by IIR**: with `IirDepth 20` (IIR cannot fire at depth 12) the gap is still 8 cp (26 vs 34), and the **sign is unstable** (at `IirDepth 2` the restricted score is 4 cp *higher*) | `job7/f1_bound_sf8.py` |
+| seat 10 (10-F14) | the defect is **unsound, not merely smaller**: restricting to all 20 of 20 moves (a filter excluding nothing) still gives cp 23 vs cp 30, and the gap does not close with depth (d16: 23 vs 35) or with equal work | §K14 tables above |
+| seat 10 (10-F15) | the restricted search **also contaminates a later unrestricted search** (36,745 nodes cp 29 vs control 4,951 cp 30, deterministic) | `audit/raw2/k14_tt_summary.json` |
+
+**My numbers reproduce seat 27's exactly**, cell for cell: their `searchmoves e2e4` cp 23 / 26,329 is my
+`D_restricted_only_e2e4` cp 23 / 26,329, and their `searchmoves e2e4 d2d4` cp 23 / 16,770 is my
+`E_restricted_e2e4_d2d4` cp 23 / 16,770. Two seats, two independently written harnesses, same digits.
+
+### One defect or two? Settled — TWO, and the restricted root is the one that is wrong on its own
+
+The experiment asked for (`audit/k14_split.py`, `audit/raw2/K14split/summary.json`):
+
+| # | setup (fresh process unless stated) | nodes | score | bestmove |
+|---|---|---|---|---|
+| A | cold unrestricted depth 12 | 56,720 | **cp 30** | e2e4 |
+| B | cold restricted to all 20, nothing in the table | 21,640 | **cp 23** | d2d4 |
+| C1 | `Clear Hash`, then restricted | 21,640 | **cp 23** | d2d4 |
+| C2 | restricted again in the same process | 17,847 | cp 27 | e2e4 |
+| D | restricted to **only e2e4** | 26,329 | **cp 23** | e2e4 |
+| E | restricted to **e2e4 d2d4** | 16,770 | **cp 23** | e2e4 |
+| F | unrestricted, then `Clear Hash`, then restricted | 46,279 | cp 28 | e2e4 |
+
+The verdict follows the rule set before the run: the restricted root is **already wrong in a cold process
+with an empty table** (cp 23 vs cp 30), and **`Clear Hash` does not rescue it** (still cp 23). So:
+
+**There are two independent defects.**
+1. **The restricted root computes a wrong score on its own** — it needs nothing in the table to be wrong.
+   This is the primary defect, and it is the one a fix must address first: every restricted search is
+   unsound regardless of what came before it.
+2. **The table write contaminates later searches** — a restricted search leaves state that changes a
+   subsequent *unrestricted* search (10-F15), and `ucinewgame` clears it. Fixing (1) may or may not also
+   remove (2), but fixing (2) cannot make restricted searches correct.
+
+**The sharpest minimal repro** (deterministic, 3/3 reps, `audit/raw2/K14split/`), which seat 27's IirDepth
+sweep explains and which needs no restricted *set* at all — restrict to the single move the unrestricted
+search already chose:
+
+| depth | unrestricted | `searchmoves e2e4` | `searchmoves e2e4` + `Clear Hash` |
+|---|---|---|---|
+| 8 | cp 26, d2d4 | cp **16**, e2e4 | cp 16 |
+| 10 | cp 24, d2d4 | cp **26**, e2e4 | cp 26 |
+| 12 | cp 30, e2e4 | cp **23**, e2e4 | cp 23 |
+| 14 | cp 23, e2e4 | cp **27**, e2e4 | cp 27 |
+
+The **sign flips with depth** (+10, -7, -4 from depth 8 to 14), which matches seat 27's unstable sign at
+different `IirDepth` values exactly, and `Clear Hash` changes **not one node** — the proof that no table
+state is involved at this depth. That sign instability across depths is the single most useful clue for
+whoever repairs this: a cause that behaves like an iteration-dependent reduction (IIR, as seat 27's partial
+patch implicates, plus at least one more since the patch only closes half the gap).
+
+**What a fix must address first:** the restricted root's own search (defect 1). Seat 27's
+`searchmoves_iir.PARTIAL.patch.txt` is the right first step and explicitly not sufficient; the remaining
+cause is unidentified by both of us, and I state that rather than guess.

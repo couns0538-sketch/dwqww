@@ -118,3 +118,15 @@ cp 23/d2d4 vs cp 30/e2e4, gap does not close with depth (d16 23 vs 35) or equal 
 search corrupts a LATER unrestricted one (36,745 nodes cp 29 vs control 4,951 nodes cp 30), deterministically.
 ucinewgame restores cold behaviour, so the pollution lives in the shared table.
 next: final push before 22:30, then no new work.
+
+## Mon Nov 16 09:47:41 PM UTC 2026  [DONE — K14 split settled + cross-referenced with seat 27]
+TWO defects, settled (10-F17): with `Clear Hash` in a fresh process the restricted score is still cp 23 vs
+the cold unrestricted cp 30, and Clear Hash changes not one node (21,640 both ways). So the restricted root
+computes wrongly with an EMPTY table; the contamination of later searches is a separate second defect.
+A fix must address the restricted root first.
+Minimal repro added (10-F18): `searchmoves e2e4` alone gives cp 16/26/23/27 at depth 8/10/12/14 vs
+unrestricted 26/24/30/23 -- the SIGN FLIPS with depth and Clear Hash changes nothing. Matches seat 27's
+S-F8b unstable sign; the cause is iteration-dependent.
+Cross-referenced 10-C7: K14 == seat 27's S-F8/S-F8a/S-F8b, one problem in three angles. My cells reproduce
+their numbers exactly (26,329 and 16,770). Pointers: swarm-27 PATCHES.md, REPORT_job5.md, job7/f1_bound_sf8.py.
+Nothing left open. Final push done.
