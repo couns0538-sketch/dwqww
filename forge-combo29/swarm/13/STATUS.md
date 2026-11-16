@@ -521,3 +521,25 @@ from job 14's drawn-root verification.
 - Updated the repo-side pointer forge-combo29/swarm/13/HARNESS_TRAPS.md to the same four cases + the
   construction-assertion rule.
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## Mon Nov 16 11:40:25 PM UTC 2026
+
+JOB 15: which of the PC patch's seven fixes are actually ACTIVE? Read the `#define` defaults in the
+patch itself rather than a summary. Findings S-F18:
+  ON : ROOT_DRAWN (verified S-F17), HARD_LIMIT_EMERGENCY, BARE_KING_LMR_CAP, GO_PARSE, ISREADY_PENDING
+  OFF: FORGE_FIX_BARE_KING_ONE_THREAD (0 since 16:30) and FORGE_FIX_ABORT_PUBLISH (0 since 16:45)
+       each with the patch's own measured reason; the gentle LMR_CAP replaces the former. A reader who
+       assumes "the patch fixes abort-publish / one-thread bare-king mates" is wrong — it does neither.
+  VERIFIED WORKING: GO_PARSE. `go wtime btime 50` -> base 1 info line / 26 nodes / depth 1; PC 5 lines /
+       1001 nodes / depth 5. Control `go wtime 50 btime 50` -> IDENTICAL on both builds, so the
+       difference is the malformed line, not a general search difference.
+  CONSISTENT-BUT-NOT-ISOLATED: HARD_LIMIT_EMERGENCY (11ms and 10ms behave the same on both builds).
+  UNTESTED and said so: ISREADY_PENDING (needs NNUEArch, not advertised here) and the full
+       BARE_KING_LMR_CAP missed-mate sweep (needs 400 lone-king positions with warm history).
+
+MY OWN TEST BUG, recorded: my first K+R vs K FEN was STATUS_OPPOSITE_CHECK (black in check, white to
+move), so the engine REFUSED it, kept startpos, and "answered" e2e4 — which looks exactly like an illegal
+move in a KRK ending and was my fault. SIXTH member of the absence-of-output family: the refusal message
+was present but the board silently stayed the old one. Guard added: verify the FEN with python-chess
+(is_valid and no OPPOSITE_CHECK) before comparing builds, or you compare two searches of startpos.
+Next command: cd forge-combo29/swarm/13/job15 && python3 pcfixes.py ~/b/rel/forge ~/b/pc/forge /tmp/pf
