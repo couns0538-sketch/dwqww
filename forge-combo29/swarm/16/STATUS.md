@@ -404,3 +404,16 @@ seed: 1601
   (12.8 ms vs 2.2 ms per move), so the 117 cp saving costs ~5.8x fewer self-play games per hour. That closes the
   gap I had flagged in the verdict box.
 - check_folder.py: ALL CHECKS PASS (398 files, 38 findings rows). Holding cadence to the close at 10:19Z.
+
+## 2026-11-17T00:42Z
+- FINAL now opens with a STANDING CAUTION (before PART 1, so no reader can miss it) stating the single species my
+  eleven self-corrections belong to — a single case written in language that sounds like a property — with the
+  four clearest instances named and SIX HABITS listed that produced them:
+    1 a count is not a magnitude; 2 a median hides a tail; 3 a single probe is not a property;
+    4 a correlation needs the right model; 5 a sign is not obvious; 6 a parser that cannot fail cannot confirm.
+  It closes by naming which results ARE strong (the ones where a large N and an independent check agree): the
+  353-position counts, the 25,532-pair eval symmetry, the 600-move clock study, and the 8-of-8 re-verification of
+  my confirmations. PART 4 cross-links to it so the instances read as one pattern rather than eleven slips.
+- That is the structural fix the coordinator asked for: a reader can now discount for the author's characteristic
+  error before reading any number, instead of discovering it in a list at the end.
+- check_folder.py: ALL CHECKS PASS (398 files, 38 findings rows). Holding cadence to the close at 10:19Z.

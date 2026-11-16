@@ -21,6 +21,32 @@ default thread count were checked and, where they did, given an explicit `Thread
 
 ---
 
+# STANDING CAUTION — READ THIS BEFORE ANY NUMBER BELOW
+
+**Eleven of my self-corrections were the same species: a SINGLE CASE written in language that sounds like a
+property.** One probe position became "the full-window root restores node symmetry at depth 1"; one correlation
+computed the wrong way became "PSQT explains r = 0.35"; one summary with an inverted sign became "the self-play
+budget is a wash"; one position where `h8h1` won a rook became the worst blunder of a run. Each was caught, but
+each was caught LATE — by a later measurement, by another seat, or by noticing something absurd.
+
+**So treat every general statement in this file as a claim about a sample, and check its N before you rely on it.**
+Where it matters I have written the N in the sentence. The specific habits that produced the eleven, so the next
+reader can discount for them:
+
+1. **A count is not a magnitude.** Four worse against three better said nothing about which were expensive.
+2. **A median hides a tail.** The median mirror cost was 0 cp at every budget while the accumulated damage
+   differed by 144 cp.
+3. **A single probe is not a property.** 65 vs 65 on one position was 11 of 20 on twenty.
+4. **A correlation needs the right model.** My MG-only predictor could not track a phase-blended evaluation.
+5. **A sign is not obvious.** I inverted one and every conclusion in that summary was backwards.
+6. **A parser that cannot fail cannot confirm.** Three of my audit checks "passed" while measuring nothing.
+
+The strongest results in this file are the ones where a large N and an independent check agree: the 353-position
+counts, the 25,532-pair eval symmetry, the 600-move clock study, and the seven confirmations of other seats'
+findings that were re-verified under a loud-failing parser (8 of 8).
+
+---
+
 # PART 1 — THE AREA-6 CHAIN, AS ONE BLOCK
 
 This is the organised result of the whole area: what the asymmetry is, what causes it, and which fix works on
@@ -229,6 +255,9 @@ setup output, field-position parsing) — all caught only because the parser was
 later work, three were bugs in my own harness code, and one was an inverted sign that made a rook-winning move
 score as the worst blunder of a run. A reader who sees only the successes in Part 1 should weigh them against
 this list.**
+
+**These are instances, not accidents: see STANDING CAUTION at the top of this file for the single species they
+belong to (a single case written as a property) and the six habits that produced them.**
 
 1. **S-C7** — I called the kept iteration's `time` field "the stop". Seat 08's reconciliation was correct.
 2. **S-F3 (mine)** — I claimed PSQT explained only r=0.35 of the left-right difference; my predictor was MG-only
