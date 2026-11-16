@@ -118,3 +118,13 @@ done: F18 PC build TSan clean at Threads 16 (150 rounds). F19 the terminal-root 
       r15 source that fixes BOTH silent GUI hangs (terminal-root infinite/ponder, and the opponent-only clock),
       verified clean with `patch -p1` and proven to keep every honesty number.
 next command: cd /agent/repos/dwqww/forge-combo29/swarm/24 && bash -c 'git log --oneline -5'
+
+## 2026-11-16T23:17Z
+done: **REPORT_threads.md** — the chosen MOVE is not reproducible above Threads 1 on ordinary positions:
+      PC r15/PC20 depth 12, 6 fresh processes/position, first 20 of G -> Threads 4: 8/20 (40%) return >1 bestmove,
+      Threads 2: 10/20 (50%), Threads 1: 0/20 with node ratio exactly 1.00; base tree S14 Threads 4 same effect.
+      This REVERSES seat 04's 04-F10a withdrawal (their 04-F10 was right). Findings 24-F21/F21b/F22/F23.
+      Also relayed to the coordinator.
+runs now: nothing long. Next: a Threads-1-vs-2-vs-4 sample on the BASE tree to give the same rate there, then the
+      next unconfirmed find from another seat in my area.
+next command: cd /agent/repos/dwqww/forge-combo29/swarm/24/checks && python3 move_stability_t4.py /agent/repos/base/forge-combo29/build-rel/forge S14 ../job1/set_G.epd 20 6 4 /tmp/base_rate
