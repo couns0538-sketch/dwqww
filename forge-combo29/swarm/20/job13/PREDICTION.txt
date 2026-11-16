@@ -1,0 +1,34 @@
+# PREDICTION — seat 20, area 10, job 13 (bisect which S14 option causes the mate-distance error)
+
+Committed alone BEFORE the first measuring command. Never edited afterwards.
+
+Context: job12 confirmed that `8/8/1p6/8/p3p3/8/2Kpk3/8 w - - 0 1` at depth 12 reports `mate -12` (24 plies) with an
+18-ply PV **only when S14 is applied**, and is consistent under default settings. Job 13 asks which of the 14
+options does it.
+
+Method: apply one S14 option at a time (all others default) and record the depth-12 answer. The "bad" outcome is
+`score mate -N` whose PV does not end in checkmate; the "good" outcome is the default-settings answer
+(`mate -7` with a 14-ply PV that verifies).
+
+Predictions:
+1. A SINGLE option reproduces the bug, not a combination — I predict at least one single option gives a mate score
+   with a non-mate PV at depth 12.
+   KILLED IF: no single option reproduces it (then it is a combination and I say so).
+
+2. The culprit is a **move-ordering / reduction** option, not a mate-specific one — most likely one of
+   `LmrQuietBase`, `LmrQuietDivisor` or `HistoryPruneMultiplier`. Mate scoring code is not touched by S14 at all, so
+   the mechanism must be ordering.
+   KILLED IF: the culprit is `SingularDepth`, `IirDepth` or `NonPawnCorrection` and no LMR/history option does it.
+
+3. More than one option reproduces it (they are all orderings-changing), so I will report a SET of culprits rather
+   than one name.
+   KILLED IF: exactly one option does it and every other is inert.
+
+4. The default answer is `mate -7` with a 14-ply verified PV at depth 12, so anything different at depth 12 is a
+   change from the default and attributable to the one option applied.
+   KILLED IF: two runs of the default settings differ from each other at depth 12 (which would mean the search is
+   not deterministic and no bisection is meaningful).
+
+5. `NonPawnCorrection true` alone will NOT change the depth-12 mate answer (it is a correction term affecting
+   evaluation values, not the tree shape), and I predict it is inert here.
+   KILLED IF: `NonPawnCorrection` alone reproduces the bad mate line.
