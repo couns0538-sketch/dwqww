@@ -1,0 +1,18 @@
+movetime sweep, PC r15, Threads 1, Hash 16, MultiPV 1, OwnBook false, 4 runs per row
+position: r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1
+
+ movetime   plan    wall     kept  discarded ms  discarded %  overhead (10 ms) %
+       50     40    40.6     31.0           9.6        24.1%               25.0%
+      100     90    90.8     48.0          42.8        47.6%               11.1%
+      200    190   190.9    173.5          17.4         9.2%                5.3%
+      500    490   490.8    333.0         157.8        32.2%                2.0%
+     1000    990   990.6    777.5         213.1        21.5%                1.0%
+     2000   1990  1990.6   1350.0         640.6        32.2%                0.5%
+
+discarded fraction: 9.2% .. 47.6%  (median 32.2%) of the plan
+overhead fraction : 25.0% .. 0.5%  (a FIXED 10 ms, so it shrinks as the budget grows)
+
+The discarded work is NOT a fixed percentage - it depends on where the last completed
+iteration landed. At 500 ms it measured 157.8 ms (32.2%) here and 171.5 ms (35%) in the
+earlier 6-run block. What is constant is the asymmetry: the overhead is a fixed 10 ms that
+vanishes at long budgets, while the discarded work SCALES with the budget and never shrinks.

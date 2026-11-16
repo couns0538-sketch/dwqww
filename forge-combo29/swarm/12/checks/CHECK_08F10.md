@@ -68,7 +68,23 @@ directions and need opposite fixes:
   answered in time.
 
 A person reading only 08-F2 (the overhead subtraction) would think the `movetime` penalty is ~10 ms.
-It is that **plus** whatever partial iteration is discarded — up to 171 ms here.
+**It is that fixed 10 ms PLUS a discarded partial iteration that scales with the budget — at
+`movetime 500` the discarded part alone was 171.5 ms, roughly 17x the overhead, and the two must
+always be quoted together.** Measured across budgets:
+
+| movetime | plan | discarded | discarded % of plan | overhead % of plan |
+|---|---|---|---|---|
+| 50 | 40 | 9.6 ms | 24.1 % | 25.0 % |
+| 100 | 90 | 42.8 ms | 47.6 % | 11.1 % |
+| 200 | 190 | 17.4 ms | 9.2 % | 5.3 % |
+| **500** | **490** | **157.8 ms** | **32.2 %** | **2.0 %** |
+| 1000 | 990 | 213.1 ms | 21.5 % | 1.0 % |
+| 2000 | 1990 | 640.6 ms | 32.2 % | 0.5 % |
+
+The discarded fraction is **not** a constant (9 %-48 % here, depending on where the last iteration
+landed); what *is* constant is the asymmetry: the overhead is a fixed 10 ms that vanishes at long
+budgets, while the discarded work grows with the budget. At short budgets they are comparable; from
+200 ms upward the discarded work dominates by an order of magnitude (`checks/movetime_sweep.txt`).
 
 ## Files
 

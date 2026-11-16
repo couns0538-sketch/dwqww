@@ -332,3 +332,21 @@ and the coherence guard was tightened to require <0.85x before declaring an impo
 All controls verified: sleep-900ms -> FAIL/SLOW; silent -> FATAL; uniform-liar -> INCOHERENT;
 fabricating fake -> FABRICATED; bad-searchmoves fake -> WRONG BRANCH. Real PC r15: 4/4 grid PASS,
 anchor in band, both harness checks ok, exit 0.
+
+## 2026-11-16T23:29:40Z
+
+S-C6 confirmed 08-F10 (opposite stop-path error modes). Per the coordinator, the discarded figure is
+now stated **next to** the overhead figure everywhere, because the second dwarfs the first:
+
+| movetime | discarded | discarded % of plan | overhead (fixed 10 ms) % |
+|---|---|---|---|
+| 50 | 9.6 ms | 24.1% | 25.0% |
+| 200 | 17.4 ms | 9.2% | 5.3% |
+| **500** | **157.8 ms** | **32.2%** | **2.0%** |
+| 1000 | 213.1 ms | 21.5% | 1.0% |
+| 2000 | 640.6 ms | 32.2% | 0.5% |
+
+Honest caveat added: the discarded fraction is **not** a constant (9-48%, it depends on where the
+last completed iteration lands) — what IS constant is the asymmetry, a fixed 10 ms overhead that
+vanishes at long budgets against discarded work that scales with the budget. At movetime 500 the
+discarded part is ~17x the overhead. Raw: checks/movetime_sweep.txt + .json.
