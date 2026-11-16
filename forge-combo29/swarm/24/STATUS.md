@@ -99,3 +99,14 @@ done: C6 CONFIRMS seat 04's 04-F1 with my own harness (Threads 1 = 49,731 nodes 
       165x but NOT deterministic. All of it fresh processes, Threads 1 used for anything score-shaped.
 runs now: nothing long; next is the area-4 job list on the PC build (option churn under TSan at Threads>1).
 next command: cd /agent/repos/dwqww/forge-combo29/swarm/24 && git ls-remote origin "refs/heads/for-fable-and-opus/swarm-*" | sed 's#.*/swarm-##' | sort | tr '\n' ' '
+
+## 2026-11-16T23:11Z
+done: F13 PC option churn under TSan 250/250 clean (planted 10). F14 the terminal-root defect on the PC build is
+      ONLY the unbounded forms — all six bounded commands (`depth`, `nodes`, `movetime`, full clock, `mate`,
+      `searchmoves`) answer 0000 in 0.00 s. F15+F16 REPAIR PATCH written as a text patch and proven on BOTH the base
+      tree and the PC r15 source (no MISSING entries; normal `go infinite` still waits for stop; all honesty numbers
+      unchanged). C8: confirms seat 02 S-F4's main claim but REFUTES its control sentence — an opponent's clock is
+      parsed and DISCARDED at uci.cpp:184-191, so no opponent clock can bound a search.
+runs now: nothing long. Next: area-4 job 2/3 variants on the PC build under TSan at higher thread counts, and the
+      next unconfirmed find from another seat.
+next command: cd /agent/repos/dwqww && git ls-remote origin "refs/heads/for-fable-and-opus/swarm-*" | sed 's#.*/swarm-##' | sort | tr '\n' ' '
