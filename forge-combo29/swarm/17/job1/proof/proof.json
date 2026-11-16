@@ -1,0 +1,63 @@
+{
+ "date": "2026-11-16T21:14:32Z",
+ "runs": [
+  {
+   "name": "real_normal_search",
+   "exe": "/agent/repos/base/forge-combo29/build-asan/forge",
+   "sha256": "a43381d7af09b411b82aa836fbab5308d4f6f85ed8d658e9c2f7e02239718749",
+   "asan_symbols": 35,
+   "ubsan_symbols": 15,
+   "commands": [
+    "uci",
+    "isready",
+    "position startpos",
+    "go depth 6",
+    "quit"
+   ],
+   "rc": 0,
+   "timed_out": false,
+   "sanitizer_lines": 0,
+   "sanitizer_examples": []
+  },
+  {
+   "name": "planted_heap_overread",
+   "exe": "/tmp/planted_asan/build/forge",
+   "sha256": "9acaf4d45d869a31b68fa9ac9ad2927b3217ff928095d864f29be5eb86c5022a",
+   "asan_symbols": 35,
+   "ubsan_symbols": 0,
+   "commands": [
+    "uci",
+    "isready",
+    "bench 5",
+    "quit"
+   ],
+   "rc": 1,
+   "timed_out": false,
+   "sanitizer_lines": 2,
+   "sanitizer_examples": [
+    "==5440==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x502000000060 at pc 0x55a11f26c060 bp 0x7ffdd896e130 sp 0x7ffdd896e120",
+    "SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/planted_asan/src/uci.cpp:155 in planted_fault::read_past_end()"
+   ]
+  },
+  {
+   "name": "planted_signed_overflow",
+   "exe": "/tmp/planted_ubsan/build/forge",
+   "sha256": "6872bfa64a5bcb2192e9908dba658737874252cdf97e536e50d7b564eb07110c",
+   "asan_symbols": 0,
+   "ubsan_symbols": 15,
+   "commands": [
+    "uci",
+    "isready",
+    "position startpos",
+    "go depth 1",
+    "quit"
+   ],
+   "rc": 1,
+   "timed_out": false,
+   "sanitizer_lines": 1,
+   "sanitizer_examples": [
+    "/tmp/planted_ubsan/src/uci.cpp:153:67: runtime error: signed integer overflow: 2147483000 + 1000 cannot be represented in type 'int'"
+   ]
+  }
+ ]
+}
