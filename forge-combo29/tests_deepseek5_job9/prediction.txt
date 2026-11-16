@@ -1,0 +1,23 @@
+# deepseek5 job 9 prediction — committed BEFORE the C/P/A/S runs (never edited afterwards).
+# Basis: the tables are Worker members (include/forge/search.hpp 472-481), allocated in the Worker
+# constructor (src/search.cpp 1005-1013, one make_unique per Worker); helpers are separate Workers
+# (workers_[i]), so a per-Worker table is not shared between threads unless a pointer/reference to it
+# leaves its Worker. Fable's known answers agree with this reading; my prediction is the same numbers.
+# Format: build | predicted TSan reports | predicted reports whose location is NOT a pl_ counter
+C (clean)                     | 0  | 0
+P (two plain-int counters)    | >0 (both counters reported) | 0 (every location names pl_hist_upd or pl_corr_upd)
+A (the same two as atomics)   | 0  | 0
+S (A + the shared_plant_entry write) | >0, among them locations on shared_plant_entry | 0 for pl_; the shared_plant_entry locations are the S-specific signal (not pl_-named by design)
+# If S gives 0 the harness cannot see a table race and C/A say nothing: that outcome would be reported FIRST.
+
+# The member-escape table (from the code only; the nine members of include/forge/search.hpp 472-481):
+# member | allocated (src/search.cpp) | places a pointer/reference leaves its Worker | verdict
+# main_history_            | 1005 | QuietScorer ctor takes searcher.main_history_ by reference (search.cpp:788) — INSIDE the same worker's search call | per-Worker, no escape
+# threat_history_          | 1006 | update_threat_quiet writes it (search.cpp:1354) — member access only | per-Worker
+# capture_history_         | 1007 | capture_history_value / MovePicker (search.cpp:896,906,982) — same worker | per-Worker
+# continuation_history_    | 1008 | ss->continuation pointers (stack-local, per worker) | per-Worker
+# counter_moves_           | 1009 | counter-move table reads/writes in the search — same worker | per-Worker
+# correction_history_      | 1010 | update_correction (search.cpp:1229) writes it — same worker | per-Worker
+# material_correction_     | 1011 | corrected_eval reads it (search.cpp:640-643) — same worker | per-Worker
+# non_pawn_white_correction_ / non_pawn_black_correction_ | ~1012 | corrected_eval — same worker | per-Worker
+# (the shared state between workers is the Searcher's: shared_.tt, shared_.stop — both synchronized; search.cpp:2734-2769)
