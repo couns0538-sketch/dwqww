@@ -6,7 +6,7 @@
 
 **Read this first:** across every command tested, the **MOVE** the engine returns is stable run to run; **scores from a clock-based search are approximate** (a few centipawns of run-to-run variation, because the stop is wall-clock dependent - 6 runs gave cp 55 and cp 67 at depths 16 and 18); **scores from `go nodes` and `go softnodes` are exact** (fully deterministic in score, nodes, depth and move). So a training pipeline may label moves freely from any command, but must treat clock-derived scores as approximate and only node-limit-derived scores as exact.
 
-**GUARD RESULTS (all three re-run at 2026-11-16T23:55Z, and re-run again at the close):**
+**GUARD RESULTS (re-run at 23:55Z, 23:59Z, and again at the close):**
 `compliance_check.sh` -> **PASS** (0 tracked binaries, 0 files outside my folder, 0 non-text, 0 engine source, nothing uncommitted) |
 `audit_final.py` -> **0 mismatches** (no finding marked dead in FINDINGS.md is left live in this document) |
 `final_selfcheck.py` -> **4/4 PASS** (S-F29 depth-18 threshold, S-C26 terminal ladder, S-C27 burst + correct answer, S-C22 Hash-16 ladder above Hash-256). The self-check names what it does NOT cover, so a 4/4 is not whole-document verification: full games, regime sweeps, and the variant-build and seat-27-binary checks carry their own evidence files. Note that the Hash-256 depth in that cell reads 4 or 2 depending on the run - which is S-C15 itself (a clock search varies in depth), and the assertion tests only Hash16 > Hash256, so it is correct either way.
