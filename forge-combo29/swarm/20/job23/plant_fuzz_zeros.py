@@ -103,7 +103,7 @@ def classify(exe, seq, ready_timeout=3.0):
         except Exception:
             pass
     threading.Thread(target=rd, daemon=True).start()
-    rec = {"hang": False, "exit": None, "illegal": None, "san": 0}
+    rec = {"hang": False, "crash": False, "exit": None, "illegal": None, "san": 0}
     ready_seen = 0
     try:
         for line in seq:
@@ -121,8 +121,13 @@ def classify(exe, seq, ready_timeout=3.0):
                         break
                     time.sleep(0.005)
                 if not ok:
-                    rec["hang"] = True
-                    p.kill()
+                    # distinguish a dead process (CRASH) from a live one that said nothing (HANG)
+                    if p.poll() is not None:
+                        rec["exit"] = p.returncode
+                        rec["crash"] = True
+                    else:
+                        rec["hang"] = True
+                        p.kill()
                     return rec
     except Exception:
         pass
@@ -148,11 +153,14 @@ print("== planting the three cases through the SAME classifier")
 res = {}
 for label, exe in (("CRASH", crash), ("HANG", hang), ("ILLEGAL", illegal)):
     r = classify(exe, SEQ)
-    counted = (label == "CRASH" and r["exit"] not in (0, None)) or \
+    counted = (label == "CRASH" and (r.get("crash") or r["exit"] not in (0, None))) or \
               (label == "HANG" and r["hang"]) or \
-              (label == "ILLEGAL" and r["illegal"])
+              (label == "ILLEGAL" and r["illegal"] == "z9z9")
     res[label] = {"result": r, "counted": counted}
     print(f"  {label:8s} -> {r}   COUNTED: {counted}")
+    if label == "ILLEGAL":
+        print(f"           (this plant also stops answering isready afterwards, so hang=True is expected; "
+              f"the thing under test is illegal={r['illegal']})")
     assert counted, f"the classifier did NOT count the planted {label} — my zero of that kind is not shown"
 
 print("\nall three planted cases counted: the classifier can see a crash, a hang and an illegal bestmove.")
