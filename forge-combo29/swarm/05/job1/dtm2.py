@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""dtm2.py FEN MAXPLY -- sound, independent distance-to-mate checker (python-chess rules).
+"""dtm2.py FEN MAXPLY [TIMECAP_S] -- sound, independent distance-to-mate checker (python-chess rules).
 
-Two predicates, both memoised:
-  mates(b, d)   : the side to move can force checkmate in AT MOST d plies (d >= 1)
-  loses(b, d)   : the side to move is checkmated in AT MOST d plies whatever it plays
-`mates` is the textbook recursion: exists a move m such that after m the opponent has no move that still
-escapes a mate within d-2 plies (or m mates immediately). `loses` is the same with the quantifiers swapped.
-Because both are "at most" predicates, `None` never occurs: the answer is a definite yes/no per d, and the
-smallest d with yes is the exact distance.
+mates(b, d) : the side to move can force checkmate in AT MOST d plies (d >= 1).
+loses(b, d) : the side to move is checkmated in AT MOST d plies whatever it plays.
+
+Both predicates are "at most", so each d gives a definite yes/no and the smallest d that answers yes is an
+upper bound on the exact distance; the loop over d from 1 upward therefore reports a bound that is exact
+whenever the true distance is below MAXPLY.
+
+Care taken (both were wrong in my first version, and both made the mate look SHORTER than it is):
+  * legal move lists are materialised with list() before any push/pop, because chess.LegalMoveGenerator
+    reads the live board;
+  * a move by the opponent that CHECKMATES us is an escape (it refutes our mate), never skipped.
 """
 import sys
 import time
@@ -31,41 +35,44 @@ def out_of_time():
     return False
 
 
-def is_dead(b):
+def no_moves_possible(b):
+    """position where the side to move has no legal move, or the game is otherwise over"""
     return b.is_stalemate() or b.is_insufficient_material() or b.halfmove_clock >= 100
 
 
 def mates(b, d):
-    """side to move forces mate in at most d plies."""
     nodes[0] += 1
     if d < 1 or out_of_time():
         return False
     key = (b._transposition_key(), d)
-    v = mates_memo.get(key)
-    if v is not None:
-        return v
+    if key in mates_memo:
+        return mates_memo[key]
     res = False
-    for mv in b.legal_moves:
+    for mv in list(b.legal_moves):
         b.push(mv)
         if b.is_checkmate():
             b.pop()
             res = True
             break
-        if d >= 3 and not is_dead(b):
-            # opponent must have no move that escapes a mate within d-2
-            evades = False
-            for mv2 in b.legal_moves:
+        if d >= 3 and not no_moves_possible(b):
+            escape = False
+            for mv2 in list(b.legal_moves):
                 b.push(mv2)
                 if b.is_checkmate():
                     b.pop()
-                    continue                      # opponent's move cannot be mate here anyway
+                    escape = True            # the opponent mates US: our plan failed
+                    break
+                if no_moves_possible(b):
+                    b.pop()
+                    escape = True            # the opponent can force a draw-ish dead position
+                    break
                 still = mates(b, d - 2)
                 b.pop()
                 if not still:
-                    evades = True
+                    escape = True
                     break
             b.pop()
-            if not evades:
+            if not escape:
                 res = True
                 break
         else:
@@ -75,7 +82,6 @@ def mates(b, d):
 
 
 def loses(b, d):
-    """side to move is mated in at most d plies no matter what it plays."""
     nodes[0] += 1
     if d < 0 or out_of_time():
         return False
@@ -84,22 +90,17 @@ def loses(b, d):
     if d == 0:
         return False
     key = (b._transposition_key(), d)
-    v = loses_memo.get(key)
-    if v is not None:
-        return v
-    if is_dead(b):
+    if key in loses_memo:
+        return loses_memo[key]
+    if no_moves_possible(b):
         loses_memo[key] = False
         return False
     res = True
-    for mv in b.legal_moves:
+    for mv in list(b.legal_moves):
         b.push(mv)
-        if b.is_checkmate():
+        if b.is_checkmate() or no_moves_possible(b):
             b.pop()
-            res = False
-            break
-        if is_dead(b):
-            b.pop()
-            res = False
+            res = False                       # we escaped (or drew)
             break
         m = mates(b, d - 1)
         b.pop()
@@ -115,13 +116,13 @@ print(f"fen: {root.fen()}")
 print(f"side_to_move: {side}   maxply: {MAXPLY}   time_cap_s: {TIME_CAP}")
 verdict = None
 if root.is_checkmate():
-    verdict = f"{side} is already CHECKMATED (0 plies)"
+    verdict = f"{side} IS MATED in 0 plies"
 elif root.is_stalemate():
-    verdict = "draw by STALEMATE at the root (0 plies, no mate)"
+    verdict = "no forced mate: STALEMATE at the root"
 elif root.is_insufficient_material():
-    verdict = "draw by insufficient material at the root (0 plies, no mate)"
+    verdict = "no forced mate: insufficient material at the root"
 elif root.halfmove_clock >= 100:
-    verdict = "draw by the fifty-move rule at the root (0 plies, no mate)"
+    verdict = "no forced mate: fifty-move rule at the root"
 else:
     for d in range(1, MAXPLY + 1):
         if mates(root, d):
@@ -131,7 +132,7 @@ else:
             verdict = f"{side} IS MATED in {d} plies"
             break
         if out_of_time():
-            verdict = f"unknown: time cap hit after d={d}"
+            verdict = f"unknown: time cap hit at d={d}"
             break
 if verdict is None:
     verdict = f"no forced mate for either side within {MAXPLY} plies"
