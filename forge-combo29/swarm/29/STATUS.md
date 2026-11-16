@@ -148,3 +148,11 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-C6 CONFIRMS seat 05's S-F23, checked with my own harness on the PC r15 build at depth 12, Threads 1, using THEIR two truncated boards: under S14 both are truncated (O+G/192 mate -9, R/120 mate -13 with a 12-move PV against 26 needed); under PC20 neither is, and R/120 reports exactly cp -2713, the figure they published. Their 0-of-27 vs 2-of-28 rate reproduces.
 - This is the first finding of another seat I have confirmed on the PC build under PC20, which is the regime TEXT 2 asks for.
 - next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: 29-C6 confirms 05 S-F23 on PC build under PC20' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 10:39:46 PM UTC 2026
+- CALLGRIND AUDIT ANSWER (29-N14/N15): the numbers are SOUND. The challenge is right that valgrind cannot run the AVX-512 LOCK build - I hit that in job 2 myself (Illegal instruction, exit 132, preamble-only file; still in job2/raw_callgrind.txt). Every published instruction count comes from a separate FORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3 build with ZERO zmm instructions (objdump on all four binaries = 0), where callgrind completes with exit 0 and 'Trigger: Program termination'.
+- Re-verified now, side by side: portable exit 0 / PROGRAM TOTALS; lock build exit 132 SIGILL.
+- Rule 1 control (29-N15): planted 8 extra increments per eval -> 2,052,702,072 vs clean 2,052,508,756, i.e. +193,316 DETECTED. The tool measures and responds to a planted change.
+- One correction to the challenge: the two numbers it names are from TWO experiments - 4,513,768,536/-0.056% is the job-2 __restrict DUD (reported as no effect, rejected); -0.414%/18.7M is job 8/9 (4,513,768,543 -> 4,495,059,980/987). Both portable-build counts.
+- TT patch status unchanged: F12/F14 instruction claim STANDS; the bit-identical-search and legal-move evidence was never load-bearing on it.
+- next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: callgrind audit - portable vs lock build, exit statuses, Rule 1 planted control' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29

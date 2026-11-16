@@ -1,0 +1,32 @@
+=== CALLGRIND AUDIT: the portable build vs the lock build, side by side ===
+
+1) LOCK BUILD (AVX-512, FORGE_MARCH=x86-64-v4) -- this is the one that CANNOT run under valgrind:
+   $ valgrind --tool=callgrind --cache-sim=no ~/build/base/forge < bench11
+   -> Illegal instruction, EXIT STATUS 132
+   (recorded originally in job2/raw_callgrind.txt)
+
+2) PORTABLE BUILD (FORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3) -- the one every published count used:
+   $ valgrind --tool=callgrind --cache-sim=no ~/build/baseg2/forge < bench11
+   -> EXIT STATUS: 0 ; callgrind_annotate shows 'Trigger: Program termination'
+      PROGRAM TOTALS 2,052,508,756 (100.0%)
+
+3) AVX-512 content of the four measured binaries (objdump -d | grep -c zmm):
+   baseg2 414ec725c1af55a3...  0
+   combog 6bc7989494745c1f...  0
+   pcg    100f2d7f83b70e1f...  0
+   pcpg   9fe873aba955475e...  0
+
+4) Provenance of the two numbers named in the challenge:
+   4,513,768,536 -> 4,511,262,314 (-0.056%) = job 2, the __restrict DUD, reported as NO EFFECT and rejected.
+   -0.414% / 18,708,563          = job 8/9, 4,513,768,543 -> 4,495,059,980/987.
+   They are different experiments, and both are portable-build counts.
+
+CONCLUSION: the instruction-count claim stands. The SIGILL objection is correct about the lock build
+and was already handled before the numbers were taken.
+
+5) RULE 1 CONTROL -- does callgrind actually DISTINGUISH builds? (planted work behind input I control)
+   Planted: 8 extra increments in Evaluator::evaluate_runtime, same portable flags, same command:
+     clean   : 2,052,508,756 instructions
+     planted : 2,052,702,072 instructions   (+193,316 detected)
+   So the tool is measuring, not printing preamble: it both completes (exit 0) and responds to a
+   planted change. This is the control that a 'PROGRAM TOTALS' number needs.
