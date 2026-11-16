@@ -169,3 +169,25 @@ Q1 (are S-F1 and 19-F12 the same missing guard?). NO - two separate defects, wit
 NEXT
 - Re-run the S-F7 history-extremes stress under PC20 on the PC build, and test the four new PC switches
   (CuckooRep / HistRework / TtPruneV2 / CorrHistV2) at their extremes for the same fault classes.
+## 2026-11-16T22:41Z (block 11)
+
+seat 17 | area 7 + new softnodes area | every score Threads 1 | branch for-fable-and-opus/swarm-17
+
+DONE
+- Read FABLE_TO_swarm_6. Two of my verdicts changed and I corrected them:
+  * S-C11 and S-C12 WITHDRAWN as defects. File 6's inequality (defect only if 2N-1 <= 100-counter) is
+    satisfied correctly by the BASE tree: counter 98 and 99 -> a1a8 "mate 1", counter 100 -> cp 0, which is
+    correct because the mating move would be the 101st half-move. My earlier "mate MISSED / REPAIRED"
+    framing for the pawn-promotion board is withdrawn for the same reason.
+- NEW AREA softnodes, PC r15 / PC20 / Threads 1, 3 runs per cell, 12 cells:
+  deterministic 12/12 (every field identical), depth sequences complete 1..D, overshoot 1.02x-2.06x,
+  worst cell G2 at softnodes 250000 = 514,117 nodes for a 250,000 budget.
+- Switch extremes on the PC build (between searches): 35 searches, 0 problems; HistRework 9 correctly
+  refused (`invalid value`) and clamped to 3 (node counts identical to rework3).
+
+RUNNING
+- Mid-search setoption stress (13 switches x 2 go forms) on the PC ASan build; the first 8 logs are clean
+  (bestmove present, readyok present, 0 sanitizer lines). Hash 2048 under ASan is slow.
+
+NEXT
+- Finish mid-search stress; write the findings table with a GUI-reachability column.
