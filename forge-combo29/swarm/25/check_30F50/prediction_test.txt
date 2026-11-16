@@ -1,0 +1,43 @@
+### where does the time go at large Hash + MultiPV? — PC r15/file-5, Threads 1
+go wtime 5000, position rnb1kbnr/ppp1pppp/8/4q3/8/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 4
+
+ Hash  MPV  depth     nodes  wall ms  engine ms  nodes/ms
+   16    1     17    203038      117        116      1735
+   16    3     13     71764      106        105       677
+
+   64    1     16    172312      104        103      1657
+   64    3     13     71764      123        121       583
+
+  256    1     16    172312      123        122      1401
+  256    3      7      3816      130        124        29
+
+ 1024    1     15    131840      108        107      1221
+ 1024    3      1        60      644        615         0
+
+Reading: if nodes/ms COLLAPSES as Hash grows at MPV3 while MPV1 stays high, the time is being spent
+outside the search (the TT clear between lines), which is the mechanism S-C22 infers.
+
+*** TEST OF MY OWN S-C23 PREDICTION: PARTIALLY CONFIRMED - right direction, magnitude NOT reached. ***
+S-C23 predicted: "a patch that removes the redundant clear should bring MPV3+Hash256 to ~1,500 nodes/ms, not ~0".
+
+Measured, same command, PC r15 tree, Threads 1, go wtime 5000, MPV3:
+  Hash  16: BEFORE depth 13 / 118,566 nodes / 559 nodes/ms  ->  AFTER depth 13 /  71,764 / 677   (small gain)
+  Hash  64: BEFORE depth  9 /  20,518 nodes / 183 nodes/ms  ->  AFTER depth 13 /  71,764 / 583   (BIG gain: 3.2x)
+  Hash 256: BEFORE depth  4 /     622 nodes /   2 nodes/ms  ->  AFTER depth  7 /   3,816 /  29   (BIG gain: 14x)
+  Hash1024: (not measured before)                            ->  AFTER depth  1 /      60 /   0
+  MPV1 control, unchanged across builds: ~1,200-1,700 nodes/ms at every Hash.
+
+So: the redundant clear WAS a large part of the cost - removing it improves Hash 256 by 14x in nodes/ms and 3 plies
+of depth, and restores the full Hash-16-like ladder at Hash 64 (depth 13 both). But it does NOT reach MPV1's
+~1,500 nodes/ms: at Hash 256 it is 29, at Hash 1024 it is 0. **My prediction's DIRECTION is confirmed and its
+MAGNITUDE is refuted**: there is a SECOND cost at large Hash beyond the redundant clear.
+
+WHAT THAT SECOND COST MOST LIKELY IS (hypothesis, not measured): `alt_worker->clear()` is still called on every
+line (the patch removes only `alt_shared->tt.clear()`), and/or the alt table at hash_mb=1024 is itself allocated
+and touched per line. The residual scaling with Hash (583 at 64 -> 29 at 256 -> 0 at 1024) is the same shape as the
+clear's cost, which points at a remaining per-line full-table operation.
+
+VERDICT: seat 30's patch is a genuine, large improvement (14x at Hash 256) and its honesty pins are unchanged, but
+it is NECESSARY AND NOT SUFFICIENT - the MPV3-large-Hash collapse survives in reduced form. My S-C24 advice stands
+unchanged and is now more firmly grounded: on a clock with MPV>1, keep Hash 16 (677 nodes/ms, full depth), because
+even the patched build degrades above 64.
