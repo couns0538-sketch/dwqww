@@ -1,22 +1,35 @@
 == 1. integrity gate: was every field a verdict needs actually found? ==
 case                    n   bestmove       move      nodes
-A_control          MISSING (no file)
-B_quit_now         MISSING (no file)
-C_eof_now          MISSING (no file)
-D_quit_2s          MISSING (no file)
-E_quit_200ms       MISSING (no file)
-F_infinite_quit    MISSING (no file)
-G_nodes_quit       MISSING (no file)
-H_isready_then_quit MISSING (no file)
+A_control               2          2          2          2
+B_quit_now              2          2          2          0
+C_eof_now               2          2          2          0
+D_quit_2s               2          2          2          2
+E_quit_200ms            2          2          2          2
+F_infinite_quit         1          1          1          1
+G_nodes_quit            1          1          1          0
+H_isready_then_quit      1          1          1          1
 integrity gate: PASSED (every searched case has a bestmove line and a nonzero node count)
 
 == 2. the verdict, over all positions, case by case ==
 case               move   nodes     info  legal  fabri  wall 
+A_control          e2e4   56720     12    True   False  20.09
+A_control          g7g5   89669     12    True   False  20.10
+B_quit_now         a2a3   None      0     True   True   20.05
+B_quit_now         d5d4   None      0     True   True   20.05
+C_eof_now          a2a3   None      0     True   True   20.04
+C_eof_now          d5d4   None      0     True   True   20.05
+D_quit_2s          e2e4   56720     12    True   False  22.04
+D_quit_2s          g7g5   89669     12    True   False  22.04
+E_quit_200ms       e2e4   56720     12    True   False  20.24
+E_quit_200ms       g7g5   89669     12    True   False  20.24
+F_infinite_quit    e2e4   72062     13    True   False  20.09
+G_nodes_quit       a2a3   None      0     True   True   20.04
+H_isready_then_quit e2e4   56720     12    True   False  22.40
 
 == 3. the three questions asked of this check ==
-Q1 does a fabricated bestmove appear at all?      NO
+Q1 does a fabricated bestmove appear at all?      YES — 5 of 6 aborted cases printed a bestmove with 0 info lines
 Q2 ... ever with a NONZERO node count?            NO — every fabricated bestmove had no node count at all (0 info lines)
 Q3 ... ever ILLEGAL, or 0000 where moves exist?   NO — every fabricated move was legal in python-chess
 
-controls: 0 searched cases, all with a real node count, moves: []
-distinct fabricated moves: []
+controls: 7 searched cases, all with a real node count, moves: ['e2e4', 'g7g5']
+distinct fabricated moves: ['a2a3', 'd5d4']

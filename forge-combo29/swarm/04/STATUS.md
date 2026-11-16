@@ -74,3 +74,11 @@ NOT STARTED, as instructed, each with its exact next command in REPORT_job1.md:
 Files: FINDINGS.md (10 lines: 04-F1..F8, 04-C1..C2), REPORT_job1.md, job1/table_threads.md,
 job1/table_divergence.md, job1/table_quit.md, job1/hang/ (raw JSONL + gdb stacks), honesty/.
 No source file changed; no patch offered; no PR opened.
+
+## 2026-11-16T22:05:39Z QUIT TABLE NOW GATED AND COMPLETE
+quit/EOF check of 19-F12 re-run end to end with the integrity fields; gate prints PASSED
+(job1/table_quit_gate.txt, exit 0), table rebuilt from the raw JSONL (job1/table_quit.md).
+Answers to the two open questions, now measured rather than inferred:
+  Q2 nonzero nodes on a fabricated bestmove: NO — 0 info lines in every fabricated case.
+  Q3 illegal move: NO — every fabricated move legal (a2a3 on startpos, d5d4 on the middlegame FEN).
+A_control (reads to bestmove, then quits) = e2e4 at 56,720 nodes; B/C/G fabricate.
