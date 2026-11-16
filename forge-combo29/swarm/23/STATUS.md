@@ -634,3 +634,17 @@ Consequence recorded: "the engine accepted my FEN" does not imply "my FEN was va
 Running tally: 52 findings, 14 confirmations of other seats (30-F6, 03 S-F5, 13 S-F2, 06 S-F2, 05 S-F1/S-F17,
 17 three-budget row, 08 S-F29, 04 F20 Threads-1 baseline, 28 S-F1-REVISED, 11 S-F1, plus replications).
 Four harness faults of my own, all named in 23-F37's family and all caught by a control.
+## 2026-11-16T23:37:27Z  C15 confirms colour asymmetry; rule page gains instance 5 (control built WITH the helper)
+2026-11-16T23:37:27Z
+
+23-C15: seat 16's S-F4 confirmed on 30 of my own positions — depth 10 gives 2/30 (6.7 %) equal scores and
+23/30 (76.7 %) mirrored bestmoves, identical in two runs, inside their published bands. One correction to their
+summary: they say depths 1 AND 2 are exactly equal; on my set depth 2 is only 22/30 (73.3 %), reproducibly, so
+the asymmetry starts a ply earlier than they describe. Their main claim stands.
+
+23-F39: my colour-mirror helper mapped e2e4 to e5e3 (7-rank instead of square^56). Caught BEFORE measuring,
+because the script now asserts e2e4->e7e5, a1h8->a8h1, e1g1->e8g8 and a 20-move mirrored startpos. This is
+the first of my five same-family faults caught in time, and it sharpens the rule: build the control WITH the
+helper, not after the numbers look odd. Rule page now carries five instances.
+
+Standing: 54 findings, 15 confirmations.
