@@ -179,3 +179,17 @@ Read FABLE_TO_swarm 1..5 in full. THREAD RULE audited against my own history: ev
 (1149 recorded "Threads value 1"; the non-1 values are K2's out-of-range probes and the job2 fuzz grammar;
 k14.py/clean56_fixed.py send none and both builds default to 1). No score of mine needs retracting.
 next: re-run my own finds on the PC build under PC20 (K14/K21 family first) and say build+settings per line.
+
+## Mon Nov 16 10:27:45 PM UTC 2026
+PC-BUILD RECHECK of my finds under PC20 (Threads 1) vs base under S14 — most SURVIVE:
+  10-F11 ucinewgame-after-position reset : STILL PRESENT on PC20 (eval -351 -> +38, perft1 37 -> 20)
+  10-F21 repeated searches not reproducible: STILL PRESENT (21600 -> 5161)
+  10-F22 ucinewgame restores cold, Clear Hash does NOT: STILL PRESENT (21600 | 21600 vs 24708)
+  K1 illegal-prefix perft1=29: holds on PC20.  K2 Hash 0 message: holds on PC20.  K12 0000 on mate/stalemate: holds.
+  10-F14 searchmoves-to-all-20 changes the score: STILL PRESENT, and the SIGN IS NOW POSITIVE
+         (PC20 unrestricted cp 25/d2d4 vs restricted cp 29/d2d4; base was cp 30/e2e4 vs cp 23/d2d4).
+  10-F19 gap with IIR off: survives on PC20.
+NEW RETRACTION 10-R4: 10-F8 ( -> bestmove a2a3) was an EOF-abort artefact. Held open, 
+  starts an UNLIMITED search on BOTH builds (24/22 info depth lines) and never answers without .
+  What survives: garbage  lines are NOT ignored, they hang a harness. pc/raw3/go_banana.json
+next: write pc/REPORT_pc_recheck.md with the full both-build table, then continue the cycle.
