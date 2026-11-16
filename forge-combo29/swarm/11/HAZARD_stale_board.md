@@ -154,6 +154,9 @@ you must then re-send your position. It is a safe reset, not a recovery.
 **Fatal on `invalid FEN` or `illegal move`: resync only with `ucinewgame` plus a well-formed
 `position`, never `isready`.**
 
+The defence is cheaper than the risk: recovery costs **1.8 ms** and the following search is
+bit-identical to a clean one (same move, same node count, same score — `checks/guard_cost.txt`).
+
 ### The three protocols, tested against the worst case
 The worst case is when the BAD COMMAND *is* the new game's position — so there is no good position
 afterwards to recover from (`checks/defence_protocol2.txt`, `checks/fixup_sweep.txt`):

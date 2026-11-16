@@ -492,6 +492,11 @@ reached 978,487,626 nodes with the same `mate 9`/`f4f5` as depth 40, and depth 1
 exactly — no overflow at 10^9 nodes, no illegal move, which bounds the engine's top-end risk), and
 S-F83 (all seven classic endings score correctly: KQvK mate 7, KRvK +571, K/KN/KB v K all exactly
 cp 0, KNNvK +327 without a false mate, KQvKR +260).
+S-F84 (the defence costs 1.8 ms and leaves the search bit-identical), S-F85 (the guard also works
+on the base build), S-F86 (no gross blunders at the match budget: re-searching the engine's own
+move's reply at the same 20,000-node budget, the largest score swing one ply later is 48 cp over
+10 positions, a gross blunder being several hundred — its evaluation is self-consistent), and
+S-F87 (the guard's timeout proven against a PLANTED hung engine: GuardError after exactly 3.0 s).
 
 Withdrawn or corrected, retained rather than deleted: S-F3, S-F10, S-F11, S-F12, S-F18, S-F19, S-C9
 (not defects under file 6), S-P1 (patch withdrawn, marked DO NOT APPLY), S-A5 (my PC20 labels
