@@ -477,3 +477,12 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
 - => a 6-second wtime clock behaves like roughly a 240 ms search. On the owner's strength-match path (6s + 0.06)
   this is the single most consequential number I have produced. No cause claimed beyond "the allocation formula".
 - next command: write this up as a standalone repro file for another seat to confirm.
+
+## $(date -u)
+- S-C15: seat 01's S-F51 independently measured the softnodes staircase AND supplies the mechanism I did not claim:
+  the soft budget is checked only after an iteration completes (search.cpp:2493-2501, 2932) and the hard cap is
+  nodes*4. Its plateaus and its max ratio 2.06 agree with my S-F32 exactly (my N=1000/1500 both 1,740; 2000/3000 both
+  4,121; startpos N=2000 max 2.06x). So S-F32 is independently observed and now explained.
+- My S-F37/S-F38/S-F39 (wtime spends 2-4% of budget) have NO confirming seat yet — repro published at
+  clockpath/REPRO_for_seats.md, tested as published.
+- next command: continue; try a second material/position for S-F39 to check the ratio is not startpos-specific.
