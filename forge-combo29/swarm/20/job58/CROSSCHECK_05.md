@@ -41,3 +41,17 @@ actually reaches in play. Both are true; they answer different questions:
 ## Commands that show it again
 The two disciplines are the two loops in this job's script; the fresh arm opens an `Engine` per position, the warm arm
 reuses one.
+
+## CONTAMINATION RE-CHECK (added after job60 found a leaked process)
+Job60 discovered that a leaked `forge` process of mine had been pinning a CPU core from ~22:45Z to ~23:44Z, which
+covers the window in which this cross-check was first taken (stamp 23:38:41Z). So the +2 plies could have been an
+artefact of a saturated core.
+
+**I re-ran the whole comparison on a verified-clean machine** (`ps | grep forge` = 0, loadavg 1.64):
+
+| arm | depths | median |
+|---|---|---|
+| FRESH (process per position) | 18, 18, 17, 18, 20, 19, 18, 18, 16, 19 | **18** |
+| WARM (one process) | 18, 18, 18, 20, 20, 20, 20, 20, 20, 20 | **20** |
+
+**+2 plies, unchanged.** The result is not contamination; it stands as recorded above.
