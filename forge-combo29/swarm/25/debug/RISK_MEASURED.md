@@ -58,3 +58,33 @@ Whether it costs nodes in practice is the next thing to measure, and I have not 
 - Ten positions is a small sample; the 408x median is striking enough that I would not expect a different verdict
   from more, but I am not claiming a population figure.
 - I did not test the variant at other depths or with a clock, only fixed depth 10.
+
+## The narrower repair (S-F22), MEASURED
+
+Same method, variant built as `FORGE_EXPERIMENT_rule50_refusable_aware.patch.txt` -> `/home/ubuntu/build/var52/forge`.
+It passes all four honesty pins (312866 / 862329 / 3024920 / 4865609), so it is a controlled change.
+
+**On the bug positions it fixes the score:**
+
+| position (clock 99, resets available) | original | narrow repair |
+|---|---|---|
+| `r4rk1/pp1b1ppp/4p3/3pP3/8/P3P3/1P2N1PP/R2R2K1 w` | cp 0 in 341 nodes | **cp -138 in 51,360 nodes** |
+| `8/5pk1/4p3/3nK1p1/8/R5P1/5P2/8 b` | cp 0 in 315 nodes | **cp -68 in 53,353 nodes** |
+| `6K1/8/8/k1q5/8/8/8/8 w` (no reset exists - the forced case) | cp 0 in 50 nodes | cp 0 in 50 nodes (UNCHANGED) |
+
+The -138 and -68 are the positions' real values (the original reports them as draws). The third row is the
+important one for cost: when nobody can reset, the narrow repair behaves exactly like the original, so the
+50-node shortcut survives for genuinely forced draws.
+
+**On the 30-cell A/B grid it is a no-op**, because those purpose-built positions have no resetting move at all:
+score gap exactly 0 in all 30 cells, node ratio median 1.2x (max 6.3x). So it cannot regress the fifty-move
+endgame case; it only changes behaviour when a reset is actually available, which is precisely the bug.
+
+**Compared with the refuted "remove it entirely" repair:** that one cost a median 408x nodes on the same grid and
+moved scores by 323 cp because it also stopped short-circuiting the FORCED draws. The narrow repair keeps the
+short-circuit for forced draws and only searches when the draw is refusable.
+
+**Verdict on the risk question you asked:** the risk of the narrow repair is small and bounded - it pays nodes only
+on positions where a reset exists (341 -> 51,360 nodes, i.e. a real tree instead of a 341-node guess), and it is
+byte-identical on the forced-draw case. Whether 51k nodes at that point is acceptable on a game clock is an owner
+decision, not something I can measure without a time control.

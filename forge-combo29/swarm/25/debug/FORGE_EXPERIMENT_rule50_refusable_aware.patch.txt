@@ -1,0 +1,30 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1423,9 +1423,27 @@
+     return should_stop_with(0);
+ }
+ 
++#ifdef FORGE_CLOCK99_NARROW
++// EXPERIMENT (swarm seat 25, S-F22): a fifty-move "draw" at clock >= 100 is only terminal when NEITHER side can
++// reset the counter. Conservative: if the side to move has a capture or pawn move, the draw is refusable.
++static bool has_resetting_move(const Board& board) {
++    for (const Move m : board.legal_moves()) {
++        if (m.is_capture() || piece_type(board.moved_piece(m)) == Pawn) return true;
++    }
++    return false;
++}
++#endif
++
+ bool Worker::is_draw(const Board& board, int ply) const {
+     (void)ply;
+     if (board.halfmove_clock() >= 100) {
++#ifdef FORGE_CLOCK99_NARROW
++        if (has_resetting_move(board)) {
++            // Someone can reset the clock, so the draw is only claimable, not forced. Search it.
++            return board.is_repetition(root_history_index_) || board.is_insufficient_material() ||
++                   (!board.in_check() && !board.has_legal_move());
++        }
++#endif
+         // Checkmate on the hundredth half-move still wins; everything else is a draw.
+         return !board.in_check() || board.has_legal_move();
+     }
