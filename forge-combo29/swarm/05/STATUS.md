@@ -440,3 +440,12 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
 - S-W4: withdrew my "undershoot" framing for S-F34/S-F35. The search uses the same depths either way; the reported
   node count is simply the last COMPLETED depth. Worth knowing, but not a fault.
 - next command: continue on the PC clock path (6s + 0.06).
+
+## $(date -u) — IMPORTANT: S-F37 clock path
+- On startpos, PC r15 + PC20, Threads 1, Hash 16: `go wtime 6000 btime 6000 winc 60 binc 60` uses **0.36 s** and
+  reaches depth 19 — IDENTICAL to `go depth 19` (same 650,246 nodes, same wall time). But `go movetime 6000` on the
+  same board uses **5.99 s** and reaches depth 27. So the 6-second budget is usable and is NOT used via wtime/winc.
+  A 60-second clock gives only depth 23 / 1.90 s.
+- This is the owner's actual strength-match path (file 6: 6 s + 0.06), so matches are effectively played at ~depth 19.
+- NOT claimed: which constant does it. I did not read the time manager. No defect claim yet — needs seat confirmation.
+- next command: check whether the BASE build shows the same clock-vs-movetime gap.

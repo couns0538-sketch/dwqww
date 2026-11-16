@@ -1,0 +1,23 @@
+CLOCK vs DEPTH — why does a 6-second clock stop at 0.36 s?
+All on startpos, PC r15 + PC20, Threads 1, Hash 16, fresh process per run, 2 runs each (identical).
+
+| go command | wall time (s) | depth | engine time (ms) | nodes |
+|---|---|---|---|---|
+| go wtime 6000 btime 6000 winc 60 binc 60 | 0.36 | 19 | 360-363 | 650,246 |
+| go depth 19 | 0.35-0.36 | 19 | 354-355 | 650,246 |
+| go wtime 60000 btime 60000 winc 600 binc 600 | 1.90 | 23 | 1,895-1,903 | 3,372,195 |
+| go movetime 6000 | 5.99 | 27 | 4,134-4,343 | 7,061,631 |
+
+Facts:
+1. `go wtime 6000 ...` produces EXACTLY the same result as `go depth 19` — same depth, same node count (650,246),
+   same wall time (0.36 s). The 6-second budget is not being spent.
+2. `go movetime 6000` on the SAME board and settings uses 5.99 s and reaches depth 27. So the engine CAN use a
+   6-second budget; it does not do so when the budget is expressed as wtime/btime.
+3. Multiplying the clock by 10 (60 s) yields only depth 23 / 1.90 s — more, but still far short of the budget.
+
+So on the clock path the limiting factor is not the clock: something in the wtime/winc handling caps the search
+well before the time is exhausted. That matters because file 6 says the owner's strength matches use exactly
+`6 s + 0.06`; if the engine spends 0.36 s of it, the matches are decided at roughly a fixed depth 19 rather than by
+a 6-second search.
+
+NOT claimed: which constant or formula does this. I did not read the time manager.
