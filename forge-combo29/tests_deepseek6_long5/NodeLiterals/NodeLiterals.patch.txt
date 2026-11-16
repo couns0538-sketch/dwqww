@@ -1,0 +1,114 @@
+--- a/forge-combo29/src/search.cpp	2026-11-16 13:52:32.530789467 +0000
++++ b/forge-combo29/src/search.cpp	2026-11-16 13:52:32.542789467 +0000
+@@ -47,6 +47,10 @@
+ int NullMoveBase = 3;
+ int NullMoveDepthDivisor = 3;
+ int NullMoveEvalDivisor = 200;
++int NullStaticSlope = 24;
++int NullStaticBase = 180;
++int NullEvalRedMax = 3;
++int NullVerifyDepth = 14;
+ int RfpDepth = 8;
+ int RfpMargin = 72;
+ int RfpImproving = 40;
+@@ -66,6 +70,10 @@
+ int IirDepth = 4;
+ int ProbcutDepth = 5;
+ int ProbcutMargin = 180;
++int ProbcutImproving = 50;
++int ProbcutReduction = 4;
++int ProbcutTtSlack = 3;
++int ProbcutStoreReduction = 3;
+ int QsFutilityMargin = 160;
+ int QsSeeMargin = 40;
+ int AspirationDelta = 18;
+@@ -118,6 +126,10 @@
+         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
+         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
++        {"NullStaticSlope", &NullStaticSlope, 0, 100},
++        {"NullStaticBase", &NullStaticBase, -500, 1000},
++        {"NullEvalRedMax", &NullEvalRedMax, 0, 10},
++        {"NullVerifyDepth", &NullVerifyDepth, 1, 64},
+         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+         {"RfpImproving", &RfpImproving, 0, 200},         {"RazorDepth", &RazorDepth, 0, 6},
+         {"RazorBase", &RazorBase, 0, 1000},              {"RazorMultiplier", &RazorMultiplier, 0, 1000},
+@@ -129,7 +141,11 @@
+         {"SeeNoisyMultiplier", &SeeNoisyMultiplier, 0, 1000},
+         {"SingularDepth", &SingularDepth, 2, 20},        {"SingularMargin", &SingularMargin, 0, 10},
+         {"IirDepth", &IirDepth, 1, 20},                  {"ProbcutDepth", &ProbcutDepth, 1, 20},
+-        {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
++        {"ProbcutMargin", &ProbcutMargin, 0, 1000},
++        {"ProbcutImproving", &ProbcutImproving, 0, 300},
++        {"ProbcutReduction", &ProbcutReduction, 1, 10},
++        {"ProbcutTtSlack", &ProbcutTtSlack, 0, 10},
++        {"ProbcutStoreReduction", &ProbcutStoreReduction, 0, 10},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
+         {"QsSeeMargin", &QsSeeMargin, 0, 500},           {"AspirationDelta", &AspirationDelta, 4, 200},
+         {"HistoryBonusQuadratic", &HistoryBonusQuadratic, 0, 100},
+         {"HistoryBonusLinear", &HistoryBonusLinear, 0, 500},
+@@ -1691,7 +1707,7 @@
+             return eval;
+         }
+         // Null move pruning.
+-        if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
++        if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - tune::NullStaticSlope * depth + tune::NullStaticBase &&
+             ss->null_move_allowed && (!tune::NullThreatVerify || !null_blocked_) &&
+             !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+@@ -1699,7 +1715,7 @@
+             !(tune::NullSeeVeto && null_see_veto_threat(board))) {
+             ++null_tries_;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+-                                  std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
++                                  std::min((eval - beta) / tune::NullMoveEvalDivisor, tune::NullEvalRedMax);
+             ss->current_move = Move::none();
+             ss->moved_piece = Empty;
+             ss->continuation = &(*continuation_history_)[Empty][0];
+@@ -1716,13 +1732,13 @@
+             if (aborted_) return 0;
+             if (null_score >= beta) {
+                 if (is_mate_score(null_score)) null_score = beta;
+-                // Depth >= 14 always verifies, as before. Below that, a cutoff
++                // Depth >= NullVerifyDepth always verifies, as before. Below that, a cutoff
+                 // stands unless NullThreatVerify is on and a cheaper enemy piece
+                 // attacks a dearer piece of the side to move. The option is read
+                 // first, so the attack scan does not run when it is off.
+                 const bool threat_gate =
+-                    depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+-                if (depth < 14 && !threat_gate) {
++                    depth < tune::NullVerifyDepth && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
++                if (depth < tune::NullVerifyDepth && !threat_gate) {
+                     ++null_cutoffs_;
+                     return null_score;
+                 }
+@@ -1743,9 +1759,9 @@
+             }
+         }
+         // ProbCut: a good capture that beats beta by a margin at reduced depth.
+-        const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
++        const int probcut_beta = beta + tune::ProbcutMargin - tune::ProbcutImproving * improving;
+         if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
+-            !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
++            !(tt_hit && tt_depth >= depth - tune::ProbcutTtSlack && tt_score != ValueNone && tt_score < probcut_beta)) {
+             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+             Move move;
+             while (!(move = picker.next(false)).is_none()) {
+@@ -1764,15 +1780,15 @@
+ #endif
+                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
+-                    value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
++                    value = -search(board, ss + 1, depth - tune::ProbcutReduction, -probcut_beta, -probcut_beta + 1, !cut_node);
+                 }
+                 board.unmake_move(move, undo);
+                 if (aborted_) return 0;
+                 if (value >= probcut_beta) {
+ #if FORGE_SPD_TT_NOTLS
+-                    store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
++                    store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - tune::ProbcutStoreReduction, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #else
+-                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
++                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - tune::ProbcutStoreReduction, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #endif
+                     return value;
+                 }
