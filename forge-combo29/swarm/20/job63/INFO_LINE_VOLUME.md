@@ -62,3 +62,17 @@ is given)** — terminal root, empty restriction, and (my S-C11) a bare `go sear
 two bugs, and the PC r15 patch does not change it.
 
 That also means the fix direction is the same in all three cases: those branches should emit **one** line.
+
+## Reconciliation with seat 25's "cosmetic" reading
+Seat 25 filed the same line burst as cosmetic. **Both readings are true, and they are about different things:**
+
+- **Seat 25's point:** the **answer** is right at the requested depth — the move and the score a consumer acts on are
+  correct. Nothing downstream is broken, so from the result's side it is cosmetic.
+- **My point:** the **line count misreports how much search happened** — 64 lines at zero nodes tells a consumer that a
+  deep search occurred. For anyone who reads `depth` as a measure of effort (a GUI progress bar, a log triage, an
+  operator deciding whether the engine "worked hard"), it is not cosmetic.
+
+So: **cosmetic for a consumer of `bestmove`/`score`; not cosmetic for a consumer of `depth`.** Neither reading
+supersedes the other, and a reader holding both files is not looking at a contradiction.
+
+The consumer cost in one line: **64 false progress reports, with the `nodes 0` easy to miss.**
