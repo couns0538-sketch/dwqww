@@ -1,0 +1,50 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -5,6 +5,11 @@
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
++// FORGE_SPD_TT_VEC_SCAN: one vector compare of the four cluster key32 fields instead of four
++// scalar key32 comparisons; occupied() is then tested only on the matching lanes. Lowest index still wins.
++#ifndef FORGE_SPD_TT_VEC_SCAN
++#define FORGE_SPD_TT_VEC_SCAN 1
++#endif
+ #include <cmath>
+ #include <cstdlib>
+ #include <cstring>
+@@ -481,6 +486,27 @@
+     // Four slots. Keep this a short loop: fully unrolling the replacement
+     // choice spilled registers and made the probe slower.
+     TTEntry* found = nullptr;
++#if FORGE_SPD_TT_VEC_SCAN
++    {
++        // One vector compare over the four key32 fields (offsets 0/16/32/48 of the 64-byte cluster),
++        // then the occupied() test only on the matching lanes. Lowest index wins, as the loop did.
++        const __m128i keys = _mm_setr_epi32(static_cast<int>(cluster.entries[0].key32),
++                                           static_cast<int>(cluster.entries[1].key32),
++                                           static_cast<int>(cluster.entries[2].key32),
++                                           static_cast<int>(cluster.entries[3].key32));
++        const __m128i want = _mm_set1_epi32(static_cast<int>(key32));
++        const int mask = _mm_movemask_ps(_mm_castsi128_ps(_mm_cmpeq_epi32(keys, want)));
++        int lane = 0;
++        while (lane < 4 && (mask & (1 << lane)) == 0) ++lane;
++        while (lane < 4) {
++            if (cluster.entries[static_cast<std::size_t>(lane)].occupied()) {
++                found = &cluster.entries[static_cast<std::size_t>(lane)];
++                break;
++            }
++            ++lane;
++        }
++    }
++#else
+ #pragma GCC unroll 1
+     for (TTEntry& entry : cluster.entries) {
+         if (entry.key32 == key32 && entry.occupied()) {
+@@ -488,6 +514,7 @@
+             break;
+         }
+     }
++#endif
+     if (found != nullptr) {
+         // Reused entries remain recent even when search returns a TT cutoff.
+         if (found->generation() != generation) {

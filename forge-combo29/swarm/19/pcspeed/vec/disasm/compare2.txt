@@ -1,0 +1,31 @@
+disassembly: is probe_body<false> a real symbol, and does it vectorise the key compare?
+
+=== pcbuild
+probe_body symbols emitted:
+2
+pcmpgtd/pcmpeqd anywhere in .text:
+5
+movemask ops:
+0
+
+=== ttvec_build
+probe_body symbols emitted:
+0
+pcmpgtd/pcmpeqd anywhere in .text:
+0
+movemask ops:
+0
+
+=== where did the four-way scan go in the PATCHED build?
+probe_body<false> inlined into search? count 'pcmpeqd' in whole .text of patched: 0
+so GCC turned the _mm_cmpeq_epi32 + movemask + lane loop back into scalar compares -
+which is exactly the same work as the original loop, hence ratio 1.0001.
+
+=== confirm by looking for the compare pattern in the PATCHED .text:
+2934
+^ total scalar compare instructions in patched binary (huge, not informative alone)
+
+=== the decisive check: does the UNPATCHED binary contain a 4-lane key compare at all?
+pcmpgtd/pcmpeqd in unpatched .text: 5 (listed above), movemask: 0
+=> the unpatched loop was NOT vectorised either; it is 4 scalar compares with early exit,
+   and my patch was compiled back into the same shape.
