@@ -151,6 +151,25 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:50Z - FINAL now names BOTH patterns; wider rule carried; all three guards green
+
+PATTERN 1 (control errors): six times the real finding was a fault in my own test - different-depth comparison,
+regex-vs-wrong-string, PV retyped, 13-board sample for a recommendation, single Hash axis, one-clock-answer-as-
+constant. Mechanical forms: compliance_check.sh, audit_final.py, final_selfcheck.py. Two of those checkers produced
+false failures on their own first run, which is the best illustration the line could have.
+
+PATTERN 2 (scope narrowness, new): "my findings tend to be right about the mechanism and NARROW about the scope" -
+four times another seat's formulation was one axis wider (seat 05 boundary, seat 19 budget ratio, seat 30 MultiPV,
+seat 20 S-F53). Question implied: "what else is this an instance of?" before publishing.
+
+WIDER RULE CARRIED: S-F7's FINAL row now carries seat 20's S-F53 - any report-without-search path emits one
+info-depth line per depth, capped at the requested depth or 64 - with empty-searchmoves as the proving member; my
+S-C27 scope noted as a special case.
+
+GUARDS: audit_final.py 0 mismatches | final_selfcheck.py 4/4 PASS | compliance_check.sh PASS.
+State: working tree clean, local = remote. Continuing at cadence; guards re-run once more near the close.
+
 ## 2026-11-16T23:49Z - S-C29: seat 20's S-F53 CONFIRMED and it supersedes my S-C27 scope
 
 One reporting habit, not a terminal quirk: any path that reports WITHOUT SEARCHING emits one info-depth line per
