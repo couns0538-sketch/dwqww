@@ -677,3 +677,17 @@ WITHOUT its clock size. Read them all with this correction, which is now the way
 two-second clock it is 0.758, so the gain is larger on smaller clocks.** The bare "sqrt" phrasing above is incomplete,
 not wrong for the 6 s case; ANSWER_increment.md and FINDINGS.md S-F51/S-F52 now pair the exponent with its clock in
 every sentence.
+
+## $(date -u) — process discipline labelled (coordinator's reconciliation)
+- TESTED the coordinator's inference rather than accepting it. My `increment_scaling.py` calls `subprocess.Popen`
+  inside `run()`, so every run is a FRESH process: my depth column is COLD, not warm.
+- Direct measurement on my board (clock 6000 / inc 60000, 5 runs each): COLD 3595 ms / depth 24 (24 in all 5);
+  WARM (one process, no ucinewgame) 2658 ms / depth 26 (24..27); UCINEW (ucinewgame each) 3595 ms / depth 24 —
+  identical to cold. So warm is ~2 plies deeper AND ~26% faster (hash reuse), which reproduces their direction, and
+  ucinewgame restores cold exactly.
+- Labelled every figure of mine (S-C19): COLD = increment table, ceiling grid, S-F37-S-F49, all job1/job1b/job2 depths.
+  WARM = ONLY the two match-clock games (S-F46/S-F47), because a real match is one process per side — so their median
+  depths 19-22 are warm and are NOT comparable with the cold increment table. ANSWER file now states this beside the table.
+- BONUS: S-F55 — the time ceiling is CLOCK-PROPORTIONAL, not absolute. At clock 20000, inc 24000 gives 8838 ms (d30)
+  vs 2755 (d27) at inc 6000; at clock 60000 it reaches 11934 ms (d31) and one run hit 35995 ms. So the flat region at
+  clock 6000 is not a hard per-move maximum, and raising the clock DOES raise the ceiling.

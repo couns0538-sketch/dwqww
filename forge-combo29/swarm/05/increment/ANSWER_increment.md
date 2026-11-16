@@ -4,6 +4,29 @@ Seat 05, area 5. Branch `for-fable-and-opus/swarm-05`. All numbers Threads 1, Ha
 fixed at 6000 ms, **sequential** (one engine process at a time — see `../MEASUREMENT_WARNING.txt`).
 Build: PC r15, patch sha256 prefix `d6bd72c531f785f4`, honesty 8/8 (`../pcbuild/HONESTY_PC.md`).
 
+## Process discipline for every depth figure in this file: **COLD**
+
+Every number below comes from a **fresh engine process per run** (`subprocess.Popen` inside `run()`, one process per
+(position, increment) trial, 50 trials per column). I verified this directly rather than assuming it
+(`out/cold_vs_warm.txt`, board `r1bq2r1/...` at clock 6000 / inc 60000, 5 runs each):
+
+| discipline | median wall | median depth | depths seen |
+|---|---|---|---|
+| **COLD (fresh process per run) — what this file uses** | 3595 ms | **24** | 24, 24, 24, 24, 24 |
+| WARM (one process, repeated searches, no ucinewgame) | 2658 ms | **26** | 24…27 |
+| UCINEW (one process, `ucinewgame` before each search) | 3595 ms | **24** | 24, 24, 24, 24, 24 |
+
+Two facts a later reader needs:
+- **A warm process measures about 2 plies deeper AND about 26% faster at the same nominal budget**, because the
+  transposition table is reused. So a warm depth and a cold depth are not comparable.
+- `ucinewgame` restores the cold behaviour exactly inside one long-lived process (3595 ms / depth 24, identical to
+  cold), which is why a harness that sends it is safe.
+
+**Which is match-realistic?** My two match-clock games (`../match/`) run **one long-lived engine process per side**
+and send `position fen …` before each move *without* `ucinewgame`, i.e. they are closer to the WARM row. The depth
+figures in this increment file are **COLD**; the depths reported in the match games (median 19-22) are **WARM** and are
+therefore not directly comparable to the cold depths here. Anyone comparing the two must account for the ~2-ply gap.
+
 ## The measurement you asked for: 0.06 vs 0.6, ten positions, both increments
 
 10 positions from `G.epd` (real game positions), 5 fresh processes per (position, increment) = 50 runs per column.
