@@ -55,6 +55,17 @@ Two related facts from the same measurements:
   at an iteration boundary. So "nodes 50000" already means "until depth d completes", not "50000".
 - `go softnodes N` does the opposite and overshoots N (median ~33 % over at N=2000).
 
+## The engine relies on YOUR program to end a game
+Measured on the self-play path (`go softnodes 2000`, PC20, Threads 1): two complete games each ran
+**212 plies** and ended only by **insufficient material** — and along the way each game passed
+**nine positions that were a threefold repetition** without the engine ending anything. That is
+correct behaviour (a repetition is a CLAIM the arbiter makes, not something an engine enforces), but
+it means: **a match program that does not itself detect the third occurrence and the 100th half-move
+will play straight past them,** and a game can run far longer than the engine's own evaluation would
+suggest. File 6 says the owner's program does end games at the third occurrence and the 100th
+half-move — this measurement confirms the engine is relying on it. Evidence:
+`checks/selfplay_long.txt`.
+
 ## Two separate problems — only one needs a protocol change
 Worth separating, because they are easy to conflate:
 - **Within one build, Threads 1: the decisions are reproducible.** Over 12 real positions the
