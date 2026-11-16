@@ -1,0 +1,27 @@
+=== selfcheck.py on the real PC r15 build (5 runs)
+engine : /home/ubuntu/build/pc_r15/forge
+runs   : 5 fresh processes per setting, Threads 1, position startpos
+search : go depth 6
+
+setting                  cloud   median     min     max   ratio  runs  verdict
+----------------------------------------------------------------------------------
+MultiPV 2, Hash  16       17ms     15ms    13ms    16ms    0.9x     5  PASS (within 4x)
+MultiPV 2, Hash  64       52ms     45ms    38ms    50ms    0.9x     5  PASS (within 4x)
+MultiPV 4, Hash  64       82ms     77ms    72ms    82ms    0.9x     5  PASS (within 4x)
+MultiPV 2, Hash 256      250ms    255ms   220ms   312ms    1.0x     5  PASS (within 4x)
+
+How to read this
+  cloud = median on the 4-core machine these tables came from; ratio = yours / cloud.
+  PASS  = within 4x. A machine 4x slower is still fine to play with.
+  WATCH = 4x to 10x. Usable; prefer one notch smaller Hash if a search feels slow.
+  FAIL  = over 10x, or a run that never completed a search.
+  SLOW  = within 10x but over 500 ms absolute at depth 6: your
+          machine is fine, this setting is just slow to watch. Drop a notch.
+  Reference point: MultiPV 2 at Hash 64 over 200 ms means a machine about 4x this one.
+
+The SHAPE is what matters and it does not depend on your machine:
+  MultiPV 1 costs the same at every Hash size; the cost is (MultiPV-1) x Hash.
+  So if a cell here is slow, halving Hash or dropping one MultiPV line fixes it.
+
+The one setting that is never safe on any machine: Hash 2048 with MultiPV 8
+  (8-9 s for `go depth 6`, depth 0-1 on a 5 s clock, on the cloud box).
