@@ -279,3 +279,16 @@ stamps.txt
 tt_probe.cpp
 tt_run_control.txt
 tt_run.txt
+
+## 2026-11-16T22:01:28Z
+job16 done: CORRECTION -- CMakeLists.txt:32 sets TT_NOTLS=1, so the shipped build is the UNLOCKED path and my job15 probe forced =0. build-notls and build-rel are the same binary. Shipped path pin-verified: 312866/862329/3024920/4865609 (07-C13).
+### git status --short
+ M FINDINGS.md
+ M STATUS.md
+?? REPORT_job16.md
+?? job16/
+### ls job16
+honesty.sh
+raw_notls
+stamps.txt
+tt_probe_owned.cpp
