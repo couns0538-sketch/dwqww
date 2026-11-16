@@ -103,3 +103,31 @@ does not fix it either — it only disappears under PC20, where the engine stops
 S-F9's instance a *setting* effect, not a build effect.
 
 Evidence: `out/rerun_base_s14.txt`, `out/rerun_s14.txt`, `out/rerun_pc20.txt`, `out/three_way.txt`.
+
+
+## Which option fixes S-F1 — S-F19
+
+The one-at-a-time *drop* test showed no single option was responsible, so I tested adding each option **alone** to
+S14, then cumulatively. Board G/192, depth 12, Threads 1.
+
+| options added to S14 | result |
+|---|---|
+| (none — S14 alone) | `mate -9`, pv 14/18 → **short by 4** |
+| only CuckooRep | `mate -13`, pv 17/26 → **short by 9 (worse)** |
+| only HistRework | `mate -7`, pv 13/14 → short by 1 |
+| **only TtPruneV2** | `mate -7`, pv 14/14 → **CONSISTENT** |
+| only CorrHistV2 | `mate -8`, pv 12/16 → short by 4 |
+| **only MateAlphaGuard** | `mate -4`, pv 8/8 → **CONSISTENT** |
+| only OwnBook | `mate -9`, pv 14/18 → short by 4 |
+| all six (PC20) | `mate -4`, pv 8/8 → CONSISTENT |
+
+Cumulative: the truncation survives CuckooRep, +HistRework, +TtPruneV2 (−8, still short by 3), and becomes
+consistent at +CorrHistV2.
+
+**Reproducibility (3 fresh processes each):** TtPruneV2 alone `mate -7` 14/14 three times; MateAlphaGuard alone
+`mate -4` 8/8 three times; S14 alone `mate -9` short by 4 three times. So the two single-option fixes are stable
+observations, not one-offs. Evidence `out/sf1_minimal.txt`, `out/sf1_repeat.txt`.
+
+I do **not** claim a mechanism — I have not read what TtPruneV2 or MateAlphaGuard do to the PV rebuild. What I can
+state is that the truncation is attributable to specific search options rather than to the build as a whole, which
+is a much sharper statement than "repaired on the PC".

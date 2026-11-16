@@ -252,3 +252,11 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   * S-F9 R/120: IDENTICAL on base and PC under S14 (mate -13, 14 of 26 plies) — the PC patch does not fix it;
     under PC20 the engine stops reporting a mate at all (cp -2713), which is a different measurement.
 - next command: python3 pcbuild/rerun_finds.py /tmp/build-pc/forge PC20 with MultiPV off check, then continue.
+
+## $(date -u)
+- S-F19 NEW: the S-F1 truncation is fixed by SPECIFIC OPTIONS, not by the build. On the PC build, G/192 depth 12,
+  Threads 1: S14 alone short by 4 (3/3 runs); +TtPruneV2 only -> 14/14 consistent (3/3); +MateAlphaGuard only ->
+  8/8 consistent (3/3); CuckooRep alone makes it WORSE (short by 9). Cumulative chain becomes consistent at
+  +CorrHistV2. No mechanism claimed — I did not read what those options do to the PV rebuild.
+- next command: re-run the S-F11/F13/F15 boundary-vs-depth on a SECOND material on the PC build under PC20, to see
+  whether S-F14/S-F15's position-dependence survives there.

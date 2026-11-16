@@ -1,0 +1,37 @@
+exe: /tmp/build-pc/forge   board: G/192   depth 12   Threads 1
+
+| options added to S14 | result |
+|---|---|
+| (none — S14 alone) | mate -9, pv 14/18 -> short by 4 |
+| only CuckooRep | mate -13, pv 17/26 -> short by 9 |
+| only HistRework | mate -7, pv 13/14 -> short by 1 |
+| only TtPruneV2 | mate -7, pv 14/14 -> CONSISTENT |
+| only CorrHistV2 | mate -8, pv 12/16 -> short by 4 |
+| only MateAlphaGuard | mate -4, pv 8/8 -> CONSISTENT |
+| only OwnBook | mate -9, pv 14/18 -> short by 4 |
+| all six (PC20) | mate -4, pv 8/8 -> CONSISTENT |
+
+Then cumulative: options added one at a time in the listed order.
+| cumulative set | result |
+|---|---|
+| CuckooRep | mate -13, pv 17/26 -> short by 9 |
+| CuckooRep + HistRework | mate -11, pv 13/22 -> short by 9 |
+| CuckooRep + HistRework + TtPruneV2 | mate -8, pv 13/16 -> short by 3 |
+| CuckooRep + HistRework + TtPruneV2 + CorrHistV2 | mate -7, pv 14/14 -> CONSISTENT |
+| CuckooRep + HistRework + TtPruneV2 + CorrHistV2 + MateAlphaGuard | mate -4, pv 8/8 -> CONSISTENT |
+| CuckooRep + HistRework + TtPruneV2 + CorrHistV2 + MateAlphaGuard + OwnBook | mate -4, pv 8/8 -> CONSISTENT |
+TtPruneV2 alone:
+   run 0: mate -7, pv 14/14 -> CONSISTENT
+   run 1: mate -7, pv 14/14 -> CONSISTENT
+   run 2: mate -7, pv 14/14 -> CONSISTENT
+
+MateAlphaGuard alone:
+   run 0: mate -4, pv 8/8 -> CONSISTENT
+   run 1: mate -4, pv 8/8 -> CONSISTENT
+   run 2: mate -4, pv 8/8 -> CONSISTENT
+
+S14 alone (control):
+   run 0: mate -9, pv 14/18 -> short by 4
+   run 1: mate -9, pv 14/18 -> short by 4
+   run 2: mate -9, pv 14/18 -> short by 4
+
