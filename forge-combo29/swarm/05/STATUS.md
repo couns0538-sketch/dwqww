@@ -662,3 +662,10 @@ S-F42's strength implication.
 - Owner translation: 0.06 -> 0.6 s buys 2.5x time and +2 median plies; 0.06 -> 6 s buys 9.7x and +7 median plies
   (max depth 64 on one board). So raising the increment DOES buy thinking time.
 - next command: write this up as the ANSWER file the coordinator asked for, then continue.
+
+## $(date -u)
+- ANSWER_increment.md written (increment/ANSWER_increment.md): the standalone answer to the coordinator's question.
+  "Does raising the increment buy thinking time?" — YES, as sqrt(increment): 0.06->0.6 s gives 2.50x time and +2 median
+  plies; 0.06->6 s gives 9.7x and +7 median plies. Power-law exponent 0.494 over two decades. Every cited file verified
+  to exist, and the script re-run at small scale reproduces the same direction (178 -> 652 ms, +5 plies).
+- next command: continue the cycle.
