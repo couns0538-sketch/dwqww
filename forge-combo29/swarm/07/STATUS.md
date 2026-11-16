@@ -673,3 +673,10 @@ Added to the FINDINGS header, as a general tell ahead of the 'warning from an un
   > IF A DEFECT SHOULD VANISH WITH MORE BUDGET AND IT DOES NOT, SUSPECT THE CHECKER. My PV-length checker called a CORRECT 9-ply PV for mate 5 truncated at ALL THREE budgets including 250,000, when the thing under test was a truncation supposed to disappear as the budget rises. A 'defect' that does not improve with more nodes, depth or time is far more likely my arithmetic than the engine's (I had required 2|N| plies for a positive mate instead of 2N-1).
   > Corollary: AN EMPTY SCAN MEANS SCARCITY, NOT ABSENCE -- only 2.2% of positions (8 of 361) report a mate at go nodes 20000, so a 120-position filter for long mates legitimately finds nothing, and a sample with no mate scores cannot measure mate-score truncation at all (07-C51).
 That corollary is also the honest reading of seat 05's withdrawn S-W6: they were right to void it, and the reason was scarcity rather than the defect being absent.
+
+## 2026-11-16T23:55:56Z
+07-C52 -- CONFIRMED 16-S-F28 and strengthened it. PC r15/PC20, Threads 1, Hash 16, ONE process, CONSTANT 6000 ms clock (no decrement, so the budget is identical every move), 9 clock moves from a real middlegame:
+  engine time min 142 ms, max 657 ms -> RATIO 4.63x (seat 16 measured 2.51x). 0 overruns. Utilisation median 3.5%, max 11.0%.
+  Their second claim also confirmed: an interleaved go movetime 6000 ran 5,991.1 ms and the NEXT clock move took 177.1 ms -- no leakage from movetime into the following clock search.
+  Why the wider ratio does not contradict them: the spread depends on where each search lands relative to an iteration boundary, so a different position or move count samples a different range. The finding is the phenomenon; a ratio must be quoted with its position and move count.
+  The utilisation figure pairs with 07-C50's 6.0% on startpos: two different positions, same conclusion, so the under-use is the time manager's soft plan rather than one board's quirk. And it is a WALL-TIME comparison -- exactly the quantity 07-C47 says IS reliable under a clock.
