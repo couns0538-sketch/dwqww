@@ -1,0 +1,27 @@
+# PREDICTION — S28 check of 21-F2 (a refused FEN leaves the previous position on the board)
+
+Committed and pushed ALONE before the first measuring command of this check. Never edited afterwards.
+
+21-F2 (seat 21, area 1): "A refused `position fen` silently leaves the PREVIOUS position on the board
+and still answers `readyok`; a GUI that trusts readyok then searches and plays a move in the wrong game.
+Every refusal kind shows it (bad castling rights, 3 fields, pure garbage); 8902 after startpos in all
+four cases."
+
+The dangerous part is not that the previous position stays — the brief already knows "after a refused
+FEN it keeps the previous position". The dangerous part is that **no error reaches the GUI in a way it
+must notice**, i.e. it answers readyok and then searches. So my check measures:
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| P1 | after a refused FEN, `go perft 3` returns 8902 (startpos), i.e. the previous position is searched | yes | not 8902 |
+| P2 | the refusal does produce at least one `info string invalid FEN` line before readyok | yes | no line |
+| P3 | the engine answers `bestmove` (a real move) on the stale position | yes | no bestmove |
+| P4 | the same holds for a second refusal kind (garbage text rather than bad castling) | yes | no |
+| P5 | the stale search's bestmove is a legal startpos move | yes | illegal move |
+| P6 | a CONTROL with a legal FEN right after a refused one gives that FEN's own perft, so the harness can see the board change | yes | control also 8902 |
+| P7 | the engine's `d` (display) command, if present, prints the STALE position after a refusal | yes or NO SUCH COMMAND | - |
+
+Reasoning: the code path in `uci.cpp apply_position` parses into a temporary and only commits on success
+(the brief's known list says so), so P1 must hold. What I want to establish beyond the finding is whether
+there is ANY signal a GUI could use, and whether the stale search is itself correct — because a stale
+board played as if it were the current one is a much worse bug than a kept position.
