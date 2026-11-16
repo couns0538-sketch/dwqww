@@ -112,6 +112,28 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:32Z - SEVENTH self-correction: clock searches are deterministic in the MOVE only (S-C15)
+
+Corrects my own S-F26. Six runs per command (PC20, Threads 1, Hash 16):
+  go wtime 6000 winc 60 : score 2 distinct (cp 55 / cp 67), nodes 2 (172,312 / 309,981), depth 2 (16 / 18),
+                          MOVE identical in all 6, wall time 6 distinct
+  go nodes 20000        : score/nodes/depth/move ALL deterministic
+  go softnodes 2000     : score/nodes/depth/move ALL deterministic
+So: the match path's MOVES are trustworthy on every command; SCORES from clock-based searches are approximate
+(a few centipawns of run-to-run variation) because the stop is wall-clock dependent. My earlier "3/3 reproducible"
+was a small sample that happened to land on one depth.
+
+Also clean: `go softnodes 2000 wtime 6000 ...` returns EXACTLY the softnodes answer (2474 nodes, cp 97, depth 8),
+so the soft budget wins over the clock with no interaction.
+
+SEVEN self-corrections now, all in the FINAL errors section with the honest grouping: 1-5 = reconstructed data
+instead of copying it; 6-7 = conclusion from too small a sample instead of a sweep. The FINAL's S-F26 row carries
+the caveat inline so the reassurance is never read without it.
+
+Running: nothing. Next: keep cycling the PC path; look at whether any remaining owner regime (movestogo, increment
+only, very short clocks) behaves differently, and confirm other seats where my PC20 harness helps.
+
 ## 2026-11-16T23:32Z - both game endings clean (S-F30 repetition, S-F31 mate); FINAL is the top-of-file inventory
 
 Since the previous block: S-F31 (a forced-mate self-play game at the match setting: CHECKMATE at ply 3, 0 illegal
