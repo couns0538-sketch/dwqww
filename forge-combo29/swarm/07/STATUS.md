@@ -520,3 +520,10 @@ HONEST LIMITATION: no third-repetition roots could be built from G. I searched t
 07-C37 -- the mate-10-vs-mate-8 shape another seat reported does NOT appear in my 30: base reports no mate at all on these, so there is no case of base finding a shorter mate than the PC. That is a negative result about MY sample, not a refutation of their position -- their case likely needs a position where base's own search reaches the mate.
 Caveat stated in the report: these rates are 'at depth 12 against a depth-18 reference', not ground truth; the 10 inconclusive fifty-move positions could move at greater depth.
 Repetition sample left alone as instructed.
+
+## 2026-11-16T23:06:35Z
+07-C38 -- THE RATE IS NOW TIGHTENED, AND IT WENT DOWN, NOT UP: decisive base error **5 of 20 (25%)**, thrown-away win **1 of 20**. Reference re-run at depth 18 for all twenty and at depths 12/16/20/24 for the ten that matter, base build, Threads 1, Hash 16, OwnBook false, thresholds (+-300cp or any mate) fixed in the script BEFORE the run.
+  NONE of the 14 inconclusive-at-12 became decisive at depth 18. The decisive count fell 6 -> 5 because position #7 read cp -477 at depth 12 and -84/-70/-52 at depths 16/20/24: a DEPTH-12 ARTEFACT, not a base error. Reporting only the depth-12 number would have overstated the case.
+  The genuine cases only strengthened with depth: #0 cp -1601 -> mate -16 -> mate -9; #10 cp 2950 -> mate 4 and STABLE at 16/20/24. At depth 24 the decisive five are #0/#4/#10/#11/#13, of which #10 is the only thrown-away win and four are losses masked.
+  Rate lineage: '19 of 20 (95%)' WITHDRAWN -> 6 of 20 (depth 12, 07-F4) -> **5 of 20 (depth 18-24, current)**. Worth of ROOT_DRAWN on this sample: one game-losing outcome in twenty, plus four cost-free corrected draws. Narrower than either earlier figure; that is the honest number.
+Reproduction: the convergence sweep was run twice with identical results (job39/conv_reference.txt). Repetition sample still left alone as instructed.
