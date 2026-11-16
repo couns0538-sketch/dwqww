@@ -1,0 +1,247 @@
+# applies from the repository root, AFTER SoundArms.patch.txt: patch -p1 < SoundRegret.patch.txt
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -235,7 +235,9 @@
+                          "option name SoundMatePruning type check default false\n"
+                          "option name SoundPvArm type spin default 0 min -1 max 1\n"
+                          "option name SoundInCheckArm type spin default 0 min -1 max 1\n"
+-                         "option name SoundMateAlphaArm type spin default 0 min -1 max 1\n";
++                         "option name SoundMateAlphaArm type spin default 0 min -1 max 1\n"
++                         "option name SoundRegretCount type check default false\n"
++                         "option name SoundRegretProbe type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -461,6 +463,13 @@
+                              : clamped > 0 ? forge::tune::SoundPruneArm::ForceOn
+                                           : forge::tune::SoundPruneArm::FollowOption;
+                 });
++            } else if (name == "SoundRegretCount" || name == "SoundRegretProbe") {
++                if (value_text == "true" || value_text == "false") {
++                    if (name == "SoundRegretCount") forge::tune::SoundRegretCount = value_text == "true";
++                    else forge::tune::SoundRegretProbe = value_text == "true";
++                } else {
++                    note_invalid();
++                }
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             } else if (name == "MateAlphaGuard") {
+                 if (value_text == "true" || value_text == "false") {
+@@ -583,6 +592,20 @@
+                         prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
+                     }
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    if (forge::tune::SoundRegretCount || forge::tune::SoundRegretProbe) {
++                        // kimi5 job 5: cumulative counters per search; the harness diffs.
++                        std::cout << "info string soundregret";
++                        for (int c = 0; c < 4; ++c) {
++                            for (int s = 0; s < 6; ++s) {
++                                std::cout << " d" << c << s << " " << forge::tune::sound_regret.drops[c][s]
++                                          << " r" << c << s << " " << forge::tune::sound_regret.regrets[c][s]
++                                          << " m" << c << s << " " << forge::tune::sound_regret.mate_regrets[c][s];
++                            }
++                        }
++                        std::cout << " dt " << forge::tune::sound_regret.drops_total
++                                  << " co " << forge::tune::sound_regret.case_overlap
++                                  << " pn " << forge::tune::sound_regret.probe_nodes << std::endl;
++                    }
+                     std::cout << "bestmove " << best << prediction << std::endl;
+                 });
+             }
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -1812,6 +1812,85 @@
+     int wide_quiet_misses = 0;
+     bool futility_tight = false;
+ 
++    // kimi5 job 5 regret statistics (SoundRegret.patch.txt). Everything below is inert
++    // unless SoundRegretCount/SoundRegretProbe is on; counting alone never searches, so a
++    // count-only build keeps the unpatched node counts (rule R1). sr_skip_origin records
++    // which step first set skip_quiets (1 = s1 lmp, 2 = s2 futility); the quiets the picker
++    // then removes are counted at loop end under that step. sr_dropped holds the moves the
++    // block dropped by s2..s6 so the loop-end count does not count them a second time.
++    const bool sr_pv = pv_node;
++    const bool sr_chk = in_check;
++    int sr_skip_origin = 0;
++    int sr_skip_move_count = 0;
++    std::array<Move, 256> sr_dropped{};
++    int sr_dropped_count = 0;
++    auto sound_regret_drop = [&](int step, const Move& dropped, bool dropped_quiet, int dropped_history,
++                                 int dropped_move_count) {
++        if (!tune::SoundRegretCount && !tune::SoundRegretProbe) return;
++        // The case is read at drop time: alpha can rise to a mate score inside the loop.
++        int cases[3];
++        int n_cases = 0;
++        if (sr_pv) cases[n_cases++] = 1;
++        if (sr_chk) cases[n_cases++] = 2;
++        if (is_mate_score(alpha)) cases[n_cases++] = 3;
++        if (n_cases == 0) cases[n_cases++] = 0;
++        for (int i = 0; i < n_cases; ++i) ++tune::sound_regret.drops[cases[i]][step];
++        ++tune::sound_regret.drops_total;
++        if (n_cases > 1) ++tune::sound_regret.case_overlap;
++        if (!tune::SoundRegretProbe) return;
++        // The depth the move loop would have given the move after its reduction
++        // (search.cpp 1991-2014 mirrored). The singular extension (1929-1955) is NOT
++        // reproduced: it needs its own search and fires only for tt_move; the check
++        // extension uses see_ge(move, 0) alone because the picker's SEE state at the drop
++        // point is not the state it had when the move was yielded.
++        const bool dropped_gives_check = board.gives_check(dropped);
++        int sr_extension = 0;
++        if (dropped_gives_check && depth >= tune::CheckExtensionDepth && board.see_ge(dropped, 0)) {
++            sr_extension = 1;
++        }
++        const int sr_new_depth = depth - 1 + sr_extension;
++        int probe_depth = sr_new_depth;
++        if (mate_moves_ == 0 && board.halfmove_clock() + sr_new_depth < 100 && depth >= 2 &&
++            dropped_move_count > 1 && !bare_king_mode &&
++            (dropped_quiet || !ss->tt_pv || dropped_move_count > 4)) {
++            int r = reduction(dropped_quiet, depth, dropped_move_count);
++            if (ss->tt_pv) r -= 1;
++            if (!improving) r += 1;
++            if (cut_node) r += 2;
++            if (tt_capture && dropped_quiet) r += 1;
++            if (dropped_gives_check) r -= 1;
++            if (in_check) r -= 1;
++            if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
++            if (dropped_quiet) r -= std::clamp(dropped_history / tune::LmrHistoryDivisor, -2, 2);
++            if (tune::LmrSignedCorrection && dropped_quiet && ss->static_eval != ValueNone &&
++                ss->raw_eval != ValueNone) {
++                const int correction_cp = ss->static_eval - ss->raw_eval;
++                if (correction_cp != 0) r = apply_lmr_signed_correction(r, correction_cp);
++            }
++            if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && dropped_move_count <= 4) --r;
++            probe_depth = std::clamp(sr_new_depth - r, 1, sr_new_depth);
++        }
++        const Piece sr_moved = board.moved_piece(dropped);
++        Undo sr_undo;
++        (void)board.make_move(dropped, sr_undo);
++        ss->current_move = dropped;
++        ss->moved_piece = sr_moved;
++        ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(sr_moved)][dropped.to];
++        (ss + 1)->ply = ply + 1;
++        (ss + 1)->arrival_index = dropped_move_count;
++        const std::uint64_t sr_nodes_before = local_nodes_;
++        const int probe_score = -search(board, ss + 1, probe_depth, -alpha - 1, -alpha, true);
++        tune::sound_regret.probe_nodes += local_nodes_ - sr_nodes_before;
++        board.unmake_move(dropped, sr_undo);
++        if (aborted_) return;
++        if (probe_score > alpha) {
++            for (int i = 0; i < n_cases; ++i) {
++                ++tune::sound_regret.regrets[cases[i]][step];
++                if (is_mate_score(probe_score)) ++tune::sound_regret.mate_regrets[cases[i]][step];
++            }
++        }
++    };
++
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
+         if (move == excluded) continue;
+@@ -1863,7 +1942,13 @@
+                     if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
+                 }
+             };
+-            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
++            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) {
++                skip_quiets = true;
++                if (sr_skip_origin == 0) {
++                    sr_skip_origin = 1;
++                    sr_skip_move_count = move_count;
++                }
++            }
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             if (quiet && !gives_check) {
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+@@ -1872,6 +1957,12 @@
+ #endif
+                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
+                     trace_case();
++                    sound_regret_drop(1, move, true, history, move_count);
++                    if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
++                    if (sr_skip_origin == 0) {
++                        sr_skip_origin = 2;
++                        sr_skip_move_count = move_count;
++                    }
+                     quiet_fail = true;
+                     skip_quiets = true;
+                     note_deferred_quiet_checks();
+@@ -1879,11 +1970,15 @@
+                 }
+                 if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
+                     trace_case();
++                    sound_regret_drop(2, move, true, history, move_count);
++                    if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+                     quiet_fail = true;
+                     continue;
+                 }
+                 if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+                     trace_case();
++                    sound_regret_drop(3, move, true, history, move_count);
++                    if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+                     quiet_fail = true;
+                     continue;
+                 }
+@@ -1898,12 +1993,16 @@
+                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+                             capture_value(board, move) + history / 8 <= alpha) {
+                     trace_case();
++                    sound_regret_drop(4, move, false, history, move_count);
++                    if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+                     continue;
+                 }
+                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                     !board.see_ge(move, see_threshold)) {
+                     trace_case();
++                    sound_regret_drop(5, move, quiet, history, move_count);
++                    if (sr_dropped_count < 256) sr_dropped[static_cast<std::size_t>(sr_dropped_count++)] = move;
+                     if (tune::SoundPruneTrace && quiet && gives_check && quiet_fail) {
+                         ++tune::sound_prune_trace.quiet_check_after_quiet_fail;
+                         if (pv_node) ++tune::sound_prune_trace.quiet_check_on_pv;
+@@ -2066,6 +2165,24 @@
+         else if (!quiet && capture_count < static_cast<int>(captures_tried.size())) captures_tried[static_cast<std::size_t>(capture_count++)] = move;
+     }
+ 
++    // kimi5 job 5: the quiets the picker removed after the block set skip_quiets are
++    // counted here, under the step that first set it (s1 lmp or s2 futility), with the
++    // move_count frozen at that moment. Runs only when a regret option is on. With
++    // QuietExtinction on the picker's close_quiet_tail removes quiets too; the harness
++    // runs leave it off, so every removal here comes from the block.
++    if (sr_skip_origin != 0 && !aborted_ && (tune::SoundRegretCount || tune::SoundRegretProbe)) {
++        for (const Move candidate : board.legal_moves()) {
++            if (candidate.is_capture() || candidate.is_promotion() || candidate == excluded) continue;
++            bool seen = false;
++            for (int i = 0; i < quiet_count && !seen; ++i) seen = quiets_tried[static_cast<std::size_t>(i)] == candidate;
++            for (int i = 0; i < capture_count && !seen; ++i) seen = captures_tried[static_cast<std::size_t>(i)] == candidate;
++            for (int i = 0; i < sr_dropped_count && !seen; ++i) seen = sr_dropped[static_cast<std::size_t>(i)] == candidate;
++            if (seen) continue;
++            sound_regret_drop(sr_skip_origin == 1 ? 0 : 1, candidate, true, quiet_history(board, ss, candidate),
++                              sr_skip_move_count);
++        }
++    }
++
+     if (move_count == 0) {
+         if (!excluded.is_none()) return alpha;
+         if (root_node && root_restricted_) return 0;
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -339,6 +339,21 @@
+     std::uint64_t quiet_check_on_mate_alpha = 0;
+ };
+ inline SoundPruneTraceCounts sound_prune_trace{};
++// kimi5 job 5 regret statistics. Counting runs only when SoundRegretCount is on, the
++// probe re-searches only when SoundRegretProbe is on; the search never reads the counts,
++// and counting alone never searches, so count-only runs keep the unpatched node counts.
++// case index: 0 ordinary, 1 pv node, 2 in check, 3 mate alpha. step index: 0..5 = s1..s6.
++inline bool SoundRegretCount = false;
++inline bool SoundRegretProbe = false;
++struct SoundRegretCounts {
++    std::uint64_t drops[4][6] = {};
++    std::uint64_t regrets[4][6] = {};
++    std::uint64_t mate_regrets[4][6] = {};
++    std::uint64_t drops_total = 0;
++    std::uint64_t case_overlap = 0;
++    std::uint64_t probe_nodes = 0;
++};
++inline SoundRegretCounts sound_regret{};
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
