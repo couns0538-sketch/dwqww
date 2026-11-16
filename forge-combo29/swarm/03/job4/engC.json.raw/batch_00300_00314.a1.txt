@@ -1,0 +1,1436 @@
+>>> uci
+id name Chess Engine Forge 6.4.24 candidate
+id author OpenAI
+option name Hash type spin default 32 min 1 max 2048
+option name Threads type spin default 1 min 1 max 256
+option name MultiPV type spin default 1 min 1 max 8
+option name Move Overhead type spin default 10 min 0 max 1000
+option name Ponder type check default false
+option name OwnBook type check default true
+option name Book File type string default <empty>
+option name Book Depth type spin default 30 min 0 max 100
+option name Book Variety type spin default 30 min 0 max 100
+option name UseNNUE type check default true
+option name NnueFile type string default <empty>
+option name ContHist4PlyRead type check default false
+option name NonPawnCorrection type check default false
+option name LmrDeeperShallower type check default false
+option name EvalRule50Damp type check default false
+option name ThreatHistory type check default false
+option name LmrSignedCorrection type check default false
+option name LmrLateParentRelief type check default false
+option name HindsightDepth type check default false
+option name NullThreatVerify type check default false
+option name NullSeeVeto type check default false
+option name AspCappedReopen type check default false
+option name AspArmLate type check default false
+option name EvasionOrdering type check default false
+option name DeadMaterial type check default false
+option name QuietExtinction type check default false
+option name DrawJitter type spin default 0 min 0 max 8
+option name TmFinishIteration type check default false
+option name TmNodeShare type check default false
+option name SoundMatePruning type check default false
+option name CuckooRep type check default false
+option name HistRework type spin default 0 min 0 max 3
+option name TtPruneV2 type check default false
+option name CorrHistV2 type check default false
+option name MateAlphaGuard type check default false
+option name LmrQuietBase type spin default 85 min 0 max 300
+option name LmrQuietDivisor type spin default 220 min 100 max 500
+option name LmrNoisyBase type spin default 10 min 0 max 300
+option name LmrNoisyDivisor type spin default 340 min 100 max 800
+option name NullMoveMinDepth type spin default 3 min 1 max 10
+option name NullMoveBase type spin default 3 min 1 max 6
+option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+option name RfpDepth type spin default 8 min 0 max 15
+option name RfpMargin type spin default 72 min 10 max 300
+option name RfpImproving type spin default 40 min 0 max 200
+option name RazorDepth type spin default 2 min 0 max 6
+option name RazorBase type spin default 150 min 0 max 1000
+option name RazorMultiplier type spin default 350 min 0 max 1000
+option name FutilityDepth type spin default 7 min 0 max 15
+option name FutilityBase type spin default 100 min 0 max 500
+option name FutilityMultiplier type spin default 110 min 0 max 500
+option name LmpBase type spin default 4 min 0 max 20
+option name HistoryPruneDepth type spin default 3 min 0 max 10
+option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+option name SeeQuietMultiplier type spin default 24 min 0 max 200
+option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+option name SingularDepth type spin default 7 min 2 max 20
+option name SingularMargin type spin default 2 min 0 max 10
+option name IirDepth type spin default 4 min 1 max 20
+option name ProbcutDepth type spin default 5 min 1 max 20
+option name ProbcutMargin type spin default 180 min 0 max 1000
+option name QsFutilityMargin type spin default 160 min 0 max 1000
+option name QsSeeMargin type spin default 40 min 0 max 500
+option name AspirationDelta type spin default 18 min 4 max 200
+option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+option name HistoryBonusLinear type spin default 48 min 0 max 500
+option name HistoryBonusMax type spin default 2048 min 100 max 10000
+option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+option name CheckExtensionDepth type spin default 2 min 1 max 30
+option name LmrCutoffThreshold type spin default 3 min 0 max 20
+option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+option name TmSoftDivisor type spin default 22 min 5 max 80
+option name TmIncrementPercent type spin default 75 min 0 max 150
+option name TmHardPercent type spin default 60 min 10 max 95
+option name TmHardSoftMultiple type spin default 5 min 1 max 20
+option name TmStableFactor type spin default 60 min 20 max 150
+option name TmSemiStableFactor type spin default 80 min 20 max 150
+option name TmUnstableFactor type spin default 140 min 50 max 300
+option name TmEffortBase type spin default 155 min 100 max 250
+option name TmFallingEvalPercent type spin default 100 min 0 max 400
+option name TmMinFactorPercent type spin default 45 min 10 max 100
+option name CaptureFutilityBase type spin default 0 min 0 max 1000
+option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+option name CaptureFutilityDepth type spin default 6 min 0 max 15
+option name FailLowContinuationBonus type spin default 0 min 0 max 300
+option name AspFailHighReduce type spin default 0 min 0 max 1
+option name AspFailHighMaxReduce type spin default 3 min 1 max 6
+option name EvalSwingMult type spin default 0 min 0 max 64
+option name EvalSwingMax type spin default 200 min 50 max 400
+option name TtCutoffHistory type spin default 0 min 0 max 1
+option name Clear Hash type button
+uciok
+>>> isready
+readyok
+>>> ucinewgame
+>>> isready
+readyok
+>>> position fen rnbqkbnr/pp1pp2p/2p2pp1/7Q/P3P3/R7/1PPP1PPP/1NB1KBNR b Kkq - 1 4
+>>> isready
+readyok
+>>> go perft 1
+c6c5: 1
+f6f5: 1
+a7a6: 1
+b7b6: 1
+d7d6: 1
+e7e6: 1
+h7h6: 1
+a7a5: 1
+b7b5: 1
+d7d5: 1
+e7e5: 1
+g6h5: 1
+b8a6: 1
+g8h6: 1
+f8h6: 1
+f8g7: 1
+d8a5: 1
+d8b6: 1
+d8c7: 1
+e8f7: 1
+nodes 20
+>>> go perft 2
+c6c5: 48
+f6f5: 46
+a7a6: 50
+b7b6: 50
+d7d6: 50
+e7e6: 50
+h7h6: 49
+a7a5: 49
+b7b5: 49
+d7d5: 48
+e7e5: 45
+g6h5: 34
+b8a6: 50
+g8h6: 49
+f8h6: 49
+f8g7: 50
+d8a5: 47
+d8b6: 50
+d8c7: 50
+e8f7: 50
+nodes 963
+>>> go perft 3
+c6c5: 988
+f6f5: 988
+a7a6: 942
+b7b6: 939
+d7d6: 1324
+e7e6: 1329
+h7h6: 875
+a7a5: 925
+b7b5: 1060
+d7d5: 1361
+e7e5: 1128
+g6h5: 677
+b8a6: 1084
+g8h6: 1049
+f8h6: 1090
+f8g7: 1037
+d8a5: 1431
+d8b6: 1367
+d8c7: 1271
+e8f7: 1075
+nodes 21940
+>>> go perft 4
+c6c5: 43748
+f6f5: 42578
+a7a6: 42583
+b7b6: 42542
+d7d6: 59962
+e7e6: 60044
+h7h6: 39038
+a7a5: 41168
+b7b5: 47694
+d7d5: 60494
+e7e5: 46897
+g6h5: 21994
+b8a6: 49149
+g8h6: 46955
+f8h6: 47102
+f8g7: 47021
+d8a5: 59831
+d8b6: 57807
+d8c7: 57529
+e8f7: 48700
+nodes 962836
+>>> position fen r4Rnr/p3k3/bp5p/1P4P1/3Pp3/4P3/2P3QP/2B2KNR w - - 1 29
+>>> isready
+readyok
+>>> go perft 1
+c2c3: 1
+h2h3: 1
+d4d5: 1
+g5g6: 1
+c2c4: 1
+h2h4: 1
+b5a6: 1
+g5h6: 1
+g1e2: 1
+g1f3: 1
+g1h3: 1
+c1b2: 1
+c1d2: 1
+c1a3: 1
+f8f2: 1
+f8f3: 1
+f8f4: 1
+f8f5: 1
+f8f6: 1
+f8f7: 1
+f8a8: 1
+f8b8: 1
+f8c8: 1
+f8d8: 1
+f8e8: 1
+f8g8: 1
+g2d2: 1
+g2e2: 1
+g2f2: 1
+g2f3: 1
+g2g3: 1
+g2h3: 1
+g2e4: 1
+g2g4: 1
+f1e1: 1
+f1e2: 1
+f1f2: 1
+nodes 37
+>>> go perft 2
+c2c3: 16
+h2h3: 16
+d4d5: 15
+g5g6: 15
+c2c4: 16
+h2h4: 16
+b5a6: 14
+g5h6: 16
+g1e2: 16
+g1f3: 17
+g1h3: 16
+c1b2: 16
+c1d2: 16
+c1a3: 2
+f8f2: 17
+f8f3: 18
+f8f4: 17
+f8f5: 17
+f8f6: 15
+f8f7: 5
+f8a8: 11
+f8b8: 12
+f8c8: 13
+f8d8: 13
+f8e8: 5
+f8g8: 17
+g2d2: 16
+g2e2: 16
+g2f2: 15
+g2f3: 16
+g2g3: 15
+g2h3: 14
+g2e4: 3
+g2g4: 14
+f1e1: 16
+f1e2: 16
+f1f2: 16
+nodes 524
+>>> go perft 3
+c2c3: 526
+h2h3: 484
+d4d5: 460
+g5g6: 463
+c2c4: 559
+h2h4: 526
+b5a6: 447
+g5h6: 539
+g1e2: 540
+g1f3: 570
+g1h3: 501
+c1b2: 512
+c1d2: 512
+c1a3: 80
+f8f2: 461
+f8f3: 502
+f8f4: 541
+f8f5: 543
+f8f6: 502
+f8f7: 177
+f8a8: 319
+f8b8: 353
+f8c8: 413
+f8d8: 388
+f8e8: 155
+f8g8: 488
+g2d2: 513
+g2e2: 536
+g2f2: 516
+g2f3: 559
+g2g3: 528
+g2h3: 437
+g2e4: 129
+g2g4: 511
+f1e1: 606
+f1e2: 528
+f1f2: 499
+nodes 16923
+>>> go perft 4
+c2c3: 8695
+h2h3: 7970
+d4d5: 7201
+g5g6: 7092
+c2c4: 9204
+h2h4: 8655
+b5a6: 6587
+g5h6: 8765
+g1e2: 8996
+g1f3: 10082
+g1h3: 8286
+c1b2: 8489
+c1d2: 8504
+c1a3: 1081
+f8f2: 8161
+f8f3: 9434
+f8f4: 9525
+f8f5: 9467
+f8f6: 8369
+f8f7: 2407
+f8a8: 4264
+f8b8: 5229
+f8c8: 6491
+f8d8: 5929
+f8e8: 2217
+f8g8: 8442
+g2d2: 8675
+g2e2: 9205
+g2f2: 8254
+g2f3: 8916
+g2g3: 8051
+g2h3: 6477
+g2e4: 1548
+g2g4: 7655
+f1e1: 10391
+f1e2: 8843
+f1f2: 8319
+nodes 275876
+>>> position fen 7r/p2k3n/bp6/1P4N1/3Pp3/4P3/2P1Kr1P/2B2Q1R w - - 1 36
+>>> isready
+readyok
+>>> go perft 1
+f1f2: 1
+e2d1: 1
+e2e1: 1
+e2f2: 1
+nodes 4
+>>> go perft 2
+f1f2: 19
+e2d1: 31
+e2e1: 31
+e2f2: 19
+nodes 100
+>>> go perft 3
+f1f2: 624
+e2d1: 776
+e2e1: 767
+e2f2: 520
+nodes 2687
+>>> go perft 4
+f1f2: 11268
+e2d1: 21788
+e2e1: 21328
+e2f2: 9888
+nodes 64272
+>>> position fen 3k1nb1/8/Qp6/B6P/3Ppr2/2P1PN1R/1r6/3K4 b - - 0 46
+>>> isready
+readyok
+>>> go perft 1
+e4f3: 1
+b6a5: 1
+f8e6: 1
+f8g6: 1
+f8d7: 1
+f8h7: 1
+g8a2: 1
+g8b3: 1
+g8c4: 1
+g8d5: 1
+g8e6: 1
+g8f7: 1
+g8h7: 1
+b2b1: 1
+b2a2: 1
+b2c2: 1
+b2d2: 1
+b2e2: 1
+b2f2: 1
+b2g2: 1
+b2h2: 1
+b2b3: 1
+b2b4: 1
+b2b5: 1
+f4f3: 1
+f4g4: 1
+f4h4: 1
+f4f5: 1
+f4f6: 1
+f4f7: 1
+d8c7: 1
+d8d7: 1
+d8e7: 1
+d8e8: 1
+nodes 34
+>>> go perft 2
+e4f3: 24
+b6a5: 34
+f8e6: 29
+f8g6: 30
+f8d7: 29
+f8h7: 29
+g8a2: 29
+g8b3: 2
+g8c4: 25
+g8d5: 28
+g8e6: 29
+g8f7: 29
+g8h7: 29
+b2b1: 3
+b2a2: 29
+b2c2: 29
+b2d2: 4
+b2e2: 28
+b2f2: 29
+b2g2: 29
+b2h2: 28
+b2b3: 32
+b2b4: 33
+b2b5: 28
+f4f3: 22
+f4g4: 28
+f4h4: 28
+f4f5: 28
+f4f6: 28
+f4f7: 28
+d8c7: 29
+d8d7: 29
+d8e7: 29
+d8e8: 29
+nodes 896
+>>> go perft 3
+e4f3: 694
+b6a5: 1031
+f8e6: 805
+f8g6: 927
+f8d7: 877
+f8h7: 820
+g8a2: 817
+g8b3: 66
+g8c4: 785
+g8d5: 863
+g8e6: 923
+g8f7: 872
+g8h7: 728
+b2b1: 102
+b2a2: 824
+b2c2: 787
+b2d2: 113
+b2e2: 748
+b2f2: 781
+b2g2: 889
+b2h2: 748
+b2b3: 767
+b2b4: 858
+b2b5: 796
+f4f3: 638
+f4g4: 847
+f4h4: 753
+f4f5: 928
+f4f6: 891
+f4f7: 801
+d8c7: 817
+d8d7: 884
+d8e7: 973
+d8e8: 892
+nodes 26045
+>>> go perft 4
+e4f3: 16229
+b6a5: 30930
+f8e6: 22397
+f8g6: 25988
+f8d7: 23705
+f8h7: 22166
+g8a2: 22015
+g8b3: 1701
+g8c4: 19013
+g8d5: 22822
+g8e6: 24863
+g8f7: 23492
+g8h7: 20158
+b2b1: 2608
+b2a2: 22449
+b2c2: 21733
+b2d2: 3126
+b2e2: 19871
+b2f2: 21153
+b2g2: 24597
+b2h2: 20117
+b2b3: 23161
+b2b4: 25446
+b2b5: 22272
+f4f3: 14025
+f4g4: 22154
+f4h4: 20009
+f4f5: 24778
+f4f6: 23816
+f4f7: 21731
+d8c7: 22085
+d8d7: 24292
+d8e7: 26918
+d8e8: 24481
+nodes 706301
+>>> position fen 3k4/7Q/1p2b1n1/B5NP/3Ppr2/2P1P3/1r2R3/4K3 b - - 14 53
+>>> isready
+readyok
+>>> go perft 1
+b6a5: 1
+g6h4: 1
+g6e5: 1
+g6e7: 1
+g6f8: 1
+g6h8: 1
+e6a2: 1
+e6b3: 1
+e6h3: 1
+e6c4: 1
+e6g4: 1
+e6d5: 1
+e6f5: 1
+e6d7: 1
+e6f7: 1
+e6c8: 1
+e6g8: 1
+b2b1: 1
+b2a2: 1
+b2c2: 1
+b2d2: 1
+b2e2: 1
+b2b3: 1
+b2b4: 1
+b2b5: 1
+f4f1: 1
+f4f2: 1
+f4f3: 1
+f4g4: 1
+f4h4: 1
+f4f5: 1
+f4f6: 1
+f4f7: 1
+f4f8: 1
+d8c8: 1
+d8e8: 1
+nodes 36
+>>> go perft 2
+b6a5: 28
+g6h4: 31
+g6e5: 32
+g6e7: 27
+g6f8: 31
+g6h8: 31
+e6a2: 30
+e6b3: 29
+e6h3: 30
+e6c4: 29
+e6g4: 30
+e6d5: 29
+e6f5: 30
+e6d7: 27
+e6f7: 25
+e6c8: 30
+e6g8: 30
+b2b1: 1
+b2a2: 31
+b2c2: 29
+b2d2: 28
+b2e2: 2
+b2b3: 32
+b2b4: 33
+b2b5: 32
+f4f1: 1
+f4f2: 28
+f4f3: 29
+f4g4: 31
+f4h4: 31
+f4f5: 29
+f4f6: 29
+f4f7: 24
+f4f8: 29
+d8c8: 30
+d8e8: 30
+nodes 978
+>>> go perft 3
+b6a5: 817
+g6h4: 794
+g6e5: 941
+g6e7: 816
+g6f8: 831
+g6h8: 771
+e6a2: 685
+e6b3: 655
+e6h3: 704
+e6c4: 747
+e6g4: 697
+e6d5: 721
+e6f5: 585
+e6d7: 702
+e6f7: 653
+e6c8: 686
+e6g8: 724
+b2b1: 39
+b2a2: 812
+b2c2: 723
+b2d2: 702
+b2e2: 65
+b2b3: 782
+b2b4: 869
+b2b5: 917
+f4f1: 28
+f4f2: 747
+f4f3: 798
+f4g4: 745
+f4h4: 771
+f4f5: 806
+f4f6: 746
+f4f7: 800
+f4f8: 834
+d8c8: 878
+d8e8: 870
+nodes 25461
+>>> go perft 4
+b6a5: 22620
+g6h4: 22052
+g6e5: 27043
+g6e7: 22542
+g6f8: 23844
+g6h8: 22547
+e6a2: 19738
+e6b3: 18341
+e6h3: 20330
+e6c4: 21099
+e6g4: 19755
+e6d5: 20516
+e6f5: 16704
+e6d7: 19539
+e6f7: 17248
+e6c8: 19861
+e6g8: 20616
+b2b1: 1024
+b2a2: 24136
+b2c2: 20159
+b2d2: 19180
+b2e2: 1447
+b2b3: 24398
+b2b4: 27698
+b2b5: 28936
+f4f1: 842
+f4f2: 20063
+f4f3: 22483
+f4g4: 21806
+f4h4: 22772
+f4f5: 22921
+f4f6: 20952
+f4f7: 21100
+f4f8: 23795
+d8c8: 25378
+d8e8: 25332
+nodes 728817
+>>> position fen 1n6/2p1k3/brB2n2/3Ppb1p/pp1r3p/2P5/3R3R/3K4 w - - 2 57
+>>> isready
+readyok
+>>> go perft 1
+c3c4: 1
+d5d6: 1
+c3b4: 1
+c3d4: 1
+c6a4: 1
+c6b5: 1
+c6b7: 1
+c6d7: 1
+c6a8: 1
+c6e8: 1
+d2d3: 1
+d2d4: 1
+h2h1: 1
+h2e2: 1
+h2f2: 1
+h2g2: 1
+h2h3: 1
+h2h4: 1
+d1c1: 1
+d1e1: 1
+nodes 20
+>>> go perft 2
+c3c4: 42
+d5d6: 7
+c3b4: 46
+c3d4: 39
+c6a4: 49
+c6b5: 46
+c6b7: 51
+c6d7: 50
+c6a8: 52
+c6e8: 50
+d2d3: 41
+d2d4: 40
+h2h1: 46
+h2e2: 45
+h2f2: 46
+h2g2: 46
+h2h3: 45
+h2h4: 46
+d1c1: 46
+d1e1: 46
+nodes 879
+>>> go perft 3
+c3c4: 768
+d5d6: 177
+c3b4: 798
+c3d4: 830
+c6a4: 934
+c6b5: 1033
+c6b7: 888
+c6d7: 989
+c6a8: 817
+c6e8: 983
+d2d3: 1037
+d2d4: 1093
+h2h1: 872
+h2e2: 877
+h2f2: 911
+h2g2: 1025
+h2h3: 891
+h2h4: 949
+d1c1: 1207
+d1e1: 1179
+nodes 18258
+>>> go perft 4
+c3c4: 30270
+d5d6: 7817
+c3b4: 33727
+c3d4: 29983
+c6a4: 41243
+c6b5: 44667
+c6b7: 40314
+c6d7: 44098
+c6a8: 37569
+c6e8: 44190
+d2d3: 40947
+d2d4: 40371
+h2h1: 36917
+h2e2: 35128
+h2f2: 38131
+h2g2: 41856
+h2h3: 37094
+h2h4: 39923
+d1c1: 51674
+d1e1: 50634
+nodes 766553
+>>> position fen 1n6/8/b6r/1kp1p2p/pP6/8/2K2Rr1/3R1b2 w - - 5 71
+>>> isready
+readyok
+>>> go perft 1
+b4c5: 1
+d1a1: 1
+d1b1: 1
+d1c1: 1
+d1e1: 1
+d1f1: 1
+d1d2: 1
+d1d3: 1
+d1d4: 1
+d1d5: 1
+d1d6: 1
+d1d7: 1
+d1d8: 1
+f2d2: 1
+f2e2: 1
+f2g2: 1
+c2b1: 1
+c2c1: 1
+c2b2: 1
+c2d2: 1
+c2c3: 1
+nodes 21
+>>> go perft 2
+b4c5: 32
+d1a1: 33
+d1b1: 32
+d1c1: 33
+d1e1: 33
+d1f1: 30
+d1d2: 33
+d1d3: 32
+d1d4: 33
+d1d5: 31
+d1d6: 29
+d1d7: 33
+d1d8: 33
+f2d2: 35
+f2e2: 32
+f2g2: 25
+c2b1: 33
+c2c1: 33
+c2b2: 33
+c2d2: 33
+c2c3: 31
+nodes 672
+>>> go perft 3
+b4c5: 698
+d1a1: 627
+d1b1: 552
+d1c1: 502
+d1e1: 656
+d1f1: 563
+d1d2: 725
+d1d3: 786
+d1d4: 721
+d1d5: 624
+d1d6: 690
+d1d7: 791
+d1d8: 770
+f2d2: 490
+f2e2: 704
+f2g2: 688
+c2b1: 919
+c2c1: 871
+c2b2: 808
+c2d2: 478
+c2c3: 832
+nodes 14495
+>>> go perft 4
+b4c5: 22547
+d1a1: 21469
+d1b1: 17921
+d1c1: 16929
+d1e1: 22253
+d1f1: 17420
+d1d2: 24404
+d1d3: 26142
+d1d4: 24244
+d1d5: 19722
+d1d6: 21106
+d1d7: 25785
+d1d8: 25316
+f2d2: 17024
+f2e2: 23125
+f2g2: 17970
+c2b1: 31990
+c2c1: 30442
+c2b2: 27468
+c2d2: 16238
+c2c3: 27996
+nodes 477511
+>>> position fen 2b1k1n1/1r6/1P4nP/pP2ppb1/P1P1QP1p/R4N1P/3KP3/2B4q w - - 2 36
+>>> isready
+readyok
+>>> go perft 1
+e2e3: 1
+c4c5: 1
+h6h7: 1
+f4g5: 1
+f3e1: 1
+f3g1: 1
+f3h2: 1
+f3d4: 1
+f3h4: 1
+f3e5: 1
+f3g5: 1
+c1b2: 1
+a3a1: 1
+a3a2: 1
+a3b3: 1
+a3c3: 1
+a3d3: 1
+a3e3: 1
+e4b1: 1
+e4c2: 1
+e4d3: 1
+e4e3: 1
+e4d4: 1
+e4d5: 1
+e4e5: 1
+e4f5: 1
+e4c6: 1
+e4b7: 1
+d2c2: 1
+d2c3: 1
+d2d3: 1
+d2e3: 1
+nodes 32
+>>> go perft 2
+e2e3: 38
+c4c5: 38
+h6h7: 38
+f4g5: 34
+f3e1: 37
+f3g1: 35
+f3h2: 38
+f3d4: 39
+f3h4: 41
+f3e5: 38
+f3g5: 33
+c1b2: 40
+a3a1: 38
+a3a2: 38
+a3b3: 38
+a3c3: 38
+a3d3: 36
+a3e3: 38
+e4b1: 39
+e4c2: 39
+e4d3: 37
+e4e3: 38
+e4d4: 38
+e4d5: 36
+e4e5: 10
+e4f5: 37
+e4c6: 6
+e4b7: 28
+d2c2: 38
+d2c3: 38
+d2d3: 38
+d2e3: 38
+nodes 1135
+>>> go perft 3
+e2e3: 980
+c4c5: 1146
+h6h7: 1290
+f4g5: 1010
+f3e1: 1182
+f3g1: 1076
+f3h2: 1091
+f3d4: 1221
+f3h4: 1221
+f3e5: 1187
+f3g5: 990
+c1b2: 1289
+a3a1: 1013
+a3a2: 1045
+a3b3: 1147
+a3c3: 1047
+a3d3: 1041
+a3e3: 1001
+e4b1: 1104
+e4c2: 1069
+e4d3: 1058
+e4e3: 992
+e4d4: 1221
+e4d5: 1161
+e4e5: 376
+e4f5: 1190
+e4c6: 182
+e4b7: 863
+d2c2: 1296
+d2c3: 1196
+d2d3: 1041
+d2e3: 1022
+nodes 33748
+>>> go perft 4
+e2e3: 33825
+c4c5: 39820
+h6h7: 43042
+f4g5: 31646
+f3e1: 41113
+f3g1: 35588
+f3h2: 38674
+f3d4: 44717
+f3h4: 45975
+f3e5: 37755
+f3g5: 31006
+c1b2: 47085
+a3a1: 35091
+a3a2: 36295
+a3b3: 39979
+a3c3: 36175
+a3d3: 34165
+a3e3: 34176
+e4b1: 41337
+e4c2: 40069
+e4d3: 36675
+e4e3: 35838
+e4d4: 42167
+e4d5: 34657
+e4e5: 10645
+e4f5: 37938
+e4c6: 4917
+e4b7: 21958
+d2c2: 45880
+d2c3: 42361
+d2d3: 36390
+d2e3: 35426
+nodes 1152385
+>>> position fen 7k/4Pb2/2N5/r7/8/K6p/8/6R1 w - - 0 78
+>>> isready
+readyok
+>>> go perft 1
+c6a5: 1
+a3b2: 1
+a3b4: 1
+nodes 3
+>>> go perft 2
+c6a5: 11
+a3b2: 25
+a3b4: 25
+nodes 61
+>>> go perft 3
+c6a5: 275
+a3b2: 678
+a3b4: 619
+nodes 1572
+>>> go perft 4
+c6a5: 2983
+a3b2: 14795
+a3b4: 13190
+nodes 30968
+>>> position fen 1N3bnr/7k/P1p1p2p/2p2bp1/2P1B2n/3P2K1/8/1R6 b - - 1 53
+>>> isready
+readyok
+>>> go perft 1
+g5g4: 1
+e6e5: 1
+h6h5: 1
+h4g2: 1
+h4f3: 1
+h4g6: 1
+g8f6: 1
+g8e7: 1
+f5e4: 1
+f5g6: 1
+f8d6: 1
+f8e7: 1
+f8g7: 1
+h7g6: 1
+h7g7: 1
+nodes 15
+>>> go perft 2
+g5g4: 27
+e6e5: 25
+h6h5: 25
+h4g2: 26
+h4f3: 24
+h4g6: 27
+g8f6: 25
+g8e7: 25
+f5e4: 22
+f5g6: 28
+f8d6: 1
+f8e7: 25
+f8g7: 25
+h7g6: 25
+h7g7: 25
+nodes 355
+>>> go perft 3
+g5g4: 370
+e6e5: 369
+h6h5: 421
+h4g2: 399
+h4f3: 424
+h4g6: 424
+g8f6: 536
+g8e7: 433
+f5e4: 443
+f5g6: 394
+f8d6: 20
+f8e7: 380
+f8g7: 444
+h7g6: 430
+h7g7: 488
+nodes 5975
+>>> go perft 4
+g5g4: 8616
+e6e5: 9055
+h6h5: 9678
+h4g2: 9367
+h4f3: 9565
+h4g6: 10197
+g8f6: 11429
+g8e7: 10475
+f5e4: 8139
+f5g6: 9186
+f8d6: 532
+f8e7: 8704
+f8g7: 10128
+h7g6: 9815
+h7g7: 11528
+nodes 136414
+>>> position fen 1rb1k3/4q3/1B1P3p/1p5P/Q4p2/P3RP2/R5B1/1K6 b - - 7 53
+>>> isready
+readyok
+>>> go perft 1
+f4e3: 1
+b5a4: 1
+c8h3: 1
+c8g4: 1
+c8f5: 1
+c8a6: 1
+c8e6: 1
+c8b7: 1
+c8d7: 1
+b8b6: 1
+b8b7: 1
+b8a8: 1
+e7e3: 1
+e7e4: 1
+e7e5: 1
+e7e6: 1
+e8d7: 1
+e8f7: 1
+e8f8: 1
+nodes 19
+>>> go perft 2
+f4e3: 38
+b5a4: 24
+c8h3: 43
+c8g4: 44
+c8f5: 8
+c8a6: 41
+c8e6: 42
+c8b7: 43
+c8d7: 42
+b8b6: 37
+b8b7: 43
+b8a8: 43
+e7e3: 33
+e7e4: 9
+e7e5: 38
+e7e6: 41
+e8d7: 42
+e8f7: 43
+e8f8: 43
+nodes 697
+>>> go perft 3
+f4e3: 1092
+b5a4: 427
+c8h3: 825
+c8g4: 885
+c8f5: 201
+c8a6: 639
+c8e6: 1317
+c8b7: 785
+c8d7: 813
+b8b6: 774
+b8b7: 783
+b8a8: 856
+e7e3: 938
+e7e4: 152
+e7e5: 711
+e7e6: 617
+e8d7: 896
+e8f7: 1251
+e8f8: 1347
+nodes 15309
+>>> go perft 4
+f4e3: 36534
+b5a4: 9596
+c8h3: 31202
+c8g4: 34408
+c8f5: 6810
+c8a6: 23974
+c8e6: 50208
+c8b7: 29921
+c8d7: 30228
+b8b6: 25221
+b8b7: 29352
+b8a8: 32836
+e7e3: 24771
+e7e4: 5106
+e7e5: 24589
+e7e6: 22540
+e8d7: 33858
+e8f7: 49835
+e8f8: 52628
+nodes 553617
+>>> position fen 4q3/4p3/1pr1k3/p2p3p/PRBP1B1P/5Pp1/2P1K1P1/1NQ3R1 b - - 15 39
+>>> isready
+readyok
+>>> go perft 1
+b6b5: 1
+a5b4: 1
+d5c4: 1
+c6c4: 1
+c6c5: 1
+c6d6: 1
+c6c7: 1
+c6c8: 1
+e8g6: 1
+e8d7: 1
+e8f7: 1
+e8a8: 1
+e8b8: 1
+e8c8: 1
+e8d8: 1
+e8f8: 1
+e8g8: 1
+e8h8: 1
+e6f5: 1
+e6f6: 1
+e6d7: 1
+e6f7: 1
+nodes 22
+>>> go perft 2
+b6b5: 39
+a5b4: 37
+d5c4: 35
+c6c4: 35
+c6c5: 41
+c6d6: 38
+c6c7: 39
+c6c8: 40
+e8g6: 39
+e8d7: 40
+e8f7: 40
+e8a8: 40
+e8b8: 40
+e8c8: 40
+e8d8: 40
+e8f8: 40
+e8g8: 40
+e8h8: 40
+e6f5: 40
+e6f6: 40
+e6d7: 40
+e6f7: 40
+nodes 863
+>>> go perft 3
+b6b5: 929
+a5b4: 787
+d5c4: 725
+c6c4: 890
+c6c5: 958
+c6d6: 817
+c6c7: 978
+c6c8: 897
+e8g6: 931
+e8d7: 686
+e8f7: 773
+e8a8: 835
+e8b8: 939
+e8c8: 842
+e8d8: 842
+e8f8: 963
+e8g8: 954
+e8h8: 954
+e6f5: 1050
+e6f6: 985
+e6d7: 1029
+e6f7: 1084
+nodes 19848
+>>> go perft 4
+b6b5: 34819
+a5b4: 27641
+d5c4: 24476
+c6c4: 29101
+c6c5: 37190
+c6d6: 30116
+c6c7: 36683
+c6c8: 34127
+e8g6: 31866
+e8d7: 25942
+e8f7: 28573
+e8a8: 31719
+e8b8: 34472
+e8c8: 31965
+e8d8: 32061
+e8f8: 36116
+e8g8: 36429
+e8h8: 35134
+e6f5: 39250
+e6f6: 36645
+e6d7: 38460
+e6f7: 40580
+nodes 733365
+>>> position fen 8/8/1r5B/pRq2k1p/P1pP3P/2P1p1p1/3Q2P1/3N1KR1 b - - 3 53
+>>> isready
+readyok
+>>> go perft 1
+e3e2: 1
+e3d2: 1
+b6b5: 1
+b6a6: 1
+b6c6: 1
+b6d6: 1
+b6e6: 1
+b6f6: 1
+b6g6: 1
+b6h6: 1
+b6b7: 1
+b6b8: 1
+c5b5: 1
+c5d5: 1
+c5e5: 1
+f5e4: 1
+f5g4: 1
+f5e6: 1
+f5f6: 1
+f5g6: 1
+nodes 20
+>>> go perft 2
+e3e2: 3
+e3d2: 20
+b6b5: 23
+b6a6: 31
+b6c6: 31
+b6d6: 31
+b6e6: 31
+b6f6: 31
+b6g6: 31
+b6h6: 26
+b6b7: 30
+b6b8: 31
+c5b5: 22
+c5d5: 28
+c5e5: 31
+f5e4: 29
+f5g4: 29
+f5e6: 29
+f5f6: 29
+f5g6: 29
+nodes 545
+>>> go perft 3
+e3e2: 55
+e3d2: 399
+b6b5: 498
+b6a6: 581
+b6c6: 566
+b6d6: 618
+b6e6: 617
+b6f6: 559
+b6g6: 607
+b6h6: 515
+b6b7: 583
+b6b8: 611
+c5b5: 495
+c5d5: 541
+c5e5: 603
+f5e4: 683
+f5g4: 703
+f5e6: 743
+f5f6: 695
+f5g6: 739
+nodes 11411
+>>> go perft 4
+e3e2: 1681
+e3d2: 7827
+b6b5: 10963
+b6a6: 16973
+b6c6: 16487
+b6d6: 18047
+b6e6: 18026
+b6f6: 13672
+b6g6: 17761
+b6h6: 12814
+b6b7: 16569
+b6b8: 17742
+c5b5: 10532
+c5d5: 14256
+c5e5: 16959
+f5e4: 18192
+f5g4: 18851
+f5e6: 20662
+f5f6: 19818
+f5g6: 19912
+nodes 307744
+>>> position fen 7R/2N5/7r/4n2k/8/6K1/8/8 b - - 0 144
+>>> isready
+readyok
+>>> go perft 1
+e5d3: 1
+e5f3: 1
+e5c4: 1
+e5g4: 1
+e5c6: 1
+e5g6: 1
+e5d7: 1
+e5f7: 1
+h6h7: 1
+h6h8: 1
+h5g5: 1
+h5g6: 1
+nodes 12
+>>> go perft 2
+e5d3: 19
+e5f3: 20
+e5c4: 21
+e5g4: 19
+e5c6: 21
+e5g6: 20
+e5d7: 21
+e5f7: 21
+h6h7: 19
+h6h8: 11
+h5g5: 17
+h5g6: 18
+nodes 227
+>>> go perft 3
+e5d3: 268
+e5f3: 272
+e5c4: 294
+e5g4: 212
+e5c6: 273
+e5g6: 178
+e5d7: 254
+e5f7: 235
+h6h7: 274
+h6h8: 221
+h5g5: 385
+h5g6: 324
+nodes 3190
+>>> go perft 4
+e5d3: 5055
+e5f3: 5232
+e5c4: 5871
+e5g4: 4110
+e5c6: 5318
+e5g6: 3238
+e5d7: 4932
+e5f7: 4398
+h6h7: 5130
+h6h8: 2218
+h5g5: 7220
+h5g6: 5985
+nodes 58707
+>>> quit
