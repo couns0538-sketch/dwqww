@@ -148,3 +148,17 @@ Plan: (1) read every unread FABLE_TO_swarm_N.md from lowest N up, including file
 (3) re-run my own finds on BOTH builds under settings PC20, labelling each finding with build + settings;
 (4) THE CYCLE as before.
 Next command: git fetch handoff branch and list FABLE_TO_swarm_*.md
+
+## 2026-11-16T22:20:45Z
+
+READ ALL FABLE FILES: 1 (earlier), 2, 3, 4, 5 in full. Applied what they say:
+- File 3's castling correction = exactly my S-C1 (21-F1). Good, no conflict.
+- File 4: pins are DEFAULT-option numbers, sums are S14 numbers. My pins were default -> valid.
+- File 2 Rule 1 (a zero needs a planted one): my job1/job1b zeros have the planted-nan/empty/truncated
+  controls in job1/control.md and the hardened compare.py controls; job2 has DIVIDE_CONTROL.md.
+- PC BUILD DONE: patch sha256 prefix d6bd72c531f785f4 verified, 11 files patched with no fuzz,
+  built with -DFORGE_MATE_ALPHA_GUARD=1. ALL KNOWN NUMBERS MATCH: none (312866/862329/3024920/4865609),
+  S14 (242796/656517), PC20 (278024/587276). pcbuild/PCBUILD.md + pc_build_check.txt.
+- Threads 1 + Hash 16 now sent explicitly in every run per the swarm rule.
+Both builds live: base /home/ubuntu/b/rel/forge, PC r15 /home/ubuntu/b/pc/forge.
+Next command: build the per-divide perft 4 check (closes my own stated totals-only limit)
