@@ -195,3 +195,21 @@ Also cleaned up: removed two committed .pyc files and three stray empty .txt fil
 .gitignore. Text-only rule now enforced in my folder.
 
 Next: clock 6+0.06 overshoot vs file 6's expectation, then check a seat's NEW finding.
+
+## 2026-11-17T00:52Z — authoritative 20-board clock sample (S-F13) + a correction of my own (S-F14)
+4 shape classes x 5 of MY OWN boards, 5 runs each, PC20, Threads 1, Hash 16, 6s+0.06, 100 runs per class.
+TABLE 1/2 (median / p99 / worst / worst-as-%-of-clock, median utilisation):
+  sparse_few  207.5 / 1585.6 / 1585.8 / 26.2%   3.4%
+  sparse_many 353.0 /  696.8 /  701.9 / 11.6%   5.8%
+  full_few    197.4 /  516.4 /  575.9 /  9.5%   3.3%
+  full_many   303.0 /  545.6 /  542.2 /  8.9%   5.0%
+TABLE 3 (the mechanism): wall time IS the last completed iteration's cost — class medians match 0.99-1.00x,
+Spearman rho 0.998 over 20 boards, 17 of 20 within 2%. The clock tail is an ITERATION-COST tail.
+The exception that matters: `8/8/6k1/Q7/1P4PP/1K3P2/8/8 b` = 1585.6 ms while its last iteration was 667 ms, i.e.
+CUT AT THE HARD LIMIT — and that reproduces seat 08's 1585.4 ms to 0.2 ms on a board set they never used.
+CORRECTION (S-F14): my class medians order OPPOSITE to 08-F28 (mine sparse_few 207.5 vs full_many 303.0 = 0.68x;
+theirs 853.1 vs 161.2 = 5.3x), so I WITHDRAW my S-F12 median-ordering claim and keep only the tail claim. A
+5-board class median samples which boards sit near an expensive iteration boundary, not a class property.
+clock_6s/CLASS_SAMPLE.md, tail_rows.json, correlation.json.
+
+Next: re-check the hard-limit tail on more sparse boards (is it a rate or a one-off?), then a seat's NEW finding.
