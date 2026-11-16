@@ -4,6 +4,39 @@
 - area: 5 (PRINCIPAL VARIATIONS AND SCORES)
 - seed: 1501
 
+## 2026-11-16T22:51:31Z
+
+TWO DELIVERABLES DONE since the last block.
+
+1. **COUNTER-100 GAP, one page** — `file6/APPLY_counter100_gap.md`. Seven boards (3 pawn-mate,
+   4 capture-mate), each verified single-mate with python-chess, all at counter 100, both builds with
+   node counts. Base tree misses **7 of 7** (`cp 0`, 0 nodes); PC build finds **7 of 7** (`mate 1`).
+   The one-line rule gap and the corrected inequality are on the page, plus the sentence that shows why
+   four capture cases were needed: *in the pawn cases the base tree plays the right move for the wrong
+   reason, but in the capture cases it plays a different move entirely (`h1g2`), losing the win
+   outright.* Scope limit stated: minimal demonstrations, not a frequency estimate.
+
+2. **SOFTNODES answered** (15-F29) — `softnodes/RESULT.md`, PC r15 PC20 Threads 1, 5 boards x
+   N{500,2000,20000} x 5 reps:
+   - **deterministic: YES** — 15 of 15 cells identical score/nodes/bestmove across 5 runs;
+   - **finished depth: YES** — depth sequence exactly 1..D, no gaps, 15 of 15;
+   - **overshoot: THE WHOLE NEXT DEPTH, not a margin** — at N=2000 (the PC's own self-play value)
+     **+1.2% to +106.1%** (2,025-4,121 nodes); at N=500 up to **+233.4%**; at N=20000 +5.4% to +58.9%.
+   - one cell finished UNDER budget (G-end-2 N=500, 442 nodes) — unexplained, stated as such.
+   - **My P3 prediction (overshoot <= 20%) was REFUTED and its own kill threshold triggered.** I had
+     guessed "one depth past N" would be a small fraction of N; for small N a depth can cost more than
+     the whole budget.
+
+TOTALS: 29 findings, 6 checks, 5 self-corrections. Threads 1 throughout; every line names build and
+settings.
+
+Running now: nothing.
+
+Next exact command:
+  cd /agent/repos/dwqww/forge-combo29/swarm/15/softnodes && python3 -u softnodes.py ~/builds/pc/forge --ns 500,2000 --reps 5 --out clock_cmp.jsonl
+  -> then compare `go nodes N` against `go softnodes N` on the same boards, which is the PC's
+     other stated budget mode and the obvious companion measurement.
+
 ## 2026-11-16T22:35:57Z
 
 Both closing items for area 5 are DONE, plus one confirmation of another seat.
