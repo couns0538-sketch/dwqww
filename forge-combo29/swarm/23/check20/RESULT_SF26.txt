@@ -13,7 +13,12 @@ fresh process per search, OwnBook off.
 | 10 | **14** | 14 |
 | 30 | **35** | 34 |
 
-VERDICT: CONFIRMS S-F26 exactly — 5 / 14 / 35 against a predicted overhead + 4 of 4 / 14 / 34. Sample rows:
+VERDICT: CONFIRMS S-F26 — 5 / 14 / 35 against a predicted overhead + 4 of 4 / 14 / 34. THE SMALL DEVIATION,
+recorded rather than smoothed: at overhead 0 the boundary is 5 where overhead + 4 predicts 4, and at overhead 30 it
+is 35 where the prediction is 34 — i.e. the boundary is overhead + 5 at the two ends and overhead + 4 in the middle
+(overhead 10 gives exactly 14). So "roughly overhead + 4" is right and the exact rule is `overhead + 4` OR
+`overhead + 5` depending on overhead; my data does not separate those with a granularity of one wtime unit, and their
+own wording ("~4") already allows for it. Sample rows:
 overhead 30 goes 42 nodes for every wtime up to 30, then 889 vs 3190 at wtime 35, 889 vs 23472 at 60, and
 205,119 vs 2,022,167 at 2000.
 
