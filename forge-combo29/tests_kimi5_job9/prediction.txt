@@ -1,0 +1,58 @@
+kimi5 job 9 prediction, written 2026-11-16T14:0xZ from the source only (6b98f217), before any measurement.
+Block: src/search.cpp 1680-1780. Null admission gate 1694 `static_eval >= beta - 24*depth + 180`; null reduction
+1701-1702 `NullMoveBase + depth/NullMoveDepthDivisor + min((eval-beta)/NullMoveEvalDivisor, 3)`; verification gate
+1724-1725 `depth < 14`; ProbCut margin 1746 `beta + ProbcutMargin - 50*improving`; ProbCut tt gate 1748
+`tt_depth >= depth - 3`; ProbCut reduced search 1767 `depth - 4`; ProbCut tt store depth 1773/1775 `depth - 3`.
+Reference: S14 base O sum = 9,500,069 (job 8, reproduced). All factors below are tree factor on O under S14
+vs that base; "bm>20" = best move changes in more than 20 of 200 positions: yes/no predicted.
+
+The gate threshold beta - slope*depth + base FALLS with depth: at S14 the gate binds at low node depths
+(depth 3: beta+108; depth 7: beta+12; depth 12: beta-108, nearly free). The gate counts null TRIES, not
+cutoffs, so every relaxation mostly adds null searches that fail low: tree grows.
+
+1. NullStaticSlope 0: threshold becomes flat beta+180: far FEWER tries at every depth. factor ~1.04
+   (kill range outside [1.01, 1.10]); bm>20: no (fewer nulls mostly confirms the same lines).
+   WHY: slope is the gate's depth term; 0 removes the depth relaxation, the strictest change of the four gate values.
+2. NullStaticSlope 48: threshold falls twice as fast (depth 7: beta-156): MORE tries. factor ~0.97
+   (kill range outside [0.93, 1.005]); bm>20: no. WHY: extra tries are at eval>=beta nodes that mostly cut off.
+3. NullStaticBase 0: threshold drops by 180 at every depth (depth 3: beta-72): many more tries. factor ~0.94
+   (kill range outside [0.88, 1.00]); bm>20: no. WHY: same lever as slope but a constant shift of 180 = 7.5
+   depth-steps of the default slope, the largest gate relaxation of the four.
+4. NullStaticBase 400: threshold rises by 220 (depth 12: beta+112): far fewer tries. factor ~1.05
+   (kill range outside [1.01, 1.12]); bm>20: no. WHY: at S14 depths the gate becomes binding even at depth 12.
+5. NullEvalRedMax 0: reduction loses up to 3 plies at eval-beta >= 600 (S14 NullMoveBase 5: null depth
+   = depth - 5 - depth/3 - bonus): deeper null searches, fewer cheap cutoffs, more accurate ones. factor ~1.03
+   (kill range outside [1.00, 1.09]); bm>20: no. WHY: the bonus term is the only eval-adaptive part of the
+   reduction; removing it deepens every high-eval null search by up to 3 plies.
+6. NullEvalRedMax 6: bonus up to 6: shallower null searches, more cutoffs. factor ~0.96
+   (kill range outside [0.92, 1.00]); bm>20: no. WHY: at depth 12, eval-beta>=1200 the null search drops from
+   depth 12-5-4-3=0 (qsearch) further below zero - already a qsearch, so the change binds only at eval-beta
+   400-1200 and at depths >= 10; small effect.
+7. NullVerifyDepth 8: every null cutoff at node depth 8..13 re-searches at depth-reduction with null banned.
+   factor ~1.08 (kill range outside [1.02, 1.18]); bm>20: YES - the only setting here that REMOVES cutoffs
+   wholesale (failed verifications keep searching), so it flips moves, not just sizes. WHY: 1725's early
+   return is the only exit skipped; verification searches are full-width.
+   (K2 settings NullVerifyDepth 15 and 64: factor 1.000 exactly, bm 0 - at depth 12 no null node reaches
+   depth >= 15, the gate never binds; this is Fable's known answer, adopted as my prediction.)
+8. ProbcutImproving 0: probcut_beta rises 50 at improving nodes: fewer ProbCut cutoffs. factor ~1.01
+   (kill range outside [0.995, 1.03]); bm>20: no. WHY: improving is true at roughly half of non-PV nodes;
+   180 vs 130 margin is a one-third price rise on one exit that already needs SEE and two searches to agree.
+9. ProbcutImproving 100: probcut_beta drops 50 at improving nodes: more cutoffs. factor ~0.99
+   (kill range outside [0.96, 1.005]); bm>20: no. WHY: mirror of 8.
+10. ProbcutReduction 3: the confirming search loses one ply (depth-3 vs depth-4): more cutoffs stand.
+    factor ~0.98 (kill range outside [0.94, 1.005]); bm>20: no. WHY: the qsearch at 1765 already filtered;
+    the depth-4 search is the confirmation, one ply less confirms more.
+11. ProbcutReduction 5: one ply more of confirmation: fewer cutoffs. factor ~1.02
+    (kill range outside [0.995, 1.05]); bm>20: no. WHY: mirror of 10.
+12. ProbcutTtSlack 0: the tt gate needs tt_depth >= depth (was depth-3): gate holds less often, ProbCut
+    RUNS more often. factor ~0.995 (kill range outside [0.97, 1.01]); bm>20: no. WHY: the gate only vetoes
+    ProbCut when a deep entry already says fail-low; at depth 12 with Hash 16 most entries are shallower
+    than depth, so the veto rarely fired anyway - small either way.
+13. ProbcutStoreReduction 0: ProbCut stores at depth (was depth-3): deeper BoundLower entries help later
+    cutoffs. factor ~0.995 (kill range outside [0.98, 1.01]); bm>20: no. WHY: the store happens once per
+    successful ProbCut; the deeper entry mostly re-proves the same cutoff next visit.
+
+Biggest mover per step on O under S14 (my call before measuring): NullVerifyDepth 8 by total shift, and it
+is the only one predicted to change best moves in >20 of 200; per unit of its range (8 vs 14 of 1..64) it is
+also the steepest. On G (tactical, 353 positions from real games) every null-side effect should be larger
+than on O (more eval>=beta nodes, more cutoffs), ProbCut effects smaller in share.
