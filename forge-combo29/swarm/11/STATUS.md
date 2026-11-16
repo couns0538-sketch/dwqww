@@ -195,3 +195,6 @@ regimes (default 4/4 pins, S14 242796/656517, PC20 278024/587276); re-ran my fin
   21-F2 stale board after refused FEN (S-F28), ucinewgame reset + searchmoves 0000 (S-F29).
 - IDENTICAL on PC: whole FEN layer (S-F24/S-F25) and the full 20k sweep (S-F27).
 All numbers Threads 1. Next: continue re-running/expanding finds on PC20, STATUS every 25 min.
+- S-F30: FORGE_FIX_GO_PARSE proven to FIRE (base reaches depth 1 on `go depth nodes 100`, PC r15
+  reaches depth 2; 3/3 runs each). First positive demonstration of a patch switch.
+- S-F31: two of the six switches are OFF in the PC patch (BARE_KING_ONE_THREAD 0, ABORT_PUBLISH 0).
