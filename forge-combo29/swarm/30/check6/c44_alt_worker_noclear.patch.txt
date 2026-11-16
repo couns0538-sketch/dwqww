@@ -1,5 +1,33 @@
---- /home/ubuntu/noaltclear_src/src/search.cpp	2026-11-16 23:24:23.356169113 +0000
-+++ /home/ubuntu/noclear2_src/src/search.cpp	2026-11-16 23:47:48.724169113 +0000
+# EXPERIMENT ONLY — DO NOT SHIP THIS PATCH
+#
+# This is the patch that REFUTED ITS OWN MOTIVATION. It exists so the next reader does not repeat it.
+#
+# MOTIVATION: after C31 (deleting the per-line tt.clear()) the MultiPV cost was reduced but not gone.
+# At `go nodes 20000` the tree is byte-identical (10,877 nodes at every Hash) while wall time grows
+# 21.7 -> 967.8 ms from Hash 16 to 2048 (30-F54). Since the residual is proportional to the table and
+# independent of node count, the obvious remaining suspect was the OTHER per-line call:
+# `Worker::clear()` at :2888, which zeroes every history table (one of them 13.6 MB) once per line
+# per depth. This patch removes it, on top of C31.
+#
+# RESULT: IT DID NOT HELP. All four honesty pins still held (312866 / 862329 / 3024920 / 4865609),
+# so the build was usable, but nodes/ms at MultiPV 3 were:
+#     Hash 16  : C31 615  ->  C44 658   (+7 %)
+#     Hash 64  : C31 393  ->  C44 358   (WORSE)
+#     Hash 256 : C31 149  ->  C44 128   (WORSE)
+#     Hash 1024: C31  40  ->  C44  23   (worse)
+# So `alt_worker->clear()` is NOT the residual, and the residual is still bounded only as "at least one
+# more whole-table pass per search" (30-F54). Page faults were excluded (a warm-up search in the same
+# process does not help) and hashfill() samples only 1,000 clusters (src/search.cpp:645).
+#
+# WHAT TO SHIP INSTEAD: tclear_no_alt_clear.patch.txt (C31) — the same tree WITHOUT this change.
+# Its pins hold and it restores 2.0x-4.2x plus the Hash ceiling. This file is the negative control
+# for that decision.
+#
+# APPLY (for reproducing the refutation only): cd forge-combo29 && patch -p1 --fuzz=0 < this file
+# (it applies on top of a tree that ALREADY has C31 applied)
+#
+--- a/src/search.cpp
++++ b/src/search.cpp
 @@ -2880,7 +2880,12 @@
                  // (alt_shared is constructed at :2730), and each line's search calls
                  // tt.new_search() internally, which already bumps the generation. The full-table

@@ -1,4 +1,9 @@
-# PATCH — drop the redundant per-line TranspositionTable::clear() in the MultiPV loop
+# PATCH — SHIP THIS ONE — drop the redundant per-line TranspositionTable::clear() in the MultiPV loop
+#
+# PAIRED NEGATIVE CONTROL: c44_alt_worker_noclear.patch.txt in this folder is the experiment that
+# refuted its own motivation (removing the per-line Worker::clear() as well: pins held, ~7 % gain at
+# Hash 16, slightly WORSE at 64/256). Read them as a pair -- this one is what to ship, that one is
+# why the next obvious suspect is already eliminated.
 #
 # WHAT IT FIXES: with MultiPV > 1 the engine zeroed the WHOLE transposition table once per extra PV
 # line per depth (src/search.cpp:2879, inside the loop opened at :2851). clear() walks every cluster,

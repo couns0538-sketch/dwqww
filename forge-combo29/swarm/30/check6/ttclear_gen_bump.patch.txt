@@ -1,5 +1,24 @@
---- /home/ubuntu/pcsrc/src/search.cpp	2026-11-16 22:19:18.376169113 +0000
-+++ /home/ubuntu/genfix_src/src/search.cpp	2026-11-16 23:23:15.412169113 +0000
+# REJECTED — DO NOT SHIP THIS PATCH (it fails the honesty gate)
+#
+# The tempting one-liner: replace the body of TranspositionTable::clear() with a generation bump,
+# on the theory that a wrapped generation retires the whole table as cheaply as zeroing it.
+#
+# WHY IT IS REJECTED: it MOVES A HONESTY PIN. bench 16 becomes 3,030,186 instead of the required
+# 3,024,920 (+5,266 nodes); bench 11 and 13 and perft 5 stay correct. A generation bump makes entries
+# OLD, not UNPROBEABLE, and the generation field is only 5 bits (src/search.hpp:95, "bits 3..7
+# generation") and already bumped by new_search() at :158 -- so the variant changed which entries the
+# search would accept. That is a search-tree change, which is exactly what a pin must not allow.
+#
+# SPEED, for the record (this is why it was tempting): 2.1x-4.9x on the eight MultiPV cells, and the
+# per-depth growth disappeared. Cheap and wrong.
+#
+# WHAT TO SHIP INSTEAD: tclear_no_alt_clear.patch.txt (C31), which passes all four pins and restores
+# 2.0x-4.2x, and whose paired negative control is c44_alt_worker_noclear.patch.txt.
+#
+# APPLY (for reproducing the pin movement only): cd forge-combo29 && patch -p1 --fuzz=0 < this file
+#
+--- a/src/search.cpp
++++ b/src/search.cpp
 @@ -451,8 +451,11 @@
  }
  
