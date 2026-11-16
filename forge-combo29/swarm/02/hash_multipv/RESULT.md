@@ -282,3 +282,79 @@ the one that identifies the mechanism.)
   test a modified build. That is the fixer's measurement, not mine.
 - I did not verify that `alt_shared` is always allocated at full size in every mode; the allocation is guarded by
   `multipv > 1 && is_main()` (line 2386), which is the only path I exercised.
+
+---
+
+# DOES THE SECONDARY SEARCH DEPEND ON THE CLEAR? — the experiment, and the answer
+
+This closes the intent question with a measurement instead of an inference: build a variant with the per-line
+`alt_shared->tt.clear()` removed, and compare the emitted MultiPV lines byte for byte.
+
+## what was built and how (nothing in the repository touched)
+- Source: my PC r15 copy at /agent/repos/pc, copied to a scratch tree **/agent/repos/pc-noclear**.
+- One change, committed as TEXT in my folder: `remove_per_line_clear.patch.txt` — the single line
+  `alt_shared->tt.clear();` commented out (src/search.cpp, inside the extra-PV loop), with nothing else altered.
+- Built the same way as the PC build (`-DFORGE_MATE_ALPHA_GUARD=1`, Release).
+- **The variant still passes all four honesty pins** — bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920,
+  perft 5 = 4865609, identical to the PC build. So the variant is a legitimate build, not a broken one; the
+  pins do not exercise MultiPV, which is exactly why this defect survived them.
+
+## the experiment (`remove_clear_probe.py`, raw `clear_dependency_probe.json`)
+One position, `go depth 8`, MultiPV 4, Threads 1, Hash 16, OwnBook false, 3 runs per build, fresh process each.
+
+| | with clear | without clear | identical? |
+|---|---|---|---|
+| line 1 (multipv 1) | `score cp 156 seldepth 20 … pv d4c5 d5d4 f3e5 …` | same | **YES** |
+| line 2 (multipv 2) | `score cp 73 seldepth 19` | `score cp 68 seldepth 18` | **NO** |
+| line 3 (multipv 3) | `score cp 68 seldepth 17` | `score cp 52 seldepth 19` | **NO** |
+| line 4 (multipv 4) | `score cp -18 seldepth 19` | `score cp -18 seldepth 17` | **NO** |
+| bestmove | `d4c5` | `d4c5` | YES |
+
+Both builds were self-consistent across their 3 runs, so this is not noise.
+
+## the control that proves it is the CLEAR and not build variance
+MultiPV 1 never runs the extra-PV loop, so the per-line clear is never called in EITHER build. If the two builds
+differed for any other reason, MultiPV 1 would differ too:
+
+| search | with clear vs without | conclusion |
+|---|---|---|
+| `go depth 8`, **MultiPV 1** | **identical** (both `score cp 156 … pv d4c5 d5d4 f3e5 d4e3 e5c6 b7c6`) | the two builds behave identically where the clear is not executed |
+| `go depth 8`, **MultiPV 2** | **differs**: with `score cp 73 seldepth 19 pv e4d5 e5d4 f3d4`, without `score cp 52 seldepth 15 pv f3e5 c6e5 d4c5` | the difference appears exactly when the clear runs |
+
+That is causation, not correlation: identical where the clear is not reached, different as soon as it is.
+
+## the answer: the clear is LOAD-BEARING
+Removing it **changes the 2nd, 3rd and 4th PV lines and their scores** (cp 73 -> 68, cp 68 -> 52). The MOVE is
+unchanged (`d4c5`), but the multi-line analysis a GUI displays is different. So the "cheap version" is not a
+free speed change: whatever replaces the clear must reproduce these exact numbers.
+
+And it is a large speed win, which is why it is worth doing carefully rather than reverting:
+
+| `go depth 12`, Hash 2048, MultiPV 8 | run 1 | run 2 |
+|---|---|---|
+| with the clear | 14710 ms | 13883 ms |
+| clear removed | **1057 ms** | **1254 ms** |
+| `go depth 12`, MultiPV 1 (control) | 50 ms with, 49 ms without | — |
+
+**13.9 s -> 1.1 s, about 12.6x**, at identical honesty pins.
+
+## which of the three fixer options is real — now decided by measurement, not reading
+1. **Remove the clear outright: REJECTED as a pure speed patch.** It changes MultiPV scores and PVs. It would
+   need a match to justify the behaviour change, and on this evidence I would not take that trade for a score
+   change in lines 2-4.
+2. **Make the clear cheap (clear only the clusters the line touched): STILL THE CANDIDATE, but it must be
+   validated against the numbers above** — specifically cp 73 / cp 68 / cp -18 with those PVs at MultiPV 4,
+   depth 8, on this position. If a cheap clear reproduces those, it is a true speed change. If it reproduces
+   the no-clear numbers instead, then the FULL clear is what produces the current output and the cheap version is
+   also a behaviour change.
+   Note what this rules out: my earlier guess that the entries "line k-1 never wrote" are irrelevant is now
+   suspect — the no-clear run's DIFFERENT numbers suggest the surviving entries do affect the later lines'
+   scores, so a cluster-local clear may not be equivalent either. My reading was that it should be; the
+   measurement says the surviving state matters. I record the correction rather than defend the guess.
+3. **Generation bump instead of clear: still behaviour-changing**, and now demonstrably so, since the no-clear
+   variant IS effectively that experiment and it changed the output.
+
+## what I did NOT do
+- Did not build or test a cluster-local clear. That is the next experiment and it is the fixer's call.
+- Did not test positions other than the one above; a single position decides the PRINCIPLE (the clear is
+  load-bearing) but not the magnitude across the 353-position G set.
