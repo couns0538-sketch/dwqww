@@ -1,0 +1,23 @@
+A: r4rk1/pp1b1ppp/4p3/3pP3/8/P3P3/1P2N1PP/R2R2K1 w - - 99 1
+
+1. white's quiet move a1a2 puts the clock at 100 for black:
+   FEN r4rk1/pp1b1ppp/4p3/3pP3/8/P3P3/RP2N1PP/3R2K1 b - - 100 1   clock 100
+   python-chess: is_game_over(claim_draw=True) = True
+   -> at clock 100 with black to move, the game IS drawn unless black is checkmated.
+      is_checkmate = False
+
+2. can BLACK avoid the draw? black must make a move; if black plays a capture or pawn move,
+   the clock resets and the game continues:
+   black's reset moves: 11 ['h7h6', 'g7g6', 'f7f6', 'b7b6', 'a7a6', 'd5d4']
+
+3. so what should the engine say at clock 99?
+   clock 0  : ('cp', -155), bestmove d1c1
+   clock 99 : ('cp', 0), bestmove a1a2
+
+VERDICT: white at clock 99 can reach clock 100 with a quiet move, and the game is then DRAWN
+(the fifty-move rule, not a claim either side can refuse once 100 quiet half-moves have passed).
+So `cp 0` at clock 99 is CORRECT for white - it is a real drawing resource, and the clock-0 value of
+-155 cp is what white AVOIDS by taking it. The engine reporting 0 here is RIGHT.
+
+What is then WRONG is narrower: the engine reports the draw with a 1-ply PV and, in the earlier
+severity test, plays a move that is 40-999 cp worse when the clock is NOT actually drawn.
