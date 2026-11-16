@@ -1,0 +1,71 @@
+--- /home/ubuntu/j8work/trace_pristine/src/search.cpp	2026-11-15 23:29:23.885857468 +0000
++++ src/search.cpp	2026-11-15 23:29:35.685857468 +0000
+@@ -9,6 +9,9 @@
+ #include <cstring>
+ #include <iostream>
+ #include <limits>
++#ifdef FORGE_ASP_STATS
++#include <cstdio>
++#endif
+ #include <optional>
+ #if FORGE_NNUE_V3
+ #ifndef FORGE_NNUE_V3_VERIFY
+@@ -103,6 +106,22 @@
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
+ bool EvasionOrdering = false;
++#ifdef FORGE_ASP_STATS
++// glmflash2 job 8 counters: how often each switch actually changes a root
++// aspiration decision. Printed to stderr at process exit.
++long long g_asp8_root_iterations = 0;
++long long g_asp8_armlate_changed = 0;
++long long g_asp8_capped_events = 0;
++long long g_asp8_capped_changed = 0;
++struct Asp8StatsPrinter {
++    ~Asp8StatsPrinter() {
++        std::fprintf(stderr,
++            "ASP8_STATS root_iterations=%lld armlate_changed=%lld capped_events=%lld capped_changed=%lld\n",
++            g_asp8_root_iterations, g_asp8_armlate_changed, g_asp8_capped_events, g_asp8_capped_changed);
++    }
++};
++static Asp8StatsPrinter g_asp8_printer;
++#endif
+ bool QuietExtinction = false;
+ bool TmFinishIteration = false;
+ bool TmNodeShare = false;
+@@ -2402,7 +2421,12 @@
+         int beta = Infinite;
+         // Narrow from depth 4. AspArmLate reopens a full window for one iteration
+         // after the previous iteration failed high or low at least once.
+-        const bool narrow = depth >= 4 && !(tune::AspArmLate && reopen_full_window);
++        const bool armlate_full = tune::AspArmLate && reopen_full_window;
++        const bool narrow = depth >= 4 && !armlate_full;
++#ifdef FORGE_ASP_STATS
++        if (depth >= 4) ++tune::g_asp8_root_iterations;
++        if (armlate_full && depth >= 4) ++tune::g_asp8_armlate_changed;
++#endif
+         if (narrow) {
+             alpha = std::max(score - delta, -Infinite);
+             beta = std::min(score + delta, Infinite);
+@@ -2418,6 +2442,10 @@
+                 beta = (alpha + beta) / 2;
+                 if (tune::AspCappedReopen) {
+                     alpha = capped_fail_low(iteration_score);
++#ifdef FORGE_ASP_STATS
++                    ++tune::g_asp8_capped_events;
++                    if (alpha != std::max(iteration_score - delta, -Infinite)) ++tune::g_asp8_capped_changed;
++#endif
+                     if (iteration_score <= alpha) break;
+                 } else {
+                     alpha = std::max(iteration_score - delta, -Infinite);
+@@ -2426,6 +2454,10 @@
+                 failed_window = true;
+                 if (tune::AspCappedReopen) {
+                     beta = capped_fail_high(iteration_score);
++#ifdef FORGE_ASP_STATS
++                    ++tune::g_asp8_capped_events;
++                    if (beta != std::min(iteration_score + delta, Infinite)) ++tune::g_asp8_capped_changed;
++#endif
+                     if (iteration_score >= beta) break;
+                 } else {
+                     beta = std::min(iteration_score + delta, Infinite);
