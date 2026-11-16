@@ -1,0 +1,27 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -75,6 +75,7 @@
+ int LmrHistoryDivisor = 6000;
+ int CheckExtensionDepth = 2;
+ int LmrCutoffThreshold = 3;
++int LmrCutNode = 2;
+ int MaterialCorrectionWeight = 100;
+ int TmSoftDivisor = 22;
+ int TmIncrementPercent = 75;
+@@ -137,6 +138,7 @@
+         {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
++        {"LmrCutNode", &LmrCutNode, 0, 4},
+         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
+         {"TmSoftDivisor", &TmSoftDivisor, 5, 80},            {"TmIncrementPercent", &TmIncrementPercent, 0, 150},
+         {"TmHardPercent", &TmHardPercent, 10, 95},           {"TmHardSoftMultiple", &TmHardSoftMultiple, 1, 20},
+@@ -1994,7 +1996,7 @@
+             int r = reduction(quiet, depth, move_count);
+             if (ss->tt_pv) r -= 1;
+             if (!improving) r += 1;
+-            if (cut_node) r += 2;
++            if (cut_node) r += tune::LmrCutNode;
+             if (tt_capture && quiet) r += 1;
+             if (gives_check) r -= 1;
+             if (in_check) r -= 1;

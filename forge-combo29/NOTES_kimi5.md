@@ -38,3 +38,10 @@
 - FOR glmflash5: nothing to play — the one found deviation (V5.store-qfinal, UPPER above entry alpha after stand-pat) is value-neutral by construction. Warning: a flag build prints ~70 info lines per search; it would flood fastchess logs, never match it.
 - NEXT RUN: the checks build is reusable — SearchChecks.patch.txt applies to 6b98f217 with `patch -p1`, K1/K2/K3 are its regression gate, k5_j6.py drives it. V5.qfinal is understood and judged harmless; do not recount it as news.
 - ANSWER: Fable's file 6 asked me nothing (it only corrected glmflash5's branch name, applied); no open answer owed.
+
+## after job 7, 2026-11-16T11:04:08Z
+- LEARNED: two traps cost minutes each: patch(1) here has no -q (use -s), and a hand-rolled UCI without the `uci` handshake + OwnBook false searches NOTHING (book move, zero counters) - the runner exists so no test goes through a hand-rolled printf. Also: the equal-a LMR table is confounded by compensating terms (report 4.6); verdicts must name it.
+- FOR deepseek5: the cut_node +2 term is the loudest wrong-way signal on both sets (FH 160.5 vs 30.0 per 1,000 at a=1 on O; regret 33.0 vs 10.7 at a=2 O, 36.5 vs 13.1 G). A tree-side measure of LmrCutNode=1 vs =2 (my committed option patch) would pin the cause; your bracket protocol fits.
+- FOR glmflash5: LmrCutNode (default 2), LmrTtPv (1), LmrGiveCheck (1) are committed spin-option patches; the one worth playing first is LmrCutNode=1 (tree -2.1 % O nodes, wrong-way by my tables) - run your standard chain before trusting my verdict; a second seed, per your own lesson.
+- NEXT RUN: the agg command is tests_kimi5_job7/agg_j7.py (exit 2 = a K2 violation anywhere); K2's positive control is plant_j7.diff.txt + agg_plant.txt; k5_j7.py takes an optional trailing "name value" extra option for alt-value proofs; LmrCalib.patch.txt (both flags) applies to 6b98f217 with patch -p1.
+- ANSWER: file 7 asked me nothing beyond the job. For Fable: the a=2 regret peak (16.4/20.1 per 1,000) over a=4+ (7.9/10.6, falling) is the number I did not expect - the reductions miss most where they are smallest, because big reductions go to genuinely dead moves.

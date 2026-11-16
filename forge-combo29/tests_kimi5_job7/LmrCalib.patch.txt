@@ -1,0 +1,361 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -235,6 +235,258 @@
+     return quiet ? Reductions.quiet[d][m] : Reductions.noisy[d][m];
+ }
+ 
++#if FORGE_LMR_REGRET && !FORGE_LMR_CALIB
++#error FORGE_LMR_REGRET needs FORGE_LMR_CALIB (the probe reuses the event classification)
++#endif
++
++#if FORGE_LMR_CALIB
++// ---------------------------------------------------------------------------
++// LMR calibration counters (kimi5 job 7). Observe-only: no value, control
++// flow or table entry of the search is changed. Plain counters (all runs of
++// this job use Threads 1). The search driver resets them per UCI search and
++// prints them at its end; K2 self-check lines carry made / expected / viol.
++namespace lmrc {
++
++constexpr int HIST_NA = 3; // history term not applicable (noisy move)
++
++struct Event {
++    std::uint64_t n0 = 0;        // local_nodes_ before the reduced search
++    std::uint64_t nodes_red = 0; // nodes of the reduced search
++    std::uint64_t nodes_re = 0;  // nodes of the line-2023 re-search (0 if none)
++    int a = 0;                   // new_depth - reduced_depth
++    int kind = 0;                // 0 = tt_pv, 1 = cut_node (not tt_pv), 2 = neither
++    int db = 0;                  // depth bucket 0: 2-3, 1: 4-6, 2: 7-9, 3: 10+
++    int mb = 0;                  // move_count bucket 0: 2-4, 1: 5-8, 2: 9-16, 3: 17+
++    int hist = HIST_NA;          // history term value -2..2 (quiet moves only)
++    bool quiet = false;
++    bool fired[7] = {};          // terms 1..7 fired (term 8 = history, in hist)
++    bool fh = false;             // reduced search score > alpha
++    bool conf = false;           // score after the line-2023 re-search > alpha
++    bool researched = false;     // line 2023 executed for this event
++};
++
++std::uint64_t cell_n[6][2][3][4][4] = {};
++std::uint64_t cell_fh[6][2][3][4][4] = {};
++std::uint64_t cell_conf[6][2][3][4][4] = {};
++std::uint64_t cell_rn[6][2][3][4][4] = {};
++std::uint64_t cell_re[6][2][3][4][4] = {};
++std::uint64_t term_n[7][6][2] = {};
++std::uint64_t term_fh[7][6][2] = {};
++std::uint64_t term_conf[7][6][2] = {};
++std::uint64_t hist_n[6][5] = {};
++std::uint64_t hist_fh[6][5] = {};
++std::uint64_t hist_conf[6][5] = {};
++std::uint64_t hist_noisy[6] = {};
++std::uint64_t passes = 0;
++std::uint64_t research2023 = 0;
++std::uint64_t dblcap = 0;
++thread_local bool in_probe = false;
++
++#if FORGE_LMR_REGRET
++std::uint64_t reg_seen = 0;
++std::uint64_t rg_n[6][2][3] = {};
++std::uint64_t rg_missed[6][2][3] = {};
++std::uint64_t rg_nodes[6][2][3] = {};
++std::uint64_t rg_one[6][2][3] = {};
++std::uint64_t rgterm_n[7][6][2] = {};
++std::uint64_t rgterm_missed[7][6][2] = {};
++std::uint64_t rghist_n[6][5] = {};
++std::uint64_t rghist_missed[6][5] = {};
++#endif
++
++void reset() {
++    std::memset(cell_n, 0, sizeof(cell_n));
++    std::memset(cell_fh, 0, sizeof(cell_fh));
++    std::memset(cell_conf, 0, sizeof(cell_conf));
++    std::memset(cell_rn, 0, sizeof(cell_rn));
++    std::memset(cell_re, 0, sizeof(cell_re));
++    std::memset(term_n, 0, sizeof(term_n));
++    std::memset(term_fh, 0, sizeof(term_fh));
++    std::memset(term_conf, 0, sizeof(term_conf));
++    std::memset(hist_n, 0, sizeof(hist_n));
++    std::memset(hist_fh, 0, sizeof(hist_fh));
++    std::memset(hist_conf, 0, sizeof(hist_conf));
++    std::memset(hist_noisy, 0, sizeof(hist_noisy));
++    passes = 0;
++    research2023 = 0;
++    dblcap = 0;
++#if FORGE_LMR_REGRET
++    reg_seen = 0;
++    std::memset(rg_n, 0, sizeof(rg_n));
++    std::memset(rg_missed, 0, sizeof(rg_missed));
++    std::memset(rg_nodes, 0, sizeof(rg_nodes));
++    std::memset(rg_one, 0, sizeof(rg_one));
++    std::memset(rgterm_n, 0, sizeof(rgterm_n));
++    std::memset(rgterm_missed, 0, sizeof(rgterm_missed));
++    std::memset(rghist_n, 0, sizeof(rghist_n));
++    std::memset(rghist_missed, 0, sizeof(rghist_missed));
++#endif
++}
++
++void fill(Event& e, int a, bool quiet, bool tt_pv, bool cut_node, int depth, int move_count, bool not_improving,
++          bool tt_capture_quiet, bool gives_check, bool in_check_node, bool cutoff_fired, int hist_value,
++          std::uint64_t n0) {
++    e.a = a;
++    e.quiet = quiet;
++    e.kind = tt_pv ? 0 : (cut_node ? 1 : 2);
++    e.db = depth <= 3 ? 0 : depth <= 6 ? 1 : depth <= 9 ? 2 : 3;
++    e.mb = move_count <= 4 ? 0 : move_count <= 8 ? 1 : move_count <= 16 ? 2 : 3;
++    e.hist = quiet ? hist_value : HIST_NA;
++    e.fired[0] = tt_pv;
++    e.fired[1] = not_improving;
++    e.fired[2] = cut_node;
++    e.fired[3] = tt_capture_quiet;
++    e.fired[4] = gives_check;
++    e.fired[5] = in_check_node;
++    e.fired[6] = cutoff_fired;
++    e.n0 = n0;
++}
++
++void after_reduced(Event& e, bool fh, std::uint64_t now) {
++    e.fh = fh;
++    e.nodes_red = now - e.n0;
++}
++
++void after_research(Event& e, bool conf, std::uint64_t nodes) {
++    e.conf = conf;
++    e.researched = true;
++    e.nodes_re = nodes;
++}
++
++void record(const Event& e) {
++    const int ac = std::min(e.a, 5);
++    const int q = e.quiet ? 1 : 0;
++    const bool conf = e.researched ? e.conf : (e.a == 0 && e.fh);
++    ++passes;
++    research2023 += e.researched ? 1 : 0;
++    ++cell_n[ac][q][e.kind][e.db][e.mb];
++    cell_fh[ac][q][e.kind][e.db][e.mb] += e.fh ? 1 : 0;
++    cell_conf[ac][q][e.kind][e.db][e.mb] += conf ? 1 : 0;
++    cell_rn[ac][q][e.kind][e.db][e.mb] += e.nodes_red;
++    cell_re[ac][q][e.kind][e.db][e.mb] += e.nodes_re;
++    for (int t = 0; t < 7; ++t) {
++        const int f = e.fired[t] ? 1 : 0;
++        ++term_n[t][ac][f];
++        term_fh[t][ac][f] += e.fh ? 1 : 0;
++        term_conf[t][ac][f] += conf ? 1 : 0;
++    }
++    if (e.quiet) {
++        const int h = e.hist + 2;
++        ++hist_n[ac][h];
++        hist_fh[ac][h] += e.fh ? 1 : 0;
++        hist_conf[ac][h] += conf ? 1 : 0;
++    } else {
++        ++hist_noisy[ac];
++    }
++}
++
++#if FORGE_LMR_REGRET
++void record_probe(const Event& e, bool missed, std::uint64_t pnodes) {
++    const int ac = std::min(e.a, 5);
++    const int q = e.quiet ? 1 : 0;
++    ++rg_n[ac][q][e.kind];
++    rg_missed[ac][q][e.kind] += missed ? 1 : 0;
++    rg_nodes[ac][q][e.kind] += pnodes;
++    rg_one[ac][q][e.kind] += pnodes == 1 ? 1 : 0;
++    for (int t = 0; t < 7; ++t) {
++        const int f = e.fired[t] ? 1 : 0;
++        ++rgterm_n[t][ac][f];
++        rgterm_missed[t][ac][f] += missed ? 1 : 0;
++    }
++    if (e.quiet) {
++        const int h = e.hist + 2;
++        ++rghist_n[ac][h];
++        rghist_missed[ac][h] += missed ? 1 : 0;
++    }
++}
++#endif
++
++void print() {
++    std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++    std::uint64_t cells_sum = 0, fh_ge1 = 0;
++    for (int a = 0; a < 6; ++a)
++        for (int q = 0; q < 2; ++q)
++            for (int k = 0; k < 3; ++k)
++                for (int d = 0; d < 4; ++d)
++                    for (int m = 0; m < 4; ++m) {
++                        cells_sum += cell_n[a][q][k][d][m];
++                        if (a >= 1) fh_ge1 += cell_fh[a][q][k][d][m];
++                    }
++    std::cout << "info string LMRK2 cells " << cells_sum << " passes " << passes << " viol "
++              << (cells_sum != passes ? 1 : 0) << "\n";
++    std::cout << "info string LMRK2 fhge1 " << fh_ge1 << " re2023 " << research2023 << " viol "
++              << (fh_ge1 != research2023 ? 1 : 0) << "\n";
++    for (int t = 0; t < 7; ++t) {
++        std::uint64_t s = 0;
++        for (int a = 0; a < 6; ++a) s += term_n[t][a][0] + term_n[t][a][1];
++        std::cout << "info string LMRK2 term" << (t + 1) << " " << s << " cells " << cells_sum << " viol "
++                  << (s != cells_sum ? 1 : 0) << "\n";
++    }
++    std::uint64_t hs = 0;
++    for (int a = 0; a < 6; ++a) {
++        for (int h = 0; h < 5; ++h) hs += hist_n[a][h];
++        hs += hist_noisy[a];
++    }
++    std::cout << "info string LMRK2 hist " << hs << " cells " << cells_sum << " viol " << (hs != cells_sum ? 1 : 0)
++              << "\n";
++    std::cout << "info string LMRDBL refused " << dblcap << "\n";
++    for (int a = 0; a < 6; ++a)
++        for (int q = 0; q < 2; ++q)
++            for (int k = 0; k < 3; ++k)
++                for (int d = 0; d < 4; ++d)
++                    for (int m = 0; m < 4; ++m)
++                        if (cell_n[a][q][k][d][m])
++                            std::cout << "info string LMRCELL a" << a << " q" << q << " k" << k << " d" << d << " m"
++                                      << m << " n " << cell_n[a][q][k][d][m] << " fh " << cell_fh[a][q][k][d][m]
++                                      << " conf " << cell_conf[a][q][k][d][m] << " rn " << cell_rn[a][q][k][d][m]
++                                      << " re " << cell_re[a][q][k][d][m] << "\n";
++    for (int t = 0; t < 7; ++t)
++        for (int a = 0; a < 6; ++a)
++            for (int f = 0; f < 2; ++f)
++                if (term_n[t][a][f])
++                    std::cout << "info string LMRTERM t" << (t + 1) << " a" << a << " f" << f << " n "
++                              << term_n[t][a][f] << " fh " << term_fh[t][a][f] << " conf " << term_conf[t][a][f]
++                              << "\n";
++    for (int a = 0; a < 6; ++a) {
++        for (int h = 0; h < 5; ++h)
++            if (hist_n[a][h])
++                std::cout << "info string LMRHIST a" << a << " h" << (h - 2) << " n " << hist_n[a][h] << " fh "
++                          << hist_fh[a][h] << " conf " << hist_conf[a][h] << "\n";
++        if (hist_noisy[a])
++            std::cout << "info string LMRHIST a" << a << " noisy n " << hist_noisy[a] << "\n";
++    }
++#if FORGE_LMR_REGRET
++    std::uint64_t rgt_probes = 0;
++    for (int a = 0; a < 6; ++a)
++        for (int q = 0; q < 2; ++q)
++            for (int k = 0; k < 3; ++k) rgt_probes += rg_n[a][q][k];
++    std::cout << "info string LMRRGTK2 faillow " << reg_seen << " probes " << rgt_probes << " viol "
++              << (rgt_probes != reg_seen / 8 ? 1 : 0) << "\n";
++    for (int a = 0; a < 6; ++a)
++        for (int q = 0; q < 2; ++q)
++            for (int k = 0; k < 3; ++k)
++                if (rg_n[a][q][k])
++                    std::cout << "info string LMRRGT a" << a << " q" << q << " k" << k << " n " << rg_n[a][q][k]
++                              << " missed " << rg_missed[a][q][k] << " nodes " << rg_nodes[a][q][k] << " one "
++                              << rg_one[a][q][k] << "\n";
++    for (int t = 0; t < 7; ++t)
++        for (int a = 0; a < 6; ++a)
++            for (int f = 0; f < 2; ++f)
++                if (rgterm_n[t][a][f])
++                    std::cout << "info string LMRRGTTERM t" << (t + 1) << " a" << a << " f" << f << " n "
++                              << rgterm_n[t][a][f] << " missed " << rgterm_missed[t][a][f] << "\n";
++    for (int a = 0; a < 6; ++a)
++        for (int h = 0; h < 5; ++h)
++            if (rghist_n[a][h])
++                std::cout << "info string LMRRGTHIST a" << a << " h" << (h - 2) << " n " << rghist_n[a][h]
++                          << " missed " << rghist_missed[a][h] << "\n";
++#endif
++    std::cout << std::endl;
++}
++
++} // namespace lmrc
++#endif
++
+ [[nodiscard]] int lmp_threshold(int depth, bool improving) {
+     return improving ? tune::LmpBase + depth * depth : (tune::LmpBase + depth * depth) / 2;
+ }
+@@ -1945,6 +2197,11 @@
+                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+                     extension = 2;
+                 }
++#if FORGE_LMR_CALIB
++                // Part 5 (job 7): refused a double extension ONLY because of the cap.
++                if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions > 6)
++                    ++lmrc::dblcap;
++#endif
+             } else if (singular_beta >= beta) {
+                 return singular_beta;
+             } else if (tt_score >= beta) {
+@@ -2009,10 +2266,47 @@
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
++#if FORGE_LMR_CALIB
++            lmrc::Event cev;
++            const bool cev_on = !lmrc::in_probe;
++            if (cev_on)
++                lmrc::fill(cev, new_depth - reduced_depth, quiet, ss->tt_pv, cut_node, depth, move_count,
++                           !improving, tt_capture && quiet, gives_check, in_check,
++                           tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold,
++                           quiet ? std::clamp(history / tune::LmrHistoryDivisor, -2, 2) : lmrc::HIST_NA,
++                           local_nodes_);
++#endif
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
++#if FORGE_LMR_CALIB
++            if (cev_on) lmrc::after_reduced(cev, score > alpha, local_nodes_);
++#endif
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
++#if FORGE_LMR_REGRET
++            // Job 7 part 3: every 8th failed-low reduced search (a >= 1) is probed at
++            // full depth; the probe's result is counted and thrown away. Restored
++            // around the probe: (ss+1)/(ss+2) cutoff_count and killers. Not restored:
++            // the hash table and the history tables (cannot be), per-ply killers below
++            // ss+2, and fields overwritten before any later read (pv, static_eval,
++            // tt_pv, arrival_index, current_move and siblings).
++            if (cev_on && !aborted_ && reduced_depth < new_depth && score <= alpha && ++lmrc::reg_seen % 8 == 0) {
++                lmrc::in_probe = true;
++                const int saved_cut1 = (ss + 1)->cutoff_count;
++                const int saved_cut2 = (ss + 2)->cutoff_count;
++                const std::array<Move, 2> saved_k1 = (ss + 1)->killers;
++                const std::array<Move, 2> saved_k2 = (ss + 2)->killers;
++                const std::uint64_t probe_n0 = local_nodes_;
++                const int probe_score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
++                const std::uint64_t probe_nodes = local_nodes_ - probe_n0;
++                (ss + 1)->cutoff_count = saved_cut1;
++                (ss + 2)->cutoff_count = saved_cut2;
++                (ss + 1)->killers = saved_k1;
++                (ss + 2)->killers = saved_k2;
++                lmrc::in_probe = false;
++                if (!aborted_) lmrc::record_probe(cev, probe_score > alpha, probe_nodes);
++            }
++#endif
+             if (full_depth_needed) {
+                 if (tune::LmrDeeperShallower) {
+                     const bool do_deeper = score > best_score + 40 + 2 * new_depth;
+@@ -2020,10 +2314,19 @@
+                     new_depth += static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
+                 }
+                 if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
++#if FORGE_LMR_CALIB
++                    const std::uint64_t cev_re0 = local_nodes_;
++#endif
+                     score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
++#if FORGE_LMR_CALIB
++                    if (cev_on) lmrc::after_research(cev, score > alpha, local_nodes_ - cev_re0);
++#endif
+                 }
+                 full_depth_needed = false;
+             }
++#if FORGE_LMR_CALIB
++            if (cev_on && !aborted_) lmrc::record(cev);
++#endif
+             if (!aborted_ && quiet && score > alpha) {
+                 // A late quiet move that beat expectations deserves a history boost.
+                 update_continuation(ss, moved, move.to, history_bonus(depth) / 2);
+@@ -2705,6 +3008,9 @@
+     }
+     // Age the table once per search, before any worker can probe it.
+     shared_.tt.new_search();
++#if FORGE_LMR_CALIB
++    lmrc::reset();
++#endif
+     std::optional<TranspositionTable::ExclusiveLease> exclusive;
+     // MultiPV above 1 does not start helpers, so the main thread may own the
+     // table the way a one-thread search does.
+@@ -2747,6 +3053,9 @@
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#if FORGE_LMR_CALIB
++    lmrc::print();
++#endif
+     return result;
+ }
+ 

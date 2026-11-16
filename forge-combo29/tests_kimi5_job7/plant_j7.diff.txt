@@ -1,0 +1,10 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -367,6 +367,7 @@
+     for (int t = 0; t < 7; ++t) {
+         const int f = e.fired[t] ? 1 : 0;
+         ++term_n[t][ac][f];
++        if (t == 2) ++term_n[t][ac][f]; // PLANTED FAULT: double count, K2 must report
+         term_fh[t][ac][f] += e.fh ? 1 : 0;
+         term_conf[t][ac][f] += conf ? 1 : 0;
+     }
