@@ -190,3 +190,23 @@ worse than an alternative by more than a queen).
 
 Next command:
 `cd /agent/repos/dwqww/forge-combo29/swarm/03/job11 && python3 scan_loneking.py ~/build-pc/forge scan.txt`
+
+## 2026-11-16T23:16Z — job11 DONE (scan)
+
+**Headline stands: S-F20 (losing-move misevaluation, play-out proven) + S-F21 (cap fires 6x at root, never on the
+candidates → cap is the cost, root comparison the cause).**
+job11 — 50 real-game lone-king positions, depth 16, PC20, Threads 1, Hash 16:
+- **strict S-F20 signature: 0 of 50. My prediction (5-20) is KILLED.**
+- any-margin mismatch: **11 of 45 scorable** (median 36 cp, max 161).
+- ply cost on the 8 largest gaps (play-out d8): **chosen dies sooner in 5 of 8**, +4/+21/+23/+38/**+49** plies;
+  four lose at once where the alternative survives 22-50.
+- Set rebuilt mid-job: 40 self-play games all collapsed to the same K+N vs K+N drawn position (S-F24), so endings
+  were generated from material-imbalanced starts instead (50 from 143 games). Also fixed a silent SquareSet-vs-int
+  bug in my own generator, now guarded by a known-answer self-test.
+Findings S-F22, S-F23, S-F24. Report REPORT_job11.md.
+
+Next: depth-16 play-out on the 4 instant-loss cases (are they the same root fault or a d8 quiescence artefact?),
+then assemble the FINAL block with S-F20/S-F21 at the top.
+
+Next command:
+`cd /agent/repos/dwqww/forge-combo29/swarm/03/job11 && PC_TOPN=4 PC_DEPTH=16 python3 plycost.py eg50.tsv scan50.txt plycost_d16.txt`
