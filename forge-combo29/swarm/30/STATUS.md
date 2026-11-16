@@ -57,3 +57,9 @@ Seat kept: 30 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-30, folde
 
 **PC r15 BUILD WORKS.** Patch extracted from FABLE_TO_swarm_5.md, sha256 starts d6bd72c531f785f4 (exactly as file 5 states), applied with patch -p1 (11 files, rc=0), built with -DFORGE_MATE_ALPHA_GUARD=1. ALL EIGHT known answers match: none 312866/862329/3024920/4865609; S14 242796/656517; PC20 278024/587276. Threads 1 + Hash 16 now set explicitly in every harness (owner's rule). No recorded result of mine ever used Threads > 1 (the only mentions are check3's deliberate setoption-parsing probes, which never contributed a score).
 **Next command**: `python3 check1/check_s01f5.py ~/b/pc/forge out_pc` — re-run my own findings 30-C1/30-F7/F8 on the PC build under PC20.
+
+## Mon Nov 16 10:24:25 PM UTC 2026
+
+**PC r15 built and verified** (patch sha256 d6bd72c5..., 8/8 known answers: none 312866/862329/3024920/4865609, S14 242796/656517, PC20 278024/587276). BOTH builds now used; Threads 1 everywhere.
+**Findings this stretch**: 30-C4 my halfmove-mate find is REPAIRED on the PC (all counters find the mate, draw still handled); 30-C5/30-F20 the fifty-move horizon + 7.25M-node spike PERSIST on the PC; 30-F21/22 stdin-close fabrication is on the PC too; 30-C6 CORRECTS my own F21/F22 — the window is only 0 ms, not all searches; 30-F23 intermediate answers differ (1-20 ms); 30-C7/30-F24 REFUTE my own clock worry — clock stop is faithful to its node budget 20/20.
+**Next command**: `cd pc && python3 clock_vs_nodes.py out_clocknodes_pc 20` on the PC build, then re-run my area-10 job-2 UCI sequences on PC r15 under PC20.
