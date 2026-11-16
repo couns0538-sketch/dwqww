@@ -119,3 +119,20 @@ Counts: 64 FINDINGS lines (22 checks), tree clean, every push includes this file
   d2d4/cp 24/22459; PC20 = d2d4/cp 25/21600. So the S14 labelling is otherwise sound, and the default answer being
   identical on both builds is why the four honesty pins stay comparable.
 Remaining: seat 28's S-F21/S-F19 (three competing drawn-root patches — which one to advise).
+
+## 2026-11-16T22:33:34Z QUEUE COMPLETE — all 8 short-list entries addressed at Threads 1
+S-C17 (seat 30 30-C4) | S-C18 (seat 25 S-F1/S-F2) | S-C19 (seat 28 S-F4) | S-C20 (seat 21 21-F11)
+S-C21 (seat 21 21-F9) | S-C22 (seat 01 S-F22+S-F23) | S-C23 (seat 27 S-F8) | S-C24 (seat 28 S-F21/S-F19)
+Every row states build + settings and sends `Threads 1` explicitly.
+
+**Most urgent result (S-C24):** at Threads 4 on PC r15/PC20 the engine plays **three different moves** across five
+runs (e1g1, c2c3, d2d4) with five distinct scores and five distinct node counts, while Threads 1 is bit-identical
+5/5. So above Threads 1 a MOVE and not just a score is unreproducible — every match/regression result taken above
+one thread is unreproducible at the move level.
+
+**The one-line summary of the drawn-root family (S-C22):** node count separates "shortcut" from "correct draw".
+Base reaches `cp 0` on a drawn root with **0 nodes**; the PC build reaches the same `cp 0` with **135 nodes** by
+searching. A checker comparing scores alone cannot tell these apart.
+
+**S-F42:** the "S14" mislabel is exactly one line swarm-wide (seat 27's), not systemic.
+Remaining work: nothing on the queue; continuing with new finds and checks on both builds.
