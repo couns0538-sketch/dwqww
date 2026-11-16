@@ -731,3 +731,49 @@ wrong:
 3. S-F63 — a single out-of-band reading I called a boundary; six repeats showed it was a one-off.
 4. S-F74 → S-F74b — a comparison that changed the sample as well as the variable, so the effect was confounded.
 5. S-F78 — a test that ended before the window it was testing, read as a refutation.
+
+### CORRECTION OF EMPHASIS — the 100 ms cell leads
+
+The strongest cell in S-F77 is the **100 ms** start, and it should be read first, not last:
+
+> **Starting at 100 ms — ten milliseconds BELOW the 110 ms worst-case floor predicted by
+> `MoveOverhead + increment*100/TmHardPercent` — both clocks still CLIMBED, to 1,463 ms and 1,200 ms over 56
+> plies, with no forfeit.** Median depth 15, so the engine was searching normally.
+
+Why that cell is the one that matters: every other starting clock (600, 300, 150) sits at or above the floor, so
+a clock that drifts down from those would still be consistent with a floor somewhere lower. **100 ms is below
+the floor, and it rose.** That is the case that shows the mechanism is not merely "the drain slows near the
+floor" but **actively negative below it** — at a low clock the hard limit falls under the 60 ms increment, so
+each move gains time. Reordered, the table reads:
+
+| start | plies | final white / black | lowest | forfeit |
+|---|---|---|---|---|
+| **100 ms (below the floor)** | 56 | **1,463 / 1,200** | 100 | **none** |
+| 150 ms | 56 | 1,456 / 1,213 | 149 | none |
+| 300 ms | 56 | 1,481 / 1,302 | 264 | none |
+| 600 ms | 56 | 1,556 / 1,471 | 562 | none |
+
+The conclusion is unchanged and is now anchored where it is strongest: **a forfeit is impossible from any
+starting clock at this increment, including from below the floor.**
+
+### THE THREE-VERDICT RULE, as its own method outcome (S-F78)
+
+Kept as a distinct outcome, not folded into "refuted":
+
+| verdict | meaning |
+|---|---|
+| **confirmed** | the claim's window was reached and the predicted thing happened |
+| **refuted** | the claim's window was reached and the predicted thing did not happen |
+| **inconclusive — the run ended before the window** | the test did not touch the claim; record the ending reason |
+
+The third exists because my first attempt at seat 27's 144–178-ply forfeit **ended at 97 plies by a threefold
+claim** and my harness printed "does not reproduce" — a false refutation of a correct claim. This is the most
+reusable thing from the clock work: a zero on a claim's window means nothing if the run stopped before the
+window, and only the harness's own bookkeeping distinguishes the two.
+
+## 2026-11-16T23:59:07Z — 25-minute cadence
+BOTH CORRECTIONS MADE (S-F79, S-F80).
+  1) THE 100 ms CELL NOW LEADS, and the FINAL says why it is the one that matters: every other starting clock (600/300/150) sits at or above the predicted 110 ms floor, so a clock drifting down from those is still consistent with a floor somewhere LOWER. 100 ms is BELOW the floor and both clocks CLIMBED to 1,463 / 1,200 ms over 56 plies with median depth 15. That is what shows the mechanism is not 'the drain slows near the floor' but ACTIVELY NEGATIVE BELOW IT - at a low clock the hard limit falls under the 60 ms increment so every move gains time. The table is reordered 100/150/300/600 and the conclusion is anchored where it is strongest: a forfeit is impossible from any starting clock at this increment, including from below the floor.
+  2) THE THREE-VERDICT RULE IS NOW ITS OWN PAGE (S-F80, THREE_VERDICTS_NOT_TWO.md): CONFIRMED / REFUTED / INCONCLUSIVE-because-the-run-ended-before-the-window, the third being the statement that the test did not happen, with the ending reason recorded. It leads with the worked failure: my first attempt at seat 27's 144-178 ply forfeit ended at 97 plies by a threefold claim and printed 'does not reproduce' - a false refutation of a correct claim. The check is ONE COMPARISON (does the run reach the claim's window?) and it is bookkeeping rather than measurement, which is why it is the cheapest of tonight's five corrections to borrow.
+  The page also lists all five self-corrections together, since they share the shape 'the number was real and the reading was wrong' - and the first four are fixed by better measurement while the fifth is fixed by bookkeeping.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
