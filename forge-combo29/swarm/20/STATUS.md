@@ -295,3 +295,15 @@ Branch for-fable-and-opus/swarm-20, tree clean, everything pushed. FINAL_REPORT.
   result (1/10 -> 6/10) as why it still matters, and states the healthy control is clean in the wider sample.
 Next: continue within the window (to 2026-11-17T10:18Z) — next is the same ten-position method at Hash 256/512 to
 find where the collapse begins, since 256 MB + MPV 3 showed only a partial collapse earlier.
+
+## 2026-11-16T23:31:39Z collapse boundary measured — advice corrected to a two-tier recommendation
+- **S-C33**: MultiPV 3, 10 positions per Hash, pre-stated rule, Threads 1. Healthy (Hash 16 + MPV 1) median depth 17.
+  At MPV 3: **Hash 16 -> 13.5 usable, 64 -> 11.5, 128 -> 11.0 (largest SAFE), 256 -> 4.0 UNUSABLE, 512 -> 1.0
+  UNUSABLE (all ten positions depth 1)**. So the collapse is a **CLIFF between 128 and 256 MB**, with a gentle
+  gradient below it.
+- **Advice corrected and now two-tier** (owner page updated): 1) **MultiPV 1 at any Hash** — unaffected at every size;
+  2) **MultiPV > 1 only with Hash <= 128 MB** (I had been saying <= 16 MB — stricter than the evidence);
+  3) **never Hash >= 256 MB with MultiPV > 1**. Caveat on the page: "safe" = usable, not equal to MultiPV 1 — MPV 3
+  at Hash 16 still gives up ~3.5 plies.
+Next: continue in the window; the warning page is now fully supported by 10-position data at both the catastrophic and
+the boundary end.
