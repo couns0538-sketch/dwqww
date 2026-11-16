@@ -38,11 +38,23 @@ runs = [("base_mt50_a.jsonl", "movetime 50", ("movetime", 50, 0)),
         ("tc1000.jsonl", "wtime 1000 inc 10", ("clock", 1000, 10)),
         ("tc10000.jsonl", "wtime 10000 inc 100", ("clock", 10000, 100))]
 
+ALIAS = {"base_mt50_a.jsonl": "base_a.jsonl", "base_mt50_b.jsonl": "base_b.jsonl"}
+
+
+def resolve(name):
+    p = os.path.join(raw, name)
+    if os.path.exists(p):
+        return p
+    alt = ALIAS.get(name)
+    if alt and os.path.exists(os.path.join(raw, alt)):
+        return os.path.join(raw, alt)
+    return None
+
 print("| run | engine soft ms | engine hard ms | median wall | p99 wall | max wall | n over hard | n over soft |")
 print("|---|---|---|---|---|---|---|---|")
 for fname, label, spec in runs:
-    p = os.path.join(raw, fname)
-    if not os.path.exists(p):
+    p = resolve(fname)
+    if not p:
         continue
     recs = [json.loads(l) for l in open(p) if l.strip()]
     w = [r["wall_ms"] for r in recs]
@@ -58,8 +70,8 @@ for fname, label, spec in runs:
 print()
 print("## how much of the hard limit is used (movetime runs: hard = movetime - Move Overhead 10)")
 for fname, label, spec in runs:
-    p = os.path.join(raw, fname)
-    if not os.path.exists(p):
+    p = resolve(fname)
+    if not p:
         continue
     recs = [json.loads(l) for l in open(p) if l.strip()]
     w = [r["wall_ms"] for r in recs if r["wall_ms"] > 5.0]  # drop the one book answer

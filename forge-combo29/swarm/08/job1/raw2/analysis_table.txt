@@ -1,0 +1,36 @@
+## runs on the machine (nproc = 4)
+
+| run                        |   n  | median ms | p99 ms  | largest ms | >limit+50ms |
+|----------------------------|------|-----------|---------|------------|-------------|
+| base A  movetime 50        |  200 |     40.5 |     41.0 |      47.2 |        0 |     0 |
+| base B  movetime 50        |  200 |     40.4 |     40.9 |      42.4 |        0 |     0 |
+| movetime 500               |  200 |    490.5 |    490.9 |     491.1 |        0 |     0 |
+| wtime/btime 1000 inc10     |  200 |     39.6 |    153.2 |     198.6 |       14 |    14 |
+| wtime/btime 10000 inc100   |  200 |    344.7 |   1334.9 |    2425.7 |       58 |    58 |
+
+## baseline repeatability (two identical runs of 200 x movetime 50)
+| quantity | run A | run B | difference |
+|---|---|---|---|
+| median wall ms | 40.5 | 40.4 | 0.0 |
+| total ms | 8013.03 | 7996.66 | 16.37 |
+| mean wall ms | 40.07 | 39.98 | 0.08 |
+| largest ms | 47.2 | 42.4 | 4.9 |
+| total relative difference | | | 0.20 % |
+
+## distribution detail, wall ms
+| run | min | p10 | p50 | p90 | p99 | max | mean | sd |
+|---|---|---|---|---|---|---|---|---|
+| base A  movetime 50 | 0.4 | 40.2 | 40.5 | 40.8 | 41.0 | 47.2 | 40.1 | 3.9 |
+| base B  movetime 50 | 0.4 | 40.2 | 40.4 | 40.7 | 40.9 | 42.4 | 40.0 | 3.9 |
+| movetime 500 | 0.4 | 490.3 | 490.5 | 490.7 | 490.9 | 491.1 | 481.0 | 66.5 |
+| wtime/btime 1000 inc10 | 0.0 | 24.8 | 39.6 | 78.4 | 153.2 | 198.6 | 47.6 | 27.1 |
+| wtime/btime 10000 inc100 | 0.0 | 257.5 | 344.7 | 692.3 | 1334.9 | 2425.7 | 433.1 | 261.1 |
+
+## overruns (wall > budget + 50 ms) and over budget exactly
+| run | budget ms | n over budget+50 | n over budget | worst wall ms | worst excess ms |
+|---|---|---|---|---|---|
+| base A  movetime 50 | 50 | 0 | 0 | 47.2 | -2.8 |
+| base B  movetime 50 | 50 | 0 | 0 | 42.4 | -7.6 |
+| movetime 500 | 500 | 0 | 0 | 491.1 | -8.9 |
+| wtime/btime 1000 inc10 | 41 | 14 | 96 | 198.6 | 157.3 |
+| wtime/btime 10000 inc100 | 413 | 58 | 75 | 2425.7 | 2012.4 |

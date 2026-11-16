@@ -1,0 +1,30 @@
+## job 2 — very little time. 200 searches per control, first 100 O + first 100 G.
+`over the clock` = wall time greater than the wtime given (a GUI would flag the flag).
+
+| time | inc | engine soft | engine hard | reserve empty | median ms | p99 ms | max ms | over the clock | over hard | bestmoves illegal |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 100 | 0 | 4 | 20 | no | 3.85 | 13.37 | 15.56 | 0 | 0 | 0 |
+| 100 | 10 | 11 | 54 | no | 10.68 | 39.88 | 54.57 | 0 | 2 | 0 |
+| 30 | 0 | 1 | 1 | no | 1.05 | 1.47 | 1.54 | 0 | 108 | 0 |
+| 30 | 10 | 7 | 12 | no | 6.88 | 12.75 | 12.92 | 0 | 33 | 0 |
+| 10 | 0 | 0 | 0 | YES | 0.16 | 0.47 | 0.73 | 0 | 0 | 0 |
+| 10 | 10 | 0 | 0 | YES | 0.14 | 0.43 | 0.86 | 0 | 0 | 0 |
+| 1 | 0 | 0 | 0 | YES | 0.16 | 0.55 | 0.76 | 0 | 0 | 0 |
+| 1 | 10 | 0 | 0 | YES | 0.17 | 0.58 | 0.98 | 0 | 0 | 0 |
+| 0 | 0 | 0 | 0 | YES | 0.17 | 0.48 | 0.67 | 200 | 0 | 0 |
+| 0 | 10 | 0 | 0 | YES | 0.17 | 0.48 | 0.78 | 200 | 0 | 0 |
+
+## the inc-0 vs inc-10 comparison the prediction named
+| time | median inc 0 | median inc 10 | inc10 - inc0 | prediction said inc 10 is larger by > 2 ms |
+|---|---|---|---|---|
+| 100 | 3.85 | 10.68 | +6.82 | held |
+| 30 | 1.05 | 6.88 | +5.83 | held |
+| 10 | 0.16 | 0.14 | -0.02 | did NOT hold |
+| 1 | 0.16 | 0.17 | +0.01 | did NOT hold |
+| 0 | 0.17 | 0.17 | -0.01 | did NOT hold |
+
+## what the engine actually answered at wtime 1 and 0 (the reserve-empty case)
+| wtime 1 inc 0 | 200 searches | wall min 0.02 max 0.76 | distinct bestmoves 137 | most common bestmove g8f6 |
+| wtime 1 inc 10 | 200 searches | wall min 0.11 max 0.98 | distinct bestmoves 137 | most common bestmove g8f6 |
+| wtime 0 inc 0 | 200 searches | wall min 0.02 max 0.67 | distinct bestmoves 137 | most common bestmove g8f6 |
+| wtime 0 inc 10 | 200 searches | wall min 0.11 max 0.78 | distinct bestmoves 137 | most common bestmove g8f6 |

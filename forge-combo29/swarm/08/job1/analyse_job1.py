@@ -43,11 +43,25 @@ sets = [("base_mt50_a.jsonl", "base A  movetime 50"),
         ("mt500.jsonl", "movetime 500"),
         ("tc1000.jsonl", "wtime/btime 1000 inc10"),
         ("tc10000.jsonl", "wtime/btime 10000 inc100")]
+# the clean re-run names the baselines base_a / base_b; accept both spellings
+ALIAS = {"base_mt50_a.jsonl": "base_a.jsonl", "base_mt50_b.jsonl": "base_b.jsonl"}
+
+
+def resolve(name):
+    p = os.path.join(raw, name)
+    if os.path.exists(p):
+        return p
+    alt = ALIAS.get(name)
+    if alt and os.path.exists(os.path.join(raw, alt)):
+        return os.path.join(raw, alt)
+    return None
+
+
 data = {}
 for f, lab in sets:
-    p = os.path.join(raw, f)
-    if os.path.exists(p):
-        data[f] = table(load(f), lab)
+    p = resolve(f)
+    if p:
+        data[f] = table(load(os.path.basename(p)), lab)
 
 # baseline repeatability
 a = data.get("base_mt50_a.jsonl")
@@ -88,7 +102,8 @@ print("|---|---|---|---|---|---|")
 for f, lab in sets:
     if f not in data or not data[f]:
         continue
-    recs = load(f)
+    p = resolve(f)
+    recs = load(os.path.basename(p))
     budget = recs[0]["limit_ms"]
     w = data[f]
     n50 = sum(1 for x in w if x > budget + 50.0)
