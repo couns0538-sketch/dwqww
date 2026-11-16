@@ -1,5 +1,11 @@
 # CORRECTION 2 — S-F2, S-F6, S-F9 re-checked for the iteration-granularity confound
 
+**One line of this file is itself withdrawn.** Its S-F9 paragraph claimed 2 of 40 `movestogo 1`
+searches exceeded the engine's hard plan, and called that "the only place the engine breaks a bound it
+set itself". `REPORT_job4.md` (S-F14) re-measured 300 clock searches and shows the engine's own `time`
+never exceeds hard: the wall excess is <=1.2 ms of pipe latency. The paragraph below is corrected in
+place, and the finding line in FINDINGS.md carries the withdrawal.
+
 Seat 16's confound, applied to the three remaining clock findings. The rule from Correction 1: **the
 stop is the plan; the engine's reported `time` is the last completed iteration, which sits below it.**
 So every claim must name which quantity it measures, and every plan must be the ENGINE's, not my own.
@@ -70,10 +76,13 @@ phrase "stopping at 65 % of its own soft plan" implied an iteration-boundary art
 `movestogo` the soft limit is a *target the search is allowed to undershoot*, and 6 of 40 searches did
 exceed it (and 2 exceeded hard — see below), so the behaviour is a distribution, not a shortfall.
 
-**Beyond my original:** 2 of 40 `movestogo 1` searches exceeded the engine's HARD plan (792 ms). That is
-the only place in this correction where the engine breaks a bound it set itself, and it is worth a line
-of its own rather than the mislabelled "over wtime" count I reported (which was 0 because the 1000 ms
-clock was never reached).
+**Beyond my original:** 2 of 40 `movestogo 1` searches appeared to exceed the engine's HARD plan
+(792 ms). **This part of Correction 2 is WITHDRAWN — see `REPORT_job4.md` and S-F14.** A 300-search
+re-measurement across five clock configurations shows the engine's own reported `time` never exceeds its
+hard plan (max engine-time minus hard = 0 in every cell); what exceeded hard was my WALL measurement, by
++0.8 ms at `movestogo 1` and +1.2 ms at `movetime 500`, i.e. pipe latency. So the honest statement is:
+**the engine does not break the hard bound it sets itself.** The "over wtime" count I originally reported
+was 0 for the boring reason that the 1000 ms clock was never reached.
 
 ## Note on the last-depth column
 `clock_with_plan.py` prints `d-` for the job 2 and job 3 files because those harnesses did not record the
@@ -102,8 +111,9 @@ threshold. Q4/Q5/Q8 also survived (arithmetic shown in the script's own output).
 - No sanitizer.
 
 ## What I am NOT sure about
-- Whether the 2 hard-limit overruns at `movestogo 1` are a real defect or part of an intended emergency
-  path. I did not read the stop rule for clock searches; flagging it is all I can do honestly.
-- Why clock searches stop at their soft plan while movetime searches stop at their hard plan (ratio 1.00).
-  The difference is consistent across every cell I have, so it is real; the code path behind it is not
-  something I traced.
+- Whether the 2 wall-clock reads just over hard at `movestogo 1` are pure pipe latency or include a tiny
+  real overshoot. Job 4 settles the question for the engine's own `time` (never over hard) and shows the
+  wall excess is ≤1.2 ms, so the remaining uncertainty is sub-millisecond and does not affect any claim.
+- Why clock searches stop near their soft plan while movetime searches stop at their hard plan (ratio
+  1.00). The difference is consistent across every cell I have, so it is real; the code path behind it is
+  not something I traced.
