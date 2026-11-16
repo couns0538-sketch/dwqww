@@ -1,0 +1,20 @@
+# PREDICTION - seat 27 - area 7 job 2 (move picker and histories in src/search.cpp)
+committed and pushed BEFORE the first measuring command of job 2; never edited afterwards.
+
+Kill ranges (a number outside its range kills that prediction):
+P1. History carry-over between positions: I predict that searching position A and then position B in ONE process
+    gives a DIFFERENT node count for B than searching B alone in a fresh process, because the ButterflyHistory /
+    continuation / capture histories live on the Worker and are only cleared by ucinewgame / Clear Hash / a
+    Threads change. Kill if B's node count (depth 12, S14, Threads 1, Hash 16) is identical in both cases.
+P2. I predict `ucinewgame` + `isready` before B makes B's node count equal to B alone. Kill if it does not.
+P3. Determinism: I predict the same position searched twice in one process with `ucinewgame` between, and in two
+    fresh processes, gives the SAME node count and the SAME bestmove (S14, Threads 1, depth 12).
+    Kill if any pair differs.
+P4. Killers and the counter-move table: I predict `setoption name Threads value 2` changes the node count of the
+    same depth-12 search versus Threads 1 (each Worker has its own histories and the helpers' results feed the
+    shared TT), so a multi-thread row is not reproducible from a single-thread row.
+    Kill if Threads 2 gives the identical node count.
+P5. Of the "suspicious" lines I list from the move picker and the history code, at most 2 will be provable by a
+    command on the unmodified build. Kill if 0 are provable or if more than 2 are.
+P6. Whole job (reading + tests + report + patch if any) under 75 minutes, measured by the job's own stamps.txt.
+    Kill if the span is longer.
