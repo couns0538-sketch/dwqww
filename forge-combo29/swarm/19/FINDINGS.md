@@ -80,3 +80,23 @@ story arriving easily is the signal, not the reward.
 | 19-F23 | 9 | `bench` is immune to the warm-state trap: five `bench 13` lines in ONE process give 862,329 five times, identical to one-per-process. **Mechanism, in the engine's terms:** `src/uci.cpp:611` constructs its own `forge::Searcher bench_searcher(16)`, and the loop body calls `bench_searcher.clear()` at `src/uci.cpp:617` **before every one of the eight positions**, and `Searcher::clear()` (src/search.cpp:2679) calls `shared_.tt.clear()` — i.e. bench wipes its transposition table before each search, so every bench position is cold no matter how many bench lines share a process. This is why my job1/job2/job3 bench-based numbers and the honesty checks are valid even where several bench lines shared a process — but it does NOT extend to `go`-driven searches, which is exactly where 19-F18 went wrong. | `{ for i in 1 2 3 4 5; do echo "bench 13"; done; echo quit; } \| ~/build_rel/forge` vs one-per-process | NEW |
 | 19-C7 | CONFIRMS seat 04's Threads finding, with a positive control, on PC r15 | `pcver/threads/RESULT.txt`, again with `python3 forge-combo29/swarm/19/pcver/threads_check.py ~/pcbuild/build/forge forge-combo29/swarm/19/job1b/R_1911.fens /tmp/th` | Build PC r15 (no setoption regime), one middlegame FEN at depth 12, four FRESH processes each: **Threads 1 gives `score cp 62` and 113,145 nodes four times, identical** (also with an explicit `setoption name Threads value 1`, same numbers); **Threads 4 gives four different results — cp 78 / 65 / 74 / 72 at 212,192 / 205,519 / 153,929 / 161,967 nodes**. The Threads-4 arm is the positive control: it proves the harness CAN see variation, so the Threads-1 reproducibility is not vacuous. Independently reproduces seat 04's effect on a different position and a different metric (nodes vary 1.38x here, they saw 6.3x). |
 | 19-F24 | 9 | My whole result set is in the Threads-1 regime, verified two ways: no harness of mine ever contains a `setoption name Threads` line (grep over every .py and .sh in my folder returns none), and both builds advertise `option name Threads type spin default 1`, so every search I ran defaulted to 1. Nothing of mine needs a provisional label. Going forward every finding line names Threads 1. | grep in `REPORT_threads_regime.md` section 2; `pcver/threads/RESULT.txt` | NEW |
+| 19-F25 | 9 | 19-F12 on the PC build publishes **the current position's first move in the ENGINE'S generator order** — not a stale bestmove, not a literal. Build PC r15, settings none, Threads 1, fresh process each: Black-to-move P1 (`.../4P3/8/PPPP1PPP/RNBQKBNR b`, where a2a3 is illegal) aborted at depth 12 → `bestmove a7a6` with **0 info depth lines**, and `a7a6` is the first line of that position's own `go perft 1` divide (python-chess's lexicographic first is `a7a5`, so the engine order is what is reproduced); White-to-move P2 → `a2a3`; and after a COMPLETED search returning `d2d4`, an aborted search on P1 still gives `a7a6`, so nothing is stale. **`FORGE_FIX_ABORT_PUBLISH` does not cover this and defaults to 0**: its own comment scopes it to a stop "in the middle of an iteration" and says "searches that run to a depth or node limit are not touched", while every aborted case here shows 0 iterations. PC-relevant: a real defect on the owner's engine. | `pcver/f12_which_path.py`; `pcver/f12path/RESULT.txt`; raw `pcver/f12path/{A_only_P1,B_search_then_P1,C_P1_alone,C_P2_alone}.txt` | NEW |
+
+### Two state errors, one habit (note for the next reader)
+
+Two of my findings tonight were killed by measurement state, not by being wrong about the engine:
+
+1. **19-F18 — warm vs cold table state.** I ran 200 positions in one process with no `ucinewgame`, so the
+   transposition table carried entries between positions; the replacement path fired on 54.7 % of probes. Cold,
+   it fires on 0.001 %. Retracted within the hour (`CORRECTION_19F18.md`).
+2. **The Threads issue (seat 04's rule).** At Threads 4 the same search gives four different scores and node
+   counts; at Threads 1 it is reproducible. I was never at Threads 4 (19-F24, verified with a positive
+   control), but the class of error is the same.
+
+They are different mistakes — one is *sequential history*, one is *parallel non-determinism* — and the same
+habit caught both: **run the same thing twice under deliberately different conditions and compare.** Warm vs
+cold took one command and eight seconds (node totals 15,238,023 vs 13,925,108). The Threads check took a
+Threads-4 arm that *had* to vary, or the Threads-1 stability would have meant nothing.
+
+The general form: before trusting any number, ask what state the process was in when it produced it, and then
+change that state on purpose to see if the number moves.

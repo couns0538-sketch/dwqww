@@ -1,0 +1,18 @@
+python-chess first legal move (lexicographic): P1=a7a5  P2=a2a3
+a2a3 legal in P1? False   in P2? True
+P1 side to move: False ; P2 side to move: True
+
+A. position P1 + go depth 12 + quit immediately:
+   info depth lines 0 ; bestmove(s) ['bestmove a7a6']
+   H1 (first legal of P1) predicts a7a5 ; H2 predicts (none, no prior search) ; H3 predicts a2a3
+
+B. completed startpos search, then P1, then go depth 12 + quit immediately:
+   previous completed bestmove: bestmove d2d4
+   aborted second search: 0 info depth lines ; bestmove(s) ['bestmove a7a6']
+   if the aborted answer equals the PREVIOUS bestmove, that is H2 (stale)
+   if it equals P1's first legal move (a7a5), that is H1
+
+C. P1 and P2 each alone in a fresh process, aborted:
+   P1 -> ['bestmove a7a6'] (python first legal a7a5)
+   P2 -> ['bestmove a2a3'] (python first legal a2a3)
+   H1 predicts these DIFFER and match the python first-legal moves; H3 predicts a2a3 twice
