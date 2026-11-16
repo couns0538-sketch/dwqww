@@ -97,3 +97,8 @@ Seat kept: 30 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-30, folde
 **30-C13 (methodology, with the control the brief demands)**: ucinewgame restores cold EXACTLY on both builds, proven three ways — fresh process, one process WITH ucinewgame (identical nodes), one process WITHOUT (diverges from the 2nd position). That is a zero with a planted failure beside it, not an unbacked claim. 30-F37: PC20 switches carry no state across ucinewgame, so a match may reuse one process.
 **Totals**: 51 lines in FINDINGS.md (30-F1..F37, 30-C1..C13), including self-corrections C6-C13.
 **Next command**: `cd pc && python3 - <<'PY' ... search 30-F33's six boards under S14 (not just defaults) ` — to state which settings the KRvK failure needs.
+
+## Mon Nov 16 11:07:21 PM UTC 2026
+
+**30-C14 CONFIRMS seat 08's 08-F18**: the reserve-empty emergency path survives on the PC r15 build under PC20 — wtime 10/1/0 all answer from a depth-1 search (startpos 26 nodes, G0 67 nodes, ~2.1 ms), identical on both builds with OwnBook false. **30-F39**: the trap that can make this look like a 0-node answer — with OwnBook at its default TRUE the base tree answers startpos from the BOOK (, zero info-depth lines), which is indistinguishable from an emergency answer unless the book is turned off. My own first pass fell into it and the finding records that.
+**Next command**: `cd pc && python3 mate_rate_strict.py out_strict16 20 16` — depth 16 on both builds to see how far the base tree's mate blindness extends.
