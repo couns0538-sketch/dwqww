@@ -1,0 +1,96 @@
+# DoubleExtC24.patch.txt - the DoubleExt.patch.txt of job 23 UPDATED with the part-C counters (counter-only: the singular-verification counters of file 23's B2, namespace de23, printed once per search as 'info string DE23 ...'). Supersedes DoubleExt.patch.txt.
+#
+--- ds5_base_src/include/forge/search.hpp	2026-11-16 08:48:42.475794560 +0000
++++ /tmp/ds5_de/include/forge/search.hpp	2026-11-16 10:53:20.403794560 +0000
+@@ -81,6 +81,8 @@
+ // Half-width, in centipawns, of repetition and fifty-move leaf scores.
+ // 0 keeps those leaves at exactly 0. Mate scores are never adjusted.
+ constexpr int DrawJitterMax = 8;
++extern int DoubleExtLimit;
++extern int DoubleExtMargin;
+ extern int DrawJitter;
+ 
+ enum Bound : std::uint8_t { BoundNone = 0, BoundUpper = 1, BoundLower = 2, BoundExact = 3 };
+--- ds5_base_src/src/search.cpp	2026-11-16 08:48:42.515794560 +0000
++++ /tmp/ds5_de/src/search.cpp	2026-11-16 11:21:43.131794560 +0000
+@@ -36,6 +36,8 @@
+ 
+ namespace forge {
+ 
++int DoubleExtLimit = 6;
++int DoubleExtMargin = 24;
+ int DrawJitter = 0;
+ 
+ namespace tune {
+@@ -208,6 +210,14 @@
+     return stored_clock == static_cast<std::uint8_t>(clock);
+ }
+ 
++// job23 part C (file 24): the singular-verification counters (counter-only)
++namespace de23 {
++inline long long fail_low_npv = 0;
++inline long long candidates = 0;
++inline long long given = 0;
++inline long long refused = 0;
++inline long long given_by_inherited[8] = {0};
++}
+ [[nodiscard]] int mated_in(int ply) { return -MateValue + ply; }
+ [[nodiscard]] int mate_in(int ply) { return MateValue - ply; }
+ 
+@@ -1942,7 +1952,19 @@
+             if (aborted_) return 0;
+             if (singular_score < singular_beta) {
+                 extension = 1;
+-                if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
++                if (!pv_node) {
++                    ++de23::fail_low_npv;
++                    if (singular_score < singular_beta - forge::DoubleExtMargin) {
++                        ++de23::candidates;
++                        if (inherited_double_extensions <= forge::DoubleExtLimit) {
++                            ++de23::given;
++                            ++de23::given_by_inherited[std::min(inherited_double_extensions, 7)];
++                        } else {
++                            ++de23::refused;
++                        }
++                    }
++                }
++                if (!pv_node && singular_score < singular_beta - forge::DoubleExtMargin && inherited_double_extensions <= forge::DoubleExtLimit) {
+                     extension = 2;
+                 }
+             } else if (singular_beta >= beta) {
+@@ -2746,6 +2768,13 @@
+     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
++    { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++      std::cout << "info string DE23 fail_low_npv " << de23::fail_low_npv << " candidates " << de23::candidates
++                << " given " << de23::given << " refused " << de23::refused
++                << " by_inherited " << de23::given_by_inherited[0] << "/" << de23::given_by_inherited[1]
++                << "/" << de23::given_by_inherited[2] << "/" << de23::given_by_inherited[3]
++                << "/" << de23::given_by_inherited[4] << "/" << de23::given_by_inherited[5]
++                << "/" << de23::given_by_inherited[6] << "/" << de23::given_by_inherited[7] << std::endl; }
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
+     return result;
+ }
+--- ds5_base_src/src/uci.cpp	2026-11-16 08:48:42.515794560 +0000
++++ /tmp/ds5_de/src/uci.cpp	2026-11-16 10:53:48.023794560 +0000
+@@ -198,6 +198,8 @@
+             std::cout << "id name Chess Engine Forge 6.4.24 candidate\n"
+                          "id author OpenAI\n"
+                          "option name Hash type spin default 32 min 1 max 2048\n"
++                         "option name DoubleExtLimit type spin default 6 min -1 max 64\n"
++                         "option name DoubleExtMargin type spin default 24 min 0 max 400\n"
+                          "option name Threads type spin default 1 min 1 max 256\n"
+                          "option name MultiPV type spin default 1 min 1 max 8\n"
+                          "option name Move Overhead type spin default 10 min 0 max 1000\n"
+@@ -323,6 +325,10 @@
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "info string cannot load book " << path << std::endl;
+                 }
++            } else if (name == "DoubleExtLimit") {
++                apply_spin(-1, 64, [&](int clamped) { forge::DoubleExtLimit = clamped; });
++            } else if (name == "DoubleExtMargin") {
++                apply_spin(0, 400, [&](int clamped) { forge::DoubleExtMargin = clamped; });
+             } else if (name == "Book Depth" || name == "Book Variety") {
+                 apply_spin(0, 100, [&](int clamped) {
+                     if (name == "Book Depth") book_depth = clamped;
