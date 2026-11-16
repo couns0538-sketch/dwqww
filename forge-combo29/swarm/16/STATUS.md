@@ -417,3 +417,18 @@ seed: 1601
 - That is the structural fix the coordinator asked for: a reader can now discount for the author's characteristic
   error before reading any number, instead of discovering it in a list at the end.
 - check_folder.py: ALL CHECKS PASS (398 files, 38 findings rows). Holding cadence to the close at 10:19Z.
+
+## 2026-11-17T00:50Z
+- Restructured the STANDING CAUTION so the SIX CHECKS LEAD and are worded so they apply to anyone's work (not just
+  mine): a count is not a magnitude; a median hides a tail; a single probe is not a property; a correlation needs
+  the right model; a sign is not obvious; a parser that cannot fail cannot confirm. Each now ends with the
+  generalisable instruction (the last one: "any check you rely on should be shown to FAIL on a planted fault
+  before you trust it to pass on a real one"). The instances follow as the shape to recognise, then the strong
+  results that survive the checks.
+- CAUGHT MY OWN ARITHMETIC while doing it: I had been writing "eleven self-corrections" for hours, but PART 4
+  contains TEN numbered entries — because entry 10 bundles three separate harness bugs (wrong build passed,
+  setup output discarded, seldepth parsed as nodes). So the honest statement is "ten entries covering twelve
+  distinct errors", and FINAL now says exactly that in both places, with the breakdown by kind (2 refutations of
+  my own numbers, 4 harness/audit bugs, 2 wrong pre-registered predictions, 1 inverted sign, 1 single-case-as-
+  property). A count I repeated without rechecking is the same failure the caution warns about.
+- check_folder.py: ALL CHECKS PASS (398 files, 38 findings rows). Continuing to the close at 10:19Z.

@@ -23,27 +23,39 @@ default thread count were checked and, where they did, given an explicit `Thread
 
 # STANDING CAUTION — READ THIS BEFORE ANY NUMBER BELOW
 
-**Eleven of my self-corrections were the same species: a SINGLE CASE written in language that sounds like a
-property.** One probe position became "the full-window root restores node symmetry at depth 1"; one correlation
-computed the wrong way became "PSQT explains r = 0.35"; one summary with an inverted sign became "the self-play
-budget is a wash"; one position where `h8h1` won a rook became the worst blunder of a run. Each was caught, but
-each was caught LATE — by a later measurement, by another seat, or by noticing something absurd.
+These six checks are the part of this file worth carrying to someone else's work. Every one of them caught a real
+error of mine tonight, and none of them needs to know anything about chess engines to apply.
 
-**So treat every general statement in this file as a claim about a sample, and check its N before you rely on it.**
-Where it matters I have written the N in the sentence. The specific habits that produced the eleven, so the next
-reader can discount for them:
+**1. A count is not a magnitude.** Ten positions better and nine worse is not a wash until you know which were
+expensive. Mine were not symmetric: four losses and three gains, and the losses were the large ones.
+**2. A median hides a tail.** A median can read zero at every setting while the quantity you actually care about
+differs by 144 %. If the quantity accumulates over many cases — damage, time, cost — report the SUM, not the typical
+case.
+**3. A single probe is not a property.** One position gave 65 vs 65 and I wrote it up as a rule; across twenty it was
+eleven. Before writing "restores", "always" or "exactly", run the sample and put the N in the sentence.
+**4. A correlation needs the right model.** I compared a single-phase predictor against a phase-blended evaluation,
+got r = 0.35, and nearly reported a mechanism as weak when my instrument was wrong. A low correlation indicts the
+predictor before it indicts the thing measured.
+**5. A sign is not obvious.** I inverted one convention and every conclusion in that summary was backwards. Write
+the convention out — positive means what? — and hand-check one case you already know the answer to.
+**6. A parser that cannot fail cannot confirm.** Three of my audit checks "passed" by comparing nothing. Any check
+you rely on should be shown to FAIL on a planted fault before you trust it to pass on a real one.
 
-1. **A count is not a magnitude.** Four worse against three better said nothing about which were expensive.
-2. **A median hides a tail.** The median mirror cost was 0 cp at every budget while the accumulated damage
-   differed by 144 cp.
-3. **A single probe is not a property.** 65 vs 65 on one position was 11 of 20 on twenty.
-4. **A correlation needs the right model.** My MG-only predictor could not track a phase-blended evaluation.
-5. **A sign is not obvious.** I inverted one and every conclusion in that summary was backwards.
-6. **A parser that cannot fail cannot confirm.** Three of my audit checks "passed" while measuring nothing.
+**The species behind my self-corrections (ten entries in PART 4, covering twelve distinct errors): a SINGLE CASE
+written in language that sounds like a property.**
+The clearest instances, so you can recognise the shape: one probe position became "the full-window root restores node
+symmetry at depth 1"; one wrongly-computed correlation became "PSQT explains r = 0.35"; one inverted sign became
+"the self-play budget is a wash"; one position where `h8h1` won a rook became "the worst blunder of a run". All
+are listed with their fixes in PART 4 — ten entries, because one entry covers three separate harness bugs. Each
+was caught — but each LATE, by a later measurement, by another seat, or by noticing something absurd.
 
-The strongest results in this file are the ones where a large N and an independent check agree: the 353-position
-counts, the 25,532-pair eval symmetry, the 600-move clock study, and the seven confirmations of other seats'
-findings that were re-verified under a loud-failing parser (8 of 8).
+**So treat every general statement in this file as a claim about a sample, and check its N.** Where it matters I
+have written the N in the sentence.
+
+The strongest results here are the ones where a large N and an independent check agree: the 353-position counts,
+the 25,532-pair eval symmetry, the 600-move clock study, the pricing of the 20,000-node recommendation, and the
+seven confirmations of other seats' findings re-verified under a loud-failing parser (8 of 8). Those survive the
+six checks above; that is why they are named.
 
 ---
 
@@ -251,10 +263,11 @@ setup output, field-position parsing) — all caught only because the parser was
 
 # PART 4 — WHAT I GOT WRONG, IN WRITING
 
-**Ten self-corrections are listed below — two of them were refutations of my own published numbers by my own
-later work, three were bugs in my own harness code, and one was an inverted sign that made a rook-winning move
-score as the worst blunder of a run. A reader who sees only the successes in Part 1 should weigh them against
-this list.**
+**TEN ENTRIES BELOW, COVERING TWELVE DISTINCT ERRORS** — two were refutations of my own published numbers by my
+own later work, four were harness or audit-code bugs (one entry bundles three of them), two were wrong predictions
+in my own pre-registrations, one was an inverted sign that made a rook-winning move score as the worst blunder of
+a run, and one was a single case generalised into a property. A reader who sees only the successes in Part 1 should
+weigh them against this list.
 
 **These are instances, not accidents: see STANDING CAUTION at the top of this file for the single species they
 belong to (a single case written as a property) and the six habits that produced them.**
