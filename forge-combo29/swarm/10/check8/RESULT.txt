@@ -1,0 +1,51 @@
+CHECK 8 — two checks in one job. Threads 1 throughout, fresh process per search, read to bestmove.
+
+=== A) seat 20's S-F16: two DIFFERENT mechanisms both print cp 0  -- VERDICT: CONFIRMS, with one correction
+
+K+R vs K, go depth 10, halfmove field swept. base = 6b98f217 S14 ; pc = r15 PC20
+ build   hm  | depth | nodes      | pv len | score | which mechanism
+ base_s14 0   | 10    | 9308       | 12     | cp 472 | 
+ base_s14 85  | 10    | 29104      | 12     | cp 349 | 
+ base_s14 90  | 10    | 946042     | 9      | cp 314 | 
+ base_s14 91  | 10    | 13791896   | 6      | cp 0  | HORIZON (nodes>0, pv>0)
+ base_s14 95  | 10    | 95459      | 5      | cp 0  | HORIZON (nodes>0, pv>0)
+ base_s14 98  | 10    | 541        | 2      | cp 0  | HORIZON (nodes>0, pv>0)
+ base_s14 99  | 10    | 200        | 1      | cp 0  | HORIZON (nodes>0, pv>0)
+ base_s14 100 | 10    | 0          | 0      | cp 0  | ROOT (0 nodes, empty pv)
+ base_s14 101 | 10    | 0          | 0      | cp 0  | ROOT (0 nodes, empty pv)
+ pc20    0   | 10    | 14470      | 12     | cp 490 | 
+ pc20    85  | 10    | 35652      | 10     | mate 8 | 
+ pc20    90  | 10    | 930573     | 9      | cp 231 | 
+ pc20    91  | 10    | 7251835    | 6      | cp 0  | HORIZON (nodes>0, pv>0)
+ pc20    95  | 10    | 81364      | 5      | cp 0  | HORIZON (nodes>0, pv>0)
+ pc20    98  | 10    | 541        | 2      | cp 0  | HORIZON (nodes>0, pv>0)
+ pc20    99  | 10    | 200        | 1      | cp 0  | HORIZON (nodes>0, pv>0)
+ pc20    100 | 10    | 200        | 1      | cp 0  | HORIZON (nodes>0, pv>0)
+ pc20    101 | 10    | 200        | 1      | cp 0  | HORIZON (nodes>0, pv>0)
+
+THE DISCRIMINATOR (why a score-only checker cannot do it): on the SAME board at depth 10, base S14
+  hm 91 -> score cp 0 with 13,791,896 nodes and a 6-move pv   (HORIZON)
+  hm 100 -> score cp 0 with 0 nodes and an empty pv            (ROOT SHORTCUT)
+Same score, same bestmove class, node counts differing by a factor of ~14 million.
+
+CORRECTION to S-F16's wording: the horizon fires from hm 91 (not '~90') on this board, and its node
+count is TENS OF MILLIONS (13.8M base / 7.25M PC), which is what makes the horizon expensive.
+Also build-dependent at exactly hm 100: base gives 0 nodes / empty pv, PC r15 gives 200 nodes and a
+1-move pv -- consistent with the PC's root repair searching instead of short-circuiting (this is what
+seat 08 and seat 20 both noted; my numbers agree with theirs).
+
+=== B) seat 02's S-F7c: MultiPV x Hash grid, PC r15, Threads 1, go wtime 5000 btime 5000
+ 2 runs per cell, depth reached:
+   Hash/MultiPV | M1     | M2        | M5     | M8
+   H=16         | [19, 19] | [16, 16]  | [14, 14] | [12, 12]
+   H=64         | [18, 18] | [16, 16]  | [14, 12] | [12, 11]
+   H=256        | [18, 18] | [5, 12]   | [4, 4] | [2, 2]
+   H=2048       | [18, 18] | [None, 1] | [1, 1] | [1, 1]
+
+VERDICT B: CONFIRMS S-F7c. MultiPV 1 is safe at every Hash size (depth 18-19 throughout). The collapse
+is in the COMBINATION: H16/M8 reaches depth 12, H2048/M8 reaches depth 1. Monotone in Hash at M8:
+  H16 -> 12, H64 -> 12/11, H256 -> 2, H2048 -> 1. So a bigger hash makes MultiPV 8 monotonically WORSE,
+which is the signature of a per-line cost proportional to the table size (the extra-PV tt.clear walk).
+Beyond S-F7c: M2 is ALREADY broken at H2048 (runs of 1 depth and one None/no-completion), so the
+practical rule is stricter than 'Hash 256 is ruined at M2' -- at H2048 even MultiPV 2 can fail to
+report a depth at all within the clock.

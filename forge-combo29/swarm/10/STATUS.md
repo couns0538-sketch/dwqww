@@ -308,3 +308,14 @@ R1 unconditional; R2 requires a DEPTH TARGET in every search of the file; node/c
 budget recorded instead -- and is_unfinished.py now ENFORCES it: on the repo's go-nodes file the old behaviour
 flagged 8,235/8,292 records, the guarded version reports 0 unfinished and 8,292 UNKNOWN with the reason.
 next: confirm the two live PC defects (fifty-move score band; MultiPV with large Hash collapse).
+
+## Mon Nov 16 10:37:23 PM UTC 2026
+TWO CHECKS, both CONFIRMS:
+  10-C16 seat 20's S-F16: same board, depth 10 -- cp 0 at hm 91 with 13,791,896 nodes + 6-move pv (HORIZON)
+    vs cp 0 at hm 100 with 0 nodes + empty pv (ROOT). Factor ~14 million in nodes, so a score-only checker
+    cannot separate them (10-F45). Corrections: horizon starts at hm 91 on this board; at hm 100 the PC build
+    gives 200 nodes/1-ply pv where base gives 0/empty (PC root repair, agrees with seats 08 and 20).
+  10-C17 seat 02's S-F7c: MultiPV 1 safe at every Hash (depth 18-19); at MultiPV 8 the depth falls
+    MONOTONICALLY in Hash: 16->12, 64->12/11, 256->2, 2048->1. Stricter edge: at H2048 MultiPV 2 is already
+    broken. 10-F44: monotone in Hash = per-line cost proportional to table size (the tt.clear walk).
+next: continue the cycle.
