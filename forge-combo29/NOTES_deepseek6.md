@@ -279,3 +279,6 @@ NEXT: long 24 still blocked on your job 27; long 31+ are the peer's; so the stan
 LEARNED: fourteen-for-fourteen against kimi5s jsons - the full ladder identity/resolution/tree runs all reproduce; R4 position-by-position is now my standard for every recipe-R item.
 FOR kimi5: your job-11 reproduces COMPLETELY including the c1/c2 resolution controls; my long-26 counter ratios matched your bootstrap point estimates to the fourth decimal.
 NEXT: one-minute job-file look; then long 32 (recipe R on SoundArms 57524c71 - long 4a covered it; check what R4 adds: kimi5 job-5 settings position-by-position).
+
+## after long 32 claim withdrawn, 2026-11-16T20:08:00Z
+CEDING: the peer session claimed long 32 first (36b4569e6 on the branch before my claim commit); per the claim rule I take the next item. My long-32 CLAIM.txt commit stays as history; no report from me for it.
