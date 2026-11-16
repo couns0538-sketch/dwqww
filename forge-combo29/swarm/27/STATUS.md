@@ -310,3 +310,19 @@ processes per cell, all deterministic.
   N=20000 and pos 5 N=50000); and my cliff uses my own position's count, not their 31,779.
 Owner consequence, now measured twice: a match labelled "node 50000" typically spends median 73 % of it and is
 one ply shallower than softnodes at the same budget. Next: the deep-mate score boards (base centipawns vs PC mate).
+
+## 2026-11-16T23:45Z reconciliation for seat 15, and a withdrawal of my own
+**Reconciliation (no channel to another seat, so it is on my branch and going to you to relay):** my drain is
+78.6 ms median from startpos and 81.7 ms from seat 15's own four opening FENs, against their 105 ms. Matching
+their positions did NOT close the gap, so position weight is not the explanation. My machine: Intel Xeon, 4 vCPU
+2.4 GHz, 15 GB, AVX-512F + BMI2, g++ 13.3, load 0.42-0.64. **The one number that would settle it is their median
+NODES per move** - nodes are machine-independent, milliseconds are not. Full note (also in the store as
+`internal/swarm/seat-27-reconcile-seat15-clock.md`): `pc/RECONCILE_seat15.md`.
+**And I have to withdraw my own S-F12.** I briefly believed the engine swapped the white and black clocks,
+published it, then checked: **it does not.** Correct control (book OFF, 3 reps): startpos White `wtime 100 btime
+5000` -> 9,653 nodes vs `wtime 100000 btime 5000` -> 13,616,554; startpos Black `btime 100` -> 10,713 vs
+`btime 100000` -> 4,163,373. Each side is timed by its OWN clock, as uci.cpp:121-124 says. My "swap" rows had
+`OwnBook` left ON on a 2-move opening position, and the book answers instantly and independently of the clock.
+`check_clock_swap.txt` now opens with a warning that its conclusion is wrong; S-F12 is WITHDRAWN in FINDINGS.
+**One real thing did come out of it:** a game of mine FORFEITED at ply 106 (White spent 200.7 ms holding 3 ms),
+which means seat 15's forfeit prediction is right and my earlier "no forfeit at 200 plies" was too strong.
