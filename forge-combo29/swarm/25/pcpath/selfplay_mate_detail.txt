@@ -1,0 +1,20 @@
+POSITION: 4Q3/8/r2K4/8/2B5/5R2/1k6/8 w - - 0 1
+  depth 6  score mate 4  pv 6 plies  needs 7
+  all moves legal: True
+  checkmate at end: False
+  RAW LINE (copied, not retyped): info depth 6 seldepth 10 score mate 4 nodes 2244 nps 2244000 hashfull 0 time 1 pv c4a6 b2c1 e8g6 c1b2 g6g2 b2b1
+
+  same position at go nodes 20000:
+    info depth 53 seldepth 53 score mate 3 nodes 19796 nps 3959200 hashfull 3 time 5 pv c4a6 b2c1 e8e2 c1b1 f3f1
+softnodes 2000 (self-play): 6 plies, illegal=None, checkmate=False
+nodes 20000 (match): 5 plies, illegal=None, checkmate=True
+
+READING:
+  self-play line: 6 plies, all legal, ends NOT in checkmate. Claimed mate 4 needs 2*4-1 = 7 plies.
+  match line    : 5 plies, all legal, ends in CHECKMATE. Claimed mate 3 needs 2*3-1 = 5 plies. CORRECT.
+  So at the self-play budget (depth 6) the engine had not finished resolving the mate: it reported mate 4
+  with a line one ply short of its own claim. At depth 53 (`nodes 20000`) it converges to the true mate 3.
+  This is horizon truncation at a shallow depth, NOT a wrong mate number - the same family as seat 05's
+  27-board measurement and file 6's reclassification. What it means for TRAINING LABELS: a self-play record
+  at softnodes 2000 can carry a mate score whose PV does not play out, so a pipeline that validates PVs
+  will flag it; a pipeline that only reads the score gets `mate 4` where the truth is `mate 3`.
