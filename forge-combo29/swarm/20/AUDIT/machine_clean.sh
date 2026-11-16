@@ -10,7 +10,8 @@ THRESH_LOAD="${1:-2.0}"     # loadavg threshold for a 4-core box; pass a higher 
 fail=0
 
 echo "== forge processes (should be none between runs)"
-procs=$(ps -eo pid,etime,pcpu,comm | awk '$4 ~ /forge/ && $3 > 1.0')
+# NOTE: a DEFUNCT (zombie) engine is harmless — it holds no CPU. Exclude it explicitly, or the checker cries wolf.
+procs=$(ps -eo pid,etime,pcpu,stat,comm | awk '$5 ~ /forge/ && $3 > 1.0 && $4 !~ /Z/')
 if [ -n "$procs" ]; then
   echo "  BUSY:"; echo "$procs" | sed 's/^/    /'
   echo "  -> an engine process is burning CPU. Kill it (kill -9 <pid>) and its parent python before measuring."
@@ -20,7 +21,7 @@ else
 fi
 
 echo "== other heavy processes (>50% CPU, any program)"
-heavy=$(ps -eo pid,pcpu,comm --sort=-pcpu | awk 'NR>1 && $2 > 50.0' | head -5)
+heavy=$(ps -eo pid,pcpu,stat,comm --sort=-pcpu | awk 'NR>1 && $2 > 50.0 && $3 !~ /Z/' | head -5)
 if [ -n "$heavy" ]; then
   echo "$heavy" | sed 's/^/    /'
   echo "  -> something is using a core; note it before trusting timings."
