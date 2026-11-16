@@ -1,0 +1,18 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1425,10 +1425,15 @@
+ 
+ bool Worker::is_draw(const Board& board, int ply) const {
+     (void)ply;
++#ifdef FORGE_CLOCK99_NORULE50
++    // EXPERIMENT (swarm seat 25, S-F19): the fifty-move test is REMOVED here to measure the risk of doing
++    // exactly that. A claimable draw is not terminality, so it should not short-circuit a node.
++#else
+     if (board.halfmove_clock() >= 100) {
+         // Checkmate on the hundredth half-move still wins; everything else is a draw.
+         return !board.in_check() || board.has_legal_move();
+     }
++#endif
+     // Detect stalemate before TT cutoffs, stand pat or forward pruning can
+     // replace its terminal draw score with a material evaluation.
+     return board.is_repetition(root_history_index_) || board.is_insufficient_material() ||
