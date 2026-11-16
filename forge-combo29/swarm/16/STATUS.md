@@ -96,3 +96,14 @@ seed: 1601
   unchanged 4/20, bm agreement 15/20 -> 14/20, median nodes 1489 -> 16563. So root alpha accumulation is
   NOT the source; it is cross-move shared state (TT/history/counters). REPORT_fullwindow.md, finding S-F8.
 - S-F7 rewritten as the requested numbered "how to reintroduce the vacuity bug" list (3 ways, all mine).
+
+## 2026-11-16T22:05Z  (CHECKPOINT PUSH)
+- seat 10's warm/cold rule checked against ALL my tables. Discipline stated per table in REPORT_warmcold.md.
+  Verdict: no confound. COLD and WARM(ucinewgame) give identical verdicts on 12 pairs (2/12 bm, 12/12 score);
+  the WRONG discipline gives 10/12, so the confound is live and would have changed the number.
+  `eval` is stateless (warm == fresh byte for byte) so job1, job2 and check_S-F1 are immune; job3,
+  check_fullwindow, check_06F12, check_28F1 and honesty all used a FRESH PROCESS PER SEARCH.
+  The rule reproduces here: 5024 -> 1538 -> 831 in one process vs 5024 x3 across processes.
+- also this window: full-window root does NOT restore symmetry (S-F8, 11x nodes, text patch only);
+  S-F7 rewritten as the numbered "how to reintroduce the vacuity bug" list; S-C7 reconciled with seat 08.
+- branch: S-F1..S-F9, S-C1..S-C7. Continuing area 6 until 22:30.
