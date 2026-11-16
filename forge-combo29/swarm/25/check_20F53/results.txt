@@ -1,0 +1,25 @@
+### seat 20's S-F53 generalisation vs my S-C27 scope
+/home/ubuntu/build/pc/forge
+
+path                             go depth 5     go nodes 50000   (lines / maxdepth)
+P1 terminal (checkmated)              5 / 5            64 / 64
+P3 resolved mate root                 5 / 5            64 / 64
+
+P2 empty searchmoves: a legal position with a searchmoves set that matches NO legal move
+  go depth 5 searchmoves a7a8 -> 5 info lines, maxdepth 5, bestmove 0000
+  info string lines: ['info string searchmoves restriction has no legal root moves']
+
+VERDICT: seat 20's S-F53 generalisation is CONFIRMED, and it is BROADER and more accurate than my S-C27 scope.
+  P1 terminal (checkmated root)   : go depth 5 -> 5 lines/maxdepth 5 ; go nodes 50000 -> 64 lines/depth 64
+  P3 resolved mate root           : go depth 5 -> 5 lines/maxdepth 5 ; go nodes 50000 -> 64 lines/depth 64
+  P2 empty-searchmoves path       : go depth 5 searchmoves a7a8 -> 5 lines/maxdepth 5, bestmove 0000, and
+                                    `info string searchmoves restriction has no legal root moves`
+So the rule is exactly as seat 20 states it: **any path that reports WITHOUT SEARCHING emits one info-depth line
+per depth, capped at the requested depth when one is given, and at 64 otherwise.** It is one reporting habit shared
+by the terminal, the resolved-mate and the empty-searchmoves paths - not three behaviours.
+
+MY S-C27 said "a root that resolves before the limit", which is a SPECIAL CASE of this: I had found the family by
+one of its members. Seat 20's statement supersedes mine in scope while agreeing with it in substance, and the
+empty-searchmoves case is the member that proves the rule is about the report-without-search path rather than about
+resolution. That is the fourth time tonight another seat's formulation has been one axis wider than mine
+(after seat 05's boundary, seat 19's budget ratio and seat 30's MultiPV).
