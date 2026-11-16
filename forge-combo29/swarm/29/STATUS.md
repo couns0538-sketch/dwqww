@@ -66,3 +66,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - IMPORTANT negative result recorded (29-N6): my cold deep-search timing of the TT patch first showed an apparent 2.6% speedup (ratio 0.9739), but three repeats of the identical script gave 1.0004, 1.0408, 0.9987. That was NOISE. 29-F12 stands only on its exact instruction count (-0.201%), not on any wall-clock claim.
 - This is the third time on this machine that a single timing comparison has produced a fake multi-percent win; the interleaved/repeated design caught it each time.
 - next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29 job8: record negative result N6, no wall-clock claim for F12' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 09:55:53 PM UTC 2026
+- 29-F12 now has a sensitivity control (Rule 1 satisfied): the stress test at Hash 1 (constant eviction) gives 4/4 IDENTICAL for the real patch, and 4/4 DIFFERENT for a PLANTED wrong replacement rule (<= instead of <). So the equivalence result is a real measurement, not a blind comparison.
+- TT patch status: correctness PROVEN by three routes (4 honesty counts, 40/40 depth-10 searches, 4/4 hash-pressure stress + plant). Speed: exact instruction count -0.201%; NO wall-clock claim (29-N6).
+- next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: TT stress equivalence + planted control (29-F13)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
