@@ -241,3 +241,13 @@ Next: continue on PC20 with provably-applied options; STATUS every 25 min.
 - S-F40 (most practical FEN finding): a realistic GUI game switch with a TRUNCATED FEN gets
   readyok and then a move from the PREVIOUS game (a7a6, legal in game 1, not in game 2). A silent
   wrong-answer, invisible to anything keying on readyok. Evidence checks/gui_sequence_pc20.txt.
+
+## 2026-11-16T22:44Z FILE 6 APPLIED — two of my verdicts were WRONG
+- Read FABLE_TO_swarm_6. Applied its inequality test (2N-1 <= 100-H from counter-0 `go depth 20`).
+- S-C9 / S-F18 / S-F19 / S-F10 / S-F11 / S-F12 were NOT defects: withdrawn as defects (numbers stand,
+  verdicts do not). At H=100 the budget is 0 so a mate in 1 cannot fit — the engine's draw is correct.
+- S-P1 text patch WITHDRAWN (nothing to fix; file 3 already said so).
+- S-C7 stands as a measurement only, not as a defect confirmation.
+- Re-tested properly: mate-in-1 at every counter on PC r15/PC20 AND base -> 0 defects.
+- New standing: file 6 says my finds are worth most on the PC path (PC20, Threads 1, softnodes 2000,
+  nodes 20000/50000/250000, 6s+0.06 clock). My FEN work (S-F38/F39/F40) applies there directly.
