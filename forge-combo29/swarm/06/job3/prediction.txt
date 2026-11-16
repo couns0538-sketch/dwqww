@@ -1,0 +1,40 @@
+PREDICTION — seat 06, area 6, job 3 (SEARCH symmetry, depth 10, S14)
+written before the first measuring command. Never edited afterwards.
+
+What is measured: for every G position and its colour mirror (python-chess board.mirror()), with S14 applied
+through setoption and Threads 1 / Hash 16, `ucinewgame` + `isready` before every `go`, then
+`go depth 10`. For each side I keep the LAST `info ... pv` line and the `bestmove`.
+Pass criteria, per position:
+  (a) the mirror's bestmove, mapped back through the colour mirror, equals the original bestmove;
+  (b) the mirror's last-reported score, negated, equals the original score (same units, mate scores compared
+      as mate-in-N with N negated);
+  (c) the last PV's first move equals the bestmove (an internal consistency check on the engine).
+
+Which prediction I expect to hold, and why it is not obvious: the evaluation is colour-symmetric to the bit
+(job 1, 0 differences in 8,103 pairs), so the search tree of the mirrored position is the mirror image of the
+original tree given the same move ordering. But move ordering depends on history tables, and the history tables
+are indexed by the mover's colour as well. A search that is tree-symmetric therefore also needs its ordering to
+be symmetric. That part was NOT tested by job 1.
+
+Prediction (each number with the range that kills it):
+
+Q1  positions where the mirrored bestmove differs from the original bestmove: 0.
+    KILLED if any position has a different bestmove after mirroring. (This is the headline number.)
+Q2  positions where the negated mirrored score differs from the original score: 0.
+    KILLED if any position's scores disagree.
+Q3  positions where the last PV's first move is not the bestmove: 0 (on both sides).
+    KILLED if any position fails this consistency check.
+Q4  control: the SAME position searched twice must give identical bestmove and identical score.
+    KILLED otherwise (that would mean the search is not deterministic at fixed depth / 1 thread).
+Q5  control: a position searched with the S14 options NOT set must be allowed to differ from its S14 search
+    (this is not a pass/fail; it records whether S14 changes the answers at all). I predict it changes the
+    bestmove on between 0 and 5 % of positions.
+Q6  If Q1 fails, the failures will be positions where the two bestmoves have the SAME score (a tie broken
+    differently), not positions where the mirror genuinely prefers a weaker move.
+    KILLED if a failing position's two bestmoves have different scores — that would be a real search asymmetry.
+Q7  positions in G with castling rights: they are INCLUDED here (a mirror flips KQkq to KQkq and the rook
+    squares mirror with it, so the position stays legal); I predict more than 90 % of G is usable.
+    KILLED if fewer than 90 % are usable.
+
+Cost prediction: depth 10 on 353 positions twice = 706 searches. I predict under 25 minutes on one thread,
+mean under 2 s per search, so the whole job runs in a few background batches, not one command.
