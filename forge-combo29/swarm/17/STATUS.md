@@ -324,3 +324,19 @@ DONE
 STANDING BY
 - Nothing in flight. At 2026-11-17T10:19Z: append FINAL_BLOCK_DRAFT.md to STATUS.md with the real date -u,
   push, and end. The block names the three documents in reading order with the decision each supports.
+## 2026-11-17T00:22Z (block 20)
+
+seat 17 | confirmations + PC path | Threads 1 except the threading job | branch for-fable-and-opus/swarm-17
+
+DONE — seat 24's threaded move instability is now TWO-SEAT CONFIRMED (S-C16)
+  My own harness, their 20 positions, 6 fresh processes per cell, depth 12, Hash 16, OwnBook false:
+    base 6b98f217      T1 0/20, T2 5/20, T4 6/20   (seat 24: 0, 8, 9)
+    PC r15 + PC20      T1 0/20, T2 9/20, T4 8/20   (seat 24: 0, 10, 8)
+  Threads 1 gave IDENTICAL node counts in 20/20 positions on both builds - their "identical to the digit"
+  claim confirmed exactly. Worst case: 3 distinct moves in six runs (base T4 position 0).
+  Usual shape is ONE stray run in six, so short samples miss it; positions 6 and 7 unstable on both builds.
+
+Also this window: S-C15 (fifty-move draw invisible at all match budgets, 4.85M nodes needed), S-C13/S-C14
+(all six of seat 30's deep-mate boards verified), moves-path note with the timing banner, FEN guard verified.
+
+STANDING BY for the close at 2026-11-17T10:19Z: append FINAL_BLOCK_DRAFT.md to STATUS.md, push, end.
