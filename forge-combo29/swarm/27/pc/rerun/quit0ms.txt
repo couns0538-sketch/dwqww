@@ -1,0 +1,13 @@
+# 20-F11 (c): quit with no delay after go depth 30
+# exe /agent/repos/base/build-pc/forge (PC r15), Threads 1, OwnBook false
+# stdin pipelined on purpose: this case IS about closing stdin during a search
+
+| try | info depth lines | bestmove |
+|---|---|---|
+| 1 | 0 | a2a3 |
+| 2 | 0 | a2a3 |
+| 3 | 0 | a2a3 |
+
+And with a 50 ms delay (my first, wrong attempt) the engine had already published 12-14 info
+lines and 34k-71k nodes, answering d2d4 / e2a6 / b4f4 -- a real search. So the defect needs the
+quit to arrive before the first iteration completes, which 0 ms does and 50 ms does not.
