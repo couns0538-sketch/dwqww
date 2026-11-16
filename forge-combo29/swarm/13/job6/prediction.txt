@@ -1,0 +1,27 @@
+PREDICTION -- seat 13, job 6: perft 4 at the DIVIDE level on 200 G positions, committed BEFORE measuring.
+
+Set: 200 of the 353 positions of set_G.epd (real-game material), taken by a fixed stride (every
+353/200 = 1.765-th line) so the sample spans the whole file instead of the first 200. The stride
+selection keeps the side-to-move and piece-count proportions close to the full file (white 89/200 vs
+165/353, black 111/200 vs 188/353).
+
+Builds and settings, exactly as job 4 so the two are comparable:
+  base 6b98f217      Threads 1, Hash 16
+  PC r15             Threads 1, Hash 16
+  PC r15             PC20 (Threads 1, Hash 16, S14 + the six)
+
+Predictions (each with the range that kills it):
+1. positions differing at the divide level: 0 on all three runs [killed if >= 1 on any].
+2. root moves compared per run: between 4,000 and 12,000 [killed if outside; G positions are
+   real middlegames with fewer legal moves than synthetic startpos-family positions].
+3. per-divide sum equals the engine's own nodes total: 200/200 [killed if any position fails].
+4. engine total equals python-chess total: 200/200 [killed if any position fails].
+5. If a difference appears, my guess is it would show in a position with castling rights, because G
+   comes from real games and job 2's castling classes were synthetic. [killed if a difference
+   appears and castling is not involved.]
+
+Reason for predicting 0: job 4 was 0 on 5,182 root moves of synthetic R positions and job 2 was 0 on
+494 special positions including castling/ep classes. G adds real middlegame material, which is
+different material but the same generator paths.
+
+NOT edited after this commit.
