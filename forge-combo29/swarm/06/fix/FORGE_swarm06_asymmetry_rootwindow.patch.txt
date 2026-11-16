@@ -1,0 +1,54 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1988,7 +1988,12 @@
+ 
+         int score = -Infinite;
+         bool full_depth_needed = !pv_node || move_count > 1;
+-        if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
++        if (root_node) {
++            // ROOT WINDOW PURITY (swarm seat 06 experiment): search this root move under exactly
++            // the window every other root move gets, so no information crosses root moves.
++            full_depth_needed = false;
++            score = -search(board, ss + 1, new_depth, -Infinite, Infinite, false);
++        } else if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+             (quiet || !ss->tt_pv || move_count > 4)) {
+             int r = reduction(quiet, depth, move_count);
+@@ -2029,10 +2034,10 @@
+                 update_continuation(ss, moved, move.to, history_bonus(depth) / 2);
+             }
+         }
+-        if (full_depth_needed && !aborted_) {
++        if (!root_node && full_depth_needed && !aborted_) {
+             score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+         }
+-        if (pv_node && !aborted_ && (move_count == 1 || score > alpha)) {
++        if (!root_node && pv_node && !aborted_ && (move_count == 1 || score > alpha)) {
+             score = -search(board, ss + 1, new_depth, -beta, -alpha, false);
+         }
+         board.unmake_move(move, undo);
+@@ -2042,18 +2047,21 @@
+ 
+         if (score > best_score) {
+             best_score = score;
+-            if (score > alpha) {
++            // At the root every move was searched under the same window, so a better score is
++            // directly comparable and always becomes the best move; alpha never accumulates and
++            // there is no root fail-high cutoff.
++            if (root_node || score > alpha) {
+                 best_move = move;
+                 if (pv_node) {
+                     ss->pv[0] = move;
+                     std::copy_n((ss + 1)->pv.begin(), (ss + 1)->pv_length, ss->pv.begin() + 1);
+                     ss->pv_length = (ss + 1)->pv_length + 1;
+                 }
+-                if (score >= beta) {
++                if (!root_node && score >= beta) {
+                     ++ss->cutoff_count;
+                     break;
+                 }
+-                alpha = score;
++                if (!root_node) alpha = score;
+             }
+         }
+         // A second wide quiet miss ends non-checking quiets. Quiet checks stay in the tail.

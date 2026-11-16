@@ -178,3 +178,101 @@ changes the bench node counts, failing the honesty pins.** Worth knowing before 
 ## Times
 
 `date -u` lines in `fix/stamps.txt`.
+
+---
+
+# ADDENDUM (same report) — root-window experiment AND the closing explanation from seat 19
+
+## Part 1 — the bounded root-window experiment: 2043-2044 is ALSO ruled out
+
+**What was built.** `make_variant_d.py` → `FORGE_swarm06_asymmetry_rootwindow.patch.txt` (applies with
+`patch -p1`, no fuzz, verified on a clean 6b98f217 tree). At a root node every root move is searched **once with
+a true full window** (`-Infinite, Infinite`), bypassing the PVS/LMR/full-depth-re-search ladder, and the root
+**never accumulates alpha and never takes a fail-high cutoff** (`src/search.cpp:2039-2060`). Nothing else changes.
+
+**The three numbers asked for** (same 353 G positions, depth 10, S14, Threads 1, Hash 16):
+
+| build | mismatched bestmoves | score differences | total nodes (353 pos, both sides) |
+|---|---|---|---|
+| base (6b98f217) | **101** of 353 | **334** of 353 | **14,181,783** |
+| root-window purity (variant D) | **149** of 353 | 335 of 353 | **445,115,035** |
+
+- **Symmetry did NOT return** — it got substantially worse (101 → 149 mismatched bestmoves).
+- **Node cost: 31.4× the base tree** (+3,038.6 %). Root-window purity is astronomically expensive and buys
+  no symmetry.
+- Depth-1 node-count equality did improve (15/40 → 24/40), and depth-2 scores improved (30 → 32 of 40), so the
+  root window *is* doing what it was meant to do locally — it simply does not make the whole search symmetric,
+  because the asymmetry does not come from the root window.
+
+**Conclusion, stated plainly as requested: `src/search.cpp:2043-2044` (accumulated root alpha) is ruled out as
+the cause. Together with the tie-break (ruled out) and the aspiration window (ruled out), the three mechanisms
+I could name are all refuted by direct experiment. I am stopping this thread.** The measured facts S-F6/S-F7
+(the search is not colour-symmetric; the difference is not in any root subtree when searched alone) stand and
+are worth keeping; the *explanation* remains unknown, and I am not going to offer a fourth guess.
+
+Honesty: variant D fails the pins grossly (bench 11 12,742,773 · bench 13 31,196,587 · bench 16 125,106,216;
+perft 5 unchanged at 4,865,609). Speed 1,760,294 / 1,712,047 / 1,781,458 nps on bench 11 — similar nps to base,
+but 14× the nodes, so wall time is ~14× on bench 11. **Evidence only, not a candidate.**
+
+## Part 2 — why the three tie-break variants could never have passed the pins (seat 19's 19-F15)
+
+Seat 19 proved something that closes this whole episode and that I should have known before writing the patch:
+
+> **19-F15** (seat 19, area 9): tie order in `MovePicker::pick_best`'s `std::sort` is **load-bearing** for the
+> node counts. Replacing `std::sort` with `std::stable_sort` — **same range, same comparator, only the algorithm
+> changed** — moves three of the four honesty numbers: bench 11 312,866 → 292,627, bench 13 862,329 → 939,494
+> (+8.9 %), bench 16 3,024,920 → 2,925,608, with perft 5 unchanged at 4,865,609.
+
+Verified on seat 19's own branch (`FINDINGS.md`, `19-F15`, evidence `bash forge-combo29/swarm/19/job2/headroom.sh
+stable forge-combo29/swarm/19/pickbest/edit_stable_sort.py`), not taken on trust from the message.
+
+**This closes S-C1 with a mechanism.** My variants A/B/C all changed tie order — that is what a tie-break *is* —
+and 19-F15 shows that changing tie order in this exact sort necessarily moves the benches, which are the honesty
+pins. So:
+
+1. **No symmetry fix through the `pick_best` ordering route could ever have kept the pins.** The failure was not
+   a flaw in how I wrote the patch; it was structural. Any correct tie-break would have been rejected by the
+   honesty gate, exactly as mine was, for a reason that has nothing to do with symmetry.
+2. **The direction is not even predictable**: bench 11 and 16 move *down* while bench 13 moves *up* (+8.9 %).
+   So the effect cannot be compensated or reasoned about per-depth.
+3. **The pins are therefore not purely a property of the source.** bench 11/13/16 depend on libstdc++'s current
+   `std::sort` tie behaviour — an implementation detail of the standard library, not of the engine. A GCC or
+   libstdc++ upgrade that changes introsort's internals could silently break the honesty gate on unmodified
+   source, and would look like an engine regression. That is a **build-reproducibility risk** and it applies to
+   every seat's HONESTY.txt, not just mine.
+4. It also means **tie order is a genuine speed lever** (seat 19's area): 8.9 % on bench 13 from the sort alone,
+   in one direction, though not a controllable one.
+
+### Corrected accounting of my failed fix
+
+| hypothesis | test | verdict |
+|---|---|---|
+| `std::sort`/`pick_best` tie-break is the cause of the asymmetry (my S-F8) | variants A, B, C built and measured | **REFUTED** (101 → 114 / 104 / 117 mismatches) |
+| ...and could at least be made without breaking the pins | 19-F15 + my own honesty runs | **IMPOSSIBLE IN PRINCIPLE** — any tie-order change moves the benches |
+| the aspiration window | `probe_aspiration.py` | **REFUTED** (34/40 → 28/40 bestmoves) |
+| accumulated root alpha (2043-2044) | variant D above | **REFUTED** (101 → 149 mismatches, 31× nodes) |
+| **cause of the asymmetry** | — | **UNKNOWN**; I stop here rather than guess a fourth time |
+
+## Findings for this addendum
+
+**F4 (addendum) — root-window purity does not restore colour-mirror symmetry and costs 31.4× the nodes
+(101 → 149 mismatched bestmoves on 353 G positions at depth 10). Accumulated root alpha is ruled out.**
+Shows again: `python3 job3/harness_search.py /tmp/bld/vD/forge job3/G_353.fens job3/out_G_vD.txt job3/meta_G_vD.txt 10 S14`
+then `python3 job3/analyse_search.py job3/out_G_vD.txt`.
+
+**F5 (addendum, closing S-C1) — the tie-break route was impossible in principle: per seat 19's 19-F15, tie
+order in `pick_best`'s `std::sort` is load-bearing for bench 11/13/16, so any tie-break change moves the honesty
+pins by construction. The pins therefore depend on libstdc++'s current tie behaviour, which is a
+build-reproducibility risk for every seat.**
+Shows again: seat 19's evidence command above, plus `honesty_variants.txt` in this folder.
+
+## What I did NOT do (addendum)
+
+- I did not chase the asymmetry further. Three named mechanisms have now been refuted by direct experiment; a
+  fourth guess without a new diagnostic idea would be exactly the "guess presented as a result" the rules warn
+  about.
+- I did not re-run variant D on the R set or at other depths beyond the 1–4 curve — the 353-position depth-10
+  answer is the one asked for, and at 31× nodes a wider run is not proportionate.
+- I did not test whether a *different* sort implementation in the pins' own build (e.g. a GCC 14 build) reproduces
+  the pins. That is a concrete way to test the reproducibility risk in F5, and it belongs to whoever owns the
+  build matrix.
