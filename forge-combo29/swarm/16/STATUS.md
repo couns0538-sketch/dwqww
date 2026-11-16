@@ -88,3 +88,11 @@ seed: 1601
   (my own measurement: plan + 0.45-0.57 ms in 6/6 rows) and only REFUTED for the KEPT iteration. My error was
   calling the iteration's `time` field "the stop". REPORT_wall_vs_iteration.md.
 - reports: REPORT_audit.md, REPORT_wall_vs_iteration.md. next: continue area 6 until 22:30 UTC.
+
+## 2026-11-16T21:52Z
+- THREAD CLOSED: does a full-window root restore mirror symmetry? NO, and it costs 11x nodes.
+  Patch (text only, option FullWindowRoot, inert when off — base honesty numbers reproduced exactly):
+  check_fullwindow/fullwindow_root.patch.txt. 20 positions x depths 1/2/4/6: depth-6 score agreement
+  unchanged 4/20, bm agreement 15/20 -> 14/20, median nodes 1489 -> 16563. So root alpha accumulation is
+  NOT the source; it is cross-move shared state (TT/history/counters). REPORT_fullwindow.md, finding S-F8.
+- S-F7 rewritten as the requested numbered "how to reintroduce the vacuity bug" list (3 ways, all mine).

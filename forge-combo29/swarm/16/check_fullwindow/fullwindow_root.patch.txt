@@ -1,0 +1,92 @@
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -5,6 +5,7 @@
+ #include "forge/nnue_v3.hpp"
+ #endif
+ #include "forge/search.hpp"
++namespace forge { void uci_set_full_window_root(bool); }
+ #include "forge/uci.hpp"
+ #include "forge/uci_clock.hpp"
+ #include "forge/uci_output.hpp"
+@@ -152,6 +153,7 @@
+     int move_overhead_ms = 10;
+     int multipv = 1;
+     bool ponder_enabled = false;
++    bool full_window_root = false;
+     forge::book::Book book;
+     book.load_embedded();
+     bool own_book = forge::book::embedded_available();
+@@ -246,6 +248,7 @@
+ #endif
+             std::cout << "option name Clear Hash type button\n"
+                          "uciok" << std::endl;
++            std::cout << "option name FullWindowRoot type check default false\n";
+         } else if (command == "isready") {
+ #if FORGE_NNUE_V3
+             if (!v3_ready()) return 2;
+@@ -307,6 +310,11 @@
+                 if (value_text == "true") own_book = true;
+                 else if (value_text == "false") own_book = false;
+                 else note_invalid();
++            }
++            else if (name == "FullWindowRoot") {
++                if (value_text == "true") { full_window_root = true; forge::uci_set_full_window_root(true); }
++                else if (value_text == "false") { full_window_root = false; forge::uci_set_full_window_root(false); }
++                else note_invalid();
+             } else if (name == "Book File") {
+                 std::string rest;
+                 std::getline(input, rest);
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -36,6 +36,11 @@
+ 
+ namespace forge {
+ 
++// [swarm-16 check] set by uci.cpp when FullWindowRoot is parsed
++static bool g_full_window_root = false;
++void uci_set_full_window_root(bool v) { g_full_window_root = v; }
++bool uci_full_window_root() { return g_full_window_root; }
++
+ int DrawJitter = 0;
+ 
+ namespace tune {
+@@ -1988,6 +1993,8 @@
+ 
+         int score = -Infinite;
+         bool full_depth_needed = !pv_node || move_count > 1;
++        // [swarm-16 check] full-window root: no accumulated alpha, no root fail-high
++        const bool fw_root = root_node && uci_full_window_root();
+         if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+             (quiet || !ss->tt_pv || move_count > 4)) {
+@@ -2032,7 +2039,9 @@
+         if (full_depth_needed && !aborted_) {
+             score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+         }
+-        if (pv_node && !aborted_ && (move_count == 1 || score > alpha)) {
++        if (fw_root && !aborted_) {
++            score = -search(board, ss + 1, new_depth, -Infinite, Infinite, false);
++        } else if (pv_node && !aborted_ && (move_count == 1 || score > alpha)) {
+             score = -search(board, ss + 1, new_depth, -beta, -alpha, false);
+         }
+         board.unmake_move(move, undo);
+@@ -2049,11 +2058,15 @@
+                     std::copy_n((ss + 1)->pv.begin(), (ss + 1)->pv_length, ss->pv.begin() + 1);
+                     ss->pv_length = (ss + 1)->pv_length + 1;
+                 }
+-                if (score >= beta) {
+-                    ++ss->cutoff_count;
+-                    break;
++                if (fw_root) {
++                    if (score > best_score) best_score = score;
++                } else {
++                    if (score >= beta) {
++                        ++ss->cutoff_count;
++                        break;
++                    }
++                    alpha = score;
+                 }
+-                alpha = score;
+             }
+         }
+         // A second wide quiet miss ends non-checking quiets. Quiet checks stay in the tail.
