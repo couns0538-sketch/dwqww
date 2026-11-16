@@ -154,6 +154,25 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:54Z - S-C31: the label rule MEASURED on a non-empty set (filter, not a budget)
+
+After the empty-set error (S-C30), the same question asked on boards that DO fail: classes SHORT 4, ok 8,
+right-length-not-mate 0 across 3 boards x softnodes 500..20000. So every failure is a PV that stops short of its
+own claimed distance - the score is not broken, the report is premature.
+
+LABEL RULE (measured, actionable): **reject any mate score whose PV length != 2|N|-1 (or 2|N| for negative N).**
+Catches every observed failure at zero cost, since a correct mate score always passes. Better than the withdrawn
+"use 20000" because it needs no budget decision.
+
+EXPLAINS S-F34's "one move pessimistic" instead of describing it: budget-dependent on the same board
+(4Q3/8/r2K4/... mate 4/SHORT at 1000-2000, mate 3/ok from 5000; 7Q/8/8/4K3/... mate 5/SHORT at 500-1000, mate 4/ok
+at 2000) - a converging mate reports one move too long. And it explains why the random 40-board sample missed it:
+the failure needs a mate converging at that exact budget, a narrow window.
+
+POSITIVE RESULT in FINAL beside it: 12/12 mate scores correct on those 40 boards at softnodes 2000.
+State: guards green (audit 0, self-check 4/4, compliance PASS), working tree clean, local = remote.
+
 ## 2026-11-16T23:52Z - NINTH control error: an EMPTY failure set produced a claim (inside the checker itself)
 
 label_check.py asked whether the self-play mate-PV failure is always a SHORT PV. 40 mate-rich boards at
