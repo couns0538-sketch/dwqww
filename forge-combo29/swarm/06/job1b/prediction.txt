@@ -1,0 +1,27 @@
+PREDICTION — seat 06, area 6, job 1 SECOND RUN (cycle (c)), SEED 611, new position set
+written before the first measuring command. Never edited afterwards.
+
+What differs from the first run (as the brief requires me to say):
+  - new random seed: 611 instead of 601, so a completely different R set (11 games / 500 positions at
+    one position per 7 plies, and 93 games / 5,000 at one per 5 plies);
+  - the same G set (353 positions, unchanged, it is a fixed file);
+  - same build, same harnesses, same four evaluation configurations.
+
+What is measured: `eval` of each position and of python-chess `board.mirror()`; hce / nnue / total compared.
+
+Prediction (each number with the range that kills it):
+
+R1  colour-mirror differences over G + 500 R611 + 5,000 Rbig611: 0 in hce, nnue and total.
+    KILLED by any single difference. (The first run found 0 in 8,103 pairs; a single difference this time
+    would mean the symmetry is position-dependent, which would be far more interesting than a repeat.)
+R2  control (position against itself): 0 differences. KILLED by any.
+R3  negative control (FEN i paired with FEN i+1): every pair flagged. KILLED if any pair is NOT flagged.
+R4  the `UseNNUE false` configuration also gives 0 differences.
+    KILLED by any difference (this is the only configuration where `total` is the pure hand-written eval).
+R5  the SEED-611 R set finds at least one position whose |hce| exceeds 600 or whose number of pieces is under
+    8, i.e. the new set is not a near-duplicate of the 601 set in content. KILLED if the new set is
+    indistinguishable in those two summary statistics from the 601 set.
+R6  the second run reproduces the first run's conclusion with the same sign and the same magnitude: 0
+    differences everywhere. If this holds, the first run's answer is not an artifact of one seed.
+
+I expect R1-R4 and R6 to hold. This run exists to show the answer does not depend on one seed.
