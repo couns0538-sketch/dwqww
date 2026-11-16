@@ -1,0 +1,15 @@
+# PREDICTION — check seat 06's S-F12 (depth-1 node counts, root loop vs per-move)
+
+Claim: for `R7/8/8/5p1p/5K1P/1kpr2n1/8/8 b - - 0 1` and its colour mirror, `go depth 1` gives different NODE
+counts for the whole position (25 vs 30 per the finding) while each root move searched alone with
+`go depth 1 searchmoves <move>` gives IDENTICAL counts for every move and its mirror (0 of 18 differ).
+Conclusion claimed: the difference is created by the root loop's alpha-beta accumulation.
+
+P1. Whole-position `go depth 1` node counts differ between the position and its mirror: predicted differ,
+    with the exact pair 25 and 30 (in either order). Kills it: equal counts, or a pair other than (25,30) —
+    in which case I report my pair and note the finding's numbers do not reproduce even if the phenomenon does.
+P2. Per-move `go depth 1 searchmoves` counts: predicted 0 of N moves differ from their mirrored counterpart.
+    Kills it: any single move whose count differs from its mirror.
+P3. Sum of the per-move counts is predicted NOT to equal the whole-position count on at least one side
+    (otherwise the root loop adds nothing and S-F12's explanation would be wrong).
+P4. The number of legal root moves is predicted 18 (as the finding says) on both sides.
