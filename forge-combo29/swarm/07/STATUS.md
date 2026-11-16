@@ -182,3 +182,30 @@ go_stop_cycle.py
 raw
 raw_control
 stamps.txt
+
+## 2026-11-16T21:56:09Z
+job9 (cont) + job11 done: O depth-14 S14 sum = 21,812,100 EXACT (07-C6) -- three of four published sums now reproduced. Clock: 9 controls, 0 overruns, 0 illegal moves (07-C7). IMPORTANT TRAP for other seats: the built-in book answers clock searches with NO info depth line; my first clock run measured book moves and looked clean -- fixed by OwnBook false + requiring a parsed node count.
+### git status --short
+ M FINDINGS.md
+ M STATUS.md
+ M job9/stamps.txt
+?? REPORT_job11.md
+?? job11/
+?? job9/raw/sum_d14.json
+?? job9/run_d14.log
+### ls job11
+job11:
+clock_behaviour.py
+raw
+stamps.txt
+
+job11/raw:
+mtg_1.txt
+mtg_2.txt
+mtg_40.txt
+sudden_10000.txt
+sudden_1000.txt
+tiny_100.txt
+tiny_10.txt
+tiny_30.txt
+zero_0.txt
