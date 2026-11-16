@@ -11,6 +11,9 @@ third-repetition mate all search and find `a1a8` / `mate 1` (252/252/252/240 nod
 counter-resetting board gives `mate 2` / 398 nodes, and K v K is still answered from the shortcut at 0
 nodes — exactly what `FABLE_TO_swarm_3` describes.
 
+The one file to read when deciding whether to apply any drawn-root patch: **`DRAWN_ROOT_DOORS.md`** —
+base vs PC20 side by side per door, with node counts, and the answer at the top.
+
 So **S-F5, S-F4, S-F17 (my patch) and S-F18 are BASE-TREE ONLY and need no action on the PC.** My patch
 must NOT be applied to the PC tree. It stays in the folder as evidence about the base tree and as one of
 the three competing base-tree fixes, which is what its header says.

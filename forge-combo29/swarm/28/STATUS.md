@@ -128,3 +128,6 @@ SWARM THREADS RULE applied. THREADS_AUDIT.md: 08-F11's base numbers came from se
 
 ## Mon Nov 16 10:22:00 PM UTC 2026
 DRAWN-ROOT re-run on PC r15 / PC20 / Threads 1 / depth 12: ALL REPAIRED, exactly as FABLE_TO_swarm_3 says. hm99/hm100/hm150 and third-repetition all search and find a1a8 / mate 1 (252/252/252/240 nodes) vs base 0 nodes/f2f3; seat 01 counter-reset board gives mate 2 / 398 nodes; K v K still 0-node shortcut. S-F5, S-F4, S-F17, S-F18 are BASE-TREE ONLY - my patch must NOT be applied to the PC tree. (S-F23)
+
+## Mon Nov 16 10:22:35 PM UTC 2026
+TASK 1 DONE: DRAWN_ROOT_DOORS.md - per-door base vs PC20 side by side with node counts, one sentence at the top saying no drawn-root patch from this swarm is needed on the PC tree. All 4 doors: base 0 nodes/cp 0/f2f3 -> PC20 240-398 nodes with mate score. Controls unchanged (K v K still 0 nodes; KQ v K still cp 0). A first run of the script reported A3 as STILL BROKEN because my judge tested for immediate checkmate and mate 2 is not immediate - fixed to judge by score, and that wrong verdict was corrected before anything was written up.
