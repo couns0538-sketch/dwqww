@@ -27,3 +27,8 @@ Next: cycle -> area 1 job 1 again with SEED+10 and a fresh R set, per cycle rule
 ## 2026-11-16T21:34:59Z
 CHECKPOINT PUSH (owner asked for a push every 30 min). All three area-1 jobs done and pushed earlier. Now: check of seat 05's S-F3 written as checks/CHECK_s05f3.md -> CONFIRMS its numbers (flip at H=91, depth 10) but REFUTES its framing: the cliff moves with depth (first zero at H=96/95/92/91/89 for depth 4/6/8/10/12 = 101-D, minus one when quiescence reaches deeper), so it is the search horizon, not an early fifty-move rule. Files: checks/check_s05f3.py, checks/check_s05f3_depth.py, checks/s05f3/*, checks/s05f3_depth.log.
 Next: area 1 job 1 again with SEED+10 and a fresh R set (cycle rule 2c).
+
+## 2026-11-16T21:36:25Z
+job 1 SECOND run (SEED 111, fresh R2 with 3,155 positions) done: 18,670 refused (93.35 %) / 1,330 accepted / 42 accepted-but-invalid / 0 crashes / 0 sanitizer lines / 0 illegal bestmoves of 1,288 judged. CONTROL PASS, accept/refuse STABLE. Sharper than run 1: ALL 42 invalid cases are the known adjacent-digit rule, zero other causes (run 1 had 1 double-check case). Refusal order by mutation identical at both seeds. Report: REPORT_job1b.md. New findings S-F14, S-F15.
+DELIVERY: FINDINGS.md now holds S-F1..S-F15 and S-C1, S-C2; every job1/job1b/job2/job3/checks raw file and both .patch.txt files are pushed with this commit (patches: job2/fifty_move_mate.patch.txt, job1/sanitizer_proof/planted_fault.patch.txt).
+Next: cycle -> check another seat's NEW finding (seat 17 S-F1/S-F2 searchmoves-0000 is still unchecked and nobody has a C line for it).

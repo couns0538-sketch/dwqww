@@ -1,0 +1,19 @@
+control: 3,000-character first field must be refused without a crash
+exe_started: /home/ubuntu/builds/asan/forge
+sha256: 37c0d256accc64b90aaccaf14e421f26607b4982adf976546d769351a0b50770
+nm -C grep -c __asan_ : 35
+nm -C grep -c __ubsan_ : 15
+
+run1 fen[0] len=3010 refused=True bestmove=True sanitizer=0
+    info string invalid FEN: too many squares in FEN rank
+run1 fen[1] len=56 refused=False bestmove=True sanitizer=0
+run1 fen[2] len=56 refused=True bestmove=True sanitizer=0
+    info string invalid FEN: castling right without king and rook
+run2 fen[0] len=3010 refused=True bestmove=True sanitizer=0
+    info string invalid FEN: too many squares in FEN rank
+run2 fen[1] len=56 refused=False bestmove=True sanitizer=0
+run2 fen[2] len=56 refused=True bestmove=True sanitizer=0
+    info string invalid FEN: castling right without king and rook
+
+STABLE accept/refuse across two processes: True
+CONTROL VERDICT: PASS (refused, no crash, no sanitizer line)
