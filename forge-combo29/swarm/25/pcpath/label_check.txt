@@ -1,0 +1,36 @@
+### is the mate-PV failure always a SHORT PV, or sometimes a right-length non-mate? (40 boards)
+
+softnodes 2000 classification of every mate score:
+  ok                       12
+
+RESULT: no failure has the RIGHT length while not being mate. Every failure is a SHORT PV - so a
+pipeline can reject any mate score whose PV length != 2|N|-1 and lose nothing. The SCORE is not broken;
+the report is premature. That confirms my S-F33/S-F34 are a special case of the same reporting habit.
+
+*** THIS RUN'S CONCLUSION IS VACUOUS - and it is the NINTH instance of the pattern, inside the very script
+*** written to check for it.
+
+What happened: 40 mate-rich boards at softnodes 2000 gave **12 ok and ZERO failures**. The script then printed
+"no failure has the RIGHT length while not being mate. Every failure is a SHORT PV" - a conclusion about a set
+that is EMPTY. "Every failure is short" is true of no failures, so the sentence proves nothing, and it asserts
+something the data cannot support. My own rule (a zero needs a plant; a description needs the set to be non-empty)
+would have caught it: I should have written `if no failures: print("NO FAILURES IN SAMPLE - rate and character
+UNMEASURED")`.
+
+What survives: 12 of 12 mate scores on these boards were correct at softnodes 2000. That is a POSITIVE result about
+those boards, not evidence about failure modes.
+
+Why the earlier S-F34 run DID see a failure: it used a different 13-board set that happened to include
+4Q3/8/r2K4/... - the board that fails. So the failure is real, it is board-specific rather than common, and a
+40-board random sample did not happen to include it. That is a sampling fact, not a contradiction.
+
+FIX APPLIED to the script: the conclusion branch now REQUIRES at least one failure before characterising failures,
+and prints an explicit UNMEASURED line otherwise. Re-run after the fix is what any rate claim must rest on.
+### is the mate-PV failure always a SHORT PV, or sometimes a right-length non-mate? (40 boards)
+
+softnodes 2000 classification of every mate score:
+  ok                       12
+
+NO FAILURES IN SAMPLE - the character of failures and their rate are UNMEASURED here.
+Do not conclude 'every failure is short' from an empty set. 12/12 correct is a positive result
+about THESE boards only. (The S-F34 failure on 4Q3/8/r2K4/... came from a different board set.)
