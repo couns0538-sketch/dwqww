@@ -38,8 +38,8 @@ with every line prefixed `cold N:` or `warm N:`. So those tables are labelled wa
 exactly what the warning asks for, and I have not silently re-labelled anything.
 
 Worth noting: my warm rows show precisely the effect seat 10 describes — `job1/out/repeat_306.txt` has
-`cold 0/1/2 = 17,021` twice... correction: `17,021` three times cold, then `warm 0 = 17,021`, `warm 1 = 889`,
-`warm 2 = 562`. The warm drop is the same phenomenon. **No claim of mine rests on those warm numbers**: they were
+`cold 0/1/2` all at `17,021` nodes, then `warm 0 = 17,021`, `warm 1 = 889`, `warm 2 = 562`. The warm drop is the
+same phenomenon. **No claim of mine rests on those warm numbers**: they were
 recorded as a determinism control, and the control's conclusion (the *score* is identical cold and warm) is
 unaffected by node counts.
 
