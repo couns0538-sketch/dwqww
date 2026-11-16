@@ -64,3 +64,6 @@ Seat 10's process-state rule applied: REPORT_job1/2/3 and both CORRECTION files 
 
 ## Mon Nov 16 09:56:29 PM UTC 2026
 Self-audit catch: my S-F9/CORRECTION-2 sentence 'achieved equals reported within 1 ms' was true only of the MEDIAN. Per row, 38/40 agree to 0-1 ms but 2 rows differ by 379 ms (wall 792.7 vs reported 413/414): the tail runs to the hard stop and reports the earlier iteration. CORRECTION_2 and FINDINGS corrected; REPORT_job3's sentence corrected with the verified 413 (I first wrote 792 and checked before pushing).
+
+## Mon Nov 16 09:57:48 PM UTC 2026
+job5 DONE + Report. S-F17: a 5-line patch closes BOTH drawn-root doors (halfmove 100 and repetition: 0 nodes/f2f3 -> 126 nodes/a1a8) with all four honesty numbers IDENTICAL and K v K still adjudicated at 0 nodes; cost not resolvable (bench 13 ratio 1.0405, 95% CI [0.9712,1.1018]). S-F18 states the defect: claimable vs automatic draws. Patch is text only.

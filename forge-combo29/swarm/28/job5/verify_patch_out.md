@@ -1,0 +1,12 @@
+| case | binary | bestmove | nodes | depth | bestmove is mate-in-one |
+|---|---|---|---|---|---|
+| hm99 | base | a1a8 | 126 | 6 | True |
+| hm99 | patched | a1a8 | 126 | 6 | True |
+| hm100 | base | f2f3 | 0 | 6 | False |
+| hm100 | patched | a1a8 | 126 | 6 | True |
+| rep3 | base | f2f3 | 0 | 6 | False |
+| rep3 | patched | a1a8 | 126 | 6 | True |
+| kvk | base | a1b1 | 0 | 6 | False |
+| kvk | patched | a1b1 | 0 | 6 | False |
+| kqk | base | b1b8 | 3007 | 6 | False |
+| kqk | patched | b1b8 | 3007 | 6 | False |

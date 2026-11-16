@@ -1,0 +1,16 @@
+--- a/forge-combo29/src/search.cpp	2026-11-16 21:56:58.328663528 +0000
++++ b/forge-combo29/src/search.cpp	2026-11-16 21:56:58.344663528 +0000
+@@ -2248,8 +2248,11 @@
+     };
+ 
+     // Terminal or adjudicated roots: report without searching.
+-    const bool root_drawn = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
+-                                               board.is_insufficient_material());
++    // SEAT 28 JOB 5 CANDIDATE PATCH (2 lines -> 1): the fifty-move and repetition terms are removed
++    // from the root shortcut. Both are CLAIMABLE draws, not automatic ones: a side that can mate in one
++    // at halfmove 100, or on a position repeated three times, must still find the mate (S-F5, S-C1,
++    // S-F4, seat 20's S-F13). Insufficient material stays: that draw IS automatic.
++    const bool root_drawn = !legal.empty() && board.is_insufficient_material();
+     if (root_candidates.empty() || root_drawn) {
+         int score = 0;
+         if (legal.empty() && board.in_check()) score = -MateValue;
