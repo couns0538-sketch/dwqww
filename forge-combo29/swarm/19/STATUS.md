@@ -219,3 +219,19 @@ File 4 note: my honesty checks always used NO setoption (correct regime for pins
 
 next command: re-run my finds on the PC build under PC20, starting with 19-F12 (the quit-abort bestmove)
   and 19-F15 (stable_sort pin drift), each line naming build + settings.
+
+## 2026-11-16T22:23:42Z
+
+PC20 RE-RUN COMPLETE. Build PC r15, Threads 1 everywhere.
+
+19-F12 STILL PRESENT on PC r15 under both none and PC20 (aborted: 0 info-depth lines, bestmove a2a3/0 nodes).
+19-F25 NEW: the fabrication is THE POSITION'S FIRST GENERATOR MOVE. Black-to-move P1 -> a7a6 (a2a3 illegal
+  there), which is the first line of that position's own go perft 1 divide (python-chess lexicographic is
+  a7a5, so engine order is what is reproduced). After a completed search returning d2d4, P1 still -> a7a6,
+  so NOT stale. FORGE_FIX_ABORT_PUBLISH defaults to 0 and its own comment excludes this path.
+19-F26: 19-F15/F20 hold on the PC build under PC20 — pins move -8.6 %/+5.7 %/-14.7 %, perft 5 not at all.
+  Under the none regime the post-ablation counts are IDENTICAL to the base tree's (292627/939494/2925608).
+19-F27: noise floor on PC r15 is +/-2.91 % at 6 rounds (node total 316,716 identical in all 12 runs).
+
+next command: pick the next PC-relevant speed question on PC r15 under PC20, or a check of another
+  seat's open finding on the PC build.
