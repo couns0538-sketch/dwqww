@@ -62,7 +62,17 @@ that decides it:
   word `button` appears in the whole source only where it is advertised (src/uci.cpp:247); there is no option-type
   dispatch, so nothing else can share the defect. finding_button/button_class.txt.
 
-Holding here and keeping the branch current until 22:30.
+## 22:17Z — TODAY vs SHOULD added to GUI_GUIDANCE.md (coordinator request, final item)
+A table of what the engine does TODAY per case, measured (today_state/today_state.txt, interactive driver):
+S-F3 `ponderhit` on a non-ponder search -> silently ignored, search runs on, **0 info string lines**.
+S-F4 `go` with only the opponent's clock -> silently unbounded, **0 info string lines**.
+S-F5 button `Clear Hash` given a value -> refuses, and **DOES print** `info string invalid value for option
+Clear Hash`. The asymmetry is the finding that matters for a GUI: the two dangerous cases are silent, so the
+only defence is GUI-side — never send `go` without the side-to-move's clock, and never use `ponderhit` to
+cancel. One probe in my first attempt collected output AFTER the setoption and wrongly showed S-F5 as silent;
+corrected and re-measured before publishing.
+
+COMPLETE. Nothing running, nothing pending.
 
 Exact next command:
   cd /agent/repos/dwqww && git log --oneline -1
