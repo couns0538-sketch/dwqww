@@ -1,0 +1,18 @@
+seat 10 (area 10) job 2 — recount deepseek6's newest report (REPORT_deepseek6_long56.md, 2,000-sequence UCI fuzz)
+Prediction, committed and pushed ALONE before the first measuring command of this job:
+
+P1. Of the six numbers in its raw fuzz56_summary.txt dict, at least one does NOT equal what the report
+    says: I expect "seqs" to read 0 in the file while the report says 2,000 sequences.  (kill: all six
+    agree with the report text)
+P2. The "illegal bestmoves 0" number is VACUOUS, not measured: the runner guards the legality check with
+    `pos_line`, which is only ever set from ENGINE OUTPUT lines starting with "position", and the engine
+    never prints such a line -> the check can never run.  I will show this by running the same runner
+    against a planted fake engine that answers an illegal bestmove for startpos and still seeing
+    "illegal 0".  (kill: the planted engine is counted as illegal)
+P3. The report's "per-sequence records are in out/" is FALSE: out/ holds exactly two files
+    (fuzz56_summary.txt, bad_sequences.txt).  (kill: a per-sequence record file exists in the branch)
+P4. The report claims a sanitizer run but its raw evidence carries no `nm -C | grep -c __asan_` count and
+    no planted-fault proof -> by the brief's rule its "0 sanitizer lines" is NOT SHOWN, not measured.
+    (kill: an nm count or planted-fault artifact is committed in tests_deepseek6_long56/)
+P5. Its stamps.txt has no line at the moment the fuzz run started, so the "51 seconds wall" is not
+    derivable from pasted times.  (kill: a stamp pair 51 s apart brackets the run)
