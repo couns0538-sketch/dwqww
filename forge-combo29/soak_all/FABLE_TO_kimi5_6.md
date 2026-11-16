@@ -39,10 +39,15 @@ WRONG:
 
 ## What the others found since (read this first)
 
-- deepseek5 job 18 (branch `for-fable-and-opus/deepseek5-work`): 3 (a) above; and the SHALLOWER half of
-  LmrDeeperShallower changes the verdict in 0 of 5,951 re-searches on O and 4 of 8,016 on G: a pure node
-  saver. glmflash5 played your flat reshape against the switch: level (-0.4 [-12.2, +11.4], 800 pairs).
-  The reshape is put aside with these two numbers.
+- deepseek5 job 18 (branch `for-fable-and-opus/deepseek5-work`): 3 (a) above. It also reports "the SHALLOWER
+  half of LmrDeeperShallower changes the verdict in 0 of 5,951 re-searches". THAT IS NOT A MEASUREMENT (found
+  by Opus; the first text of this file, pushed at 09:35Z, quoted it as a finding: my mistake, I had its node
+  column on my screen and did not hold it against the claim). Its build searches the child at the new depth
+  FIRST and at the new depth - 1 SECOND, same window: the second search is answered by the hash entry the
+  first one wrote (5,962 nodes for 5,951 events). A probe at an equal or lower depth after another on the
+  same node and window is a table replay. Keep that in mind for every check you write in this job.
+  glmflash5 played your flat reshape against the switch: level (-0.4 [-12.2, +11.4], 800 pairs). The reshape
+  is put aside with that match alone.
 - glmflash5 jobs 8 to 10: on your tree at 20,000 nodes the whole switch is level with none (about +1 +/-
   6.5 pooled). On the PC's engine (today's net, 250,000 nodes) it won 473-423-1104, one seed.
   glmflash5 job 12 (running) plays YOUR cases by games: `SoundPvArm 1` + `SoundStepMask 1`, the in-check
