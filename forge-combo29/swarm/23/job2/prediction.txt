@@ -1,0 +1,30 @@
+PREDICTION — SW-23 job 2 (AREA 3, MOVE GENERATION against python-chess)
+Written before the first measuring command of job 2. Never edited afterwards.
+
+What I will measure: 500 special positions found by filtering R_2301.fens and G (the 353-position set from
+`forge-combo29/tests_kimi5_job5/set_G.epd`), kept when python-chess says the position belongs to one of five
+classes, then perft 1 to 4 on each, engine vs python-chess:
+  C1 castling where the king crosses an ATTACKED transit square (f1/d1 for white, f8/d8 for black)
+  C2 en passant available where the capture would expose the king
+  C3 a capture that promotes and gives check
+  C4 double check (two checkers)
+  C5 a pinned piece that could capture its own pinner
+A position may fall into more than one class; it is counted in each class it satisfies and listed once per class.
+
+Prediction (each number with the range that kills it):
+  P1  positions found in total across the five classes: between 15 and 120.  KILLED outside.
+  P2  C1 (castling over an attacked square) will be the RAREST class: fewer than 10 positions. KILLED if >= 10.
+  P3  C2 (en-passant pin) will be found at least once: >= 1 position.      KILLED if 0.
+  P4  mismatch count across all 500-class positions at depth 1..4 = 0.     KILLED if >= 1.
+  P5  every class C1..C5 will be non-empty.                                KILLED if any class is empty.
+  P6  wall clock for the whole perft run < 20 minutes.                     KILLED if >= 20 min.
+
+Reasoning: these are exactly the rare move types job 1's uniform sampling would rarely hit, so I expect a
+small absolute number rather than a large one; random legal play rarely castles through an attacked square
+(legal play cannot castle INTO check, so C1 needs a position where castling is legal now but the transit square
+is attacked — python-chess's is_attacked_by on the transit square is the filter). Job 1 found no mismatch, so I
+expect none here either; if one appears it will be in C2 (the en-passant discovered check along a rank), which
+is the classic generator bug.
+
+If P4 is killed I will report the failing class, the FEN, the divide difference at the deepest depth, and add it
+to FINDINGS with the command that shows it again.
