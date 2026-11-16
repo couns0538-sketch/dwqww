@@ -1,0 +1,22 @@
+info depth 1 seldepth 1 score cp 1 nodes 26 nps 13000 hashfull 0 time 2 pv d2d4
+info depth 2 seldepth 2 score cp 49 nodes 54 nps 27000 hashfull 0 time 2 pv d2d4 d7d6
+info depth 3 seldepth 3 score cp 18 nodes 215 nps 53750 hashfull 0 time 4 pv e2e4 h7h6 d2d4
+info depth 4 seldepth 6 score cp 30 nodes 404 nps 80800 hashfull 0 time 5 pv e2e4 e7e5 c2c3 c7c6
+info depth 5 seldepth 9 score cp 6 nodes 1001 nps 111222 hashfull 0 time 9 pv c2c4 e7e5 e2e3 g8f6 d2d4
+info depth 6 seldepth 10 score cp 34 nodes 1703 nps 141916 hashfull 0 time 12 pv d2d4 d7d5 e2e3 g8f6 c2c4 d5c4
+bestmove d2d4
+
+=================================================================
+==89090==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 512 byte(s) in 8 object(s) allocated from:
+    #0 0x7ff4bb0fe6c8 in operator new[](unsigned long) ../../../../src/libsanitizer/asan/asan_new_delete.cpp:98
+    #1 0x557f158ead5f in forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /agent/repos/p14/forge-combo29/src/search.cpp:1556
+    #2 0x557f15906b48 in forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /agent/repos/p14/forge-combo29/src/search.cpp:2421
+    #3 0x557f15919e6a in forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess) /agent/repos/p14/forge-combo29/src/search.cpp:2751
+    #4 0x557f15972ae2 in operator() /agent/repos/p14/forge-combo29/src/uci.cpp:555
+    #5 0x7ff4bacecdb3  (/lib/x86_64-linux-gnu/libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #6 0x7ff4bb05ea41 in asan_thread_start ../../../../src/libsanitizer/asan/asan_interceptors.cpp:234
+    #7 0x7ff4ba09cb83  (/lib/x86_64-linux-gnu/libc.so.6+0x9cb83) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+
+SUMMARY: AddressSanitizer: 512 byte(s) leaked in 8 allocation(s).

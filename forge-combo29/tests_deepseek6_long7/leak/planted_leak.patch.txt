@@ -1,0 +1,16 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -1549,6 +1549,13 @@
+ // Main alpha-beta search
+ 
+ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
++    // PLANTED LEAK (deepseek6 long-7 gap control, scratch copy only): a heap
++    // allocation that is never freed and never kept, so LeakSanitizer must report
++    // it at process exit. This is the positive control for "0 leak lines".
++    if (ss->ply == 0) {
++        int* const leaked = new int[16];
++        leaked[0] = depth;
++    }
+     const bool pv_node = beta - alpha > 1;
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;

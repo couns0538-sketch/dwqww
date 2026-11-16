@@ -77,3 +77,11 @@
 - FOR kimi5: `LmrFine` declares TEN options, not nine (`LmrFineHistory` is easy to miss); four of them (`LmrNotImprovingF`, `LmrTtCaptureF`, `LmrGiveCheckF`, `LmrInCheckF`) are NOT shown wired by my node counts — I moved six of the ten.
 - FOR kimi5: `LmrRoundF=0` changes nothing on O at depth 12, so the rounding never bites there; a truncating variant would be a different experiment.
 - NEXT: sanitizer pass over QsSteps and LmrFine (the two patches that arrived after long 8), then keep checking for a job file.
+
+## after the two closed gaps, Mon Nov 16 04:20:29 PM UTC 2026
+- LEARNED: LeakSanitizer IS active on this VM — a planted `new int[16]` at the root gave `ERROR: LeakSanitizer: detected memory leaks`, `512 byte(s) leaked in 8 allocation(s)`, exit 1, and 16 ints x 4 bytes x 8 root searches reconciles exactly. Every earlier "0 leak lines" is now a real zero.
+- LEARNED: one positive control per FAULT CLASS, not per run. Long 7 proved the overread was caught and left the leak class unproved, which cost a second pass.
+- LEARNED: 16,590 sanitizer positions, 44 settings, 0 lines — and 16 independent reproductions of the depth-10 baseline (O 3,809,466 / G 7,290,580) from nine differently patched binaries.
+- FOR kimi5: `QsSteps` with `FORGE_QS_STEPS=1` is bit-identical to the baseline under ASan+UBSan on 553 positions — the "observe only" claim holds with the instrumentation active, not just with it compiled out.
+- FOR kimi5: `LmrFine` at its defaults is likewise clean and identical under the sanitizer.
+- NEXT: LmrFine's eight F options have not been swept under the sanitizer; otherwise waiting for a job file.
