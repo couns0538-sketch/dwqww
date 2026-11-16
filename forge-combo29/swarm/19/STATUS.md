@@ -398,3 +398,18 @@ next command: none — the record is complete.
 
 next command: continue in-area work — the king-only-side-to-move sample (the mirror of this one) is the
   obvious untested case, or another open finding's check.
+
+## 2026-11-16T23:49:58Z
+
+19-F55 DTM oracle: validated on KQvK (19 plies = theory) and found 1 of 8 covered positions with a worse
+  DTM — 8/8/4k3/6q1/8/8/8/1K6 b mates in 7 plies at depth 16 (g5d2) but 11 at go nodes 20000 (g5c5).
+19-F56 TRACED to the iteration: nodes 20000 stops after depth 7 (7,994 nodes) because depth 8 alone
+  costs 27,825; the mate needs depth 12 (133,042 nodes). The budget ends SIX PLIES before the mate exists.
+  => F46/F47's truncation produces F55's worse DTM, and the 3.5x cost jump between adjacent depths
+     is why the one-node cliff is structural.
+19-C10/19-F57 seat 21's halfmove-window trap APPLIED to my unclamped solver; audited all 8 covered
+  positions: all three mates fit their windows (7/95, 23/77, 15/75), so 19-F55 is unchanged. Clamp
+  implemented as windowed_verdict() for future use. NO mirror rate published for this reason.
+19-C9 two failed solvers + the ply-convention trap, labelled and kept.
+
+next command: run the mirror test through the clamped verdict, or another open finding's check.
