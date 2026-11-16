@@ -1,0 +1,25 @@
+job 18 A3 predictions (committed BEFORE any X run; never edited after commit)
+
+X1  SoundInCheckArm 1 + SoundStepMask 1
+    equal to "SoundMatePruning true + SoundStepMask 1" (11,944,468) on 200 of 200: YES.
+    Why: kimi5's own pair (SMP+mask1 vs PV+mask1, equal node for node on all 200) shows step 1
+    drops nothing at PV nodes; the same null for the in-check case is the question. My prior from
+    job 16 (most counted candidates are searched anyway) says the in-check step-1 "drops" are also
+    searched anyway, so exempting the in-check case under mask 1 changes nothing. Note this is NOT
+    "equal to none": with mask 1 step 1 still prunes outside the cases (11,944,468 < none).
+
+X2  SoundMateAlphaArm 1 + SoundStepMask 1
+    equal to "SoundMatePruning true + SoundStepMask 1" (11,944,468) on 200 of 200: YES.
+    Why: the mate-alpha case needs alpha already a mate score — rare in ordinary midgame positions
+    at depth 12; my job-15 runs showed the mate-alpha arm changing not one game at 20,000 nodes.
+    Small risk: a handful of positions with mate-scored alpha could differ; if X2 is NOT equal, the
+    first differing position's node count is the finding.
+
+X3  SoundInCheckArm 1 + SoundStepMask 62
+    equal to "SoundInCheckArm 1" (12,326,599) on 200 of 200: NO (my prediction).
+    Why: mask 62 removes step 1 GLOBALLY, and step 1's pruning is worth ~628k nodes on O
+    (11,944,468 vs 12,573,318) — the arm-alone tree still contains all of step 1 outside the
+    in-check nodes, so the two trees cannot coincide unless step 1 prunes ONLY at in-check nodes,
+    which nothing so far suggests. My concrete guess: X3 lands between 11,944,468 and 12,573,318,
+    nearer the arm-alone end; the distance from "SoundInCheckArm 1" measures what step 1 prunes
+    OUTSIDE in-check nodes.
