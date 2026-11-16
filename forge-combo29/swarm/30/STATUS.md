@@ -275,3 +275,8 @@ Reports: `REPORT_job2.md`, `REPORT_job3.md`, `REPORT_check1.md`, `REPORT_check2.
 
 **30-C33: patch packaged for review.** `ttclear_no_alt_clear.patch.txt` (sha256 50cc86d3...) now carries a header stating the reviewer check — all four honesty pins unchanged, MultiPV 3 emitting three distinct legal first moves, tie-order being pre-existing std::sort behaviour, and no other tt.clear() call site touched — plus the measured payoff. Re-verified after the rewrite: `patch -p1 --fuzz=0` rc=0 on a clean PC r15 copy, and the remaining call sites at :3048/:3060 are untouched.
 **Next command**: build the patched tree and check ONE thing my measurements do not cover — that MultiPV 3 at a real match budget (go nodes 2000) now reaches a sensible depth instead of depth 1, and that MultiPV 1 results are unchanged.
+
+## Mon Nov 16 11:26:50 PM UTC 2026
+
+**Important qualification, found after the patch was packaged (30-F48/F49)**: the repair fixes the per-depth COST but NOT the clock symptom. At Hash 2048 / MPV 3, `go wtime 5000` is depth 1 on both builds. The real owner-facing number is a Hash THRESHOLD: under a clock at MPV 3, Hash 16 MB -> depth 14 / 280,100 nodes, 256 MB -> depth 7, **512 MB -> depth 1 / 220 nodes** while wall time RISES (276 -> 535 -> 1,310 ms) with 10.5 GB free — table work, not memory pressure. Rule: **at MultiPV > 1 keep Hash at 256 MB or below** (holds on shipped and patched). 30-C34/30-C35 also record that both MultiPV 1 controls are provably identical between builds (3 repeats).
+**Next command**: `cd /agent/repos/dwqww && bash forge-combo29/swarm/30/read_board.sh /tmp/board13` for the next unconfirmed finding.
