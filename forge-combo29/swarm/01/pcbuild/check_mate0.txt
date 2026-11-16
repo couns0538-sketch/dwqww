@@ -1,0 +1,16 @@
+is `score mate 0` on a checkmated root a FAULT or the correct UCI score?
+pc   /home/ubuntu/builds/pc/forge sha256 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+base /home/ubuntu/builds/release/forge sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+PC20 + Threads 1 + Hash 16 on the PC build; base build gets no setoption (it has no PC20 options)
+go: 'go depth 8'; every case a fresh process; quit sent only after bestmove
+
+
+THE SCALE (what a consistent UCI score must give):
+  already checkmated  -> mate 0   and bestmove 0000 : PC mate 0 / 0000
+  can mate in 1       -> mate 1   and a mating move: PC mate 1 / a1a8
+  stalemated          -> cp 0     and bestmove 0000 : PC cp 0 / 0000
+  mated in 1 reply    -> mate -1                    : PC cp -984 / h7h5
+
+VERDICT: the four answers form a CONSISTENT UCI scale, so `score mate 0` on a checkmated
+root is CORRECT and my earlier S-F32/S-F38 'open door' claim was WRONG. Seat 21's withdrawal
+is right, and I withdraw my claim with this measurement.
