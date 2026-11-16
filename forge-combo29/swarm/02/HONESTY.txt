@@ -1,0 +1,22 @@
+S02 honesty check, build commit 6b98f217, folder forge-combo29, plain Release (g++-13, cmake, -march=x86-64-v4, no FORGE_PORTABLE).
+exe /agent/repos/base/forge-combo29/build/forge
+sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+date 2026-11-16T21:08:15Z
+
+bench 11      -> nodes 312866    want 312866    PASS
+bench 13      -> nodes 862329    want 862329    PASS
+bench 16      -> nodes 3024920   want 3024920   PASS
+go perft 5    -> nodes 4865609   want 4865609   PASS
+
+HOW: forge-combo29/swarm/02/honesty/run_honesty.sh <exe> <outdir>. A fresh engine process per line,
+commands on stdin, raw stdout+stderr in honesty/bench11.txt bench13.txt bench16.txt perft5.txt, the four
+numbers extracted by that script into honesty/numbers.txt. Output of that extraction, pasted:
+
+bench11 nodes: 312866
+bench13 nodes: 862329
+bench16 nodes: 3024920
+perft5 nodes:  4865609
+
+Built-in net: NNUE weights compiled in from src/nnue_weights.inc (FORGE_NNUE_WEIGHTS default), no external net file.
+CAVEAT observed: this engine takes no command-line arguments (main() is ),
+so  on argv does nothing;  must be sent on stdin.
