@@ -281,3 +281,18 @@ So the self-play contract holds exactly and its labels are reproducible.
 Not idle: the last push was the File-6 verdict pass at 22:56Z. Taking the coordinator's first suggestion next,
 the 6s+0.06 clock with a median search near 105 ms against a 60 ms increment, on the PC build under PC20 at
 Threads 1, then the `go nodes` boundary on real-game positions. STATUS cadence stays at 25 minutes.
+
+## 2026-11-16T23:24Z S-C11: the negative-sum clock, direction right, magnitude and forfeit ply refuted
+Tested seat 15's 15-F35 (no prior confirmation) with my own harness: self-play from startpos on the PC build,
+PC20, **Threads 1**, Hash 16, a real per-side clock decremented by measured wall time and incremented 60 ms per
+move, forfeit at zero, 3 games to a 200-ply cap (600 moves).
+  **6 s + 0.06 (owner's control): median 78.6 ms/move vs the 60 ms increment = 18.6 ms net drain**, p99 557 ms,
+  max 920 ms. Zero point at the median: about **322 plies**, not their ~165. All three games reached the 200-ply
+  cap alive but thin (418/158, 116/117, 551/465 ms left) - their "narrow margin", without their forfeit.
+  Their 105 ms median / 73 ms drain / ~82 moves is about 4x my measured drain; on this build, at 200 plies,
+  nothing forfeits.
+  **Control (6 s + 0.5 s): median 419 ms, net -80.6 ms/move (positive sum)**, two of three games ended with
+  10-19 s left - so the harness can see a clock that does NOT drain, and the drain above is measured rather than
+  inferred. The control also shows the engine really does spend more when the clock is healthy (419 vs 79 ms).
+Raw: pc/rerun/check_15f35.json. Next: 19-F46's `go nodes` undershoot table lacks a second confirmation and is on
+the owner's path -- checking it next.
