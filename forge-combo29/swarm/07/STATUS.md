@@ -405,3 +405,17 @@ stamps.txt
 
 job22/raw:
 result.txt
+
+## 2026-11-16T22:17:18Z
+NEW REAL FINDING 07-F2: LmrSignedCorrection is dead code. correction_cp = correction/256 is bounded to +-32 (CorrectionLimit 8192), so delta = correction_cp/64 is ALWAYS 0 -- 0 of 507,935 (reduction, correction) pairs change anything, and node counts are identical with the option off and on at startpos d12/d16 and middlegame d14. Control: /8 instead of /64 changes 374,845 of 507,935 pairs. No patch: a repair changes the tree, so it would break the honesty pins and needs a strength test, not a text patch.
+Also: NullThreatVerify is live (differs on middlegame d14), so its startpos null result was a coincidence.
+### ls job23 job24
+bool_options.py
+__pycache__
+raw
+run.log
+stamps.txt
+---
+lmrdead.cpp
+run.txt
+stamps.txt
