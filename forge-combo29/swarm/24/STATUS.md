@@ -34,3 +34,13 @@ done: job2 complete (REPORT_job2.md, FINDINGS 24-F1: 300/300 steps, 0 TSan repor
 runs now: job1 TSan threads sweep — t2 100/100 (0 reports), t4 100/100 (0 reports), t8 90/100 (0 reports),
       t16 queued. Partial table in job1/table.txt.
 next command: cd /agent/repos/dwqww/forge-combo29/swarm/24/job1 && python3 analyse.py   (after `tail -1 stamps.txt` shows "done job1")
+
+## 2026-11-16T21:53Z  (owner checkpoint 2)
+done this block: 24-C2 CONFIRMS seat 12 S-F1 (ucinewgame resets the board to startpos: perft 1 after
+      position X/ucinewgame enumerates startpos's 20 moves on a 6-move board). Re-audited 24-C1 under the seat-19
+      integrity rule — my own assertion had a hole (substring match), control caught it, now whole-sentence match
+      + negative control PASS. Warm/cold audit under seat 10's rule: no script of mine uses Clear Hash; no node
+      count compared across searches; all sweeps labelled WARM in checks/WARM_COLD_AUDIT.md.
+runs now: job1 t2 100/100 (0 TSan), t4 100/100 (0 TSan), t8 99/100 + 1 timeout (0 TSan), t16 at 57/100 (0 TSan).
+      Position-90 outlier (348 s / 377 s warm vs 0.8-2.0 s cold) under investigation: repro_pos90.py running.
+next command: cd /agent/repos/dwqww/forge-combo29/swarm/24/job1 && python3 analyse.py
