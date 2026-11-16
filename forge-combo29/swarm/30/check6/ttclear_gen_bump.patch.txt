@@ -1,0 +1,16 @@
+--- /home/ubuntu/pcsrc/src/search.cpp	2026-11-16 22:19:18.376169113 +0000
++++ /home/ubuntu/genfix_src/src/search.cpp	2026-11-16 23:23:15.412169113 +0000
+@@ -451,8 +451,11 @@
+ }
+ 
+ void TranspositionTable::clear() {
+-    for (std::size_t i = 0; i < cluster_count_; ++i) clusters_[i] = TTCluster{};
+-    generation_ = 0;
++    // EXPERIMENT (seat 30, 30-C29): the generation counter is already checked on every probe
++    // (probe_body: entry->generation() != generation_ means "not from this search"), so a
++    // generation bump retires the whole table as cheaply as zeroing it: O(1) instead of O(clusters).
++    // epoch_ is still bumped because it invalidates handles held across the clear.
++    generation_ = static_cast<std::uint8_t>((generation_ + 1U) & 31U);
+     ++epoch_;
+ }
+ 
