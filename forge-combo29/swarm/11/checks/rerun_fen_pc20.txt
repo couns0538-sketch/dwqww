@@ -1,0 +1,30 @@
+build: PC r15
+settings: PC20 (S14 + CuckooRep/HistRework 2/TtPruneV2/CorrHistV2/MateAlphaGuard/OwnBook false, Threads 1, Hash 16)
+==========================================================================================
+
+[S-F2] adjacent digits in a rank (5K11 vs canonical 5K2)
+  5K11             -> ('ACCEPTED', 8)
+  5K2 (canonical)  -> ('ACCEPTED', 8)
+
+[S-F13] en-passant field: only the legal ep square should be accepted
+  ep=d6  -> ('ACCEPTED', 31)
+  ep=e6  -> ('REFUSED', 'info string invalid FEN: inconsistent en-passant square')
+  ep=e4  -> ('REFUSED', 'info string invalid FEN: invalid en-passant square')
+  ep=d3  -> ('REFUSED', 'info string invalid FEN: inconsistent en-passant square')
+  ep=a1  -> ('REFUSED', 'info string invalid FEN: invalid en-passant square')
+  ep=h8  -> ('REFUSED', 'info string invalid FEN: invalid en-passant square')
+
+[S-F14] castling rights: Q with no a1 rook must be refused
+  all rights legal         -> ('ACCEPTED', 26)
+  Q but no a1 rook         -> ('REFUSED', 'info string invalid FEN: castling right without king and rook')
+  K with h1 rook (legal)   -> ('ACCEPTED', 15)
+
+[S-F16] piece inventory boundaries
+  8P+3R (infeasible)       -> ('ACCEPTED', 19)
+  7P+2Q (feasible)         -> ('REFUSED', 'info string invalid FEN: impossible piece inventory')
+  9 pawns (infeasible)     -> ('REFUSED', 'info string invalid FEN: invalid FEN placement')
+
+[S-F15] counter independence: halfmove 0 vs 100 must not change perft 1
+  halfmove   0 -> ('ACCEPTED', 26)
+  halfmove 100 -> ('ACCEPTED', 26)
+EXIT=0

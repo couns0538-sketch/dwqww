@@ -172,3 +172,6 @@ NEXT: continue area-1 work; push again by 22:30.
     My S-P1 patch is SUPERSEDED — file 3 says no base-tree patch is needed.
   * S-F8: HALF-repaired — now answers `unknown option UseNNUE false` instead of silence.
   * S-F1: STILL PRESENT — extra token still silently dropped on the PC build.
+- S-F24: FEN layer on PC r15/PC20 is IDENTICAL to base on every probe (S-F2, S-F13, S-F14, S-F15, S-F16).
+  So my FEN findings transfer unchanged to the PC. (Two FEN labels in this run were mislabelled by me again —
+  the engine values are right; S-F16 has the correctly generated version.)
