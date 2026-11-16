@@ -1,3 +1,69 @@
+# PC-TREE PATCH for 07-F1 -- searchmoves naming no legal root move
+#
+# Build: PC r15 (6b98f217 + pc_r15.patch, sha256 d6bd72c5...) from FABLE_TO_swarm_5.md.
+# Apply:  cd forge-combo29 && patch -p1 --fuzz=0 < job29_pc_searchmoves_empty_root.patch.txt
+#         (verified: exit 0, three hunks, no rejects)
+# Built:  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1
+# Threads 1, Hash 16 in every measurement below.
+#
+# THE DEFECT
+#   search.cpp:2531 already computes `result.restricted_root_empty` -- the engine KNOWS the root is
+#   empty because the caller's restriction matched nothing. It even prints
+#   `info string searchmoves restriction has no legal root moves`. Then the early branch at 2581
+#   falls into the depth loop at 2591 and emits `info depth D ... score cp 0 nodes 0` once per depth,
+#   i.e. 64 fabricated score lines, before `bestmove 0000`.
+#
+# WHAT THIS PATCH DOES
+#   Returns from that branch before the depth loop, only when restricted_root_empty. No score line is
+#   printed. `result.nodes` and `result.elapsed_ms` are still filled, and `best_move` is left none, so
+#   the UCI layer keeps answering exactly as before.
+#
+# ============================================================================
+# DESIGN CHOICE, STATED: what `bestmove 0000` means here and what I recommend
+# ============================================================================
+# This patch KEEPS `bestmove 0000`. That is deliberate and it is also the part I am least sure the
+# owner wants, so the reasoning is written out. UCI gives `0000` the meaning "there is no legal move"
+# (checkmate / stalemate). Here there are 20 legal moves, so a GUI that acts on that meaning may
+# resign, adjudicate, or refuse the move. Measured options, on startpos with 20 legal moves,
+# `go depth 6 searchmoves e2e5` (Threads 1):
+#
+#   A  today (unpatched)   bestmove 0000 + SIX depth lines all `score cp 0 nodes 0`   nodes 0
+#   B  this patch          bestmove 0000 + ONE honest info string, no score line        nodes 0
+#   C  full-root search    bestmove d2d4 + six real depth lines                         nodes 1703
+#   D  no answer at all    GUI waits for a bestmove that never comes                    --
+#
+#   A is the worst: it invents a drawn score for a position it never searched.
+#   D is rejected: a search never answered is worse than a poor answer, and seat 12 rejected it for
+#     the same reason in its abort fix (S-F11).
+#   B is what this patch implements: honest, and it changes nothing a GUI does today, because the
+#     GUI already received `0000` in case A. The patch removes the false score, not the move.
+#   C is what I would recommend as the REAL fix, and I did not implement it: the engine would ignore
+#     the caller's restriction and search the full root, returning d2d4 with real numbers. That is
+#     the only option that gives a GUI a playable move. Its cost is that it silently disobeys
+#     `searchmoves`, which is also a lie, just a louder one -- and `searchmoves` exists precisely so
+#     a caller can forbid moves.
+#
+# RECOMMENDATION, in one sentence: keep B (this patch) as the correctness fix, because a fabricated
+# score is a defect and an honest `0000` is not; and if the owner wants a playable answer, that is a
+# SEPARATE decision that must also state that the restriction was ignored -- `bestmove d2d4` plus
+# `info string searchmoves matched no legal move; searched the full root` -- because a GUI must never
+# be handed a move outside the set it asked for without being told.
+#
+# CONSEQUENCE FOR A GUI of shipping only B: unchanged behaviour from today, minus the false score.
+# No GUI needs changing, and no GUI gains a playable move. A GUI driving the engine with
+# `searchmoves` must already handle `0000` today; this patch makes that answer honest rather than
+# silently wrong.
+#
+# VERIFIED ON THE PATCHED BUILD (PC r15 + this patch, PC20, Threads 1, Hash 16):
+#   none-regime pins  312866 / 862329 / 3024920 / 4865609   (all unchanged)
+#   S14 pins          242796 / 656517                        (all unchanged)
+#   PC20 pins         278024 / 587276                        (all unchanged)
+#   empty-root cases  64 zero-node depth lines -> 0, `bestmove 0000` still returned
+#   controls          searchmoves e2e4: 33 depth lines, 50,224,817 nodes (identical before/after)
+#   19-F12 path       `go depth 12` + immediate quit -> a2a3, 0 depth lines (UNTOUCHED, different path)
+#   one-candidate      searchmoves leaving exactly one LEGAL candidate still searches:
+#                      base 138 nodes / PC20 175 nodes -> the early branch is correctly not taken
+# ============================================================================
 --- pcpatch_a/src/search.cpp	2026-11-16 22:23:43.728602054 +0000
 +++ pcpatch_b/src/search.cpp	2026-11-16 22:23:43.736602054 +0000
 @@ -2521,6 +2521,9 @@
