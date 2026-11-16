@@ -1,0 +1,31 @@
+exe: /home/ubuntu/builds/pc/forge  PC20  Threads 1  increment 60 ms
+Q: does the per-move cost TRACK THE CLOCK DOWN (converging) or stay flat (emptying)?
+
+clock      used_ms    net_drain  hard_limit_est note
+6000       167        107        3590.0         used well under its own hard limit (position finished first)
+1000       52         -8         590.0          used well under its own hard limit (position finished first)
+400        42         -18        230.0          used well under its own hard limit (position finished first)
+250        30         -30        140.0          used well under its own hard limit (position finished first)
+180        34         -26        98.0           used well under its own hard limit (position finished first)
+150        30         -30        80.0           used well under its own hard limit (position finished first)
+130        30         -30        68.0           used well under its own hard limit (position finished first)
+120        31         -29        62.0           used well under its own hard limit (position finished first)
+110        29         -31        56.0           used well under its own hard limit (position finished first)
+100        30         -30        50.0           used well under its own hard limit (position finished first)
+90         29         -31        44.0           used well under its own hard limit (position finished first)
+80         29         -31        38.0           
+70         19         -41        32.0           used well under its own hard limit (position finished first)
+60         19         -41        26.0           used well under its own hard limit (position finished first)
+50         12         -48        20.0           used well under its own hard limit (position finished first)
+
+=== FIXED POINT CHECK ===
+  claim: the fixed point is where hard_limit(C) == increment, i.e. 0.60*C - 10 = 60
+  => C* = (60 + 10) / 0.60 = 116.7 ms
+  clocks BELOW the claimed fixed point: [110, 100, 90, 80, 70, 60, 50]
+    at clock 110, used    29 ms -> net    -31 ms does not drain
+    at clock 100, used    30 ms -> net    -30 ms does not drain
+    at clock  90, used    29 ms -> net    -31 ms does not drain
+    at clock  80, used    29 ms -> net    -31 ms does not drain
+    at clock  70, used    19 ms -> net    -41 ms does not drain
+    at clock  60, used    19 ms -> net    -41 ms does not drain
+    at clock  50, used    12 ms -> net    -48 ms does not drain
