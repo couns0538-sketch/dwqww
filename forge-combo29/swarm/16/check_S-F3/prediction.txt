@@ -1,0 +1,25 @@
+# PREDICTION — check S-F3 (seat 06), area 6, seat 16
+
+Finding under check: "every left-right asymmetry in the hand-written eval comes from the Texel-tuned PSQT
+table and from no other term: 98.2% of G positions differ left-right, and 0 of 334 differ once only the PSQT
+table is symmetrised (perft 5 unchanged at 4,865,609)".
+
+My check: I symmetrise the PSQT table MYSELF (my own patch, my own script) — for every PSQT entry at
+relative square (rank r, file f) I set both (r, f) and (r, 7-f) to the average of the two values, MG and EG
+separately — apply it to a scratch copy of 6b98f217, build it the same way, and run MY OWN left-right harness
+(`job2/mirror_lr.py`, unchanged) on the same 334 no-castling G positions.
+
+Context: my own job-2 run found only r = 0.35 correlation between the measured hce delta and a PSQT-sum delta
+I computed. Either my predictor was wrong, or S-F3 is wrong. This check decides it.
+
+P1. With the symmetrised table, differences in a colour-... no: in a LEFT-RIGHT comparison: predicted 0 of
+    334 differ in hce. Kills it: more than 5 differ (then another term carries asymmetry and S-F3 is refuted
+    or at least incomplete).
+P2. Same comparison on the UNPATCHED build with the SAME harness: predicted 334 of 334 differ.
+    Kills it: fewer than 300 (then the harness is not the one I measured before and nothing compares).
+P3. `go perft 5` on the patched build: predicted exactly 4,865,609 (eval does not touch move generation).
+    Kills it: any other number (then the patch broke more than the table, and the check is void).
+P4. My earlier r = 0.35 was my error, not evidence against S-F3. Predicted: after symmetrising, the residual
+    deltas are 0, which means the PSQT term is the whole story and my psqt_sum predictor used the wrong
+    convention (MG only, or the wrong phase). Kills it: the patched build still differing in many positions
+    while my predictor stays poorly correlated (then both my predictor and S-F3 need work).
