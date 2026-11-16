@@ -22,7 +22,7 @@ S14 = [("LmrQuietBase", "93"), ("LmrQuietDivisor", "205"), ("LmrNoisyBase", "13"
 PC20 = [("CuckooRep", "true"), ("HistRework", "2"), ("TtPruneV2", "true"),
         ("CorrHistV2", "true"), ("MateAlphaGuard", "true"), ("OwnBook", "false")]
 EXE = sys.argv[1]
-DEPTH = 24
+DEPTH = 20
 
 
 def run(fen, depth=DEPTH):
