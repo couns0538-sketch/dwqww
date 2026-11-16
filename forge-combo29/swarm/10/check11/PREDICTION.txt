@@ -1,0 +1,22 @@
+seat 10 check11 — THE ONE SURVIVING DEFECT FORM that file 6 defines, tested directly.
+File 6: "a cp 0 at a high counter is a defect ONLY when a forced mate exists that ends no later than the
+100th half-move. Test for it: the same board with counter 0, go depth 20 or more, read mate N; it is a
+defect only if 2N - 1 <= 100 - counter and the board with the real counter still scores cp 0 at that depth."
+PC r15 under PC20, Threads 1, Hash 16.
+Prediction, committed and pushed ALONE before the first measuring command:
+
+I will build boards where a MATE GENUINELY EXISTS (verified by python-chess: a forced mate in N plies found
+by exhaustive search, not by the engine), place them at counters where 2N-1 <= 100-counter, and ask the
+engine at that real counter.
+
+P1. Boards where a mate exists and fits inside the remaining half-moves: the engine at the REAL counter does
+    NOT answer cp 0 -- it answers a mate score or a winning score. (kill: a cp 0 on such a board)
+P2. Control: the SAME board at counter 0 must produce the mate, proving the mate exists and the engine can
+    find it at that depth. (kill: no mate at counter 0)
+P3. Where the mate does NOT fit (2N-1 > 100-counter), the engine answers cp 0 and that is CORRECT per file 6,
+    so I count those separately and do NOT call them defects. (kill: a mate score there)
+P4. If P1 holds on every board, the surviving defect form is EMPTY in my sample and I say so plainly rather
+    than manufacturing a defect.
+P5. I predict at least one board where the engine at the real counter reports a MATE at a distance that
+    VIOLATES the half-move rule -- i.e. mate in N plies but 2N-1 > 100-counter -- which would itself be a
+    wrong answer (a mate that the game cannot reach). (kill: no such board)
