@@ -208,3 +208,8 @@ and verified both behaviours under S14 and PC20 with the honesty gate unchanged)
 
 **30-C27 — my headline number is now confirmed on a SECOND position**, so it is not position-specific: on a normal middlegame (`r1bqk2r/...`), PC r15 + PC20, Threads 1, go depth 8: MultiPV 3 gives 8,806 nodes at every Hash with **3.7 / 33.3 / 187.1 / 366.3 us per node** (Hash 16/256/1024/2048) while MultiPV 1 gives 4,515 nodes with **0.9 / 0.9 / 1.8 / 0.9** — flat. At 2 GB the MultiPV-3 price is 366 us/node here vs 204 us on P1, i.e. the penalty is if anything larger on a middlegame.
 **Next command**: `cd /agent/repos/dwqww && bash forge-combo29/swarm/30/read_board.sh /tmp/board12` then the next unconfirmed finding.
+
+## Mon Nov 16 11:23:07 PM UTC 2026
+
+**30-F47 + 30-C28: the MultiPV fault is now ROOT-CAUSED AND PROVEN.** Cause: src/search.cpp:2879 calls $alt_shared->tt.clear()$ inside the per-line loop at :2851, once per extra PV line per depth, and $clear()$ walks every cluster in the table. Proof: at Hash 1024 MB, ms per table-clear stays in **95-141 across 8 cells** (MPV2/MPV3 x depths 6/8/10/12) — i.e. one 1 GB zeroing per call, independent of depth and line count. us/node falls with depth (415 -> 36) because nodes grow faster than the fixed per-depth cost. Harm at depth 12: MPV1 18.5 ms/21,877 nodes vs MPV3 2,274 ms/62,578 nodes = **123x slower**. Repair path: the function already keeps $generation_$/$epoch_$, so bumping a generation instead of writing every cluster removes the cost.
+**Next command**: `cd /agent/repos/dwqww && bash forge-combo29/swarm/30/read_board.sh /tmp/board12` then the next unconfirmed finding.
