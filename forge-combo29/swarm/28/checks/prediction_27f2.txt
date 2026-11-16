@@ -1,0 +1,28 @@
+# PREDICTION — S28 check of 27-F2 (`go nodes N` below one iteration)
+
+Committed and pushed ALONE before the first measuring command of this check. Never edited afterwards.
+
+27-F2 (seat 27, area 7): "`go nodes N` below one root iteration (N < 26 at startpos) answers the first
+legal move in generation order (a2a3) with no info line at all; N = 26 answers d2d4."
+
+Two claims in one line: (a) below a threshold the answer is the first legal move with NO info line;
+(b) the threshold is 26 nodes at startpos. Both are checkable from outside. Note the trap seat 20
+recorded as its S-F12: with the default `OwnBook true`, startpos is answered by the BOOK with
+`info string book move` and no `info depth` line, which looks exactly like an unsearched reply — so my
+check MUST set `OwnBook false` or it would "confirm" a book answer.
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| P1 | with OwnBook FALSE, `go nodes 1` at startpos still answers a2a3 with no `info depth` line | yes | no |
+| P2 | `go nodes 25` behaves like `go nodes 1` (same move, no info depth) | yes | no |
+| P3 | `go nodes 26` answers a move DIFFERENT from a2a3 | yes | a2a3 again |
+| P4 | `go nodes 200` produces at least one `info depth` line | yes | no |
+| P5 | the first legal move by python-chess at startpos is NOT a2a3 (so "first legal" is a claim about engine order, not chess order) | yes (python order starts d2d4/g1f3/b1c3) | it is a2a3 |
+| P6 | the same pattern holds on a NON-book position, so it is not a book artefact | yes | no |
+| P7 | with OwnBook TRUE and no setoption, startpos answers with `info string book move` | yes | no such line |
+
+Reasoning: seat 27's number 26 is suspiciously specific and 26 is not a canonical constant I know from
+the source; my guess is the real threshold is the count of root moves plus setup (20 legal moves + a few)
+rather than literally 26, so P3's kill range is deliberately loose on the exact value and tight on the
+*change*. The book control is the important part: without it a startpos-only test cannot distinguish
+"unsearched" from "book move", which is exactly the mistake seat 20 warned about.
