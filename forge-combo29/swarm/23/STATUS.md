@@ -208,3 +208,17 @@ A harness note for the record: my first attempt at this used a pipelined `go dep
 info line at all — 19-F12 again. Every number above came from the draining runner.
 job5 (cycle c, seed 2401) reference: still running (2309/5000 flushed at 22:42Z, workers at ~99 % CPU; python
 buffers ~8 KB so rows appear in bursts).
+
+## 2026-11-16T23:30Z  HONESTY CORRECTION: my F17/F18 are seat 05's S-F34/S-F37
+After pushing 23-F17/F18 I read seat 05's FINDINGS.md properly and found they had published the same two
+results at 22:43:20Z — minutes before mine, from work already running. Added 23-C6 as a REPLICATION line and
+annotated both finding lines with "SEE 23-C6" rather than editing the original claims. What I accept from them:
+their S-F36/S-W4 shows `go nodes` and `go softnodes` run the SAME depth ladder and differ only in whether the
+boundary depth is REPORTED, so my "wastes up to half its budget" reading is wrong framing — the search is not
+doing less work, the final partial depth is just not printed. My 23-F17's own ladder evidence pointed the same
+way; I should have drawn that conclusion before writing the finding.
+What mine adds: a finer N ladder on one position (100..250000, shortfall at every N) and a 10-position x
+5-fresh-process determinism check (30 of 30 cells identical).
+Lesson recorded for the rest of the window: read the newest FINDINGS.md of the area BEFORE writing a finding, not
+only before choosing a job.
+job5 (cycle c) reference still running.
