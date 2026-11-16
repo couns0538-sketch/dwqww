@@ -544,3 +544,10 @@ S-F34/S-F35 framing (S-W4), my false softnodes nondeterminism (S-W3), my OwnBook
 - S-F45: depth is insensitive to Hash size (Hash 1/16/256 all depth 19) and wtime-only behaves identically to the full
   clock, so neither the TT nor btime explains it.
 - next command: continue the cycle.
+
+## $(date -u)
+- REPORT_clock.md written: a consolidated, self-contained account of the owner's clock path
+  (clockpath/REPORT_clock.md). Sections: the gap; formula not depth cap; increment dominates; what does NOT explain
+  it (Hash/btime/position); the 12/12 bit-match proving the clock is an implicit depth limit; the move-difference
+  question with my correction; confidence and limits. Every claimed file verified to exist.
+- next command: continue the cycle; the clock findings need a confirming seat and the repro is published.
