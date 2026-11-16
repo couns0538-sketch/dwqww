@@ -1,0 +1,35 @@
+THE 120-SECOND TEST: is the "hang" a LOOP or a SLOW SEARCH? -- A SLOW SEARCH.
+
+Board 5k2/8/8/8/8/8/8/1K1Q4 w - - 80 1, `go depth 22`, PC r15 PC20, Threads 1, Hash 16, sampled every 5 s
+for 120 s. The node figure below is the count on the last EMITTED depth line (the engine prints one line per
+completed depth), so a flat stretch means "still inside the next depth", not "stuck".
+
+  t = 5..35 s    depth 14,   23,174,968 nodes
+  t = 40..120 s  depth 15,  250,077,687 nodes
+  never reached depth 16 within 120 s
+
+SO: THE NODES CLIMB. 23.1 M -> 250.1 M, and the depth advances 14 -> 15. The search is making progress, it is
+simply taking an enormous number of nodes to finish a depth. **This is NOT an infinite loop.** The correct
+statement is:
+
+    "an UNTIMED deep search on this board at a high halfmove counter is IMPRACTICALLY SLOW
+     (250 M nodes to reach depth 15, no depth 16 within 120 s), whereas every BOUNDED form returns in
+     milliseconds to a few seconds."
+
+That also explains the earlier 25 s and 40 s observations: those runs were not hung, they were inside a
+depth that needed hundreds of millions of nodes.
+
+WHY THE COST EXPLODES, plausibly (NOT proven): this is a bare K+Q vs K board at halfmove 80-90, i.e. exactly
+where the fifty-move horizon is being evaluated (10-C16 showed the horizon fires from halfmove 91 on a K+R
+board and costs tens of millions of nodes; here it interacts with a long mate search). A forced mate in 7
+needs depth ~13-15 AND the fifty-move arithmetic, and the two together are what cost 250 M nodes. I state this
+as the likely cause, not as a measured mechanism.
+
+REVISED FINDING, final form:
+  1. THE HEADLINE: every bounded form of the command returns normally on this board -- wtime 10000 (1.6 s),
+     wtime 6000 (1.4 s), movetime 3000 (3.0 s), nodes 500000 (0.2 s), softnodes 20000 (0.0 s). The PC's
+     self-play uses softnodes and its matches use a clock, so **the owner's real path is not exposed**.
+  2. The untimed `go depth 22` case is not a hang but an impractically slow search (250 M nodes to depth 15).
+  3. Practical consequence, and the only one that touches anyone: a TEST harness that runs untimed deep
+     searches on high-counter king-and-queen boards will appear to hang. File 6's own diagnostic recipe
+     ("go depth 20 or more") is exactly that shape, so seats using it should add a time cap or use a clock.

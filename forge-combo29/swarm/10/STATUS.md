@@ -426,3 +426,12 @@ hangs on K+Q". Still a real defect worth a repair, confined to one command form.
 10-F63: at a tiny budget `go nodes 500000` plays d1d7 while `go softnodes 20000` plays d1d8 -- not safe to
 compare the two command families at low budgets.
 Mon Nov 16 11:32:12 PM UTC 2026
+
+## 120-second test: SLOW SEARCH, NOT A LOOP (10-F64, 10-F65)
+Sampled every 5 s for 120 s on the counter-80 board: depth 14 at 23.1M nodes (t 5-35 s), depth 15 at 250.1M
+nodes (t 40-120 s), never depth 16. Nodes CLIMB and depth ADVANCES -> it is a slow search, not a loop.
+Reframed 10-F61/F62 to lead with the severity result. FINAL FORM: every bounded form returns normally (so the
+owner's real path is not exposed -- THE HEADLINE); untimed go depth 22 at a high counter is impractically slow
+(250M nodes to depth 15). Practical note (10-F65): a harness running untimed deep searches on high-counter
+K+Q boards will look hung -- file 6's own recipe has that shape, so cap it or send a clock.
+Mon Nov 16 11:34:57 PM UTC 2026
