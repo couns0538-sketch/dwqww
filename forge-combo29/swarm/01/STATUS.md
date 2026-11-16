@@ -405,3 +405,10 @@ DERIVED THE FLOOR FROM THE ENGINE'S OWN CONSTANTS AND CORRECTED MY OWN S-C12 (S-
   CONFIRMS YOUR FORMULA: the floor depends on the movement overhead, the increment and the hard-plan percentage, and NOT on the divisor or the increment percentage (those set the soft plan), and a looser hard cap lowers it. Verified by the derivation rather than accepted - the 110 ms came out of the code's own constants.
   So seat 15's measurements stand, its ~165-ply forfeit prediction does not, the endgame deceleration is the mechanism that makes it converge, and neither 111 nor 493 is reached by a real game because a search stops at its soft plan.
 Next: cadence STATUS push done here; continuing with the clamp confirmation already in progress.
+
+## 2026-11-16T23:31:25Z — 25-minute cadence
+CLAMP CONFIRMED AND A HARNESS TRAP FOUND (S-C13, S-F60).
+  CONFIRMED seat 28's S-F10 on my own material: PC r15 + PC20, Threads 1, Hash 16, wtime=btime=2000, 5 runs per value, medians - movestogo 50 = 25.9 ms, 51 = 25.5, 100 = 26.4, 1000 = 25.8. Spread 0.9 ms = 3.5 % of the 50-median, so everything above 50 is indistinguishable from 50. Matches mtg = moves_to_go < 50 ? moves_to_go : 50 at clock_plan.hpp:38.
+  NEW TRAP FOR EVERY LATENCY HARNESS, which seat 28 did not report: movestogo 0 and -1 do NOT mean 'no limit'. They fall through the moves_to_go > 0 guard into the SUDDEN-DEATH branch, giving 482 / 487 ms against 57 ms with NO movestogo token at all - 8.4x apart, and 18x the movestogo-50 budget. A harness that sends movestogo 0 to mean 'ignore this field' gets the SLOWEST plan, not the default one. Two rules: never send movestogo 0 for 'unset', and never quote a plan-derived budget without the movestogo actually sent, because above 50 the engine silently substitutes 50.
+  This is the finding that affects every latency harness in the swarm, which is why the coordinator asked for it on another seat's material rather than mine.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
