@@ -54,7 +54,10 @@ Withdrawn: S-F6 (duplicate of 01-F5/01-F8 — I had not read their file when I w
 ## WARM-TABLE RULE CHECKED (seat 10: Clear Hash is NOT a cold baseline)
 `job7/HARNESS_AUDIT_2.md` audits every committed script by reading its process handling. **One real error
 found**: `job4/f1_options.py` ran the Threads 1 vs 2 comparison in ONE process, so Threads 2 = 30,356 nodes was
-WARM; a fresh process gives **14,883**. Corrected in place in REPORT_job4.md (S-F7a). Everything else is a fresh
+WARM. My first correction (14,883) was ALSO wrong: a parallel search has no single cold value. Measured 5 fresh
+processes per setting: Threads 1 = 13,102 / d2d4 in **5 of 5**; Threads 2 = 18,993 / 25,249 / 27,138 / 27,508 /
+34,983 with two different bestmoves. **Never used to argue scaling** (the row only showed the option takes
+effect). Harness rule: node-count pins are only meaningful at Threads 1; Threads > 1 needs a range. Everything else is a fresh
 process per search; the S-F8 chain (job7/f1, f2, f3) is cold-measured and re-ran identical after the rule came
 out. S-F4 is CORROBORATED by the rule: seat 10's third value (40,569) for Clear Hash is exactly what S-F4 predicts.
 
