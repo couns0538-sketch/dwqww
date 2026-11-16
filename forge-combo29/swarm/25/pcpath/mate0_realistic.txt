@@ -1,0 +1,24 @@
+D2 simulation: a match program that trusts the ENGINE's score to decide the game is over.
+Rule it uses: stop when the score is `mate N` with N != 0 (a real mate), or when bestmove is 0000.
+  ply 0: engine ('mate', 1), bestmove a1a8
+    -> engine says mate in 1; program plays a1a8
+  [program] python-chess says the game is over: Outcome(termination=<Termination.CHECKMATE: 1>, winner=True)
+
+D1 (the sane design): the match program owns the board and checks checkmate itself.
+  [program] checkmate detected locally at ply 1; engine never asked about a mated position
+
+CONCLUSION: S-F6's `mate 0` can only be reached by a program that (a) searches a finished position and
+(b) trusts the score token. The sane design never sees it, and even the trusting design cannot PLAY 0000,
+so it stops by accident. The exposure is a wrong recorded result, not a broken game.
+
+ADDITIONAL READING (both realistic designs avoid it):
+D2 (engine-trusting): at ply 0 the engine says `mate 1` and plays a1a8; python-chess then reports CHECKMATE, so the
+   program stops before it would ever ask about the mated position. It never sees `mate 0`.
+D1 (sane): detects checkmate locally at ply 1 and never asks the engine about a finished position. Never sees it.
+So S-F6's `mate 0` is reachable only by a program that (a) searches an ALREADY-finished position - which both
+realistic designs avoid - and (b) reads the score rather than the bestmove. Even then `0000` is unplayable, so the
+program halts by accident rather than making a bad move.
+VERDICT: S-F6 is a real reporting oddity (an undefined token where a defined one would be harmless) with
+essentially ZERO exposure in any realistic match program. Do not fix it on strength grounds; if it is fixed at all,
+the only reason is that the token is undefined and some future consumer might read scores without a legality check.
+This closes the S-F6 thread: confirmed as a property, explained, and priced at ~zero exposure.
