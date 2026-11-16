@@ -1,0 +1,29 @@
+# THE PC ENGINE (r15) — built and verified on my machine
+
+source: FABLE_TO_swarm_5.md patch, sha256 prefix verified d6bd72c531f785f4 (matches the file's stated value)
+applied: `patch -p1` on a pristine 6b98f217 export, all 11 files clean, in /tmp/pcbuild (SEPARATE copy)
+build:   cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS="-DFORGE_MATE_ALPHA_GUARD=1"
+exe:     /home/ubuntu/builds/bld-pc/forge
+         814008 bytes, sha256 see raw/RESULT.txt / raw/*.raw mtimes
+
+EVERY number below is the pasted output of pcbuild/pc_honesty.sh (raw/ holds the .raw files per line)
+
+| settings | bench 11 | bench 13 | bench 16 | go perft 5 |
+|---|---|---|---|---|
+| none (no setoption at all) | 312866 | 862329 | 3024920 | 4865609 |
+| S14 (the 14 settings)      | 242796 | 656517 | 2155620 | 4865609 |
+| PC20 (S14 + six)           | 278024 | 587276 | 2343893 | 4865609 |
+
+file 5's known answers:
+  none 312866 / 862329 / 3024920 / 4865609   -> MATCH all four
+  S14  242796 / 656517                        -> MATCH both
+  PC20 278024 / 587276                        -> MATCH both
+  (bench 16 under S14 and PC20 is not given in file 5; my values are above for the record)
+
+All 20 option names (14 S14 + CuckooRep, HistRework, TtPruneV2, CorrHistV2, MateAlphaGuard, OwnBook) are
+present in the exe's own `uci` list, checked before any of the runs. No `unknown option` / `invalid value`
+line appeared in any raw file.
+
+Settings note from FABLE_TO_swarm_4 that this confirms: the four honesty PINS are default-option numbers and
+the known SUMS are S14 numbers. bench 11 default 312866 vs S14 242796 on the same exe is that difference, not
+a fault.
