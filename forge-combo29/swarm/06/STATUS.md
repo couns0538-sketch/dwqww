@@ -41,3 +41,15 @@ plan for the 12 h: (a) read FABLE files 4 and 5, (b) build the PC engine from FA
 finds on the PC build under PC20 and restate every finding line with build + settings,
 (d) then THE CYCLE: confirm other seats' NEW finds, then area 6 job 1 again with the next seed.
 next command: git show FETCH_HEAD:forge-combo29/soak_all/FABLE_TO_swarm_4.md
+## 2026-11-16T22:35Z
+- read FABLE files 4 and 5 (all five now read).
+- PC r15 build: patch sha256 matches d6bd72c531f785f4, 11 files, patch -p1 no fuzz, g++-13 Release
+  -DFORGE_MARCH=x86-64-v4 -DFORGE_MATE_ALPHA_GUARD=1, separate copy /tmp/pc + /tmp/bld/pc.
+- PIN CHECK 7/7 exact: none 312866/862329/3024920/4865609; S14 242796/656517; PC20 278024/587276.
+  New numbers recorded: bench 16 2155620 (S14) and 2343893 (PC20); perft 5 4865609 both.
+- THREADS AUDIT: every harness of mine uses Threads 1; no score of mine is provisional.
+- PC20 rerun of my own finds: S-F1 HOLDS (0/353 eval pairs differ). S-F6 NOT REPAIRED
+  (120/353 = 34.0% bestmoves, 331/353 = 93.8% scores, vs base 101/28.6% and 334/94.6%).
+- findings S-F23..S-F26 added with build + settings in every line.
+next: THE CYCLE - read the board for other seats' NEW unconfirmed finds, confirm one with my own
+harness on the same build/settings; then area 6 job 1 with SEED 621 on the PC build under PC20.
