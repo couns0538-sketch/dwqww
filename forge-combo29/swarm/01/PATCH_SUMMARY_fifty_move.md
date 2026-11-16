@@ -248,11 +248,14 @@ startpos, go depth 12:   COLD(3 procs) 56720 56720 56720 | WARM(1 proc) 56720 49
 
 ## 8. What I have not measured
 
-A **complete** fix for every draw-claim door: the combined patch in section 5b closes the four doors I could
-build (fifty-move mate-in-1, fifty-move counter-resetting mate-in-3, threefold mate-in-1, plain controls) but I
-did not build a case for the dead-material door with a reachable mate, and I did not test a mate whose line
-resets the counter AND needs more than one move to land. So "closes every door" means "every door I could
-construct a test for".
+A **complete** fix for every draw-claim door: the combined patch in section 5b closes the fifty-move door
+(mate-in-1 and a counter-resetting mate-in-3) and the threefold door (mate-in-1). The **dead-material door turns
+out to need no fix**: the engine's `is_insufficient_material()` is exactly "no pawn/rook/queen, and either <= 1
+minor or all bishops on one colour", material in which no mate is constructible — swept 400 such positions, 273
+with insufficient material, **0** had any legal mating move, and 0 of 40 engine searches returned a mating move
+(`job2c/dead_material_door.txt`). I still have not tested a mate that both resets the counter and lands on a
+later move with the opponent able to claim nothing — that case is unmeasured. So "closes every door" means every
+door that can actually hide a mate on the evidence I have.
 
 Elo cost of any of these patches: not measured (no game-pair match).
 

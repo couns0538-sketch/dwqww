@@ -1,0 +1,13 @@
+does the DEAD-MATERIAL door need a mate bypass?
+rule re-implemented from Board::is_insufficient_material (src/board.cpp:1250)
+base     /home/ubuntu/builds/release/forge sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+combined /home/ubuntu/builds/fix4/forge sha256 924862e1dd5fc925109abcc8b976daa33615eae371615f1739dd8a2dbfe2dec9
+go: 'go depth 6'; one fresh process per position; no setoption sent
+
+A) RULE SWEEP: 400 positions generated, 273 have insufficient material per the engine's rule
+   positions with insufficient material AND a legal mating move: 0
+   -> no counterexample: on this material the rule never hides a mate, so the
+      dead-material branch of root_drawn cannot suppress one.
+
+B) ENGINE CHECK on the combined build, 40 insufficient-material positions: 0 bestmoves that
+   mate (should be 0, since no mate exists):
