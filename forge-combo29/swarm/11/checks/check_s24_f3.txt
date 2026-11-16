@@ -1,0 +1,21 @@
+exe /home/ubuntu/builds/rel/forge
+position 90: 5R2/1p5k/6p1/8/1K6/5q2/8/8 b - - 0 1
+
+cold (fresh process each time):
+  run 1: 0.04s  bestmove f3f8
+  run 2: 0.04s  bestmove f3f8
+  run 3: 0.04s  bestmove f3f8
+
+warm (40 other G searches first, same process):
+  run 1: 0.02s  bestmove f3f8
+  run 2: 0.02s  bestmove f3f8
+
+fastest cold 0.04s, fastest warm 0.02s, ratio 0.62x
+
+=== verdict ===
+  P1 (cold under 10 s on release): PASS
+  P2 (warm within 10x of cold):    PASS
+
+I do NOT reproduce seat 24's 348 s figure and make no claim about their TSan build;
+this check only says whether the outlier exists on an uninstrumented release build here.
+EXIT=0

@@ -146,3 +146,5 @@ NEXT: continue area-1 work; push again by 22:30.
 - S-P1 TEXT PATCH for 21-F9/S-F19: patches/fifty_mate_root.patch.txt applies with `patch -p1`
   without fuzz; honesty 4/4 unchanged; fault gone (6/6 H=100 mate now found); genuine draws and
   the checkmated root still adjudicate at 0 nodes (no regression).
+- S-C10 SCOPES 24-F3: G position 90 is 0.04s cold / 0.02s warm on the RELEASE build (no outlier).
+  Their 348s figure does not transfer here; likely TSan-specific. I do not claim their numbers are wrong.
