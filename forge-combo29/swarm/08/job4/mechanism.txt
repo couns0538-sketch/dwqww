@@ -1,0 +1,24 @@
+## the two stop paths have OPPOSITE error modes — this is the correction
+
+### `go movetime` (hard limit): aborts MID-iteration
+| movetime | overhead | plan | median wall | wall-plan | median last-completed-depth time | undershoot |
+|---|---|---|---|---|---|---|
+| 50 | 0 | 50 | 51.8 | +1.8 | 43.8 | 8.1 |
+| 50 | 10 | 40 | 41.9 | +1.9 | 32.2 | 9.7 |
+| 50 | 45 | 5 | 6.6 | +1.6 | 5.1 | 1.5 |
+| 200 | 0 | 200 | 201.9 | +1.9 | 143.6 | 58.3 |
+| 200 | 10 | 190 | 192.0 | +2.0 | 142.3 | 49.7 |
+| 200 | 45 | 155 | 156.7 | +1.7 | 121.7 | 35.0 |
+
+### `go wtime` with movestogo (soft limit): stops at an ITERATION BOUNDARY
+| control | plan soft | median wall | median last-depth time | undershoot | overshoot of soft (min..max) |
+|---|---|---|---|---|---|
+| mtg1 | 495 | 347.3 | 347.3 | 0.0 | -271 .. +299 |
+| mtg2 | 330 | 283.0 | 283.0 | 0.0 | -177 .. +214 |
+| mtg40 | 24 | 23.7 | 23.7 | 0.0 | -8 .. +73 |
+| none | 45 | 39.3 | 39.3 | 0.0 | -17 .. +101 |
+
+Reading: with movetime the deadline is checked INSIDE the search (should_stop), so the last
+iteration is thrown away and wall == plan + ~1.7 ms. With a clock the break is at search.cpp:2612
+`if (elapsed_ms() >= soft_basis * factor) break;` which sits at the END of an iteration, so nothing
+is thrown away (undershoot 0) and the search overshoots soft by up to a whole iteration.
