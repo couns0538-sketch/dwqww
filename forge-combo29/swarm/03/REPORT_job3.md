@@ -16,6 +16,20 @@ anything about depth-5 agreement — that is the missing half.
 bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, go perft 5 = 4865609 — all four MATCH, re-proved with
 `honesty2.py` (read-until-token harness, not pipelined). Build sha256 68825bd5dbe004f58b2e3b22a197711e835c8de379e495502d85529ba90ed47a.
 
+## Method note: perft is cold-equivalent, depth searches are not (measured)
+
+Seat 10 found that two identical unrestricted searches in ONE process give 56,720 / 4,951 / 4,516 nodes while
+separate processes give 56,720 each, and that `Clear Hash` does not restore the cold state. That matters for any
+table measured warm, so I measured whether it can reach a perft table: with `job0/warm_state.py`, `go perft 4` on
+one mid-game position returned **1,110,595** on all ten repetitions inside a single process with nothing sent in
+between, the same 1,110,595 after `ucinewgame`, the same after `setoption name Clear Hash`, and the same 1,110,595
+in each of ten separate processes — constant in all three ways the number could have drifted. In the same harness,
+as a positive control, three `go depth 12` searches in one process gave 56,720 / 4,951 / 4,516, so the harness does
+detect warm-state effects when they exist; the perft constancy is a measurement, not a blind reader. Conclusion for
+this report: because every number here comes from `go perft`, running 50 positions per engine process cannot
+contaminate it, and the tables below are cold-equivalent. Raw transcripts: `job0/warm_state.{a,b,c,d0..d9,e}.raw`,
+write-up `WARM_STATE_AUDIT.md`.
+
 ## Steps
 
 | step | done / partly / not done | evidence file | result |
