@@ -1,0 +1,11 @@
+position 24 iteration trace, 2026-11-16T23:45:43Z
+fen: 8/8/4k3/6q1/8/8/8/1K6 b - - 5 153
+
+go nodes 20000: stops after depth 7 (7,994 nodes). Depth 8 alone costs 27,825 nodes,
+  so the 20,000-node budget is exhausted INSIDE depth 8 and depth 7's answer (g5c5) is published.
+  The mate is not found until depth 12 (133,042 nodes) -> nodes-20000 never sees it.
+
+go depth 16: reaches depth 12 at 133,042 nodes -> score mate 7 (pv g5d2), and depth 13+ -> mate 5.
+
+=> the DTM gap is exactly 19-F46/F47's truncation: the node budget ends the search mid-iteration,
+   and on this position it ends it SIX PLIES before the mate becomes visible.
