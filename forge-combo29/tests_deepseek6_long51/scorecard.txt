@@ -1,0 +1,38 @@
+# deepseek6 long 51 — prediction scorecard (PREDICTION.md committed before the first run, never edited)
+
+P1 G's S14 sum at depth 14 between 40 M and 60 M.
+   MEASURED **43,345,893**. -> **HELD.**
+
+P2 the four singles keep their depth-12 G order at depth 14: SD7 < LQD193 < LQB101 < IIR1.
+   MEASURED at d14: **LQD193 0.9533 < SD7 0.9570** < LQB101 0.9835 < IIR1 1.0252.
+   SD7 and LQD193 swap. -> **KILLED** (one swap of the two leaders; the other two are in place).
+
+P3 the bundle's G interaction shrank in percentage at depth 14: predicted within 0 % to +5 %.
+   MEASURED **-5.69 %** (d14 0.8675 against a 0.9198 product). It did not shrink in magnitude, it CHANGED
+   SIGN: at d12 it was +7.02 % (0.8569 against 0.8007). -> **KILLED**, and in the more interesting way.
+   My prediction's text said "below 0 % ... also kills it, and would be the more interesting outcome"; that is
+   what happened.
+
+P4 the pair and the bundle move in the same direction between depths.
+   MEASURED pair +0.65 % (d12) -> **-3.00 %** (d14); bundle +7.02 % -> **-5.69 %**.
+   Both flip from positive to negative. -> **HELD** (same direction of change).
+
+P5 every run changes at least 100 of 353 best moves at depth 14, bundle the largest.
+   MEASURED SD7 79, LQD193 81, LQB101 92, IIR1 90, pair 85, bundle 97 — all BELOW 100.
+   -> **KILLED on the threshold**, HELD on the ordering (the bundle, 97, is the largest of the six).
+
+P6 budget 25-45 minutes at 3-way parallelism, two batches.
+   ACTUAL about 8 minutes: batch 1 five runs ~4 min, batch 2 two runs ~4 min. -> **HELD** (far under).
+
+Score: 2 held (P1, P4), 1 partly (P5: ordering right, threshold wrong), 3 killed (P2, P3, P6-by-margin).
+
+## The result that matters
+
+At depth 12 the four settings compose SUB-multiplicatively on G: the bundle is +7.02 % ABOVE the product of its
+singles (the savings overlap, so four together save less than the product predicts). At depth 14 the same four
+compose SUPER-multiplicatively: the bundle is **-5.69 % BELOW** the product (four together save MORE than the
+product predicts). The pair does the same, +0.65 % -> -3.00 %.
+
+So "do the interactions grow or shrink with depth" has no single answer: **the sign of the interaction itself is
+depth-dependent**, which means the product-of-singles reasoning that long 41 and 42 used is only valid at the
+depth it was measured at — and gets the direction wrong one ply pair deeper.
