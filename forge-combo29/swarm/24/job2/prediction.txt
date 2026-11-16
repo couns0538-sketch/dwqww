@@ -1,0 +1,27 @@
+# PREDICTION — seat 24, area 4, job 2 (Threads and Hash changed between searches, under ThreadSanitizer)
+
+Written and pushed BEFORE the first measuring command of job 2. Never edited afterwards.
+
+Work: 300 steps; each step sets `Threads` (random of 1/2/4/8/16) then `Hash` (random of 1/4/16/64/256), each
+followed by `isready` and every line read to readyok; 40 % of steps also send `ucinewgame`; then
+`position fen <one of the first 100 of G>` + `isready` + `go depth 1..6` (rng seed 2402, one fresh engine
+process for the whole run), under ThreadSanitizer (nm __tsan_ = 21, planted-fault control already counted).
+
+## Predictions (each with the range that kills it)
+
+1. TSan report blocks over the whole run: **0**. KILL if one or more appear.
+   (Reasoning: `resize_hash` frees and reallocates the shared table only between searches, when no helper
+   thread exists because `Searcher::search` joins its helpers before returning.)
+2. Crashes: **0**. KILL if any step needs a process restart for a crash (segfault / nonzero exit).
+3. Hangs: **0**. KILL if any step exceeds its 300 s timeout.
+4. Illegal or missing bestmoves: **0 of 300**. KILL if any.
+5. `setoption name Hash value 1` while 300 searches' worth of ageing has happened: still accepted, no
+   `invalid value` line (min in the `uci` answer is 1). KILL if this setting produces `invalid value`.
+   I predict **at least one step will use Hash 1** (5 values, 300 steps) — call it 60+ steps.
+6. Total wall time: **under 12 minutes** for 300 steps. KILL if over 30 minutes.
+
+## What "0 reports" needs to count (from the brief)
+The .meta must hold `nm -C <exe> | grep -c __tsan_` above 0 (it is 21), and a planted fault run through the SAME
+runner must be counted. The planted control is already recorded for job 1 (102 report blocks, job1/run_planted.sh
++ job1/planted.raw); job 2 re-uses the identical runner code path (same Engine class, same read discipline) and
+also re-runs the planted executable through `churn.py` itself, so the proof is specific to this runner.
