@@ -98,3 +98,23 @@ inside my cycle step 2a), then re-run my own findings on the PC build where they
 
 Next command:
 `cd /agent/repos/dwqww/forge-combo29/swarm/03 && bash board2.sh 2>&1 | tail -20`
+
+## 2026-11-16T22:38Z
+
+Durable claim file: job4/pc_movegen_identical.md (the claim, five sets with all sums, both build recipes, exact
+reproduction commands, and the wrong-extraction hash warning).
+
+**job5 DONE — the legality/move-choice question.** 200 positions, depth 8, Threads 1, fresh process per search:
+- 196/200 same bestmove; **4 differ**, all 4 legal on both builds; 0 measurement failures.
+- all 4 are **endgames**: 4/26 = 15.4 % vs 0/174 elsewhere (two-sided Fisher p = 0.0002) — the same region as the
+  patch's bare-king fixes (cause NOT proven; that needs a rebuild with those macros off).
+- PC build is stronger on the two unresolved cases (mate 5 at depth 8 vs base needing depth 12; mate 8 at d12 where
+  base sees cp +1101), verified by replaying the mate PV to checkmate.
+- planted control through the same harness: 4/4 differences and 4/4 illegal flagged.
+Findings S-F9, S-F10. Report REPORT_job5.md.
+
+Next: rebuild the r15 tree with FORGE_FIX_BARE_KING_LMR_CAP / _ONE_THREAD turned off and re-run the 26 endgame
+positions — that turns the endgame suspicion into a cause or refutes it.
+
+Next command:
+`cd /agent/repos/dwqww/forge-combo29/swarm/03/job5 && python3 - <<'PY' ... PY` (see job6/repro_endgame.txt once written)
