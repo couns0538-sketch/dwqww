@@ -1,0 +1,64 @@
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index e8160dc..6c2cd05 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -100,6 +100,11 @@ bool LmrSignedCorrection = false;
+ bool LmrLateParentRelief = false;
+ bool HindsightDepth = false;
+ bool NullThreatVerify = false;
++std::uint64_t ntv_checks = 0;   // null cutoffs below depth 14 while NullThreatVerify on
++std::uint64_t ntv_fired = 0;    // of those, where the cheaper-attack threat exists
++std::uint64_t ntv_confirmed = 0;// of those fired, where the verification search also failed high
++std::uint64_t nsv_scans = 0;    // null candidates while NullSeeVeto on
++std::uint64_t nsv_vetoed = 0;   // of those, vetoed by the SEE capture walk
+ bool NullSeeVeto = false;
+ bool AspCappedReopen = false;
+ bool AspArmLate = false;
+@@ -1698,7 +1703,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
+-            !(tune::NullSeeVeto && null_see_veto_threat(board)) &&
++            !(tune::NullSeeVeto && (tune::nsv_scans++, null_see_veto_threat(board) ? (tune::nsv_vetoed++, true) : false)) &&
+             !(tune::NullMoveHanging == 1 && cheaper_enemy_attacks_dearer(board))) {
+             ++null_tries_;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+@@ -1724,7 +1729,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 // attacks a dearer piece of the side to move. The option is read
+                 // first, so the attack scan does not run when it is off.
+                 const bool threat_gate =
+-                    depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
++                    depth < 14 && tune::NullThreatVerify && (tune::ntv_checks++, cheaper_enemy_attacks_dearer(board) ? (tune::ntv_fired++, true) : false);
+                 if (depth < 14 && !threat_gate && !(tune::NullMoveHanging >= 2 && cheaper_enemy_attacks_dearer(board))) {
+                     ++null_cutoffs_;
+                     return null_score;
+@@ -1740,6 +1745,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 ss->null_move_allowed = true;
+                 if (aborted_) return 0;
+                 if (verification >= beta) {
++                    if (threat_gate) ++tune::ntv_confirmed;
+                     ++null_cutoffs_;
+                     return null_score;
+                 }
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index e0d8aee..ac80e06 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -21,6 +21,7 @@
+ #include <string_view>
+ #include <thread>
+ #include <vector>
++namespace forge::tune { extern std::uint64_t ntv_checks, ntv_fired, ntv_confirmed, nsv_scans, nsv_vetoed; }
+ 
+ namespace {
+ 
+@@ -623,6 +624,9 @@ int uci_loop(std::istream& in) {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
++                      << "\ninfo string ntvnsvtrace ntv_checks " << forge::tune::ntv_checks << " ntv_fired " << forge::tune::ntv_fired
++                      << " ntv_confirmed " << forge::tune::ntv_confirmed << " nsv_scans " << forge::tune::nsv_scans
++                      << " nsv_vetoed " << forge::tune::nsv_vetoed
+                       << std::endl;
+         } else if (command == "ponderhit") {
+             if (ponder_search_active) {
