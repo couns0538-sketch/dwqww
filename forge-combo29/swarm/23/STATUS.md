@@ -131,3 +131,18 @@ job4 (prediction committed alone first, job4/prediction.txt). Threads 1, Hash 16
 - 23-F10: planted control for my perft zeros — same script, same data, one node added to one reference row is
   caught (1 mismatch, 218150726 vs 218150727); a deleted depth key exits 2 HARD FAILURE. My zeros are measured.
 job3 depth 5 now 198/200 reference rows written.
+
+## 2026-11-16T22:35Z  jobs 3+4 done, 23-C2 confirms seat 03, G30 depth-5 reference running
+Done since last block:
+- job3 COMPLETE: perft 5 on all 200 R positions = 0 mismatches, 7,399,207,740 nodes per side (23-F11);
+  REPORT_job3.md corrected from "not done" to the real result. G30 (30 positions) depth-5 reference running now.
+- job4 COMPLETE: REPORT_job4.md. 23-F9 (PC20 movegen identical to base), 23-F8 (19-F12 NOT repaired on the PC
+  build: quit/EOF still gives bestmove a2a3, 0 info lines; stop is fine), 23-F10 (planted control: +1 node caught,
+  missing key exits 2).
+- 23-C2 CONFIRMS seat 03's S-F5: my own harness + my own engine on THEIR 230 FENs, depths 1..5 = 1150/1150 pairs
+  equal, sums 5644/137090/4013465/119698590/3925995728. And a warning worth spreading: my perft-5 total (7.40e9)
+  vs theirs (3.93e9) is NOT a contradiction — different seeds (mean branching 31.59 vs 24.539) and their 30 G
+  positions add 1.02e9 alone; perft sums may only be compared by FEN identity.
+Threads 1 everywhere; no score of mine was ever taken above Threads 1.
+Next: finish G30 depth 5, then check another unconfirmed NEW finding (seat 13's S-F2 special positions is the
+nearest unclaimed candidate for area 3), then job 1 of my area again with SEED+10 per THE CYCLE (c).
