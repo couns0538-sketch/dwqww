@@ -74,3 +74,15 @@ Show it again:
     cd forge-combo29/swarm/08/job5 && python3 overshoot_one_iteration.py ~/builds/release/forge /tmp/ov.tsv
 
 Raw per-search data: `job5/overshoot_one_iteration.tsv`.
+
+## What a fix would have to change (one answer, from the data above)
+
+The data supports the **plan arithmetic** as the dominant cause at short clocks, not alone a missing mid-iteration
+check: at 200 ms the soft plan is 8 ms while the median search takes 8.0 ms and two of the three worst searches had
+an iteration cost *smaller* than their overshoot (overshoot/cost 0.97 and 1.10), so stopping at the end of that
+iteration cannot by itself produce a 33 ms overrun — the plan was simply too small for an iteration to fit in it,
+and the fix is in `clock_plan_budget` (`clock_plan.hpp:39-41`), which divides a 200 ms budget by a constant 22 and
+a 1000 ms budget by the same 22, giving 8 ms and 45 ms against iterations that cost 12-84 ms. A mid-iteration soft
+check would cut the tail at 1000 ms, where the worst row's overshoot was 1.5x its last iteration, but at 200 ms it
+would mostly stop inside the first iteration and buy little: the honest reading is that both changes are needed and
+the plan arithmetic is the one my numbers force.
