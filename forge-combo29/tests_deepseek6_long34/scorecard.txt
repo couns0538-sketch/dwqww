@@ -1,0 +1,50 @@
+# deepseek6 long 34 — prediction scorecard (PREDICTION.md committed before the first run, never edited)
+
+Baseline for every ratio here = the plain S14 build at `go depth 8` over the first 20 of O =
+**118,961 nodes** (measured twice: as the mode of the 116 sweep runs, and as a fresh run of the
+sanitizer build with S14 and no extreme option). 116 runs: 58 spin options x 2 ends.
+
+P1 0 AddressSanitizer errors and 0 UBSan runtime errors, apart from the plant.
+   MEASURED: 0 sanitizer lines in all 116 runs. -> **HELD.**
+   The plant IS reported: heap-buffer-overflow at search.cpp:2144, exit 1 (`plant_evidence.txt`).
+
+P2 at most 2 runs die by signal, both Hash at 2048.
+   MEASURED: 0 runs died or refused in the final sweep. -> **HELD** (better than predicted).
+   The first sweep attempt had 6 "REFUSED" runs, but those were MY harness's error (see F1),
+   not engine deaths.
+
+P3 every bestmove legal, all searches. MEASURED: 0 illegal, 0 missing across 116 runs x 20
+   positions = 2,320 searches. -> **HELD.**
+
+P4 the five slowest are RfpMargin max, RazorBase max, FutilityBase max, SeeQuietMultiplier max,
+   LmrCutoffThreshold max, each >= 1.3x the baseline.
+   MEASURED slowest five: MultiPV 8 (5.417x), LmrQuietDivisor 500 (1.526x), LmrQuietBase 0
+   (1.490x), RfpDepth 0 (1.381x), SingularMargin 0 (1.355x). Of my five named, only
+   LmrCutoffThreshold 20 (1.231x) is even close and it is NOT in the top five; RfpMargin max
+   is 1.343x, FutilityBase max 1.014x, SeeQuietMultiplier max 1.040x, RazorBase max 1.001x.
+   -> **KILLED, completely.** The real drivers are the LMR constants and MultiPV, not the
+   futility/SEE margins I guessed.
+
+P5 the inert options stay inert: QsSeeMargin, CaptureFutilityMultiplier, CaptureFutilityDepth
+   at both ends equal the baseline (6 identity runs).
+   MEASURED: CaptureFutilityMultiplier and CaptureFutilityDepth ARE identity at both ends
+   (4 runs). **QsSeeMargin is NOT: min 0 = 1.0000 (identity) but max 500 = 1.1780** - a 17.8 %
+   larger tree. -> **PARTLY KILLED**: 4 of 6 identity runs, and the one that is not is a real
+   finding (QsSeeMargin's default 40 is below its max, and raising it costs nodes).
+
+P6 the whole sweep finishes inside 60 minutes, slowest single run under 300 s.
+   MEASURED: the 116 runs took about 5 minutes at 4-way parallelism; slowest run 12.4 s
+   (MultiPV 8). -> **HELD, wide of the mark.**
+
+Also measured, not predicted (reported as findings, not scored):
+  * 20 of 58 options are identity at BOTH ends: Book Depth, Book Variety, CaptureFutilityBase,
+    CaptureFutilityDepth, CaptureFutilityMultiplier, DrawJitter, Hash, Move Overhead,
+    NullMoveEvalDivisor, Threads, and all ten Tm* time-management options.
+  * 27 options change the tree at BOTH ends; the largest single swings are
+    RfpMargin min 10 = 0.375x (a 62 % SMALLER tree) and LmrQuietBase max 300 = 0.565x,
+    against LmrQuietDivisor max = 1.526x and LmrQuietBase min = 1.490x.
+
+Score: 4 held (P1, P2, P3, P6), 1 partly killed (P5), 1 killed outright (P4).
+The P4 kill is the useful one: I expected the futility/SEE margins to be the expensive
+extremes and they are nearly free, while the LMR constants (which the tuner does move) swing
+the tree by 50 % in either direction at their bounds.
