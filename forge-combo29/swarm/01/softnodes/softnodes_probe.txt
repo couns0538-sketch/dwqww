@@ -1,0 +1,22 @@
+`go softnodes N` on the PC build under PC20, Threads 1, Hash 16
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+PC20: LmrQuietBase=93, LmrQuietDivisor=205, LmrNoisyBase=13, LmrNoisyDivisor=333, LmrHistoryDivisor=5643, NullMoveBase=5, LmpBase=8, HistoryPruneMultiplier=2220, HistoryBonusQuadratic=24, HistoryBonusLinear=54, HistoryBonusMax=2212, SingularDepth=6, IirDepth=2, NonPawnCorrection=true, CuckooRep=true, HistRework=2, TtPruneV2=true, CorrHistV2=true, MateAlphaGuard=true, OwnBook=false, Threads=1, Hash=16
+three runs per case in THREE SEPARATE PROCESSES to test determinism
+
+position	N	bestmove	score	nodes_total	depth_reached	overshoot	overshoot_pct	deterministic
+startpos	2000	d2d4	cp 32	4121	7	2121	106.05	True
+startpos	20000	d2d4	cp 25	21600	12	1600	8.0	True
+startpos	50000	d2d4	cp 21	78579	15	28579	57.16	True
+midgame	2000	g7g6	cp -306	2671	7	671	33.55	True
+midgame	20000	g7g6	cp -293	31779	12	11779	58.9	True
+midgame	50000	g7g6	cp -272	52904	13	2904	5.81	True
+endgame_KQ	2000	h6f8	cp 1059	2874	6	874	43.7	True
+endgame_KQ	20000	h6h4	cp 1020	24361	8	4361	21.8	True
+endgame_KQ	50000	h6h4	cp 1068	80154	10	30154	60.31	True
+
+DETERMINISTIC run to run (3 separate processes per case): YES on every case
+OVERSHOOT past N: min 5.8 %, median 43.7 %, max 106.0 %
+FINISHED DEPTH: the reported depth is the highest `info depth` emitted, and the depth sequence is
+monotone with no gap, so the reply is the result of a completed iteration, not a partial one.
+(A softnodes stop lands at the END of an iteration, which is why the total exceeds N.)

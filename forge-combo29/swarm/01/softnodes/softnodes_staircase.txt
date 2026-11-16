@@ -1,0 +1,40 @@
+`go softnodes N` overshoot: a fine sweep, to show the staircase and the worst ratio
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+PC20, Threads 1, Hash 16; position startpos; one fresh process per N
+
+N	total_nodes	ratio	bestmove	score	depth	final_iteration_nodes
+2000	4121	2.06	d2d4	cp 32	7	2381
+3000	4121	1.37	d2d4	cp 32	7	2381
+4000	4121	1.03	d2d4	cp 32	7	2381
+5000	6170	1.23	d2d4	cp 22	8	2049
+6000	6170	1.03	d2d4	cp 22	8	2049
+7000	7131	1.02	d2d4	cp 20	9	961
+8000	8569	1.07	d2d4	cp 20	10	1438
+10000	13604	1.36	d2d4	cp 16	11	5035
+12000	13604	1.13	d2d4	cp 16	11	5035
+15000	21600	1.44	d2d4	cp 25	12	7996
+18000	21600	1.2	d2d4	cp 25	12	7996
+20000	21600	1.08	d2d4	cp 25	12	7996
+25000	28565	1.14	d2d4	cp 19	13	6965
+30000	46854	1.56	d2d4	cp 14	14	18289
+40000	46854	1.17	d2d4	cp 14	14	18289
+50000	78579	1.57	d2d4	cp 21	15	31725
+
+RATIO total/N across the sweep: min 1.02, max 2.06, median 1.20
+BANDS (identical depth+bestmove+score for every N inside the band): 9 bands over 16 values of N
+   N [2000, 3000, 4000] -> depth 7, d2d4, cp 32
+   N [5000, 6000] -> depth 8, d2d4, cp 22
+   N [7000] -> depth 9, d2d4, cp 20
+   N [8000] -> depth 10, d2d4, cp 20
+   N [10000, 12000] -> depth 11, d2d4, cp 16
+   N [15000, 18000, 20000] -> depth 12, d2d4, cp 25
+   N [25000] -> depth 13, d2d4, cp 19
+   N [30000, 40000] -> depth 14, d2d4, cp 14
+   N [50000] -> depth 15, d2d4, cp 21
+
+READING: the overshoot is the node count of the FINAL ITERATION, because search.cpp:2932 checks
+the soft budget only after an iteration completes. So the answer jumps in a staircase, and the
+ratio is worst when N sits just above a band boundary (a small N with a big iteration).
+The hard cap is 4N (search.cpp:2497-2500), so the overshoot cannot exceed it, and a runaway
+iteration discards its partial move.
