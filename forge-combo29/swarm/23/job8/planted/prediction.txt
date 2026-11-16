@@ -1,0 +1,20 @@
+PREDICTION — SW-23 job 8 PLANTED CONTROL (Rule 1 for the rule-1 test)
+Written before the planted run. Never edited afterwards.
+
+File 6's decision rule ("a cp 0 at a high counter is a defect ONLY when a forced mate ends no later than the
+100th half-move, i.e. 2N-1 <= 100-counter AND the board at the real counter still scores cp 0") produced ZERO
+defects over 4 won boards x 7 counters on the PC build under PC20. Under Rule 1 (FABLE_TO_swarm_2) a zero counts
+only if the SAME harness, unchanged, counts one planted case.
+
+The plant: the harness's own decision step is exercised with a record where a mate genuinely fits the slack and
+the score is cp 0 — i.e. I feed `classify()` one row of each kind and require the DEFECT verdict to fire.
+Because the real boards happen to be won by mate distances TOO LONG for the remaining slack (11-13 plies needed
+against 9-10 available), no real row can be a defect; the planted rows prove the verdict path works and would
+have reported one.
+
+Prediction (each number with the range that kills it):
+  P1  the planted row (need 3 <= slack 9, score cp 0) gives verdict DEFECT.        KILLED if it does not.
+  P2  the planted row (need 21 > slack 9, score cp 0) gives "not a defect".        KILLED if it says DEFECT.
+  P3  the planted row (need 3 <= slack 9, score mate 2) gives "not a defect".      KILLED if it says DEFECT.
+  P4  the planted drawn control (no mate at counter 0) never gives DEFECT.         KILLED if it does.
+So the zero of job 8 is a measured zero: the harness fires on exactly the rows file 6 says are defects.
