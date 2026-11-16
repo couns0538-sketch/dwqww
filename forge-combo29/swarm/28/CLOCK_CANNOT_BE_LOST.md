@@ -48,6 +48,65 @@ Measured, 1,090 moves in 10 real games at 6 s + 0.06 (S-F39, S-F40): **0 flags**
 adversarial case (4 complex middlegames at clock 300/200/150/111 ms, S-F41) also produced **0 flags**, with
 actual spends of 22–50 ms far below even the plan.
 
+## The fixed point: the clock converges to a floor, from any starting clock
+
+The strongest safety statement available, because it is exact rather than measured.
+
+**The derivation.** The clock rule is `clock' = clock − spend + increment`. A fixed point needs
+`spend = increment`. The most a search can spend is its hard plan
+`hard = min((clock − MoveOverhead) · TmHardPercent/100, soft · TmHardSoftMultiple)`, so take the
+worst case (every search spends its full cap). At these constants the percent term binds — the other
+term would require a negative available — so the fixed point satisfies
+
+```
+        (clock − MoveOverhead) · TmHardPercent / 100 = increment
+    =>  clock = MoveOverhead + increment · 100 / TmHardPercent
+    =>  clock = 10 + 60 · 100 / 60 = 110 ms
+```
+
+**Iterating the real rule converges to that value from every starting clock** (worst-case spend):
+
+| starting clock | clock after 100 moves | hard plan at the fixed point |
+|---|---|---|
+| 6000 | **111** | 60 |
+| 3000 | **111** | 60 |
+| 1000 | **111** | 60 |
+| 500 | **111** | 60 |
+| 300 | **111** | 60 |
+| 200 | **111** | 60 |
+| 150 | **111** | 60 |
+
+The 1 ms difference from the closed form is integer division in the plan. So the clock approaches ~111 ms
+and **stops falling**: at that point the search spends exactly the increment each move. A game of 165, 400
+or 10,000 plies cannot forfeit by searching.
+
+**Two precisions that matter:**
+1. **111 ms is the floor under the WORST case** — every search spending its full hard cap. Typical spend is
+   nearer the soft plan, which at a 6 s clock is `590/22 + 45 ≈ 72 ms` against a 60 ms increment, so the
+   clock declines only ~12 ms per move and settles far higher. The measured games settled at 111–120 ms and
+   174–300 ms, both consistent. The worst case is the bound; reality is gentler.
+2. **The hard cap is a bound, not a target.** Measured directly: with `TmHardPercent` set to 30/45/60 at
+   clock 600 on a long-iteration position, the caps are 177/266/354 ms but the measured spends are 86/86/34
+   ms — the engine stops at its soft plan well inside the cap. So the floor holds because spend cannot
+   exceed the cap, not because the engine deliberately spends it.
+
+### The constants caveat, stated exactly
+The floor is **`MoveOverhead + increment · 100 / TmHardPercent`**. So it moves with those three quantities:
+
+| TmHardPercent | floor at overhead 10, increment 60 |
+|---|---|
+| 30 | 210 ms |
+| 45 | 143 ms |
+| 60 | 110 ms |
+| 75 | 90 ms |
+| 90 | 77 ms |
+
+**It does NOT depend on `TmSoftDivisor` or `TmIncrementPercent` at these constants** — I checked, and the
+`soft · TmHardSoftMultiple` term cannot bind here, so the divisor and the increment percentage are not part
+of the floor. Raising `TmHardPercent` (a more generous cap) LOWERS the floor, which is the direction that
+matters: a looser cap means the engine can be driven closer to zero. The floor is bounded below by
+`MoveOverhead + increment` in the limit `TmHardPercent → 100`.
+
 ## The clock row is stable under CPU contention in everything but wall time
 
 Seat 05's S-F49 recorded that its clock row varied under load and offered that as a caveat. I tested it
