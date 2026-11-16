@@ -249,3 +249,19 @@ PC20 re-run in progress: mt50_a done (200), mt50_b partway.
   pc20/REPORT_fifty_move_band.md. All future scripts take OUT first, EXE second.
 
 next: seat 20's unconfirmable-above-Threads-1 items (confirmable at Threads 1), then the PC's own switches.
+
+## 2026-11-16T22:34Z
+- Owner page delivered (pc20/OWNER_PAGE_clock.md) with the re-verification disclosure in its header.
+- 08-C6: fifty-move score floor CONFIRMED on PC20 at H=91 (seat 05's exact figure) + 7.25M-node spike.
+- 08-F22: SCORE defect is a BAND (H=91..99); the NODE cost is a SINGLE SPIKE at 91 with shoulder 92-93.
+- 08-C7 -> corrected by **08-C8**: seat 04's 04-F10 CONFIRMED IN FULL. A committed 20-run batch of their board
+  at Threads 4: g7g6 16x, e5e4 3x, f6d7 1x — THREE moves, minority moves are 5-15 % events, my original 10 runs
+  simply missed them. Per-run data now committed.
+- 08-C9: `MateAlphaGuard true` ALONE is the mate-distance fix (S14: mate -9 -> guard: mate -4, 8-ply pv).
+- 08-F23: of the four PC20 search switches, **CuckooRep alone makes it WORSE** (mate -13 vs baseline mate -9);
+  the others improve but never reach the true -4; all four together = mate -7.
+- 08-N1 METHOD: "a summary I typed is not evidence" — every run file now carries per-run lines.
+- INCIDENT (kept as instructed): a script's OUT argument was passed the exe path, overwriting the PC binary; it
+  was rebuilt, all 8 pins re-verified identical, the sweep re-run byte-identical. No measurement affected.
+
+next: does any single search switch change CLOCK behaviour (F16 tested the bundle only)?
