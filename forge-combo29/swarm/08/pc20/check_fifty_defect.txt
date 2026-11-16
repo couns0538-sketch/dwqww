@@ -1,0 +1,24 @@
+## FABLE_TO_swarm_6's test on my fifty-move finding (08-C6 / 08-F22)
+
+Board `1K6/8/8/3R4/8/8/8/k7 w - - H 1`, PC r15, PC20, Threads 1, Hash 16.
+
+| H | depth | score | plies | nodes | pv length |
+|---|---|---|---|---|---|
+| 0 | 20 | **mate 8** | 15 | 1,065,273 | 15 |
+| 0 | 24 | **mate 8** | 15 | 1,979,939 | 15 |
+| 0 | 28 | **mate 8** | 15 | 2,890,502 | 15 |
+| 91 | 20 | **cp 0** | - | 43,082,856 | 4 |
+| 91 | 24 | **cp 0** | - | 64,830,080 | 4 |
+| 91 | 28 | **cp 0** | - | 88,968,052 | 6 |
+| 99 | 20 | **cp 0** | - | 400 | 1 |
+
+## the inequality file 6 asks for
+
+| quantity | value |
+|---|---|
+| mate distance at counter 0 (depth 28) | **mate 8** = 15 plies |
+| half-moves left at H=91 | **9** |
+| inequality 2N-1 <= 100-H | **15 <= 9 is FALSE** |
+| board at H=91 at the same depth scores | cp 0 |
+
+**NOT A DEFECT — my 08-C6/08-F22 wording must be withdrawn.** The engine needs 15 plies to mate but only 9 half-moves remain before the match program ends the game at the 100th, so scoring this node 0 is CORRECT CHESS. The 7.25M-node cost at H=91 is still a real cost, but it buys a correct verdict.
