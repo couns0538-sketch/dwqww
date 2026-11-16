@@ -459,3 +459,22 @@ Corrected from the raw rows.)
 
 GUI-reachable: **YES, this is the owner's match clock.** Evidence: `pc/matchclock3/matchclock3.json`,
 `pc/matchclock3/game*.log`, `pc/matchclock/matchclock.json`.
+
+## Node-path health on real positions: nothing that loses a game
+
+PC r15, PC20, Threads 1, Hash 16. 20 real positions x 5 go forms (`go nodes` 2000/20000/50000/250000 and
+`go softnodes 2000`) = **100 lines**, fresh process each, read to bestmove.
+
+| check | result |
+|---|---|
+| illegal moves returned | **0** |
+| `bestmove 0000` on a position with legal moves | **0** |
+| mate scores whose PV does not end in mate | **0** |
+| lines with no measurement at all | **0** |
+| depth reached range | 5 to 20 |
+
+So on the owner's node path the engine never returns an illegal move, never returns 0000, and never claims
+a mate its own PV does not deliver. (Zero mate claims in this sample simply means no position here is a
+forced mate at these budgets — the check is armed but had nothing to fire on, which I state rather than
+present as "mates verified".)
+GUI-reachable: **YES, this is the node path.** Evidence: `pc/health/health.json`, `pc/health/p*_*.log`.
