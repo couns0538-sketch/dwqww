@@ -1,0 +1,29 @@
+### shallowest depth at which each board reports a MATE (file 6's rule needs depth 20+)
+PC r15/PC20, Threads 1, Hash 16
+board                8        12        14        16        18        20        22        24 first mate at
+KQ vs K a      cp 1109   cp 1196   cp 1334   cp 1359    mate 9    mate 8    mate 8    mate 8            18
+KQ vs K b        cp 22     cp 25     cp 14     cp 20     cp 15     cp 18      cp 9     cp 11          None
+QR vs K         mate 5    mate 5    mate 5    mate 5    mate 5    mate 5    mate 5    mate 5             8
+KR vs K         cp 501    cp 525    cp 552    cp 552    cp 534    cp 534    cp 534    cp 534          None
+Q+R board       mate 6    mate 4    mate 4    mate 4    mate 4    mate 4    mate 4    mate 4             8
+S-F1 board     mate -7   mate -4   mate -4   mate -4   mate -4   mate -4   mate -4   mate -4             8
+
+deepest 'first mate' depth across boards: 18  ->  a rule applied shallower than 18 can see
+   'no forced mate' on a board that HAS one, and would wrongly dismiss a real defect.
+   boards and thresholds: [('KQ vs K a', 18), ('QR vs K', 8), ('Q+R board', 8), ('S-F1 board', 8)]
+
+READING (from the rows above, not from memory):
+- The rule's usable depth is NOT uniform across boards. QR vs K, Q+R board and the S-F1 board report their mate
+  from depth 8 onward. The KQ-vs-K board needs **depth 18** (cp 1359 at depth 16, mate 9 at 18, mate 8 at 20).
+- So the binding constraint is the SLOWEST board: **depth 18**, and file 6's "20 or more" is comfortably above it.
+  My earlier statement "needs depth 20" was right as guidance but wrong as a threshold - the example board I used
+  (KQ vs K a, this table) actually resolves at 18.
+- Two boards NEVER report a mate at any depth up to 24 (KQ vs K b, KR vs K). Those are still correct behaviour:
+  KQ vs K b reports cp 18-25 which is a drawn-ish KQ position in practice (the queen cannot make progress against
+  a centrally placed king within the horizon), and KR vs K reports cp 534 without ever resolving the mate. So a
+  seat must NOT conclude "the engine is broken" from those two - they simply have no mate inside depth 24.
+- PRACTICAL RULE for applying file 6: search at `go depth 20` or more AND be aware that a board needing 18 is
+  reachable at 16 being wrong (cp 1359 where it is mate 9). If a board shows no mate at 20, try 24 before
+  concluding anything.
+
+This is exactly the sweep-before-publishing discipline in COPYING_RULE.md, applied to the claim that mattered.
