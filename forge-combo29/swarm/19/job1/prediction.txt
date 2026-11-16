@@ -1,0 +1,29 @@
+# job 1 prediction — AREA 9 / SPEED: profile `bench 13`
+
+seat 19, area 9, seed 1901. Committed ALONE before the first measuring command of job 1.
+
+What I predict the profile of `bench 13` (commit 6b98f217, release build, this machine: 4 cores of
+"Intel(R) Xeon(R) Processor" with AVX-512F + BMI2) will show, as a share of samples (perf, self time):
+
+| # | predicted symbol | predicted self share | range that kills the prediction |
+|---|---|---|---|
+| 1 | `forge::...::negamax`/`search` (the main search recursion, whatever its exact name) | 30 % | below 15 % or above 55 % |
+| 2 | `forge` move generator (`generate`/`legal`/`moves`) | 12 % | below 4 % or above 28 % |
+| 3 | NNUE evaluation (`nnue`/`eval`/`accumulator` family, summed) | 25 % | below 12 % or above 45 % |
+| 4 | `make_move`/`do_move`/`unmake` (position and move making) | 8 % | below 2 % or above 20 % |
+| 5 | `__memset_avx512*` / `memcpy` (table and history clearing) | 3 % | above 15 % |
+| 6 | `std::...` library helpers (sort/vector) | 3 % | above 12 % |
+
+Whole-profile predictions:
+- P-a: the profile holds between 8 and 200 distinct symbols above 0.5 % — kills it: fewer than 5 or more than 300.
+- P-b: no single symbol outside the families above reaches 10 % — kills it: some other symbol does.
+- P-c: the ten hottest symbols together cover more than 70 % of samples — kills it: under 55 %.
+- P-d: `bench 13` on this machine takes under 20 s of wall time (so a `-F 999` record of it collects
+  fewer than 25,000 samples) — kills it: over 40 s, or over 40,000 samples.
+
+If perf cannot sample inside the search at all (kernel refuses) I will say so and fall back to
+callgrind/`-pg`+gprof on a smaller bench, and say in the report which instrument the numbers come from.
+
+Note on honesty: before this prediction was written I ran ONE feasibility probe, `perf record ... bench 11`
+(19 samples, only to learn whether perf is permitted here at all — `perf_event_paranoid` was 2 and had to
+be lowered). No bench-13 measurement and no profile of this job existed when this file was committed.
