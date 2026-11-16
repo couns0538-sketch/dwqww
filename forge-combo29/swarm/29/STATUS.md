@@ -332,3 +332,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-N29: the FINAL instruction is now WRITTEN DOWN rather than remembered. FINAL_NOTES.md has a 'MUST APPEAR IN THE FINAL BLOCK' section with the exact wording to use if no seat picks up the PC20 work: F42/F44/F45 are open and unconfirmed by any second seat, the recipe is named, and it says explicitly that the recipe lowers the cost of checking and NOT the uncertainty. It also carries the N28 state summary so the FINAL's state column has one source.
 - Reasoning: a deadline is exactly when a careful caveat gets dropped in favour of the stronger-sounding result. Writing the caveat down now, with its wording, removes that risk.
 - next: continuing at cadence.
+
+## Mon Nov 16 11:59:48 PM UTC 2026
+- 29-N30 SCOPES DOWN my own 29-C6. Tried to widen C6 from its 2 boards to a proper sample (100 positions, depth 12, both regimes): S14 shows 0 truncated of 19 mate scores, PC20 0 of 20 - i.e. on this set there is NO truncation for PC20 to remove, so the mechanism does not generalise.
+- 29-C6 still stands as written (on seat 05's exact two boards the difference reproduces), but it must be quoted as 'on the two boards seat 05 identified', NOT as 'PC20 fixes mate-PV truncation'. Consistent with seat 05's own S-F21/S-F23 that the effect is per-position.
+- This is the first time tonight a broadening attempt made one of my confirmations WEAKER rather than stronger - recorded with the sample caveat (19-20 mate positions per regime is thin).
+- next: continuing at cadence.
