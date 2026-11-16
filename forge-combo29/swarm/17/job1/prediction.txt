@@ -1,0 +1,17 @@
+PREDICTION - seat 17, area 7 job 1 (read the search, src/search.cpp 2753 lines, base 6b98f217)
+written before the first measuring command of the job; never edited afterwards.
+
+What I expect to find, each with the range that kills it:
+P1. No ASan/UBSan report from a plain search: bench 12 and 20 targeted `go depth 25` searches on
+    tactical positions give 0 sanitizer lines. Killed if any report appears (that is a finding,
+    not a failed prediction).
+P2. The search-stack window is safe at the root: no read before stack_[0]. Killed if a sanitizer
+    report names stack_-negative indexing or a stack-buffer-underflow.
+P3. At least one concrete fault class is present in search.cpp that I can show with a command:
+    I expect 1 to 3 findings total, and I expect at least one of them to be a
+    (a) value read before it is set, or (b) an index/limit that is not clamped where its
+    neighbour is. Killed if I end the job with 0 findings shown by a command.
+P4. Node counts do not change: bench 11/13/16 stay 312866/862329/3024920 while I only read.
+    Killed if any number differs (that would mean I changed the build).
+P5. A release build answers `go depth 40` on a startpos-like position without exceeding
+    MaxPly=128 in a sanitizer report. Killed by any stack overflow report.
