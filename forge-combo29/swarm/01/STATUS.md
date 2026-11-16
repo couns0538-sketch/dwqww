@@ -45,3 +45,7 @@ STRENGTHENED the integrity audit with a synthetic NEGATIVE TEST: the audit is no
 ## 2026-11-16T21:40:39Z
 REGRESSION-TESTED my own patch (closes the caveat I flagged): job2/asan/regress_fifty_patch.txt, base release build vs patched build, 5 boards x 2 go modes. Genuine fifty-move positions at halfmove 100 and 150 (KQ v K, KR v K, K v K) still answer cp 0 on the patched build, so the draw is still seen; the cost is 0.4-0.6 ms wall and 200-1,792 nodes instead of 0 (K v K stays 0 nodes, as it should); and the mate-in-one board at halfmove 100 returns mate 1 where the base returns cp 0. No regression. Finding S-F16.
 Next: continue the cycle.
+
+## 2026-11-16T21:42:51Z
+S-F5 now shown to cost REAL GAMES, not just analysis: job2/asan/gameplay_fifty.txt runs the brief's S14 settings (every setoption followed by isready read to readyok) and three clock modes. Mate-in-one board at halfmove 100: bestmove f2f3, cp 0, 0 nodes under go wtime 1000, go wtime 10000 AND go movetime 500. Same board at halfmove 99: a1a8, mate 1, 1344 nodes under all three. No problem lines (no unknown option, no invalid value). This raises S-F5 from an analysis curiosity to a game-play defect and strengthens the case for fifty_move_mate.patch.txt, which is regression-tested (S-F16).
+Next: cycle.
