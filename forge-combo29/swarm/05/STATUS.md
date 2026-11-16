@@ -573,3 +573,11 @@ S-F34/S-F35 framing (S-W4), my false softnodes nondeterminism (S-W3), my OwnBook
   awk -F'|' which counts escaped pipes as separators and produced a FALSE alarm on the two |N| rows; they are correct.)
   45 S-F, 17 S-C, 5 S-W, no duplicate or missing ids.
 - next command: continue the cycle.
+
+## $(date -u)
+- S-F46: full 151-ply self-play game at the owner's match clock (6s+0.06, PC20, Threads 1, Hash 16, OwnBook false):
+  0 illegal moves, NO loss on time, final clocks 673/564 ms, ended by a draw rule. Per-move wall min 0.03 / median 0.10 /
+  max 0.71 s — the engine never approached the 6-second clock in any of 151 moves. Depth min 16 / median 19 / max 24.
+  => the low clock usage is not a single-search artefact, does not accumulate into a time problem, and the game is
+  effectively played at depth 16-24.
+- next command: a second game from a different start (a G-set middlegame) to check the pattern is not startpos-specific.
