@@ -63,3 +63,14 @@ reported as measured, prediction not edited). Findings on GitHub: 23-F1, 23-F2, 
 Next: job 2 of area 3 (500 special positions filtered by python-chess: castling over an attacked transit square,
 en passant that would expose the king, capture-promotion with check, double check, pinned piece capturing its
 pinner) — perft 1..4 on each. Prediction goes in first, alone.
+
+## 2026-11-16T21:52Z  JOB 2 COMPLETE (deadline push)
+Filter C1..C5 over 5,000 R + 353 G: 58 distinct positions (C1 17, C2 0, C3 23, C4 1, C5 17). NOT 500 — these
+two position sets do not contain 500; reported, not padded (that is in the report as "not done").
+Engine vs python-chess perft 1..4 on all 58: 0 mismatches, 2067 / 65776 / 2358146 / 77220237 nodes per side.
+C2 (ep pin) EMPTY from random play -> built 3 positions by hand, VERIFIED by python-chess (ep capture
+pseudo-legal but illegal), plus a negative control: engine omits the pinned capture in all 3, emits it in the
+control. Findings 23-F5, 23-F6 added; REPORT_job2.md written.
+Final answer for area 3 so far: the move generator agrees with python-chess on 5,058 positions at perft 1..4
+with 0 differences, and handles the pinned ep capture of hand-built positions correctly.
+Next if time remains: area 3 job 3 (perft 5 on 200 R positions + first 30 of G); prediction first, alone.
