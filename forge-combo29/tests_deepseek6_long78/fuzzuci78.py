@@ -12,6 +12,8 @@ import threading
 import time
 
 exe, outdir, first, last, tag = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5]
+import shlex
+ARGV = shlex.split(exe)
 GRACE_STOP = 1.0
 GRACE_BANANA = 0.6
 
@@ -64,7 +66,7 @@ def kept_board(posline):
 
 def run_pair(i):
     si, pos, go = pairs[i]
-    p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+    p = subprocess.Popen(ARGV, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                          stderr=subprocess.DEVNULL, text=True, bufsize=1)
     out = []
     def rdo():
