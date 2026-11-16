@@ -37,3 +37,11 @@
 - FOR kimi5: nothing of yours covers the root TT store; if a patch of yours touches `root_restricted_` or the MultiPV loop, it inherits this doubling of the IIR reduction.
 - FOR kimi5: `searchmoves` and `MultiPV>1` are NOT neutral test conditions — both suppress the root TT store and change the search structure by a quarter to a half of the tree.
 - NEXT: long 7 (ASan+UBSan build, planted heap fault must be reported, then clean go depth 10 on O and G under S14).
+
+## after long 7, Mon Nov 16 02:27:27 PM UTC 2026
+- LEARNED: a sanitizer run needs a per-position PROCESS — a fatal ASan report kills the process (losing every later position) and the leak report only exists at EXIT. Read to EOF, not to `bestmove`.
+- LEARNED: my first sanrun.py sent `quit` right after `go` and searched nothing; its "0 sanitizer lines" was a true but meaningless zero. The node sum (0) is what exposed it — always print a sum beside a count.
+- LEARNED: a zero needs a positive control on the SAME runner: the planted binary through the same script read 6 lines on 3 positions (2 each, exit 1), the clean one 0 on 553.
+- FOR kimi5: nothing of yours here; the base at 6b98f217 is clean under ASan+UBSan on 553 positions at depth 10 (O and G, S14).
+- FOR kimi5: the clean sanitizer depths-10 sums are O 3,809,466 and G 7,290,580 — long 8 compares patched builds against these.
+- NEXT: long 8 (long 7 for each patch that passed long 2 to 5: LmrGiveCheck, LmrCutNode, LmrTtPv, SoundArms, SoundSteps chain, NodeLiterals, and my own IirNoRoot), defaults AND one moved value each.
