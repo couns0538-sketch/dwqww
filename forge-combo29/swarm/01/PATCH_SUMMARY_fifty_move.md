@@ -96,7 +96,82 @@ Unpatched: `HONESTY.txt` and `honesty/asan/summary.txt`. Patched: `honesty/fix2/
 (one-line patch) and `honesty/fix3/summary.txt` (conservative variant). Each is the pasted output of
 `honesty/honesty.py`, one fresh process per check.
 
-## 6. What I have not measured
+## 6. Relationship to the other root patches — apply ONE root fix, not two
+
+Two other seats fixed the same block independently, and all three of us rewrite `root_drawn` at
+`search.cpp:2251`. **Do not stack my diff and seat 12's: they are the same change written two ways and they
+will not apply on top of each other.** Checked, not assumed (`patch_compose_test.sh`,
+output `patch_compose.txt`, each run a fresh copy of `6b98f217` in /tmp, applies done from inside
+`forge-combo29/`):
+
+| combination | result |
+|---|---|
+| mine alone (`-p2`) | CLEAN |
+| seat 12 alone (`-p2`) | CLEAN |
+| seat 27 alone (`-p1`) | CLEAN |
+| **mine then seat 27** | CLEAN, and the final file is byte-identical to seat 27 then mine |
+| **seat 12 then seat 27** | CLEAN, and the final file is byte-identical to seat 27 then seat 12 |
+| mine then seat 12 (or the reverse) | **FAILED — the hunk is already applied** |
+
+**Which to choose.** Seat 12's version is a superset in intent: it keeps every root adjudication and only
+bypasses it when the side to move has an **immediate** mate, and it also covers the repetition and dead-material
+doors, so a mate is found even when `halfmove < 100` and the root is drawn by repetition. Mine removes the
+halfmove test from the root entirely, so the root is searched whenever the counter is at or past 100.
+
+**A limit that applies to BOTH, measured** (`compare_two_fixes.py`, output `compare_two_fixes.txt`): on a
+halfmove-100 board where the mate is **3 plies** away (`8/8/8/8/2K4Q/8/8/1k6 w - - 100 1`), **neither patch
+finds it** — mine searches 216 nodes and still says `cp 0`, seat 12's answers `cp 0` in 0 nodes. The same board
+at halfmove 0 scores `cp 1331` on the unpatched engine, so the mate is real and the loss is the root
+adjudication, not the search. Both patches fix the **mate-in-1** case (`mate 1` on both builds); neither is a
+complete fix for "a mate reachable before the fifty-move claim".
+
+**Order.** Whichever root fix is chosen must go in **before** seat 27's `drawn_root_reporting` patch. All three
+patches and their branches, so this is checkable:
+
+| patch | branch | path in the repo | level |
+|---|---|---|---|
+| my one-line fix | `for-fable-and-opus/swarm-01` | `forge-combo29/swarm/01/job2/fifty_move_mate.patch.txt` | `-p2` |
+| my conservative variant (alternative to the above, not additional) | `for-fable-and-opus/swarm-01` | `forge-combo29/swarm/01/job2b/fifty_move_mate_conservative.patch.txt` | `-p2` |
+| seat 12 `two_doors_mate` | `for-fable-and-opus/swarm-12` | `forge-combo29/swarm/12/job1/two_doors_mate.patch.txt` | `-p2` |
+| seat 27 `drawn_root_reporting` | `for-fable-and-opus/swarm-27` | `forge-combo29/swarm/27/job1/drawn_root_reporting.patch.txt` | `-p1` |
+
+Note on order: my test shows mine+27 and 12+27 **both** apply cleanly in **either** order and produce
+byte-identical result files, so the order is a safety margin rather than a hard requirement on this
+`6b98f217` base — but apply the root fix first, because that is the order seat 27 verified and a later rebase
+can change which hunks conflict.
+
+## 7. How every number above was measured (cold, not warm)
+
+Seat 10 found that two identical unrestricted searches **in one process** give different node counts
+(startpos `go depth 12`: 56,720 then 4,951 then 4,516), that a fresh process is cold every time, that
+`ucinewgame` restores cold, and that `Clear Hash` does **not**. I reproduced all four on this build
+(`cold_warm.py`, output in `job2/asan/cold_warm.txt` and `cold_warm_heavy_*.json`):
+
+```
+startpos, go depth 12:   COLD(3 procs) 56720 56720 56720 | WARM(1 proc) 56720 4951 4516
+                         UNEW(ucinewgame) 56720 56720 56720 | CHASH(Clear Hash) 56720 40569 35808
+```
+
+**So: every number in sections 3, 4 and 5 is COLD**, and I can say exactly why rather than assume it:
+- `honesty/honesty.py` (the four pins) launches **one fresh process per pin** (`subprocess.run` per check).
+- `job2/analyse_halfmove.py`, `job2/regress_fifty_patch.py` and `job2/gameplay_fifty.py` each call
+  `subprocess.Popen` **inside the per-case function**, so every case is a fresh process. No harness of mine
+  sends `ucinewgame`; `gameplay_fifty.py` sends it after the S14 setoptions and before the single search it
+  measures, so that case is cold twice over. **I never used `Clear Hash` as a reset anywhere.**
+- The 126-node / `mate 1` figure and the 0-node / `cp 0` figure were re-checked explicitly four ways on the
+  boards the summary quotes (`cold_warm.py`): three separate processes, one process with three searches and
+  nothing between them, `ucinewgame` between them, and `Clear Hash` between them. **All four give the same
+  answer on these boards** (`mate 1/126` and `cp 0/0` respectively), because the answer there comes from the
+  root adjudication or from a 126-node mate search, not from a hash-dependent deep search. The numbers are
+  quoted **cold** and they are also warm-stable, but I label them **cold** because that is how they were
+  produced.
+- One place where warm state *would* have mattered and does not: the regression table's node counts (200 to
+  1,792) are small and each row is its own process, so no row inherits another's hash.
+
+## 8. What I have not measured
+
+A **complete** fix for "a mate reachable before the fifty-move claim": both my diff and seat 12's fix the
+mate-in-1 case only (see section 6); the mate-in-3 board at halfmove 100 is still scored `cp 0` by both.
 
 The cost on roots that are *genuinely* drawn by repetition or by material and also sit at halfmove >= 100 was
 not measured board-by-board beyond the table above; the table's K v K row is the bare-king case (0 nodes). I

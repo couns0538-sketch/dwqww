@@ -1,0 +1,55 @@
+patch-composition test — every run is a fresh copy of 6b98f217 in /tmp, applies done from forge-combo29/
+date -u: 2026-11-16T21:45:49Z
+mine  : 58e7f6ce18311132  fifty_move_mate.patch.txt
+seat12: 38bbfc1b7e2b663b  s12.patch.txt
+seat27: 7124943009417828  s27.patch.txt
+levels: mine and seat12 use a/forge-combo29/src/search.cpp -> -p2 ; seat27 uses a/src/search.cpp -> -p1
+
+=== mine_only   (cwd: forge-combo29/)
+  fifty_move_mate.patch.txt -p2 : CLEAN
+  result: ALL STEPS CLEAN
+
+=== s12_only   (cwd: forge-combo29/)
+  s12.patch.txt -p2 : CLEAN
+  result: ALL STEPS CLEAN
+
+=== s27_only   (cwd: forge-combo29/)
+  s27.patch.txt -p1 : CLEAN
+  result: ALL STEPS CLEAN
+
+=== mine_then_s27   (cwd: forge-combo29/)
+  fifty_move_mate.patch.txt -p2 : CLEAN
+  s27.patch.txt -p1 : CLEAN
+  result: ALL STEPS CLEAN
+
+=== s12_then_s27   (cwd: forge-combo29/)
+  s12.patch.txt -p2 : CLEAN
+  s27.patch.txt -p1 : CLEAN
+  result: ALL STEPS CLEAN
+
+=== s27_then_mine   (cwd: forge-combo29/)
+  s27.patch.txt -p1 : CLEAN
+  fifty_move_mate.patch.txt -p2 : CLEAN
+  result: ALL STEPS CLEAN
+
+=== s27_then_s12   (cwd: forge-combo29/)
+  s27.patch.txt -p1 : CLEAN
+  s12.patch.txt -p2 : CLEAN
+  result: ALL STEPS CLEAN
+
+=== mine_then_s12   (cwd: forge-combo29/)
+  fifty_move_mate.patch.txt -p2 : CLEAN
+  s12.patch.txt -p2 : FAILED
+      patching file src/search.cpp
+      Hunk #1 FAILED at 2248.
+      1 out of 1 hunk FAILED -- saving rejects to file src/search.cpp.rej
+  result: A STEP FAILED
+
+=== s12_then_mine   (cwd: forge-combo29/)
+  s12.patch.txt -p2 : CLEAN
+  fifty_move_mate.patch.txt -p2 : FAILED
+      patching file src/search.cpp
+      Hunk #1 FAILED at 2248.
+      1 out of 1 hunk FAILED -- saving rejects to file src/search.cpp.rej
+  result: A STEP FAILED
+
