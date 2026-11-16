@@ -1,0 +1,92 @@
+IDENTITY VIOLATIONS: I1=0 I2=0 I3=0 I4=0 I5=0 XAB=0 (searches 200)
+
+TOTALS searches=200 nodes(engine)=12668737 q0=5695194 m0=6973543 hdec=0
+identity I5 total: q0+m0-hdec = 12668737 vs engine nodes 12668737
+QSEARCH SHARE of all nodes: 44.9547%
+
+CALL SITES total C_leaf=2998672 C_razor=41489 C_probcut=22078 C_self=2632955 C_hind=0
+identity I1: q0 5695194 = cs 5695194 -> OK
+  by site x qclass (pv summed):
+  C_leaf     q1=2998672 q2=0 q3=0 q4-5=0 q6+=0
+  C_razor    q1=41489 q2=0 q3=0 q4-5=0 q6+=0
+  C_probcut  q1=22078 q2=0 q3=0 q4-5=0 q6+=0
+  C_self     q1=0 q2=1231925 q3=618834 q4-5=551200 q6+=230996
+  C_hind     q1=0 q2=0 q3=0 q4-5=0 q6+=0
+
+EXITS X_draw=122 X_maxply=0 X_matebound=0 X_tt=508956 X_standpat=2157241 X_mated=3409 X_end=3025466
+identity I3: q0 5695194 = exits 5695194 -> OK ; X_abort total 0
+  X_tt by bound exact/lower/upper: 5806 311114 192036
+
+STAND PAT by (best_score-beta) class <25=547823 <50=437811 <100=531702 <200=333083 <400=196673 >=400=110149
+identity: sum 2157241 = X_standpat 2157241 -> OK
+  S_tt: eval replaced 42048, of them stand-pat 17895
+  stand pat by legal quiet move: has-quiet 2157241, no-quiet 0 (no-quiet per 1000 stand pat: 0.00)
+identity: spq sum 2157241 = X_standpat 2157241 -> OK
+
+MOVES not in check: legal 4639648 = searched 1981545 + fut 777675 + see 1880428 -> OK (I4)
+MOVES in check:     legal 651410 = searched 651410 -> OK (I4)
+
+P_fut by margin class <25=79218 <50=85547 <100=155896 <200=172652 <400=85595 >=400=198767
+P_fut by captured piece P=610389 N=63764 B=63725 R=8117 Q=31680
+identity: splits sum to P_fut 777675
+P_see by gives_check no/yes [1483094, 397334] ; by kind cap/promo/cap+promo [1877217, 3211, 0] ; by captured [1614283, 156123, 93865, 12946, 0, 3211]
+identity: splits sum to P_see 1880428
+
+CUT by searched-move index 1st/2nd/3rd+: [841579, 115181, 23412] (sum 980172)
+
+Q0 by q class q1=3062239 q2=1231925 q3=618834 q4-5=551200 q6+=230996
+Q0 by pv nonPV=5626726 PV=68468
+Q0 by in_check notchk=5340455 chk=354739
+identity: every split sums to Q0 5695194
+
+PART 3 PROBES: seen fut/see/sp [777675, 1880428, 2131480] ; probe nodes 43743 (left out of every total above)
+disturbance: this run's node sum (probes left out) 12668737
+
+FUTILITY-SKIP probes by margin class (q summed): class probes MISSED/1000 CUT/1000 boundbeat/1000 ; est count = rate x skips of the class, N = probes
+  <25    n=  1590 missed   37.11 cut   37.11 bound   48.43 | est count       2940 = 37.11/1000 x 79218 skips, N=1590
+  <50    n=  1779 missed   27.54 cut   27.54 bound   44.97 | est count       2356 = 27.54/1000 x 85547 skips, N=1779
+  <100   n=  3283 missed   19.19 cut   19.19 bound   42.64 | est count       2992 = 19.19/1000 x 155896 skips, N=3283
+  <200   n=  3553 missed   17.17 cut   17.17 bound   53.48 | est count       2964 = 17.17/1000 x 172652 skips, N=3553
+  <400   n=  1785 missed   11.76 cut   11.76 bound   78.99 | est count       1007 = 11.76/1000 x 85595 skips, N=1785
+  >=400  n=  4116 missed    0.00 cut    0.00 bound   32.07 | est count          0 = 0.00/1000 x 198767 skips, N=4116
+  by q class (margins summed):
+  q1    n=  9084 missed    5.50
+  q2    n=  2828 missed   19.80
+  q3    n=  1990 missed   25.63
+  q4-5  n=  1507 missed   45.79
+  q6+   n=   697 missed   38.74
+identity: fut probes 16106 = sum of class cells
+
+SEE-SKIP probes by gives_check x kind (q summed): n MISSED/1000 CUT/1000 ; est count = rate x skips
+  chk=n cap       n=  5729 missed    4.36 cut    4.36 | est count       6461 = 4.36/1000 x 1480529 skips, N=5729
+  chk=n promo     n=    14 missed    0.00 cut    0.00 | est count          0 = 0.00/1000 x 2565 skips, N=14 (n<200!)
+  chk=n cap+promo n=     0 missed    0.00 cut    0.00 | est count          0 = 0.00/1000 x 0 skips, N=0 (n<200!)
+  chk=y cap       n=  1504 missed    4.65 cut    4.65 | est count       1846 = 4.65/1000 x 396688 skips, N=1504
+  chk=y promo     n=     3 missed  333.33 cut  333.33 | est count        215 = 333.33/1000 x 646 skips, N=3 (n<200!)
+  chk=y cap+promo n=     0 missed    0.00 cut    0.00 | est count          0 = 0.00/1000 x 0 skips, N=0 (n<200!)
+  by q class:
+  q1    n=  3993 missed    3.51
+  q2    n=  1518 missed    5.27
+  q3    n=   989 missed    7.08
+  q4-5  n=   568 missed    3.52
+  q6+   n=   182 missed   10.99 (n<200!)
+identity: see probes 7250 = sum of class cells
+
+STAND-PAT probes (non-PV) by margin class (q summed): n MISSED/1000 ; est count = rate x stand pats
+  <25    n=   725 missed  256.55 | est count     140545 = 256.55/1000 x 547823 stand pats, N=725
+  <50    n=   589 missed   61.12 | est count      26759 = 61.12/1000 x 437811 stand pats, N=589
+  <100   n=   710 missed   19.72 | est count      10484 = 19.72/1000 x 531702 stand pats, N=710
+  <200   n=   491 missed   10.18 | est count       3392 = 10.18/1000 x 333083 stand pats, N=491
+  <400   n=   277 missed   18.05 | est count       3550 = 18.05/1000 x 196673 stand pats, N=277
+  >=400  n=   149 missed    0.00 | est count          0 = 0.00/1000 x 110149 stand pats, N=149 (n<200!)
+  by q class:
+  q1    n=  1596 missed  106.52
+  q2    n=   673 missed   59.44
+  q3    n=   269 missed   78.07
+  q4-5  n=   285 missed   28.07
+  q6+   n=   118 missed   59.32 (n<200!)
+identity: sp probes 2941 = sum of class cells ; no-quiet probes 0, MISSED 0 (per probe: 0.00/1000)
+
+HEADLINE: fut MISSED 15.71/1000 (n=16106) ; see MISSED 4.55/1000 (n=7250) ; stand-pat MISSED 83.65/1000 (n=2941) ; no-quiet 0/0
+
+SUMMED 200 searches from ['my captured QSTEPS lines']; node sum 12668737

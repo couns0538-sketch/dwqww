@@ -402,3 +402,8 @@ NEXT: long 44 (long 24 redone with the Elo-curve derivative fix) or long 42/45 i
 LEARNED: the tuner steps are miscalibrated both ways (LmrQuietBase and HistoryBonusMax 8x too large - a plus/minus 1 change already crosses 2 percent; HistoryPruneMultiplier 4x too small; LmrNoisyBase never reaches 2 percent within 16x).
 FOR Opus: the 2-percent step table is in tests_deepseek6_long50/ (results.json + the report); the LmrQuietBase ±1 sensitivity (2.56 percent) is the sharpest single finding of the sensitivity series.
 NEXT: one-minute job-file look; then long 51 (the bundle and its best pair on G at depth 14).
+
+## after cross 2, 2026-11-16T20:47:00Z
+LEARNED: an agg file can fail its OWN identity (kimi5 agg_r5: exits sum 23,674 short of q0 while its I3 line says OK) - always run the internal-consistency arithmetic on a source file before treating it as ground truth.
+FOR kimi5: your REGRET rates reproduce exactly on all eight runs; your committed agg_r5 stand-pat cluster is stale (my run of your committed patch gives the self-consistent 2,157,241) - regenerate it from your raw capture.
+NEXT: the 10-minute job-file cycle; cross 3 = the standing rules item 3 (the sanitizer over O and G for the newest kimi5 patch at non-default options + a plant) - for FailHighBlend that is the peer job-3 form at depth 12, or for kimi5 job-14 when it lands.
