@@ -4,6 +4,10 @@
 
 **Read this before your next analysis session. It does not affect your matches.**
 
+> **The short answer: if you want multiple lines, set `Hash 16 MB` — it is the least-lossy MultiPV choice. If you
+> want a big Hash, use `MultiPV 1`. Do not combine a big Hash with multiple lines.** (Measured limits below:
+> MultiPV 3 is safe to 128 MB, MultiPV 8 only to 64 MB; 256 MB and above is unusable for any MultiPV above 1.)
+
 ## The configuration that fails
 
 | setting | value |
@@ -64,24 +68,26 @@ So at this setting you get a **materially shallower analysis** (and a move that 
 e.g. `e5e4`/`g7g6` instead of the healthy move) without any no-search failure. It is a quality-of-analysis problem,
 not a reliability one — but at 5,395 nodes against 288,912 it is not a small difference either.
 
-## The fix — measured boundary at MultiPV 3 (10 positions per Hash)
+## The fix — measured boundary, per MultiPV (10 positions per Hash, median depth; healthy = 17)
 
-| Hash | median depth (MultiPV 3) | vs healthy (17) | verdict |
+| Hash | MultiPV 3 median | MultiPV 8 median | verdict |
 |---|---|---|---|
-| 16 MB | **13.5** | −3.5 | usable |
-| 64 MB | **11.5** | −5.5 | usable |
-| **128 MB** | **11.0** | −6.0 | **largest SAFE size measured** |
-| **256 MB** | **4.0** | −13 | **UNUSABLE** (scatter 3–12) |
-| **512 MB** | **1.0** | −16 | **UNUSABLE** (all 10 positions depth 1) |
+| **16 MB** | **13.5** | **11.0** | **both usable — least-lossy choice** |
+| 64 MB | 11.5 | **9.0** | usable |
+| 128 MB | **11.0** | **6.0** | safe at MPV 3 only |
+| **256 MB** | **4.0** | **2.0** | **UNUSABLE for any MultiPV > 1** |
+| **512 MB** | **1.0** | **1.0** | **UNUSABLE** (all 10 positions depth 1) |
 
-The collapse is a **cliff between 128 and 256 MB** — not a gradual decay. Below the cliff there is still a gentle
-gradient, so MultiPV 3 costs you about a third of the depth even at 16 MB.
+The safe limit **depends on MultiPV**: **128 MB at MultiPV 3, but only 64 MB at MultiPV 8** — the more lines you ask
+for, the earlier it breaks. The collapse is a **cliff between 128 and 256 MB** (at MPV 8, between 64 and 128), not a
+gradual decay, and below the cliff there is still a gentle gradient: MultiPV 3 gives up ~3.5 plies and MultiPV 8
+~6 plies even at 16 MB.
 
 **So, in order of preference:**
 1. **MultiPV 1 at any Hash** — unaffected at every size (depth 14–19).
-2. **MultiPV > 1 only with Hash ≤ 128 MB.** That is the largest safe size I measured; accept roughly a third less
-   depth than MultiPV 1 gives.
-3. **Never Hash ≥ 256 MB with MultiPV > 1.** That is where analysis becomes depth 1–5 and, on a busy machine, can
+2. **Multiple lines: Hash ≤ 128 MB at MultiPV ≤ 3, or Hash ≤ 64 MB at MultiPV 8.** Accept that you lose depth versus
+   MultiPV 1; **16 MB loses least**.
+3. **Never Hash ≥ 256 MB with MultiPV > 1** — that is where analysis becomes depth 1–4 and, on a busy machine, can
    return a move with no search at all.
 
 ## Your matches are NOT affected
