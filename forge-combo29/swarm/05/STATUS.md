@@ -346,3 +346,12 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   established; S-F26 the repetition repair CONFIRMED; S-F20 boundary position-dependence survives except one board.
 - next command: re-run S-F22's 28-position mate set on the base build once more as a stability check (deterministic
   repeat), then continue.
+
+## $(date -u)
+- S-F27 NEW and it is the mechanism lead S-F21 lacked: truncation happens ONLY at |N| >= 10. Base build S14 depth 12
+  Threads 1: |N| 1..7 (25 positions) all consistent; the only truncated are |N| = 12 and 13 (need 24 and 26 plies, got
+  18 and 14). Of 3 positions with |N| >= 10, 2 are truncated. Not a mechanism claim (I did not read the PV code), but
+  it explains why an option looked like a cure on one board without fixing others.
+- Determinism re-check: base build re-run reproduces 2/28, same two boards, same scores.
+- next command: test S-F27's prediction — a board with |N| >= 10 should truncate and the SAME board at a shallower
+  reported mate should not.
