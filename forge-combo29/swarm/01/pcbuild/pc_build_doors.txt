@@ -1,0 +1,22 @@
+is my combined patch still needed on the PC r15 build? four doors, PC20, Threads 1
+pc   /home/ubuntu/builds/pc/forge sha256 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+base /home/ubuntu/builds/release/forge sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+PC20 options sent (each followed by isready read to readyok): LmrQuietBase=93, LmrQuietDivisor=205, LmrNoisyBase=13, LmrNoisyDivisor=333, LmrHistoryDivisor=5643, NullMoveBase=5, LmpBase=8, HistoryPruneMultiplier=2220, HistoryBonusQuadratic=24, HistoryBonusLinear=54, HistoryBonusMax=2212, SingularDepth=6, IirDepth=2, NonPawnCorrection=true, CuckooRep=true, HistRework=2, TtPruneV2=true, CorrHistV2=true, MateAlphaGuard=true, OwnBook=false, Threads=1, Hash=16
+base runs: no setoption at all (base build lacks CuckooRep etc.), ucinewgame before each search
+
+case	go	PC r15 under PC20	base (no options)	reading
+control_fen	go depth 6	mate 1/126/a1a8	mate 1/126/a1a8	
+door1_h99	go depth 6	mate 1/126/a1a8	mate 1/126/a1a8	
+door1_h100	go depth 6	mate 1/126/a1a8	cp 0/0/f2f3	
+door2_rep	go depth 6	mate 1/102/a1a8	cp 0/0/g1e2	
+mate3_h100	go depth 12	mate 2/398/h6h7	cp 0/0/h6h7	
+draw_h150	go depth 10	cp 0/280/h6h2	cp 0/0/h6c1	
+
+GUARD: on every case, both builds reported a perft 1 equal to python-chess's legal move
+       count for the intended board, so the scores below are on the board I mean.
+PC r15 finds the mate on: control_fen, door1_h99, door1_h100, door2_rep, mate3_h100
+PC r15 MISSES: (none)
+base finds the mate on: control_fen, door1_h99
+PC r15 still calls the genuine draw cp 0: True
+VERDICT: the PC build closes EVERY door I can build, so MY COMBINED PATCH IS NOT NEEDED on the
+PC build. FORGE_FIX_ROOT_DRAWN covers what my patch and seat 12's patch covered on the base tree.

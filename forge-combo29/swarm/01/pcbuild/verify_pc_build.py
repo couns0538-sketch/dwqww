@@ -121,9 +121,14 @@ def run_bench(exe, options, command):
             problems.append("no readyok after ucinewgame")
     send(command)
     if command.startswith("go perft"):
-        until("nodes ", deadline)
+        # the engine's perft total line starts with "nodes "
+        if until("nodes ", deadline) is None:
+            problems.append("no 'nodes ' line for perft")
     else:
-        until("bench ", deadline) or until("readyok", deadline)
+        # the engine prints "info string bench depth N nodes M ..." - the line starts with
+        # "info string bench", NOT "bench". Waiting for "bench " waits forever (seat 19's failure mode).
+        if until("info string bench", deadline) is None:
+            problems.append("no 'info string bench' line")
     send("quit")
     try:
         p.wait(timeout=120)
@@ -211,15 +216,14 @@ def run_bench_multi(exe, options, command):
     deadline = time.monotonic() + TIMEOUT
     send("uci")
     until("uciok", deadline)
-    for line in command.split("\n"):
+    lines_cmd = command.split("\n")
+    for line in lines_cmd:
         send(line)
     send("isready")
     until("readyok", deadline)
     for l in buf:
         if l.startswith("unknown option") or l.startswith("ERROR") or "invalid value" in l:
             problems.append(l)
-    if not command.startswith("position"):
-        send(command)
     send("quit")
     try:
         p.wait(timeout=120)
