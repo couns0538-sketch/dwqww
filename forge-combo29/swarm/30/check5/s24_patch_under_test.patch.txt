@@ -1,0 +1,15 @@
+--- a/src/uci.cpp	2026-11-16 21:06:43.550895570 +0000
++++ b/src/uci.cpp	2026-11-16 23:05:38.374895570 +0000
+@@ -553,7 +553,11 @@
+                                       &ponder_hit_received, search_board, limits, ponder_enabled]() mutable {
+                     const forge::SearchInfo result = searcher.search(
+                         search_board, limits, true, forge::Searcher::TTAccess::Exclusive);
+-                    if (limits.infinite || limits.ponder) {
++                    // A root with no legal move is answered at once (bestmove 0000), so an
++                    // unbounded search must not wait for `stop` in that case: the search is
++                    // already finished and no further input will change its answer.
++                    const bool terminal_root = !search_board.has_legal_move();
++                    if ((limits.infinite || limits.ponder) && !terminal_root) {
+                         std::unique_lock<std::mutex> lock(stop_mutex);
+                         stop_cv.wait(lock, [&stop_requested, &ponder_hit_received, &limits] {
+                             return stop_requested || (limits.ponder && ponder_hit_received);
