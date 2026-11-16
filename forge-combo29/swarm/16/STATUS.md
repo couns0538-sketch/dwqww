@@ -350,3 +350,16 @@ seed: 1601
   minute of writing it; worth recording because a garbled word in a summary is exactly what makes a careful
   reader distrust the numbers beside it.
 - check_folder.py: ALL CHECKS PASS (380 files, 36 findings rows). Holding cadence; FINAL block at 10:19Z.
+
+## 2026-11-16T23:52Z
+- FINAL 2.3a restated so the corrected line cannot be misread. The old heading said "a removed worry, not a found
+  fault", which S-F31 CONTRADICTS, so it is gone (0 occurrences of "removed worry" left in the file). The block
+  now:
+    * heads with the verdict itself: the budget errs about as often in each direction, but its errors cost more
+      than its lucky wins, so a strength-minded choice should move up from 2,000;
+    * repeats it as a quoted verdict box directly under the numbers, with the explicit note that the count is
+      genuinely even at 4 against 3 and that a count is the wrong measure for a strength decision;
+    * then derives it from the depth 12/14/16/18 re-judgement.
+  The redundancy is deliberate: the opening sentence serves a skimming reader and the derivation serves a
+  sceptical one, and this is the one line in my folder that must not be misread.
+- check_folder.py: ALL CHECKS PASS. Holding cadence; FINAL block at 10:19Z.

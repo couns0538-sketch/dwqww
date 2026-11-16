@@ -121,7 +121,7 @@ identical at all three budgets on 31 of 40 real-game positions; the 8 that chang
 (largest +125 cp from the 20k budget to the 250k one, one −70 cp self-assessment drop in a lost position). No
 blunder found at any real budget.
 
-**2.3a THE SELF-PLAY BUDGET DOES NOT PLAY BADLY — a removed worry, not a found fault.** `S-F30`: the owner's
+**2.3a THE SELF-PLAY BUDGET (2,000 nodes): it errs about as often in each direction, but its errors cost more than its lucky wins — so a strength-minded choice should move up from 2,000.** `S-F30`: the owner's
 self-play budget (`go softnodes 2000`) against his largest match budget (`go nodes 250000`) over 40 real-game
 positions:
 
@@ -131,6 +131,12 @@ median cost                  : 0 cp
 worse by >30 cp              : 4 positions   (worst +109)
 BETTER by >30 cp             : 3 positions   (best -109)
 ```
+
+> **The verdict (S-F30 with S-F31's correction): the 2,000-node budget errs about as often in each direction, but
+> its errors cost more than its lucky wins. If the budget is being chosen for STRENGTH, move up from 2,000.**
+>
+> It does not play badly uniformly — the count is genuinely even at 4 against 3 — but a count is the wrong measure
+> for a strength decision, and the deeper re-judgement below shows why.
 
 The 2,000-node budget loses ground on four positions and **gains it on three** — so the concern that it is
 uniformly underpowered is not supported. **But the count is the wrong measure, and `S-F31` corrects it:** I
@@ -143,8 +149,8 @@ modest (−58, mate, −63). So the accurate statement is:
 That is what a shallower search should look like, and it is a weaker claim than either "it plays badly" or "it is
 a wash". The self-play path is still usable — `S-F29` showed varied starts give varied games and `S-F16` showed
 the budget is deterministic and stops at a finished depth — so the two operational things to know remain the
-~1.7x node overshoot and the need for varied starts. But if the owner is choosing a self-play budget for
-strength, the evidence says move up from 2,000 rather than stay: the losses are the ones that grow with depth.
+~1.7x node overshoot and the need for varied starts, and neither of those is a reason to abandon the path. But on
+STRENGTH the answer is not neutral: the losses are the ones that grow with depth, so the budget should go up.
 The single largest loss is idx 34 (`8/5p2/1k6/p4r1p/1b1R1P2/6K1/8/8 w`, +136 cp at depth 18).
 
 **2.3b Two measurement-discipline results that others can use directly.**
