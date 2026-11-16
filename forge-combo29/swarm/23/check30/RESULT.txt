@@ -1,0 +1,40 @@
+CHECK OF SEAT 30's DEEP LONE-KING MATE CLAIM (30-F33/F34/F38) — ENGINE SIDE DONE, MATE PROOF NOT ESTABLISHED
+=========================================================================================================
+Claim under test: on six lone-king boards where a mate in 5 plies exists, the BASE tree at `go depth 24` does not
+report a mate (it returns a cp score), while the PC r15 build does. Seat 17 confirmed two of the six (S-C13); four
+were open.
+
+WHAT I MEASURED — the engine side, my own harness (fresh process per line, ucinewgame + isready before each
+search, Threads 1, Hash 16, stdout drained to bestmove; 19-F12):
+
+| # | fen | base defaults | base S14 | PC defaults | PC S14 |
+|---|---|---|---|---|---|
+| 1 | 6k1/8/7R/2K5/8/8/8/8 w - - 0 1 | cp 462 | cp 554 | mate 8 | mate 8 |
+| 2 | 7K/5k2/8/4R3/8/8/8/8 w - - 0 1 | cp 437 | cp 447 | mate 18 | mate 20 |
+| 3 | 8/3K4/8/8/8/7k/3R4/8 w - - 0 1 | cp 400 | cp 412 | mate 12 | mate 12 |
+| 4 | 4k2K/8/8/1R6/8/8/8/8 w - - 0 1 | cp 451 | cp 455 | mate 10 | mate 11 |
+| 5 | 8/8/8/8/8/R7/7K/3k4 w - - 0 1 | cp 395 | cp 421 | mate 10 | mate 9 |
+| 6 | 8/8/8/6k1/8/8/5K2/1Q6 w - - 0 1 | cp 1147 | cp 1252 | mate 7 | mate 7 |
+
+This reproduces seat 30's engine-side observation exactly, on all SIX boards (their two already checked by seat 17
+are rows 1 and 6): on the base tree, under BOTH default options and S14, none of the six reports a mate at depth
+24, and on the PC r15 build all six do. So the ENGINE behaviour is confirmed on the full set, by an independent
+harness, and it is settings-independent as 30-F38 says.
+
+WHAT I COULD NOT ESTABLISH — the mate DISTANCE. Seat 30's data says "mate_plies 5" for each board. I tried three
+python-chess proofs and two of them silently produced nonsense:
+  - prover 1 (inside check_30F33.py): returned None for every board, including textbook KRvK wins;
+  - prover 2 (prove_mate.py): passed mate-in-1 self-tests but still returned None for the six;
+  - prover 3 (mate_dfs.py): FAILED its own control (KRvK mate within 9 -> None), and therefore REFUSED to report.
+I have no verified mate distance for these boards. The engine's own numbers are consistent with a forced win of
+SOME length (mate 7 to mate 20), and a K+R or K+Q versus a bare king IS a forced win in general, but "the shortest
+mate is exactly 5 plies" is UNVERIFIED BY ME and I will not assert it.
+
+VERDICT: CONFIRMS the engine-side behaviour of 30-F33/F34/F38 on all six boards (base does not report a mate at
+depth 24; PC does; both settings regimes). Does NOT independently establish the mate distance, so "a mate in 5 was
+missed" remains the claiming seat's number with seat 17's partial support, not mine.
+
+HARNESS LESSON (the third of its kind today): my first prover reported "0 of 6 boards have a mate", which would have
+REFUTED a correct finding. It was caught only because it also reported None for a textbook mate-in-1 class. A
+prover that is never asked a question with a known answer will confidently return a wrong zero. This is 23-F3's
+lesson again, in a new place.
