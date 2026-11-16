@@ -555,3 +555,21 @@ Both copies updated and reordered/renumbered consistently: internal/absence-of-o
 ("five traps"), and forge-combo29/swarm/13/HARNESS_TRAPS.md (five rows + the extended
 construction-assertion rule, which now includes the FEN-acceptance check).
 Next command: cd forge-combo29/swarm/13 && git log --oneline -1
+
+## Mon Nov 16 11:46:11 PM UTC 2026
+
+JOB 16: attempted the BARE_KING_LMR_CAP test. RESULT: NO FINDING, and I am recording it as such rather
+than as a pass. 19 verified lone-king mate positions x depth 14 x 2 builds x 2 disciplines (cold/warm) =
+76 runs, and EVERY mate was found on BOTH builds (19/19 everywhere, 0 missed).
+  That does NOT confirm the fix. With zero misses on the base build there is nothing to improve, which
+  means my material does not exercise the fault at all: 14 of the 19 are mate-in-1, found at depth 1
+  regardless of pruning. The patch's claim is specific - a QUIET mating move pruned once history tables
+  are warm, 38 of 400 missed - and my set has neither hard mates nor genuinely warm histories
+  (`ucinewgame` does not necessarily clear the histories).
+  Calling this a confirmation would be exactly the vacuous pass I documented as case 4 of the traps note.
+  Two generator attempts FAILED and are recorded so they are not repeated: exhaustive mate search to 9
+  plies did not finish in the command limit; a "piece two squares away" heuristic produced ZERO mates.
+  FORGE_FIX_BARE_KING_LMR_CAP therefore remains UNTESTED (job 15 said so; this does not change it).
+  The script now accepts REUSE_POSITIONS=<json> so a seat with a hard lone-king set can get the real answer.
+  Report job16/REPORT_job16.md. No finding line added.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
