@@ -1,0 +1,31 @@
+# S02: is the 'invalid value' refusal specific to Clear Hash, or a class of all button options?
+
+## how many button options exist
+$ grep -c 'type button' uci_answer.txt
+1
+$ grep 'type button' uci_answer.txt
+option name Clear Hash type button
+
+=> exactly ONE button option in this build: Clear Hash.
+
+## one command per button option found (there is one)
+
+$ setoption name Clear Hash value 0   (the only button, given a value)
+readyok
+info string invalid value for option Clear Hash
+readyok
+
+$ setoption name Clear Hash   (same option, correct form: no value)
+readyok
+readyok
+
+## is there a generic button code path, or a hand-written branch per name?
+$ grep -rn 'button' src/ include/   (in the engine source at 6b98f217)
+/agent/repos/base/forge-combo29/src/uci.cpp:247:            std::cout << "option name Clear Hash type button\n"
+
+=> the word 'button' appears ONLY in the line that advertises it to the GUI.
+   There is no type-dispatch table for options anywhere: every option is a hand-written
+   'else if (name == "...")' branch. Clear Hash's branch is src/uci.cpp:299-301:
+            } else if (name == "Clear Hash") {
+                if (value_text.empty()) searcher.clear_hash();
+                else note_invalid();
