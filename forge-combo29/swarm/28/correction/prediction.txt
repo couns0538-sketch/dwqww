@@ -1,0 +1,37 @@
+# PREDICTION — S28 correction experiment (movetime x Move Overhead grid)
+
+Committed and pushed ALONE before the first measuring command of this correction. Never edited afterwards.
+Written 2026-11-16 ~21:37 UTC, after reading seat 16's refutation of my S-F1.
+
+Seat 16 says: the M-O subtraction exists and `go movetime 10` gives 1 ms, but the stop is the end of
+the last whole ITERATION and undershoots the plan; `movetime 50` stops at 26-28 ms at BOTH overhead 0
+and overhead 10; `movetime 200` gives 167 ms at both.
+
+My job 1 measured the opposite for overhead: 50.6 ms at overhead 0 and 40.5 ms at overhead 10, a clean
+10 ms shift, with a max of 41.6. If seat 16 is right, my numbers must have been an artefact. What could
+make them so? My job-1 harness waited for `bestmove` and timed `go`..`bestmove` on the wall clock. That
+measures the true stop. So either seat 16 and I are measuring different things (their "elapsed engine
+time" is the `time` field of the last info line, mine was wall), or one of us has a harness bug.
+
+Grid: movetime {50, 100, 200, 500} x MoveOverhead {0, 10, 25, 45}, 30 positions per cell, recording
+BOTH the wall time and the engine's own reported `time`, plus the last completed depth.
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| P1 | movetime 50, overhead 0: median WALL ms | 50 | outside 44..56 |
+| P2 | movetime 50, overhead 10: median WALL ms | 40 | outside 34..46 |
+| P3 | movetime 50, overhead 0 minus overhead 10 (median wall) | 10 ms | outside 7..13 |
+| P4 | movetime 200, overhead 0 vs 10: medians differ by ~10 ms | yes | they differ by <3 ms (seat 16 right) |
+| P5 | the engine's own `time` field is LOWER than wall by roughly the pipe latency | yes, by 1-9 ms | `time` > wall on a median run |
+| P6 | last completed depth at movetime 50 is the same for overhead 0 and 10 | yes (both shallow) | differ |
+| P7 | some cells' median/plan ratio is well below 1.0 (undershoot by iteration granularity) | yes, at least one cell < 0.90 | all cells >= 0.90 |
+| P8 | overhead 45, movetime 50 (plan 5 ms): median wall | 5 | outside 2..20 |
+| P9 | the largest undershoot appears at the LONGEST movetime | no, at the short ones | yes |
+
+Reasoning: my job-1 numbers were wall times with a 0.05 ms run-to-run agreement, so I do not expect them
+to move. But seat 16's claim that BOTH overheads stop at 26-28 ms is a claim about the engine's OWN
+reported time, and if the engine stops early and reports early, my wall measurement would have shown it
+too. So I predict either a real disagreement about the engine's behaviour (P3 holds) or that seat 16
+measured `time` from the last info line and confused that with the stop time. P7 is my honest admission
+of seat 16's real point: iterative deepening cannot stop at the plan, so some undershoot is expected —
+the question is its size and whether the overhead shifts it.
