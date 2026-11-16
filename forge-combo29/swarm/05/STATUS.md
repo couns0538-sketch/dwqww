@@ -691,3 +691,12 @@ every sentence.
 - BONUS: S-F55 — the time ceiling is CLOCK-PROPORTIONAL, not absolute. At clock 20000, inc 24000 gives 8838 ms (d30)
   vs 2755 (d27) at inc 6000; at clock 60000 it reaches 11934 ms (d31) and one run hit 35995 ms. So the flat region at
   clock 6000 is not a hard per-move maximum, and raising the clock DOES raise the ceiling.
+
+## $(date -u)
+- S-F57: at the owner's MATCH node budgets the mate-PV truncation disappears above 20,000 nodes. Same 28 mate positions,
+  PC20, Threads 1, Hash 16, OwnBook false, fresh process per cell:
+  go nodes 20000 -> 20 mate scores, 1 truncated (5.0%, the S-F27 board `8/8/1p6/...` mate -7 pv10/14)
+  go nodes 50000 -> 25 mate scores, 0 truncated
+  go nodes 250000 -> 27 mate scores, 0 truncated
+  => the truncation is confined to the smallest budget the owner uses; 50k and 250k are clean on this set.
+- next command: continue the cycle.
