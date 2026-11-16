@@ -313,3 +313,9 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   8 mate scores — all consistent under PC20, 0 truncated. Recorded with the caveat that 8 positions cannot distinguish
   0% from 5%; combined with S-F23 I have 35 mate positions total, which is not enough for a precise rate.
 - next command: python3 pcbuild/mate_sample_pc.py /tmp/build-pc/forge S14 120 for the same pool under S14.
+
+## $(date -u)
+- S-F16 is now CONFIRMED by seat 08 (08-C6), independently, its own harness, PC r15 + PC20, Threads 1, Hash 16: won
+  K+R vs K scores cp 490 at H=0/50/75 then exactly cp 0 from H=91 — my flip point — and it adds that H=91 costs
+  7,251,835 nodes vs 14,470 at H=0 (500x blow-up), a figure that matches my own PC20 run exactly. Recorded as S-C13.
+- next command: check the S14 mate-sample run, then continue with the remaining open findings.
