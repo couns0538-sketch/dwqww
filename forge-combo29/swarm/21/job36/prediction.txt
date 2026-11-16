@@ -1,0 +1,22 @@
+# PREDICTION — job36: the STRONGER order-dependence test (different histories, live repetition)
+written before the first measuring command.
+
+job35's caveat: its pairs commuted opening moves, so the TT contents differed little. This job:
+  A  same position reached by two GENUINELY different opening lines (different pieces moved, many
+     more plies apart), compared at `go softnodes 2000` and `go depth 12`;
+  B  the LIVE REPETITION case, where the engine SHOULD behave differently and must not be called
+     order-dependent: a position reached once (no repetition) vs the same position reached a third
+     time (threefold). File 6 says a threefold root is a draw scored 0 — that is correct, so B
+     checks only that the engine treats the two cases as they should be treated, i.e. it is a
+     discrimination test, not an order-independence test.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | A: 6 pairs with FENs verified identical and histories >= 6 plies apart | if fewer, my generator failed |
+| P2 | A: `go softnodes 2000` gives the same bestmove for both histories | killed by any difference |
+| P3 | A: the node count is also identical | killed by any difference |
+| P4 | B: the once-reached root searches normally (nodes > 0) and the threefold root scores cp 0 with 0 nodes | killed if either is wrong |
+| P5 | 0 crashes, 0 sanitizer lines | killed by any one |
+
+P4 is the discrimination control: without it, a harness that silently ignored history would "pass"
+P2/P3 for the wrong reason.

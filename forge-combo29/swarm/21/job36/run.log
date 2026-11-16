@@ -1,0 +1,20 @@
+| # | history A | history B | same FEN | soft A | soft B | same move | same nodes | d12 same |
+|---|---|---|---|---|---|---|---|---|
+| 0 | b1c3 a7a5 d2d4 h7h5 | d2d4 a7a5 b1c3 h7h5 | yes | e2e4/2004 | e2e4/2004 | True | True | True |
+| 1 | b1c3 a7a5 c3b1 e7e6 | g1h3 a7a5 h3g1 e7e6 | yes | g2g3/2337 | g2g3/2337 | True | True | True |
+| 2 | h2h4 b8a6 a2a4 b7b5 | a2a4 b8a6 h2h4 b7b5 | yes | a4b5/2697 | a4b5/2697 | True | True | True |
+| 3 | c2c3 f7f6 h2h4 g7g5 | h2h4 f7f6 c2c3 g7g5 | yes | e2e4/2988 | e2e4/2988 | True | True | True |
+| 4 | c2c3 b8c6 h2h4 g8f6 | h2h4 b8c6 c2c3 g8f6 | yes | d2d4/4388 | d2d4/4388 | True | True | True |
+| 5 | b2b4 c7c5 a2a3 a7a6 | a2a3 a7a6 b2b4 c7c5 | yes | b4c5/3555 | b4c5/3555 | True | True | True |
+
+| control | position | bestmove | nodes | score | python threefold |
+|---|---|---|---|---|---|
+| once | 6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 60 | e1e8 | 210 | ('mate', 1) | True |
+| threefold (with a mate in 1) | reached after 8 plies | e1e8 | 200 | ('mate', 1) | True |
+
+A) different histories, same position: 6 pairs
+   softnodes same move: True
+   softnodes same nodes: True
+B) discrimination: once-reached searched (nodes>0): True ; threefold root with a mate available found it (file 6: a mate ending by half-move 100 outranks the draw): True
+
+EXIT=0
