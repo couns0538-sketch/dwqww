@@ -174,3 +174,19 @@ finished-depth stop, overshoot). Then scan more lone-king endgames from real gam
 
 Next command:
 `cd /agent/repos/dwqww/forge-combo29/swarm/03/job8 && python3 softnodes.py ~/build-pc/forge soft.txt`
+
+## 2026-11-16T23:20Z — HEADLINE
+
+**S-F20 (headline): losing-move misevaluation in the shared search, proven by play-out.** Position
+`1r6/5b2/2K5/8/8/5n2/5k2/8 w - - 18 183`: engine plays c6c7 (loses in 20 plies) while c6d6, which it rejects and
+rates mate -11, holds out 22 plies (python-chess adjudicated, 3/3). PREDATES the PC build (base under S14 makes the
+same choice) and is NOT fixable by removing the bare-king cap.
+**S-F21**: instrumented cap fires 4,680,728x at depth 18 (1.4M clamping 3-ply to 1; 11 clamping 11-ply to 1) but
+only 6x at the root, always on c6d7 — never on the two candidates. The cap is the COST (~1000x nodes), not the cause.
+Reports REPORT_job10_item2.md, job10/item1_item2.md; traces job10/cap_depth8.err, cap_depth18_summary.txt.
+
+Next: item 3 — 50 real-game lone-king positions at depth 16, count how many show the signature (chosen move scored
+worse than an alternative by more than a queen).
+
+Next command:
+`cd /agent/repos/dwqww/forge-combo29/swarm/03/job11 && python3 scan_loneking.py ~/build-pc/forge scan.txt`
