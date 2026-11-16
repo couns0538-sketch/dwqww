@@ -235,3 +235,17 @@ identical at Threads 1. **No harness of mine ever set Threads above 1** — grep
 every script: zero matches; all 12 harnesses set `Threads value 1` explicitly. So no score, node count or timing
 recorded by this seat is provisional on that count. The rule is now stated at the top of FINDINGS.md.
 PC20 re-run in progress: mt50_a done (200), mt50_b partway.
+
+## 2026-11-16T22:32Z
+- 08-C6: fifty-move score floor CONFIRMED on PC20 at H=91 exactly (seat 05's figure), with a 7.25M-node spike.
+- 08-F22: the score defect is a BAND (H=91..99 all cp 0); the node cost is a SINGLE SPIKE at H=91 plus a
+  shoulder at 92-93, then cheaper than a normal search. Two facts, stated separately.
+- 08-C7: threading. Threads 1 reproducible on both boards and reproduces seat 04's cp -293 / 31,779 exactly;
+  Threads 4 gives 10 distinct scores in 10 runs (they saw 9) but on THEIR board the move never varied
+  (g7g6 x10), while on MY second board it did (c1f4 x4, e1g1 x6). So move nondeterminism above Threads 1 is
+  CONFIRMED, their example board is not, and "move choice is trustworthy" does not hold in general.
+- INCIDENT: my blow-up script took OUT as argv[1] and I passed the exe first, writing the report over the PC
+  binary. Rebuilt, re-verified all 8 pins identical, re-ran byte-identical. Recorded in
+  pc20/REPORT_fifty_move_band.md. All future scripts take OUT first, EXE second.
+
+next: seat 20's unconfirmable-above-Threads-1 items (confirmable at Threads 1), then the PC's own switches.

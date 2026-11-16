@@ -66,3 +66,18 @@ symptom of the same defect crossing its boundary, not a separate chronic perform
 ## Show it again
 
     cd forge-combo29/swarm/08/pc20 && python3 blowup_band.py ~/builds/pc/forge /tmp/bb.txt
+
+## An incident in producing this section, recorded so the file is trustworthy
+
+`blowup_band.py` takes the OUTPUT path as `argv[1]` and hardcodes the exe. My first invocation passed the exe path
+first (`python3 blowup_band.py ~/builds/pc/forge blowup_band.txt`), so Python wrote the report **over the engine
+binary** `~/builds/pc/forge`. The measured numbers were unaffected — the report was written from data the run had
+already collected — but the binary was destroyed.
+
+What I did: rebuilt it from the same source (`cmake --build ~/builds/pc`), re-verified **all 8 known numbers**
+(no-setoption 312,866 / 862,329 / 3,024,920 / 4,865,609; S14 242,796 / 656,517; PC20 278,024 / 587,276 — all
+identical, `pcbuild/out2/`), then re-ran this sweep with the correct argument. The table above is from that clean
+re-run and is **byte-identical** to the first attempt, which is itself evidence the rebuild is the same engine.
+
+Lesson applied: from now on every script of mine takes the OUTPUT path as the first argument and the EXE as the
+second, so this ordering mistake cannot recur.
