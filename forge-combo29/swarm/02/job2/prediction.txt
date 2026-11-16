@@ -1,0 +1,27 @@
+# S02 — PREDICTION for AREA 2 job 2 (races during a running search)
+
+Committed and pushed BEFORE the first measuring command, never edited afterwards.
+Seed: 202 (SEED + 1 = 202, second job of seat 02).
+Build: /agent/repos/base/forge-combo29/build-asan/forge sha256 b109a0a5acce5b0ddad5707c04f8263fe51f48a890df4a7a2ea6ffcef8a43f99
+
+What the job is: during `go infinite` or `go depth 30`, send stop / ponderhit / ucinewgame /
+setoption Hash / quit after a random delay of 0 to 50 ms, 1,000 times each.
+
+| # | what I predict | number | range that KILLS the prediction |
+|---|---|---|---|
+| 1 | crashes (signal or non-zero exit, not a timeout) | 0 | >= 1 |
+| 2 | hangs (no `bestmove` within 20 s of the interrupt, process killed) | 0 | >= 1 |
+| 3 | sanitizer report lines (ASan/UBSan) across all 5,000 runs | 0 | >= 1 |
+| 4 | runs where the process did NOT exit within 5 s of `quit` | 0 | >= 1 |
+| 5 | for the `quit` variant: a `bestmove` line printed AFTER quit (search still running when we exit) | 0 | >= 1 |
+| 6 | illegal `bestmove` after stop / ucinewgame / setoption Hash (a move illegal in the position) | 0 | >= 1 |
+| 7 | **the one I expect to fail**: `ucinewgame` sent while `go infinite` runs, then a `stop`, then a new search — runs where NO `bestmove` at all arrives for the interrupted search | 0 to 20 (up to 2 %) | >= 100 |
+
+Why: the UCI loop serialises on `stop_search()` which joins the worker, so every one of these commands
+waits for the worker to finish before acting; that is why 3 and 6 should be clean. The interesting risk is
+semantic, not memory-shaped: `ucinewgame` sets the board back to the start position (`src/uci.cpp`, the
+`ucinewgame` branch calls `board.set_fen(StandardStartFen)`), so if the search is still looking at the OLD
+board, the bestmove it eventually prints belongs to a position the engine no longer holds — that is exactly
+what prediction 6 tests, and a non-trivial number of failures there is the outcome I consider most likely
+to be real. `setoption name Hash` reallocates the table while a worker may be reading it; if the
+`stop_search()`/`clear_hash()` pairing is right this is safe, and 3 catches it if not.
