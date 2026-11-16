@@ -1,0 +1,14 @@
+job 30 prediction (committed before the first run - the gate enforced it)
+
+Part A: with the stage read at the RETURN moment, the labels shift one stage back: my old "Killer2"
+becomes Killer1 (n 480, regretted 291 at depth 1, k1), my old "CounterMove" becomes Killer2 (n 764,
+regretted 132), my old "other" splits into the TT move + the counter move + the rest, and QuietMoves
+stays (n 2,809, regretted 10). The corrected picture: the FIRST killer is the wrong-drop population
+(606 per 1,000 at the old reading was already the first killer's rate).
+
+Part B: exempting the killers from history pruning (modes 1-3) removes 5-15% of the tree's history
+drops; the tree cost is small (the killers' nodes are few) - I predict the ratios stay within 1% of 1.
+Mode 4 (the TT move exempt) removes the most-used move's pruning: a bigger tree cost, maybe 2-5%.
+
+Part C: with mode 1, Killer1's n = 0 at every depth (it is never history-pruned) and every other
+stage's n stays within a few percent of Part A's.
