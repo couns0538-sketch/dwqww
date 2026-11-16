@@ -1,0 +1,31 @@
+PREDICTION — seat 03, job 10 item 1: independent verdict on position 155
+
+Question: which of c6d6 (base's answer) and c6c7 (the PC build's answer) is actually better in
+`1r6/5b2/2K5/8/8/5n2/5k2/8 w - - 18 183`?
+
+Method chosen, and why it is independent of the engine's own evaluation:
+  A. PLAY-OUTS. After forcing each candidate move with python-chess, both sides are played by the engine at a FIXED
+     depth (12) under PC20, Threads 1, Hash 16, fresh process per move, until python-chess reports game over or 120
+     plies pass. The outcome (mate for black / draw / mate for white) is decided by python-chess's rules, not by any
+     engine score. 2 candidates x 3 repeats (same settings, so repeats test determinism) = 6 games.
+  B. MATERIAL AND MATE-THREAT AUDIT. python-chess reports, at the final position, the material and whether the game
+     ended in mate — so "who won" does not depend on the engine at all.
+  C. A bounded EXACT solver in python-chess checks whether either move allows a mate within 9 plies, which is cheap
+     enough to be exact. This does not settle an 11-move mate but does catch a short one.
+
+Predicted values with kill ranges:
+1. Games from c6c7 lose for white (black mates) in all 3 repeats: predicted yes. KILL: any c6c7 game where white is
+   not mated (would mean the engine's mate -11 score is wrong, which is itself important).
+2. Games from c6d6 also lose for white eventually (the position is materially lost: K vs K+R+B+N): predicted yes.
+   KILL: n/a (recorded either way) — the interesting quantity is the LENGTH.
+3. c6d6 survives strictly longer than c6c7, in plies, in all 3 paired comparisons: predicted yes.
+   KILL: c6d6 not surviving longer in at least 2 of 3 pairs.
+4. Exact 9-ply solver: no forced mate for black within 9 plies from either move: predicted yes for both.
+   KILL: a forced mate found within 9 plies after either move (would mean one of them loses faster than the
+   engine's displayed mate distances suggest, and I would report the exact line).
+5. Repeat games identical move for move (same settings): predicted yes. KILL: any difference between repeats, which
+   would mean the play-out adjudication is itself non-deterministic.
+6. python-chess legality error or engine crash in any play-out: predicted 0. KILL: >= 1.
+
+If 1 and 3 hold, the verdict is: **c6d6 is better; the PC build's chosen move is worse**, established by game
+outcome and mate distance rather than by the engine's own score table.
