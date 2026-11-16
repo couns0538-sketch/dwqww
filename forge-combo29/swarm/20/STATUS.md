@@ -24,7 +24,10 @@ S-C6 seat06 S-F1 | S-C7 seat28 S-F1 | S-C8 seat05 S-F3 | S-C9 seat05+seat25 S-F1
 S-C10 seat27 S-F3 (hashfull 1000-cluster window; nodes identical 87,135)
 S-C11 seat17 S-F1 (0000 on a live board; + the 64-info-line detail)
 S-C12 seat17 S-F3 (bench pins immune to history drift: 862329 x3)
-S-C13 seat06 S-F6 (search not colour-symmetric: 18/20 scores differ; my rate 10% vs their 28.6%)
+S-C13 seat06 S-F6 (search not colour-symmetric) -- SUPERSEDED by S-C16 below
+S-C16 seat06 S-F6 RESOLVED IN THEIR FAVOUR: on THEIR G_353.fens with THEIR settings I reproduce 101/353 = 28.6%
+      bestmove-asymmetric and 334/353 = 94.6% score-asymmetric exactly, in both process arms, row by row.
+      My 10.0% was my 20-position sample (Wilson CI ~1-32%, overlapping 28.6%). "Rate not reproduced" WITHDRAWN.
 S-C14 seat28 S-F5 (increment ignored at tiny clocks; CORRECTED threshold 13/14, not 10/11)
 S-C15 seat28 S-F7 (wtime 0 answers legally, 0 hangs in 20)
 RECOUNTS: deepseek6 long56, glmflash5 job27 (every number exact).
@@ -36,7 +39,12 @@ S-F22 true mate distance on the S-F19 board is 8 plies, proved both ways with a 
 S-F18/S-F19 only 3 of 14 S14 options break mate reporting, and LmpBase=8 loses the mate at depth 12;
 S-F16 two different cp-0 mechanisms (0 nodes vs millions); S-F26 increment boundary = Move Overhead + ~4;
 S-F27 UCI cannot reveal the tie-break order (a limit on how such findings can be made at all);
-S-F28 FABLE_TO_swarm_3 read: the drawn-root defect is BASE-TREE ONLY and repaired on the PC since 15 Nov;
+S-F28/S-F31 FABLE_TO_swarm_3 read (NOW WITH VERBATIM SOURCE, job24/S-F28_SOURCE.md): branch
+      handoff/fable-opus-combo29-all-20261114, commit 511d334f, file FABLE_TO_swarm_3.md, lines 13-18 say
+      "On the owner's PC this is REPAIRED since 15 November ... only a root with insufficient material is still
+      answered at once ... A patch for the base tree is not needed." It does NOT say a patch is harmful and does
+      not show the repair. Narrow reading stands (on 6b98f217 seat01's patch is insufficient); wide reading
+      withdrawn for the PC; RECOMMENDATION: hold the patch off;
 S-F30 planting Rule-1 controls exposed a crash/hang mislabel in my own fuzz classifier (fixed; total unchanged).
 FINAL_REPORT.md holds the full session summary; FABLE_NOTES.md the Opus file read + Rule-1 table.
 
