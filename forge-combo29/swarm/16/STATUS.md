@@ -150,3 +150,9 @@ seed: 1601
   check_20F14, check_06F12, check_28F1, audit, wall_vs_iteration, warmcold, fullwindow, belowroot, reverse_list.
   Text patches: psqt_symmetry.patch.txt, fullwindow_root.patch.txt, EXPERIMENT_reverse_list.patch.txt.
 - next command: none. Area 6 complete; stopping per instruction.
+
+## 2026-11-16T22:18:58Z CONTINUE: 12 more hours, ends at 2026-11-17T10:18:58Z
+- seat 16 (area 6, SYMMETRY), branch for-fable-and-opus/swarm-16, no new seat taken.
+- next command: fetch handoff/fable-opus-combo29-all-20261114 and read FABLE_TO_swarm_4.md and _5.md
+  (I have read 1, 2, 3), then build the PC engine from file 5's patch with -DFORGE_MATE_ALPHA_GUARD=1 in a
+  separate copy and check its known bench numbers.
