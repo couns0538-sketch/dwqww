@@ -1,0 +1,39 @@
+# PREDICTION — seat 08, AREA 8 (THE CLOCK), job 1 — committed and pushed BEFORE the first measuring command.
+
+Committed before any search was run. Numbers are predictions, not results.
+
+## Machine
+- nproc is 4 (already observed before this prediction; it is a hardware fact, not a measurement of the engine).
+
+## Expected wall-time behaviour, movetime budgets
+For `go movetime T`, I expect the engine to stop close to T and slightly over it, because the last iteration
+overshoots by the node time.
+
+| budget | predicted median over 200 searches | range that kills the prediction |
+|--------|-----------------------------------|---------------------------------|
+| movetime 50  | 50 to 62 ms   | median < 40 ms or > 90 ms |
+| movetime 500 | 500 to 540 ms | median < 460 ms or > 650 ms |
+
+- searches over the limit (= wall time > budget + 50 ms) at movetime 50: predicted 0 to 8 of 200.
+  Kill: 20 or more.
+- largest single overrun at movetime 50: predicted under 250 ms. Kill: 500 ms or more (an overrun of 10x).
+
+## Two equal baseline runs
+- Two identical runs of 200 x `go movetime 50` are predicted to differ in median wall time by under 3 ms,
+  and in total elapsed time by under 5 %. Kill: median difference 10 ms or more.
+
+## Clocked budgets
+For `go wtime 1000 btime 1000 winc 10 binc 10` (movestogo absent -> the engine divides the remaining time by
+some constant), I expect each move to use roughly 3 % to 8 % of the 1000 ms, i.e. median 25 to 90 ms per search.
+Kill: median over 200 ms (it would burn a fifth of the clock on one move) or under 5 ms (it would lose on time).
+
+For `go wtime 10000 btime 10000 winc 100 binc 100`: predicted median 60 to 250 ms.
+Kill: median over 700 ms or under 20 ms.
+
+## What would surprise me
+- An engine that ignores `movetime` and answers instantly (median under 20 ms) or runs the full 500 when asked 50.
+- A hard 2x overrun on a 1000 ms clock (would lose games on time in the low-time endgame).
+- Wall time growing with the position (a time manager that only checks the clock every N nodes usually shows a
+  fat tail; a 99th percentile over 3x the median at movetime 50 would be that tail).
+
+If any kill-range hits, it is a finding and goes in FINDINGS.md with its raw file.
