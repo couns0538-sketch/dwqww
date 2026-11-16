@@ -342,3 +342,17 @@ grows everywhere, but only close positions are decided by it. Prediction scored:
 reversal within the fixed-depth comparison, so that clause is unanswered rather than confirmed.
 For the owner: the three match budgets differ on close positions, which is where match results are decided, so a
 match at 20000 and a match at 250000 are not interchangeable and neither is "the right one".
+
+## 2026-11-17T02:15Z  23-F27: the margin is a measured predictor (with its limit stated)
+Requested measurement done. For all 60 positions of 23-F24: top-two gap at the depth the 20000 budget ACTUALLY
+reached (`go depth D searchmoves <move>`, D from the engine's own final info line at that budget).
+  changed positions  : median gap 12 cp (min 1, max 59); 14 of 17 within 30 cp
+  unchanged positions: median gap 46 cp (min 0, max 690); 17 of 43 within 30 cp
+So gaps ARE systematically smaller where the move changes: the instability is margin-driven, and this also
+explains 23-F25 (depth grows everywhere; only a small margin is flipped by it).
+LIMIT, kept attached to the finding: as a per-position classifier the gap is weak — precision 45-56 % at every
+threshold 5..30 cp (at 20 cp: 12/17 caught, 13/43 wrongly flagged). "Small gap" = "may switch", not "will switch".
+Counter-example recorded: one unchanged position has a 0 cp gap and still keeps its move at all three budgets.
+Also written: NOTE_TO_SEAT17.md (I cannot message it directly; coordinator relays). Content: their board reproduces
+exactly, but the count breakdown is 11 of 18 "only 250000 differs", 4 of 18 "20000 differs", 3 of 18 "all three" —
+the dominant shape is the LARGEST budget changing the move.
