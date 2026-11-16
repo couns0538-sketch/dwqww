@@ -1,0 +1,28 @@
+CHECK of seat 11's S-F51 — pathological FEN inputs refused cleanly on PC r15 under PC20
+=====================================================================================
+Claim: a 3,000-char first field, 1,500 `8/` segments, 70 ranks and a 64-digit rank are each REFUSED with a specific
+diagnostic and no crash, on PC r15 under PC20 (Threads 1).
+
+Method: send startpos first (perft 1 = 20), then the pathological FEN, then `go perft 1`. A refusal that keeps
+startpos shows as perft 1 = 20 WITH an `invalid FEN` line; acceptance would show the pathological board's own count.
+PC r15 + PC20 + OwnBook false, Threads 1, Hash 16.
+
+| case | diagnostic | perft 1 | reading |
+|---|---|---|---|
+| 3,000-char first field | `invalid FEN: invalid FEN placement` | 20 | REFUSED, startpos kept |
+| 1,500 ranks | `invalid FEN: invalid FEN rank` | 20 | REFUSED, startpos kept |
+| 70 ranks | `invalid FEN: invalid FEN rank` | 20 | REFUSED, startpos kept |
+| 64-digit rank | `invalid FEN: too many squares in FEN rank` | 20 | REFUSED, startpos kept |
+| CONTROL valid startpos | (none) | 20 | accepted (and 20 is its own count) |
+
+VERDICT: CONFIRMS S-F51's substance — every pathological input is refused with a specific, different diagnostic,
+no crash, and the previous position is preserved.
+
+ONE DIFFERENCE FROM THEIR TEXT, stated because a reader comparing our two records would notice: seat 11 reports the
+3000-char case's reason as `pawn on promotion rank`; on my build it is `invalid FEN: invalid FEN placement`. Their
+own finding already notes that "the 3,000-char control's refusal REASON differs" between builds, so this is
+consistent with what they wrote — I record my build's exact string rather than theirs.
+
+Note on the control's weakness: the valid-startpos row also gives perft 1 = 20, so "20" alone does not prove refusal.
+The refusal is established by the DIAGNOSTIC, and the count only proves the board did not change. Both are printed
+for that reason.
