@@ -23,3 +23,13 @@ Every line ran in a fresh engine process; raw output in forge-combo29/swarm/15/j
 | go perft 5 (startpos) | 4865609 | 4865609 | job_honesty/perft5.txt | MATCH |
 
 All four match => this build is used for every job below. Build command: cmake <base>/forge-combo29 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/g++ && make -j4 (script: job_honesty/honesty.sh is /forge-combo29/swarm/15/honesty.sh).
+
+## Addendum after checking seat 10's 10-F6 (see check_10f6/)
+
+The four numbers above were measured with NO setoption lines sent, i.e. in the engine's default
+option regime, and that is the only regime in which they hold. Applying the brief's own S14
+setoptions first moves three of them (bench 11 = 242,796, bench 13 = 656,517, bench 16 = 2,155,620;
+perft 5 unchanged) — reproduced to the digit in `check_10f6/check_10f6_release.txt`.
+So: the pins are a property of the DEFAULT regime, and a harness must not apply S14 before
+measuring honesty. My result stands; the caveat is on the method, and it is worth more than the
+number itself.
