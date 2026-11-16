@@ -161,3 +161,6 @@ S-F32: soft-scaled rule arithmetic (no new experiment). FREE on 15/24 base and 1
 
 ## Mon Nov 16 10:45:02 PM UTC 2026
 S-F33 softnodes DONE (short, as promised): DETERMINISTIC at every N (5 repeats x 3 positions, identical nodes/depth/move), ALWAYS stops at a finished depth, overshoot 1.02x-1.99x and the ratio GROWS with N (1.02-1.59 at 2k, 1.24-1.99 at 250k). Owner's 'first depth after 2000 nodes' is literally true; but a 250k softnodes search can spend nearly 2x the stated budget, so a match control treating it as a hard cap is wrong. 4N cap never fired.
+
+## Mon Nov 16 10:45:49 PM UTC 2026
+S-F34 gated rule measured. RECOMMENDATION: adopt G=1.5 (stop only when projected finish exceeds soft by >=1.5x that iteration's own cost). On PC20 it removes EVERY 2+ ply loss (4->0) while keeping mean 35 ms / max 424 ms saving; the gate sweep has a clean knee at 1.5. Ungated: 85 ms mean / 826 max at up to 4 plies. CAVEAT IS IN THE RECOMMENDATION ITSELF: ms measured at the 10 s plan (soft 454) - ratios transfer to the 6 s clock, milliseconds do not. Hand-checked the rule arithmetic on a synthetic ladder. Not a strength claim; computed from ladders, so the real implementation's cost estimate is the adoption risk.
