@@ -177,15 +177,18 @@ a PRINTED one lets the reader check the premise independently. That is the diffe
 
 That is why the controls are worth their cost. The happy path cannot distinguish a working checker from a blind one.
 
-## The guard that shows a NUMBER alone cannot prove anything (from 23-C22)
+## A control that cannot distinguish "refused" from "accepted the same board"
 
-Verifying that the engine refuses a pathological FEN, my harness sent startpos first and then the bad FEN, and read
-`go perft 1`. The refusal showed as **20**. But the **valid** startpos control also gives **20** — so the number
-alone proves nothing: a refusal and an acceptance of a board identical to startpos are indistinguishable by count.
+**A control that cannot distinguish "refused" from "accepted-the-same-board" is not a control.** This is the
+strongest illustration on the page of why a bare number is not evidence.
 
-> **The refusal is established by the DIAGNOSTIC line (`invalid FEN: ...`), and the count only proves the board did
-> not change. Print both.** A control that cannot distinguish "refused" from "accepted the same board" is the
-> strongest argument on this page that a bare number is not evidence.
+Verifying that the engine refuses a pathological FEN (23-C22), my harness sent startpos first, then the bad FEN, and
+read `go perft 1`. The refusal showed as **20**. But the **valid** startpos control also gives **20** — so the count
+alone proves nothing: a refusal, and an acceptance of a board identical to startpos, are indistinguishable by number.
 
-This is the same mistake in a milder form than instance 3: there a prover returned a wrong zero, here a count would
-have returned a right-looking number for the wrong reason.
+> The refusal is established by the **DIAGNOSTIC** line (`invalid FEN: ...`). The count only proves the board did not
+> change. **Print both**, and print the valid-startpos control beside them so the ambiguity is visible on the page
+> rather than in the reader's head.
+
+This is a milder form of instance 3: there a prover returned a **wrong zero**; here the count would have returned a
+**right-looking number for the wrong reason**. Both are cases where the number was never the evidence.
