@@ -1,0 +1,42 @@
+# trace of the 19-F52 anomaly
+
+position: 7r/2k2p2/2p3P1/2Ppn3/PP2p1b1/4P3/4BK2/R6R b - - 0 1
+
+PC r15, PC20, Threads 1, Hash 16, 6 s + 0.06, cold
+
+| arrival ms | depth | engine time ms | nodes |
+|---|---|---|---|
+| 0.9 | 1 | 0 | 169 |
+| 1.0 | 2 | 0 | 331 |
+| 1.1 | 3 | 1 | 410 |
+| 1.1 | 4 | 1 | 481 |
+| 1.2 | 5 | 1 | 590 |
+| 1.3 | 6 | 1 | 752 |
+| 1.7 | 7 | 1 | 1402 |
+| 2.6 | 8 | 2 | 2685 |
+| 4.3 | 9 | 4 | 5777 |
+| 7.7 | 10 | 7 | 11782 |
+| 10.8 | 11 | 10 | 18811 |
+| 20.0 | 12 | 19 | 38389 |
+| 23.1 | 13 | 22 | 44797 |
+| 39.3 | 14 | 39 | 76101 |
+| 53.6 | 15 | 53 | 107154 |
+| 93.0 | 16 | 92 | 185044 |
+| 187.5 | 17 | 187 | 360332 |
+| 202.2 | 18 | 202 | 393021 |
+| 469.9 | 19 | 469 | 856255 |
+| 736.1 | 20 | 735 | 1328142 |
+
+## the three diagnostics
+
+- wall time of the whole search: **1585.8 ms**
+- last completed iteration: depth 20, engine time 735 ms, 1328142 nodes
+- **silent gap after the last report**: **849.7 ms**
+
+### H1 (fail-high re-search) — repeated depths would show it
+
+- depths reported more than once: **none — every depth reported exactly once**
+
+### H2 (hard-limit abort) — a silent gap after the last report would show it
+
+- the gap is **849.7 ms**, i.e. **54 %** of the whole search ran AFTER the last report: consistent with H2, an iteration paid for and discarded
