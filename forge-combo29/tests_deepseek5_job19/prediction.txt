@@ -1,0 +1,16 @@
+job 19 B2 prediction (committed BEFORE any probe run; never edited after commit)
+
+For step 3 (history pruning) on set O at defaults, per 1,000 dropped moves:
+  r1 (the probe at the reduced depth the loop would use beats alpha): 100-200 per 1,000, point 150.
+  r2 (ALSO beats alpha at the full new depth): 35-75 per 1,000, point 55.
+Why: kimi5's own probe (contaminated by probes inside probes) reports ~150-196 per 1,000 for the
+history step at ordinary nodes; my probe without nesting should land near the same level or a little
+below. For r2: a move that survives the reduced-depth null window is usually refuted one ply deeper
+(the loop itself re-searches such a move at full depth before believing it) — the share that STILL
+beats alpha at full depth should be a minority of r1, roughly a third. If r2 lands above 100 per
+1,000, my model of the loop's full-depth re-search is wrong in an interesting way.
+
+For the other steps I predict, without committing bands: the quiet-SEE step (4) close to history's
+levels; quiet futility (2) LOWER r1 than history (its margin test is sharper); noisy SEE (6) the
+lowest r1 of the four (SEE-lost captures rarely beat alpha); capture futility (5) n = 0 at defaults
+(CaptureFutilityBase = 0).
