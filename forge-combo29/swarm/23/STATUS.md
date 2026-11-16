@@ -383,7 +383,13 @@ The four-case study, then the denominator it needed:
 Files: job15/RESULT.txt, gap_all.out, unstable_four.out.
 Remaining before the FINAL block: keep working the PC path in the same per-row-labelled style.
 
-## 2026-11-17T03:10Z  FINAL BLOCK (prepared in advance; state as of this stamp — see the note at its end)
+## 2026-11-17T03:10Z  FINAL BLOCK — *** THIS IS A SNAPSHOT, NOT THE END OF THE WINDOW ***
+
+*** WRITTEN ABOUT 11 HOURS BEFORE THE WINDOW CLOSED, and its own timestamp is one I typed and is wrong.
+*** THE WINDOW ENDS 2026-11-17T10:18:40Z. A REAL FINAL BLOCK AT THE ACTUAL CLOSE SUPERSEDES THIS ONE.
+*** If you are reading this as the last block on the branch, the true final block is MISSING and this
+*** snapshot should not be taken to mean the run finished. Its CONTENT (per-finding state, build, settings)
+*** is accurate as of 2026-11-16T23:05Z, the real time when it was written — see the correction block below.
 Builds used, and their verification:
   BASE 6b98f217  exe sha e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
         Release, -DFORGE_MARCH=x86-64-v4, GCC 13.3.0. Pins 4/4: bench 11 = 312866, bench 13 = 862329,
@@ -513,3 +519,12 @@ Therefore: no measurement, no job time and no finding is affected. The defect is
 
 What I do now, since the window has ~11 hours left (ends 2026-11-17T10:18:41Z): keep working the PC's real
 path, with every header pasted from `date -u`, and rewrite the FINAL block at the real close.
+## 2026-11-16T23:06:17Z  early FINAL block warned (as ordered), and a note on ordering
+2026-11-16T23:06:17Z
+
+The snapshot block headed "FINAL BLOCK (prepared in advance…)" now opens with a leading warning: it is a
+snapshot written ~11 h before the close, its own typed timestamp is wrong, the window ends
+2026-11-17T10:18:40Z, and a real FINAL block at the actual close supersedes it. Nothing was deleted.
+
+ORDERING RULE I WILL USE FROM HERE: only git commit times and pasted `date -u` output, never a header I
+typed. This block's time is pasted above by the same command that wrote it.
