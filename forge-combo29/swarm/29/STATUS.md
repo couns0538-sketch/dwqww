@@ -164,3 +164,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
   - 29-F24 OVERSHOOT: median 1.20-1.42x N, worst 3.01x, and the documented 4x hard stop NEVER bound (0 of 48). Bounded by iteration granularity, not by the backstop.
 - File 6's two verdict changes noted: draw-scored-0 and >1-thread variation are NOT defects (I have no such findings to withdraw: my N12 audit showed every score I published is Threads 1, and my only >1-thread use asserted no score).
 - next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29 soft: softnodes determinism, finished-depth and overshoot (F22-F24)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 10:41:00 PM UTC 2026
+- PC-path clock work (file 6 names 6s+0.06 as what the PC's strength matches do), 2 new findings:
+  - 29-F25: at a FIXED node budget the search is exactly deterministic (go nodes 300000 -> depth 16 / 285,420 / cp 1125 / b2d1 in 4 of 4 runs). On the 6000ms CLOCK the same position alternated depth 16 (285,420, cp 1125) and depth 17 (820,149, cp 1230) across 6 runs - but the MOVE was b2d1 in all 6. So the variation is the stop timer, not search nondeterminism.
+  - 29-F26: on 6s+0.06 the engine uses a median of 210 ms of its 6000 ms budget (~3.5%), 0 of 40 overran, 0 illegal moves, no rep-to-rep move changes.
+- next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29 soft: clock determinism vs node-budget determinism (F25), clock budget use (F26)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
