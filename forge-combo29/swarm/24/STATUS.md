@@ -137,3 +137,13 @@ done: (1) APPLY_SHEET.md written for the two-hang patch, with an explicit "NOT M
       is not a safe middle ground. Finding 24-F24, REPORT_threads.md updated. Both relayed to the coordinator.
 runs now: nothing long. Continuing the cycle until the 12-hour close, then FINAL.
 next command: cd /agent/repos/dwqww && date -u
+
+## 2026-11-16T23:19Z
+done: C9 CONFIRMS seat 19's 19-F25 with my own harness (aborted search publishes the position's GENERATOR-order
+      first move with 0 info lines — a7a6 on P1, where python-chess's lexicographic first is a7a5 — reproducibly,
+      and not stale after a completed search). F25: the same artefact is on the BASE TREE, and it does NOT fire at
+      a terminal root (there both builds correctly answer 0000), so it is a third "answer without searching" path.
+      Also: ponder regression test PASS for my patch (identical behaviour patched vs unpatched, 21 info lines each),
+      added to APPLY_SHEET.md.
+runs now: nothing long. Continuing the cycle; FINAL block at the 12-hour close (10:18:45Z).
+next command: cd /agent/repos/dwqww && date -u
