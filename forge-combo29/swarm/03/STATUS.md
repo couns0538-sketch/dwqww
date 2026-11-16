@@ -56,3 +56,11 @@ the exact next command.
 
 Next command:
 `cd /agent/repos/dwqww/forge-combo29/swarm/03/job1b && tail -1 py.log && python3 ../assert_measured.py perft py.json 4 5000 && python3 ../job1/compare.py eng.json py.json diffs.txt | head -12`
+
+## 2026-11-16T22:19:10Z CONTINUE: 12 more hours, ends at 2026-11-17T10:19:10Z
+
+Seat kept: 03 (from ~/swarm_seat.txt). Branch for-fable-and-opus/swarm-03. Area 3 still.
+Done so far: S-F1..S-F5, 03-C1, HARNESS_AUDIT, PARSE_AUDIT, WARM_STATE_AUDIT (see FINDINGS.md).
+Next, per the owner's TEXT 2: read soak_all/FABLE_TO_swarm_5.md, build the PC build in a separate copy with
+-DFORGE_MATE_ALPHA_GUARD=1, check its known bench numbers, then re-run my perft sets on it and compare node counts
+to the base build.
