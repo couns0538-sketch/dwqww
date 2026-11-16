@@ -106,3 +106,15 @@ Seat kept: 23 (from ~/swarm_seat.txt), branch for-fable-and-opus/swarm-23, folde
 Next: fetch handoff/fable-opus-combo29-all-20261114, read every FABLE_TO_swarm_N.md not yet read (read 1 already),
 lowest N to highest; file 5 holds the PC engine source as a patch against 6b98f217 and must be built in a
 separate copy with -DFORGE_MATE_ALPHA_GUARD=1 and its known bench numbers checked.
+
+## 2026-11-16T22:22Z PC BUILD ACCEPTED + job3 depth-5 partial
+PC r15 build from FABLE_TO_swarm_5: patch sha256 d6bd72c531f785f4... VERIFIED before applying (a truncated
+extraction that drops the trailing newline gives 61da918e... and silently loses the last line — I hit that and
+re-extracted). Applied with `patch -p1` to a separate worktree /agent/repos/pcbase, 11 files, no fuzz. Built with
+-DFORGE_MATE_ALPHA_GUARD=1. All EIGHT known numbers of file 5 match exactly: none 312866/862329/3024920/4865609,
+S14 242796/656517, PC20 278024/587276, zero unknown-option/invalid-value lines. Record: PCBUILD.txt.
+THREADS RULE: every result I have recorded is Threads 1 — perft does not split across threads and none of my
+harnesses ever sends a Threads option (checked by grep over all my scripts). No score of mine is provisional.
+job3 depth 5: 150 of 200 R positions compared at depth 5, **0 mismatches**, 5,098,723,948 nodes per side; 50
+positions and the 30 G positions still to do. Report updated to say exactly that.
+Next: finish the job3 depth-5 reference, then re-run my own finds on the PC build under PC20 (file 5's order).
