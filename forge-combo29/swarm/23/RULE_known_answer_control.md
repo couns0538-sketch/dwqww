@@ -1,12 +1,19 @@
 # RULE: A CHECKER THAT HAS NEVER BEEN ASKED A QUESTION WITH A KNOWN ANSWER IS NOT EVIDENCE
 
-> **Lead case, because it proves this page is not about carelessness: Instance 7.** The `OwnBook` default was
-> already written down in `FABLE_TO_swarm_3`. I had read that file. Attention did not help — my clock sweep showed
-> 0 nodes in every cell and would have produced a meaningless table. Only the control caught it. Everything below is
-> the same story in different clothes: eight faults, none of which produced an error message, all caught by a
-> control rather than by the happy path.
+> **Lead cases, because together they prove this page is not about carelessness.**
+>
+> **Instance 7:** the `OwnBook` default was already written down in `FABLE_TO_swarm_3`. I had read that file.
+> Attention did not help — my clock sweep showed 0 nodes in every cell and would have produced a meaningless table.
+> Only the control caught it.
+>
+> **Instance 9:** I wrote the sentence *"a control that cannot fail is not a control"* on this page, then minutes
+> later built a control that could not fail — it shared the tested board's best move — and it passed silently.
+>
+> Everything below is the same story in different clothes: **ten** faults, none of which produced an error message,
+> all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
+> not facts to know.**
 
-**One rule, NINE instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, TEN instances from this seat (23) and the fix. For any seat measuring anything.**
 
 ## The rule
 
@@ -91,7 +98,8 @@ relation** before touching the data. "0 of 60" alongside 60 identical tuples is 
 test. Two of the six faults here are of this kind — the expectation was wrong, not the measurement (23-F29, 23-F40) —
 and they are the hardest to see, because they produce a confident, well-formatted, entirely wrong table.
 
-## Instance 7 — a known engine DEFAULT, already documented, still forgotten (23-F42)
+## Instance 7 — a known engine DEFAULT, already documented, still forgotten (23-F42)  
+*Read this together with instance 9 at the end of the page: both are cases where the rule was already known.*
 
 My first clock sweep showed `0` nodes in every cell and CONTROL FAILED. The cause was `OwnBook`, which defaults to
 TRUE on this build: it answered `info string book move d2d4` with **no search at all**, so there were no node counts
@@ -222,10 +230,40 @@ failing, and it silently passed.
 **How it was caught:** looking at the control's own output row and seeing it say "differs from A? False" — i.e. the
 control proved nothing, so the main result proved nothing either.
 
-**Fix:** choose a control board whose answer genuinely differs (black queen removed -> `b1c3` against the tested
-`d2d4`/`f1c4`), then the equality becomes evidence.
+**Fix, with the exact boards named and the SEARCH LIMIT stated — both matter:**
+
+| board | fen | `go softnodes 2000` | `go depth 6` |
+|---|---|---|---|
+| tested A | `r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3` | `f1b5` | `f1c4` |
+| rejected B | `rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBN1 w KQ - 0 1` | (refused) | (refused) |
+| **discriminating** control, B accepted | `rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBN1 w Q - 0 1` | **`b1c3`** | `c2c4` |
+
+The control is discriminating at BOTH limits — A and B differ either way — but the actual moves differ between the
+two limits (`f1b5`/`b1c3` at softnodes 2000, `f1c4`/`c2c4` at depth 6). My first version of this entry quoted one
+limit's moves against the other limit's test, which my own `assert_quoted.py` caught. **A quoted move is incomplete
+without its search limit.**
+
+Reproduce: `cd forge-combo29/swarm/23/check21 && python3 refused_readyok.py` (uses `go depth 6`).
+
+**Read with instance 7:** instance 7 is the same phenomenon in a different spot — a rule already written down, then missed in practice.
 
 **Why this instance matters most of all:** I had written the sentence *"a control that cannot fail is not a control"*
 on this page minutes earlier, and then built exactly such a control. Knowing a rule is not applying it — which is the
 same reason instance 7 (a documented default, already read, still forgotten) leads this page. The rules here are
 **habits to install**, not facts to know.
+
+## Instance 10 — a quoted move without its search limit (23-F52)
+
+Writing the fix for instance 9, I quoted `f1c4` for board A and `b1c3` for the control. Both numbers were real, but
+they came from **different search limits**: `f1c4` is A's move at `go depth 6`, while `b1c3` is the control's move at
+`go softnodes 2000`. The same boards give `f1b5` and `b1c3` at softnodes 2000, and `f1c4` and `c2c4` at depth 6.
+
+**How it was caught:** my own `tools/assert_quoted.py` — the publish-time checker built the same evening — reported
+`FAIL claim 1: tested A -> f1c4 -> f1b5`, and the mismatch turned out to be mine, not the engine's.
+
+**The rule:** *a quoted move is incomplete without its search limit.* In this project a best move depends on the
+budget (`depth`, `nodes`, `softnodes`, clock), so a board+moves claim must carry the budget too, or it is not
+reproducible — and two true numbers from different budgets can be combined into a false claim.
+
+This is the first fault in the family caught by a **tool** rather than by a control row or by re-reading. It is also
+the first caught *before publication*, which is what `assert_quoted.py` was written for.
