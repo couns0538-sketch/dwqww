@@ -233,3 +233,8 @@ NEXT: one-minute job-file look; then long 27 (SENSITIVITY A - the S14 settings a
 LEARNED: the biggest surprise of the series - a THIRD of the one-step moves flip direction between O and G (9 of 26); a node-count tuner tuned on one set mis-reads the other. Direction agreement is a thing to CHECK, not assume.
 FOR Opus: the flips cluster in LmrNoisy*, HistoryPruneMultiplier, HistoryBonusMax (+ NullMoveBase +c, LmpBase -c); SingularDepth is the strongest G-mover (+14.6/-9.1 percent per step). The full table is in tests_deepseek6_long27/table.txt.
 NEXT: one-minute job-file look; then long 28 (SENSITIVITY B - the 22 default-anchored settings).
+
+## after long 28, 2026-11-16T19:43:00Z
+LEARNED: 12 more direction flips (21 of 64 across both sensitivity items) - the two sets genuinely disagree; SingularMargin is the strongest per-step lever anywhere (O +38.9/-13.8 percent) and agrees in direction.
+FOR Opus: the inert-at-this-configuration list now has four members (QsSeeMargin 0..99, the capture-futility pair, AspReopenMargin); the full 35-setting direction table for the tuner is in longs 27/28.
+NEXT: one-minute job-file look; then long 29 (depth 14 for the sub-0.5-percent movers).
