@@ -1,0 +1,33 @@
+DOES CLOCK DETERMINISM SURVIVE A FAST CONTROL? — yes within a setting, but a fast control is a different player
+==========================================================================================================
+Closes 23-F54's stated gap ("one clock setting only"). Same 20 fresh quiet positions, PC r15 + PC20, Threads 1,
+Hash 16, OwnBook false, fresh process per search, drained.
+
+| measure | result | prediction |
+|---|---|---|
+| 1 s+0.01 clock, two independent processes | **0 of 20 disagree** | P1 held |
+| depth reached at 1 s | min 11, **median 13**, max 25 (6 s: median 17) | P3 held (20 of 20 lower) |
+| 1 s move vs 6 s move | **4 of 20 differ** | P4 held (0-8) |
+
+THE TWO ANSWERS:
+1. **Determinism survives a fast control.** 0 of 20 disagreements at 1 s+0.01, exactly as at 6 s+0.06. So within any
+   fixed clock setting, Threads 1 gives the same move every time — a fast self-play loop is reproducible move-for-move.
+2. **But a fast control is a DIFFERENT PLAYER on 20 % of positions.** The 1 s clock chose a different move from the
+   6 s clock on 4 of 20 boards, while reaching a lower depth on all 20 (median 13 vs 17). The differing boards:
+   | position | 6 s | 1 s |
+   |---|---|---|
+   | rnbqkbnr/ppp1p1p1/3p1p1p/8/7P/2NP... | e7e5 | b8c6 |
+   | rn1qkb1r/p1p1p1pp/1p1pbn2/5p2/PPPP... | f1g2 | d4d5 |
+   | r1b1kbr1/pp2n1pp/n2pp3/2p3N1/P4P... | h7h6 | e6e5 |
+   | rnbqkb1r/pp1ppppp/2p5/8/1B1PnP2/... | e7e5 | a7a5 |
+
+PRACTICAL READING, which is the useful part:
+- A fast-control self-play loop produces reproducible games (good: no lottery).
+- It is NOT evidence about strength at a slower control: 20 % of positions get a different move, so results at
+  1 s and at 6 s are different measurements, not two estimates of the same one.
+- Combined with 23-F54 (clock deterministic; node budgets are not), the picture is: **the determinism comes from
+  Threads 1 plus a fixed search limit, whichever limit; what changes the MOVE is the limit's VALUE, whether that is
+  a clock or a node budget.**
+
+LIMIT: 20 positions, two clock settings, one build/settings combination. The 20 % figure is from this sample only and
+I am not claiming it as a general rate — that is exactly the mistake 23-F31 caught me making before.
