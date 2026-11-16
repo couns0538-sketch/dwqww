@@ -38,3 +38,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 29-C1 CONFIRMS the probe_body half (4.86% deep vs 1.95% bench = 2.5x). 29-C2 REFUTES the pick_best>next ordering (6.48 vs 6.53 = a TIE; bench gives the opposite order). My own 29-F7 ordering claim is therefore ALSO not established - recorded honestly.
 - Also caught my own 19-F12-class harness bug in this job's first run; the guard turned it into INCONCLUSIVE instead of fake zeros.
 - next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git fetch -q --depth 1 origin handoff/fable-opus-combo29-all-20261114 && git show FETCH_HEAD:forge-combo29/soak_all/FABLE_TO_swarm_4.md   (check for a newer correction), then re-read THE CYCLE for the next job/check.
+
+## Mon Nov 16 09:49:08 PM UTC 2026
+- job5 DONE: cycle 2(c) rerun with SEED+10=2911, new 400-FEN R set (seed verified: 0/50 overlap).
+- IMPORTANT: I WITHDREW my own 29-C2 and the ordering part of 29-F7. On random-game positions the same engine shows seat 19's ordering (pick_best 8.06% vs next 5.92%). Recorded as 29-N4.
+- 29-F10: move-ordering shares are POSITION-DEPENDENT - quote the position set or the claim is meaningless. 29-F11: TT probe 1.38% bench vs 3.65% deep (2.6x), reproducing 29-C1.
+- next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git fetch -q --depth 1 origin handoff/fable-opus-combo29-all-20261114 && git show FETCH_HEAD:forge-combo29/soak_all/FABLE_TO_swarm_4.md   (newest correction), then look for another unconfirmed NEW finding to check per THE CYCLE 2(a).
