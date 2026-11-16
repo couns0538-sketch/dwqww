@@ -93,3 +93,50 @@ from depth 2–3 onward.
 
 Honesty: variant I is instrumentation only and **passes the pins exactly**, so unlike variants A–H it is not
 disqualified as a build. It is still not a candidate for the repository (it adds an info line to UCI output).
+
+## E. The per-iteration node counts: divergence is present at ITERATION 1, before the tables exist
+
+Variant I build (pins unchanged). Per-iteration cumulative node counts, `1r6/8/4K3/5p2/5k2/7p/8/8 w`
+versus its mirror, depth 6:
+
+| iteration | nodes self | nodes mirror | equal | seldepth s/m | score s/m |
+|---|---|---|---|---|---|
+| **1** | **8** | **9** | **NO** | 1/1 | cp -1726 / cp -1726 |
+| 2 | 32 | 27 | NO | 3/3 | cp -1690 / cp -1690 |
+| 3 | 149 | 77 | NO | 5/5 | cp -1767 / cp -1702 |
+| 4 | 392 | 224 | NO | 7/7 | cp -1861 / cp -1861 |
+| 5 | 623 | 595 | NO | 8/7 | cp -1952 / cp -1851 |
+| 6 | 976 | 1042 | NO | 9/9 | cp -1807 / cp -1817 |
+
+**The divergence is already there at iteration 1: 8 nodes versus 9, with the score and seldepth identical.**
+
+And at the **very first** root visit the picker vectors are **exactly equal — every entry 0 on both sides**
+(`picker_iter1_truth.txt`, measured with a depth-1 search so there is exactly one root iteration):
+
+```
+self  : e6d5:0 e6e5:0 e6d6:0 e6f6:0 e6d7:0 e6e7:0 e6f7:0
+mirror: (identical after mapping back)
+```
+
+### What this settles
+
+By the brief's own branch rule: the picker's inputs are identical, the scores and seldepths at iteration 1 are
+identical, and **the node counts already differ**. So the cause is **upstream of the picker entirely** — not in
+the history/threat/continuation tables (they are all zero here), not in the sort, not in the generator's
+emission order (variant H left the count at 101), and not in the root window or the evaluation (which is
+symmetry-exact).
+
+A 1-node difference at depth 1 with identical scores means the two searches **visited a different number of
+nodes while reaching the same answer at the same depth**. At depth 1 the only things that can differ are the
+number of moves tried and whether each gets a qsearch. This is the point to instrument next, and it is now a
+single, named, small target rather than "the search".
+
+### Correction to what I said a moment ago
+
+My first `dump_picker` run reported "0 of 7 through iteration 3" and I described iteration 1's vector as all
+zeros — that was right for the *first* root visit but the "iteration N" numbering in that table was my own
+counter over dumps, not the engine's iteration, and on that run the first dump happened to be a later visit.
+The numbers in this section are the corrected, properly-scoped ones (depth-1 search = exactly one root visit;
+per-iteration node counts straight from the engine's own `info ... depth N` lines). Both readings agree on the
+conclusion — the tables are empty and identical at the first root visit — but the earlier table's iteration
+labels were not the engine's iterations and should not be quoted.
