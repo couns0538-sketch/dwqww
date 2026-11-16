@@ -19,7 +19,7 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "AUDIT"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "AUDIT"))
 from hardened import Engine  # noqa: E402
 
 EXE, OUT = sys.argv[1], sys.argv[2]
