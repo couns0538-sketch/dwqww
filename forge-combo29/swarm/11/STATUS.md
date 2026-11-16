@@ -130,3 +130,5 @@ NEXT: continue area-1 work; push again by 22:30.
 - S-F16: piece-inventory rule matches board.cpp on 10 generated-FEN boundary cases (no defect).
   Recorded that my first hand-labelled FENs were wrong twice + pawns on rank 8 once — my errors,
   caught by generating FENs from intended counts.
+- S-F17: job1's 20k headline replicates identically across 3 full runs incl. the final hardened
+  runner (17130/2870/24/0/0), with .meta proving the setoption `value` syntax now takes effect.
