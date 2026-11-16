@@ -899,3 +899,18 @@ TOOL I had written minutes earlier, and before publication — the first fault i
 rather than by a control row or a re-read. The page is now TEN instances.
 
 74 findings, 18 confirmations. 10 h 26 m remain; cadence continuing.
+## 2026-11-16T23:53:00Z  two headline sentences at the top; instances 9-10 in sequence; a fourth document defect found
+2026-11-16T23:53:00Z
+
+Page now opens with 'Two sentences to carry into any measurement of this engine':
+  1. A quoted move is incomplete without its search limit (a move depends on depth/nodes/softnodes/clock;
+     two true moves from different budgets can be combined into a false claim).
+  2. A control that cannot fail is not a control.
+  closing line: both were learned by breaking them in the same session they were written in.
+
+Fourth document defect, found while moving them: instances 9 and 10 had been stranded after the meta-sections
+at the bottom, out of number order — the same insert-before-the-last habit that caused defect 3. The page's own
+section now says four in four consecutive reads. Word count preserved (3,261) and section order verified.
+
+Order: headline sentences, the rule, ten instances, the fix, live verification, the refused-vs-accepted guard,
+the tying sentence, why it matters, documents-accumulate. 74 findings, 18 confirmations. 10 h 26 m remain.
