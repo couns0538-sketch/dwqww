@@ -257,3 +257,16 @@ MIDDLE REGIME MAPPED (10-F30, 10-F31, 10-F32), 4 positions x 11 delays x 2 build
 10-N2: named the control-failure pattern (a control that passes for the wrong reason), covering
   10-R3, 10-R4, 10-C5 and 10-F16.
 next: continue the cycle.
+
+## Mon Nov 16 10:32:27 PM UTC 2026
+THE MIDDLE BAND IS DETECTABLE (10-F33, 10-F34, 10-F35) — this is the actionable answer:
+  RULE R1: a record is UNFINISHED iff its LAST info depth < the requested depth.
+  Measured 4 positions x 2 builds x 7 delays x 2 reps at depth 12: 90 genuinely truncated records,
+  R1 caught ALL 90, with 0 false alarms on the 19 records identical to a finished search.
+  The 19 that reached depth 12 were NOT truncations -- the search had finished before the quit landed
+  (identical nodes/pv/score), so there is no undetectable middle band.
+  Checker committed: regimes/is_unfinished.py FILE --requested-depth N  (exit 1 if any unfinished).
+  It also flags "bestmove with ZERO info lines" (the <=20 ms regime, invisible to the depth test).
+  Without a recorded requested depth: R2 "depth < file max" works if the file has >=1 completed search.
+  Measured dead ends: a bestmove line (109/112 truncated records have one), pv length, nodes==0.
+next: continue the cycle.

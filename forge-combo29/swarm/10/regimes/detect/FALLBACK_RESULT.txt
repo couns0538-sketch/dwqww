@@ -1,0 +1,9 @@
+F1: does an interrupted record still carry a bestmove line?
+   109/112 records have a bestmove -> F1 cannot separate anything
+
+F4: per-file max depth, and whether 'depth < file max' flags the genuinely-truncated ones
+   records 109; genuinely-differing flagged 90; false alarms 0
+
+CONCLUSION: F1 is useless (an interrupted record always has a bestmove). F4 works only when the
+file contains at least one COMPLETED search at the same settings -- true for a match or tuning run,
+false for a file where every search was interrupted the same way.
