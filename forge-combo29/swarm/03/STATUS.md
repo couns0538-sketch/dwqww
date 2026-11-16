@@ -235,28 +235,41 @@ File: REPORT_job10_item2.md, job10/playout_base_d12.txt.
 ply, always on `c6d7`, never on `c6d6` or `c6c7`**. So the cap is the ~1000x node COST, and the root comparison is
 the CAUSE. **State: open, not confirmed.** File: REPORT_job10_item2.md, job10/cap_depth18_summary.txt.
 
-**Population rate, stated plainly: mostly benign — but see S-F25 below: the signature that does occur is reachable at the match budget.** Build: PC r15; settings PC20, Threads 1, Hash 16, depth 16,
+**Population rate, stated plainly: mostly benign — and my own later work withdrew the case I thought was worst (see the CORRECTION below).** Build: PC r15; settings PC20, Threads 1, Hash 16, depth 16,
 50 real-game lone-king positions. Strict S-F20 signature (chosen worse than an alternative by > a queen):
 **0 of 50** — my prediction of 5-20 was killed by its own <2 kill range. Any-margin mismatch: **11 of 45** scorable,
 median 36 cp, max 161 cp. Play-out on the largest gaps: only **one** position shows a large, depth-stable ply cost
 (S-F23, weakened by its own depth-16 re-test). S-F22/S-F23/S-F24. **The population does not show the defect at
 anything like 155's severity.**
 
-### S-F25 raises the headline: the defect is reachable in the owner's matches
+### CORRECTION (23:35Z) — S-F23 and S-F25 are WITHDRAWN; S-F20 stands
 
-At the owner's match budget, `go nodes 20000`, on the **four** positions where play-out established the engine's
-choice is worse, the engine picks the **same wrong move as at depth 16 — 4 of 4, deterministic 3/3 each**, with three
-controls also agreeing. Build PC r15; settings PC20, Threads 1, Hash 16, fresh process per search.
-File: REPORT_job12.md, job12/nodes20k.txt.
+I ran the drawn-root experiment and it **refuted my own hypothesis, and with it my own S-F23 and S-F25.**
 
-So S-F20 is **not a deep-search curiosity**: across a 10x difference in effort the choice does not change, which rules
-out "not enough search" and points at the root comparison — consistent with S-F19 (hash and depth inert) and S-F21
-(the cap does not touch either candidate).
+1. **The hypothesis test (S-F27).** Rebuilt with `FORGE_FIX_ROOT_DRAWN=0`: the four positions answer **identically**
+   to the shipped build, every move and score. And it could not have mattered — `is_insufficient_material`,
+   `is_repetition(3)` and `halfmove_clock>=100` are all false at those four roots, so the root adjudication never
+   fires there.
+2. **Why: there was no defect in those four positions.** In **all four**, the engine's chosen move captures the
+   opponent's last material and forces an **immediate draw by insufficient material**; the "alternative" my metric
+   preferred keeps the enemy material and **loses**. The engine was **right** in all four.
+3. **My error (S-F28).** `plycost.py` treated more plies as better. In a bare-king ending the SHORTEST game over is a
+   **draw** (best) and the longest is a **loss** — the sign convention was inverted for exactly the population I was
+   measuring. **S-F23 is withdrawn** (the "four lose at once" cases are forced draws). **S-F25 is withdrawn as
+   stated** (there was no wrong move at the match budget); what survives from that job is only that `go nodes 20000`
+   and `go depth 16` agree on the move in 7 of 7 cases.
+4. **S-F22's count stands but its interpretation changes**: the 0/50 strict result is now *stronger* than I reported,
+   since the engine's choice was correct in the cases I actually examined. The 11 any-margin cases are unexamined
+   and, on this evidence, likely also correct.
+5. **S-F20 is unaffected and I re-verified it under the corrected lens.** In position 155 **both** moves continue the
+   game (neither forces a draw) and both play-outs end in "black mates", so that comparison is loss-versus-loss where
+   longer IS better — and the engine's own scores agree with the play-out (c6d6 cp −1142 vs c6c7 mate −11). S-F20
+   rests on the engine contradicting its own score table, not on my flawed metric. **It remains the headline.**
 
-**S-F26, a named hypothesis for the cause:** in 3 of those 4 positions the chosen move scores **cp 0** at 20,000 nodes
-while the alternative scores −725 to −953, in bare-king endgames where cp 0 is the drawn-root /
-insufficient-material answer rather than an evaluation. The engine very likely chooses on a "drawn" adjudication that
-play-out contradicts. Labelled a hypothesis; the test (rebuild with the drawn-root fix off) was not run.
+**What the owner should take from this**: S-F20/S-F21 still stand; the population-rate claim is weaker than my job-11
+report implied in the other direction — the four cases I put forward as worst were the engine getting it right. My
+remaining honest position is that the strict defect is demonstrated on **one** position (155) and my scan did **not**
+find others, with the caveat that the metric I used to look was broken.
 
 ### Area 3 — move generation (all CONFIRMED elsewhere where marked)
 
@@ -282,7 +295,11 @@ play-out contradicts. Labelled a hypothesis; the test (rebuild with the drawn-ro
 | S-F18 | play-out verdict: `c6d6` is better (22 vs 20 plies, 3/3) | open | base / S14 |
 | S-F19 | hash 16..1024 and depth 18..22 do not change the wrong choice | open | base / S14 |
 | S-F22 | strict signature 0/50, any-margin 11/45 in 50 real-game lone-king positions | open | PC r15 / PC20, depth 16 |
-| S-F23 | play-out ply cost — **WEAKENED by its own depth-16 re-test** (only 1 of 4 instant losses survives) | weakened, open | PC r15 / PC20, d8 then d16 |
+| S-F23 | play-out ply cost — **WITHDRAWN (S-F28): the metric was unsound; the four "instant losses" are forced draws the engine was right to take** | withdrawn | PC r15 / PC20, d8 then d16 |
+| S-F25 | wrong move at `go nodes 20000` — **WITHDRAWN AS STATED (S-F28): no wrong move existed; only the 7-of-7 node/depth agreement survives** | withdrawn | PC r15 / PC20 |
+| S-F26 | cp 0 as a drawn-root bug — **REFUTED (S-F27/S-F28): the cp 0 was the engine being right (forced draws)** | refuted | PC r15 / PC20 |
+| S-F27 | drawn-root fix off changes nothing on those four (and cannot, the predicate is false at those roots) | open | PC r15 w/ -DFORGE_FIX_ROOT_DRAWN=0 / PC20 |
+| S-F28 | **withdrawal of S-F23/S-F25: my ply-count metric's sign was inverted for bare-king endings; S-F20 re-verified and stands** | self-correction, open | both builds |
 | S-F24 | low-depth self-play cannot produce a varied lone-king population: 40 games all collapse to the same K+N vs K+N drawn position (cp 0, 492 nodes, python-chess says NOT insufficient material) — **a hand-rolled self-play endgame sample is not a sample at all** | open | PC r15 / S14, depth 6 |
 
 ### Checks I made of other seats
@@ -301,6 +318,7 @@ play-out contradicts. Labelled a hypothesis; the test (rebuild with the drawn-ro
 - job10/METHOD_NOTE_quit_at_prompt.md — the quit trap in commands typed at a prompt (a gap my file-level audit left);
   no published number was affected, and why.
 - Corrections I issued against myself: S-F12 superseded; S-F16's "base ranks them sanely" withdrawn (settings
-  mismatch); S-F23 weakened; no prediction file before jobs 6/7/9/10 (four lapses, all recorded).
+  mismatch); S-F23 and S-F25 WITHDRAWN and S-F26 refuted (S-F27/S-F28 — my ply-count metric scored draws as losses);
+  no prediction file before jobs 6/7/9/10 (four lapses, all recorded).
 
 Branch tip at FINAL: see `git log` on for-fable-and-opus/swarm-03.
