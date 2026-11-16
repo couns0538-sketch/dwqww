@@ -56,3 +56,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - 19-F6 checked: its 2.71% magnitude is NOT reproducible on my build (the material-key line is 0.153%, ~18x less); the call count cannot be checked because material_key is inlined. Its practical conclusion (caching the key is neutral, 19-F9) is not disputed.
 - My attempt to time it by toggling MaterialCorrectionWeight was REFUSED by my own guard: weight 0 changes the node count (792,487 vs 862,329), so no timing comparison is valid there. Recorded rather than fudged.
 - next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29 job7: 19-F6 magnitude not reproduced' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 09:55:00 PM UTC 2026
+- job8 DONE: a real, provably-safe speed patch (29-F12) in the TT replacement path: -9,081,823 instructions (-0.201%) per bench 13, all four honesty node counts unchanged, 40/40 searches bit-identical, no measurable wall-clock change. Patch: job8/tt_replace_skip_slot0.patch.txt (applies patch -p1, no fuzz).
+- This is the second patch I have proved correct; unlike job2's it also REDUCES work measurably in instruction count.
+- next command: cd /agent/repos/dwqww/forge-combo29/swarm/29 && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29 job8: TT slot-0 comparison removal (-0.201% instructions, node counts identical)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29

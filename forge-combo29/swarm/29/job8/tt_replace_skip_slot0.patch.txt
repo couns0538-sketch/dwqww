@@ -1,0 +1,23 @@
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index b803a7e8e..9decfcaec 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -416,11 +416,14 @@ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
+         return snapshot(*found, true);
+     }
+     TTEntry* replace = &cluster.entries[0];
+-    int replace_score = replace->occupied()
+-                            ? replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U)
+-                            : 0;
++    if (!replace->occupied()) return snapshot(*replace, false);
++    int replace_score = replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U);
++    // Slot 0 is already the incumbent, so start at slot 1: the old loop re-tested slot 0 against a score it had
++    // just computed from that very slot, which can never be "less than" itself. Same replacement choice, same
++    // order of the unoccupied checks (slot 0 first, then 1..3), one comparison fewer per probe.
+ #pragma GCC unroll 1
+-    for (TTEntry& entry : cluster.entries) {
++    for (std::size_t slot = 1; slot < cluster.entries.size(); ++slot) {
++        TTEntry& entry = cluster.entries[slot];
+         if (!entry.occupied()) return snapshot(entry, false);
+         const int age = static_cast<int>((32U + generation - entry.generation()) & 31U);
+         const int score = entry.depth - 4 * age;
