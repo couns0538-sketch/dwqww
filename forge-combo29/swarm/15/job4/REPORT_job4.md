@@ -198,6 +198,33 @@ G depth 14 43,345,893   diff 0   (part B)
 Four exact matches against the brief's own published sums. No zero in these folders rests on a
 harness that cannot reproduce the engine's node counts.
 
+### 15-F9 follow-up — it is a horizon effect, and it self-corrects (evidence)
+
+```bash
+cd forge-combo29/swarm/15/job4
+python3 probe2.py 'k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1' 16 --opts s14
+```
+
+```
+depth 14  score mate -9  seldepth 24  nodes 42957  pv a8b8 h5h6 b8c8 f5e6 ... a7b8   (15 plies, no mate)
+depth 16  score mate -3  seldepth 24  nodes 45476  pv a8b8 h5h6 b8c8 h6h7 c8d8 h7h8q   (6 plies, CHECKMATE)
+depth 18  score mate -3  seldepth 24  nodes 47095  pv a8b8 h5h6 b8c8 h6h7 c8d8 h7h8q   (6 plies, CHECKMATE)
+```
+
+At depth 16 the engine reports the true `mate -3` with a PV that ends in checkmate. Two things follow
+and one does not:
+
+- It **is** a horizon effect, and it self-corrects one iteration later.
+- It is **not** "hard position, pessimistic estimate": seldepth is 24 in all three lines, the same
+  quiescence reach, yet depth 14 says 18 plies where depth 16 says 6. The depth-14 number is not a
+  cautious estimate, it is wrong about a mate the engine finds in 6 plies one iteration later.
+- I did **not** find the mechanism, and I do not claim a transposition-table explanation even though
+  it would fit.
+
+Practical upshot: a harness can catch this class without a solver, because the signature is a PV
+shorter than the mate distance the score promises. That check flags both of my instances (idx 69 and
+idx 192) and none of the 8 correct mates in job 1b.
+
 ## Times
 
 Appended to `stamps.txt` (pasted `date -u`).

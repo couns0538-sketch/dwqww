@@ -1,0 +1,30 @@
+IS THE idx69 FAULT A DEEPENING ARTEFACT OR WRONG AT EVERY DEPTH?
+$ python3 probe2.py 'k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1' <D> --opts s14
+
+depth 14  score mate -9   seldepth 24  nodes 42957  pv a8b8 h5h6 b8c8 f5e6 c8b8 e6d5 b8c8 d5c6 c8b8 g7d7 b8a8 d7d5 a8a7 d5a5 a7b8   (15 plies, no mate)
+depth 16  score mate -3   seldepth 24  nodes 45476  pv a8b8 h5h6 b8c8 h6h7 c8d8 h7h8q                                   (6 plies, CHECKMATE)
+depth 18  score mate -3   seldepth 24  nodes 47095  pv a8b8 h5h6 b8c8 h6h7 c8d8 h7h8q                                   (6 plies, CHECKMATE)
+
+Truth, two independent solvers: MATED_IN_PLIES 6  => mate -3. CONFIRMED:
+  $ python3 solvemate2.py 'k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1' 12  -> MATE/MATED_IN_PLIES 6
+  $ python3 matedbf.py   'k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1' 12  -> MATED_IN_PLIES 6
+
+WHAT THIS SHOWS, AND WHAT IT DOES NOT
+- The fault is a HORIZON effect, not a permanent misevaluation: at depth 16 the engine finds the
+  mate in 6 plies exactly, and the PV ends in `h7h8q` checkmate, which is the truth.
+- It is NOT a "the position is too hard" excuse either: seldepth is 24 in all three lines, i.e. the
+  same quiescence reach, yet 14 says 18 plies and 16 says 6. The depth-14 number is not a slightly
+  pessimistic estimate of a hard problem; it is a fabricated distance for a mate it can see in 6
+  plies one iteration later.
+- The 15-ply PV at depth 14 is 3 plies SHORT of the 18 it promises, and at depth 16 the PV is
+  exactly the 6 plies the score claims. So "PV shorter than the promised mate" is the observable
+  signature of this fault, and it is detectable without a solver.
+- I did NOT identify the mechanism (root cause unknown). It is consistent with a mate score coming
+  back from the transposition table at a ply that does not match, but I have no evidence for that and
+  do not claim it.
+
+PRACTICAL CONSEQUENCE FOR A GUI OR A TEST
+A depth-limited `go depth 14` answer of `mate -9` with a 15-ply PV here is wrong by 6 moves, and the
+same engine at depth 16 is right. Any harness asserting mate distances must either search deeper than
+it trusts or check PV-length-vs-score consistency, which catches both of my instances (idx 69, idx
+192) and none of the 8 correct mates in job 1b.
