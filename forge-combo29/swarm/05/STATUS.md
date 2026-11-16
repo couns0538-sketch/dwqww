@@ -139,3 +139,11 @@
   0 nodes and bestmove 0000, and go nodes 100 / go movetime 50 emit 64 info lines vs 5 for go depth 5.
 - next command: python3 job2/cliff_vs_depth.py on a fourth bare endgame (K+N+N vs K with the knights far apart) to
   see whether S-F14's counter+depth pattern is a property of bare endgames generally.
+
+## $(date -u)
+- S-F13 extended: a FOURTH bare endgame (K+N+N vs K) gives counter+depth = 100 exactly at d6/d8/d10/d12
+  (94,92,90,88), the counter just below scoring +33..+318. The bare-endgame pattern is now 4 of 4.
+- HONEST NOTE: my first run of that test used "8/8/8/8/8/8/8/K1N4k" which is K+N, a dead draw — every clock scored
+  cp 0 so the scan returned 60 and measured nothing. Discarded and re-run with material asserted; both runs are in
+  job2/out/cliff_vs_depth_KNN.txt with the assertion recorded.
+- next command: read the board for a NEW finding outside area 5 that nobody has checked, and check it.

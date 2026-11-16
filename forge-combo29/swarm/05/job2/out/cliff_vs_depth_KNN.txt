@@ -1,0 +1,23 @@
+exe: /tmp/build-rel/forge
+base fen: 7k/8/8/8/8/8/8/K1N1N3 w - - 0 1
+
+Finding the LOWEST halfmove counter that scores exactly cp 0, per search depth.
+Scanned UPWARD from 60, because scanning downward would stop at the highest zero and never find
+the first one (that was a real bug in my first version of this script).
+
+| depth | lowest counter scoring cp 0 | counter + depth | scores just below the boundary |
+|---|---|---|---|
+| 6 | 94 | 100 | 93:cp 278, 92:cp 278 |
+| 8 | 92 | 100 | 91:cp 318, 90:cp 318 |
+| 10 | 90 | 100 | 89:cp 148, 88:cp 228 |
+| 12 | 88 | 100 | 87:cp 33, 86:cp 191 |
+
+MATERIAL ASSERTION (added because my first attempt at this test used the WRONG FEN)
+  tested fen: 7k/8/8/8/8/8/8/K1N1N3 w - - 0 1
+  python-chess signature: KNNk  (white K + two knights, black K)  -- asserted == KNNk before the run
+  NOTE: my first invocation used "8/8/8/8/8/8/8/K1N4k w - - 0 1", which is K + ONE knight = KNk, a dead draw.
+  On that board every clock from 60 to 99 scored cp 0, so the scan returned 60 at every depth and measured
+  nothing about the fifty-move boundary. That run is discarded; this file is the corrected one.
+
+Reading: the boundary is counter+depth = 100 EXACTLY at all four depths here (94+6, 92+8, 90+10, 88+12),
+tighter than the K+R / K+Q / K+B+B boards which came out at 100-101. Fourth bare endgame, same law.
