@@ -1,0 +1,17 @@
+| # | order A | order B | same FEN | softnodes A | softnodes B | same move | same nodes | depth12 same |
+|---|---|---|---|---|---|---|---|---|
+| 0 | g2g3 g8f6 d2d4 | d2d4 g8f6 g2g3 | yes | c7c6/2018 | c7c6/2018 | True | True | True |
+| 1 | g2g3 c7c5 d2d4 | d2d4 c7c5 g2g3 | yes | c5d4/2799 | c5d4/2799 | True | True | True |
+| 2 | c2c4 g8f6 e2e4 | e2e4 g8f6 c2c4 | yes | f6e4/2097 | f6e4/2097 | True | True | True |
+| 3 | b2b3 g8f6 d2d4 | d2d4 g8f6 b2b3 | yes | e7e6/2466 | e7e6/2466 | True | True | True |
+| 4 | c2c4 c7c5 g2g3 | g2g3 c7c5 c2c4 | yes | g8f6/2371 | g8f6/2371 | True | True | True |
+| 5 | b2b3 d7d5 c2c4 | c2c4 d7d5 b2b3 | yes | d5d4/2130 | d5d4/2130 | True | True | True |
+| 6 | c2c4 b8c6 d2d4 | d2d4 b8c6 c2c4 | yes | g8f6/2893 | g8f6/2893 | True | True | True |
+| 7 | e2e4 d7d5 c2c4 | c2c4 d7d5 e2e4 | yes | d5e4/2245 | d5e4/2245 | True | True | True |
+| 8 | b2b3 d7d5 d2d4 | d2d4 d7d5 b2b3 | yes | c7c5/2217 | c7c5/2217 | True | True | True |
+| 9 | c2c4 d7d5 g2g3 | g2g3 d7d5 c2c4 | yes | d5c4/2838 | d5c4/2838 | True | True | True |
+
+pairs: 10
+softnodes same move: True
+softnodes same nodes: True
+depth 12 same move+nodes: True

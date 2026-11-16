@@ -1,0 +1,22 @@
+# PREDICTION — job35: is `go softnodes` order-dependent (transposition history)?
+written before the first measuring command.
+
+21-F15 showed `go softnodes N` is deterministic when the SAME command sequence is replayed. The
+question self-play actually depends on: if the same POSITION is reached by two different move
+orders, does `go softnodes 2000` give the same answer?
+
+The engine keeps a key history (for repetition detection) and a hash table, so a different order
+could in principle change either. This job builds 10 positions that can be reached two ways each
+(natural transpositions: moving a knight to the same square in two orders), and compares the
+softnodes answer for the two orders.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | the two orders reach the same FEN on all 10 positions (verified with python-chess) | if not, my generator is wrong and the case is void |
+| P2 | `go softnodes 2000` gives the SAME bestmove for both orders on all 10 | killed by any difference |
+| P3 | the node count is also identical for both orders | killed by any difference |
+| P4 | `go depth 12` (also TT-using) is likewise identical for both orders | killed by any difference |
+| P5 | 0 crashes, 0 sanitizer lines | killed by any one |
+
+If P2/P3 fail, self-play is order-dependent at the same position, which is a reproducibility problem
+for the owner's training data even though it is not a "defect" in the sense of a wrong move.
