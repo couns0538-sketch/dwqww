@@ -193,3 +193,13 @@ running search arrives IN THAT SAME BATCH. Measured batch: 'info depth 12 ... no
 Recorded as 04-C4 in FINDINGS.md, with the retraction explicit. No defect claim filed.
 This is the second time a gate in my own tooling caught me (the first was check_quit printing PASSED with every
 case missing). Both are in the findings file rather than quietly fixed.
+
+## 2026-11-16T23:05:45Z QUIT/EOF ON BOTH BUILDS + isready HARNESS FIXED AND CONFIRMED
+04-F19: quit/EOF fault survives on PC r15 under PC20 — not repaired by any of the eight fixes.
+  PC r15/PC20 startpos: control d2d4 @ 21,600 nodes / 12 info lines; quit-immediately -> a2a3, 0 info lines;
+  EOF -> same. Base/S14 identical in shape (control d2d4 @ 22,459; quit/EOF -> a2a3 @ 0 info).
+  So FORGE_FIX_ABORT_PUBLISH does NOT cover the input-termination path.
+04-C4 corrected and confirmed after fixing my harness (it had been waiting for a SECOND bestmove; the real one
+  arrives in the same read batch as readyok). Corrected result: isready during a search is HARMLESS on both
+  builds (PC: bestmove True, 21,600 nodes, 0.23 s; base: True, 22,459 nodes, 0.22 s). 19-F14 stands.
+NEXT: explosion numbers on PC20 (the last item on the coordinator's list).

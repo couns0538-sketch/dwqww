@@ -130,18 +130,24 @@ def one(exe, opts, fen, depth, mode, delay, limit):
     eng.send("go depth %d" % depth)
 
     readyok_ok = None
+    pre = []
     if mode == "isready":
         time.sleep(delay)
         eng.send("isready")
-        _, readyok_ok = eng.wait_for("readyok", 20.0)
+        # KEEP THESE LINES. The engine's `bestmove` for the running search arrives together with the
+        # `readyok` (measured: ... info depth 12 ... / bestmove e2e4 / readyok). Discarding them makes the
+        # run look like a missing bestmove, which is exactly the false defect this harness produced once.
+        pre, readyok_ok = eng.wait_for("readyok", 20.0)
 
-    # If bestmove already arrived before the isready, the search was over: that case measures nothing.
-    early = eng.drain()
+    pre_best = any(l.startswith("bestmove") for l in pre)
+    early = []
+    if not pre_best:
+        early = eng.drain()
     early_best = any(l.startswith("bestmove") for l in early)
-    got = list(early)
-    if early_best:
+    got = list(pre) + list(early)
+    if pre_best or early_best:
+        # A bestmove was already delivered (possibly alongside the readyok). Do not wait for another.
         best_ok = True
-        rest = []
     else:
         rest, best_ok = eng.wait_for("bestmove", limit)
         got += rest
