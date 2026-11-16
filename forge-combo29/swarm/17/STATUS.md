@@ -210,3 +210,19 @@ DONE
 
 NEXT
 - Keep the table current; next area work on the PC path (clock 6s+0.06, go nodes 20000) as file 6 ranks it.
+## 2026-11-16T22:55Z (block 13)
+
+seat 17 | area 7 + PC-path measurements | Threads 1 | branch for-fable-and-opus/swarm-17
+
+DONE
+- Depth vs selection on position 6: PURE DEPTH EFFECT, proven by identical nodes. `go nodes 20000` ==
+  `go depth 8` (13,628 nodes, cp 7, c8c3); `go nodes 50000` == `go depth 10` (45,673, cp 16, d6e6).
+  No selection effect. The move is non-monotone in depth (d6 h8f8, d7 d6e6, d8 c8c3, d9 f5h6, d10 d6e6)
+  -> recorded as a method rule: any fixed-node A/B on a tactical position must log the depth reached.
+- Node-tier sweep, 10 real positions, tiers 2000/20000/50000/250000 with depths: only 6 of 10 keep one move;
+  depth spans 5-17 on the same board; position 6 gives three different moves across four budgets.
+- Match clock 6s+0.06 on a real middlegame: 60 moves, 0 forfeits, 0 illegal moves, clocks left 1715/1599 ms,
+  median 153 ms, max 866 ms. All three rows are in FINDINGS_TABLE.md.
+
+NEXT
+- More match-clock games (one game is a thin sample for a forfeit claim), then keep the table current.
