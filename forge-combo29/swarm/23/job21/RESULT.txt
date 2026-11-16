@@ -1,0 +1,24 @@
+THE DRAWN-ROOT REPAIR ON THE PATHS MATCHES ACTUALLY USE — clock and softnodes, not just `go depth`
+===============================================================================================
+Root: `1K6/8/8/3R4/8/8/8/k7 w - - 0 1` reached by the real move list `d5d6 a1b1 d6d5 b1a1` twice over, so the
+position has occurred three times and a draw is claimable (python-chess confirms
+`can_claim_threefold_repetition()`). Threads 1, Hash 16, OwnBook false; base gets no PC20 options, the PC build gets
+the full PC20 set.
+
+| path | base 6b98f217 | PC r15 + PC20 |
+|---|---|---|
+| `go depth 8` | **cp 0, 0 nodes**, d5d1 | cp 396, 7,746 nodes, d5b5 |
+| `go wtime 6000 btime 6000 winc 60 binc 60` | **cp 0, 0 nodes**, d5d1 | **mate 8**, 1,414,998 nodes, d5b5 |
+| `go softnodes 2000` | **cp 0, 0 nodes**, d5d1 | cp 426, 4,836 nodes, d5b5 |
+
+VERDICT: the repair is not confined to fixed-depth search — it holds on **the clock path and the self-play path too**,
+which are the two the engine is actually used on. On the clock the PC not only searches the position, it finds
+**mate 8** in 1.4 M nodes, where the base reports cp 0 after searching nothing at all. All four predictions held.
+
+So 23-F44's caveat can now be tightened: the drawn-root repair covers every path I can drive, and the base's defect is
+present on every one of them. What remains true from 23-F44 is that the owner's match program ends a game at the third
+occurrence, so this position would never be searched again in a real match — the repair matters for analysis, other
+GUIs and human play, and now demonstrably on the clock path as well as at fixed depth.
+
+CAVEAT, unchanged: cp 0 on a claimable-but-not-forced repetition is only a misreport when the draw may be declined.
+Where the match program ends the game, neither engine's score matters.
