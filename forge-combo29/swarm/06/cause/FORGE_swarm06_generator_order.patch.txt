@@ -1,0 +1,42 @@
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -447,6 +447,31 @@
+ // then the same piece loops over the empty squares only, then castling: the
+ // subsequence of All that the move picker's filter keeps, in the same order.
+ // Mode is a compile-time constant so the capture/quiet branches fold away.
++// Symmetry experiment (swarm seat 06): the generator walks squares lowest-index first (pop_lsb, a1 -> h8).
++// A colour mirror maps that walk to a different sequence, so a mirrored pair receives the same moves in a
++// different order and alpha-beta prunes different subsets. Reorder the finished list into a canonical order in
++// the MOVER's frame (square ^ 56). Same move SET, so perft must be unchanged - that is the check.
++inline void canonical_order(MoveList& moves, std::size_t first) {
++    const std::size_t n = moves.size();
++    if (n <= first + 1) return;
++    auto key = [](const Move m) {
++        const unsigned f = static_cast<unsigned>(m.from ^ 56U);
++        const unsigned t = static_cast<unsigned>(m.to ^ 56U);
++        return (f << 16U) | (t << 8U) | static_cast<unsigned>(m.promotion);
++    };
++    // insertion sort: the list is short (<= 218) and this runs once per node
++    for (std::size_t i = first + 1; i < n; ++i) {
++        const Move cur = moves[i];
++        const unsigned ck = key(cur);
++        std::size_t j = i;
++        while (j > first && key(moves[j - 1]) > ck) {
++            moves[j] = moves[j - 1];
++            --j;
++        }
++        moves[j] = cur;
++    }
++}
++
+ template <Board::GenMode Mode>
+ void fill_pseudo_legal(const Board& board, MoveList& moves) {
+     constexpr bool captures_only = Mode == Board::GenMode::Captures;
+@@ -574,6 +599,7 @@
+             }
+         }
+     }
++    canonical_order(moves, 0);
+ }
+ 
+ void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
