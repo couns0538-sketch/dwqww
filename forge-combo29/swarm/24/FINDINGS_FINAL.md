@@ -58,8 +58,10 @@ build, so this does not depend on one set of positions.
 | 24-F20 | PC r15 TSan, PC20, Threads 8/16/32, 60 steps | clean at 8x oversubscription (Threads 32 on 4 cores) |
 | ~~24-F21 / 21b / 22 / 23 / 24 / 26~~ | both builds, Threads 1/2/4, 6+ fresh runs per position | **CLOSED — CONFIRMED BY A SECOND SEAT (24-C10).** The chosen MOVE differs between runs on ordinary positions, on both builds; Threads 2 is not a safe middle ground; the effect is architectural, not PC-specific. Their counts 9/20 at T2 and 8/20 at T4 against my 10 and 8, base slightly lower, and my Threads-1 exactness confirmed 20 of 20. |
 | 24-F29 | both builds, Threads 2/4 | **REPLICATION RULE:** 18 of 39 unstable cases were exactly "one stray run out of six", so **a 2- or 3-run sample will usually miss the instability — use 6+ runs per position.** |
-| 24-F27 | both builds | node spread does NOT predict which positions disagree (ranges overlap; a 7.10x swing kept its move, a 1.49x swing changed it) |
-| 24-F28 | PC r15, Threads 4 | **Hash size does not drive it:** 4 of 12 unstable at Hash 1 MB, 16 MB and 1024 MB — identically. TT evictions ruled out. |
+| 24-F27 | both builds | node spread does NOT predict which positions disagree (ranges overlap; a 7.10x swing kept its move, a 1.49x swing changed it) — RULES OUT "a different amount of tree was searched" |
+| 24-F28 | PC r15, Threads 4 | **Hash size does not drive it:** 4 of 12 unstable at Hash 1 MB, 16 MB and 1024 MB — identically. TT evictions RULED OUT. |
+| 24-F30 | PC r15, Threads 4, one process per position | **per-worker history/TT state RULED OUT:** clearing it before every repetition (`ucinewgame` -> `Searcher::clear()`) gave 7 of 20 unstable against 2 of 20 when it accumulated. Cutoff/scheduling ordering is the remaining candidate. |
+| 24-F31 | base tree, Threads 1, depth 12 | Threads 1 is **bit-exact on 40 of 40** positions (two fresh processes each, 0 move and 0 node differences) — the tuner rule's foundation |
 | 24-F15 / F17 | base + PC r15, PC20 | one text patch fixing **both** silent GUI hangs (terminal root, and the opponent-only clock), honesty numbers unchanged |
 | 24-F25 | both builds, defaults | an ABORTED search publishes the generator-order first move with 0 nodes — but **not** at a terminal root, where it correctly answers `0000` |
 | 24-F6 | PC r15, none/S14/PC20, Threads 1 | every published number reproduced (none 312866/862329/3024920/perft5 4865609; S14 242796/656517; PC20 278024/587276) |
@@ -96,10 +98,11 @@ build, so this does not depend on one set of positions.
 
 ## Limits I want on the record
 
-- The mechanism behind the threaded move instability is **still open**, but two candidates are now RULED OUT:
-  the transposition table's size (24-F28: identical 4 of 12 at 1 MB, 16 MB and 1024 MB) and "a different amount of
-  tree was searched" (24-F27: node spread does not predict which positions disagree). What remains is helper-cutoff
-  ordering or per-worker history/accumulator state.
+- The mechanism behind the threaded move instability is **still open**, but THREE candidates are now ruled out
+  experimentally: the transposition table's size (24-F28 — identical 4 of 12 at 1 MB, 16 MB and 1024 MB), "a
+  different amount of tree was searched" (24-F27 — node spread does not predict which positions disagree), and
+  per-worker history/TT state (24-F30 — zeroing it before every repetition gave 7 of 20 unstable against 2 of 20).
+  **What remains is cutoff/scheduling ordering among the helper threads.** That is where the next seat should look.
 - Whether the differing moves are equally good is **not measured**; the honest claim is "not reproducible", not
   "worse".
 - The 40 %/50 % rates are for samples of 20 positions each, not global probabilities.
