@@ -43,3 +43,22 @@ HARNESS AUDIT after coordinator broadcast of 19-F12 (fabricated bestmove on mid-
   honesty/recheck_interactive.py committed.
 
 Next command: python3 honesty/recheck_interactive.py ~/b/rel/forge
+
+## 2026-11-16T21:38:30Z
+
+INTEGRITY AUDIT written: INTEGRITY_AUDIT.md. Three of my own faults found and fixed:
+1. 19-F12 reproduced (pipelined quit + async search -> fabricated `bestmove a2a3`). Tested: perft and
+   bench are SYNCHRONOUS and unaffected (pipelined perft 6 = 119060324 = interactive). My perft
+   results and S-C1 stand. Honesty pins re-run interactively: ALL FOUR MATCH.
+2. job1/compare.py silently SKIPPED missing records -> an empty reference file would print "0
+   differing". Now raises on empty/missing/nan/short input and refuses to pass with 0 pairs compared.
+   Four planted-fault controls prove it fails when it should.
+3. job2/ref_par.py merged STALE /tmp shard files after I rebuilt the set -> invented 1,929 phantom
+   differences. Ground truth checked directly: engine matched python-chess (33/36/32), stale file did not.
+   ref_par now uses a fresh tempdir and checks shard exit codes + record counts, refusing to write
+   output on any mismatch.
+CONSEQUENCE: my earlier job2 "0 differences" was INVALID and is void. job2 is being re-run from scratch
+with hardened tooling; the report will carry the re-run numbers only.
+Job2 re-run in progress now (reference perft, 4 shards).
+
+Next command: cd forge-combo29/swarm/13/job2 && python3 compare.py raw_engine.txt raw_ref.txt special500.fens comparison.md 494
