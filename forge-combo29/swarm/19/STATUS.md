@@ -79,3 +79,18 @@ state: jobs 1, 2, 3, 1b complete. checks: 21-F1 CONFIRMS, 28's S-C2 CONFIRMS (ag
 continuing with: verification of 19-F12's impact on other seats' harnesses, then one more PC-relevant
 speed job. next command:
   for s in $(git ls-remote origin "refs/heads/for-fable-and-opus/swarm-*" | sed "s#.*swarm-##"); do ...; done
+
+## 2026-11-16T21:38:49Z
+
+vacuity audit DONE: 33 parsed numbers, every source line found, 0 wrong values.
+  (3 first-run flags were bugs in the audit script, not in any report — one of them a regex that could not
+   match the CORRECT empty answer, which is the vacuity trap in mirror image.) REPORT_vacuity_audit.md
+
+pick_best attribution DONE (text only, no patch): REPORT_pick_best.md
+  the cost is neither the partial loop, nor the scoring (which is NOT in pick_best: 2.0-2.2 QuietScorer
+  calls per pick_best means scoring happens in next/push_scored), nor the root (0.26-0.36 %% of calls).
+  5 %% of calls take std::sort and that branch holds ~23 %% of pick_best's local samples.
+  seed path used only 20.9-21.8 %% of calls. Counters agree across bench 13 and R_1911 x200.
+
+next command:
+  cd forge-combo29/swarm/19/pickbest && python3 summarize_pickbest.py
