@@ -1,0 +1,43 @@
+# PREDICTION — S28: of the 11 equal-depth disagreements, whose move is better?
+
+Committed and pushed ALONE before the first measuring command. Never edited afterwards.
+Written 2026-11-16 ~22:39 UTC.
+
+## The design, and why this is the only fair form of it
+S-F28 found 11 of 40 positions where the PC20 switch set and the base tree choose DIFFERENT moves at the
+same fixed depth 20. Agreement cannot rank them, so this re-searches each disputed move deeper and compares.
+
+Fairness rules I will follow:
+- **One build judges both moves.** All re-searches use the BASE build, so the judge is identical for both
+  sides and no build advantage leaks into the verdict.
+- **Same depth for both moves in a pair** (`go depth 18`), so the comparison is like-for-like.
+- **Same position after the move, opponent to move**, which is the definition of comparing two moves.
+- **Scores converted to WHITE's point of view.** The engine reports score relative to the side to move;
+  after a move the opponent is to move, so that score is negated for White. Without this the comparison is
+  systematically backwards for one side of every pair. Mate scores are mapped to a large sentinel that
+  orders correctly (`mate N` for the side to move -> a very large positive for that side).
+
+## What I expect
+Most of these 11 positions are decided or clearly better for one side (several are near-endgame or
+materially lopsided), and in such positions two moves often transpose to a similar eval. So I expect a
+MIXED result with small gaps rather than a clean pattern.
+
+| # | measurement | predicted | range that KILLS it |
+|---|---|---|---|
+| X1 | positions where the PC20 move scores HIGHER than the base move by >= 20 cp | 3-6 of 11 | 0-1 (base better) or 9-11 (PC20 clearly better) |
+| X2 | positions where the gap is < 20 cp (effectively equal) | 3-6 of 11 | 0 |
+| X3 | the median absolute gap across the 11 | 15-60 cp | above 150 cp |
+| X4 | any pair where the two moves transpose to an identical position | 0-2 | more than 4 |
+| X5 | a clear one-sided pattern (8 or more of 11 to one build) | NO | yes |
+| X6 | every re-search completes and returns a legal bestmove | yes | any failure |
+
+Reasoning for X5 = no: the two builds share the same evaluation and the same search code apart from the
+four switches; the switches change ordering and pruning, not the static evaluation, so at equal depth they
+should mostly reach the same conclusion and differ on genuinely close calls. A clean 8-of-11 pattern would
+surprise me and would point at something systematic in the switch set, which is exactly what a match would
+then confirm. If the result IS mixed, I will say so and stop on this thread as instructed.
+
+## What I will not claim
+Re-searching each move deeper on one build is evidence about these eleven positions at depth 18. It is not
+a strength measurement, not an Elo estimate, and not a substitute for a match. A mixed result will be
+reported as "no pattern at this depth on this sample", not as "the sets are equal".
