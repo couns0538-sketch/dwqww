@@ -171,6 +171,20 @@ Running now: nothing. Next: continue the cycle on the PC path and confirm other 
 
 
 
+
+## 2026-11-16T23:59Z - S-C37 statement kept verbatim; third guard re-run all green
+
+S-C37 in the FINAL reads: "two distinct but CORRELATED samples, so the effective size lies BETWEEN N AND 2N openings -
+which corrects an over-strong claim without replacing it with an unmeasured precise one. The inflation factor stays
+UNMEASURED on purpose." Fixes seat 30's "openings, not games" without substituting a number I did not earn.
+
+GUARDS at 23:59Z (third re-run): compliance PASS | audit 0 mismatches | self_check 4/4 PASS.
+
+Narrowness pattern now also applied outward: seat 30's claim is right in direction, too strong in degree, and the
+colour-pair measurement is what showed which. That is the version of the habit worth having.
+
+State: 81 findings, working tree clean, local = remote. Continuing at cadence; guards re-run before the close.
+
 ## 2026-11-16T23:59Z - S-C36: CONFIRMS 30-F56 game reproducibility, with the sample-size consequence flagged
 
 A self-play game from a given start is byte-identical across fresh processes at go nodes 20000, PC20, Threads 1,
