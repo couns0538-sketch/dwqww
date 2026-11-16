@@ -1,0 +1,39 @@
+--- /home/ubuntu/pctree/src/search.cpp	2026-11-16 22:19:04.100471618 +0000
++++ /home/ubuntu/instr/src/search.cpp	2026-11-16 22:30:51.280471618 +0000
+@@ -2568,6 +2568,25 @@
+         std::cout << std::endl;
+     };
+ 
++    // ================= INSTRUMENTATION (experiment only, never committed as engine source) =========
++    // Print, at the root, whether the repetition test is CALLED and what it returns.
++    {
++        std::cerr << "ROOT-REP guard=" << FORGE_FIX_ROOT_DRAWN
++                  << " halfmove=" << board.halfmove_clock()
++                  << " legal=" << legal.size()
++                  << " key_history=" << board.key_history_size_for_debug();
++        // ALWAYS call it under the instrumentation, so we learn its RESULT even when the guard skips it.
++        const bool rep_result = board.is_repetition();
++        std::cerr << " is_repetition()=" << (rep_result ? "true" : "false");
++        std::cerr << " WOULD_BE_DRAWN=" << ((rep_result || board.halfmove_clock() >= 100) ? "true" : "false");
++#if FORGE_FIX_ROOT_DRAWN
++        std::cerr << " used_by_guard=NO (guard asks only insufficient_material)";
++#else
++        std::cerr << " used_by_guard=YES";
++#endif
++        std::cerr << std::endl;
++    }
++    // ================= end instrumentation ========================================================
+ #if FORGE_FIX_ROOT_DRAWN
+     // Terminal roots: report without searching. Only a root without a legal move or with insufficient material
+     // is answered here, and both keep a literal 0 (or the mate score). A third occurrence or an expired
+--- /home/ubuntu/pctree/include/forge/board.hpp	2026-11-16 22:19:04.096471618 +0000
++++ /home/ubuntu/instr/include/forge/board.hpp	2026-11-16 22:30:52.776471618 +0000
+@@ -225,6 +225,8 @@
+ 
+     // Game-level threefold repetition of the current position.
+     [[nodiscard]] bool is_repetition() const;
++    // experiment-only accessor so the instrumentation can report the history length
++    [[nodiscard]] std::size_t key_history_size_for_debug() const { return key_history_.size(); }
+     // Search-level repetition: any earlier occurrence at or after history
+     // index root_index counts, otherwise two earlier occurrences are needed.
+     [[nodiscard]] bool is_repetition(std::size_t root_index) const;

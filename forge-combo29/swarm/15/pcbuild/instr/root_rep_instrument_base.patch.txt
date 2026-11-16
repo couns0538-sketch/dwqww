@@ -1,0 +1,15 @@
+--- /agent/repos/base/forge-combo29/src/search.cpp	2026-11-16 21:06:23.060471618 +0000
++++ /home/ubuntu/instr_base/src/search.cpp	2026-11-16 22:31:17.292471618 +0000
+@@ -2248,6 +2248,12 @@
+     };
+ 
+     // Terminal or adjudicated roots: report without searching.
++    {
++        std::cerr << "ROOT-REP-BASE halfmove=" << board.halfmove_clock()
++                  << " legal=" << legal.size()
++                  << " is_repetition()=" << (board.is_repetition() ? "true" : "false")
++                  << " used_by_guard=YES (base tree asks is_repetition() at the root)" << std::endl;
++    }
+     const bool root_drawn = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
+                                                board.is_insufficient_material());
+     if (root_candidates.empty() || root_drawn) {
