@@ -636,3 +636,10 @@ Promoted the position-not-accepted tell to THE FIRST RULE in the FINDINGS header
   So a node count at an 11-60 ms clock is NOT a stable measurement on this machine, on either build. Neither my 15/50 nor their 5/50 is a reproducible count, and 'ON was stable 601 nodes 5/5 while OFF was unstable' cannot be established by node counts at all.
   What IS stable: the bestmove, across every repeat (always d2d4 except t=11 OFF giving c2c3). So a determinism claim here must be made on the MOVE. That is a fair restatement of their thesis and I would support it on that basis.
   Same lesson as 07-C42/C43 in a different guise: a quantity that LOOKS exact is irreproducible when the stopping condition is a clock. I have hit it twice now.
+
+## 2026-11-16T23:49:18Z
+07-C48 -- RESTATED seat 11's S-F91 on the MOVE, the only quantity 07-C47 shows is reproducible, and in that form the thesis SURVIVES:
+  ON: move changed across repeats at 0 of 15 differing clock values. OFF: same, 0 of 15. Both builds are deterministic on the move at these clocks.
+  The ONLY move difference in the whole exercise is t=11: shipped build plays d2d4, switch-off build plays c2c3 -- the unsearched first-legal-move answer that switch exists to prevent.
+  So the supported thesis is narrower and datable: 'in the band below the Move Overhead the switch prevents the fallback to an unsearched first-legal move at at least one clock value (t=11), and the choice is reproducible either way.' My node-count version (15/50 differing, 4 of 15 self-inconsistent) is withdrawn as evidence.
+RULE ADDED to the FINDINGS header, and applied to my own work: 'A node count under a clock stop is not reproducible until you prove it is -- repeat the SAME cell on the SAME binary before comparing across builds. Applies to EVERY node-count table under a clock stop, INCLUDING MY OWN EARLIER ONES.' I checked job11's clock tables: they carry a nodes column, but I used it only as a parse check ('rows without nodes = 0'), never as a cross-build comparison -- so job11's conclusions (0 overruns, 0 illegal, wall-time shares) stand. The header now warns any later reader off comparing that column.
