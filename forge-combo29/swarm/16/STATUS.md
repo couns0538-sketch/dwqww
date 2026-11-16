@@ -25,3 +25,11 @@ seed: 1601
   and a refused FEN keeps the previous position.
 - files: check_S-F2/, REPORT_check_S-F2.md, FINDINGS.md.
 - next: cycle 3 — read board; area 6 job 2 (left-right mirror, positions without castling).
+
+## 2026-11-16T21:42Z
+- job2 (area 6) done: left-right mirror over 334 no-castling G + 411 no-castling R positions.
+  745/745 differ (median 38 cp). Controls (identity, involution, antisymmetry, colour-mirror) all pass.
+- Read the code: PSQT tables are deliberately not file-mirrored; PSQT explains only r=0.35 of the delta.
+- I do NOT report this as a fault: a left-right flip is a different position (startpos -> white K on d1).
+  Reported as S-F3 with that framing. See REPORT_job2.md.
+- next: cycle 4 — board read, then area 6 job 3 (depth-10 search vs colour mirror).
