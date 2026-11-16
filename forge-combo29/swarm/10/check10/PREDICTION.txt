@@ -1,19 +1,19 @@
-seat 10 check10 — the new suggested area: `go softnodes N` on the PC build under PC20, Threads 1, Hash 16.
-This is the owner's SELF-PLAY command, so a defect here counts most (file 6).
-
-File 6 states the intent: "the search stops at the end of the first depth after 2,000 nodes".
+seat 10 check10b — QUANTIFY the bestmove-changes-with-budget caveat (10-F51) as a number the owner can use.
+100 positions from G (first 100 of set_G.epd), PC r15 under PC20, Threads 1, Hash 16, fresh process per
+(position, budget), the three budgets the owner actually uses: `go softnodes 20000`, `go softnodes 50000`
+and `go nodes 250000`.
 Prediction, committed and pushed ALONE before the first measuring command:
 
-P1. DETERMINISM (must hold): the same `go softnodes N` on the same position in fresh processes gives the
-    same bestmove, the same score and the same node count every time, >= 5 runs. (kill: any difference)
-P2. It stops at a FINISHED depth: the reported depth D is complete, i.e. the node count for depth D exceeds
-    the count for depth D-1 and the pv is non-empty. (kill: a truncated/incomplete last iteration)
-P3. OVERSHOOT is bounded: it exceeds N by less than one depth's worth of nodes. I predict the reported node
-    count is between N and 3N (the search finishes the depth it is in), and I will report the exact ratio
-    nodes/N for each N tried. (kill: nodes < N, or nodes > 3N)
-P4. `softnodes` differs from `nodes` in the intended way: `go nodes N` stops MID-depth (its last iteration
-    is partial), while `go softnodes N` finishes the depth. (kill: no structural difference)
-P5. It is monotone: larger N gives a >= depth and >= nodes. (kill: a larger N gives a smaller depth)
-P6. The score and bestmove at a given N are STABLE ACROSS N in the sense that a much larger N (100x) does
-    not change the bestmove on a quiet position -- if it does, that is worth reporting as instability.
-    (kill: bestmove changes between N=2000 and N=200000 on startpos)
+P1. The bestmove differs at least once across the three budgets on MORE than 5 of the 100 positions.
+    My 4-position sample changed on 2 positions (startpos, tactical), which would scale to ~50.
+    (kill: <= 5 positions)
+P2. Most of that disagreement is between the SMALL budget (20000) and the large one (250000): I predict the
+    20000-vs-250000 change rate is at least double the 50000-vs-250000 rate. (kill: opposite or equal)
+P3. The score differences are LARGE, not noise: where the move differs between 20000 and 250000, the median
+    |score(20000) - score(250000)| is at least 40 cp. (kill: median < 40 cp)
+P4. There are positions where the SMALL budget's move is a BLUNDER relative to the large budget's: at least
+    one position where the engine's own score of the 20000 move (re-searched by the large budget forcing
+    that move) is 200+ cp worse than the large budget's own choice. I predict this exists because the small
+    budget stops at depth 11-12 while 250000 reaches 17-18. (kill: no such position)
+P5. Agreement is the common case at the two LARGER budgets: I predict 50000-vs-250000 agree on at least 85
+    of 100. (kill: fewer than 85)
