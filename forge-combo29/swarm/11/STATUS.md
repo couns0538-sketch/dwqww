@@ -122,3 +122,5 @@ DONE (all pushed, raw evidence beside each):
 NEXT: continue area-1 work; push again by 22:30.
 - S-F13 NEW: exhaustive ep-field matrix — 63 of 64 ep squares refused, only the legal `d6`
   accepted (perft 1 = 31 = python-chess). Ep validation is airtight; job 2's sampling generalises.
+- S-F14 NEW: all 16 castling-rights subsets on 2 boards, 0 perft differences. Rights rule is
+  exactly "king + matching rook on home squares"; accepted masks always match python-chess.
