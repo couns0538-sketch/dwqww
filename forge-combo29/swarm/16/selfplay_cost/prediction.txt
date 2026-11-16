@@ -1,0 +1,25 @@
+# PREDICTION — what does the PC's self-play budget of 2,000 nodes COST per move?
+
+File 6 says the owner's self-play uses `go softnodes 2000`, and that a find on the PC's real path (a wrong move, a
+wrong score) counts most. S-F16 established it is deterministic and overshoots to ~1.7x. The open question is
+whether the move it picks is actually WORSE than a deeper search would pick, and by how much.
+
+Method, 40 real-game G positions, PC build under PC20, Threads 1, Hash 16:
+  low  = the move from `go softnodes 2000`            (the self-play budget)
+  ref  = the move from `go nodes 250000`              (the PC's largest match budget)
+  cost = evaluate, by a fixed reference search (`go depth 12`), the position AFTER each move; the difference in
+         the score from the moving side's point of view is the cost of playing `low`.
+Reported: how many positions have cost > 100 cp (a clear blunder-level loss), how many > 30 cp, the median cost,
+and the full list of the >100 cp cases with positions and both moves.
+
+P1. Most positions cost little: predicted the median cost is under 20 cp. Kills it: a median above 50 cp (the
+    2,000-node budget would be badly underpowered and the owner needs to know immediately).
+P2. A small minority are badly hurt: predicted 1 to 8 of 40 positions with cost > 100 cp. Kills it: 0 (no
+    blunders at the self-play budget — good news, report it as such) or more than 15 (the budget is unusable).
+P3. Where a big cost appears, the reference move is predicted to be a capture or a check more often than a quiet
+    move — a tactical miss rather than a positional preference. Kills it: most costly cases are quiet moves.
+P4. The reported score of `low` itself is predicted to be within 50 cp of `ref` even when the MOVE is much worse —
+    i.e. the budget does not warn you it is playing badly. Kills it: the scores differ by as much as the cost,
+    which would mean the engine knows it is choosing badly and the cost is a deliberate trade.
+P5. Control: `cost` computed for `ref` against itself (same move) is exactly 0. Kills it: anything else, which
+    would mean the cost measurement is noisy and no number in this job is usable.
