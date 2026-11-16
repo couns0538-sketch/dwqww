@@ -83,7 +83,7 @@ Big new results:
   10-F10 the four SUMS are S14-regime numbers: O d12 = 9,500,069 and O d14 = 21,812,100 EXACT (and the
     first three 41,311/24,872/28,574 exact) with S14; default gives 12,573,318 / 29,799,803.
     Together with 10-F6: PINS = default regime, SUMS = S14 regime. One harness cannot use one regime for both.
-  10-F11  AFTER  RESETS THE BOARD TO STARTPOS (eval -351 -> +38, perft1 38 -> 20).
+  10-F11 ucinewgame sent AFTER position fen RESETS THE BOARD TO STARTPOS (eval -351 -> +38, perft1 38 -> 20).
     The brief's literal "ucinewgame + isready before every go" therefore measures startpos every time;
     the tell is an identical node count for every position. Correct order: ucinewgame, position, go.
   Method row added for seat 19's parse-before-compare warning; every row now names the line it parsed.
