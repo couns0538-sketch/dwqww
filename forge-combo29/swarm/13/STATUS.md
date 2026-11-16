@@ -213,3 +213,15 @@ DONE job 6 (coordinator job 1): perft 4 at the DIVIDE level on 200 REAL-GAME G p
   types, all three build/settings combos; stated limits: depth 5 totals-only, python-chess is the
   only oracle, refused-FEN positions untestable this way. Report job6/REPORT_job6.md.
 Next: PC path per file 6 (job 7), own limit stated (12 G positions, not the owner's match games).
+
+## 2026-11-16T22:58:54Z
+
+DONE job 7 (coordinator job 2, PC path per file 6): go nodes at the three match budgets + 2,000.
+  DETERMINISTIC 48/48 (each run repeated, separate fresh processes). BUDGET RESPECTED 48/48 as a HARD
+  CAP (worst 96 nodes under). Legal bestmove 48/48. Rule-1 control: 6 plants caught, 2 identities not.
+  Median depth: 6 @2k, 10 @20k, 12 @50k, 16 @250k. Utilisation 0.68 -> 0.83.
+  CONTRAST with S-F7: softnodes overshoots up to 164 %, go nodes never exceeds.
+  Checked rather than assumed: position 7's -284 -> -1364 jump at 250k is a REAL black promotion
+  (PV verified legal move by move), not a bug.
+  Finding S-F9. LIMIT STATED: 12 G positions, not the owner's match games.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1
