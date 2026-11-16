@@ -260,3 +260,11 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   +CorrHistV2. No mechanism claimed — I did not read what those options do to the PV rebuild.
 - next command: re-run the S-F11/F13/F15 boundary-vs-depth on a SECOND material on the PC build under PC20, to see
   whether S-F14/S-F15's position-dependence survives there.
+
+## $(date -u)
+- S-F20 NEW: the boundary position-dependence of S-F14/S-F15 SURVIVES on the PC build under PC20, Threads 1:
+  bare K+R 95/93/91/90 (tracks, sum ~101); bare K+B+B 95/92/91/89 (tracks); K+R + ONE pawn FLAT at 98 — exactly the
+  base tree's 98, so S-F15's "one pawn flips tracking to flat" REPRODUCES. One board changed: the pawnless
+  middlegame that was flat at 100 on the base tree now keeps a real score at every counter on the PC build
+  (cp 87 at 0-90, cp 67 at 99/100, cp 76 at 101-200), consistent with the root-draw repair reaching it.
+- next command: python3 pcbuild/boundary_pc.py /tmp/build-pc/forge S14 for the S14 column on the PC build.
