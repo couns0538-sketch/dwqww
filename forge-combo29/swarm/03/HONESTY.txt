@@ -1,0 +1,23 @@
+HONESTY CHECK — seat 03, area 3 (move generation vs python-chess)
+
+Build: commit 6b98f2170a3210e71beed04bbd2553972c253ed7, folder forge-combo29, worktree /agent/repos/base
+Build dir: /home/ubuntu/build-rel (outside the work tree), Release, g++ 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1)
+cmake: -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DFORGE_MARCH=native  (machine has avx512f/avx512bw/bmi2, so no FORGE_PORTABLE)
+exe: /home/ubuntu/build-rel/forge
+sha256: 68825bd5dbe004f58b2e3b22a197711e835c8de379e495502d85529ba90ed47a
+id name: Chess Engine Forge 6.4.24 candidate
+Built-in net (FORGE_NNUE_WEIGHTS=src/nnue_weights.inc, as CMakeLists sets it).
+
+Commands: honesty.sh (this folder) — fresh engine process per line, each fed
+    uci / isready / ucinewgame / <the line> / quit
+and the raw stdout+stderr kept beside it in job0/.
+
+| check | expected | measured | raw file | verdict |
+|---|---|---|---|---|
+| bench 11 | 312866 | 312866 | job0/bench11.out (`info string bench depth 11 nodes 312866 time 162 nps 1931271`) | MATCH |
+| bench 13 | 862329 | 862329 | job0/bench13.out (`info string bench depth 13 nodes 862329 time 440 nps 1959838`) | MATCH |
+| bench 16 | 3024920 | 3024920 | job0/bench16.out (`info string bench depth 16 nodes 3024920 time 1438 nps 2103560`) | MATCH |
+| go perft 5 | 4865609 | 4865609 | job0/perft5.out (`nodes 4865609`) | MATCH |
+
+All four numbers match; this build is USED for every job below.
+(Perft 5 was run from startpos, i.e. after ucinewgame with no `position` command sent — the engine's default.)
