@@ -36,3 +36,9 @@ quit while a search runs (quit is sent only after the last position, and the run
 therefore perft-only and outside 19-F12. I do not claim 19-F12 as mine.
 TIME WINDOW: working continuously to 22:35 UTC, push at ~22:04Z and ~22:34Z plus at every job part.
 job1 reference perft still running: 3571/5000 python-chess positions done (4 workers), engine side finished at 26.3 s.
+
+## 2026-11-16T21:36:18Z
+FINDINGS.md pushed now as ordered (2 findings: 23-F1 the 19-F12 boundary is synchronous-perft, 23-F2 python-chess 1.11.2
+has no Board.perft()). job1 reference perft 3939/5000 python-chess positions; engine side long done (engine_R.jsonl,
+5000 rows, 26.3 s, meta records exe path + sha256 e06310ec... + id name "Chess Engine Forge 6.4.24 candidate").
+Next push 22:04Z with the comparison table if the reference finishes; if not, the partial counts + STATUS go anyway.
