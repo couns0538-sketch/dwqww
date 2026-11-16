@@ -42,14 +42,23 @@ This is the part that decides whether anyone should act.
 | setting (PC r15 build) | mate scores | truncated | rate |
 |---|---|---|---|
 | `go softnodes 2000` (self-play budget) | 17 | 1 | 5.9% |
-| **`go nodes 20000` (smallest match budget)** | 20 | **1** | **5.0%** |
-| `go nodes 50000` | 25 | **0** | 0% |
-| `go nodes 250000` | 27 | **0** | 0% |
+| `go nodes 20000` (smallest match budget) | 20 | 1 | 5.0% |
+| `go nodes 50000` | 25 | 0 | 0% — **but this was sampling luck, see below** |
+| `go nodes 250000` | 27 | 0 | 0% (same caveat) |
 | PC20 at depth 12 (unbudgeted) | 27 | 0 | 0% |
 | S14 at depth 12 (base and PC builds) | 28 | 2 | 7.1% |
 
-**Above 20,000 nodes it does not occur on this set.** At the two larger match budgets it is absent entirely. It appears at
-the self-play budget and at the smallest match budget, and under S14 (which the owner does not use for matches).
+**A correction that matters.** I first read the two zeros above as "the truncation is confined to small budgets". That was
+a **sampling artefact**: only 3 of those 28 positions had |N| ≥ 10, the range where the defect lives. When I searched 400
+random-play games specifically for long mates (finding just **2** such positions) and tested one at the match budget:
+
+> `r2r4/pB2kpp1/n1p4p/1p5p/2n5/1q1bP2P/2PBN3/4K2R b - - 1 40`, `go nodes 50000`, 4 of 4 runs identical:
+> **`score mate 11` with an 18-ply PV needing 21 — short by 3** (44,749 nodes, depth 11).
+
+At `go nodes 250000` the same position is consistent (`mate 7`, 13/13), as is `go depth 20`.
+
+So the honest statement is: **the rate falls as the budget rises, but the defect is still present at a 50,000-node match
+budget on long mates, and I have NOT established any budget at which it is absent.**
 
 **And where it does occur, the move does not change.** On G/59 at `go softnodes 2000` the score is `mate 4` with a 6-ply
 PV (needing 7), but the chosen move is `c4a6` at softnodes 2000, 5000, `go depth 12` **and** `go nodes 20000` — identical.
