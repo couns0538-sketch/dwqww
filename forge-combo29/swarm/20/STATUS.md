@@ -444,3 +444,13 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - **AUDIT/METHOD.md**: 12 rules in three groups (writing / measuring / correcting myself) + the four tools with their
   exit-code contracts: hardened.py, machine_clean.sh, findings_lint.py, parse_audit.py & bundle_audit.py.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-16T23:52:57Z the repair costs nothing at safe Hash sizes and gains +2.5/+3.0 plies
+- **S-C40**: shipped vs repaired, 10 G-set positions, `go wtime 5000`, MultiPV 3, Threads 1, pre-stated cost rule.
+  Medians: Hash 16 **13.5 -> 14.0 (+0.5, neutral)**; Hash 64 **11.5 -> 14.0 (+2.5)**; Hash 128 **11.0 -> 14.0 (+3.0)**.
+  **No cost at any safe Hash** — the missing number behind the page's "strength effect unmeasured" caveat.
+- **New insight:** the repaired build is **FLAT at ~14 plies from Hash 16 to 128** while shipped decays 13.5 -> 11.5 ->
+  11.0, so **the multi-PV gradient in my own S-C33 is mostly the per-line `clear()`, not the table size**.
+- Page updated: "what IS measured (no cost, +depth at safe sizes)" vs "what is NOT (stronger in PLAY — depth at a fixed
+  clock is not a match result)". Advice unchanged: **MultiPV 1 at any Hash** is least-lossy.
+Next: continue in the window (ends 2026-11-17T10:18Z).
