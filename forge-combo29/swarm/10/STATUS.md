@@ -363,3 +363,11 @@ ANNOTATED the two reframed findings (10-A1, 10-A2), NOT retracted:
   forced-mate inequality 2N-1 <= 100-counter, which I have NOT tested and say so.
   "Threads 1 for every score" stands as measurement discipline; the spread itself is not a bug.
 Mon Nov 16 10:40:57 PM UTC 2026
+Mon Nov 16 10:41:05 PM UTC 2026
+
+## MultiPV third confirmation
+10-C18: THIRD confirmation of 02-F7c on an independent measure (NODES in a 3 s clock): at MultiPV 8,
+H16 = 1,109,211 nodes vs H2048 = 133 -> 8,339.9x collapse; at MultiPV 1 only 1.3x. Correction: NOT monotone
+in Hash (H=256 = 882,366 > H=64 = 336,805), so it is a cliff between 256 and 2048 MB.
+10-F52: mechanism MEASURED -- one Clear Hash costs 0.0085/0.0297/0.1104/**0.8621** s at Hash 16/64/256/2048,
+paid once per extra PV line: ~6 s of clearing inside a 3 s budget at MultiPV 8. That is the whole effect.

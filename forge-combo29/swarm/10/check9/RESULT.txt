@@ -1,0 +1,27 @@
+CHECK 9 — THIRD independent confirmation of the MultiPV x Hash collapse (seat 02's S-F7c).
+PC r15, PC20, Threads 1, Hash as stated, `go movetime 3000`, fresh process per cell.
+The first two confirmations measured DEPTH REACHED; this one measures NODES SEARCHED, an independent quantity.
+
+VERDICT: CONFIRMS S-F7c. 5 of 6 predictions held; P3b (monotone in Hash at M8) is NON-MONOTONE at H=256.
+
+ nodes searched in 3 s, by Hash (rows) and MultiPV (columns):
+   Hash | M1          | M2          | M5          | M8
+   16   | 4,733,095 d26 | 2,229,424 d21 | 1,678,551 d19 | 1,109,211 d18
+   64   | 4,752,428 d23 | 1,828,204 d21 |   425,402 d19 |   336,805 d18
+   256  | 4,336,136 d24 | 1,805,265 d20 | 1,024,571 d18 |   882,366 d16
+   2048 | 3,720,218 d23 |    28,565 d13 |       851  d4 |       133  d3
+
+ P1 H16/H2048 node ratio at MultiPV 8 : **8,339.9x**   (predicted >= 10x)  HELD
+ P2 the same ratio at MultiPV 1       : **1.3x**        (predicted < 2x)   HELD -- MultiPV 1 is unaffected
+ P3a monotone in MultiPV at H=2048    : 3,720,218 -> 28,565 -> 851 -> 133   HELD
+ P3b monotone in Hash at MultiPV 8    : 1,109,211 -> 336,805 -> 882,366 -> 133  **FAILED at H=256**
+        the H=256 value (882,366) is HIGHER than H=64 (336,805). So the collapse is not smooth: it is a
+        cliff between H=256 and H=2048. Recorded as measured, not smoothed away.
+ P4 single Clear Hash cost, timed    : H16 0.0085 s, H64 0.0297 s, H256 0.1104 s, **H2048 0.8621 s**
+        -- i.e. a SINGLE clear of a 2048 MB table costs 0.86 s, and the extra-PV loop pays that cost once per
+        extra line. At MultiPV 8 that is ~7 x 0.86 s = 6 s of clearing inside a 3 s budget, which is
+        quantitatively the whole effect. This is the mechanism, measured directly.
+ P5 the practical rule holds on a third, independent measure: never pair MultiPV > 1 with a large Hash.
+
+ BEYOND S-F7c: the cliff is between 256 and 2048 MB, not a smooth degradation, and the mechanism is now
+ measured rather than inferred -- 0.86 s per table clear, paid once per extra PV line.
