@@ -431,3 +431,12 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
 - So on BOTH builds `go nodes N` is a soft ceiling: 47-98% of N used, never overshooting, while `go softnodes`
   overshoots by 1.0-2.37x. The two limits behave in OPPOSITE directions.
 - next command: continue the cycle on the PC's clock path (6s + 0.06) per file 6.
+
+## $(date -u)
+- S-F36 resolves S-F34/S-F35 AND S-F31/S-F32 into ONE rule, and it is not a defect. Full ladders on G0 (PC20, Threads 1):
+  `go nodes 20000` completes d1..d11 and stops at 9,330; `go softnodes 20000` completes d1..d12 and stops at 21,812.
+  At N=50000: `go nodes` stops after d13 (29,382), `go softnodes` after d14 (56,616). The ladders are IDENTICAL
+  depth-for-depth — `go nodes` stops BEFORE the depth that would exceed N, `go softnodes` AFTER the first that passes it.
+- S-W4: withdrew my "undershoot" framing for S-F34/S-F35. The search uses the same depths either way; the reported
+  node count is simply the last COMPLETED depth. Worth knowing, but not a fault.
+- next command: continue on the PC clock path (6s + 0.06).
