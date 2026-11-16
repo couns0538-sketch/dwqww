@@ -1,0 +1,25 @@
+guard: clock 0 on the test board -> score -149 bestmove a1c1
+
+H1: does the clock value itself decide it?
+   clock  95: score   -133 nodes  69935 bestmove a1c1
+   clock  97: score   -103 nodes  27326 bestmove d1c1
+   clock  98: score   -112 nodes  18097 bestmove a1c1
+   clock  99: score      0 nodes    399 bestmove a1a2
+   clock 100: score      0 nodes      0 bestmove b2b3
+   clock 101: score      0 nodes      0 bestmove b2b3
+
+H2: does the EvalRule50Damp option change it?
+   clock 99 with default options: score 0 nodes 399 bestmove a1a2
+   clock 99 with ['EvalRule50Damp value true']: score 0 nodes 384 bestmove a1a2
+   clock 99 with ['EvalRule50Damp value false']: score 0 nodes 399 bestmove a1a2
+
+H3: is it depth dependent at clock 99?
+   clock 99 go depth  1: score 0 nodes 30 bestmove a1a2
+   clock 99 go depth  6: score 0 nodes 187 bestmove a1a2
+   clock 99 go depth 10: score 0 nodes 399 bestmove a1a2
+   clock 99 go depth 20: score 0 nodes 3478 bestmove a1a2
+   clock 99 go depth 30: score 0 nodes 17081 bestmove a1a2
+
+H4: is it present with UseNNUE false (i.e. is the net involved)?
+   clock 99 with UseNNUE value false: score 0 nodes 714 bestmove a1a2
+   clock 99 with UseNNUE value true: score 0 nodes 399 bestmove a1a2

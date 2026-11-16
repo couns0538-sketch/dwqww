@@ -84,6 +84,38 @@ At clock 99 the search returns 0 after 399-2279 nodes at depth 12 versus 14k-29k
 boards. The engine stops searching as if the root were terminal. That is consistent with a root-level draw
 test rather than the evaluation drifting to 0. I did NOT prove which check does it (see below).
 
+
+## Follow-up: the exact boundary and the mechanism (added after the first version of this report)
+
+`boundary.py` on the first board, clock 96..101, depth 10:
+
+| clock | score | nodes | bestmove | is it really a draw? |
+|---|---|---|---|---|
+| 96 | -141 | 69581 | d1c1 | no (clock < 100) |
+| 97 | -103 | 27326 | d1c1 | no |
+| 98 | -112 | 18097 | a1c1 | no |
+| 99 | **0** | **399** | **a1a2** | **no — 9 legal moves would reset the clock** |
+| 100 | 0 | 0 | b2b3 | yes by rule, but the game should never have reached clock 100 |
+| 101 | 0 | 0 | b2b3 | yes by rule |
+
+So the break is exactly at clock 99, one ply before the rule allows it, and at clock 100/101 the engine
+returns 0 nodes — a pure root shortcut.
+
+Mechanism tests (`rule50_hypothesis.py`, each toggling ONE thing on the same board at clock 99):
+- `EvalRule50Damp true` -> still 0 (384 nodes); `EvalRule50Damp false` -> still 0 (399 nodes).
+  So the damp option is NOT the cause.
+- depth 1 / 6 / 10 / 20 / 30 -> still 0 at every depth (30 to 17081 nodes). Not a depth horizon effect.
+- `UseNNUE false` -> still 0 (714 nodes). The net is not involved.
+Conclusion: a hard-coded draw test fires at clock 99, before the fifty-move rule can apply, and it fires
+regardless of the options that exist to control clock-dependent behaviour.
+
+**A bug in my own harness, found and fixed here.** My first version of `rule50_hypothesis.py` sent
+`position fen` BEFORE `ucinewgame`, so `ucinewgame` reset the board to startpos and every clock value
+returned the startpos answer (`d2d4`) with score 24. That looked like "the clock makes no difference".
+The file now sends `ucinewgame` first and carries a GUARD that exits 3 if the test board ever answers with
+a startpos move. The first (wrong) output is not kept as evidence; the corrected run is
+`rule50_hypothesis.txt` and its first line is the guard.
+
 ## Suspicions, not proven
 - The likely site is the root/leaf draw test: `src/search.cpp:1303-1315` has the comment "Checkmate on the
   hundredth half-move still wins; everything else is a draw" and `root_drawn` at `:2251` tests
