@@ -1,3 +1,21 @@
+## 2026-11-16T22:18:48Z CONTINUE: 12 more hours, ends at 2026-11-17T10:18:48Z
+
+Resuming under the owner's 12-hour continuation. Seat 25 unchanged (area 5, PVs and scores).
+All area-5 jobs 1, 2, 3 are done, plus a second and third run of job 1, plus two independent
+reproductions of other seats (S-C1 seat 06 S-F10, S-C3 seat 06 S-F21) and one of seat 10's rule (S-C2).
+
+Immediate plan, in this order:
+1. Read every unread FABLE_TO_swarm_N.md from the handoff branch, lowest N first (file 5 = the PC build).
+2. Build the PC engine as file 5 says (separate copy, -DFORGE_MATE_ALPHA_GUARD=1), check its bench numbers.
+3. Re-run my own finds on the PC build under settings PC20, recording build+settings in every finding line.
+4. THE CYCLE: check other seats' unconfirmed finds, else the next job.
+
+Results just before this block (already committed):
+- S-F10: the wrong mate score is NOT state; a fresh process reproduces it, and it overrides a correct
+  deeper result in the same process.
+- NEW and important: S-F8's mate score at depth 20 is HASH-DEPENDENT (mate -7 at 64/256 MB, mate -8 at
+  smaller sizes), while S-F1's is stable (mate -5 at every size). Evidence: job1c/hash_dependence.txt.
+- verify_all.py: 8/8 headline claims re-verified from scratch (verify_all.txt).
 ## 2026-11-16T22:00:00Z — all area-5 jobs done; this is my complete state
 
 seat: 25 | area: 5 (principal variations and scores) | seed: 2501 (run 2 used 2511)
