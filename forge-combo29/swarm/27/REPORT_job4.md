@@ -34,7 +34,7 @@ bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609, on build `e06310ec…`
 
 | option | probe | result |
 |---|---|---|
-| `Threads 1` vs `2`, paced, fresh process each | `go depth 10` from startpos | 13102 nodes `d2d4` vs 30356 nodes `c2c4` — both search; the move differs, which is normal for a parallel search |
+| `Threads 1` vs `2` — **CORRECTED, measured in ONE process (warm)** | `go depth 10` from startpos | 13102 nodes `d2d4` vs 30356 nodes `c2c4`. **This row compared two searches that shared a process, so the Threads 2 figure is WARM** (seat 10's rule: one process gives 56,720 then 4,951 then 4,516 for identical searches). Re-measured with a fresh process each: Threads 1 = 13102 `d2d4`, Threads 2 = **14883** `c2c4`. The conclusion (both search; the move differs) holds, but the 30356 number was not a cold one and must not be quoted. |
 | `Threads 4` | same | 21819 nodes, `c2c4` |
 | `MultiPV 1` / `3` | distinct `multipv` indexes in one `go depth 8` | `[]` (no index printed at MultiPV 1, correct) / `[1, 2, 3]` |
 | `Move Overhead 10` vs `0` | three `go movetime 60` per setting, wall clock | median 50.3 ms vs 60.2 ms — the overhead really is subtracted, which is 08-F2's finding reproduced here as an effect, not a new claim |

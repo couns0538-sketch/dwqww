@@ -95,10 +95,17 @@ def main():
     exe = os.path.realpath(a.exe)
     os.makedirs(a.outdir, exist_ok=True)
 
-    plain = run(exe, "go depth %d" % DEPTH)
-    all20 = run(exe, "go depth %d searchmoves %s" % (DEPTH, ALL20))
-    two = run(exe, "go depth %d searchmoves d2d4 e2e4" % DEPTH)
-    one = run(exe, "go depth %d searchmoves e2e4" % DEPTH)
+    # EACH SEARCH IS ITS OWN FRESH PROCESS (run() opens a new Popen and closes it per call -- verified
+    # by reading run() below, not assumed). Seat 10's rule is why that matters: two identical
+    # unrestricted searches in ONE process give 56,720 then 4,951 then 4,516 nodes, `ucinewgame`
+    # restores cold exactly while `Clear Hash` does NOT (a third value, 40,569). So a cold baseline is
+    # a fresh process or `ucinewgame`, never `Clear Hash`, and node counts must never be compared
+    # across searches that shared a process. This script has always used one process per row; the note
+    # is here so the property stays visible if anyone refactors it into a single session.
+    plain = run(exe, "go depth %d" % DEPTH)                      # fresh process
+    all20 = run(exe, "go depth %d searchmoves %s" % (DEPTH, ALL20))   # fresh process
+    two = run(exe, "go depth %d searchmoves d2d4 e2e4" % DEPTH)       # fresh process
+    one = run(exe, "go depth %d searchmoves e2e4" % DEPTH)            # fresh process
 
     same_as_plain = (all20["score"] == plain["score"] and all20["nodes"] == plain["nodes"]
                      and all20["bestmove"] == plain["bestmove"])
@@ -108,7 +115,8 @@ def main():
            "date_utc": subprocess.run(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"],
                                       capture_output=True, text=True).stdout.strip(),
            "plain": plain, "all20": all20, "two_moves": two, "one_move": one,
-           "all20_equals_plain": same_as_plain}
+           "all20_equals_plain": same_as_plain,
+           "process_policy": "one fresh process per search (no shared table between rows)"}
     with open(os.path.join(a.outdir, "all20_%s.json" % (a.label or "run")), "w") as f:
         json.dump(out, f, indent=2)
     print("%-14s plain cp %s / %s nodes / %s" % ("unrestricted", plain["score"][1],
