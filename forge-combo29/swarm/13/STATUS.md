@@ -95,3 +95,11 @@ WARM/COLD AUDIT after seat 10's rule:
   report are single-search values (56,720-style) or per-position cold values.
 Job3: engine perft 4+5 on 230 positions done (all OK); reference running, 1 shard left.
 Next command: cd forge-combo29/swarm/13/job3 && python3 compare.py raw_engine.txt raw_ref.txt all230.fens comparison.md 230
+
+## 2026-11-16T22:04:54Z
+
+DONE area 3 job 3: perft 4 AND 5 on 230 positions (200 R + first 30 of G).
+  460 pairs compared, 0 differing. Engine perft-5 total 4,380,654,195 nodes, 20.2 s.
+  Reference finished in 1301 s (my prediction wrongly said it would not finish - recorded in the report).
+  Report job3/REPORT_job3.md. Finding S-F3 added. Area 3 jobs 1, 2 and 3 are all complete.
+Next command: cd forge-combo29/swarm/13 && git log --oneline -1   # cycle: back to (a) look for unconfirmed findings
