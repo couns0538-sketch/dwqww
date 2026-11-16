@@ -113,3 +113,24 @@ Hash 2048 depth 4 multipv 1 score cp 30 nodes 404  time 3088 pv e2e4 e7e5 c2c3 c
 `nps` differ, by 134x. The engine does exactly the same search and spends 3 seconds clearing a transposition
 table it does not need to clear. That is what makes this a defect rather than a tuning question: all five
 `multipv` lines are emitted correctly in both cases, so the output is right and only the wall time is wrong.
+
+## on a real clock this becomes a STRENGTH loss, not just slowness — the serious form of S-F7
+
+PC build, Threads 1, OwnBook false, `go wtime 5000 btime 5000`, **three runs per cell**:
+
+| Hash | MultiPV | wall (ms) ×3 | depth actually reached ×3 |
+|---|---|---|---|
+| 16 | 1 | 143 / 445 / 146 | **16 / 18 / 16** |
+| 16 | 8 | 346 / 340 / 342 | 12 / 12 / 12 |
+| 2048 | 1 | 175 / 184 / 179 | 16 / 15 / 16 |
+| **2048** | **8** | 1204 / 1180 / 1180 | **1 / 1 / 1** |
+
+With five seconds on the clock, `Hash 2048` + `MultiPV 8` reaches **depth 1** — reproducibly, three out of three.
+The same engine with `Hash 16` + `MultiPV 1` reaches depth 16–18. So a GUI that leaves MultiPV above 1 and
+raises Hash for analysis does not merely get slow feedback: **its actual playing search collapses to depth 1**,
+because the per-line `tt.clear()` eats the whole clock budget. The wall time is only ~1.2 s of the 5 s available,
+which means the search is not even using its time: it is stuck clearing tables and reports depth 1 as its best.
+
+That is a much more useful statement for the owner than "it is 167x slower": the defect costs playing strength,
+not just patience. The GUI-side workaround is one option: **keep MultiPV at 1 when Hash is large**, or keep Hash
+small (16–64 MB) when MultiPV is above 1.
