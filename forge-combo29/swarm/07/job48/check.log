@@ -1,0 +1,38 @@
+sweep t = 11..60, ON vs OFF (switch only):
+  t= 11: ON ('d2d4', 412)   OFF ('c2c3', 133)   DIFFERS
+  t= 14: ON ('d2d4', 412)   OFF ('d2d4', 971)   DIFFERS
+  t= 15: ON ('d2d4', 412)   OFF ('d2d4', 971)   DIFFERS
+  t= 19: ON ('d2d4', 412)   OFF ('d2d4', 971)   DIFFERS
+  t= 20: ON ('d2d4', 412)   OFF ('d2d4', 971)   DIFFERS
+  t= 21: ON ('d2d4', 971)   OFF ('d2d4', 412)   DIFFERS
+  t= 31: ON ('d2d4', 412)   OFF ('d2d4', 971)   DIFFERS
+  t= 33: ON ('d2d4', 971)   OFF ('d2d4', 412)   DIFFERS
+  t= 36: ON ('d2d4', 412)   OFF ('d2d4', 971)   DIFFERS
+  t= 37: ON ('d2d4', 971)   OFF ('d2d4', 412)   DIFFERS
+  t= 38: ON ('d2d4', 412)   OFF ('d2d4', 971)   DIFFERS
+  t= 39: ON ('d2d4', 412)   OFF ('d2d4', 971)   DIFFERS
+  t= 48: ON ('d2d4', 971)   OFF ('d2d4', 412)   DIFFERS
+  t= 49: ON ('d2d4', 971)   OFF ('d2d4', 412)   DIFFERS
+  t= 57: ON ('d2d4', 6170)   OFF ('d2d4', 4121)   DIFFERS
+
+differing clock values: 15 of 50 -> [11, 14, 15, 19, 20, 21, 31, 33, 36, 37, 38, 39, 48, 49, 57]
+
+determinism, 5 fresh runs per cell on the differing values:
+  t= 11: ON stable=True {('d2d4', 971)}   OFF stable=True {('d2d4', 971)}
+  t= 14: ON stable=True {('d2d4', 971)}   OFF stable=True {('d2d4', 971)}
+  t= 15: ON stable=False {('d2d4', 412), ('d2d4', 971)}   OFF stable=False {('d2d4', 412), ('d2d4', 971)}
+  t= 19: ON stable=True {('d2d4', 971)}   OFF stable=False {('d2d4', 412), ('d2d4', 971)}
+  t= 20: ON stable=True {('d2d4', 971)}   OFF stable=False {('d2d4', 412), ('d2d4', 971)}
+  t= 21: ON stable=True {('d2d4', 971)}   OFF stable=False {('d2d4', 412), ('d2d4', 971)}
+  t= 31: ON stable=False {('d2d4', 412), ('d2d4', 971)}   OFF stable=False {('d2d4', 412), ('d2d4', 971)}
+  t= 33: ON stable=False {('d2d4', 412), ('d2d4', 971)}   OFF stable=False {('d2d4', 412), ('d2d4', 971)}
+  t= 36: ON stable=False {('d2d4', 412), ('d2d4', 971)}   OFF stable=False {('d2d4', 412), ('d2d4', 971)}
+  t= 37: ON stable=True {('d2d4', 971)}   OFF stable=False {('d2d4', 412), ('d2d4', 971)}
+  t= 38: ON stable=False {('d2d4', 412), ('d2d4', 971)}   OFF stable=True {('d2d4', 971)}
+  t= 39: ON stable=False {('d2d4', 412), ('d2d4', 971)}   OFF stable=False {('d2d4', 412), ('d2d4', 971)}
+  t= 48: ON stable=False {('d2d4', 412), ('d2d4', 971)}   OFF stable=False {('d2d4', 412), ('d2d4', 971)}
+  t= 49: ON stable=False {('d2d4', 412), ('d2d4', 971)}   OFF stable=True {('d2d4', 971)}
+  t= 57: ON stable=True {('d2d4', 6170)}   OFF stable=False {('d2d4', 4121), ('d2d4', 6170)}
+
+summary: OFF unstable at 11 of 15 values; ON unstable at 8
+EXIT=0
