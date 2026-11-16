@@ -335,7 +335,7 @@ calls `tt.new_search()`.
 - **Ruled out:** the tempting one-liner (replace `clear()`'s body with a generation bump) is 2.1x–4.9x faster but **moves bench 16 to 3,030,186** — a generation bump makes entries *old*, not *unprobeable*, which a 5-bit generation cannot express (30-C29/C30).
 
 ### My finds, with state
-1. **30-F48/C36/C37 + F47/C28/C31/C32** — the MultiPV/Hash item above. **Open** (needs a seat to confirm the patch). PC r15, PC20, Threads 1.
+1. **30-F48/C36/C37/C50 + F47/C28/C31/C32** — the MultiPV/Hash item above. Repair now **INDEPENDENTLY CONFIRMED by seat 20 (S-C35, 30-N2)**: its own builds and harness reproduced my figures **to the node** (71,070 and 106,863), the same instability at 256 MB, all four pins unchanged, and MultiPV 1 byte-identical (depth 17 / 288,912, 3 of 3). PC r15, PC20, Threads 1.
 2. **30-F25/F26/F28 + C25** — malformed `go nodes` line = **no node limit** (207,603,225 nodes, no move); repaired on the PC build, all three answering in 0.00 s under full PC20. **Open.** `NOTE_go_nodes_budget.md`: a harness must never send a node budget not validated as a positive integer.
 3. **30-C18/C19** — seat 20's 0-node answer: **CONFIRMED** (3/36 under load, Hash 2048/MPV 3).
 4. **30-C1/F7/F8** — halfmove-100 mate missed, side-blind: **CONFIRMED by seat 21 (21-C3)**; repaired on the PC build.
@@ -361,3 +361,9 @@ Reports: `REPORT_job2.md`, `REPORT_job3.md`, `REPORT_check1.md`, `REPORT_check2.
 **30-C39: the narrowed reproducibility claim now reads identically everywhere** — FINDINGS 30-C37/30-F50, the FINAL table and its reproducibility section, and the patch header. Verified by grep that no "14x"/"fourteenfold" figure survives anywhere in my folder, so the vivid number cannot be quoted back as exact. The claim: on identical runs the shipped build's DEPTH VARIES and node count varies up to ~9x (Hash 256 MB, 8 runs: depths {7,11}, nodes 5,395-47,818; 3-run sample {7,5,10}; union {5,7,10,11}), while the patched build gives depth 13 / exactly 106,863 nodes on 8 of 8.
 
 **Where the thread landed**: defect found and proved (95-141 ms per table clear, constant across 8 cells), tempting one-liner ruled out on the honesty gate, real one-statement fix measured (2.0-4.2x, raises the Hash ceiling 256 MB -> 512 MB, MultiPV 1 provably untouched), scope corrected twice, and reproducibility — the number that decides whether any measurement at those settings is valid — stated ahead of speed.
+
+## Mon Nov 16 11:37:34 PM UTC 2026
+
+**30-N2: the MultiPV repair is INDEPENDENTLY CONFIRMED — seat 20's S-C35**, its own builds (both with -DFORGE_MATE_ALPHA_GUARD=1) and its own harness, 5 fresh processes per cell. It reproduced my figures **to the node**: Hash 512 patched depth 12 / **71,070** nodes 5/5 (shipped depth 1 / 220); Hash 256 shipped depths **[11,11,11,7,11]** / nodes **[47,818x3, 5,395, 47,818]** — the same instability and the same range — vs patched depth 13 / **106,863** 5/5; all four honesty pins unchanged; and the control that matters, **MultiPV 1 byte-identical (depth 17 / 288,912, 3 of 3 each)**. I read its evidence file before recording it, and the confirmation (with its path) is now in the patch header. The FINDINGS item therefore moves from OPEN to CONFIRMED — it meets the brief's rule that a find counts when another seat confirms it with its own harness.
+
+**Next command**: continue the cycle toward 10:18 UTC — next board read for another seat's unconfirmed finding.
