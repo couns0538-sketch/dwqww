@@ -62,3 +62,13 @@ with hardened tooling; the report will carry the re-run numbers only.
 Job2 re-run in progress now (reference perft, 4 shards).
 
 Next command: cd forge-combo29/swarm/13/job2 && python3 compare.py raw_engine.txt raw_ref.txt special500.fens comparison.md 494
+
+## 2026-11-16T21:42:17Z
+
+DONE area 3 job 2 (re-run, valid this time): 494 special positions, perft 1..4.
+  1,976 pairs compared, 0 differing. Divide check: 0 of 494 root-move-set differences,
+  0 per-move-count differences, 0 class-property failures.
+  Report job2/REPORT_job2.md. Finding S-F2 added.
+  Coverage stated honestly: ep-exposing = 7 only (all that exist in the pool); the "rook destination
+  attacked" class cannot exist (same square as king transit) and is replaced by rook-PATH attacked (77).
+Next command: cd forge-combo29/swarm/13/job2 && python3 divide_check.py ~/b/rel/forge special500.fens special500.tsv /tmp/div
