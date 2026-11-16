@@ -327,3 +327,11 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   ones contain none. S-F23's "PC20 gives 0 of 27" therefore means "no truncation observed on that set under PC20", not
   "PC20 reduces a measurable rate to zero".
 - next command: amend S-F23's wording so the rate claim is bounded, then continue.
+
+## $(date -u)
+- S-F26 NEW: file 3's repetition repair CONFIRMED both ways with my own move lists, Threads 1, depth 10.
+  BASE (S14): 2nd occurrence searched (cp 37 / 12,997 nodes), 3rd occurrence cp 0 / 0 nodes / empty pv.
+  PC r15 (PC20): 2nd searched (cp 27 / 11,116), 3rd SEARCHED (cp 20 / 15,066). Control: same board as plain FEN
+  searches normally in both, so the base zero is the root-draw shortcut, not an unsearchable board.
+- S-F5's state note upgraded from speculation to measurement.
+- next command: continue the cycle; next is a 25-minute STATUS cadence check.
