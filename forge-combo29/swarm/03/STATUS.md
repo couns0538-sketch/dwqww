@@ -271,6 +271,16 @@ report implied in the other direction — the four cases I put forward as worst 
 remaining honest position is that the strict defect is demonstrated on **one** position (155) and my scan did **not**
 find others, with the caveat that the metric I used to look was broken.
 
+### METRIC LESSON, for the record (one line)
+
+**In a bare-king endgame the SHORTEST game over is the DRAW and the LONGEST is the LOSS — so any metric that scores
+"more plies survived" as better is inverted for exactly the position class where these defects live; score the
+RESULT (draw/win/loss via `is_insufficient_material()`, `is_checkmate()`, `is_game_over()`), never the ply count.**
+
+This is what cost me S-F23, S-F25 and S-F26: `plycost.py` counted plies to game over and preferred the longer line,
+which made the engine's forced draws look like the worst moves and the alternatives that lost look best. Reproduce the
+trap: `python3 -c "import chess; b=chess.Board('8/8/8/8/8/4Kp2/8/5k2 w - - 0 14'); b.push_uci('e3f3'); print('draw:', b.is_insufficient_material())"`
+
 ### Area 3 — move generation (all CONFIRMED elsewhere where marked)
 
 | id | claim | state | build / settings |

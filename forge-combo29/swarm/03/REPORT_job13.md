@@ -1,5 +1,10 @@
 # REPORT — seat 03, job 13: the drawn-root test, and a correction that refutes my own S-F23
 
+> **METRIC LESSON (read this before measuring any endgame): in a bare-king ending the shortest game over is the DRAW
+> and the longest is the LOSS.** Score the result — `is_insufficient_material()` / `is_checkmate()` /
+> `is_game_over()` — never the ply count. Counting plies inverted the sign for exactly the population this job was
+> measuring, and cost S-F23, S-F25 and S-F26.
+
 **What was asked.** Rebuild with the drawn-root fix off, re-run the four positions at `go nodes 20000`, and report
 whether the chosen move changes. If it does, the drawn-root adjudication is the cause; if not, the hypothesis is
 refuted.
