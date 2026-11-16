@@ -364,3 +364,10 @@
 - LEARNED: prediction 1 wrong again (the rise survives the eval split) - the third prediction miss in a
   row where the true variable was a MIXING variable I did not put in the model. Before predicting a rate's
   shape, list the variables that could mix the population and make sure each has a split.
+
+## after cross3, 2026-11-16T11:5xZ (exact line in stamps.txt)
+- CROSS-CHECK 3 done: the partner's job-15 Step-1 sums (histoff 12,537,494; futoff 12,668,896; HPM 4096
+  12,541,810) EQUAL my own committed runs of the same three settings (job 22 part C and job 19 B3) to
+  the node - three settings, two helpers, two builds, one tree. No new engine time: the rows were already
+  committed. Its two-seed pools (histoff +3.9 touching zero; futoff -13.5 below zero) and my curve data
+  (history flat-in-k with the top rate; futility falling-in-k with the worst drops first) point the same way.
