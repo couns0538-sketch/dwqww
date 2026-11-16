@@ -191,3 +191,22 @@ RUNNING
 
 NEXT
 - Finish mid-search stress; write the findings table with a GUI-reachability column.
+## 2026-11-16T22:54Z (block 12)
+
+seat 17 | area 7 + softnodes + budget sensitivity | Threads 1 | branch for-fable-and-opus/swarm-17
+
+DONE
+- Budget sensitivity (independent check of the other seat's 100-position run): 10 G positions, PC r15/PC20,
+  Threads 1, at go nodes 20000 / 50000 / 250000: 9 of 10 keep the same bestmove, 1 changes
+  (position 6 `2r4r/pp4k1/...` : c8c3 at 20000, d6e6 at 50000 and 250000; score cp 7 -> cp 16 -> cp 37).
+  So the three budgets are mostly the same player and the exception is real.
+- Mid-search setoption stress, 13 switches x 2 go forms = 26 cases on the PC ASan build: all legal bestmove,
+  readyok, 0 sanitizer lines, including Threads 256. HistRework 9 correctly refused and clamped.
+  Observation: setoption mid-search emits bestmove BEFORE readyok in 12/12 cases.
+- My 4th harness bug recorded: the first version swallowed the bestmove while waiting for readyok and
+  reported 12 false hangs. Fixed by inspecting every line consumed during the wait; false run kept in
+  pc/midsetopt2/ so the error is visible.
+- FINDINGS_TABLE.md updated with the two new rows (budget sensitivity, mid-search setoption).
+
+NEXT
+- Keep the table current; next area work on the PC path (clock 6s+0.06, go nodes 20000) as file 6 ranks it.
