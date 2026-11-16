@@ -175,3 +175,10 @@ seed: 1601
   the other three are inert at depth <=2 but verified active at depths 6-8. REPORT_pcsym.md.
 - next: extend the PC20 symmetry sweep to depth 10 (the 353-pair level) and re-run my base-tree finds on the
   PC build under PC20 as file 5 asks.
+
+## 2026-11-16T22:42Z
+- S-F14: full 353-pair depth-10 sweep on the PC build under PC20, Threads 1. Asymmetry WORSE than base:
+  120/353 bestmove mismatch (base 101), 0/353 node-equal (not one pair), score-equal 22 (base 19).
+  109/353 positions disagree about whether the pair matches -> different asymmetric paths, not the same ones.
+  Threads-1 reproducibility 30/30 exact. REPORT_pcsym10.md.
+- next: split PC-code effects from PC20-settings effects (base tree under PC20, PC build under S14 only).
