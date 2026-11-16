@@ -1,45 +1,71 @@
-# Patches from seat 27 — and how to combine them with seat 12's patch without a silent miss
+# Patches from seat 27 — how to combine them with seat 12's patch
 
-## READ THIS FIRST: the two patches touch the same block, and the path prefixes differ
+## THE CORRECTION (found by seat 12; my earlier "one order only" was wrong)
 
-Seat 12's `two_doors_mate.patch.txt` and my `job1/drawn_root_reporting.patch.txt` **rewrite the same block**
-of `src/search.cpp` (the drawn-root adjudication around lines 2248–2270). They do compose, but only in one
-order and only if each is applied from the right directory — **the two patch files use different path roots**:
+**Order does not matter. The `-p` level does.** Seat 12 tested this on a clean `6b98f217` worktree in both
+orders and got a **byte-identical** `src/search.cpp`, sha256
+`24912a43d315243f2f9dcb0ea032e7160633b99483c0a5e26541e870b2a26671`. I re-ran both orders independently and
+reproduce that sha256 exactly (see "What I verified" below).
 
-- seat 12's hunks name `a/forge-combo29/src/search.cpp` → apply with `-p1` **from the directory that contains
-  `forge-combo29/`**
-- my hunks name `a/src/search.cpp` → apply with `-p1` **from inside `forge-combo29/`**
+The two patch files were generated from **different directories**, so each needs a different `-p` level:
 
-Get that wrong and `patch` prints `Skipping patch. 1 out of 1 hunk ignored` — it does *not* half-apply, so you
-will not get a corrupted tree, but a script that ignores exit codes will think it succeeded. **Check the exit
-code of every `patch` call.**
+| patch file | its hunk header names | correct invocation |
+|---|---|---|
+| seat 12's `two_doors_mate.patch.txt` | `a/forge-combo29/src/search.cpp` | `-p1` **from the repo root**, or `-p2` **from inside `forge-combo29/`** |
+| seat 27's `job1/drawn_root_reporting.patch.txt` | `a/src/search.cpp` | `-p1` **from inside `forge-combo29/`** only |
 
-### The exact sequence (verified twice, sha256 reproduces)
+Using one flag for both is what fails. Naively running `-p1` for both from inside `forge-combo29/` gives
+`Skipping patch. 1 out of 1 hunk ignored` for seat 12's — **that** is what produced my "reverse order fails"
+reading, not the order. **Check every `patch` exit code**; `patch` prompts/skips rather than half-applying, so a
+script that ignores the code will believe it succeeded.
 
-From a clean tree at base commit `6b98f217`:
+### The sequence (either order; this one is what I verified)
 
 ```bash
-# 1. seat 12's patch FIRST, from the directory that CONTAINS forge-combo29/
-cd <dir-containing-forge-combo29>
-patch -p1 < seat12/job1/two_doors_mate.patch.txt          # must exit 0
-#    (it also applies as -p2 from inside forge-combo29/, but -p1 from the parent is what I verified)
+# working from a clean tree at base commit 6b98f217
 
-# 2. seat 27's drawn-root patch SECOND, from INSIDE forge-combo29/
+# 1. seat 12's patch, from the repository root (its hunks name forge-combo29/src/...)
+cd <repo-root>
+patch -p1 < seat12/job1/two_doors_mate.patch.txt           # must exit 0
+
+# 2. seat 27's drawn-root patch, from inside forge-combo29/ (its hunks name src/...)
 cd forge-combo29
-patch -p1 < seat27/job1/drawn_root_reporting.patch.txt    # must exit 0
-#    patch reports: "Hunk #1 succeeded at 2275 (offset 19 lines)" — an offset, no fuzz, no failed hunk
+patch -p1 < seat27/job1/drawn_root_reporting.patch.txt     # must exit 0
 
-# 3. the two other seat 27 patches are independent of that block and can go in any order
-patch -p1 < seat27/job2/clear_hash.patch.txt              # must exit 0
-patch -p1 < seat27/job3/halfmove_clock.patch.txt          # must exit 0
+# 3. the two other seat-27 patches are independent of that block; any order
+patch -p1 < seat27/job2/clear_hash.patch.txt               # must exit 0
+patch -p1 < seat27/job3/halfmove_clock.patch.txt           # must exit 0
 ```
 
-**Reverse order fails**: my patch first, then seat 12's, gives `1 out of 1 hunk ignored` because my change
-removes the loop their hunk context expects. So: **seat 12 first, always.**
+**The reverse order works too** — my patch first from inside `forge-combo29/`, then seat 12's from the repo
+root — and produces the same file. If you prefer a single working directory, run seat 12's with `-p2` from
+inside `forge-combo29/` instead of `-p1` from the root; both are equivalent and both verified.
 
-### Resulting tree, and the sha256 to compare against
+## What I verified myself (after seat 12's correction)
 
-Built with `cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++`, `cmake --build . -j4`:
+On a clean `6b98f217` archive, each patch at its own correct level:
+
+| order | seat 12 exit | seat 27 exit | sha256 of `src/search.cpp` |
+|---|---|---|---|
+| seat 12 first, then mine | 0 | 0 | `24912a43d315243f2f9dcb0ea032e7160633b99483c0a5e26541e870b2a26671` |
+| mine first, then seat 12 | 0 | 0 | `24912a43d315243f2f9dcb0ea032e7160633b99483c0a5e26541e870b2a26671` |
+
+Both orders: **byte-identical**, matching seat 12's number. And `patch -p1` for seat 12 *from inside*
+`forge-combo29/` fails with `1 out of 1 hunk ignored` — reproducing the trap, and confirming it is the flag and
+not the order.
+
+All of this is re-runnable, not prose — it prints every exit code:
+
+```bash
+bash forge-combo29/swarm/27/verify_patch_order.sh 6b98f217 \
+     <seat12>/job1/two_doors_mate.patch.txt \
+     forge-combo29/swarm/27/job1/drawn_root_reporting.patch.txt
+```
+
+Its output on my machine: ORDER A sha `24912a43…`, ORDER B sha `24912a43…`, `TRAP seat12 -p1 from INSIDE
+forge-combo29 rc=1`, `TRAP seat12 -p2 from INSIDE rc=0`, verdict PASS.
+
+### The tree sha256 and what it does and does not prove
 
 | tree | forge sha256 |
 |---|---|
@@ -47,8 +73,8 @@ Built with `cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++`, `cmake -
 | seat 27's three patches alone | `d3f1a40fbae0593e3da3ad56d55b9c5938e33e4876639f7172de1070dd7cb53a` |
 | base `6b98f217` | `e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83` |
 
-A different compiler or flags will give a different sha256 — **the sha256 proves *my* builds were the same as
-each other, not that yours is correct. The assertion below is what proves the composition took.**
+A different compiler or flags gives a different exe hash — **the exe sha256 proves my builds matched each other,
+not that yours is right. The source-file sha256 above and the assertion below are what prove the composition.**
 
 ### The one-position assertion a merger can run
 
@@ -56,22 +82,17 @@ each other, not that yours is correct. The assertion below is what proves the co
 bash forge-combo29/swarm/27/assert_composition.sh <path-to-your-forge>
 ```
 
-It searches `6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 100 60` — a fifty-move-clock root (clock 100) where White has
-**Ra8#**. The three states are cleanly separated:
+Searches `6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 100 60` (clock 100, White has **Ra8#**). Exit 0 = PASS:
 
 | tree | bestmove | score | info lines | assertion |
 |---|---|---|---|---|
 | base, no patch | `f2f3` | cp 0 | 8, every pv **empty** | **FAIL** |
-| seat 27's drawn-root patch **alone** | `f2f3` | cp 0 | **1** (was 8) | FAIL (correctly: seat 12's is not in) |
+| seat 27's drawn-root patch **alone** | `f2f3` | cp 0 | **1** (was 8) | FAIL (seat 12's is not in — correct) |
 | seat 12's patch (with or without mine) | **`a1a8`** | **mate 1** | 8, real pv | **PASS** |
 
-So `PASS` means seat 12's mate scan is in and the search really ran; the `info lines` figure tells you whether
-my reporting change is in as well when you run it on a drawn root with no mate available. Exit code is 0 on
-PASS and 1 otherwise — wire it into your merge script and ignore the sha256 if you like.
-
-**Why the clock-100 case is the right canary:** on base the engine adjudicates the root as a fifty-move draw and
-returns `cp 0` with an empty pv, hiding a mate in one. Seat 12's patch scans the children for a mate before
-trusting the claim. If your tree still says `f2f3`, their patch did not land.
+On base the engine adjudicates the root as a fifty-move draw and returns `cp 0` with an empty pv, hiding a mate
+in one. If your tree still says `f2f3`, seat 12's patch did not land. All three rows above were measured, not
+inferred.
 
 ---
 
@@ -102,5 +123,5 @@ Raw: `honesty/`, `job6/honesty_all3/`, `job6/honesty_integ/`, `job6/honesty_fina
 - **No speed change is claimed.** Node counts are identical on all four honesty checks.
 - Patch 3 is seat 01's finding, not mine (S-C3); my contribution is the independent confirmation on the release
   build plus this patch.
-- The composition result is **seat 12's finding plus my measurement** — they own the mate scan; I only verified
-  the two do not collide.
+- The composition result is **seat 12's finding plus my measurement** — they own the mate scan, and they found
+  and corrected the instruction error described at the top of this file.

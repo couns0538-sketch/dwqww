@@ -54,7 +54,10 @@ bench 11 = 312866, bench 13 = 862329, bench 16 = 3024920, perft 5 = 4865609 — 
 - **Apply seat 12's patch with `-p2` from the repository root**, mine with `-p1` from `forge-combo29/`.
   With `-p1` seat 12's patch fails cleanly (`Skipping patch. 1 out of 1 hunk ignored`) — it does not
   half-apply, which is good, but a script that assumes one prefix will silently skip it.
-- Order matters for the offset only, not for correctness: seat 12 first then mine gives an offset of 19
-  lines; mine first then seat 12's fails (their hunk context no longer matches). **So: seat 12 first.**
+- **CORRECTION (seat 12 found this; my original text here was wrong): order does not matter.** Both orders
+  succeed and give a byte-identical `src/search.cpp`, sha256 `24912a43d315243f2f9dcb0ea032e7160633b99483c0a5e26541e870b2a26671`.
+  My claim that "mine first then seat 12's fails" came from running seat 12's patch at the wrong `-p` level
+  (`-p1` from inside `forge-combo29/`, where it needs `-p2` or `-p1` from the repo root). The real constraint is
+  the `-p` level per patch, plus checking every exit code. See PATCHES.md at the top of my folder.
 - Take seat 12's patch on its own merits (it is their finding and their test); I am reporting only that
   the two do not collide and that the combination is better than either alone on the clock-100 case.

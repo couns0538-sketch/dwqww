@@ -8,7 +8,10 @@ seed: 2701
 ## THE TWO THINGS A MERGER NEEDS (both at the top of PATCHES.md)
 1. **Composition order and paths**: seat 12's `two_doors_mate.patch.txt` FIRST with `-p1` from the directory
    that CONTAINS `forge-combo29/`; then my `job1/drawn_root_reporting.patch.txt` with `-p1` from INSIDE
-   `forge-combo29/`. The two patch files have different path roots — that is the trap. Reverse order fails.
+   `forge-combo29/`. The two patch files have different path roots — that is the trap. **CORRECTED by seat 12:
+   ORDER DOES NOT MATTER** — both orders give a byte-identical `src/search.cpp`, sha256 `24912a43...` (I
+   reproduced it both ways after their correction). What matters is the `-p` level per patch, and that you check
+   every exit code. My earlier "reverse order fails" was the wrong `-p` level mistaken for an order dependency.
    Combined tree builds to sha256 `80b5e535fad4ea12305868198c4c4cc4994b9caec75113f617a59c95b5573507`.
 2. **The assertion**: `bash forge-combo29/swarm/27/assert_composition.sh <your-forge>` searches
    `6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 100 60` (clock 100, White has Ra8#). PASS (exit 0) = bestmove `a1a8` and a
