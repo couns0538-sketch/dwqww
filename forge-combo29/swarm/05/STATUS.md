@@ -403,3 +403,15 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   plateaus, deterministic on every cell. At N=2000 base vs PC: startpos 1.75x vs 2.06x, G0 1.00x vs 1.24x, middlegame
   1.03x vs 1.15x. At N=10000 the PC build is cheaper on 2 of 3 boards and dearer on 1.
 - next command: continue the cycle on the PC's real path — `go nodes` 20000/50000/250000 determinism, per file 6.
+
+## $(date -u) — POSITION AFTER FILE 6
+- WITHDRAWN as defects under file 6: S-F3, S-F4, S-F16 (fifty-move cp 0 where no mate fits the counter budget) and
+  S-F11/F13/F14/F15/S-F20 demoted to DESCRIPTIONS of where the draw verdict lands. Recorded as S-W1/S-W2 with the
+  inequality and both numbers, as file 6 requires.
+- STILL STANDING (unaffected by file 6, they are about PV length vs score, not draws): S-F1/S-F9/S-F17/S-F19/S-F21/
+  S-F27/S-F28/S-F29/S-F30 — the mate-PV truncation, now with a supported cause (a depth-limited effect at |N| >= 10,
+  reproduced across a depth sweep on both builds).
+- NEW from file 6's suggested area: S-F31/S-F32/S-F33 — `go softnodes N` is deterministic on all 21+16 cells,
+  stops at a finished depth, and overshoots N by 1.00x..2.37x, QUANTISED by the depth ladder, on BOTH builds.
+- S-W3: withdrew my own false nondeterminism claim (probe compared wall-clock nps/time).
+- next command: `go nodes` 20000/50000/250000 determinism on the PC build under PC20, Threads 1.
