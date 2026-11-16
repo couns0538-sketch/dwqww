@@ -54,9 +54,11 @@ Prints the per-position table and the aggregate. Raw output: `out/scaling.txt` (
 
 - **10 positions, one build, one clock size (6 s).** The exponent 0.494 is fitted through three points; a fourth
   (e.g. 24 s increment) would test it further and I have not run it.
-- The clock is held at 6 s throughout. I did **not** test whether the same sqrt law holds at a different clock size —
-  my S-F39/S-F40 show the clock itself matters less than the increment, which is why the increment was the right
-  variable, but the interaction is unmeasured.
+- **The clock is held at 6 s in the table above, and I then found the law is clock-DEPENDENT.** Repeating the two
+  increments at a 2,000 ms clock gives a **5.7x** jump (64 -> 367 ms, depth 17 -> 23) instead of 2.50x, i.e. an exponent
+  of 0.758 rather than 0.494. So S-F51's "sqrt law" is specific to a 6-second clock, and **an increment increase buys
+  MORE when the base clock is smaller**. Anyone quoting the exponent must quote the clock size with it. Evidence:
+  `out/law_at_2s_clock.txt`.
 - No cause is claimed. I did not read the time manager, so I cannot say which constant produces the sqrt.
 - p90 and max are nearest-rank over the 50 runs per column; the protocol (fresh process, monotonic clock, read to
   `bestmove`) is the same one that produced S-F37–S-F49.
