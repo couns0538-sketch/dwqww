@@ -233,3 +233,93 @@ The TT is what every worker touches, so I hammered exactly that: Hash **1 MB**, 
 Also a second pass at Hash 16 MB / depth 16 / T8,T16: 0/8.
 TOTAL across my TSan work on the PC build: 31 searches, 0 reports — threads 1/2/4/8/16, depths 10-18,
 hash 1-16 MB, 7-32 pieces, positive planted control at every thread count used.
+
+## 2026-11-16T23:17:56Z FINAL — seat 04, area 4 (threads and sanitizers), 12-hour run
+
+Builds used, named in every finding line: **base 6b98f217** (`/home/ubuntu/builds/rel/forge`, sha256 in
+`honesty/meta.txt`) and **PC r15** (file 5's patch, sha256 verified d6bd72c531f785f4, applied with `patch -p1`
+in a separate copy, built with `-DFORGE_MATE_ALPHA_GUARD=1`). Settings named as none / S14 / PC20 throughout.
+Sanitizer builds: base and PC under `-fsanitize=thread -O1 -g`, `nm __tsan_` = 21 on each.
+Honesty pins on the base build: 312866 / 862329 / 3024920 / 4865609, all four match.
+PC build numbers: pins 312866/862329/3024920/4865609, S14 242796/656517, PC20 278024/587276 — all seven match.
+
+### 1. TSan breadth and the shared table (the strongest result of this run)
+- **04-F24** — 13 positions spanning 7..32 pieces, **Threads 8**, PC build, PC20: **0 reports in 13 searches**.
+  Planted control at Threads 8: 3 reports. (Open.)
+- **04-F26** — the shared TT under **maximum eviction pressure**: Hash **1 MB**, Threads **8 and 16**,
+  `go depth 18`, walls 5.8-40.2 s, 4 positions: **0 reports in 8 searches**; planted control 3 reports at both
+  thread counts. A second pass at Hash 16 MB / depth 16 / T8,T16 was also 0/8. (Open.)
+- **04-F22** — first sanitizer pass on the PC build: 0 reports in 10 searches at Threads 1/2/4/8. (Open.)
+- Combined: **31 TSan searches on the PC build, 0 reports** — threads 1/2/4/8/16, depths 10-18, hash 1-16 MB,
+  7-32 pieces, with a positive planted control at **every** thread count used.
+- **04-F25** — the inference: the multi-thread score variance is **not a data race**, it is timing-dependent
+  shared-table content. Caveat kept explicitly: TSan sees instrumented code only; I discharged the specific SIMD
+  risk by showing the vector stores write per-worker accumulators (`search.hpp:442,507`) and the shared net is
+  only replaced after `stop_search()` (`uci.cpp:390-391`). (Open, and as strong as TSan allows.)
+
+### 2. Score-variance guidance for anyone who tunes on this machine
+- **04-F12** — survives file 6's D5 only: 20 one-thread runs at each depth 12..16 gave **one identical score per
+  depth** (band width **0**), while Threads 4 fell outside it at **all five** depths, deviation
+  **26/44/22/22/48 cp**, not shrinking with depth. D1/D2/D3 clean.
+- **04-F13** — the practical rule, from measured noise on ordinary positions: sd **17.5 cp**, worst 48 cp, so
+  **10 cp needs 48 runs per arm, 20 cp needs 12, 30 cp needs 6**; one run per arm resolves nothing under ~48 cp.
+  **Tune at Threads 1**, where this engine is bit-reproducible and the question disappears.
+- **04-F19/F21** — the quit/EOF fabrication (19-F12) is **not** fixed by r15, and it is reachable on the match
+  path (`go nodes 20000` + immediate quit -> `a2a3`, 0 info lines). **The window is 0 ms**: quit at 1 ms gives a
+  real search. So it is a **documentation item** — never pipe a whole script into the engine — not a defect in
+  play. The owner's match programs are not exposed.
+- **04-F20** — the "explosion" on PC20: T1 75,311 nodes / 0.030 s identical 6/6 versus T4 up to 125.4 M nodes
+  and 7.13 s (**238x** the one-thread time). Fails file 6's 10x *time* criterion without being a literal hang;
+  both readings stated. Threaded-use hazard only; bestmove never varied.
+
+### 3. The node-budget procedure for the owner's matches
+- **04-F16** — exact rule: `go nodes N` finishes the iteration it is in. Budget **equal to a boundary uses 100%**
+  of itself; one node below drops a whole iteration (19,831 -> 9,155 work; 19,832 -> 19,832).
+- **04-F17** — a fixed round budget **cannot** work: boundaries at/above 20,000 span **20,283-38,996 (1.92x)**;
+  at 50,000 they span **53,570-173,222 (3.23x)**. Sending B = 20,000 starves **10 of 10** positions by a whole
+  iteration (18-65% of their work).
+- **04-F18** — **family grouping does not help**: within-family spread 1.76x-2.02x versus 2.04x across all 30.
+- **04-F14/F15** — `go nodes` always **undershoots** (0.61x-0.99x, stops at a finished iteration);
+  `go softnodes 2000` **overshoots** to 1.34x. Both deterministic.
+- **One page for him: `job3/HOWTO_node_budgets.md`** — the printf command to read a position's boundaries, how to
+  pick the at-or-above one, how to feed it to a match script, and the three scripts that do it.
+
+### 4. THE SANITIZER-FLAGS TRAP — read this before building a sanitized PC binary
+- **04-F23** — `-DCMAKE_CXX_FLAGS="-fsanitize=thread -g -O1"` **REPLACES** the
+  `-DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1` the PC build requires. The resulting exe answers
+  `info string unknown option MateAlphaGuard`, so **PC20 cannot be sent to it at all** and any "PC20 measurement"
+  on it measured nothing. The define must go **inside the same CMAKE_CXX_FLAGS string**:
+  `-DCMAKE_CXX_FLAGS="-fsanitize=thread -g -O1 -DFORGE_MATE_ALPHA_GUARD=1"`. Verify both with
+  `nm -C forge | grep -c __tsan_` (expect 21) **and** `./forge <<< uci | grep -c MateAlphaGuard` (expect 1).
+  I lost time to this myself; it will cost anyone else the same hour.
+
+### 5. The PC's real paths, clean
+- **04-F27** — the strength-match clock path (6 s + 0.06, Threads 1, PC20): **two full 40-move games, 0
+  problems**, every move legal and inside its time, depths 16-24 and 18-30, clocks never run down.
+- **04-F15** — `go softnodes 2000` deterministic 10/10 (g7g6, -306, depth 7, 2,671 nodes).
+- **04-F26/F24** — no race on any path tested at up to 16 threads.
+
+### What I got wrong, and where it is written down
+- **04-F10a — WITHDRAWN.** I framed a varied *move* above Threads 1 as raising severity. File 6 says that is
+  design; every move chosen was legal. Kept as an observation only.
+- **04-C4 — a false defect I caught before filing.** My first `isready`-during-search test said both builds hung
+  (3/3 at 45 s). It was my harness: the running search's `bestmove` arrives **in the same read batch as
+  `readyok`**, and my code then waited for a second bestmove. Fixed; corrected result is harmless on both builds,
+  confirming 19-F14. I did not file the false version.
+- **04-F17 was lost once** to a shell backtick expansion and silently missing from this file for a while; it is
+  restored above from the committed raw data, and I verified the ids by script rather than by eye.
+
+### Honest limits
+- Every TSan zero is bounded by instrumented-code coverage (see 04-F25's caveat).
+- The score variance is characterised, **not fixed** — no patch is offered and none was attempted, per instruction.
+- Threads 16 in the original job-1 sweep is incomplete (18/100); it was stopped deliberately so timing work ran on
+  a quiet machine, and the later TSan passes cover 16 threads properly.
+- All results are from a 4-core machine with the built-in evaluation. The PC's own trained net is not shared, so
+  evaluation-dependent results remain questions for the PC.
+- No engine source was changed in the repository; no patch is committed; no pull request was opened.
+
+### Files
+`FINDINGS.md` (32 lines: 04-F1..F27, 04-C1, 04-C1b, 04-C2, 04-C4, plus the withdrawn 04-F10a),
+`REPORT_job1.md`, `job2/REPORT_fixednodes.md`, `job3/HOWTO_node_budgets.md`, `job4/REPORT_quit_path.md`,
+`PC_BUILD.txt`, and raw JSONL under `job1/hang/`, `job2/raw/`, `job3/raw/`, `job4/raw/`, `job5/raw/`,
+`job6/raw/`.
