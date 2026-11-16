@@ -205,3 +205,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
   Direct bench run reproduced their exact total: 285,437 hits, 265,609 in slot 0 = 93.06%, 0 gen writes. Mine reads 96.0% because my run is PC20.
 - CONSEQUENCE FOR MY OWN PATCH: bench concentrates hits on slot 0, so a slot-0 optimisation is flattered by bench and NOT transferable to real games. That is a direct caveat on my 29-F12/F14 story and I have recorded it.
 - next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29 slots: confirm 19-F19 and record the consequence for my own patch' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 11:21:32 PM UTC 2026
+- 29-F34 picker split on the PC build under PC20 (bench 13, Threads 1, exact callgrind instructions, denominator = PROGRAM TOTALS): scoring 102,907,864 = 2.91%, selection 27,060,838 = 0.77%, dispatch 21,943,328 = 0.62%, generation 896,256 = 0.03%. Scoring costs 3.8x selection; the biggest single line is the stage switch (0.62%), then the two continuation-history reads and the main history read.
+- Two harness bugs of mine caught in this job and fixed: (a) callgrind_annotate with --auto=yes repeats every line across sections so my attributed sum was 13.6B against a 3.5B total - switched to --auto=no; (b) I was dividing by the SUM OF PICKER ROWS instead of PROGRAM TOTALS, which inflated every share ~4x. Both now guarded (the script ABORTS if PROGRAM TOTALS is missing).
+- next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29 slots: picker stage split on PC20 (F34)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
