@@ -1,0 +1,16 @@
+PREDICTION — seat 15, area 5, job 3 (checkmated and stalemated roots), committed BEFORE measuring.
+Build: ASan + UBSan Release-ish (-O1 -g). The sanitizer proofs are produced FIRST (nm count + planted
+fault counted by the same runner); if either proof fails, the whole job is "not shown".
+
+10 checkmated root positions + 10 stalemated root positions (python-chess verified), each with
+`go depth 5`, `go nodes 100`, `go movetime 50` = 60 searches.
+
+P1  every answer is exactly `bestmove 0000` (all three go kinds, all 20 positions).  KILLS P1: any other move.
+P2  no info line is printed at all before bestmove (no depth line, no score).    KILLS P2: any info line.
+P3  0 sanitizer lines across all 60 searches.                                   KILLS P3: any ASan/UBSan report.
+P4  the `go movetime 50` variant never takes longer than 500 ms of wall time.    KILLS P4: any > 500 ms.
+P5  exit codes are 0 for all 60.                                                KILLS P5: any non-zero.
+
+Reasoning: a terminal root has no legal move, so a correct engine must return 0000 immediately without
+searching; the only real risks are a stale "no legal moves" path and a sanitizer complaint from the
+move generator touching an empty move list.
