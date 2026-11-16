@@ -1,0 +1,16 @@
+THE CHAIN, from the trace itself:
+
+SELF order   : e6d5(1) e6d6(1) e6f6(2) e6d7(1) e6e7(1) e6f7(1)   -> e6f7 is 6th
+MIRROR order : e6d7(1) e6e7(1) e6f7(2) e6d6(1) e6f6(2) e6d5(1)   -> e6f7 is 3rd
+
+Every node count is identical move-for-move EXCEPT e6f7: 1 on self, 2 on mirror.
+e6f7 is searched 6th on self and 3rd on mirror, so a different amount of the
+transposition table has been filled when it runs - and its qsearch node count differs by exactly 1,
+which is the signature of a TT hit in one case and a miss in the other.
+
+WHY THE ORDER DIFFERS even though all picker scores were 0:
+  all picker scores are 0 at the first root visit -> std::sort's comparator `a.score > b.score`
+  returns false for every pair -> the resulting order is whatever the input order was.
+  input order = the move generator's emission order, which S-F41/variant-H proved differs
+  under a colour mirror. So: all-tied scores + unstable sort + mirror-varying emission order
+  = different root order = different TT contents = a 1-node difference.

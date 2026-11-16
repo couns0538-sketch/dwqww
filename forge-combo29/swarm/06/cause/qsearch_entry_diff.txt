@@ -1,0 +1,27 @@
+Comparing the two nodes that get different qsearch counts (2 vs 1):
+
+SELF (black to move, after e6f7):
+  FEN: 1r6/5K2/8/5p2/5k2/7p/8/8 b - - 1 1
+  halfmove clock: 1
+  in_check: False | legal: 22
+  is_insufficient_material: False
+  can_claim_draw: False | is_repetition: False
+
+MIRROR (white to move, after e3f2):
+  FEN: 8/8/7P/5K2/5P2/8/5k2/1R6 w - - 1 2
+  halfmove clock: 1
+  in_check: False | legal: 22
+  is_insufficient_material: False
+  can_claim_draw: False | is_repetition: False
+
+KEY DIFFERENCES the engine can see:
+  halfmove clock     self=1 mirror=1  SAME
+  in check           self=False mirror=False  SAME
+  legal moves        self=22 mirror=22  SAME
+  insufficient       self=False mirror=False  SAME
+
+The halfmove counter is 0 on both (FEN field 5 is 0), so the fifty-move path is out.
+Full FEN comparison of the two plies:
+  self  : 1r6/5K2/8/5p2/5k2/7p/8/8 b - - 1 1
+  mirror: 8/8/7P/5K2/5P2/8/5k2/1R6 w - - 1 2
+  mirror mapped to self frame: 1r6/5K2/8/5p2/5k2/7p/8/8 vs 8/8/7P/5K2/5P2/8/5k2/1R6
