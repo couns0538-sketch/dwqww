@@ -419,3 +419,9 @@ stamps.txt
 lmrdead.cpp
 run.txt
 stamps.txt
+
+## 2026-11-16T22:18:05Z
+job25 done -- 07-F2 WITHDRAWN. The coordinator's tuning-record search came back the other way: forge-combo29/REPORT_r3_03.md is a full report on LmrSignedCorrection, and it refutes me. Quoted at line 87: 'A one-ply step needs 64 centipawns, and each correction table caps at 32, so the step happens only when the pawn and material corrections are both saturated on the same side.' Line 78 records the divisor being deliberately changed /8 -> /64. The repo also ships tests_r3_03/lmr_signed_correction_test.cpp with {3, 64, 2, '64cp better subtracts one ply'}.
+MY ERROR: corrected_eval SUMS three correction tables (pawn + material + optional non-pawn), so the bound is +-96 cp (defaults +-64), not the +-32 of a single table. Re-derived in job25/correction_boundary.cpp: 2013 of 5983 reachable pairs change the reduction, so the option is live, just rarely.
+ANSWER for the owner: neither delete nor repair. The divisor was already repaired once and documented; leave the option alone and read REPORT_r3_03.md before touching it.
+End of window.
