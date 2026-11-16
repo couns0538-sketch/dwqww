@@ -1,0 +1,30 @@
+# PREDICTION — seat 20, area 10, job 21 (check of seat 28's S-F5)
+
+Committed alone BEFORE the first measuring command. Never edited afterwards.
+
+Subject (seat 28, S-F5): "Below the Move Overhead (`wtime <= 10` ms, the default) the engine ignores a Fischer
+increment entirely: `wtime 5 winc 1000` (a GUI gives 1005 ms) plays in 0.29 ms with a depth-1 98-node answer,
+identical to `winc 0`, and at `wtime 11 winc 1000` it jumps to 2048 nodes / depth 6 — because
+`include/forge/clock_plan.hpp:32` returns `ClockPlan{0,0,true}` before the increment is added on line 40."
+
+I check the SENTENCE: the same position, `wtime 5` with `winc 1000` vs `winc 0`, and `wtime 11` with the same two,
+measuring wall time, nodes and depth. Fresh process per search, `OwnBook false` (the book would answer instantly and
+fake a tiny search — seat 17's S-F4 trap).
+
+Predictions:
+1. CONFIRMS: at `wtime 5`, `winc 1000` and `winc 0` give the SAME node count and depth (the increment is ignored),
+   while at `wtime 11` they differ substantially.
+   KILLED IF: `wtime 5 winc 1000` searches much more than `wtime 5 winc 0`.
+
+2. The `wtime 5` answers are TINY (I predict < 5000 nodes and depth <= 2), consistent with the reserve being
+   treated as empty.
+   KILLED IF: `wtime 5` searches more than 20,000 nodes.
+
+3. The threshold is between 5 and 11, so `wtime 10` behaves like 5 (ignores the increment) and `wtime 11` does not.
+   KILLED IF: `wtime 10 winc 1000` already uses the increment.
+
+4. The answers are still LEGAL moves and never a hang — the control that makes this a behaviour, not a crash.
+   KILLED IF: any answer is illegal or missing.
+
+5. The source really does return early before adding the increment. I will read the file and quote it.
+   KILLED IF: the increment is added before the early return.
