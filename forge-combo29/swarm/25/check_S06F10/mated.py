@@ -32,7 +32,6 @@ def can_force(b, k):
             b.push(reply)
             if b.is_checkmate():        # we walked into mate: bad
                 b.pop()
-                b.pop()
                 all_ok = False
                 break
             if b.is_stalemate():
