@@ -1,0 +1,30 @@
+exe: /tmp/build-pc/forge   clock 6000 ms   increments 60 vs 600 ms   5 runs each
+PC20, Threads 1, Hash 16, OwnBook false, SEQUENTIAL (one engine at a time)
+positions: 10 from G.epd (real games)   date_utc: 2026-11-16T23:22:17Z
+
+pos  0  inc 60: median    158 ms  depth 18.0   |   inc 600: median    793 ms  depth 23.0
+pos  1  inc 60: median    218 ms  depth 21.0   |   inc 600: median    354 ms  depth 29.0
+pos  2  inc 60: median    447 ms  depth 23.0   |   inc 600: median    448 ms  depth 23.0
+pos  3  inc 60: median    161 ms  depth 24.0   |   inc 600: median    786 ms  depth 26.0
+pos  4  inc 60: median    152 ms  depth 21.0   |   inc 600: median    379 ms  depth 23.0
+pos  5  inc 60: median    191 ms  depth 15.0   |   inc 600: median    608 ms  depth 18.0
+pos  6  inc 60: median    241 ms  depth 27.0   |   inc 600: median    575 ms  depth 44.0
+pos  7  inc 60: median    143 ms  depth 28.0   |   inc 600: median    333 ms  depth 33.0
+pos  8  inc 60: median    216 ms  depth 18.0   |   inc 600: median    558 ms  depth 20.0
+pos  9  inc 60: median    202 ms  depth 23.0   |   inc 600: median    422 ms  depth 24.0
+
+============================================================================================
+AGGREGATE over all runs
+
+| increment | n | median (ms) | p90 (ms) | max (ms) | median depth | max depth | median engine time (ms) | median nodes |
+|---|---|---|---|---|---|---|---|---|
+| 60 | 50 | 202 | 263 | 449 | 22 | 29 | 201 | 414306 |
+| 600 | 50 | 504 | 791 | 799 | 24 | 44 | 504 | 1115456 |
+
+median wall: 202 -> 504 ms  = 2.50x for a 10x increment
+median depth: 22 -> 24  = +2 plies
+
+Reading: if the median wall time scales with the increment (ratio well above 1 and depth rising),
+raising the increment DOES buy thinking time. If the median barely moves, the time manager plateaus
+and a bigger increment buys nothing on this path.
+DONE

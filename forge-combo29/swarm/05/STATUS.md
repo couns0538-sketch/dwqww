@@ -643,3 +643,13 @@ S-F42's strength implication.
   searches were insensitive to contention, only the wall-clock limit suffered.
 - RULE: one engine process at a time; if a timing result varies, re-run it solo before calling it non-deterministic.
 - next command: continue the cycle.
+
+## $(date -u) — S-F50: the increment-scaling answer the coordinator asked for
+- 10 G-set positions x 2 increments x 5 fresh runs (50 runs/column), clock 6000 ms, PC20, Threads 1, Hash 16,
+  OwnBook false, SEQUENTIAL only.
+  inc 60 ms : median 202 / p90 263 / max 449 ms, median depth 22, max depth 29, median nodes 414,306
+  inc 600 ms: median 504 / p90 791 / max 799 ms, median depth 24, max depth 44, median nodes 1,115,456
+- ANSWER: the time manager does NOT plateau — raising the increment from 0.06 to 0.6 buys 2.50x the time and
+  +2 median plies (up to +17 on one board). But it is SUB-linear: 10x increment -> 2.5x time, i.e. roughly
+  the square root. So a bigger increment does buy thinking time, just not proportionally.
+- next command: continue the cycle.
