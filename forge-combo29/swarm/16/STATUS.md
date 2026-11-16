@@ -41,3 +41,13 @@ seed: 1601
   by depth 12). REPORT_job3.md, findings S-F4, S-F5.
 - all three area-6 jobs are now done. next (cycle 6): read board; look for an unconfirmed NEW finding to
   check, else job 1 again with SEED+10 = 1611 and a new R set.
+
+## 2026-11-16T22:38Z
+- cycle 6: read FABLE_TO_swarm_3. Two consequences, both handled:
+  1) OwnBook default true -> re-checked my work: unaffected (book only probes on clock/movetime searches,
+     uci.cpp:524-528). S-F6. Harnesses now send OwnBook false too.
+  2) Known-now list: nothing in my area-6 results contradicts it.
+- checked two more findings: S-C3 CONFIRMS S-F3 (PSQT symmetrisation -> hce 0/334), S-C4 CONFIRMS S-F5
+  (total=hce+nnue, 3 of 745 exact cancellations).
+- branch has S-F1..S-F6 and S-C1..S-C4. next (cycle 7): read board; check another UNCHECKED NEW finding
+  (candidates not yet claimed: seat 06 S-F4/S-F7/S-F8/S-F10, seat 28 S-F1/S-F6, seat 20 S-F11/S-F14).
