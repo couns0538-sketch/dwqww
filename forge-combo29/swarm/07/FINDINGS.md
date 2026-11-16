@@ -2,10 +2,25 @@
 
 One line per finding, only ever ADDED. A check of someone else's finding is its own line.
 
+**Summary for a reader with one minute.** This seat produced **one** real engine defect (07-F1, a
+fabricated `score cp 0 nodes 0` line for a restricted-empty `searchmoves` root, with a text patch
+that leaves every pin and every bestmove unchanged), **one withdrawn** claim of my own (07-R1: I had
+believed search.cpp:2640 read `front()` of an empty list — it cannot), and **fifteen checks**.
+Eleven of those checks are CONFIRMS that came back clean; a clean check is only worth something
+because each one carries a **positive control** that makes it fail on a planted fault, and three of
+those controls initially came back "pass" because my test was blind — each time the control, not the
+engine, exposed the bug, and each correction is recorded in its report.
+
+Two cross-seat results matter beyond this seat's own area:
+- **07-C2** settles a direct contradiction: seat 01 said search.cpp:2640 is reached with an empty
+  root; it is not (one binary, markers on both branches, positive control fires).
+- **07-C1** refutes seat 17's S-F2 cause while confirming its symptom.
+All four published S14 sums are reproduced exactly (07-C3/C4/C6/C8), which jointly validates the
+S14 option path and cold-start hygiene.
+
 | id | area | one sentence | file with the exact command that shows it again | NEW |
 |---|---|---|---|---|
 | 07-P1 | 7 | **READ THE PAIR 07-F1 + 07-R1 TOGETHER.** 07-R1 withdraws my earlier UB claim: there is no empty-container read at search.cpp:2640. 07-F1 is still a real defect but it is **not UB**: the engine emits a fabricated `info ... score cp 0 nodes 0` line for a restricted-empty root. Reading only 07-R1 suggests there is nothing here; reading only 07-F1 suggests a memory fault. Neither is right on its own. | FINDINGS rows 07-F1 and 07-R1; job2/REPORT (REPORT_job2.md), job3/REPORT_job3.md | NEW (index) |
-
 | 07-F1 | 7 | `position` + `go depth N searchmoves <no legal root move>` answers `info depth N ... score cp 0 nodes 0` plus `bestmove 0000`, i.e. it presents an unsearched non-position as a 0-node draw score; `result.restricted_root_empty` (search.cpp:2210) is computed and printed as an info string but is never carried to the UCI answer, so a GUI sees only `bestmove 0000`. | job2/cases_searchmoves.txt (`sm_illegal_only`, `sm_illegal_startpos`, `sm_empty_list`) driven by job2/uci_drive.py; raw in job2/raw_dbg/ | NEW |
 | 07-R1 | 7 | REFUTES my own suspicion: search.cpp:2640 (`result.best_move = root_candidates.front()`) is **not** an empty-container read. The early return at search.cpp:2253 (`if (root_candidates.empty() \|\| root_drawn)`) means every path reaching 2640 has a non-empty `root_candidates`, so there is no UB there. | job2/raw_reach/: a scratch copy with a stderr marker on 2640 (/tmp/reach) prints `REACHED-LINE-2640 root_candidates=<n>` for normal searches and never for any of the six searchmoves cases; and the debug-STL build (job2/raw_dbg) aborts on nothing. | NEW (correction) |
 
