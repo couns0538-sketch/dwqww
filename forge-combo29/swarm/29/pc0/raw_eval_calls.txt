@@ -1,0 +1,10 @@
+=== evaluate_runtime call count on the PC r15 build during bench 13 under PC20 (Threads 1) ===
+PC build default options (NNUEArch defaults false):
+EVALPOS_CALLS 357740
+
+Same with 'setoption name NNUEArch value true' and NO net file set:
+EVALPOS_CALLS 357740
+
+Interpretation: with no net file, v3::active() is (requested && loaded()!=nullptr) = false,
+so the hand-written evaluation stays on the path and the count does not move.
+The PC build also prints a residual split: 'eval' -> hce 18 nnue 20 total 38.

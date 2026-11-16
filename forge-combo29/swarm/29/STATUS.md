@@ -137,3 +137,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Swarm warning 29-N13: the PC patch must be applied with 'patch -p1' FROM INSIDE forge-combo29/ (its paths are relative to it). I silenced the output once and the patch was silently skipped, which briefly looked like a behaviour change. Confirm applied state by checking the option list, never by absence of an error.
 - General lesson for every seat: a base-tree instruction saving is NOT evidence about the PC build. Re-measure there.
 - next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: TT patch reverses on PC build (F19) + patch-apply warning (N13)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
+
+## Mon Nov 16 10:32:36 PM UTC 2026
+- 29-F20/F21: measured QUALIFICATION of file 2 Rule 2. On the PC r15 build the hand-written eval IS on the search path in every configuration reproducible here: NNUEArch defaults false, and with 'NNUEArch true' but NO net file, v3::active() is still false (requested && loaded()!=nullptr), so evaluate_runtime is called 357,740 times during bench 13 under PC20 - identical with and without NNUEArch. The build's 'eval' also prints a residual split (hce 18 + nnue 20).
+- NOT a refutation of Rule 2: I could not test the owner's real configuration (the net file is not shared). With a net loaded, loaded()!=nullptr and Rule 2 may be exactly right. Stated as a qualification with that limit explicit.
+- Practical consequence for area 9: on the PC build I CAN build, eval optimisation is not worthless - but nobody should act on that for the owner's PC until a net is available to test.
+- next command: cd /agent/repos/dwqww && git add -A forge-combo29/swarm/29 && git commit -m 'swarm 29: measured qualification of Rule 2 (F20/F21), TT reversal (F19), apply warning (N13)' && git push origin HEAD:refs/heads/for-fable-and-opus/swarm-29
