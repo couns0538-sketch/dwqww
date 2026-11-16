@@ -1,0 +1,254 @@
+src/search.cpp: In member function ‘forge::SearchInfo forge::Worker::search(forge::Board, const forge::SearchLimits&, bool, const std::vector<forge::Worker*>&)’:
+src/search.cpp:2201:16: warning: use of uninitialized value ‘<unknown>’ [CWE-457] [-Wanalyzer-use-of-uninitialized-value]
+ 2201 |     SearchInfo result;
+      |                ^~~~~~
+  ‘void std::thread::_State_impl<_Callable>::_M_run() [with _Callable = std::thread::_Invoker<std::tuple<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > >]’: events 1-2
+    |
+    |/usr/include/c++/13/bits/std_thread.h:244:9:
+    |  244 |         _M_run() { _M_func(); }
+    |      |         ^~~~~~            ~
+    |      |         |                 |
+    |      |         |                 (2) inlined call to ‘std::thread::_Invoker<std::tuple<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > >::operator()’ from ‘std::thread::_State_impl<std::thread::_Invoker<std::tuple<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > > >::_M_run’
+    |      |         (1) entry to ‘std::thread::_State_impl<std::thread::_Invoker<std::tuple<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > > >::_M_run’
+    |
+    +--> ‘typename std::thread::_Invoker<_Tuple>::__result<_Tuple>::type std::thread::_Invoker<_Tuple>::operator()() [with _Tuple = std::tuple<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> >]’: event 3
+           |
+           |  299 |           return _M_invoke(_Indices());
+           |      |                           ^
+           |      |                           |
+           |      |                           (3) inlined call to ‘std::thread::_Invoker<std::tuple<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > >::_M_invoke<0>’ from ‘std::thread::_Invoker<std::tuple<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > >::operator()’
+           |
+           +--> ‘typename std::thread::_Invoker<_Tuple>::__result<_Tuple>::type std::thread::_Invoker<_Tuple>::_M_invoke(std::_Index_tuple<_Ind ...>) [with long unsigned int ..._Ind = {0}; _Tuple = std::tuple<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> >]’: event 4
+                  |
+                  |  292 |           { return std::__invoke(std::get<_Ind>(std::move(_M_t))...); }
+                  |      |                                 ^
+                  |      |                                 |
+                  |      |                                 (4) inlined call to ‘std::__invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> >’ from ‘std::thread::_Invoker<std::tuple<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > >::_M_invoke<0>’
+                  |
+                  +--> ‘constexpr typename std::__invoke_result<_Functor, _ArgTypes>::type std::__invoke(_Callable&&, _Args&& ...) [with _Callable = forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()>; _Args = {}]’: event 5
+                         |
+                         |/usr/include/c++/13/bits/invoke.h:96:40:
+                         |   96 |       return std::__invoke_impl<__type>(__tag{}, std::forward<_Callable>(__fn),
+                         |      |                                        ^
+                         |      |                                        |
+                         |      |                                        (5) inlined call to ‘std::__invoke_impl<void, forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> >’ from ‘std::__invoke<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> >’
+                         |
+                         +--> ‘constexpr _Res std::__invoke_impl(__invoke_other, _Fn&&, _Args&& ...) [with _Res = void; _Fn = forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()>; _Args = {}]’: event 6
+                                |
+                                |   61 |     { return std::forward<_Fn>(__f)(std::forward<_Args>(__args)...); }
+                                |      |              ~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                |      |                                    |
+                                |      |                                    (6) calling ‘forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()>’ from ‘std::thread::_State_impl<std::thread::_Invoker<std::tuple<forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()> > > >::_M_run’
+                                |
+           <--------------------+
+           |
+         ‘forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()>’: events 7-8
+           |
+           |src/search.cpp:2739:34:
+           | 2739 |             helpers.emplace_back([this, i, board, &worker_limits, &all]() {
+           |      |                                  ^
+           |      |                                  |
+           |      |                                  (7) entry to ‘forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()>’
+           | 2740 |                 (void)workers_[i]->search(board, worker_limits, false, all);
+           |      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+           |      |                 |
+           |      |                 (8) calling ‘forge::Board::Board’ from ‘forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()>’
+           |
+           +--> ‘constexpr forge::Board::Board(const forge::Board&)’: events 9-10
+                  |
+                  |include/forge/board.hpp:169:7:
+                  |  169 | class Board {
+                  |      |       ^~~~~
+                  |      |       |
+                  |      |       (9) entry to ‘forge::Board::Board’
+                  |      |       (10) calling ‘std::vector<long unsigned int>::vector’ from ‘forge::Board::Board’
+                  |
+                  +--> ‘constexpr std::vector<_Tp, _Alloc>::vector(const std::vector<_Tp, _Alloc>&) [with _Tp = long unsigned int; _Alloc = std::allocator<long unsigned int>]’: events 11-12
+                         |
+                         |/usr/include/c++/13/bits/stl_vector.h:601:7:
+                         |  601 |       vector(const vector& __x)
+                         |      |       ^~~~~~
+                         |      |       |
+                         |      |       (11) entry to ‘std::vector<long unsigned int>::vector’
+                         |......
+                         |  606 |           std::__uninitialized_copy_a(__x.begin(), __x.end(),
+                         |      |                                      ~
+                         |      |                                      |
+                         |      |                                      (12) inlined call to ‘std::__uninitialized_copy_a<__gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >, long unsigned int*, long unsigned int>’ from ‘std::vector<long unsigned int>::vector’
+                         |
+                         +--> ‘constexpr _ForwardIterator std::__uninitialized_copy_a(_InputIterator, _InputIterator, _ForwardIterator, allocator<_Tp>&) [with _InputIterator = __gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >; _ForwardIterator = long unsigned int*; _Tp = long unsigned int]’: event 13
+                                |
+                                |/usr/include/c++/13/bits/stl_uninitialized.h:373:37:
+                                |  373 |       return std::uninitialized_copy(__first, __last, __result);
+                                |      |                                     ^
+                                |      |                                     |
+                                |      |                                     (13) inlined call to ‘std::uninitialized_copy<__gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >, long unsigned int*>’ from ‘std::__uninitialized_copy_a<__gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >, long unsigned int*, long unsigned int>’
+                                |
+                                +--> ‘_ForwardIterator std::uninitialized_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = __gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >; _ForwardIterator = long unsigned int*]’: event 14
+                                       |
+                                       |  185 |         __uninit_copy(__first, __last, __result);
+                                       |      |                      ^
+                                       |      |                      |
+                                       |      |                      (14) inlined call to ‘std::__uninitialized_copy<true>::__uninit_copy<__gnu_cxx::__normal_iterator<const long unsigned int*, std::vector<long unsigned int> >, long unsigned int*>’ from ‘std::uninitialized_copy<__gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >, long unsigned int*>’
+                                       |
+                                       +--> ‘static _ForwardIterator std::__uninitialized_copy<true>::__uninit_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = __gnu_cxx::__normal_iterator<const long unsigned int*, std::vector<long unsigned int> >; _ForwardIterator = long unsigned int*]’: event 15
+                                              |
+                                              |  147 |         { return std::copy(__first, __last, __result); }
+                                              |      |                           ^
+                                              |      |                           |
+                                              |      |                           (15) inlined call to ‘std::copy<__gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >, long unsigned int*>’ from ‘std::__uninitialized_copy<true>::__uninit_copy<__gnu_cxx::__normal_iterator<const long unsigned int*, std::vector<long unsigned int> >, long unsigned int*>’
+                                              |
+                                              +--> ‘constexpr _OI std::copy(_II, _II, _OI) [with _II = __gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >; _OI = long unsigned int*]’: event 16
+                                                     |
+                                                     |/usr/include/c++/13/bits/stl_algobase.h:633:14:
+                                                     |  633 |              (std::__miter_base(__first), std::__miter_base(__last), __result);
+                                                     |      |              ^
+                                                     |      |              |
+                                                     |      |              (16) inlined call to ‘std::__copy_move_a<false, __gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >, long unsigned int*>’ from ‘std::copy<__gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >, long unsigned int*>’
+                                                     |
+                                                     +--> ‘constexpr _OI std::__copy_move_a(_II, _II, _OI) [with bool _IsMove = false; _II = __gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >; _OI = long unsigned int*]’: event 17
+                                                            |
+                                                            |  540 |       return std::__niter_wrap(__result,
+                                                            |      |                               ^
+                                                            |      |                               |
+                                                            |      |                               (17) inlined call to ‘std::__copy_move_a1<false, const long unsigned int*, long unsigned int*>’ from ‘std::__copy_move_a<false, __gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >, long unsigned int*>’
+                                                            |
+                                                            +--> ‘constexpr _OI std::__copy_move_a1(_II, _II, _OI) [with bool _IsMove = false; _II = const long unsigned int*; _OI = long unsigned int*]’: event 18
+                                                                   |
+                                                                   |  533 |     { return std::__copy_move_a2<_IsMove>(__first, __last, __result); }
+                                                                   |      |                                          ^
+                                                                   |      |                                          |
+                                                                   |      |                                          (18) inlined call to ‘std::__copy_move_a2<false, const long unsigned int*, long unsigned int*>’ from ‘std::__copy_move_a1<false, const long unsigned int*, long unsigned int*>’
+                                                                   |
+                                                                   +--> ‘constexpr _OI std::__copy_move_a2(_II, _II, _OI) [with bool _IsMove = false; _II = const long unsigned int*; _OI = long unsigned int*]’: event 19
+                                                                          |
+                                                                          |  505 |       return std::__copy_move<_IsMove, __memcpyable<_OI, _II>::__value,
+                                                                          |      |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                                          |  506 |                               _Category>::__copy_m(__first, __last, __result);
+                                                                          |      |                               ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                                          |      |                                                   |
+                                                                          |      |                                                   (19) calling ‘std::__copy_move<false, true, std::random_access_iterator_tag>::__copy_m<const long unsigned int, long unsigned int>’ from ‘std::vector<long unsigned int>::vector’
+                                                                          |
+                                <-----------------------------------------+
+                                |
+                              ‘static constexpr _Up* std::__copy_move<_IsMove, true, std::random_access_iterator_tag>::__copy_m(_Tp*, _Tp*, _Up*) [with _Tp = const long unsigned int; _Up = long unsigned int; bool _IsMove = false]’: events 20-24
+                                |
+                                |  433 |         __copy_m(_Tp* __first, _Tp* __last, _Up* __result)
+                                |      |         ^~~~~~~~
+                                |      |         |
+                                |      |         (20) entry to ‘std::__copy_move<false, true, std::random_access_iterator_tag>::__copy_m<const long unsigned int, long unsigned int>’
+                                |......
+                                |  436 |           if (__builtin_expect(_Num > 1, true))
+                                |      |           ~~
+                                |      |           |
+                                |      |           (21) following ‘false’ branch...
+                                |  437 |             __builtin_memmove(__result, __first, sizeof(_Tp) * _Num);
+                                |  438 |           else if (_Num == 1)
+                                |      |                ~~
+                                |      |                |
+                                |      |                (22) ...to here
+                                |      |                (23) following ‘false’ branch...
+                                |......
+                                |  441 |           return __result + _Num;
+                                |      |                  ~~~~~~~~~~~~~~~
+                                |      |                           |
+                                |      |                           (24) ...to here
+                                |
+                         <------+
+                         |
+                       ‘constexpr std::vector<_Tp, _Alloc>::vector(const std::vector<_Tp, _Alloc>&) [with _Tp = long unsigned int; _Alloc = std::allocator<long unsigned int>]’: event 25
+                         |
+                         |/usr/include/c++/13/bits/stl_vector.h:606:38:
+                         |  606 |           std::__uninitialized_copy_a(__x.begin(), __x.end(),
+                         |      |                                      ^
+                         |      |                                      |
+                         |      |                                      (25) inlined call to ‘std::__uninitialized_copy_a<__gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >, long unsigned int*, long unsigned int>’ from ‘std::vector<long unsigned int>::vector’
+                         |
+                         +--> ‘constexpr _ForwardIterator std::__uninitialized_copy_a(_InputIterator, _InputIterator, _ForwardIterator, allocator<_Tp>&) [with _InputIterator = __gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >; _ForwardIterator = long unsigned int*; _Tp = long unsigned int]’: event 26
+                                |
+                                |/usr/include/c++/13/bits/stl_uninitialized.h:373:37:
+                                |  373 |       return std::uninitialized_copy(__first, __last, __result);
+                                |      |                                     ^
+                                |      |                                     |
+                                |      |                                     (26) inlined call to ‘std::uninitialized_copy<__gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >, long unsigned int*>’ from ‘std::__uninitialized_copy_a<__gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >, long unsigned int*, long unsigned int>’
+                                |
+                                +--> ‘_ForwardIterator std::uninitialized_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = __gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >; _ForwardIterator = long unsigned int*]’: event 27
+                                       |
+                                       |  185 |         __uninit_copy(__first, __last, __result);
+                                       |      |                      ^
+                                       |      |                      |
+                                       |      |                      (27) inlined call to ‘std::__uninitialized_copy<true>::__uninit_copy<__gnu_cxx::__normal_iterator<const long unsigned int*, std::vector<long unsigned int> >, long unsigned int*>’ from ‘std::uninitialized_copy<__gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >, long unsigned int*>’
+                                       |
+                                       +--> ‘static _ForwardIterator std::__uninitialized_copy<true>::__uninit_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = __gnu_cxx::__normal_iterator<const long unsigned int*, std::vector<long unsigned int> >; _ForwardIterator = long unsigned int*]’: event 28
+                                              |
+                                              |  147 |         { return std::copy(__first, __last, __result); }
+                                              |      |                           ^
+                                              |      |                           |
+                                              |      |                           (28) inlined call to ‘std::copy<__gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >, long unsigned int*>’ from ‘std::__uninitialized_copy<true>::__uninit_copy<__gnu_cxx::__normal_iterator<const long unsigned int*, std::vector<long unsigned int> >, long unsigned int*>’
+                                              |
+                                              +--> ‘constexpr _OI std::copy(_II, _II, _OI) [with _II = __gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >; _OI = long unsigned int*]’: event 29
+                                                     |
+                                                     |/usr/include/c++/13/bits/stl_algobase.h:633:14:
+                                                     |  633 |              (std::__miter_base(__first), std::__miter_base(__last), __result);
+                                                     |      |              ^
+                                                     |      |              |
+                                                     |      |              (29) inlined call to ‘std::__copy_move_a<false, __gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >, long unsigned int*>’ from ‘std::copy<__gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >, long unsigned int*>’
+                                                     |
+                                                     +--> ‘constexpr _OI std::__copy_move_a(_II, _II, _OI) [with bool _IsMove = false; _II = __gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >; _OI = long unsigned int*]’: event 30
+                                                            |
+                                                            |  540 |       return std::__niter_wrap(__result,
+                                                            |      |                               ^
+                                                            |      |                               |
+                                                            |      |                               (30) inlined call to ‘std::__copy_move_a1<false, const long unsigned int*, long unsigned int*>’ from ‘std::__copy_move_a<false, __gnu_cxx::__normal_iterator<const long unsigned int*, vector<long unsigned int> >, long unsigned int*>’
+                                                            |
+                                                            +--> ‘constexpr _OI std::__copy_move_a1(_II, _II, _OI) [with bool _IsMove = false; _II = const long unsigned int*; _OI = long unsigned int*]’: event 31
+                                                                   |
+                                                                   |  533 |     { return std::__copy_move_a2<_IsMove>(__first, __last, __result); }
+                                                                   |      |                                          ^
+                                                                   |      |                                          |
+                                                                   |      |                                          (31) inlined call to ‘std::__copy_move_a2<false, const long unsigned int*, long unsigned int*>’ from ‘std::__copy_move_a1<false, const long unsigned int*, long unsigned int*>’
+                                                                   |
+                                                                   +--> ‘constexpr _OI std::__copy_move_a2(_II, _II, _OI) [with bool _IsMove = false; _II = const long unsigned int*; _OI = long unsigned int*]’: event 32
+                                                                          |
+                                                                          |  505 |       return std::__copy_move<_IsMove, __memcpyable<_OI, _II>::__value,
+                                                                          |      |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                                          |  506 |                               _Category>::__copy_m(__first, __last, __result);
+                                                                          |      |                               ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                                          |      |                                                   |
+                                                                          |      |                                                   (32) returning to ‘std::vector<long unsigned int>::vector’ from ‘std::__copy_move<false, true, std::random_access_iterator_tag>::__copy_m<const long unsigned int, long unsigned int>’
+                                                                          |
+                  <-------------------------------------------------------+
+                  |
+                ‘constexpr forge::Board::Board(const forge::Board&)’: event 33
+                  |
+                  |include/forge/board.hpp:169:7:
+                  |  169 | class Board {
+                  |      |       ^~~~~
+                  |      |       |
+                  |      |       (33) returning to ‘forge::Board::Board’ from ‘std::vector<long unsigned int>::vector’
+                  |
+           <------+
+           |
+         ‘forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()>’: events 34-35
+           |
+           |src/search.cpp:2740:17:
+           | 2740 |                 (void)workers_[i]->search(board, worker_limits, false, all);
+           |      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+           |      |                 |
+           |      |                 (34) returning to ‘forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()>’ from ‘forge::Board::Board’
+           |      |                 (35) calling ‘forge::Worker::search’ from ‘forge::Searcher::search(forge::Board, const forge::SearchLimits&, bool, TTAccess)::<lambda()>’
+           |
+           +--> ‘forge::SearchInfo forge::Worker::search(forge::Board, const forge::SearchLimits&, bool, const std::vector<forge::Worker*>&)’: events 36-39
+                  |
+                  | 2143 | SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
+                  |      | ~~~~~~~~~~ ^~~~~~
+                  |      | |          |
+                  |      | |          (36) entry to ‘forge::Worker::search’
+                  |      | (37) region created on stack here
+                  |      | (38) capacity: 8 bytes
+                  |......
+                  | 2201 |     SearchInfo result;
+                  |      |                ~~~~~~
+                  |      |                |
+                  |      |                (39) use of uninitialized value ‘<unknown>’ here
+                  |
