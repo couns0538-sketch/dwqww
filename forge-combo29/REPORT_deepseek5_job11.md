@@ -14,6 +14,7 @@
 | B: G d12+d14, off/on(/shal=on) | done | the .rows files | off 22,128,265 / on 22,410,266 (d12) — both = job 10's ✓; d14: 56,971,881 / 54,888,453 ✓ |
 | B: the two intervals + piece classes | done | ds5j11_partB.json | the table below |
 | C: G2 games + description + index | done | setG2_games.pgn, set_G2_description.txt, set_G2_index.txt, set_G2.epd | 200 games (mates 124, threefold 56, insufficient 10, fifty 10); 3,090 collected, 1,540 distinct, 600 used; pieces 32-27: 81 … 8-3: 144; ply bands 8-40: 192, 48-80: 198, 88-120: 135, 128-160: 75 |
+The G2 fastchess command line, as demanded: `fastchess -engine cmd=/tmp/ds13_base/build/forge name=g1 option.Threads=1 option.Hash=16 option.OwnBook=false -engine cmd=/tmp/ds13_base/build/forge name=g2 option.Threads=1 option.Hash=16 option.OwnBook=false -each proto=uci nodes=5000 -openings file=/tmp/glmflash/set_B251_350.epd format=epd order=random -srand 9200 -rounds 100 -games 2 -repeat -concurrency 4 -recover -ratinginterval 100 -pgnout file=/tmp/glmflash/ds5j10/setG2_games.pgn min=true` (the openings file committed here as set_B251_350.epd).
 | C: G2 searches (off ×2, on; shal/deep skipped = on by the measured deadness) | done | the G2 .rows files | off twice 40,538,915 (equal on every position); on 40,647,134 → ratio 1.0027 |
 | C: the band prediction, own commit | done | prediction.txt (commit 33f1fdf1c) | committed before the G2 searches |
 | D: the mate rows | done | the score-carrying rows (off ×2, on) | off-vs-off: 0 differing scores; 11 off-mate positions, 6 change under on |
