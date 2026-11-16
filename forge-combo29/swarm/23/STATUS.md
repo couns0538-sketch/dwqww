@@ -728,3 +728,17 @@ searched again — the repair is invisible in matches and matters only where a c
 That is why file 3 calls it REPAIRED rather than IMPORTANT, and I am not upgrading the label.
 
 Standing: 62 findings, 18 confirmations, seven named harness faults, three reference pages.
+## 2026-11-16T23:45:23Z  23-F47: the table that decides whether the PC repair fires in match play
+2026-11-16T23:45:23Z
+
+PC r15 + PC20, Threads 1, Hash 16, OwnBook false, 6 s+0.06 clock, fresh process per board. Depth reached vs the
+~depth-20 point where each board's mate surfaces: 22, 22, 23, 20, 19, 17.
+  boards 1-4 reach it (1 and 4 report mate); board 5 stops at 19 and STILL mates (so it is not a hard switch);
+  board 6 stops at 17 and reports cp — the repair is INERT there in a real game.
+Practical sentence: the repair is real in match play for four of these six shapes and inert for one.
+
+Context that corrects my own earlier reading (23-F46): with defaults at the same clock the BASE reached depth
+25-32 and mated on 4 of 6, so base and PC are closer in real play than the depth-24 comparison implied.
+Third withdrawal of a directional sentence from a small set (23-C7, 23-F29, 23-F45/46) — the named pattern holds.
+
+Standing: 65 findings, 18 confirmations. Continuing to the close at 2026-11-17T10:18:40Z.
