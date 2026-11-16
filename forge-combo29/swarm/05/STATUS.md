@@ -335,3 +335,14 @@ SEAT 05, AREA 5. 21 findings + 8 checks of other seats, all on GitHub with raw f
   searches normally in both, so the base zero is the root-draw shortcut, not an unsearchable board.
 - S-F5's state note upgraded from speculation to measurement.
 - next command: continue the cycle; next is a 25-minute STATUS cadence check.
+
+## $(date -u) — CYCLE CHECKPOINT
+- Seat 05 (area 5), branch for-fable-and-opus/swarm-05. PC r15 build (/tmp/build-pc/forge) verified 8/8 numbers
+  under none/S14/PC20. All results Threads 1.
+- Findings 26 (S-F1..S-F26) + 13 checks (S-C1..S-C13). Confirmed by others: S-F3/S-F16 (seat 08 08-C6),
+  S-F3 numbers (seat 01 S-C2, seat 11 S-C7).
+- Key PC-build results: S-F16 fifty-move floor STANDS on PC (confirmed); S-F17/S-F19/S-F21 the mate-PV truncation is
+  position-specific with no single option fixing it; S-F23/S-F25 no truncation OBSERVED under PC20 but the rate is not
+  established; S-F26 the repetition repair CONFIRMED; S-F20 boundary position-dependence survives except one board.
+- next command: re-run S-F22's 28-position mate set on the base build once more as a stability check (deterministic
+  repeat), then continue.
