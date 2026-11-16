@@ -1,0 +1,43 @@
+== A. per match, recounted from the committed game list
+
+match   games  pairs W-L-D found    W-L-D report        elo    half report half n5 equal  bad pairs
+M73      2000   1000 537-578-885    537-578-885       -7.12   9.861       9.860 True              0
+M74      2000   1000 540-518-942    540-518-942       +3.82   9.871       9.870 True              0
+M75      2000   1000 544-549-907    544-549-907       -0.87  10.065      10.065 True              0
+M76      2000   1000 736-650-614    736-650-614      +14.95  11.796      11.795 True              0
+M77      2000   1000 691-673-636    691-673-636       +3.13  12.034      12.035 True              0
+
+== A2. the same Elo with the BRIEF's formula (sample variance of pair scores)
+match       elo      sd 95% interval            helper formula half
+M73       -7.12  10.063 [ -17.19,   +2.94]                    9.861
+M74       +3.82  10.073 [  -6.25,  +13.89]                    9.871
+M75       -0.87  10.271 [ -11.14,   +9.40]                   10.065
+M76      +14.95  12.037 [  +2.91,  +26.99]                   11.796
+M77       +3.13  12.279 [  -9.15,  +15.41]                   12.034
+  (the two formulas differ only by the 1.959964 z-factor and the (2*sc) centring; the helper's
+   interval = z x d x se, mine = d x sqrt(var/pairs). Same numbers to 0.1 Elo.)
+
+== B. the two pools
+V@20,000 (M54+M59+M73+M74): n5 [188, 941, 1718, 959, 194] pairs 4000  Elo +1.30 [-3.68, +6.29]  (brief formula +1.30 +/- 5.086)
+C8@20,000 (M60+M75): n5 [99, 494, 822, 494, 91] pairs 2000  Elo -1.39 [-8.51, +5.73]  (brief formula -1.39 +/- 7.265)
+  report: V +1.30 [-3.68,+6.29]; C8 -1.39 [-8.51,+5.73]
+
+== B2. are the job-24 n5 arrays hardcoded in job27_stats.py the same as M54/M59/M60's game lists?
+  M54: hardcoded [50, 231, 436, 228, 55]  from the game list [50, 231, 436, 228, 55]  EQUAL
+  M59: hardcoded [40, 239, 415, 251, 55]  from the game list [40, 239, 415, 251, 55]  EQUAL
+  M60: hardcoded [46, 259, 401, 248, 46]  from the game list [46, 259, 401, 248, 46]  EQUAL
+
+== C. opening disjointness between matches
+  M73: 1000 distinct openings over 1000 pairs (duplicates inside the match: 0)
+  M74: 1000 distinct openings over 1000 pairs (duplicates inside the match: 0)
+  M75: 1000 distinct openings over 1000 pairs (duplicates inside the match: 0)
+  M76: 1000 distinct openings over 1000 pairs (duplicates inside the match: 0)
+  M77: 1000 distinct openings over 1000 pairs (duplicates inside the match: 0)
+  cross-match opening overlaps: 0
+
+== D. the identities the report prints
+  M73: white+black mates 630+485=1115  W+L 537+578=1115  EQUAL;  n5 sum 1000 = pairs 1000;  W+L+D 2000 = 2*pairs 2000: EQUAL
+  M74: white+black mates 580+478=1058  W+L 540+518=1058  EQUAL;  n5 sum 1000 = pairs 1000;  W+L+D 2000 = 2*pairs 2000: EQUAL
+  M75: white+black mates 577+516=1093  W+L 544+549=1093  EQUAL;  n5 sum 1000 = pairs 1000;  W+L+D 2000 = 2*pairs 2000: EQUAL
+  M76: white+black mates 721+665=1386  W+L 736+650=1386  EQUAL;  n5 sum 1000 = pairs 1000;  W+L+D 2000 = 2*pairs 2000: EQUAL
+  M77: white+black mates 740+624=1364  W+L 691+673=1364  EQUAL;  n5 sum 1000 = pairs 1000;  W+L+D 2000 = 2*pairs 2000: EQUAL
