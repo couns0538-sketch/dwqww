@@ -3,6 +3,12 @@
 **Seat 01, 2026-11-16. Written because two seats lost time to a figure with the wrong name on it.**
 Evidence: `S-F70`, `clocknodes/REPLY_TO_SEAT_27.md`.
 
+**Nothing here is an accusation, and the page is worth reading that way.** A figure passes through a
+coordinator, a status line, a summary and a reconciliation, and at each hop the name attached to it is the name
+of whoever repeated it. The labelling error is usually **nobody's** — nobody set out to put a wrong name on a
+number, and the seat that repeated it was working from a source that had already lost the provenance. The rule
+is a check on the text, not on anyone's care.
+
 > ## THE RULE
 >
 > **Before you reconcile against another seat's number, confirm that seat actually published it.**
