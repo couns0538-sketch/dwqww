@@ -239,3 +239,14 @@ seed: 1601
 - REPORT_depthgap.md. Running total of findings this block: S-F13..S-F23.
 - next: PC path — `go nodes` at 20000 vs 50000: does the MOVE change between them on real-game positions
   (a move changing between two match budgets is the most direct "wrong move at the PC's budget" check).
+
+## 2026-11-16T23:09Z
+- S-F24: the PC's own match budgets (`go nodes` 20k/50k/250k, 40 real-game positions, PC20, Threads 1):
+  0 illegal moves in 120 searches, move identical at all three budgets on 31/40, and the 8 that change are
+  ordinary depth effects — largest +125 cp from the 20k budget to the 250k one (idx 12), one -70 cp
+  self-assessment drop in a lost position (idx 37). No blunder found at any real budget. REPORT_nodebudget.md.
+- Running total this block: S-F13..S-F24 (12 findings), all on the PC build with Threads 1 except the base-tree
+  comparisons I reused.
+- next: the one genuinely open question left in my area — does the PSQT symmetrisation (which took hce
+  differences to 0/334 on the BASE tree in S-C3) also remove the colour gap on the PC build? That needs the
+  symmetrised table applied to the PC tree.
