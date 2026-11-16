@@ -456,3 +456,7 @@ Settings: **none** (no setoption), **S14** (the 14 settings), **PC20** (S14 + th
 - S-F75: as the node budget grows the search SETTLES — depth monotone up every time, 7/8 positions
   keep the same bestmove across 20k/50k/250k, the 8th changes once then holds. Combined with S-F72
   (reproducible), node-limited matches are converged as well as stable.
+- S-F78: `go wtime 6000` WITHOUT btime does not hang but searches ~12 s instead of 136 ms — the time
+  manager needs BOTH clocks; the side to move's budget is effectively unbounded if omitted. My first
+  probe read the 30 s cutoff as a hang; the full output showed depth 31 at 18.9 M nodes. Protocol
+  requirement, not a defect: always send both wtime and btime.
