@@ -247,3 +247,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Corrected the superseded figures in two places so no reader meets 26.5% as current: 29-C8's row is annotated 'SUPERSEDED IN PART by 29-F37' and the 29-F35 rule block now quotes 11.1% (PC20, 200 positions) with 19.5% (defaults) as the alternative, and states plainly that I do NOT reproduce 19-F18's 54.7% in either regime.
 - 29-N19 records the abort-on-zero habit as you asked: two failed instrumentation attempts in one night caught by guards rather than reporting '0.0% of probes reach the scan' - which would have been a spectacular false confirmation of the very claim under test.
 - next: continuing on the PC path.
+
+## Mon Nov 16 11:33:12 PM UTC 2026
+- 29-N19 'a zero must always be a measurement, never a default' is now THE FIRST RULE at the top of FINDINGS, with the four worked cases (0-probe binary, --auto=yes double count, wrong denominator, checkout mid-build) and the implementation rules (assert anchors, assert parsed fields, assert the denominator is PROGRAM TOTALS, print NOT FOUND/INCONCLUSIVE never 0).
+- 29-F38 states the FINAL figure plainly: 11.1% age/depth replacement rate under PC20 (200 positions, depth 12, Threads 1, Hash 16); 13.6% at 20 positions; 19.5% under defaults; bench 0.006%. Seat 19's 54.7% is a DIFFERENT POSITION DISTRIBUTION, not an error - their bench 50 reproduces to the digit on my counters.
+- FINAL_NOTES.md prepared so the required '## <time> FINAL' block at 10:18Z can be written quickly and completely.
+- next: continuing on the PC path.
