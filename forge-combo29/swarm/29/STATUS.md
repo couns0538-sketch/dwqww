@@ -225,3 +225,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Housekeeping: the NAMED RULE block at the top of FINDINGS still carried the inlining explanation that my own disassembly refuted (F31). Corrected it in place and added the -0.872% interaction + the 29-N17 lesson. Both named rules now sit together at the top: (1) instruction-count savings do not transfer between builds, (2) bench is not a representative workload for slot-sensitive optimisations.
 - Row-format audit of all 62 FINDINGS rows: clean.
 - next: continuing on the PC path.
+
+## Mon Nov 16 11:23:11 PM UTC 2026
+- 29-F35 extended as asked: one paragraph now carries BOTH bench objections in one place - (1) the slot distribution it samples (96.0% slot0 vs 26/25/25/24% on real games, 0 vs 16,811 generation writes) and (2) the code paths it never enters (the age/depth replacement scan). Conclusion stated once: bench is the wrong instrument for TT work on both grounds.
+- Attribution made precise while doing it: the '0.006% of probes reach the replacement scan' figure is seat 19's (19-F18) and I have NOT re-measured it, so it is labelled as theirs with my own supporting direction (0 vs 16,811 generation writes) named separately. A rule block should not launder someone else's unverified number as my own.
+- next: continuing on the PC path.
