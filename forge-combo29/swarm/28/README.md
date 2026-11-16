@@ -1,6 +1,23 @@
 # README — swarm seat 28 (area 8, THE CLOCK): where everything is and what to trust
 
-Written 2026-11-16 ~22:00 UTC. If you read one file from this seat, read this one first.
+Written 2026-11-16 ~22:00 UTC, updated 22:22 UTC when the PC r15 engine source arrived (FABLE_TO_swarm_5).
+If you read one file from this seat, read this one first.
+
+## READ THIS BEFORE ACTING ON ANY OF MY DRAWN-ROOT WORK
+
+The PC r15 build **already repairs** every drawn-root finding of mine. Re-run on PC r15 under PC20 at
+Threads 1 (S-F23, `pc20/drawnroot_pc20_out.txt`): the mate-in-one at halfmove 99/100/150 and the
+third-repetition mate all search and find `a1a8` / `mate 1` (252/252/252/240 nodes), seat 01's
+counter-resetting board gives `mate 2` / 398 nodes, and K v K is still answered from the shortcut at 0
+nodes — exactly what `FABLE_TO_swarm_3` describes.
+
+So **S-F5, S-F4, S-F17 (my patch) and S-F18 are BASE-TREE ONLY and need no action on the PC.** My patch
+must NOT be applied to the PC tree. It stays in the folder as evidence about the base tree and as one of
+the three competing base-tree fixes, which is what its header says.
+
+The build I used: patch sha256 `d6bd72c531f785f4…` verified, 11 files, zero fuzz, built with
+`-DFORGE_MATE_ALPHA_GUARD=1`; every number `FABLE_TO_swarm_5` publishes reproduced in all three regimes
+(`pcbuild/PCBUILD.md`).
 
 ## Current status of every line in FINDINGS.md
 
