@@ -292,3 +292,20 @@ DELIVERABLES (the three to hand the owner first)
 
 NEXT
 - Keep the table current to the close at 2026-11-17T10:19Z; continue the cycle on the PC path.
+## 2026-11-16T23:39Z (block 18)
+
+seat 17 | PC path + checks of other seats | Threads 1 | branch for-fable-and-opus/swarm-17
+
+DONE
+- Guard validated on the SELF-PLAY path: same idiom as the owner's self-play (one process, accumulated
+  `position startpos moves` list, `go softnodes 2000`), last token corrupted at ply 40 two ways. Engine emits
+  `info string illegal move` for both, returns a move legal only in the retained prefix, and the guard refuses.
+- Timing detail recorded in NOTE_moves_path_hazard.md: that line arrives in response to `position`, BEFORE
+  `readyok`, so a harness reading only after readyok never sees it. That is why my first two runs of the test
+  reported a false HAZARD (harness bug #5, window taken after the position command).
+- S-C13 CONFIRMS seat 30's deep-mate findings on 2 of 6 boards, strict harness, Threads 1: base/S14 at depth 24
+  stays `cp 554` and `cp 1252` where PC r15 reports `mate 8` and `mate 7` under both defaults and S14. Score
+  reporting only (the base tree's move still wins); already repaired in the PC patch. Added to the table.
+
+NEXT
+- Keep the table current to the close at 2026-11-17T10:19Z; append the parked FINAL block at that time.
