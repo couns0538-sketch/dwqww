@@ -91,3 +91,5 @@ Next command: `cd /agent/repos/dwqww && git worktree add ../base 6b98f2170a3210e
 - S-C7 re-run AFTER the fix: CONFIRMS S-F3 at H=91, all 11 scores positively parsed.
 - S-F10 NEW: the 9-ply-early draw is NOT universal — KRvK and KQvK flip to cp 0 at H=91, but
   KPvK flips only at H=99. Every score positively parsed; KRvKR was refused and gave no verdict.
+- S-F11 NEW (goes beyond S-F3): the early draw is a HORIZON effect. Flip H = 96/95/92/91/89 at
+  depth 4/6/8/10/12 — moves earlier as depth grows. So "9 plies early" is one point on a curve.
