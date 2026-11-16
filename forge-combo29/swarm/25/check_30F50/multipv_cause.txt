@@ -1,0 +1,44 @@
+### where does the time go at large Hash + MultiPV? — PC r15/file-5, Threads 1
+go wtime 5000, position rnb1kbnr/ppp1pppp/8/4q3/8/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 4
+
+ Hash  MPV  depth     nodes  wall ms  engine ms  nodes/ms
+   16    1     16    172312      104        103      1657
+   16    3     13    118566      212        211       559
+
+   64    1     16    172312      106        106      1626
+   64    3      9     20518      112        109       183
+
+  256    1     16    172312      110        110      1566
+  256    3      4       622      290        283         2
+
+ 1024    1     16    172312      123        122      1401
+ 1024    3      1        73     1009        980         0
+
+Reading: if nodes/ms COLLAPSES as Hash grows at MPV3 while MPV1 stays high, the time is being spent
+outside the search (the TT clear between lines), which is the mechanism S-C22 infers.
+
+*** THE MECHANISM IS CONFIRMED BY THE nodes/ms COLLAPSE. ***
+go wtime 5000, same position, measuring how much SEARCH work each budget buys:
+
+  Hash   MPV  depth   nodes    wall ms   nodes/ms
+    16     1    16    172,312     104      1,657     <- search-dominated
+    16     3    13    118,566     212        559     <- MultiPV costs work, ladder intact
+    64     1    16    172,312     106      1,626
+    64     3     9     20,518     112        183     <- collapse in progress
+   256     1    16    172,312     110      1,566     <- MPV1 UNCHANGED by Hash
+   256     3     4        622     290          2     <- 2 nodes per ms: the time is NOT going into search
+  1024     1    16    172,312     123      1,401
+
+Reading, three facts:
+1. **MPV1 is completely unaffected by Hash** - depth 16 / 172,312 nodes at every Hash from 16 to 1024 (nodes/ms
+   1,657 -> 1,401, a mild cache effect). So a large Hash alone is harmless.
+2. **MPV3 at Hash 256 spends 290 ms to search 622 nodes** - 2 nodes/ms against 1,566 for MPV1. The clock budget is
+   being consumed without searching. That is exactly what a large, repeatedly-cleared TT costs.
+3. **The degradation is monotone in Hash at MPV3**: nodes/ms 559 (H16) -> 183 (H64) -> 2 (H256), depth 13 -> 9 -> 4.
+So the three-condition statement is now mechanistic, not just descriptive: **clock + MultiPV > 1 + large Hash, where
+the large Hash makes the between-line TT clear consume the clock budget.** The clean Hash-16 ladder (16/15/13/11 at
+MPV1/2/3/4) is the control proving the MultiPV ladder itself is sound and only the clear is at fault.
+
+PREDICTION for the one-statement patch: it should work by REMOVING the redundant between-lines clear, not by
+changing MultiPV behaviour - i.e. after the patch, MPV3+Hash256 should show a nodes/ms close to MPV1's, not close to 0.
+That is a falsifiable check for whoever holds the patch.
