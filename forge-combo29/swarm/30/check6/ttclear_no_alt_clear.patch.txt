@@ -1,0 +1,14 @@
+--- /home/ubuntu/pcsrc/src/search.cpp	2026-11-16 22:19:18.376169113 +0000
++++ /home/ubuntu/noaltclear_src/src/search.cpp	2026-11-16 23:24:23.356169113 +0000
+@@ -2876,7 +2876,10 @@
+                 narrowed.request_start = {};
+                 alt_shared->stop.store(false, std::memory_order_relaxed);
+                 alt_shared->ponder_hit_ns.store(0, std::memory_order_relaxed);
+-                alt_shared->tt.clear();
++                // EXPERIMENT (seat 30, 30-C31): the alternative lines already own their own table
++                // (alt_shared is constructed at :2730), and each line's search calls
++                // tt.new_search() internally, which already bumps the generation. The full-table
++                // clear() here was therefore redundant work done once per line per depth.
+                 alt_worker->clear();
+                 const SearchInfo alt = alt_worker->search(board, narrowed, false, alt_list);
+                 extra_nodes_ += alt.nodes;
