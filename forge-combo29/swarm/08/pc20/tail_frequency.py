@@ -88,13 +88,17 @@ def probe(fen):
     t0 = time.monotonic()
     send(CLOCK)
     depth = 0
+    nodes = 0
     while True:
         l = p.stdout.readline()
         if not l:
             raise EOFError
         if l.startswith("info depth"):
+            t = l.split()
             try:
-                depth = max(depth, int(l.split()[2]))
+                depth = max(depth, int(t[2]))
+                if "nodes" in t:
+                    nodes = int(t[t.index("nodes") + 1])
             except (IndexError, ValueError):
                 pass
         if l.startswith("bestmove"):
@@ -106,7 +110,8 @@ def probe(fen):
         p.wait(timeout=30)
     except Exception:
         p.kill()
-    return {"wall": wall, "depth": depth}
+    # A terminal root prints min(requested, 64) info lines for 0 nodes (seat 23 F185-F187): no meaningful depth there.
+    return {"wall": wall, "depth": depth if nodes else None}
 
 
 def pct(v, p):

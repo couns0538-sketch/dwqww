@@ -137,6 +137,10 @@ def probe(fen):
     except Exception:
         p.kill()
     lastd = marks[-1][0] if marks else 0
+    # A TERMINAL root (drawn / no legal moves) prints min(requested, 64) info lines for 0 nodes (seat 23 F185-F187),
+    # so a depth is meaningless there. Refuse to report one rather than publishing "depth 64, 0 nodes".
+    if not marks or (marks and marks[-1][1] <= 0.0):
+        lastd = None
     itc = (marks[-1][1] - marks[-2][1]) if len(marks) >= 2 else (marks[-1][1] if marks else None)
     return {"wall": wall, "depth": lastd, "itercost": itc}
 
