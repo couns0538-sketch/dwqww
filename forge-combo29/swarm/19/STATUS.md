@@ -1276,18 +1276,27 @@ own table (see the prerequisite above). **That is the strongest evidence that th
 
 **Three statements, each classified by its own CI, in the order the rules require:**
 
-1. **PC20 costs ~7 % more per node, on 90 % of positions — REAL, and per-position.** (median 1.071,
-   IQR [1.044, 1.110], 162/180 pairs; the pooled CI excludes 1.0.)
-2. **PC20 searches fewer nodes — REAL at the pooled level** (0.8761, bootstrap CI **[0.8196, 0.9364]**, excludes
-   1.0), **but only ~60 % of positions share the sign**, so it is a **session-level** fact, not a per-position one.
-3. **The net WALL-TIME gain is NOT ESTABLISHED.** Pooled time ratio 0.9343, bootstrap CI **[0.8676, 1.0082]**,
-   **includes 1.0.** So "PC20 is ~2.8 % faster" is **not a claim I can support** at n=119.
+**FINAL FIGURES, at n = 464 pairs (19-C61 — supersedes the n=119 numbers in every earlier block):**
 
-**Note what the classification order did to this sentence — for the third time.** The previous version asserted
-"net wall-time gain is ~2.8 %", which its own CI does not support; and before that it led with the fragile 12 %
-saving and called the per-node tax "consistent". **A summary written before the rule was applied to it was wrong on
-the two figures most likely to be quoted.** The reliable numbers are the two taxes and the pooled node reduction;
-**the wall-time gain is the one the owner should not act on.**
+1. **PC20 costs ~6.4-7 % more per node, on 90 % of positions — REAL and per-position.** (implied 1.0640 at n=464;
+   direct fixed-node 1.0693 at n=180; median 1.071, IQR [1.044, 1.110], 162/180 pairs. **Two independent methods
+   0.5 % apart.**)
+2. **PC20 searches fewer nodes — REAL at the pooled level** (0.9131, bootstrap CI **[0.8752, 0.9528]**, excludes
+   1.0) **but only 59.9 % of positions share the sign**, so it is **session-level**, not per-position.
+   **Note it also SHRANK with the sample: 12.39 % at n=119 → 8.69 % at n=464.**
+3. **The net WALL-TIME gain is NOT ESTABLISHED.** Pooled time ratio **0.9715, bootstrap CI [0.9273, 1.0151],
+   includes 1.0 at n=464**, with a 50.9 % sign-share. At n=119 it was 0.9343 [0.8676, 1.0082]. **A true 7 % gain
+   would have been detected at n=464. It was not.** I am not widening the sample further to chase it.
+
+**The one-line statement for the owner, final form:**
+> **PC20 searches ~9 % fewer nodes (real, ~60 % of positions) and pays ~6.4 % more per node (real, uniform on 90 %
+> of positions). Those nearly cancel: the net wall-time difference is −2.9 % with a confidence interval that
+> includes zero, so it is NOT established. Quote the node saving and the per-node cost separately; do not quote a
+> "PC20 speedup".**
+
+**This sentence has been wrong three times and each version was caught by a rule in this section:** it led with the
+fragile saving; then asserted an unsupported 2.8 % gain; now it quotes the two established figures and states the
+net as unmeasured. **Read it as the third revision, not the first.**
 
 ## 2026-11-17T02:25Z — cadence
 
