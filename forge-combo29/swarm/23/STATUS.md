@@ -1064,3 +1064,17 @@ score-based checks - only scoring the candidates separately exposes it.
 
 Counterweight unchanged: a real match ends at the third occurrence, so the move is never played there; the cost
 lands on analysis, other GUIs and human play. 84 findings, 18 confirmations. 10 h 17 m remain.
+## 2026-11-17T00:01:43Z  23-F62: the two repairs have different cost profiles - drawn root blunders (-805), lone-king only fails to convert (-11..+75)
+2026-11-17T00:01:43Z
+
+Same separate-scoring method that exposed the drawn-root cost, applied to the lone-king boards (base move vs PC
+move, each scored ALONE at fixed depth 16):
+  lone-king : -11 / +75 / 0 gaps, same move on 3 of 6 boards -> NO material lost, nothing hidden
+  drawn root: -751 to -853 cp, stable at depths 8-20           -> a minor piece, hidden behind cp 0 at the root
+So: drawn-root = the engine BLUNDERS by not searching; lone-king = it fails to CONVERT, playing a reasonable
+move and missing the mate. The drawn-root repair protects material (a move-quality hazard for analysis/GUIs);
+the lone-king repair improves conversion.
+Prediction note: my P1 (>=4 of 6 identical moves) MISSED at 3 of 6 - base and PC disagree on half the boards while
+values stay close, which corroborates 23-F56's 'a depth difference, not a difference in understanding'.
+
+85 findings, 18 confirmations. 10 h 17 m remain.
