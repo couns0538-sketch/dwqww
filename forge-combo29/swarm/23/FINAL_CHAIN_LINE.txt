@@ -62,3 +62,23 @@ Also for the FINAL, the cost of the unsearched move is a RANGE across two disjoi
 And the scope-sentence habit: **a scope sentence is written with the boundary it does not cover, not only the range it
 does.** "Castling is a conditioner" becomes "sufficient in one direction, not necessary"; "the repair fixes the move"
 becomes "on one of two boards". Longer, and no longer quotable as more than it is.
+
+SIXTH LINE — THE HAZARD TABLE FOR THE FINAL'S GUI SECTION, to be reproduced VERBATIM:
+
+| situation | `#info depth` lines | nodes | `pv` | score | `bestmove` | `info string` | what it means |
+|---|---|---|---|---|---|---|---|
+| normal search | = depth (× MultiPV) | > 0 | **non-empty** | any | a legal move | none | search ran |
+| **drawn root** (3-fold in the list, or halfmove ≥ 100, or insufficient material) | = depth (never × MultiPV) | **0** | **empty** | **cp 0** | a legal move — the generator's first | none | nothing was searched |
+| **empty/illegal `searchmoves`** | = depth | **0** | **empty** | **cp 0** | **`0000`** | `searchmoves restriction has no legal root moves` | caller error; **not a legal move** |
+| **stalemated root + unsatisfiable restriction** | = depth | **0** | **empty** | **cp 0** | **`0000`** | **none at all** | caller error, **silently** |
+| refused FEN or illegal token in the list | search runs on the WRONG board | > 0 | non-empty | plausible | plausible | one `info string` | the position is not what you sent |
+
+The three rules that follow it, also verbatim:
+
+1. `nodes == 0` with an EMPTY `pv` means nothing was searched — never show its score.
+2. `bestmove 0000` is never a move. Treat it as an error unconditionally; do not rely on a diagnostic, because on a
+   stalemated root with an unsatisfiable restriction there is NONE (23-F159).
+3. Count the `info string` lines on every search — the only signal that a position or restriction was rejected.
+
+Verified across all three draw kinds at MultiPV 3 (23-F160): threefold, fifty-move and insufficient material each give
+10 lines / 0 nodes / empty pv / a legal move, so the drawn-root row is not a threefold-only observation.
