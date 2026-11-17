@@ -300,7 +300,7 @@ garbage".
 
 `load()` reads the **entire file** into a `std::vector` before it looks at the magic:
 
-```322:325:forge-combo29/src/nnue_v3.cpp
+```287:288:forge-combo29/src/nnue_v3.cpp
     std::vector<std::uint8_t> bytes((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     if (bytes.size() < static_cast<std::size_t>(HeaderBytes) + 8) return fail(error, path + ": file too small for a v3 header");
 ```
@@ -327,7 +327,7 @@ pipe or `/dev/zero` there is no L to bound it.
 stated separately rather than folded into the matrix. It matters practically because
 `NNUEArchFile` is a UCI string a GUI or a config file sets: a wrong path pointing at a
 large file — or a FIFO — is enough. **The older loader four files away already caps
-this**: `src/nnue.cpp:139-142` refuses any file over 2 MB before reading the body. The
+this**: `src/nnue.cpp:140-143` refuses any file over 2 MB before reading the body. The
 v3 loader has no such cap.
 
 **A fix that is not applied here** (this seat measures, it does not patch): stat the
