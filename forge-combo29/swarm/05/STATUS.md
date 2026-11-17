@@ -746,3 +746,12 @@ every sentence.
   game, ~depth 19 searches, and most game positions carry no mate score, so the opportunity may not have arisen.
 - Hygiene: machine_clean.sh run immediately before the game (CLEAN, exit 0).
 - next command: continue at cadence.
+
+## $(date -u)
+- S-C21 CONFIRMS seat 15's 15-F9 with an important qualifier. Their case
+  `k7/6R1/5N2/p4K1P/P7/8/8/8 b - - 0 1` at depth 14 gives `mate -9` with a 15-ply PV needing 18 (SHORT by 3) on BOTH the base
+  build and PC r15 **under S14** — reproduces exactly. BUT under PC20 the same position/depth gives the correct
+  `mate -3` with 6/6. So it is a SETTINGS effect, not a build effect, and it does not touch the owner's matches (PC20).
+  Their "violations get more frequent with depth" was measured under S14 and needs that qualifier.
+- This also refines my own S-F27 story: PC20 shrinks the window (S-F29), and here it closes a case entirely.
+- next command: continue at cadence.
