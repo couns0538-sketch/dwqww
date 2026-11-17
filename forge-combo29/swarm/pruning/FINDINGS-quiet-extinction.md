@@ -1,9 +1,15 @@
 # `QuietExtinction` loses forced mates — a wider, deeper band than `SoundMatePruning`
 
-**Answer: yes, and worse.** `QuietExtinction` (off by default) loses or
-mis-distances forced mates across **depths 6–16**, on **12 of 300 cells**, with
-one fixture still wrong at depth 16 and correct only from 17. It is a sharper
-mate-safety defect than `SoundMatePruning`, whose band closed at depth 10.
+**Answer: yes, and worse than `SoundMatePruning`.** `QuietExtinction` (off by
+default) loses or overstates forced mates across **depths 6–16**, on **12 of 300
+cells**, with one fixture still wrong at depth 16 and correct only from 17. Its
+band does not close at depth 10 the way `SoundMatePruning`'s did.
+
+**What a user loses, in two shapes:** the mate is **lost entirely in 9 of 12
+cells** (a bounded centipawn score and either a non-mating move or the right move
+with the score gone), and **overstated by one to two moves in 3 of 12**. **No cell
+reports a mate shorter than the truth** — see §4, which is the section to read if
+only one is.
 
 | | |
 |---|---|
@@ -89,18 +95,73 @@ this defect is not bounded at depth 10**, and an earlier draft of this section
 said it closed at 14 on the strength of the three dedicated fixtures alone. The
 corpus row contradicted that, and the contradiction was real.
 
-## 4. Right move, wrong distance (§4's documented class)
+## 4. What a user actually loses: two shapes, and never a promise of a faster mate
 
-Three cells give the correct mating move with the wrong mate number:
+**All 12 harm cells were re-derived from `evidence/quiet_extinction.json` and fall
+into exactly four buckets. A previous version of this section said "three cells
+give the correct mating move with the wrong mate number" and then listed `e8e4`,
+which is the *wrong* move — it does not belong in the distance class at all.**
 
-| depth | fixture | ON reports | truth |
-|---|---|---|---|
-| 7 | `8/8/8/3K4/k7/8/4Q3/8 w` | `d5c4`, no mate score | m3 |
-| 10 | `8/8/8/8/8/K7/3R4/1k6 w` | `a3b3` **m4** | m3 |
-| 11 | `8/7k/8/5K2/8/4R3/8/8 w` | `f5f6` **m4** | m3 |
+| shape | cells |
+|---|---|
+| **mate score lost and a non-mating move played** | **8** |
+| **mate score lost, the right move still played** | **1** |
+| **mate score present, right move, reported too long** | **2** |
+| **mate score present, wrong move, reported too long** | **1** |
+| mate score reported *shorter* than the truth | **0** |
 
-These are the class §4 already documents, and they are the cases a
-move-only checker would miss entirely.
+Every cell in detail, with the exact recorded values:
+
+| depth | fixture | truth | OFF arm | ON arm | shape |
+|---|---|---|---|---|---|
+| 6 | `7Q/8/1R6/8/8/7K/8/5k2 w` | m3 | `b6b2` m3 | `h8f8` cp1533 | score lost, wrong move |
+| 7 | `8/8/8/3K4/k7/8/4Q3/8 w` | m3 | `d5c4` m3 | `d5c4` cp1177 | **score lost, right move** |
+| 8 | `8/8/8/8/8/8/6KQ/4k3 w` | m3 | `g2f3` m3 | `g2h1` cp894 | score lost, wrong move |
+| 9 | `8/8/8/8/8/8/6KQ/4k3 w` | m3 | `g2f3` m3 | `g2h1` cp875 | score lost, wrong move |
+| 9 | `8/8/8/8/8/K7/3R4/1k6 w` | m3 | `a3b3` m3 | `d2f2` cp403 | score lost, wrong move |
+| 10 | `8/8/8/8/8/8/6KQ/4k3 w` | m3 | `g2f3` m3 | `g2h1` cp874 | score lost, wrong move |
+| 10 | `8/8/8/8/8/K7/3R4/1k6 w` | m3 | `a3b3` m3 | `a3b3` **m4** | **right move, +1 too long** |
+| 11 | `8/7k/8/5K2/8/4R3/8/8 w` | m3 | `f5f6` m3 | `f5f6` **m4** | **right move, +1 too long** |
+| 11 | `8/8/8/8/8/8/6KQ/4k3 w` | m3 | `g2f3` m3 | `g2h1` cp846 | score lost, wrong move |
+| 12 | `8/8/8/8/8/8/6KQ/4k3 w` | m3 | `g2f3` m3 | `g2h1` cp846 | score lost, wrong move |
+| 13 | `8/8/8/8/8/8/6KQ/4k3 w` | m3 | `g2f3` m3 | `g2h1` cp889 | score lost, wrong move |
+| 16 | `3KR3/5R2/8/k7/8/8/8/8 w` | m3 | `f7b7` m3 | `e8e4` **m5** | **wrong move, +2 too long** |
+
+**Only two cells are §4's "right move, wrong distance" class**: `a3b3` m4 and
+`f5f6` m4, both exactly one move too long. The `d5c4` cell is a *different*
+defect — the mate score disappears while the move stays right — and filing it
+under the distance class, as the previous version did, hid that. `e8e4` is a
+wrong-move case whose score happens to be a mate.
+
+### The conservative error direction, which is the most useful thing here
+
+**No cell reports a mate score shorter than the truth.** The failure is always in
+the safe direction: the mate is either lost entirely (9 of 12) or overstated by
+one to two moves (3 of 12).
+
+**So a consumer that treats a reported `mate N` as an upper bound on the true
+distance is safe on this corpus.** What such a consumer must not trust is the
+converse: an absent mate score does not mean no mate, and a longer mate number
+does not mean a different move is coming — the engine can stay on the right move
+and still overstate it (`a3b3`, `f5f6`).
+
+### And the dedicated fixtures are the "never sees it at all" shape
+
+For all three dedicated fixtures the harming arm reports **a bounded centipawn
+score and no mate at any depth in the band** — including the mate-in-7, where
+*both* arms are centipawn-only at every depth 6–16:
+
+```
+K7/8/8/8/8/8/7k/Q7 w   (true m7, unique a1g7)
+  d10–d13  OFF a1g7 cp1032/940/1032/1066  |  ON a1f1 cp907/907/835/835
+```
+
+**So the mate-in-7 case is "plays a non-mating first move and never claims a
+mate", not "announces mate 7 and plays the wrong move."** No output from either
+arm on these three fixtures contains a mate score alongside the wrong move. That
+matters for how the defect is described to a user: what they see is a plausible
+evaluation and a losing move, with nothing to flag it — which is harder to notice
+than a wrong mate number.
 
 ## 5. What this does NOT establish
 

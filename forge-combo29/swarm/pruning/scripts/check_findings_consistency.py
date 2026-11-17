@@ -22,6 +22,7 @@ If any assertion fails, the doc is asserting more than the evidence supports.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 
@@ -32,6 +33,85 @@ CLEAN_MIN = 10    # prose says nothing at or above this depth is harmed
 def load(path: str):
     with open(path) as fh:
         return json.load(fh)
+
+
+
+def check_quiet_extinction(_unused: str) -> list[str]:
+    """Assert FINDINGS-quiet-extinction.md's bucketing matches its evidence.
+
+    This guards a specific published error: §4 once said "three cells get the
+    right move with a wrong distance" and listed `e8e4` among them, which is the
+    WRONG move. The class a cell belongs to is determined by two facts --
+    whether the mate score survives, and whether the move is unchanged -- and
+    the doc's bucket counts must equal the recomputed ones.
+
+    Reads its OWN document. An earlier version took the caller's `doc`, which is
+    FINDINGS.md, so it searched the SoundMatePruning file for this section's
+    sentence and reported it missing -- a check that fails on the wrong file is
+    as useless as one that passes on the wrong file.
+    """
+    failures: list[str] = []
+    try:
+        with open("evidence/quiet_extinction.json") as fh:
+            ev = json.load(fh)
+    except FileNotFoundError:
+        return ["evidence/quiet_extinction.json missing"]
+    if not os.path.exists("FINDINGS-quiet-extinction.md"):
+        return []
+    with open("FINDINGS-quiet-extinction.md") as fh:
+        doc = fh.read()
+
+    harm = [r for r in ev["corpus"] if r["state"] == "HARM"]
+    bucket = {"score_lost_wrong_move": 0, "score_lost_right_move": 0,
+              "too_long_right_move": 0, "too_long_wrong_move": 0, "too_short": 0}
+    for r in harm:
+        off, on, want = r["off"], r["on"], r["true_moves"]
+        same = off[0] == on[0]
+        if on[1] is None:
+            bucket["score_lost_right_move" if same else "score_lost_wrong_move"] += 1
+        elif on[1] > want:
+            bucket["too_long_right_move" if same else "too_long_wrong_move"] += 1
+        elif on[1] < want:
+            bucket["too_short"] += 1
+
+    # The prose must state these counts. Each is a phrase the doc carries.
+    expectations = [
+        ("**8**", bucket["score_lost_wrong_move"] == 8,
+         "8 cells: mate score lost, non-mating move"),
+        ("**1**", bucket["score_lost_right_move"] == 1,
+         "1 cell: mate score lost, right move"),
+        ("| **2** |", bucket["too_long_right_move"] == 2,
+         "2 cells: right move, too long"),
+        ("| **1** |", bucket["too_long_wrong_move"] == 1,
+         "1 cell: wrong move, too long"),
+        ("| **0** |", bucket["too_short"] == 0,
+         "0 cells: shorter than truth"),
+    ]
+    for _tok, ok, desc in expectations:
+        if not ok:
+            failures.append(f"bucket mismatch: {desc}")
+
+    # "No cell reports a mate shorter than the truth" must be asserted in prose.
+    if "No cell reports a mate score shorter than the truth" not in doc:
+        failures.append("the absence of under-stated mates is not stated explicitly")
+
+    # Every fixture+depth row in the detail table must be a real harm cell.
+    cited = re.findall(r"\| (\d+) \| `([^`]+)` \| m(\d) \|", doc)
+    for depth, fen, _truth in cited:
+        if not any(r["fen"].startswith(fen) and r["depth"] == int(depth) for r in harm):
+            failures.append(f"detail table cites non-harm cell d{depth} {fen}")
+
+    # ...and EVERY harm cell must be cited. A deleted row leaves the bucket
+    # counts in the prose still correct, so a citation-only check passes while
+    # the table silently drops a case -- which is how the `e8e4` omission
+    # survived the first time.
+    for r in harm:
+        if not any(fen and r["fen"].startswith(fen) and int(depth) == r["depth"]
+                   for depth, fen, _t in cited):
+            failures.append(f"harm cell d{r['depth']} {r['fen']} is NOT cited in "
+                            f"the detail table -- the table understates the harm")
+
+    return failures
 
 
 def main() -> int:
@@ -147,6 +227,9 @@ def main() -> int:
     ns = {c["n"] for c in per_depth.values()}
     if len(ns) != 1:
         failures.append(f"grid is not balanced per depth: {per_depth}")
+
+    qe_failures = check_quiet_extinction(doc)
+    failures.extend(qe_failures)
 
     print(json.dumps({
         "harmed_cells": len(harmed),
