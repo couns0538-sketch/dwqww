@@ -1,0 +1,181 @@
+diff -ruN a/include/forge/board.hpp b/include/forge/board.hpp
+--- a/include/forge/board.hpp	2026-11-17 19:48:50.801143771 +0000
++++ b/include/forge/board.hpp	2026-11-17 20:06:59.589143771 +0000
+@@ -335,7 +335,7 @@
+ inline bool Board::is_legal(const Move& move) const {
+ #if FORGE_SPD_KING_LINES
+     const Piece moving = squares_[move.from];
+-    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {
++    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && moving != WK && moving != BK) {
+         if (!king_lines_.valid) refresh_king_lines();
+         const int king = king_squares_[static_cast<std::size_t>(side_)];
+         return (king_lines_.pinned & square_bb(move.from)) == 0 || attacks::aligned(king, move.from, move.to);
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-17 19:48:50.801143771 +0000
++++ b/include/forge/search.hpp	2026-11-17 20:07:24.129143771 +0000
+@@ -139,9 +139,9 @@
+     bool hit = false;
+ private:
+     friend class TranspositionTable;
++    std::uint8_t slot_ = 0;
+     const TranspositionTable* owner_ = nullptr;
+     std::size_t cluster_ = 0;
+-    std::uint8_t slot_ = 0;
+     std::uint64_t epoch_ = 0;
+     std::uint64_t key_ = 0;
+ };
+@@ -589,6 +589,7 @@
+         return ensure_threat_map(board, ply).by_type[static_cast<std::size_t>(pt)];
+     }
+     bool nnue_active_ = false;
++    bool fast_single_node_stop_ = false;
+ #if FORGE_NNUE_V3
+     const nnue::v3::Net* v3_active_net_ = nullptr;
+ #endif
+@@ -646,6 +647,15 @@
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+     void record_null_move(SearchStack* ss);
+     void prefetch_correction(const Board& board, const SearchStack* child) const;
++    [[gnu::always_inline]] bool check_node_or_periodic_stop() {
++        if (fast_single_node_stop_) {
++            if (local_nodes_ < node_limit_ && (local_nodes_ & 1023U) != 0) {
++                return shared_.stop.load(std::memory_order_relaxed);
++            }
++            return should_stop();
++        }
++        return ((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop();
++    }
+ };
+ 
+ // Public search facade: a shared transposition table plus one or more workers.
+diff -ruN a/src/board.cpp b/src/board.cpp
+--- a/src/board.cpp	2026-11-17 19:48:50.801143771 +0000
++++ b/src/board.cpp	2026-11-17 20:07:02.513143771 +0000
+@@ -904,7 +904,7 @@
+     // Not in check, not en passant, not a king move: the own king can only
+     // become attacked when a pinned piece leaves the line to its pinner. A
+     // capture keeps its target square occupied, so it never opens a line.
+-    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {
++    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && moving != WK && moving != BK) {
+         if (!king_lines_.valid) refresh_king_lines();
+         return (king_lines_.pinned & square_bb(move.from)) == 0 ||
+                attacks::aligned(king_square(us), move.from, move.to);
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 19:48:50.801143771 +0000
++++ b/src/search.cpp	2026-11-17 20:07:36.249143771 +0000
+@@ -467,25 +467,34 @@
+ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
+     TTCluster& cluster = cluster_for(key);
+     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+-    // Owner calls (TakeLock false) skip lock_stripe: under the lease it only hands
+-    // back a deferred (unlocked) lock, after a thread_local lookup per call.
+-    std::unique_lock<std::mutex> lock;
+-    if constexpr (TakeLock) lock = lock_stripe(index);
++    struct EmptyLock {};
++    [[maybe_unused]] const auto lock = [&] {
++        if constexpr (TakeLock) return lock_stripe(index);
++        else return EmptyLock{};
++    }();
+     const std::uint32_t key32 = verification_key(key);
+     const std::uint8_t generation = generation_;
+-    auto snapshot = [&](const TTEntry& entry, bool hit) {
++    auto hit_snapshot = [&](const TTEntry& entry) {
+         TTProbe result;
+         result.entry = entry;
+-        result.hit = hit;
++        result.hit = true;
++        result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());
++        result.owner_ = this;
++        result.cluster_ = index;
++        result.epoch_ = epoch_;
++        result.key_ = key;
++        return result;
++    };
++    auto miss_snapshot = [&](std::uint8_t slot) {
++        TTProbe result;
++        result.hit = false;
++        result.slot_ = slot;
+         result.owner_ = this;
+         result.cluster_ = index;
+-        result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());
+         result.epoch_ = epoch_;
+         result.key_ = key;
+         return result;
+     };
+-    // Four slots. Keep this a short loop: fully unrolling the replacement
+-    // choice spilled registers and made the probe slower.
+     TTEntry* found = nullptr;
+ #pragma GCC unroll 1
+     for (TTEntry& entry : cluster.entries) {
+@@ -504,15 +513,14 @@
+             found->gen_bound = static_cast<std::uint8_t>(
+                 (static_cast<unsigned>(generation) << 3U) | (found->gen_bound & 7U));
+         }
+-        return snapshot(*found, true);
++        return hit_snapshot(*found);
+     }
+     TTEntry* replace = &cluster.entries[0];
+-    int replace_score = replace->occupied()
+-                            ? replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U)
+-                            : 0;
+-#pragma GCC unroll 1
+-    for (TTEntry& entry : cluster.entries) {
+-        if (!entry.occupied()) return snapshot(entry, false);
++    if (!replace->occupied()) return miss_snapshot(0);
++    int replace_score = replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U);
++    for (std::size_t s = 1; s < 4; ++s) {
++        TTEntry& entry = cluster.entries[s];
++        if (!entry.occupied()) return miss_snapshot(static_cast<std::uint8_t>(s));
+         const int age = static_cast<int>((32U + generation - entry.generation()) & 31U);
+         const int score = entry.depth - 4 * age;
+         if (score < replace_score) {
+@@ -520,7 +528,7 @@
+             replace_score = score;
+         }
+     }
+-    return snapshot(*replace, false);
++    return miss_snapshot(static_cast<std::uint8_t>(replace - cluster.entries.data()));
+ }
+ 
+ TTProbe TranspositionTable::probe(std::uint64_t key) const { return probe_body<true>(key); }
+@@ -537,7 +545,11 @@
+     // Lifecycle operations themselves must not run concurrently with search.
+     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
+         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
+-    const auto lock = TakeLock ? lock_stripe(probe.cluster_) : std::unique_lock<std::mutex>();
++    struct EmptyLock {};
++    [[maybe_unused]] const auto lock = [&] {
++        if constexpr (TakeLock) return lock_stripe(probe.cluster_);
++        else return EmptyLock{};
++    }();
+     TTCluster& cluster = clusters_[probe.cluster_];
+     const std::uint32_t key32 = verification_key(key);
+     // Probe records a slot before the subtree runs. Another store can place this
+@@ -2164,7 +2176,7 @@
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
+-    if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
++    if (check_node_or_periodic_stop()) aborted_ = true;
+ #if FORGE_TEST_CLOCK_STOP
+     if (is_main() && test_clock_stop_nodes() != 0 && local_nodes_ >= test_clock_stop_nodes()) aborted_ = true;
+ #endif
+@@ -2317,7 +2329,7 @@
+     // Keep this call's inherited path budget independent of those mutations.
+     const int inherited_double_extensions = (ss - 1)->double_extensions;
+     ss->double_extensions = inherited_double_extensions;
+-    if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
++    if (check_node_or_periodic_stop()) aborted_ = true;
+ #if FORGE_TEST_CLOCK_STOP
+     if (is_main() && test_clock_stop_nodes() != 0 && local_nodes_ >= test_clock_stop_nodes()) aborted_ = true;
+ #endif
+@@ -3300,6 +3312,9 @@
+         soft_limit_ms_ = hard_limit_ms_ = 0;
+         time_managed_ = false;
+     }
++    fast_single_node_stop_ = parent_worker_ == nullptr && multipv == 1 &&
++                             (all_workers_ == nullptr || all_workers_->size() == 1) &&
++                             node_limit_specified_ && !clock_reserve_empty_ && hard_limit_ms_ <= 0;
+ 
+ #if FORGE_NNUE_V3
+     const bool use_v3_eval = v3_active_net_ != nullptr;

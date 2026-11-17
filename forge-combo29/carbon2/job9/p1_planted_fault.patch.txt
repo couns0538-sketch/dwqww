@@ -1,0 +1,12 @@
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 20:07:36.249143771 +0000
++++ b/src/search.cpp	2026-11-17 20:11:31.245143771 +0000
+@@ -518,7 +518,7 @@
+     TTEntry* replace = &cluster.entries[0];
+     if (!replace->occupied()) return miss_snapshot(0);
+     int replace_score = replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U);
+-    for (std::size_t s = 1; s < 4; ++s) {
++    for (std::size_t s = 2 /* PLANTED FAULT: skip slot 1 in TT replacement scan */; s < 4; ++s) {
+         TTEntry& entry = cluster.entries[s];
+         if (!entry.occupied()) return miss_snapshot(static_cast<std::uint8_t>(s));
+         const int age = static_cast<int>((32U + generation - entry.generation()) & 31U);
