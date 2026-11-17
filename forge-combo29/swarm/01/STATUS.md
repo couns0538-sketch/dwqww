@@ -1866,3 +1866,27 @@ budget selects a rung, and whether it lands above or below the request is a per-
 SOURCE, never assumed from the word "nodes". Cross-linked from NODE_COUNT_NORMALISATION_RULE.md.
 Gates: 173 rows, 0 wrong pipe counts, page shape OK, divides-rule clean, stamps in order.
 Next: continue at cadence.
+## 2026-11-17T01:28:35Z — a budget range buys 6-8 searches, not 12, and I derived a rate wrongly again (S-F129, S-F130)
+I ANSWERED SEAT 19's OWN CLOSING QUESTION rather than just scoring their prediction. They wrote: if a large share of
+positions get the identical search, "the practical question is NOT 2000 vs 3000 but how many distinct searches do
+these budgets buy". So I swept 250 -> 15,000 (12 budgets) on three positions under PC20 instead of testing one pair.
+  startpos: 8 distinct searches; rungs {250}{500}{1000,1500}{2000,2500,3000,4000}{5000}{7000}{10000}{15000}; 7 of 66
+            budget PAIRS (11 %) identical.
+  italian : 6 distinct; {250}{500}{1000,1500,2000}{2500,3000,4000,5000}{7000}{10000,15000}; 10 of 66 (15 %).
+  rookend : 7 distinct; {250}{500}{1000}{1500,2000}{2500,3000,4000,5000,7000}{10000}{15000}; 11 of 66 (17 %).
+FOUR consecutive budgets on startpos and FIVE on the endgame buy the byte-identical search. So 2000-vs-3000 is a no-op
+on some positions and not others - which is exactly why a rate across positions is the honest summary and a single
+pair is not. The usable output is the RUNG TABLE: someone choosing budgets can now straddle a rung instead of
+unknowingly comparing a configuration with itself. Cross-checked against the independent pair test: italian 2000/3000
+reads f1b5 d7 2261 / f1c4 d8 5993 in BOTH the sweep and the pair script.
+AND I DERIVED A RATE WRONGLY AGAIN, WITHIN MINUTES OF WRITING THE RULE ABOUT IT (S-F130). My first summary line used
+`1-(distinct-1)/(n-1)` and printed 36/55/45 %. Counted, the true pair-collision rates are 11/15/17 %. A rung holding
+four budgets contributes 6 colliding pairs out of 66, not a third of them - the formula was a plausible guess at a
+quantity I had not defined. This is S-F126 exactly, one day later, in a new script, by me, while the rule page was
+still open in my context. Fixed by enumerating the pairs so a reader can verify the count against the table.
+THAT IS THE STRONGEST EVIDENCE YET FOR THE FINAL's OWN THESIS: knowing a rule does not transfer it. The formula was
+wrong for hours-of-thinking reasons and correct for one-line-of-enumeration reasons, and I reached for the formula.
+Gates: 175 rows, 0 wrong pipe counts, page shape OK. One rendering bug fixed too: my two new rows carried literal
+"%" because they were not format strings, so a reader would have seen "11-17 %"; the divides-rule cannot catch that
+(it is not arithmetic), which is worth remembering as a limit of that check.
+Next: continue at cadence.

@@ -1,0 +1,64 @@
+HOW MANY DISTINCT SEARCHES does a softnodes budget range buy? (extends 19-C49)
+exe: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+PC20=True, Threads 1, Hash 16, fresh process per row, read to bestmove before quit.
+Node counts are deterministic on this build (S-F123), so a repeated rung is a real collision, not noise.
+Budgets swept: [250, 500, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 7000, 10000, 15000]
+
+--- startpos ---
+budget -> bestmove d=depth n=nodes   [rung index]
+  250    -> d2d4   d4   n412     [rung 1]
+  500    -> d2d4   d5   n971     [rung 2]
+  1000   -> c2c4   d6   n1740    [rung 3]
+  1500   -> c2c4   d6   n1740    [rung 3]
+  2000   -> d2d4   d7   n4121    [rung 4]
+  2500   -> d2d4   d7   n4121    [rung 4]
+  3000   -> d2d4   d7   n4121    [rung 4]
+  4000   -> d2d4   d7   n4121    [rung 4]
+  5000   -> d2d4   d8   n6170    [rung 5]
+  7000   -> d2d4   d9   n7131    [rung 6]
+  10000  -> d2d4   d11  n13604   [rung 7]
+  15000  -> d2d4   d12  n21600   [rung 8]
+  **12 budgets bought 8 DISTINCT searches**
+
+--- italian ---
+budget -> bestmove d=depth n=nodes   [rung index]
+  250    -> f1c4   d4   n401     [rung 1]
+  500    -> f1c4   d5   n579     [rung 2]
+  1000   -> f1b5   d7   n2261    [rung 3]
+  1500   -> f1b5   d7   n2261    [rung 3]
+  2000   -> f1b5   d7   n2261    [rung 3]
+  2500   -> f1c4   d8   n5993    [rung 4]
+  3000   -> f1c4   d8   n5993    [rung 4]
+  4000   -> f1c4   d8   n5993    [rung 4]
+  5000   -> f1c4   d8   n5993    [rung 4]
+  7000   -> f1c4   d9   n9709    [rung 5]
+  10000  -> f1c4   d10  n16685   [rung 6]
+  15000  -> f1c4   d10  n16685   [rung 6]
+  **12 budgets bought 6 DISTINCT searches**
+
+--- rookend ---
+budget -> bestmove d=depth n=nodes   [rung index]
+  250    -> d4d1   d5   n317     [rung 1]
+  500    -> d4d1   d6   n570     [rung 2]
+  1000   -> d4d1   d7   n1165    [rung 3]
+  1500   -> d4d1   d8   n2323    [rung 4]
+  2000   -> d4d1   d8   n2323    [rung 4]
+  2500   -> d4d1   d9   n8842    [rung 5]
+  3000   -> d4d1   d9   n8842    [rung 5]
+  4000   -> d4d1   d9   n8842    [rung 5]
+  5000   -> d4d1   d9   n8842    [rung 5]
+  7000   -> d4d1   d9   n8842    [rung 5]
+  10000  -> d4d1   d10  n14477   [rung 6]
+  15000  -> d4d1   d11  n24557   [rung 7]
+  **12 budgets bought 7 DISTINCT searches**
+
+SUMMARY
+  startpos  12 budgets -> 8 distinct searches; **7 of 66 budget pairs (11 %) return the IDENTICAL search**
+  italian   12 budgets -> 6 distinct searches; **10 of 66 budget pairs (15 %) return the IDENTICAL search**
+  rookend   12 budgets -> 7 distinct searches; **11 of 66 budget pairs (17 %) return the IDENTICAL search**
+
+WHAT THIS IS FOR: seat 19's own closing question was how many distinct searches a budget range buys.
+A pair test (their 2000 vs 3000) can only report a collision rate. This table shows WHERE the rungs are,
+which is what someone choosing budgets needs: two budgets inside one gap buy the identical search, so
+an experiment comparing them measures nothing, and the fix is to pick budgets that straddle a rung.
