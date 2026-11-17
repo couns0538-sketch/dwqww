@@ -2,11 +2,12 @@
 
 **Block: cold read of the FINAL's first page, then the fix, then the record. `date -u` at time of writing: 2026-11-17T03:41:47Z.**
 Window closes `2026-11-17T10:18:41Z`; **6h37m remaining**. Area 3, move generation vs python-chess. Seed 2301.
-Tip: `for-fable-and-opus/swarm-23`.
+Tip: `for-fable-and-opus/swarm-23`. **248 rows at 03:42:13Z.**
 
 ## This block
 
-The coordinator set the rotation: read cold, fix, then record what was read. I did that on the FINAL's first page.
+The coordinator set the rotation: read cold, fix, then record what was read. I did that on the FINAL's first page
+and the sentence immediately following it.
 
 **One real defect, and it is in the prose the checks cannot reach.** Section 1 and section 3 both said the bail's move
 "hangs a piece" and F61 called -805 "roughly a minor piece". The board says otherwise on both counts: the piece is the
@@ -22,6 +23,13 @@ equality and so was outside the mechanised class — until this block extended i
 opponent's depth-16 PV: **g1 captures the queen and g2 captures a bishop into `mate 5` — in both the piece was already
 attacked at the root (failures-to-answer); g6's `b3b7` captures a pawn that was NOT attacked, so that one DOES create a
 new threat; g3 and g5 capture nothing.** "Hangs a piece" is right about at most one of five.
+
+**Two more from the same page, both fixed.** (1) "6 pawns of material" was wrong as a *label*: the static exchange is
+**+6** (queen 9 less the knight recapture 3), and the sentence now says so and keeps it apart from the -805 search score,
+since they are not two estimates of one number. (2) **"both moves allow the same +1" named no moves** — with F130's pair
+(`c6c5`/`e4e8`) it is +1/+1, neutral, exactly as F130 says; with the PC move F60 records on the same board (`e4b1`) it is
++1/+0, so the repair is *better*. **The row was right and the sentence was unfalsifiable** — a predicate with a free
+variable is not a predicate (23-F222). The FINAL now names the pair and gives both numbers.
 
 **A bug of mine, caught by my own correction.** My first swing measurement reported +8 against the report's +6, and I
 briefly thought the FINAL carried another error. My script had maximised WHITE's advantage and labelled it BLACK's best
@@ -42,20 +50,21 @@ The boundary in three parts, each with a different answer, now stated in the FIN
 1. **Within a sentence** — meaning is not mechanisable by pattern.
 2. **Between this report and an independent source** — mechanisable when the claim reduces to a predicate: byte
    equality, number equality, or a board query; and the check must be shown able to fail.
-3. **Between this report and itself — nothing is mechanisable.** The defect is whichever two of its own sentences
+3. **A claim must name every argument of its relation** — otherwise it cannot be checked even in principle (23-F222).
+4. **Between this report and itself — nothing is mechanisable.** The defect is whichever two of its own sentences
    disagree, and there is no third thing to hold them against. This is measured: six defects in six blocks that every
    check passed, each internally consistent, visible only to a reader who did not yet believe the document.
 
 ## Numbers
 
-**247 distinct rows at 2026-11-17T03:41:47Z — 219 F (this seat's findings) and 28 C (confirmations of other seats').**
+**248 distinct rows at 2026-11-17T03:42:13Z — 220 F (this seat's findings) and 28 C (confirmations of other seats').**
 
 Stated as the count script printed it, not carried in my head. `sync_counts.py` rewrites the FINAL from `FINDINGS.md`.
 
 ## Checks, all three, this block
 
 - `audit_findings.py` → 0
-- `doc_check.py` → 0 (counts agree 219/28/247; GUI table and rules verbatim; VERDICT: PASS)
+- `doc_check.py` → 0 (counts agree 220/28/248; GUI table and rules verbatim; VERDICT: PASS)
 - `rule_check.py` → 0
 - `job70/verb_check.py` → 0 (new; 13/13; planted fault → 1)
 - `job69/frontpage_check.py` → PASS, `job68/final_recheck.py` → 11/11

@@ -74,9 +74,14 @@ deliberate: this is the section a reader is most likely to quote, and the calibr
 DISJOINT 12-position samples** (~625 and ~1,004; nine or ten of twelve at or above 300 cp in each), on middlegame
 positions sampled deterministically rather than chosen (23-F101/F144). **That figure is a cost of the MOVE, not of the
 score** — a reader who re-attributes it to the score will re-inflate the whole family (23-F128). On one real self-play
-board the unsearched move lost **6 pawns of material** by allowing a queen capture (23-F60, re-verified under the
-corrected validator in 23-F129). And on 23-F60's SECOND board the repaired build is **material-neutral** — both moves
-allow the same +1 — so the repair's material safety is NOT reliable, only its removal of the 0-node path (23-F130).
+board the unsearched move **left an already-attacked queen en prise, and White wins a queen for a knight — a static
+material advantage of +6 pawn-units** (queen 9 less the knight recapture 3; 23-F60, re-verified under the corrected
+validator in 23-F129, and the verb corrected in 23-F219). **Keep the two measures apart: +6 is a STATIC exchange count on
+the board, -805 is the SEARCH SCORE for that same move at depth 16.** They are not two estimates of one number. And on 23-F60's SECOND board the repaired build is **material-neutral** — **on
+the pair 23-F130 actually measured (base `c6c5` against PC `e4e8`, the depth-12 rebuild) both moves allow White the same +1
+via `b3b7`.** **The pair matters and is therefore named: on the SAME board with the PC move 23-F60 recorded from the real
+clock game, `e4b1`, the counts are +1 for the base and +0 for the repair — the repair is better, not neutral (23-F222).**
+Either way the repair's material safety is NOT reliable, only its removal of the 0-node path (23-F130).
 
 Breadth, stated honestly: the mate forfeit reproduces on 6 of 6 fixtures across TWO mate types; four other structures had
 no mate in one and could not test it (F175), and all six share Black's king on g8/h8 with pawns intact.
@@ -102,7 +107,8 @@ correct behaviour and a better result for the repair than the policy framing was
 23-F169). The base's unsearched
 move is generator index 0, and playing it costs a median of roughly 600-1,000 cp across TWO DISJOINT 12-position samples
 (~625 and ~1,004; nine or ten of twelve >= 300 cp each) — quote it as a range, not a figure (23-F101, 23-F144; a cost of
-the MOVE, not the score); on one real self-play board it lost 6 pawns of material (23-F60, re-verified 23-F129). The PC build REMOVES THE 0-NODE PATH — which is what produced both losses —
+the MOVE, not the score); on one real self-play board it left an already-attacked queen en prise, worth +6 in static
+material (23-F60, re-verified 23-F129, verb corrected 23-F219). The PC build REMOVES THE 0-NODE PATH — which is what produced both losses —
 and on one of two measured boards also picks a materially better move; it does NOT reliably buy material safety
 (23-F129/F130).
 
@@ -126,7 +132,9 @@ not against that page's own table: the numbers are now checked, the prose around
 **And the boundary of what can be checked at all, in three parts, because each part has a different answer.** Within a
 sentence, meaning is not mechanisable by pattern. Between this report and an independent source, a claim IS mechanisable
 when it reduces to a predicate over that source — equality of bytes, equality of a number, or a query of a board — and the
-check must be shown able to fail. **Between this report and itself, nothing is mechanisable:** the defect is whichever two
+check must be shown able to fail. **A claim only qualifies if it names every argument of its relation:** a predicate with a
+free variable is not a predicate, so "both moves allow the same +1" cannot be checked until both moves are named — and on
+one board the two candidates gave opposite answers (23-F222). **Between this report and itself, nothing is mechanisable:** the defect is whichever two
 of its own sentences disagree, and there is no third thing to hold them against. That last clause is measured, not
 asserted — the report's own earlier reading found six defects in six blocks that every check passed, because each was
 internally consistent and only a reader who did not yet believe the document could see the arrangement (23-F211,
@@ -179,7 +187,7 @@ Verified across all three draw kinds at MultiPV 3 (23-F160): threefold, fifty-mo
 
 ### 8. What the counts measure — so no reader has to infer it
 
-**219 `F` rows are this seat's own findings; 28 `C` rows are confirmations of OTHER seats' findings; 247 rows in total.**
+**220 `F` rows are this seat's own findings; 28 `C` rows are confirmations of OTHER seats' findings; 248 rows in total.**
 The two series are not the same kind of thing and should not be read as one number without that sentence: an `F` row is a
 measurement this seat made, a `C` row is a check of someone else's claim (what was confirmed, what was not, and what was
 left untested). They are additive as ROWS and not as "findings", which is the distinction a reader would otherwise have to
@@ -187,8 +195,8 @@ infer from the letter in the id.
 
 The counts are also the most-audited numbers in the seat, and worth one line about what that evidence is: **every
 increment since the duplicate was found is one row added by one commit, the audit rejects a duplicate id, rejects a row
-whose evidence names no resolvable file, and rejects a row of the wrong shape.** So "247 rows, 0 duplicates" is a claim
-about the FILE, checked mechanically on every commit — not a claim that 247 separate claims are each correct, which is
+whose evidence names no resolvable file, and rejects a row of the wrong shape.** So "248 rows, 0 duplicates" is a claim
+about the FILE, checked mechanically on every commit — not a claim that 248 separate claims are each correct, which is
 what the evidence cells are for.
 
 ### 9. Two commands, so the first page and the numbers can both be checked
@@ -264,7 +272,7 @@ it is worth knowing that the refusal was correct each time: a commit SHA is not 
 repository, and a resolver cannot verify what it cannot find. **An evidence rule that rejects the convenient form is the
 rule earning its place.**
 
-**And the count, as a dated figure rather than a bare number:** **247 distinct rows at 2026-11-17T03:41:47Z** — 219 `F` (this
+**And the count, as a dated figure rather than a bare number:** **248 distinct rows at 2026-11-17T03:42:13Z** — 220 `F` (this
 seat's findings) and 28 `C` (confirmations of other seats'). It is stated with a timestamp and recomputed by
 `doc_check.py`, which fails if this sentence ever disagrees with `FINDINGS.md`; a bare total in prose would be stale
 within minutes, which is what happened twice while this seat was reporting it.
