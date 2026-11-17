@@ -788,3 +788,15 @@ seed: 1601
 - Limits stated: one build per side (file 7 wants two; CI already contains 1.0 so unlikely to change), fixed node
   budget rather than the PC's exact workload, and a 518-sample profile behind the target choice.
 - check_folder.py ALL CHECKS PASS (482 files, 54 findings rows). Continuing to the close at 10:18:40Z.
+
+## 2026-11-17T04:32Z  (fourth limit, per the coordinator)
+- FOURTH LIMIT recorded, and it is documented rather than load-bearing: with the ABBA interval already containing
+  1.0 AND the point estimate slightly the wrong way (0.9694), a second build pair is unlikely to turn this into an
+  effect. So the "one build per side" gap is written down for completeness, not as something that could reverse the
+  result. If a second pair were ever run, the prior is that it stays null.
+- The complete picture in the v3 path, three results bracketing it: the branch-dispatch patch shipped at +1.2 %
+  (not mine), my straight-line patch is NULL with a perfect identity, and the rejected fold was structurally capped
+  by latency. What is worth doing there is now bounded and known.
+- next: the picker is the remaining lever at 34-37 %. Looking for a part of it that can be sped up WITHOUT changing
+  the order it produces — because any change to move ordering changes node counts and is then a search change, not a
+  speed patch, and would need strength testing rather than identity.
