@@ -1066,3 +1066,26 @@ spot-check at any other budget shows a healthy mate — only a ladder finds it.
 
 **And 50,000 nodes is one of the owner's three match budgets**, so this is the most consequential confirmation I
 made tonight: a mate distance his engine cannot justify at a budget he actually uses.
+
+### FOURTEENTH UPDATE — the mate-truncation finding, with the explanation at the top and both halves stated
+
+**"Correct either side of a narrow band and over-claimed inside it, so only a ladder finds it."**
+
+That is the finding in one line, and it is why a defect at a match budget survived this long: a spot-check at any
+other budget shows a perfectly healthy mate.
+
+**Both halves, from the same harness (PV sliced from the info line and replayed with python-chess):**
+
+| | budget | score | PV plies | plies a mate needs | PV reaches mate? |
+|---|---|---|---|---|---|
+| **THE DEFECT** | **50,000** | **`mate 11`** | **18** | **21** | **NO — ends after 18 plies** |
+| **THE HEALTHY CONTROL** | 80,000 | `mate 7` | 13 | 13 | **YES — checkmate at ply 13** |
+| **THE HEALTHY CONTROL** | 250,000 | `mate 7` | 13 | 13 | **YES — checkmate at ply 13** |
+
+**The control is what makes the defect a defect rather than a broken test.** The same replay code, on the same
+board, in the same run, confirms honest mates at two other budgets and refutes the score at one. A test that
+flagged all three would tell us about the test; one that flags exactly the over-claimed budget tells us about the
+engine.
+
+**And seat 05 could only infer this from PV length — the replay is what converts the inference into a proof.** It
+counted 18 against a required 21; I played the 18 moves and observed that they do not deliver mate.
