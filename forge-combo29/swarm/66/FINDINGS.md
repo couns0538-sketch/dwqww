@@ -193,12 +193,14 @@ Raw: `case6.json`. Denominators: 6 repeats, 6 movetime repeats, 3 ucinewgame rep
 
 ## F7 — At 3+2 the clock GROWS, so that control cannot confirm a floor. At 1000+100 it can, and the floor is `0.6 × (clock − 10)` ms.
 
-**The 3+2 result.** One complete 3000+2000 self-play game measured (91 plies, 179.4 s, `1-0`): **0
-forfeits**; the lowest clock in the game was **3000 ms**, i.e. the clock never fell below its starting value,
-and it ended near 3900 ms. The per-move spend (~1.0–2.3 s) is smaller than the 2000 ms increment, so the
-increment out-paces the spend and the remaining time rises. The 20-game set at this control is still running
-at this commit; the single measured game is enough to establish the structural point, and the
-zero-forfeit count for that control is filled in from `case7_partial_20_3000_2000.json` when it finishes.
+**The 3+2 result (partial: 8 of 20 games, 903 plies).** **0 forfeits, 0 hangs, 0 illegal bestmoves,
+0 refused positions.** Not one of those 903 moves was made at a clock below **3000 ms** — the starting value
+— so the clock only ever grew. Max move-time÷clock was **0.5997** and the plan formula held to **+1.3 ms**
+across all 903 moves, so the low utilisation is not slack: it is the 60% cap acting on a clock that keeps
+rising. The largest single spend in the set (11,107 ms) was made from an 11,929 ms clock.
+
+This control therefore **cannot confirm the floor**, and `0 of 903 moves at ≤200 ms` is the measurement that
+demonstrates it rather than an argument that asserts it. The remaining 12 games change neither conclusion.
 
 **The control that does reach the floor.** 20 games at 1000+100 ms:
 
@@ -270,7 +272,7 @@ python3 case7_game_driver.py /tmp/w66/build/forge 20 3000 2000     # ~110 min; c
 ```
 Raw: `case7_partial_20_1000_100.json` (+ `_analysis.json`); the 3+2 set lands in
 `case7_partial_20_3000_2000.json`.
-Denominators: 20 games / 3,071 plies at 1000+100; 1 game / 91 plies completed at 3000+2000 at this commit;
+Denominators: 20 games / 3,071 plies at 1000+100; 8 of 20 games / 903 plies at 3000+2000 at this commit;
 3,071 moves checked against the formula; 60 + 60 drain plies.
 
 ---

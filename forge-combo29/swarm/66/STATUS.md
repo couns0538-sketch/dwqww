@@ -32,7 +32,7 @@ cd forge-combo29/swarm/66 && python3 selftest.py /tmp/w66/build/forge
 | 5 huge clocks | **DONE 27/27** | 2e9 / 3e9 / int64-max / 36,028,797,018,963,967 / one-past / 30 digits: all accepted, none answers inside 8 s, all answer `stop` |
 | 6 repeated `go` | **DONE 15/15** | nothing accumulates: 6 goes at a fixed 1000 ms clock spent 485 ms total |
 | 7a 20 games at 1000+100 | **DONE 9/9** | **0 forfeits / 0 hangs / 0 illegal / 0 refused over 20 games and 3,071 plies**; max move-time/clock **0.5937**; floor reached: max **114.5 ms** at a ≤200 ms clock = 0.6×(200−10) |
-| 7b 20 games at 3000+2000 | **PARTIAL, 2 of 20 games** (0 forfeits; clock never fell below 3000 ms) | at 3+2 the clock GROWS, so this control cannot test the floor |
+| 7b 20 games at 3000+2000 | **PARTIAL, 8 of 20 games** (0 forfeits / 903 plies; clock never fell below 3000 ms, 0 moves at ≤200 ms) | at 3+2 the clock GROWS, so this control cannot test the floor |
 | 7c drain control | **DONE** | 10× overcharge reaches clock 0; 60/60 moves legal in 0.1–0.6 ms, both with and without increment |
 
 ## Three measurements that correct the brief's framing
