@@ -12,7 +12,7 @@ invisible to this instrument", never "this change is safe"**, and the two are on
 probe proves the change was live. The measurement is in §6, the blind-spot list in §10.
 
 **A companion file enumerates the whole run as a matrix rather than an argument**:
-[`test-matrix.md`](test-matrix.md) — **130 rows**: 29 areas tested and correct, 30 tested and wrong, 15
+[`test-matrix.md`](test-matrix.md) — **131 rows**: 29 areas tested and correct, 30 tested and wrong, 16
 tested with a conditional answer, 21 never tested (each with the reason), and **35 instruments in this
 audit that reported something false**, with what caught each one. Start there if you want the checklist;
 start here if you want the reasoning.
