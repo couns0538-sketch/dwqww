@@ -253,16 +253,20 @@ branches, and the merge decision is yours.
   repository, 60+ branches, many still showing 13,000+ files and many showing 0. **They are not this run's
   deliverables, and rewriting 60 branches of history at close is not a service to the owner.** Where this
   report cites one of them, it is citing content, not a reviewable diff.
-- **And the deliverable PRs' CI is mostly RED for a reason that is a property of the harness, not of the
-  work — stated here so a reader who clicks a PR is not surprised.** Of the first five `swarm/*` PRs checked,
-  **SonarCloud fails on four** (and **passes on the report's own PR**, which contains only markdown). The
-  failures are **guarded argv-path sinks** — a measurement harness takes a filesystem path as its interface,
-  so a static analyser flags the sink even though the path is validated — and the **same failure is
-  pre-existing on the older `#52`–`#59` set**. One seat took its annotations from **15 → 5 → 3** and its
-  Reliability rating from **R to A** by actually fixing what could be fixed, and **deliberately did not add
-  `nosonar` to turn the gate green**. That refusal is the right call: **a suppression would have made the
-  check pass without changing anything, and a green badge earned that way is exactly the kind of number this
-  report spends §6 warning about.** Read the PR content, not the check mark.
+- **And the deliverable PRs' CI splits five pass / seven fail, for a reason that is a property of the harness rather than of the work — stated here so a reader who clicks a PR is not surprised.**
+  **Of the twelve deliverable PRs checked at close, five pass SonarCloud and seven fail** — and the split is
+  **informative**: the failures are concentrated in seats that had not yet had a round of path-validation 
+  fixes, and every failure inspected is the **same class** — a caller-supplied path or executable going 
+  straight into `open()`, `subprocess` or `shutil.rmtree()`. **That is inherent to a harness whose 
+  interface is a filesystem path**, and the seats that fixed it did so by resolving every path inside an 
+  allowed root: **four seats took their annotation counts to 0 and their PRs green** (tsan, matelabels, 
+  longgame, aspiration), while five still carry 14-18 each. **One seat went 14 to 1 to 0, and its last fix 
+  caught a command in its own reproduce instructions that had never worked.**
+- **No seat added `nosonar` to turn the gate green, and that refusal is the right call**: a suppression 
+would make the check pass without changing anything, and **a green badge earned that way is exactly the 
+kind of number this report spends §6 warning about.** The failures are a **real defect in the deliverable 
+scripts**, not a false positive, and they are a property of the measurement harnesses rather than of the 
+audit's findings. **Read the PR content, not the check mark.**
 - **What to do instead of reading the diff**: each PR's `FINDINGS.md` is the deliverable, and the paths
   in it are relative to `forge-combo29/` at `6b98f217`. **A reader who wants a real diff should compare a
   seat branch against `6b98f217`, not against `main`** — the same branch that shows 13,289 files against
