@@ -1,0 +1,11 @@
+=== 1. Planted-Fault Run (p2_planted_fault.patch.txt: omit std::equal prefix check) ===
+PART_D_PARSE_UCI_ORACLE PASS: positions=1004 legal_moves_checked=21832 malformed_and_random_tokens_checked=85340 mismatches=0
+PROPERTY TEST MISMATCH at seq=0 step=1 op=5
+  cmd     : position fen 8/8/8/4N3/1K6/6Pk/4R3/5R2 b - - 56 95 moves e1e1 h3g3 h3g3
+  stateful: info string eval hce 0 nnue 918 total 918 | b4a3: 1,b4a4: 1,b4a5: 1,b4b3: 1,b4b5: 1,b4c3: 1,b4c4: 1,b4c5: 1,e2a2: 1,e2b2: 1,e2c2: 1,e2d2: 1,e2e1: 1,e2e3: 1,e2e4: 1,e2f2: 1,e2g2: 1,e2h2: 1,e5c4: 1,e5c6: 1,e5d3: 1,e5d7: 1,e5f3: 1,e5f7: 1,e5g4: 1,e5g6: 1,f1a1: 1,f1b1: 1,f1c1: 1,f1d1: 1,f1e1: 1,f1f2: 1,f1f3: 1,f1f4: 1,f1f5: 1,f1f6: 1,f1f7: 1,f1f8: 1,f1g1: 1,f1h1: 1,nodes 40
+  fresh   : info string eval hce 0 nnue -188 total -188 | h3g3: 1,nodes 1
+PLANTED FAULT CAUGHT AS EXPECTED (non-zero exit)
+
+=== 2. Clean Piece P2 Run (parse_uci oracle + 1,000 random multi-command sequences vs fresh oracle & 100 fresh OS processes) ===
+PART_D_PARSE_UCI_ORACLE PASS: positions=1004 legal_moves_checked=21832 malformed_and_random_tokens_checked=85340 mismatches=0
+PART_C_POSITION_CACHE_PROPERTY PASS: sequences=1000 total_positions_verified=8408 fresh_os_processes=100 (extend=1082, repeat_same=1066, shorter=921, same_len_diff=877, diff_root_same_moves=1065, illegal_mid=1039, ucinewgame=1021, fen_roots=7688) mismatches=0

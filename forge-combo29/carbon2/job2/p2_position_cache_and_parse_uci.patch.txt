@@ -1,0 +1,181 @@
+diff -ruN a/src/board.cpp b/src/board.cpp
+--- a/src/board.cpp	2026-11-17 11:05:46.425143771 +0000
++++ b/src/board.cpp	2026-11-17 11:19:09.177143771 +0000
+@@ -1182,9 +1182,41 @@
+ 
+ std::optional<Move> Board::parse_uci(std::string_view text) {
+     if (text.size() != 4 && text.size() != 5) return std::nullopt;
+-    for (const Move move : legal_moves()) {
+-        if (move_to_uci(move) == text) return move;
++    if (text[0] < 'a' || text[0] > 'h' || text[1] < '1' || text[1] > '8' ||
++        text[2] < 'a' || text[2] > 'h' || text[3] < '1' || text[3] > '8') {
++        return std::nullopt;
+     }
++    const int from = (text[1] - '1') * 8 + (text[0] - 'a');
++    const int to = (text[3] - '1') * 8 + (text[2] - 'a');
++    if (from == to) return std::nullopt;
++    std::uint8_t promo = 0;
++    if (text.size() == 5) {
++        switch (text[4]) {
++        case 'n': promo = Knight; break;
++        case 'b': promo = Bishop; break;
++        case 'r': promo = Rook; break;
++        case 'q': promo = Queen; break;
++        default: return std::nullopt;
++        }
++    }
++    const Piece moving = squares_[static_cast<std::size_t>(from)];
++    if (moving == Empty || color_of(moving) != side_) return std::nullopt;
++    const int pt = piece_type(moving);
++    const Piece target = squares_[static_cast<std::size_t>(to)];
++    std::uint8_t flags = target != Empty ? Capture : Quiet;
++    if (promo != 0) flags |= Promotion;
++    if (pt == Pawn) {
++        if (to == ep_square_ && target == Empty && file_of(from) != file_of(to)) {
++            flags |= static_cast<std::uint8_t>(Capture | EnPassant);
++        } else if (std::abs(to - from) == 16) {
++            flags |= DoublePush;
++        }
++    } else if (pt == King && std::abs(file_of(to) - file_of(from)) == 2 && rank_of(to) == rank_of(from)) {
++        flags = static_cast<std::uint8_t>(
++            (promo != 0 ? Promotion : 0U) | (file_of(to) > file_of(from) ? KingCastle : QueenCastle));
++    }
++    const Move candidate{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), promo, flags};
++    if (is_pseudo_legal(candidate) && is_legal(candidate)) return candidate;
+     return std::nullopt;
+ }
+ 
+diff -ruN a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp	2026-11-17 11:08:10.345143771 +0000
++++ b/src/uci.cpp	2026-11-17 11:20:34.165143771 +0000
+@@ -40,50 +40,76 @@
+ 
+ namespace {
+ 
+-void apply_position(forge::Board& board, std::istringstream& input) {
+-    forge::Board candidate = board;
++struct PositionCache {
++    bool valid = false;
++    bool startpos = false;
++    std::string base_fen;
++    std::vector<std::string> moves;
++};
++
++void apply_position(forge::Board& board, std::istringstream& input, PositionCache& cache) {
+     std::string token;
+     if (!(input >> token)) return;
++    bool is_startpos = false;
++    std::string fen;
+     if (token == "startpos") {
+-        (void)candidate.set_fen(forge::Board::StandardStartFen);
++        is_startpos = true;
+     } else if (token == "fen") {
+-        std::string fen;
+         for (int i = 0; i < 6 && input >> token; ++i) {
+             if (!fen.empty()) fen += ' ';
+             fen += token;
+         }
+-        std::string error;
+-        if (!candidate.set_fen(fen, &error)) {
+-            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string invalid FEN: " << error << std::endl; }
+-            return;
+-        }
+     } else {
+         return;
+     }
+-    if (!(input >> token)) {
+-        board = candidate;
+-        return;
++
++    std::vector<std::string> move_tokens;
++    if (input >> token) {
++        // A token other than "moves" is not part of the FEN.
++        while (token != "moves") {
++            if (!(input >> token)) break;
++        }
++        if (token == "moves") {
++            move_tokens.reserve(256);
++            while (input >> token) move_tokens.push_back(std::move(token));
++        }
+     }
+-    // A token other than "moves" is not part of the FEN. Dropping the command
+-    // here used to leave the engine on the previous game.
+-    while (token != "moves") {
+-        if (!(input >> token)) {
+-            board = candidate;
+-            return;
++
++    std::size_t start_idx = 0;
++    const bool same_root = cache.valid && cache.startpos == is_startpos &&
++                           (is_startpos || cache.base_fen == fen);
++    if (same_root && cache.moves.size() <= move_tokens.size() &&
++        std::equal(cache.moves.begin(), cache.moves.end(), move_tokens.begin())) {
++        start_idx = cache.moves.size();
++    } else {
++        if (is_startpos) {
++            (void)board.set_fen(forge::Board::StandardStartFen);
++        } else {
++            forge::Board candidate;
++            std::string error;
++            if (!candidate.set_fen(fen, &error)) {
++                { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string invalid FEN: " << error << std::endl; }
++                return;
++            }
++            board = std::move(candidate);
+         }
++        cache.valid = true;
++        cache.startpos = is_startpos;
++        cache.base_fen = std::move(fen);
++        cache.moves.clear();
+     }
+-    while (input >> token) {
+-        const auto move = candidate.parse_uci(token);
++
++    for (std::size_t i = start_idx; i < move_tokens.size(); ++i) {
++        const auto move = board.parse_uci(move_tokens[i]);
+         if (!move.has_value()) {
+             // The position and every legal move before this token still stand.
+-            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string illegal move " << token << std::endl; }
+-            board = candidate;
++            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string illegal move " << move_tokens[i] << std::endl; }
+             return;
+         }
+         forge::Undo undo;
+-        (void)candidate.make_move(*move, undo);
++        (void)board.make_move(*move, undo);
++        cache.moves.push_back(std::move(move_tokens[i]));
+     }
+-    board = candidate;
+ }
+ 
+ bool is_go_keyword(const std::string& token) {
+@@ -286,6 +312,9 @@
+     std::uint64_t book_rng = static_cast<std::uint64_t>(
+         std::chrono::steady_clock::now().time_since_epoch().count()) | 1ULL;
+     bool ponder_search_active = false;
++    PositionCache pos_cache;
++    pos_cache.valid = true;
++    pos_cache.startpos = true;
+     struct SearchTask {
+         forge::Board board;
+         forge::SearchLimits limits;
+@@ -461,6 +490,10 @@
+             stop_search();
+             searcher.clear();
+             (void)board.set_fen(forge::Board::StandardStartFen);
++            pos_cache.valid = true;
++            pos_cache.startpos = true;
++            pos_cache.base_fen.clear();
++            pos_cache.moves.clear();
+         } else if (command == "setoption") {
+             stop_search();
+             std::string token;
+@@ -701,7 +734,7 @@
+             }
+         } else if (command == "position") {
+             stop_search();
+-            apply_position(board, input);
++            apply_position(board, input, pos_cache);
+         } else if (command == "go") {
+             stop_search();
+ #if FORGE_NNUE_V3
