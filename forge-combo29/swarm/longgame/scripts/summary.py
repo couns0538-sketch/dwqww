@@ -194,10 +194,32 @@ for arm, v in diag["per_arm"].items():
 print("  a refused FEN or illegal move appears here, on the `position` command")
 
 out("16. MATE/CP SCORE-TYPE FLIPS")
-kinds = {k: ("mate" if (sess[k]["score"] or "").startswith("mate") else "cp") for k in ks}
+ks = sorted(fresh)  # reset: section 14 rebound `ks` to the startpos arm
 flips = [k for k in ks if ("mate" if (sess[k]["score"] or "").startswith("mate") else "cp")
          != ("mate" if (fresh[k]["score"] or "").startswith("mate") else "cp")]
 print(f"  score-type flips: {len(flips)} of {len(ks)}   "
       f"in-process says mate (fresh says cp): "
       f"{sum(1 for k in flips if (sess[k]['score'] or '').startswith('mate'))}")
 print(f"  concentrated in: {collections.Counter(k[0] for k in flips).most_common(4)}")
+
+out("17. POSITION IDENTITY (move-list board vs FEN board)")
+for name, lbl in (("position_identity", "perft 4 over the 40-game sample"),
+                  ("position_identity_d5", "perft 5 over 15 games")):
+    try:
+        pi = load_json(name)
+    except FileNotFoundError:
+        continue
+    print(f"  {lbl}: {pi['identical']}/{pi['plies']} byte-identical perft breakdown; "
+          f"first mismatch {pi['first_mismatch']}")
+ctl = load_json("position_identity_control")
+print(f"  control fires on planted faults: {ctl['fired']}")
+print(f"  clock changes the answer (perft cannot see it): {ctl['clock_visible']}")
+
+out("18. HALFMOVE CLOCK OVER A LONG REPLAY")
+hc = load_json("halfmove_clock")
+print("  boundary sweep (bail?): " +
+      ", ".join(f"{k}={v['bail']}" for k, v in sorted(hc["boundary_sweep"].items(), key=lambda x: int(x[0]))))
+print(f"  boundary exactly at 100: {hc['boundary_exactly_100']}")
+print(f"  A/A control disagreements: {hc['aa_control_disagreements']}/{hc['aa_control_n']}")
+print(f"  clock verdict mismatches: {hc['clock_mismatches']}/{hc['plies_probed']} "
+      f"(skipped {hc['plies_skipped']} for repetition>=3 / insufficient / terminal)")

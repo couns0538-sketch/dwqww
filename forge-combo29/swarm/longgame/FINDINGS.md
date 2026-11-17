@@ -27,6 +27,8 @@ different consequences.
 | drawn-root bails seen | **89**, one in **89 of 200 games** (44.5%), 1 per **312** plies |
 | every bail at the game's last ply | **89 / 89** |
 | **every bail predicted independently** | **89 / 89**, and 27,692/27,692 positions agree |
+| **position identity (move-list board vs FEN board)** | **5,401 / 5,401 at perft 4**, **1,852 / 1,852 at perft 5** |
+| **halfmove clock agreement, move-list vs FEN** | **5,369 / 5,369**, boundary exactly at 100 |
 | RSS, 27,788 plies | **42.2 MiB** at every one of 277 samples from ply 300 to the end (+1.6 MiB total) |
 | wall time | 78.0 s total, mean 0.39 s/game, max 1.63 s |
 
@@ -169,6 +171,70 @@ it does not.
 
 ---
 
+## Position identity: the replay board IS the FEN board, at every ply
+
+This is the question that separates a replay tool from a correct one: is the board the engine
+built from a move list the same board as the FEN for that position? A divergence here means
+every ply was analysed on a position that is not the game's, silently.
+
+**Method.** For every ply of the 40-game sample, build the board twice in one engine —
+(A) `position fen <game start> moves <prefix>`, (B) `position fen <FEN of that position>` — then
+`go perft 4` on each and compare the **complete move-by-move breakdown**, not just the total.
+Perft exercises piece placement, side to move, en passant and castling, so an identical breakdown
+is a strong fingerprint of all four fields. The FEN in (B) is built by `force_ep_fen`, which keeps
+the ep square the move list produced, rather than python-chess `Board.fen()` — brief rule 5.
+
+**Result: 5,401 / 5,401 plies byte-identical at perft 4**, and a deeper run over the first 15 games
+at **perft 5 is also 1,852 / 1,852**. No mismatch at any ply of any game, at either depth.
+
+**The check fires, proved on planted faults before the clean run:**
+
+| planted fault | perft 4 response |
+|---|---|
+| wrong side to move | **DIFFERS** |
+| ep square dropped | **DIFFERS** |
+| **castling rights dropped** | **DIFFERS** (on a castling-playable fixture) |
+
+**The castling row is the one that caught a defect in the test itself.** My first control planted
+the castling fault on the *en-passant* fixture, where both kings had already forfeited the right,
+so perft correctly reported the two positions identical — which read as "the check is blind". The
+fixture could not exercise the field; the check was fine. **A control that silently does nothing
+is worse than no control**, and this is the exact shape of that failure.
+
+**What perft cannot see, stated rather than papered over: the halfmove clock.** Perft depends on
+neither the clock nor the fifty-move counter, so this result is a statement about piece placement,
+side to move, ep and castling. The clock is measured separately below, because the bail reads it.
+
+## The halfmove clock survives the replay, and the boundary is exactly 100
+
+A clock bug would not crash: it would move a verdict at a specific clock, because the bail keys on
+`halfmove_clock() >= 100` and the qsearch band is reachable only through quiet evasions at 99.
+
+**The clock is read through its only observable consequence.** The engine has no board-dump
+command, so for a position with a legal move the bail is a 1-bit read of "clock >= 100": it
+searches below the boundary and bails at or above it. Swept on one board in fresh processes:
+
+| clock | 0 | 97 | 98 | 99 | **100** | 101 | 102 |
+|---|---|---|---|---|---|---|---|
+| bails | no | no | no | **no** | **YES** | yes | yes |
+
+**The boundary sits exactly at 100**, matching §2's "halfmove threshold is 100, not 75".
+
+**Clock agreement at every eligible ply, fresh process per arm: 5,369 / 5,369, zero mismatches.**
+Each ply is probed twice — once as the move list (whose clock the replay carried) and once as a
+bare FEN carrying the clock the move history implies — and the two must give the same verdict.
+32 plies were excluded and counted, because the repetition and insufficient-material arms fire
+there for reasons that are not the clock.
+
+**The A/A control is the reason this number can be believed, and it first said 195/200.** My
+initial version ran both arms against one warm engine; a repeat search on a warm table returns
+**0 nodes with the hash move** (trap 2d0), which on the wire is indistinguishable from a bail. The
+A/A control — the same probe twice with nothing in between — read **195 of 200 agreements as
+disagreements**, which is the instrument failing, not the engine. **Rebuilt with a fresh process
+per probe the A/A control reads 0/120, and only then does the 0-mismatch clock result mean
+anything.** That first number is recorded here rather than deleted because an unreported broken
+control is how a fabrication gets published.
+
 ## Score calibration: the warm table is not less accurate
 
 An analysis tool shows a number. Against a depth-18 fresh truth on 150 plies, mean absolute score
@@ -217,6 +283,10 @@ said +2.3" a reproducible, explainable disagreement rather than a bug in either.
   number should be re-checked for this conflation.
 - **`go depth 8` is a weak oracle for "is this move worse"**, which is why §"move quality" uses
   depth 14 and reports a symmetric result rather than a defect.
+- **Withdrawn before publication: a first clock probe reporting 11 in-process-vs-fresh mismatches.**
+  Its own A/A control read 195/200 and exposed the probe as broken (warm-table 0-node replies read
+  as bails). Rebuilt with fresh processes: **0 mismatches in 5,369 plies.** The 11 were the
+  instrument, not the engine.
 - **Untested: the bail predicate under a warm table in a *threaded* search** (`Threads > 1`). All
   of this is single-threaded, matching the default. Fixed-depth threading is already a
   1.24×–2.00× pessimisation per §, so it was not run.
