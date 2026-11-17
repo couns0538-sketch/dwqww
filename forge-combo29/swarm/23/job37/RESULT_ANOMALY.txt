@@ -80,3 +80,25 @@ WHAT STANDS: the "works hardest exactly where it is about to give up" pattern is
 fifty-move horizon, present on both builds, deterministic, and depth-dependent in the same way the score onset is. That
 is a cleaner and more interesting statement than the build comparison I first wrote, and it is a better lead for a
 code-reading seat because it points at shared search code rather than at a fixed defect.
+
+THE OPEN QUESTION ANSWERED: the smaller peak is the PC20 RUNTIME SWITCHES, not the drawn-root repair
+================================================================================================
+Counter 91, depth 10, four configurations:
+
+| configuration | nodes at c91 |
+|---|---|
+| base 6b98f217, no options | 16,370,887 |
+| base + PC20 runtime switches (four search options + MateAlphaGuard) | 13,791,896 |
+| PC r15 build, variant A, NO options | **17,798,973** |
+| PC r15 build + PC20 runtime switches | **7,251,835** |
+
+So the reduction is the SWITCHES, not the repair: the PC build with no options is 17.8M — HIGHER than the base's 16.4M
+— and it only drops to 7.25M when the PC20 runtime options are on. The base with those same switches drops to 13.8M,
+so the switches reduce both builds, more sharply on the PC build.
+
+CONCLUSION: my "the base's peak is roughly 2x the PC's" was measuring the PC20 RUNTIME SETTINGS, not the repair. The
+like-for-like comparison is base-no-options 16.4M vs PC-variant-A-no-options 17.8M — the PC build is 9 % HIGHER, i.e.
+the drawn-root repair does not reduce this peak at all and may slightly raise it.
+
+That closes the question I flagged, and it corrects the remaining implication in 23-F82 that the build difference
+meant anything about the repair.
