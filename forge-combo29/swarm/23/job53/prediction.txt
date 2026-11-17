@@ -1,0 +1,34 @@
+PREDICTION — SW-23 job 53 (does the predictor name the move on roots that SELF-PLAY reached, not ones I built?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F105 tested the predictor on five roots I CONSTRUCTED with halfmove 120. Every fixture was mine, which is the weakness
+23-F47 taught me to distrust ("the fixtures are the part I fully control"). This job tests the same predictor on drawn
+roots that arise from actual play, where I do not choose the position, the material, or the piece distribution.
+
+METHOD
+1. Three self-play games, PC build vs itself, `go depth 8`, from three different first moves (1.e4, 1.d4, 1.Nf3), max
+   120 plies, ending early at a draw by any automatic rule.
+2. In python-chess, replay each game and compute for each position how many times it has occurred (same placement, same
+   side to move, same castling/ep). Collect every position that has occurred >= 3 times: these are NATURALLY REACHED
+   drawn roots.
+3. For each such root, PREDICT with the independent class predictor from 23-F105 (pawns single/double/capture, then
+   N,B,R,Q,K; within class, lowest from-square among GENERATED moves, computed in python-chess).
+4. THEN ask the base build `go depth 10` on that position and record nodes + bestmove.
+
+The predictor is computed and printed BEFORE the engine call in the same run, and uses no engine output.
+
+Prediction (each with the range that kills it):
+  P1  AT LEAST ONE naturally reached threefold root exists across the three games. KILLED if none — in which case the
+      job has no subject and I report that (it would also be worth knowing: self-play that never repeats).
+  P2  THE BASE RETURNS 0 NODES on EVERY such root, as it does on every constructed one. KILLED if any root searches —
+      which would mean the constructed fixtures differ from natural ones in a way I have not identified.
+  P3  THE PREDICTOR NAMES THE MOVE ON EVERY SUCH ROOT (engine move inside the predicted class, and at the predicted
+      position within the class). KILLED if any root's engine move falls outside its predicted set. Given P3 of F105 was
+      met only on the class level, a failure of the WITHIN-class half here is the most likely outcome and is the
+      interesting result: it would separate "the class rule generalises" from "the from-square rule does not".
+  P4  THE ROOTS ARE NOT ALL PAWNLESS: at least one has a pawn-single class, so the pawn half of the rule is exercised
+      rather than only king/knight moves. KILLED (as a sharpness claim) if every natural root has no pawn moves.
+
+If P3 holds fully, the predictor is validated on roots I did not choose, which is a materially stronger claim than F105.
+If the class half holds and the within-class half fails, I report exactly that split — the two halves get separate
+verdicts and I will not merge them into one number.
