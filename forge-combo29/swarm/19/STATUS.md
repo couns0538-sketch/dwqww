@@ -1164,22 +1164,40 @@ said without overreaching: **6-position smoke tests in this harness erred upward
 and both were caught only because the full run was already queued. Treat any n<10 speed number as a hypothesis,
 never a result.**
 
-## PREREQUISITE (read this first): check that the comparison CAN vary
-> **Before demanding a sign-share, confirm the measurement can differ between the two arms at all.**
+## THE REASON SUMMARIES FAIL (read this before the two rules below)
+> **The claim most likely to violate a rule is the summary of the rule, because summaries are where hedges get
+> dropped.**
+>
+> **A summary is a compression, and compression removes exactly the qualifiers that made the claim true.**
 
-**The case that taught me this, caught inside this very table (19-C54).** I had listed as an efficiency claim:
-*"PC20 fewer nodes at a fixed 50k node budget — 1.9 % fewer, 50.6 % sign-share."*
+**This happened three times in this record, and the third was the owner one-liner at the bottom of this section** —
+the sentence that summarised the sign-share table violated the sign-share rule, by leading with the fragile 12 %
+saving and calling the per-node tax "consistent" instead of "the one per-position fact." **The rule caught its own
+summary.** Read any summary below, including the one written for the owner, with that in mind.
+
+## PREREQUISITE (read this first): a 50 % sign-share is ambiguous, and that is why the sign-share needs a prior question
+> **A 50 % sign-share cannot distinguish "a real effect that is per-position random" from "no effect, and this is
+> the noise floor."**
+>
+> **The prerequisite separates them. The sign-share alone cannot.** No amount of extra sampling resolves it either,
+> because both cases produce the same number.
+
+**This ambiguity, not the fixed-budget example, is the primary argument for the ordered pair.** Whenever a share
+comes out near 50 %, you do not know which of the two you are looking at, and the two demand opposite advice:
+one says *"the effect is real but unusable per position"*, the other says *"there is nothing here at all."*
+
+**The worked example that produces the ambiguity, caught inside this very table (19-C54).** I had listed as an
+efficiency claim: *"PC20 fewer nodes at a fixed 50k node budget — 1.9 % fewer, 50.6 % sign-share."*
 **That cannot be an efficiency claim. At a fixed node budget both engines stop in the same place by construction**,
 so any residual node difference is the **stopping rule's granularity**, not a saving. **The 50.6 % was a correct
-measurement of an effect that does not exist.**
-
-**A sign-share of 50 % is ambiguous in two opposite ways:** it can mean "a real effect that is per-position random"
-or "no effect, and this is the noise floor." **The prerequisite distinguishes them; the sign-share alone cannot.**
+measurement of an effect that does not exist — and it is numerically indistinguishable from 19-C53's real-but-random
+52.9 % wall-time result.** That is the ambiguity, concretely: **50.6 % and 52.9 % come from opposite worlds.**
 
 **So the two rules form an ordered pair:**
 1. **Can the comparison vary?** (fixed budgets, pinned node counts, identical searches → it cannot, and no share is
-   meaningful.)
-2. **If it can vary, report the sign-share beside the pooled figure.**
+   meaningful. A near-50 % share here means "nothing to measure", not "random effect".)
+2. **If it can vary, report the sign-share beside the pooled figure** — and if it is near 50 %, say which of the two
+   readings you believe and on what evidence.
 
 ## REQUIREMENT (after the prerequisite): a sign-share beside every pooled effect
 **Rule: a pooled effect size says nothing about the fraction of cases sharing its sign. Report both, or state that
