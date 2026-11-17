@@ -29,8 +29,11 @@ agreeing and asserted to its exact count before the engine was called.
 
 ## What it costs
 
-- **The score is largely SOUND.** On an automatic draw (insufficient material) both builds report `cp 0`; on a
-  claimable draw the two builds differ in whether to claim, and both are defensible (23-F128).
+- **The score is largely SOUND.** On an **automatic** draw (insufficient material, where no claim exists) **both builds
+  report `cp 0` — neither build is wrong** (23-F128's R4). On a **claimable** draw the two builds differ in whether to
+  claim (base `cp 0`, PC `cp 425` on the R3 root): **both are defensible, and this is a POLICY difference about claiming,
+  not a correctness defect in either build.** R3 is documented here in that form deliberately, and a later reader who
+  turns it into a defect has changed the finding into something the evidence does not support.
 - **The MOVE is where the base's damage is** — and the ~625 cp figure belongs to the MOVE, not to the score (23-F101:
   median over 12 deterministically sampled middlegame positions, ten of twelve ≥ 300 cp, measuring the cost of playing
   generator index 0). On a real self-play board the unsearched move lost **6 pawns of material** by allowing a queen

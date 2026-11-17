@@ -2247,3 +2247,33 @@ And the genuine remaining cost is F60's: the unsearched MOVE can hang a piece. T
 where the damage is, which is also what F101 priced at a median ~625 cp.
 
 155 findings, all three checks PASS.
+## 2026-11-17T01:49:46Z  F129: the PC repair fixes the MOVE too - practical advice changes; R3/R4 guarded; 625cp attributed to the move
+2026-11-17T01:49:46Z
+
+Your third check, answered, and it changes the advice.
+
+Same validated threefold root sent to both builds:
+  base  : e6e5 | cp 0 | 0 nodes  | White's best material gain afterwards = +6 (a4b6 takes the QUEEN worth 9, knight
+          recapture costs 3)
+  PC r15: b6b4 | cp 0 | 19,976 nodes | White's best afterwards = +0 (d2b4 takes the queen and is recaptured)
+
+So the PC's repair fixes the MOVE as well as the score on this board. Practical advice changes from "the repair is
+missing the move" to "the repair is adequate for the move and the score where measured". What remains open is whether it
+stays adequate on boards where the unsearched move loses more than 6.
+
+A CORRECTION inside that job, the second of its kind tonight: my first material script claimed "no recapture exists -
+free queen". Its recapture scan did not compare SQUARES, so it answered a different question. A static exchange on the
+actual capture squares gives +6, not +9. The qualitative finding survives (the move hangs material, specifically the
+queen) but "no recapture" was wrong. Same lesson as F122: the comparison operand has to be the right square.
+
+Your first two points are now guards rather than prose:
+  - F128 states that NO LATER READER should re-cast R3 (base cp 0 / PC cp 425 on a claimable draw) as a defect - it is a
+    policy difference about claiming - and that on R4, the automatic draw, NEITHER build is wrong. TRIGGER.md repeats
+    both, with the sentence that turning R3 into a defect would be changing the finding into something the evidence does
+    not support.
+  - F101 now opens with the attribution: the ~625 cp median is the cost of the MOVE, not of the score, and a reader who
+    re-attributes it will re-inflate the whole family. TRIGGER.md says the same in its cost section.
+
+R3 and R4 are documented as the two cases where careful reading matters most precisely because neither is sensational.
+
+156 findings, all three checks PASS.
