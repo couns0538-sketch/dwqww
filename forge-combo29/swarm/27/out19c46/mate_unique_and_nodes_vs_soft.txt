@@ -1,0 +1,29 @@
+`mate` IS THE ONLY LIMIT FLAG THAT CHANGES THE SEARCH TREE; `go nodes` vs `go softnodes` DIFFER AT THE SAME N
+PC r15 068f0927, Threads 1, Hash 16, OwnBook false, board r2qkbnr/pp2pppp/2npb3/2p5/... , fresh process each
+
+=== A. WHICH LIMIT FLAGS CHANGE THE TREE? (go depth 7 as the reference) ===
+  command                  bestmove depth  score        nodes
+  go depth 7               d4c5     7      cp -33       3411       <- reference
+  go mate 4                e2e3     7      cp -36       556387     <- DIFFERENT MOVE, 163x nodes
+  go depth 7               d4c5     7      cp -33       3411       (repeat, identical)
+  go depth 7 ponder        NONE     7      cp -33       3411       <- SAME tree; only the bestmove is withheld
+  go softnodes 1000000     d2e1     20     cp -31       1966644    (searches deeper, as asked)
+  go nodes 1000000         d2e1     19     cp -61       709638     (searches deeper, as asked)
+
+  So `mate` is UNIQUE: `ponder` changes only whether a bestmove is emitted, and the node-budget
+  forms search deeper exactly as requested. The 163x ratio is therefore a signature of `mate` alone.
+
+=== B. `go nodes N` vs `go softnodes N` AT THE SAME N ===
+  command                 bestmove depth  score        nodes      vs budget
+  go nodes 20000          d4c5     8      cp -64       9359       0.47x
+  go softnodes 20000      e2e3     9      cp -58       20800      1.04x
+  go nodes 200000         d2e1     13     cp -64       182349     0.91x
+  go softnodes 200000     d2e1     14     cp -58       200399     1.00x
+
+  `go nodes` UNDERSHOOTS (0.47x, 0.91x) because it stops when the next iteration would exceed N;
+  `go softnodes` lands ON the budget (1.00-1.04x) because it finishes the iteration that passes N
+  and hard-stops at 4N.
+
+  AT 20k THE TWO FORMS DISAGREE ON BOTH THE MOVE (d4c5 vs e2e3) AND THE SCORE (cp -64 vs cp -58).
+  So `go nodes 20000` and `go softnodes 20000` are NOT the same experiment at the same N - which
+  confirms, at a new budget, the S-C12 result ("softnodes exactly one ply deeper in 18 of 18 cells").
