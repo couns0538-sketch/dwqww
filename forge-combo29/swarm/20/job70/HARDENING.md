@@ -25,8 +25,14 @@ drift **away** from the reference as the clock grew.
 | 5,000 ms | 47 cp |
 | **20,000 ms (4×)** | **58 cp** |
 
-Drift grew 47 → 58 cp for a 4× longer search — **no saturation signature** on these positions, and depth stayed in
+Drift grew 47 → 58 cp for a 4× longer search — no saturation signature on these positions, and depth stayed in
 band (5 s: 14→14, 15→15, 13→13, 14→14, 14→15; 20 s: 20→17, 17→18, 17→17, 20→19, 15→15).
+
+> ⚠ **CORRECTION (S-C45, job71): this was NOT a depth test, and the saturation question is NOT answered here.**
+> Doubling the clock on these *shallow* positions kept depth ≈15–20; the 8 MB table is never stressed at that depth.
+> On **endgame positions reaching depth 23** the same candidate **fails** (p90 112 cp against a 100 cp limit, max
+> 253 cp). So read the row above as *"time alone, at shallow depth, does not saturate 8 MB"* — **not** as
+> "8 MB does not saturate". The depth dimension is the one that breaks it.
 
 ## What this adds up to
 
