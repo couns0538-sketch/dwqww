@@ -1,0 +1,13 @@
+python-chess draw conditions, checked individually:
+  is_checkmate, is_stalemate, is_insufficient_material, is_fifty_moves, is_seventyfive_moves,
+  can_claim_threefold_repetition, is_repetition(5)
+
+My earlier code labelled 'other' when none of fifty/material fired, which leaves:
+  CHECKMATE or STALEMATE or a repetition claim (is_game_over(claim_draw=True) counts threefold).
+
+So 'other' was almost certainly CHECKMATE - a game that ENDED, not a drawn root at all.
+That means the 44,888-node cell was the engine searching a position where the game was already over
+by mate, which is an ordinary (if pointless) search and NOT a drawn-root test.
+
+=> The e2e4/d2d4 'drawn' positions are not drawn roots. P1 remains killed, and the separate question
+   is answered: no naturally reached FIFTY-MOVE or MATERIAL drawn root occurred either.

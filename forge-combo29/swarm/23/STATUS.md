@@ -2013,3 +2013,28 @@ this session (F104 twice). The pattern in my own work is consistent and worth st
 the yardstick wrong.
 
 135 findings, 21 rule instances, both audits PASS.
+## 2026-11-17T01:39:51Z  F108-F109: the predictor holds on a self-play root; and I tested a history mechanism without the history
+2026-11-17T01:39:51Z
+
+F108: the F105 predictor was tested on a root reached by the engine's OWN play rather than one I constructed. The 1.e4
+self-play game reached a threefold at ply 78. Sent BY MOVE LIST, that root gives cp 0, 0 nodes, bestmove a4a3 - exactly
+the move the independent python-chess predictor named. So the predictor is not an artefact of my fixtures. ONE natural
+root, presented as one instance: 1.d4 ended in CHECKMATE at ply 136 and 1.Nf3 had no end condition in 150 plies, both
+MEASURED rather than inferred.
+
+F109 is the one that matters. My first run fed that root to the engine as a BARE FEN and got 44,888 nodes, cp -106,
+bestmove d7c8 - and I started writing it up as a refutation of the whole drawn-root family. It is not: a bare FEN carries
+no history, so the engine cannot see the repetition. Sending the same position by an 8-ply cycle gives cp 0 / 0 nodes /
+the predicted move.
+
+The drawn-root mechanism is HISTORY-gated. My harness dropped the history in a job about the family that is DEFINED by
+requiring a move list - and 23-F76 had already established that rule, by me. Two lesser faults in the same job: my
+occurrence counter stopped one position short and missed that the game's FINAL position was the threefold, so I recorded
+"no natural root exists" when one did; and I then labelled that position "other draw" by GUESSING checkmate instead of
+measuring the flags, which showed THREEFOLD.
+
+Rule recorded (instance 23): when a mechanism is history-dependent, a harness that drops the history is not a weaker
+test - it is a test of something else, and it answers confidently and wrongly. What caught it was varying the one thing
+the mechanism depends on: 44,888 nodes became 0.
+
+137 findings, 23 rule instances, both audits PASS.

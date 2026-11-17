@@ -1,0 +1,61 @@
+THE PREDICTOR HOLDS ON A NATURAL ROOT — ONCE THE ROOT IS SENT THE WAY THE PATH REQUIRES, and my first run tested the wrong thing
+=================================================================================================================================
+Two results, and the second one is the important correction.
+
+WHAT THE FIRST RUN FOUND, AND WHY IT WAS A TEST OF THE WRONG THING
+------------------------------------------------------------------
+Job 53's stage 4 fed each "natural root" to the base as a BARE FEN. The naturally reached threefold root from the 1.e4
+self-play game (`1k6/3q1p1p/rp5p/4P3/pQ3P2/7P3P...  b - - 15 40`, threefold at ply 78) then came back **searched, 44,888
+nodes, bestmove `d7c8`** — nothing like the constructed roots, which bail at 0 nodes. That looked like a refutation of
+the whole family.
+
+It was not. A bare FEN carries no move history, so the engine cannot see the repetition. The SAME position, sent the way
+the drawn-root path actually requires — reached by a move list — behaves exactly as every constructed fixture:
+
+| how the position was sent | score | nodes | bestmove |
+|---|---|---|---|
+| bare FEN (no history) | cp -106 | **44,888** | d7c8 |
+| reached by an 8-ply cycle `b8c8 b4e7 c8b8 e7b4` ×2 | **cp 0** | **0** | **a4a3** |
+
+So the drawn-root mechanism is triggered by HISTORY, not by the position. My stage-4 harness reproduced the very mistake
+the whole family is about, one level up: I sent a position without its history and measured what the engine did with a
+position it could not know was repeated. The lesson is not new to me (23-F76 established that the drawn-root case
+requires a MOVE LIST, no FEN involved) — and I still made the mistake, in a job whose purpose was to test that family.
+
+THE CORRECTED RESULT on the natural root
+-----------------------------------------
+Sent by move list, the natural threefold root gives **cp 0, 0 nodes, bestmove `a4a3`**.
+The predictor, computed independently in python-chess before the engine was asked, predicted class `pawn-single` and the
+move **`a4a3`**. The engine's move is **exactly the predicted move**.
+
+So 23-F105's predictor holds on a root I did not construct, chosen by self-play, which is the stronger claim F105 could
+not make on its own. That is **1 natural root**, not five, and I will not present it as more than one instance.
+
+P-verdicts for job 53 as written
+---------------------------------
+P1 KILLED AS WRITTEN, and the kill was my harness's fault twice over: (a) my stage-1 loop counted occurrences only up to
+the second-to-last position and missed that the game's FINAL position was the threefold; (b) my first follow-up then
+labelled that final position "other draw" by INFERENCE rather than by measuring the flags — I guessed CHECKMATE and was
+wrong. The flags, measured: 1.e4 → **THREEFOLD at ply 78**; 1.d4 → **CHECKMATE at ply 136**; 1.Nf3 → no end condition
+within 150 plies. So exactly one natural threefold root exists in these three games.
+P2 (0 nodes on every natural root) HOLDS once the root is sent with its history: 0 nodes. It appeared to fail only
+because the bare-FEN send is not the drawn-root path.
+P3 (predictor names the move) HOLDS on the one natural root, exactly, at the within-class level too.
+P4 (at least one pawn-single root) HOLDS: the natural root's class is pawn-single.
+
+WHAT THIS ADDS, stated narrowly
+--------------------------------
+The predictor is not a property of fixtures I built: on one root reached by the engine's own play, the independently
+predicted move is the move played, with 0 nodes and cp 0. The mechanism is history-gated, which is why the bare-FEN
+control searched 44,888 nodes — and that contrast is itself a clean demonstration of the gate.
+
+INSTANCE 23 OF THE FAMILY, and the most embarrassing one because I already knew the rule: **I built a harness that sent a
+drawn root as a bare FEN, in a job whose subject was the drawn-root family that is DEFINED by requiring a move list.**
+The failure was silent (44,888 nodes and a plausible move), and I initially read it as a refutation of my own finding.
+The check that caught it was asking "what does this same position do when sent WITH its history" — i.e. varying the one
+thing the mechanism depends on. **When a mechanism is history-dependent, a harness that drops history is not a weaker
+test, it is a test of something else — and it will produce a confident, plausible, wrong answer.**
+
+LIMITS: one natural root, one self-play game, base build, `go depth 10`. The 1.d4 game ended in checkmate and the 1.Nf3
+game did not end, so the "natural" evidence is one instance; generating more would need games designed to repeat, at
+which point they would stop being naturally reached.

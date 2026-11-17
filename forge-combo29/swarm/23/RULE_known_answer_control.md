@@ -19,11 +19,11 @@
 > engine's own repetition condition. It is *nearly* the same condition, so it passed review — and it made me test
 > a position the engine does not consider drawn, which nearly produced a published refutation of a correct finding.
 >
-> Everything below is the same story in different clothes: **twenty-two** faults, none of which produced an error message,
+> Everything below is the same story in different clothes: **twenty-three** faults, none of which produced an error message,
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, TWENTY-TWO instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, TWENTY-THREE instances from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Five sentences to carry into any measurement of this engine
 
@@ -38,7 +38,7 @@
 > library predicate that is *nearly* the same is the most dangerous kind, because it passes review (instance 11).
 > **And watch the LEVEL of description: `can_claim_threefold_repetition()` is a library fact about a board,
 > "this game reached three occurrences" is a fact about a game, and neither is the condition under test —
-> "this position is drawn BY the repetition and not by material".** Three of these twenty-two faults were proxies
+> "this position is drawn BY the repetition and not by material".** Three of these twenty-three faults were proxies
 > stated at the wrong level of description, so the check is to name the level as well as the predicate
 > (instances 11, 13).
 >
@@ -451,6 +451,27 @@ Each produced a confident verdict in the WRONG direction — two false failures 
 **The rule: state what the comparator IS before comparing against it.** For a claim about generated moves, compare
 against the GENERATED SET, not against all pieces of that type on the board. For a claim about a family of values,
 compare against the family restricted to what is present. Where a set could be empty, print its size.
+
+## Instance 23 — I tested a history-dependent mechanism without the history (23-F109)
+
+In a job whose whole subject was the drawn-root family, I sent each naturally reached drawn root to the engine as a
+**bare FEN**. The engine searched 44,888 nodes and returned a plausible move, and I began writing it up as a REFUTATION
+of my own family of findings. The family's own rule — established by 23-F76, by me — is that the drawn-root case is
+reached by a MOVE LIST and involves no FEN at all.
+
+Sent with an 8-ply cycle instead: cp 0, 0 nodes, and exactly the move my independent predictor named.
+
+Two lesser faults in the same job, both mine: my occurrence counter stopped one position short and missed that the
+game's FINAL position was the threefold (so I recorded "no natural root exists" when one did); and I then labelled that
+position "other draw" by GUESSING it was checkmate instead of measuring the flags, which showed THREEFOLD.
+
+**The rule: when a mechanism is history-dependent, a harness that drops the history is not a weaker test — it is a test
+of something else, and it will answer confidently and wrongly.** The check that catches it is to vary the one thing the
+mechanism depends on and see whether the behaviour changes. Here it changed from 44,888 nodes to 0.
+
+This one is worse than the others on this page because the rule was already mine. Knowing a rule does not install it;
+only a harness that cannot express the mistake does — which is why every drawn-root fixture in this seat now carries its
+move list as data rather than as a FEN.
 
 ## The fix, in one line each
 
