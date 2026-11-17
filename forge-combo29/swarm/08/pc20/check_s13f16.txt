@@ -1,0 +1,34 @@
+## seat 13 S-F16 — do the book's moves differ from the engine's own choice, and by how much?
+
+PC r15 PC20, Threads 1, Hash 16. Book route = OwnBook true + `go wtime 6000`; engine route = OwnBook false + `go depth 18`.
+
+| ply | position | book move | engine move | differ? | engine score of own | engine score of book move | gap cp |
+|---|---|---|---|---|---|---|---|
+| 1 | rnbqkbnr/pppppppp/8/8/ | c2c4 | e2e4 | **YES** | cp 15 | 2 | 2 |
+| 2 | rnbqkbnr/pppppppp/8/8/ | e7e5 | e7e5 | no | cp -8 | - | - |
+| 3 | rnbqkbnr/pppp1ppp/8/4p | g2g3 | b1c3 | **YES** | cp 18 | 7 | 7 |
+| 4 | rnbqkbnr/pppp1ppp/8/4p | d7d5 | c7c6 | **YES** | cp -37 | -5 | -5 |
+| 5 | rnbqkbnr/ppp2ppp/8/3pp | c4d5 | c4d5 | no | cp 17 | - | - |
+| 6 | rnbqkbnr/ppp2ppp/8/3Pp | d8d5 | d8d5 | no | cp -33 | - | - |
+| 7 | rnb1kbnr/ppp2ppp/8/3qp | g1f3 | g1f3 | no | cp 34 | - | - |
+| 8 | rnb1kbnr/ppp2ppp/8/3qp | b8c6 | b8c6 | no | cp -30 | - | - |
+| 9 | r1b1kbnr/ppp2ppp/2n5/3 | b1c3 | b1c3 | no | cp 47 | - | - |
+| 10 | r1b1kbnr/ppp2ppp/2n5/3 | d5d7 | d5d7 | no | cp -40 | - | - |
+| 11 | r1b1kbnr/pppq1ppp/2n5/ | e2e3 | f1g2 | **YES** | cp 36 | -36 | -36 |
+| 12 | r1b1kbnr/pppq1ppp/2n5/ | g8f6 | g8f6 | no | cp -32 | - | - |
+| 13 | r1b1kb1r/pppq1ppp/2n2n | d2d4 | f1g2 | **YES** | cp 0 | 26 | 26 |
+| 14 | r1b1kb1r/pppq1ppp/2n2n | f8b4 | f8b4 | no | cp -39 | - | - |
+| 15 | r1b1k2r/pppq1ppp/2n2n2 | f1g2 | f1g2 | no | cp 32 | - | - |
+| 16 | r1b1k2r/pppq1ppp/2n2n2 | e5d4 | e5d4 | no | cp -42 | - | - |
+
+## The claim, tested
+
+| their statement | my measurement |
+|---|---|
+| book differs from the engine's choice on 12 of 16 plies | **5 of 16** |
+| the difference is small: within -26 to +18 cp | **range -36 to +26 cp, median +2** |
+
+| their band (-26..+18 cp) | **3 of 5 differing plies fall inside it** |
+
+**PARTIAL**: 2 of 5 differ by more than their band, which would widen their claim rather than confirm
+it. The out-of-band plies are listed in the table.
