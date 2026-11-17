@@ -1,0 +1,48 @@
+{
+ "binary": "/home/ubuntu/work/build-asan/forge",
+ "option": "DeadMaterial=true",
+ "runtime": {
+  "asan_present": true,
+  "ubsan_present": true,
+  "asan_symbols": 35,
+  "ubsan_symbols": 15
+ },
+ "build_flags": {
+  "sanitize_flag": "-fsanitize=address,undefined",
+  "debug_info": true,
+  "no_omit_frame_pointer": true,
+  "raw_contains_fsanitize": true
+ },
+ "planted_faults": [
+  {
+   "fault": "heap-buffer-overflow",
+   "env": "FORGE_PLANT_ASAN",
+   "exit_code": 1,
+   "sanitizer_reported": true,
+   "evidence": [
+    "/agent/repos/dwqww/forge-combo29/swarm/options/scripts/planted_fault.cpp:22:44: runtime error: store to address 0x502000000020 with insufficient space for an object of type 'int'",
+    "==17999==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x502000000020 at pc 0x561596b1413c bp 0x7fffaf103d30 sp 0x7fffaf103d20",
+    "SUMMARY: AddressSanitizer: heap-buffer-overflow /agent/repos/dwqww/forge-combo29/swarm/options/scripts/planted_fault.cpp:22 in heap_overflow"
+   ],
+   "passed": true
+  },
+  {
+   "fault": "signed-integer-overflow",
+   "env": "FORGE_PLANT_UBSAN",
+   "exit_code": 3,
+   "sanitizer_reported": true,
+   "evidence": [
+    "/agent/repos/dwqww/forge-combo29/swarm/options/scripts/planted_fault.cpp:29:39: runtime error: signed integer overflow: 2147483640 + 100 cannot be represented in type 'int'"
+   ],
+   "passed": true
+  }
+ ],
+ "clean_run": {
+  "positions": 200,
+  "searched": 200,
+  "sanitizer_hits": 0,
+  "sanitizer_lines": [],
+  "errors": []
+ },
+ "passed": true
+}
