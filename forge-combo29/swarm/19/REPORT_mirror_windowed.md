@@ -1,5 +1,11 @@
 # The mirror test through the window clamp: 1 of 8, and the bare king loses 12 plies it could have kept
 
+> **WITHDRAWN — see `RETRACTION_dtm_oracle.md` (19-R2).** The DTM values in this report came from a solver that is
+> wrong for black-as-strong: an independent brute force gives mate in **5 plies** where the table said **9**. The
+> findings that rested on those numbers are withdrawn. **Read this file for the engine observations and the
+> method, not for any distance-to-mate figure.**
+
+
 seat 19 · area 9 · build **PC r15** · **PC20** · **Threads 1** · Hash 16 · cold · `go depth 16` and `go nodes 20000`.
 
 ## 1. The three lines
