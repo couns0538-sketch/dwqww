@@ -797,3 +797,12 @@ every sentence.
   iteration completing with a mate score its PV cannot fill — a one-iteration artefact, still on the owner's path
   because 50,000 is one of their match budgets.
 - next command: continue at cadence.
+
+## $(date -u)
+- S-F63 restructured as instructed: the NODE LADDER now leads the finding (5000 -> cp +3725 d8 ... 50000 -> mate 11 18/21
+  SHORT 3 ... 800000 -> mate 7 13/13) with the 3x3 reproducibility beside it (30000 pv10 x3, 50000 pv18 x3, 80000 pv13 x3).
+  REPORT_mate_truncation.md restructured the same way, with the ladder as its own section.
+- TABLE HYGIENE: found and fixed 5 rows whose tables were broken by literal `|` characters — the `|N|` notation and the
+  ladder's `|` separators. Escaped the former, replaced the latter with `·`. All 92 rows now have a correct
+  unescaped-pipe count (verified with an escaped-pipe-aware counter, not awk).
+- next command: continue at cadence.
