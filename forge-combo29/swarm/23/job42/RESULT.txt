@@ -1,0 +1,66 @@
+TWO DEFECTS, NOT ONE: a WRONG mate distance and a TRUNCATED PV, and my F88 wording described only the second
+===================================================================================================================
+Job 41 found 5 mate cells whose PV does not mate and I called the cause "the shortfall is whatever the search had
+completed". Job 42 asks whether that is the right description. It is not — there are two separate faults in those
+cells, and only one of them is a display artefact. PC build, Threads 1, Hash 16, OwnBook false, no PC20 switches, every
+PV replayed in python-chess.
+
+W2 `8/5K2/7Q/4k3/8/8/8/8 w` on the PC
+-------------------------------------
+
+| depth | score | pv plies | replay | 2N-1 (N=score) | pv len = 2M-1 for M = | bestmove |
+|---|---|---|---|---|---|---|
+| 13 | cp 1066 | 16 | NO-MATE | - | not odd | h6h4 |
+| 14 | **mate 13** | 17 | **NO-MATE** | **25** | 9 | h6h4 |
+| 15 | **mate 13** | 18 | **NO-MATE** | **25** | not odd | h6h4 |
+| 16 | **mate 10** | 19 | **MATE** | 19 | 10 | h6h4 |
+| 17 | mate 10 | 19 | MATE | 19 | 10 | h6h4 |
+| 18 | mate 10 | 19 | MATE | 19 | 10 | h6h4 |
+
+W1 `1K6/8/8/3R4/8/8/8/k7 w` on the PC, for contrast
+-----------------------------------------------------
+
+| depth | score | pv plies | replay | 2N-1 (N=score) | pv len = 2M-1 for M = | bestmove |
+|---|---|---|---|---|---|---|
+| 12 | cp 391 | 13 | NO-MATE | - | 7 | d5b5 |
+| 13 | mate 8 | 13 | **NO-MATE** | 15 | 7 | d5b5 |
+| 14 | mate 8 | 14 | **NO-MATE** | 15 | not odd | d5b5 |
+| 15 | mate 8 | 15 | **MATE** | 15 | 8 | d5b5 |
+| 16 | mate 8 | 15 | MATE | 15 | 8 | d5b5 |
+
+P1 HELD: on W2 the reported distance falls from **mate 13 to mate 10** — three moves, six plies — between the first
+depth that reports a mate and depth 16. It is not the same claim being displayed better; it is a different (and on W1,
+stable) number. On W1 the distance never moves (mate 8 throughout), so the revision is a W2 property, not a universal
+one.
+P2 HELD: wherever the score is finally right, PV plies = 2N-1 exactly (W2 19 = 2·10−1; W1 15 = 2·8−1). The line
+completes at the depth the score becomes trustworthy.
+P3 **KILLED IN SUBSTANCE while its letter survived — and this is why the job was worth running.** I predicted the short
+cell's PV would be a completed mate line for a SMALLER distance ("score is what is wrong"). W2 depth 14 gives 17 plies,
+and 17 = 2·9−1, so the shape fit — but the replay says **NO-MATE**. The PV is a legal fragment that stops without
+delivering mate; its odd length is a coincidence of where the search stopped, not evidence it proved mate-in-9. So the
+cell has BOTH faults: the DISTANCE is wrong (13 when the answer reached two depths later is 10) and the PV is
+truncated. My F88 sentence "the shortfall is whatever the search had completed" described the PV correctly and missed
+that the score itself was too optimistic.
+P4 HELD: the bestmove is stable across the whole revision — `h6h4` at every depth 13-18 on W2, `d5b5` on W1 — so a tool
+that consumes only the move is unaffected, and a tool that quotes the DISTANCE is affected.
+
+THE OPERATIONAL RULE THIS EARNS
+-------------------------------
+**A mate score is unverified unless its PV length is at least 2N−1 AND the replay ends in checkmate.** Both halves are
+needed, and neither alone suffices: W2 depth 14 satisfies neither, W2 depth 16 satisfies both, W1 depth 13 satisfies
+the length test's inverse only, and W1 depth 14 has a 14-ply PV (not even of mate shape) with a mate score on it. A
+depth-based shortcut does not substitute: W2 depth 16 reports mate 10 (needs 19 plies) at depth 16 and does deliver 19
+plies, while W1 depth 13 reports mate 8 (needs 15) at depth 13 and delivers 13 — so "2N−1 > depth" neither proves nor
+disproves anything. Compare against PV LENGTH, then replay.
+
+WHAT I AM NOT CLAIMING
+----------------------
+I have NOT established that mate 10 is the shortest mate on W2. Depths 16, 17 and 18 all report it and all replay, so
+it is a real forced mate in 10; a shorter one would need a prover, and my prover already failed its own control once in
+this seat (23-F49), so I did not use one here. The claim is narrower and still useful: the depth-14/15 score of mate 13
+is WRONG, because mate 10 exists and was found two depths later — 13 is not a refutation of 10 but an overestimate
+alongside it.
+
+LIMITS: two boards, K+Q v K and K+R v K, one build, default options. Nothing here says how often the distance is
+revised in a middlegame mate. F88's wording is corrected in place to say the score can be wrong as well as the PV short,
+with this job cited as the correction rather than the finding being quietly rewritten.

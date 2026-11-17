@@ -1741,3 +1741,25 @@ count; a zero-expecting control must show its non-zero in the same run). 117 fin
    time was wrong by nine minutes, in the direction that would flatter my cadence. This is a REPEAT of a fault I
    corrected once already, so it goes in the rule page as well: no typed times, ever, only the date -u value.
 Neither defect changes a measurement. Both are recorded rather than edited out.
+## 2026-11-17T01:21:04Z  F90: a short mate PV is TWO defects - the distance can be wrong, not just the PV short
+2026-11-17T01:21:04Z
+
+Job 41's worst cell (W2 K+QvK on the PC, "mate 13" with a 17-ply PV where 25 plies are needed) turns out to be TWO
+faults, and F88 named only one. Job 42, prediction committed at 01:20:41Z before the first command:
+  W2: mate 13 at depths 14-15, then mate 10 at 16-18. The DISTANCE falls by six plies as the search deepens. At depth
+      16 the PV is exactly 19 plies = 2*10-1 and replays to real checkmate.
+  W1 (contrast): mate 8 at every depth 12-16; the distance never moves. So revision is a W2 property, not universal.
+
+P3 KILLED IN SUBSTANCE while surviving in letter, which is why the job was worth running: I predicted the 17-ply PV
+would be a COMPLETED mate line for a smaller distance (17 = 2*9-1, so the shape fit), and the replay says NO-MATE. The
+odd length is a coincidence of where the search stopped. Both faults are present in the same cell: wrong distance AND
+truncated PV. F88 is corrected in place to cite this, not quietly rewritten.
+
+The rule earned: a mate score is unverified unless its PV is at least 2N-1 plies AND the replay ends in checkmate. Both
+halves, because W1 depth 14 carries a mate score on a 14-ply PV that is not even of mate shape. A depth-based shortcut
+is no substitute - W2 depth 16 satisfies it, W1 depth 13 does not.
+
+What I am NOT claiming: mate 10 is not shown to be W2's shortest mate. A prover failed its own control earlier in this
+seat (F49), so I used none. The narrow claim is that mate 13 at depths 14-15 is wrong because mate 10 was found later.
+
+118 findings. PC counter-89 depth 18/20 (job 40) still running in the background; reported when it lands or as not-run.
