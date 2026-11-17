@@ -1,0 +1,18 @@
+Step: s2_movepicker_avx512_qhist
+Base: 6b98f217 + pc_r15.patch + a_speed_pc20_v3.patch.txt + e1_legal_check_evasions.patch.txt
+
+Functions and profile share attacked:
+- forge::MovePicker::next(bool): 7.21% self in post-E1 profile (5.59% in Job 3 Sec 1 profile; 22.54M calls)
+- forge::MovePicker::pick_best(): 3.98% self in post-E1 profile (7.66% in Job 3 Sec 1 profile; 18.36M calls)
+- forge::Worker::quiet_history: 1.33% self in post-E1 profile (1.45% in Job 3 Sec 1 profile; 12.28M calls, plus caller overhead inside Worker::search's 21.44%)
+- MovePicker::init_check_squares / Board::refresh_king_lines overlap: ~0.76% in post-E1 profile (1.24% in Job 3 Sec 1)
+Total profile share attacked: 13.28% of post-E1 self-play profile (15.94% of Job 3 Sec 1 profile), plus caller overhead in Worker::search.
+
+Mechanism (100% tie-order and node-count identical):
+1. AVX-512 16-wide selection scan in MovePicker::pick_best(): loads two 64-byte chunks (16 Scored moves = 128 bytes) per iteration, extracts all 16 int32 scores into one ZMM register via _mm512_permutex2var_epi32 (VPERMT2D), reduces max via _mm512_reduce_max_epi32, and on `chunk_max > best_score` picks `__builtin_ctz(_mm512_cmpeq_epi32_mask(...))`, preserving exact leftmost tie order (`>`), with an 8-move AVX-512 cleanup step.
+2. Quiet-history reuse from MovePicker to Worker::search: QuietMoves stage recovers the exact pre-computed `quiet_history` from `picked.score - (direct_check ? 12000 : 0)` so Worker::search skips re-running `Worker::quiet_history(board, ss, move)` (6 table loads + HistRework blend) whenever continuation history has not been mutated in the current move loop.
+3. Shared `Board::king_lines().check_squares` in `MovePicker::init_check_squares()` whenever `king_lines` is already valid for the current board, avoiding redundant enemy-king PEXT bishop/rook attack lookups.
+
+Predicted wall-time gain on the self-play driver (FEN roots, 768 test net, PC20):
+- Predicted median of paired round wall-time ratios (B / A): 1.015x to 1.045x (+1.5% to +4.5%).
+- Kill criterion (range that kills this prediction): median of paired round wall-time ratios < 1.008x (< +0.8%).
