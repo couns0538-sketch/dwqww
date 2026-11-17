@@ -678,3 +678,13 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   the missing Hash/Threads — which pointed at option construction, the actual bug. A refusal to refute without
   provenance costs one round trip and buys elimination of the wrong explanation.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:15:10Z S-F65: audited MY OWN PC20 configs for seat30's extras-only bug — none affected
+- All my PC20 lists are `S14 + six extras`, and my S14 block carries **17 options** (14 S14 + Threads + Hash +
+  OwnBook false). Verified by PARSING the `S14 = [...]` text (a grep for `PC20 =` matches a COMMENT in job25), and
+  corroborated by job25's 8/8 honesty match which an extras-only config could not have produced.
+- **No published number of mine needs re-running for this reason.**
+- Lesson kept: **a config wrong-by-construction looks exactly like a right one** — extras-only still gives a plausible
+  score and legal move. Only naming the construction makes it checkable, which is why my lines now read
+  `S14 (17 options) + 6 extras` and METHOD's provenance rule asks for the ORDERED OPTION LIST, not just "PC20".
+Next: continue in the window (ends 2026-11-17T10:18Z).
