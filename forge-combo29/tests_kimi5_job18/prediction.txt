@@ -1,0 +1,22 @@
+kimi5 job 18 prediction (own commit before Step 1, never edited)
+
+P1. The ratio AlphaRaiseReduce 1 / ARR 0 at depth 16 on G (node sums, PC20).
+    Guess: 0.75. Kill range: measured < 0.68 or > 0.82 kills it.
+    Model: A7 acts only at entered depths 3..11 (AlphaRaiseMaxDepth stays at its
+    default 12). Going from depth 12 (measured 0.7007, job 18 file) to depth 16
+    adds tree work above the window (entered depths 12..16, root side) while the
+    leaf region stays at 1..2, so the A7 window holds a SMALLER share of the
+    tree and the ratio moves toward 1. It does not cross 0.82 because the
+    3..11 region still carries most of the middle game, and it does not fall
+    under 0.68 because the window's share shrinks, not grows, with depth.
+
+P2. Step 3's largest entry-depth class under ARR 1 (the bin with the biggest
+    post-raise node sum), read on G at depth 12.
+    Guess: class 7-8 is the largest. Kill: any other class (3-4, 5-6, 9-11,
+    12+) is larger on G.
+    Model: armed-node counts fall with entry depth (job 15's reductions on O:
+    3: 6398 .. 11: 284) but the post-raise work per armed node grows with it;
+    the product peaks in the middle, and 7-8 sits between the many-small
+    (3-4, 5-6) and the few-large (9-11) classes. 12+ cannot win under the
+    default window (entered depth >= 12 is outside AlphaRaiseMaxDepth 12, so
+    A7 never arms there).
