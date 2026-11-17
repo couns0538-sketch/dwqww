@@ -1,0 +1,12 @@
+diff -ruN a/src/board.cpp b/src/board.cpp
+--- a/src/board.cpp	2026-11-17 12:47:47.865143771 +0000
++++ b/src/board.cpp	2026-11-17 12:50:32.169143771 +0000
+@@ -1219,7 +1219,7 @@
+         const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
+         const std::uint64_t rk = piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
+         key_ ^= rk;
+-        non_pawn_key_[static_cast<std::size_t>(us)] ^= rk;
++        /* PLANTED FAULT: omit rook non-pawn key xor on castle */
+         move_piece(rook_from, rook_to);
+     }
+ 

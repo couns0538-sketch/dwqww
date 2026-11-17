@@ -1,0 +1,18 @@
+=== 1. Planted-Fault Check (e3_planted_fault.patch.txt: omit rook XOR on castling) ===
+NON_PAWN_ZOBRIST MISMATCH at FEN r1bq1knr/3n3p/3pp2b/pP4p1/Pp2P3/2NP3P/4BPP1/RNB2RK1 b - - 1 13
+PLANTED FAULT CAUGHT BY ZOBRIST ORACLE AS EXPECTED
+
+=== 2. Clean E3 Incremental Non-Pawn Zobrist Oracle ===
+E3_NONPAWN_ZOBRIST_ORACLE PASS: transitions_checked=115268 mismatches=0
+
+=== 3. Default-OFF Identity Proof (ZobristNonPawnCorr=false) + Active Option Check (ZobristNonPawnCorr=true) ===
+  default_off net512 bench 11: nodes=625258 (== 625258 EXACT) | info string NNUE v3 active: v3 /tmp/carbon2_work/net512.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  default_off net512 bench 13: nodes=3652372 (== 3652372 EXACT) | info string NNUE v3 active: v3 /tmp/carbon2_work/net512.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  default_off net512 bench 16: nodes=23891329 (== 23891329 EXACT) | info string NNUE v3 active: v3 /tmp/carbon2_work/net512.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  default_off net768 bench 11: nodes=882074 (== 882074 EXACT) | info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  default_off net768 bench 13: nodes=4275906 (== 4275906 EXACT) | info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  default_off net768 bench 16: nodes=32374943 (== 32374943 EXACT) | info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  default_off 250-pos depth 9: 250/250 EXACT; 1000-pos evals (768 & 512): EXACT; startpos & FEN FNV traces: EXACT
+  ZobristNonPawnCorr=true: info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  ZobristNonPawnCorr=true: info string bench depth 11 nodes 902068 time 466 nps 1935768
+  ZobristNonPawnCorr=true: info string bench depth 13 nodes 4052923 time 2173 nps 1865127

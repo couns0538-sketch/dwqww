@@ -1,0 +1,217 @@
+diff -ruN a/include/forge/board.hpp b/include/forge/board.hpp
+--- a/include/forge/board.hpp	2026-11-17 12:37:13.861143771 +0000
++++ b/include/forge/board.hpp	2026-11-17 12:47:26.949143771 +0000
+@@ -148,6 +148,7 @@
+     std::uint16_t fullmove = 1;
+     std::uint64_t key = 0;
+     std::uint64_t pawn_key = 0;
++    std::array<std::uint64_t, 2> non_pawn_key{};
+     Bitboard checkers = 0;
+     std::uint16_t plies_from_null = 0;
+ #if FORGE_SPD_KING_LINES
+@@ -253,6 +254,9 @@
+     [[nodiscard]] Color side_to_move() const { return side_; }
+     [[nodiscard]] std::uint64_t key() const { return key_; }
+     [[nodiscard]] std::uint64_t pawn_key() const { return pawn_key_; }
++    [[nodiscard]] std::uint64_t non_pawn_zobrist(Color color) const {
++        return non_pawn_key_[static_cast<std::size_t>(color)];
++    }
+     [[nodiscard]] int halfmove_clock() const { return halfmove_; }
+     [[nodiscard]] int fullmove_number() const { return fullmove_; }
+     [[nodiscard]] int ep_square() const { return ep_square_; }
+@@ -280,6 +284,7 @@
+     std::uint16_t fullmove_ = 1;
+     std::uint64_t key_ = 0;
+     std::uint64_t pawn_key_ = 0;
++    std::array<std::uint64_t, 2> non_pawn_key_{};
+     Bitboard checkers_ = 0;
+     // Plies since the last null move; bounds search-level repetition scans.
+     std::uint16_t plies_from_null_ = 1024;
+@@ -299,6 +304,7 @@
+     [[nodiscard]] bool has_legal_en_passant_capture() const;
+     [[nodiscard]] std::uint64_t compute_key() const;
+     [[nodiscard]] std::uint64_t compute_pawn_key() const;
++    [[nodiscard]] std::uint64_t compute_non_pawn_key(Color color) const;
+     [[nodiscard]] Bitboard compute_checkers() const;
+     [[nodiscard]] bool square_attacked_with_occupancy(int square, Color by, Bitboard occupancy,
+                                                        Bitboard removed = 0) const;
+diff -ruN a/include/forge/search.hpp b/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-17 12:37:13.861143771 +0000
++++ b/include/forge/search.hpp	2026-11-17 12:47:48.785143771 +0000
+@@ -321,6 +321,7 @@
+ extern int HistRework;               // 0 = off; 1..3: threat-keyed quiet history twin + pawn x material correction
+ extern bool TtPruneV2;               // TT-move pruning guards, cut-node IIR, opponent-worsening RFP, margins (false = off)
+ extern bool CorrHistV2;              // static-eval correction keyed by the last two moves (false = off)
++extern bool ZobristNonPawnCorr;      // key NonPawnCorrection by incremental Board non-pawn Zobrist keys (false = off)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+diff -ruN a/src/board.cpp b/src/board.cpp
+--- a/src/board.cpp	2026-11-17 12:37:13.861143771 +0000
++++ b/src/board.cpp	2026-11-17 12:47:47.865143771 +0000
+@@ -357,6 +357,7 @@
+     }
+     candidate.key_ = candidate.compute_key();
+     candidate.pawn_key_ = candidate.compute_pawn_key();
++    candidate.non_pawn_key_ = {candidate.compute_non_pawn_key(White), candidate.compute_non_pawn_key(Black)};
+     candidate.checkers_ = candidate.compute_checkers();
+ #if FORGE_SPD_KING_LINES
+     candidate.king_lines_.valid = false;
+@@ -1167,6 +1168,7 @@
+     undo.fullmove = fullmove_;
+     undo.key = key_;
+     undo.pawn_key = pawn_key_;
++    undo.non_pawn_key = non_pawn_key_;
+     undo.checkers = checkers_;
+     undo.plies_from_null = plies_from_null_;
+ #if FORGE_SPD_KING_LINES
+@@ -1188,21 +1190,25 @@
+     } else if (undo.captured != Empty) {
+         key_ ^= piece_key(move.to, undo.captured);
+         if (piece_type(undo.captured) == Pawn) pawn_key_ ^= piece_key(move.to, undo.captured);
++        else non_pawn_key_[static_cast<std::size_t>(them)] ^= piece_key(move.to, undo.captured);
+         remove_piece(move.to);
+     }
+     if (undo.captured != Empty || piece_type(moving) == Pawn) halfmove_ = 0;
+ 
+     key_ ^= piece_key(move.from, moving);
+     if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.from, moving);
++    else non_pawn_key_[static_cast<std::size_t>(us)] ^= piece_key(move.from, moving);
+     move_piece(move.from, move.to);
+     if (move.is_promotion()) {
+         const Piece promoted = make_piece(us, move.promotion);
+         remove_piece(move.to);
+         put_piece(promoted, move.to);
+         key_ ^= piece_key(move.to, promoted);
++        non_pawn_key_[static_cast<std::size_t>(us)] ^= piece_key(move.to, promoted);
+     } else {
+         key_ ^= piece_key(move.to, moving);
+         if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.to, moving);
++        else non_pawn_key_[static_cast<std::size_t>(us)] ^= piece_key(move.to, moving);
+     }
+     if (piece_type(moving) == King) king_squares_[static_cast<std::size_t>(us)] = move.to;
+ 
+@@ -1211,7 +1217,9 @@
+         const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
+         const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+         const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
+-        key_ ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
++        const std::uint64_t rk = piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
++        key_ ^= rk;
++        non_pawn_key_[static_cast<std::size_t>(us)] ^= rk;
+         move_piece(rook_from, rook_to);
+     }
+ 
+@@ -1271,6 +1279,7 @@
+     fullmove_ = undo.fullmove;
+     key_ = undo.key;
+     pawn_key_ = undo.pawn_key;
++    non_pawn_key_ = undo.non_pawn_key;
+     checkers_ = undo.checkers;
+     plies_from_null_ = undo.plies_from_null;
+ #if FORGE_SPD_KING_LINES
+@@ -1591,6 +1600,16 @@
+         key ^= piece_key(square, squares_[static_cast<std::size_t>(square)]);
+     }
+     return key;
++}
++
++std::uint64_t Board::compute_non_pawn_key(Color color) const {
++    std::uint64_t key = 0;
++    Bitboard bb = occupied(color) & ~pieces(color, Pawn);
++    while (bb != 0) {
++        const int square = pop_lsb(bb);
++        key ^= piece_key(square, squares_[static_cast<std::size_t>(square)]);
++    }
++    return key;
+ }
+ 
+ // ---------------------------------------------------------------------------
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 12:37:13.861143771 +0000
++++ b/src/search.cpp	2026-11-17 12:47:58.321143771 +0000
+@@ -180,6 +180,7 @@
+ int HistRework = 0;
+ bool TtPruneV2 = false;
+ bool CorrHistV2 = false;
++bool ZobristNonPawnCorr = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -1423,7 +1424,10 @@
+     if (tune::NonPawnCorrection) {
+         std::size_t idx_w;
+         std::size_t idx_b;
+-        if (ss != nullptr) {
++        if (tune::ZobristNonPawnCorr) {
++            idx_w = board.non_pawn_zobrist(White) & (CorrectionSize - 1U);
++            idx_b = board.non_pawn_zobrist(Black) & (CorrectionSize - 1U);
++        } else if (ss != nullptr) {
+             if ((ss->corr_valid & 1U) == 0U) {
+                 ss->corr_np_idx[0] = static_cast<std::uint16_t>(non_pawn_key(board, White) & (CorrectionSize - 1U));
+                 ss->corr_valid |= 1U;
+@@ -1482,12 +1486,19 @@
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
+     if (tune::NonPawnCorrection) {
+-        const std::size_t idx_w = (ss != nullptr && (ss->corr_valid & 1U) != 0U)
+-            ? static_cast<std::size_t>(ss->corr_np_idx[0])
+-            : (non_pawn_key(board, White) & (CorrectionSize - 1U));
+-        const std::size_t idx_b = (ss != nullptr && (ss->corr_valid & 2U) != 0U)
+-            ? static_cast<std::size_t>(ss->corr_np_idx[1])
+-            : (non_pawn_key(board, Black) & (CorrectionSize - 1U));
++        std::size_t idx_w;
++        std::size_t idx_b;
++        if (tune::ZobristNonPawnCorr) {
++            idx_w = board.non_pawn_zobrist(White) & (CorrectionSize - 1U);
++            idx_b = board.non_pawn_zobrist(Black) & (CorrectionSize - 1U);
++        } else {
++            idx_w = (ss != nullptr && (ss->corr_valid & 1U) != 0U)
++                ? static_cast<std::size_t>(ss->corr_np_idx[0])
++                : (non_pawn_key(board, White) & (CorrectionSize - 1U));
++            idx_b = (ss != nullptr && (ss->corr_valid & 2U) != 0U)
++                ? static_cast<std::size_t>(ss->corr_np_idx[1])
++                : (non_pawn_key(board, Black) & (CorrectionSize - 1U));
++        }
+         apply((*non_pawn_white_correction_)[side][idx_w]);
+         apply((*non_pawn_black_correction_)[side][idx_b]);
+     }
+diff -ruN a/src/uci.cpp b/src/uci.cpp
+--- a/src/uci.cpp	2026-11-17 12:37:13.861143771 +0000
++++ b/src/uci.cpp	2026-11-17 12:48:20.797143771 +0000
+@@ -456,7 +456,8 @@
+                          "option name CuckooRep type check default false\n"
+                          "option name HistRework type spin default 0 min 0 max 3\n"
+                          "option name TtPruneV2 type check default false\n"
+-                         "option name CorrHistV2 type check default false\n";
++                         "option name CorrHistV2 type check default false\n"
++                         "option name ZobristNonPawnCorr type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -708,12 +709,21 @@
+                     note_invalid();
+                 }
+ #endif
+-            } else if (name == "CuckooRep" || name == "TtPruneV2" || name == "CorrHistV2") {
+-                // B4 bundle (forge/r9): registration only; the search reads the values between searches.
++            } else if (name == "CuckooRep" || name == "TtPruneV2" || name == "CorrHistV2" ||
++                       name == "ZobristNonPawnCorr") {
++                // B4 bundle (forge/r9) + optional incremental Zobrist non-pawn correction key.
+                 bool* target = name == "CuckooRep" ? &forge::tune::CuckooRep
+                              : name == "TtPruneV2" ? &forge::tune::TtPruneV2
+-                                                   : &forge::tune::CorrHistV2;
+-                if (value_text == "true" || value_text == "false") *target = value_text == "true";
++                             : name == "CorrHistV2" ? &forge::tune::CorrHistV2
++                                                    : &forge::tune::ZobristNonPawnCorr;
++                if (value_text == "true" || value_text == "false") {
++                    if (name == "ZobristNonPawnCorr" && *target != (value_text == "true")) {
++                        *target = value_text == "true";
++                        searcher.clear();
++                    } else {
++                        *target = value_text == "true";
++                    }
++                }
+                 else note_invalid();
+             } else if (name == "HistRework") {
+                 apply_spin(0, forge::b4::MaxReworkLevel, [&](int clamped) { forge::tune::HistRework = clamped; });

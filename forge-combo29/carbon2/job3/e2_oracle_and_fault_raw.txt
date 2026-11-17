@@ -1,0 +1,16 @@
+=== 0. Disassembly Check: emitted VPDPWSSD ZMM instructions in bld_e2_b1/forge ===
+vpdpwssd_instruction_count=18
+   25a7f:	62 f2 4d 48 52 d1    	vpdpwssd %zmm1,%zmm6,%zmm2
+   25a9a:	62 f2 75 48 52 e0    	vpdpwssd %zmm0,%zmm1,%zmm4
+   25ac8:	62 f2 35 48 52 f1    	vpdpwssd %zmm1,%zmm9,%zmm6
+   25ae2:	62 f2 35 48 52 c8    	vpdpwssd %zmm0,%zmm9,%zmm1
+   25b4f:	62 f2 45 48 52 d1    	vpdpwssd %zmm1,%zmm7,%zmm2
+   25b66:	62 f2 75 48 52 e0    	vpdpwssd %zmm0,%zmm1,%zmm4
+
+=== 1. Planted-Fault Check (e2_planted_fault.patch.txt: drop lane 0 of 16 int32 VNNI lanes) ===
+VNNI OUTPUT_SUM MISMATCH on r1bqkbnr/1p1ppppp/8/p1p1n3/2P5/1P1P4/P3PPPP/RNBQKBNR w KQkq - 0 5: scalar=3537181 avx2=3537181 avx512_vnni=-1930267
+PLANTED FAULT CAUGHT BY VNNI ORACLE AS EXPECTED
+Planted-fault net768 bench 11: info string bench depth 11 nodes 1164515 time 607 nps 1918476
+
+=== 2. Clean Step E2 VNNI Oracle + Saturated Widths 768/800/896/1024 Run ===
+E2_VNNI_ORACLE PASS: evals_and_sums_checked=19985 widths_768_800_896_1024_saturated=exact mismatches=0
