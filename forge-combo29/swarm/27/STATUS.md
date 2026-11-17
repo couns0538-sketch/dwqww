@@ -500,3 +500,16 @@ Also added the luck-case argument to S-C16 and its evidence file: the mate set w
 BEFORE the engine ran, and the excluded failure mode is precise - a board whose first generated move happens to
 be mating cannot distinguish a fallback that picks a good move from one that picks a lucky one. Here first-in-order
 (`b7b8q`) and mating (`b7a8q`) are different moves.
+
+## 2026-11-17T00:28Z S-C17: 19-F59's structure confirmed, its numbers do NOT reproduce
+On `6k1/8/5K2/8/6r1/8/8/8 w - - 0 1`, PC r15/PC20/Threads 1/Hash 16/OwnBook false, fresh process per depth:
+  mine: depth 16 -> `f6e5` cp -391 (129,346); depth 20 -> `f6e5` cp -509 (1,915,526); **depth 24 -> `f6f5`
+  `mate -25`** (4,224,962).
+  theirs: depth 16/20 -> `f6e7` cp -490; depth 24 -> `f6f5` `mate -15`.
+**Structure CONFIRMED**: below depth 24 a centipawn-scored king move, at depth 24 the longest-defence move with a
+losing MATE score - so "depth limit, not a preference for dying quickly" holds and the position is a calibration
+case, not a bug. **Numbers differ in all three fields** (move at 16/20, cp, and the mate distance: mine -25 = 49
+plies vs their -15 = 29 plies). I have their sentence, not their raw output, so I cannot say whether the cause is
+a setting, a different FEN, or a real difference between runs.
+**What I did NOT do: adjust my numbers toward theirs or re-run until they matched.** These are the first runs on
+that board, unpicked. Resolving it needs their exact command line and raw `info depth 24` line.
