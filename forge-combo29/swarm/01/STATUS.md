@@ -1504,3 +1504,25 @@ ALSO CORRECTED: check_partial_clock.py printed, in the branch where D does not a
 Gates: 150 rows, table shape OK, page shape OK, four honesty pins PASS, integrity audit PASS with its synthetic
 negative test firing. Page: partialclock/HUGE_CLOCK_IS_NOT_A_BOUND.md.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+## 2026-11-17T00:52:10Z — file 7 Step 0: 11 of 11, my S-F82 caveat is now addressable (S-F109, S-F110)
+FILE 7 REMOVES THE EXCUSE I HAD BEEN RECORDING UNDER. My S-F82 scope limit said my findings are
+build-independent but NOT net-independent: the owner plays with a trained FORGENN3 net loaded, and I had no net
+file. File 7 publishes a deterministic net (same bytes everywhere) with known answers for it. So Step 0 became the
+cheapest possible test of my own caveat.
+RESULT: 11 OF 11. All eight published bench numbers reproduce exactly on a build of my own
+(312866/862329, 278024/587276, 965454/4151906, 625258/3652372) and all three `eval` lines give nnue == total
+(968, 1176, 31). My generated net hashes to the published 6,309,096 bytes / 1db8525e...3ffd4a, and the load line
+carries checksum fdff70de72e4ca82 with max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512.
+BUILD: PC r15 tree + -DFORGE_NNUE_V3=1 + -DFORGE_MATE_ALPHA_GUARD=1, g++ 13.3.0, generic x86-64, NO -march.
+Two things worth not overclaiming: the AVX-512 kernel was selected on an Intel Xeon with avx512f+bw, NOT a Zen 5,
+so timings here say nothing about the owner's PC; and Step 0 is identity, not speed. It is the first time ANY of
+my work has been measured against a loaded net rather than the built-in one.
+AND THE HARNESS WAS WRONG BEFORE THE ENGINE WAS: three of the four bad answers in my own Step 0 script were
+transcription errors of mine, printed as eight FAILs against the build. A bare-integer parser that returned None
+for `info string bench depth 11 nodes 312866`; an expected eval string missing `hce 0`; then, corrected, missing
+the leading `eval` word - while the three VALUES were right in every run. Trap 0, three times, in the harness whose
+purpose was exactness. Fixed: parser keyed on `bench depth`, comparison of parsed integers (nnue == total ==
+published) rather than text, and a missing number now prints HARNESS FAULT, not FAIL. A None is not a measurement.
+Also: check_findings_table.py caught literal pipes in my new rows (`max|w1|`) that would have split cells on render.
+Gates: 152 rows, 0 wrong pipe counts, no duplicate ids. Artifacts: v3net/ (script, checker, both outputs).
+Next: Step 1 profiling of the v3 path under PC20 + the test net, with the prediction committed BEFORE measuring.

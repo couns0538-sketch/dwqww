@@ -1,0 +1,29 @@
+STEP 0 of FABLE_TO_swarm_7.md on this build
+exe_started: /home/ubuntu/builds/pcv3/forge
+exe sha256: 227aae56ef1678479cf08d0fc3e3c73683753e89d61f12b252f0fec9e388471e
+net sha256: 1db8525e4eeb3c4cf425faf89a5dbb7e5aec0a9d00fd7de2c7cd25a7673ffd4a
+  (published: 1db8525e4eeb3c4cf425faf89a5dbb7e5aec0a9d00fd7de2c7cd25a7673ffd4a)
+load line: info string NNUE v3 active: v3 /tmp/testnet.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+flags: -DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1 (g++ 13.3.0, generic x86-64)
+
+Step 0a - eight bench numbers, fresh process per line, Threads 1, Hash 16
+row	bench	got	expected	verdict
+none	11	312866	312866	PASS
+none	13	862329	862329	PASS
+pc20	11	278024	278024	PASS
+pc20	13	587276	587276	PASS
+net	11	965454	965454	PASS
+net	13	4151906	4151906	PASS
+pc20net	11	625258	625258	PASS
+pc20net	13	3652372	3652372	PASS
+
+Step 0b - three eval lines under PC20 + the test net
+case	got	expected	nnue==total	verdict
+startpos	eval hce 0 nnue 968 total 968	nnue=total=968	yes	PASS
+italian	eval hce 0 nnue 1176 total 1176	nnue=total=1176	yes	PASS
+rookend	eval hce 0 nnue 31 total 31	nnue=total=31	yes	PASS
+
+STEP 0 PASS: 11 of 11. All eight bench numbers and all three eval lines reproduce exactly.
+  This is the first time my work has been measured against a LOADED net rather than the
+  built-in one, which is exactly the gap my own S-F82 named. The caveat was about scope, not
+  about error: the numbers reproduce, so the harness and the build are sound for v3 work.
