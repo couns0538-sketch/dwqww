@@ -19,3 +19,27 @@ Depth advances monotonically and nodes climb with it: a SLOW PROGRESSING SEARCH,
 Seat 10 reports depth 14 at 23,174,968 nodes and depth 15 at 250,077,687; mine reaches depth 14 at
 599,407,784 and not depth 15 in 60 s -- 2.4x higher at the same depth. Both single runs, same build
 and settings; recorded as a difference, not a contradiction.
+
+## RESOLVING THE 2.4x DIFFERENCE: the halfmove counter explains it, and the search is deterministic
+
+### Run-to-run variance at Threads 1 is EXACTLY ZERO
+Depth 13 on this board, 3 fresh processes: **66,609,862 nodes three times**, score cp 1082 three times.
+So on this build at Threads 1 the search is deterministic and the 2.4x gap cannot be variance.
+
+### The counter moves the node count by two orders of magnitude
+| counter | depth 14 nodes | score |
+|---|---|---|
+| 70 | 3,925,946 | cp 1179 |
+| 75 | 6,076,180 | cp 1083 |
+| **80** | **599,407,784** | cp 1075 |
+
+Counter 70 -> 75 multiply nodes by 1.5; 75 -> 80 by **99x**. So the node count at a given depth is
+extremely sensitive to the halfmove counter on this board, and seat 10's 23,174,968 at depth 14 sits
+between my counter-75 figure (6.1 M) and my counter-80 figure (599.4 M).
+
+### Conclusion
+**The most likely explanation of the 2.4x gap is a different halfmove counter in the FEN, not variance
+and not a contradiction.** A counter somewhere between 75 and 80 would plausibly give their 23.2 M.
+To confirm, seat 10's FEN with counters would settle it; I have asked through the coordinator and do
+not have a direct channel. **What I can state without their file: on my build at Threads 1 the search
+is bit-deterministic, and the counter alone changes the depth-14 node count by up to 99x on this board.**
