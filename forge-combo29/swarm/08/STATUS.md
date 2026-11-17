@@ -730,3 +730,16 @@ next: cadence.
 Tally: 39 findings, 30 checks/audits/plants, 5 method lines, 2 withdrawals, 1 open lead.
 
 next: cadence.
+
+## 2026-11-17T02:14Z
+- **08-C27 restated in flat verified form** as requested: *NO published timing number of this seat is implicated by the
+  08-N5 deadlock — verified, not assumed.* 66 harnesses scanned, **60 wait for `bestmove`** (safe: waiting for
+  `bestmove` is not waiting for an `info` line; only the latter deadlocks), and the 6 without a deadline are pure
+  analysis scripts with no engine process (grep-verified). Live test: the main timing harness on a book position ran
+  in 0.2 s, exit 0, recorded the answer with 15 stdout lines incl. the book string.
+- The trap in one line, now in the finding: **"the failure was not 'the engine is slow', it was 'my reader waited for
+  a line this path never prints, and I had no per-read timeout to tell me'".**
+
+Tally: 39 findings, 30 checks/audits/plants, 5 method lines, 2 withdrawals, 1 open lead.
+
+next: cadence.
