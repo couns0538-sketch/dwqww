@@ -788,3 +788,12 @@ every sentence.
   contained it.
 - I corrected my own "roughly 1 in 100" to the measured 1-in-30-60 / 1-in-200 ranges rather than leave a rounded guess.
 - next command: continue at cadence.
+
+## $(date -u)
+- S-F63: the node-limit truncation is a NARROW, ONE-ITERATION window. On the known violator, `go nodes`:
+  5000 cp+3725 d8; 10000 cp+3935 d9; 15000/20000/30000 cp+4056 d10 (all identical, 10,515 nodes, no mate yet);
+  **50000 mate 11 18/21 SHORT 3**; 80000 mate 7 13/13 (74,525 n, d13); 120000 identical; 250000 mate 7 d14; 500000 d15.
+  => below 50k the mate is not yet found; from 80k up the mate is short enough for the depth. So it is the depth-11
+  iteration completing with a mate score its PV cannot fill — a one-iteration artefact, still on the owner's path
+  because 50,000 is one of their match budgets.
+- next command: continue at cadence.

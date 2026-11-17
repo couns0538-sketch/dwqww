@@ -60,6 +60,16 @@ At `go nodes 250000` the same position is consistent (`mate 7`, 13/13), as is `g
 So the honest statement is: **the rate falls as the budget rises, but the defect is still present at a 50,000-node match
 budget on long mates, and I have NOT established any budget at which it is absent.**
 
+**A later measurement narrowed it to a one-iteration window.** On that same position the full node ladder is: 5000 → no
+mate score (cp +3725, d8); 10000 → cp +3935 (d9); 15000/20000/30000 → cp +4056, d10, all identical (10,515 nodes);
+**50000 → `mate 11`, 18 of 21 plies, short by 3**; 80000 → `mate 7` 13/13 (74,525 nodes, d13); 120000 → identical;
+250000 → `mate 7` 13/13 (d14); 500000 → same (d15).
+
+So the defect is neither "below" nor "above" a narrow band: below 50,000 nodes the engine has not yet found the mate,
+and from 80,000 up the mate it finds is short enough for its depth. That makes it a **one-iteration artefact** — the
+depth-11 iteration completes carrying a mate score whose PV that depth cannot fill — rather than a general property of
+node-limited search. It is still on the owner's path, because 50,000 nodes is one of their match budgets.
+
 **And where it does occur, the move does not change — now checked on the match-budget case too.** Two positions:
 
 - G/59 at `go softnodes 2000`: score `mate 4` with a 6-ply PV (needing 7), but the move is `c4a6` at softnodes 2000, 5000,
