@@ -37,3 +37,12 @@ concern different inputs.
 ## Limits
 - One position, one depth (4), Threads 1, built-in net.
 - I did not test a restriction naming several legal moves, nor a legal restriction at a halfmove below 100.
+
+## The split, as one paired statement (either half alone is misleading)
+
+- **A SATISFIABLE restriction IS repaired** by the PC patch: `searchmoves d1d8` → `mate 1`, 8 nodes, where base gives `cp 0`, 0 nodes.
+- **An EMPTY OR ILLEGAL restriction is NOT**: `go searchmoves depth 4` (nothing legal named) → `0000`, cp 0, 0 nodes, on the PC build too.
+
+**Quote them together.** "The repair reaches `searchmoves`" alone would imply the `0000` case is fixed — it is not.
+"`searchmoves` is still broken" alone would deny a repair that demonstrably works. My own S-F43 had these bundled as
+one statement; they are two inputs and two answers.
