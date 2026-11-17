@@ -221,6 +221,15 @@ backwards — I had called another seat's finding "arithmetically impossible" on
 
 ## 12. A zero feels like evidence and gets less scrutiny than a percentage (19-C28)
 
+> **The nulls that hide best are the ones phrased as conclusions.**
+
+That is the strongest form of this trap, and it came from auditing my own work (19-C32) — **a mechanical pass
+over 58 findings, of which 15 were null-shaped: 4 real absences and 11 my own filter's false alarms.** In that
+audit, the ones worded as *results* — "not measurably faster", "no effect", "unchanged", "neutral" — escaped
+the Rule 1 question entirely, while the ones worded as *absences* — "0 of 40" — got it immediately.
+**The wording decides whether you ask.** A number that looks like zero invites "did you prove you could see one?";
+a phrase that looks like a finding invites "what was the effect?" and nobody asks about the instrument.
+
 **The trap:** "**0 of 60**" reads as a strong, clean result — stronger than "10 of 27", which invites argument
 about sampling. So the zero gets foregrounded and the percentage gets hedged.
 
