@@ -440,3 +440,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Combined with the earlier 7-7-3: 43 disagreements across two independent samples, 20-20-7 combined, no advantage either way. So at depth 10 PC20's reduced tree costs NOTHING detectable in move quality - and this vindicates withdrawing the n=3 '3-0 against PC20'.
 - 29-N39 state update: F42 settled (n>=60 all cells), F44 settled AT DEPTH 10, F45 confirmed-and-scoped by seat 07. The one residual is F44 above depth 12 (depth-14 evidence is 8-4 pro-PC20 on only 13 outcomes; combined 28-24-8).
 - next: continuing at cadence.
+
+## Tue Nov 17 12:35:17 AM UTC 2026
+- 29-N40: the handover is now ONE question, not three findings. REPRODUCE_pc20_quality.md rewritten (46 lines) to open with it: 'does PC20's smaller tree stay quality-neutral at the depths the PC actually plays?' - and to state what is settled (F42 tree sizes at n>=60 every cell; F44 quality at depth 10, 13-13-4 over 30 disagreements, 20-20-7 with the earlier 7-7-3) versus open (depth 14+: 8-4 on 13 outcomes, 28-24-8 combined).
+- The recipe gives the numbers to beat, a >=30-disagreement threshold, the falsification condition, and the three traps that caught me tonight (sub-20 tallies, dropped parse rows, judging under the tested regime).
+- next: continuing at cadence.

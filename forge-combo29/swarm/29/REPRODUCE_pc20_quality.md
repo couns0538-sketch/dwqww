@@ -1,47 +1,46 @@
-# REPRODUCE THE PC20 MOVE-QUALITY WORK IN MINUTES (for any seat that wants to check 29-F42/F44/F45)
+# ONE OPEN QUESTION, FOR THE NEXT SWARM: PC20 move quality ABOVE depth 12
 
-These are my strongest findings and **no second seat has checked them** (29-N28 marks them OPEN). This file exists so
-another seat can falsify or confirm them quickly with their own harness, rather than taking my word or my scripts.
+## What is still open (the whole of it)
+At **depth 10** the question is settled: over 200 positions S14 and PC20 agree on 85 % of bestmoves and, of the 30
+disagreements judged by a neutral depth-13 referee, the score is **13-13-4**; with an earlier 17-disagreement sample
+(7-7-3) that is **43 disagreements, 20-20-7, no advantage either way.** PC20's reduced tree costs nothing detectable
+in move quality at that depth.
 
-## What you need
-- The PC r15 build (file 5's patch against 6b98f217, built with `-DFORGE_MATE_ALPHA_GUARD=1`). My build:
-  `/home/ubuntu/build/pc/forge`, but yours is fine — the claims do not depend on a specific binary, only on the
-  source.
-- Any set of real-game positions. I used `forge-combo29/swarm/29/job5/R_2911.fens` (400 FENs, seeded random games)
-  and `forge-combo29/swarm/29/job2/G.epd` (353 positions from games).
+**What is NOT settled is depth 14 and above.** My only evidence there is **8-4 in PC20's favour on 13 disagreements**
+(80 positions, R_2911) — below my own threshold that a tally under ~20 outcomes is a hint at most. Combined with the
+depth-10 samples the standing tally is 28-24-8, which is no significant advantage but no longer perfectly even.
 
-## The three claims to test
+**So the single question worth a seat's time is: does PC20's smaller tree stay quality-neutral at the depths where the
+owner's PC actually plays?** That is where its pruning bites hardest and where my sample is thinnest.
 
-**Claim 1 (29-F42): PC20 searches a SMALLER tree than S14 at match depths, on more than one position set.**
-Run at depth 12, Threads 1, Hash 16, one fresh process per search, draining to `bestmove`:
-```
-uci / setoption name Hash value 16 / setoption name Threads value 1
-<14 S14 options>                        -> sum the `nodes` field of the last `info depth` per position
-<the same + CuckooRep true, HistRework 2, TtPruneV2 true, CorrHistV2 true, MateAlphaGuard true, OwnBook false>
-```
-My numbers: R_2911 −19.5 %, G −12.7 %. **Falsified if** PC20 is not smaller on both sets at depth 12, or if the
-percentage you get is wildly different (mine varies with depth and set, so report your set and depth with it).
+## How to answer it in an hour
+1. PC r15 build (file 5's patch on 6b98f217, `-DFORGE_MATE_ALPHA_GUARD=1`), **Threads 1, Hash 16**.
+2. Positions from real games — `forge-combo29/swarm/29/job5/R_2911.fens` (400 FENs) or your own.
+3. For each position: one search under S14, one under PC20 (the 14 S14 options plus `CuckooRep true`,
+   `HistRework 2`, `TtPruneV2 true`, `CorrHistV2 true`, `MateAlphaGuard true`, `OwnBook false`), at **depth 14 and
+   depth 16**, fresh process each, drained to `bestmove`.
+4. For each disagreement, play BOTH moves and judge them under the **neutral S14 regime** two or three plies deeper
+   (I used depth 17 for depth-14 disagreements). Report the mover's score for each.
+5. **Get at least 30 disagreements before reporting a direction.** At 200 positions you will see ~15-25 % disagreement
+   at depth 10, and my depth-14 rate was 16 %.
 
-**Claim 2 (29-F44): the two regimes' moves are of COMPARABLE quality, not one clearly better.**
-For each position where the bestmove differs, play each move and judge it under the **neutral** regime (S14, not
-PC20 — otherwise you are judging the switches by themselves) at a deeper fixed depth, and compare the mover's score.
-My numbers: 83 of 100 same move; of 17 disagreements, PC20 better 7, S14 better 7, tie 3. **Falsified if** one side
-wins the head-to-head decisively (say 12+ of 17) — that would mean the smaller tree IS lossy or IS better, contrary to
-"comparable".
+## What would settle it
+- ≥30 disagreements at depth 14 and ≥30 at depth 16, with the tally reported as a table.
+- `CONFIRMS 29-F44 at depth 14+` if PC20 shows no disadvantage; `REFUTES` if it shows a consistent one. **A
+  consistent disadvantage at match depths would be the most valuable finding in this whole thread** — it would mean
+  the switches need care above a certain depth, which the owner should know before using them in strength matches.
 
-**Claim 3 (29-F45): move agreement is FLAT across depth, so the disagreements are not horizon noise.**
-Same positions at depths 8, 10, 12, 14; report the same-move share at each. My numbers: 87.5 / 87.5 / 85.0 / 92.5 %.
-**Falsified if** agreement rises clearly with depth (which would make the disagreements shallow-search artefacts).
+## Three traps, all of which caught me tonight
+1. **A tally under ~20 outcomes is a hint at most.** My 3-disagreement depth-14 sample read 0-3 against PC20 and I
+   published it as a signal (29-F50), then withdrew it (29-F51) when 13 outcomes gave 8-4 the other way. The same
+   configuration produced opposite signs at n=3 and n=13.
+2. **A tally whose denominator is smaller than the rows in your raw file is a parse bug.** My first tally matched only
+   `cp` scores and silently dropped 4 of 17 rows — all mate judgements — turning 7-7-3 into "5 PC20 / 7 S14". Require
+   every row to parse and abort listing the unreadable ones.
+3. **Judge disagreements under the neutral regime, not under the switches being tested.** Otherwise you are asking
+   PC20 to referee its own case.
 
-## Two traps I fell into, so you do not repeat them
-1. **A tally that drops rows looks like a result.** My first move-quality tally matched only `cp` scores and silently
-   discarded 4 of 17 rows — all mate judgements — turning a 7-7-3 dead heat into "5 PC20 / 7 S14". Require every row
-   to parse and abort listing the unreadable ones (29-N27, and the FIRST RULE at the top of my FINDINGS).
-2. **One cell is not the finding.** "19.5 % fewer nodes" was true at depth 12 on one set and false at depth 10 on the
-   same set (+2.3 %). Sweep the second axis before believing the first number (29-N23).
-
-## What "confirmed" would look like
-Your own harness, your own binary built from the same patch, your own position set — and a line in your FINDINGS
-reading `CONFIRMS 29-F42` / `29-F44` / `29-F45` with the raw file. If your numbers differ materially, that is more
-useful still: say `REFUTES` and give the table, because a set-dependence I have not found is exactly what my own
-sweeps kept turning up.
+## Why this file exists
+My PC20 work is my strongest and it is **not confirmed by any second seat** (29-N28/N39). Rather than ask anyone to
+trust my scripts, this recipe gives the one open question, the numbers to beat, the falsification condition and the
+traps. Reproducing it on your own harness and binary is the only thing that turns it from my claim into a finding.
