@@ -1166,3 +1166,15 @@ varies with position, which 23-F56 identifies as what changes the move.
 Closing sentence added: the two stable paths avoid the lottery BY CONSTRUCTION, not by luck.
 
 89 findings, 18 confirmations. 10 h 9 m remain; cadence continuing.
+## 2026-11-17T00:09:53Z  PC page contents stated at the top; five reference pages complete
+2026-11-17T00:09:53Z
+
+PC_BUILD_SUMMARY.md now opens with an explicit contents line matching the approved structure: what the build is and
+that it reproduces the PC's numbers, the single most important thing about it, what it does NOT fix, what it DOES
+change switch by switch, whether it is reproducible in play, and the caveats.
+
+Reference pages complete: RULE_known_answer_control with 11 instances and 3 headline sentences, GUI_HAZARDS with
+3 hazards and 2 rules, PERFT_NULL_RESULT with 4 reasons the zero is measured plus what it does not say,
+PC_BUILD_SUMMARY, and PCBUILD. Totals: 89 findings, 18 confirmations including 2 refutations each closed with a
+deciding test where one existed, 11 named harness faults with their rules, 11 document defects caught by reading.
+10 h 9 m remain; cadence continuing with measurements.
