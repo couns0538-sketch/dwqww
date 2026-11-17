@@ -1217,10 +1217,14 @@ per-position fact.**
 own table (see the prerequisite above). **That is the strongest evidence that the rule is worth having.**
 
 ## What the owner should be told about PC20, in one line
-**PC20 searches ~12 % fewer nodes at matched depth but pays ~7 % more per node everywhere, so the net wall-time
-gain is ~2.8 % — and at matched NODES it spends ~7 % more time for the same count. The switches are a small,
-uniform, consistent cost, not a set of pathological positions — though individual positions vary a lot
-(node ratios span 0.34 to 2.73).**
+**PC20 pays ~7 % more per node on 90 % of positions — that is a real, uniform tax — and saves ~12 % of nodes on
+only about 60 % of them, so the node saving is a session-level average and the per-node cost is a per-position
+fact. Net wall-time gain is ~2.8 %; at matched NODES it spends ~7 % more time for the same count.**
+
+**Note the ordering, which is the whole point of this section: the TAX is the reliable number and the SAVING is the
+fragile one.** The earlier version of this sentence led with the 12 % saving and called the switches "a small,
+uniform, consistent cost" — **both wrong under this table**: the saving is not uniform (60.5 %), and the cost is
+neither small nor merely consistent, it is the one per-position fact in the set.
 
 ## 2026-11-17T02:25Z — cadence
 
