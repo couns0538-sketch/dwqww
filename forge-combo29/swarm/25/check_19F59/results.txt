@@ -1,0 +1,35 @@
+### 19-F59 check: the depth-24 switch and the mate-PV length
+fen 6k1/8/5K2/8/6r1/8/8/8 w - - 0 1 | PC20, Threads 1, Hash 16, fresh process per depth
+
+ depth        score  bestmove  pv plies      nodes  PV check
+    16 score cp -490      f6e7        17     108536  
+    20 score cp -490      f6e7        21     232803  
+    24 score mate -16      f6f5        26    7608471  checkmate=False plies=26 need=32 (SHORT)
+
+19-F59 claims: d16/d20 -> f6e7 cp -490 ; d24 -> f6f5 mate -15 ; the mate PV is 25 plies where 29 are needed.
+
+VERDICT: CONFIRMS 19-F59's structure exactly, with one precise difference that 19-C11 itself anticipates.
+
+MY RUN (PC r15, PC20, Threads 1, Hash 16, fresh process per depth, `position fen` with counter 0):
+  d16 -> `f6e7` / cp -490 / 108,536 nodes / 17-ply PV
+  d20 -> `f6e7` / cp -490 / 232,803 nodes / 21-ply PV
+  d24 -> `f6f5` / **mate -16** / 7,608,471 nodes / 26-ply PV
+
+THE STRUCTURE MATCHES EXACTLY: the move switches from f6e7 to f6f5 only at depth 24, and the switch is the
+calibration-case evidence. d16 and d20 are identical to seat 19's published numbers (cp -490, 108,536 and 232,803
+nodes) - byte for byte, which ties my build to theirs on the low depths.
+
+THE ONE DIFFERENCE, and 19-C11 already explains it: I get **mate -16** where 19-F59 reports **mate -15**. Seat 19's
+19-C11 records exactly this: on their FEN `... 0 1` they get `mate -16` / 7,608,471 nodes, and on `... 12 182` they
+get `mate -15`. **My node count 7,608,471 is seat 19's OWN counter-0 figure** - so my run reproduces their
+counter-0 case to the node, and the -15 belongs to their counter-12 board. My FEN has counter 0, so -16 is the
+consistent reading of the same data. This is a halfmove-counter effect of one ply, exactly as 19-C11 states.
+
+THE PV-LENGTH CLAIM IS ALSO CONFIRMED, and my S-C31 filter explains it: my depth-24 PV is 26 plies while
+`mate -16` needs **32**, so the PV is **6 plies short** and does NOT end in checkmate. That is the same
+converging-mate shape as S-C31: a mate score whose PV is short is a still-resolving mate, not a wrong score. So
+seat 19's "the score is right but the LINE is short" reading holds, and it is the same instrument lesson I recorded.
+
+WHAT I CANNOT SETTLE: the exact mate NUMBER for the owner's reference depends on which halfmove counter the board is
+written with - counter 0 gives -16 on my build and theirs, counter 12 gives -15. That is not a disagreement, it is a
+FEN-specification detail, and any comparison against this board must state its counter.
