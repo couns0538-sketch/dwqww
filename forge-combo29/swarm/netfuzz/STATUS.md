@@ -12,7 +12,7 @@
 | Engine-level loudness (both streams, `isready`, search blocked) | **done** — every refusal loud on stdout/stderr, `isready` still answers `readyok`, no `bestmove` follows |
 | Allocation accounting (`operator new` counter) | **done** — bombs allocate 0 for the claim |
 | Amplification (2.00×–3.66×, linear in file length) | **done** |
-| Slurp-before-check / unbounded read | **done** — 8 GB file = 8.4 GB RSS; `/dev/zero` aborts on `bad_alloc` |
+| Slurp-before-check / unbounded read | **done** — 8 GiB file = 8.00 GiB RSS; `/dev/zero` aborts on `bad_alloc` |
 | 1,819-case header sweep (release arm) | **done** — every accept legal by design |
 | 1,096-case header sweep (release **and** ASan+UBSan) | **done** — 0 sanitizer lines, 0 verdict disagreements |
 | 12th net reachability + counterfactual | **done** — eval 68 vs 94, restored returns 68 |

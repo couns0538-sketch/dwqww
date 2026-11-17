@@ -5,7 +5,7 @@
 sanitizer lines** under ASan+UBSan across all 60 hand-built cases and 1,096 swept
 header mutations. The one thing it does wrong is **not a corruption bug but a
 resource one**: it slurps the whole file into memory *before* it examines a single
-header field, so an 8 GB file costs 8.4 GB of RAM to refuse.
+header field, so an 8 GiB file costs 8.0 GiB of RSS to refuse.
 
 ## Which binary, which hashes
 
@@ -28,7 +28,7 @@ one. The four honesty pins are unchanged on it, so the flag does not move the se
 
 **So: this work says nothing about the compiled-in (v2) net loader.** That loader was
 not touched here; it is a different code path (`src/nnue.cpp`) with a different magic
-(`FORGENET`) and its own size cap (§6).
+(`FORGENET`) and its own 2 MB size cap (cited in the slurp section).
 
 ## Honesty gate (release build, `-DFORGE_NNUE_V3=1`)
 
@@ -252,7 +252,7 @@ binary; a use-after-free is, because only ASan's quarantine can see it.
 
 With that proven live: **0 sanitizer lines** on all 60 hand-built mutants (release and
 sanitizer arms agree on all 60 verdicts), and **0** on the swept header space, where the
-same 1,096 field/value cases were run through both arms (§ sweep, below).
+same field/value cases were run through both arms; see the sweep section below.
 
 ### 5. The 12th net — it loads, and its checksum is genuinely valid
 
@@ -309,16 +309,25 @@ garbage".
 So the cost is bounded by the **file's real length**, which nothing validates, and is
 **unbounded** for a source with no length. Measured (`evidence/slurp.json`):
 
-| input | peak RSS before the refusal | result |
-|---|---|---|
-| 8 MB sparse file | 12 MB | refused |
-| 256 MB sparse file | 253 MB | refused |
-| 1 GB sparse file | 980 MB | refused |
-| 2 GB sparse file | 2,018 MB | refused |
-| 4 GB sparse file | 4,087 MB | refused |
-| **8 GB sparse file** | **8,390 MB** | refused (16 GB box) |
-| **`/dev/zero`** | **grew until the allocator failed** | `terminate called after throwing an instance of 'std::bad_alloc'`, abort |
-| `/dev/zero`, ASan arm | grew past 1.1 GB in 20 s, still growing | killed at the RSS cap |
+| input | in-process peak RSS (`VmHWM`) | file length | refused |
+|---|---|---|---|
+| 8 MiB sparse file | 12,316 kB (12.03 MiB, **1.503×** the file) | 8,388,608 bytes | yes |
+| 64 MiB sparse file | 69,568 kB (67.94 MiB, **1.062×**) | 67,108,864 bytes | yes |
+| 256 MiB sparse file | 266,180 kB (259.94 MiB, **1.015×**) | 268,435,456 bytes | yes |
+| 1 GiB sparse file | 1,052,624 kB (1,027.95 MiB, **1.004×**) | 1,073,741,824 bytes | yes |
+| 2 GiB sparse file | 2,101,192 kB (2,051.95 MiB, **1.002×**) | 2,147,483,648 bytes | yes |
+| 4 GiB sparse file | 4,198,344 kB (4,099.95 MiB, **1.001×**) | 4,294,967,296 bytes | yes |
+| **8 GiB sparse file** | **8,390,712 kB (8,194.05 MiB, 1.000×)** | 8,589,934,592 bytes | yes (16 GB box) |
+| **`/dev/zero`** (no length) | grew to 1,059,168 kB before the 1 GiB cap killed it | **unbounded** | **no — aborted** |
+| `/dev/zero`, ASan arm | grew past 1.1 GB in 20 s, still growing | unbounded | killed at the RSS cap |
+
+Peak RSS tracks the file length at **1.000×–1.004× above 1 GiB**, so the cost is exactly
+"the whole file" and nothing less. `peak_rss_kb` is the process's own `VmHWM` read
+inside the probe, not an external sample — an earlier 0.25 s sampler reported 0.2 MiB
+for the 8 MiB file that the in-process counter saw as 12 MiB, so the sampler is recorded
+only as the RSS-cap killer and never as the measurement. My first draft of this table
+also converted GiB to "GB" loosely and overstated the 8 GiB case as 8.4 GB; the numbers
+above are the evidence file's values with their units.
 
 The refusal is **correct** in every case — the message is right and nothing loads. The
 problem is **the order**: it costs L bytes of RAM to refuse an L-byte file, and for a
@@ -383,7 +392,7 @@ values in the release run, all refused).
   net. A net whose *learned* values are out of range in a way my byte-level mutations
   do not produce is not covered.
 - **The v2 (`FORGENET`) loader.** Not this seat's subject; it is a separate path with
-  its own size cap (§ binary table).
+  its own 2 MB size cap.
 - **Allocation failure inside the loader.** I forced it once, via `/dev/zero` and an
   address-space cap, and it aborts with `std::bad_alloc`. I did not test whether a
   `bad_alloc` mid-load leaves a partially-built `Net` published. Reading the code, it
