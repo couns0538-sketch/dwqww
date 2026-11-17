@@ -731,3 +731,14 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - SURVIVES unchanged: S-F19 board at `go nodes 20000` reports `mate -7` (14 plies) where the truth is 8 plies — that
   IS truncation, on a board whose distance I proved. Severity conclusion also survives (same move in all three cases).
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:16:54Z truncation-vs-unfound-mate is now a METHOD rule; surviving case verified by the stricter test (S-C48c)
+- **METHOD §"A LARGE CENTIPAWNS SCORE IS NOT A DEFECT; A SHORT MATE PV IS"**: truncation = a `mate N` claim whose PV is
+  shorter than 2|N| **at the depth the claim first appears**; unfound mate = **no mate claim** at the shallow limit (a cp
+  score merely less informed — correct behaviour). Operational test: find the first-claim depth and test the PV THERE.
+  Named as RULE 0 on your own comparison.
+- **S-C48c verifies the case I KEPT**: `go depth 6` -> cp -2513 (no claim); **`go depth 8` / 18,729 nodes -> `mate -7`
+  with a 10-ply PV needing 14**; nodes 12000/15000 still no claim. So it IS truncation at first discovery.
+- Both survivors intact: **proven-distance board** (8-ply truth from exhaustive search) and **severity bound** (same move
+  on all three boards => reporting-only).
+Next: continue in the window (ends 2026-11-17T10:18Z).
