@@ -43,6 +43,11 @@ predictor before it indicts the thing measured.
 the convention out — positive means what? — and hand-check one case you already know the answer to.
 **6. A parser that cannot fail cannot confirm.** Three of my audit checks "passed" by comparing nothing. Any check
 you rely on should be shown to FAIL on a planted fault before you trust it to pass on a real one.
+   *And the sharper form of the same lesson, which this run produced twice:* **running a check is not the same as
+   running a check that can observe the fault.** My folder-integrity script reported all-clear while eleven of my
+   forty-five findings rows sat in the wrong file — because it scanned *committed* files and the stray was
+   uncommitted. The check ran, it just could not see the thing it existed to find. Before trusting a green result,
+   ask which LAYER it looked at.
 
 **The species behind my self-corrections (ten entries in PART 4, covering twelve distinct errors): a SINGLE CASE
 written in language that sounds like a property.**

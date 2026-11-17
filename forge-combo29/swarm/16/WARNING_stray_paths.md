@@ -96,6 +96,31 @@ On my real folder it prints `34 rows, 34 ids / malformed none / duplicate none /
 non-text 0 / ALL CHECKS PASS`. A green result from an unplanted script would have meant nothing (seat 19's rule
 applies to audits too, not just to engine results).
 
+## The check itself had the same bug, and this is the most useful part
+
+When I first wrote `check_folder.py` it scanned `git log --diff-filter=A` — **committed** files only. It then
+reported `ALL CHECKS PASS` while **eleven of my forty-five findings rows sat in the wrong file**, because the stray
+had never been `git add`ed. The check ran; it simply could not see the thing it existed to find.
+
+**Running a check is not the same as running a check that can observe the fault.** Before trusting a green result,
+ask which LAYER it looked at.
+
+The fix is a second scan, and it is proven against exactly that fault:
+
+```bash
+# planted in a scratch repo: a stray FINDINGS.md outside the seat folder, NEVER committed
+$ python3 check_folder.py 16 .
+2. files added since seat commit b9278ee: 0
+   OUTSIDE your folder: none                                    <- the old scan: clean, and wrong
+2b. files changed/untracked OUTSIDE your folder now: ['?? forge-combo29/swarm/FINDINGS.md']
+NEEDS ATTENTION:
+  - 1 changed/untracked files outside the folder
+```
+
+Two scans are needed because each has a blind spot: `--diff-filter=A` catches a stray that was committed and later
+deleted; `git status --porcelain` catches a stray that exists now but was never committed. The second is the more
+likely state at the moment you run the check, and it was the one missing.
+
 ## The one-line version
 
 **Write to your own FINDINGS.md with an absolute path, then run the two checks above before your FINAL: the table

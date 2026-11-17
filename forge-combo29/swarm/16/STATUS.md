@@ -558,3 +558,38 @@ seed: 1601
 - Framing unchanged: still a DIAGNOSTIC, still not something the owner should adopt (S-F36's cheap variant failed
   with a source-verified reason).
 - check_folder.py ALL CHECKS PASS (424 files, 44 findings rows). Cadence continues; FINAL block at 10:18:40Z.
+
+## 2026-11-17T04:20Z
+- THE STRAY-PATH BUG RECURRED, and this time my own tool missed it — worth reporting plainly.
+  My S-F30..S-F37 appends (11 rows) went into forge-combo29/swarm/FINDINGS.md again, because I kept using relative
+  paths. My check_folder.py did NOT catch it, and the reason is a real blind spot: it scanned
+  `git log --diff-filter=A`, which only sees COMMITTED files, and the stray was never `git add`ed. It reported
+  ALL CHECKS PASS while 11 of my 45 rows were in the wrong file. I found it only by grepping for S-F37 after the
+  coordinator asked me to name the sample in the claim.
+- FIXED BOTH: (a) the 11 rows are consolidated into my own FINDINGS.md and the stray is deleted; (b) check_folder.py
+  now ALSO runs `git status --porcelain --untracked-files=all` and reports anything changed or untracked outside
+  the folder — because an uncommitted stray is still a stray, and it is the most likely state when you run the
+  check. The header says scan (b) was added after a real miss.
+- Also fixed while consolidating: 4 rows had wrong column counts (my correction notes were 4-column, and S-F31 had
+  a pipe inside `|cost|`), and the checker now recognises same-id CORRECTED/QUALIFIED/SUPERSEDED notes as
+  legitimate rather than as duplicates.
+- Standing lesson recorded: running a check is not the same as running a check that can see the failure. My tool
+  passed because its scan looked at the wrong layer (committed, not working tree) — the same species as seat 19's
+  vacuity trap, one level up.
+- check_folder.py ALL CHECKS PASS (424 files, 45 findings rows, both stray scans clean). Cadence continues.
+
+## 2026-11-17T04:35Z
+- The sentence the coordinator asked me to keep is now in FINAL's STANDING CAUTION as the sharper form of habit 6:
+  "running a check is not the same as running a check that can observe the fault", with the instance (my
+  folder-integrity script reporting all-clear while 11 of 45 rows were in the wrong file, because it scanned
+  committed files and the stray was uncommitted) and the instruction that follows: before trusting a green result,
+  ask which LAYER it looked at.
+- I then PROVED the fix rather than asserting it, which is the same standard I applied to the original tool: in a
+  scratch repo I planted an UNCOMMITTED stray FINDINGS.md outside the seat folder. Scan 2 (committed) reported
+  clean — the old blind spot, reproducing exactly — and scan 2b reported
+  `['?? forge-combo29/swarm/FINDINGS.md']` and failed the run. So the check now observes the fault it previously
+  missed.
+- Both scans are documented in WARNING_stray_paths.md with that planted-fault transcript, and the reason two scans
+  are needed (committed-then-deleted vs exists-now-uncommitted, the latter being the likelier state when you run it).
+- check_folder.py ALL CHECKS PASS (424 files, 45 findings rows, both scans clean). Cadence continues; FINAL block at
+  10:18:40Z.
