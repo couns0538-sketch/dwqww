@@ -1,7 +1,17 @@
 # STATUS
 
 Seat: owner-audit, time-manager accounting, topic `swarm/timeman`.
-Audit base: `6b98f217` (a divergent commit, NOT an ancestor of `main`).
+**Audit base for every number in this folder: `6b98f217`** (a divergent commit, NOT an ancestor of
+`main`).
+
+> **Note on the diff, because the PR shape is misleading and was fixed once already.** This branch
+> is based on `6b98f217`, and `main` has **no `forge-combo29/` at all**, so a plain PR from the
+> branch showed **13,311 changed files / 25.3M additions** of unrelated engine source. The branch
+> tip is therefore a commit whose **tree is `main`'s tree plus only `forge-combo29/swarm/timeman/`**,
+> parented on the measurement history, pushed as a fast-forward. The PR now reads **32 files,
+> +6,461 / −0**, `MERGEABLE / CLEAN`. **No measured content changed**: `git diff` between the
+> pre-swap tip and the current tip over this folder is **0 files**. The parent chain still contains
+> `6b98f217` and every measurement commit, so the audit base is unchanged.
 
 ## Where this stands
 
