@@ -1,0 +1,61 @@
+480 rows, 24 positions, 5 budgets, hashes [1, 16, 64, 256]
+
+## Divergence: cells where the answer differs from Hash 64
+
+| budget | Hash 1 | Hash 16 | Hash 256 |
+|---|---|---|---|
+| `go nodes 50000` | **1/24** (move 0) | **0/24** (move 0) | **0/24** (move 0) |
+| `go nodes 200000` | **19/24** (move 5) | **0/24** (move 0) | **0/24** (move 0) |
+| `go nodes 500000` | **20/24** (move 3) | **2/24** (move 0) | **0/24** (move 0) |
+| `go nodes 1000000` | **19/24** (move 5) | **16/24** (move 2) | **1/24** (move 0) |
+| `go nodes 2000000` | **21/24** (move 4) | **20/24** (move 3) | **8/24** (move 0) |
+
+## The discriminating case: Hash 1 at 50k
+
+r1bq1rk1/pppp1ppp/2n2n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 w - - 0 8
+  hash1 : best=a2a3 score=['cp', 22] depth=10 displace=795 load=0.4312 fill_mean=1.15
+  hash64: best=a2a3 score=['cp', 36] depth=10 displace=0 load=0.0069 fill_mean=0.29
+
+## Counter separation: mean over cells, split by whether the answer differed
+
+| hash | budget | n diff | mean displace (diff / agree) | mean miss (diff / agree) | mean shallower (diff / agree) | mean fill (diff / agree) |
+|---|---|---|---|---|---|
+| 1 | 50000 | 1 | 795 / 435 | 36324 / 30380 | 7317 / 7970 | 1.15 / 1.01 |
+| 1 | 200000 | 19 | 43354 / 11281 | 143443 / 52326 | 28605 / 23431 | 2.61 / 1.37 |
+| 1 | 500000 | 20 | 199078 / 58506 | 359915 / 123948 | 63219 / 32308 | 3.34 / 1.67 |
+| 1 | 1000000 | 19 | 490926 / 156396 | 748741 / 313106 | 109937 / 71412 | 3.66 / 2.17 |
+| 1 | 2000000 | 21 | 992733 / 403931 | 1455371 / 576499 | 199791 / 63269 | 3.75 / 1.89 |
+| 16 | 500000 | 2 | 1166 / 1070 | 362310 / 300554 | 70594 / 68153 | 0.76 / 0.74 |
+| 16 | 1000000 | 16 | 20232 / 13487 | 709510 / 420084 | 145913 / 100614 | 1.23 / 0.93 |
+| 16 | 2000000 | 20 | 212648 / 4 | 1453408 / 117581 | 274301 / 116776 | 2.00 / 0.64 |
+| 256 | 1000000 | 1 | 2 / 1 | 741779 / 609489 | 132943 / 130845 | 0.32 / 0.37 |
+| 256 | 2000000 | 8 | 36 / 24 | 1512264 / 1089818 | 260442 / 246428 | 0.37 / 0.44 |
+
+## Hash 16: what the replacement policy actually destroys
+
+| budget | displace | displaced depth 0 | depth 1-3 | depth 4+ | max depth evicted |
+|---|---|---|---|---|---|
+| 50000 | 2 | 2 | 0 | 0 | 0 |
+| 200000 | 393 | 386 | 7 | 0 | 2 |
+| 500000 | 25872 | 25080 | 792 | 0 | 3 |
+| 1000000 | 431605 | 414622 | 16979 | 4 | 6 |
+| 2000000 | 4252967 | 3966383 | 286423 | 161 | 6 |
+
+## hashfull vs true load factor
+
+| hash | clusters | mean true load | mean hashfull (permille) | hashfull sampled fraction |
+|---|---|---|---|---|
+| 1 | 16384 | 0.7812 | 781 | 6.104% |
+| 16 | 262144 | 0.2749 | 274 | 0.381% |
+| 64 | 1048576 | 0.0780 | 77 | 0.095% |
+| 256 | 4194304 | 0.0196 | 19 | 0.024% |
+
+## Depth reached (Hash 16 and 64), by budget
+
+| budget | mean depth h16 | mean depth h64 | mean nodes h16 | mean seldepth h64 |
+|---|---|---|---|---|
+| 50000 | 13.8 | 13.8 | 47917 | 22.1 |
+| 200000 | 18.7 | 18.7 | 187557 | 29.2 |
+| 500000 | 21.0 | 21.1 | 462557 | 32.9 |
+| 1000000 | 23.0 | 23.0 | 920890 | 35.6 |
+| 2000000 | 25.0 | 24.8 | 1837557 | 38.8 |

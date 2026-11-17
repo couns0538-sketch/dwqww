@@ -1,0 +1,67 @@
+# Verification against 480 grid rows
+
+## P1 — are evictions non-zero at Hash 1 / 50k?
+
+Hash 1, 50k: total displacements across 24 cells = 10803
+  per-cell min/median/max = 0 / 488.5 / 907
+  cells with ZERO displacement: 3
+  DIRTY cell: r1bq1rk1/pppp1ppp/2n2n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 w - - 0 8
+    displace=795 load=0.4312 fill_mean=1.15
+
+P1 verdict: CONFIRMED — evictions are plentiful
+
+## P2 — false hits anywhere?
+
+cells measured: 480, detector armed in all: True
+total false hits (32-bit tag matched, 64-bit key did not): 0
+
+P2 verdict: CONFIRMED — none found
+
+## P3 — does hit_shallower track the divergence?
+
+| hash | budget | differing | mean shallower (diff) | mean shallower (agree) | separates? |
+|---|---|---|---|---|---|
+| 1 | 50000 | 1 | 7317 | 7970 | **no** |
+| 1 | 200000 | 19 | 28605 | 23431 | **no** |
+| 1 | 500000 | 20 | 63219 | 32308 | yes |
+| 1 | 1000000 | 19 | 109937 | 71412 | yes |
+| 1 | 2000000 | 21 | 199791 | 63269 | yes |
+| 16 | 500000 | 2 | 70594 | 68153 | **no** |
+| 16 | 1000000 | 16 | 145913 | 100614 | **no** |
+| 16 | 2000000 | 20 | 274301 | 116776 | yes |
+| 256 | 1000000 | 1 | 132943 | 130845 | **no** |
+| 256 | 2000000 | 8 | 260442 | 246428 | **no** |
+
+P3 verdict: separates in 4/10 comparable rows
+
+## P4 — the zero-deep-displacement control
+
+Cells where two sizes disagree while neither table displaced any entry at
+depth >= 1. A displaced depth-0 qsearch leaf is expected churn and carries no
+search information, so such a cell cannot be explained by lost search entries.
+
+| size pair | budget | disagreeing cells | of those, no depth>=1 eviction either side |
+|---|---|---|---|
+| 16 vs 64 | 500000 | 2 | **0** |
+| 16 vs 64 | 1000000 | 16 | **0** |
+| 16 vs 64 | 2000000 | 20 | **0** |
+| 64 vs 256 | 1000000 | 1 | **0** |
+| 64 vs 256 | 2000000 | 8 | **0** |
+| 16 vs 256 | 500000 | 2 | **0** |
+| 16 vs 256 | 1000000 | 16 | **0** |
+| 16 vs 256 | 2000000 | 20 | **0** |
+
+Total cells that disagree with no depth>=1 eviction on either side: 0
+
+P4 verdict: CONFIRMED for the zero case — every disagreement had a real eviction
+
+## P5 — is hashfull comparable across sizes?
+
+| hash | true load | hashfull permille | clusters | share of table hashfull reads |
+|---|---|---|---|---|
+| 1 | 0.7812 | 781 | 16384 | 6.104% |
+| 16 | 0.2749 | 274 | 262144 | 0.381% |
+| 64 | 0.0780 | 77 | 1048576 | 0.095% |
+| 256 | 0.0196 | 19 | 4194304 | 0.024% |
+
+P5 verdict: REFUTED
