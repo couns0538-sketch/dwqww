@@ -1,0 +1,62 @@
+THE BASE'S 0-NODE MOVE STILL WINS — BUT IT THROWS AWAY THE MATE, and that is a different defect from 23-F60's
+=================================================================================================================
+23-F93 established that the base returns cp 0 with 0 nodes on a threefold root on either side. Job 46 asks the question
+that decides what F93 is worth: does the unsearched move COST anything?
+
+METHOD: take each build's chosen move on the fixture W-3 (`1K6/8/8/3R4/8/8/8/k7 w` moves
+`d5d6 a1b1 d6d5 b1a1 d5d6 a1b1 d6d5 b1a1`, root occurs 3×, white to move, winning). Pushed with python-chess so the
+resulting board is independently established, then scored by the PC at depth 16.
+
+STEP 1 — WHAT EACH BUILD CHOOSES ON THE THREEFOLD ROOT
+| build | score | nodes | bestmove |
+|---|---|---|---|
+| base | cp 0 | **0** | **d5d1** (rook to the first rank, next to black's king on a1) |
+| PC r15 | cp 362 | 56,153 | d5b5 |
+
+Both moves legal per python-chess. CONTROL: the root itself is winning for white — the PC scores it **mate 10** at
+depth 16 (99,831 nodes) — so "the move still wins" cannot be an artefact of a board that was drawn anyway.
+
+STEP 2 — THE POSITION AFTER EACH MOVE, PC at depth 16
+| after | board | PC score | nodes |
+|---|---|---|---|
+| base's **d5d1** | `1K6/8/8/8/8/8/8/k2R4 b - - 9 5` | **cp -529** | 311,633 |
+| PC's **d5b5** | `1K6/8/8/1R6/8/8/8/k7 b - - 9 5` | **mate -9** | 35,923 |
+
+P1 HELD, on its stated test: after BOTH moves white is still winning (cp -529 and mate -9 are both from black's point
+of view). So the base's unsearched move does **not** throw the game away, and this fixture is a WEAKER case than
+23-F60 — where the 0-node move lost outright. Stated plainly because it would be easy to let F60's stronger result
+be borrowed by this one.
+
+BUT P1's letter understates what happened, and the honest finding is the second half:
+**THE BASE'S MOVE DESTROYS THE MATE SCORE AND NEVER RECOVERS IT.** On the root the PC finds mate 10 (99,831 nodes).
+After d5d1 that becomes a capped +529, and deepening does not restore it:
+
+| depth after d5d1 | score | nodes |
+|---|---|---|
+| 16 | cp -529 | 311,633 |
+| 18 | cp -533 | 388,563 |
+| 20 | cp -533 | 490,580 |
+
+Stable across 16/18/20. The board is KRvK with black holding only a king and just two legal replies (a1b2, a1a2), so
+the win is a textbook one and the engine can SEE it is winning; it simply cannot find a mate inside its horizon from
+that rook placement, because driving the king from the a-file corner it placed itself beside is a long manoeuvre. The
+PC's d5b5 keeps the mate at 9. So:
+
+  P2's letter ("the two scores differ by less than a mate") is **KILLED** — the difference IS a mate, and that is the
+  interesting part: the base's move converts a 10-move mate into an indefinitely long win.
+  P3 held: the base reports a draw on a position it wins, plays an unsearched move, and that move preserves the RESULT
+  while degrading the METHOD.
+
+WHAT F93 IS WORTH, stated without inflation
+--------------------------------------------
+Two distinct costs, and only the first is measurable here:
+1. **Reporting cost (measured, serious for a tool):** the base says cp 0 on a position that is mate in 10. A GUI
+   showing "0.00" beside a winning position has been told something false, and no diagnostic accompanies it.
+2. **Playing cost (measured on this fixture, modest; UNMEASURED in general):** the move chosen without a search is
+   legal and still winning, but it discards a mate in 9 for a long grind. On a board where an unsearched move can LOSE,
+   the cost would be the result — 23-F60 shows that case exists — but this job does not measure it and I will not
+   generalise from one endgame fixture to that.
+
+LIMITS: one board, one fixture, K+R v K, `go depth` only, PC used as the reference scorer (so both "still winning"
+verdicts share one engine as their source — the material count backs them independently: black has only a king, so
+white wins by force). The mate-10-on-the-root control is what prevents the whole table from being about a drawn board.

@@ -1,0 +1,16 @@
+== step 1: each build's move on the threefold root ==
+  base  score cp 0 | nodes 0 | bestmove d5d1
+  PC    score cp 362 | nodes 56153 | bestmove d5b5
+
+== control: are both moves legal from the root, per python-chess? ==
+  base  d5d1 legal: True
+  PC    d5b5 legal: True
+
+== control: is the root itself winning for white, per the PC at depth 16? ==
+  PC on the threefold root at depth 16: mate 10 (99831 nodes)
+
+== step 2: score for white AFTER each chosen move (PC at depth 16, board from python-chess) ==
+  after base (d5d1): cp -529 | 311633 nodes | board 1K6/8/8/8/8/8/8/k2R4 b - - 9 5
+      (a mate score or cp > 100 for white means the move STILL WINS)
+  after PC (d5b5): mate -9 | 35923 nodes | board 1K6/8/8/1R6/8/8/8/k7 b - - 9 5
+      (a mate score or cp > 100 for white means the move STILL WINS)

@@ -1835,3 +1835,26 @@ legal-move control (4,957 nodes legal vs 4,416 after the illegal ply). Instance 
 something other than the system under test.
 
 123 findings, 19 rule instances. Audits PASS (123 of 123 rows resolve). 
+## 2026-11-17T01:31:08Z  F96: the 0-node move still wins but throws away a mate - a WEAKER defect than F60's
+2026-11-17T01:31:08Z
+
+Job 46 asked what F93's 0-node move costs, and the answer is two different costs that must not be merged.
+
+On the threefold root the base plays d5d1 with 0 nodes and cp 0; the PC plays d5b5 with cp 362. Control that keeps it
+honest: the ROOT is mate 10 for white at depth 16, so this is not a drawn board being scored as a win.
+
+After each move, PC at depth 16:
+  after base's d5d1 -> cp -529 (311,633 nodes), and cp -533 at depths 18 and 20. Stable. The mate is GONE.
+  after PC's d5b5  -> mate -9 (35,923 nodes).
+Board after d5d1 is KRvK with black holding only a king and two legal replies, so the win is textbook and the engine
+can see it is winning; it just cannot find a mate from the rook placement it chose without looking.
+
+So my pre-registered P2 ("the two scores differ by less than a mate") was KILLED: the difference IS a mate.
+
+What this means for F93's worth, stated without inflation:
+  - reporting cost, measured and serious for a tool: cp 0 on a mate-in-10 position, no diagnostic;
+  - playing cost, measured HERE and modest: the unsearched move preserves the result and degrades the method.
+It is a WEAKER defect than 23-F60, where a 0-node move LOST. I will not let this fixture borrow F60's strength; F60's
+case is the one that shows the playing cost can be the result, and this job does not measure that.
+
+124 findings, 19 rule instances. Both audits PASS (124 of 124 rows resolve).
