@@ -1,0 +1,201 @@
+# forge-combo29 — what was tested, what was not, and what failed
+
+Companion to [`forge-findings.md`](forge-findings.md). That document argues; this one enumerates. Every
+row here has a corresponding item there with its denominators and its control.
+
+**Engine under audit: `forge-combo29` at commit `6b98f217`** (328 commits ahead of `main`, which is an
+ancestor — verified). Build `e06310ec…`, `/usr/bin/g++` 13.3.0, `-DFORGE_MARCH=x86-64-v4`, Release.
+All measurements `Threads 1` unless the row says otherwise.
+
+**Read the verdict column as three values, not two.** `WORKS` and `FAILS` are about the engine.
+`UNTESTED` is about this audit's reach, and it is not a soft `FAILS` — a row is untested because the
+instrument could not reach the code, the corpus could not exercise it, or the measurement would cost
+more than the run had. Each carries that reason.
+
+**And one caveat applies to every `WORKS` in this file.** The gate for the whole run is four `bench`
+pins, and those pins are blind to whole subsystems: book, threading, clock, drawn root, `MultiPV`, Hash,
+and the entire UCI surface. **A green pin means the eval and search constants still produce the same tree
+on eight middlegame positions at depth 13. It never meant the engine still works.** Where a row's
+evidence is "pins matched", read it as *invisible to this instrument*, not *safe*.
+
+---
+
+## A. Tested, and the engine is correct
+
+| # | area | verdict | what was measured | evidence |
+|---|---|---|---|---|
+| A1 | Move generation, perft | **WORKS** | `perft 5` = **4,865,609** exact at every depth; a second, deeper perft run agrees with an independent generator; **en passant, promotion and castling each explicitly covered** (17,787 promotion nodes, 57 castling, ep compared through `fen_with_ep()` because `board.fen()` drops an illegal ep square) | §9b |
+| A2 | Evaluation symmetry | **WORKS**, on both paths | **0 asymmetric pairs of 420** on the built-in net (20 hand-picked + 400 seeded), `hce` and `nnue` separately, no movegen involved. Repeated on a loaded v3 net: **353 pairs, 0 skipped, 0 asymmetric**. The comparison is **shown able to fail** — two different positions evaluate 968 vs 1320 | §9b |
+| A3 | v3 incremental accumulator | **WORKS** | **54,379 distinct positions, 0 mismatches** against a fresh full refresh, covering every unit of both perspectives (2×512), both king keys, both king squares, and the network output against a reference, at every ply of every sequence | §9b |
+| A4 | Book soundness | **WORKS** | **2,520 of 2,520 moves legal** against an independent generator; **2,429 of 2,429 polyglot keys match**; the walk covers **2,230 of 2,230 keys**. **0 of 135** statically-flagged material losses survive an engine search at depth 12. Max-gap sweep: **1 of 2,520 above 100 cp, 0 above 150 cp**, worst offenders shrink at depth 18, against a 42 cp noise floor | trap 19d |
+| A5 | Memory stability | **WORKS** | 5,000 depth-12 searches in one process: **+1.5 MB total, 0.000 MB per 1,000 over the last 4,000**; Hash tracked to 0.1%; non-table bytes constant at 10.1 MB; no leaks under ASan. MultiPV's second table is accounted for and returned within 3.6 MB | §3 |
+| A6 | Determinism at `Threads 1` | **WORKS** | **0 of 40 positions differ** across repeats in bestmove, score, depth and node count; fixed-depth score is a label with `ucinewgame` between positions (**0 of 200 disagree**); MultiPV 1 against itself **10 of 10** identical, MultiPV 4 against itself **10 of 10** | §3 |
+| A7 | ISA portability | **WORKS** | A `FORGE_PORTABLE` build is correct: **+4.2% at x86-64-v3, +16.1% at v2**, correctness independent of ISA. (Found in passing that `FORGE_PORTABLE` disables PEXT unconditionally though v3 includes BMI2 — enabling it recovers +4.2% to +1.4%) | §3 |
+| A8 | Score sign and mate encoding | **WORKS** | `score` is side-to-move relative both ways, **4 of 4**, and an inverted-sign stub is detected **4 of 4**. `mate ±N` correct, `mate 0` only at a real mate | §1b |
+| A9 | `pv` on searching paths | **WORKS** | **17 of 17** final `pv[0] == bestmove`, **0 illegal moves**; `nps` arithmetic exact **28 of 28** | §1b |
+| A10 | MultiPV ordering and score monotonicity | **WORKS, but by construction** | **0 emission-order and 0 index-order violations across 1,920 depth blocks** — and only because the engine `stable_sort`s by score at `search.cpp:2518` before printing. **One guarantee observed twice, and it says nothing about whether the scores are right** | §3 |
+| A11 | MultiPV completeness | **WORKS at fixed depth, and never over-claims** | **0 missing, 0 duplicate, 0 extra** of 1,920 blocks at fixed depth; **0 overflow** when N exceeds the legal move count (5 sparse positions × 2 MultiPV × 2 budgets); the engine never emits an index above the legal count | §3 |
+| A12 | No bound is ever published | **WORKS** | **5,320 traced root iterations** (1,330 at each of four deltas), **0 with the score outside its final window**; planted-fault control caught **6 of 6**. Mate arm: **180 of 180 testable mate claims deliver mate, 0 false, 0 distances above `seldepth`** | §3 |
+| A13 | Claimable-draw rule at the root | **WORKS, at zero pin cost** | Implemented inside the root path: every pin bit-identical on release *and* under ASan+UBSan. **Deleting only the leaf repetition arm reproduces 353,312 / 979,723 / 2,893,009 exactly.** Candidate **20 of 20** probes vs lock **12 of 20** | §2 |
+| A14 | Leaf one-ply-down band repair | **WORKS** | **14 of 14** band cells against an oracle (base and composed: 12 of 14); all 11 pins bit-identical on **four builds** including a sanitizer build; the sanitizer proven live by a planted fault inside the new function; **reverse-applying restores `24912a43…` byte-for-byte**; **40 of 40 node-and-score identical at depth 14** | §2 |
+| A15 | Clock: never loses on time | **WORKS** | 5,675 moves across two 20-game matches, **0 forfeits**; the hard plan was **never exceeded** (1 of 19,084 moves over, by 1 ms); floor 114.5 ms against 114.0 predicted over 63 moves | §8 |
+| A16 | Clock: budget survives `ponderhit` | **WORKS** | A 6 s ponder against a 225 ms hard budget still used **225.9 ms** — the budget starts at `ponderhit`, not at `go` | §8 |
+| A17 | Long think does not overrun | **WORKS** | `go infinite` is bounded by `stop` or depth 64, whichever comes first | trap 24 |
+| A18 | Qsearch termination | **WORKS** | **40 deadline-bounded probes, zero hangs** | §2 |
+| A19 | Qsearch stand-pat, mate and stalemate | **WORKS** | `−32000` and `0` at clocks 0 / 99 / 100, all correct | §2 |
+| A20 | Qsearch check evasions | **WORKS** | In-check nodes generate evasions and **never stand pat** | §2 |
+| A22 | v3 net loader on malformed input | **WORKS, with one resource defect** | **53 of 60 hand-built mutants refused and the 7 that load are exactly the 7 that must**; one residual-flags case is accepted by the loader **and then refused and unloaded by the UCI layer**; **1,819 swept header mutations, 0 sanitizer lines** under ASan+UBSan. Header mutants are **re-checksummed**, so the field guard is what refuses them, not the checksum | §10 |
+| A23 | Rule50 clock inside TT entries | **WORKS** | All four `score_usable` branches reached in live search (**262M / 681k / 143k / 37M** verdicts, 76 searches). Mate-distance branch verified **43 cells against an independently generated expectation set, 0 mismatches**, with two controls that must fire and do | §10 |
+| A24 | Stale-clock TT reuse | **WORKS, measured as a clean negative** | Warming at clock 10 and probing at 90 changed the score on **6 of 7 boards — and the same-clock warm control changed it on the same boards**, so the drift is the ordinary warm-table effect, not clock provenance. **7 boards, depth 12, one clock pair** is the stated limit | §10 |
+| A25 | Book over full two-sided games | **WORKS** | **1,120 games, five arms**: 0 illegal moves, 0 engine errors, 0 book exits into an illegal position, and **0 games can reach a repetition because the book's position graph is acyclic**. 13 of 589 book moves concede material, **0 condemned at depth 18**, largest gap 51 cp against an 18 cp noise floor | §10 |
+| A26 | Drawn-root bail stores nothing | **WORKS** | Five bail cases, **0 stores each**, against search controls of **12 / 6,952 / 40,629 stores** so the counter is proven to move. A hypothetical planted 0 at clock 100 is accepted **only at clock 100**, never at 99, 50 or 0 | §10 |
+| A27 | **The 51 tunables behind `FORGE_EXPOSE_TUNABLES`** | **WORKS, and none is dead** | **255 cells (51 tunables × 5 values), every one correct**: min and max accepted silently, `min−1` and `max+1` **reported and clamped**, `abc` refused with the old value kept, **and a search run after each** so "accepted" is behaviour. **0 crashes, 0 hangs, 0 non-conforming rows**, and **all 51 moved the probe search at some value** — so none is an accepted-but-inert option | §10 |
+| A28 | One ply from each terminal state | **WORKS** | Stalemate **3/3** (`cp 0` in 84–180 nodes, control `cp 1208`); insufficient material **5/5** (scored 0 *before* the material is gone, won-reduction control non-zero); one forced clock-resetting capture **PASS**; halfmove 99 with every legal move a pawn move **PASS**; `bestmove 0000` **6/6 consistent** at mate roots, never a move | §10 |
+| A29 | `pv` token shape at terminal roots | **WORKS, and simpler than feared** | `pv` is **present-and-empty**, never absent, at every terminal and drawn root tested — a bail prints `… nodes 0 nps 0 hashfull 0 time 0 pv` and a mated root `… score mate 0 … pv`. **I confirmed both myself.** The spec allows absence; this engine never uses it. The book path has no `pv` at all because it emits no `info depth` | §1b |
+| A30 | Opponent-mate family, 100 positions | **WORKS** | 50 mate-in-1 that must be played and 50 that must be avoided: **50/50 and 50/50** at both `go depth 10` and `go nodes 20000`, no refusal, no illegal move | §10 |
+
+---
+
+## B. Tested, and the engine is wrong
+
+| # | defect | severity | what was measured | evidence |
+|---|---|---|---|---|
+| B1 | **Drawn-root bail: a legal move is played without being searched** | **high for any consumer** | A drawn root returns **0 nodes, `cp 0`, an empty `pv`**, and plays the generator's **first** move. Fires **8.78 per 1,000 plies (1 in 114), in 47% of games**. **41 of 2,251 roots (1.8%) hand over a forced mate the search avoids.** A strict client loses **59 of 100 games** to it; a naive client loses 0 but plays a non-searched move **36 of 40** | §2 |
+| B2 | **A malformed `go` value is silently replaced** | **high** | `go nodes abc` and `go mate abc` apply **no limit**; a malformed `depth` becomes a **1-ply** search. **Three sharper forms found later**: a keyword with no numeric value **eats the next keyword**, so `go nodes depth 5` is unbounded with every token well-formed; a failed clock becomes **0 ms and crushes a good depth** (`go depth 5 wtime abc` = 1 ply, 42 nodes); and **the unbounded family is wider than `nodes`/`mate`** — `softnodes`, `movestogo`, bare `go`, and any clock naming the side **not** to move | §1b, trap 3aa |
+| B3 | **`go mate N` costs 100–500× on ordinary positions** | **high** | Median **188×** on 400 real positions at mate 4, and **163× was the LOW end**; **279 of 400** in the 100–1000× band. **1140 of 1600 cells differ** from `go depth 2N−1`; **571 differ in the move** | §1b, trap 3a0 |
+| B4 | **True mate 5 reported as `mate 6`** | **high** | 11 plies claimed from a depth-7 search: qsearch stores a mate-encoded value and the iteration break passes it by encoding. **6 hits in 1,200 requests** (4 true-but-exceeds-N, 2 wrong). The `search.cpp:1434` branch that should catch it is **unreachable** (`2*ply >= 63999` against `MaxPly 128`) | trap 3a0 |
+| B5 | **`depth` is non-conformant: two distinct lies** | **medium** | `search.cpp:2440-2451` re-emits an **unfinished** iteration's `pv` under that iteration's `depth` carrying the **last finished** iteration's score. Observed `info depth 22 … score cp 112` where depth 21 completed at cp 112 and depth 22 at cp 104. **5 of 8 stop times in 0.96–1.10 s hit it; 0 hits** on a position whose pv head does not change | §1b |
+| B6 | **`hashfull` counts only the current generation** | **medium** | `hashfull()` filters `entry.generation() == generation_` and every search bumps the generation. A table warmed by a prior search finished depth 18 in **30,940 nodes vs 702,673 cold — so the path ran — yet reported `hashfull 10`**. Under MultiPV ≥ 2 it reports the **alternate** table (`[185,104]` vs `[185]`) | §1b |
+| B7 | **`nodes` falls across depth boundaries at MultiPV ≥ 2** | **medium** | `info depth 3 multipv 3 … nodes 74` then `info depth 4 multipv 1 … nodes 54` — **9 drops in 35 transitions at MPV 3, 6 in 23 at MPV 2, 0 in 11 at MPV 1**. Two node totals coexist in one search: `nodes 141326` against `info string softnodes nodes 259405` | §1b |
+| B8 | **`time` is wrong on ponder** | **medium** | `info time` counts from `go` while the budget counts from `ponderhit`, so the label is wrong by the whole ponder length | §8 |
+| B9 | **Ponder is unbounded with both clocks** | **medium** | Two kinds of unbounded: runaway at 100% CPU, and finished-idle at 0.1%. Both hang a client that waits | §8 |
+| B10 | **`movestogo 0` is not sudden death** | **medium** | The parser clamps `std::max(1, read_int())`, so `0` and `-1` become **1** — the **most aggressive** plan (995 ms soft against 90 ms for real sudden death). **Omit the token for sudden death** | §8 |
+| B11 | **A one-sided clock hangs** | **medium** | No `bestmove` in **330 s** with only one side's clock sent (an earlier 288.7 s figure timed the last output line, not `bestmove`) | §8 |
+| B12 | **An unchanged `Hash` re-send clears the table** | **medium** | Byte-identical to `Clear Hash` as measured, but the source clears less: it leaves a **cold table with warm histories** — a third state. Costs nothing around `ucinewgame`, **+157% nodes between moves**, changes **4 of 30** answers on a resume path without `ucinewgame` | trap 3 |
+| B13 | **`resize` allocates before freeing** | **medium** | Old + new live at once (`search.cpp:365-366`) and the allocator does not reuse the freed block: 16 → 256 peaks at **281.9 MB** (predicted 280) and the **same-size control 256 → 256 peaks at 521.9 MB** (predicted 520), moving the memory cliff at Hash 256 from 300 MB to 597 MB | §3 |
+| B14 | **`Move Overhead` is a CLIFF** | **medium** | At a 200 ms clock: overhead 195 still plans 3 ms and 7 plies; overhead **200** gives **1 ply, 47 nodes** — `reserve_empty` → emergency path. **"Add margin by raising Move Overhead" is the one direction that is actively unsafe** | §3 |
+| B15 | **Bare-minor endings score as a LOSS for the side with the extra piece** | **medium** | K vs K scores **+2**; **KB vs K scores −147**; **KN vs K scores −144** — both below an empty board. Cause: the handcrafted term is right (**+16**) but the **NNUE residual is −163 and dominates**, because `scale_factor()` (`eval.cpp:389-412`) returns **0/12 for bare minors**. Systematic across six bishop squares, −127 to −159. For KNN vs K that wrong score is **not masked** by a draw verdict, because there is no draw verdict | §9b |
+| B16 | **`Multipv` PV length: line 1 is not the longest** | **low-medium** | Violated in **116 of 160** final blocks; in **80** the first line is not the longest; line 1's PV is below **its own `seldepth` in 40 of 40**, the longest in only **16 of 40**, the strictly shortest in **8**. Cause: the primary PV is truncated by TT hits while each alternate runs in a freshly cleared table (`search.cpp:2502`). **A GUI sizing its PV pane from line 1 truncates the BEST line** | §3 |
+| B17 | **`AspirationDelta` misses a forced mate at its default** | **medium** | One position reports **`cp 517` at delta 18 and `mate 2` at delta 200, and `g3g6` really is mate in 2**. Delta changes move the score on **126 of 133** positions and the move on **95 of 133**, for a **12–15% median node saving** and a **2.56× worst case** | §3 |
+| B18 | **A refused FEN searches the previous board** | **medium** | The engine answers `readyok`, keeps the previous position, and returns a legal move with a plausible score and a full PV for the **wrong** board. A surplus-field FEN is loaded; `position nonsense` re-searches the previous board | §1b |
+| B27 | **A false draw one clock unit early, in a position with no mate** | **medium** | `6k1/5ppp/8/8/8/8/8/R5NK b - - 97 40` returns **`cp 0` in 1,061 nodes** where the true value is **−620** (two independent models agree). One cell wide: H=96 is roughly right at −531, H=98 and 99 are correctly drawn. Cause: **White forces a capture reset** (`g8f8 a1a7 f8e8 a7f7` → clock 100 → **0**), so Black never gets a turn at clock ≥ 100 | §2 |
+| B28 | **Qsearch stores a depth-0 entry over a deep one** | **minor** | `store_body` admits a `BoundExact` store regardless of depth (`search.cpp:465`), so a qsearch store writes `depth=0` over a depth-24 entry. **Probe-side bound checking is correct.** Bounded twice: a deep **mate** entry survives, and suppressing all qsearch stores costs **+13.4% qsearch nodes on Kiwipete, 0%** on four other positions | §2 |
+| B29 | **v3 net loader slurps the file before checking the header** | **low, resource only** | `nnue_v3.cpp:287` reads the entire file into a vector and `:288` is the first size check, so an **8 GB sparse file costs 8,390 MB of RSS to refuse**. **Not a corruption bug**: the loader's *validation* is sound — 53 of 60 mutants refused and the 7 accepts all correct | §10 |
+| B19 | **A mid-search `setoption` silently stops the search** | **low** | No error, no output distinction from a normal stop | trap 5 |
+| B20 | **A malformed `setoption` without `value` is silently ignored** | **low** | The setting you asked for is simply absent | trap 4 |
+| B21 | **`searchmoves` is not a move check** | **low-medium** | Reports an all-illegal list correctly but **drops an illegal token from a mixed one** — so there is no one-line rule and verifying one surface's refusal tells you nothing about the others | §1b |
+| B22 | **The book pre-empts the drawn-root detection, gated on the FULLMOVE counter** | **low-medium** | The same 100-ply board **books at fullmove 1 and bails at fullmove 16** — identical position, identical halfmove clock, opposite verdicts, decided by a field with nothing to do with why the position is drawn. A drawn position that a book happens to cover ships a book move with none of the warning signals | traps 19a, 19c |
+| B26 | **The book is nondeterministic across processes** | **high for any A/B harness** | `uci.cpp:161-162` seeds the book RNG from `steady_clock::now()`. `go wtime 1000` on startpos over 24 fresh processes gives **2 distinct bestmoves** (`c2c4` 14×, `e2e4` 10×), every one carrying `info string book move`. **Both arms show `info depth` count 0**, so "one arm searched differently" cannot be used to rule the RNG out. Three of this run's own seats had to withdraw a row because of this | trap 19c0 |
+| B23 | **`eval` disagrees with the search about `UseNNUE`** | **low** | One-predicate fix; the `eval` command and the search disagree about whether the net is in use | §3 |
+| B24 | **`NNUEArch` does not exist in the audited build** | **scope fact** | `nnue.hpp:10-12` defaults `FORGE_NNUE_V3` to **0**; a default build answers `unknown option NNUEArch` (confirmed: `UseNNUE` advertised, `NNUEArch` not). **All v3 rows in the report are a second binary**, and the v3 performance patches ship into a path the default build compiles out | §9b |
+| B25 | **`seldepth` is non-conformant on a bail** | **low** | The bail's `seldepth` is meaningless, and ordering is unfalsifiable because it prints `max(seldepth, depth)` | §1b |
+
+---
+
+## C. Tested, and the answer is conditional or partial
+
+| # | area | verdict | why it is not a clean verdict |
+|---|---|---|---|
+| C1 | Drawn-root **repair** | **SHIPS, but fixes less than first claimed** | The two patches compose byte-identically (`search.cpp` sha256 `24912a43…`), cost **5–10 µs** on a drawn root, and never run on **125 of 125** ordinary roots. **But on 2,457 real drawn roots the repair changes the MOVE in 0 of them** — it only cancels when the mover has a mate in one, which real drawn roots never have. **It fixes the reporting and the mate-in-one case, not the move in real games.** Making the path play a *searched* move would change **1,425 of 2,457** roots and has its own pin cost; **nobody built it** |
+| C2 | `Threads > 1` | **KEEP 1, but only T4 is resolved at fixed time** | At fixed depth T4 costs **1.24×** wall and T8 **2.00×** for the same ply (T4 searches 3.68× the nodes for 2.96× the rate; T8 5.34× for 2.68×, so the rate *falls* from T4). At fixed time **only T4 gains depth**: **+1.375 ply mean, 24 deeper / 9 same / 7 shallower, p = 0.0033** on 40 positions. **T2 (p = 1.000) and T8 (p = 0.736) are honest nulls at n=40, not "no effect"** |
+| C3 | `MultiPV` cost model | **a ceiling, not a law** | `MultiPV 1` is flat in Hash (114.0–139.3 ms across Hash 8–256, node counts identical 16–256; at Hash 8 four of six positions differ by 1–428 nodes, so the flat and identical ranges differ). The fitted ceiling is **1 misclassified of 48 cells, 0 false-safe**; the product form `Hash × MPV` gets both directions backwards |
+| C4 | PC20 switch set | **THE AGGREGATE IS A LOSS; THE COMPONENTS ARE UNRESOLVED** | n = **10,774 of 11,192**: wall **median 1.0370**, **geometric mean 1.0513, 95% CI [1.0422, 1.0604] excluding 1.0**. Per-node median **1.0712**; identity closes at 0.9618 × 1.0712 = 1.0302 against 1.0370. CI robust to sequence autocorrelation (lag-1 0.034) and to block bootstrap. **But all four individual switch effects have CIs including 1.0** — TtPruneV2's direction is significant, its magnitude is not |
+| C5 | Hash 16 vs 64 | **two components, and the ordering is not monotone** | Load-independent baseline: **Hash 64 vs 65 is a 1.02× step at equal load and still disagrees 11 of 24**, because `(key*cluster_count)>>64` moves **99.996%** of keys on any size change. Genuine collision increment on top: Hash 16/32 add 12 more at **p = 0.00026** with 100× the evictions. **Ordering non-monotone (32 ties 16; 96 ties 256)**, which a pressure-only account cannot produce. Practical threshold **~750k nodes** |
+| C6 | Clock planner | **the plan is never exceeded; "matches the plan" is a different claim** | Two regimes reproduced (one match falling toward the floor, one rising), 5,675 moves, 0 forfeits, **hard plan never exceeded**. The earlier "+2.1 ms reproduces every move" was a **wrong frame** — the ±2 ms agreement was wider than the 1 ms plan at 200+0 |
+| C7 | `go movetime 0` | **a real search, not an identity** | A degenerate zero-budget search: **3 / 4 / 5 lines across 10 runs**, and a later seat measured **27 / 2 / 1 across 30 fresh processes with two different bestmoves**. It is a **race between the root time check and search setup**, not a default. Quote it as a distribution or not at all |
+| C8 | `wtime 0` | **TT-dependent, deterministically** | Cold table → `info depth 1 … nodes 26 … pv d2d4`; warm table → **0 nodes and the hash move**. **12 of 12 each way.** Not a 0-node reply by construction |
+| C9 | MultiPV's effect on the answer | **conditional on search stability** | Changes the best move in **~18%** of positions (44/250, replication 47/250). Split by a stability selection that never looks at the MultiPV outcome: **unstable 53.4% (31/58), stable 3.6% (2/56)**. Interval **25 points wide** |
+| C10 | `multipv 1` vs the single-PV answer | **mostly unsettled positions, not a MultiPV defect** | Agrees in **22 of 40**. Of the 18 that differ, a deeper search confirms the single-PV move **9**, the MultiPV move **3**, a third move **6** — and **a depth-only control with no MultiPV involved changes the move in 12 of 40** |
+| C11 | Aspiration switches | **each loses a mate at fixed depth** | `AspCappedReopen`'s bound-publishing break is arithmetically unreachable (**0 firings in 448 iterations**, live counter with 15 fault exits), but its reopen path runs (**5 tries off vs 13 on**), moves scores on **114 of 141** positions and loses a mate. `AspArmLate` moves scores on **111 of 141** and loses a mate. **Depth-efficiency cost, not unsoundness** |
+| C12 | Book `Book Depth` derivation | **the behaviour is real; the diagnosis was withdrawn** | The reply changes with the fullmove counter (1/5/10 book `e2e4`, 15 books `c2c4`, 20/21 do not book). But **`game_ply()` is correct 14/14** across three candidate derivations, and the naive "use history size" fix is **4 of 14 wrong**. **DO NOT PATCH IT** |
+| C13 | In-tree repetition detection | **mechanism present and live; no verdict-changing fixture** | Executes below the root (8 hits at depth 6, 158 at depth 10) and changes the tree (4,187 vs 4,186 nodes with the repeating move forced). **0 score differences on 31 positions where it actually ran**, and those nulls were tested against the missed-draw alternative (three positions deepen −550→−571→−1,010, so confirmed losses) |
+| C14 | Claimable-draw general rule | **the rejected form does not compile** | `piece_at(...).type` on a plain enum. The documented numbers for it came from a **hand-corrected variant**, so those numbers describe a patch that was never built |
+| C15 | `SoundMatePruning` on forced mates | **HARMFUL but depth-bounded** | 30 verified fixtures, 90 cells at depths 8/10/12: **9 changed verdicts, 4 helped, 5 harmed** where the default is right. **I re-ran all five harms myself: every one recovers by depth 9–10**, so the cost is **2–3 plies of effective depth**, not a permanent failure. The default's own misses on this corpus are all fixed by more depth on the same engine, so they are horizon limits |
+
+---
+
+## D. Not tested at all
+
+Ordered by what it would cost the owner to be wrong about it. **None of these is a negative result.** Each
+was reachable but unreached, and the reason is named.
+
+**Three areas that were on this list have since been closed and are now in section A** — the NNUE v3 loader
+(A22), the rule50 clock inside TT entries (A23), and book play over full two-sided games (A25). They are
+removed from here rather than left as duplicates, because a stale "untested" row is how a closed gap gets
+re-reported.
+
+| # | not tested | why it matters | why it was not done |
+|---|---|---|---|
+| D1 | **The 51 tunables behind `FORGE_EXPOSE_TUNABLES`** | This is the largest untouched block in the engine and **the one a tuning run actually varies**. A binary advertising 82 options has 12 named settings, 18 toggles, 1 spin, and these 51. | They are not in `uci`'s option list unless the macro is defined, and the audit worked from the locked binary. Screening 51 parameters needs an SPRT schedule the run could not fund |
+| D2 | **Strength: no SPRT, no Elo, no rating for anything** | Every "do not ship" here is a **correctness or cost** verdict. Not one is a strength verdict. A change can be 5% slower and 15 Elo better | A usable SPRT is thousands of games per arm; the run spent its budget on correctness. **The report never claims otherwise** |
+| D3 | **A real v3 network** | All v3 work used two synthetic 32-hidden nets. Loader path and precedence only — **no evaluation quality, no v3 × Hash, no v3 × Threads**. **The loader itself is now fuzzed and sound (A22), so what remains is evaluation quality, not input handling** | No trained v3 net exists in the tree, and the default build compiles the path out (B24) |
+| D4 | **Whether the base forfeits a mate that needs SEARCH** | Very likely by the same mechanism as the mate-in-one forfeit, and it would widen B1 considerably | Repetition cycles live in quiet positions and short mates live in busy ones. **Thirteen candidates across two rounds were all defeated.** Recorded as untested with a reason, not as a negative |
+| D5 | **Multi-day uptime** | D1's soak is 5,000 searches and ~5 minutes of engine time | Wall-clock budget of the run. "Nothing is accumulating" is as far as it goes |
+| D6 | **Per-thread memory at `Threads 8`** | The one hole in the soak's clean bill | Every soak arm used one thread |
+| D7 | **`hashfull` at Hash 2048 multi-threaded** | B6 is measured at single-thread and moderate Hash | The generation filter's behaviour at scale is extrapolated |
+| D8 | **`nodes` at `Threads > 1` against an independent count** | `nodes` is exact at Threads 1 and regresses under MultiPV; the threaded case is unchecked | No independent node counter exists for a threaded search |
+| D9 | **A second CPU or a different `-march` beyond the portable work** | Every timing figure in the report is one machine. **Several were taken under saturated load** — 4 cores at `loadavg` 4.23 with 17 workers | One VM |
+| D10 | **The right-length-wrong-mate class's direction** | Two boards fail in **opposite directions**, so the class is established and no direction is | A direction needs a corpus of failing boards; two were found |
+| D11 | **`seldepth`'s truth beyond ordering** | It is non-conformant on a bail and unfalsifiable for ordering (`max(seldepth, depth)`) | What `seldepth` *should* equal has no independent definition |
+| D12 | **Mate-in-one forfeit breadth beyond two structures** | 6 of 6 fixtures — and all six have Black's king on g8/h8 with pawns intact | Fixture construction; the pattern may be narrower than it looks |
+| D13 | **Individual PC20 switch magnitudes** | The aggregate loss is established; **all four component CIs include 1.0** | Needs a paired design per switch, four times the run |
+| D14 | **Hash × Threads at a small effect size** | Measured **null**, but on moves with CI ±0.04, so **a 2% effect would not show** | Power, not design |
+| D15 | **A `go` harness's own stability as a general property** | G6 shows one position giving four node counts in a session; whether that generalises across positions was not swept | Found late in the run |
+| D16 | **Whether `aspiration`'s narrowed window ever lands on a mate score directly** | The seat's corpus resolves every mate by depth 3 and narrowing starts at depth 4, so that case is covered only indirectly (`go mate N`, deep KQK ladders) | Could not construct the case; **said so rather than implied coverage** |
+| D17 | **Whether a standard GUI requires `len(pv_1) >= len(pv_2)`** | B16 measures the violation and the mechanism but not the obligation | **A client question, not an engine question**, and no client was tested against |
+| D18 | **`MultiPV` or ponder inside a validated gate** | Both are outside the 7-check proposal deliberately: **unproven ⇒ not added** | Adding an unproven check is the defect the benchvalid seat exists to complain about |
+| D19 | **An external book file** | Only the embedded book was tested | Supply-side, not engine-side |
+| D21 | **The compiled-in v2 net loader on malformed input** | The v3 loader is now fuzzed and sound (A22), but **v2 is a different path** — `src/nnue.cpp`, magic `FORGENET`, its own size cap — and it was not touched. **It is also the loader the audited binary actually uses**, which makes it the higher-value of the two | The seat fuzzed v3 because that is where the newer code is; v2 was explicitly left out of scope and said so |
+| D20 | **`go infinite` + `stop` inside the gate** | Same reason as D18 | Cheap to add, not yet proven to discriminate |
+
+---
+
+## E. Failed instruments, in the audit itself
+
+**This section exists because a wrong measurement was, in this run, more common than a wrong engine.** Each
+row is a tool that reported something false, and what caught it. It is the part of the deliverable most
+likely to save the owner time, because every one of these is a trap that fires on a normal harness.
+
+| # | the instrument | what it reported | what caught it |
+|---|---|---|---|
+| E1 | **A piped `quit` into a live search** | a fabricated `bestmove` with **zero info lines** — looks exactly like a fast reply | Reading to `bestmove` before sending anything. **Five separate seats and the coordinator hit this**, which is why it is trap 1 |
+| E2 | **`./forge bench 11` as an argv** | nothing, and **exit 0** — a silent way to record no number | Sending `bench` on **stdin**, which is the only form that works |
+| E3 | **`select()` + `.readline()` as a timeout** | an apparent hang on a fast path | `os.read(fd)`; a buffered pipe does not time out |
+| E4 | **A bench parser reading the last field** | "pin mismatch on all builds" — it was reading **`nps`** where it wanted `nodes` | A hand-check of the four figures. **The pins were right the whole time** |
+| E5 | **`perf.data` blocked by `perf_event_paranoid=2`** | a profile showing only kernel symbols, and `nnue` at **0.00% of runtime** — which agrees with "the net is cheap", so it survived | `ls -la perf.data` (zero bytes) and grepping the report for a known user symbol |
+| E6 | **Demangled symbol names wrapping lines** | naive parses of the **same** data gave 0.96% and 2.06% | One parser became the only source |
+| E7 | **A checker that flagged 929 false material losses** | 929 book moves losing material | A hand-computed self-test on one position: it tested capture legality against the **wrong side** |
+| E8 | **A verifier that assumed the side to move is the attacker** | backwards on **every** negative mate | A known-answer case |
+| E9 | **An 8-row "false mate" finding** | 8 false mates | Inspecting them: the PVs were **shorter than the claimed distance**. A truncated PV cannot disprove a mate. **Correctly: 0 false, 10 unverifiable-but-true** |
+| E10 | **Eight fixtures labelled by eye as mate-in-2/3/4** | eight mate-in-N fixtures | **All eight were mate in 1.** Labels now come from an engine-free AND/OR proof |
+| E11 | **An "identical node counts" claim** | Hash 8 upward is flat | It is identical only **16–256**; **four of six positions differ by 1–428 nodes at Hash 8** |
+| E12 | **A "no merge base" claim about `main` and the audit base** | the branches are unrelated | `git merge-base` = `5176ddf79`, **main's own tip** — the base is **328 commits AHEAD**. The command had been given a branch that was itself based on the engine tree: **the failure was about my argument, not the history** |
+| E13 | **"The r15 build is unverifiable"** | two unrelated identifiers, no object in the database | `068f0927` is the **sha256 of the r15 BINARY** and `d6bd72c5` the sha256 of the **patch text**. **Both reproduce byte-exactly** — the patch applies clean and rebuilds to `068f0927…` with all pins matching |
+| E14 | **`len(pv) >= depth` as a checker for the abort defect** | a short pv proves the abort | **A clean `go depth 20` has 2 of 20 lines with pv shorter than depth** — TT cutoffs shorten pvs legitimately. **The checker was tested and rejected** |
+| E15 | **A "less than half the rate" ordering** | one MultiPV stratum below another | Re-derivation: both numbers were right and the comparison was not. Withdrawn |
+| E16 | **"The repair fixes the move"** | a shipped patch improves real play | **0 of 2,457** real roots. The patch cancels only when a mate in one exists, which those roots never have |
+| E17 | **"Exposure is MIDDLEGAMES"** | a distribution claim about where the bail fires | The firings are **endgames**: bare-minimum material is **128× over-represented** and **55.4%** occur at ≤5 pieces. Withdrawn |
+| E18 | **"0 in 4,600 random games"** | the bail never fires in random play | **Vacuous**: no random game ever reached halfmove > 73, so the corpus could not reach the code. The real rate is **1 in 114 plies** |
+| E19 | **A 199-position repetition scan** | 0 score differences, so in-tree repetition is inert | **Identical node counts prove the branch never executed** — the corpus could not exercise the path. Re-run from the other end, and the null became real |
+| E20 | **"`movestogo 0` means sudden death"** | the documented sudden-death form | **Inverted**: the parser clamps to 1, so it is the **most aggressive** plan |
+| E21 | **"Hard is 60% of soft"** | a 60% relationship between the clock bounds | It is **5 × soft**. The 60% term never binds in sudden death |
+| E22 | **"The planner reproduced every move within 2.1 ms"** | a clock model validated | Wrong frame: agreement was the claim, **never exceeded** was the result. The ±2 ms window was **wider than the 1 ms plan** |
+| E23 | **A clock driver timing the last output line** | a 288.7 s hang | The real figure is **330 s** to `bestmove` |
+| E24 | **A "shipped" claim for a patch that does not compile** | a general claimable-draw rule with numbers | `piece_at(...).type` on a plain enum. The numbers described a **hand-corrected variant** |
+| E25 | **`board.cpp:864` as a citation** | `knights == 0` | It is line **1257** |
+| E26 | **`163 of 180`** | 90.6% of positions at or above a threshold | **162 strictly above** (90.0%), 2 ties, **164 at-or-above** |
+| E27 | **A fuzz corpus of "142 cases"** | the count | **167**. The report **understated** it, which is the direction no guard catches |
+| E28 | **The `evaluate` share at 7.34%** | a profile row | It was `generate_evasions`; `evaluate` is **5.08%**. Two independent facts fix which is which — the 21.46% group only closes with 5.08, and the row's own call count is `v3::evaluate`'s. **A wrong number that supports a right conclusion is the one nobody checks** |
+| E29 | **An A/A control attempted under load** | a 16% and a −5.5% "bias" | **Contention**: 4 cores at `loadavg` 4.23. **A design bias has one sign and a scheduler has both** — the spreads were 1.66× and 1.30×. Withdrawn. The seat's 1.10% on a clean machine stands |
+| E30 | **An arithmetic checker tuned for "N of M" pairs** | 14 mismatches | **All 14 paired unrelated figures in the same sentence.** A checker that flags everything is as useless as one that never fires — and it looks more thorough. Kept here as a warning about the check, not the report |
+| E31 | **A state leak that only appears on the failure path** | a clean run | Exercising the failure path. The defect was invisible on the success path by construction |
+| E32 | **A "Book Depth" defect diagnosis** | the depth derivation is wrong | **14/14 correct**; the naive fix is **4/14 wrong**. Withdrawn |
+| E33 | **"KNN vs K is a draw"** | an insufficient-material reading | **`8/8/8/8/8/1N2N3/8/K1k5 b - - 0 1` is a legal checkmate.** The `knights == 0` requirement in `board.cpp:1257` is **correct** and all **nine** material sets agree with FIDE |
+| E34 | **"Completely disjoint branches"** | two code paths do not interact | Withdrawn on re-measurement |
+| E35 | **A provenance caveat that was itself wrong** | the r15 build could not be verified | It could, byte-exactly (E13). **A wrong caveat is worse than none**, because it teaches a reader to skip the ones that are right |
+
+**The pattern in all 35 instruments**: not one of these was caught by a checker passing. They were caught by a
+**known-answer case, a planted fault, a hand-check of the headline figure, or a reader asking why two
+numbers were adjacent**. That is the whole method in one sentence, and it is why §6 of the main report is
+half the document.
+
