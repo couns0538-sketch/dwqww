@@ -602,3 +602,18 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   thread delivers the diagnosis plus four ruled-out directions, not a patch.
 - Tools all clean: hardened.py discipline, `machine_clean.sh` exit 0, `findings_lint.py` CLEAN.
 Next: continue confirming other seats' claims rather than re-opening the closed MultiPV thread (window ends 10:18Z).
+
+## 2026-11-17T00:11:36Z seat19's harness sweep — 222 zero-search files confirmed in job3/out; nothing numeric moved, labelling + rule added
+- CONFIRMED: `job3/out/` has **222 files, ALL with zero `info depth` lines** (fabricated first-generated-move answers)
+  from `job3/fallback.sh`, the piped `position`/`go`/`quit` harness.
+- **NOT AFFECTED, verified**: (a) that harness was discarded before any conclusion (REPORT_job3.md's step table already
+  labels it "WRONG measurement, done and discarded"); (b) **no finding or report ever cited the 222 files** — grep finds
+  only `out/planted.meta` and `out/clean.meta` (sanitizer proofs); (c) `go perft` is synchronous so the honesty perft
+  stands; (d) every job from job24 onward used `AUDIT/hardened.py`.
+- DISTINCTION for scanners: `out_clockcut*.txt` / `out_fallback2.txt` also show zero info-depth but are my **script
+  summaries**, not transcripts — recorded so a mechanical sweep cannot misread them.
+- ACTIONS: **S-F61 provenance ledger** in FINDINGS (job3 only, with the four verifications); **hard DRIVER RULE** in
+  AUDIT/METHOD.md (read to `bestmove` before sending anything else; ABORT any row with zero info-depth lines);
+  files **kept and LABELLED** (`job3/DISCARDED_HARNESS.md`) rather than deleted, so the defect stays visible.
+- Own assessment: conclusions unaffected, but 222 unlabelled fabricated-bestmove files in an evidence dir IS a fault.
+Next: continue in the window (ends 2026-11-17T10:18Z).
