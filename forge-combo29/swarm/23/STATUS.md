@@ -1656,3 +1656,17 @@ depths 8-11 only on a machine at ~8M nodes/s, no extrapolation.
 This is the FOURTH layer on that single number and the one that stops over-reaction: three corrections narrowed what
 the difference MEANS, this one bounds what it COSTS.
 111 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 9 m remain.
+## 2026-11-17T01:12:13Z  F82 led by the cost bound; PROCESS NOTE filed - 4 of my jobs were not pre-registered
+2026-11-17T01:12:13Z
+
+F82 lead: "'27 million nodes' must not be read as a performance defect: the cell set tops out at 3.6 s with most cells
+under 0.2 s. The interesting part is WHERE the peak sits, not how big it is." Then like-for-like, then the shape, then
+the caveats and limits. Safest order, because the biggest number is also the most misleading out of context.
+
+PROCESS_NOTE_predictions.txt, volunteered rather than waiting to be found: FOUR of my jobs had NO prediction committed
+before measuring - job9 (second half, the S-F49 board), job12 (top-two gap), job15 (quiet+near-tied), job32 (bare-king
+variants). Their results stand as measurements with raw files but are NOT pre-registered; a reader should treat any
+"prediction scored" claim about them as absent rather than favourable. Reason: I judged them small follow-ups inside an
+existing line of enquiry - an explanation, not a defence, since the rule has no size exemption.
+Every other job (33 of 37) has its prediction committed alone and pushed before the first measuring command.
+111 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 6 m remain.
