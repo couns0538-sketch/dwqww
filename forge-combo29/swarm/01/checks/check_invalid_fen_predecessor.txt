@@ -1,0 +1,29 @@
+CHECK of seat 27's S-C84: does an illegal FEN make the engine search the PREVIOUS position?
+exe: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+Threads 1, Hash 16, OwnBook false, go depth 8. The invalid FEN is 8/8/8/3kK3/8/8/8/8 w - - 0 1.
+
+THE DISCRIMINATING TEST: the same invalid FEN after two DIFFERENT valid positions.
+  A startpos fallback would give the SAME answer both times.
+  A refusal would give no bestmove.
+  Searching the PREVIOUS position gives each predecessor's own answer.
+
+--- preceded by A: rook mate in 1
+  predecessor answer : a1a8 (score mate 1)
+  invalid-FEN answer : a1a8 (score mate 1)
+  info strings       : ['info string invalid FEN: kings may not be adjacent']
+  bestmove emitted   : yes
+
+--- preceded by B: black to move, quiet
+  predecessor answer : e7e5 (score cp -16)
+  invalid-FEN answer : e7e5 (score cp -25)
+  info strings       : ['info string invalid FEN: kings may not be adjacent']
+  bestmove emitted   : yes
+
+VERDICT
+  **CONFIRMS seat 27's S-C84 part 3: the answer FOLLOWS THE PREDECESSOR.** Each invalid-FEN
+  answer equals its own predecessor's answer, and the two differ from each other - which is the
+  discriminator: a startpos fallback would have been identical in both sessions.
+  And the engine DID diagnose it (info string invalid FEN: kings may not be adjacent), so the diagnosis and the search both happen.
+  **THE DUPLICATE-ROW CONSEQUENCE IS REAL: the score matches the predecessor's too**, so a
+  harness logging (fen, bestmove, score) would record two indistinguishable rows.

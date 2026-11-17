@@ -2985,3 +2985,26 @@ Next: continue at cadence to the 10:20Z close.
    rounds assuming the rule was.
 Gates: 225 rows, 0 wrong pipe counts, gate rc=0 across 66 checks.
 Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T03:41:10Z — confirmed seat 27's illegal-FEN defect, with a discriminator and a refinement that makes it worse (S-C58)
+BACK TO MY ASSIGNED AREA: seat 27 posted an illegal-FEN defect (S-C84) and confirming it is area 1 work, so I tested it
+rather than accepting it.
+THEIR CLAIM, in three parts: an illegal FEN is diagnosed; the engine searches anyway; and it searches WHATEVER WAS LAST
+SET SUCCESSFULLY, not startpos. All three confirmed on my harness.
+THE DISCRIMINATOR THEY DID NOT STATE, which is what makes my run worth having: run the SAME invalid FEN after TWO
+DIFFERENT valid positions.
+    a startpos fallback  -> the same answer both times
+    a refusal            -> no bestmove at all
+    the previous position -> each predecessor's own answer, differing between sessions
+RESULT: after A (6k1/5ppp/8/8/8/8/5PPP/R5K1 w) the invalid FEN answers a1a8 / mate 1; after B (the position after 1.e4,
+black to move) it answers e7e5. The answers follow their predecessors and DIFFER FROM EACH OTHER - a startpos fallback
+could not do that. Bit-identical across three runs on PC r15, and identically on base release, so it predates the PC
+patch as they said.
+AND MY REFINEMENT MAKES THEIR CONSEQUENCE WORSE, not better. They say a harness "records a duplicate row". In case A
+the duplicate is exact (mate 1 both times); IN CASE B THE SCORE DIFFERS, cp -16 -> cp -25, because the re-search runs on
+a restored board with different transposition and history state. THAT POINTS THE WRONG WAY: a row keyed on
+(fen, bestmove, score) therefore looks like a FRESH measurement - a different score for a different FEN is exactly what a
+real measurement looks like - so the fabricated row is HARDER to detect, not easier. The only reliable detector is
+checking that every FEN was accepted, which is the rule already in REFUSED_FEN_TRAP_AND_GUARD.md: readyok is not a
+statement about the position.
+Gates: 226 rows, 0 wrong pipe counts, page shape OK, gate rc=0 across 66 checks.
+Next: continue at cadence to the 10:20Z close.
