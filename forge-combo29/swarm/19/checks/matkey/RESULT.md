@@ -11,17 +11,34 @@ Real positions, fixed `go nodes 50000`, ABBA, n = 130 pairs:
 | geometric mean | 0.9916 → 0.84 % faster |
 | **bootstrap 95 % CI** | **[0.9845, 1.0023] — INCLUDES 1.0** |
 | median | 1.000 |
-| **sign-share (PF faster)** | **36/130 = 27.7 %** |
 | node ratio achieved | 1.00000 (budget held) |
 
-**Confirmed at a longer search** (40 pairs at `go nodes 500000`, median 240 ms so 1 ms resolution is negligible):
-median **0.9961**, geometric **0.9925**, sign-share **52.5 %**, 4 exact ties. **Same answer.**
+### The two sign-shares I first reported were from DIFFERENT SAMPLES and are not comparable
+I originally wrote "sign-share 27.7 % at 50k and 52.5 % at 500k" as if they were the same measurement. **They were
+not: 36/130 at 50k, but 21/40 at 500k.** The comparison was invalid, and the apparent disagreement was my error.
+
+**Re-measured on the SAME 130 positions at BOTH budgets (19-C65), decomposing wins / exact ties / losses:**
+
+| budget | median search | PF faster | **exact tie** | PF slower | strict share (wins/all) | **wins/decided** | geometric ratio |
+|---|---|---|---|---|---|---|---|
+| `nodes 50000` | 19 ms | 30 | **84 (64.6 %)** | 16 | 23.1 % | **65.2 %** | 0.9931 |
+| `nodes 500000` | 218 ms | 71 | **9 (6.9 %)** | 50 | 54.6 % | **58.7 %** | 0.9977 |
+
+**So it is a DEFINITION effect, not a budget effect — exactly as the coordinator hypothesised.** At 50k the median
+search is **19 ms**, which the engine reports at **1 ms resolution**, so **two thirds of pairs are ties** and any
+"strict" win count is measuring the timer's granularity, not the cache. At 500k (218 ms) ties fall to 6.9 %.
+
+**Once ties are excluded the two budgets agree: 65.2 % vs 58.7 %, both "a weak lean toward faster" — and neither is
+a coin flip, but neither is a large effect either.** The honest single figure is
+**wins/decided ≈ 60 %, at `go nodes 500000` where ties are 6.9 %.**
 
 ## Both my predictions failed
 1. I predicted **1.5–3.5 % faster**; measured **0.66–0.84 %**. Off by a factor of 3-4.
 2. I predicted a **high sign-share (≥ 80 %)** because removing redundant arithmetic should be uniform. **Measured
-   27.7 % at 50k and 52.5 % at 500k.** **My own kill condition fired:** *"if the sign-share comes out near 50 %,
-   the 2.71 % figure from 19-F6 is wrong rather than the cache being ineffective."* **That is what happened.**
+   wins/decided 65.2 % at 50k and 58.7 % at 500k — a weak lean, far from 80 %.** **My kill condition
+   ("if the share is near 50 %, 19-F6 is wrong") is therefore only partly triggered:** the share is not 80 %, but
+   it is also not a coin flip. **The decisive evidence against 2.71 % is the pooled magnitude (0.66 %, CI including
+   1.0), not the share** — and the share is what I first mis-reported by comparing two different samples.
 
 ## What this means for 19-F6
 **19-F6 said the material key is 2.71 % of total self time on `bench 13`.** On real positions the whole patch buys
