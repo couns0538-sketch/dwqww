@@ -255,7 +255,10 @@ sign. Always read which side of 1.0 it is on, and make the tool say the word.** 
 speed verdict, I imported `job_v3/timing.py` to reach its `verdict_of()` function — and the import re-ran the
 entire four-binary, 90-second timing measurement, because the measurement sat at module level. Nothing
 failed and no number was wrong; the module simply did work I had not asked for, and a control that
-should take 200 ms took 90 s.
+should take 200 ms took 90 s. **That is the signature of this whole family: it does not corrupt data,
+it wastes time and hides other errors** — a 90-second import is easy to notice, but the same habit in a
+measurement loop silently multiplies every run's cost and pushes you toward cutting the sample size
+(trap 7's mistake) to make the suite bearable.
 **The general rule: a module you import must not measure anything.** Put the work behind
 `if __name__ == "__main__"`, exactly as a probe must not send the stimulus it is testing for
 (trap 2) or run past its own deadline (trap 2b). All three are the same shape: **the harness acting on
