@@ -1263,3 +1263,16 @@ prefix equal the intended board; and comparing against the truncated board makes
 as the control-that-cannot-fail, now in the choice of fixture.
 Claim strength is ON the page: validated for two of three hazards; the third covered by its own measurement (23-C25).
 93 findings, 18 confirmations. 10 h 5 m remain.
+## 2026-11-17T00:14:23Z  rule page instance 12 (the fixture that could not fail) + a fourth headline sentence
+2026-11-17T00:14:23Z
+
+Instance 12 names BOTH construction errors from job 28: the illegal token was appended at the END so the legal prefix
+equalled the intended board (the input corrupted nothing), and the refused-FEN check compared against the TRUNCATED
+board (the reference was itself the broken one). Same trap as instance 9, in the choice of FIXTURE.
+New fourth headline sentence: a fixture is part of the control - check the fixture makes the outcomes DISTINGUISHABLE;
+an input that corrupts nothing, or a reference that is itself broken, shows every implementation passing.
+The fix that caught both: verify stale and intended boards have DISJOINT legal-move sets, printed with overlap zero,
+before the run.
+
+Page: 12 instances, 4 headline sentences, 3,884 words; heading count verified against the subtitle again (12/12).
+94 findings, 18 confirmations, twelve named faults. 10 h 4 m remain.
