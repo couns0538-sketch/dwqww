@@ -39,14 +39,18 @@ matching sparse-endgame arm, same four sets, same protocol, gained labels every 
 positions** (2/5, 4/8, 6/30, 6/30). So it is 0/73 against 18/73 on identical protocols — the strongest single arm of my
 run, and the one I would lead with.
 
-And where a mate label IS gained, the printed line often does not deliver it. The rule, **39 of 39 with no exception**:
+And where a mate label IS gained, the printed line often does not deliver it. The rule, **63 of 63 with no exception
+across two independent implementations and six position sets** (my 39 and seat 07's independent 24):
 
 > **a printed PV shorter than 2|N|-1 means the mate label was not delivered — no replay and no DTM oracle needed.**
 
 | the last PV line | count | did the line mate? |
 |---|---|---|
-| length = 2\|N\|-1 (complete) | 35 | **yes, 35 of 35** |
-| length shorter (incomplete) | 4 | **no, 0 of 4** |
+| length = 2\|N\|-1 (complete) | 58 | **yes, 58 of 58** |
+| length shorter (incomplete) | 5 | **no, 0 of 5** |
+
+Seat 07's contribution: 24 of 24 on its own mate-rich pool — eight mate-reporting positions at all three owner budgets
+(`go nodes` 20000 / 50000 / 250000) — 23 complete-and-delivered, 1 short-and-not.
 
 Seat 19's validated DTM oracle escalated two of these from "unbacked" to **arithmetically impossible**: on
 `8/8/8/3k4/8/8/8/KR6 w` my `mate +20` promises 39 plies against a KRvK maximum of 31. Complete versus impossible is a

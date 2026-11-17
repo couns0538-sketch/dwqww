@@ -917,3 +917,12 @@ every sentence.
 - WITHDRAWN as S-W10. What survives: the defect is depth-specific, not budget-type-specific, and S-F72/S-F73's
   PV-completeness rule is the correct characterisation.
 - next command: continue at cadence.
+
+## $(date -u)
+- S-C25: seat 07's 07-C73 INDEPENDENTLY CONFIRMS S-F73's rule — 24 of 24 on its own mate-rich pool (8 positions x 3 owner
+  budgets), 23 complete-and-delivered, 1 short-and-not. With my 39 of 39 that is **63 of 63** across two independent
+  implementations and six position sets. FINAL updated to the 63-of-63 form with the 58/5 split (verified).
+- S-W11: I relayed S-F62 ("the trigger is the node limit") to the coordinator as the finding that mattered, and have
+  since refuted it (S-W10). Flagged explicitly in FINDINGS so the correction travels with the claim. The FINAL does not
+  cite S-F62, so no document needs unpicking; the relay message is the one place it appeared.
+- next command: continue at cadence.
