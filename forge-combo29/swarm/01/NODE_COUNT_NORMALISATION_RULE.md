@@ -82,6 +82,40 @@ Three corollaries:
 3. **Report the count you divided by**, beside every per-node figure, so a reader can check the divisor without
    re-running anything.
 
+## The general form, which outlived the specific bug (S-F126)
+
+The divisor mistake is one instance of something wider, and the wider version is worth carrying:
+
+> **If a reader cannot verify the figure by arithmetic from the same line, they will misread it.**
+
+My ABBA checker printed this (the exact line from the run of that time; the current artifact carries the corrected
+form below, and the numbers shift slightly between runs because the machine is shared):
+
+```
+pc20: 8 comparable positions, median ms/100k 54.0 -> 46.6 = **0.91x**
+```
+
+Every number on that line was correct. **But 46.6 / 54.0 = 0.863, not 0.91** — because 0.91 was a *median of the
+eight per-position ratios*, while 54.0 and 46.6 were the *medians of the two columns*. Two different statistics in
+one sentence, with nothing saying so.
+
+That is worse than a wrong number, because the reader's natural check — divide the two figures you just showed me —
+**fails on a correct line**. The reader concludes the author is sloppy, or picks whichever number suits them, and
+either way the measurement stops being verifiable. It now reads:
+
+```
+    median of per-position ratios : **0.911x**   <- the headline figure
+    ratio of the two column medians: **0.856x**   (54.6 -> 46.8 ms/100k)
+```
+
+Two labelled statistics, each checkable by arithmetic, and the spread between them stated. The rule generalises to
+any published pair: **if two numbers appear beside a third, a reader will assume the third is a function of the
+first two.** Either make that true, or label them so it is obviously false.
+
+I found this by trying to verify this very page against my own artifact and failing my own check twice. It is the
+same instinct as Trap 11 and Trap 10 — **make the output prove it looked at the right thing** — applied to a line of
+reporting rather than to a harness.
+
 ## What this is not
 
 Not a defect report. Checking a limit at an iteration boundary is a normal design choice, and `S-F123` says so: the

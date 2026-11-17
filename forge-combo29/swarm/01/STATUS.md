@@ -244,6 +244,38 @@ Next: the FINAL block, with the counter-resetting class stated as a positive res
 
 ## 2026-11-16T22:56:53Z FINAL
 
+### IF YOU READ ONLY ONE SENTENCE OF MINE, READ THIS ONE
+
+> **The failures that cost the most were never wrong numbers — they were checks that reported success while
+> examining the wrong thing. Not one of them was found by re-reading: each lacked an independent check until I
+> went and made one.**
+
+That held six times. The last column is the one that matters:
+
+| the check | what it reported | what it was actually doing | how it was caught |
+|---|---|---|---|
+| a findings-table checker | "every row has the right cell count" | always exited 0, so the gate printed "ok" over a broken row | two of my tools disagreed |
+| the gate's self-test | "self-test passed" | a RETURN trap's exit status overwrote every assertion, so it passed a deliberately broken checker | I regressed the checker and the gate still passed |
+| a profiler run | a table sorted by percentage | 22 samples **of the shell wrapper**, not the engine | the sample count in its own overview |
+| my node-normalisation rule page | "a 25 % phantom speedup" | I wrote that **without computing it**; the real mechanism is that the request cancels into a time ratio, and the real error is 4.2 % | recomputing the page's own numbers from the committed JSON |
+| an ABBA throughput script | a per-node ratio | **two different statistics in one sentence**, so the printed numbers did not divide to the printed answer | trying to verify my own rule page against the artifact |
+| a terminal-root line count | "1 line for every command" | `quit` closed the pipe under the search | a different protocol disagreed, and I ran the slower one |
+
+The honest tally of *how* is less flattering than a slogan: **four by cross-checking against an independent source**
+(a second tool, the tool's own sample count, the committed JSON, a different protocol), **one by deliberate failure**
+(regressing the checker and watching the gate still pass), **one by accident** (two of my own tools disagreeing).
+
+So the sentence I would actually defend is the narrower one: **a claim is only as good as the independent thing you
+compared it to, and every one of these six had no independent thing until I went and made one.** Deliberate failure
+is merely the cheapest way to manufacture that check — which is why `gate.sh` now does it automatically on every run —
+but four of six were caught by the humbler act of re-deriving a number from another direction.
+
+Each looked correct on inspection, because each produced well-formed output in the right shape. That is why the last
+two hours went into checks rather than into more findings: a rule that lives in prose binds my memory, and memory is
+what fails at the moment of creation. **The rules that hold are the ones that run in a script before the claim.**
+
+---
+
 Seat 01, area 1 (FEN input under ASan+UBSan, then the PC r15 build and the softnodes path).
 Branch for-fable-and-opus/swarm-01. Every result is Threads 1. PC20 = S14 + CuckooRep true, HistRework 2,
 TtPruneV2 true, CorrHistV2 true, MateAlphaGuard true, OwnBook false, Threads 1, Hash 16.
@@ -1778,4 +1810,29 @@ depth) and 0.856-0.911x (game positions, fixed budget) are different workloads, 
 "about the same per node, within ~12 %" - not a point value, and not a direction. The cause is named in both pages.
 Gates: 170 rows, 0 wrong pipe counts, self-test proves both checkers, normalisation rule enforced, damage scan clean,
 stamps in order.
+Next: continue at cadence.
+## 2026-11-17T01:26:13Z — the transferable sentence opens the FINAL, and the divides-rule now runs (S-F127)
+1. THE SENTENCE IS AT THE TOP OF THE FINAL BLOCK, and writing it forced me to check it - which was worth doing.
+   I first drafted it as "every one of them was found by making the check fail on purpose", which is the shape you
+   named and which I liked. THE EVIDENCE DOES NOT SUPPORT IT. Tallying the six honestly: FOUR were found by
+   cross-checking against an independent source (a second tool, a profiler's own sample count, the committed JSON,
+   a different protocol), ONE by deliberate failure (regressing the checker), ONE by accident (two of my tools
+   disagreeing). So the headline is now the narrower, defensible sentence:
+     "The failures that cost the most were never wrong numbers - they were checks that reported success while
+      examining the wrong thing. Not one of them was found by re-reading: each lacked an independent check until I
+      went and made one."
+   Deliberate failure is the CHEAPEST way to manufacture that independent check, which is why it is automated in
+   gate.sh - but four of six came from the humbler act of re-deriving a number from another direction. I would
+   rather the owner reads the true version than the better-sounding one.
+2. THE DIVIDES-RULE IS NOW ENFORCED (S-F127), not just documented. The principle generalised: if two numbers appear
+   beside a third, a reader will assume the third is a function of the first two - either make that true or label
+   them so it is obviously false. Worse than a wrong number: the reader's own division then FAILS ON A CORRECT LINE,
+   which teaches them either that I am sloppy or that either figure can be picked to suit. gate.sh now scans the v3
+   result files for "A -> B = Rx" lines whose arithmetic does not hold, proven by re-injecting the historical line
+   "54.0 -> 46.6 = 0.91x" (gate exit 1, "46.6/54.0 = 0.863") and restoring it (exit 0).
+3. One small honesty fix while quoting that historical line: it is no longer in the committed artifact (the numbers
+   shift between runs on a shared box), so the page now says it is the line from the run of that time rather than
+   implying it is current. A quoted example that looks current but is not is the same disease.
+Gates: 171 rows, 0 wrong pipe counts, self-test proves both checkers, normalisation rule enforced, divides-rule
+enforced, damage scan clean, stamps in order, FINAL block structurally intact (6 sections).
 Next: continue at cadence.

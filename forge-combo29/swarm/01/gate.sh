@@ -98,6 +98,35 @@ else
   echo "ok    no per-node figure divides by a requested budget"
 fi
 
+# 3d. PUBLISHED FIGURES MUST DIVIDE (the general rule in NODE_COUNT_NORMALISATION_RULE.md, S-F126).
+#     If a line shows two numbers and then a ratio, a reader WILL divide them. This scans the v3 result files for a
+#     line of the form "A -> B = Rx" where B/A disagrees with R, i.e. the two numbers are not the ones the ratio came
+#     from. That is how my ABBA line read "54.0 -> 46.6 = 0.91x" (46.6/54.0 = 0.863).
+divcheck=$(python3 - <<'PYEOF'
+import glob, re
+bad = []
+pat = re.compile(r"([0-9]+\.[0-9]+)\s*(?:ms/100k)?\s*->\s*([0-9]+\.[0-9]+)\s*(?:ms/100k)?\s*=\s*\*?\*?([0-9]+\.[0-9]+)x")
+for f in glob.glob("v3net/*.txt"):
+    for n, line in enumerate(open(f, encoding="utf-8", errors="replace"), 1):
+        for m in pat.finditer(line):
+            a, b, r = float(m.group(1)), float(m.group(2)), float(m.group(3))
+            if a <= 0:
+                continue
+            if abs(b / a - r) > 0.01 and abs(a / b - r) > 0.01:
+                bad.append("%s:%d: %.1f -> %.1f claims %.2fx, but %.1f/%.1f = %.3f" % (f, n, a, b, r, b, a, b / a))
+print("\n".join(bad))
+PYEOF
+)
+
+if [ -n "$divcheck" ]; then
+  echo "FAIL  a published figure does not divide to its stated ratio (S-F126)"
+  echo "$divcheck" | head -4 | sed 's/^/      /'
+  echo "      see NODE_COUNT_NORMALISATION_RULE.md: label the statistic, or show the numbers it came from"
+  fail=1
+else
+  echo "ok    every 'A -> B = Rx' line divides to its stated ratio"
+fi
+
 # 4. the four honesty pins, if asked for and if a PC build exists
 if [ "${1:-}" = "--with-honesty" ]; then
   if [ -x "$HOME/builds/pc/forge" ]; then
