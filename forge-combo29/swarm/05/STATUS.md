@@ -770,3 +770,11 @@ every sentence.
   => every real defect I found came from following a KNOWN-violating position and varying one variable, not from
   sampling. Recorded as the method for anyone chasing this.
 - next command: continue at cadence.
+
+## $(date -u)
+- S-F62 — sharpens the defect's character: the known violator truncates at `go nodes 50000` but is CLEAN at every clock
+  setting, including `go movetime 50` at depth 12 (`mate 7` 13/13) and `go wtime 1000` at depth 12. So the trigger is not
+  "shallow search" — a depth-12 clock search is right where a 50,000-node search is wrong. The NODE-LIMITED stop produces a
+  different score and a short PV; depth- and time-limited stops at comparable depth do not. This matters because the owner's
+  matches use `go nodes`.
+- next command: continue at cadence.
