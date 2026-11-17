@@ -149,27 +149,33 @@ positive**. Here it was a `go wtime` search; elsewhere it is a fake engine, a pl
 
 ## Trap 9 — writing a file through the shell can silently delete its content
 
-The second harness-side trap, and the one that damaged the most artefacts tonight: **three times** a report block I
-wrote by shell `echo`/`cat` lost text, because backticks inside the string were executed as commands instead of
-written. The output looked like:
+> **Quoted heredocs (`<<'EOF'`) are safe, because nothing is expanded. Double-quoted command strings are not:**
+> backticks, `$` and quotes are all live inside them, so text you meant to write gets executed instead.
+
+**The evidence is the casualty count, and it is checkable in git history** rather than recalled:
+
+| file / block | how it was written | times damaged | evidence |
+|---|---|---|---|
+| `FINDINGS.md` (145 finding lines) | **quoted heredoc** | **0** | no repair commit exists |
+| `STATUS.md` | shell `echo`, double-quoted | **2** | commits `b833d1c09` and `ef553762e` are both *"repair the damaged STATUS block…"* |
+| one `MEASUREMENT_TRAPS.md` section | shell `echo` | **1** | repaired in the Trap 5 / Trap 3 ordering fixes |
+
+That is a mechanism, not a coincidence, and it held all session: **`git log --grep="backtick"` returns the STATUS
+repairs; it returns nothing for `FINDINGS.md`, because the file written by heredoc never lost a character.**
+
+What the damage looks like — the command **reports success** while the text has holes:
 
 ```
 --: line 5: position: command not found
 --: line 5: OwnBook: command not found
 ```
 
-and the block that landed had **holes where the backticked words should be** — `position startpos` became a blank,
-`` `OwnBook false` `` became a colon and a blank. The command reported success.
+and the block that landed has blanks where the backticked words should be (`position startpos` became nothing).
 
-**Why heredocs are safe and `-c` strings are not:** inside a quoted heredoc (`<<'EOF'`) nothing is expanded, so
-backticks, `$` and quotes are literal. In a double-quoted shell string they are all live.
+> **Write documents with a tool that does not interpret them, and verify by reading the block back — never by
+> trusting the exit code.**
 
-> **Write documents with a tool that does not interpret them** — a quoted heredoc, or a file-writing tool. Verify by
-> reading the block back, not by trusting the exit code.
-
-Three casualties tonight, all in prose blocks, none in data files: two STATUS blocks and one measurement-traps
-section. **The lesson is the same as Trap 8's**: a step that fails silently reports success, and only reading the
-result back tells you which happened.
+Same shape as Trap 8: **a step that fails silently reports success.**
 
 ## The family of four settings, and why one rule covers all of them
 
