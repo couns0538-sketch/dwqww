@@ -1,12 +1,13 @@
-# The settings that silently change what a harness measures
+# The five things that silently change what a harness measures
 
 **Seat 01, 2026-11-17. One page, ready for the brief. Every trap below is confirmed by me on PC r15 + PC20,
-Threads 1, Hash 16. All four share one shape: the default is fine, a plausible non-default silently changes the
-measurement, and nothing warns you.**
+Threads 1, Hash 16. Four are settings and one is a timer, and all five share one shape: the default is fine, a plausible
+non-default or a careless measurement silently changes the number, and nothing warns you.**
 
 > ## THE RULE
 >
-> **Assert and record `Threads 1` and `MultiPV 1`, and to mean "no limit" OMIT the token — never send 0.**
+> **Assert and record `Threads 1` and `MultiPV 1`; to mean "no limit" OMIT the token — never send 0; and time
+> from immediately before `go` on a warmed process, verified with a `time 0` search.**
 
 ## Trap 1 — `MultiPV` above 1 divides a node budget (S-C21)
 
@@ -44,21 +45,6 @@ move (`f5f4` against the control's `b6b5`).
 Score, node count and sometimes the move change run to run, because the threads share one hash table. One thread
 per game; state it and record it.
 
-## The family, and why one rule covers all four
-
-**To mean no limit, omit the token.**
-
-| what a harness sends to mean "unset" | what it actually does |
-|---|---|
-| `movestogo 0` | selects the **sudden-death** branch: 482 ms per move instead of 57 ms — 8.4x the plan of omitting the token |
-| `depth 0` | clamps to **one ply**: depth 1 in 155 nodes, against depth 21 when the field is absent — a 21-fold loss |
-| `MultiPV` above 1 | **divides the node budget** across the lines: depth 10 → 7 at 20,000 nodes, depth 8 → 2 on `softnodes 2000` |
-| `Threads` above 1 | **varies by design**: score, node count and sometimes the move differ run to run |
-
-All four are settings whose **name** suggests they do not matter to the measurement, and each changes the search
-in the direction opposite to the intent. That is why the rule is uniform: **never send a value meaning "unset";
-omit the field.**
-
 ## Trap 5 — caller wall is only sound if the timer starts after the preamble (S-C32, S-F92)
 
 Not a setting this time, but the same species: a measurement that quietly includes the apparatus.
@@ -84,13 +70,30 @@ engine's own field agree to tens of milliseconds, and the zero-time control prov
 A rule phrased as "never use caller-measured wall" would forbid a method that is demonstrably fine; the control is
 what distinguishes the two cases.
 
+## The family of four settings, and why one rule covers all of them
+
+**To mean no limit, omit the token.**
+
+| what a harness sends to mean "unset" | what it actually does |
+|---|---|
+| `movestogo 0` | selects the **sudden-death** branch: 482 ms per move instead of 57 ms — 8.4x the plan of omitting the token |
+| `depth 0` | clamps to **one ply**: depth 1 in 155 nodes, against depth 21 when the field is absent — a 21-fold loss |
+| `MultiPV` above 1 | **divides the node budget** across the lines: depth 10 → 7 at 20,000 nodes, depth 8 → 2 on `softnodes 2000` |
+| `Threads` above 1 | **varies by design**: score, node count and sometimes the move differ run to run |
+
+All four are settings whose **name** suggests they do not matter to the measurement, and each changes the search
+in the direction opposite to the intent. That is why the rule is uniform: **never send a value meaning "unset";
+omit the field.**
+
+
+
 ## The guard
 
 1. **Assert them explicitly** at the top of every harness: `Threads 1`, `MultiPV 1`, omit `movestogo`/`depth`
    rather than sending 0.
 2. **Record them in the output**, not just in the script — a result file that does not state Threads and MultiPV
    cannot be compared with one that does.
-3. When a number looks wrong, **check the settings before the engine**: all four of these were a setting, not a
-   search defect.
+3. When a number looks wrong, **check the settings and the timer before the engine**: four of these five were a
+   setting and the fifth was the measurement itself — none was a search defect.
 
 This is the same family as the attribution rule: the failure is never in the number, and it is never announced.
