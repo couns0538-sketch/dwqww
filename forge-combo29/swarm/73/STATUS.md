@@ -7,7 +7,7 @@
 
 ## State: DONE — summary current as of the 04:36Z fetch
 
-`OWNER_SUMMARY.md` — **2,344 lines, 58 rules, 22 recommendations** (13 ship / 5 do-not-ship / 4 needs-more-evidence). Fifteen rounds.
+`OWNER_SUMMARY.md` — **2,357 lines, 61 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
 
 ## Numbers the coordinator asked for
 
@@ -30,6 +30,31 @@
 **The shippability count is the serious one** and I have flagged it in §1.2's own text, not only in §5: the
 adversarial-family and depth-contract results are sourced, but the claim "the scan fires on drawn roots only" is
 report-only. Re-measuring it on the owner's build is the conversion check.
+
+## Sixteenth round — the pointer check's FULL form, applied to my own document
+
+**The coordinator's form is stronger than mine and it found three more defects immediately.** I had been checking that
+pointers *resolve*; the form extracts each pointer, resolves it, and **prints what it now points at**. A renumber
+leaves resolution true while breaking subject-match — exactly the trap-14→15 case the report now records.
+
+**Found and fixed, all of the "resolves but names the wrong subject" class:**
+
+| pointer | cited for | actually pointed at | correct target |
+|---|---|---|---|
+| §1.18 | "ships one and holds the other" | §1.18 holds **both** at needs-more-evidence | sentence rewritten |
+| §4 rule 24 | "a control that fires on correct usage" | the median/geometric-mean rule | **rule did not exist** — written as rule 35 |
+| §4 rule 30 | "a cap test without a rising series" | the p-value-recomputability rule | rule 36 |
+
+**Two of the three were stale SUBJECTS from earlier renumbering**; the third cited a rule I had never written, which
+is the more interesting failure — **a pointer to a plausible-sounding rule that no one had authored**, and the sentence
+around it read fine because the rule *should* have existed.
+
+**And five more pointers broke after this round's own renumber**, caught by re-running the form: rule numbers for the
+estimator, identity-trap, decomposition, digit-match and derived-claim rules all shifted by up to +3. **All 20 rule
+pointers and all 22 section pointers now machine-verified to name their intended subject**, printed with context.
+
+**The lesson in the form is that "all references resolve" passes in BOTH the good and the broken case** — so the check
+must print targets, not verdicts.
 
 ## Fifteenth round — totals re-derived from artefacts, and one false pointer found
 
