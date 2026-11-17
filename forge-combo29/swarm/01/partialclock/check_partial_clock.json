@@ -1,0 +1,55 @@
+{
+ "rows": [
+  {
+   "go": "go wtime 6000",
+   "answered": false,
+   "elapsed_s": 8.0,
+   "bestmove": null,
+   "info_strings": [],
+   "cap": 8.0,
+   "case": "A_wtime_only_black_to_move",
+   "fen": "r3r1k1/p1bb1ppp/1p1q4/3P1p2/1nBP4/PPN2N1P/5PP1/1R1Q1RK1 b - - 0 1"
+  },
+  {
+   "go": "go btime 6000",
+   "answered": false,
+   "elapsed_s": 8.0,
+   "bestmove": null,
+   "info_strings": [],
+   "cap": 8.0,
+   "case": "B_btime_only_white_to_move",
+   "fen": "r3r1k1/p1bb1ppp/1p1q4/3P1p2/1nBP4/PPN2N1P/5PP1/1R1Q1RK1 w - - 0 1"
+  },
+  {
+   "go": "go wtime 6000 btime 6000",
+   "answered": true,
+   "elapsed_s": 0.16,
+   "bestmove": "a3b4",
+   "info_strings": [],
+   "cap": 8.0,
+   "case": "C_both_clocks_control",
+   "fen": "r3r1k1/p1bb1ppp/1p1q4/3P1p2/1nBP4/PPN2N1P/5PP1/1R1Q1RK1 w - - 0 1"
+  },
+  {
+   "go": "go btime 6000000",
+   "answered": false,
+   "elapsed_s": 8.0,
+   "bestmove": null,
+   "info_strings": [],
+   "cap": 8.0,
+   "case": "D_btime_huge_white_to_move",
+   "fen": "r3r1k1/p1bb1ppp/1p1q4/3P1p2/1nBP4/PPN2N1P/5PP1/1R1Q1RK1 w - - 0 1"
+  }
+ ],
+ "verdict": [
+  "",
+  "A. `go wtime 6000` with BLACK to move: answered False within 8 s, info strings: NONE",
+  "B. `go btime 6000` with WHITE to move: answered False, info strings: NONE",
+  "C. both clocks (control):        answered True",
+  "D. huge opponent clock:          answered False",
+  "",
+  "VERDICT: CONFIRMS seat 02's S-F4 - a partial clock naming only the OPPONENT leaves the search",
+  "  unbounded, while the both-clocks control ends normally. And NO info string is emitted, which is",
+  "  the part that makes it a GUI hang rather than an error: the protocol reports nothing wrong."
+ ]
+}

@@ -1,0 +1,20 @@
+CHECK of seat 02's S-F4: does a go naming only the OPPONENT's clock set no limit?
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+PC20, Threads 1, Hash 16, HARD WALL CAP 8 s per search (Trap 6: an unbounded call cannot
+distinguish slow from hung), plus the position named so white-to-move vs black-to-move is explicit
+
+case	go	answered_within_cap	elapsed_s	bestmove	info_string
+A_wtime_only_black_to_move	go wtime 6000	False	8.00	None	(none)
+B_btime_only_white_to_move	go btime 6000	False	8.00	None	(none)
+C_both_clocks_control	go wtime 6000 btime 6000	True	0.16	a3b4	(none)
+D_btime_huge_white_to_move	go btime 6000000	False	8.00	None	(none)
+
+A. `go wtime 6000` with BLACK to move: answered False within 8 s, info strings: NONE
+B. `go btime 6000` with WHITE to move: answered False, info strings: NONE
+C. both clocks (control):        answered True
+D. huge opponent clock:          answered False
+
+VERDICT: CONFIRMS seat 02's S-F4 - a partial clock naming only the OPPONENT leaves the search
+  unbounded, while the both-clocks control ends normally. And NO info string is emitted, which is
+  the part that makes it a GUI hang rather than an error: the protocol reports nothing wrong.

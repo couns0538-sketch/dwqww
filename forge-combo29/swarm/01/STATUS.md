@@ -1472,3 +1472,9 @@ And the reason Trap 9's count is **per commit subject, not per file**, is worth 
 commit touched **four files at once**, so `git log -- <path>` cannot separate "this file was damaged" from "this file
 was in the same commit". **The provable unit is which file the commit message names** — and no commit message names
 `FINDINGS.md` as repaired, which is what makes "0 damages" a finding rather than an assumption.
+## 2026-11-17T00:44:20Z — seat 02's S-F4 checked
+SEAT 02's S-F4 CONFIRMED ON ITS MAIN HALF, REFUTED ON ITS NARROWER ASIDE (S-C37, S-F108).
+  CONFIRMED, with a hard 8 s wall cap (Trap 6): go wtime 6000 with BLACK to move did NOT answer in 8 s and emitted NO info string; go btime 6000 with WHITE to move the same; the both-clocks CONTROL answered in 0.16 s with a3b4. So a partial clock naming only the opponent leaves the search unbounded AND THE PROTOCOL SAYS NOTHING - which is precisely what makes it a GUI hang rather than an error.
+  REFUTED, its aside that 'a huge btime DOES bound a White-to-move search': go btime 6000000 with White to move did not answer in 8 s, and a 20 s standalone re-run reached depth 27 at 31 M nodes STILL SEARCHING - it stopped only because I sent stop. So 'send the opponent a big number' is not a workaround, and the finding is slightly broader than it claimed.
+  THE RECOMMENDATION stands and is now stated plainly: since the engine correctly cannot know when the opponent will move, the right behaviour is to print ONE info string and fall back to a bounded default.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
