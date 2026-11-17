@@ -1313,3 +1313,20 @@ next command: continue at cadence. Remaining area-9 surface: the two open items 
   picked up - (a) whether the 54.2 % coin-flip shape holds for TtPruneV2/CuckooRep/HistRework individually or is
   specific to CorrHistV2, and (b) a real-position re-check of the ONE remaining bench-only speed claim in my
   record, 19-F9's material-key cache ("not measurably faster", null with a plant).
+
+## 2026-11-17T03:16Z — resumed after turn gap
+
+Turn ended ~02:01Z and I did not push STATUS; resuming now. All findings committed through `0af17b0c9`;
+nothing was lost, only the status cadence broke. **Fixed by pushing this block immediately and running the
+next measurement in the same turn.**
+
+RUNNING NOW: 19-C61 — the wall-time question at NPOS=470 (was 120). 19-C53's pooled time ratio 0.9343 had CI
+[0.8676, 1.0082], which includes 1.0, so "PC20 is ~2.8 % faster" is NOT ESTABLISHED and the owner one-liner now
+says so. I hold 470 unused positions from their_600.fens and every number in the table is a property of a run I
+can lengthen — so the honest completion of C53 is to quadruple n rather than leave the question open.
+  PREDICTION (before results): with n~470 the pooled time CI narrows by roughly sqrt(470/119) = 2.0x, to about
+  +/-4 %. If the true ratio is 0.93-0.94 the CI should then EXCLUDE 1.0 and the wall-time gain becomes real.
+  If it still includes 1.0 at n=470, then PC20's net speed is genuinely unmeasurable at this scale and I will
+  say that rather than keep widening.
+
+next command: read run_n470.log, report the pooled time CI at n~470, and stamp the FINAL.
