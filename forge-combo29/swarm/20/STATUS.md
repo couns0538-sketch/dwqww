@@ -519,3 +519,17 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   sizing (allocate small, grow if needed), NOT built; or accept the depth cost at very large Hash (status quo). The
   acceptance table remains the pass/fail criterion.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:03:16Z CORRECTION: own-8MB-table PASSES; my job-67 "fail" used the collapsed build as baseline (S-F58)
+- Candidate: alternate line keeps its **OWN** table capped at **8 MB**. Correct reference = the **HEALTHY** build
+  (Hash 16), NOT the collapsed Hash-2048 build. Hash 2048, MPV 3, 5 positions:
+  alternate lines **identical to healthy on 4 of 5 positions (0 cp)**, **47 cp worst case**; main depth **1 -> 13-15**.
+  Both halves of S-F56's acceptance test PASS (vs 775-988 cp for the two rejected variants).
+- **MY ERROR**: job 67 compared the candidate to a build that had collapsed to depth 1 with no usable lines, so any
+  working candidate "differed" by hundreds of cp. Same class as S-C20 — a comparison whose reference I had not checked.
+  Lesson recorded: **before calling a candidate worse, check that the REFERENCE is working.**
+- **S-F56's requirement IS satisfiable**: alternate line keeps its OWN table (independent bounds) but sized SMALL.
+  Sharing fails (bounds from a different root restriction); own-and-small passes.
+- Still NOT a proposal: 5 positions/one clock/MPV 3; 47 cp outlier shows invariance is not exact; **tolerance is an
+  owner decision**; MPV 2/8 and 8 MB saturation untested. Next step = wider sample at a stated tolerance.
+Next: continue in the window (ends 2026-11-17T10:18Z).
