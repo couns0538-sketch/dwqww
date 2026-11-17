@@ -1,0 +1,90 @@
+DOES THE DRAWN-ROOT REPAIR MOVE THE eval/go STEP? (job 39, and the surprise it produced — job 40)
+====================================================================================================
+Job 39 tested the one thing 23-F84 left open: the step was measured on the base build only, so nothing said whether
+the repair moves it. Same harness as job 38 by design (identical code path is what makes a two-build comparison
+clean), PC r15, Threads 1, Hash 16, OwnBook false, NO PC20 switches — the switches are a separate variable and were
+kept out.
+
+| depth | counter | eval | go | nodes | gap | bestmove |
+|---|---|---|---|---|---|---|
+| 6 | 80 | 406 | cp 401 | 2,438 | 5 | d5b5 |
+| 6 | 90 | 406 | cp 404 | 3,256 | 2 | b8a8 |
+| 6 | 93 | 406 | cp 349 | 10,069 | 57 | d5b5 |
+| 6 | 94 | 406 | cp 391 | 9,146 | 15 | d5b5 |
+| **6** | **95** | 406 | **cp 0** | 21,402 | 406 | d5b5 |
+| 6 | 96 | 406 | cp 0 | 3,253 | 406 | b8a8 |
+| 6 | 98 | 406 | cp 0 | 233 | 406 | b8b7 |
+| 12 | 78 | 406 | **mate 8** | 42,613 | - | d5b5 |
+| 12 | 84 | 406 | **mate 8** | 115,640 | - | d5b5 |
+| 12 | 86 | 406 | cp 365 | 1,014,401 | 41 | b8b7 |
+| 12 | 87 | 406 | cp 354 | 5,449,700 | 52 | b8c7 |
+| 12 | 88 | 406 | cp 317 | 22,374,506 | 89 | b8a8 |
+| 12 | 89 | 406 | **cp 278** | 163,056,236 | 128 | d5b5 |
+| **12** | **90** | 406 | **cp 0** | 31,786,344 | 406 | d5b5 |
+
+depth 6 : onset **95** — identical to the base (P2 predicted 95, passed).
+depth 12: onset **90** — one counter later than the base's 89 (P3 predicted 89, kill range 88-90, so it passed).
+P1 passed: eval 406 at all fourteen cells, same as the base.
+P4 ("the repair does not move the step") passed as stated — 95 identical, 90 within one — but the honest reading is
+narrower than the prediction's phrasing: the step did MOVE, by one counter, at depth 12. One counter is inside the
+tolerance I set before measuring, so P4 stands; it is stated here as "within one counter" and not as "identical".
+
+WHAT THE PREDICTION DID NOT ANTICIPATE, and what job 40 then tested
+-------------------------------------------------------------------
+Two cells in the depth-12 row were not predicted: `mate 8` at counters 78 and 84 where the base scores cp, and
+**cp 278 at counter 89 where the base scores cp 0** — a one-counter window where the builds disagree about whether the
+position is drawn. Job 40 was pre-registered for exactly this, at 01:14:24Z, and marked post-hoc-prompted.
+
+| case | build | depth | score | nodes | pv plies | bestmove |
+|---|---|---|---|---|---|---|
+| CONTROL counter 0 | base | 12 | cp 348 | 22,108 | - | d5b5 |
+| CONTROL counter 0 | PC r15 | 12 | cp 391 | 61,605 | - | d5b5 |
+| counter 78 | base | 12 | cp 410 | 48,032 | - | d5b5 |
+| counter 78 | base | 14 | cp 471 | 81,058 | - | d5b5 |
+| counter 78 | base | 16 | **mate 10** | 472,743 | 17 | d5b5 |
+| counter 78 | base | 20 | **mate 10** | 7,712,287 | 19 | d5b5 |
+| counter 78 | PC r15 | 12 | **mate 8** | 42,613 | 12 | d5b5 |
+| counter 78 | PC r15 | 14 | **mate 8** | 49,528 | 14 | d5b5 |
+| counter 78 | PC r15 | 16 | **mate 8** | 99,923 | 15 | d5b5 |
+| counter 78 | PC r15 | 20 | **mate 8** | 946,159 | 15 | d5b5 |
+| counter 89 | base | 12 | cp 0 | 176,499,882 | - | d5b5 |
+| counter 89 | base | 14 | cp 0 | 266,866,692 | - | d5b5 |
+| counter 89 | base | 16 | cp 0 | 360,224,465 | - | d5b5 |
+| counter 89 | base | 20 | cp 0 | 637,534,131 | - | d5b5 |
+| counter 89 | PC r15 | 12 | **cp 278** | 163,056,236 | - | d5b5 |
+| counter 89 | PC r15 | 14 | **cp 0** | 406,118,454 | - | d5b5 |
+| counter 89 | PC r15 | 16 | **cp 0** | 499,294,167 | - | d5b5 |
+
+P1 HELD: the base finds a mate at counter 78 by depth 16, so the PC's mate is not a PC-only artefact — the board is
+won and both builds eventually see it.
+P2 KILLED, in the direction that favours neither build's correctness: the distances differ — **PC `mate 8`, base
+`mate 10`**. My prediction was that they would agree within one; they do not, and the two-ply gap is the actual
+result. A shorter mate is not "more correct" (both are mates); it means the PC's search reaches a tighter win sooner,
+which is a search-efficiency difference on the same position.
+P3 HELD: the PC's cp 278 at counter 89 is gone by depth 14 (cp 0 at 14 and 16). So it is a DEPTH ARTEFACT — its extra
+root work costs effective horizon at that one counter — and NOT the repair making a drawn position look winnable.
+P4 HELD: the base is cp 0 at counter 89 at depths 12, 14, 16 and 20 — permanent across depth, 637M nodes at the last.
+One cell is still running (PC counter 89 at depth 18 and 20, started in the background — 163M→499M nodes at the
+depths already done, so it is minutes, not seconds) and is reported when it lands, or reported as not-run.
+
+MATE CLAIMS VERIFIED BY REPLAY, NOT BY PV LENGTH
+------------------------------------------------
+A PV whose length equals 2N-1 is only internal consistency. `verify_mate.py` replays the PV in python-chess and
+asserts the final position is checkmate, with a known-answer control that accepts fool's mate and REJECTS the same
+line truncated by one move (both printed at the top of every run below):
+
+  PC  counter 78, depth 12: PV is 12 plies, `mate 8` needs 15 → replay says **NO-MATE**, PV truncated.
+  PC  counter 78, depth 16: PV is 15 plies → replay says **MATE**, d2a2 delivering mate.
+  BASE counter 78, depth 16: PV is 17 plies, `mate 10` needs 19 → **NO-MATE**, truncated.
+  BASE counter 78, depth 20: PV is 19 plies → replay says **MATE**, c5a5 delivering mate.
+
+So both builds' mate SCORES are truthful at the depth where their PV completes, and both give a truncated PV at the
+depth below it. That is a property of reporting a mate score with an incomplete PV, not of either build, and it is
+worth knowing for any tool that trusts the PV: **a `mate N` score does not guarantee the PV in that same line is
+long enough to deliver mate — at least one depth below the completed PV, it is not.** I checked the two cells I could
+reach in the time; I did not sweep it.
+
+LIMITS: one board throughout. Job 39 is base-vs-PC with NO PC20 switches; the switches change node counts (23-F82)
+and were not measured here. The counter-89 PC cell at depths 18/20 is in flight. The "within one counter" tolerance in
+job39's P4 was chosen before measuring, and the step did move by that one counter at depth 12 — P4 stands as written,
+but the step is not identical, and the finding should say "within one counter" rather than "same".

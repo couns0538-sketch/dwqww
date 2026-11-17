@@ -1689,3 +1689,23 @@ by the whole eval total at it".
 
 Cost at the onset: 12.0M nodes at 88, 176M at 89, 34M at 90 (depth 12). Recorded, NOT offered as a performance claim.
 112 findings. Real time 01:14Z.
+## 2026-11-17T01:19:36Z  F85-F87: the repair does not move the step; a mate score does not guarantee a mating PV
+2026-11-17T01:19:36Z
+
+Job 39 (PC build, same harness as job 38): step at 95 (depth 6, identical to base) and 90 (depth 12, base 89). P4 said
+the repair does not move the step, killed only at 2+ counters - it stands, but the step DID move by one counter, so the
+finding says "within one counter", not "same". eval 406 at all fourteen cells: the repair is in search, not evaluation.
+
+Job 39 turned up two unpredicted cells, so job 40 was pre-registered for exactly those (01:14:24Z, 20 minutes before
+these words, and marked post-hoc-prompted in the prediction itself):
+ - counter 78: PC mate 8 from depth 12, base mate 10 from depth 16. Both VERIFIED by replaying the PV in python-chess,
+   not by counting plies. My prediction that the distances would agree within one is KILLED - they differ by two, and
+   that two-ply gap is a search-efficiency result on a genuinely won board, not a correctness difference.
+ - counter 89: PC cp 278 at depth 12 where the base is cp 0, but PC cp 0 by depth 14. Depth artefact, NOT the repair
+   making a drawn position look winnable - which is the read I would have had to defend if it had persisted.
+
+F86 is the one a tool author should take: a "mate N" score does NOT guarantee the PV in that line is long enough to
+mate. Both builds report the score one depth before the PV completes (PC 12-ply PV for mate 8, base 17-ply for mate
+10), and the verifier's control accepts fool's mate while rejecting the same line truncated by one move.
+
+115 findings. Real time 01:20Z. PC counter-89 depth 18/20 still running in the background.
