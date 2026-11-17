@@ -1,0 +1,24 @@
+## PLANT for ZERO A — 'no search exceeded its clock'
+
+Clock 1000 ms. The comparator is `wall > 1000`.
+
+| arm | engine | wall ms | over the 1000 ms clock? | required |
+|---|---|---|---|---|
+| A1 PLANT | fake engine sleeping 2.5 s | 2501 | **YES** | **YES** |
+| A2 control | real engine (14 info lines, so it searched) | 56 | no | no |
+
+## PLANT for ZERO B — 'no bestmove was illegal'
+
+The comparator is `bestmove in python-chess legal moves for the FEN`.
+
+| arm | engine | bestmove | legal? | required |
+|---|---|---|---|---|
+| B1 PLANT | fake engine answering a1a8 | **a1a8** | **ILLEGAL — caught** | **illegal (NO)** |
+| B2 control | real engine | e2e4 | legal | legal (yes) |
+
+## VERDICT
+
+| zero | plant caught the fault? | control passed? | the zero is |
+|---|---|---|---|
+| A: no search over its clock | **YES** | **YES** | **MEASURED** |
+| B: no illegal bestmove | **YES** | **YES** | **MEASURED** |
