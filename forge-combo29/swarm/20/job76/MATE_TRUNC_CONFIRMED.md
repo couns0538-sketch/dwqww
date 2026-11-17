@@ -1,4 +1,8 @@
-# seat 20 — job 76: mate-PV truncation at an owner match budget, confirmed on my own proved board
+# seat 20 — job 76: at `go nodes 20000` the engine claims a 14-ply mate where the truth needs 8
+
+**The number to lead with: two-fold.** `go nodes 20000` reports **`mate −7`**, which requires a 14-ply mate; the true
+forced distance on that board is **8 plies**, proved exhaustively. The engine reports a mate **twice as far away as it
+is** — and 20,000 nodes is one of the owner's three match budgets.
 
 Seat 05's S-F64 claims the mate-PV truncation is a *narrow window that lands on a real match budget*, not one
 position's quirk. I checked it on the board I know best — `8/8/1p6/8/p3p3/8/2Kpk3/8 w`, whose **true forced distance is
@@ -39,3 +43,22 @@ A match run at 20,000 nodes can, on a long-mate position, print a mate distance 
   shape, not a rate.
 - `go nodes` only; the clock path was not re-tested here (S-F49 covers the clock separately).
 - Built-in net, Threads 1.
+
+
+## Does the wrong SCORE ever become a wrong MOVE? — checked, and no
+
+The severity question. Same PC20 settings, `go nodes 20000` vs `go depth 20`, on three boards:
+
+| board | `go nodes 20000` | `go depth 20` | move |
+|---|---|---|---|
+| S-F19 board (true mate −4) | c2b1 / **mate −7** / 10-ply PV | c2b1 / mate −4 / 8-ply PV | **SAME** |
+| seat 05's violator | b3c2 / **cp 4056** / 10-ply PV | b3c2 / mate 7 / 13-ply PV | **SAME** |
+| mate-in-1 control | d1d8 / mate 1 / 1 ply | d1d8 / mate 1 / 1 ply | **SAME** |
+
+**The move is identical in all three**, including on seat 05's violator where the node budget reports `cp 4056` instead
+of `mate 7`. So the defect is confined to **the reported score and PV** — a mate distance that overstates the defence,
+and a mate that reads as a large centipawn advantage. **Move choice at a match budget is unaffected in these three
+cases**, which is the reassuring half and bounds the severity: this is a reporting defect, not a playing one.
+
+That also means the risk is where the score is *consumed*: a GUI showing `mate −7` when it is `mate −4`, or a
+mate-distance-based adjudication, or an operator reading the eval. Not a lost game.
