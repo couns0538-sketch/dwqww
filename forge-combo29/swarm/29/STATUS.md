@@ -522,3 +522,10 @@ Mon Nov 16 09:06:21 PM UTC 2026
   -> The cache-line arithmetic in F61 still stands (26 lines per table, three distinct objects); only the COUNT was wrong.
 - Real remaining route: prove a cont1/cont2 table is empty for a node and skip its read. Needs a per-frame flag AND a test that the flag agrees with the read on every quiet candidate of every node - instrument both paths, assert flag_says_empty == read_returns_zero for all pieces/to, across bench 13 and the 200-opening set. The TEST is the work, not the patch.
 - next: continuing at cadence.
+
+## Tue Nov 17 01:11:22 AM UTC 2026
+- 29-F63 SIZED the opportunity Route 1 needs: on bench 13 under PC20+net, of 41,747,582 cont1+cont2 reads, 24,863,362 (59.6%) return ZERO. Main-history reads 20,873,791 with 2,080,640 zero (10.0%).
+- Since F60 measured those two read lines at 165,603,995 instructions each, three-in-five of the picker's hottest reads add nothing to the score.
+- CRITICAL CAVEAT: 59.6% is the per-MOVE zero rate and an UPPER BOUND. A per-NODE 'table never written' flag captures strictly LESS, because a table written once still costs the read for every other candidate. Next measurement is the per-NODE rate; if small, the flag is not worth its branch.
+- My cont_max counter wrapped (unsigned accumulator for a signed value) - discarded rather than reported; the zero counts are exact.
+- next: continuing at cadence with the per-NODE rate.

@@ -1,0 +1,37 @@
+=== THE OPPORTUNITY IS REAL: 59.6 % of cont1/cont2 history reads return ZERO ===
+Before building the per-frame flag that Route 1 (29-F62) needs, measure whether it can pay. Instrumented scratch copy
+of the PC r15 tree: every `cont1`/`cont2` read inside `quiet_history_sum` counted, split by whether the value is zero.
+
+Regime: **PC20 + test net, Threads 1, Hash 16, `bench 13`** (the owner's configuration).
+Raw: `CONTSTAT cont_reads 41747582 cont_zero 24863362 cont_max <wrapped> main_reads 20873791 main_zero 2080640`
+
+| counter | value | reading |
+|---|---|---|
+| cont1+cont2 reads | **41,747,582** | the traffic 29-F60 attributed at 165.6 M instructions per line |
+| of which ZERO | **24,863,362** | **59.6 %** |
+| main history reads | 20,873,791 | of which 2,080,640 zero = **10.0 %** |
+
+**So three in five continuation-history reads return zero and add nothing to the score.** A flag that lets the scorer
+skip them is worth attacking 59.6 % of 41.7 M reads = ~24.9 M reads, which is the bulk of what 29-F60 measured as the
+two hottest lines in the picker.
+
+Two caveats that decide whether this is exploitable, and they are NOT yet resolved:
+1. **A zero value does not mean the table is empty for the whole node.** The skip must be per-node (a frame's table has
+   never been written), not per-move (this particular slot happens to be zero). The measured 59.6 % is the per-MOVE
+   zero rate; the per-NODE "table never written" rate will be LOWER, because a table written once anywhere still costs
+   the whole read for every other candidate. So 59.6 % is an UPPER BOUND on what a per-node flag can save, not the
+   saving itself.
+2. My `cont_max` counter is broken (it wrapped to 18446744073709551615 because the values are signed and I accumulated
+   into an unsigned type). It does not affect the zero counts, which are exact; the max figure is discarded rather than
+   reported as a number.
+
+## What must be measured next, in order
+1. **Per-NODE "table never written" rate** — the real upper bound. Instrument a per-frame flag as Route 1 describes and
+   count how often it is set when the scoring loop runs. If that rate is small (say under 10 %), the flag is not worth
+   its own branch and Route 1 dies properly.
+2. If it is large, then the **equivalence test** (the work, per 29-F62): assert `flag_says_empty == read-returns-zero
+   for all pieces and all to-squares` on every quiet candidate, across bench 13 AND the 200-opening set.
+3. Only then a patch, and Step 3 timing with two builds per side.
+
+**This is a sized opportunity, not a patch.** I have measured that 59.6 % of the reads are zero; I have NOT measured
+whether a per-node flag can capture them, and caveat 1 says it captures strictly less.
