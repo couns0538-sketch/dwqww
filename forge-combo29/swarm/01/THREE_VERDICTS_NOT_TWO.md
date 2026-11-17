@@ -49,3 +49,20 @@ All five of tonight's self-corrections share one shape — **the number was real
 
 The first four are fixed by better measurement. The fifth is fixed by **bookkeeping** — and bookkeeping is the
 cheapest of the five, which is why it is the one most worth borrowing.
+
+
+## A sixth species, and it is different: the flag was wrong, the data was right
+
+The five corrections above are about **samples, scope and causality** — in each the measurement covered the
+wrong ground. This one is about **summarisation**, and it happened inside my own harness.
+
+My zero-node checker reduced each result to a boolean, `zero = (nodes == 0)`. The pathological MultiPV/Hash cells
+returned **143–220 nodes with a changed move** — a move with essentially no search behind it — and the flag
+scored them **healthy**. Had I reported the flag, I would have written "no collapse in any cell" while the
+correct raw numbers sat in the same record, in the columns the flag was derived from.
+
+> **A derived boolean is a CLAIM about the data, not a summary of it. When a flag says "nothing here", re-read
+> the columns it was derived from before reporting a negative.**
+
+That is cheaper to apply than any of the other five, and it caught a wrong conclusion in the same session that
+produced it: the collapse was visible in the node and move columns all along.

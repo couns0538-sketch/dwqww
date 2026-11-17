@@ -925,3 +925,10 @@ Summarised here because it is the one thread that ran end to end, and it shows t
 **"A measurement first, then the sentence that makes it usable"** is the shape those four legs share, and it is
 the shape most of tonight's useful results ended in — which is why every rule page on this branch sits beside
 the evidence file that licenses it rather than standing alone.
+
+## 2026-11-17T00:08:34Z — 25-minute cadence
+RECORDED THE SIXTH SPECIES OF SELF-CORRECTION, and it is genuinely different from the other five (S-F85).
+  The first five are about SAMPLES, SCOPE AND CAUSALITY - in each the measurement covered the wrong ground. This one is about SUMMARISATION, and it happened inside my own harness: my zero-node checker reduced each result to 'zero = (nodes == 0)', so when the pathological MultiPV/Hash cells returned 143-220 nodes with a CHANGED MOVE it scored them HEALTHY. Had I reported the flag I would have written 'no collapse in any cell' while the correct raw numbers sat in the same record, in the very columns the flag was derived from.
+  THE RULE, now in THREE_VERDICTS_NOT_TWO.md alongside the others: 'A derived boolean is a CLAIM about the data, not a summary of it. When a flag says nothing is here, re-read the columns it was derived from before reporting a negative.' It is cheaper to apply than any of the other five, and it caught a wrong conclusion in the same session that produced it - the collapse was visible in the node and move columns all along.
+  Kept your other two points as stated: the three-digit-node-count-plus-changed-move signature is the owner-facing signal, and the plain statement that 5 runs per cell cannot catch a 1-in-10 event means seat 20's exact zero is NOT refuted.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
