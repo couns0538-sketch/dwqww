@@ -546,3 +546,17 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   General form: **a difference is evidence only if both sides are trustworthy.**
 - Still untested and likeliest to break: MultiPV 2/8, longer clocks, 8 MB alt-table saturation in long games.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:07:26Z hardening done (S-C44) — MPV2/8 hold, no saturation at 4x clock; tolerance question unchanged
+- Own-8MB candidate at Hash 2048 vs healthy reference (Hash 16), `go wtime 5000`, Threads 1:
+  **MPV 2: 16 comparisons, median 0 cp, max 40 cp. MPV 3: 60 comparisons, median 0, max 73. MPV 8: 64 comparisons,
+  median 0, max 30 — the BEST case, not the worst** (with 8 lines each alternate searches a shallower tree, so a small
+  table costs less). Depth held at every setting.
+- **Saturation**: proxy = drift vs clock. **47 cp at 5 s -> 58 cp at 20 s (4x)** — no saturation signature.
+- Across three MultiPV settings and two clock lengths: median 0 cp, worst 73 cp, main depth 1 -> 13-15 restored.
+- STILL OPEN and stated: **long games/deep endgames uncovered** (20 s is not a 40-move game; depth 20 may not predict
+  depth 35), and **bit-identical is NOT achieved** — so **the owner's tolerance question stands unchanged**; this
+  strengthens the case for a tolerance, it does not settle it.
+- PROCESS: hit the missing-directory heredoc failure a THIRD time; now a written rule in METHOD.md (`mkdir -p` first, or
+  use a writing tool that creates the path) — three times is a pattern.
+Next: continue in the window (ends 2026-11-17T10:18Z).
