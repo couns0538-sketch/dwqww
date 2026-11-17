@@ -1,0 +1,80 @@
+THE BAIL IS STRICTLY ROOT-ONLY — a threefold in the history does NOT stop the search
+=====================================================================================
+Every fixture in this family put the threefold AT THE ROOT, which is not how a real game looks: the repetition usually
+happens a few plies earlier and play continues. This tests whether the engine bails when the drawn position is behind it
+rather than in front of it. I had no prior expectation, and the answer narrows the family rather than widening it.
+
+FIXTURES on `1K6/8/8/3R4/8/8/8/k7 w`, cycle `b8c8 a1b2 c8b8 b2a1`, each checked with `job59/validate.py`
+
+| case | move list | root occurrences | nodes | score | move | verdict |
+|---|---|---|---|---|---|---|
+| S-A threefold root | cycle ×2 | **3** | **0** | cp 0 | d5d1 | **BAIL** |
+| **S-B threefold + 1 ply** | cycle ×2 then `d5d6` | **3** (in history) | **12,978** | cp -417 | a1b2 | **searched** |
+| S-C control, two occurrences + 1 ply | cycle ×1 then `d5d6` | 2 | 8,734 | cp -414 | a1b2 | searched |
+
+P1 HELD: S-A bails, reproducing 23-F125 on this board.
+**P2 KILLED, and that is the informative outcome: S-B SEARCHES.** With a genuine threefold three plies behind the searched
+position, the engine does a full 12,978-node search and reports cp -417 — it does not treat the game as drawn.
+P3 HELD: the two-occurrence control searches (8,734 nodes).
+
+WHAT THIS MEANS FOR ANYONE USING THE ENGINE
+--------------------------------------------
+**CORRECTED AND SHARPENED BY THE LONGER-CONTINUATION TEST BELOW — the bail is about the SEARCHED POSITION's own count,
+wherever that position sits in the move list, not about the game's initial position. My first wording here said
+"strictly root-only", which was imprecise: a 3-ply continuation bails (see the table at the end) because the position AT
+THE END OF THE MOVE LIST has itself occurred three times.** A tool
+that has played into a repetition and then asks the engine about the NEXT position gets an ordinary search. Combined with
+23-F109 (a bare FEN searches, because the history is absent), the full condition is:
+
+> the bail requires the ROOT's FIDE identity to have occurred three times **in the move list sent with it**.
+
+That is the precise, complete statement — and it means the hazard is NARROWER than the family's earlier framing
+suggested in one direction and WIDER than "a bare FEN" in another: a tool that sends move lists is exposed only on the
+exact repeated position, and one that sends FENs is never exposed at all, while a tool that plays through a repetition
+and keeps searching gets normal behaviour.
+
+WHY THE SEARCHED-BUT-DRAWN CASE IS STILL A TRAP, though a different one
+------------------------------------------------------------------------
+S-B searched and returned cp -417 — a losing score for the side to move — on a position three plies after a threefold.
+The game was already drawn by repetition before that move was made, so the score is about a position that cannot legally
+arise in a real game that ended at the repetition. That is not the bail defect; it is the ordinary consequence of asking
+about a position past the end of a drawn game, and no engine can be expected to know the game ended three plies ago
+unless it is told. **Worth saying plainly so nobody re-reads this as a new defect: the searched cell is correct
+behaviour on a nonsensical question.**
+
+LIMITS: one board, `go depth 10`, one ply past the repetition; a longer continuation (5 or 10 plies past) is untested and
+would presumably behave the same way, since the mechanism is the same.
+
+
+---
+
+THE LONGER-CONTINUATION TEST, which corrected my own wording
+============================================================
+I had written "a longer continuation would presumably behave the same way". It does not, and the reason refines 23-F125.
+Continuing past the threefold by N plies (`d5d6 a1b2 d6d5 b2a1 d5d7 a1b2 d7d5 b2a1 d5b5 a1b2`), every line checked legal
+and every identity computed with the corrected key:
+
+| plies past the repetition | root occurrences | **SEARCHED-position occurrences** | nodes | verdict |
+|---|---|---|---|---|
+| 1 | 3 | **1** | 12,978 | searched |
+| **3** | 3 | **3** | **0** | **BAIL** |
+| 5 | 4 | **1** | 11,691 | searched |
+
+**The verdict tracks the SEARCHED POSITION's own occurrence count, exactly: 1 → searches, 3 → bails, 1 → searches.**
+Not the root's count, which is 3 in all three cases.
+
+So 23-F125's statement needs restating in the form the data actually supports:
+
+> the base returns 0 nodes **iff the position being searched** — the position at the end of the sent move list — has
+> occurred at least three times in that list.
+
+This is a REFINEMENT, not a refutation: every fixture in 23-F125/F132/F133 had the repeated position at the end of the
+list (which is also the "root" when the list is empty or ends there), so those results stand unchanged. What changes is
+the SCOPE: a tool that sends a long move list can have the engine bail at the END of that list if the final position
+repeats three times, and this is not about the game's starting position at all.
+
+And it also explains the k=1 and k=5 cells without a second mechanism: after an odd number of further plies the searched
+position is a FRESH one that has occurred once, so the engine searches normally — which is correct behaviour.
+
+LIMITS: one board, `go depth 10`, three continuation lengths; the k=10 line I first wrote contained an illegal move and
+was EXCLUDED rather than patched, so the longest tested continuation is 5 plies.

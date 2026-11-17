@@ -1,8 +1,10 @@
 # THE DRAWN-ROOT TRIGGER, in one page — lead with this
 
-**The base build returns `bestmove` with 0 nodes and score `cp 0` if and only if the ROOT position's FIDE identity has
-occurred at least three times.** That is the whole trigger, established as a monotone threshold and not as a set of
-bailing fixtures (23-F125).
+**The base build returns `bestmove` with 0 nodes and score `cp 0` if and only if the position at the END of the sent
+move list — the one being searched — has occurred at least three times in that list.** That is the whole trigger,
+established as a monotone threshold and not as a set of bailing fixtures (23-F125), and refined to follow the SEARCHED
+position rather than the game's initial one (23-F140: 1 ply past a repetition → searched position occurs once → the
+engine searches normally; 3 plies past → it occurs three times → the engine bails).
 
 | true occurrences of the root | nodes | verdict |
 |---|---|---|
@@ -32,7 +34,7 @@ from the two automatic draw rules, which persist.
 
 ## The three facts that complete it
 
-1. **FIDE identity, not placement.** The key is placement + side to move + castling rights (plus en-passant only when a
+1. **FIDE identity, not placement** — and the count that matters is the SEARCHED position's, not the root's. The key is placement + side to move + castling rights (plus en-passant only when a
    legal ep capture exists). A cycle that disturbs castling does not produce a repetition — the engine is correct to see
    one occurrence, and it does (23-F122).
 2. **The move played is the engine's own generator index 0**, unsearched (23-F98, confirmed on a middlegame board at

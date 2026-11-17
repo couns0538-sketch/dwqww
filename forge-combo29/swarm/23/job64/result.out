@@ -1,0 +1,10 @@
+== fixture checks ==
+  threefold root      : PASS | counted=3 python-chess=3 expect=3 ends_at_root=True
+  threefold+1 ply     : root occurrences = 3
+  two-occ +1 ply      : root occurrences = 2
+
+| case | moves | root occ | nodes | score | bestmove | verdict |
+|---|---|---|---|---|---|---|
+| S-A threefold root | b8c8 a1b2 c8b8 b2a1... | 3 | 0 | cp 0 | d5d1 | **BAIL** |
+| S-B threefold + 1 ply | a1b2 c8b8 b2a1 d5d6... | 3 | 12978 | cp -417 | a1b2 | searched |
+| S-C control two occ + 1 ply | a1b2 c8b8 b2a1 d5d6... | 2 | 8734 | cp -414 | a1b2 | searched |
