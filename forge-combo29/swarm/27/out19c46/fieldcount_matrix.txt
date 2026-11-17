@@ -1,0 +1,23 @@
+FEN FIELD-COUNT MATRIX - correcting the claim that 'any field count != 6 is refused in silence'
+PC r15 068f0927, Threads 1, Hash 16, OwnBook false, go depth 6, fresh process per row
+Board: 8/8/8/8/8/8/8/K6k (valid at six fields).
+
+REFERENCE ANSWERS:
+  startpos -> bm d2d4  score cp 34
+  K6k      -> bm a1b1  score cp 0
+
+fields     diagnostic                                   bm      score        verdict
+6 (valid)  NONE                                         a1b1    score cp 0   ACCEPTED (board honoured)
+5          info string invalid FEN: FEN must contai     d2d4    score cp 34  REFUSED, previous kept
+4          info string invalid FEN: FEN must contai     d2d4    score cp 34  REFUSED, previous kept
+3          info string invalid FEN: FEN must contai     d2d4    score cp 34  REFUSED, previous kept
+7          NONE                                         a1b1    score cp 0   ACCEPTED (board honoured)
+8          NONE                                         a1b1    score cp 0   ACCEPTED (board honoured)
+
+CONCLUSION:
+  TOO FEW fields (3,4,5)  -> REFUSED **WITH** a diagnostic; the previous board is searched.
+  TOO MANY fields (7,8)   -> ACCEPTED SILENTLY; the extra fields are DROPPED and the board is honoured
+                             (bm a1b1 = the real K6k answer, NOT startpos).
+  So 'any field count != 6 is refused in silence' does not hold in either direction:
+  the too-few case SPEAKS, and the too-many case is not refused at all - it is accepted with the
+  surplus ignored, which is the S-C1 behaviour and is arguably the correct permissive choice.
