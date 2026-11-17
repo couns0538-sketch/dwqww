@@ -1,0 +1,13 @@
+JUNK BEFORE THE `moves` KEYWORD - position command transcript
+PC r15 068f0927, Threads 1, Hash 16, OwnBook false, go depth 6, fresh process per row
+Board: 6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 60 1   (a1a8 is mate)
+
+position command                              diagnostic   bestmove   reading
+position fen <board>                          NONE         a1a8       mate found, no moves needed
+position fen <board> moves a1a8               NONE         0000       position already won after the mate
+position fen <board> bogus moves a1a8         NONE         0000       JUNK BEFORE `moves` DISCARDED SILENTLY
+position fen <board> zzzz moves a1a8          NONE         0000       same
+
+CONCLUSION: a junk token before `moves` is dropped with no message and the move list still applies -
+the splice reported by seat 25 (S-C116) exists on BOTH sides of the keyword.
+NOTE: `0000` here is CORRECT (root already won), which is why a reference row is needed to read it.
