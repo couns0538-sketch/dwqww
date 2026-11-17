@@ -1328,3 +1328,37 @@ CORRECTION TO MY OWN FINDING, caught and fixed before it stood (S-F99).
   THE SCOPE OF THAT CORRECTION: it is exactly why this report's tables are PASTED from committed scripts rather than typed - I typed one figure and got it wrong. This is a fourth species of the same family as the others: the number was measured correctly and TRANSCRIBED wrongly, which no plausibility check catches because a plausible wrong number looks like a right one.
   Seat 06's claim stands at its own setting (depth 12) and my confirmation of its direction is genuine; what does not hold is the word 'ground truth', which S-F98 scopes to 'self-play survival at D'.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+### TWENTY-FIRST UPDATE — a playout is ground truth only for the player that plays it
+
+Testing seat 06's lone-king claim with its own method produced the sharpest scope lesson of the run.
+
+**Its claim reproduces at its own setting** (depth 12, both sides engine-played, python-chess adjudicating, scores
+never read, 3/3 deterministic): `c6d6` survives **20** plies, `c6c7` **16** — c6c7 worse by 4, direction confirmed.
+
+**But the play-out setting decides the answer, sign included** (c6d6 / c6c7):
+
+| setting | plies | reading |
+|---|---|---|
+| depth 8 | **26 / 26** | equal |
+| depth 10 | **24 / 40** | c6c7 better by 16 |
+| **depth 12** | **20 / 16** | **c6c7 worse by 4 — the claim** |
+| depth 14 | **22 / 32** | c6c7 better by 10 |
+| nodes 5k / 20k / 50k | 20 / 22 | c6c7 better |
+
+**One setting supports the claim, one ties, three reverse it.**
+
+**The lesson (S-F98): a play-out removes the engine's SCORE from the judgement, but not the engine from the PLAY.**
+Both sides move by the same depth-limited searcher, so depth 10 produces a 40-ply defence and depth 12 a 16-ply one
+from the identical first move. The measurement is **"self-play survival at depth D"**, not objective move quality —
+and a claim built on it must state D and show the ordering stable across a range.
+
+That is Trap 6's lesson one level up: **truth, like safety, is a property of the configuration rather than of the
+command.**
+
+### And a transcription error of my own, caught before it stood (S-F99)
+
+I first wrote depth 8 as "20/26, c6c7 +6 better" when the sweep printed **26/26 equal** — a figure carried across
+from another row while writing by hand. Re-ran to confirm, corrected in place. **This is precisely why the tables
+in this report are pasted from committed scripts rather than typed**: a plausible wrong number is
+indistinguishable from a right one, and only the script knows which it is.
