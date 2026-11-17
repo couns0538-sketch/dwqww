@@ -340,7 +340,7 @@ That is the finding: the book is not silent, but it is silent *to the reader
 trap 1 and trap 21 tell you to build* — the one that waits for `info depth`.
 
 **And the book is nondeterministic, which is a second reason not to read it as a
-search result.** `uci.cpp:190` seeds the book RNG from the wall clock, so the
+search result.** `uci.cpp:161-162` seeds the book RNG from the wall clock, so the
 same command returns different opening moves in different processes. Measured:
 `go wtime 1000` on startpos, 24 fresh processes → **2 distinct bestmoves**
 (`c2c4` 14×, `e2e4` 10×), **every one carrying the `info string book move`
