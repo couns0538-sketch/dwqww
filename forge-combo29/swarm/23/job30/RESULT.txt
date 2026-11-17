@@ -31,3 +31,23 @@ against it, while the PC searches and holds.** That is a defect with real cost o
 LIMITS: five games, one settings combination, all from self-play of this build against itself in this session; one of
 six openings reached no repetition in 202 plies, so how often a game reaches one is still not measured. And the
 "worse" comparison is at depth 16 on the PC build, which is the only fair common yardstick I have.
+
+THE MATE CASE, INDEPENDENTLY VERIFIED — not a score artefact
+==========================================================
+Third occurrence position (game 2): `6k1/Q4bp1/2pN1pnp/p3p3/2P5/1P3NPP/q4PK1/8 b - - 9 38`, Black to move.
+The base played **a5a4**; the PC played **f7e6**. Playing each and asking the PC build (deep) about the RESULTING
+position — a different question from scoring the moves in place, so it is an independent check:
+
+| continuation | depth 16 | depth 20 | depth 24 |
+|---|---|---|---|
+| after the **base's** `a5a4` | **mate 5** (for White) | **mate 5** | **mate 5** |
+| after the **PC's** `f7e6` | cp 0 | cp 0 | — |
+
+So the base's unsearched move really does hand White a forced mate in 5: the resulting position is scored `mate 5`
+identically at three depths, while the PC's alternative holds at cp 0 at both depths tested. The reported `cp 0` on
+the root hides a lost position.
+
+VERIFIED INDEPENDENTLY, but with the same engine: this is the PC build evaluating the two resulting positions, not
+python-chess, so it confirms the moves are not equivalent — it does not establish "mate in 5" as proven truth (my
+python-chess mate solver failed its own control earlier and I am not using it). The claim I make is: the engine's own
+deep evaluation says one line is mate-in-5 against the base's side and the other is level.
