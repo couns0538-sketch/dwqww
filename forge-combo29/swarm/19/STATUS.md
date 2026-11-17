@@ -627,3 +627,16 @@ confirmed-for-others tally, all exact integers: 19-C19 king-lines 804,371/779,02
   8 vs 0 nodes ; 19-C26 40/40 ; 19-C23 counter 2x nodes 7,608,471 vs 15,702,225.
 
 next command: continue at cadence with counter/reproduction confirmations only.
+
+## 2026-11-17T00:46:34Z
+
+19-C27 reproduced seat 05's S-F58 digit for digit: go nodes 50000 -> mate +11, 44,749 nodes, 18-of-21 PV,
+  depth 11 (SHORT 3); go nodes 250000 -> mate +7, 138,869 nodes, 13/13, depth 14; go depth 20 -> mate +7.
+  This independently confirms the refutation of S-F57's '0 truncated at 50,000 nodes' - at a budget the
+  owner's matches actually use.
+
+confirmed-for-others tally (all exact integers): 19-C19 king-lines 804,371/779,027 ; 19-C23 counter 2x
+  nodes ; 19-C25 searchmoves 8 vs 0 ; 19-C26 Threads-1 40/40 ; 19-C27 S-F58 five-for-five.
+HARNESS_TRAPS.md = twelve traps; the closing check is nodes>0 AND non-empty PV.
+
+next command: continue at cadence with counter/reproduction confirmations.
