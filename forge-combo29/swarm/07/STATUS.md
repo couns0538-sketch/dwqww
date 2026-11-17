@@ -733,3 +733,10 @@ Added the near-miss lesson to the FINDINGS header, beside the scarcity corollary
   > So: reproduce on the original sample first; only then decide whether you are correcting a measurement or bounding a generalisation.
 Header now carries 10 standing rules and the FINDINGS table 63 rows.
 Also noted for the FINAL: F44 and F42 remain OPEN and unconfirmed. I deliberately did not start F44 -- a neutral-regime judgement pass per disagreement cannot be finished well this late, and a half-done pass with an OPEN label is worse than a clean open label.
+
+## 2026-11-17T00:08:08Z
+07-C57 -- CONFIRMED 28-S-F44 exactly, and added the engine-side check its arithmetic assumes.
+  PART A (exact arithmetic, re-implementing clock_plan.hpp with PC20's tunables): iterating clock' = clock - spend + increment with spend = hard converges to 111 ms from EVERY start >= 111 (6000, 3000, 1000, 500, 300, 200, 150, 120, 115, 111), and 110/109 stay at 110. That is seat 28's figure to the millisecond, including their integer-division note. The convergence path is visible (from 300: 186 -> 141 -> 123 -> 116 -> 111), so it is the real rule iterating.
+  PART B (engine, PC r15/PC20, Threads 1, Hash 16, winc 60): spend at clock 6000 = 361.1 ms (exceeds increment -- the 6% utilisation case), but at 1000/300/150 it is 55.5/41.9/43.9 ms, WITHIN the 60 ms increment, so the clock stops draining and the floor is reached rather than crossed.
+  THIS EXPLAINS 07-C7: zero overruns across nine clock controls, with no account of why. Now there is one -- the clock cannot drain past ~111 ms at this increment because spend falls below the replenishment there. The two findings fit into a single account of time safety.
+  Flagged for the owner: the formula predicts floor = 10 + increment*5/3, so at winc 0 the floor collapses to ~10 ms and there is NO safety margin. Worth knowing if a zero-increment control is ever used.
