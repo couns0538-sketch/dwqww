@@ -1314,3 +1314,23 @@ S-C26 (absent `btime` = no clock). **A match harness sending `go ponder` or a cl
 search that never returns.**
 NEXT: take the mate-as-depth-cap result into the mate-label work - it may explain a class of labels produced at
 the wrong depth.
+
+## 2026-11-17T17:2xZ S-C128/129/130 — `go mate N` is a DIFFERENT SEARCH, and its labels are not depth-matched
+**Took the mate-as-depth-cap result into the label work. It is much worse than a depth question.**
+**S-C128: `go mate N` PRODUCES DIFFERENT LABELS THAN `go depth 2N-1` - 11 OF 12 CELLS DIFFER, AND THE SCORE CAN
+FLIP SIGN AT IDENTICAL DEPTH.** Twelve real positions, N=2/4 against depth 3/7. Worst cell:
+  `c2c3  depth 3  cp -53`   (go mate 2)
+  `c2c3  depth 3  cp 117`   (go depth 3)     <- SAME MOVE, SAME DEPTH, OPPOSITE SIGN
+**S-C129 MECHANISM, FROM SOURCE: `mate_moves_ > 0` IS NOT A DEPTH BOUND WITH EXTRAS - IT IS A DIFFERENT SEARCH.**
+It narrows the window to `[mated_in(ply), mate_in(ply+1)]` and returns alpha when it empties
+(search.cpp:1431-1435); **DISABLES THE TT CUTOFF** unless alpha/beta are already mate scores (1452); and
+disables null-move/reverse-futility (1493, 1639), **IIR** (1784), quiet extinction (1805), the sound-mate case
+(1841), **singular extensions** (1929) and **check extensions** (1955). **Seven heuristics plus the TT cutoff on
+one flag** - which explains the sign flip exactly: the same depth means nothing because the tree is different.
+**S-C130: THE COST IS A GIVEAWAY ANY HARNESS COULD HAVE CAUGHT.** On `r2qkbnr/pp2pppp/2npb3/2p5/...`,
+`go mate 4` and `go depth 7` differ in BOTH bestmove (`e2e3` vs `d4c5`) and nodes - **556,387 vs 3,411 = 163x**
+- at the same reported depth 7. At depth 3 the move agrees but `go mate 2` still costs 1,740 vs 186 (9.4x).
+Both pairs repeated bit-identically, so deterministic.
+**OWNER-FACING: a corpus labelled under `go mate N` is labelled by a MATE-HUNTING SEARCH, not by depth 2N-1 - and
+mixing those labels with `go depth` labels mixes two incomparable searches.** If any of his data came from a
+`mate` limit, those rows are not depth-matched to the rest.
