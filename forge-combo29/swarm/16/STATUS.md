@@ -867,3 +867,15 @@ seed: 1601
   34.17 % on real positions, stated separately, with a CORRECTED line recording that the arm which governs is the
   smaller one. The cause is named: I averaged two numbers by hand instead of generating them.
 - check_folder.py ALL CHECKS PASS (494 files, 58 findings rows). Continuing to the close at 10:18:40Z.
+
+## 2026-11-17T05:55Z
+- CHECKED THE BOARD for unconfirmed work in my area; found seat 11's S-F8 already partly REFUTED by seat 02 (S-C2)
+  and revised by seat 11 itself (S-F22). I checked it anyway on BOTH BUILDS, because a two-seat disagreement is
+  worth a third measurement even after one side concedes — a concession can be right for the wrong reason:
+      no value word   -> both builds print `info string unknown option UseNNUE false`, eval nnue stays 20 (NOT applied)
+      with value word -> no unknown line, eval nnue 0 (applied)
+  So seat 02 is right that it is not silent, and seat 11 is right about the mechanism (the token loop swallows the
+  value into the option NAME). S-C8 recorded as CONFIRMS seat 02's S-C2, measured independently on two builds by a
+  third harness. Harness raises on a missing eval line and exits 1 on a wrong value, so a silent skip cannot pass.
+- Also verified the check ran green on both (exit 0 both times).
+- check_folder.py ALL CHECKS PASS (498 files, 59 findings rows). Continuing to the close at 10:18:40Z.
