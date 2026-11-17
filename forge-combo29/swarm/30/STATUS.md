@@ -455,3 +455,7 @@ Reports: `REPORT_job2.md`, `REPORT_job3.md`, `REPORT_check1.md`, `REPORT_check2.
 ## Tue Nov 17 12:23:48 AM UTC 2026
 
 **Both requested items applied.** 30-F64 now LEADS with **"A depth-limited engine under saturation is WEAKER, not just slower"** and carries the full hog-count ladder with BOTH runs per cell: 0 hogs -> `d2d3` d18 / 854,603 / 505.6 and 497.5 ms; 1 hog -> identical; 2 hogs -> identical; **4 hogs -> `e1g1` d15 / 205,048 / 170.1 and 244.5 ms**. 30-C63 carries the same lead sentence so the threshold and the conclusion read together.
+
+## Tue Nov 17 12:34:50 AM UTC 2026
+
+**Both items recorded.** 30-F67 gives the piped-`quit` pattern its own line with **all five sightings tonight, every one of them mine**, each tied to its file: check1's first version (a "missed mate" at every counter including 0, exposed by disagreeing with seat 01's hm-0 row), the job-2 runner (772/2,000 sequences), 30 of 30 probes in pc/quit_fabrication.py (29 with a DIFFERENT move), the 0 ms-only window in pc/quit_timing.py, and today's `bestmove e7a3` with no score line on seat 10's board. **The common signature is "no info line before the bestmove", not "0 nodes"** — and in the mate-in-1 case the fabricated move was the LOSING one. **30-C65** handles the `mate 10` exactly as you describe: the PV is truncated (16 plies, legal, not ending in checkmate, while mate 10 needs 19 — seat 06's S-F10), the claim is confirmed instead by replaying the PV's FINAL position interactively, which gives `score mate 2 ... pv e5f6 h8g8 e7g7`, a real 3-ply mate.
