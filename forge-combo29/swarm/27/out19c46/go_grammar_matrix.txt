@@ -1,0 +1,35 @@
+GO COMMAND GRAMMAR MATRIX - which malformed commands are accepted silently?
+PC r15 068f0927, Threads 1, Hash 16, OwnBook false, startpos, FRESH PROCESS PER CELL
+cap 6s: 'RETURNED' = the engine answered on its own; 'CAPPED' = my timeout, not an engine behaviour
+
+command              verdict   depth  nodes       secs    diagnostic
+go depth 8           RETURNED  8      4099        0.0     NONE
+go depth abc         RETURNED  5      1001        0.0     NONE
+go depth             RETURNED  5      1001        0.0     NONE
+go depth 0           RETURNED  1      26          0.0     NONE
+go nodes abc         RETURNED  5      1001        0.0     NONE
+go nodes             RETURNED  5      1001        0.0     NONE
+go movetime abc      RETURNED  5      1001        0.0     NONE
+go movetime 0        RETURNED  5      1001        0.0     NONE
+go wtime abc         RETURNED  5      1001        0.0     NONE
+go searchmoves z9z9  RETURNED  64     0           0.0     info string searchmoves restri
+go depth 8 zzzz 3    RETURNED  8      4099        0.0     NONE
+go depth 123         CAPPED    25     13616554    7.39    NONE
+
+=== THE SINGLE MECHANISM ===
+  Every malformed-value command lands on the SAME result: [(5, 1001, 0.0), (1, 26, 0.0), (8, 4099, 0.0)]
+  depth 5 / 1001 nodes / 0.0 s - i.e. an unparseable value is replaced by a default
+  and the search runs a short default search with NO message.
+
+  An unknown TOKEN is different: it is discarded and the well-formed search proceeds
+  normally (go depth 8 zzzz 3 == go depth 8: 4099 nodes).
+  'go depth 0' is a THIRD behaviour: clamp(0,1,64)=1, a legal one-ply search.
+
+=== HONESTY NOTE ON MY OWN FIRST MATRIX ===
+  The first version reported 'go depth 123 -> depth 26' and 'btime 1000 -> depth 26'.
+  Those were MY 8-second cap, not engine behaviour: with a longer cap the same command
+  reaches depth 29 in 49 s and is still searching. A depth column measured under a
+  timeout is a column of my patience. Fixed by reporting RETURNED vs CAPPED separately.
+
+=== WHAT IS SILENT ===
+  10 of 11 commands produced NO diagnostic: go depth abc, go depth, go depth 0, go nodes abc, go nodes, go movetime abc, go movetime 0, go wtime abc, go depth 8 zzzz 3, go depth 123
