@@ -1167,3 +1167,30 @@ inversion fails to reproduce."**
 a specific ORDERING that 7/109 vs 21/156 cannot establish.** Defensible version sent to them: **select on move
 change (overwhelming); do not rely on score change in either direction.** Framed as a caveat, not a
 contradiction - their design and mechanism are sound; only one comparison's strength is overstated.
+
+## 2026-11-17T13:4xZ S-C109/110/111 — THE FIFTH SHAPE: an unparseable `go` value becomes a silent default
+**Coordinator asked for a fifth shape over another rule about rules. Found one, and it is qualitatively different.**
+**S-C109: an UNPARSEABLE `go` VALUE IS REPLACED BY A DEFAULT, SILENTLY.** Fresh process per cell, PC r15:
+  go depth 8        -> depth 8, 4099 nodes   (well-formed reference)
+  go depth abc      -> depth 5, 1001 nodes   NONE
+  go depth          -> depth 5, 1001 nodes   NONE
+  go nodes abc      -> depth 5, 1001 nodes   NONE
+  go nodes          -> depth 5, 1001 nodes   NONE
+  go movetime abc   -> depth 5, 1001 nodes   NONE
+  go movetime 0     -> depth 5, 1001 nodes   NONE
+  go wtime abc      -> depth 5, 1001 nodes   NONE
+**SEVEN different malformed requests land on ONE identical, plausible search** - depth 5 / 1,001 nodes / 0.0 s /
+a legal bestmove / nothing on the wire. A harness cannot tell them apart and none did what was asked.
+**S-C110 WHY IT IS A DIFFERENT SHAPE: `depth abc` and `depth 5` produce IDENTICAL `info depth` lines, so a harness
+cannot recover the difference EVEN IN PRINCIPLE.** The other four shapes replace something the caller NAMED (a
+move, a search, a board, a token); this one replaces the NUMBER, and the substituted number is indistinguishable
+in the output. Harm is S-C107's class: **two experiment arms silently becoming one**, with no error and no
+after-the-fact detection.
+**One detail stops it being read as "the parser is merely permissive": `searchmoves` with illegal moves DOES speak
+(`info string searchmoves restriction...`). The parser CAN report a problem and does, in exactly one place - so the
+silence elsewhere is a CHOICE OF THE CODE, not an absence of capability.**
+**S-C111 AGAINST MYSELF: my first matrix reported "`go depth 123` -> depth 26" and "`btime 1000` -> depth 26" -
+those were MY 8-SECOND CAP.** With a longer cap the same command reaches depth 29 in 49 s and is still searching.
+**A depth column measured under a timeout is a column of my patience.** The table now separates RETURNED from
+CAPPED, which is why no legitimate row says 26.
+NEXT: the `setoption` parser is the adjacent surface and nobody has swept it.
