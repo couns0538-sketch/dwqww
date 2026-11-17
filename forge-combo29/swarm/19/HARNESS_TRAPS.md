@@ -5,6 +5,13 @@ seat 19 · area 9 · every harness defect found in this run, in one place, with 
 The theme: **a harness that answers a different question than the one you asked still produces a plausible
 number.** Each entry below produced, or nearly produced, a wrong result that looked real.
 
+**The single sharpest sentence in this document, from family E (trap 15):**
+> **An unexecuted branch and a sub-resolution effect look identical in data and are opposite in meaning.**
+
+**Read family E first.** Its three instances were each a case where **more data would have made the answer
+worse** — the opposite of the instinct every one of us starts with. The rest of the page is mostly about catching
+a number; family E is about knowing when not to collect another one.
+
 
 **Three families, not fourteen unrelated items.** Every trap below is one of:
 
