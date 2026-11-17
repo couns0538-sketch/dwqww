@@ -1,0 +1,36 @@
+PREDICTION — SW-23 job 46 (does the base's 0-node move on a threefold root COST anything, or does it still win?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F93 established that the base returns cp 0 with 0 nodes on a threefold root, on either side, while the PC searches.
+23-F60 established, on a DIFFERENT board (a naturally reached repetition from self-play), that the base's 0-node move
+was a LOSING move. The obvious next question, and the one that decides how much F93 is worth: on THIS controlled
+fixture, does the base's unsearched move actually cost the game, or does it still win?
+
+Why the answer is not obvious: the board is K+R v K, which is a forced win from nearly any position. So a randomly
+chosen white move very probably still wins — meaning the practical cost here may be NOTHING in result terms, only in
+the REPORTED SCORE. That distinction matters: "reports a draw where it is winning" (a reporting/tooling defect,
+serious for a GUI) is different from "throws the win away" (a playing defect). I should not let 23-F60's stronger
+result be borrowed by this weaker fixture.
+
+FIXTURE: W-3 (`1K6/8/8/3R4/8/8/8/k7 w - - 0 1` moves `d5d6 a1b1 d6d5 b1a1 d5d6 a1b1 d6d5 b1a1`, threefold root,
+white to move, validated in job45). The BASE answers `d5d1` at 0 nodes; the PC answers `d5b5` with cp 362 after
+56,153 nodes.
+
+METHOD: take each of those two moves, push it with python-chess (so the resulting position is independently
+established), then ask the PC build — a strong independent-ish reference — for `go depth 16` on each resulting
+position. Report the score for white in both.
+
+Prediction (each with the range that kills it):
+  P1  BOTH MOVES STILL WIN: the PC reports a mate score or a large positive cp for white after BOTH d5d1 and d5b5.
+      KILLED if either move leads to cp <= 100 for white — which would mean the base's unsearched move DID cost the
+      win and would put F93 in the same class as 23-F60.
+  P2  THE TWO SCORES DIFFER BY LESS THAN A MATE — i.e. neither move loses the win, but they are not identical in
+      quality. KILLED only in the sense that if they are exactly equal the base's unsearched move is a perfectly
+      adequate choice here and my framing should say so plainly.
+  P3  THE COST IS THEREFORE CONFINED TO THE REPORT: the base says cp 0 (draw) on a position it wins, and plays a move
+      that happens to be adequate. KILLED if P1 fails.
+
+Stated in advance so the write-up cannot drift: if P1 holds, the honest sentence is "the base reports a draw where it
+is winning and returns an unsearched move, which on THIS fixture still wins — so the defect is in what it TELLS you,
+and the playing cost is unmeasured on boards where an unsearched move can lose." That is a weaker, truer claim than
+23-F60's.
