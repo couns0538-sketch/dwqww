@@ -3350,10 +3350,12 @@ hard-codes `/tmp/o100.fens` as its input path, so a re-run must place `OG200.fen
 ## 7. Harness traps that fabricate results
 
 **Read this section by NUMBER, not by position: the numbers run in discovery order and the inserted
-suffixes (`3a000`, `5a0`, `14b`, `19a`–`19e`, `19c0`, `20a00`) are later findings attached to the family they
-belong to, so they sit beside their parent rather than at the end.** Renumbering is deliberately avoided —
+suffixes (`3a000`, `5a0`, `14b`, `19a`–`19e`, `19c0`, `20a00`, `21a`) are later findings attached to the
+family they belong to, so they sit beside their parent rather than at the end.** There are **63 numbered
+traps: base numbers 1–30 with 33 suffixed variants.** Renumbering is deliberately avoided —
 a renumber breaks every cross-reference in this document and in the branch reports, and it breaks them
-silently while leaving "the reference resolves" true.
+silently while leaving "the reference resolves" true. **A mechanical check confirms every `trap N`
+reference in this document resolves to a definition here.**
 
 1. A terminator or EOF during a search fabricates a `bestmove` with zero info lines. `perft` is
    synchronous and unaffected.
