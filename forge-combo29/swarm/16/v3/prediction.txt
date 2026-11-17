@@ -1,0 +1,24 @@
+# PREDICTION — file 7 Step 1: the hottest v3 function and its share of bench 13 time
+
+Committed BEFORE any profiler runs, per file 7. Never edited afterwards.
+
+Build: file 5's tree with `-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1`, g++ 13.3.0, `-march=x86-64-v4`,
+Intel Xeon, kernel avx512. Step 0 passed 8 of 8 benches and 3 of 3 evals, so this build is usable.
+Settings: PC20 + the test net, Threads 1, Hash 16.
+
+The candidates, from `src/nnue_v3.cpp`: the incremental accumulator refresh (the `refresh`/`update` path that
+walks dirty pieces), the cached-accumulator lookup, and the forward pass (the AVX-512 hidden-layer kernel plus the
+output layer).
+
+P1. THE HOTTEST single symbol is the **forward pass** (the hidden-layer AVX-512 kernel and its output layer),
+    not the incremental refresh. Reason: bench 13 spends most nodes at leaves where the accumulator is already
+    current, so the per-leaf forward pass dominates while a refresh fires only on the first visit of a bucket.
+    Predicted share of total bench-13 time: **40 % to 65 %**. Kills it: under 25 % (then the refresh or the
+    search dominates and my model of the workload is wrong).
+P2. The **incremental refresh/update** path is second at **10 % to 25 %**. Kills it: over 40 % (which would mean
+    the profile is refresh-dominated, consistent with the small Hash and short bench, a different conclusion).
+P3. The whole `nnue::v3` namespace together is **55 % to 85 %** of bench-13 time under PC20 + the test net. Kills
+    it: under 40 % (the net path is not where the time is, which would be a notable negative for the whole job) or
+    over 95 % (then the search around it is nearly free, which I do not expect at depth 13).
+P4. The `eval`-only path (a single static evaluation, no search) is predicted to be dominated by the forward pass
+    at **over 70 %** — a cross-check on P1 from a workload with no search at all.

@@ -43,6 +43,11 @@ predictor before it indicts the thing measured.
 the convention out — positive means what? — and hand-check one case you already know the answer to.
 **6. A parser that cannot fail cannot confirm.** Three of my audit checks "passed" by comparing nothing. Any check
 you rely on should be shown to FAIL on a planted fault before you trust it to pass on a real one.
+   *The same rule the brief already states as "never typed by hand" and "NO TIME IS TYPED", extended to expected
+   values:* **if a number came from somewhere else — a published table, another seat, a `date` call — paste it or
+   read it programmatically; never retype it into an expectation, a report or a harness.** My worst error of the run
+   was retyping `4151906` from file 7 as `4191906` into a harness table, then reporting a hardware discrepancy that
+   did not exist. Byte-checking the published row with `od -c` would have cost one second.
    *And the sharper form of the same lesson, which this run produced twice:* **running a check is not the same as
    running a check that can observe the fault.** My folder-integrity script reported all-clear while eleven of my
    forty-five findings rows sat in the wrong file — because it scanned *committed* files and the stray was
@@ -56,6 +61,13 @@ symmetry at depth 1"; one wrongly-computed correlation became "PSQT explains r =
 "the self-play budget is a wash"; one position where `h8h1` won a rook became "the worst blunder of a run". All
 are listed with their fixes in PART 4 — ten entries, because one entry covers three separate harness bugs. Each
 was caught — but each LATE, by a later measurement, by another seat, or by noticing something absurd.
+
+**A seventh, separate from the six:** **when several independent measurements disagree with your one reading, the
+number of measurements against you is evidence about WHERE TO LOOK FIRST — and the first place is your own reading.**
+At file 7 Step 0 my build produced 4,151,906 while I had 4,191,906 written in my harness; three other seats on
+identical hardware had reported the published pair as matching. I had three measurements against one reading and
+constructed a hardware explanation instead of re-reading the digit. It cost a stopped job and a wrong message to the
+coordinator. The digit was cheaper to check than the hypothesis, and always is.
 
 **So treat every general statement in this file as a claim about a sample, and check its N.** Where it matters I
 have written the N in the sentence.
