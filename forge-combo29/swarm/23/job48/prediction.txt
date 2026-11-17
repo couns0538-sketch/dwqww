@@ -1,0 +1,38 @@
+PREDICTION — SW-23 job 48 (is the base's 0-node drawn-root move the FIRST LEGAL MOVE, and is it always legal?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+This is an AREA-3 question (move generation), not a search question, and the drawn-root work has left it open. 23-F43
+noted the base "returns 0 nodes and its first legal move" as a description inherited from the brief; 23-F60 showed the
+move can LOSE; nobody has checked what "its first legal move" actually means mechanically, or whether the emitted move
+is even in python-chess's legal set on these boards.
+
+WHY IT MATTERS: a 0-node `bestmove` is produced without a search, so no ordering heuristic has run. If the move is
+simply the first entry of the generated list, then (a) it is legal by construction, and (b) its quality is a property
+of MOVE-ORDER GENERATION, which is my area — and the family's "the unsearched move can lose" becomes a statement about
+generation order rather than about search.
+
+FIXTURES: the five drawn roots already validated in this seat, plus a legal control:
+  D1 threefold root, white  `1K6/8/8/3R4/8/8/8/k7 w` moves `d5d6 a1b1 d6d5 b1a1 d5d6 a1b1 d6d5 b1a1` (job45-validated)
+  D2 threefold root, black  `1K6/8/8/3R4/8/8/8/k7 b` moves `a1b1 d5d6 b1a1 d6d5 a1b1 d5d6 b1a1 d6d5` (job45-validated)
+  D3 threefold root, rook c1 `7k/8/8/8/8/8/8/K1R5 w` moves `c1c7 h8g8 c7c1 g8h8 c1c7 h8g8 c7c1 g8h8` (job47-validated)
+  D4 halfmove-150 root      `1K6/8/8/3R4/8/8/8/k7 w - - 150 1` (23-F43's fixture)
+  D5 bare kings (insufficient material) `8/8/8/8/8/8/8/K6k w`
+  C1 CONTROL, not drawn:     `1K6/8/8/3R4/8/8/8/k7 w - - 0 1` (must SEARCH, so a 0-node result cannot come from a
+      harness that always reports 0)
+For each: base build, Threads 1, Hash 16, OwnBook false, `go depth 10`. Record nodes, bestmove, and python-chess's
+legal move list from the SAME position (positions established by playing the validated move list in python-chess).
+
+Prediction (each with the range that kills it):
+  P1  EVERY 0-NODE MOVE IS IN PYTHON-CHESS's LEGAL SET on all five drawn roots. KILLED if any emitted move is not
+      legal — that would be a move-generation fault and would outrank everything in this family.
+  P2  THE 0-NODE MOVE IS THE FIRST MOVE OF PYTHON-CHESS's LEGAL LIST in its own iteration order on AT LEAST THREE of
+      the five. KILLED if it is the first move on NONE of them, in which case "its first legal move" is wrong as a
+      description and the brief's own wording needs correcting.
+  P3  IT IS DETERMINISTIC: run each drawn root twice in fresh processes; the move is identical. KILLED if it varies.
+  P4  THE CONTROL SEARCHES: C1 returns nodes > 1000 on the base. KILLED if C1 reports 0 nodes, which would mean the
+      harness is producing the zero rather than the engine.
+
+The distinction I expect to draw: "first legal move" is a claim about GENERATION ORDER, and it is either true (P2) or
+the move comes from somewhere else (a TT entry, a root-ordering step that runs even at 0 nodes). Either answer is
+useful to an area-7 seat, and P2 being false would correct a sentence that came from the brief and that I have been
+repeating.
