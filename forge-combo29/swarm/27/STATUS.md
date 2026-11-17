@@ -607,3 +607,18 @@ harness that checked nothing - which is the difference between a claim and a dem
 guards were built after my own instance rather than before it.
 **Contaminated vs clean, since the audit matters more than the fix:** withdrawn = S-C18/S-C18a/S-C18b (settings
 label false); re-verified and standing = S-N1, S-N3, S-C14, S-C22, S-C12/15/16, S-C23, S-C25, S-C27/a, S-C28/a.
+
+## 2026-11-17T01:21Z THE CLOCK QUESTION CLOSED BY THREE INDEPENDENT INSTRUMENTS
+**All three agree, and none shows a defect:**
+  1. **ALGEBRA** - seat 28's S-F44 fixed point, which I recomputed from `clock_plan.hpp` in S-C22: worst-case spend
+     converges to `MoveOverhead + increment*100/TmHardPercent` = **111 ms** from every starting clock I tried
+     (6000/3000/1000/500/300/200/150). Typical spend settles far higher (1230 ms from 6 s). **The clock cannot be
+     lost by searching.**
+  2. **A FORTY-PLY GAME** - S-C32, the owner's real match path (6 s + 0.06, Threads 1, PC20): **40 plies, 0
+     problems, 0 forfeits, median 173 ms/move, depths 15-27, final clocks 1768 / 3224 ms.** **That is the floor
+     doing its job in a real game** - the clocks settle rather than falling, exactly as the algebra says.
+  3. **EDGE-CASE CONTROLS** - S-C29, tiny clocks 100/30/10/1/0: the engine answers inside every clock > 0 in
+     0.66-4.12 ms with 1-8 info lines.
+**The opposite of where this thread started:** I opened it by claiming a drain and a forfeit, and have since
+retracted the magnitude, the mechanism, the settings label and the counter inference, and closed with three
+instruments agreeing that the time management is sound. **Quote seat 28's S-F44, not my S-C11 chain.**
