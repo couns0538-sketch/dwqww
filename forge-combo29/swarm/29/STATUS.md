@@ -349,3 +349,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - Verified both requested forms are in the committed files: FINDINGS carries the interval ('2 of 40 spans roughly 1.5-12 %') and 'the DIRECTION is what this establishes'; the raw table carries the reconciliation section stating both runs stand and why neither contradicts the other.
 - FINAL_NOTES updated: the C6 line now reads as 'seat 05's two boards reproduce exactly, AND on a purpose-built set of 40 mate-reporting positions S14 truncates 2 of 40 while PC20 truncates 0 of 40', with the instruction to keep the interval and treat direction (not rate) as the claim.
 - next: continuing at cadence.
+
+## Tue Nov 17 12:07:52 AM UTC 2026
+- 29-F47 re-tested my own 29-F45 on the mate-heavy set (a deliberately different distribution): agreement 82.5/85.0/85.0/90.0 % at depths 8/10/12/14 - again FLAT, and close to the random-game 87.5/87.5/85.0/92.5 %. So the flatness is not an accident of one set.
+- Stated honestly in the row: this STRENGTHENS F45 but does NOT confirm it (same harness, same binary, my sets). A second seat is still needed, which is why N28 keeps F42/F44/F45 OPEN and REPRODUCE_pc20_quality.md exists. It also does not touch F44, which is about the QUALITY of disagreements rather than their frequency.
+- next: continuing at cadence.
