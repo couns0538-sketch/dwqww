@@ -408,3 +408,32 @@ r15/PC20 — 1 distinct move sequence in 5 of 5 games at `go nodes 20000` and at
 | 28 | fixed-point floor (S-F44) + step-function note (S-F43) | the clock rule has a floor and cannot be lost by searching; node count is a step function of available time |
 | 16 | clock artefact (S-F38) | their own "three distinct positions" was the clock arm, not the engine; fixed limits give 1 sequence |
 | 27 (this seat) | harness overhead (S-W4/S-W5) + fixed-limit check (S-C27) | 1300 ms of process overhead in wall time; fixed limits give 1 sequence in 5 of 5 games |
+
+## A bare node figure names no search
+
+Two seats can quote node counts on the same board that disagree by 100x and both be right. Measured on
+`6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 100 60`, PC r15/PC20/Threads 1, all returning the **same move** `a1a8`:
+
+| command | nodes |
+|---|---|
+| `go depth 4` | 84 |
+| `go searchmoves a1a8 depth 4` | 8 |
+| `go nodes 50000` | 1,344 |
+
+**A node count is only comparable when the COMMAND, the BUILD, the settings block and (on a counter-sensitive
+board) the halfmove counter are all named.** This is the same lesson as seat 30's 30-F72 citation gap and my own
+S-W7 settings-label error, arriving through node counts instead of settings: **a figure without its provenance is
+not evidence, it is a number.**
+
+The practical check before comparing against another seat: reproduce THEIR command in THEIR configuration, then
+vary one thing at a time. If the figures then agree, the disagreement was the command.
+
+## Write evidence text to a FILE, never echo it
+
+Six shell-quoting casualties in one session: backticks executed as commands, apostrophes breaking quoting, a
+heredoc stripping punctuation, and doubled spaces left where a code span should be. **Every one looked correct when
+written.**
+
+The mechanical fix, applied from the sixth instance onward: **compose the text in a file (the Write tool or a Python
+heredoc with a quoted delimiter), then move or append it.** Never build report prose inside `echo "..."`, where the
+shell, not you, decides what the characters mean.
