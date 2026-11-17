@@ -1,0 +1,41 @@
+### trying to DEMONSTRATE the PV-length filter's blind spot (low depths, known-short mates)
+board                                                shallow d8          ref d24  blind spot?
+7k/8/3R4/8/1Q6/8/7K/8 w - - 0 1                          mate 2           mate 2  
+2R4R/7K/8/8/8/8/8/k7 w - - 0 1                           mate 3           mate 3  
+R7/8/8/8/6k1/8/5R1K/8 w - - 0 1                          mate 2           mate 2  
+8/8/8/8/4K3/1Q6/8/4k3 w - - 0 1                          mate 3           mate 3  
+8/8/2K5/8/k7/8/4Q2R/8 w - - 0 1                          mate 2           mate 2  
+8/8/8/R5K1/8/8/4k3/2R5 w - - 0 1                         mate 4           mate 4  
+8/1Q6/6K1/3R4/8/6k1/8/8 w - - 0 1                        mate 3           mate 3  
+7R/8/8/4k3/8/2K5/5Q2/8 w - - 0 1                         mate 3           mate 3  
+1Q6/K7/7k/8/8/6R1/8/8 w - - 0 1                          mate 1           mate 1  
+1K5k/8/8/Q7/8/8/3R4/8 w - - 0 1                          mate 2           mate 2  
+6R1/2k5/8/8/1K6/8/8/3Q4 w - - 0 1                        mate 2           mate 2  
+4R3/8/8/K7/3k4/8/8/4Q3 w - - 0 1                         mate 2           mate 2  
+8/Q7/8/8/K7/7k/3R4/8 w - - 0 1                           mate 2           mate 2  
+8/8/8/8/Q3R3/4K3/7k/8 w - - 0 1                          mate 2           mate 2  
+6k1/1K6/8/8/Q7/8/8/2R5 w - - 0 1                         mate 2           mate 2  
+8/8/8/8/k3K3/4R3/7R/8 w - - 0 1                          mate 2           mate 2  
+
+Not demonstrated on these boards either. The caveat stays a caveat: a passing score was again always correct
+at the deeper depth, so I have not shown the filter can pass a wrong distance - only that it has not been
+shown incapable of it.
+
+TWO INDEPENDENT ATTEMPTS, 21 BOARDS, ZERO COUNTER-EXAMPLES:
+  attempt 1 (S-C32, softnodes 1000 vs 100000): 5 boards, every PASS had the correct distance
+  attempt 2 (this run, go depth 8 vs go depth 24): 16 boards, **every PASSING shallow mate number equalled the
+    deep reference exactly** - mate 2/2, 3/3, 2/2, 3/3, 2/2, 4/4, 3/3, 3/3, 1/1, 2/2, 2/2, 2/2, 2/2, 2/2, 2/2, 2/2
+    on the sixteen boards that reached a passing mate.
+
+So the filter's blind spot is still NOT demonstrated. That is a materially stronger null than S-C32 alone: two
+different depths, two different position generators, 21 boards, and not one case where a PV passed the length test
+while misstating the distance.
+
+WHY IT MAY BE STRUCTURALLY HARD TO TRIGGER (hypothesis, not proven): a shallow search that finds a mate appears to
+find the SHORTEST mate its horizon can see, and a horizon that can see a mate in k can see the shorter mates too -
+so "right length + checkmate" may essentially IMPLY "correct distance" for this engine's mate bookkeeping. If that
+holds, the filter is stronger than "catches every observed failure": it may be near-exact on the accept side too.
+
+WHAT I STILL DO NOT CLAIM: correctness. Two failed attempts are not a proof, and the hypothesis above is a
+hypothesis. The honest statement remains: the filter catches every observed failure; its accept side has survived 21
+boards without a counter-example; that is evidence, not proof.
