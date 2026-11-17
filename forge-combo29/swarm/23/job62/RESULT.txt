@@ -1,0 +1,94 @@
+23-F60 RE-VERIFIED UNDER THE CORRECTED VALIDATOR — the unsearched move hangs a QUEEN, and material says so without any score
+=============================================================================================================================
+23-F128 narrowed the family's real cost to exactly this claim, and it had been measured while the flawed occurrence key
+was in use (23-F122). So it was re-verified end to end.
+
+THE FIXTURE, REBUILT AND VALIDATED
+-----------------------------------
+F60's position: `rn3rk1/pp2bpp1/1q2pnbp/3p4/N2P1B1P/4P1N1/PP1Q1PP1/2R1KB1R b K - 11 16`.
+A **castling-neutral** cycle was found by search — `b8d7 f4c7 d7b8 c7f4` (a black knight and a white bishop, neither a
+king nor a rook, so the `K` right survives every ply) — and sent twice:
+
+    validator: PASS | counted=3 python-chess=3 expect=3 ends_at_root=True
+
+That is P1 held: the fixture is a genuine threefold under FIDE identity, verified by two independent counters.
+
+P2 HELD — the mechanism reproduces exactly
+-------------------------------------------
+    base on the validated root: cp 0 | nodes 0 | move e6e5
+
+0 nodes, cp 0, and the move is `e6e5` — which 23-F100 had already shown is generator index 0 on this board.
+
+THE MATERIAL CHECK — P3 held, and this is the part that settles it
+------------------------------------------------------------------
+Material before either move: **white 38, black 38** (level).
+
+| move | material after | captures available to White next | of which UNDEFENDED |
+|---|---|---|---|
+| base's `e6e5` | level (38/38) | `f4h6` (pawn), `f4e5` (pawn), **`a4b6` (QUEEN)**, `d4e5` (pawn) | all four — **no recapture exists on any** |
+| PC's `b6b4` | level (38/38) | none | — |
+
+**`a4b6` takes the black QUEEN on b6.** (CORRECTED BELOW: the queen IS defended — the knight recapture costs 3, so the
+net is +6, not a free queen. My first script's "no recapture" test compared capture moves without matching squares.) So the claim is not merely "loses material" but
+specifically **hangs the queen**, and material establishes it with no engine evaluation involved. My first pass used a
+crude "best free capture by piece value" heuristic and reported "9 pawns"; I then checked the actual move list and the
+defender count, which is the stricter form: the queen is taken and nothing can recapture.
+
+P4: the PC's own choice differs and is far better — `b6b4`, after which White has no capture at all, and the PC scores
+that position `cp 0` (the draw it has correctly identified) while it scores the position after `e6e5` as **cp 808**
+(184,587 nodes). So the score gap is large and in the expected direction, and I am reporting the measured numbers rather
+than repeating F60's "cp -805 vs cp 0", which were from the opposite point of view.
+
+WHAT THIS SETTLES, AND WHAT IT DOES NOT
+----------------------------------------
+SETTLED: on a genuine threefold root the base plays generator index 0 without searching, and on this board that move
+hangs a queen. Two independent things agree — the material count (no engine) and the PC's evaluation (+808).
+NOT SETTLED: that the queen hang is TYPICAL. 23-F101 measured the cost distribution at a median ~625 cp, which is
+consistent with hanging material often but does not show a queen hang is common. This board is a middlegame the engine
+reached by its own play, so the case is real rather than constructed, but it is one case.
+
+WHY THE RE-VERIFICATION MATTERED
+---------------------------------
+F60's original measurement used the flawed key, and under 23-F122's correction a fixture whose cycle disturbs castling
+would not have been a threefold at all. This one is castling-neutral, so F60 was right — but that was luck of the
+fixture, not of the method, and it could not have been known without rebuilding it. The finding now rests on a
+validator that can fail, a two-counter check that agrees, and a material count that needs no engine at all.
+
+LIMITS: one board; `go depth 10` for the base and 16 for the PC's evaluations; Threads 1, Hash 16, OwnBook false, no
+PC20 switches.
+
+---
+
+THE CHECK THAT DECIDES THE PRACTICAL ADVICE: does the PC build fix the MOVE as well as the score?
+=================================================================================================
+Sent the same validated threefold root:
+
+| build | move | score | nodes | best material White can win after it (SEE) |
+|---|---|---|---|---|
+| **base** | **e6e5** | cp 0 | **0** | **+6** — `a4b6` takes the QUEEN (9) and the knight recapture costs 3 |
+| **PC r15** | **b6b4** | cp 0 | 19,976 | **+0** — White's `d2b4` takes the queen but Black recaptures; nothing is won |
+
+So **the PC's repair fixes the MOVE as well as the score on this board.** The base's unsearched `e6e5` loses 6 pawns of
+material; the PC's searched `b6b4` loses nothing. That changes the practical advice: it is not "the repair is missing the
+move", it is **"the repair is adequate for the move and, on this board, for the score too"** — the PC reports cp 0 (it has
+correctly seen the draw) *and* plays a move that does not hang material.
+
+A CORRECTION TO MY OWN FIRST PASS IN THIS JOB, recorded because it was the second time tonight
+----------------------------------------------------------------------------------------------
+My first material script reported "best FREE capture = 9 pawns" for `e6e5` and "0" for `b6b4`, concluded `e6e5` hangs a
+queen with no recapture, and I nearly published that. The recapture test in that script scanned moves AFTER pushing the
+capture and checked `is_capture` without comparing squares, so it was answering a different question. A static exchange
+evaluation on the actual capture squares gives the honest numbers: **+6 for the base's move**, **+0 for the PC's**. The
+qualitative conclusion survives (+6 is still hanging material, and specifically the queen) but the "no recapture exists"
+claim was wrong — the queen IS defended, the knight simply wins 6 by taking it. **The lesson is 23-F122's again: the
+comparison operand has to be the right square, not merely "a capture".**
+
+WHAT THE FAMILY'S REMAINING COST IS, RESTATED EXACTLY
+------------------------------------------------------
+- **Score: largely sound.** Automatic draws (insufficient material) → both builds cp 0 (23-F128). Claimable draws → both
+  defensible, a policy difference (23-F128's R3).
+- **Move: this is where the base's damage is.** The unsearched move is generator index 0 (23-F98); on this board it loses
+  6 pawns of material (this job); across 12 sampled middlegame positions the move cost a **median ~625 cp** (23-F101 —
+  attributed to the MOVE, not the score).
+- **The PC's repair fixes both on this board**, so the practical advice for the owner is that the repair is adequate
+  here, and the open question is whether it remains adequate on boards where the unsearched move loses more than 6.

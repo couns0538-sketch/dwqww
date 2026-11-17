@@ -31,9 +31,13 @@ agreeing and asserted to its exact count before the engine was called.
 
 - **The score is largely SOUND.** On an automatic draw (insufficient material) both builds report `cp 0`; on a
   claimable draw the two builds differ in whether to claim, and both are defensible (23-F128).
-- **The MOVE is where the damage is.** The unsearched move is generator index 0, and playing it costs a **median ~625 cp
-  over 12 deterministically sampled middlegame positions, ten of twelve ≥ 300 cp** (23-F101); on a real self-play board
-  it hung a piece (23-F60, re-verified under the corrected validator in 23-F129).
+- **The MOVE is where the base's damage is** — and the ~625 cp figure belongs to the MOVE, not to the score (23-F101:
+  median over 12 deterministically sampled middlegame positions, ten of twelve ≥ 300 cp, measuring the cost of playing
+  generator index 0). On a real self-play board the unsearched move lost **6 pawns of material** by allowing a queen
+  capture (23-F60, re-verified under the corrected validator in 23-F129).
+- **The PC's repair fixes BOTH on that board**: it searches ~20k nodes, reports `cp 0`, and plays a move that loses no
+  material (23-F129). So the practical advice is that the repair is adequate for the move and the score where it was
+  measured; whether it stays adequate where the unsearched move loses more than 6 pawns is untested.
 
 ## The one-line chain
 
