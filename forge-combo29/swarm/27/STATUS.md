@@ -398,3 +398,14 @@ limits. PC r15/PC20/Threads 1/Hash 16/OwnBook false, 3 positions x 4 commands x 
   the `info string softnodes nodes K` line matches the last info line whenever a soft budget was given.
 **So a self-play loop that sends both is safe and reproducible.** Recorded because "safe" is only a claim once
 somebody has crossed the limits and checked - and no defect here.
+
+## 2026-11-17T00:07Z the practical rule for crossing limits, and both bestmove numbers kept
+**S-N2 carries the rule now, stated so it can be acted on:** when both a budget and a clock are sent, the
+SMALLER limit decides the search and the other is inert. A node budget survives an added clock unchanged
+(`softnodes 2000` -> the same 2,474 / 2,303 / 2,341 nodes with or without a 6 s clock), and a clock with nothing
+left overrides any budget (`softnodes 400000 wtime 10` -> 25 / 76 / 394 nodes at depth 1). So a self-play loop
+that sends both gets exactly the cap it asked for, with the clock as a pure safety net - the configuration to use
+when labels must stay reproducible but a slow position still must not overrun.
+**S-C12 keeps both numbers side by side**: seat 19's "bestmove identical in all 18 cells" and my measured
+**16 of 18** (pos 3 N=20,000 hard c1e3 vs soft e1g1; pos 5 N=50,000 hard g1f3 vs soft f2f4). A reader can see the
+claim and the correction in one line rather than only my version.
