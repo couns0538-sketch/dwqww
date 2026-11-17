@@ -103,11 +103,21 @@ print("headline says '%s'; bolded lead sentences found: %d" % (sent_head.group(1
 sent_bad = bool(sent_head) and words.get(sent_head.group(1).lower()) != n_sent
 print("headline count wrong:", sent_bad)
 
+# NAMED-PATTERN COUNT: I quoted "nine named patterns" in a status message while the page held eight, and the check had
+# no view of named patterns at all — the same blind spot as a count with no comparator, one level up.
+_named = len(re.findall(r"^## Named pattern", text, re.M))
+_said = re.findall(r"([A-Za-z]+|\d+)\s+named patterns", text)
+_print = words.get(_said[0].lower()) if _said and _said[0].lower() in words else (
+    int(_said[0]) if _said and _said[0].isdigit() else None)
+_named_bad = (_print is not None and _print != _named)
+print("named-pattern sections found: %d | prose says: %s | %s" % (
+    _named, _said, "MISMATCH" if _named_bad else "agree"))
+
 toks = set(re.findall(r"(?:[\w.-]+/)*[\w-]+\.(?:py|out|txt|json|jsonl|fens|sh|md)", text))
 ALLOW = {'compare_perft.py','integrity_selftest.sh','refused_readyok.py','FABLE_TO_swarm_5.md'}
 unres = sorted(t for t in toks if t not in ALLOW and not resolve(t))
 print("unresolved path tokens (excluding %d allow-listed script names):" % len(ALLOW), unres)
 print()
-ok = not gaps and not dups and not bad_counts and not sent_bad and not unres
+ok = not gaps and not dups and not bad_counts and not sent_bad and not unres and not _named_bad
 print("VERDICT:", "PASS" if ok else "FAIL — see above")
 sys.exit(0 if ok else 1)

@@ -23,7 +23,7 @@
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, TWENTY-EIGHT instances plus six named patterns (see the named patterns at the end) from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, TWENTY-EIGHT instances plus nine named patterns (see the named patterns at the end) from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Five sentences to carry into any measurement of this engine
 
@@ -742,6 +742,26 @@ likely to be quoted onward, so it is the document where a silent paraphrase cost
 **MECHANICAL CONSEQUENCE: a verbatim quote in any summary is inserted by a script that reads the source, and the result
 is checked after insertion** (row count, a distinctive string from each row). Prose ABOUT a table may be written by hand;
 the table itself may not.
+
+## Named pattern — THE DOCUMENTED-EXAMPLE FALSE POSITIVE
+
+A check that flags the sentence describing the check. Three occurrences in one seat (23-F162, 23-F165, and the extremum
+check before them), and the tell is unfailing: **the offending line is always one you just wrote.**
+
+The mechanism is a loop. You write a rule; you write a sentence illustrating it; the sentence contains the very tokens the
+checker greps for (a number-word before "instances", an `import` line, an extremum claim); the checker fires on your
+explanation of the checker. Nothing is wrong with the rule, the example, or the intent — only the check's SCOPE.
+
+**Tell:** the failure appears in text you authored within the last few minutes, and the "violation" is a sentence about
+the property rather than an instance of it.
+
+**Fix, in this order:** narrow the check to the context where the property is supposed to hold, then RE-PROVE it still
+fires on a planted real violation. A narrowing that is not re-proved is indistinguishable from a removal — and narrowing
+is exactly the operation that looks like progress while silently disabling.
+
+**Deeper point:** a checker written in the same language as the documents it inspects will always be vulnerable to this.
+The stable defence is not cleverer patterns but a planted failing case that runs every time, so that a narrowing which
+goes too far is caught by the proof rather than by noticing an absence of failures.
 
 ## The fix, in one line each
 
