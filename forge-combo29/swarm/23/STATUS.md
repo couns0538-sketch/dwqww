@@ -1287,3 +1287,17 @@ of my errors had a fixture where the answer was the same either way and looked f
 Each of the four headline sentences now carries a mechanical check: a known-answer control, asserted counts, a zero
 treated as a claim, matching units on the tolerance, and a fixture checked for distinguishability before it runs.
 94 findings, 18 confirmations, twelve named faults, six reference pages. 10 h 4 m remain.
+## 2026-11-17T00:17:07Z  job 29 running: is the drawn-root blunder general or one board?
+2026-11-17T00:17:07Z
+
+Prediction committed alone. 6 clock self-play games from varied openings, each played until the position has ACTUALLY
+occurred 3 times by my own key (board+side+castling+ep) - not python-chess's claimable predicate, which was the 23-F59
+error. Then base vs PC on each game, both moves scored alone at fixed depth 16.
+
+Why: 23-F60/61's -805 is ONE board. A claim that the defect "blunders" needs several, and P3 predicts the base's
+unsearched move is worse than -100 cp in at least 2 of the games - killed if fewer, which would mean the -805 was
+board-specific and the defect usually harmless.
+
+Status: running (each game is up to 200 clock moves). Will report the table when it lands.
+Also this hour: the rule page now has four headline sentences, each with a mechanical check, and the disjointness
+assertion carries a message saying why it exists.
