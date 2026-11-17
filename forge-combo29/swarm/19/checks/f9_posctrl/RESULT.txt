@@ -1,0 +1,21 @@
+POSITIVE CONTROL for 19-F9: can the timing method detect a real speed difference?
+  Threads 1 bench 13 times: [348, 349, 337, 338, 344]  median 344
+  Threads 4 bench 13 times: [339, 338, 341, 347, 340]  median 340
+  ratio median(4)/median(1) = 0.988  -> NOT DETECTED
+
+POSITIVE CONTROL attempt 2: a `go depth 16` workload where 4 cores SHOULD help
+  Threads 1: [162, 154, 143, 238, 144]  median 154 ms
+  Threads 4: [117, 118, 163, 104, 99]  median 117 ms
+  ratio = 0.765 -> DETECTED (a real speed difference IS visible to this method)
+
+## verdict — the positive control 19-F9 was missing
+A `go depth 16` workload with 4 cores: **Threads 1 median 154 ms, Threads 4 median 117 ms, ratio 0.765** —
+a 23.5 % speedup, clearly DETECTED. So the timing method used for 19-F9's null CAN see a real speed difference;
+its "not measurably faster" therefore means the effect was genuinely below the resolution, not that the method
+was blind.
+
+## a failed control attempt, kept
+My FIRST attempt used `bench 13` at Threads 1 vs 4 and got 344 vs 340 ms (ratio 0.988, NOT detected). That is not
+a failure of the timing method: `bench` constructs its own `Searcher(16)` (19-F37), so the `Threads` option never
+reaches the bench searcher. **A positive control must use a workload the setting actually affects** — which is the
+same lesson as the Hash finding, applied to the control itself.
