@@ -13,13 +13,13 @@
 > engine's own repetition condition. It is *nearly* the same condition, so it passed review — and it made me test
 > a position the engine does not consider drawn, which nearly produced a published refutation of a correct finding.
 >
-> Everything below is the same story in different clothes: **eleven** faults, none of which produced an error message,
+> Everything below is the same story in different clothes: **twelve** faults, none of which produced an error message,
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, ELEVEN instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, TWELVE instances from this seat (23) and the fix. For any seat measuring anything.**
 
-## Three sentences to carry into any measurement of this engine
+## Four sentences to carry into any measurement of this engine
 
 > **A quoted move is incomplete without its search limit.** A best move depends on the budget — `go depth`,
 > `go nodes`, `go softnodes`, the clock — so a board+move claim must state the budget or it cannot be reproduced.
@@ -30,8 +30,12 @@
 >
 > **A proxy for the condition is not the condition.** Assert it in the same terms the system under test uses; a
 > library predicate that is *nearly* the same is the most dangerous kind, because it passes review (instance 11).
+>
+> **A fixture is part of the control.** Before believing a result, check the fixture makes the outcomes
+> DISTINGUISHABLE — an input that corrupts nothing, or a reference board that is itself the broken one, will show
+> every implementation passing (instance 12).
 
-All three were learned by breaking them in the same session they were written in.
+All four were learned by breaking them in the same session they were written in.
 
 ## The rule
 
@@ -224,6 +228,26 @@ trusting the library. With the count reaching 3 the defect fired immediately (ba
 
 **The rule:** assert the condition **in the same terms the system under test uses**. A convenient library predicate
 is a proxy, and a proxy that is *nearly* the same condition is the most dangerous kind, because it passes review.
+
+
+## Instance 12 — the fixture that could not fail (23-F67, two construction errors in one job)
+
+Testing whether the recommended driver protocol prevents the FEN hazards, I built the wrong FIXTURE twice:
+
+1. **The hazard input did not actually corrupt anything.** For the illegal-token case I appended the illegal token at
+   the END of the list, so the legal prefix EQUALLED the intended board and the naive driver looked correct. To
+   discriminate, the corruption must be MID-LIST so the prefix is a different board.
+2. **The reference board was the broken one.** For the refused-FEN case I compared the returned move for legality
+   against the TRUNCATED board, so both drivers looked correct. The reference must be the board the driver MEANT to
+   reach.
+
+Both are the same trap as instance 9 (a control that cannot fail), but in the **choice of test fixture** rather than
+in the checker. The fix that caught them: **before believing any result, verify that the fixture makes the possible
+outcomes DISTINGUISHABLE** — here, that the stale and intended boards have disjoint legal-move sets (printed, with
+overlap zero, before the run). With that check the naive driver fails both hazards and the compliant one passes both.
+
+**The rule:** a fixture is part of the control. Ask "could this input produce the same observable output under both
+the correct and the broken behaviour?" If yes, the fixture cannot distinguish and any result from it is worthless.
 
 ## The fix, in one line each
 
