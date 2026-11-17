@@ -1,0 +1,25 @@
+SCOPING THE SOFTNODES FLOOR: does it bite on REAL-GAME positions?
+PC r15 068f0927, PC20 (22 opts asserted), Threads 1, Hash 16, OwnBook false
+60 real positions from tests_r3fu_12, go softnodes 2000 (the self-play budget)
+
+statistic                    value
+positions                    60
+min ratio                    1.022
+p10 ratio                    1.097
+median ratio                 1.567
+p90 ratio                    2.417
+max ratio                    3.987
+UNDERSHOOT (ratio<0.95)      0 of 60
+reaching depth-64 clamp      0 of 60
+
+CONCLUSION: the floor NEVER BIT on 60 real-game positions at the self-play budget.
+No position undershot, and none came near the depth-64 clamp.
+
+So the floor is CONFINED TO SPARSE/MATING POSITIONS, where the tree is small enough
+that depth 64 arrives before the budget is spent. For the owner's actual use -
+self-play on real game positions - 'softnodes 2000' always buys AT LEAST 2,000 nodes
+(min ratio 1.022 here) and the 14.9x under-shoot does not occur.
+
+THE OWNER-FACING SENTENCE MUST CARRY THAT SCOPE. 'A soft budget can do nothing on a
+mating position' is true; 'a soft budget is unreliable' would be FALSE on this evidence,
+and 60 positions is a real sample in a way that the 4 boards behind S-N1 were not.
