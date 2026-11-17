@@ -607,10 +607,28 @@ the function look validated.** Committed in `checks/sign_test.py` as `check_symm
 
 ---
 
-## 20. A sign-share computed from a timer is a share of the TIMER's resolution (19-C64/19-C65)
+## 20. A sign-share computed from a QUANTISED measure is a share of that measure's GRANULARITY (19-C64/19-C65/19-C66)
 
-> **Before quoting a sign-share from wall time, report the EXACT-TIE fraction. On short searches, most "losses"
-> are ties, and the share measures the clock, not the effect.**
+> **Before quoting a sign-share, report the EXACT-TIE fraction. If the measure is quantised — milliseconds, or
+> plies, or anything with a floor — most "losses" are ties, and the share measures the RESOLUTION, not the effect.**
+>
+> **Report wins / ties / losses, and prefer the share (or wins/decided) over a SUM of the differences.**
+
+**Two different quantities hit this in one night, which is why the rule is scoped to quantisation rather than to
+timers:**
+- **wall time** (19-C64/19-C65): 1 ms resolution on 19 ms searches → **64.6 % exact ties**
+- **search depth** (19-C66): depth is an **integer**, no timer involved → **50.0 % exact ties** at 20k nodes
+
+**In both cases a positive SUM coexisted with most positions being exactly tied:**
+| case | sum | per position | tie share |
+|---|---|---|---|
+| material-key cache | −0.66 % pooled | — | 64.6 % |
+| depth at 20k nodes | **+3 ply over 6** in the original | +0.500 | — |
+| depth at 20k nodes | **+8 ply over 130** at n=130 | **+0.062** | **50.0 %** |
+
+**The sum is the wrong summary for a quantised quantity.** "+8 ply over 130 positions" sounds like progress and is
+compatible with *half the positions being identical*; the median difference was exactly **0.0**. **The share —
+deeper-or-equal on ~84 %, deeper on ~34 % — is the number a reader can act on.**
 
 **The case.** I reported the material-key cache as "PF faster on 36/130 = **27.7 %**" at `go nodes 50000`, and later
 "**52.5 %**" at 500000 — **as though they disagreed.** Two errors, in order of severity:
