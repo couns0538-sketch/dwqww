@@ -62,3 +62,34 @@ cases**, which is the reassuring half and bounds the severity: this is a reporti
 
 That also means the risk is where the score is *consumed*: a GUI showing `mate −7` when it is `mate −4`, or a
 mate-distance-based adjudication, or an operator reading the eval. Not a lost game.
+
+## The `cp 4056` case is NOT truncation — it is the mate not yet found, and the boundary proves it
+
+On seat 05's violator the node budget showed `cp 4056` where a deeper search says `mate 7`. I checked whether that is a
+second defect or just an unfinished search, by walking the budget and the depth:
+
+| limit | score | depth | nodes used | PV plies |
+|---|---|---|---|---|
+| `go nodes 20000` | cp 4056 | 10 | 10,515 | 10 |
+| `go nodes 30000` | cp 4056 | 10 | 10,515 | 10 |
+| `go nodes 40000` | cp 4056 | 10 | 10,515 | 10 |
+| **`go nodes 50000`** | **mate 11** | **11** | **44,749** | 18 |
+| `go depth 10` | cp 4056 | 10 | 10,515 | 10 |
+| **`go depth 12`** | **mate 7** | **12** | 65,774 | 13 |
+| `go depth 16` | mate 7 | 16 | 537,796 | 13 |
+
+**Two separate facts, and they must not be merged:**
+1. **Below depth 11 the mate is simply not found.** `cp 4056` is an honest evaluation of an unfinished search — a huge
+   winning score, no mate claim. That is **not** a truncation defect, and it is **not** misleading: nothing claims a
+   mate.
+2. **At depth 11 / 50000 nodes it reports `mate 11` (22 plies) with an 18-ply PV** — short by 4. **That** is the
+   truncation, and it is the same class as the 20,000-node case on the S-F19 board.
+
+So the violator's `cp 4056` in my S-C48a table was **my own comparison being unkind**, not an engine fault: at 20,000
+nodes the engine had not yet found the mate, and reporting a large centipawn score for a won position is correct.
+**Correcting S-C48a's second row:** the interesting defect there is at **50000 nodes** (`mate 11`, short PV), not at
+20,000.
+
+This is RULE 0 again — *check the reference is working* — applied to my own comparison: I compared a budget-limited
+search against a deeper one and called the difference a defect before checking whether the shallow arm had any right to
+know the answer.
