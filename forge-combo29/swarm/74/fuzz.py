@@ -144,10 +144,6 @@ def biased_position(rng: random.Random) -> tuple[str, list[str]]:
     return _playout(rng, sparse_endgame(rng))
 
 
-EP_PIECE_KINDS = [chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN, None]
-EP_VICTIM_RANKS = [3, 4]  # black/white home ranks for the capturing pawn
-
-
 def ep_decorated_position(rng: random.Random) -> tuple[str, list[str]]:
     """A biased playout that is guaranteed to arrive next to an ep opportunity.
 
