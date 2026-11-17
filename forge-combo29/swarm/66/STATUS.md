@@ -24,9 +24,9 @@ cd forge-combo29/swarm/66 && python3 selftest.py /tmp/w66/build/forge
 
 | case | state | headline |
 | --- | --- | --- |
-| 0 harness self-test | **DONE 11/11**, exits 1 against a lying engine | planted hang / invalid-FEN / slow / multi-info all caught |
+| 0 harness self-test | **DONE 12/12**, exits 1 against a lying engine | planted hang / invalid-FEN / slow / multi-info all caught |
 | 1 opponent's clock, 300 s | **DONE 8/8** | never answers: ran the **full 330 s allowance**, depth **39**, 416,554,567 nodes, **zero** diagnostics; only `stop` ended it |
-| 2 movetime 10/30/60 s | **DONE 11/11** | all three terminate on the CLOCK at depth 27/29/30, never reaching the depth-64 clamp; soft==hard on this path, no 60% rule |
+| 2 movetime 10/30/60 s | **DONE 11/11** | all three terminate on the CLOCK at depth 27/30/32, never reaching the depth-64 clamp; soft==hard on this path, no 60% rule |
 | 3 increment > clock | **DONE 21/21** | clock 1000 inc 2000 plans hard 594 (59.4% of clock) and soft is pulled DOWN to 594; no row plans the whole clock |
 | 4 zero/negative clocks | **DONE 26/26** | `wtime 0`, `-100`, `0 btime 0`, `0 winc 5000`, `-3000000000` all answer legally in <1.5 ms; no forfeit, no hang |
 | 5 huge clocks | **DONE 27/27** | 2e9 / 3e9 / int64-max / 36,028,797,018,963,967 / one-past / 30 digits: all accepted, none answers inside 8 s, all answer `stop` |

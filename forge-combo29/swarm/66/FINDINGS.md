@@ -286,12 +286,13 @@ Denominators: 20 games / 3,071 plies at 1000+100; 1 game / 91 plies completed at
 
 ## Harness self-audit
 
-`selftest.py` plants four faults and requires each to be caught: a hanging engine, an engine that emits an
+`selftest.py` plants five faults and requires each to be caught: a hanging engine, an engine that emits an
 `invalid FEN` line **only** in the position reply (correctly invisible in the go output — which is why both
-streams are scanned), a 350 ms delay, and a multi-line info stream where only the last depth counts. It also
-proves the FEN validator rejects an empty board and an illegal move.
+streams are scanned), a 350 ms delay, a multi-line info stream where only the last depth counts, and an engine
+that prints one info line then goes silent (which catches the wall-time bug below). It also proves the FEN
+validator rejects an empty board and an illegal move.
 
-It scores **11/11 against the real engine** and **10/11 with exit code 1 against a deliberately lying fake
+It scores **12/12 against the real engine** and **11/12 with exit code 1 against a deliberately lying fake
 engine**, so it is a test that can fail.
 
 Four of my own checks were wrong on first run and are recorded rather than quietly fixed:
@@ -306,3 +307,21 @@ Four of my own checks were wrong on first run and are recorded rather than quiet
    version hardcoded its JSON filename, so a 1+0.1 run overwrote the 3+2 run's output. Both fixed; the
    analysis script (`case7_analyse.py`) exists so match numbers can be regenerated from committed JSON
    without replaying six minutes of games.
+
+**The most serious one, because it reached a headline number.** My driver computed a search's duration from
+the arrival time of the **last line it had read**, not from the arrival of `bestmove`. For a search that
+answered this is the same thing, so cases 2–7 were unaffected. For a search that did not answer it is wrong:
+case 1 originally reported **288.7 s** when the harness had actually waited **330 s**, because the engine
+printed its last completed iteration at 238.8 s and then spent the rest of the wait inside one deep
+iteration. The engine's own `time` field on that line said 238,847 ms, and my number was the line's age
+rather than the wait. Fixed by returning four separate fields — `bestmove_ms`, `wait_ms`, `last_output_ms`
+and a `wall_ms` that is the right one for the case — and by planting a fake engine that prints one info line
+then goes silent, which fails the old measure (the self-test reports `wall=500ms last_output=0ms`). Every
+case was re-run from the corrected harness, which is why the numbers in these documents differ from the
+first push. The conclusion is unaffected and in fact stronger: the engine did not answer within the **full**
+allowance, rather than within 288 s of it.
+
+The 1000+100 match data was **not** affected and did not need re-running: all 3,071 moves answered with a
+`bestmove`, so the old timing (time of the last line read) was the bestmove arrival in every case, and there
+were zero timeouts and zero game-moves with no info line. That is a check on the dataset, not an assumption:
+`sum(g["hang"] for g in per_game) == 0` and every move carries a `bestmove`.
