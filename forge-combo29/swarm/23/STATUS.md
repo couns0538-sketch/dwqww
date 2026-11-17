@@ -2547,3 +2547,27 @@ every row stays true.
 
 State: **200 findings + 28 confirmations = 228 rows**, 29 rule instances, 12 named patterns. All three checks exit
 nonzero on failure, each verified by deletion; the clean tree passes all three.
+## 2026-11-17T03:36:54Z  cold-read pass over the whole FINAL; three real defects, three clearances
+2026-11-17T03:36:54Z
+
+Spent this block reading the FINAL as a stranger rather than adding findings, on the coordinator's advice. It found
+three defects no check in the seat could see, and cleared three things.
+
+DEFECTS FOUND:
+1. **The first page conflated two cost measurements.** Section 1 cited F60/61/72 for one phrase, "costs up to mate-in-5",
+   merging a MATERIAL loss (cp -805, robust across depths) with an unverified mate distance - F72's own caveat that its
+   mate solver failed its control had not travelled. And §3's mate forfeit is a third thing: mate in ONE, verified by
+   replay. Now separated, caveat inline, and a paragraph keeps the two costs apart.
+2. **Section 2 was one 12-line arrow-chain** - accurate, unreadable. Now five labelled facts, ending with what is NOT
+   established (the three unranked code paths).
+3. **My sync script updated two of three count occurrences** - the partial-update fault inside the tool written to
+   prevent count drift. It now rewrites all three AND prints the remaining bare figures for review (28, all perig/node
+   values), because reporting the population beats claiming completeness.
+
+CLEARED (recorded as inspected, not merely untouched):
+- section 4's "nine or ten of twelve >= 300 cp" - F101 had ten, F144 had nine, so the hedge is correct;
+- section 5's perft chain - 20/400/8,902/197,281/4,865,609, re-measured exact;
+- section 9's GUI table - engine-ceiling corrections present in all three terminal-branch rows.
+
+STATE: 239 distinct rows (211 F + 28 C), four count occurrences agreeing, all three checks exit nonzero, front-page
+verifier passes (3 of 3 claims). 5h05m to the close.
