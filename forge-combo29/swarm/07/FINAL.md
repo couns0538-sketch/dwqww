@@ -120,6 +120,57 @@ scope that way will "find" a catastrophic breach in every seat, including innoce
 If that prints nothing, the seat committed only its own files. I ran exactly this on my own branch and
 it is empty, which is the claim worth quoting — not a file count.
 
+## The sixteen standing rules, grouped by the question they answer
+
+The FINDINGS header carries sixteen rules; the table there is ordered by when I learned them, which is
+the wrong order to read them in. Grouped by what they are for:
+
+### Is the thing I am measuring actually the thing I meant to measure?
+
+- **If the answer does not belong to the position, the position was not accepted.** The engine refuses an
+  invalid FEN and keeps the previous board, so a move that could not occur on your board means your board
+  was rejected. (Caught me with `e2e4` on a position holding a lone black king on h8.)
+- **Assert your harness settings explicitly and record them: `Threads 1`, `MultiPV 1`, `OwnBook false`.**
+  `MultiPV 2` silently costs 3 plies on startpos at `go nodes 20000`, with no error and a plausible node
+  count.
+- **A fabricated-move check needs a position where the engine's first move is not alphabetically first.**
+  startpos: both `a2a3`, blind. **kiwipete**: engine `a2a3`, alphabetical `a1b1`, discriminating.
+- **A deep search on a high-halfmove-counter position needs a node budget or a timeout.** An untimed
+  `go depth 20` there can take ~250 M nodes and look hung.
+
+### Is this number reproducible at all?
+
+- **A node count under a clock stop is not reproducible until you prove it is.** Repeat the same cell on
+  the same binary first; mine gave 412 nodes once and 971 on five other runs.
+- **A small-sample rate does not order anything.** Two disjoint 100-position samples flipped a budget
+  ordering ten points apart; 353 positions showed it was nothing.
+- **Read a clock result by its move and wall time, not its node count.** Node *stops* are deterministic
+  (16/16 cells exact); node counts under a clock are not.
+
+### Is my comparison right?
+
+- **When my summary line and my raw data disagree, believe the data.** Caught three wrong verdicts; each
+  was a wrong comparison, and a summary is a second implementation that gets less review.
+- **If a defect should vanish with more budget and it does not, suspect the checker** — and if it does
+  vanish with more depth, it was a horizon artefact. One sweep decides which, in either direction.
+- **Before calling someone's number wrong, run it on their own sample.** Mine put 29-F45 thirty points
+  away and running *their* set reproduced it to the digit — the number was right and the generalisation
+  was not.
+- **For a side-to-move-relative score under a colour mirror, the invariant is equality, not negation.**
+  The tell for a wrong checker: its "asymmetric" pairs share the same sign.
+- **A damage table must exclude incomparable pairs.** `mate −12` against `cp −2196` is two losses;
+  subtracting them invents ~9,800 cp of damage.
+
+### Can anyone re-check what I claimed?
+
+- **Regime plus binary is a complete citation; settings alone are half of one.** Nine of my own jobs
+  cited settings with no `sha256` — the gap was in the record, not the work, and it is now closed in
+  `job65/BINARY_PROVENANCE.md`.
+- **A convenient listing is not the tool for the question you asked.** `git ls-files` cannot tell you what
+  a branch contains; `git ls-tree -r --name-only origin/<branch>` can.
+- **A warning from a harness that has not validated its own input is not a finding.** Five of my controls
+  were blind until their own planted fault exposed them.
+
 ## Method debts I incurred, recorded so they are not repeated
 
 Five of my controls were initially **blind** and each was caught by its own planted fault, not by me:

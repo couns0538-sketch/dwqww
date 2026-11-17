@@ -822,3 +822,11 @@ Added the retroactive certification to FINAL.md as its own section, with the lad
   FIXED: job65/BINARY_PROVENANCE.md now records sha256sum PLUS id name for both primaries -- base e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83, PC r15 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4 -- and for all SEVEN auxiliary builds (patched base, patched PC, shared-path patch build, HARD_LIMIT_EMERGENCY-off, and the three single-switch variants). All seven still present and hashed. Both primaries report id name Chess Engine Forge 6.4.24 candidate.
   IMPORTANT DISTINCTION: the gap was in the RECORD, not the WORK. The settings cited per job were accurate; the binaries are now pinned retroactively, so every claim in this file is re-checkable.
   NEW HEADER RULE (16 now): REGIME PLUS BINARY IS A COMPLETE CITATION; SETTINGS ALONE ARE HALF OF ONE.
+
+## 2026-11-17T00:27:10Z
+Grouped the sixteen standing rules in FINAL.md by the QUESTION they answer, because the FINDINGS header orders them by when I learned them, which is the wrong order to read them:
+  1. 'Is the thing I am measuring actually the thing I meant to measure?' -- position-not-accepted; assert Threads/MultiPV/OwnBook; kiwipete for fabricated-move checks; high-counter deep searches need a budget.
+  2. 'Is this number reproducible at all?' -- node counts under a clock; small-sample rates do not order; read a clock result by move and wall time.
+  3. 'Is my comparison right?' -- believe the data over the summary; the two-direction sweep; run it on their own sample; mirror invariant is equality; damage tables exclude incomparable pairs.
+  4. 'Can anyone re-check what I claimed?' -- regime plus binary; a convenient listing is not the tool; a warning from an unvalidated harness is not a finding.
+Each bullet keeps its concrete example so the rule is usable rather than abstract.
