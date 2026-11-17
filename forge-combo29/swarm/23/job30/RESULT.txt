@@ -1,0 +1,33 @@
+THE DRAWN-ROOT DEFECT ON STRICTLY-QUALIFYING REPETITIONS — base 0 nodes and a WORSE move in 5 of 5
+================================================================================================
+My criterion was corrected by 23-F71: a case qualifies only if the position has occurred 3 times by my own key AND
+`is_insufficient_material()` is FALSE (so the draw is the repetition, not material) AND the halfmove counter is well
+below 100. Six new clock games from openings not used in job 29; five qualified, one reached no occurrence in 202
+plies. All five qualifying positions have 13-30 pieces and halfmove 9-16.
+
+| # | opening | 3rd occ ply | pieces | base move / nodes | PC move / nodes | base move alone @16 | PC move alone @16 | gap |
+|---|---|---|---|---|---|---|---|---|
+| 1 | d2d4 d7d5 | 31 | 30 | e6e5 / **0** | b6b4 / 1,376,300 | cp -805 | cp 0 | 805 |
+| 2 | e2e4 c7c5 | 75 | 19 | a5a4 / **0** | f7e6 / 532,851 | **mate -5** | cp 0 | — |
+| 3 | c2c4 e7e5 | 90 | 13 | c4c5 / **0** | h7h8 / 686,855 | **cp -1858** | cp 0 | 1858 |
+| 4 | d2d4 g8f6 | 120 | 13 | g3g4 / **0** | e4c4 / 612,174 | cp -31 | cp 0 | 31 |
+| 5 | e2e4 e7e6 | 69 | 18 | c6c5 / **0** | e4b1 / 1,602,068 | cp -39 | cp 0 | 39 |
+
+ALL FOUR PREDICTIONS HELD, and the result is stronger than predicted:
+- P1: five qualifying games (needed >= 2).
+- P2: the base answered **0 nodes in all five**.
+- P3: the base's move was worth **less than 0 cp in all five** (I predicted "at least half").
+- P4: the PC searched in all five (532,851 to 1,602,068 nodes).
+
+THE WORST CASE, which is the headline: in game 2 the base's unsearched move is **`mate -5`** — it walks into a forced
+mate in 5 plies — while the PC's move holds at cp 0. In game 3 the unsearched move is **cp -1858**, close to a lost
+position. So on genuine repetitions the defect does not merely pick a different move: it can lose the game outright,
+and the score it reports (cp 0) hides that completely.
+
+So the corrected statement, replacing 23-F70's "general but not universal": **on every strictly-qualifying repetition
+tested — five of five — the base answers without searching and plays a worse move, from -31 cp to a forced mate
+against it, while the PC searches and holds.** That is a defect with real cost on a position normal self-play reaches.
+
+LIMITS: five games, one settings combination, all from self-play of this build against itself in this session; one of
+six openings reached no repetition in 202 plies, so how often a game reaches one is still not measured. And the
+"worse" comparison is at depth 16 on the PC build, which is the only fair common yardstick I have.
