@@ -53,7 +53,8 @@ assertion failed loudly instead of producing a plausible wrong table.
 
 | sample | agreement |
 |---|---|
-| KQvK, `\|DTM\| ≤ 11`, random 50 | **50/50** |
+| KQvK, `\|DTM\| ≤ 11`, random 50 (seed 11) | **50/50** |
+| KQvK, `\|DTM\| ≤ 11`, random 25 (seed 99, final binary) | **25/25** |
 | KRvK, `\|DTM\| ≤ 15`, random 20 | **17/20 CORRECT, 3 INCONCLUSIVE, 0 wrong** |
 
 The three KRvK non-CORRECT results are `INCONCLUSIVE` from the node cap at
@@ -206,15 +207,41 @@ train on**, which is exactly the corpus risk the brief describes.
 Both FENs were recovered from the store rather than guessed:
 
 - R5 board 222: `2r1k1n1/4p1bQ/1P2B1pp/2pp1pN1/pn3PPP/1RPPP3/1B6/1N2KR2 b - - 0 1`
-- R6 board 121: `1nbk2r1/2rp1gb1/Bp1n1q2/1Pp3Pp/5pP1/P3P3/2PP1K2/RNB3NR b - - 0 1`
+  (27 pieces, 26 legal moves)
+- R6 board 121: `1nbk2r1/2rp1pb1/Bp1n1q2/1Pp3Pp/5pP1/P3P3/2PP1K2/RNB3NR b - - 0 1`
+  (28 pieces, 37 legal moves)
 
-**Status: not confirmed or refuted.** Both are ~12-piece middlegames with pawns,
-and the exhaustive verifier did not finish board 222 within a 15-minute budget.
-This is a real limitation of the verifier as built — it is fast on sparse
-endgames and too slow on populated middlegames — and it is why the corpus screen
-above uses sparse positions. Reporting a verdict here would require either a
-much faster exact solver (a proper DTM table for the position class) or a
-different approach entirely. **No verdict is claimed.**
+**Status: NOT confirmed and NOT refuted. No verdict is claimed.**
+
+Both are populated middlegames with pawns, and the exhaustive verifier does not
+finish them. This is measured, not assumed. On board 121, per-depth cost with
+check-first ordering and a fresh table per horizon:
+
+| depth | nodes | time | result |
+|---|---|---|---|
+| 1 | 38 | 0 ms | no mate |
+| 2 | 970 | 8 ms | no mate |
+| 3 | 36,869 | 239 ms | no mate |
+| 4 | 577,419 | 5.2 s | no mate |
+| 5 | 7,557,120 | 50 s | aborted at cap |
+
+The claimed `mate 4` needs 8 plies to grade (2×4 for a loss), and depth 5 alone
+already cost 7.6M nodes and 50 s. Branching is 37, so 8 plies is on the order of
+1e11 nodes at full width. It did not finish in a 15-minute budget.
+
+Note the last row is itself informative and is NOT a verdict: no mate at 4 plies
+does not refute `mate 4`, because a loss needs 8 plies. It only shows the cost
+curve.
+
+**What this costs the assignment:** sub-task 3 is not delivered. The class those
+boards were cited for *is* demonstrated elsewhere in this document, on 89 corpus
+labels including 4 in the `under` direction — but the two named boards themselves
+are unverified here, and anyone relying on this document for those boards should
+treat them as open.
+
+**What would close it:** a retrograde/DTM table for the position class (as done
+for KQvK/KRvK here), or a dedicated mate solver with proof-number search.
+Neither is built.
 
 ## 4. Is the screen cheap enough for a whole self-play corpus?
 

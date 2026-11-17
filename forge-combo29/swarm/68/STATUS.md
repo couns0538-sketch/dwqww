@@ -48,9 +48,11 @@ cases, so the verifier's agreement on losses is earned rather than structural.
 - **The corpus is sparse by construction** (material diff ≥ 5, ≤ 12 pieces), so
   the rate applies to the positions where mates actually appear — not to
   middlegames, where a mate label is rare to begin with.
-- **Board 222 and board 121 are NOT confirmed or refuted.** Both are ~12-piece
-  middlegames with pawns and the exhaustive verifier did not finish board 222 in
-  15 minutes. The verifier is a sparse-endgame tool; this is a real limitation.
+- **Board 222 and board 121 are NOT confirmed or refuted.** Both are populated
+  middlegames (27 and 28 pieces, branching 26 and 37) and the exhaustive verifier
+  does not finish them: board 121 spends 7.6M nodes and 50 s to reach depth 5,
+  and grading its label needs 8 plies. The verifier is a sparse-endgame tool;
+  this is a real limitation and sub-task 3 is not delivered.
 
 ## Open items
 
