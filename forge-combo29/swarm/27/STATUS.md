@@ -526,3 +526,18 @@ mate it claims. The move `f6f5` is still the longest-defence choice, but **the s
 the S-C15 phenomenon on a second board, at depth 24 instead of at a node budget.
 **Kept as first runs, unpicked.** If seat 19's raw line matches my FEN and settings, the two builds genuinely
 differ at depth 24 here - and that is the more interesting outcome, recorded rather than reconciled away.
+
+## 2026-11-17T00:18Z guards everywhere, the anti-pattern is grep-able, and the S-C11 residual is now a range
+**The grep-able anti-pattern is in METHOD_NOTES** with the exact command to find it, because grepping my own folder
+showed the fix was incomplete: `grep -rn 'infos\[-1\] if infos else' .` found **five files still carrying the
+pattern**, two of which I had listed as "pre-existing guard" (the guard raised first, so they were safe, but the
+dead line is a trap for the next editor), and **four more with NO guard at all** - including `job2/f2_history_drift.py`
+and `job2/f3_tt_vs_histories.py`, behind my published S-F5 and S-F4. All are now guarded, and the only remaining
+instance is `check_20f11_pc.py`'s `summarise()`, where 0 info lines is the EXPECTED answer for control rows.
+**Checked whether those two findings were affected: they were not.** S-F5's 42-row table has 0 rows with a missing
+score; S-F4's 20-row table has 0 rows with a '-' score cell (my first grep said 19 - it was matching the separator
+dashes, not missing data).
+**S-C11's residual is re-run under the guard, and it moves the number:** median 91.9 ms, **net drain +31.9 ms/move**,
+**a forfeit at ply 78**, versus my earlier 18.6 / 21.7. Control at 6 s + 0.5 s: 381.2 ms, -118.8 ms/move, no
+forfeit. **So the honest figure is a range: 19-32 ms/move drained, zero at 188-322 plies, and two forfeits seen
+now (plies 106 and 78).** S-C11c records this and keeps the earlier runs visible as samples.
