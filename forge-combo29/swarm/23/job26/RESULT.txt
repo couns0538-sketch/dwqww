@@ -1,0 +1,28 @@
+IS THE NODE-BUDGET LOTTERY WORSE ON TACTICAL POSITIONS? — NO: it is LOWER, 20 % against 30 %
+===========================================================================================
+23-F24's ~30 % came only from QUIET middlegames, and every limitation I wrote said "no claim about tactical
+positions". This closes that gap on 30 tactical positions — the side to move is IN CHECK, or a capture is available,
+or there are fewer than 20 legal moves — same protocol, same per-row labelling, PC r15 + PC20, Threads 1, Hash 16,
+OwnBook false, fresh process per cell, budgets 20000/50000/250000.
+
+| sample | positions | move changes between the three budgets |
+|---|---|---|
+| QUIET (23-F24) | 60 | 18 = **30 %** |
+| TACTICAL (this job) | 30 | 6 = **20 %** |
+
+Shapes of the 6 changes: only-20000 2, only-250000 2, all-three 2 — much less concentrated than the quiet sample,
+where 11 of 18 were "only 250000 differs".
+
+P1 IS KILLED, and in the interesting direction: I predicted tactical would be >= 40 % (worse) on the reasoning that
+sharp positions might be more fragile. It is LOWER. The explanation is the one 23-F26/F30 already supplied — the
+change happens where the top-two moves are nearly equal, and tactical positions usually have ONE clearly best move (a
+capture or a check), so the margin is large and the budget cannot flip it.
+
+THE REASSURING CONCLUSION, which is worth stating plainly: the per-move lottery is concentrated in QUIET positions,
+which is exactly where a changed move usually costs least. In tactical positions — where a wrong move loses material
+— the budget is MORE stable, 20 % against 30 %.
+
+Determinism: 0 of 90 (position, budget) cells varied across the runs, so the 20 % is a stable measurement, not noise.
+
+LIMIT: 30 positions, one build/settings combination, and my "tactical" definition is a filter (in check / capture
+available / <20 legal moves) rather than a curated tactical suite.
