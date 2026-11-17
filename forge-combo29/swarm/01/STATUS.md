@@ -3030,3 +3030,24 @@ MY INSTINCT WAS TO REPORT A DISCREPANCY IN THE RECORD. THE DISCREPANCY WAS MINE.
 20,000-FEN sweep; mine had survived ninety seconds. Before reporting that two counts disagree, suspect the new counter.
 Gates: 227 rows, 0 wrong pipe counts, page shape OK, gate rc=0 across 66 checks.
 Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T03:54:47Z — the perft fingerprint is an instrument now, with a self-test that proves it can fail (S-F169)
+YOU CALLED THE FINGERPRINT THE GENERAL FORM OF THE WHOLE FEN FAMILY, so I made it reusable rather than a one-off.
+perft_fingerprint.py runs TWO comparisons, because they answer different questions:
+  1. ENGINE vs ENGINE - perft N of the FEN sent against perft N of its canonicalised form (digit runs collapsed).
+     This isolates the FEN PARSER: same board means the parser read the intent. That is the S-F1 question.
+  2. ENGINE vs PYTHON-CHESS - perft N against an independent implementation. This isolates the ENGINE'S MOVE
+     GENERATION, and it is the stronger claim: two independent legal-move generators agreeing to depth N is hard to
+     fake. That is the S-F2 question.
+BOTH ARE NEEDED: comparison 1 can pass while movegen is broken, because both sides use the same engine; comparison 2 only
+runs where python-chess accepts the FEN.
+SKIPS ARE COUNTED AND REPORTED, per 23-F200: on S-F2's double-check board python-chess refuses, so the tool prints
+"movegen=SKIPPED" and "movegen skipped: 1" rather than passing silently - "I could not evaluate this" must never look
+like "this is fine".
+AND IT CARRIES A SELF-TEST THAT RUNS EVERY TIME: it drives the comparison against two DIFFERENT boards (19 vs 13) and
+requires a difference, printing "SELFTEST: OK: different boards differ" beside the verdict. A FINGERPRINT TOOL THAT HAS
+ONLY EVER SAID AGREES IS INDISTINGUISHABLE FROM ONE WHOSE COMPARISON CANNOT FAIL - the same rule as the gate audit
+(S-F166) applied to a measurement instrument rather than a checker.
+Exercised on 8 real positions from set_G.epd at depth 3: all parser_ok=True, movegen=AGREES, on PC r15 and identically
+on base. LIMIT STATED IN THE TOOL: perft agrees on LEGAL MOVE COUNTS, not on evaluation, pruning or the move chosen.
+Gates: 228 rows, 0 wrong pipe counts, gate rc=0 across 66 checks.
+Next: continue at cadence to the 10:20Z close.
