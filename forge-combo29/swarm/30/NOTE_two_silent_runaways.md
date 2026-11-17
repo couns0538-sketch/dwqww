@@ -82,6 +82,35 @@ WHITE-to-move board `go wtime 6000` alone is the mover's own clock and works nor
 223,639 nodes / 136 ms, while on a BLACK-to-move board `go wtime 6000` alone runs to 26,264,563 nodes
 with no bestmove and `go btime 6000` alone works at depth 26 / 328,863 nodes / 160 ms — 30-C49.)
 
+## Trap 4 — a REFUSED FEN scored through `searchmoves` looks exactly like a drawn position
+
+This one bit ME and is the sharpest of the four, because the fake result is a plausible *number*.
+
+```
+position fen rnb3nr/3kb2p/1p2p3/p1p2pP1/1PP1pP1/P3PQ1R/1B1P1P2/RN2KB1 w Q - 0 18   # last rank has 7 squares
+go depth 12 searchmoves f3g2
+```
+
+The engine answers `info string invalid FEN: invalid FEN rank`, KEEPS THE PREVIOUS BOARD (an empty
+board at startup), and then, because `searchmoves` restricts the root, emits
+
+```
+info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+bestmove 0000
+```
+
+`score cp 0` and `nodes 0` — **byte-identical to a real drawn-position evaluation**. My classifier read
+a whole position as a perfect near-tie from it. With a plain `go depth 12` instead of `searchmoves`
+there is no `info depth` line at all, which is at least visibly empty.
+
+The control, same sequence with the valid FEN (`...RN2KB2`): `info depth 12 ... bestmove d2d3`.
+
+**Two rules:**
+- grep the output for `invalid FEN` (and `illegal move`) and ABORT — never parse a score from a session
+  that refused its position;
+- treat `cp 0` with `nodes 0` as an UNSEARCHED ROOT, not an evaluation, unless the position is known
+  terminal (checkmate/stalemate/insufficient material).
+
 ## Why these belong together
 
 | | trap 1 | trap 2 |
