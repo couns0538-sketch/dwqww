@@ -6,6 +6,19 @@ scores at Threads 1; node counts above Threads 1 are not reproducible either. No
 `Threads` above 1 (grep over every script: zero matches for `Threads value 2..9`), so no score, node count or
 timing in this file is provisional.
 
+**THREE METHOD RULES, learned the hard way in this seat, that apply to anyone reading or repeating this work:**
+
+1. **A summary I typed is not evidence, and a small sample is not a population.** Every run file here carries its
+   per-run lines; a count is quoted only from a committed file; when the question is a spread, twenty runs minimum;
+   and a position sample must span the shape classes or say which one it covers. (Three instances: 08-N1.)
+2. **A timeout mechanism must be proved against a case known to return quickly before it may declare a hang.**
+   `select()` on a Python text-mode buffered pipe reported 90 s timeouts on clocked searches that actually answered
+   in 194 ms, because `readline()` reads ahead into Python's own buffer — the harness would have reported "the sparse
+   class hangs", which is false and the opposite of the finding. Prove the timer on a fast case first. (08-N2.)
+3. **A count from a different SCALE is not a cost.** A mate appearing is not a centipawn movement: mapping
+   `mate N` to 30000 cp produced a meaningless "106x more volatile", and an earlier reading turned a mate score into
+   "the one-ply move loses 9 pawns". Report such events as counts of the event, never as a magnitude. (08-F30, F31.)
+
 | id | area | finding | evidence file with the command that shows it again | status |
 |---|---|---|---|---|
 | 08-F1 | 8 | On a clock the tail is ~4x the median: 10 s clock, median 345 ms but p99 1335 ms and max 2426 ms, and 46 of 200 searches run past the engine's own soft limit (529 ms, up to 4.6x); none pass its hard limit (2645 ms). 1 s clock: median 40 ms, p99 153 ms, max 199 ms, 63 of 200 past soft. | job1/raw2/limits_table.txt, from `cd forge-combo29/swarm/08/job1 && python3 limits_vs_wall.py raw2`; raw searches job1/raw2/tc10000.jsonl | NEW |

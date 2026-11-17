@@ -34,7 +34,9 @@ PC20 = [("LmrQuietBase", "93"), ("LmrQuietDivisor", "205"), ("LmrNoisyBase", "13
         ("MateAlphaGuard", "true"), ("OwnBook", "false"), ("Threads", "1"), ("Hash", "16")]
 
 # sparse: <=12 pieces, at least 3 legal moves, from my own R set (deterministic order)
-rset = [l.strip() for l in open("../job1/R_seed801.fens") if l.strip()]
+import os as _os
+_RSET = _os.environ.get("VOL_R", "../job1/R_seed801.fens")
+rset = [l.strip() for l in open(_RSET) if l.strip()]
 sparse = []
 for fen in rset:
     try:

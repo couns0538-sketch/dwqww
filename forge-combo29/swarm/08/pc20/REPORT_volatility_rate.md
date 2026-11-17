@@ -13,6 +13,11 @@ in 90 s, and those are reported rather than dropped.
 | **sparse (≤12 pieces)** | 27 | **10** | **0** | **0** | **10 of 27 = 37 %** |
 | **real-game set G / full material (≥20 pieces)** | 30 | **0** | **0** | **0** | **0 of 30 = 0 %** |
 
+**Reporting only the cp-gap column would have said the opposite of the truth.** "Gap ≥ queen in centipawns" is 0 in
+both classes, which reads as "no material errors anywhere"; the sparse class's errors are all there, in the
+mate-appeared column, as `cp …` → `mate …`. Both columns are in this one table so that one cannot be quoted without
+the other.
+
 Also reported by the harness:
 | class | clocked searches that did not answer in 90 s | depth-(D+4) references that did not finish in 90 s |
 |---|---|---|
