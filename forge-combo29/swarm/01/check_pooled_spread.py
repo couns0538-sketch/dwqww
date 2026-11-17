@@ -18,6 +18,12 @@ the omission, which is the failure seat 19 documented. It cannot catch a spread 
 
 Usage: check_pooled_spread.py [dir]
 Exit 1 if any file reports a pooled ratio with no spread marker.
+
+SCOPE / EXCLUSIONS (S-F142, Trap 13):
+  scans:      *.txt at one directory level (the given dir and its immediate children)
+  does NOT scan: *.md (prose may legitimately state a pooled figure with the spread in the
+                 same paragraph), *.json, deeper nesting
+  does NOT check: that the spread belongs to the pooled figure, only that one is nearby
 """
 import re
 import sys

@@ -12,6 +12,13 @@ the class I got wrong.
 
 Usage: check_depth_claims.py [FINDINGS.md] [trace.json]
 Exit 1 on any mismatch, so it can gate a commit.
+
+SCOPE / EXCLUSIONS (S-F142, Trap 13):
+  scans:      the findings file for "X vs Y at dN" claims, checked against ONE trace JSON
+  does NOT scan: claims phrased any other way; other traces; quoted spans (deliberate
+                 evidence); *.txt
+  does NOT check: attribution - the prose need not name its position, so any satisfying
+                  row passes
 """
 import json
 import re

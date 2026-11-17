@@ -17,6 +17,12 @@ It does NOT check content, correctness, or whether the order is the RIGHT order 
 sequence with no duplicates and nothing stranded after the closing material.
 
 Usage: check_page_shape.py [files...]   (defaults to the rule pages in this folder)
+
+SCOPE / EXCLUSIONS (S-F142, Trap 13):
+  scans:      the *.md files named on the command line, or the DEFAULT list
+  does NOT scan: *.txt, *.json (no headings to check) and STATUS.md BY DESIGN - it is an
+                 append-only log where a block legitimately follows closing material
+  does NOT check: intent, whether a section belongs where it is, or prose quality
 """
 import pathlib
 import re

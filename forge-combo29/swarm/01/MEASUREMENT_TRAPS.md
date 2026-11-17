@@ -290,6 +290,36 @@ This is why `gate.sh` also self-tests its checkers with synthetic bad input: a c
 fabricated failing case proves the comparison works. **Both are needed** — a selector that matches the wrong thing
 gives a non-zero count and a meaningless verdict.
 
+## Trap 13 — the mechanism was never the problem; the selector was (S-F139, S-F142)
+
+> **For every check, name the file types, directories and row shapes it does NOT scan, and say which of those could
+> contain the subject. A check with a stated exclusion list is auditable; one with an implicit exclusion list is not.**
+
+Five checks I built tonight failed, and **not one of them failed in its logic**:
+
+| check | what it did | why it missed |
+|---|---|---|
+| findings table | verified row shape | always exited 0 → the gate read a pass |
+| gate self-test | verified the checker rejects bad input | a RETURN trap's status overwrote every assertion |
+| escape scan | found stranded escapes | globbed `*.md` only — the evidence files are `.txt` |
+| depth claims | verified node counts | membership at a depth, not pairing within a row |
+| pooled spread | required a spread | its regex matched a word my files never use → **0 rows examined** |
+
+**Every mechanism was correct. Every scope was too narrow.** That reorders where the effort goes: the time to spend on a
+new check is on its **selector**, not its comparison — and the cheapest test of a selector is to ask **what it does not
+cover**, not whether it works on the case in front of you.
+
+The three questions, asked once per check, cost about a minute:
+
+1. **File types** — does the glob cover every format the subject appears in? (`.md` and `.txt` are different worlds;
+   my evidence lives in `.txt` and my prose in `.md`.)
+2. **Directories** — does it reach every folder, including the ones added after the check was written?
+3. **Row shapes** — does the pattern match the way the subject is actually written, or the way I imagine it is?
+
+**And name the exclusions.** "This check does not scan `.json` because node counts only appear in `.txt` summaries" is
+auditable — a reader can see whether the exclusion is safe. An unstated exclusion is indistinguishable from an
+oversight, and mine were all oversights.
+
 ## The shape the harness traps share
 
 Trap 0 (typing), Trap 8 (tests that cannot fire), Trap 9 (shell writing), Trap 10 (a profile that never looked at

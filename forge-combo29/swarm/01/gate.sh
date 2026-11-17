@@ -213,6 +213,23 @@ run "per-depth node claims vs trace" python3 check_depth_claims.py FINDINGS.md c
 #     (7.4 % fewer nodes)" with no distribution at all.
 run "pooled ratios carry a spread" python3 check_pooled_spread.py clockfloor
 
+# 3i. EVERY CHECKER STATES WHAT IT DOES NOT SCAN (Trap 13, S-F142). All five of my checks failed tonight by having a
+#     correct mechanism and a too-narrow selector - markdown-only globs, membership without pairing, a regex matching a
+#     word my files never use. The fix that generalises is to make each check's exclusion list explicit and auditable:
+#     a check with a stated exclusion list can be reviewed for whether the exclusions are safe; one with an implicit
+#     list cannot. This gate step fails if a checker stops stating its scope.
+missing_scope=""
+for f in check_findings_table.py check_status_stamps.py check_page_shape.py check_depth_claims.py check_pooled_spread.py; do
+  if ! grep -q "SCOPE / EXCLUSIONS" "$f"; then missing_scope="$missing_scope $f"; fi
+done
+if [ -n "$missing_scope" ]; then
+  echo "FAIL  a checker does not state its scope/exclusions (Trap 13):$missing_scope"
+  echo "      see MEASUREMENT_TRAPS.md Trap 13 - the mechanism was never the problem, the selector was"
+  fail=1
+else
+  echo "ok    every checker states what it does not scan"
+fi
+
 # 4. the four honesty pins, if asked for and if a PC build exists
 if [ "${1:-}" = "--with-honesty" ]; then
   if [ -x "$HOME/builds/pc/forge" ]; then

@@ -16,6 +16,12 @@ is proof of a fabrication, and out-of-order stamps mean a block was inserted rat
 
 Usage: check_status_stamps.py STATUS.md [--now 2026-11-17T00:00:00Z]
 Exit 1 on any problem, so it can gate a commit.
+
+SCOPE / EXCLUSIONS (S-F142, Trap 13):
+  scans:      the STATUS.md passed as an argument (one file)
+  does NOT scan: prose pages, *.txt, *.json -> they carry no ## timestamp blocks
+  does NOT check: whether a stamp is ACCURATE for its block (only that it is possible),
+                  or anything outside the leading "## YYYY-MM-DDTHH:MM:SSZ" form
 """
 import re
 import sys

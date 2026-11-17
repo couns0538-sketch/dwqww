@@ -274,6 +274,33 @@ Each looked correct on inspection, because each produced well-formed output in t
 two hours went into checks rather than into more findings: a rule that lives in prose binds my memory, and memory is
 what fails at the moment of creation. **The rules that hold are the ones that run in a script before the claim.**
 
+### The diagnosis that reorders the effort: my checks never failed in their logic
+
+Five checks I built in this session failed, and **not one of them failed in its mechanism**:
+
+| check | its logic | why it missed |
+|---|---|---|
+| findings table | verified row shape | always exited 0 |
+| gate self-test | verified the checker rejects bad input | a RETURN trap's status overwrote the assertions |
+| escape scan | found stranded escapes | globbed `*.md`; the evidence is `*.txt` |
+| depth claims | verified node counts | membership at a depth, not pairing within a row |
+| pooled spread | required a spread | the regex matched a word my files never use — **0 rows examined** |
+
+**Every mechanism was right. Every scope was too narrow.** That reorders where the effort goes — and it is the one
+lesson from tonight I would put above the individual traps:
+
+> **For every check, name the file types, directories and row shapes it does NOT scan, and say which of those could
+> contain the subject. A check with a stated exclusion list is auditable; one with an implicit list is not.**
+
+So all five checkers now carry a `SCOPE / EXCLUSIONS` block, and the gate fails if any of them stops stating one. The
+three questions cost a minute each: does the glob cover every format the subject appears in; does it reach folders
+added since it was written; does the pattern match how the subject is *actually written*, or how I imagine it is.
+
+**And the fifth catch is the sharpest evidence for why scope matters.** The first four were caught in prose I was
+composing — the check stopped the mistake before anyone saw it. The fifth was a literal escape in a **committed**
+`.txt` artifact. **That defect was permanent in a way the others were not: nobody was going to re-read that file.** A
+check that only guards the artefact you are currently writing is a check that leaves the record undefended.
+
 ### Two rules from the last stretch that belong beside the main one
 
 **When classifying a search as wasteful, the axes that define "the same search" must include what it CONCLUDED, not
@@ -2410,4 +2437,28 @@ Next: continue at cadence.
    writing at the time; this one was in evidence I had already committed and shipped - which is the more serious case,
    because nobody was going to re-read it.
 Gates: 198 rows, 0 wrong pipe counts, escape scan now covers txt and proven both ways, Trap 12 enforced, stamps in order.
+Next: continue at cadence.
+## 2026-11-17T01:52:15Z — Trap 13: the selector was never the mechanism, and exclusion lists are now enforced (S-F143)
+YOUR DIAGNOSIS IS NOW A TRAP PAGE, A FINAL SECTION, AND AN ENFORCED RULE, because it reorders where the effort goes.
+TRAP 13 written into MEASUREMENT_TRAPS.md with the table of my five failures: findings table (always exited 0), gate
+self-test (RETURN trap status), escape scan (globbed md, evidence is txt), depth claims (membership not pairing),
+pooled spread (regex matched a word my files never use, 0 rows examined). EVERY MECHANISM CORRECT, EVERY SCOPE TOO
+NARROW. The rule:
+  "For every check, name the file types, directories and row shapes it does NOT scan, and say which of those could
+   contain the subject. A check with a stated exclusion list is auditable; one with an implicit list is not."
+ENFORCED RATHER THAN WRITTEN, per the pattern this session keeps teaching:
+  - all five checkers now carry a SCOPE / EXCLUSIONS block naming what they do not scan and why that exclusion is safe;
+  - gate.sh FAILS if any checker stops stating one - proven by stripping the block from check_depth_claims.py, which
+    gives gate exit 1 naming the file, and restored exit 0.
+  The three questions cost a minute each: does the glob cover every format the subject appears in; does it reach
+  folders added since it was written; does the pattern match how the subject is ACTUALLY written rather than how I
+  imagine it. My three failures are all in the third question.
+AND THE PERMANENCE POINT IS IN S-F142 EXPLICITLY. Catch five was the first in evidence already committed rather than
+prose being written. The earlier four were caught in markdown I was composing - the check stopped the mistake before
+anyone saw it. The fifth was in a shipped .txt artifact, WHICH MADE IT PERMANENT IN A WAY THE OTHERS WERE NOT: nobody
+was going to re-read that file. A defect caught pre-push costs one edit; a defect caught in committed evidence costs
+the record's credibility, because the reader who trusted it has no reason to look again. That difference - between
+catching a writer and catching a record - is why the selector matters more than the mechanism.
+Gates: 199 rows, 0 wrong pipe counts, all five checkers state scope and the gate enforces it, Trap 12 enforced, escape
+scan covers txt, stamps in order, gate rc=0 across 56 checks.
 Next: continue at cadence.

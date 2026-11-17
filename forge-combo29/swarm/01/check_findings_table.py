@@ -38,6 +38,13 @@ For section order the guard is one command, and it is in MEASUREMENT_TRAPS.md's 
 If the sequence is not what you intended, the page is not finished, whatever this checker said.
 
 Usage: check_findings_table.py [path]
+
+SCOPE / EXCLUSIONS (S-F142, Trap 13):
+  scans:      FINDINGS.md (one file, by argument or default)
+  does NOT scan: *.txt result artifacts, STATUS.md, prose pages, *.json
+                 -> those cannot contain table rows, so excluding them is safe
+  does NOT check: section order, column MEANING, whether a claim is true, staleness
+  row shapes it requires: F rows 5 cells, C rows 4-6; anything else FAILS
 """
 import os
 import re
