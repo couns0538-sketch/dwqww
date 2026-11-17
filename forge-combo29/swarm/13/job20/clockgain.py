@@ -122,7 +122,14 @@ class Eng:
 
 
 def score_move(e, fen, move, depth):
-    """Score a specific move at a fixed depth: play it, search the reply, negate."""
+    """Score a specific move at a fixed depth: play it, search the reply, negate.
+
+    NOTE: `e` is accepted for signature compatibility but a FRESH engine is used per search. Reusing one
+    process across many searches contaminates the transposition table: re-measuring position 15's h6h5 at
+    depth 16 gave cp 2231 in a fresh process and 2311 after other searches had warmed the table, so the
+    first version of this script (one Eng for 16 positions) produced scores that were neither. Fresh is
+    the only defensible discipline for a score comparison.
+    """
     b = chess.Board(fen)
     try:
         m = chess.Move.from_uci(move)
@@ -135,7 +142,11 @@ def score_move(e, fen, move, depth):
         return ("mate", 0)          # we just mated them: best possible
     if not b.legal_moves:
         return ("cp", 0)            # stalemate
-    r = e.search(b.fen(), "go depth %d" % depth)
+    ee = Eng()
+    try:
+        r = ee.search(b.fen(), "go depth %d" % depth)
+    finally:
+        ee.close()
     if r["mate"] is not None:
         return ("mate", -r["mate"])  # their mate score, negated for us
     if r["cp"] is None:
@@ -161,25 +172,27 @@ def cmp_scores(a, b):
 
 def main():
     fens = [l.strip() for l in open(FENS) if l.strip()][:MAXPOS]
-    e = Eng()
+    e = None
     rows = []
     for i, fen in enumerate(fens):
-        short = e.search(fen, "go wtime %d btime %d winc 60 binc 60" % (SHORT_MS, SHORT_MS))
-        long_ = e.search(fen, "go wtime %d btime %d winc 60 binc 60" % (LONG_MS, LONG_MS))
+        e1 = Eng()
+        short = e1.search(fen, "go wtime %d btime %d winc 60 binc 60" % (SHORT_MS, SHORT_MS))
+        e1.close()
+        e2 = Eng()
+        long_ = e2.search(fen, "go wtime %d btime %d winc 60 binc 60" % (LONG_MS, LONG_MS))
+        e2.close()
         row = {"position": i, "fen": fen,
                "short": short, "long": long_,
                "same_move": short["bestmove"] == long_["bestmove"]}
         if not row["same_move"]:
-            s_short = score_move(e, fen, short["bestmove"], DEPTH)
-            s_long = score_move(e, fen, long_["bestmove"], DEPTH)
+            s_short = score_move(None, fen, short["bestmove"], DEPTH)
+            s_long = score_move(None, fen, long_["bestmove"], DEPTH)
             row["score_short_move"] = s_short
             row["score_long_move"] = s_long
             row["gap_long_minus_short"] = cmp_scores(s_short, s_long)
         rows.append(row)
         if (i + 1) % 10 == 0:
             print("%d/%d" % (i + 1, len(fens)), flush=True)
-    e.close()
-
     changed = [r for r in rows if not r["same_move"]]
     gaps = [r["gap_long_minus_short"] for r in changed if r.get("gap_long_minus_short") is not None]
     better = sum(1 for g in gaps if g > 0)

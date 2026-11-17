@@ -1,5 +1,12 @@
 # REPORT_job20 — do the moves that change with the clock get BETTER or WORSE?
 
+> **THIS REPORT IS SUPERSEDED. Its numbers were contaminated by reusing one engine process across all
+> searches, which shifts scores by up to 80 cp on identical requests and manufactured changes that do not
+> exist in fresh processes. Read `CORRECTION_S-F24.md` in this folder for the corrected measurement
+> (1 of 16 positions changes, +17 cp) and for the demonstration of the contamination. The findings line
+> S-F24 now carries the corrected numbers. Everything below is kept unchanged as the record of what was
+> measured and why it was wrong.**
+
 ## What was asked
 Nothing directly; this closes a caveat I have repeated in every clock report: *"whether the changed moves
 are better is not measured."* S-F22 showed the move changes on ~1 position in 5 between 2 s and 60 s. This
