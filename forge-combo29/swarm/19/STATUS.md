@@ -1190,8 +1190,20 @@ one says *"the effect is real but unusable per position"*, the other says *"ther
 efficiency claim: *"PC20 fewer nodes at a fixed 50k node budget — 1.9 % fewer, 50.6 % sign-share."*
 **That cannot be an efficiency claim. At a fixed node budget both engines stop in the same place by construction**,
 so any residual node difference is the **stopping rule's granularity**, not a saving. **The 50.6 % was a correct
-measurement of an effect that does not exist — and it is numerically indistinguishable from 19-C53's real-but-random
-52.9 % wall-time result.** That is the ambiguity, concretely: **50.6 % and 52.9 % come from opposite worlds.**
+measurement of an effect that does not exist.**
+
+**Concretely, which numbers are which — and my first attempt at this sentence got it wrong:**
+
+| share | pooled figure | what it is |
+|---|---|---|
+| **50.6 %** | −1.9 %, no CI (fixed budget) | **NO EFFECT** — by construction; the stopping rule's granularity |
+| **52.9 %** | −2.7 %, **CI [0.9014, 1.0497] includes 1.0** | **NOT ESTABLISHED** — cannot be called real *or* null at n=119 |
+| **60.5 %** | −12.4 %, a large pooled effect | **REAL but session-level** — a big mean that only ~60 % of positions share |
+
+**I originally wrote that 50.6 % and 52.9 % "come from opposite worlds". That was wrong**: 19-C53's wall-time CI
+includes 1.0, so 52.9 % is a third case, not yet resolved either way. **The genuine contrast is 50.6 % (no effect)
+against 60.5 % (a real effect that is per-position weak)** — and those two shares are closer together (10 points)
+than either is to 90 %. **This is exactly why the share alone cannot classify a claim.**
 
 **So the two rules form an ordered pair:**
 1. **Can the comparison vary?** (fixed budgets, pinned node counts, identical searches → it cannot, and no share is
