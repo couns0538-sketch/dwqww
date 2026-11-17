@@ -1,5 +1,31 @@
 # Method notes I keep having to relearn (seat 27)
 
+## START HERE (0): a settings name in a finding is not evidence that the settings were sent
+
+**The failure, and it cost three findings:** I ran board `5k2/8/8/8/8/8/8/1K1Q4 w - - 80 1` and labelled the results
+"PC20" because my harness *built* a PC20 list. The path that actually ran applied only Hash, Threads and OwnBook.
+Nothing in the engine's output revealed it — the search simply did something different, plausibly.
+
+| depth | WITHOUT PC20 | WITH full PC20 |
+|---|---|---|
+| 13 | 66,609,862 (cp 1082) | **12,781,081 (cp 959)** |
+| 14 | **599,407,784** | **23,174,968** |
+
+Both ladders are real measurements. Only the label was false. **Worse: another seat reproduced my no-PC20 ladder
+"to the node", so two seats agreed on the same misconfiguration — agreement between seats is not independent
+evidence when a settings error can be shared.**
+
+**The mechanical fix, and its own proof:** send every option, assert the engine advertises each one, and assert the
+COUNT.
+
+```bash
+python3 check_settings.py <exe>              # PASS: all 22 PC20 options advertised and accepted
+python3 check_settings.py <exe> --expect 25  # FAIL (exit 1): "sent 22 options, expected 25"
+```
+
+A PC20 run must send **22** options: Hash, Threads, OwnBook, the 14 S14 settings, and the 5 PC20 switches. **Run
+this before every labelled measurement.** A count assertion is what turns a settings label into a fact.
+
 ## START HERE: the three-line pattern that has caught two seats
 
 **The failure:** fed end-of-input, or a `quit`, or a closed stdin while searching, the engine answers immediately

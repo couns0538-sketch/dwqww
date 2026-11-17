@@ -33,7 +33,7 @@ S14 = ["LmrQuietBase 93", "LmrQuietDivisor 205", "LmrNoisyBase 13", "LmrNoisyDiv
        "HistoryBonusQuadratic 24", "HistoryBonusLinear 54", "HistoryBonusMax 2212",
        "SingularDepth 6", "IirDepth 2", "NonPawnCorrection true"]
 PC20X = ["CuckooRep true", "HistRework 2", "TtPruneV2 true", "CorrHistV2 true",
-         "MateAlphaGuard true"]
+         "MateAlphaGuard true", "OwnBook value false" ]
 
 TARGET = ("r2r4/pB2kpp1/n1p4p/1p5p/2n5/1q1bP2P/2PBN3/4K2R b - - 1 40", "05-F58 long mate")
 CONTROL = ("k7/8/1K6/8/7R/8/8/8 w - - 0 1", "control: verified mate in 1 (S-C13)")

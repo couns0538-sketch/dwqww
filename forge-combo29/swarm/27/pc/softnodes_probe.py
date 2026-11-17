@@ -121,8 +121,8 @@ def main():
     a = ap.parse_args()
     exe = os.path.realpath(a.exe)
     os.makedirs(a.outdir, exist_ok=True)
-    settings = {"none": ["Hash 16", "Threads 1", "OwnBook false"],
-                "S14": ["Hash 16", "Threads 1", "OwnBook false"] + S14,
+    settings = {"none": ["Hash 16", "Threads 1"],
+                "S14": ["Hash 16", "Threads 1"] + S14,
                 "PC20": ["Hash 16", "Threads 1"] + S14 + PC20X}[a.settings]
 
     out = {"exe": exe, "settings": a.settings, "threads": 1, "label": a.label,

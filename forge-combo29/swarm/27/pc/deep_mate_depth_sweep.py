@@ -30,7 +30,7 @@ S14 = ["LmrQuietBase 93", "LmrQuietDivisor 205", "LmrNoisyBase 13", "LmrNoisyDiv
        "HistoryBonusQuadratic 24", "HistoryBonusLinear 54", "HistoryBonusMax 2212",
        "SingularDepth 6", "IirDepth 2", "NonPawnCorrection true"]
 PC20X = ["CuckooRep true", "HistRework 2", "TtPruneV2 true", "CorrHistV2 true",
-         "MateAlphaGuard true"]
+         "MateAlphaGuard true", "OwnBook value false" ]
 
 # Lone-king mate boards in the style seat 23 used: the lone king is mated in 1 by the side to move.
 # Written by hand and checked with python-chess before use (the script asserts legality).

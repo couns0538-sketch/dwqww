@@ -108,8 +108,8 @@ def main():
     exe = os.path.realpath(a.exe)
     os.makedirs(a.outdir, exist_ok=True)
     depths = [int(x) for x in a.depths.split(",")]
-    settings = {"none": ["Hash 16", "Threads 1", "OwnBook false"],
-                "S14": ["Hash 16", "Threads 1", "OwnBook false"] + S14,
+    settings = {"none": ["Hash 16", "Threads 1"],
+                "S14": ["Hash 16", "Threads 1"] + S14,
                 "PC20": ["Hash 16", "Threads 1"] + S14 + PC20X}[a.settings]
 
     rounds = []
