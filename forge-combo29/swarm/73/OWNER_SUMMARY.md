@@ -1397,10 +1397,31 @@ These are the transferable output. Each is a rule the run paid for with a defect
    line and it is the only check that covers both.**
 
    **An unrecognised `position` TYPE re-searches the previous board with nothing on the wire** — the type keyword is
-   never validated, so the FEN validator never runs. **A corrupted move list does not truncate, it SPLICES:**
-   `position startpos moves e2e4 zzzz e7e5` reports `illegal move zzzz` **and applies `e7e5` anyway**, producing a
-   position that is neither intended nor the prefix up to the error. **Read that warning as "the position may be a
-   splice", never as "the position was rejected."**
+   never validated, so the FEN validator never runs.
+
+   **A corrupted move list TRUNCATES at the bad token, and the warning is real.** `position startpos moves e2e4 zzzz
+   e7e5` reports `illegal move zzzz` **and searches the legal prefix before it** — not the intended position, and not a
+   splice past the error. **Confirmed at perft 3, where every prefix has a distinct count:**
+   **8902 / 13160 / 24825 / 23193 / 24079** (startpos + `e2e4` + `e7e5` + `g1f3` + `b8c6`). **An illegal token
+   inserted at index 0, 1, 2, 3 or 4 returns exactly the prefix value for that index, five for five.** So **read the
+   warning as "the position stopped at the bad token"** — the moves before the error applied, the ones after did not.
+   - **A SPLICE reading of this was published twice and withdrawn twice, and the reason is a perft-2 collision.**
+     `e2e4 e7e5` and `e2e4 e7e5 g1f3 b8c6` **both give perft 2 = 835** — two different boards, one count. **So at
+     perft 2 a spliced four-move line and a two-move prefix are indistinguishable**, and the fingerprint confirmed
+     whichever hypothesis was already believed. **Perft 3 separates them and reverses the conclusion.**
+     - **The general rule: a fingerprint test needs a depth at which the candidate hypotheses make DIFFERENT
+       predictions** — otherwise its agreement is evidence for nothing. **Check that the test can distinguish the two
+       answers before you run it**, which here meant checking that the five prefixes had five distinct counts.
+
+   **And junk BEFORE the `moves` keyword behaves differently: it is skipped and the moves still apply.** On the base
+   build, `position fen <K6k> moves a1a2` gives **perft 2 = 15**, and **`position fen <K6k> bogus moves a1a2` also
+   gives 15** — the moves were applied. The board-only form gives **9**. **So a malformed position silently becomes a
+   real one** — a different defect from the truncation above, and the two must not be merged.
+   - **A `perft 1` fingerprint cannot see this:** bare K6k has **3** moves, and after `a1a2` it is Black to move with a
+     lone king, which also has **3** — **identical by construction.** **Perft 2 separates them (9 vs 15).**
+   - **And on the older tree the behaviour is the opposite** — the whole command is dropped and the engine stays on
+     startpos (perft 2 = 400). **So this one is tree-specific**, and a "junk drops the board" reading was the older
+     tree's behaviour, not the base's.
 13. **A GENERATED en-passant fixture can lose the edge on the way to the engine and pass vacuously.**
    `python-chess`'s `Board.fen()` **silently drops the ep square when no legal ep capture exists** — which is
    **precisely the ep-exposes-king position** the test is trying to build. So the fixture arrives **without its ep

@@ -7,7 +7,7 @@
 
 ## State: DONE — summary current as of the 04:36Z fetch
 
-`OWNER_SUMMARY.md` — **2,357 lines, 61 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
+`OWNER_SUMMARY.md` — **2,378 lines, 61 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
 
 ## Numbers the coordinator asked for
 
@@ -30,6 +30,26 @@
 **The shippability count is the serious one** and I have flagged it in §1.2's own text, not only in §5: the
 adversarial-family and depth-contract results are sourced, but the claim "the scan fires on drawn roots only" is
 report-only. Re-measuring it on the owner's build is the conversion check.
+
+## Seventeenth round — third reversal on one claim, verified independently
+
+**The corrupted-move-list behaviour has now reversed three times, so the summary carries the current version once, with
+the withdrawal history attached rather than left implicit.**
+
+- **TRUNCATES at the bad token**, with the diagnostic. I verified the decisive test myself with python-chess: perft 3
+  on startpos and each prefix gives **8902 / 13160 / 24825 / 23193 / 24079** — **all five distinct**, exactly the
+  coordinator's figures. **An illegal token at any index returns that index's prefix value**, five for five.
+- **Why the splice reading survived two rounds: at perft 2, `e2e4 e7e5` and `e2e4 e7e5 g1f3 b8c6` both give 835.**
+  A fingerprint that cannot separate the hypotheses confirms the one you already believe. **Recorded as the general
+  rule: check that the test can distinguish the candidate answers before running it.**
+- **Junk before `moves` is a SEPARATE behaviour and kept separate:** it is skipped and the moves still apply
+  (perft 2 = 15 with or without the junk, 9 board-only). **Tree-specific** — the older tree drops the whole command and
+  stays on startpos (400). A `perft 1` fingerprint cannot see it: 3 moves either way, identical by construction.
+
+**I flagged a live contradiction in the consolidated report's entry 3ac.** Its heading and its perft-3 evidence say
+TRUNCATES, but its second sentence still reads "**and then applies e7e5 anyway**" — the withdrawn splice claim, three
+lines above the evidence that refutes it. **A reader stopping at the first sentence gets the opposite answer from one
+who continues.** That is the "correction that adds without removing" shape again.
 
 ## Sixteenth round — the pointer check's FULL form, applied to my own document
 
