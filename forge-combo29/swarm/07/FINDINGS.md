@@ -45,6 +45,21 @@ cheapest to apply and caught me three separate times tonight:**
 > set-dependent", which is more useful than either a bare CONFIRMS or a bare REFUTES. So: reproduce on the original
 > sample first; only then decide whether you are correcting a measurement or bounding a generalisation.
 
+> **WHEN MY SUMMARY LINE AND MY RAW DATA DISAGREE, BELIEVE THE DATA.** This caught **three** of my wrong
+> verdicts tonight, and it is the cheapest self-check here: my script's printed `RESULT:` said "does not
+> reproduce" three times while the per-row numbers in the same output already confirmed the claim. Each time
+> the fault was a **wrong comparison**, not a wrong measurement — comparing python-chess's generation order
+> against alphabetical order instead of the **engine's answer** against alphabetical order (07-C58); comparing
+> `2|N|` against a positive mate's PV instead of `2N−1` (07-C51); calling a node inequality a regression without
+> scoring the moves (07-C44). **Before reporting a verdict, read the rows, not the summary.** If they disagree,
+> the summary is wrong, because a summary is a second implementation of the same logic and it gets less review.
+
+> **A FABRICATED-MOVE CHECK NEEDS A POSITION WHERE THE ENGINE'S FIRST MOVE IS NOT ALPHABETICALLY FIRST.**
+> On **startpos** the engine answers `a2a3` and the alphabetically first legal move is *also* `a2a3`, so a
+> fabricated alphabetical move is **indistinguishable** from a real one. On **kiwipete** the engine answers
+> `a2a3` while alphabetical is `a1b1`, so it **discriminates**. Use kiwipete (or any position like it) or the
+> check can pass while measuring nothing (12-S-F30, confirmed in 07-C58).
+
 > **A warning from a harness that has not validated its own input is not a finding.**
 > Five of my controls were initially blind, and each was caught by its own planted fault, not by me.
 
