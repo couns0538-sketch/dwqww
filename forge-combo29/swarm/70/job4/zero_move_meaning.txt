@@ -1,0 +1,111 @@
+engine /tmp/build-rel/forge
+
+=== S1 checkmate ===
+FEN rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3
+python-chess: legal 0, in_check True, checkmate True, stalemate False
+engine go perft 1: 0   (board identity ok: True)
+command: go depth 5
+bestmove 0000  score mate 0  fatal None
+position reply strings: []
+go output:
+    info depth 1 seldepth 1 score mate 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 2 seldepth 2 score mate 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 3 seldepth 3 score mate 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 4 seldepth 4 score mate 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 5 seldepth 5 score mate 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    bestmove 0000
+
+=== S2 stalemate ===
+FEN 7k/5Q2/6K1/8/8/8/8/8 b - - 0 1
+python-chess: legal 0, in_check False, checkmate False, stalemate True
+engine go perft 1: 0   (board identity ok: True)
+command: go depth 5
+bestmove 0000  score cp 0  fatal None
+position reply strings: []
+go output:
+    info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 3 seldepth 3 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 4 seldepth 4 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 5 seldepth 5 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    bestmove 0000
+
+=== S2b stalemate mate-in-nothing ===
+FEN k7/8/1Q6/8/8/8/8/K7 b - - 0 1
+python-chess: legal 0, in_check False, checkmate False, stalemate True
+engine go perft 1: 0   (board identity ok: True)
+command: go depth 5
+bestmove 0000  score cp 0  fatal None
+position reply strings: []
+go output:
+    info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 3 seldepth 3 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 4 seldepth 4 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 5 seldepth 5 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    bestmove 0000
+
+=== S3 empty restriction ===
+FEN rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+python-chess: legal 20, in_check False, checkmate False, stalemate False
+engine go perft 1: 20   (board identity ok: True)
+command: go depth 5 searchmoves
+bestmove 0000  score cp 0  fatal None
+position reply strings: []
+go output:
+    info string searchmoves restriction has no legal root moves
+    info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 3 seldepth 3 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 4 seldepth 4 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 5 seldepth 5 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    bestmove 0000
+
+=== S3b all-illegal restriction ===
+FEN rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+python-chess: legal 20, in_check False, checkmate False, stalemate False
+engine go perft 1: 20   (board identity ok: True)
+command: go depth 5 searchmoves e2e5
+bestmove 0000  score cp 0  fatal None
+position reply strings: []
+go output:
+    info string searchmoves restriction has no legal root moves
+    info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 3 seldepth 3 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 4 seldepth 4 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 5 seldepth 5 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    bestmove 0000
+
+=== S4 dropped-token restriction ===
+FEN rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+python-chess: legal 20, in_check False, checkmate False, stalemate False
+engine go perft 1: 20   (board identity ok: True)
+command: go depth 5 searchmoves zzzz
+bestmove 0000  score cp 0  fatal None
+position reply strings: []
+go output:
+    info string searchmoves restriction has no legal root moves
+    info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 3 seldepth 3 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 4 seldepth 4 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    info depth 5 seldepth 5 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+    bestmove 0000
+
+== VERDICT ==
+`bestmove 0000` alone does not name its case, but the stream does, reliably:
+
+  | case | 0000 | stream tell |
+  |---|---|---|
+  | checkmate | yes | `score mate 0`, no `info string` |
+  | stalemate | yes | `score cp 0`, no `info string` |
+  | empty restriction | yes | `info string searchmoves restriction has no legal root moves` |
+  | all tokens dropped | yes | same `info string` (indistinguishable from empty) |
+
+So a consumer separates checkmate / stalemate / restriction from the score
+kind plus the presence of the info string, and does NOT need the board.
+The one genuinely indistinguishable pair is a bare `searchmoves` and a list
+whose every token was silently dropped -- both behave and print identically.
+Treating 0000 as an unconditional error is therefore WRONG for checkmate and
+stalemate roots, which are legitimate terminal positions.
