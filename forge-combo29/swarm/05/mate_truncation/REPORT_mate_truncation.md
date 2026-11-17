@@ -125,6 +125,25 @@ still on the owner's path because 50,000 nodes is one of their match budgets. Wh
 - **S-F30**: my own |N| ≥ 10 rule rests on 3 qualifying positions, and my independent sample has |N| ≤ 4 — it cannot
   test the rule. Stated rather than glossed.
 
+## The rule, and how to use it: PV completeness predicts delivery, 39 of 39
+
+Across every mate score I have measured — **39 of them**, over two builds (base 6b98f217, PC r15), three settings (S14 at
+depth 12, PC20 at the owner's clock, PC20 on a depth ladder) and four position sets — the rule is exact:
+
+| the last PV line | count | did the line mate? |
+|---|---|---|
+| length equals 2\|N\|-1 (complete) | 35 | **yes, 35 of 35** |
+| length shorter than 2\|N\|-1 (incomplete) | 4 | **no, 0 of 4** |
+
+**No exceptions.** And the correlate does not work: sorting the same labels by mate distance |N| gives a split that a
+deliberate probe immediately dissolved (|N| = 15 delivered 4 of 6; |N| = 16 delivered 2 of 2 — S-W9).
+
+So for anyone consuming these labels, the cheap test is sufficient: **if the printed PV is shorter than 2|N|−1, treat the
+mate score as a label that was not delivered** — you do not need to replay it, and you do not need a DTM oracle. Replaying
+is still the stronger statement when you want to say "this line does not mate" rather than "this line is short"
+(the distinction seat 19's escalation made vivid: on two of these boards the score is not merely unbacked but
+**arithmetically impossible**, since a KRvK mate cannot need 39 plies when the maximum is 31).
+
 ## Honest summary
 
 The defect is real, reproducible and deterministic, and I can describe it precisely: **a long mate score reported at a
