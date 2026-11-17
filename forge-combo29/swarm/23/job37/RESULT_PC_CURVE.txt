@@ -1,0 +1,34 @@
+DOES THE PC's REPAIR CHANGE THE CURVE SHAPE, OR JUST THE ENDPOINT?
+===============================================================
+23-F80 measured the base's eval/go curve (gap 25 far from the horizon, stepping to 406 at counter 92). The repair could
+in principle move the curve; this checks whether it does. KRvK, depth 10, both builds:
+
+| counter | base score | base nodes | PC score | PC nodes |
+|---|---|---|---|---|
+| 40 | cp 381 | 7,581 | cp 490 | 14,470 |
+| 80 | cp 374 | 12,238 | cp 462 | 15,381 |
+| 90 | cp 271 | **10,445,791** | cp 231 | 930,573 |
+| **92** | cp 0 | 1,353,048 | cp 0 | 1,459,778 |
+| 95 | cp 0 | 76,495 | cp 0 | 81,364 |
+| 100 | cp 0 | **0** | cp 0 | **200** |
+| 150 | cp 0 | **0** | cp 0 | **200** |
+
+WHAT THE REPAIR CHANGES, and what it does not:
+- **The curve's SHAPE is identical**: both builds report a winning score up to counter 90, and both report cp 0 from
+  counter 92. The repair does not move the onset.
+- **The scores differ slightly above the onset** (PC higher: cp 490 vs 381 at counter 40), which is the PC20 search
+  switches rather than the drawn-root repair — the same kind of difference measured in 23-F66.
+- **AT AND PAST 100 the difference is stark and is the repair**: the base answers in **0 nodes**, the PC in **200
+  nodes**. That is the only place in this table where the two builds behave qualitatively differently, and it is
+  exactly the already-drawn band where 23-F44/57 measured the defect.
+- **At counter 90 the base explodes to 10.4M nodes** while the PC uses 930k — an 11x difference I did not predict and
+  do not have an explanation for. Recorded as an observation, not a finding.
+
+SO: the repair changes the answer at and past halfmove 100 (0 nodes -> 200), and leaves the curve's onset at 92 alone.
+That is a narrower repair than "the drawn root is searched" suggests: inside the claimable band (below 100) the two
+builds still agree that the position is drawn, at the same counter boundary.
+
+NOTE: this table does not reproduce 23-F58's 0-node answer in the CLAIMABLE band (counter 92 base = 1,353,048 nodes,
+not 0) — 23-F58's case was a REPETITION at halfmove 11, a different mechanism from a fifty-move counter at 92, and the
+two must not be conflated. My 23-F71 error was exactly this kind of conflation, so I state it rather than let the table
+imply otherwise.
