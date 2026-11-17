@@ -839,3 +839,16 @@ HARNESS_TRAPS.md = fourteen traps, now cohering into three families: 'no search 
   'a number that is not evidence about what you think' (10/11/12), 'auditing the wrong thing' (8/9).
 
 next command: continue at cadence.
+
+## 2026-11-17T01:11:00Z
+
+19-C40 PC20 changes the SEARCH in BOTH directions: same 5 set-G positions at depth 14, S14-only vs
+  S14+PC20 -> node ratios 1.1893 / 0.4979 / 0.5722 / 1.0977 / 1.0904. One position HALVES, another
+  rises 19%%. So PC20 is six different engines, not one tuned engine.
+  It explains (a) why bench's seven PC20 aggregates cannot be read as 'same search cheaper' - on a
+  given position it can be 2x cheaper - and (b) my own 19-F32/F33 puzzle: CorrHistV2 gave only a 4.3%%
+  bench node change but changed 22%% of bestmoves, because bench's 8 positions average the reshaping away.
+  Guidance: compare S14 vs PC20 PER POSITION and report the spread; an aggregate can be ~0 while
+  individual positions differ 2x. (Trap 10's shape: the setting changes the question.)
+
+next command: continue at cadence.
