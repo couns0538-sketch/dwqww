@@ -630,3 +630,15 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - Three defect classes now each have a written rule AND an executable check: driver (read to bestmove, abort on zero
   info-depth), findings file (mkdir first, no duplicate ids), machine (no leaked engine, zombies excluded).
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:12:55Z 30-F59 NOT REPRODUCED on my build (S-C47) — their files omit the exe identity, so not refuted either
+- Claim: PC20 plays a 200+ cp worse move (`f3g3`) on position 29 from depth 10-16, switching at 18.
+- My build (PC r15 sha256 068f0927…, 4/4 pins, Threads 1, depths 10-20): **PC20 plays `f3g2` at EVERY depth**, arms
+  agree within ~50 cp; their `f3g3 / cp 1627` never appears.
+- RULED OUT first: **Hash/option ordering** (their S14 list has no Hash/Threads -> tried default 32 AND 16, depths
+  12/14/16: f3g2 in all twelve cells); **FEN** (their raw JSON is valid; their FINDINGS LINE misquotes it as RN2KB1 and
+  I used the raw RN2KB2).
+- **WHY "unreproduced" not "refuted": their check17 files record no exe sha256 and no `id name`.** Actionable note: a
+  200 cp behavioural claim needs the EXECUTABLE identity — the S-F44 regime rule one level down (not just which
+  settings, but which binary). To settle: their exe sha256 + exact ordered option list, same six depths.
+Next: continue in the window (ends 2026-11-17T10:18Z).
