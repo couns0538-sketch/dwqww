@@ -94,7 +94,15 @@ def run_one(fen):
 
 
 def main():
-    fens = [l.strip() for l in open(FENS) if l.strip()]
+    raw = [l.strip() for l in open(FENS) if l.strip()]
+    # Accept "<fen>" or "<fen> | <moves>"; only the FEN is searched here. Sequence lines are
+    # for the incremental harness, and feeding one to the engine would reach a 300 s timeout
+    # per line, which is how an earlier run of this script silently stalled.
+    fens = []
+    for line in raw:
+        fen = line.split("|")[0].strip()
+        if fen:
+            fens.append(fen)
     rows = []
     mismatches = 0
     refused = 0
