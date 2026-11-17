@@ -539,3 +539,17 @@ HARNESS_TRAPS.md: one list of all seven harness defects from this run, each with
   latent not exercised (10's timeout is 1800 s); my own drivers have the opposite gap (no timeout at all).
 
 next command: continue at cadence.
+
+## 2026-11-17T00:24:37Z
+
+19-C21 CORRECTION to my select audit: both files VERIFIED at branch tips (seat 17 tip bb0b312ce
+  has unbounded_check.py with select+readline at 68/71 and 88/91; seat 10 tip 68f6f81a0 has
+  forge_io.py at 37/39) - no path mix-up. Seat 17's empty 'git ls-files' is ALSO right: ls-files
+  lists the working tree index, not another branch -> trap 8: use git ls-tree on the ref.
+  My 'EXPOSED' was too strong (trap 9): a file containing a bug is not a harness that has one -
+  seat 17 reports its CURRENT harnesses use a reader thread + queue + deadline. Corrected entry:
+  'one committed file contains the pattern; currency not verified'.
+  HARNESS_TRAPS.md now has nine traps; scoreline updated: TWO of nine were caught only by another
+  seat's push-back.
+
+next command: continue at cadence.
