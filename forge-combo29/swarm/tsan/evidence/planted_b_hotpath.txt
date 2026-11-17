@@ -1,0 +1,17 @@
+planted-B (hot search path), reproducible build 07282fb8db180905eaf8b98650969ed630a0a6ce74fad03316bddbf815f0dcbb
+bestmove e2e4 | race reports 24 | exit 66 | drained_to_eof True
+
+WARNING: ThreadSanitizer: data race (pid=14912)
+  Read of size 8 at 0x564d51321760 by thread T1:
+    #0 forge::Worker::should_stop() /src/src/search.cpp:1298 (planted-b.bin+0x3d18b) (BuildId: d954baa04e35253e8445a2a7cb8655994e7332b1)
+    #1 forge::Worker::search(forge::Board&, forge::SearchStack*, int, int, int, bool) /src/src/search.cpp:1569 (planted-b.bin+0x42373) (BuildId: d954baa04e35253e8445a2a7cb8655994e7332b1)
+    #2 forge::Worker::search(forge::Board, forge::SearchLimits const&, bool, std::vector<forge::Worker*, std::allocator<forge::Worker*> > const&) /src/src/search.cpp:2422 (planted-b.bin+0x4b750) (BuildId: d954baa04e35253e8445a2a7cb8655994e7332b1)
+    #3 forge::Searcher::search(forge::Board, forge::SearchLimits const&, bool, forge::Searcher::TTAccess) /src/src/search.cpp:2752 (planted-b.bin+0x5173c) (BuildId: d954baa04e35253e8445a2a7cb8655994e7332b1)
+    #4 operator() /src/src/uci.cpp:555 (planted-b.bin+0x5944d) (BuildId: d954baa04e35253e8445a2a7cb8655994e7332b1)
+    #5 __invoke_impl<void, forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:61 (planted-b.bin+0x5a1f1) (BuildId: d954baa04e35253e8445a2a7cb8655994e7332b1)
+    #6 __invoke<forge::uci_loop(std::istream&)::<lambda()> > /usr/include/c++/13/bits/invoke.h:96 (planted-b.bin+0x5a1f1)
+    #7 _M_invoke<0> /usr/include/c++/13/bits/std_thread.h:292 (planted-b.bin+0x5a1f1)
+    #8 operator() /usr/include/c++/13/bits/std_thread.h:299 (planted-b.bin+0x5a1f1)
+    #9 _M_run /usr/include/c++/13/bits/std_thread.h:244 (planted-b.bin+0x5a1f1)
+    #10 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+

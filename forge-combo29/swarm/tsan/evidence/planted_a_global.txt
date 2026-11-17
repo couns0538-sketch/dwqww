@@ -1,0 +1,15 @@
+planted-A (off-search-path global), reproducible build b065465db9bbcd5edb6d3054721a76feaca3f65483006daac6c66d9b52e73cb7
+race reports 1 | exit 66 | drained_to_eof True
+
+WARNING: ThreadSanitizer: data race (pid=15067)
+  Read of size 8 at 0x55aec4345820 by thread T2:
+    #0 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x588d2) (BuildId: 05f166f33ea12a040376a096a31fb7ab1b6095b4)
+    #1 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Previous write of size 8 at 0x55aec4345820 by thread T1:
+    #0 _M_run /usr/include/c++/13/bits/std_thread.h:244 (forge+0x588e8) (BuildId: 05f166f33ea12a040376a096a31fb7ab1b6095b4)
+    #1 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Location is global '(anonymous namespace)::g_planted_counter' of size 8 at 0x55aec4345820 (forge+0x1c4820)
+
+  Thread T2 (tid=15070, running) created by main thread at:
