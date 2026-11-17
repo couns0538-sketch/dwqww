@@ -3204,3 +3204,28 @@ This is also the first thing tonight built directly on another seat's result rat
 opening their branch properly is what made it possible - the same command that failed me an hour ago.
 Gates: 232 rows, 0 wrong pipe counts, gate rc=0 across 66 checks.
 Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T04:12:41Z — what CAN and cannot be audited on the loaded net, and the boundary is the finding (S-F172)
+YOU PUT "audit the loaded net" ON YOUR LIST, so I tried it - and the answer splits, which is more useful than either
+extending the audit or declining it.
+STRUCTURAL PROPERTIES SURVIVE RANDOM WEIGHTS AND ARE TESTABLE. Semantic ones are not. The test net's weights are uniform
+in [-64,64] BY CONSTRUCTION (splitmix64), so a net whose weights mean nothing cannot be asked whether its evaluation of
+KB vs K is CORRECT - the question has no answer.
+THE EVIDENCE IS A CONTRAST, NOT AN ARGUMENT. K vs K should evaluate to 0 (insufficient material):
+    trained built-in net :  25
+    v3 with RANDOM weights: 171
+  KNN vs K (should be 0): 198 vs 416.
+THE RANDOM NET IS WORSE IN EVERY CELL, which is exactly what random weights should produce. If material sanity were
+structural, a random net would score it as correctly as a trained one. It does not - so the distinction is real rather
+than a convenient excuse.
+WHAT THIS MEANS: the structural half IS done on the loaded net - symmetry, 0 of 353 (S-C61). THE SEMANTIC HALF CANNOT BE
+DONE WITH THE NET I HAVE, and the reason is not a missing tool: the test net was published FOR DETERMINISM, not for
+evaluation quality - identical bytes everywhere, so a timing or identity comparison means the same thing on every
+machine. Its evaluations were never meant to be judged.
+SO THE HONEST REQUEST GOES TO THE OWNER: run 75-F7's six questions against the PC's trained net. The harness already
+exists on seat 75's branch; the file is the thing nobody on this swarm has.
+AND ONE SELF-CORRECTION IN THE SAME BLOCK: I first wrote "four of six are answerable" WITHOUT COUNTING. The itemised count
+is THREE fully (symmetry, sign, terminal), one partly (horizon), two not (material monotonicity, dead material). That is
+the same error as the S-F171 branch claim and the 37-vs-38 sweep - a number asserted from memory, in a section about
+checking numbers. The page now carries the itemised table so the sentence cannot drift again.
+Gates: 233 rows, 0 wrong pipe counts, page shape OK, gate rc=0 across 66 checks.
+Next: continue at cadence to the 10:20Z close.
