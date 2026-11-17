@@ -23,7 +23,7 @@
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, TWENTY-EIGHT instances plus nine named patterns (see the named patterns at the end) from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, TWENTY-EIGHT instances plus ten named patterns (see the named patterns at the end) from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Five sentences to carry into any measurement of this engine
 
@@ -763,6 +763,28 @@ is exactly the operation that looks like progress while silently disabling.
 Every narrowing is a patch on a pattern; the planted case is a property of the harness. **So the stable defence is a
 planted failing case that runs every time, not cleverer patterns** — a narrowing that goes too far is then caught by the
 proof rather than by noticing an absence of failures.
+
+## Named pattern — TWO EXPLANATIONS, ONE OBSERVATION: THE FIXTURE THAT CANNOT DISTINGUISH THEM
+
+The confound that survived four separate checks because none of them asked whether the fixture could separate the two
+hypotheses at all.
+
+23-F131 measured the repaired build reporting a win on **0 of 2** claimable repetition roots and concluded it followed a
+consistent POLICY of not claiming. 23-F169 refuted it: on a drawn root with **no forced win available** the same build
+reports `cp 0`, so it does claim. Both original fixtures had a forced mate, so "found the mate" and "declined to claim"
+produced **the same observation** — and the policy reading was never tested, only repeated.
+
+**The tell: a conclusion phrased as a DISPOSITION ("it does not claim", "it prefers", "it avoids") drawn from cases where
+a CAPABILITY could produce the same result.** A disposition needs a fixture where the capability is absent; otherwise the
+capability explains everything and the disposition is decoration.
+
+**MECHANICAL CONSEQUENCE: before concluding "X prefers / avoids / does not do Y", name the fixture in which Y is the only
+option, and run it.** For claim-versus-mate the discriminating board is a draw with no forced win; for "the engine chooses
+A over B" it is a position where A and B score identically; for "the repair does not help here" it is a cell where the
+repair is the only difference between the two builds.
+
+This is instance 22's comparator fault one level up: there the COMPARISON OPERAND was wrong, here the FIXTURE could not
+separate the hypotheses being compared. In both cases the measurement was correct and the inference was unsupported.
 
 ## The fix, in one line each
 
