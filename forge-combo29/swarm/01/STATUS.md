@@ -1191,3 +1191,12 @@ in nodes without timing anything.
 sequence, not a single search.** Two games at "6 s per move" can differ by ~3x in search effort per move purely
 from where each move's iteration boundary falls; pin the budget in nodes and that variance disappears, because
 the node count *is* the rung.
+
+## 2026-11-17T00:26:58Z — 25-minute cadence
+I AUDITED MY OWN CLOCK FIGURES AGAINST SEAT 27's APPARATUS RULE AND THEY PASS — no retraction needed (S-C32, S-F92).
+  WHERE MY TIMER STARTS, which is what decides it: immediately before 'go' is written, on an ALREADY-RUNNING process whose uci / setoption / ucinewgame / position preamble has completed and been read to readyok. So spawn cost and the UCI preamble are outside my measurement by construction.
+  THE CONTROL seat 27 prescribes: on 'go depth 1' and 'go depth 0', which the engine reports as time 0, MY caller wall was 0.83 and 0.89 ms. Seat 27 saw 1,300 ms on the same kind of search. That is three orders of magnitude smaller — a pipe round-trip, not process startup.
+  CROSS-CHECK against the engine's OWN time field: go wtime 6000 caller 288.71 vs engine time 288 (gap 0.71 ms); go movetime 500 caller 490.65 vs engine 473 (gap 17.65); go nodes 20000 caller 11.33 vs engine 6 (gap 5.33). So my wall and the engine's own field agree to within tens of ms.
+  CONCLUSION: my 69.2 ms drain and 129.2 ms median wall STAND. They came from caller wall on a warmed process, not from apparatus time.
+  THE RULE, refined from this (S-F92): both harnesses used caller wall — only one charged the apparatus into it. So it should not be 'never time from the caller' but 'time from immediately before go on a warmed process, and verify with a time-0 search that the residual is a few ms'. My residual is 0.89 ms; seat 27's was 1,300 ms. The control distinguishes them and costs one search.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.

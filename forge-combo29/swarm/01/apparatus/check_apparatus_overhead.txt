@@ -1,0 +1,30 @@
+is my clock measurement apparatus time or the engine's own think time? (seat 27's rule)
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+PC20, Threads 1, Hash 16
+MY TIMER POLICY: the timer starts IMMEDIATELY BEFORE `go` is written, on an already-running
+  process whose uci/setoption/ucinewgame/position preamble has already completed and been read to
+  readyok. So spawn cost and the UCI preamble are NOT inside my measurement.
+
+CONTROL - searches the engine reports as `time 0`; any caller wall above a few ms is apparatus:
+go	caller_wall_ms	engine_time_ms	gap_ms	bestmove	n_info
+go depth 1	0.83	0	0.83	b6b5	1
+go nodes 1	0.65	None	None	f5f4	0
+go nodes 0	0.30	None	None	f5f4	0
+go depth 0	0.89	0	0.89	b6b5	1
+
+COMPARISON at the clock my S-F69 figures used (6 s + 60), caller wall vs the engine's own time field:
+go	caller_wall_ms	engine_time_ms	gap_ms	bestmove
+go wtime 6000 btime 6000 winc 60 binc 60	288.71	288	0.71	b6b5
+go movetime 500	490.65	473	17.65	b6b5
+go nodes 20000	11.33	6	5.33	b6b5
+
+CONTROL RESULT: on 2 searches the engine reports as `time 0`, MY caller wall was at most 0.89 ms.
+  -> APPARATUS OVERHEAD IS NEGLIGIBLE in my harness (a few tens of ms at worst, and on the
+     order of the pipe round-trip, not process startup). So my wall figures are the engine's
+     think time plus a small constant, NOT apparatus time. Seat 27's failure mode - 1,300 ms
+     of harness charged to the clock - does not apply to my timer policy.
+
+COMPARISON: caller wall minus the engine's own `time` field was 0.7..17.6 ms across the three
+  searches. So my wall and the engine's time agree to within tens of milliseconds; the engine's
+  own field is the authoritative number and my wall is that plus a small apparatus constant.
