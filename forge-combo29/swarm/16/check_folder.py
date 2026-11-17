@@ -30,12 +30,16 @@ WHAT EACH OF THE THREE CHECKS CATCHES
    Note: an id gap is not always a fault — a seat may deliberately skip an id — so the line is a prompt to look,
    not an automatic failure. Malformed rows and duplicates are always failures.
 
-2. NOTHING STAGED OUTSIDE YOUR FOLDER
-   `git log --diff-filter=A` from your seat commit (found by the message `swarm NN seat`) lists every file ever
-   ADDED on your branch, and anything not under `forge-combo29/swarm/NN/` is reported by full path.
-   This is deliberately stronger than inspecting the working tree: a stray file that was staged once still
-   appears after you delete it, which is exactly the case you need to know about.
-   If the seat commit cannot be found, the check says so and skips rather than passing silently.
+2. NOTHING OUTSIDE YOUR FOLDER — COMMITTED **OR** UNTRACKED
+   Two scans, because each alone has a blind spot:
+     (a) `git log --diff-filter=A` from your seat commit lists every file ever ADDED on your branch — catches a
+         stray that was staged once and later deleted;
+     (b) `git status --porcelain --untracked-files=all` lists files that exist now but are not committed — catches
+         a stray that was just written and would otherwise be invisible to (a).
+   (b) was added after a real miss: an append with a wrong relative path wrote eleven findings rows into
+   `forge-combo29/swarm/FINDINGS.md`, the file was never `git add`ed, and scan (a) alone reported clean. A stray you
+   have not committed yet is still a stray, and it is the most likely state at the moment you run this.
+   If the seat commit cannot be found, scan (a) says so and skips rather than passing silently; (b) still runs.
 
 3. TEXT-ONLY
    No file in the folder may contain a NUL byte or fail UTF-8 decoding. Catches an accidentally committed
@@ -95,7 +99,18 @@ else:
             ids.append(m.group(1))
         if got != want:
             malformed.append(f"row {i} ({m.group(1) if m else '?'}): {got} fields, expected {want}")
-    dupes = sorted({k for k in ids if ids.count(k) > 1})
+    # a seat may legitimately carry a CORRECTED/QUALIFIED/SUPERSEDED note under the same id, so a repeat is only a
+    # duplicate if BOTH rows are plain result rows. Detect the marker words in the sentence column.
+    marker_rows = set()
+    for l in rows:
+        m = re.match(r"\| (S-[FC]\d+) \|[^|]*\|([^|]*)", l)
+        if m and re.search(r"CORRECTED|QUALIFIED|SUPERSEDED|RECONCIL", m.group(2), re.I):
+            marker_rows.add(m.group(1))
+    counts = {}
+    for k in ids:
+        counts[k] = counts.get(k, 0) + 1
+    dupes = sorted(k for k, c in counts.items() if c > 1 and k not in marker_rows)
+    notes = sorted(k for k, c in counts.items() if c > 1 and k in marker_rows)
     nums = {}
     for k in ids:
         kind, n = k.split("-")[1][0], int(k.split("-")[1][1:])
@@ -108,7 +123,8 @@ else:
                 gaps.append(f"{kind}: no row for {missing}")
     print(f"1. FINDINGS.md: {len(rows)} rows, {len(ids)} ids")
     print(f"   malformed rows: {malformed or 'none'}")
-    print(f"   duplicate ids : {dupes or 'none'}")
+    print(f"   duplicate ids : {dupes or 'none'}  "
+          f"(same-id correction notes, which are fine: {notes or 'none'})")
     print(f"   id gaps       : {gaps or 'none'}  (a gap is not always wrong -- but a stray row often looks like one)")
     if malformed:
         fails.append(f"malformed findings rows: {len(malformed)}")
@@ -136,6 +152,23 @@ try:
             fails.append(f"{len(outside)} files added outside the folder")
 except Exception as exc:  # noqa: BLE001
     print(f"2. stray files: check failed to run: {exc}")
+
+# ---------- 2b. untracked / modified files outside the folder ----------
+try:
+    st = subprocess.run(["git", "-C", REPO, "status", "--porcelain", "--untracked-files=all"],
+                        capture_output=True, text=True).stdout
+    outside_now = []
+    for line in st.splitlines():
+        if len(line) < 4:
+            continue
+        path = line[3:].strip().strip('"')
+        if path and not path.startswith(FOLDER + "/"):
+            outside_now.append(f"{line[:2].strip() or '??'} {path}")
+    print(f"2b. files changed/untracked OUTSIDE your folder now: {outside_now or 'none'}")
+    if outside_now:
+        fails.append(f"{len(outside_now)} changed/untracked files outside the folder")
+except Exception as exc:  # noqa: BLE001
+    print(f"2b. untracked scan failed to run: {exc}")
 
 # ---------- 3. text only ----------
 print("3. text-only check:")
