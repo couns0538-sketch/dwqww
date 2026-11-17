@@ -1,0 +1,58 @@
+engine /tmp/build-rel/forge
+=== startpos ===
+FEN rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+python-chess legal moves 20; engine go perft 1 20; match True
+control's legal move g1h3, control's illegal move e2e5
+E0 unrestricted        bestmove d2d4   score cp     14 nodes    4523 fatal None strings []
+E1 bare searchmoves    bestmove 0000   score cp      0 nodes       0 fatal None strings []
+                       go output strings: ['info string searchmoves restriction has no legal root moves']
+E2 one illegal         bestmove 0000   score cp      0 nodes       0 fatal None strings []
+                       go output strings: ['info string searchmoves restriction has no legal root moves']
+E3 legal+illegal       bestmove g1h3   score cp    -40 nodes    1359 fatal None strings []
+E4 illegal+legal       bestmove g1h3   score cp    -40 nodes    1359 fatal None strings []
+E5 one legal           bestmove g1h3   score cp    -40 nodes    1359 fatal None strings []
+E6 null move           bestmove 0000   score cp      0 nodes       0 fatal None strings []
+                       go output strings: ['info string searchmoves restriction has no legal root moves']
+E7 duplicate legal     bestmove g1h3   score cp    -40 nodes    1359 fatal None strings []
+E8 wrong case          bestmove 0000   score cp      0 nodes       0 fatal None strings []
+                       go output strings: ['info string searchmoves restriction has no legal root moves']
+E9 zero-length         bestmove 0000   score cp      0 nodes       0 fatal None strings []
+                       go output strings: ['info string searchmoves restriction has no legal root moves']
+EA two legal           bestmove g1f3   score cp     -6 nodes    2032 fatal None strings []
+
+=== middlegame ===
+FEN r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4
+python-chess legal moves 33; engine go perft 1 33; match True
+control's legal move c4f7, control's illegal move e2e5
+E0 unrestricted        bestmove b1c3   score cp     48 nodes    5295 fatal None strings []
+E1 bare searchmoves    bestmove 0000   score cp      0 nodes       0 fatal None strings []
+                       go output strings: ['info string searchmoves restriction has no legal root moves']
+E2 one illegal         bestmove 0000   score cp      0 nodes       0 fatal None strings []
+                       go output strings: ['info string searchmoves restriction has no legal root moves']
+E3 legal+illegal       bestmove c4f7   score cp   -248 nodes    1475 fatal None strings []
+E4 illegal+legal       bestmove c4f7   score cp   -248 nodes    1475 fatal None strings []
+E5 one legal           bestmove c4f7   score cp   -248 nodes    1475 fatal None strings []
+E6 null move           bestmove 0000   score cp      0 nodes       0 fatal None strings []
+                       go output strings: ['info string searchmoves restriction has no legal root moves']
+E7 duplicate legal     bestmove c4f7   score cp   -248 nodes    1475 fatal None strings []
+E8 wrong case          bestmove 0000   score cp      0 nodes       0 fatal None strings []
+                       go output strings: ['info string searchmoves restriction has no legal root moves']
+E9 zero-length         bestmove 0000   score cp      0 nodes       0 fatal None strings []
+                       go output strings: ['info string searchmoves restriction has no legal root moves']
+EA two legal           bestmove c4f7   score cp   -230 nodes     960 fatal None strings []
+
+== CONTROLS ==
+startpos C1 harness sees a restriction (E0 != E5): 1 [d2d4 n4523 vs g1h3 n1359]
+startpos C2 argument order irrelevant (E3 == E4): 1 [g1h3 -40 n1359 vs g1h3 -40 n1359]
+startpos C3 determinism (E0 twice): 1
+middlegame C1 harness sees a restriction (E0 != E5): 1 [b1c3 n5295 vs c4f7 n1475]
+middlegame C2 argument order irrelevant (E3 == E4): 1 [c4f7 -248 n1475 vs c4f7 -248 n1475]
+middlegame C3 determinism (E0 twice): 1
+
+== READING ==
+E1 (bare searchmoves) and E2 (all-illegal) both report bestmove 0000 with
+score cp 0 and an info string, and search zero nodes: the restriction is
+empty, NOT ignored.  E6/E8/E9 are silently DROPPED -- no info string --
+so an all-dropped list is indistinguishable from E1/E2 except by the
+argument text.  E3 shows a mixed list silently discards the illegal
+member and searches the rest.
