@@ -2892,3 +2892,28 @@ Next: continue at cadence to the 10:20Z close.
    drawn-root section of the kind described. Flagging so nothing is credited to the wrong seat.
 Gates: 221 rows, 0 wrong pipe counts, ratio-percent skip now counted, gate rc=0 across 64 checks.
 Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T03:35:17Z — audited the FINAL, then failed three times to automate it (S-F165)
+I AUDITED THE FINAL BLOCK because it accumulated four corrections tonight and a FINAL citing a superseded own finding is
+the worst place for one to survive. METHOD: enumerate the 49 distinct ids it cites; intersect with the ids corrected or
+retired tonight; read each overlapping citation; verify every number against its committed artifact.
+RESULT: THE FINAL IS CURRENT. It cites S-C47 as the method that i=16 corrected, S-C46's medians (0.9261 / 0.9698) match
+wall_time_pc20.json exactly with the implied 1.0472 recomputing, the decomposition table carries the corrected pair
+(0.8761 / 1.0693 / 0.9368 / 0.9343), and it cites the retired S-F5/S-F17/S-F19 EXPLICITLY AS RETIRED with their
+corrections named - so those occurrences are the record working, not stale claims.
+THEN I TRIED TO AUTOMATE THE AUDIT AND FAILED THREE TIMES, WHICH IS THE MORE USEFUL RECORD:
+  model 1: any row containing a retirement word retires its own id -> flagged S-C47, whose row retires ONE of its five
+           positions while the finding stands.
+  model 2: the marker must be in the row's head cell -> found 1 id, because NO ROW IN THIS TABLE RETIRES ITSELF;
+           retirements are separate later rows (S-C6 retires S-F5/S-F17; S-F23 corrects S-F19).
+  model 3: a later row naming an earlier id plus a retirement phrase -> found 64, because CONFIRMS and corrects BOTH
+           match CORRECT.
+All three failed the same way: MY VOCABULARY DID NOT MATCH HOW THE TABLE RECORDS RETIREMENT. At model 3 the problem is
+the CONCEPT - "retired" and "confirmed with a correction" are different states, and a regex cannot separate them without
+reading the sentence. SO I DELETED THE CHECKER RATHER THAN SHIPPING IT, and METHOD_NOTES now carries the three-model
+table with the rule: a claim whose truth depends on the MEANING of a sentence is not mechanisable by pattern, and
+attempting it produces either false alarms or false comfort.
+That is the same call as form 4's first abandonment - except this time I made it BEFORE shipping, and the second
+abandonment of form 4 was also wrong, so the distinction is: delete when the sample is mostly the checker's own error,
+keep when the true positive is real and the false ones are separable by grammar.
+Gates: 222 rows, 0 wrong pipe counts, FINAL audited and current, gate rc=0 across 64 checks.
+Next: continue at cadence to the 10:20Z close.

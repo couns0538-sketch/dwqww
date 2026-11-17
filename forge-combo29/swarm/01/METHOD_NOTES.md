@@ -67,6 +67,28 @@ across the pages. Proven by restoring the fabricated pair into `DECOMPOSITION.md
 **The lesson is not "prose cannot be checked". It is "prose can be checked where the grammar states the relation".** My
 first attempt inferred the relation from proximity; the second read it from the punctuation.
 
+## What is NOT mechanisable, with three attempts as evidence
+
+Two checks were built tonight and deleted, and the second one is instructive because it failed **three times in a row
+with the same root cause**:
+
+**Attempt: audit the FINAL block for citations of superseded findings.**
+
+| model | what it assumed | how it failed |
+|---|---|---|
+| 1 | a row containing a retirement word retires its own id | flagged `S-C47`, whose row retires **one of five** positions while the finding stands |
+| 2 | the marker must be in the row's head cell | found **1** id — because **no row in the table retires itself**; retirements are separate later rows |
+| 3 | a later row naming an earlier id plus a retirement phrase | found **64**, because `CONFIRMS` and `corrects` both match `CORRECT` |
+
+**All three failed because my vocabulary did not match how the table records retirement.** At model 3 the problem is the
+concept rather than the pattern: *"retired"* and *"confirmed with a correction"* are different states, and separating them
+needs the sentence read, not matched.
+
+**So the rule this page adds: a claim whose truth depends on the MEANING of a sentence is not mechanisable by pattern,
+and attempting it produces either false alarms or false comfort.** The test is cheap — build the pattern, count the
+findings, and check a sample by hand. If the sample is mostly the checker's own error, delete it. **The audit stays
+manual, and this table is why.**
+
 ## The audit procedure, in three steps
 
 1. **Grep the page for numbers** and write down the form of each multi-number claim.
