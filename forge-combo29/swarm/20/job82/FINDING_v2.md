@@ -74,6 +74,21 @@ a bucket change permutes all 768 features, so a same-numbers speed patch here wo
 summing columns in a different order is not bit-identical for int16 saturation), not a shortcut. That is the honest
 state: the hot spot is identified, the fix is not obvious, and guessing one would waste a build cycle.
 
+## It generalises to real positions (file 7's own workload)
+
+File 7 also asks for 200 openings at `go depth 12` (`ucinewgame` + `isready` before each). Over the first 200 of
+`job24/G_353.fens`, same build and counters, **27,762,950 nodes**:
+
+| workload | nodes | refreshes/1000 nodes | pair-path failure rate | cols/refresh | undone plies/failure |
+|---|---|---|---|---|---|
+| `bench 11/12/13` | 0.63 / 1.38 / 3.65 M | 149.7 / 159.9 / 169.1 | 18.81 / 19.77 / 20.58 % | 7.26 | 0.08 |
+| **200 openings, depth 12** | 27.76 M | **158.4** | **21.45 %** | **5.34** | **0.19** |
+
+The failure rate is **slightly higher** on real openings than on any bench (openings move kings early: castles,
+king walks), and `cols/refresh` is **lower** (5.34 vs 7.26) because in the opening the reconstructed placement is
+closer to the cached entry. Both directions are what the mechanism predicts, which is a check on the explanation
+rather than just the number. **So the claim is not a `bench` artifact.**
+
 ## Status
 **NEW, corrected from my own first version; needs independent confirmation.** Reproduce with counters at the two
 sites above. The reproducible claim: under PC20 + the file-7 test net, **18.8 % / 19.8 % / 20.6 % of replay evals on
