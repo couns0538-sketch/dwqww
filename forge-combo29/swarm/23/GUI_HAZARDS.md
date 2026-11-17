@@ -25,7 +25,9 @@ row is measured on the base build with Threads 1 / Hash 16 / `OwnBook false`, st
 1. **`nodes == 0` with an EMPTY `pv` means nothing was searched** — never show its score. The empty `pv` is the reliable
    signal; the node count is a symptom and the two auto-draw rules share it. **And do not infer a search depth from the
    `info depth` line count here: on a bailed root it is the engine's ceiling (10 at `go depth 10`, 64 under `go nodes`),
-   not the depth of any search, because there was none (23-F185).**
+   not the depth of any search, because there was none (23-F185). The 64 is simply the DEFAULT depth — `int depth = 64`
+   in `search.hpp:29`, passed through the clamp at `search.cpp:2219` — reported once per depth by a loop that never
+   searched (23-F187).**
 2. **`bestmove 0000` is never a move.** Treat it as an error, and do not rely on a diagnostic to explain it — on a
    stalemated root there is none (23-F159).
 3. **Count the `info string` lines on every search.** They are the only signal that your position or your restriction was
