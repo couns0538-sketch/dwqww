@@ -176,6 +176,18 @@ next to a move chosen from a draw with no search at all — a 406 cp contradicti
 This is not an `eval` defect — a static evaluator has no history and is right to score the board. It is a trap in how
 a front end combines the two answers (23-F78).
 
+**The gap has a precise boundary, which tells you where to be careful:** it is large exactly for draws caused by
+**history** and small for the draw caused by **material** —
+
+| draw type | `eval` total | `go` | gap |
+|---|---|---|---|
+| threefold repetition | +406 | cp 0 | 406 cp |
+| fifty-move rule | +406 | cp 0 | 406 cp |
+| insufficient material (bare K v K) | +20 | cp 0 | 20 cp |
+
+So the contradiction you must guard against is repetition and the fifty-move rule — the two a static evaluator
+cannot see. For insufficient material the two interfaces nearly agree (23-F79).
+
 ## Why this is safe for the owner's PC games
 
 The match program drives the engine directly and sends well-formed positions, so neither hazard arises in the PC's
