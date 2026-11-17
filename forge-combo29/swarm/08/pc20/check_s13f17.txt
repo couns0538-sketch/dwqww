@@ -1,0 +1,20 @@
+## seat 13 S-F17 — the drawn-root matrix, on both builds
+
+Control: the constructed board `7k/8/6K1/8/8/8/8/R7 w - - 100 1` HAS a mate-in-1 (`a1a8`), verified in python-chess first.
+
+| cell | base bestmove | base nodes | PC bestmove | PC nodes | design says |
+|---|---|---|---|---|---|
+| halfmove 0 (control: not drawn) | a1a8 | 86 | a1a8 | 86 | both FIND |
+| halfmove 99 (control: not drawn) | a1a8 | 85 | a1a8 | 85 | both FIND |
+| halfmove 100 (drawn root) | a1b1 | 0 | a1a8 | 85 | base MISSES, PC finds |
+| K vs K (insufficient material) | e3d2 | 0 | e3d2 | 0 | both answer at once, 0 nodes |
+
+## The claim, tested
+
+| question | answer |
+|---|---|
+| base FINDS the mate at halfmove 0 | **yes** (a1a8, 86 nodes) |
+| base FINDS the mate at halfmove 99 | **yes** (a1a8, 85 nodes) |
+| base MISSES it at halfmove 100 (0 nodes, not the mating move) | **YES** (a1b1, 0 nodes) |
+| PC FINDS it at halfmove 100 | **YES** (a1a8, 85 nodes) |
+| both answer K vs K at once with 0 nodes | base 0 nodes / PC 0 nodes |

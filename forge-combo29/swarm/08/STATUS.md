@@ -828,3 +828,17 @@ next: cadence.
 **39 findings, 31 checks/audits/plants, 5 method lines, 2 withdrawals** (and 1 open lead).
 
 next: cadence.
+
+## 2026-11-17T02:31Z
+- **08-C33: seat 13 S-F17 CONFIRMS on EVERY cell of the drawn-root matrix**, including their exact non-mating
+  `a1b1`. My own board (`7k/8/6K1/8/8/8/8/R7 w - - H 1`, a1a8 verified as mate first): halfmove 0 and 99 give
+  a1a8 on both builds (86/86, 85/85 — the CONTROLS, neither drawn); **halfmove 100 gives base `a1b1` at 0 nodes vs
+  PC a1a8 at 85**; K vs K answers at once 0/0. The two control cells make it a matrix rather than an anecdote.
+  Their 144 nodes vs my 85 is a depth difference; I confirm the MOVE and the zero/nonzero split.
+- Together with 08-W1 (correct draw, 15 plies needed 9 left) and 08-C21 (one-ply-down miss), the fifty-move/draw
+  boundary is now measured from THREE sides.
+
+## 2026-11-17T02:31Z — TALLY (generated, not maintained)
+**39 findings, 32 checks/audits/plants, 5 method lines, 2 withdrawals** (and 1 open lead).
+
+next: cadence.
