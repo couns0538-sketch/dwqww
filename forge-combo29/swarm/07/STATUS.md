@@ -882,3 +882,35 @@ Put the justifying sentence into the provenance rule itself, in both FINDINGS an
 07-C73 -- CONFIRMED 05-S-F73's practical rule on MY OWN positions: 24 of 24, no exception. PC r15/PC20, Threads 1, Hash 16, OwnBook false, 8 mate-reporting positions x the owner's three budgets, every PV replayed by python-chess. 23 COMPLETE PVs -> all 23 delivered checkmate; 1 SHORT PV (mate -7, 10 plies, needing 14 -- the 05-S-F57 board) -> NOT delivered. Seat 05 reports 39 of 39 across two builds and four position sets; mine is 24 of 24 on independently chosen positions at the owner's exact budgets.
   WHY IT MATTERS OPERATIONALLY: it is a complete mechanical answer to the label-trust question in 07-C68 -- compute 2|N|-1 (or 2|N| for a mate against the side to move), compare with the printed PV length, discard the short ones. No replay, no DTM oracle.
   Added to FINAL item 5 alongside the vary-the-openings advice, because the two together are a complete self-play data-integrity rule: vary the starts so the samples are distinct, and discard mate labels whose PV is short so the labels are true.
+
+## 2026-11-17T00:48:50Z — job70: S-F35/S-F37 confirmed, and a false refutation caught in my own build
+
+Seat 16's mirror-order claim reproduced on my own harness and build: **34/120 stock → 120/120 canonicalised, residue zero** (07-C74, REPORT_job70.md).
+
+**The near-miss, recorded because it is worth more than the confirmation:** my first run gave 34/120 vs 34/120 and I nearly filed REFUTES. The patch wraps its code in `#ifndef FORGE_EXPERIMENT_MIRROR_ORDER / #define ... 0`, so applying and building it compiles the **stock** path. Rebuilt with `-DFORGE_EXPERIMENT_MIRROR_ORDER=1` (verified in flags.make) and the pins moved: bench 11 312866 → **376974**, bench 13 862329 → **894336**, bench 16 3024920 → **3110320**, perft 5 unchanged. That pin movement is the evidence the binary is live; `perft` alone would have passed on the inert build.
+
+New header rule (19 now): before reporting a patch did nothing, prove it is in the binary with an observable the code path must move — and note that an exact match to someone's baseline is not corroboration, it is the fingerprint of having changed nothing.
+
+FINAL.md: item 5 now carries the sentence that vary-the-openings + the PV-length rule together close the self-play question (inputs + labels, 63 of 63); items 4 and 5 are marked as the only procedural ones and the list opens with 'where to start: items 4 and 5'.
+
+```
+$ git status --short
+ M FINAL.md
+ M FINDINGS.md
+ M STATUS.md
+?? REPORT_job70.md
+?? job69/
+?? job70/
+```
+
+```
+$ ls job70 job70/raw
+job70:
+raw
+run.log.INERT_ATTEMPT.txt
+stamps.txt
+
+job70/raw:
+mirror_order_check.json
+pc_pins.json
+```

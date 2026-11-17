@@ -75,10 +75,16 @@ false).
 | 07-C37 | No mate-distance lengthening in this sample (base reports no mate at all) | both, none |
 | 07-C38 | Fifty-move rate **tightened to 5/20**, one depth-12 artefact removed | base, none |
 | 07-C39 | **Rate settled at depth 30**: 0 of 6 changed category | base, none |
+| 07-C74 | **16-S-F35/F37 confirmed exactly: 34/120 stock → 120/120 canonicalised, residue zero** — after catching a false refutation from an inert build | both, PC20 + `-DFORGE_EXPERIMENT_MIRROR_ORDER=1` |
 
 ---
 
 ## The five things I would put in front of the owner
+
+**Where to start: items 4 and 5.** Those two are the only **procedural** items on this list — they need
+no patch, no decision about defaults, and no re-run, so they are actionable the moment they are read and
+they cost nothing to apply. Items 1–3 are engine-change questions and carry their own caveats; read them
+second.
 
 1. **07-F1 is the only engine defect I found that survives on the PC build**, it is confirmed by another
    seat, and it has a ready patch that changes no node count on any published bench (07-C23, 07-C24).
@@ -93,14 +99,16 @@ false).
 3. **`FORGE_FIX_ROOT_DRAWN` buys one game-losing outcome in twenty** on the fifty-move sample
    (07-F4/07-C38/07-C39, settled at depth 30) — narrower than two of my earlier figures, and it is the
    number I stand behind.
-4. **DO NOT PLAY A ZERO-INCREMENT TIME CONTROL.** The clock floor that protects the engine is
+4. **DO NOT PLAY A ZERO-INCREMENT TIME CONTROL.** *(Procedural — no patch, no re-run.)* The clock floor
+   that protects the engine is
    `MoveOverhead + increment · 100/TmHardPercent` = `10 + increment · 5/3` ms (28-S-F44, reproduced
    exactly in 07-C57). At the owner's `6 s + 0.06` that is **111 ms**, and I verified the engine's real
    spend falls *inside* the 60 ms increment once the clock drains, so it is safe. **But at `winc 0` the
    formula gives a floor of about 10 ms, i.e. `Move Overhead` alone — there is no margin and nothing
    protects the engine from flagging.** Every clock control I ran with an increment had zero overruns
    (07-C7); that safety comes *from* the increment, not from the clock path.
-5. **VARY THE OPENINGS IN SELF-PLAY, OR THE SET IS TEN COPIES OF ONE GAME.** With a node budget (which
+5. **VARY THE OPENINGS IN SELF-PLAY, OR THE SET IS TEN COPIES OF ONE GAME.** *(Procedural — no patch, no
+   re-run.)* With a node budget (which
    is exactly reproducible — 07-C49) ten games from startpos gave **one** distinct final position and
    **one** distinct move sequence: all ten identical. Ten games from ten different positions gave ten
    distinct finals and ten distinct sequences (07-C68). So with fixed starts the **effective sample size
@@ -111,9 +119,14 @@ false).
    this list at all: if self-play currently uses fixed starts with node limits, the data set is smaller
    than it looks by whatever factor the starts repeat. **And there is a cheap mechanical guard for the
    labels themselves**: a printed PV shorter than `2|N|−1` (`2|N|` for a mate against the side to move)
-   means the mate was **not delivered** — 24 of 24 on my positions, 39 of 39 on seat 05's, no exception
-   (07-C73). Compute the number, compare it with the PV length, discard the short ones; no replay and no
-   tablebase needed.
+   means the mate was **not delivered** — 24 of 24 on my positions, 39 of 39 on seat 05's, 63 of 63
+   combined, no exception (07-C73). Compute the number, compare it with the PV length, discard the short
+   ones; no replay and no tablebase needed. **Together these two close the self-play data question:**
+   varying the openings fixes the *inputs* (ten games that are actually ten games) and the PV-length
+   check fixes the *labels* (a mate that was reported is a mate that was delivered). Neither needs
+   anything from the engine — no patch, no rebuild, no re-run. That is the whole answer to "is my
+   self-play set worth training on": make the games distinct, then throw away the labels whose own PV
+   says they are fiction.
 
 ## Audit method: how to check a seat's scope without raising a phantom alarm
 
@@ -134,7 +147,7 @@ scope that way will "find" a catastrophic breach in every seat, including innoce
 If that prints nothing, the seat committed only its own files. I ran exactly this on my own branch and
 it is empty, which is the claim worth quoting — not a file count.
 
-## The sixteen standing rules, grouped by the question they answer
+## The nineteen standing rules, grouped by the question they answer
 
 The FINDINGS header carries sixteen rules; the table there is ordered by when I learned them, which is
 the wrong order to read them in. Grouped by what they are for:
@@ -183,6 +196,13 @@ the wrong order to read them in. Grouped by what they are for:
 
 ### Can anyone re-check what I claimed?
 
+- **Before reporting that a patch did nothing, prove the patch is in the binary — with an observable the
+  code path must move.** A patch that ships its own switch (`#ifndef X / #define X 0`) is not applied by
+  applying and building it; you compile stock and measure stock against stock. I got **34/120 vs
+  34/120**, no improvement, and nearly filed a refutation of 16-S-F35 — which is exactly right: rebuilt
+  with `-DX=1` it gives **120/120, residue zero** (07-C74). **`perft` is the wrong control for a
+  move-order patch** — it is precisely what such a patch leaves alone, so it passes on an inert build and
+  reassures falsely; the control that must move is **bench nodes, 312866 → 376974.**
 - **Regime plus binary is a complete citation; settings alone are half of one.** Nine of my own jobs
   cited settings with no `sha256` — the gap was in the record, not the work, and it is now closed in
   `job65/BINARY_PROVENANCE.md`. **This is the difference between a discrepancy and a mystery**: two seats
@@ -258,6 +278,13 @@ gave 7 of 120, and 25 of the first 40 pairs it had failed were carrying the *cor
 This is the trap seat 16 documented in its own C5 ("a negation-based symmetry checker would report a
 false 8422 cp difference per position") — **I walked into a trap another seat had already written
 down**, which is the strongest argument for reading the other seats' checks before writing one.
+
+**And the residue has a single cause, now confirmed rather than assumed.** The mirror asymmetry looks
+like a search property and is entirely a **move-generation-order** artefact: seat 16 canonicalised the
+generation order and got 120/120 equal pairs, and I reproduced it — my own harness, my own build,
+**34/120 stock against 120/120 canonicalised, residue zero** (07-C74). So the equality invariant above
+is the right statement of the property, and any residual asymmetry you measure in node counts is
+ordering, not search, until proven otherwise.
 
 
 ## Times
