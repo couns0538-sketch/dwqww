@@ -1,0 +1,26 @@
+CHECK of seat 08's 08-F12: does the built-in book answer `position startpos` at defaults?
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+PC20-ish options except OwnBook, which is left at its DEFAULT (not sent) for the first arm,
+
+and explicitly false for the control. GO = go wtime 6000 btime 6000 winc 60 binc 60, 3 runs per cell.
+position	ownbook	book_fired	info_lines	moves_seen	wall_ms
+startpos	default	3/3	0	['c2c4', 'e2e4']	0.1
+startpos	false	0/3	19	['e2e4']	357.4
+Ruy_1	default	3/3	0	['c7c5', 'e7e5']	0.1
+Ruy_1	false	0/3	19	['e7e6']	306.5
+Ruy_2	default	3/3	0	['b1c3', 'g1f3']	0.0
+Ruy_2	false	0/3	18	['g1f3']	216.5
+G_midgame	default	0/3	18	['g7g6']	159.9
+G_midgame	false	0/3	18	['g7g6']	160.6
+
+A. `position startpos`, OwnBook at DEFAULT: book fired in 3 of 3 runs, moves seen ['c2c4', 'e2e4'].
+   OwnBook false: book fired 0 of 3, moves ['e2e4'].
+   -> CONFIRMS seat 08: `position startpos` IS answered from the built-in book at defaults,
+      which is the first line many harnesses write. A table built without `OwnBook false`
+      contains book answers with no search behind them.
+   -> AND THE MOVE VARIES between runs (['c2c4', 'e2e4']), so a book-on engine is not repeatable either -
+      exactly as seat 08 reports, caused by Book Variety defaulting to 30.
+
+B. Control, a real middlegame at defaults: book fired 0 of 3 (expected 0).
+   -> so the book fires on OPENINGS only, which is the scope a harness needs to know.

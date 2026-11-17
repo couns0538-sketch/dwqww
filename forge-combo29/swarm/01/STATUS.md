@@ -1406,3 +1406,10 @@ THE DIAGNOSIS IS IN THE FINAL VERBATIM (S-F101), with its FIVE-INSTANCE TABLE an
   'A PLAUSIBLE WRONG NUMBER LOOKS EXACTLY LIKE A RIGHT ONE' is now Trap 0 at the HEAD of the traps page, immediately above the paste-from-script rule it justifies - because no plausibility check catches a transcription error, and only the script knows which number is real.
   The traps page is now eight, in order 0-7, family table, guard - verified clean.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+## 2026-11-17T00:40:33Z — 25-minute cadence
+SEAT 08's 08-F12 CONFIRMED — AND I PRODUCED A FALSE NEGATIVE FIRST, WHICH IS THE MORE USEFUL HALF (S-C36, S-F102).
+  CONFIRMED:  IS answered from the built-in book at defaults - 3 of 3 runs, 0 info depth lines, moves ['c2c4','e2e4'], so the move VARIES because Book Variety defaults to 30. Control : 0 of 3, 18 info lines, stable e2e4. Real middlegame at defaults: 0 of 3, so the book fires on OPENINGS only. Ruy_2 fired 3/3 with ['b1c3','g1f3'].
+  MY FALSE NEGATIVE: my first run of this same test reported 0/3 book fires because I used go depth 12. The book is probed ONLY when game_search holds - clock or movetime (uci.cpp:681) - so a DEPTH search can never produce a book answer and my test was structurally incapable of finding one. The same harness re-run with a clock search reported 3/3.
+  WHY THAT IS THE USEFUL HALF: the check I had just written - 'the trigger is the configuration, not the command' (Trap 6 and 7) - applied directly to my own instrument, and I did not notice until the numbers came back empty. The failure mode is silent and looks exactly like a clean result: A TEST THAT CANNOT FIRE RETURNS THE SAME ANSWER AS A TEST THAT FOUND NOTHING. That deserves to be in the traps page beside the others.
+Next: add that trap and continue confirming while the window runs to 2026-11-17T10:18Z.
