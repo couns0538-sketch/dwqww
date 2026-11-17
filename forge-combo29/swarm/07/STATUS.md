@@ -914,3 +914,38 @@ job70/raw:
 mirror_order_check.json
 pc_pins.json
 ```
+
+## 2026-11-17T00:50:04Z — job71: 07-F3/F4 turned from a rate into a mechanical, per-position claim
+
+**The corollary is now the header rule's headline**, promoted out of the mechanics paragraph to stand first (20 rules): *an exact match to someone's baseline is the fingerprint of having changed nothing* — with the general form that a treatment arm matching its control means the experiment has not been run, and that matching the other seat's baseline is **not** a check on your own build because the baseline is by construction the unmodified path.
+
+**07-F3 → one hand-checkable case (07-C75).** Board `8/6qk/8/8/8/1p4p1/4K3/8 b - - 100 1`: python-chess finds 25 legal moves, **two are pawn moves (b3b2, g3g2)**, so the counter resets and `is_fifty_moves()` is **False**. Base answers **cp 0, 0 nodes**. The PC build finds a forced mate under all three regimes (no-options mate 6, S14 and PC20 mate 5) and **all three PVs replay to actual checkmate** — 11, 9 and 9 plies. No rate, no referee, no second build.
+
+**07-F4 → mechanical and 20 of 20 (07-C76).** All 100 targeted rows: exactly the 20 counter-100 roots answer with 0 nodes; the 80 counter-0 roots all search (8,066–113,601 nodes). python-chess says **not one** of the 20 is a genuine fifty-move draw. That is `nodes == 0` and `is_fifty_moves() == False` — mechanical, no threshold. The cost estimate (5 of 20, 1 thrown-away win) stays as supporting colour, labelled as needing a referee.
+
+Also corrected a half-citation of my own: 07-F3's row quoted `mate 6` at 15,981 nodes without naming the regime — that is the **no-options** arm; PC20 gives `mate 5` at 80,861. Both correct, one regime named (07-C72's rule applied to myself).
+
+```
+$ git status --short
+ M FINAL.md
+ M FINDINGS.md
+ M STATUS.md
+?? REPORT_job71.md
+?? job71/
+```
+
+```
+$ ls job71 job71/raw
+job71:
+fifty_mechanical.py
+__pycache__
+raw
+stamps.txt
+verify_f3.py
+
+job71/raw:
+f3_arms.json
+f3_arms_replay.json
+fifty_mechanical.json
+verify_f3.json
+```

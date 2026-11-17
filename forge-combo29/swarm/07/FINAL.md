@@ -76,6 +76,8 @@ false).
 | 07-C38 | Fifty-move rate **tightened to 5/20**, one depth-12 artefact removed | base, none |
 | 07-C39 | **Rate settled at depth 30**: 0 of 6 changed category | base, none |
 | 07-C74 | **16-S-F35/F37 confirmed exactly: 34/120 stock → 120/120 canonicalised, residue zero** — after catching a false refutation from an inert build | both, PC20 + `-DFORGE_EXPERIMENT_MIRROR_ORDER=1` |
+| 07-C75 | **07-F3 reduced to one hand-checkable case: base says `cp 0`/0 nodes on a board where a forced mate exists under all three regimes, and every PV replays to real checkmate** (job71/raw) | base + PC, depth 12 |
+| 07-C76 | **Fifty-move fault is mechanical and 20 of 20: every counter-100 root declared drawn with 0 nodes, and python-chess says none is a fifty-move draw** — vs the 80 counter-0 roots, which all search | base, depth 12, 100 rows |
 
 ---
 
@@ -96,9 +98,21 @@ second.
    and **supersedes my own narrower `job2`/`job29` patches.**
 2. **`TtPruneV2` carries 85 % of PC20's node effect** on 200 positions (07-C32), while `CorrHistV2`
    costs 2.7 %. Whether that saving is strength is a games question I did not measure.
-3. **`FORGE_FIX_ROOT_DRAWN` buys one game-losing outcome in twenty** on the fifty-move sample
-   (07-F4/07-C38/07-C39, settled at depth 30) — narrower than two of my earlier figures, and it is the
-   number I stand behind.
+3. **`FORGE_FIX_ROOT_DRAWN` earns its place on one undeniable board, and here it is.**
+   `8/6qk/8/8/8/1p4p1/4K3/8 b - - 100 1` — the base build answers **`cp 0` with 0 nodes**, declaring a
+   draw without searching. It is not a fifty-move draw: python-chess finds **25 legal moves, two of them
+   pawn moves (`b3b2`, `g3g2`)**, so the counter resets on the move actually played. The PC build finds a
+   **forced mate under all three settings** (no-options `mate 6`, S14 and PC20 `mate 5`), and **every one
+   of those three PVs replays on a python-chess board to actual checkmate** — 11, 9 and 9 plies (07-C75).
+   So this needs no rate, no referee and no second build: the FEN, the two pawn moves and a nine-ply line
+   you can play yourself are the entire argument. **And the whole class is mechanical, 20 of 20:** across
+   all 100 rows of the targeted set, exactly the 20 counter-100 roots answer with **0 nodes** while the 80
+   counter-0 roots all search (8,066–113,601 nodes), and **python-chess says not one of those 20 is a
+   genuine fifty-move draw** — every one has a capture or pawn move available (07-C76). That is
+   `nodes == 0` and `is_fifty_moves() == False`: no referee, no threshold. **The cost estimate (5 of 20
+   decisive, 1 thrown-away win, 07-F4/07-C38/07-C39) is a separate and softer question** — it needs a
+   depth-12 re-search as referee and was revised downward twice, so treat it as supporting colour rather
+   than the claim.
 4. **DO NOT PLAY A ZERO-INCREMENT TIME CONTROL.** *(Procedural — no patch, no re-run.)* The clock floor
    that protects the engine is
    `MoveOverhead + increment · 100/TmHardPercent` = `10 + increment · 5/3` ms (28-S-F44, reproduced
@@ -147,7 +161,7 @@ scope that way will "find" a catastrophic breach in every seat, including innoce
 If that prints nothing, the seat committed only its own files. I ran exactly this on my own branch and
 it is empty, which is the claim worth quoting — not a file count.
 
-## The nineteen standing rules, grouped by the question they answer
+## The twenty standing rules, grouped by the question they answer
 
 The FINDINGS header carries sixteen rules; the table there is ordered by when I learned them, which is
 the wrong order to read them in. Grouped by what they are for:
@@ -196,13 +210,19 @@ the wrong order to read them in. Grouped by what they are for:
 
 ### Can anyone re-check what I claimed?
 
+- **An exact match to someone's baseline is the fingerprint of having changed nothing.** Replicating
+  16-S-F35, my first run reproduced their baseline **to the digit (34/120)** while my treatment arm was
+  **identical, case for case** — which felt like two seats measuring the same thing and was the proof the
+  treatment had not been applied. **When your treatment arm matches your control arm exactly, do not
+  conclude the effect is absent; conclude you have not yet run the experiment** (07-C74). The baseline
+  is by construction the unmodified path, so matching it is **not** a check on your build — only a number
+  the treatment must move can be that check.
 - **Before reporting that a patch did nothing, prove the patch is in the binary — with an observable the
   code path must move.** A patch that ships its own switch (`#ifndef X / #define X 0`) is not applied by
-  applying and building it; you compile stock and measure stock against stock. I got **34/120 vs
-  34/120**, no improvement, and nearly filed a refutation of 16-S-F35 — which is exactly right: rebuilt
-  with `-DX=1` it gives **120/120, residue zero** (07-C74). **`perft` is the wrong control for a
-  move-order patch** — it is precisely what such a patch leaves alone, so it passes on an inert build and
-  reassures falsely; the control that must move is **bench nodes, 312866 → 376974.**
+  applying and building it; you compile stock and measure stock against stock. Rebuilt with `-DX=1` the
+  same claim gives **120/120, residue zero** (07-C74). **`perft` is the wrong control for a move-order
+  patch** — it is precisely what such a patch leaves alone, so it passes on an inert build and reassures
+  falsely; the control that must move is **bench nodes, 312866 → 376974.**
 - **Regime plus binary is a complete citation; settings alone are half of one.** Nine of my own jobs
   cited settings with no `sha256` — the gap was in the record, not the work, and it is now closed in
   `job65/BINARY_PROVENANCE.md`. **This is the difference between a discrepancy and a mystery**: two seats
