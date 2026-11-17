@@ -29,6 +29,7 @@ Deliverables in `forge-combo29/swarm/65/`:
 | file | content |
 | --- | --- |
 | `BASE.md` | **which commit every number came from, the pin, and what was re-verified** |
+| `TRAP2_PATCH.md` | the one-hunk drawn-root fix: patch, pin verification, before/after measurement, and the decisions left to the owner |
 | `FINDINGS.md` | source map with line numbers, all measurements, defect table, fix arithmetic, and one retraction |
 | `BOOK_WIRE.md` | exact reply shapes, the deadlock proof, the `go`-form matrix, harness rules |
 | `STATUS.md` | this file: claim → command index, what is not done |
@@ -42,17 +43,27 @@ Two pipelines, both self-checking:
 ```bash
 cd forge-combo29
 bash swarm/65/scripts/reverify_6b98f217.sh   # ~1.5 min: builds the audit base, checks the pin, re-verifies every finding
+bash swarm/65/scripts/patch_trap2_drawn_root.sh  # ~2 min: applies and verifies the drawn-root patch
 bash swarm/65/scripts/run_all.sh             # ~5 min: the full audit, including three patched game_ply builds
 ```
 
 `reverify_6b98f217.sh` **aborts before recording anything** unless `bench 11`
-prints 312866. Both runners abort on a failed SEE self-test, score-absence check,
-or drawn-root check, so a green run means those assertions held.
+prints 312866. `patch_trap2_drawn_root.sh` aborts unless all 11 documented pins
+match on the unpatched build, and again if the patched build differs. Both runners
+abort on a failed SEE self-test, score-absence check, or drawn-root check.
 
 ## Claim → command index
 
 Every claim in `FINDINGS.md` and `BOOK_WIRE.md`, with the exact thing that
 produces it. All commands run from `forge-combo29/`.
+
+### Trap-2 patch (measured, not merged)
+
+| claim | command | evidence |
+| --- | --- | --- |
+| patch removes pre-emption 2/2 → 0/2 and leaves the book working | `bash swarm/65/scripts/patch_trap2_drawn_root.sh` | `evidence/trap2-effect.txt` |
+| all 11 documented pins identical on both builds | same script, `q13_pins.py` | `evidence/trap2-pins-{lock,fix}.txt` |
+| traps 1 and 3 unchanged by the patch | same script, `q15_traps_unchanged.py` | `evidence/trap2-trap1-3.txt` |
 
 ### Re-verified on the audit base (`6b98f217`)
 
@@ -163,9 +174,20 @@ produces it. All commands run from `forge-combo29/`.
   `tests_t16/start h2h4.book` but was not audited further, as it is outside the
   book-behaviour question.
 * No code was changed in the tree under test. The `q8*` scripts build three
-  patched copies in `/tmp` to measure what each candidate derivation would do;
-  those builds are comparison artifacts, not a proposed patch, and the lock build
-  is the one all other results come from.
+  patched copies in `/tmp` to measure what each candidate derivation would do, and
+  `patch_trap2_drawn_root.sh` builds a patched copy for `TRAP2_PATCH.md`. All are
+  comparison artifacts in `/tmp`; the patch lives in `patches/` as a diff and is
+  **not applied** to the engine tree.
+* The trap-2 patch is verified for node-neutrality against LOCK.md's 11 pins
+  (five depths × two net settings, plus perft 5). That is a strong signal and not
+  a proof: a change that alters play without altering a pinned bench would not be
+  caught. It is also verified only on this host and compiler.
+* The trap-2 patch keeps two copies of the drawn-root conditions (one in
+  `uci.cpp`, one in `search.cpp`). They agree at `6b98f217`; nothing enforces that
+  they keep agreeing. `TRAP2_PATCH.md` flags this.
+* Trap 1 (the mover's-clock gate, and the resulting unbounded search) is **not**
+  patched. It was outside what was asked for and the fix has its own behavioural
+  consequence worth measuring separately.
 * The `game_ply` matrix covers 14 cases: both counter directions, all three
   `position` forms, at depths either side of the gate. It does not test a
   mid-game FEN whose counter is wrong *and* whose position is absent from the

@@ -1,0 +1,21 @@
+patched binary /tmp/sw65-trap2-fix-6b98f217/forge
+
+TRAP 1 — unchanged by the patch
+    white/btime  book=no  depth=22  e2e4
+    white/wtime  book=YES depth=0   c2c4
+    black/btime  book=YES depth=0   c7c5
+    black/wtime  book=no  depth=21  c7c5
+  [PASS] white + only-btime still does not book: as on the lock
+  [PASS] white + only-wtime still books: control
+  [PASS] black + only-btime still books: asymmetry preserved
+  [PASS] black + only-wtime still does not book: mirror preserved
+
+TRAP 3 — unchanged by the patch
+    fullmove=1   Depth40 book=True  Depth41 book=True 
+  [PASS] fullmove 1: Depth 40 unchanged: book=True
+  [PASS] fullmove 1: Depth 41 unchanged: book=True
+    fullmove=21  Depth40 book=False Depth41 book=True 
+  [PASS] fullmove 21: Depth 40 unchanged: book=False
+  [PASS] fullmove 21: Depth 41 unchanged: book=True
+
+Traps 1 and 3 unchanged by the trap-2 patch.

@@ -246,6 +246,24 @@ The practical consequence is sharper than "2 of 3". Because pre-emption follows
 the book entry, it fires exactly on the positions most likely to appear in a real
 game — the ones the book was written for.
 
+#### 4.1.2 The fix, measured
+
+A one-hunk patch that makes the book gate refuse a drawn root is in
+`patches/trap2-drawn-root-before-book.patch`, written up in **`TRAP2_PATCH.md`**.
+Summary of the measurement (details and tables there):
+
+| | lock | patched |
+| --- | --- | --- |
+| entry-bearing drawn roots pre-empted | 2/2 | **0/2** |
+| non-entry drawn roots answered correctly | 4/4 | 4/4 |
+| ordinary book position still books | yes | yes |
+| the 11 documented bench/perft pins | match | **identical** |
+
+The patch is search-neutral by construction — it adds a predicate to the book
+gate in `uci.cpp` and does not touch `search.cpp` — and that was verified rather
+than assumed: LOCK.md's five bench depths at both net settings plus perft 5 all
+reproduce on both builds. Traps 1 and 3 are unchanged by it.
+
 ### 4.2 MultiPV is ignored on the book path
 
 `evidence/interactions.txt` block B: `MultiPV 2` and `MultiPV 3` both give the
@@ -607,13 +625,16 @@ is not a near miss, it is a 929-versus-0 reversal that would have been reported 
 None of this is applied — this seat measures. Every number below comes from a
 built binary, not an estimate.
 
-**Defect 2 (drawn-root pre-emption).** The trigger is the book entry, so the fix
-is ordering, not data: move the book check after the drawn-root test. Measured
-effect of the current ordering: 2/2 entry-bearing drawn roots lose their
-`score cp 0` + empty-pv answer; 0/4 non-entry roots are affected. With
-`OwnBook false`, 6/6 drawn roots answer correctly, so the bail itself needs no
-change. Caller-visible invariant after the fix: a drawn root always reports
-`score cp 0` and an empty pv, book or no book.
+**Defect 2 (drawn-root pre-emption).** Patch written and measured:
+`patches/trap2-drawn-root-before-book.patch`, full write-up in **`TRAP2_PATCH.md`**,
+evidence in `evidence/trap2-*`. It is a one-hunk predicate in the book gate
+(`!root_drawn`) rather than a reordering, so `search.cpp` is untouched.
+Result: pre-emption goes from **2/2 to 0/2** entry-bearing drawn roots, the four
+non-entry roots are unchanged, an ordinary book position still books, and all
+**11** documented bench/perft pins are identical on both builds. Not merged — the
+engine tree is untouched, and `TRAP2_PATCH.md` names the two decisions the owner
+should make first (whether a drawn root should ever book, and whether to share the
+predicate with `search.cpp`).
 
 **Retracted: the `Book Depth` derivation needs no fix.** Four derivations over
 fourteen cases (`evidence/game_ply_derivations.txt`): LOCK 0/14 wrong,
