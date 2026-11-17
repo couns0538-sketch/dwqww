@@ -5,6 +5,20 @@ seat 19 · area 9 · every harness defect found in this run, in one place, with 
 The theme: **a harness that answers a different question than the one you asked still produces a plausible
 number.** Each entry below produced, or nearly produced, a wrong result that looked real.
 
+
+**Three families, not fourteen unrelated items.** Every trap below is one of:
+
+| family | traps | the question that catches it |
+|---|---|---|
+| **A. No search happened** (four disguises) | 1 (no `info` lines), 1b (`nodes 0` + empty PV), 13 (zero in output can't be classified without input), 14 (identical answers from unrelated inputs) | *is the move legal on THAT board, and did a positive node count with a non-empty PV precede it?* |
+| **B. A number that is not evidence about what you think** | 10 (counter changes the question), 11 (a maximum does not validate a table), 12 (a zero feels like evidence) | *what would this look like if it were an artifact of my instrument?* |
+| **C. Auditing the wrong thing** | 8 (`ls-files` vs `ls-tree`), 9 (committed ≠ currently used) | *did I check the thing I actually meant to check?* |
+| **D. Harness mechanics** | 2 (`select` on a buffered pipe), 3 (warm state), 4 (malformed `setoption`), 5 (`bench` hardcodes 16 MB), 6 (play-out is not a solver), 7 (oracle missing the halfmove window) | fixed by the specific test in each entry |
+
+**Family A is the one that produces plausible output most reliably** — in every one of the four, the engine prints
+a `bestmove` and looks like it answered. Family B is the one that survives longest, because the numbers are
+internally consistent.
+
 ---
 
 ## 1. A terminator during a running search fabricates a move (19-F12 / 19-F25)
