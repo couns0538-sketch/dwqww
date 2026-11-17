@@ -30,6 +30,11 @@ Defects in this harness:
 | H4 | report text written raw from engine output | a NUL echoed in a diagnostic made `FUZZ.md` a binary file | this seat |
 | H5 | prose counts typed by hand beside computed tables | a stale literal survived two regenerations after the corpus grew | `check_consistency.py` |
 
+H5 produced two rules that outlive the bug:
+
+- **A prose count beside a computed table is a stale claim waiting for its next regeneration.** The table recomputes on every run; the sentence does not. Either derive the number or check it against the evidence mechanically.
+- **A correction record kept only in conversation is not in the record.** This section exists because its first version was written in a chat message and nowhere else. The same was true of these two rules: they were described as recorded in the report before they were, and only the search that this sentence prompted found that out.
+
 Two patterns are worth carrying forward. C3 and C4 are the same error twice — a fingerprint used without first asking what it would return if the hypothesis were false — and C5 shows the error being inherited by the person who diagnosed it in someone else, which is the usual way a bad method spreads. H1 and H2 would have manufactured findings out of harness bugs; H3, H4 and H5 damage the *report* rather than the *measurement*, and are the more dangerous group because a generated artifact looks authoritative whether or not it is complete.
 
 ## Corpus identity is an input, not a detail
@@ -84,7 +89,7 @@ The `info string invalid FEN` diagnostic is emitted **synchronously on the `posi
 
 Across the whole corpus, **56** refusal lines were emitted; every one is attributed to `position` (counts: position=56). No refusal line is attributed to `go`.
 
-The two patterns are deliberately unequal in size — the later truncation and field-count cases were added `P_direct` only, since the pattern had already been shown not to matter. The asymmetry is a property of the corpus, not of the diagnostic, and is reported rather than smoothed.
+The two patterns are deliberately unequal in size (P_direct=66, P_isready=30) — the later truncation and field-count cases were added `P_direct` only, since the pattern had already been shown not to matter. The asymmetry is a property of the corpus, not of the diagnostic, and is reported rather than smoothed.
 
 ## Malformed FENs that produce NO diagnostic
 

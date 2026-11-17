@@ -30,6 +30,10 @@ def main() -> int:
         "zero_base": sum(1 for r in base["results"] if r["illegal_0000"]),
         "zero_integ": sum(1 for r in integ["results"] if r["illegal_0000"]),
         "refusals": sum(len(r["refusal"]) for r in base["results"]),
+        "pat_p_isready": sum(1 for r in base["results"]
+                             if r["cls"] == "position_fen" and r["pattern"] == "P_isready"),
+        "pat_p_direct": sum(1 for r in base["results"]
+                            if r["cls"] == "position_fen" and r["pattern"] == "P_direct"),
     }
 
     print("evidence facts:")
@@ -63,11 +67,38 @@ def main() -> int:
             if int(m.group(1)) != facts["cases"]:
                 problems.append(f"{name}: '{m.group(0)}' but evidence has {facts['cases']}")
 
-    # The 0000 split must appear as base/integ, not as one number.
+    # Any "P_isready=N" / "P_direct=N" stated in prose must match the corpus.
+    for text, name in ((md, "FUZZ.md"), (status, "STATUS.md")):
+        for m in re.finditer(r"P_isready=(\d+)", text):
+            got = int(m.group(1))
+            if got != facts["pat_p_isready"]:
+                problems.append(f"{name}: P_isready={got} but corpus has "
+                                f"{facts['pat_p_isready']}")
+        for m in re.finditer(r"P_direct=(\d+)", text):
+            got = int(m.group(1))
+            if got != facts["pat_p_direct"]:
+                problems.append(f"{name}: P_direct={got} but corpus has "
+                                f"{facts['pat_p_direct']}")
+
+    # The stated 0000 split must appear as base/integ, not as one number.
     for m in re.finditer(r"`bestmove 0000` \| (\d+) \| (\d+)", md):
         if int(m.group(1)) != facts["zero_base"] or int(m.group(2)) != facts["zero_integ"]:
             problems.append(f"0000 row {m.groups()} vs evidence "
                             f"({facts['zero_base']},{facts['zero_integ']})")
+
+    # The corrections tally must agree between the report and the summary.
+    tl = re.search(r"(\w+) items, enumerated", md)
+    ts = re.search(r"(\w+) items, enumerated", status)
+    word2num = {"six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+                "eleven": 11, "twelve": 12}
+    if tl and ts:
+        a, b = tl.group(1).lower(), ts.group(1).lower()
+        if a != b:
+            problems.append(f"corrections tally disagrees: FUZZ.md='{a}', STATUS.md='{b}'")
+        elif a in word2num:
+            facts["corrections"] = word2num[a]
+    elif tl or ts:
+        problems.append("corrections tally present in one file and not the other")
 
     if problems:
         print("\nINCONSISTENCIES:")

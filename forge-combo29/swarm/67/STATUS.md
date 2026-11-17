@@ -22,9 +22,10 @@ run (`nodes 400` from a fresh `go perft 2`).
 
 ## Read this before trusting any row
 
-`FUZZ.md` opens with a **corrections record**: nine items, enumerated rather
+`FUZZ.md` opens with a **corrections record**: ten items, enumerated rather
 than estimated — five wrong claims about the engine (four from the coordinator,
-one from this seat) and four defects in this harness (all this seat).
+one from this seat) and five defects in this harness (all this seat). Two
+earlier counts, six and eight, both failed to survive enumeration.
 
 Two of those are the same error twice: a fingerprint used without first asking
 what it would return if the hypothesis were false.
@@ -42,6 +43,12 @@ what it would return if the hypothesis were false.
 Rule carried forward: before a measurement can confirm a hypothesis, state what
 it would have returned if the hypothesis were false. If that value is the same,
 the measurement is not evidence.
+
+Two further rules, from H5:
+
+- **A prose count beside a computed table is a stale claim waiting for its next
+  regeneration.** Derive the number or check it mechanically.
+- **A correction record kept only in conversation is not in the record.**
 
 The second of those traps was made by this seat too, in the same turn as
 diagnosing it in the coordinator's work — so the record names the inheritance
