@@ -41,22 +41,23 @@ winning side to move. `oracle` = exact-table attacker, engine defends (**control
 | KNK | engine | depth 12 | 0 / 20 (draw is correct) | — | **2,064** | 20 |
 
 KPK, over a **stratified sample of 1,280 of the 81,664 canonical cells** (640 won / 640
-drawn; stratified on pawn file × pawn half × exact-table verdict). The 640 won cells are the
-item-2 denominator:
+drawn; stratified on pawn file × pawn half × exact-table verdict), **both engine arms
+complete**. The 640 won cells are the item-2 denominator:
 
-| KPK arm | budget | won cells converted | drawn cells held | failures |
-|---|---|---|---|---|
-| engine | `go nodes 12000` | **569 / 640 (88.9%)** | 571 / 640 (89.2%) | 71 won-cell, 69 drawn-cell |
-| engine | `go depth 12` | **161 / 192 (83.9%)** on a 432-row partial | 213 / 240 | 31 won-cell, 27 drawn-cell |
-| oracle | `go nodes 12000` | 192 / 192 | 189 / 192 | 0 won-cell |
-| oracle | `go depth 12` | 192 / 192 | 185 / 192 | 0 won-cell |
+| KPK arm | budget | won cells converted | drawn cells held | failures | of which bail-assisted |
+|---|---|---|---|---|---|
+| engine | `go depth 12` | **518 / 640 (80.9%)** | **574 / 640 (89.7%)** | 122 won-cell | **5** |
+| engine | `go nodes 12000` | **569 / 640 (88.9%)** | **571 / 640 (89.2%)** | 71 won-cell | **2** |
+| oracle | `go depth 12` | 192 / 192 | 185 / 192 | 0 won-cell | 0 |
+| oracle | `go nodes 12000` | 192 / 192 | 189 / 192 | 0 won-cell | 0 |
 
-The `go depth 12` row is a **partial run** (432 of 1,280 cells played when the window closed)
-and is labelled as such; the oracle rows are on the earlier 384-cell sample.
+The oracle rows are on the earlier 384-cell sample; the engine rows are the full 1,280.
+Moves to mate on the converted cells: **min 1 / median 14 / max 53** at depth 12, and
+**min 1 / median 15 / max 48** at the node budget.
 
-**Every one of the 71 KPK won-cell failures at `go nodes 12000` ended in
-`fifty_move_claim`.** Only **2** of those 71 games contain a bail at all (101 bails between
-them), so the drawn-root bail cannot account for the failures.
+**Every one of the 193 KPK won-cell failures (122 + 71) ended in `fifty_move_claim`**, and
+only **7** of those 193 games contain a bail at all. The drawn-root bail cannot account for
+them: it fires **56,768** times across these cells while 80.9% of won cells still convert.
 
 The oracle's drawn-cell failures (7 and 3) run the other way and are **the engine losing
 draws while defending**: the oracle attacks, the engine defends, and the engine walks into a
@@ -125,18 +126,20 @@ KRK behaves identically (same family at clock 90 → `cp 0`, 9.6M nodes against 
 
 This contradicts the natural hypothesis and is the most useful negative here.
 
-- **All 92 attributed conversion failures (2 KQK + 10 KRK + 9 KBNK-at-depth-12 + 71 KPK)
-  ended in a fifty-move claim.** Bails are absent from the overwhelming majority: **0** of the
-  2 KQK, **0** of the 10 KRK, **0** of the KBNK 17, and **2** of 71 in KPK. Across all 92, the
-  bail accounts for **2** games.
+- **All 214 attributed conversion failures ended in a fifty-move claim** (122 + 71 KPK, 2 KQK,
+  10 KRK, 9 KBNK-at-depth-12 in the 20-position arms; the register counts 241 including both
+  KPK budgets and the ladder). Bails are absent from the overwhelming majority: **0** of the
+  2 KQK, **0** of the 10 KRK, **0** of the KBNK 17, and **7** of 193 in KPK. The bail accounts
+  for at most **7 of 214**.
 - The bail *does* fire heavily, but in the **bare-minor** games: **2,152 bails across 20 KBK
   games**, **2,064 across 20 KNK games** (~100/game; reasons `repetition` 1757 + `material`
   395 in the KBK arm). There it is the *mechanism of the draw*, not the cause of a lost win:
   a KBK game has nothing to convert, so a 0-node bail playing the generator's first move is
   invisible.
-- And it fires at volume in KPK without costing conversions: **56,272 bails across 1,280
-  cells**, which is ~44 per cell, while 569 of 640 won cells still convert. A high bail rate
-  and a high conversion rate coexist, which is the cleanest evidence that the two are
+- And it fires at volume in KPK without costing conversions: **56,768 bails across 1,280
+  cells** at depth 12 (~44 per cell) while **80.9%** of won cells still convert, and
+  **56,272** at the node budget while **88.9%** convert. A high bail rate and a high
+  conversion rate coexist at both budgets, which is the cleanest evidence the two are
   independent.
 - The one place the bail and a real loss coincide is **KRK at `go nodes 12000`, 100 bails**.
   That game ran **200 plies**: the engine held the win for 100 plies, the clock reached 99 at
@@ -211,10 +214,10 @@ one side alone flatters the engine.
 - **KBK and KNK: 0 failures in 80 defender games.** Every draw held, over 100+ plies, against
   both a table oracle and the engine. That is the null §5 describes, and it is a strong one:
   the bare-minor inversion does not cost a single draw from behind either.
-- **KPK: 123 of 640 drawn cells were LOST by the defending engine** (192 at the time of the
-  larger register; the count grows with the sample). That is a *larger* defect than the
-  71 won cells it fails to convert, and it is invisible to a conversion rate. The drawn half
-  of the KPK boundary is the worse half.
+- **KPK: 66 of 640 drawn cells were LOST by the defending engine** at depth 12 (69 at the node
+  budget). That is comparable in size to the 71-122 won cells it fails to convert, and it is
+  invisible to a conversion rate. **A report that quotes only conversion is quoting the better
+  half of the boundary.**
 
 ## 6. Is it a horizon effect? Yes for KQK — and the horizon needed is absurd
 
@@ -316,10 +319,9 @@ search gets UCI `stop` from a watchdog, never `quit`, and is counted as a timeou
   **withdrawn** too (depth 20 converts *fewer* than depth 16). What is left is the clock
   collapse plus a planning failure that a 4-piece table would be needed to separate. KBNK
   also has no oracle arm: no 4-piece table was built.
-- **The full KPK boundary.** 1,280 of 81,664 canonical cells (1.6%), stratified, at
-  `go nodes 12000`; the `go depth 12` arm is a **partial** 432-cell run. The denominator is
-  stated on every row rather than implied. Extrapolating a 1.6% stratified sample to the
-  boundary is not licensed by this design.
+- **The full KPK boundary.** 1,280 of 81,664 canonical cells (1.6%), stratified, both engine
+  arms complete. The denominator is stated on every row rather than implied. Extrapolating a
+  1.6% stratified sample to the boundary is not licensed by this design.
 - **Attribution of the clock collapse to the leaf draw rule.** The behaviour is what
   `H > 100 − p` predicts and the band is [90,100] as predicted, but I did not instrument the
   leaf. "Consistent with" is the strongest claim I make.
