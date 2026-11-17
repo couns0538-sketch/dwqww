@@ -27,6 +27,9 @@ the third turned out to be unnecessary because the code already does it.
    are count 2 (S-F110). Identity clean, speed **ratio 0.9954, CI [0.9913, 0.9989]** — the interval
    excludes 1.0 **on the low side**, i.e. reliably 0.46 % slower. The compiler already hoists the
    invariant `count` checks out of the 16-iteration loop; the extra code hurt the instruction cache.
+   **Re-tested under clang (S-F115), since the environment table below predicts behaviour can differ:
+   ratio 0.9888 (-1.12 %), CI upper bound 0.9942 — STILL SLOWER, and 2.4x more so.** Same sign on both
+   compilers, so this candidate can be dismissed on evidence rather than on one build's noise.
 3. **Exploit the refresh cache harder** (S-F112) — turned out to be unnecessary: `replay_ply` already
    passes `state.cache` and `refresh_from_pieces` diffs incrementally, avoiding 99.5 % of rebuild work.
 
