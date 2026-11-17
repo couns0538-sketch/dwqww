@@ -10,8 +10,10 @@ import sys
 
 import chess
 
-CORPUS_SRC = "/home/ubuntu/work/forge/forge-combo29/soak_all/search_corpus.txt"  # or argv[2]
-OUT = None  # set from argv
+from pathsafe import resolve_exe, resolve_in, resolve_out
+
+CORPUS_SRC = None  # resolved in main()
+OUT = None         # resolved in main()
 
 
 def pick(seed_positions, n=40):
@@ -44,9 +46,13 @@ def pick(seed_positions, n=40):
 
 
 def engine_accepts(exe, fen):
-    """The engine reports a refused FEN on the `position` command."""
+    """The engine reports a refused FEN on the `position` command.
+
+    `exe` is already a resolved, validated Path from resolve_exe(), so the
+    list handed to subprocess is a concrete executable and not caller text.
+    """
     cmds = "uci\nisready\nposition fen %s\nisready\nquit\n" % fen
-    out = subprocess.run([exe], input=cmds, capture_output=True, text=True,
+    out = subprocess.run([str(exe)], input=cmds, capture_output=True, text=True,
                          timeout=120).stdout
     bad = [l for l in out.splitlines()
            if "invalid" in l.lower() or "illegal position" in l.lower()]
@@ -55,12 +61,15 @@ def engine_accepts(exe, fen):
 
 def main():
     global OUT, CORPUS_SRC
-    exe = sys.argv[1]
-    if len(sys.argv) > 2:
-        OUT = sys.argv[2]
-    if len(sys.argv) > 3:
-        CORPUS_SRC = sys.argv[3]
-    src = [l for l in open(CORPUS_SRC)]
+    if len(sys.argv) < 2:
+        raise SystemExit("usage: build_corpus.py <engine> [out.json] [corpus.txt]")
+    exe = resolve_exe(sys.argv[1], "engine")
+    OUT = resolve_out(sys.argv[2] if len(sys.argv) > 2 else "evidence/corpus40.json",
+                      "corpus output")
+    CORPUS_SRC = resolve_in(
+        sys.argv[3] if len(sys.argv) > 3 else "soak_all/search_corpus.txt",
+        "corpus source")
+    src = [l for l in open(CORPUS_SRC, encoding="utf-8", errors="replace")]
     chosen = pick(src, 40)
     assert len(chosen) == 40, "only got %d" % len(chosen)
     kept, refused = [], []
@@ -75,8 +84,8 @@ def main():
     if refused:
         for r in refused:
             print("  REFUSED:", r["fen"], r["why"])
-    json.dump({"corpus": kept, "refused": refused, "source": CORPUS_SRC},
-              open(OUT, "w"), indent=1)
+    json.dump({"corpus": kept, "refused": refused, "source": str(CORPUS_SRC)},
+              open(OUT, "w", encoding="utf-8"), indent=1)
 
 
 if __name__ == "__main__":

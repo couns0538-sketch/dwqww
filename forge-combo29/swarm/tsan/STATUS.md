@@ -91,6 +91,23 @@ from the consolidated audit — `Threads 4` costs 1.24× wall at fixed depth, an
 cited as given and marked as such; this seat independently confirmed the second and measured node ratios (not
 wall time) that are consistent with the first.
 
+## Code-quality gate (SonarCloud)
+
+The PR's SonarCloud check failed on **Security Rating for New Code** with 10 annotations, all in this folder's
+scripts, all one class: `argv` paths and executables went straight into `open()`, `shutil.rmtree()` and
+`subprocess.Popen()`. One was genuinely dangerous — `plant_selftest.py` ran `shutil.rmtree()` on an
+`argv`-supplied directory.
+
+Fixed, not suppressed. `scripts/pathsafe.py` validates every command-line path and executable: writes must be
+inside an allowed root, `rmtree` targets additionally refuse `/`, `/tmp` and anything shallower than 3
+components, reads must exist, executables must be regular and executable. Roots default to this folder and
+widen via `FORGE_AUDIT_ROOT` so the build script can use a temp work dir explicitly. The guard self-tests its
+own refusals and acceptances (`evidence/pathsafe_selftest.log`), and was verified end-to-end against
+`/etc/evil.json` and a `/etc/evil` plant destination.
+
+Side benefit: `tsan_run.py` now records `exe_sha256` in its output, so each run JSON names the binary that
+produced it.
+
 ## Not tested
 
 `-D_GLIBCXX_DEBUG` (and therefore row `07-C38`), ASan/UBSan, Ponder/`ponderhit`, clock-driven searches, and

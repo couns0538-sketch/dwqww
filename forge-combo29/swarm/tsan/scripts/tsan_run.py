@@ -14,6 +14,7 @@ Cases (per audit assignment):
   F  drawn-root bail    control: documented thread-invariant
 """
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -23,6 +24,7 @@ import time
 
 sys.path.insert(0, __import__("os").path.dirname(__import__("os").path.abspath(__file__)))
 from tsan_driver import Engine, races  # noqa: E402
+from pathsafe import resolve_exe, resolve_in, resolve_out  # noqa: E402
 
 
 def thread_count(pid):
@@ -91,6 +93,15 @@ def search(e, limit, timeout):
     }
 
 
+def _sha256(path, chunk=1 << 20):
+    """Record the binary's digest in the run output, so a result names its tool."""
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(chunk), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("exe")
@@ -101,11 +112,14 @@ def main():
     ap.add_argument("--depth", default="12")
     args = ap.parse_args()
 
-    corpus = json.load(open(args.corpus))["corpus"]
+    exe = resolve_exe(args.exe, "engine")
+    corpus_path = resolve_in(args.corpus, "corpus")
+    out_path = resolve_out(args.out, "run output")
+    corpus = json.load(open(corpus_path, encoding="utf-8"))["corpus"]
     # A drawn root for case F: kings only, insufficient material -> the bail.
     drawn_root = "8/8/4k3/8/8/4K3/8/8 w - - 0 60"
 
-    e = Engine(args.exe)
+    e = Engine(str(exe))
     results = []
     cases = args.cases
 
@@ -261,7 +275,8 @@ def main():
 
     all_races = races(log)
     out = {
-        "exe": args.exe,
+        "exe": str(exe),
+        "exe_sha256": _sha256(exe),
         "note": "TSan run. Races only; no timing is recorded as a measurement. "
                 "watchdog_elapsed_s only proves the run completed.",
         "cases": results,
@@ -271,11 +286,12 @@ def main():
                                     if l.strip().startswith("#0") or l.strip().startswith("#1")][:6]}
                   for x in all_races],
     }
-    json.dump(out, open(args.out, "w"), indent=1)
-    with open(args.out + ".rawlog", "w") as f:
+    json.dump(out, open(out_path, "w", encoding="utf-8"), indent=1)
+    rawlog_path = out_path.with_suffix(".rawlog")
+    with open(rawlog_path, "w", encoding="utf-8") as f:
         f.write("\n".join(log))
     print("races:", len(all_races))
-    print("wrote", args.out)
+    print("wrote", out_path, "and", rawlog_path)
 
 
 if __name__ == "__main__":

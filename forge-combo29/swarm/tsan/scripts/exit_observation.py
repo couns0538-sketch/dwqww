@@ -15,14 +15,16 @@ import json
 import os
 import sys
 
-sys.path.insert(0, "/home/ubuntu/work/drv")
+sys.path.insert(0, __import__("os").path.dirname(__import__("os").path.abspath(__file__)))
 from tsan_driver import Engine, races  # noqa: E402
+from pathsafe import resolve_exe, resolve_out  # noqa: E402
 
 CORPUS = json.load(open("/home/ubuntu/work/corpus40.json"))["corpus"]
+EXE = None  # resolved in main() via resolve_exe
 
 
 def one(label, setup, limit):
-    e = Engine(os.environ["FORGE_EXE"])
+    e = Engine(str(EXE))
     for c in setup:
         e.cmd(c)
     e.sync()
@@ -50,6 +52,11 @@ def one(label, setup, limit):
 
 
 def main():
+    if len(sys.argv) < 2:
+        raise SystemExit("usage: exit_observation.py <out.json>")
+    out_path = resolve_out(sys.argv[1], "observation output")
+    global EXE
+    EXE = resolve_exe(os.environ.get("FORGE_EXE", ""), "engine (FORGE_EXE)")
     rows = [
         one("A depth", ["setoption name Threads value 4"], "go depth 10"),
         one("B nodes", ["setoption name Threads value 4"], "go nodes 100000"),
@@ -63,7 +70,7 @@ def main():
     ]
     out = {"note": "Exit observed for every row: drained to EOF, real exit code.",
            "rows": rows}
-    json.dump(out, open(sys.argv[1], "w"), indent=1)
+    json.dump(out, open(out_path, "w", encoding="utf-8"), indent=1)
     ok = all(r["drained_to_eof"] and r["exit_code"] is not None for r in rows)
     for r in rows:
         print("%-10s exit=%-4s drained=%-5s post_quit_lines=%d races=%d bestmove=%s"

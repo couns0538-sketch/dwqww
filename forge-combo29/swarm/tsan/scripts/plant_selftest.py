@@ -19,6 +19,9 @@ import shutil
 import sys
 from pathlib import Path
 
+sys.path.insert(0, __import__("os").path.dirname(__import__("os").path.abspath(__file__)))
+from pathsafe import UnsafePath, resolve_dir_in, resolve_dir_out  # noqa: E402
+
 PLANT_A = """
 // PLANTED RACE A (audit self-test only): two threads bump this without any
 // synchronisation. Present only in the planted build; never in the engine
@@ -76,9 +79,20 @@ bool Worker::should_stop() {
 
 
 def main():
-    src = Path(sys.argv[1]).resolve()
-    dest = Path(sys.argv[2]).resolve() if len(sys.argv) > 2 else Path("/home/ubuntu/work/planted2")
+    if len(sys.argv) < 2:
+        raise SystemExit("usage: plant_selftest.py <source tree> [dest] [A|B|AB]")
+    src = resolve_dir_in(sys.argv[1], "source tree")
+    dest = resolve_dir_out(
+        sys.argv[2] if len(sys.argv) > 2 else "planted",
+        "plant destination")
     which = sys.argv[3] if len(sys.argv) > 3 else "B"
+    if which not in ("A", "B", "AB"):
+        raise SystemExit("variant must be A, B or AB")
+
+    # dest was validated by resolve_dir_out: inside the audit root, and never a
+    # shallow directory. Refuse to delete the source tree itself.
+    if dest == src or dest in src.parents or src in dest.parents:
+        raise UnsafePath("refusing to copy %r onto/into itself (%r)" % (str(src), str(dest)))
 
     if dest.exists():
         shutil.rmtree(dest)

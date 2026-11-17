@@ -59,13 +59,21 @@ printf 'position startpos\ngo perft 5\nquit\n' | "$ENGINE_BUILD/forge" | tail -1
 
 mkdir -p "$OUT"
 
+# The scripts refuse to write outside an allowed root. The build workspace is a
+# temp dir the caller chose, so it is granted explicitly rather than by turning
+# the check off. Anything not listed here is still refused.
+export FORGE_AUDIT_ROOT="$HERE/..:$WORK"
+
+echo "== path-guard self-test (must pass before any path is used) =="
+python3 "$HERE/pathsafe.py" | tee "$OUT/pathsafe_selftest.log" | tail -1
+
 echo "== driver self-tests (both must pass before the run is trusted) =="
 python3 "$HERE/drain_selftest.py" | tee "$OUT/drain_selftest.log"
 FORGE_EXE="$ENGINE_BUILD/forge" python3 "$HERE/exit_observation.py" "$OUT/exit_observation.json" \
   | tee "$OUT/exit_observation.log"
 
 echo "== corpus =="
-python3 "$HERE/build_corpus.py" "$ENGINE_BUILD/forge" "$WORK/corpus40.json"
+python3 "$HERE/build_corpus.py" "$ENGINE_BUILD/forge" "$WORK/corpus40.json" "$SRC/soak_all/search_corpus.txt"
 
 echo "== planted-race self-test: build and confirm a race IS reported =="
 python3 "$HERE/plant_selftest.py" "$SRC" "$WORK/planted-b" B

@@ -11,8 +11,10 @@ This proves the fixed driver catches post-quit output, by comparing it against
 a deliberately naive driver that reads only to bestmove.
 """
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -55,8 +57,12 @@ print(len([x for x in seen if "ThreadSanitizer" in x]))
 
 
 def main():
-    fake = os.path.join(HERE, "_fake_engine_exit_report.py")
-    with open(fake, "w") as f:
+    # Write the fake engine into a private temp dir the program creates itself,
+    # not into the scripts folder: owner-only and unpredictable, so the 0o755
+    # below cannot be aimed at a pre-existing file.
+    tmpdir = tempfile.mkdtemp(prefix="tsan-drain-selftest-")
+    fake = os.path.join(tmpdir, "fake_engine_exit_report.py")
+    with open(fake, "w", encoding="utf-8") as f:
         f.write(FAKE)
     os.chmod(fake, 0o755)
 
@@ -75,8 +81,8 @@ def main():
     fixed_ok = len(got) == 1
 
     print("== naive driver (stops at bestmove, never drains) ==")
-    naive_py = os.path.join(HERE, "_naive_driver.py")
-    with open(naive_py, "w") as f:
+    naive_py = os.path.join(tmpdir, "naive_driver.py")
+    with open(naive_py, "w", encoding="utf-8") as f:
         f.write("import sys\n" + naive)
     out = subprocess.run([sys.executable, naive_py, fake],
                          capture_output=True, text=True, timeout=60)
@@ -84,8 +90,7 @@ def main():
     print("  race reports seen:", naive_count)
     naive_ok = naive_count == 0
 
-    os.remove(fake)
-    os.remove(naive_py)
+    shutil.rmtree(tmpdir, ignore_errors=True)
 
     print()
     if fixed_ok and naive_ok:

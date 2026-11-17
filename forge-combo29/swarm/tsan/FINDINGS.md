@@ -76,20 +76,24 @@ independent second signal that agrees with the empty race count.
 
 | Case | What it drives | Runs | Answered | Node counts |
 | --- | --- | ---: | ---: | --- |
-| A | `go depth 12`, `ucinewgame` between every search | 40 | 40/40 | 0 – 9,590,202 |
-| B | `go nodes 200000`, `ucinewgame` between every search | 40 | 40/40 | 0 – 198,762 |
-| C | `setoption Hash` mid-session, search before and after | 20 | 20/20 | 8,739 – 231,394 |
-| D | `Clear Hash` between searches | 20 | 20/20 | 2,965 – 148,683 |
-| E | MultiPV 4 (control: documented single-threaded) | 10 | 10/10 | 4,903 – 129,921 |
+| A | `go depth 12`, `ucinewgame` between every search | 40 | 40/40 | 0 – 1,824,813 |
+| B | `go nodes 200000`, `ucinewgame` between every search | 40 | 40/40 | 0 – 196,135 |
+| C | `setoption Hash` mid-session, search before and after | 20 | 20/20 | 4,426 – 123,334 |
+| D | `Clear Hash` between searches | 20 | 20/20 | 4,015 – 290,938 |
+| E | MultiPV 4 (control: documented single-threaded) | 10 | 10/10 | 7,320 – 116,921 |
 | F | Drawn-root bail, KvK (control: thread-invariant) | 1 | 1/1 | 0 (by design) |
 | G | `go infinite` then `stop` with 4 workers live | 8 | 8/8 | n/a (stopped) |
-| H | `setoption Threads` 1/4/2/8 mid-session | 8 | 8/8 | 28,720 – 262,932 |
+| H | `setoption Threads` 1/4/2/8 mid-session | 8 | 8/8 | 28,720 – 1,283,075 |
 
 147 searches, all answering with a `bestmove` (`evidence/tsan_run.json`, transcript
-`evidence/tsan_run.rawlog`). The case-A maximum of 9,590,202 is one position — `Q6k/8/7P/8/5p2/8/5K2/8 b`,
-which searched to `seldepth 29` and reported `mate -6` — not a typo and not a parsing artifact. The same
-position reached 2.6M nodes on an earlier build of the same source, which is the Threads-4 node-count
-instability quantified in §5, not anything about the sanitizer. The transcript was scanned for text beyond the marker this seat expected —
+`evidence/tsan_run.rawlog`). **The node ranges in that table belong to the committed `evidence/tsan_run.json` and change between
+runs** — that is the Threads-4 instability quantified in §5, not a recording error. Three different runs of
+this same corpus produced case-A maxima of 2,600,372, 9,590,202 and 1,824,813 nodes. Quoting a single number
+as though it were a stable property of the position would be exactly the kind of figure this seat exists to
+stop, so: the ranges are per-run observations, and the only stable quantities here are the search count, the
+empty race count, and the exit status.
+
+The transcript was scanned for text beyond the marker this seat expected —
 `ThreadSanitizer`, `WARNING`, `SEGV`, `data race`, `SUMMARY`, `DEADLYSIGNAL`, `==…==ERROR` — **every count 0**.
 No suppression file exists on the host and none was set; the only `TSAN_OPTIONS` were
 `halt_on_error=0 history_size=4`, chosen so a race would be *printed and the run continued* rather than
@@ -222,10 +226,41 @@ found, not because it was the assignment.
   and on the reverted-init build 2–20. The *presence* of a report was stable in every run; the *count* is an
   interleaving artifact and no claim here depends on one.
 
-## 6. Files
+## 6. Code-quality gate (SonarCloud)
+
+The PR's SonarCloud check failed on **Security Rating for New Code**, with 10 annotations, all in this
+folder's scripts. They were one class: **paths and executables taken from `argv` went straight into
+`open()`, `shutil.rmtree()` and `subprocess.Popen()`.** One was a genuinely dangerous bug — `plant_selftest.py`
+called `shutil.rmtree()` on an argv-supplied directory, so a mistyped destination would have deleted it.
+
+Fixed properly rather than suppressed. `scripts/pathsafe.py` now resolves every command-line path and
+executable:
+
+- `resolve_out` — anything this tool will create or write must resolve inside an allowed root
+- `resolve_dir_out` — additionally refuses `/`, `/tmp`, and any path of fewer than 3 components, because that
+  is what `rmtree` is about to receive
+- `resolve_in` / `resolve_dir_in` / `resolve_exe` — reads must exist; executables must be a regular,
+  executable file
+
+Allowed roots default to this folder and can be widened with `FORGE_AUDIT_ROOT` (a `pathsep` list), because
+the build script legitimately works in a caller-chosen temp directory — granting it explicitly is better than
+disabling the check. `plant_selftest.py` also refuses to copy a tree onto or into itself.
+
+The guard **self-tests both directions** (`evidence/pathsafe_selftest.log`): it refuses `/etc/evil.json`,
+`../../../evil.json`, an empty path, `rmtree` of `/` and `/tmp`, a non-executable, and a missing input; and it
+allows the legitimate evidence, subdirectory, executable and input paths. Verified end-to-end as well —
+`--out /etc/evil.json` and a `/etc/evil` plant destination are both refused with a message naming the allowed
+roots, while the real corpus build, plant, and a 51-search smoke run through the guarded scripts all succeed.
+
+One side benefit: `tsan_run.py` now records `exe_sha256` in its own output, so the run JSON names the exact
+binary that produced it (`889a9b46…` here) instead of relying on a hash quoted separately in prose.
+
+## 7. Files
 
 - `scripts/build_and_run.sh` — configure, build, print the flag line, prove `libtsan` linkage, check the pins,
-  run both driver self-tests, build and verify a planted race, then run all cases.
+  run the path-guard and driver self-tests, build and verify a planted race, then run all cases.
+- `scripts/pathsafe.py` — validates every path and executable these scripts take from the command line, and
+  refuses writes/creates/deletes outside an allowed root. Self-tests its own refusals and acceptances.
 - `scripts/tsan_driver.py` — UCI driver. Reads to `bestmove` before sending anything else, never pipes `quit`
   into a live search, and **drains to EOF before reaping**.
 - `scripts/tsan_run.py` — cases A–H, the `/proc` thread sampler, race extraction. Writes no timing as a
