@@ -1,0 +1,16 @@
+planted at: const bool root_drawn = root_draw_adjudicated;
+planted binary: /home/ubuntu/work/plant_build/forge
+real binary unchanged: candV_A/forge-combo29
+
+--- FORGE_PLANT=asan
+  nonzero exit: True  classified heap/stack overflow: True
+    ==7162==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5020000011dc at pc 0x55a6830fbc77 bp 0x7f49221f73f0 sp 0x7f49221f73e0
+
+--- FORGE_PLANT=ubsan
+  nonzero exit: False  signed-overflow report: True
+    /home/ubuntu/work/plant_scratch/src/search.cpp:2302:36: runtime error: signed integer overflow: 2147483647 + 1 cannot be represented in type 'int'
+
+--- FORGE_PLANT unset (negative control)
+  clean: True
+
+VERDICT: PASS - both sanitizers are live and the negative control is clean

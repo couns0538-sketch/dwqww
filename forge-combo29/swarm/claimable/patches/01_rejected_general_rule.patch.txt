@@ -1,0 +1,38 @@
+--- a/forge-combo29/src/search.cpp	2026-11-16 22:28:59.521527857 +0000
++++ b/forge-combo29/src/search.cpp	2026-11-16 22:29:01.953527857 +0000
+@@ -1299,14 +1299,29 @@
+ 
+ bool Worker::is_draw(const Board& board, int ply) const {
+     (void)ply;
++    // A fifty-move draw and a threefold repetition are CLAIMABLE, not forced: the side that does
++    // not want the draw makes a pawn move or a capture (which resets the counter) or varies its
++    // move (which breaks the repetition). Scoring either as 0 unconditionally treats the
++    // opponent's consent as already given, so a lost position one ply above such a node is valued
++    // at 0 and the engine plays for a draw it cannot force.
++    //
++    // So at a node these two rules are NOT terminal: the node returns its real evaluation.
++    // Forced draws stay terminal, because nobody can decline those:
++    //   - insufficient material  (nobody can mate)
++    //   - stalemate              (the side to move has no legal move)
++    //   - a fifty-move node where NO legal move resets the counter, i.e. every legal move is a pawn
++    //     move or a capture, so the claim cannot be avoided
++    // The ROOT still adjudicates a claimable draw for the side to move, which is correct: a side
++    // that is offered a draw it wants is entitled to take it.
++    if (!board.in_check() && !board.has_legal_move()) return true;   // stalemate
++    if (board.is_insufficient_material()) return true;               // nobody can mate
+     if (board.halfmove_clock() >= 100) {
+-        // Checkmate on the hundredth half-move still wins; everything else is a draw.
+-        return !board.in_check() || board.has_legal_move();
++        for (const Move move : board.legal_moves()) {
++            if (!move.is_capture() && board.piece_at(move.from).type != Pawn) return false;
++        }
++        return true;      // every move resets the counter: the claim cannot be avoided
+     }
+-    // Detect stalemate before TT cutoffs, stand pat or forward pruning can
+-    // replace its terminal draw score with a material evaluation.
+-    return board.is_repetition(root_history_index_) || board.is_insufficient_material() ||
+-           (!board.in_check() && !board.has_legal_move());
++    return false;         // a repetition is claimable and refusable: real evaluation
+ }
+ 
+ int Worker::draw_leaf_score(const Board& board) const {
