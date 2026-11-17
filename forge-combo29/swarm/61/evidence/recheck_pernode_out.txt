@@ -1,0 +1,30 @@
+source rows parsed: 180 (expected 180)
+per-position ratios recompute from the committed columns on all 180 rows
+
+  pooled (total ms/total nodes) : 1.0643  = +6.43%
+  mean of ln ratios             : 1.0736  = +7.36%
+  arithmetic mean               : 1.0771
+  median                        : 1.0712
+  95% CI (mean-of-ln, sample sd): [1.0613, 1.0861]
+
+1. is the report's point estimate the POOLED ratio?
+  AGREE     pooled re-derives to 1.0643 (+6.4%)                  mine 1.0643 vs report 1.0643
+
+2. does the report's CI contain the report's point estimate?
+  DISAGREE  pooled 1.0643 is OUTSIDE [1.0670, 1.0876]
+            the interval is centred on the mean-of-ln 1.0736, not on the pooled 1.0643
+
+3. which estimator does the quoted CI belong to?
+  AGREE     CI is a mean-of-ln interval, near the published bounds mine [1.0613, 1.0861] vs report [1.0670, 1.0876]
+
+4. the sign share
+  DISAGREE  162/180 above 1.0 reproduces                         mine 163/180 above 1.0 (164 at or above)
+
+5. does the CONCLUSION survive the pairing fault?
+  AGREE     every estimator excludes 1.0 with margin (the tax is real) lowest interval bound 1.0613
+
+rows examined: 5
+agree: 3 / 5
+DISAGREEMENTS (exit 2 -- measurement sound, report row does not reproduce):
+  - pooled point estimate 1.0643 lies OUTSIDE [1.0670, 1.0876]
+  - 162/180 above 1.0 reproduces (mine 163/180 above 1.0 (164 at or above))
