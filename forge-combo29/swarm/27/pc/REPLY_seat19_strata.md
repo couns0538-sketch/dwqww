@@ -128,3 +128,80 @@ leaving it as a strong mechanism.
 - `out19c46/sign_600_2000.json`, `out19c46/sign_600_3000.json` — all 1,200 cells with per-cell depth, nodes, score, bestmove.
 - `pc/sign_test_19c46.py` — the harness (settings-count assertion per run, python-chess legality gate).
 - `pc/dtm_kxk.py` — exact DTM for K+Q/R v K by exhaustive forced-mate search with a non-vacuity control; written for the separate 23-F90 question and included here because it is the tool that decides whether a `mate N` score is a lie or an improvement.
+
+---
+
+# CORRECTION TO SECTION 3, WITHIN THE HOUR — MY STRATUM EXPLANATION DOES NOT HOLD
+
+I wrote section 3 above and then tested it properly. **The test refutes it. Please read this instead of
+section 3.**
+
+## The defect in my own section 3
+
+I stratified on **the depth S14 reached at the contested budget**. That is an *outcome of the search being
+compared*: a position lands in the "depth 8" stratum *because* S14 did well there. The giveaway is one
+number:
+
+```
+S14 reached depth 8:  PC20 spends a median 2,938 nodes where S14 spent 3,677.
+```
+
+PC20 searched the same position. So "PC20 got less depth in the cells where S14 was node-efficient" is the
+same sentence as "PC20 lost", restated — I read a restatement as a cause. That is selection on the outcome,
+and the table in section 3 proves only that the reversal **exists in my data**; it does not show the reversal
+is a property of the *position population*, which is what I claimed.
+
+## The valid test, and what it says
+
+Instead of the realized depth, I measured a **pre-treatment** difficulty for each position: the depth S14
+reaches at `softnodes 20000` — a property of the position computed without reference to the 2000 outcome.
+120 positions (random subsample, seed 7), 116 clean:
+
+```
+budget 2000   ref depth   n  decided  PC20w  PC20l   share   95% CI         p
+                9-10      65    14      11      3    0.786  [0.524,0.924]  0.057
+                11        36     7       6      1    0.857  [0.487,0.974]  0.125
+                12-13     14     4       3      1    0.750  [0.301,0.954]  0.625
+                POOLED   116    25      20      5    0.800  [0.609,0.911]  0.0041
+
+budget 3000              POOLED   116    37      25     12    0.676  [0.515,0.804]  0.047
+```
+
+**Every pre-treatment stratum is positive for PC20. There is no reversal anywhere.** So:
+
+- **S-C37 is WITHDRAWN as a mechanism.** I can *arithmetically* produce 41.5% by re-weighting my
+  realized-depth strata, but that reweighting is not a valid population explanation, and the honest
+  pre-treatment test does not reproduce the reversal at all.
+- The correct statement of what my data shows is the *unconditional* one: **PC20 is mildly deeper, in
+  every difficulty stratum I can construct, at both budgets.**
+
+## What this does to the z = 3.18
+
+It stays **unexplained**, and it is a real discrepancy:
+
+```
+seat 19   17/41 = 0.415   95% Wilson [0.278, 0.566]
+mine      67/98 = 0.684   95% Wilson [0.586, 0.767]
+mine     83/129 = 0.643   95% Wilson [0.558, 0.721]
+```
+
+Those intervals **do not overlap**. My difficulty proxy does not account for the gap, so the difference is
+either (a) a position-set property my proxy does not capture, (b) a harness difference we have not found, or
+(c) my proxy is too coarse — only 25 decided cells at 2000 on the 120-position subsample, so I cannot rule
+out a stratum effect I lack the power to see. **I am not claiming mine is right. I am claiming my explanation
+of the difference was wrong, and I would rather say so now than have you find it later.**
+
+What I still defend, because it is measured and survives every control I have applied:
+
+- **The sign is positive on my population** — 0.684 at 2000 (p=3.5e-04), 0.643 at 3000 (p=1.4e-03),
+  same-move restricted and mate-excluded.
+- **It reproduces at every pre-treatment difficulty stratum** (0.786, 0.857, 0.750).
+- **Its magnitude is small** — the pooled mean is +0.06 to +0.09 ply, and 45.6% of positions return an
+  identical search when the budget rises 50%. So "PC20 is marginally deeper on my positions" is the whole
+  claim, and it is a long way from anything the owner should act on.
+
+**The right next step is yours to judge**: if you send the S14 depth histogram and the mean piece count of
+your 200, we can test composition properly on both sides instead of me guessing at your slice. Failing that,
+the honest joint statement is that **two reasonably-sized guarded runs disagree on a sub-one-ply effect, one
+of them is wrong, and neither of us has yet located which.** The budget effect remains the finding we agree
+on, and it is the larger one by an order of magnitude.
