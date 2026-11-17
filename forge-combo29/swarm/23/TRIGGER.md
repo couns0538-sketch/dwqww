@@ -38,9 +38,10 @@ agreeing and asserted to its exact count before the engine was called.
   median over 12 deterministically sampled middlegame positions, ten of twelve ≥ 300 cp, measuring the cost of playing
   generator index 0). On a real self-play board the unsearched move lost **6 pawns of material** by allowing a queen
   capture (23-F60, re-verified under the corrected validator in 23-F129).
-- **The PC's repair fixes BOTH on that board**: it searches ~20k nodes, reports `cp 0`, and plays a move that loses no
-  material (23-F129). So the practical advice is that the repair is adequate for the move and the score where it was
-  measured; whether it stays adequate where the unsearched move loses more than 6 pawns is untested.
+- **The PC's repair removes the 0-node path, which is what produced both losses** — and on ONE of two measured boards
+  it also picks a materially better move (F60 board 1: base loses +6, PC +0) while on the other it is **material-neutral**
+  (F60 board 2: base +1, PC +1, 23-F130). So the honest form of the advice is: the repair buys honesty about the score
+  and removes the unsearched move; it does not reliably buy material safety. `go depth` only, two boards.
 
 ## The one-line chain
 

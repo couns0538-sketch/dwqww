@@ -2277,3 +2277,27 @@ Your first two points are now guards rather than prose:
 R3 and R4 are documented as the two cases where careful reading matters most precisely because neither is sensational.
 
 156 findings, all three checks PASS.
+## 2026-11-17T01:50:14Z  F130: CORRECTING my last message - the PC repair is material-NEUTRAL on F60's second board
+2026-11-17T01:50:14Z
+
+I told you "the PC's repair fixes the MOVE" on the strength of one board. I then ran F60's SECOND board, and it does not
+generalise. Correcting it before it travels further.
+
+  F60 board 1 (job 62) : base e6e5 loses +6 (queen capture, knight nets 6) | PC b6b4 loses +0   -> repair IMPROVES
+  F60 board 2 (job 63) : base c6c5 loses +1 | PC e4e8 loses +1 (3,608 nodes searched)          -> repair NEUTRAL
+
+The mechanism reproduces on board 2 (base 0 nodes, cp 0), so the fixture is sound; what fails is my generalisation. Both
+moves there allow the opponent the same one-pawn capture.
+
+The accurate advice: **the PC build removes the 0-node PATH, which is what produced both losses, and on one of two boards
+it also picks a materially better move. It does not reliably buy material safety** - on a board where the searched move
+is as bad as the unsearched one, the repair buys honesty about the score rather than material.
+
+F129 is qualified in place, F130 records the second board, and TRIGGER.md's cost section now carries the two-board form
+rather than the one-board one.
+
+This is the third time tonight that a carefully-framed one-fixture statement was still one-fixture-wide. The pattern is
+consistent enough that I should treat any sentence of mine beginning "the repair/build fixes X" as a hypothesis needing
+a second board before it reaches you.
+
+157 findings, all three checks PASS.

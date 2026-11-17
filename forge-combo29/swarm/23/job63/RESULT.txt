@@ -1,0 +1,51 @@
+THE REPAIR IS ADEQUATE ON ONE BOARD AND MATERIAL-NEUTRAL ON THE OTHER — a two-board result, not a rule
+=====================================================================================================
+23-F129 found, on one board, that the PC's repair fixes both the move and the score, and named the open question: does
+that hold more generally? 23-F60 recorded a second board, and this tests it with the same method.
+
+FIXTURE: `5k2/1p4p1/2p2p1p/p2p4/P2PqP2/1QP3P1/1P3P2/5K2 b - - 16 35`, castling field `-` (so every cycle is
+castling-neutral by construction), cycle `e4e8 b3b6 e4... ` — found by search — validated:
+
+    validator: PASS | counted=3 python-chess=3 expect=3 ends_at_root=True
+
+RESULTS
+-------
+| build | move | score | nodes | material the OPPONENT can win after it |
+|---|---|---|---|---|
+| base | `c6c5` | cp 0 | **0** | **+1** |
+| PC r15 | `e4e8` | cp 0 | 3,608 | **+1** |
+
+P2 HELD: the base returns 0 nodes on this board too — the mechanism reproduces on a second, independent position.
+P3 **KILLED**: the PC's move does NOT lose less material than the base's. Both allow the opponent a +1 capture by static
+exchange. So on this board the repair is **material-NEUTRAL, not an improvement**.
+P4 HELD: the absolute loss is +1, far below F129's +6, matching F60's own impression that this was a much smaller error
+(cp -39 vs cp 0).
+
+WHAT THIS DOES TO "THE REPAIR IS ADEQUATE"
+-------------------------------------------
+Two boards now, and they say different things:
+
+| board | base's move loses | PC's move loses | repair improves the move? |
+|---|---|---|---|
+| 23-F129 (F60 board 1) | **+6** (a queen capture, knight nets 6) | **+0** | **yes, decisively** |
+| this job (F60 board 2) | +1 | +1 | **no, neutral** |
+
+So the accurate statement is **"the repair is adequate where measured, and on one of two boards it is a genuine
+improvement over the unsearched move"** — not "the repair fixes the move". On the second board the PC still plays a move
+that allows a one-pawn capture, exactly as the base does; what differs is that it searched 3,608 nodes to choose it and
+reports the same cp 0.
+
+That is a weaker claim than my last message to the coordinator said, and I am correcting it rather than letting the
+stronger version stand. **It is also the third time tonight that a one-fixture statement I framed carefully still
+turned out to be one-fixture-wide.**
+
+WHY IT STILL MATTERS FOR THE ADVICE
+------------------------------------
+The practical recommendation does not reverse: the PC build is still the better choice on drawn roots (it searches, it
+reports the draw honestly, and on the larger-loss board it avoids the loss entirely). What changes is the reason — it is
+not that the repair reliably picks a better move, but that **it removes the 0-node path**, and the 0-node path is what
+produced both losses. On a board where the searched move happens to be as bad as the unsearched one, the repair buys
+honesty about the score rather than material safety.
+
+LIMITS: two boards, base `go depth 10`, PC `go depth 12`; static exchange is a one-ply-deep estimate of material, so
+"+1" means "a one-pawn capture is available and not immediately recaptured", not "a pawn is lost by force".
