@@ -1099,3 +1099,25 @@ position" is true; **"a soft budget is unreliable" would be FALSE on this eviden
 the other direction - a band generalised from 4 boards that could never reach depth 64, versus a floor that
 would be generalised from one mating board. **A quantity that is a property of the TREE described as if it were
 a property of the SWITCH is the mistake both times; 60 positions is a real sample in a way 4 were not.**
+
+## 2026-11-17T11:4xZ S-C103 — the bound-scoping rule, with both directions on one quantity
+**New METHOD_NOTES rule, written as a demonstration rather than an anecdote because I have both directions on
+one quantity within one hour:**
+> **Before shipping a bound, measure the population where it might NOT bind. A ceiling needs a sample that can
+> reach HIGH; a floor needs one that can reach LOW. If your sample cannot contain the extreme, you have measured
+> the middle and extrapolated - in whichever direction the phrase happens to point.**
+  Direction 1 (too high a ceiling): S-N1 published softnodes 1.02-1.95x from 4 positions; at 40 positions it is
+    1.008-3.503x with 29 of 80 cells outside. The 4 boards could not show the ceiling - an iteration boundary
+    landing late in a LARGE tree produces it, and none had a large enough tree.
+  Direction 2 (too low a floor, same quantity): softnodes 20000 gives 1,344 nodes on a K+R v K board - a 14.9x
+    under-shoot at the depth-64 clamp. Shipped unscoped that reads "a soft budget is unreliable", which 60 real
+    positions refute (min ratio 1.022, 0 of 60 undershot).
+**THE DETAIL THAT MAKES IT A RULE: the small-tree case needed ONE mating board, the large-tree case needed FORTY
+positions, and NEITHER SAMPLE WAS SUFFICIENT FOR BOTH.** So the guidance is not "use more positions" - it is
+"name the two extremes of the population and check the sample contains cases near each." Four middlegame boards
+contained neither; sixty real positions contained the second but not the first.
+**And scoping is not garnish: a bound published without its non-binding population is WORSE than a wrong one,
+because a reader applies it where it fails** - "a soft budget is unreliable" would have been real harm to an
+owner deciding whether to trust his self-play labels, which is the exact decision S-N1's determinism half exists
+to settle.
+METHOD_NOTES 1,040 lines; FINDINGS 155 rows.
