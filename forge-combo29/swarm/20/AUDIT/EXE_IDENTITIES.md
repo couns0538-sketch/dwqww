@@ -5,6 +5,10 @@ binary, not just the settings). Jobs before job73 predate the rule and carry no 
 their stamp** — a legacy job's numbers come from one of the builds below, and any job that named its build now has
 that build's hash here.
 
+**Why a hash and not the banner:** all seven builds report the same `id name`
+(`Chess Engine Forge 6.4.24 candidate`) — the banner distinguishes nothing here. Only the **sha256** separates a build
+from its variants, which is the whole reason this file exists and the whole reason the rule asks for a hash.
+
 | build | sha256 | id name |
 |---|---|---|
 | base 6b98f217 (release) | `e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83` | Chess Engine Forge 6.4.24 candidate |
