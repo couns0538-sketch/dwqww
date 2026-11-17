@@ -2200,3 +2200,26 @@ One latent over-count remains in the same key: EP should count only when a legal
 fixed.
 
 150 findings, 25 rule instances plus two named patterns, all three checks PASS.
+## 2026-11-17T01:47:32Z  F124: validator implemented, proves all three directions, core family revalidated 7 of 7
+2026-11-17T01:47:32Z
+
+The lesson is now code rather than a resolution. validate.py:
+  - IDENTITY is FIDE: placement + side + castling, plus EP only when a legal ep capture exists (the second latent
+    over-count, now handled);
+  - occurrences are counted TWICE - from FEN strings, and via python-chess's is_repetition(n) asked about the board
+    whose identity equals the ROOT's - and disagreement is a HARD FAILURE.
+
+Self-test proves all three directions: castling-neutral threefold passes (3=3); castling-disturbing cycle is REJECTED
+as a threefold (1=1); that same cycle passes at expect=1.
+
+Building it reproduced the comparator fault a FOURTH time, and the self-test caught it: my first python-chess counter
+asked about the FINAL board while my own counter asked about the ROOT. On a castling-disturbing cycle those are
+different positions (root once, final twice), so the two "independent" counters were not counting the same object.
+Two counters only form a check if they count the same thing.
+
+REVALIDATION: all seven core fixtures pass expect=3 under the corrected validator - E1, E2, E3, E4, F96's W-3, M1, M4 -
+and the two known-bogus ones (C1/23-F112 and M7) are rejected. So the family's core rests on genuine threefolds,
+verified this time by two agreeing independent counters, and the two anomalies that produced four scope explanations
+were never threefolds at all.
+
+151 findings, all three checks PASS.

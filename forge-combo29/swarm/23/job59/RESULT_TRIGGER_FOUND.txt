@@ -97,3 +97,33 @@ castling-neutral fixture bails. 9 of 9.**
 So the claim in this file — that the core family is untouched because its fixtures were castling-neutral — is verified,
 not asserted. The two "anomalies" in 23-F112 and the castling story in 23-F114 are both this bug, and nothing else in the
 seat is affected.
+
+THE FIX, IMPLEMENTED AND PROVED — `validate.py` and `revalidate_core.py`
+-------------------------------------------------------------------------
+The lesson alone is not enough; the gate needs to exist. `job59/validate.py`:
+
+- **IDENTITY** is FIDE identity: placement + side + castling, plus en-passant ONLY when a legal en-passant capture
+  exists (the second latent over-count previously flagged, now handled).
+- **INDEPENDENCE**: occurrences are counted twice — once from FEN strings by my own function, once by asking
+  python-chess's `is_repetition(n)` about the board whose identity equals the ROOT's. **The two must agree or the
+  fixture is a HARD FAILURE.**
+
+Self-test, which is what makes it usable (`validate_selftest.out`):
+
+| case | result |
+|---|---|
+| castling-neutral threefold, expect 3 | **PASS** — counted 3, python-chess 3 |
+| castling-disturbing cycle, expect 3 | **correctly REJECTED** — counted 1, python-chess 1 |
+| same cycle, expect 1 | **PASS** |
+
+**Building the validator produced the comparator fault a fourth time, and the self-test caught it:** my first
+`count_via_python_chess` asked `is_repetition(n)` on the FINAL board while my own counter asked about the ROOT. On a
+castling-disturbing cycle those are different positions — root once, final position twice — and the validator reported a
+false disagreement. Fixed by walking back to the board whose identity equals the root's. **Two counters only form a check
+if they count the same object.**
+
+CORE FAMILY REVALIDATED (`revalidate_core.out`): all seven core drawn-root fixtures pass `expect=3` under the corrected
+validator — E1, E2, E3, E4, F96's W-3, M1, M4 — and the two known-bogus ones (C1/23-F112 and M7) are rejected. So:
+
+**the family's core findings rest on genuine threefolds, verified this time by two independent counters that agree, and
+the two "anomalies" that generated four scope explanations were never threefolds at all.**
