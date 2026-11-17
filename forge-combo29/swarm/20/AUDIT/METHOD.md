@@ -104,7 +104,26 @@ The rule in practice:
 - Committed transcripts must be **either** real engine output **or** clearly-labelled script summaries — a mechanical
   sweep cannot tell them apart, so the file must say which.
 
-## Writing a finding
+## WHEN A NUMBER CONTRADICTS A HARD BOUND, THE BOUND WINS
+
+The fastest falsification available, and it needs no re-run. Three times tonight it settled something that more
+measurement could not:
+
+1. **A claimed "missed mate in 3" on a board with no forced mate** (my S-F21) — settled by exhaustive search proving
+   no mate exists at any ply ≤ 15.
+2. **A "defect" that was a budget-limited search compared against a deeper one** (my S-C48b) — settled by asking
+   whether the shallow arm was *entitled* to the answer.
+3. **`mate -25` on K vs K+R** (seat 27's withdrawal, which I verified) — 49 plies required, material maximum is 31.
+   **Arithmetically impossible**, so no harness or build question needs asking.
+
+**The rule: when a number contradicts a hard bound, the bound wins and the measurement is over.** State the bound, cite
+how it was computed, and stop — do not spend an hour re-running a harness to explain a number that cannot be true.
+
+**Bounds worth checking before reporting a score:** mate distance versus material (K+R/K+Q v K ≤ 16 moves; K+B/B+N v K
+is not a forced win); node count against the budget given; depth against the depth limit; a score against the score
+range of the position's material.
+
+## MEASURING
 1. **Write the row and the job file together, or verify the row count after any append.** I lost this once: a heredoc
    appended the FINDINGS row, failed before writing the job file, and I re-appended — the same finding ended up in the
    file **twice**, and a second row kept a stale "STILL LIVE" status after its finding was withdrawn. Both were
