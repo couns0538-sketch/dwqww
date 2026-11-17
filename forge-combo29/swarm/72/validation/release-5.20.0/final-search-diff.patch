@@ -1,0 +1,13 @@
+--- /mnt/data/forge_run52/baseline/src/search.cpp	2026-10-05 21:29:04.000000000 +0000
++++ /mnt/data/forge_run52/candidate/src/search.cpp	2026-10-05 22:15:25.642711420 +0000
+@@ -504,10 +504,6 @@
+     int static_eval = 0;
+     if (zero_window && !checked && beta > -MateScore + 128 && beta < MateScore - 128) {
+         static_eval = evaluate_cached(board);
+-        if (depth <= 2 && static_eval - 120 * depth >= beta && board.has_legal_move()) {
+-            ++reverse_futility_cutoffs_;
+-            return beta;
+-        }
+     }
+ 
+     auto moves = board.legal_moves();

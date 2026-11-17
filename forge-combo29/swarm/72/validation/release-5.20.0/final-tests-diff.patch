@@ -1,0 +1,33 @@
+--- /mnt/data/forge_run52/baseline/tests/tests.cpp	2026-10-05 21:28:58.000000000 +0000
++++ /mnt/data/forge_run52/candidate/tests/tests.cpp	2026-10-05 22:15:25.642885888 +0000
+@@ -669,8 +669,28 @@
+           "null pruning activates with non-pawn material");
+     check(forge::SearcherTestProbe::null_cutoffs(null_searcher) > 0,
+           "null pruning produces verified cutoffs");
+-    check(forge::SearcherTestProbe::reverse_futility_cutoffs(null_searcher) > 0,
+-          "reverse futility pruning produces shallow zero-window cutoffs");
++
++    // A static-evaluation margin is not a proof that a shallow subtree cannot
++    // fall below beta. 5.19.0 returned beta here without searching a move.
++    forge::Board reverse_futility_board;
++    check(reverse_futility_board.set_fen(
++              "rnbqk1nr/pp3pb1/2p1p1p1/3p3p/2B3PP/1P2PP2/P1PP4/RNBQK1NR w KQkq - 0 1"),
++          "reverse-futility false-bound regression FEN parses");
++    const std::string reverse_futility_fen = reverse_futility_board.fen();
++    forge::Searcher reverse_futility_window_searcher(4);
++    const int reverse_futility_window = forge::SearcherTestProbe::alpha_beta(
++        reverse_futility_window_searcher, reverse_futility_board, 1, -104, -103, 1);
++    check(reverse_futility_window == -104,
++          "shallow zero-window search fails low instead of returning a reverse-futility false lower bound");
++    check(reverse_futility_board.fen() == reverse_futility_fen,
++          "reverse-futility zero-window regression restores the board");
++    forge::Searcher reverse_futility_full_searcher(4);
++    const int reverse_futility_full = forge::SearcherTestProbe::alpha_beta(
++        reverse_futility_full_searcher, reverse_futility_board, 1, -32000, 32000, 1);
++    check(reverse_futility_full == -340,
++          "reverse-futility regression retains the fully searched depth-1 score");
++    check(reverse_futility_board.fen() == reverse_futility_fen,
++          "reverse-futility full-window regression restores the board");
+ 
+     check(board.set_fen("2rqNN2/4k3/ppp2pB1/3p4/PPPp1Prb/n3P2b/K7/4Q3 b - - 0 34"),
+           "shallow null PVS regression FEN parses");

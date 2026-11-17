@@ -1,0 +1,19 @@
+--- /mnt/data/forge521/chess-engine-forge-5.21.0/src/search.cpp	2026-10-05 22:29:28.000000000 +0000
++++ /mnt/data/forge522/chess-engine-forge-5.22.0/src/search.cpp	2026-10-05 23:28:21.056811105 +0000
+@@ -435,7 +435,15 @@
+         }
+         alpha = std::max(alpha, stand_pat);
+         if (moves.empty()) {
+-            if (original_alpha < 0 && !board.has_legal_move()) return 0;
++            // A favorable stalemate can raise alpha from stand-pat even though
++            // its exact game-theoretic score is zero.  We only need the more
++            // expensive quiet-legal-move probe when zero might change the
++            // window result: either the window straddles zero, or stand-pat
++            // improved alpha above the caller's original lower bound.
++            if ((original_alpha < 0 || alpha > original_alpha) &&
++                !board.has_legal_move()) {
++                return 0;
++            }
+             return alpha;
+         }
+     }

@@ -1,0 +1,38 @@
+--- /mnt/data/forge_run9/src518/chess-engine-forge-5.18.0/tests/tests.cpp	2026-10-05 21:14:04.000000000 +0000
++++ /mnt/data/forge_run9/work519/tests/tests.cpp	2026-10-05 21:28:57.962368187 +0000
+@@ -17,6 +17,11 @@
+         return searcher.quiescence(board, ply, -32000, 32000, null_branch);
+     }
+ 
++    static int quiescence_window(Searcher& searcher, Board& board, int alpha, int beta,
++                                 int ply = 0, bool null_branch = false) {
++        return searcher.quiescence(board, ply, alpha, beta, null_branch);
++    }
++
+     static int alpha_beta(Searcher& searcher, Board& board, int depth, int alpha, int beta,
+                           int ply = 0) {
+         return searcher.alpha_beta(board, depth, ply, alpha, beta);
+@@ -436,6 +441,23 @@
+     check(qsee_reply.has_value() && qsee_child.static_exchange(*qsee_reply) == -10,
+           "negative-SEE tactical reply remains correctly classified by material SEE");
+ 
++    forge::Board qdelta_board;
++    check(qdelta_board.set_fen("r1b1k2r/Nppp1pp1/n6n/4p2p/Pb2P2q/5RP1/2PP1P1P/2BQKBNR b Kkq - 2 10"),
++          "hard-delta qsearch regression FEN parses");
++    {
++        const std::string original = qdelta_board.fen();
++        forge::Searcher qsearcher(4);
++        check(forge::Searcher::evaluate(qdelta_board) == 46,
++              "hard-delta qsearch regression keeps the expected static evaluation");
++        check(forge::SearcherTestProbe::quiescence_window(qsearcher, qdelta_board, 296, 297) == 297,
++              "qsearch does not prune a pawn capture that refutes the zero-window bound");
++        check(qdelta_board.fen() == original,
++              "hard-delta qsearch regression restores board");
++        const auto delta_reply = qdelta_board.parse_uci("h4e4");
++        check(delta_reply.has_value() && qdelta_board.static_exchange(*delta_reply) == 100,
++              "hard-delta causal queen capture remains a favorable material exchange");
++    }
++
+     check(board.legal_moves().size() == 20, "start position has 20 moves");
+     check(board.perft(0) == 1 && board.perft(-1) == 1,
+           "non-positive perft depths terminate at the current leaf");

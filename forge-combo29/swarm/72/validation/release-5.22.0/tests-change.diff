@@ -1,0 +1,16 @@
+--- /mnt/data/forge521/chess-engine-forge-5.21.0/tests/tests.cpp	2026-10-05 22:29:38.000000000 +0000
++++ /mnt/data/forge522/chess-engine-forge-5.22.0/tests/tests.cpp	2026-10-05 23:28:21.598825744 +0000
+@@ -934,6 +934,13 @@
+     check(forge::Searcher::evaluate(board) > 0, "favorable stalemate has positive static evaluation");
+     check(forge::SearcherTestProbe::quiescence(searcher, board) == 0,
+           "quiescence scores favorable quiet stalemate as draw");
++    const std::string favorable_stalemate_fen = board.fen();
++    forge::Searcher favorable_stalemate_window_searcher(4);
++    check(forge::SearcherTestProbe::quiescence_window(
++              favorable_stalemate_window_searcher, board, 0, 388) == 0,
++          "favorable stalemate does not promote positive stand-pat inside the qsearch window");
++    check(board.fen() == favorable_stalemate_fen,
++          "favorable-stalemate qsearch window regression restores the board");
+     forge::Searcher rfp_stalemate_searcher(4);
+     check(forge::SearcherTestProbe::alpha_beta(rfp_stalemate_searcher, board, 1, 0, 1) == 0,
+           "reverse-futility precheck preserves zero-window stalemate draw");

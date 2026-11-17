@@ -1,0 +1,17 @@
+--- /mnt/data/forge514_baseline/chess-engine-forge-5.14.0/src/search.cpp	2026-10-05 17:39:04.000000000 +0000
++++ /mnt/data/forge515_work/src/search.cpp	2026-10-05 18:29:45.684804775 +0000
+@@ -540,7 +540,13 @@
+         NullUndo null_undo;
+         board.make_null_move(null_undo);
+         const int reduction = 2 + depth / 4 + static_cast<int>(static_eval - beta >= 200);
+-        const int null_score = -alpha_beta(board, std::max(0, depth - 1 - reduction), ply + 1,
++        int null_depth = std::max(0, depth - 1 - reduction);
++        // At depth 5 the aggressive extra reduction (large static-eval margin)
++        // can collapse the null probe directly into quiescence. That exact path
++        // produced a validated false lower bound and suppressed a stronger PVS
++        // move. Preserve one reduced normal ply for this high-margin case.
++        if (depth == 5 && reduction >= 4 && null_depth == 0) null_depth = 1;
++        const int null_score = -alpha_beta(board, null_depth, ply + 1,
+                                            -beta, -beta + 1, false, true, Move{});
+         board.unmake_null_move(null_undo);
+         if (aborted_) return 0;

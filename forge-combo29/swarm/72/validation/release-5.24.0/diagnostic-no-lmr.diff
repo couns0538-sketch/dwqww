@@ -1,0 +1,12 @@
+--- /mnt/data/forge-5.23-work/chess-engine-forge-5.23.0/src/search.cpp	2026-10-06 01:40:23.000000000 +0000
++++ /mnt/data/forge-lmr-ref-src/src/search.cpp	2026-10-06 02:30:19.758591446 +0000
+@@ -572,8 +572,7 @@
+         if (first_move) {
+             score = -alpha_beta(board, depth - 1, ply + 1, -beta, -alpha, true, null_branch, move);
+         } else {
+-            const bool reduce = depth >= 3 && moves_searched >= 3 && !checked &&
+-                                !move.is_capture() && (move.flags & Promotion) == 0U;
++            const bool reduce = false;  // diagnostic: disable LMR only
+             const bool reduce_more = reduce && depth >= 6 && moves_searched >= 12 &&
+                                      history_[move.from][move.to] <= 0;
+             const int reduced_depth = reduce ? depth - 2 - static_cast<int>(reduce_more) : depth - 1;

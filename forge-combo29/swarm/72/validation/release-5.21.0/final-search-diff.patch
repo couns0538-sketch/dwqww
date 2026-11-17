@@ -1,0 +1,10 @@
+--- /mnt/data/forge_run9/src520/chess-engine-forge-5.20.0/src/search.cpp	2026-10-05 22:15:26.000000000 +0000
++++ /mnt/data/forge_run9/final521/chess-engine-forge-5.21.0/src/search.cpp	2026-10-05 22:29:28.167781234 +0000
+@@ -500,7 +500,6 @@
+ 
+     const bool checked = board.in_check(board.side_to_move());
+     const bool zero_window = beta == alpha + 1;
+-    if (zero_window && depth >= 4 && !checked && tt_move.from == tt_move.to) --depth;
+     int static_eval = 0;
+     if (zero_window && !checked && beta > -MateScore + 128 && beta < MateScore - 128) {
+         static_eval = evaluate_cached(board);

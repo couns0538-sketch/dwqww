@@ -1,0 +1,16 @@
+--- v512lib/chess-engine-forge-5.12.0/src/search.cpp	2026-10-05 16:16:26.000000000 +0000
++++ v513-candidate/src/search.cpp	2026-10-05 16:35:08.012048888 +0000
+@@ -652,11 +652,11 @@
+     const std::int64_t move_overhead_ms = std::max<std::int64_t>(0, limits.move_overhead_ms);
+     if (limits.infinite) {
+         time_limit_ms_ = 0;
+-    } else if (limits.movetime_ms > 0) {
++    } else if (limits.movetime_ms >= 0) {
+         const std::int64_t movetime_ms = limits.movetime_ms;
+         time_limit_ms_ = static_cast<std::uint64_t>(
+             std::max<std::int64_t>(1, movetime_ms - move_overhead_ms));
+-    } else if (limits.time_ms > 0) {
++    } else if (limits.time_ms >= 0) {
+         const std::int64_t time_ms = limits.time_ms;
+         const std::int64_t moves_to_go = std::max<std::int64_t>(1, limits.moves_to_go);
+         const std::int64_t increment_ms = std::max<std::int64_t>(0, limits.increment_ms);

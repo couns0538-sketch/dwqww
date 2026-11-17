@@ -1,0 +1,26 @@
+--- v512lib/chess-engine-forge-5.12.0/tests/tests.cpp	2026-10-05 16:16:26.000000000 +0000
++++ v513-candidate/tests/tests.cpp	2026-10-05 16:35:08.012148165 +0000
+@@ -571,6 +571,23 @@
+           "configured move overhead is reserved from movetime");
+     check(forge::SearcherTestProbe::time_check_mask(null_searcher) == 31,
+           "short searches use a responsive clock-check interval");
++    forge::SearchLimits zero_movetime_limits;
++    zero_movetime_limits.movetime_ms = 0;
++    zero_movetime_limits.nodes = 1;
++    (void)null_searcher.search(board, zero_movetime_limits);
++    check(forge::SearcherTestProbe::time_limit_ms(null_searcher) == 1,
++          "explicit zero movetime is a bounded one-millisecond search, not an absent limit");
++    forge::SearchLimits zero_clock_limits;
++    zero_clock_limits.time_ms = 0;
++    zero_clock_limits.nodes = 1;
++    (void)null_searcher.search(board, zero_clock_limits);
++    check(forge::SearcherTestProbe::time_limit_ms(null_searcher) == 1,
++          "explicit zero side clock is a bounded one-millisecond search, not an absent limit");
++    forge::SearchLimits absent_clock_limits;
++    absent_clock_limits.nodes = 1;
++    (void)null_searcher.search(board, absent_clock_limits);
++    check(forge::SearcherTestProbe::time_limit_ms(null_searcher) == 0,
++          "absent clock and movetime fields remain unbounded");
+     forge::SearchLimits extreme_clock_limits;
+     extreme_clock_limits.nodes = 1;
+     extreme_clock_limits.time_ms = std::numeric_limits<int>::max();
