@@ -1,0 +1,30 @@
+S-F130: the wrong formula, reproduced from the committed data (so the FINAL's claim is verifiable)
+
+The FINAL block says my first summary formula printed 36 / 55 / 45 %. That figure was never saved to a file - it went
+to a terminal - which is exactly the failure S-F120 records (a number in a narrative with no artifact behind it). So
+it is reproduced here from ladder_pc20.json, the artifact that IS committed.
+
+The formula I wrote:
+    1 - (distinct - 1) / (n - 1)          n = number of budgets, distinct = number of distinct searches
+
+Applied to the committed sweep (12 budgets per position):
+
+  position   n    distinct   wrong formula prints   counted rate (pairs)
+  startpos   12   8          36 %                   7 of 66  = 11 %
+  italian    12   6          55 %                   10 of 66 = 15 %
+  rookend    12   7          45 %                   11 of 66 = 17 %
+
+WHY IT IS WRONG: the quantity of interest is "what fraction of budget PAIRS return the identical search". A rung
+holding k budgets contributes C(k,2) = k(k-1)/2 colliding pairs out of C(12,2) = 66. The formula above instead
+interpolates linearly on the RUNG COUNT, which is a different quantity that happens to look plausible.
+
+Example, startpos: the rungs are sizes 1,1,2,4,1,1,1,1.
+  colliding pairs = C(2,2) + C(4,2) = 1 + 6 = 7   ->   7/66 = 11 %
+  the two multi-budget rungs are where every colliding pair lives; the other six rungs are singletons.
+
+Reproduce:
+  python3 -c "import json; d=json.load(open('ladder_pc20.json')); \
+    [print(p, len(r), len({(x['bestmove'],x['depth'],x['nodes']) for x in r})) for p,r in d['rows'].items()]"
+
+This file exists because the FINAL makes a specific numeric claim about my own error, and a claim like that needs the
+same evidence standard as a finding about the engine.

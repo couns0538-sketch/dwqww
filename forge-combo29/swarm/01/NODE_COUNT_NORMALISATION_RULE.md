@@ -116,6 +116,30 @@ I found this by trying to verify this very page against my own artifact and fail
 same instinct as Trap 11 and Trap 10 — **make the output prove it looked at the right thing** — applied to a line of
 reporting rather than to a harness.
 
+### The boundary of the enforced check, stated as a boundary rather than a bug
+
+`gate.sh` scans the result files for `A -> B = Rx` lines whose arithmetic does not hold. **That check verifies
+relationships between numbers, not how they render** — and the difference is worth stating, because a check's
+silence is easily mistaken for full coverage.
+
+It caught nothing when two of my finding rows carried a literal double-percent escape (two `%` characters in a row),
+where I had written format-string escapes into strings that were never formatted. The rows rendered as "11–17"
+followed by both characters — wrong on the page, invisible to a check that only divides. A reader saw a defect that
+the gate had declared clean.
+
+So the honest scope of the automated check is narrow and specific:
+
+| the check does | the check does not |
+|---|---|
+| verify that a stated ratio equals the two numbers beside it | verify that a number renders as intended |
+| catch a divisor that silently changes the quantity | catch an escape sequence left in plain text |
+| fail the gate on arithmetic that cannot hold | fail the gate on typography |
+
+**Neither this check nor any in the gate replaces reading the page.** What it buys is that a whole class of error
+(arithmetic that a reader would catch) is now caught before push, every time, without my remembering. What remains
+is the class that reading catches — and the way to make *that* cheap is to keep the pages short enough to read, which
+is a different discipline from any check.
+
 ## A second command, the same disease, the opposite direction (S-F128)
 
 `go nodes N` is not the only budget that selects a rung. **`softnodes N` selects the first completed iteration at or

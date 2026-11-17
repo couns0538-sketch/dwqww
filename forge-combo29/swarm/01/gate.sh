@@ -127,6 +127,40 @@ else
   echo "ok    every 'A -> B = Rx' line divides to its stated ratio"
 fi
 
+# 3e. NO STRANDED FORMAT ESCAPES IN THE MARKDOWN. This is the boundary the divides-rule cannot cover: an escape that
+#     was meant for a format string but landed in plain text renders as a literal "%" pair, and every arithmetic check
+#     passes because the numbers are untouched. Cheap to detect, and it closed a real gap - two finding rows shipped
+#     with one and the gate said clean. Quoted examples are still allowed inside a fenced block or a backticked span,
+#     so the rule this very check documents can be written down without tripping it.
+escapes=$(python3 - <<'PYEOF'
+import glob, re
+bad = []
+for f in sorted(set(glob.glob("*.md") + glob.glob("*/*.md"))):
+    fenced = False
+    for n, line in enumerate(open(f, encoding="utf-8", errors="replace"), 1):
+        s = line.rstrip("\n")
+        if s.lstrip().startswith("```"):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
+        # strip inline code spans, where a quoted escape is deliberate documentation
+        prose = re.sub(r"`[^`]*`", "", s)
+        if "%%" in prose:
+            bad.append("%s:%d: %s" % (f, n, s[:100]))
+print("\n".join(bad))
+PYEOF
+)
+
+if [ -n "$escapes" ]; then
+  echo "FAIL  a stranded format escape renders as literal text (%% in prose)"
+  echo "$escapes" | head -4 | sed 's/^/      /'
+  echo "      fix the text; this is the boundary the divides-rule cannot see (NODE_COUNT_NORMALISATION_RULE.md)"
+  fail=1
+else
+  echo "ok    no stranded format escapes in the markdown"
+fi
+
 # 4. the four honesty pins, if asked for and if a PC build exists
 if [ "${1:-}" = "--with-honesty" ]; then
   if [ -x "$HOME/builds/pc/forge" ]; then

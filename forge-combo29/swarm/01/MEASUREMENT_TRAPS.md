@@ -318,5 +318,10 @@ omit the field.**
    cannot be compared with one that does.
 3. When a number looks wrong, **check the settings and the timer before the engine**: four of these five were a
    setting and the fifth was the measurement itself — none was a search defect.
+4. **Know what the automated checks cannot see.** `gate.sh` verifies shape, arithmetic and stamp plausibility. It does
+   **not** verify that a figure renders as intended: it passed while two of my finding rows carried a literal
+   double-percent escape (two `%` characters in a row) where no format string existed, and displayed as
+   "11–17" followed by both of them. A check verifies relationships, not typography, and its silence is not coverage —
+   `NODE_COUNT_NORMALISATION_RULE.md` states that boundary in full.
 
 This is the same family as the attribution rule: the failure is never in the number, and it is never announced.

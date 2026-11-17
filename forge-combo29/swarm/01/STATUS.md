@@ -274,6 +274,33 @@ Each looked correct on inspection, because each produced well-formed output in t
 two hours went into checks rather than into more findings: a rule that lives in prose binds my memory, and memory is
 what fails at the moment of creation. **The rules that hold are the ones that run in a script before the claim.**
 
+### The instance that proves that thesis, better than the table above (S-F130)
+
+The table is a *retrospective*. It shows six failures I eventually caught. It does not show that having the rule
+would have prevented them. One incident does, and it happened **four minutes after I wrote the rule** — the rule page
+committed at 01:24, the formula that violates it at 01:28:
+
+I had just finished the page saying *derive a ratio by dividing the numbers you actually have*. I then wrote a new
+script to sweep softnodes budgets and summarised the collision rate as `1 − (distinct−1)/(n−1)`. That printed
+**36 / 55 / 45 %**. The counted rates — enumerate the pairs, test each pair for identity — are **11 / 15 / 17 %**.
+
+`1 − (distinct−1)/(n−1)` is a plausible-looking guess at a quantity I had never defined. A rung holding four budgets
+contributes 6 colliding pairs out of 66, not a third of them. **The rule page was still open in my context while I
+wrote the formula that violates it.** (The 36 / 55 / 45 figures were never saved to a file — they went to a terminal,
+which is the `S-F120` failure again — so they are reproduced from the committed sweep in
+`softgran/wrong_formula_reproduced.txt`, with the pair arithmetic spelled out. A claim about my own error gets the
+same evidence standard as a claim about the engine.)
+
+So the lesson is not "be careful" and it is not even "know the rule". It is narrower and more useful:
+
+> **Knowing a rule does not transfer it to the next artefact. A rule in prose protects only the artefact you are
+> looking at when you read it. The only rules that reached every artefact were the ones a script enforced — which is
+> why the summary line is now an enumeration, not a formula.**
+
+That is the single most useful thing in this record, because it is the one claim the whole session's evidence
+supports and none of it contradicts: five rules I could recite, and the failures continued until each one became a
+command.
+
 ---
 
 Seat 01, area 1 (FEN input under ASan+UBSan, then the PC r15 build and the softnodes path).
@@ -1889,4 +1916,29 @@ wrong for hours-of-thinking reasons and correct for one-line-of-enumeration reas
 Gates: 175 rows, 0 wrong pipe counts, page shape OK. One rendering bug fixed too: my two new rows carried literal
 "%" because they were not format strings, so a reader would have seen "11-17 %"; the divides-rule cannot catch that
 (it is not arithmetic), which is worth remembering as a limit of that check.
+Next: continue at cadence.
+## 2026-11-17T01:29:52Z — the formula instance is now the FINAL's proof, and the rendering boundary is stated (S-F131, S-F132)
+1. THE FORMULA FAILURE IS RECORDED AS THE INSTANCE THAT PROVES THE THESIS, in its own section of the FINAL block,
+   directly beneath the six-row table. The table is a retrospection; this is the one case where the rule demonstrably
+   did NOT prevent the failure. TIMES VERIFIED FROM GIT, not remembered: the rule page was committed at 01:24, the
+   formula that violates it was written at 01:28 - four minutes, same session, rule page still in my context.
+   It printed 36/55/45 %; the counted rates are 11/15/17 %. The claim recorded:
+     "Knowing a rule does not transfer it to the next artefact. A rule in prose protects only the artefact you are
+      looking at when you read it. The only rules that reached every artefact were the ones a script enforced."
+   AND I CHECKED ITS OWN EVIDENCE: the 36/55/45 figures had gone to a terminal and were never saved - the S-F120
+   failure again - so they are now REPRODUCED from the committed ladder_pc20.json in
+   softgran/wrong_formula_reproduced.txt, with the pair arithmetic spelled out (startpos rungs [1,1,1,1,1,1,2,4] give
+   C(2,2)+C(4,2) = 7 of 66). A claim about my own error gets the same evidence standard as a claim about the engine.
+2. THE RENDERING BOUNDARY IS STATED AS A BOUNDARY, in NODE_COUNT_NORMALISATION_RULE.md and as a fourth item in the
+   traps page's guard: the divides-rule verifies RELATIONSHIPS between numbers, not TYPOGRAPHY, so its silence is not
+   coverage. Stated with its own table of what the check does and does not do, and the conclusion that no check
+   replaces reading the page - the way to make that cheap is to keep pages short, which is a different discipline.
+3. AND BUILDING THE ENFORCEMENT TAUGHT ME ONE MORE THING (S-F132). I added a gate check for stranded format escapes,
+   then negative-tested it with `printf '... 11-17 % of pairs'` - and printf CONVERTED the escape, so the injected bug
+   never existed and the check passed correctly on clean input. I read that pass as the check being broken and started
+   debugging the checker. THE CHECK WAS FINE; THE NEGATIVE TEST WAS WRONG. Fixed by injecting with chr(37)*2, which no
+   formatter interprets, and asserting `injected: True` before running the gate. That is Trap 8 inside the self-test
+   for Trap 8. Rule: when a negative test passes, doubt the INJECTION before doubting the check, and print proof the
+   bad input arrived.
+Gates: 177 rows, 0 wrong pipe counts, page shape OK on both edited pages, escapes clean, stamps in order, 46 checks ok.
 Next: continue at cadence.
