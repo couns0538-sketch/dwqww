@@ -1,0 +1,40 @@
+THE DISTANCE AXIS IS STILL UNBUILDABLE — fourth attempt, and now the obstruction is characterised rather than mysterious
+========================================================================================================================
+23-F120 recorded this axis as untested because sparse boards admit no non-root loop. This attempt used a dense middlegame
+board and found the obstruction is structural, not a shortage of pieces.
+
+WHAT WAS BUILT AND WHAT WENT WRONG
+-----------------------------------
+1. First board tried — `r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq` — has NO castling-neutral 4-ply cycle at all
+   (`board_search.out` tries four boards; this one failed while three others succeeded). P1 killed there.
+2. On a dense middlegame board (`r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w - -`) a neutral cycle exists
+   (`f3g5 g8e7 g5f3 e7g8`) and the two-occurrence control behaves as the rest of the seat does — **29,994 nodes,
+   searched** — so the board is a valid vehicle.
+3. But the SPACING variants could not be built. `A + B + A` always gives the searched position **4** occurrences, not 3,
+   for every filler B tried (`f3g5 g8h6 g5f3 h6g8`, plus nine other neutral cycles enumerated from the mid position).
+   The reason is structural: A returns to the start position, so the start position is visited once per A — twice from the
+   two A's plus the mid-position visits — and any loop placed between two copies of A adds another return to the same
+   position. **The count and the spacing cannot be varied independently with a single repeated position as the anchor.**
+
+WHAT THIS MEANS FOR THE CLAIM, stated conservatively
+-----------------------------------------------------
+The distance axis remains UNTESTED (23-F120 still stands), and 23-F141's "count only" rule has NOT been tested for
+spacing. But there is now a partial and useful result:
+
+| case | line length | searched-pos occ | nodes | verdict |
+|---|---|---|---|---|
+| 1 cycle (2 occurrences) | 4 | 2 | 29,994 | searched |
+| 2 cycles (3 occurrences) | 8 | 3 | **0** | **BAIL** |
+| A+B+A (4 occurrences) | 12 | 4 | **0** | **BAIL** |
+
+So on a DENSE MIDDLEGAME board (not just endgames), the threshold holds at 2 vs 3, and a 12-ply list whose searched
+position occurs four times also bails. That is a third independent board for 23-F125's "if" half and extends it to a
+position with ~30 legal moves — but it says nothing about spacing, and I will not claim it does.
+
+WHY THIS IS THE RIGHT PLACE TO STOP
+------------------------------------
+Four attempts, each defeated by a different structural fact: no cycle (sparse boards), no neutral cycle (rights boards),
+and now count-and-spacing are not independently variable. Continuing would mean constructing a board where the anchor
+position is reachable by two different-length paths — possible in principle, and a fixture hunt rather than a test of the
+claim. The axis is worth one line in the FINAL as an ABSENCE with its reason, which is what 23-F120 already said and what
+this attempt makes precise.

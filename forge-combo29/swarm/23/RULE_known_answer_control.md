@@ -665,6 +665,27 @@ reader is most likely to quote. And this one was not idle: it was the sentence t
 kill condition.** The presumption is not banned — it is a fine way to decide what to test — but it may not stand where
 the tested sentences stand.
 
+## Named pattern — A TABLE COLUMN THAT ENCODES AN INVARIANT IS A CHECK
+
+The first time in this seat that a self-designed check caught a fixture fault BEFORE the engine ran, and the mechanism is
+worth naming because it is cheap and it does not need a test suite.
+
+Building 23-F141's long-list fixtures, my second attempt constructed the preamble from the same shuttle as the repetitions,
+so the searched position WAS the game's starting position again — the exact thing the experiment was supposed to differ
+from. The table I was filling in had a column, `searched == start?`, put there so a future reader could see what each cell
+differed by. It printed **True** in every row, which meant the fixture was not testing what the prediction said.
+
+**A column that encodes the property the experiment depends on turns a table into a check that runs on the person filling
+it in.** It costs one expression per row, it needs no framework, and it catches the class of error that is most invisible:
+a fixture that runs cleanly, produces numbers, and measures the wrong thing.
+
+Three consequences worth installing:
+- **name the invariant as a column, not as a comment** — "searched == start?", "root occ == 3", "cycle disturbs castling?",
+  "counted == expected" — a comment is read once, a column is filled in every row;
+- **the column's most useful value is the surprising one**: True where you expected False is the signal, and it is
+  visible without comparing anything to anything;
+- **keep the column even when the fixture is fixed**, because the next person to edit the fixture gets the check free.
+
 ## The fix, in one line each
 
 1. **Every checker gets a known-answer control**, run in the same invocation, and the checker refuses to report if
