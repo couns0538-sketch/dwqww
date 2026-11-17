@@ -1,0 +1,13 @@
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 13:24:06.329143771 +0000
++++ b/src/search.cpp	2026-11-17 13:26:14.865143771 +0000
+@@ -761,8 +761,7 @@
+                         // A closed tail keeps quiet checks, including discovered checks.
+                         if (quiet_tail_closed_ && !board_.gives_check(move)) continue;
+                         const int pt = piece_type(board_.piece_at(move.from));
+-                        last_quiet_history_ = picked.score -
+-                            ((check_squares_[static_cast<std::size_t>(pt)] & square_bb(move.to)) != 0 ? 12000 : 0);
++                        last_quiet_history_ = picked.score; /* PLANTED FAULT: forget to strip 12000 direct-check bonus */
+                         return move;
+                     }
+                 }
