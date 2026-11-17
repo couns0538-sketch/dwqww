@@ -32,6 +32,21 @@ searches (17,399 nodes), 3/4/5 → bails (23-F141). So neither the branching fac
 Same board, same castling-neutral cycle, every fixture validated by `job59/validate.py` with two independent counters
 agreeing and asserted to its exact count before the engine was called.
 
+## The standard rebuttal to any future "this 0-node cell breaks the threshold" report
+
+If a reader finds a position returning 0 nodes that is NOT a threefold, do not revise the threshold — first run the
+confound test. **Re-send the same position with the variable under test REMOVED (here: with no move list at all) and see
+whether the 0-node result persists. If it does, you have measured a different draw rule, not a counter-example.**
+
+That is exactly how the one apparent counter-example in this seat was resolved (23-F132): bare kings returned 0 nodes at
+TWO occurrences, and also returns 0 nodes with no history whatsoever, because insufficient material is an automatic
+draw. One command separates the two. Other rules that produce genuine 0-node cells and are NOT the repetition threshold:
+insufficient material (automatic), halfmove >= 100 (automatic, 23-F126), and a refused position (not a draw at all).
+A threefold cell is the only one whose zero disappears when the move list is removed — **measured, not assumed
+(23-F134)**: threefold with list = cp 0 / 0 nodes, same root as a bare FEN = cp 381 / 7,581 nodes; halfmove-100 = cp 0 /
+0 nodes either way; insufficient material = cp 0 / 0 nodes either way. So the test distinguishes the repetition bail
+from the two automatic draw rules, which persist.
+
 ## The three facts that complete it
 
 1. **FIDE identity, not placement** — and the count that matters is the SEARCHED position's, not the root's. The key is placement + side to move + castling rights (plus en-passant only when a

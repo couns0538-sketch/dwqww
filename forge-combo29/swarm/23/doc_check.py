@@ -139,4 +139,8 @@ if _any_drop:
     overall_ok = False
 
 print()
-print("VERDICT:", "PASS" if overall_ok else "check the unresolved names above (may be prose)")
+print("VERDICT:", "PASS" if overall_ok else "FAIL \u2014 see the lines above")
+# THE SCRIPT PRINTED A VERDICT BUT NEVER EXITED NONZERO, so every caller that checks $? — including the pre-commit
+# hook — saw success no matter what. Found by testing the GATE rather than the script: the gate let a deleted section
+# through. A checker that reports failure and exits 0 is worse than one that reports nothing (23-F199).
+sys.exit(0 if overall_ok else 1)
