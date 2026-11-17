@@ -1,0 +1,14 @@
+--- a/include/forge/search.hpp	2026-11-17 05:27:19.095277088 +0000
++++ b/include/forge/search.hpp	2026-11-17 05:48:52.895277088 +0000
+@@ -542,6 +542,11 @@
+     [[nodiscard]] std::int64_t elapsed_ms() const;
+     [[nodiscard]] std::uint64_t total_nodes() const;
+     [[nodiscard]] bool is_draw(const Board& board, int ply) const;
++    // Value of a node the rules settle without searching, or ValueNone when the
++    // node has to be searched. Checkmate is left to the caller.
++    [[nodiscard]] int leaf_score(Board& board, int ply) const;
++    // True when the side to move can mate with one move.
++    [[nodiscard]] bool has_mating_move(Board& board) const;
+     // Score for a repetition or fifty-move leaf. Other draws stay at 0.
+     [[nodiscard]] int draw_leaf_score(const Board& board) const;
+     void update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth,

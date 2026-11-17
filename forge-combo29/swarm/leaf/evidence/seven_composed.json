@@ -1,0 +1,113 @@
+[
+ {
+  "family": "F1 fifty-move, one mate",
+  "case": "hm100_mate1",
+  "expect": "mate 1 and the printed move mates",
+  "posline": "position fen 6k1/5ppp/8/8/8/8/8/R5NK w - - 100 40",
+  "result": {
+   "nodes": 216,
+   "score": "mate 1",
+   "bestmove": "a1a8",
+   "san": []
+  },
+  "oracle_mate_in_1": [
+   "a1a8"
+  ],
+  "bestmove_mates": true,
+  "pass": true
+ },
+ {
+  "family": "F2 fifty-move, two mates",
+  "case": "hm100_mate2ways",
+  "expect": "some mate",
+  "posline": "position fen 6k1/5ppp/8/8/8/8/8/1R4NK w - - 100 40",
+  "result": {
+   "nodes": 216,
+   "score": "mate 1",
+   "bestmove": "b1b8",
+   "san": []
+  },
+  "oracle_mate_in_1": [
+   "b1b8"
+  ],
+  "bestmove_mates": true,
+  "pass": true
+ },
+ {
+  "family": "F3 near-miss stalemate",
+  "case": "hm100_stalemate",
+  "expect": "genuine draw (stalemate/claim), not a mate",
+  "posline": "position fen 7k/5Q2/6K1/8/8/8/8/8 b - - 100 60",
+  "result": {
+   "nodes": 0,
+   "score": "cp 0",
+   "bestmove": "0000",
+   "san": []
+  },
+  "oracle_mate_in_1": [],
+  "bestmove_mates": false,
+  "pass": true
+ },
+ {
+  "family": "F4 near-miss check",
+  "case": "hm99_check_not_mate",
+  "expect": "the true mate -1 (mating move at ply 2, so not the printed move)",
+  "posline": "position fen 6k1/8/5PPP/8/8/8/8/R6K b - - 99 40",
+  "result": {
+   "nodes": 36,
+   "score": "cp 0",
+   "bestmove": "g8f8",
+   "san": []
+  },
+  "oracle_mate_in_1": [],
+  "bestmove_mates": false,
+  "pass": false
+ },
+ {
+  "family": "F5 near-miss mate-in-2",
+  "case": "hm100_mate_in_2",
+  "expect": "still adjudicated at the root guard",
+  "posline": "position fen 6k1/8/6K1/8/8/8/8/R7 b - - 100 40",
+  "result": {
+   "nodes": 0,
+   "score": "cp 0",
+   "bestmove": "g8f8",
+   "san": []
+  },
+  "oracle_mate_in_1": [],
+  "bestmove_mates": false,
+  "pass": true
+ },
+ {
+  "family": "F6 insufficient material",
+  "case": "kbk",
+  "expect": "cp 0",
+  "posline": "position fen 4k3/8/8/8/8/8/8/2B1K3 w - - 0 1",
+  "result": {
+   "nodes": 0,
+   "score": "cp 0",
+   "bestmove": "c1b2",
+   "san": []
+  },
+  "oracle_mate_in_1": [],
+  "bestmove_mates": false,
+  "pass": true
+ },
+ {
+  "family": "F7 threefold + mate",
+  "case": "rep3_mate",
+  "expect": "the mate is played",
+  "posline": "position fen 6k1/5ppp/8/8/8/8/8/R5NK w - - 0 1 moves g1f3 g8h8 f3g1 h8g8 g1f3 g8h8 f3g1 h8g8",
+  "result": {
+   "nodes": 216,
+   "score": "mate 1",
+   "bestmove": "a1a8",
+   "san": []
+  },
+  "oracle_mate_in_1": [
+   "a1a8"
+  ],
+  "bestmove_mates": true,
+  "pass": true
+ }
+]
