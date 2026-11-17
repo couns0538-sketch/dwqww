@@ -40,13 +40,22 @@ says the remaining 79 % of bench time is search-side — `Worker::search`, `Move
 and that profile's *shares* are distorted by `-pg` but its *ordering* is not. So move ordering, SEE,
 and move generation are where unclaimed time is; the v3 kernels have been tuned already.
 
-Also worth knowing before planning: **the machine that did this work is not the PC.**
-- compiler: g++ 13.3.0 here vs the PC's clang
-- `-march=x86-64-v4` here vs the PC's `znver5`
-- no thin LTO, no PGO here; the PC uses both, with a profile run that has the net loaded
+## THE MOST IMPORTANT PART FOR TRANSFER: this machine is not the PC
+**No result in this folder transfers to the PC without being re-timed there.** Not a caution — a
+consequence of four concrete differences, each of which changes which code is fast:
 
-So a patch that wins here may not win on the PC, which is exactly why file 7 says every patch is
-re-timed on the PC before anything is believed.
+| | here | the PC | why it changes the answer |
+|---|---|---|---|
+| compiler | **g++ 13.3.0** | **clang** | different inliner, different loop-unroll and auto-vectorisation heuristics; a hand-written specialisation often duplicates what clang's optimiser already emits, or defeats it |
+| `-march` | **x86-64-v4** | **znver5** | znver5 tunes scheduling and latency for Zen 5 specifically; the same AVX-512 kernel can have a different critical path on Xeon vs Zen 5 |
+| LTO | **none** | **thin LTO** | without LTO the v3 kernels are not inlined across translation units, so per-call overhead looks bigger here than it will on the PC — which is exactly why my "hoist `prepare()`" patch (S-F108) could not show a win |
+| PGO | **none** | **yes, profiled with the net loaded** | PGO moves branch layout toward the profiled workload, so branch-shaped micro-optimisations (my count-2 kernel, S-F109) may be irrelevant on a PGO build |
+
+That is the concrete reason file 7 insists every patch is re-timed on the PC before anything is
+believed, and it is why I offered both candidates as CANDIDATES rather than as ships. Note in
+particular the LTO and PGO rows: **two of my three negative results have a plausible mechanical
+explanation in this table**, which is a reason to expect the same patches to behave differently there
+rather than a reason to think they would win.
 
 ## Instrument notes (so the next person does not repeat my detours)
 - **`perf` is not installed** on this machine and there is no root to add it; `/proc/PID/stack` is
