@@ -45,14 +45,23 @@ which is exactly backwards.
 
 The mechanism, stated so it transfers: **an edit has two operations, and the second is the one that gets skipped.
 Adding the correction is an authoring act; removing the corrected-with text is a *search* act**, and a search only
-works if you look for what you wrote before. Two habits that make it mechanical:
+works if you look for what you wrote before.
 
-1. **Grep for the phrase you just contradicted**, in the same file, before you consider the correction done.
-2. **Write the correction and the removal in one edit**, so there is no window in which both exist.
+**Why it is invisible rather than merely common:** the author is in the frame where they are **composing**, and the
+removal requires switching to the frame where they are **locating**. Those are different mental acts, and the second one
+has no natural trigger — nothing in writing a correction reminds you that its predecessor exists.
+
+Two habits, in this order because the first prevents the state the second detects:
+
+1. **Write the correction and the removal in one edit**, so there is no window in which both exist. This is the
+   prevention: if the removal is part of the same action, the search happens while you are already in the text.
+2. **Grep for the phrase you just contradicted**, in the same file, before you consider the correction done. This is the
+   detection for when habit 1 was not possible — a long file, or a correction made hours later.
 
 This is the same failure as a stale number surviving beside a fresh one, and the same failure as `S-F126`'s two
 statistics in one sentence: **the document ends up asserting both, and the reader has no way to know which is current.**
-The difference is only that prose claims are harder to grep than figures — which is why habit 1 above exists.
+The difference is only that prose claims are harder to grep than figures — which is why habit 2 exists, and why habit 1
+is better when it is available.
 
 ## Trap 1 — `MultiPV` above 1 divides a node budget (S-C21)
 
@@ -442,6 +451,34 @@ an attempt to make the habit routine; they cannot make it automatic.
 **Which is why the stated exclusion list matters more than any check's logic.** It is the one artefact that lets *another
 person* supply the imagination the author lacked: they can read "does not scan `.json` because node counts only appear in
 `.txt`" and see at once whether that exclusion is safe.
+
+## Trap 14 — forcing a claim into an enumerated form is a verification act (S-F147)
+
+> **If a claim can be listed as items, list it. The missing item has no function to point at.**
+
+I published a four-row table of mutation classes having implemented **three**. The fourth row — "token substituted" —
+was written from memory, and it was false. **I did not catch it by re-reading the table.** I caught it because the
+table's purpose required me to point at an implementation for each row, and the missing class had nothing to point at.
+
+Two properties make enumeration a better check than review:
+
+1. **An enumerated claim is falsifiable per item.** "I have four mutation classes" is one claim a reader must take whole;
+   "off-by-one, cell added, marker stripped, token substituted" is four claims, and each can be tested against the code.
+   The one that fails stands out because its siblings pass.
+2. **The enumeration must be produced from the work, not from memory.** My four rows came from memory and one was
+   fiction. The fix was to write a function per class — at which point the list became a generated artefact rather than
+   a recollection.
+
+**A near relative, and the difference matters.** The fabricated node counts (`S-F136`) were also hand-typed claims beside
+measured ones — but enumeration is **not** what caught those. They were caught by the claim *disagreeing with a trace I
+had printed minutes earlier*, and then by building a checker that compares the two. So the two lessons are adjacent but
+distinct: **enumeration catches a claim that was never true of the work; cross-checking catches a claim that is true of
+nothing on disk.** Both are needed, because enumeration cannot see whether a listed item is correctly *stated* — only
+whether it was ever *built*.
+
+**The corollary in the other direction: a list is only a check if every item is independently real.** A list whose items
+are copied from a previous list, or written from a plan, is one claim wearing four hats — and it will pass review exactly
+as easily as a true one.
 
 ## The shape the harness traps share
 

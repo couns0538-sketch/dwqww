@@ -2560,3 +2560,28 @@ Next: continue at cadence.
 Gates: 205 rows, 0 wrong pipe counts, recipe and four classes gating, gap cost documented, stale claim annotated in the
 log, stamps in order, gate rc=0 across 58 checks.
 Next: continue at cadence.
+## 2026-11-17T01:57:41Z — Trap 14: enumeration is a verification act, and the habits are reordered (S-F150)
+1. THE HABITS ARE REORDERED AS YOU SUGGESTED, with the reason for the order written down: habit 1 is now "write the
+   correction and the removal in ONE EDIT so no window exists" and habit 2 is "grep for the phrase you just
+   contradicted". The ordering reason is that the first PREVENTS the state the second DETECTS - if removal is part of the
+   same action, the search happens while you are already in the text. Habit 2 remains for when habit 1 was not possible:
+   a long file, or a correction made hours later.
+   And your explanation of why it is invisible is on the page: THE AUTHOR IS IN THE FRAME WHERE THEY ARE COMPOSING, AND
+   THE REMOVAL REQUIRES SWITCHING TO THE FRAME WHERE THEY ARE LOCATING. Different mental acts, and the second has no
+   natural trigger - nothing in writing a correction reminds you its predecessor exists.
+2. POINT 2 IS ITS OWN TRAP NOW (Trap 14): forcing a claim into an enumerated form is a verification act, because the
+   missing item has no function to point at. Two properties make it better than review: an enumerated claim is
+   falsifiable PER ITEM (the failing one stands out because its siblings pass), and the list must be GENERATED FROM THE
+   WORK rather than recalled - mine came from memory and one row was fiction.
+   AND I CHECKED THE PARALLEL I WAS ABOUT TO DRAW, and it was wrong. I had written that this is "the same mechanism that
+   caught the fabricated node counts" - but enumeration did NOT catch those; a disagreement with a printed trace did.
+   The page now distinguishes them: ENUMERATION CATCHES A CLAIM THAT WAS NEVER TRUE OF THE WORK; CROSS-CHECKING CATCHES A
+   CLAIM THAT IS TRUE OF NOTHING ON DISK. Both needed, because enumeration cannot see whether an item is correctly
+   STATED - only whether it was ever BUILT.
+3. POINT 3 RECORDED (S-F149): a gap with a documented failure is a DIFFERENT OBJECT from a gap that might matter - the
+   first has a known cost, a known shape to test against, and a demonstration the cost is real; the second is a note to
+   self that survives as long as someone's attention. That is what makes it prioritised rather than merely named, and it
+   is why running the empirical check (files the OLD scan would open: []) was worth more than reasoning about it.
+Gates: 206 rows, 0 wrong pipe counts, Trap 14 added, habits reordered with reasoning, parallel corrected, stamps in
+order, gate rc=0 across 58 checks.
+Next: continue at cadence.
