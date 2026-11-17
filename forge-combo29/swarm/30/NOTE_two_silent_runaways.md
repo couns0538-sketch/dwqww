@@ -111,6 +111,21 @@ The control, same sequence with the valid FEN (`...RN2KB2`): `info depth 12 ... 
 - treat `cp 0` with `nodes 0` as an UNSEARCHED ROOT, not an evaluation, unless the position is known
   terminal (checkmate/stalemate/insufficient material).
 
+## How to know a guard actually fired
+
+A guard that exits non-zero for the WRONG reason looks exactly like a guard that fired. When I first
+tested the FEN gate above I had copied the script to `/tmp` and it exited 1 with
+`FileNotFoundError: .../check17/settle_pos29.py` — a relative-path failure, not the gate. Re-run in
+place it refused with the message that names the fault:
+
+```
+REFUSING: position 29 has an INVALID FEN: expected 8 columns per row in position part of fen: '...RN2KB1'
+```
+
+The trustworthy signal is not the exit code, it is **the message naming the specific fault you
+planted**. Plant the fault yourself, read the message, and change the exit code's meaning only after
+you have seen it name what you broke.
+
 ## Why these belong together
 
 | | trap 1 | trap 2 |
