@@ -23,8 +23,8 @@ mismatch section to fill in — the fuzz found nothing, and that is the result.
 | **fuzz, targeted: ep exposes king (illegal)** | **500 positions** | **0** |
 | **fuzz, targeted: castling rights lost by rook capture** | **500 positions** | **0** |
 | **fuzz, targeted: underpromotion to knight giving check** | **500 positions** | **0** |
-| move-identity walk (depth 2 and 3, §3b) | 225,856 nodes | 0 |
-| **total** | **5,075 count comparisons + 225,856 move-set comparisons** | **0** |
+| move-identity walk (depth 2 and 3, §3b) | 290,623 nodes | 0 |
+| **total** | **5,075 count comparisons + 290,623 move-set comparisons** | **0** |
 
 ## 1. Standard suite
 
@@ -154,7 +154,7 @@ illegal.
 | depth 3 | 1,200 | 196,916 | 196,916 | 0 |
 | depth 3 (targeted families) | 400 | 64,767 | 64,767 | 0 |
 
-**225,856 nodes compared move-set-for-move-set, 0 differences.** That is a
+**290,623 nodes compared move-set-for-move-set, 0 differences** (28,940 + 196,916 + 64,767, three separate runs, not one). That is a
 strictly stronger statement than the count results: at every one of those nodes
 the engine emitted exactly the legal moves python-chess did, no more and no fewer.
 
@@ -348,7 +348,7 @@ finding, not just the numbers.
   and prove little about the rest of the position. The fixture set remains the
   only place where a single position is asserted move-for-move.
 - Perft only checks move *counts*. This seat additionally compares move **sets**
-  at 225,856 nodes (§3b), which closes the same-count-substitution hole across
+  at 290,623 nodes (§3b), which closes the same-count-substitution hole across
   that sample — but the set comparison is per-node at shallow depth, not a proof
   over every node of every deep run. A same-count substitution elsewhere in the
   tree would still survive.
