@@ -59,13 +59,6 @@ Together with an earlier 200-position depth-12 run (37,475,198 nodes) that is **
 nodes of real search in which every incremental evaluation was checked against a fresh
 reference.** Both runs finished; nothing in this report is partial.
 
-**A note on the count.** 54,379 is the *union* of the fixtures, not the sum: `seq_small` ⊂
-`seq_large` ⊂ `seq_deep`, because all three take the first N rows of one corpus with the same
-40-ply prefix. Adding the per-run counts double-counts 8,240 positions. `count_distinct.py`
-computes the union, prints the pairwise overlaps, and fails loudly on an unparseable fixture;
-it is wired into `run_all.sh` so the literal cannot drift. My first published figure of 57,720
-was a subtraction I had not checked, and it is replaced everywhere.
-
 **The independent arm matters because my first harness was wrong.** My initial sweep reported
 960 mismatches, which was more than the 492 positions it claimed to compare — an impossible
 number, and the tell that the harness, not the engine, was broken. The bug was that my
