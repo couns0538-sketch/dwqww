@@ -1989,3 +1989,27 @@ literal "PNBRQK" so positions with no knights counted as failures (the hypothesi
 my holdout slice crashed on an out-of-range index while an empty slice would have printed "0 of 0, all pass".
 
 132 findings, 21 rule instances, both audits PASS.
+## 2026-11-17T01:38:52Z  F105-F107: predictor named the move 5/5 in advance; within-class order is from-square; one false alarm resolved
+2026-11-17T01:38:52Z
+
+F105 - PROSPECTIVE test, the strongest form available to me. A predictor built from F103's rule, implemented in
+python-chess and committed at 01:38:06Z BEFORE the engine was asked, on five new drawn roots (fifty-move rule):
+  - all five returned 0 nodes;
+  - the engine's move was inside the predicted class on 5 of 5;
+  - the NON-DRAWN CONTROL searched 210 nodes and chose a1a8, OUTSIDE the set - which is what stops the predictor
+    from being vacuous.
+P3 was only partly met: the predicted set was a singleton on 1 of 6 rather than 3, so the test was less sharp than I
+designed. Recorded rather than glossed.
+Also: my P5 fixture had NO BLACK KING and was illegal - caught by the now-unconditional fixture validation, before the
+engine ran. Same fault class as the job-44 typo, but caught this time.
+
+F106 - the within-class order is ASCENDING FROM-SQUARE (f2f3, g2g3, h2h3; engine picks f2f3). F103 said "clearly not by
+from-square" and THAT WAS WRONG - I had compared against python-chess's order, which iterates pawn pairs descending.
+
+F107 - I then raised a false alarm: d5 (35) is lower than e6 (44) on F100's board, so d5d4 "should" come first, and I
+wrote that the rule was contradicted. d4 is occupied by a WHITE PAWN, so d5d4 is not a legal move and appears in no
+divide. 23-F100 is consistent with the rule. The fault was in the comparison operand, not the hypothesis - third time
+this session (F104 twice). The pattern in my own work is consistent and worth stating: I get the measurement right and
+the yardstick wrong.
+
+135 findings, 21 rule instances, both audits PASS.

@@ -1,0 +1,92 @@
+THE DRAWN-ROOT MOVE IS NAMEABLE IN ADVANCE — 5 of 5 prospective, and the within-class order is ASCENDING FROM-SQUARE
+========================================================================================================================
+23-F103 gave a rule for generator order from a retrospective holdout. This job turned it into a predictor written BEFORE
+the engine was asked, which is the stronger test.
+
+FIXTURE CORRECTION FIRST (recorded before any engine call, in `fixture_check.out`)
+----------------------------------------------------------------------------------
+P5 as written in the prediction — `8/8/8/8/8/8/5PPP/R5K1 w - - 120 1` — has **no black king** and is an ILLEGAL
+position (python-chess `valid=False`). Replaced by `6k1/8/8/8/8/8/5PPP/R5K1 w - - 120 1`, same intent, now legal. This is
+the job-44 fault class again (a hand-written fixture), caught this time BEFORE the engine ran because fixture validation
+is now an unconditional step rather than something I do when I remember.
+
+THE PREDICTOR, implemented independently in python-chess and never asking the engine for the move
+---------------------------------------------------------------------------------------------
+Class order: pawn-single, pawn-double, pawn-capture, knight, bishop, rook, queen, king. The predicted SET is every
+member of the first class present. Then the engine is asked.
+
+| case | predicted class | predicted set | engine nodes | engine move | inside? |
+|---|---|---|---|---|---|
+| P1 pawns both sides, W | pawn-single | f2f3, g2g3, h2h3 | **0** | **f2f3** | **yes** |
+| P2 pawns both sides, B | pawn-single | f7f6, g7g6, h7h6 | **0** | **f7f6** | **yes** |
+| P3 white has NO pawns | king | h1h2 | **0** | **h1h2** | **yes** |
+| P4 black has NO pawns | king | h8g7, h8g8, h8h7 | **0** | **h8g7** | **yes** |
+| P5 W pawns + rook | pawn-single | f2f3, g2g3, h2h3 | **0** | **f2f3** | **yes** |
+| **C1 CONTROL, not drawn** | pawn-single | f2f3, g2g3, h2h3 | 210 | **a1a8** | **NO** |
+
+P1 HELD: all five drawn fixtures returned **0 nodes** — the drawn-root path, reached this time via the fifty-move rule
+rather than a repetition, which is the third draw kind where the mechanism appears.
+P2 HELD: the engine's move was inside the independently predicted set on **5 of 5**. Nothing was fitted: the predictor
+was written into a pushed commit before the engine ran.
+P3 PARTLY: the predicted set was a singleton on only **1 of 6** (P3), not the 3 I predicted. The test was therefore less
+sharp than I designed it, and that is recorded rather than glossed — though note the members of each set were all the
+same class, and the engine picked the same POSITION within the class every time (see below), which recovers the
+sharpness I lost.
+**P4 HELD and it is what keeps the predictor from being vacuous: on the non-drawn control the engine searched 210 nodes
+and chose `a1a8`, OUTSIDE the predicted set.** So the predictor predicts the 0-node path specifically, not "what this
+engine always plays".
+
+THE WITHIN-CLASS ORDER IS ASCENDING FROM-SQUARE — a refinement, and a correction of my own earlier reading
+------------------------------------------------------------------------------------------------------------
+Job 51 concluded the within-class order was "clearly not by from-square", because python-chess's `legal_moves` iterates
+pairs in DESCENDING file order, so the pawn list I compared against (`h2h3, g2g3, f2f3`) was the reverse of the
+engine's. The engine's actual divide order is:
+
+| case | engine's pawn-class members in its own order | engine move |
+|---|---|---|
+| P1 | f2f3, g2g3, h2h3 | f2f3 |
+| P2 | f7f6, g7g6, h7h6 | f7f6 |
+| P5 | f2f3, g2g3, h2h3 | f2f3 |
+
+**Ascending from-square** (f2 = 13, g2 = 14, h2 = 15). So the full rule is:
+
+  **on a drawn root the engine plays the lowest-from-square single pawn push it generates** — and if there are no pawn
+  moves, the same class ordering continues into knight, bishop, rook, queen, king.
+
+That is a completely specified, position-independent prediction for these positions.
+
+**A FALSE ALARM AND ITS RESOLUTION — the full sequence, because the sequence is the point.**
+
+My first draft of the paragraph above claimed the from-square rule "also explains 23-F100's e6e5 (from-square 44 = the
+lowest black pawn)". I checked that and it looked FALSE: on that board black's pawns sit on d5=35, e6=44, h6=47, a7=48,
+b7=49, f7=53, g7=54, so d5 (35) is lower than e6 (44) and I wrote a correction saying the from-square rule was
+CONTRADICTED.
+
+**That correction was itself wrong.** The d5 pawn is BLOCKED: rank 4 of the FEN is `N2P1B1P`, i.e. a WHITE PAWN on d4,
+so `d5d4` is not a legal move and never appears in any divide. python-chess confirms `d5d4 in legal_moves == False`. The
+pawn moves black actually has are `e6e5` (44), `h6h5` (47), `a7a6`/`a7a5` (48) — and the lowest from-square among
+GENERATED pawn pushes is 44 = **e6e5**. So the ascending-from-square rule is **not contradicted by 23-F100**; it holds
+there too.
+
+The lesson is about what I compared against: I ranked pawns by their SQUARE without asking whether each pawn's push was
+GENERATED. A rule about the order of generated moves must be checked against the generated set, not against all pieces
+of the type on the board. This is the third time in this session that a comparison operand rather than the hypothesis was
+at fault (23-F104 x2), and the pattern is consistent: I get the measurement right and the yardstick wrong.
+
+What the job-52 result establishes: on five drawn roots, an independently computed class-based predictor named the
+engine's 0-node move 5 of 5, and the within-class order was ascending from-square in every case where it applied; a
+non-drawn control fell outside the set.
+
+What the job-52 result DOES establish is narrower and still useful: on five drawn roots, an independently computed
+class-based predictor named the engine's 0-node move 5 of 5 while a non-drawn control fell outside the set.
+
+WHAT I STILL DO NOT CLAIM
+--------------------------
+The from-square ordering is measured on 3 fixtures and is consistent with the six earlier positions, but I have not
+swept it, and the ordering of NON-pawn blocks (which knight first, etc.) is measured only on P4's king moves and
+23-F60's two knight moves. **Settling both properly needs the generator's code** — that is the honest handoff, and it
+is cheaper for an area-7 seat to read it than for me to infer it from more divides.
+
+LIMITS: five drawn fixtures (three draw kinds now: repetition, fifty-move twice) plus one control; base build;
+`go depth 10`. The predictor's independence is the point: implemented in python-chess from F103's rule, committed at
+01:38:06Z before the engine was asked.

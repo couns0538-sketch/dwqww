@@ -1,0 +1,25 @@
+P1: valid=True halfmove=120 stm=white legal=20
+    is_fifty_moves=True is_game_over(claim_draw=True)=True
+    pawn moves: ['h2h3', 'g2g3', 'f2f3', 'h2h4', 'g2g4', 'f2f4']
+P2: valid=True halfmove=120 stm=black legal=20
+    is_fifty_moves=True is_game_over(claim_draw=True)=True
+    pawn moves: ['h7h6', 'g7g6', 'f7f6', 'h7h5', 'g7g5', 'f7f5']
+P3: valid=True halfmove=120 stm=white legal=1
+    is_fifty_moves=True is_game_over(claim_draw=True)=True
+    pawn moves: []
+P4: valid=True halfmove=120 stm=black legal=3
+    is_fifty_moves=True is_game_over(claim_draw=True)=True
+    pawn moves: []
+P5: valid=False halfmove=120 stm=white legal=20
+    is_fifty_moves=True is_game_over(claim_draw=True)=True
+    pawn moves: ['h2h3', 'g2g3', 'f2f3', 'h2h4', 'g2g4', 'f2f4']
+
+== CORRECTION TO THE PREDICTION'S FIXTURE LIST, made BEFORE any engine call ==
+P5 as written in prediction.txt is `8/8/8/8/8/8/5PPP/R5K1 w - - 120 1`, which has NO BLACK KING and is
+therefore an ILLEGAL position (python-chess: valid=False). Replaced with the same intent plus a black king:
+  P5 (corrected): 6k1/8/8/8/8/8/5PPP/R5K1 w - - 120 1
+  valid = True | halfmove = 120 | legal = 20 | is_fifty_moves = True
+  pawn moves: ['h2h3', 'g2g3', 'f2f3', 'h2h4', 'g2g4', 'f2f4']
+
+This is a defect in my fixture list, found by validating it — the same class of fault as the job-44 typo,
+caught this time BEFORE the engine ran because the validation step is now unconditional.
