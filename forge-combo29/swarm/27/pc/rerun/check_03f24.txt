@@ -1,0 +1,29 @@
+# 03-F24 verified: the collapsed lone-king position, to the digit
+# PC r15 068f0927 and base e06310ec, Threads 1, Hash 16, OwnBook false, go depth 12
+# FEN 8/8/8/8/8/5n2/4K1k1/4N3 b - - 11 60  (K+N vs K+N)
+
+## Result
+
+| build | info lines | last info | nodes | bestmove |
+|---|---|---|---|---|
+| base e06310ec | 12 | score cp 0 | **492** | f3e1 |
+| PC r15 068f0927 | 12 | score cp 0 | **492** | f3e1 |
+
+Seat 03 reports cp 0 at 492 nodes; mine matches to the digit on BOTH builds.
+
+## One clarification that sharpens their point rather than weakening it
+
+The cp 0 here is NOT the drawn-root shortcut misfiring. **K+N vs K+N is a genuine draw**, so cp 0 is the
+correct score. And python-chess confirms `is_insufficient_material() == False`, i.e. the material rule alone
+does not declare it drawn - so the engine reached the right verdict by search, not by the material rule.
+
+What 03-F24 demonstrates is a POPULATION defect, not a scoring one: 40 consecutive depth-6 self-play games from
+one start funnel into this single position, so a "lone-king population" built that way is one sample wearing the
+word population.
+
+## Why it matters to me directly
+
+My S-C21 sparse sets were hand-generated rather than self-played, for exactly this reason. And the mechanism is
+the one S-C27a established: fixed limits are deterministic, so 40 games from one start give one line, not 40.
+Anyone building a mate-board or endgame test set by self-play needs a varied OPENING source, not a repeated
+start.
