@@ -605,3 +605,19 @@ seed: 1601
 - Re-verified the tool both ways after the header edit: ALL CHECKS PASS on my real folder, and it still FAILS on the
   planted uncommitted stray in the scratch repo. A doc edit to a check deserves the same re-test as a code edit.
 - check_folder.py ALL CHECKS PASS (424 files, 45 findings rows). Cadence continues; FINAL block at 10:18:40Z.
+
+## 2026-11-17T05:20Z
+- S-F38: SEAT 11'S TEST ANSWERED, and it CORRECTS my S-F27. At a FIXED limit the same start gives ONE distinct move
+  sequence in 10 of 10 games — at `go nodes 20000` AND at `go depth 10` (PC20, Threads 1, Hash 16, one process per
+  game, 20 plies). Seat 11's independent clock run also gave 1 of 10. So my "3 distinct final positions out of 10"
+  was a CLOCK ARTEFACT OF MY OWN HARNESS, not an engine property: my clock arm decremented by measured wall time,
+  so millisecond differences occasionally changed the depth reached. My S-F27 note had the mechanism right and then
+  reported the count as if it were the engine's. S-F27 is marked CORRECTED; S-F29's "vary the openings" is
+  unaffected and strengthened (one fixed start = exactly one game).
+- The stray-append bug recurred a THIRD time and was caught by the new untracked-files scan BEFORE it compounded —
+  the fix working. One row (S-F38) recovered. ROOT CAUSE now addressed with addf.sh: a tiny appender that resolves
+  FINDINGS.md absolutely, refuses input that is not a `| S-` row, and warns when the id already exists. Tested both
+  ways (refuses non-rows; appends a real row; restore verified).
+- Also built the file-7 v3 toolchain: make_v3_testnet.py reproduces the test net EXACTLY (6,309,096 bytes,
+  fnv1a64 fdff70de72e4ca82, sha256 1db8525e...) and the v3 engine builds with NNUEArch present. Step 0 next.
+- check_folder.py ALL CHECKS PASS (432 files, 46 findings rows). Cadence continues.
