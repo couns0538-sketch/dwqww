@@ -461,29 +461,48 @@ work can pay. **§1.19's pair-count dispatch patch is measurably faster (1.2–1
 So: **do not chase the percentages, but do check whether a specific piece of per-node work can be eliminated outright.
 Those are different questions, and this run answered the second one positively.**
 
-### 1.11 Quote PC20's two components separately; never a "PC20 speedup" — **needs-more-evidence** (net speed)
+### 1.11 PC20's net speed is a small LOSS on the full population — **do-not-ship** (as a speed win); the components are real
 
-| claim | value | 95 % CI | sign-share | reading |
-|---|---|---|---|---|
-| PC20 per-node cost | +6.4 % | [1.0670, 1.0876] | **90.0 %** (162/180) | **real — a per-position tax** |
-| PC20 node count, aggregate | 0.9131 (−8.7 %) | [0.8752, 0.9528] | ~60 % | **real pooled saving, session-level per position** |
-| **PC20 net wall time** | 0.9715 | **[0.9273, 1.0151]** | ~53 % | **NOT ESTABLISHED — CI includes 1.0** |
+**The headline changed, and this is the version to use: the node saving is real, the per-node tax is real, and on the
+full population the tax outweighs the saving — so the best estimate is a small loss.**
 
-All n=464 (quadrupled from n=119), PC r15 + PC20 vs S14, Threads 1, real positions, ABBA, fresh process. The
-decomposition `wall_ratio = node_ratio × per_node_ratio` closes: `0.9131 × 1.0640 = 0.97154` against observed
-`0.9715`.
+| quantity | value | source |
+|---|---|---|
+| **PC20 node count, population** | **median 0.9618** (−3.8 %) | population run over the game set, 2,643 pairs and climbing |
+| **PC20 net wall time, population** | **median 1.0351 — about 3.5 % SLOWER** | same run |
+| PC20 per-node cost | **+6.4 %**, pooled ratio **1.0643**; **90.0 %** of positions (163/180 at or above 1.0, one exact tie) | direct, fixed `go nodes`, n=180 |
+| *earlier stride sample (116 pairs)* | wall **0.9698**, about 3 % faster | **superseded — the sign flips** |
 
-**The shrinkage is why these are quoted rather than the earlier row:** node saving **12.4 % → 8.7 %** as the sample
-quadrupled, while the per-node cell did not move. **A true 7 % speedup would have been detected at n=464; it was
-not, so no larger n is worth buying.**
+**The per-node row carries its estimator, because a cold recheck found that an earlier version of it paired two
+different ones.** The `+6.4 %` is the **pooled ratio (1.0643)**; the interval `[1.0670, 1.0876]` is a **mean-of-log**
+interval **centred on 1.0736** — so **the pooled estimate lay outside its own interval.** Neither bound reproduced
+exactly under the other estimator (mean-of-log gives [1.0613, 1.0861]; pooled bootstrap gives [1.0531, 1.0748]).
+**The conclusion survives because every construction excludes 1.0** — so this is a pairing fault, not a dead finding —
+**but a point estimate and an interval from two different estimators cannot be quoted as one row** (§4 rule 46).
 
-**The node saving is session-level.** It holds as an average over positions and does **not** license a per-position
-prediction — which is exactly what a fixed-node depth comparison is built from. For all four switches, "PC20 will be
-cheaper here" is ~50/50.
+**The identity closes on the population, which is what makes this a measurement rather than two numbers:**
+**0.9618 × 1.0709 = 1.0299 against an observed wall median of 1.0353** — a 0.5 % gap. So the loss is **not a
+contradiction between two estimates of the same thing; it is the two components composing exactly as the decomposition
+predicts.**
 
-**What would overturn it:** a wall-time run at n ≥ 464 whose CI on the ratio excludes 1.0. The nearly-cancelling
-components are why a larger sample keeps failing to establish a net gain — that failure is the prediction the
-decomposition makes, not evidence against it.
+**This is consistent with the n=464 arm's "not established" rather than contradicting it.** That arm's interval
+included 1.0; the population puts the point estimate on the slower side with the node saving now measured accurately.
+**Both readings agree that no speed gain is demonstrated — the population adds that the best estimate is a small
+loss.**
+
+**Why the stride sample misled, and it is a general lesson:** **the node median is identical to four decimals across
+the first, middle and last thirds of the population (0.9618 in all three), while the wall median drifts
+(1.0215 / 1.0352 / 1.0441).** The node ratio is a **stable population property**; the wall ratio is
+**phase-dependent**, which is exactly what `wall = node × per-node` predicts when only the per-node factor moves with
+game phase. **A 1 % stride sample can land in one phase and report the wrong sign.**
+
+**And the mean must not carry a claim about this distribution.** On a heavy-tailed distribution
+**the mean's error was four times the median's, and it was unstable in both directions** — the population gives node
+median 0.9618 but **mean 1.0941**, while the stride sample gave 0.9305. **On a heavy-tailed distribution a claim must
+not be carried by its mean** (§4 rule).
+
+**What would overturn it:** a population-scale wall run whose interval excludes 1.0 *on the fast side*. The current
+evidence is a 3.5 % loss with the identity closing, so the burden has shifted to anyone claiming a gain.
 
 ### 1.12 PC20's "+3 ply at 20,000 nodes" is wrong by 8× per position — **do-not-ship** (that figure, and any match planned on it)
 
@@ -770,7 +789,7 @@ defeats the one reliable caller-side check in §1.3. A front end that keys on em
 **3. `Book Depth` is derived from the FEN's FULLMOVE COUNTER, not from the move count** (`game_ply()`,
 `uci.cpp:127-129`). **The same chess position at fullmove 1 versus 21 books versus searches** — so any tool that
 writes a FEN without the true move number changes whether the book is consulted at all. **This is the identity trap of
-§4 rule 36 in a place you would not look for it.**
+§4 rule 39 in a place you would not look for it.**
 
 **What the book path emits: exactly two lines and nothing else** (`uci.cpp:385-387`) — `info string book move <uci>`
 then `bestmove <uci>`. **No `info depth`, no score, no node count.** A GUI showing a score for that move is showing
@@ -825,6 +844,21 @@ to move has mate in one, the base reports `cp 0`, searches nothing and plays `f2
 PC r15 reports `mate 1` and mates. Verified as one chain on **6 of 6** boards: `go perft 1` on the searched position
 names the first generated move, and the bail returns **exactly that move** (`f2f3` on all six), while the mates being
 ignored were `b1b8`, `a1a8`, `c1c8`, `e1e8`. **The forfeit is the mechanism doing exactly what it says.**
+
+**Provenance caveat on every PC r15 column in this document, and it is a gap rather than a doubt.** The PC r15 numbers
+— `cp 425`, `mate 1`, `mate 8`, `mate 9` and the mate-in-one fix — **trace to a handoff document, not to a
+reproducible artifact.** The flag that disarms the guard, **`FORGE_FIX_ROOT_DRAWN`, is not committed as source in any
+branch** — I verified this across **all 63 `swarm-NN` branches** (of 94 `for-fable-and-opus` and 609 remote branches in
+total): it appears **only in prose, findings documents and check scripts**, and **never in a `src/` or `include/`
+path**.
+- **This is not evidence the numbers are wrong.** They are **mutually consistent**, and `swarm/23` records the patch's
+  sha256 prefix.
+- **But the repair cannot be independently rebuilt from the record** — and that is exactly what the shipped patches
+  close: seat 12's and seat 27's patches **are committed as text**, compose to a byte-identical file, and have a
+  measured ship verdict (§1.2). **So apply those; do not try to re-derive r15.**
+- **A trap that looks like it would let you rebuild it:** **`-DFORGE_MATE_ALPHA_GUARD=1` is NOT the repair.** A build
+  with only that flag is **byte-identical to a control and still bails on a threefold root.** The flag gates
+  `MateAlphaGuard`, a search-pruning switch (`search.hpp:310`), which is a different mechanism entirely.
 
 **Material cost, measured on two disjoint 12-position samples, deterministically sampled:** median **roughly
 600–1,000 cp**, nine or ten of twelve at or above 300 cp, **worst 2,222**, **0/12 equal to the searched best**, one
@@ -1125,9 +1159,16 @@ These are the transferable output. Each is a rule the run paid for with a defect
      not give you noise — it gives you a stable-looking wrong number you can reproduce indefinitely.** That is worse
      than noise, because noise is visible in a variance report and this is not. (§7c)
 6. **A piped harness measures nothing, and it is perfectly reproducible — so it looks like a measurement.**
-   `printf '…go depth 8\n' | forge` gives **zero `info depth` lines and a fabricated `bestmove a2a3`**, because
-   **EOF aborts the search.** (`swarm-69` 69-F1, `fault_proof.py`.) **Do not let EOF reach a running search** — same
-   class as a silently refused FEN, and the same fix.
+   `printf '…go depth 8\n' | forge` gives **zero `info depth` lines and a fabricated `bestmove`**, because **EOF
+   aborts the search.** (`swarm-69` 69-F1, `fault_proof.py`.) **Do not let EOF reach a running search** — same class
+   as a silently refused FEN, and the same fix.
+   - **And the fabrication is NOT detectable by its move — this corrects a natural assumption.** Measured: **13
+     distinct fabricated moves across 60 positions, ALL 60 LEGAL, and 0 of 60 equal to the real answer.**
+     **A legality check accepts 60 of 60.** The fabrication is also **budget-independent** — the same moves for the
+     same positions at every depth tried.
+     - **Only an `info`-depth line count of zero detects it.** So the detector is not "is the move plausible" but "was
+       there a search" — which is why §4's rule to wait for `bestmove` is not sufficient on its own: **a piped run
+       delivers `bestmove` and never searched.**
 7. **A python-chess validator does not make a harness safe; validation and acceptance are different gates.**
    `4k3/8/8/8/8/8/8/R3K2R w K - 0 0` — **fullmove `0` — is VALID to python-chess and REFUSED by the engine.** A harness
    that treats "python-chess accepts it" as "the engine accepted it" has validated the wrong gate.
@@ -1251,34 +1292,63 @@ These are the transferable output. Each is a rule the run paid for with a defect
     vary; that is why it can measure throughput across MultiPV at all.)
 24. **Report median and geometric mean labelled, side by side.** Three statistics on one distribution gave three
     different conclusions, and the distribution was the finding.
-25. **Put the per-position spread on the headline line.** A pooled 5 % saving that wins on 54.2 % of positions with an
+25. **On a heavy-tailed distribution a claim must NOT be carried by its MEAN — the mean's error was four times the
+   median's, and it was unstable in both directions.** Measured on the same PC20 node ratios: **median 0.9618 but mean
+   1.0941** on the population run, against **0.9305** from the 1 % stride sample. **The two samples disagree in sign
+   on the mean and agree to four decimals on the median.**
+   - **So the choice of statistic decides the answer, and the mean is the one that flips.** A heavy tail is exactly the
+     case where a mean is dominated by a few positions, so a change in which positions land in the sample moves it.
+   - **The tell to look for: a median that is stable across subsamples while the mean is not.** Split the population
+     into first / middle / last thirds — **the node median was 0.9618 in all three, while the wall median drifted
+     1.0215 / 1.0352 / 1.0441.** A statistic that does not move when the sample is partitioned is a property of the
+     population; one that does is reporting where it was measured. (The wall drift is real and expectable — only the
+     per-node factor moves with game phase — but **it is why a 1 % stride sample can report the wrong sign.**)
+26. **Put the per-position spread on the headline line.** A pooled 5 % saving that wins on 54.2 % of positions with an
     IQR 28× the effect size is a real effect and an unusable per-position predictor. **More data will not remove
     this — it is what the switch does.**
-26. **Any speed number from fewer than ten positions is a hypothesis, never a result.** Two out of two small samples
+27. **Any speed number from fewer than ten positions is a hypothesis, never a result.** Two out of two small samples
     in this harness erred upward, once by 4×.
-27. **A p-value must be recomputable from the counts printed in its own row.** Three of four published sign-test
+28. **A p-value must be recomputable from the counts printed in its own row.** Three of four published sign-test
     p-values read `1.000` when the counts beside them give 0.022, 0.648 and 0.411. The cause was a **missing
     `min(k, n−k)` reflection**, so the test saturated for every share above half and was correct only below it —
     **the one correct row was the below-half one, which made a broken function look validated.** Commit the test, not
     the answer, and give it a symmetry self-test: `p(k, n) == p(n−k, n)`.
-28. **A control must be demonstrated to fail when the input is wrong**, not merely to pass when it is right. Three
+29. **A control must be demonstrated to fail when the input is wrong**, not merely to pass when it is right. Three
     natural ways to write one all pass vacuously: `max()` of nothing, `all()` of nothing, a lookup falling through to
     a default. **A control that returns a plausible wrong number is worse than one that crashes.**
-29. **A control cell proves only what its axis can see.** When you quote one, **say which axis it controls for.**
-30. **A cap test needs a rising-series control.** "Respected the cap" is equally consistent with "ignored the budget
+30. **A control cell proves only what its axis can see.** When you quote one, **say which axis it controls for.**
+31. **A cap test needs a rising-series control.** "Respected the cap" is equally consistent with "ignored the budget
     and searched a fixed amount" unless rising budgets produce rising work.
-31. **Separate a confound from a refutation:** run the same cell with the variable under test removed. If the outcome
+32. **A control on which the parameter CANNOT BIND cannot distinguish "it works" from "it is ignored".** Testing
+   whether `go mate N` respects N on a **mate-in-1 board** gives **depth 1 for N = 1, 2, 5 and 10** — because the mate
+   is found immediately regardless of the cap. **Run only that control and the conclusion is "N is ignored", the
+   opposite of the truth**; the parameter binds only on a board where the search would otherwise run past the cap.
+   - **When testing whether a LIMIT is honoured, pick an input that would EXCEED it.** The control needs the parameter
+     to be the binding constraint, not merely present. This is the same family as a cap test without a rising series
+     (rule 30), one step further: there the budget never bound because it was never exceeded; here the *parameter*
+     never bound because the position made it irrelevant.
+33. **A PARSER fault is silent unless the ROW COUNT is asserted — and a guard in one script but not another is what
+   makes it visible.** A bulk re-indent left `rows.append(...)` **outside** its `if m:`, so two scripts parsed
+   **1 and 8 rows instead of 180 and 464** — and one of them **still printed a complete, plausible set of ratios from
+   the survivors.** The script with `expected 180` caught it; the other had **no row-count assertion at all**.
+   - **Any script parsing a committed artefact should assert its `n` as a literal**, and prove the assertion with a
+     truncated fixture. This is the declines-to-evaluate-reads-as-a-pass rule at the parsing layer: **a parser that
+     silently kept 1 row produced a full-looking result table, and nothing in the output said how few rows survived.**
+   - **The re-indent is worth noting as the mechanism**, because it is an edit that cannot change logic in the
+     author's head — moving a line one level is a formatting act — and it changed the control flow of both scripts at
+     once.
+34. **Separate a confound from a refutation:** run the same cell with the variable under test removed. If the outcome
     persists, you measured the confound. (Bare kings return 0 nodes at two occurrences only because insufficient
     material is an automatic draw.)
-32. **`$?` after a pipe is the LAST command's status.** `cmd | tail` reports `tail`'s exit code. Use `cmd > out; rc=$?`
+35. **`$?` after a pipe is the LAST command's status.** `cmd | tail` reports `tail`'s exit code. Use `cmd > out; rc=$?`
     or `set -o pipefail`.
-33. **A reader that waits for `info depth` deadlocks on every fast path** — the opening book answers with zero info
+36. **A reader that waits for `info depth` deadlocks on every fast path** — the opening book answers with zero info
     lines, and `go nodes 0`/`1` emit none either. **Wait for `bestmove`** (60 of 66 committed harnesses did, and are
     safe) **and put a timeout on every read.**
-34. **`go infinite` is bounded by `stop` or depth 64, whichever comes first — and on a real position it is `stop` that
+37. **`go infinite` is bounded by `stop` or depth 64, whichever comes first — and on a real position it is `stop` that
     matters.** Startpos ran a 75-second cap and reached only depth 30 (`cp 7`, 93,981,191 nodes). `stop` returns a
     legal move in 0–1 ms. **Send `stop` and assert the reply.**
-35. **The opening book fires on the SIDE-TO-MOVE'S OWN clock, or on `movetime` — not on "the clock form".** The gate
+38. **The opening book fires on the SIDE-TO-MOVE'S OWN clock, or on `movetime` — not on "the clock form".** The gate
     is `time_ms >= 0 || movetime_ms >= 0` (`uci.cpp:371`) and `time_ms` is set only for the side to move
     (`uci.cpp:108-109`), so **`go btime 10000` with White to move searches, and the same command with Black to move
     books.** `movetime` always books. A depth, nodes or infinite harness can never hit it. **`OwnBook false` is needed
@@ -1292,9 +1362,9 @@ These are the transferable output. Each is a rule the run paid for with a defect
     - **And `Book Depth` is derived from the FEN's fullmove counter** (`game_ply()`, `uci.cpp:127-129`), so the same
       position at fullmove 1 versus 21 books versus searches. **A tool writing a FEN without the true move number
       changes whether the book is consulted.**
-36. **Fullmove number and halfmove counter are part of a position's identity** — 5 different mate values across
+39. **Fullmove number and halfmove counter are part of a position's identity** — 5 different mate values across
     counters 0–99, and a 2× node swing for an identical score.
-37. **In a paired design, between-subject spread is context and the sign test is the test.** Say **which** variation a
+40. **In a paired design, between-subject spread is context and the sign test is the test.** Say **which** variation a
     number describes before comparing two variances.
     - **The error this prevents, measured:** the v3 patch's author first ruled it **NOT MEASURABLE** on the reasoning
       *"the per-position spread (1.30×) is much larger than the median effect (1.2 %), so it cannot be separated from
@@ -1309,7 +1379,7 @@ These are the transferable output. Each is a rule the run paid for with a defect
     - **The tell is grammatical, so it is catchable while writing:** if the statistic you are comparing an effect
       against describes **variation between subjects**, and your design is **within-subject**, you are comparing two
       different things. State the design first, then choose the test.
-38. **A motivating ANECDOTE is not evidence about a SELECTOR.** The two are different claims and the first is
+41. **A motivating ANECDOTE is not evidence about a SELECTOR.** The two are different claims and the first is
     usually much easier to get.
     - **The case:** one board demonstrably kept its move while revising its mate number by 3 between depths, which
       correctly motivated a "select on score change" criterion. **But the criterion's own evidence is a p = 0.0712
@@ -1327,35 +1397,47 @@ These are the transferable output. Each is a rule the run paid for with a defect
 
 **After you measure**
 
-39. **Adjacency is a check.** A claim and its correction must sit next to each other; separation is what let
+42. **Adjacency is a check.** A claim and its correction must sit next to each other; separation is what let
     contradictions survive. Reordering three sections of one report exposed three contradictions the long layout had
     hidden.
-40. **A correction that adds without removing is not a correction.** Adding is an authoring act; removing is a search
+43. **A correction that adds without removing is not a correction.** Adding is an authoring act; removing is a search
     act, and the search only works if you look for what you wrote. **Write both in one edit**, then grep for the
     phrase you contradicted.
-41. **When a claim is corrected, re-run every number inside the corrected passage in the same edit.** Revising a
+44. **When a claim is corrected, re-run every number inside the corrected passage in the same edit.** Revising a
     figure feels like changing evidence; revising the sentence feels like editing — so the prose moves and the number
     stays. **The correction is exactly the moment a figure is least likely to be looked at again.**
-42. **A decomposition is only as good as the pairing of each term to its column, and that pairing needs a LABEL
+45. **A decomposition is only as good as the pairing of each term to its column, and that pairing needs a LABEL
     check, not an arithmetic one.** A fabricated node ratio (`0.9090`) closed the identity to 0.1 % and appeared in
     *neither* of the source's columns. **A number that makes the identity work is the most dangerous kind, because
     the identity's own closure is what it was manufactured to satisfy.**
-43. **"I could not evaluate this" must never be reported as "this is fine."** A check that declines to evaluate has
+46. **A point estimate and an interval from two DIFFERENT ESTIMATORS cannot be quoted as one row.** The result is a
+   row whose **point estimate sits outside its own confidence interval** — which is arithmetically impossible for a
+   correct pairing and therefore a *readable* defect once you look for it.
+   - **The case:** the PC20 per-node row paired a **pooled ratio (1.0643)** with a **mean-of-log interval
+     [1.0670, 1.0876] centred on 1.0736** — so the pooled estimate fell **below the lower bound of the interval quoted
+     beside it.** Neither bound reproduced under the other estimator (mean-of-log [1.0613, 1.0861]; pooled bootstrap
+     [1.0531, 1.0748]).
+   - **The conclusion survived because every construction excludes 1.0**, so it was a pairing fault rather than a dead
+     finding — **which is exactly why it could sit in a report unnoticed.**
+   - **The check is trivial and it is the same one §45 needs: ask whether the point estimate is inside the interval.**
+     If it is not, you have two estimators in one row, not a surprising measurement. **Name the estimator in the row** —
+     and bootstrap the estimate you actually quote.
+47. **"I could not evaluate this" must never be reported as "this is fine."** A check that declines to evaluate has
     cleared nothing; it is a third verdict, not a pass. Any finite vocabulary has a boundary, and past it the check
     reports PASS rather than UNKNOWN.
-44. **A count printed is not a count checked**, and a count must be compared against the prose, not merely printed.
+48. **A count printed is not a count checked**, and a count must be compared against the prose, not merely printed.
     **Assert the exact expected count as a literal**, never computed from the list it guards.
-45. **A checker is tested by giving it a case whose answer you already know, never by reviewing its logic.** Every
+49. **A checker is tested by giving it a case whose answer you already know, never by reviewing its logic.** Every
     checker failure in this run that was caught, was caught that way; none was caught by reading the checker.
-46. **A script cited as evidence must be tested for its EXIT CODE, not just its output.** Two scripts the report told
+50. **A script cited as evidence must be tested for its EXIT CODE, not just its output.** Two scripts the report told
     a reader to run printed `FAIL` and exited 0. **Prove a gate once per checker it invokes, not once per gate.**
-47. **A verdict that depends on where you stand is not a verdict.** Five scripts depended on the run directory; one
+51. **A verdict that depends on where you stand is not a verdict.** Five scripts depended on the run directory; one
     compared an empty string to an empty string and reported verbatim agreement. **Anchor to `__file__` and run each
     script twice — from its own directory and from `/tmp`.**
-48. **A settings NAME is not evidence the settings were sent.** One harness's option list was named `S14` while
+52. **A settings NAME is not evidence the settings were sent.** One harness's option list was named `S14` while
     containing the five PC20 switches. **Have a tool print the option list at run time and paste that output into the
     finding.**
-49. **Bench is not a proxy for real positions, and its bias is patch-specific, not directional.** Three measured
+53. **Bench is not a proxy for real positions, and its bias is patch-specific, not directional.** Three measured
     failure modes: per-node cost ~1.2 % on bench vs **~6.4 %** on real positions (6× optimistic); aggregate node-count
     sign **+14.5 / −10.6 / +8.7** across benches 11/13/16 against **−8.7 %** on real positions; a profile self-time
     share 2.71 % on bench vs **0.66 %** real. **A self-time percentage is not a transferable cost unless someone
@@ -1363,11 +1445,11 @@ These are the transferable output. Each is a rule the run paid for with a defect
     - **Bench IS valid for** pins, determinism, ablation direction, structural counters, and the pooled effect of one
       isolated toggle. **Not valid for** per-node cost or the aggregate PC20 set. **Always report the per-position
       spread.**
-50. **Cold reading is the highest-yield instrument on the class the checks cannot reach.** Four defects in six blocks
+54. **Cold reading is the highest-yield instrument on the class the checks cannot reach.** Four defects in six blocks
     — a joining phrase doing the work of three results, ordinals running backwards, a table row implying a control
     that never existed — **all invisible to every automated check, all found by reading.** Not a substitute for the
     checks; it covers what they structurally cannot.
-51. **A figure "found" by matching digits inside a DIFFERENT sourced number is how a presence check imitates a
+55. **A figure "found" by matching digits inside a DIFFERENT sourced number is how a presence check imitates a
     provenance check.** The most dangerous form of a false pass, because it returns **FOUND** and ends the search.
     - **Three measured instances in one audit, all caught only by reading the context:**
       `0.024` matched `"seconds": 0.024` in unrelated search JSON; `0.44` matched `loadavg 0.44 on 4 cores`; `442`
@@ -1389,7 +1471,7 @@ These are the transferable output. Each is a rule the run paid for with a defect
       such figures that landed minutes later and were all genuine. **Record the COMMIT each branch was audited at, not
       the clock** — a timestamp is unverifiable after the fact and invites the reading that the document is at fault
       when the snapshot is. **The count is a property of the tips named in the header, and nothing else.**
-52. **A DERIVED claim is where a plausible figure outruns its evidence — and it is the single most reusable thing in
+56. **A DERIVED claim is where a plausible figure outruns its evidence — and it is the single most reusable thing in
     this run's method record.** **Every other claim here is one comparison against one threshold and has one number to
     check; a decomposition has three numbers, two samples and one subtraction — and it is the derived part that gets
     quoted to three significant figures.**
@@ -1402,7 +1484,7 @@ These are the transferable output. Each is a rule the run paid for with a defect
       says what it is: **a bound on a small residual, not a measurement of it.**
     - **Why it survives review: the arithmetic is right.** The subtraction closes, the three numbers are individually
       sourced, and the sum is correct — **the error is in the precision the form implies, not in any term.** That is
-      why it is the same class as a fabricated pairing (rule 42's label check) and needs the same defence: **ask what
+      why it is the same class as a fabricated pairing (rule 45's label check) and needs the same defence: **ask what
       each term's own uncertainty is before you quote the derived one.**
     - **The checkable discipline: a derived figure must name its operands, their samples, and their spread.** If any
       of the three is missing, **quote the ratio or the direction, never the point estimate.** A bound that is honest
@@ -1448,7 +1530,7 @@ about it.
 **`13.2 %` came off this list this round, and the way it did is the method working.** It was unsourced when I checked
 against the tips named two rounds ago; `swarm-27`'s `S-C108` now carries it — *"move-unstable 8/24 = 33.3% vs
 remainder 13.2%, their p < 1e-6"*. **Same figure, same claim, now sourced: it was a timing artefact of my own fetch,
-which is exactly what rule 51's companion warns about.**
+which is exactly what rule 54's companion warns about.**
 
 **And `54,379` came off it in the same way, one round later.** `swarm-71` has moved and now carries it directly —
 *"54,379 distinct positions compared against a fresh refresh: 0 mismatches."* **So the accumulator aggregate is
@@ -1474,7 +1556,7 @@ supporting results are committed; **treat re-measuring that count on your build 
 **`40 of 40` at 2M is the mildest and worth distinguishing.** `swarm-69`'s committed `hash_sensitivity.json` **stops
 at `go nodes 1000000`**, where Hash 16 vs 64 differs **24 of 24** — so the 2M claim is plausible and **adds nothing
 the 1M row does not already establish.** Its `40/40` in `FINDINGS.md` is a **different comparison** (warm vs fresh at
-every Hash size), which is exactly the digit-match hazard of rule 51 rather than support. **I use the 1M row in §4
+every Hash size), which is exactly the digit-match hazard of rule 54 rather than support. **I use the 1M row in §4
 rule 3 and note that the 2M row is unreproduced.**
 
 **And one that is not counted: `0.0712`, which I verified by arithmetic.** The Fisher p-value recomputes to 0.071172
@@ -1532,7 +1614,7 @@ all four**, so it reported no opinion and its silence read as a pass. **Cold rea
 **Limit 3 — and it is the one that nearly produced a false all-clear this round.** With the corpus widened to 167 MB,
 **the audit now returns `0 unresolved`** — because `0.0712` matches `pernet1.07126` and `13.2%` matches something
 similar once separators are stripped. **A large corpus in which every digit string occurs somewhere converts the
-audit's only output into a constant `clean`.** §4 rule 51 records the hit counts: five figures, **39 / 115 / 4,831 /
+audit's only output into a constant `clean`.** §4 rule 54 records the hit counts: five figures, **39 / 115 / 4,831 /
 3,136 / 88,888** raw occurrences, **zero of them the claim**.
 
 ### The naive pass, and the boundary of the token audit itself
@@ -1596,7 +1678,7 @@ audit written to catch it.
 that **false matches become the dominant risk**, not misses. `0.024` matched `"seconds": 0.024` in unrelated search
 JSON; `0.44` matched `loadavg 0.44 on 4 cores`; `442` matched a row reading `1442.0`. **A bigger corpus trades
 false-negative risk for false-positive risk, and the false positive is the more dangerous one because it produces a
-clean verdict.** That is rule 51.
+clean verdict.** That is rule 54.
 
 **The counts moved six times while I worked, and every move is stated rather than smoothed:**
 
@@ -1758,6 +1840,34 @@ unavailable here.** My §1.10 says this and carries the caveat with the number, 
 **silently ignored** unless the reply is read — rule 9 and §4 — and two seats recorded it. **The v3 acceptance test
 inherited exactly that defect, which is why the four options were dropped without anyone noticing.**
 
+### 6.7 The PC r15 columns have a provenance gap, and it is the widest one in the report
+
+**This is the only item in §6 that affects how a reader should treat a whole set of columns**, so it is stated once
+here and cross-referenced at every place the columns appear (§2.1).
+
+- **The numbers — `cp 425`, `mate 1`, `mate 8`, `mate 9`, the mate-in-one fix — trace to a handoff document, not to a
+  reproducible artifact.**
+- **The flag that disarms the guard, `FORGE_FIX_ROOT_DRAWN`, is not committed as source in any branch.** I verified
+  this across all 63 `swarm-NN` branches: it appears **only in prose, findings documents and check scripts**, and
+  **never in a `src/` or `include/` path.**
+- **`-DFORGE_MATE_ALPHA_GUARD=1` is NOT the repair**, and this is the trap that would waste an afternoon: a build with
+  only that flag is **byte-identical to a control and still bails on a threefold root.** It gates `MateAlphaGuard`, a
+  search-pruning switch (`search.hpp:310`) — a different mechanism.
+
+**What follows, and both halves matter:**
+
+1. **This is a provenance gap, not evidence the numbers are wrong.** They are **mutually consistent**, and `swarm/23`
+   records the patch's sha256 prefix. **Do not read "unsourced" as "incorrect" here** — the distinction §5 exists to
+   draw.
+2. **The repair cannot be independently rebuilt from the record** — and that is precisely what the shipped patches
+   close. **Seat 12's and seat 27's patches are committed as text, compose to a byte-identical file, and have a
+   measured ship verdict (§1.2).** **So apply those; do not try to re-derive r15.**
+
+**The general form, which is why this is a §6 item rather than a footnote:** **a measurement whose *instrument* is
+uncommitted is not reproducible even when its *numbers* are internally consistent** — and unlike a missing figure,
+nothing in the output looks unusual. **The shipped patches are the record's answer to this: the repair that can be
+applied is the one that can be read.**
+
 ---
 
 ## 7. What the book gets right — the soundness result
@@ -1896,7 +2006,7 @@ added.** The three sequence fixtures are **nested** — each takes the first N r
 54,379 = `seq_deep` 47,418 ∪ `kingwalk` 6,961.** An earlier count of **57,720** was the sum, and the seat caught it
 after pushing.
 
-**This is §4 rule 52's shape at the aggregate level** — a derived figure whose operands were right and whose
+**This is §4 rule 55's shape at the aggregate level** — a derived figure whose operands were right and whose
 combination was wrong — and the repair is the durable part: **the count is now machine-computed and enforced by a
 script wired into the run, so the literal cannot drift.** And the coverage claim is unaffected, which is the thing to
 keep precisely: **the 5,012 king-key transitions are all inside the union and disjoint from every other fixture**
@@ -1973,7 +2083,7 @@ it is the sharper instance, because 353 of 353 sounds like a universal while 19 
 - **No other seat's branch was modified.** `swarm-27` `S-C88` is stale (§6.3) and was left alone, at the coordinator's
   direction, for the owning seat to amend.
 - **Counts printed as literals, from the artifact:** **34** branches read, **2,353** distinct findings synthesised,
-  **9** unsourced figures from **284** numeric tokens, **6** mis-pairings or contradictions found, **3** sourcing
+  **9** unsourced figures from **284** numeric tokens, **7** mis-pairings or contradictions found, **3** sourcing
   defects of which **2 are now fixed upstream**.
 
 **What I could not source, summarised: 9 figures.**

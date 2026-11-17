@@ -3,11 +3,11 @@
 **Seat:** report assembly for the owner. Synthesising; not measuring.
 **Branch:** `for-fable-and-opus/swarm-73` — `forge-combo29/swarm/73/`
 **Window:** opened 03:48Z, audit closes 2026-11-17T10:20Z.
-**Provenance audited against the 34 branch tips listed in `OWNER_SUMMARY.md`'s header** (fetch 04:26Z).
+**Provenance audited against the 34 branch tips listed in `OWNER_SUMMARY.md`'s header** (fetch 04:31Z).
 
-## State: DONE — summary current as of the 04:26Z fetch
+## State: DONE — summary current as of the 04:31Z fetch
 
-`OWNER_SUMMARY.md` — 2,027 lines, **52 rules**. Revised through twelve rounds.
+`OWNER_SUMMARY.md` — 2,137 lines, **56 rules**. Revised through thirteen rounds.
 
 ## Numbers the coordinator asked for
 
@@ -30,6 +30,32 @@
 **The shippability count is the serious one** and I have flagged it in §1.2's own text, not only in §5: the
 adversarial-family and depth-contract results are sourced, but the claim "the scan fires on drawn roots only" is
 report-only. Re-measuring it on the owner's build is the conversion check.
+
+## Thirteenth round — the wall-time headline flips sign
+
+**This reverses a recommendation's primary line, and it is the largest single change since the summary was written.**
+
+- **§1.11 rewritten from "net speed NOT ESTABLISHED" to "a small LOSS on the full population."** Population run over
+  the game set: **node median 0.9618, wall median 1.0351 — about 3.5 % SLOWER.** The earlier 116-pair stride sample
+  gave wall 0.9698 (~3 % faster), so **the sign flips.**
+- **I verified the identity independently: 0.9618 × 1.0709 = 1.0300 against observed 1.0353** — a 0.5 % gap. So it is
+  the two components composing as the decomposition predicts, not two estimates disagreeing.
+- **Consistent with the n=464 arm's "not established"** rather than contradicting it: that interval included 1.0, and
+  the population puts the point on the slower side.
+- Carries the reason the sample misled (node median identical to four decimals across thirds; wall median drifts
+  1.0215 / 1.0352 / 1.0441) and the mean rule (**median 0.9618 vs mean 1.0941; the mean's error was 4× the median's**).
+
+**§6.7 added — the PC r15 columns have a provenance gap.** I verified myself that **`FORGE_FIX_ROOT_DRAWN` appears in
+no `src/` or `include/` path on any of the 63 `swarm-NN` branches** — only in prose and check scripts. It is a gap, not
+a doubt (the numbers are mutually consistent; `swarm/23` records the sha256 prefix), but **the repair cannot be rebuilt
+from the record**, which is what the shipped patches close. Also recorded: **`-DFORGE_MATE_ALPHA_GUARD=1` is NOT the
+repair** — it gates `MateAlphaGuard`, a pruning switch.
+
+**Three corrections to things I was told, all applied:** the piped-harness fabrication is **not** detectable by its
+move (**13 distinct fabricated moves, all 60 legal, 0 of 60 correct** — only a zero `info`-depth count finds it); the
+per-node row **named its estimator** after a cold recheck found the pooled estimate sat **outside its own interval**;
+and the two new control/parser rules (**a parameter that cannot bind cannot be tested**; **a parser fault is silent
+unless the row count is asserted** — 1 and 8 rows instead of 180 and 464).
 
 ## New this round
 
