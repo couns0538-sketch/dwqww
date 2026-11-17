@@ -1,0 +1,14 @@
+cores (affinity): 4   depth: 16   reps: 2
+ thr    wall_s   nodes(sum)  node_rate/s  inflate  wall_cost  rate_ratio  closure
+   1     0.171       268063      1563191     1.00       1.00        1.00    1.000
+   2     0.178       657976      3688712     2.45       1.04        2.36    1.000
+   4     0.213       987166      4630284     3.68       1.24        2.96    1.000
+   8     0.342      1431065      4182417     5.34       2.00        2.68    1.000
+
+closure must be 1.000 by construction; a value away from 1.000 means a term is mislabelled.
+worst closure error: 1.11e-16   -> OK
+
+In words, from the computed columns:
+  Threads 2: reaches the same depth in 1.04x the time of Threads 1 (SLOWER), because it searched 2.45x the nodes at 2.36x the node rate.
+  Threads 4: reaches the same depth in 1.24x the time of Threads 1 (SLOWER), because it searched 3.68x the nodes at 2.96x the node rate.
+  Threads 8: reaches the same depth in 2.00x the time of Threads 1 (SLOWER), because it searched 5.34x the nodes at 2.68x the node rate.
