@@ -3097,3 +3097,21 @@ And the legal control in every cell of the original matrix is what made "always 
 because the position was fine" from "absent because the check never fires".
 Gates: 229 rows, 0 wrong pipe counts, page updated with the failed test and the one-rule description, gate rc=0 across 66.
 Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T04:07:45Z — corpus-wide move-generation confirmation: 353/353 at depth 4 on both builds (S-F170)
+I RAN THE FINGERPRINT OVER THE WHOLE POPULATION rather than 8 samples, because a corpus result is what supports an
+area-1 finding and a sample set does not.
+RESULT: rows: 353, parser mismatches or movegen disagreements: 0, movegen skipped: 0 - ON PC r15 AND IDENTICALLY ON BASE
+release. That is 706 position-build comparisons, zero disagreement with python-chess to perft depth 4, zero FENs
+python-chess refused.
+WHY DEPTH 4 AND NOT 3: a movegen defect that survives three plies is not ruled out at three - a pinned-piece or
+en-passant interaction commonly needs the fourth - so depth 3 would have been a weaker claim for the same setup. The cost
+was 256 seconds per build, which I paid rather than assert.
+THE SELF-TEST FIRED IN BOTH RUNS (different boards differ, 19 vs 13), so the comparison is SHOWN to be capable of failing
+rather than assumed to be - the S-F166 rule applied to a measurement instrument. That is the difference between "no
+disagreements found" and "the comparison works and found none".
+WHAT IT SUPPORTS AND WHAT IT DOES NOT: it confirms the ENGINE's move generation against an independent implementation over
+the population I use for area-1 findings, which is the strongest statement available here. It says nothing about
+evaluation, pruning or the move CHOSEN - the limit written into the tool, and the reason perft agreement is not silent
+agreement about play.
+Gates: 230 rows, 0 wrong pipe counts, gate rc=0 across 66 checks.
+Next: continue at cadence to the 10:20Z close.
