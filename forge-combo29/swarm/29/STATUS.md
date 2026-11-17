@@ -374,3 +374,8 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - So the coherent pair is: agreement FREQUENCY is set-dependent (F48), disagreement QUALITY is a dead heat on both R_2911 (7-7-3 over 17) and late G (2-2-1 over 5).
 - Caveat stated because it bites: 2-2-1 over FIVE disagreements cannot ESTABLISH a dead heat - it shows no sign of PC20 being worse on the set most likely to expose it. A confident claim needs far more late-G positions than 20.
 - next: continuing at cadence.
+
+## Tue Nov 17 12:09:22 AM UTC 2026
+- 29-N33 WORDING FIX on my own F49: I had written 'dead heat on both R_2911 (7-7-3) and late G (2-2-1)', which applies 'dead heat' to a FIVE-disagreement sample. Corrected to: dead heat on R_2911 (7-7-3 over 17); on late G only 'no sign of PC20 being worse' (2-2-1 over 5).
+- The summary pair, in the coordinator's own honest form: FREQUENCY is set-dependent; QUALITY shows no sign of damage on either set.
+- next: continuing at cadence.
