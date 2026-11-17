@@ -471,3 +471,7 @@ Reports: `REPORT_job2.md`, `REPORT_job3.md`, `REPORT_check1.md`, `REPORT_check2.
 ## Tue Nov 17 12:43:08 AM UTC 2026
 
 **Both kept, and made operational as 30-F70.** (1) 30-C67 states plainly that the remaining explanation for the 3-of-10 must be in seat 16's harness, and names its own drift note as the thing to test (the note says one game diverged through "millisecond clock drift occasionally changing the depth reached" — testable by re-running at a fixed limit). (2) 30-F70 pairs 30-F69 with 30-F56: determinism fixes the SAMPLE SIZE of every match — 1,000 openings x 2 colours = **1,000 independent games observed twice, not 2,000** — so (a) "2,000 games" as a sample size overstates independence 2x and the honest form is "1,000 independent pairs (2,000 games)"; (b) re-running the same openings adds NO information; (c) the published pair-score intervals stand unchanged, as proved in 30-C52 (pair CI [+4.64,+28.40] matches; games-as-independent would give [+3.80,+29.23]).
+
+## Tue Nov 17 12:43:32 AM UTC 2026
+
+**Item 1 applied**: 30-F70's third consequence now CARRIES the M55 proof inline instead of pointing at 30-C52 — "over 1,000 PAIRS -> Elo +16.52, sd 6.061, CI [+4.64,+28.40] = exactly the published +16.52 [+4.63,+28.40]; over 2,000 games treated as independent -> sd 6.488, CI [+3.80,+29.23], a different and wrongly narrow interval". So the reader sees the proof and the consequence in one sentence, and the conclusion "nothing needs recomputing" follows from it directly. 139 finding lines; branch pushed.
