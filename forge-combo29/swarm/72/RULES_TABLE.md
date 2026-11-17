@@ -138,10 +138,15 @@ strength loss in any game that reaches such a position while still won.
   C++ probes that link the real `Board`/`Searcher`, not the shipped binary's
   internals. Behaviour is the same code path.
 - **L2.** Row 16 is stated as "no measurable effect" rather than "defect".
-  In-tree detection demonstrably fires (row 15), but I could not construct a
-  position where removing it changes any tested score. The honest reading is
-  that the tested perpetuals resolve through other lines before the repetition
-  branch is decisive, not that in-tree detection is broken.
+  In-tree detection demonstrably executes (row 15) and demonstrably changes the
+  search tree — with the repeating move forced, the ablated build visits 4187
+  nodes where the stock build visits 4186 at depth 6 — but I could not
+  construct a position where removing it changes a *score*. A 199-position
+  differential scan returned zero differences, which I explicitly do **not**
+  count as evidence: zero node-count differences there prove the branch never
+  executed, so that corpus cannot speak to the question. The honest reading is
+  that the tested fixtures are not repeat-dependent, not that in-tree
+  detection is broken.
 - **L3.** All 26 rows are for the six cases the brief named plus the
   combinations those imply. This is not a proof of correctness for arbitrary
   material (e.g. KBB vs KN).

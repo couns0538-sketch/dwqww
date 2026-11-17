@@ -184,10 +184,10 @@ present here.
 
 ## Question 5: in-tree repetition
 
-Two facts, kept separate because they are not the same claim:
+Three facts, kept separate because they are not the same claim.
 
-**Detection exists.** An instrumented build counting how often the repetition
-branch fires distinguished root from non-root:
+**1. The branch executes below the root.** An instrumented build counting how
+often the repetition branch fires, split by ply:
 
 | search | `ply > 0` hits | `ply == 0` hits |
 |---|---|---|
@@ -196,24 +196,42 @@ branch fires distinguished root from non-root:
 | occurrence-#2 rook cycle, depth 10 | **158** | 0 |
 | perpetual study, depth 10 | **6** | 0 |
 
-**But I could not show it changing a verdict.** A build with
-`is_repetition()` forced to `false` produced byte-identical scores on every
-perpetual tested, at depths 6–12:
+**2. It affects the search tree.** With the cycling move forced, the ablated
+build explores a *different number of nodes*, which can only happen if the
+branch ran:
 
-| fixture | depth | with repetition | ablated |
+| depth | with repetition | ablated | score |
 |---|---|---|---|
-| `3r3k/8/8/8/4Q3/8/5q2/1K6 w` | 6 | `cp-23` | `cp-23` |
-| " | 8 | `cp-23` | `cp-23` |
-| " | 10 | `cp-16` | `cp-16` |
-| " | 12 | `cp-11` | `cp-11` |
+| 5 | 1382 nodes | 1382 | same |
+| 6 | 4186 | **4187** | same |
+| 7 | 16395 | **16418** | same |
+| 8 | 31115 | **31138** | same |
 
-The ablated build is verifiably ablated (a root threefold changes from
-`cp 0` to `cp+589`), so the comparison is real. The most likely reading is
-that these perpetuals resolve through other lines before the repetition
-branch decides the score — the engine drifts to `cp-11`…`cp-23` rather than
-reaching 0. I am reporting this as **no measurable effect on the tested
-fixtures**, not as "detection is broken", because the counter proves the code
-path executes.
+**3. It did not change any verdict I could construct.** Scores are identical
+because none of my fixtures is repeat-dependent: the engine has a better line
+available, so cutting the repeating line costs nodes but not score.
+
+### The wide scan, and why it is not evidence
+
+I widened the differential scan to 199 positions (opening corpus; each root
+placed on occurrence #2 by a verified 4-ply reversible cycle, then searched
+at depth 8 with both binaries). Result: **0 score differences, 0 node-count
+differences**.
+
+That zero is not evidence of anything, and saying otherwise would be the same
+error the brief warns about. Zero node differences means the branch never
+executed — in an opening position a forced repetition is nowhere near the
+best line, so the search never explores it. Instrumenting two of the scanned
+positions confirms `in_tree=0` for both:
+
+| position | in-tree hits | result |
+|---|---|---|
+| `rnbqkb1r/pp1pn1pp/2p5/3P4/2P1pp2/4B2N/PP2PPPP/RN1QKB1R w` | 0 | `cp117` |
+| `rn1qkb1r/p1p1ppp1/1p1pbn2/7p/3P4/2N1PN2/PPP1BPPP/RBQK2R w` | 0 | `cp54` |
+
+A null result from a corpus that cannot exercise the code path is vacuous.
+The honest summary is therefore: **the mechanism is present and live (facts 1
+and 2), but I did not produce a position where removing it changes a score.**
 
 Constructing a position where the repetition is provably decisive is the one
 piece of work this audit did not finish. The selection machinery is in place
