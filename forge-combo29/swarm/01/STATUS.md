@@ -3298,3 +3298,22 @@ visible at all. A check that fires on a new artifact and makes me add the distri
 built for.
 Gates: 236 rows, 0 wrong pipe counts, gate rc=0 across 66 checks.
 Next: population run still going; report where it stops with the checkpoint count.
+## 2026-11-17T04:32:27Z — the six-slice split REVERSES what I said an hour ago: per-node is the stable factor (S-C65)
+I SAID "only the per-node factor moves with phase". THAT IS BACKWARDS, and the six-slice decomposition shows it. Thirds
+were too coarse to separate a 0.3 % factor from a 1.3 % one.
+SIX SLICES of 4,135 pairs (~689 each):
+    per-node  1.0696 / 1.0719 / 1.0699 / 1.0720 / 1.0690 / 1.0721   -> spread 0.0031 = 0.29 % of median
+    node      0.9489 / 0.9618 / 0.9618 / 0.9618 / 0.9588 / 0.9618   -> spread 0.0129 = 1.34 %
+    wall      1.0000 / 1.0476 / 1.0204 / 1.0476 / 1.0238 / 1.0175   -> spread 0.0476 = 4.62 %
+THE PER-NODE TERM IS NEARLY A CONSTANT OF THE ENGINE - 0.3 % across the whole population - AND THE PHASE-DEPENDENCE
+LIVES IN THE NODE RATIO. So wall = node x per-node varies almost entirely through node.
+THE CORRECTED MECHANISM IS THE STRONGER STATEMENT: per-node cost is a property of the CODE and is stable to 0.3 % across
+every game phase; the node ratio is a property of the SEARCH interacting with the position, and it is what changes
+between opening and endgame.
+AND IT EXPLAINS THE CROSS-SEAT AGREEMENT: seat 19's per-node figures (1.0640, 1.0693) and mine (1.0709) agree across
+three samples and two builds because IT IS THE ONE TERM THAT DOES NOT DEPEND ON WHAT YOU SAMPLED.
+SIXTH time tonight a claim of mine did not survive checking - and every one came from a measurement I ran myself, not
+from a claim I inherited. That is the pattern worth noticing: the checks that catch me are the ones I built.
+The run is at 4,181 of 11,192 and will finish inside the window (~27 min at 4.4 pairs/s).
+Gates: 237 rows, 0 wrong pipe counts, gate rc=0 across 66 checks.
+Next: let it finish, then the full-population figures replace the partial ones.
