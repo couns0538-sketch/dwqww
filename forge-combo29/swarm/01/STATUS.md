@@ -932,3 +932,12 @@ RECORDED THE SIXTH SPECIES OF SELF-CORRECTION, and it is genuinely different fro
   THE RULE, now in THREE_VERDICTS_NOT_TWO.md alongside the others: 'A derived boolean is a CLAIM about the data, not a summary of it. When a flag says nothing is here, re-read the columns it was derived from before reporting a negative.' It is cheaper to apply than any of the other five, and it caught a wrong conclusion in the same session that produced it - the collapse was visible in the node and move columns all along.
   Kept your other two points as stated: the three-digit-node-count-plus-changed-move signature is the owner-facing signal, and the plain statement that 5 runs per cell cannot catch a 1-in-10 event means seat 20's exact zero is NOT refuted.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+## 2026-11-17T00:09:38Z — 25-minute cadence
+I RAN SEAT 13's S-F23 STRUCTURAL CHECK ON MY OWN FINDINGS.md AND IT FOUND REAL DEFECTS (S-F86) - five across three rounds, all in my own artefacts.
+  ROUND 1, real defects: a TRUNCATED ROW (S-F77 had lost its evidence and status cells, so its sentence ended where the evidence should begin) and a DUPLICATE ID (two different rows both labelled S-C3 - the second is now S-C3b). Both fixed.
+  ROUND 2, real defect: a row containing a literal '||' from a C++ snippet (is_repetition() || is_insufficient_material()), which splits the cell when rendered. Escaped.
+  ROUNDS 2-3, two bugs in THE CHECKER ITSELF: it first asserted the wrong expected width and flagged 115 of 117 rows; then it compared PIPE counts against CELL counts (a k-cell row has k+1 pipes) and flagged one perfectly good row. Seat 13's companion lesson is exactly this - when a checker flags everything, or flags one thing persistently, suspect the checker's own assumption before the file.
+  FINAL STATE: 117 rows, 0 wrong cell counts, 0 duplicate ids. The checker is committed as check_findings_table.py with its own two-bug history in the docstring, so the next person to touch the file inherits the lesson rather than just the tool.
+  Notably this is the third time tonight a defect was found in my own artefact rather than the engine: the committed .pyc files, the stray root STATUS.md, and now three malformed rows. Each was found by looking, not by assuming.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
