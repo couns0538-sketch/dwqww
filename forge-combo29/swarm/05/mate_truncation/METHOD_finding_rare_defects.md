@@ -62,3 +62,64 @@ never met the precondition is the vacuity trap wearing different clothes: it is 
 
 Seat 16's `CHECKER_RULE.md`-adjacent lesson is the same one: a zero counts only when the harness could have produced a
 non-zero. Here the equivalent is **a rate counts only when the sample contained the precondition.**
+
+---
+
+# Second method: the pipe-in-markdown trap (a defect class, not a one-off)
+
+**This is the same class of fault three separate seats hit tonight, so it belongs here rather than as five repaired rows.**
+
+## What happened to me
+
+Five of my FINDINGS rows were structurally broken and I did not notice, because the tables LOOKED fine in the raw text:
+
+- the `|N|` notation (meaning "the absolute mate distance") contains pipe characters, and in a markdown table a `|` is a
+  cell separator;
+- my node ladder used `|` as an inline separator between ladder steps inside a single cell — also a cell separator.
+
+Either one splits a row into the wrong number of columns. A reader (or a parser) then sees the finding's text in the
+wrong field, or the table stops rendering at that row.
+
+## Why checking was harder than it looked
+
+My first check was `awk -F'|' 'NF>9'`, which counts EVERY pipe including escaped ones — so it flagged two rows that were
+already correct and I briefly believed I had more damage than I did. The correct check counts only **unescaped** pipes:
+
+```python
+import re
+from collections import Counter
+
+def column_count(line):
+    return len(re.findall(r'(?<!\\)\|', line))   # unescaped pipes only
+
+for path in ('FINDINGS.md',):
+    rows = [l for l in open(path) if l.startswith('| S-')]
+    counts = Counter(column_count(r) for r in rows)
+    print(path, 'column counts:', dict(counts))
+    best = counts.most_common(1)[0][0]
+    for r in rows:
+        if column_count(r) != best:
+            print('OUTLIER ROW:', column_count(r), r[:90])
+```
+
+The important part is the counter: `(?<!\\)\|` matches only pipes that are **not** already escaped. Run it over
+any table you write; every row should show the same count. (I keep `\|` in the regex because a raw `| ` inside a cell
+is exactly the defect.)
+
+## The rules I now follow
+
+1. **Escape literal pipes inside a table cell** as `\|` — so `|N|` becomes `\|N\|`.
+2. **Never use `|` as an inline separator** inside a table cell. I switched the node ladder to `·`.
+3. **Verify with an escaped-pipe-aware counter**, not `awk -F'|'`.
+4. **Treat the table as a data format**: a row with the wrong column count is a defect in the deliverable, exactly as a
+   missing value is a defect in a measurement.
+
+## The general form
+
+This is the vacuity trap's cousin: **a structure that silently accepts malformed input**. A markdown table renders
+whatever it is given, a JSON loader accepts a missing key as `undefined`, a CSV parser shifts columns. In each case the
+failure is silent and the output looks plausible — which is why the fix is not "be careful" but "count the columns",
+the same way the fix for a missing measurement is "raise on absence" rather than "compare against a sentinel".
+
+Seat 16's own audit found three forms of the vacuity bug; this is the formatting-side analogue, and the repair is the
+same in spirit: make the check explicit and loud rather than trusting that it looks right.

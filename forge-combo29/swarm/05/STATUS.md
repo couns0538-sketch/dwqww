@@ -815,3 +815,12 @@ every sentence.
     * R/120 and G/59: no truncating budget in 20k..250k
   => each long-mate position has its OWN narrow window, and 20,000 and 50,000 nodes are both match budgets.
 - next command: continue at cadence.
+
+## $(date -u) — the pipe check found a REAL defect in my own FINDINGS
+- I put the pipe-in-markdown trap in the method note as instructed, then RAN the check it recommends over my own file.
+  It found something I had missed: my 21 S-C rows had 5 columns while the 72 S-F/S-W rows had 6 — the C rows were
+  missing the `area` field entirely, a defect introduced by my earlier annotation script (which inserted build info
+  into the area field only for F rows). Fixed all 21 by inserting the area column.
+- All 93 rows now have exactly 6 columns (escaped-pipe-aware counter). The method note's snippet is the one that found
+  it, and it is published tested.
+- next command: continue at cadence.
