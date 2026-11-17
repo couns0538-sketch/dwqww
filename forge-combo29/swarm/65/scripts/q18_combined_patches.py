@@ -75,8 +75,11 @@ def probe(binary: str, position: str, go: str, opts=(), window: float = 25.0) ->
         eng.quit()
 
 
-def build_combined(base_commit: str) -> str:
-    """Check out the base commit, apply both patches, build. Returns binary path."""
+def build_combined(base_commit: str) -> tuple[str, Path, Path]:
+    """Check out the base commit, apply both patches, build.
+
+    Returns (binary, worktree, build_dir) so the caller can clean up.
+    """
     for p in (PATCH1, PATCH2):
         if not p.exists():
             print(f"missing patch {p}")
@@ -100,17 +103,33 @@ def build_combined(base_commit: str) -> str:
                    check=True, capture_output=True, env=full_env)
     subprocess.run(["cmake", "--build", str(bdir), "-j4"], check=True,
                    capture_output=True, env=full_env)
-    return str(bdir / "forge")
+    return str(bdir / "forge"), wt, bdir
+
+
+def cleanup(wt: Path, bdir: Path) -> None:
+    """Remove the worktree and build directory this script created."""
+    repo = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True,
+                          text=True, cwd=SCRIPTS).stdout.strip()
+    subprocess.run(["git", "worktree", "remove", "--force", str(wt)],
+                   capture_output=True, cwd=repo)
+    subprocess.run(["git", "worktree", "prune"], capture_output=True, cwd=repo)
+    shutil.rmtree(bdir, ignore_errors=True)
 
 
 def main() -> int:
     base = sys.argv[1] if len(sys.argv) > 1 else "6b98f217"
     lock = sys.argv[2] if len(sys.argv) > 2 else None
     print(f"composing trap 1 + trap 2 on {base}")
-    binary = build_combined(base)
+    binary, wt, bdir = build_combined(base)
     print(f"  binary {binary}")
     print()
+    try:
+        return verify(binary, lock)
+    finally:
+        cleanup(wt, bdir)
 
+
+def verify(binary: str, lock: str | None) -> int:
     print("1. pins on the combined build")
     r = subprocess.run([sys.executable, str(SCRIPTS / "q13_pins.py"), binary],
                        capture_output=True, text=True)
