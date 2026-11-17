@@ -841,3 +841,14 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   big-cp-is-not-a-defect, name-the-construction, binary rule, driver rule, bounds-beat-measurement, counts-not-rates,
   plus the writing and measuring lists.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:24:17Z S-F68 lint extended to METHOD — and its FIRST version was silently dead (the exact class it checks for)
+- Bug: looked for METHOD.md beside FINDINGS.md (wrong place), so the check was SKIPPED while printing CLEAN. Fixed to
+  resolve from `__file__`, and a missing file is now a LOUD FATAL that fails the lint.
+- It then found THREE real defects in my own METHOD: "MEASURING" and "Correcting myself" continued the WRITING
+  numbering (7/8/9/10 and 10/11 instead of 1-4 and 1-2), and item "12." should have been "3.".
+- Planted-tested both ways: duplicate `## MEASURING` + list jumping to 3 -> `DUPLICATE heading` + `NUMBERING expected 1,
+  found 3`; restored file CLEAN. Also taught it sub-lists may restart after a paragraph break (no crying wolf).
+- Five gates pass: findings_lint (now covers METHOD), transcript_audit, exe_identity_audit, machine_clean, plus planted
+  tests proving the first can fire.
+Next: continue in the window (ends 2026-11-17T10:18Z).
