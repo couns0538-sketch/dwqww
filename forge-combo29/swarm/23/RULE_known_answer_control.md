@@ -19,13 +19,13 @@
 > engine's own repetition condition. It is *nearly* the same condition, so it passed review — and it made me test
 > a position the engine does not consider drawn, which nearly produced a published refutation of a correct finding.
 >
-> Everything below is the same story in different clothes: **seventeen** faults, none of which produced an error message,
+> Everything below is the same story in different clothes: **eighteen** faults, none of which produced an error message,
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, SEVENTEEN instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, EIGHTEEN instances from this seat (23) and the fix. For any seat measuring anything.**
 
-## Four sentences to carry into any measurement of this engine
+## Five sentences to carry into any measurement of this engine
 
 > **A quoted move is incomplete without its search limit.** A best move depends on the budget — `go depth`,
 > `go nodes`, `go softnodes`, the clock — so a board+move claim must state the budget or it cannot be reproduced.
@@ -38,15 +38,24 @@
 > library predicate that is *nearly* the same is the most dangerous kind, because it passes review (instance 11).
 > **And watch the LEVEL of description: `can_claim_threefold_repetition()` is a library fact about a board,
 > "this game reached three occurrences" is a fact about a game, and neither is the condition under test —
-> "this position is drawn BY the repetition and not by material".** Three of these seventeen faults were proxies
+> "this position is drawn BY the repetition and not by material".** Three of these eighteen faults were proxies
 > stated at the wrong level of description, so the check is to name the level as well as the predicate
 > (instances 11, 13).
 >
 > **A fixture is part of the control.** Before believing a result, check the fixture makes the outcomes
 > DISTINGUISHABLE — an input that corrupts nothing, or a reference board that is itself the broken one, will show
 > every implementation passing (instance 12).
+>
+> **A mate score's plies depend on its SIGN, and using the winning formula on a loss accuses a correct engine.**
+> `mate N > 0` counts the side-to-move's own mating moves, so a complete win line is **2N−1 plies and always ODD**;
+> `mate −N` counts the *opponent's* mating moves, so a complete loss line is **2N plies and always EVEN**. Measured
+> on both builds at depths 4-12: `mate −1` with a 2-ply PV that really mates is CORRECT, and a checker expecting
+> 2N−1 = 1 ply would call a correct engine truncated (23-F91, and my own prediction made exactly this error). The
+> same asymmetry applies to `mate` and `mate -` in any engine that reports both, so derive the expected length per
+> sign rather than reusing the win case.
 
-All four were learned by breaking them in the same session they were written in.
+All five were learned by breaking them in the same session they were written in — the fifth while writing up the
+finding it describes, which is why it is stated as arithmetic rather than as advice.
 
 ## The rule
 
@@ -339,6 +348,23 @@ derive it, do not recall it. (Same shape as instance 6.)
 fault and its fix earlier in the seat, and after correcting it once. The mechanical rule now: **no prose time at all.**
 The stamp line is the only time in any entry; if a sentence needs to say when something happened, it says "see stamp".
 A rule I could repeat to myself and still break is not a rule; removing the opportunity is.
+
+## Instance 18 — the audit that reported 104 missing files (which all existed)
+
+Rebuilding the pre-FINAL evidence audit for 120 rows, my first version resolved each evidence path only from the bare
+working directory. 104 files that exist read as MISSING. It also flagged 29 rows as malformed when 27 of them were C
+rows that correctly carry four cells (no area column). So the checker produced both a false negative and a false
+positive at once, and the result looked like a catastrophe in my own findings rather than a defect in the checker.
+
+This is the family's signature failure at the level of a whole AUDIT: a checker silent (or loud) for a bad reason. The
+fix that matters is not the wider path search — it is that `audit_findings.py` now **prints a control**: a real path
+must resolve and a fabricated one must not, both at the top of every run, before any verdict. A resolver that has
+never been shown to resolve, or to refuse, cannot certify 120 rows.
+
+And a second, worse one in the same hour: `doc_check.py`'s table check had a `pass` branch that incremented nothing, so
+it printed **0 malformed rows for every page regardless of content** — a check that could not fail, inside an audit
+written to catch checks that cannot fail. Replaced with a real header-width comparison and proved able to fail (a
+planted wrong-width row counts 1; the clean page counts 0).
 
 ## The fix, in one line each
 

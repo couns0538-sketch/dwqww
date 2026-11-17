@@ -1,18 +1,27 @@
 EVIDENCE + STRUCTURE AUDIT of FINDINGS.md (the pre-FINAL document check)
-date: 2026-11-17T00:59:25Z
+run at: 2026-11-17T01:28:14Z
 
-finding rows: 105
-rows with an EXISTING evidence file: 105
-rows with NO existing evidence file: 0 []
-rows with malformed columns (pipes not 5 or 6): 0 []
+== control: the resolver must find a file that exists and MISS one that does not ==
+  FINDINGS.md -> RESOLVED
+  this_file_does_not_exist_9f3a.out -> NOT resolved (correct)
 
-WHAT WAS FIXED by this check, so the audit is not just a pass stamp:
-  23-F14  the row had been SPLIT by an earlier edit — a 'Threads 1, Hash 16, PC20.' fragment was inserted into
-          the id/area cells, breaking the table. Rebuilt intact.
-  23-F41, 23-F42  a literal '|' inside a shell command ('grep ... | forge') split the cell; rewritten as
-          'piped-to' so the table parses.
-  23-F18  two 'SEE 23-C10 / 23-C6' annotations had been appended as EXTRA CELLS; merged into the evidence cell.
-  23-F14  evidence path 'report.out' was ambiguous (several job folders have one); now absolute.
-  23-F59  evidence paths were missing the forge-combo29/swarm/23/ prefix; now absolute.
+finding rows: 120
+rows with a file path: 120
+rows whose path RESOLVES: 120
+rows with NO path in the evidence cell: 0 []
+rows whose paths do NOT resolve: 0 []
+rows with a malformed column count: 0 []
 
-VERDICT: 105 of 105 finding rows parse and point at a file that exists in this checkout.
+VERDICT: PASS — 120 of 120 rows parse and point at a file present in this checkout.
+
+DEFECTS FOUND AND FIXED BY THIS RUN, so the audit is not just a pass stamp:
+  23-F18  row was missing its trailing status cell (4 cells, F rows need 5). Rebuilt.
+  23-F83  the evidence cell contained an UNESCAPED \| inside a grep pattern, splitting one cell into three
+          (7 cells). The command is now written with the alternation described rather than literal pipes.
+
+THE AUDIT ITSELF WAS BROKEN ON ITS FIRST ATTEMPT — instance 18 of the family. My first version resolved evidence
+paths only from the bare working directory, so 104 files that exist read as MISSING and the audit looked like a
+catastrophe rather than a checker defect. It also counted rows with four cells as malformed, when C rows
+legitimately carry four (no area column) — so both a false negative and a false positive came from the checker.
+The version saved as audit_findings.py resolves through the repo root, the seat dir, every job/check
+subdirectory and one level below, and PRINTS A CONTROL: a real path must resolve and a fabricated one must not.

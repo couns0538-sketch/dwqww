@@ -1786,3 +1786,28 @@ too slow. Instance 17: the expected value inside a control is itself a claim and
 120 findings, 16 rule instances. (Time correction: I typed "01:31Z" here; the date -u stamp on this entry is
 01:27:14Z. Third instance of the typed-time fault, so the rule page gets it a third time — the stamp line is
 authoritative and no prose time should be written at all.)
+## 2026-11-17T01:28:35Z  both audits rebuilt as SCRIPTS with controls; the audit itself was broken
+2026-11-17T01:28:35Z
+
+Your point about the even/odd asymmetry is taken: it is now the FIFTH sentence in the rule's statement block, not a
+note. A checker using 2N-1 on a loss accuses a correct engine, so the arithmetic belongs where a reader meets the rule.
+
+Both pre-FINAL audits are now runnable scripts rather than hand runs typed into text files, because the rule page grew
+after the last one and a check that cannot be re-run is not a gate:
+
+  audit_findings.py  -> 120 of 120 rows parse, every evidence path RESOLVES, 0 malformed shapes. PASS.
+  doc_check.py       -> all four pages: 0 malformed table rows, 0 unresolved paths. PASS.
+
+Both print a CONTROL before their verdict: a real path must resolve, a fabricated one must not.
+
+What they found, and what I found about them:
+  - 23-F18 was missing its trailing status cell; 23-F83's evidence cell had an unescaped pipe that split it into three.
+    Both repaired.
+  - MY FIRST AUDIT VERSION WAS BROKEN: it resolved paths only from the bare cwd, so 104 existing files read as MISSING,
+    and it flagged 27 C rows as malformed when four cells is their correct shape. False negative and false positive
+    from the same checker. Instance 18.
+  - WORSE, in doc_check.py: the table-integrity loop had a branch that incremented nothing, so it printed 0 malformed
+    rows for every page no matter what. A check that cannot fail, inside an audit written to catch exactly that. It
+    now does a real header-width comparison and is PROVED able to fail (planted wrong-width row counts 1, clean 0).
+
+120 findings, 18 rule instances. Audits re-run again immediately before the FINAL block as ordered.
