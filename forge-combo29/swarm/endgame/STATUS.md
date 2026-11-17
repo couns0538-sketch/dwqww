@@ -10,7 +10,7 @@ State at hand-off: **numbers final for every family except the two named gaps**.
 | Exact retrograde tables (KK, KBK, KNK, KRK, KQK, KPK) | **done**, checked against 4 classical values (KQK 10, KRK 16, KPK 28 moves; KBK/KNK zero wins) |
 | Bail predicate validated against the binary, with two planted faults detected | **done** (`scripts/oracle.py`) |
 | KQK / KRK / KBNK: 20 start positions each, two arms, two budgets | **done** |
-| KPK: stratified sample, 384 cells (192 won / 192 drawn) | **done**, full boundary not swept |
+| KPK: stratified sample, 1,280 cells (640 won / 640 drawn) at `nodes 12000` | **done**; depth-12 arm partial at 432 cells |
 | KBK / KNK: game-level bare-minor cost | **done** (2,152 / 2,064 bails) |
 | Fifty-move interaction | **done** — 37 attributed failures, all fifty-move, 0 bails |
 | KQK depth ladder on the failing FENs | **done** (drawn at 8 and 12, converted at 16 and 20) |
@@ -22,8 +22,10 @@ State at hand-off: **numbers final for every family except the two named gaps**.
   every table rather than noted once.
 - **KBNK oracle arm.** No exact 4-piece table was built, so there is no DTM-per-position
   ground truth and no control for that family. KBNK is measured (3/20) but unexplained.
-- **Full KPK boundary.** 384 of 81,664 canonical cells, stratified on
-  pawn file × pawn half × verdict. Not a sample of convenience, but not the whole boundary.
+- **Full KPK boundary.** 1,280 of 81,664 canonical cells (1.6%), stratified on
+  pawn file × pawn half × verdict, at `go nodes 12000`. The `go depth 12` arm is **partial**
+  (432 cells) because the window closed. Not the whole boundary, and the sample is not
+  licensed to stand in for it.
 - **KNN vs K.** Not tested.
 - **Leaf-rule attribution.** The clock band and its exact `cp 0` are measured; the
   attribution to `H > 100 - p` is by behaviour, without instrumenting the leaf.
