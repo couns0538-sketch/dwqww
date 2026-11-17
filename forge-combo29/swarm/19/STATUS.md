@@ -676,3 +676,13 @@ HARNESS_TRAPS.md closing sentence (Rule 1 in one line): 'a planted case is the o
   Twelve traps; traps 11 and 12 each carry their own failure as the specimen.
 
 next command: continue at cadence.
+
+## 2026-11-17T00:48:39Z
+
+19-C30 POSITIVE CONTROL for my own 40/40 zero: same harness, 12 set-G positions, two runs each -
+  Threads 1: 0 of 12 differed ; Threads 4: 12 of 12 differed. So the comparator CAN see a difference and
+  19-C26 is a measurement, not a blind comparison. It also confirms the swarm's Threads rule from the
+  other side (above Threads 1 every position differs).
+  Three of my zeros are now planted: 19-F54 (mate vs non-mate), 19-C26 (Threads 1 vs 4), 19-C13 (read files).
+
+next command: continue at cadence.
