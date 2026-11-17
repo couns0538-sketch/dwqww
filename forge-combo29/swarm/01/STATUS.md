@@ -1577,7 +1577,7 @@ STATUS OF THE PATCH: applies clean (patch -p1 --dry-run, three files, no rejects
 and no .fnn3 net is committed (gitignored; verified absent from the folder).
 Gates: 157 rows, 0 wrong pipe counts, no duplicate ids, page shape OK on all three v3 pages.
 Next: Step 2 aims at the cache key, with the node-identity rule checked per position, not just per bench total.
-## 2026-11-17T00:59:30Z — the refresh path has two causes; 99.97 % is one of them, and my hypothesis was wrong (S-F116)
+## 2026-11-17T00:56:15Z — the refresh path has two causes; 99.97 % is one of them, and my hypothesis was wrong (S-F116)
 I SPLIT THE COUNTER AND THE SPLIT KILLED MY OWN STEP 2 STORY. refresh_from_pieces has exactly two call sites, so I
 tagged them: cold = refresh_cached (no valid ancestor), king = replay_ply (king-bucket change). Identity held in all
 four configurations again (862329 / 587276 / 4151906 / 3652372).
@@ -1603,3 +1603,28 @@ stats.patch.txt regenerated with the source split, DO NOT APPLY header retained,
 Gates: 158 rows, 0 wrong pipe counts, no duplicate ids, page shape OK on both refresh pages.
 Next: look at whether the 1 KB copy-out can be avoided - the accumulator could be built into its final slot rather
 than into the cache entry and copied. That is a question, not yet a claim.
+(Stamp corrected a second time: I wrote 00:59:30Z when the clock read 00:56Z. Twice now. The lesson is not
+"be careful" - it is that a hand-typed timestamp is Trap 0, and the fix is to generate it with date(1) in the same
+command that writes the line, which is what corrected this block.)
+## 2026-11-17T00:56:38Z — the gates are now one command, and the gate found two things (S-F117)
+I FABRICATED TWO TIMESTAMPS THIS SESSION (00:52:10Z when the clock read 00:49Z; 00:59:30Z when it read 00:56Z).
+Both were caught by hand, which means neither was caught by a mechanism. That is Trap 0 exactly: a hand-typed
+number and a measured number are indistinguishable in the file, and "be careful" is not a fix - memory is the thing
+that fails at the moment of creation.
+SO THE RULE NOW RUNS: check_status_stamps.py parses every ## stamp in STATUS.md and fails if any is LATER THAN THE
+CLOCK or if the stamps are out of order. Proven by negative test: re-injecting the exact 00:59:30Z stamp makes it
+report "FUTURE STAMPS ... +189 s ahead" and exit 1. On the real file: 99 blocks, all possible, in order. Its stated
+limit is honest - it can prove a stamp is impossible, not that it is accurate for its block.
+AND THE GATES ARE NOW ONE SCRIPT, gate.sh, because the recurring failure all session was not "not knowing a rule"
+but "not applying a known rule to the next artefact". Checks, in reader order: findings-table shape, STATUS stamps
+vs the clock, page shape over every prose page, duplicate STATUS headings, and nothing binary/net/pycache TRACKED.
+THE GATE IMMEDIATELY FOUND TWO OF MY OWN PROBLEMS:
+  (1) __pycache__ directories present - but gitignored, so checking the working tree was the wrong test. Fixed to
+      ask git what it would CARRY. A clean checkout would otherwise fail for a file that never reaches the branch.
+  (2) check_page_shape.py flagged STATUS.md as "appended after closing material" - a FALSE failure. STATUS.md is an
+      append-only chronological log, so a block legitimately follows earlier content. The honest fix was to SCOPE
+      the check (exclude the log, keep a duplicate-heading check on it), not to rewrite my log history to satisfy a
+      tool built for prose pages. I said this out loud in the script rather than quietly skipping the file.
+Both new rules negative-tested: silent on real data, firing on a fabricated bad input.
+Gates: 158 rows, page shape OK on every prose page, stamps in order, nothing junk tracked.
+Next: the copy-out question at nnue_v3.cpp:711.
