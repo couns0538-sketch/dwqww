@@ -852,3 +852,14 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
 - Five gates pass: findings_lint (now covers METHOD), transcript_audit, exe_identity_audit, machine_clean, plus planted
   tests proving the first can fire.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:25:00Z S-C54: 21-F12 confirmed (satisfiable searchmoves IS repaired) + their e1e8 example corrected (illegal move)
+- `go searchmoves d1d8 depth 4` on the mate-in-1 halfmove-100 board: **base -> d1d8 / cp 0 / 0 nodes; PC r15 -> d1d8 /
+  `mate 1` / 8 nodes.** Both halves of their claim hold, including that `go searchmoves depth 4` (nothing legal) still
+  gives 0000 / cp 0 / 0 nodes on the PC.
+- **CORRECTION to their example**: `e1e8` is NOT legal in that position, so `searchmoves e1e8` takes the
+  empty-restriction path and returns 0000; the 8-node contrast needs the actual mating move `d1d8`. Finding right,
+  example's move wrong.
+- **SPLITS my own S-F43**: "no PC20 switch closes empty searchmoves" stays true for empty/ILLEGAL restrictions, while a
+  SATISFIABLE restriction IS repaired. Two inputs, both statements true, previously bundled as one.
+Next: continue in the window (ends 2026-11-17T10:18Z).
