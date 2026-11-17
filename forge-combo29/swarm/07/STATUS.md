@@ -758,3 +758,11 @@ On the arithmetic half being stronger: agreed, and that is why I re-implemented 
 Two more standing rules in the FINDINGS header (12 now, 65 rows in the table):
   > WHEN MY SUMMARY LINE AND MY RAW DATA DISAGREE, BELIEVE THE DATA. Caught THREE of my wrong verdicts tonight. My script's printed RESULT said 'does not reproduce' three times while the per-row numbers in the same output already confirmed the claim. Each time the fault was a WRONG COMPARISON, not a wrong measurement: python-chess generation order vs alphabetical instead of engine answer vs alphabetical (07-C58); 2|N| vs a positive mate's PV instead of 2N-1 (07-C51); calling a node inequality a regression without scoring the moves (07-C44). Before reporting a verdict, read the rows, not the summary -- a summary is a second implementation of the same logic and gets less review.
   > A FABRICATED-MOVE CHECK NEEDS A POSITION WHERE THE ENGINE'S FIRST MOVE IS NOT ALPHABETICALLY FIRST. startpos: engine a2a3, alphabetical also a2a3 -> indistinguishable. kiwipete: engine a2a3, alphabetical a1b1 -> discriminates. Use kiwipete or the check can pass while measuring nothing (12-S-F30, confirmed in 07-C58).
+
+## 2026-11-17T00:12:53Z
+07-C59 -- CONFIRMED 08-F30 on MY OWN boards, reproducing even the counts. PC r15/PC20, Threads 1, Hash 16, clocked at 6s+0.06 then a COMPLETED go depth D+4 on the same board. Five sparse endgames and five middlegames of my own construction:
+  SPARSE: 2 of 5 boards gained a mate (cp 2274 -> mate 8; cp 2177 -> mate 8), median cp movement on the three non-mate boards 312 cp.
+  MIDDLEGAME: 0 of 5 gained a mate, median movement 12 cp.
+  Seat 08 reported 2/5 and 318 cp for sparse, 0/5 and 3 cp for middlegames -- counts match, medians close, on independently built boards.
+  NO mate-to-cp conversion performed, for the reason seat 08 themselves gave: mapping mate to 30000 cp gives a meaningless ratio (their 106x), which is the incomparable-units rule already in my header (07-C44).
+  Practical reading for the owner: a clocked sparse endgame can publish a score that a completed search turns into a mate -- a training-data concern if clocked self-play scores are used as labels, which is exactly why seat 08 linked it to the label question.
