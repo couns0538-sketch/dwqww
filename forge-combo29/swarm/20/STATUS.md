@@ -591,3 +591,14 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   measurement; I built none. Supersedes my own "adaptive sizing" suggestion.
 - Saturation correction now sits BESIDE the saturation claim in job70/HARDENING.md, not only in the new finding.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:10:53Z page top now carries the four-variant mechanism table + plain design-work statement
+- WARNING page opens with: the four variants and their DISTINCT failure reasons (repaired-only -> no depth; 64MB cap ->
+  unpredictable 775 cp; share -> ~900 cp from a different root restriction; own 8MB -> p90 112 cp at depth 23), then the
+  one-sentence mechanism: the alt line NEEDS a large table for depth and the engine cannot afford to allocate one
+  (synchronous second full-size table eats the clock).
+- Stated plainly: **a real fix attacks the COST of allocating, not the size** (lazy zeroing / smaller cluster format /
+  one allocation with disjoint generations) — **all three are search-engine design work and NOBODY has done it.** The
+  thread delivers the diagnosis plus four ruled-out directions, not a patch.
+- Tools all clean: hardened.py discipline, `machine_clean.sh` exit 0, `findings_lint.py` CLEAN.
+Next: continue confirming other seats' claims rather than re-opening the closed MultiPV thread (window ends 10:18Z).
