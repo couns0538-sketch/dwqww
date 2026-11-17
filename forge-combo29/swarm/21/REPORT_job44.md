@@ -31,6 +31,11 @@ immediately. So the true distance is **mate in 2 moves**, beyond doubt.
 Neither build finds the mate, and the PC build does not improve with depth or with 10× the node budget —
 so this is not a depth artefact, it is a decision made before the search goes deep enough.
 
+**These four rows plus the counter-0 control below are ONE measurement and must be read together.** The
+four rows rule out "the search was not deep enough"; the counter-0 control rules out "the engine picks bad
+moves in this position generally". Remove either half and the finding would read as a move-selection
+complaint instead of a drawn-root one, which is the wrong conclusion.
+
 At **counter 0**, where the root-draw rule does not apply at all:
 
 | build | `go depth 10` at counter 0 |
