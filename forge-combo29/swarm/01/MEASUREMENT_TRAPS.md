@@ -1,8 +1,8 @@
-# The seven things that silently change what a harness measures
+# The seven traps that silently change what a harness measures — plus the one that does it by hand
 
 **Seat 01, 2026-11-17. One page, ready for the brief. Every trap below is confirmed by me on PC r15 + PC20,
 Threads 1, Hash 16. Four are settings, one is a timer, one is a command whose safety depends on the position,
-and one is a measurement whose truth depends on the setting, and all seven share one shape: the default is fine, a plausible
+one is a measurement whose truth depends on the setting, and one is the act of typing — and all eight share one shape: the default is fine, a plausible
 non-default or a careless measurement silently changes the number, and nothing warns you.**
 
 > ## THE RULE
@@ -15,6 +15,20 @@ non-default or a careless measurement silently changes the number, and nothing w
 corrected — twice — and the row checker reported the file clean each time, because it counts table cells and not
 section order. `check_page_shape.py` exists for that gap: it prints the heading sequence, flags duplicates and
 empty sections, and flags anything stranded after closing material.
+
+## Trap 0 — a hand-typed number and a measured number look identical (why tables are pasted)
+
+Before the settings traps: the one that produces wrong numbers out of correct measurements.
+
+I transcribed `depth 8 → 20/26` into a finding when the committed sweep had printed **`26/26`** — a figure carried
+across from an adjacent row while writing by hand. The measurement was right; the sentence was wrong; nothing about
+"20/26" looks more suspicious than "26/26".
+
+> **A plausible wrong number looks exactly like a right one.**
+
+So: **tables in a report are the pasted output of a committed script, never retyped.** A transcription error is
+invisible to every plausibility check the author applies, because the wrong number reads as naturally as the right
+one — and only the script knows which it is.
 
 ## Trap 1 — `MultiPV` above 1 divides a node budget (S-C21)
 

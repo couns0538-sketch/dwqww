@@ -1372,3 +1372,34 @@ THE PLAYOUT CAUTION IS NOW TRAP 7 on the traps page (S-F100), and 'Truth, like s
   AND THE S-F99 NOTE NOW MAKES THE PASTING LINK EXPLICIT: I transcribed a figure wrongly while writing by hand - having already written the rule that tables are pasted from committed scripts rather than typed, and then breaking it by hand-writing one number. It is a FOURTH species: the number was measured correctly and transcribed wrongly, which no plausibility check catches because a plausible wrong number looks like a right one.
   The traps page is now seven traps in sequence, family table, guard - verified by check_page_shape.py, which is clean.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+### THE DIAGNOSIS — why the checkers exist
+
+**Every recurring failure in this session was a rule I had already articulated, failing to transfer to the next
+artefact.** The five instances:
+
+| the rule, already written | where it then failed |
+|---|---|
+| check a page's heading order before declaring it done | appended sections after closing content **three times** (Trap 3, Trap 5, the `readyok` section), and once duplicated a heading while fixing it |
+| paste tables from committed scripts, never type them | hand-wrote one figure in S-C35 and transcribed depth 8 as 20/26 when the sweep said 26/26 |
+| time from immediately before `go` on a warmed process | only avoided this by luck in some harnesses; the audit that proved it sound came *after* the figures were published |
+| a rate needs its population named | first reported the truncation as a bare "2 of 14" without the 0-of-120 ordinary-play figure beside it |
+| a derived flag is a claim about the data, not a summary | the zero-node checker scored 220-node cells "healthy" and would have reported "no collapse in any cell" |
+
+**That is a diagnosis with a mechanism, not a confession.** The mechanism is that a prose rule binds its author's
+memory, and memory fails predictably at the moment of creation — you are thinking about the content you are adding,
+not the shape of the page you are adding it to. **So the rules that matter are the ones that run in a script before
+the claim**: `check_findings_table.py` (row shape), `check_page_shape.py` (section order), `honesty.py` (the pins),
+and the paste-from-script habit for tables. Each checker exists because a rule already in prose was not enough.
+
+**A plausible wrong number looks exactly like a right one.** That is why tables are pasted rather than typed: no
+plausibility check catches a transcription error, because the wrong number reads as naturally as the right one, and
+only the script knows which it is.
+
+## 2026-11-17T00:38:48Z — 25-minute cadence
+THE DIAGNOSIS IS IN THE FINAL VERBATIM (S-F101), with its FIVE-INSTANCE TABLE and the mechanism that makes it a diagnosis rather than a confession.
+  THE MECHANISM: a prose rule binds its author's MEMORY, and memory fails predictably at the moment of creation - you are thinking about the content you are adding, not the shape of the page you are adding it to. That is why heading order broke three times while I was concentrating on the sections themselves.
+  THE FIVE INSTANCES, tabulated: heading order (failed 3x, plus a duplicate heading while fixing it); paste-don't-type (hand-wrote depth 8 as 20/26 when the sweep said 26/26); timer start (the audit that proved it sound came AFTER the figures were published); rate-without-population (reported '2 of 14' before the 0-of-120 figure); flag-versus-data (the zero-node checker scored 220-node cells healthy).
+  AND THE CONCLUSION THAT MAKES IT USEFUL: THE RULES THAT HOLD ARE THE ONES THAT RUN IN A SCRIPT BEFORE THE CLAIM - check_findings_table.py (row shape), check_page_shape.py (section order), honesty.py (the pins), and the paste-from-script habit. Each checker exists because a rule already in prose was not enough.
+  'A PLAUSIBLE WRONG NUMBER LOOKS EXACTLY LIKE A RIGHT ONE' is now Trap 0 at the HEAD of the traps page, immediately above the paste-from-script rule it justifies - because no plausibility check catches a transcription error, and only the script knows which number is real.
+  The traps page is now eight, in order 0-7, family table, guard - verified clean.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.
