@@ -22,21 +22,25 @@ CLAIM = re.compile(r"([0-9][0-9,]*)\s+vs\s+([0-9][0-9,]*)\s+(?:nodes\s+)?at\s+d(
 
 
 def load_traces(path):
-    """Build {depth: set(reported node counts)} over every position and setting in the trace artifact.
+    """Build PAIRED node counts: {(position_index, depth): {side: nodes}}.
 
-    A claim does not say WHICH position it came from, and in the row I was fixing it was a single position's two
-    settings. So the check is membership: both numbers must appear, at that depth, somewhere in the artifact. That is
-    weak, and deliberately so - it catches invented numbers, which is the failure I actually had. A wrong-but-present
-    pairing would slip through, and the docstring says so rather than pretending otherwise.
+    The first version of this check only asked whether each number appeared at that depth ANYWHERE in the artifact -
+    membership, not pairing - and said so as a limit. The coordinator pointed out the trace can do better, and it can:
+    a claim "X vs Y at dN" is supported only if X and Y are the two sides' node counts AT THE SAME DEPTH OF THE SAME
+    POSITION. That is the gap the fabrications exploited, so it is now closed.
+
+    A claim still does not name its position, so the check accepts the pair if SOME single position/depth satisfies
+    both values in the right roles. That is pairing within a row; it is not attribution to a named row, which the
+    prose would have to carry.
     """
     d = json.load(open(path))
-    by_depth = {}
-    for rec in d.get("results", []):
+    paired = {}
+    for i, rec in enumerate(d.get("results", [])):
         for side in ("s14", "pc20"):
             for it in rec.get(side, {}).get("iters", []):
                 if "depth" in it and "nodes" in it:
-                    by_depth.setdefault(it["depth"], set()).add(it["nodes"])
-    return by_depth
+                    paired.setdefault((i, it["depth"]), {})[side] = it["nodes"]
+    return paired
 
 
 def main():
@@ -45,7 +49,12 @@ def main():
     if not trace.exists():
         print("SKIP: no trace artifact at %s" % trace)
         return 0
-    by_depth = load_traces(trace)
+    paired = load_traces(trace)
+    # a set of (side-agnostic) values still needed for the diagnostic message
+    by_depth = {}
+    for (i, dep), sides in paired.items():
+        for v in sides.values():
+            by_depth.setdefault(dep, set()).add(v)
     text = findings.read_text()
     # A claim inside a backtick span or a fenced block is QUOTED EVIDENCE - most often a wrong number being shown as
     # the error it was. My first version counted those and failed the gate on its own documentation, which is the
@@ -71,18 +80,24 @@ def main():
     bad = 0
     for a, b, dep in hits:
         ai, bi, di = int(a.replace(",", "")), int(b.replace(",", "")), int(dep)
-        present = by_depth.get(di, set())
-        ok_a, ok_b = ai in present, bi in present
-        print("  %-9s vs %-9s at d%-3s %s" % (a, b, dep, "OK" if (ok_a and ok_b) else "NOT IN TRACE"))
-        if not (ok_a and ok_b):
+        # PAIRED: some single (position, depth) row must hold one value on each side.
+        ok = any(sides.get("s14") == ai and sides.get("pc20") == bi
+                 for (i, d2), sides in paired.items() if d2 == di)
+        # also accept the reverse role assignment, since a row may quote PC20 first
+        ok = ok or any(sides.get("s14") == bi and sides.get("pc20") == ai
+                       for (i, d2), sides in paired.items() if d2 == di)
+        print("  %-9s vs %-9s at d%-3s %s" % (a, b, dep, "PAIRED OK" if ok else "NOT A PAIRED ROW"))
+        if not ok:
             bad += 1
-            print("      depth %d has node counts %s" % (di, sorted(present)[:8]))
+            cands = [(i, s) for (i, d2), s in paired.items() if d2 == di][:4]
+            print("      no single row at depth %d holds both; nearest rows: %s" % (di, cands))
     if bad:
-        print("\nVERDICT: %d claim(s) cite a node count that does not appear at that depth in the artifact." % bad)
-        print("LIMIT: this checks membership, not pairing - a real number from the wrong position would pass.")
+        print("\nVERDICT: %d claim(s) do not match any paired row at that depth." % bad)
+        print("LIMIT: this checks pairing, not attribution - the prose must name its position for a reader to verify.")
         return 1
-    print("\nVERDICT: every per-depth node claim appears in the trace at that depth.")
-    print("LIMIT: membership only. It catches invented numbers (my failure); it cannot catch a real number mis-paired.")
+    print("\nVERDICT: every per-depth node claim matches a PAIRED row (same position, same depth, one value each side).")
+    print("LIMIT: the prose still does not NAME its position, so any row that satisfies the pair passes - attribution")
+    print("is the writer's job. What is now impossible is a number that exists nowhere in the right role.")
     return 0
 
 

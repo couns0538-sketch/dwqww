@@ -284,3 +284,9 @@ if [ $fail -ne 0 ]; then
   exit 1
 fi
 echo "GATE: passed. These check shape and possibility, not whether a claim is true."
+# SELF-VERIFICATION OF THE EXIT CODE ITSELF (S-F137). I once read `$?` after an unrelated command and briefly believed
+# a working gate was broken - the same harness error the gate exists to catch, one layer out. A caller that uses
+# `./gate.sh; echo $?` is one stray command away from reading the wrong status, so the honest invocation is
+# `if ! ./gate.sh; then ...` or `rc=$?` on the SAME line. This line makes the contract explicit: on success the exit
+# status is 0 and nothing after this may run.
+exit 0

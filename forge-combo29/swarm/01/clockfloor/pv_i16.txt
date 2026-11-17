@@ -1,0 +1,30 @@
+S-C48: is i=16's 18.4x work verification or waste? Full PV comparison.
+exe: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+fen: 5k2/2Q5/p3Kn2/P7/N4r2/5P1R/RP2P3/8 b - - 4 67
+go depth 12, Threads 1, Hash 16, every depth's PV captured.
+
+depth	score S14	nodes S14	score PC20	nodes PC20	PV S14	PV PC20
+1	cp -2409	47	cp -2409	47	f4f3	f4f3
+2	cp -2590	130	cp -2590	129	f4e4 e6f6	f4e4 e6f6
+3	cp -2590	182	cp -2590	177	f4e4 e6f6 e4e2	f4e4 e6f6 e4e2
+4	cp -2874	891	cp -2807	701	f4e4 e6f6 e4f4 c7f4	f6h5 c7c5 f8g7 c5g5 g7f8 g5d8 f8g7
+5	cp -3074	1331	cp -3074	1185	f6h5 c7d8 f8g7 h3h5 f4e4 f3e4	f6h5 c7d8 f8g7 h3h5 f4e4 f3e4
+6	cp -2884	2217	cp -2884	2147	f4e4 e6f6 e4e6 f6e6 f8e8	f4e4 e6f6 e4e6 f6e6 f8e8
+7	cp -3089	5868	cp -3148	4916	f6h5 c7d8 f8g7 d8g5 g7f8 g5c5 f8g7 c5h5 f4f6 e6d7 f6f7 d7c8	f6h5 c7c5 f8g7 c5h5 f4f6 e6d7 f6f7 d7c6 f7f6 c6b7 f6e6
+8	cp -3446	9677	cp -3111	8596	f6h5 c7d8 f8g7 d8g5 g7f8 g5h5 f4e4 f3e4 f8g7	f6h5 c7c5 f8g7 c5h5 f4f6 e6d7 f6f7 d7c8 f7f8 c8b7 f8f3 h5g4 g7f8 h3h8 f8f7
+9	mate -4	11613	cp -3363	22938	f6h5 c7d8 f8g7 h3h5 f4f3 d8h8 g7g6 h8h7	f6h5 c7c5 f8g7 c5h5 f4f6 e6d7 f6f7 d7c8 f7f8 c8b7 g7f6 h5g4 f8f7 b7c6 f7c7 c6c7 f6f7 g4c4 f7e8
+10	mate -4	12035	cp -3518	50649	f6h5 c7d8 f8g7 h3h5 f4f3 d8h8 g7g6 h8h7	f6h5 c7c5 f8g7 c5h5 f4f6 e6d7 f6f7 d7c8 f7f8 c8b7 g7f6 h5g4 f6e7 h3h7 f8f7 h7f7 e7f7 a4c5 f7f6 g4d4 f6g6
+11	mate -4	12394	cp -3431	54767	f6h5 c7d8 f8g7 h3h5 f4f3 d8h8 g7g6 h8h7	f6h5 c7c5 f8g7 c5h5 f4f6 e6d7 f6f7 d7c8 f7f8 c8b7 f8f7 b7a6 f7f6 a4b6 f6e6 h5h8 g7f7 h3h7 f7g6 h8g7 g6f5
+12	mate -3	12957	mate -3	238009	f6h5 h3h5 f4f6 e6f6 f8g8 c7f7	f6h5 h3h5 f4e4 f3e4 f8e8 h5h8
+
+FIRST DIVERGENCE at depth 4
+  S14  : f4e4 e6f6 e4f4 c7f4   (cp -2874, 891 nodes)
+  PC20 : f6h5 c7c5 f8g7 c5g5 g7f8 g5d8 f8g7   (cp -2807, 701 nodes)
+  moves only in S14's line : f4e4 e6f6 e4f4 c7f4
+  moves only in PC20's line: f6h5 c7c5 f8g7 c5g5 g7f8 g5d8 f8g7
+  same move SET: no
+
+VERDICT: VERIFICATION - PC20's line contains 7 move(s) S14's does not, so the extra work
+  examined resources outside S14's tree. The identical score is better-founded under PC20,
+  because it survived defences S14 never looked at.

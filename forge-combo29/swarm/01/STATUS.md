@@ -274,6 +274,20 @@ Each looked correct on inspection, because each produced well-formed output in t
 two hours went into checks rather than into more findings: a rule that lives in prose binds my memory, and memory is
 what fails at the moment of creation. **The rules that hold are the ones that run in a script before the claim.**
 
+### Two rules from the last stretch that belong beside the main one
+
+**When classifying a search as wasteful, the axes that define "the same search" must include what it CONCLUDED, not
+only how far it looked.** PC20 and S14 can report identical depth and identical seldepth while proving different
+things — one finding `mate 6` and the other `mate 4`. I labelled two positions "defect candidates" on depth, seldepth
+and nodes alone, and the scores refuted it. Then I labelled the last one "verification" on PV divergence alone, and the
+**score-by-depth** trace refuted that too: PC20 was still returning `cp -3363` three iterations after S14 had a mate.
+**Each time the missing column was the one that said what the search had learned.**
+
+**A node-count claim is meaningless without its workload.** Bench node ratios flip sign across benches — **+14.5 % on
+bench 11, −10.6 % on bench 13, +8.7 % on bench 16** — while real game positions sit at **−9.1 %**. So "PC20 saves
+7.4 % of nodes" is a true statement about `depth 12` on one FEN sample and a false one about the engine. It joins the
+list of things a number cannot be quoted without: build, Threads, Hash, settings, **and workload**.
+
 ### The instance that proves that thesis, better than the table above (S-F130)
 
 **This failure came at three depths, and each one was hidden by the layer above it looking correct:**
@@ -2197,3 +2211,32 @@ a genuine unquoted falsehood still fails. AND I MISREAD ITS EXIT CODE ONCE: my s
 status, so I briefly believed a working gate was broken. Same harness error, one layer out.
 Gates: 187 rows, 0 wrong pipe counts, depth-claim check proven both ways, page shape OK, stamps in order.
 Next: continue at cadence; i=16 is the one open thread from this analysis.
+## 2026-11-17T01:44:14Z — i=16 explained, my second wrong verdict withdrawn, and two gate upgrades (S-C48, S-F137, S-F138)
+1. i=16 IS LATER CONVERGENCE, AND I WITHDRAW MY "MORE VERIFICATION" VERDICT. The coordinator asked for the PVs at equal
+   depth. What the score-by-depth trace shows is decisive and not what either of us expected:
+     S14 found `mate -4` at DEPTH 9 with 11,613 nodes. PC20 found no mate until DEPTH 12 with 238,009 nodes - through
+     depths 9, 10 and 11 it was still returning ordinary evaluations (cp -3363, cp -3518, cp -3431).
+   The mechanism is in seldepth: S14 SATURATES at 25 from depth 7 onward; PC20 climbs 17 -> 21 -> 26 -> 34 -> 51. Its
+   quiescence search keeps extending every iteration, which delays convergence to the mate and costs 18.4x the nodes.
+   So i=16 is neither verification (no defence S14 missed) nor simple waste: it is a deeper extension regime
+   converging more slowly. That is why it is an anomaly in the NODE RATIO and not in per-node cost, which is exactly
+   the coordinator's reconciliation: PC20 pays a small uniform per-node tax (~1.07x, seat 19's n=180 quartiles
+   1.044/1.071/1.110, r=0.044 between the quantities) and a wildly bimodal node cost on a few positions.
+   MY SECOND WRONG VERDICT IN THE SAME THREAD: attempt 1 said DEFECT from depth/seldepth/nodes without the score;
+   attempt 2 said VERIFICATION from PV divergence at depth 4. **The PV rule is valid about FINISHED searches and
+   invalid about iterations of the same search** - I compared two mid-flight snapshots and drew a conclusion about
+   what each had learned. Attempt 3 (score by depth) is the one that holds.
+2. THE PAIRING UPGRADE IS IN (S-F137). check_depth_claims.py now requires X and Y to be the two sides' counts at the
+   SAME DEPTH OF THE SAME POSITION, not merely to exist somewhere. Proven against a cross-paired claim built from two
+   REAL numbers that the old membership test would have PASSED (12,957 vs 230,493 at d12 - both exist at d12, on
+   different positions): the new check reports "NOT A PAIRED ROW", lists the actual rows, exit 1. The remaining limit
+   is attribution rather than arithmetic, and it is stated: the prose does not name its position.
+3. THE EXIT-CODE TRAP IS CLOSED AT THE SOURCE. gate.sh now ends with an explicit `exit 0` on success, and I verified
+   capture with rc=$? on the SAME line and with the `if !` form. The failure it prevents is real: I once read a stale
+   $? and believed a working gate was broken - the same harness error the gate exists to catch, one layer out.
+4. THE WORKLOAD RULE IS NOW IN THE FINAL (S-F138). Bench node ratios flip sign across benches (+14.5 % / -10.6 % /
+   +8.7 %) while real positions sit at -9.1 %, so a node-count claim is meaningless without its workload. "PC20 saves
+   7.4 % of nodes" is true of depth 12 on R_1911.fens and false as a statement about the engine. It joins build,
+   Threads, Hash and settings on the list of things a number cannot be quoted without.
+Gates: 190 rows, 0 wrong pipe counts, pairing check proven on a transposition, exit contract explicit, stamps in order.
+Next: re-examine i=99 under the score-by-depth lens, since it was classified with the weaker method.
