@@ -1,0 +1,18 @@
+EVIDENCE + STRUCTURE AUDIT of FINDINGS.md (the pre-FINAL document check)
+date: 2026-11-17T00:59:25Z
+
+finding rows: 105
+rows with an EXISTING evidence file: 105
+rows with NO existing evidence file: 0 []
+rows with malformed columns (pipes not 5 or 6): 0 []
+
+WHAT WAS FIXED by this check, so the audit is not just a pass stamp:
+  23-F14  the row had been SPLIT by an earlier edit — a 'Threads 1, Hash 16, PC20.' fragment was inserted into
+          the id/area cells, breaking the table. Rebuilt intact.
+  23-F41, 23-F42  a literal '|' inside a shell command ('grep ... | forge') split the cell; rewritten as
+          'piped-to' so the table parses.
+  23-F18  two 'SEE 23-C10 / 23-C6' annotations had been appended as EXTRA CELLS; merged into the evidence cell.
+  23-F14  evidence path 'report.out' was ambiguous (several job folders have one); now absolute.
+  23-F59  evidence paths were missing the forge-combo29/swarm/23/ prefix; now absolute.
+
+VERDICT: 105 of 105 finding rows parse and point at a file that exists in this checkout.

@@ -1465,3 +1465,20 @@ nothing in the stream says so."
 Page is now internally consistent: each rule carries a measured failure mode, and the page states the summary -
 four original rules hold, one addition needed, structure right and one rule short.
 105 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 20 m remain.
+## 2026-11-17T00:59:27Z  PRE-FINAL DOCUMENT CHECK: 105 of 105 finding rows parse and point at an existing file (5 defects fixed)
+2026-11-17T00:59:27Z
+
+The document check, run as instructed. Machine audit of FINDINGS.md: every row's evidence column searched for a path
+that EXISTS in this checkout, plus column integrity (pipe count).
+
+RESULT: 105 of 105 rows have an existing evidence file; 0 malformed rows. FIVE defects found and fixed, recorded so
+the audit is not a pass stamp:
+  23-F14  the row had been SPLIT by an earlier edit - a 'Threads 1, Hash 16, PC20.' fragment was inserted into the
+          id/area cells and broke the table. Rebuilt intact.
+  23-F41, 23-F42  a literal '|' inside a shell command ('grep ... | forge') split the cell; rewritten as 'piped-to'.
+  23-F18  two 'SEE 23-C10 / 23-C6' annotations had been appended as EXTRA CELLS; merged into the evidence cell.
+  23-F14  evidence path 'report.out' was ambiguous (several job folders have one); now absolute.
+  23-F59  paths were missing the forge-combo29/swarm/23/ prefix; now absolute.
+These are the same class as the page's own 'documents accumulate defects' section - the table grew by appending, and
+only reading it as a table found them. Audit file: forge-combo29/swarm/23/EVIDENCE_AUDIT.txt.
+105 findings, 18 confirmations (2 refutations), thirteen named faults, six reference pages. 9 h 19 m remain.
