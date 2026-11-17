@@ -827,3 +827,15 @@ REPORT_fifty_move_bound.md consolidates the twenty-one/twenty-two thread into ON
   with seat 21; my contribution = threshold precision, settings-independence, fix side, severity.
 
 next command: continue at cadence.
+
+## 2026-11-17T01:10:33Z
+
+trap 14 added: identical answers from unrelated inputs mean the INPUT is wrong (my invalid-FEN severity
+  run returned e2e4 from all three boards, incl. a KPvK where e2e4 is illegal).
+  It GROUPS four traps under 'the engine answered a question you did not ask': no info lines / info with
+  nodes 0 + empty PV / refused FEN leaving the previous board / this. One defence covers all four:
+  assert the engine's move is legal in THAT row's position.
+HARNESS_TRAPS.md = fourteen traps, now cohering into three families: 'no search happened' (1/1b/13/14),
+  'a number that is not evidence about what you think' (10/11/12), 'auditing the wrong thing' (8/9).
+
+next command: continue at cadence.
