@@ -428,3 +428,15 @@ next command: run the mirror test through the clamped verdict, or another open f
 
 next command: continue at cadence - check an open finding of another seat, or extend the oracle to a
   2-piece signature if a cheaper enumeration can be found.
+
+## 2026-11-17T00:05:58Z
+
+19-C11 F59 disagreement with seat 27: raw output sent (exe sha256 + every line). My FEN is ... w - - 12 182
+  vs their ... w - - 0 1. Rerunning BOTH on my binary: counter 12 -> mate -15, counter 0 -> mate -16,
+  same move f6f5, and depths 16/20 IDENTICAL across counters. So counters explain ONE PLY, not the gap.
+  No PC20 variation reproduces their f6e5 / cp -509 / 1,915,526. Most likely different binaries;
+  sha256sum of both exes settles it in one command.
+  BOTH agree on the structure (d24 -> f6f5, d16/20 -> not f6f5), so the calibration-case conclusion stands.
+  19-F58 AMENDED: the defect is 'not the longest defence until deep enough', move name is build-specific.
+
+next command: continue at cadence; the sha256 comparison is the one thing that would close 19-C11.
