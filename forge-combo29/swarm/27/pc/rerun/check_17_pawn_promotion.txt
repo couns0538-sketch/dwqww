@@ -14,3 +14,14 @@
 The base build's drawn-root fallback plays the FIRST generated promotion, which on this board is
 not the mating move. The PC's root repair finds the mate. This is the case where the fallback costs
 the game rather than merely mis-reporting a score.
+
+## Why this board is decisive (the luck-case exclusion, in full)
+
+The mate set was computed with python-chess BEFORE the engine was run: a scan of all 11 legal moves
+shows only b7a8q and b7a8r mate, and b7b8q does not. The verdict therefore does not depend on where the
+engine's move generator happens to place the promotions.
+
+The excluded failure mode is precise: a board whose FIRST GENERATED move happens to be mating cannot show
+whether the fallback picks a good move or a lucky one. On this board first-in-order (b7b8q) and mating
+(b7a8q) are DIFFERENT moves, which is what makes the row decisive. Their earlier 8/P7/... boards fail
+exactly that test - a7a8q is both first and mating there, so the base build 'passes' while proving nothing.
