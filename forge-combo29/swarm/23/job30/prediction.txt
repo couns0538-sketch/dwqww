@@ -1,0 +1,21 @@
+PREDICTION — SW-23 job 30 (the drawn-root claim on STRICTLY-QUALIFYING repetitions)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F71 corrected my criterion: "reached three occurrences" is not "is drawn BY the repetition". A case now qualifies
+only if, at the third occurrence: (a) the position has occurred 3 times by my own key, (b) `is_insufficient_material()`
+is FALSE, (c) the fifty-move counter is well below 100, and (d) at least one side has enough force that a mate is
+conceivable (I will require the side to move to have more than a king, or the opponent to have more than a king).
+Everything else is rejected and RECORDED as rejected with the reason.
+
+Method: more clock self-play games from openings not used in job 29, plus the two job-29 games that reached no
+occurrence are retried with different openings. For each qualifying game: base vs PC on that exact game, and both
+chosen moves scored alone at fixed depth 16.
+
+Prediction (each number with the range that kills it):
+  P1  at least 2 STRICTLY-QUALIFYING games will be found.          KILLED if fewer.
+  P2  in every qualifying game the base answers 0 nodes.           KILLED if any qualifying game has it searching.
+  P3  the base's unsearched move will be worth < 0 cp at depth 16 in at least half of them. KILLED if never.
+  P4  the PC will search (>1000 nodes) in every qualifying game.    KILLED if any PC run is 0 nodes.
+
+If P2 fails on a qualifying game, the defect is NOT general even for genuine repetitions, and that would be a real
+narrowing of 23-F58/F60/F70.
