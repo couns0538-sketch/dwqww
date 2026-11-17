@@ -650,3 +650,16 @@ TALLY_confirmations.md written: five exact-integer confirmations (19-C19 29-F4 k
   from the OTHER direction - two seats, two harnesses, same conclusion, so 'assumed' became 'verified'.
 
 next command: continue at cadence, adding to the tally with counter/reproduction work only.
+
+## 2026-11-17T00:47:36Z
+
+19-C28: 08-F31's '0 of 60' full-material zero has NO plant through its own harness (Rule 1 gap).
+  Its evidence report and volatility_rate.py contain 0 hits for plant/control/fake/Rule 1. Seat 08 DOES
+  own two good controls (/bin/cat fake engine, both non-zero exit) but they cover DIFFERENT scripts -
+  so a coverage gap in a disciplined seat, not carelessness, and the zero is not thereby wrong.
+  Why it matters: this harness's failure mode (missing the deep mate) produces exactly 0 of 60, so a
+  plant is what separates 'no defect' from 'cannot see the defect'. And it is the claim 08 foregrounds
+  as 'the actable result' while declining to quantify the sparse rate - zeros feel solid and get less
+  scrutiny.
+
+next command: continue at cadence.
