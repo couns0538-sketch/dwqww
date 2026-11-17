@@ -1,0 +1,25 @@
+PROCESS NOTE: which jobs committed a prediction BEFORE measuring, and which did not
+==================================================================================
+The brief requires a prediction, committed and pushed ALONE, before the first measuring command of a job.
+
+JOBS WITH A PREDICTION COMMITTED ALONE FIRST (verified by git log order — the prediction commit precedes the job's
+result commit):
+  job1 job2 job3 job4 job5 job6 job7 job8 job10 job11 job13 job16 job17 job18 job19 job20 job21 job22 job23
+  job24 job25 job26 job27 job28 job29 job30 job31 job33 job34 job35 job36 job37
+  (job14's is named prediction2.txt, committed alone at efdbdddba before its 30-position run)
+
+JOBS WITH **NO** PREDICTION: job9, job12, job15, job32.
+  job9  (guard depth range)      — I measured seat 01's board before committing a prediction. Its prediction was
+                                    written inside the job as `prediction.txt` only in the FIRST part of job9
+                                    (the S-F48 board); the second part (the S-F49 board) had none.
+  job12 (top-two gap predictor)  — no prediction committed before the measurement.
+  job15 (quiet+near-tied)        — no prediction committed before the measurement.
+  job32 (bare-king variants)     — no prediction committed before the measurement.
+
+WHAT THAT MEANS FOR THOSE FOUR: their RESULTS stand as measurements with raw files, but they are NOT pre-registered.
+A reader should treat any "prediction scored" claim about them as absent rather than favourable. I would rather state
+this than let a reader infer that every job was pre-registered because the folder is full of prediction files.
+
+WHY IT HAPPENED: those four were follow-ups I judged small enough to run inside an existing job's line of enquiry
+(job9 second half, and jobs 12/15/32 were continuations of 23-F27/F30/F74). That is an explanation, not a defence —
+the rule has no size exemption.
