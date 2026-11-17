@@ -32,17 +32,22 @@ hypothesis predicted the opposite direction. So:
   where four extra plies happen to find a mate that the clocked depth did not. The intuitive story (near-mate boards
   are the dangerous ones) is not what the measurement shows.
 
-## What the data DOES show, which is a different and useful fact
+## A separate fact: the two samples differ in COMPOSITION (not in cause)
 
 | sample | share of boards where a deep search finds a mate at all |
 |---|---|
 | seed 801 | **14 of 27 = 52 %** |
 | seed 902 | **4 of 29 = 14 %** |
 
-**My hand-selected sparse set was 52 % mate-bearing; the independent random-game set was 14 %.** So the two samples
-certainly differ in composition — my selection produced far more mate-bearing endgames — but that difference does
-NOT translate into the error rate, because within each sample the error is not concentrated on the mate-bearing
-boards. So the composition difference is real and the causal story I attached to it is wrong.
+**COMPOSITION, stated as composition:** my hand-selected sparse set was 52 % mate-bearing; the independent
+random-game set was 14 %. The two samples are built from different material and differ by nearly a factor of four in
+how often a mate exists at all. That is a property OF THE SAMPLES, and it is worth recording because anyone comparing
+their rate with mine needs to know the sets are not alike.
+
+It is NOT offered as the cause of the 37 % vs 10 % error gap, and the measurement above rules that reading out:
+within each sample the error is not concentrated on the mate-bearing boards (3 of 18 near-mate boards errored, 10 of
+38 others did). So: **composition difference is real; my causal story attached to it is wrong; the two are separate
+statements and I am not joining them.**
 
 ## What this leaves open, stated as open
 

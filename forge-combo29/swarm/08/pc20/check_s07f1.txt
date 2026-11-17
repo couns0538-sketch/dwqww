@@ -1,0 +1,19 @@
+## seat 07's 07-F1 on the PC build under PC20, Threads 1 — startpos (20 legal moves)
+
+| case | info depth lines | of those `nodes 0` | bestmove | info string |
+|---|---|---|---|---|
+| searchmoves with no legal root move (e2e5) | **8** | 8 | **0000** | info string searchmoves restriction has no legal root moves |
+| searchmoves garbage (a9a9) | **8** | 8 | **0000** | info string searchmoves restriction has no legal root moves |
+| searchmoves with NO depth limit | **64** | 64 | **0000** | info string searchmoves restriction has no legal root moves |
+| CONTROL: searchmoves naming a real move (e2e4) | **8** | 0 | **e2e4** | - |
+| CONTROL: no searchmoves at all | **8** | 0 | **d2d4** | - |
+
+## The claim, tested link by link
+
+| link | measured |
+|---|---|
+| `bestmove 0000` on a board WITH legal moves | **YES** (bestmove 0000) |
+| fabricated per-depth report | **8 info depth lines, 8 with `nodes 0`** for a depth-8 limit |
+| the engine also prints a diagnostic | **YES: info string searchmoves restriction has no legal root moves** |
+| CONTROL: a legal searchmoves does NOT do this | **PASS** (8 info lines, bestmove e2e4) |
+| CONTROL: an unrestricted search | **PASS** |
