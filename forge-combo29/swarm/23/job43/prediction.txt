@@ -1,0 +1,30 @@
+PREDICTION — SW-23 job 43 (does the short-PV / wrong-distance hazard also apply to LOSING mates, mate -N?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F88 and 23-F90 measured only WON mates (`mate N`, N > 0). A GUI that shows a user "mate in -3" carries exactly the
+same trust question, and the ply arithmetic is DIFFERENT: for `mate N > 0` the mating side moves last, so a complete
+line is 2N-1 plies; for `mate -N` the side to move is being mated, so the opponent delivers the mate on the opponent's
+Nth move and a complete line is 2N plies. If I had assumed 2N-1 for both I would have called every complete losing line
+"one ply short". That is the trap this job is designed to avoid.
+
+Boards (side to move is LOST, verified by the same replay machinery):
+  L1 `1K6/8/8/3R4/8/8/8/k7 b - - 0 1`   (black to move, K+R v K against it)
+  L2 `8/5K2/7Q/4k3/8/8/8/8 b - - 0 1`   (black to move, K+Q v K against it)
+Depths 8, 10, 12, 14, 16, base build and PC r15, Threads 1, Hash 16, OwnBook false, no PC20 switches. For every cell
+reporting `mate -N`: full PV, replay in python-chess from the SAME fen, and whether the final position is checkmate
+(with the side to move at that point having no legal move and being in check).
+
+Prediction (each with the range that kills it):
+  P1  THE ENGINE REPORTS A NEGATIVE MATE at some depth on each board (it should — the position is lost). KILLED if a
+      board never reports a mate score at any depth; that would mean the engine's losing-mate reporting is absent
+      where the win is trivially forced, which would itself be the finding.
+  P2  FOR A COMPLETE LOSING LINE, PV PLIES = 2N (not 2N-1).         KILLED if a replaying cell has plies != 2N.
+  P3  THE SAME FIRST-DEPTH HAZARD APPEARS: at the first depth reporting `mate -N`, the PV is shorter than 2N plies and
+      the replay does NOT end in mate; one depth later it does.       KILLED if the first-depth PV already completes
+      — in which case the hazard is specific to won mates and F88/F90 must be scoped that way.
+  P4  THE DISTANCE IS NOT REVISED for losing mates the way it was on W2: |N| does not change by more than 1 between
+      consecutive depths.                                            KILLED if it moves by 2 or more.
+
+If P2-P4 hold, F88/F90 get a scope statement instead of a silent generalisation: the hazard is the same shape on both
+signs, the arithmetic differs by one ply, and a verifier must use 2N-1 for wins and 2N for losses — which is exactly
+the kind of off-by-one that makes a correct engine look broken and vice versa.
