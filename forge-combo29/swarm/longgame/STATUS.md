@@ -136,6 +136,13 @@ public repetition key, so ten sites called the private one. Now confined to
 `scripts/chesskeys.py::repetition_key`, one documented call site, because a library change that
 broke it would otherwise break in ten places.
 
+**The gate now passes.** Annotations went 14 → 1 → 0 across three pushes; the survivor was
+`replay.load_jsonl()` opening `--bails` directly. `SonarCloud Code Analysis` reports **pass** on
+`e7c373ba0` and the PR's CI status is **SUCCESS**. That last fix also exposed a documented command
+that had never worked — `replay.py bailcheck --bails evidence/session.jsonl` pointed at a filename
+that does not exist because the evidence is gzipped — so the reproduce instructions are corrected
+rather than left as a command that fails on first use.
+
 **Nothing moved.** After all of it: `summary.py` output is **byte-identical to the pre-refactor
 baseline**, `test_parsers.py` 21/21 under both normal and `-O`, `reproduction_check.py` 232/232,
 `bail_predict.py` still 89/89 with zero false positives, and a full guarded `session` re-run
