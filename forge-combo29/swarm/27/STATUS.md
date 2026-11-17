@@ -1268,3 +1268,28 @@ it.**
 **Third time tonight a checker of mine reproduced the defect it was written to detect** (DTM solver's empty
 tables, output-collision detector's own filter, now this). Strongest available argument for testing a tool on a
 known-answer case rather than by reading it.
+
+## 2026-11-17T16:1xZ S-C122/123/124 — the histories are DISJOINT; the tool detects it after a bug on that exact path
+**Found the branch (my earlier check mis-typed it as absent): `origin/integrate/combo29-all` IS in my clone.
+And the provenance diagnosis is now confirmed with a HARDER FACT than "does not contain".**
+**S-C122: THE TWO HISTORIES ARE COMPLETELY DISJOINT - NO COMMON ANCESTOR AT ALL.**
+  branch tip 6020972d3 ; base 6b98f2170
+  commits the branch has that 6b98f217 lacks : **57**
+  commits 6b98f217 has that the branch lacks : **1** (6b98f217 itself)
+  **6b98f217 is a ROOT commit (0 parents); merge-base between them returns NOTHING.**
+**So "the branch does not contain the base" understates it: there is NO SHARED HISTORY, so every parser
+measurement taken on that binary describes an UNRELATED ENGINE, and no amount of re-running on it can converge on
+base behaviour.** That rules out re-measurement as a remedy entirely.
+My trees for contrast: worktree HEAD 6b98f217 (ancestor YES), build-release sha256 `e06310eca3...`,
+build-pc `068f092776...`.
+**S-C123: the tool now DISTINGUISHES "behind" from "disjoint"** - `merge-base` returns non-zero for both and they
+need different responses (a branch merely lacking a later commit can be rebased; two histories with no common
+ancestor cannot be reconciled by re-running anything). Prints divergence point + ahead/behind for the first,
+`** NO COMMON ANCESTOR **` with the consequence for the second.
+**S-C124: BUILDING THAT CONTROL FOUND A ONE-LINE BUG ON THE EXACT PATH THAT MATTERED.** `git()` returns
+`(returncode, stdout, stderr)`; I unpacked `mb, _out, _err`, putting the EXIT CODE into `mb`, and it crashed with
+`'int' object is not subscriptable` on the orphan-branch control - **the only code path handling an empty
+merge-base was the one never exercised until a real disjoint history was constructed.** Fixed.
+**FOURTH time tonight a checker of mine reproduced its own defect class, and the first where the bug lived in the
+branch written to handle the very condition the control creates.** Controls: real build 0; orphan repo 1 with the
+DISJOINT message; same orphan with the correct commit 0.
