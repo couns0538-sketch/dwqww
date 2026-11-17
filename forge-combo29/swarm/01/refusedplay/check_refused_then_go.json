@@ -1,0 +1,26 @@
+{
+ "first": {
+  "label": "first_legal",
+  "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  "got_readyok": true,
+  "bestmove": "c2c4",
+  "perft1": 20
+ },
+ "readyok_after_refusal": true,
+ "bestmove_after_refusal": "c2c4",
+ "perft1_after_refusal": 20,
+ "verdict": [
+  "",
+  "A. HANDSHAKE: a refused position returned readyok = True ",
+  "   -> so a GUI syncing on readyok is told the position was ACCEPTED. This is the dangerous half.",
+  "B. MOVE: c2c4, legal on the old board = True, legal on the intended board = False",
+  "   perft1 20 vs the old board's 20",
+  "   -> the engine is holding the OLD board (perft matches it exactly)",
+  "C. MY OWN GUARD: `board_matches` compares `go perft 1` against python-chess for the INTENDED board.",
+  "   Intended perft1 would be 51; the engine reports 20. The guard FIRES - it would have caught this.",
+  "",
+  "VERDICT: CONFIRMS 21-F2b. The refusal is silent at the UCI handshake level, the next search",
+  "  answers from the OLD board, and my documented guard catches it - which is why the guard is",
+  "  worth using rather than trusting readyok."
+ ]
+}

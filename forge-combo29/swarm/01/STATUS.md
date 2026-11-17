@@ -1232,3 +1232,12 @@ THE CHECKER NOW DOCUMENTS ITS OWN BOUNDARY, in the docstring AND in its output (
   The output now ends with: 'SCOPE: this checks ROW SHAPE and ID UNIQUENESS only... A clean run is not a correct document. For section order: grep -E ^## <file> and read the sequence.' So a reader of the result sees the boundary, not just the verdict.
   This is the same lesson as the two-guards page applied to a tool rather than a measurement: a passing check tells you what it checked and nothing more, and the honest tool says which of those it is.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+## 2026-11-17T00:28:17Z — 25-minute cadence
+SEAT 21's 21-F2b CONFIRMED, AND IT VALIDATES MY OWN GUARD FROM THE OTHER DIRECTION (S-C33, S-F94).
+  PC r15 + PC20 / Threads 1 / Hash 16, ONE process so state carries: a legal startpos, then a FEN the engine refuses (RNBQKBN1 w KQkq).
+  (A) THE REFUSAL RETURNED readyok - so a GUI syncing on the handshake is told the position was ACCEPTED. That is the dangerous half.
+  (B) The next go depth 6 answered c2c4, which is LEGAL on the old board and ILLEGAL on the intended one, and go perft 1 gave 20 = the old board's exact legal count where the intended board has 51. So the engine is provably holding the old board.
+  (C) MY OWN board_matches GUARD FIRES: it compares go perft 1 against python-chess for the intended board - 51 expected, 20 reported - so it would have caught exactly this.
+  THE LESSON, which sharpens my own page (S-F94): the dangerous half of the refused-FEN trap is the HANDSHAKE, not the stale board. A refused position still answers readyok, so every harness discipline of 'send isready and wait for readyok to know the position is set' is SATISFIED while the position was rejected. board_matches is the check that survives a lying handshake - and REFUSED_FEN_TRAP_AND_GUARD.md, which I wrote from a bug in my own harness, is now confirmed against a different seat's finding on the PC build.
+Next: continue confirming while the window runs to 2026-11-17T10:18Z.

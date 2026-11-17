@@ -1,0 +1,23 @@
+CHECK of seat 21's 21-F2b: after a REFUSED position fen, does go play the old game?
+exe_started: /home/ubuntu/builds/pc/forge
+sha256: 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4
+PC20, Threads 1, Hash 16, ONE process so state carries between commands (the point of the test)
+
+first_legal position: bestmove c2c4, perft1 20 (python-chess legal 20)
+AFTER the refused FEN:
+  readyok returned: True
+  next go bestmove: c2c4
+  perft1 after refusal: 20 (old board has 20 legal moves; the intended board has 51)
+  move legal on the OLD board: True ; legal on the INTENDED board: False
+
+A. HANDSHAKE: a refused position returned readyok = True 
+   -> so a GUI syncing on readyok is told the position was ACCEPTED. This is the dangerous half.
+B. MOVE: c2c4, legal on the old board = True, legal on the intended board = False
+   perft1 20 vs the old board's 20
+   -> the engine is holding the OLD board (perft matches it exactly)
+C. MY OWN GUARD: `board_matches` compares `go perft 1` against python-chess for the INTENDED board.
+   Intended perft1 would be 51; the engine reports 20. The guard FIRES - it would have caught this.
+
+VERDICT: CONFIRMS 21-F2b. The refusal is silent at the UCI handshake level, the next search
+  answers from the OLD board, and my documented guard catches it - which is why the guard is
+  worth using rather than trusting readyok.
