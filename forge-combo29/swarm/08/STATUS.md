@@ -615,3 +615,15 @@ next: cadence.
 Tally: 36 findings, 24 checks/audits/plants, 4 method lines, 1 withdrawal.
 
 next: cadence.
+
+## 2026-11-17T01:46Z
+- **08-C25: seat 03 S-F13 SUPPORTS — divergence is exclusive to lone-king roots.** Base vs PC r15, depth 8,
+  Threads 1, my R positions split by lone king at the root: **11 of 40 lone-king boards diverge, 0 of 60 outside**.
+  Every divergence is inside their corrected predicate and none of 60 is outside it — a rule holding at 100 %
+  outside its condition is stronger evidence than a rate inside it. Their counts (9/200, unstratified) and mine
+  (40/100, deliberately stratified) are NOT comparable in magnitude; what reproduces is the structural rule, and
+  the file says so. All 11 are K+material vs bare-king endings.
+
+Tally: 36 findings, 25 checks/audits/plants, 4 method lines, 1 withdrawal.
+
+next: cadence.
