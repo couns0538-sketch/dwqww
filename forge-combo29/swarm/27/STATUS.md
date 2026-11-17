@@ -984,3 +984,23 @@ the same rule as "a settings label must name the settings". No other seat needs 
 already-fixed `replicate_19c60.py`. **A detector wrong in both directions still passes its own controls,
 because the controls test only the shapes I thought of.** Caught by running it against the S-C80 bug
 reconstructed from memory - the known-answer rule again.
+
+## 2026-11-17T09:4xZ S-C84/85/86 — NEW DEFECT: an illegal FEN silently searches the PREVIOUS position
+**Third way this engine returns a well-formed answer that does not describe the position sent** (after
+`bestmove 0000` and empty `info depth`). Verified on BOTH builds:
+  position fen 8/8/8/8/8/8/1k6/K7 w - - 0 1   <- adjacent kings
+  -> info string invalid FEN: kings may not be adjacent
+  -> info depth 1..12, cp 1..30, pv e2e4 c7c5 g1f3..., bestmove e2e4
+**A legal bestmove, a plausible score, a full PV, correct node counts - and one `info string` line saying none
+of it is your position. `info string` is exactly the line class harnesses skip.**
+**WORSE THAN A STARTPOS FALLBACK: it is session-dependent.** Valid K+R v K (bestmove a1a8), then the illegal
+FEN -> **mate 1 / a1a8 again**, the PREVIOUS position. So a harness measuring 200 positions with one malformed
+FEN records a **duplicate row that looks like a genuine measurement**, with no startpos signature.
+**S-C85, HOW IT WAS FOUND - the reusable part:** I was testing whether `go depth 200` beats seat 23's
+`max_depth <= 64` clamp, using a near-empty board for speed. **Three different commands (`go depth 70`,
+`go depth 200`, `go infinite`) returned exactly 34 lines with identical timings.** Impossible for different
+limits - and the impossibility was the tell. **Rule: when two different limits give identical output, suspect
+the INPUT never arrived; a limit with no effect is more likely a refused position than a broken limit.**
+**S-C86: the FEN-validation guard I already had (S-C59) was SKIPPED for the third time** - my main harnesses
+validate, the ad-hoc probes did not. Third instance of "a guard you have to remember to run is not a guard".
+Fixes: validate before sending, AND read the reply for `invalid FEN` and abort.
