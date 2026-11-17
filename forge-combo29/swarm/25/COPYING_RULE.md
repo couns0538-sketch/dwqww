@@ -129,3 +129,10 @@ changed as intended". Exit status reports that a process finished, not that the 
 
 Prefer writing a small `.py` file and running it over an inline heredoc, for the same reason: the file is inspectable
 and re-runnable, where a heredoc is neither.
+
+**Why no mechanical guard catches this.** All three checkers built tonight (`compliance_check.sh`, `audit_final.py`,
+`final_selfcheck.py`) pass happily on a file whose intended edit never happened, because none of them knows what I
+*meant* to write. They check properties of the file as it stands - no binaries, no stale withdrawals, claims still
+reproduce - and an absent paragraph violates none of those. Only a content assertion ("this exact string must now be
+present") can catch a silent non-write, which is why the verification step has to name the string rather than inspect
+the file.
