@@ -211,9 +211,12 @@ unlikely, and its absence is one of the firmer facts here.
 1. **What was measured instead, and settles the question:** the threshold at the END of a LONG list — 10-ply preamble plus
    repetitions, searched position never the start position — gives **2 → searches (17,399 nodes), 3/4/5 → bails**
    (23-F141). So list length and root position are irrelevant; only the searched position's own count matters.
-2. **Distance axis:** still UNTESTED and still unbuildable with my fixtures (23-F120) — it needs a board admitting a
-   non-root 4-ply loop. If anybody tests it, the prediction to kill is: "the spacing of the three occurrences changes
-   nothing, because only the count matters" (23-F125/F140/F141).
+2. **Distance axis: UNTESTED, and now known to be structurally hard rather than merely under-resourced (23-F142).** A
+   board admitting a non-root loop is necessary but NOT sufficient: with one position anchoring both the count and the
+   spacing, `A + B + A` always yields FOUR occurrences rather than three, for all ten neutral fillers enumerated on a dense
+   middlegame board. Varying spacing while holding the count at three needs an anchor reachable by two paths of different
+   length — a different fixture design, not a busier board. If anybody builds it, the prediction to kill is: "the spacing
+   of the three occurrences changes nothing, because only the count matters" (23-F125/F140/F141).
 3. **The only live question for a source reader:** *why does the bail publish the generator's first move rather than
    searching?* §5 states it, and the discriminating observation from outside remains: a bailing root whose returned move
    is NOT the generator's first move would rule out the "early return publishes the head" shape. None of the nine bailing
