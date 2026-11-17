@@ -1635,3 +1635,13 @@ shape; (2) "the repair" wrong - it is the switches; (3) like-for-like now. Final
 property near the horizon, both builds exhibit it, the PC build's own value is slightly higher, and the reduction
 observed on the PC comes from PC20's search options, not from anything the patch repairs.
 110 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 11 m remain.
+## 2026-11-17T01:09:24Z  F82 led by the LIKE-FOR-LIKE row (PC 9 % HIGHER with no options) - conclusion first, correction history second
+2026-11-17T01:09:24Z
+
+F82's opening line is now: LIKE-FOR-LIKE (both builds, NO options) the PC build's peak is 9 % HIGHER than the base's -
+17,798,973 vs 16,370,887 at counter 91 depth 10 - so the drawn-root repair does not reduce this peak and may slightly
+raise it; the whole apparent "base 2x PC" difference was the PC20 OPTION SET (base+switches 13,791,896; PC+switches
+7,251,835). The three layers of correction follow as history, not as headline.
+Order for a multiply-corrected finding: conclusion first, path second, so a reader who reads one line gets the right
+statement.
+110 findings + 1 method finding (F83), 18 confirmations, thirteen named faults, six reference pages. 9 h 9 m remain.
