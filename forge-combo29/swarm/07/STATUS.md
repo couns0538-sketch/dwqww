@@ -1049,3 +1049,18 @@ raw_v2
 raw_v3
 stamps.txt
 ```
+
+## 2026-11-17T01:10:06Z — final consistency pass, and a wording error of mine found by it
+
+**Seat 19's fix-side result independently reproduced and extended (07-C80).** Board `6k1/5ppp/8/8/8/8/5PPP/R5K1 w` at counters 0/50/99: base and PC both `mate 1` (`a1a8`, 252 nodes). At counters **100/101/9999: base answers `cp 0` at 0 nodes with the quiet `f2f3`, throwing away a mate in one; PC plays the mate every time.** So the boundary is a hard step at exactly 100 and does not recover at 9,999. On two of their three boards the declared draw was hiding a **mate** — which prices the fix better than a rate: a rate says how often, this says the missed result was decisive.
+
+**A wording error of mine, found while checking their numbers: `python-chess`'s `is_fifty_moves()` returns TRUE on these boards.** Its body is only `halfmove_clock >= n and any(legal_moves)` — it does **not** test for a counter-resetting move. My 07-C75/C76 prose said it was False; the *scripts* used `is_fifty_moves() and not resets`, which is the correct condition, so **no measured number changes — only my sentence was wrong, which is the more dangerous case, because the data survives scrutiny and the prose does not.** All three places corrected; new header rule (23): read a library function's body before naming it as your evidence, and state the condition in full instead of naming something that approximates it.
+
+**Consistency pass over the record:** every headline number re-checked against its raw file programmatically (34/120 vs 120/120; 63 of 63 with 24 rows and zero complete≠delivered mismatches; 20 of 20 mechanical; 6 arms × 12 fabricated lines; base-only 3 arms not searched; self-play 1 vs 10; all eight pins). All **9 of 9** matched. Fixed 6 broken file citations and 3 rows whose unescaped `2|N|` broke table rendering. FINAL: 46 C-rows; FINDINGS: 87 rows, 23 header rules; both tables structurally clean.
+
+```
+$ git status --short
+ M FINAL.md
+ M FINDINGS.md
+ M STATUS.md
+```

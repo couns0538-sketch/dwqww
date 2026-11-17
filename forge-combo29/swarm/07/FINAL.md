@@ -81,6 +81,7 @@ false).
 | 07-C77 | **The two faults separate on the ship build: 07-F1's fabricated lines live on ALL SIX arms; 07-F3's fifty-move fault is BASE-ONLY and the PC build fixes it in all three regimes** | base + PC, 3 regimes × 2 faults |
 | 07-C78 | **My own live patch had the defect it was written to fix, in reduced form: v1 cut 64 fabricated lines to 1 but emitted that line at `depth 64` with `nodes 0`; v2 reports `depth 0`** (job73/raw_v2) | PC r15, 3 regimes, 7 zero-node paths |
 | 07-C79 | **v2 of my patch could not apply to a pristine tree (diffed against my working copy); v3 applies clean, and a from-scratch rebuild in a clean checkout is byte-identical** (job73/raw_v3) | clean PC r15 checkout, g++-13, 3 regimes |
+| 07-C80 | **Fix side confirmed with the exact boundary: base abandons a mate-1 from counter 100 onward (still wrong at 9,999), PC plays it at every counter; plus a wording correction on `is_fifty_moves()`** | base + PC, counters 0–9,999 |
 
 ---
 
@@ -100,8 +101,9 @@ Item 2 is a tuning observation whose strength question I did not measure.
    instead, that is a separate decision that must print that the restriction was ignored. **Note added
    later (07-C54, 07-C55): it is not a `searchmoves` defect at all** — every path that reports without
    searching emits a fabricated `score cp 0 nodes 0` line per depth. The shared-path patch
-   (`job73/07f1_shared_report_v3.patch.txt`) fixes all seven paths with one edit, all eight pins
-   unchanged, and **supersedes my own narrower `job2`/`job29` patches AND both earlier versions of
+   (`job73/07f1_shared_report_v3.patch.txt`) fixes all seven paths with one edit, **all eight pins
+   unchanged — the eight being none 312866 / 862329 / 3024920 / 4865609, S14 242796 / 656517, PC20
+   278024 / 587276**, and supersedes my own narrower `job2`/`job29` patches AND both earlier versions of
    this one** — v1 cut 64 fabricated lines to 1 but printed that line at `depth 64` for a bare
    `go searchmoves`, repeating the same lie once instead of 64 times (07-C78); v2 had the right
    content but was diffed against the already-patched tree, so it could not apply to a pristine one
@@ -123,7 +125,17 @@ Item 2 is a tuning observation whose strength question I did not measure.
    all 100 rows of the targeted set, exactly the 20 counter-100 roots answer with **0 nodes** while the 80
    counter-0 roots all search (8,066–113,601 nodes), and **python-chess says not one of those 20 is a
    genuine fifty-move draw** — every one has a capture or pawn move available (07-C76). That is
-   `nodes == 0` and `is_fifty_moves() == False`: no referee, no threshold. **The cost estimate (5 of 20
+   `nodes == 0` and `not (halfmove ≥ 100 and no reset available)`: no referee, no threshold. **One
+   wording correction worth stating plainly: `python-chess`'s `is_fifty_moves()` returns TRUE on these
+   boards** — it tests only `halfmove ≥ 100 and any(legal_moves)` and does not look for a
+   counter-resetting move, so the verdict needs the extra `and not resets` (07-C80). **And the fix side
+   is now measured too (07-C80), which is what actually prices the fix:** on
+   `6k1/5ppp/8/8/8/8/5PPP/R5K1 w` the base plays `a1a8` = `mate 1` at counters 0/50/99, then from
+   **counter 100 onward — including 9,999 — answers `cp 0` at 0 nodes with the quiet `f2f3`, throwing
+   away a mate in one**, while the PC build plays the mate at every counter. The boundary is a hard
+   step at exactly 100 and never recovers. On two of seat 19's three boards the declared draw was
+   hiding a **mate** — which states the fix's value better than any rate: a rate says how often, this
+   says the missed result was decisive. **The cost estimate (5 of 20
    decisive, 1 thrown-away win, 07-F4/07-C38/07-C39) is a separate and softer question** — it needs a
    depth-12 re-search as referee and was revised downward twice, so treat it as supporting colour rather
    than the claim.
@@ -175,7 +187,7 @@ scope that way will "find" a catastrophic breach in every seat, including innoce
 If that prints nothing, the seat committed only its own files. I ran exactly this on my own branch and
 it is empty, which is the claim worth quoting — not a file count.
 
-## The twenty-two standing rules, grouped by the question they answer
+## The twenty-three standing rules, grouped by the question they answer
 
 The FINDINGS header carries sixteen rules; the table there is ordered by when I learned them, which is
 the wrong order to read them in. Grouped by what they are for:
@@ -230,6 +242,13 @@ the wrong order to read them in. Grouped by what they are for:
 
 ### Can anyone re-check what I claimed?
 
+- **Before citing a library function as your evidence, read what it actually computes.** I said
+  `python-chess`'s `is_fifty_moves()` was False on the boards proving 07-F3, in two findings. It
+  returns **True** — its body is only `halfmove_clock >= n and any(legal_moves)`, with no test for a
+  counter-resetting move (07-C80). My numbers were right because my scripts used
+  `is_fifty_moves() and not resets`; **only my prose was wrong, which is the more dangerous case,
+  because the data survives scrutiny and the sentence does not.** State the condition in full rather
+  than naming a function that approximates it.
 - **A change is not verified until it is verified where the next person will apply it.** Both of my
   near-misses were "it worked where I built it": a patch whose switch defaulted to 0 (07-C74), and a
   patch diffed against my own already-patched tree so it could not apply to a pristine one
