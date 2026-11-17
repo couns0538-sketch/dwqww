@@ -490,6 +490,44 @@ property of the switch, not a defect of bench.**
 
 ---
 
+## 18. Mechanism intuition about the MEAN does not transfer to the VARIANCE (19-C60)
+
+> **A pooled effect size says nothing about the fraction of cases that share its sign. Report both, or say the
+> sign-share is unavailable.**
+
+**The case.** I predicted `TtPruneV2` would show the *least* per-position variance of the four PC20 switches
+(65–80 % sign agreement) because it is a **hard pruning gate** — a node is cut or not cut — not a statistical
+reweighting. It measured **60.8 %, p = 1.000**, the most consistent of four switches but far below my range.
+
+**The error in one line:** I confused **determinism of the mechanism with consistency of the effect.** The gate is
+deterministic *given a node*; but whether it fires **depends on the node**, and which nodes the search visits
+depends on the other switches. **Mechanism tells you what happens at a node. It tells you nothing about variance
+across nodes.**
+
+**All four switches, one table** — four genuinely different mechanisms, all indistinguishable from a coin flip at
+the per-position level:
+
+| switch | mechanism | pooled | sign-share | IQR/effect |
+|---|---|---|---|---|
+| TtPruneV2 | hard pruning gate | −4.7 % | 60.8 % | 9.8 |
+| CuckooRep | replacement policy | −0.9 % | 52.5 % | 28.4 |
+| CorrHistV2 | correction history | −5.2 % | 54.2 % | 7.9 |
+| HistRework | ordering weight | +3.1 % | 46.7 % | 16.6 |
+
+**The tell:** a claim of the form "this option saves X %" with **no sign-share beside it**. Ask for the share
+before believing the percentage.
+
+**The counter-examples that prove the test discriminates** — two claims in this record DO have high shares, so the
+requirement is not a demand that everything fail:
+- PC20 per-node cost: **90.0 %** of 180 pairs dearer
+- NNUE prefetch: **93.1 %** of 130 positions slower
+
+**Both are per-position facts. The three headline efficiency claims (12.4 % fewer nodes, 2.7 % faster, 5.2 %
+saving) are 60.5 %, 52.9 % and 54.2 % — session-level or coin flips.** No amount of pooled precision makes them
+per-position facts.
+
+---
+
 ## The single question that catches all eleven
 
 **What would this look like if it were an artifact of my harness rather than a property of the engine?**

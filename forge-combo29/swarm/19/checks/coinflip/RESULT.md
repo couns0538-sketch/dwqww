@@ -14,13 +14,25 @@ One switch at a time, all other PC20 options held constant, PC r15, Threads 1, H
 **Every switch behaves the same way: a pooled effect of 1–5 % sitting inside a per-position spread 8–28× its
 own size, with sign agreement between 46.7 % and 60.8 %.** No switch's per-position direction clears a sign test.
 
-## Both of my predictions failed
-1. I predicted **TtPruneV2 would be the least coin-flip-like (65–80 % sign agreement)** because it is a hard
-   pruning gate rather than a statistical reweighting. **Measured 60.8 % — the highest of the four, but far below
-   my range, and not significant.** The "hard gate ⇒ deterministic" intuition was wrong: whether a pruning gate
-   fires depends on the node, so it is position-dependent in exactly the same way.
+## Both of my predictions failed, and the TtPruneV2 failure is the instructive one
+1. **I predicted TtPruneV2 would be the least coin-flip-like (65–80 % sign agreement)**, reasoning that it is a
+   **hard pruning gate** — a node is cut or it is not — rather than a statistical reweighting like correction
+   history or a replacement policy. **Measured 60.8 %: the highest of the four, but far below my range, and
+   p = 1.000.**
+
+   **Why the reasoning failed, stated plainly:** I confused *determinism of the mechanism* with *consistency of
+   the effect*. The gate is deterministic **given a node** — the same node is always cut or not cut. But whether
+   the gate fires at all **depends on the node**, and which nodes a search visits depends on the tree the other
+   three switches shape. So a hard gate produces a **position-dependent** node saving in exactly the same way a
+   soft one does. **Mechanism tells you what happens at a node; it tells you nothing about the variance across
+   nodes.**
+
+   **This is the generalisable form: mechanism-based intuition about the MEAN can be sound while intuition about
+   the VARIANCE is worthless.** I reasoned correctly about what the switch does and incorrectly about how
+   consistently it does it. Variance has to be measured, not derived.
 2. I predicted CuckooRep/HistRework at 50–60 %. **Correct** (52.5 %, 46.7 %) — but that is the easy half of the
-   prediction and it rests on the same reasoning that failed for TtPruneV2.
+   prediction, and it rests on the same reasoning that failed for TtPruneV2. **The one prediction I got right does
+   not rescue the one I got wrong: I was right for the wrong reason.**
 
 ## The kill condition: it fired, and how I am treating it honestly
 I wrote before measuring: *"if ALL FOUR show < 60 % sign agreement, then coin flip is the general shape."*
