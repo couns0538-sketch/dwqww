@@ -1,0 +1,1331 @@
+diff -ruN r15e/include/forge/b4.hpp stack_p1/include/forge/b4.hpp
+--- a/include/forge/b4.hpp	2026-11-17 09:35:28.953143771 +0000
++++ b/include/forge/b4.hpp	2026-11-17 20:06:08.061143771 +0000
+@@ -37,20 +37,26 @@
+ };
+ 
+ [[nodiscard]] inline LesserThreats lesser_threats(const Board& board) {
+-    const Color them = opposite(board.side_to_move());
+-    const Bitboard occupancy = board.occupied();
++    const Color us = board.side_to_move();
++    const Color them = opposite(us);
+     const Bitboard by_pawn = pawn_attacks_bb(them, board.pieces(them, Pawn));
+-    Bitboard by_minor = by_pawn;
+-    for (Bitboard bb = board.pieces(them, Knight); bb != 0;) by_minor |= attacks::knight(pop_lsb(bb));
+-    for (Bitboard bb = board.pieces(them, Bishop); bb != 0;) by_minor |= attacks::bishop(pop_lsb(bb), occupancy);
+-    Bitboard by_rook = by_minor;
+-    for (Bitboard bb = board.pieces(them, Rook); bb != 0;) by_rook |= attacks::rook(pop_lsb(bb), occupancy);
+     LesserThreats threats;
+     threats.by_type[static_cast<std::size_t>(Pawn)] = by_pawn;
+     threats.by_type[static_cast<std::size_t>(Knight)] = by_pawn;
+     threats.by_type[static_cast<std::size_t>(Bishop)] = by_pawn;
+-    threats.by_type[static_cast<std::size_t>(Rook)] = by_minor;
+-    threats.by_type[static_cast<std::size_t>(Queen)] = by_rook;
++    const Bitboard us_queens = board.pieces(us, Queen);
++    if ((board.pieces(us, Rook) | us_queens) != 0) {
++        const Bitboard occupancy = board.occupied();
++        Bitboard by_minor = by_pawn;
++        for (Bitboard bb = board.pieces(them, Knight); bb != 0;) by_minor |= attacks::knight(pop_lsb(bb));
++        for (Bitboard bb = board.pieces(them, Bishop); bb != 0;) by_minor |= attacks::bishop(pop_lsb(bb), occupancy);
++        threats.by_type[static_cast<std::size_t>(Rook)] = by_minor;
++        if (us_queens != 0) {
++            Bitboard by_rook = by_minor;
++            for (Bitboard bb = board.pieces(them, Rook); bb != 0;) by_rook |= attacks::rook(pop_lsb(bb), occupancy);
++            threats.by_type[static_cast<std::size_t>(Queen)] = by_rook;
++        }
++    }
+     return threats;
+ }
+ 
+diff -ruN r15e/include/forge/board.hpp stack_p1/include/forge/board.hpp
+--- a/include/forge/board.hpp	2026-11-17 20:46:49.285143771 +0000
++++ b/include/forge/board.hpp	2026-11-17 20:06:59.589143771 +0000
+@@ -208,7 +208,8 @@
+     // double push next to an enemy pawn): then the caller prefetches after make_move.
+     [[nodiscard]] bool key_after(const Move& move, std::uint64_t& key) const;
+ #endif
+-    [[nodiscard]] bool make_move(const Move& move, Undo& undo, const std::uint64_t* precomputed_key = nullptr);
++    [[nodiscard]] bool make_move(const Move& move, Undo& undo, const std::uint64_t* precomputed_key = nullptr,
++                                 int known_gives_check = -1);
+     void unmake_move(const Move& move, const Undo& undo);
+     void make_null_move(NullUndo& undo);
+     void unmake_null_move(const NullUndo& undo);
+@@ -221,6 +222,10 @@
+     [[nodiscard]] Bitboard checkers() const { return checkers_; }
+ #if FORGE_SPD_KING_LINES
+     [[nodiscard]] const KingLines& cached_king_lines() const { return king_lines_; }
++    const KingLines& ensure_king_lines() const {
++        if (!king_lines_.valid) refresh_king_lines();
++        return king_lines_;
++    }
+ #endif
+ 
+     [[nodiscard]] std::optional<Move> parse_uci(std::string_view text);
+@@ -330,7 +335,7 @@
+ inline bool Board::is_legal(const Move& move) const {
+ #if FORGE_SPD_KING_LINES
+     const Piece moving = squares_[move.from];
+-    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {
++    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && moving != WK && moving != BK) {
+         if (!king_lines_.valid) refresh_king_lines();
+         const int king = king_squares_[static_cast<std::size_t>(side_)];
+         return (king_lines_.pinned & square_bb(move.from)) == 0 || attacks::aligned(king, move.from, move.to);
+diff -ruN r15e/include/forge/eval.hpp stack_p1/include/forge/eval.hpp
+--- a/include/forge/eval.hpp	2026-11-17 09:35:28.953143771 +0000
++++ b/include/forge/eval.hpp	2026-11-17 20:06:08.061143771 +0000
+@@ -51,6 +51,9 @@
+ // king score 0; king, bishop and knight versus king scores a corner drive.
+ // Returns false for every other position and leaves `score` untouched.
+ [[nodiscard]] bool dead_material_score(const Board& board, int& score);
++[[nodiscard]] inline bool has_dead_material_candidates(const Board& board) noexcept {
++    return (board.pieces(Pawn) | board.pieces(Rook) | board.pieces(Queen)) == 0;
++}
+ 
+ class Evaluator {
+ public:
+diff -ruN r15e/include/forge/nnue_v3.hpp stack_p1/include/forge/nnue_v3.hpp
+--- a/include/forge/nnue_v3.hpp	2026-11-17 20:46:49.277143771 +0000
++++ b/include/forge/nnue_v3.hpp	2026-11-17 20:06:08.061143771 +0000
+@@ -173,7 +173,13 @@
+ [[nodiscard]] bool kernel_available(Kernel kernel);
+ 
+ // ---- feature set ----
+-[[nodiscard]] KingKey king_key(const Net& net, Color perspective, int king_square);
++[[nodiscard]] inline KingKey king_key(const Net& net, Color perspective, int king_square) noexcept {
++    const int kr = perspective == White ? king_square : king_square ^ 56;
++    return KingKey{
++        net.king_map[static_cast<std::size_t>(kr)],
++        static_cast<std::uint8_t>((net.mirror && (kr & 7) >= 4) ? 7 : 0),
++    };
++}
+ [[nodiscard]] int feature_index(KingKey key, Color perspective, Piece piece, int square);
+ [[nodiscard]] int output_bucket(const Net& net, const Board& board);
+ [[nodiscard]] inline const std::int16_t* column(const Net& net, int feature) {
+diff -ruN r15e/include/forge/search.hpp stack_p1/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-17 20:46:49.281143771 +0000
++++ b/include/forge/search.hpp	2026-11-17 20:07:24.129143771 +0000
+@@ -139,9 +139,9 @@
+     bool hit = false;
+ private:
+     friend class TranspositionTable;
++    std::uint8_t slot_ = 0;
+     const TranspositionTable* owner_ = nullptr;
+     std::size_t cluster_ = 0;
+-    std::uint8_t slot_ = 0;
+     std::uint64_t epoch_ = 0;
+     std::uint64_t key_ = 0;
+ };
+@@ -452,8 +452,9 @@
+     bool entered_null = false;
+     bool diff_known = false;
+     mutable std::array<std::uint16_t, 2> corr_np_idx{};
+-    mutable std::uint64_t corr_mat_mix = 0;
++    mutable std::uint16_t corr_mat_idx = 0;
+     mutable std::uint8_t corr_valid = 0;
++    mutable std::uint64_t corr_mat_mix = 0;
+ };
+ 
+ // State shared by every worker of one Searcher.
+@@ -564,9 +565,34 @@
+     std::unique_ptr<LesserThreatHistory> rework_history_;          // HistRework
+     std::unique_ptr<CorrectionHistory> joint_correction_;          // HistRework
+     std::unique_ptr<ContinuationCorrection> continuation_correction_;  // CorrHistV2
+-    std::array<b4::LesserThreats, MaxPly + 8> threat_maps_{};      // HistRework: maps of the node at each ply
++    mutable std::array<b4::LesserThreats, MaxPly + 8> threat_maps_{}; // HistRework: maps of the node at each ply
++    mutable std::array<std::uint8_t, MaxPly + 8> threat_map_ready_{};
+     mutable MoveList picker_scratch_;
+     mutable MoveList evasion_scratch_;
++
++    [[nodiscard]] const b4::LesserThreats& ensure_threat_map(const Board& board, int ply) const {
++        const auto idx = static_cast<std::size_t>(ply);
++        if (threat_map_ready_[idx] == 0U) {
++            threat_maps_[idx] = b4::lesser_threats(board);
++            threat_map_ready_[idx] = 1U;
++        }
++        return threat_maps_[idx];
++    }
++    [[nodiscard]] Bitboard threat_set_for_piece(const Board& board, int ply, int pt) const {
++        if (pt == King || pt == NoPieceType) return 0ULL;
++        const auto idx = static_cast<std::size_t>(ply);
++        if (threat_map_ready_[idx] != 0U) return threat_maps_[idx].by_type[static_cast<std::size_t>(pt)];
++        if (pt <= Bishop) {
++            const Color them = opposite(board.side_to_move());
++            return pawn_attacks_bb(them, board.pieces(them, Pawn));
++        }
++        return ensure_threat_map(board, ply).by_type[static_cast<std::size_t>(pt)];
++    }
++    bool nnue_active_ = false;
++    bool fast_single_node_stop_ = false;
++#if FORGE_NNUE_V3
++    const nnue::v3::Net* v3_active_net_ = nullptr;
++#endif
+     bool tt_prune_v2_ = false;                                     // TtPruneV2: this search's snapshot
+ 
+ #if FORGE_SPD_TT_NOTLS
+@@ -621,6 +647,15 @@
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+     void record_null_move(SearchStack* ss);
+     void prefetch_correction(const Board& board, const SearchStack* child) const;
++    [[gnu::always_inline]] bool check_node_or_periodic_stop() {
++        if (fast_single_node_stop_) {
++            if (local_nodes_ < node_limit_ && (local_nodes_ & 1023U) != 0) {
++                return shared_.stop.load(std::memory_order_relaxed);
++            }
++            return should_stop();
++        }
++        return ((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop();
++    }
+ };
+ 
+ // Public search facade: a shared transposition table plus one or more workers.
+diff -ruN r15e/src/board.cpp stack_p1/src/board.cpp
+--- a/src/board.cpp	2026-11-17 20:46:49.289143771 +0000
++++ b/src/board.cpp	2026-11-17 20:07:02.513143771 +0000
+@@ -2,6 +2,7 @@
+ 
+ #include <algorithm>
+ #include <array>
++#include <cassert>
+ #include <cctype>
+ #include <cstdlib>
+ #include <sstream>
+@@ -833,7 +834,8 @@
+     }
+ 
+     const Bitboard occ_no_king = occ & ~square_bb(king);
+-    for (Bitboard b = attacks::king(king) & ~own; b != 0;) {
++    const Bitboard taboo = pawn_attacks_bb(them, pieces(them, Pawn)) | attacks::king(king_square(them));
++    for (Bitboard b = attacks::king(king) & ~own & ~taboo; b != 0;) {
+         const int to = pop_lsb(b);
+         const Bitboard to_bb = square_bb(to);
+         if (!square_attacked_with_occupancy(to, them, occ_no_king | to_bb, to_bb & enemy)) {
+@@ -850,14 +852,21 @@
+         const Bitboard us_occ = occupied(us);
+         const Bitboard them_occ = occupied(them);
+         const int ksq = king_square(us);
++        const Bitboard k_rays = attacks::rook_ray(ksq) | attacks::bishop_ray(ksq);
++        const Bitboard safe_pawns = pieces(us, Pawn) & ~k_rays;
++        if (((pawn_push(us, safe_pawns) & ~occ) | (pawn_attacks_bb(us, safe_pawns) & them_occ)) != 0) {
++            return true;
++        }
++        const Bitboard enemy_rq = pieces(them, Rook) | pieces(them, Queen);
++        const Bitboard enemy_bq = pieces(them, Bishop) | pieces(them, Queen);
+ #if FORGE_SPD_KING_LINES
+         const Bitboard pinned = king_lines_.valid
+             ? king_lines_.pinned
+-            : (single_blockers(ksq, pieces(them, Rook) | pieces(them, Queen),
+-                               pieces(them, Bishop) | pieces(them, Queen), occ) & us_occ);
++            : ((((attacks::rook_ray(ksq) & enemy_rq) | (attacks::bishop_ray(ksq) & enemy_bq)) == 0)
++                   ? Bitboard{0}
++                   : (single_blockers(ksq, enemy_rq, enemy_bq, occ) & us_occ));
+ #else
+-        const Bitboard pinned = single_blockers(ksq, pieces(them, Rook) | pieces(them, Queen),
+-                                                pieces(them, Bishop) | pieces(them, Queen), occ) & us_occ;
++        const Bitboard pinned = single_blockers(ksq, enemy_rq, enemy_bq, occ) & us_occ;
+ #endif
+         const Bitboard unpinned_pawns = pieces(us, Pawn) & ~pinned;
+         if ((pawn_push(us, unpinned_pawns) & ~occ) != 0) return true;
+@@ -895,7 +904,7 @@
+     // Not in check, not en passant, not a king move: the own king can only
+     // become attacked when a pinned piece leaves the line to its pinner. A
+     // capture keeps its target square occupied, so it never opens a line.
+-    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {
++    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && moving != WK && moving != BK) {
+         if (!king_lines_.valid) refresh_king_lines();
+         return (king_lines_.pinned & square_bb(move.from)) == 0 ||
+                attacks::aligned(king_square(us), move.from, move.to);
+@@ -1156,7 +1165,7 @@
+ }
+ #endif
+ 
+-bool Board::make_move(const Move& move, Undo& undo, const std::uint64_t* precomputed_key) {
++bool Board::make_move(const Move& move, Undo& undo, const std::uint64_t* precomputed_key, int known_gives_check) {
+     const Color us = side_;
+     const Color them = opposite(us);
+     const Piece moving = squares_[move.from];
+@@ -1174,6 +1183,12 @@
+     else undo.king_lines.valid = false;
+ #endif
+ 
++#ifndef NDEBUG
++    std::uint64_t dbg_key = key_;
++    if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
++        dbg_key ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
++    }
++#endif
+     if (precomputed_key == nullptr && ep_square_ >= 0 && has_legal_en_passant_capture()) {
+         key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+     }
+@@ -1183,16 +1198,25 @@
+     if ((move.flags & EnPassant) != 0U) {
+         const int captured_square = move.to - pawn_push_delta(us);
+         undo.captured = squares_[static_cast<std::size_t>(captured_square)];
++#ifndef NDEBUG
++        dbg_key ^= piece_key(captured_square, undo.captured);
++#endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(captured_square, undo.captured);
+         pawn_key_ ^= piece_key(captured_square, undo.captured);
+         remove_piece(captured_square);
+     } else if (undo.captured != Empty) {
++#ifndef NDEBUG
++        dbg_key ^= piece_key(move.to, undo.captured);
++#endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(move.to, undo.captured);
+         if (piece_type(undo.captured) == Pawn) pawn_key_ ^= piece_key(move.to, undo.captured);
+         remove_piece(move.to);
+     }
+     if (undo.captured != Empty || piece_type(moving) == Pawn) halfmove_ = 0;
+ 
++#ifndef NDEBUG
++    dbg_key ^= piece_key(move.from, moving);
++#endif
+     if (precomputed_key == nullptr) key_ ^= piece_key(move.from, moving);
+     if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.from, moving);
+     move_piece(move.from, move.to);
+@@ -1200,8 +1224,14 @@
+         const Piece promoted = make_piece(us, move.promotion);
+         remove_piece(move.to);
+         put_piece(promoted, move.to);
++#ifndef NDEBUG
++        dbg_key ^= piece_key(move.to, promoted);
++#endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(move.to, promoted);
+     } else {
++#ifndef NDEBUG
++        dbg_key ^= piece_key(move.to, moving);
++#endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(move.to, moving);
+         if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.to, moving);
+     }
+@@ -1212,16 +1242,29 @@
+         const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
+         const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+         const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
++#ifndef NDEBUG
++        dbg_key ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
++#endif
+         if (precomputed_key == nullptr) key_ ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
+         move_piece(rook_from, rook_to);
+     }
+ 
++#ifndef NDEBUG
++    dbg_key ^= Z.castling[castling_];
++#endif
+     if (precomputed_key != nullptr) {
+         castling_ &= static_cast<std::uint8_t>(CastlingMasks[move.from] & CastlingMasks[move.to]);
+         if ((move.flags & DoublePush) != 0U) ep_square_ = static_cast<std::int8_t>((move.from + move.to) / 2);
+         if (us == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));
+         side_ = them;
+         key_ = *precomputed_key;
++#ifndef NDEBUG
++        dbg_key ^= Z.castling[castling_] ^ Z.side;
++        if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
++            dbg_key ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
++        }
++        assert(key_ == dbg_key);
++#endif
+     } else {
+         key_ ^= Z.castling[castling_];
+         castling_ &= static_cast<std::uint8_t>(CastlingMasks[move.from] & CastlingMasks[move.to]);
+@@ -1237,14 +1280,19 @@
+     }
+     // Checkers are the mover's attacks on the opponent king. One side only:
+     // the other colour cannot be the checker, so it is not consulted.
+-    const int their_king = king_square(them);
+-    const Bitboard occ_now = occupied();
+-    const Bitboard our_queens = pieces(us, Queen);
+-    checkers_ = (attacks::pawn(them, their_king) & pieces(us, Pawn)) |
+-                (attacks::knight(their_king) & pieces(us, Knight)) |
+-                (attacks::king(their_king) & pieces(us, King)) |
+-                (attacks::bishop(their_king, occ_now) & (pieces(us, Bishop) | our_queens)) |
+-                (attacks::rook(their_king, occ_now) & (pieces(us, Rook) | our_queens));
++    if (known_gives_check == 0) {
++        checkers_ = 0;
++        assert(compute_checkers() == 0);
++    } else {
++        const int their_king = king_square(them);
++        const Bitboard occ_now = occupied();
++        const Bitboard our_queens = pieces(us, Queen);
++        checkers_ = (attacks::pawn(them, their_king) & pieces(us, Pawn)) |
++                    (attacks::knight(their_king) & pieces(us, Knight)) |
++                    (attacks::king(their_king) & pieces(us, King)) |
++                    (attacks::bishop(their_king, occ_now) & (pieces(us, Bishop) | our_queens)) |
++                    (attacks::rook(their_king, occ_now) & (pieces(us, Rook) | our_queens));
++    }
+     plies_from_null_ = static_cast<std::uint16_t>(std::min<int>(plies_from_null_ + 1, 1024));
+     key_history_.push_back(key_);
+ #if FORGE_SPD_KING_LINES
+@@ -1469,24 +1517,18 @@
+ 
+     Bitboard occupancy = (occupied() ^ square_bb(from) ^ square_bb(captured_square)) | square_bb(to);
+     const Color them = opposite(us);
+-    if (SeeValue[Pawn] - swap < 0) {
+-        const Bitboard live0 = occupancy & ~square_bb(to);
+-        if ((attacks::pawn(us, to) & pieces(them, Pawn) & live0) != 0) {
+-            const int ek = king_square(them);
+-            const Bitboard our_q = pieces(us, Queen);
+-            const Bitboard contact_them = ((attacks::pawn(them, ek) & pieces(us, Pawn)) |
+-                                           (attacks::knight(ek) & pieces(us, Knight)) |
+-                                           (attacks::king(ek) & pieces(us, King))) & live0;
+-            const Bitboard snipers_them = ((attacks::bishop_ray(ek) & (pieces(us, Bishop) | our_q)) |
+-                                           (attacks::rook_ray(ek) & (pieces(us, Rook) | our_q))) & live0;
+-            if ((contact_them | snipers_them) == 0) return false;
+-        }
+-    }
+-    Color stm = us;
+-    Bitboard attackers = attackers_to_fast(*this, to, occupancy);
++    const Bitboard live0 = occupancy & ~square_bb(to);
++    const Bitboard them_live = occupied(them) & live0;
+     const Bitboard diagonals = pieces(Bishop) | pieces(Queen);
+     const Bitboard lines = pieces(Rook) | pieces(Queen);
+-    int result = 1;
++    const Bitboard them_pawns_atk = attacks::pawn(us, to) & pieces(them, Pawn) & live0;
++    const Bitboard them_contact = them_pawns_atk |
++                                  (((attacks::knight(to) & pieces(them, Knight)) |
++                                    (attacks::king(to) & pieces(them, King))) & live0);
++    const Bitboard them_ray_sliders =
++        ((attacks::bishop_ray(to) & diagonals) | (attacks::rook_ray(to) & lines)) & them_live;
++    if ((them_contact | them_ray_sliders) == 0) return true;
++
+ #if FORGE_SDK_SEE_HOIST
+     // Per side, once per call and only when first needed: the enemy pieces that touch its king (pawn, knight,
+     // king contact) and the enemy sliders on its king's empty-board lines. The pieces do not move during the
+@@ -1494,7 +1536,41 @@
+     std::array<Bitboard, 2> contact{};
+     std::array<Bitboard, 2> snipers{};
+     unsigned prepared = 0;
++    if (them_pawns_atk != 0 && SeeValue[Pawn] - swap < 0) {
++        const std::size_t them_idx = static_cast<std::size_t>(them);
++        const int ek = king_square(them);
++        const Bitboard our_q = pieces(us, Queen);
++        contact[them_idx] = (attacks::pawn(them, ek) & pieces(us, Pawn)) |
++                            (attacks::knight(ek) & pieces(us, Knight)) |
++                            (attacks::king(ek) & pieces(us, King));
++        snipers[them_idx] = (attacks::bishop_ray(ek) & (pieces(us, Bishop) | our_q)) |
++                            (attacks::rook_ray(ek) & (pieces(us, Rook) | our_q));
++        prepared |= 1U << them_idx;
++        if (((contact[them_idx] | snipers[them_idx]) & live0) == 0) return false;
++    }
++#else
++    if (them_pawns_atk != 0 && SeeValue[Pawn] - swap < 0) {
++        const int ek = king_square(them);
++        const Bitboard our_q = pieces(us, Queen);
++        const Bitboard contact_them = ((attacks::pawn(them, ek) & pieces(us, Pawn)) |
++                                       (attacks::knight(ek) & pieces(us, Knight)) |
++                                       (attacks::king(ek) & pieces(us, King))) & live0;
++        const Bitboard snipers_them = ((attacks::bishop_ray(ek) & (pieces(us, Bishop) | our_q)) |
++                                       (attacks::rook_ray(ek) & (pieces(us, Rook) | our_q))) & live0;
++        if ((contact_them | snipers_them) == 0) return false;
++    }
+ #endif
++
++    const Bitboard b_atk = attacks::bishop(to, occupancy) & diagonals;
++    const Bitboard r_atk = attacks::rook(to, occupancy) & lines;
++    if ((them_contact | ((b_atk | r_atk) & them_live)) == 0) return true;
++
++    const Bitboard us_contact = (attacks::pawn(them, to) & pieces(us, Pawn)) |
++                                (attacks::knight(to) & pieces(us, Knight)) |
++                                (attacks::king(to) & pieces(us, King));
++    Color stm = us;
++    Bitboard attackers = them_contact | us_contact | b_atk | r_atk;
++    int result = 1;
+     while (true) {
+         stm = opposite(stm);
+         attackers &= occupancy;
+diff -ruN r15e/src/nnue_v3.cpp stack_p1/src/nnue_v3.cpp
+--- a/src/nnue_v3.cpp	2026-11-17 20:46:49.277143771 +0000
++++ b/src/nnue_v3.cpp	2026-11-17 20:06:08.061143771 +0000
+@@ -696,14 +696,6 @@
+ 
+ void set_problem(const std::string& text) { g_problem = text; }
+ 
+-KingKey king_key(const Net& net, Color perspective, int king_square) {
+-    const int kr = perspective == White ? king_square : king_square ^ 56;
+-    KingKey key;
+-    key.bucket = net.king_map[static_cast<std::size_t>(kr)];
+-    key.flip = (net.mirror && (kr & 7) >= 4) ? 7 : 0;
+-    return key;
+-}
+-
+ int feature_index(KingKey key, Color perspective, Piece piece, int square) {
+     const int relative_color = color_of(piece) == perspective ? 0 : 1;
+     const int type = piece_type(piece) - 1;
+@@ -822,9 +814,15 @@
+ 
+ void prepare(const Net& net, WorkerState& state, int stack_size) {
+     if (state.generation == net.generation && state.stack.size() == static_cast<std::size_t>(stack_size)) return;
+-    state.stack.assign(static_cast<std::size_t>(stack_size), Accumulator{});
+-    state.valid_flags.assign(static_cast<std::size_t>(stack_size), static_cast<std::uint8_t>(0));
+-    state.cache.entries.assign(static_cast<std::size_t>(2 * net.king_buckets * 2), RefreshCache::Entry{});
++    const std::size_t sz = static_cast<std::size_t>(stack_size);
++    state.stack.resize(sz);
++    for (Accumulator& acc : state.stack) {
++        acc.keys = {};
++        acc.king_sq = {};
++        acc.valid = false;
++    }
++    state.valid_flags.assign(sz, static_cast<std::uint8_t>(0));
++    state.cache.entries.resize(static_cast<std::size_t>(2 * net.king_buckets * 2));
+     for (RefreshCache::Entry& entry : state.cache.entries) {
+         // An entry starts as the empty board: bias only, no pieces.
+         std::copy_n(net.b1.data(), net.hidden, entry.values.data());
+diff -ruN r15e/src/search.cpp stack_p1/src/search.cpp
+--- a/src/search.cpp	2026-11-17 20:46:49.329143771 +0000
++++ b/src/search.cpp	2026-11-17 20:07:36.249143771 +0000
+@@ -467,25 +467,34 @@
+ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
+     TTCluster& cluster = cluster_for(key);
+     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+-    // Owner calls (TakeLock false) skip lock_stripe: under the lease it only hands
+-    // back a deferred (unlocked) lock, after a thread_local lookup per call.
+-    std::unique_lock<std::mutex> lock;
+-    if constexpr (TakeLock) lock = lock_stripe(index);
++    struct EmptyLock {};
++    [[maybe_unused]] const auto lock = [&] {
++        if constexpr (TakeLock) return lock_stripe(index);
++        else return EmptyLock{};
++    }();
+     const std::uint32_t key32 = verification_key(key);
+     const std::uint8_t generation = generation_;
+-    auto snapshot = [&](const TTEntry& entry, bool hit) {
++    auto hit_snapshot = [&](const TTEntry& entry) {
+         TTProbe result;
+         result.entry = entry;
+-        result.hit = hit;
++        result.hit = true;
++        result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());
++        result.owner_ = this;
++        result.cluster_ = index;
++        result.epoch_ = epoch_;
++        result.key_ = key;
++        return result;
++    };
++    auto miss_snapshot = [&](std::uint8_t slot) {
++        TTProbe result;
++        result.hit = false;
++        result.slot_ = slot;
+         result.owner_ = this;
+         result.cluster_ = index;
+-        result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());
+         result.epoch_ = epoch_;
+         result.key_ = key;
+         return result;
+     };
+-    // Four slots. Keep this a short loop: fully unrolling the replacement
+-    // choice spilled registers and made the probe slower.
+     TTEntry* found = nullptr;
+ #pragma GCC unroll 1
+     for (TTEntry& entry : cluster.entries) {
+@@ -504,15 +513,14 @@
+             found->gen_bound = static_cast<std::uint8_t>(
+                 (static_cast<unsigned>(generation) << 3U) | (found->gen_bound & 7U));
+         }
+-        return snapshot(*found, true);
++        return hit_snapshot(*found);
+     }
+     TTEntry* replace = &cluster.entries[0];
+-    int replace_score = replace->occupied()
+-                            ? replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U)
+-                            : 0;
+-#pragma GCC unroll 1
+-    for (TTEntry& entry : cluster.entries) {
+-        if (!entry.occupied()) return snapshot(entry, false);
++    if (!replace->occupied()) return miss_snapshot(0);
++    int replace_score = replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U);
++    for (std::size_t s = 1; s < 4; ++s) {
++        TTEntry& entry = cluster.entries[s];
++        if (!entry.occupied()) return miss_snapshot(static_cast<std::uint8_t>(s));
+         const int age = static_cast<int>((32U + generation - entry.generation()) & 31U);
+         const int score = entry.depth - 4 * age;
+         if (score < replace_score) {
+@@ -520,7 +528,7 @@
+             replace_score = score;
+         }
+     }
+-    return snapshot(*replace, false);
++    return miss_snapshot(static_cast<std::uint8_t>(replace - cluster.entries.data()));
+ }
+ 
+ TTProbe TranspositionTable::probe(std::uint64_t key) const { return probe_body<true>(key); }
+@@ -537,7 +545,11 @@
+     // Lifecycle operations themselves must not run concurrently with search.
+     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
+         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
+-    const auto lock = TakeLock ? lock_stripe(probe.cluster_) : std::unique_lock<std::mutex>();
++    struct EmptyLock {};
++    [[maybe_unused]] const auto lock = [&] {
++        if constexpr (TakeLock) return lock_stripe(probe.cluster_);
++        else return EmptyLock{};
++    }();
+     TTCluster& cluster = clusters_[probe.cluster_];
+     const std::uint32_t key32 = verification_key(key);
+     // Probe records a slot before the subtree runs. Another store can place this
+@@ -760,9 +772,27 @@
+                         if (move == tt_move_ || move == killers_[0] || move == killers_[1] || move == counter_) continue;
+                         // A closed tail keeps quiet checks, including discovered checks.
+                         if (quiet_tail_closed_ && !board_.gives_check(move)) continue;
++#if FORGE_SPD_KING_LINES
++                        if (move.from == own_king_sq_) {
++                            if (!board_.is_legal(move)) continue;
++                        } else if (((pinned_ >> move.from) & 1ULL) != 0 &&
++                                   !attacks::aligned(own_king_sq_, move.from, move.to)) {
++                            continue;
++                        }
++#else
++                        if (!board_.is_legal(move)) continue;
++#endif
+                         const int pt = piece_type(board_.piece_at(move.from));
+-                        last_quiet_history_ = picked.score -
+-                            ((check_squares_[static_cast<std::size_t>(pt)] & square_bb(move.to)) != 0 ? 12000 : 0);
++                        const bool direct_chk = (check_squares_[static_cast<std::size_t>(pt)] & square_bb(move.to)) != 0;
++                        last_quiet_history_ = picked.score - (direct_chk ? 12000 : 0);
++#if FORGE_SPD_KING_LINES
++                        last_quiet_gives_check_ = direct_chk ||
++                            (move.is_castle() ? board_.gives_check(move)
++                                              : (((discoverers_ >> move.from) & 1ULL) != 0 &&
++                                                 !attacks::aligned(enemy_king_sq_, move.from, move.to)));
++#else
++                        last_quiet_gives_check_ = board_.gives_check(move);
++#endif
+                         return move;
+                     }
+                 }
+@@ -807,8 +837,10 @@
+     // Valid for the move just returned by next(), until the next next() call.
+     // Only Main/GoodCaptures returns after a successful SEE >= 0 test.
+     [[nodiscard]] bool last_move_see_nonnegative() const { return stage_ == GoodCaptures; }
+-    // Every move yielded from the Evasions stage (not EvasionTT) was produced by Board::generate_legal_evasions.
+-    [[nodiscard]] bool last_move_known_legal() const { return stage_ == Evasions; }
++    // Every move yielded from Evasions or QuietMoves has already passed full legality checking.
++    [[nodiscard]] bool last_move_known_legal() const { return stage_ == Evasions || stage_ == QuietMoves; }
++    [[nodiscard]] bool has_cached_gives_check() const { return stage_ == QuietMoves; }
++    [[nodiscard]] bool cached_gives_check() const { return last_quiet_gives_check_; }
+     [[nodiscard]] bool has_cached_quiet_history(std::uint64_t current_epoch) const {
+         return stage_ == QuietMoves && current_epoch == quiet_gen_epoch_;
+     }
+@@ -864,8 +896,15 @@
+     std::size_t list_start_ = 0;
+     bool sorted_ = false;
+     bool quiet_tail_closed_ = false;
++    bool last_quiet_gives_check_ = false;
+     std::uint64_t quiet_gen_epoch_ = 0;
+     int last_quiet_history_ = 0;
++#if FORGE_SPD_KING_LINES
++    Bitboard pinned_ = 0;
++    Bitboard discoverers_ = 0;
++    int own_king_sq_ = -1;
++    int enemy_king_sq_ = -1;
++#endif
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+     std::array<Bitboard, 7> check_squares_;
+ #else
+@@ -875,11 +914,14 @@
+     // Quiet/evasion generation are mutually exclusive stages, each reached at most once.
+     void init_check_squares() {
+ #if FORGE_SPD_KING_LINES
+-        if (board_.cached_king_lines().valid) {
+-            check_squares_ = board_.cached_king_lines().check_squares;
+-            return;
+-        }
+-#endif
++        const KingLines& kl = board_.ensure_king_lines();
++        check_squares_ = kl.check_squares;
++        pinned_ = kl.pinned;
++        discoverers_ = kl.discoverers;
++        const Color us = board_.side_to_move();
++        own_king_sq_ = board_.king_square(us);
++        enemy_king_sq_ = board_.king_square(opposite(us));
++#else
+         const Color them = opposite(board_.side_to_move());
+         const int enemy_king = board_.king_square(them);
+         const Bitboard occupancy = board_.occupied();
+@@ -889,6 +931,7 @@
+         check_squares_[Rook] = attacks::rook(enemy_king, occupancy);
+         check_squares_[Queen] = check_squares_[Bishop] | check_squares_[Rook];
+         check_squares_[King] = 0;
++#endif
+     }
+ 
+     [[nodiscard]] bool direct_check(Move move) const {
+@@ -924,7 +967,7 @@
+                               ? &(*searcher.rework_history_)[static_cast<std::size_t>(b.side_to_move())]
+                               : nullptr),
+               threats(tune::HistRework != 0 && ss != nullptr
+-                          ? &searcher.threat_maps_[static_cast<std::size_t>(ss->ply)]
++                          ? &searcher.ensure_threat_map(b, ss->ply)
+                           : nullptr),
+               quarters(tune::HistRework != 0 ? b4::threat_quarters(tune::HistRework) : 0),
+               rework(tune::HistRework != 0 && ss != nullptr),
+@@ -1075,13 +1118,99 @@
+ #endif
+     }
+ 
+-    void generate_captures() {
+-        MoveList& buf = searcher_.picker_scratch_;
+-        buf.clear();
+-        board_.generate_pseudo_legal(buf, true);
++    [[gnu::noinline]] void generate_captures() {
+         index_ = 0;
+         count_ = 0;
+         seeded_ = false;
++#if FORGE_SPD_NO_ZERO_MOVELISTS >= 2 && FORGE_SEARCH_SPEED2
++        const Color us = board_.side_to_move();
++        const Color them = opposite(us);
++        const Bitboard own = board_.occupied(us);
++        const Bitboard enemy = board_.occupied(them);
++        const Bitboard occ = own | enemy;
++        const Bitboard empty = ~occ;
++        const int up = pawn_push_delta(us);
++        const CaptureHistory& capture_history = *searcher_.capture_history_;
++
++        const Bitboard pawns = board_.pieces(us, Pawn);
++        const Bitboard seventh = us == White ? Rank7BB : Rank2BB;
++        const Bitboard promoting = pawns & seventh;
++        const auto& cap_pawn = capture_history[static_cast<std::size_t>(make_piece(us, Pawn))];
++
++        auto push_promos = [&](int from, int to, std::uint8_t base_flags, std::size_t victim) {
++            const auto f8 = static_cast<std::uint8_t>(from);
++            const auto t8 = static_cast<std::uint8_t>(to);
++            const auto fl = static_cast<std::uint8_t>(base_flags | Promotion);
++            const int v_val = SeePieceValue[victim];
++            const int hist = cap_pawn[to][victim];
++            push_scored(Move{f8, t8, Queen, fl},  10 * (v_val + SeePieceValue[Queen]  - SeePieceValue[Pawn]) + hist + 20000);
++            push_scored(Move{f8, t8, Rook, fl},   10 * (v_val + SeePieceValue[Rook]   - SeePieceValue[Pawn]) + hist - 5000);
++            push_scored(Move{f8, t8, Bishop, fl}, 10 * (v_val + SeePieceValue[Bishop] - SeePieceValue[Pawn]) + hist - 5000);
++            push_scored(Move{f8, t8, Knight, fl}, 10 * (v_val + SeePieceValue[Knight] - SeePieceValue[Pawn]) + hist - 5000);
++        };
++
++        for (Bitboard promo_push = pawn_push(us, promoting) & empty; promo_push != 0;) {
++            const int to = pop_lsb(promo_push);
++            push_promos(to - up, to, Quiet, 0);
++        }
++        for (Bitboard capturers = pawns; capturers != 0;) {
++            const int from = pop_lsb(capturers);
++            Bitboard targets = attacks::pawn(us, from) & enemy;
++            const bool promotes = (square_bb(from) & seventh) != 0;
++            while (targets != 0) {
++                const int to = pop_lsb(targets);
++                const auto victim = static_cast<std::size_t>(piece_type(board_.piece_at(to)));
++                if (promotes) {
++                    push_promos(from, to, Capture, victim);
++                } else {
++                    push_scored(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, Capture},
++                                10 * SeePieceValue[victim] + cap_pawn[to][victim]);
++                }
++            }
++        }
++        if (board_.ep_square() >= 0) {
++            const int ep_sq = board_.ep_square();
++            for (Bitboard ep_atk = attacks::pawn(them, ep_sq) & pawns; ep_atk != 0;) {
++                const int from = pop_lsb(ep_atk);
++                push_scored(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(ep_sq), 0,
++                                 static_cast<std::uint8_t>(Capture | EnPassant)},
++                            10 * SeePieceValue[Pawn] + cap_pawn[ep_sq][Pawn]);
++            }
++        }
++
++        auto emit_piece_caps = [&](int pt, int from, Bitboard targets) {
++            const auto& cap_row = capture_history[static_cast<std::size_t>(make_piece(us, pt))];
++            const auto f8 = static_cast<std::uint8_t>(from);
++            while (targets != 0) {
++                const int to = pop_lsb(targets);
++                const auto victim = static_cast<std::size_t>(piece_type(board_.piece_at(to)));
++                push_scored(Move{f8, static_cast<std::uint8_t>(to), 0, Capture},
++                            10 * SeePieceValue[victim] + cap_row[to][victim]);
++            }
++        };
++        for (Bitboard bb = board_.pieces(us, Knight); bb != 0;) {
++            const int from = pop_lsb(bb);
++            emit_piece_caps(Knight, from, attacks::knight(from) & enemy);
++        }
++        for (Bitboard bb = board_.pieces(us, Bishop); bb != 0;) {
++            const int from = pop_lsb(bb);
++            emit_piece_caps(Bishop, from, attacks::bishop(from, occ) & enemy);
++        }
++        for (Bitboard bb = board_.pieces(us, Rook); bb != 0;) {
++            const int from = pop_lsb(bb);
++            emit_piece_caps(Rook, from, attacks::rook(from, occ) & enemy);
++        }
++        for (Bitboard bb = board_.pieces(us, Queen); bb != 0;) {
++            const int from = pop_lsb(bb);
++            emit_piece_caps(Queen, from, attacks::queen(from, occ) & enemy);
++        }
++        const int ksq = board_.king_square(us);
++        emit_piece_caps(King, ksq, attacks::king(ksq) & enemy);
++        sort_moves();
++#else
++        MoveList& buf = searcher_.picker_scratch_;
++        buf.clear();
++        board_.generate_pseudo_legal(buf, true);
+ #if FORGE_SEARCH_SPEED2
+         const CaptureHistory& capture_history = *searcher_.capture_history_;
+ #endif
+@@ -1099,34 +1228,211 @@
+             push_scored(move, score);
+         }
+         sort_moves();
++#endif
+     }
+ 
+-    void generate_quiets() {
++    [[gnu::noinline]] void generate_quiets() {
+         quiet_gen_epoch_ = searcher_.quiet_hist_epoch_;
++#if FORGE_SPD_NO_ZERO_MOVELISTS >= 2 && FORGE_SEARCH_SPEED2
++        init_check_squares();
++        index_ = quiet_start();
++        count_ = quiet_start();
++        seeded_ = false;
++        const QuietScorer scorer(board_, searcher_, ss_);
++        if (scorer.use_threat_hist || FORGE_PAWN_HISTORY != 0) [[unlikely]] {
++            MoveList& buf = searcher_.picker_scratch_;
++            buf.clear();
++            board_.generate_pseudo_legal(buf, Board::GenMode::Quiets);
++            for (const Move move : buf) {
++                push_scored(move, scorer.score(move, check_squares_));
++            }
++            sort_moves();
++            return;
++        }
++
++        static constexpr std::array<std::int16_t, 64> kZeroContRow{};
++        const Color us = board_.side_to_move();
++        const Color them = opposite(us);
++        const Bitboard own = board_.occupied(us);
++        const Bitboard enemy = board_.occupied(them);
++        const Bitboard occ = own | enemy;
++        const Bitboard empty = ~occ;
++        const int up = pawn_push_delta(us);
++        const int quarters = scorer.quarters;
++        const int inv_quarters = 4 - quarters;
++
++        struct PieceContRows {
++            const std::int16_t* c1;
++            const std::int16_t* c2;
++            const std::int16_t* c4;
++            Bitboard chk;
++            [[gnu::always_inline]] int extra(int to) const noexcept {
++                int v = static_cast<int>(c1[to]) + static_cast<int>(c2[to]);
++                if (c4 != nullptr) [[unlikely]] v += static_cast<int>(c4[to]) / 2;
++                if (((chk >> to) & 1ULL) != 0) v += 12000;
++                return v;
++            }
++        };
++        auto rows_for = [&](int pt) noexcept -> PieceContRows {
++            const std::size_t p = static_cast<std::size_t>(make_piece(us, pt));
++            return PieceContRows{
++                scorer.cont1 != nullptr ? (*scorer.cont1)[p].data() : kZeroContRow.data(),
++                scorer.cont2 != nullptr ? (*scorer.cont2)[p].data() : kZeroContRow.data(),
++                scorer.cont4 != nullptr ? (*scorer.cont4)[p].data() : nullptr,
++                check_squares_[static_cast<std::size_t>(pt)],
++            };
++        };
++
++        const Bitboard pawns = board_.pieces(us, Pawn);
++        const Bitboard seventh = us == White ? Rank7BB : Rank2BB;
++        const Bitboard third = us == White ? Rank3BB : Rank6BB;
++        const Bitboard regular = pawns & ~seventh;
++        Bitboard single = pawn_push(us, regular) & empty;
++        Bitboard twice = pawn_push(us, single & third) & empty;
++        if ((single | twice) != 0) {
++            const PieceContRows pr = rows_for(Pawn);
++            if (scorer.rework) {
++                const Bitboard pset = scorer.threats->by_type[static_cast<std::size_t>(Pawn)];
++                while (single != 0) {
++                    const int to = pop_lsb(single);
++                    const int from = to - up;
++                    const int plain = scorer.main[static_cast<std::size_t>(from)][static_cast<std::size_t>(to)];
++                    const int twin = (*scorer.rework_side)[b4::square_bit(pset, from)][b4::square_bit(pset, to)]
++                                                          [static_cast<std::size_t>(from)][static_cast<std::size_t>(to)];
++                    push_scored(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, Quiet},
++                                ((plain * inv_quarters + twin * quarters) / 4) + pr.extra(to));
++                }
++                while (twice != 0) {
++                    const int to = pop_lsb(twice);
++                    const int from = to - 2 * up;
++                    const int plain = scorer.main[static_cast<std::size_t>(from)][static_cast<std::size_t>(to)];
++                    const int twin = (*scorer.rework_side)[b4::square_bit(pset, from)][b4::square_bit(pset, to)]
++                                                          [static_cast<std::size_t>(from)][static_cast<std::size_t>(to)];
++                    push_scored(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, DoublePush},
++                                ((plain * inv_quarters + twin * quarters) / 4) + pr.extra(to));
++                }
++            } else {
++                while (single != 0) {
++                    const int to = pop_lsb(single);
++                    const int from = to - up;
++                    push_scored(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, Quiet},
++                                scorer.main[static_cast<std::size_t>(from)][static_cast<std::size_t>(to)] + pr.extra(to));
++                }
++                while (twice != 0) {
++                    const int to = pop_lsb(twice);
++                    const int from = to - 2 * up;
++                    push_scored(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, DoublePush},
++                                scorer.main[static_cast<std::size_t>(from)][static_cast<std::size_t>(to)] + pr.extra(to));
++                }
++            }
++        }
++
++        auto emit_quiets_from = [&](int pt, const PieceContRows& rows, int from, Bitboard targets) {
++            if (targets == 0) return;
++            const auto f8 = static_cast<std::uint8_t>(from);
++            const std::int16_t* const m_row = scorer.main[static_cast<std::size_t>(from)].data();
++            if (scorer.rework) {
++                const Bitboard tset = scorer.threats->by_type[static_cast<std::size_t>(pt)];
++                const std::size_t fbit = b4::square_bit(tset, from);
++                const std::int16_t* const rw0 = (*scorer.rework_side)[fbit][0][static_cast<std::size_t>(from)].data();
++                const std::int16_t* const rw1 = (*scorer.rework_side)[fbit][1][static_cast<std::size_t>(from)].data();
++                while (targets != 0) {
++                    const int to = pop_lsb(targets);
++                    const int plain = m_row[to];
++                    const int twin = ((tset >> to) & 1ULL) != 0 ? rw1[to] : rw0[to];
++                    push_scored(Move{f8, static_cast<std::uint8_t>(to), 0, Quiet},
++                                ((plain * inv_quarters + twin * quarters) / 4) + rows.extra(to));
++                }
++            } else {
++                while (targets != 0) {
++                    const int to = pop_lsb(targets);
++                    push_scored(Move{f8, static_cast<std::uint8_t>(to), 0, Quiet}, m_row[to] + rows.extra(to));
++                }
++            }
++        };
++
++        if (Bitboard knights = board_.pieces(us, Knight); knights != 0) {
++            const PieceContRows rows = rows_for(Knight);
++            while (knights != 0) {
++                const int from = pop_lsb(knights);
++                emit_quiets_from(Knight, rows, from, attacks::knight(from) & empty);
++            }
++        }
++        if (Bitboard bishops = board_.pieces(us, Bishop); bishops != 0) {
++            const PieceContRows rows = rows_for(Bishop);
++            while (bishops != 0) {
++                const int from = pop_lsb(bishops);
++                emit_quiets_from(Bishop, rows, from, attacks::bishop(from, occ) & empty);
++            }
++        }
++        if (Bitboard rooks = board_.pieces(us, Rook); rooks != 0) {
++            const PieceContRows rows = rows_for(Rook);
++            while (rooks != 0) {
++                const int from = pop_lsb(rooks);
++                emit_quiets_from(Rook, rows, from, attacks::rook(from, occ) & empty);
++            }
++        }
++        if (Bitboard queens = board_.pieces(us, Queen); queens != 0) {
++            const PieceContRows rows = rows_for(Queen);
++            while (queens != 0) {
++                const int from = pop_lsb(queens);
++                emit_quiets_from(Queen, rows, from, attacks::queen(from, occ) & empty);
++            }
++        }
++
++        const int king = board_.king_square(us);
++        const PieceContRows krows = rows_for(King);
++        emit_quiets_from(King, krows, king, attacks::king(king) & empty);
++
++        if (board_.checkers() == 0) {
++            constexpr std::uint8_t kWKS = 1, kWQS = 2, kBKS = 4, kBQS = 8;
++            const std::uint8_t rights = board_.castling_rights();
++            auto push_castle = [&](int from, int to, std::uint8_t flag) {
++                const int plain = scorer.main[static_cast<std::size_t>(from)][static_cast<std::size_t>(to)];
++                int val = plain;
++                if (scorer.rework) {
++                    const int twin = (*scorer.rework_side)[0][0][static_cast<std::size_t>(from)][static_cast<std::size_t>(to)];
++                    val = (plain * inv_quarters + twin * quarters) / 4;
++                }
++                push_scored(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flag}, val + krows.extra(to));
++            };
++            if (us == White && king == 4) {
++                if ((rights & kWKS) != 0U && (occ & (square_bb(5) | square_bb(6))) == 0 &&
++                    board_.piece_at(7) == WR && !board_.square_attacked(5, Black) && !board_.square_attacked(6, Black)) {
++                    push_castle(4, 6, KingCastle);
++                }
++                if ((rights & kWQS) != 0U && (occ & (square_bb(1) | square_bb(2) | square_bb(3))) == 0 &&
++                    board_.piece_at(0) == WR && !board_.square_attacked(3, Black) && !board_.square_attacked(2, Black)) {
++                    push_castle(4, 2, QueenCastle);
++                }
++            } else if (us == Black && king == 60) {
++                if ((rights & kBKS) != 0U && (occ & (square_bb(61) | square_bb(62))) == 0 &&
++                    board_.piece_at(63) == BR && !board_.square_attacked(61, White) && !board_.square_attacked(62, White)) {
++                    push_castle(60, 62, KingCastle);
++                }
++                if ((rights & kBQS) != 0U && (occ & (square_bb(57) | square_bb(58) | square_bb(59))) == 0 &&
++                    board_.piece_at(56) == BR && !board_.square_attacked(59, White) && !board_.square_attacked(58, White)) {
++                    push_castle(60, 58, QueenCastle);
++                }
++            }
++        }
++        sort_moves();
++#elif FORGE_SPD_NO_ZERO_MOVELISTS >= 2
+         MoveList& buf = searcher_.picker_scratch_;
+-#if FORGE_SPD_NO_ZERO_MOVELISTS >= 2
+-        // The quiets-only list is the full list minus every capture and
+-        // promotion, in the same order, so the filter is gone.
+         init_check_squares();
+         buf.clear();
+         board_.generate_pseudo_legal(buf, Board::GenMode::Quiets);
+         index_ = quiet_start();
+         count_ = quiet_start();
+         seeded_ = false;
+-#if FORGE_SEARCH_SPEED2
+-        const QuietScorer scorer(board_, searcher_, ss_);
+-        for (const Move move : buf) {
+-            push_scored(move, scorer.score(move, check_squares_));
+-        }
+-#else
+         for (const Move move : buf) {
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
+             push_scored(move, score);
+         }
+-#endif
+         sort_moves();
+ #else
++        MoveList& buf = searcher_.picker_scratch_;
+         init_check_squares();
+         buf.clear();
+         board_.generate_pseudo_legal(buf, false);
+@@ -1288,6 +1594,7 @@
+     std::memset(joint_correction_.get(), 0, sizeof(*joint_correction_));
+     std::memset(continuation_correction_.get(), 0, sizeof(*continuation_correction_));
+     std::memset(threat_maps_.data(), 0, sizeof(threat_maps_));
++    std::memset(threat_map_ready_.data(), 0, sizeof(threat_map_ready_));
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
+@@ -1336,13 +1643,13 @@
+ 
+ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+     // Score recognized endings before any accumulator refresh or network call.
+-    if (dead_material_enabled) {
++    if (dead_material_enabled && has_dead_material_candidates(board)) {
+         int fixed = 0;
+         if (dead_material_score(board, fixed)) return fixed;
+     }
+-    if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
++    if (!nnue_active_) return evaluator_.evaluate(board);
+ #if FORGE_NNUE_V3
+-    if (nnue::v3::active()) return static_evaluate_v3(board, ss);
++    if (v3_active_net_ != nullptr) return static_evaluate_v3(board, ss);
+ #endif
+     const bool residual = nnue::residual();
+     // Features used for this evaluation. A null move keeps the parent's
+@@ -1407,9 +1714,11 @@
+     else child->corr_np_idx[static_cast<std::size_t>(them)] = ss->corr_np_idx[static_cast<std::size_t>(them)];
+     if (cap_nonpawn || move.is_promotion()) keep &= static_cast<std::uint8_t>(~4U);
+     else child->corr_mat_mix = ss->corr_mat_mix;
++    if (captured != Empty || move.is_promotion()) keep &= static_cast<std::uint8_t>(~8U);
++    else child->corr_mat_idx = ss->corr_mat_idx;
+     child->corr_valid = keep;
+ 
+-    if (!nnue::enabled || !nnue::available()) return;
++    if (!nnue_active_) return;
+     child->entered_move = move;
+     child->entered_piece = moved;
+     child->entered_capture = captured;
+@@ -1417,8 +1726,8 @@
+     child->entered_null = false;
+     child->diff_known = false;
+ #if FORGE_NNUE_V3
+-    if (nnue::v3::active()) {
+-        if (v3_state_) v3_state_->valid_flags[static_cast<std::size_t>(ss->ply + 5)] = 0;
++    if (v3_active_net_ != nullptr) {
++        v3_state_->valid_flags[static_cast<std::size_t>(ss->ply + 5)] = 0;
+         return;
+     }
+ #endif
+@@ -1453,14 +1762,15 @@
+ void Worker::record_null_move(SearchStack* ss) {
+     SearchStack* child = ss + 1;
+     child->corr_np_idx = ss->corr_np_idx;
++    child->corr_mat_idx = ss->corr_mat_idx;
+     child->corr_mat_mix = ss->corr_mat_mix;
+     child->corr_valid = ss->corr_valid;
+     child->entered_null = true;
+     child->diff_known = true;
+     child->dirty.count = 0;
+ #if FORGE_NNUE_V3
+-    if (nnue::v3::active()) {
+-        if (v3_state_) v3_state_->valid_flags[static_cast<std::size_t>(ss->ply + 5)] = 0;
++    if (v3_active_net_ != nullptr) {
++        v3_state_->valid_flags[static_cast<std::size_t>(ss->ply + 5)] = 0;
+         return;
+     }
+ #endif
+@@ -1473,6 +1783,9 @@
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     const std::uint64_t pkey = board.pawn_key();
+     __builtin_prefetch(&(*correction_history_)[side][pkey & (CorrectionSize - 1U)]);
++    if (tune::MaterialCorrectionWeight > 0 && (child->corr_valid & 8U) != 0U) {
++        __builtin_prefetch(&(*material_correction_)[side][child->corr_mat_idx]);
++    }
+     if (tune::NonPawnCorrection) {
+         if ((child->corr_valid & 1U) != 0U) {
+             __builtin_prefetch(&(*non_pawn_white_correction_)[side][child->corr_np_idx[0]]);
+@@ -1492,14 +1805,24 @@
+ 
+ int Worker::corrected_eval(const Board& board, int raw_eval, const SearchStack* ss) const {
+     // Keep the recognized ending score exact: correction history must not tilt a draw or the corner drive.
+-    if (dead_material_enabled) {
++    if (dead_material_enabled && has_dead_material_candidates(board)) {
+         int fixed = 0;
+         if (dead_material_score(board, fixed)) return fixed;
+     }
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
+     if (tune::MaterialCorrectionWeight > 0) {
+-        correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
++        std::size_t mat_idx;
++        if (ss != nullptr) {
++            if ((ss->corr_valid & 8U) == 0U) {
++                ss->corr_mat_idx = static_cast<std::uint16_t>(material_key(board) & (CorrectionSize - 1U));
++                ss->corr_valid |= 8U;
++            }
++            mat_idx = ss->corr_mat_idx;
++        } else {
++            mat_idx = material_key(board) & (CorrectionSize - 1U);
++        }
++        correction += (*material_correction_)[side][mat_idx] * tune::MaterialCorrectionWeight / 100;
+     }
+     if (tune::NonPawnCorrection) {
+         std::size_t idx_w;
+@@ -1561,7 +1884,12 @@
+         entry = std::clamp(entry + diff * weight / 256, -CorrectionLimit, CorrectionLimit);
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+-    if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
++    if (tune::MaterialCorrectionWeight > 0) {
++        const std::size_t mat_idx = (ss != nullptr && (ss->corr_valid & 8U) != 0U)
++            ? static_cast<std::size_t>(ss->corr_mat_idx)
++            : (material_key(board) & (CorrectionSize - 1U));
++        apply((*material_correction_)[side][mat_idx]);
++    }
+     if (tune::NonPawnCorrection) {
+         const std::size_t idx_w = (ss != nullptr && (ss->corr_valid & 1U) != 0U)
+             ? static_cast<std::size_t>(ss->corr_np_idx[0])
+@@ -1691,7 +2019,7 @@
+     const int plain = (*main_history_)[side][move.from][move.to];
+     int score = plain;
+     if (tune::HistRework != 0 && ss != nullptr) {
+-        const Bitboard set = threat_maps_[static_cast<std::size_t>(ss->ply)].by_type[static_cast<std::size_t>(piece_type(piece))];
++        const Bitboard set = threat_set_for_piece(board, ss->ply, piece_type(piece));
+         const int twin = (*rework_history_)[side][b4::square_bit(set, move.from)][b4::square_bit(set, move.to)][move.from][move.to];
+         score = b4::blend(plain, twin, b4::threat_quarters(tune::HistRework));
+     }
+@@ -1712,8 +2040,7 @@
+ // B4 HistRework (forge/r9): the twin's slot of a quiet move at the node of `ss`, whose lesser-attacker maps are
+ // threat_maps_[ss->ply] (set before every move picker that scores quiet moves while the option is on).
+ std::int16_t& Worker::rework_entry(const Board& board, const SearchStack* ss, Move move) const {
+-    const b4::LesserThreats& threats = threat_maps_[static_cast<std::size_t>(ss->ply)];
+-    const Bitboard set = threats.by_type[static_cast<std::size_t>(piece_type(board.moved_piece(move)))];
++    const Bitboard set = threat_set_for_piece(board, ss->ply, piece_type(board.moved_piece(move)));
+     return (*rework_history_)[static_cast<std::size_t>(board.side_to_move())][b4::square_bit(set, move.from)]
+                              [b4::square_bit(set, move.to)][move.from][move.to];
+ }
+@@ -1849,7 +2176,7 @@
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
+-    if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
++    if (check_node_or_periodic_stop()) aborted_ = true;
+ #if FORGE_TEST_CLOCK_STOP
+     if (is_main() && test_clock_stop_nodes() != 0 && local_nodes_ >= test_clock_stop_nodes()) aborted_ = true;
+ #endif
+@@ -1919,9 +2246,9 @@
+         futility_base = ss->static_eval + tune::QsFutilityMargin;
+     }
+ 
+-    // B4 HistRework: check evasions score quiet moves with the twin, which reads this node's maps.
++    // B4 HistRework: built lazily on first read inside generate_evasions.
+     if (in_check && tune::HistRework != 0) {
+-        threat_maps_[static_cast<std::size_t>(ply)] = b4::lesser_threats(board);
++        threat_map_ready_[static_cast<std::size_t>(ply)] = 0U;
+     }
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+     Move best_move = Move::none();
+@@ -1930,8 +2257,10 @@
+     while (!(move = picker.next(false)).is_none()) {
+         if (!picker.last_move_known_legal() && !board.is_legal(move)) continue;
+         ++move_count;
++        int known_gives_check = -1;
+         if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
++            known_gives_check = gives_check ? 1 : 0;
+             // Futility: even winning the captured piece cannot raise alpha.
+             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+@@ -1951,11 +2280,11 @@
+         record_move(ss, board, move);
+         Undo undo;
+ #if FORGE_SPD_PREFETCH_EARLY
+-        (void)board.make_move(move, undo, early_key ? &child_key : nullptr);
++        (void)board.make_move(move, undo, early_key ? &child_key : nullptr, known_gives_check);
+         assert(!early_key || child_key == board.key());
+         if (!early_key) shared_.tt.prefetch(board.key());
+ #else
+-        (void)board.make_move(move, undo);
++        (void)board.make_move(move, undo, nullptr, known_gives_check);
+         shared_.tt.prefetch(board.key());
+ #endif
+         prefetch_correction(board, ss + 1);
+@@ -2000,7 +2329,7 @@
+     // Keep this call's inherited path budget independent of those mutations.
+     const int inherited_double_extensions = (ss - 1)->double_extensions;
+     ss->double_extensions = inherited_double_extensions;
+-    if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
++    if (check_node_or_periodic_stop()) aborted_ = true;
+ #if FORGE_TEST_CLOCK_STOP
+     if (is_main() && test_clock_stop_nodes() != 0 && local_nodes_ >= test_clock_stop_nodes()) aborted_ = true;
+ #endif
+@@ -2274,8 +2603,8 @@
+     else if (tt_prune_v2_ && mate_moves_ == 0 && !in_check && depth >= tune::IirDepth + 2 && cut_node &&
+              !tt_move.is_none() && tt_bound == BoundUpper && !ss->tt_pv) --depth;
+ 
+-    // B4 HistRework: lesser-attacker maps of this node, read by the quiet scores and the history updates below.
+-    if (tune::HistRework != 0) threat_maps_[static_cast<std::size_t>(ply)] = b4::lesser_threats(board);
++    // B4 HistRework: lesser-attacker maps of this node are built lazily on first read.
++    if (tune::HistRework != 0) threat_map_ready_[static_cast<std::size_t>(ply)] = 0U;
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+     // Read only below their counts (update_quiet_stats / update_capture_stats).
+@@ -2317,7 +2646,7 @@
+         ss->move_count = move_count;
+         const bool capture = move.is_capture();
+         const bool quiet = !capture && !move.is_promotion();
+-        const bool gives_check = board.gives_check(move);
++        const bool gives_check = picker.has_cached_gives_check() ? picker.cached_gives_check() : board.gives_check(move);
+         const Piece moved = board.moved_piece(move);
+         const int history = quiet
+             ? (picker.has_cached_quiet_history(quiet_hist_epoch_) ? picker.cached_quiet_history()
+@@ -2475,12 +2804,13 @@
+         (ss + 1)->arrival_index = move_count;
+         record_move(ss, board, move);
+         Undo undo;
++        const int known_gc = gives_check ? 1 : 0;
+ #if FORGE_SPD_PREFETCH_EARLY
+-        (void)board.make_move(move, undo, early_key ? &child_key : nullptr);
++        (void)board.make_move(move, undo, early_key ? &child_key : nullptr, known_gc);
+         assert(!early_key || child_key == board.key());
+         if (!early_key) shared_.tt.prefetch(board.key());
+ #else
+-        (void)board.make_move(move, undo);
++        (void)board.make_move(move, undo, nullptr, known_gc);
+         shared_.tt.prefetch(board.key());
+ #endif
+         prefetch_correction(board, ss + 1);
+@@ -2737,6 +3067,14 @@
+     root_prev_best_done_ = false;
+     root_history_index_ = board.history_size() - 1;
+     tt_prune_v2_ = tune::TtPruneV2;  // B4 TtPruneV2: one snapshot per search
++    nnue_active_ = nnue::enabled && nnue::available();
++#if FORGE_NNUE_V3
++    v3_active_net_ = (nnue_active_ && nnue::v3::requested) ? nnue::v3::loaded() : nullptr;
++    if (v3_active_net_ != nullptr) {
++        if (!v3_state_) v3_state_ = std::make_unique<nnue::v3::WorkerState>();
++        nnue::v3::prepare(*v3_active_net_, *v3_state_, MaxPly + 8);
++    }
++#endif
+     node_limit_ = limits.nodes;
+     // Helpers must observe the budget. Leaving the flag false on them made
+     // should_stop return before the count was consulted. An alternate MultiPV
+@@ -2974,9 +3312,12 @@
+         soft_limit_ms_ = hard_limit_ms_ = 0;
+         time_managed_ = false;
+     }
++    fast_single_node_stop_ = parent_worker_ == nullptr && multipv == 1 &&
++                             (all_workers_ == nullptr || all_workers_->size() == 1) &&
++                             node_limit_specified_ && !clock_reserve_empty_ && hard_limit_ms_ <= 0;
+ 
+ #if FORGE_NNUE_V3
+-    const bool use_v3_eval = nnue::enabled && nnue::available() && nnue::v3::active();
++    const bool use_v3_eval = v3_active_net_ != nullptr;
+ #else
+     constexpr bool use_v3_eval = false;
+ #endif
+@@ -3439,7 +3780,9 @@
+             });
+         }
+     }
+-    SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
++    SearchInfo result = helpers.empty()
++        ? workers_.front()->search(std::move(board), worker_limits, emit_info, all)
++        : workers_.front()->search(board, worker_limits, emit_info, all);
+     // Wind down the helpers without clobbering an externally requested stop.
+     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+     shared_.stop.store(true, std::memory_order_relaxed);
+@@ -3458,9 +3801,11 @@
+ // key changed is refreshed through the per-worker cache. Only stand-alone v3 nets are accepted (the UCI code
+ // refuses a residual one), so the value returned is the net's alone.
+ int Worker::static_evaluate_v3(const Board& board, SearchStack* ss) {
+-    const nnue::v3::Net& net = *nnue::v3::loaded();
+-    if (!v3_state_) v3_state_ = std::make_unique<nnue::v3::WorkerState>();
+-    nnue::v3::prepare(net, *v3_state_, MaxPly + 8);
++    const nnue::v3::Net& net = *(v3_active_net_ != nullptr ? v3_active_net_ : nnue::v3::loaded());
++    if (!v3_state_) {
++        v3_state_ = std::make_unique<nnue::v3::WorkerState>();
++        nnue::v3::prepare(net, *v3_state_, MaxPly + 8);
++    }
+     const int index = ss->ply + 4;
+     int value = 0;
+     if (v3_state_->valid_flags[static_cast<std::size_t>(index)] != 0) {
+@@ -3470,35 +3815,37 @@
+         ensure_piece_diff(frame);
+         const nnue::DirtyPieces& dirty = frame->dirty;
+         const nnue::v3::Accumulator& parent = v3_state_->stack[static_cast<std::size_t>(index - 1)];
+-        int king0 = parent.king_sq[0];
+-        int king1 = parent.king_sq[1];
+-        for (int i = 0; i < dirty.count; ++i) {
+-            const nnue::PieceChange& ch = dirty.changes[static_cast<std::size_t>(i)];
+-            if (ch.add) {
+-                if (ch.piece == WK) king0 = ch.square;
+-                else if (ch.piece == BK) king1 = ch.square;
+-            }
+-        }
+-        const nnue::v3::KingKey key0 = nnue::v3::king_key(net, White, king0);
+-        const nnue::v3::KingKey key1 = nnue::v3::king_key(net, Black, king1);
+-        if (key0 == parent.keys[0] && key1 == parent.keys[1]) {
++        const int king0 = board.king_square(White);
++        const int king1 = board.king_square(Black);
++        if (king0 == parent.king_sq[0] && king1 == parent.king_sq[1]) {
+             v3_state_->valid_flags[static_cast<std::size_t>(index)] = 1;
+             value = nnue::v3::apply_pair_and_evaluate(
+                 net, parent, v3_state_->stack[static_cast<std::size_t>(index)],
+-                key0, king0, key1, king1, dirty, board);
+-        } else if ((key0 == parent.keys[0]) != (key1 == parent.keys[1])) {
+-            v3_state_->valid_flags[static_cast<std::size_t>(index)] = 1;
+-            const Color refreshed = !(key0 == parent.keys[0]) ? White : Black;
+-            value = nnue::v3::refresh_one_and_evaluate(
+-                net, v3_state_->cache, parent, v3_state_->stack[static_cast<std::size_t>(index)],
+-                key0, king0, key1, king1, refreshed, dirty, board);
++                parent.keys[0], king0, parent.keys[1], king1, dirty, board);
+         } else {
+-            nnue::v3::make_valid(net, *v3_state_, index, board, [this](int k) -> const nnue::DirtyPieces& {
+-                SearchStack* f = &stack_[static_cast<std::size_t>(k)];
+-                ensure_piece_diff(f);
+-                return f->dirty;
+-            });
+-            value = nnue::v3::evaluate(net, board, v3_state_->stack[static_cast<std::size_t>(index)]);
++            const nnue::v3::KingKey key0 = king0 == parent.king_sq[0]
++                ? parent.keys[0] : nnue::v3::king_key(net, White, king0);
++            const nnue::v3::KingKey key1 = king1 == parent.king_sq[1]
++                ? parent.keys[1] : nnue::v3::king_key(net, Black, king1);
++            if (key0 == parent.keys[0] && key1 == parent.keys[1]) {
++                v3_state_->valid_flags[static_cast<std::size_t>(index)] = 1;
++                value = nnue::v3::apply_pair_and_evaluate(
++                    net, parent, v3_state_->stack[static_cast<std::size_t>(index)],
++                    key0, king0, key1, king1, dirty, board);
++            } else if ((key0 == parent.keys[0]) != (key1 == parent.keys[1])) {
++                v3_state_->valid_flags[static_cast<std::size_t>(index)] = 1;
++                const Color refreshed = !(key0 == parent.keys[0]) ? White : Black;
++                value = nnue::v3::refresh_one_and_evaluate(
++                    net, v3_state_->cache, parent, v3_state_->stack[static_cast<std::size_t>(index)],
++                    key0, king0, key1, king1, refreshed, dirty, board);
++            } else {
++                nnue::v3::make_valid(net, *v3_state_, index, board, [this](int k) -> const nnue::DirtyPieces& {
++                    SearchStack* f = &stack_[static_cast<std::size_t>(k)];
++                    ensure_piece_diff(f);
++                    return f->dirty;
++                });
++                value = nnue::v3::evaluate(net, board, v3_state_->stack[static_cast<std::size_t>(index)]);
++            }
+         }
+     } else {
+         nnue::v3::make_valid(net, *v3_state_, index, board, [this](int k) -> const nnue::DirtyPieces& {

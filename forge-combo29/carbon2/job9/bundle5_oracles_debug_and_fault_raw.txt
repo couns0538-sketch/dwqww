@@ -1,0 +1,17 @@
+=== 1. bundle5 -UNDEBUG S5 precomputed_key Assert Check ===
+S5_ASSERT_CLEAN_PASS key=8318955727821695351
+test_b5_s5_dbg: /tmp/carbon2_job9/b5_src1/src/board.cpp:1266: bool forge::Board::make_move(const forge::Move&, forge::Undo&, const uint64_t*, int): Assertion `key_ == dbg_key' failed.
+EXPECTED_S5_ASSERT_ABORT_ON_CORRUPT_KEY: exit_code_nonzero=true
+
+=== 2. bundle5 Planted-Fault Check (p1_planted_fault.patch.txt) ===
+P1_TT_STOP_ORACLE MISMATCH: expected=cab4d385b07d0fef got=79e74771cc65cfd6
+EXPECTED_PLANTED_FAULT_FAILURE: exit_code_nonzero=true
+
+=== 3. bundle5 Clean Two-Binary TT & Node-Cap Stop Oracle ===
+P1_TT_STOP_ORACLE PASS: ops=500000+9_stop_caps hash=cab4d385b07d0fef mismatches=0
+
+=== 4. bundle5 Clean All-Stages MovePicker Oracle (2,010 sequences) ===
+W1_PICKER_ORACLE PASS: sequences_compared=2010 mismatches=0
+
+=== 5. bundle5 Clean Evasion + Legal Movegen Oracle (55,868 check positions) ===
+E1_EVASION_PICKER_ORACLE PASS: total_visited=313716 in_check_positions=14238 picker_sequences_compared=55868 mismatches=0
