@@ -421,3 +421,13 @@ there is no warm-state outlier at this position; the 348-second figure exists on
 contradict their TSan measurement - it bounds it:** 24-F3 is a property of the instrumented build and must not be
 carried to the release engine or a match. Overturning condition recorded: the same 6-repeat warm loop producing a
 run more than 10x the first, or any run over a second.
+
+## 2026-11-17T00:12Z S-N3: a training label at the match budgets is bit-reproducible (48/48)
+The question a label pipeline actually needs, which I had not answered at the match budgets on a broad sample:
+8 real-game FENs x 6 limits {`go nodes` and `go softnodes` at 20,000 / 50,000 / 250,000} = **48 cells, 3 fresh
+processes each** -> **(bestmove, score, depth, nodes) identical in every rep of every cell: 48/48, zero
+variants.** PC r15/PC20/Threads 1/Hash 16/OwnBook false, `ucinewgame`+`isready` before every `go`.
+**So the label is not the fragile part of the pipeline** - the same four fields come back tomorrow. Explicitly
+NOT claimed: the label is not thereby *good* (that is S-C12's 74 % undershoot), and none of this holds at
+Threads > 1 (not reproducible by design) or for a clock-driven search (seat 25's S-C15: move stable,
+score/nodes/depth variable). It holds specifically for budget-limited searches at Threads 1.
