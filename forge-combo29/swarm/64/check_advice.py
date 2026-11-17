@@ -49,16 +49,39 @@ def normalise(text: str) -> str:
 
 
 def parse_clauses(text: str) -> list[tuple[int, int, int]]:
-    """Find 'N MB at M lines' statements. Returns [(ceiling, lo, hi)]."""
-    out = []
+    """Find every ceiling bound to a line count. Returns [(ceiling, lo, hi)].
+
+    Two surface forms both occur in practice and both must be caught, because a
+    permissive clause written in the form the parser does not know is a silent
+    pass:
+        "48 MB at 2 lines"        -- number first (the generated sentence)
+        "at 6 lines, Hash <= 256"  -- comparison first (a hand edit)
+    """
+    flat = normalise(text)
+    out: list[tuple[int, int, int]] = []
+
+    def lines(lo: str, hi: str | None) -> tuple[int, int]:
+        return int(lo), int(hi) if hi else int(lo)
+
+    # Form A: "48 MB at 2 lines" / "24MB for 3-6 lines" / bare "24 at 3-6 lines"
     for m in re.finditer(
-        r"(\d+)\s*(?:MB)?\s*(?:at|for)\s*(\d+)(?:\s*[-\u2013]\s*(\d+))?\s*lines?",
-        normalise(text),
+        r"(\d+)(?:\s*MB)?\s*(?:at|for)\s*(\d+)(?:\s*[-\u2013]\s*(\d+))?\s*lines?", flat
     ):
-        ceiling = int(m.group(1))
-        lo = int(m.group(2))
-        hi = int(m.group(3)) if m.group(3) else lo
-        out.append((ceiling, lo, hi))
+        lo, hi = lines(m.group(2), m.group(3))
+        out.append((int(m.group(1)), lo, hi))
+
+    # Form B: "at 6 lines, Hash <= 256" / "Hash <= 256 at 6 lines"
+    for m in re.finditer(
+        r"(?:at|for)\s*(\d+)(?:\s*[-\u2013]\s*(\d+))?\s*lines?[^.;]*?Hash\s*<=?\s*(\d+)", flat
+    ):
+        lo, hi = lines(m.group(1), m.group(2))
+        out.append((int(m.group(3)), lo, hi))
+    for m in re.finditer(
+        r"Hash\s*<=?\s*(\d+)[^.;]*?(?:at|for)\s*(\d+)(?:\s*[-\u2013]\s*(\d+))?\s*lines?", flat
+    ):
+        lo, hi = lines(m.group(2), m.group(3))
+        out.append((int(m.group(1)), lo, hi))
+
     return out
 
 
@@ -147,11 +170,32 @@ def main() -> int:
             shipped = fh.read()
         failures += check(shipped, fit, "shipped section")
 
-    # Check 4: the checker must reject a known-bad clause.
-    bad = "Recommended: 256 MB at 6 lines."
-    if not check(bad, cons, "selftest"):
-        failures.append("selftest: a permissive-wrong clause was ACCEPTED (checker cannot fail)")
-    print("selftest            : '256 MB at 6 lines' rejected as expected")
+    # Check 4: the checker must reject known-bad clauses in EACH surface form it
+    # claims to parse. A permissive clause written in an unparsed form is a silent
+    # pass, so each alternative phrasing is tested rather than just one.
+    permissive_wrong = [
+        "Recommended: 256 MB for 6 lines.",
+        "Recommended: cap Hash at 256 MB when using 6 lines.",
+        "Recommended: MultiPV 6 is fine up to Hash 256.",
+        "Recommended: Hash <= 48 at 2 lines; at 6 lines, Hash <= 256.",
+        "Recommended: 48 MB at 2 lines and 24 MB at 3-6, except 256 MB at 6 lines.",
+        "Recommended: 48 MB at 2 lines, 24 MB at 3-6 lines, and 256 MB for 6 lines.",
+    ]
+    for bad in permissive_wrong:
+        if not check(bad, cons, "selftest"):
+            failures.append(f"selftest: permissive clause ACCEPTED -> {bad}")
+    # And a correct clause in each form must be accepted, or the check is useless.
+    correct = [
+        "Recommended: Hash <= 48 at 2 lines, 24 at 3-6 lines.",
+        "MultiPV 1 at any Hash; otherwise 48 MB at 2 lines, 24 MB at 3-6 lines.",
+    ]
+    for good in correct:
+        if check(good, cons, "selftest"):
+            failures.append(f"selftest: correct clause REJECTED -> {good}")
+    print(f"selftest            : {len(permissive_wrong)} permissive forms rejected, "
+          f"{len(correct)} correct forms accepted")
+    print("selftest limit      : a spelled-out line count ('six lines') is NOT parsed; "
+          "the check only sees numeric clauses")
 
     if failures:
         print("\nFAIL")

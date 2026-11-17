@@ -49,8 +49,14 @@ ceiling **no more permissive** than the fitted one, and rejects a planted
   from the fitted ceiling so the prose cannot drift from the rule.
 - `check_advice.py` — asserts every stated recommendation (in `FINDINGS.md` and,
   with `--shipped`, in the consolidated report) is no more permissive than the
-  fitted ceiling. Proved by planting the `48 MB at 2-3 lines` defect: FAIL, exit 1;
+  fitted ceiling. It parses **every** surface form a ceiling can be written in
+  (`48 MB at 2 lines`, `at 6 lines, Hash <= 256`, `Hash <= 256 at 6 lines`, and the
+  bare `24 at 3-6 lines`) because a permissive clause in an unparsed form is a
+  silent pass — its own selftest rejects 6 permissive phrasings and accepts 2
+  correct ones. Proved by replanting the `48 MB at 2-3 lines` defect: FAIL, exit 1;
   restored, PASS.
+  - **Known limit, stated in its output:** a spelled-out line count ("six lines")
+    is not parsed. The check sees numeric clauses only, so prose must keep numbers.
 - `patches/patch-a-no-line-clear.patch.txt` — removes only
   `alt_shared->tt.clear()`; built and measured as a second full grid.
 
