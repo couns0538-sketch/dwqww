@@ -34,3 +34,30 @@ it was caught only because I read the table I had just printed.
 Either a much deeper workload (depth 20+, where a search takes seconds so timer noise is negligible) or the
 `bench`-style repeated workload with the protocol from `METHOD_timing_tt.md` — and in both cases the round count
 must be set from a **measured** noise floor for that specific workload, not assumed.
+
+## RESOLVED on the third attempt (the workload-floor rule applied)
+
+**bench 16, 10 alternating rounds, ~1.15 s per sample, identical node count 2,155,620 in every single run:**
+
+```
+mean base 1142 ms, mean pc 1155 ms
+ratio 1.0119   95 % CI [0.9997, 1.0241]   (+/-1.22 %)
+```
+
+**Resolution achieved: ±1.22 %**, versus ±15 % on the 73 ms workload — a 12x improvement from choosing a workload
+~16x longer per sample, at half the round count. That is `NOTE_floor_is_workload_property.md` demonstrated on the
+experiment that motivated it.
+
+**The answer, carefully worded:** the PC build is **1.19 % slower** on bench 16, with a CI whose lower bound is
+**0.9997** — one ten-thousandth below 1.0. So the honest statement is:
+
+> **At most ~1.2 % slower, and the interval just barely excludes parity. This is a direction with a very thin
+> margin, not an established penalty.**
+
+**Why "at most" and not "significantly slower":** a lower bound of 0.9997 is inside rounding; a different day, a
+different load, or one more round could put it either side of 1.0. The defensible claim is that **the PC build
+carries no measurable speed ADVANTAGE, and if anything a penalty of order 1 %** — which is what matters, because
+its value is in the fixes (drawn roots, bare-king handling, ABORT_PUBLISH's existence), not in speed.
+
+**Also settled:** node counts were **identical (2,155,620) in all 20 runs**, so the comparison is like-for-like
+and the 1 % is pure per-node cost.
