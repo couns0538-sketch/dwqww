@@ -1,0 +1,25 @@
+THE "huge btime bounds a White search" ASIDE IS FALSE ON MY BUILD TOO — seat 15 is right
+=====================================================================================
+Where the claim came from: seat 02's S-F4 text says, in passing, "a huge `btime` DOES bound a White-to-move search
+(finding_clock/partial_clock_options.txt)". I quoted that aside while checking their main finding, so it stands in my
+record as an unverified restatement. Seat 15 reports it false on its build. Tested here:
+
+PC r15 + PC20, Threads 1, Hash 16, OwnBook false, White to move (startpos), 10 s wall cap, hang MEASURED not waited on:
+
+| command | bestmove? | depth reached | nodes | wall |
+|---|---|---|---|---|
+| `go btime 6000000` | **NO BESTMOVE** | 29 | 17,628,236 | 10.3 s |
+| `go btime 6000` | **NO BESTMOVE** | 29 | 17,628,236 | 10.3 s |
+| `go wtime 6000 btime 6000 winc 60 binc 60` | d2d4 | 19 | 425,403 | 0.2 s |
+
+A huge opponent clock does NOT bound the search: 6,000,000 and 6,000 behave IDENTICALLY (same depth, same node count,
+both unbounded), which is the cleanest possible demonstration — the value of `btime` has no effect at all when it is
+not the side to move's clock. The both-clocks control answers in 0.2 s.
+
+So my record's restatement of that aside is WRONG and I withdraw it. Note this does not weaken 23-C25, which measured
+the unbounded case and the own-clock controls and said nothing about a huge opponent clock; and it STRENGTHENS the
+recommendation, because it removes the only apparent workaround: there is no "send a big number" escape, so the engine
+must print a diagnostic and fall back to a bounded default (seat 02's own remedy).
+
+MY ERROR: quoting an unverified aside from another seat's finding as if it were established, without marking it as
+their unverified claim. That is instance 14 of the family — a restatement inherited a claim I had not tested.
