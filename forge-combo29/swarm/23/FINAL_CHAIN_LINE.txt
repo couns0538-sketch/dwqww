@@ -1,21 +1,34 @@
+# FINAL CHAIN — READ THE FIRST THREE SECTIONS ONLY IF YOU READ NOTHING ELSE
+
+Ordered so the first page is the COMPLETE, CALIBRATED claim: the defect, the mechanism, the cost, each with
+its own qualification directly beneath it. The remaining six sections are the detail behind them.
+
+---
+
+## 1. THE DEFECT AND ITS EXACT TRIGGER
+
 ONE-LINE CHAIN for the FINAL block (as ordered):
 
 **Drawn-root defect: exists (23-F44) → present on the clock path (23-F57) → reached by an actual clock game (23-F58) →
 costs up to mate-in-5 against itself at 0 nodes while reporting cp 0 (23-F60/61/72) → fires in 8 of 10 self-play games,
 a lower bound (23-F75) — and in a MATCH the program ends the game at that third occurrence, so the move is never
 played there and the cost lands on analysis tools.**
+
+## 2. THE MECHANISM, AND WHAT THE SCORE IS WORTH
+
 SECOND LINE, added later and kept separate because the first was ordered as written:
 
 **Mechanism: the 0-node move is generator index 0 (23-F98, with a same-board non-draw control serving index 5) → confirmed
-on a middlegame board where a piece was hung (23-F100, e6e5 = index 0 of 42) → priced at a median ~625 cp over 12
-deterministically sampled positions, ten of twelve ≥ 300 cp (23-F101) → the generation order is fully specified,
+on a middlegame board where a piece was hung (23-F100, e6e5 = index 0 of 42) → priced at a median of roughly 600–1,000 cp across TWO DISJOINT 12-position samples, nine or ten of twelve ≥ 300 cp
+each (23-F101/F144 — quote it as a range, never 625 alone) → the generation order is fully specified,
 P→N→B→R→Q→K with pawns single→double→capture and ascending from-square within class, 13/13 on a holdout (23-F103/F106)
 → and a predictor written from that rule, committed before the engine was asked, named the move 5 of 5 on constructed
 roots and exactly on one SELF-PLAY-REACHED root (23-F105/F108). The gate is HISTORY: the same position as a bare FEN
 searches 44,888 nodes (23-F109) — and the gate is now EXACTLY CHARACTERISED: **the base returns 0 nodes iff the POSITION BEING SEARCHED
 has occurred at least three times in the sent move list**, a monotone threshold tested at 2/3/4/5/6 occurrences,
-confirmed in both directions across nine boards of different material (23-F125/F132/F133), and refined to follow the
-searched position rather than the game's root — 3 plies past a repetition the searched position itself recurs and the
+confirmed in both directions across nine boards of different material (23-F125/F132/F133), then extended to a DENSE
+MIDDLEGAME board with about thirty legal moves and to the END OF A LONG MOVE LIST (23-F141/F143), and refined to
+follow the searched position rather than the game's root — 3 plies past a repetition the searched position itself recurs and the
 engine bails, 1 ply past it does not and the engine searches (23-F140), with the halfmove path cutting in at 100
 (23-F126) and a four-command confound test that separates this zero from the two automatic-draw zeros (23-F134). The
 earlier claim that the bail was narrower (23-F112) is WITHDRAWN: it came from a fixture whose cycle disturbed castling,
@@ -23,16 +36,47 @@ so it was never a threefold (23-F122).**
 
 Which of the three candidate code paths produces index 0 is NOT established, and I do not rank them (23-F100).
 
+## 3. THE COST, AND ITS CALIBRATION
+
+NINTH LINE — THE COST, AS ONE CHAIN RATHER THAN THREE FINDINGS (23-F171..F178):
+
+**On a genuine threefold root where the side to move has mate in one, the base reports `cp 0` and plays the generator's
+FIRST move, forfeiting the mate — measured end to end, not inferred.** The six boards: `f2f3` is both the `go perft 1`
+head and the bail's `bestmove` on 6 of 6, while the mates ignored were `b1b8`, `a1a8`, `c1c8` and `e1e8`. Two mate types
+(back-rank and a direct queen mate). The PC plays the mating move in every case.
+
+So the chain reads: **the bail returns the head of the generated list (F98) → on these boards the head forfeits a mate in
+one (F171/F172/F177) → and the head is confirmed to be what was played (F178).** That is the family's practical claim in
+its strongest form, and it is the one to lead the cost section with.
+
+Calibration to keep beside it: `cp 0` is defensible ONLY as "drawn if the draw is claimed", and a winning side never
+claims — so it is right about the RULE and wrong about the POSITION, and a tool showing it tells a user a game is drawn
+that is won in one.
+
+Breadth, stated honestly: the forfeit reproduces on 6 of 6 fixtures across TWO mate types; four other structures had no
+mate in one and could not test it (F175), and all six share Black's king on g8/h8 with pawns intact.
+
+---
+
+## Supporting sections — the detail behind the three above
+
+### 4. What the family is worth, for the judgement section
+
 THIRD LINE - what the family is worth, for the FINAL's judgement section:
 
 **The score is largely SOUND and the damage lives in the MOVE.** Automatic draws (insufficient material) are handled
-correctly by BOTH builds (23-F128); on claimable draws the two builds differ only in whether to claim — a POLICY
-difference, consistent across two boards, not a correctness defect in either (23-F128/F131). The base's unsearched
+correctly by BOTH builds (23-F128). On claimable draws the two builds differ — but NOT by a "claim policy": 23-F169
+refuted that reading by showing the PC reports `cp 0` on a winless drawn root, i.e. it does claim. The correct
+statement is that the repaired build finds the win where one exists and reports the draw where none does, which is
+correct behaviour and a better result for the repair than the policy framing was (23-F128/F131 superseded by
+23-F169). The base's unsearched
 move is generator index 0, and playing it costs a median of roughly 600-1,000 cp across TWO DISJOINT 12-position samples
 (~625 and ~1,004; nine or ten of twelve >= 300 cp each) — quote it as a range, not a figure (23-F101, 23-F144; a cost of
 the MOVE, not the score); on one real self-play board it lost 6 pawns of material (23-F60, re-verified 23-F129). The PC build REMOVES THE 0-NODE PATH — which is what produced both losses —
 and on one of two measured boards also picks a materially better move; it does NOT reliably buy material safety
 (23-F129/F130).
+
+### 5. What was re-verified before the FINAL, and what was not
 
 FOURTH LINE — WHAT WAS RE-VERIFIED BEFORE THE FINAL, AND WHAT WAS NOT (state this in the FINAL in these words):
 
@@ -48,6 +92,8 @@ I also re-ran, and corrected, three numbers in the GUI hazards page that had dri
 and confirmed that page's nine-cell eval/go curve reproduces exactly (23-F138) — so the distrust is mechanical rather
 than general.
 
+### 6. Ordering for the drawn-root section (lead with the realistic case)
+
 FIFTH LINE — ORDERING FOR THE FINAL'S DRAWN-ROOT SECTION (lead with the realistic case, not the clean endgame):
 
 **Open with 23-F143, not the endgame fixtures: on a dense middlegame position with about thirty legal moves the threshold
@@ -62,6 +108,8 @@ Also for the FINAL, the cost of the unsearched move is a RANGE across two disjoi
 And the scope-sentence habit: **a scope sentence is written with the boundary it does not cover, not only the range it
 does.** "Castling is a conditioner" becomes "sufficient in one direction, not necessary"; "the repair fixes the move"
 becomes "on one of two boards". Longer, and no longer quotable as more than it is.
+
+### 7. The GUI hazard table, to be reproduced verbatim
 
 SIXTH LINE — THE HAZARD TABLE FOR THE FINAL'S GUI SECTION, to be reproduced VERBATIM:
 
@@ -83,6 +131,8 @@ The three rules that follow it, also verbatim:
 Verified across all three draw kinds at MultiPV 3 (23-F160): threefold, fifty-move and insufficient material each give
 10 lines / 0 nodes / empty pv / a legal move, so the drawn-root row is not a threefold-only observation.
 
+### 8. The one command that checked the report's central claims
+
 SEVENTH LINE — THE ONE COMMAND THAT CHECKED THE REPORT'S CENTRAL CLAIMS (put this in the FINAL):
 
 **Every number quoted above was re-measured in one run, 11 of 11 agreeing, and the reader can repeat it:**
@@ -101,6 +151,8 @@ One qualification the report should carry: those PC scores were taken at `go dep
 differently on the same drawn root (`mate 8` at a one-second movetime, 23-F168), while the base's bail is identical under
 every budget. So build comparisons in this report are depth-matched, not strength-matched.
 
+### 9. A correction I passed on twice (the claim policy)
+
 EIGHTH LINE — a correction the FINAL must carry, because I passed the wrong version to the owner twice:
 
 **"The PC does not claim repetition draws — a consistent policy" was WRONG.** 23-F169's discriminating fixture is a
@@ -110,20 +162,3 @@ earlier observation — PC reporting a win on 2 of 2 claimable roots — was the
 correct sentence is: **the repaired build finds the win where one exists and reports the draw where none does.** That is
 correct behaviour, and it is a better result for the repair than the "policy" framing was.
 
-NINTH LINE — THE COST, AS ONE CHAIN RATHER THAN THREE FINDINGS (23-F171..F178):
-
-**On a genuine threefold root where the side to move has mate in one, the base reports `cp 0` and plays the generator's
-FIRST move, forfeiting the mate — measured end to end, not inferred.** The six boards: `f2f3` is both the `go perft 1`
-head and the bail's `bestmove` on 6 of 6, while the mates ignored were `b1b8`, `a1a8`, `c1c8` and `e1e8`. Two mate types
-(back-rank and a direct queen mate). The PC plays the mating move in every case.
-
-So the chain reads: **the bail returns the head of the generated list (F98) → on these boards the head forfeits a mate in
-one (F171/F172/F177) → and the head is confirmed to be what was played (F178).** That is the family's practical claim in
-its strongest form, and it is the one to lead the cost section with.
-
-Calibration to keep beside it: `cp 0` is defensible ONLY as "drawn if the draw is claimed", and a winning side never
-claims — so it is right about the RULE and wrong about the POSITION, and a tool showing it tells a user a game is drawn
-that is won in one.
-
-Breadth, stated honestly: the forfeit reproduces on 6 of 6 fixtures across TWO mate types; four other structures had no
-mate in one and could not test it (F175), and all six share Black's king on g8/h8 with pawns intact.
