@@ -1,0 +1,30 @@
+PREDICTION — SW-23 job 60 (with the trigger known, does the bail follow the FIVE-fold rule as well as threefold?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F122 established the trigger cleanly: the base bails on a root whose FIDE identity has occurred three times. FIDE
+also has a FIVE-fold automatic draw (9.6.1) and a SEVENTY-FIVE-move automatic draw (9.6.2), both of which apply without
+a claim. A tool author and the match program both need to know whether the engine honours them on the root.
+
+DESIGN — one board with a clean, castling-neutral 4-ply shuttle (`1K6/8/8/3R4/8/8/8/k7 w`, cycle
+`b8c8 a1b2 c8b8 b2a1`), which 23-F124 revalidated as a genuine repetition vehicle. Build lists where the ROOT identity
+occurs 2, 3, 4, 5, 6 times (cycle ×1, ×2, ×3, ×4, ×5) and, separately, a 75-move root (halfmove 75+ with no captures).
+Every list validated with `validate.py` — BOTH counters must agree on the occurrence count, and the root count is
+asserted to the exact expected value before the engine is called.
+
+Prediction (each with the range that kills it):
+  P1  **2 OCCURRENCES → SEARCHES** (not a draw). Reproduces 23-F93's two-vs-three control under the corrected validator,
+      which is worth doing because that control was built with the flawed key — though on THIS board the cycle is
+      castling-neutral so the old count was right.
+  P2  **3, 4, 5, 6 OCCURRENCES → ALL BAIL** (0 nodes, cp 0). If already at three it bails, then 4/5/6 add nothing, which
+      is the expected shape and confirms the bail is monotone in occurrence count rather than specific to "exactly 3".
+      KILLED if 4 or 5 SEARCHES — that would mean a threefold bails but a fourfold does not, which would be a strange
+      and important discontinuity worth its own finding.
+  P3  **THE SEVENTY-FIVE-MOVE ROOT BAILS** at halfmove 75 with no repetition history — 9.6.2 is automatic, unlike the
+      fifty-move rule, so if the engine distinguishes them this is where it shows. KILLED if it searches, which is
+      acceptable behaviour under the fifty-move rule but would mean the engine does not implement 9.6.2.
+  P4  A CONTROL that keeps the fixture honest: at halfmove 0 with the cycle sent ONCE (2 occurrences) the engine must
+      SEARCH, and the SAME list at halfmove 74 must ALSO search (75 not yet reached). KILLED if either bails.
+
+If P1/P2 hold, the trigger sentence becomes "the bail is monotone in true occurrence count, threshold at three" — a
+cleaner statement than anything in the seat so far. P3 is informational about a different rule and I will report it
+separately rather than merging it.
