@@ -250,7 +250,8 @@ the wrong order to read them in. Grouped by what they are for:
   count. **The measurement was right and the record was left behind — the worst combination, because
   the wrong claim survives while the right one lives only in conversation.** When a result changes a
   conclusion, the job ends when every document stating the old conclusion has been searched for it;
-  the changed number and the changed *sentence* are two edits, and only the first happens by itself.
+  **the changed number and the changed *sentence* are two separate edits, and only the first happens
+  automatically.**
 - **Before citing a library function as your evidence, read what it actually computes.** I said
   `python-chess`'s `is_fifty_moves()` was False on the boards proving 07-F3, in two findings. It
   returns **True** — its body is only `halfmove_clock >= n and any(legal_moves)`, with no test for a
