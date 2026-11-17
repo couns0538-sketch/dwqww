@@ -419,6 +419,39 @@ not necessarily make a MEASUREMENT valid.* Restoring the TT store repairs the
 no-op baseline and leaves the one-move root a different search, because a
 one-move root is a different search for reasons the TT store does not touch.
 
+### F12b — the patch does not fix the RANKING either
+
+`| 70-F12b | area 3 | patch A leaves a 3- and 5-candidate pinned ranking unsound: paired on 51 common positions, 112/122 & 367/386 (R1), 115/122 & 368/386 (R3), all intervals below 1.0 | job3/patchA_ranking.txt | NEW |`
+
+```bash
+FORGE_BIN=/tmp/build-pA/forge python3 forge-combo29/swarm/70/job3/rank_final.py --tag patchA
+python3 forge-combo29/swarm/70/job3/patchA_ranking.py
+```
+
+This closes the cell the table left empty. The comparison must be **paired**: each
+run keeps only positions where its own reference validates, and the sets differ
+(53 base, 51 patched, 51 common). Comparing 142/159 with 143/153 directly would
+confound the position change with the patch, so all numbers below are on the 51
+common positions.
+
+| ref | k | pairs | base agree | patched agree | 95% CI (patched) | fixed | broke | McNemar p |
+|---|---|---|---|---|---|---|---|---|
+| R1 | 2 | 39 | 36/39 | 35/39 | 0.764–0.959 | 2 | 3 | 1.0000 |
+| R1 | 3 | 122 | 110/122 | 112/122 | 0.856–0.955 | 7 | 5 | 0.7744 |
+| R1 | 5 | 386 | 367/386 | 367/386 | 0.924–0.968 | 11 | 11 | 1.0000 |
+| R3 | 2 | 39 | 37/39 | 34/39 | 0.733–0.944 | 0 | 3 | 0.2500 |
+| R3 | 3 | 122 | 110/122 | 115/122 | 0.886–0.972 | 9 | 4 | 0.2668 |
+| R3 | 5 | 386 | 366/386 | 368/386 | 0.927–0.970 | 14 | 12 | 0.8450 |
+
+Every patched interval still lies below 1.0 and the discordant splits are near
+even. **The patch does not make a pinned 3- or 5-candidate ranking sound**, which
+is what F12 predicted from the score side: the ranking defect lives in the
+one-move root's score (9/265), not in the root TT store.
+
+Caveat stated in the file: power is low at k=2 (39 pairs) and the two references
+disagree on the direction at k=3 (R1 +2, R3 +5), so this is "no effect detected",
+not "no effect exists".
+
 ---
 
 ## Suspicions, not proven

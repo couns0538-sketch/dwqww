@@ -77,11 +77,13 @@ def wilson(p, n, z=1.96):
 
 
 def main():
-    limit, depth = None, 12
+    limit, depth, tag = None, 12, ""
     if "--limit" in sys.argv:
         limit = int(sys.argv[sys.argv.index("--limit") + 1])
     if "--depth" in sys.argv:
         depth = int(sys.argv[sys.argv.index("--depth") + 1])
+    if "--tag" in sys.argv:
+        tag = "_" + sys.argv[sys.argv.index("--tag") + 1]
 
     with open(os.path.join(HERE, "..", "job1", "pinpool.epd")) as fh:
         fens = [l.strip() for l in fh if l.strip()]
@@ -180,12 +182,12 @@ def main():
                 if sub:
                     out.append(f"{ref} k={k} {label:8s}: {sum(p['same'] for p in sub)}/{len(sub)}")
 
-    with open(os.path.join(HERE, "rank_final_pairs.csv"), "w", newline="") as fh:
+    with open(os.path.join(HERE, f"rank_final_pairs{tag}.csv"), "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(pairs[0].keys()))
         w.writeheader()
         w.writerows(pairs)
     text = "\n".join(out)
-    with open(os.path.join(HERE, "rank_final.txt"), "w") as fh:
+    with open(os.path.join(HERE, f"rank_final{tag}.txt"), "w") as fh:
         fh.write(text + "\n")
     print(text)
 

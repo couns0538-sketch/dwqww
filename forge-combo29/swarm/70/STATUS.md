@@ -136,6 +136,30 @@ make a MEASUREMENT valid.** Written into `FINDINGS.md` F12 and into the fix
 section of `SEARCHMOVES_TABLE.md` as a three-row "what you want / does patch A
 give it" table.
 
+## 2026-11-17T04:55Z — last table cell CLOSED (does patch A fix a 3/5-candidate RANKING?)
+
+The "what you want / does patch A give it" table had one untested row. Ran it.
+
+`job3/patchA_ranking.txt`. The comparison had to be **paired**: each run keeps only
+positions where its own reference validates, and the sets differ (53 base, 51
+patched, 51 common), so quoting 142/159 against 143/153 would confound the
+position change with the patch. All numbers below are on the 51 common positions.
+
+| ref | k | pairs | base | patched | fixed | broke | McNemar p |
+|---|---|---|---|---|---|---|---|
+| R1 | 3 | 122 | 110/122 | 112/122 | 7 | 5 | 0.7744 |
+| R1 | 5 | 386 | 367/386 | 367/386 | 11 | 11 | 1.0000 |
+| R3 | 3 | 122 | 110/122 | 115/122 | 9 | 4 | 0.2668 |
+| R3 | 5 | 386 | 366/386 | 368/386 | 14 | 12 | 0.8450 |
+
+**No.** Every patched interval stays below 1.0 and the splits are near even. The
+patch does not make a pinned 3/5-candidate ranking sound — consistent with F12,
+where the defect is in the one-move root's score (9/265), not the root TT store.
+
+Caveat recorded in the file: low power at k=2 (39 pairs) and the references
+disagree on direction at k=3, so this is "no effect detected", not "no effect
+exists".
+
 ## Deliverables
 
 - `FINDINGS.md` — F1..F11, each with a re-runnable command.

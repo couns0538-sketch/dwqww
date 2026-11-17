@@ -64,4 +64,10 @@ root TT store does not touch.
 |---|---|
 | `searchmoves <all legal>` as a valid no-op control | **yes**, 60/60 moves and scores |
 | a pinned single-move score equal to the in-tree score | **no**, 9/265 (p = 1.00 vs 10/265) |
-| a pinned ranking of 3 or 5 candidates to be sound | not tested under the patch; nothing here suggests it would be |
+| a pinned ranking of 3 or 5 candidates to be sound | **no**, measured on the common validated positions: 112/122 and 367/386 (R1), 115/122 and 368/386 (R3), every interval below 1.0, discordant splits near even |
+
+The last row is measured in `job3/patchA_ranking.txt`; the comparison is paired on
+the 51 positions both runs validate, because the two runs validate different sets
+(53 vs 51) and comparing 142/159 with 143/153 would confound the position change
+with the patch. Low power at k=2 (39 pairs), so read it as "no effect detected",
+not "no effect exists".

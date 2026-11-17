@@ -1,0 +1,35 @@
+# Does the root-TT-store patch fix the RANKING of 3 and 5 candidates?
+
+positions where the base reference is validated      : 53
+positions where the patched reference is validated   : 51
+positions validated in BOTH (used for the pairing)   : 51
+
+Positions outside the common set are dropped, because a rate computed on
+one position set cannot be compared with a rate on another.
+
+== reference R1 ==
+k | pairs | base agree | patched agree | 95% CI (patched) | fixed | broke | McNemar p
+2 | 39 | 36/39 | 35/39 | [0.764,0.959] | 2 | 3 | 1.0000
+3 | 122 | 110/122 | 112/122 | [0.856,0.955] | 7 | 5 | 0.7744
+5 | 386 | 367/386 | 367/386 | [0.924,0.968] | 11 | 11 | 1.0000
+
+== reference R3 ==
+k | pairs | base agree | patched agree | 95% CI (patched) | fixed | broke | McNemar p
+2 | 39 | 37/39 | 34/39 | [0.733,0.944] | 0 | 3 | 0.2500
+3 | 122 | 110/122 | 115/122 | [0.886,0.972] | 9 | 4 | 0.2668
+5 | 386 | 366/386 | 368/386 | [0.927,0.970] | 14 | 12 | 0.8450
+
+== VERDICT ==
+The patch does not move the ranking.  Every patched interval still lies
+below 1.0, and the discordant split is close to even in every cell, so
+the patch neither fixes nor worsens it; McNemar p is large throughout.
+
+Read this as a NULL, not as proof that the patch is inert here.  The
+design has low power at k=2 (39 pairs) and the two references disagree
+on the direction at k=3 (R1 +2, R3 +5 agreements), so the honest claim is
+'no effect detected at these sample sizes', not 'no effect exists'.
+
+Conclusion for the table cell that was empty: a pinned ranking of 3 or 5
+candidates is NOT made sound by the root-TT-store patch.  The ranking
+defect lives in the one-move root's score itself (F12: 9/265), not in the
+root TT store -- which is consistent with F12 and closes the last cell.
