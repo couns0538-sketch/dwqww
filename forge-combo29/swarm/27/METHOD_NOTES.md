@@ -398,8 +398,9 @@ engine failed to stop.
 
 ## THE SESSION'S MOST CONSISTENT RESULT, in one line
 
-**Fixed limits are deterministic; wall-clock-driven limits are not; and the variation lives in the harness, not the
-engine.** Four seats reached this independently in one evening, by four different routes:
+**Fixed limits are deterministic and that is an ENGINE property on both builds; wall-clock-driven limits are not
+deterministic and that is a HARNESS property on both builds.** Verified on base `e06310ec`/S14 as well as PC
+r15/PC20 — 1 distinct move sequence in 5 of 5 games at `go nodes 20000` and at `go depth 10` on each build. Four seats reached this independently in one evening, by four different routes:
 
 | seat | the route | what it found |
 |---|---|---|
