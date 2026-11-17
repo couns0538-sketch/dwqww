@@ -1,0 +1,62 @@
+THE 0-NODE MOVE IS THE ENGINE'S FIRST GENERATED MOVE — on 5 of 5 drawn roots, by the engine's own order
+==========================================================================================================
+Job 48 asked what "its first legal move" mechanically means for the base's 0-node drawn-root move. The answer is
+sharp, and getting to it required correcting my own test twice.
+
+THE MEASUREMENT (base build, Threads 1, Hash 16, OwnBook false)
+----------------------------------------------------------------
+The yardstick is the engine's OWN generation order, from a `go perft 1` divide on the same position. That is a claim
+about the engine's generator, so it is the only yardstick that can settle it.
+
+| case | 0-node / served move | index in ENGINE order | 1st move of divide | move lines | nodes |
+|---|---|---|---|---|---|
+| D1 threefold, white to move | d5d1 | **0** | d5d1 | 19 | 19 |
+| D2 threefold, black to move | a1b1 | **0** | a1b1 | 3 | 3 |
+| D3 threefold, rook c1 | c1b1 | **0** | c1b1 | 16 | 16 |
+| D4 halfmove 150 | d5d1 | **0** | d5d1 | 19 | 19 |
+| D5 bare kings (insufficient material) | a1b1 | **0** | a1b1 | 3 | 3 |
+| **C1 CONTROL, not drawn** | **d5b5** | **5** | d5d1 | 19 | 19 |
+
+So on every drawn root tested, of three different draw kinds (threefold repetition, fifty-move, insufficient material),
+the move returned with 0 nodes is **the first move the engine generates**. The control is what makes this a finding
+rather than a tautology: on the same board WITHOUT the draw, the engine searches 7,581 nodes and chooses index **5**,
+not index 0 — so the index-0 behaviour is specific to the 0-node path and is not how this build always selects moves.
+
+P1 HELD: every 0-node move was legal in python-chess's set as well (D1 18th of 19 in python-chess order, D2 3rd of 3,
+D3 13th of 16, D4 18th of 19, D5 3rd of 3). Legality is confirmed by an independent implementation, not by the engine.
+P3 HELD: two fresh processes per drawn root gave the identical move every time (all five).
+P4 HELD: the control searched 7,581 nodes.
+
+WHAT P2 ACTUALLY DID, and why its failure was my test's fault
+--------------------------------------------------------------
+P2 as written said the 0-node move would be "the first move of python-chess's legal list". Measured: it is index 18,
+2, 12, 18, 2 — **0 of 5**, so P2 failed. That failure was uninformative because the yardstick was wrong: python-chess's
+iteration order is not the engine's generation order, and a claim about the engine's generator cannot be tested against
+a different implementation's ordering. The corrected test (`go perft 1`) puts the move at index 0 on all five.
+
+**This is a post-hoc correction of a test, not a pre-registered confirmation, and it is recorded as such.** The
+prediction file was committed and pushed at 01:32:14Z before any measurement and still says what it says; the
+correction is here, and 23-F98 reports the finding with the correction attached rather than presenting the perft result
+as though it had been predicted.
+
+TWO DRIVER NEAR-MISSES, both of which could have produced a silent wrong answer
+-------------------------------------------------------------------------------
+1. **The perft summary line is `nodes 19`, not `Nodes searched`.** My first driver waited for the latter, blocked until
+   killed, and produced nothing. A hang is visible; a driver that had read ZERO divide lines and then reported "the
+   move is not in the engine's order" would have looked exactly like a finding. The saved driver asserts that the move
+   lines it parsed equal the `nodes` total and prints `HARD FAILURE` if they disagree, so an unparsed divide cannot be
+   read as an empty one.
+2. **Reading a divide requires a nonzero-population check**, for the same reason. Both are instances 1/18 of the family
+   applied to a new output format — the same lesson that a new format is a new parser and needs its own proof.
+
+THE FINDING, in one sentence for an area-7 code-reading seat
+-------------------------------------------------------------
+On a drawn root the un-repaired build returns the **first move of its generated list**, unsearched, with a `cp 0` score —
+so on these boards the quality of the played move is entirely a property of **move-order generation**, which makes
+23-F60's "the 0-node move can lose" a statement about generator order rather than about search. I have NOT read the
+code that does this and I do not claim to know why index 0 is chosen (no TT entry, no ordering step, or an early return
+before ordering are all consistent with the observation).
+
+LIMITS: base build only (the PC's 0-node path differs by construction — it searches 104/56,153 nodes and so has no
+0-node move to explain); five positions, all K+R/K+Q/bare-king endgames; `go perft 1` order may itself differ from
+whatever ordering a search would impose, which is exactly why the control's index 5 matters.

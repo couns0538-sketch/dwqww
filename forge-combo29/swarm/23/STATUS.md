@@ -1881,3 +1881,32 @@ predicted the engine and left my own fixture viability unpredicted. The rule: pr
 against it.
 
 125 findings, 20 rule instances, both audits PASS.
+## 2026-11-17T01:35:05Z  F98: the 0-node move is the engine's FIRST generated move (with a control that proves it)
+2026-11-17T01:35:05Z
+
+Area-3 question left open by the drawn-root family: what does "its first legal move" mechanically mean?
+
+Yardstick: the engine's OWN generation order, from a `go perft 1` divide. Base build, Threads 1, Hash 16.
+
+  D1 threefold/white   d5d1  index 0 (of 19)
+  D2 threefold/black   a1b1  index 0 (of 3)
+  D3 threefold/rook c1 c1b1  index 0 (of 16)
+  D4 halfmove 150      d5d1  index 0 (of 19)
+  D5 bare kings        a1b1  index 0 (of 3)
+  CONTROL, same board WITHOUT the draw: searches 7,581 nodes and serves d5b5 at index 5.
+
+The control is what makes this a finding rather than a tautology: index-0 selection is specific to the 0-node path, not
+how this build picks moves in general. Legality independently confirmed (python-chess: 18/19, 3/3, 13/16, 18/19, 3/3),
+determinism 5 of 5 across fresh processes.
+
+P2 FAILED AS WRITTEN and it was my test's fault: I used python-chess's iteration order as the yardstick (indices
+18/2/12/18/2, 0 of 5), which cannot test a claim about the engine's generator. Corrected yardstick puts it at 0 on all
+five. That is a POST-HOC correction, labelled as one — the prediction was pushed at 01:32:14Z and still says what it
+said, and the finding carries the correction rather than pretending the perft result was predicted.
+
+F99: reading the divide cost two driver defects in the same job. The summary line is `nodes 19`, not Stockfish's
+`Nodes searched`, so my first driver hung; and a divide parsed as empty reports "not in the engine's order", which is
+indistinguishable from a finding. Driver now asserts parsed move lines == nodes and prints the population beside every
+row. Third time in this seat a parse failure would have read as a result (instances 1, 15, 18).
+
+127 findings, 20 rule instances, both audits PASS.

@@ -1,0 +1,20 @@
+| case | nodes | bestmove | legal? | index in python-chess order | #legal |
+|---|---|---|---|---|---|
+| D1 threefold W | 0 | d5d1 | yes | 18 | 19 |
+| D2 threefold B | 0 | a1b1 | yes | 2 | 3 |
+| D3 threefold c1 | 0 | c1b1 | yes | 12 | 16 |
+| D4 halfmove150 | 0 | d5d1 | yes | 18 | 19 |
+| D5 bare kings | 0 | a1b1 | yes | 2 | 3 |
+| C1 CONTROL not drawn | 7581 | d5b5 | yes | 13 | 19 |
+
+== determinism: each drawn root twice, fresh process ==
+  D1 threefold W         ['d5d1', 'd5d1'] IDENTICAL
+  D2 threefold B         ['a1b1', 'a1b1'] IDENTICAL
+  D3 threefold c1        ['c1b1', 'c1b1'] IDENTICAL
+  D4 halfmove150         ['d5d1', 'd5d1'] IDENTICAL
+  D5 bare kings          ['a1b1', 'a1b1'] IDENTICAL
+
+P1 every 0-node move legal: True
+P2 index-0 in python-chess order on how many of the five drawn: 0
+   indices among drawn roots: [('D1 threefold W', 18), ('D2 threefold B', 2), ('D3 threefold c1', 12), ('D4 halfmove150', 18), ('D5 bare kings', 2)]
+P4 control searched (nodes > 1000): True nodes = 7581
