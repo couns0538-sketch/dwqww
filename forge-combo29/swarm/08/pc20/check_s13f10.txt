@@ -1,0 +1,44 @@
+## seat 13 S-F10 — the owner's clock path, checked and reconciled with my own numbers
+
+PC r15, PC20, Threads 1, Hash 16.
+
+### 1. determinism at the owner's clock — the same position 5 times
+
+| run | wall ms | depth | nodes | bestmove | score |
+|---|---|---|---|---|---|
+| 1 | 363.8 | 19 | 650,246 | e2e4 | cp 7 |
+| 2 | 356.2 | 19 | 650,246 | e2e4 | cp 7 |
+| 3 | 362.7 | 19 | 650,246 | e2e4 | cp 7 |
+| 4 | 357.0 | 19 | 650,246 | e2e4 | cp 7 |
+| 5 | 355.0 | 19 | 650,246 | e2e4 | cp 7 |
+
+| question | answer |
+|---|---|
+| identical depth, nodes and move in 5 fresh processes? | **YES** |
+
+### 2. clock share on G positions at 6 s + 0.06
+
+| position | wall ms | share of 6000 ms | depth | info lines |
+|---|---|---|---|---|
+| 1r6/2k2pp1/2p2n2/2Pppb1p/7P/1P | 159.2 | **2.7 %** | 18 | 18 |
+| r3r1k1/p1bb1ppp/1p1q4/3P1p2/1n | 292.1 | **4.9 %** | 18 | 18 |
+| 6k1/p4r1p/1p2Q3/2p5/2P1N3/1P3P | 191.2 | **3.2 %** | 17 | 17 |
+| 5R2/5npp/5k2/8/4p3/4P3/3K1PPP/ | 408.0 | **6.8 %** | 18 | 18 |
+| 8/1p1k1KN1/4pB2/4P2P/8/P2p3r/2 | 244.7 | **4.1 %** | 20 | 20 |
+| 8/6k1/3p4/3P2PP/4KP2/4N3/8/8 w | 152.7 | **2.5 %** | 19 | 19 |
+| 2r4r/pp4k1/3q2p1/3ppn2/1P4QP/P | 215.0 | **3.6 %** | 18 | 18 |
+| 8/5p2/8/pp1pkpKp/7P/2P3P1/1P6/ | 824.2 | **13.7 %** | 18 | 18 |
+
+| quantity | value |
+|---|---|
+| median share of the clock on these positions | **4.1 %** |
+| seat 13 reported | **4.1 %%** (median 207 ms) |
+| my 08-F24 reported (120 moves, 3 positions) | **4.9 %%** (median 295 ms) |
+| illegal bestmoves in this sample | **0** |
+
+### 3. does the used time scale with the clock?
+
+| clock | wall ms | share |
+|---|---|---|
+| 6000 | 366.6 | 6.1 % |
+| 30000 | 1268.9 | 4.2 % |
