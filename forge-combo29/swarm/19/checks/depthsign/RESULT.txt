@@ -1,0 +1,21 @@
+19-C66: does 19-C44's '+3 ply at 20k' survive n=130, with ties counted?
+pc20 sha256 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4 ; base sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+positions: their_600.fens first 130, Threads 1, Hash 16, ABBA, fresh process
+
+=== `go nodes 20000`  (n=130) ===
+  PC20 DEEPER 44 | TIE 65 (50.0 %) | PC20 shallower 21
+  ply sum +8 over 130 positions = +0.062 ply/position
+  median depth diff +0.0 ; mean +0.062
+  strict share (deeper / all)      = 44/130 = 33.8 %
+  wins / decided (ties excluded)   = 44/65 = 67.7 %
+  depth range: S14 7-64, PC20 8-64
+
+=== `go nodes 50000`  (n=130) ===
+  PC20 DEEPER 46 | TIE 55 (42.3 %) | PC20 shallower 29
+  ply sum +4 over 130 positions = +0.031 ply/position
+  median depth diff +0.0 ; mean +0.031
+  strict share (deeper / all)      = 46/130 = 35.4 %
+  wins / decided (ties excluded)   = 46/75 = 61.3 %
+  depth range: S14 9-64, PC20 9-64
+
+19-C44's original claim: S14 59 vs PC20 62 = +3 ply summed over SIX positions (+0.500/position).
