@@ -3,11 +3,11 @@
 **Seat:** report assembly for the owner. Synthesising; not measuring.
 **Branch:** `for-fable-and-opus/swarm-73` — `forge-combo29/swarm/73/`
 **Window:** opened 03:48Z, audit closes 2026-11-17T10:20Z.
-**Provenance audited against the 34 branch tips listed in `OWNER_SUMMARY.md`'s header** (fetch 04:31Z).
+**Provenance audited against the 34 branch tips listed in `OWNER_SUMMARY.md`'s header** (fetch 04:33Z).
 
-## State: DONE — summary current as of the 04:31Z fetch
+## State: DONE — summary current as of the 04:33Z fetch
 
-`OWNER_SUMMARY.md` — 2,137 lines, **56 rules**. Revised through thirteen rounds.
+`OWNER_SUMMARY.md` — 2,197 lines, **58 rules**. Revised through fourteen rounds.
 
 ## Numbers the coordinator asked for
 
@@ -30,6 +30,27 @@
 **The shippability count is the serious one** and I have flagged it in §1.2's own text, not only in §5: the
 adversarial-family and depth-contract results are sourced, but the claim "the scan fires on drawn roots only" is
 report-only. Re-measuring it on the owner's build is the conversion check.
+
+## Fourteenth round — the mechanism reverses, and a resolution rule
+
+**I had the mechanism backwards, and the correction makes it stronger.** I wrote that "only the per-node factor moves
+with game phase", following thirds. **Six slices of 4,135 pairs separate what thirds could not: per-node spread
+0.29 %, node 1.36 %, wall 4.76 %.** So **per-node cost is nearly a constant of the engine and the phase dependence
+lives in the NODE ratio.**
+
+**The corrected version is the better claim:** per-node is a property of the **code**, stable to 0.3 % in every phase;
+the node ratio is the **search interacting with the position**. **That is why three samples across two builds agree at
+1.0640 / 1.0693 / 1.0709** — it is the one term that does not depend on what you sampled. A mechanism that predicts its
+own replication beats one that merely fits.
+
+Added **rule 26** — a slice count is a **resolution**, and too few slices invert a conclusion. The thirds were a
+reasonable partition that produced a confident, coherent, backwards mechanism; the factors differed ~4× and a 3-way
+split could not resolve that. Added **rule 27** — a median of a product is not the product of medians; slice 2 gives
+0.9618 × 1.0719 = 1.0310 against a wall median of 1.0476, a 1.6 % gap on data whose aggregate closes to 0.5 %. The
+table now carries that caution so a reader multiplying slice medians does not conclude the identity fails.
+
+**Security gate: nothing to remove.** I checked — I carry no line about that gate having resolved, so the recheck
+seat's correction needs no action here.
 
 ## Thirteenth round — the wall-time headline flips sign
 
