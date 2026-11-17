@@ -1332,3 +1332,16 @@ the SAME node count, suspect a refused position - different positions never shar
 the same previous board was searched twice. Instances: 23-C14/C23 and 23-F69 (56,720 / 72,062 identical on two
 invalid boards).
 96 findings, 18 confirmations. 9 h 57 m remain.
+## 2026-11-17T00:22:53Z  23-F71: I correct my own F70 - game 4 is bare K vs K (insufficient material), NOT an unrepaired repetition
+2026-11-17T00:22:53Z
+
+Game-4 position: 8/8/8/8/8/8/8/k2K4 w - - 14 72 -> bare K vs K, 2 pieces, is_insufficient_material() TRUE.
+Probed that board with position fen alone (no history), depth 16: BOTH builds answer cp 0 / 0 nodes / d1c1.
+So the short-circuit is the documented INSUFFICIENT-MATERIAL rule, not the drawn-root defect; the PC has nothing
+to repair there.
+MY ERROR (13th of the family): I conflated "the game reached a third occurrence" with "this is a repetition case" -
+the game arrived at a position drawn for a stronger reason and the repetition was incidental.
+WHAT THE DATA SUPPORTS: on the THREE genuine repetitions, base 0 nodes every time (-805 / -39 / -805), PC repaired
+all three (1.38M / 1.60M / 1.38M nodes) -> "general, and repaired on the PC", NOT "general but not universal".
+F70 amended in place with a pointer to F71, not deleted.
+98 findings, 18 confirmations. 9 h 57 m remain.
