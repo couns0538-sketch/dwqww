@@ -1,0 +1,20 @@
+Job 10 Clang ThinLTO + PGO Bundle Timing Predictions (committed ALONE before building or timing any PGO binary)
+===============================================================================================================
+Toolchain & target matching the PC (`FABLE_TO_carbon2_10.md` items (a)-(d)):
+- Compiler & linker: `clang++-18` (`Ubuntu clang version 18.1.3`) with GCC 13's `libstdc++`, `-flto=thin -fuse-ld=lld-18`, `llvm-profdata-18`, `-march=sapphirerapids` (this Xeon's native AVX-512 + AVX512-VNNI + BMI2 `PEXT` target), plus all explicit switches of item (c) and exact profile stdin of item (b) with `net768.fnn3`.
+- Workload: 12 rounds x 60 games `A1 B1 B2 A2` (`48` runs) at `Hash 16`, `Threads 1`, `PC20 + net768.fnn3`, `go softnodes 2000`, two independent PGO builds per tree (`A1, A2` and `B1, B2`, each compiled, profiled, merged, and linked separately).
+
+1. Prediction for `bundle 1` (`job5/bundle.patch.txt`) vs `r15d` on Clang ThinLTO + PGO:
+   - Mechanism & hypothesis for the PC's `+0.78%` result: On GCC 13 `-O3` (no LTO, no PGO), `bundle 1` gained `+3.42%` largely because GCC lacked cross-TU inlining (`board.cpp <-> search.cpp <-> nnue_v3.cpp`), profile-guided branch layout, and Clang's loop-idiom lowering of `*table = Table{}` -> `memset` in `Worker::clear()` (`S7` part 2) and AVX-512 constant hoisting (`S4`). Under Clang ThinLTO + PGO, `r15d` already receives cross-TU inlining, hot/cold block layout, and `memset`/LICM lowering, leaving only the algorithmic deltas (`S5` early `key_after` reuse in `make_move` + `S6` fast pawn-recapture `SEE` + `S7` part 1 `string_view` `position` parser).
+   - Predicted `getrusage` engine CPU `median_of_paired_round_ratios` (`bundle 1 / r15d` on Clang ThinLTO + PGO): **`+0.3%` to `+1.8%` (`1.003x` to `1.018x`)** (reproducing the PC's `~+0.8%` compression relative to Job 5's `+3.42%` GCC non-PGO figure).
+   - Kill range for the `+1.0%` PGO keep gate (per File 10 line 83): **`bundle 1` is graded KEPT (`>= +1.0%`) only if `median_of_paired_round_ratios >= 1.0100x` AND `>= 9 / 12` paired rounds are faster on `getrusage` engine CPU; otherwise `< +1.0%` (`NOT KEPT` alone on PGO).**
+
+2. Prediction for `bundle 4` (`job8/bundle4.patch.txt`, `InfoOnce=false`) vs `r15d` on Clang ThinLTO + PGO:
+   - What `bundle 4` removes beyond `bundle 1` that ThinLTO + PGO cannot synthesize on `r15d` (from committed `Hash 16` counts in `job8/wasted_work_counts_hash16.txt`):
+     * `G1`: incremental `material_corr_key` on `Board` (eliminating 12-piece bitboard material-key loops at static eval).
+     * `G2` + `G3`: `see_ge` fast no-recapture + `known_gives_check` passed into `Board::make_move` + `KingLines` reuse.
+     * `G4`: per-search `v3_active_net_` snapshot + hoisted `prepare_position_v3` + cached `king_sq_`.
+     * `W1 + W2`: fused `MovePicker` stage generation without `picker_scratch_`, single-pass pin-legality & `gives_check` on `QuietMoves` (`5,893,419` unpinned non-king quiets/60 games), lazy/selective `b4::lesser_threats` (`1,399,941` unread threat-map builds skipped/60 games), and direct 1D continuation/check-bonus row pointers (`23.96` target loads instead of `384`-sq pre-sum).
+   - Predicted `getrusage` engine CPU `median_of_paired_round_ratios` (`bundle 4 / r15d` on Clang ThinLTO + PGO): **`+1.5%` to `+4.2%` (`1.015x` to `1.042x`)**, with **`>= 9 / 12`** paired rounds faster.
+   - Predicted wall-clock `median_of_paired_round_ratios`: **`+1.2%` to `+4.2%` (`1.012x` to `1.042x`)**.
+   - Kill range: Any identity or `ee465caeff9c0fcf` trace mismatch kills immediately; if `bundle 4 / r15d` `median_of_paired_round_ratios` on `getrusage` engine CPU is `< 1.015x` OR fewer than `9 / 12` paired rounds are faster on `getrusage` engine CPU, `prediction_pgo_bundles` (part 2) is graded **KILLED** (and if `< 1.010x`, we pivot to File 10's off-by-default UCI play option + 20k-node match).
