@@ -171,6 +171,16 @@ def main() -> int:
     check("§3 movetime 0 has 3 outcomes", i["go movetime 0"]["distinct_outcomes"] == 3,
           str(i["go movetime 0"]["distinct_outcomes"]))
     check("§3 movetime 1 has 1 outcome", i["go movetime 1"]["distinct_outcomes"] == 1)
+    # `movetime -1` is not in the interleaved run; its 17 observations are 16 in
+    # repeatability.json plus 1 in keywords.jsonl, and all 17 are the mode.
+    m1 = [r for r in load("repeatability.json") if r["go"] == "go movetime -1"]
+    check("§3 movetime -1 measured 16 times in repeatability", len(m1) == 1 and m1[0]["repeats"] == 16,
+          str(len(m1)))
+    check("§3 movetime -1 is 16/16 the mode",
+          len(m1) == 1 and m1[0]["outcomes"][0]["count"] == 16 and
+          m1[0]["outcomes"][0]["max_depth"] == 5 and m1[0]["outcomes"][0]["bestmove"] == "a2a3")
+    check("§3 movetime -1 in keywords is the mode",
+          cell("go movetime -1")["max_depth"] == 5 and cell("go movetime -1")["bestmove"] == "a2a3")
     top = i["go movetime 0"]["outcomes"][0]
     check("§3 movetime 0 modal outcome is depth 5", top["max_depth"] == 5, str(top["max_depth"]))
     check("§3 movetime 0 modal count is 27", top["count"] == 27, str(top["count"]))

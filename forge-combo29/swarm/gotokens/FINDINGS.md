@@ -243,9 +243,13 @@ reason to guess after.
 ## 3. `go movetime 0` is a race, not a default
 
 `go movetime 0`, `go movetime abc` and `go movetime -1` all reach
-`limits.movetime_ms == 0`; `search.cpp:2194` turns that into
+`limits.movetime_ms == 0`; `search.cpp:2192` turns that into
 `hard_limit_ms_ = max(1, 0 - 10) = 1`, and the root check
-`elapsed_ms() >= 1` (`search.cpp:2320`) then races search setup.
+`elapsed_ms() >= hard_limit_ms_` at `search.cpp:2320` then races search setup.
+(There is a second reader of the same field in `should_stop_with`,
+`search.cpp:1285-1288`.) **Three forms, one field value, and the value is 1 ms —
+which is short enough that whether the root check fires before or after setup
+decides the whole shape of the answer.**
 
 `evidence/movetime_zero_interleaved.json`, **30 fresh processes per arm,
 interleaved** so machine load cannot masquerade as a form difference:
@@ -255,6 +259,12 @@ interleaved** so machine load cannot masquerade as a form difference:
 | `go movetime 0` | **3** | 27× depth 5/818/`a2a3`, 2× depth 3/174/`e1g1`, 1× depth 4/302/`e1g1` |
 | `go movetime abc` | 2 | 29× depth 5/818/`a2a3`, 1× depth 4/302/`e1g1` |
 | `go movetime 1` | 1 | 30× depth 5/818/`a2a3` |
+
+`go movetime -1` is not in that interleaved run, but `evidence/keywords.jsonl`
+and `evidence/repeatability.json` record it 17 times: **17 of 17 at depth
+5/818/`a2a3`**, the modal outcome. So the three arms that set the same field are
+modal-identical and differ only in how often they miss the mode — **and that is
+the point: the distribution, not the mode, is the measurement.**
 
 **Two forms that set the identical field value produce different
 distributions, and one of them is not stable at all.** Any single cell in a
@@ -552,11 +562,11 @@ The two things a client cannot fix on its own, and which belong in the engine:
 | `evidence/movetime_zero_interleaved.json` | 30 fresh processes per arm, interleaved |
 | `evidence/build_and_run.log` | the matrix run log, build label on every line |
 | `scripts/` | `go_probe.py` (the harness), `matrix.py`, `keyword_eating.py`, `lastwins.py`, `searchmoves_pass.py`, `boundedness.py`, `huge_clock.py`, `repeatability.py`, `movetime_zero.py`, `book_randomness.py`, `find_reference_fen.py`, `search_reference_board.py` |
-| `scripts/verify_claims.py` | re-derives 290 checkable claims (numeric + table shape) from the evidence |
+| `scripts/verify_claims.py` | re-derives 293 checkable claims (numeric + table shape) from the evidence |
 
 ## How the figures here are checked
 
-`python3 scripts/verify_claims.py` re-derives **290** checkable claims from this
+`python3 scripts/verify_claims.py` re-derives **293** checkable claims from this
 document and the evidence, and exits non-zero on any mismatch. Two kinds:
 numeric (figures against the JSON/JSONL) and structural (every markdown table row
 against its header's cell count).
