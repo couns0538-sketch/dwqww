@@ -12,7 +12,7 @@ CorrHistV2 true, MateAlphaGuard true, OwnBook false; **Threads 1**, Hash 16, alw
 |---|---|
 | `CLOCK_HEADLINE.md` (in `pc20/`) | **the clock work, headline.** Five shape classes, medians 161–853 ms, worst 1585 ms = the hard plan. Supersedes the three-position figures. |
 | `OWNER_PAGE_clock.md` (in `pc20/`) | one page for the owner: four cases, each with a verdict and what was not measured |
-| `FINDINGS.md` | 36 findings, 24 checks/audits/plants, 4 method lines, 1 withdrawal — the authoritative list |
+| `FINDINGS.md` | **39 findings, 26 checks/audits/plants, 5 method lines, 2 withdrawals, 1 open lead** — counted from the file, not from prose — the authoritative list |
 | `STATUS.md` | the running log, newest last |
 
 ## THE HEADLINE NUMBERS (all Threads 1)
@@ -37,13 +37,15 @@ CorrHistV2 true, MateAlphaGuard true, OwnBook false; **Threads 1**, Hash 16, alw
    stable clock floor, and the worst boards give 0 overruns even at 200 ms because the plan shrinks with the clock
    (`pc20/REPORT_drain_to_flag.md`).
 
-## THE FOUR METHOD RULES (top of `FINDINGS.md`, each with its instance)
+## THE FIVE METHOD RULES (top of `FINDINGS.md`, each with its instance)
 1. A summary I typed is not evidence, and a small sample is not a population (3 instances, 08-N1).
 2. A timeout mechanism must be proved against a case known to return quickly before it may declare a hang (08-N2).
 3. A count from a different scale is not a cost (mate ≠ 30000 cp; and the 72/360 vs 117/585 case where both numbers
    were right but the REGIME was missing: `pc20/PLAN_TABLE.md`).
 4. A static analyser of your own code is a heuristic; open the flagged file before believing it (08-N4 — my ordering
    audit gave two false positives).
+5. Every reader must be exercised against a FAST path that emits no `info depth` lines (book, drawn-root bail,
+   `go nodes 0`), and a hang needs a timeout per read, not a faster reader (08-N5, 08-C27).
 
 ## FOLDER MAP
 | folder | contents |
