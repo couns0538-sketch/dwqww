@@ -66,6 +66,19 @@ go depth 8        ->  bestmove e5d5   score cp 447   (mate lost)
 Both at `Threads 1`, `Hash 64`. Verified on `build/clean/forge` (unmodified
 `6b98f217` source), so this is not my instrumentation.
 
+**Do not reproduce this by piping a script into the engine.** `printf '...\ngo
+depth 8\n' | ./forge` returns `h2g1` with no `info` lines for BOTH arms — the
+brief's trap #1 (a piped `quit` aborts the search and fabricates a bestmove). A
+driver that blocks until `bestmove` is required. `scripts/ucidrv.py` is one, and
+the measured PVs are:
+
+```
+SoundMatePruning=false  g2f3  mate 3   8660 nodes  pv g2f3 e1d1 h2b2 d1e1 b2c1
+SoundMatePruning=true   g2h1  cp 978   4526 nodes  pv g2h1 e1d1 h2b2 d1e1 b2h8 ...
+SoundMatePruning=false  e5f6  mate 3   1808 nodes  pv e5f6 f8g8 e3h3 g8f8 h3h8
+SoundMatePruning=true   e5d5  cp 447   4310 nodes  pv e5d5 f8g7 d5c5 g7g6 e3d3 ...
+```
+
 ### Why it makes sense, from the source
 
 `SoundMatePruning` **skips the whole shallow move-loop pruning block** in three
