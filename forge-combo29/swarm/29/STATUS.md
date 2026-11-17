@@ -458,3 +458,9 @@ Mon Nov 16 09:06:21 PM UTC 2026
 - At every stage my first reading was the most alarming and least supported - a small sample made the engine look like it was losing quality it was not. Worth stating because a reader would expect small-sample bias to FLATTER an author's own recommendation; here it ran the other way and still needed widening to catch.
 - Pairs with N38 (magnitudes inflated toward a stronger story): one sampling fault, two faces - inflated effect sizes AND exaggerated bad news.
 - next: continuing at cadence.
+
+## Tue Nov 17 12:50:34 AM UTC 2026
+- 29-F56 is an important correction to an inference nobody stated but many would make: PC20 searches 10.7-11.9% FEWER NODES but wall time is INDISTINGUISHABLE. 40 positions, depth 12, Threads 1, Hash 16, interleaved ABBA: median 41 ms (S14) vs 36 ms (PC20), mean 47 vs 45, paired ratio 1.0255, 95% CI [0.9085, 1.1647] - spans 1.0.
+- Mechanism is plausible: the four switches do extra PER-NODE work (CuckooRep maintenance, HistRework blending, TtPruneV2/CorrHistV2 lookups), so a 12% node saving can be cancelled by a 12% per-node cost. I have NOT measured per-node cost directly.
+- WHAT TO TELL THE OWNER: the switches reduce the tree and cost no move quality, but there is NO evidence they make the engine faster in wall time. Node reduction alone must not be presented as a speed win. The honest form: 'smaller tree, no quality loss, no measurable time difference'.
+- next: continuing at cadence.

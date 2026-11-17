@@ -1,0 +1,31 @@
+=== 11.9 % FEWER NODES BUT NO MEASURABLE TIME SAVING — nodes are not time ===
+29-F42/F53 established that PC20 searches 10.7-11.9 % fewer nodes than S14 at match depths. The natural inference is
+"so it is faster". This tests that inference directly, and it does not hold.
+
+PC r15 build, 40 positions from R_2911, depth 12, Threads 1, Hash 16, interleaved ABBA (each position run both ways,
+order alternating), wall time from sending `go` to reading `bestmove`, fresh process per search.
+
+| metric | S14 | PC20 |
+|---|---|---|
+| median wall ms | 41 | 36 |
+| mean wall ms | 47 | 45 |
+
+**PC20/S14 time ratio = 1.0255 -> -2.49 % speed, 95 % CI [0.9085, 1.1647] -> INDISTINGUISHABLE.**
+
+What this means, and it corrects an inference nobody has stated but everybody would make:
+- **Fewer nodes did NOT produce measurable speed.** The medians favour PC20 (36 vs 41 ms) and the means too (45 vs
+  47), but the paired CI spans 1.0 comfortably, on a machine shared with other seats. So the honest statement is "no
+  measurable wall-clock difference", not "PC20 is 12 % faster".
+- **The mechanism is plausible and testable:** the four switches do extra per-node work (`CuckooRep` maintenance,
+  `HistRework` blending, `TtPruneV2` and `CorrHistV2` lookups). So a 12 % node reduction CAN be cancelled by a ~12 %
+  per-node cost increase. I have not measured per-node cost directly; that is the next step if anyone wants it.
+- Consistent with my own 29-N6 and 29-F5: on this shared 4-core box a 2-3 % wall-clock effect is not resolvable
+  without very many interleaved pairs, and I am not claiming one.
+
+WHAT TO TELL THE OWNER: the PC20 switches reduce the tree and do not cost move quality, but **there is no evidence
+they make the engine faster in wall time**, and the node reduction alone must not be presented as a speed win. If the
+owner wants speed, the switches are not the lever; if the owner wants the search shape (smaller tree, same quality),
+they are worth having on their own terms.
+
+CAVEAT: n=40 positions, ~40 pairs of wall measurements, on a machine with other agents running. A 12 % wall effect
+would be visible; a 3 % one would not.
