@@ -729,3 +729,17 @@ seed: 1601
   now says WITHDRAWN in its own entry, and the surviving `nnue::` check points at the DATA, which is where the fault
   actually was. Three corrections in the file now, one of them a withdrawal.
 - check_folder.py ALL CHECKS PASS (467 files, 51 findings rows). Step 2 begins next, real-position profile deciding.
+
+## 2026-11-17T09:25Z  (resuming after the interval; ~55 min to close)
+- STEP 2 BASELINE MEASURED, AND I MUST FLAG A NUMBER I CANNOT RECONCILE. The 200-opening identity on this build is
+  **27,762,950** nodes (200 positions, depth 12, PC20 + test net, Threads 1, Hash 16, rows in ident_base.txt).
+  I was asked to match **27,944,084** — 181,134 nodes more (0.65 %, ~906 per position).
+- I searched for that figure and could NOT find it anywhere I can read: not in file 7, not in handoff files 1-6, not
+  in the FINDINGS of seats 06, 11, 15, 19 or 29. So I am NOT adopting it and NOT rejecting it: I publish my measured
+  baseline as the identity and name the gap. Validating a speed patch against a number I cannot reproduce would be
+  validating it against nothing. A 0.65 % gap is the right size for a different 200-position set.
+- Consequence for the deliverable, per the coordinator's instruction: the patch will be published with its rows
+  compared to MY baseline and an explicit statement that 27,944,084 is unreconciled — and if the fixed-budget timing
+  (Threads 1, ABBA, n>=120, per-position spread) cannot be completed before the close, it goes out as UNMEASURED with
+  that said plainly rather than with a number I did not earn.
+- check_folder.py ALL CHECKS PASS (472 files, 52 findings rows). Continuing to the close at 10:18:40Z.
