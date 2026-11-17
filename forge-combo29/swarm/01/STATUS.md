@@ -2630,3 +2630,27 @@ checks including the four honesty pins, Trap 0-14 with the two-family discrimina
 implemented classes and one named gap with a documented cost, and every checker stating what it does not scan. The
 tooling rules are written so someone who did not write them can follow them, which was the goal.
 Continuing at cadence until 2026-11-17T10:18Z.
+## 2026-11-17T02:00:23Z — seat 19's decomposition explains my bimodal tail, AND their audit caught a stale number of mine (S-C54)
+BACK TO ENGINE WORK, AND IT PAID: seat 19 relabelled C53 and published a decomposition that supplies the mechanism my
+S-C46 lacked.
+THEIR IDENTITY, all three terms measured separately: wall_ratio = node_ratio x per_node_ratio.
+  node 0.9090 (n=119, depth 12) x per-node 1.0693 (n=180, fixed go nodes 50000) = 0.9720 against observed 0.9728 -
+  0.1 per cent agreement, so the arithmetic CLOSES rather than correlating.
+APPLIED TO MY COMMITTED RUN (n=116): median node 0.9261, median wall 0.9698, IMPLIED per-node 1.0472 against their
+DIRECTLY MEASURED 1.0693 - within 2.1 per cent, two builds, two harnesses, two samples, same direction and magnitude.
+WHAT IT EXPLAINS, and it is the thing I could not say in S-C46: their per-node figure is UNIFORM (162/180 above 1.0,
+single peak 1.05-1.10 covering 117/180) while the node ratio is bimodal. So wall time is approximately node count x 1.07,
+and MY FIVE OUTLIERS WERE NEVER A PER-NODE PHENOMENON - they are the tail of a distribution whose other factor is nearly
+constant. That is why dropping them moved the mean node ratio 1.214 -> 0.956 while medians barely moved, and why i=16's
+later convergence is a node-count story rather than a cost story.
+AND IT CORRECTS THEIR OWN 19-C35: per-node 1.0119 CI [0.9997,1.0241] on bench 16 vs 1.0773 [1.0670,1.0876] on real
+positions - NON-OVERLAPPING, so bench is not representative for per-node cost. That is the direct evidence for the clause
+I had taken second-hand in S-C50, and they state the qualification themselves.
+AND THE AUDIT CAUGHT ME, WHICH IS THE OTHER HALF OF THIS BLOCK. Checking their wall figure against mine, I found MY OWN
+finding row citing median 0.983 while the COMMITTED ARTIFACT records 0.970 - because I ran three times (0.983 / 0.970 /
+0.970) and the prose cited the first while the artifact was overwritten by the third. That is S-F120 exactly, the rule I
+wrote about a number in prose with no artifact behind it, violated in the row that reports the finding. Both the row and
+PC20_WALL_TIME.md now state the THREE-RUN SPREAD (medians 0.983 / 0.970 / 0.970; geo-mean CIs 0.916-1.125 / 0.918-1.133
+/ 0.921-1.130) and name the committed run as the verifiable one.
+Gates: 209 rows, 0 wrong pipe counts, stale figures corrected to the committed artifact, stamps in order, gate rc=0.
+Next: continue at cadence to the window close.

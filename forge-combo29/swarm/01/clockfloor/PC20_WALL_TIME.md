@@ -13,11 +13,17 @@ startup is excluded. FENs at a fixed stride through `R_1911.fens`.
 
 ## Result
 
+> **A correction on this page's own headline.** Its first version cited **0.983** with CI **0.916–1.125**. That was a
+> real run, but the artifact I committed was overwritten by two later runs, so the number a reader could verify is
+> **0.970**. Three runs gave medians **0.983 / 0.970 / 0.970** and geometric-mean CIs **0.916–1.125 / 0.918–1.133 /
+> 0.921–1.130** — the same conclusion at every run, and the spread is the honest figure. This is the `S-F120` failure
+> again: prose citing a run whose evidence was replaced.
+
 | statistic | value |
 |---|---|
-| **median paired wall ratio (PC20/S14)** | **0.983** |
-| 95 % CI on the geometric mean | **0.916 – 1.125** |
-| geometric mean of paired ratios | 1.015 |
+| **median paired wall ratio (PC20/S14)** | **0.970** (three runs: 0.983 / 0.970 / 0.970) |
+| 95 % CI on the geometric mean | **0.921 – 1.130** (this run) |
+| geometric mean of paired ratios | 1.020 |
 | median node ratio | **0.926** (7.4 % fewer nodes under PC20) |
 
 **Against seat 19's 0.88–0.93: outside, on the slow side.** The median says PC20 is 1.7 % faster; their prediction
