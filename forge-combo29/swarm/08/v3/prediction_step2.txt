@@ -1,0 +1,49 @@
+# PREDICTION — Step 2, the v3 patch — seat 08. Committed BEFORE the patch exists.
+
+## The candidate, from reading `src/nnue_v3.cpp` (not from the profile)
+
+`apply_changes_pair_avx512` (lines 308-327) is the hot one: 2,382,071 calls, 8.47 % of bench-13 self time. Its inner
+shape is:
+
+```cpp
+for (int h = 0; h < hidden; h += 32) {
+    __m512i v0 = load(source0 + h);
+    for (int i = 0; i < c0.count; ++i) {          // <-- a loop the compiler cannot unroll
+        __m512i col = load(c0.columns[i] + h);
+        v0 = c0.adds[i] ? add_epi16(v0, col) : sub_epi16(v0, col);
+    }
+    store(destination0 + h, v0);
+    ... same for perspective 1
+}
+```
+
+**The candidate change: dispatch once on `c.count` OUTSIDE the `h` loop, into fixed-count specializations (count == 1,
+2, 3, 4), each fully unrolled.** The arithmetic per element is identical — same adds, same order, same lanes — so the
+node counts must be bit-identical. `collect_changes` already caps at 4 (`adds[4]`).
+
+**Why I expect a small win and not a large one:** the `i` loop bound is a runtime variable but `c.count` is almost
+always 1-3 in a alpha-beta tree, so the loop is short; the cost is the branch per element plus the loop-carried
+compare, not the arithmetic. Unrolling removes a predictable branch and lets the compiler keep both accumulators in
+registers across iterations.
+
+## Numeric prediction, with kill ranges
+
+| quantity | prediction |
+|---|---|
+| node counts (bench 11/13/16, perft 5, 200-opening sum, 353 evals) | **IDENTICAL — bit for bit.** This is a pure refactor; any difference means I moved arithmetic and the patch is dropped |
+| `bench 13` speed change | **+1 % to +6 % faster** (i.e. time ratio patch/base 0.94-0.99) |
+| kill range on speed | **under +0.5 % or slower than base** -> report as a rejection, not a win |
+| real-position ABBA (n>=120) | the same direction, possibly smaller, because real positions have more king changes (the `pair_ok == false` path skips this function entirely) |
+
+**Second prediction, the one I would bet on:** the real-position effect will be **smaller than the bench effect**,
+because this function is only reached when BOTH perspectives keep their king key — on real positions a legal move set
+includes more king moves, so a larger share of updates take the refresh path where my patch does nothing.
+
+**Third prediction:** I expect the identity check to pass and the speed check to be the thing that decides it. If the
+speed gain is inside the per-position spread (1.48x measured earlier on real positions), it is not measurable and I
+will say so rather than quoting a mean.
+
+## The rule I am operating under (restated so the patch cannot outrun it)
+No recommendation from the bench. The patch must (1) reproduce every identity row, including the **200-opening node
+sum 27,944,084**, and (2) clear a **fixed-budget real-position ABBA at n >= 120 with the per-position spread shown**.
+Otherwise it is reported as a rejection with its numbers.
