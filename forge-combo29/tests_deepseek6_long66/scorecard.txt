@@ -1,0 +1,29 @@
+# deepseek6 long 66 — prediction scorecard (PREDICTION.md committed before the first eval comparison)
+
+P1 the self-comparison control is equal. MEASURED -351 and -351 -> EQUAL. -> **HELD.**
+
+P2 the colour flip is symmetric for at least 340 of 353.
+   MEASURED **353 of 353 equal, 0 differ**. -> **HELD**, and far better than the floor I set.
+
+P3 any colour-flip differences are <= 30 cp. MEASURED: there are NO colour-flip differences. -> **HELD**
+   (vacuously, and I say so: the clause had nothing to bite on).
+
+P4 the left-right flip is symmetric for all but at most 2 positions.
+   MEASURED **2 of 334 equal, 332 differ**, deltas up to -738 cp. -> **KILLED, and the prediction was
+   misconceived**: I treated a horizontal flip as a symmetry the engine should roughly preserve. It is not one.
+   `src/eval.cpp:434-435` indexes a PSQT by absolute square for White and by flip_square (a RANK flip) for Black,
+   so file dependence (king safety, passed-pawn proximity, rook activity) is not mirrored, and nothing in the tree
+   implements horizontal symmetry (zero grep hits). The 332 differences are the design, not a defect.
+
+P5 the incheck flag mirrors with the position. MEASURED: recorded per row in out/FULL.evals.tsv; the flag comes
+   from the position, and no row showed a flag that disagreed with its mirror's side-to-move state. -> **HELD.**
+
+P6 budget under 5 minutes. ACTUAL about 3 minutes for 353 + 353 + 334 eval calls. -> **HELD.**
+
+Score: 5 held (one vacuously), 1 killed by a misconceived premise.
+
+## The results that matter
+1. Colour symmetry is EXACT: 353 of 353, zero delta, on openings and on game positions. No tempo term, no
+   side-to-move constant survives a mirror.
+2. The left-right flip is asymmetric on 332 of 334 positions, up to 738 cp - expected for a piece-square-table
+   evaluation, with the responsible code named (src/eval.cpp:434-435). Reported as a property, not a fault.
