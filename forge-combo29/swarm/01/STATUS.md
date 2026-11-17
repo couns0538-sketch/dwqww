@@ -1628,3 +1628,24 @@ THE GATE IMMEDIATELY FOUND TWO OF MY OWN PROBLEMS:
 Both new rules negative-tested: silent on real data, firing on a fabricated bad input.
 Gates: 158 rows, page shape OK on every prose page, stamps in order, nothing junk tracked.
 Next: the copy-out question at nnue_v3.cpp:711.
+## 2026-11-17T00:58:50Z — the v3 cost is search shape, not evaluation; the kernel ceiling is ~19 % (S-F118)
+I TESTED ANOTHER SEAT'S PREDICTION BY A DIFFERENT ROUTE, AND IT KILLS TWO OF ITS COMMITTED KILL CONDITIONS.
+Seat 29's file-7 prediction says (P2) all nnue::v3::* will be 40-75 % of bench-13 samples, killed if under 25 %, and
+(P3) nps under PC20+net will be 15-60 % of the PC20 no-net figure, killed if above 75 %.
+MEASURED, bench 13, 7 alternating rounds, MEDIANS, node identity a precondition:
+  PC20 -> PC20 + v3 net: nodes 587,276 -> 3,652,372 = 6.22x; time 312 -> 2,125 ms = 6.79x;
+  nps 1,882,294 -> 1,718,763 = 91.6 % (a second full run: 91.3 %); per node 0.531 -> 0.582 us = 1.09x, 9 % dearer.
+  My 43,000-sample profile: v3 family 19.05 %, evaluation entry point 16.66 % INCLUSIVE (3.32 % self).
+So BOTH kill conditions fire, by two routes that share no method - sample attribution and nps. I am reporting this
+as a DISAGREEMENT TO SETTLE, not a correction of their work: they build with -march=x86-64-v4 on the same Xeon and
+the owner's PC is Zen 5, so their per-node figure could legitimately differ; the fix is the same four-row nps table
+run everywhere, which needs no profiler and is on the bench line already.
+THE CONSEQUENCE THAT MATTERS FOR THE OWNER: the v3 net is NOT slow per node - 9 % dearer than the built-in net. The
+6.8x wall-clock cost is 6.2x MORE NODES, i.e. the net's opinion changing which moves the search picks. Making the
+ENTIRE v3 family free would take bench 13 from 2,125 ms to 1,720 ms, a 19.1 % gain, against a 6.8x cost. So the
+lever for self-play throughput is the NODE COUNT - net quality, eval scale, search parameters - not the kernel.
+Anyone optimising the v3 kernel is working inside a 19 % ceiling.
+SELF-CORRECTION IN THIS BLOCK: I first wrote that ceiling as "~1,800 ms / 15 %"; the arithmetic is 1,720 ms / 19.1 %.
+I caught it by running the division instead of trusting the sentence, which is the only reason it is right here.
+Gates: 159 rows, 0 wrong pipe counts, page shape OK, stamps in order.
+Next: put the four-row nps table in a form another seat can run against their own build in one command.
