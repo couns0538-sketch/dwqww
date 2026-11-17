@@ -1,0 +1,856 @@
+BASE behaviour: {"book_move_lines": 5, "booked_moves": [{"bestmove": "e2e4", "book_move_line": "info string book move e2e4", "depth": null, "info_depth_lines": 0, "last_info": null, "nodes": null, "saw_bestmove": true}, {"bestmove": "e2e4", "book_move_line": "info string book move e2e4", "depth": null, "info_depth_lines": 0, "last_info": null, "nodes": null, "saw_bestmove": true}, {"bestmove": "c2c4", "book_move_line": "info string book move c2c4", "depth": null, "info_depth_lines": 0, "last_info": null, "nodes": null, "saw_bestmove": true}, {"bestmove": "e2e4", "book_move_line": "info string book move e2e4", "depth": null, "info_depth_lines": 0, "last_info": null, "nodes": null, "saw_bestmove": true}, {"bestmove": "e2e4", "book_move_line": "info string book move e2e4", "depth": null, "info_depth_lines": 0, "last_info": null, "nodes": null, "saw_bestmove": true}], "booked_stable": false, "clocked_1s": {"bestmove": "e2e4", "nodes": null}, "drawn_leaf": {"bestmove": "b3b1", "info_lines": 10, "nodes": 0}, "kiwipete_d11": {"bestmove": "e2a6", "info_lines": 11, "nodes": 50541}, "kqk_d10": {"bestmove": "f6f7", "info_lines": 10, "nodes": 586}, "leaf98_d8": {"bestmove": "g8g7", "nodes": 6064}}
+B1_book_off            pins_match=True  behav=['book_move_lines', 'clocked_1s']  verdict=gate-passes-a-real-change
+B2_draw_jitter         pins_match=False behav=['kiwipete_d11', 'clocked_1s']  verdict=pin-moved
+B3_rule50_damp         pins_match=False behav=['kiwipete_d11', 'leaf98_d8']  verdict=pin-moved
+B4_book_variety0       pins_match=True  behav=['booked_stable']  verdict=gate-passes-a-real-change
+B5_threads_default2    pins_match=True  behav=['kiwipete_d11', 'clocked_1s', 'leaf98_d8', 'kqk_d10']  verdict=gate-passes-a-real-change
+B6_move_overhead       pins_match=True  behav=[]  verdict=mutant-changed-nothing
+B7_qs_futility         pins_match=False behav=['kiwipete_d11']  verdict=pin-moved
+B8_fifty_move_leaf     pins_match=True  behav=['leaf98_d8']  verdict=gate-passes-a-real-change
+B9_drawn_root_move: BUILD FAILED Command '['make', '-j4']' returned non-zero exit status 2.
+{
+  "base_behaviour": {
+    "booked_moves": [
+      {
+        "bestmove": "e2e4",
+        "nodes": null,
+        "depth": null,
+        "info_depth_lines": 0,
+        "saw_bestmove": true,
+        "last_info": null,
+        "book_move_line": "info string book move e2e4"
+      },
+      {
+        "bestmove": "e2e4",
+        "nodes": null,
+        "depth": null,
+        "info_depth_lines": 0,
+        "saw_bestmove": true,
+        "last_info": null,
+        "book_move_line": "info string book move e2e4"
+      },
+      {
+        "bestmove": "c2c4",
+        "nodes": null,
+        "depth": null,
+        "info_depth_lines": 0,
+        "saw_bestmove": true,
+        "last_info": null,
+        "book_move_line": "info string book move c2c4"
+      },
+      {
+        "bestmove": "e2e4",
+        "nodes": null,
+        "depth": null,
+        "info_depth_lines": 0,
+        "saw_bestmove": true,
+        "last_info": null,
+        "book_move_line": "info string book move e2e4"
+      },
+      {
+        "bestmove": "e2e4",
+        "nodes": null,
+        "depth": null,
+        "info_depth_lines": 0,
+        "saw_bestmove": true,
+        "last_info": null,
+        "book_move_line": "info string book move e2e4"
+      }
+    ],
+    "book_move_lines": 5,
+    "booked_stable": false,
+    "drawn_leaf": {
+      "bestmove": "b3b1",
+      "nodes": 0,
+      "info_lines": 10
+    },
+    "kiwipete_d11": {
+      "nodes": 50541,
+      "bestmove": "e2a6",
+      "info_lines": 11
+    },
+    "clocked_1s": {
+      "nodes": null,
+      "bestmove": "e2e4"
+    },
+    "leaf98_d8": {
+      "nodes": 6064,
+      "bestmove": "g8g7"
+    },
+    "kqk_d10": {
+      "nodes": 586,
+      "bestmove": "f6f7",
+      "info_lines": 10
+    }
+  },
+  "results": [
+    {
+      "mutant": "B1_book_off",
+      "why": "OwnBook default true -> false: no book move is ever played",
+      "probe": "booked start position, go movetime 100, is the reply a book move?",
+      "pins": {
+        "bench11": 312866,
+        "bench13": 862329,
+        "bench16": 3024920,
+        "perft5": 4865609
+      },
+      "pins_all_match": true,
+      "behaviour_changed": {
+        "book_move_lines": true,
+        "booked_stable": false,
+        "drawn_leaf": false,
+        "kiwipete_d11": false,
+        "clocked_1s": true,
+        "leaf98_d8": false,
+        "kqk_d10": false
+      },
+      "behaviour": {
+        "booked_moves": [
+          {
+            "bestmove": "e2e4",
+            "nodes": 101640,
+            "depth": 14,
+            "info_depth_lines": 14,
+            "saw_bestmove": true,
+            "last_info": "info depth 14 seldepth 23 score cp 23 nodes 101640 nps 1848000 hashfull 26 time 55 pv e2e4 c7c5 g1f3 b8c6 b1c3 g7g6 d2d4 c5d4 f3d4 f8g7 d4c6 b7c6 f1c4 d7d6",
+            "book_move_line": null
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": 127698,
+            "depth": 16,
+            "info_depth_lines": 16,
+            "saw_bestmove": true,
+            "last_info": "info depth 16 seldepth 29 score cp 25 nodes 127698 nps 1596225 hashfull 32 time 80 pv e2e4 c7c5 c2c3 b8c6 g1f3 g8f6 e4e5 f6d5 f1c4 e7e6 d2d4 d7d6 c1g5 f8e7 g5e7 d8e7 e1g1",
+            "book_move_line": null
+          },
+          {
+            "bestmove": "g1f3",
+            "nodes": 89281,
+            "depth": 15,
+            "info_depth_lines": 15,
+            "saw_bestmove": true,
+            "last_info": "info depth 15 seldepth 27 score cp 25 nodes 89281 nps 1716942 hashfull 25 time 52 pv g1f3 d7d5 d2d4 e7e6 e2e3 g8f6 c2c4 f8e7 f1e2 d5c4 e2c4 e8g8 e1g1 b8d7 b1c3",
+            "book_move_line": null
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": 116718,
+            "depth": 17,
+            "info_depth_lines": 17,
+            "saw_bestmove": true,
+            "last_info": "info depth 17 seldepth 26 score cp 22 nodes 116718 nps 1535763 hashfull 32 time 76 pv e2e4 c7c5 c2c3 g8f6 e4e5 f6d5 g1f3 e7e6 f1c4 d5b6 c4b3 d7d5 e5d6 f8d6 e1g1 b8c6 d2d4 e8g8",
+            "book_move_line": null
+          },
+          {
+            "bestmove": "g1f3",
+            "nodes": 45980,
+            "depth": 16,
+            "info_depth_lines": 16,
+            "saw_bestmove": true,
+            "last_info": "info depth 16 seldepth 26 score cp 21 nodes 45980 nps 2090000 hashfull 11 time 22 pv g1f3 d7d5 d2d4 e7e6 c2c4 g8f6 e2e3 f8e7 f1e2 d5c4 e2c4 c7c5 e1g1 c5d4 e3d4 e8g8",
+            "book_move_line": null
+          }
+        ],
+        "book_move_lines": 0,
+        "booked_stable": false,
+        "drawn_leaf": {
+          "bestmove": "b3b1",
+          "nodes": 0,
+          "info_lines": 10
+        },
+        "kiwipete_d11": {
+          "nodes": 50541,
+          "bestmove": "e2a6",
+          "info_lines": 11
+        },
+        "clocked_1s": {
+          "nodes": 101640,
+          "bestmove": "e2e4"
+        },
+        "leaf98_d8": {
+          "nodes": 6064,
+          "bestmove": "g8g7"
+        },
+        "kqk_d10": {
+          "nodes": 586,
+          "bestmove": "f6f7",
+          "info_lines": 10
+        }
+      },
+      "verdict": "gate-passes-a-real-change"
+    },
+    {
+      "mutant": "B2_draw_jitter",
+      "why": "DrawJitter default 0 -> 8: leaf repetition scores are no longer 0",
+      "probe": "drawn leaf: go depth 12 from a repetition, compare nodes and score",
+      "pins": {
+        "bench11": 327059,
+        "bench13": 857947,
+        "bench16": 2953406,
+        "perft5": 4865609
+      },
+      "pins_all_match": false,
+      "behaviour_changed": {
+        "book_move_lines": false,
+        "booked_stable": false,
+        "drawn_leaf": false,
+        "kiwipete_d11": true,
+        "clocked_1s": true,
+        "leaf98_d8": false,
+        "kqk_d10": false
+      },
+      "behaviour": {
+        "booked_moves": [
+          {
+            "bestmove": "c2c4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move c2c4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "c2c4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move c2c4"
+          }
+        ],
+        "book_move_lines": 5,
+        "booked_stable": false,
+        "drawn_leaf": {
+          "bestmove": "b3b1",
+          "nodes": 0,
+          "info_lines": 10
+        },
+        "kiwipete_d11": {
+          "nodes": 50544,
+          "bestmove": "e2a6",
+          "info_lines": 11
+        },
+        "clocked_1s": {
+          "nodes": null,
+          "bestmove": "c2c4"
+        },
+        "leaf98_d8": {
+          "nodes": 6064,
+          "bestmove": "g8g7"
+        },
+        "kqk_d10": {
+          "nodes": 586,
+          "bestmove": "f6f7",
+          "info_lines": 10
+        }
+      },
+      "verdict": "pin-moved"
+    },
+    {
+      "mutant": "B3_rule50_damp",
+      "why": "EvalRule50Damp default false -> true: static eval scaled by the clock",
+      "probe": "high halfmove clock position, go depth 12, compare nodes/score",
+      "pins": {
+        "bench11": 335103,
+        "bench13": 1049205,
+        "bench16": 3064920,
+        "perft5": 4865609
+      },
+      "pins_all_match": false,
+      "behaviour_changed": {
+        "book_move_lines": false,
+        "booked_stable": false,
+        "drawn_leaf": false,
+        "kiwipete_d11": true,
+        "clocked_1s": false,
+        "leaf98_d8": true,
+        "kqk_d10": false
+      },
+      "behaviour": {
+        "booked_moves": [
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "c2c4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move c2c4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "c2c4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move c2c4"
+          }
+        ],
+        "book_move_lines": 5,
+        "booked_stable": false,
+        "drawn_leaf": {
+          "bestmove": "b3b1",
+          "nodes": 0,
+          "info_lines": 10
+        },
+        "kiwipete_d11": {
+          "nodes": 61632,
+          "bestmove": "e2a6",
+          "info_lines": 11
+        },
+        "clocked_1s": {
+          "nodes": null,
+          "bestmove": "e2e4"
+        },
+        "leaf98_d8": {
+          "nodes": 8167,
+          "bestmove": "g8g7"
+        },
+        "kqk_d10": {
+          "nodes": 586,
+          "bestmove": "f6f7",
+          "info_lines": 10
+        }
+      },
+      "verdict": "pin-moved"
+    },
+    {
+      "mutant": "B4_book_variety0",
+      "why": "Book Variety default 30 -> 0: the book's clock-seeded RNG pinned",
+      "probe": "booked start position repeated 5x: is the book move stable?",
+      "pins": {
+        "bench11": 312866,
+        "bench13": 862329,
+        "bench16": 3024920,
+        "perft5": 4865609
+      },
+      "pins_all_match": true,
+      "behaviour_changed": {
+        "book_move_lines": false,
+        "booked_stable": true,
+        "drawn_leaf": false,
+        "kiwipete_d11": false,
+        "clocked_1s": false,
+        "leaf98_d8": false,
+        "kqk_d10": false
+      },
+      "behaviour": {
+        "booked_moves": [
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          }
+        ],
+        "book_move_lines": 5,
+        "booked_stable": true,
+        "drawn_leaf": {
+          "bestmove": "b3b1",
+          "nodes": 0,
+          "info_lines": 10
+        },
+        "kiwipete_d11": {
+          "nodes": 50541,
+          "bestmove": "e2a6",
+          "info_lines": 11
+        },
+        "clocked_1s": {
+          "nodes": null,
+          "bestmove": "e2e4"
+        },
+        "leaf98_d8": {
+          "nodes": 6064,
+          "bestmove": "g8g7"
+        },
+        "kqk_d10": {
+          "nodes": 586,
+          "bestmove": "f6f7",
+          "info_lines": 10
+        }
+      },
+      "verdict": "gate-passes-a-real-change"
+    },
+    {
+      "mutant": "B5_threads_default2",
+      "why": "searcher constructed with 2 worker threads instead of 1",
+      "probe": "go depth 11, compare the node count with the base",
+      "pins": {
+        "bench11": 312866,
+        "bench13": 862329,
+        "bench16": 3024920,
+        "perft5": 4865609
+      },
+      "pins_all_match": true,
+      "behaviour_changed": {
+        "book_move_lines": false,
+        "booked_stable": false,
+        "drawn_leaf": false,
+        "kiwipete_d11": true,
+        "clocked_1s": true,
+        "leaf98_d8": true,
+        "kqk_d10": true
+      },
+      "behaviour": {
+        "booked_moves": [
+          {
+            "bestmove": "c2c4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move c2c4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          }
+        ],
+        "book_move_lines": 5,
+        "booked_stable": false,
+        "drawn_leaf": {
+          "bestmove": "b3b1",
+          "nodes": 0,
+          "info_lines": 10
+        },
+        "kiwipete_d11": {
+          "nodes": 140641,
+          "bestmove": "e2a6",
+          "info_lines": 11
+        },
+        "clocked_1s": {
+          "nodes": null,
+          "bestmove": "c2c4"
+        },
+        "leaf98_d8": {
+          "nodes": 8213,
+          "bestmove": "g8g7"
+        },
+        "kqk_d10": {
+          "nodes": 1203,
+          "bestmove": "f6f7",
+          "info_lines": 10
+        }
+      },
+      "verdict": "gate-passes-a-real-change"
+    },
+    {
+      "mutant": "B6_move_overhead",
+      "why": "Move Overhead default 10 -> 200 ms: clocked searches shorten",
+      "probe": "go wtime 1000, compare nodes and elapsed",
+      "pins": {
+        "bench11": 312866,
+        "bench13": 862329,
+        "bench16": 3024920,
+        "perft5": 4865609
+      },
+      "pins_all_match": true,
+      "behaviour_changed": {
+        "book_move_lines": false,
+        "booked_stable": false,
+        "drawn_leaf": false,
+        "kiwipete_d11": false,
+        "clocked_1s": false,
+        "leaf98_d8": false,
+        "kqk_d10": false
+      },
+      "behaviour": {
+        "booked_moves": [
+          {
+            "bestmove": "c2c4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move c2c4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          }
+        ],
+        "book_move_lines": 5,
+        "booked_stable": false,
+        "drawn_leaf": {
+          "bestmove": "b3b1",
+          "nodes": 0,
+          "info_lines": 10
+        },
+        "kiwipete_d11": {
+          "nodes": 50541,
+          "bestmove": "e2a6",
+          "info_lines": 11
+        },
+        "clocked_1s": {
+          "nodes": null,
+          "bestmove": "e2e4"
+        },
+        "leaf98_d8": {
+          "nodes": 6064,
+          "bestmove": "g8g7"
+        },
+        "kqk_d10": {
+          "nodes": 586,
+          "bestmove": "f6f7",
+          "info_lines": 10
+        }
+      },
+      "verdict": "mutant-changed-nothing"
+    },
+    {
+      "mutant": "B7_qs_futility",
+      "why": "QsFutilityMargin greatly raised: leaf quiescence prunes more",
+      "probe": "go depth 11, compare nodes",
+      "pins": {
+        "bench11": 438107,
+        "bench13": 916892,
+        "bench16": 2782484,
+        "perft5": 4865609
+      },
+      "pins_all_match": false,
+      "behaviour_changed": {
+        "book_move_lines": false,
+        "booked_stable": false,
+        "drawn_leaf": false,
+        "kiwipete_d11": true,
+        "clocked_1s": false,
+        "leaf98_d8": false,
+        "kqk_d10": false
+      },
+      "behaviour": {
+        "booked_moves": [
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "c2c4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move c2c4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "c2c4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move c2c4"
+          }
+        ],
+        "book_move_lines": 5,
+        "booked_stable": false,
+        "drawn_leaf": {
+          "bestmove": "b3b1",
+          "nodes": 0,
+          "info_lines": 10
+        },
+        "kiwipete_d11": {
+          "nodes": 86648,
+          "bestmove": "e2a6",
+          "info_lines": 11
+        },
+        "clocked_1s": {
+          "nodes": null,
+          "bestmove": "e2e4"
+        },
+        "leaf98_d8": {
+          "nodes": 6064,
+          "bestmove": "g8g7"
+        },
+        "kqk_d10": {
+          "nodes": 586,
+          "bestmove": "f6f7",
+          "info_lines": 10
+        }
+      },
+      "verdict": "pin-moved"
+    },
+    {
+      "mutant": "B8_fifty_move_leaf",
+      "why": "the drawn-leaf clock rule moved by one ply (99 -> 98)",
+      "probe": "halfmove 98 leaf position, go depth 12, compare score/nodes",
+      "pins": {
+        "bench11": 312866,
+        "bench13": 862329,
+        "bench16": 3024920,
+        "perft5": 4865609
+      },
+      "pins_all_match": true,
+      "behaviour_changed": {
+        "book_move_lines": false,
+        "booked_stable": false,
+        "drawn_leaf": false,
+        "kiwipete_d11": false,
+        "clocked_1s": false,
+        "leaf98_d8": true,
+        "kqk_d10": false
+      },
+      "behaviour": {
+        "booked_moves": [
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          },
+          {
+            "bestmove": "c2c4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move c2c4"
+          },
+          {
+            "bestmove": "c2c4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move c2c4"
+          },
+          {
+            "bestmove": "e2e4",
+            "nodes": null,
+            "depth": null,
+            "info_depth_lines": 0,
+            "saw_bestmove": true,
+            "last_info": null,
+            "book_move_line": "info string book move e2e4"
+          }
+        ],
+        "book_move_lines": 5,
+        "booked_stable": false,
+        "drawn_leaf": {
+          "bestmove": "b3b1",
+          "nodes": 0,
+          "info_lines": 10
+        },
+        "kiwipete_d11": {
+          "nodes": 50541,
+          "bestmove": "e2a6",
+          "info_lines": 11
+        },
+        "clocked_1s": {
+          "nodes": null,
+          "bestmove": "e2e4"
+        },
+        "leaf98_d8": {
+          "nodes": 66,
+          "bestmove": "g8g7"
+        },
+        "kqk_d10": {
+          "nodes": 586,
+          "bestmove": "f6f7",
+          "info_lines": 10
+        }
+      },
+      "verdict": "gate-passes-a-real-change"
+    }
+  ]
+}
