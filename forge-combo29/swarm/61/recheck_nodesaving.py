@@ -25,7 +25,7 @@ REPORT_CI = (0.8752, 0.9528)
 REPORT_SAVING = 8.69
 REPORT_SHARE = (278, 464)
 
-random.seed(20261117)
+RNG = random.Random(20261117)
 
 
 def load():
@@ -63,7 +63,7 @@ normal_ci = (math.exp(mean_ln - 1.96 * se), math.exp(mean_ln + 1.96 * se))
 boot = []
 n = len(rows)
 for _ in range(10000):
-    idx = [random.randrange(n) for _ in range(n)]
+    idx = [RNG.randrange(n) for _ in range(n)]
     a = sum(rows[i]["pcn"] for i in idx)
     b = sum(rows[i]["s14n"] for i in idx)
     boot.append(a / b)
@@ -73,7 +73,7 @@ boot_ci = (boot[int(0.025 * len(boot))], boot[int(0.975 * len(boot))])
 # bootstrap on the mean-of-ln
 boot_ln = []
 for _ in range(10000):
-    idx = [random.randrange(n) for _ in range(n)]
+    idx = [RNG.randrange(n) for _ in range(n)]
     boot_ln.append(math.exp(st.mean(lns[i] for i in idx)))
 boot_ln.sort()
 boot_ln_ci = (boot_ln[int(0.025 * len(boot_ln))], boot_ln[int(0.975 * len(boot_ln))])

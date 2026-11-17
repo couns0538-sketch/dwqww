@@ -32,7 +32,7 @@ NPOS = int(sys.argv[4]) if len(sys.argv) > 4 else 40
 NODES = 50000
 SEARCH_TIMEOUT = 120.0
 
-random.seed(20261117)
+RNG = random.Random(20261117)
 
 
 def sha(path):
@@ -129,7 +129,7 @@ print("  mean-of-ln %.4f  95%% CI [%.4f, %.4f]" % (math.exp(m), ci[0], ci[1]))
 
 boot = []
 for _ in range(4000):
-    idx = [random.randrange(len(pairs)) for _ in range(len(pairs))]
+    idx = [RNG.randrange(len(pairs)) for _ in range(len(pairs))]
     a = sum(pairs[i][1][1] for i in idx) / sum(pairs[i][1][0] for i in idx)
     b = sum(pairs[i][0][1] for i in idx) / sum(pairs[i][0][0] for i in idx)
     boot.append(a / b)

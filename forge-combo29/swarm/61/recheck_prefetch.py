@@ -28,7 +28,7 @@ report = {
     "drop_outlier": 7.87,
 }
 
-random.seed(20261117)
+RNG = random.Random(20261117)
 rows = []
 with open(PATH, encoding="utf-8") as handle:
     for ln in handle:
@@ -60,7 +60,7 @@ def q(v, p):
 
 boot = []
 for _ in range(10000):
-    idx = [random.randrange(n) for _ in range(n)]
+    idx = [RNG.randrange(n) for _ in range(n)]
     a = sum(rows[i][2] for i in idx) / sum(rows[i][1] for i in idx)
     b = sum(rows[i][3] for i in idx) / sum(rows[i][0] for i in idx)
     boot.append(a / b)
