@@ -913,3 +913,16 @@ next command: continue at cadence on measurements; traps page closed.
      third time, on the budget axis. Found by sweeping the parameter, not by testing one value.
 
 next command: continue at cadence.
+
+## 2026-11-17T01:19:44Z
+
+19-C46 located the reversal: soft-budget sweep on 6 set-G positions, summed depth:
+  2000: 45 vs 43 = -2 ; 3000: 47 vs 48 = +1 ; 5000: +2 ; 8000: +5 ; 12000: +3 ; 20000: +3.
+  => flips between 2000 and 3000; the self-play budget sits 1000 nodes on the wrong side.
+  CULPRIT: one-at-a-time at softnodes 2000 -> CuckooRep +0, HistRework +0, **TtPruneV2 -1**, CorrHistV2 +0.
+  So TtPruneV2 alone costs the ply; its pruning needs >2000 nodes to pay for itself.
+  RECOMMENDATION: raising self-play from 2000 to ~3000 makes PC20's switches pay (+1 there, +5 by 8000),
+  at the cost of 50%% more nodes per self-play move - a concrete trade the owner can decide on.
+  CAVEAT: 6 positions, 1 run each - the TREND is the finding, not any single row.
+
+next command: continue at cadence.
