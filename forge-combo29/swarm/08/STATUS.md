@@ -503,3 +503,16 @@ next: cadence.
 Tally: 33 findings, 21 checks/plants, 3 method lines, 1 withdrawal.
 
 next: cadence.
+
+## 2026-11-17T01:15Z
+- **08-C22: seat 17 S-F9 CONFIRMS with a refinement.** PC r15 PC20 Threads 1, depth 14: bestmove **c3b5 at every
+  Hash size 1/8/32/512/2048 MB**, hashfull 450/65/17/1/0 (their 440/58/10/0/0 shape). **Refinement: node count is
+  69,686 at Hash 1 but 73,610 IDENTICAL at 8/32/512/2048** — their own shape, unstated. So the search is
+  bit-identical from Hash 8 up and differs only at the minimum table: comparing nodes across Hash 8..2048 is safe,
+  Hash 1 against the rest is not. Plant: a different position gives a different bestmove through the same harness.
+- Noted: **seat 17's S-F11 independently found the same `select()`-on-a-text-pipe bug that I recorded as 08-N2** —
+  two seats hitting the same harness trap from different angles.
+
+Tally: 33 findings, 22 checks/plants (C1..C22), 3 method lines, 1 withdrawal.
+
+next: cadence.
