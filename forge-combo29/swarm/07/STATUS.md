@@ -949,3 +949,33 @@ f3_arms_replay.json
 fifty_mechanical.json
 verify_f3.json
 ```
+
+## 2026-11-17T00:50:28Z — job72: only ONE of my two faults is live on the PC build
+
+Tested both faults on **both builds × three regimes** (12 cells, fresh process each, Threads 1, Hash 16). This is the question I had not asked: a fault on the base tree is evidence *for* a patch, not evidence of remaining work.
+
+**07-F1 (fault A) — live on ALL SIX arms**, identical: 12 fabricated per-depth lines and `bestmove 0000` on base and PC under none/S14/PC20. Not a base defect and not a settings defect — **unfixed code on the branch that ships**. This is the only outstanding patch in my list.
+
+**07-F3 (fault B) — BASE ONLY.** base gives `cp 0`/0 nodes in all three regimes; the PC build searches in all three and finds mate (15,981 / 45,946 / 80,861 nodes). `FORGE_FIX_ROOT_DRAWN` works and is settings-independent, so **07-F3/F4 are closed-by-PC** — a justification, not a task.
+
+FINAL.md updated accordingly: item 1 now says 'measured live on all six arms' rather than asserting it, item 3 is marked **Closed by 07-C77**, and the 'where to start' preamble says item 1 is the only outstanding engine change of the five (previously it implied all three of 1–3 were open, which was wrong).
+
+```
+$ git status --short
+ M FINAL.md
+ M FINDINGS.md
+ M STATUS.md
+?? REPORT_job72.md
+?? job72/
+```
+
+```
+$ ls job72 job72/raw
+job72:
+pc_live.py
+raw
+stamps.txt
+
+job72/raw:
+pc_live.json
+```

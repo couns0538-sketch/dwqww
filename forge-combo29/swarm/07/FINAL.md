@@ -78,27 +78,34 @@ false).
 | 07-C74 | **16-S-F35/F37 confirmed exactly: 34/120 stock → 120/120 canonicalised, residue zero** — after catching a false refutation from an inert build | both, PC20 + `-DFORGE_EXPERIMENT_MIRROR_ORDER=1` |
 | 07-C75 | **07-F3 reduced to one hand-checkable case: base says `cp 0`/0 nodes on a board where a forced mate exists under all three regimes, and every PV replays to real checkmate** (job71/raw) | base + PC, depth 12 |
 | 07-C76 | **Fifty-move fault is mechanical and 20 of 20: every counter-100 root declared drawn with 0 nodes, and python-chess says none is a fifty-move draw** — vs the 80 counter-0 roots, which all search | base, depth 12, 100 rows |
+| 07-C77 | **The two faults separate on the ship build: 07-F1's fabricated lines live on ALL SIX arms; 07-F3's fifty-move fault is BASE-ONLY and the PC build fixes it in all three regimes** | base + PC, 3 regimes × 2 faults |
 
 ---
 
 ## The five things I would put in front of the owner
 
-**Where to start: items 4 and 5.** Those two are the only **procedural** items on this list — they need
-no patch, no decision about defaults, and no re-run, so they are actionable the moment they are read and
-they cost nothing to apply. Items 1–3 are engine-change questions and carry their own caveats; read them
-second.
+**Where to start: items 4 and 5.** Those two are **procedural** — no patch, no decision about defaults,
+no re-run — so they are actionable the moment they are read and cost nothing to apply. **Item 1 is the
+only outstanding engine change of the five**: 07-C77 measured it live on all six arms including the PC
+build under all three settings, while item 3's fault is already fixed on the PC build and needs nothing.
+Item 2 is a tuning observation whose strength question I did not measure.
 
-1. **07-F1 is the only engine defect I found that survives on the PC build**, it is confirmed by another
-   seat, and it has a ready patch that changes no node count on any published bench (07-C23, 07-C24).
-   Recommendation: ship the "honest `0000`" form; if a playable move is wanted instead, that is a
-   separate decision that must print that the restriction was ignored. **Note added later (07-C54,
-   07-C55): it is not a `searchmoves` defect at all** — every path that reports without searching emits
-   a fabricated `score cp 0 nodes 0` line per depth. The shared-path patch
+1. **07-F1 is the ONLY engine defect of mine that is live on the PC build** — and that is now measured
+   rather than assumed: `go depth 12 searchmoves a1a8` emits its fabricated per-depth lines on **all six
+   arms (base and PC × none/S14/PC20)**, identical to the line, with `bestmove 0000` throughout (07-C77).
+   It is confirmed by another seat and has a ready patch that changes no node count on any published
+   bench (07-C23, 07-C24). Recommendation: ship the "honest `0000`" form; if a playable move is wanted
+   instead, that is a separate decision that must print that the restriction was ignored. **Note added
+   later (07-C54, 07-C55): it is not a `searchmoves` defect at all** — every path that reports without
+   searching emits a fabricated `score cp 0 nodes 0` line per depth. The shared-path patch
    (`job55/shared_report_oneline.patch.txt`) fixes all six paths with one edit, all eight pins unchanged,
    and **supersedes my own narrower `job2`/`job29` patches.**
 2. **`TtPruneV2` carries 85 % of PC20's node effect** on 200 positions (07-C32), while `CorrHistV2`
    costs 2.7 %. Whether that saving is strength is a games question I did not measure.
-3. **`FORGE_FIX_ROOT_DRAWN` earns its place on one undeniable board, and here it is.**
+3. **`FORGE_FIX_ROOT_DRAWN` earns its place on one undeniable board — AND IT IS ALREADY FIXED ON THE PC
+   BUILD, so this is a justification rather than an outstanding task.** *(Closed by 07-C77: base answers
+   `cp 0`/0 nodes in all three regimes; the PC build searches in all three and finds mate. Nothing further
+   is needed from anyone.)* The board is
    `8/6qk/8/8/8/1p4p1/4K3/8 b - - 100 1` — the base build answers **`cp 0` with 0 nodes**, declaring a
    draw without searching. It is not a fifty-move draw: python-chess finds **25 legal moves, two of them
    pawn moves (`b3b2`, `g3g2`)**, so the counter resets on the move actually played. The PC build finds a
