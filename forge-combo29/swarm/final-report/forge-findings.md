@@ -523,10 +523,14 @@ game replay, and it is silent when it hits.**
     **median 3 cp, mean 204, p90 680, max 2,957**, with **538 unchanged and 75 where the bail did BETTER.**
     Half the firings cost nothing because the position really is drawn and any move draws — **the median
     hides the tail, and the tail is where the damage is.**
-  - **And the sharp end**: **41 of 2,251 roots (1.8%) are cases where the bail plays into a FORCED MATE the
-    search avoids** (against 6 where both moves allow one and 2 the other way). Eight were re-verified at
-    depth 16 with python-chess agreeing, e.g. base `h5h4` where the searched move `f2e2` avoids a `mate 1`,
-    and base `f7f2` where `g1h1` avoids a `mate 2`.
+  - **And the sharp end**: **41 of 2,251 NON-DEAD roots (1.8%) are cases where the bail plays into a FORCED
+    MATE the search avoids** (against 6 where both moves allow one and 2 the other way). **The denominator
+    is 2,251, not the 2,457 total, and the qualifier is the seat's**: the smaller figure excludes roots where
+    the position is already dead, so the rate is computed only over roots where a move could still matter.
+    **The evidence file records `roots_with_mate_in_1 = 0` and `rows = 2457`, so a reader who opens it will
+    find 2,457 and must be able to reconcile the two — which is why both numbers are stated here.** Eight
+    were re-verified at depth 16 with python-chess agreeing, e.g. base `h5h4` where the searched move `f2e2`
+    avoids a `mate 1`, and base `f7f2` where `g1h1` avoids a `mate 2`.
 
 **The sharpest case: a genuine threefold root where the side to move has mate in one.** The base build
 reports `cp 0`, searches nothing and plays `f2f3` — **forfeiting the mate** — while PC r15 reports
@@ -728,6 +732,11 @@ repair, and a bail-compiled-out instrument arm that can answer "what would the s
 | base move is the engine's own generated head | **2,457 / 2,457** |
 | the searched arm would have played something else | **1,425 / 2,457** |
 | **roots with a mate-in-1 available to the mover** | **0 / 2,457** |
+
+**And the 2,457 rows are 2,447 distinct positions — ten duplicates — which the seat's evidence records and
+which does not change any verdict**, because a duplicate that changes nothing once changes nothing twice.
+**Stated because a reader who opens `final_numbers.json` will see both numbers** (`rows = 2457`,
+`unique_positions = 2447`) and should not have to guess which one a claim is about.
 
 **The mechanism is exact and I verified it on my own build**: seat 12's patch cancels the adjudication
 **only when the side to move has a move that mates immediately**. On a fifty-move root with one mate,
