@@ -2055,3 +2055,23 @@ ALSO NOTED: their row cites R_2911.fens, but the only file of that family on the
 one that exists and said so rather than substituting silently.
 Gates: 181 rows, 0 wrong pipe counts, page shape OK on both edited pages.
 Next: continue at cadence.
+## 2026-11-17T01:35:39Z — S-F77 re-tested from 4 clocks to 12, and my own monotonic claim was wrong (S-C43)
+I AUDITED MY OWN STRONGEST UNIVERSALITY CLAIM, because S-C42 had just shown what a hand-picked small sample can do.
+S-F77 says "a forfeit is IMPOSSIBLE from ANY starting clock at this increment" - on FOUR clocks (600/300/150/100).
+  RETESTED on 12 clocks spanning 1-600 ms (1, 10, 25, 50, 75, 100, 110, 125, 150, 200, 300, 600), the harness owning
+  the clocks from the engine's reported time per move, real accumulating games, 20 AND 60 plies: **0 of 12 forfeited
+  in both runs.** The claim survives and now has 3x the evidence.
+  MY FIRST HARNESS RESET THE POSITION EACH PLY, which tests clock arithmetic but not a real game: with the position
+  fixed every move costs the same, so the only variable was the clock. Fixed to accumulate the move list, because
+  varying per-move cost with position complexity is the one thing that could break a never-forfeits claim.
+AND THE RE-TEST CAUGHT AN ERROR IN MY OWN NEW ROW, which is the part worth keeping. I wrote that the lowest clock
+"never dips below" the starting value. That is true only at or below 125 ms (where lowest == start for every value).
+FOR STARTS ABOVE THE FLOOR IT DOES DIP: 600 -> lowest 158, 300 -> 261, 200 -> 164, 150 -> 145 - early moves are spent
+faster than +60 refills while the clock is still large. The precise statement is that the clock converges DOWNWARD
+toward floor+increment from above and UPWARD from below, and never crosses zero - a claim about a STABLE FIXED POINT,
+not about monotonic growth. Corrected in the row, with the wrong version quoted so the correction is visible.
+THE HONEST LIMIT OF "ANY": 12 clocks is not "any". What licenses the word is the MECHANISM (each move adds the
+increment and removes only what was spent), not the sample. The 12 points are what stop me asserting it on 4; the
+mechanism is what makes the generalisation reasonable rather than reckless. Both are now stated separately in S-C43.
+Gates: 182 rows, 0 wrong pipe counts, page shape OK.
+Next: continue at cadence.

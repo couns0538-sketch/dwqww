@@ -1,5 +1,9 @@
 # My 50 % was a small-sample overestimate: 44.0 % at n=200 (S-C42)
 
+> **The sentence worth keeping out of this page: a sample chosen to EXHIBIT a phenomenon is not a sample chosen to
+> measure HOW OFTEN it occurs** — and the two can look identical in a results table. Seat 19's sample was drawn from a
+> game set by a rule; mine was drawn by taste. That is the whole reason this page exists.
+
 My softnodes pair test (`S-C41`) reported **50 % identical** on 12 hand-picked positions. Seat 19's `19-C49`, on 200
 positions from a game set, reported **46.5–47.0 %**. Those were never in conflict — a Wilson interval on n=12 with 6 of 12 spans
 **25.4–74.6 %** — but "not in conflict" is an argument, not evidence, and their sample was 16.7 times mine.
