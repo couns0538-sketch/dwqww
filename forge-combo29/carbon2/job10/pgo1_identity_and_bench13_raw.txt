@@ -1,0 +1,36 @@
+=== STEP PGO1: STACK USAGE (BASE A -> STEP B) ===
+  sizeof(MovePicker): 4792 -> 2224 bytes (-2568 B) | Worker::search frame: 7104 -> 4544 bytes (-2560 B) | Worker::qsearch frame: 5248 -> 2688 bytes (-2560 B)
+
+=== STEP PGO1: IDENTITY UNDER PC20 + NET768 AND NET512 ===
+  net512 bench 11: nodes=625258 (== 625258 EXACT) | info string NNUE v3 active: v3 /tmp/carbon2_work/net512.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  net512 bench 13: nodes=3652372 (== 3652372 EXACT) | info string NNUE v3 active: v3 /tmp/carbon2_work/net512.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  net512 bench 16: nodes=23891329 (== 23891329 EXACT) | info string NNUE v3 active: v3 /tmp/carbon2_work/net512.fnn3 hidden 512 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum fdff70de72e4ca82 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  net768 bench 11: nodes=882074 (== 882074 EXACT) | info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  net768 bench 13: nodes=4275906 (== 4275906 EXACT) | info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  net768 bench 16: nodes=32374943 (== 32374943 EXACT) | info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  250-pos depth 9: 250/250 EXACT; 1000-pos evals (768 & 512): EXACT
+  6-game startpos trace: 4560d7c3afdeba2e (EXACT); 6-game FEN trace: 9ed22c1193ab96de (EXACT)
+
+=== STEP PGO1: BENCH 13 TIMING (A1 B1 B2 A2 x 2 ROUNDS, NET768, RUSAGE NS) ===
+  active_check A1: info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  b13 round 01 A1: wall_nps= 1983338.3 (2155.91 ms) | rusage_cpu_nps= 1881302.0 (2272844000 ns)
+  active_check B1: info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  b13 round 01 B1: wall_nps= 2029326.8 (2107.06 ms) | rusage_cpu_nps= 1923785.6 (2222652000 ns)
+  active_check B2: info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  b13 round 01 B2: wall_nps= 2195386.7 (1947.68 ms) | rusage_cpu_nps= 2084714.6 (2051075000 ns)
+  active_check A2: info string NNUE v3 active: v3 /tmp/carbon2_work/net768.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 30ab43b4ba5db5f3 max|w1| 64 max|b1| 96 max|w2| 16 kernel avx512
+  b13 round 01 A2: wall_nps= 1990504.0 (2148.15 ms) | rusage_cpu_nps= 1888636.0 (2264018000 ns)
+  b13 round 02 A1: wall_nps= 2180367.1 (1961.09 ms) | rusage_cpu_nps= 2077398.9 (2058298000 ns)
+  b13 round 02 B1: wall_nps= 2187582.9 (1954.63 ms) | rusage_cpu_nps= 2078434.9 (2057272000 ns)
+  b13 round 02 B2: wall_nps= 2166635.0 (1973.52 ms) | rusage_cpu_nps= 2062385.1 (2073282000 ns)
+  b13 round 02 A2: wall_nps= 2161034.9 (1978.64 ms) | rusage_cpu_nps= 2056274.7 (2079443000 ns)
+  [bench13_wall_nps] build medians: A1=2081852.68, A2=2075769.43 (pooled A=2075769.43) | B1=2108454.85, B2=2181010.85 (pooled B=2177108.95)
+  [bench13_wall_nps] paired ratio per round: [1.0631, 1.0030] | rounds faster: 2/2
+  [bench13_wall_nps] ratio_of_pooled_medians (median(B)/median(A)): 1.0488x (+4.88%), 95% CI [0.9665x, 1.1030x]
+  [bench13_wall_nps] median_of_paired_round_ratios (median(B_r/A_r)): 1.0330x (+3.30%), 95% CI [1.0030x, 1.0631x]
+  [bench13_wall_nps] A/A control: A2/A1=0.9971, B2/B1=1.0344 (max A/A spread 3.44%) -> not measured
+  [bench13_rusage_cpu_nps] build medians: A1=1979350.46, A2=1972455.36 (pooled A=1972455.36) | B1=2001110.29, B2=2073549.87 (pooled B=2070410.04)
+  [bench13_rusage_cpu_nps] paired ratio per round: [1.0633, 1.0017] | rounds faster: 2/2
+  [bench13_rusage_cpu_nps] ratio_of_pooled_medians (median(B)/median(A)): 1.0497x (+4.97%), 95% CI [0.9643x, 1.1043x]
+  [bench13_rusage_cpu_nps] median_of_paired_round_ratios (median(B_r/A_r)): 1.0325x (+3.25%), 95% CI [1.0017x, 1.0633x]
+  [bench13_rusage_cpu_nps] A/A control: A2/A1=0.9965, B2/B1=1.0362 (max A/A spread 3.62%) -> not measured

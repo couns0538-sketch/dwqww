@@ -1,0 +1,1060 @@
+diff -ruN r15d/include/forge/board.hpp /tmp/carbon2_job10/src_pgo1/include/forge/board.hpp
+--- a/include/forge/board.hpp	2026-11-17 20:43:42.889143771 +0000
++++ b/include/forge/board.hpp	2026-11-17 22:08:41.809143771 +0000
+@@ -208,7 +208,7 @@
+     // double push next to an enemy pawn): then the caller prefetches after make_move.
+     [[nodiscard]] bool key_after(const Move& move, std::uint64_t& key) const;
+ #endif
+-    [[nodiscard]] bool make_move(const Move& move, Undo& undo);
++    [[nodiscard]] bool make_move(const Move& move, Undo& undo, const std::uint64_t* precomputed_key = nullptr, int known_gives_check = -1);
+     void unmake_move(const Move& move, const Undo& undo);
+     void make_null_move(NullUndo& undo);
+     void unmake_null_move(const NullUndo& undo);
+@@ -219,6 +219,13 @@
+     [[nodiscard]] bool in_check(Color color) const;
+     [[nodiscard]] bool in_check() const { return checkers_ != 0; }
+     [[nodiscard]] Bitboard checkers() const { return checkers_; }
++#if FORGE_SPD_KING_LINES
++    [[nodiscard]] const KingLines& cached_king_lines() const { return king_lines_; }
++    const KingLines& ensure_king_lines() const {
++        if (!king_lines_.valid) refresh_king_lines();
++        return king_lines_;
++    }
++#endif
+ 
+     [[nodiscard]] std::optional<Move> parse_uci(std::string_view text);
+     [[nodiscard]] static std::string move_to_uci(const Move& move);
+@@ -326,7 +333,7 @@
+ inline bool Board::is_legal(const Move& move) const {
+ #if FORGE_SPD_KING_LINES
+     const Piece moving = squares_[move.from];
+-    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {
++    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && moving != WK && moving != BK) {
+         if (!king_lines_.valid) refresh_king_lines();
+         const int king = king_squares_[static_cast<std::size_t>(side_)];
+         return (king_lines_.pinned & square_bb(move.from)) == 0 || attacks::aligned(king, move.from, move.to);
+diff -ruN r15d/include/forge/search.hpp /tmp/carbon2_job10/src_pgo1/include/forge/search.hpp
+--- a/include/forge/search.hpp	2026-11-17 20:43:42.881143771 +0000
++++ b/include/forge/search.hpp	2026-11-17 22:10:24.465143771 +0000
+@@ -139,9 +139,9 @@
+     bool hit = false;
+ private:
+     friend class TranspositionTable;
++    std::uint8_t slot_ = 0;
+     const TranspositionTable* owner_ = nullptr;
+     std::size_t cluster_ = 0;
+-    std::uint8_t slot_ = 0;
+     std::uint64_t epoch_ = 0;
+     std::uint64_t key_ = 0;
+ };
+@@ -564,7 +564,10 @@
+     std::unique_ptr<CorrectionHistory> joint_correction_;          // HistRework
+     std::unique_ptr<ContinuationCorrection> continuation_correction_;  // CorrHistV2
+     std::array<b4::LesserThreats, MaxPly + 8> threat_maps_{};      // HistRework: maps of the node at each ply
++    mutable MoveList picker_scratch_;
++    mutable MoveList evasion_scratch_;
+     bool tt_prune_v2_ = false;                                     // TtPruneV2: this search's snapshot
++    bool fast_single_node_stop_ = false;
+ 
+ #if FORGE_SPD_TT_NOTLS
+     // The six TT call sites of search / qsearch: one predictable branch per access.
+@@ -617,6 +620,15 @@
+ #endif
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+     void record_null_move(SearchStack* ss);
++    [[gnu::always_inline]] bool check_node_or_periodic_stop() {
++        if (fast_single_node_stop_) {
++            if (local_nodes_ < node_limit_ && (local_nodes_ & 1023U) != 0) {
++                return shared_.stop.load(std::memory_order_relaxed);
++            }
++            return should_stop();
++        }
++        return ((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop();
++    }
+ };
+ 
+ // Public search facade: a shared transposition table plus one or more workers.
+diff -ruN r15d/src/board.cpp /tmp/carbon2_job10/src_pgo1/src/board.cpp
+--- a/src/board.cpp	2026-11-17 20:43:42.889143771 +0000
++++ b/src/board.cpp	2026-11-17 22:09:28.357143771 +0000
+@@ -2,6 +2,7 @@
+ 
+ #include <algorithm>
+ #include <array>
++#include <cassert>
+ #include <cctype>
+ #include <cstdlib>
+ #include <sstream>
+@@ -833,7 +834,8 @@
+     }
+ 
+     const Bitboard occ_no_king = occ & ~square_bb(king);
+-    for (Bitboard b = attacks::king(king) & ~own; b != 0;) {
++    const Bitboard taboo = pawn_attacks_bb(them, pieces(them, Pawn)) | attacks::king(king_square(them));
++    for (Bitboard b = attacks::king(king) & ~own & ~taboo; b != 0;) {
+         const int to = pop_lsb(b);
+         const Bitboard to_bb = square_bb(to);
+         if (!square_attacked_with_occupancy(to, them, occ_no_king | to_bb, to_bb & enemy)) {
+@@ -850,14 +852,21 @@
+         const Bitboard us_occ = occupied(us);
+         const Bitboard them_occ = occupied(them);
+         const int ksq = king_square(us);
++        const Bitboard k_rays = attacks::rook_ray(ksq) | attacks::bishop_ray(ksq);
++        const Bitboard safe_pawns = pieces(us, Pawn) & ~k_rays;
++        if (((pawn_push(us, safe_pawns) & ~occ) | (pawn_attacks_bb(us, safe_pawns) & them_occ)) != 0) {
++            return true;
++        }
++        const Bitboard enemy_rq = pieces(them, Rook) | pieces(them, Queen);
++        const Bitboard enemy_bq = pieces(them, Bishop) | pieces(them, Queen);
+ #if FORGE_SPD_KING_LINES
+         const Bitboard pinned = king_lines_.valid
+             ? king_lines_.pinned
+-            : (single_blockers(ksq, pieces(them, Rook) | pieces(them, Queen),
+-                               pieces(them, Bishop) | pieces(them, Queen), occ) & us_occ);
++            : ((((attacks::rook_ray(ksq) & enemy_rq) | (attacks::bishop_ray(ksq) & enemy_bq)) == 0)
++                   ? Bitboard{0}
++                   : (single_blockers(ksq, enemy_rq, enemy_bq, occ) & us_occ));
+ #else
+-        const Bitboard pinned = single_blockers(ksq, pieces(them, Rook) | pieces(them, Queen),
+-                                                pieces(them, Bishop) | pieces(them, Queen), occ) & us_occ;
++        const Bitboard pinned = single_blockers(ksq, enemy_rq, enemy_bq, occ) & us_occ;
+ #endif
+         const Bitboard unpinned_pawns = pieces(us, Pawn) & ~pinned;
+         if ((pawn_push(us, unpinned_pawns) & ~occ) != 0) return true;
+@@ -895,7 +904,7 @@
+     // Not in check, not en passant, not a king move: the own king can only
+     // become attacked when a pinned piece leaves the line to its pinner. A
+     // capture keeps its target square occupied, so it never opens a line.
+-    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {
++    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && moving != WK && moving != BK) {
+         if (!king_lines_.valid) refresh_king_lines();
+         return (king_lines_.pinned & square_bb(move.from)) == 0 ||
+                attacks::aligned(king_square(us), move.from, move.to);
+@@ -1156,7 +1165,7 @@
+ }
+ #endif
+ 
+-bool Board::make_move(const Move& move, Undo& undo) {
++bool Board::make_move(const Move& move, Undo& undo, const std::uint64_t* precomputed_key, int known_gives_check) {
+     const Color us = side_;
+     const Color them = opposite(us);
+     const Piece moving = squares_[move.from];
+@@ -1170,10 +1179,11 @@
+     undo.checkers = checkers_;
+     undo.plies_from_null = plies_from_null_;
+ #if FORGE_SPD_KING_LINES
+-    undo.king_lines = king_lines_;
++    if (king_lines_.valid) undo.king_lines = king_lines_;
++    else undo.king_lines.valid = false;
+ #endif
+ 
+-    if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
++    if (precomputed_key == nullptr && ep_square_ >= 0 && has_legal_en_passant_capture()) {
+         key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+     }
+     ep_square_ = -1;
+@@ -1182,26 +1192,26 @@
+     if ((move.flags & EnPassant) != 0U) {
+         const int captured_square = move.to - pawn_push_delta(us);
+         undo.captured = squares_[static_cast<std::size_t>(captured_square)];
+-        key_ ^= piece_key(captured_square, undo.captured);
++        if (precomputed_key == nullptr) key_ ^= piece_key(captured_square, undo.captured);
+         pawn_key_ ^= piece_key(captured_square, undo.captured);
+         remove_piece(captured_square);
+     } else if (undo.captured != Empty) {
+-        key_ ^= piece_key(move.to, undo.captured);
++        if (precomputed_key == nullptr) key_ ^= piece_key(move.to, undo.captured);
+         if (piece_type(undo.captured) == Pawn) pawn_key_ ^= piece_key(move.to, undo.captured);
+         remove_piece(move.to);
+     }
+     if (undo.captured != Empty || piece_type(moving) == Pawn) halfmove_ = 0;
+ 
+-    key_ ^= piece_key(move.from, moving);
++    if (precomputed_key == nullptr) key_ ^= piece_key(move.from, moving);
+     if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.from, moving);
+     move_piece(move.from, move.to);
+     if (move.is_promotion()) {
+         const Piece promoted = make_piece(us, move.promotion);
+         remove_piece(move.to);
+         put_piece(promoted, move.to);
+-        key_ ^= piece_key(move.to, promoted);
++        if (precomputed_key == nullptr) key_ ^= piece_key(move.to, promoted);
+     } else {
+-        key_ ^= piece_key(move.to, moving);
++        if (precomputed_key == nullptr) key_ ^= piece_key(move.to, moving);
+         if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.to, moving);
+     }
+     if (piece_type(moving) == King) king_squares_[static_cast<std::size_t>(us)] = move.to;
+@@ -1211,31 +1221,45 @@
+         const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
+         const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+         const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
+-        key_ ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
++        if (precomputed_key == nullptr) key_ ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
+         move_piece(rook_from, rook_to);
+     }
+ 
+-    key_ ^= Z.castling[castling_];
+-    castling_ &= static_cast<std::uint8_t>(CastlingMasks[move.from] & CastlingMasks[move.to]);
+-    key_ ^= Z.castling[castling_];
+-
+-    if ((move.flags & DoublePush) != 0U) ep_square_ = static_cast<std::int8_t>((move.from + move.to) / 2);
+-    if (us == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));
+-    side_ = them;
+-    key_ ^= Z.side;
+-    if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
+-        key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
++    if (precomputed_key != nullptr) {
++        castling_ &= static_cast<std::uint8_t>(CastlingMasks[move.from] & CastlingMasks[move.to]);
++        if ((move.flags & DoublePush) != 0U) ep_square_ = static_cast<std::int8_t>((move.from + move.to) / 2);
++        if (us == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));
++        side_ = them;
++        key_ = *precomputed_key;
++        assert(key_ == compute_key());
++    } else {
++        key_ ^= Z.castling[castling_];
++        castling_ &= static_cast<std::uint8_t>(CastlingMasks[move.from] & CastlingMasks[move.to]);
++        key_ ^= Z.castling[castling_];
++
++        if ((move.flags & DoublePush) != 0U) ep_square_ = static_cast<std::int8_t>((move.from + move.to) / 2);
++        if (us == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));
++        side_ = them;
++        key_ ^= Z.side;
++        if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
++            key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
++        }
+     }
+     // Checkers are the mover's attacks on the opponent king. One side only:
+     // the other colour cannot be the checker, so it is not consulted.
+-    const int their_king = king_square(them);
+-    const Bitboard occ_now = occupied();
+-    const Bitboard our_queens = pieces(us, Queen);
+-    checkers_ = (attacks::pawn(them, their_king) & pieces(us, Pawn)) |
+-                (attacks::knight(their_king) & pieces(us, Knight)) |
+-                (attacks::king(their_king) & pieces(us, King)) |
+-                (attacks::bishop(their_king, occ_now) & (pieces(us, Bishop) | our_queens)) |
+-                (attacks::rook(their_king, occ_now) & (pieces(us, Rook) | our_queens));
++    if (known_gives_check == 0) {
++        checkers_ = 0;
++        assert(compute_checkers() == 0);
++    } else {
++        const int their_king = king_square(them);
++        const Bitboard occ_now = occupied();
++        const Bitboard our_queens = pieces(us, Queen);
++        checkers_ = (attacks::pawn(them, their_king) & pieces(us, Pawn)) |
++                    (attacks::knight(their_king) & pieces(us, Knight)) |
++                    (attacks::king(their_king) & pieces(us, King)) |
++                    (attacks::bishop(their_king, occ_now) & (pieces(us, Bishop) | our_queens)) |
++                    (attacks::rook(their_king, occ_now) & (pieces(us, Rook) | our_queens));
++    }
+     plies_from_null_ = static_cast<std::uint16_t>(std::min<int>(plies_from_null_ + 1, 1024));
+     key_history_.push_back(key_);
+ #if FORGE_SPD_KING_LINES
+@@ -1274,7 +1298,8 @@
+     checkers_ = undo.checkers;
+     plies_from_null_ = undo.plies_from_null;
+ #if FORGE_SPD_KING_LINES
+-    king_lines_ = undo.king_lines;
++    if (undo.king_lines.valid) king_lines_ = undo.king_lines;
++    else king_lines_.valid = false;
+ #endif
+ }
+ 
+@@ -1285,7 +1310,8 @@
+     undo.plies_from_null = plies_from_null_;
+     undo.checkers = checkers_;
+ #if FORGE_SPD_KING_LINES
+-    undo.king_lines = king_lines_;
++    if (king_lines_.valid) undo.king_lines = king_lines_;
++    else undo.king_lines.valid = false;
+ #endif
+     if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
+         key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+@@ -1311,7 +1337,8 @@
+     plies_from_null_ = undo.plies_from_null;
+     checkers_ = undo.checkers;
+ #if FORGE_SPD_KING_LINES
+-    king_lines_ = undo.king_lines;
++    if (undo.king_lines.valid) king_lines_ = undo.king_lines;
++    else king_lines_.valid = false;
+ #endif
+ }
+ 
+diff -ruN r15d/src/search.cpp /tmp/carbon2_job10/src_pgo1/src/search.cpp
+--- a/src/search.cpp	2026-11-17 20:43:42.889143771 +0000
++++ b/src/search.cpp	2026-11-17 22:10:24.465143771 +0000
+@@ -21,7 +21,7 @@
+ // behind them. Same moves in the same order (bit-exact); 1 KB less per picker, and the losing-capture list can
+ // never outgrow its storage (it only reuses slots of moves it has already handed out).
+ #ifndef FORGE_SDK_BADCAP_PREFIX
+-#define FORGE_SDK_BADCAP_PREFIX 0
++#define FORGE_SDK_BADCAP_PREFIX 1
+ #endif
+ 
+ #ifndef FORGE_BARE_KING_MATE_FIX
+@@ -467,25 +467,34 @@
+ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
+     TTCluster& cluster = cluster_for(key);
+     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+-    // Owner calls (TakeLock false) skip lock_stripe: under the lease it only hands
+-    // back a deferred (unlocked) lock, after a thread_local lookup per call.
+-    std::unique_lock<std::mutex> lock;
+-    if constexpr (TakeLock) lock = lock_stripe(index);
++    struct EmptyLock {};
++    [[maybe_unused]] const auto lock = [&] {
++        if constexpr (TakeLock) return lock_stripe(index);
++        else return EmptyLock{};
++    }();
+     const std::uint32_t key32 = verification_key(key);
+     const std::uint8_t generation = generation_;
+-    auto snapshot = [&](const TTEntry& entry, bool hit) {
++    auto hit_snapshot = [&](const TTEntry& entry) {
+         TTProbe result;
+         result.entry = entry;
+-        result.hit = hit;
++        result.hit = true;
++        result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());
++        result.owner_ = this;
++        result.cluster_ = index;
++        result.epoch_ = epoch_;
++        result.key_ = key;
++        return result;
++    };
++    auto miss_snapshot = [&](std::uint8_t slot) {
++        TTProbe result;
++        result.hit = false;
++        result.slot_ = slot;
+         result.owner_ = this;
+         result.cluster_ = index;
+-        result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());
+         result.epoch_ = epoch_;
+         result.key_ = key;
+         return result;
+     };
+-    // Four slots. Keep this a short loop: fully unrolling the replacement
+-    // choice spilled registers and made the probe slower.
+     TTEntry* found = nullptr;
+ #pragma GCC unroll 1
+     for (TTEntry& entry : cluster.entries) {
+@@ -504,15 +513,14 @@
+             found->gen_bound = static_cast<std::uint8_t>(
+                 (static_cast<unsigned>(generation) << 3U) | (found->gen_bound & 7U));
+         }
+-        return snapshot(*found, true);
++        return hit_snapshot(*found);
+     }
+     TTEntry* replace = &cluster.entries[0];
+-    int replace_score = replace->occupied()
+-                            ? replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U)
+-                            : 0;
+-#pragma GCC unroll 1
+-    for (TTEntry& entry : cluster.entries) {
+-        if (!entry.occupied()) return snapshot(entry, false);
++    if (!replace->occupied()) return miss_snapshot(0);
++    int replace_score = replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U);
++    for (std::size_t s = 1; s < 4; ++s) {
++        TTEntry& entry = cluster.entries[s];
++        if (!entry.occupied()) return miss_snapshot(static_cast<std::uint8_t>(s));
+         const int age = static_cast<int>((32U + generation - entry.generation()) & 31U);
+         const int score = entry.depth - 4 * age;
+         if (score < replace_score) {
+@@ -520,7 +528,7 @@
+             replace_score = score;
+         }
+     }
+-    return snapshot(*replace, false);
++    return miss_snapshot(static_cast<std::uint8_t>(replace - cluster.entries.data()));
+ }
+ 
+ TTProbe TranspositionTable::probe(std::uint64_t key) const { return probe_body<true>(key); }
+@@ -537,7 +545,11 @@
+     // Lifecycle operations themselves must not run concurrently with search.
+     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
+         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
+-    const auto lock = TakeLock ? lock_stripe(probe.cluster_) : std::unique_lock<std::mutex>();
++    struct EmptyLock {};
++    [[maybe_unused]] const auto lock = [&] {
++        if constexpr (TakeLock) return lock_stripe(probe.cluster_);
++        else return EmptyLock{};
++    }();
+     TTCluster& cluster = clusters_[probe.cluster_];
+     const std::uint32_t key32 = verification_key(key);
+     // Probe records a slot before the subtree runs. Another store can place this
+@@ -792,8 +804,7 @@
+             case Evasions:
+                 while (index_ < count_) {
+                     const Move move = pick_best();
+-                    if (move == tt_move_) continue;
+-                    if (evasion_tie_filter_ && (legal_to_by_from_[move.from] & square_bb(move.to)) == 0) continue;
++                    if (move.is_none() || move == tt_move_) continue;
+                     return move;
+                 }
+                 return Move::none();
+@@ -854,21 +865,20 @@
+ #endif
+     std::size_t bad_count_ = 0;
+     std::size_t bad_index_ = 0;
+-    MoveList buffer_;
+     std::size_t list_start_ = 0;
+     bool sorted_ = false;
+     bool quiet_tail_closed_ = false;
+-    bool evasion_tie_filter_ = false;
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+-    std::array<Bitboard, 64> legal_to_by_from_;
+     std::array<Bitboard, 7> check_squares_;
+ #else
+-    std::array<Bitboard, 64> legal_to_by_from_{};
+     std::array<Bitboard, 7> check_squares_{};
+ #endif
+ 
+     // Quiet/evasion generation are mutually exclusive stages, each reached at most once.
+     void init_check_squares() {
++#if FORGE_SPD_KING_LINES
++        check_squares_ = board_.ensure_king_lines().check_squares;
++#else
+         const Color them = opposite(board_.side_to_move());
+         const int enemy_king = board_.king_square(them);
+         const Bitboard occupancy = board_.occupied();
+@@ -878,6 +888,7 @@
+         check_squares_[Rook] = attacks::rook(enemy_king, occupancy);
+         check_squares_[Queen] = check_squares_[Bishop] | check_squares_[Rook];
+         check_squares_[King] = 0;
++#endif
+     }
+ 
+     [[nodiscard]] bool direct_check(Move move) const {
+@@ -1028,15 +1039,16 @@
+     }
+ 
+     void generate_captures() {
+-        buffer_.clear();
+-        board_.generate_pseudo_legal(buffer_, true);
++        MoveList& buf = searcher_.picker_scratch_;
++        buf.clear();
++        board_.generate_pseudo_legal(buf, true);
+         index_ = 0;
+         count_ = 0;
+         seeded_ = false;
+ #if FORGE_SEARCH_SPEED2
+         const CaptureHistory& capture_history = *searcher_.capture_history_;
+ #endif
+-        for (const Move move : buffer_) {
++        for (const Move move : buf) {
+ #if FORGE_SEARCH_SPEED2
+             const std::size_t moved = static_cast<std::size_t>(board_.piece_at(move.from));
+             const std::size_t victim = static_cast<std::size_t>(piece_type(board_.captured_piece(move)));
+@@ -1056,19 +1068,20 @@
+ #if FORGE_SPD_NO_ZERO_MOVELISTS >= 2
+         // The quiets-only list is the full list minus every capture and
+         // promotion, in the same order, so the filter is gone.
++        MoveList& buf = searcher_.picker_scratch_;
+         init_check_squares();
+-        buffer_.clear();
+-        board_.generate_pseudo_legal(buffer_, Board::GenMode::Quiets);
++        buf.clear();
++        board_.generate_pseudo_legal(buf, Board::GenMode::Quiets);
+         index_ = quiet_start();
+         count_ = quiet_start();
+         seeded_ = false;
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+-        for (const Move move : buffer_) {
++        for (const Move move : buf) {
+             push_scored(move, scorer.score(move, check_squares_));
+         }
+ #else
+-        for (const Move move : buffer_) {
++        for (const Move move : buf) {
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
+             push_scored(move, score);
+@@ -1076,20 +1089,21 @@
+ #endif
+         sort_moves();
+ #else
++        MoveList& buf = searcher_.picker_scratch_;
+         init_check_squares();
+-        buffer_.clear();
+-        board_.generate_pseudo_legal(buffer_, false);
++        buf.clear();
++        board_.generate_pseudo_legal(buf, false);
+         index_ = quiet_start();
+         count_ = quiet_start();
+         seeded_ = false;
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+-        for (const Move move : buffer_) {
++        for (const Move move : buf) {
+             if (move.is_capture() || move.is_promotion()) continue;
+             push_scored(move, scorer.score(move, check_squares_));
+         }
+ #else
+-        for (const Move move : buffer_) {
++        for (const Move move : buf) {
+             if (move.is_capture() || move.is_promotion()) continue;
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
+@@ -1100,15 +1114,16 @@
+ #endif
+     }
+ 
+-    void generate_evasions() {
+-        buffer_.clear();
+-        board_.generate_legal_evasions(buffer_);
+-        MoveList non_tt;
+-        for (const Move move : buffer_) {
++    [[gnu::noinline]] void generate_evasions() {
++        MoveList& buf = searcher_.picker_scratch_;
++        MoveList& non_tt = searcher_.evasion_scratch_;
++        buf.clear();
++        board_.generate_legal_evasions(buf);
++        non_tt.clear();
++        for (const Move move : buf) {
+             if (!(move == tt_move_)) non_tt.push_back(move);
+         }
+         index_ = 0;
+-        evasion_tie_filter_ = false;
+         if (non_tt.empty()) {
+             count_ = 0;
+             sorted_ = true;
+@@ -1169,20 +1184,21 @@
+         // Score tie among legal evasions: pick_best()'s 4 selection swaps + unstable std::sort
+         // depend on the full pseudo-legal buffer; pre-populate the 64-square legal target mask
+         // so illegal moves are filtered in O(1) inside MovePicker without calling is_legal_complete.
+-        legal_to_by_from_.fill(0);
++        std::array<Bitboard, 64> legal_mask{};
+         for (std::size_t i = 0; i < n; ++i) {
+-            legal_to_by_from_[non_tt[i].from] |= square_bb(non_tt[i].to);
++            legal_mask[non_tt[i].from] |= square_bb(non_tt[i].to);
+         }
+-        buffer_.clear();
+-        board_.generate_pseudo_legal(buffer_, false);
++        buf.clear();
++        board_.generate_pseudo_legal(buf, false);
+         index_ = 0;
+         count_ = 0;
+         seeded_ = false;
+-        for (const Move move : buffer_) {
+-            push_scored(move, score_evasion(move));
++        for (const Move move : buf) {
++            const int sc = score_evasion(move);
++            const Move tagged = (legal_mask[move.from] & square_bb(move.to)) != 0 ? move : Move::none();
++            push_scored(tagged, sc);
+         }
+         sort_moves();
+-        evasion_tie_filter_ = true;
+     }
+ };
+ 
+@@ -1217,24 +1233,24 @@
+ void Worker::clear() {
+     stack_dirty_limit_ = MaxPly + 7;
+     evaluator_.clear();
+-    *main_history_ = ButterflyHistory{};
+-    *threat_history_ = ThreatQuietHistory{};
++    std::memset(main_history_.get(), 0, sizeof(*main_history_));
++    std::memset(threat_history_.get(), 0, sizeof(*threat_history_));
+     // No temporary of the table's size on the stack (13.6 MB): fill in place. Untouched while the feature is off.
+ #if FORGE_PAWN_HISTORY
+     if (tune::PawnHistory != 0) pawn_history_->fill({});
+ #endif
+-    *capture_history_ = CaptureHistory{};
+-    *continuation_history_ = ContinuationHistory{};
+-    *counter_moves_ = CounterMoveTable{};
+-    *correction_history_ = CorrectionHistory{};
+-    *material_correction_ = CorrectionHistory{};
+-    *non_pawn_white_correction_ = CorrectionHistory{};
+-    *non_pawn_black_correction_ = CorrectionHistory{};
++    std::memset(capture_history_.get(), 0, sizeof(*capture_history_));
++    std::memset(continuation_history_.get(), 0, sizeof(*continuation_history_));
++    counter_moves_->fill({});
++    std::memset(correction_history_.get(), 0, sizeof(*correction_history_));
++    std::memset(material_correction_.get(), 0, sizeof(*material_correction_));
++    std::memset(non_pawn_white_correction_.get(), 0, sizeof(*non_pawn_white_correction_));
++    std::memset(non_pawn_black_correction_.get(), 0, sizeof(*non_pawn_black_correction_));
+     // B4 (forge/r9): cleared here like every other table, so no game inherits another game's statistics.
+-    *rework_history_ = LesserThreatHistory{};
+-    *joint_correction_ = CorrectionHistory{};
+-    *continuation_correction_ = ContinuationCorrection{};
+-    threat_maps_ = {};
++    std::memset(rework_history_.get(), 0, sizeof(*rework_history_));
++    std::memset(joint_correction_.get(), 0, sizeof(*joint_correction_));
++    std::memset(continuation_correction_.get(), 0, sizeof(*continuation_correction_));
++    std::memset(threat_maps_.data(), 0, sizeof(threat_maps_));
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
+@@ -1766,7 +1782,7 @@
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
+-    if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
++    if (check_node_or_periodic_stop()) aborted_ = true;
+ #if FORGE_TEST_CLOCK_STOP
+     if (is_main() && test_clock_stop_nodes() != 0 && local_nodes_ >= test_clock_stop_nodes()) aborted_ = true;
+ #endif
+@@ -1847,8 +1863,10 @@
+     while (!(move = picker.next(false)).is_none()) {
+         if (!picker.last_move_known_legal() && !board.is_legal(move)) continue;
+         ++move_count;
++        int known_gives_check = -1;
+         if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
++            known_gives_check = gives_check ? 1 : 0;
+             // Futility: even winning the captured piece cannot raise alpha.
+             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+@@ -1867,11 +1885,12 @@
+         (ss + 1)->ply = ply + 1;
+         record_move(ss, board, move);
+         Undo undo;
+-        (void)board.make_move(move, undo);
+ #if FORGE_SPD_PREFETCH_EARLY
++        (void)board.make_move(move, undo, early_key ? &child_key : nullptr, known_gives_check);
+         assert(!early_key || child_key == board.key());
+         if (!early_key) shared_.tt.prefetch(board.key());
+ #else
++        (void)board.make_move(move, undo, nullptr, known_gives_check);
+         shared_.tt.prefetch(board.key());
+ #endif
+         const int score = -qsearch_child(board, ss + 1, -beta, -alpha);
+@@ -1915,7 +1934,7 @@
+     // Keep this call's inherited path budget independent of those mutations.
+     const int inherited_double_extensions = (ss - 1)->double_extensions;
+     ss->double_extensions = inherited_double_extensions;
+-    if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
++    if (check_node_or_periodic_stop()) aborted_ = true;
+ #if FORGE_TEST_CLOCK_STOP
+     if (is_main() && test_clock_stop_nodes() != 0 && local_nodes_ >= test_clock_stop_nodes()) aborted_ = true;
+ #endif
+@@ -2385,11 +2404,12 @@
+         (ss + 1)->arrival_index = move_count;
+         record_move(ss, board, move);
+         Undo undo;
+-        (void)board.make_move(move, undo);
+ #if FORGE_SPD_PREFETCH_EARLY
++        (void)board.make_move(move, undo, early_key ? &child_key : nullptr, gives_check ? 1 : 0);
+         assert(!early_key || child_key == board.key());
+         if (!early_key) shared_.tt.prefetch(board.key());
+ #else
++        (void)board.make_move(move, undo, nullptr, gives_check ? 1 : 0);
+         shared_.tt.prefetch(board.key());
+ #endif
+         const std::uint64_t nodes_before = local_nodes_;
+@@ -2881,6 +2901,9 @@
+         soft_limit_ms_ = hard_limit_ms_ = 0;
+         time_managed_ = false;
+     }
++    fast_single_node_stop_ = parent_worker_ == nullptr && multipv == 1 &&
++                             (all_workers_ == nullptr || all_workers_->size() == 1) &&
++                             node_limit_specified_ && !clock_reserve_empty_ && hard_limit_ms_ <= 0;
+ 
+ #if FORGE_NNUE_V3
+     const bool use_v3_eval = nnue::enabled && nnue::available() && nnue::v3::active();
+diff -ruN r15d/src/uci.cpp /tmp/carbon2_job10/src_pgo1/src/uci.cpp
+--- a/src/uci.cpp	2026-11-17 20:43:42.885143771 +0000
++++ b/src/uci.cpp	2026-11-17 22:08:41.805143771 +0000
+@@ -43,48 +43,111 @@
+ struct PositionCache {
+     bool valid = false;
+     bool startpos = false;
+-    std::string base_fen;
+-    std::vector<std::string> moves;
++    int fen_count = 0;
++    std::array<std::string, 6> fen_parts{};
++    std::string canonical_moves;
+ };
+ 
+-void apply_position(forge::Board& board, std::istringstream& input, PositionCache& cache) {
+-    std::string token;
+-    if (!(input >> token)) return;
++[[nodiscard]] inline bool is_uci_ws(char c) noexcept {
++    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f';
++}
++
++[[nodiscard]] inline std::string_view next_uci_token(std::string_view& sv) noexcept {
++    std::size_t i = 0;
++    while (i < sv.size() && is_uci_ws(sv[i])) ++i;
++    sv.remove_prefix(i);
++    if (sv.empty()) return {};
++    std::size_t j = 0;
++    while (j < sv.size() && !is_uci_ws(sv[j])) ++j;
++    const std::string_view tok = sv.substr(0, j);
++    sv.remove_prefix(j);
++    return tok;
++}
++
++[[gnu::hot]] void apply_position_sv(forge::Board& board, std::string_view input, PositionCache& cache) {
++    std::string_view token = next_uci_token(input);
++    if (token.empty()) return;
+     bool is_startpos = false;
+-    std::string fen;
++    std::array<std::string_view, 6> fen_toks{};
++    int fen_n = 0;
+     if (token == "startpos") {
+         is_startpos = true;
+     } else if (token == "fen") {
+-        for (int i = 0; i < 6 && input >> token; ++i) {
+-            if (!fen.empty()) fen += ' ';
+-            fen += token;
++        for (; fen_n < 6; ++fen_n) {
++            const std::string_view ft = next_uci_token(input);
++            if (ft.empty()) break;
++            fen_toks[static_cast<std::size_t>(fen_n)] = ft;
+         }
+     } else {
+         return;
+     }
+ 
+-    std::vector<std::string> move_tokens;
+-    if (input >> token) {
+-        // A token other than "moves" is not part of the FEN.
+-        while (token != "moves") {
+-            if (!(input >> token)) break;
++    std::string_view moves_sv{};
++    token = next_uci_token(input);
++    if (!token.empty()) {
++        while (!token.empty() && token != "moves") {
++            token = next_uci_token(input);
+         }
+         if (token == "moves") {
+-            move_tokens.reserve(256);
+-            while (input >> token) move_tokens.push_back(std::move(token));
++            while (!input.empty() && is_uci_ws(input.front())) input.remove_prefix(1);
++            moves_sv = input;
+         }
+     }
+ 
+-    std::size_t start_idx = 0;
+-    const bool same_root = cache.valid && cache.startpos == is_startpos &&
+-                           (is_startpos || cache.base_fen == fen);
+-    if (same_root && cache.moves.size() <= move_tokens.size() &&
+-        std::equal(cache.moves.begin(), cache.moves.end(), move_tokens.begin())) {
+-        start_idx = cache.moves.size();
+-    } else {
++    bool same_root = cache.valid && cache.startpos == is_startpos;
++    if (same_root && !is_startpos) {
++        if (cache.fen_count != fen_n) {
++            same_root = false;
++        } else {
++            for (int k = 0; k < fen_n; ++k) {
++                if (cache.fen_parts[static_cast<std::size_t>(k)] != fen_toks[static_cast<std::size_t>(k)]) {
++                    same_root = false;
++                    break;
++                }
++            }
++        }
++    }
++
++    bool matched_prefix = false;
++    std::string_view tail_sv = moves_sv;
++    if (same_root) {
++        const std::string_view canon = cache.canonical_moves;
++        if (canon.empty()) {
++            matched_prefix = true;
++            tail_sv = moves_sv;
++        } else if (moves_sv.size() >= canon.size() &&
++                   moves_sv.substr(0, canon.size()) == canon &&
++                   (moves_sv.size() == canon.size() || is_uci_ws(moves_sv[canon.size()]))) {
++            matched_prefix = true;
++            tail_sv = moves_sv.substr(canon.size());
++        } else {
++            // Fallback for non-canonical whitespace between previously applied move tokens.
++            std::string_view cur_in = moves_sv;
++            std::string_view cur_ca = canon;
++            bool ok = true;
++            while (true) {
++                const std::string_view ct = next_uci_token(cur_ca);
++                if (ct.empty()) break;
++                const std::string_view it = next_uci_token(cur_in);
++                if (it != ct) { ok = false; break; }
++            }
++            if (ok) {
++                matched_prefix = true;
++                tail_sv = cur_in;
++            }
++        }
++    }
++
++    if (!matched_prefix) {
+         if (is_startpos) {
+             (void)board.set_fen(forge::Board::StandardStartFen);
+         } else {
++            std::string fen;
++            fen.reserve(96);
++            for (int k = 0; k < fen_n; ++k) {
++                if (k > 0) fen.push_back(' ');
++                fen.append(fen_toks[static_cast<std::size_t>(k)]);
++            }
+             forge::Board candidate;
+             std::string error;
+             if (!candidate.set_fen(fen, &error)) {
+@@ -95,41 +158,63 @@
+         }
+         cache.valid = true;
+         cache.startpos = is_startpos;
+-        cache.base_fen = std::move(fen);
+-        cache.moves.clear();
++        cache.fen_count = fen_n;
++        for (int k = 0; k < fen_n; ++k) {
++            cache.fen_parts[static_cast<std::size_t>(k)].assign(fen_toks[static_cast<std::size_t>(k)]);
++        }
++        cache.canonical_moves.clear();
++        if (cache.canonical_moves.capacity() < 2048) cache.canonical_moves.reserve(2048);
++        tail_sv = moves_sv;
+     }
+ 
+-    for (std::size_t i = start_idx; i < move_tokens.size(); ++i) {
+-        const auto move = board.parse_uci(move_tokens[i]);
++    while (true) {
++        const std::string_view mv_tok = next_uci_token(tail_sv);
++        if (mv_tok.empty()) break;
++        const auto move = board.parse_uci(mv_tok);
+         if (!move.has_value()) {
+             // The position and every legal move before this token still stand.
+-            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string illegal move " << move_tokens[i] << std::endl; }
++            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string illegal move " << mv_tok << std::endl; }
+             return;
+         }
+         forge::Undo undo;
+         (void)board.make_move(*move, undo);
+-        cache.moves.push_back(std::move(move_tokens[i]));
++        if (!cache.canonical_moves.empty()) cache.canonical_moves.push_back(' ');
++        cache.canonical_moves.append(mv_tok);
+     }
+ }
+ 
+-bool is_go_keyword(const std::string& token) {
++bool is_go_keyword(std::string_view token) {
+     return token == "depth" || token == "nodes" || token == "softnodes" || token == "movetime" ||
+            token == "movestogo" || token == "infinite" || token == "wtime" || token == "btime" ||
+            token == "winc" || token == "binc" || token == "mate" || token == "searchmoves" ||
+            token == "ponder";
+ }
+ 
+-forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board) {
++forge::SearchLimits parse_limits_sv(std::string_view input, forge::Board& board) {
+     forge::SearchLimits limits;
+-    std::string token;
+-    std::vector<std::string> tokens;
+-    while (input >> token) tokens.push_back(token);
++    std::array<std::string_view, 32> stack_tokens{};
++    std::vector<std::string_view> heap_tokens;
++    std::size_t token_count = 0;
++    while (true) {
++        const std::string_view t = next_uci_token(input);
++        if (t.empty()) break;
++        if (token_count < stack_tokens.size() && heap_tokens.empty()) {
++            stack_tokens[token_count++] = t;
++        } else {
++            if (heap_tokens.empty()) {
++                heap_tokens.assign(stack_tokens.begin(), stack_tokens.end());
++            }
++            heap_tokens.push_back(t);
++            ++token_count;
++        }
++    }
++    const std::string_view* const tokens = heap_tokens.empty() ? stack_tokens.data() : heap_tokens.data();
+     const forge::Color side = board.side_to_move();
+ #if FORGE_FIX_GO_PARSE
+     bool limit_given = false;      // a usable limit of any kind is on the line
+     bool limit_unusable = false;   // a limit was named, and its value was missing or not a number
+     // An optional single sign and then digits only.
+-    const auto is_integer = [](const std::string& text) {
++    const auto is_integer = [](std::string_view text) {
+         std::size_t k = (!text.empty() && (text[0] == '+' || text[0] == '-')) ? 1 : 0;
+         if (k >= text.size()) return false;
+         for (; k < text.size(); ++k) {
+@@ -137,18 +222,18 @@
+         }
+         return true;
+     };
+-    for (std::size_t i = 0; i < tokens.size();) {
+-        token = tokens[i++];
++    for (std::size_t i = 0; i < token_count;) {
++        const std::string_view token = tokens[i++];
+         // The value of the keyword just read: the next token, unless it is missing or is itself a keyword (then
+         // nothing is consumed). A token that is not a complete integer is consumed and gives no value.
+-        const auto take_integer = [&](std::string& text) {
+-            if (i >= tokens.size() || is_go_keyword(tokens[i])) return false;
++        const auto take_integer = [&](std::string_view& text) {
++            if (i >= token_count || is_go_keyword(tokens[i])) return false;
+             text = tokens[i++];
+             return is_integer(text);
+         };
+         // An int, saturated at the ends of its range.
+         const auto read_int = [&](int& out) {
+-            std::string text;
++            std::string_view text;
+             if (!take_integer(text)) return false;
+             long long wide = 0;
+             const char* const first = text.data() + (text[0] == '+' ? 1 : 0);
+@@ -162,7 +247,7 @@
+         };
+         // Clocks are 64-bit; parse_clock_ms clamps a complete integer to [0, kMaxClockMs].
+         const auto read_clock = [&](std::int64_t& out) {
+-            std::string text;
++            std::string_view text;
+             if (!take_integer(text)) return false;
+             out = forge::parse_clock_ms(text);
+             return true;
+@@ -173,7 +258,7 @@
+             else limit_unusable = true;
+         }
+         else if (token == "nodes" || token == "softnodes") {
+-            std::string text;
++            std::string_view text;
+             if (take_integer(text)) {
+                 // A negative count is 0, and an explicit 0 is an immediate bounded answer in the search.
+                 std::uint64_t value = 0;
+@@ -223,7 +308,7 @@
+         }
+         else if (token == "searchmoves") {
+             limits.search_moves_specified = true;
+-            while (i < tokens.size() && !is_go_keyword(tokens[i])) {
++            while (i < token_count && !is_go_keyword(tokens[i])) {
+                 const auto move = board.parse_uci(tokens[i++]);
+                 if (move.has_value()) limits.search_moves.push_back(*move);
+             }
+@@ -233,27 +318,25 @@
+     // (r9 did, through a value of 0) instead of searching without a limit.
+     if (limit_unusable && !limit_given) limits.movetime_ms = 0;
+ #else
+-    for (std::size_t i = 0; i < tokens.size();) {
+-        token = tokens[i++];
++    for (std::size_t i = 0; i < token_count;) {
++        const std::string_view token = tokens[i++];
+         auto read_int = [&]() {
+             int value = 0;
+-            if (i < tokens.size()) {
+-                const std::string& text = tokens[i++];
++            if (i < token_count) {
++                const std::string_view text = tokens[i++];
+                 const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+                 if (result.ec != std::errc{} || result.ptr != text.data() + text.size()) return 0;
+             }
+             return value;
+         };
+-        // Clocks are 64-bit. A 32-bit parse turns 3000000000 into 0, and the
+-        // search then stops at once.
+         auto read_clock = [&]() -> std::int64_t {
+-            if (i >= tokens.size()) return 0;
++            if (i >= token_count) return 0;
+             return forge::parse_clock_ms(tokens[i++]);
+         };
+         if (token == "depth") limits.depth = std::clamp(read_int(), 1, 64);
+         else if (token == "nodes" || token == "softnodes") {
+-            if (i < tokens.size()) {
+-                const std::string& text = tokens[i++];
++            if (i < token_count) {
++                const std::string_view text = tokens[i++];
+                 std::uint64_t value = 0;
+                 const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+                 if (result.ec == std::errc{} && result.ptr == text.data() + text.size()) {
+@@ -274,7 +357,7 @@
+         else if (token == "binc") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.increment_ms = value; }
+         else if (token == "searchmoves") {
+             limits.search_moves_specified = true;
+-            while (i < tokens.size() && !is_go_keyword(tokens[i])) {
++            while (i < token_count && !is_go_keyword(tokens[i])) {
+                 const auto move = board.parse_uci(tokens[i++]);
+                 if (move.has_value()) limits.search_moves.push_back(*move);
+             }
+@@ -333,17 +416,19 @@
+     SearchTask pending_task;
+ 
+     std::thread worker([&]() {
++        SearchTask task;
+         for (;;) {
+-            SearchTask task;
+             {
+                 std::unique_lock<std::mutex> lock(stop_mutex);
+                 work_cv.wait(lock, [&] { return has_task || worker_quit; });
+                 if (worker_quit && !has_task) break;
+-                task = std::move(pending_task);
++                task.board = pending_task.board;
++                task.limits = std::move(pending_task.limits);
++                task.ponder_enabled = pending_task.ponder_enabled;
+                 has_task = false;
+             }
+             const forge::SearchInfo result = searcher.search(
+-                std::move(task.board), task.limits, true, forge::Searcher::TTAccess::Exclusive);
++                task.board, task.limits, true, forge::Searcher::TTAccess::Exclusive);
+             if (task.limits.infinite || task.limits.ponder) {
+                 std::unique_lock<std::mutex> lock(stop_mutex);
+                 stop_cv.wait(lock, [&] {
+@@ -409,9 +494,8 @@
+     std::string line;
+     while (std::getline(in, line)) {
+         const auto command_start = std::chrono::steady_clock::now();
+-        std::istringstream input(line);
+-        std::string command;
+-        input >> command;
++        std::string_view line_rest(line);
++        const std::string_view command = next_uci_token(line_rest);
+         if (command == "uci") {
+             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+             std::cout << "id name Chess Engine Forge 6.4.24 candidate\n"
+@@ -493,10 +577,11 @@
+             (void)board.set_fen(forge::Board::StandardStartFen);
+             pos_cache.valid = true;
+             pos_cache.startpos = true;
+-            pos_cache.base_fen.clear();
+-            pos_cache.moves.clear();
++            pos_cache.fen_count = 0;
++            pos_cache.canonical_moves.clear();
+         } else if (command == "setoption") {
+             stop_search();
++            std::istringstream input{std::string(line_rest)};
+             std::string token;
+             std::string name;
+             std::string value_text;
+@@ -735,7 +820,7 @@
+             }
+         } else if (command == "position") {
+             stop_search();
+-            apply_position(board, input, pos_cache);
++            apply_position_sv(board, line_rest, pos_cache);
+         } else if (command == "go") {
+             stop_search();
+ #if FORGE_NNUE_V3
+@@ -745,13 +830,11 @@
+                 return 2;
+             }
+ #endif
+-            std::string first;
+-            const auto position = input.tellg();
+-            input >> first;
++            std::string_view go_peek = line_rest;
++            const std::string_view first = next_uci_token(go_peek);
+             if (first == "perft") {
+-                std::string depth_text;
++                const std::string_view depth_text = next_uci_token(go_peek);
+                 int depth = -1;
+-                if (!(input >> depth_text)) depth_text.clear();
+                 const auto parsed = std::from_chars(
+                     depth_text.data(), depth_text.data() + depth_text.size(), depth);
+                 if (parsed.ec != std::errc{} || parsed.ptr != depth_text.data() + depth_text.size() ||
+@@ -774,9 +857,7 @@
+                 }
+                 { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "nodes " << total << std::endl; }
+             } else {
+-                input.clear();
+-                input.seekg(position);
+-                forge::SearchLimits limits = parse_limits(input, board);
++                forge::SearchLimits limits = parse_limits_sv(line_rest, board);
+                 limits.move_overhead_ms = move_overhead_ms;
+                 limits.multipv = multipv;
+                 // Charge dispatch admission only to finite externally clocked searches.
+@@ -848,7 +929,10 @@
+             }
+ #endif
+             int depth = 13;
+-            if (int parsed = 0; input >> parsed) depth = std::clamp(parsed, 1, 64);
++            {
++                std::istringstream input{std::string(line_rest)};
++                if (int parsed = 0; input >> parsed) depth = std::clamp(parsed, 1, 64);
++            }
+             constexpr std::array<std::string_view, 8> fens{
+                 forge::Board::StandardStartFen,
+                 "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",

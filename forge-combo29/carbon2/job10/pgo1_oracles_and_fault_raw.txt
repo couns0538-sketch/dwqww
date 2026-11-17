@@ -1,0 +1,14 @@
+=== 1. PGO1 Planted-Fault Check (pgo1_planted_fault.patch.txt) ===
+P1_TT_STOP_ORACLE MISMATCH: expected=fd8c91bbb184a08b got=79219bb2501b9ff2
+EXPECTED_PLANTED_FAULT_FAILURE: exit_code_nonzero=true
+
+=== 2. PGO1 Clean Two-Binary TT & Node-Cap Stop Oracle (vs r15d Clang 18 ref) ===
+P1_TT_STOP_ORACLE PASS: ops=500000+9_stop_caps hash=fd8c91bbb184a08b mismatches=0
+
+=== 3. PGO1 -UNDEBUG S5 precomputed_key Assert Check ===
+S5_ASSERT_CLEAN_PASS key=8318955727821695351
+test_pgo1_s5_dbg: /tmp/carbon2_job10/src_pgo1_1/src/board.cpp:1234: bool forge::Board::make_move(const Move &, Undo &, const std::uint64_t *, int): Assertion `key_ == compute_key()' failed.
+EXPECTED_S5_ASSERT_ABORT_ON_CORRUPT_KEY: exit_code_nonzero=true
+
+=== 4. PGO1 Evasion + Legal Movegen Oracle (55,868 check positions) ===
+E1_EVASION_PICKER_ORACLE PASS: total_visited=313716 in_check_positions=14238 picker_sequences_compared=55868 mismatches=0
