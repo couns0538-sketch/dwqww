@@ -105,6 +105,12 @@ check cannot see (a halfmove-clock edit) is named, not hidden. Exit code 0.
 verdicts were written, including where this audit is NOT decisive (k=2 intervals
 reach 0.947–0.959, so a true 0.95 is not excluded).
 
+## 2026-11-17T05:50Z — repository hygiene
+
+Removed 4 committed `.pyc` binaries (the brief forbids binaries in the repo) and
+added `.gitignore` for `__pycache__/` and `*.pyc`. 59 text files tracked. Verified
+`gen_positions.py` regenerates all 112 fixtures byte-identically (no diff).
+
 ## Deliverables
 
 - `FINDINGS.md` — F1..F11, each with a re-runnable command.
