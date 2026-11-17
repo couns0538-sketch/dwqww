@@ -942,3 +942,19 @@ next: cadence.
 **43 findings, 34 checks/audits/plants/tools, 5 method lines, 5 withdrawals** (and 1 open lead).
 
 next: cadence.
+
+## 2026-11-17T02:33Z — final corrections this block
+- **Attribution corrected by my own four-cell measurement + ablations: 389 and 412 are PC20; 505 and 701 are S14.**
+  My matrix was PC20, seat 27's harness S14-only.
+- **08-F43: the figure is set by ONE option — `HistRework`.** PC20 389; PC20−TtPruneV2 **501**; PC20−HistRework 389
+  (unchanged).
+- **08-W5: the W3 variable name also misled the coordinator's arbitration** — recorded as the reason for "print the
+  list, never transcribe a name".
+- Control cell is NOT like-for-like across settings (S14 `c2c3`/701 vs PC20 `d2d4`/412) — recorded.
+- **INDEX now carries the self-finding WITH the denominator: five withdrawals out of 43 findings, every one a label or
+  a framing, none a measurement error.** Plus the explicit warning not to upgrade W4's 6 % to "the net is faster".
+
+## 2026-11-17T02:33Z — TALLY (generated, not maintained)
+**43 findings, 34 checks/audits/plants/tools, 5 method lines, 5 withdrawals** (and 1 open lead).
+
+next: cadence.
