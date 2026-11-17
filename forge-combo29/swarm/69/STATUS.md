@@ -91,3 +91,26 @@ after already reading to `readyok`; fixed, and the job now completes in under a 
 `stamps.txt` files in `job1/` … `job11/` each hold a `date -u` line after that job's last
 part.
 
+
+## 2026-11-17T04:50Z — repetition threshold and exposure (follow-up to 69-F8c)
+
+My own correction raised the next question: how far does the fen-vs-moves divergence reach?
+Three results.
+
+* **The threshold is three occurrences, not two.** At exactly 2 prior occurrences both builds
+  agree with the FEN form; at 3 they diverge. Ordinary 2-folds are harmless.
+* **It is not an endgame artifact.** A real opening plus a legal cycle gives a **32-piece
+  middlegame** threefold. Base answers `0 nodes, cp 0, a2a3` at every budget; the FEN form of
+  the same board answers `b3e6 cp 32` on both builds. **Base is 32 cp out and playing the
+  wrong move.** Deterministic across 3 runs.
+* **Exposure is small for random sampling and real for game replay.** 0 threefolds in 600
+  random games (60/120/200 plies) and 0 in 4,000 further 160-ply seeds.
+
+The bail also has a loud signature: 64 `info` lines of `score cp 0 nodes 0 nps 0 hashfull 0
+time 0` with an **empty pv**, climbing to `depth 64`, where a real search emits 11 populated
+lines. A harness can and should filter on `nodes 0` + empty PV.
+
+Files: `job12_repetition_threshold.py`, `job12/repetition_threshold.raw.txt`,
+`job12/middlegame_threefold.raw.txt`, `job12/middlegame_repeat_check.raw.txt`,
+`job12/bail_signature.raw.txt`, `job12/threshold_rate.raw.txt`,
+`job12/real_game_threefold.raw.txt`, `job12/stamps.txt`.

@@ -298,8 +298,13 @@ the same board as a FEN answers `b3e6 cp 32` on both builds and PC answers `b3e6
 move list too. **The base's answer is the wrong move and is 32 cp out.**
 
 The bailing cell is fully deterministic: 3 runs on each build give 1 distinct result. It is
-a stable wrong answer, not noise. The base also reports `nodes 0` together with `depth 64`
-under a `go nodes` budget, which is internally inconsistent and is itself a detector.
+a stable wrong answer, not noise.
+
+**The bail has a loud signature.** The base emits **64** `info` lines, every one of them
+`score cp 0 nodes 0 nps 0 hashfull 0 time 0` with an **empty `pv`**, climbing to `depth 64`.
+A real search emits 11 lines with populated nodes and a PV. So a harness can filter on
+`nodes 0` together with an empty `pv`, and should: that combination is the bail, not a
+search.
 
 **Exposure bound.** A harness that samples random positions is essentially never affected:
 0 threefolds in 600 random games of 60 / 120 / 200 plies, and 0 in 4,000 further 160-ply
