@@ -765,3 +765,13 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   picks the BETTER move at every depth with the margin narrowing 200->100. The retraction left this standing and it
   points the opposite way — PC20 does the decision right on this board.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:19:19Z S-C51 confirms 02-S-C19 — 0/10 clamped on the clock path; wall-range difference reconciled, not smoothed
+- Ten real G-set positions, `go wtime 6000 btime 6000 winc 60 binc 60`, PC20 (S14 17 opts + 6, assert_regime passed),
+  Threads 1: **depths 16-20 (median 18), wall 164-412 ms, clamped 0/10** — matches their 0/8 at 16-21. Depth-64 clamp
+  is a HARNESS hazard, not a play risk.
+- **Wall ranges differ and are NOT in conflict**: theirs 163-1585 ms vs mine 164-412; the 1585 is their SPARSE endgame,
+  which their own S-C19 identifies as a **different mechanism** (hard-limit cut, their S-F13). My ten are all non-sparse
+  G positions so the tail is not expected. Stated rather than smoothed.
+- Re-confirms my S-F49 at scale: real clock play uses **0.2-0.4 s of a 6 s clock (3-7% of budget)** at depth 16-20.
+Next: continue in the window (ends 2026-11-17T10:18Z).
