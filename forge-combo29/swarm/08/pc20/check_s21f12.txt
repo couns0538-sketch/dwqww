@@ -1,0 +1,25 @@
+## seat 21's 21-F12 — does the PC drawn-root repair reach `searchmoves`?
+
+Board `7k/8/6K1/8/8/8/8/4R3 w - - 100 1`, verified in python-chess: `e1e8` is LEGAL and MATES.
+(halfmove counter 100, so the base tree's drawn-root shortcut applies)
+
+| build | command | nodes | info depth lines | bestmove | info string |
+|---|---|---|---|---|---|
+| base 6b98f217 | searchmoves mate | **0** | 4 | e1e8 | - |
+| base 6b98f217 | CONTROL no searchmoves | **0** | 4 | e1a1 | - |
+| base 6b98f217 | CONTROL illegal name | **0** | 4 | 0000 | info string searchmoves restriction has  |
+| PC r15 | searchmoves mate | **8** | 4 | e1e8 | - |
+| PC r15 | CONTROL no searchmoves | **85** | 4 | e1e8 | - |
+| PC r15 | CONTROL illegal name | **0** | 4 | 0000 | info string searchmoves restriction has  |
+
+## The claim, tested
+
+| their statement | my measurement |
+|---|---|
+| base build answers 0 nodes for the searchmoves line at halfmove 100 | **0 nodes** |
+| PC build SEARCHES it (small nonzero node count) | **8 nodes** |
+| the no-legal-named-move case is unchanged on PC (0000 + info line, 0 nodes) | bestmove **0000**, info string present |
+
+| CONTROL: without searchmoves, both builds handle the position the same way | base 0 nodes / PC 85 nodes |
+
+**CONFIRMS**: the PC build's repair reaches `searchmoves` (0 nodes on base, 8 on PC) while the no-legal-named-move case still short-circuits with 0000 and the info string.
