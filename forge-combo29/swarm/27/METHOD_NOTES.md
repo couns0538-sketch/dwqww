@@ -45,6 +45,36 @@ separately and answered by measurement:
 Inferring (2) from (1) produces either false alarm (impugning seat 25) or false comfort (clearing the `f3`
 premise that really was wrong). It produced both tonight, in the same family of findings.
 
+## Read everything you receive, and placement stops mattering
+
+Every finding in this file about diagnostics is a *placement* finding: the diagnostic is in the position reply
+rather than the search output, the `invalid FEN` line arrives before `readyok`, `bestmove 0000` comes with no
+other notice, `nps 0` appears on a sub-millisecond search. **Each one is only a hazard because a harness chose a
+slice of the stream to read.**
+
+**The constructive counterpart, found by reading another seat's file:** seat 01's
+`check_invalid_fen_predecessor.py` sends `isready` after `position` — the exact pattern that moved the
+diagnostic into a stream I was not reading — and it still reproduced the finding on my build, **because its
+search helper collects every line the engine sends into a log list before parsing anything.** It was never
+told about the placement problem and does not need to be.
+
+The two designs, side by side:
+
+| harness design | effect |
+|---|---|
+| read until the line I expect, discard the rest | **placement-sensitive**: a diagnostic outside the slice is lost |
+| accumulate every line, then interpret | **placement-proof**: the diagnostic is somewhere in the buffer, and the parser can look anywhere |
+
+**So the robust construction is one line of discipline: accumulate the raw stream, then parse the buffer.**
+`for line in p.stdout: buf.append(line)` followed by analysis is placement-proof; `read until bestmove, then
+search those lines for X` is not. Every one of the placement defects tonight would be caught by the first
+pattern without knowing anything about where the engine puts its message.
+
+**And it is the same shape as the researcher error.** A harness that reads one stream misses the diagnostic; a
+researcher who reads one stream misses the engine. Both are cured by collecting everything and asking questions
+of the collection. **The reason the seat-01 cross-check worked in both directions is that neither of us had to
+know the answer to a placement question to be right about the mechanism.**
+
 ## Test the CLAUSE, not the claim
 
 The most useful catch of the last hour was not a wrong finding. It was **one wrong clause inside a correct
