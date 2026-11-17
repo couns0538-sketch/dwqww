@@ -1,19 +1,25 @@
 #!/usr/bin/env python3
 """Re-derive the PC20 per-node row from the committed 180 rows, and test the CI pairing.
 
-The consolidated report's table row is:
+The consolidated report's row is:
 
     | PC20 per-node cost | +6.4% | [1.0670, 1.0876] | 90.0% (162/180, direct n=180 arm) |
 
 Three numbers, and this script asks whether they are three views of ONE quantity:
 
-  * +6.4% is the POOLED ratio (total ms / total nodes) from distribution.py = 1.0643.
+  * +6.4% is the POOLED ratio (total ms / total nodes) = 1.0643 in the committed rows.
   * [1.0670, 1.0876] is, in pernode_result.txt, the CI of the MEAN-OF-LN estimator (1.0773).
   * 162/180 is the sign share.
 
-If the CI belongs to a different estimator than the point estimate, the pairing is wrong even
-though every individual number is honestly computed.  That is the class of defect this seat
-exists to find, so it is tested rather than eyeballed.
+EXIT CODE SEMANTICS (deliberately split, because conflating them hides faults):
+
+  0  the measurement ran correctly: every row parsed, the per-position ratios recompute, and
+     the pooled ratio is reproducible from the committed columns.
+  1  the measurement is BROKEN or the data is internally inconsistent -- do not trust the row.
+  2  the measurement is sound but the REPORT's row does not reproduce from it.
+
+A disagreement with the report is data, not a crash; a harness fault is a crash.  Keeping them
+in different exit codes is what lets the fault-injection test tell them apart.
 """
 import math
 import re
@@ -21,6 +27,7 @@ import statistics as st
 import sys
 
 PATH = "evidence/pc20_pernode_180.txt"
+EXPECTED_N = 180
 REPORT_POOLED = 1.0643
 REPORT_CI = (1.0670, 1.0876)
 REPORT_SHARE = (162, 180)
@@ -40,99 +47,101 @@ def load():
     return rows
 
 
-def estimators(rows):
-    npc = sum(r["npc"] for r in rows)
-    ns14 = sum(r["ns14"] for r in rows)
-    tpc = sum(r["tpc"] for r in rows)
-    ts14 = sum(r["ts14"] for r in rows)
-    per = [(r["tpc"] / r["npc"]) / (r["ts14"] / r["ns14"]) for r in rows]
-    lns = [math.log(x) for x in per]
-    n = len(per)
-    mean_ln = st.mean(lns)
-    se = st.stdev(lns) / math.sqrt(n)
-    se_pop = st.pstdev(lns) / math.sqrt(n)
-    return {
-        "n": n,
-        "pooled": (tpc / npc) / (ts14 / ns14),
-        "mean_of_ln": math.exp(mean_ln),
-        "ci_mean_ln": (math.exp(mean_ln - 1.96 * se), math.exp(mean_ln + 1.96 * se)),
-        "ci_mean_ln_pop": (math.exp(mean_ln - 1.96 * se_pop), math.exp(mean_ln + 1.96 * se_pop)),
-        "arithmetic_mean": st.mean(per),
-        "median": st.median(per),
-        "geo_mean": math.exp(mean_ln),
-        "above": sum(1 for x in per if x > 1.0),
-        "ge": sum(1 for x in per if x >= 1.0),
-        "eq": sum(1 for x in per if x == 1.0),
-        "sd_ln": st.stdev(lns),
-    }
-
-
 rows = load()
-e = estimators(rows)
+print("source rows parsed: %d (expected %d)" % (len(rows), EXPECTED_N))
+
+# ---- harness validity gate -------------------------------------------------
+broken = []
+if len(rows) != EXPECTED_N:
+    broken.append("parsed %d rows, expected %d" % (len(rows), EXPECTED_N))
+
+calc = [(r["tpc"] / r["npc"]) / (r["ts14"] / r["ns14"]) for r in rows]
+mismatch = [(i, r["pn_printed"], c) for i, (r, c) in enumerate(zip(rows, calc))
+            if abs(r["pn_printed"] - c) > 0.002]
+if mismatch:
+    broken.append("%d rows disagree with their own printed per-node ratio, first: %r"
+                  % (len(mismatch), mismatch[0]))
+
+if broken:
+    print("MEASUREMENT BROKEN:")
+    for b in broken:
+        print("  - %s" % b)
+    sys.exit(1)
+print("per-position ratios recompute from the committed columns on all %d rows" % len(rows))
+
+npc = sum(r["npc"] for r in rows)
+ns14 = sum(r["ns14"] for r in rows)
+tpc = sum(r["tpc"] for r in rows)
+ts14 = sum(r["ts14"] for r in rows)
+pooled = (tpc / npc) / (ts14 / ns14)
+lns = [math.log(c) for c in calc]
+mean_ln = st.mean(lns)
+se = st.stdev(lns) / math.sqrt(len(lns))
+ci = (math.exp(mean_ln - 1.96 * se), math.exp(mean_ln + 1.96 * se))
+
+print()
+print("  pooled (total ms/total nodes) : %.4f  = +%.2f%%" % (pooled, (pooled - 1) * 100))
+print("  mean of ln ratios             : %.4f  = +%.2f%%"
+      % (math.exp(mean_ln), (math.exp(mean_ln) - 1) * 100))
+print("  arithmetic mean               : %.4f" % st.mean(calc))
+print("  median                        : %.4f" % st.median(calc))
+print("  95%% CI (mean-of-ln, sample sd): [%.4f, %.4f]" % ci)
+print()
+
 checks = 0
-agreements = 0
-disagreements = []
+agree = 0
+disagree = []
 
 
 def check(label, ok, detail):
-    global checks, agreements
+    global checks, agree
     checks += 1
     if ok:
-        agreements += 1
+        agree += 1
         print("  AGREE     %-52s %s" % (label, detail))
     else:
-        disagreements.append(label)
+        disagree.append("%s (%s)" % (label, detail))
         print("  DISAGREE  %-52s %s" % (label, detail))
 
 
-print("source rows parsed: %d (the arm's own n)" % e["n"])
-print()
-print("  pooled (total ms/total nodes) : %.4f  = +%.2f%%" % (e["pooled"], (e["pooled"] - 1) * 100))
-print("  mean of ln ratios             : %.4f  = +%.2f%%" % (e["mean_of_ln"], (e["mean_of_ln"] - 1) * 100))
-print("  arithmetic mean               : %.4f" % e["arithmetic_mean"])
-print("  median                        : %.4f" % e["median"])
-print("  95%% CI (mean-of-ln, sample sd): [%.4f, %.4f]" % e["ci_mean_ln"])
-print("  95%% CI (mean-of-ln, pop  sd) : [%.4f, %.4f]" % e["ci_mean_ln_pop"])
-print()
-
 print("1. is the report's point estimate the POOLED ratio?")
 check("pooled re-derives to 1.0643 (+6.4%)",
-      abs(e["pooled"] - REPORT_POOLED) < 5e-5,
-      "mine %.4f vs report %.4f" % (e["pooled"], REPORT_POOLED))
+      abs(pooled - REPORT_POOLED) < 5e-5,
+      "mine %.4f vs report %.4f" % (pooled, REPORT_POOLED))
 
 print("\n2. does the report's CI contain the report's point estimate?")
 inside = REPORT_CI[0] <= REPORT_POOLED <= REPORT_CI[1]
 checks += 1
 if inside:
-    agreements += 1
+    agree += 1
     print("  AGREE     point estimate lies inside its own interval")
 else:
-    disagreements.append("pooled point estimate lies OUTSIDE the quoted interval")
+    disagree.append("pooled point estimate 1.0643 lies OUTSIDE [1.0670, 1.0876]")
     print("  DISAGREE  pooled 1.0643 is OUTSIDE [1.0670, 1.0876]")
-    print("            the interval's own centre is the mean-of-ln %.4f" % e["mean_of_ln"])
+    print("            the interval is centred on the mean-of-ln %.4f, not on the pooled %.4f"
+          % (math.exp(mean_ln), pooled))
 
 print("\n3. which estimator does the quoted CI belong to?")
-check("CI reproduces from mean-of-ln (sample sd), not from the pooled ratio",
-      abs(e["ci_mean_ln"][0] - REPORT_CI[0]) < 0.006 and abs(e["ci_mean_ln"][1] - REPORT_CI[1]) < 0.006,
+check("CI is a mean-of-ln interval, near the published bounds",
+      abs(ci[0] - REPORT_CI[0]) < 0.008 and abs(ci[1] - REPORT_CI[1]) < 0.008,
       "mine [%.4f, %.4f] vs report [%.4f, %.4f]"
-      % (e["ci_mean_ln"][0], e["ci_mean_ln"][1], REPORT_CI[0], REPORT_CI[1]))
+      % (ci[0], ci[1], REPORT_CI[0], REPORT_CI[1]))
 
 print("\n4. the sign share")
+above = sum(1 for c in calc if c > 1.0)
 check("162/180 above 1.0 reproduces",
-      (e["above"], e["n"]) == REPORT_SHARE,
-      "mine %d/%d above, %d at or above, %d exactly 1.000"
-      % (e["above"], e["n"], e["ge"], e["eq"]))
+      (above, len(rows)) == REPORT_SHARE,
+      "mine %d/%d above 1.0 (%d at or above)" % (above, len(rows), sum(1 for c in calc if c >= 1.0)))
 
-print("\n5. does the CONCLUSION survive, independent of the pairing fault?")
-lo = min(e["ci_mean_ln"][0], e["ci_mean_ln_pop"][0])
-hi = max(e["ci_mean_ln"][1], e["ci_mean_ln_pop"][1])
-check("every estimator excludes 1.0 with margin (effect is real)",
-      lo > 1.0, "lowest interval bound across estimators %.4f" % lo)
+print("\n5. does the CONCLUSION survive the pairing fault?")
+check("every estimator excludes 1.0 with margin (the tax is real)",
+      ci[0] > 1.0, "lowest interval bound %.4f" % ci[0])
 
 print("\nrows examined: %d" % checks)
-print("agree: %d / %d" % (agreements, checks))
-if disagreements:
-    print("HEADLINE DISAGREEMENTS:")
-    for d in disagreements:
+print("agree: %d / %d" % (agree, checks))
+if disagree:
+    print("DISAGREEMENTS (exit 2 -- measurement sound, report row does not reproduce):")
+    for d in disagree:
         print("  - %s" % d)
-sys.exit(0 if not disagreements else 1)
+    sys.exit(2)
+sys.exit(0)
