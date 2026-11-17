@@ -45,6 +45,24 @@ HPP_SWITCH_NEW = """#pragma once
 #ifndef FORGE_LMR_STATS
 #define FORGE_LMR_STATS 0
 #endif
+
+// FORGE_LMR_KEYS (diagnostic, default 0): per-ply fingerprints of the positions the
+// search visits -- count, XOR of keys, and sum of keys. XOR is order-independent and
+// cancels multiplicity, so two builds agreeing on count+XOR+sum visited the same
+// multiset of positions at that ply; agreeing on XOR but not on count means the same
+// SET with a different number of visits. That distinction is the prior question behind
+// a reduction-count comparison and it needs no storage, only three integers per ply.
+#ifndef FORGE_LMR_KEYS
+#define FORGE_LMR_KEYS 0
+#endif
+
+// FORGE_LMR_STATS_PRINT (default 1, meaningful only when FORGE_LMR_STATS is on):
+// whether the counters are also PRINTED. Building counters-on/print-off isolates
+// "the counters do not perturb the tree" from "the print path does not perturb it",
+// which are two different claims and only the second one involves I/O.
+#ifndef FORGE_LMR_STATS_PRINT
+#define FORGE_LMR_STATS_PRINT 1
+#endif
 """
 
 HPP_MEMBERS_OLD = "    std::size_t root_effort_count_ = 0;\n"
@@ -113,6 +131,11 @@ public:
         }
     };
 private:
+#if FORGE_LMR_KEYS
+    std::uint64_t key_count_[MaxPly + 8] = {};
+    std::uint64_t key_xor_[MaxPly + 8] = {};
+    std::uint64_t key_sum_[MaxPly + 8] = {};
+#endif
     LmrStatBlock lmr_iter_;
     std::array<LmrStatBlock, 256> lmr_root_;
     LmrStatBlock lmr_total_;
@@ -132,6 +155,7 @@ CPP_INCLUDE_NEW = """#include <cstring>
 
 CPP_HELPERS_OLD = "int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {\n"
 CPP_HELPERS_NEW = r'''#if FORGE_LMR_STATS
+#if FORGE_LMR_STATS_PRINT
 namespace {
 void lmr_print_block(const char* tag, int depth, const char* root, const Worker::LmrStatBlock& b) {
     std::printf("info string %s depth %d root %s applied %llu rmean ", tag, depth, root,
@@ -161,6 +185,7 @@ void lmr_print_block(const char* tag, int depth, const char* root, const Worker:
     std::printf("\n");
 }
 } // namespace
+#endif // FORGE_LMR_STATS_PRINT
 
 void Worker::lmr_note_reject(bool mate, bool fifty, bool dep, bool mcnt, bool bare, bool pvcap) {
     for (LmrStatBlock* b : {&lmr_iter_, &lmr_here()}) {
@@ -195,14 +220,28 @@ void Worker::lmr_note_research() {
 }
 
 void Worker::lmr_begin_iteration() {
+#if FORGE_LMR_KEYS
+    for (int i = 0; i < MaxPly + 8; ++i) { key_count_[i] = 0; key_xor_[i] = 0; key_sum_[i] = 0; }
+#endif
     lmr_iter_.clear();
     for (auto& block : lmr_root_) block.clear();
 }
 
 void Worker::lmr_flush_iteration(int depth, bool emit) {
     lmr_total_.add(lmr_iter_);
+#if FORGE_LMR_STATS_PRINT
     if (!emit) return;
     const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+#if FORGE_LMR_KEYS
+    for (int p = 0; p < MaxPly + 8; ++p) {
+        if (!key_count_[p]) continue;
+        std::printf("info string keys depth %d ply %d count %llu xor %016llx sum %016llx\n",
+                    depth, p, static_cast<unsigned long long>(key_count_[p]),
+                    static_cast<unsigned long long>(key_xor_[p]),
+                    static_cast<unsigned long long>(key_sum_[p]));
+    }
+    std::fflush(stdout);
+#endif
     lmr_print_block("lmr", depth, "all", lmr_iter_);
     for (std::size_t i = 0; i < root_effort_count_ && i < lmr_root_.size(); ++i) {
         const LmrStatBlock& b = lmr_root_[i];
@@ -211,14 +250,22 @@ void Worker::lmr_flush_iteration(int depth, bool emit) {
         lmr_print_block("lmr", depth, root.c_str(), b);
     }
     std::fflush(stdout);
+#else
+    (void)depth;
+    (void)emit;
+#endif
 }
 
 void Worker::lmr_flush_total(bool emit) {
+#if FORGE_LMR_STATS_PRINT
     if (!emit) return;
     const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
     lmr_print_block("lmrsum", 0, "all", lmr_total_);
     std::printf("info string lmrsum cap_switch %s\n", lmr_cap_present_ ? "present" : "absent");
     std::fflush(stdout);
+#else
+    (void)emit;
+#endif
 }
 #endif
 
@@ -261,6 +308,22 @@ def do_hpp(root):
 """
     s = patch_text(s, old, new, "hpp method decls")
     open(p, "w").write(s)
+
+
+KEY_ANCHOR = """    ++local_nodes_;
+    seldepth_ = std::max(seldepth_, ply);
+"""
+KEY_NEW = """    ++local_nodes_;
+#if FORGE_LMR_KEYS
+    if (ply >= 0 && ply < MaxPly + 8) {
+        const std::uint64_t visited_key = board.key();
+        ++key_count_[ply];
+        key_xor_[ply] ^= visited_key;
+        key_sum_[ply] += visited_key;
+    }
+#endif
+    seldepth_ = std::max(seldepth_, ply);
+"""
 
 
 def do_cpp(root, cap, cap_macro):
@@ -372,6 +435,14 @@ def do_cpp(root, cap, cap_macro):
         }
 """
     s = patch_text(s, restore_old, restore_new, "cpp root current restore")
+
+    # per-ply visited-key fingerprint (FORGE_LMR_KEYS). There are TWO
+    # `++local_nodes_; seldepth_ = ...` sites in this tree (search and
+    # search_cuckoo); both are real node visits, so both are counted, and the
+    # expected count is asserted rather than assumed -- an earlier version of this
+    # generator used a bare str.replace on an anchor that did not match, silently
+    # inserted nothing, and the resulting build printed no key lines at all.
+    s = patch_text(s, KEY_ANCHOR, KEY_NEW, "cpp key fingerprint", count=2)
 
     open(p, "w").write(s)
 

@@ -142,4 +142,25 @@ python3 "$SWARM/scripts/ordinary_stats.py" "$ON" "$SWARM/evidence/OG200.fens" \
   > "$RAW/ordinary_d8_base.txt" 2>&1
 grep -E "reductions / 1000|pooled mean r" "$RAW/ordinary_d8_base.txt"
 
+echo "### the decisive probe: do the builds visit the same POSITIONS or just the same count?"
+# needs FORGE_LMR_KEYS=1 on both sides; built from the same instrumented cap tree
+KEYS_ON=$(build keycapON /tmp/src_cap "-DFORGE_LMR_STATS=1 -DFORGE_LMR_KEYS=1 -DFORGE_FIX_BARE_KING_LMR_CAP=1 -DFORGE_FIX_BARE_KING_ONE_THREAD=0") || exit 1
+KEYS_OFF=$(build keycapOFF /tmp/src_cap "-DFORGE_LMR_STATS=1 -DFORGE_LMR_KEYS=1 -DFORGE_FIX_BARE_KING_LMR_CAP=0 -DFORGE_FIX_BARE_KING_ONE_THREAD=0") || exit 1
+pins "$KEYS_ON" keycapON
+pins "$KEYS_OFF" keycapOFF
+python3 "$SWARM/scripts/visit_sets.py" "$KEYS_ON" "$KEYS_OFF" --depth 10 \
+  --json "$SWARM/evidence/visit_sets_d10.json" > "$RAW/visit_sets_d10.txt" 2>&1
+cat "$RAW/visit_sets_d10.txt"
+
+echo "### the print gate: counters-on-silent vs counters-on-printing, and silent vs base"
+SILENT=$(build silent /tmp/src_cap "-DFORGE_LMR_STATS=1 -DFORGE_LMR_STATS_PRINT=0 -DFORGE_FIX_BARE_KING_LMR_CAP=1 -DFORGE_FIX_BARE_KING_ONE_THREAD=0") || exit 1
+python3 "$SWARM/scripts/print_gate.py" "$SILENT" "$CAPON" --depth 10 \
+  --fens "$SWARM/evidence/OG200.fens" --limit 20 \
+  --json "$SWARM/evidence/print_gate_d10.json" > "$RAW/print_gate_d10.txt" 2>&1
+cat "$RAW/print_gate_d10.txt"
+python3 "$SWARM/scripts/identity40.py" "$BASE" "$SILENT" "$SWARM/evidence/OG200.fens" \
+  --depth 10 --limit 40 --json "$SWARM/evidence/identity_silent_vs_base.json" \
+  > "$RAW/identity_silent_vs_base.txt" 2>&1
+tail -2 "$RAW/identity_silent_vs_base.txt"
+
 echo "done"

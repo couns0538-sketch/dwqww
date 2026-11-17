@@ -37,25 +37,42 @@ it does not clear 0.05, it was chosen after seeing the full set, and one predict
 reverses too. It is recorded with those three caveats attached so it cannot be quoted as
 confirmatory.
 
+**And the counters can now be explained rather than just reported as useless.** A
+per-ply fingerprint of the positions each build visits shows the two builds **visit
+genuinely different positions** at the divergence depth on **9 of 11 boards, including
+both counter-cases** (§5.4). A reduction statistic therefore averages over a different
+node population on each side, which is exactly why equal-looking aggregates can hide
+different trees. The negative result and its cause are now the same measurement.
+
 **What that leaves** is narrower and more useful than "uncharacterised": the difference is
-created inside an iteration's tree, before any score is published, and downstream of the
-first divergence. §5 says what the next instrument should count, and why the cheapest of
-the three probes is decisive.
+created inside an iteration's tree, before any score is published, downstream of the
+first divergence, and it consists of visiting **different positions** rather than the same
+ones more often. §6 names the next step: the first divergence in **move identity**, which
+is a small extension of the fingerprint machinery already here.
 
 **What is established** (measured, reproducible, with the exact command):
 1. The instrument works, is off by default, and is honest under its own gate (§2).
-2. On ordinary positions the engine applies **390 reductions per 1000 nodes**, mean
-   magnitude **2.38**, and re-searches **2.66%** of them (§3). Nobody had published
+2. **Its output cannot perturb what it measures**, measured as two separate claims: the
+   counters do not change the tree (silent build = base, 40 of 40), and the print path
+   does not change it either (printing = silent, 31 of 31, including every per-depth node
+   count). Nothing prints inside a search — the flush is at `search.cpp:2689`, between
+   completed iterations (§3).
+3. On ordinary positions the engine applies **390 reductions per 1000 nodes**, mean
+   magnitude **2.38**, and re-searches **2.66%** of them (§4). Nobody had published
    these.
-3. The reduction profile is **the same on both trees** away from lone-king roots
+4. The reduction profile is **the same on both trees** away from lone-king roots
    (390.09/1000 and r=2.377 on both), which is what the gate's definition predicts and
-   is a control on the instrument (§3).
-4. The counters do not separate the two counter-cases (§4).
-5. The aspiration-cascade account is refuted, 0 of 11 (§4.2).
+   is a control on the instrument (§4).
+5. The counters do not separate the two counter-cases (§5.1).
+6. The aspiration-cascade account is refuted, 0 of 11 (§5.2).
+7. The clamp's immediate effect is uniform, and the difference is downstream (§5.3).
+8. **The builds visit different positions, not the same ones more often** — 9 of 11
+   boards including both counter-cases (§5.4). This explains why the counters could not
+   separate the classes: they average over different node populations.
 
-**What is inferred, not established:** the mechanism lives in the within-iteration
-visit set rather than in any aggregate the current counters expose (§5). That is a
-location, not a cause, and it is stated as a lead.
+**What is inferred, not established:** the mechanism lives in *which* positions the
+iteration visits, downstream of the first divergence — a location, not a cause. The next
+step is the first divergence in move identity (§6).
 
 ---
 
@@ -174,7 +191,81 @@ this question.
 
 ---
 
-## 3. Reduction statistics for ordinary positions — nobody had published these
+## 3. Where the instrument prints, and why that cannot perturb the measurement
+
+An earlier version of this report claimed "flag-on changes nothing but output" and left
+the reader to take it on faith. That was the weak form of the claim. Two questions
+matter and they are different questions:
+
+1. Do the **counter increments** perturb the tree? (They sit in the move loop.)
+2. Does the **print path** perturb the tree? (`printf`, `fflush`, `std::cout`, a
+   `std::lock_guard`, a `std::string` allocation, an `info string` line mid-iteration.)
+
+Both are now measured separately, by building the instrumented source a third way:
+`FORGE_LMR_STATS=1, FORGE_LMR_STATS_PRINT=0` runs every counter and prints nothing.
+
+### 3.1 Where it prints — the structural answer
+
+**Nothing prints inside the search.** The counters are plain integer increments in the
+move loop (`lmr_note_apply`, `lmr_note_reject`, `lmr_note_research`, `src/search.cpp`
+lines 2109–2136 in the instrumented tree). The only output happens in
+`Worker::lmr_flush_iteration`, **called at `src/search.cpp:2689`**, which is inside the
+root iterative-deepening loop (`for (int depth = 1; depth <= max_depth; ++depth)`, opened
+at line 2532) and **after** the call to `search()` at line 2557 has returned and the
+aspiration loop at 2555 has closed. So the print runs once per *completed depth
+iteration*, between iterations — never during one.
+
+That is the same place the engine's own `emit(depth, score, result.pv)` prints its
+`info depth …` line (the lambda defined at line 2361, called immediately above the flush
+at 2688). The instrument is therefore structurally in the same position as the output the
+engine already produces: between iterations, under the same `uci_output_mutex()`.
+
+### 3.2 The measured answer — 31 of 31, every per-depth node count
+
+Structural reasoning is not enough on its own, so `scripts/print_gate.py` compares the
+silent build against the printing build on the 11 lone-king boards **and** 20 ordinary
+positions, requiring agreement on bestmove, score, final node count **and every
+per-depth node count**:
+
+| comparison | result |
+|---|---|
+| print-OFF (counters run, silent) vs **base** | **IDENTICAL 40 of 40** (4 fields each) |
+| print-ON vs print-OFF — 11 lone-king boards | **11 of 11**, incl. every per-depth node count |
+| print-ON vs print-OFF — 20 ordinary positions | **20 of 20**, incl. every per-depth node count |
+
+Controls, because a comparison that cannot fail proves nothing: the silent arm must print
+**zero** `lmr` lines and the printing arm must print on **every** case. Both held on all
+31 cases (`control: SILENT printed lmr lines on 0 of 11 / 0 of 20: True`;
+`control: PRINTING … on all 11 / all 20: True`).
+
+So the decomposition is complete and each half is separately established:
+
+- **the counter increments do not perturb the tree** — silent-vs-base is 40 of 40;
+- **the print path does not perturb the tree** — printing-vs-silent is 31 of 31 on four
+  fields including every per-depth node count.
+
+The per-depth node counts are the strict version of this test: two builds can agree on a
+final node count while having visited different trees at intermediate depths, so
+comparing only the last iteration would be a weaker gate than the claim needs.
+
+### 3.3 A trap this test set for itself, caught
+
+The first run of `print_gate.py` reported "11 of 11 identical" with every board showing
+**the same 13,102 nodes and the same move `d2d4`** — a vacuous pass. The board list is
+`(fen, cls)` and the harness wanted `(name, fen)`, so it searched the literal string
+`pred` as a FEN, the engine refused it and kept the previous board, and both arms
+faithfully agreed on the same wrong position. **The controls caught it**: the printing
+arm's line count was 191 on every board, which is a startpos-shaped number, not an
+11-bare-king-piece-shaped one. The fix is in the script, with the reason written beside
+it, and the corrected run is the table in §3.2.
+
+This is the same family as the findings' "a control that is assumed rather than found"
+rule, and it is worth recording that the check which saved it was a *sanity number on the
+control output*, not the identity comparison itself.
+
+---
+
+## 4. Reduction statistics for ordinary positions — nobody had published these
 
 40 ordinary positions (the first 40 of seat 08's `OG200`), `go depth 12`, Threads 1,
 Hash 16, OwnBook false, base tree with the flag on.
@@ -232,7 +323,7 @@ that neither tree nor the instrument is drifting.
 
 ---
 
-## 4. The 11 lone-king boards: what the counters say
+## 5. The 11 lone-king boards: what the counters say
 
 Depth 10, Threads 1, Hash 16, OwnBook false, cap ON vs cap OFF, both instrumented.
 `dNodes` is capON − capOFF. The two `CNTR` rows are the boards where cap-OFF visits
@@ -252,7 +343,7 @@ Depth 10, Threads 1, Hash 16, OwnBook false, cap ON vs cap OFF, both instrumente
 | `8/2k5/p7/…` | pred | +13,946 | 6,975 | 2,554 | 0.95 | 2.28 | 6,975 | 4,941 | 70.8% | 2.05 |
 | `2k5/8/p7/…` | pred | +8,191 | 7,993 | 5,487 | 0.91 | 2.18 | 7,993 | 6,205 | 77.6% | 2.38 |
 
-### 4.1 The counters do not separate the classes
+### 5.1 The counters do not separate the classes
 
 `scripts/separation.py` asks the lead's question directly: a statistic separates the
 classes if **both** counter-case values fall outside the 9-board range. It also computes
@@ -302,7 +393,7 @@ that the specific instrument the findings asked for — per-depth reduction coun
 magnitudes, re-searches and rejections, and the cap's own share — **does not contain the
 answer**.
 
-### 4.2 The per-depth view, and one hypothesis killed
+### 5.2 The per-depth view, and one hypothesis killed
 
 Totals are dominated by the largest iteration, so I also compared the **iteration where
 the two builds first diverge**, and the per-depth profile.
@@ -353,7 +444,7 @@ iteration, before any score is published, and the aspiration channel is not the
 mechanism. (Fisher p = 1.0000 on the 2×2 — the ordering does *not* separate the classes
 either; what the result kills is the hypothesis, not a classifier.)
 
-### 4.3 The clamp's immediate effect is the same on every board; only the later evolution differs
+### 5.3 The clamp's immediate effect is the same on every board; only the later evolution differs
 
 This is the sharpest thing the instrument found, and it comes from splitting the effect
 into the depth where the builds *first* differ and the *final* depth
@@ -397,64 +488,132 @@ statement about where the second mechanism is **not** — it is not in how the c
 at a node, and it is not at the point of divergence. It is downstream, in how the two
 trees propagate after they first part.
 
+### 5.4 The decisive probe: the builds visit DIFFERENT positions, not the same ones more often
+
+This is the probe §6 previously listed as the cheapest decisive next step, and it was
+cheap enough to run, so it is a result rather than a plan.
+
+The question it settles is a **prior** one: a reduction-count instrument could only
+explain the counter-cases if the two builds visit **the same positions** and differ in how
+many times. If they visit **different positions**, then every reduction statistic is an
+average over a different population on each side, and no aggregate of them was ever going
+to separate the classes — which would *explain* §5.1's negative instead of merely
+reporting it.
+
+`FORGE_LMR_KEYS=1` prints, per depth and per ply, three order-independent integers over
+the positions visited at that ply: the **count**, the **XOR** of the position keys (which
+cancels duplicates), and the **sum** (which accumulates them). So:
+
+| counts | xor | sum | meaning |
+|---|---|---|---|
+| equal | equal | equal | identical visit sequence |
+| differ | **equal** | differ | **same set**, different multiplicity |
+| differ | **differ** | differ | **different positions visited** |
+
+At the depth where the two builds first disagree, the first ply where their fingerprints
+diverge:
+
+| board | cls | d_div | ply | count ON | count OFF | xor | verdict |
+|---|---|---|---|---|---|---|---|
+| `8/8/2B1k3/…` | pred | 4 | 2 | 38 | 41 | diff | DIFFERENT-POSITIONS |
+| `8/8/2k5/4P3/…` | pred | 5 | 2 | 31 | 16 | diff | DIFFERENT-POSITIONS |
+| **`8/2k5/4P3/8/…`** | **CNTR** | 5 | 4 | 28 | 26 | **diff** | **DIFFERENT-POSITIONS** |
+| `8/4k3/8/…` | pred | 4 | 3 | 55 | 45 | diff | DIFFERENT-POSITIONS |
+| `1R6/8/k7/…` | pred | 5 | 1 | 4 | 6 | SAME | same-set-different-multiplicity |
+| **`8/8/8/4R3/2k5/…`** | **CNTR** | 4 | 1 | 41 | 40 | **diff** | **DIFFERENT-POSITIONS** |
+| `8/8/8/1R6/1K6/…` | pred | 4 | 2 | 22 | 21 | diff | DIFFERENT-POSITIONS |
+| `8/8/P7/…` | pred | 6 | 2 | 14 | 11 | diff | DIFFERENT-POSITIONS |
+| `6K1/2b5/…` | pred | 6 | 4 | 64 | 57 | diff | DIFFERENT-POSITIONS |
+| `8/2k5/p7/…` | pred | 5 | 3 | 37 | 30 | diff | DIFFERENT-POSITIONS |
+| `2k5/8/p7/…` | pred | 4 | 0 | 3 | 1 | SAME | same-set-different-multiplicity |
+
+**On 9 of 11 boards — including both counter-cases — the two builds visit genuinely
+different positions at the divergence depth.** On the other 2 the sets agree and only the
+multiplicity differs. So:
+
+- **The reduction counters were the wrong instrument, and this says why.** They aggregate
+  over a node population that is itself different between the builds. Two builds can
+  report the same `applied`, the same `rmean` and the same clamp share while traversing
+  different sets of positions — which is precisely the pattern §5.1 measured.
+- **The counter-cases are not special in this respect**: they behave like the predicted
+  boards here too, which is consistent with §5.3 (the clamp's immediate effect is
+  uniform; only the later evolution differs).
+
+**Controls, both load-bearing.** The classifier produced **two distinct verdicts** across
+the set (9 `DIFFERENT-POSITIONS`, 2 `same-set-different-multiplicity`), so it discriminates
+rather than always returning one answer. And the key counters themselves do not perturb
+the tree: `FORGE_LMR_KEYS=1` against `FORGE_LMR_KEYS=0` on the same source is
+**IDENTICAL 20 of 20**.
+
+**Limit.** A key XOR agreeing is strong evidence of the same set but not proof — an
+adversarial pair of differing sets could collide in both XOR and sum. With 64-bit
+fingerprints over the few hundred positions at these plies that is not a realistic
+collision, and the two boards where the fingerprints *did* agree are the reason to trust
+the ones where they differ. It is stated as a fingerprint, not a proof of set equality.
+
 ---
 
-## 5. What this establishes, and where the next instrument points
+## 6. What this establishes, and where the next instrument points
 
 **Established by measurement**
 - The instrument exists, is off by default, and flag-off is byte-identical (§2.1).
 - Flag-on changes only printed lines: 40 of 40 positions identical on bestmove, depth,
   score and nodes (§2.2).
 - Ordinary positions: **390.09 reductions per 1000 nodes, mean magnitude 2.377, 2.66%
-  re-searched**, with the magnitude distribution and guard profile in §3. These are new
+  re-searched**, with the magnitude distribution and guard profile in §4. These are new
   numbers and they are reproducible from the scripts here.
 - The reduction profile away from lone-king roots is **identical on the base tree and
   the cap tree** (390.09/1000, r=2.377 both), which is a control on both the gate and
   the instrument.
 - **No reduction statistic separates the two counter-cases** at the final depth or at
-  the divergence depth (§4.1, §4.2). This is a strong negative at 95% power for the
+  the divergence depth (§5.1, §5.2). This is a strong negative at 95% power for the
   statistics tested.
 - **The aspiration-cascade account is refuted**: the score never diverges before the
-  node count, 0 of 11 (§4.2).
+  node count, 0 of 11 (§5.2).
 - **The clamp's immediate effect is identical on the counter-cases and the predicted
   boards** — cap-ON is the larger tree at the first divergence on 2 of 2 counter-cases
-  and 8 of 9 predicted boards (§4.3). So the second mechanism is not in how the clamp
+  and 8 of 9 predicted boards (§5.3). So the second mechanism is not in how the clamp
   acts at a node, and not at the point of divergence.
+- **The builds visit genuinely different positions at the divergence depth on 9 of 11
+  boards**, including both counter-cases (§5.4). So the reduction counters average over a
+  different node population on each side, which is *why* they could not separate the
+  classes — the negative in §5.1 is explained rather than merely reported.
 
 **Inferred, not established**
 - The mechanism is created **inside a single iteration's visit set**, before a score is
-  published, and **downstream of the first place the two trees differ** (§4.2, §4.3).
+  published, and **downstream of the first place the two trees differ** (§5.2, §5.3).
   This is a location derived from a refuted alternative plus two negatives, not a cause.
 - The sign reversal between divergence and final depth is **2 of 2 counter-cases against
   1 of 9 predicted** (Fisher p = 0.0545, post-hoc) — a **lead**, not a finding, and it
-  carries a named false-positive board (§4.3).
+  carries a named false-positive board (§5.3).
 - The most plausible thing left is that the clamp changes *which* nodes are reached at
   the same nominal depth (a different move ordering downstream), so the same `r` profile
   produces a different tree. The current counters are blind to that by construction:
   they count reductions, and a reduction count is not a node identity.
 
 **What the next instrument should count, concretely** — this is the deliverable of a
-negative result, and §4.3 sharpens it: the mechanism is **downstream of the first
-divergence**, so the instrument must follow the two trees *after* they part rather than
-describe the moment they part.
+negative result, and §5.3–§5.4 sharpen it: the mechanism is **downstream of the first
+divergence**, and the builds visit **different positions** rather than the same ones a
+different number of times.
 
-1. **Per-depth node identity, not counts.** A hash of the sorted set of visited keys per
-   iteration would show whether cap ON and OFF visit the *same* set with different sizes,
-   or *different* sets. The counter-case at depth 5 parts with an identical reduction
-   count (75 vs 75) and a 4-node difference — at that moment the trees are still almost
-   the same, so the informative comparison is the set at depth 6 onward.
-2. **The first ply at which the two trees differ, in move identity.** On the
-   counter-case above the trees part at depth 5 with the same reduction count, so the
-   question is which *move* was reduced and what it reached.
+1. **Done — per-ply visit fingerprints (§5.4).** Cap ON and OFF visit genuinely different
+   positions at the divergence depth on 9 of 11 boards, including both counter-cases. That
+   is the answer to the prior question, and it is why reduction counts were the wrong
+   instrument.
+2. **The first ply at which the two trees differ, in move identity** — **this is now the
+   next step.** §5.4 locates the ply where the visited *sets* diverge (ply 4 on one
+   counter-case, ply 1 on the other). The open question is which *move* was reduced at the
+   parent of that ply and what it reached, i.e. the first divergence in the move sequence
+   rather than in the node population. One counter and one `info string` line at the
+   point where the two builds' move lists part would answer it.
 3. **TT hit rate per depth** on both sides. A clamp that changes visited nodes changes
-   what the table has seen; if counter-case boards show a different TT hit trajectory
-   *after* the divergence depth, the mechanism runs through the table.
+   what the table has seen; if the counter-case boards show a different TT hit trajectory
+   *after* the divergence depth, the mechanism runs through the table rather than through
+   the reduction arithmetic.
 
-**The cheapest decisive probe of the three is (1)**, because it answers the prior
-question — whether a reduction-counting instrument could ever explain this at all. If
-the visited sets are identical and only their sizes differ, the counters should have
-worked and the negative here is a puzzle; if the sets differ, the counts were the wrong
-instrument from the start and (2) is the next step.
+**Recommended next step: (2).** It is a small extension of the instrument already in this
+branch — the fingerprint machinery of §5.4 is in place, so it is one more per-ply record
+and a comparison, not a new harness. (3) is the fallback if (2) shows the move lists agree.
 
 **What I did not do, and would want read as a gap:** I did not build that second
 instrument, and this report should not be read as saying the mechanism is in the table
@@ -462,7 +621,7 @@ or in move ordering — only that it is not in any reduction statistic I could c
 
 ---
 
-## 6. How to reproduce everything
+## 7. How to reproduce everything
 
 ```
 git worktree add /tmp/base 6b98f2170a3210e71beed04bbd2553972c253ed7
@@ -492,19 +651,21 @@ Individual scripts, each self-describing:
 | `divergence_depth.py ON OFF` | first divergence depth per board |
 | `immediate_effect.py div.json` | immediate vs net sign per board |
 | `flip_test.py div.json` | does the sign reversal separate the classes, and its false positive |
-| `ordinary_stats.py EXE FENS` | the position-set statistics of §3 |
+| `ordinary_stats.py EXE FENS` | the position-set statistics of §4 |
+| `print_gate.py SILENT PRINTING` | counters-on-silent vs counters-on-printing, plus controls (§3) |
+| `visit_sets.py ON OFF` | per-ply visit-set fingerprints: same positions or different? (§5.4) |
 
 Raw outputs are in `evidence/raw/`, JSON in `evidence/`.
 
-## 7. Limits of this report
+## 8. Limits of this report
 
 - **n = 11, and only 2 counter-cases.** Every class comparison here is 2-against-9. The
   range-test power is computed (95%) and stated with each verdict, and the rank
   correlation uses all 11 — but a third counter-case could change the picture, and the
-  honest reading of §4.1 is "these counters do not explain *these two boards*", not "no
+  honest reading of §5.1 is "these counters do not explain *these two boards*", not "no
   counter could".
 - **Depth 10 is the deepest measured on all 11 boards.** The counter-case gap *grows*
-  after the divergence (§4.2), so a deeper run could in principle make a difference
+  after the divergence (§5.2), so a deeper run could in principle make a difference
   visible that depth 10 does not. I measured depth 8 and 10 and they agree in direction.
 - **The `fifty` guard reads 0 everywhere** in §3 because the halfmove clock never binds
   at depth 12 on that set. That is a property of the sample, not a claim that the guard

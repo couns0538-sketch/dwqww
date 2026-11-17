@@ -11,11 +11,12 @@
  #include <iostream>
  #include <limits>
  #include <optional>
-@@ -1413,6 +1417,97 @@
+@@ -1413,12 +1417,135 @@
  // ---------------------------------------------------------------------------
  // Quiescence search
  
 +#if FORGE_LMR_STATS
++#if FORGE_LMR_STATS_PRINT
 +namespace {
 +void lmr_print_block(const char* tag, int depth, const char* root, const Worker::LmrStatBlock& b) {
 +    std::printf("info string %s depth %d root %s applied %llu rmean ", tag, depth, root,
@@ -45,6 +46,7 @@
 +    std::printf("\n");
 +}
 +} // namespace
++#endif // FORGE_LMR_STATS_PRINT
 +
 +void Worker::lmr_note_reject(bool mate, bool fifty, bool dep, bool mcnt, bool bare, bool pvcap) {
 +    for (LmrStatBlock* b : {&lmr_iter_, &lmr_here()}) {
@@ -79,14 +81,28 @@
 +}
 +
 +void Worker::lmr_begin_iteration() {
++#if FORGE_LMR_KEYS
++    for (int i = 0; i < MaxPly + 8; ++i) { key_count_[i] = 0; key_xor_[i] = 0; key_sum_[i] = 0; }
++#endif
 +    lmr_iter_.clear();
 +    for (auto& block : lmr_root_) block.clear();
 +}
 +
 +void Worker::lmr_flush_iteration(int depth, bool emit) {
 +    lmr_total_.add(lmr_iter_);
++#if FORGE_LMR_STATS_PRINT
 +    if (!emit) return;
 +    const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++#if FORGE_LMR_KEYS
++    for (int p = 0; p < MaxPly + 8; ++p) {
++        if (!key_count_[p]) continue;
++        std::printf("info string keys depth %d ply %d count %llu xor %016llx sum %016llx\n",
++                    depth, p, static_cast<unsigned long long>(key_count_[p]),
++                    static_cast<unsigned long long>(key_xor_[p]),
++                    static_cast<unsigned long long>(key_sum_[p]));
++    }
++    std::fflush(stdout);
++#endif
 +    lmr_print_block("lmr", depth, "all", lmr_iter_);
 +    for (std::size_t i = 0; i < root_effort_count_ && i < lmr_root_.size(); ++i) {
 +        const LmrStatBlock& b = lmr_root_[i];
@@ -95,21 +111,58 @@
 +        lmr_print_block("lmr", depth, root.c_str(), b);
 +    }
 +    std::fflush(stdout);
++#else
++    (void)depth;
++    (void)emit;
++#endif
 +}
 +
 +void Worker::lmr_flush_total(bool emit) {
++#if FORGE_LMR_STATS_PRINT
 +    if (!emit) return;
 +    const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
 +    lmr_print_block("lmrsum", 0, "all", lmr_total_);
 +    std::printf("info string lmrsum cap_switch %s\n", lmr_cap_present_ ? "present" : "absent");
 +    std::fflush(stdout);
++#else
++    (void)emit;
++#endif
 +}
 +#endif
 +
  int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
      const bool pv_node = beta - alpha > 1;
      const int ply = ss->ply;
-@@ -2003,13 +2098,30 @@
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+     if (aborted_) return 0;
+     ++local_nodes_;
++#if FORGE_LMR_KEYS
++    if (ply >= 0 && ply < MaxPly + 8) {
++        const std::uint64_t visited_key = board.key();
++        ++key_count_[ply];
++        key_xor_[ply] ^= visited_key;
++        key_sum_[ply] += visited_key;
++    }
++#endif
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+ 
+@@ -1561,6 +1688,14 @@
+     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+     if (aborted_) return 0;
+     ++local_nodes_;
++#if FORGE_LMR_KEYS
++    if (ply >= 0 && ply < MaxPly + 8) {
++        const std::uint64_t visited_key = board.key();
++        ++key_count_[ply];
++        key_xor_[ply] ^= visited_key;
++        key_sum_[ply] += visited_key;
++    }
++#endif
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+     ss->move_count = 0;
+@@ -2003,13 +2138,30 @@
              const auto root_effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
              root_effort_index = static_cast<std::size_t>(std::find(root_effort_moves_.begin(), root_effort_end, move) - root_effort_moves_.begin());
              assert(root_effort_index < root_effort_count_);
@@ -140,17 +193,17 @@
              int r = reduction(quiet, depth, move_count);
              if (ss->tt_pv) r -= 1;
              if (!improving) r += 1;
-@@ -2027,13 +2139,26 @@
+@@ -2027,13 +2179,26 @@
              // A parent tried after at least six earlier moves is speculative. Its first
              // four replies are the likely refutations, so they lose one ply of reduction.
              if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
 +#if FORGE_LMR_STATS
 +            const int lmr_r_before_cap = r;
 +            const bool lmr_cap_gate = bare_king_lmr_cap;
-             if (bare_king_lmr_cap) r = std::min(r, 1);
++            if (bare_king_lmr_cap) r = std::min(r, 1);
 +            const bool lmr_cap_clamped = lmr_cap_gate && (r < lmr_r_before_cap);
 +#else
-+            if (bare_king_lmr_cap) r = std::min(r, 1);
+             if (bare_king_lmr_cap) r = std::min(r, 1);
 +#endif
              const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
 +#if FORGE_LMR_STATS
@@ -167,7 +220,7 @@
                  if (tune::LmrDeeperShallower) {
                      const bool do_deeper = score > best_score + 40 + 2 * new_depth;
                      const bool do_shallower = score < best_score + new_depth;
-@@ -2057,8 +2182,12 @@
+@@ -2057,8 +2222,12 @@
          }
          board.unmake_move(move, undo);
          if (aborted_) return 0;
@@ -181,7 +234,7 @@
  
          if (score > best_score) {
              best_score = score;
-@@ -2395,6 +2524,13 @@
+@@ -2395,6 +2564,13 @@
      std::int64_t finish_prev_ms = 0;
      std::int64_t finish_last_ms = 0;
      root_effort_count_ = root_candidates.size();
@@ -195,7 +248,7 @@
      assert(root_effort_count_ <= root_effort_moves_.size());
      std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
      root_move_nodes_.fill(0);
-@@ -2413,6 +2549,9 @@
+@@ -2413,6 +2589,9 @@
      }
      for (int depth = 1; depth <= max_depth; ++depth) {
          root_depth_ = depth;
@@ -205,7 +258,7 @@
          // Sample only while a game clock is running and the option is on.
          // Fixed-depth, fixed-node, movetime and ponder-wait searches stay put.
          const bool finish_sampling =
-@@ -2564,6 +2703,9 @@
+@@ -2564,6 +2743,9 @@
          } else {
              emit(depth, score, result.pv);
          }
@@ -215,7 +268,7 @@
  
          if (result.best_move == previous_best) ++stable_iterations;
          else stable_iterations = 0;
-@@ -2660,6 +2802,9 @@
+@@ -2660,6 +2842,9 @@
          result.ponder_move = Move::none();
      }
      if (result.best_move.is_none()) result.best_move = root_candidates.front();
@@ -227,7 +280,7 @@
          std::cout << "info string softnodes nodes " << result.nodes << std::endl;
 --- a/include/forge/search.hpp
 +++ b/include/forge/search.hpp
-@@ -1,5 +1,13 @@
+@@ -1,5 +1,31 @@
  #pragma once
  
 +// FORGE_LMR_STATS (diagnostic build switch, default 0 = off): count every late-move
@@ -238,10 +291,28 @@
 +#define FORGE_LMR_STATS 0
 +#endif
 +
++// FORGE_LMR_KEYS (diagnostic, default 0): per-ply fingerprints of the positions the
++// search visits -- count, XOR of keys, and sum of keys. XOR is order-independent and
++// cancels multiplicity, so two builds agreeing on count+XOR+sum visited the same
++// multiset of positions at that ply; agreeing on XOR but not on count means the same
++// SET with a different number of visits. That distinction is the prior question behind
++// a reduction-count comparison and it needs no storage, only three integers per ply.
++#ifndef FORGE_LMR_KEYS
++#define FORGE_LMR_KEYS 0
++#endif
++
++// FORGE_LMR_STATS_PRINT (default 1, meaningful only when FORGE_LMR_STATS is on):
++// whether the counters are also PRINTED. Building counters-on/print-off isolates
++// "the counters do not perturb the tree" from "the print path does not perturb it",
++// which are two different claims and only the second one involves I/O.
++#ifndef FORGE_LMR_STATS_PRINT
++#define FORGE_LMR_STATS_PRINT 1
++#endif
++
  #include "forge/board.hpp"
  #include "forge/eval.hpp"
  #include "forge/nnue.hpp"
-@@ -485,6 +493,77 @@
+@@ -485,6 +511,82 @@
      std::array<Move, 256> root_effort_moves_{};
      std::array<std::uint64_t, 256> root_move_nodes_{};
      std::size_t root_effort_count_ = 0;
@@ -309,6 +380,11 @@
 +        }
 +    };
 +private:
++#if FORGE_LMR_KEYS
++    std::uint64_t key_count_[MaxPly + 8] = {};
++    std::uint64_t key_xor_[MaxPly + 8] = {};
++    std::uint64_t key_sum_[MaxPly + 8] = {};
++#endif
 +    LmrStatBlock lmr_iter_;
 +    std::array<LmrStatBlock, 256> lmr_root_;
 +    LmrStatBlock lmr_total_;
@@ -319,7 +395,7 @@
  
      bool pondering_ = false;
      std::chrono::steady_clock::time_point start_{};
-@@ -539,6 +618,14 @@
+@@ -539,6 +641,14 @@
  #endif
      int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
      int qsearch(Board& board, SearchStack* ss, int alpha, int beta);

@@ -16,9 +16,31 @@ Deliverable: `forge-combo29/swarm/reduction/`
 | separation test with computed power and rank correlation | done |
 | per-depth divergence, score ordering, clamp profile | done |
 | ordinary-position reduction statistics | done |
+| print path proved non-perturbing (counters-on-silent vs printing, 31 of 31) | done |
+| visit-set fingerprints: same positions or different? | done |
 | full pipeline re-run from a clean worktree | done |
 
 Nothing is left running.
+
+## Two additions after the first report
+
+**The print path is now proved harmless, not asserted.** A third build state
+(`FORGE_LMR_STATS=1, FORGE_LMR_STATS_PRINT=0`) runs every counter and prints nothing.
+Silent = base is 40 of 40; printing = silent is 31 of 31 on bestmove, score, final nodes
+**and every per-depth node count**. Nothing prints inside a search — the flush is at
+`src/search.cpp:2689`, between completed iterations, the same position as the engine's own
+`info depth` line. FINDINGS §3.
+
+**The counters now have an explanation, not just a negative.** Per-ply fingerprints of
+visited position keys show cap-ON and cap-OFF visit **genuinely different positions** at
+the divergence depth on **9 of 11 boards, including both counter-cases** (2 boards are
+same-set-different-multiplicity). So the reduction statistics average over different node
+populations — which is precisely why equal-looking aggregates could not separate the
+classes. FINDINGS §5.4.
+
+The p = 0.0545 reversal lead was **not** pursued further; the probe that was run is the
+cheap decisive one (visit sets), and it answered the prior question rather than the
+p-value question.
 
 ## The headline
 
@@ -84,7 +106,7 @@ Build trap handled inside `run_all.sh`: `-DCMAKE_CXX_COMPILER=/usr/bin/g++` and
 ```
 FINDINGS.md                       the report
 STATUS.md                         this file
-patches/lmr_stats_nocap.patch.txt instrument, base tree      (FORGE_LMR_STATS)
+patches/lmr_stats_nocap.patch.txt instrument, base tree      (FORGE_LMR_STATS, _PRINT, _KEYS)
 patches/lmr_stats_cap.patch.txt   instrument, cap tree
 patches/base_bare_king_on.patch   seat 03's ported r15 bare-king patch (input, sha256 bab0fc2964cd…)
 scripts/make_lmr_stats.py         writes the instrumentation into a scratch tree
@@ -101,6 +123,8 @@ scripts/clamp_profile.py          clamp share at the divergence depth
 scripts/immediate_effect.py       immediate vs net sign
 scripts/flip_test.py              does the reversal separate the classes
 scripts/ordinary_stats.py         the position-set statistics
+scripts/print_gate.py             print path cannot perturb the tree
+scripts/visit_sets.py             same positions or different ones?
 scripts/run_search.py             one search, reads to bestmove
 evidence/                         JSON per measurement
 evidence/raw/                     raw text, pins, build logs, pasted outputs
@@ -108,8 +132,9 @@ evidence/raw/                     raw text, pins, build logs, pasted outputs
 
 ## Not done
 
-- The visited-set instrument of §5 (per-depth node identity, move identity at first
-  divergence, TT hit rate). That is the next instrument and I did not build it.
+- **The next step**: the first divergence in *move identity* (FINDINGS §6 item 2). §5.4
+  locates the ply where the visited sets part; which move was reduced there is not yet
+  measured. The fingerprint machinery to do it is in place.
 - Depth 12+ on the 11 boards. Depth 8 and 10 agree in direction; the counter-case gap
   grows with depth, so a deeper run is the first thing to try.
 - Any claim about the owner's actual net. All of this is the built-in net.
