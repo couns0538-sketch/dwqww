@@ -45,6 +45,12 @@ mechanical sweep like seat 19's cannot tell the two apart, and a reader should k
 3. **FINDINGS gains a line naming the jobs that used the old driver**, so a reader knows which numbers were
    re-produced on a correct driver.
 
+## The precise status, in the coordinator's framing
+**The job3 evidence is UNUSED rather than INVALID.** Nothing rests on the 222 files — no finding, no report, no table
+cites them — so no published number is invalid. What was wrong was leaving them present and unlabelled: an evidence
+directory containing 222 fabricated bestmoves that a scanner reads as measurements. "Unused" is the accurate word for
+the data; "unlabelled" is the accurate word for the fault.
+
 ## Honest assessment of the report
 Seat 19's sweep is a good check and it found a real defect in my folder — a discarded harness whose output sat
 committed and unlabelled for hours, 222 files of fabricated bestmoves that *look* like evidence to a scanner. The
