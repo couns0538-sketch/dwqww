@@ -127,3 +127,17 @@ validator — E1, E2, E3, E4, F96's W-3, M1, M4 — and the two known-bogus ones
 
 **the family's core findings rest on genuine threefolds, verified this time by two independent counters that agree, and
 the two "anomalies" that generated four scope explanations were never threefolds at all.**
+
+SHARPENING, measured afterwards: the distinction is the CYCLE, not the board
+-----------------------------------------------------------------------------
+M1 and M7 both carry castling rights, so both COULD have a castling-disturbing shuffle. What matters is whether the
+fixture's own cycle does:
+
+| board | castling field along the cycle | cycle disturbs? | root occurrences (FIDE) | engine |
+|---|---|---|---|---|
+| M1 | `KQkq` at every ply (9 fields, all identical) | **no** | **3** | **BAIL** |
+| M7 | `kq → kq → q → q → …` (drops at ply 3) | **yes** | **1** | searched |
+
+So a board that CAN disturb castling is not the problem — a FIXTURE whose shuffle actually does is. That is the
+actionable form for anyone writing fixtures on middlegame positions: check the field along the line, not the field in
+the FEN.
