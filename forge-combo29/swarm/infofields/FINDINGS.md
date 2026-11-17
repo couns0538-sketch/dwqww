@@ -557,5 +557,7 @@ Safety checks run before pushing:
   earlier commit remains an ancestor.
 
 One file was deliberately dropped: the root `.gitignore` added in `18990db73` sat outside the
-deliverable folder. `forge-combo29/swarm/infofields/.gitignore` covers the same patterns
-(`build/`, `__pycache__/`, `*.pyc`) for this seat.
+deliverable folder. `forge-combo29/swarm/infofields/.gitignore` carries the patterns that matter
+for this seat's own files (`__pycache__/`, `*.pyc`); the untracked `build/` directory at the repo
+root is local build output and is never staged, because every path in this commit was added
+explicitly rather than with `git add -A`.
