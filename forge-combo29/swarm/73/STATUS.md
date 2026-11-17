@@ -7,7 +7,7 @@
 
 ## State: DONE — summary current as of the 04:36Z fetch
 
-`OWNER_SUMMARY.md` — **2,523 lines, 64 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
+`OWNER_SUMMARY.md` — **2,549 lines, 64 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
 
 ## Numbers the coordinator asked for
 
@@ -30,6 +30,33 @@
 **The shippability count is the serious one** and I have flagged it in §1.2's own text, not only in §5: the
 adversarial-family and depth-contract results are sourced, but the claim "the scan fires on drawn roots only" is
 report-only. Re-measuring it on the owner's build is the conversion check.
+
+## Twenty-third round — both rules stated, not just applied
+
+**The gap was that I had applied both behaviours and written neither as a rule.** Stating them found three more
+unlabelled sites, which is the usual result.
+
+**Rule 55a — two counts side by side with no label read as a stale number.** The measured case is my own: **"four
+honesty pins" in §1.1 and "11 documented pins" in §1.22** with nothing saying they differ — genuinely different sets
+(**bench 11/13/16 + perft 5** versus **five depths × two net settings + perft 5**), both pinned, and the book patch
+moves neither. **A reader had two numbers, no explanation, and a document full of rules about stale totals — the
+reasonable inference was that one was out of date.** The fix is six words per count: say what the set contains.
+- **Applied at all four citation sites**, and a script now flags any pin-count mention without a set-definition nearby.
+  It found the two sites I had missed and **false-positived on the rule text that quotes the example**, which is the
+  checker-judges-text-not-the-thing failure again — recorded, not suppressed.
+
+**Rule 55b — a repair that may land after the document closes is PENDING, not fixed, and the HEADING must say so.**
+Writing it as fixed is the same error as a figure with no committed source. §2.7's heading now reads
+**"broken (silent); a fix is PENDING, not landed"** and carries the check that will settle it.
+- **The distinction that makes it worth a rule: a pending repair is a different category from an unstarted one**, and
+  collapsing both into "broken" loses the most useful thing a reader can know — **that someone is already on it, and
+  what to test when it arrives.**
+- **It generalises past patches:** anything described in the future tense anywhere needs its status **where a reader
+  looks first, which is the heading, not the fourth paragraph of the body.**
+
+**On rewriting versus annotating:** you named the mechanism — a footnote leaves the old framing as the primary claim,
+which is the failure mode behind most of tonight's corrections. **That is now the reason the book sections were
+rewritten, stated rather than left as a preference.**
 
 ## Twenty-second round — a diagnosis becomes a measured fix
 

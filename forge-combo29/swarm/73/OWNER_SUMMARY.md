@@ -62,8 +62,9 @@ Ordered by what costs you most if you get it wrong. Verdict on each: **ship** / 
 | bench, 20 alternating pairs | base tree | **8.1 % slower** (0.9190, 95 % CI [0.8841, 0.9552]) |
 
 The real-position arm is the one that decides it, and it is the cleanest control in the run: **both builds pass all
-four honesty pins with identical node counts** (`312,866 / 862,329 / 3,024,920 / perft 4,865,609`), so the cost is
-pure per-node work, not a different search.
+four honesty pins with identical node counts** (`312,866 / 862,329 / 3,024,920 / perft 4,865,609` — **bench 11, 13, 16
+and perft 5; a different and smaller set than the 11 pins cited in §1.22**), so the cost is pure per-node work, not a
+different search.
 
 **This is the one case where bench generalised correctly** — and it did so in the direction of *understating* the harm.
 
@@ -1138,7 +1139,7 @@ positions with a legal move available is to fail on any `0000`; a GUI needs the 
 mate 16) with node counts spanning 5.0 M to 31.4 M. The move was stable; **the score is what a search hands to the
 clock, the book, and any game-vs-game comparison.**
 
-### 2.7 A partial clock is an unbounded search with no diagnostic — **broken (silent)**
+### 2.7 A partial clock is an unbounded search with no diagnostic — **broken (silent); a fix is PENDING, not landed**
 
 `go wtime` on a black-to-move board, or `go btime` on a white-to-move board, searches **indefinitely** and emits **no
 `info string`**: the GUI sees a hang, not an error. Confirmed on both builds with controls; the both-clocks control
@@ -1178,7 +1179,8 @@ caller about the position**, which is the definition §2 uses.
 
 **And it is the one item in this section with a measured fix rather than a recommendation.** The `!root_drawn`
 predicate takes pre-emption from **2 roots to 0**, leaves `search.cpp` untouched so node counts cannot move, and
-reproduces **all 11 documented pins on both builds** — with two controls that would fail a patch which simply disabled
+reproduces **all 11 documented pins on both builds** — five depths × two net settings, plus perft 5, a **larger set
+than the four honesty pins** in §1.1 — with two controls that would fail a patch which simply disabled
 the book. **So the owner can take this as settled rather than as work to schedule**; the two open questions in §1.22
 are **policy choices about what the patch should say**, not about whether it works.
 
@@ -1782,6 +1784,30 @@ These are the transferable output. Each is a rule the run paid for with a defect
      courtesy is not to accept a good story, it is to label it accurately and say what would settle it.
 55. **A count printed is not a count checked**, and a count must be compared against the prose, not merely printed.
     **Assert the exact expected count as a literal**, never computed from the list it guards.
+55a. **Two counts side by side with no label read as a stale number — so NAME each set, or the correct reading is
+   indistinguishable from the drift this document spends its rules on.** A document that cites two different totals for
+   a superficially similar thing has created a contradiction in appearance even when both are right.
+   - **The measured case: this document cited "four honesty pins" in §1.1 and "11 documented pins" in §1.22 with
+     nothing saying they differ.** They are genuinely different sets — **bench 11/13/16 plus perft 5** versus
+     **five depths × two net settings plus perft 5** — both pinned, and the book patch moves neither. **A reader had
+     two numbers, no explanation, and a document full of rules about stale totals; the reasonable inference was that
+     one was out of date.**
+   - **The fix is one clause per count: what the set contains.** "11 documented pins (five depths × two net settings,
+     plus perft 5)" costs six words and removes the ambiguity entirely.
+   - **The general form: whenever a number appears twice in a document, either it is a duplicate — and one copy will
+     eventually drift — or it is two sets, in which case the label is mandatory.** **Check which, by computing both.**
+55b. **A repair that may land after the document closes is PENDING, not fixed — and the heading must say so.** Writing
+   it as fixed is **the same error as a figure with no committed source**: a claim about a state of the world that the
+   record does not yet contain.
+   - **The case:** a patch for the one-sided-clock defect was being prepared on the same gate as the book fix, **so it
+     could land after this document closed.** The section heading now reads *"**broken (silent); a fix is PENDING, not
+     landed**"* and carries **the check that will settle it** — the both-clocks control must still answer, and a
+     one-sided clock must produce a diagnostic rather than a hang.
+   - **A pending repair is a different category from an unstarted one**, and collapsing both into "broken" loses the
+     most useful thing a reader can know: **that someone is already on it, and what to test when it arrives.**
+   - **The rule generalises past patches:** anything described in the future tense anywhere in a document — a fix in
+     progress, a measurement being re-run, a decision awaiting sign-off — **needs its status in the place a reader
+     looks first, which is the heading, not the fourth paragraph of the body.**
 56. **A counting claim about a table must be COMPUTED, and a counting dispute is decidable by script in one command —
    so neither party to one should settle it by reading.** This is the rule the run ended on, and it is narrower and
    more useful than "count carefully".
