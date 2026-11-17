@@ -1,0 +1,28 @@
+| root | command | info lines | last | bestmove | note |
+|---|---|---|---|---|---|
+| drawn | `go` | 64 | (64, 'cp', 0, 0) | d5d1 |  |
+| drawn | `go infinite` | 64 | (64, 'cp', 0, 0) | d5d1 |  |
+| bare (searches) | `go` | 64 | (64, 'mate', 8, 15780689) | d5b5 |  |
+| bare (searches) | `go infinite` | 64 | (64, 'mate', 8, 15780689) | d5b5 |  |
+
+WHAT THIS SHOWS, and a correction to how I first read it
+---------------------------------------------------------
+| root | `go` | `go infinite` |
+|---|---|---|
+| drawn (threefold) | **64 lines, last `depth 64 cp 0 nodes 0`, `d5d1`** | **64 lines, same, `d5d1`, bestmove returned** |
+| bare (searches) | 64 lines, last `depth 64 mate 8 nodes 15,780,689`, `d5b5` | same, `d5b5` |
+
+Two useful facts and one correction:
+
+1. **Bare `go` reports 64 lines on the drawn root as well**, which independently confirms 23-F187's default-depth mechanism:
+   with no `depth` token the field stays at its default 64, so the terminal branch's loop emits once per depth up to 64.
+   A `go depth 10` narrows it to 10 because `uci.cpp:103` overwrites the default.
+2. **`go infinite` also TERMINATES at 64 on both roots**, returning a bestmove without a `stop` being needed for the
+   bare-searching root — because `max_depth` is clamped to 64 and `go infinite` carries no depth limit to override it,
+   so the ID loop simply exhausts. That is worth a line for a front end: `go infinite` is not infinite in this build;
+   it stops when the depth ceiling is reached, which on a drawn root is immediate and on a normal position took ~19 s.
+3. **MY FIRST READING WAS WRONG AND THE CORRECTION MATTERS:** a shell one-liner showed `info depth 1` and `bestmove`
+   and I briefly took it for "one line", but the pipeline was `| tail -6`, which truncated the 64 lines. **A `tail` in a
+   diagnostic pipeline is a measurement hazard of exactly the kind this seat keeps finding: it silently narrows what you
+   see while appearing to show you the output.** The in-process harness that counts lines has no such problem, which is
+   why the table above is the one to trust.
