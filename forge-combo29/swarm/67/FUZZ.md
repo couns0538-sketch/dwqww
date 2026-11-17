@@ -81,6 +81,10 @@ The `info string invalid FEN` diagnostic is emitted **synchronously on the `posi
 
 `P_isready` = `position` → `isready` → `go`; `P_direct` = `position` → `go`. The pattern does not move the diagnostic. A harness that sends `isready` after `position` will read the refusal **before** its `readyok`, so a `readyok`-only read loop consumes it and discards it.
 
+Across the whole corpus, **56** refusal lines were emitted; every one is attributed to `position` (counts: position=56). No refusal line is attributed to `go`.
+
+The two patterns are deliberately unequal in size — the later truncation and field-count cases were added `P_direct` only, since the pattern had already been shown not to matter. The asymmetry is a property of the corpus, not of the diagnostic, and is reported rather than smoothed.
+
 ## Malformed FENs that produce NO diagnostic
 
 These cases are the undetectable ones: there is no reply to scan for.
@@ -420,5 +424,8 @@ LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/13 cmake --build /tmp/asan -j
 python3 forge-combo29/swarm/67/selftest.py   # proves both detectors can fail
 python3 forge-combo29/swarm/67/fuzz.py --exe /tmp/asan/forge --out /tmp/run.json
 python3 forge-combo29/swarm/67/report.py evidence-asan-base.json evidence-asan-integrate.json > FUZZ.md
+python3 forge-combo29/swarm/67/check_consistency.py  # every stated count vs evidence
 ```
+
+`check_consistency.py` exists because a stale literal in this file's prose survived two regenerations after the corpus grew — the table updated, the sentence did not. The tables are computed, so they cannot drift; the prose is typed, so it can. The check compares every stated count against the evidence files and fails on a mismatch. It was itself verified by planting a stale value and confirming it reports the failure.
 

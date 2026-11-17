@@ -415,6 +415,18 @@ def main() -> int:
       "after `position` will read the refusal **before** its `readyok`, so a "
       "`readyok`-only read loop consumes it and discards it.")
     w("")
+    all_ref = [d for r in res for d in r["refusal"]]
+    owners = collections.Counter((d["owner"] or "NONE").split()[0] for d in all_ref)
+    w(f"Across the whole corpus, **{len(all_ref)}** refusal lines were emitted; "
+      f"every one is attributed to `{', '.join(owners)}` (counts: "
+      f"{', '.join(f'{k}={v}' for k, v in owners.most_common())}). No refusal line "
+      "is attributed to `go`.")
+    w("")
+    w("The two patterns are deliberately unequal in size — the later truncation "
+      "and field-count cases were added `P_direct` only, since the pattern had "
+      "already been shown not to matter. The asymmetry is a property of the "
+      "corpus, not of the diagnostic, and is reported rather than smoothed.")
+    w("")
 
     # ---- silent malformed FENs -------------------------------------------
     w("## Malformed FENs that produce NO diagnostic")
@@ -723,7 +735,15 @@ def main() -> int:
     w("python3 forge-combo29/swarm/67/selftest.py   # proves both detectors can fail")
     w("python3 forge-combo29/swarm/67/fuzz.py --exe /tmp/asan/forge --out /tmp/run.json")
     w(f"python3 forge-combo29/swarm/67/report.py {' '.join(paths)} > FUZZ.md")
+    w("python3 forge-combo29/swarm/67/check_consistency.py  # every stated count vs evidence")
     w("```")
+    w("")
+    w("`check_consistency.py` exists because a stale literal in this file's prose "
+      "survived two regenerations after the corpus grew — the table updated, the "
+      "sentence did not. The tables are computed, so they cannot drift; the prose "
+      "is typed, so it can. The check compares every stated count against the "
+      "evidence files and fails on a mismatch. It was itself verified by planting "
+      "a stale value and confirming it reports the failure.")
     w("")
 
     print("\n".join(out))

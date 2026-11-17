@@ -105,7 +105,8 @@ Clang 18 cannot link sanitized binaries on this VM (`libclang_rt.asan*` and
 
 The `info string invalid FEN` diagnostic is emitted **on the `position`
 command**, in every harness pattern measured. It never appears in the `go`
-output. 49 refusals across both patterns all attribute to `position`.
+output. **56 refusals on the base build attribute to `position` and none to
+`go`**; the "location moves with the harness pattern" model is refuted.
 
 ## Files
 
@@ -115,3 +116,4 @@ output. 49 refusals across both patterns all attribute to `position`.
 - `report.py` — generates `FUZZ.md` from evidence
 - `FUZZ.md` — the report
 - `evidence-asan-base.json`, `evidence-asan-integrate.json` — run artifacts
+- `check_consistency.py` — asserts every stated count against the evidence
