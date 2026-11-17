@@ -1,0 +1,31 @@
+PREDICTION — SW-23 job 39 (does the drawn-root repair MOVE the eval/go step?)
+Written before the first measuring command. Stamped above by `date -u`. Never edited afterwards.
+
+23-F84 measured the eval/go step at counters 95 (depth 6) and 89 (depth 12) on the BASE build, exactly onto 23-C26's
+onsets for those depths. F84's own LIMIT says the step was not measured on the PC r15 build, so nothing there says
+whether the drawn-root repair moves it. That is the next cheapest question with a clear answer either way.
+
+Board `1K6/8/8/3R4/8/8/8/k7 w` (the F80/C26/F84 board). Build: PC r15, sha256 068f0927..., NO runtime options beyond
+Threads 1 / Hash 16 / OwnBook false (like-for-like with F84: PC20's switches are a separate variable and are NOT used
+here). Same counters as job 38: depth 6 at 80, 90, 93, 94, 95, 96, 98; depth 12 at 78, 84, 86, 87, 88, 89, 90.
+Onset = first counter at which go is cp 0 with every higher counter tested also cp 0.
+
+Reasoning that makes the prediction, and why it could be wrong: the repair I am testing (per 23-F43/F44) changes what
+the search does when the ROOT is already drawn — the base returns 0 nodes and its first legal move; the PC searches
+briefly and then reports the draw. Nothing in that account touches where the search horizon meets the 100th half-move,
+which is what sets the step. So the repair should NOT move the step. The way this prediction dies: if the repair
+implements the draw test at a different counter, or if its extra root work shifts what the search can see, the onset
+moves and my "same mechanism, three instruments" story is only true for the base tree.
+
+Prediction (each number with the range that kills it):
+  P1  `eval` total is 406 at every cell (spread 0 cp). Two-sided: eval must be identical to the base's, since the
+      repair is in search, not evaluation.       KILLED if any value differs from 406 at all.
+  P2  depth 6: onset at counter 95.                                          KILLED if outside 94-96.
+  P3  depth 12: onset at counter 89.                                         KILLED if outside 88-90.
+  P4  THE REPAIR DOES NOT MOVE THE STEP: both onsets are IDENTICAL to the base's (95, 89).  KILLED if either onset
+      differs from the base by 2 or more counters — in which case the drawn-root repair is implicated in where the
+      eval/go contradiction appears, which would be a finding about the repair rather than about the horizon.
+
+If P1-P4 hold, F84's limit is closed in the direction that matters: the eval/go step is a property of the horizon and
+the evaluator's blindness, not of the drawn-root repair, and a tool author's prediction ("the interfaces diverge at
+the horizon, on either build") holds on both builds.
