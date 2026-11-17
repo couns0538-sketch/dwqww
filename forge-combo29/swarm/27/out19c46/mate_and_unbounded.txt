@@ -1,0 +1,37 @@
+`go mate N` IS A DEPTH CAP OF 2N-1, AND `movestogo`/`ponder` WITHOUT A CLOCK ARE UNBOUNDED
+PC r15 068f0927, Threads 1, Hash 16, OwnBook false, fresh process per row, drain-based reader
+
+=== A. `go mate N` on startpos: last depth reached vs 2N-1 ===
+  N   bestmove   last depth   2N-1   matches
+  1   d2d4       1            1      YES
+  2   g1f3       3            3      YES
+  3   d2d4       5            5      YES
+  4   e2e4       7            7      YES
+  5   e2e4       9            9      YES
+  (N=6 and N=8 did not return inside the 4s cap on startpos - depth 9 is already slow there)
+
+  Source agrees: `else if (token == "mate") limits.mate_moves = std::clamp(read_int(), 0, 32);`
+  and the search turns mate_moves into depth 2N-1. So `go mate N` is NOT "search until you find a
+  mate in N"; it is a DEPTH BOUND. A caller expecting mate-search semantics gets a truncated search.
+
+=== B. CONTROL: the same command on a board where the mate is already visible ===
+  mate 1  -> a1a8  depth 1
+  mate 2  -> a1a8  depth 1
+  mate 5  -> a1a8  depth 1
+  mate 10 -> a1a8  depth 1
+  The depth stays 1 because the mate is found immediately - which is why the startpos ladder, not
+  this control, is what reveals the 2N-1 rule. **A control can be too easy to show the mechanism.**
+
+=== C. `movestogo` and `ponder` WITHOUT a clock are UNBOUNDED (20s cap, no bestmove) ===
+  go movestogo 20             -> NO BESTMOVE after 20s, reached depth 28
+  go ponder                   -> NO BESTMOVE after 20s, reached depth 28
+  go wtime 5000 movestogo 20  -> c2c4 after 20s (the clock bounds it)
+
+  Source: `movestogo` only sets `limits.moves_to_go`, which the clock planner uses; with no
+  `time_ms` there is no clock to plan against, so no limit is installed. `ponder` likewise sets a
+  flag that only suppresses the clock (`!limits.infinite && !limits.ponder`). **Neither is a limit
+  on its own, and neither says so.**
+
+  CONSEQUENCE FOR A MATCH HARNESS: sending `go ponder` (or `movestogo` without a clock) yields a
+  search that never returns. That is the same failure family as S-C26 (an absent `btime` giving no
+  clock at all) and the same remedy: never rely on a `go` form whose limit is conditional.
