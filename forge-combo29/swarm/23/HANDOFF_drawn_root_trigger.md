@@ -58,11 +58,11 @@ list (counted in python-chess on placement + side to move + castling; **not** on
 | M1s | same, castling field → `-` | same | 3 | **0** | cp 0 | e5e4 | **BAIL** |
 | M4 | `r1bqkbnr/R2pp2p/5p2/1Ppn2p1/5P2/1P1P1N2/2P1P1PP/1NBQKB1R w Kkq - 0 8` | `a7c7 g8h6 c7a7 h6g8 a7c7 g8h6 c7a7 h6g8` | 3 | **0** | cp 0 | **c2c3** | **BAIL** |
 | M4s | same, castling field → `-` | same | 3 | **0** | cp 0 | c2c3 | **BAIL** |
-| M7 | `rn1qkb1r/p2p1p2/1p2p3/2pP2pp/Q1N3P1/P1P1BP2/1P2P1K1/R4BNR w kq - 1 15` | `c4e5 h8g8 e5c4 g8h8 c4e5 h8g8 e5c4 g8h8` | 3 | **11,390** | cp 965 | **d5e6** (index 5; divide head b2b3) | searched |
+| M7 | `rn1qkb1r/p2p1p2/1p2p3/2pP2pp/Q1N3P1/P1P1BP2/1P2P1K1/R4BNR w kq - 1 15` | `c4e5 h8g8 e5c4 g8h8 c4e5 h8g8 e5c4 g8h8` | 1 | **11,390** | cp 965 | **d5e6** (index 5; divide head b2b3) | searched |
 | M7s | same, castling field → `-` | same | 3 | **0** | cp 0 | (not recorded) | **BAIL** |
-| C1 | `r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1` | `a1b1 a8b8 b1a1 b8a8 a1b1 a8b8 b1a1 b8a8` | 3 | **17,601** | cp 809 | h1h8 | searched |
+| C1 | `r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1` | `a1b1 a8b8 b1a1 b8a8 a1b1 a8b8 b1a1 b8a8` | 1 | **17,601** | cp 809 | h1h8 | searched |
 | C1s | same, castling field → `-` | same | 3 | **0** | cp 0 | — | **BAIL** |
-| C1h | `… w KQkq - 13 7` (halfmove 13) | same | 3 | **17,601** | cp 809 | h1h8 | searched |
+| C1h | `… w KQkq - 13 7` (halfmove 13) | same | 1 | **17,601** | cp 809 | h1h8 | searched |
 
 **Same-position controls (bare FEN, no move list — these SEARCH, as they must, since no history is present):**
 

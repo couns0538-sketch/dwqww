@@ -9,7 +9,7 @@ fail=0
 scripts="audit_findings.py doc_check.py rule_check.py
 job68/final_recheck.py job69/frontpage_check.py
 job70/verb_check.py job70/mech_check.py job70/sign_check.py
-job11/tie_test.py"
+job11/tie_test.py job71/colcheck.py"
 printf "%-34s %-10s %-10s %s\n" "script" "own-dir" "foreign" "agree?"
 for s in $scripts; do
   d=$(dirname "$SEAT/$s"); b=$(basename "$s")

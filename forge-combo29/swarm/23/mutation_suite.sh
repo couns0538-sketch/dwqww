@@ -113,6 +113,17 @@ if ( cd job51 && timeout 400 python3 holdout.py >/dev/null 2>&1 ); then echo "jo
 else echo "job51/holdout.py          catches a holdout miss"; fi
 restore job51/holdout.py
 
+# ---- 13. job71/colcheck.py : put a stale occurrence count back in the HANDOFF table
+cp HANDOFF_drawn_root_trigger.md HANDOFF_drawn_root_trigger.md.bak_mut
+python3 - <<'PY' 2>/dev/null
+p='HANDOFF_drawn_root_trigger.md'; s=open(p).read()
+s=s.replace("`a1b1 a8b8 b1a1 b8a8 a1b1 a8b8 b1a1 b8a8` | 1 |","`a1b1 a8b8 b1a1 b8a8 a1b1 a8b8 b1a1 b8a8` | 3 |",1)
+open(p,'w').write(s)
+PY
+if python3 job71/colcheck.py >/dev/null 2>&1; then echo "job71/colcheck.py          FAILED TO CATCH a stale occurrence count"; fail=1
+else echo "job71/colcheck.py          catches a stale occurrence count"; fi
+restore HANDOFF_drawn_root_trigger.md
+
 echo
-if [ "$fail" -eq 0 ]; then echo "VERDICT: PASS - 12 of 12 scripts shown able to fail on a planted fault"; exit 0; fi
+if [ "$fail" -eq 0 ]; then echo "VERDICT: PASS - 13 of 13 scripts shown able to fail on a planted fault"; exit 0; fi
 echo "VERDICT: FAIL - at least one checker cannot fail"; exit 1

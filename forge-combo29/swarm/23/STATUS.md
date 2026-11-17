@@ -1,10 +1,34 @@
 # SEAT 23 — STATUS
 
-**Block: cold read of the FINAL's first page, then the fix, then the record. `date -u` at time of writing: 2026-11-17T03:41:47Z.**
-Window closes `2026-11-17T10:18:41Z`; **6h37m remaining**. Area 3, move generation vs python-chess. Seed 2301.
-Tip: `for-fable-and-opus/swarm-23`. **256 rows at 03:46:36Z.**
+**Block: cold read of `HANDOFF_drawn_root_trigger.md`, first full read; then the fix; then the record. `date -u` at time of writing: 2026-11-17T04:17:16Z.**
+Window closes `2026-11-17T10:18:41Z`; **6h01m remaining**. Area 3, move generation vs python-chess. Seed 2301.
+Tip: `for-fable-and-opus/swarm-23`. **259 rows at 04:17:16Z.**
 
-## This block
+## This block (cold read of HANDOFF_drawn_root_trigger.md, first full read)
+
+The coordinator asked for a cold read of a section not yet read rather than new findings, so I read the 246-line
+handoff page whole — the one document a source-reading seat is told to start from.
+
+**One real defect, fixed.** The master table's `root occ` column states its key as "placement + side to move +
+castling; not the halfmove" — the key 23-F122 established. **For M7, C1 and C1h the column said 3; under that key the
+root occurs ONCE.** The 3 is the OLD key's value (placement + side + EP), i.e. **the pre-correction number left standing
+inside a table whose header claims the correction.** It matters because the STOP note's whole argument is
+"castling-disturbing cycle → 1 occurrence → searches", so the column a reader would use to check that sentence
+contradicted it in the three rows that demonstrate it. **All 13 cells are now re-derived from each row's own move list
+and agree; the note and the table finally say the same thing.** The claims themselves always held — M7, C1, C1h
+re-measured exactly (11,390 nodes cp 965 d5e6; 17,601 cp 809 h1h8 twice).
+
+**And a withdrawal, which is the important part.** I first reported E4's move list as unplayable at ply 8. **It is not:
+I had hand-typed the list instead of reading it out of the document.** Re-extracted by script, all eight plies are legal
+and E4 bails exactly as stated. **That is the third time tonight a defect I "found" was my own copy** — so the rule is
+now written down (23-F232): when a claim is about what a document says, the quote must be read out of the document by
+script, never retyped.
+
+`job71/colcheck.py` is now a permanent check on that page: it reads every cell out of the file, resolves the `same` and
+`… w KQkq - 13 7` abbreviations, and exits 1 if any cell disagrees with its own header. **13 of 13 rows agree; verified
+failing on a stale value and passing when restored.** Both suites now cover 13 scripts.
+
+## Earlier this block
 
 The coordinator set the rotation: read cold, fix, then record what was read. I did that on the FINAL's first page
 and the sentence immediately following it.
@@ -98,21 +122,22 @@ The boundary in three parts, each with a different answer, now stated in the FIN
 
 ## Numbers
 
-**256 distinct rows at 2026-11-17T03:46:36Z — 228 F (this seat's findings) and 28 C (confirmations of other seats').**
+**259 distinct rows at 2026-11-17T04:17:16Z — 231 F (this seat's findings) and 28 C (confirmations of other seats').**
 
 Stated as the count script printed it, not carried in my head. `sync_counts.py` rewrites the FINAL from `FINDINGS.md`.
 
 ## Checks, all three, this block
 
 - `audit_findings.py` → 0
-- `doc_check.py` → 0 (counts agree 228/28/256; GUI table and rules verbatim; VERDICT: PASS)
+- `doc_check.py` → 0 (counts agree 231/28/259; GUI table and rules verbatim; VERDICT: PASS)
 - `rule_check.py` → 0
 - `job70/verb_check.py` → 0 (13/13; planted fault → 1)
 - `job70/mech_check.py` → 0 (new; 10/10; planted wrong mechanism → 1)
 - `job70/sign_check.py` → 0 (sign convention verified on 3 constructed boards)
 - `job11/tie_test.py` → 0 (new; tie branch tested from the real source; old line → exit 1)
 - `run_all_checks.sh` → 0 (all 9 scripts agree from own-dir and /tmp)
-- `mutation_suite.sh` → 0 (new; 12 of 12 scripts shown able to fail)
+- `mutation_suite.sh` → 0 (13 of 13 scripts shown able to fail)
+- `job71/colcheck.py` → 0 (new; HANDOFF table's root occ column, 13/13 rows)
 - `job69/frontpage_check.py` → PASS, `job68/final_recheck.py` → 11/11
 
 ## Next

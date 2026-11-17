@@ -1,0 +1,25 @@
+row   table     FIDE      orig(EP)  verdict     agreement
+E1    3         3         3         BAIL        yes
+E2    3         3         3         BAIL        yes
+E3    3         3         3         BAIL        yes
+E4    ERROR push() expects move to be pseudo-legal, but got h1g1 in 7k/8/8/8/8/8/6PP/6K1
+M1    3         3         3         BAIL        yes
+M1s   3         3         3         BAIL        yes
+M4    3         3         3         BAIL        yes
+M4s   3         3         3         BAIL        yes
+M7    3         2         3         searched    yes
+M7s   3         3         3         BAIL        yes
+C1    3         2         3         searched    yes
+C1s   3         3         3         BAIL        yes
+C1h   3         2         3         searched    yes
+
+Traceback (most recent call last):
+  File "/agent/repos/dwqww/forge-combo29/swarm/23/job71/recount.py", line 53, in <module>
+    [n for n,f,m,s,v in ROWS if count_occ(f,m,"fide")!=s])
+                                ^^^^^^^^^^^^^^^^^^^^^
+  File "/agent/repos/dwqww/forge-combo29/swarm/23/job71/recount.py", line 17, in count_occ
+    b.push(chess.Move.from_uci(mv))
+  File "/home/ubuntu/.local/lib/python3.12/site-packages/chess/__init__.py", line 2369, in push
+    assert piece_type is not None, f"push() expects move to be pseudo-legal, but got {move} in {self.board_fen()}"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: push() expects move to be pseudo-legal, but got h1g1 in 7k/8/8/8/8/8/6PP/6K1
