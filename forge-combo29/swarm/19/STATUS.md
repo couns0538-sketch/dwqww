@@ -471,3 +471,19 @@ next command: continue at cadence; 19-F12 has now caught two seats, so a broad s
 
 next command: continue at cadence; report the sweep result to seat 20 via the coordinator and keep
   checking open findings on my own thread.
+
+## 2026-11-17T00:19:51Z
+
+19-C16 RETRACTED my per-search sweep counts. The detector splits blocks on bestmove alone, so on files
+  with interleaved readyok (most of them) a block spans several rounds. PROOF: seat 24's pc_inf16.raw
+  -> my detector 134 good/16 aborted, but its OWN summary says rounds 150, zero 0, and the file has
+  exactly 150 bestmoves. Theirs is right, mine is wrong. My book-move hypothesis was also wrong (0
+  'info string' lines in that file). Counts (728/620/255...) are retracted as numbers.
+
+=== outcomes of the sweep thread that DO stand (verified by reading files, not by the broken counter):
+19-C13 seat 20 job3: 60 of 60 outputs with zero info lines - genuine, owner has a guard in 15 harnesses.
+19-C15 seats 10 and 07 both found the defect independently and handled it correctly (10 wrote a
+  trap-aware helper + E1.py study; 07's INVALID_HARNESS.txt marks its output 'NOT a result').
+19-C12 seat 27's f6e5 = 19-F12 artifact; mate -25 impossible for KRvK (max 31 plies).
+
+next command: continue at cadence on my own thread; the sweep line is closed.
