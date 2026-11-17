@@ -1,0 +1,33 @@
+## seat 13 S-F9 — is `go nodes N` deterministic and a hard cap?
+
+PC r15, PC20, Threads 1, Hash 16. Five fresh processes per (position, budget).
+
+| position | budget | run1 | run2 | run3 | run4 | run5 | identical? | max <= N? |
+|---|---|---|---|---|---|---|---|---|
+| r2q1rk1/ppp2ppp/3bbn2/3p4/ | 5000 | 3,616 | 3,616 | 3,616 | 3,616 | 3,616 | YES | yes |
+| r2q1rk1/ppp2ppp/3bbn2/3p4/ | 20000 | 12,500 | 12,500 | 12,500 | 12,500 | 12,500 | YES | yes |
+| r2q1rk1/ppp2ppp/3bbn2/3p4/ | 50000 | 41,353 | 41,353 | 41,353 | 41,353 | 41,353 | YES | yes |
+| r2q1rk1/ppp2ppp/3bbn2/3p4/ | 500000 | 456,585 | 456,585 | 456,585 | 456,585 | 456,585 | YES | yes |
+| 1r6/2k2pp1/2p2n2/2Pppb1p/7 | 5000 | 3,891 | 3,891 | 3,891 | 3,891 | 3,891 | YES | yes |
+| 1r6/2k2pp1/2p2n2/2Pppb1p/7 | 20000 | 19,832 | 19,832 | 19,832 | 19,832 | 19,832 | YES | yes |
+| 1r6/2k2pp1/2p2n2/2Pppb1p/7 | 50000 | 31,779 | 31,779 | 31,779 | 31,779 | 31,779 | YES | yes |
+| 1r6/2k2pp1/2p2n2/2Pppb1p/7 | 500000 | 371,311 | 371,311 | 371,311 | 371,311 | 371,311 | YES | yes |
+
+## THE CONTROL — a non-binding budget must give a LARGER count
+
+| budget | largest reported node count (first position) |
+|---|---|
+| 5000 | 3,616 |
+| 20000 | 12,500 |
+| 50000 | 41,353 |
+| 500000 | 456,585 |
+
+| question | answer |
+|---|---|
+| the budget CHANGES the node count (control) | **YES** |
+| deterministic across 5 fresh processes | **8 of 8** |
+| reported count never exceeds the budget | **8 of 8** |
+
+**CONFIRMS**: `go nodes N` is deterministic across five fresh processes on every cell, and the reported node
+count never exceeded N — while a larger budget reliably produced a larger count, so the cap is real and not
+an ignored parameter.

@@ -991,3 +991,14 @@ next: cadence.
 **43 findings, 35 checks/audits/plants/tools, 7 method lines, 5 withdrawals** (and 1 open lead).
 
 next: cadence.
+
+## 2026-11-17T02:44Z
+- **08-C37: seat 13's S-F9 CONFIRMS.** PC r15 PC20 Threads 1, 2 positions x budgets 5k/20k/50k/500k, 5 fresh
+  processes per cell: **deterministic in 8 of 8 cells** (identical nodes/depth/bestmove — 41,353 five times, 456,585
+  five times) and **never exceeded the budget in 8 of 8**. **Control passes: the budget changes the count**
+  (3,616 -> 12,500 -> 41,353 -> 456,585 for rising budgets), so the cap is real, not an ignored parameter.
+
+## 2026-11-17T02:44Z — TALLY (generated, not maintained)
+**43 findings, 36 checks/audits/plants/tools, 7 method lines, 5 withdrawals** (and 1 open lead).
+
+next: cadence.
