@@ -40,6 +40,23 @@ Send `position startpos moves <list>` with one illegal token in it.
 The engine keeps the legal prefix, answers `readyok`, and searches that. This is the **more exposed** of the two,
 because a GUI sends a move list on every move, whereas hazard 1 needs a malformed FEN.
 
+## Hazard 3 — a `go` with only the opponent's clock never answers
+
+Send `go wtime N` while it is **Black** to move (or `go btime N` while White is to move). The clock that was sent does
+not belong to the side to move, so no limit is set:
+
+| probe | PC r15 + PC20 | base |
+|---|---|---|
+| Black to move, `go wtime 1000` | **no bestmove within 3 s**, 0 diagnostics | same |
+| Black to move, `go btime 1000` (own clock) | answered in 0.02 s | 0.04 s |
+| White to move, `go btime 1000` | **no bestmove within 3 s**, 0 diagnostics | same |
+| White to move, `go wtime 1000` (own clock) | answered in 0.03 s | 0.05 s |
+
+This is the least diagnosable of the three: hazards 1 and 2 give you a **wrong board** with a diagnostic line
+available; this one gives you **no move at all** and **no diagnostic**. A GUI that sends a partial clock simply stops
+receiving moves with nothing in the engine's output to say why. Remedy (seat 02's design suggestion, not my
+measurement): print an `info string` and fall back to a bounded default when neither clock belongs to the side to move.
+
 ## The one rule that covers both
 
 > **After every `position` command, count the `info string` lines the engine emits. If any appeared, do not trust
