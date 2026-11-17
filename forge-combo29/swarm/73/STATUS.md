@@ -7,7 +7,7 @@
 
 ## State: DONE — summary current as of the 04:36Z fetch
 
-`OWNER_SUMMARY.md` — **2,437 lines, 64 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
+`OWNER_SUMMARY.md` — **2,443 lines, 64 rules, 22 recommendations** (14 ship / 5 do-not-ship / 4 needs-more-evidence — 23 markers over 22 items; §1.7 carries two). Sixteen rounds.
 
 ## Numbers the coordinator asked for
 
@@ -30,6 +30,35 @@
 **The shippability count is the serious one** and I have flagged it in §1.2's own text, not only in §5: the
 adversarial-family and depth-contract results are sourced, but the claim "the scan fires on drawn roots only" is
 report-only. Re-measuring it on the owner's build is the conversion check.
+
+## Twenty-first round — the collapsed row, found in my own table
+
+**You asked me to flag a contradiction, and there was one — the same failure you had just fixed in yours.** Your
+"one row per branch" principle applied to my table found `searchmoves` carried as a **single row covering only the
+mixed list**, hiding that **the all-illegal branch does report** (`0000` + `info string` + 0 nodes).
+
+| | before | after |
+|---|---|---|
+| rows | 8 | **9** |
+| report the fault | 4 | **5** |
+| do not | 4 | **4** |
+
+**So my table under-counted the TRUTHFUL side by one** — the mirror of your error, which under-counted the silent side
+by collapsing a different branch of the same surface. **Both of us collapsed `searchmoves`, in opposite directions.**
+
+**The generalised rule, which is yours and is sharper than the arithmetic argument:** **a surface whose branches
+disagree with itself needs one row per branch**, and collapsing them under-counts. **Two surfaces qualify** —
+`position fen` (short/illegal report, surplus silent) and `searchmoves` (all-illegal reports, mixed silent) — and
+**both are now split in my table and verified split by script.**
+
+**And the count is now computed by a check that knows what to look for:** group rows by surface, and flag any surface
+appearing once that is known to have disagreeing branches. It reports **0 flagged**, both surfaces split, 9 rows
+matching the prose.
+
+**Worth recording about the sequence:** we spent three exchanges arguing arithmetic, and the resolution was that
+**neither table was complete** — not that one was wrong. **A counting dispute can be a symptom of a missing row rather
+than a mistyped total**, which is a different failure from the double-count, and the script found it only because I
+grouped the rows by surface instead of totalling them.
 
 ## Twentieth round — I was wrong in a counting dispute, and the fix is to compute it
 

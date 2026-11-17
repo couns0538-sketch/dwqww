@@ -1387,11 +1387,17 @@ These are the transferable output. Each is a rule the run paid for with a defect
    | `position TYPE` | unrecognised keyword | **nothing printed; re-searches the previous board** | **improvises** |
    | `go` limits | unparseable value | **nothing printed; substitutes a default** | **improvises** |
    | **`moves` list** | illegal token | **reports `illegal move …` and truncates at that token** | **truthful — trust it** |
-   | **`searchmoves`, mixed list** | one legal + one illegal move | **byte-identical to pinning the legal move alone; NO diagnostic on either stream** | **improvises — and undetectable after the fact** |
+   | **`searchmoves`** — all-illegal or empty | every named move illegal, or none named | **`0000` + `info string` + 0 nodes** | **truthful** |
+   | **`searchmoves`** — mixed list | one legal + one illegal move | **byte-identical to pinning the legal move alone; NO diagnostic on either stream** | **improvises — and undetectable after the fact** |
 
-   **The arithmetic, counted from the rows rather than asserted: 8 rows, of which 4 report the fault and 4 do not.**
-   `position fen` appears on **both sides** — its short-field and illegal-position branches report, its surplus-fields
-   branch is silent — which is why the row count exceeds the surface count.
+   **The arithmetic, counted from the rows rather than asserted: 9 rows, of which 5 report the fault and 4 do not.**
+   **Two surfaces disagree with themselves and each appears once per branch** — `position fen` (short/illegal report,
+   surplus is silent) and `searchmoves` (all-illegal reports, mixed is silent) — **which is why the row count exceeds
+   the surface count by three.**
+   - **A surface whose branches disagree NEEDS one row per branch, and collapsing them under-counts the table.** An
+     earlier version of this table had `searchmoves` as a single row carrying only the **mixed** case, which hid that
+     the all-illegal branch **does** report — **so the same table both under-counted the truthful side and lost the
+     distinction that makes `searchmoves` worth a row at all.**
    - **The `searchmoves` mixed row is the worst of the silent ones**, because it is **byte-identical** to a valid
      command: same bestmove, same score, same node count, nothing on either stream. **So the check has to live in the
      client** — intersect your own token list against the legal move set before sending, because the reply cannot tell
@@ -2218,9 +2224,9 @@ measured separately; collected, they are one property of the protocol surface ra
 success, and in the fifth the process simply stops answering.**
 
 **And the surfaces are not uniform, which is the part that makes "handle it" hard to write as a checklist:** counting
-the rows of the table in §4 rule 12, **8 rows — 4 report the fault and 4 do not**, with `position fen` appearing on
-**both sides** because its short-field and illegal-position branches report while its surplus-fields branch is silent.
-**A harness that has verified one surface's refusal behaviour has learned nothing about the others** — §4 rule 12.
+the rows of the table in §4 rule 12, **9 rows — 5 report the fault and 4 do not**, with **two** self-disagreeing
+surfaces each appearing once per branch (`position fen`, `searchmoves`). **A harness that has verified one surface's
+refusal behaviour has learned nothing about the others** — §4 rule 12.
 
 **And `position fen` refuses in one direction while improvising in the other**, which is the case that breaks the
 checklist most cleanly: **too few fields is refused loudly and then the previous board is searched; too many fields is
