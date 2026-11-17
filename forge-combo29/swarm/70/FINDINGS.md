@@ -210,6 +210,25 @@ for rank 1).
 Full orderings exact in 40/53 and 30/53 positions.** Both intervals exclude 1.0,
 so "pinning preserves rank order" is rejected at both k.
 
+### F6a — the same result at depth 10, so it is not a depth-12 artefact
+
+```bash
+python3 forge-combo29/swarm/70/job3/rank_final.py --depth 10
+```
+
+Reference validity drops to 48/60 at depth 10, so the denominators shrink:
+
+| ref | k | pair comparisons | agree | 95% Wilson | exact full order |
+|---|---|---|---|---|---|
+| R1 | 3 | 144 | 136/144 | 0.894–0.972 | 41/48 |
+| R1 | 5 | 480 | 431/480 | 0.868–0.922 | 21/48 |
+| R3 | 3 | 144 | 134/144 | 0.877–0.962 | 39/48 |
+| R3 | 5 | 480 | 434/480 | 0.875–0.927 | 21/48 |
+
+Same verdict, and the exact-full-ordering rate is the same story (about 80% at
+k=3, 44% at k=5). Saved as `job3/rank_final_depth10.txt` and
+`job3/rank_final_depth12.txt`.
+
 ### F6b — the strongest form of the test needs no reference at all
 
 `| 70-F6b | area 3 | pinning each of the top 5 candidates alone makes the plain bestmove the top-scoring candidate in only 49 of 60 positions | job3/verifier_operation.txt | NEW |`
@@ -334,6 +353,34 @@ python3 forge-combo29/swarm/70/job4/diagnostic_placement.py
 `info string invalid FEN: castling right without king and rook`. The `go` output
 contains no diagnostic. `engine.py` scans both streams regardless, which costs
 nothing and is correct under either placement.
+
+## F11 — every script can fail: planted faults
+
+`| 70-F11 | control | seven planted faults are each caught by the corresponding check, and the one thing the check cannot see (a halfmove-clock edit) is named rather than hidden | selftest_falsify.txt | NEW |`
+
+```bash
+python3 forge-combo29/swarm/70/selftest_falsify.py; echo $?
+```
+
+| check | planted fault | caught |
+|---|---|---|
+| F1 bad FEN | castling right without rook | yes (`perft1=None`, `err='invalid FEN'`, string in position reply) |
+| F2 shifted board | one pawn moved | yes (`perft1` 20 -> 19) |
+| F3 fake move | `e2e5` | yes (not in python-chess legal set) |
+| F4 timeout | `go infinite`, 2 s | yes (`fatal='timeout waiting for bestmove'`) |
+| F5 reversed order | pinned order inverted | yes (agreement 0/3) |
+| F6 no mate | startpos | yes (`mate_in_1` returns `[]`) |
+| F7 finds mates | known 2-mate position | yes (`['c7c1','b5b1']`) |
+| F2b clock-only | halfmove counter +1 | **no, by design** — a perft check cannot see the clock; documented, not hidden |
+
+`ALL PLANTED FAULTS HANDLED: True`, exit 0. The script exits non-zero if any
+planted fault escapes.
+
+Writing this test found two real bugs in my own code, which is the point of it:
+`check()` was defined but never called (the results table was silently empty), and
+`fake not in legal_set and legal_set` returned the legal-move *set* instead of a
+boolean, so `True == <set>` was False. Both are fixed; a harness bug that prints a
+confident wrong answer is worse than no harness.
 
 ---
 

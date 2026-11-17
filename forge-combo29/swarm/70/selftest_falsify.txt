@@ -1,0 +1,23 @@
+engine /tmp/build-rel/forge
+
+F1 bad FEN: perft1=None err='invalid FEN' string_in_reply=True -> caught True
+F2 shifted board: perft1 20 vs 19 -> caught True
+F2b clock-only change: perft1 20 vs 20 -> caught False  (EXPECTED NOT CAUGHT: perft cannot see a clock)
+F3 fake move e2e5 in legal set: False -> caught True
+F4 go infinite with 2 s timeout: fatal='timeout waiting for bestmove' -> caught True
+F5 reversed pinned order: agreement 0/3 -> caught True
+F6 mate_in_1 on startpos: [] -> caught True
+F7 mate_in_1 on a known 2-mate position: ['c7c1', 'b5b1'] -> caught True
+
+== RESULT ==
+check | expected caught | actually caught | PASS
+F1 bad FEN | True | True | PASS   perft1=None err='invalid FEN'
+F2 shifted board | True | True | PASS   perft1 20 vs 19
+F3 fake move | True | True | PASS   e2e5 in legal set: False
+F4 timeout fires | True | True | PASS   fatal='timeout waiting for bestmove'
+F5 reversed order | True | True | PASS   agreement 0/3
+F6 no mate at startpos | True | True | PASS   []
+F7 finds known mates | True | True | PASS   ['c7c1', 'b5b1']
+F2b (clock-only) | False | False | PASS   a perft check cannot see the halfmove clock; documented, not a defect of the harness
+
+ALL PLANTED FAULTS HANDLED: True
