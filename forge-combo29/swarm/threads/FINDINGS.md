@@ -143,21 +143,38 @@ four thread counts. Fingerprint of the bail: every `info depth` line has `nodes 
 an **empty pv** (trap 21's "is not a no-info path" note respected — it emits a line per
 depth, and this script counts them).
 
-| fixture | how delivered | Threads 1 | Threads 8 | score / move |
+| fixture | how delivered | Threads 1 | Threads 8 | score / move at every thread count |
 |---|---|---|---|---|
 | repetition (3-fold) | **move list** | BAIL | **BAIL** | cp 0, `a2a3` |
-| same board | **FEN** | SEARCH | SEARCH | cp 24, `d2d4` |
+| same board | **FEN** | SEARCH | SEARCH | cp 15–28, `d2d4`/`e2e3`/`e2e4` (varies, §1) |
 | fifty-move (hmc 100) | FEN | BAIL | **BAIL** | cp 0, `h1a1` |
 | insufficient K v K | FEN | BAIL | **BAIL** | cp 0, `e3d2` |
 | insufficient KB v K | FEN | BAIL | **BAIL** | cp 0, `f1e2` |
 | insufficient KN v K | FEN | BAIL | **BAIL** | cp 0, `f1d2` |
 
-**40/40 cells identical in score and move at every thread count.** The bail fires
-before any helper can affect the returned move: the whole root-drawn block sits at
-`src/search.cpp:2251-2275` and returns from `Worker::search` before the iterative-deepening
-loop at `src/search.cpp:2392`; only the main worker's `SearchInfo` is returned by
-`Searcher::search`. A threaded search
-**cannot** return a different bestmove on a drawn root — measured, not argued.
+**The bail cells are 20 of 20 fully stable** — one move and one score across all 5
+repeats, at all four thread counts, for all five bail fixtures. That is the measurement:
+**the bail fires identically and returns the same move and the same score at every thread
+count.** It fires before any helper can affect the returned move: the whole root-drawn
+block sits at `src/search.cpp:2251-2275` and returns from `Worker::search` before the
+iterative-deepening loop at `src/search.cpp:2392`, and only the main worker's
+`SearchInfo` is returned by `Searcher::search`.
+
+**A threaded search cannot return a different bestmove on a drawn root** — measured, not
+argued: 20 of 20 cells.
+
+### The scope of that claim, stated as the boundary it does not cover
+
+The 16 **SEARCH** cells are *not* stable, and that is expected rather than a defect:
+`repetition_byfen` varies across 3 moves and `ctrl_repetition_1rep` across 4, exactly as
+§1 predicts for any real search at Threads > 1. **One of those cells moved its bestmove
+at Threads 8** (`ctrl_KRvK`: `h1f1` and `h1h4` both appeared) — a won K+R vs K position
+where every move wins, so the flip is a tie among winning moves, not a regression.
+
+**So the correct claim is narrow: the drawn-root path is thread-invariant. Everything
+else on the same board still varies.** My first version of this section said "40/40 cells
+identical at every thread count" — that was false for the SEARCH fixtures and was caught
+by re-deriving the figures from the evidence, not by reading.
 
 Two controls that make this a test rather than a tautology:
 
@@ -254,6 +271,21 @@ depth_reached.py`, `go movetime 1000`, 40 positions, evidence `evidence/depth_re
 | T2 vs T1 | 40 | −0.175 | 17 | 7 | 16 | **p = 1.000** |
 | **T4 vs T1** | 40 | **+1.375** | **24** | 9 | 7 | **p = 0.0033** |
 | T8 vs T1 | 40 | −0.325 | 16 | 5 | 19 | **p = 0.736** |
+
+The clock binds in every arm, so wall time is fixed by construction and cannot be a
+speed-up measure. What varies is the **node count inside the same second**, from
+`evidence/walltime_d16.json`:
+
+| threads | nodes searched in 1000 ms | ratio vs Threads 1 |
+|---|---|---|
+| 1 | 1,494,010 | 1.00 |
+| 2 | 2,723,636 | **1.82** |
+| 4 | 2,826,098 | **1.89** |
+| 8 | 2,937,184 | **1.97** |
+
+These are **summed** node counts, so the ratio is partly arithmetic (§1). It is reported
+only as "nodes searched in a second", never as a wall-time speed-up, and the depth table
+above is the figure with a consumer.
 
 `scripts/sign_test.py`, which carries the `min(k, n−k)` reflection, a
 `p(k,n) == p(n−k,n)` assertion on every run, a floor and ceiling assertion, a
@@ -427,7 +459,7 @@ against **the engine's own** `go perft 1` move set for the same FEN:
 | P1 | 40/40 differ in nodes above T1; ≥30/40 in score; ≥3/40 in move at T8 | **HOLDS** (40/40 nodes, 38/40 score, 17/40 move) |
 | P2 | 0/40 at Threads 1 | **HOLDS** (0/40, 120 searches) |
 | P3 | score differs more often than move, by ≥3x | **HOLDS** at T4 (39 vs 13) and T2 (37 vs 20); **weaker at T8** (38 vs 17, ratio 2.2) |
-| P4 | drawn-root bail 40/40 identical at every thread count | **HOLDS** (40/40, all fixtures) |
+| P4 | drawn-root bail stable at every thread count | **HOLDS for the bail: 20/20 bail cells identical** (5 fixtures x 4 thread counts, 5 repeats). The prediction's word "40/40" was wrong — the 16 SEARCH cells vary, as §1 predicts |
 | P5 | 0 differences in book behaviour | **HOLDS** on *booked-ness* (9/15 at every count); the *move* varies from `Book Variety`, which I first misread as a thread effect |
 | P6 | bench bit-identical at every thread count | **HOLDS, and for a reason that makes the row worthless** — bench ignores `Threads` |
 | P7 | Threads 4 wall time 1.5x–3.0x faster than Threads 1 | **KILLED.** Measured **1.24x SLOWER** at fixed depth. My prediction assumed an SMP search like a normal engine; this one's node inflation outruns its rate gain |
@@ -486,7 +518,7 @@ median and up to 2,109 cp on a single position between two identical runs. Use
 this engine at fixed depth** (Threads 4 is 24% slower, Threads 8 is 2x slower on a
 4-core box) but it *does* reach about +1.4 ply deeper in a fixed second at Threads 4,
 which is the only resolved threading gain in the file. The drawn-root bail is completely
-unaffected. `bench` and `perft` ignore `Threads` entirely, so bench numbers certify
+unaffected — 20 of 20 cells identical at every thread count. `bench` and `perft` ignore `Threads` entirely, so bench numbers certify
 nothing about threading. `Threads` with `MultiPV > 1` silently runs single-threaded. And
 a `go nodes` budget below ~50k at Threads 2+ can return an unsearched first-legal move
 with no `info depth` line — 45 of 60 at Threads 2, N=1000 — which is the same signature
