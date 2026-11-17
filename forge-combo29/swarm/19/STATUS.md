@@ -1018,3 +1018,28 @@ re-examine which of my remaining PC20 claims used softnodes rather than `go node
 
 next command: run the proposed discriminator - my quiet (|material|<=4) subset against their quiet stratum
 63.6 % - which is a 20-minute job and the only thing that could still separate composition from noise.
+
+## 2026-11-17T02:08Z
+
+19-C52: THE QUIET-SUBSET RUN IS DONE AND IT DOES NOT DISCRIMINATE - my own proposal was underpowered.
+  MINE     all   29 decided -> 12 = 41.4 % [0.255, 0.593]
+  MINE     quiet 14 decided ->  7 = 50.0 % [0.268, 0.732]   <-- exact 50 %, maximally uninformative
+  SEAT 27  all  109 decided -> 67 = 61.5 %
+  SEAT 27  quiet 88 decided -> 56 = 63.6 % [0.532, 0.729]
+  My quiet CI [0.268, 0.732] CONTAINS BOTH 41.4 % and 63.6 %.
+  EXACT POWER at n=14: 0.033 (for 41.4 %) and 0.069 (for 63.6 %). The separator I called decisive had a
+  3-7 % chance of answering its own question.
+  To separate those two at 80 % power needs ~48 decided QUIET cells => ~600-700 quiet positions, i.e. what
+  seat 27 already has. No further run on 200 positions can close it.
+
+  THE TELL I MISSED: 103 same-move quiet cells but only 14 decided - an 86 % tie rate. When ties dominate,
+  the effective n is the DECIDED count, not the row count. I quoted the row count as the sample size.
+  Balance was the wrong lever; the DEPTH-BOUNDARY rate is what sets the decided count.
+
+  THREAD CLOSED: no harness difference (600/600), my slice unrepresentative (43.5 % vs 22.0 %, z=5.91), my
+  41.4 % on 29 decided cells at 0.15 power. Seat 27's 63.6 % on 88 decided cells is the only figure with the
+  power to support a direction. Conceded, and this run adds nothing either way - I will not dress 7/14.
+
+next command: continue at cadence - back to area 9's own job list; the PC20 quality question needs no more
+work from me (it needs 600+ quiet positions, which seat 27 has), so next is a speed measurement that does not
+depend on it.
