@@ -1,0 +1,36 @@
+Cross-check of seat 08's pc20/emit_config.py against MY matrix harness (pc/check_08c33_matrix.py).
+Tool unmodified, from origin/for-fable-and-opus/swarm-08, saved here as pc/emit_config_seat08.py.
+
+$ python3 pc/emit_config_seat08.py pc/check_08c33_matrix.py
+### list `cases` in pc/check_08c33_matrix.py
+    2 options; PC20 switches present: 0
+    settings to quote in a finding:
+        twice (control) g1f3 g8f6 f3g1 f6g8, THREE times g1f3 g8f6 f3g1 f6g8 g1f3 g8f6 f3g1 f6g8
+
+$ python3 -c "from emit_config_seat08 import lists_in; print([(l,len(n)) for l,n in lists_in('pc/check_08c33_matrix.py')])"
+lists_in found: [('cases', 2)]
+SETTINGS found? False
+
+TWO DEFECTS, both in the MATCHER rather than the idea:
+1. FALSE POSITIVE ON THE WRONG OBJECT. It matched `cases`, my list of test-case tuples
+   [("twice (control)","g1f3..."),("THREE times","g1f3...")] - not an option list. Any list of
+   2-tuples qualifies. It reported "2 options; PC20 switches present: 0" about a file that
+   sends 17 and 22 options across two settings - a CONFIDENT WRONG ANSWER, which is the exact
+   failure class the tool exists to catch.
+2. FALSE NEGATIVE ON THE REAL OBJECT. My option lists live in a dict:
+       SETTINGS = {"S14": [...] , "PC20": [...]}
+   The matcher only accepts ast.Assign whose value is a List of 2-tuples, so a Dict of lists is
+   invisible. The tool is SILENT about the thing it exists to check, while appearing to check
+   something.
+
+ROOT CAUSE OF BOTH: my harness builds its lists by CONCATENATION
+    ["Hash 16", "Threads 1"] + S14 + PC20X
+which is the normal way to write this, and neither the Dict shape nor the BinOp shape is handled.
+
+WHAT IS RIGHT ABOUT THE TOOL (verified on seat 08's own defective file):
+$ python3 emit_config.py check_repetition_root.py
+### list `S14` in check_repetition_root.py
+    22 options; PC20 switches present: 5 [CuckooRep, HistRework, TtPruneV2, CorrHistV2, MateAlphaGuard]
+The variable is NAMED S14 and CONTAINS the five PC20 switches. One printout, no reasoning needed.
+That is 08-W3, my S-C57 and the relayed resolution all in three lines. The idea is sound and
+strictly better than my expect= in one respect: it fires BEFORE any engine runs.
