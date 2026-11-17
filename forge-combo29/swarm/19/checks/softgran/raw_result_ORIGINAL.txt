@@ -1,0 +1,633 @@
+19-C49: does softnodes 2000 vs 3000 buy the same search?
+build pc20 sha256 068f0927768d30be60e8cce6c9f29620dec330565397357dccc9e0fe361e32f4 ; base sha256 e06310eca3368556e8e1fc1526a86431272f90e3f5177422e3d47a1d7b316a83
+positions: R_2911.fens odd lines, 200
+
+=== s14 ===
+identical (bestmove AND depth) 2000 vs 3000: 93 of 200 = 46.5 %
+same depth only: 93 of 200 = 46.5 %
+total nodes: 2000-budget 636917, 3000-budget 942243, ratio 1.4794
+mean nodes: 3184.6 vs 4711.2  (budget says 2000/3000; if softnodes overruns this shows it)
+total depth: 1476 vs 1610 (diff +134)
+DEGENERATE (no completed iteration, hard cap 4N hit, move unsearched):
+  at 2000: 1 of 200 = 0.5 %
+  at 3000: 1 of 200 = 0.5 %
+  either : 1 of 200 = 0.5 %
+  indices: [44]
+  depth diff on same-bestmove subset (179 pos): +112
+  depth diff on DIFFERENT-bestmove subset (21 pos): +22
+
+=== pc20 ===
+identical (bestmove AND depth) 2000 vs 3000: 94 of 200 = 47.0 %
+same depth only: 94 of 200 = 47.0 %
+total nodes: 2000-budget 646821, 3000-budget 907200, ratio 1.4026
+mean nodes: 3234.1 vs 4536.0  (budget says 2000/3000; if softnodes overruns this shows it)
+total depth: 1467 vs 1600 (diff +133)
+DEGENERATE (no completed iteration, hard cap 4N hit, move unsearched):
+  at 2000: 1 of 200 = 0.5 %
+  at 3000: 1 of 200 = 0.5 %
+  either : 1 of 200 = 0.5 %
+  indices: [44]
+  depth diff on same-bestmove subset (182 pos): +113
+  depth diff on DIFFERENT-bestmove subset (18 pos): +20
+
+per-position:
+    0 rnbqkbnr/1ppp1p1p/4p3/p5p1/PP2P3/8/2PPNPPP/RNBQKB1R b KQkq - 0 4
+      s14  2k: f8g7 d8  n2908   | 3k: f8g7 d9  n4801   
+      pc20 2k: f8g7 d8  n2826   | 3k: f8g7 d9  n4614   
+    1 rnbqk1r1/1p1p1p1n/3b3p/p1p5/PP2PNp1/7P/1BPP1PP1/RN1QKB1R b KQq - 1 11
+      s14  2k: d6f4 d7  n2589   | 3k: d6f4 d8  n4707   
+      pc20 2k: d6f4 d7  n2702   | 3k: d6f4 d8  n4849   
+    2 r1bqk3/1pbp1p2/n4n1p/p3r3/PPP1PNp1/2N3PP/R1PQ1P2/4KB1R b Kq - 0 18
+      s14  2k: a5b4 d7  n2901   | 3k: a5b4 d8  n4751   
+      pc20 2k: a5b4 d7  n2937   | 3k: a5b4 d8  n4859   
+    3 2bqk3/rpbprp2/5nN1/p3P2p/P1PQ2p1/6PP/RNn1KP2/5B1R b - - 1 25
+      s14  2k: c2d4 d7  n2444   | 3k: c2d4 d8  n4965   
+      pc20 2k: c2d4 d7  n2430   | 3k: c2d4 d8  n4932   
+    4 2bq1N2/rp2rp2/2k5/p2pP2p/P1Pb2n1/R4PPP/1Nn1K3/5BR1 b - - 2 32
+      s14  2k: c2a3 d5  n2513   | 3k: c2a3 d6  n3740   
+      pc20 2k: c2a3 d5  n2463   | 3k: c2a3 d6  n3660   
+    5 3q4/r1N1rp2/1pk1P3/p1bp4/P1N1b1np/3R1PPP/4K1R1/4nB2 b - - 0 39
+      s14  2k: e4d3 d8  n3604   | 3k: e4d3 d8  n3604   IDENTICAL
+      pc20 2k: e4d3 d8  n3559   | 3k: e4d3 d8  n3559   IDENTICAL
+    6 3q4/r3rp2/2kbP3/p2N4/P1NRP2p/n5PP/4K1R1/3n1B2 b - - 4 46
+      s14  2k: a3c4 d6  n3726   | 3k: a3c4 d6  n3726   IDENTICAL
+      pc20 2k: a3c4 d6  n3577   | 3k: a3c4 d6  n3577   IDENTICAL
+    7 3r4/r1q1P3/2kb1p2/p2N4/P3P2P/1R2N2P/1nn1KR2/5B2 b - - 6 53
+      s14  2k: d6e7 d6  n2635   | 3k: c2e3 d7  n4829   
+      pc20 2k: d6e7 d6  n2613   | 3k: c2e3 d7  n4709   
+    8 3q4/8/r2b1p2/2k4N/P3P2P/n2R3P/1n2KR2/5B2 b - - 3 60
+      s14  2k: b2d3 d7  n4016   | 3k: b2d3 d7  n4016   IDENTICAL
+      pc20 2k: b2d3 d7  n3738   | 3k: b2d3 d7  n3738   IDENTICAL
+    9 3R3q/8/r4p2/P1k4N/4P2P/2K4P/1n1n1R2/5B2 b - - 6 67
+      s14  2k: b2d1 d6  n2123   | 3k: b2d1 d7  n3685   
+      pc20 2k: b2d1 d6  n2121   | 3k: b2d1 d7  n3601   
+   10 R4q2/4r3/5p2/P1k4N/n6P/7P/3K2B1/7R b - - 3 74
+      s14  2k: f8h6 d6  n2286   | 3k: f8h6 d7  n3998   
+      pc20 2k: f8h6 d6  n2277   | 3k: f8h6 d7  n3989   
+   11 8/8/5R2/P1k4N/r6P/2K4P/8/1q5B b - - 0 81
+      s14  2k: a4a3 d8  n2265   | 3k: a4a3 d11 n3325   
+      pc20 2k: b1h1 d5  n2538   | 3k: a4a3 d6  n3316   
+   12 B1R5/8/8/Pkq5/1r6/6NP/K7/8 b - - 5 88
+      s14  2k: c5c8 d7  n3291   | 3k: c5c8 d7  n3291   IDENTICAL
+      pc20 2k: c5c8 d7  n3504   | 3k: c5c8 d7  n3504   IDENTICAL
+   13 8/4r3/8/P7/1k2B3/7P/4N2q/K1R5 b - - 19 95
+      s14  2k: h2e2 d7  n2970   | 3k: h2e2 d8  n4940   
+      pc20 2k: e7e4 d7  n3575   | 3k: e7e4 d7  n3575   IDENTICAL
+   14 rnbqkbnr/pp1pp2p/8/2p2pp1/8/N2PB3/PPP1PPPP/R2QKBNR b KQkq - 1 4
+      s14  2k: e7e6 d6  n2435   | 3k: h7h6 d7  n4433   
+      pc20 2k: e7e6 d7  n2490   | 3k: h7h6 d8  n7877   
+   15 1nb1k2r/rp1p3p/3b1q1n/p1p1pppP/3B4/3PP2R/PPP2P2/R2QKBN1 w Qk - 3 15
+      s14  2k: d4c3 d7  n2443   | 3k: d4c3 d8  n5587   
+      pc20 2k: d4c3 d7  n3147   | 3k: d4c3 d7  n3147   IDENTICAL
+   16 2bqkr2/r2p3p/2n4n/pp2pppP/P7/b2P1N1R/1PP2P2/2QK1B2 w - - 0 22
+      s14  2k: b2a3 d7  n3229   | 3k: b2a3 d7  n3229   IDENTICAL
+      pc20 2k: b2a3 d7  n3453   | 3k: b2a3 d7  n3453   IDENTICAL
+   17 3qk3/rb2r2p/2np3n/p3pppR/Pp1P4/P7/1QP2P2/3K1BN1 w - - 2 29
+      s14  2k: h5h6 d8  n3516   | 3k: h5h6 d8  n3516   IDENTICAL
+      pc20 2k: h5h6 d8  n4260   | 3k: h5h6 d8  n4260   IDENTICAL
+   18 b4k2/r2q1r1p/8/pP1pppp1/Pn1P4/5P2/1QP5/4KBNR w - - 5 36
+      s14  2k: c2c3 d6  n2043   | 3k: d4e5 d7  n4126   
+      pc20 2k: c2c3 d7  n5087   | 3k: c2c3 d7  n5087   IDENTICAL
+   19 b4k2/r1r4R/8/pP1pPpQ1/P7/3P1P2/5K2/5BN1 w - - 1 43
+      s14  2k: g5d8 d45 n2018   | 3k: g5d8 d64 n2854   
+      pc20 2k: g5d8 d45 n2018   | 3k: g5d8 d64 n2854   
+   20 b7/3r1k2/8/pP1pP3/P2P1p2/5P2/2r1NKB1/8 w - - 0 50
+      s14  2k: e5e6 d7  n2181   | 3k: e5e6 d8  n4657   
+      pc20 2k: e5e6 d7  n2295   | 3k: e5e6 d8  n3873   
+   21 2B5/1b2k3/8/pP1pP3/P2P1p2/5P2/4NK2/4r3 w - - 9 57
+      s14  2k: c8b7 d8  n3269   | 3k: c8b7 d8  n3269   IDENTICAL
+      pc20 2k: c8b7 d8  n2528   | 3k: c8b7 d9  n4221   
+   22 b7/7k/4P3/p2pB3/3P1p2/5P2/6K1/3r4 b - - 5 67
+      s14  2k: h7g6 d7  n3703   | 3k: h7g6 d7  n3703   IDENTICAL
+      pc20 2k: a5a4 d7  n3280   | 3k: a5a4 d7  n3280   IDENTICAL
+   23 6k1/4P3/b7/p2p3K/3P1p2/5P2/3B4/4r3 b - - 6 74
+      s14  2k: e1e7 d8  n3193   | 3k: e1e7 d8  n3193   IDENTICAL
+      pc20 2k: e1e7 d8  n3040   | 3k: e1e7 d8  n3040   IDENTICAL
+   24 8/4r1k1/b7/B2pN2K/3P1p2/5P2/8/8 b - - 10 81
+      s14  2k: e7e8 d6  n2131   | 3k: a6e2 d7  n3916   
+      pc20 2k: e7a7 d7  n3784   | 3k: e7a7 d7  n3784   IDENTICAL
+   25 7k/4B3/2b3K1/3p4/3P1p2/5P2/1N6/8 b - - 0 88
+      s14  2k: c6b5 d8  n2001   | 3k: c6b5 d9  n3465   
+      pc20 2k: c6b5 d8  n3250   | 3k: c6b5 d8  n3250   IDENTICAL
+   26 8/6k1/8/2Bp1b2/3P1K2/5P2/1N6/8 b - - 0 95
+      s14  2k: g7f6 d8  n2704   | 3k: g7f6 d9  n6871   
+      pc20 2k: g7f6 d8  n2782   | 3k: g7f6 d9  n5377   
+   27 rnbqkbnr/1p1pp1pp/2p5/p4p2/P3P2P/2P5/1P1P1PP1/RNBQKBNR b KQkq - 0 4
+      s14  2k: f5e4 d8  n4068   | 3k: f5e4 d8  n4068   IDENTICAL
+      pc20 2k: f5e4 d8  n2881   | 3k: f5e4 d9  n4838   
+   28 r1bkn2r/1pNpp2p/n1p4B/p4pp1/PP2P2P/2PP4/2Q2PPR/RN2KB2 w Q - 0 15
+      s14  2k: c7a8 d8  n3633   | 3k: c7a8 d8  n3633   IDENTICAL
+      pc20 2k: c7a8 d7  n2043   | 3k: c7a8 d8  n4598   
+   29 N1b3r1/3kp2p/n1pp4/Pp3p1n/P1P1P2p/3PB1P1/2QKBP1R/RN6 w - - 6 22
+      s14  2k: c4b5 d7  n3537   | 3k: c4b5 d7  n3537   IDENTICAL
+      pc20 2k: a4b5 d6  n2040   | 3k: c4b5 d7  n3314   
+   30 Nnb3r1/3k4/2pp1n1p/P3PpB1/P1P1P3/1pK3PR/1Q2BP2/RN6 w - - 3 29
+      s14  2k: a8b6 d7  n3365   | 3k: a8b6 d7  n3365   IDENTICAL
+      pc20 2k: a8b6 d7  n3516   | 3k: a8b6 d7  n3516   IDENTICAL
+   31 N1b4r/3k4/n1pp4/P1n1P1Bp/P1K2p2/2N3PR/RQ3P2/3B4 w - - 2 36
+      s14  2k: b2d2 d6  n2214   | 3k: h3h5 d7  n6523   
+      pc20 2k: h3h5 d7  n4676   | 3k: h3h5 d7  n4676   IDENTICAL
+   32 2b3r1/2Nk4/1n6/PKpNP1Bp/6P1/5BR1/1Q1R1P2/8 b - - 6 46
+      s14  2k: g8g5 d6  n2099   | 3k: c8a6 d7  n7482   
+      pc20 2k: g8g5 d6  n2162   | 3k: g8g5 d7  n8260   
+   33 2b4r/2Nk4/8/PKpNP3/4B1P1/3R3p/Q2n1PR1/8 b - - 5 53
+      s14  2k: d2e4 d7  n3600   | 3k: d2e4 d7  n3600   IDENTICAL
+      pc20 2k: d2e4 d7  n3654   | 3k: d2e4 d7  n3654   IDENTICAL
+   34 4r3/2N1k3/2K5/P1p1P3/2Q1B1P1/3RN2p/5PRn/8 b - - 12 60
+      s14  2k: e7f8 d7  n4317   | 3k: e7f8 d7  n4317   IDENTICAL
+      pc20 2k: e7f8 d7  n3857   | 3k: e7f8 d7  n3857   IDENTICAL
+   35 5k2/2N5/3K4/P1pRP3/2Q1B1n1/5P1p/1R6/3N4 b - - 4 67
+      s14  2k: g4e5 d6  n2869   | 3k: g4e5 d7  n8502   
+      pc20 2k: g4e5 d6  n2716   | 3k: g4e5 d7  n10302  
+   36 6k1/1R3n2/8/PNK1P3/4B3/5P1p/7R/3N3Q b - - 10 74
+      s14  2k: g8g7 d7  n4045   | 3k: g8g7 d7  n4045   IDENTICAL
+      pc20 2k: g8g7 d7  n3745   | 3k: g8g7 d7  n3745   IDENTICAL
+   37 8/1R3Bk1/1K6/PN2P3/8/5P1p/1n6/Q7 b - - 3 81
+      s14  2k: h3h2 d7  n1891   | 3k: h3h2 d8  n11616  
+      pc20 2k: h3h2 d7  n4258   | 3k: h3h2 d7  n4258   IDENTICAL
+   38 4B2k/K7/8/P3P3/3Q4/1R3P2/N7/7n b - - 3 88
+      s14  2k: h1g3 d7  n4673   | 3k: h1g3 d7  n4673   IDENTICAL
+      pc20 2k: h1g3 d7  n4799   | 3k: h1g3 d7  n4799   IDENTICAL
+   39 7k/1K6/P7/4P3/3Q1P2/4n3/8/1RN5 b - - 0 95
+      s14  2k: e3f5 d7  n2853   | 3k: e3f5 d8  n11223  
+      pc20 2k: e3f5 d7  n3212   | 3k: e3f5 d7  n3212   IDENTICAL
+   40 r1bqkbnr/p1pppppp/8/p7/8/4P3/PPPPQPPP/RNB2KNR b kq - 1 4
+      s14  2k: c8b7 d7  n2379   | 3k: c8b7 d8  n5171   
+      pc20 2k: g8f6 d7  n2113   | 3k: c8b7 d8  n3674   
+   41 rq2kbr1/p2ppp1p/b5pn/p1p5/4P3/P1N4P/1PPPNPP1/R1BQK2R b q - 1 11
+      s14  2k: f8g7 d6  n2095   | 3k: f8g7 d7  n4316   
+      pc20 2k: f8g7 d7  n3852   | 3k: f8g7 d7  n3852   IDENTICAL
+   42 rq2kbr1/5p1p/p2p3n/p1p1p1p1/2b1P2P/P2P2PR/NPP1NP2/R1BQ1K2 b q - 0 18
+      s14  2k: g5g4 d7  n2604   | 3k: c4e6 d8  n7476   
+      pc20 2k: g5g4 d7  n2164   | 3k: g5g4 d8  n4517   
+   43 r5r1/1q2kpbp/p2p3n/pNp1p1p1/1PP1PP1P/P2P2PR/N1Q5/R1Bb1K2 b - - 8 25
+      s14  2k: d1c2 d2  n5344   | 3k: d1c2 d2  n5344   IDENTICAL
+      pc20 2k: d1c2 d2  n5344   | 3k: d1c2 d2  n5344   IDENTICAL
+   44 r1q1k1rb/7p/p2p3n/pNp1ppp1/1PPPPP1P/P5PR/N4Q1K/R1B5 b - - 6 32
+      s14  2k: a5a4 d0  n8000   | 3k: a5a4 d0  n12000  IDENTICAL
+      pc20 2k: a5a4 d0  n8000   | 3k: a5a4 d0  n12000  IDENTICAL
+   45 r1qk2rb/7p/p6n/pN1ppppP/1pPPPP2/P3B1PR/NQ4K1/R7 b - - 5 39
+      s14  2k: g5f4 d4  n2073   | 3k: a6b5 d6  n8104   
+      pc20 2k: g5f4 d4  n2063   | 3k: a6b5 d6  n8067   
+   46 r2k3b/q6p/p4P1n/pN1pr1pP/2P2P2/PpQ1B1PR/N7/R6K b - - 1 46
+      s14  2k: a7e3 d8  n3220   | 3k: a7e3 d8  n3220   IDENTICAL
+      pc20 2k: a7e3 d8  n2988   | 3k: a7e3 d9  n4975   
+   47 r2k4/5P1p/2Pq4/pp1p2pP/1N3Pn1/Pp2r1PR/3Q4/b2R3K b - - 0 53
+      s14  2k: a1g7 d7  n3516   | 3k: a1g7 d7  n3516   IDENTICAL
+      pc20 2k: a1g7 d7  n3420   | 3k: a1g7 d7  n3420   IDENTICAL
+   48 3k4/5P1p/N1P5/p2p3P/1p3Pp1/qp2r1PR/1b4Kn/5RQ1 b - - 3 60
+      s14  2k: g4h3 d7  n2926   | 3k: g4h3 d8  n5009   
+      pc20 2k: g4h3 d7  n2954   | 3k: g4h3 d8  n8212   
+   49 3k4/2N1r2p/2P5/p2p3P/1p3PpR/1p4P1/1Q3K1n/4R1Q1 b - - 0 67
+      s14  2k: e7e1 d7  n2383   | 3k: e7e1 d8  n6385   
+      pc20 2k: e7e1 d7  n2730   | 3k: e7e1 d8  n4765   
+   50 4k3/5r1p/2P5/p2p3P/1p3Pp1/1p4PR/4K1Qn/1R5Q b - - 13 74
+      s14  2k: f7e7 d8  n3593   | 3k: f7e7 d8  n3593   IDENTICAL
+      pc20 2k: h2f3 d7  n2616   | 3k: h2f3 d8  n4126   
+   51 8/r1P2k2/7p/p6P/1p3Pp1/1p1p2PR/1R1Q3n/3KQ3 b - - 2 81
+      s14  2k: h2f3 d8  n4973   | 3k: h2f3 d8  n4973   IDENTICAL
+      pc20 2k: a7c7 d7  n2410   | 3k: h2f3 d8  n5389   
+   52 8/6k1/4r2p/p6P/1pR2PpQ/1p4PR/3p4/3K1n2 w - - 10 92
+      s14  2k: c4c7 d8  n2083   | 3k: c4c7 d10 n3128   
+      pc20 2k: c4c7 d7  n2138   | 3k: c4c7 d9  n3630   
+   53 6k1/8/7p/p2nrP1P/1p6/1p1K2PR/1R6/8 w - - 7 99
+      s14  2k: b2b3 d7  n2488   | 3k: g3g4 d8  n7498   
+      pc20 2k: b2b3 d8  n5989   | 3k: b2b3 d8  n5989   IDENTICAL
+   54 1rbqkb1r/ppp3pp/n2pp3/1N3p2/4P2P/7B/PPPP1PP1/R1BQK1NR w KQk - 2 8
+      s14  2k: e4f5 d7  n3271   | 3k: e4f5 d7  n3271   IDENTICAL
+      pc20 2k: e4f5 d7  n3434   | 3k: e4f5 d7  n3434   IDENTICAL
+   55 1r1q3r/pp1bk1bp/n2pp1p1/1N6/2p1PP1P/P6B/1PP1N1PR/1RBQK3 w - - 1 15
+      s14  2k: b5c3 d6  n3156   | 3k: b5c3 d6  n3156   IDENTICAL
+      pc20 2k: b5c3 d6  n3001   | 3k: b5c3 d6  n3001   IDENTICAL
+   56 1r1q3r/1p5p/npbpk1p1/1N2P3/2p2b1P/P1PQ3R/1P2N1P1/1R2K3 w - - 0 22
+      s14  2k: e2f4 d7  n3799   | 3k: e2f4 d7  n3799   IDENTICAL
+      pc20 2k: e2f4 d7  n7167   | 3k: e2f4 d7  n7167   IDENTICAL
+   57 r2q3r/1pNk4/6pp/1p1pP3/1np1bN1P/P1P1Q2R/1P4P1/2R1K3 w - - 0 29
+      s14  2k: c7a8 d7  n3262   | 3k: c7a8 d7  n3262   IDENTICAL
+      pc20 2k: c7a8 d7  n2344   | 3k: c7a8 d8  n5767   
+   58 2qr4/QpN1k3/4P1pp/1p1p4/r1p1bN1P/P1Pn2P1/1P2K2R/1R6 w - - 3 36
+      s14  2k: a7b6 d7  n5122   | 3k: a7b6 d7  n5122   IDENTICAL
+      pc20 2k: a7b6 d7  n4864   | 3k: a7b6 d7  n4864   IDENTICAL
+   59 rN1r4/1p6/3k2p1/1p1pqb1N/1Pp4P/P1P1Q1PR/4K3/1R2n3 w - - 1 43
+      s14  2k: e3e5 d8  n6397   | 3k: e3e5 d8  n6397   IDENTICAL
+      pc20 2k: e3e5 d8  n5847   | 3k: e3e5 d8  n5847   IDENTICAL
+   60 1N2r3/8/1p1k4/rp3bpN/1Pp2RPP/P1PpR3/8/4n1K1 w - - 0 50
+      s14  2k: e3e8 d7  n2424   | 3k: e3e8 d8  n6118   
+      pc20 2k: e3e8 d8  n4025   | 3k: e3e8 d8  n4025   IDENTICAL
+   61 2b5/3k4/Np2R3/r1r3pN/pPp3PP/2Pp4/R7/6K1 w - - 6 57
+      s14  2k: a6c5 d7  n2044   | 3k: a6c5 d8  n3086   
+      pc20 2k: a6c5 d7  n2006   | 3k: a6c5 d8  n3089   
+   62 3k4/1b6/rp6/4RP1N/pPp5/R1P4p/3p3K/8 w - - 2 64
+      s14  2k: a3a1 d7  n2909   | 3k: a3a1 d8  n5344   
+      pc20 2k: a3a1 d7  n2760   | 3k: a3a1 d8  n6663   
+   63 b2k4/8/r7/1p3P1N/RPp3n1/2P4p/8/4R1K1 w - - 1 71
+      s14  2k: e1d1 d8  n2423   | 3k: e1d1 d9  n5048   
+      pc20 2k: e1d1 d8  n2327   | 3k: e1d1 d8  n2327   IDENTICAL
+   64 8/2k3n1/2b5/6R1/1Pp5/2P3K1/r3N2p/8 b - - 1 81
+      s14  2k: h2h1q d7  n2486   | 3k: h2h1q d8  n4842   
+      pc20 2k: h2h1q d7  n2562   | 3k: h2h1q d8  n4836   
+   65 3k4/8/8/3b4/1Pp2R2/2P4K/r3N3/q7 b - - 11 88
+      s14  2k: a2e2 d6  n2162   | 3k: a2e2 d7  n3191   
+      pc20 2k: a2e2 d7  n4291   | 3k: a2e2 d7  n4291   IDENTICAL
+   66 8/r2k4/8/8/1Pp2R2/q1P5/4b2K/6N1 b - - 25 95
+      s14  2k: e2d3 d7  n3406   | 3k: e2d3 d7  n3406   IDENTICAL
+      pc20 2k: e2d3 d7  n4178   | 3k: e2d3 d7  n4178   IDENTICAL
+   67 rnbqkb1r/ppppp2p/6pn/5p2/P7/N4N1P/1PPPPPP1/R1BQKB1R b KQkq - 3 4
+      s14  2k: h6f7 d7  n2035   | 3k: h6f7 d8  n3447   
+      pc20 2k: h6f7 d7  n2593   | 3k: h6f7 d8  n3867   
+   68 r1b1kb1r/1ppp2qp/2n3pn/p3pp2/PN2P3/1PPP1N1P/4QPP1/R1B1KB1R b KQkq - 2 11
+      s14  2k: a5b4 d7  n2882   | 3k: a5b4 d8  n5316   
+      pc20 2k: a5b4 d7  n3198   | 3k: a5b4 d7  n3198   IDENTICAL
+   69 1rb1kbqr/1p5p/6pB/p2PP3/Pnp2p2/1PP4P/2NNQPP1/R2K1B1R b k - 0 18
+      s14  2k: b4d5 d6  n2268   | 3k: b4d5 d7  n3079   
+      pc20 2k: b4d5 d6  n2218   | 3k: b4d5 d8  n5443   
+   70 1rb4r/1pBk2qp/1n6/p3P1p1/P7/1pP1QpPP/3N1P2/R1K1NB1R b - - 7 25
+      s14  2k: d7c7 d6  n2181   | 3k: d7c7 d7  n7385   
+      pc20 2k: b6d5 d6  n3036   | 3k: b6d5 d6  n3036   IDENTICAL
+   71 1r3rb1/1pk4p/1n6/pP2P1p1/2P5/1KN1Q1PP/5PNR/R4B2 w - - 3 36
+      s14  2k: e3c5 d8  n2197   | 3k: e3c5 d9  n3574   
+      pc20 2k: e3c5 d9  n3074   | 3k: e3c5 d9  n3074   IDENTICAL
+   72 1rnk3r/1p5p/8/2Q1Pbp1/p1P5/2K3PP/R3BPNR/8 b - - 11 46
+      s14  2k: f5d7 d7  n2574   | 3k: d8e8 d8  n5933   
+      pc20 2k: d8e8 d6  n2068   | 3k: f5d7 d7  n4459   
+   73 1r5r/1p3k1p/1n6/4P3/p1P5/3B2Pp/R1K2P1R/5N2 b - - 1 53
+      s14  2k: b8c8 d6  n3003   | 3k: b8c8 d6  n3003   IDENTICAL
+      pc20 2k: h8c8 d6  n4425   | 3k: h8c8 d6  n4425   IDENTICAL
+   74 1r2r3/1p6/4P2k/8/p7/n4BPp/R4PR1/3K1N2 b - - 2 60
+      s14  2k: h3g2 d7  n3171   | 3k: h3g2 d7  n3171   IDENTICAL
+      pc20 2k: h3g2 d7  n2496   | 3k: h3g2 d8  n6819   
+   75 r7/1r2P3/B5k1/1n6/5P2/6Pp/4R3/R2K1N2 b - - 2 67
+      s14  2k: b7b8 d5  n2054   | 3k: b7b8 d7  n3979   
+      pc20 2k: b7b8 d5  n2026   | 3k: b7b8 d7  n3924   
+   76 3N3k/1r1R4/8/1n6/8/4K1P1/7p/R4N2 w - - 0 78
+      s14  2k: d8b7 d9  n2610   | 3k: d8b7 d10 n3758   
+      pc20 2k: d8b7 d9  n2475   | 3k: d8b7 d10 n3501   
+   77 3N2k1/8/8/7R/8/R3K1P1/5r2/4n3 w - - 2 85
+      s14  2k: e3f2 d7  n2791   | 3k: e3f2 d8  n5841   
+      pc20 2k: e3f2 d7  n2047   | 3k: e3f2 d8  n6569   
+   78 8/7k/8/2NK4/r7/6P1/6n1/8 b - - 11 95
+      s14  2k: g2e3 d7  n3057   | 3k: g2e3 d7  n3057   IDENTICAL
+      pc20 2k: g2e3 d7  n3643   | 3k: g2e3 d7  n3643   IDENTICAL
+   79 rnbqkbnr/p1pp2pp/8/1p2pp2/P7/NP5P/2PPPPP1/R1BQKBNR b KQkq - 1 4
+      s14  2k: b5a4 d7  n2984   | 3k: b5a4 d8  n4368   
+      pc20 2k: b5a4 d7  n3084   | 3k: b5a4 d7  n3084   IDENTICAL
+   80 rn3bnr/p2pq1pp/b3k2B/P1p1pp2/1p5P/1PPP4/3QPPP1/RN2KBNR b KQ - 4 11
+      s14  2k: b4c3 d7  n2843   | 3k: g8h6 d8  n6380   
+      pc20 2k: b4c3 d7  n2686   | 3k: g8h6 d8  n4668   
+   81 rn3Bnr/p6p/3pkq2/P1p1ppp1/bpPP3P/1P4Q1/4PPP1/RN2KBNR b Q - 4 18
+      s14  2k: a4e8 d7  n5319   | 3k: a4e8 d7  n5319   IDENTICAL
+      pc20 2k: a4e8 d7  n4425   | 3k: a4e8 d7  n4425   IDENTICAL
+   82 4r1n1/p3q1B1/2npk2p/PNp2pp1/bpP4P/1P1p1Q1R/4PPP1/R3KBN1 b Q - 3 25
+      s14  2k: e7g7 d6  n2616   | 3k: e7g7 d7  n5903   
+      pc20 2k: e7g7 d6  n2537   | 3k: e7g7 d7  n5673   
+   83 3nr1n1/p4kB1/P2p4/1Np3pp/bpPQ1p1P/1P1p3R/4PPP1/R3KBN1 b - - 3 32
+      s14  2k: c5d4 d8  n3432   | 3k: c5d4 d8  n3432   IDENTICAL
+      pc20 2k: c5d4 d7  n2041   | 3k: c5d4 d8  n4681   
+   84 2rn4/5kB1/P1NQ1n2/2p4p/bpP2p1p/RP4R1/5PP1/4KnN1 b - - 3 39
+      s14  2k: d8c6 d4  n2948   | 3k: d8c6 d5  n3555   
+      pc20 2k: d8c6 d4  n2943   | 3k: d8c6 d5  n3560   
+   85 6k1/2r2N2/P1b5/2p1R2p/2P1npnp/pP6/5PP1/B3K1N1 w - - 0 50
+      s14  2k: e5h5 d8  n4807   | 3k: e5h5 d8  n4807   IDENTICAL
+      pc20 2k: e5h5 d7  n2089   | 3k: e5h5 d8  n5991   
+   86 6k1/Pbr5/8/2p1R2p/2PB1p1p/pP5N/4n1PN/3nK3 w - - 9 57
+      s14  2k: e1e2 d6  n2414   | 3k: e5e2 d7  n4188   
+      pc20 2k: e1e2 d6  n2384   | 3k: e1e2 d7  n4057   
+   87 N4k2/1brR4/8/2P4p/3p1p1p/pP4PN/3K3N/3nn3 w - - 1 64
+      s14  2k: a8c7 d7  n5235   | 3k: a8c7 d7  n5235   IDENTICAL
+      pc20 2k: a8c7 d7  n4708   | 3k: a8c7 d7  n4708   IDENTICAL
+   88 5k2/2N5/8/2P1R2p/5Nb1/pP1p1Np1/8/3K4 w - - 1 71
+      s14  2k: c7e6 d6  n2549   | 3k: c7e6 d7  n4357   
+      pc20 2k: c7e6 d6  n2033   | 3k: c7e6 d7  n3826   
+   89 8/5k2/4N3/2P5/7p/1P1N2p1/p2K4/3b3R w - - 0 78
+      s14  2k: h1d1 d7  n2511   | 3k: h1d1 d8  n4124   
+      pc20 2k: h1d1 d7  n2066   | 3k: h1d1 d8  n3501   
+   90 6k1/8/2P5/8/1Pb4p/2K3p1/2N3N1/7R w - - 1 85
+      s14  2k: c3c4 d8  n4182   | 3k: c3c4 d8  n4182   IDENTICAL
+      pc20 2k: c3c4 d8  n3426   | 3k: c3c4 d8  n3426   IDENTICAL
+   91 5k2/8/2P5/1P6/2K4N/6p1/R1N5/8 w - - 1 92
+      s14  2k: a2a8 d7  n2364   | 3k: a2a8 d8  n4418   
+      pc20 2k: a2a8 d7  n2656   | 3k: a2a8 d8  n4821   
+   92 rnbq1bnr/1pppkppp/p7/4p3/8/4PP2/PPPPK1PP/RNBQ1BNR b - - 1 4
+      s14  2k: b8c6 d7  n2348   | 3k: b8c6 d8  n4078   
+      pc20 2k: e7e8 d7  n2141   | 3k: e7e8 d8  n3378   
+   93 1n1q1bnr/1bpp1ppp/rp2k3/p7/P7/2PKPP1P/RP2B1P1/1NBQ2NR b - - 2 11
+      s14  2k: d8g5 d6  n2909   | 3k: d8g5 d7  n5143   
+      pc20 2k: d8g5 d6  n2720   | 3k: d8g5 d7  n4343   
+   94 5rnr/nbppqppp/1p1bk3/p7/P3P3/2PQ1P1P/RP2K1P1/1NB2BNR b - - 4 18
+      s14  2k: f7f5 d7  n2902   | 3k: f7f5 d8  n6727   
+      pc20 2k: f7f5 d7  n2959   | 3k: f7f5 d8  n6156   
+   95 b2Q1rr1/n1p1nkpp/1p3q2/p1b1P3/PP3B2/2P2P1P/R5P1/1N1K1BNR b - - 4 25
+      s14  2k: f8d8 d7  n2908   | 3k: f8d8 d8  n4425   
+      pc20 2k: f8d8 d7  n2900   | 3k: f8d8 d8  n5610   
+   96 b1n1r3/n1p3kp/1p1Q2p1/p3PrBP/PPB5/2P2P2/R2NN1P1/3K2bR b - - 0 32
+      s14  2k: c7d6 d7  n3450   | 3k: c7d6 d7  n3450   IDENTICAL
+      pc20 2k: c7d6 d7  n3449   | 3k: c7d6 d7  n3449   IDENTICAL
+   97 2n1r3/nbp2rkp/4Q1p1/ppb1PBBP/PPN5/2P2P2/R3N1P1/3K3R b - - 3 39
+      s14  2k: e8e6 d7  n4324   | 3k: e8e6 d7  n4324   IDENTICAL
+      pc20 2k: e8e6 d7  n4327   | 3k: e8e6 d7  n4327   IDENTICAL
+   98 1r4k1/nb4rp/1n1b2p1/ppp1P2P/PP3N2/2P2P1Q/RN1B2P1/1BKR4 b - - 1 46
+      s14  2k: b7c8 d4  n2180   | 3k: b7c8 d6  n3730   
+      pc20 2k: b7c8 d4  n2106   | 3k: b7c8 d6  n3544   
+   99 5b2/nr1n1krB/4b3/ppp1P2p/PP6/R1P2P2/1N1BN1P1/2K1R3 b - - 4 53
+      s14  2k: a5b4 d7  n3049   | 3k: a5b4 d7  n3049   IDENTICAL
+      pc20 2k: a5b4 d7  n2993   | 3k: a5b4 d8  n4815   
+  100 5bb1/n3k1rB/2r4B/ppp1n2p/PP6/R1PN1P2/4N1P1/2K2R2 b - - 3 60
+      s14  2k: g8h7 d7  n3350   | 3k: g8h7 d7  n3350   IDENTICAL
+      pc20 2k: g8h7 d7  n3194   | 3k: g8h7 d7  n3194   IDENTICAL
+  101 1r4b1/n3N2B/1b2k2B/ppP4p/P7/2PN1n2/3R2r1/R1K5 w - - 2 71
+      s14  2k: d3f4 d7  n5282   | 3k: d3f4 d7  n5282   IDENTICAL
+      pc20 2k: d3f4 d7  n5287   | 3k: d3f4 d7  n5287   IDENTICAL
+  102 1r4b1/P4r2/2N1k3/pp5p/P3B3/2P5/RN1n4/2K5 w - - 1 78
+      s14  2k: a7b8q d7  n3463   | 3k: a7b8q d7  n3463   IDENTICAL
+      pc20 2k: a7b8q d7  n3045   | 3k: a7b8q d7  n3045   IDENTICAL
+  103 B3r1b1/6r1/1k6/R6p/p7/n1P4B/8/2K5 w - - 3 92
+      s14  2k: a5a4 d7  n2269   | 3k: a5a4 d8  n4102   
+      pc20 2k: a5a4 d7  n2252   | 3k: a5a4 d8  n3058   
+  104 2B3b1/7r/8/n1k5/p6p/2P5/8/1BK2R2 w - - 7 99
+      s14  2k: f1f5 d8  n3180   | 3k: f1f5 d8  n3180   IDENTICAL
+      pc20 2k: f1f5 d8  n3188   | 3k: f1f5 d8  n3188   IDENTICAL
+  105 rn1qkbnr/p1p1p1p1/2b2p1B/1p1p4/1P4P1/3P1P1P/P1P1P3/RN1QKBNR w KQkq - 0 8
+      s14  2k: h6d2 d7  n2794   | 3k: h6d2 d8  n5362   
+      pc20 2k: h6d2 d7  n2217   | 3k: h6d2 d8  n4563   
+  106 r1k1qbnr/p2np3/b4p1B/1ppp4/1PPP1PP1/7P/P3PKB1/RN1Q2NR w - - 0 15
+      s14  2k: h6f8 d5  n2153   | 3k: h6f8 d7  n4019   
+      pc20 2k: h6f8 d5  n2142   | 3k: h6f8 d6  n3150   
+  107 rnbkqr2/p3n3/4pp1b/1pPp4/PPP1BPP1/7P/4P3/RN1Q1KNR w - - 5 22
+      s14  2k: a4b5 d6  n2088   | 3k: c4d5 d7  n4701   
+      pc20 2k: c4d5 d7  n4018   | 3k: c4d5 d7  n4018   IDENTICAL
+  108 r1b2b2/pBk1n3/1n2Qr2/1PP2p1q/PP3PP1/7P/4P3/RN2NKR1 w - - 5 29
+      s14  2k: e6e5 d8  n2537   | 3k: e6e5 d9  n4507   
+      pc20 2k: e6e5 d8  n2810   | 3k: e6e5 d9  n4501   
+  109 r4b2/pb1kn3/3n4/rPP2P2/PP1N1P2/7P/4K3/RN4R1 w - - 1 36
+      s14  2k: c5d6 d7  n4013   | 3k: c5d6 d7  n4013   IDENTICAL
+      pc20 2k: c5d6 d7  n3961   | 3k: c5d6 d7  n3961   IDENTICAL
+  110 rnk2b2/p7/8/PPP2P2/P4P2/N3Kb1P/5n2/RN2R3 w - - 1 43
+      s14  2k: e3f2 d8  n3947   | 3k: e3f2 d8  n3947   IDENTICAL
+      pc20 2k: e3f3 d8  n3619   | 3k: e3f3 d8  n3619   IDENTICAL
+  111 rn1k4/1b6/p1Pb1P2/PP5P/P2K1P2/N6n/8/RN2R3 w - - 3 50
+      s14  2k: c6b7 d8  n4842   | 3k: c6b7 d8  n4842   IDENTICAL
+      pc20 2k: c6b7 d7  n2832   | 3k: c6b7 d8  n5513   
+  112 rnk5/1b3P2/p1P4P/PP4n1/P1K2P2/N7/5b2/RN2R3 w - - 3 57
+      s14  2k: f7f8q d6  n3207   | 3k: f7f8q d6  n3207   IDENTICAL
+      pc20 2k: f7f8q d5  n2149   | 3k: f7f8q d6  n4234   
+  113 rnk5/bb3P2/2P4P/Pp6/P3K3/N2n4/2N5/1R3R2 w - - 6 64
+      s14  2k: f7f8q d7  n2743   | 3k: f7f8q d8  n3549   
+      pc20 2k: f7f8q d6  n2400   | 3k: f7f8q d7  n3400   
+  114 rn1k4/b7/2P4P/Pp2KR1b/Pn6/N7/8/4R3 w - - 4 71
+      s14  2k: e5d6 d5  n2256   | 3k: e5d6 d7  n4971   
+      pc20 2k: e5d6 d5  n2119   | 3k: e5d6 d7  n4746   
+  115 r1k5/R2n4/2P3bP/PNn5/P1K5/6b1/8/1R6 w - - 3 78
+      s14  2k: a7a8 d8  n4708   | 3k: a7a8 d8  n4708   IDENTICAL
+      pc20 2k: a7a8 d8  n4702   | 3k: a7a8 d8  n4702   IDENTICAL
+  116 2kn4/r7/2P3bP/P7/P1K5/1n4b1/8/4R3 w - - 0 85
+      s14  2k: e1f1 d5  n3275   | 3k: e1f1 d5  n3275   IDENTICAL
+      pc20 2k: e1f1 d5  n3516   | 3k: e1f1 d5  n3516   IDENTICAL
+  117 rnb1kbnr/pp1p1ppp/2p5/q3p3/1P6/2P5/P2PPPPP/RNBQKBNR b KQkq - 0 4
+      s14  2k: a5c7 d7  n2779   | 3k: a5c7 d8  n6106   
+      pc20 2k: a5c7 d7  n2094   | 3k: a5c7 d8  n3249   
+  118 rnb1k2r/pp1pn2p/2p5/b3p1p1/2P1PpP1/3B3N/P1QP1P1P/RNB1K2R b KQkq - 1 11
+      s14  2k: h7h5 d8  n3526   | 3k: h7h5 d8  n3526   IDENTICAL
+      pc20 2k: h7h5 d8  n3896   | 3k: h7h5 d8  n3896   IDENTICAL
+  119 rnb1k2r/p2p4/2p3n1/1pb1p1N1/2P1Ppp1/3B4/PB1PKP1P/RN1Q3R b kq - 2 18
+      s14  2k: c5e7 d7  n5014   | 3k: c5e7 d7  n5014   IDENTICAL
+      pc20 2k: f4f3 d7  n4227   | 3k: f4f3 d7  n4227   IDENTICAL
+  120 rnb5/p1b3kr/2pp2n1/1P2p3/4Ppp1/2NB3N/PB1PQP1P/R2K1R2 b - - 2 25
+      s14  2k: h7h3 d8  n4824   | 3k: h7h3 d8  n4824   IDENTICAL
+      pc20 2k: h7h3 d7  n2309   | 3k: h7h3 d8  n3623   
+  121 rn2b3/p1b4r/2p2B1k/1P2p3/N3pp1n/6p1/P1BPQP1P/R2K2NR b - - 1 32
+      s14  2k: g3f2 d7  n7005   | 3k: g3f2 d7  n7005   IDENTICAL
+      pc20 2k: g3g2 d7  n7900   | 3k: g3g2 d7  n7900   IDENTICAL
+  122 rn4kr/p7/2P1b3/1Q6/Nb2PB2/5n2/PRB2P1P/3K2Nn w - - 7 43
+      s14  2k: g1f3 d7  n6409   | 3k: g1f3 d7  n6409   IDENTICAL
+      pc20 2k: g1f3 d6  n2205   | 3k: g1f3 d7  n4667   
+  123 rn4kr/p2b4/2P5/b2n4/B2NP3/2N5/P1RB1P1P/2K4n w - - 8 50
+      s14  2k: e4d5 d6  n2500   | 3k: e4d5 d7  n4982   
+      pc20 2k: e4d5 d6  n2519   | 3k: e4d5 d7  n4689   
+  124 rn2b3/p3n1k1/2P5/b2NP2r/B4N1P/8/P1RB1P2/2K4n w - - 1 57
+      s14  2k: f4h5 d7  n2435   | 3k: f4h5 d8  n6936   
+      pc20 2k: f4h5 d7  n2360   | 3k: f4h5 d8  n5776   
+  125 rn6/p1P1n1k1/3RPrb1/3N4/B6P/8/P4b2/2K1B2n w - - 1 64
+      s14  2k: e1f2 d7  n5316   | 3k: e1f2 d7  n5316   IDENTICAL
+      pc20 2k: e1f2 d7  n5907   | 3k: e1f2 d7  n5907   IDENTICAL
+  126 rnn5/p2B3k/1N1RP3/5bB1/7P/8/P4b2/2K4n w - - 3 71
+      s14  2k: b6c8 d7  n3319   | 3k: b6c8 d7  n3319   IDENTICAL
+      pc20 2k: b6c8 d7  n2912   | 3k: b6c8 d8  n5222   
+  127 Nn6/p3n1k1/1b1R4/6B1/4b2P/7B/P2K4/7n w - - 0 78
+      s14  2k: a8b6 d7  n2494   | 3k: a8b6 d8  n3942   
+      pc20 2k: a8b6 d7  n2509   | 3k: a8b6 d8  n7546   
+  128 N2b4/p3n2k/5n2/4B3/6BP/8/P4nb1/4K3 w - - 4 85
+      s14  2k: e1f2 d6  n2197   | 3k: e5f6 d7  n3043   
+      pc20 2k: g4e2 d7  n3222   | 3k: g4e2 d7  n3222   IDENTICAL
+  129 3b2n1/3b3k/1N6/p7/P5BP/8/5n1B/4K3 w - - 1 92
+      s14  2k: g4d7 d7  n3410   | 3k: g4d7 d7  n3410   IDENTICAL
+      pc20 2k: g4d7 d7  n4218   | 3k: g4d7 d7  n4218   IDENTICAL
+  130 4b1n1/5B2/1N5k/p6P/P6b/6B1/5n2/4K3 w - - 13 99
+      s14  2k: g3h4 d8  n2264   | 3k: g3h4 d9  n10399  
+      pc20 2k: g3h4 d7  n2149   | 3k: g3h4 d8  n3961   
+  131 r2qkb1r/ppp1p1pp/2np1p1n/8/1B1P4/1P2P1Pb/P1PQ1P1P/RN2KBNR w KQkq - 2 8
+      s14  2k: f1h3 d7  n2357   | 3k: f1h3 d8  n6519   
+      pc20 2k: f1h3 d7  n2276   | 3k: f1h3 d8  n4997   
+  132 r2qkbnr/Bpp1p1pp/8/n1p2p2/3P4/1P1QP1P1/P4P1P/RN2KBNR w KQkq - 0 15
+      s14  2k: d3b5 d7  n5725   | 3k: d3b5 d7  n5725   IDENTICAL
+      pc20 2k: d3b5 d6  n2993   | 3k: a7c5 d7  n4243   
+  133 5bn1/rp2pkpr/2p2N2/n1p2p1p/2qP2B1/1P2P1P1/P4P1P/R1Q1K1NR w KQ - 0 22
+      s14  2k: b3c4 d7  n2530   | 3k: b3c4 d8  n6717   
+      pc20 2k: b3c4 d8  n5508   | 3k: b3c4 d8  n5508   IDENTICAL
+  134 5b2/rp2p1pr/1q1k3N/n2p1p1B/2p4P/5PPR/PQ6/R4KN1 b - - 2 32
+      s14  2k: b6b2 d7  n2095   | 3k: b6b2 d8  n3894   
+      pc20 2k: b6b2 d7  n2063   | 3k: b6b2 d8  n3665   
+  135 5bN1/rp4pr/4k3/n2ppp1B/2p3qP/5PPR/P7/2RQK1N1 b - - 13 39
+      s14  2k: g4h5 d7  n4357   | 3k: g4h5 d7  n4357   IDENTICAL
+      pc20 2k: g4h5 d7  n2652   | 3k: g4h5 d8  n5785   
+  136 6k1/1p4pr/2n2qB1/2bppp2/2p4P/QR3PPR/P7/3K2N1 b - - 7 46
+      s14  2k: c5a3 d8  n3007   | 3k: c5a3 d8  n3007   IDENTICAL
+      pc20 2k: c5a3 d8  n3420   | 3k: c5a3 d8  n3420   IDENTICAL
+  137 6k1/1p4pr/3q4/n3p2B/2p2p1P/b2p1PP1/PR5R/3K2N1 b - - 1 53
+      s14  2k: h7h5 d8  n4626   | 3k: h7h5 d8  n4626   IDENTICAL
+      pc20 2k: h7h5 d8  n3382   | 3k: h7h5 d8  n3382   IDENTICAL
+  138 5k2/N5p1/1pnb3r/8/2p1ppPP/4R3/PR6/4K3 b - - 1 67
+      s14  2k: f4e3 d8  n2500   | 3k: f4e3 d9  n4367   
+      pc20 2k: f4e3 d8  n2396   | 3k: f4e3 d9  n3414   
+  139 1N2R3/6k1/1p6/2b3pr/2p2pPP/8/PR2K3/8 b - - 8 74
+      s14  2k: h5h4 d7  n3584   | 3k: h5h4 d7  n3584   IDENTICAL
+      pc20 2k: h5h4 d7  n4102   | 3k: h5h4 d7  n4102   IDENTICAL
+  140 1N6/4b3/1p4k1/6p1/2R2pPr/1P6/8/4K3 b - - 4 81
+      s14  2k: h4g4 d7  n2067   | 3k: h4g4 d8  n3284   
+      pc20 2k: h4g4 d7  n3453   | 3k: h4g4 d7  n3453   IDENTICAL
+  141 8/8/Np3k1r/6p1/5pP1/1P6/8/2bRK3 b - - 18 88
+      s14  2k: h6h1 d9  n3183   | 3k: h6h1 d9  n3183   IDENTICAL
+      pc20 2k: h6h1 d9  n3452   | 3k: h6h1 d9  n3452   IDENTICAL
+  142 2k5/8/1p5r/6p1/5pP1/NP1K4/3b2R1/8 b - - 32 95
+      s14  2k: d2b4 d7  n2962   | 3k: d2b4 d8  n4863   
+      pc20 2k: d2b4 d7  n2854   | 3k: d2e1 d8  n10473  
+  143 1nbqkbnr/1ppp1ppp/r3p3/p7/2P3P1/N4N2/PP1PPP1P/R1BQKB1R b KQk - 0 4
+      s14  2k: d7d5 d6  n2062   | 3k: d7d5 d7  n5355   
+      pc20 2k: d7d5 d7  n2381   | 3k: d7d5 d8  n5933   
+  144 1nbqkbr1/1p1p1p1p/1rp1p2n/p2P2p1/2P3PN/P2Q3P/1P2PP2/RNB1KB1R b KQ - 0 11
+      s14  2k: g5h4 d7  n3877   | 3k: g5h4 d7  n3877   IDENTICAL
+      pc20 2k: g5h4 d6  n2119   | 3k: g5h4 d7  n3217   
+  145 1nb1k3/1p1p1prp/q1p1p2n/p2P2p1/r1P1Q1PN/P6P/R3PPBK/1NB2R2 b - - 6 18
+      s14  2k: d7d6 d6  n2489   | 3k: d7d6 d7  n6209   
+      pc20 2k: d7d6 d6  n2408   | 3k: d7d6 d7  n5509   
+  146 1nb2k2/1q1p1p1p/2p1r3/pp1PpQB1/r1P2PPN/P5KB/R3P3/1N3R2 b - - 6 25
+      s14  2k: c6d5 d5  n2208   | 3k: f8g8 d6  n4976   
+      pc20 2k: c6d5 d5  n2198   | 3k: f8g8 d6  n5684   
+  147 1nb5/3prp1p/3q2Nk/pp1PpQ2/r4PPK/P1p4B/3NP3/5R2 w - - 0 36
+      s14  2k: f5g5 d8  n4160   | 3k: f5g5 d8  n4160   IDENTICAL
+      pc20 2k: f5g5 d8  n4703   | 3k: f5g5 d8  n4703   IDENTICAL
+  148 2b1r3/3p3p/n1q3Nk/p2Pp3/rp2PPPK/P1p3N1/5R2/7B w - - 6 43
+      s14  2k: d5c6 d7  n2137   | 3k: g6e5 d8  n4190   
+      pc20 2k: d5c6 d7  n2085   | 3k: g6e5 d8  n4089   
+  149 5N2/1b1pr2p/n6k/4P2N/rp2P1PK/1qp5/6B1/6R1 w - - 0 50
+      s14  2k: g4g5 d64 n1536   | 3k: g4g5 d64 n1536   IDENTICAL
+      pc20 2k: g4g5 d64 n1536   | 3k: g4g5 d64 n1536   IDENTICAL
+  150 1n3N2/1bqpr1kp/4P3/8/rp2P1PK/5R2/4N3/2n2B2 w - - 2 57
+      s14  2k: e6d7 d6  n2350   | 3k: e2g3 d7  n6475   
+      pc20 2k: e6d7 d7  n3543   | 3k: e6d7 d7  n3543   IDENTICAL
+  151 br6/1q1p4/B1n1PN1k/8/rp2P1PK/6N1/8/2n5 w - - 11 64
+      s14  2k: a6b7 d7  n3273   | 3k: a6b7 d7  n3273   IDENTICAL
+      pc20 2k: a6b7 d7  n3695   | 3k: a6b7 d7  n3695   IDENTICAL
+  152 b2R4/5k1N/Br6/N3q3/rp2P1PK/8/8/2n5 w - - 1 71
+      s14  2k: a5c6 d6  n2978   | 3k: g4g5 d7  n8005   
+      pc20 2k: g4g5 d6  n2580   | 3k: g4g5 d7  n6319   
+  153 2R2N2/5k2/8/8/r3P3/2N3r1/7K/2n2B2 b - - 6 81
+      s14  2k: g3c3 d8  n3770   | 3k: g3c3 d8  n3770   IDENTICAL
+      pc20 2k: g3c3 d8  n6839   | 3k: g3c3 d8  n6839   IDENTICAL
+  154 r5B1/4k3/8/8/4P3/3N4/6nK/8 b - - 13 95
+      s14  2k: a8g8 d7  n2012   | 3k: a8g8 d8  n4910   
+      pc20 2k: a8g8 d7  n2232   | 3k: a8g8 d8  n3999   
+  155 rnb1kbnr/p1pqpppp/1p6/1P1p4/3P2P1/8/P1P1PP1P/RNBQKBNR b KQkq - 0 4
+      s14  2k: d7b5 d8  n2892   | 3k: d7b5 d9  n4959   
+      pc20 2k: d7b5 d8  n4703   | 3k: d7b5 d8  n4703   IDENTICAL
+  156 r2nkbnr/p1pbpp1p/1p6/1PPp2p1/3P4/4KN2/PB1NPP1P/R2Q1B1R b kq - 2 11
+      s14  2k: f8h6 d5  n2659   | 3k: f8h6 d6  n3759   
+      pc20 2k: f8h6 d5  n2239   | 3k: g8f6 d7  n7810   
+  157 r1bnk1nr/p1p2p1p/1p2p3/1PPp4/3b1K2/1N3NPP/PB2P1B1/R3Q2R b kq - 1 18
+      s14  2k: d4b2 d7  n3683   | 3k: d4b2 d7  n3683   IDENTICAL
+      pc20 2k: d4b2 d7  n3353   | 3k: d4b2 d7  n3353   IDENTICAL
+  158 r2nk2r/1bp2p1p/1pP1pn2/pP1p4/2Qb1KN1/1N4PP/PB2P1B1/5R1R b - - 4 25
+      s14  2k: d5c4 d7  n4407   | 3k: d5c4 d7  n4407   IDENTICAL
+      pc20 2k: d5c4 d7  n4613   | 3k: d5c4 d7  n4613   IDENTICAL
+  159 r2n1k2/2p2p2/bpP1pn2/1P1p3p/p2b1K1P/1N2N1P1/PB2P1B1/1R5R b - - 1 32
+      s14  2k: d4b2 d7  n2141   | 3k: d4e3 d8  n6519   
+      pc20 2k: d4b2 d7  n2125   | 3k: d4e3 d8  n6324   
+  160 2rn4/2p1kp1n/2P2b2/1p1pNKPp/b3p2P/pNB5/P3P1R1/5B1R w - - 2 43
+      s14  2k: g5f6 d9  n2453   | 3k: g5f6 d10 n3491   
+      pc20 2k: g5f6 d9  n2435   | 3k: g5f6 d10 n3457   
+  161 2rn1n2/2p2P2/2Pk4/3p4/1p2pKpP/p1B5/P3P1R1/2Nb1B1R w - - 1 50
+      s14  2k: c3b4 d8  n2200   | 3k: c3b4 d9  n8965   
+      pc20 2k: c3b4 d8  n1873   | 3k: c3b4 d9  n8695   
+  162 2r2n2/2p2P2/2n1k3/8/1p1p2KP/p7/P3P2R/N2q1BR1 w - - 0 57
+      s14  2k: a1b3 d7  n4941   | 3k: a1b3 d7  n4941   IDENTICAL
+      pc20 2k: a1b3 d7  n5463   | 3k: a1b3 d7  n5463   IDENTICAL
+  163 1nr2B2/2p5/2q1k2K/7n/1p1p4/pN2P3/P7/5BRR w - - 5 64
+      s14  2k: b3d4 d7  n6655   | 3k: b3d4 d7  n6655   IDENTICAL
+      pc20 2k: b3d4 d7  n7071   | 3k: b3d4 d7  n7071   IDENTICAL
+  164 1Nr5/6n1/1n3k1K/2p5/1pqP4/p6R/P7/5BR1 w - - 0 71
+      s14  2k: g1g6 d8  n3849   | 3k: g1g6 d8  n3849   IDENTICAL
+      pc20 2k: g1g6 d8  n3827   | 3k: g1g6 d8  n3827   IDENTICAL
+  165 1Nr5/6n1/5knK/2p1R3/q2P4/p7/P1R3B1/1b6 w - - 0 78
+      s14  2k: c2f2 d8  n5309   | 3k: c2f2 d8  n5309   IDENTICAL
+      pc20 2k: c2f2 d8  n3872   | 3k: c2f2 d8  n3872   IDENTICAL
+  166 1Nr5/2q1k1n1/7K/2p3R1/3P4/pB3n2/P7/1bR5 w - - 14 85
+      s14  2k: h6g7 d6  n4724   | 3k: h6g7 d6  n4724   IDENTICAL
+      pc20 2k: h6g7 d6  n4557   | 3k: h6g7 d6  n4557   IDENTICAL
+  167 q2r4/4k2b/1N5K/2p2B2/3P4/p5R1/P7/1R2n3 w - - 3 92
+      s14  2k: b1e1 d6  n2222   | 3k: b1e1 d8  n3721   
+      pc20 2k: b1e1 d6  n2234   | 3k: b1e1 d8  n3694   
+  168 3r4/7b/1N3kBK/3q4/2RP4/p2n4/P7/8 w - - 3 99
+      s14  2k: b6d5 d7  n1059   | 3k: b6d5 d8  n10088  
+      pc20 2k: b6d5 d8  n5658   | 3k: b6d5 d8  n5658   IDENTICAL
+  169 r1bqkb1r/2pppp2/2n2n2/pp4pp/1P2P3/N1N2P2/P1PP2PP/R1BQKBR1 w Qkq - 2 8
+      s14  2k: c3b1 d5  n2202   | 3k: c3b1 d6  n3230   
+      pc20 2k: c3b5 d6  n2277   | 3k: a3b5 d7  n3442   
+  170 3qkb2/1bppppr1/r1n5/1p4pp/pP2P3/2NB2P1/P1PPQ2P/RNB1K1R1 w Q - 1 15
+      s14  2k: d3b5 d7  n3788   | 3k: d3b5 d7  n3788   IDENTICAL
+      pc20 2k: d3b5 d7  n3716   | 3k: d3b5 d7  n3716   IDENTICAL
+  171 1q2kb1Q/n1p1p1r1/r1bp4/5pp1/pP6/N2B2P1/P1PP1KRP/RNB5 w - - 0 22
+      s14  2k: d3a6 d7  n2898   | 3k: h8h5 d8  n8010   
+      pc20 2k: d3a6 d7  n2234   | 3k: d3a6 d8  n5241   
+  172 1qnk1bQ1/2pbr3/B2p4/4p1p1/pPP3pP/N2P4/P4KR1/RNB5 w - - 1 29
+      s14  2k: g8f8 d7  n2261   | 3k: g8f8 d8  n3920   
+      pc20 2k: g8f8 d7  n2274   | 3k: g8f8 d8  n3750   
+  173 1Bnk1b2/2p3r1/1qbp4/3Q2pP/pPP1p1p1/N2P4/P3K1R1/RN6 w - - 0 36
+      s14  2k: d5f5 d7  n3858   | 3k: d5f5 d7  n3858   IDENTICAL
+      pc20 2k: d5f5 d7  n3679   | 3k: d5f5 d7  n3679   IDENTICAL
+  174 1Bn2b2/2pbk1r1/1q1p4/6pP/pPPQ2p1/N2Pp3/P6R/RN3K2 w - - 0 43
+      s14  2k: d4b6 d7  n1805   | 3k: d4b6 d8  n9062   
+      pc20 2k: d4b6 d8  n6642   | 3k: d4b6 d8  n6642   IDENTICAL
+  175 1Bn1kbr1/q7/2pp1Q2/1N4pP/pPP5/2NPp1K1/P6R/1R6 w - - 1 50
+      s14  2k: b8a7 d8  n4891   | 3k: b8a7 d8  n4891   IDENTICAL
+      pc20 2k: b8a7 d8  n5613   | 3k: b8a7 d8  n5613   IDENTICAL
+  176 1Bn2b1r/4k3/2q5/3p2pP/1PP5/pRNPp1K1/P6R/5Q2 w - - 0 57
+      s14  2k: c3d5 d7  n3092   | 3k: c3d5 d7  n3092   IDENTICAL
+      pc20 2k: c3d5 d6  n2112   | 3k: c3d5 d7  n3550   
+  177 1Bnk4/8/2q5/2bp4/1PP3Kp/pRNP4/P6R/4r3 w - - 0 64
+      s14  2k: b4c5 d6  n4021   | 3k: b4c5 d6  n4021   IDENTICAL
+      pc20 2k: c3d5 d6  n3697   | 3k: c3d5 d6  n3697   IDENTICAL
+  178 1qnk4/8/4K3/3PR3/1b6/p1NP3p/P7/R2r4 w - - 0 71
+      s14  2k: c3d1 d6  n2980   | 3k: c3d1 d7  n5509   
+      pc20 2k: c3d1 d6  n2889   | 3k: c3d1 d7  n7363   
+  179 2nk4/7K/8/3P4/1b6/p1qP3p/P7/3r1R2 w - - 4 78
+      s14  2k: f1f3 d7  n3752   | 3k: f1f3 d7  n3752   IDENTICAL
+      pc20 2k: f1f3 d7  n3260   | 3k: f1f3 d7  n3260   IDENTICAL
+  180 2nk4/6K1/3P4/8/8/pq1P3p/P7/2b1R3 w - - 5 85
+      s14  2k: a2b3 d7  n2201   | 3k: a2b3 d8  n3973   
+      pc20 2k: a2b3 d7  n2102   | 3k: a2b3 d8  n3920   
+  181 3qR3/2k5/4K3/8/3P4/p4R1p/P4b2/8 b - - 8 95
+      s14  2k: d8e8 d7  n2708   | 3k: d8e8 d8  n6710   
+      pc20 2k: d8e8 d7  n2656   | 3k: d8e8 d8  n6528   
+  182 rnbqkbnr/pp1ppp1p/2p5/6p1/P2P4/7P/1PP1PPP1/RNBQKBNR b KQkq - 0 4
+      s14  2k: h7h6 d8  n3817   | 3k: h7h6 d8  n3817   IDENTICAL
+      pc20 2k: h7h6 d8  n4422   | 3k: h7h6 d8  n4422   IDENTICAL
+  183 rnb3nr/p2kp2p/1ppq3b/3p1pB1/P2P2P1/N1P1PP1P/1P4B1/R2QK1NR b KQ - 2 11
+      s14  2k: h6g5 d7  n4679   | 3k: h6g5 d7  n4679   IDENTICAL
+      pc20 2k: h6g5 d7  n4341   | 3k: h6g5 d7  n4341   IDENTICAL
+  184 rn1k2nr/pb2p1bp/1pp4B/3p1p2/P2PPPP1/NqP4P/4K1BR/RQ4N1 b - - 3 18
+      s14  2k: b3b1 d8  n3020   | 3k: b3b1 d8  n3020   IDENTICAL
+      pc20 2k: b3b1 d8  n2900   | 3k: b3b1 d9  n4921   
+  185 6nr/1bknp1bp/1pp2r1B/p2p1p2/R2PPPPP/2P5/1Q2N1BR/5K2 b - - 2 25
+      s14  2k: g8h6 d7  n2302   | 3k: g8h6 d8  n4636   
+      pc20 2k: g8h6 d7  n2274   | 3k: g8h6 d8  n4265   
+  186 6nr/6bp/bppk1r1B/p4P2/R2PpPPP/2Pn4/6BR/5KN1 b - - 1 32
+      s14  2k: g8h6 d7  n4475   | 3k: g8h6 d7  n4475   IDENTICAL
+      pc20 2k: g8h6 d7  n4485   | 3k: g8h6 d7  n4485   IDENTICAL
+  187 6nr/6bp/1ppk1r2/pb3P1P/R1PP1PP1/5p1R/5KB1/2n5 b - - 4 39
+      s14  2k: c1d3 d8  n2801   | 3k: c1d3 d9  n5298   
+      pc20 2k: c1d3 d7  n2329   | 3k: c1d3 d8  n3895   
+  188 5b1r/4n3/1ppk1r1p/pP1P3P/R4PP1/3n3R/6p1/6K1 b - - 1 46
+      s14  2k: c6b5 d7  n2379   | 3k: c6b5 d8  n5120   
+      pc20 2k: c6b5 d7  n3494   | 3k: c6b5 d7  n3494   IDENTICAL
+  189 2nr4/8/1pPk3p/p2Pb1rP/5PP1/8/R5p1/2n3KR b - - 0 53
+      s14  2k: g2h1r d8  n2578   | 3k: g2h1q d9  n3586   
+      pc20 2k: g2h1q d8  n2414   | 3k: g2h1r d9  n4117   
+  190 2B1r3/n5r1/1p1k3p/p2P3P/5PP1/2b5/3R4/5K1n b - - 5 60
+      s14  2k: a7c8 d7  n3882   | 3k: a7c8 d7  n3882   IDENTICAL
+      pc20 2k: a7c8 d7  n4260   | 3k: a7c8 d7  n4260   IDENTICAL
+  191 3r4/6r1/1pk4p/4P2P/p5PR/8/7K/8 b - - 1 67
+      s14  2k: b6b5 d7  n2383   | 3k: b6b5 d8  n5273   
+      pc20 2k: a4a3 d6  n2204   | 3k: a4a3 d7  n3189   
+  192 2r5/8/1pk4p/4P1rP/6P1/8/7K/6R1 b - - 6 74
+      s14  2k: g5e5 d7  n2139   | 3k: g5e5 d8  n7123   
+      pc20 2k: g5e5 d6  n2134   | 3k: g5e5 d8  n4123   
+  193 r7/8/1p5p/2k3PP/8/R6K/5r2/8 b - - 4 81
+      s14  2k: a8a3 d8  n2055   | 3k: a8a3 d9  n3342   
+      pc20 2k: a8a3 d8  n2235   | 3k: a8a3 d9  n3437   
+  194 R7/2r2r2/6Pp/1p5P/1k5K/8/8/8 b - - 1 88
+      s14  2k: f7f5 d7  n4372   | 3k: f7f5 d7  n4372   IDENTICAL
+      pc20 2k: f7f5 d6  n2058   | 3k: f7f5 d7  n3035   
+  195 8/8/6Pp/1p3R1P/1k4K1/3r4/7r/8 b - - 15 95
+      s14  2k: h2g2 d8  n4462   | 3k: h2g2 d8  n4462   IDENTICAL
+      pc20 2k: h2g2 d8  n5058   | 3k: h2g2 d8  n5058   IDENTICAL
+  196 r1bqkbnr/pp2pppp/2np4/2p5/4P3/2P2P1P/PP1P2P1/RNBQKBNR b KQkq - 0 4
+      s14  2k: e7e6 d7  n3290   | 3k: e7e6 d7  n3290   IDENTICAL
+      pc20 2k: e7e6 d7  n3261   | 3k: e7e6 d7  n3261   IDENTICAL
+  197 1r2kbnr/pp1bpp1p/2n3p1/1qPp4/2N1PP1P/2P5/P5P1/R1BQKBNR b KQk - 0 11
+      s14  2k: d5c4 d7  n2961   | 3k: d5c4 d8  n4827   
+      pc20 2k: d5c4 d7  n2951   | 3k: d5c4 d8  n5084   
+  198 1r1nkbnr/1p1bp2p/1pq2pp1/2P5/4PP1P/P1Pp1QP1/1B1K4/R4BNR b k - 0 18
+      s14  2k: b6c5 d7  n3204   | 3k: b6c5 d7  n3204   IDENTICAL
+      pc20 2k: g8h6 d6  n2686   | 3k: g8h6 d7  n3652   
+  199 3rk1nr/1pq1pnbp/1P2Ppp1/8/P4P1P/2Pp2P1/QBbK4/R4BNR b k - 0 25
+      s14  2k: c7b6 d7  n3087   | 3k: c7b6 d7  n3087   IDENTICAL
+      pc20 2k: c7b6 d6  n2001   | 3k: c7c6 d7  n3441   

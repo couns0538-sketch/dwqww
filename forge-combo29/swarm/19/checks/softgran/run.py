@@ -11,7 +11,7 @@ import subprocess, sys, os, hashlib, json
 
 PCPATH = os.path.expanduser("~/pcbuild/build/forge")
 BASEPATH = os.path.expanduser("~/build_rel/forge")
-FENS = "/home/ubuntu/peerchk/29/R_2911.fens"
+FENS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "positions_used_200.fens")
 OUTDIR = os.path.dirname(os.path.abspath(__file__))
 
 S14 = [
@@ -100,7 +100,7 @@ def run(exe, fen, opts, go):
 
 def main():
     pos = [l.strip() for l in open(FENS) if l.strip()]
-    slice_ = pos[0::2]          # same 200 positions as 19-C48
+    slice_ = pos[:200]          # the file already IS the 200 positions searched in 19-C49
     results = {}
     for tag, exe, opts in (("s14", BASEPATH, S14), ("pc20", PCPATH, S14 + PC20EXTRA)):
         rows = []
