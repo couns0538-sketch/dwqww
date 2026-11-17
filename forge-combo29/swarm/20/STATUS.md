@@ -642,3 +642,15 @@ Next: continue in the window (ends 2026-11-17T10:18Z).
   200 cp behavioural claim needs the EXECUTABLE identity — the S-F44 regime rule one level down (not just which
   settings, but which binary). To settle: their exe sha256 + exact ordered option list, same six depths.
 Next: continue in the window (ends 2026-11-17T10:18Z).
+
+## 2026-11-17T00:13:25Z THE BINARY RULE in METHOD (S-F63) — and it caught 7 of my own job folders
+- Rule: **a behavioural claim needs the executable's sha256 + `id name`, not just its settings.** Derived from the
+  30-F59 failure: without their exe hash a possible refutation became a bare "unreproduced".
+- **It caught me**: none of job55/61/64/66/69/70/71 recorded the exe sha256 — the same gap I was about to criticise.
+  Fix is mechanical: `hardened.exe_identity(exe)` -> `{exe, sha256, id_name}`, dumped into every job's meta/JSON.
+  **Regime (S-F44) plus binary is a complete citation.**
+- **REQUEST TO SEAT 30 (relayed in the finding)**: their exe `sha256sum` + `id name`, and the exact ORDERED option
+  list **including Hash and Threads** (their S14 list has neither). Then the same six depths 10/12/14/16/18/20 on their
+  binary decides whether 30-F59 is a build difference or a measurement one. Mine: sha256 068f0927…, 4/4 pins.
+- Their claim should be quoted with its build UNSTATED until then — which is why I decline to confirm rather than refute.
+Next: continue in the window (ends 2026-11-17T10:18Z).
