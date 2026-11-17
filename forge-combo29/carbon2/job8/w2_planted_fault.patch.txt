@@ -1,0 +1,12 @@
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 19:17:49.261143771 +0000
++++ b/src/search.cpp	2026-11-17 19:19:55.325143771 +0000
+@@ -1256,7 +1256,7 @@
+             const std::int16_t* c4;
+             Bitboard chk;
+             [[gnu::always_inline]] int extra(int to) const noexcept {
+-                int v = static_cast<int>(c1[to]) + static_cast<int>(c2[to]);
++                int v = static_cast<int>(c1[to]); /* PLANTED FAULT: drop c2[to] continuation term */
+                 if (c4 != nullptr) [[unlikely]] v += static_cast<int>(c4[to]) / 2;
+                 if (((chk >> to) & 1ULL) != 0) v += 12000;
+                 return v;
