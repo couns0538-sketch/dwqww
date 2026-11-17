@@ -1,11 +1,11 @@
-# HOW THESE PROBES LIED TO ME — ten ways a probe looked like an engine defect
+# HOW THESE PROBES LIED TO ME — eleven ways a probe looked like an engine defect
 
-**Contents:** Trap 1 (pawn on the king's square) · Trap 2 (the shell sent the `stop`) · Trap 2b (the harness window decided the outcome) · Trap 3 (a verdict read off a tuple) · Trap 4 (a parser keying on an optional field) · Trap 5 (a mislabelled FEN) · Trap 6 (a narrow band skipped by four sampled points) · Trap 7 (a null without its expected count) · Trap 8 (a "deterministic" metric that moves between identical runs) · Trap 9 (a confidence interval that excluded 1.0 on the wrong side).
+**Contents:** Trap 1 (pawn on the king's square) · Trap 2 (the shell sent the `stop`) · Trap 2b (the harness window decided the outcome) · Trap 3 (a verdict read off a tuple) · Trap 4 (a parser keying on an optional field) · Trap 5 (a mislabelled FEN) · Trap 6 (a narrow band skipped by four sampled points) · Trap 7 (a null without its expected count) · Trap 8 (a "deterministic" metric that moves between identical runs) · Trap 9 (a confidence interval that excluded 1.0 on the wrong side) · Trap 10 (a module that measured on import).
 
-Ten entries; trap 2b is a second occurrence of trap 2's root cause, which is why it carries a letter rather than a new number.
+Eleven entries; trap 2b is a second occurrence of trap 2's root cause, which is why it carries a letter rather than a new number.
 
 Seat 11. Every finding of mine that was wrong was wrong because of the probe, not the engine. These
-ten are the ones general enough that anyone writing similar probes will hit them, so each is written
+eleven are the ones general enough that anyone writing similar probes will hit them, so each is written
 out in full: what I saw, what was actually true, the tell I should have read first, the fix, and the
 corrected result. Every one was caught by a control, not by luck.
 
@@ -149,7 +149,7 @@ pattern, so it is recorded as a pattern.
 
 ---
 
-## Seven more, shorter, from the same folder (traps 3-9, after 1, 2 and 2b above)
+## Eight more, shorter, from the same folder (traps 3-10, after 1, 2 and 2b above)
 
 **Trap 3 — reading a verdict off a tuple.** A defect-hunt loop reported 14 "defects" on a board where
 every score was `('mate', 1)`. The score WAS found; my unpacking was `score, bm = s` where `s` was already
@@ -251,6 +251,17 @@ when the UPPER bound is below 1.0, NOT PROVEN otherwise.
 **The general rule: an interval tells you the effect exists; the interval's position tells you its
 sign. Always read which side of 1.0 it is on, and make the tool say the word.** (S-F109)
 
+**Trap 10 — a tool that does work when you merely TOUCH it.** Building a positive control for the
+speed verdict, I imported `job_v3/timing.py` to reach its `verdict_of()` function — and the import re-ran the
+entire four-binary, 90-second timing measurement, because the measurement sat at module level. Nothing
+failed and no number was wrong; the module simply did work I had not asked for, and a control that
+should take 200 ms took 90 s.
+**The general rule: a module you import must not measure anything.** Put the work behind
+`if __name__ == "__main__"`, exactly as a probe must not send the stimulus it is testing for
+(trap 2) or run past its own deadline (trap 2b). All three are the same shape: **the harness acting on
+its own.** Guarding the entry point brought the control to 194 ms and made `verdict_of` free to import.
+(S-F111)
+
 ## The checkers get the same treatment
 Every finding here that says "0 problems" or "all rows stable" rests on a tool, and a tool that has
 never been shown to fail is a tool whose approval is worthless. So both of my checkers carry a planted
@@ -284,6 +295,7 @@ control rather than by re-reading the code:
 | optional-field parser | `bestmove` came back legal, so a search had plainly run despite the zero line count |
 | mislabelled FEN | re-deriving counts from the generated FEN instead of the intended label |
 | a CI that excluded 1.0 on the wrong side | the harness now prints FASTER / SLOWER / NOT PROVEN by bound position |
+| a module that measured on import | moving the work behind `__main__` cut the control from 90 s to 194 ms |
 
 All seven traps are recorded in my findings as process notes (S-F65, S-F26) so they are not mistaken for
 engine behaviour by anyone reading the table later.
