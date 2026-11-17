@@ -1,0 +1,25 @@
+what differs between the two that BAIL (1,4) and the one that SEARCHES (7)?
+
+| pos | verdict | castling | #legal | #pieces | halfmove | cycle move types |
+|---|---|---|---|---|---|---|
+| 1 | BAIL | KQkq | 31 | 32 | 0 | NBNB |
+| 4 | BAIL | Kkq | 40 | 30 | 0 | RNRN |
+| 7 | SEARCH | kq | 42 | 29 | 1 | NRNR |
+
+the cycle is a SHUTTLE of two pieces in all three cases. In pos 7 the shuttle is knight-vs-king
+(c4e5 is a knight, h8g8 a king). In 1 and 4 let's see the actual pieces moved.
+  pos 1: fen rnbqkbnr/pppp3p/6p1/4pp2/7P/1P1BP3/P1PP1PP1/RNBQK1NR b KQkq - 0 4
+     g8e7 moves n (g8)
+     d3a6 moves B (d3)
+     e7g8 moves n (e7)
+     a6d3 moves B (a6)
+  pos 4: fen r1bqkbnr/R2pp2p/5p2/1Ppn2p1/5P2/1P1P1N2/2P1P1PP/1NBQKB1R w Kkq - 0 8
+     a7c7 moves R (a7)
+     g8h6 moves n (g8)
+     c7a7 moves R (c7)
+     h6g8 moves n (h6)
+  pos 7: fen rn1qkb1r/p2p1p2/1p2p3/2pP2pp/Q1N3P1/P1P1BP2/1P2P1K1/R4BNR w kq - 1 15
+     c4e5 moves N (c4)
+     h8g8 moves r (h8)
+     e5c4 moves N (e5)
+     g8h8 moves r (g8)

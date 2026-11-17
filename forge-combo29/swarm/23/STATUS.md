@@ -2112,3 +2112,27 @@ scope was right as a scope but pointed the wrong way as an explanation - endgame
 fixture happened to live.
 
 143 findings, 24 rule instances, both audits PASS.
+## 2026-11-17T01:43:15Z  F116-F117: halfmove ruled out too; handoff package written for the source-reading seat
+2026-11-17T01:43:15Z
+
+F116: the halfmove clock is the fourth explanation ruled out. Board and cycle fixed, only the field varied: M1 bails at
+halfmove 0, 1 and 2; M4 bails at 0, 1 and 2; M7 SEARCHES (11,390 nodes) at 0, 1 and 2. So M7's original halfmove of 1
+was not the difference.
+
+And one useful asymmetry, measured rather than assumed: on M7 - a SEARCHING cell - the move is d5e6 at index 5 of its
+divide whose head is b2b3. So a searching cell returns an ordinary search result, while a bailing cell returns the list
+head. That is consistent with two code paths selected by some condition, which is what the handoff now says to look for.
+
+F117: HANDOFF_drawn_root_trigger.md is written for a seat that reads source rather than measures. It carries:
+  - one master table: FEN, full move list, root occurrence count, nodes, score, bestmove, verdict, for every drawn-root
+    cell measured - endgames, middlegame pairs with castling stripped, the controlled castling contrast;
+  - the bare-FEN controls for the same boards, and the halfmove sweep, and the 7-rung material ladder;
+  - the four ruled-out explanations, each with the cells that kill it;
+  - six candidate mechanisms A-F, each with the observation that would REFUTE it, including the one that survives
+    (early return publishing the generated head) and the two cheapest untested axes: ROOT DISTANCE in the history
+    (every cell holds it at plies 0/4/8) and a castling-field/history mismatch.
+
+State handed over deliberately as: reproducible effect, four explanations ruled out, no clean characterisation. The
+closest pair for a reader to diff is M1 vs M7 - both middlegame, both with rights, opposite verdicts.
+
+145 findings, 24 rule instances, all three checks PASS.
