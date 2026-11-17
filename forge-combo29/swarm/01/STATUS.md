@@ -468,6 +468,30 @@ workload for per-node cost. That is the measurement behind the workload rule abo
 > is *three instruments pointed at this result, one of which has fired*, and a reader should weigh it by that rather than
 > by how many checks stand behind it.
 
+### THE MOVE-GENERATION CLEAN BILL — population scale, not a sample
+
+**353 of 353 positions in `set_G`, both builds, perft depth 4, zero disagreements with python-chess, zero skips.**
+
+| | result |
+|---|---|
+| positions | **353** (`set_G.epd`, the population my area-1 findings use) |
+| builds | PC r15 **and** base `release` — identical |
+| comparisons | **706** position-build pairs |
+| depth | **perft 4** |
+| disagreement with python-chess | **0** |
+| FENs python-chess refused | **0** |
+| instrument self-test | fired in both runs (`different boards differ, 19 vs 13`) |
+
+**Why depth 4 rather than 3, stated as a mechanism rather than a preference:** a move-generation defect that survives
+three plies is not ruled out at three, because **a pinned-piece or en-passant interaction commonly needs the fourth**. The
+cost was 256 s per build, paid rather than asserting the weaker claim.
+
+**The self-test firing is what separates "no disagreements found" from "the comparison works and found none."** Without
+it, a comparison whose equality test was broken would print the same zero.
+
+**And the limit, where the silence would otherwise be read:** perft agreement is agreement about **legal move counts**, not
+about evaluation, pruning, or the move chosen. It is a clean bill for move generation and says nothing about play.
+
 ### THE POSITIVE RESULT FOR THE PC BUILD — do not lose this among the retirements
 
 **The counter-resetting mate is CORRECT on PC r15 and WRONG on base 6b98f217.** Board
@@ -3114,4 +3138,20 @@ the population I use for area-1 findings, which is the strongest statement avail
 evaluation, pruning or the move CHOSEN - the limit written into the tool, and the reason perft agreement is not silent
 agreement about play.
 Gates: 230 rows, 0 wrong pipe counts, gate rc=0 across 66 checks.
+Next: continue at cadence to the 10:20Z close.
+## 2026-11-17T04:08:32Z — the movegen clean bill is in the FINAL, and one attribution to check (S-F170)
+PUT THE POPULATION-SCALE RESULT WHERE THE OWNER WILL MEET IT. The FINAL now carries "THE MOVE-GENERATION CLEAN BILL -
+population scale, not a sample": 353 of 353 set_G positions, perft depth 4, BOTH builds, zero disagreements with
+python-chess, zero skips, self-test fired in both runs. With the depth-4 reason stated as a mechanism (a pinned-piece or
+en-passant interaction commonly needs the fourth ply), the 256 s per build paid rather than asserted, and the limit where
+the silence would be read: perft agreement is about legal move counts, not evaluation, pruning or the move chosen.
+ONE ATTRIBUTION TO FLAG, and I checked before accepting it. The message paired my result with "seat 75's 420-position
+symmetry result". SEAT 75'S BRANCH HAS NO SYMMETRY WORK AND NO 420-POSITION RESULT: their commit is tests 3, 5 and 6 -
+dead material, horizon, terminal - with negative controls for each, 1,191 lines across seven files. No occurrence of
+"symmetry" anywhere on the branch, and no "420". So either that result belongs to another seat or the two are conflated;
+I am not claiming it and not repeating it as if I had checked it. Flagging rather than filing, as asked.
+Worth noting for the record: this is the third attribution question tonight (F200 was seat 23's, the "fresh session is
+silent" absolute was seat 27's, and now the 420-position result is not seat 75's). Each time the check was the same one -
+open the other branch and look - and each time it took under a minute.
+Gates: 230 rows, 0 wrong pipe counts, FINAL updated, gate rc=0 across 66 checks.
 Next: continue at cadence to the 10:20Z close.
