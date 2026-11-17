@@ -6,28 +6,31 @@ Base `origin/integrate/combo29-all`. Engine build: `-DCMAKE_BUILD_TYPE=Release
 
 ## State
 
-**Complete.** All seven questions answered with measurements; deliverables written;
-whole audit re-runnable in one command.
+**Complete**, including the two follow-ups: a measured comparison of candidate
+`game_ply` fixes, and drawn-root pre-emption split by drawn condition and by book
+state. All seven original questions answered with measurements; deliverables
+written; whole audit re-runnable in one command.
 
 Deliverables in `forge-combo29/swarm/65/`:
 
 | file | content |
 | --- | --- |
-| `FINDINGS.md` | source map with line numbers, all seven measurements, defect table |
+| `FINDINGS.md` | source map with line numbers, all measurements, defect table, fix arithmetic |
 | `BOOK_WIRE.md` | exact reply shapes, the deadlock proof, the `go`-form matrix, harness rules |
 | `STATUS.md` | this file: claim → command index, what is not done |
-| `scripts/` | 22 files: 15 Python measurement scripts, 3 C++ probes, 1 shared UCI driver, 1 SEE self-test, 1 pipeline runner (+ 1 `__pycache__` dir, not committed) |
-| `evidence/` | 22 captured outputs, one per step of `run_all.sh` |
+| `scripts/` | 27 files: 18 Python measurement scripts, 3 C++ probes, 1 shared UCI driver, 1 SEE self-test, 1 pipeline runner, plus `q7b_verify.py`/`q7c_exhaustive_gap.py` which are also imported as helpers, and 1 `.gitignore` |
+| `evidence/` | 26 captured outputs, one per step of `run_all.sh` |
 
 ## Reproduce
 
 ```bash
 cd forge-combo29
-bash swarm/65/scripts/run_all.sh          # ~4.5 min, ~8 s without the 200x latency run
+bash swarm/65/scripts/run_all.sh          # ~5 min, includes building two patched binaries
 ```
 
-The runner builds the engine and the three C++ probes, then runs every
-measurement in order. It **aborts** on a failed SEE self-test, a failed
+The runner builds the engine, the three C++ probes, and two patched copies of the
+tree (for the `game_ply` comparison), then runs every measurement in order. It
+**aborts** on a failed SEE self-test, a failed
 score-absence check, or a failed drawn-root check, so a green run means those
 three load-bearing assertions held.
 
@@ -60,13 +63,19 @@ produces it. All commands run from `forge-combo29/`.
 
 | claim | command | evidence |
 | --- | --- | --- |
-| 2/3 drawn roots pre-empted, score cp 0 signal lost | `python3 swarm/65/scripts/q4c_drawn_root.py` | `evidence/drawn_root.txt` |
+| pre-emption follows the book entry, not the drawn condition: 2/2 with an entry, 0/4 without | `python3 swarm/65/scripts/q9_drawn_conditions.py` | `evidence/drawn_conditions.txt` |
+| pre-emption never happens with `OwnBook false`: 6/6 drawn roots answer `cp 0` + empty pv | `q9_drawn_conditions.py` book-off arm | `evidence/drawn_conditions.txt` |
+| `game_ply` sums the counter implied by the input plus the moves `position` appended; exact 14/14 | `python3 swarm/65/scripts/q8c_derivation_compare.py` (builds three patched binaries) | `evidence/game_ply_derivations.txt` |
+| the two candidate `game_ply` "fixes" are worse: NAIVE 4/14 wrong, HYBRID 2/14 | `q8c_derivation_compare.py` | `evidence/game_ply_derivations.txt` |
+| the lock is exact on 2486/2486 real book lines | `python3 swarm/65/scripts/q8_game_ply_fix.py` | `evidence/game_ply_fix.txt` |
+| the naive fix books 8/8 bare-FEN positions past Book Depth | `python3 swarm/65/scripts/q8b_fix_cost.py` | `evidence/game_ply_fix_cost.txt` |
+| 2/3 drawn roots pre-empted in the first, narrower sample | `python3 swarm/65/scripts/q4c_drawn_root.py` | `evidence/drawn_root.txt` |
 | MultiPV ignored on the book path | `python3 swarm/65/scripts/q4_interactions.py` block B | `evidence/interactions.txt` |
 | `go btime` with White to move searches | transcript in `FINDINGS.md` §4.3 | reproduced inline |
 | clock magnitude irrelevant (`wtime 0`, `movetime 0` both book) | `q4_interactions.py` block C | `evidence/interactions.txt` |
 | `searchmoves` and `mate` also exclude the book | `q4_interactions.py` block D | `evidence/interactions.txt` |
 | boundary: ply 15 book → ply 16 search, one ply wide | `python3 swarm/65/scripts/q5_boundary.py --plies 24` | `evidence/boundary.txt` |
-| `Book Depth` reads the FEN fullmove counter | `python3 swarm/65/scripts/q4b_gates_and_rng.py` block A | `evidence/gates_rng.txt` |
+| `Book Depth` gate: exact on 14/14 cases (claim of a defect retracted, see `FINDINGS.md` §5.3) | `python3 swarm/65/scripts/q8c_derivation_compare.py` | `evidence/game_ply_derivations.txt` |
 | variety 0 deterministic, variety 30 not, both across and within process | `q4b_gates_and_rng.py` block B, `q6_determinism.py` | `evidence/gates_rng.txt`, `determinism_v{0,30}.txt` |
 
 ### Soundness
@@ -88,21 +97,25 @@ produces it. All commands run from `forge-combo29/`.
    tell a seat as a rule.
 2. **The book pre-empts drawn-root detection.** A drawn root with the book on emits
    a book move with no score and no pv; with the book off it emits `score cp 0` and
-   an empty pv. 2/3 tested drawn roots behave this way, and the third (KvK) does
-   not only because the book has no entry for it.
-3. **`Book Depth` reads the FEN's fullmove counter**, so whether the book fires
-   depends on metadata a reconstructed FEN may not carry.
-4. **A reader that waits for `info depth` deadlocks on every book move.** Wait for
+   an empty pv. The deciding variable is the **book entry**, not the drawn
+   condition: 2/2 entry-bearing roots pre-empted, 0/4 without, and 0/6 with
+   `OwnBook false`.
+3. **A reader that waits for `info depth` deadlocks on every book move.** Wait for
    `bestmove`, with a timeout; the book path is ~0.02 ms and the search path is
    hundreds of ms, so one timeout must serve both.
-5. **No info depth does not mean the book fired.** Scan for the literal
+4. **No info depth does not mean the book fired.** Scan for the literal
    `info string book move ` and, separately, for `invalid FEN` in *both* the
    position window and the go window — a refused FEN leaves the previous board in
    place and the book then answers the previous position.
-6. **SEE written against `board.legal_moves` must set the side to move first.**
+5. **SEE written against `board.legal_moves` must set the side to move first.**
    Testing recaptures against the wrong side reported 929/2520 false material
    losses here; the true answer is 0. Hand-computed cases in a self-test are the
    only cheap defence.
+6. **A `Book Depth` claim you may have heard from me was wrong.** The derivation
+   reads the fullmove counter *after* `position` has applied its moves, so it is
+   the total ply count; a FEN carries no history, so the counter is the only depth
+   information that exists. Measured 14 cases: lock correct 14/14, both proposed
+   "fixes" worse (4/14 and 2/14 wrong). Do not patch it.
 
 ## Not done / limits of these results
 
@@ -123,4 +136,14 @@ produces it. All commands run from `forge-combo29/`.
   concatenation (`src/uci.cpp:260-265`); it works for the repo's own
   `tests_t16/start h2h4.book` but was not audited further, as it is outside the
   book-behaviour question.
-* No code was changed. This seat measures; it does not fix.
+* No code was changed in the tree under test. `q8c_derivation_compare.py` builds
+  two patched copies in `/tmp` to measure what a fix would do; those builds are
+  comparison artifacts, not a proposed patch, and the lock build is the one all
+  other results come from.
+* The `game_ply` comparison covers five scenarios and two candidate fixes. It does
+  not cover a caller that sends `fen ... moves ...` with a counter *lower* than the
+  true ply, which the same analysis says behaves symmetrically; that case is
+  inferred, not measured.
+* The drawn-condition matrix uses one root per cell. Six roots is enough to show
+  pre-emption tracks the book entry rather than the condition, but the per-cell
+  counts are small.

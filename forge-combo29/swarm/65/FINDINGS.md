@@ -79,7 +79,8 @@ Four conditions, all of which must hold:
    search.
 2. `own_book` — the option, default true when a book is embedded.
 3. `!book.empty()`.
-4. `game_ply(board) < book_depth` — see §5.3, this reads the FEN, not the game.
+4. `game_ply(board) < book_depth` — the ply count is derived from whatever
+   `position` supplied, plus the moves it appended; see §5.3.
 
 ### 1.3 The key
 
@@ -193,9 +194,49 @@ gets `score cp 0` and an empty pv. Note the direction: this is not "the book pla
 a bad move in a drawn position" — it is that **the only signal identifying the
 position as drawn is removed**.
 
-KvK is *not* pre-empted, because the book has no entry for it; the drawn-root bail
-answers. So the pre-emption is entry-dependent, which makes it harder to notice
-than a uniform behaviour.
+#### 4.1.1 Which variable actually decides it: the entry, not the condition
+
+The three-root result above mixes two variables, so the matrix was widened to all
+three drawn conditions crossed with book-entry presence, each with the book on and
+off (`evidence/drawn_conditions.txt`, `q9_drawn_conditions.py`). Every root was
+validated with python-chess first; a correct drawn-root answer is defined as *no
+book line, at least one `info depth` line, `score cp 0`, empty `pv`*.
+
+| root | condition | in book | OwnBook | book fired | info depth | score | pv empty |
+| --- | --- | --- | --- | --- | ---: | ---: | --- |
+| fifty-move, book position | halfmove≥100 | yes | true | **YES** | 0 | none | – |
+| fifty-move, book position | halfmove≥100 | yes | false | no | 64 | 0 | yes |
+| fifty-move, non-book position | halfmove≥100 | no | true | no | 64 | 0 | yes |
+| fifty-move, non-book position | halfmove≥100 | no | false | no | 64 | 0 | yes |
+| insufficient material | insufficient | no | true | no | 64 | 0 | yes |
+| insufficient material | insufficient | no | false | no | 64 | 0 | yes |
+| insufficient + fifty-move | both | no | true | no | 64 | 0 | yes |
+| insufficient + fifty-move | both | no | false | no | 64 | 0 | yes |
+| repetition, book position | repetition | yes | true | **YES** | 0 | none | – |
+| repetition, book position | repetition | yes | false | no | 64 | 0 | yes |
+| repetition, non-book position | repetition | no | true | no | 64 | 0 | yes |
+| repetition, non-book position | repetition | no | false | no | 64 | 0 | yes |
+
+Both questions answered directly:
+
+* **Does the pre-emption happen with the book off?** **No. 0/6.** With
+  `OwnBook false` every drawn root, under all three conditions, produced the full
+  bail answer: 64 `info depth` lines, `score cp 0`, empty pv. The drawn-root
+  detection is sound and complete on its own; the book is the only thing that
+  hides it.
+* **Does it depend on which drawn condition is present?** **No. 2/2 with a book
+  entry, 0/4 without.** Halfmove-100 and repetition are pre-empted; insufficient
+  material never is, only because no book position can be insufficient material.
+  The deciding variable is **whether the position has a book entry**, not which
+  condition fired. That also means the risk is not limited to two conditions: any
+  drawn condition added later inherits the hazard automatically wherever the book
+  has an entry.
+* Every non-book drawn root still answers correctly: 6/6 correct on the book-off
+  arm, and the 4 non-book roots are correct on the book-on arm too.
+
+The practical consequence is sharper than "2 of 3". Because pre-emption follows
+the book entry, it fires exactly on the positions most likely to appear in a real
+game — the ones the book was written for.
 
 ### 4.2 MultiPV is ignored on the book path
 
@@ -273,7 +314,14 @@ at ply 4, with ~20 `info depth` lines and a few hundred ms. From the wire alone,
 the implementation distinguishes them (§1.2 condition 4 vs `candidates()`
 returning empty).
 
-### 5.3 The gate reads the FEN's move counter, not the game
+### 5.3 The `Book Depth` derivation: a claim I made, then retracted
+
+**Retraction.** An earlier revision of this document called the `Book Depth`
+derivation a defect: "whether the book fires depends on metadata rather than
+chess". That was wrong. It is retracted here with the measurements that
+overturned it, because the correction is worth more than the original claim.
+
+What the code does (`src/uci.cpp:127-129`):
 
 ```127:129:forge-combo29/src/uci.cpp
 int game_ply(const forge::Board& board) {
@@ -281,18 +329,82 @@ int game_ply(const forge::Board& board) {
 }
 ```
 
-`fullmove_number()` comes from the FEN. The same chess position with different
-metadata therefore books or does not (`evidence/gates_rng.txt`, block A):
+It reads the fullmove counter. The part I missed is that it is evaluated on the
+board **after** `position` has applied its moves, and `Board::make_move`
+increments that counter. So the expression is not "the FEN's counter" — it is
 
-| FEN fullmove | game_ply | Book Depth 40 | Book Depth 41 |
+```
+(ply implied by whatever `position` supplied) + (moves that command appended)
+```
+
+which is the total ply count, whenever the input was internally consistent.
+
+#### 5.3.1 The original observation, re-read
+
+The observation that started this was real (`evidence/gates_rng.txt` block A):
+
+| FEN fullmove | `game_ply` | Book Depth 40 | Book Depth 41 |
 | ---: | ---: | --- | --- |
 | 1 | 0 | e2e4 (book) | c2c4 (book) |
 | 21 | 40 | e2e4 (**search**) | e2e4 (book) |
 
-Both FENs are the start position, both validated by python-chess, both legal. The
-difference is that a caller reconstructed the position without the original move
-number, and `Book Depth` then silently disabled the book. This is a metadata
-dependence on whether an opening-book move is played.
+My reading was "same position, different metadata, different behaviour". The
+correct reading is that these are **not the same input**: fullmove 21 asserts that
+40 plies have already been played. A FEN carries no history, so that assertion is
+the only record of depth the caller sent. Honouring it is the engine doing what it
+was told; ignoring it would mean guessing that the caller was mistaken.
+
+#### 5.3.2 Four derivations, fourteen cases
+
+Every `position` form crossed with both counter directions, each judged against
+the ply the caller's own input implies (`evidence/game_ply_derivations.txt`,
+`q8c_derivation_compare.py`). Four builds: the lock, plus three candidates —
+`history_size()-1` (NAIVE), that with a counter fallback (HYBRID), and a
+recorded-at-`position`-time base ply (BASEPLY).
+
+| case | form | input implies ply | Book Depth | expected | LOCK | NAIVE | HYBRID | BASEPLY |
+| --- | --- | ---: | ---: | --- | --- | --- | --- | --- |
+| A1 | `startpos moves` | 6 | 7 | book | book | book | book | book |
+| A2 | `startpos moves` | 6 | 6 | no book | no book | no book | no book | no book |
+| A3 | `startpos moves` | 2 | 3 | book | book | book | book | book |
+| A4 | `startpos moves` | 2 | 2 | no book | no book | no book | no book | no book |
+| B1 | `fen` + `moves` | 6 | 7 | book | book | book | book | book |
+| B2 | `fen` + `moves` | 6 | 6 | no book | no book | **book** | **book** | no book |
+| B3 | `fen` + `moves` (counter +2) | 8 | 7 | no book | no book | **book** | **book** | no book |
+| B4 | `fen` + `moves` (counter +2) | 8 | 9 | book | book | book | book | book |
+| B5 | `fen` + `moves` (counter −2) | 4 | 3 | no book | no book | no book | no book | no book |
+| B6 | `fen` + `moves` (counter −2) | 4 | 5 | book | book | book | book | book |
+| C1 | bare `fen` | 2 | 3 | book | book | book | book | book |
+| C2 | bare `fen` | 2 | 2 | no book | no book | **book** | no book | no book |
+| C3 | bare `fen` (counter +2) | 4 | 3 | no book | no book | **book** | no book | no book |
+| C4 | bare `fen` (counter +2) | 4 | 5 | book | book | book | book | book |
+
+```
+LOCK     wrong: 0/14
+NAIVE    wrong: 4/14
+HYBRID   wrong: 2/14
+BASEPLY  wrong: 0/14
+```
+
+**The lock is correct on all 14 cases.** Both single-line "fixes" are strictly
+worse, and they fail in the direction that matters for a GUI: NAIVE counts only
+the moves appended after the FEN, so it under-reports the depth of any resumed
+game and lets the book run in positions that are legitimately past `Book Depth`
+(B2, B3, C2, C3). HYBRID fixes the bare-FEN case and still gets B2 and B3 wrong.
+BASEPLY is also correct, but it is a five-part refactor of `apply_position` that
+buys nothing the lock does not already do.
+
+So the honest statement is: **the `Book Depth` gate has no defect.** The
+dependence on the FEN counter is an information limit, not a bug — a FEN contains
+no move history, so the counter is the only depth information that exists, and
+no derivation can recover a ply count the caller never sent. The gate is exact
+whenever the input is internally consistent, which is every form the engine
+generates itself.
+
+The residual caveat, stated as a caveat and not a defect: a caller that sends a
+FEN whose counter does not match the game it came from will get a `Book Depth`
+decision based on the counter. That is the caller's input being wrong, and the
+engine has no way to detect it.
 
 ---
 
@@ -475,9 +587,30 @@ is not a near miss, it is a 929-versus-0 reversal that would have been reported 
 | # | finding | severity | where |
 | --- | --- | --- | --- |
 | 1 | Gate uses the mover's own clock, so `go btime` with White to move does not book | medium — harness-visible asymmetry, reads as nondeterminism | `src/uci.cpp:371`, `108-109` |
-| 2 | Book pre-empts the drawn-root bail, removing the `score cp 0` / empty-pv signal on 2 of 3 drawn roots | medium — callers lose the only in-band draw signal | `src/uci.cpp:373` vs `src/search.cpp:1686` |
-| 3 | `Book Depth` reads the FEN's fullmove counter, so book eligibility depends on metadata | medium — position reconstruction silently disables the book | `src/uci.cpp:127-129` |
-| 4 | Book move carries no score at all | low — by convention, but it is the reason §4.1 is silent | `src/uci.cpp:385-386` |
-| 5 | Default `Book Variety 30` makes the default book nondeterministic, within and across processes | low — intended feature, surprising default | `src/uci.cpp:146`, `src/book.cpp:160-179` |
-| 6 | MultiPV mode gets no `multipv` lines on the book path | low | `src/uci.cpp:385-386` |
-| 7 | Book data itself | **none** — 2520/2520 legal, 0 material losses, 2230/2230 keys covered | — |
+| 2 | Book pre-empts the drawn-root bail wherever the position has a book entry (2/2 entry-bearing roots; 0/4 without), removing the `score cp 0` / empty-pv signal | medium — callers lose the only in-band draw signal, and it fires on exactly the positions the book targets | `src/uci.cpp:373` vs `src/search.cpp:1686` |
+| 3 | Book move carries no score at all | low — by convention, but it is the reason §4.1 is silent | `src/uci.cpp:385-386` |
+| 4 | Default `Book Variety 30` makes the default book nondeterministic, within and across processes | low — intended feature, surprising default | `src/uci.cpp:146`, `src/book.cpp:160-179` |
+| 5 | MultiPV mode gets no `multipv` lines on the book path | low | `src/uci.cpp:385-386` |
+| 6 | Book data itself | **none** — 2520/2520 legal, 0 material losses, 2230/2230 keys covered | — |
+| — | ~~`Book Depth` derivation depends on metadata~~ | **RETRACTED** — the lock is correct 14/14; both candidate fixes are worse. See §5.3. | — |
+
+## 9. Fix arithmetic, for the owner
+
+None of this is applied — this seat measures. Every number below comes from a
+built binary, not an estimate.
+
+**Defect 2 (drawn-root pre-emption).** The trigger is the book entry, so the fix
+is ordering, not data: move the book check after the drawn-root test. Measured
+effect of the current ordering: 2/2 entry-bearing drawn roots lose their
+`score cp 0` + empty-pv answer; 0/4 non-entry roots are affected. With
+`OwnBook false`, 6/6 drawn roots answer correctly, so the bail itself needs no
+change. Caller-visible invariant after the fix: a drawn root always reports
+`score cp 0` and an empty pv, book or no book.
+
+**Retracted: the `Book Depth` derivation needs no fix.** Four derivations over
+fourteen cases (`evidence/game_ply_derivations.txt`): LOCK 0/14 wrong,
+BASEPLY 0/14, HYBRID 2/14, NAIVE 4/14. The lock's counter expression, evaluated
+after `position` has applied its moves, equals the total ply count, and a FEN
+carries no history for any derivation to draw on. Applying either candidate would
+be a regression: NAIVE makes the book fire in resumed games that are legitimately
+past `Book Depth`.

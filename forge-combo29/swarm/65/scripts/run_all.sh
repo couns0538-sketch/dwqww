@@ -97,5 +97,71 @@ python3 "$SCRIPTS/q1b_castles.py" /tmp/book_full.txt "$FORGE" | tee "$EV/castles
 echo "== 20. book path latency distribution =="
 python3 "$SCRIPTS/q2b_latency.py" --binary "$FORGE" --runs 200 | tee "$EV/latency.txt"
 
+echo "== 21. drawn-root pre-emption by condition and by book state =="
+python3 "$SCRIPTS/q9_drawn_conditions.py" "$FORGE" | tee "$EV/drawn_conditions.txt" || {
+  echo "DRAWN-CONDITION MATRIX FAILED"; exit 1; }
+
+# Steps 22-25 need four builds: the lock and three patched copies of game_ply.
+# They are built here from the current tree so the comparison cannot go stale.
+echo "== 22. build the three candidate game_ply derivations =="
+FIXDIR="${FIXDIR:-/tmp/sw65-fixes}"
+rm -rf "$FIXDIR"; mkdir -p "$FIXDIR"
+for variant in naive hybrid baseply; do
+  cp -r . "$FIXDIR/$variant"
+  python3 - "$FIXDIR/$variant/src/uci.cpp" "$variant" <<'PY'
+import sys, pathlib
+path, variant = sys.argv[1], sys.argv[2]
+p = pathlib.Path(path)
+s = p.read_text()
+old = """int game_ply(const forge::Board& board) {
+    return 2 * (board.fullmove_number() - 1) + (board.side_to_move() == forge::Black ? 1 : 0);
+}"""
+bodies = {
+ "naive": """int game_ply(const forge::Board& board) {
+    return static_cast<int>(board.history_size()) - 1;
+}""",
+ "hybrid": """int game_ply(const forge::Board& board) {
+    const std::size_t played = board.history_size();
+    if (played > 1) return static_cast<int>(played) - 1;
+    return 2 * (board.fullmove_number() - 1) + (board.side_to_move() == forge::Black ? 1 : 0);
+}""",
+ # baseply records the ply at `position` time, so the counter is read where the
+ # caller supplied it and never re-derived from a board whose history starts there.
+ "baseply": """int game_ply(const forge::Board& board) {
+    return 2 * (board.fullmove_number() - 1) + (board.side_to_move() == forge::Black ? 1 : 0);
+}""",
+}
+assert old in s, "game_ply body not found; the lock changed"
+s = s.replace(old, bodies[variant])
+if variant == "baseply":
+    s = s.replace("    int move_overhead_ms = 10;",
+                  "    int game_ply_now = 0;\n    int move_overhead_ms = 10;", 1)
+    s = s.replace("""            stop_search();
+            apply_position(board, input);""",
+                  """            stop_search();
+            apply_position(board, input);
+            game_ply_now = game_ply(board);""", 1)
+    s = s.replace("&& game_ply(board) < book_depth", "&& game_ply_now < book_depth")
+p.write_text(s)
+PY
+  ( cd "$FIXDIR/$variant" && CXX=g++ cmake -S . -B "$FIXDIR/${variant}-build" \
+      -DCMAKE_BUILD_TYPE=Release -DFORGE_MARCH=native > "$EV/fix-${variant}-build.log" 2>&1 \
+    && cmake --build "$FIXDIR/${variant}-build" -j"$(nproc)" >> "$EV/fix-${variant}-build.log" 2>&1 ) \
+    || { echo "build failed for $variant, see $EV/fix-${variant}-build.log"; exit 1; }
+done
+
+echo "== 23. game_ply: four derivations across every position form (14 cases) =="
+python3 "$SCRIPTS/q8c_derivation_compare.py" "$FORGE" \
+  "$FIXDIR/naive-build/forge" "$FIXDIR/hybrid-build/forge" "$FIXDIR/baseply-build/forge" \
+  | tee "$EV/game_ply_derivations.txt" || echo "  (non-zero: a derivation is wrong, see the table)"
+
+echo "== 24. game_ply: the five-form sanity check =="
+python3 "$SCRIPTS/q8_game_ply_fix.py" "$FORGE" "$FIXDIR/naive-build/forge" \
+  | tee "$EV/game_ply_fix.txt"
+
+echo "== 25. game_ply: what the naive fix does to bare FENs =="
+python3 "$SCRIPTS/q8b_fix_cost.py" "$FORGE" \
+  "$FIXDIR/naive-build/forge" | tee "$EV/game_ply_fix_cost.txt"
+
 echo
 echo "done. evidence in $EV/"

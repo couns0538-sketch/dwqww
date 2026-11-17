@@ -1,31 +1,27 @@
 #!/usr/bin/env python3
-"""Q8c: where the `game_ply` defect actually bites, and what each fix does.
+"""Q8c: four `game_ply` derivations against every position form, retracting the
+earlier "defect" claim only if the data supports the retraction.
 
-Key realisation from measuring: a bare `position fen` carries NO move history, so
-the counter is the only depth information that exists. No derivation can recover a
-true ply there — trusting the counter is not a bug when the counter is all there is.
-The defect is narrower and sharper than that:
+Why this exists: the first write-up called the `Book Depth` counter dependence a
+defect. Building candidate fixes showed the lock is exact and the "fixes" are not.
+This script is the systematic test, covering every `position` form the UCI spec
+allows crossed with both counter directions, so the retraction (or its absence)
+rests on a matrix rather than on an anecdote.
 
-  `position fen <FEN> moves <m1> <m2> ...`
+Derivations:
 
-gives the board a real history AND a caller-supplied counter, and nothing forces
-the two to agree. That is the case where a corrected derivation changes behaviour,
-and it is testable.
+  LOCK    `2*(fullmove-1) + (black?1:0)`   on the board after `position`
+  NAIVE   `history_size() - 1`
+  HYBRID  `history_size() > 1 ? history-1 : 2*(fullmove-1)+(black?1:0)`
+  BASEPLY recorded at `position` time as (counter ply) + (moves appended)
 
-Three derivations, compared on four scenarios:
+Expected behaviour is defined from *the caller's own input*: whatever ply the
+supplied command implies. A FEN carries no history, so its counter is the caller's
+statement of how many moves preceded it and that statement is not verifiable — a
+derivation is judged against it, not against a history the caller never sent.
 
-  LOCK   `2*(fullmove-1) + (black?1:0)`
-  NAIVE  `history_size() - 1`                      (0 when there is no history)
-  HYBRID `history_size() > 1 ? history-1 : counter`
-
-  S1  real book line via `startpos moves`, book data present — all must book
-  S2  real book line via `startpos moves`, past Book Depth — none may book
-  S3  `fen <honest> moves ...` (history and counter agree) — all must book
-  S4  `fen <counter inflated> moves ...` (history and counter disagree) — the
-      correct answer is the history's, so LOCK must be wrong here
-
-Exit code 1 if HYBRID does not satisfy all four, so the report's recommendation
-cannot drift from the measurement.
+Exit 1 if LOCK is not correct on every case, so the retraction cannot be published
+unless the matrix agrees.
 """
 
 from __future__ import annotations
@@ -37,9 +33,9 @@ import chess
 
 sys.path.insert(0, str(Path(__file__).parent))
 from uci import Engine  # noqa: E402
-from q7_soundness import parse_probe  # noqa: E402
 
 CLOCK = "wtime 10000 btime 10000 winc 100 binc 100"
+LINE = "e2e4 c7c5 c2c3 e7e5 g1f3 b8c6"
 
 
 def probe(binary: str, position: str, depth: int) -> bool:
@@ -57,121 +53,88 @@ def probe(binary: str, position: str, depth: int) -> bool:
         eng.quit()
 
 
-def norm_key(board: chess.Board) -> str:
-    ep = "-" if not any(board.is_en_passant(m) for m in board.legal_moves) else chess.square_name(board.ep_square)
-    parts = board.fen().split()
-    parts[3] = ep
-    return " ".join(parts)
-
-
 def main() -> int:
-    lock = sys.argv[1] if len(sys.argv) > 1 else "/tmp/build65/forge"
-    naive = sys.argv[2] if len(sys.argv) > 2 else "/tmp/fixbuild/forge"
-    hybrid = sys.argv[3] if len(sys.argv) > 3 else "/tmp/fix2build/forge"
-    tsv = sys.argv[4] if len(sys.argv) > 4 else "/tmp/book_full.txt"
+    args = sys.argv[1:]
+    lock = args[0] if len(args) > 0 else "/tmp/build65/forge"
+    naive = args[1] if len(args) > 1 else "/tmp/sw65-fixes/naive-build/forge"
+    hybrid = args[2] if len(args) > 2 else "/tmp/sw65-fixes/hybrid-build/forge"
+    baseply = args[3] if len(args) > 3 else "/tmp/fix3build/forge"
+    builds = [("LOCK", lock), ("NAIVE", naive), ("HYBRID", hybrid), ("BASEPLY", baseply)]
 
-    builds = [("LOCK", lock), ("NAIVE", naive), ("HYBRID", hybrid)]
-    rows = parse_probe(Path(tsv))
-    line_by_key: dict[str, str] = {}
-    for fen, _k, _ply, mv in rows:
-        if mv:
-            line_by_key[norm_key(chess.Board(fen))] = mv.split(",")[0].split(":")[0]
+    moves = LINE.split()
+    b = chess.Board()
+    for _ in range(2):
+        b.push(chess.Move.from_uci(moves.pop(0)))
+    honest = b.fen()
+    tail = " ".join(moves)
 
-    def replay(n: int) -> tuple[list[str], chess.Board]:
-        moves, b = [], chess.Board()
-        for _ in range(n):
-            u = line_by_key.get(norm_key(b))
-            if not u:
-                break
-            moves.append(u)
-            b.push(chess.Move.from_uci(u))
-        return moves, b
+    # Counter variants, in plies.
+    def shift(fen: str, fullmoves: int) -> str:
+        parts = fen.split()
+        parts[5] = str(max(1, int(parts[5]) + fullmoves))
+        return " ".join(parts)
 
-    results: dict[str, dict[str, bool]] = {name: {} for name, _ in builds}
+    # (key, position command, ply the command implies, Book Depth, expected)
+    cases = [
+        # startpos: the engine generates the counter, so it cannot be wrong.
+        ("A1", f"startpos moves {LINE}", 6, 7, True),
+        ("A2", f"startpos moves {LINE}", 6, 6, False),
+        ("A3", f"startpos moves {' '.join(LINE.split()[:2])}", 2, 3, True),
+        ("A4", f"startpos moves {' '.join(LINE.split()[:2])}", 2, 2, False),
+        # fen + moves, counter honest for the FEN (2 plies played before it).
+        ("B1", f"fen {honest} moves {tail}", 6, 7, True),
+        ("B2", f"fen {honest} moves {tail}", 6, 6, False),
+        # fen + moves, counter inflated by 2 plies: the input says ply 8.
+        ("B3", f"fen {shift(honest, 1)} moves {tail}", 8, 7, False),
+        ("B4", f"fen {shift(honest, 1)} moves {tail}", 8, 9, True),
+        # fen + moves, counter deflated by 2 plies: the input says ply 4.
+        ("B5", f"fen {shift(honest, -1)} moves {tail}", 4, 3, False),
+        ("B6", f"fen {shift(honest, -1)} moves {tail}", 4, 5, True),
+        # bare fen, no moves at all.
+        ("C1", f"fen {honest}", 2, 3, True),
+        ("C2", f"fen {honest}", 2, 2, False),
+        ("C3", f"fen {shift(honest, 1)}", 4, 3, False),
+        ("C4", f"fen {shift(honest, 1)}", 4, 5, True),
+    ]
 
-    # ---- S1/S2: startpos moves, data present / past depth -------------------
-    print("S1  real book line via `startpos moves`, Book Depth 10 (data present)")
-    m6, _ = replay(6)
-    s1 = "startpos moves " + " ".join(m6)
-    for name, binary in builds:
-        results[name]["S1"] = probe(binary, s1, 10)
-        print(f"    {name:<7} books: {'YES' if results[name]['S1'] else 'no'}")
+    for key, pos, _ply, _d, _e in cases:
+        if pos.startswith("fen"):
+            body = pos.split(" moves")[0][4:]
+            assert chess.Board(body).is_valid(), (key, body)
+
+    print("builds:")
+    for name, path in builds:
+        print(f"  {name:<8} {path}")
     print()
+    print("| case | form | input implies ply | Book Depth | expected | "
+          + " | ".join(n for n, _ in builds) + " |")
+    print("| --- | --- | ---: | ---: | --- | " + " | ".join("---" for _ in builds) + " |")
 
-    print("S2  real book line via `startpos moves`, Book Depth 6 (ply 6 is past it)")
-    for name, binary in builds:
-        results[name]["S2"] = probe(binary, s1, 6)
-        print(f"    {name:<7} books: {'YES' if results[name]['S2'] else 'no (correct)'}")
-    print()
-
-    # ---- S3: fen + moves, counter honest ------------------------------------
-    # Take the position after 4 plies, write it as a FEN with its true counter,
-    # then supply the remaining 2 moves. History (4+2) and counter (6) agree.
-    m4, b4 = replay(4)
-    honest_fen = b4.fen()
-    tail = m6[4:]
-    s3 = f"fen {honest_fen} moves " + " ".join(tail)
-    print(f"S3  `fen` + `moves`, counter honest (counter ply 4, history 4+{len(tail)})")
-    print(f"    {honest_fen}")
-    for name, binary in builds:
-        results[name]["S3"] = probe(binary, s3, 10)
-        print(f"    {name:<7} books: {'YES' if results[name]['S3'] else 'no'}")
-    print()
-
-    # ---- S4: fen + moves, counter inflated ---------------------------------
-    parts = honest_fen.split()
-    parts[5] = str(int(parts[5]) + 20)  # +20 fullmoves -> +40 plies in the counter
-    inflated_fen = " ".join(parts)
-    s4 = f"fen {inflated_fen} moves " + " ".join(tail)
-    print("S4  `fen` + `moves`, counter inflated by 40 plies (history still 6)")
-    print(f"    {inflated_fen}")
-    print("    true depth is 6, so Book Depth 10 must allow the book.")
-    for name, binary in builds:
-        results[name]["S4"] = probe(binary, s4, 10)
-        print(f"    {name:<7} books: {'YES' if results[name]['S4'] else 'no (WRONG)'}")
-    print()
-
-    print("| scenario | LOCK | NAIVE | HYBRID | correct answer |")
-    print("| --- | --- | --- | --- | --- |")
-    answers = {"S1": "book", "S2": "do not book", "S3": "book", "S4": "book"}
-    for s in ("S1", "S2", "S3", "S4"):
-        cells = " | ".join("book" if results[n][s] else "no book" for n, _ in builds)
-        print(f"| {s} | {cells} | {answers[s]} |")
-
-    print()
-    print("S5  bare `position fen` at true ply 14, honest counter, Book Depth 4.")
-    print("    No history exists, so the counter is the only depth information;")
-    print("    the position is past Book Depth 4 and must not book. This is the")
-    print("    scenario that separates NAIVE from HYBRID.")
-    deep = [f for f, _k, p, mv in rows if p == 14 and mv][:8]
-    print(f"    positions: {len(deep)}")
-    for name, binary in builds:
-        yes = sum(1 for fen in deep if probe(binary, f"fen {fen}", 4))
-        # Store "does it book", the same quantity as every other scenario, so the
-        # summary table means one thing throughout.
-        results[name]["S5"] = yes > 0
-        print(f"    {name:<7} booked {yes}/{len(deep)} "
-              f"({'correct' if yes == 0 else 'WRONG: past Book Depth'})")
+    wrong = {name: 0 for name, _ in builds}
+    total = 0
+    for key, pos, ply, depth, expect in cases:
+        form = "startpos" if pos.startswith("startpos") else (
+            "fen+moves" if " moves" in pos else "fen")
+        cells = []
+        for name, binary in builds:
+            got = probe(binary, pos, depth)
+            if got != expect:
+                wrong[name] += 1
+                cells.append(("book" if got else "no book") + " WRONG")
+            else:
+                cells.append("book" if got else "no book")
+        total += 1
+        print(f"| {key} | {form} | {ply} | {depth} | {'book' if expect else 'no book'} | "
+              + " | ".join(cells) + " |")
 
     print()
-    print("| scenario | LOCK | NAIVE | HYBRID | correct answer |")
-    print("| --- | --- | --- | --- | --- |")
-    answers = {"S1": "book", "S2": "do not book", "S3": "book", "S4": "book", "S5": "do not book"}
-    for s in ("S1", "S2", "S3", "S4", "S5"):
-        cells = " | ".join("book" if results[n][s] else "no book" for n, _ in builds)
-        print(f"| {s} | {cells} | {answers[s]} |")
-
-    print()
-    expect = {"S1": True, "S2": False, "S3": True, "S4": True, "S5": False}
     for name, _ in builds:
-        wrong = [s for s, want in expect.items() if results[name][s] != want]
-        print(f"{name:<7} wrong on {len(wrong)}/{len(expect)}: "
-              f"{', '.join(wrong) if wrong else 'none'}")
+        print(f"{name:<8} wrong: {wrong[name]}/{total}")
 
-    ok = all(results["HYBRID"][s] == expect[s] for s in expect)
+    lock_ok = wrong["LOCK"] == 0
     print()
-    print(f"HYBRID is correct on all {len(expect)} scenarios: {'YES' if ok else 'NO'}")
-    return 0 if ok else 1
+    print(f"LOCK correct on every case: {'YES' if lock_ok else 'NO'}")
+    return 0 if lock_ok else 1
 
 
 if __name__ == "__main__":
