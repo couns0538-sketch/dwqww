@@ -172,11 +172,14 @@ actually is.
 | `go movetime depth 5` | 3/174/`e1g1` | `movetime` eats `depth`; 0-ms race (§3) |
 | `go depth nodes 50000` | 1/42/`e1g1` | `depth` takes `nodes` as its value → 1 ply |
 
-**The mechanism is one line of the parser.** `read_int`, `read_clock` and the
-`nodes` branch each do `i++` on the value token *before* deciding it was not a
-number (`uci.cpp:96-99`, `:90-93`, `:114-117`). A keyword with no value consumes
-the next keyword. So "the caller wrote a good `depth 5`" and "the search had no
-limit" are the same command line.
+**The mechanism is one line of the parser.** `read_int` takes its value with
+`tokens[i++]` at `uci.cpp:91` *before* `from_chars` decides it was not a number;
+`read_clock` does the same at `:101`; and the `nodes` branch at `:106`. **Each
+advances the index unconditionally, so a keyword with no numeric value consumes
+the next keyword.** `go nodes depth 5` therefore parses as: `nodes` takes
+`depth` (`:106`), fails (`:109`), sets no limit; `5` is a stray token matching no
+keyword. So "the caller wrote a good `depth 5`" and "the search had no limit"
+are the same command line.
 
 ### 2b. A bad value beside a good value: the good one usually still binds
 
@@ -310,7 +313,7 @@ shows what one run gave, and a harness must not assert on it.
 | `go infinite wtime 1000` | **CAP** | no |
 | `go ponder wtime 1000` | **CAP** | no |
 
-**The rule is the `game_search` predicate at `uci.cpp:521-523`, not the
+**The rule is the `game_search` predicate at `uci.cpp:525-527`, not the
 malformedness:** book requires a clock *or* movetime that is `>= 0`, and no
 `infinite`, no `ponder`, no `searchmoves`, and `mate_moves == 0`. A malformed
 clock parses to **0**, and **0 is `>= 0`** — so the malformed clock is not
@@ -507,8 +510,9 @@ Stated so it is not mistaken for a clean bill:
   (`scripts/find_reference_fen.py`, `scripts/search_reference_board.py`) and did
   not find it.
 - **`movetime` cells have a race**, quantified in §3 at 30 processes per arm.
-  I did not chase the race to its instruction; I located the two sites
-  (`search.cpp:2194`, `:2320`) and measured the distribution.
+  I did not chase the race to its instruction; I located the sites that
+  consume the field (`search.cpp:2192` clamp, `:2320` root check, `:1285-1288`
+  `should_stop_with`) and measured the distribution.
 - **The 2^63 clock rows are a different failure class and are now explained
   (§2d), not open.** `parse_clock_ms` clamps an over-large magnitude to
   `kMaxClockMs` — a *valid* ceiling of about 3.6e16 ms — so `wtime
@@ -563,31 +567,49 @@ The two things a client cannot fix on its own, and which belong in the engine:
 | `evidence/build_and_run.log` | the matrix run log, build label on every line |
 | `scripts/` | `go_probe.py` (the harness), `matrix.py`, `keyword_eating.py`, `lastwins.py`, `searchmoves_pass.py`, `boundedness.py`, `huge_clock.py`, `repeatability.py`, `movetime_zero.py`, `book_randomness.py`, `find_reference_fen.py`, `search_reference_board.py` |
 | `scripts/verify_claims.py` | re-derives 293 checkable claims (numeric + table shape) from the evidence |
+| `scripts/verify_anchors.py` | re-reads all 19 cited `path:line` source anchors from `6b98f217` |
+| `scripts/check_all.sh` | runs both verifiers; non-zero if either fails |
 
 ## How the figures here are checked
 
-`python3 scripts/verify_claims.py` re-derives **293** checkable claims from this
-document and the evidence, and exits non-zero on any mismatch. Two kinds:
-numeric (figures against the JSON/JSONL) and structural (every markdown table row
-against its header's cell count).
+`./scripts/check_all.sh` runs two independent verifiers and exits non-zero if
+either fails.
 
-**Both were proved able to fail.**
+**`scripts/verify_claims.py` — 293 claims**, two kinds: numeric (figures against
+the JSON/JSONL evidence) and structural (every markdown table row against its
+header's cell count).
+
+**`scripts/verify_anchors.py` — 19 source anchors**: each `path:line` this
+document cites is re-read from `6b98f217` and must still contain the construct
+the document says it does.
+
+**All three checks were proved able to fail.**
 - Numeric: planting `999` for `go depth 5` nodes gives
   `§1 go depth 5 nodes :: 999 != 818`, exit 1; restoring gives exit 0.
 - Structural: deleting one cell from the `depth` row gives
   `table shape at line 106 :: 7 cells, header has 8`, exit 1; restoring gives
   exit 0.
+- Anchors: shifting one citation by a line gives
+  `uci.cpp:107 should mention tokens[i++] … found: 'std::uint64_t value = 0;'`,
+  exit 1; restoring gives exit 0.
 
-The structural check earned its place immediately: it caught **two** mangled
-tables that no numeric check could see, both introduced by my own edits after
-the tables had been written correctly.
+**Each check earned its place on its first run.**
+- The structural check caught **two** mangled tables that no numeric check could
+  see, both introduced by my own edits after the tables had been written
+  correctly.
+- The anchor check caught **two wrong citations in this document**: the
+  `uci_clock.hpp` clamp was cited at line 30 and is at **35**, and the
+  `game_search` book predicate was cited as **`uci.cpp:521-523`** and is at
+  **525-527**. Both had been written from a recalled reading rather than from the
+  file. **A line number is the cheapest claim to make and the most expensive to
+  be wrong about, because it looks checked.**
 
-**What it does not check is the prose**, and two defects in this document were
-found by writing it rather than by that script:
+**What none of them check is the prose**, and two defects in this document were
+found by writing it rather than by the scripts:
 - a **book move cited as fixed** when the book is random (the script first
   flagged the move, then I measured the randomness — the script was right);
-- a **section-scoped key collision** in the script itself, where `go depth abc`
-  appeared in both the midgame and startpos matrices and the flat dict returned
-  whichever was loaded last. **A checker keyed on a command string must key on
-  (section, command)**, or it reports the other section's row as a mismatch —
-  which is what its first run did, six times.
+- a **section-scoped key collision** in `verify_claims.py` itself, where
+  `go depth abc` appeared in both the midgame and startpos matrices and the flat
+  dict returned whichever was loaded last. **A checker keyed on a command string
+  must key on (section, command)**, or it reports the other section's row as a
+  mismatch — which is what its first run did, six times.
