@@ -5,7 +5,7 @@ import subprocess, sys, statistics, random, re
 sys.path.insert(0,'/agent/repos/dwqww/forge-combo29/swarm/11')
 from pc20 import PC20
 BASE=["/tmp/v3build/forge","/tmp/v3b2/forge"]
-PATCH=["/tmp/v3p2b/forge","/tmp/v3p2c/forge"]
+PATCH=["/tmp/v3p3b/forge","/tmp/v3p3c/forge"]
 NET="/tmp/v3test.fnn3"
 RUNS=int(sys.argv[1]) if len(sys.argv)>1 else 20
 def nps(exe):

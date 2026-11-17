@@ -1,0 +1,54 @@
+--- a/src/nnue_v3.cpp	2026-11-17 00:00:35.103068183 +0000
++++ b/src/nnue_v3.cpp	2026-11-17 00:23:13.019068183 +0000
+@@ -275,6 +275,51 @@
+ #if FORGE_NNUE_V3_AVX512
+ void apply_changes_avx512(const std::int16_t* source, std::int16_t* destination, const Changes& c, int hidden) {
+     const int count = c.count;
++    // SPEED PATCH (seat 11, v3 Step 2): `count` is only ever 2, 3 or 4 in the search (measured on
++    // bench 13: 476,708 x2, 136,699 x3, 4,020 x4, never 0 or 1). Specialise the dominant count-2 case
++    // so the two `count > N` branches disappear from the hot loop.
++    if (count == 2) {
++        const std::int16_t* c0 = c.columns[0];
++        const std::int16_t* c1 = c.columns[1];
++        if (c.adds[0]) {
++            if (c.adds[1]) {
++                for (int h = 0; h < hidden; h += 32) {
++                    const __m512i v = _mm512_load_si512(reinterpret_cast<const __m512i*>(source + h));
++                    const __m512i a = _mm512_load_si512(reinterpret_cast<const __m512i*>(c0 + h));
++                    const __m512i b = _mm512_load_si512(reinterpret_cast<const __m512i*>(c1 + h));
++                    _mm512_store_si512(reinterpret_cast<__m512i*>(destination + h),
++                                       _mm512_add_epi16(_mm512_add_epi16(v, a), b));
++                }
++            } else {
++                for (int h = 0; h < hidden; h += 32) {
++                    const __m512i v = _mm512_load_si512(reinterpret_cast<const __m512i*>(source + h));
++                    const __m512i a = _mm512_load_si512(reinterpret_cast<const __m512i*>(c0 + h));
++                    const __m512i b = _mm512_load_si512(reinterpret_cast<const __m512i*>(c1 + h));
++                    _mm512_store_si512(reinterpret_cast<__m512i*>(destination + h),
++                                       _mm512_sub_epi16(_mm512_add_epi16(v, a), b));
++                }
++            }
++        } else {
++            if (c.adds[1]) {
++                for (int h = 0; h < hidden; h += 32) {
++                    const __m512i v = _mm512_load_si512(reinterpret_cast<const __m512i*>(source + h));
++                    const __m512i a = _mm512_load_si512(reinterpret_cast<const __m512i*>(c0 + h));
++                    const __m512i b = _mm512_load_si512(reinterpret_cast<const __m512i*>(c1 + h));
++                    _mm512_store_si512(reinterpret_cast<__m512i*>(destination + h),
++                                       _mm512_add_epi16(_mm512_sub_epi16(v, a), b));
++                }
++            } else {
++                for (int h = 0; h < hidden; h += 32) {
++                    const __m512i v = _mm512_load_si512(reinterpret_cast<const __m512i*>(source + h));
++                    const __m512i a = _mm512_load_si512(reinterpret_cast<const __m512i*>(c0 + h));
++                    const __m512i b = _mm512_load_si512(reinterpret_cast<const __m512i*>(c1 + h));
++                    _mm512_store_si512(reinterpret_cast<__m512i*>(destination + h),
++                                       _mm512_sub_epi16(_mm512_sub_epi16(v, a), b));
++                }
++            }
++        }
++        return;
++    }
+     const std::int16_t* col0 = c.columns[0];
+     const std::int16_t* col1 = c.columns[1];
+     const std::int16_t* col2 = c.columns[2];
