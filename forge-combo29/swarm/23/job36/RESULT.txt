@@ -1,0 +1,29 @@
+IS THE eval/go DISAGREEMENT GENERAL OVER DRAW TYPES? — yes for repetition and fifty-move; insufficient material is
+DIFFERENT in an interesting way
+=========================================================================================================
+Base and PC builds, Threads 1, Hash 16, `eval` vs `go depth 12` on three draw mechanisms plus a control:
+
+| case | build | `eval` total | `go depth 12` |
+|---|---|---|---|
+| D2 fifty-move root (K+R v K, halfmove 150) | base | **406** | **cp 0, 0 nodes** |
+| D2 fifty-move root | PC | **406** | cp 0, 240 nodes |
+| D2 counter-0 twin (NOT drawn) | base | 406 | cp 348, 22,108 nodes |
+| D2 counter-0 twin | PC | 406 | mate 8, 48,226 nodes |
+| D3 bare K v K (insufficient material) | base | **20** | cp 0, 0 nodes |
+| D3 bare K v K | PC | **20** | cp 0, 0 nodes |
+
+PREDICTIONS: P1 held (eval non-zero on all three draw types). P2 held (go is cp 0 on all three). P3 held — eval's total
+is IDENTICAL between each draw root and its counter-0 twin (406 in both, 0 cp apart), because a static evaluator has
+neither history nor a move counter. P4 held (the control's eval and go agree in sign: +406 and cp 348 / mate 8).
+
+SO F78 IS GENERAL over the counter-based draw types: for repetition AND for the fifty-move rule, `eval` reports the
+UNDRAWN board's score while `go` reports a draw. A tool mixing the two shows +406 beside a drawn move in both cases.
+
+INSUFFICIENT MATERIAL IS DIFFERENT, and worth naming: eval reports only **+20** on bare K v K (near zero, because the
+material really is nil) and BOTH builds answer cp 0 on `go`. So there the two interfaces nearly agree — a small
+residue rather than a 406 cp contradiction. That is the boundary of the finding: the eval/go gap is large exactly for
+draw types caused by HISTORY (repetition, fifty-move), where a static evaluator cannot know, and small for the one
+caused by MATERIAL, which a static evaluator can see.
+
+LIMIT: one board per case, one depth, both builds. And the fifty-move PC row's `go` returned cp 0 after 240 nodes rather
+than 0 nodes — the PC searched briefly then reported the draw, which is the repaired behaviour.
