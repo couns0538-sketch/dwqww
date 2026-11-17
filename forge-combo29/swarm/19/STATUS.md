@@ -1173,7 +1173,7 @@ a sign-share is unavailable and why.** Every claim in this record, audited again
 | **19-C54** PC20 per-node cost | **+7.1 %** (median 1.071) | **90.0 %** (162/180 dearer) | **UNIFORM** — a real per-node tax |
 | **19-C58** prefetch slowdown | **+9.80 %** | **93.1 %** (121/130 slower) | **UNIFORM** — present on nearly every position |
 | **19-C53** PC20 fewer nodes at depth 12 | **−12.4 %** | **60.5 %** (72/119) | **SESSION-LEVEL** — a weak lean, not a per-position fact |
-| **19-C54** PC20 fewer nodes, fixed 50k | **−1.9 %** (0.9807) | **50.6 %** (91/180) | **COIN FLIP** — no per-position content at all |
+| ~~19-C54 PC20 fewer nodes, fixed 50k~~ | ~~−1.9 %~~ | ~~50.6 %~~ | **WITHDRAWN AS A ROW — category error.** At a fixed 50k node budget **both engines stop at the same place by construction**, so a residual node difference is stopping-granularity, not a saving. The 50.6 % is exactly what a coin flip looks like when there is no effect to measure. **Listing it as an efficiency claim was wrong.** |
 | **19-C53** PC20 faster in wall time | **−2.7 %** (0.9728) | **52.9 %** (63/119) | **COIN FLIP** |
 | **19-F32/C56** CorrHistV2 saves nodes | **−5.2 %** | **54.2 %** (65/120) | **COIN FLIP** |
 | **19-C60** TtPruneV2 | −4.7 % | 60.8 % (73/120) | weak lean, p = 1.000 |

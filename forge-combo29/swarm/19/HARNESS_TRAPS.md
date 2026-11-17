@@ -522,9 +522,14 @@ requirement is not a demand that everything fail:
 - PC20 per-node cost: **90.0 %** of 180 pairs dearer
 - NNUE prefetch: **93.1 %** of 130 positions slower
 
-**Both are per-position facts. The three headline efficiency claims (12.4 % fewer nodes, 2.7 % faster, 5.2 %
-saving) are 60.5 %, 52.9 % and 54.2 % — session-level or coin flips.** No amount of pooled precision makes them
-per-position facts.
+**Both are per-position facts. The headline efficiency claims — 12.4 % fewer nodes (60.5 % sign-share), 2.7 %
+faster in wall time (52.9 %), CorrHistV2's 5.2 % saving (54.2 %) — are session-level or coin flips.** No amount of
+pooled precision makes them per-position facts.
+
+**And one related trap this exercise caught in my own table:** I had listed a "node saving at a fixed node budget"
+as an efficiency claim. **At a fixed budget both engines stop in the same place by construction**, so any residual
+is the stopping rule's granularity, not a saving. **A 50.6 % sign-share was the correct measurement of an effect
+that does not exist.** Check that the comparison can vary before demanding its sign-share.
 
 ---
 
