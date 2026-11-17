@@ -4,8 +4,8 @@ Two documents, both rendered from the swarm run of 2026-11-16T22:20Z → 2026-11
 
 - **`forge-findings.md`** — the report. Opens with the decisions table and the gate caveat; §1–§5b and
   §8–§10 are about the engine, §6 and §7 are about how to measure it.
-- **`test-matrix.md`** — the same run enumerated. 137 rows: 31 areas tested and correct, 33 tested and
-  wrong, 16 conditional or partial, 21 never tested with the reason for each, and 36 instruments in this
+- **`test-matrix.md`** — the same run enumerated. 138 rows: 31 areas tested and correct, 33 tested and
+  wrong, 16 conditional or partial, 21 never tested with the reason for each, and 37 instruments in this
   audit that reported something false, with what caught each one.
 
 Engine under audit: `forge-combo29` at commit `6b98f217`. Build `e06310ec…`, `/usr/bin/g++` 13.3.0,

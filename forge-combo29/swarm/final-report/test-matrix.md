@@ -203,7 +203,7 @@ likely to save the owner time, because every one of these is a trap that fires o
 | E36 | **"`QuietExtinction` never fires"** | a reachability check on the suspected rule | The counters read **0 / 0 / 0** because the sample was the first eight corpus entries, **all mates in one** — the search resolves them and the quiet tail never closes. **Re-sampled on dedicated deep fixtures: 4,302 / 4,899 / 590.** The vacuous null would have cleared the rule that the same seat then showed loses the correct move at six consecutive depths. **A counter read on a depth-sorted corpus is reading the sort** (trap 3ad) |
 | E37 | **`check_findings_consistency.py`, first version** | a checker that recomputed the five harm-bucket counts and required every cited row to be real | **It passed the exact error it was written to catch.** Deleting the `e8e4` harm row from the detail table left the prose counts correct and the check green, because it asserted "every row cited is real" and never "every real cell is cited". **Proved on two planted faults after the fix** — a removed sentence is caught, and so is a deleted row. **A membership test has two directions; writing one and calling it validated is how a checker becomes a rubber stamp** (trap 3ae) |
 
-**The pattern in all 35 instruments**: not one of these was caught by a checker passing. They were caught by a
+**The pattern in all 37 instruments**: not one of these was caught by a checker passing. They were caught by a
 **known-answer case, a planted fault, a hand-check of the headline figure, or a reader asking why two
 numbers were adjacent**. That is the whole method in one sentence, and it is why §6 of the main report is
 half the document.
