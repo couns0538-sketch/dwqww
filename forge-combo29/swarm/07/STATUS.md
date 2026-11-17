@@ -877,3 +877,8 @@ That distinction is the useful part: a miscount means the list was wrong, double
 ## 2026-11-17T00:39:25Z
 Put the justifying sentence into the provenance rule itself, in both FINDINGS and FINAL, because it is the argument for the rule rather than a remark about one case:
   > THIS IS NOT BOOKKEEPING FOR ITS OWN SAKE -- IT IS THE DIFFERENCE BETWEEN A DISCREPANCY AND A MYSTERY. Two seats disagreed by ~26x on node counts for the same board and the same counters; with the binary unnamed it read as a dispute about node accounting and cost a seat a whole investigation, and with the builds named it was a two-minute comparison -- one seat's figures matched the PC arm to the digit and the other's matched neither build (07-C72).
+
+## 2026-11-17T00:39:44Z
+07-C73 -- CONFIRMED 05-S-F73's practical rule on MY OWN positions: 24 of 24, no exception. PC r15/PC20, Threads 1, Hash 16, OwnBook false, 8 mate-reporting positions x the owner's three budgets, every PV replayed by python-chess. 23 COMPLETE PVs -> all 23 delivered checkmate; 1 SHORT PV (mate -7, 10 plies, needing 14 -- the 05-S-F57 board) -> NOT delivered. Seat 05 reports 39 of 39 across two builds and four position sets; mine is 24 of 24 on independently chosen positions at the owner's exact budgets.
+  WHY IT MATTERS OPERATIONALLY: it is a complete mechanical answer to the label-trust question in 07-C68 -- compute 2|N|-1 (or 2|N| for a mate against the side to move), compare with the printed PV length, discard the short ones. No replay, no DTM oracle.
+  Added to FINAL item 5 alongside the vary-the-openings advice, because the two together are a complete self-play data-integrity rule: vary the starts so the samples are distinct, and discard mate labels whose PV is short so the labels are true.

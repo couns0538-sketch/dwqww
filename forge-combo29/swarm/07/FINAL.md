@@ -109,7 +109,11 @@ false).
    the clock made the duplication total, which confirms their explanation. **This one needs no patch, no
    decision about defaults and no re-run — it is actionable the moment it is read**, which is why it is on
    this list at all: if self-play currently uses fixed starts with node limits, the data set is smaller
-   than it looks by whatever factor the starts repeat.
+   than it looks by whatever factor the starts repeat. **And there is a cheap mechanical guard for the
+   labels themselves**: a printed PV shorter than `2|N|−1` (`2|N|` for a mate against the side to move)
+   means the mate was **not delivered** — 24 of 24 on my positions, 39 of 39 on seat 05's, no exception
+   (07-C73). Compute the number, compare it with the PV length, discard the short ones; no replay and no
+   tablebase needed.
 
 ## Audit method: how to check a seat's scope without raising a phantom alarm
 
