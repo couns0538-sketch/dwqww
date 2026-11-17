@@ -624,6 +624,60 @@ r15/PC20 — 1 distinct move sequence in 5 of 5 games at `go nodes 20000` and at
 | 16 | clock artefact (S-F38) | their own "three distinct positions" was the clock arm, not the engine; fixed limits give 1 sequence |
 | 27 (this seat) | harness overhead (S-W4/S-W5) + fixed-limit check (S-C27) | 1300 ms of process overhead in wall time; fixed limits give 1 sequence in 5 of 5 games |
 
+## A filter written for one kind of entry will delete another kind added later
+
+This is the mechanism behind the fifth checker failure tonight, and it is the one that is easiest to
+reintroduce because the code looks correct in isolation.
+
+`check_output_collision.py` collects candidate output paths into a list and, at the end, keeps only the ones
+that look like filenames:
+
+```python
+return [o for o in outs if "." in os.path.basename(o)]
+```
+
+Then a later version appended a **sentinel** to the same list to mark a shape it had newly learned to detect:
+
+```python
+outs.append("__FIXED__")
+```
+
+**`"__FIXED__"` has no `.` in it, so the filter deleted every sentinel that had just been added** — and the
+detector reported zero findings on the exact script it was written for. Nothing errored. The controls still
+passed, because the controls exercised the *old* shapes.
+
+**Three properties make this worth its own entry:**
+
+1. **The two pieces of code are individually correct.** The filter is right for its stated purpose ("keep
+   things that look like filenames"); the append is right for its stated purpose ("record that we saw this
+   shape"). The bug is entirely in the space between them, which is why reading either one will not find it.
+2. **It fails silently and in the direction that looks like success.** A checker that reports *findings* would
+   be noticed. A checker that reports *nothing* looks like a clean result — the very failure `THE EMPTY-TABLE
+   TRAP` is about, arriving through collection rather than comparison.
+3. **The same shape appears wherever a list is built by several contributors and then narrowed by one rule**:
+   a generated findings table that filters to rows matching a regex (and silently drops a differently
+   formatted finding), a summary that keeps entries with a non-null score (and drops every `mate` score), a
+   census that counts lines starting with `| ` (and misses a row wrapped differently). **Every one of them
+   reads as "nothing there".**
+
+**The guard:** when a list is assembled from more than one place, filter with an **allow-list of the shapes you
+expect**, and assert the count at each stage:
+
+```python
+collected = len(outs)
+keep = [o for o in outs if is_path(o) or is_sentinel(o)]     # explicit, both kinds
+assert len(keep) >= collected - KNOWN_DROPS, "the filter dropped %d entries" % (collected - len(keep))
+```
+
+or, simplest and what finally worked here: **do not post-filter a heterogeneous list.** Give each kind its own
+list.
+
+**And the detection method, which is the general half:** the checker had no fixture set, so I **reconstructed
+the original bug from memory** (`out = os.path.join(dir, "name_%d.json" % n)` with a `--baseline` argument) and
+ran the detector against it. It reported nothing, which is how the filter bug surfaced. **For a detector with no
+fixtures, the known-answer case has to be manufactured from a bug you already found — and that is still a
+known answer, which is all the rule requires.**
+
 ## THE EMPTY-TABLE TRAP: a control must be demonstrated to FAIL when the input is wrong
 
 This is the most dangerous failure in this file, because it does not produce a wrong number — it produces
