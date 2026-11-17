@@ -34,6 +34,8 @@ winning side to move. `oracle` = exact-table attacker, engine defends (**control
 | KRK | oracle | nodes 12000 | 20 / 20 | 1 / 9 / 11 | 0 | 0 |
 | KBNK | engine | depth 12 | **3 / 20** | 16 / 19 / 41 | 100 | 17 |
 | KBNK | engine | nodes 12000 | **3 / 20** | 14 / 18 / 40 | 0 | 17 |
+| KBNK | engine | depth 16 (on the 17 depth-12 failures) | **5 / 17** | 22 / 33 / 45 | 0 | 12 |
+| KBNK | engine | depth 20 (same 17) | **4 / 17** | 26 / 30 / 38 | 0 | 13 |
 | KBNK | oracle | — | **not run** (no table) | — | — | — |
 | KBK | engine | depth 12 | 0 / 20 (draw is correct) | — | **2,152** | 20 |
 | KNK | engine | depth 12 | 0 / 20 (draw is correct) | — | **2,064** | 20 |
@@ -151,13 +153,45 @@ already drawn.
 - **KNN vs K I did not test.** §9b is right that the verdict is not a bug; I am recording
   that I left it out rather than reporting a number I did not take.
 
-**KBNK is where the inversion plausibly bites, and it converts 3/20.** KBNK is a *generic*
-win (33 moves maximum) with **zero** material-bail protection — the engine must actually find
-the bishop+knight mate. 17 of 20 ended in a fifty-move claim. **But I cannot attribute KBNK's
-failures to the inversion**: I did not build a KBNK table (4-piece retrograde was too
-expensive in the window), so there is no exact DTM per position and no oracle arm. The KBNK
-row is a **measurement without a mechanism**, flagged rather than explained by borrowing the
-KQK story.
+**KBNK is where the inversion plausibly bites, and it converts 3/20 — but the
+inversion is NOT the cause, and I measured that rather than assuming it.**
+
+The hypothesis was mine going in: KBNK is a *generic* win (33 moves maximum) with **zero**
+material-bail protection, so if the −147/−144 bare-minor inversion generalised to two minor
+pieces, KBNK would be where it costs a win. **Three measurements withdraw that hypothesis:**
+
+1. **The inversion does not generalise to a bishop *and* a knight.** Static score at clock 0:
+   **KBNK `hce +460`, `nnue −379`, total `+81`** — positive, and positive in three
+   independent KBNK positions (`hce` ~+465/483/460, total +81/+126/+132). The residual is
+   still a large **negative** contribution (−333 to −379 against a handcrafted +460), which
+   is the same *shape* as the bare-minor inversion, but it does not cross zero. So KBNK's
+   static score is low but **correct in sign**.
+2. **KBNK has the same clock collapse** as KQK and KRK. Same board, only the clock changes:
+   `cp 282 / 282 / 282 / 320 / 196 / **0** / **0**` at hm `0 / 40 / 70 / 80 / 85 / 90 / 95`,
+   with nodes going 1,029 → **2,355,478** into the band. Three boards, same shape.
+3. **The failures are not inversion-shaped, they are conversion-shaped** — all 17 end in
+   `fifty_move_claim` with **0 bails**, exactly like KQK and KRK.
+
+**The depth ladder is the surprise, and it is non-monotonic.** On the 17 KBNK FENs that
+failed at depth 12:
+
+| depth | converted | drawn | bails |
+|---|---|---|---|
+| 12 | **0 / 17** | 17 | 0 |
+| 16 | **5 / 17** | 12 | 0 |
+| 20 | **4 / 17** | 13 | 0 |
+
+Individual FENs flip **both ways**: three convert at 16 and revert at 20, two convert only at
+20. So KBNK is **not** a horizon effect that more depth fixes; it is a search that cannot hold
+a 33-move plan together, and extra depth moves which positions it succeeds on without
+improving the rate. **Union across all three depths: 8 of 17 convert at least once.** That is
+a stronger statement about the family than any single rung, and it is why the rate is quoted
+per-depth rather than pooled.
+
+**So KBNK's 3/20 stays a measurement without a mechanism — but now the hypothesis space is
+narrower, not wider:** it is not the bare-minor inversion (static sign is right) and it is not
+a missing horizon (depth 20 is worse than 16). What remains is the clock collapse plus a
+genuine planning failure, and separating those two needs a 4-piece table I did not build.
 
 ## 6. Is it a horizon effect? Yes for KQK — and the horizon needed is absurd
 
@@ -170,10 +204,36 @@ Depth ladder on the **exact KQK FENs that failed at depth 12** (same position, f
 | 16 | converted, 34 moves | converted, 11 moves |
 | 20 | converted, 21 moves | converted, 10 moves |
 
-So it **is** horizon-dependent — and at depth 16 a **mate in 8** converts in 34 moves. The
-engine needs roughly **4× the depth of the mate itself** to convert a KQK win. That is not a
-search one ply short; it is win-detection that has to outrun a draw-scoring rule firing 10
+So for KQK it **is** horizon-dependent — and at depth 16 a **mate in 8** converts in 34 moves.
+The engine needs roughly **4× the depth of the mate itself** to convert a KQK win. That is not
+a search one ply short; it is win-detection that has to outrun a draw-scoring rule firing 10
 plies before the horizon.
+
+**For KBNK it is not a horizon effect, and that is measured rather than assumed.** On the 17
+KBNK FENs that failed at depth 12: **0/17 convert at depth 12, 5/17 at depth 16, 4/17 at
+depth 20** — *worse* at the deeper rung. Individual FENs flip both ways (three convert at 16
+and revert at 20; two convert only at 20). **Union over all three depths: 8 of 17.** So more
+depth relocates which KBNK positions succeed without improving the rate, which is a different
+defect from KQK's and must not be described with the same sentence.
+
+## 6b. Claims I had to withdraw
+
+Recorded because a report that only carries what survived is not usable.
+
+1. **"The bare-minor inversion is where KBNK loses its games."** *My own hypothesis going in,
+   and it is wrong.* KBN's static score is **positive** (`+81/+126/+132` in three positions):
+   the residual is still large and negative (−333 to −379) against a handcrafted +460, but it
+   does not cross zero, so the inversion does **not** generalise from one minor to two. The
+   KBNK failures have the same clock signature as KQK/KRK instead.
+2. **"Conversion failures are caused by the drawn-root bail."** *The natural hypothesis, and
+   it is wrong.* 0 of 37 attributed failures have a bail.
+3. **"The oracle converts every won KPK cell."** *Was true of the fix and false of the first
+   version* — it refused to promote and "failed" 178 of 192. The 192/192 is only quotable
+   because the bug was found and fixed.
+4. **"KBK and KNK hold 20/20 draws."** *Was reported by a vacuous arm:* all 40 games ended at
+   ply 0 because python-chess adjudicates insufficient material before a move is played. The
+   20/20 is real now, measured over 100+ plies, and only after the stop condition was
+   changed to "no legal move".
 
 ## 7. Pins, controls, and what makes the numbers trustworthy
 
@@ -228,9 +288,11 @@ search gets UCI `stop` from a watchdog, never `quit`, and is counted as a timeou
   set it), and no `FORGENN3` net file exists anywhere in the repository — the only writer
   named in the format doc (`tools/nnue/fable_nnue_v3.py`) is not in the tree. **Item 5 is not
   done, and no row here is a second-net row.** I did not synthesise a net to test a net.
-- **KBNK mechanism.** 3/20 measured, but with no exact table and no oracle arm. It is the
-  family where the bare-minor inversion would most plausibly matter and the one I can least
-  explain.
+- **KBNK mechanism in full.** The bare-minor-inversion hypothesis is **withdrawn** by
+  measurement (static sign is positive, `+81/+126/+132`), and the horizon hypothesis is
+  **withdrawn** too (depth 20 converts *fewer* than depth 16). What is left is the clock
+  collapse plus a planning failure that a 4-piece table would be needed to separate. KBNK
+  also has no oracle arm: no 4-piece table was built.
 - **The full KPK boundary.** 384 of 81,664 canonical cells (0.47%), stratified. The
   denominator is stated everywhere rather than implied.
 - **Attribution of the clock collapse to the leaf draw rule.** The behaviour is what
