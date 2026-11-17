@@ -51,6 +51,14 @@ def derive(evidence):
         loud_ok += 1 if good else 0
     facts["loud_cases_ok"] = loud_ok
     facts["loud_total"] = len(loud)
+
+    sweep_path = os.path.join(evidence, "sweep_asan_summary.json")
+    if os.path.exists(sweep_path):
+        sweep = json.load(open(sweep_path))
+        facts["sweep_cases"] = sweep["cases"]
+        facts["sweep_sanitizer_lines"] = sweep["sanitizer_lines"]
+        facts["sweep_disagreements"] = sweep["verdict_disagreements"]
+        facts["sweep_accepted"] = sweep["accepted"]
     return facts
 
 
@@ -60,6 +68,9 @@ CHECKS = [
     ("header refused", r"Header mutants — (\d+) of 30 refused", "header_refused"),
     ("truncation refused", r"Truncation at every boundary — (\d+) of 14 refused", "truncation_refused"),
     ("bomb refused", r"Oversized dimension claims — (\d+) of 4 refused", "bomb_refused"),
+    ("sweep cases", r"`scripts/sweep_asan\.py` \| \*\*(\d[\d,]*)\*\*", "sweep_cases"),
+    ("sweep sanitizer run", r"Sanitizer run \((\d[\d,]*) cases\): 0 sanitizer lines", "sweep_cases"),
+    ("sweep accepted", r"sanitizer run: (\d+) of them load", "sweep_accepted"),
 ]
 
 

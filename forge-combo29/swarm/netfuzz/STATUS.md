@@ -13,13 +13,15 @@
 | Allocation accounting (`operator new` counter) | **done** — bombs allocate 0 for the claim |
 | Amplification (2.00×–3.66×, linear in file length) | **done** |
 | Slurp-before-check / unbounded read | **done** — 8 GB file = 8.4 GB RSS; `/dev/zero` aborts on `bad_alloc` |
-| 1,819-case header sweep, both arms | **done** — 0 sanitizer lines, every accept legal by design |
+| 1,819-case header sweep (release arm) | **done** — every accept legal by design |
+| 1,096-case header sweep (release **and** ASan+UBSan) | **done** — 0 sanitizer lines, 0 verdict disagreements |
 | 12th net reachability + counterfactual | **done** — eval 68 vs 94, restored returns 68 |
 
 ## The one line
 
 **The v3 loader is memory-safe against malformed input: 53 of 60 mutants refused, 7
-loaded and all 7 must load, 0 sanitizer lines in 1,879 cases.** Its one real defect is
+loaded and all 7 must load, 0 sanitizer lines in 1,156 cases** (60 hand-built + 1,096
+swept). Its one real defect is
 that it **slurps the whole file before checking anything**, so it spends L bytes to
 refuse an L-byte file and never terminates on `/dev/zero`.
 

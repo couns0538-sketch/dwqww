@@ -2,10 +2,10 @@
 
 **The answer first.** The v3 loader **rejects 53 of 60 mutants** and the 7 that load are
 **exactly the 7 that must load**. No mutant is accepted that shouldn't be. **Zero
-sanitizer lines** under ASan+UBSan across all 60 hand-built cases and 1,819 swept
+sanitizer lines** under ASan+UBSan across all 60 hand-built cases and 1,096 swept
 header mutations. The one thing it does wrong is **not a corruption bug but a
 resource one**: it slurps the whole file into memory *before* it examines a single
-header field, so an 8 GB file costs 8 GB of RAM to refuse.
+header field, so an 8 GB file costs 8.4 GB of RAM to refuse.
 
 ## Which binary, which hashes
 
@@ -229,7 +229,7 @@ be built from a small file.
 
 **The real resource defect is the slurp, and it is the next section.**
 
-### 4. Sanitizers — 0 lines across 1,879 cases, with a planted-fault proof
+### 4. Sanitizers — 0 lines across every case, with a planted-fault proof
 
 Both sanitizers are **proven live** by deliberate faults compiled and linked exactly
 like the loader probe:
@@ -251,7 +251,8 @@ never reached ASan's shadow map. An overrun is not a reliable ASan probe in a co
 binary; a use-after-free is, because only ASan's quarantine can see it.
 
 With that proven live: **0 sanitizer lines** on all 60 hand-built mutants (release and
-sanitizer arms agree on every verdict), and **0** on the 1,819-case header sweep.
+sanitizer arms agree on all 60 verdicts), and **0** on the swept header space, where the
+same 1,096 field/value cases were run through both arms (§ sweep, below).
 
 ### 5. The 12th net — it loads, and its checksum is genuinely valid
 
@@ -335,14 +336,27 @@ file, `fail()` on a length outside `[HeaderBytes + 8, file_size_for(MaxHidden, M
 and only then read. The maximum legal v3 file is 50,399,496 bytes, so the cap is known
 at compile time and the check costs one `stat`.
 
-## The 1,819-case header sweep
+## The swept header space: two runs, and what each covers
 
-Beyond the hand-picked mutants, every 4-byte header field was set to a spread of
-values (0, 1, boundaries, `INT_MAX`, `UINT_MAX`, negatives) and every one of the 64
-king-map, 33 output-map and 47 reserved bytes to 12 values each, all re-checksummed.
-**1,819 cases, 0 sanitizer lines, 0 sanitizer/release verdict disagreements.**
+Beyond the hand-picked mutants, the header space was swept twice, and the two runs have
+**different sizes and different jobs**. Saying "1,819 cases, 0 sanitizer lines" would
+merge them and overstate the sanitizer coverage, so they are stated separately:
 
-Every accept in that space is legal by design and none is a missing guard:
+| run | cases | arms | what it answers |
+|---|---|---|---|
+| `scripts/header_sweep.py` | **1,819** | release only | does any field value slip past a guard? |
+| `scripts/sweep_asan.py` | **1096** | release **and** ASan+UBSan | a superset of fields, a narrower value list, both arms |
+
+Both spread every 4-byte field over 0, 1, boundaries, `INT_MAX`, `UINT_MAX` and negatives,
+all re-checksummed, plus the 64 king-map, 33 output-map and 47 reserved bytes.
+
+**Release run (1,819 cases): 0 cases both loaded and evaluated when they should not have.**
+**Sanitizer run (1096 cases): 0 sanitizer lines, 0 release/sanitizer verdict disagreements.**
+In the sanitizer run (354 of them load, every one legal: 192 king-map and 99 output-map
+entries below their bucket count, 47 zero reserved bytes, `flags` 0/1/3, `eval_scale`
+1/9999/10000, and the 8 identity values).
+
+Every accept in either space is legal by design and none is a missing guard:
 
 | accepted | count | why it is legal |
 |---|---|---|
@@ -355,8 +369,7 @@ Every accept in that space is legal by design and none is a missing guard:
 
 **No out-of-range bucket entry was accepted** (`8..255` refused for every one of the 97
 entries), and **no non-zero reserved byte was accepted** (47 entries × 11 non-zero
-values, all refused). Every case also ran through the ASan+UBSan probe: **0 sanitizer
-lines and 0 release/sanitizer verdict disagreements** across the 1,819.
+values in the release run, all refused).
 
 ## What I did not test, and why
 
