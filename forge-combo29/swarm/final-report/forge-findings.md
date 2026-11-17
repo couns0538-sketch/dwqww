@@ -12,8 +12,8 @@ invisible to this instrument", never "this change is safe"**, and the two are on
 probe proves the change was live. The measurement is in §6, the blind-spot list in §10.
 
 **A companion file enumerates the whole run as a matrix rather than an argument**:
-[`test-matrix.md`](test-matrix.md) — **137 rows**: 31 areas tested and correct, 33 tested and wrong, 16
-tested with a conditional answer, 21 never tested (each with the reason), and **36 instruments in this
+[`test-matrix.md`](test-matrix.md) — **138 rows**: 31 areas tested and correct, 33 tested and wrong, 16
+tested with a conditional answer, 21 never tested (each with the reason), and **37 instruments in this
 audit that reported something false**, with what caught each one. Start there if you want the checklist;
 start here if you want the reasoning.
 
@@ -3559,8 +3559,8 @@ hard-codes `/tmp/o100.fens` as its input path, so a re-run must place `OG200.fen
 
 **Read this section by NUMBER, not by position: the numbers run in discovery order and the inserted
 suffixes (`3a000`, `5a0`, `14b`, `19a`–`19e`, `19c0`, `20a00`, `21a`) are later findings attached to the
-family they belong to, so they sit beside their parent rather than at the end.** There are **66 numbered
-traps: base numbers 1–30 with 36 suffixed variants.** Renumbering is deliberately avoided —
+family they belong to, so they sit beside their parent rather than at the end.** There are **67 numbered
+traps: base numbers 1–30 with 37 suffixed variants.** Renumbering is deliberately avoided —
 a renumber breaks every cross-reference in this document and in the branch reports, and it breaks them
 silently while leaving "the reference resolves" true. **A mechanical check confirms every `trap N`
 reference in this document resolves to a definition here.**
@@ -3909,6 +3909,16 @@ reference in this document resolves to a definition here.**
    is **the correct move**, not a mate label. The distinction is the §4 one, and a headline that names the
    wrong loss is a smaller version of the same error as a counter sampled where the rule cannot fire. **Read
    the cells before writing the sentence.**
+3ae. **A CONSISTENCY CHECK THAT VALIDATES WHAT IS PRESENT AND NOT WHAT IS MISSING PASSES THE EXACT ERROR IT
+   WAS BUILT TO CATCH.** The `QuietExtinction` seat wrote a checker that recomputed its five harm-bucket
+   counts from the evidence JSON and required every cited row to be a real harm cell. **Deleting a harm row
+   from the detail table left the prose counts correct and the check passed** — because it asserted "every
+   row I cite is real" and never "every real cell is cited". The omission it failed to catch was **the very
+   omission that had been in the report**: a `e8e4` row misfiled under the wrong class. Both directions are
+   asserted now, and the seat proved it by planting each fault in turn. **The general shape: a membership
+   test has two directions and a set comparison has two directions; writing one of them and calling it
+   validated is how a checker becomes a rubber stamp.** Its sibling is trap 16's "a check must report how
+   many rows it examined" — a count of what was looked at does not tell you what was skipped.
 3ab. **An unrecognised `position` TYPE is silently ignored and the previous position is re-searched**,
    with **nothing on the wire at all** (re-confirmed on the base commit: `position nonsense` after a
    book-answered K+R v K position returns `d2d4` with no diagnostic, while the six-field form returns
