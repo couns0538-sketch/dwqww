@@ -110,6 +110,33 @@ Three things follow, and the third is the one that matters for the owner's pipel
 | gap > 300 cp | 1 board | 1 board |
 | largest gap | 452 cp | 315 cp |
 
+### Which setting is actually better? Measured, not assumed (S-C50)
+
+The disagreement count says the two settings differ. It says nothing about which is right. So for all 47
+disagreements I scored **both candidate moves** at depth 20, each pinned with `searchmoves` — so neither candidate
+gets the free search's preference, and the comparison is move against move from an identical position.
+
+| verdict at reference depth 20 | boards |
+|---|---|
+| MultiPV 1's move is stronger | **27** |
+| MultiPV 3's move is stronger | **20** |
+| equal | 0 |
+| unscored | 0 |
+
+A two-sided sign test on 27/47 gives **p = 0.38**. That is a coin flip, and I am not claiming a direction. What the
+same run does establish is the *size*: among the 46 centipawn-scored pairs the median gap is **43 cp**, **18** exceed
+50 cp, **12** exceed 100 cp, and **none are equal**.
+
+So the honest summary of the whole MultiPV thread is: **the setting moves the answer on ~19% of random middlegame
+positions, the disagreements are substantial, and neither setting is the accurate one.** MultiPV is a second sample
+from an equally good search, not a correction. A pipeline that wants the stronger move has to spend depth (as this
+reference does) or breadth; turning on extra lines does not buy accuracy.
+
+**Ceiling:** depth 20 pinned is a stronger judge than depth 12, but it is still a search and not the truth. Where
+depth 20 is itself wrong, the verdict inherits the error — and depth 20 sits below the depth-24 region where S-F8's
+score changed again. This is a measurement about which of two moves a deeper search prefers, not a proof about
+either move's true value.
+
 ### A confound I checked and then discarded
 
 At depth 12 the MultiPV-1 answer matched the depth-16 answer on 88.0% of boards and the MultiPV-3 answer on
@@ -121,11 +148,13 @@ not rely on them. The disagreement-rate stability above is the sound version of 
 ## 6. What this means for the owner, in one paragraph
 
 A training pipeline that reads the engine's `info` line as "the best move and its score" is reading the result
-of a search whose *move choice* depends on a display setting. On 47 of 250 positions, MultiPV 1 and MultiPV 3
-disagree about the best move and about its score; on one of those, they disagree about the mate distance by two
-moves. The direction of the difference is not uniform (the multi-line search found the shorter mate here), so
-there is no rule of the form "MultiPV > 1 is more accurate" — the safe statement is that a score or a mate
-number is a property of the search that produced it, and the MultiPV setting is part of that search.
+of a search whose *move choice* depends on a display setting. On 47 of 250 positions at depth 12 (41 at depth 16),
+MultiPV 1 and MultiPV 3 disagree about the best move and about its score; on one of those, they disagree about the
+mate distance by two moves. **Neither setting is more accurate** (27 vs 20 at a deeper reference, p=0.38), so there is
+no rule of the form "MultiPV > 1 is better". The safe statement is the narrower and more useful one: a score or a mate
+number is a property of the search that produced it, MultiPV is part of that search, and the disagreements are large
+enough (median 43 cp) that a pipeline should fix the setting and record it, rather than expecting the choice not to
+matter.
 
 ## 7. Honesty notes
 
