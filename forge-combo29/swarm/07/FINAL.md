@@ -139,7 +139,9 @@ the wrong order to read them in. Grouped by what they are for:
 
 - **If the answer does not belong to the position, the position was not accepted.** The engine refuses an
   invalid FEN and keeps the previous board, so a move that could not occur on your board means your board
-  was rejected. (Caught me with `e2e4` on a position holding a lone black king on h8.)
+  was rejected. (Caught me with `e2e4` on a position holding a lone black king on h8.) **`readyok` does not
+  save you: a refused position still answers it** (07-C70). The guard that survives that lying handshake is
+  `go perft 1` compared with python-chess for the intended board.
 - **Assert your harness settings explicitly and record them: `Threads 1`, `MultiPV 1`, `OwnBook false`.**
   `MultiPV 2` silently costs 3 plies on startpos at `go nodes 20000`, with no error and a plausible node
   count.
