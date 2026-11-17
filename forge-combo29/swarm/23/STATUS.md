@@ -1156,3 +1156,13 @@ repeatable; node-budget results are not reproducible move-for-move and not inter
 The PC page is now complete for a reader: the build, what it fixes, what it does not, reproducibility, caveats.
 
 89 findings, 18 confirmations, eleven named faults, six reference pages. 10 h 10 m remain.
+## 2026-11-17T00:09:36Z  the mechanical distinction is now in the FINDINGS row, not only the PC page
+2026-11-17T00:09:36Z
+
+23-F64's line now carries the explanation explicitly: a SOFT budget (softnodes) and a CLOCK take their stopping
+point from the search's own progress and so stop at a COMPLETED depth, while a HARD budget (go nodes) aims at a
+fixed count and stops wherever the boundary falls - making the hard-budget path the only one whose final depth
+varies with position, which 23-F56 identifies as what changes the move.
+Closing sentence added: the two stable paths avoid the lottery BY CONSTRUCTION, not by luck.
+
+89 findings, 18 confirmations. 10 h 9 m remain; cadence continuing.
