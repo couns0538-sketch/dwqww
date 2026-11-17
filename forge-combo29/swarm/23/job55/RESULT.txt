@@ -1,0 +1,63 @@
+ROOT-SPECIFIC OR NOT: the question is UNDECIDED, and the reason is worth more than a guess
+==========================================================================================
+23-F110 showed the bail requires the repetition to be in the move list. Job 55 asked the sharper question: does the
+engine look at the position it is SEARCHING, or at the history as a whole? A tool author needs the difference — under
+"any repetition" a game that once repeated something would poison later searches.
+
+FIXTURES, all asserted in python-chess BEFORE the engine was called
+--------------------------------------------------------------------
+  T0 root only            expect a search
+  T1 corrected            searched position occurs ONCE, some INTERMEDIATE position occurs >= 3
+  T2 root occurs 3x       expect 0 nodes (23-F110)
+
+T1 on the sparse board (`1K6/8/8/3R4/8/8/8/k7 w`) was **IMPOSSIBLE to construct**: with two kings and a rook, every
+4-ply shuttle returns to the root, so a history with a non-root threefold and an unrepeated final position does not
+exist there. Reported, not worked around.
+
+RESULTS — and T2's failure is the point
+----------------------------------------
+| case | board | searched position occurs | max non-final occurs | nodes | score | bestmove |
+|---|---|---|---|---|---|---|
+| T0 root only | `1K6/8/8/3R4/8/8/8/k7 w` | 1 | 1 | 7,581 | cp 381 | d5b5 |
+| **T2 root 3x** | `1K6/8/8/3R4/8/8/8/k7 w` | **3** | 3 | **0** | **cp 0** | d5d1 |
+| T0 control | `r3k2r/8/8/8/8/8/8/R3K2R w KQkq` | 1 | 1 | 11,970 | cp 799 | h1h8 |
+| **T1 corrected** | same | **1** | **4** | **13,359** | cp 805 | h8h1 |
+| **T2 on that board** | same | **3** | 4 | **17,601** | cp 809 | h1h8 |
+
+P1 HELD (T0 searches on both boards). The gate P3 held **on the sparse board** (T2 → 0 nodes, reproducing 23-F110 exactly,
+with T1 impossible there for a structural reason).
+**P3 FAILED AS A GATE ON THE RICHER BOARD: T2 did not bail — 17,601 nodes with the root occurring three times.** My own
+prediction said explicitly that if T2 fails, "the fixture is not demonstrated and T1 proves nothing", so P2 is
+**NOT EVALUATED**. T1 searched (13,359 nodes) but that observation carries no weight, because the same harness failed
+to reproduce the bail on the same board with a simpler fixture.
+
+T1 ON THE SPARSE BOARD, as first measured, was also a mislabelled result I caught
+---------------------------------------------------------------------------------
+My first T1 was `d5d6 a1b1 b8c8 b1a1 ...` — nominally "an intermediate repeats, the root does not". Checked properly,
+its FINAL position (the one the engine actually searches) had occurred **4 times**, so the 0-node result was ordinary
+root-specific behaviour and my first reading of it as "M2 established, the defect is broader" **would have been wrong.**
+That is the comparator fault again (instance 22): I counted occurrences of my starting FEN instead of the position
+being searched.
+
+THE FINDING IS THEREFORE NEGATIVE, AND STATED AS SUCH
+------------------------------------------------------
+**Whether the bail is root-specific or history-wide is UNDECIDED.** What job 55 did establish is more useful than a
+guess at the answer:
+1. **The bail is not universal across drawn-by-repetition positions.** On `r3k2r/8/8/8/8/8/8/R3K2R w KQkq`, with the root
+   occurring three times in a move list and halfmove 13, the engine **searched 17,601 nodes**. Every earlier bail in this
+   seat was on a sparse endgame. That is a NEW scope limit on 23-F93/F110 that I would not have found without trying a
+   richer board — the bail is not simply "threefold in the move list"; something about these positions differs.
+2. My three earlier gate positions (23-F110) plus the sparse T2 all bailed; this rich middlegame-ish board does not. So
+   the trigger involves more than the repetition count, and the honest description of 23-F93/F110 must now read
+   "on the endgame positions tested", not "whenever the repetition is in the move list".
+
+WHY I AM NOT PURSUING THE ORIGINAL QUESTION FURTHER RIGHT NOW
+--------------------------------------------------------------
+T1 and T2 must be shown on the SAME board for the comparison to mean anything, and on the boards where the bail
+reproduces (sparse endgames) T1's fixture cannot be built at all. Resolving it needs a board that both bails AND admits
+an unrepeated final position after a repeated loop — a search I did not complete in this job. Recording the bound rather
+than manufacturing a fixture to fit the answer is the correct stopping point.
+
+LIMITS: two boards, one build, `go depth 10`; T1 constructed by search on the rich board only. The rich-board T2 result
+is a single cell and is reported as such — it is a SCOPE LIMIT on the earlier findings, not yet a characterisation of
+when the bail fires.

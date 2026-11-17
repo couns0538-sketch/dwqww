@@ -2062,3 +2062,28 @@ Recorded as instance 24, and the claim is restated qualitatively ("nonzero on 4 
 moving the threshold after seeing the data.
 
 139 findings, 24 rule instances, both audits PASS.
+## 2026-11-17T01:41:25Z  F112-F113: a SCOPE LIMIT on the drawn-root family, found by trying a richer board
+2026-11-17T01:41:25Z
+
+I went after the sharper question - is the bail root-specific or history-wide? - and came back with a limit on my own
+family instead. Both outcomes are in.
+
+F112, the substantive one. On `r3k2r/8/8/8/8/8/8/R3K2R w KQkq`, with the ROOT occurring three times in the move list
+(halfmove 13), the base SEARCHED 17,601 nodes. Every earlier bail in this seat was on a sparse endgame and returned 0
+nodes. Control on the same board, root only: 11,970 nodes. So the trigger is NOT simply "threefold present in the move
+list" - 23-F93/F110 must now read "on the endgame positions tested". F110 is corrected in place and the chain line's
+gate sentence now carries the limit. I do not know what distinguishes the boards and I do not rank candidates.
+
+I found this only by deliberately using a board richer than any the family had used. Every fixture in the family was a
+sparse endgame because that is what made the arithmetic clean.
+
+F113: the original question stays UNDECIDED, and my own gate rule is why. T1 and T2 must be shown on the same board.
+On the sparse board T1 is structurally impossible (two kings and a rook: every shuttle returns to the root). On the
+richer board T2 does not bail, so the harness fails its own gate and T1's 13,359-node cell carries no weight. My
+prediction said in advance that a T2 failure voids T1, and I applied that rather than reporting the convenient half.
+
+Also recorded there: my FIRST T1 looked like it established "history-wide". Its final position had occurred 4 times, so
+the 0-node result was ordinary root-specific behaviour. I had counted occurrences of my STARTING fen instead of the
+position being searched - the comparator fault from instance 22, again.
+
+141 findings, 24 rule instances, both audits PASS.

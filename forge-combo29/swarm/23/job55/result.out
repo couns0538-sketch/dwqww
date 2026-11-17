@@ -1,0 +1,16 @@
+== fixture construction (asserted before the engine is started) ==
+T2 cycle (root returns): ['d5d6', 'a1b1', 'd6d5', 'b1a1']
+T1 cycle (intermediate repeats, root does NOT): ['d5d6', 'a1b1', 'b8c8', 'b1a1', 'c8b8', 'a1b1', 'b8c8', 'b1a1', 'c8b8', 'a1b1', 'b8c8', 'b1a1', 'c8b8']
+  T1: root occurrences=1  max occurrences of any position=4  ends at root=False
+  T2: root occurrences=3  max occurrences of any position=3  ends at root=True
+
+== measurement ==
+| case | root occ | max occ | nodes | score | bestmove |
+|---|---|---|---|---|---|
+| T0 root only | 1 | 1 | 7581 | cp 381 | d5b5 |
+| T1 intermediate 3x | 1 | 4 | 0 | cp 0 | a1b1 |
+| T2 root 3x | 3 | 3 | 0 | cp 0 | d5d1 |
+
+P1 T0 searches (nodes > 0): True nodes = 7581
+P3 T2 bails (0 nodes): True nodes = 0   <-- GATE: if False, no conclusion about T1 may be drawn
+P2 T1 searches (root-specific, M1): False nodes = 0
