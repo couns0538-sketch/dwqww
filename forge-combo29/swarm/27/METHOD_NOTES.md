@@ -308,6 +308,8 @@ A reproducibility result worth knowing before quoting any deep `mate N`:
 | node counts on a fixed board and depth, Threads 1 | **YES — to the digit** (d13 66,609,862 and d14 599,407,784 identical on two machines) |
 | deep `mate N` on a high-counter KRvK board | **NO** — my -21/-25/-23 against another seat's -16/-15/-19 on the same board and settings |
 
+**Any seat-versus-seat comparison of deep KRvK mate numbers is comparing truncations, not evaluations.** That sentence is the one to keep: when both sets exceed the material's own bound, neither is a distance and the disagreement tells you nothing about either engine.
+
 **The decisive check is against the material, not against another seat.** KR vs K has a maximum DTM of 16 moves, so
 **any `mate N` with |N| > 16 on that material is a truncated score, not a distance** — which makes a
 seat-versus-seat comparison of those numbers meaningless. My own `mate -25` was withdrawn for exactly this reason.
