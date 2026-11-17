@@ -1301,3 +1301,18 @@ board-specific and the defect usually harmless.
 Status: running (each game is up to 200 clock moves). Will report the table when it lands.
 Also this hour: the rule page now has four headline sentences, each with a mechanical check, and the disjointness
 assertion carries a message saying why it exists.
+## 2026-11-17T00:22:01Z  23-F69: depth-13 endgame explosion NOT reproduced on six valid boards; invalid-board trap recorded
+2026-11-17T00:22:01Z
+
+Base build, depth 12 vs 13, six VALID endgame boards (is_valid() checked first):
+  KRvKR 1.10x | KQvKR 1.38x | KRvK 1.16x | KRvKP 1.67x | KQvK 1.49x | KBBvK answered at once (insufficient material)
+Largest ratio 1.67x, every search under a second -> NO explosion on these boards. So I neither confirm nor contradict
+the 192-211M report (those are evidently specific boards), but this class of endgame does not explode on my six.
+
+TRAP, my own documented hazard biting me: two first-choice boards had a pawn on the back rank, are INVALID, and the
+engine REFUSED them leaving the previous position - give-away was two different boards with IDENTICAL counts
+(56,720 / 72,062 for both), the same smell as 23-C14/C23. All boards now verified before use.
+
+My own exposure: depth-13+ endgame work was six lone-king boards at 12/20/24 (200 s total) and depth 16 on two
+repetition boards (seconds) - no hang, and every reported number finished in the time stated.
+95 findings, 18 confirmations. 9 h 57 m remain.
