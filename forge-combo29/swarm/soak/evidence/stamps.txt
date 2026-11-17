@@ -14,3 +14,17 @@ harness-reported elapsed (from each arm's own output file):
   soak5   ulimit sweep                    ~4 s      evidence/soak5.json
   soak5b  cliff bisect, 4 Hash values     ~2 s      evidence/soak5b.json
   soak6   ASan workload (120 searches)    ~3 s      evidence/soak6.json
+
+# --- second round: MultiPV cliff, slope, resize ---
+written: Tue Nov 17 05:38:19 AM UTC 2026
+
+harness-reported elapsed for the added arms:
+  soak7   P9 boundary + MultiPV cliff bisect   ~13 s   evidence/soak7_cliff_mpv.json
+  soak7b  MPV 2/3/4 control                    ~20 s   evidence/soak7b_mpv_control.json
+  soak7c  VmSize/VmHWM attribution             ~13 s   evidence/soak7c_vm.json
+  soak7d  peak-RSS slope vs Hash               ~10 s   evidence/soak7d_slope.json
+  soak8   resize transient via VmHWM           ~3 s    evidence/soak8_resize.json
+
+NOTE: soak7c (the VmSize/VmHWM attribution table quoted in FINDINGS section 5b) is in
+evidence/ but has no dedicated section in analyze.py; its figures are quoted from its JSON
+and are re-derived by check_consistency.py only where they appear in the report's tables.

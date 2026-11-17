@@ -258,6 +258,91 @@ def soak6():
     return ok
 
 
+def soak7():
+    d = load("soak7_cliff_mpv.json")
+    assert len(d["P9"]) == 4, "P9: expected 4 caps, got %d" % len(d["P9"])
+    section("P9  the Hash-16 boundary at 1 MB resolution (prior table says 59 fails, 60 works)")
+    print("cap_MB  completed  rc  signal  outcome")
+    for r in d["P9"]:
+        print("%6d %10d %3d %7s  %s" % (r["cap_mb"], r["completed"], r["rc"], r["signal"],
+                                        "works" if r["completed"] == r["n_expected"]
+                                        else "DIED"))
+    works = [r["cap_mb"] for r in d["P9"] if r["completed"] == r["n_expected"]]
+    dead = [r["cap_mb"] for r in d["P9"] if r["completed"] != r["n_expected"]]
+    print("\nlowest working cap: %d MB   highest failing cap: %d MB" % (min(works), max(dead)))
+    print("prior boundary table said 59 fails / 60 works -> %s"
+          % ("REPRODUCED" if max(dead) == 59 and min(works) == 60 else "NOT REPRODUCED"))
+
+    assert len(d["P7"]) == 4, "P7: expected 4 cells, got %d" % len(d["P7"])
+    section("P7  does the ulimit cliff move with MultiPV?")
+    print("Hash MPV  lowest_complete  highest_dead  cliff-table  VmHWM_MB  RSS_MB")
+    cells = {}
+    for r in d["P7"]:
+        cells[(r["hash"], r["multipv"])] = r
+        vm = r["vmhwm_at_complete"] or 0
+        print("%4d %3d %15d %13d %12d %9.1f %7.1f"
+              % (r["hash"], r["multipv"], r["lowest_complete_mb"],
+                 r["highest_dead_mb"], r["cliff_minus_table"], vm / 1024.0,
+                 (r["rss_at_complete"] or 0) / 1024.0))
+    for h in (64, 256):
+        r1 = cells[(h, 1)]["lowest_complete_mb"]
+        r2 = cells[(h, 2)]["lowest_complete_mb"]
+        print("  Hash %3d: MPV2/MPV1 = %.3f   (2*Hash+44 = %d, predicted MPV2 window %s)"
+              % (h, r2 / r1, 2 * h + 44,
+                 "168-176" if h == 64 else "548-564"))
+    return cells
+
+
+def soak7b():
+    d = load("soak7b_mpv_control.json")
+    assert len(d) == 5, "soak7b: expected 5 cells, got %d" % len(d)
+    section("P7b  control: MPV 2 vs 3 vs 4 must share a cliff if ONE alternate table is reused")
+    print("Hash MPV  lowest_complete  highest_dead")
+    for r in d:
+        print("%4d %3d %15d %13d" % (r["hash"], r["multipv"], r["lowest_complete_mb"],
+                                     r["highest_dead_mb"]))
+    h64 = [r["lowest_complete_mb"] for r in d if r["hash"] == 64]
+    h256 = [r["lowest_complete_mb"] for r in d if r["hash"] == 256]
+    print("  Hash  64 MPV2/MPV4 identical: %s" % (len(set(h64)) == 1))
+    print("  Hash 256 MPV2/MPV3/MPV4 identical: %s" % (len(set(h256)) == 1))
+
+
+def soak7d():
+    d = load("soak7d_slope.json")
+    section("P7d  the sizing question answered by SLOPE, not by the cliff")
+    print("Hash  MPV  VmHWM_MB  VmPeak_MB  VmSize_MB  RSS_MB")
+    for mpv in ("1", "2", "4"):
+        assert len(d[mpv]) == 4, "slope arm %s: expected 4 Hash values" % mpv
+        for r in d[mpv]:
+            print("%4d %4s %9.1f %10.1f %10.1f %7.1f"
+                  % (r["hash"], mpv, r["vmhwm_mb"], r["vmpeak_mb"],
+                     r["vmsize_mb"], r["rss_mb"]))
+        print("  -> MPV %s: peak-RSS slope %.3f MB per MB of Hash (intercept %.1f MB)"
+              % (mpv, d[mpv + "_slope"], d[mpv + "_intercept_mb"]))
+    print("\n  MPV1 slope %.3f, MPV2 slope %.3f, MPV4 slope %.3f"
+          % (d["1_slope"], d["2_slope"], d["4_slope"]))
+    print("  A FIXED ~105 MB auxiliary table would give slope 1.0 at every MultiPV.")
+    print("  The same-size reading predicts 1.0 / 2.0 / 2.0; measured 1.000 / 2.001 / 2.000.")
+    return d
+
+
+def soak8():
+    d = load("soak8_resize.json")
+    assert len(d) == 5, "soak8: expected 5 resize cases, got %d" % len(d)
+    section("P8  the resize transient, measured with VmHWM (not a sampler)")
+    print("from   to   RSS_before_kB  VmHWM_kB   peak_MB  old+new_MB  excess_MB")
+    for r in d:
+        print("%4d %4d %13d %10d %9.1f %11d %+10.1f"
+              % (r["from"], r["to"], r["rss_before_kb"], r["vmhwm_after_kb"],
+                 r["peak_mb"], r["from"] + r["to"], r["over_old_plus_new_mb"]))
+    print("\n  every case except the shrink peaks at old+new+9.9 MB:")
+    for r in d:
+        print("    %4d -> %4d: %+.1f MB over old+new; engine usable after: %s (%s nodes)"
+              % (r["from"], r["to"], r["over_old_plus_new_mb"],
+                 r["best_after_resize"] is not None, r["nodes_after_resize"]))
+    return d
+
+
 def predictions(r1, a2, b2, r4, r5, r5b, det):
     section("PREDICTION reconciliation (PREDICTION.md was committed before measurement)")
     rows = []
@@ -327,6 +412,10 @@ def main():
     r4 = soak4()
     r5 = soak5()
     r5b = soak5b()
+    soak7()
+    soak7b()
+    soak7d()
+    soak8()
     det = soak6()
     predictions(r1, a2, b2, r4, r5, r5b, det)
     print("\nALL PARSERS PASSED their row-count assertions")
