@@ -114,6 +114,16 @@ for _i, _l in enumerate(_in_text, 1):
 print()
 print("non-table lines that look like leaked shell/code: %d %s" % (len(_leaks), _leaks if _leaks else ""))
 
+# DUPLICATE-ID GUARD (23-F202): a duplicated finding id inflates the row count and means two rows claim the same
+# evidence. Found by hand — one id appeared twice with a shorter and a longer draft of the same correction — which is
+# exactly the kind of thing a reader would trip on and no existing check looked for.
+_ids = [rid for rid, _ in rows]
+_dups = sorted({i for i in _ids if _ids.count(i) > 1})
+print()
+print("duplicate finding ids: %d %s" % (len(_dups), _dups if _dups else ""))
+if _dups:
+    print("HARD FAILURE: two rows share an id - one is a stale draft and must be merged or removed.")
+
 print()
 print("finding rows: %d" % len(rows))
 print("rows with a file path: %d" % (len(rows) - len(nopath)))
@@ -122,7 +132,7 @@ print("rows with NO path in the evidence cell: %d %s" % (len(nopath), nopath))
 print("rows whose paths do NOT resolve: %d %s" % (len(unresolved), unresolved))
 print("rows with a malformed column count: %d %s" % (len(shape_bad), shape_bad))
 print()
-ok = not nopath and not unresolved and not shape_bad and not _strays and not _leaks
+ok = not nopath and not unresolved and not shape_bad and not _strays and not _leaks and not _dups
 print("VERDICT:", "PASS — %d of %d rows parse and point at a file present in this checkout." % (len(resolved), len(rows))
       if ok else "FAIL — see the lines above.")
 sys.exit(0 if ok else 1)
