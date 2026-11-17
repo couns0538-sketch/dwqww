@@ -1276,3 +1276,14 @@ before the run.
 
 Page: 12 instances, 4 headline sentences, 3,884 words; heading count verified against the subtitle again (12/12).
 94 findings, 18 confirmations, twelve named faults. 10 h 4 m remain.
+## 2026-11-17T00:14:46Z  the disjoint-set check is on the page as a copyable snippet with an assertion
+2026-11-17T00:14:46Z
+
+The mechanical fix now reads as code: build the stale and intended legal sets, PRINT their sizes and the overlap,
+then assert isdisjoint with the message "fixture cannot distinguish the two boards". Noted on the page that an
+overlap of zero is the only thing making "which board was searched?" answerable from the move alone, and that both
+of my errors had a fixture where the answer was the same either way and looked fine until the sets were compared.
+
+Each of the four headline sentences now carries a mechanical check: a known-answer control, asserted counts, a zero
+treated as a claim, matching units on the tolerance, and a fixture checked for distinguishability before it runs.
+94 findings, 18 confirmations, twelve named faults, six reference pages. 10 h 4 m remain.
