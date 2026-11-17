@@ -51,8 +51,13 @@ Because two points can be fitted by anything, I added a 100x point (increment 60
 | 600 ms | 504 ms | 24 | 8.4 % | 2.50x |
 | 6,000 ms | 1,968 ms | 29 | 32.8 % | 3.90x |
 
-Fitting a power law over two decades: **t ∝ increment^0.494 at a six-second clock** — essentially sqrt(increment) *at that
-clock*. (Linear would be 10x per decade; a plateau would be 1.0x. The measured 2.5x then 3.9x brackets the sqrt
+Fitting a power law over two decades on my set: **t ∝ increment^0.494 at a six-second clock** — essentially sqrt(increment)
+*at that clock and on those positions*. **But this is a single-set fit.** Seat 27, on its own three middlegame positions,
+measured **1.75x** for the same tenfold increment where I measured 2.50x (exponents 0.243 vs 0.398 for the sub-ceiling
+region). Both are sublinear and both are correct for their own sets — this rate is construction-dependent, as the label
+experiments showed too. **The defensible statement is: time grows sublinearly with the increment (measured 1.75x and
+2.50x for a 10x increment on two independent sets) and stops growing above roughly 6000 ms.** Quote a single exponent only
+with the set it came from. (Linear would be 10x per decade; a plateau would be 1.0x. The measured 2.5x then 3.9x brackets the sqrt
 prediction of 3.16x.) **The exponent is clock-dependent: it is 0.758 at a two-second clock, so the gain from raising
 the increment is LARGER on smaller clocks.**
 
