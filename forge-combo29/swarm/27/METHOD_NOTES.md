@@ -369,7 +369,13 @@ seat-versus-seat comparison of those numbers meaningless. My own `mate -25` was 
 **So: before quoting a deep mate score, check that 2|N| is reachable with the material on the board.** It is a
 one-line test and it settles in cases where no amount of re-running will.
 
-## An ABSENT clock field is not a zero clock — it is no clock at all, and the search then runs unmanaged
+## An ABSENT limit field means NO limit — and for a match program that is worse than a hang
+
+**Read this first: the hazard is that such a search IGNORES the clock and loses on time, rather than failing
+visibly.** A hang is loud; an unmanaged search is silent and costs the game. If a `go` line is missing the clock of
+the side to move, nothing stops the search at the budget — it simply plays too slowly and the clock runs out.
+
+### The mechanics
 
 `parse_limits` (src/uci.cpp:121-124) assigns `limits.time_ms` **only** for the clock of the side to move:
 `wtime` when White is to move, `btime` when Black is. If the field for the side to move is missing, `time_ms`
