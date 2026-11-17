@@ -1,0 +1,22 @@
+# PREDICTION — job44: add a verified MATE-IN-2 / MATE-IN-3 case to the drawn-root spec
+written before the first measuring command.
+
+The spec's S1/S4 use a mate in 1 only, which the report names as its remaining gap. A drawn root whose
+only mate is 2 or 3 plies away is a harder test of the design note's rule: an engine that searches the
+root shallowly may find a mate in 1 but miss a mate in 3.
+
+Method: construct mate-in-N boards (N=1,2,3) by exact minimax with python-chess, ASSERT the true distance
+before using each, and score each at a drawn root (halfmove 100) on both builds, at `go depth 4` (a
+shallow search, where a mate in 3 is genuinely at risk) and at `go nodes 20000`.
+
+| # | prediction | range that kills it |
+|---|---|---|
+| P1 | I can construct and verify at least one board each for N=1, 2, 3 | if a distance cannot be verified, that case is dropped and said so |
+| P2 | PC build finds the mate in 1 at a drawn root at depth 4 (already known, re-checked) | killed if it misses |
+| P3 | PC build ALSO finds the mate in 2 and 3 at a drawn root at depth 4 | if it misses either, the repair is SHALLOW-ONLY at a drawn root — a sharper finding than 21-F19 |
+| P4 | base build misses all three at a drawn root (it adjudicates) | killed if it finds any |
+| P5 | pins unmoved on both | killed by any miss |
+
+Direction: P3 is the new question. If the PC build finds a mate in 1 but not in 3 at a shallow depth, that
+is worth reporting separately: the drawn-root repair would be depth-limited, and the owner's rule needs a
+search deep enough to see the mate.
