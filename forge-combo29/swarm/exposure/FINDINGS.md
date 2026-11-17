@@ -59,6 +59,14 @@ condition, it is a sample of positions where the condition is unreachable. This 
 rule §6 of the report states (*"A control must search for a case that differs, and a run that
 cannot demonstrate a difference must invalidate itself"*) applied to its own headline figure.
 
+**One discrepancy, stated rather than smoothed over.** This corpus found **3** threefold
+positions where the report found 0. The likely reason is the cap, not a disagreement: the report
+used 200 plies for 600 games and 160 plies for 4,000, this uses 200 for all 4,600, and the three
+occur at plies **56, 188 and 198** — two of them in the last 12 plies of a capped game. That
+difference runs **in the report's favour on its own count** and does not help mine — 3 in 4,600 is
+still a corpus that essentially cannot reach the guard. It is recorded so the reproduction can be
+seen to differ rather than to agree by construction.
+
 **The mechanism, measured rather than assumed.** The report's explanation is that "random play
 mates long before the counter fills". That is not what happens in this corpus — 4,064 of 4,600
 games hit the ply cap instead of ending in mate. The reason the counter never fills is that
@@ -67,15 +75,9 @@ move occurs a mean of **50.5 times per game**, so the **longest quiet run in a g
 plies and never exceeded 49** — while reaching halfmove 100 needs one unbroken run of 100. The
 fifty-move arm is unreachable to random play for a structural reason.
 
-Corrected reading, because my first pass at this arithmetic was wrong: I divided mean plies by
-mean resets and got 3.8, which is the mean length of a quiet *segment*, not the longest run
-available. The figure that matters is the longest run, 19.3 on average and 49 at most, and it is
-still a factor of ~5 short of 100. Either way the conclusion holds; the number beside it had to
-be the right one.
-
-The 9 firings that did occur are all `insufficient` (6) or `threefold` at low halfmove (3), and
-all at ply ≥ 56 in games that then hit the cap: the guard is reachable by random play only
-through the material arm, which the report's own framing already discounted.
+The 9 firings that did occur are 6 `insufficient` and 3 `threefold`, at halfmove 0 or ≤ 26: the
+guard is reachable by random play only through the material arm, or by a threefold that happens
+to land in a capped game.
 
 **Depth-independent.** Depth 6 (500 games) gives 8.53 per 1,000 plies; depth 10 (1,500 games)
 gives 8.78. The condition is a property of how engine games unfold, not of search depth.
@@ -248,13 +250,22 @@ bail-disarmed instrument, both deterministic at depth 10.
 - **97 of 111 games diverged at exactly the first firing ply** — so the divergence is caused by
   the bail and not by downstream noise.
 
-Read this carefully. The 48 "decisive → draw" cases are not "the bail lost a won game"; they are
-games where the side that was winning ran into a repetition or a fifty-move count, the bail
-played an unsearched move, and the game then went a different way. **The honest summary is that
-disarming the bail changes the result in most games that reach it, and the direction is
-overwhelmingly towards draws.** That is consistent with the bail picking a move that concedes.
-It is a paired, deterministic comparison, so the association is sound; the mechanism per game
-is not individually traced, and is labelled as an association rather than a per-game proof.
+Read this carefully, because the direction is not uniform and an earlier draft of this report
+over-read it. The 48 "decisive → draw" cases split by **who was to move at the first firing**:
+
+| the side to move at the firing, in the base game | count |
+|---|---|
+| **lost** the base game (disarming made it a draw) | **34** |
+| **won** the base game (disarming made it a draw) | **14** |
+
+In the 34, the bail's unsearched move hurt the side that played it, which is what "the bail
+concedes" predicts. In the 14 it is the reverse — the side that bailed went on to win, and
+disarming turned that win into a draw — so those 14 are **not** cases of the bail losing the
+game, and a first draft that described all 48 as the bail conceding was wrong. What survives is
+the weaker, still-important statement: **66 of 111 games that reach a firing change result when
+the bail is disarmed (59%), the direction is overwhelmingly towards draws (48 to 0), and 97 of
+111 diverged at exactly the first firing ply.** The per-game mechanism inside that association
+is not traced, and the split above is the reason it cannot be assumed in either direction.
 
 ---
 
@@ -281,10 +292,10 @@ Firings by total material, against the material distribution of all positions ac
 | 15–17 | 6.8% | 4.3% | 0.6× |
 | 18+ | 36.6% | 6.6% | 0.2× |
 
-**Half of all firings occur with 5 or fewer pieces on the board, a band that is 18% of played
-positions.** The most common endgame types are `3-piece 1R` (338), `3-piece 1Q` (150),
-`5-piece 1P2R` (124) and `bare kings` (119). Mobility at the firing is a median of 13 legal
-moves (min 1, max 58).
+**More than half of all firings — 55.4% — occur with 5 or fewer pieces on the board, a band that
+is 18.2% of played positions.** The most common endgame types are `3-piece 1R` (338),
+`3-piece 1Q` (150), `5-piece 1P2R` (124) and `bare kings` (119). Mobility at the firing is a
+median of 13 legal moves (min 1, max 58).
 
 So the exposure is where the draw rules decide games: rook and queen endings shuffling towards
 fifty moves, and bare-minimal material. **That is the opposite of the report's §2 line "the
@@ -314,8 +325,15 @@ The report's verdict is "SHIP BOTH PATCHES". Measured against real drawn roots:
 So shipping both patches is right for **honesty about the score and the depth**, and is
 demonstrably **not** a fix for the move. The defect that remains after both patches is the one
 §2 already names at the end — the rule is one ply too low and the leaf rule adjudicates at
-search.cpp:1302 — and, per this audit, the larger remaining defect is simply that **the
-zero-node path still plays the generated head, and that move loses games.**
+search.cpp:1302 — and, per this audit, the larger remaining defect is that **the zero-node path
+still plays the generated head**. What that is worth, measured: **41 of 2,251 non-dead roots
+(1.8%) play into a forced mate the search avoids**, and disarming the bail changes the result of
+**59% of games that reach one (66 of 111)**, overwhelmingly towards draws (48 to 0), with the
+side that bailed losing the base game in 34 of those 48.
+
+That is not the same sentence as "the bail loses games it would otherwise win". It is: the
+unsearched move measurably changes outcomes on the population that reaches the guard, and on
+1.8% of roots the change is a forced mate.
 
 If the owner wants the move fixed, the minimal change consistent with this evidence is to make
 the drawn-root path play a **searched** move rather than the generated head — which is what the

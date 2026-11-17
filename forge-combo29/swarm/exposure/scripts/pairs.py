@@ -102,6 +102,29 @@ def pair(args) -> dict:
     return out
 
 
+def decisive_to_draw_split(reached: list[dict]) -> dict:
+    """Of the decisive->draw games, how many had the bailing side winning vs losing?
+
+    `first_firing_ply` is `len(board.move_stack)` at the firing, so an even count means
+    White was to move there. Comparing that with the base result says whether the side
+    that bailed went on to win or lose the base game.
+    """
+    won = lost = 0
+    for r in reached:
+        if r["base_result"] not in ("1-0", "0-1") or r["nobail_result"] != "1/2-1/2":
+            continue
+        firing_ply = r["base"]["first_firing_ply"]
+        if firing_ply is None:
+            continue
+        bailing_is_white = (firing_ply % 2 == 0)
+        base_won_white = (r["base_result"] == "1-0")
+        if bailing_is_white == base_won_white:
+            won += 1
+        else:
+            lost += 1
+    return {"n": won + lost, "bailing_side_won_base": won, "bailing_side_lost_base": lost}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--depth", type=int, default=10)
@@ -140,6 +163,11 @@ def main() -> int:
                          for k in ("1-0", "0-1", "1/2-1/2", "cap")},
         "results_nobail": {k: sum(1 for r in rows if r["nobail_result"] == k)
                            for k in ("1-0", "0-1", "1/2-1/2", "cap")},
+        # Decompose the decisive -> draw cases by WHO was to move at the firing. Without
+        # this split the direction of the association is easy to over-read: "the bail
+        # concedes" predicts that the side which bailed lost, and that holds for only
+        # part of the group.
+        "decisive_to_draw_split": decisive_to_draw_split(reached),
         "rows": rows,
     }
     with open(args.out, "w") as fh:

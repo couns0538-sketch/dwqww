@@ -29,8 +29,10 @@ Full intervals in `FINDINGS.md` §2.
 **2. Games decided by it.** Paired deterministic comparison, 250 identical openings, base vs
 bail-disarmed instrument: 111 games reached a firing, **66 (59%) changed result**, of which
 **48 went decisive → draw and 0 went draw → decisive**; 97 of 111 diverged at exactly the first
-firing ply. Per-position, **41 of 2,251 roots (1.8%) had the bail's move hand the opponent a
-forced mate the searched move avoided**; 8 re-verified at depth 16, `8/8`.
+firing ply. Of those 48, the side to move at the firing **lost 34** and **won 14** of the base
+games — so the bail hurt the side that played it in 34 and the direction is not uniform; see
+`FINDINGS.md` §3. Per-position, **41 of 2,251 roots (1.8%) had the bail's move hand the opponent
+a forced mate the searched move avoided**; 8 re-verified at depth 16, `8/8`.
 
 **3. Clustering.** **Not openings** — 20 families range only 38.9%–52.9%, around the 47% mean.
 **Decisively endgames** — 2 pieces (bare kings) is 0.04% of played positions but 4.84% of
