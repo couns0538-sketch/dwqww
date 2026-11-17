@@ -673,3 +673,23 @@ seed: 1601
   now covers *.fnn3, perf.data*, __pycache__/. ALL CHECKS PASS (451 files, 0 non-text, 49 findings rows).
 - next: file 7's second profiling arm — 200 openings at depth 12 — before I draw the final conclusion on where the
   time is, since bench 13 is not the PC's workload.
+
+## 2026-11-17T08:00Z
+- STEP 1's SECOND ARM DONE AND THE CEILING HOLDS. 40 real positions at depth 12 under PC20 + test net:
+  nnue:: 20.65 % against bench-13's 20.85 % — inside 0.2 points, so the ~1.26x ceiling for v3 kernel work is NOT a
+  bench artefact. picker+generation 34.17 % (bench ~37 %), confirming the picker as the larger lever in both.
+- The second arm DID change the internal ranking, which is exactly why file 7 asked for two: on the bench the
+  incremental update `apply_changes_pair` (8.24 %) is hottest, but on real positions `evaluate` (6.18 %) overtakes
+  it (5.98 %). So a patch should target the shared accumulator walk, not either symbol alone — that is the actionable
+  line for Step 2.
+- My P1 and P2 of that pre-registration were REFUTED (I expected the net share to RISE on real positions and
+  `apply_changes_pair` to stay hottest); P3 and P4 confirmed. Recorded all four.
+- TWO HARNESS FAILURES caught by the data, both worth other seats knowing:
+  (1) I hit seat 19's fabricated-bestmove trap — pipelining 40 searches then `quit` gave `bestmove a2a3` eight
+      times with ZERO depth-12 lines. Rewrote to drive each search to bestmove; 40/40 rows. I checked whether this
+      also invalidated my S-F38 result and it does NOT (that harness reads to bestmove).
+  (2) `perf report --stdio` REDIRECTED to a file emitted only 4 kernel symbols while the same command in a terminal
+      showed 58 including user symbols. `--sort symbol` fixed it. A redirected perf report can silently
+      under-report, which would have produced a completely wrong profile.
+- check_folder.py ALL CHECKS PASS (467 files, 0 non-text, 51 findings rows); the perf.data binaries are ignored.
+- next: Step 2 — one speed patch to the shared v3 accumulator walk, .patch.txt, keeping every identity row.
