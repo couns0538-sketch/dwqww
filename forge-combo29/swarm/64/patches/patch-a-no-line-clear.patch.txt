@@ -1,0 +1,16 @@
+--- /tmp/base-src/src/search.cpp	2026-11-17 03:52:06.153177807 +0000
++++ /tmp/patched-src/src/search.cpp	2026-11-17 03:52:09.025177807 +0000
+@@ -2499,7 +2499,12 @@
+                 narrowed.request_start = {};
+                 alt_shared->stop.store(false, std::memory_order_relaxed);
+                 alt_shared->ponder_hit_ns.store(0, std::memory_order_relaxed);
+-                alt_shared->tt.clear();
++                // PATCH-A: the between-line tt.clear() is removed. The alternate
++                // table is already empty for line 2 of every depth; for line 3+ it
++                // holds only this position's own earlier lines, which is exactly
++                // the reuse the primary search gets from its own warm table.
++                // alt_worker->clear() stays: resetting the alternate worker's
++                // history counters is not a table wipe.
+                 alt_worker->clear();
+                 const SearchInfo alt = alt_worker->search(board, narrowed, false, alt_list);
+                 extra_nodes_ += alt.nodes;
