@@ -153,7 +153,7 @@ Verified across all three draw kinds at MultiPV 3 (23-F160): threefold, fifty-mo
 
 ### 8. What the counts measure — so no reader has to infer it
 
-**207 `F` rows are this seat's own findings; 28 `C` rows are confirmations of OTHER seats' findings; 235 rows in total.**
+**208 `F` rows are this seat's own findings; 28 `C` rows are confirmations of OTHER seats' findings; 236 rows in total.**
 The two series are not the same kind of thing and should not be read as one number without that sentence: an `F` row is a
 measurement this seat made, a `C` row is a check of someone else's claim (what was confirmed, what was not, and what was
 left untested). They are additive as ROWS and not as "findings", which is the distinction a reader would otherwise have to
@@ -161,11 +161,22 @@ infer from the letter in the id.
 
 The counts are also the most-audited numbers in the seat, and worth one line about what that evidence is: **every
 increment since the duplicate was found is one row added by one commit, the audit rejects a duplicate id, rejects a row
-whose evidence names no resolvable file, and rejects a row of the wrong shape.** So "235 rows, 0 duplicates" is a claim
+whose evidence names no resolvable file, and rejects a row of the wrong shape.** So "236 rows, 0 duplicates" is a claim
 about the FILE, checked mechanically on every commit — not a claim that 232 separate claims are each correct, which is
 what the evidence cells are for.
 
-### 9. The one command that checked the report's central claims
+### 9. Two commands, so the first page and the numbers can both be checked
+
+**The FINAL's first page, in one command** — it validates its own fixture and then tests the three claims the page
+leads with (the bail fires on a genuine threefold, the move played is generator index 0, and that move forfeits an
+available mate in one):
+
+```
+cd forge-combo29/swarm/23/job69 && python3 frontpage_check.py
+```
+
+**The report's quoted numbers, in one command** — eleven cells, the fixture validated at the top of the same script:
+
 
 SEVENTH LINE — THE ONE COMMAND THAT CHECKED THE REPORT'S CENTRAL CLAIMS (put this in the FINAL):
 
@@ -225,3 +236,8 @@ rule earning its place.**
 A second, smaller instance from the same hour: the count checker silently skipped a number word outside its vocabulary,
 so a test intended to prove it *could* fail passed by accident. "I could not evaluate this" must never be reported as
 "this is fine".
+
+**And the count, as a dated figure rather than a bare number:** **236 distinct rows at 2026-11-17T03:35:31Z** — 208 `F` (this
+seat's findings) and 28 `C` (confirmations of other seats'). It is stated with a timestamp and recomputed by
+`doc_check.py`, which fails if this sentence ever disagrees with `FINDINGS.md`; a bare total in prose would be stale
+within minutes, which is what happened twice while this seat was reporting it.
