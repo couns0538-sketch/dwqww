@@ -127,6 +127,18 @@ missing five were the **evasion generator** (`search.cpp:1078`), which fires onl
 invisible at the root. The residue was not the transposition table (identical at Hash 1/16/256), not history state
 (unchanged across 7 history configurations), and not root order — I ruled each out by measurement before finding it.
 **So the colour asymmetry of the search is entirely move-generation order, and the evaluation was never implicated.**
+
+**This is a DIAGNOSTIC, NOT A PROPOSAL — the owner's engine should NOT adopt this ordering.** The canonical order
+discards the tuned move ordering (transposition move first, then score / SEE / history) that gives the engine its
+strength; that is why node counts rise (probe pair at depth 2: 60 → 79 on one side). What a real fix would need is
+an ordering that is BOTH score-based and mirror-invariant — score every move, then break ties by the canonical key
+— which keeps the strength and removes the asymmetry. That is a different piece of work and I did not attempt it.
+
+**The three causes I ruled out first are as much the finding as the positive one**, and each was a separate run:
+the **transposition table** (identical mismatch at Hash 1 / 16 / 256 MB), **history and counter-move state**
+(unchanged across seven configurations, including all of them off together), and the **root move order** (still 10
+of 15 with the root candidate list canonicalised). Only after all three came back negative did the shape of the
+problem point at a code path reached only in some nodes — the evasion generator, which fires only in check.
 `S-F21`: the mechanism **transfers unchanged to the PC build** (same node counts on the same probe).
 
 **1.5 What does NOT fix the colour gap (all tested, all negative).**

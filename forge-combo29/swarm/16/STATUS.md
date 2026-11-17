@@ -497,3 +497,18 @@ seed: 1601
 - Deliverables: mirror_order/REPORT_mirror_order.md, EXPERIMENT_mirror_order.patch.txt (80 lines, patch -p2 clean,
   switch defaults 0), search.cpp.experiment.txt, raw_mirror_order/raw_multi/raw_multi2/raw_multi3/raw_hash1/raw_residue.
 - check_folder.py ALL CHECKS PASS (411 files, 42 findings rows). Cadence continues; FINAL block at 10:18:40Z.
+
+## 2026-11-17T02:32Z
+- Restructured REPORT_mirror_order.md per the coordinator's two points:
+  1. The DIAGNOSTIC-NOT-A-PROPOSAL box is now the FIRST thing after the title, with the reason stated (the
+     canonical order discards the tuned ordering — TT move first, then score/SEE/history — which is where the
+     engine's strength comes from, hence node counts rising 60 -> 79). It also names what a real fix would need:
+     an ordering that is BOTH score-based and mirror-invariant (score every move, then break ties by the canonical
+     key), which is a different piece of work and is explicitly not attempted.
+  2. The THREE NEGATIVE RESULTS now sit together in their own section, as a table, ahead of the positive result:
+     transposition table (identical at Hash 1/16/256), history/counter state (unchanged across seven
+     configurations), root move order (still 10 of 15 when the root list was canonicalised). The section ends with
+     the reasoning they enabled: a difference surviving every state-table and root-level change, but varying by
+     position, points at a code path reached only in some nodes — which is what the evasion generator is.
+- The same framing and the same three negatives are now in FINAL 1.4, since that is what Opus reads.
+- check_folder.py ALL CHECKS PASS (411 files, 42 findings rows). Cadence continues; FINAL block at 10:18:40Z.

@@ -1,5 +1,12 @@
 # REPORT_mirror_order — MIRROR-INVARIANT MOVE ORDER makes the colour symmetry COMPLETE (15 of 15)
 
+> **THIS IS A DIAGNOSTIC, NOT A PROPOSAL. The owner's engine should NOT adopt this ordering.** The canonical order
+> discards the tuned move ordering (transposition move first, then by score / SEE / history) that gives the engine
+> its strength — which is why node counts rise (probe pair at depth 2: 60 → 79 on one side). Its value is that it
+> proves the mechanism: the colour asymmetry is entirely move-generation order, and the evaluation was never
+> implicated. A real adoption would need an ordering that is score-based *and* mirror-invariant, which is a
+> different piece of work and is not attempted here.
+
 **What was asked (my own follow-up to S-F12):** S-F12 tested a REVERSED move list, which changed the counts but
 widened the gap, and I concluded a reverse was the wrong transform — the correct one is to make the two sides'
 move lists correspond. This does that, and it closes the symmetry thread.
@@ -19,6 +26,23 @@ quiets and scored 10 of 15. The remaining 5 failures were all caused by the **ev
 (`search.cpp:1078`, used only when a node is in check — so it fires deep inside subtrees, never at the root, which
 is why it was invisible until the two hardest positions were examined). Canonicalising **all five** sites — plus
 the root candidate list, which is built separately at `search.cpp:2551` — gives 15 of 15.
+
+## The three causes I ruled out by measurement before finding the real one
+
+These are as much the finding as the positive result. Each was a separate run on the two positions that resisted
+the earlier fixes; each came back negative, which is what narrowed the search to a generation path rather than a
+state table.
+
+| ruled out | how | result |
+|---|---|---|
+| **the transposition table** | reran with `Hash 1`, `Hash 16`, `Hash 256` | **identical** mismatch at all three (p3: 69/75, 123/129, 204/210 in every case) — so not a hash-size effect |
+| **history / counter-move state** | seven configurations: history bonuses zeroed, `HistoryBonusMax 100`, `HistoryPruneDepth 0`, `LmrHistoryDivisor 30000`, `ContHist4PlyRead false`, `ThreatHistory false`, and all of them together | the mismatch **persisted in all seven** (p3 unchanged at 123/129 and 204/210; p5 unchanged at 64/44) |
+| **root move order** | canonicalised the separately-built root candidate list (`search.cpp:2551`) as well | **still 10 of 15** — the root was not the residue |
+
+Only then did the shape of the problem point inward: a difference that survives every state-table change and every
+root-level change, but varies with position, is most likely a code path reached only in some nodes. The evasion
+generator is exactly that — it fires only when a node is in check, so it lives inside subtrees and never at the
+root. Canonicalising it took the result from 10 of 15 to **15 of 15**.
 
 ## The measurements, in the order they were run
 
@@ -58,16 +82,17 @@ r3r1k1/p1bb1ppp/1p1q4/...                 1       156/156       YES
 **The colour asymmetry of the search is therefore fully explained by move-generation order, and fully removed by a
 mirror-invariant canonical order.** That is the answer to the question this whole thread asked.
 
-## What this does and does not say
+## What this establishes, in one place
 
-- It says the asymmetry is an artefact of ORDER, exactly as S-F11 suspected and S-F12 mis-tested (by using a
-  reverse). The evaluation was never implicated (S-F1/S-C2: eval is exactly colour-symmetric).
-- It does NOT say the engine should adopt this order. The canonical order discards the tuned move ordering
-  (TT move first, then by score/SEE/history), which is why the node counts rise (probe pair at depth 2: 60 → 79 on
-  one side). This is a DIAGNOSTIC, not a speed or strength proposal. Any adoption would need a re-ordered but
-  still score-based scheme, and that is a different piece of work.
-- It does NOT claim the PC's engine should change: the owner's engine gets its strength from exactly the ordering
-  that creates this asymmetry.
+- **The asymmetry is an artefact of ORDER**, exactly as S-F11 suspected and S-F12 mis-tested (by using a reverse
+  instead of a correspondence). The evaluation was never implicated (S-F1/S-C2: eval is exactly colour-symmetric).
+- **The mechanism is complete**: all five generation sites plus the root list, each verified necessary by the
+  build sequence in the table above.
+- **The engine should not adopt the fix** (see the box at the top): the tuned ordering is where its strength comes
+  from, so this is understanding rather than improvement.
+- **What a real fix would require**: an ordering that is both score-based and mirror-invariant — for example
+  scoring every move and then breaking ties by the canonical key, instead of sorting by the key alone. That keeps
+  the strength and removes the asymmetry, and it is NOT attempted here.
 
 ## Honesty numbers
 
