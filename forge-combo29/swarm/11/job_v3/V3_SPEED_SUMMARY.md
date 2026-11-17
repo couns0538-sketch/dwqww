@@ -36,6 +36,29 @@ the third turned out to be unnecessary because the code already does it.
 Both patches are committed as `job_v3/*.CANDIDATE.txt` so nobody repeats them. Neither is offered as
 a ship.
 
+## THE NEXT JOB, SCOPED (S-F116) — evasion generation
+If you have a session to spend, this is where I would spend it, and it is self-contained:
+
+- **The evidence.** `MovePicker::generate_evasions` ranks **3rd** in the gprof ordering on only
+  **443,053 calls** — so the cost is per call, not per node. (Use the ordering, not the share; `-pg`
+  inflates the many-call symbols.)
+- **The code shape.** `src/search.cpp:1051-1090`. It calls `board_.generate_pseudo_legal(buffer_, false)`
+  — i.e. it generates **every** pseudo-legal move in a check position, then filters and scores them all.
+- **The gap.** There is **no evasion-specific generator**: `Board::GenMode` is only
+  `{All, Captures, Quiets}` (`include/forge/board.hpp:186`). A fourth mode that emits only
+  check-resolving moves would cut the generation, the scoring loop and the sort together.
+- **Why I did not write it here.** It is a move-generation rewrite with a high probability of moving a
+  node count. File 7 says a patch that moves one node is not a speed patch, and the identity harness
+  (`job_v3/identity.sh`) would almost certainly reject it. That is a session's work with the harness in
+  the loop, not an end-of-window patch.
+- **Also checked and closed:** `init_check_squares()` does two slider-ray computations per evasion
+  generation, but the `FORGE_SEARCH_SPEED2` scorer genuinely needs those squares, so there is no cheap
+  win there (S-F116).
+
+Success test for that job, in order: identity first (all three benches + all three evals byte-equal),
+then two builds per side, then the timing harness with its three-way verdict. If identity moves, the
+patch is not a speed patch regardless of how fast it looks.
+
 ## What this means for further work
 **Spend the next hour somewhere other than the evaluation update path.** Concretely, the measurement
 says the remaining 79 % of bench time is search-side — `Worker::search`, `MovePicker::next`,
