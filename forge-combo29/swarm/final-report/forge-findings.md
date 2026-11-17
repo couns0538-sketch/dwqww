@@ -29,7 +29,7 @@ start here if you want the reasoning.
 | 6 | Any harness that re-sends its option block per game | **an unchanged `Hash` re-send clears the table** (same as `Clear Hash` as measured, but it leaves a **cold table with warm histories**). **Costs nothing around `ucinewgame`; costs +157% nodes between moves; changes 4 of 30 answers on a resume path without `ucinewgame`** | §3, trap 3 |
 | 7 | `AspirationDelta` and the two aspiration switches | **leave the delta at 18 and do not enable either switch without re-screening.** Changing the delta moves the score on **126 of 133** positions and the move on **95 of 133** for a **12–15% median node saving**; one position's `cp 517` becomes a **true `mate 2`** at delta 200, so the default window misses a forced mate a wider one finds. Both switches lose a mate the default finds at fixed depth | §3 |
 | 8 | `SoundMatePruning` (the option named for mate safety) | **do not enable it on the evidence so far** — it costs **2–3 plies of effective depth** on forced mates and is **the only thing on this engine measured to lose a mate the default finds**. On 30 verified fixtures it changes 9 verdicts, helps 4, **harms 5**. **It does converge**: every harm recovers by depth 9 or 10, so the cost is depth-efficiency, not soundness | §3 |
-| 9 | `ContHist4PlyRead` | **never enable it for anything that reads mate scores** — it reports **`mate 12` for a mate in 5 plies**, a claim 7 plies wrong whose printed PV cannot deliver it. **Default is `false` and the default build is correct on the same position**, so this is a hazard for whoever turns it on, not a live defect. Scope 1 of 30 mate fixtures; mechanism unknown | §1b |
+| 9 | **Mate distances on sparse endgames** | **do not trust a `mate N` distance on a bare KQ-vs-K type position — but this is a base-engine reporting imprecision, NOT a switch defect, and an earlier version of this row was WRONG.** On `3k4/8/6K1/1Q6/8/8/8/8 w` the true distance is **mate in 3 moves (5 plies)**; the baseline reports **`cp 1203` with no mate at all**, while `ContHist4PlyRead` reports **`mate 12`** — an over-long distance on a real mate. **The switches move the number in both directions and on one position the switch is MORE accurate than the baseline.** **The earlier claim that `ContHist4PlyRead` "reports a false mate" is retracted**: a depth-12 PV cannot exceed 12 moves, so a short PV proves nothing, and I used exactly that unsound inference (§9c) | §1b |
 | 10 | **Playing a won endgame with this engine** | **do not rely on it to convert — and the fix is the §2 clock band, not the drawn-root bail.** KRK converts **10 of 20**, KBNK **3 of 20**, KQK 18 of 20, KPK 569 of 640 won cells, against an **exact-table oracle control at 20 of 20 / 20 of 20 / 192 of 192**. The score collapses to **`cp 0` at halfmove clock 90** on a won three-piece board (101 million nodes to answer what 93,585 answered at clock 60), so the engine **decides the position is drawn and shuffles correctly for a drawn position.** **Only 7 of 193 KPK failures contain a bail at all, while the bail fires 56,768 times and 80.9% of won cells still convert** — so patching the bail fixes none of them. **More depth is not the answer either**: KQK needs ~4× the mate's own depth, and KBNK converts **less** at depth 20 than at 16 | §9c |
 
 **The one thing to take away if you read nothing else:** this engine returns a well-formed answer to a
@@ -3500,25 +3500,28 @@ silently while leaving "the reference resolves" true.
     correctness one. **`Lmr` + `FutilityPrune` change 55 of 148 and enabling them LOSES mates** — one board
     goes from `mate 2 / g1b1 / 894 nodes` to **`cp 831 / g2h1 / 331`**. **`SingularExt` and
     `QuietExtinction` are inert**, and only in endgames.
-  - **And a ninth false-mate mode, found later, is a SWITCH rather than a parser bug: `ContHist4PlyRead`
-    reports `mate 12` for a mate in 5 plies.** On `3k4/8/6K1/1Q6/8/8/8/8 w - - 6 4` at `go depth 12`:
-    **59228 nodes and `g6f7` with the switch on, against `cp 1203` / `b5b7` / 80842 nodes with it off.
-    I reproduced both arms myself and verified the claim three ways**:
-    - **`mate 12` implies 23 plies and the PV it prints is 14**, so the PV cannot deliver the score it
-      claims — and replaying it against python-chess ends at `3Q4/3K4/k7/8/8/8/8/8`, **not checkmate**.
-    - **The true distance is 5 plies**, established by an exhaustive AND/OR search (none in 1 or 3, mate in
-      5). So the **distance is wrong by seven plies** while a mate really does exist: **this is a wrong
-      distance, not a missed mate and not a mate where there is none.**
-    - **It requires the switch.** `ContHist4PlyRead` is `default false` and **the default build is correct
-      on this position**, so the blast radius is exactly "whoever turned it on" — a shipping decision, not
-      an emergency.
-    - **Scope measured by the seat: 1 of 30 mate fixtures.** Narrow and position-specific, **not a collapse
-      of mate detection**, and **the mechanism is not established and is not claimed** — a reproducible
-      wrong answer with an unproven cause is the honest form.
-  - **Three mate-defect classes now have to be kept apart, and a checker that conflates them will report one
-    as another**: a **wrong distance where a mate exists** (this one, off by 7 plies); a **false mate where
-    none exists**; and a **PV too short to verify the score** (10 of 190 claims in one corpus, which an
-    earlier draft of this report wrongly called false mates). **Only the first two are defects.**
+  - **And a ninth mate mode, which I first reported as a switch defect and then had to RETRACT: mate
+    DISTANCE is imprecise on sparse endgames, and it is pre-existing on the base engine.** The evidence, on
+    `3k4/8/6K1/1Q6/8/8/8/8 w - - 6 4`: the true distance is **mate in 3 moves (5 plies)**; the **baseline
+    reports `cp 1203` with no mate at all**, and `ContHist4PlyRead` reports **`mate 12`**.
+    - **My retracted argument, recorded because the error is instructive**: I claimed the `mate 12` was a
+      false mate because **the printed PV was 14 plies against the 23 a `mate 12` needs**, and replaying it
+      did not reach checkmate. **That inference is unsound: a depth-12 search cannot produce a PV longer
+      than 12 moves, so a short PV is guaranteed by the depth and says nothing about the mate.** It is the
+      same error this section already warns about under "a PV too short to verify the score", and I made it
+      while writing the warning.
+    - **The sound test is to prove the position after the arm's OWN bestmove**, and it shows the mate is
+      real: after `g6f7` white mates in **9 plies**, which I confirmed by exhaustive AND/OR search. So
+      **`mate 12` is an over-long distance on a real mate** — a reporting inaccuracy, not a false mate.
+    - **And it is not even a switch defect**: across three KQ-vs-K positions the switches move the number in
+      **both directions**, and **on one of them the switch is MORE accurate than the baseline**
+      (`mate 3` against the baseline's `mate 4`). **This is a property of the base engine's mate reporting on
+      sparse endgames**, with the mechanism not established and not claimed.
+  - **Three mate-defect classes have to be kept apart, and a checker that conflates them will report one as
+    another**: a **wrong or over-long distance where a mate exists** (this case, and the `mate 6`-for-a-true-
+    mate-5 defect earlier in this section); a **false mate where none exists**; and a **PV too short to
+    verify the score** (10 of 190 claims in one corpus, which an earlier draft wrongly called false mates).
+    **Only the first two are defects, and the third is not evidence of either.**
   - **And a short clock silently costs the mate**: **3 of 7 clock forms changed the answer on a
     mate-in-4 board.** Separately, **5 of 21 clocked cells publish a score the clockless search does not
     give at the same reported depth**, because `emit(depth, result.score, …)` prints the **unfinished
