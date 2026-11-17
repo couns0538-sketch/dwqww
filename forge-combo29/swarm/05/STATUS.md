@@ -926,3 +926,14 @@ every sentence.
   since refuted it (S-W10). Flagged explicitly in FINDINGS so the correction travels with the claim. The FINAL does not
   cite S-F62, so no document needs unpicking; the relay message is the one place it appeared.
 - next command: continue at cadence.
+
+## $(date -u)
+- Item 1: S-F62 is RESTORED as a visible REFUTED row (I had deleted it, leaving the claim invisible beside its
+  refutation). The row now shows the original claim struck through, then the refuting measurement inline: `go nodes 50000`
+  -> mate +11 d11 18/21; **`go depth 11` -> mate +11 d11 18/21 IDENTICAL**; depth 10 -> cp +4056; depth 12 -> mate +7
+  13/13. It also says plainly that my clock comparison looked clean only because those searches reached depth 12, one ply
+  past the defect — "the assumption a cause has to be held to, and I did not hold it".
+- Item 2: FINAL confirmed carrying the 63-of-63 form with the 58/5 split (verified earlier: 35+23=58, 4+1=5).
+- Also checked that FINAL's only use of "node-limited" (line 31) is the unrelated match-type comparison, not the
+  refuted claim — so no document needs unpicking.
+- next command: continue at cadence.
