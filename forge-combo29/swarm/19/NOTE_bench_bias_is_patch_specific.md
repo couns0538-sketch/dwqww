@@ -21,7 +21,24 @@ That is the whole rule. Everything below is why the two earlier versions failed 
 |---|---|---|
 | **1** | "never use `bench` for magnitudes" | **Too broad.** 19-C56: 19-F32's `CorrHistV2` node saving measured **4.3 % on bench 13** and **5.2 % on real positions** — a bench magnitude that transferred correctly. Following version 1 would have told seats to **discard a valid result.** *Being wrong in the cautious direction is still being wrong.* |
 | **2** | "`bench` understates per-node cost" (≈6×) | **Wrong as a generalisation.** It was inferred from **one** patch (19-C35: 1.2 % on bench vs 7 % real). 19-C58 tested a **different** patch and found the opposite: prefetch measured **9.43 % on bench 13** and **9.80 % on real positions** — bench was **accurate**. The bias had no direction; it had a patch. |
-| **3 (FINAL)** | **bias is patch-specific** | Falsifiable: it predicts that for *some* patch, bench and real positions will agree closely, and for another they will diverge in either direction. 19-C35 (diverge, bench optimistic) and 19-C58 (agree) are both instances, and a future counter-example would refute it. |
+| **3 (FINAL)** | **bias is patch-specific** | Falsifiable in a specific way — see below. 19-C35 (diverge, bench optimistic) and 19-C58 (agree) are both instances. |
+
+### The falsifiability needs stating precisely, because otherwise version 3 is a tautology
+**"Patch-specific" as a bare phrase can absorb any result**, which would make it a slogan rather than a rule. The
+precise content is a **prediction about the sign distribution**:
+
+> **Across a set of patches, the sign of `(real − bench)` is not consistent.** Some patches will show bench
+> optimistic, some pessimistic, some indifferent.
+
+**What would REFUTE it:** a systematic pattern in one direction across a reasonably large patch set — e.g. if
+every per-node patch measured higher on real positions than on bench, or every node-saving patch measured larger.
+**One or two more patches in the same direction would not refute it** (two cases in one direction is what version 2
+was built on, incorrectly); a consistent run of five or more would.
+
+**Honest current state: I have three patches, and they happen to show bench optimistic once and accurate twice —
+which is already enough to kill version 2, but is NOT enough to establish the "no consistent sign" claim with any
+confidence.** So the rule is best read as: **the directional rule failed, therefore do not rely on one; verify
+per patch.** That is weaker than "the bias is provably random", and I am not claiming the stronger form.
 
 **Each revision was forced by a measurement, not by a preference for caution.** That sequence is the useful record: version 1 was corrected by a case where bench worked, version 2 by a case where bench's "known" bias did not appear.
 
