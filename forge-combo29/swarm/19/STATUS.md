@@ -487,3 +487,19 @@ next command: continue at cadence; report the sweep result to seat 20 via the co
 19-C12 seat 27's f6e5 = 19-F12 artifact; mate -25 impossible for KRvK (max 31 plies).
 
 next command: continue at cadence on my own thread; the sweep line is closed.
+
+## 2026-11-17T00:20:17Z
+
+19-C17 oracle scope closed: 2-piece DTM signatures need ~30.5M placements vs ~500K for 1 piece, and a
+  1-piece solve already takes ~100 s in Python -> out of reach. 19-F55/F58 remain 8-of-40 tests; the 24
+  positions with 2+ pieces stay unadjudicated, stated as a limit. Next step if wanted: 8-fold symmetry
+  + colour swap, THEN C.
+
+NOTE_three_traps.md now has trap 4: splitting output on bestmove alone cannot work when readyok is
+  interleaved - any per-search audit needs the COMMAND stream, not just output.
+NOTE_two_mechanisms_before_measurement.md records both directions: the book-move story (wrong, tested,
+  fixed) and the depth-limit story (right, but only because I tested before publishing).
+Four method notes now share one root: a number or story that FITS is not evidence; a check that could
+  have failed is.
+
+next command: continue at cadence on my own thread (area 9).
