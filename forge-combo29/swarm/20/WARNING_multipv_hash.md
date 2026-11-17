@@ -16,6 +16,22 @@
 > `job57/CONFIRM_30C36.md`). It is a genuine improvement worth having, but it is **not sufficient** for the large-Hash
 > case: see the closure above. Its strength effect in play is **unmeasured**.
 
+## Four fixes were tried; all four fail (each for a different reason)
+
+| variant | depth at large Hash | alternate lines | why it fails |
+|---|---|---|---|
+| repaired only (alt table = main) | **collapses to depth 1** | faithful | does not restore depth |
+| fixed 64 MB cap | 14 ✓ | move ≤775 cp, both directions | unpredictable |
+| share one table | 11–15 ✓ | move ≤~900 cp | bounds come from a different root restriction |
+| own 8 MB table | 14 ✓ | 0 cp median shallow | **p90 112 cp at depth 23** — evicts what the reference kept |
+
+**Why all four fail, in one sentence:** the alternate line **needs a large table for deep searches** (a smaller one
+evicts) and **the engine cannot afford to allocate one**, because it allocates a second full-size table synchronously
+and that allocation eats the clock. So a real fix must attack **the cost of allocating, not the size** — lazy zeroing
+of a large table, a smaller cluster format, or one allocation reused across lines with disjoint generations.
+**All three are search-engine design work, and nobody has done it** — not me, not any seat. What this thread delivers is
+the diagnosis plus four ruled-out directions, not a patch.
+
 > **Until then, the short answer: if you want multiple lines, set `Hash 16 MB` — it is the least-lossy MultiPV
 > choice. If you want a big Hash, use `MultiPV 1`. Do not combine a big Hash with multiple lines.** (Measured limits
 > below: MultiPV 3 is safe to 128 MB, MultiPV 8 only to 64 MB; 256 MB and above is unusable for any MultiPV above 1.)
