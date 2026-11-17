@@ -1105,3 +1105,24 @@ SEAT 05's S-F64 CONFIRMED AND THE DEFECT NOW HAS A RATE (S-C30, S-F90), with two
   IN ORDINARY PLAY: a scan of 40 set_G positions x the three budgets = 120 cells produced ZERO mate scores, so there was no mate claim to truncate. The defect cannot bite there - not because the engine is safe, but because no mate was claimed.
   WHY BOTH NUMBERS MATTER: '14% of mate claims at match budgets are unfillable' sounds alarming; '0 of 120 ordinary middlegame cells even claim a mate' sounds harmless. Each alone misleads. The truth is that the defect is confined to positions where a forced mate exists - which in the owner's matches means ENDGAMES - and that is the sentence he can act on.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+### FIFTEENTH UPDATE — the truncation defect with its two rates, and the population named for each
+
+**On mate-bearing positions: 14 % of mate claims are unfillable. In ordinary play: 0 of 120 cells claim a mate.**
+
+| population | cells | mate claims | truncated | rate |
+|---|---|---|---|---|
+| **mate-bearing boards** × 3 match budgets | 18 | 14 | **2** | **14 %** |
+| **set_G ordinary positions** × 3 match budgets | **120** | **0** | 0 | **0 %** |
+
+The two truncated cells, at **two different budgets on two different boards**:
+
+- `r2r4/pB2kpp1/…` at **50,000 nodes** → `mate 11`, PV 18 plies against 21 needed
+- `8/8/1p6/8/p3p3/8/2Kpk3/8` at **20,000 nodes** → `mate -7`, PV 10 plies against 14 needed
+
+Every other mate PV replayed to real mate — including the pawn-reset board at all three budgets.
+
+**Both numbers are needed or the finding will be quoted against the wrong population.** "14 % of mate claims at
+match budgets are unfillable" sounds alarming; "0 of 120 ordinary middlegame cells claim a mate" sounds harmless.
+The defect is **confined to positions where a forced mate exists**, which in the owner's matches means
+**endgames** — and that is the actionable sentence.
