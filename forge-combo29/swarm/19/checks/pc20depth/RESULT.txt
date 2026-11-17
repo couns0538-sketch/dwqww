@@ -20,3 +20,24 @@ His matches are node-budgeted. **PC20 spends the same nodes and, on average, rea
 which is the mechanism by which its fixes and pruning pay off at match time. It also means **"node 250000" is not
 the same effort under the two regimes**, which is the practical caution: an S14-vs-PC20 match at equal nodes is
 not an equal-depth match.
+
+--- extending 19-C44 to the THIRD match budget (50000) and to softnodes 2000 (self-play)
+  go nodes 50000: S14 total depth 71 vs PC20 72  (+1 ply over 6 positions)
+  go softnodes 2000: S14 total depth 45 vs PC20 43  (-2 ply over 6 positions)
+
+## CRUCIAL CAVEAT — the trend REVERSES at the self-play budget
+- `go nodes 50000`: S14 total depth **71** vs PC20 **72** (**+1** ply)
+- **`go softnodes 2000` (the PC's self-play budget): S14 45 vs PC20 43 = MINUS 2 plies**
+
+So PC20's depth advantage holds at the MATCH budgets (20k: +3, 50k: +1, 250k: +1) and **reverses at the
+self-play budget (2000 nodes: −2)**. That is the opposite direction at the smallest budget, and it is the one
+his self-play data comes from.
+
+**Why this is plausible rather than surprising:** at 2,000 nodes PC20's extra machinery (correction-history
+updates, cuckoo tables, the rework levels) costs work per node without buying enough extra pruning to compound
+into another ply — the same per-node overhead that 19-C35 measured at ~1 %. At larger budgets the pruning compounds
+and wins; at 2 000 nodes it does not.
+
+**Consequence, stated plainly:** PC20 is worth its overhead at match budgets and is NOT clearly worth it at the
+self-play budget. A single "PC20 is better/worse" claim cannot be made without naming the budget — which is
+trap 10's shape (the setting changes the question) for the third time tonight, now on the node-budget axis.
