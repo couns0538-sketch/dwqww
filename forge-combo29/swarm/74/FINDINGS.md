@@ -23,7 +23,8 @@ mismatch section to fill in — the fuzz found nothing, and that is the result.
 | **fuzz, targeted: ep exposes king (illegal)** | **500 positions** | **0** |
 | **fuzz, targeted: castling rights lost by rook capture** | **500 positions** | **0** |
 | **fuzz, targeted: underpromotion to knight giving check** | **500 positions** | **0** |
-| **total** | **5,075 comparisons** | **0** |
+| move-identity walk (depth 2 and 3, §3b) | 225,856 nodes | 0 |
+| **total** | **5,075 count comparisons + 225,856 move-set comparisons** | **0** |
 
 ## 1. Standard suite
 
@@ -132,6 +133,51 @@ be assumed:
   the other has no friendly rook. The lost rook may have been replaced by an
   enemy piece rather than leaving an empty square — "rook gone" means "no
   friendly rook", not "empty".
+
+## 3b. Move identity, not just counts
+
+Perft compares node *counts*. A bug that substitutes one legal move for another
+while preserving the total is invisible to it, and the same goes for a whole
+family of generator errors. That limitation is worth closing rather than
+disclaiming, so `identity.py` walks the tree comparing the engine's **move set**
+against python-chess's at every node.
+
+The engine only prints a divide at the root of a `go perft` call, so the walk sets
+the position to each child and asks `go perft 1`, making the comparison per-node.
+Child FENs go through `fen_with_ep()` for the reason in §5b — using `board.fen()`
+would silently compare a weaker position at every node whose ep capture is
+illegal.
+
+| walk | positions | nodes compared | move sets equal | differences |
+|---|---:|---:|---:|---:|
+| depth 2 | 2,000 | 28,940 | 28,940 | 0 |
+| depth 3 | 1,200 | 196,916 | 196,916 | 0 |
+| depth 3 (targeted families) | 400 | 64,767 | 64,767 | 0 |
+
+**225,856 nodes compared move-set-for-move-set, 0 differences.** That is a
+strictly stronger statement than the count results: at every one of those nodes
+the engine emitted exactly the legal moves python-chess did, no more and no fewer.
+
+The walk is not skipping the interesting nodes — measured on the 400-position
+targeted walk:
+
+| edge live at the node | nodes |
+|---|---:|
+| legal en-passant capture available | 100 |
+| en-passant right present but **suppressed as illegal** | 248 |
+| a promotion available | 17,787 |
+| castling available | 57 |
+
+Those ep and castling numbers are small in absolute terms even though the walk
+is deep, because the root positions are deliberately sparse and the branches fill
+in material. The count results in §3 cover those edges at far higher density; the
+identity walk's contribution is that where it *does* visit them, it confirms the
+move set rather than the count.
+
+Self-test: `identity.py --self-test` takes a real position, removes one engine
+move and adds a different one while **keeping the count identical**, and requires
+the set comparison to catch it. It reports `engine-only ['a1a8'], python-only
+['a2a3']`. That is precisely the bug class the count comparison cannot see.
 
 ## 4. Mismatches
 
@@ -301,10 +347,11 @@ finding, not just the numbers.
   one is deliberately concentrated on its edge, so they prove that edge in bulk
   and prove little about the rest of the position. The fixture set remains the
   only place where a single position is asserted move-for-move.
-- Perft only checks move *counts*. A movegen bug that substitutes one legal move
-  for another while preserving counts would be invisible to it. The depth-1
-  move-set comparison in the fixtures narrows this but does not close it
-  globally.
+- Perft only checks move *counts*. This seat additionally compares move **sets**
+  at 225,856 nodes (§3b), which closes the same-count-substitution hole across
+  that sample — but the set comparison is per-node at shallow depth, not a proof
+  over every node of every deep run. A same-count substitution elsewhere in the
+  tree would still survive.
 - No source changes were made, so this says nothing about whether the engine
   would still pass after edits.
 

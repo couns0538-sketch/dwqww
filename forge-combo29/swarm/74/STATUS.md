@@ -15,11 +15,12 @@ Engine source: **unmodified**. This seat adds a test harness and fixtures only.
 | 2. Special-move edges, one fixture each, independent python-chess count | done — 11 fixtures, 33 cells, 0 problems |
 | 3. Fuzz 2,000 random legal positions, `go perft 3` vs python-chess | done — 2,000 compared, **0 mismatches** |
 | 3b. Fuzz hitting the named edges rather than quiet middlegames | done — 2,000 targeted positions, 0 mismatches |
+| 3c. Move identity, not just counts | done — 225,856 nodes compared move-set-for-move-set, 0 differences |
 | 4. Report every disagreeing position with FEN and divide | nothing to report — 0 disagreements |
 | FEN validated with python-chess before use | done, gate 1 in every comparison |
 | `info string invalid FEN` detected in the stream | done in both locations (position reply and `go` output) |
 | `go perft N` synchronous, Threads 1 | done |
-| Every script proven able to fail | done — all four scripts have a self-test (10 checks in `uci_perft.py`) |
+| Every script proven able to fail | done — all five scripts have a self-test (10 checks in `uci_perft.py`) |
 | Print denominators as literals | done — counts stated as integers throughout |
 
 **Headline: 0 mismatches out of 2,000 random positions.**
@@ -43,7 +44,11 @@ where every position provably contains the edge it was targeting.**
 - Targeted `rook-rights`: 500 compared, 0 mismatches.
 - Targeted `knight-check`: 500 compared, 500/500 with a knight promotion checking
   and no queen promotion checking, 0 mismatches.
-- Total: 5,075 comparisons, 0 mismatches.
+- Move-identity walk: 225,856 nodes compared move-set-for-move-set at depth 2
+  and 3 (2,000 + 1,200 + 400 targeted positions), 0 differences. This closes the
+  same-count-substitution hole that a count-only perft cannot see, and its
+  self-test proves it by swapping one move for another at identical count.
+- Total: 5,075 count comparisons + 225,856 move-set comparisons, 0 mismatches.
 
 ## Files
 
@@ -53,6 +58,7 @@ where every position provably contains the edge it was targeting.**
 | `forge-combo29/swarm/74/suite.py` | standard CPW suite, 7 positions, 42 cells |
 | `forge-combo29/swarm/74/fixtures.py` | 11 special-move fixtures, with `--self-test` |
 | `forge-combo29/swarm/74/fuzz.py` | fuzz at perft 3; `--ep` / `--castle` directed modes; `--target` per-edge modes; `fen_with_ep()`; `--self-test` |
+| `forge-combo29/swarm/74/identity.py` | move-SET walk per node (not counts); `--depth`, `--self-test` on a same-count substitution |
 | `forge-combo29/swarm/74/PERFT_TABLE.md` | every suite cell, published beside measured |
 | `forge-combo29/swarm/74/FINDINGS.md` | the report, including the measured FEN trap |
 | `forge-combo29/swarm/74/*.json` | raw results: `perft_rows`, `fixture_rows`, `fuzz_rows`, `fuzz_ep`, `fuzz_castle`, `fuzz_ep-check`, `fuzz_ep-expose`, `fuzz_rook-rights`, `fuzz_knight-check` |
@@ -101,9 +107,10 @@ where every position provably contains the edge it was targeting.**
 ## Not established by this seat
 
 - Depth 3 for the fuzz is shallow; this is a movegen test, not a search test.
-- Perft compares move counts, not move identity, so a same-count substitution bug
-  would survive the fuzz. The fixtures compare move sets at depth 1 and would
-  catch it there.
+- Count comparisons alone would miss a same-count move substitution. The
+  identity walk in §3c closes this at 225,856 nodes, but it is a per-node set
+  comparison at shallow depth, not a proof over every node of the deep runs, so a
+  same-count substitution deeper in those trees would still survive.
 - No engine source was touched, so nothing here speaks to behaviour after edits.
 
 ## Reproduce
