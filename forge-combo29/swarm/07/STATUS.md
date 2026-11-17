@@ -979,3 +979,39 @@ stamps.txt
 job72/raw:
 pc_live.json
 ```
+
+## 2026-11-17T01:01:10Z — job73: verifying my own live patch found a defect in the patch
+
+Task was to check the only outstanding patch (07-F1) against the real published pins. **Pins were fine on both versions** — all eight PC r15 numbers unchanged, which is the positive evidence the edit stays on the reporting path.
+
+**But the surviving line was still a lie.** v1 cut 64 fabricated lines to 1 (correct) and emitted that line at `max_depth`: `go searchmoves` with no depth printed **`info depth 64 … nodes 0`**. That is the identical self-contradiction 07-F1 is about, once instead of 64 times — a GUI sorting on reported depth would rank a zero-node non-search as the deepest thing it had seen. Found only by running the paths and reading the line, not by trusting '1 instead of 64'.
+
+**v2 (`job73/07f1_shared_report_v2.patch.txt`) reports `depth 0, seldepth 0`.** Seven zero-node paths each give exactly one line + `bestmove 0000`, 0 failures; all eight pins unchanged; applies `-p1 --fuzz=0` exit 0. Binary `2db028fa…`. Supersedes job55 v1 as well as my job2/job29 patches.
+
+**Build note:** this box's default `c++` cannot link (`cannot find -lstdc++`) — configure fails at the compiler probe unless `-DCMAKE_CXX_COMPILER=g++-13` is named. Worse, a rebuild reusing a stale `CMakeCache.txt` from a copied tree produced a **byte-identical** binary while printing `[100%] Built target forge` and `EXIT=0` — the header's own rule firing on me again, with an exact sha256 match as the tell.
+
+New header rule (21): when the complaint is 'this number is a lie', the fix must make the number true, not just rarer. Read the surviving output's content, not its multiplicity.
+
+```
+$ git status --short
+ M FINAL.md
+ M FINDINGS.md
+ M STATUS.md
+?? REPORT_job73.md
+?? job72/__pycache__/
+?? job73/
+```
+
+```
+$ ls job73 job73/raw_v2
+job73:
+07f1_shared_report_v2.patch.txt
+raw
+raw_v2
+stamps.txt
+
+job73/raw_v2:
+pc_pins.json
+v1_vs_v2.txt
+zero_paths.txt
+```

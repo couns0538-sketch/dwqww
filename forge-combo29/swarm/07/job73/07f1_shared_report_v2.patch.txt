@@ -1,0 +1,50 @@
+# 07-F1 SHARED-PATH REPAIR, REVISION 2 -- supersedes job55/shared_report_oneline.patch.txt
+#
+# Base: PC r15 (6b98f217 + pc_r15.patch). Apply from forge-combo29/:
+#   patch -p1 --fuzz=0 < 07f1_shared_report_v2.patch.txt
+# Verified: applies to the PC r15 tree with exit 0, one file, no fuzz.
+# Build: cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-13 \
+#               -DCMAKE_CXX_FLAGS=-DFORGE_MATE_ALPHA_GUARD=1
+#   (note: the box's default `c++` is missing libstdc++ -- configure fails with
+#    "cannot find -lstdc++" unless g++-13 is named explicitly)
+# Binary: 2db028fa9ade74d7c80110d6ab23c73bd06e43333305a10ec32615682b345939
+#
+# WHY A REVISION, AND WHAT WAS WRONG WITH v1
+#   v1 (job55) replaced the per-depth emit LOOP with a single emit, which was correct and is still
+#   the right idea: 64 fabricated lines became 1. But v1 emitted at `max_depth`, so the surviving
+#   line read `info depth 64 ... nodes 0` when no depth was given, and `info depth 12 ... nodes 0`
+#   for `go depth 12`. That is the SAME self-contradiction 07-F1 is about -- a search that never ran
+#   claiming a completed depth -- printed once instead of 64 times. A GUI or harness that sorts or
+#   filters on reported depth would rank a zero-node non-search as the deepest thing it had seen.
+#   v2 reports depth 0, which is the truthful statement: no iteration completed.
+#
+# PIN EVIDENCE (positive check, not absence of effect)
+#   All eight published PC r15 numbers unchanged: none 312866 / 862329 / 3024920 / 4865609;
+#   S14 242796 / 656517; PC20 278024 / 587276.
+#   Identical pins are what a CORRECT patch looks like here: this repair edits the reporting path
+#   only and touches nothing in the search. A patch that moved a pin would have reached the search,
+#   which for this defect would mean the edit landed in the wrong place.
+#
+# SEVEN ZERO-NODE PATHS, ALL VERIFIED (job73/raw_v2/zero_paths.txt)
+#   searchmoves with no legal root move, empty `go searchmoves`, `go nodes 100 searchmoves <none>`,
+#   an illegal move name, a mate root, a stalemate root, and `go searchmoves` with no depth limit --
+#   each prints exactly ONE `info depth 0 ... nodes 0` line and `bestmove 0000`.
+#
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2591,9 +2591,13 @@
+         // and a loop here emits 2 or 64 fabricated score lines for a search that never ran,
+         // which any GUI or harness parsing `info depth` reads as a real evaluation (07-F1,
+         // 20-S-F53, 07-C54). A single line states the position's verdict once.
+-        result.depth = max_depth;
++        // Depth is reported as 0, NOT max_depth: no iteration was completed, so claiming depth 12 (or
++        // 64 when no depth was given) alongside `nodes 0` is the same self-contradiction this repair
++        // exists to remove, just printed once instead of 64 times. A GUI that sorts or filters on
++        // reported depth is otherwise told a 64-ply search finished in zero nodes.
++        result.depth = 0;
+         result.score = score;
+-        emit(max_depth, score, {});
++        emit(0, score, {});
+         if (!root_candidates.empty()) result.best_move = root_candidates.front();
+         result.nodes = total_nodes();
+         nodes_.store(local_nodes_, std::memory_order_relaxed);

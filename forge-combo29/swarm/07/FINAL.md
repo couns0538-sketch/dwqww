@@ -79,6 +79,7 @@ false).
 | 07-C75 | **07-F3 reduced to one hand-checkable case: base says `cp 0`/0 nodes on a board where a forced mate exists under all three regimes, and every PV replays to real checkmate** (job71/raw) | base + PC, depth 12 |
 | 07-C76 | **Fifty-move fault is mechanical and 20 of 20: every counter-100 root declared drawn with 0 nodes, and python-chess says none is a fifty-move draw** — vs the 80 counter-0 roots, which all search | base, depth 12, 100 rows |
 | 07-C77 | **The two faults separate on the ship build: 07-F1's fabricated lines live on ALL SIX arms; 07-F3's fifty-move fault is BASE-ONLY and the PC build fixes it in all three regimes** | base + PC, 3 regimes × 2 faults |
+| 07-C78 | **My own live patch had the defect it was written to fix, in reduced form: v1 cut 64 fabricated lines to 1 but emitted that line at `depth 64` with `nodes 0`; v2 reports `depth 0`** (job73/raw_v2) | PC r15, 3 regimes, 7 zero-node paths |
 
 ---
 
@@ -98,8 +99,11 @@ Item 2 is a tuning observation whose strength question I did not measure.
    instead, that is a separate decision that must print that the restriction was ignored. **Note added
    later (07-C54, 07-C55): it is not a `searchmoves` defect at all** — every path that reports without
    searching emits a fabricated `score cp 0 nodes 0` line per depth. The shared-path patch
-   (`job55/shared_report_oneline.patch.txt`) fixes all six paths with one edit, all eight pins unchanged,
-   and **supersedes my own narrower `job2`/`job29` patches.**
+   (`job73/07f1_shared_report_v2.patch.txt`) fixes all seven paths with one edit, all eight pins
+   unchanged, and **supersedes my own narrower `job2`/`job29` patches AND the job55 v1 patch it
+   replaces** — v1 cut 64 fabricated lines to 1 but printed that line at `depth 64` for a
+   `go searchmoves` with no depth, repeating the same lie once instead of 64 times (07-C78). v2
+   reports `depth 0` and `seldepth 0`: no iteration ran.
 2. **`TtPruneV2` carries 85 % of PC20's node effect** on 200 positions (07-C32), while `CorrHistV2`
    costs 2.7 %. Whether that saving is strength is a games question I did not measure.
 3. **`FORGE_FIX_ROOT_DRAWN` earns its place on one undeniable board — AND IT IS ALREADY FIXED ON THE PC
@@ -168,7 +172,7 @@ scope that way will "find" a catastrophic breach in every seat, including innoce
 If that prints nothing, the seat committed only its own files. I ran exactly this on my own branch and
 it is empty, which is the claim worth quoting — not a file count.
 
-## The twenty standing rules, grouped by the question they answer
+## The twenty-one standing rules, grouped by the question they answer
 
 The FINDINGS header carries sixteen rules; the table there is ordered by when I learned them, which is
 the wrong order to read them in. Grouped by what they are for:
@@ -198,6 +202,12 @@ the wrong order to read them in. Grouped by what they are for:
   (16/16 cells exact); node counts under a clock are not.
 
 ### Is my comparison right?
+
+- **When the complaint is "this number is a lie", the fix must make the number true, not just
+  rarer.** My own patch cut 64 fabricated `nodes 0` lines to 1 and emitted that one at `depth 64` —
+  the same contradiction, once instead of 64 times (07-C78). A count-based check cannot see it,
+  because the count moved the right way. **Read the surviving output's content, not its
+  multiplicity.**
 
 - **Before quoting a count, check that each item is a distinct instance.** I wrote "three occurrences" of a
   refused FEN and the number was **one** — the illustrative example *in the rule itself* was already one of
