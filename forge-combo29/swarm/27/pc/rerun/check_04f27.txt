@@ -1,0 +1,33 @@
+# 04-F27 verified: the owner's strength-match clock path is clean over 40 plies
+# PC r15 068f0927, PC20 verified as 22 options, Threads 1, Hash 16
+# clock 6 s + 0.06 s, real decremented clocks (debited by measured elapsed wall), 60 ms increment
+# self-driven game from startpos, `go wtime/btime/winc/binc` every move
+
+## Result
+
+| measure | mine | seat 04 |
+|---|---|---|
+| plies played | **40** | 40 |
+| problems | **0** | 0 |
+| wall median | 173 ms | 157 / 182 ms |
+| wall max | 946 ms | 601 / 841 ms |
+| depths reached | 15-27 | 16-24 / 18-30 |
+| final clocks | 1768 / 3224 ms | 3124/3030 and 2654/1931 ms |
+| forfeits | **0** | 0 |
+
+The picture matches: the clock is used heavily but not run down, and nothing fails.
+
+## Why it agrees with the arithmetic
+
+Seat 28's S-F44 shows the rule `clock' = clock - spend + increment` has a fixed point where spend = increment,
+and with worst-case spend the clock converges to a floor of `MoveOverhead + increment*100/TmHardPercent` = 111 ms.
+I confirmed that independently in S-C22 (111 ms from every starting clock I tried). My final clocks landing at
+1768 / 3224 ms after 40 plies is that floor doing its job.
+
+## The three results now agree
+
+1. the arithmetic says the clock cannot be lost by searching (S-F44, S-C22);
+2. the match path shows it not being lost over 40 plies (04-F27, this check);
+3. the tiny-clock controls show it answering inside every clock size > 0 (S-C29).
+
+Together they close the clock question with no measurement of mine pointing at a defect.
