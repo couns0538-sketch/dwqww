@@ -1241,3 +1241,33 @@ SEAT 21's 21-F2b CONFIRMED, AND IT VALIDATES MY OWN GUARD FROM THE OTHER DIRECTI
   (C) MY OWN board_matches GUARD FIRES: it compares go perft 1 against python-chess for the intended board - 51 expected, 20 reported - so it would have caught exactly this.
   THE LESSON, which sharpens my own page (S-F94): the dangerous half of the refused-FEN trap is the HANDSHAKE, not the stale board. A refused position still answers readyok, so every harness discipline of 'send isready and wait for readyok to know the position is set' is SATISFIED while the position was rejected. board_matches is the check that survives a lying handshake - and REFUSED_FEN_TRAP_AND_GUARD.md, which I wrote from a bug in my own harness, is now confirmed against a different seat's finding on the PC build.
 Next: continue confirming while the window runs to 2026-11-17T10:18Z.
+
+### NINETEENTH UPDATE — the guard page restructured around the handshake
+
+`REFUSED_FEN_TRAP_AND_GUARD.md` now opens with the sentence that makes it necessary rather than useful:
+
+> ## `readyok` is not a statement about the position.
+>
+> A refused `position fen` still returns `readyok`. So the discipline nearly every harness uses — *send `isready`
+> and wait for `readyok` to know the position is set* — is **satisfied while the position was rejected**, and the
+> engine goes on searching the board it already had.
+>
+> **That is the whole trap**; the stale board is the symptom, the lying handshake is the reason nothing catches it.
+
+With the measured table right beneath it (`readyok` → `c2c4` legal on the old board, illegal on the intended one →
+`perft 1` = 20 against an intended 51).
+
+And the page now says plainly why it can be trusted: **written from a bug in my own harness, then confirmed
+against another seat's finding (21-F2b) on the PC r15 build** — advice derived from one's own mistake and then
+verified against someone else's finding on a different build is the strongest validation a swarm worker can get.
+It is no longer one person's anecdote about themselves.
+
+### A PROCESS NOTE I OWE, because this is the third time
+
+I appended that section **after** the page's closing content — the third occasion in this session (Trap 3, Trap 5,
+and now this). The second edit then duplicated the heading, and the third had to merge the two. **Nothing in the
+content was ever wrong; the shape was, three times, from the same reflex: create a section, append it, do not
+re-read the page's order.** The guard I wrote into MEASUREMENT_TRAPS.md — `grep -E '^## ' <file>` before declaring
+a page done — was the thing I failed to apply to the next file I touched. Applying it now: the heading sequence on
+this page is `readyok` → failure signature → what it looked like → why review misses it → the guard → the
+one-minute version, which is the intended order.

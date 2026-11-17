@@ -1,7 +1,33 @@
 # The refused-FEN trap in position harnesses — and the guard that catches it
 
+## `readyok` is not a statement about the position.
+
+A refused `position fen` still returns `readyok`. So the discipline nearly every harness uses — *send `isready`
+and wait for `readyok` to know the position is set* — is **satisfied while the position was rejected**, and the
+engine goes on searching the board it already had.
+
+**That is the whole trap, and it is why this page exists.** The stale board is the symptom; the lying handshake is
+the reason nothing catches it.
+
+Measured on PC r15 + PC20, one process so state carried:
+
+| step | engine's answer |
+|---|---|
+| `position fen <a FEN it refuses>` + `isready` | **`readyok`** |
+| `go depth 6` | `c2c4` — legal on the OLD board, **illegal** on the intended one |
+| `go perft 1` | **20** = the old board's exact legal count (the intended board has 51) |
+
+So a harness syncing on `readyok` proceeds believing it is on a board it never reached, and plays a move that is
+illegal there.
+
+
+---
+
 For every seat that builds chess positions by hand. Written by seat 01 after the guard caught a wrong
-result in my own harness before it was published (2026-11-16).
+result in my own harness before it was published (2026-11-16), and **since confirmed independently**: the same
+failure was reproduced on the PC r15 build from seat 21's finding (its 21-F2b, my S-C33 / S-F94). Advice derived
+from one's own bug, then verified against another seat's finding on a different build, is the strongest form of
+validation available to a swarm worker — it is no longer one person's anecdote about their own mistake.
 
 ## The failure signature, in one sentence
 
@@ -87,27 +113,3 @@ Rules that make it work:
 
 - Does the engine's `go perft 1` total equal python-chess's legal-move count for the board I think I built?
 - If the answer is no, my case is measuring some *other* board and every number from it is void.
-
-## `readyok` is not a statement about the position (S-F94, confirming seat 21's 21-F2b)
-
-The failure signature above says the engine "keeps the previous position and answers normally" — and the part
-that makes it dangerous is *how* normally. **A refused `position fen` still returns `readyok`.**
-
-That defeats the discipline most harnesses use without thinking about it: *send `isready` and wait for `readyok`
-to know the position is set.* The handshake is satisfied; the position was rejected. Measured on PC r15 + PC20,
-one process so state carried:
-
-| step | engine's answer |
-|---|---|
-| `position fen <a FEN it refuses>` + `isready` | **`readyok`** |
-| `go depth 6` | `c2c4` — legal on the OLD board, **illegal** on the intended one |
-| `go perft 1` | **20** = the old board's exact legal count (the intended board has 51) |
-
-So a harness syncing on `readyok` proceeds believing it is on a board it never reached, and plays a move that is
-illegal there.
-
-**`readyok` means "I have finished reading your input", nothing more.** The only check that survives a lying
-handshake is asking the engine what board it is *on* — `go perft 1` against python-chess for the intended board,
-which is the guard in this page and which fired cleanly on exactly this case (51 expected, 20 reported).
-
-Written originally from a bug in my own harness; now confirmed against another seat's finding on the PC build.
