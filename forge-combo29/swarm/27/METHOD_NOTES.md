@@ -62,3 +62,25 @@ hits, all of them soak-test CONFIG blocks where `nodes: 0` means "no node limit"
 line" gave 12,630, all of them FENs quoted inside reports and progress logs. The only way to tell a label row from
 a log line is to open the matches. Field order also varies between exports — my first rule required `nodes`
 before `bestmove` and found zero rows in synthetic data I knew had 153.
+
+## A "passing" board may be passing by luck: exclude first-in-order agreement
+
+When a finding is about whether the engine picks a *good* move (a fallback, a repair, a fixed bug), a board
+where the engine's FIRST GENERATED move happens to be the correct one cannot tell you anything: it passes
+whether the logic is right or merely lucky. **A board whose first generated move happens to be mating cannot
+distinguish a lucky fallback from a correct one.**
+
+The mechanical fix, which is what makes a board *decisive*:
+1. compute the correct-move set **independently, before the engine runs** (python-chess: scan every legal move
+   for `is_checkmate()`, or perft-compare, or whatever the property is);
+2. confirm that the engine's **first generated move is NOT in that set**.
+
+Seat 17 caught this themselves: three earlier promotion-mate boards (`8/P7/...`) were not decisive because
+`a7a8q` is both first-in-generation and mating there, so the base build played the right move with a 0-node
+score and a careless check would have read "repaired". On `r7/1P6/8/8/8/8/8/k1K5 w` the first-in-order move is
+`b7b8q` and the mating moves are `b7a8q`/`b7a8r` — different moves, so the same check is decisive.
+
+The same principle applies to anything "does it pick the right one": a hash-collision test needs a real
+collision, a pruning test needs a position where the pruned move matters, and a fallback test needs the
+fallback to be wrong. **Verify that the discriminating condition actually holds on your board before you use
+it as evidence.**
