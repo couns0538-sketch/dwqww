@@ -2,10 +2,12 @@
 
 **Audit window:** 2026-11-16T22:20Z → 2026-11-17T10:20Z.
 **Assembled by:** seat `swarm-73`, from committed branch content only. **Nothing here was re-measured.**
-**Branches read:** **25** (`swarm-01, 02, 03, 04, 05, 06, 07, 08, 10, 11, 12, 13, 15, 16, 17, 19, 20, 21, 23, 24, 25, 27, 28, 29, 30` — every branch under `origin/for-fable-and-opus/` that carries a `FINDINGS.md`).
-**Findings synthesised:** **2,283** distinct findings (2,304 table rows; 21 rows are re-runs recorded under an existing id).
+**Branches read:** **26** (`swarm-01, 02, 03, 04, 05, 06, 07, 08, 10, 11, 12, 13, 15, 16, 17, 19, 20, 21, 23, 24, 25, 27, 28, 29, 30, 75` — every branch under `origin/for-fable-and-opus/` that carries a `FINDINGS.md`).
+**Findings synthesised:** **2,302** distinct findings — **2,293** from table rows plus **9** from `swarm-75`, which
+records its findings as prose sections (`75-F1`…`75-F9`) rather than table rows and so is invisible to a row count.
+2,314 table rows in total; 21 are re-runs recorded under an existing id.
 
-That count is a count of *rows I read*, not a claim that 2,283 separate claims are each correct. The consolidated
+That count is a count of *findings I read*, not a claim that 2,302 separate claims are each correct. The consolidated
 report cites about ten of them by id. The rest I used to license, bound, or contradict the recommendations below.
 
 Two builds appear throughout and every number names one:
@@ -99,9 +101,23 @@ paths** (`:2275`, `:2301-2308`, `:2321`).
 
 ### 1.4 Treat every refused FEN as fatal, and scan both reply streams — **ship**
 
-A refused `position fen` still answers `readyok`, **keeps the previous board, and a search then returns a
-normal-looking result for that previous position** — legal `bestmove`, plausible ±30 cp score, full PV,
-correct-looking node counts. Worse than a startpos fallback because it depends on session history.
+A refused `position fen` still answers `readyok`, **keeps the last valid board, and a search then returns a
+normal-looking result for that board** — legal `bestmove`, plausible ±30 cp score, full PV, correct-looking node
+counts. **The engine searches the last valid board, which in a fresh session is the start position.**
+
+**There are TWO fallbacks, not one.** With no predecessor the invalid FEN is answered from **startpos**; with a
+predecessor it is answered from **that predecessor**. A four-cell matrix over (isready sent? × predecessor present?),
+each cell with a legal control so "absent" cannot mean "never fires", measured identically on both builds:
+
+| isready? | predecessor? | diagnostic? | bestmove |
+|---|---|---|---|
+| no | no | **YES** | `d2d4` (**startpos**) |
+| no | yes | **YES** | `a1a8` (**the predecessor**) |
+| yes | no | **YES** | `d2d4` (**startpos**) |
+| yes | yes | **YES** | `a1a8` (**the predecessor**) |
+
+**So "the previous position" describes only one of the two cells.** The accurate description — the one to write in a
+harness comment or a bug report — is **"the last valid board"**, which covers both.
 
 The diagnostic **is always emitted**; only its **location** moves with where you read:
 
@@ -113,11 +129,18 @@ The diagnostic **is always emitted**; only its **location** moves with where you
 Both hold **in a fresh session as well as after a predecessor**. There is no undetectable first position.
 
 **So: scan BOTH the position reply and the search output, and check before parsing any `info depth`.** A harness
-reading only one stream misses it half the time. **Primary defence: validate every FEN before sending it** —
-`readyok` is not a statement about the position.
+reading only one stream misses it half the time.
+
+**But assert exactly ONE occurrence — it is emitted once, not in both streams.** With `isready` the position reply
+carries it and the search output does not (`position=1 go=0`); without, the search output carries it (`go=1`).
+**A checker that required it in both streams would always fail**, which is the mirror image of the harness that reads
+only one. Scan both; count one.
+
+**Primary defence: validate every FEN before sending it** — `readyok` is not a statement about the position.
 
 **What would overturn it:** an invalid FEN that produces no `info string` on either stream. None found across all
-four combinations.
+four combinations. **What the occurrence count rules out:** a `position=1 go=1` cell — it would mean the diagnostic
+duplicates, and no cell measured that.
 
 ### 1.5 Keep `Threads 1` for anything you measure or reproduce — **ship**
 
@@ -147,7 +170,7 @@ by searching** at that setting: 0 forfeits at 12 clocks from 1 to 600 ms, 600 mo
 
 **What would overturn it:** a zero-increment game with a forfeit — none observed; the ~10 ms floor is the mechanism.
 
-### 1.7 `MultiPV 1` at any Hash, or `Hash 16` MB with multiple lines — **ship** (throughput); *and* distrust near-horizon positions — **needs-more-evidence**
+### 1.7 `MultiPV 1` at any Hash; otherwise cap Hash by line count — **ship** (throughput); *and* distrust near-horizon positions — **needs-more-evidence**
 
 Fixed `go nodes 200000` grid (work constant, time the variable), PC r15 + PC20, Threads 1 — milliseconds:
 
@@ -158,9 +181,51 @@ Fixed `go nodes 200000` grid (work constant, time the variable), PC r15 + PC20, 
 | 256 | 132 | **384** | **557** | **550** |
 
 **113 → 557 ms = 4.9×**, with six cells slower than 1.5× the fastest spanning two Hash values and three MultiPV
-values — a diagonal boundary, not one bad cell. Mechanism: between-line `tt.clear()` plus a second full-size
-alternate table (nodes/ms 559 → 183 → 2 at MPV 3 versus a flat ~1,500 at MPV 1). A patch removing the redundant clear
-recovers 3.2× at Hash 64 and 14× at Hash 256 but does not reach MPV 1 rates — **necessary, not sufficient**.
+values — a diagonal boundary, not one bad cell.
+
+**The practical rule is a per-line cap, and the product form is wrong. Do not use `Hash × MultiPV` as the model.**
+- **The cost is not Hash, not MultiPV, and not their product.** **Four cells share `Hash × MPV = 96` and measure
+  1.30×, 1.35×, 1.37× and 1.55×** — **no constant separates them.**
+- **MultiPV 1 is flat in Hash** (114.0–139.3 ms across Hash 8–256, a 1.22× spread with no trend, 8 of 8 within
+  1.5×, **identical node counts**). **So no product form can express it:** `Hash × 1` grows and the measurement does
+  not.
+- **The product model gets both directions backwards: Hash 64 with 2 lines is NOT fine (1.57×), and Hash 8 with 6
+  lines IS fine (1.18×).**
+- **What the cost actually is:** `Hash × wipes`, where `wipes = depth × (MPV−1)` — and **depth itself falls as
+  MultiPV rises** (14 / 13 / 11 at MPV 1 / 2 / 6). **That coupling is what breaks the product.**
+
+**The measured boundary** — fitted against a 1.5×-unsafe threshold over **48 cells**:
+
+| predicate | misclassified | false-safe |
+|---|---|---|
+| `Hash × MPV ≤ 144` | 4/48 | 3 |
+| `Hash × (MPV−1) ≤ 120` | 3/48 | 3 |
+| `Hash ≤ Hmax(MPV)`, Hmax = {1:**256**, 2:**48**, 3:**48**, 4:**24**, 5:**24**, 6:**24**} | 1/48 | 1 |
+| the same, capped conservatively (**2 lines ≤ 48 MB; 3–6 lines ≤ 24 MB**) | **1/48** | **0** |
+
+**The recommendation: `MultiPV 1` at any Hash; otherwise cap Hash by line count — 48 MB for 2 lines, 24 MB for 3 to
+6 lines.** That is the conservative fitted form, and it is **the one to ship because it has zero false-safe cells out
+of 48**.
+
+**The property that matters is zero false-safe, not the misclassification count.** Both forms misclassify 1 of 48, but
+a **false-safe** call tells you a slow configuration is fine — the error that costs you throughput silently. A
+misclassification in the other direction merely tells you a safe configuration is risky, which costs you caution.
+
+**For a technical reader, the fitted ceiling is slightly more permissive:** **48 MB at 2 to 3 lines, 24 MB at 4 to 6**
+— `Hmax(MPV)` with 48 admitted at 3 lines (measured 1.49×) — and it carries **1 false-safe cell of 48**. **Recommend
+the conservative version; use the fitted one only when you are willing to trade that cell for the extra headroom.**
+
+**Do not use a "per-line cap" or a product, and do not use a flat Hash ceiling for multiple lines.** A flat ceiling is
+the coarse form these measurements refuted: it forbids configurations that are safe (Hash 8 with 6 lines is 1.18×)
+while permitting ones that are not (Hash 64 with 2 lines is 1.57×).
+
+**Mechanism, and it is two mechanisms, not one.** Between-line `tt.clear()` plus a second full-size alternate table
+(nodes/ms 559 → 183 → 2 at MPV 3 versus a flat ~1,500 at MPV 1). A patch removing the redundant clear **rescues 17 of
+22 unsafe cells** (22/48 → 5/48), every one at Hash ≤ 128. **The residual 5 are all Hash 256, MPV 2–6, at 1.90–1.99×
+and FLAT in MultiPV** — a per-line cost would keep climbing, so it is not per line. **It is the alternate table's
+ALLOCATION: ~105 ms of zero-fill, once per search.** Time-to-first-`info`: **1.4 ms at MPV 1 versus 105.9 ms at
+MPV 2**, Hash 256 — so the patch is **necessary but not sufficient**, and at Hash 256 the remaining cost is
+allocation rather than clearing.
 
 **MultiPV's effect on the ANSWER is conditional, not flat, and is the part that is not settled.** Changing MultiPV
 changes the best move in ~18 % of positions overall (44/250 = 17.6 %, replication 47/250 = 18.8 %), split by whether
@@ -182,7 +247,9 @@ change an answer that is not settled; MultiPV does not rescue an unsettled posit
 depths would capture it; **a later run should select on that.**
 
 **What would overturn the throughput claim:** a Hash/MPV cell where MPV > 1 is within 1.2× of MPV 1 at the same
-node budget. **What would settle the answer claim:** ~2,400 positions with the score-change criterion.
+node budget **and** whose `Hash × MPV` product differs from a safe cell's by a constant that separates them — the
+first half is what "safe" means, the second is what would rescue the product model. Neither was found in 48 cells.
+**What would settle the answer claim:** ~2,400 positions with the score-change criterion.
 
 ### 1.8 Discard mate labels whose PV is too short for the score — **ship** (necessary, not sufficient)
 
@@ -245,6 +312,13 @@ only at leaves. **The premise was false, not the estimate.**
 (200 per-position rows), `go depth 12`, Threads 1, Hash 16, PC20 + test net, **first 100 of O + first 100 of G**,
 `OG200.fens`. A reproduction on a different 200 positions gives `27,762,950` — a 0.65 % gap that is the position
 set, not a discrepancy. **A node-sum identity without its position set named cannot be reproduced.**
+
+**And this advice has one measured exception, which is worth reading because it shows where the rule does not
+apply.** "No v3 micro-patch" is a rule about **shares being too small to justify work**; it is not a claim that no v3
+work can pay. **§1.19's pair-count dispatch patch is measurably faster (1.2–1.6 %) and identity-exact** — the win came
+**not from the share being large but from the function's work being removable without touching the identity.**
+So: **do not chase the percentages, but do check whether a specific piece of per-node work can be eliminated outright.
+Those are different questions, and this run answered the second one positively.**
 
 ### 1.11 Quote PC20's two components separately; never a "PC20 speedup" — **needs-more-evidence** (net speed)
 
@@ -355,6 +429,176 @@ and you report a time ratio under a per-node label.
 **What would overturn it:** a position where `go nodes N` and `go softnodes N` return the same node count and the same
 depth. They pick different iterations by construction.
 
+### 1.17 Fix `is_insufficient_material()` for two knights — **ship** (the smaller, surgical change); the bare-minor scale factor — **needs-more-evidence**
+
+Two evaluation defects, measured separately. **One reaches search; the other does not, and the one that does not is the
+larger.**
+
+**The headline: adding a bishop to a bare king LOSES 149 centipawns.** Build `6b98f2170`, `g++-13`, `Threads 1`,
+Hash 16, `OwnBook false`, one fresh process per measurement, `DeadMaterial false`, measured on the engine's own `eval`
+command so **no search and no movegen are involved**:
+
+| position | FEN | total | hce | nnue |
+|---|---|---|---|---|
+| K vs K | `4k3/8/8/8/8/8/8/4K3 w - - 0 1` | **+2** | 0 | +2 |
+| **KB vs K** | `4k3/8/8/8/8/8/8/2B1K3 w - - 0 1` | **−147** | +16 | **−163** |
+| KN vs K | `4k3/8/8/8/8/8/8/1N2K3 w - - 0 1` | **−144** | +9 | −153 |
+| KR vs K | `4k3/8/8/8/8/8/8/R3K3 w - - 0 1` | +353 | +442 | −89 |
+| KQ vs K | `4k3/8/8/8/8/8/8/3QK3 w - - 0 1` | +768 | +783 | −15 |
+
+**1 inversion in 16 material steps.** The cause is not ambiguous: **the handcrafted term is right (+16 for the bishop);
+the NNUE residual is −163 and dominates**, because `scale_factor()` (`src/eval.cpp:389-412`) returns **0 or 12** when
+the stronger side has no pawns and leads by at most a bishop, which nearly erases the handcrafted term. Confirmed by
+`setoption name UseNNUE value false`, under which the same boards return `0 / +16 / +10` — sane.
+
+**Systematic, not a placement artefact:** the bishop square swept over `a1, c1, d4, h8, b6, e3` and scores
+**−127 to −159 at every one**.
+
+**Endgame-only, and the scope is precise:** with pawns present the same ladder is cleanly monotonic
+(`18 → 434 → 461 → 859 → 1614`), and in a real middlegame removing Black's f8 bishop from the standard array moves
+the score from **+16 to +493 — a normal +477 for a bishop.**
+
+**Why I split the verdict:** the static inversion is real and reproducible, but **search adjudicates KB vs K and
+KN vs K as draws**, so the wrong number never reaches play. **A patch to `scale_factor()` therefore changes no game
+outcome that was measured** — and its blast radius is every pawnless ending, which is a much larger surface than the
+one defect that does reach search. **Fix the search-reachable one; leave the scale factor alone until someone measures
+a game-level effect.**
+
+**The one that reaches search: KNN vs K is a draw, but `is_insufficient_material()` (`src/board.cpp:1250-1258`)
+requires `knights == 0`**, so two knights are never adjudicated:
+
+| ending | theory | static | search d6 | `is_insufficient_material()` |
+|---|---|---|---|---|
+| K vs K | draw | +2 | **cp 0** | true |
+| KB vs K | draw | −147 | **cp 0** | true |
+| KN vs K | draw | −104 | **cp 0** | true |
+| **KNN vs K** | **draw** | **+187** | **cp 251** | **false** |
+| KBN vs K | win | +237 | cp 272 | false |
+
+**So `+187` static becomes `cp 251` in a real depth-6 search.** Every other wrong bare-minor static is masked by the
+insufficient-material verdict; **this one is not.** The engine believes a drawn KNN vs K is a quarter-pawn-plus win and
+will steer toward it. **The `DeadMaterial` option does not cover it either**, so enabling that option does not fix it.
+KBN vs K is the control proving the tests can tell a win from a draw: a real win, scored +237 static / cp 272 at depth
+6, correct.
+
+**What would overturn the KNN verdict:** a search that returns cp 0 for KNN vs K at depth 6 under default options — the
+measured value is cp 251 with the verdict `false`. **What would turn the scale-factor item into a ship:**
+a game-level measurement — self-play or SPRT — showing the inverted bare-minor score changes move choice or result
+often enough to matter. **None was run** (§3).
+
+### 1.18 A warm transposition table changes fixed-depth scores — **ship** (as a harness rule)
+
+Search scores are **not reproducible when several positions are searched in one engine process.** The same KBN-vs-K
+board, depth 6:
+
+| how measured | score |
+|---|---|
+| 3rd search in a shared process | cp 293 |
+| 2nd search in a shared process | cp 285 |
+| 1st search in a shared process | cp 274 |
+| **fresh process, three separate runs** | **cp 272, 272, 272** |
+
+**The TT carried from the previous search changes move ordering, which changes which reductions and prunings fire, so
+a fixed *nominal* depth does not mean a fixed *effective* search.** The horizon ladder drifted the same way: warm
+`1257…1282` against cold `1257…1305`.
+
+**This would manufacture a fake depth trend** — a warm-TT comparison could invent a trend that does not exist, or hide
+one that does. **Every measurement in this report that compares depths uses one fresh process per cell.**
+
+**What would overturn it:** three in-process searches on one board returning identical scores. They returned
+274 / 285 / 293.
+
+### 1.19 Time the v3 pair-count dispatch patch on your own build — **needs-more-evidence**
+
+**This is the first positive performance recommendation in the run**, and its verdict is *not* ship. The patch is
+small, identity-exact, and measurably faster on the author's build — and the author's build is not yours.
+
+`v3/v3_pair_count_dispatch.patch.txt` — **67 lines**, applies to file 5's tree (`6b98f217` + `pc_r15.patch`) with
+`patch -p1 --fuzz=0`, no rejects. `apply_changes_pair_avx512` re-tested `i < c.count` **inside** the 32-lane `h`
+loop, for both perspectives; the patch **dispatches once on `c.count` (1..4**, the ceiling `collect_changes` already
+enforces) into unrolled specialisations, so each slot's liveness is decided outside the `h` loop. **Arithmetic per
+element, slot order and lanes are unchanged — by construction the results are bit-identical**, and the identity check
+tests exactly that.
+
+**Identity is EXACT** on a build from a clean `6b98f217` + file 5 tree, `-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1`,
+g++ 13.3.0:
+
+| check | required | verified |
+|---|---|---|
+| bench 11 / 13, no setoption | 312866 / 862329 | **312866 / 862329** |
+| bench 11 / 13, PC20 | 278024 / 587276 | **278024 / 587276** |
+| bench 11 / 13, test net | 965454 / 4151906 | **965454 / 4151906** |
+| bench 11 / 13, PC20 + net | 625258 / 3652372 | **625258 / 3652372** |
+| eval | 968 / 1176 / 31 | **968 / 1176 / 31** |
+| **200-opening node sum** | **27,944,084** | **27,944,084** |
+
+**Speed, two arms:**
+
+| arm | setting | result |
+|---|---|---|
+| bench 13, PC20 + net, alternating base/patch, 10 runs each | node counts identical every pair | **2126 → 2092 ms**, ratio **0.9838 (1.6 % faster)** |
+| **real positions, n=120, ABBA, fixed `go nodes 200000`**, PC20 + test net | **node counts matched 120 of 120** | median ratio **0.9878 (1.2 % faster)**; 2.5th/97.5th pct **0.961 / 1.026**; **107 of 120 positions faster**; two-sided sign test **p = 1.5e-19** |
+
+**I re-derived the sign test independently and it matches: exact two-sided binomial, 107 of 120, p = 1.4959e-19.**
+That is not a formality here — see the caveat in §4, because **107/120 is a share above half, which is precisely the
+case this run's own buggy sign test saturated on at p = 1.000.**
+
+**Why needs-more-evidence and not ship:**
+- **The author's compiler is g++ 13.3.0 with no `-march`; yours is clang + `-march=znver5` + PGO.** A different
+  compiler can turn an explicit unroll into nothing, or into more work. **This is evidence the patch is worth timing
+  on the real build — not a substitute for that timing.**
+- **+1.2–1.6 % is small enough that the real build decides.** A 1.6 % bench win and a 1.2 % paired median are not a
+  reason to ship a change on a build nobody has timed.
+- **The net is the shared-shape test net**, not your trained one.
+
+**What would overturn it — in both directions:**
+- **Toward ship:** your build, two builds per variant, timed exactly as the report's Step 3 requires, reproducing
+  ≥ 1 % with node counts matched. **That converts this to a ship.**
+- **Toward do-not-ship:** a real-build timing where the ratio's CI includes 1.0, **or** where node counts are not
+  matched (which would mean the patch changed the search, not just its speed).
+
+**And what it does not claim:** **no strength claim.** Node counts are identical by construction, so any strength
+difference would be noise.
+
+### 1.20 Opening book: set `OwnBook false` only when it can fire, and know that it pre-empts draw adjudication — **ship** (as a harness rule)
+
+The book's own soundness is clean (§7); **what it does to a harness and to a caller is three separate hazards.**
+
+**1. The condition is narrower than "the clock form": it fires on the SIDE-TO-MOVE'S OWN clock, or on `movetime`.**
+The gate is `time_ms >= 0 || movetime_ms >= 0` (`uci.cpp:371`), and `time_ms` is set **only for the side to move**
+(`uci.cpp:108-109`). So:
+
+| command | side to move | reaches the book? |
+|---|---|---|
+| `go btime 10000` | White | **no — searches** |
+| `go btime 10000` | Black | **yes — books** |
+| `go movetime 100` | either | **yes — always books** |
+| `go depth N` / `go nodes N` / `go infinite` | either | **never** |
+
+**So `OwnBook false` is needed only when the moving side's clock is sent** — sending the *opponent's* clock is safe
+from the book and unsafe in a different way (§2.7: a one-sided clock is no clock at all).
+
+**2. The book pre-empts drawn-root detection, and it does so silently.** A halfmove-clock-100 startpos still emits
+`book move e2e4`, **and so does a threefold-repetition root**: the book decides before any draw adjudication runs.
+**So a drawn position ships a book move and a `bestmove` with no `cp 0` and no empty `pv` to warn a caller** — which
+defeats the one reliable caller-side check in §1.3. A front end that keys on empty-`pv` will not recognise this case.
+
+**3. `Book Depth` is derived from the FEN's FULLMOVE COUNTER, not from the move count** (`game_ply()`,
+`uci.cpp:127-129`). **The same chess position at fullmove 1 versus 21 books versus searches** — so any tool that
+writes a FEN without the true move number changes whether the book is consulted at all. **This is the identity trap of
+§4 rule 27 in a place you would not look for it.**
+
+**What the book path emits: exactly two lines and nothing else** (`uci.cpp:385-387`) — `info string book move <uci>`
+then `bestmove <uci>`. **No `info depth`, no score, no node count.** A GUI showing a score for that move is showing
+its own default.
+
+**And the latency gap is four orders of magnitude, which is why this bites harnesses:** book **p50 0.024 ms**, max
+0.44 ms over 200 round trips; off-book **p50 442 ms** in the same harness. **A reader waiting for an `info depth`
+line times out on every book move** — proved with a passing off-book control.
+
+**What would overturn it:** a book move on a `go depth`/`go nodes` command (would widen the condition), or a
+drawn-root position that emits `cp 0`/empty `pv` instead of a book move (would remove hazard 2).
+
 ---
 
 ## 2. What is broken
@@ -417,11 +661,13 @@ The control proves it is the missing escape and not the counter: `6k1/5ppp/8/8/8
 `cp 0`, because Black there has six pawn moves that reset the clock and the draw is real. **A root-only repair leaves
 a real miss one ply down.** The leaf rule is `search.cpp:1302`.
 
-### 2.3 A refused FEN returns a well-formed answer for the previous position — **broken**
+### 2.3 A refused FEN returns a well-formed answer for the last valid board — **broken**
 
-See §1.4 for the defence. The severity is that **the fabricated row is harder to detect than a duplicate**: where the
-predecessor differs, the score differs too, because the re-search runs on a restored board with different TT and
-history state.
+See §1.4 for the defence. **The engine searches the last valid board, which in a fresh session is the start
+position** — so this is a defect in a fresh session too, not only after a prior search.
+
+The severity is that **the fabricated row is harder to detect than a duplicate**: where the predecessor differs, the
+score differs too, because the re-search runs on a restored board with different TT and history state.
 
 Measured over five predecessors — invalid FEN sent after each, PC r15, `go depth 8`:
 
@@ -437,11 +683,12 @@ Measured over five predecessors — invalid FEN sent after each, PC r15, `go dep
 the clever mitigation someone will reach for, and **it is unreliable**. The only defence that works on all cases is
 **confirming every FEN was accepted** before trusting any output from the position.
 
-**The discriminator that proves it is "previous position" and not "startpos":** send the SAME invalid FEN after two
-DIFFERENT valid positions. A startpos fallback predicts the same answer both times; a refusal predicts no `bestmove`;
-"previous position" predicts **each predecessor's own answer, differing**. Measured: after A (`6k1/5ppp/8/8/8/8/5PPP/R5K1 w`)
-→ `a1a8` / mate 1; after B (after 1.e4) → `e7e5`. **They differ, so startpos is excluded.** Bit-identical 3/3 on PC
-r15 and identical on base release, so it **predates the patch**.
+**The discriminator that establishes "last valid board" over "always startpos":** send the SAME invalid FEN after two
+DIFFERENT valid positions. An always-startpos fallback predicts the same answer both times; a refusal predicts no
+`bestmove`; **last-valid-board predicts each predecessor's own answer, differing**. Measured: after A
+(`6k1/5ppp/8/8/8/8/5PPP/R5K1 w`) → `a1a8` / mate 1; after B (after 1.e4) → `e7e5`. **They differ, so an always-startpos
+fallback is excluded** — and the no-predecessor cells of the §1.4 matrix supply the other half, where the same invalid
+FEN *does* answer `d2d4`. Bit-identical 3/3 on PC r15 and identical on base release, so it **predates the patch**.
 
 ### 2.4 `bestmove 0000` reaches a consumer with no diagnostic — **broken, and it is a crash hazard**
 
@@ -476,7 +723,22 @@ clock, the book, and any game-vs-game comparison.**
 answers in 0.16 s. **Padding the opponent's value does not help** — a large opponent clock has zero effect. The
 engine is right to ignore the opponent's clock; it should print an `info string` instead of searching forever.
 
-### 2.8 What is *not* broken, and was claimed to be
+### 2.8 The opening book overrides draw adjudication without a signal — **broken**
+
+Two consumers are affected and neither gets a warning:
+
+- **A drawn position gets a book move.** A halfmove-clock-100 startpos emits `book move e2e4`, **and so does a
+  threefold-repetition root.** The book decides before any draw adjudication runs, so the reply carries **no `cp 0`
+  and no empty `pv`** — the caller-side check of §1.3 does not fire, and a front end plays a book move in a drawn
+  game.
+- **`Book Depth` follows the FEN's fullmove counter** (`game_ply()`, `uci.cpp:127-129`), so **the same position at
+  fullmove 1 versus 21 books versus searches.** A tool that writes a FEN without the true move number silently gets a
+  different code path, with the same two-line reply that carries no score.
+
+**Not a correctness defect in the book itself** — its moves are sound (§7). **It is a defect in what the book tells a
+caller about the position**, which is the definition §2 uses.
+
+### 2.9 What is *not* broken, and was claimed to be
 
 Recording these so you do not inherit a withdrawal as a fact:
 - **The repair is not depth-limited.** 14 validated roots 14/14 correct at depth 10 and nodes 200,000 (13/14 at
@@ -549,6 +811,17 @@ Each item with the reason it could not be settled. **Do not read a closed behavi
 - **The material-key cache.** 0.7 % on real positions (not the 1.5–3.5 % predicted). Not worth shipping; the
   per-node-cost question it answered is superseded because **your PC evaluates through the v3 path.**
 
+**From the evaluation audit (§1.17), stated as the measuring seat states it**
+- **The bare-minor material inversion has no measured game-level cost.** The static inversion is real and the
+  KNN-vs-K case reaches search, but **no game-level cost was measured: no SPRT, no Elo claim.** Anyone who wants to
+  prioritise the `scale_factor()` fix over the `is_insufficient_material()` fix has no measurement to prioritise on —
+  which is why §1.17 ships one and holds the other.
+- **Evaluation symmetry is evidence, not proof.** **0 asymmetric pairs of 420** (20 hand-picked + 400 seeded), in
+  `hce` and `nnue` separately, measured on the static evaluator so no movegen is involved. Strong, and **not a proof
+  over all positions.**
+- **The bare-minor sweep covers six bishop squares**, `a1, c1, d4, h8, b6, e3`, scoring −127 to −159. **Systematic
+  across those six; not a proof over all squares.**
+
 ---
 
 ## 4. The measurement rules this run produced
@@ -562,93 +835,132 @@ These are the transferable output. Each is a rule the run paid for with a defect
    list a number cannot be quoted without.**
 3. **`ucinewgame` is the cold reset; `Clear Hash` is not.** Warm process state shifts scores by up to 55 cp on
    identical requests.
-4. **Validate every FEN before sending it, and read the reply.** `readyok` is not a statement about the position.
-5. **State, in advance, what result would support the hypothesis and what would refute it** — including for rows whose
+4. **A warm transposition table changes fixed-depth scores — use one fresh process per measurement.** The same
+   KBN-vs-K board at depth 6 scored **cp 274, 285 and 293** as the first, second and third search in one process,
+   against **cp 272 three times** cold. The TT carried from the previous search changes move ordering, which changes
+   which reductions fire, so a fixed *nominal* depth is not a fixed *effective* search. **This would manufacture a
+   fake depth trend** — and hide a real one — which is why every depth comparison in this report uses a fresh process
+   per cell (§1.18).
+5. **Validate every FEN before sending it, and read the reply.** `readyok` is not a statement about the position.
+6. **State, in advance, what result would support the hypothesis and what would refute it** — including for rows whose
    expected value is "unchanged". A table can be arithmetically correct and read backwards.
 
 **While you measure**
-6. **Report wins / ties / losses together, and use the SHARE, not the SUM.** "+3 ply over 6 positions" and "+8 ply
+7. **Report wins / ties / losses together, and use the SHARE, not the SUM.** "+3 ply over 6 positions" and "+8 ply
    over 130" are the same comparison; the second sounds like progress and is compatible with half the positions being
    identical and a median difference of exactly zero.
-7. **A sign-share computed from a QUANTISED measure is a share of that measure's granularity.** Wall time at 1 ms
+8. **A sign-share computed from a QUANTISED measure is a share of that measure's granularity.** Wall time at 1 ms
    resolution on 19 ms searches → **64.6 % exact ties**; integer depth, no timer → **50.0 % exact ties**. Decompose:
    at `go nodes 50000` wins/decided is 65.2 %, at `500000` it is 58.7 % — **once ties are excluded the two budgets
    agree.** Quote a sign-share **with its budget**, never as a bare property of the patch.
-8. **Lengthen the measurement rather than redefining the share.** 50k → 500k took ties from 64.6 % to 6.9 % without
+9. **Lengthen the measurement rather than redefining the share.** 50k → 500k took ties from 64.6 % to 6.9 % without
    changing the effect's direction.
-9. **A sign-share alone cannot classify a claim; the interval decides first.** 50.6 % with no established effect and
+10. **A sign-share alone cannot classify a claim; the interval decides first.** 50.6 % with no established effect and
    60.5 % with a real pooled effect are closer to each other than either is to 90 %.
-10. **"Not established" ≠ "no effect" ≠ "coin flip."** A result whose CI includes 1.0 is **unresolved**. "Coin flip"
+11. **"Not established" ≠ "no effect" ≠ "coin flip."** A result whose CI includes 1.0 is **unresolved**. "Coin flip"
     means exactly one thing: a real pooled effect that is per-position random.
-11. **Every per-node figure divides by the reported count, not the requested budget.** Otherwise the request cancels
+12. **Every per-node figure divides by the reported count, not the requested budget.** Otherwise the request cancels
     and you report a time ratio under a per-node label.
-12. **A comparison at a fixed node budget cannot show a node saving.** Both engines stop in the same place by
+13. **A comparison at a fixed node budget cannot show a node saving.** Both engines stop in the same place by
     construction; any residual is the stopping rule's granularity. A 50.6 % sign-share measured there was a correct
     measurement of an effect that does not exist.
-13. **Report median and geometric mean labelled, side by side.** Three statistics on one distribution gave three
+14. **`go nodes N` does not fix the workload once `MultiPV > 1`.** The node budget is **shared across the alternate
+    lines**, so raising MultiPV *lowers* the reported work: **N = 200,000 spends 52,472 to 199,619 reported nodes,
+    falling as MultiPV rises.** So a fixed-nodes arm is not "the same amount of search" when the MultiPV setting
+    differs between its arms — and a throughput comparison across MultiPV settings is measuring two things at once.
+    **State which quantity is being held constant, and check it held.** (The grid in §1.7 holds time and lets nodes
+    vary; that is why it can measure throughput across MultiPV at all.)
+15. **Report median and geometric mean labelled, side by side.** Three statistics on one distribution gave three
     different conclusions, and the distribution was the finding.
-14. **Put the per-position spread on the headline line.** A pooled 5 % saving that wins on 54.2 % of positions with an
+16. **Put the per-position spread on the headline line.** A pooled 5 % saving that wins on 54.2 % of positions with an
     IQR 28× the effect size is a real effect and an unusable per-position predictor. **More data will not remove
     this — it is what the switch does.**
-15. **Any speed number from fewer than ten positions is a hypothesis, never a result.** Two out of two small samples
+17. **Any speed number from fewer than ten positions is a hypothesis, never a result.** Two out of two small samples
     in this harness erred upward, once by 4×.
-16. **A p-value must be recomputable from the counts printed in its own row.** Three of four published sign-test
+18. **A p-value must be recomputable from the counts printed in its own row.** Three of four published sign-test
     p-values read `1.000` when the counts beside them give 0.022, 0.648 and 0.411. The cause was a **missing
     `min(k, n−k)` reflection**, so the test saturated for every share above half and was correct only below it —
     **the one correct row was the below-half one, which made a broken function look validated.** Commit the test, not
     the answer, and give it a symmetry self-test: `p(k, n) == p(n−k, n)`.
-17. **A control must be demonstrated to fail when the input is wrong**, not merely to pass when it is right. Three
+19. **A control must be demonstrated to fail when the input is wrong**, not merely to pass when it is right. Three
     natural ways to write one all pass vacuously: `max()` of nothing, `all()` of nothing, a lookup falling through to
     a default. **A control that returns a plausible wrong number is worse than one that crashes.**
-18. **A control cell proves only what its axis can see.** When you quote one, **say which axis it controls for.**
-19. **A cap test needs a rising-series control.** "Respected the cap" is equally consistent with "ignored the budget
+20. **A control cell proves only what its axis can see.** When you quote one, **say which axis it controls for.**
+21. **A cap test needs a rising-series control.** "Respected the cap" is equally consistent with "ignored the budget
     and searched a fixed amount" unless rising budgets produce rising work.
-20. **Separate a confound from a refutation:** run the same cell with the variable under test removed. If the outcome
+22. **Separate a confound from a refutation:** run the same cell with the variable under test removed. If the outcome
     persists, you measured the confound. (Bare kings return 0 nodes at two occurrences only because insufficient
     material is an automatic draw.)
-21. **`$?` after a pipe is the LAST command's status.** `cmd | tail` reports `tail`'s exit code. Use `cmd > out; rc=$?`
+23. **`$?` after a pipe is the LAST command's status.** `cmd | tail` reports `tail`'s exit code. Use `cmd > out; rc=$?`
     or `set -o pipefail`.
-22. **A reader that waits for `info depth` deadlocks on every fast path** — the opening book answers with zero info
+24. **A reader that waits for `info depth` deadlocks on every fast path** — the opening book answers with zero info
     lines, and `go nodes 0`/`1` emit none either. **Wait for `bestmove`** (60 of 66 committed harnesses did, and are
     safe) **and put a timeout on every read.**
-23. **`go infinite` is bounded by `stop` or depth 64, whichever comes first — and on a real position it is `stop` that
+25. **`go infinite` is bounded by `stop` or depth 64, whichever comes first — and on a real position it is `stop` that
     matters.** Startpos ran a 75-second cap and reached only depth 30 (`cp 7`, 93,981,191 nodes). `stop` returns a
     legal move in 0–1 ms. **Send `stop` and assert the reply.**
-24. **The opening book fires on exactly the clock and movetime `go` forms.** A depth, nodes or infinite harness can
-    never hit it; only a clock or movetime harness needs `OwnBook false`.
-25. **Fullmove number and halfmove counter are part of a position's identity** — 5 different mate values across
+26. **The opening book fires on the SIDE-TO-MOVE'S OWN clock, or on `movetime` — not on "the clock form".** The gate
+    is `time_ms >= 0 || movetime_ms >= 0` (`uci.cpp:371`) and `time_ms` is set only for the side to move
+    (`uci.cpp:108-109`), so **`go btime 10000` with White to move searches, and the same command with Black to move
+    books.** `movetime` always books. A depth, nodes or infinite harness can never hit it. **`OwnBook false` is needed
+    only when the moving side's clock is sent.**
+    - **The book path emits exactly TWO lines** (`uci.cpp:385-387`): `info string book move <uci>` then
+      `bestmove <uci>`. **No `info depth`, no score, no node count.** A GUI showing a score for a book move is showing
+      its own default.
+    - **The latency gap is four orders of magnitude:** book **p50 0.024 ms**, max 0.44 ms over 200 round trips;
+      off-book **p50 442 ms** in the same harness. **A reader waiting for an `info depth` line times out on every book
+      move** — proved with a passing off-book control.
+    - **And `Book Depth` is derived from the FEN's fullmove counter** (`game_ply()`, `uci.cpp:127-129`), so the same
+      position at fullmove 1 versus 21 books versus searches. **A tool writing a FEN without the true move number
+      changes whether the book is consulted.**
+27. **Fullmove number and halfmove counter are part of a position's identity** — 5 different mate values across
     counters 0–99, and a 2× node swing for an identical score.
+28. **In a paired design, between-subject spread is context and the sign test is the test.** Say **which** variation a
+    number describes before comparing two variances.
+    - **The error this prevents, measured:** the v3 patch's author first ruled it **NOT MEASURABLE** on the reasoning
+      *"the per-position spread (1.30×) is much larger than the median effect (1.2 %), so it cannot be separated from
+      position variation."* **That is a category error.** The spread describes how positions differ from **each
+      other**; a paired ABBA design **cancels exactly that**, because each position is its own control. The right
+      question is *"does the patch win within positions?"* — a sign test on the paired outcomes. It won **107 of 120**,
+      p = 1.5e-19 (§1.19).
+    - **Rejecting a result looks like rigour, which is why this error survives review.** The seat called it the
+      seventh reasoning failure of its night and **the first that would have discarded a true finding rather than
+      overstated one** — the safe-sounding direction. **A conservative error is still an error, and it costs a real
+      result.**
+    - **The tell is grammatical, so it is catchable while writing:** if the statistic you are comparing an effect
+      against describes **variation between subjects**, and your design is **within-subject**, you are comparing two
+      different things. State the design first, then choose the test.
 
 **After you measure**
-26. **Adjacency is a check.** A claim and its correction must sit next to each other; separation is what let
+29. **Adjacency is a check.** A claim and its correction must sit next to each other; separation is what let
     contradictions survive. Reordering three sections of one report exposed three contradictions the long layout had
     hidden.
-27. **A correction that adds without removing is not a correction.** Adding is an authoring act; removing is a search
+30. **A correction that adds without removing is not a correction.** Adding is an authoring act; removing is a search
     act, and the search only works if you look for what you wrote. **Write both in one edit**, then grep for the
     phrase you contradicted.
-28. **When a claim is corrected, re-run every number inside the corrected passage in the same edit.** Revising a
+31. **When a claim is corrected, re-run every number inside the corrected passage in the same edit.** Revising a
     figure feels like changing evidence; revising the sentence feels like editing — so the prose moves and the number
     stays. **The correction is exactly the moment a figure is least likely to be looked at again.**
-29. **A decomposition is only as good as the pairing of each term to its column, and that pairing needs a LABEL
+32. **A decomposition is only as good as the pairing of each term to its column, and that pairing needs a LABEL
     check, not an arithmetic one.** A fabricated node ratio (`0.9090`) closed the identity to 0.1 % and appeared in
     *neither* of the source's columns. **A number that makes the identity work is the most dangerous kind, because
     the identity's own closure is what it was manufactured to satisfy.**
-30. **"I could not evaluate this" must never be reported as "this is fine."** A check that declines to evaluate has
+33. **"I could not evaluate this" must never be reported as "this is fine."** A check that declines to evaluate has
     cleared nothing; it is a third verdict, not a pass. Any finite vocabulary has a boundary, and past it the check
     reports PASS rather than UNKNOWN.
-31. **A count printed is not a count checked**, and a count must be compared against the prose, not merely printed.
+34. **A count printed is not a count checked**, and a count must be compared against the prose, not merely printed.
     **Assert the exact expected count as a literal**, never computed from the list it guards.
-32. **A checker is tested by giving it a case whose answer you already know, never by reviewing its logic.** Every
+35. **A checker is tested by giving it a case whose answer you already know, never by reviewing its logic.** Every
     checker failure in this run that was caught, was caught that way; none was caught by reading the checker.
-33. **A script cited as evidence must be tested for its EXIT CODE, not just its output.** Two scripts the report told
+36. **A script cited as evidence must be tested for its EXIT CODE, not just its output.** Two scripts the report told
     a reader to run printed `FAIL` and exited 0. **Prove a gate once per checker it invokes, not once per gate.**
-34. **A verdict that depends on where you stand is not a verdict.** Five scripts depended on the run directory; one
+37. **A verdict that depends on where you stand is not a verdict.** Five scripts depended on the run directory; one
     compared an empty string to an empty string and reported verbatim agreement. **Anchor to `__file__` and run each
     script twice — from its own directory and from `/tmp`.**
-35. **A settings NAME is not evidence the settings were sent.** One harness's option list was named `S14` while
+38. **A settings NAME is not evidence the settings were sent.** One harness's option list was named `S14` while
     containing the five PC20 switches. **Have a tool print the option list at run time and paste that output into the
     finding.**
-36. **Bench is not a proxy for real positions, and its bias is patch-specific, not directional.** Three measured
+39. **Bench is not a proxy for real positions, and its bias is patch-specific, not directional.** Three measured
     failure modes: per-node cost ~1.2 % on bench vs **~6.4 %** on real positions (6× optimistic); aggregate node-count
     sign **+14.5 / −10.6 / +8.7** across benches 11/13/16 against **−8.7 %** on real positions; a profile self-time
     share 2.71 % on bench vs **0.66 %** real. **A self-time percentage is not a transferable cost unless someone
@@ -656,7 +968,7 @@ These are the transferable output. Each is a rule the run paid for with a defect
     - **Bench IS valid for** pins, determinism, ablation direction, structural counters, and the pooled effect of one
       isolated toggle. **Not valid for** per-node cost or the aggregate PC20 set. **Always report the per-position
       spread.**
-37. **Cold reading is the highest-yield instrument on the class the checks cannot reach.** Four defects in six blocks
+40. **Cold reading is the highest-yield instrument on the class the checks cannot reach.** Four defects in six blocks
     — a joining phrase doing the work of three results, ordinals running backwards, a table row implying a control
     that never existed — **all invisible to every automated check, all found by reading.** Not a substitute for the
     checks; it covers what they structurally cannot.
@@ -665,67 +977,150 @@ These are the transferable output. Each is a rule the run paid for with a defect
 
 ## 5. Unsourced in the consolidated report
 
-**Count of figures with no source anywhere in the 25 branches: 0.**
+**Count of figures with no source anywhere — in the 26 branches or the working tally: 4.**
 
-Every numeric token in the consolidated report — 226 distinct percentage, ratio, large-integer and fraction forms —
-appears in at least one branch's committed markdown (8.4 MB across the 25 branches, not just `FINDINGS.md`). The
-audit was comma- and separator-insensitive and ran over the whole tracked `forge-combo29/swarm/NN/*.md` tree.
+Every numeric token in the consolidated report — **252** distinct percentage, ratio, large-integer and fraction
+forms, as the report stands at the time of this assembly — was checked against a corpus of 8.5 MB: every tracked
+`.md` under `forge-combo29/swarm/NN/` for the **26** branches read (not just `FINDINGS.md`), **plus
+`internal/swarm/tally.md`** as a fallback for figures that live only in the coordinator's working record.
 
-**The limit of that check, stated because the run itself states it:** this proves **presence**, not **pairing**. "The
+### The four that have no source
+
+| figure | where it appears in the report | what it measures |
+|---|---|---|
+| `52,472` | §4, the `go nodes`/MultiPV budget row | the low end of reported nodes at `MultiPV > 1`, N = 200,000 |
+| `199,619` | §4, same row | the high end |
+| `4/48` | §3, the `Hash × MPV ≤ 144` row | misclassified cells for the product predicate |
+| `14/13` | §5b, the depth-falls-with-MultiPV clause | depth at MPV 1 / 2 in the `14/13/11 at MPV 1/2/6` ladder |
+
+**All four belong to the same block: the new MultiPV/Hash boundary work and the MultiPV budget measurement.** That
+work is attributed in the tally's own roster to **`swarm-64`** ("Hash x MultiPV boundary as an exact inequality, plus
+the `tt.clear` patch"), and **`swarm-64` is not among the pushed branches** — `git branch -r` returns nothing for it
+at the time of this audit. So these are not fabricated: they are **figures from a seat whose branch has not been
+pushed**, and they are unsourceable for a mechanical reason rather than a provenance one.
+
+**On `14/13`, a correction to something I nearly wrote.** I first described the `11` in that ladder as sourced. **It
+is not:** the whole sequence `14/13/11 at MPV 1/2/6` appears in no branch and not in the tally. What *is* sourced is a
+**different** ladder measuring the same phenomenon — the clean Hash-16 control `MPV 1/2/3/4 → 16/15/13/11` — and the
+coincidence of a `13` and an `11` in both is exactly the kind of match that makes a presence check look like a
+provenance check. **The claim "depth falls as MultiPV rises" is independently supported by that sourced ladder; the
+specific `14/13/11` triple is not.**
+
+**What that means for you, and it is not nothing.** The four are consistent with their surrounding text and the rest
+of the same paragraph's figures (`1/48`, `22/48`, `5/48`, `3/48`, the 1.30/1.35/1.37/1.55× quartet) **are** sourced —
+so the block was derived from real measurements. **But a reader of the report cannot check these four, and this audit
+cannot vouch for them.** The recommendation in §1.7 is unaffected in substance — it rests on the `Hmax` table, which
+is sourced — **and it should be re-checked when `swarm-64` lands.**
+
+### The naive pass, published beside the result
+
+A literal substring pass — no normalisation — flags **38 of the 252**. **34 are accounted for by formatting; 4 are the
+unsourced figures above:**
+
+| category | count | example | why the literal pass missed it |
+|---|---|---|---|
+| spacing before `%` | 30 | `50.6%` | branches write `50.6 %` |
+| thousands separators | 4 | `979,723`, `353,312`, `2,893,009`, `1,237` | branches write `979723` |
+| **unsourced** | **4** | `52,472` | see above — `swarm-64` not pushed |
+
+**Publishing the naive count is what makes any of this mean anything.** A clean zero from a single pass is
+indistinguishable from a pass that could not have found anything — *every absence looks like success*. The number that
+carries weight is **"38 candidates examined, 34 explained, 4 traced to an unpushed branch"** — and the four are
+reported as unsourced rather than absorbed into a formatting bucket, which is exactly the distinction this section
+exists to make.
+
+**The counts moved four times while I worked, and every move is stated rather than smoothed:**
+
+| pass | tokens | naive misses | unsourced | what changed |
+|---|---|---|---|---|
+| first | 226 | 52 | 0 | report as it stood at the start |
+| after the three-population table | 228 | 34 | 0 | 2 were **derived** values (`0.067`, `0.672`) the report had introduced |
+| after §9b + the v3 patch | 231 | 32 | 0 | **the derived category emptied** — the owning seat recorded the arithmetic on the branch |
+| **current** | **252** | **38** | **4** | the rewritten opening-book section and the MultiPV/Hash boundary work |
+
+**Two of those moves are worth naming.** The third is the good kind: the two derived values stopped being
+derived-in-the-report because **`swarm-27` now carries `1344/20000=0.0672, 1344/2000=0.6720` in its own notes.** That
+category emptied not because I reclassified it but because **the source caught up** — which is the outcome to prefer,
+since **a figure that needs the summariser to vouch for its arithmetic is a figure the owning seat should be
+carrying.**
+
+**The fourth is the bad kind, and it is the first non-zero result this summary has produced.** It is not a
+regression in the report; it is **work that has not been pushed yet** (§5's table). The distinction matters for how you
+read the number: **four unsourceable figures is a publishing gap, not four fabrications.**
+
+**The limit of the check, stated because the run itself states it:** this proves **presence**, not **pairing**. "The
 audit checks that SOME path resolves, not that the path supports the claim." A figure can appear in a branch and still
-be attached to the wrong quantity here. That is what §6 is for, and it found four.
+be attached to the wrong quantity here — and **a presence check reported the document clean while §6.1's mis-pairing
+was live.** That is the sharpest thing this audit demonstrates about itself.
 
 ---
 
-## 6. Sourced but mis-paired — where the report and its own sources disagree
+## 6. Sourced but mis-paired — and its current status
 
-Not "unsourced", but **the same defect class the report polices in others**, so it belongs in front of you.
+Not "unsourced", but **the same defect class the report polices in others**, so it belongs in front of you. **Two of
+these four were fixed upstream after I reported them; the section records both the finding and its disposition**, so
+that neither the defect nor the fix is invisible.
 
-### 6.1 The `softnodes` low bound is spliced from a different measurement — **corrected in this document**
+### 6.1 The `softnodes` low bound was spliced from a different measurement — **FIXED upstream**
 
-The consolidated report's ¶ gives the 80-cell sweep's span as **`0.07×` to 3.50×**. The branch that ran it
-(`swarm-27` S-C96) reports the 80-cell sweep as **`1.008×` to `3.503×`**. The `0.07×` cannot come from that sweep at
-all — its budgets are 500 and 2,000, and a floor of 1,344 nodes against a 2,000 budget is `0.672`, not `0.07`.
-`0.07` is `1,344 / 20,000`, from the separate floor probe at budgets 200…100,000 (S-C99). A later row, S-C100,
-splices the two into one sentence — "spans 0.07x to 3.50x across 40 positions x 2 budgets" — and the consolidated
-report inherits that sentence.
+As I found it, the consolidated report gave the 80-cell sweep's span as **`0.07×` to 3.50×**. The branch that ran it
+(`swarm-27` S-C96) reports the 80-cell sweep as **`1.008×` to `3.503×`**. **The `0.07×` cannot come from that sweep:**
+its budgets are 500 and 2,000, and a floor of 1,344 nodes against a 2,000 budget is `0.672`, not `0.067`. `0.07` is
+`1,344 / 20,000`, from the separate floor probe at budgets 200…100,000 (S-C99). A later row (S-C100) spliced the two
+into one sentence — "spans 0.07x to 3.50x across 40 positions x 2 budgets" — and the consolidated report inherited it.
 
-**This document uses the wording supplied by the seat that measured both directions**, which does not claim the two
-bounds come from one population: *"0.07x to 3.50x across the populations measured."* The 60-position scope run
-(S-C101) is separate again and is quoted with its own settings. **If you re-derive the range yourself, keep the three
-populations apart: floor probe (200…100,000), 40×2 sweep (500/2,000), and the 60-position scope run (2,000).**
+**Fixed in two places.** In the **report**, as a three-population table rather than a silent correction, stating
+explicitly that a sentence spanning "0.07× to 3.50×" splices two populations — *which is how a range that sounds like
+one measurement comes from three.* And **on the branch**, where `swarm-27` now records the arithmetic itself
+(`1344/20000=0.0672, 1344/2000=0.6720`) and states that the floor probe is a separate measurement on a different
+board at a different budget, with that cell's ratio depending on the budget it is compared against.
 
-### 6.2 A "3 of 5" reads as a correction but states a different quantity — **no contradiction once parsed**
+**The branch fix is the one that matters more.** A table in the report tells a reader how to read the range; a note on
+the branch means the **next** summariser does not have to derive it. **That is why §5's derived-value category is now
+empty** — not because I reclassified it, but because the source caught up.
 
-`internal/swarm/tally.md` (and `swarm-27` S-C95) say: *"it is 3 of 5, NOT absolute."* On first read that looks like a
-duplicate count of 3 of 5, which would contradict the table beneath it. **It does not.** "3 of 5" counts the rows that
-*carry no signature*; the table records **2 of 5 exact duplicates** (K+R v K, middlegame B) and 3 of 5 differing in
-score. The 40 % / 60 % split follows from 2 of 5 and is correct.
+**This document used the wording supplied by the seat that measured both directions** — *"0.07x to 3.50x across the
+populations measured"* — which does not claim one population for two bounds. **If you re-derive the range yourself,
+keep the three apart:** floor probe (200…100,000), 40×2 sweep (500/2,000), 60-position scope run (2,000).
 
-**I am recording the ambiguity rather than the error:** a correction whose number counts the complement of the thing
-being corrected reads as its own contradiction. Anyone quoting "3 of 5" for duplicates — including me, on a first
-pass — gets the sign backwards. **The figures I use are 2 of 5 duplicate / 40 % caught / 60 % missed.**
+### 6.2 A "3 of 5" reads as a correction but states a different quantity — **not an error; a readability hazard**
 
-### 6.3 Two stale absolutes survive in the sources the report was built from
+`swarm-27` S-C95 and the tally say: *"it is 3 of 5, NOT absolute."* On first read that looks like a duplicate count of
+3 of 5, which would contradict the table beneath it. **It does not.** "3 of 5" counts the rows that **carry no
+signature**; the table records **2 of 5 exact duplicates** (K+R v K, middlegame B) and 3 of 5 differing in score. The
+40 % / 60 % split follows from 2 of 5 and is correct.
 
-Both were withdrawn, and both are still standing where a future reader will meet them:
+**Recorded as an ambiguity, not an error:** a correction whose number counts the complement of the thing being
+corrected reads as its own contradiction. Anyone quoting "3 of 5" for duplicates — including me, on a first pass —
+gets the sign backwards. **The figures this document uses are 2 of 5 duplicate / 40 % caught / 60 % missed.**
 
-- **`internal/swarm/tally.md`, S-C87 bullet** — "…confirm **there is no duplicate signature at all**." That is **four
-  lines below** the S-C95 correction and directly contradicts it. It is the sentence you asked me not to carry; it is
-  still live in the tally. (The branch row it summarises, `swarm-27` S-C87, says the weaker but still-overstated
-  "**there is no duplicate signature**" — while its own table, three rows later, lists two.)
-- **`swarm-27`'s `FINDINGS.md`, row S-C88** — "**A fresh session with no previous position gives NO diagnostic at
-  all** — it silently searches startpos, so the first position in a run is the one failure undetectable from the
-  reply." **The four-combination measurement refutes this:** the diagnostic is always emitted; only its location
-  moves. **No row on the branch records the four-combination result** — I searched all 25 branches' markdown for
-  "four combinations" and for the always-emitted wording and found neither. `S-C93` on the same branch proves the
-  *other* half (that without `isready` the diagnostic lands in the `go` output, before the first `info depth`) with a
-  non-vacuous control — which is what makes S-C88's absolute untenable — **but the retraction sentence itself exists
-  only in the consolidated report.**
+### 6.3 The stale absolutes — **one FIXED upstream, one being fixed by the owning seat**
 
-**I did not edit either file.** Both are other seats' branches or the coordinator's tally. **The owner-facing
-consequence: the withdrawn claim is the one that will be found first by anyone reading the branch history, so the
-corrected version should be carried in the branch, not only in the report.**
+- **`internal/swarm/tally.md`, S-C87 bullet — FIXED.** It asserted "…confirm **there is no duplicate signature at
+  all**", four lines below the S-C95 correction that contradicts it. It now reads *"superseded by S-C95 (2 of 5
+  duplicate, 3 of 5 do not), so do not quote 'no duplicate signature at all' from this bullet."* **The superseded
+  sentence is retained as a quotation with an instruction not to use it** — which is the right form, because deleting
+  it would have left later readers unable to recognise a claim they had already seen.
+- **`swarm-27`'s `FINDINGS.md`, row S-C88 — DEFERRED to the owning seat at the coordinator's direction, not left
+  unowned.** It asserts "**A fresh session with no previous position gives NO diagnostic at all** — it silently
+  searches startpos, so the first position in a run is the one failure undetectable from the reply." **Two separate
+  measurements refute it:**
+  - **The diagnostic is always emitted; only its location moves** (§1.4).
+  - **There are two fallbacks, not one** — startpos with no predecessor, the predecessor's board with one. So even
+    S-C88's own description of the fallback is half right: "it silently searches startpos" is true only of the
+    no-predecessor cells. **The accurate description is "the last valid board".**
+  - **`S-C93` on the same branch proves the other half** — that without `isready` the diagnostic lands in the `go`
+    output, before the first `info depth` — with a non-vacuous control (it drives the engine by hand and fails against
+    a fake engine that omits the line). **That is what makes S-C88's absolute untenable:** the two rows cannot both
+    hold, and the newer one is the measured one.
+  - **No branch row records either correction.** I searched all 25 branches' markdown (plus `swarm-75`, read this pass)
+    for "four combinations", "four-cell", "last valid board" and the always-emitted wording: **the only hits for "last
+    valid board" were unrelated audits in seats 08 and 29.** **The coordinator's explanation is that both corrections
+    post-date the branch rows**, and the owning seats are being asked to record them.
+
+**I edited neither file.** The tally is the coordinator's; `S-C88` lives in an active seat's branch. **The owner-facing
+consequence while the deferral stands: the withdrawn claim is what a reader of the branch history meets first, so
+until S-C88 is amended the corrected version lives only in the consolidated report.**
 
 ### 6.4 A verification claim in the tally is wider than what was run
 
@@ -737,39 +1132,76 @@ claim's status is "fixed and described", not "independently re-verified in this 
 
 ---
 
-## 7. How this document was assembled
+## 7. What the book gets right — the soundness result
 
-- **Read in full:** `docs/forge-findings.md` (1,429 lines) and `internal/swarm/tally.md` (637 lines).
-- **Read:** the `FINDINGS.md` of all 25 branches that carry one, plus every other `.md` under
-  `forge-combo29/swarm/NN/` for the 25 seats where a figure needed a home — 8.4 MB of branch markdown in total.
+Recorded in the closing section rather than the recommendations, because **it is a clean bill and the defects around
+it (§1.20, §2.8) are about signalling rather than about the moves.**
+
+**No book move is illegal, and none loses material.** Measured against independent generators:
+
+| check | result |
+|---|---|
+| book moves legal, against python-chess | **2520 / 2520** |
+| polyglot keys match `chess.polyglot` | **2429 / 2429** |
+| book keys reached by the walk | **2230 / 2230** |
+| material-loss flags surviving engine verification at depth 12 | **0 / 135** |
+| exhaustive gap sweep, depth 10 | **max gap 103 cp**, 1/2520 above 100, **0/2520 above 150** |
+
+**The material-loss check is the one worth reading twice, because its first version was wrong and said so loudly.**
+The seat's own SEE implementation tested capture legality **against the wrong side**, and **silently reported 929 of
+2520 moves as "loses material"** — a false-positive rate of 37 %. It was caught by a hand-computed self-test, not by
+review. **So "0 of 135 survive verification" is a claim about a checker that was itself falsified once first** — which
+is what makes it worth more than a clean number from an unchecked tool.
+
+**What this does and does not mean.** The book's *contents* are sound: the moves are legal and material-safe. **It says
+nothing about whether the book is a good book** — soundness is not move quality, and no move-quality measurement of
+the book was made. **And it does not touch the signalling defects:** a sound book move in a drawn position is still a
+reply that tells a caller nothing about the draw (§2.8).
+
+---
+
+## 8. How this document was assembled
+
+- **Read in full:** `docs/forge-findings.md` (1,429 lines, re-read after each of your revisions) and
+  `internal/swarm/tally.md` (637 lines).
+- **Read:** the `FINDINGS.md` of all **26** branches that carry one, plus every other `.md` under
+  `forge-combo29/swarm/NN/` for the 26 seats where a figure needed a home — 8.5 MB of branch markdown in total.
 - **Branches with no `FINDINGS.md`, not counted as read:** `swarm-09, 14, 18, 22, 26, 31, 33, 34, 37–42, 47, 48,
-  51–53, 55–58, 60`, plus the non-`swarm-NN` branches.
-- **`git fetch --all` was run twice.** Two corrections you sent (`S-C101`/`S-C102`, and the `S-C96`…`S-C100`
-  softnodes block) landed on `swarm-27` *after* the first fetch; the second fetch is why the softnodes section quotes
-  the 60-position scope run at all. **Any figure here dated before 03:47Z on that branch was re-read after it.**
+  51–53, 55–58, 60–62, 65, 69`, plus the non-`swarm-NN` branches. **`swarm-64` does not exist on the remote at all**
+  — which is the mechanical reason for §5's four unsourced figures.
+- **`git fetch --all` was run four times.** Several corrections landed on `swarm-27` and `swarm-08` *after* the
+  preceding fetch — the softnodes scope run (`S-C101`/`S-C102`), the v3 pair-count patch result, and the arithmetic
+  note that emptied §5's derived-value category. **A summary assembled from a live swarm is a snapshot; every figure
+  here was re-read after the last fetch that touched its branch.**
 - **Nothing was run.** No engine invocation, no script execution, no re-measurement. Where a figure is quoted, it is
-  quoted from a branch, with that branch's conditions.
-- **No other seat's branch was modified.** Two files in the sources are stale (§6.3) and were left alone.
-- **Counts printed as literals, from the artifact:** **25** branches read, **2,283** distinct findings synthesised
-  (2,304 rows), **0** unsourced figures, **3** sourcing defects.
+  quoted from a branch or the tally, with that source's conditions.
+- **No other seat's branch was modified.** `swarm-27` `S-C88` is stale (§6.3) and was left alone, at the coordinator's
+  direction, for the owning seat to amend.
+- **Counts printed as literals, from the artifact:** **26** branches read, **2,302** distinct findings synthesised,
+  **4** unsourced figures from **252** numeric tokens, **38** naive-pass candidates (**34** formatting, **4**
+  unsourced), **1** real mis-pairing found, **3** sourcing defects of which **2 are now fixed upstream**.
 
-**What I could not source, summarised: 0 figures.**
+**What I could not source, summarised: 4 figures.**
 
 The number you need for the coordinator's tally:
 
-> **Unsourced figures: 0.**
-> Every numeric token in the consolidated report — 226 distinct percentage, ratio, large-integer and fraction forms —
-> resolves to committed content in at least one of the 25 branches.
+> **Unsourced figures: 4.**
+> Of **252** distinct numeric tokens in the consolidated report, **248 resolve** to branch markdown or to the working
+> tally. **Four do not** — `52,472`, `199,619`, `4/48`, `14/13` — and **all four belong to the MultiPV/Hash boundary
+> work attributed to `swarm-64`, which is not among the pushed branches.** They are a **publishing gap, not four
+> fabrications**: the rest of the same paragraph's figures are sourced, so the block came from real measurement.
+> **The naive literal pass flagged 38 of the 252; 34 are formatting, 4 are these** (§5).
 
-**Separately, 3 sourcing defects** — none of them an unsourced figure, all of them the mis-pairing class the report
-polices in others (§6):
-1. **The `softnodes` low bound is spliced across two populations** — `0.07×` is from the 200…100,000 floor probe and
-   is not in the 40×2 sweep (which spans `1.008×`–`3.503×`). This is in the consolidated report; I use the measuring
-   seat's own wording instead (§6.1).
-2. **`swarm-27` S-C88 still asserts an absolute that the four-combination measurement refutes** — and **no branch row
-   carries the four-combination result** (§6.3).
-3. **The tally's `S-C87` bullet still asserts "no duplicate signature at all"** four lines below the correction
-   (§6.3).
+**Separately, 3 sourcing defects** — none of them an unsourced figure per the count above, all of them the
+mis-pairing class the report polices in others (§6). **Their disposition as it now stands:**
+1. **The `softnodes` low bound was spliced across two populations** — `0.07×` is from the 200…100,000 floor probe
+   and is not in the 40×2 sweep (which spans `1.008×`–`3.503×`). **FIXED upstream** as a three-population table that
+   names the splice as the lesson (§6.1).
+2. **`swarm-27` S-C88 still asserts an absolute that the four-combination measurement refutes**, and **no branch row
+   carries the four-combination result** — **DEFERRED to the owning seat at the coordinator's direction**, not
+   unowned. Until amended, the corrected form lives only in the consolidated report (§6.3).
+3. **The tally's `S-C87` bullet asserted "no duplicate signature at all"** four lines below the correction —
+   **FIXED upstream**, and retained as an explicit quotation marked *do not quote* (§6.3).
 
 Plus one **readability** defect that is not an error: the tally's "3 of 5" counts the complement, and reads as its own
 contradiction (§6.2).

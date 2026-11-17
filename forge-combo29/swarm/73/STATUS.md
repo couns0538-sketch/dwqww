@@ -4,70 +4,74 @@
 **Branch:** `for-fable-and-opus/swarm-73` — `forge-combo29/swarm/73/`
 **Window:** opened 03:48Z, audit closes 2026-11-17T10:20Z.
 
-## State: DONE
+## State: DONE — summary current as of the last fetch
 
-`OWNER_SUMMARY.md` written. Two commits: `STATUS.md`, then the summary.
-
-## Deliverable
-
-`forge-combo29/swarm/73/OWNER_SUMMARY.md` — 760 lines, in the required order:
-1. **What to change** — 16 recommendations, each with the measurement that licenses it and a verdict:
-   **11 ship, 3 do-not-ship, 3 needs-more-evidence** (17 verdict markers over 16 items, because §1.7 ships the
-   throughput half and holds the answer half at needs-more-evidence).
-2. **What is broken** — 8 items, plus 5 named withdrawals so no retracted claim is inherited as fact.
-3. **What is not established** — open mechanisms, structurally untestable items, and scope limits.
-4. **The measurement rules** — 37 rules in before / during / after phases.
-5. **Unsourced in the consolidated report** — **0 figures**.
-6. **Sourced but mis-paired** — 3 sourcing defects, 1 readability defect.
-7. **How this was assembled** — counts as literals, provenance of the method.
+`OWNER_SUMMARY.md` written and revised through four rounds of coordinator corrections.
 
 ## Numbers the coordinator asked for
 
-> **Unsourced figures: 0.**
-> **Findings synthesised: 2,283** (2,304 rows across 25 branches; 21 rows are re-runs recorded under an existing id).
-> **Branches read: 25.**
+> **Unsourced figures: 4.**
+> **Findings synthesised: 2,302** (2,293 table rows + 9 prose findings in `swarm-75`; 2,314 rows total, 21 re-runs
+> recorded under an existing id).
+> **Branches read: 26.**
 
-## Method
+**The four unsourced figures are a publishing gap, not fabrications:** `52,472`, `199,619`, `4/48`, `14/13`. All four
+belong to the MultiPV/Hash boundary work attributed to **`swarm-64`**, which **does not exist on the remote**. The
+rest of the same paragraph's figures are sourced, so the block came from real measurement.
 
-- Read `docs/forge-findings.md` (1,429 lines) and `internal/swarm/tally.md` (637 lines) in full.
-- Dumped all 25 branches' `FINDINGS.md`, then later **all** tracked `.md` under `forge-combo29/swarm/NN/` (8.4 MB),
-  because several load-bearing figures live in `STATUS.md` / `HARNESS_TRAPS.md` rather than `FINDINGS.md`.
-- Wrote a provenance audit (`/tmp/audit.py`, working copy only) that normalises commas, minus signs and whitespace,
-  extracts every numeric token from the consolidated report, and checks it against the branch corpus. Result: 226
-  distinct forms, **0 without a home**.
-- Counted findings by table-row id, per branch, with a literal printed beside the total.
+**Naive literal pass, published beside it: 38 of 252 tokens flagged — 34 formatting, 4 unsourced.** §5 carries the
+per-token breakdown and the four-count history (226/52 → 228/34 → 231/32 → 252/38).
 
-## Corrections received and applied
+## Deliverable
 
-Three arrived mid-run. **All three were already in `docs/forge-findings.md`; none were in the branch record.**
+`forge-combo29/swarm/73/OWNER_SUMMARY.md` — 1,207 lines, in the required order:
+1. **What to change** — 20 recommendations, each with the measurement licensing it and a verdict. **22 verdict markers
+   over 20 items** (two items, §1.7 and §1.17, split a ship verdict from a needs-more-evidence one):
+   **14 ship, 3 do-not-ship, 5 needs-more-evidence.**
+2. **What is broken** — 9 items, plus 5 named withdrawals so no retracted claim is inherited as fact.
+3. **What is not established** — open mechanisms, structurally untestable items, scope limits.
+4. **The measurement rules** — 40 rules in before / during / after phases.
+5. **Unsourced in the consolidated report** — **4 figures**, with the four-count history.
+6. **Sourced but mis-paired** — 3 sourcing defects (2 fixed upstream, 1 deferred), 1 readability hazard.
+7. **What the book gets right** — the soundness result, placed last because it is a clean bill.
+8. **How this was assembled** — counts as literals, provenance of the method.
 
-1. Illegal-FEN diagnostic is **always emitted**; only its location moves. Encoded in §1.4. **The withdrawn absolute
-   is still live in `swarm-27` S-C88 and in the tally's S-C87 bullet** — and **no branch row carries the
-   four-combination result at all.** Flagged in §6.3.
-2. "No duplicate signature" is **2 of 5**, not absolute. Encoded in §2.3 as 40 % caught / 60 % missed. **The tally's
-   S-C87 bullet still says "no duplicate signature at all"** four lines below its own correction. Flagged in §6.3.
-3. `softnodes`: floor at the depth-64 clamp, plus the 60-position scope run. Encoded in §1.15 **using the measuring
-   seat's own sentence verbatim**, plus the settings for both halves.
+## Corrections applied (four rounds, all from the coordinator)
+
+1. Illegal-FEN diagnostic is **always emitted**; only its location moves. **Later refined: it is emitted EXACTLY
+   ONCE — scan both streams, assert one occurrence.**
+2. "No duplicate signature" is **2 of 5**, not absolute → 40 % caught / 60 % missed.
+3. `softnodes`: floor at the depth-64 clamp **plus** the 60-position scope run that bounds it. Used the measuring
+   seat's own sentence verbatim.
+4. **MultiPV/Hash advice, twice corrected.** First the coarse "Hash 16 with multiple lines"; then the `Hmax` fitted
+   form; finally the **conservative cap — 48 MB at 2 lines, 24 MB at 3–6 — which has zero false-safe cells of 48.**
+   The 16 MB form was refuted by the very measurements that replaced it.
+5. **Two fallbacks, not one** — the engine searches **the last valid board**, which in a fresh session is startpos.
+6. Opening book: fires on the **side-to-move's own clock** or `movetime`; **pre-empts drawn-root detection**;
+   **`Book Depth` derives from the FEN fullmove counter**.
 
 ## Discrepancies found during assembly
 
-- **`0.07×` is not in the 80-cell sweep.** The sweep (`swarm-27` S-C96) spans `1.008×`–`3.503×` at budgets 500/2,000;
-  `0.07` is `1,344 / 20,000` from the separate floor probe. A later branch row (S-C100) splices them, and the
-  consolidated report inherits the splice. `1,344 / 2,000 = 0.672`, so the low bound cannot come from the sweep.
-  **Resolved by using the seat's own wording, which says "across the populations measured"** — §6.1.
-- **`3 of 5` counts the complement.** The tally's "3 of 5, NOT absolute" reads as a duplicate count but counts the
-  *no-signature* rows; the table gives 2 duplicates. Not an error, but it inverted my own first pass — §6.2.
+- **`0.07×` was not in the 80-cell sweep** — separate floor probe at a different budget. **FIXED upstream** in the
+  report (three-population table) **and on the branch** (the seat now carries the arithmetic).
+- **`3 of 5` counts the complement** — a readability hazard, not an error.
+- **Book soundness (`2520/2520`, `2429/2429`, `0/135`) is in the tally but NOT in the consolidated report.** I added
+  it as §7 and cite the tally. **The report omits a clean bill it should carry.**
+- **A near-miss of my own, recorded because it is the same class:** I first wrote that the `11` in `14/13/11` was
+  sourced. It is not — the whole triple is unsourced. A *different* sourced ladder (Hash-16 control `16/15/13/11`)
+  contains a `13` and an `11`, which is exactly how a presence match imitates a provenance check.
 
 ## Constraints honoured
 
 - No engine run, no script executed, no re-measurement.
-- No other seat's branch modified, even where the content is stale.
+- No other seat's branch modified. `swarm-27` S-C88 remains stale **by the coordinator's direction**, deferred to the
+  owning seat.
 
-## Notes for the coordinator
+## Open items for the coordinator
 
-- The three stale source statements (§6.3) are worth a decision: the withdrawn forms are what a reader of the branch
-  history meets **first**, and the corrected form currently exists only in the consolidated report. If you want them
-  fixed in place, that needs the owning seats or an explicit assignment — I left them alone per the no-cross-branch
-  rule.
-- `swarm-27` moved twice during this run (S-C99…S-C102 landed after my first fetch). Any later seat quoting softnodes
-  should re-fetch before quoting.
+1. **`swarm-64` is unpushed** — four figures in the report are unverifiable until it lands, and §1.7's recommendation
+   should be re-checked then. **This is the only item that affects a recommendation.**
+2. **`swarm-27` S-C88** still asserts the withdrawn absolute; corrected in place by the owning seat.
+3. **The report does not carry the book soundness result** (§7 here quotes the tally instead).
+4. **Two counts in this file are snapshots** (252 tokens, 38 naive misses). If the report changes again they need
+   re-deriving, not editing — the rule §4 carries.
