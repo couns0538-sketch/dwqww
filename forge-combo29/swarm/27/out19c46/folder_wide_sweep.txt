@@ -1,0 +1,79 @@
+FOLDER-WIDE SWEEP of both new checkers, 2026-11-17T02:24:33Z
+This is the routine the inverse-trap lesson prescribes: run the checks on the author's own folder.
+
+=== 1. check_custom_exceptions.py ===
+controls:
+  1 raise-without-class IS reported                        PASS 
+  2 raise-with-class is NOT reported                       PASS 
+  3 builtin exceptions are exempt                          PASS 
+
+scanned 45 .py files; 0 undefined custom exception(s)
+
+=== 2. emit_config_v2.py on every harness ===
+Each line: file -> [option lists found, with their counts and switch counts]
+  pc/check_05f58_mate_pv.py -> 14 options; PC20 switches present: 0|6 options; PC20 switches present: 5|
+  pc/check_08c33_matrix.py -> 14 options; PC20 switches present: 0|6 options; PC20 switches present: 5|17 options; PC20 switches present: 0|22 options; PC20 switches present: 5|
+  pc/check_15f35_clock.py -> 14 options; PC20 switches present: 0|6 options; PC20 switches present: 5|
+  pc/check_16f6_book.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  pc/check_19c46_ablation.py -> 14 options; PC20 switches present: 0|6 options; PC20 switches present: 5|2 options; PC20 switches present: 0|16 options; PC20 switches present: 0|22 options; PC20 switches present: 5|16 options; PC20 switches present: 0|17 options; PC20 switches present: 1|17 options; PC20 switches present: 1|17 options; PC20 switches present: 1|17 options; PC20 switches present: 1|
+  pc/check_19f46_nodes.py -> 14 options; PC20 switches present: 0|6 options; PC20 switches present: 5|
+  pc/check_20f11_pc.py -> 14 options; PC20 switches present: 0|6 options; PC20 switches present: 5|
+  pc/check_29f3_pc.py -> 14 options; PC20 switches present: 0|6 options; PC20 switches present: 5|
+  pc/check_30f9_pc.py -> 14 options; PC20 switches present: 0|6 options; PC20 switches present: 5|
+  pc/check_50move_defect.py -> 14 options; PC20 switches present: 0|6 options; PC20 switches present: 5|
+  pc/check_clock_ignored.py -> 14 options; PC20 switches present: 0|6 options; PC20 switches present: 5|
+  pc/check_settings.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  pc/check_settings_values.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  pc/deep_mate_depth_sweep.py -> 14 options; PC20 switches present: 0|6 options; PC20 switches present: 5|
+  pc/dtm_kxk.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  pc/emit_config_seat08.py -> 2 options; PC20 switches present: 1|
+  pc/emit_config_v2.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  pc/forced_mate.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  pc/label_reproducibility.py -> 14 options; PC20 switches present: 0|6 options; PC20 switches present: 5|
+  pc/pc20_rerun.py -> 14 options; PC20 switches present: 0|6 options; PC20 switches present: 5|
+  pc/process_policy.py -> 14 options; PC20 switches present: 0|6 options; PC20 switches present: 5|
+  pc/sign_test_19c46.py -> 14 options; PC20 switches present: 0|6 options; PC20 switches present: 5|2 options; PC20 switches present: 0|16 options; PC20 switches present: 0|22 options; PC20 switches present: 5|
+  pc/softnodes_probe.py -> 14 options; PC20 switches present: 0|6 options; PC20 switches present: 5|
+  pc/softnodes_vs_clock.py -> 14 options; PC20 switches present: 0|6 options; PC20 switches present: 5|
+  pc/strata_19c46.py -> 
+  job1/make_fen_sessions.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  job1/make_stress_sessions.py -> 13 options; PC20 switches present: 0|
+  job1/paced_runner.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  job1/runner.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  job2/check_s11f1.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  job2/f2_history_drift.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  job2/f3_tt_vs_histories.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  job2/paced_session.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  job3/f1_board_checks.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  job3/f2_harness_can_fail.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  job3/f3_halfmove_cap.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  job3/pyperft.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  job4/f1_options.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  job5/f1_tt_lifecycle.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  job6/f1_eval_stability.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  job7/f1_bound_sf8.py -> 
+  job7/f2_depth_ablation.py -> NO OPTION LIST (sends setoption inline, not from a list)
+  job7/f3_all20_mechanism.py -> NO OPTION LIST (sends setoption inline, not from a list)
+
+=== interpretation ===
+14 options (S14 list) + 6 (PC20X list) + 2 base (Hash, Threads) = 22 for a PC20 harness.
+A harness reporting 14 and 6 is correct and complete; the base pair is added at the call site.
+check_16f6_book.py / check_settings*.py / forced_mate.py / dtm_kxk.py report NO OPTION LIST
+  and that is HONEST, not a false negative: they send setoption as inline strings or use no engine.
+
+=== FOLLOW-UP: are the "NO OPTION LIST" harnesses actually correct, or is the flag hiding a bad one? ===
+The flag is honest only if the harness really does not claim a list-based configuration. Checked each:
+
+  job7/f2_depth_ablation.py   sends Hash, Threads, AspirationDelta - 3 inline setoptions. No S14 claim.
+  job7/f3_all20_mechanism.py  sends Hash, Threads ONLY - and S-C5 (its finding) makes NO S14 claim:
+                              it compares three BUILDS (base / IIR-stopped / IIR-stopped+root-store),
+                              so Hash+Threads is the correct configuration for its purpose.
+  pc/check_16f6_book.py       sends Hash, Threads, OwnBook, Book Depth - a book test, no S14 claim.
+
+So every "NO OPTION LIST" is a harness whose finding does not claim a list-based configuration. That is the
+difference between an honest silence and a false negative: the flag is only safe because the claim it
+accompanies was checked too.
+
+RULE THIS ADDS: a static checker can only certify the CONFIGURATION A HARNESS BUILDS. Whether that
+configuration is the one the finding needs is a separate question about the claim, and no tool answers it.
+Here it was answered by reading the one-line label of each finding (S-C5: "three builds", no S14).
