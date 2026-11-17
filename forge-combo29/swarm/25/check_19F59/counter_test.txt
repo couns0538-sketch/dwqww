@@ -1,0 +1,36 @@
+### does the halfmove counter change the depth-24 answer on this board?
+board 6k1/8/5K2/8/6r1/8/8/8 w, PC20/Threads 1/Hash 16, go depth 24
+
+ counter        score  bestmove      nodes   pv
+       0 score mate -16      f6f5    7608471   26
+       1 score mate -16      f6f5   15702225   26
+      12 score mate -15      f6f5   15311437   25
+      50 score mate -19      f6f5    4460165   25
+      99   score cp 0      f6e5        120    1
+
+VERDICT: the halfmove counter does NOT explain "one ply and nothing else" - it moves the answer across a RANGE,
+and this is a refinement of 19-C11's claim rather than a confirmation of it.
+
+MY SWEEP, same board, depth 24, PC20/Threads 1/Hash 16, fresh process per counter:
+  counter  0: mate -16   f6f5   7,608,471 nodes  pv 26
+  counter  1: mate -16   f6f5  15,702,225 nodes  pv 26   <- same answer, 2.1x the nodes
+  counter 12: mate -15   f6f5  15,311,437 nodes  pv 25   <- seat 19's published case
+  counter 50: **mate -19**  f6f5   4,460,165 nodes  pv 25
+  counter 99: **cp 0**    f6e5          120 nodes  pv  1   <- the fifty-move rule takes over
+
+So the counter moves the mate number from -16 through -15 to -19 across counters 0..50 - a spread of FOUR moves, not
+one ply - and at counter 99 the position is adjudicated a draw with a 1-ply PV and 120 nodes, which is the
+root-draw behaviour I measured on other boards (S-F3 family, NOT A DEFECT under file 6).
+
+WHAT THIS MEANS:
+  * 19-C11's "the halfmove counter explains ONE PLY and nothing else" holds for the 0-vs-12 pair they compared, but
+    NOT as a general statement: counter 50 gives -19 and counter 99 gives a draw.
+  * the practical advice gets STRONGER, not weaker: comparing against this board requires stating the counter AND
+    knowing that the answer varies by up to four moves in the 0..50 range, and changes CHARACTER (mate -> draw) at 99.
+  * the node counts also swing 2x on identical answers (counter 0 vs 1 both mate -16, 7.6M vs 15.7M nodes), so node
+    counts on this board are not a stable cross-paper identifier either.
+
+WHY THE COUNTER SHOULD DO THIS AT ALL (mechanism, from what I have measured elsewhere): the counter feeds the
+fifty-move horizon and the rule50 clock gating in the TT (my S-C34/clock_plan work), so a search at counter c is
+solving a slightly different problem - how long a mate can be delayed before the fifty-move rule intervenes. That is
+why a longer counter can make the mate number LARGER (less time to work with) rather than smaller.
