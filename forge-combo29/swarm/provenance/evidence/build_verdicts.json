@@ -1,0 +1,102 @@
+{
+ "binary e06310ec (base, Release g++13)": {
+  "verdict": "RESOLVED",
+  "why": "Rebuilt from commit 6b98f217 with g++ 13.3.0 Release. sha256 reproduces BYTE-EXACT (evidence/reproduce_builds.txt). bench 11/13/16 = 312866 / 862329 / 3024920 on the same binary. Source is committed; the recipe is two cmake lines."
+ },
+ "binary 068f0927 (PC r15, Release g++13)": {
+  "verdict": "RESOLVED",
+  "why": "This is a BINARY sha256, not a commit -- the prefix 068f matching no object in git is expected and is not a defect. The r15 SOURCE is committed as text inside forge-combo29/soak_all/FABLE_TO_swarm_5.md; that patch text hashes to d6bd72c531f785f4..., applies clean to 6b98f217 with patch -p1, and building it with -DFORGE_MATE_ALPHA_GUARD=1 gives sha256 068f0927... BYTE-EXACT. Three independent confirmations of the same artefact, so every row naming it is re-derivable."
+ },
+ "patch d6bd72c5 (FABLE_TO_swarm_5 r15 patch text)": {
+  "verdict": "RESOLVED",
+  "why": "sha256 of the committed patch block from its first diff line to its last line = d6bd72c531f785f40421be1cc542743922a944fb0973d05831788440309c1a1a. Verified mechanically against blob 12772bb7 (FABLE_TO_swarm_5.md). This is the artefact that makes the PC r15 rows reproducible."
+ },
+ "commit 6b98f217 (audit base) / 'base'": {
+  "verdict": "RESOLVED",
+  "why": "Commit exists (git cat-file -t = commit), contains forge-combo29/, and IS the audit base by definition. Reachable from refs (git rev-list --all contains it; 80 remote branches contain it)."
+ },
+ "binary 227aae56 (r15 + -DFORGE_NNUE_V3=1)": {
+  "verdict": "RESOLVED",
+  "why": "Rebuilt as base + FABLE_TO_swarm_5 patch + -DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1; sha256 reproduces BYTE-EXACT. NOTE the recipe must include the r15 patch -- a base + NNUE_V3 build gives a1d0c025, not this. The swarm prose names the flag but not the r15 base, which is why an earlier attempt at this hash missed."
+ },
+ "binary b109a0a5 (base, ASan/UBSan)": {
+  "verdict": "UNRESOLVED",
+  "why": "No rebuild recipe is recorded that reproduces this byte string. My ASan+UBSan base build gave ba18e7a7 and the r15 ASan build gave 3c00d6cd. The hash appears only as a recorded exe_sha256 value, never in a script that builds it, so it is an unresolvable claim: sanitizer findings that rest on it cannot be re-derived without the original toolchain and exact flags."
+ },
+ "binary 7c4e1aee (/tmp/build-base, variant)": {
+  "verdict": "UNRESOLVED",
+  "why": "Recorded only as an exe sha256 next to /tmp/build-base/forge. No recipe. Note the base Release build is e06310ec, so this is a differently-flagged build of the same commit that the record does not describe -- a reader cannot tell which flags produce it."
+ },
+ "binary 6e0e9522 (seat 12 build)": {
+  "verdict": "UNRESOLVED",
+  "why": "Recorded as seat 12's own binary sha256 in a comparison table. No recipe recorded. Whatever seat 12 measured with it cannot be rebuilt to the byte."
+ },
+ "binary 81c52608 (seat 01 'mine' build)": {
+  "verdict": "UNRESOLVED",
+  "why": "Recorded as seat 01's 'mine' binary. No recipe recorded; the same table also names a second, different hash for the same seat's build, so even the attribution is ambiguous."
+ },
+ "binary 1a9460d6 (seat 28 planted build)": {
+  "verdict": "UNRESOLVED",
+  "why": "A PLANTED (deliberately faulty) build used as a negative control. Recorded only as exe_sha256 in .meta files, with no recipe. The control's CONCLUSION does not depend on the exact bytes -- a planted control that misbehaves is still a valid control -- but the bytes cannot be re-derived."
+ },
+ "binary 0dceb07e (seat 28 planted build)": {
+  "verdict": "UNRESOLVED",
+  "why": "Same as 1a9460d6: second planted control, hash recorded, no recipe."
+ },
+ "binary 571e7c83 (seat 27 SAN build)": {
+  "verdict": "UNRESOLVED",
+  "why": "Recorded in SUMMARY_real.json as the exe used for SAN/legality work. No recipe. Load-bearing for seat 27's SAN finding only."
+ },
+ "NET file 1db8525e (v3 test net, built by make_v3_testnet.py)": {
+  "verdict": "RESOLVED",
+  "why": "NOT a binary at all -- it is a data file, and it reproduces byte-exactly: running the COMMITTED generator forge-combo29/swarm/01/v3net/make_v3_testnet.py gives 6,309,096 bytes, sha256 1db8525e4eeb3c4c..., FNV-1a64 fdff70de72e4ca82 -- all three figures the reports quote. The generator is committed, so this is a resolved artefact, and every row quoting it is re-derivable."
+ },
+ "dataset digest e6beb5f9 (bench SUM over 200 positions)": {
+  "verdict": "RESOLVED",
+  "why": "A sha256 over a per-position result table (i|fen|nodes|score|best), not a build identifier. It resolves trivially because it is a checksum OF A RESULT, and is listed only so it is not mistaken for a build. It does not itself pin a build: two different builds can disagree and both be internally consistent, so a row resting ONLY on this digest still needs its build named. That is a gap in those rows, recorded below."
+ },
+ "named PC r15 (label)": {
+  "verdict": "RESOLVED",
+  "why": "The LABEL resolves through the committed handoff: PC r15 = 6b98f217 + FABLE_TO_swarm_5.md patch = binary 068f0927. Both halves verified (patch sha256 and rebuilt binary sha256). A label is resolved when the record pins it to an artefact that exists, which this one does."
+ },
+ "branch integrate/combo29-all": {
+  "verdict": "RESOLVED",
+  "why": "Branch exists at origin/integrate/combo29-all = 6020972d3. It is NOT an ancestor of the base: 6b98f217 is 277 commits ahead of the merge-base e04556ddc. So it is an older tree, and any row measured on it is a statement about a different engine -- correct as a statement, ineligible as evidence about the audit base."
+ },
+ "branch handoff/fable-opus-combo29-all": {
+  "verdict": "RESOLVED",
+  "why": "origin/handoff/fable-opus-combo29-all-20261114 exists (4bf72522a..64620a554). Same tree family as integrate/combo29-all; not the audit base."
+ },
+ "\"the owner's PC\" (net not shared)": {
+  "verdict": "UNRESOLVED",
+  "why": "The handoff states the PC plays with its own trained net which is explicitly NOT shared, and that cloud seats keep the built-in evaluation. So any row whose value depends on the owner's net is not reproducible by anyone outside that machine, by design. Rows that say 'no net file' / 'built-in eval' are unaffected; rows that quote the PC's own strength numbers are."
+ },
+ "settings PC20 (a settings block, NOT a build)": {
+  "verdict": "SETTINGS",
+  "why": "PC20 = S14 (14 options) + CuckooRep true, HistRework 2, TtPruneV2 true, CorrHistV2 true, MateAlphaGuard true, OwnBook false. It is a settings block applied to a build, not a build. It is listed so that a reader does not count it as a build identifier; it resolves trivially because it is just a list of setoption commands."
+ },
+ "binary ae1a49b6 (PC r15 ASan+UBSan)": {
+  "verdict": "UNRESOLVED",
+  "why": "The ASan+UBSan build of PC r15 (35 __asan_ / 15 __ubsan_ symbols reported). No recipe recorded: the reports name the flags only as 'ASan+UBSan'. I tried three standard flag sets on the rebuilt r15 source (address,undefined; +-g; +-O1 -g) and got 1bc76c68 / 830e178d / d6222004 -- none is this hash. The SANITIZER RESULT does not depend on the exact bytes (a sanitizer finding is about what the instrumented build DID, and the source is reproducible), but the hash itself cannot be re-derived, so a reader cannot prove they are holding the same instrument."
+ },
+ "binary 581159a4 (seat 01 -D_GLIBCXX_DEBUG)": {
+  "verdict": "UNRESOLVED",
+  "why": "A -D_GLIBCXX_DEBUG build used as a control. My -D_GLIBCXX_DEBUG build of the base gave 715b7c90, not this hash. No recipe recorded beyond the single flag, so some other flag differs and the record does not say which."
+ },
+ "binary 698d2d9b (PC r15 TSan)": {
+  "verdict": "UNRESOLVED",
+  "why": "A ThreadSanitizer build of PC r15. No recipe recorded; TSan builds are highly sensitive to flags, so this is the least reproducible class in the set."
+ },
+ "descriptor: ASan+UBSan build (flags never recorded)": {
+  "verdict": "UNRESOLVED",
+  "why": "The report says 'ASan+UBSan build' and never records the flag set, the compiler line or a hash. Sanitizer findings are about BEHAVIOUR, so the claim usually survives without the bytes -- but it cannot be replicated, and an ASan build that differs in optimisation still detects the same defect. Treat these rows as behavioural evidence, not as reproducible measurements. Distinct from b109a0a5, which is the one ASan build that did get a hash (and still no recipe)."
+ },
+ "descriptor: TSan build (flags never recorded)": {
+  "verdict": "UNRESOLVED",
+  "why": "'TSan build' with no flag set and no hash (one row names 698d2d9b for the r15 TSan build; the rest name nothing). TSan builds are the most flag-sensitive in the set. 27 findings use the descriptor, 1 uses the hash; both are unresolvable."
+ },
+ "descriptor: -D_GLIBCXX_DEBUG build (flags never recorded)": {
+  "verdict": "UNRESOLVED",
+  "why": "Named only by the single flag. My -D_GLIBCXX_DEBUG base build gave 715b7c90 against a reported 581159a4, so at least one other flag differs and the record does not say which. Small blast radius (2 findings, one seat)."
+ }
+}

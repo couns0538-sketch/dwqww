@@ -1,0 +1,401 @@
+[
+ {
+  "build": "descriptor: TSan build (flags never recorded)",
+  "verdict": "UNRESOLVED",
+  "why": "'TSan build' with no flag set and no hash (one row names 698d2d9b for the r15 TSan build; the rest name nothing). TSan builds are the most flag-sensitive in the set. 27 findings use the descriptor, 1 uses the hash; both are unresolvable.",
+  "findings": 27,
+  "rows": 34,
+  "seats": [
+   "04",
+   "07",
+   "10",
+   "15",
+   "21",
+   "24",
+   "27",
+   "30"
+  ],
+  "sample_findings": [
+   "04-C4",
+   "04-F22",
+   "04-F24",
+   "04-F25",
+   "04-F26",
+   "04-F4",
+   "07-C38",
+   "07-R1",
+   "10-F11",
+   "10-F16",
+   "15-F5",
+   "21-C2"
+  ]
+ },
+ {
+  "build": "descriptor: ASan+UBSan build (flags never recorded)",
+  "verdict": "UNRESOLVED",
+  "why": "The report says 'ASan+UBSan build' and never records the flag set, the compiler line or a hash. Sanitizer findings are about BEHAVIOUR, so the claim usually survives without the bytes -- but it cannot be replicated, and an ASan build that differs in optimisation still detects the same defect. Treat these rows as behavioural evidence, not as reproducible measurements. Distinct from b109a0a5, which is the one ASan build that did get a hash (and still no recipe).",
+  "findings": 12,
+  "rows": 12,
+  "seats": [
+   "07",
+   "10",
+   "11",
+   "15",
+   "17",
+   "21",
+   "30"
+  ],
+  "sample_findings": [
+   "07-C38",
+   "10-F4",
+   "11-21-F2",
+   "15-F2",
+   "17-19-F12",
+   "17-19-F28",
+   "21-C6",
+   "21-F10",
+   "21-F5",
+   "21-F8",
+   "30-C1",
+   "30-F5"
+  ]
+ },
+ {
+  "build": "\"the owner's PC\" (net not shared)",
+  "verdict": "UNRESOLVED",
+  "why": "The handoff states the PC plays with its own trained net which is explicitly NOT shared, and that cloud seats keep the built-in evaluation. So any row whose value depends on the owner's net is not reproducible by anyone outside that machine, by design. Rows that say 'no net file' / 'built-in eval' are unaffected; rows that quote the PC's own strength numbers are.",
+  "findings": 3,
+  "rows": 3,
+  "seats": [
+   "01",
+   "29"
+  ],
+  "sample_findings": [
+   "01-23-F200",
+   "29-F20",
+   "29-N11"
+  ]
+ },
+ {
+  "build": "descriptor: -D_GLIBCXX_DEBUG build (flags never recorded)",
+  "verdict": "UNRESOLVED",
+  "why": "Named only by the single flag. My -D_GLIBCXX_DEBUG base build gave 715b7c90 against a reported 581159a4, so at least one other flag differs and the record does not say which. Small blast radius (2 findings, one seat).",
+  "findings": 2,
+  "rows": 2,
+  "seats": [
+   "07"
+  ],
+  "sample_findings": [
+   "07-C1",
+   "07-C38"
+  ]
+ },
+ {
+  "build": "binary 698d2d9b (PC r15 TSan)",
+  "verdict": "UNRESOLVED",
+  "why": "A ThreadSanitizer build of PC r15. No recipe recorded; TSan builds are highly sensitive to flags, so this is the least reproducible class in the set.",
+  "findings": 1,
+  "rows": 1,
+  "seats": [
+   "24"
+  ],
+  "sample_findings": [
+   "24-C2"
+  ]
+ },
+ {
+  "build": "named PC r15 (label)",
+  "verdict": "RESOLVED",
+  "why": "The LABEL resolves through the committed handoff: PC r15 = 6b98f217 + FABLE_TO_swarm_5.md patch = binary 068f0927. Both halves verified (patch sha256 and rebuilt binary sha256). A label is resolved when the record pins it to an artefact that exists, which this one does.",
+  "findings": 393,
+  "rows": 473,
+  "seats": [
+   "01",
+   "04",
+   "05",
+   "07",
+   "08",
+   "10",
+   "11",
+   "13",
+   "15",
+   "17",
+   "19",
+   "20",
+   "21",
+   "23",
+   "24",
+   "25",
+   "27",
+   "29",
+   "30"
+  ],
+  "sample_findings": [
+   "01-23-F200",
+   "01-25-60",
+   "04-C4",
+   "04-F10",
+   "04-F11",
+   "04-F12",
+   "04-F14",
+   "04-F15",
+   "04-F16",
+   "04-F18",
+   "04-F19",
+   "04-F20"
+  ]
+ },
+ {
+  "build": "commit 6b98f217 (audit base) / 'base'",
+  "verdict": "RESOLVED",
+  "why": "Commit exists (git cat-file -t = commit), contains forge-combo29/, and IS the audit base by definition. Reachable from refs (git rev-list --all contains it; 80 remote branches contain it).",
+  "findings": 378,
+  "rows": 446,
+  "seats": [
+   "01",
+   "04",
+   "07",
+   "08",
+   "10",
+   "11",
+   "13",
+   "15",
+   "17",
+   "19",
+   "20",
+   "21",
+   "23",
+   "24",
+   "25",
+   "27",
+   "29",
+   "30",
+   "63",
+   "69"
+  ],
+  "sample_findings": [
+   "01-23-F200",
+   "04-C4",
+   "04-F11",
+   "04-F15",
+   "04-F19",
+   "04-F22",
+   "07-C1",
+   "07-C18",
+   "07-C2",
+   "07-C21",
+   "07-C22",
+   "07-C23"
+  ]
+ },
+ {
+  "build": "patch d6bd72c5 (FABLE_TO_swarm_5 r15 patch text)",
+  "verdict": "RESOLVED",
+  "why": "sha256 of the committed patch block from its first diff line to its last line = d6bd72c531f785f40421be1cc542743922a944fb0973d05831788440309c1a1a. Verified mechanically against blob 12772bb7 (FABLE_TO_swarm_5.md). This is the artefact that makes the PC r15 rows reproducible.",
+  "findings": 15,
+  "rows": 16,
+  "seats": [
+   "03",
+   "04",
+   "07",
+   "08",
+   "10",
+   "15",
+   "17",
+   "19",
+   "23",
+   "24",
+   "29",
+   "30"
+  ],
+  "sample_findings": [
+   "03-C4",
+   "04-C4",
+   "07-C21",
+   "07-C38",
+   "08-55-79",
+   "10-R3",
+   "15-F14",
+   "17-19-F12",
+   "19-C12",
+   "23-F125",
+   "23-F24",
+   "24-C2"
+  ]
+ },
+ {
+  "build": "binary e06310ec (base, Release g++13)",
+  "verdict": "RESOLVED",
+  "why": "Rebuilt from commit 6b98f217 with g++ 13.3.0 Release. sha256 reproduces BYTE-EXACT (evidence/reproduce_builds.txt). bench 11/13/16 = 312866 / 862329 / 3024920 on the same binary. Source is committed; the recipe is two cmake lines.",
+  "findings": 14,
+  "rows": 14,
+  "seats": [
+   "07",
+   "10",
+   "20",
+   "23",
+   "24",
+   "25",
+   "27"
+  ],
+  "sample_findings": [
+   "07-C13",
+   "07-C38",
+   "07-C67",
+   "10-F7",
+   "20-30-F59",
+   "23-C2",
+   "23-F21",
+   "23-F24",
+   "23-F7",
+   "23-F8",
+   "24-C2",
+   "25-27-F12"
+  ]
+ },
+ {
+  "build": "binary 068f0927 (PC r15, Release g++13)",
+  "verdict": "RESOLVED",
+  "why": "This is a BINARY sha256, not a commit -- the prefix 068f matching no object in git is expected and is not a defect. The r15 SOURCE is committed as text inside forge-combo29/soak_all/FABLE_TO_swarm_5.md; that patch text hashes to d6bd72c531f785f4..., applies clean to 6b98f217 with patch -p1, and building it with -DFORGE_MATE_ALPHA_GUARD=1 gives sha256 068f0927... BYTE-EXACT. Three independent confirmations of the same artefact, so every row naming it is re-derivable.",
+  "findings": 13,
+  "rows": 16,
+  "seats": [
+   "07",
+   "19",
+   "20",
+   "23",
+   "24",
+   "25",
+   "27",
+   "30"
+  ],
+  "sample_findings": [
+   "07-C67",
+   "19-C12",
+   "19-C50",
+   "20-30-F59",
+   "23-F24",
+   "23-F8",
+   "24-C2",
+   "25-27-F12",
+   "27-08-C33",
+   "27-24-F3",
+   "30-C57",
+   "30-C59"
+  ]
+ },
+ {
+  "build": "NET file 1db8525e (v3 test net, built by make_v3_testnet.py)",
+  "verdict": "RESOLVED",
+  "why": "NOT a binary at all -- it is a data file, and it reproduces byte-exactly: running the COMMITTED generator forge-combo29/swarm/01/v3net/make_v3_testnet.py gives 6,309,096 bytes, sha256 1db8525e4eeb3c4c..., FNV-1a64 fdff70de72e4ca82 -- all three figures the reports quote. The generator is committed, so this is a resolved artefact, and every row quoting it is re-derivable.",
+  "findings": 7,
+  "rows": 7,
+  "seats": [
+   "08",
+   "20",
+   "29"
+  ],
+  "sample_findings": [
+   "08-F40",
+   "08-N5",
+   "20-30-F59",
+   "29-F57",
+   "29-F9",
+   "29-N43",
+   "29-N44"
+  ]
+ },
+ {
+  "build": "branch handoff/fable-opus-combo29-all",
+  "verdict": "RESOLVED",
+  "why": "origin/handoff/fable-opus-combo29-all-20261114 exists (4bf72522a..64620a554). Same tree family as integrate/combo29-all; not the audit base.",
+  "findings": 6,
+  "rows": 6,
+  "seats": [
+   "07",
+   "08",
+   "10",
+   "17",
+   "19",
+   "23"
+  ],
+  "sample_findings": [
+   "07-C38",
+   "08-55-79",
+   "10-R3",
+   "17-19-F12",
+   "19-F21",
+   "23-F125"
+  ]
+ },
+ {
+  "build": "dataset digest e6beb5f9 (bench SUM over 200 positions)",
+  "verdict": "RESOLVED",
+  "why": "A sha256 over a per-position result table (i|fen|nodes|score|best), not a build identifier. It resolves trivially because it is a checksum OF A RESULT, and is listed only so it is not mistaken for a build. It does not itself pin a build: two different builds can disagree and both be internally consistent, so a row resting ONLY on this digest still needs its build named. That is a gap in those rows, recorded below.",
+  "findings": 2,
+  "rows": 3,
+  "seats": [
+   "07"
+  ],
+  "sample_findings": [
+   "07-C26",
+   "07-C38"
+  ]
+ },
+ {
+  "build": "branch integrate/combo29-all",
+  "verdict": "RESOLVED",
+  "why": "Branch exists at origin/integrate/combo29-all = 6020972d3. It is NOT an ancestor of the base: 6b98f217 is 277 commits ahead of the merge-base e04556ddc. So it is an older tree, and any row measured on it is a statement about a different engine -- correct as a statement, ineligible as evidence about the audit base.",
+  "findings": 1,
+  "rows": 1,
+  "seats": [
+   "27"
+  ],
+  "sample_findings": [
+   "27-08-C33"
+  ]
+ },
+ {
+  "build": "settings PC20 (a settings block, NOT a build)",
+  "verdict": "SETTINGS",
+  "why": "PC20 = S14 (14 options) + CuckooRep true, HistRework 2, TtPruneV2 true, CorrHistV2 true, MateAlphaGuard true, OwnBook false. It is a settings block applied to a build, not a build. It is listed so that a reader does not count it as a build identifier; it resolves trivially because it is just a list of setoption commands.",
+  "findings": 484,
+  "rows": 609,
+  "seats": [
+   "01",
+   "03",
+   "04",
+   "05",
+   "07",
+   "08",
+   "10",
+   "11",
+   "13",
+   "15",
+   "17",
+   "19",
+   "20",
+   "21",
+   "23",
+   "24",
+   "25",
+   "27",
+   "29",
+   "30"
+  ],
+  "sample_findings": [
+   "01-23-F200",
+   "01-25-60",
+   "03-C4",
+   "04-C4",
+   "04-F10",
+   "04-F11",
+   "04-F12",
+   "04-F14",
+   "04-F15",
+   "04-F16",
+   "04-F18",
+   "04-F19"
+  ]
+ }
+]
