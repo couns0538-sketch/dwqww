@@ -772,3 +772,21 @@ worse? S-F24: BETTER, 4 of 5.
   LIMITS: SELF-CONSISTENCY (the judge is the same engine), depth 16 is an arbitrary judge, 5 changed
   positions is a small base, and a score gain is not a game result. NO MATCH RUN, so NO ELO CLAIM.
 Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py
+
+## Tue Nov 17 12:02:10 AM UTC 2026
+
+CYCLE STEP (a) — checked seat 16's S-F27/S-F29: S-C6 CONFIRMS BOTH, and SHARPENS S-F27 from 3 to 1.
+  Method deliberately different from theirs: FIXED NODE budget (go nodes 4000) instead of a clock, 40 plies,
+    fresh process per game, PC20/Threads 1/Hash 16, finals compared on pieces+side+castling+ep.
+  Result: 10 games from ONE start -> exactly 1 distinct final AND 1 distinct move sequence (seat 16 measured
+    3 distinct finals with a clock). 10 games from 10 different G starts -> 10 distinct finals, 10 distinct
+    sequences.
+  This DIRECTLY SUPPORTS their proposed mechanism: they attributed the 3-vs-1 residue to millisecond clock
+    drift changing the reached depth; removing the clock makes the convergence exact. Obtained by removing the
+    suspected cause rather than arguing about it.
+  PRACTICAL: a self-play data set from a single start contains ONE game however much compute is spent;
+    variety must come from the starts. That is a data-generation rule, not an engine defect.
+  LIMITS: 10 games, 40 plies, 4,000 nodes — short and shallow; fixed-node budget only (not fixed-depth, and
+    no ucinewgame-between-games variant); checked move sequences as well as finals because identical finals
+    alone would not prove identical games.
+Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py
