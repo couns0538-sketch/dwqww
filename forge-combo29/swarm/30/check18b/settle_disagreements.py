@@ -32,7 +32,7 @@ spec.loader.exec_module(sp)
 CASES = [
     ("13", "2bq4/r1pnpkbr/1p3p1p/p2P1P2/3p1Kp1/P1NP2PP/RPPBB2R/1N3Q2 b - - 5 25", "h6h5", "d4c3"),
     ("24", "r4bn1/pkp1q3/bp4pr/3p3p/1PPBP1P1/5N1B/P2P1P1P/R2QK1R1 b Q - 3 20", "h5g4", "e7e4"),
-    ("29", "rnb3nr/3kb2p/1p2p3/p1p2pP1/1PP1pP1/P3PQ1R/1B1P1P2/RN2KB1 w Q - 0 18", "f3g2", "f3g3"),
+    ("29", "rnb3nr/3kb2p/1p2p3/p1p2pP1/1PP1p1P1/P3PQ1R/1B1P1P2/RN2KB2 w Q - 0 18", "f3g2", "f3g3"),
     ("35", "2b1qb1r/2p3pB/k2pp3/P1pP1p2/pnP4N/2N3BP/P4PP1/R2K2R1 w - - 4 26", "h7f5", "a2a3"),
 ]
 DEPTHS = [12, 14, 16, 18]
@@ -61,6 +61,18 @@ def main():
     outdir = sys.argv[1]
     os.makedirs(outdir, exist_ok=True)
     import hashlib
+    import chess as _chess
+    # FEN GATE (30-C58 lesson, second form): an invalid FEN is REFUSED by the engine, which leaves
+    # the previous position and can report cp 0 -- indistinguishable from a real evaluation.
+    for _lbl, _fen, _m1, _m2 in CASES:
+        try:
+            _b = _chess.Board(_fen)
+        except ValueError as _e:
+            raise SystemExit("REFUSING: position %s has an INVALID FEN: %s" % (_lbl, _e))
+        if sum(1 for _ in _b.legal_moves) == 0:
+            raise SystemExit("REFUSING: position %s has no legal moves" % _lbl)
+        if _chess.Move.from_uci(_m1) not in _b.legal_moves or _chess.Move.from_uci(_m2) not in _b.legal_moves:
+            raise SystemExit("REFUSING: position %s: a candidate move is illegal" % _lbl)
     report = {"cases": {}, "summary": {}, "provenance": {}}
     # PROVENANCE FIRST (30-C57 lesson): exe identity and the FULL ordered option lists, in the output.
     sha = hashlib.sha256(open(sp.EXE, "rb").read()).hexdigest()
