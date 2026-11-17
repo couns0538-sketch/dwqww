@@ -300,7 +300,7 @@ because every number in the row was right.
 **Record:** S1 HIT, S2 HIT, **S3 direction right / magnitude wrong by 5x**, **S4 KILLED by my own definition**, S5 HIT,
 S6 HIT, S7 HIT (1 board), S8 honoured (no mate-frequency guess).
 
-### S-C56: the criterion S-C53 named as the remedy is INVERTED, not merely weaker
+### S-C56 (+S-C58 correction): the score-change remedy does not reproduce as a selector
 
 Three strata on R7 (300 positions), all defined from the **selection** data only, with the outcome playing no part
 in selection:
@@ -311,15 +311,14 @@ in selection:
 | **score-unstable** (the remedy) | same move, `|Δscore| >= 50 cp` | 109 | 7 | **6.4%** | [3.1, 12.7] |
 | **neither** | — | 156 | 21 | **13.5%** | [9.0, 19.7] |
 
-**The remedy targets boards where the effect is rarest** - less than half the rate of the boards it excludes. The
-mechanism: a big score change with the move unchanged marks a search that has **already converged on the choice** and
-is refining only its evaluation; MultiPV perturbs the *choice*, so a settled choice does not move. **The instability
-that matters is instability of the CHOICE, not of the NUMBER.**
-
-That also explains board 121 retrospectively: it was STABLE by the move rule yet wrong about its distance, because
-its failure is a **distance** error in a settled search while the MultiPV effect is a **choice** effect in an unsettled
-one. Conflating the two was the error, and the data separated them cleanly. **S-C53's named limitation stands, but the
-remedy it proposed is now measured and rejected** - recorded there rather than quietly dropped.
+**Significance, which I failed to test before publishing this row** (see the S-C58 block above): move-vs-remainder
+**p=2.05e-07** and move-vs-score **p=7.9e-10** both stand; **score-vs-remainder p=0.0712 does NOT**, so **the ordering
+between the score stratum and the remainder is not established** and my "inverted / worse than nothing" wording is
+withdrawn. **The reportable negative the coordinator asked about is real:** the score criterion does not reproduce as a
+selector, and the move criterion does, overwhelmingly and independently (seat 27's S-C108: 8/24 = 33.3% vs 13.2%,
+p<1e-6). **Usable form: select on MOVE change; treat score change as UNESTABLISHED rather than harmful.** The mechanism
+I originally attached - "the instability that matters is the choice, not the number" - is retained as a **hypothesis
+the sample did not test**, not as a finding.
 
 ### S-C57: a prediction whose falsification was guaranteed by my own definitions
 
@@ -331,12 +330,23 @@ inform. Nineteenth control error; the first located in the prediction instead of
 question is now answered properly: of the 35 move-unstable boards, **10 (28.6%)** also change score by >=50 cp, so the
 two phenomena are largely SEPARATE rather than nested - which is itself why the score criterion cannot substitute.
 
-### Board 106: a third candidate, verdict pending at this block
+### S-C59: board 106 is a third CANDIDATE, unadjudicated, and the method limit is the story
 
 R7 board 106 (`6nr/7p/p2krp2/R1pP1bP1/1QP4p/4p3/3NP3/1B2K1NR w`) reports `mate 10` / `a5a6` at depth 12 (19-ply PV,
 right length, ends in mate) and `mate 7` / `b4c5` at depth 16 (13-ply PV, right length, ends in mate). Verifying the
-shorter claim first: **n=1..5 all not forced** (n=5 took 422.9 s, 4.6 M memo entries); **n=6 and n=7 unfinished** when
-this block was written. So a third instance stays **unconfirmed** and the demonstrated count remains **two**.
+shorter claim first: **n=1..5 all NOT forced** (n=5 took 419.7 s, 4.6 M memo entries); **n=6 did not complete** - two
+runs, the second given a 5400 s cap, both still inside the n=6 budget after ~18 CPU-minutes. **Demonstrated instance
+count stays TWO** (S-C52, S-C53); board 106 is recorded as a candidate, not a third instance. What IS excluded is
+useful: white cannot force mate in 5 or fewer, so `mate 7` is not refuted, and if it is true then depth 12's `mate 10`
+is wrong by 3 - the S-C53 shape on a different board.
+
+**Method limit, and a failed attempt worth recording:** naive exhaustive search over every legal move with a memo table
+is exponential in board width and unusable past mate-in-5 on middlegames. I tried a pruned alternative
+(`job1d/mate_bound.py`) and it **failed** - it could not find a KNOWN mate in 7 in bare KQ-vs-K within 20.8 s. The file
+is kept and marked as an abandoned branch. A real mate solver (TT, killer moves, iterative deepening, or proof-number
+search) is the right tool; I did not have time to build one tonight. **A pruned search whose "not found" is
+indistinguishable from a timeout would have produced a confident-looking wrong answer, so recording the failure
+matters more than the attempt.**
 
 **Guards at 04:07Z:** `compliance_check.sh` -> PASS (0 binaries, 0 outside files, 0 non-text, 0 engine source).
 `audit_final.py` -> **0 mismatches**.
