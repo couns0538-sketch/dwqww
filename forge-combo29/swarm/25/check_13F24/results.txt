@@ -1,0 +1,45 @@
+### independent check of seat 13's corrected S-F24
+exe /home/ubuntu/build/pc/forge
+positions: 16 | clocks: 2000 ms vs 60000 ms | PC20, Threads 1, Hash 16 | fresh process per search
+judging depth for the candidate comparison: 16
+
+pos short mv   d     cp |  long mv   d     cp |  same   gap@d16
+  1     g7g6  14   -292 |     e5e4  26   -323 | False       +17
+  2     b6b5  14   -262 |     b6b5  23   -332 |  True          
+  3     g1g6  12    278 |     g1g6  22    241 |  True          
+  4     f6e7  14   -660 |     f6e7  23   -890 |  True          
+  5     f6g5  17   -675 |     f6g5  27  -1035 |  True          
+  6     f4f5  16   4053 |     f4f5  22   None |  True          
+  7     d6e6  14    -24 |     d6e6  26      0 |  True          
+  8     g5h5  17  -1671 |     g5h5  22  -2233 |  True          
+  9     d7d5  12   -144 |     d7d5  22   -118 |  True          
+ 10     c3c2  14   2185 |     c3c2  22   2606 |  True          
+ 11     e8d8  17     -5 |     e8d8  26    -31 |  True          
+ 12     e3e6  14   -270 |     e3e6  26   -339 |  True          
+ 13     b6c6  12    320 |     b6c6  22    384 |  True          
+ 14     e8e5  14   -956 |     e8e5  21  -1256 |  True          
+ 15     e6d7  14   -714 |     e6d7  24   -901 |  True          
+ 16     h6h5  13  -2200 |     h6h5  23  -2472 |  True          
+
+positions changing move: 1 of 16
+  pos 1: short g7g6 (d16 -308) -> long e5e4 (d16 -291)   gap +17
+
+SEAT 13's CORRECTED CLAIM: 1 of 16 changes move, and that one is +17 cp better on the longer clock.
+MY RESULT: 1 of 16 change move. Gaps: [17].
+
+VERDICT: CONFIRMS seat 13's CORRECTED S-F24, and the agreement is exact rather than approximate.
+  their corrected claim : 1 of 16 positions changes move; that one is +17 cp better on the longer clock at equal depth
+  my independent run    : 1 of 16 changes move; pos 1 g7g6 (d16 -308) -> e5e4 (d16 -291), gap **+17 cp**
+Same position, same two moves, same gap to the centipawn, on my own harness with a fresh process per search.
+
+WHY THIS IS WORTH MORE THAN A CONFIRMATION OF THEIR FIRST VERSION: their first version said 5 of 16 changed, 4 of 5
+better, median +58 cp, one case +984 cp. My run reproduces the CORRECTED numbers, not the withdrawn ones - which
+independently corroborates their diagnosis that the shared-process harness manufactured the extra changes. I cannot
+test their warm-process claim directly (I never reused a process), but the fact that the corrected figure reproduces
+to the centipawn while the withdrawn one is 5x larger is consistent with warm state inflating the count.
+
+ALSO VISIBLE in my table and worth noting: the cp values DIFFER between the two clocks even where the move does not
+change (e.g. pos 4: -660 at depth 14 vs -890 at depth 23; pos 10: 2185 vs 2606). That is not a fault - it is the
+deeper search seeing more - but it means a "score changed with the clock" metric would report 14 or 15 of 16 while a
+"MOVE changed" metric reports 1. Seat 13's choice of move-change as the metric is the right one for this question, and
+my run shows why: score drift with depth is universal, move churn is rare.
