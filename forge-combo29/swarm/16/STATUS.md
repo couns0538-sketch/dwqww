@@ -657,3 +657,19 @@ seed: 1601
 - The job is UN-STOPPED and Step 1 begins: prediction committed alone first, then perf on bench 13 under PC20 + the
   test net and on 200 openings at depth 12.
 - check_folder.py ALL CHECKS PASS (441 files, 48 findings rows). Cadence continues to 10:18:40Z.
+
+## 2026-11-17T07:05Z
+- STEP 1 DONE, AND ALL FOUR PREDICTIONS WERE WRONG. The v3 net path is 20.85 % of bench-13 time under PC20 + test
+  net — my prediction said 55-85 % and my own kill criterion was "under 40 %", which fired. The hottest v3 symbol is
+  the INCREMENTAL UPDATE `apply_changes_pair` at 8.24 %, NOT the forward pass (`evaluate` 4.81 %).
+- The profile's useful surprise: move generation and the picker total ~37 % (pick_best 8.47, its internal sort 5.03,
+  generate_evasions 7.55, next 4.81, fill_pseudo_legal 3.43, is_legal_complete 3.20, see_ge 4.35) — MORE than the
+  whole net path. So a perfect v3 kernel caps at ~1.26x on this workload, and the larger lever is the picker. That
+  is a ceiling the owner should know before Step 2 patches land.
+- Environment notes for other seats: perf was absent and installable; it then refused because perf_event_paranoid
+  was 2 (I set it to -1 with sudo), and the version wrapper refuses on kernel 6.12.113+ while the 6.8 perf BINARY
+  works fine — call /usr/lib/linux-tools/6.8.0-149-generic/perf directly.
+- Housekeeping: my check caught a perf.data binary in the folder before it was committed. Removed, and .gitignore
+  now covers *.fnn3, perf.data*, __pycache__/. ALL CHECKS PASS (451 files, 0 non-text, 49 findings rows).
+- next: file 7's second profiling arm — 200 openings at depth 12 — before I draw the final conclusion on where the
+  time is, since bench 13 is not the PC's workload.
