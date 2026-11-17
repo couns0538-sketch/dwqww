@@ -852,3 +852,15 @@ next command: continue at cadence.
   individual positions differ 2x. (Trap 10's shape: the setting changes the question.)
 
 next command: continue at cadence.
+
+## 2026-11-17T01:12:20Z
+
+19-C41 attributed the PC20 per-position swings: one option at a time, depth 14, 4 set-G positions:
+  CuckooRep 1.296/0.854/1.050/0.860 ; HistRework 1.631/0.724/0.975/0.721 ;
+  TtPruneV2 0.760/0.501/1.200/1.151 ; CorrHistV2 1.449/0.568/1.009/0.756 ;
+  ** MateAlphaGuard 1.000/1.000/1.000/1.000 - EXACTLY unchanged on every position **.
+  So: (a) MateAlphaGuard does not touch the search tree, so no PC20 node effect can be attributed
+      to it; (b) the swings come from TtPruneV2 (0.50-1.20) and HistRework (0.72-1.63) - each can
+      halve or +60%% a given position. Guide: compare S14 vs PC20 PER POSITION, report the spread.
+
+next command: continue at cadence.
