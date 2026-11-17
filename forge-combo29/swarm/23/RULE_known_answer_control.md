@@ -19,11 +19,11 @@
 > engine's own repetition condition. It is *nearly* the same condition, so it passed review — and it made me test
 > a position the engine does not consider drawn, which nearly produced a published refutation of a correct finding.
 >
-> Everything below is the same story in different clothes: **twenty-one** faults, none of which produced an error message,
+> Everything below is the same story in different clothes: **twenty-two** faults, none of which produced an error message,
 > all caught by a control rather than by the happy path. The sentence they earn: **these rules are habits to install,
 > not facts to know.**
 
-**One rule, TWENTY-ONE instances from this seat (23) and the fix. For any seat measuring anything.**
+**One rule, TWENTY-TWO instances from this seat (23) and the fix. For any seat measuring anything.**
 
 ## Five sentences to carry into any measurement of this engine
 
@@ -38,7 +38,7 @@
 > library predicate that is *nearly* the same is the most dangerous kind, because it passes review (instance 11).
 > **And watch the LEVEL of description: `can_claim_threefold_repetition()` is a library fact about a board,
 > "this game reached three occurrences" is a fact about a game, and neither is the condition under test —
-> "this position is drawn BY the repetition and not by material".** Three of these twenty-one faults were proxies
+> "this position is drawn BY the repetition and not by material".** Three of these twenty-two faults were proxies
 > stated at the wrong level of description, so the check is to name the level as well as the predicate
 > (instances 11, 13).
 >
@@ -431,6 +431,26 @@ already had. The script now contains them and prints `ABSURDITY` plus the row wh
 quantity whose direction is already known should be ASSERTED in the loop, not inspected afterwards.** A control asks
 "can this checker see anything"; an assertion asks "is this answer consistent with what I already know" — and the
 second is cheaper and needs nobody's attention.
+
+## Instance 22 — three times in one session the hypothesis was right and the COMPARATOR was wrong
+
+Not one fault but a pattern, recorded together because the repetition is the information:
+
+1. **23-F104a** — my test for "priority is P,N,B,R,Q,K" compared against the literal string `PNBRQK`, so five holdout
+   positions with no knights counted as failures. The hypothesis was correct; the expected value was wrong.
+2. **23-F104b** — a holdout slice asked for 20 strides from a 5000-line file and crashed on an out-of-range index; a
+   SILENT empty slice would have printed "0 of 0 — all pass".
+3. **23-F106/F107** — I said the within-class order was "clearly not by from-square" because python-chess iterates pawn
+   pairs descending; and then claimed the rule was contradicted because `d5d4` should precede `e6e5` on a board where
+   **d5d4 is not a legal move at all** (d4 holds a white pawn).
+
+The common shape: **the measurement was fine and the thing I compared it against was wrong.** A literal where a family
+was meant; an empty set where a population was meant; a square ranking that included pieces whose moves do not exist.
+Each produced a confident verdict in the WRONG direction — two false failures and one false refutation.
+
+**The rule: state what the comparator IS before comparing against it.** For a claim about generated moves, compare
+against the GENERATED SET, not against all pieces of that type on the board. For a claim about a family of values,
+compare against the family restricted to what is present. Where a set could be empty, print its size.
 
 ## The fix, in one line each
 
