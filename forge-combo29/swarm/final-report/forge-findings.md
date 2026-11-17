@@ -12,7 +12,7 @@ invisible to this instrument", never "this change is safe"**, and the two are on
 probe proves the change was live. The measurement is in §6, the blind-spot list in §10.
 
 **A companion file enumerates the whole run as a matrix rather than an argument**:
-[`test-matrix.md`](test-matrix.md) — **134 rows**: 31 areas tested and correct, 31 tested and wrong, 16
+[`test-matrix.md`](test-matrix.md) — **135 rows**: 31 areas tested and correct, 32 tested and wrong, 16
 tested with a conditional answer, 21 never tested (each with the reason), and **35 instruments in this
 audit that reported something false**, with what caught each one. Start there if you want the checklist;
 start here if you want the reasoning.
@@ -28,10 +28,10 @@ start here if you want the reasoning.
 | 5 | Any harness that types `go` limits | **validate your own tokens first** — a malformed `nodes` or `mate` value applies **no limit**, and a malformed `depth` is a 1-ply search. **Worse, a keyword with no numeric value eats the NEXT keyword**, so `go nodes depth 5` is unbounded with every token well-formed, and **a failed clock becomes a 0 ms clock that crushes a good `depth`** (`go depth 5 wtime abc` = 1 ply) | §1b, trap 3aa |
 | 6 | Any harness that re-sends its option block per game | **an unchanged `Hash` re-send clears the table** (same as `Clear Hash` as measured, but it leaves a **cold table with warm histories**). **Costs nothing around `ucinewgame`; costs +157% nodes between moves; changes 4 of 30 answers on a resume path without `ucinewgame`** | §3, trap 3 |
 | 7 | `AspirationDelta` and the two aspiration switches | **leave the delta at 18 and do not enable either switch without re-screening.** Changing the delta moves the score on **126 of 133** positions and the move on **95 of 133** for a **12–15% median node saving**; one position's `cp 517` becomes a **true `mate 2`** at delta 200, so the default window misses a forced mate a wider one finds. Both switches lose a mate the default finds at fixed depth | §3 |
-| 8 | `SoundMatePruning` (the option named for mate safety) | **do not enable it on the evidence so far** — it costs **2–3 plies of effective depth** on forced mates and is **the only thing on this engine measured to lose a mate the default finds**. On 30 verified fixtures it changes 9 verdicts, helps 4, **harms 5**. **It does converge**: every harm recovers by depth 9 or 10, so the cost is depth-efficiency, not soundness | §3 |
+| 8 | `SoundMatePruning` (the option named for mate safety) | **do not enable it at fixed depth below 10** — it costs **1–5 plies of effective depth** (per-fixture: 1, 2, 5, 1, 2) and at depths 5–9 that loses mates the default finds. **Harm is not uniform**: all five harms sit at **depth 8**, and at depths 10 and 12 the option **fixes four cells the default gets wrong** — so "materially worse" is withdrawn. At fixed time it reaches the mate later; the cost is depth-efficiency, not soundness | §3 |
 | 9 | **Mate distances on sparse endgames** | **do not trust a `mate N` distance on a bare KQ-vs-K type position — but this is a base-engine reporting imprecision, NOT a switch defect, and an earlier version of this row was WRONG.** On `3k4/8/6K1/1Q6/8/8/8/8 w` the true distance is **mate in 3 moves (5 plies)**; the baseline reports **`cp 1203` with no mate at all**, while `ContHist4PlyRead` reports **`mate 12`** — an over-long distance on a real mate. **The switches move the number in both directions and on one position the switch is MORE accurate than the baseline.** **The earlier claim that `ContHist4PlyRead` "reports a false mate" is retracted**: a depth-12 PV cannot exceed 12 moves, so a short PV proves nothing, and I used exactly that unsound inference (§9c) | §1b |
 | 10 | **Playing a won endgame with this engine** | **do not rely on it to convert — and the fix is the §2 clock band, not the drawn-root bail.** KRK converts **10 of 20**, KBNK **3 of 20**, KQK 18 of 20, KPK 569 of 640 won cells, against an **exact-table oracle control at 20 of 20 / 20 of 20 / 192 of 192**. The score collapses to **`cp 0` at halfmove clock 90** on a won three-piece board (101 million nodes to answer what 93,585 answered at clock 60), so the engine **decides the position is drawn and shuffles correctly for a drawn position.** **Only 7 of 193 KPK failures contain a bail at all, while the bail fires 56,768 times and 80.9% of won cells still convert** — so patching the bail fixes none of them. **More depth is not the answer either**: KQK needs ~4× the mate's own depth, and KBNK converts **less** at depth 20 than at 16 | §9c |
-| 11 | **Any mate label from this engine** | **verify it independently — 26.1% of verifiable labels are WRONG and every single error over-states.** 300 labels by uniform random sample: 238 verified, **62 wrong**, **0 under-statements, 0 move-wrong**, 35 of 48 confirmed errors off by exactly one move. **The PV-length filter catches only 9 of the 62 (14.5%)** — it removes unverifiable claims, not wrong ones. A label is only safe after an independent mate search | §4 |
+| 11 | **Any mate label from this engine** | **verify it independently — roughly a quarter to a third of verifiable labels are WRONG, and the errors are overwhelmingly over-statements.** Two independent corpora: **62/238 = 26.1%** on a uniform random sample (all over), and **89/240 = 37.1%** on labels of five moves or fewer (**85 over, 4 under**). Off-by-one dominates. **The PV-length filter catches only 9 of 62 (14.5%)** — it removes unverifiable claims, not wrong ones, because at depth 12 the engine completes its PV before its distance. A label is only safe after an independent mate search | §4 |
 
 **The one thing to take away if you read nothing else:** this engine returns a well-formed answer to a
 question that was not asked, in **five** distinct ways, and three of the five are indistinguishable from
@@ -425,6 +425,28 @@ the output looks exactly like a success.**
   passes it through. The count is `min(requested depth, 64)` and nothing was searched. The bail is
   budget-independent across all three budget kinds (depth, nodes, clock/movetime).
 - **None of this is documented** in `README.md`, `LOCK.md` or `docs/`.
+- **AND HERE IS THE WHOLE THING AS SIX ASSERTIONS A HARNESS CAN ACTUALLY IMPLEMENT.** This is the most
+  directly usable artefact in the report, and every one of the six is there because a plausible-looking
+  check failed on a real case measured here:
+  - **A1 — every limit keyword's value is a plain non-negative decimal integer INSIDE the keyword's usable
+    range.** No sign, no `+`, no `0x`, no `.`. **The range half is load-bearing**: a permissive `-?\d+`
+    check passes **six of seven** reinterpreted cases — `depth -1`, `depth 0` and `depth 2^63` all become
+    **depth 1**; `mate 0` and `movestogo 0` both become **unbounded**; `nodes 0` becomes **zero info lines**.
+  - **A2 — at least one limit is present and well-formed FOR THE SIDE TO MOVE.** `go btime 1000` on a
+    white-to-move board is **unbounded**, because the keyword names the other side, and **every token in it
+    is valid.**
+  - **A3 — if you sent a `depth`, assert the reply's depth EQUALS it.** `<=` cannot fire on the case that
+    matters: `go depth 5 wtime abc` returns **depth 1** and passes a `<=` check.
+  - **A4 — zero `info depth` lines means no search happened, and needs a stated reason.** Book reply,
+    `go nodes 0`, or a bail; **the reason is not on the wire**, so it has to be recorded client-side.
+  - **A5 — `searchmoves` is not a limit.** Send a budget and intersect your own move list.
+  - **A6 — every read has a deadline, and a missed deadline is a reported failure**, not a retry. **This is
+    the one that catches `go infinite`, bare `go`, and the clock-for-the-wrong-side family**, none of which
+    any token check can see.
+  - **And the bare `go` case belongs above A1**: a `go` line with **no limit keyword at all** — bare `go`,
+    `go foo`, `go Depth 5`, `go depth=5` — is **`go infinite`**. **A misspelled keyword is unbounded rather
+    than defaulted**, which makes bare `go` the most likely accidental hang in any harness that builds its
+    command from tokens.
 
 ---
 
@@ -1098,6 +1120,19 @@ on my own build**:
 - **Not shipped**, on purpose: it changes `Worker::is_draw`, which the main search and the §2 drawn-root
   work share, so it needs the owner's decision and the full 14-cell sweep. **The ~20 lines are in the
   seat's FINDINGS.**
+- **AND THE COMPONENT IS NOW IDENTIFIED, which closes the open question "is it the TT or the leaf?".** A
+  later seat built a variant with the **TT guard entirely removed** and got **the identical `cp 0` at clock
+  97** (901 → 1,097 nodes). **So the zero cannot be a reused entry.** It is `rule50_damped_static` scaling
+  the evaluation by **0.03** at clock 97 — a **552 cp discontinuity between clock 96 (`cp −552`, 17-ply pv)
+  and clock 97 (`cp 0`, 3-ply pv)**, stable across three repeats. python-chess confirms White has no
+  clock-resetting move after `Kg8-f8`, so **the rule is right and only the evaluation is wrong.**
+  **Anyone hunting this in the transposition table is looking in the wrong component** — which matters for
+  the repair: the fix is in the static-scale function, not in the draw predicate alone.
+  - **And the same seat showed the guard is load-bearing where it applies**: deleting the horizon clause of
+    `score_usable` moves scores on **18 of 40 cells, by up to 524 cp** (kqk_a at clock 80: 1013 → 489). The
+    **`90` constant, though, is a plateau rather than a boundary** — ±1 moves only 3–4 of 40 cells, all at
+    clock 85, and above 90 the twin `near50` guards plus the `+depth < 100` conjuncts decide. **So "why 90
+    and not 89" has no measured answer**, and the report should not imply one.
 
 **A separate TT defect the same seat found, and its severity bounds are worth keeping:** qsearch **stores**
 as well as probes (`search.cpp:1541`, and a stand-pat lower-bound store at `:1477`), and `store_body`'s
@@ -1471,28 +1506,34 @@ nodes on Kiwipete and 0% on four other positions**, with full-game cost unmeasur
   solvers, 90 cells at depths 8/10/12 plus a 240-row depth sweep. Against the default engine it changes the
   verdict in **9 cells, helps 4 and HARMED 5**, and the five harms are cells where **the default is right and
   the option makes it wrong**.
-  - **The harm is depth-bounded, and I established that myself because the seat's table said otherwise.**
-    Its table listed each harm at depths 8, 10 and 12; **on my build every one of the five recovers by depth
-    10**. The seat had not re-run when this report closed, so **the per-cell depths below are mine and the
-    only thing I take from its table is the cell count and the fixtures**. First fixture,
-    `8/8/8/8/8/7Q/k7/2K5 w`, `OwnBook false`, `Threads 1`:
+  - **The harm is depth-bounded, and the seat's own re-run on depths 1–16 is the measurement of record.**
+    My earlier five-fixture sweep at 8/10/12 gave "2–3 plies"; **the seat's finer grid corrects it to 1–5
+    plies and locates the band**:
 
-    | depth | default | `SoundMatePruning=true` |
-    |---|---|---|
-    | 6 | cp 1023 | **cp 1164** (wrong move) |
-    | 7 | cp 1152 | wrong |
-    | **8** | **mate 2**, `h3e3` | **`h3h8` cp 1230** |
-    | 9 | mate 2 | **mate 2** |
-    | 10, 12 | mate 2 | mate 2 |
+    | fixture | default first correct | `SoundMatePruning` first correct | extra plies |
+    |---|---|---|---|
+    | `8/8/8/8/8/7Q/k7/2K5 w` | 8 | 9 | **+1** |
+    | `8/8/8/3K4/k7/8/4Q3/8 w` | 7 | 9 | **+2** |
+    | `7Q/8/1R6/8/8/7K/8/5k2 w` | 5 | 10 | **+5** |
+    | `8/8/8/8/8/8/6KQ/4k3 w` | 8 | 9 | **+1** |
+    | `5k2/8/8/4K3/8/4R3/8/8 w` | 7 | 9 | **+2** |
 
-    **All five fixtures behave identically**: harmed at depth 8, both arms correct at 10 and 12. On the mate-
-    in-3 fixtures the default finds the mate at depth 7 and the option is still wrong at 7 **and 8**, right by
-    9. **So the honest characterisation is a 2–3 ply depth cost, not a permanent failure** — the same class
-    as the two aspiration switches, and it converges for the same reason.
-  - **Why the narrower claim is the better one, and it is the third time tonight**: "materially worse"
-    invites the owner to re-run one cell, see `mate 2` at depth 12, and dismiss the whole result. **"Costs 2–3
-    plies" survives that check** and is actionable. **A wrong frame is worse than a smaller true claim** —
-    the same correction that had to be made to the clock planner's "+2.1 ms".
+    **The harm is a BAND, depths 5–9, closing at depth 10.** All five harms sit at **depth 8** — which is the
+    only depth at which all five are simultaneously harmed, and is exactly why an 8/10/12 grid saw five.
+    **Depths 10 and 12 contain four cells the option FIXED** (default wrong → option right), so **"materially
+    worse" is withdrawn.**
+  - **The publishable line is therefore narrower and more useful**: `SoundMatePruning=true` costs **1–5 plies
+    of effective depth**; at a fixed depth below 10 that loses mates the default finds, and at fixed time it
+    reaches the same mates later. **It is a depth cost, not a soundness defect, and it is not uniform in
+    either direction.**
+  - **How the seat's own table went wrong, since the class recurs**: it aggregated a per-cell grid into a
+    per-fixture table and **dropped the depth axis**. Every number in it was individually correct; the table
+    asserted something none of the rows said. **That is the "correct number, overstated inference" class** —
+    the same failure as this report's own retracted `ContHist4PlyRead` row, and the seat caught it the same
+    way, with a positional cell-by-cell checker against the evidence JSON, proved on two planted faults.
+  - **And it caught a second label defect in its own finer grid**: cells where *neither* arm found the mate
+    were marked "ok", which reads as "the default handles it". Now counted separately as `both-wrong`, **10 of
+    45**.
   - **And the default engine's own wrong answers on this corpus are all fixed by MORE DEPTH on the same
     engine**, so they are horizon limits rather than pruning bugs. **Null-move, razor, RFP, move-loop, LMR
     and singular were not shown to lose or mis-distance a forced mate anywhere on this corpus** — which is
@@ -1593,10 +1634,28 @@ nodes on Kiwipete and 0% on four other positions**, with full-game cost unmeasur
     | move wrong, distance plausible | **0** |
     | unverifiable, reason recorded per row | 62 |
 
-    **Wrong rate among verified labels: 62/238 = 26.1%.** **Every single error over-states** — not one
-    claimed a mate shorter than the truth, and not one claimed a distance it could not reach. **35 of the 48
-    independently confirmed errors are off by exactly one move**, and **the PV-length filter catches only
-    9 of the 62 (14.5%), passing 53 wrong labels untouched.**
+    **Wrong rate among verified labels: 62/238 = 26.1%.** **In this sample every single error over-states**
+    — not one claimed a mate shorter than the truth, and not one claimed a distance it could not reach.
+    **35 of the 48 independently confirmed errors are off by exactly one move**, and **the PV-length filter
+    catches only 9 of the 62 (14.5%), passing 53 wrong labels untouched.**
+  - **A SECOND, INDEPENDENT CORPUS FINDS A HIGHER RATE AND A NON-ZERO UNDER ARM, so the direction claim is
+    corpus-specific and the report states both.** An earlier seat measured **89/240 = 37.1%** wrong at
+    `go depth 12` over `|N| ≤ 5` labels at MultiPV 1/2/3 — **85 over, 4 under, 58 off by +1, 26 by +2, 1 by
+    +3, 4 by −1**. **That seat had itself first written "never understates" off a 42-label sample and
+    retracted it.**
+    - **So the honest form is: over-statement dominates by roughly 20:1, and under-statements exist at a few
+      percent.** The 26.1% corpus found zero, which is consistent with a 4/240 rate at its sample size and is
+      **not** evidence of a universal direction. **Both figures are stated because a reader who sees only one
+      will over-read it** — and the 37.1% run is the wider sample of the same phenomenon.
+    - **The two rates differ for a stated reason, not noise**: 37.1% is restricted to `|N| ≤ 5` (shorter
+      mates are cheaper to verify exactly and the corpus is a different frame), while 26.1% is a uniform
+      random sample of all emitted labels with 62 of 300 unverifiable. **Neither is wrong; they answer
+      slightly different questions.**
+    - **And the second seat's PV finding is stronger than "the filter helps a little"**: on its corpus **all
+      240 labels carried a PV of exactly the implied length and 97 of them were still wrong — zero
+      rejections in 240.** At depth 12 **the engine completes its PV before its distance**, so the PV is a
+      real mate line and only the NUMBER is not the shortest. **That is the mechanism behind the 14.5%, stated
+      plainly.**
   - **This is a rate and not an anecdote for the reason §4 already gives**: the two boards above were found
     by **searching for disagreements**, so they cannot supply a base rate. This corpus was selected on
     **being a mate label**, uniformly at random, which is the only selection that makes the percentage mean
@@ -3385,8 +3444,8 @@ hard-codes `/tmp/o100.fens` as its input path, so a re-run must place `OG200.fen
 
 **Read this section by NUMBER, not by position: the numbers run in discovery order and the inserted
 suffixes (`3a000`, `5a0`, `14b`, `19a`–`19e`, `19c0`, `20a00`, `21a`) are later findings attached to the
-family they belong to, so they sit beside their parent rather than at the end.** There are **63 numbered
-traps: base numbers 1–30 with 33 suffixed variants.** Renumbering is deliberately avoided —
+family they belong to, so they sit beside their parent rather than at the end.** There are **64 numbered
+traps: base numbers 1–30 with 34 suffixed variants.** Renumbering is deliberately avoided —
 a renumber breaks every cross-reference in this document and in the branch reports, and it breaks them
 silently while leaving "the reference resolves" true. **A mechanical check confirms every `trap N`
 reference in this document resolves to a definition here.**
@@ -3533,8 +3592,8 @@ reference in this document resolves to a definition here.**
     it needs `2*ply >= 63999` against `MaxPly 128` — so that guard has never protected anything.
   - **Which heuristics actually change a mate answer, measured with 19 distinct binaries**: **the TT gates
     change 0 of 148 answers while halving or doubling nodes**, so TT is a speed question and not a
-    correctness one. **`Lmr` + `FutilityPrune` change 55 of 148 and enabling them LOSES mates** — one board
-    goes from `mate 2 / g1b1 / 894 nodes` to **`cp 831 / g2h1 / 331`**. **`SingularExt` and
+    correctness one. **`Lmr` + `FutilityPrune` change 55 of 148 answers and at fixed depth can lose a mate** — one board
+    goes from `mate 2 / g1b1 / 894 nodes` to **`cp 831 / g2h1 / 331`**. **But a later seat showed why that count is not yet a pruning verdict: ablating LMR changed which answers came out at a FIXED depth while a plain depth increase on the same engine reached the same right answer — one board 'fixed' by ablation at depth 8 in 1,304 nodes is also right by depth 14 unablated. **Ablation changes tree shape, so 55-of-148 needs a depth control before it is called a defect**, and this report does not have one.** **`SingularExt` and
     `QuietExtinction` are inert**, and only in endgames.
   - **And a ninth mate mode, which I first reported as a switch defect and then had to RETRACT: mate
     DISTANCE is imprecise on sparse endgames, and it is pre-existing on the base engine.** The evidence, on
@@ -3563,6 +3622,15 @@ reference in this document resolves to a definition here.**
     give at the same reported depth**, because `emit(depth, result.score, …)` prints the **unfinished
     iteration's depth beside the last finished iteration's score** — the same label/quantity mismatch the
     ponder audit found in `info time`.
+3a2. **`go mate N` DISABLES EVERY PRUNING GATE, so a mate-safety audit built on it measures nothing.**
+    `mate_moves_` is set from `limits.mate_moves`, and **every pruning predicate is guarded on
+    `mate_moves_ == 0`** — so under `go mate N` the null-move, razor, RFP, futility, LMP, SEE, LMR and
+    singular paths are all switched off. **An audit that asks "does pruning lose mates" while using
+    `go mate` is testing an engine with pruning disabled.** One seat in this run did exactly that before
+    catching it, and **all of its numbers are `go depth N`** for that reason.
+    - **The same trap in the other direction**: `go mate N` is also why the mate-distance defect in §1b
+      behaves differently there, and why `go depth 2N−1` disagrees with it in 1140 of 1600 cells.
+
 3a1. **`movestogo` and `ponder` WITHOUT a clock are UNBOUNDED.** With a 20 s cap: `go movestogo 20` and
    `go ponder` both give **no `bestmove` after 20 s**, still climbing (depth 28). `movestogo` only sets a
    field the **clock planner** consumes, and `ponder` only *suppresses* the clock — **neither token is a
