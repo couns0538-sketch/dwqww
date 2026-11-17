@@ -1082,6 +1082,8 @@ other budget shows a perfectly healthy mate.
 | **THE HEALTHY CONTROL** | 80,000 | `mate 7` | 13 | 13 | **YES — checkmate at ply 13** |
 | **THE HEALTHY CONTROL** | 250,000 | `mate 7` | 13 | 13 | **YES — checkmate at ply 13** |
 
+**Counting suggests, replaying proves.**
+
 **The control is what makes the defect a defect rather than a broken test.** The same replay code, on the same
 board, in the same run, confirms honest mates at two other budgets and refutes the score at one. A test that
 flagged all three would tell us about the test; one that flags exactly the over-claimed budget tells us about the
@@ -1089,3 +1091,10 @@ engine.
 
 **And seat 05 could only infer this from PV length — the replay is what converts the inference into a proof.** It
 counted 18 against a required 21; I played the 18 moves and observed that they do not deliver mate.
+
+## 2026-11-17T00:12:53Z — 25-minute cadence
+'COUNTING SUGGESTS, REPLAYING PROVES' is now placed directly beside the table, and it carries a point I had not stated explicitly (S-F89).
+  Seat 05 inferred the truncated mate PV by COUNTING plies - 18 against 21 needed. I PLAYED those 18 moves with python-chess and observed they do not deliver mate. Both reach the same conclusion, but only the replay is a proof.
+  AND THE SHARPER POINT: only the replay can CLEAR a claim. Run on the same board at 80,000 and 250,000 nodes it confirms mate 7 with a 13-ply PV that really mates. A counting rule can only ever ACCUSE; a replay can both accuse and acquit - which is what makes it a checker rather than a heuristic. That is why the healthy control matters so much here: it is the acquittal, in the same run, with the same code.
+  Also running: a scan of the mate-truncation defect across set_G at the owner's three match budgets (20,000 / 50,000 / 250,000). First 19 positions produced NO mate scores at those budgets, so the scan needs to run further to find the population - the rate per budget is the number the owner can act on, and it is only measurable because the replay test is proven able to both find and clear the defect.
+Next: continue the scan and confirmations while the window runs to 2026-11-17T10:18Z.
