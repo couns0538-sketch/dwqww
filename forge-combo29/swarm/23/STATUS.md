@@ -1345,3 +1345,15 @@ WHAT THE DATA SUPPORTS: on the THREE genuine repetitions, base 0 nodes every tim
 all three (1.38M / 1.60M / 1.38M nodes) -> "general, and repaired on the PC", NOT "general but not universal".
 F70 amended in place with a pointer to F71, not deleted.
 98 findings, 18 confirmations. 9 h 57 m remain.
+## 2026-11-17T00:23:11Z  headline sentence gains the LEVEL-OF-DESCRIPTION clause; F70 stays amended in place with the F71 pointer
+2026-11-17T00:23:11Z
+
+The page's proxy sentence now reads: a proxy for the condition is not the condition - assert it in the same terms the
+system under test uses, and WATCH THE LEVEL OF DESCRIPTION: can_claim_threefold_repetition() is a library fact about a
+BOARD, "this game reached three occurrences" is a fact about a GAME, and neither is the condition under test - "this
+position is drawn BY the repetition and not by material". Three of my thirteen faults were proxies at the wrong level;
+the check is to name the level as well as the predicate.
+That improves on the earlier wording, which warned only about library predicates. The level mistake is harder because
+each level sounds more like the real thing than the last, and both are silent when wrong.
+F70 kept amended in place with the F71 pointer, so a reader sees what I first concluded and why it was wrong.
+98 findings, 18 confirmations, thirteen named faults, six reference pages. 9 h 57 m remain.
