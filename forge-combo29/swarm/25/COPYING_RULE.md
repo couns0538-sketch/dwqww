@@ -40,6 +40,20 @@ Four parts, all needed:
 Cases 4 and 5 are the same finding twice: 4 was the wrong conclusion about the final answer, 5 was a fabricated
 detail used to rescue it. A retraction that keeps a supporting detail you did not copy is not a retraction.
 
+## A sweep rule that came out of the S-F3 / S-C39 check: an onset is the first PERMANENT value
+
+When a sweep looks for the point where a quantity flips - the first `cp 0`, the first zero, the first failure - do not
+stop at the first departure. **Record the boundary as the first value that STAYS flipped for every point after it.**
+
+Measured instance: sweeping the halfmove counter for the first `cp 0` reported **97** at depth 6, which looked like an
+onset. But counter 98 scored **cp -78** - the zero at 97 was a non-monotonic flip, and stopping at the first departure
+turned a local artifact into a boundary. Re-running both sides of the reported onset showed the true boundary was 99,
+pinned for every depth from 8 to 20.
+
+Practical form: a sweep should print the value at `onset - 1`, `onset`, and `onset + 1` at minimum, and assert
+monotonicity across the remaining range; if the quantity is genuinely non-monotonic, the report must say so rather than
+quote a single crossing.
+
 ## Why this failure mode is so easy to fall into
 
 - **The story arrives first.** A mechanism feels right, and then the evidence is read in a way that supports it. Each
