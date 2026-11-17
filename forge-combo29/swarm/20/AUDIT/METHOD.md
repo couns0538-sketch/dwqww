@@ -12,7 +12,11 @@
    appended the FINDINGS row, failed before writing the job file, and I re-appended — the same finding ended up in the
    file **twice**, and a second row kept a stale "STILL LIVE" status after its finding was withdrawn. Both were
    invisible to a normal read. `findings_lint.py` now catches both classes (exit 0 = clean).
-2. **Quote the thing, do not paraphrase it.** S-F28 was a citation until I extracted the verbatim text with its
+2. **`mkdir -p` the job directory BEFORE writing its files.** I lost this three times: a heredoc that writes
+   `jobN/<file>` fails if `jobN/` does not exist, and worse, it fails *after* the FINDINGS row was appended — so the
+   row lands without its evidence file and a retry duplicates it. Either `mkdir -p` first, or use a file-writing tool
+   that creates the path.
+3. **Quote the thing, do not paraphrase it.** S-F28 was a citation until I extracted the verbatim text with its
    commit, blob and sha256.
 3. **State build + settings in every line.** Base `6b98f217` vs PC r15; `none` / `S14` / `PC20`; Threads 1 unless the
    job is about threading.
