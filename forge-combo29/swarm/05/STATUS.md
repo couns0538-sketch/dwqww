@@ -806,3 +806,12 @@ every sentence.
   ladder's `|` separators. Escaped the former, replaced the latter with `·`. All 92 rows now have a correct
   unescaped-pipe count (verified with an escaped-pipe-aware counter, not awk).
 - next command: continue at cadence.
+
+## $(date -u)
+- S-F64: the one-iteration window is GENERIC and covers TWO of the owner's three match budgets. Scanning 20k..250k per
+  position (PC20, Threads 1, Hash 16, OwnBook false, fresh process per cell):
+    * G/192 truncates at `go nodes 20000`: mate -7, 10-ply PV needing 14, SHORT 4, depth 8
+    * S-F58 violator truncates at `go nodes 50000`: mate +11, 18/21, SHORT 3, depth 11
+    * R/120 and G/59: no truncating budget in 20k..250k
+  => each long-mate position has its OWN narrow window, and 20,000 and 50,000 nodes are both match budgets.
+- next command: continue at cadence.
