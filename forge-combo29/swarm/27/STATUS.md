@@ -453,3 +453,15 @@ My own harness, PC r15/PC20/Threads 1/Hash 16/OwnBook false, 2 reps per row, all
 **This is also a second independent sighting of what my S-C12 measured**: a `go nodes` budget at a match value
 stops mid-iteration, and here the consequence is a **score the engine's own PV cannot support** (`mate 11` in
 18 plies).
+
+## 2026-11-17T00:18Z the sentence to keep, and one recommendation now stated once
+**S-C15 carries the sentence: at a long mate a `go nodes` budget can publish A SCORE THE ENGINE'S OWN PV CANNOT
+SUPPORT** (`mate 11` in 18 plies where 2N-1 = 21). The harm is not a shortened line but a claim the engine does
+not itself prove - and that is the concrete reason to prefer `go softnodes` on the labelling path, since it lands
+on an iteration boundary so the reported score is always one the PV backs up, at the cost of the 2-95 % over-budget
+S-N1 measured.
+**One ordering note about my own work, recorded because it is the kind of thing that decides whether a number can
+be trusted:** my first run of the S-C15 harness crashed on a formatting bug (`plies_needed` is None for a cp
+score) - **after** the control had already passed. The control's result was still valid, the crash was in the
+target-row printing, and I fixed it and re-ran before recording any target number. So the sequence was: control
+verified, target formatting failed, target re-run on the fixed script, only then recorded.
