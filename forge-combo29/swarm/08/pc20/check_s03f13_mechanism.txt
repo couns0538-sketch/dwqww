@@ -1,0 +1,31 @@
+## Mechanism characterisation of the 11 lone-king divergences
+
+PROBING = gives check, captures, or newly attacks an enemy piece. WAITING = none of those.
+
+| fen | base move | class | PC move | class | pattern |
+|---|---|---|---|---|---|
+| 8/8/2B1k3/8/3PP3/P7/4K3/7R b - - 11 95 | e6d6 | PROBING | e6e7 | WAITING | **base PROBES, PC WAITS** |
+| 8/8/2k5/4P3/3P4/P7/4K3/7R w - - 1 106 | e2d3 | WAITING | h1c1 | PROBING | **reverse (base waits, PC probes)** |
+| 8/2k5/4P3/8/3P4/PR6/3K4/8 b - - 0 109 | c7d8 | WAITING | c7c6 | WAITING | **both wait** |
+| 8/4k3/8/6R1/8/P7/3K4/8 b - - 1 116 | e7d7 | WAITING | e7d6 | WAITING | **both wait** |
+| 1R6/8/k7/8/8/P7/8/2K5 b - - 15 123 | a6a7 | PROBING | a6a5 | WAITING | **base PROBES, PC WAITS** |
+| 8/8/8/4R3/2k5/P7/8/2K5 w - - 22 127 | a3a4 | WAITING | c1c2 | WAITING | **both wait** |
+| 8/8/8/1R6/1K6/P7/3k4/8 b - - 57 144 | d2e3 | WAITING | d2e1 | WAITING | **both wait** |
+| 8/8/P7/8/8/4K3/1k6/8 b - - 18 186 | b2b3 | WAITING | b2c2 | WAITING | **both wait** |
+| 6K1/2b5/p1k5/8/8/8/8/b7 b - - 5 137 | a6a5 | WAITING | a1d4 | WAITING | **both wait** |
+| 8/2k5/p7/8/8/7K/1b6/b7 w - - 26 148 | h3g4 | WAITING | h3g2 | WAITING | **both wait** |
+| 2k5/8/p7/6b1/8/2b4K/8/8 b - - 47 158 | a6a5 | WAITING | g5f6 | WAITING | **both wait** |
+
+## The claim, tested
+
+| pattern | boards |
+|---|---|
+| base WAITING -> PC WAITING | **8** |
+| base PROBING -> PC WAITING | **2** |
+| base WAITING -> PC PROBING | **1** |
+
+
+**NO — the pattern is NOT the rule, and 'dominant' would overstate it.** Only 2 of 11 divergences are
+base-PROBES -> PC-WAITS. The other 9 are WAITING->PROBING x1, WAITING->WAITING x8. In particular 8 of 11 have BOTH moves waiting, so the repair
+usually changes WHICH waiting move is played, not whether the move probes at all. The eyeball impression
+from a few boards was wrong and this test replaces it.
