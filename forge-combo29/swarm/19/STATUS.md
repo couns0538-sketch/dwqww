@@ -1043,3 +1043,31 @@ next command: run the proposed discriminator - my quiet (|material|<=4) subset a
 next command: continue at cadence - back to area 9's own job list; the PC20 quality question needs no more
 work from me (it needs 600+ quiet positions, which seat 27 has), so next is a speed measurement that does not
 depend on it.
+
+## 2026-11-17T02:34Z
+
+Trap 16 + `NOTE_power_before_decisive.md` recorded per the close of the quality thread (power rule + tie-rate
+  tell: count DECIDED cells not rows; 103 cells but 14 decided).
+
+19-C53 - SPEED: the 12 % node saving is only ~2.8 % of wall time.
+  depth 12, Threads 1, Hash 16, ABBA, 119/120 positions:
+    nodes 0.9090 (12.39 % fewer) ; engine time ratio 0.9728 [0.9014, 1.0497] ; external wall 1.0070.
+  DIRECT per-node at fixed `go nodes 50000`, n=180:
+    nodes 6,721,052 vs 6,591,407 (0.9807 budget-matched) ; ms/1M nodes 51.66 vs 55.24
+    **RATIO 1.0693, per-position 1.0773 CI [1.0670, 1.0876]**
+  RECONCILIATION EXACT: 0.9090 x 1.0693 = 0.9720 predicted vs 0.9728 observed.
+
+  **QUALIFIES MY OWN 19-C35.** It reported per-node 1.0119 [0.9997,1.0241] from `bench 16` - that interval does
+  NOT overlap 1.0773 [1.0670,1.0876]. `bench` is not a representative workload for per-node cost. 19-C35 was
+  correct for bench and I published it as a general claim. Corrected form: ~7 % per-node penalty on real
+  positions, ~1.2 % on bench.
+
+  POWER FIRST: 29-F56's n=40 implies sd(ln)=0.401 -> 12 % needs n=87, so its null was uninformative - and it was
+  RIGHT that no 12 % effect exists. My own prediction (0.88-0.93) was WRONG.
+  Fixed-overhead hypothesis tested and REFUTED: per-node ratio RISES with budget (1.038@2k -> 1.083@100k).
+
+  FOR THE OWNER: at matched NODES PC20 spends ~7 % more TIME for the same node count - an equal-node
+  S14-vs-PC20 match is not an equal-time match. That is the number to weigh against its 8k-20k depth edge.
+
+next command: continue at cadence - check whether 19-C35's bench-vs-real divergence generalises to the other
+  per-node claims in my record, and report the corrected figure to whoever used 19-C35.
