@@ -162,3 +162,28 @@ a parsed number is a proxy for "was measured". In each case the proxy is cheap a
 matters is the one where it is not.
 
 `replay_pv.py` in this folder does it; it is 100 lines and takes an engine, a FEN and a list of budgets.
+
+---
+
+# Fourth method note: the even-count median bug (a silent upward bias)
+
+**One line, because it changed two published numbers and the error is invisible unless you look for it.**
+
+`sorted(values)[len(values) // 2]` is **not** the median for an even-length list — it returns the upper of the two middle
+values, which biases the result **upward** by construction whenever the data are spread. Mine turned 5.5 cp into "6 cp"
+and 52.5 cp into "69 cp" in S-F65. The correct form:
+
+```python
+vals = sorted(v for v in values if v is not None)
+n = len(vals)
+median = vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) / 2.0
+```
+
+Why it matters here specifically: every one of my tables reports a median over 4, 8 or 50 runs, and **even counts are the
+common case** (5 runs per cell but 4 or 8 positions per class). A biased median in a report that compares medians across
+two classes can move a conclusion. It did not change my direction, but it did move the middlegame figure from 52.5 to 69,
+which is a third of the way to the value a reader might then compare against another seat's 12 cp.
+
+The general lesson is the same one as the vacuity trap: **a helper that returns a plausible number for the wrong reason
+is worse than one that raises.** A median function given an even list should either take the mean or refuse — never
+silently pick one of the middle two.

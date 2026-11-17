@@ -63,9 +63,18 @@ So the honest count is: **the score gains a mate label in 4 of 8 sparse endgames
 delivers the mate.** The other 2 are the same truncation defect as S-F63/S-F64, now at |N| = 16 and 20 — long endgame
 mates, which extends the defect's range beyond the middlegame boards I had before.
 
-**Had I compared PV length against 2|N|−1 only, I would have counted all 4 as clean gains.** The ply count is short in
-both bad cases (28 vs 31, 25 vs 39), so a length test would have flagged them — but it would have flagged them as
-"short PVs", not as "lines that do not mate", and the distinction matters for what a training label can trust.
+**Stated plainly: had I used the ply-length comparison instead of the replay, I would have logged these two as short
+PVs, not as lines that do not mate.** The length test does catch them here — the counts are short (28 vs 31 plies, 25 vs
+39) — but it reports a *quantity* defect ("the PV is shorter than the score needs") where the replay reports a *fact*
+("the line printed does not end in checkmate"). Those are different statements about the same board:
+
+- a short PV could, in principle, still end in mate early — which would be a different (and benign) situation;
+- a line that replays legally and does not mate **cannot** be a mate, whatever its length.
+
+So the length comparison infers the defect from a proxy and the replay proves it. For a training label the difference
+matters: "this mate score has a short PV" invites the reading "the score is a bound the PV did not finish printing", while
+"this mate score's line does not mate" says the label itself is not delivered by the engine's own output. The second is
+what a label consumer needs to know, and it is what I recorded in S-F66.
 
 ## A correction I made while checking
 
