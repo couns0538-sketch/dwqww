@@ -1,79 +1,85 @@
-# REPORT_v3_Step2_baseline — the identity baseline, and a figure I cannot reconcile
+# REPORT_v3_Step2_baseline — RECONCILED: 27,944,084 reproduces EXACTLY on seat 08's set
 
-**What Step 2 needs:** a speed patch must keep EVERY number identical — the eight benches, the per-position node rows
-of the 200 openings at depth 12 under PC20 + the test net, and the `eval` of all 353 G positions.
+**The discrepancy I raised is closed, and the fault was mine: I measured a different position set.**
 
-**My measured baseline for the 200-opening arm is 27,762,950 nodes.**
+## The reconciliation
 
 ```
-exe      bld-v3 (g++ 13.3.0, -march=x86-64-v4, FORGE_NNUE_V3=1, FORGE_MATE_ALPHA_GUARD=1)
-net      /tmp/test.fnn3  checksum fdff70de72e4ca82
-settings PC20 + test net, Threads 1, Hash 16, `go depth 12`, ucinewgame + isready before each
-positions the first 200 of set_G.epd (G200.epd), each search driven to bestmove before the next command
-SUM      27,762,950        file: ident_base.txt
+set                                  positions                          node sum
+first 200 of set_G.epd (mine)        200                                27,762,950
+seat 08's OG200 (O100 + G100)        200                                27,944,084   <- MATCHES the figure exactly
 ```
-Per-position rows are in `ident_base.txt`, so every patch can be compared row by row, not just on the sum.
 
-## THE FIGURE I WAS ASKED TO MATCH, AND WHY I AM NOT ADOPTING OR REJECTING IT
+On seat 08's committed set `forge-combo29/swarm/08/job1/OG200.fens` my build reproduces **27,944,084 exactly**, and
+the individual rows match too:
 
-I was told the identity is **27,944,084**. My measurement is **27,762,950** — a difference of **181,134 nodes
-(0.65 %)**, an average of 906 nodes per position.
+```
+row 1  mine 110540   seat 08 110,540
+row 2  mine 126001   seat 08 126,001
+row 3  mine 118474   seat 08 118,474
+```
 
-**I cannot reproduce 27,944,084 and I cannot find its source:**
-- it is **not in file 7** (grep: no match);
-- it is **not in files 1-6** of the handoff branch;
-- it is **not in any seat's FINDINGS.md** (checked seats 06, 11, 15, 19, 29).
+**So the identity baseline for Step 2 is 27,944,084**, measured independently on my build. There is no unexplained
+second baseline and nothing to re-open.
 
-So it reached me through the coordinator's check message without an attribution I can verify. Two explanations are
-consistent with the numbers, and I cannot distinguish them from here:
+## What I got wrong, precisely
 
-1. **A different position set.** A 0.65 % gap across 200 positions is the size you would get from 200 *different*
-   positions, or the same 200 in a different order with a different `Hash` reuse pattern. My set is the first 200 of
-   `set_G.epd`, which is what file 7's "your 200 openings" most naturally means, but file 7 does not pin which 200.
-2. **A different build or net state on the measuring machine.** My Step 0 matched all eight benches and three evals
-   exactly, so a systematic build difference is unlikely — but Step 0 does not cover the 200-position sum.
+I measured "the first 200 of `set_G.epd`" because file 7 says "your 200 openings at `go depth 12`" without pinning
+which 200, and my folder already held `set_G.epd`. That produced 27,762,950 — **a legitimate measurement of a different
+set**, which I then reported as a gap against a figure whose provenance I had not established. I searched file 7,
+handoff files 1–6 and five seats' FINDINGS, found nothing, and concluded the figure was unattributable.
 
-**What I am doing about it: publishing my measured baseline as the identity, naming the discrepancy, and NOT
-treating 27,944,084 as authoritative.** A speed patch validated against a number I cannot reproduce would be
-validated against nothing. If the coordinator can point me at the seat or file that produced 27,944,084, and the
-position set behind it, I will re-measure on that set and use whichever baseline matches.
+**The figure WAS attributable — to seat 08, in `swarm/08/v3/profile/openings_baseline.txt` — and I never looked
+there.** My search covered the handoff branch and the FINDINGS files but not other seats' `v3/` report folders. That
+is the specific mistake: **I searched where I expected the number to live, not where a seat doing the same job would
+have written it.**
 
-## What this means for Step 2's deliverable
+This is the third time today I have built an explanation on an unsearched premise (hardware, perf redirection, now
+provenance), and it is the same shape each time: a plausible story in place of one more lookup.
 
-Per the coordinator's instruction: **if the fixed-budget check cannot be run in the window, publish the patch as
-unmeasured and say so.** Given this discrepancy I am doing exactly that — and the honest state is one step short of
-"unmeasured": I *can* measure the patch against MY baseline (27,762,950), which is a valid internal identity check,
-but I cannot claim it matches the number I was told to match.
+## The trap the coordinator flagged, and it did not bite
 
-So the patch will be published with:
-- its node rows compared to `ident_base.txt` (my measured baseline) — exact equality required;
-- an explicit statement that the 27,944,084 figure is unreconciled and why;
-- whatever timing the remaining window allows, or "unmeasured" if it does not.
+`profile_openings.py` in seat 08's folder hard-codes `/tmp/o100.fens`, which is not in the repo. The committed rows are
+in `OG200.fens`, so I used that file directly rather than running their script. **The first-two-rows check
+(110,540 / 126,001) confirms I read the right file** — that was the right way to validate the set before trusting the
+sum, and it is why the reproduction is credible rather than coincidental.
+
+## The corrected baseline, for Step 2
+
+```
+identity     27,944,084 nodes over 200 positions
+positions    forge-combo29/swarm/08/job1/OG200.fens  (O100 + G100; first 100 of O then first 100 of G)
+settings     depth 12, PC20 (the 20 option values) + OwnBook false, test net via NNUEArchFile then NNUEArch,
+             Threads 1, Hash 16, ucinewgame + isready before every position, each search driven to bestmove
+rows         v3/ident_OG200.txt  (200 rows + sum)
+exe          /home/ubuntu/builds/bld-v3/forge
+```
 
 ## Honesty numbers
 
 ```
-baseline exe  /home/ubuntu/builds/bld-v3/forge
-sha256        (in the build dir; unchanged since Step 0 passed 8/8 benches, 3/3 evals)
-net           /tmp/test.fnn3  6,309,096 bytes, fdff70de72e4ca82
-rows          200 of 200, sum 27,762,950, wall 14 s
+exe   /home/ubuntu/builds/bld-v3/forge   g++ 13.3.0, -march=x86-64-v4, FORGE_NNUE_V3=1, FORGE_MATE_ALPHA_GUARD=1
+net   /tmp/test.fnn3  checksum fdff70de72e4ca82
+runs  200 of 200, sum 27,944,084, wall 15 s
 ```
 
 ## Table
 
 | step | done-partly-not done | evidence file | result |
 |---|---|---|---|
-| 200-position identity baseline at depth 12 | done | `ident_base.txt`, `ident.log` | 27,762,950 |
-| reconcile with the stated 27,944,084 | **NOT POSSIBLE from here** | greps of file 7, files 1-6, five seats' FINDINGS | not found in any source I can read |
-| per-position rows for row-by-row patch comparison | done | `ident_base.txt` | 200 rows |
+| fetch seat 08's position set | done | `OG200.fens` (from `for-fable-and-opus/swarm-08`) | 200 lines, first two as quoted |
+| re-measure on that set | done | `ident_OG200.txt` | **27,944,084 EXACTLY** |
+| first-two-rows sanity check | done | same | 110540 / 126001 match |
+| my earlier "unattributable figure" claim | **WITHDRAWN** | this report | the figure was seat 08's, on a different set |
+| my earlier 27,762,950 | kept, relabelled | `ident_base.txt` | a valid measurement of the first 200 of set_G |
 
 ## Findings
 
-`v3 | the 200-opening identity baseline measured on this build is 27,762,950 nodes (200 positions, depth 12, PC20 + test net, Threads 1, Hash 16), which differs from the 27,944,084 I was asked to match by 181,134 nodes (0.65 %, 906 per position). The 27,944,084 figure does not appear in file 7, in handoff files 1-6, or in the FINDINGS of seats 06/11/15/19/29, so I cannot attribute it and will not treat it as authoritative. A 0.65 % gap is consistent with a different position set or a different Hash reuse pattern; my set is the first 200 of set_G.epd | v3/ident_base.txt v3/ident.log v3/REPORT_step2_baseline.md | NEW |`
+`v3 | the Step 2 identity baseline is RECONCILED at 27,944,084 nodes: on seat 08's committed position set (swarm/08/job1/OG200.fens = first 100 of O + first 100 of G) my build reproduces the sum exactly and the first three rows exactly (110540 / 126001 / 118474). My earlier 27,762,950 was the first 200 of set_G.epd — a different set, a valid measurement of the wrong thing. My claim that 27,944,084 was "unattributable" is WITHDRAWN: it is seat 08's figure in swarm/08/v3/profile/openings_baseline.txt, and I had searched only the handoff branch and FINDINGS files, not other seats' v3 report folders | v3/ident_OG200.txt v3/REPORT_step2_baseline.md | NEW |`
 
 ## Suspicions, not proven
 
-- That 27,944,084 came from a different 200-position set. The magnitude fits; I have no evidence either way.
+- None. This row is settled by exact agreement on the sum and the first three rows.
 
 ## Times
 

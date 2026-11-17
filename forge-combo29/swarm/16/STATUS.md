@@ -743,3 +743,19 @@ seed: 1601
   (Threads 1, ABBA, n>=120, per-position spread) cannot be completed before the close, it goes out as UNMEASURED with
   that said plainly rather than with a number I did not earn.
 - check_folder.py ALL CHECKS PASS (472 files, 52 findings rows). Continuing to the close at 10:18:40Z.
+
+## 2026-11-17T09:35Z
+- TIME SLIP CORRECTED: I wrote "55 minutes to close" and it is ~6.9 hours. The window ends 2026-11-17T10:18:40Z,
+  which my own STATUS has said all along. So the ABBA real-position check IS achievable and the patch will not ship
+  as unmeasured on a deadline that does not exist.
+- BASELINE RECONCILED AND MY CLAIM WITHDRAWN: the identity is 27,944,084, and my build reproduces it EXACTLY on seat
+  08's committed position set (swarm/08/job1/OG200.fens = first 100 of O + first 100 of G) — exact sum AND exact
+  first three rows (110540 / 126001 / 118474). My 27,762,950 was the first 200 of set_G.epd: a different set, a valid
+  measurement of the wrong thing. My "unattributable figure" claim was wrong — it is seat 08's, in
+  swarm/08/v3/profile/openings_baseline.txt, and I had searched only the handoff branch and FINDINGS files rather
+  than other seats' v3 report folders. THIRD explanation-on-an-unsearched-premise today (hardware, perf redirect,
+  provenance), same shape each time: a plausible story instead of one more lookup.
+- Seat 08's hard-coded /tmp/o100.fens trap did not bite me: I read OG200.fens directly and validated with the
+  first-two-rows check before trusting the sum.
+- check_folder.py ALL CHECKS PASS (474 files, 53 findings rows). Next: Step 2 patch aimed at the shared accumulator
+  walk, then ABBA (Threads 1, n>=120, per-position spread).
