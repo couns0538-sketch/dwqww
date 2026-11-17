@@ -24,6 +24,7 @@ import argparse
 import json
 import math
 import os
+import pathlib
 import re
 import subprocess
 import sys
@@ -169,10 +170,13 @@ def _contain(root, candidate):
 
 def write_json(target, root):
     """Serialise the ledger to `target`, which must resolve inside `root`."""
-    safe = _contain(root, target)
+    base_dir = pathlib.Path(root).resolve()
+    out = pathlib.Path(target).resolve()
+    if not out.is_relative_to(base_dir):
+        raise ValueError("refusing to write outside %r: %r" % (str(base_dir), str(out)))
     rows = [{k: (str(v) if not isinstance(v, (str, int, float, bool, type(None), list)) else v)
              for k, v in r.items()} for r in RESULTS]
-    with open(safe, "w", encoding="utf-8") as fh:
+    with out.open("w", encoding="utf-8") as fh:
         json.dump(rows, fh, indent=1)
 
 
@@ -894,17 +898,17 @@ def check_citations(base):
     for label, where, rel, line, expect in CITES:
         # `rel` is a module constant from CITES; `base` is caller-supplied, so the resolved
         # path is proven to stay inside it before anything is opened.
-        try:
-            path = _contain(base, os.path.join(base, "forge-combo29", rel))
-        except ValueError:
+        base_dir = pathlib.Path(base).resolve()
+        path = (base_dir / "forge-combo29" / rel).resolve()
+        if not path.is_relative_to(base_dir):
             record(label, where, "%s:%d" % (rel, line), None, "NOT-RE-DERIVABLE",
                    "citation path escapes the base worktree")
             continue
-        if not os.path.exists(path):
+        if not path.exists():
             record(label, where, "%s:%d" % (rel, line), None, "NOT-RE-DERIVABLE",
                    "file not present at 6b98f217")
             continue
-        with open(path, encoding="utf-8", errors="replace") as fh:
+        with path.open(encoding="utf-8", errors="replace") as fh:
             lines = fh.read().splitlines()
         got = lines[line - 1].strip() if line <= len(lines) else "<past EOF>"
         record(label, where, "%s:%d" % (rel, line), got,
