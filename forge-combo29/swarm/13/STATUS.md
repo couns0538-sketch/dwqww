@@ -790,3 +790,20 @@ CYCLE STEP (a) — checked seat 16's S-F27/S-F29: S-C6 CONFIRMS BOTH, and SHARPE
     no ucinewgame-between-games variant); checked move sequences as well as finals because identical finals
     alone would not prove identical games.
 Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py
+
+## Tue Nov 17 12:03:00 AM UTC 2026
+
+CYCLE STEP (a): checked seat 12's 12-F1 -> S-C7 CONFIRMS it, and the check CORRECTED MY OWN JOB 16.
+  CONFIRMED: `ucinewgame` resets the board to startpos. `position fen <K+P>` then go -> e1d2 / 10 nodes;
+    `position fen <K+P>`, ucinewgame, go -> d2d4 / 26 nodes (startpos depth 1). Same on both builds.
+    Source read at src/uci.cpp:386-389: stop_search(); searcher.clear(); board.set_fen(StandardStartFen).
+  BEYOND THE FINDING, and it matters: ucinewgame is a COLD reset — it clears the TT, so three identical
+    depth-12 searches give 52,591 / 52,591 / 52,591 WITH it between, versus 52,591 / 27,239 / 21,407
+    WITHOUT. So ucinewgame is the cold-start control and NOT a way to obtain a warm search.
+  CONSEQUENCE FOR MY OWN WORK: job 16's "warm" arm (one process, ucinewgame between) was never warm — it was
+    the same experiment as the cold arm, which is exactly why all 38 cold/warm pairs came out identical. The
+    NULL RESULT stands, but the label overstated what was done. REPORT_job16.md now carries an explicit
+    correction and no longer claims to have tested warm behaviour.
+  AUDIT: all three of my scripts that send ucinewgame send `position` AFTER it, so none is affected by the
+    board-reset trap (checks/check_27f2.py, job10/underreport.py, job16/loneking.py).
+Next command: cd forge-combo29/swarm/13 && python3 FINDINGS_check.py

@@ -4,7 +4,8 @@
 **No finding: my 19 positions were too easy (14 are mate-in-1) so zero misses appeared on either build,
 which cannot confirm the fix. The reusable part is `loneking.py` + its `REUSE_POSITIONS=<json>` path —
 any seat holding a hard lone-king set (KBB-K / KBN-K / KNN-K, mate 10+ plies away) can point it at that
-file and get the real answer in about a minute, with cold and warm disciplines and both builds handled.**
+file and get the real answer in about a minute, with both builds handled. (Note: the script's "warm" arm is
+not actually warm — `ucinewgame` is a cold reset, see the correction inside this report.)**
 
 `FORGE_FIX_BARE_KING_LMR_CAP` remains **UNTESTED**, against the four requirements listed at the end of
 this report.
@@ -21,7 +22,7 @@ endings, and that it wins MORE hard endings at self-play depth (KBB-K 175/300 vs
 | discipline | base | PC |
 |---|---|---|
 | cold (fresh process per position) | 19/19 found, 0 missed | 19/19 found, 0 missed |
-| warm (one process, `ucinewgame` between) | 19/19 found, 0 missed | 19/19 found, 0 missed |
+| "warm" (one process, `ucinewgame` between) — **misnamed, see the correction below** | 19/19 found, 0 missed | 19/19 found, 0 missed |
 
 So there is no missed mate anywhere, on either build, in either discipline. **That is not a
 confirmation of the fix**, and I am not going to present it as one: with zero misses to compare, the test
@@ -48,6 +49,12 @@ similar positions to warm the histories.
    positions for the history tables to steer badly. My "warm" mode runs 19 positions in one process with
    `ucinewgame` between — `ucinewgame` resets the board but (per the patch's own note elsewhere) not
    necessarily the histories, so this is only partly warm.
+   **CORRECTION (later, from checking seat 12's 12-F1): `ucinewgame` is a COLD reset, not a partial one — it
+   clears the transposition table (three identical depth-12 searches give 52,591 / 52,591 / 52,591 with
+   `ucinewgame` between, versus 52,591 / 27,239 / 21,407 without). So my "warm" arm was never warm: it was
+   the same experiment as the cold arm, which is exactly why all 38 cold/warm pairs came out identical. The
+   NULL RESULT is unaffected, but this report does NOT demonstrate warm behaviour and the label is corrected
+   here rather than left standing. See checks/CHECK_12F1.md.
 3. **An independent oracle for "the mate is still there"**: python-chess verified distances, which for
    10+ ply mates means an exhaustive search I cannot afford per position at this scale.
 4. **The patch's own comparator**: r9 (the base of the patch) versus the patched build, on the same 400
