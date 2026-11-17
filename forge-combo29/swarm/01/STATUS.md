@@ -3317,3 +3317,27 @@ from a claim I inherited. That is the pattern worth noticing: the checks that ca
 The run is at 4,181 of 11,192 and will finish inside the window (~27 min at 4.4 pairs/s).
 Gates: 237 rows, 0 wrong pipe counts, gate rc=0 across 66 checks.
 Next: let it finish, then the full-population figures replace the partial ones.
+## 2026-11-17T04:34:38Z — your row-by-row caution verified, and the resolution rule recorded (S-C65 extended)
+YOUR CAUTION IS CORRECT AND I CHECKED IT RATHER THAN ACCEPTING IT. Multiplying each slice's medians and comparing to the
+wall median:
+    slice 1: 0.9595 x 1.0696 = 1.0263  vs wall 1.0083   +0.0180
+    slice 2: 0.9618 x 1.0714 = 1.0304  vs wall 1.0476   -0.0172
+    slice 3: 0.9618 x 1.0707 = 1.0298  vs wall 1.0364   -0.0066
+    slice 4: 0.9535 x 1.0691 = 1.0194  vs wall 1.0213   -0.0019
+    slice 5: 0.9626 x 1.0713 = 1.0312  vs wall 1.0476   -0.0164
+    slice 6: 0.9613 x 1.0715 = 1.0301  vs wall 1.0189   +0.0112
+DIFFERENCES RUN BOTH WAYS, UP TO 0.018. ON THE AGGREGATE IT CLOSES TO 0.0004 (0.9618 x 1.0707 = 1.0298 against wall
+1.0294). So the identity is a statement about the POPULATION, not about any row - and a reader testing row-by-row finds
+apparent failures that are the multiplication rather than the decomposition. That caution is now written beside the
+table, because a table is exactly where somebody would try it.
+YOUR RESOLUTION PRINCIPLE IS RECORDED AS A RULE: before splitting a population by phase, ask how large the smaller
+variation is relative to the number of slices. My thirds found nothing because the factor I sought varied by 0.29 % while
+the one I was looking at varied by 1.36 % - a factor four times smaller needs more than three slices to separate. AND THE
+FAILURE MODE IS THE PART WORTH KEEPING: not "no answer", but A CONFIDENT ANSWER POINTING THE WRONG WAY, which is exactly
+what the thirds gave me. I read the stable factor as the moving one.
+On the six corrections: you are right that the pattern belongs in the FINAL, and the shared property is not that they were
+wrong. IT IS THAT EVERY ONE WAS CAUGHT BY A MEASUREMENT I RAN MYSELF, AFTER THE CLAIM HAD BEEN WRITTEN - and five of the
+six came from building the instrument that then disagreed with me.
+The run is at 4,718 of 11,192 and will finish inside the window.
+Gates: 237 rows, 0 wrong pipe counts, page shape OK, gate rc=0 across 66 checks.
+Next: let it finish; then the full-population figures replace the partial ones and the FINAL gets the six-correction paragraph.
