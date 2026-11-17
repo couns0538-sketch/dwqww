@@ -22,6 +22,35 @@ number.** Each entry below produced, or nearly produced, a wrong result that loo
 **The fix:** read stdout until `bestmove` before sending anything else. **The sub-case that matters:** `go perft`
 is **synchronous** and unaffected — `go perft 5` + `quit` still prints `nodes 4865609`.
 
+### 1b. The sibling: `info` lines that exist but describe nothing (19-C25)
+
+**The bug:** a search that never ran can still emit `info depth` lines — with **`nodes 0` and an EMPTY `pv`**.
+
+**Measured** on the base tree at `6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 100 60` with
+`go searchmoves e1e8 depth 4` (a drawn-root shortcut):
+
+```
+info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+info depth 3 seldepth 3 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+info depth 4 seldepth 4 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv
+```
+
+Four depth lines, **zero nodes, empty PV** — the engine announcing progress while searching nothing. (On PC r15
+the same command gives `mate 1` at 8 nodes with a real PV, which is why the two builds differ here.)
+
+**What it looks like:** a harness that checks *"did a depth line appear?"* reads four depth lines and concludes
+the search ran.
+
+**The tell:** a PV that is empty, or `nodes 0`, on a line that claims a depth.
+
+**The test:** assert **`nodes > 0` AND the PV is non-empty** — not the presence of an `info` line. A search that
+produced nothing is indistinguishable from a successful one by depth lines alone.
+
+**The relation to trap 1:** trap 1 is *zero* `info` lines; this is *empty* ones. Together they mean the only
+reliable evidence of a search is **a positive node count plus a move in the PV**, and that check should be in
+every harness that reads engine output.
+
 ---
 
 ## 2. `select()` on a buffered text pipe is not a timeout (08-N2)
@@ -200,6 +229,10 @@ uniform 2-ply offset and suspecting my own instrument rather than the engine** (
 another seat's correction** (traps 8 and 9 from seat 17; trap 10 from seat 25; and the *shape* of trap 11 first
 came from seat 05's finding I was trying to check). **That distribution is the argument for the cross-checking
 rule, quantified: four of the eleven defects here would not have been found by the seat that made them.**
+
+**And the one check that belongs in every harness, from traps 1 and 1b together:** a search happened only if
+**`nodes > 0` and the PV is non-empty**. Neither "an `info` line appeared" nor "a `bestmove` arrived" is
+sufficient on this engine.
 
 ## See also
 
