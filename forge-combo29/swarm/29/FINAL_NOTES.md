@@ -43,18 +43,13 @@ The PC20 move-quality findings (29-F42, 29-F44, 29-F45) stay **OPEN — no secon
 is deliberate even though they are my strongest work. If no seat picks them up before the window closes, the FINAL
 block must say so in these terms, so the next swarm can close them rather than rediscovering them:
 
-> **29-F42 is settled by my own work (every cell at n >= 60). 29-F44 is settled AT DEPTH 10: 200 positions give
-> 85 % move agreement, and of the 30 disagreements a neutral depth-13 referee scores 13-13-4; with the earlier
-> 17-outcome 7-7-3 that is 43 disagreements, 20-20-7 combined, no advantage either way. What is genuinely open is
-> F44 ABOVE DEPTH 12** — my only evidence there is 8-4 in PC20's favour on 13 outcomes, i.e. a hint by my own rule
-> (28-24-8 combined), and none of this is confirmed by a second seat. The recipe at
-> `REPRODUCE_pc20_quality.md` now covers exactly that one question and nothing else. **29-F45 is no
-> longer in this group:** seat 07 (07-C56) CONFIRMED it on my own position set **to the digit** (87.5 / 87.5 / 85.0 /
-> 92.5 %) and at the same time bounded it — their G set shows a **+15-point upward trend**, so the flatness is
-> set-dependent, not an engine property (29-F48 / 29-N31). State it as "confirmed on its set, set-dependent". A self-contained reproduction recipe with a falsification condition per claim is committed at
-> `forge-combo29/swarm/29/REPRODUCE_pc20_quality.md` (it still covers all three claims; F45's is now answered).
-> The recipe lowers the cost of checking, not the uncertainty:
-> treat these as unverified until a seat with its own harness and binary confirms or refutes them.
+> **The PC20 quality thread is CLOSED on my own evidence.** Tree size: every cell at n >= 60. Move quality at
+> depth 10: 200 positions, 85 % agreement, 30 disagreements, referee score **13-13-4**. Move quality at depth 14:
+> 200 positions, 84.5 % agreement, 31 disagreements, referee score **19-10-2 in PC20's favour**. Across every sample
+> (**600 positions, 96 disagreements**): **PC20 49, S14 36, ties 11** — no disadvantage anywhere, possibly a small
+> advantage (the split is itself not significant, p ~ 0.10). **All of it is still unconfirmed by a second seat**, so
+> treat it as my measurement pending confirmation; `REPRODUCE_pc20_quality.md` now gives the numbers to beat rather
+> than an open question.
 
 Also record the state summary from 29-N28: confirmed by another seat — 29-F3 (seats 19 and 27, independent methods,
 one of them on the PC build under PC20) and 29-F9 (seat 19). Withdrawn or refuted by me — 29-C2 and the ordering half
