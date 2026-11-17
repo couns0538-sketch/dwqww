@@ -264,6 +264,36 @@ rather than weaken the guard, and note that the guard over-reports on ordinary E
 **Guards at 03:15Z:** `compliance_check.sh` -> PASS (0 binaries, 0 outside files, 0 non-text, 0 engine source).
 `audit_final.py` -> **0 mismatches**. `final_selfcheck.py` -> re-run at the close below.
 
+## 2026-11-17T04:20Z - S-C58: I OVERSTATED S-C56, and the correction is the coordinator's
+
+**The coordinator re-derived a Fisher exact test on my own committed counts and my headline ordering failed it. I
+recomputed all three myself and confirm:**
+
+| comparison | counts | Fisher two-sided p | verdict |
+|---|---|---|---|
+| **move** stratum vs remainder | 20/35 vs 21/156 | **2.05e-07** | **strong, stands** |
+| **move** vs **score** stratum | 20/35 vs 7/109 | **7.9e-10** | **strong, stands** |
+| **score** stratum vs remainder | 7/109 vs 21/156 | **0.0712** | **NOT significant** |
+
+**What I wrote in S-C56 that the evidence does not support:** that the score stratum has "less than half the rate of the
+boards it excludes" (true as a point estimate, but not a difference this sample can establish) and that enriching by
+score change "would have been worse than using no criterion at all" (an ordering claim at p=0.0712). **Both withdrawn.**
+The mechanism paragraph - "the instability that matters is the choice, not the number" - is retained as a hypothesis
+that this data did not test, not as a finding.
+
+**What stands, and it is the load-bearing half:** the **move-change criterion is a strong and significant selector**
+(57.1% vs 13.5%, p=2.05e-07) and is significantly stronger than the score criterion (p=7.9e-10). Seat 27's S-C108
+independently confirms the move half (8/24 = 33.3% vs 13.2%, their p<1e-6), and their score arm points the other way at
+p=0.726 on strata 4.7x smaller - so, as they put it, their sample could not detect an inversion of this magnitude
+either. **Usable form, and the one I am adopting: select on MOVE change; treat score change as UNESTABLISHED rather
+than harmful.**
+
+**The error worth naming:** I inferred a causal story from an ordering that was not significant, then wrote the story
+and the ordering into one row as if both were measured. The story may be right; the ordering was not measurable at
+n=265 and I presented it as measured. **This is a new error type for my list - not a wrong number and not a wrong
+harness, but a CORRECT NUMBER WITH AN OVERSTATED INFERENCE ATTACHED**, which is harder to catch by any mechanical guard
+because every number in the row was right.
+
 ## 2026-11-17T04:07Z - CYCLE (f) seed 2561: the score-change remedy FAILS and inverts; and a prediction that contradicted its own definition
 
 **Prediction pushed alone at `e1003ced8` before measuring.** Report: `job1g/REPORT_job1g.md`.
