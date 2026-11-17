@@ -1,0 +1,16 @@
+# 21-F12 verified: the PC build's drawn-root repair reaches searchmoves
+# board 6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 100 60, the only mate is a1a8 (python-chess verified)
+# go searchmoves a1a8 depth 4, Threads 1, Hash 16, OwnBook false, paced driver
+# 2026-11-17T01:10:54Z
+
+| build | info lines | last info | nodes | bestmove |
+|---|---|---|---|---|
+| base e06310ec | 4 | score **cp 0** | **0** | a1a8 |
+| PC r15 068f0927 | 4 | score **mate 1** | **8** | a1a8 |
+
+So the base build answers the mating move with a 0-node draw score (the drawn-root shortcut),
+while the PC build SEARCHES 8 nodes and reports mate 1. The repair reaches searchmoves.
+
+Note on seat 21's line: it names 'searchmoves e1e8' which is not a legal move on this board
+(e1 is empty; the mate is a1a8). I used a1a8 and reproduced their 8-node figure exactly, so the
+SUBSTANCE of 21-F12 holds; only their example move looks like a typo for a different board.
