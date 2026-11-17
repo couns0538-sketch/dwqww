@@ -1083,40 +1083,39 @@ only way a qsearch node reaches clock 100 is an **in-check evasion** at clock 99
 path**, and that is why no depth escapes: the defect lives in a node type that only occurs in check near
 the boundary.
 
-**A second, wider false draw was then found in a position with NO MATE ON THE BOARD — this one is outside
-the band above, and it is a different defect.** Fixture `6k1/5ppp/8/8/8/8/8/R5NK b - - H 40`: Black is down
-a rook with six pawn moves available, so the fifty-move draw is **not** available on Black's best line, and
-there is no mate for either side. Measured on the audit base at `go depth 12`, and **I reproduced every row
-on my own build**:
+**A CLAIM IN THIS SECTION WAS WITHDRAWN, AND THE WITHDRAWAL MATTERS MORE THAN THE CLAIM DID.** An earlier
+version of this block reported a **false draw at H=97 worth −620**, on the strength of "two independent models
+agree". **Both halves of that are now retracted:**
 
-| H | base score | base nodes | truth (two independent models) |
-|---|---|---|---|
-| 95 | −507 | 80,489 | — (both models at depth-4 resolution, not evidence of a defect) |
-| 96 | **−531** | 106,852 | −620 |
-| **97** | **`cp 0`** | **1,061** | **−620** |
-| 98 | `cp 0` | 487 | **0 — correct** |
-| 99 | `cp 0` | 227 | **0 — correct** |
+- **The −620 is withdrawn, and the "two independent models" were not independent.** Both used a
+  **material-only leaf**, and **at every depth from 2 to 5 they return the SAME value for H=96 and H=97** —
+  `−520 / −520` at depths 2, 3 and 5, `−620 / −620` at depth 4. **A model that cannot distinguish the two
+  clocks cannot adjudicate which of them the engine got wrong.** I reproduced that myself: my own minimax,
+  which I described as written "specifically to try to refute" the seat, shares the flaw and agrees with the
+  seat's model for the same reason. **Two implementations of the same leaf are one opinion.**
+- **The "forced reset" mechanism is withdrawn too.** `g8f8 a1a7 f8e8 a7f7` is legal and **does** reset the
+  clock — but `a7f7` **captures a pawn defended by the king on e8**, so it is a rook for a pawn, net **−400**,
+  and the resulting K+N vs K+2P is about **+0.69**. **White would not play it**, so it is not a forced
+  anything, and the earlier claim that White forces a reset was reading legal-move availability as a
+  plan. **I had published that line as the mechanism.**
+- **What survives needs no evaluation in it at all, which is exactly why it is the usable form**: **H=96 and
+  H=97 have the SAME claim window** — 4 plies, 2 White moves — so no rule distinguishes them. At `go depth 20`
+  the base goes **−630 / 3,402,177 nodes at H=96** to **`cp 0` / 2,672 nodes at H=97**: a **630 cp jump and a
+  1,273× node collapse across one clock unit.** `seldepth 20` at H=97 proves the draw was **searched**, not
+  the 0-node root bail, so this is not trap 2. **The repair keeps the pair in band** (−630 → −649,
+  3.4M → 5.2M nodes). **I do not assert which member of the pair is correct** — only that **the flip has no
+  mechanism and the repair removes it.**
+- **And one more universal claim withdrawn**: "a correct search must return the same verdict for both
+  clocks" **is false** — H=94 and H=95 share a 6-ply window and **legitimately** differ (−631 vs −638).
+  **Only a pair with an identical claim window is a contradiction.**
 
-- **So the defect is ONE CLOCK UNIT WIDE and its direction is "claims a draw one ply too early"**: the
-  engine is roughly right at H=96 (−531 against −620), **collapses to `cp 0` at H=97**, and is correctly
-  drawn at 98 and 99. It is the same family as the band above with `p = 1` rather than `p = 2`, and
-  **being reachable with no mate on the board is what makes it a separate defect** rather than a member of
-  the band.
-- **The mechanism is a forced clock reset, and this is the part I got wrong first.** My initial reading was
-  that Black, who has the pawns and wants the draw, could shuffle and let the clock run, which would make
-  H=96 the false cell instead. **That is wrong: White forces a capture that resets the clock.** The line is
-  `g8f8 a1a7 f8e8 a7f7`, and replaying it against python-chess gives the clock 97 → 98 → 99 → 100 → **0**
-  on the `a7f7` capture, so **Black never gets a turn at clock ≥ 100 and the claim never becomes
-  available**. `Ra7` hits f7; Black cannot save the pawn without a pawn move, which is also a reset.
-- **Two independent models agree on −620**, which is why the cell is published: the seat's own claim model,
-  and an independent python-chess minimax written by the coordinator (claim tested on the side to move at
-  `halfmove_clock >= 100`, value `max(0, continuation)` because the claim is optional, material-only leaf)
-  giving **H=96 −620, H=97 −620, H=98 0**. **The second model was written specifically to try to refute
-  the first, and it did not.**
-- **The repair closes both wrong cells and leaves the correct ones alone**: H=97 goes to **−525** against a
-  model value of −620, the H=99 mate cell goes to **mate −1**, genuine draws stay at `cp 0`, it changes
-  **0 of 90** low-clock cells, and it costs **zero pins**. **The cost is stated as a cost: the H=97 cell
-  goes from 1,061 nodes to 86,268 — 81×.**
+- **The repair's effect, stated without leaning on the withdrawn model**: on the H=96/H=97 pair it keeps
+  them **in band** (−630 → **−649**, 3.4M → **5.2M** nodes) instead of letting one collapse to `cp 0`; on
+  the **H=99 mate-in-one cell** — which needs **no model at all** to adjudicate, because a genuine mate in one
+  either is one or is not — base returns `cp 0` and the repair returns **`mate −1`**. It changes **0 of 90**
+  low-clock cells and costs **zero pins**. **The cost is stated as a cost**: the H=97 cell goes from ~1,061
+  nodes to ~86,268 — **81×** — and the repair is **not** licensed to be called "more accurate" at H=97, only
+  "consistent across a clock pair the rules do not distinguish".
 - **Not shipped**, on purpose: it changes `Worker::is_draw`, which the main search and the §2 drawn-root
   work share, so it needs the owner's decision and the full 14-cell sweep. **The ~20 lines are in the
   seat's FINDINGS.**
