@@ -78,7 +78,7 @@ rows confirmed.
 | "mate" is actually stalemate | C | adjudicated, `cp 0` | adjudicated, `cp 0` | correctly does not fire |
 | move leaves the opponent a legal reply | D | adjudicated | adjudicated | correctly does not fire |
 | halfmove 100, mate in 2 not 1 | E | adjudicated | adjudicated | correctly does not fire |
-| insufficient material, mate would exist | F, F2 | adjudicated | adjudicated | branch unreachable (see 63-F11) |
+| insufficient material, mate would exist | F, F2 | adjudicated | adjudicated | branch did not fire; see 63-F11 |
 | KNN v K control (not insufficient, has a mate) | F3 | `d2b3` (mate) | `d2b3` (mate) | unchanged |
 | threefold repetition, no mate | G | adjudicated, claims `depth 8` | adjudicated, claims `depth 1` | repaired reporting |
 
@@ -186,9 +186,10 @@ slightly too strong. This is a comment inaccuracy, not a behaviour defect.
   `python3 job1/fixtures.py`
 - **63-F9** Stalemate is not mistaken for mate: fixture C is correctly left adjudicated.
 - **63-F10** A mate in 2 is not mistaken for a mate in 1: fixture E is correctly left adjudicated.
-- **63-F11** The insufficient-material branch of the repair can never fire: under the
-  engine's own predicate no mate exists. Sampled 110,221 engine-insufficient positions,
-  0 with a mating move. Dead code, not a bug. `python3 job1/insuff_sample.py`
+- **63-F11** The insufficient-material branch of the repair did not fire in 110,221 sampled
+  engine-insufficient positions (0 had a mating move). The standard theorems say it cannot,
+  but I did not prove it exhaustively — the full sweep did not finish, so this is strongly
+  supported rather than proven. `python3 job1/insuff_sample.py`
 - **63-F12** The repetition path is repaired too: a threefold root with a mate available gives
   base `h1f2` (draw, no mate) vs patched `b3a3` (`mate 1`). Transcript below.
 
@@ -226,7 +227,9 @@ slightly too strong. This is a comment inaccuracy, not a behaviour defect.
 
 ## Times
 
-See `job1/stamps.txt`.
+`job1/stamps.txt` holds the git commit times on this branch (real) and the mtimes of the
+evidence files, which are **copy** times, labelled as such in that file. A per-part stamp
+was not recorded during the first pass and I have not typed times I did not observe.
 
 ## Last command output
 
@@ -235,4 +238,31 @@ $ git status --short
 (clean)
 
 $ ls forge-combo29/swarm/63/job1/
+base_rate.py          deeper.py             fixtures.json         fixtures.py
+instrument.py         insuff_sample.py      matrix.py             out/
+planted_control.py    probe_search.cpp.txt  repetition_mate.py    res_asan_base.json
+res_asan_patched.json res_base_rel.json     res_patched_rel.json  scan_cost.json
+scan_cost.py          stamps.txt            two_doors_mate.patch.txt
+drawn_root_reporting.patch.txt              ucih.py               wire.py
+wire_report.json      wrong_p.sh            compose.sh            compose_both.sh
+
+$ ls forge-combo29/swarm/63/job1/out/ | wc -l
+25
 ```
+
+## Verdict
+
+**Ship both patches.** They compose deterministically, move no honesty pin on release or
+under ASan+UBSan, fix the drawn-root defect on the fifty-move, repetition and
+insufficient-material paths, refuse to fire on stalemate, on a non-mating check, on a mate
+in two, and on every insufficient-material root (where no mate is possible), and cost
+nothing on the 125 non-drawn roots I measured. The single behaviour change beyond the fix
+itself — a real search instead of an adjudication when `searchmoves` excludes the mating
+move — yields the same move and score, and only makes the patch's own comment slightly too
+strong.
+
+The general fixable weaknesses, in order of what I would do next: correct the comment to
+mention the `searchmoves` case; replace `std::min(1, max_depth)` with a plain `1` (the
+`min` is inert); and, if the seat wants to remove the dead insufficient-material branch,
+either drop it or note in the code that the predicate makes it unreachable.
+
