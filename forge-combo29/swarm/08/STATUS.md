@@ -888,3 +888,21 @@ next: Step 1 — profile `bench 13` + 200 openings under PC20 + test net, Thread
 Tally per the gate: **42 / 33 / 5 / 2**, plus 1 open lead.
 
 next: cadence.
+
+## 2026-11-17T02:24Z — 389 vs 505 RESOLVED, and the label defect was MINE
+- Seat 27 measured PC **505 nodes** on the repetition door where I reported **389**. Measured all four cells:
+  **PC r15 S14-only = 505**, **PC r15 PC20 = 389**, base S14 = **0 (a2a3)** in both, v3/PC20 = 389. So **both
+  figures are correct** — they are different option sets — and the base cell being identical proves the harnesses are
+  otherwise the same.
+- **The defect is my label, not my measurement.** `check_repetition_root.py` names its option list `S14` but that list
+  **contains the five PC20 switches plus OwnBook false**, so its behaviour was PC20 while its name said S14, and I
+  published the NAME instead of reading the list.
+- **08-W3 records the withdrawal and the rule: a bare node figure names no search.** 08-C34's line now states
+  "PC r15, S14 only, NO PC20 switches" and carries both the 389 and 505 cells.
+- Seat 27's counting trap (returns-to-start = 2, but the initial position is occurrence #1) is a real one, and its
+  preflight refusing to measure rather than producing a false refutation is correct behaviour.
+
+## 2026-11-17T02:24Z — TALLY (generated, not maintained)
+**42 findings, 33 checks/audits/plants, 5 method lines, 3 withdrawals** (and 1 open lead).
+
+next: cadence.

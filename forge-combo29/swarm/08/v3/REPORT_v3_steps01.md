@@ -15,10 +15,13 @@ Load line: checksum `fdff70de72e4ca82`, `max|w1| 64 max|b1| 96 max|w2| 16`, **ke
 Build: `-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1`, g++ 13.3.0, Release, no `-march` override.
 **Machine: 4-core x86-64 with AVX-512F and BMI2**, so the AVX-512 v3 kernel runs here as on the PC's Zen 5.
 
-## Instrumentation, and why gprof
+## Instrumentation, and why the profile is ADMISSIBLE
 `perf` is **not installed** on this machine and `apt` is unavailable (no root). So the profiler is **gprof**
-(`-pg -fno-omit-frame-pointer`, linker `-pg`). The instrumented build reproduces **bench 13 = 3,652,372 nodes** under
-PC20 + test net — the pinned number — so the `-pg` build is behaviourally identical to the release one for this purpose.
+(`-pg -fno-omit-frame-pointer`, linker `-pg`).
+
+**The reason the numbers below can be trusted is a single check: the `-pg` build reproduces bench 13 = 3,652,372
+nodes under PC20 + test net exactly, the pinned number from file 7.** A profiler that changes behaviour measures
+itself, so an instrumented build must first be shown to be the same engine on the workload being profiled. It is.
 
 ## Step 1: the profile, `bench 13` under PC20 + test net, Threads 1
 
@@ -54,14 +57,28 @@ IS a cache — is now better supported than when I wrote it**, since the update 
 eliminating it entirely could not give more than that. I keep that prediction as written, including the part that says
 a large win would surprise me.
 
-**My second kill condition did NOT fire:** search proper is 38.41 %, under the 50 % threshold, so the net IS being
-exercised by the bench. (It is close to the line, which I note.)
+**My second kill condition did NOT fire, and it cleared by only 11.6 points:** search proper is **38.41 %** against a
+50 % threshold. The claim it licenses is therefore weaker than "the harness is fine" — the net IS being exercised, but
+search is the single largest block and only a little more of it would have failed the gate. I state the margin because
+a threshold barely cleared should not be reported as comfortably met.
 
 ## Step 1b: the 200-opening baseline (also Step 2's identity table)
 200 positions (first 100 of O + first 100 of G), `go depth 12`, `ucinewgame` + `isready` before each, PC20 + test net:
 **node sum 27,944,084**, every position with a node count, per-position rows in `profile/openings_baseline.txt`.
 
 **This table is the identity baseline**: any patch must reproduce every row exactly, per file 7.
+
+## The architecture fact, which outlasts the percentage
+I predicted the incremental update would dominate because it runs at every node while evaluation runs at leaves. **The
+call counts say otherwise: `evaluate` runs 2,556,881 times against the update's 2,382,071** — the v3 path evaluates at
+nearly every node. So the asymmetry I assumed does not exist, and that is a statement about how this architecture
+works, not about one percentage. **The premise was false, not the estimate.**
+
+## The consequence is a NEGATIVE RECOMMENDATION
+**No single v3 function exceeds 8.5 %, so there is no hot spot, so do not spend effort on a v3 micro-patch.** The
+larger shares are **search at 38.41 %** and **movegen at 15.80 %**, which is where any real speed work should go —
+and those are seats 19 and 29's existing territory, not the v3 novelty. Redirecting effort away from a 3 % patch is
+worth more than the patch would have been.
 
 ## What this means for Step 2, before I write any patch
 The v3 path is **21.46 %** of bench-13 time and no single v3 function exceeds 8.5 %. The three v3 functions are
