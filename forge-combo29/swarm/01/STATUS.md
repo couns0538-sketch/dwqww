@@ -1187,6 +1187,7 @@ in nodes without timing anything.
 2. **S-C15 / S-F64** — the clock path is a quantised step function, reproducible only to a plateau;
 3. **S-F91** — so the per-move variance at a fixed clock is that staircase, and the node count predicts it.
 
-**For the owner:** two games at "6 s per move" can differ by ~3x in search effort per move purely from where each
-move's iteration boundary falls. That is the same reason a node budget is reproducible and a clock budget is not —
-now demonstrated across a whole sequence, not just a single search.
+**The staircase is why a node budget reproduces and a clock budget does not — shown at the level of a whole
+sequence, not a single search.** Two games at "6 s per move" can differ by ~3x in search effort per move purely
+from where each move's iteration boundary falls; pin the budget in nodes and that variance disappears, because
+the node count *is* the rung.
